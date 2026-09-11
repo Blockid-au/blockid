@@ -124,8 +124,9 @@ describe("/funding/programs — index", () => {
     expect(html).not.toContain("Short summary.");
     expect(html).not.toContain('href="https://example.com/apply"');
     for (const p of rows) expect(html.split(`href="/funding/programs/${p.capital.toLowerCase()}/${p.id}"`).length - 1, p.id).toBe(1);
-    // Under six rows: no <details> tail, the group links to its calendar instead.
-    expect(html).not.toContain("<details");
+    // Under six rows: no <details> tail, the group links to its calendar instead
+    // (the S12-A FAQ at the foot of the page uses <details> too, so match the tail's marker).
+    expect(html).not.toContain("data-tail-count=");
     expect(html).toContain("See the Sydney intake calendar");
     // Heading order: one H1, the "Pick your capital" H2, then the group H2s; rows are H3.
     expect(html.match(/<h1[\s>]/g)).toHaveLength(1);

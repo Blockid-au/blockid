@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import fs from "node:fs";
 import path from "node:path";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
@@ -8,13 +9,11 @@ import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Changelog — BlockID.au",
-  description:
-    "Every release, every fix, every ship — no marketing spin.",
-  robots: { index: true, follow: true },
-  alternates: { canonical: "https://blockid.au/changelog" },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Changelog",
+  description: "Every BlockID.au release, fix and ship in order — version, date and what changed for founders and evaluators. No marketing spin.",
+  path: "/changelog",
+});
 
 // ---------------------------------------------------------------------------
 // File loader

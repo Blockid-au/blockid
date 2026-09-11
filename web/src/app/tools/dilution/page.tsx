@@ -4,9 +4,8 @@ import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { DilutionCalculator } from "./dilution-calculator";
 
-const TITLE = "Dilution Calculator — Free Founder Dilution Modelling for AU Startups";
-const DESCRIPTION =
-  "Model pre-money valuation, raise size and ESOP top-up to see founder dilution before signing the term sheet. Free for Australian startup founders.";
+const TITLE = "Dilution calculator — free for AU founders";
+const DESCRIPTION = "Model pre-money valuation, raise size and ESOP top-up to see founder dilution before signing the term sheet. Free for Australian startup founders.";
 
 const FAQ_ITEMS: ReadonlyArray<{ title: string; body: string }> = [
   {

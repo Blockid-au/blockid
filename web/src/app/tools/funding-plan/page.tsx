@@ -4,9 +4,8 @@ import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { FundingPlanTool } from "./funding-plan-tool";
 
-const TITLE = "Funding Plan — Free Startup Capital Planner for AU Founders";
-const DESCRIPTION =
-  "Plan how much capital you need, how much each founder puts in, and how much to raise externally. AU pre-seed friendly. Free for Australian startups.";
+const TITLE = "Funding plan — free startup capital planner";
+const DESCRIPTION = "Plan how much capital you need, how much each founder puts in, and how much to raise externally. AU pre-seed friendly. Free for Australian startups.";
 
 const FAQ_ITEMS: ReadonlyArray<{ title: string; body: string }> = [
   {

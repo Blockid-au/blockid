@@ -7,6 +7,7 @@
 // Plain server component — no libraries, no I/O.
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 
 import { AtlassianWalkthroughProvider } from "@/components/showcase/atlassian-walkthrough-provider";
@@ -15,11 +16,11 @@ import {
   type ValuationSnapshot,
 } from "@/lib/showcase/atlassian/fixture";
 
-export const metadata: Metadata = {
-  title: "Valuation methods side-by-side — Atlassian demo — Step 7 — BlockID",
-  description:
-    "DCF, Berkus, Scorecard and Comparables valuations for Atlassian at four points in its journey — log-scale chart plus a citation table.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Valuation methods side-by-side — Atlassian, step 7",
+  description: "DCF, Berkus, Scorecard and Comparables valuations for Atlassian at four points in its journey — log-scale chart plus a citation table.",
+  path: "/showcase/atlassian/valuation",
+});
 
 const TIMESTAMPS: ReadonlyArray<string> = [
   "2005",

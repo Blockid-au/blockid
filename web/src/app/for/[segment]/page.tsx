@@ -51,7 +51,7 @@ export async function generateMetadata({
   const { segment } = await params;
   if (!isSegmentSlug(segment)) return {};
   const content = SEGMENT_CONTENT[segment];
-  const title = `${content.label} — BlockID.au`;
+  const title = `BlockID for ${content.label.toLowerCase()}`;
   const description = content.hero.subhead;
   const canonical = `${SITE_URL}/for/${content.slug}`;
   return {

@@ -11,8 +11,7 @@ export const dynamic = "force-static";
 export const revalidate = 3600;
 
 const TITLE = "Sample Business Report — BlockID SVI™";
-const DESCRIPTION =
-  "Preview a full 10-page BlockID Trusted Business Report — 8 SVI dimensions, 13 investor criteria, valuation range, risk register, and improvement roadmap for a sample AU SaaS startup.";
+const DESCRIPTION = "Preview a full 10-page BlockID Trusted Business Report — 8 SVI dimensions, 13 investor criteria, valuation range, risk register and roadmap for a sample AU startup.";
 
 export const metadata: Metadata = {
   title: TITLE,

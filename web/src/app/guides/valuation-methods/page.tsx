@@ -4,9 +4,8 @@ import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 
-const TITLE = "6 Startup Valuation Methods Explained (AU 2026) | BlockID";
-const DESCRIPTION =
-  "VC Method, DCF, Comparables, Berkus, Scorecard, Risk-Factor Summation — formulae, when to use, and Australian benchmarks. Free founder guide.";
+const TITLE = "6 startup valuation methods explained (AU 2026)";
+const DESCRIPTION = "VC Method, DCF, Comparables, Berkus, Scorecard, Risk-Factor Summation — formulae, when to use, and Australian benchmarks. Free founder guide.";
 const URL = "https://blockid.au/guides/valuation-methods";
 
 export const metadata: Metadata = {

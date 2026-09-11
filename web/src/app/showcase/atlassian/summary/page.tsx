@@ -9,6 +9,7 @@
 // Server component only. No Supabase, no cookies, no I/O. Anonymous 200.
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 
 import {
@@ -25,11 +26,11 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Wrap-up — Atlassian demo — Step 9 — BlockID",
-  description:
-    "You've walked through Atlassian's 24-year journey. Here's the recap, the KPIs, and what to do next in your own BlockID workspace.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Wrap-up — Atlassian demo, step 9",
+  description: "You've walked through Atlassian's 24-year journey. Here's the recap, the KPIs, and what to do next in your own BlockID workspace.",
+  path: "/showcase/atlassian/summary",
+});
 
 // One-line takeaway per step. Kept in-file so the summary page reads as a
 // standalone recap; each string is the takeaway a visitor should carry away

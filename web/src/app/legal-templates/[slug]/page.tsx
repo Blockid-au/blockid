@@ -12,6 +12,7 @@
  */
 
 import type { Metadata } from "next";
+import { brandedOrAbsolute, fitDescription, pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -19,8 +20,6 @@ import {
   listTemplates,
   readTemplateRaw,
 } from "@/lib/templates/legal-templates";
-
-const SITE_URL = "https://blockid.au";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -37,12 +36,11 @@ export async function generateMetadata({
   const { slug } = await params;
   const tpl = getTemplate(slug);
   if (!tpl) return {};
-  return {
-    title: `${tpl.title} — BlockID.au`,
-    description: tpl.summary,
-    alternates: { canonical: `${SITE_URL}/legal-templates/${tpl.slug}` },
-    robots: { index: true, follow: true },
-  };
+  return pageMetadata({
+    title: brandedOrAbsolute(tpl.title),
+    description: fitDescription([tpl.summary], { min: 70, max: 160 }),
+    path: `/legal-templates/${tpl.slug}`,
+  });
 }
 
 // ---------------------------------------------------------------------------

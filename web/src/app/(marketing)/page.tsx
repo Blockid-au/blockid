@@ -25,6 +25,7 @@ import {
   readSignedInHint,
   SIGNED_IN_LANDING_HREF,
 } from "@/lib/supabase/session-hint";
+import { pageMetadata } from "@/lib/seo/page-meta";
 
 // Homepage v5 (2026-09-08) — the page now looks like the thing the product
 // makes.
@@ -108,13 +109,12 @@ import {
 // Title + description are the hero's own lines (T0250): the title is the
 // first breath of F1, the description the whole of F1, so what a search
 // result promises is exactly what the H1 says.
-export const metadata = {
-  title: "See your startup the way an investor will · BlockID.au",
+export const metadata = pageMetadata({
+  title: "See your startup the way an investor will",
   description: heroLine("F1").en,
-  alternates: {
-    canonical: "https://blockid.au",
-  },
-};
+  path: "/",
+  viPath: "/vi",
+});
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

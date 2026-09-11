@@ -27,6 +27,8 @@ import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { FundingJsonLd } from "@/components/funding/funding-json-ld";
 import { FundingGuides } from "@/components/funding/funding-guides";
+import { FundingFaq } from "@/components/funding/funding-faq";
+import { directoryFaq } from "@/lib/funding/faq";
 import { FilterChips, type FilterChipGroup } from "@/components/funding/filter-chips";
 import { DirectoryGroup } from "@/components/funding/directory-group";
 import { GrantRow, INDEX_ROWS_CLASS } from "@/components/funding/index-rows";
@@ -263,6 +265,8 @@ export default async function GrantsDirectoryPage({
       </section>
 
       <FundingGuides guides={GRANT_GUIDES} heading="Read before you apply" />
+
+      <FundingFaq items={directoryFaq("grants")} />
 
       <FundingDisclaimer lastVerifiedAt={lastVerified} />
     </MarketingShell>

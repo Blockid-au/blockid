@@ -8,6 +8,7 @@
  */
 
 import type { Metadata } from "next";
+import { brandedOrAbsolute, fitDescription, pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import fs from "node:fs";
 import path from "node:path";
@@ -75,13 +76,11 @@ export async function generateMetadata({
   if (!SLUGS.includes(agent as AgentSlug)) return {};
   const detail = readAgent(agent as AgentSlug);
   const role = detail?.role ?? agent;
-  return {
-    title: `${role} — BlockID Team`,
-    description:
-      detail?.tagline ??
-      `Meet the ${role} agent on the BlockID.au multi-agent platform.`,
-    alternates: { canonical: `https://blockid.au/team/${agent}` },
-  };
+  return pageMetadata({
+    title: brandedOrAbsolute(`${role} — BlockID team`),
+    description: fitDescription([detail?.tagline, `Meet the ${role} agent on the BlockID.au multi-agent platform.`], { min: 70, max: 160 }),
+    path: `/team/${agent}`,
+  });
 }
 
 export default async function AgentProfilePage({

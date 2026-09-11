@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
@@ -17,31 +18,11 @@ import {
   Zap,
 } from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "About BlockID — AI-Powered Startup Ownership Platform",
-  description:
-    "BlockID helps Australian founders build valuable, investable businesses from day one with AI-powered valuation, ownership intelligence, and investor-readiness tools.",
-  alternates: {
-    canonical: "https://blockid.au/about",
-  },
-  openGraph: {
-    title: "About BlockID — AI-Powered Startup Ownership Platform",
-    description:
-      "BlockID helps Australian founders build valuable, investable businesses from day one with AI-powered valuation, ownership intelligence, and investor-readiness tools.",
-    url: "https://blockid.au/about",
-    siteName: "BlockID.au",
-    type: "website",
-    locale: "en_AU",
-    images: [{ url: "/images/logo-full.png", width: 1556, height: 880, alt: "BlockID.au" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "About BlockID — AI-Powered Startup Ownership Platform",
-    description:
-      "BlockID helps Australian founders build valuable, investable businesses from day one with AI-powered valuation, ownership intelligence, and investor-readiness tools.",
-    images: ["/images/logo-full.png"],
-  },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "About BlockID — AI startup ownership platform",
+  description: "BlockID helps Australian founders build valuable, investable businesses from day one with AI-powered valuation, ownership intelligence, and investor-readiness tools.",
+  path: "/about",
+});
 
 // Qualitative trust signals — "empty until real" per SOURCE-OF-TRUTH.
 // Kept: 8 SVI dimensions, 10 free tools (both verifiable in code). Removed:

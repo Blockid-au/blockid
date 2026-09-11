@@ -3,7 +3,7 @@ import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — BlockID",
+  title: "Terms of Service (short form)",
   description:
     "Terms and conditions for using the BlockID platform. Governed by Australian law.",
   alternates: {

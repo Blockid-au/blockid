@@ -171,6 +171,28 @@ export const FUNDING_COPY = {
     draftGeneric: "This grant has no official question set yet, so these are the four questions every AU grant form asks.",
   },
 
+  /**
+   * Visible FAQ at the foot of the free directories (S12-A) — the same
+   * strings feed the `FAQPage` JSON-LD, so nothing in the schema is invisible.
+   * Product facts only: free lists, the Sunday refresh + review queue, what
+   * A$3 buys, no cut of grants, the capital → satellite grouping, per-program
+   * equity terms. `{satellites}` is filled from `CAPITAL_SATELLITES`.
+   */
+  faq: {
+    grantsFreeQ: "Is grant information free?",
+    grantsFreeA: `Yes — the list and every official link are free. ${REPORT_PRICE} buys the eligibility analysis, ranking, A$ estimate and 12-month timeline.`,
+    updatedQ: "How often is this list updated?",
+    updatedA: "Every Sunday a refresh checks each official page and re-verifies status and dates. Anything it cannot confirm goes to a human review queue before it changes here.",
+    reportQ: "What does the Money Finder report include?",
+    reportA: `For ${REPORT_PRICE}: your ranked grants and programs, an eligibility checklist per match, an A$ estimate and a 12-month application timeline.`,
+    cutQ: "Do you take a cut of grants?",
+    cutA: "No. Grant money goes from the provider to you — we sell the analysis, not the access, and there is no success fee.",
+    citiesQ: "Which cities are covered?",
+    citiesA: "Programs are grouped under the eight capitals plus online, and nearby cities roll into their capital — {satellites}.",
+    equityQ: "Do programs take equity?",
+    equityA: "It varies: some take none, some take a small stake or a SAFE. The equity terms are shown on each program's row and detail page.",
+  },
+
   /** Empty / locked states — never blank (auto-fill rule). */
   empty: {
     noGrants: "No grants match yet — the directory is still free to browse.",

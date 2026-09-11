@@ -3,15 +3,16 @@
 // (verifiable public interviews), Wikipedia cross-ref only.
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 
 import { CanonicalStageBadge } from "@/components/showcase/canonical-stage-badge";
 
-export const metadata: Metadata = {
-  title: "SafetyCulture Showcase — BlockID.au",
-  description:
-    "SafetyCulture's growth mapped to the BlockID Startup Valuation Index and founder platform.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "SafetyCulture showcase — founder platform",
+  description: "SafetyCulture's growth mapped to the BlockID Startup Valuation Index and founder platform.",
+  path: "/showcase/safetyculture",
+});
 import {
   SAFETYCULTURE_TIMELINE,
   type Milestone as SharedMilestone,

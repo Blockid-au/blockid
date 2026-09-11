@@ -7,22 +7,17 @@
 // URL paste, and debounced classification.
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { AnalyzeRoot } from "@/components/analyze/analyze-root";
 import { getCurrentUser } from "@/lib/auth";
 import { parseClaimedParam } from "@/lib/analyses/summary";
 
-export const metadata: Metadata = {
-  title: "Analyze your startup — SVI Score, Valuation, and Next Actions",
-  description:
-    "Drop your pitch deck, paste your site URL, or type your idea. Get a score across eight dimensions, a valuation from four methods, and a ranked list of what to fix first.",
-  openGraph: {
-    title: "Analyze your startup — Startup Value Index",
-    description:
-      "Context-aware analysis: deck, URL, or idea. Stage-detected, agent-tuned, credit-transparent.",
-    type: "website",
-  },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Analyze your startup — SVI score and valuation",
+  description: "Drop your pitch deck, paste your site URL or type your idea. Get a score across eight dimensions, a valuation from four methods and a ranked list of fixes.",
+  path: "/analyze",
+});
 
 interface SearchParams {
   tier?: string;

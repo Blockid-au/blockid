@@ -4,9 +4,8 @@ import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 
-const TITLE = "ESOP Legal Checklist for Australian Startups 2026 | BlockID";
-const DESCRIPTION =
-  "Free interactive ESOP legal checklist for AU founders. Covers pre-implementation, plan documentation, ESS tax rules, ASIC compliance, employee communication, and ongoing obligations. Updated June 2026.";
+const TITLE = "ESOP legal checklist for Australian startups 2026";
+const DESCRIPTION = "Free interactive ESOP legal checklist for AU founders — pre-implementation, plan documentation, ESS tax rules, ASIC compliance, employee communication and more.";
 const CANONICAL = "https://blockid.au/tools/esop-checklist";
 
 export const metadata: Metadata = {

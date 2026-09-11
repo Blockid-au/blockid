@@ -3,9 +3,8 @@ import Link from "next/link";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 
-const TITLE = "Free Startup Tools | BlockID — Valuation, Cap Table & More";
-const DESCRIPTION =
-  "16 free tools for Australian startup founders: idea clarifier, sector-aware idea lab, equity split calculator, dilution modeller, cap table, SAFE note calculator, ESIC checker, R&D tax calculator, and more. No login required.";
+const TITLE = "Free startup tools — valuation, cap table and more";
+const DESCRIPTION = "16 free tools for Australian startup founders: idea clarifier, idea lab, equity split, dilution, cap table, SAFE calculator, ESIC checker, R&D tax and more.";
 const CANONICAL = "https://blockid.au/tools";
 
 export const metadata: Metadata = {

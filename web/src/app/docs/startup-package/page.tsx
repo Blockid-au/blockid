@@ -19,6 +19,7 @@
  */
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 
@@ -174,14 +175,11 @@ const TOTAL_INTERVIEW_MINUTES = INTERVIEW_STEPS.reduce((s, r) => s + r.minutes, 
 // Metadata
 // -----------------------------------------------------------------------------
 
-export const metadata: Metadata = {
-  title: "Startup Package guide — BlockID.au",
-  description:
-    "A guided founder journey — 8-step interview, 4 auto-agent passes, day-0 dataroom, public listing, weekly progress emails. A$149 one-off + 25 credits.",
-  alternates: {
-    canonical: "https://blockid.au/docs/startup-package",
-  },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Startup Package guide",
+  description: "A guided founder journey — 8-step interview, 4 auto-agent passes, day-0 dataroom, public listing, weekly progress emails. A$149 one-off + 25 credits.",
+  path: "/docs/startup-package",
+});
 
 // -----------------------------------------------------------------------------
 // Page

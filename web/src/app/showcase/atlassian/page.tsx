@@ -8,6 +8,7 @@
 // See web/src/lib/showcase/atlassian/fixture.ts.
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 
 import { AtlassianWalkthroughProvider } from "@/components/showcase/atlassian-walkthrough-provider";
@@ -37,11 +38,11 @@ const breadcrumbJsonLd = {
   ],
 };
 
-export const metadata: Metadata = {
-  title: "Atlassian on BlockID.au — Full Founder Journey",
-  description:
-    "Atlassian's 12-phase Australian startup arc replayed through the BlockID dashboard, SVI scoring, and data room.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Atlassian on BlockID — full founder journey",
+  description: "Atlassian's 12-phase Australian startup arc replayed through the BlockID dashboard, SVI scoring, and data room.",
+  path: "/showcase/atlassian",
+});
 import { CanonicalStageBadge } from "@/components/showcase/canonical-stage-badge";
 import {
   ATLASSIAN_DEMO,

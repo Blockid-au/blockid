@@ -4,9 +4,8 @@ import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { EquitySplitTool } from "./equity-split-tool";
 
-const TITLE = "Equity Split — Free Cofounder Equity Calculator for AU Startups";
-const DESCRIPTION =
-  "Fairly split startup equity between cofounders before you incorporate. Role, time, cash, sweat and IP weighted. Free and AU-native for Australian founders.";
+const TITLE = "Equity split — free cofounder equity calculator";
+const DESCRIPTION = "Fairly split startup equity between cofounders before you incorporate. Role, time, cash, sweat and IP weighted. Free and AU-native for Australian founders.";
 
 const FAQ_ITEMS: ReadonlyArray<{ title: string; body: string }> = [
   {

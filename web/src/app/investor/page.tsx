@@ -5,6 +5,7 @@
 // but keeps the shorter, memorable URL for the top-nav dropdown.
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
@@ -15,24 +16,11 @@ import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Investor home · BlockID.au trust reports",
-  description:
-    "Browse Australian startups with a BlockID SVI grade, open a trust report in one click, and request the full data-room pack.",
-  alternates: { canonical: "/investor" },
-  openGraph: {
-    title: "Investor home · BlockID.au",
-    description:
-      "Browse graded Australian startups and open their trust reports without signing up.",
-    url: "/investor",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Investor home · BlockID.au",
-    description:
-      "Browse graded Australian startups and open their trust reports without signing up.",
-  },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Investor home — BlockID trust reports",
+  description: "Browse Australian startups with a BlockID SVI grade, open a trust report in one click, and request the full data-room pack.",
+  path: "/investor",
+});
 
 export default async function InvestorPage() {
   const featured = await getPublicListings({ sortBy: "svi_score", limit: 8 });

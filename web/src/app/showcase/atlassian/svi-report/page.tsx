@@ -10,6 +10,7 @@
 //   - "Why this score" narrative panel covering top 3 + bottom 3 criteria.
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 
 import { AtlassianWalkthroughProvider } from "@/components/showcase/atlassian-walkthrough-provider";
@@ -22,11 +23,11 @@ import { CRITERIA, type CriterionKey } from "@/lib/evaluation-criteria";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Atlassian SVI report — Step 3 — BlockID Demo",
-  description:
-    "BlockID's Startup Valuation Index scores Atlassian across 8 SVI dimensions — from Founder & Team Value to Strategic Vision & Moat — with a rationale + source for each.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Atlassian SVI report — demo step 3",
+  description: "BlockID's Startup Valuation Index scores Atlassian across 8 SVI dimensions — from Founder & Team Value to Strategic Vision & Moat — with a rationale for each.",
+  path: "/showcase/atlassian/svi-report",
+});
 
 interface EnrichedScore {
   key: CriterionKey;

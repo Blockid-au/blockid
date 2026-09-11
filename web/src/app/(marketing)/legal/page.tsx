@@ -8,20 +8,17 @@
  */
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
 
-const SITE_URL = "https://blockid.au";
-
-export const metadata: Metadata = {
-  title: "Legal — BlockID.au",
-  description:
-    "BlockID.au legal documents — Terms of Service, Privacy Policy, Acceptable Use Policy, and canonical disclaimers.",
-  alternates: { canonical: `${SITE_URL}/legal` },
-  robots: { index: true, follow: true },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Legal — terms, privacy and disclaimers",
+  description: "BlockID.au legal documents — Terms of Service, Privacy Policy, Acceptable Use Policy, and canonical disclaimers.",
+  path: "/legal",
+});
 
 interface LegalDoc {
   href: string;

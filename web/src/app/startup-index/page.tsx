@@ -5,6 +5,7 @@
 // movers, stage indices, live counters, methodology, big CTA.
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, Clock, Minus, Sparkles, Zap } from "lucide-react";
 import { Navbar } from "@/components/site/navbar";
@@ -14,14 +15,11 @@ import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { SampleSviCard } from "@/components/svi/sample-svi-card";
 import { computeIndexHeadlines } from "@/lib/startup-index-aggregator";
 
-export const metadata: Metadata = {
-  title: "BlockID Startup Value Index — Real-time Australian Startup Valuations",
+export const metadata: Metadata = pageMetadata({
+  title: "Startup Value Index — live AU startup valuations",
   description: "The BSI-AU index, sector heatmap, top movers, and stage indices — the live exchange view of Australian startup valuations.",
-  openGraph: {
-    title: "BlockID Startup Value Index™",
-    description: "The live exchange view of Australian startup valuations. BSI-AU, sector heatmap, top movers.",
-  },
-};
+  path: "/startup-index",
+});
 
 export const dynamic = "force-dynamic";
 export const revalidate = 300;

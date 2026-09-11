@@ -3,9 +3,8 @@ import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { BenchmarksWall } from "./benchmarks-wall";
 
-const TITLE = "AU Startup Benchmarks — Pre-Seed to Series A Metrics | BlockID";
-const DESCRIPTION =
-  "Free Australian startup benchmark data: MRR, ARR, churn, burn rate, CAC, LTV and SVI scores by stage. Compare your startup against 2,700+ AU peers.";
+const TITLE = "AU startup benchmarks — pre-seed to Series A";
+const DESCRIPTION = "Free Australian startup benchmark data: MRR, ARR, churn, burn rate, CAC, LTV and SVI scores by stage. Compare your startup against 2,700+ AU peers.";
 
 export const metadata: Metadata = {
   title: TITLE,

@@ -24,6 +24,8 @@ import { DirectoryGroup } from "@/components/funding/directory-group";
 import { INDEX_ROWS_CLASS, ProgramRow } from "@/components/funding/index-rows";
 import { FundingDisclaimer } from "@/components/funding/funding-disclaimer";
 import { FundingGuides } from "@/components/funding/funding-guides";
+import { FundingFaq } from "@/components/funding/funding-faq";
+import { directoryFaq } from "@/lib/funding/faq";
 import { listPrograms } from "@/lib/funding/data";
 import { CAPITALS } from "@/lib/funding/seed-map";
 import {
@@ -231,6 +233,8 @@ export default async function ProgramsDirectoryPage({
       </section>
 
       <FundingGuides guides={PROGRAM_GUIDES} heading="Read before you apply" />
+
+      <FundingFaq items={directoryFaq("programs")} />
 
       <FundingDisclaimer lastVerifiedAt={lastVerified} />
     </MarketingShell>

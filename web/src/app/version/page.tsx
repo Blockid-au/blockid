@@ -1,18 +1,16 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import fs from "node:fs";
 import path from "node:path";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Version & Features — BlockID.au",
+export const metadata: Metadata = pageMetadata({
+  title: "Version and features",
   description: "BlockID.au platform updates, features roadmap, and startup growth path from Day 0 to scale.",
-  openGraph: {
-    title: "Version & Features — BlockID.au",
-    description: "See every feature BlockID.au offers to guide startups from Day 0 to scale.",
-  },
-};
+  path: "/version",
+});
 
 // --- Live deploy manifest (read at request time) ------------------------
 

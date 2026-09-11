@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "For Investors — BlockID",
+  title: "For investors — the BlockID opportunity",
   description:
     "Why BlockID: 600K AU companies, evidence-backed SVI engine, SaaS + credit hybrid model, 88-99.9% gross margins. Explore the investment opportunity.",
   alternates: {

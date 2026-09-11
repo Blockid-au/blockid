@@ -10,6 +10,7 @@
 // public columns already exposed at /listings/[ticker].
 
 import type { Metadata } from "next";
+import { brandedOrAbsolute, fitDescription, pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
@@ -50,25 +51,17 @@ export async function generateMetadata({
   const absoluteUrl = `${SITE_URL}${canonicalPath}`;
   if (!listing) {
     return {
-      title: `Trust report · ${t} · BlockID.au`,
-      alternates: { canonical: canonicalPath },
+      title: `Trust report · ${t}`,
+      alternates: { canonical: absoluteUrl },
+      robots: { index: false, follow: false },
     };
   }
-  const title = `${listing.name} — trust report · BlockID SVI ${listing.svi_grade ?? "unrated"}`;
-  const description =
-    listing.one_liner ??
-    `Investor-ready evaluation for ${listing.name}: BlockID SVI score, benchmark, evidence, and data-room access.`;
-  return {
-    title,
-    description,
-    alternates: { canonical: canonicalPath },
-    openGraph: { title, description, url: absoluteUrl },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-    },
-  };
+  const title = brandedOrAbsolute(`${listing.name} — trust report · SVI ${listing.svi_grade ?? "unrated"}`);
+  const description = fitDescription(
+    [listing.one_liner, `Investor-ready evaluation for ${listing.name}: BlockID SVI score, benchmark, evidence, and data-room access.`],
+    { min: 70, max: 160 },
+  );
+  return pageMetadata({ title, description, path: canonicalPath });
 }
 
 export default async function TrustReportPage({ params }: PageProps) {

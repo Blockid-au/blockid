@@ -72,7 +72,7 @@ export async function generateMetadata({
     return { title: "Agent not found — Atlassian demo — BlockID" };
   }
   return {
-    title: `${agent} report — Atlassian demo — Step 5 — BlockID`,
+    title: `${agent} report — Atlassian demo, step 5`,
     description: `Phase-appropriate briefing from the BlockID ${agent} AI agent, written for a real Atlassian inflection point.`,
   };
 }

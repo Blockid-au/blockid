@@ -15,23 +15,20 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import { Lock } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingSection } from "@/components/marketing/marketing-section";
 import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
 
-const SITE_URL = "https://blockid.au";
-
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Security audit — BlockID.au",
-  description:
-    "Methodology, closed findings, deferred TODOs, and coordinated-disclosure contact for the BlockID.au platform.",
-  alternates: { canonical: `${SITE_URL}/security-audit` },
-  robots: { index: true, follow: true },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Security audit",
+  description: "Methodology, closed findings, deferred TODOs, and coordinated-disclosure contact for the BlockID.au platform.",
+  path: "/security-audit",
+});
 
 function readCurrentVersion(): string | null {
   const candidates = [

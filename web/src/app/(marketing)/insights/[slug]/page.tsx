@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { brandedOrAbsolute, fitDescription } from "@/lib/seo/page-meta";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Calendar, Clock, User } from "lucide-react";
@@ -38,8 +39,8 @@ export async function generateMetadata({
   const article = getArticleBySlug(slug);
   if (!article) return {};
   return {
-    title: article.title,
-    description: article.description,
+    title: brandedOrAbsolute(article.title),
+    description: fitDescription([article.description], { min: 70, max: 165 }),
     keywords: article.keywords,
     openGraph: {
       title: article.title,

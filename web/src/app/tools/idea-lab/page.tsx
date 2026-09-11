@@ -3,9 +3,8 @@ import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { IdeaLabTool } from "./idea-lab-tool";
 
-const TITLE = "AI Idea Lab — Sector-Aware Startup Angles for AU Founders";
-const DESCRIPTION =
-  "Pick a sector, describe a broad problem area, and generate 10 concrete startup angles, 5 non-obvious opportunities and 3 real Australian competitors. Free to try.";
+const TITLE = "AI Idea Lab — startup angles for AU founders";
+const DESCRIPTION = "Pick a sector, describe a broad problem area, and generate 10 concrete startup angles, 5 non-obvious opportunities and 3 real Australian competitors. Free to try.";
 const CANONICAL = "https://blockid.au/tools/idea-lab";
 
 export const metadata: Metadata = {

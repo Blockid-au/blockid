@@ -3,10 +3,8 @@ import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { ESICChecker } from "./esic-checker";
 
-const TITLE =
-  "ESIC Eligibility Checker — Free Tool";
-const DESCRIPTION =
-  "Check if your startup qualifies as an Early Stage Innovation Company (ESIC) for Australian tax incentives. Free eligibility checker — 20% tax offset + CGT exemption for investors.";
+const TITLE = "ESIC eligibility checker — free tool";
+const DESCRIPTION = "Check if your startup qualifies as an Early Stage Innovation Company (ESIC) for Australian tax incentives. Free checker — 20% offset + CGT exemption for investors.";
 
 export const metadata: Metadata = {
   title: TITLE,

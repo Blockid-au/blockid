@@ -104,6 +104,31 @@ describe("/funding/grants — metadata and caching", () => {
   });
 });
 
+describe("/funding/grants — FAQ (S12-A)", () => {
+  it("renders four visible Q&As as native <details> under an H2 and one matching, valid FAQPage", async () => {
+    const html = await render();
+    expect(html).toContain('data-funding-faq="4"');
+    expect(html).toMatch(/<h2[^>]*>Questions founders ask<\/h2>/);
+    expect(html).toContain("Is grant information free?</summary>");
+    expect(html).toContain("Do you take a cut of grants?</summary>");
+    expect(html).toContain("How often is this list updated?</summary>");
+    expect(html).toContain("What does the Money Finder report include?</summary>");
+    expect(html).toContain("we sell the analysis, not the access");
+    const faqs = extractJsonLd(html).filter((b) => b["@type"] === "FAQPage");
+    expect(faqs).toHaveLength(1);
+    expect(validateJsonLd(faqs[0])).toEqual({ ok: true, errors: [] });
+    const names = (faqs[0].mainEntity as Array<{ name: string }>).map((q) => q.name);
+    expect(names).toEqual([
+      "Is grant information free?",
+      "What does the Money Finder report include?",
+      "Do you take a cut of grants?",
+      "How often is this list updated?",
+    ]);
+    // No client JS behind the FAQ.
+    expect(html).not.toContain("onclick");
+  });
+});
+
 describe("/funding/grants — rendered", () => {
   it("renders the H1 with live counts from the rows, not typed numbers", async () => {
     const html = await render();

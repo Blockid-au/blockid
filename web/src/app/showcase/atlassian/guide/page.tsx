@@ -14,6 +14,7 @@
 // Server component only. No Supabase, no cookies, no I/O. Anonymous 200.
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 
 import { AtlassianWalkthroughProvider } from "@/components/showcase/atlassian-walkthrough-provider";
@@ -27,11 +28,11 @@ import { listChapters } from "@/lib/guide/startup-journey";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "12-chapter mentor guide — Atlassian demo — Step 8 — BlockID",
-  description:
-    "Every founder walks 12 chapters from Vision → Exit. Here's Atlassian's real path at each one, so you can copy what worked and skip what didn't.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "12-chapter mentor guide — Atlassian demo, step 8",
+  description: "Every founder walks 12 chapters from Vision → Exit. Here's Atlassian's real path at each one, so you can copy what worked and skip what didn't.",
+  path: "/showcase/atlassian/guide",
+});
 
 function findSnapshot(phase: number): PhaseSnapshot | undefined {
   return ATLASSIAN_DEMO.phaseSnapshots.find(

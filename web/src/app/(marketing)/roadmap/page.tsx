@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import fs from "node:fs";
 import path from "node:path";
@@ -24,30 +25,11 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Platform Roadmap — BlockID.au",
-  description:
-    "The 8-stage journey from founder idea to exit — where we are now, and what ships next.",
-  robots: { index: true, follow: true },
-  alternates: { canonical: "https://blockid.au/roadmap" },
-  openGraph: {
-    title: "Platform Roadmap — BlockID.au",
-    description:
-      "The 8-stage journey from founder idea to exit — where we are now, and what ships next.",
-    url: "https://blockid.au/roadmap",
-    siteName: "BlockID.au",
-    type: "website",
-    locale: "en_AU",
-    images: [{ url: "/images/logo-full.png", width: 1556, height: 880, alt: "BlockID.au Roadmap" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Platform Roadmap — BlockID.au",
-    description:
-      "The 8-stage journey from founder idea to exit — where we are now, and what ships next.",
-    images: ["/images/logo-full.png"],
-  },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Platform roadmap — idea to exit",
+  description: "The 8-stage journey from founder idea to exit — where we are now, and what ships next.",
+  path: "/roadmap",
+});
 
 // ---------------------------------------------------------------------------
 // Types + data

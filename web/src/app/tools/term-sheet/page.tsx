@@ -5,10 +5,8 @@ import { PageTracker } from "@/components/analytics/page-tracker";
 import { TermSheetTool } from "./term-sheet-tool";
 import { ClipboardPaste, Sparkles, FileSearch } from "lucide-react";
 
-const TITLE =
-  "Term Sheet — Free AI Analysis & Redline | BlockID";
-const DESCRIPTION =
-  "Paste any term sheet and get a founder-friendly redline, AU market comparison and dilution simulation in 30 seconds. Free for Australian startup founders.";
+const TITLE = "Term sheet — free AI analysis and redline";
+const DESCRIPTION = "Paste any term sheet and get a founder-friendly redline, AU market comparison and dilution simulation in 30 seconds. Free for Australian startup founders.";
 
 export const metadata: Metadata = {
   title: TITLE,

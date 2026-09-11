@@ -4,20 +4,16 @@
 // SubmitForm is a "use client" component imported as a child.
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { SubmitForm } from "./submit-form";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "Submit Your Startup | BlockID AU Startup Public Index",
-  description:
-    "List your Australian startup on the BlockID Startup Index™ — free, verified, and discoverable by investors and founders.",
-  openGraph: {
-    title: "Submit Your Startup | BlockID AU Startup Public Index",
-    description:
-      "Get your startup listed on the AU Startup Public Index. Free, verified profiles discoverable by AU investors.",
-  },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Submit your startup to the AU Startup Public Index",
+  description: "List your Australian startup on the BlockID Startup Index™ — free, verified, and discoverable by investors and founders.",
+  path: "/submit",
+});
 
 export default function SubmitPage() {
   return (

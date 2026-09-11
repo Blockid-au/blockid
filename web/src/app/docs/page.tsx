@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
@@ -6,14 +7,11 @@ import { JOURNEY_VOCAB_VERSION } from "@/lib/journey-vocabulary";
 import { getPlatformConfig } from "@/lib/platform-config";
 import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
 
-export const metadata: Metadata = {
-  title: "BlockID Platform Docs — Company, Roadmap, Team, SVI & Pricing",
-  description:
-    "Public entry point to BlockID.au platform documentation — company overview, product roadmap, the 11-role AI C-Level team, the 8-dimension Startup Value Index (SVI), the current pricing ladder, plus plan deltas and the canonical journey vocabulary.",
-  alternates: {
-    canonical: "https://blockid.au/docs",
-  },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Platform docs — company, roadmap, team, SVI, pricing",
+  description: "Public entry point to BlockID.au documentation — company overview, product roadmap, the 11-role AI C-Level team, the 8-dimension SVI and the pricing ladder.",
+  path: "/docs",
+});
 
 // ---------------------------------------------------------------------------
 // Recently-updated plan/audit docs. Update on deploy.

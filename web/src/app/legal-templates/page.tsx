@@ -6,21 +6,18 @@
  */
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { listTemplates } from "@/lib/templates/legal-templates";
-
-const SITE_URL = "https://blockid.au";
 
 export const dynamic = "force-static";
 export const runtime = "nodejs";
 
-export const metadata: Metadata = {
-  title: "AU Legal Templates — BlockID.au",
-  description:
-    "AU-flavoured constitution, ESOP scheme rules, and SAFE — starting-point legal templates for Australian startups. Template only; not legal advice.",
-  alternates: { canonical: `${SITE_URL}/legal-templates` },
-  robots: { index: true, follow: true },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "AU legal templates for startups",
+  description: "AU-flavoured constitution, ESOP scheme rules, and SAFE — starting-point legal templates for Australian startups. Template only; not legal advice.",
+  path: "/legal-templates",
+});
 
 const CATEGORY_LABEL: Record<string, string> = {
   corporate: "Corporate",

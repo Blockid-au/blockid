@@ -10,6 +10,7 @@
 // Plain server component — no Supabase, no cookies, no I/O.
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 
 import { AtlassianWalkthroughProvider } from "@/components/showcase/atlassian-walkthrough-provider";
@@ -19,11 +20,11 @@ import {
   type DataRoomRow,
 } from "@/lib/showcase/atlassian/fixture";
 
-export const metadata: Metadata = {
-  title: "Investor data-room mirror — Atlassian demo — Step 6 — BlockID",
-  description:
-    "The 12-section BlockID data-room structure filled with Atlassian's public S-1 and 10-K disclosures, with redacted / inferred stubs where the private paperwork is unavailable.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Investor data-room mirror — Atlassian demo, step 6",
+  description: "The 12-section BlockID data-room structure filled with Atlassian's public S-1 and 10-K disclosures, with redacted or inferred stubs where the paperwork is private.",
+  path: "/showcase/atlassian/data-room",
+});
 
 // Folder ordering mirrors DATA_ROOM_STRUCTURE in
 // web/src/lib/data-room-templates.ts. Kept as a constant so we don't have

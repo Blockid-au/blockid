@@ -75,6 +75,25 @@ export function absoluteTitle(core: string, max = TITLE_MAX): { absolute: string
 }
 
 /**
+ * S12-A: the sweep budget for the rendered `<title>` on every other public
+ * page (article, template, chapter, profile names). Wider than `TITLE_MAX`
+ * because those names are content, not copy we can rewrite.
+ */
+export const SWEEP_TITLE_MAX = 65;
+
+/**
+ * Keep the brand when the name fits under it, drop it (via `{ absolute }`)
+ * when the name alone is worth more than the suffix, and only then truncate.
+ * `"Startup Tax Valuation Australia: ATO Compliance Guide"` (53) →
+ * `{ absolute }` at 65, where the branded form would be 66.
+ */
+export function brandedOrAbsolute(core: string, max = SWEEP_TITLE_MAX): string | { absolute: string } {
+  const c = tidy(core);
+  if (c.length + BRAND_SUFFIX.length <= max) return c;
+  return { absolute: truncateAtWord(c, max) };
+}
+
+/**
  * Length-aware title builder for the 255 funding detail pages: `${name}${tail}`
  * where only the name is truncated, so the state / city / type tail that makes
  * the title unique and keyword-bearing always survives.

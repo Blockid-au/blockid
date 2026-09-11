@@ -19,9 +19,8 @@ import {
   type StageRow,
 } from "@/lib/svi-index-aggregates";
 
-const TITLE = "SVI Index — Public Dataset of Australian Startup Valuations | BlockID";
-const DESCRIPTION =
-  "Free, anonymised dataset of Australian startup valuations from the BlockID Startup Value Index. Percentiles by sector and stage, JSON + CSV downloads, no signup.";
+const TITLE = "SVI Index — public dataset of AU startup valuations";
+const DESCRIPTION = "Free, anonymised dataset of Australian startup valuations from the BlockID Startup Value Index. Percentiles by sector and stage, JSON + CSV downloads, no signup.";
 const CANONICAL = "https://blockid.au/dataset";
 
 export const metadata: Metadata = {

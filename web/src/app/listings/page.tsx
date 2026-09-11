@@ -17,6 +17,7 @@
 // thin faceted pages the profiles themselves are gated against.
 
 import type { Metadata } from "next";
+import { fitDescription, fitTitle } from "@/lib/seo/page-meta";
 import Link from "next/link";
 
 import { MarketingShell } from "@/components/marketing/marketing-shell";
@@ -56,11 +57,11 @@ export async function generateMetadata({
   const filtered = Boolean(sector || stage !== null);
 
   const title = sector
-    ? `${SECTOR_LABELS[sector]} startups in Australia — scored and valued — BlockID.au`
-    : "Australian startup directory — scored, valued, published by their founders — BlockID.au";
+    ? fitTitle(`${SECTOR_LABELS[sector]} startups in Australia — scored and valued`)
+    : "Australian startup directory — scored and valued";
   const description = sector
-    ? `Australian ${SECTOR_LABELS[sector]} startups with a published Startup Value Index profile: score across eight dimensions, indicative valuation range and stage.`
-    : "Every Australian startup that has published a Startup Value Index profile. Each one carries a score across eight dimensions, an indicative valuation range, its stage and what it is working on next — published by the founder, not scraped.";
+    ? fitDescription([`Australian ${SECTOR_LABELS[sector]} startups with a published Startup Value Index profile: score across eight dimensions, indicative valuation range and stage.`], { min: 70, max: 165 })
+    : "Every Australian startup with a published Startup Value Index profile: a score across eight dimensions, an indicative valuation range, its stage and what comes next.";
 
   return {
     title,

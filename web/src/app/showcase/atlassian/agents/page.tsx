@@ -9,16 +9,17 @@
 // Anonymous visitors get HTTP 200.
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 
 import { AtlassianWalkthroughProvider } from "@/components/showcase/atlassian-walkthrough-provider";
 import { ATLASSIAN_DEMO, PHASE_DISPLAY_NAMES } from "@/lib/showcase/atlassian/fixture";
 
-export const metadata: Metadata = {
-  title: "C-Level agent panel — Atlassian demo — Step 5 — BlockID",
-  description:
-    "Seven C-Level BlockID agents (CEO, CFO, CTO, CMO, COO, CHRO, CLO) each write a phase-appropriate briefing for Atlassian's journey.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "C-Level agent panel — Atlassian demo, step 5",
+  description: "Seven C-Level BlockID agents (CEO, CFO, CTO, CMO, COO, CHRO, CLO) each write a phase-appropriate briefing for Atlassian's journey.",
+  path: "/showcase/atlassian/agents",
+});
 
 // Ordered on-screen sequence for the 7 C-Level agents. Matches the
 // prev/next cycle on the detail page.
