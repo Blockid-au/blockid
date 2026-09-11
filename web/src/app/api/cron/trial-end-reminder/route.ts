@@ -57,7 +57,7 @@ interface TrialRow {
 async function includedReportsLeft(row: TrialRow): Promise<number | null> {
   if (row.status !== "trialing" || !isEvaluatorPlanId(row.plan_id)) return null;
   try {
-    const used = await countTrialReportsUsed(row.user_id, { started_at: row.trial_start });
+    const used = await countTrialReportsUsed(row.user_id, { started_at: row.trial_start, ends_at: row.trial_end });
     return Math.max(0, TRIAL_REPORT_ALLOWANCE - used);
   } catch {
     return null;

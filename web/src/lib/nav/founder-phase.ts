@@ -28,11 +28,11 @@
 // may still pass `currentPhase` explicitly (prop wins — see
 // `pickNavPhase()`).
 //
-// The pure half of this module has NO static server imports so it can be
-// imported from client components and from the docs matrix builder
-// (`scripts/docs/unlock-matrix.mts`). The loader pulls its server deps in
-// through dynamic `import()` — the same pattern as
-// `getCurrentProjectIsSandbox()` in `lib/projects.ts`.
+// The pure half lives in ./founder-phase-shared.ts (client-safe, re-exported
+// here) so client components and the docs matrix builder
+// (`scripts/docs/unlock-matrix.mts`) never pull this loader — which reaches
+// `server-only` modules through dynamic `import()` and broke the client
+// bundle once (Gate 7, 2026-09-11). Import the loader from server code only.
 
 export * from "./founder-phase-shared";
 import {
@@ -107,5 +107,3 @@ export async function getFounderNavContext(
     return EMPTY_FOUNDER_NAV_CONTEXT;
   }
 }
-
-/** `analysis_json.totalSVI` first (what /dashboard renders), else `total_svi`. */

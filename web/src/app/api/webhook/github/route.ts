@@ -8,20 +8,26 @@
 // Setup: GitHub repo → Settings → Webhooks → Payload URL: https://blockid.au/api/webhook/github
 
 import { NextResponse } from "next/server";
+import { cronSecret } from "@/lib/security/cron-auth";
 import * as crypto from "crypto";
 import * as fs from "fs";
 import * as cp from "child_process";
 
 export const dynamic = "force-dynamic";
 
-const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET ?? process.env.CRON_SECRET ?? "";
+const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET ?? cronSecret() ?? "";
 const WEB_DIR = "/home/dovanlong/blockid.au/web";
 const DEPLOY_LOG = `${WEB_DIR}/content/reports/deploy-log.jsonl`;
 
 function verifySignature(payload: string, signature: string | null): boolean {
   if (!WEBHOOK_SECRET || !signature) return false;
   const expected = "sha256=" + crypto.createHmac("sha256", WEBHOOK_SECRET).update(payload).digest("hex");
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+  const a = Buffer.from(expected);
+  const b = Buffer.from(signature);
+  // timingSafeEqual throws on length mismatch — a malformed header must be a
+  // clean 401, not a 500.
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
 }
 
 function logEvent(event: string, detail: string): void {

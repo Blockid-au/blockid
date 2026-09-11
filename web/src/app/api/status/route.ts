@@ -12,6 +12,7 @@
 
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
+import { cronSecret, safeEqualStrings } from "@/lib/security/cron-auth";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
@@ -64,12 +65,12 @@ type StatusResponse = {
 // a minimal payload so we don't hand attackers commit SHAs for CVE targeting
 // or infra footprints for capacity planning.
 async function isTrustedCaller(): Promise<boolean> {
-  const secret = process.env.STATUS_FULL_TOKEN ?? process.env.CRON_SECRET ?? "";
+  const secret = process.env.STATUS_FULL_TOKEN ?? cronSecret() ?? "";
   if (!secret) return false;
   try {
     const h = await headers();
     const auth = h.get("authorization") ?? "";
-    return auth === `Bearer ${secret}`;
+    return safeEqualStrings(auth, `Bearer ${secret}`);
   } catch {
     // headers() is only available inside request scope — tests / SSG don't
     // have one. Fall back to untrusted so the public payload is served.

@@ -46,6 +46,8 @@ export const REPORT_KIND_FEATURE: Record<EvaluationReportKind, "trust_report" | 
 
 /** Included full reports for the whole card-required trial (not per month). */
 export const TRIAL_REPORT_ALLOWANCE = 1;
+/** Card-required evaluator trial length (plan §3b); used only to infer a missing trial_start. */
+export const TRIAL_LENGTH_DAYS = 7;
 
 export interface ReportTrial {
   /** status='trialing' and trial_end in the future. */
@@ -379,11 +381,18 @@ export async function getTrialState(userId: string, now: Date = new Date()): Pro
 }
 
 /** paid_via='quota' rows since the trial started (whole trial, not per month). */
-export async function countTrialReportsUsed(userId: string, trial: Pick<ReportTrial, "started_at">): Promise<number> {
+export async function countTrialReportsUsed(userId: string, trial: Pick<ReportTrial, "started_at" | "ends_at">): Promise<number> {
   // Stripe omits `trial_start` on some subscription payloads; without a start
   // bound the count would cover the user's whole history and show "1/1 used"
   // to a re-trialling or previously paying evaluator. Treat unknown as 0.
-  if (!trial.started_at) return 0;
+  if (!trial.started_at) {
+    // Never fail open on cost: bound the window by the trial length instead.
+    if (!trial.ends_at) return 0;
+    const endMs = Date.parse(trial.ends_at);
+    if (!Number.isFinite(endMs)) return 0;
+    const inferredStart = new Date(endMs - TRIAL_LENGTH_DAYS * 86_400_000).toISOString();
+    return countQuotaUsed(userId, inferredStart, null);
+  }
   return countQuotaUsed(userId, trial.started_at, null);
 }
 

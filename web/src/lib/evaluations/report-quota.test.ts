@@ -332,10 +332,18 @@ describe("S7-C trial allowance", () => {
     expect(count.gte).toEqual([{ col: "created_at", val: "2026-09-08T00:00:00Z" }]);
   });
 
-  it("countTrialReportsUsed returns 0 without touching the DB when trial_start is unknown", async () => {
-    // Stripe can omit trial_start; an unbounded count would show "1/1 used"
-    // to a previously paying or re-trialling evaluator.
-    expect(await countTrialReportsUsed("u-1", { started_at: null })).toBe(0);
+  it("countTrialReportsUsed infers the window from trial_end when trial_start is unknown (never fails open)", async () => {
+    // Stripe can omit trial_start. Counting all-time would show "1/1 used" to
+    // a re-trialling evaluator; counting nothing would hand out unlimited
+    // free reports — so the window is trial_end − 7 days.
+    state.queue.push({ table: "evaluation_reports", count: 1 });
+    expect(await countTrialReportsUsed("u-1", { started_at: null, ends_at: "2026-09-17T00:00:00.000Z" })).toBe(1);
+    const count = state.calls.find((c) => c.table === "evaluation_reports")!;
+    expect(count.gte).toEqual([{ col: "created_at", val: "2026-09-10T00:00:00.000Z" }]);
+  });
+
+  it("countTrialReportsUsed returns 0 without touching the DB when neither trial_start nor trial_end is known", async () => {
+    expect(await countTrialReportsUsed("u-1", { started_at: null, ends_at: null })).toBe(0);
     expect(state.calls.find((c) => c.table === "evaluation_reports")).toBeUndefined();
   });
 });

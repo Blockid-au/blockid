@@ -62,6 +62,9 @@ vi.mock("node:child_process", () => ({
 
 const SECRET = "s8e-routes-table-secret";
 const CRON_DIR = join(process.cwd(), "src/app/api/cron");
+// The credential-handling scan covers the whole API tree, not just cron/ —
+// `api/internal/ai-complete` carried the same ad-hoc compare (review P2 #1).
+const API_DIR = join(process.cwd(), "src/app/api");
 const HELPER_IMPORT = /from\s+["']@\/lib\/security\/cron-auth["']/;
 
 // Substrings that mean "this file authenticates on its own" — banned outside
@@ -167,12 +170,15 @@ describe("cron auth static guard", () => {
     ).toEqual([]);
   });
 
-  it("no file under src/app/api/cron/** reads CRON_SECRET or the raw credential itself", () => {
+  it("no file under src/app/api/** reads CRON_SECRET or the raw cron credential itself", () => {
     const offenders: string[] = [];
-    for (const file of listSourceFiles(CRON_DIR)) {
+    for (const file of listSourceFiles(API_DIR)) {
       const src = readFileSync(file, "utf8");
-      for (const needle of BANNED) {
-        if (src.includes(needle)) offenders.push(`${relative(CRON_DIR, file)}: ${needle}`);
+      // Outside cron/ an `authorization` header read is legitimate API-key
+      // auth; only direct CRON_SECRET handling is banned there.
+      const needles = file.startsWith(CRON_DIR) ? BANNED : BANNED.filter((n) => n.includes("CRON_SECRET") && n.startsWith("env"));
+      for (const needle of needles) {
+        if (src.includes(needle)) offenders.push(`${relative(API_DIR, file)}: ${needle}`);
       }
     }
     expect(

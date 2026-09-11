@@ -64,11 +64,16 @@ function imports(file: string): string[] {
   const bareRe = /^\s*import\s+["']([^"']+)["']/gm;
   // Runtime dynamic imports only — `foo?: import("x").Type` is a TS type
   // position and is erased, so it is deliberately not matched here.
-  const dynRe = /(?:await\s+|=\s*|\(\s*|return\s+|:\s*\(\)\s*=>\s*)import\(\s*["']([^"']+)["']\s*\)(?!\.[A-Za-z])/g;
+  // Any `import("x")` that is not a `typeof import(...)` / `import("x").Type`
+  // type position — covers `await`, `void`, `Promise.all([import(...)`,
+  // `dynamic(() => import(...))`, `.then(() => import(...))`. Plus `require()`.
+  const dynRe = /(?<!typeof\s{0,4})\bimport\(\s*["'`]([^"'`$]+)["'`]\s*\)(?!\s*\.[A-Za-z])/g;
+  const reqRe = /\brequire\(\s*["']([^"']+)["']\s*\)/g;
   let m: RegExpExecArray | null;
   while ((m = staticRe.exec(src))) out.push(m[1]);
   while ((m = bareRe.exec(src))) out.push(m[1]);
   while ((m = dynRe.exec(src))) out.push(m[1]);
+  while ((m = reqRe.exec(src))) out.push(m[1]);
   return out;
 }
 

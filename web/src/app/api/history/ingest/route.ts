@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cronSecret, safeEqualStrings } from "@/lib/security/cron-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -17,9 +18,9 @@ interface IngestBody {
 
 export async function POST(req: Request) {
   const apiKey = req.headers.get("x-blockid-api-key");
-  const expectedKey = process.env.HISTORY_INGEST_KEY ?? process.env.CRON_SECRET;
+  const expectedKey = process.env.HISTORY_INGEST_KEY ?? cronSecret();
 
-  if (!apiKey || apiKey !== expectedKey) {
+  if (!apiKey || !expectedKey || !safeEqualStrings(apiKey, expectedKey)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 

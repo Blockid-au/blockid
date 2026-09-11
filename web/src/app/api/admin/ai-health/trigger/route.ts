@@ -3,6 +3,7 @@
 // runs on-demand without needing the CRON_SECRET client-side.
 
 import { NextResponse } from "next/server";
+import { cronSecret } from "@/lib/security/cron-auth";
 import { getCurrentUser, ADMIN_EMAIL } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "action must be 'health' or 'discovery'" }, { status: 400 });
   }
 
-  const secret = process.env.CRON_SECRET;
+  const secret = cronSecret();
   if (!secret) return NextResponse.json({ error: "CRON_SECRET not configured" }, { status: 500 });
 
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://127.0.0.1:3000";

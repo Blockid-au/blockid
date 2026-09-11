@@ -267,7 +267,7 @@ test.describe("Post-deploy hydrated smoke", () => {
     await expect(page.locator("form[data-funding-intake]")).toBeVisible({ timeout: PAGE_TIMEOUT });
     // Late web-font swaps and lazy images can widen inline content after
     // first paint — settle both before measuring.
-    await page.waitForLoadState("networkidle").catch(() => {});
+    await page.waitForLoadState("networkidle", { timeout: 3_000 }).catch(() => {});
     await page.evaluate(() => document.fonts.ready).catch(() => {});
     const overflow = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
