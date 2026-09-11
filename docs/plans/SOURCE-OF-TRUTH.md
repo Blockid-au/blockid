@@ -168,7 +168,11 @@
 ### S7 — Consistency & conversion (opened 2026-09-10 23:15 UTC, autonomous continuation)
 - **Found during S6:** (a) the workspace sidebar hides phase-gated groups on ~133/135 pages because only `/dashboard` and `/workspace/funding` pass `currentPhase` (menu changes shape page-to-page); (b) no public Money Finder sample report (conversion + ProductHunt screenshots); (c) evaluator **trial gets the full Scout quota (10 reports)** instead of plan §3b's 1 included report — AI-cost exposure on a cancellable card.
 - **Scope:** **S7-A** one founder nav-phase resolver (`lib/nav/founder-phase.ts`, SVI band ∨ 12-phase bucket, provided by the `(founder)` route-group layout) · **S7-B** `/funding/report/demo` (deterministic from the seed, sample banner, "Build mine for A$3") + Gate-12 hydrated smoke for `/funding` intake→preview, demo report, `/docs/unlocks`, `/compare/chatgpt`, pilot CTA · **S7-C** trial allowance 1 then credits, batch limited to the same 1, trial banner + dialog copy, reminder line.
-- **Sequence:** merge when green → ships in the next off-peak deploy (12:05 UTC scheduled, or a second deploy later in the 12–20 UTC window) → post-ship review → SOT sync.
+- **Status (2026-09-11 00:10 UTC):** S7-A/B/C merged on master `3bf836a36` (1,235 files / 30,025 tests green, ESLint 0) — ships with the 12:05 UTC deploy.
+
+### S8 — Quality gates on the new surface (opened 2026-09-11 00:10 UTC)
+- **Scope:** code-level audits with fixes, one report each under `docs/plans/reviews/` — **S8-A** SEO (metadata, JSON-LD, breadcrumbs, sitemap coverage for 56 grant + 199 program detail pages, keyword map) · **S8-B** accessibility + 400 px mobile (tabs/dialogs/switches/SVG Gantt/tables/widget controls) · **S8-C** API security (input caps, SSRF guard on `fetch-source`, constant-time cron auth, cache headers, CSRF posture) · **S8-D** (after deploy) live performance pass on `/funding*` with `perf-audit`.
+- **Then:** post-deploy verify → merge S8 → second off-peak deploy → post-ship review → next phase.
 
 ### G12 — Evaluator Traction: pricing + positioning for investors, accelerators, incubators, consulting & service firms
 - **Source:** [`docs/plans/evaluator-traction-2026-09-10.md`](./evaluator-traction-2026-09-10.md) · companion of G11 (Evaluator Progress Radar consumes G11 signals)
