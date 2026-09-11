@@ -10,6 +10,13 @@ import {
   buildVcValuationReport,
   type BuildVcValuationInput,
 } from "@/lib/agents/cfo-valuation";
+import { getProjectIdFromRequest, findSVIAccountWithFallback } from "@/lib/projects";
+import { loadConnectedRevenueSignals } from "@/lib/connected-revenue";
+import {
+  applyConnectedRevenueBridge,
+  type BridgeResult,
+  type ValuationMethod,
+} from "@/lib/valuation-mrr-bridge";
 
 // ── Wave 29/30: 8-Dimension SVI Analysis + 13 Criteria Sub-breakdown ─────────
 
@@ -967,12 +974,18 @@ function computeSimpleFundingReadiness(
   };
 }
 
-function computeValuation(inputs: ScoreInput): {
+interface ScoreValuation {
   lowAud: number;
   midAud: number;
   highAud: number;
   method: "vc_scorecard_blend";
-} | null {
+  /** S17-B — "svi" until connected MRR narrows/widens the range. */
+  valuationMethod: ValuationMethod;
+  methodNote: string | null;
+  connectedRevenue: BridgeResult["connectedRevenue"];
+}
+
+function computeValuation(inputs: ScoreInput): ScoreValuation | null {
   try {
     const arg: BuildVcValuationInput = {
       sector: inputs.sector,
@@ -991,10 +1004,48 @@ function computeValuation(inputs: ScoreInput): {
       midAud: rep.blended.midAud,
       highAud: rep.blended.highAud,
       method: "vc_scorecard_blend",
+      valuationMethod: "svi",
+      methodNote: null,
+      connectedRevenue: null,
     };
   } catch (err) {
     console.error("[blockid:score] valuation failed", err);
     return null;
+  }
+}
+
+// S17-B — when the submitter is logged in, cross-check the SVI-derived range
+// against connected MRR (Stripe `svi_signals.mrr_aud`, Xero `xero_revenue`).
+// Anonymous submissions have no connectors, so the range is returned as-is.
+async function bridgeConnectedRevenue(
+  valuation: ScoreValuation | null,
+  inputs: ScoreInput,
+  user: { id: string; email: string } | null,
+): Promise<ScoreValuation | null> {
+  if (!valuation || !user) return valuation;
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return valuation;
+  try {
+    const projectId = await getProjectIdFromRequest();
+    const account = await findSVIAccountWithFallback(user.email, projectId, "id");
+    const signals = await loadConnectedRevenueSignals(supabase, {
+      userId: user.id,
+      projectId,
+      accountId: (account?.id as string | undefined) ?? null,
+    });
+    const bridged = applyConnectedRevenueBridge(valuation, signals, { sector: inputs.sector });
+    return {
+      ...valuation,
+      lowAud: bridged.lowAud,
+      midAud: bridged.midAud,
+      highAud: bridged.highAud,
+      valuationMethod: bridged.valuationMethod,
+      methodNote: bridged.methodNote,
+      connectedRevenue: bridged.connectedRevenue,
+    };
+  } catch (err) {
+    console.error("[blockid:score] connected-revenue bridge failed", err);
+    return valuation;
   }
 }
 
@@ -1190,7 +1241,10 @@ export async function POST(request: Request) {
   const benchmark = breakdown.benchmark;
 
   // ---- Enrichment: valuation + funding readiness + evidence gaps ----------
-  const valuation = computeValuation(inputs);
+  // Resolved early so the S17-B connected-revenue bridge can run before the
+  // range is persisted / emailed; the history insert below reuses it.
+  const currentUser = await getCurrentUser().catch(() => null);
+  const valuation = await bridgeConnectedRevenue(computeValuation(inputs), inputs, currentUser);
   const fundingReadiness = computeSimpleFundingReadiness(inputs, subScoresMap);
   const evidenceGaps = breakdown.missingInputs.slice(0, 10);
 
@@ -1237,32 +1291,48 @@ export async function POST(request: Request) {
   }
 
   // Best-effort: link score to user's startup history if authenticated
-  const currentUser = await getCurrentUser().catch(() => null);
   if (currentUser && supabase && persisted) {
     const slugName = (parsed.companyName ?? inputs.companyName ?? "")
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "") || "unnamed";
     const startupId = `${currentUser.id}:${slugName}`;
+    const historyRow = {
+      user_id: currentUser.id,
+      startup_id: startupId,
+      startup_name: parsed.companyName ?? inputs.companyName ?? "Unnamed Startup",
+      inputs,
+      svi_analysis: sviAnalysis,
+      sub_scores: subScoresMap,
+      total_score: breakdown.total,
+      valuation_low_aud: valuation?.lowAud ?? null,
+      valuation_high_aud: valuation?.highAud ?? null,
+      score_version: breakdown.version,
+      confidence_score: breakdown.confidence,
+      missing_inputs: breakdown.missingInputs,
+      source: "blockid",
+    };
+    // S17-B columns (migration 0330). Migrations are applied by hand on the
+    // server, so if the columns are not there yet retry without them rather
+    // than losing the snapshot.
+    const s17bColumns = {
+      valuation_method: valuation?.valuationMethod ?? null,
+      valuation_method_note: valuation?.methodNote ?? null,
+      connected_mrr_aud: valuation?.connectedRevenue?.mrrAud ?? null,
+      connected_mrr_provider: valuation?.connectedRevenue?.provider ?? null,
+    };
     void supabase
       .from("startup_score_history")
-      .insert({
-        user_id: currentUser.id,
-        startup_id: startupId,
-        startup_name: parsed.companyName ?? inputs.companyName ?? "Unnamed Startup",
-        inputs,
-        svi_analysis: sviAnalysis,
-        sub_scores: subScoresMap,
-        total_score: breakdown.total,
-        valuation_low_aud: valuation?.lowAud ?? null,
-        valuation_high_aud: valuation?.highAud ?? null,
-        score_version: breakdown.version,
-        confidence_score: breakdown.confidence,
-        missing_inputs: breakdown.missingInputs,
-        source: "blockid",
-      })
-      .then(({ error }) => {
-        if (error) console.error("[blockid:history] insert failed", error);
+      .insert({ ...historyRow, ...s17bColumns })
+      .then(async ({ error }) => {
+        if (!error) return;
+        if (/column|schema cache/i.test(error.message ?? "")) {
+          console.warn("[blockid:history] S17-B columns missing (apply migration 0330) — retrying without them");
+          const { error: retryErr } = await supabase.from("startup_score_history").insert(historyRow);
+          if (retryErr) console.error("[blockid:history] insert failed", retryErr);
+          return;
+        }
+        console.error("[blockid:history] insert failed", error);
       });
   }
 
