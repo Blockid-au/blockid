@@ -114,9 +114,9 @@ export function TrialReportBanner({ trial, used = null, now }: TrialReportBanner
     >
       <span>
         <strong>{copy.segments[0]}</strong>
-        <span className="mx-1.5 text-brand-300">·</span>
+        <span className="mx-1.5 text-brand-300" aria-hidden="true">·</span>
         <span data-testid="trial-report-used">{copy.segments[1]}</span>
-        <span className="mx-1.5 text-brand-300">·</span>
+        <span className="mx-1.5 text-brand-300" aria-hidden="true">·</span>
         <span>{copy.segments[2]}</span>
         {error ? (
           <span role="alert" className="ml-2 text-red-700">
@@ -128,9 +128,10 @@ export function TrialReportBanner({ trial, used = null, now }: TrialReportBanner
         type="button"
         onClick={handleManageBilling}
         disabled={opening}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-brand-700 ring-1 ring-brand-300 hover:bg-brand-100 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+        aria-busy={opening}
+        className="inline-flex min-h-6 items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-brand-700 ring-1 ring-brand-300 hover:bg-brand-100 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-wait"
       >
-        {opening ? <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" /> : null}
+        {opening ? <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
         Manage billing
       </button>
     </div>

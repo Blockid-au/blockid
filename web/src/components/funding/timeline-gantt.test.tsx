@@ -92,6 +92,10 @@ describe("TimelineGantt (SVG)", () => {
   it("has an accessible table twin", () => {
     const table = renderToStaticMarkup(<TimelineTable items={ITEMS} state="WA" />);
     expect(table).toContain("data-timeline-table");
+    // S8-B: caption + column scope so a screen reader can read the twin as a table; wrapper scrolls on 400px.
+    expect(table).toContain('<caption class="sr-only">12-month funding timeline');
+    expect((table.match(/<th scope="col"/g) ?? []).length).toBe(6);
+    expect(table).toContain("overflow-x-auto");
     expect(table).toContain("30 Nov 2026 (AWST)");
     expect(table).toContain("Rolling");
     expect(table).toContain("Oct 2026");

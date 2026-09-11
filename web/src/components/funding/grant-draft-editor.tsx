@@ -65,6 +65,17 @@ export function GrantDraftEditor({ grant, prompts, generic, projectId, initial, 
   );
   const [copied, setCopied] = React.useState(false);
   const [dirty, setDirty] = React.useState(false);
+  // S8-B: the Generate button unmounts while the inline confirm shows —
+  // focus goes to Confirm and comes back to Generate on Cancel (WCAG 2.4.3).
+  const generateRef = React.useRef<HTMLButtonElement | null>(null);
+  const confirmRef = React.useRef<HTMLButtonElement | null>(null);
+  React.useEffect(() => {
+    if (phase === "confirm") confirmRef.current?.focus();
+  }, [phase]);
+  const cancelConfirm = () => {
+    setPhase("idle");
+    window.setTimeout(() => generateRef.current?.focus(), 0);
+  };
 
   const busy = phase === "generating" || phase === "saving";
   const hasAnswers = prompts.some((p) => (answers[p.id] ?? "").trim().length > 0);
@@ -176,30 +187,40 @@ export function GrantDraftEditor({ grant, prompts, generic, projectId, initial, 
           </p>
           {generic ? <p className="mt-1 text-xs text-tertiary" data-draft-generic>{FUNDING_COPY.growth.draftGeneric}</p> : null}
         </div>
-        <a href={grant.official_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-semibold text-action">
+        <a href={grant.official_url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-6 items-center gap-1 text-sm font-semibold text-action">
           Official guidelines <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+          <span className="sr-only">(opens in a new tab)</span>
         </a>
       </div>
 
       {allowed ? (
         <div className="mt-4 flex flex-wrap items-center gap-2" data-draft-actions>
           {phase === "confirm" ? (
-            <span className="inline-flex flex-wrap items-center gap-2 rounded-xl border border-action/50 bg-surface-raised px-3 py-2 text-sm" data-draft-confirm>
+            <span
+              className="inline-flex flex-wrap items-center gap-2 rounded-xl border border-action/50 bg-surface-raised px-3 py-2 text-sm"
+              role="group"
+              aria-labelledby="draft-confirm-question"
+              data-draft-confirm
+            >
               <Coins className="h-4 w-4 text-action" aria-hidden />
-              Spend <strong>{cost} credits</strong> on this draft?
-              <button type="button" onClick={() => void generate()} className="rounded-lg bg-action px-3 py-1 text-sm font-semibold text-white">
+              <span id="draft-confirm-question">
+                Spend <strong>{cost} credits</strong> on this draft?
+              </span>
+              <button ref={confirmRef} type="button" onClick={() => void generate()} className="min-h-6 rounded-lg bg-action px-3 py-1 text-sm font-semibold text-on-action">
                 Confirm
               </button>
-              <button type="button" onClick={() => setPhase("idle")} className="text-sm font-semibold text-secondary">
+              <button type="button" onClick={cancelConfirm} className="min-h-6 rounded-lg px-2 py-1 text-sm font-semibold text-secondary hover:text-primary">
                 Cancel
               </button>
             </span>
           ) : (
             <button
+              ref={generateRef}
               type="button"
               disabled={busy}
+              aria-busy={phase === "generating"}
               onClick={() => (unlimited ? void generate() : setPhase("confirm"))}
-              className="inline-flex items-center gap-2 rounded-xl bg-action px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-action px-4 py-2 text-sm font-semibold text-on-action disabled:opacity-60"
               data-draft-generate
             >
               {phase === "generating" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <RefreshCw className="h-4 w-4" aria-hidden />}
@@ -209,6 +230,7 @@ export function GrantDraftEditor({ grant, prompts, generic, projectId, initial, 
           <button
             type="button"
             disabled={busy || !draftId || !dirty}
+            aria-busy={phase === "saving"}
             onClick={() => void save()}
             className="inline-flex items-center gap-2 rounded-xl border border-line-subtle px-4 py-2 text-sm font-semibold text-primary disabled:opacity-50"
             data-draft-save
@@ -236,17 +258,21 @@ export function GrantDraftEditor({ grant, prompts, generic, projectId, initial, 
         </div>
       ) : null}
 
-      {notice ? (
-        <p
-          role="status"
-          className={`mt-3 rounded-lg px-3 py-2 text-sm ${
-            notice.tone === "ok" ? "bg-bull/10 text-bull" : notice.tone === "warn" ? "bg-amber-50 text-amber-800" : "bg-bear/10 text-bear"
-          }`}
-          data-draft-notice={notice.tone}
-        >
-          {notice.text}
-        </p>
-      ) : null}
+      {/* Live region is always mounted so the first notice is announced (a region inserted with its text is often skipped). */}
+      <div role="status" aria-live="polite" data-draft-status>
+        {phase === "generating" ? <span className="sr-only">Generating your draft</span> : null}
+        {copied ? <span className="sr-only">Draft copied to the clipboard</span> : null}
+        {notice ? (
+          <p
+            className={`mt-3 rounded-lg px-3 py-2 text-sm ${
+              notice.tone === "ok" ? "bg-bull/10 text-bull" : notice.tone === "warn" ? "bg-warn/10 text-warn" : "bg-bear/10 text-bear"
+            }`}
+            data-draft-notice={notice.tone}
+          >
+            {notice.text}
+          </p>
+        ) : null}
+      </div>
 
       <ol className="mt-5 space-y-5" data-draft-prompts>
         {prompts.map((p, i) => (
@@ -254,9 +280,14 @@ export function GrantDraftEditor({ grant, prompts, generic, projectId, initial, 
             <label htmlFor={`draft-${p.id}`} className="block text-sm font-semibold text-primary">
               {i + 1}. {p.question}
             </label>
-            {p.guidance && p.guidance !== "generic" ? <p className="mt-1 text-xs text-tertiary">{p.guidance}</p> : null}
+            {p.guidance && p.guidance !== "generic" ? (
+              <p id={`draft-${p.id}-guidance`} className="mt-1 text-xs text-tertiary">
+                {p.guidance}
+              </p>
+            ) : null}
             <textarea
               id={`draft-${p.id}`}
+              aria-describedby={`${p.guidance && p.guidance !== "generic" ? `draft-${p.id}-guidance ` : ""}draft-${p.id}-count`}
               value={answers[p.id] ?? ""}
               onChange={(e) => {
                 setAnswers((a) => ({ ...a, [p.id]: e.target.value }));
@@ -265,9 +296,9 @@ export function GrantDraftEditor({ grant, prompts, generic, projectId, initial, 
               rows={5}
               disabled={!allowed}
               placeholder={allowed ? "Generate a draft, or write your answer here." : ""}
-              className="mt-2 w-full rounded-xl border border-line-subtle bg-surface-raised px-3 py-2 text-sm text-primary"
+              className="mt-2 w-full rounded-xl border border-line-subtle bg-surface-raised px-3 py-2 text-sm text-primary focus:border-action focus:outline-none focus:ring-2 focus:ring-action/30"
             />
-            <p className="mt-1 text-right text-xs text-tertiary">
+            <p id={`draft-${p.id}-count`} className="mt-1 text-right text-xs text-tertiary">
               {(answers[p.id] ?? "").trim() ? (answers[p.id] ?? "").trim().split(/\s+/).length : 0}
               {p.max_words ? ` / ${p.max_words} words` : " words"}
             </p>

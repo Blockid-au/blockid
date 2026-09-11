@@ -29,17 +29,22 @@ const BLOCKER_CODE_LABEL: Record<string, string> = {
   deliverables_incomplete: "Deliverable incomplete",
 };
 
-/** Colour band for the progress bar and pct label. */
-function progressColor(pct: number): string {
-  if (pct >= 80) return "bg-emerald-500";
-  if (pct >= 50) return "bg-amber-400";
-  return "bg-rose-500";
+/**
+ * Colour band for the progress bar and pct label — semantic bull / warn /
+ * bear tokens (AA in light and dark; S8-B a11y audit replaced the fixed
+ * emerald/amber/rose-400 shades that failed on the light dashboard). The
+ * percentage text beside the bar carries the meaning, never colour alone.
+ */
+export function progressColor(pct: number): string {
+  if (pct >= 80) return "bg-bull";
+  if (pct >= 50) return "bg-warn";
+  return "bg-bear";
 }
 
-function progressTextColor(pct: number): string {
-  if (pct >= 80) return "text-emerald-400";
-  if (pct >= 50) return "text-amber-400";
-  return "text-rose-400";
+export function progressTextColor(pct: number): string {
+  if (pct >= 80) return "text-bull";
+  if (pct >= 50) return "text-warn";
+  return "text-bear";
 }
 
 export function NextUnlockCard({
@@ -60,21 +65,23 @@ export function NextUnlockCard({
       data-testid="next-unlock-card"
       data-phase={currentPhase}
       className="rounded-2xl border border-line-subtle bg-surface p-5 space-y-4"
+      role="region"
+      aria-labelledby="next-unlock-heading"
     >
       {/* Header — phase ordinal + label */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-slate-400 font-medium mb-1">
+          <p className="text-[10px] uppercase tracking-widest text-tertiary font-medium mb-1">
             Next Unlock
             {/* G8-P8 — founder-facing phase × plan matrix + exit criteria. */}
             <Link
               href="/docs/unlocks"
-              className="ml-2 normal-case tracking-normal text-slate-500 underline decoration-slate-600 underline-offset-2 hover:text-slate-300"
+              className="ml-2 inline-flex min-h-6 items-center normal-case tracking-normal text-secondary underline decoration-line-strong underline-offset-2 hover:text-action"
             >
               How unlocks work
             </Link>
           </p>
-          <h3 className="text-sm font-semibold text-slate-100 leading-snug">
+          <h3 id="next-unlock-heading" className="text-sm font-semibold text-primary leading-snug">
             Phase {phaseOrder} &middot; {phaseLabel}
           </h3>
         </div>
@@ -88,13 +95,20 @@ export function NextUnlockCard({
 
       {/* Progress bar */}
       <div>
-        <div className="h-1.5 w-full rounded-full bg-surface-hover overflow-hidden">
+        <div
+          className="h-1.5 w-full rounded-full bg-surface-hover overflow-hidden"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={clamped}
+          aria-label="Exit conditions met"
+        >
           <div
-            className={`h-full rounded-full transition-all duration-700 ${barColor}`}
+            className={`h-full rounded-full transition-all duration-700 motion-reduce:transition-none ${barColor}`}
             style={{ width: `${clamped}%` }}
           />
         </div>
-        <p className="text-[10px] text-slate-500 mt-1">
+        <p className="text-[10px] text-tertiary mt-1">
           {clamped === 100
             ? "All exit conditions met — ready to advance"
             : `${clamped}% of exit conditions met`}
@@ -104,7 +118,7 @@ export function NextUnlockCard({
       {/* Top-3 blockers */}
       {top3.length > 0 && (
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-slate-500 font-medium mb-2">
+          <p className="text-[10px] uppercase tracking-widest text-tertiary font-medium mb-2">
             Blockers
           </p>
           <ul className="space-y-2">
@@ -113,14 +127,14 @@ export function NextUnlockCard({
                 key={`${b.code}::${b.subject}`}
                 className="flex items-start gap-2"
               >
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-500" />
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-bear" aria-hidden="true" />
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-slate-200 truncate">
+                  <p className="text-xs font-medium text-primary break-words">
                     {BLOCKER_CODE_LABEL[b.code] ?? b.code}
                     {" — "}
-                    <span className="font-normal text-slate-400">{b.subject}</span>
+                    <span className="font-normal text-secondary">{b.subject}</span>
                   </p>
-                  <p className="text-[10px] text-slate-500 leading-relaxed line-clamp-2">
+                  <p className="text-[10px] text-tertiary leading-relaxed line-clamp-2" title={b.detail}>
                     {b.detail}
                   </p>
                 </div>
@@ -133,10 +147,10 @@ export function NextUnlockCard({
       {/* Next action */}
       {nextAction && (
         <div className="rounded-xl border border-line-subtle bg-surface-sunken px-4 py-3">
-          <p className="text-[10px] uppercase tracking-widest text-slate-400 font-medium mb-1">
+          <p className="text-[10px] uppercase tracking-widest text-tertiary font-medium mb-1">
             Next action
           </p>
-          <p className="text-xs text-slate-200 leading-relaxed">{nextAction}</p>
+          <p className="text-xs text-primary leading-relaxed">{nextAction}</p>
         </div>
       )}
     </div>

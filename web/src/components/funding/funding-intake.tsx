@@ -141,6 +141,7 @@ export function FundingIntake({ openGrantCount, openProgramCount, initial, proje
   const [preview, setPreview] = React.useState<FundingPreviewPayload | null>(null);
   const [submitted, setSubmitted] = React.useState<Record<string, unknown> | null>(null);
   const previewRef = React.useRef<HTMLDivElement | null>(null);
+  const previewHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
   const prefilled = React.useRef(false);
 
   const user = useAuthUser();
@@ -192,7 +193,12 @@ export function FundingIntake({ openGrantCount, openProgramCount, initial, proje
         grant_count: data.preview.grant_count,
         program_count: data.preview.program_count,
       });
-      window.setTimeout(() => previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+      window.setTimeout(() => {
+        const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+        previewRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+        // Move focus to the result heading so keyboard / screen-reader users land on it (WCAG 2.4.3).
+        previewHeadingRef.current?.focus({ preventScroll: true });
+      }, 50);
     } catch {
       setError("Network error — check your connection and try again.");
     } finally {
@@ -292,7 +298,7 @@ export function FundingIntake({ openGrantCount, openProgramCount, initial, proje
                 {INTAKE_STAGES.map((s) => (
                   <label
                     key={s.value}
-                    className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors ${
+                    className={`flex min-h-11 cursor-pointer flex-wrap items-center gap-x-2 gap-y-0.5 rounded-lg border px-3 py-1.5 text-sm transition-colors ${
                       form.stage === s.value ? "border-action bg-action/10 text-primary" : "border-line-subtle text-secondary hover:border-line"
                     }`}
                   >
@@ -318,17 +324,19 @@ export function FundingIntake({ openGrantCount, openProgramCount, initial, proje
               onClick={() => setDrawer((d) => !d)}
               aria-expanded={drawer}
               aria-controls="fi-drawer"
-              className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-primary"
+              className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-semibold text-primary"
             >
               <span className="inline-flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-action" aria-hidden /> Improve my match (optional)
               </span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${drawer ? "rotate-180" : ""}`} aria-hidden />
+              <ChevronDown className={`h-4 w-4 transition-transform motion-reduce:transition-none ${drawer ? "rotate-180" : ""}`} aria-hidden />
             </button>
-            {drawer ? (
-              <div id="fi-drawer" className="space-y-5 border-t border-line-subtle px-4 py-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-secondary">Industry (pick up to 6)</p>
+            {/* Always in the DOM (hidden when collapsed) so aria-controls resolves and state is kept. */}
+            <div id="fi-drawer" className="space-y-5 border-t border-line-subtle px-4 py-4" hidden={!drawer}>
+              {drawer ? (
+                <>
+                <div role="group" aria-labelledby="fi-industry-label">
+                  <p id="fi-industry-label" className="text-xs font-semibold uppercase tracking-wide text-secondary">Industry (pick up to 6)</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {INDUSTRY_OPTIONS.map((o) => {
                       const on = form.industry_tags.includes(o.value);
@@ -343,7 +351,7 @@ export function FundingIntake({ openGrantCount, openProgramCount, initial, proje
                               on ? form.industry_tags.filter((t) => t !== o.value) : [...form.industry_tags, o.value].slice(0, 6),
                             )
                           }
-                          className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                          className={`min-h-6 rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
                             on ? "border-action bg-action text-on-action" : "border-line-subtle bg-surface text-primary hover:border-line"
                           }`}
                         >
@@ -354,8 +362,8 @@ export function FundingIntake({ openGrantCount, openProgramCount, initial, proje
                   </div>
                 </div>
 
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-secondary">Founder groups</p>
+                <fieldset>
+                  <legend className="text-xs font-semibold uppercase tracking-wide text-secondary">Founder groups</legend>
                   <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2">
                     {DEMOGRAPHIC_TOGGLES.map((t) => (
                       <label key={t.key} className="inline-flex items-center gap-2 text-sm text-primary">
@@ -380,7 +388,7 @@ export function FundingIntake({ openGrantCount, openProgramCount, initial, proje
                       Planning to export
                     </label>
                   </div>
-                </div>
+                </fieldset>
 
                 <div className="grid gap-4 sm:grid-cols-4">
                   <NumberField id="fi-turnover" label="Turnover (A$, last 12 mo)" value={form.turnover_aud} onChange={(v) => set("turnover_aud", v)} placeholder="0" />
@@ -392,9 +400,19 @@ export function FundingIntake({ openGrantCount, openProgramCount, initial, proje
                   Figures switch the R&amp;D Tax Incentive and ESIC estimates on. Leave blank and those rows show as
                   &ldquo;unknown&rdquo; instead of &ldquo;ineligible&rdquo;.
                 </p>
-              </div>
-            ) : null}
+                </>
+              ) : null}
+            </div>
           </div>
+
+          {/* Async result / loading announcement for screen readers (WCAG 4.1.3). */}
+          <p className="sr-only" role="status" aria-live="polite" data-intake-status>
+            {loading
+              ? "Matching your answers against the catalogue"
+              : preview
+                ? `Preview ready: ${preview.grant_count} grants and ${preview.program_count} programs matched`
+                : ""}
+          </p>
 
           {error ? (
             <p role="alert" className="rounded-lg border border-bear/30 bg-bear/10 px-3 py-2 text-sm text-bear">
@@ -406,6 +424,7 @@ export function FundingIntake({ openGrantCount, openProgramCount, initial, proje
             <button
               type="submit"
               disabled={!canSubmit}
+              aria-busy={loading}
               className="inline-flex items-center justify-center rounded-lg bg-action px-6 py-3 text-sm font-semibold text-on-action shadow-sm transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? "Matching…" : preview ? "Update my preview" : "Show my matches — free"}
@@ -419,7 +438,7 @@ export function FundingIntake({ openGrantCount, openProgramCount, initial, proje
 
       {preview && submitted ? (
         <div ref={previewRef} className="mt-8 scroll-mt-24">
-          <FundingPreviewCard preview={preview} intake={submitted} />
+          <FundingPreviewCard preview={preview} intake={submitted} headingRef={previewHeadingRef} />
           <FundingPaywall intake={submitted} preview={preview} rail={rail} />
         </div>
       ) : null}
@@ -478,7 +497,16 @@ export function previewHeadline(preview: FundingPreviewPayload, intake?: Record<
 }
 
 /** The free tier of the result: counts, top-3 names + why, hero A$, locked rows. */
-export function FundingPreviewCard({ preview, intake }: { preview: FundingPreviewPayload; intake?: Record<string, unknown> | null }) {
+export function FundingPreviewCard({
+  preview,
+  intake,
+  headingRef,
+}: {
+  preview: FundingPreviewPayload;
+  intake?: Record<string, unknown> | null;
+  /** Focus target after a preview lands (tabIndex -1 heading). */
+  headingRef?: React.Ref<HTMLHeadingElement>;
+}) {
   const fb = preview.fallback;
   const headline = previewHeadline(preview, intake);
 
@@ -486,9 +514,11 @@ export function FundingPreviewCard({ preview, intake }: { preview: FundingPrevie
   const programs = fb ? fb.programs : preview.top_programs;
 
   return (
-    <div className="rounded-2xl border border-line-subtle bg-surface p-6 sm:p-8" data-funding-preview>
+    <section className="rounded-2xl border border-line-subtle bg-surface p-6 sm:p-8" data-funding-preview aria-labelledby="funding-preview-heading">
       <p className="text-xs font-semibold uppercase tracking-wide text-action">{FUNDING_COPY.preview.eyebrow}</p>
-      <h3 className="mt-1 font-display text-xl font-semibold text-primary sm:text-2xl">{headline}</h3>
+      <h3 id="funding-preview-heading" ref={headingRef} tabIndex={-1} className="mt-1 font-display text-xl font-semibold text-primary outline-none sm:text-2xl">
+        {headline}
+      </h3>
       {fb ? <p className="mt-2 text-sm text-secondary">{fb.reason}</p> : null}
       {preview.location_unknown ? (
         <p className="mt-2 text-xs text-tertiary">
@@ -510,7 +540,7 @@ export function FundingPreviewCard({ preview, intake }: { preview: FundingPrevie
         <LockedRow label="Next 3 actions, written for you" />
         <LockedRow label="Official links + last-verified dates on every row" />
       </ul>
-    </div>
+    </section>
   );
 }
 

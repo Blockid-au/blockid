@@ -85,7 +85,7 @@ export function TimelineGantt({ items, today, state, className, maxRows = 24 }: 
         >
           <title id="fg-gantt-title">12-month funding timeline</title>
           <desc id="fg-gantt-desc">
-            {bars.length} dated actions from {months[0].label} to {months[MONTHS - 1].label}, one bar per grant, program, tax deadline or event.
+            {bars.length} dated actions from {months[0].label} to {months[MONTHS - 1].label}, one bar per grant, program, tax deadline or event. The same data is in the table under &quot;Show as a table&quot;.
           </desc>
 
           {/* Month columns + grid */}
@@ -185,14 +185,15 @@ export function TimelineTable({ items, state, className }: { items: TimelineItem
   return (
     <div className={`overflow-x-auto ${className ?? ""}`}>
       <table className="w-full text-left text-sm" data-timeline-table>
+        <caption className="sr-only">12-month funding timeline — the same actions as the chart, one row per dated action</caption>
         <thead>
           <tr className="border-b border-line-subtle text-xs uppercase tracking-wide text-tertiary">
-            <th className="py-2 pr-3 font-semibold">Month</th>
-            <th className="py-2 pr-3 font-semibold">Kind</th>
-            <th className="py-2 pr-3 font-semibold">What</th>
-            <th className="py-2 pr-3 font-semibold">Action</th>
-            <th className="py-2 pr-3 font-semibold">Lead time</th>
-            <th className="py-2 font-semibold">Deadline</th>
+            <th scope="col" className="py-2 pr-3 font-semibold">Month</th>
+            <th scope="col" className="py-2 pr-3 font-semibold">Kind</th>
+            <th scope="col" className="py-2 pr-3 font-semibold">What</th>
+            <th scope="col" className="py-2 pr-3 font-semibold">Action</th>
+            <th scope="col" className="py-2 pr-3 font-semibold">Lead time</th>
+            <th scope="col" className="py-2 font-semibold">Deadline</th>
           </tr>
         </thead>
         <tbody>

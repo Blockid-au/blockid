@@ -19,6 +19,7 @@ import { formatDelta, type EvaluatorProgress, type EvaluatorProgressItem, type P
 import { ReportDialog, type ReportKind, type ReportRunResult } from "./report-dialog";
 import { BatchDialog, type BatchQueuedResult } from "./batch-dialog";
 import { batchProgressPct, type EvaluationBatch } from "@/lib/evaluations/batch-shared";
+import { useModalDialog } from "@/hooks/useModalDialog";
 
 // ---------------------------------------------------------------------------
 // Props + local constants
@@ -127,13 +128,14 @@ export function Sparkline({ values, width = 64, height = 18 }: { values: number[
       role="img"
       className="inline-block align-middle"
     >
+      <title>{`SVI trend ${values[0]} to ${values[values.length - 1]}`}</title>
       <polyline fill="none" stroke={up ? "#047857" : "#B91C1C"} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" points={pts.join(" ")} />
     </svg>
   );
 }
 
 function DeltaCell({ item }: { item: EvaluatorProgressItem | null }) {
-  if (!item) return <span className="text-xs text-ink-400">—</span>;
+  if (!item) return <span className="text-xs text-ink-500">—</span>;
   const d = item.delta;
   const tone = d == null || d === 0 ? "text-ink-500" : d > 0 ? "text-emerald-700" : "text-red-700";
   return (
@@ -154,8 +156,11 @@ function DeltaCell({ item }: { item: EvaluatorProgressItem | null }) {
           title={`${item.money.nextDeadline.name} · ${item.money.nextDeadline.closesAt}`}
           className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800"
         >
-          <CalendarClock className="h-3 w-3" />
+          <CalendarClock className="h-3 w-3" aria-hidden="true" />
           {item.money.deadlinesAhead} deadline{item.money.deadlinesAhead === 1 ? "" : "s"} · next {daysPhrase(item.money.nextDeadline.daysLeft)}
+          <span className="sr-only">
+            : {item.money.nextDeadline.name}, closes {item.money.nextDeadline.closesAt}
+          </span>
         </span>
       ) : null}
       {item.money.newMatches > 0 ? (
@@ -204,7 +209,7 @@ export function ProgressRadarPanel({ progress, hasMoneyRadar }: { progress: Eval
             {progress && progress.newMatches > 0 ? ` · ${progress.newMatches} new match${progress.newMatches === 1 ? "" : "es"}` : ""}
           </span>
         </h2>
-        <span className="text-[11px] text-ink-400">Emailed every Monday</span>
+        <span className="text-[11px] text-ink-500">Emailed every Monday</span>
       </div>
       <div className="mt-3 grid gap-4 sm:grid-cols-2">
         <div>
@@ -271,7 +276,7 @@ export function CohortsSection({ batches, canBatch }: { batches: EvaluationBatch
           Cohorts
           <span className="text-xs font-normal text-ink-500">— batch scores on one rubric, scored off-peak</span>
         </h2>
-        {canBatch ? <span className="text-[11px] text-ink-400">Select startups below → Batch score</span> : null}
+        {canBatch ? <span className="text-[11px] text-ink-500">Select startups below → Batch score</span> : null}
       </div>
       {batches.length === 0 ? (
         <p className="mt-2 text-xs text-ink-500">No batches yet. Tick the startups to score together and choose Batch score.</p>
@@ -288,7 +293,14 @@ export function CohortsSection({ batches, canBatch }: { batches: EvaluationBatch
                     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${chip.className}`}>{chip.label}</span>
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-xs text-ink-500">
-                    <span className="h-1.5 w-32 overflow-hidden rounded-full bg-surface-100" aria-hidden="true">
+                    <span
+                      className="h-1.5 w-32 overflow-hidden rounded-full bg-surface-100"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={pct}
+                      aria-label={`${b.name} scoring progress`}
+                    >
                       <span className="block h-full bg-brand-600" style={{ width: `${pct}%` }} />
                     </span>
                     <span>{b.doneCount} of {b.total} scored{b.failedCount > 0 ? ` · ${b.failedCount} failed` : ""} · {formatDate(b.createdAt)}</span>
@@ -297,7 +309,9 @@ export function CohortsSection({ batches, canBatch }: { batches: EvaluationBatch
                 <div className="flex items-center gap-1 whitespace-nowrap text-xs">
                   <Link href={`/workspace/evaluations/cohort/${encodeURIComponent(b.id)}`} className="rounded-lg px-2.5 py-1.5 font-medium text-brand-700 hover:bg-brand-50">Cohort table</Link>
                   <a href={`/api/evaluations/batch/${encodeURIComponent(b.id)}/export.csv`} className="rounded-lg px-2.5 py-1.5 font-medium text-brand-700 hover:bg-brand-50">CSV</a>
-                  <a href={`/api/reports/quarterly?batch=${encodeURIComponent(b.id)}`} target="_blank" rel="noopener noreferrer" className="rounded-lg px-2.5 py-1.5 font-medium text-brand-700 hover:bg-brand-50">LP report</a>
+                  <a href={`/api/reports/quarterly?batch=${encodeURIComponent(b.id)}`} target="_blank" rel="noopener noreferrer" className="rounded-lg px-2.5 py-1.5 font-medium text-brand-700 hover:bg-brand-50">
+                    LP report<span className="sr-only"> (opens in a new tab)</span>
+                  </a>
                 </div>
               </li>
             );
@@ -398,6 +412,13 @@ export function EvaluationsClient({
   const [creating, setCreating] = React.useState(false);
   const [createError, setCreateError] = React.useState<string | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
+  // S8-B: focus trap + Escape + focus return for the inline "Add a startup" dialog.
+  const addDialogRef = React.useRef<HTMLDivElement | null>(null);
+  const closeAdd = () => {
+    setShowAdd(false);
+    setCreateError(null);
+  };
+  useModalDialog(addDialogRef, { active: showAdd, onClose: closeAdd, initialFocus: "#eval-name" });
 
   // --- Inline label edit ---
   const [editingId, setEditingId] = React.useState<string | null>(null);
@@ -688,8 +709,8 @@ export function EvaluationsClient({
       {notice && (
         <div role="status" className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800 flex items-start justify-between gap-3">
           <span>{notice}</span>
-          <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss" className="text-brand-700 hover:text-brand-900">
-            <X strokeWidth={1.75} className="h-4 w-4" />
+          <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss" className="-m-1 shrink-0 rounded-md p-1 text-brand-700 hover:text-brand-900">
+            <X strokeWidth={1.75} className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
       )}
@@ -716,6 +737,7 @@ export function EvaluationsClient({
       ) : isEvaluator ? (
         <div className="overflow-x-auto rounded-2xl border border-surface-200 bg-white">
           <table className="min-w-full text-sm">
+            <caption className="sr-only">Startups you evaluate — stage, SVI, progress, consent and actions</caption>
             <thead className="bg-surface-50 text-left text-xs uppercase tracking-wider text-ink-500">
               <tr>
                 {canBatch ? (
@@ -771,12 +793,12 @@ export function EvaluationsClient({
                             onClick={() => handleSaveLabel(row.id)}
                             disabled={savingId === row.id}
                             aria-label="Save label"
-                            className="rounded-md p-1 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
+                            className="rounded-md p-1.5 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
                           >
-                            {savingId === row.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                            {savingId === row.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Check className="h-3.5 w-3.5" aria-hidden="true" />}
                           </button>
-                          <button type="button" onClick={() => setEditingId(null)} aria-label="Cancel" className="rounded-md p-1 text-ink-500 hover:bg-surface-100">
-                            <X className="h-3.5 w-3.5" />
+                          <button type="button" onClick={() => setEditingId(null)} aria-label="Cancel label edit" className="rounded-md p-1.5 text-ink-500 hover:bg-surface-100">
+                            <X className="h-3.5 w-3.5" aria-hidden="true" />
                           </button>
                         </div>
                       ) : (
@@ -849,7 +871,7 @@ export function EvaluationsClient({
                           aria-label={`Run Trust BizReport for ${row.projectName}`}
                           className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 cursor-pointer"
                         >
-                          <FileText strokeWidth={1.75} className="h-3.5 w-3.5" />
+                          <FileText strokeWidth={1.75} className="h-3.5 w-3.5" aria-hidden="true" />
                           Run Trust BizReport
                         </button>
                         {lastReports[row.id] ? (
@@ -859,7 +881,7 @@ export function EvaluationsClient({
                             aria-label={`Re-score ${row.projectName}`}
                             className="inline-flex items-center gap-1 rounded-lg border border-brand-300 bg-white px-2.5 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50 cursor-pointer"
                           >
-                            <RefreshCw strokeWidth={1.75} className="h-3.5 w-3.5" />
+                            <RefreshCw strokeWidth={1.75} className="h-3.5 w-3.5" aria-hidden="true" />
                             Re-score
                           </button>
                         ) : null}
@@ -878,7 +900,7 @@ export function EvaluationsClient({
                           aria-label={`Edit label for ${row.projectName}`}
                           className="rounded-lg p-1.5 text-ink-500 hover:bg-surface-100 hover:text-ink-800"
                         >
-                          <Pencil strokeWidth={1.75} className="h-4 w-4" />
+                          <Pencil strokeWidth={1.75} className="h-4 w-4" aria-hidden="true" />
                         </button>
                         <button
                           type="button"
@@ -887,7 +909,7 @@ export function EvaluationsClient({
                           aria-label={`Stop evaluating ${row.projectName}`}
                           className="rounded-lg p-1.5 text-ink-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
                         >
-                          {removingId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 strokeWidth={1.75} className="h-4 w-4" />}
+                          {removingId === row.id ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Trash2 strokeWidth={1.75} className="h-4 w-4" aria-hidden="true" />}
                         </button>
                       </div>
                     </td>
@@ -925,17 +947,17 @@ export function EvaluationsClient({
 
       {/* Add dialog */}
       {showAdd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="add-startup-title">
+        <div ref={addDialogRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="add-startup-title">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-surface-200 overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-surface-200">
               <h2 id="add-startup-title" className="text-lg font-bold text-ink-900">Add a startup</h2>
               <button
                 type="button"
-                onClick={() => { setShowAdd(false); setCreateError(null); }}
+                onClick={closeAdd}
                 aria-label="Close"
                 className="h-8 w-8 flex items-center justify-center rounded-lg text-ink-500 hover:text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer"
               >
-                <X strokeWidth={1.75} className="h-4 w-4" />
+                <X strokeWidth={1.75} className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
             <form onSubmit={handleAdd} className="px-6 py-5 space-y-4">
@@ -1008,7 +1030,7 @@ export function EvaluationsClient({
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => { setShowAdd(false); setCreateError(null); }}
+                  onClick={closeAdd}
                   className="rounded-lg px-4 py-2 text-sm font-medium text-ink-600 hover:bg-surface-100 transition-colors cursor-pointer"
                 >
                   Cancel
@@ -1018,7 +1040,7 @@ export function EvaluationsClient({
                   disabled={creating || !name.trim()}
                   className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {creating && <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" />}
+                  {creating && <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
                   Add startup
                 </button>
               </div>

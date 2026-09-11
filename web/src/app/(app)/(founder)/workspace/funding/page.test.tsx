@@ -195,6 +195,19 @@ describe("/workspace/funding (T0244)", { timeout: 20_000 }, () => {
     expect(eventsMock).toHaveBeenCalledWith("Sydney");
   });
 
+  it("S8-B a11y: ARIA tabs with a roving tabindex (one tab stop), aria-selected on the active tab, a focusable named tabpanel", async () => {
+    const out = await html({ tab: "timeline" });
+    expect(out).toContain('role="tablist" aria-label="Money Radar"');
+    expect((out.match(/role="tab"/g) ?? []).length).toBe(8);
+    expect((out.match(/aria-selected="true"/g) ?? []).length).toBe(1);
+    expect(out).toMatch(/id="funding-tab-btn-timeline" tabindex="0"/);
+    expect((out.match(/role="tab"[^>]*tabindex="-1"/g) ?? []).length).toBe(7);
+    expect(out).toMatch(/<div id="funding-tab-timeline" role="tabpanel" aria-labelledby="funding-tab-btn-timeline" tabindex="0"/);
+    // Tabs are ≥ 44px tall touch targets and show a focus ring.
+    expect(out).toContain("min-h-11");
+    expect(out).toContain("focus-visible:outline-action");
+  });
+
   it("?tab= selects the initial tab — Timeline renders the Gantt, Events the event cards, Capital map the sections, Alerts the kinds", async () => {
     const timeline = await html({ tab: "timeline" });
     expect(timeline).toContain('data-tab="timeline"');

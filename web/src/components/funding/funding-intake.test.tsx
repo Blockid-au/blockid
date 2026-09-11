@@ -20,6 +20,30 @@ async function html(el: React.ReactElement): Promise<string> {
   return (await new Response(stream).text()).replace(/<!-- -->/g, "");
 }
 
+describe("FundingPreviewCard — S8-B a11y", () => {
+  it("is a labelled section whose heading is a focus target (tabindex -1) for the post-submit focus move", async () => {
+    const out = await html(
+      <FundingPreviewCard
+        preview={{
+          grant_count: 3,
+          program_count: 2,
+          top_grants: [{ name: "MVP Ventures", why: "Fits NSW MVP." }],
+          top_programs: [],
+          top_grants_amount_max_aud: 75000,
+          locked: { checklist_items: 12, timeline_items: 4, estimates: 1 },
+          fallback: null,
+          location_unknown: false,
+        } as unknown as Parameters<typeof FundingPreviewCard>[0]["preview"]}
+        intake={{ state: "NSW", stage: "mvp", industry_tags: ["agtech"] }}
+      />,
+    );
+    expect(out).toContain('<section class="rounded-2xl');
+    expect(out).toContain('aria-labelledby="funding-preview-heading"');
+    expect(out).toMatch(/<h3 id="funding-preview-heading" tabindex="-1"/);
+    expect(out).toContain('aria-label="What the full report adds"');
+  });
+});
+
 describe("prefillFromSearch", () => {
   it("prefers ?intent=, then ?grant=, then ?program=, and validates state/stage", () => {
     expect(prefillFromSearch("?intent=Soil%20sensors&grant=MVP").description).toBe("Soil sensors");

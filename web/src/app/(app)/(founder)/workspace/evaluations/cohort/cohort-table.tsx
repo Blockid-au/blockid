@@ -49,9 +49,15 @@ function SortHeader({ k, sortKey, dir, onToggle, align = "left", children }: Sor
   const Icon = !active ? ArrowUpDown : dir === "asc" ? ArrowUp : ArrowDown;
   return (
     <th scope="col" className={`px-4 py-3 font-semibold ${align === "right" ? "text-right" : ""}`} aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"}>
-      <button type="button" onClick={() => onToggle(k)} className="inline-flex items-center gap-1 hover:text-ink-800 cursor-pointer" data-testid={`sort-${k}`}>
+      <button
+        type="button"
+        onClick={() => onToggle(k)}
+        className="inline-flex min-h-6 items-center gap-1 hover:text-ink-800 cursor-pointer"
+        data-testid={`sort-${k}`}
+      >
         {children}
-        <Icon className="h-3 w-3" strokeWidth={1.75} />
+        <Icon className="h-3 w-3" strokeWidth={1.75} aria-hidden="true" />
+        <span className="sr-only">{active ? (dir === "asc" ? ", sorted ascending" : ", sorted descending") : ", sortable"}</span>
       </button>
     </th>
   );
@@ -74,6 +80,7 @@ export function CohortTable({ rows }: { rows: CohortRow[] }) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-surface-200 bg-white">
       <table className="min-w-full text-sm" data-testid="cohort-table">
+        <caption className="sr-only">Cohort table — one row per startup in this batch; column headers sort</caption>
         <thead className="bg-surface-50 text-left text-xs uppercase tracking-wider text-ink-500">
           <tr>
             <SortHeader k="startup" sortKey={sortKey} dir={dir} onToggle={toggle}>Startup</SortHeader>
@@ -120,18 +127,20 @@ export function CohortTable({ rows }: { rows: CohortRow[] }) {
                 <td className="px-4 py-3 text-right whitespace-nowrap">
                   {r.reportUrl ? (
                     <>
-                      <a href={r.reportUrl} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">Open</a>
+                      <a href={r.reportUrl} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">
+                        Open<span className="sr-only"> {r.startup} report (opens in a new tab)</span>
+                      </a>
                       {r.pdfUrl ? (
                         <>
                           {" · "}
                           <a href={r.pdfUrl} className="inline-flex items-center gap-0.5 text-brand-700 hover:underline">
-                            <FileDown className="h-3 w-3" /> PDF
+                            <FileDown className="h-3 w-3" aria-hidden="true" /> PDF<span className="sr-only"> for {r.startup}</span>
                           </a>
                         </>
                       ) : null}
                     </>
                   ) : (
-                    <span className="text-xs text-ink-400">—</span>
+                    <span className="text-xs text-ink-500">—</span>
                   )}
                 </td>
               </tr>

@@ -120,6 +120,7 @@ export function MoneyRadarTile({ data, compact = false, messages = null, classNa
             {data.next_public_event.url ? (
               <a href={data.next_public_event.url} target="_blank" rel="noopener noreferrer" className="underline-offset-2 hover:underline">
                 {data.next_public_event.name}
+                <span className="sr-only"> (opens in a new tab)</span>
               </a>
             ) : (
               data.next_public_event.name
@@ -160,7 +161,9 @@ function TopMatches({ items, locked, messages }: { items: TileTopMatch[]; locked
             <span className="font-medium text-primary">
               {i + 1}. {m.name}
             </span>
-            <span className="block truncate text-xs text-tertiary">{m.why}</span>
+            <span className="block truncate text-xs text-tertiary" title={m.why}>
+              {m.why}
+            </span>
           </span>
           <span className="shrink-0 text-right text-xs text-secondary">
             {locked ? (
@@ -179,7 +182,10 @@ function TopMatches({ items, locked, messages }: { items: TileTopMatch[]; locked
                     data-deadline-status={m.deadline.status}
                     title={`${DEADLINE_LABELS[m.deadline.status]} · ${m.deadline.date_label}`}
                   >
-                    T-{m.deadline.days_until}
+                    <span aria-hidden="true">T-{m.deadline.days_until}</span>
+                    <span className="sr-only">
+                      {DEADLINE_LABELS[m.deadline.status]}, {m.deadline.days_until} days left, closes {m.deadline.date_label}
+                    </span>
                   </span>
                 ) : (
                   <span className="block">rolling</span>
@@ -202,6 +208,7 @@ function DeadlineList({ items }: { items: TileDeadline[] }) {
             {d.url ? (
               <a href={d.url} target="_blank" rel="noopener noreferrer" className="underline-offset-2 hover:underline">
                 {d.name}
+                <span className="sr-only"> (opens in a new tab)</span>
               </a>
             ) : (
               d.name
@@ -213,7 +220,10 @@ function DeadlineList({ items }: { items: TileDeadline[] }) {
             data-deadline-status={d.status}
             title={`${DEADLINE_LABELS[d.status]} · ${d.date_label}`}
           >
-            T-{d.days_until}
+            <span aria-hidden="true">T-{d.days_until}</span>
+            <span className="sr-only">
+              {DEADLINE_LABELS[d.status]}, {d.days_until} days left, closes {d.date_label}
+            </span>
           </span>
         </li>
       ))}

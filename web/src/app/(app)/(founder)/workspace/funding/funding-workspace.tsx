@@ -20,6 +20,7 @@ import { TimelineGantt, TimelineTable } from "@/components/funding/timeline-gant
 import { DeadlineChip } from "@/components/funding/deadline-chip";
 import { formatDateAu } from "@/lib/funding/deadline-status";
 import { capitalSlug, programTypeLabel } from "@/lib/funding/directory";
+import { rovingIndex } from "@/lib/a11y/keyboard";
 
 export type FundingTab = "grants" | "programs" | "events" | "timeline" | "capital" | "investors" | "refresh" | "alerts";
 
@@ -83,6 +84,16 @@ export function isFundingTab(v: string | null | undefined): v is FundingTab {
 
 export function FundingWorkspace({ report, events, capitalMap, alertKinds, initialTab = "grants", draftRef, draftEditor, growth }: FundingWorkspaceProps) {
   const [tab, setTab] = React.useState<FundingTab>(initialTab);
+  // S8-B: ARIA tabs pattern — one tab stop, ArrowLeft/Right/Home/End move
+  // between tabs (roving tabindex) and select on focus.
+  const tabRefs = React.useRef<Array<HTMLButtonElement | null>>([]);
+  const onTabKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    const next = rovingIndex(e.key, index, FUNDING_TABS.length);
+    if (next === null) return;
+    e.preventDefault();
+    setTab(FUNDING_TABS[next].id);
+    tabRefs.current[next]?.focus();
+  };
   const ctx: ReportCardContext | null = report
     ? { reportId: report.id, signedIn: true, today: report.today ? new Date(`${report.today}T00:00:00Z`) : new Date(report.created_at) }
     : null;
@@ -98,16 +109,21 @@ export function FundingWorkspace({ report, events, capitalMap, alertKinds, initi
       ) : null}
 
       <div role="tablist" aria-label="Money Radar" className="flex flex-wrap gap-1 border-b border-line-subtle">
-        {FUNDING_TABS.map((t) => (
+        {FUNDING_TABS.map((t, i) => (
           <button
             key={t.id}
+            ref={(el) => {
+              tabRefs.current[i] = el;
+            }}
             role="tab"
             type="button"
             aria-selected={tab === t.id}
             aria-controls={`funding-tab-${t.id}`}
             id={`funding-tab-btn-${t.id}`}
+            tabIndex={tab === t.id ? 0 : -1}
             onClick={() => setTab(t.id)}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm font-semibold transition-colors ${
+            onKeyDown={(e) => onTabKeyDown(e, i)}
+            className={`-mb-px min-h-11 border-b-2 px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-action ${
               tab === t.id ? "border-action text-action" : "border-transparent text-secondary hover:text-primary"
             }`}
           >
@@ -116,7 +132,7 @@ export function FundingWorkspace({ report, events, capitalMap, alertKinds, initi
         ))}
       </div>
 
-      <div id={`funding-tab-${tab}`} role="tabpanel" aria-labelledby={`funding-tab-btn-${tab}`} className="mt-6">
+      <div id={`funding-tab-${tab}`} role="tabpanel" aria-labelledby={`funding-tab-btn-${tab}`} tabIndex={0} className="mt-6 outline-none">
         {tab === "grants" ? <GrantsTab report={report} ctx={ctx} /> : null}
         {tab === "programs" ? <ProgramsTab report={report} ctx={ctx} /> : null}
         {tab === "events" ? <EventsTab events={events} state={report?.state ?? null} /> : null}
@@ -146,11 +162,11 @@ function ReportMeta({ report }: { report: NonNullable<FundingWorkspaceProps["rep
   return (
     <p className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-tertiary">
       <span>Report from {formatDateAu(report.today ?? report.created_at.slice(0, 10), report.state, { withZone: false })}</span>
-      <Link href={`/funding/report/${report.id}`} className="inline-flex items-center gap-1 font-semibold text-action">
+      <Link href={`/funding/report/${report.id}`} className="inline-flex min-h-6 items-center gap-1 font-semibold text-action">
         Open full report <ExternalLink className="h-3 w-3" aria-hidden />
       </Link>
-      <a href="#intake" className="inline-flex items-center gap-1 font-semibold text-secondary hover:text-primary">
-        <RefreshCw className="h-3 w-3" aria-hidden /> Re-run
+      <a href="#intake" className="inline-flex min-h-6 items-center gap-1 font-semibold text-secondary hover:text-primary">
+        <RefreshCw className="h-3 w-3" aria-hidden /> Re-run<span className="sr-only"> the match (jumps to the intake form)</span>
       </a>
     </p>
   );
@@ -215,8 +231,9 @@ function EventsTab({ events, state }: { events: AuProgramRow[]; state: string | 
               catalogue_status={e.status}
             />
             <div className="mt-3 flex flex-wrap gap-x-4 text-sm font-semibold">
-              <a href={e.official_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-action">
+              <a href={e.official_url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-6 items-center gap-1 text-action">
                 Official page <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                <span className="sr-only">(opens in a new tab)</span>
               </a>
               <Link href={`/funding/programs/${capitalSlug(e.capital)}`} className="text-secondary hover:text-primary">
                 More in {e.capital}
@@ -283,7 +300,14 @@ function CapitalMapTab({ sections }: { sections: CapitalMapSection[] }) {
                       {r.funding_aud ? ` · up to A$${r.funding_aud.toLocaleString("en-AU")}` : ""}
                     </span>
                   </span>
-                  <a href={r.official_url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-action" aria-label={`${r.name} official page`}>
+                  {/* Icon-only link: 14px glyph padded to a 24px+ target (WCAG 2.5.8). */}
+                  <a
+                    href={r.official_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="-m-1.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-action hover:bg-action/10"
+                    aria-label={`${r.name} official page (opens in a new tab)`}
+                  >
                     <ExternalLink className="h-3.5 w-3.5" aria-hidden />
                   </a>
                 </li>
