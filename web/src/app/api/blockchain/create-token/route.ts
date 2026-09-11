@@ -4,7 +4,8 @@ import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { aiSuggestTicker } from "@/lib/ai-equity";
 import { deployCompanyToken } from "@/lib/evm-deploy";
-import { getProjectIdFromRequest, findSVIAccountWithFallback } from "@/lib/projects";
+import { findSVIAccountWithFallback } from "@/lib/projects";
+import { projectScopeOrDeny, ownerOnlyDenied } from "@/lib/project-members/http";
 import { BLOCKID_CHAIN } from "@/lib/wallet";
 
 export const dynamic = "force-dynamic";
@@ -63,7 +64,14 @@ export async function POST(request: Request) {
   }
 
   // ── Resolve the current startup (per-project SVI account) ───────────────
-  const projectId = await getProjectIdFromRequest();
+  // S18-A — minting the startup's equity token is OWNER-ONLY: it binds an
+  // on-chain contract to the owner's record and assigns the founder shares.
+  // Admins/editors/viewers on a shared project are refused before any read.
+  const { scope, denied } = await projectScopeOrDeny("admin");
+  if (denied) return denied;
+  const ownerDenied = ownerOnlyDenied(scope);
+  if (ownerDenied) return ownerDenied;
+  const projectId = scope?.projectId ?? null;
   const account = await findSVIAccountWithFallback(user.email, projectId);
   if (!account) {
     return NextResponse.json(
@@ -165,9 +173,17 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const override = searchParams.get("suggest");
 
-  // Resolve the active startup for this project.
-  const projectId = await getProjectIdFromRequest();
-  const account = await findSVIAccountWithFallback(user.email, projectId);
+  // Resolve the active startup for this project (S18-A: viewer+ read, the
+  // OWNER's record on a shared project).
+  const { scope, denied } = await projectScopeOrDeny("viewer");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const account = await findSVIAccountWithFallback(
+    scope?.dataEmail ?? user.email,
+    projectId,
+    undefined,
+    { callerEmail: user.email },
+  );
   const startupName = String(override || account?.startup_name || "").trim();
 
   if (!startupName) {

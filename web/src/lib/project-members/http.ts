@@ -62,6 +62,22 @@ export function projectAccessResponse(err: unknown): NextResponse | null {
  * never another user's. Any non-access error is rethrown untouched.
  */
 /**
+ * S18-A — for actions reserved to the project OWNER (token minting, billing
+ * state): `getProjectScope("admin")` lets an admin through, so routes call
+ * this afterwards. Returns the 403 to send, or `null` when the caller is
+ * the owner (or has no shared project at all — legacy own-data path).
+ */
+export function ownerOnlyDenied(
+  scope: Pick<ProjectScope, "isOwner"> | null | undefined,
+): NextResponse | null {
+  if (!scope || scope.isOwner) return null;
+  return NextResponse.json(
+    { ok: false, error: "Forbidden — only the project owner can do this", code: "forbidden" },
+    { status: 403 },
+  );
+}
+
+/**
  * S18-A — variant for browser-redirect flows (OAuth callbacks): a refused
  * role redirects to `redirectTo` with `?error=<errorCode>` instead of a
  * JSON 4xx, because the caller is a browser mid-redirect, not fetch().

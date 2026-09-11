@@ -803,3 +803,27 @@ describe("GET response shape", () => {
     consoleSpy.mockRestore();
   });
 });
+
+// ─── S18-A — member-aware GET ─────────────────────────────────────────────
+
+describe("GET S18-A member access", () => {
+  it("viewer on a shared project reads the OWNER's rows (email = scope.dataEmail)", async () => {
+    scopeRoleMock.mockReturnValue("viewer");
+    const { status } = await callGet();
+    expect(status).toBe(200);
+    expect(state.getEqCol).toBe("email");
+    expect(state.getEqVal).toBe("owner@example.com");
+  });
+
+  it("owner reads under their own email", async () => {
+    scopeRoleMock.mockReturnValue("owner");
+    await callGet();
+    expect(state.getEqVal).toBe("jane@example.com");
+  });
+
+  it("no active project → caller's own email (legacy path)", async () => {
+    getProjectIdFromRequestMock.mockResolvedValueOnce(null);
+    await callGet();
+    expect(state.getEqVal).toBe("jane@example.com");
+  });
+});

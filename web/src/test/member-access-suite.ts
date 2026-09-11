@@ -83,7 +83,9 @@ export function describeMemberAccess(name: string, opts: MemberAccessOptions) {
       prime("owner");
       const res = await run();
       expect(isOk(res, okStatus), `status ${res.status}: ${JSON.stringify(await safeJson(res))}`).toBe(true);
-      expect(state.lastMinRole).toBe(minRole);
+      // owner-only routes gate at "admin" then check scope.isOwner (the
+      // ProjectMemberRole type has no "owner" rank to pass to the helper).
+      expect(state.lastMinRole).toBe(kind === "owner" ? "admin" : minRole);
       for (const c of keyCalls(state)) {
         if (c.email !== undefined) expect(c.email).toBe(state.callerEmail);
         expect(c.projectId).toBe("proj-1");

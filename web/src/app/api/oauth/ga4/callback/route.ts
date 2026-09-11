@@ -14,7 +14,8 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { findOrCreateSVIAccount, getProjectIdFromRequest } from "@/lib/projects";
+import { findOrCreateSVIAccount } from "@/lib/projects";
+import { projectScopeOrRedirect } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -110,6 +111,17 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${siteUrl}/workspace/evidence?error=analytics_csrf_mismatch`);
   }
 
+  // S18-A — linking writes oauth_connections + evidence on the project
+  // OWNER's svi_accounts row → admin+; gate BEFORE the code exchange.
+  const { scope, denied } = await projectScopeOrRedirect(
+    "admin",
+    `${siteUrl}/workspace/evidence`,
+    "analytics_forbidden_role",
+  );
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const dataEmail = scope?.dataEmail ?? email;
+
   const redirectUri = `${siteUrl}/api/oauth/ga4/callback`;
 
   try {
@@ -170,8 +182,7 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${siteUrl}/workspace/evidence?error=analytics_db_unavailable`);
     }
 
-    const projectId = await getProjectIdFromRequest();
-    const accountId = await findOrCreateSVIAccount(email, projectId);
+    const accountId = await findOrCreateSVIAccount(dataEmail, projectId);
     if (!accountId) {
       return NextResponse.redirect(`${siteUrl}/workspace/evidence?error=analytics_account_failed`);
     }

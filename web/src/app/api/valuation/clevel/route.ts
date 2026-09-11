@@ -5,7 +5,8 @@ import {
   computeCLevelValuation,
   type CLevelValuationInput,
 } from "@/lib/clevel-valuation";
-import { getProjectIdFromRequest, findSVIAccountWithFallback } from "@/lib/projects";
+import { findSVIAccountWithFallback } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -32,11 +33,17 @@ export async function POST(req: NextRequest) {
     const body: Partial<CLevelValuationInput> = await req.json().catch(() => ({}));
     const supabase = getSupabaseAdmin();
     if (!supabase) return NextResponse.json({ ok: false, error: "DB unavailable" }, { status: 503 });
-    const projectId = await getProjectIdFromRequest();
-
-    // Load SVI account for the calling user (or specified email if admin)
-    const targetEmail = body.email ?? user.email ?? "";
-    const account = await findSVIAccountWithFallback(targetEmail, projectId);
+    // S18-A — member-aware (editor+: a valuation snapshot is inserted on the
+    // project's account). The record is the OWNER's on a shared project.
+    // `body.email` is NO LONGER honoured as a lookup key: it let any signed-in
+    // user read another founder's record and write a snapshot on it.
+    const { scope, denied } = await projectScopeOrDeny("editor");
+    if (denied) return denied;
+    const projectId = scope?.projectId ?? null;
+    const targetEmail = scope?.dataEmail ?? user.email ?? "";
+    const account = await findSVIAccountWithFallback(targetEmail, projectId, undefined, {
+      callerEmail: user.email,
+    });
 
     // Pull latest SVI analysis for dimension scores
     let dimensions = body.dimensions;

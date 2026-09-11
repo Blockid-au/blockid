@@ -16,7 +16,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { auditGitHubRepo, type GitHubRepoAudit } from "@/lib/github-repo-audit";
-import { findOrCreateSVIAccount, getProjectIdFromRequest } from "@/lib/projects";
+import { findOrCreateSVIAccount } from "@/lib/projects";
+import { projectScopeOrRedirect } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -125,6 +126,17 @@ export async function GET(request: Request) {
       `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence?error=github_csrf_mismatch`,
     );
   }
+
+  // S18-A — linking writes oauth_connections + evidence on the project
+  // OWNER's svi_accounts row → admin+; gate BEFORE the code exchange.
+  const { scope, denied } = await projectScopeOrRedirect(
+    "admin",
+    `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence`,
+    "github_forbidden_role",
+  );
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const dataEmail = scope?.dataEmail ?? email;
 
   try {
     // 1. Exchange code for access token
@@ -316,8 +328,7 @@ export async function GET(request: Request) {
     // 8. Save to database
     const supabase = getSupabaseAdmin();
     if (supabase) {
-      const projectId = await getProjectIdFromRequest();
-      const accountId = await findOrCreateSVIAccount(email, projectId);
+      const accountId = await findOrCreateSVIAccount(dataEmail, projectId);
       if (accountId) {
         // 8a. Save/update oauth_connections
         await supabase

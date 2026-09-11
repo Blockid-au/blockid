@@ -3,7 +3,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { computeValuation, type ValuationInput } from "@/lib/valuation";
 import { canAfford, spendCredits } from "@/lib/credits";
-import { getProjectIdFromRequest, findSVIAccountWithFallback } from "@/lib/projects";
+import { findSVIAccountWithFallback, creditChargeNote } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { loadConnectedRevenueSignals } from "@/lib/connected-revenue";
 import { applyConnectedRevenueBridge } from "@/lib/valuation-mrr-bridge";
 
@@ -40,12 +41,17 @@ export async function GET() {
       );
     }
 
-    // 1. Find the user's SVI account — with fallback for legacy records
-    const projectId = await getProjectIdFromRequest();
+    // 1. Find the project's SVI account — with fallback for legacy records.
+    // S18-A — member-aware read (viewer+): the OWNER's record on a shared
+    // project; connected-revenue signals are keyed on the owner's user_id.
+    const { scope, denied } = await projectScopeOrDeny("viewer");
+    if (denied) return denied;
+    const projectId = scope?.projectId ?? null;
     const account = await findSVIAccountWithFallback(
-      user.email,
+      scope?.dataEmail ?? user.email,
       projectId,
       "id, current_svi, current_stage",
+      { callerEmail: user.email },
     );
 
     if (!account) {
@@ -117,7 +123,7 @@ export async function GET() {
     //    Xero `svi_evidence.xero_revenue`). Overlap narrows, disagreement widens
     //    + notes, stale (> 90d) signals are ignored + noted, no MRR = unchanged.
     const signals = await loadConnectedRevenueSignals(supabase, {
-      userId: user.id,
+      userId: scope?.ownerUserId ?? user.id,
       projectId,
       accountId: account.id as string,
     });
@@ -247,8 +253,12 @@ export async function POST(request: Request) {
           : undefined,
     };
 
-    // Spend credits
-    const scenarioProjectId = await getProjectIdFromRequest();
+    // Spend credits — S18-A: a scenario is pure compute on caller-supplied
+    // inputs (nothing on the project record is read or written), so viewer+
+    // and always the CALLER's wallet; project_id only tags the ledger.
+    const { scope: scenarioScope, denied } = await projectScopeOrDeny("viewer");
+    if (denied) return denied;
+    const scenarioProjectId = scenarioScope?.projectId ?? null;
     const spend = await spendCredits(user.id, "valuation_detailed", {
       sviScore,
       stage,
@@ -270,6 +280,7 @@ export async function POST(request: Request) {
       valuation,
       input: { sviScore, stage },
       creditsRemaining: spend.balance,
+      creditNote: creditChargeNote(scenarioScope),
     });
   } catch (err) {
     console.error("[blockid:valuation] POST error", err);

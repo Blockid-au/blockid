@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { buildVcValuationReport, type VcValuationInput } from "@/lib/agents/cfo-valuation";
-import { findSVIAccountWithFallback, getProjectIdFromRequest } from "@/lib/projects";
+import { findSVIAccountWithFallback } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { loadConnectedRevenueSignals } from "@/lib/connected-revenue";
 import { applyConnectedRevenueBridge } from "@/lib/valuation-mrr-bridge";
@@ -27,11 +28,17 @@ export async function GET() {
       return NextResponse.json({ ok: false, error: "Service unavailable" }, { status: 503 });
     }
 
-    const projectId = await getProjectIdFromRequest();
+    // S18-A — member-aware read (viewer+): the OWNER's record on a shared
+    // project; the analysis + connected-revenue reads use the same key.
+    const { scope, denied } = await projectScopeOrDeny("viewer");
+    if (denied) return denied;
+    const projectId = scope?.projectId ?? null;
+    const dataEmail = scope?.dataEmail ?? user.email;
     const account = await findSVIAccountWithFallback(
-      user.email,
+      dataEmail,
       projectId,
       "id, current_svi, current_stage",
+      { callerEmail: user.email },
     );
 
     if (!account) {
@@ -74,7 +81,7 @@ export async function GET() {
     const analysisQuery = supabase
       .from("svi_analyses")
       .select("analysis_json, total_svi, raw_input")
-      .eq("email", user.email);
+      .eq("email", dataEmail);
     if (projectId) {
       analysisQuery.eq("project_id", projectId);
     } else {
@@ -148,7 +155,7 @@ export async function GET() {
     // per-method rows stay untouched so the Methods tab still explains the
     // SVI-side derivation; `sviRange` keeps the pre-bridge blended numbers.
     const signals = await loadConnectedRevenueSignals(supabase, {
-      userId: user.id,
+      userId: scope?.ownerUserId ?? user.id,
       projectId,
       accountId: account.id as string,
     });

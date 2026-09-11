@@ -226,12 +226,24 @@ export async function GET(request: Request) {
     );
     const cutoff = cutoffDate.toISOString().slice(0, 10);
 
+    // S18-A — member-aware read (viewer+): rows are keyed on the OWNER's
+    // email (the same key POST writes), scoped to the project's account.
+    let scope;
+    try {
+      scope = await getProjectScope("viewer");
+    } catch (err) {
+      const denied = projectAccessResponse(err);
+      if (denied) return denied;
+      throw err;
+    }
+    const dataEmail = scope?.dataEmail ?? user.email;
+
     const { data: metrics, error } = await supabase
       .from("startup_metrics")
       .select(
         "id, metric_date, mrr_aud, arr_aud, revenue_growth_pct, revenue, mau, dau, users_total, users_new, monthly_churn_pct, nrr_pct, cac_aud, ltv_aud, burn_rate_aud, runway_months, nps, notes, source, created_at",
       )
-      .eq("email", user.email)
+      .eq("email", dataEmail)
       .gte("metric_date", cutoff)
       .order("metric_date", { ascending: true });
 

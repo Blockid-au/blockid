@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import Stripe from "stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { findOrCreateSVIAccount, getProjectIdFromRequest } from "@/lib/projects";
+import { findOrCreateSVIAccount } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,15 @@ export async function POST(request: Request) {
         { status: 401 },
       );
     }
+
+    // S18-A — linking Stripe evidence onto the project OWNER's account is
+    // admin+; a lower role is refused before any Stripe API call. The
+    // Stripe customer is still looked up by the CALLER's email (their own
+    // Stripe identity), the evidence lands on the owner's record.
+    const { scope, denied } = await projectScopeOrDeny("admin");
+    if (denied) return denied;
+    const projectId = scope?.projectId ?? null;
+    const dataEmail = scope?.dataEmail ?? auth.email;
 
     const stripe = new Stripe(secretKey);
 
@@ -150,9 +160,8 @@ export async function POST(request: Request) {
 
     const label = `Stripe: MRR ${mrrDisplay}, ${customerCount} customers`;
 
-    // Find or create account
-    const projectId = await getProjectIdFromRequest();
-    const accountId = await findOrCreateSVIAccount(auth.email, projectId);
+    // Find or create the project's (owner's) account
+    const accountId = await findOrCreateSVIAccount(dataEmail, projectId);
     if (!accountId) {
       return NextResponse.json(
         { ok: false, error: "Failed to resolve account" },
