@@ -543,6 +543,8 @@
   "funding.copy.growth.draftLocked": "Soạn hồ sơ có từ gói Starter (dùng credits) và không giới hạn ở gói Growth.",
   "funding.copy.growth.draftFailed": "Trình soạn không kết nối được AI, nên các câu hỏi được lưu với câu trả lời trống. Hãy thử lại sau một phút.",
   "funding.copy.growth.draftGeneric": "Khoản tài trợ này chưa có bộ câu hỏi chính thức, nên đây là bốn câu hỏi mọi mẫu đơn tài trợ tại Úc đều hỏi.",
+  "funding.copy.growth.draftTitleProgram": "Bản nháp hồ sơ — {program}",
+  "funding.copy.growth.draftGenericProgram": "Chương trình này chưa công bố bộ câu hỏi, nên đây là sáu câu hỏi mọi mẫu đơn accelerator đều hỏi.",
   "funding.copy.empty.locked": "Đã khóa — mở khóa báo cáo đầy đủ để xem.",
   "funding.copy.empty.noEvents": "Chưa có sự kiện công khai nào cho thành phố của bạn. Hãy xem tất cả chương trình."
 }

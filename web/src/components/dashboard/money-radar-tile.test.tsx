@@ -130,6 +130,9 @@ describe("MoneyRadarTile — five states (D-2)", () => {
     expect(out).toContain("Draft application (credits)");
     expect(out).toContain('href="/workspace/funding?draft=g2"');
     expect(out).toContain('href="https://qld.gov.au/ignite"');
+    // S16-A: a program deadline opens the program editor (kind=program), never the grant lookup.
+    expect(TILE_HREFS.draft("p1", "program")).toBe("/workspace/funding?draft=p1&kind=program");
+    expect(TILE_HREFS.draft("g2")).toBe("/workspace/funding?draft=g2");
   });
 
   it("nothing_due: 'No deadlines in the next 30 days. Next up: …', Add to calendar → ICS", async () => {

@@ -541,6 +541,8 @@
   "funding.copy.growth.draftLocked": "Application drafts are included from Starter (credits) and unlimited on Growth.",
   "funding.copy.growth.draftFailed": "The drafter could not reach the AI, so your questions are saved with empty answers. Retry in a minute.",
   "funding.copy.growth.draftGeneric": "This grant has no official question set yet, so these are the four questions every AU grant form asks.",
+  "funding.copy.growth.draftTitleProgram": "Application draft — {program}",
+  "funding.copy.growth.draftGenericProgram": "This program has no published question set yet, so these are the six questions every accelerator form asks.",
   "funding.copy.empty.locked": "Locked — unlock the full report to see it.",
   "funding.copy.empty.noEvents": "No public events listed for your capital yet. Browse all programs instead."
 }

@@ -169,6 +169,9 @@ export const FUNDING_COPY = {
     draftLocked: "Application drafts are included from Starter (credits) and unlimited on Growth.",
     draftFailed: "The drafter could not reach the AI, so your questions are saved with empty answers. Retry in a minute.",
     draftGeneric: "This grant has no official question set yet, so these are the four questions every AU grant form asks.",
+    /** S16-A program drafts — same rails, accelerator wording. */
+    draftTitleProgram: "Application draft — {program}",
+    draftGenericProgram: "This program has no published question set yet, so these are the six questions every accelerator form asks.",
   },
 
   /**

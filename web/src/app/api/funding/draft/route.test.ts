@@ -13,6 +13,11 @@
 //      spend refunds via grantCredits.
 //   4. AI failure → 200 with empty answers, ai_ok:false, and NOT charged.
 //   5. PATCH → owner update of answers / status; 404 when not owned.
+//   6. S16-A program path: `{ program_id }` → getProgram + promptsForProgram
+//      (generic 6 when unseeded), drafter gets a kind:"program" target with
+//      the intake window, row stored with program_id set / grant_id null,
+//      same gate / preview / spend / AI-failure rules; both ids → 400;
+//      unknown program → 404 program_not_found.
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -41,8 +46,8 @@ vi.mock("@/lib/funding/growth-extras", () => ({ hasGrowthExtras: (u: unknown) =>
 const getProjectByIdMock = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/projects", () => ({ getProjectById: (id: string) => getProjectByIdMock(id) }));
 
-const getGrantMock = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/funding/data", () => ({ getGrant: (id: string) => getGrantMock(id) }));
+const { getGrantMock, getProgramMock } = vi.hoisted(() => ({ getGrantMock: vi.fn(), getProgramMock: vi.fn() }));
+vi.mock("@/lib/funding/data", () => ({ getGrant: (id: string) => getGrantMock(id), getProgram: (id: string) => getProgramMock(id) }));
 
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => ({ from: () => ({}) }) }));
 
@@ -67,6 +72,12 @@ const GRANT = {
   official_url: "https://x", exclude_from_matching: false, closes_at: null,
   application_prompts: [{ id: "product", question: "Describe the MVP." }, { id: "budget", question: "Budget?" }, { id: "team", question: "Team?" }],
 };
+const PROGRAM = {
+  id: "syd-startmate-accelerator", name: "Startmate Accelerator", operator: "Startmate", program_type: "accelerator", summary: "Australia's best-known accelerator.",
+  applications_open: "2026-09", applications_close: "2026-11-08", next_cohort_start: "2027-01-25", funding_aud: 120000, equity_pct: "≤8%", cost_to_founder: "free",
+  benefits: ["4,000+ mentor network", "Demo Day"], length_weeks: 12, official_url: "https://www.startmate.com/accelerator",
+  application_prompts: [{ id: "one_liner", question: "One sentence." }, { id: "problem", question: "Problem?" }, { id: "team", question: "Team?" }, { id: "why_startmate", question: "Why Startmate?" }, { id: "milestones", question: "Milestones?" }],
+};
 const CTX = { startup: "Acme", description: null, industry: null, stage: null, state: null, svi: null, evidence: [], matchWhy: [], eligibility: [] };
 
 function post(body: unknown) {
@@ -86,6 +97,7 @@ beforeEach(() => {
   growthMock.mockReset().mockResolvedValue(false);
   getProjectByIdMock.mockReset().mockResolvedValue(PROJECT);
   getGrantMock.mockReset().mockResolvedValue(GRANT);
+  getProgramMock.mockReset().mockResolvedValue(PROGRAM);
   gatherMock.mockReset().mockResolvedValue(CTX);
   insertMock.mockReset().mockImplementation(async (row: Record<string, unknown>) => ({ id: "22222222-2222-4222-8222-222222222222", ...row, created_at: "", updated_at: "" }));
   updateMock.mockReset();
@@ -139,7 +151,12 @@ describe("POST — Growth / Startup Package rail", () => {
     expect(draftMock).toHaveBeenCalledTimes(1);
     expect(draftMock.mock.calls[0]![1]).toEqual(GRANT.application_prompts);
     expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ user_id: "u-1", project_id: "11111111-1111-4111-8111-111111111111", grant_id: GRANT.id, credits_cost: 0, status: "draft", answers: { product: "A", budget: "B", team: "C" } }));
-    expect(gatherMock).toHaveBeenCalledWith({ id: "u-1", email: "f@acme.io" }, PROJECT, GRANT.id, expect.anything());
+    expect(gatherMock).toHaveBeenCalledWith({ id: "u-1", email: "f@acme.io" }, PROJECT, { kind: "grant", id: GRANT.id }, expect.anything());
+    // Grant drafts keep grant_id and leave program_id null (0329 CHECK: exactly one).
+    expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ program_id: null }));
+    const target = draftMock.mock.calls[0]![0] as Record<string, unknown>;
+    expect(target.kind).toBeUndefined();
+    expect(target).toMatchObject({ id: GRANT.id, name: "MVP Ventures", co_contribution: "1:1" });
   });
 });
 
@@ -222,6 +239,111 @@ describe("POST — never blank", () => {
     const res = await post({ grant_id: GRANT.id });
     const body = await res.json();
     expect(body.prompts.map((p: { id: string }) => p.id)).toEqual(["project", "eligibility", "budget", "outcomes"]);
+  });
+});
+
+describe("POST — program drafts (S16-A)", () => {
+  const PID = "11111111-1111-4111-8111-111111111111";
+  const PROGRAM_ANSWERS = { one_liner: "A", problem: "B", team: "C", why_startmate: "D", milestones: "E" };
+
+  it("grant_id + program_id together → 400; bad program id shape → 400; unknown program → 404 program_not_found", async () => {
+    const both = await post({ grant_id: GRANT.id, program_id: PROGRAM.id });
+    expect(both.status).toBe(400);
+    expect((await both.json()).field).toBe("program_id");
+    expect((await post({ program_id: "Nope;drop" })).status).toBe(400);
+    getProgramMock.mockResolvedValueOnce(null);
+    const missing = await post({ program_id: "zzz-nope" });
+    expect(missing.status).toBe(404);
+    expect((await missing.json()).error).toBe("program_not_found");
+    expect(getGrantMock).not.toHaveBeenCalled();
+    expect(draftMock).not.toHaveBeenCalled();
+  });
+
+  it("Growth → cost 0, drafter gets a kind:program target with name + intake + funding, row stored with program_id set and grant_id null", async () => {
+    growthMock.mockResolvedValue(true);
+    draftMock.mockResolvedValueOnce({ answers: PROGRAM_ANSWERS, ai_ok: true, failed: [], provider: "groq", model: "m" });
+    const res = await post({ program_id: PROGRAM.id, project_id: PID });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toMatchObject({ ok: true, cost: 0, creditsCharged: 0, ai_ok: true, kind: "program", program: { id: PROGRAM.id, name: "Startmate Accelerator", official_url: PROGRAM.official_url } });
+    expect(body.grant).toBeUndefined();
+    expect(body.prompts.map((p: { id: string }) => p.id)).toEqual(["one_liner", "problem", "team", "why_startmate", "milestones"]);
+    expect(getProgramMock).toHaveBeenCalledWith(PROGRAM.id);
+    expect(getGrantMock).not.toHaveBeenCalled();
+    expect(canAffordMock).not.toHaveBeenCalled();
+    expect(spendCreditsMock).not.toHaveBeenCalled();
+    // The drafter target is the program-flavoured shape.
+    const target = draftMock.mock.calls[0]![0] as Record<string, unknown>;
+    expect(target).toMatchObject({
+      kind: "program",
+      id: PROGRAM.id,
+      name: "Startmate Accelerator",
+      provider: "Startmate",
+      program_type: "accelerator",
+      intake: "Applications open Sep 2026, close 8 Nov 2026; next cohort 25 Jan 2027",
+      funding: "A$120,000 for ≤8%",
+      cost_to_founder: "free",
+      benefits: ["4,000+ mentor network", "Demo Day"],
+      length_weeks: 12,
+    });
+    expect(draftMock.mock.calls[0]![1]).toEqual(PROGRAM.application_prompts);
+    // Context gathering is keyed on the program so match notes come from program_matches.
+    expect(gatherMock).toHaveBeenCalledWith({ id: "u-1", email: "f@acme.io" }, PROJECT, { kind: "program", id: PROGRAM.id }, expect.anything());
+    expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ user_id: "u-1", project_id: PID, grant_id: null, program_id: PROGRAM.id, credits_cost: 0, status: "draft", answers: PROGRAM_ANSWERS }));
+  });
+
+  it("Starter → preview carries cost + prompts + program echo and spends nothing; confirm:true → spend (program_id meta) then insert", async () => {
+    const preview = await post({ program_id: PROGRAM.id, project_id: PID });
+    expect(preview.status).toBe(200);
+    const pbody = await preview.json();
+    expect(pbody).toMatchObject({ ok: true, preview: true, cost: 2, balance: 10, kind: "program", program: { id: PROGRAM.id, name: "Startmate Accelerator" } });
+    expect(pbody.prompts).toHaveLength(5);
+    expect(draftMock).not.toHaveBeenCalled();
+    expect(insertMock).not.toHaveBeenCalled();
+    expect(spendCreditsMock).not.toHaveBeenCalled();
+
+    draftMock.mockResolvedValueOnce({ answers: PROGRAM_ANSWERS, ai_ok: true, failed: [], provider: "groq", model: "m" });
+    const order: string[] = [];
+    insertMock.mockImplementation(async (row: Record<string, unknown>) => { order.push("insert"); return { id: "22222222-2222-4222-8222-222222222222", ...row, created_at: "", updated_at: "" }; });
+    spendCreditsMock.mockImplementation(async () => { order.push("spend"); return { ok: true, balance: 8 }; });
+    const res = await post({ program_id: PROGRAM.id, project_id: PID, confirm: true });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, cost: 2, creditsCharged: 2, balance: 8, ai_ok: true, kind: "program" });
+    expect(order).toEqual(["spend", "insert"]);
+    expect(spendCreditsMock).toHaveBeenCalledWith("u-1", "grant_application_draft", { project_id: PID, program_id: PROGRAM.id });
+    expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ credits_cost: 2, program_id: PROGRAM.id, grant_id: null }));
+  });
+
+  it("plan gate still applies (403 plan_required) and canAfford false → 402 before any generation", async () => {
+    canMock.mockResolvedValueOnce(false);
+    expect((await post({ program_id: PROGRAM.id })).status).toBe(403);
+    canAffordMock.mockResolvedValueOnce({ allowed: false, balance: 0, cost: 2, reason: "insufficient_credits" });
+    expect((await post({ program_id: PROGRAM.id, confirm: true })).status).toBe(402);
+    expect(draftMock).not.toHaveBeenCalled();
+  });
+
+  it("AI failure → 200, empty answers stored against program_id, NOT charged; insert failure refunds with program_id meta", async () => {
+    draftMock.mockResolvedValueOnce({ answers: { one_liner: "", problem: "", team: "", why_startmate: "", milestones: "" }, ai_ok: false, failed: ["one_liner", "problem", "team", "why_startmate", "milestones"], provider: null, model: null });
+    const res = await post({ program_id: PROGRAM.id, confirm: true });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, ai_ok: false, creditsCharged: 0, cost: 2, kind: "program" });
+    expect(spendCreditsMock).not.toHaveBeenCalled();
+    expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ credits_cost: 0, program_id: PROGRAM.id, grant_id: null }));
+
+    draftMock.mockResolvedValueOnce({ answers: PROGRAM_ANSWERS, ai_ok: true, failed: [], provider: "groq", model: "m" });
+    insertMock.mockResolvedValueOnce(null);
+    const failed = await post({ program_id: PROGRAM.id, confirm: true });
+    expect(failed.status).toBe(500);
+    expect(grantCreditsMock).toHaveBeenCalledWith("u-1", 2, "refund", expect.objectContaining({ feature: "grant_application_draft", program_id: PROGRAM.id }));
+  });
+
+  it("a program without seeded prompts drafts against the generic 6-question accelerator set", async () => {
+    growthMock.mockResolvedValue(true);
+    getProgramMock.mockResolvedValueOnce({ ...PROGRAM, application_prompts: [] });
+    draftMock.mockResolvedValueOnce({ answers: { problem: "a", solution: "b", traction: "c", team: "d", why_program: "e", milestones: "f" }, ai_ok: true, failed: [], provider: "groq", model: "m" });
+    const res = await post({ program_id: PROGRAM.id });
+    const body = await res.json();
+    expect(body.prompts.map((p: { id: string }) => p.id)).toEqual(["problem", "solution", "traction", "team", "why_program", "milestones"]);
   });
 });
 

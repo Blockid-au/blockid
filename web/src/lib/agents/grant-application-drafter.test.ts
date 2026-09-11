@@ -9,7 +9,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { callAIMock } = vi.hoisted(() => ({ callAIMock: vi.fn() }));
 vi.mock("@/lib/ai-client", () => ({ callAI: (opts: unknown) => callAIMock(opts) }));
 
-import { buildDraftPrompt, draftGrantApplication, type GrantDraftContext, type GrantDraftTarget } from "./grant-application-drafter";
+import { buildDraftPrompt, draftGrantApplication, systemPromptFor, type GrantDraftContext, type GrantDraftTarget, type ProgramDraftTarget } from "./grant-application-drafter";
+
+const PROGRAM: ProgramDraftTarget = {
+  kind: "program",
+  id: "syd-startmate-accelerator",
+  name: "Startmate Accelerator",
+  provider: "Startmate",
+  summary: "Australia's best-known accelerator; 2 cohorts/yr.",
+  program_type: "accelerator",
+  intake: "Applications open Sep 2026, close 8 Nov 2026; next cohort 25 Jan 2027",
+  funding: "A$120,000 for ≤8%",
+  cost_to_founder: "free",
+  benefits: ["4,000+ mentor network", "Demo Day to 1,000+ investors"],
+  length_weeks: 12,
+  official_url: "https://www.startmate.com/accelerator",
+};
 
 const GRANT: GrantDraftTarget = {
   id: "nsw-mvp-ventures",
@@ -67,6 +82,36 @@ describe("buildDraftPrompt", () => {
     expect(p).not.toContain("Guidance from the guidelines");
     expect(p).toContain("Word cap: 250");
   });
+
+  it("S16-A program target: carries the program name, type, intake window, funding, benefits and program-flavoured labels — no grant lines", () => {
+    const p = buildDraftPrompt(PROGRAM, { id: "why_startmate", question: "Why Startmate, and why now?", guidance: "Name the mentors you want.", max_words: 150 }, CTX);
+    expect(p).toContain("Program: Startmate Accelerator (Startmate) — accelerator, 12 weeks");
+    expect(p).toContain("About the program: Australia's best-known accelerator; 2 cohorts/yr.");
+    expect(p).toContain("Intake: Applications open Sep 2026, close 8 Nov 2026; next cohort 25 Jan 2027");
+    expect(p).toContain("Funding on offer: A$120,000 for ≤8%");
+    expect(p).toContain("Cost to founder: free");
+    expect(p).toContain("What the program offers:\n- 4,000+ mentor network\n- Demo Day to 1,000+ investors");
+    expect(p).toContain("Why the Money Finder matched this program");
+    expect(p).toContain("Guidance from the program: Name the mentors you want.");
+    expect(p).toContain("Startup: Acme Agtech");
+    expect(p).toContain("SVI 62/100");
+    expect(p).toContain("- Pitch deck v3.pdf (IRI)");
+    expect(p).toContain("Word cap: 150");
+    expect(p).not.toContain("Grant:");
+    expect(p).not.toContain("Co-contribution");
+    expect(p).not.toContain("Guidance from the guidelines");
+  });
+
+  it("systemPromptFor: accelerator voice for programs (concise, evidence-led, no hype), grant coach otherwise", () => {
+    const program = systemPromptFor(PROGRAM);
+    expect(program).toMatch(/accelerator-application coach/);
+    expect(program).toMatch(/No hype, no superlatives/);
+    expect(program).toMatch(/Never invent/);
+    expect(program).toMatch(/Lead with the strongest fact/);
+    const grant = systemPromptFor(GRANT);
+    expect(grant).toMatch(/grant-application coach/);
+    expect(grant).not.toMatch(/accelerator/);
+  });
 });
 
 describe("draftGrantApplication", () => {
@@ -114,5 +159,17 @@ describe("draftGrantApplication", () => {
     const r = await draftGrantApplication(GRANT, [], CTX);
     expect(r.ai_ok).toBe(false);
     expect(callAIMock).not.toHaveBeenCalled();
+  });
+
+  it("S16-A: a program target uses the accelerator system prompt and the program-drafter agent id", async () => {
+    callAIMock.mockResolvedValue({ text: "We sell soil sensors to grain farmers.", provider: "groq", model: "m" });
+    const r = await draftGrantApplication(PROGRAM, [{ id: "one_liner", question: "One sentence.", max_words: 40 }], CTX);
+    expect(r.ai_ok).toBe(true);
+    expect(r.answers.one_liner).toBe("We sell soil sensors to grain farmers.");
+    const call = callAIMock.mock.calls[0]![0] as { system: string; user: string; agentId: string };
+    expect(call.agentId).toBe("program-drafter");
+    expect(call.system).toMatch(/accelerator-application coach/);
+    expect(call.user).toContain("Program: Startmate Accelerator");
+    expect(call.user).toContain("Intake: Applications open Sep 2026");
   });
 });

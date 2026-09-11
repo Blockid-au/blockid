@@ -1,11 +1,14 @@
 "use client";
 
-// Grant application draft editor (T0251, plan §4h "Application drafts").
-// Opened by /workspace/funding?draft=<grantId>&kind=grant.
+// Grant / program application draft editor (T0251 + S16-A, plan §4h
+// "Application drafts"). Opened by /workspace/funding?draft=<id>&kind=grant
+// or &kind=program.
 //
-//   • Shows the grant's application_prompts (or the generic set) with one
-//     textarea per question, prefilled from the latest
-//     grant_application_drafts row.
+//   • Shows the grant's / program's application_prompts (or the generic set)
+//     with one textarea per question, prefilled from the latest
+//     grant_application_drafts row. `kind="program"` retitles the panel
+//     ("Application draft — {program}"), shows the intake window + official
+//     link and POSTs `program_id` instead of `grant_id`.
 //   • "Generate draft" — Growth / Startup Package: included, one click.
 //     Starter: the button carries the credit cost and the click opens an
 //     inline confirm ("Spend 2 credits?") before POST { confirm: true } —
@@ -18,14 +21,17 @@
 
 import * as React from "react";
 import { Check, ClipboardCopy, Coins, ExternalLink, Loader2, PenLine, RefreshCw, Save } from "lucide-react";
-import { renderAnswersText, type ApplicationPrompt } from "@/lib/funding/application-prompts";
+import { renderAnswersText, type ApplicationPrompt, type DraftKind } from "@/lib/funding/application-prompts";
 import { fill, FUNDING_COPY } from "@/lib/funding/copy";
 
+/** The draft target — an `au_grants` row (T0251) or an `au_programs` row (S16-A) reduced to what the panel shows. */
 export interface GrantDraftEditorGrant {
   id: string;
   name: string;
   official_url: string;
   closes_at: string | null;
+  /** Program only: the rendered intake window (`programIntakeLabel`), e.g. "Applications close 8 Nov 2026; next cohort 25 Jan 2027". */
+  intake?: string | null;
 }
 
 export interface GrantDraftEditorDraft {
@@ -37,6 +43,9 @@ export interface GrantDraftEditorDraft {
 }
 
 export interface GrantDraftEditorProps {
+  /** "grant" (default, T0251) or "program" (S16-A) — picks the title, subtitle, request body and generic note. */
+  kind?: DraftKind;
+  /** The grant or program being drafted for (see `GrantDraftEditorGrant`). */
   grant: GrantDraftEditorGrant;
   prompts: ApplicationPrompt[];
   /** True when the set is the generic fallback. */
@@ -52,7 +61,8 @@ export interface GrantDraftEditorProps {
 
 type Phase = "idle" | "confirm" | "generating" | "saving";
 
-export function GrantDraftEditor({ grant, prompts, generic, projectId, initial, cost, unlimited, allowed }: GrantDraftEditorProps) {
+export function GrantDraftEditor({ kind = "grant", grant, prompts, generic, projectId, initial, cost, unlimited, allowed }: GrantDraftEditorProps) {
+  const isProgram = kind === "program";
   const [draftId, setDraftId] = React.useState<string | null>(initial?.id ?? null);
   const [answers, setAnswers] = React.useState<Record<string, string>>(() => {
     const out: Record<string, string> = {};
@@ -87,7 +97,7 @@ export function GrantDraftEditor({ grant, prompts, generic, projectId, initial, 
       const res = await fetch("/api/funding/draft", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ project_id: projectId, grant_id: grant.id, confirm: true }),
+        body: JSON.stringify({ project_id: projectId, ...(isProgram ? { program_id: grant.id } : { grant_id: grant.id }), confirm: true }),
       });
       const data = (await res.json().catch(() => ({}))) as {
         ok?: boolean;
@@ -162,20 +172,26 @@ export function GrantDraftEditor({ grant, prompts, generic, projectId, initial, 
     ? hasAnswers ? "Regenerate draft — included" : "Generate draft — included"
     : hasAnswers ? `Regenerate draft — ${cost} credits` : `Generate draft — ${cost} credits`;
 
+  const title = isProgram ? fill(FUNDING_COPY.growth.draftTitleProgram, { program: grant.name }) : fill(FUNDING_COPY.growth.draftTitle, { grant: grant.name });
+  const genericNote = isProgram ? FUNDING_COPY.growth.draftGenericProgram : FUNDING_COPY.growth.draftGeneric;
+  const intakeLine = isProgram ? grant.intake ?? null : grant.closes_at ? `Closes ${grant.closes_at}.` : null;
+
   return (
     <section
       className="mb-6 rounded-2xl border border-action/40 bg-surface p-5"
       aria-labelledby="grant-draft-title"
       data-grant-draft-editor
-      data-grant={grant.id}
+      data-kind={kind}
+      data-grant={isProgram ? undefined : grant.id}
+      data-program={isProgram ? grant.id : undefined}
       data-cost={cost}
       data-unlimited={unlimited ? "1" : "0"}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-action">Application draft</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-action">{isProgram ? "Program application draft" : "Application draft"}</p>
           <h2 id="grant-draft-title" className="mt-1 inline-flex items-center gap-2 text-lg font-semibold text-primary">
-            <PenLine className="h-4 w-4 text-action" aria-hidden /> {fill(FUNDING_COPY.growth.draftTitle, { grant: grant.name })}
+            <PenLine className="h-4 w-4 text-action" aria-hidden /> {title}
           </h2>
           <p className="mt-1 text-sm text-secondary" data-draft-pricing>
             {!allowed
@@ -183,12 +199,12 @@ export function GrantDraftEditor({ grant, prompts, generic, projectId, initial, 
               : unlimited
                 ? FUNDING_COPY.growth.draftIncluded
                 : fill(FUNDING_COPY.growth.draftCost, { cost })}
-            {grant.closes_at ? ` Closes ${grant.closes_at}.` : ""}
+            {intakeLine ? ` ${intakeLine.replace(/\.?$/, ".")}` : ""}
           </p>
-          {generic ? <p className="mt-1 text-xs text-tertiary" data-draft-generic>{FUNDING_COPY.growth.draftGeneric}</p> : null}
+          {generic ? <p className="mt-1 text-xs text-tertiary" data-draft-generic>{genericNote}</p> : null}
         </div>
         <a href={grant.official_url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-6 items-center gap-1 text-sm font-semibold text-action">
-          Official guidelines <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+          {isProgram ? "Official program page" : "Official guidelines"} <ExternalLink className="h-3.5 w-3.5" aria-hidden />
           <span className="sr-only">(opens in a new tab)</span>
         </a>
       </div>

@@ -511,7 +511,9 @@ export function programHowToApply(p: AuProgramRow): HowToApplySection {
   const hint = PROGRAM_APPLY_HINTS[p.program_type];
   if (hint) steps.push(hint);
   steps.push(`Apply through the official ${programTypeLabel(p.program_type).toLowerCase()} page — BlockID lists the program but never handles applications.`);
-  return { intro: null, steps, evidence: [], prompts: [], officialUrl: p.official_url };
+  // S16-A: the first three seeded application questions (0329), like grants.
+  const prompts = (p.application_prompts ?? []).slice(0, PROMPT_LIMIT).map((q) => q.question);
+  return { intro: null, steps, evidence: [], prompts, officialUrl: p.official_url };
 }
 
 export function programTiming(p: AuProgramRow, today: Date = new Date()): TimingSection {

@@ -13,8 +13,10 @@
  *
  * `?tab=` picks the initial tab; `?draft=<grantId>&kind=grant` opens the
  * per-grant application draft editor (T0251 — Growth / Startup Package
- * unlimited, Starter 2 credits after confirming); `?draft=<ref>&kind=program`
- * is still the acknowledgement stub. `?from=radar_setup` (S11-A activation
+ * unlimited, Starter 2 credits after confirming); `?draft=<programId>&kind=program`
+ * opens the same editor for a program's `application_prompts` (S16-A,
+ * migration 0329). An unknown id renders a short "not in the catalogue"
+ * note instead. `?from=radar_setup` (S11-A activation
  * nudge, in-app + email) moves the 3-question intake to the top of the page
  * and focuses its first field — a server-side prop, no client state.
  *
@@ -48,11 +50,11 @@ import {
   listEventPrograms,
 } from "@/lib/funding/workspace";
 import { capitalForCity } from "@/lib/funding/seed-map";
-import { getGrant } from "@/lib/funding/data";
+import { getGrant, getProgram } from "@/lib/funding/data";
 import { FEATURE_COSTS } from "@/lib/credits";
 import { hasGrowthExtras } from "@/lib/funding/growth-extras";
-import { isGenericPromptSet, promptsForGrant } from "@/lib/funding/application-prompts";
-import { latestGrantDraft } from "@/lib/funding/application-drafts";
+import { isGenericPromptSet, programIntakeLabel, promptsForGrant, promptsForProgram } from "@/lib/funding/application-prompts";
+import { latestDraftFor } from "@/lib/funding/application-drafts";
 import { matchInvestorsForProject } from "@/lib/funding/investor-match";
 import { latestAnalysisRefresh, nextRefreshDate, previousQuarter } from "@/lib/funding/analysis-refresh";
 import { GrantDraftEditor } from "@/components/funding/grant-draft-editor";
@@ -154,23 +156,35 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
       capital,
     };
 
-    // ── Draft editor (?draft=<grantId>&kind=grant) ─────────────────────────
+    // ── Draft editor (?draft=<id>&kind=grant|program) ──────────────────────
     let draftEditor: ReactNode = null;
-    if (draftRef && draftKind === "grant") {
-      let grant = null;
+    if (draftRef) {
+      // Resolve the catalogue row for the requested kind; a missing row (or a
+      // catalogue outage) leaves `target` null → the "not found" note below.
+      let target: { name: string; official_url: string; closes_at: string | null; intake: string | null; prompts: ReturnType<typeof promptsForGrant> } | null = null;
       try {
-        grant = await getGrant(draftRef);
+        if (draftKind === "program") {
+          const program = await getProgram(draftRef);
+          if (program) {
+            target = { name: program.name, official_url: program.official_url, closes_at: null, intake: programIntakeLabel(program), prompts: promptsForProgram(program) };
+          }
+        } else {
+          const grant = await getGrant(draftRef);
+          if (grant && !grant.exclude_from_matching) {
+            target = { name: grant.name, official_url: grant.official_url, closes_at: grant.closes_at, intake: null, prompts: promptsForGrant(grant) };
+          }
+        }
       } catch {
-        grant = null;
+        target = null;
       }
-      if (grant && !grant.exclude_from_matching) {
-        const prompts = promptsForGrant(grant);
-        const existing = await latestGrantDraft(user.id, project?.id ?? null, grant.id);
+      if (target) {
+        const existing = await latestDraftFor(user.id, project?.id ?? null, { kind: draftKind, id: draftRef });
         draftEditor = (
           <GrantDraftEditor
-            grant={{ id: grant.id, name: grant.name, official_url: grant.official_url, closes_at: grant.closes_at }}
-            prompts={prompts}
-            generic={isGenericPromptSet(prompts)}
+            kind={draftKind}
+            grant={{ id: draftRef, name: target.name, official_url: target.official_url, closes_at: target.closes_at, intake: target.intake }}
+            prompts={target.prompts}
+            generic={isGenericPromptSet(target.prompts)}
             projectId={project?.id ?? null}
             initial={
               existing
@@ -181,6 +195,13 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
             unlimited={unlimited}
             allowed
           />
+        );
+      } else {
+        draftEditor = (
+          <p className="mb-4 rounded-xl border border-line-subtle bg-surface-raised px-4 py-3 text-sm text-secondary" data-draft-missing={draftRef}>
+            <span className="font-semibold text-primary">Nothing to draft yet.</span> The {draftKind} <code className="text-xs">{draftRef}</code> is not in the
+            catalogue any more — run a fresh match below and open the draft from your report.
+          </p>
         );
       }
     }
@@ -206,7 +227,6 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
         capitalMap={capitalMap}
         alertKinds={MONEY_RADAR_ALERT_KINDS}
         initialTab={isFundingTab(tabParam) ? tabParam : "grants"}
-        draftRef={draftRef}
         draftEditor={draftEditor}
         growth={growth}
       />

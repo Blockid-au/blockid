@@ -151,7 +151,7 @@ export default async function GrantDetailPage({ params }: { params: Promise<Para
 
             <Prose id="get" heading="What you get" sentences={e.whatYouGet} />
 
-            <HowToApply data={e.howToApply} officialLabel="Apply on the official portal" />
+            <HowToApply data={e.howToApply} officialLabel="Apply on the official portal" draft={{ refId: g.id, kind: "grant" }} />
 
             <Timing data={e.timing} />
 

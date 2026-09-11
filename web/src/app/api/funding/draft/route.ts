@@ -1,8 +1,12 @@
 /**
- * /api/funding/draft — per-grant application drafts (T0251, plan §4h
- * "Application drafts"). Same rails as POST /api/funding/report.
+ * /api/funding/draft — per-grant / per-program application drafts (T0251 +
+ * S16-A, plan §4h "Application drafts"). Same rails as POST /api/funding/report.
  *
- * POST `{ project_id, grant_id, confirm? }`
+ * POST `{ project_id, grant_id | program_id, confirm? }`
+ *   Exactly one of `grant_id` / `program_id` (400 otherwise). A program draft
+ *   (S16-A) reads `au_programs.application_prompts` (migration 0329, generic
+ *   6-question fallback), runs the same drafter in the accelerator voice and
+ *   is stored with `program_id` set / `grant_id` null. Same gate + cost rules.
  *   auth → rate-limit → gate → (preview | generate) → spend → insert.
  *   The spend runs BEFORE the insert (review 2026-09-10 #3): a spend that
  *   loses the race (`ok:false`) returns 402 and stores nothing, so the editor
@@ -27,7 +31,8 @@
  *
  *   200 { ok, draft, prompts, cost, creditsCharged, ai_ok }
  *   400 bad body   401 unauthorized   402 insufficient_credits
- *   403 plan_required | project_not_found_or_forbidden   404 grant_not_found
+ *   403 plan_required | project_not_found_or_forbidden
+ *   404 grant_not_found | program_not_found
  *   429 rate_limited   503 service_unavailable
  */
 
@@ -39,11 +44,11 @@ import { canAfford, grantCredits, spendCredits, FEATURE_COSTS } from "@/lib/cred
 import { can } from "@/lib/entitlements";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getProjectById } from "@/lib/projects";
-import { getGrant } from "@/lib/funding/data";
+import { getGrant, getProgram } from "@/lib/funding/data";
 import { hasGrowthExtras } from "@/lib/funding/growth-extras";
-import { promptsForGrant, emptyAnswers } from "@/lib/funding/application-prompts";
-import { gatherDraftContext, insertGrantDraft, updateGrantDraft } from "@/lib/funding/application-drafts";
-import { draftGrantApplication } from "@/lib/agents/grant-application-drafter";
+import { promptsForGrant, promptsForProgram, emptyAnswers, programIntakeLabel, programFundingLabel } from "@/lib/funding/application-prompts";
+import { gatherDraftContext, insertGrantDraft, updateGrantDraft, type DraftRef } from "@/lib/funding/application-drafts";
+import { draftGrantApplication, type DraftTarget } from "@/lib/agents/grant-application-drafter";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -76,9 +81,15 @@ export async function POST(request: Request) {
   }
   const body: Record<string, unknown> = read.body && typeof read.body === "object" ? read.body : {};
   const grantId = str(body.grant_id ?? body.grantId);
-  if (!grantId) return NextResponse.json({ ok: false, error: "grant_id is required", field: "grant_id" }, { status: 400 });
+  const programId = str(body.program_id ?? body.programId);
+  if (grantId && programId) {
+    return NextResponse.json({ ok: false, error: "grant_id and program_id are mutually exclusive", field: "program_id" }, { status: 400 });
+  }
+  if (!grantId && !programId) return NextResponse.json({ ok: false, error: "grant_id is required", field: "grant_id" }, { status: 400 });
   // S8-C: catalogue ids are lower-case slugs — anything else is a 400, not a DB round-trip.
-  if (!isGrantId(grantId)) return NextResponse.json({ ok: false, error: "invalid_grant_id", field: "grant_id" }, { status: 400 });
+  if (grantId && !isGrantId(grantId)) return NextResponse.json({ ok: false, error: "invalid_grant_id", field: "grant_id" }, { status: 400 });
+  if (programId && !isGrantId(programId)) return NextResponse.json({ ok: false, error: "invalid_program_id", field: "program_id" }, { status: 400 });
+  const ref: DraftRef = programId ? { kind: "program", id: programId } : { kind: "grant", id: grantId as string };
   const projectId = str(body.project_id ?? body.projectId);
   if (projectId && !isUuid(projectId)) {
     return NextResponse.json({ ok: false, error: "invalid_project_id", field: "project_id" }, { status: 400 });
@@ -93,9 +104,44 @@ export async function POST(request: Request) {
     }
   }
 
-  const grant = await getGrant(grantId);
-  if (!grant || grant.exclude_from_matching) return NextResponse.json({ ok: false, error: "grant_not_found" }, { status: 404 });
-  const prompts = promptsForGrant(grant);
+  // Resolve the catalogue row → drafter target + prompt set.
+  let target: DraftTarget;
+  let prompts;
+  if (ref.kind === "program") {
+    const program = await getProgram(ref.id);
+    if (!program) return NextResponse.json({ ok: false, error: "program_not_found" }, { status: 404 });
+    prompts = promptsForProgram(program);
+    target = {
+      kind: "program",
+      id: program.id,
+      name: program.name,
+      provider: program.operator,
+      summary: program.summary,
+      program_type: program.program_type,
+      intake: programIntakeLabel(program),
+      funding: programFundingLabel(program),
+      cost_to_founder: program.cost_to_founder,
+      benefits: program.benefits ?? [],
+      length_weeks: program.length_weeks,
+      official_url: program.official_url,
+    };
+  } else {
+    const grant = await getGrant(ref.id);
+    if (!grant || grant.exclude_from_matching) return NextResponse.json({ ok: false, error: "grant_not_found" }, { status: 404 });
+    prompts = promptsForGrant(grant);
+    target = {
+      id: grant.id,
+      name: grant.name,
+      provider: grant.provider,
+      summary: grant.summary,
+      amount_note: grant.amount_note,
+      co_contribution: grant.co_contribution,
+      official_url: grant.official_url,
+    };
+  }
+  // Response echo: `grant` for grant drafts (T0251 clients), `program` for program drafts.
+  const echo = ref.kind === "program" ? { program: { id: target.id, name: target.name, official_url: target.official_url } } : { grant: { id: target.id, name: target.name, official_url: target.official_url } };
+  const spendMeta = ref.kind === "program" ? { program_id: target.id } : { grant_id: target.id };
 
   // Gate → cost.
   const uwp = { id: user.id, plan: user.plan ?? "free", segment: "founder" };
@@ -118,7 +164,7 @@ export async function POST(request: Request) {
     }
     if (!confirmed) {
       // Transparent pricing: show the price, spend nothing.
-      return NextResponse.json({ ok: true, preview: true, cost, balance, prompts, grant: { id: grant.id, name: grant.name } });
+      return NextResponse.json({ ok: true, preview: true, cost, balance, prompts, kind: ref.kind, ...echo });
     }
   }
 
@@ -126,22 +172,10 @@ export async function POST(request: Request) {
   if (!supabase) return NextResponse.json({ ok: false, error: "service_unavailable" }, { status: 503 });
 
   // Generate — never throws; failures come back as empty answers.
-  const ctx = await gatherDraftContext({ id: user.id, email: user.email ?? null }, project, grant.id, { db: supabase });
+  const ctx = await gatherDraftContext({ id: user.id, email: user.email ?? null }, project, ref, { db: supabase });
   let result;
   try {
-    result = await draftGrantApplication(
-      {
-        id: grant.id,
-        name: grant.name,
-        provider: grant.provider,
-        summary: grant.summary,
-        amount_note: grant.amount_note,
-        co_contribution: grant.co_contribution,
-        official_url: grant.official_url,
-      },
-      prompts,
-      ctx,
-    );
+    result = await draftGrantApplication(target, prompts, ctx);
   } catch (err) {
     console.error("[funding:draft] drafter threw", err instanceof Error ? err.message : String(err));
     result = { answers: emptyAnswers(prompts), ai_ok: false, failed: prompts.map((p) => p.id), provider: null, model: null };
@@ -153,7 +187,7 @@ export async function POST(request: Request) {
   // ours — a lost race leaves nothing behind for the editor to load (#3).
   let creditsCharged = 0;
   if (charge > 0) {
-    const spent = await spendCredits(user.id, FEATURE_KEY, { project_id: project?.id ?? null, grant_id: grant.id });
+    const spent = await spendCredits(user.id, FEATURE_KEY, { project_id: project?.id ?? null, ...spendMeta });
     if (!spent.ok) {
       return NextResponse.json(
         { ok: false, error: "credit_spend_failed", creditsRequired: charge, credits_needed: charge, balance: spent.balance },
@@ -168,7 +202,8 @@ export async function POST(request: Request) {
     {
       user_id: user.id,
       project_id: project?.id ?? null,
-      grant_id: grant.id,
+      grant_id: ref.kind === "grant" ? target.id : null,
+      program_id: ref.kind === "program" ? target.id : null,
       answers: result.answers,
       prompts,
       credits_cost: charge,
@@ -180,9 +215,9 @@ export async function POST(request: Request) {
   if (!draft) {
     if (creditsCharged > 0) {
       // Compensate: the founder paid for a row that does not exist.
-      const refund = await grantCredits(user.id, creditsCharged, "refund", { feature: FEATURE_KEY, grant_id: grant.id, reason: "draft_insert_failed" });
+      const refund = await grantCredits(user.id, creditsCharged, "refund", { feature: FEATURE_KEY, ...spendMeta, reason: "draft_insert_failed" });
       if (refund.ok) balance = refund.balance;
-      else console.error("[funding:draft] refund after insert failure did not land", { user: user.id, grant: grant.id });
+      else console.error("[funding:draft] refund after insert failure did not land", { user: user.id, ...spendMeta });
     }
     return NextResponse.json({ ok: false, error: "draft_insert_failed" }, { status: 500 });
   }
@@ -196,7 +231,8 @@ export async function POST(request: Request) {
     balance,
     ai_ok: result.ai_ok,
     failed: result.failed,
-    grant: { id: grant.id, name: grant.name, official_url: grant.official_url },
+    kind: ref.kind,
+    ...echo,
   });
 }
 
