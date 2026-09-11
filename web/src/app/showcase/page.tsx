@@ -2,8 +2,8 @@
 // company's journey through the 12-phase BlockID.au startup roadmap.
 //
 // Track C. Adds discoverability + progressive expansion (Atlassian first;
-// Canva, Xero, SafetyCulture, WiseTech, SEEK, Culture Amp queued for
-// future ticks).
+// Canva, Xero, SafetyCulture shipped next; Airwallex + Culture Amp landed
+// as public-record showcases in S19-B (G2 #6); WiseTech, SEEK queued).
 
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/page-meta";
@@ -79,6 +79,30 @@ const CASES: CaseStudy[] = [
     themes: ["regional-Aussie-founder", "12yr-bootstrap", "Softbank", "private-unicorn", "PLG-industrial"],
   },
   {
+    slug: "airwallex",
+    name: "Airwallex",
+    country: "🇦🇺 Australia",
+    founded: 2015,
+    ipo_year: "private",
+    market_cap_usd: "US$11B (Series H, Jun 2026)",
+    status: "live",
+    tagline:
+      "Melbourne-founded cross-border payments platform — Series B through Series H documented round by round in the company newsroom, still private.",
+    themes: ["fintech", "priced-rounds", "flat-round-2022", "stay-private", "dual-HQ"],
+  },
+  {
+    slug: "culture-amp",
+    name: "Culture Amp",
+    country: "🇦🇺 Australia",
+    founded: 2011,
+    ipo_year: "private",
+    market_cap_usd: ">US$1.5B (Series F, Jul 2021)",
+    status: "live",
+    tagline:
+      "Melbourne employee-experience SaaS — US Series A, Sapphire Series C, Sequoia China Series E, unicorn Series F; culture-first company as the product.",
+    themes: ["HR-tech", "B2B-SaaS", "culture-first", "US-Series-A", "private-unicorn"],
+  },
+  {
     slug: "wisetech",
     name: "WiseTech Global",
     country: "🇦🇺 Australia",
@@ -109,7 +133,7 @@ const itemListJsonLd = {
   "@type": "ItemList",
   name: "BlockID.au Startup Showcase — Australian Case Studies",
   url: "https://blockid.au/showcase",
-  numberOfItems: 4,
+  numberOfItems: 6,
   itemListElement: [
     {
       "@type": "ListItem",
@@ -138,6 +162,20 @@ const itemListJsonLd = {
       name: "SafetyCulture — Regional Aussie unicorn",
       url: "https://blockid.au/showcase/safetyculture",
       description: "Townsville-founded workplace-safety unicorn — 12yr bootstrap → Series A/B/C → Softbank round.",
+    },
+    {
+      "@type": "ListItem",
+      position: 5,
+      name: "Airwallex — Priced rounds, still private",
+      url: "https://blockid.au/showcase/airwallex",
+      description: "Melbourne-founded cross-border payments platform — Series B through Series H documented round by round, still private.",
+    },
+    {
+      "@type": "ListItem",
+      position: 6,
+      name: "Culture Amp — Culture-first SaaS unicorn",
+      url: "https://blockid.au/showcase/culture-amp",
+      description: "Melbourne employee-experience SaaS — US Series A to unicorn Series F, every round with its public source.",
     },
   ],
 };

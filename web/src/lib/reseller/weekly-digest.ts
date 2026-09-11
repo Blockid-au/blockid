@@ -11,6 +11,11 @@
 // without touching Supabase or nodemailer.
 
 import type { AnomalySummary } from "./audit-anomaly";
+import {
+  CUSTOMER_STAGES,
+  CUSTOMER_STAGE_LABELS,
+  type ResellerStageMoves,
+} from "./customer-stage";
 import type { HumanBlockedItem } from "./human-blocked-registry";
 import type { LeadingSignalSummary } from "./leading-signals";
 import type { KAnonBucket } from "./portfolio-aggregates";
@@ -291,4 +296,52 @@ export function formatWeeklyDigestHumanBlockedSection(
       <tbody>${rows}
       </tbody>
     </table>`;
+}
+
+// ─── Pipeline-stage moves (G2 #7, S19-B) ─────────────────────────────────────
+
+export interface WeeklyDigestStageMovesRow {
+  reseller_id: string;
+  reseller_code: string;
+  reseller_display_name: string;
+  moves: ResellerStageMoves | null;
+}
+
+/**
+ * "n customers moved stage this week" — one line per reseller, plus the
+ * landing-stage breakdown so CS can see *where* the movement went (a spike
+ * in `churned` reads very differently from a spike in `fundraising`).
+ *
+ * Returns "" when `rows` is empty (no active resellers) so callers can append
+ * unconditionally. Resellers with zero moves still get a line — a silent
+ * week is itself a signal for a channel partner.
+ */
+export function formatWeeklyDigestStageMovesSection(
+  rows: ReadonlyArray<WeeklyDigestStageMovesRow>,
+): string {
+  if (rows.length === 0) return "";
+  const sorted = [...rows].sort((a, b) => a.reseller_code.localeCompare(b.reseller_code));
+  const items = sorted
+    .map((r) => {
+      const moves = r.moves;
+      const moved = moves?.moved ?? 0;
+      const manual = moves?.manual ?? 0;
+      const breakdown = moves
+        ? CUSTOMER_STAGES.filter((s) => (moves.by_stage[s] ?? 0) > 0)
+            .map((s) => `${CUSTOMER_STAGE_LABELS[s].label_en} ${moves.by_stage[s]}`)
+            .join(", ")
+        : "";
+      const noun = moved === 1 ? "customer" : "customers";
+      const tail = moved > 0
+        ? ` — ${escapeHtml(breakdown)}${manual > 0 ? ` (${manual} manual)` : ""}`
+        : "";
+      return `
+      <li data-reseller="${escapeHtml(r.reseller_code)}"><strong>${escapeHtml(r.reseller_display_name)}</strong>: ${moved} ${noun} moved stage this week${tail}</li>`;
+    })
+    .join("");
+  return `
+    <h3 style="margin-top:24px;font-family:Arial,sans-serif;font-size:14px">Pipeline stage moves (trailing 7 days)</h3>
+    <p style="font-family:Arial,sans-serif;font-size:13px">Channel-partner pipeline: lead → onboarded → scored → data room → fundraising → invested (churned = exit). Auto moves come from the nightly <code>reseller-stage-sync</code>; manual moves are owner/admin overrides in /reseller/customers.</p>
+    <ul style="font-family:Arial,sans-serif;font-size:13px">${items}
+    </ul>`;
 }

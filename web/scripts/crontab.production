@@ -457,6 +457,14 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Reseller Stripe promotion-code drift check — weekly Sun 03:30 UTC (13:30 AEST)
 30 3 * * 0 bash $RUN reseller-stripe-sync --timeout 300
 
+# Reseller customer pipeline-stage sync (G2 #7, S19-B) — nightly 03:50 UTC
+# (13:50 AEST). Advances reseller_customers.stage from real product signals
+# (project → onboarded, first SVI → scored, data room → data_room, funding
+# report / fundraise round → fundraising); never backwards, never past a
+# manual override without newer evidence. Runs before the Monday digest so
+# "n customers moved stage this week" reads fresh rows. ?dry=1 for a preview.
+50 3 * * * bash $RUN reseller-stage-sync --timeout 180
+
 # Reseller monthly reconciliation CSV export — 1st of month at 03:45 UTC (13:45 AEST)
 45 3 1 * * bash $RUN reseller-monthly-reconciliation --timeout 300
 

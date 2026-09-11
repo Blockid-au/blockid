@@ -17,20 +17,20 @@
 
 ### G2 — Real-world workflow parity
 - **Source:** [`docs/plans/real-world-workflow-parity-audit-2026-07-23.md`](./real-world-workflow-parity-audit-2026-07-23.md)
-- **Status:** audit remediation in-flight; 7/10 shipped this session, 3 remain founder-review-blocked.
+- **Status:** audit remediation 9/10 shipped; #10 remains founder-blocked (needs real founder quotes).
 - **Top-10 remediation (ranked):**
   1. Publish canonical 8-stage vocabulary (`architecture-designer`, S) — **shipped** (`7f499264`).
   2. Wire 12↔8 bucket map `web/src/lib/journey-map.ts` (`typescript-pro`, M) — **shipped** (`c4b70877` + `a1bf4542`).
   3. Extend data-room to 60+ items with AU compliance (`au-compliance`, M) — **shipped** (`b0ae8d8b`).
   4. Add Tax + AU-Compliance sections to template library (`au-compliance`, M) — **shipped** (`b0ae8d8b`).
   5. Overlay canonical-stage badges on 4 showcase cases (`react-expert`, S) — **shipped** (`b9ee0b7f`; dashboard parity `29c00fe1`).
-  6. Add Airwallex + Culture Amp showcases (`deep-research` → `react-expert`, L) — founder review.
-  7. Reseller `customer_stage` tracking (`db-migrate` + `fullstack-guardian`, M) — founder review.
+  6. Add Airwallex + Culture Amp showcases (`deep-research` → `react-expert`, L) — **shipped** S19-B 2026-09-11 (`/showcase/airwallex`, `/showcase/culture-amp`; public-record facts only, every A$/US$ figure carries a `data-source` link + illustrative-SVI disclaimer; data `web/src/lib/showcase/public-record/cases.ts`).
+  7. Reseller `customer_stage` tracking (`db-migrate` + `fullstack-guardian`, M) — **shipped** S19-B 2026-09-11 (migration 0333 `reseller_customers` — ladder `lead → onboarded → scored → data_room → fundraising → invested` + `churned`, `stage_source auto|manual`; nightly cron `reseller-stage-sync` never moves backwards; owner/admin override `POST /api/reseller/customers/[id]/stage` audit-logged; weekly digest "n customers moved stage this week"). **Migration 0333 pending manual apply.**
   8. Add Step 6 "Create first startup" to onboarding wizard (`nextjs-developer`, S) — **shipped** (`41ab0cfc`; Stripe-return route fix `b176ffea`).
   9. Rename SCN externally + cite framework overlays (`code-documenter`, S) — **shipped** (`9e5d71e8`).
   10. "Real founder was here" callouts across 12 guide chapters (`deep-research` + `typescript-pro`, L) — founder review.
-- **Next action:** items #6, #7, #10 await founder sign-off on wording/scope; no unblocked audit lane this window.
-- **Blocker:** items 6, 7, 10 need founder sign-off on wording/scope.
+- **Next action:** apply migration 0333 + reload PostgREST, run `reseller-stage-sync?dry=1` once, then verify /reseller/customers Pipeline column; #10 stays parked until real founder quotes exist.
+- **Blocker:** item 10 needs real founder quotes (founder-supplied); no invented testimonials.
 
 ### G3 — SVI Exchange (SVI EXC)
 - **Source:** [`.claude/goals/svi-exchange-orchestration.md`](../../.claude/goals/svi-exchange-orchestration.md) · queue `web/content/reports/svi-exchange-tasks.json`
@@ -375,7 +375,7 @@
 | Stripe dashboard owner email | U.1 gap — record `stripe.account_owner_email` | Confirm at `dashboard.stripe.com` (`info@` vs `admin@blockid.au`) + verify ABN + `statement_descriptor` + payout bank | Founder |
 | Reseller agreement executed (D4-CLO-02) | P3 go-live formality | Sign InfoVision-Auschain deed (template `docs/legal/reseller-agreement-template.md`) | Founder + human counsel |
 | Equity-for-solution (PRC-EQ) | Pricing plan Phase 3 lane | `legal_review_passed=true` flag flip on jurisdiction gate | Founder + CLO agent + human counsel |
-| Audit remediation #3/#6/#7/#10 | Real-world audit ship-list | Founder sign-off on wording/tone/vocabulary | Founder |
+| Audit remediation #10 (#3/#6/#7 shipped) | Real-world audit ship-list | Real founder quotes for the 12 guide-chapter callouts — never invented | Founder |
 | Founder tier labels (audit #1) | Canonical 8-stage vocab publication | Founder to approve final EN+VI labels for 8 stages | Founder |
 | Stripe price `STRIPE_PRICE_FUNDING_REPORT` (G11 T0242) | A$3 Money Finder guest checkout | Mint one-off A$3.00 inc-GST price in Stripe dashboard; add env | Founder (Stripe owner) |
 | Starter public label (G11 Q1, T0247) | Founder Radar packaging copy on `/pricing` | Decide "Founder Radar" rename vs "Starter + Radar badge" | Founder |
@@ -413,7 +413,7 @@ Live markers for downstream update agents. Consume by grepping this section for 
 - `[MARKER: update /status when human-blocked item unblocks]` — H.20 InfoVision ABN, STRIPE_PRICE_ADDON_* env.
 - `[MARKER: update /stats when a shipped-log entry crosses a bucket boundary]` — reseller tick crosses 300, roadmap Q3 closes >80%.
 - `[MARKER: update /pricing when plans.csv changes]` — Investor SKUs (Angel/Advisor/VC), Accelerator SKUs.
-- `[MARKER: update /showcase when a new case ships]` — Airwallex + Culture Amp (audit #6).
+- `[MARKER: update /showcase when a new case ships]` — Airwallex + Culture Amp shipped S19-B (audit #6); next candidates WiseTech, SEEK.
 - `[MARKER: update /guide when a chapter callout ships]` — audit #10, 12-chapter arc.
 - `[MARKER: update-status agent should consume §3 shipped-log commit count 294 for this cycle]`.
 - `[MARKER: update-roadmap agent should consume §1 Top-5 open Q3 items list].`
@@ -452,6 +452,7 @@ the sentinels is overwritten._
 | When | Who | What |
 |---|---|---|
 | 2026-07-23 | loop agent (SOT consolidation task) | Initial consolidation. §1–§7 authored; back-links applied to reseller-plan + unicorn-masterplan; memory pointer added. |
+| 2026-09-11 | Claude (S19-B, delegated by founder) | G2 #7 + #6 shipped: `reseller_customers` pipeline stage (migration 0333, `customer-stage.ts` vocabulary pinned to growth phases/canonical stages, nightly `reseller-stage-sync` cron + crontab line, owner/admin manual override route with audit log, Pipeline column on /reseller/customers, weekly-digest stage-moves line); Airwallex + Culture Amp public-record showcases (sourced figures only, sitemap + /showcase index + JSON-LD). #10 left founder-blocked. |
 | 2026-09-10 | CEO + Claude (review + hardening) | Post-ship review of the G11/G12 money & access paths ([`reviews/money-paths-review-2026-09-10.md`](./reviews/money-paths-review-2026-09-10.md)): 1 P0 (evaluator report charged after the run, failed spend swallowed) + 8 P1 fixed — spend-before-run + refund + idempotent retries, atomic `spend_credits_atomic` RPC (0324), Money Finder/draft spend-before-insert, Package buyers now get Growth extras + Radar sweep, additive Radar re-purchase, `funding-report-retry` cron, atomic batch claims + lease sweep + per-item quota (0325), founder-keyed evaluator money signals; `cron-runner` watchdog now sized from `--timeout`. Also: ESLint error baseline 271 → 0 (no behaviour change), investor "Let matching founders see me" opt-in, flaky nightly test fixed. Full suite 1,222 files / 29,860 green. Deploy scheduled 2026-09-11 12:05 UTC. |
 | 2026-09-10 | CEO + Claude (implementation session) | G11+G12 **S0–S4 shipped and live** in one day via parallel worktree agents: 4 releases (S0/S1, S2, S3, S4) all 12/12 gates; migrations 0309–0321 applied; crontab gained `refresh-funding-sources`, `money-radar-sweep`, `evaluator-progress-weekly`; Stripe evaluator + A$3 prices minted. Ledger T0237–T0250, T0268–T0271, T0273–T0275 closed; S5 (T0272, T0251) shipped in a 5th release `fea2aa62b` the same evening (migrations 0322–0323, crons `evaluation-batch-runner`, `analysis-refresh-quarterly`) — **all 23 G11/G12 ledger tasks done**. |
 | 2026-09-10 | CEO + Claude (pre-implementation review) | Reviewed G11+G12 against HEAD `120a840d3` and live v3.10.0: nav consolidated by `1c359f000`, DB `plans` B2B rows stale (0074 seed), csv/gate flag mismatch, A$5.50 SKU wiring, `/solutions/advisor` redirect selling Growth A$69, two privacy policies, entity name split (PPL Food vs Auschain → **PPL Food PTY LTD** decided), orchestrator ID collision at 12:00 UTC. Unified sprint plan S0–S5 with P0–P3; ledger tasks tagged `sprint`/`priority`; T0237/T0268/T0269/T0270/T0274/T0275 re-scoped; goal docs §9 appended; ROADMAP header price drift fixed. |

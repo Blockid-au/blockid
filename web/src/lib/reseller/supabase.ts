@@ -20,6 +20,12 @@ import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import type { StageKey } from "@/lib/journey-vocabulary";
 import { deriveCanonicalStage } from "./customer-journey";
+import {
+  isCustomerStage,
+  isCustomerStageSource,
+  type CustomerStage,
+  type CustomerStageSource,
+} from "./customer-stage";
 import type { ScopedResellerSession } from "./scope";
 
 export interface AttributedCustomerRow {
@@ -36,6 +42,24 @@ export interface AttributedCustomerRow {
    * docs/plans/real-world-workflow-parity-audit-2026-07-23.md gap #3.
    */
   canonical_stage: StageKey;
+  /**
+   * Persisted channel-partner pipeline stage (`reseller_customers`, migration
+   * 0333). Defaults to `lead` / `auto` / null until the nightly
+   * `reseller-stage-sync` cron or a manual override writes the row. See
+   * customer-stage.ts (audit gap #7).
+   */
+  pipeline_stage: CustomerStage;
+  pipeline_stage_source: CustomerStageSource;
+  pipeline_stage_updated_at: string | null;
+}
+
+export interface CustomerStageRow {
+  customer_user_id: string;
+  stage: CustomerStage;
+  stage_source: CustomerStageSource;
+  stage_updated_at: string | null;
+  stage_set_by: string | null;
+  stage_note: string | null;
 }
 
 export interface PromotionCodeRow {
@@ -64,8 +88,41 @@ export interface AttributionRow {
  * to the session's reseller_id. Never returns rows for other resellers.
  */
 export function resellerSupabase(scope: ScopedResellerSession) {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) throw new Error("resellerSupabase: supabase not configured");
+  const supabaseOrNull = getSupabaseAdmin();
+  if (!supabaseOrNull) throw new Error("resellerSupabase: supabase not configured");
+  const supabase = supabaseOrNull;
+
+  /**
+   * Persisted pipeline-stage rows (0333) for this reseller. Shared by
+   * `attributedCustomers()` and `customerStages()`; never throws.
+   */
+  async function loadCustomerStages(customerIds?: string[]): Promise<CustomerStageRow[]> {
+    if (customerIds && customerIds.length === 0) return [];
+    try {
+      let q = supabase
+        .from("reseller_customers")
+        .select("customer_user_id, stage, stage_source, stage_updated_at, stage_set_by, stage_note")
+        .eq("reseller_id", scope.reseller_id);
+      if (customerIds) q = q.in("customer_user_id", customerIds);
+      const { data, error } = await q;
+      if (error) return [];
+      const out: CustomerStageRow[] = [];
+      for (const r of (data ?? []) as Array<Record<string, unknown>>) {
+        if (!isCustomerStage(r.stage) || !isCustomerStageSource(r.stage_source)) continue;
+        out.push({
+          customer_user_id: String(r.customer_user_id),
+          stage: r.stage,
+          stage_source: r.stage_source,
+          stage_updated_at: (r.stage_updated_at as string | null) ?? null,
+          stage_set_by: (r.stage_set_by as string | null) ?? null,
+          stage_note: (r.stage_note as string | null) ?? null,
+        });
+      }
+      return out;
+    } catch {
+      return [];
+    }
+  }
 
   return {
     /** The current reseller row (self). */
@@ -123,15 +180,69 @@ export function resellerSupabase(scope: ScopedResellerSession) {
         // 'idea' for everyone whose score we couldn't read.
       }
 
-      return (data ?? []).map((u: {id: string; email: string; display_name: string | null; created_at: string; last_login_at: string | null; onboarding_completed: boolean | null;}) => ({
-        user_id: u.id,
-        email: u.email,
-        display_name: u.display_name,
-        created_at: u.created_at,
-        last_login_at: u.last_login_at,
-        onboarding_completed: u.onboarding_completed,
-        canonical_stage: deriveCanonicalStage(latestScoreByUser.get(u.id) ?? null),
-      }));
+      // Third query — persisted pipeline stage per customer (0333). Degrades
+      // to lead/auto until the migration is applied.
+      const stageByUser = new Map<string, CustomerStageRow>();
+      for (const row of await loadCustomerStages(allowedIds)) {
+        stageByUser.set(row.customer_user_id, row);
+      }
+
+      return (data ?? []).map((u: {id: string; email: string; display_name: string | null; created_at: string; last_login_at: string | null; onboarding_completed: boolean | null;}) => {
+        const ps = stageByUser.get(u.id);
+        return {
+          user_id: u.id,
+          email: u.email,
+          display_name: u.display_name,
+          created_at: u.created_at,
+          last_login_at: u.last_login_at,
+          onboarding_completed: u.onboarding_completed,
+          canonical_stage: deriveCanonicalStage(latestScoreByUser.get(u.id) ?? null),
+          pipeline_stage: ps?.stage ?? "lead",
+          pipeline_stage_source: ps?.stage_source ?? "auto",
+          pipeline_stage_updated_at: ps?.stage_updated_at ?? null,
+        };
+      });
+    },
+
+    /**
+     * Persisted pipeline-stage rows for this reseller, optionally limited to
+     * a set of customer ids. Rows with an unknown stage/source (schema drift)
+     * are dropped rather than trusted. Never throws — returns [] when the
+     * 0333 table is not yet applied.
+     */
+    async customerStages(customerIds?: string[]): Promise<CustomerStageRow[]> {
+      return loadCustomerStages(customerIds);
+    },
+
+    /**
+     * Manual pipeline-stage override. The CALLER has already verified the
+     * customer is in `scope.allowedCustomerIds()` and the actor's role; this
+     * helper only performs the scoped upsert. Throws on DB error so the
+     * route can surface it (unlike the read helpers, a silent failure here
+     * would tell the reseller a change stuck when it did not).
+     */
+    async setCustomerStage(input: {
+      customer_user_id: string;
+      stage: CustomerStage;
+      actor_user_id: string;
+      note?: string | null;
+    }): Promise<{ stage_updated_at: string }> {
+      const now = new Date().toISOString();
+      const { error } = await supabase.from("reseller_customers").upsert(
+        {
+          reseller_id: scope.reseller_id,
+          customer_user_id: input.customer_user_id,
+          stage: input.stage,
+          stage_source: "manual",
+          stage_updated_at: now,
+          stage_set_by: input.actor_user_id,
+          stage_note: input.note ?? null,
+          updated_at: now,
+        },
+        { onConflict: "reseller_id,customer_user_id" },
+      );
+      if (error) throw error;
+      return { stage_updated_at: now };
     },
 
     /** Active attribution rows for this reseller. */
