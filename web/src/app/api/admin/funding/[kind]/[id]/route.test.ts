@@ -77,9 +77,7 @@ async function json(res: Response) {
 }
 
 describe("PATCH /api/admin/funding/[kind]/[id] — S8-C guards", () => {
-  it("refuses a browser cross-site PATCH before the admin gate; 413s an oversize body", async () => {
-    const cross = new Request("http://x/api/admin/funding/grants/rdti", { method: "PATCH", headers: { "content-type": "application/json", "sec-fetch-site": "cross-site" }, body: JSON.stringify({ status: "open" }) });
-    expect((await PATCH(cross, params("grants", "rdti"))).status).toBe(403);
+  it("413s an oversize body (cross-site refusal moved to the S9-A proxy gate — src/proxy.test.ts)", async () => {
     const big = await PATCH(patchReq({ next_round_note: "n".repeat(20 * 1024) }), params("grants", "rdti"));
     expect([401, 413]).toContain(big.status);
   });

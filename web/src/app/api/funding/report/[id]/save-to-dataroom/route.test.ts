@@ -70,15 +70,7 @@ beforeEach(() => {
 });
 
 describe("POST /api/funding/report/[id]/save-to-dataroom", () => {
-  it("S8-C: refuses browser cross-site POSTs and rate-limits per owner", async () => {
-    const cross = await POST(
-      new Request(`http://x/api/funding/report/${ID}/save-to-dataroom`, { method: "POST", headers: { "sec-fetch-site": "cross-site" } }),
-      { params: Promise.resolve({ id: ID }) },
-    );
-    expect(cross.status).toBe(403);
-    expect(await cross.json()).toMatchObject({ ok: false, error: "cross_site_request_refused" });
-    expect(getFundingReportMock).not.toHaveBeenCalled();
-
+  it("S8-C: rate-limits per owner (cross-site refusal moved to the S9-A proxy gate — src/proxy.test.ts)", async () => {
     enforceRateLimitMock.mockClear();
     enforceRateLimitMock.mockReturnValueOnce(new Response(JSON.stringify({ ok: false }), { status: 429 }));
     const limited = await post(ID);

@@ -31,6 +31,7 @@ import { initializeCredits } from "./credits";
 import { processReferral } from "./referrals";
 import { processAttribution } from "./reseller/process-attribution";
 import { enqueueNurtureSequence } from "./nurture";
+import { SESSION_COOKIE } from "./auth-cookie";
 
 async function seedWelcomeNotification(userId: string): Promise<void> {
   const supabase = getSupabaseAdmin();
@@ -45,7 +46,9 @@ async function seedWelcomeNotification(userId: string): Promise<void> {
   });
 }
 
-export const SESSION_COOKIE = "blockid_session";
+// Defined in lib/auth-cookie.ts (dependency-free) so the edge proxy can read
+// it; re-exported here to keep this module's public surface unchanged.
+export { SESSION_COOKIE };
 export const SESSION_TTL_DAYS = 90;
 export const MAGIC_LINK_TTL_MIN = 15;
 

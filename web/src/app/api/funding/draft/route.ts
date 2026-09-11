@@ -32,7 +32,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { isGrantId, isUuid, readJsonBody, rejectCrossSite } from "@/lib/security/request-guards";
+import { isGrantId, isUuid, readJsonBody } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { canAfford, grantCredits, spendCredits, FEATURE_COSTS } from "@/lib/credits";
@@ -63,9 +63,6 @@ function str(v: unknown): string | null {
 }
 
 export async function POST(request: Request) {
-  const crossSite = rejectCrossSite(request);
-  if (crossSite) return crossSite;
-
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
 
@@ -204,9 +201,6 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const crossSite = rejectCrossSite(request);
-  if (crossSite) return crossSite;
-
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
 

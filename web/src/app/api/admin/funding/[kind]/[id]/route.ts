@@ -8,7 +8,7 @@
 // verified_by='human' + last_verified_at=today. T0239 / G11 sprint S2.
 
 import { NextResponse } from "next/server";
-import { readJsonBody, rejectCrossSite } from "@/lib/security/request-guards";
+import { readJsonBody } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { requireAdmin, AdminGateError } from "@/lib/reseller/require-admin";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -62,9 +62,6 @@ export async function GET(_request: Request, { params }: Params) {
 }
 
 export async function PATCH(request: Request, { params }: Params) {
-  const crossSite = rejectCrossSite(request);
-  if (crossSite) return crossSite;
-
   const g = await gate();
   if ("response" in g) return g.response;
 

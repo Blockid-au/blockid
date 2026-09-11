@@ -11,7 +11,7 @@
 
 import { NextResponse } from "next/server";
 import { enforceRateLimit } from "@/lib/rate-limit";
-import { PRIVATE_JSON_HEADERS, readJsonBody, rejectCrossSite } from "@/lib/security/request-guards";
+import { PRIVATE_JSON_HEADERS, readJsonBody } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { recordGateHit } from "@/lib/entitlements";
 import {
@@ -60,9 +60,6 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const crossSite = rejectCrossSite(request);
-  if (crossSite) return crossSite;
-
   const { user, response } = await gate();
   if (!user) return response;
 

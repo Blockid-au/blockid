@@ -105,10 +105,8 @@ describe("POST /api/funding/draft — guards", () => {
     expect((await post({ grant_id: "Nope;drop" })).status).toBe(400);
     expect((await post({ grant_id: "../rdti" })).status).toBe(400);
     expect((await post({ grant_id: GRANT.id, project_id: "proj-1" })).status).toBe(400);
-    // S8-C: browser cross-site POST is refused before auth.
-    const cross = await POST(new Request("http://localhost/api/funding/draft", { method: "POST", headers: { "content-type": "application/json", "sec-fetch-site": "cross-site" }, body: JSON.stringify({ grant_id: GRANT.id }) }));
-    expect(cross.status).toBe(403);
-    // S8-C: oversize body is a 413 before parsing.
+    // S8-C: oversize body is a 413 before parsing. (Cross-site refusal moved
+    // to the S9-A proxy gate — src/proxy.test.ts.)
     const big = await POST(new Request("http://localhost/api/funding/draft", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ grant_id: GRANT.id, pad: "x".repeat(20 * 1024) }) }));
     expect(big.status).toBe(413);
 

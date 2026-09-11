@@ -8,7 +8,7 @@
 // by `evaluator_user_id = user.id`, so a foreign id simply reads as 404.
 
 import { NextResponse } from "next/server";
-import { readJsonBody, rejectCrossSite } from "@/lib/security/request-guards";
+import { readJsonBody } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { deleteEvaluation, getEvaluationForUser, updateEvaluation } from "@/lib/evaluations";
 
@@ -20,9 +20,6 @@ type Ctx = { params: Promise<{ id: string }> };
 const PATCH_BODY_MAX_BYTES = 64 * 1024;
 
 export async function PATCH(request: Request, { params }: Ctx) {
-  const crossSite = rejectCrossSite(request);
-  if (crossSite) return crossSite;
-
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   const { id } = await params;
@@ -57,9 +54,6 @@ export async function PATCH(request: Request, { params }: Ctx) {
 }
 
 export async function DELETE(request: Request, { params }: Ctx) {
-  const crossSite = rejectCrossSite(request);
-  if (crossSite) return crossSite;
-
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   const { id } = await params;
