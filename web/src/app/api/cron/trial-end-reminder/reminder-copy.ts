@@ -9,6 +9,11 @@
 import { getPlanCached } from "@/lib/plans-db";
 import { TRIAL_COPY, formatAud } from "@/lib/plans/trial-copy";
 import { evaluatorPlanLabel } from "@/lib/plans/signup-plans";
+import { TRIAL_REMINDER_PATH } from "@/lib/evaluations/activation-checklist";
+import { EVALUATIONS_COPY, evaluationsCopy } from "@/lib/evaluations/copy";
+
+/** Absolute deep link the "report still waiting" line points at (S13-A). */
+export const TRIAL_REMINDER_URL = `https://blockid.au${TRIAL_REMINDER_PATH}`;
 
 export interface ReminderPlanDisplay {
   /** Public plan name — Scout / Firm / Program for evaluator rungs. */
@@ -58,6 +63,29 @@ export function includedReportLine(left: number | null | undefined): string | nu
   return `You have ${n} included Trust BizReport${n === 1 ? "" : "s"} left — run it from Startups I'm evaluating before your trial ends.`;
 }
 
+export interface ReportWaitingLine {
+  /** "Your included Trust BizReport is still waiting — run it before <date>." */
+  text: string;
+  /** Deep link: /workspace/evaluations?from=trial_reminder (auto-opens the report dialog on the first startup). */
+  href: string;
+  cta: string;
+}
+
+/**
+ * S13-A: when the single included report has NEVER been run (left === 1 =
+ * TRIAL_REPORT_ALLOWANCE) the reminder carries one line with the deep link
+ * instead of the generic count line. Null otherwise (0 / null / ≥ 2 fall
+ * back to `includedReportLine`).
+ */
+export function reportWaitingLine(left: number | null | undefined, trialEndFmt: string): ReportWaitingLine | null {
+  if (left !== 1) return null;
+  return {
+    text: evaluationsCopy("reminder.reportWaiting", { trial_end: trialEndFmt }),
+    href: TRIAL_REMINDER_URL,
+    cta: EVALUATIONS_COPY["reminder.reportWaitingCta"],
+  };
+}
+
 /**
  * T-3d reminder body. The copy MUST read as a card-on-file trial ("your card
  * will be charged … cancel before …").
@@ -78,12 +106,18 @@ export function renderReminder(args: {
     dateStr: args.trialEndFmt,
   });
   const footnote = TRIAL_COPY.reminder_footnote(args.trialEndFmt);
-  const reportLine = includedReportLine(args.includedReportsLeft);
+  const waiting = reportWaitingLine(args.includedReportsLeft, args.trialEndFmt);
+  const reportLine = waiting ? null : includedReportLine(args.includedReportsLeft);
+  const reportBlock = waiting
+    ? `\n    <p>${esc(waiting.text)} <a href="${waiting.href}" style="color:#1d4ed8;font-weight:600;">${esc(waiting.cta)} →</a></p>`
+    : reportLine
+      ? `\n    <p>${esc(reportLine)}</p>`
+      : "";
   return `<!DOCTYPE html><html><body style="font-family:-apple-system,Segoe UI,sans-serif;color:#1e293b;">
   <div style="max-width:560px;margin:24px auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;">
     <h1 style="margin:0 0 12px;font-size:20px;">Your trial ends ${esc(args.trialEndFmt)}</h1>
     <p>Hi ${esc(args.name)},</p>
-    <p>${esc(body)}</p>${reportLine ? `\n    <p>${esc(reportLine)}</p>` : ""}
+    <p>${esc(body)}</p>${reportBlock}
     <p><a href="https://blockid.au/workspace/billing" style="display:inline-block;background:#3b82f6;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;">Manage billing →</a></p>
     <p style="color:#64748b;font-size:12px;">${esc(footnote)}</p>
   </div></body></html>`;
