@@ -7,7 +7,10 @@
  *
  * Token disclosure: rendering the project name to an unauthenticated
  * viewer is OK — the URL already carries the token, so anyone with the
- * link can see the project. Signing in is the gate that binds the row.
+ * link can see the project. Signing in AS THE INVITED EMAIL is the gate
+ * that binds the row (S17-A review P2-5): a different signed-in account
+ * sees a clear "sign in as <invited email>" message instead of an Accept
+ * button, and the API refuses with `invite_email_mismatch` regardless.
  */
 
 import type { Metadata } from "next";

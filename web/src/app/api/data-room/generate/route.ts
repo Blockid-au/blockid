@@ -81,11 +81,16 @@ export async function POST() {
   }
 
   // ── Section 1: Company — Pull from app_users + svi_accounts ───────────
-  const { data: sviAccount } = await supabase
+  // S17-A review (P2-2): keyed on (email, project_id) — not email alone —
+  // so a member of project A compiles A's record, never whichever of the
+  // owner's other startups happens to match by email.
+  const sviAccountQuery = supabase
     .from("svi_accounts")
     .select("id, current_svi, current_stage, startup_name")
-    .eq("email", dataEmail)
-    .maybeSingle();
+    .eq("email", dataEmail);
+  if (projectId) sviAccountQuery.eq("project_id", projectId);
+  else sviAccountQuery.is("project_id", null);
+  const { data: sviAccount } = await sviAccountQuery.maybeSingle();
 
   // ── Section 2: Product — Pull latest SVI analysis ─────────────────────
   let latestAnalysis: { totalSvi: number; analysisJson: unknown } | null = null;

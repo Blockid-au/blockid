@@ -212,10 +212,13 @@ export async function GET() {
       if (denied) return denied;
       throw err;
     }
+    // P2-1: `callerEmail` ≠ dataEmail marks a member → the owner's legacy
+    // null-project record is never consulted.
     const account = await findSVIAccountWithFallback(
       scope?.dataEmail ?? auth.email,
       scope?.projectId ?? null,
       "id",
+      { callerEmail: auth.email },
     );
 
     if (!account) {

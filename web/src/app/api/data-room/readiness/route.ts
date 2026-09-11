@@ -107,15 +107,21 @@ export async function GET(req: NextRequest) {
   }
 
   // ── Fetch the project owner's data room ───────────────────────────────────
+  // S17-A review (P2-2): scoped on (user_id, project_id) — the same key
+  // `generate` upserts on (0123 unique index) — so a member of project A
+  // scores A's room, never the owner's latest room from another project.
+  // (`data_rooms` has no `account_id` column — see data-room/access.)
   const roomQuery = supabase
     .from("data_rooms")
     .select("id, completeness_score")
-    .eq("account_id", ownerUserId)
+    .eq("user_id", ownerUserId);
+  if (projectId) roomQuery.eq("project_id", projectId);
+  else roomQuery.is("project_id", null);
+
+  const { data: room } = await roomQuery
     .order("created_at", { ascending: false })
     .limit(1)
     .single();
-
-  const { data: room } = await roomQuery;
 
   // If no data room exists, return a zero score with empty breakdown
   if (!room) {

@@ -36,12 +36,41 @@ vi.mock("@/lib/auth", () => ({
   getCurrentUser: () => getCurrentUserMock(),
 }));
 
+// S17-A review (P1-1): POST resolves the active project via
+// getProjectScope("editor"). `getProjectIdFromRequestMock` still picks the
+// project id (null → no project); `scopeRoleMock` picks the caller's role
+// on it (owner by default — a viewer makes the mock throw a
+// ProjectAccessError-shaped "forbidden"). `dataEmail` is the OWNER's email
+// whenever the role is not "owner".
 const getProjectIdFromRequestMock = vi.fn<() => Promise<string | null>>();
+const scopeRoleMock = vi.fn<() => "owner" | "admin" | "editor" | "viewer">(() => "owner");
 const findOrCreateSVIAccountMock = vi.fn<
   (email: string, projectId: string | null) => Promise<string | null>
 >();
 vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => getProjectIdFromRequestMock(),
+  getProjectScope: async (minRole?: string) => {
+    const projectId = await getProjectIdFromRequestMock();
+    if (!projectId) return null;
+    const role = scopeRoleMock();
+    const rank = { viewer: 1, editor: 2, admin: 3, owner: 4 } as const;
+    if (minRole && rank[role] < rank[minRole as keyof typeof rank]) {
+      const err = new Error("below") as Error & { code: string };
+      err.name = "ProjectAccessError";
+      err.code = "forbidden";
+      throw err;
+    }
+    const isOwner = role === "owner";
+    return {
+      projectId,
+      role,
+      isOwner,
+      userId: "u-1",
+      email: "jane@example.com",
+      dataEmail: isOwner ? "jane@example.com" : "owner@example.com",
+      ownerUserId: isOwner ? "u-1" : "owner-1",
+      project: { id: projectId, slug: "p", name: "P", userId: isOwner ? "u-1" : "owner-1", role },
+    };
+  },
   findOrCreateSVIAccount: (email: string, projectId: string | null) =>
     findOrCreateSVIAccountMock(email, projectId),
 }));
@@ -218,6 +247,7 @@ beforeEach(() => {
 
   getCurrentUserMock.mockResolvedValue({ id: "u-1", email: "jane@example.com" });
   getProjectIdFromRequestMock.mockResolvedValue("project-1");
+  scopeRoleMock.mockReturnValue("owner");
   findOrCreateSVIAccountMock.mockResolvedValue("account-1");
   getSupabaseAdminMock.mockReturnValue(makeFake());
 });
@@ -540,6 +570,43 @@ describe("POST account resolution", () => {
       "jane@example.com",
       null,
     );
+  });
+});
+
+// ─── S17-A review P1-1 — member-aware write gate ──────────────────────────
+
+describe("POST S17-A member access (P1-1)", () => {
+  it("viewer on a shared project → 403 forbidden BEFORE the account is resolved or anything is upserted (the owner's svi_accounts / startup_metrics rows are untouchable)", async () => {
+    scopeRoleMock.mockReturnValue("viewer");
+    const { status, body } = await callPost({ metrics: { mrr_aud: 100 } });
+    expect(status).toBe(403);
+    expect(body.ok).toBe(false);
+    expect((body as { code?: string }).code).toBe("forbidden");
+    expect(findOrCreateSVIAccountMock).not.toHaveBeenCalled();
+    expect(state.upsertTable).toBeNull();
+    expect(state.upsertRow).toBeNull();
+  });
+
+  it("editor on a shared project → 200; the account AND the row's email are keyed on the OWNER's email (scope.dataEmail), never the editor's", async () => {
+    scopeRoleMock.mockReturnValue("editor");
+    const { status } = await callPost({ metrics: { mrr_aud: 100 } });
+    expect(status).toBe(200);
+    expect(findOrCreateSVIAccountMock).toHaveBeenCalledWith(
+      "owner@example.com",
+      "project-1",
+    );
+    expect(state.upsertRow?.email).toBe("owner@example.com");
+    expect(state.upsertRow?.account_id).toBe("account-1");
+  });
+
+  it("owner keeps their own email as the data key", async () => {
+    scopeRoleMock.mockReturnValue("owner");
+    await callPost({ metrics: { mrr_aud: 100 } });
+    expect(findOrCreateSVIAccountMock).toHaveBeenCalledWith(
+      "jane@example.com",
+      "project-1",
+    );
+    expect(state.upsertRow?.email).toBe("jane@example.com");
   });
 });
 

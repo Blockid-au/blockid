@@ -7,14 +7,20 @@
 // POST   /api/projects/[id]/members            → invite {email, role}
 // DELETE /api/projects/[id]/members?memberId=… → revoke that member
 //
-// Access is enforced by assertProjectMemberCan(…, "admin") — owner OR an
-// accepted admin member — for GET, POST and DELETE alike (S17-A), so one
-// chokepoint covers reads and writes.
+// Access is enforced by assertProjectAccess(…, "admin") from lib/projects —
+// owner OR an accepted admin member — for GET, POST and DELETE alike
+// (S17-A), so one chokepoint covers reads and writes.
+//
+// S17-A review (P2-3): a NON-member gets 404 (same as a missing project),
+// never 403 — the older assertProjectMemberCan() answered 403 for
+// "exists but you are not a member", which let anyone probe project ids.
+// Only an accepted member whose role is below admin sees 403.
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { assertProjectAccess } from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
 import {
-  assertProjectMemberCan,
   listMembers,
   inviteMember,
   revokeMember,
@@ -83,11 +89,13 @@ export async function GET(
   try {
     // S17-A: owner OR accepted admin member may read the roster — the same
     // guard the invite/revoke handlers use, so an admin co-founder sees who
-    // they can manage.
-    await assertProjectMemberCan(id, user.id, "admin");
+    // they can manage. Non-member → 404 (P2-3).
+    await assertProjectAccess(user.id, id, "admin");
     const members = await listMembers(id);
     return NextResponse.json({ ok: true, members });
   } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
     if (err instanceof ProjectMemberScopeError) {
       return NextResponse.json(
         { ok: false, error: err.message },
@@ -149,8 +157,9 @@ export async function POST(
 
   try {
     // Admin-perm required — owner OR accepted admin members may invite.
-    // Editors/viewers get 403; inviting new collaborators is admin-level.
-    await assertProjectMemberCan(id, user.id, "admin");
+    // Editors/viewers get 403; non-members 404 (P2-3); inviting new
+    // collaborators is admin-level.
+    await assertProjectAccess(user.id, id, "admin");
     const member = await inviteMember(id, email, role, user.id);
 
     // SOC2-lite audit: record the successful invite. Domain only — never
@@ -176,6 +185,8 @@ export async function POST(
       invite_url: inviteUrlFor(request, member.token),
     });
   } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
     if (err instanceof ProjectMemberScopeError) {
       return NextResponse.json(
         { ok: false, error: err.message },
@@ -219,8 +230,8 @@ export async function DELETE(
 
   try {
     // Admin-perm required — owner OR accepted admin members may revoke.
-    // Also 404s a stale projectId via the internal project lookup.
-    await assertProjectMemberCan(projectId, user.id, "admin");
+    // Missing project AND non-member both 404 (P2-3).
+    await assertProjectAccess(user.id, projectId, "admin");
     const member = await revokeMember(memberId, user.id);
     if (member.projectId !== projectId) {
       // Guard against a memberId pointing to a member of a different project.
@@ -248,6 +259,8 @@ export async function DELETE(
 
     return NextResponse.json({ ok: true, member });
   } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
     if (err instanceof ProjectMemberScopeError) {
       return NextResponse.json(
         { ok: false, error: err.message },

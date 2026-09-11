@@ -8,7 +8,7 @@
 //   - dropping `export const dynamic = "force-dynamic"` so a prerender caches a
 //     stale badge for a founder mid-upload flow.
 //   - dropping the auth gate (401) and leaking one founder's data-room score to
-//     an anonymous caller — the .eq("account_id", user.id) filter is the ONLY
+//     an anonymous caller — the (user_id, project_id) filter is the ONLY
 //     tenancy boundary and the only signal the /workspace readiness widget uses
 //     to decide which score to render.
 //   - dropping the CATEGORY weight-sum-to-100 invariant (20+20+15+15+15+15=100)
@@ -91,7 +91,7 @@ import { GET } from "./route";
 // --- Fake Supabase ---------------------------------------------------------
 //
 // The route makes 4 distinct chained calls in a single request:
-//   1. data_rooms         → .select().eq().order().limit(1).single()   → {data}
+//   1. data_rooms         → .select().eq(user_id).eq|is(project_id).order().limit(1).single() → {data}
 //   2. data_room_documents → .select().eq()                             → {data}
 //   3. svi_evidence       → .select(cols, {count,head}).eq()           → {count}
 //   4. shareholders       → .select(cols, {count,head}).eq()           → {count}
@@ -157,28 +157,32 @@ function makeFakeSupabase() {
       state.calls.from.push(table);
 
       if (table === "data_rooms") {
+        // S17-A review P2-2: .select().eq("user_id").eq|is("project_id")
+        // .order().limit(1).single() — filters chain in either form and
+        // are all recorded in eqFilters.
+        const chain = {
+          eq(col: string, val: unknown) {
+            state.calls.eqFilters.push({ table, col, val });
+            return chain;
+          },
+          is(col: string, val: unknown) {
+            state.calls.eqFilters.push({ table, col, val });
+            return chain;
+          },
+          order(col2: string, opts?: { ascending?: boolean }) {
+            state.calls.dataRoomsOrder = { col: col2, ...opts };
+            return chain;
+          },
+          limit(n: number) {
+            state.calls.dataRoomsLimit = n;
+            return chain;
+          },
+          single: () => Promise.resolve({ data: state.room }),
+        };
         return {
           select(cols: string) {
             state.calls.selectCols[table] = cols;
-            return {
-              eq(col: string, val: unknown) {
-                state.calls.eqFilters.push({ table, col, val });
-                return {
-                  order(col2: string, opts?: { ascending?: boolean }) {
-                    state.calls.dataRoomsOrder = { col: col2, ...opts };
-                    return {
-                      limit(n: number) {
-                        state.calls.dataRoomsLimit = n;
-                        return {
-                          single: () =>
-                            Promise.resolve({ data: state.room }),
-                        };
-                      },
-                    };
-                  },
-                };
-              },
-            };
+            return chain;
           },
         };
       }
@@ -333,15 +337,17 @@ beforeEach(() => {
 // ─── S17-A project-level permissions ───────────────────────────────────────
 
 describe("S17-A member-aware access", () => {
-  it("viewer member on a shared project (cookie path) reads the OWNER's room, not their own", async () => {
+  it("viewer member on a shared project (cookie path) reads the OWNER's room for THIS project — (user_id = owner, project_id = scoped), not the owner's latest room from another project (P2-2)", async () => {
     scopeRoleMock.mockReturnValue("viewer");
     const { status, body } = await callGet();
     expect(status).toBe(200);
     expect(body.projectId).toBe("proj-cookie");
     expect((body as { role?: string }).role).toBe("viewer");
-    const filter = state.calls.eqFilters.find((c) => c.table === "data_rooms");
-    expect(filter!.col).toBe("account_id");
-    expect(filter!.val).toBe("owner-1");
+    const filters = state.calls.eqFilters.filter((c) => c.table === "data_rooms");
+    expect(filters).toEqual([
+      { table: "data_rooms", col: "user_id", val: "owner-1" },
+      { table: "data_rooms", col: "project_id", val: "proj-cookie" },
+    ]);
   });
 
   it("explicit ?project_id the caller is not a member of → 404 (existence not confirmed)", async () => {
@@ -366,8 +372,11 @@ describe("S17-A member-aware access", () => {
     const { status, body } = await callGet("?project_id=proj-shared");
     expect(status).toBe(200);
     expect((body as { role?: string }).role).toBe("editor");
-    const filter = state.calls.eqFilters.find((c) => c.table === "data_rooms");
-    expect(filter!.val).toBe("owner-1");
+    const filters = state.calls.eqFilters.filter((c) => c.table === "data_rooms");
+    expect(filters).toEqual([
+      { table: "data_rooms", col: "user_id", val: "owner-1" },
+      { table: "data_rooms", col: "project_id", val: "proj-shared" },
+    ]);
   });
 });
 
@@ -498,15 +507,25 @@ describe("data_rooms fetch shape", () => {
     );
   });
 
-  it("scopes on account_id = user.id (tenancy boundary — the ONLY safeguard against cross-founder score leaks)", async () => {
+  it("scopes on (user_id = owner, project_id = active project) — the tenancy boundary against cross-founder AND cross-project score leaks (P2-2; `data_rooms` has no account_id column)", async () => {
     state.room = { id: "room-1", completeness_score: 0 };
     await callGet();
-    const filter = state.calls.eqFilters.find(
-      (f) => f.table === "data_rooms",
-    );
-    expect(filter).toBeDefined();
-    expect(filter!.col).toBe("account_id");
-    expect(filter!.val).toBe("user-1");
+    const filters = state.calls.eqFilters.filter((f) => f.table === "data_rooms");
+    expect(filters).toEqual([
+      { table: "data_rooms", col: "user_id", val: "user-1" },
+      { table: "data_rooms", col: "project_id", val: "proj-cookie" },
+    ]);
+  });
+
+  it("no active project → (user_id, project_id IS NULL) — the founder's pre-project room only", async () => {
+    getProjectIdFromRequestMock.mockResolvedValue(null);
+    state.room = { id: "room-1", completeness_score: 0 };
+    await callGet();
+    const filters = state.calls.eqFilters.filter((f) => f.table === "data_rooms");
+    expect(filters).toEqual([
+      { table: "data_rooms", col: "user_id", val: "user-1" },
+      { table: "data_rooms", col: "project_id", val: null },
+    ]);
   });
 
   it("orders by created_at DESC + limit(1) + single() (a founder with two rooms scores off the newest — flipping this flips the badge)", async () => {

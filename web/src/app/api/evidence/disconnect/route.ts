@@ -4,9 +4,16 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { findOrCreateSVIAccount, getProjectIdFromRequest } from "@/lib/projects";
+import { findOrCreateSVIAccount, getProjectScope } from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
+
+// S17-A review (P1-1) — member-aware: disconnecting a provider deletes the
+// project's evidence + oauth_connections rows, so it is editor+ only. A
+// viewer on a shared project gets 403 before any row is touched; the
+// account is resolved under the OWNER's email (scope.dataEmail) so an
+// editor disconnects the shared record, not a split row of their own.
 
 const ALLOWED_TYPES = ["github", "github_repo_audit", "linkedin", "stripe", "analytics"] as const;
 
@@ -54,8 +61,17 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const projectId = await getProjectIdFromRequest();
-    const accountId = await findOrCreateSVIAccount(auth.email, projectId);
+    let scope;
+    try {
+      scope = await getProjectScope("editor");
+    } catch (err) {
+      const denied = projectAccessResponse(err);
+      if (denied) return denied;
+      throw err;
+    }
+    const projectId = scope?.projectId ?? null;
+    const dataEmail = scope?.dataEmail ?? auth.email;
+    const accountId = await findOrCreateSVIAccount(dataEmail, projectId);
     if (!accountId) {
       return NextResponse.json({ ok: false, error: "Account not found" }, { status: 404 });
     }

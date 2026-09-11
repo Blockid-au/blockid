@@ -405,6 +405,11 @@ async function getProjectOwnerEmail(projectId: string): Promise<string | null> {
  * Resolve the email SVI data for `projectId` is keyed under. For the owner
  * this is their own email. For an accepted member it is the owner's email,
  * so the member sees and edits the same startup record.
+ *
+ * S17-A review (P1-1): this does NOT check membership or role. It is only
+ * called from `getProjectScope(minRole)` AFTER the role gate has passed —
+ * never from the `findOrCreateSVIAccount` / `find*WithFallback` readers.
+ * Do not call it from a route directly; use `getProjectScope().dataEmail`.
  */
 export async function resolveProjectDataEmail(
   callerEmail: string,
@@ -640,6 +645,14 @@ export async function getProjectScope(
  * - If project_id is provided → look up by (email, project_id)
  * - If project_id is null → look up by email WHERE project_id IS NULL
  * - If no match → INSERT a new row (separate startup record)
+ *
+ * S17-A review (P1-1): this helper uses EXACTLY the email it is given and
+ * never resolves the project owner's email itself. The only path that
+ * hands out the owner's email is `getProjectScope(minRole)`, which
+ * enforces the caller's role first — so a route that has not been
+ * converted to `getProjectScope` (still `getProjectIdFromRequest()` +
+ * `user.email`) can only ever reach a row keyed on the CALLER's email,
+ * never the owner's startup record.
  */
 export async function findOrCreateSVIAccount(
   email: string,
@@ -661,23 +674,6 @@ export async function findOrCreateSVIAccount(
 
   const { data: existing } = await query.maybeSingle();
   if (existing) return existing.id as string;
-
-  // S17-A — shared project: the caller may be an accepted member whose
-  // email differs from the owner's. The startup record is keyed under the
-  // OWNER's email, so look that up before creating a split row.
-  if (projectId) {
-    const dataEmail = await resolveProjectDataEmail(email, projectId);
-    if (dataEmail !== email) {
-      const { data: ownerRow } = await supabase
-        .from("svi_accounts")
-        .select("id")
-        .eq("email", dataEmail)
-        .eq("project_id", projectId)
-        .maybeSingle();
-      if (ownerRow) return ownerRow.id as string;
-      email = dataEmail;
-    }
-  }
 
   // Get project name for the startup_name field
   let startupName: string | null = null;
@@ -742,6 +738,27 @@ export async function findOrCreateSVIAccount(
 }
 
 /**
+ * S17-A review (P2-1) — options for the `*WithFallback` readers.
+ *
+ * `callerEmail` is the email of the user making the request. Converted
+ * routes pass `scope.dataEmail` (the OWNER's email) as `email` and their
+ * own `user.email` here; when the two differ the caller is a member and
+ * the legacy `(email, project_id IS NULL)` fallback is SKIPPED — a member
+ * may read the owner's project-scoped record but never the owner's
+ * pre-project (null-project) record, and never triggers the
+ * `svi_analyses.project_id` migration UPDATE on the owner's data.
+ */
+export interface DataKeyOptions {
+  callerEmail?: string;
+}
+
+function legacyFallbackAllowed(email: string, opts?: DataKeyOptions): boolean {
+  const caller = opts?.callerEmail;
+  if (!caller) return true;
+  return caller.trim().toLowerCase() === email.trim().toLowerCase();
+}
+
+/**
  * Find an existing SVI account with fallback for legacy records.
  *
  * Old accounts were created before multi-project support and have
@@ -750,8 +767,10 @@ export async function findOrCreateSVIAccount(
  *
  * 1. Tries exact match: email + project_id
  * 2. If not found AND projectId is not null → falls back to email + project_id IS NULL
- * 3. Auto-migrates the legacy account by setting its project_id
- * 4. Also migrates orphaned svi_analyses records for the same email
+ *    (owner only — skipped when `opts.callerEmail` differs from `email`, P2-1)
+ *
+ * The legacy row is returned read-only (never migrated). Uses exactly the
+ * email it is given — see `findOrCreateSVIAccount` (P1-1).
  *
  * Returns the full account row or null.
  */
@@ -760,6 +779,7 @@ export async function findSVIAccountWithFallback(
   email: string,
   projectId: string | null,
   selectColumns = "id, email, startup_name, current_svi, current_stage",
+  opts?: DataKeyOptions,
 ): Promise<Record<string, unknown> | null> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
@@ -786,21 +806,9 @@ export async function findSVIAccountWithFallback(
   // 2. Fallback: legacy account with project_id IS NULL
   if (!projectId) return null; // already tried null — nothing to fall back to
 
-  // S17-A — shared project: retry under the owner's email (the key the
-  // startup record lives under) before touching the legacy fallback.
-  const dataEmail = await resolveProjectDataEmail(email, projectId);
-  if (dataEmail !== email) {
-    const { data: ownerExact } = await supabase
-      .from("svi_accounts")
-      .select(selectColumns)
-      .eq("email", dataEmail)
-      .eq("project_id", projectId)
-      .order("last_active_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (ownerExact) return ownerExact as any;
-    email = dataEmail;
-  }
+  // P2-1 — a member (callerEmail ≠ email) never reaches the owner's
+  // pre-project record.
+  if (!legacyFallbackAllowed(email, opts)) return null;
 
   const { data: legacy } = await supabase
     .from("svi_accounts")
@@ -821,12 +829,18 @@ export async function findSVIAccountWithFallback(
 
 /**
  * Find latest SVI analysis with fallback for legacy records (project_id NULL).
+ *
+ * Uses exactly the email it is given (P1-1). The legacy fallback — and the
+ * `svi_analyses.project_id` migration UPDATE it performs — runs for the
+ * owner only: it is skipped when `opts.callerEmail` differs from `email`
+ * (P2-1), so a member can never move or read the owner's orphaned rows.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export async function findLatestAnalysisWithFallback(
   email: string,
   projectId: string | null,
   selectColumns = "id, raw_input, total_svi, analysis_json",
+  opts?: DataKeyOptions,
 ): Promise<Record<string, unknown> | null> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
@@ -852,20 +866,9 @@ export async function findLatestAnalysisWithFallback(
   // Fallback to null project_id
   if (!projectId) return null;
 
-  // S17-A — shared project: retry under the owner's email first.
-  const dataEmail = await resolveProjectDataEmail(email, projectId);
-  if (dataEmail !== email) {
-    const { data: ownerExact } = await supabase
-      .from("svi_analyses")
-      .select(selectColumns)
-      .eq("email", dataEmail)
-      .eq("project_id", projectId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (ownerExact) return ownerExact as any;
-    email = dataEmail;
-  }
+  // P2-1 — owner only: a member never reads (or migrates) the owner's
+  // orphaned pre-project analyses.
+  if (!legacyFallbackAllowed(email, opts)) return null;
 
   const { data: legacy } = await supabase
     .from("svi_analyses")
