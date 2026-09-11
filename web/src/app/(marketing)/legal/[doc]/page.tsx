@@ -184,7 +184,43 @@ function renderInline(input: string): string {
     /\*\*([^*]+)\*\*/g,
     '<strong class="font-semibold text-primary">$1</strong>',
   );
+  // Single-star emphasis (*Privacy Act 1988*, *attributed only*) — runs
+  // after bold so the `**` pairs are already consumed.
+  s = s.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>");
   return s;
+}
+
+/**
+ * Pipe tables (`| a | b |`, with the `|---|---|` separator row) → a real
+ * `<table>`. The privacy policy's retention table (clause 4) is the only
+ * consumer; anything else stays a paragraph. Cells go through renderInline
+ * so `**bold**` and `` `code` `` inside a cell still render.
+ */
+function renderTable(rows: string[]): string {
+  const cells = (row: string): string[] =>
+    row
+      .replace(/^\|/, "")
+      .replace(/\|$/, "")
+      .split("|")
+      .map((c) => c.trim());
+  const isSeparator = (row: string): boolean => /^\|?\s*:?-{2,}/.test(row);
+  const [head, ...rest] = rows;
+  const body = rest.filter((r) => !isSeparator(r));
+  const th = cells(head ?? "")
+    .map(
+      (c) =>
+        `<th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-primary">${renderInline(c)}</th>`,
+    )
+    .join("");
+  const tr = body
+    .map(
+      (r) =>
+        `<tr class="border-t border-line-subtle align-top">${cells(r)
+          .map((c) => `<td class="px-3 py-2 text-secondary">${renderInline(c)}</td>`)
+          .join("")}</tr>`,
+    )
+    .join("");
+  return `<div class="mt-4 overflow-x-auto"><table class="w-full text-sm"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;
 }
 
 /**
@@ -209,12 +245,22 @@ function renderMarkdown(md: string): string {
   const lines = md.replace(/\r\n?/g, "\n").split("\n");
   const out: string[] = [];
   let inList = false;
+  // Raw markdown of the most recent `<li>` so a wrapped item can be re-rendered
+  // once its indented continuation lines arrive.
+  let liSource = "";
   let paraBuf: string[] = [];
+  let tableBuf: string[] = [];
 
   const flushList = () => {
     if (inList) {
       out.push("</ul>");
       inList = false;
+    }
+  };
+  const flushTable = () => {
+    if (tableBuf.length > 0) {
+      out.push(renderTable(tableBuf));
+      tableBuf = [];
     }
   };
   const flushPara = () => {
@@ -230,6 +276,16 @@ function renderMarkdown(md: string): string {
 
   for (const line of lines) {
     const trimmed = line.trim();
+
+    // Table rows are contiguous `|`-prefixed lines; any other line ends the
+    // table. Checked first so a `|---|` separator is never mistaken for `---`.
+    if (trimmed.startsWith("|")) {
+      flushPara();
+      flushList();
+      tableBuf.push(trimmed);
+      continue;
+    }
+    flushTable();
 
     if (trimmed === "") {
       flushPara();
@@ -288,12 +344,21 @@ function renderMarkdown(md: string): string {
         );
         inList = true;
       }
-      out.push(
-        `<li class="leading-relaxed">${renderInline(trimmed.slice(2))}</li>`,
-      );
+      liSource = trimmed.slice(2);
+      out.push(`<li class="leading-relaxed">${renderInline(liSource)}</li>`);
       continue;
     }
     if (trimmed.startsWith("<!--")) continue;
+
+    // Indented continuation of a wrapped list item (`- **Identity** — your
+    // name,\n  email address`) joins the previous <li> instead of breaking
+    // the list and starting a paragraph. Inline markup is re-rendered over
+    // the joined text so a `**bold**` that wraps across the break closes.
+    if (inList && /^\s/.test(line) && out[out.length - 1]?.startsWith("<li ")) {
+      liSource = `${liSource} ${trimmed}`;
+      out[out.length - 1] = `<li class="leading-relaxed">${renderInline(liSource)}</li>`;
+      continue;
+    }
 
     flushList();
     paraBuf.push(trimmed);
@@ -301,6 +366,7 @@ function renderMarkdown(md: string): string {
 
   flushPara();
   flushList();
+  flushTable();
 
   return out.join("\n");
 }

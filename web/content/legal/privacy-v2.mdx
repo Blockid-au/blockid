@@ -1,7 +1,7 @@
 ---
 title: Privacy Policy
-version: 2.1
-effective_from: 2026-09-10
+version: 2.2
+effective_from: 2026-09-11
 ---
 
 # Privacy Policy
@@ -14,10 +14,12 @@ hold, use, disclose, and protect personal information in accordance with
 the *Privacy Act 1988* (Cth) (the "Privacy Act") and the **Australian
 Privacy Principles (APPs 1–13)** in Schedule 1 of that Act.
 
-This version 2.1 takes effect on **10 September 2026** and replaces all
+This version 2.2 takes effect on **11 September 2026** and replaces all
 prior versions, including the separate notice that was previously
-published at `/privacy`. This page, `/legal/privacy`, is now the single
-canonical Privacy Policy for BlockID.
+published at `/privacy`. This page, `/legal/privacy`, is the single
+canonical Privacy Policy for BlockID. Version 2.2 adds the Money Finder,
+Founder Radar, evaluator, and investor-matching features released on
+10 September 2026 (see the changelog at the end of this page).
 
 ## 1. What we collect (APP 3, APP 5)
 
@@ -44,6 +46,19 @@ Services. The categories we collect are:
   attributes, and log data (timestamps, request paths, response codes).
 - **Communications** — support tickets, email correspondence, and
   in-product chat transcripts.
+- **Money Finder intake** — the business facts you enter so we can match
+  you to grants and programs (clause 2B): a short business description,
+  state or territory, city, stage, industry, year incorporated, ABN or
+  ACN, turnover, R&D spend, headcount, export intent, funding need, and
+  — only if you tick them — founder demographic flags.
+- **Startups entered by evaluators** — where an investor, advisor, or
+  accelerator uses BlockID to assess a startup, the name, website, state,
+  and notes they enter about that startup and its founders (clause 2C).
+- **Investor preferences** — for investor accounts, the sectors, stages,
+  geographies, cheque band, minimum score, and firm name you set, and
+  whether you have chosen to be discoverable to founders (clause 2D).
+- **Notification and calendar preferences** — your Money Radar email
+  setting, your calendar-feed token, and your dashboard layout.
 
 We collect this information directly from you where practical (APP 3.6).
 Where a third party (for example an accountant, co-founder, or
@@ -81,6 +96,133 @@ tier the founder has granted (see the Mentor Access Policy at
 `/legal/mentor-access-policy`) and can be revoked by the founder at any
 time.
 
+### 2B. Money Finder — grants, programs, and Founder Radar {#money-finder}
+
+**What we collect and why (APP 3, APP 5, APP 6).** Money Finder matches
+your startup to Australian grants, R&D incentives, accelerators, and
+programs. To do that we ask for the business facts listed in clause 1
+under *Money Finder intake*. Every field is used for one purpose:
+working out which grants and programs your startup is eligible for and
+producing the Money Finder report, application drafts, and quarterly
+analysis refresh you request. The intake is held against your project
+(`project_grant_profiles`), and each report you generate is held against
+your account (`funding_reports`).
+
+**Demographic flags are optional and are used only for eligibility.**
+Some grants are open only to women-led, First Nations-owned, regional,
+or young-founder businesses. You may tick those flags so we can surface
+those grants; you do not have to. A flag you tick is used only to test
+eligibility rules — it is never used for advertising, for scoring, or to
+rank you against other startups, and it is never shown to an investor or
+evaluator. Where a flag reveals sensitive information (for example
+racial or ethnic origin), we collect it only with your consent, which you
+give by ticking the box and can withdraw at any time by clearing it in
+**Workspace → Funding**.
+
+**Guest purchases.** You can buy a Money Finder report for A$3 without an
+account. For a guest purchase we collect your email address and your
+intake, and Stripe collects your payment. We store the Stripe session and
+payment identifiers so we can issue your tax invoice and avoid charging
+you twice; we do **not** store your card number. Your report is emailed
+to you as a link that contains a random access token — anyone who has
+the link can open the report, so please keep it private. If you later
+create an account with the same email address, the report is attached to
+that account. You can ask us to disable a report link at any time.
+
+**Founder Radar emails and how to opt out.** If your plan includes
+Founder Radar, we keep a list of the grants and programs that match your
+intake (`funding_matches`) and check it weekly. We email you when a
+matched deadline is 30, 14, or 3 days away, when a matched program
+pauses or reopens, and — at most twice — to remind you to complete your
+intake if Radar has nothing to match against. These emails are a
+separate category called **Money Radar**. You can switch them off at any
+time from **Workspace → Notifications → Preferences** or by using the
+unsubscribe link in any Radar email; in-app notifications are not
+affected by that switch. Radar is time-boxed on some plans (for example
+90 days with the Startup Package) and stops automatically when it ends.
+
+**Calendar feed.** You may subscribe to your deadlines from your own
+calendar application. The feed URL contains a secret token that is
+unique to your account. The feed lists grant and program names and
+dates only. Anyone who has the URL can read the feed, so treat it like a
+password; you can mint a new token from **Workspace → Funding**, which
+invalidates the old one.
+
+**Application drafts and analysis refreshes.** When you ask us to draft
+grant application answers or to refresh your analysis for a new quarter,
+the draft or refresh is generated from your intake and your existing
+evidence and held against your account. These are inputs to the AI
+providers in clause 5A in the same way as any other Report.
+
+**Public grant and program pages.** Our catalogue of grants and programs
+is refreshed weekly by reading public government and program web pages.
+No personal information is sent in that process.
+
+### 2C. Startups entered by evaluators {#evaluator-data}
+
+**What this covers.** Investors, advisors, and accelerators ("evaluators")
+can use BlockID to assess a startup that is not yet a BlockID user. The
+evaluator enters the startup's name, website, state, and notes, and can
+run a Trust BizReport, a re-score, or a batch of scores across several
+startups. That information may include personal information about the
+startup's founders — for example names in a pitch deck or in the
+evaluator's notes. We collect it indirectly, from the evaluator and from
+publicly available information about the company, because it is not
+practicable to collect it from the founder first (APP 3.6, APP 5.2).
+
+**Purpose (APP 6).** We use evaluator-entered information for one
+purpose: producing the evaluator's assessment of that startup. We do not
+publish it, we do not list the startup in any public index because an
+evaluator entered it, and we do not contact the founder unless the
+evaluator invites them.
+
+**What the evaluator must do.** By entering a startup, the evaluator
+confirms they have a lawful basis to assess it — typically a pitch, an
+application to their program, or a public listing — and agrees not to
+enter sensitive information (health, ethnicity, religion, political
+opinion, and the other categories in s6 of the Privacy Act) in their
+notes.
+
+**Founder claim and consent tiers.** An evaluator can invite the founder
+by email. The founder receives a one-time claim link; when they claim
+the startup, they see who is evaluating it, gain shared access to the
+reports about it, and can bring their own evidence into the record. Each
+evaluation carries a **consent tier** that controls what is visible in
+each direction, using the same tiers as the Mentor Access Policy:
+*attributed only* (the default — the evaluator's private assessment),
+*reports shared* (the tier a claim sets — founder and evaluator see the
+same reports), and *full mentor* (the founder has granted workspace
+access). The founder can lower the tier at any time.
+
+**If you are a founder and an evaluator has entered your startup.** You
+may ask us at any time what an evaluator holds about you, ask us to
+correct it, or ask us to remove it, whether or not you have a BlockID
+account. Write to `privacy@blockid.au` or use `/contact?topic=legal`
+with the startup name and, where you have one, the claim link. We will
+confirm your connection to the startup, respond within 30 days, and —
+where you ask for removal — delete the evaluator's record of your
+startup and every report generated from it, and tell the evaluator that
+we have done so.
+
+**Batch scoring and program reports.** Where an accelerator scores a
+cohort in one batch, the same rules apply to each startup in the batch.
+Quarterly sponsor and LP reports generated from a batch contain scores
+and rankings; they do not contain founder contact details.
+
+### 2D. Investor discoverability {#investor-discoverability}
+
+Investor accounts can opt in to being shown to Growth founders whose
+startup matches their thesis. This is **off by default**. When you turn
+it on, founders can see your display name, your firm name if you have
+entered one, and the preferences you set — sectors, stages,
+geographies, cheque band, and minimum score — together with the reasons
+the match fired. Your email address is never shown to founders. A
+founder who wants an introduction sends that request to our support
+team, who pass it on to you; your contact details are not released
+unless you choose to reply. You can turn discoverability off at any
+time from your investor settings, which removes you from every
+founder's list immediately.
+
 ## 3. Cookies, analytics, and consent
 
 We use first-party cookies for authentication and product state, and
@@ -103,6 +245,16 @@ maximums:
 | Support tickets and correspondence | 3 years after case closure |
 | Application, security, and access logs | **30 days** rolling |
 | Deleted-account backups | Purged from cold storage within 90 days |
+| Money Finder intake (`project_grant_profiles`), including any demographic flags | Life of the project, or on request; cleared immediately when you clear a flag |
+| Money Finder reports, application drafts, and analysis refreshes (member) | Life of the account, or on request |
+| Money Finder reports (guest, A$3) | **12 months** from purchase, then the access link is disabled and the email address removed; the Stripe payment record stays for the 7-year financial period, or on request |
+| Founder Radar matches (`funding_matches`) | While Radar is active plus **90 days**, or on request |
+| Radar and onboarding email records (`email_drips`) | **90 days** after the send date, or on request |
+| Startups entered by evaluators, evaluation reports, and batches | Life of the evaluator's account, or until the evaluator deletes the record, or on request from the founder (clause 2C) |
+| Evaluator invitation and claim tokens | Until claimed, or **90 days** after issue, whichever is first |
+| Investor preferences and discoverability flag | Until you change them, or on request; the flag is cleared immediately when you opt out |
+| Calendar-feed token | Until you mint a new one or delete your account |
+| Dashboard layout and notification preferences | Life of the account |
 
 When retention expires, we delete, de-identify, or securely archive the
 records in accordance with APP 11.2.
@@ -148,7 +300,10 @@ you enter, and publicly available information about the company — may
 be transmitted to one or more of these providers under their business
 terms in order to generate the output.** We send only what is needed
 for the request, do not send payment details, and do not send your
-account password or authentication material. Each provider's own terms
+account password or authentication material. For Money Finder that
+means your intake, including any demographic flag you have ticked, and
+for evaluator reports it means the startup details and notes the
+evaluator entered together with public information about the company. Each provider's own terms
 govern how it handles a request once received; we review those terms
 before adding a provider to the chain and publish material changes to
 this list before they take effect.
@@ -164,10 +319,12 @@ that some of your personal information will be disclosed to and
 processed by recipients in the countries listed above.
 
 For payments, Stripe may process your billing information in Australia
-and the United States. For AI-assisted Reports, prompts and relevant
+and the United States. For AI-assisted Reports — including Money Finder
+reports, application drafts, and evaluator reports — prompts and relevant
 input data may be transmitted to the AI inference providers listed in
 clause 5A, most of which operate in the United States, to generate the
-output.
+output. The public grant and program catalogue refresh in clause 2B
+sends no personal information anywhere.
 
 ## 7. Security (APP 11.1) {#security}
 
@@ -191,12 +348,18 @@ You may:
   incomplete, irrelevant, or misleading (APP 13);
 - Withdraw a previously granted consent (this does not affect processing
   done before withdrawal); and
-- Export a machine-readable copy of your account data from **Account →
-  Export**.
+- Export a machine-readable copy of your account data from
+  **Account → Export**;
+- Switch off Money Radar emails (clause 2B), clear a demographic flag,
+  or turn off investor discoverability (clause 2D) yourself, with
+  immediate effect; and
+- If you are a founder whose startup an evaluator has entered, ask what
+  is held, ask for correction, or ask for removal, whether or not you
+  have an account (clause 2C).
 
-Send access or correction requests to `privacy@blockid.au`. We will
-respond within **30 days** and do not charge a fee for reasonable
-requests.
+Send access, correction, or removal requests to `privacy@blockid.au`.
+We will respond within **30 days** and do not charge a fee for
+reasonable requests.
 
 ## 9. Complaints and the OAIC
 
@@ -224,3 +387,39 @@ Auschain PTY LTD
 ACN 659 615 111 · ABN 79 659 615 111
 Sydney NSW, Australia
 Privacy Officer: `privacy@blockid.au`
+
+---
+
+## Changelog {#changelog}
+
+**v2.2 — effective 11 September 2026**
+
+- New clause 2B: Money Finder intake and why each field is collected;
+  demographic flags optional and used only for eligibility; guest A$3
+  purchases (email plus payment through Stripe, no card data stored,
+  tokenised report link); Founder Radar emails as the **Money Radar**
+  category with opt-out; calendar-feed tokens; application drafts and
+  analysis refreshes; weekly public-page catalogue refresh.
+- New clause 2C: startups entered by evaluators — purpose, evaluator
+  obligations, founder claim, consent tiers, batch scoring, and how a
+  founder who is not a user can ask for removal.
+- New clause 2D: investor discoverability — opt-in, what founders see,
+  email never shown, support-routed introductions.
+- Clause 1 lists the new data categories; clause 4 adds a retention
+  period for every new table; clauses 5A and 6 name the new inputs that
+  may reach the AI provider chain; clause 8 adds the self-serve opt-outs
+  and the founder removal route.
+- AI provider chain, the approved data principle in clause 2A, and the
+  legal entity are unchanged.
+
+**v2.1 — effective 10 September 2026**
+
+- One canonical policy at `/legal/privacy`; the separate `/privacy`
+  notice retired. Clause 5A lists the AI provider chain the platform
+  actually runs. Clause 2A adds the data principle. Self-hosted
+  infrastructure listed in clause 5.
+
+**v2.0 — effective 30 July 2026**
+
+- First policy under the Auschain PTY LTD entity line, with APP mapping
+  and retention table.

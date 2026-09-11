@@ -27,8 +27,13 @@ export const DISCLAIMER_VERSIONS: Record<DisclaimerKind, string> = {
   // provider chain listed as actually run (groq → cerebras → sambanova →
   // deepinfra → anthropic → ollama → openrouter); founder-approved data
   // principle added; the "never train third-party models" sentence removed.
-  // Registry row: supabase/migrations/0310_privacy_v2_1_registry.sql.
-  privacy: "v2.1-2026-09-10",
+  // Registry row: supabase/migrations/0313_privacy_v2_1_registry.sql.
+  // v2.2 (S14-A, 2026-09-11): Money Finder intake + optional demographic
+  // flags (eligibility only), guest A$3 purchases, Founder Radar emails
+  // (money_radar opt-out) + calendar tokens, evaluator-entered startup data
+  // (claim, consent tiers, founder removal route), investor discoverability,
+  // per-table retention. Registry row: 0328_privacy_v2_2_registry.sql.
+  privacy: "v2.2-2026-09-11",
   general_advice_warning: "v1.0-2026-07-16",
   wholesale_certification: "v1.0-2026-07-16",
   equity_offer_disclaimer: "v1.0-2026-07-16",
