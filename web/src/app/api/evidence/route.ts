@@ -1,9 +1,18 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { findOrCreateSVIAccount, getProjectIdFromRequest } from "@/lib/projects";
+import {
+  findOrCreateSVIAccount,
+  findSVIAccountWithFallback,
+  getProjectScope,
+} from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
+
+// S17-A — member-aware: the active project may be one shared with the
+// caller. GET needs viewer+, POST needs editor+. Evidence is stored on the
+// OWNER's svi_accounts row (scope.dataEmail), so co-founders see one list.
 
 // Map evidence_type → confidence_level
 function mapConfidence(
@@ -105,8 +114,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const projectId = await getProjectIdFromRequest();
-    const accountId = await findOrCreateSVIAccount(auth.email, projectId);
+    // Editor+ on the active project (owner always passes). A viewer on a
+    // shared project gets 403 before anything is written.
+    let scope;
+    try {
+      scope = await getProjectScope("editor");
+    } catch (err) {
+      const denied = projectAccessResponse(err);
+      if (denied) return denied;
+      throw err;
+    }
+    const projectId = scope?.projectId ?? null;
+    const dataEmail = scope?.dataEmail ?? auth.email;
+    const accountId = await findOrCreateSVIAccount(dataEmail, projectId);
     if (!accountId) {
       return NextResponse.json(
         { ok: false, error: "Failed to resolve account" },
@@ -182,20 +202,30 @@ export async function GET() {
       );
     }
 
-    const { data: account } = await supabase
-      .from("svi_accounts")
-      .select("id")
-      .eq("email", auth.email)
-      .maybeSingle();
+    // Viewer+ on the active project; resolve the startup record under the
+    // owner's email so a shared-project member reads the same list.
+    let scope;
+    try {
+      scope = await getProjectScope("viewer");
+    } catch (err) {
+      const denied = projectAccessResponse(err);
+      if (denied) return denied;
+      throw err;
+    }
+    const account = await findSVIAccountWithFallback(
+      scope?.dataEmail ?? auth.email,
+      scope?.projectId ?? null,
+      "id",
+    );
 
     if (!account) {
-      return NextResponse.json({ ok: true, evidence: [] });
+      return NextResponse.json({ ok: true, evidence: [], role: scope?.role ?? "owner" });
     }
 
     const { data: evidence, error } = await supabase
       .from("svi_evidence")
       .select("*")
-      .eq("account_id", account.id)
+      .eq("account_id", account.id as string)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -206,7 +236,7 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({ ok: true, evidence: evidence ?? [] });
+    return NextResponse.json({ ok: true, evidence: evidence ?? [], role: scope?.role ?? "owner" });
   } catch (err) {
     console.error("[blockid:evidence] GET error", err);
     return NextResponse.json(

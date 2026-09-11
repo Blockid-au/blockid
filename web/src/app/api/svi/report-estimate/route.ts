@@ -26,8 +26,23 @@ import {
 import { FEATURE_COSTS } from "@/lib/credits";
 import type { IntakeContext } from "@/lib/intake/detect-context";
 import type { AgentRole } from "@/lib/report-pipeline/types";
+import { getProjectScope, creditChargeNote, type ProjectRole } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
+
+// S17-A — transparent pricing on shared projects: every estimate carries
+// `creditNote` ("Charged to your own credits — not the project owner's."
+// for a member) and the caller's `role`, so the UI can show who pays
+// BEFORE the report runs. Credits are per user; the wallet queried is
+// always the caller's.
+async function callerProjectContext(): Promise<{ creditNote: string; role: ProjectRole }> {
+  try {
+    const scope = await getProjectScope();
+    return { creditNote: creditChargeNote(scope), role: scope?.role ?? "owner" };
+  } catch {
+    return { creditNote: creditChargeNote(null), role: "owner" };
+  }
+}
 
 // Per-agent cost estimate — maps each agent to its representative FEATURE_COSTS
 // entry. Keeps a floor of 0.5 so no agent ever contributes 0 to the total.
@@ -70,6 +85,7 @@ export async function GET(request: Request) {
     );
   }
 
+  const { creditNote, role } = await callerProjectContext();
   const url = new URL(request.url);
   const bundle = url.searchParams.get("bundle");
   const sectionsParam = url.searchParams.get("sections");
@@ -109,6 +125,8 @@ export async function GET(request: Request) {
       savingsPercent: 30,
       canAfford: balance >= bundleCost.discounted,
       balance,
+      creditNote,
+      role,
     });
   }
 
@@ -144,6 +162,8 @@ export async function GET(request: Request) {
       totalWords: estimate.totalWords,
       canAfford: balance >= estimate.totalCredits,
       balance,
+      creditNote,
+      role,
     });
   }
 
@@ -180,6 +200,8 @@ export async function GET(request: Request) {
     totalCostAllPaid,
     bundleDiscounted: Math.round(totalCostAllPaid * 0.70 * 100) / 100,
     balance,
+    creditNote,
+    role,
   });
 }
 
@@ -210,6 +232,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
   }
 
+  const { creditNote, role } = await callerProjectContext();
   const ctx = body.context;
   if (!ctx || typeof ctx !== "object") {
     return NextResponse.json({ ok: false, error: "context is required" }, { status: 400 });
@@ -241,5 +264,7 @@ export async function POST(request: Request) {
     savingsVsFullTeardown: savings,
     canAfford: balance >= totalCredits,
     balance,
+    creditNote,
+    role,
   });
 }

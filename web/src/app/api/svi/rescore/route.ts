@@ -3,7 +3,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { checkAndAwardBadges, type BadgeCheckContext } from "@/lib/svi-badges";
 import { extractSignals, computeSVI } from "@/lib/svi-analysis";
-import { getProjectIdFromRequest, findSVIAccountWithFallback, findLatestAnalysisWithFallback } from "@/lib/projects";
+import { getProjectScope, findSVIAccountWithFallback, findLatestAnalysisWithFallback } from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
 
 // POST /api/svi/rescore
 // Re-calculates SVI based on the original analysis text + accumulated evidence.
@@ -21,10 +22,21 @@ export async function POST() {
   }
 
   const supabase = getSupabaseAdmin()!;
-  const projectId = await getProjectIdFromRequest();
 
-  // 1. Get user's SVI account — with fallback for legacy records (project_id NULL)
-  const account = await findSVIAccountWithFallback(user.email, projectId, "*");
+  // S17-A — editor+ on the active project; data keyed under the owner's email.
+  let scope;
+  try {
+    scope = await getProjectScope("editor");
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
+    throw err;
+  }
+  const projectId = scope?.projectId ?? null;
+  const dataEmail = scope?.dataEmail ?? user.email;
+
+  // 1. Get the project's SVI account — with fallback for legacy records (project_id NULL)
+  const account = await findSVIAccountWithFallback(dataEmail, projectId, "*");
 
   if (!account) {
     return NextResponse.json({ ok: false, reason: "No SVI account found for this project" }, { status: 404 });
@@ -34,7 +46,7 @@ export async function POST() {
 
   // 2. Get the latest analysis — with fallback for legacy records
   const latestAnalysis = await findLatestAnalysisWithFallback(
-    user.email,
+    dataEmail,
     projectId,
     "raw_input, analysis_json",
   );
@@ -124,13 +136,13 @@ export async function POST() {
   const { count: analysisCount } = await supabase
     .from("svi_analyses")
     .select("id", { count: "exact", head: true })
-    .eq("email", user.email);
+    .eq("email", dataEmail);
 
   // Check for deep-dive reports
   const { count: deepDiveCount } = await supabase
     .from("svi_analyses")
     .select("id", { count: "exact", head: true })
-    .eq("email", user.email)
+    .eq("email", dataEmail)
     .eq("report_type", "deep_dive");
 
   // Get the previous snapshot for stage comparison

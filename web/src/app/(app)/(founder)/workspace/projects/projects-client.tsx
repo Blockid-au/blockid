@@ -4,10 +4,11 @@ import * as React from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  Briefcase, Plus, Pencil, Archive, ArchiveRestore, X, Loader2, ArrowUpRight, Sparkles, Cpu,
+  Briefcase, Plus, Pencil, Archive, ArchiveRestore, X, Loader2, ArrowUpRight, Sparkles, Cpu, Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { canCreateAnotherStartup } from "@/lib/plans/startup-limit";
+import { SharedRoleChip } from "@/components/ui/project-switcher";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -25,6 +26,20 @@ interface Project {
   archivedAt?: string | null;
   createdAt: string;
   githubUrl?: string | null;
+  /** S17-A — caller's role on the project ("owner" when they own it). */
+  role?: ProjectRole;
+  isShared?: boolean;
+}
+
+type ProjectRole = "owner" | "admin" | "editor" | "viewer";
+
+/** Mutating controls (Edit) — owner / admin / editor. */
+function canWrite(role: ProjectRole | undefined): boolean {
+  return role === undefined || role === "owner" || role === "admin" || role === "editor";
+}
+/** Administrative controls (Archive, Members) — owner / admin. */
+function canAdmin(role: ProjectRole | undefined): boolean {
+  return role === undefined || role === "owner" || role === "admin";
 }
 
 interface ProjectsClientProps {
@@ -118,14 +133,18 @@ export function ProjectsClient({
   const [restoringId, setRestoringId] = React.useState<string | null>(null);
   const [restoreError, setRestoreError] = React.useState<string | null>(null);
 
+  // S17-A — shared projects (accepted memberships) never count toward the
+  // caller's plan quota; only the ones they own do.
+  const ownedCount = projects.filter((p) => !p.isShared).length;
+
   // Founder 1-startup guard runs BEFORE the plan-tier limit so a founder on
   // a multi-project plan (grandfathered legacy) still sees the upgrade CTA.
   const founderGateDecision = canCreateAnotherStartup({
     account_type: accountType,
-    current_startup_count: projects.length,
+    current_startup_count: ownedCount,
   });
   const founderGateBlocked = !founderGateDecision.allowed;
-  const canCreate = !founderGateBlocked && projects.length < limit;
+  const canCreate = !founderGateBlocked && ownedCount < limit;
 
   // Auto-open create modal from URL param
   React.useEffect(() => {
@@ -270,7 +289,7 @@ export function ProjectsClient({
   async function handleRestore(projectId: string) {
     const target = archivedProjects.find((p) => p.id === projectId);
     if (!target) return;
-    if (projects.length >= limit) {
+    if (ownedCount >= limit) {
       setRestoreError(
         `Your ${plan} plan allows up to ${limit} active startup${limit === 1 ? "" : "s"}. Archive another startup or upgrade before restoring this one.`,
       );
@@ -313,7 +332,7 @@ export function ProjectsClient({
         <div>
           <h1 className="text-2xl font-bold text-ink-900">My Startups</h1>
           <p className="text-sm text-ink-500 mt-1">
-            {projects.length} of {limit} startup{limit !== 1 ? "s" : ""} used
+            {ownedCount} of {limit} startup{limit !== 1 ? "s" : ""} used
             <span className="mx-1.5 text-surface-300">|</span>
             <span className="capitalize">{plan}</span> plan
           </p>
@@ -351,10 +370,10 @@ export function ProjectsClient({
       {/* Legacy founder soft banner — appears only when a founder is at or
           above the 1-startup limit AND already has >1 project (i.e. they were
           grandfathered from before the 2026-07-24 policy change). */}
-      {founderGateBlocked && projects.length > 1 && (
+      {founderGateBlocked && ownedCount > 1 && (
         <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <strong>Heads up:</strong> Founder accounts now cap at one active
-          startup. You&rsquo;re grandfathered on your existing {projects.length}
+          startup. You&rsquo;re grandfathered on your existing {ownedCount}
           {" "}startups &mdash; none will be removed &mdash; but you can&rsquo;t
           add another without upgrading to an Accelerator plan.
         </div>
@@ -396,6 +415,18 @@ export function ProjectsClient({
           </span>
         </button>
       </div>
+
+      {/* S17-A: a viewer bounced off a write surface (e.g. /analyze) */}
+      {searchParams.get("readonly") === "1" && tab === "active" && (
+        <div
+          data-testid="readonly-redirect-note"
+          className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+        >
+          That project is shared with you as a <strong>viewer</strong>. You can
+          read everything, but running analyses, uploading evidence or editing
+          settings needs editor access — ask the project owner.
+        </div>
+      )}
 
       {/* Restore error banner */}
       {restoreError && tab === "archived" && (
@@ -502,12 +533,14 @@ export function ProjectsClient({
                 project.isDefault ? "border-brand-200 ring-1 ring-brand-100" : "border-surface-200",
               )}
             >
-              {/* Default badge */}
-              {project.isDefault && (
+              {/* Default badge / Shared chip */}
+              {project.isShared ? (
+                <SharedRoleChip role={project.role} className="absolute top-3 right-3" />
+              ) : project.isDefault ? (
                 <span className="absolute top-3 right-3 text-[10px] font-semibold uppercase tracking-wider text-brand-600 bg-brand-50 rounded-full px-2 py-0.5">
                   Default
                 </span>
-              )}
+              ) : null}
 
               {/* Content */}
               <div className="flex items-start gap-3 mb-3">
@@ -532,14 +565,23 @@ export function ProjectsClient({
                 <span>{formatDate(project.createdAt)}</span>
               </div>
 
-              {/* Primary action — always visible */}
-              <Link
-                href={`/workspace/projects/${project.slug}/analyze`}
-                className="mb-2 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 focus-visible:ring-offset-2"
-              >
-                <Sparkles strokeWidth={1.75} className="h-3.5 w-3.5" />
-                Run SVI Analysis
-              </Link>
+              {/* Primary action — editor+ can run; viewers get a read-only hint */}
+              {canWrite(project.role) ? (
+                <Link
+                  href={`/workspace/projects/${project.slug}/analyze`}
+                  className="mb-2 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 focus-visible:ring-offset-2"
+                >
+                  <Sparkles strokeWidth={1.75} className="h-3.5 w-3.5" />
+                  Run SVI Analysis
+                </Link>
+              ) : (
+                <p
+                  data-testid="viewer-readonly-note"
+                  className="mb-2 rounded-lg border border-dashed border-surface-300 bg-surface-50 px-3 py-2 text-center text-[11px] text-ink-500"
+                >
+                  View-only access — ask the owner for editor rights to run analyses or upload evidence.
+                </p>
+              )}
 
               {/* Tech Analysis quick-jump chip */}
               <Link
@@ -552,15 +594,26 @@ export function ProjectsClient({
 
               {/* Secondary actions — always visible on touch, hover-only on ≥sm */}
               <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 sm:transition-opacity">
-                <button
-                  type="button"
-                  onClick={() => startEdit(project)}
-                  className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink-600 hover:text-ink-800 hover:bg-surface-100 transition-colors cursor-pointer"
-                >
-                  <Pencil strokeWidth={1.75} className="h-3 w-3" />
-                  Edit
-                </button>
-                {!project.isDefault && (
+                {canWrite(project.role) && (
+                  <button
+                    type="button"
+                    onClick={() => startEdit(project)}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink-600 hover:text-ink-800 hover:bg-surface-100 transition-colors cursor-pointer"
+                  >
+                    <Pencil strokeWidth={1.75} className="h-3 w-3" />
+                    Edit
+                  </button>
+                )}
+                {canAdmin(project.role) && (
+                  <Link
+                    href={`/workspace/projects/${project.slug}/members`}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink-600 hover:text-ink-800 hover:bg-surface-100 transition-colors"
+                  >
+                    <Users strokeWidth={1.75} className="h-3 w-3" />
+                    Members
+                  </Link>
+                )}
+                {!project.isDefault && canAdmin(project.role) && (
                   <button
                     type="button"
                     onClick={() => handleArchive(project.id)}
@@ -583,7 +636,7 @@ export function ProjectsClient({
       )}
 
       {/* Plan limit info */}
-      {!canCreate && projects.length > 0 && tab === "active" && (
+      {!canCreate && ownedCount > 0 && tab === "active" && (
         <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-amber-800">

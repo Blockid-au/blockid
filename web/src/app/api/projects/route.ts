@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getUserProjects, createProject, getProjectLimit } from "@/lib/projects";
+import { listProjects, createProject, getProjectLimit } from "@/lib/projects";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 import { FOUNDER_ONE_STARTUP_ERROR } from "@/lib/plans/startup-limit";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/projects — list user's projects
+// GET /api/projects — list the projects the user can open: owned ∪ shared
+// (S17-A). Each row carries `role` ("owner" | "admin" | "editor" | "viewer")
+// and `isShared`. `used` counts OWNED projects only — shared ones never
+// consume the caller's plan quota.
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) {
@@ -16,14 +19,15 @@ export async function GET() {
     );
   }
 
-  const projects = await getUserProjects(user.id);
+  const projects = await listProjects(user.id);
   const limit = await getProjectLimit(user.plan ?? "free");
+  const used = projects.filter((p) => !p.isShared).length;
 
   return NextResponse.json({
     ok: true,
     projects,
     limit,
-    used: projects.length,
+    used,
   });
 }
 

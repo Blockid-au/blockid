@@ -28,6 +28,96 @@ export interface Project {
   updatedAt: string;
   growth_phase_current: string | null;
   githubUrl?: string | null;
+  /**
+   * S17-A — the caller's role on this project. `"owner"` for
+   * `projects.user_id === callerId`; otherwise the accepted
+   * `project_members.role`. Populated by the member-aware readers
+   * (`listProjects`, `getActiveProject`, `getProject`); absent on
+   * unscoped reads such as `getProjectById`.
+   */
+  role?: ProjectRole;
+  /** True when the caller is an accepted member rather than the owner. */
+  isShared?: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Project-level permissions (S17-A)
+//
+// Owner (projects.user_id) is authoritative and behaves as `admin`. Accepted
+// `project_members` rows layer viewer < editor < admin on top. `invited` and
+// `revoked` rows grant nothing.
+// ---------------------------------------------------------------------------
+
+export type ProjectMemberRole = "viewer" | "editor" | "admin";
+export type ProjectRole = ProjectMemberRole | "owner";
+
+const ROLE_RANK: Record<ProjectRole, number> = {
+  viewer: 1,
+  editor: 2,
+  admin: 3,
+  owner: 4,
+};
+
+/** True when `role` satisfies `minRole` (owner ≥ admin ≥ editor ≥ viewer). */
+export function roleAtLeast(role: ProjectRole, minRole: ProjectMemberRole): boolean {
+  return (ROLE_RANK[role] ?? 0) >= ROLE_RANK[minRole];
+}
+
+/** Role helpers for UI + routes: can the role mutate / administer? */
+export function roleCanWrite(role: ProjectRole | null | undefined): boolean {
+  return Boolean(role) && roleAtLeast(role as ProjectRole, "editor");
+}
+export function roleCanAdmin(role: ProjectRole | null | undefined): boolean {
+  return Boolean(role) && roleAtLeast(role as ProjectRole, "admin");
+}
+
+export class ProjectAccessError extends Error {
+  constructor(
+    msg: string,
+    public code: "not_found" | "forbidden" | "service_unavailable",
+  ) {
+    super(msg);
+    this.name = "ProjectAccessError";
+  }
+  /** HTTP status a route should answer with. */
+  get status(): number {
+    return this.code === "not_found" ? 404 : this.code === "forbidden" ? 403 : 503;
+  }
+}
+
+export interface ProjectAccess {
+  project: Project;
+  role: ProjectRole;
+  isOwner: boolean;
+  ownerUserId: string;
+}
+
+/**
+ * Request-scoped project context for API routes (cookie `blockid_project`
+ * → active project, member-aware). `dataEmail` is the OWNER's email — the
+ * key every svi_accounts / svi_analyses row is stored under — so a
+ * co-founder reads and writes the same startup record as the owner.
+ * Credits stay per-user: spend against `userId`, never the owner.
+ */
+export interface ProjectScope {
+  projectId: string;
+  project: Project;
+  role: ProjectRole;
+  isOwner: boolean;
+  userId: string;
+  email: string;
+  dataEmail: string;
+  ownerUserId: string;
+}
+
+/**
+ * Copy shown next to a credit cost when a shared-project member runs a paid
+ * report — makes explicit that the member's OWN wallet is charged.
+ */
+export function creditChargeNote(scope: Pick<ProjectScope, "isOwner"> | null | undefined): string {
+  return !scope || scope.isOwner
+    ? "Charged to your credits."
+    : "Charged to your own credits — not the project owner's.";
 }
 
 // ---------------------------------------------------------------------------
@@ -91,8 +181,9 @@ export async function getProjectLimit(plan: string | null | undefined): Promise<
 // ---------------------------------------------------------------------------
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-function mapProject(row: any): Project {
+function mapProject(row: any, role?: ProjectRole): Project {
   return {
+    ...(role ? { role, isShared: role !== "owner" } : {}),
     id: row.id,
     userId: row.user_id,
     name: row.name,
@@ -143,7 +234,186 @@ export async function getUserProjects(userId: string): Promise<Project[]> {
     return [];
   }
 
-  return (data ?? []).map(mapProject);
+  return (data ?? []).map((row) => mapProject(row, "owner"));
+}
+
+/**
+ * Accepted memberships for a user → `{ projectId → role }`.
+ * Returns an empty map on error or when the table is unreachable so callers
+ * degrade to owner-only behaviour rather than failing.
+ */
+async function getAcceptedMemberships(
+  userId: string,
+): Promise<Map<string, ProjectMemberRole>> {
+  const supabase = getSupabaseAdmin();
+  const out = new Map<string, ProjectMemberRole>();
+  if (!supabase) return out;
+
+  const { data, error } = await supabase
+    .from("project_members")
+    .select("project_id, role")
+    .eq("user_id", userId)
+    .eq("status", "accepted");
+
+  if (error) {
+    console.error("[blockid:projects] getAcceptedMemberships failed", error);
+    return out;
+  }
+  for (const row of data ?? []) {
+    const role = row.role as ProjectMemberRole;
+    if (role === "viewer" || role === "editor" || role === "admin") {
+      out.set(row.project_id as string, role);
+    }
+  }
+  return out;
+}
+
+/**
+ * S17-A — list every non-archived project the user can open: owned ∪
+ * accepted memberships. Owned projects come first (creation order), then
+ * shared ones. Each row carries `role` / `isShared`.
+ *
+ * Plan quotas still count owned projects only (`getUserProjects`).
+ */
+export async function listProjects(userId: string): Promise<Project[]> {
+  const owned = await getUserProjects(userId);
+  const memberships = await getAcceptedMemberships(userId);
+  if (memberships.size === 0) return owned;
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return owned;
+
+  const ownedIds = new Set(owned.map((p) => p.id));
+  const ids = [...memberships.keys()].filter((id) => !ownedIds.has(id));
+  if (ids.length === 0) return owned;
+
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .in("id", ids)
+    .is("archived_at", null)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("[blockid:projects] listProjects (shared) failed", error);
+    return owned;
+  }
+
+  const shared = (data ?? []).map((row) =>
+    mapProject(row, memberships.get(row.id as string) ?? "viewer"),
+  );
+  return [...owned, ...shared];
+}
+
+/**
+ * S17-A — resolve a project by id for a caller, member-aware. Returns the
+ * project with `role` when the caller owns it or holds an accepted
+ * membership; `null` otherwise (non-members cannot tell it exists).
+ */
+export async function getProject(
+  userId: string,
+  projectId: string,
+): Promise<Project | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("id", projectId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[blockid:projects] getProject failed", error);
+    return null;
+  }
+  if (!data) return null;
+  if (data.user_id === userId) return mapProject(data, "owner");
+
+  const { data: member } = await supabase
+    .from("project_members")
+    .select("role")
+    .eq("project_id", projectId)
+    .eq("user_id", userId)
+    .eq("status", "accepted")
+    .maybeSingle();
+
+  const role = member?.role as ProjectMemberRole | undefined;
+  if (role !== "viewer" && role !== "editor" && role !== "admin") return null;
+  return mapProject(data, role);
+}
+
+/**
+ * S17-A — single access chokepoint for project-scoped routes.
+ *
+ * Owner always passes (as `owner`, which ranks above `admin`). Accepted
+ * members pass when their role ≥ `minRole`. Throws `ProjectAccessError`:
+ *   - `not_found`  → project missing OR caller is not a member (404 — a
+ *                    non-member must not learn the project exists)
+ *   - `forbidden`  → member whose role is below `minRole` (403)
+ *   - `service_unavailable` → supabase not configured (503)
+ */
+export async function assertProjectAccess(
+  userId: string,
+  projectId: string,
+  minRole: ProjectMemberRole = "viewer",
+): Promise<ProjectAccess> {
+  if (!getSupabaseAdmin()) {
+    throw new ProjectAccessError("supabase not configured", "service_unavailable");
+  }
+  const project = await getProject(userId, projectId);
+  if (!project || !project.role) {
+    throw new ProjectAccessError("project not found", "not_found");
+  }
+  if (!roleAtLeast(project.role, minRole)) {
+    throw new ProjectAccessError(
+      `role '${project.role}' is below '${minRole}' on project ${projectId}`,
+      "forbidden",
+    );
+  }
+  return {
+    project,
+    role: project.role,
+    isOwner: project.role === "owner",
+    ownerUserId: project.userId,
+  };
+}
+
+/**
+ * Owner email for a project (the key SVI data is stored under). Returns
+ * `null` when the project or owner row is missing.
+ */
+async function getProjectOwnerEmail(projectId: string): Promise<string | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+  const { data: proj } = await supabase
+    .from("projects")
+    .select("user_id")
+    .eq("id", projectId)
+    .maybeSingle();
+  if (!proj?.user_id) return null;
+  const { data: owner } = await supabase
+    .from("app_users")
+    .select("email")
+    .eq("id", proj.user_id as string)
+    .maybeSingle();
+  const email = owner?.email as string | undefined;
+  return email ? email.toLowerCase() : null;
+}
+
+/**
+ * Resolve the email SVI data for `projectId` is keyed under. For the owner
+ * this is their own email. For an accepted member it is the owner's email,
+ * so the member sees and edits the same startup record.
+ */
+export async function resolveProjectDataEmail(
+  callerEmail: string,
+  projectId: string | null,
+): Promise<string> {
+  if (!projectId) return callerEmail;
+  const ownerEmail = await getProjectOwnerEmail(projectId);
+  if (!ownerEmail || ownerEmail === callerEmail.toLowerCase()) return callerEmail;
+  return ownerEmail;
 }
 
 /**
@@ -168,12 +438,26 @@ export async function getUserArchivedProjects(userId: string): Promise<Project[]
     return [];
   }
 
-  return (data ?? []).map(mapProject);
+  return (data ?? []).map((row) => mapProject(row, "owner"));
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Cookie value the switcher / invite-accept write for a project. Slugs are
+ * only unique per OWNER (`UNIQUE(user_id, slug)` — most projects are
+ * "default"), so a shared project is addressed by its id to avoid being
+ * shadowed by the member's own project of the same slug.
+ */
+export function projectCookieValue(project: Pick<Project, "id" | "slug" | "isShared">): string {
+  return project.isShared ? project.id : project.slug;
 }
 
 /**
  * Get the active project for a user.
- * If `slug` is provided, find by slug. Otherwise return the default project.
+ * If `slug` is provided, find by slug — or by id when it is a UUID (S17-A:
+ * that is how shared projects are addressed). Otherwise return the default
+ * project.
  */
 export async function getActiveProject(
   userId: string,
@@ -182,6 +466,8 @@ export async function getActiveProject(
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
 
+  const keyCol = slug && UUID_RE.test(slug) ? "id" : "slug";
+
   let query = supabase
     .from("projects")
     .select("*")
@@ -189,7 +475,7 @@ export async function getActiveProject(
     .is("archived_at", null);
 
   if (slug) {
-    query = query.eq("slug", slug);
+    query = query.eq(keyCol, slug);
   } else {
     query = query.eq("is_default", true);
   }
@@ -199,8 +485,32 @@ export async function getActiveProject(
     console.error("[blockid:projects] getActiveProject failed", error);
     return null;
   }
-  if (!data) return null;
-  return mapProject(data);
+  if (data) return mapProject(data, "owner");
+
+  // S17-A — not an owned project: fall through to accepted memberships.
+  // With a slug: the shared project whose slug matches. Without one (no
+  // owned default): the first shared project, so an invited co-founder
+  // who never created a startup still lands somewhere useful.
+  const memberships = await getAcceptedMemberships(userId);
+  if (memberships.size === 0) return null;
+
+  let shared = supabase
+    .from("projects")
+    .select("*")
+    .in("id", [...memberships.keys()])
+    .is("archived_at", null);
+  if (slug) shared = shared.eq(keyCol, slug);
+
+  const { data: sharedRow, error: sharedErr } = await shared
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (sharedErr) {
+    console.error("[blockid:projects] getActiveProject (shared) failed", sharedErr);
+    return null;
+  }
+  if (!sharedRow) return null;
+  return mapProject(sharedRow, memberships.get(sharedRow.id as string) ?? "viewer");
 }
 
 /**
@@ -228,14 +538,16 @@ export async function getCurrentProjectIsSandbox(): Promise<boolean> {
     const supabase = getSupabaseAdmin();
     if (!supabase) return false;
 
-    let query = supabase
+    // Member-aware (S17-A): resolve the active project the same way every
+    // route does, then read the sandbox marker off that row.
+    const project = await getActiveProject(user.id, slug);
+    if (!project) return false;
+
+    const { data } = await supabase
       .from("projects")
       .select("reseller_sandbox_id")
-      .eq("user_id", user.id)
-      .is("archived_at", null);
-    query = slug ? query.eq("slug", slug) : query.eq("is_default", true);
-
-    const { data } = await query.maybeSingle();
+      .eq("id", project.id)
+      .maybeSingle();
     return Boolean(data?.reseller_sandbox_id);
   } catch {
     return false;
@@ -260,6 +572,62 @@ export async function getProjectIdFromRequest(): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * S17-A — request-scoped project context (cookie `blockid_project`,
+ * member-aware). Routes that need the caller's ROLE (to gate writes) or the
+ * owner's email (to read the shared startup record) use this instead of
+ * `getProjectIdFromRequest()`.
+ *
+ * Returns `null` when unauthenticated or when no project resolves.
+ * Throws `ProjectAccessError("forbidden")` when `minRole` is given and the
+ * caller's role is below it — so a viewer hitting a write route gets 403
+ * while a non-member (no resolvable project) simply gets `null`.
+ */
+export async function getProjectScope(
+  minRole?: ProjectMemberRole,
+): Promise<ProjectScope | null> {
+  const { cookies } = await import("next/headers");
+  const { getCurrentUser } = await import("@/lib/auth");
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  let slug: string | undefined;
+  try {
+    const store = await cookies();
+    slug = store.get("blockid_project")?.value;
+  } catch {
+    slug = undefined;
+  }
+
+  const project = await getActiveProject(user.id, slug);
+  if (!project) return null;
+
+  const role: ProjectRole =
+    project.role ?? (project.userId === user.id ? "owner" : "viewer");
+  if (minRole && !roleAtLeast(role, minRole)) {
+    throw new ProjectAccessError(
+      `role '${role}' is below '${minRole}' on project ${project.id}`,
+      "forbidden",
+    );
+  }
+
+  const isOwner = role === "owner";
+  const dataEmail = isOwner
+    ? user.email
+    : await resolveProjectDataEmail(user.email, project.id);
+
+  return {
+    projectId: project.id,
+    project,
+    role,
+    isOwner,
+    userId: user.id,
+    email: user.email,
+    dataEmail,
+    ownerUserId: project.userId,
+  };
 }
 
 /**
@@ -293,6 +661,23 @@ export async function findOrCreateSVIAccount(
 
   const { data: existing } = await query.maybeSingle();
   if (existing) return existing.id as string;
+
+  // S17-A — shared project: the caller may be an accepted member whose
+  // email differs from the owner's. The startup record is keyed under the
+  // OWNER's email, so look that up before creating a split row.
+  if (projectId) {
+    const dataEmail = await resolveProjectDataEmail(email, projectId);
+    if (dataEmail !== email) {
+      const { data: ownerRow } = await supabase
+        .from("svi_accounts")
+        .select("id")
+        .eq("email", dataEmail)
+        .eq("project_id", projectId)
+        .maybeSingle();
+      if (ownerRow) return ownerRow.id as string;
+      email = dataEmail;
+    }
+  }
 
   // Get project name for the startup_name field
   let startupName: string | null = null;
@@ -401,6 +786,22 @@ export async function findSVIAccountWithFallback(
   // 2. Fallback: legacy account with project_id IS NULL
   if (!projectId) return null; // already tried null — nothing to fall back to
 
+  // S17-A — shared project: retry under the owner's email (the key the
+  // startup record lives under) before touching the legacy fallback.
+  const dataEmail = await resolveProjectDataEmail(email, projectId);
+  if (dataEmail !== email) {
+    const { data: ownerExact } = await supabase
+      .from("svi_accounts")
+      .select(selectColumns)
+      .eq("email", dataEmail)
+      .eq("project_id", projectId)
+      .order("last_active_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (ownerExact) return ownerExact as any;
+    email = dataEmail;
+  }
+
   const { data: legacy } = await supabase
     .from("svi_accounts")
     .select(selectColumns)
@@ -450,6 +851,21 @@ export async function findLatestAnalysisWithFallback(
 
   // Fallback to null project_id
   if (!projectId) return null;
+
+  // S17-A — shared project: retry under the owner's email first.
+  const dataEmail = await resolveProjectDataEmail(email, projectId);
+  if (dataEmail !== email) {
+    const { data: ownerExact } = await supabase
+      .from("svi_analyses")
+      .select(selectColumns)
+      .eq("email", dataEmail)
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (ownerExact) return ownerExact as any;
+    email = dataEmail;
+  }
 
   const { data: legacy } = await supabase
     .from("svi_analyses")

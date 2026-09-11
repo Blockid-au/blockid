@@ -15,12 +15,8 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
-import { getActiveProject, getCurrentProjectIsSandbox } from "@/lib/projects";
-import {
-  assertProjectOwner,
-  listMembers,
-  ProjectMemberScopeError,
-} from "@/lib/project-members/scope";
+import { getActiveProject, getCurrentProjectIsSandbox, roleCanAdmin } from "@/lib/projects";
+import { listMembers } from "@/lib/project-members/scope";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { ProjectMembersClient } from "./project-members-client";
 
@@ -46,18 +42,15 @@ export default async function ProjectMembersPage({ params }: PageProps) {
     );
   }
 
+  // Member-aware lookup (S17-A): resolves owned OR shared projects by slug.
   const project = await getActiveProject(user.id, slug);
   if (!project) notFound();
 
-  // Owner-only surface. assertProjectOwner throws not_owner for shared
-  // members — collapse to notFound() to avoid confirming project existence.
-  try {
-    await assertProjectOwner(project.id, user.id);
-  } catch (err) {
-    if (err instanceof ProjectMemberScopeError) {
-      notFound();
-    }
-    throw err;
+  // Admin surface — owner or an accepted admin member (the same rule the
+  // /members API enforces). Editors/viewers collapse to notFound() so the
+  // page never confirms what they cannot manage.
+  if (!roleCanAdmin(project.role ?? (project.userId === user.id ? "owner" : "viewer"))) {
+    notFound();
   }
 
   const members = await listMembers(project.id);
@@ -90,7 +83,13 @@ export default async function ProjectMembersPage({ params }: PageProps) {
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-600 sm:text-base">
             Invite a co-founder or advisor to collaborate on this project.
             Share the generated invite link — they&apos;ll accept it after
-            signing in. You remain the project owner.
+            signing in.{" "}
+            {project.isShared
+              ? "You manage this project as an admin; the owner keeps ownership."
+              : "You remain the project owner."}{" "}
+            Viewers can read everything; editors can also run analyses and
+            upload evidence; admins can invite and remove members. Paid
+            reports a member runs are charged to that member&apos;s own credits.
           </p>
         </header>
 

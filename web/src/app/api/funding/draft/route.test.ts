@@ -44,7 +44,22 @@ const growthMock = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/funding/growth-extras", () => ({ hasGrowthExtras: (u: unknown) => growthMock(u) }));
 
 const getProjectByIdMock = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/projects", () => ({ getProjectById: (id: string) => getProjectByIdMock(id) }));
+// S17-A: the route is member-aware (getProject + roleCanWrite). The mock
+// keeps `getProjectByIdMock` as the knob: a row whose userId is the caller
+// is the owner; a row with `role` set is a shared-project member; a row
+// owned by someone else with no role is a non-member (route → 403).
+vi.mock("@/lib/projects", () => ({
+  getProject: async (userId: string, id: string) => {
+    const row = await getProjectByIdMock(id);
+    if (!row) return null;
+    if (row.role) return row;
+    if (row.userId === userId) return { ...row, role: "owner" };
+    return null;
+  },
+  roleCanWrite: (role: string | null) => role === "owner" || role === "admin" || role === "editor",
+  creditChargeNote: (scope: { isOwner: boolean } | null) =>
+    !scope || scope.isOwner ? "Charged to your credits." : "Charged to your own credits — not the project owner's.",
+}));
 
 const { getGrantMock, getProgramMock } = vi.hoisted(() => ({ getGrantMock: vi.fn(), getProgramMock: vi.fn() }));
 vi.mock("@/lib/funding/data", () => ({ getGrant: (id: string) => getGrantMock(id), getProgram: (id: string) => getProgramMock(id) }));
@@ -151,7 +166,7 @@ describe("POST — Growth / Startup Package rail", () => {
     expect(draftMock).toHaveBeenCalledTimes(1);
     expect(draftMock.mock.calls[0]![1]).toEqual(GRANT.application_prompts);
     expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ user_id: "u-1", project_id: "11111111-1111-4111-8111-111111111111", grant_id: GRANT.id, credits_cost: 0, status: "draft", answers: { product: "A", budget: "B", team: "C" } }));
-    expect(gatherMock).toHaveBeenCalledWith({ id: "u-1", email: "f@acme.io" }, PROJECT, { kind: "grant", id: GRANT.id }, expect.anything());
+    expect(gatherMock).toHaveBeenCalledWith({ id: "u-1", email: "f@acme.io" }, expect.objectContaining(PROJECT), { kind: "grant", id: GRANT.id }, expect.anything());
     // Grant drafts keep grant_id and leave program_id null (0329 CHECK: exactly one).
     expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ program_id: null }));
     const target = draftMock.mock.calls[0]![0] as Record<string, unknown>;
@@ -171,6 +186,22 @@ describe("POST — Starter credits rail (transparent pricing)", () => {
     expect(draftMock).not.toHaveBeenCalled();
     expect(insertMock).not.toHaveBeenCalled();
     expect(spendCreditsMock).not.toHaveBeenCalled();
+  });
+
+  // S17-A — shared-project members on the credits rail.
+  it("viewer member → 403 before any pricing; editor member's preview says the MEMBER's own credits are charged", async () => {
+    const PID = "11111111-1111-4111-8111-111111111111";
+    getProjectByIdMock.mockResolvedValueOnce({ ...PROJECT, userId: "owner-9", role: "viewer" });
+    expect((await post({ grant_id: GRANT.id, project_id: PID })).status).toBe(403);
+    expect(canAffordMock).not.toHaveBeenCalled();
+
+    getProjectByIdMock.mockResolvedValueOnce({ ...PROJECT, userId: "owner-9", role: "editor" });
+    const res = await post({ grant_id: GRANT.id, project_id: PID });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.preview).toBe(true);
+    expect(body.creditNote).toMatch(/your own credits — not the project owner's/);
+    expect(canAffordMock).toHaveBeenCalledWith("u-1", "grant_application_draft");
   });
 
   it("confirm:true → generate, spend 2 credits, THEN insert (spend before insert, #3)", async () => {
@@ -288,7 +319,7 @@ describe("POST — program drafts (S16-A)", () => {
     });
     expect(draftMock.mock.calls[0]![1]).toEqual(PROGRAM.application_prompts);
     // Context gathering is keyed on the program so match notes come from program_matches.
-    expect(gatherMock).toHaveBeenCalledWith({ id: "u-1", email: "f@acme.io" }, PROJECT, { kind: "program", id: PROGRAM.id }, expect.anything());
+    expect(gatherMock).toHaveBeenCalledWith({ id: "u-1", email: "f@acme.io" }, expect.objectContaining(PROJECT), { kind: "program", id: PROGRAM.id }, expect.anything());
     expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ user_id: "u-1", project_id: PID, grant_id: null, program_id: PROGRAM.id, credits_cost: 0, status: "draft", answers: PROGRAM_ANSWERS }));
   });
 

@@ -3,7 +3,8 @@ import { createHash } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { uploadAndShareWithAdmin } from "@/lib/google-drive";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
+import { getProjectScope, findOrCreateSVIAccount } from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
 import { getScannerVersion, scanBuffer } from "@/lib/security/clamav";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -99,7 +100,20 @@ export async function POST(req: NextRequest) {
     const filenameStored = `evidence-${sha256.slice(0, 16)}`;
 
     const supabase = getSupabaseAdmin();
-    const projectId = await getProjectIdFromRequest();
+
+    // S17-A — uploads mutate the project: editor+ (owner always passes).
+    // A viewer on a shared project is refused before the scan/Drive work.
+    // The svi_evidence row is keyed under the OWNER's email (dataEmail).
+    let scope;
+    try {
+      scope = await getProjectScope("editor");
+    } catch (err) {
+      const denied = projectAccessResponse(err);
+      if (denied) return denied;
+      throw err;
+    }
+    const projectId = scope?.projectId ?? null;
+    const dataEmail = scope?.dataEmail ?? user.email;
 
     // Dedupe fast-path: skip scan + Drive if we already hold an active
     // row for these bytes in this business. Uses the partial UNIQUE index
@@ -209,7 +223,7 @@ export async function POST(req: NextRequest) {
       // We keep writing here so the 78 existing svi_evidence rows and the
       // dashboards reading from them keep functioning. Sunset happens in
       // a follow-up commit once every downstream reader is repointed.
-      const accountId = await findOrCreateSVIAccount(user.email, projectId);
+      const accountId = await findOrCreateSVIAccount(dataEmail, projectId);
 
       if (accountId) {
         const { data: ev } = await supabase

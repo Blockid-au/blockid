@@ -42,8 +42,17 @@ export function AcceptInviteClient({ token, expectedEmail, currentEmail }: Props
         return;
       }
       setDone(true);
-      // Give the user a beat to see the success then send them to the workspace.
-      setTimeout(() => router.push("/workspace/projects"), 1200);
+      // S17-A: the API already pinned the shared project as the active
+      // workspace (blockid_project cookie) and tells us where to land.
+      // Full navigation so server layouts re-read the cookie.
+      const target =
+        typeof body.redirect === "string" && body.redirect.startsWith("/")
+          ? body.redirect
+          : "/workspace/projects";
+      setTimeout(() => {
+        if (typeof window !== "undefined") window.location.assign(target);
+        else router.push(target);
+      }, 1200);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to accept invite");
     } finally {
@@ -54,7 +63,7 @@ export function AcceptInviteClient({ token, expectedEmail, currentEmail }: Props
   if (done) {
     return (
       <p className="mt-6 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800">
-        Invite accepted — taking you to your workspace…
+        Invite accepted — opening the shared project…
       </p>
     );
   }
