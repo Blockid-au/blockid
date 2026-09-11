@@ -4,6 +4,11 @@
  * how-to-apply and the official link are free; "Check my eligibility for
  * A$3" is the only paid door (/funding, T0242).
  *
+ * S9-B: at a glance, who it is for, what you get, how to apply (evidence +
+ * the first three official application prompts), timing, FAQ and related
+ * funding are built by `lib/funding/enrich.ts` from the row's structured
+ * fields only. `FAQPage` JSON-LD is emitted only when ≥ 2 Q&As render.
+ *
  * Static params come from the table at build time; unknown ids render on
  * demand (dynamicParams default) and 404 when the row is missing.
  */
@@ -18,19 +23,19 @@ import { FundingJsonLd } from "@/components/funding/funding-json-ld";
 import { StatusChip } from "@/components/funding/status-chip";
 import { FundingDisclaimer } from "@/components/funding/funding-disclaimer";
 import { FundingGuides } from "@/components/funding/funding-guides";
-import { getGrant, listGrants } from "@/lib/funding/data";
+import { AtAGlance, Faq, HowToApply, Prose, Related, Timing } from "@/components/funding/enrichment-sections";
+import { getGrant, listGrants, listPrograms } from "@/lib/funding/data";
 import {
   buildGrantJsonLd,
   eligibilityRequirements,
   formatAudRange,
-  formatLooseDate,
   fundingTypeLabel,
   humanize,
   levelLabel,
-  stageLabel,
   stateLabel,
 } from "@/lib/funding/directory";
-import { FUNDING_CRUMBS, grantDescription, grantPath, grantTitle, grantsStatePath, guidesForGrant } from "@/lib/funding/seo";
+import { enrichGrant } from "@/lib/funding/enrich";
+import { FUNDING_CRUMBS, grantDescription, grantPath, grantTitle, guidesForGrant } from "@/lib/funding/seo";
 import { pageMetadata } from "@/lib/seo/page-meta";
 
 export const revalidate = 3600;
@@ -53,28 +58,24 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   return pageMetadata({ title: { absolute: grantTitle(g) }, description: grantDescription(g), path: grantPath(g.id) });
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <dt className="text-xs font-semibold uppercase tracking-wide text-secondary">{label}</dt>
-      <dd className="text-sm text-primary">{children}</dd>
-    </div>
-  );
-}
-
 export default async function GrantDetailPage({ params }: { params: Promise<Params> }) {
   const { id } = await params;
   const g = await getGrant(id);
   if (!g || g.exclude_from_matching) notFound();
 
+  const [grants, programs] = await Promise.all([listGrants(), listPrograms()]);
+  const e = enrichGrant(g, { grants, programs });
+
   const eligibleHref = `/funding?grant=${encodeURIComponent(g.id)}`;
   const requirements = eligibilityRequirements(g.eligibility);
   const range = formatAudRange(g.amount_min_aud, g.amount_max_aud, g.amount_note);
+  const jsonLd = [buildGrantJsonLd(g)];
+  if (e.faqJsonLd) jsonLd.push(e.faqJsonLd);
 
   return (
     <MarketingShell>
       <BreadcrumbListJsonLd items={FUNDING_CRUMBS.grant(g)} />
-      <FundingJsonLd data={buildGrantJsonLd(g)} />
+      <FundingJsonLd data={jsonLd} />
 
       <article className="mx-auto max-w-5xl px-6 pt-12 pb-12 sm:pt-16" data-grant-id={g.id}>
         <Link href="/funding/grants" className="inline-flex items-center gap-1 text-sm font-semibold text-action hover:text-action-hover">
@@ -119,12 +120,12 @@ export default async function GrantDetailPage({ params }: { params: Promise<Para
 
         <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-10">
-            <section aria-labelledby="eligibility-heading">
-              <h2 id="eligibility-heading" className="font-display text-xl font-semibold text-primary">
-                Eligibility requirements
-              </h2>
+            <AtAGlance facts={e.atAGlance} />
+
+            <Prose id="who" heading="Who it is for" sentences={e.whoItIsFor}>
+              <h3 className="mt-5 text-sm font-semibold text-primary">Eligibility requirements</h3>
               {requirements.length ? (
-                <ul className="mt-4 divide-y divide-line-subtle rounded-2xl border border-line-subtle bg-surface-raised" data-eligibility>
+                <ul className="mt-2 divide-y divide-line-subtle rounded-2xl border border-line-subtle bg-surface-raised" data-eligibility>
                   {requirements.map((r) => (
                     <li key={r.key} data-gate={r.key} className="flex items-start gap-3 px-4 py-3 text-sm">
                       <CheckCircle2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-action" />
@@ -134,7 +135,7 @@ export default async function GrantDetailPage({ params }: { params: Promise<Para
                   ))}
                 </ul>
               ) : (
-                <p className="mt-4 text-sm text-secondary">
+                <p className="mt-2 text-sm text-secondary">
                   No structured gates recorded yet — read the official guidelines before applying.
                 </p>
               )}
@@ -146,69 +147,47 @@ export default async function GrantDetailPage({ params }: { params: Promise<Para
               {g.industry_tags.length ? (
                 <p className="mt-1 text-sm text-secondary">Industries: {g.industry_tags.map(humanize).join(", ")}.</p>
               ) : null}
-            </section>
+            </Prose>
 
-            {g.evidence_needed.length ? (
-              <section aria-labelledby="evidence-heading">
-                <h2 id="evidence-heading" className="font-display text-xl font-semibold text-primary">
-                  Evidence you will need
-                </h2>
-                <ul className="mt-4 list-disc space-y-1.5 pl-5 text-sm text-primary" data-evidence>
-                  {g.evidence_needed.map((e) => (
-                    <li key={e}>{e}</li>
-                  ))}
-                </ul>
-              </section>
-            ) : null}
+            <Prose id="get" heading="What you get" sentences={e.whatYouGet} />
 
-            {g.how_to_apply ? (
-              <section aria-labelledby="apply-heading">
-                <h2 id="apply-heading" className="font-display text-xl font-semibold text-primary">
-                  How to apply
-                </h2>
-                <p className="mt-4 text-sm leading-relaxed text-primary">{g.how_to_apply}</p>
-              </section>
-            ) : null}
+            <HowToApply data={e.howToApply} officialLabel="Apply on the official portal" />
+
+            <Timing data={e.timing} />
+
+            <Faq items={e.faq} />
+
+            <Related data={e.related} programsHeading="Programs that fit this stage" grantsHeading="Grants you may also qualify for" />
           </div>
 
           <aside className="h-fit rounded-2xl border border-line-subtle bg-surface-sunken p-5">
             <dl className="space-y-4">
-              <Field label="Amount">{range}</Field>
-              {g.amount_note && (g.amount_min_aud || g.amount_max_aud) ? <Field label="Amount note">{g.amount_note}</Field> : null}
-              {g.co_contribution ? <Field label="Co-contribution">{g.co_contribution}</Field> : null}
-              {g.application_window ? <Field label="Application window">{humanize(g.application_window)}</Field> : null}
-              {g.opens_at ? <Field label="Opens">{formatLooseDate(g.opens_at)}</Field> : null}
-              {g.closes_at ? <Field label="Closes">{formatLooseDate(g.closes_at)}</Field> : null}
-              {g.lodgement_deadline ? <Field label="Lodgement deadline">{g.lodgement_deadline}</Field> : null}
-              {g.next_round_note ? <Field label="Next round">{g.next_round_note}</Field> : null}
-              {g.stage_tags.length ? (
-                <Field label="Stages">{g.stage_tags.map(stageLabel).join(", ")}</Field>
-              ) : null}
               {g.superseded_by ? (
-                <Field label="Superseded by">
-                  <Link href={`/funding/grants/${encodeURIComponent(g.superseded_by)}`} className="text-action underline-offset-2 hover:underline">
-                    {g.superseded_by}
-                  </Link>
-                </Field>
+                <div className="flex flex-col gap-0.5">
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-secondary">Superseded by</dt>
+                  <dd className="text-sm text-primary">
+                    <Link href={`/funding/grants/${encodeURIComponent(g.superseded_by)}`} className="text-action underline-offset-2 hover:underline">
+                      {g.superseded_by}
+                    </Link>
+                  </dd>
+                </div>
               ) : null}
-              <Field label="Last verified">
-                {g.last_verified_at ? formatLooseDate(g.last_verified_at) : "not yet recorded"}
-                {" · "}
-                <span className="text-secondary">{g.status_confidence} confidence</span>
-              </Field>
               {g.source_url ? (
-                <Field label="Source">
-                  <a href={g.source_url} rel="nofollow noopener noreferrer" target="_blank" className="break-all text-action underline-offset-2 hover:underline">
-                    {g.source_url}
-                  </a>
-                </Field>
+                <div className="flex flex-col gap-0.5">
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-secondary">Source</dt>
+                  <dd className="text-sm text-primary">
+                    <a href={g.source_url} rel="nofollow noopener noreferrer" target="_blank" className="break-all text-action underline-offset-2 hover:underline">
+                      {g.source_url}
+                    </a>
+                  </dd>
+                </div>
               ) : null}
             </dl>
-            <nav className="mt-6 space-y-1.5 border-t border-line-subtle pt-4 text-sm" aria-label="Related">
+            <nav className={`space-y-1.5 text-sm ${g.superseded_by || g.source_url ? "mt-6 border-t border-line-subtle pt-4" : ""}`} aria-label="Related">
               <p className="text-xs font-semibold uppercase tracking-wide text-secondary">More funding</p>
               <p>
-                <Link href={grantsStatePath(g.state)} className="text-action underline-offset-2 hover:underline">
-                  {g.state === "national" ? "All federal grants" : `All ${stateLabel(g.state)} grants`}
+                <Link href={e.related.stateGrants.href} className="text-action underline-offset-2 hover:underline">
+                  {e.related.stateGrants.label}
                 </Link>
               </p>
               <p>
