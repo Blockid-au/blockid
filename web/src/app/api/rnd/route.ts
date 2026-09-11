@@ -6,7 +6,7 @@ import { newSlug } from "@/lib/slug";
 import { detectInputType, scrapeUrl, deepTechAudit, type TechAuditResult } from "@/lib/rnd-input";
 import { generateRndReport, type ReportTier, type CompetitiveResearchData } from "@/lib/rnd-analysis";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { sendSVIReport, sendWelcomeWithReport } from "@/lib/email";
 import { autoCreateUserWithTempPassword } from "@/lib/auth";
 import { createReportGoogleDoc } from "@/lib/google-drive";
@@ -129,6 +129,22 @@ export async function POST(request: Request) {
     }
   }
 
+  // ── Project scope (S18-A, member-aware) ─────────────────────────────
+  // The report writes svi_analyses + updates the project's svi_accounts
+  // row → editor+ on a shared project (viewer → 403 before the stream or
+  // any AI spend). `dataEmail` keys the startup record (the OWNER's email
+  // for a member); `email` (caller) keeps the report mail + usage counter.
+  let projectId: string | null = null;
+  let dataEmail = email;
+  if (authenticatedUserId) {
+    const { scope, denied } = await projectScopeOrDeny("editor");
+    if (denied) return denied;
+    if (scope) {
+      projectId = scope.projectId;
+      dataEmail = scope.dataEmail.toLowerCase().trim();
+    }
+  }
+
   // ── Cache check (standard + preview only) ──────────────────────────────
   // If an identical analysis exists for this email within 30 days, return it
   // immediately without charging credits or running the AI pipeline.
@@ -139,7 +155,7 @@ export async function POST(request: Request) {
     const { data: cached } = await cacheSupabase
       .from("svi_analyses")
       .select("id, total_svi, analysis_json, rnd_report_json, created_at")
-      .eq("email", email)
+      .eq("email", dataEmail)
       .eq("raw_input", rawText)              // full match first
       .gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
       .order("created_at", { ascending: false })
@@ -150,7 +166,7 @@ export async function POST(request: Request) {
     const hit = cached ?? (inputPrefix.length >= 20 ? (await cacheSupabase
       .from("svi_analyses")
       .select("id, total_svi, analysis_json, rnd_report_json, created_at")
-      .eq("email", email)
+      .eq("email", dataEmail)
       .like("raw_input", `${inputPrefix.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`)
       .gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
       .order("created_at", { ascending: false })
@@ -324,13 +340,11 @@ export async function POST(request: Request) {
         const analysisWithAudit = techAudit
           ? { ...analysis, techAudit }
           : analysis;
-        // Get project_id for data isolation (each startup gets its own analysis)
-        let projectId: string | null = null;
-        try { projectId = await getProjectIdFromRequest(); } catch { /* guest user */ }
-
+        // `projectId` / `dataEmail` come from the member-aware scope gate
+        // above (each startup gets its own analysis row).
         const { error } = await supabase.from("svi_analyses").insert({
           id: slug,
-          email,
+          email: dataEmail,
           raw_input: rawText,
           file_name: fileName ?? null,
           total_svi: analysis.totalSVI,
@@ -353,12 +367,11 @@ export async function POST(request: Request) {
       }
 
       // Step 5b: Ensure per-project svi_account exists and update score
-      let rndProjectId: string | null = null;
-      try { rndProjectId = await getProjectIdFromRequest(); } catch { /* guest */ }
+      const rndProjectId = projectId;
       if (authenticatedUserId && supabase) {
         try {
           const { findOrCreateSVIAccount } = await import("@/lib/projects");
-          const accountId = await findOrCreateSVIAccount(email, rndProjectId);
+          const accountId = await findOrCreateSVIAccount(dataEmail, rndProjectId);
           if (accountId) {
             await supabase.from("svi_accounts").update({
               current_svi: analysis.totalSVI,
@@ -371,7 +384,7 @@ export async function POST(request: Request) {
 
       // Step 5c: Generate Google Doc (fire-and-forget, authenticated users only)
       if (authenticatedUserId && supabase) {
-        void createReportGoogleDoc(email, slug, report, analysis)
+        void createReportGoogleDoc(dataEmail, slug, report, analysis)
           .then(async (docResult) => {
             if (docResult && supabase) {
               // Persist the doc URL in analysis_json alongside existing data

@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -39,13 +39,23 @@ export async function GET(request: Request) {
     // Cookie/session check failed — treat as unauthenticated
   }
 
-  // Scope by active project if authenticated
-  const projectId = isAuthenticated ? await getProjectIdFromRequest() : null;
+  // Scope by active project if authenticated. S18-A — member-aware read
+  // (viewer+): on a shared project the latest analysis is stored under the
+  // OWNER's email, so that is the key used once the caller has proven the
+  // `email` param is their own.
+  let projectId: string | null = null;
+  let lookupEmail = emailParam;
+  if (isAuthenticated) {
+    const { scope, denied } = await projectScopeOrDeny("viewer");
+    if (denied) return denied;
+    projectId = scope?.projectId ?? null;
+    lookupEmail = scope?.dataEmail.toLowerCase().trim() ?? emailParam;
+  }
 
   const query = supabase
     .from("svi_analyses")
     .select("id, email, total_svi, input_type, created_at, rnd_report_json, analysis_json")
-    .eq("email", emailParam);
+    .eq("email", lookupEmail);
   if (projectId) query.eq("project_id", projectId);
   else if (isAuthenticated) query.is("project_id", null);
 

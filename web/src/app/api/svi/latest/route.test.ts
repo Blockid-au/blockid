@@ -40,8 +40,33 @@ vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => mocks.getSupabaseAdmin(),
   isSupabaseConfigured: () => mocks.isSupabaseConfigured(),
 }));
+// S18-A — the route now resolves the member-aware scope; the spy keeps its
+// old name so the "project helpers are never invoked for anon" pins hold.
+// `scopeRole` = "owner" (data under the caller) or a member role (data
+// under the OWNER's email, owner@x.test).
+const scopeRole = vi.hoisted(() => ({ value: "owner" as "owner" | "editor" | "viewer" }));
 vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => mocks.getProjectIdFromRequest(),
+  getProjectScope: async (minRole?: string) => {
+    const projectId = await mocks.getProjectIdFromRequest();
+    if (!projectId) return null;
+    const rank = { viewer: 1, editor: 2, admin: 3, owner: 4 } as const;
+    if (minRole && rank[scopeRole.value] < rank[minRole as keyof typeof rank]) {
+      const err = new Error("forbidden") as Error & { code: string };
+      err.name = "ProjectAccessError";
+      err.code = "forbidden";
+      throw err;
+    }
+    const isOwner = scopeRole.value === "owner";
+    return {
+      projectId,
+      role: scopeRole.value,
+      isOwner,
+      dataEmail: isOwner ? "founder@example.com" : "owner@x.test",
+      userId: "u-1",
+      email: "founder@example.com",
+      ownerUserId: isOwner ? "u-1" : "owner-1",
+    };
+  },
 }));
 
 import { GET } from "./route";
@@ -375,5 +400,31 @@ describe("GET /api/svi/latest", () => {
     const body = await res.json();
     expect(body.analysis).toEqual({ totalSvi: 74, tier: "enhanced" });
     expect(mocks.getProjectIdFromRequest).not.toHaveBeenCalled();
+  });
+
+  // S18-A — member-aware: a viewer on a shared project reads the OWNER's
+  // analysis for that project (viewer is enough for a read).
+  it("member (viewer): looks up the OWNER's email on the shared project", async () => {
+    scopeRole.value = "viewer";
+    try {
+      const { sb, analysis } = makeSb({
+        analysis: FULL_ROW,
+        session: { user_id: "u-1" },
+        user: { email: "founder@example.com" },
+      });
+      mocks.getSupabaseAdmin.mockReturnValue(sb);
+      mocks.cookies.mockResolvedValue(makeCookieStore("tok"));
+      mocks.getProjectIdFromRequest.mockResolvedValue("proj-42");
+
+      const res = await GET(req("founder@example.com"));
+      expect(res.status).toBe(200);
+
+      const emailEq = analysis.calls.find((c) => c.op === "eq" && c.args[0] === "email");
+      expect(emailEq!.args[1]).toBe("owner@x.test");
+      const projectEq = analysis.calls.find((c) => c.op === "eq" && c.args[0] === "project_id");
+      expect(projectEq!.args[1]).toBe("proj-42");
+    } finally {
+      scopeRole.value = "owner";
+    }
   });
 });

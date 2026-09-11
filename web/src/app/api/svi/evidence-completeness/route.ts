@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import {
   calculateDimensionCompleteness,
   generateFixRoadmap,
@@ -11,22 +11,28 @@ import {
 
 export const dynamic = "force-dynamic";
 
-async function resolveProjectId(userId: string): Promise<string | null> {
-  try {
-    return await getProjectIdFromRequest();
-  } catch {
-    // Fall back to svi_accounts lookup
-    const supabase = getSupabaseAdmin();
-    if (!supabase) return null;
-    const { data } = await supabase
-      .from("svi_accounts")
-      .select("project_id")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    return (data?.project_id as string | null) ?? null;
-  }
+// S18-A — member-aware: rows are keyed on project_id only, so the role
+// gate is the whole story here (GET viewer+, POST/DELETE editor+). With no
+// resolvable project the legacy svi_accounts lookup stays OWNER-only
+// (keyed on the caller's own user_id).
+async function resolveProjectId(
+  userId: string,
+  minRole: "viewer" | "editor",
+): Promise<{ projectId: string | null; denied: NextResponse | null }> {
+  const { scope, denied } = await projectScopeOrDeny(minRole);
+  if (denied) return { projectId: null, denied };
+  if (scope) return { projectId: scope.projectId, denied: null };
+  // Fall back to svi_accounts lookup
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { projectId: null, denied: null };
+  const { data } = await supabase
+    .from("svi_accounts")
+    .select("project_id")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return { projectId: (data?.project_id as string | null) ?? null, denied: null };
 }
 
 export async function GET() {
@@ -36,7 +42,8 @@ export async function GET() {
   const supabase = getSupabaseAdmin();
   if (!supabase) return NextResponse.json({ ok: true, dimensions: [], roadmap: [], forecast: null, currentSvi: 0 });
 
-  const projectId = await resolveProjectId(user.id);
+  const { projectId, denied } = await resolveProjectId(user.id, "viewer");
+  if (denied) return denied;
 
   let currentSvi = 0;
   if (projectId) {
@@ -84,7 +91,8 @@ export async function POST(request: NextRequest) {
   const supabase = getSupabaseAdmin();
   if (!supabase) return NextResponse.json({ ok: false, error: "Database not configured" }, { status: 503 });
 
-  const projectId = await resolveProjectId(user.id);
+  const { projectId, denied } = await resolveProjectId(user.id, "editor");
+  if (denied) return denied;
   if (!projectId) return NextResponse.json({ ok: false, error: "No project found" }, { status: 400 });
 
   let body: unknown;
@@ -142,7 +150,8 @@ export async function DELETE(request: NextRequest) {
   const supabase = getSupabaseAdmin();
   if (!supabase) return NextResponse.json({ ok: false, error: "Database not configured" }, { status: 503 });
 
-  const projectId = await resolveProjectId(user.id);
+  const { projectId, denied } = await resolveProjectId(user.id, "editor");
+  if (denied) return denied;
   if (!projectId) return NextResponse.json({ ok: false, error: "No project found" }, { status: 400 });
 
   const { searchParams } = new URL(request.url);

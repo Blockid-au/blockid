@@ -12,7 +12,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest, findSVIAccountWithFallback, findLatestAnalysisWithFallback } from "@/lib/projects";
+import { findSVIAccountWithFallback, findLatestAnalysisWithFallback, creditChargeNote } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { getSection, REPORT_SECTIONS } from "@/lib/report-sections";
 
 export const dynamic = "force-dynamic";
@@ -142,10 +143,19 @@ export async function POST(request: Request) {
     );
   }
 
-  const projectId = await getProjectIdFromRequest();
+  // S18-A — member-aware: the section is persisted against the project's
+  // analysis (report_sections upsert) → editor+; a viewer gets 403 before
+  // any AI spend. Data resolves under the OWNER's email; the caller's own
+  // wallet pays (creditNote).
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const dataEmail = scope?.dataEmail ?? user.email;
 
   // SVI account — with fallback for legacy records (project_id NULL)
-  const account = await findSVIAccountWithFallback(user.email, projectId);
+  const account = await findSVIAccountWithFallback(dataEmail, projectId, undefined, {
+    callerEmail: user.email,
+  });
 
   if (!account) {
     return NextResponse.json(
@@ -159,9 +169,10 @@ export async function POST(request: Request) {
 
   // Latest analysis — with fallback for legacy records
   const latestAnalysis = await findLatestAnalysisWithFallback(
-    user.email,
+    dataEmail,
     projectId,
     "id, raw_input, total_svi, analysis_json",
+    { callerEmail: user.email },
   );
 
   // Evidence items
@@ -325,6 +336,7 @@ Formatting for visual impact:
       wordCount,
       creditsCost,
       balance,
+      creditNote: creditChargeNote(scope),
       generatedAt: new Date().toISOString(),
     });
   } catch (err) {

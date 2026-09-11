@@ -8,7 +8,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
-import { getProjectIdFromRequest, findLatestAnalysisWithFallback } from "@/lib/projects";
+import { findLatestAnalysisWithFallback } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { REPORT_SECTIONS } from "@/lib/report-sections";
 
 export const dynamic = "force-dynamic";
@@ -33,20 +34,29 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   let analysisId = url.searchParams.get("analysisId");
 
+  // S18-A — member-aware read (viewer+): the latest analysis resolves
+  // under the OWNER's email; an explicit analysisId must be the caller's
+  // own OR belong to the shared project (owner email + same project_id).
+  const { scope, denied } = await projectScopeOrDeny("viewer");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const dataEmail = scope?.dataEmail ?? user.email;
+
   // ── 2. Resolve analysis ID ───────────────────────────────────────────
   if (!analysisId) {
     // Find the latest analysis — with fallback for legacy records (project_id NULL)
-    const projectId = await getProjectIdFromRequest();
-    const latest = await findLatestAnalysisWithFallback(user.email, projectId, "id");
+    const latest = await findLatestAnalysisWithFallback(dataEmail, projectId, "id", {
+      callerEmail: user.email,
+    });
     if (!latest) {
       return NextResponse.json({ ok: true, analysisId: null, sections: [] });
     }
     analysisId = latest.id as string;
   } else {
-    // Verify the analysis belongs to the requesting user
+    // Verify the analysis belongs to the requesting user (or their project)
     const { data: analysis } = await supabase
       .from("svi_analyses")
-      .select("id, email")
+      .select("id, email, project_id")
       .eq("id", analysisId)
       .maybeSingle();
 
@@ -56,7 +66,14 @@ export async function GET(request: Request) {
         { status: 404 },
       );
     }
-    if (analysis.email?.toLowerCase() !== user.email?.toLowerCase()) {
+    const analysisEmail = (analysis.email as string | null)?.toLowerCase();
+    const ownsAnalysis = analysisEmail === user.email?.toLowerCase();
+    const sharedAnalysis =
+      Boolean(scope) &&
+      !scope!.isOwner &&
+      analysisEmail === dataEmail.toLowerCase() &&
+      analysis.project_id === projectId;
+    if (!ownsAnalysis && !sharedAnalysis) {
       return NextResponse.json(
         { ok: false, error: "Access denied" },
         { status: 403 },

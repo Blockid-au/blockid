@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -39,14 +39,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get active project ID — each startup gets its own svi_account
-    const projectId = await getProjectIdFromRequest();
+    // Get active project ID — each startup gets its own svi_account.
+    // S18-A — member-aware (editor+): on a shared project the row is the
+    // OWNER's (scope.dataEmail); `plan` is billing state and stays
+    // owner-only (ignored for members).
+    const { scope, denied } = await projectScopeOrDeny("editor");
+    if (denied) return denied;
+    const projectId = scope?.projectId ?? null;
+    const dataEmail = scope?.dataEmail ?? email;
+    const planUpdate = !scope || scope.isOwner ? plan : undefined;
 
     // Check if account already exists for this (email, project_id) pair
     const query = supabase
       .from("svi_accounts")
       .select("id")
-      .eq("email", email);
+      .eq("email", dataEmail);
 
     if (projectId) {
       query.eq("project_id", projectId);
@@ -66,7 +73,7 @@ export async function POST(request: Request) {
         .update({
           name: name ?? undefined,
           startup_name: startup_name ?? undefined,
-          plan: plan ?? undefined,
+          plan: planUpdate ?? undefined,
           last_active_at: new Date().toISOString(),
         })
         .eq("id", existing.id)
@@ -79,10 +86,10 @@ export async function POST(request: Request) {
       const result = await supabase
         .from("svi_accounts")
         .insert({
-          email,
+          email: dataEmail,
           name: name ?? null,
           startup_name: startup_name ?? null,
-          plan: plan ?? "free",
+          plan: planUpdate ?? "free",
           project_id: projectId,
           last_active_at: new Date().toISOString(),
         })

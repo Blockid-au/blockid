@@ -18,7 +18,8 @@ import { generateSVIDocx } from "@/lib/docx/svi-report-docx";
 // stored report identically. Lifted verbatim out of this file.
 import { reconstructAssembledReport } from "@/lib/paywall/report-delivery";
 import type { AssembledReport, ReportSection } from "@/lib/report-pipeline/types";
-import { getProjectIdFromRequest, findSVIAccountWithFallback, findLatestAnalysisWithFallback } from "@/lib/projects";
+import { findSVIAccountWithFallback, findLatestAnalysisWithFallback } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -112,13 +113,21 @@ export async function POST(request: Request) {
     // Reconstruct AssembledReport from stored data
     report = reconstructAssembledReport(reportRow);
   } else {
-    // Load from latest analysis + existing report sections
-    const projectId = await getProjectIdFromRequest();
+    // Load from latest analysis + existing report sections.
+    // S18-A — member-aware: an export is a READ of the shared startup
+    // record (viewer+); the account/analysis are resolved under the
+    // OWNER's email and the export is charged to the caller's credits.
+    const { scope, denied } = await projectScopeOrDeny("viewer");
+    if (denied) return denied;
+    const projectId = scope?.projectId ?? null;
+    const dataEmail = scope?.dataEmail ?? user.email;
+    const reportOwnerIds = scope ? [user.id, scope.ownerUserId] : [user.id];
 
     const account = await findSVIAccountWithFallback(
-      user.email,
+      dataEmail,
       projectId,
       "id, email, startup_name, current_svi, current_stage",
+      { callerEmail: user.email },
     );
     if (!account) {
       return NextResponse.json(
@@ -134,7 +143,7 @@ export async function POST(request: Request) {
       .from("assembled_reports")
       .select("*")
       .eq("account_id", account.id as string)
-      .eq("user_id", user.id)
+      .in("user_id", reportOwnerIds)
       .eq("status", "complete")
       .order("created_at", { ascending: false })
       .limit(1)
@@ -145,9 +154,10 @@ export async function POST(request: Request) {
     } else {
       // Fallback: build a minimal report from the latest full_report content
       const latestAnalysis = await findLatestAnalysisWithFallback(
-        user.email,
+        dataEmail,
         projectId,
         "id, raw_input, total_svi, analysis_json",
+        { callerEmail: user.email },
       );
 
       if (!latestAnalysis) {
@@ -162,7 +172,7 @@ export async function POST(request: Request) {
         .from("report_sections")
         .select("section_id, content, word_count, depth")
         .eq("analysis_id", latestAnalysis.id as string)
-        .eq("user_id", user.id)
+        .in("user_id", reportOwnerIds)
         .eq("depth", "full")
         .order("updated_at", { ascending: false })
         .limit(1)

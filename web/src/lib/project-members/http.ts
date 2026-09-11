@@ -9,6 +9,8 @@
 // that mock `@/lib/projects` do not have to re-export the error class.
 
 import { NextResponse } from "next/server";
+import { getProjectScope } from "@/lib/projects";
+import type { ProjectMemberRole, ProjectScope } from "@/lib/projects";
 
 type AccessCode = "not_found" | "forbidden" | "service_unavailable";
 
@@ -45,4 +47,32 @@ export function projectAccessResponse(err: unknown): NextResponse | null {
     { ok: false, error: MESSAGE[err.code], code: err.code },
     { status: STATUS[err.code] },
   );
+}
+
+/**
+ * S18-A — one-liner for route handlers: resolve the request's project
+ * scope at `minRole`, or hand back the 403/404/503 response to return.
+ *
+ *   const { scope, denied } = await projectScopeOrDeny("editor");
+ *   if (denied) return denied;
+ *   const dataEmail = scope?.dataEmail ?? user.email;
+ *
+ * `scope` is `null` (not an error) when the caller has no resolvable
+ * project — the route then falls back to the caller's OWN legacy record,
+ * never another user's. Any non-access error is rethrown untouched.
+ */
+export async function projectScopeOrDeny(
+  minRole?: ProjectMemberRole,
+): Promise<
+  | { scope: ProjectScope | null; denied: null }
+  | { scope: null; denied: NextResponse }
+> {
+  try {
+    const scope = await getProjectScope(minRole);
+    return { scope, denied: null };
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return { scope: null, denied };
+    throw err;
+  }
 }

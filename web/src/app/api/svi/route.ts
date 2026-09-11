@@ -19,6 +19,7 @@ import { evaluateAntlerSignals } from "@/lib/agents/antler-signals";
 import { loadFounderProfileByEmail, profileToSviInputText } from "@/lib/founder-profile";
 import { evaluateAcceleratorReadiness } from "@/lib/agents/accelerator-readiness";
 import { emitEvent } from "@/lib/analytics/server";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 
 // POST /api/svi
 // Body: { email, input: { rawText, fileName? } }
@@ -130,6 +131,23 @@ export async function POST(request: Request) {
         }, { status: 402 });
       }
       // No analysis in the last 24h — allow for free
+    }
+  }
+
+  // ── Project scope (S18-A, member-aware) ─────────────────────────────
+  // An analysis writes svi_analyses + updates the project's svi_accounts
+  // row, so it is editor+ on a shared project (viewer → 403 before any AI
+  // spend). `dataEmail` is the key the startup record is stored under —
+  // the OWNER's email for a member — while `email` (the body / caller
+  // address) keeps receiving the report + drip and owns the usage counter.
+  let projectId: string | null = null;
+  let dataEmail = email;
+  if (authenticatedUserId) {
+    const { scope, denied } = await projectScopeOrDeny("editor");
+    if (denied) return denied;
+    if (scope) {
+      projectId = scope.projectId;
+      dataEmail = scope.dataEmail.toLowerCase().trim();
     }
   }
 
@@ -317,7 +335,7 @@ export async function POST(request: Request) {
   // Concatenate the founder profile (if filled in) into the rawText so Team
   // signal scoring can see "ex-Stripe / 10-year domain expert / co-founder X".
   // The profile lives in the founder_profiles table and is loaded by email.
-  const founderProfile = await loadFounderProfileByEmail(email);
+  const founderProfile = await loadFounderProfileByEmail(dataEmail);
   const profileText = profileToSviInputText(founderProfile);
   const antlerRawText = profileText ? `${enrichedText} ${profileText}` : enrichedText;
 
@@ -342,21 +360,14 @@ export async function POST(request: Request) {
   const supabase = getSupabaseAdmin();
   let slug = newSlug();
 
-  // Scope to active project for data isolation + reseller-sandbox routing on spendCredits.
-  let projectId: string | null = null;
-  if (authenticatedUserId) {
-    try {
-      const { getProjectIdFromRequest } = await import("@/lib/projects");
-      projectId = await getProjectIdFromRequest();
-    } catch { /* guest user — no project */ }
-  }
-
+  // `projectId` / `dataEmail` were resolved by the member-aware scope gate
+  // above (data isolation + reseller-sandbox routing on spendCredits).
   if (!supabase) {
     slug = `svi-demo-${slug.slice(0, 6)}`;
   } else {
     const { error } = await supabase.from("svi_analyses").insert({
       id: slug,
-      email,
+      email: dataEmail,
       raw_input: parsed.input.rawText,
       file_name: parsed.input.fileName ?? null,
       total_svi: analysis.totalSVI,
@@ -479,12 +490,10 @@ export async function POST(request: Request) {
   // Each (email, project_id) pair gets its own svi_account row.
   // This prevents overwriting startup_name, current_svi, etc. across projects.
   if (supabase) {
-    let projectId: string | null = null;
     if (authenticatedUserId) {
       try {
-        const { getProjectIdFromRequest, findOrCreateSVIAccount } = await import("@/lib/projects");
-        projectId = await getProjectIdFromRequest();
-        const accountId = await findOrCreateSVIAccount(email, projectId);
+        const { findOrCreateSVIAccount } = await import("@/lib/projects");
+        const accountId = await findOrCreateSVIAccount(dataEmail, projectId);
         if (accountId) {
           // Auto-fill startup_name from the extracted project name when it's
           // currently empty — so the founder doesn't see "Untitled" everywhere
@@ -519,11 +528,7 @@ export async function POST(request: Request) {
     void (async () => {
       try {
         const { findOrCreateSVIAccount } = await import("@/lib/projects");
-        const { getProjectIdFromRequest } = await import("@/lib/projects");
-        const projectId = authenticatedUserId
-          ? await getProjectIdFromRequest()
-          : null;
-        const accountId = await findOrCreateSVIAccount(email, projectId);
+        const accountId = await findOrCreateSVIAccount(dataEmail, projectId);
 
         if (accountId) {
           // Extract anonymised metrics from analysis
@@ -558,18 +563,14 @@ export async function POST(request: Request) {
         const { getOrCreateUserFolder } = await import("@/lib/google-drive");
         // Get project name for Drive folder naming
         let projName: string | null = null;
-        let projId: string | null = null;
-        if (authenticatedUserId) {
+        if (projectId) {
           try {
-            const { getProjectIdFromRequest, getProjectById } = await import("@/lib/projects");
-            projId = await getProjectIdFromRequest();
-            if (projId) {
-              const proj = await getProjectById(projId);
-              projName = proj?.name ?? null;
-            }
+            const { getProjectById } = await import("@/lib/projects");
+            const proj = await getProjectById(projectId);
+            projName = proj?.name ?? null;
           } catch { /* no project */ }
         }
-        const { folderId: userFolderId, folderUrl } = await getOrCreateUserFolder(email, null, projName);
+        const { folderId: userFolderId, folderUrl } = await getOrCreateUserFolder(dataEmail, null, projName);
         await supabase.from("svi_analyses").update({
           drive_folder_id: userFolderId,
           drive_folder_url: folderUrl,
