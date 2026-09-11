@@ -8,7 +8,7 @@
 // All external dependencies (auth, credits, supabase, PDF renderer, analytics,
 // projects, nanoid) are mocked so no network or file I/O occurs.
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ── Mock getCurrentUser ──────────────────────────────────────────────────────
 const getCurrentUserMock = vi.fn<() => Promise<{ id: string; email: string } | null>>();
@@ -18,9 +18,17 @@ vi.mock("@/lib/auth", () => ({
 
 // ── Mock getProjectIdFromRequest ─────────────────────────────────────────────
 const getProjectIdFromRequestMock = vi.fn<() => Promise<string | null>>();
-vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => getProjectIdFromRequestMock(),
-}));
+// S18-A — member-aware scope on top of the existing project-id spy: the
+// route now calls getProjectScope(minRole); owner → data keyed on the
+// caller, member → keyed on the OWNER (owner@x.test / owner-1).
+const scopeRole = vi.hoisted(() => ({ value: "owner" as "owner" | "admin" | "editor" | "viewer" }));
+vi.mock("@/lib/projects", async () => {
+  const { scopeAdapter } = await import("@/test/project-scope-mock");
+  return scopeAdapter(() => getProjectIdFromRequestMock(), scopeRole, {
+    callerEmail: "growth@example.com",
+    callerId: "user-growth",
+  });
+});
 
 // ── Mock canAfford ───────────────────────────────────────────────────────────
 const canAffordMock = vi.fn<
@@ -121,5 +129,38 @@ describe("POST /api/investor-pack/one-click", () => {
     expect(renderInvestorPackMock).toHaveBeenCalledOnce();
     // Share token must have been inserted.
     expect(insertMock).toHaveBeenCalledOnce();
+  });
+});
+
+// S18-A — member access: editor+ (minting a public share link publishes the
+// project's pack); the pack is assembled on the OWNER's records, the share
+// row + credits stay the CALLER's.
+describe("POST /api/investor-pack/one-click — S18-A member access", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getProjectIdFromRequestMock.mockResolvedValue("proj-1");
+    renderInvestorPackMock.mockResolvedValue(Buffer.from("%PDF-1.4 test"));
+    insertMock.mockResolvedValue({ error: null });
+    getCurrentUserMock.mockResolvedValue({ id: "user-growth", email: "growth@example.com" });
+    canAffordMock.mockResolvedValue({ allowed: true, balance: 50, cost: 5 });
+  });
+  afterEach(() => {
+    scopeRole.value = "owner";
+  });
+
+  it("viewer: 403 before any render or share insert", async () => {
+    scopeRole.value = "viewer";
+    const res = await POST(new Request("http://localhost/api/investor-pack/one-click", { method: "POST" }));
+    expect(res.status).toBe(403);
+    expect(renderInvestorPackMock).not.toHaveBeenCalled();
+    expect(insertMock).not.toHaveBeenCalled();
+  });
+
+  it("editor: share row minted under the CALLER's user_id for the shared project", async () => {
+    scopeRole.value = "editor";
+    const res = await POST(new Request("http://localhost/api/investor-pack/one-click", { method: "POST" }));
+    expect(res.status).toBe(200);
+    expect(renderInvestorPackMock).toHaveBeenCalledOnce();
+    expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ user_id: "user-growth", project_id: "proj-1" }));
   });
 });

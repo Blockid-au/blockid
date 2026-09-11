@@ -3,6 +3,7 @@
 
 import { NextResponse } from "next/server";
 import { gateRequireFeature } from "@/lib/feature-gate";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { getGrant, isValidStatus, updateGrantStatus } from "@/lib/esop-grants";
 import { DIV83A_DISCLAIMER } from "@/lib/div83a-checker";
 
@@ -16,8 +17,13 @@ export async function PATCH(
   if (!gate.ok) return gate.response;
   const user = gate.user;
 
+  // S18-A — editor+; the grant lives under the project OWNER's user_id.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const ownerUserId = scope?.ownerUserId ?? user.id;
+
   const { id } = await params;
-  const existing = await getGrant(id, user.id);
+  const existing = await getGrant(id, ownerUserId);
   if (!existing) {
     return NextResponse.json({ ok: false, error: "Grant not found" }, { status: 404 });
   }
@@ -35,7 +41,7 @@ export async function PATCH(
     );
   }
 
-  const ok = await updateGrantStatus(id, user.id, b.status);
+  const ok = await updateGrantStatus(id, ownerUserId, b.status);
   if (!ok) {
     return NextResponse.json(
       { ok: false, error: "Failed to update grant" },
@@ -43,7 +49,7 @@ export async function PATCH(
     );
   }
 
-  const updated = await getGrant(id, user.id);
+  const updated = await getGrant(id, ownerUserId);
   return NextResponse.json({
     ok: true,
     grant: updated,
@@ -59,13 +65,18 @@ export async function DELETE(
   if (!gate.ok) return gate.response;
   const user = gate.user;
 
+  // S18-A — editor+; the grant lives under the project OWNER's user_id.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const ownerUserId = scope?.ownerUserId ?? user.id;
+
   const { id } = await params;
-  const existing = await getGrant(id, user.id);
+  const existing = await getGrant(id, ownerUserId);
   if (!existing) {
     return NextResponse.json({ ok: false, error: "Grant not found" }, { status: 404 });
   }
 
-  const ok = await updateGrantStatus(id, user.id, "cancelled");
+  const ok = await updateGrantStatus(id, ownerUserId, "cancelled");
   if (!ok) {
     return NextResponse.json(
       { ok: false, error: "Failed to cancel grant" },

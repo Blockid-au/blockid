@@ -26,7 +26,7 @@
 // so this test asserts pure route wiring, not seeder behaviour (that's
 // covered by seed-templates.test.ts).
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextResponse } from "next/server";
 
 const gateMock = vi.fn();
@@ -40,9 +40,17 @@ vi.mock("@/lib/rate-limit/persistent", () => ({
 }));
 
 const getProjectIdFromRequestMock = vi.fn<() => Promise<string | null>>();
-vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => getProjectIdFromRequestMock(),
-}));
+// S18-A — member-aware scope on top of the existing project-id spy: the
+// route now calls getProjectScope(minRole); owner → data keyed on the
+// caller, member → keyed on the OWNER (owner@x.test / owner-1).
+const scopeRole = vi.hoisted(() => ({ value: "owner" as "owner" | "admin" | "editor" | "viewer" }));
+vi.mock("@/lib/projects", async () => {
+  const { scopeAdapter } = await import("@/test/project-scope-mock");
+  return scopeAdapter(() => getProjectIdFromRequestMock(), scopeRole, {
+    callerEmail: "founder@x.co",
+    callerId: "u-42",
+  });
+});
 
 const seedMock = vi.fn<(params: Record<string, unknown>) => Promise<Record<string, unknown>>>();
 vi.mock("@/lib/dataroom/seed-templates", () => ({
@@ -262,5 +270,36 @@ describe("POST /api/dataroom/reseed-templates", () => {
     expect(consumeRateLimitMock).not.toHaveBeenCalled();
     expect(getProjectIdFromRequestMock).not.toHaveBeenCalled();
     expect(seedMock).not.toHaveBeenCalled();
+  });
+});
+
+// S18-A — member access: editor+; the seeded rows belong to the project
+// OWNER (user_id / email); the rate limit stays per-caller.
+describe("POST /api/dataroom/reseed-templates — S18-A member access", () => {
+  afterEach(() => {
+    scopeRole.value = "owner";
+  });
+
+  it("viewer: 403 after the rate limit, before any seed", async () => {
+    scopeRole.value = "viewer";
+    gateMock.mockResolvedValue(gateOk(USER));
+    consumeRateLimitMock.mockResolvedValue(allowRate());
+    getProjectIdFromRequestMock.mockResolvedValue("proj-1");
+    const res = await POST();
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("forbidden");
+    expect(seedMock).not.toHaveBeenCalled();
+  });
+
+  it("editor: seeds under the OWNER's user id + email; rate limit actor is the caller", async () => {
+    scopeRole.value = "editor";
+    gateMock.mockResolvedValue(gateOk(USER));
+    consumeRateLimitMock.mockResolvedValue(allowRate());
+    getProjectIdFromRequestMock.mockResolvedValue("proj-1");
+    seedMock.mockResolvedValue({ ok: true, uploaded: [], skipped: [], failed: [] });
+    const res = await POST();
+    expect(res.status).toBe(200);
+    expect(consumeRateLimitMock).toHaveBeenCalledWith(expect.objectContaining({ actorId: "u-42" }));
+    expect(seedMock).toHaveBeenCalledWith({ projectId: "proj-1", userId: "owner-1", email: "owner@x.test" });
   });
 });

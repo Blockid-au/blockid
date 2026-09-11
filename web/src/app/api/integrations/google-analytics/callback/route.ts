@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import {
-  findOrCreateSVIAccount,
-  getProjectIdFromRequest,
-} from "@/lib/projects";
+import { findOrCreateSVIAccount } from "@/lib/projects";
+import { projectScopeOrRedirect } from "@/lib/project-members/http";
 import {
   exchangeGoogleCodeForTokens,
   fetchFirstGa4Property,
@@ -39,6 +37,17 @@ export async function GET(request: Request) {
     );
   }
 
+  // S18-A — linking writes verified evidence onto the project OWNER's
+  // svi_accounts row → admin+; gate before the code exchange.
+  const { scope, denied } = await projectScopeOrRedirect(
+    "admin",
+    `${siteUrl()}/dashboard/integrations`,
+    "ga_forbidden_role",
+  );
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const dataEmail = scope?.dataEmail ?? user.email;
+
   const redirectUri = `${siteUrl()}/api/integrations/google-analytics/callback`;
   const tokens = await exchangeGoogleCodeForTokens(code, redirectUri);
   if (!tokens) {
@@ -63,8 +72,7 @@ export async function GET(request: Request) {
 
   const supabase = getSupabaseAdmin();
   if (supabase) {
-    const projectId = await getProjectIdFromRequest();
-    const accountId = await findOrCreateSVIAccount(user.email, projectId);
+    const accountId = await findOrCreateSVIAccount(dataEmail, projectId);
     if (accountId) {
       const impact = scoreGa4Stats(stats);
       await supabase

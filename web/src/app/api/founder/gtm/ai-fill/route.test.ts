@@ -20,9 +20,17 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => mocks.getCurrentUser() }));
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => mocks.getSupabaseAdmin() }));
-vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => mocks.getProjectIdFromRequest(),
-}));
+// S18-A — member-aware scope on top of the existing project-id spy: the
+// route now calls getProjectScope(minRole); owner → data keyed on the
+// caller, member → keyed on the OWNER (owner@x.test / owner-1).
+const scopeRole = vi.hoisted(() => ({ value: "owner" as "owner" | "admin" | "editor" | "viewer" }));
+vi.mock("@/lib/projects", async () => {
+  const { scopeAdapter } = await import("@/test/project-scope-mock");
+  return scopeAdapter(() => mocks.getProjectIdFromRequest(), scopeRole, {
+    callerEmail: "founder@example.com",
+    callerId: "u-1",
+  });
+});
 vi.mock("@/lib/ai-client", () => ({
   callAI: (opts: unknown) => mocks.callAI(opts),
 }));
@@ -162,5 +170,40 @@ describe("POST /api/founder/gtm/ai-fill", () => {
     const body = await res.json() as { ok: boolean; suggestion: { primary_channel: string } };
     expect(body.ok).toBe(true);
     expect(body.suggestion.primary_channel.length).toBeGreaterThan(0);
+  });
+});
+
+// S18-A — member access: AI fill feeds the editor-gated save, so editor+;
+// the project row is read on the OWNER's user_id.
+describe("POST /api/founder/gtm/ai-fill — S18-A member access", () => {
+  afterEach(() => {
+    scopeRole.value = "owner";
+  });
+
+  it("viewer: 403 before the project read or the LLM call", async () => {
+    scopeRole.value = "viewer";
+    mocks.getCurrentUser.mockResolvedValue({ id: "u-1" });
+    const sb = makeSupabase({ name: "Acme", industry: "saas", stage: 2 });
+    mocks.getSupabaseAdmin.mockReturnValue(sb);
+    mocks.getProjectIdFromRequest.mockResolvedValue("proj-1");
+    const res = await POST();
+    expect(res.status).toBe(403);
+    expect(sb.from).not.toHaveBeenCalled();
+    expect(mocks.callAI).not.toHaveBeenCalled();
+  });
+
+  it("editor: project row read with user_id = OWNER", async () => {
+    scopeRole.value = "editor";
+    mocks.getCurrentUser.mockResolvedValue({ id: "u-1" });
+    const sb = makeSupabase({ name: "Acme", industry: "saas", stage: 2 });
+    mocks.getSupabaseAdmin.mockReturnValue(sb);
+    mocks.getProjectIdFromRequest.mockResolvedValue("proj-1");
+    const res = await POST();
+    expect(res.status).toBe(200);
+    const select = sb.from.mock.results[0].value.select as ReturnType<typeof vi.fn>;
+    const eq1 = select.mock.results[0].value.eq as ReturnType<typeof vi.fn>;
+    const eq2 = eq1.mock.results[0].value.eq as ReturnType<typeof vi.fn>;
+    expect(eq1).toHaveBeenCalledWith("id", "proj-1");
+    expect(eq2).toHaveBeenCalledWith("user_id", "owner-1");
   });
 });

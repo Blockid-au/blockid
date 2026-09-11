@@ -11,7 +11,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +48,11 @@ export async function POST(request: NextRequest) {
   const sb = getSupabaseAdmin();
   if (!sb) return noDb();
 
-  const projectId = await getProjectIdFromRequest();
+  // S18-A — pushing the project's profile to an external CRM is a write-
+  // class action (editor+); the project row is read on the OWNER's key.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
   if (!projectId) return noProject();
 
   // ── Fetch startup profile ─────────────────────────────────────────────
@@ -56,7 +60,7 @@ export async function POST(request: NextRequest) {
     .from("projects")
     .select("name, description, industry, stage, website")
     .eq("id", projectId)
-    .eq("user_id", user.id)
+    .eq("user_id", scope?.ownerUserId ?? user.id)
     .single();
 
   if (projErr) {

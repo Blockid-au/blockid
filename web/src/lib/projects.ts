@@ -380,6 +380,33 @@ export async function assertProjectAccess(
 }
 
 /**
+ * S18-A — `getProjectScope` for an EXPLICIT project id (e.g. a
+ * `?project_id=` override) instead of the cookie. Same role gate as
+ * `assertProjectAccess` (404 non-member / 403 under-ranked / 503), then
+ * the owner's data key is resolved exactly as the cookie path does.
+ */
+export async function assertProjectScope(
+  user: { id: string; email: string },
+  projectId: string,
+  minRole: ProjectMemberRole = "viewer",
+): Promise<ProjectScope> {
+  const access = await assertProjectAccess(user.id, projectId, minRole);
+  const dataEmail = access.isOwner
+    ? user.email
+    : await resolveProjectDataEmail(user.email, projectId);
+  return {
+    projectId,
+    project: access.project,
+    role: access.role,
+    isOwner: access.isOwner,
+    userId: user.id,
+    email: user.email,
+    dataEmail,
+    ownerUserId: access.ownerUserId,
+  };
+}
+
+/**
  * Owner email for a project (the key SVI data is stored under). Returns
  * `null` when the project or owner row is missing.
  */

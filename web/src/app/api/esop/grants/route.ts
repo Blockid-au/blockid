@@ -1,14 +1,15 @@
 // GET  /api/esop/grants     — list grants for the active project.
 // POST /api/esop/grants     — create a new option grant.
 //
-// Scoped to (user_id, project_id) via the session cookie + `blockid_project`.
+// Scoped to (user_id = project OWNER, project_id) via the session cookie +
+// `blockid_project` (S18-A: member-aware — viewer reads, editor writes).
 // General information only. Not legal or tax advice.
 
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { gateRequireFeature } from "@/lib/feature-gate";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { createGrant, listGrants } from "@/lib/esop-grants";
 import { DIV83A_DISCLAIMER } from "@/lib/div83a-checker";
 
@@ -23,8 +24,10 @@ export async function GET() {
     );
   }
 
-  const projectId = await getProjectIdFromRequest();
-  const grants = await listGrants(user.id, projectId);
+  // S18-A — viewer+ read; grants are keyed on the project OWNER's user_id.
+  const { scope, denied } = await projectScopeOrDeny("viewer");
+  if (denied) return denied;
+  const grants = await listGrants(scope?.ownerUserId ?? user.id, scope?.projectId ?? null);
 
   return NextResponse.json({
     ok: true,
@@ -87,10 +90,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const projectId = await getProjectIdFromRequest();
+  // S18-A — an ESOP grant is an ownership change an accepted editor may
+  // make; it is stored under the project OWNER's user_id.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
 
   const grant = await createGrant({
-    userId: user.id,
+    userId: scope?.ownerUserId ?? user.id,
     projectId,
     granteeName,
     granteeEmail: granteeEmail || null,

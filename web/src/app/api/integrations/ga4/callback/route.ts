@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrRedirect } from "@/lib/project-members/http";
 import { saveConnection, writeSignals, markSynced } from "@/lib/oauth-connectors";
 import { fetchGa4Signals, listGa4Properties } from "@/lib/oauth-ga4-signals";
 
@@ -52,6 +52,17 @@ export async function GET(request: Request) {
     );
   }
 
+  // S18-A — linking is admin+; gate before the code exchange. Token under
+  // the CALLER's user_id, signals under the project OWNER's user_id.
+  const { scope, denied } = await projectScopeOrRedirect(
+    "admin",
+    `${baseUrl()}/workspace/integrations`,
+    "ga4_forbidden_role",
+  );
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const signalsUserId = scope?.ownerUserId ?? user.id;
+
   const clientId =
     process.env.GOOGLE_OAUTH_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID;
   const clientSecret =
@@ -78,8 +89,6 @@ export async function GET(request: Request) {
     });
     const tokenJson = (await tokenRes.json()) as GoogleTokenResponse;
     if (!tokenJson.access_token) throw new Error("no_access_token");
-
-    const projectId = await getProjectIdFromRequest();
 
     const availableProps = await listGa4Properties(tokenJson.access_token);
     const chosen =
@@ -111,7 +120,7 @@ export async function GET(request: Request) {
           tokenJson.access_token,
           chosen.propertyId,
         );
-        await writeSignals(user.id, projectId, "ga4", [
+        await writeSignals(signalsUserId, projectId, "ga4", [
           { key: "sessions_30d", numeric: signals.sessions30d },
           { key: "new_users_30d", numeric: signals.newUsers30d },
           { key: "conversions_30d", numeric: signals.conversions30d },

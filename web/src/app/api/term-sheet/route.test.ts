@@ -137,9 +137,17 @@ vi.mock("@/lib/credits", () => ({
   FEATURE_COSTS: { term_sheet: 1.0 },
 }));
 
-vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => mocks.getProjectIdMock(),
-}));
+// S18-A — member-aware scope on top of the existing project-id spy: the
+// route now calls getProjectScope(minRole); owner → data keyed on the
+// caller, member → keyed on the OWNER (owner@x.test / owner-1).
+const scopeRole = vi.hoisted(() => ({ value: "owner" as "owner" | "admin" | "editor" | "viewer" }));
+vi.mock("@/lib/projects", async () => {
+  const { scopeAdapter } = await import("@/test/project-scope-mock");
+  return scopeAdapter(() => mocks.getProjectIdMock(), scopeRole, {
+    callerEmail: "founder@x.co",
+    callerId: "u-42",
+  });
+});
 
 vi.mock("@/lib/term-sheet-lawyer-questions", () => ({
   generateLawyerQuestions: (analysis: unknown) => mocks.lawyerQuestionsMock(analysis),
@@ -774,5 +782,33 @@ describe("DELETE /api/term-sheet", () => {
 describe("module exports", () => {
   it("exports dynamic = 'force-dynamic' so the route never lands in the static shell", () => {
     expect(dynamic).toBe("force-dynamic");
+  });
+});
+
+// S18-A — member access: editor+ (the analysis is persisted against the
+// project); the row stays the CALLER's (their upload, their credits).
+describe("POST /api/term-sheet — S18-A member access", () => {
+  afterEach(() => {
+    scopeRole.value = "owner";
+  });
+
+  it("viewer: 403 after the credit pre-flight, before the analysis or spend", async () => {
+    scopeRole.value = "viewer";
+    mocks.getProjectIdMock.mockResolvedValue("proj-1");
+    const res = await POST(jsonPost({ termSheet: LONG_BODY }));
+    expect(res.status).toBe(403);
+    expect(mocks.analyzeMock).not.toHaveBeenCalled();
+    expect(mocks.spendMock).not.toHaveBeenCalled();
+  });
+
+  it("editor: analysed + charged to the CALLER; the persisted row is the caller's with the project id", async () => {
+    scopeRole.value = "editor";
+    mocks.getProjectIdMock.mockResolvedValue("proj-1");
+    const { client, state } = makeFakeSupabase();
+    mocks.getSupabaseAdminMock.mockReturnValue(client);
+    const res = await POST(jsonPost({ termSheet: LONG_BODY }));
+    expect(res.status).toBe(200);
+    expect(mocks.spendMock).toHaveBeenCalledWith("u-42", "term_sheet", { project_id: "proj-1" });
+    expect(state.captured.insertPayloads[0]).toMatchObject({ user_id: "u-42", email: "founder@x.co", project_id: "proj-1" });
   });
 });

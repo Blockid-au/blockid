@@ -5,7 +5,7 @@
 import { NextResponse } from "next/server";
 import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import {
   checkDiv83A,
   DIV83A_DISCLAIMER,
@@ -35,7 +35,14 @@ export async function POST(request: Request) {
     );
   }
 
-  const grant = await getGrant(grantId, user.id);
+  // S18-A — editor+ (persists a Div83A check and updates the grant); the
+  // grant is looked up under the project OWNER's user_id.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const ownerUserId = scope?.ownerUserId ?? user.id;
+  const projectId = scope?.projectId ?? null;
+
+  const grant = await getGrant(grantId, ownerUserId);
   if (!grant) {
     return NextResponse.json(
       { ok: false, error: "Grant not found" },
@@ -47,7 +54,6 @@ export async function POST(request: Request) {
   // active project row (e.g. incorporationDate → project.incorporatedAt),
   // otherwise trust the client-supplied values.
   const supabase = getSupabaseAdmin();
-  const projectId = await getProjectIdFromRequest();
   const projectPayload: Div83AProjectInput = { ...(body.project ?? {}) };
 
   if (supabase && projectId) {
@@ -90,7 +96,7 @@ export async function POST(request: Request) {
     if (insertErr) {
       console.error("[div83a-check] persist failed", insertErr.message);
     }
-    await updateDiv83AStatus(grant.id, user.id, result.status);
+    await updateDiv83AStatus(grant.id, ownerUserId, result.status);
   }
 
   return NextResponse.json({

@@ -17,10 +17,11 @@ import {
   type CriterionKey,
 } from "@/lib/evaluation-criteria";
 import {
-  getProjectIdFromRequest,
   findSVIAccountWithFallback,
   findOrCreateSVIAccount,
+  creditChargeNote,
 } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -65,9 +66,17 @@ export async function POST(
     }, { status: 402 });
   }
 
-  // Resolve account and criterion data
-  const projectId = await getProjectIdFromRequest();
-  const account = await findSVIAccountWithFallback(user.email, projectId);
+  // Resolve account and criterion data.
+  // S18-A — member-aware write (editor+): the score is upserted on the
+  // OWNER's criterion row; a viewer is refused before any AI call or spend.
+  // The caller's own wallet pays (creditNote).
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const dataEmail = scope?.dataEmail ?? user.email;
+  const account = await findSVIAccountWithFallback(dataEmail, projectId, undefined, {
+    callerEmail: user.email,
+  });
 
   let criterionRow: Record<string, unknown> | null = null;
   if (account) {
@@ -187,7 +196,7 @@ Score this criterion's evidence from 0 to 100 and provide a brief summary with 3
     // Ensure account exists for the upsert
     const accountId = account
       ? (account.id as string)
-      : await findOrCreateSVIAccount(user.email, projectId);
+      : await findOrCreateSVIAccount(dataEmail, projectId);
 
     if (!accountId) {
       return NextResponse.json({ ok: false, error: "Could not resolve account" }, { status: 500 });
@@ -230,6 +239,7 @@ Score this criterion's evidence from 0 to 100 and provide a brief summary with 3
       qualityLevel,
       balance: spend.balance,
       creditsUsed: FEATURE_COSTS[featureKey],
+      creditNote: creditChargeNote(scope),
     });
   } catch (err) {
     console.error("[blockid:evaluation:ai-score]", err);

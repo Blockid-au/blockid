@@ -20,10 +20,18 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => mocks.getCurrentUser() }));
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => mocks.getSupabaseAdmin() }));
 vi.mock("@/lib/credits", () => ({ canAfford: vi.fn(), spendCredits: vi.fn() }));
-vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => mocks.getProjectIdFromRequest(),
-  findSVIAccountWithFallback: (...args: unknown[]) => mocks.findSVIAccountWithFallback(...args),
-}));
+// S18-A — member-aware scope on top of the existing project spy.
+const scopeRole = vi.hoisted(() => ({ value: "owner" as "owner" | "admin" | "editor" | "viewer" }));
+vi.mock("@/lib/projects", async () => {
+  const { scopeAdapter } = await import("@/test/project-scope-mock");
+  return {
+    ...scopeAdapter(() => mocks.getProjectIdFromRequest(), scopeRole, {
+      callerEmail: "founder@example.com",
+      callerId: "u-1",
+    }),
+    findSVIAccountWithFallback: (...args: unknown[]) => mocks.findSVIAccountWithFallback(...args),
+  };
+});
 vi.mock("@/lib/connected-revenue", () => ({
   loadConnectedRevenueSignals: (...args: unknown[]) => mocks.loadConnectedRevenueSignals(...args),
 }));
@@ -121,5 +129,42 @@ describe("GET /api/valuation — connected revenue bridge", () => {
     expect(json.valuation.methodNote).toContain("older than 90 days");
     expect(json.valuation.connectedRevenue).toBeNull();
     expect(json.valuation.lowAud).toBe(json.valuation.sviRange.lowAud);
+  });
+});
+
+// S18-A — member access (read: viewer+)
+describe("GET /api/valuation — member access (S18-A)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    scopeRole.value = "owner";
+    mocks.getCurrentUser.mockResolvedValue(USER);
+    mocks.getSupabaseAdmin.mockReturnValue(makeSb());
+    mocks.getProjectIdFromRequest.mockResolvedValue("p-1");
+    mocks.findSVIAccountWithFallback.mockResolvedValue(ACCOUNT);
+    mocks.loadConnectedRevenueSignals.mockResolvedValue([]);
+  });
+
+  it("viewer: allowed; account under the OWNER's email, fallback bound to the caller; signals keyed on the owner's user_id", async () => {
+    scopeRole.value = "viewer";
+    const { status } = await body();
+    expect(status).toBe(200);
+    expect(mocks.findSVIAccountWithFallback).toHaveBeenCalledWith(
+      "owner@x.test", "p-1", "id, current_svi, current_stage", { callerEmail: "founder@example.com" },
+    );
+    expect(mocks.loadConnectedRevenueSignals).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ userId: "owner-1", projectId: "p-1" }),
+    );
+  });
+
+  it("owner: own email + own user_id", async () => {
+    await body();
+    expect(mocks.findSVIAccountWithFallback).toHaveBeenCalledWith(
+      "founder@example.com", "p-1", "id, current_svi, current_stage", { callerEmail: "founder@example.com" },
+    );
+    expect(mocks.loadConnectedRevenueSignals).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ userId: "u-1" }),
+    );
   });
 });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { findOrCreateSVIAccount, getProjectIdFromRequest } from "@/lib/projects";
+import { findOrCreateSVIAccount } from "@/lib/projects";
+import { projectScopeOrRedirect } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,18 @@ export async function GET(request: Request) {
       `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence?error=analytics_failed`,
     );
   }
+
+  // S18-A — linking writes oauth_connections + evidence on the project
+  // OWNER's svi_accounts row → admin+; gate BEFORE the code exchange. When
+  // the caller has no resolvable project the legacy state-email path is
+  // kept (this pre-S18 route has no CSRF binding — see report).
+  const { scope, denied } = await projectScopeOrRedirect(
+    "admin",
+    `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence`,
+    "analytics_forbidden_role",
+  );
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
 
   try {
     const redirectUri = `${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/analytics/callback`;
@@ -80,8 +93,7 @@ export async function GET(request: Request) {
     // 5. Save to database using correct svi_evidence schema
     const supabase = getSupabaseAdmin();
     if (supabase) {
-      const projectId = await getProjectIdFromRequest();
-      const accountId = await findOrCreateSVIAccount(email, projectId);
+      const accountId = await findOrCreateSVIAccount(scope?.dataEmail ?? email, projectId);
       if (accountId) {
         // Save/update OAuth connection token
         await supabase

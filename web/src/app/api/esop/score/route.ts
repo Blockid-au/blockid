@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { scoreEsop, esopStatusFromCapTable } from "@/lib/agents/cfo-esop-scoring";
 import type { GovernanceHealth } from "@/lib/agents/cfo-esop-scoring";
 
@@ -19,11 +20,16 @@ export async function GET(_request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Database not configured" }, { status: 503 });
   }
 
+  // S18-A — viewer+ read on the project OWNER's pool / account.
+  const { scope, denied } = await projectScopeOrDeny("viewer");
+  if (denied) return denied;
+  const ownerUserId = scope?.ownerUserId ?? user.id;
+
   // Fetch ESOP pool
   const { data: pool } = await supabase
     .from("esop_pools")
     .select("*")
-    .eq("account_id", user.id)
+    .eq("account_id", ownerUserId)
     .maybeSingle();
 
   // Fetch grant count
@@ -36,7 +42,7 @@ export async function GET(_request: NextRequest) {
   const { data: sviAccount } = await supabase
     .from("svi_accounts")
     .select("score, analysis")
-    .eq("account_id", user.id)
+    .eq("account_id", ownerUserId)
     .maybeSingle();
 
   const analysis = sviAccount?.analysis as Record<string, unknown> | null;

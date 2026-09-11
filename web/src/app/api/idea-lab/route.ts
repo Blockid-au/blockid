@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { getProjectScope } from "@/lib/projects";
 import { SECTOR_LABELS } from "@/lib/svi-analysis";
 import { generateIdeaLab, type Audience, type IdeaLabRequest } from "@/lib/agents/rnd-idea-lab";
 
@@ -119,7 +119,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const projectId = await getProjectIdFromRequest();
+    // S18-A — the project id only labels the credit spend (no project data
+    // is read or written), so no role gate; resolution failures are
+    // tolerated exactly as the old cookie reader tolerated them.
+    const projectId = await getProjectScope().then((s) => s?.projectId ?? null).catch(() => null);
     const spend = await spendCredits(user.id, "idea_lab", {
       sector: sectorInput,
       problemArea: problemInput.slice(0, 120),

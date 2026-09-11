@@ -11,7 +11,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest, findSVIAccountWithFallback, findLatestAnalysisWithFallback } from "@/lib/projects";
+import { findSVIAccountWithFallback, findLatestAnalysisWithFallback, creditChargeNote } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -99,18 +100,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Database unavailable" }, { status: 503 });
   }
 
+  // S18-A — member-aware: the analysis is stored as an evidence_analyses
+  // row on the project's account → editor+ (viewer → 403 before any AI
+  // spend). Data under the OWNER's email; the caller's wallet pays.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const dataEmail = scope?.dataEmail ?? user.email;
+
   // Gather data — with fallback for legacy records (project_id NULL)
-  const projectId = await getProjectIdFromRequest();
-  const account = await findSVIAccountWithFallback(user.email, projectId);
+  const account = await findSVIAccountWithFallback(dataEmail, projectId, undefined, {
+    callerEmail: user.email,
+  });
 
   if (!account) {
     return NextResponse.json({ ok: false, error: "No SVI account found" }, { status: 404 });
   }
 
   const latestAnalysis = await findLatestAnalysisWithFallback(
-    user.email,
+    dataEmail,
     projectId,
     "raw_input, analysis_json",
+    { callerEmail: user.email },
   );
 
   // Evidence items for this dimension
@@ -223,6 +234,7 @@ Provide a thorough ${info.label} assessment.`;
       analysis: analysisData,
       balance: spend.balance,
       creditsUsed: FEATURE_COSTS[featureKey],
+      creditNote: creditChargeNote(scope),
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

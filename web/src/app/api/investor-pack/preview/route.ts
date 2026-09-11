@@ -21,7 +21,7 @@
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import {
   renderInvestorPack,
@@ -146,8 +146,15 @@ async function handle(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const download = url.searchParams.get("download") === "1";
 
-    const projectId = await getProjectIdFromRequest();
-    const data = await assemble(user.id, user.email, projectId);
+    // S18-A — viewer+ read on the project OWNER's records.
+    const { scope, denied } = await projectScopeOrDeny("viewer");
+    if (denied) return denied;
+    const projectId = scope?.projectId ?? null;
+    const data = await assemble(
+      scope?.ownerUserId ?? user.id,
+      scope?.dataEmail ?? user.email,
+      projectId,
+    );
     const buffer = await renderInvestorPack(data);
 
     const filenamePart = sanitizeFilenamePart(data.startup.name);

@@ -36,10 +36,10 @@
 //   - dropping the ?project_id= query-param override so an admin previewing a
 //     founder's readiness cannot scope the response.
 //
-// The svi_evidence + shareholders side-channels write to `account_id` (not
-// `project_id`), so the projectId query-param is intentionally used only for
-// resolving which project appears in the response envelope — the tally itself
-// scopes on the user's account.
+// S18-A: the two side-channels key differently — svi_evidence.account_id is
+// an svi_accounts.id FK (resolved on the owner's email + project), while
+// shareholders.account_id is the owner's app_users id narrowed to the scoped
+// project_id (the GET /api/cap-table filter).
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
@@ -65,6 +65,9 @@ const getProjectIdFromRequestMock =
   vi.fn<() => Promise<string | null>>();
 const scopeRoleMock = vi.fn<() => "owner" | "admin" | "editor" | "viewer">(() => "owner");
 const assertProjectAccessMock = vi.fn();
+// S18-A — svi_evidence.account_id is an svi_accounts.id FK (migration
+// 0008), so the route resolves the project's SVI account first.
+const findSVIAccountMock = vi.fn<(...args: unknown[]) => Promise<{ id: string } | null>>();
 vi.mock("@/lib/projects", () => ({
   getProjectScope: async () => {
     const projectId = await getProjectIdFromRequestMock();
@@ -83,6 +86,23 @@ vi.mock("@/lib/projects", () => ({
   },
   assertProjectAccess: (userId: string, projectId: string, minRole: string) =>
     assertProjectAccessMock(userId, projectId, minRole),
+  // S18-A — the route now uses assertProjectScope (needs dataEmail); the
+  // spy above still answers the access question so the S17-A cases hold.
+  assertProjectScope: async (
+    user: { id: string; email: string },
+    projectId: string,
+    minRole: string,
+  ) => {
+    const access = await assertProjectAccessMock(user.id, projectId, minRole);
+    return {
+      ...access,
+      projectId,
+      userId: user.id,
+      email: user.email,
+      dataEmail: access.isOwner ? user.email : "owner@x.com",
+    };
+  },
+  findSVIAccountWithFallback: (...args: unknown[]) => findSVIAccountMock(...args),
 }));
 
 // Route import must come AFTER the mocks are registered.
@@ -201,32 +221,24 @@ function makeFakeSupabase() {
         };
       }
 
-      if (table === "svi_evidence") {
-        return {
-          select(cols: string, opts?: unknown) {
-            state.calls.selectCols[table] = cols;
-            state.calls.selectOpts[table] = opts;
-            return {
-              eq(col: string, val: unknown) {
-                state.calls.eqFilters.push({ table, col, val });
-                return Promise.resolve({ count: state.evidenceCount });
-              },
-            };
+      if (table === "svi_evidence" || table === "shareholders") {
+        // .select(cols, {count, head}).eq(account_id)[.eq(project_id)] —
+        // thenable at any depth so an added project filter is recorded.
+        const count = () => (table === "svi_evidence" ? state.evidenceCount : state.shareholderCount);
+        const chain = {
+          eq(col: string, val: unknown) {
+            state.calls.eqFilters.push({ table, col, val });
+            return chain;
+          },
+          then(resolve: (v: { count: number | null }) => unknown) {
+            return Promise.resolve({ count: count() }).then(resolve);
           },
         };
-      }
-
-      if (table === "shareholders") {
         return {
           select(cols: string, opts?: unknown) {
             state.calls.selectCols[table] = cols;
             state.calls.selectOpts[table] = opts;
-            return {
-              eq(col: string, val: unknown) {
-                state.calls.eqFilters.push({ table, col, val });
-                return Promise.resolve({ count: state.shareholderCount });
-              },
-            };
+            return chain;
           },
         };
       }
@@ -332,6 +344,8 @@ beforeEach(() => {
   getCurrentUserMock.mockResolvedValue({ id: "user-1", email: "u@x.com" });
   getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
   getProjectIdFromRequestMock.mockResolvedValue("proj-cookie");
+  findSVIAccountMock.mockReset();
+  findSVIAccountMock.mockResolvedValue({ id: "svi-acct-1" });
 });
 
 // ─── S17-A project-level permissions ───────────────────────────────────────
@@ -571,30 +585,76 @@ describe("svi_evidence + shareholders side-channels", () => {
     state.room = { id: "room-1", completeness_score: 0 };
   });
 
-  it("svi_evidence uses HEAD count=exact + eq(account_id, user.id) — a full row fetch would waste bandwidth we already discarded", async () => {
+  it("svi_evidence uses HEAD count=exact + eq(account_id, svi_accounts.id) — the evidence FK (0008), resolved on (owner email, project) — a full row fetch would waste bandwidth we already discarded", async () => {
     state.evidenceCount = 5;
     await callGet();
+    expect(findSVIAccountMock).toHaveBeenCalledWith("u@x.com", "proj-cookie", "id", { callerEmail: "u@x.com" });
     expect(state.calls.selectOpts["svi_evidence"]).toEqual({
       count: "exact",
       head: true,
     });
-    const f = state.calls.eqFilters.find((x) => x.table === "svi_evidence");
-    expect(f).toBeDefined();
-    expect(f!.col).toBe("account_id");
-    expect(f!.val).toBe("user-1");
+    expect(state.calls.eqFilters.filter((x) => x.table === "svi_evidence")).toEqual([
+      { table: "svi_evidence", col: "account_id", val: "svi-acct-1" },
+    ]);
+    // never the app_users id — that key always counted 0 (S18-A)
+    expect(state.calls.eqFilters.some((x) => x.table === "svi_evidence" && x.val === "user-1")).toBe(false);
   });
 
-  it("shareholders uses HEAD count=exact + eq(account_id, user.id)", async () => {
+  it("svi_evidence: no SVI account for the project → evidence count 0 without a query (no team_info boost)", async () => {
+    findSVIAccountMock.mockResolvedValue(null);
+    state.evidenceCount = 5; // would boost if queried
+    const { body } = await callGet();
+    expect(state.calls.from).not.toContain("svi_evidence");
+    expect(body.breakdown!["team_info"]!.complete).toBe(0);
+  });
+
+  it("shareholders uses HEAD count=exact + eq(account_id, user.id) + eq(project_id, scoped) — the GET /api/cap-table filter", async () => {
     state.shareholderCount = 3;
     await callGet();
     expect(state.calls.selectOpts["shareholders"]).toEqual({
       count: "exact",
       head: true,
     });
-    const f = state.calls.eqFilters.find((x) => x.table === "shareholders");
-    expect(f).toBeDefined();
-    expect(f!.col).toBe("account_id");
-    expect(f!.val).toBe("user-1");
+    expect(state.calls.eqFilters.filter((x) => x.table === "shareholders")).toEqual([
+      { table: "shareholders", col: "account_id", val: "user-1" },
+      { table: "shareholders", col: "project_id", val: "proj-cookie" },
+    ]);
+  });
+
+  it("shareholders: no active project → no project filter (legacy rows, like GET /api/cap-table)", async () => {
+    getProjectIdFromRequestMock.mockResolvedValue(null);
+    await callGet();
+    expect(state.calls.eqFilters.filter((x) => x.table === "shareholders")).toEqual([
+      { table: "shareholders", col: "account_id", val: "user-1" },
+    ]);
+    expect(findSVIAccountMock).toHaveBeenCalledWith("u@x.com", null, "id", { callerEmail: "u@x.com" });
+  });
+
+  it("S18-A viewer member (cookie path): SVI account on the OWNER's email, shareholders on the OWNER's id, fallback bound to the caller", async () => {
+    scopeRoleMock.mockReturnValue("viewer");
+    state.evidenceCount = 1;
+    state.shareholderCount = 1;
+    await callGet();
+    expect(findSVIAccountMock).toHaveBeenCalledWith("owner@x.com", "proj-cookie", "id", { callerEmail: "u@x.com" });
+    expect(state.calls.eqFilters.filter((x) => x.table === "shareholders")).toEqual([
+      { table: "shareholders", col: "account_id", val: "owner-1" },
+      { table: "shareholders", col: "project_id", val: "proj-cookie" },
+    ]);
+  });
+
+  it("S18-A explicit ?project_id on a shared project: SVI account on the OWNER's email via assertProjectScope", async () => {
+    assertProjectAccessMock.mockResolvedValue({
+      project: { id: "proj-shared", userId: "owner-1", role: "editor" },
+      role: "editor",
+      isOwner: false,
+      ownerUserId: "owner-1",
+    });
+    await callGet("?project_id=proj-shared");
+    expect(findSVIAccountMock).toHaveBeenCalledWith("owner@x.com", "proj-shared", "id", { callerEmail: "u@x.com" });
+    expect(state.calls.eqFilters.filter((x) => x.table === "shareholders")).toEqual([
+      { table: "shareholders", col: "account_id", val: "owner-1" },
+      { table: "shareholders", col: "project_id", val: "proj-shared" },
+    ]);
   });
 
   it("evidenceCount > 0 boosts team_info to at least (1 total, min(count,3) complete) even with zero classified docs — evidence-only founders should not score 0/15", async () => {

@@ -6,7 +6,7 @@
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { GROWTH_PHASES } from "@/lib/startup-growth-phases";
 
@@ -26,8 +26,12 @@ export async function GET() {
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 
   const supabase = getSupabaseAdmin()!;
-  const projectId = await getProjectIdFromRequest();
-  const accountId = await getAccountId(user.email, projectId);
+  // S18-A — member-aware read (viewer+): progress lives on the OWNER's
+  // svi_accounts row for the project.
+  const { scope, denied } = await projectScopeOrDeny("viewer");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const accountId = await getAccountId(scope?.dataEmail ?? user.email, projectId);
 
   if (!accountId) {
     return NextResponse.json({
@@ -99,13 +103,22 @@ export async function POST(request: Request) {
   const { action, phaseId, stepId } = body as { action?: string; phaseId?: string; stepId?: string };
 
   const supabase = getSupabaseAdmin()!;
-  const projectId = await getProjectIdFromRequest();
-  let accountId = await getAccountId(user.email, projectId);
+  // S18-A — member-aware write (editor+): step toggles / auto-detect
+  // mutate startup_phase_progress on the OWNER's account row.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const dataEmail = scope?.dataEmail ?? user.email;
+  let accountId = await getAccountId(dataEmail, projectId);
 
   if (!accountId) {
     const { data: newAccount } = await supabase
       .from("svi_accounts")
-      .insert({ email: user.email, project_id: projectId, startup_name: user.displayName || user.email })
+      .insert({
+        email: dataEmail,
+        project_id: projectId,
+        startup_name: scope?.project.name || user.displayName || dataEmail,
+      })
       .select("id")
       .single();
     accountId = newAccount?.id;
@@ -113,7 +126,7 @@ export async function POST(request: Request) {
   }
 
   if (action === "auto_detect") {
-    return await autoDetectProgress(supabase, accountId, projectId, user.email);
+    return await autoDetectProgress(supabase, accountId, projectId, dataEmail);
   }
 
   if ((action === "complete_step" || action === "uncomplete_step") && phaseId && stepId) {

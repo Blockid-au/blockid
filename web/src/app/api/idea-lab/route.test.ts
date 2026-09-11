@@ -72,9 +72,17 @@ vi.mock("@/lib/credits", () => ({
 }));
 
 const getProjectIdMock = vi.fn();
-vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => getProjectIdMock(),
-}));
+// S18-A — member-aware scope on top of the existing project-id spy: the
+// route now calls getProjectScope(minRole); owner → data keyed on the
+// caller, member → keyed on the OWNER (owner@x.test / owner-1).
+const scopeRole = vi.hoisted(() => ({ value: "owner" as "owner" | "admin" | "editor" | "viewer" }));
+vi.mock("@/lib/projects", async () => {
+  const { scopeAdapter } = await import("@/test/project-scope-mock");
+  return scopeAdapter(() => getProjectIdMock(), scopeRole, {
+    callerEmail: "founder@example.com",
+    callerId: "u-1",
+  });
+});
 
 vi.mock("@/lib/svi-analysis", () => ({
   SECTOR_LABELS: {

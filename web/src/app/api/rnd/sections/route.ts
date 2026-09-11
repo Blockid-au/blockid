@@ -31,7 +31,7 @@ import { newSlug } from "@/lib/slug";
 import { detectInputType, scrapeUrl, deepTechAudit, type TechAuditResult } from "@/lib/rnd-input";
 import { generateSectionReport, type SectionRequest } from "@/lib/rnd-analysis";
 import { canAfford, spendCredits, calculateSectionCost, SECTION_DEPTH_CONFIG, type SectionDepth } from "@/lib/credits";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -148,6 +148,21 @@ export async function POST(request: Request) {
   const rawText = body.rawText.trim();
   const fileName = body.fileName;
 
+  // ── Project scope (S18-A, member-aware) ─────────────────────────────
+  // Sections persist an svi_analyses row for the project → editor+ on a
+  // shared project (viewer → 403 before the stream / any spend). The row
+  // is keyed on the OWNER's email for a member; credits stay the caller's.
+  let projectId: string | null = null;
+  let dataEmail = email;
+  if (authenticatedUserId) {
+    const { scope, denied } = await projectScopeOrDeny("editor");
+    if (denied) return denied;
+    if (scope) {
+      projectId = scope.projectId;
+      dataEmail = scope.dataEmail.toLowerCase().trim();
+    }
+  }
+
   // SSE stream
   const { readable, writable } = new TransformStream();
   const writer = writable.getWriter();
@@ -219,8 +234,7 @@ export async function POST(request: Request) {
 
       // Step 5: Charge credits (only after successful generation)
       if (authenticatedUserId) {
-        let sectionsProjectId: string | null = null;
-        try { sectionsProjectId = await getProjectIdFromRequest(); } catch { /* guest — no project */ }
+        const sectionsProjectId = projectId;
         for (const section of validatedSections) {
           const featureKey = `section_${section.depth}` as string;
           await spendCredits(authenticatedUserId, featureKey, {
@@ -238,7 +252,8 @@ export async function POST(request: Request) {
       if (supabase) {
         await supabase.from("svi_analyses").insert({
           id: slug,
-          email,
+          email: dataEmail,
+          project_id: projectId,
           raw_input: rawText,
           file_name: fileName ?? null,
           total_svi: analysis.totalSVI,

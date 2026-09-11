@@ -11,7 +11,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import {
   TEAM_BENCHMARKS,
   AU_SALARY_BENCHMARKS,
@@ -122,14 +122,20 @@ export async function POST() {
   const sb = getSupabaseAdmin();
   if (!sb) return NextResponse.json({ ok: false, error: "db" }, { status: 503 });
 
-  const projectId = await getProjectIdFromRequest();
+  // S18-A — AI fill is part of the EDIT flow (its output is saved through
+  // the editor-gated create route), so it is editor+; the project row and
+  // any per-startup context are read on the OWNER's key.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const ownerUserId = scope?.ownerUserId ?? user.id;
   if (!projectId) return NextResponse.json({ ok: false, error: "no project" }, { status: 400 });
 
   const { data: project } = await sb
     .from("projects")
     .select("name, industry, stage")
     .eq("id", projectId)
-    .eq("user_id", user.id)
+    .eq("user_id", ownerUserId)
     .single();
 
   const stage = Number(project?.stage ?? 0);
@@ -141,7 +147,7 @@ export async function POST() {
     .from("team_members")
     .select("role_title, role_category, equity_pct, salary_aud, status")
     .eq("project_id", projectId)
-    .eq("user_id", user.id);
+    .eq("user_id", ownerUserId);
 
   const existingProfiles: TeamMemberProfile[] = (existingMembers ?? []).map((m) => ({
     role: m.role_title,

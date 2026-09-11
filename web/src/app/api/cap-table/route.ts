@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -28,8 +28,12 @@ export async function GET(_request: NextRequest) {
     );
   }
 
-  const accountId = user.id;
-  const projectId = await getProjectIdFromRequest();
+  // S18-A — viewer+ read. The register belongs to the project OWNER
+  // (`account_id` = owner's user id), so a co-founder reads the same rows.
+  const { scope, denied } = await projectScopeOrDeny("viewer");
+  if (denied) return denied;
+  const accountId = scope?.ownerUserId ?? user.id;
+  const projectId = scope?.projectId ?? null;
 
   // Build project-scoped queries
   function scopedQuery(table: string) {
@@ -128,7 +132,14 @@ export async function POST(request: Request) {
   }
 
   const { action, data } = body;
-  const accountId = user.id;
+  // S18-A — editor+ write (share issues, ESOP setup, shareholder edits are
+  // ownership changes an accepted editor may make); rows are stamped with
+  // the OWNER's account_id + the active project_id so GET (which filters
+  // on project_id) sees them.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const accountId = scope?.ownerUserId ?? user.id;
+  const projectId = scope?.projectId ?? null;
 
   if (!action || !data) {
     return NextResponse.json(
@@ -159,6 +170,7 @@ export async function POST(request: Request) {
         .from("share_classes")
         .insert({
           account_id: accountId,
+          project_id: projectId,
           name,
           class_type: classType,
           total_authorized: totalAuthorized,
@@ -201,6 +213,7 @@ export async function POST(request: Request) {
         .from("shareholders")
         .insert({
           account_id: accountId,
+          project_id: projectId,
           name,
           email,
           role,
@@ -223,6 +236,7 @@ export async function POST(request: Request) {
       if (sharesHeld > 0 && shareClassId) {
         await supabase.from("share_transactions").insert({
           account_id: accountId,
+          project_id: projectId,
           transaction_type: "issue",
           to_shareholder_id: row.id,
           share_class_id: shareClassId,
@@ -276,6 +290,7 @@ export async function POST(request: Request) {
       // Record transaction
       await supabase.from("share_transactions").insert({
         account_id: accountId,
+        project_id: projectId,
         transaction_type: "issue",
         to_shareholder_id: shareholderId,
         share_class_id: shareClassId,
@@ -307,6 +322,7 @@ export async function POST(request: Request) {
         .upsert(
           {
             account_id: accountId,
+            project_id: projectId,
             total_pool_shares: totalPoolShares,
             pool_pct: poolPct,
             allocated_shares: 0,
@@ -413,12 +429,17 @@ export async function DELETE(request: Request) {
     );
   }
 
+  // S18-A — editor+; the pre-check is the tenancy boundary and it is keyed
+  // on the project OWNER's account_id.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+
   // Verify ownership
   const { data: existing } = await supabase
     .from("shareholders")
     .select("id")
     .eq("id", shareholderId)
-    .eq("account_id", user.id)
+    .eq("account_id", scope?.ownerUserId ?? user.id)
     .single();
 
   if (!existing) {

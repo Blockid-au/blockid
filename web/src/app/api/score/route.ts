@@ -10,7 +10,7 @@ import {
   buildVcValuationReport,
   type BuildVcValuationInput,
 } from "@/lib/agents/cfo-valuation";
-import { getProjectIdFromRequest, findSVIAccountWithFallback } from "@/lib/projects";
+import { getProjectScope, findSVIAccountWithFallback } from "@/lib/projects";
 import { loadConnectedRevenueSignals } from "@/lib/connected-revenue";
 import {
   applyConnectedRevenueBridge,
@@ -1026,10 +1026,17 @@ async function bridgeConnectedRevenue(
   const supabase = getSupabaseAdmin();
   if (!supabase) return valuation;
   try {
-    const projectId = await getProjectIdFromRequest();
-    const account = await findSVIAccountWithFallback(user.email, projectId, "id");
+    // S18-A — member-aware read: a member bridges against the OWNER's
+    // connected revenue (svi_signals are keyed on the owner's user_id;
+    // svi_accounts on the owner's email). Viewer is enough — read only.
+    const scope = await getProjectScope("viewer");
+    const projectId = scope?.projectId ?? null;
+    const dataEmail = scope?.dataEmail ?? user.email;
+    const account = await findSVIAccountWithFallback(dataEmail, projectId, "id", {
+      callerEmail: user.email,
+    });
     const signals = await loadConnectedRevenueSignals(supabase, {
-      userId: user.id,
+      userId: scope?.ownerUserId ?? user.id,
       projectId,
       accountId: (account?.id as string | undefined) ?? null,
     });

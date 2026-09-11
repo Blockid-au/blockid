@@ -85,13 +85,21 @@ vi.mock("@/lib/credits", () => ({
   spendCredits: (userId: string, feature: string, meta?: unknown) =>
     mocks.spendCredits(userId, feature, meta),
 }));
-vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => mocks.getProjectIdFromRequest(),
-  findSVIAccountWithFallback: (email: string, projectId: string | null) =>
-    mocks.findSVIAccountWithFallback(email, projectId),
-  findOrCreateSVIAccount: (email: string, projectId: string | null) =>
-    mocks.findOrCreateSVIAccount(email, projectId),
-}));
+// S18-A — member-aware scope on top of the existing project spy.
+const scopeRole = vi.hoisted(() => ({ value: "owner" as "owner" | "admin" | "editor" | "viewer" }));
+vi.mock("@/lib/projects", async () => {
+  const { scopeAdapter } = await import("@/test/project-scope-mock");
+  return {
+    ...scopeAdapter(() => mocks.getProjectIdFromRequest(), scopeRole, {
+      callerEmail: "founder@example.com",
+      callerId: "user-1",
+    }),
+    findSVIAccountWithFallback: (email: string, projectId: string | null) =>
+      mocks.findSVIAccountWithFallback(email, projectId),
+    findOrCreateSVIAccount: (email: string, projectId: string | null) =>
+      mocks.findOrCreateSVIAccount(email, projectId),
+  };
+});
 
 import { POST, dynamic } from "./route";
 import { CRITERION_KEYS } from "@/lib/evaluation-criteria";
@@ -196,10 +204,43 @@ beforeEach(() => {
   mocks.getProjectIdFromRequest.mockResolvedValue("proj-1");
   mocks.findSVIAccountWithFallback.mockResolvedValue(ACCOUNT);
   mocks.findOrCreateSVIAccount.mockResolvedValue("acct-1");
+  scopeRole.value = "owner";
 });
 
 afterEach(() => {
   vi.clearAllMocks();
+});
+
+// ---------------------------------------------------------------------------
+// S18-A — member access (editor+: the score is upserted on the owner's row)
+// ---------------------------------------------------------------------------
+
+describe("member access (S18-A)", () => {
+  it("viewer: 403 before the AI call or any spend", async () => {
+    scopeRole.value = "viewer";
+    const res = await POST(req(), paramsOf("idea"));
+    expect(res.status).toBe(403);
+    expect(mocks.callAI).not.toHaveBeenCalled();
+    expect(mocks.spendCredits).not.toHaveBeenCalled();
+    expect(mocks.findSVIAccountWithFallback).not.toHaveBeenCalled();
+  });
+
+  it("editor: account resolved under the OWNER's email; caller's wallet pays; member creditNote", async () => {
+    scopeRole.value = "editor";
+    const res = await POST(req(), paramsOf("idea"));
+    expect(res.status).toBe(200);
+    expect(mocks.findSVIAccountWithFallback).toHaveBeenCalledWith("owner@x.test", "proj-1");
+    expect(mocks.spendCredits).toHaveBeenCalledWith("user-1", "criterion_ai_score", expect.anything());
+    const body = await jsonOf(res);
+    expect(body.creditNote).toMatch(/not the project owner/);
+  });
+
+  it("owner: caller's own email is the key and the creditNote is the plain copy", async () => {
+    const res = await POST(req(), paramsOf("idea"));
+    expect(res.status).toBe(200);
+    expect(mocks.findSVIAccountWithFallback).toHaveBeenCalledWith("founder@example.com", "proj-1");
+    expect((await jsonOf(res)).creditNote).toBe("Charged to your credits.");
+  });
 });
 
 // ---------------------------------------------------------------------------

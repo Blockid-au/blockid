@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI } from "@/lib/ai-client";
 import { spendCredits, FEATURE_COSTS } from "@/lib/credits";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -37,8 +37,16 @@ export async function POST(request: Request) {
   const monthStart = `${targetMonth}-01`;
   const monthEnd = `${targetMonth}-31`; // Safe — PostgreSQL handles month boundaries
 
+  // S18-A — editor+ (an AI reflection entry is written to the journal).
+  // Journal + SVI context are the project OWNER's (user id / email); the
+  // credits are the CALLER's.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const ownerUserId = scope?.ownerUserId ?? user.id;
+  const dataEmail = scope?.dataEmail ?? user.email;
+
   // Check and spend credits
-  const projectId = await getProjectIdFromRequest();
   const spend = await spendCredits(user.id, "journal_reflect", {
     month: targetMonth,
     project_id: projectId,
@@ -60,7 +68,7 @@ export async function POST(request: Request) {
   const { data: entries } = await supabase
     .from("growth_journal")
     .select("entry_type, title, content, tags, svi_at_time, created_at")
-    .eq("account_id", user.id)
+    .eq("account_id", ownerUserId)
     .gte("created_at", monthStart)
     .lte("created_at", monthEnd + "T23:59:59Z")
     .neq("entry_type", "ai_reflection")
@@ -72,7 +80,7 @@ export async function POST(request: Request) {
   const { data: sviHistory } = await supabase
     .from("svi_snapshots")
     .select("score, snapshot_date")
-    .eq("email", user.email)
+    .eq("email", dataEmail)
     .gte("snapshot_date", monthStart)
     .lte("snapshot_date", monthEnd)
     .order("snapshot_date", { ascending: true });
@@ -86,11 +94,13 @@ export async function POST(request: Request) {
   }
 
   // Get current SVI for context
-  const { data: sviAccount } = await supabase
+  const sviAccountQuery = supabase
     .from("svi_accounts")
     .select("current_svi")
-    .eq("email", user.email)
-    .maybeSingle();
+    .eq("email", dataEmail);
+  if (projectId) sviAccountQuery.eq("project_id", projectId);
+  else sviAccountQuery.is("project_id", null);
+  const { data: sviAccount } = await sviAccountQuery.maybeSingle();
 
   const currentSVI = sviAccount?.current_svi ?? null;
 
@@ -98,7 +108,7 @@ export async function POST(request: Request) {
   const { count: evidenceCount } = await supabase
     .from("evidence_items")
     .select("id", { count: "exact", head: true })
-    .eq("email", user.email)
+    .eq("email", dataEmail)
     .gte("created_at", monthStart)
     .lte("created_at", monthEnd + "T23:59:59Z");
 
@@ -106,7 +116,7 @@ export async function POST(request: Request) {
   const { data: actions } = await supabase
     .from("user_actions")
     .select("action_key, completed_at")
-    .eq("email", user.email)
+    .eq("email", dataEmail)
     .not("completed_at", "is", null)
     .gte("completed_at", monthStart)
     .lte("completed_at", monthEnd + "T23:59:59Z");
@@ -159,8 +169,8 @@ Be specific to the actual entries. If there are few entries, encourage more cons
     const { data: entry, error } = await supabase
       .from("growth_journal")
       .insert({
-        account_id: user.id,
-        email: user.email,
+        account_id: ownerUserId,
+        email: dataEmail,
         entry_type: "ai_reflection",
         title: `Monthly Reflection — ${monthName}`,
         content: result.text,

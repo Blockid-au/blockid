@@ -16,7 +16,7 @@
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { getCurrentUser } from "@/lib/auth";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { assemblePackData } from "@/lib/investor-pack-assembler";
 import { InvestorPackPDF } from "@/components/pdf/investor-pack-pdf";
 import { canAfford, spendCredits } from "@/lib/credits";
@@ -102,8 +102,12 @@ export async function POST(request: Request): Promise<Response> {
     }
     const overrides = parseOverrides(body);
 
-    const projectId = await getProjectIdFromRequest();
-    const data = await assemblePackData(user.id, projectId, overrides);
+    // S18-A — viewer+ read: the pack is assembled from the project
+    // OWNER's records; the credit spend below stays the CALLER's.
+    const { scope, denied } = await projectScopeOrDeny("viewer");
+    if (denied) return denied;
+    const projectId = scope?.projectId ?? null;
+    const data = await assemblePackData(scope?.ownerUserId ?? user.id, projectId, overrides);
 
     const buffer = await renderToBuffer(InvestorPackPDF({ data }));
 

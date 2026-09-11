@@ -11,7 +11,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import {
   generateRoadmapItems,
   type RoadmapItemSuggestion,
@@ -83,7 +83,13 @@ export async function POST() {
   const sb = getSupabaseAdmin();
   if (!sb) return NextResponse.json({ ok: false, error: "db" }, { status: 503 });
 
-  const projectId = await getProjectIdFromRequest();
+  // S18-A — AI fill is part of the EDIT flow (its output is saved through
+  // the editor-gated create route), so it is editor+; the project row and
+  // any per-startup context are read on the OWNER's key.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const ownerUserId = scope?.ownerUserId ?? user.id;
   if (!projectId) return NextResponse.json({ ok: false, error: "no project" }, { status: 400 });
 
   // Get project profile
@@ -91,7 +97,7 @@ export async function POST() {
     .from("projects")
     .select("name, industry, stage, description")
     .eq("id", projectId)
-    .eq("user_id", user.id)
+    .eq("user_id", ownerUserId)
     .single();
 
   const stage = Number(project?.stage ?? 0);
@@ -105,7 +111,7 @@ export async function POST() {
       .from("svi_accounts")
       .select("current_svi")
       .eq("project_id", projectId)
-      .eq("user_id", user.id)
+      .eq("user_id", ownerUserId)
       .maybeSingle();
     if (sviAccount?.current_svi != null) {
       sviScore = Number(sviAccount.current_svi);

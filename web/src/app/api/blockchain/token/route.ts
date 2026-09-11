@@ -6,7 +6,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest, findSVIAccountWithFallback } from "@/lib/projects";
+import { findSVIAccountWithFallback } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +24,17 @@ export async function GET() {
     return NextResponse.json({ ok: false, error: "Database not configured" }, { status: 503 });
   }
 
-  const projectId = await getProjectIdFromRequest();
-  const account = await findSVIAccountWithFallback(user.email, projectId);
+  // S18-A — member-aware read (viewer+): the token belongs to the project,
+  // i.e. the OWNER's svi_accounts row.
+  const { scope, denied } = await projectScopeOrDeny("viewer");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const account = await findSVIAccountWithFallback(
+    scope?.dataEmail ?? user.email,
+    projectId,
+    undefined,
+    { callerEmail: user.email },
+  );
   if (!account) {
     return NextResponse.json({ ok: true, token: null });
   }

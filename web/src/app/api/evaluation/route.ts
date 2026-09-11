@@ -18,10 +18,10 @@ import {
   type CriterionKey,
 } from "@/lib/evaluation-criteria";
 import {
-  getProjectIdFromRequest,
   findSVIAccountWithFallback,
   findOrCreateSVIAccount,
 } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -40,8 +40,17 @@ export async function GET() {
     return NextResponse.json({ ok: false, error: "Database unavailable" }, { status: 503 });
   }
 
-  const projectId = await getProjectIdFromRequest();
-  const account = await findSVIAccountWithFallback(user.email, projectId);
+  // S18-A — member-aware read (viewer+): criteria live on the OWNER's
+  // svi_accounts row for the project.
+  const { scope, denied } = await projectScopeOrDeny("viewer");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const account = await findSVIAccountWithFallback(
+    scope?.dataEmail ?? user.email,
+    projectId,
+    undefined,
+    { callerEmail: user.email },
+  );
 
   // If the user has no SVI account yet, return all 13 criteria as empty
   if (!account) {
@@ -203,9 +212,13 @@ export async function POST(request: Request) {
 
   const textInput = typeof body.textInput === "string" ? body.textInput : "";
 
-  // Find or create the SVI account for the current project
-  const projectId = await getProjectIdFromRequest();
-  const accountId = await findOrCreateSVIAccount(user.email, projectId);
+  // Find or create the SVI account for the current project.
+  // S18-A — member-aware write (editor+): a viewer gets 403 before the
+  // upsert; an editor writes the OWNER's criterion row.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const accountId = await findOrCreateSVIAccount(scope?.dataEmail ?? user.email, projectId);
   if (!accountId) {
     return NextResponse.json({ ok: false, error: "Could not resolve account" }, { status: 500 });
   }

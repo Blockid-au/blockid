@@ -56,13 +56,23 @@ vi.mock("@/lib/auth", () => ({
 vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => mocks.getSupabaseAdmin(),
 }));
-vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => mocks.getProjectIdFromRequest(),
-  findSVIAccountWithFallback: (email: string, projectId: string | null) =>
-    mocks.findSVIAccountWithFallback(email, projectId),
-  findOrCreateSVIAccount: (email: string, projectId: string | null) =>
-    mocks.findOrCreateSVIAccount(email, projectId),
-}));
+// S18-A — the route resolves the member-aware scope; `scopeRole` flips the
+// caller between owner (data under their own email) and a member (data
+// under the OWNER's email, owner@x.test).
+const scopeRole = vi.hoisted(() => ({ value: "owner" as "owner" | "admin" | "editor" | "viewer" }));
+vi.mock("@/lib/projects", async () => {
+  const { scopeAdapter } = await import("@/test/project-scope-mock");
+  return {
+    ...scopeAdapter(() => mocks.getProjectIdFromRequest(), scopeRole, {
+      callerEmail: "founder@example.com",
+      callerId: "u-founder-1",
+    }),
+    findSVIAccountWithFallback: (email: string, projectId: string | null) =>
+      mocks.findSVIAccountWithFallback(email, projectId),
+    findOrCreateSVIAccount: (email: string, projectId: string | null) =>
+      mocks.findOrCreateSVIAccount(email, projectId),
+  };
+});
 
 import { GET, POST, dynamic } from "./route";
 import { CRITERION_KEYS, CRITERIA, getCriterion } from "@/lib/evaluation-criteria";
@@ -173,6 +183,41 @@ beforeEach(() => {
   mocks.getProjectIdFromRequest.mockResolvedValue("proj-1");
   mocks.findSVIAccountWithFallback.mockResolvedValue({ id: "acct-1" });
   mocks.findOrCreateSVIAccount.mockResolvedValue("acct-1");
+  scopeRole.value = "owner";
+});
+
+// -------------------------------------------------------------------------
+// S18-A — member access
+describe("member access (S18-A)", () => {
+  it("GET as viewer: criteria read under the OWNER's email, fallback bound to the caller", async () => {
+    scopeRole.value = "viewer";
+    const res = await GET();
+    expect(res.status).toBe(200);
+    expect(mocks.findSVIAccountWithFallback).toHaveBeenCalledWith("owner@x.test", "proj-1");
+  });
+
+  it("POST as viewer: 403 before any account resolution or upsert", async () => {
+    scopeRole.value = "viewer";
+    const res = await POST(postReq({ criterionKey: "idea", textInput: "x" }));
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("forbidden");
+    expect(mocks.findOrCreateSVIAccount).not.toHaveBeenCalled();
+    expect(state.logs.filter((l) => l.op === "upsert")).toHaveLength(0);
+  });
+
+  it("POST as editor: criterion upserted on the OWNER's account", async () => {
+    scopeRole.value = "editor";
+    state.upsertResult = { data: { criterion_key: "idea", text_input: "x", quality_level: "basic" }, error: null };
+    const res = await POST(postReq({ criterionKey: "idea", textInput: "x" }));
+    expect(res.status).toBe(200);
+    expect(mocks.findOrCreateSVIAccount).toHaveBeenCalledWith("owner@x.test", "proj-1");
+  });
+
+  it("owner: data key stays the founder's own email", async () => {
+    const res = await GET();
+    expect(res.status).toBe(200);
+    expect(mocks.findSVIAccountWithFallback).toHaveBeenCalledWith("founder@example.com", "proj-1");
+  });
 });
 
 afterEach(() => {

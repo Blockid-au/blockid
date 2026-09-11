@@ -24,7 +24,7 @@
 import { NextResponse } from "next/server";
 import { nanoid } from "nanoid";
 import { getCurrentUser } from "@/lib/auth";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { canAfford } from "@/lib/credits";
 import { emitEvent } from "@/lib/analytics/server";
@@ -487,10 +487,15 @@ export async function POST(_request: Request): Promise<Response> {
     }
 
     // ── Assemble + render ────────────────────────────────────────────────────
-    const projectId = await getProjectIdFromRequest();
+    // S18-A — editor+: minting a public share link publishes the project's
+    // pack. Assembled on the OWNER's records; the share row + credits stay
+    // the CALLER's.
+    const { scope, denied } = await projectScopeOrDeny("editor");
+    if (denied) return denied;
+    const projectId = scope?.projectId ?? null;
     const { data, startupName, sviGrade } = await assembleOneClick(
-      user.id,
-      user.email,
+      scope?.ownerUserId ?? user.id,
+      scope?.dataEmail ?? user.email,
       projectId,
     );
 

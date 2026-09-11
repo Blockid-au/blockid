@@ -15,16 +15,33 @@ import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   getSupabaseAdmin: vi.fn(),
-  getProjectIdFromRequest: vi.fn(),
+}));
+
+// S18-A — member-aware scope mock (shared helper).
+const scopeState = vi.hoisted(() => ({
+  projectId: null as string | null,
+  role: "owner" as "owner" | "admin" | "editor" | "viewer",
+  nonMember: false,
+  callerEmail: "founder@example.com",
+  callerId: "user-1",
+  ownerEmail: "owner@x.test",
+  ownerId: "owner-1",
+  calls: [] as Array<{ fn: string; email?: string; projectId: string | null; opts?: unknown }>,
+  accountId: "acct-1" as string | null,
+  account: null as Record<string, unknown> | null,
+  analysis: null as Record<string, unknown> | null,
+  lastMinRole: undefined as string | undefined,
 }));
 
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => mocks.getCurrentUser() }));
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => mocks.getSupabaseAdmin() }));
-vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => mocks.getProjectIdFromRequest(),
-}));
+vi.mock("@/lib/projects", async () => {
+  const { projectsMock } = await import("@/test/project-scope-mock");
+  return projectsMock(scopeState);
+});
 
 import { POST } from "./route";
+import { describeMemberAccess } from "@/test/member-access-suite";
 
 const USER = { id: "user-1", email: "founder@example.com", plan: "free", role: "user" };
 
@@ -74,10 +91,48 @@ async function json(res: Response) {
 beforeEach(() => {
   mocks.getCurrentUser.mockResolvedValue(USER);
   mocks.getSupabaseAdmin.mockReturnValue(makeSb());
-  mocks.getProjectIdFromRequest.mockResolvedValue(null);
+  scopeState.projectId = null;
+  scopeState.role = "owner";
+  scopeState.calls = [];
 });
 
 afterEach(() => { vi.clearAllMocks(); });
+
+// S18-A — role matrix. The route keys the row on scope.dataEmail (OWNER's
+// email for a member) and refuses viewers before touching svi_accounts.
+describeMemberAccess("POST /api/svi-accounts", {
+  state: scopeState,
+  kind: "write",
+  reset: () => {
+    mocks.getCurrentUser.mockResolvedValue(USER);
+    mocks.getSupabaseAdmin.mockReturnValue(makeSb());
+  },
+  run: () => POST(req({ email: "founder@example.com", startup_name: "Acme" })),
+});
+
+describe("POST /api/svi-accounts — member data key", () => {
+  it("editor: svi_accounts row is looked up under the OWNER's email + project", async () => {
+    const sb = makeSb();
+    mocks.getSupabaseAdmin.mockReturnValue(sb);
+    scopeState.projectId = "proj-1";
+    scopeState.role = "editor";
+    const res = await POST(req({ email: "founder@example.com", plan: "growth" }));
+    expect(res.status).toBe(200);
+    const eq = sb._chain.eq as unknown as { mock: { calls: unknown[][] } };
+    expect(eq.mock.calls).toContainEqual(["email", "owner@x.test"]);
+    expect(eq.mock.calls).toContainEqual(["project_id", "proj-1"]);
+  });
+
+  it("viewer: 403 and svi_accounts is never queried", async () => {
+    const sb = makeSb();
+    mocks.getSupabaseAdmin.mockReturnValue(sb);
+    scopeState.projectId = "proj-1";
+    scopeState.role = "viewer";
+    const res = await POST(req({ email: "founder@example.com" }));
+    expect(res.status).toBe(403);
+    expect(sb.from).not.toHaveBeenCalled();
+  });
+});
 
 describe("POST /api/svi-accounts", () => {
   it("returns 401 when unauthenticated", async () => {

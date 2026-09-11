@@ -17,7 +17,7 @@ import type { NextRequest } from "next/server";
 import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { spendCredits } from "@/lib/credits";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import Anthropic from "@anthropic-ai/sdk";
 
 export const dynamic = "force-dynamic";
@@ -60,8 +60,17 @@ export async function POST(request: NextRequest) {
 
   const supabase = getSupabaseAdmin()!;
 
+  // S18-A — editor+ (the filled template is written back onto the
+  // document). Data-room documents + the cap table are keyed on the
+  // project OWNER's user id, the SVI account on (owner email, project_id).
+  // Credits are always the CALLER's.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const ownerUserId = scope?.ownerUserId ?? user.id;
+  const dataEmail = scope?.dataEmail ?? user.email;
+
   // ── Charge credits ─────────────────────────────────────────────────────
-  const projectId = await getProjectIdFromRequest();
   const spend = await spendCredits(user.id, "data_room_auto_fill", {
     email: user.email,
     project_id: projectId,
@@ -82,7 +91,7 @@ export async function POST(request: NextRequest) {
       .from("data_room_documents")
       .select("id, document_name, template_content, account_id")
       .eq("id", body.documentId)
-      .eq("account_id", user.id)
+      .eq("account_id", ownerUserId)
       .maybeSingle();
 
     if (!doc) {
@@ -93,11 +102,13 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Load startup data ──────────────────────────────────────────────────
-  const { data: sviAccount } = await supabase
+  const sviAccountQuery = supabase
     .from("svi_accounts")
     .select("id, current_svi, current_stage, startup_name")
-    .eq("email", user.email)
-    .maybeSingle();
+    .eq("email", dataEmail);
+  if (projectId) sviAccountQuery.eq("project_id", projectId);
+  else sviAccountQuery.is("project_id", null);
+  const { data: sviAccount } = await sviAccountQuery.maybeSingle();
 
   let startupName = (sviAccount?.startup_name as string) ?? "Our Startup";
   let sviScore = (sviAccount?.current_svi as number) ?? 0;
@@ -147,11 +158,12 @@ export async function POST(request: NextRequest) {
   }
 
   // Fetch cap table
-  const { data: shareholders } = await supabase
+  const shareholderQuery = supabase
     .from("shareholders")
     .select("name, role, shares_held")
-    .eq("account_id", user.id)
-    .order("created_at", { ascending: true });
+    .eq("account_id", ownerUserId);
+  if (projectId) shareholderQuery.eq("project_id", projectId);
+  const { data: shareholders } = await shareholderQuery.order("created_at", { ascending: true });
 
   // Fetch recent evidence
   let evidenceSummary = "";
@@ -269,7 +281,7 @@ Return ONLY the filled document in Markdown format.`;
         updated_at: new Date().toISOString(),
       })
       .eq("id", body.documentId)
-      .eq("account_id", user.id);
+      .eq("account_id", ownerUserId);
 
     if (saveErr) {
       console.error("Failed to save filled content:", saveErr);

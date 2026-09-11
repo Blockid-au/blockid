@@ -14,7 +14,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import Stripe from "stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { findOrCreateSVIAccount, getProjectIdFromRequest } from "@/lib/projects";
+import { findOrCreateSVIAccount } from "@/lib/projects";
+import { projectScopeOrRedirect } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,18 @@ export async function GET(request: Request) {
   if (!stateData.csrf || stateData.csrf !== sessionToken.slice(0, 16)) {
     return NextResponse.redirect(`${siteUrl}/workspace/evidence?error=stripe_csrf_mismatch`);
   }
+
+  // S18-A — linking a Stripe account writes oauth_connections + evidence on
+  // the project OWNER's svi_accounts row → admin+. Gate BEFORE the code
+  // exchange; the row is keyed on the owner's email for a member.
+  const { scope, denied } = await projectScopeOrRedirect(
+    "admin",
+    `${siteUrl}/workspace/evidence`,
+    "stripe_forbidden_role",
+  );
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const dataEmail = scope?.dataEmail ?? email;
 
   const platformSecretKey = process.env.STRIPE_SECRET_KEY;
   const clientSecret = process.env.STRIPE_CLIENT_SECRET ?? process.env.STRIPE_SECRET_KEY;
@@ -161,8 +174,7 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${siteUrl}/workspace/evidence?error=stripe_db_unavailable`);
     }
 
-    const projectId = await getProjectIdFromRequest();
-    const accountId = await findOrCreateSVIAccount(email, projectId);
+    const accountId = await findOrCreateSVIAccount(dataEmail, projectId);
     if (!accountId) {
       return NextResponse.redirect(`${siteUrl}/workspace/evidence?error=stripe_account_failed`);
     }
