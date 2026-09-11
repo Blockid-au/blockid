@@ -6,6 +6,10 @@
 //   - lib/funding/radar-drips.ts → enqueueRadarDrip(...) for every
 //     `funding_matches.last_notified.pending_email` entry the weekly
 //     money-radar-sweep left behind (T0246, plan §4h).
+//   - lib/funding/radar-sweep.ts → enqueueRadarSetupDrip(...) for every
+//     Radar subscriber the sweep finds with zero targets (S11-A activation
+//     nudge: `radar_setup`, then `radar_setup_2` 14 days later, never a
+//     third — `listRadarSetupTouches` reads the cap off the rows).
 //   - /api/cron/email-drip → walks due rows and sends via the shared
 //     nodemailer/Resend transport in @/lib/email.
 //
@@ -24,8 +28,9 @@ import {
 
 /**
  * Campaign ids. The DB CHECK on `email_drips.campaign` must list exactly
- * these — 0088 seeded the onboarding five, 0320 added the four radar ones.
- * `RADAR_CAMPAIGNS` is the runtime mirror the migration test compares.
+ * these — 0088 seeded the onboarding five, 0320 added the four radar ones,
+ * 0327 the two activation nudges (S11-A). `ALL_DRIP_CAMPAIGNS` is the
+ * runtime mirror the migration test compares.
  */
 export type DripCampaign =
   | "onboarding_d1"
@@ -36,7 +41,9 @@ export type DripCampaign =
   | "radar_t30"
   | "radar_t14"
   | "radar_t3"
-  | "radar_status_changed";
+  | "radar_status_changed"
+  | "radar_setup"
+  | "radar_setup_2";
 
 export const ONBOARDING_CAMPAIGNS = [
   "onboarding_d1",
@@ -55,13 +62,28 @@ export const RADAR_CAMPAIGNS = [
 
 export type RadarDripCampaign = (typeof RADAR_CAMPAIGNS)[number];
 
+/**
+ * S11-A activation nudges for a Radar subscriber with no grant profile and
+ * no Money Finder intake (the sweep finds zero targets). Two touches, ever:
+ * `radar_setup` on the first sweep that finds them empty, `radar_setup_2`
+ * 14 days later if still empty. The drip rows themselves are the cap.
+ */
+export const RADAR_SETUP_CAMPAIGNS = ["radar_setup", "radar_setup_2"] as const satisfies readonly DripCampaign[];
+
+export type RadarSetupCampaign = (typeof RADAR_SETUP_CAMPAIGNS)[number];
+
 export const ALL_DRIP_CAMPAIGNS: readonly DripCampaign[] = [
   ...ONBOARDING_CAMPAIGNS,
   ...RADAR_CAMPAIGNS,
+  ...RADAR_SETUP_CAMPAIGNS,
 ];
 
 export function isRadarCampaign(c: DripCampaign): c is RadarDripCampaign {
   return (RADAR_CAMPAIGNS as readonly string[]).includes(c);
+}
+
+export function isRadarSetupCampaign(c: string): c is RadarSetupCampaign {
+  return (RADAR_SETUP_CAMPAIGNS as readonly string[]).includes(c);
 }
 
 export type DripStatus =
@@ -117,6 +139,12 @@ export interface DripPayload {
   alternatives?: RadarAlternative[];
   /** Unsubscribe token (email_preferences.unsubscribe_token) when known. */
   unsubscribe_token?: string | null;
+  // S11-A radar_setup / radar_setup_2: live catalogue counts so the body
+  // never says "some grants" (D-3 "always show counts"), plus the startup
+  // name when the sweep knows it.
+  startup?: string | null;
+  open_grants?: number | null;
+  open_programs?: number | null;
 }
 
 export interface SviAnalysisSummary {
@@ -331,6 +359,106 @@ export async function enqueueRadarDrip(
   return "queued";
 }
 
+// ── Founder Radar activation nudges (S11-A) ─────────────────────────────────
+
+/**
+ * A setup touch for the same (email, campaign) inside this window is a
+ * duplicate. The sweep only ever asks for `radar_setup` when no such row
+ * exists and `radar_setup_2` 14 days after it, so this is the belt to that
+ * brace: a re-run, a crash between insert and summary, or an overlapping
+ * tick cannot queue a second copy.
+ */
+export const RADAR_SETUP_DEDUPE_DAYS = 30;
+
+/** Days after the first touch before the follow-up may go. */
+export const RADAR_SETUP_FOLLOWUP_DAYS = 14;
+
+/**
+ * Insert ONE activation nudge, due immediately. De-duped on
+ * `(email, campaign)` within RADAR_SETUP_DEDUPE_DAYS. Suppression
+ * (`canSendEmail(email, "money_radar")`) is the caller's job — the worker
+ * re-checks it before the send anyway.
+ */
+export async function enqueueRadarSetupDrip(
+  email: string,
+  userId: string | null,
+  campaign: RadarSetupCampaign,
+  payload: DripPayload,
+  opts: EnqueueRadarDripOptions = {},
+): Promise<EnqueueRadarDripResult> {
+  const supabase = opts.db === undefined ? getSupabaseAdmin() : opts.db;
+  if (!supabase) return "error";
+
+  const normEmail = email.toLowerCase().trim();
+  if (!normEmail || !normEmail.includes("@")) return "invalid";
+  if (!isRadarSetupCampaign(campaign)) return "invalid";
+
+  const now = opts.now ?? new Date();
+  const since = new Date(now.getTime() - RADAR_SETUP_DEDUPE_DAYS * DAY_MS).toISOString();
+  const { data: existing, error: existingErr } = await supabase
+    .from("email_drips")
+    .select("id")
+    .eq("email", normEmail)
+    .eq("campaign", campaign)
+    .gt("scheduled_for", since)
+    .limit(1);
+  if (existingErr) {
+    console.warn("[email-drip] radar setup dedupe lookup failed", existingErr);
+    return "error";
+  }
+  if (existing && existing.length > 0) return "duplicate";
+
+  const { error: insertErr } = await supabase.from("email_drips").insert([
+    {
+      email: normEmail,
+      user_id: userId,
+      campaign,
+      scheduled_for: now.toISOString(),
+      payload,
+    },
+  ]);
+  if (insertErr) {
+    console.warn("[email-drip] radar setup insert failed", insertErr);
+    return "error";
+  }
+  return "queued";
+}
+
+/** One prior activation touch, as the sweep reads it back from `email_drips`. */
+export interface RadarSetupTouch {
+  campaign: RadarSetupCampaign;
+  scheduled_for: string;
+}
+
+/**
+ * Every activation touch ever queued for this address (any status — a
+ * cancelled or expired row still counts, so an opted-out or lapsed
+ * subscriber is never nudged a third time). Newest first.
+ */
+export async function listRadarSetupTouches(
+  email: string,
+  opts: { db?: DripDbLike | null } = {},
+): Promise<RadarSetupTouch[]> {
+  const supabase = opts.db === undefined ? getSupabaseAdmin() : opts.db;
+  if (!supabase) return [];
+  const normEmail = email.toLowerCase().trim();
+  if (!normEmail) return [];
+  const { data, error } = await supabase
+    .from("email_drips")
+    .select("campaign, scheduled_for")
+    .eq("email", normEmail)
+    .in("campaign", [...RADAR_SETUP_CAMPAIGNS])
+    .order("scheduled_for", { ascending: false })
+    .limit(10);
+  if (error) {
+    console.warn("[email-drip] radar setup touch lookup failed", error);
+    return [];
+  }
+  return ((data ?? []) as Array<{ campaign: string; scheduled_for: string }>)
+    .filter((r) => isRadarSetupCampaign(r.campaign) && typeof r.scheduled_for === "string")
+    .map((r) => ({ campaign: r.campaign as RadarSetupCampaign, scheduled_for: r.scheduled_for }));
+}
+
 // ── Expiry guard ─────────────────────────────────────────────────────────────
 
 /**
@@ -391,7 +519,7 @@ export async function expireStaleDrips(
  * campaign onto the existing categories so `canSendEmail` can decide.
  */
 export function dripCategory(campaign: DripCampaign): EmailCategory {
-  if (isRadarCampaign(campaign)) return "money_radar";
+  if (isRadarCampaign(campaign) || isRadarSetupCampaign(campaign)) return "money_radar";
   return campaign === "onboarding_d14" ? "promotions" : "product_updates";
 }
 
@@ -808,12 +936,81 @@ function radarStatusChangedCopy(email: string, p: DripPayload): RenderedEmail {
   return { subject, html, text: `${text}${footerText(email, footerOpts)}` };
 }
 
+// ── Founder Radar activation nudges (S11-A, D-3 re-engagement voice) ───────
+
+const RADAR_SETUP_REASON = "Sent because Founder Radar is included in your BlockID plan.";
+
+/** Approved subjects — the sweep's in-app title and this line say the same thing. */
+export const RADAR_SETUP_SUBJECTS: Record<RadarSetupCampaign, string> = {
+  radar_setup: "Your Founder Radar is on — tell us 3 things to start matching",
+  radar_setup_2: "Still want grant alerts? 60 seconds sets them up",
+};
+
+/** The one CTA on both touches: the intake, open and focused. */
+export function radarSetupCtaUrl(): string {
+  return `${siteUrl()}/workspace/funding?from=radar_setup`;
+}
+
+/** "14 grants and 6 programs are open today" — counts only when the sweep supplied them. */
+function openCountsLine(p: DripPayload): string | null {
+  const g = typeof p.open_grants === "number" && Number.isFinite(p.open_grants) ? Math.max(0, Math.round(p.open_grants)) : null;
+  const pr = typeof p.open_programs === "number" && Number.isFinite(p.open_programs) ? Math.max(0, Math.round(p.open_programs)) : null;
+  if (g === null || pr === null || g + pr === 0) return null;
+  return `${g} grant${g === 1 ? "" : "s"} and ${pr} program${pr === 1 ? "" : "s"} are open today`;
+}
+
+function radarSetupShell(email: string, p: DripPayload, bits: { kicker: string; subject: string; heading: string; paragraphs: string[]; cta: string }): RenderedEmail {
+  const ctaUrl = radarSetupCtaUrl();
+  const footerOpts = { reason: RADAR_SETUP_REASON, token: p.unsubscribe_token ?? null, category: "money_radar" as const };
+  const html = shell(`
+    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#2563EB;font-weight:600;">BlockID &middot; ${escapeHtml(bits.kicker)}</p>
+    <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0F172A;">${escapeHtml(bits.heading)}</h1>
+    ${bits.paragraphs.map((t) => `<p>${escapeHtml(t)}</p>`).join("\n    ")}
+    ${ctaButton(ctaUrl, bits.cta)}
+    ${footer(email, footerOpts)}`);
+  const text = [bits.heading, "", ...bits.paragraphs.flatMap((t) => [t, ""]), `${bits.cta}: ${ctaUrl}`].join("\n");
+  return { subject: bits.subject, html, text: `${text}${footerText(email, footerOpts)}` };
+}
+
+function radarSetupCopy(email: string, p: DripPayload): RenderedEmail {
+  const startup = p.startup?.trim() || "your startup";
+  const counts = openCountsLine(p);
+  return radarSetupShell(email, p, {
+    kicker: "Founder Radar",
+    subject: RADAR_SETUP_SUBJECTS.radar_setup,
+    heading: "Founder Radar is on. It has nothing to watch yet.",
+    paragraphs: [
+      `Founder Radar re-checks every Australian grant, program and event each Sunday and alerts you 30, 14 and 3 days before a deadline. Right now it has nothing to match against: we do not know what ${startup} builds, where it is based or what stage it is at.`,
+      `${counts ? `${counts}. ` : ""}Answer three questions — what, where, stage — and the first match list is ready in about 60 seconds. Everything else is prefilled from your profile.`,
+    ],
+    cta: "Answer 3 questions",
+  });
+}
+
+function radarSetup2Copy(email: string, p: DripPayload): RenderedEmail {
+  const counts = openCountsLine(p);
+  return radarSetupShell(email, p, {
+    kicker: "Founder Radar · follow-up",
+    subject: RADAR_SETUP_SUBJECTS.radar_setup_2,
+    heading: "Still want grant alerts?",
+    paragraphs: [
+      `Two weeks ago we asked three questions so Founder Radar could start matching. Nothing has come through, so your Radar is still watching an empty list${counts ? ` while ${counts}` : ""}.`,
+      "If grant alerts are not useful to you, ignore this — we will not ask again. If they are, the three questions take about 60 seconds and the first match list is ready straight after.",
+    ],
+    cta: "Set up matching",
+  });
+}
+
 export function renderDripBody(
   campaign: DripCampaign,
   email: string,
   payload: DripPayload,
 ): RenderedEmail {
   switch (campaign) {
+    case "radar_setup":
+      return radarSetupCopy(email, payload);
+    case "radar_setup_2":
+      return radarSetup2Copy(email, payload);
     case "onboarding_d1":
       return d1Copy(email, payload);
     case "onboarding_d3":

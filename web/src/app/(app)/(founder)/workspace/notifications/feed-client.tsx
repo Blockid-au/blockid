@@ -24,6 +24,7 @@ import {
   Footprints,
   Sparkles,
   RefreshCw,
+  Radar,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -79,6 +80,7 @@ export const KIND_META: Record<string, { icon: typeof Bell; color: string; label
   weekly_next_step: { icon: Footprints, color: "text-emerald-600", label: "This week's money step" },
   new_matches: { icon: Sparkles, color: "text-violet-600", label: "New matches" },
   analysis_refresh: { icon: RefreshCw, color: "text-ink-600", label: "Analysis refreshed" },
+  radar_setup_nudge: { icon: Radar, color: "text-amber-600", label: "Founder Radar setup" },
 };
 
 function timeAgo(iso: string): string {

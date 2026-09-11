@@ -53,6 +53,11 @@ export interface FundingIntakeProps {
   projectId?: string | null;
   /** Workspace variant: shorter heading, no "no signup" line. */
   variant?: "public" | "workspace";
+  /**
+   * S11-A: `/workspace/funding?from=radar_setup` (the activation nudge)
+   * lands the founder in the first question — native `autoFocus`, no state.
+   */
+  autoFocus?: boolean;
 }
 
 export interface FormState {
@@ -133,7 +138,7 @@ export function prefillFromSearch(search: string): Partial<FormState> {
   return out;
 }
 
-export function FundingIntake({ openGrantCount, openProgramCount, initial, projectId, variant = "public" }: FundingIntakeProps) {
+export function FundingIntake({ openGrantCount, openProgramCount, initial, projectId, variant = "public", autoFocus = false }: FundingIntakeProps) {
   const [form, setForm] = React.useState<FormState>(() => initialForm(initial));
   const [drawer, setDrawer] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -207,7 +212,12 @@ export function FundingIntake({ openGrantCount, openProgramCount, initial, proje
   }
 
   return (
-    <section id="intake" className={variant === "workspace" ? "" : "mx-auto max-w-5xl px-6 py-12"} aria-labelledby="funding-intake-heading">
+    <section
+      id="intake"
+      className={variant === "workspace" ? "" : "mx-auto max-w-5xl px-6 py-12"}
+      aria-labelledby="funding-intake-heading"
+      data-intake-autofocus={autoFocus ? "1" : undefined}
+    >
       <div className="rounded-2xl border border-line-subtle bg-surface-raised p-6 shadow-sm sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-wide text-action">Three questions · free preview</p>
         <h2 id="funding-intake-heading" className="mt-1 font-display text-2xl font-semibold text-primary sm:text-3xl">
@@ -238,6 +248,7 @@ export function FundingIntake({ openGrantCount, openProgramCount, initial, proje
               className={`${FIELD} min-h-[110px] resize-y`}
               aria-describedby="fi-description-help"
               required
+              autoFocus={autoFocus}
             />
             <p id="fi-description-help" className="mt-1 text-xs text-tertiary">
               {descriptionOk

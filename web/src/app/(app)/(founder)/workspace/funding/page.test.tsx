@@ -398,4 +398,37 @@ describe("/workspace/funding (T0244)", { timeout: 20_000 }, () => {
     expect(note).toContain("<strong>54 → 61</strong>");
     expect(refreshMock).toHaveBeenCalledWith("u-1", "proj-1");
   });
+
+  // S11-A — the activation nudge (in-app + radar_setup drips) lands on
+  // ?from=radar_setup: the 3-question intake moves to the top of the page,
+  // open, with its first field focused. Server prop only — no client state.
+  it("?from=radar_setup puts the intake first and autofocuses its first question (paid founder with no report)", async () => {
+    latestReportMock.mockResolvedValue(null);
+    const out = await html({ from: "radar_setup" });
+    expect(out).toContain('data-from="radar_setup"');
+    expect(out).toContain('data-intake-position="top"');
+    expect(out).toContain('data-intake-autofocus="1"');
+    expect(out).toMatch(/<textarea[^>]*id="fi-description"[^>]*autofocus/i);
+    // Intake precedes the tile and the workspace prompt.
+    expect(out.indexOf("data-funding-intake")).toBeLessThan(out.indexOf("data-money-radar-tile"));
+    expect(out.indexOf("data-funding-intake")).toBeLessThan(out.indexOf("data-funding-workspace"));
+    // Exactly one intake on the page.
+    expect(out.match(/data-funding-intake/g)).toHaveLength(1);
+  });
+
+  it("without ?from= (or with another value) the intake stays under the tabs, unfocused", async () => {
+    for (const search of [{}, { from: "email" }]) {
+      const out = await html(search);
+      expect(out).not.toContain('data-from="radar_setup"');
+      expect(out).toContain('data-intake-position="bottom"');
+      expect(out).not.toContain("data-intake-autofocus");
+      expect(out).not.toMatch(/<textarea[^>]*autofocus/i);
+      expect(out.indexOf("data-funding-workspace")).toBeLessThan(out.indexOf("data-funding-intake"));
+    }
+    // Free founder: the intake is the page, and the nudge still focuses it.
+    canMock.mockResolvedValue(false);
+    const free = await html({ from: "radar_setup" });
+    expect(free).toContain('data-intake-autofocus="1"');
+    expect(free).toContain("data-paywall-hint");
+  });
 });

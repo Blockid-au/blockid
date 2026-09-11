@@ -35,6 +35,8 @@ export const NOTIFICATION_KINDS = [
   "weekly_next_step",
   "new_matches",
   "analysis_refresh",
+  // S11-A activation nudge: Radar subscriber with no grant profile / intake.
+  "radar_setup_nudge",
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -47,7 +49,19 @@ export const MONEY_KINDS: readonly NotificationKind[] = [
   "weekly_next_step",
   "new_matches",
   "analysis_refresh",
+  "radar_setup_nudge",
 ];
+
+/**
+ * S11-A — the Founder Radar activation nudge (plan §4i D-2 `no_profile`
+ * tile state, D-3 re-engagement voice). Written by the weekly sweep for
+ * every subscriber with zero targets; dedupe key `radar_setup:<user>`,
+ * 30-day throttle. Fixed copy rather than a FUNDING_COPY template: it is
+ * 61 chars (one over the D-3 feed template cap) and carries no tokens.
+ */
+export const RADAR_SETUP_NUDGE_TITLE = "Your Founder Radar is on — tell us 3 things to start matching";
+export const RADAR_SETUP_NUDGE_HREF = "/workspace/funding?from=radar_setup";
+export const RADAR_SETUP_NUDGE_ACTION_LABEL = "Set up matching";
 
 export function isNotificationKind(v: unknown): v is NotificationKind {
   return typeof v === "string" && (NOTIFICATION_KINDS as readonly string[]).includes(v);
@@ -77,6 +91,7 @@ export const KIND_LABELS: Record<NotificationKind, string> = {
   weekly_next_step: "This week's money step",
   new_matches: "New matches",
   analysis_refresh: "Analysis refreshed",
+  radar_setup_nudge: "Founder Radar setup",
 };
 
 function s(v: unknown): string | null {
@@ -196,6 +211,16 @@ export function describeNotification(row: FounderNotificationRow): string {
       }
       return FUNDING_COPY.notification.weekly_next_step;
     }
+    case "radar_setup_nudge": {
+      // Counts come from the sweep's catalogue so the line is never blank
+      // (D-3 "always show counts"); the title alone when they are missing.
+      const g = n(p.open_grants);
+      const pr = n(p.open_programs);
+      if (g !== null && pr !== null && g + pr > 0) {
+        return `${RADAR_SETUP_NUDGE_TITLE} — ${g} grants and ${pr} programs are open right now`;
+      }
+      return RADAR_SETUP_NUDGE_TITLE;
+    }
     case "analysis_refresh": {
       const changes = n(p.changes) ?? (Array.isArray(p.changes) ? p.changes.length : null);
       if (changes !== null && changes > 0) return fill(FUNDING_COPY.notification.analysis_refresh, { n: changes });
@@ -241,6 +266,8 @@ export function notificationAction(row: FounderNotificationRow): { href: string;
       return { href: s(p.href) ?? "/dashboard", label: Array.isArray(p.movers) ? "Open Progress Radar" : "Do it now" };
     case "analysis_refresh":
       return { href: s(p.href) ?? "/workspace/business-report", label: "Read the update" };
+    case "radar_setup_nudge":
+      return { href: RADAR_SETUP_NUDGE_HREF, label: RADAR_SETUP_NUDGE_ACTION_LABEL };
     default:
       return null;
   }

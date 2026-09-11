@@ -77,6 +77,7 @@ interface FakeState {
     selectCols: Array<{ table: string; cols: string }>;
     eqs: Array<{ table: string; op: string; col: string; val: unknown }>;
     gts: Array<{ table: string; col: string; val: unknown }>;
+    ins: Array<{ table: string; col: string; val: unknown }>;
     ltes: Array<{ table: string; col: string; val: unknown }>;
     lts: Array<{ table: string; op: string; col: string; val: unknown }>;
     iss: Array<{ table: string; op: string; col: string; val: unknown }>;
@@ -97,6 +98,7 @@ const state: FakeState = {
     selectCols: [],
     eqs: [],
     gts: [],
+    ins: [],
     ltes: [],
     lts: [],
     iss: [],
@@ -117,6 +119,7 @@ function resetState() {
     selectCols: [],
     eqs: [],
     gts: [],
+    ins: [],
     ltes: [],
     lts: [],
     iss: [],
@@ -156,6 +159,10 @@ vi.mock("@/lib/supabase", () => ({
           },
           gt(col: string, val: unknown) {
             state.captured.gts.push({ table, col, val });
+            return selectChain;
+          },
+          in(col: string, val: unknown) {
+            state.captured.ins.push({ table, col, val });
             return selectChain;
           },
           lte(col: string, val: unknown) {
@@ -243,10 +250,17 @@ import {
   renderDripBody,
   enqueueOnboardingDrip,
   enqueueRadarDrip,
+  enqueueRadarSetupDrip,
+  listRadarSetupTouches,
   ALL_DRIP_CAMPAIGNS,
   RADAR_CAMPAIGNS,
+  RADAR_SETUP_CAMPAIGNS,
+  RADAR_SETUP_SUBJECTS,
   RADAR_DRIP_DEDUPE_DAYS,
+  RADAR_SETUP_DEDUPE_DAYS,
+  RADAR_SETUP_FOLLOWUP_DAYS,
   isRadarCampaign,
+  isRadarSetupCampaign,
   dueDrips,
   markSent,
   markFailed,
@@ -1330,15 +1344,30 @@ describe("radar campaigns → money_radar category", () => {
 });
 
 // The DB CHECK is the last line of defence against a campaign id the worker
-// cannot render. This pins migration 0320's list to the TS union (via the
-// runtime ALL_DRIP_CAMPAIGNS mirror) so neither can drift alone.
-describe("migration 0320 campaign CHECK matches the DripCampaign union", () => {
-  it("lists exactly ALL_DRIP_CAMPAIGNS", () => {
-    const sql = readFileSync(resolve(__dirname, "../../supabase/migrations/0320_radar_drips.sql"), "utf8");
-    const block = sql.match(/add constraint email_drips_campaign_check[\s\S]*?\]\)\);/i)?.[0] ?? "";
-    expect(block).not.toBe("");
-    const listed = Array.from(block.matchAll(/'([a-z0-9_]+)'::text/g)).map((m) => m[1]);
+// cannot render. This pins the LATEST migration's list (0327, S11-A) to the
+// TS union (via the runtime ALL_DRIP_CAMPAIGNS mirror) so neither can drift
+// alone; each earlier re-assertion (0320) must be a strict subset.
+function campaignCheckList(file: string): { sql: string; listed: string[] } {
+  const sql = readFileSync(resolve(__dirname, `../../supabase/migrations/${file}`), "utf8");
+  const block = sql.match(/add constraint email_drips_campaign_check[\s\S]*?\]\)\);/i)?.[0] ?? "";
+  expect(block, file).not.toBe("");
+  return { sql, listed: Array.from(block.matchAll(/'([a-z0-9_]+)'::text/g)).map((m) => m[1]) };
+}
+
+describe("migration 0327 campaign CHECK matches the DripCampaign union", () => {
+  it("lists exactly ALL_DRIP_CAMPAIGNS (onboarding five + radar four + setup two)", () => {
+    const { sql, listed } = campaignCheckList("0327_radar_setup_drip.sql");
     expect([...listed].sort()).toEqual([...ALL_DRIP_CAMPAIGNS].sort());
+    expect(listed).toContain("radar_setup");
+    expect(listed).toContain("radar_setup_2");
+    expect(sql).toMatch(/drop constraint if exists email_drips_campaign_check/i);
+    expect(sql).toMatch(/notify pgrst, 'reload schema'/);
+  });
+
+  it("0320's list is a strict subset (nothing was dropped)", () => {
+    const { sql, listed } = campaignCheckList("0320_radar_drips.sql");
+    expect(listed.length).toBe(9);
+    for (const c of listed) expect(ALL_DRIP_CAMPAIGNS).toContain(c);
     expect(sql).toMatch(/drop constraint if exists email_drips_campaign_check/i);
   });
 
@@ -1423,5 +1452,144 @@ describe("enqueueRadarDrip", () => {
     };
     expect(await enqueueRadarDrip("f@x.co", "u1", "radar_t30", RADAR_PAYLOAD, { db })).toBe("queued");
     expect(calls).toEqual(["email_drips", "email_drips"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// S11-A — Founder Radar activation nudges: radar_setup (first empty sweep)
+// and radar_setup_2 (≥ 14 days later, still empty). Subjects are the approved
+// strings; each body is ≤ 120 words, names the live counts, carries ONE CTA
+// to /workspace/funding?from=radar_setup and the money_radar unsubscribe.
+// ---------------------------------------------------------------------------
+
+const SETUP_PAYLOAD = { startup: "Acme Agtech", open_grants: 14, open_programs: 6, unsubscribe_token: null };
+
+function wordCount(text: string): number {
+  // Body only — drop the footer (company line + unsubscribe) and the CTA URL.
+  const body = text.split("\n\n—\n")[0].replace(/https?:\/\/\S+/g, "");
+  return body.split(/\s+/).filter(Boolean).length;
+}
+
+describe("renderDripBody — radar_setup / radar_setup_2 (S11-A)", () => {
+  it("radar_setup: approved subject, counts, startup name, one CTA to ?from=radar_setup, money_radar footer, ≤ 120 words", () => {
+    const out = renderDripBody("radar_setup", "f@x.co", SETUP_PAYLOAD);
+    expect(out.subject).toBe("Your Founder Radar is on — tell us 3 things to start matching");
+    expect(out.subject).toBe(RADAR_SETUP_SUBJECTS.radar_setup);
+    expect(out.html).toContain("Acme Agtech");
+    expect(out.html).toContain("14 grants and 6 programs are open today");
+    expect(out.html).toContain('href="https://blockid.au/workspace/funding?from=radar_setup"');
+    expect(out.html.match(/href="https:\/\/blockid\.au\/workspace\/funding\?from=radar_setup"/g)).toHaveLength(1);
+    expect(out.html).toContain("Answer 3 questions");
+    expect(out.html).toContain("https://blockid.au/unsubscribe?email=f%40x.co");
+    expect(out.html).toContain("Founder Radar is included in your BlockID plan");
+    expect(out.text).toContain("Answer 3 questions: https://blockid.au/workspace/funding?from=radar_setup");
+    expect(wordCount(out.text)).toBeLessThanOrEqual(120);
+    // D-3 voice: no exclamation marks, no emoji.
+    expect(out.text).not.toMatch(/!/);
+  });
+
+  it("radar_setup_2: the follow-up subject, says it is the last ask, same single CTA, ≤ 120 words", () => {
+    const out = renderDripBody("radar_setup_2", "f@x.co", { ...SETUP_PAYLOAD, unsubscribe_token: "tok-9" });
+    expect(out.subject).toBe("Still want grant alerts? 60 seconds sets them up");
+    expect(out.subject).toBe(RADAR_SETUP_SUBJECTS.radar_setup_2);
+    expect(out.html).toContain("we will not ask again");
+    expect(out.html).toContain("14 grants and 6 programs are open today");
+    expect(out.html.match(/href="https:\/\/blockid\.au\/workspace\/funding\?from=radar_setup"/g)).toHaveLength(1);
+    expect(out.html).toContain("Set up matching");
+    expect(out.html).toContain("https://blockid.au/unsubscribe?token=tok-9&amp;category=money_radar");
+    expect(wordCount(out.text)).toBeLessThanOrEqual(120);
+  });
+
+  it("never blank when counts are missing, and escapes the startup name", () => {
+    const out = renderDripBody("radar_setup", "f@x.co", { startup: "<b>Evil</b>" });
+    expect(out.html).toContain("&lt;b&gt;Evil&lt;/b&gt;");
+    expect(out.html).not.toContain("<b>Evil</b>");
+    expect(out.html).not.toContain("are open today");
+    expect(out.html).toContain("Answer three questions");
+    const noName = renderDripBody("radar_setup", "f@x.co", { open_grants: 0, open_programs: 0 });
+    expect(noName.html).toContain("your startup");
+    expect(noName.html).not.toContain("0 grants");
+  });
+
+  it("campaign registry: setup campaigns are money_radar, in ALL_DRIP_CAMPAIGNS, not radar deadline campaigns", () => {
+    expect(RADAR_SETUP_CAMPAIGNS).toEqual(["radar_setup", "radar_setup_2"]);
+    for (const c of RADAR_SETUP_CAMPAIGNS) {
+      expect(ALL_DRIP_CAMPAIGNS).toContain(c);
+      expect(dripCategory(c)).toBe("money_radar");
+      expect(isRadarSetupCampaign(c)).toBe(true);
+      expect(isRadarCampaign(c)).toBe(false);
+    }
+    expect(isRadarSetupCampaign("radar_t14")).toBe(false);
+    expect(RADAR_SETUP_DEDUPE_DAYS).toBe(30);
+    expect(RADAR_SETUP_FOLLOWUP_DAYS).toBe(14);
+  });
+
+  it("canSendDrip gates a setup campaign on money_radar", async () => {
+    canSendEmailMock.mockResolvedValue(false);
+    expect(await canSendDrip("f@x.co", "radar_setup_2")).toBe(false);
+    expect(canSendEmailMock).toHaveBeenCalledWith("f@x.co", "money_radar");
+  });
+});
+
+describe("enqueueRadarSetupDrip / listRadarSetupTouches (S11-A)", () => {
+  const NOW = new Date("2026-09-13T05:10:00.000Z");
+
+  it("inserts one due-now row deduped on (email, campaign) inside 30 days", async () => {
+    const r = await enqueueRadarSetupDrip("F@X.co ", "u1", "radar_setup", SETUP_PAYLOAD, { now: NOW });
+    expect(r).toBe("queued");
+    const eqs = state.captured.eqs.filter((e) => e.table === "email_drips" && e.op === "select");
+    expect(eqs.map((e) => [e.col, e.val])).toEqual([
+      ["email", "f@x.co"],
+      ["campaign", "radar_setup"],
+    ]);
+    const gt = state.captured.gts.find((g) => g.table === "email_drips");
+    expect(gt?.col).toBe("scheduled_for");
+    expect(gt?.val).toBe(new Date(NOW.getTime() - RADAR_SETUP_DEDUPE_DAYS * 86_400_000).toISOString());
+    expect(state.captured.inserts.find((i) => i.table === "email_drips")?.rows).toEqual([
+      { email: "f@x.co", user_id: "u1", campaign: "radar_setup", scheduled_for: NOW.toISOString(), payload: SETUP_PAYLOAD },
+    ]);
+  });
+
+  it("returns 'duplicate' inside the window, 'invalid' for a bad address or non-setup campaign, 'error' on db failure", async () => {
+    state.results["email_drips:select"] = { data: [{ id: "existing" }], error: null };
+    expect(await enqueueRadarSetupDrip("f@x.co", "u1", "radar_setup_2", SETUP_PAYLOAD, { now: NOW })).toBe("duplicate");
+    expect(state.captured.inserts).toHaveLength(0);
+    expect(await enqueueRadarSetupDrip("nope", "u1", "radar_setup", SETUP_PAYLOAD)).toBe("invalid");
+    expect(await enqueueRadarSetupDrip("f@x.co", "u1", "radar_t14" as never, SETUP_PAYLOAD)).toBe("invalid");
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    state.results["email_drips:select"] = { data: null, error: { message: "boom" } };
+    expect(await enqueueRadarSetupDrip("f@x.co", "u1", "radar_setup", SETUP_PAYLOAD)).toBe("error");
+    state.adminNull = true;
+    expect(await enqueueRadarSetupDrip("f@x.co", "u1", "radar_setup", SETUP_PAYLOAD)).toBe("error");
+  });
+
+  it("listRadarSetupTouches reads every setup row for the address (any status), newest first, ignoring other campaigns", async () => {
+    state.results["email_drips:select"] = {
+      data: [
+        { campaign: "radar_setup_2", scheduled_for: "2026-09-27T05:00:00Z" },
+        { campaign: "radar_setup", scheduled_for: "2026-09-13T05:00:00Z" },
+        { campaign: "radar_t14", scheduled_for: "2026-09-13T05:00:00Z" },
+      ],
+      error: null,
+    };
+    const touches = await listRadarSetupTouches(" F@x.co ");
+    expect(touches).toEqual([
+      { campaign: "radar_setup_2", scheduled_for: "2026-09-27T05:00:00Z" },
+      { campaign: "radar_setup", scheduled_for: "2026-09-13T05:00:00Z" },
+    ]);
+    expect(state.captured.eqs.find((e) => e.table === "email_drips")).toMatchObject({ col: "email", val: "f@x.co" });
+    expect(state.captured.ins.find((i) => i.table === "email_drips")).toMatchObject({ col: "campaign", val: ["radar_setup", "radar_setup_2"] });
+    expect(state.captured.orders.find((o) => o.table === "email_drips")).toMatchObject({ col: "scheduled_for", ascending: false });
+    // No status filter — a cancelled (opt-out) or expired row still counts as a touch.
+    expect(state.captured.eqs.filter((e) => e.table === "email_drips").map((e) => e.col)).not.toContain("status");
+  });
+
+  it("listRadarSetupTouches is [] on null admin, blank email or a read error", async () => {
+    expect(await listRadarSetupTouches("  ")).toEqual([]);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    state.results["email_drips:select"] = { data: null, error: { message: "boom" } };
+    expect(await listRadarSetupTouches("f@x.co")).toEqual([]);
+    state.adminNull = true;
+    expect(await listRadarSetupTouches("f@x.co")).toEqual([]);
   });
 });

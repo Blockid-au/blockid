@@ -2,8 +2,10 @@
 //
 // CCSO onboarding drip worker — also sends the Money Radar deadline drips
 // (`radar_t30/t14/t3`, `radar_status_changed`) that
-// lib/funding/radar-drips.ts queues after the weekly sweep (T0246); those
-// ride the `money_radar` preference through the same canSendDrip gate.
+// lib/funding/radar-drips.ts queues after the weekly sweep (T0246) and the
+// activation nudges (`radar_setup`, `radar_setup_2`) the sweep itself
+// queues for subscribers with no profile (S11-A); all of those ride the
+// `money_radar` preference through the same canSendDrip gate.
 // Each run, in order:
 //
 //   1. expireStaleDrips() — pending rows more than DRIP_EXPIRY_DAYS past

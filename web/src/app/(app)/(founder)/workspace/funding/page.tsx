@@ -14,7 +14,9 @@
  * `?tab=` picks the initial tab; `?draft=<grantId>&kind=grant` opens the
  * per-grant application draft editor (T0251 — Growth / Startup Package
  * unlimited, Starter 2 credits after confirming); `?draft=<ref>&kind=program`
- * is still the acknowledgement stub.
+ * is still the acknowledgement stub. `?from=radar_setup` (S11-A activation
+ * nudge, in-app + email) moves the 3-question intake to the top of the page
+ * and focuses its first field — a server-side prop, no client state.
  *
  * Growth extras (T0251, §4h Growth row) on the Investors / Expert update
  * tabs: investor reverse-match (`matchInvestorsForProject`) and the latest
@@ -67,8 +69,11 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ tab?: string | string[]; draft?: string | string[]; kind?: string | string[] }>;
+  searchParams: Promise<{ tab?: string | string[]; draft?: string | string[]; kind?: string | string[]; from?: string | string[] }>;
 }
+
+/** `?from=radar_setup` — the activation nudge's landing (S11-A; page files export only Next fields). */
+const RADAR_SETUP_FROM = "radar_setup";
 
 function first(v: string | string[] | undefined): string | null {
   return (Array.isArray(v) ? v[0] : v) ?? null;
@@ -82,6 +87,7 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
   const tabParam = first(sp.tab);
   const draftRef = first(sp.draft);
   const draftKind = first(sp.kind) === "program" ? "program" : "grant";
+  const fromRadarSetup = first(sp.from) === RADAR_SETUP_FROM;
 
   const [isSandbox, included, project] = await Promise.all([
     getCurrentProjectIsSandbox(),
@@ -209,9 +215,29 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
 
   const verified = latestVerifiedAt([...grants, ...programs]);
 
+  // The intake sits under the tabs for a paid founder; the activation nudge
+  // (`?from=radar_setup`) brings it to the top, open and focused, because
+  // that founder has no report to show yet.
+  const intake = (
+    <section
+      className={included && !fromRadarSetup ? "mt-10 border-t border-line-subtle pt-8" : fromRadarSetup ? "mb-10" : ""}
+      aria-label="Run a match"
+      data-intake-position={fromRadarSetup ? "top" : "bottom"}
+    >
+      <FundingIntake
+        openGrantCount={openGrantCount}
+        openProgramCount={openProgramCount}
+        initial={prefill}
+        projectId={project?.id ?? null}
+        variant="workspace"
+        autoFocus={fromRadarSetup}
+      />
+    </section>
+  );
+
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox} startupName={project?.name} currentPhase={navPhase}>
-      <div className="mx-auto max-w-5xl" data-workspace-funding data-plan-included={included ? "1" : "0"}>
+      <div className="mx-auto max-w-5xl" data-workspace-funding data-plan-included={included ? "1" : "0"} data-from={fromRadarSetup ? RADAR_SETUP_FROM : undefined}>
         <header className="mb-6">
           <p className="text-xs font-semibold uppercase tracking-wide text-action">Validate · Discover</p>
           <h1 className="mt-1 font-display text-2xl font-semibold text-primary sm:text-3xl">Grant &amp; Program Finder</h1>
@@ -236,18 +262,10 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
           ) : null}
         </header>
 
+        {fromRadarSetup ? intake : null}
         {tile}
         {workspace}
-
-        <section className={included ? "mt-10 border-t border-line-subtle pt-8" : ""} aria-label="Run a match">
-          <FundingIntake
-            openGrantCount={openGrantCount}
-            openProgramCount={openProgramCount}
-            initial={prefill}
-            projectId={project?.id ?? null}
-            variant="workspace"
-          />
-        </section>
+        {fromRadarSetup ? null : intake}
 
         <FundingDisclaimer lastVerifiedAt={verified} className="mt-8" />
       </div>
