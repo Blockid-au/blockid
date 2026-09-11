@@ -1,4 +1,4 @@
--- 0330_project_member_access.sql — S17-A project-level permissions
+-- 0331_project_member_access.sql — S17-A project-level permissions
 -- ---------------------------------------------------------------------------
 -- Makes project membership real on the data layer:
 --
@@ -27,7 +27,7 @@
 --
 -- Apply (NOT auto-applied on deploy — see memory/reference_db_migrations):
 --   docker exec -i supabase-db psql -U postgres -d postgres \
---     -f /path/to/0330_project_member_access.sql
+--     -f /path/to/0331_project_member_access.sql
 --   then: NOTIFY pgrst, 'reload schema';
 --
 -- Idempotent: IF NOT EXISTS / OR REPLACE / DROP POLICY IF EXISTS throughout.
