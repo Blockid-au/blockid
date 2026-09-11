@@ -37,6 +37,7 @@ import {
 import { exec } from "child_process";
 import * as fs from "fs";
 import { cronSecret, isCronAuthorised } from "@/lib/security/cron-auth";
+import { parseCompletedTaskIds } from "@/lib/orchestrator/parse-task-ids";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -400,26 +401,7 @@ async function stageUpdateArtifacts(): Promise<StageResult> {
   const recentChanges = await runShell(
     "git log --since='2 days ago' --pretty=format:%h%x1f%B%x1e 2>/dev/null",
   );
-  const idToCommit = new Map<string, string>();
-  let lastCommit = "";
-  for (const entry of recentChanges.output.split("\x1e")) {
-    const sep = entry.indexOf("\x1f");
-    if (sep < 0) continue;
-    const sha = entry.slice(0, sep).trim();
-    const body = entry.slice(sep + 1);
-    if (!/^[0-9a-f]{7,40}$/.test(sha)) continue;
-    if (!lastCommit) lastCommit = sha;
-    // Skip the orchestrator's own release commits — they list every task ID
-    // already shipped, which would mask future false-positives if anyone
-    // manually reopens a task.
-    if (/^chore\(release\):/m.test(body)) continue;
-    const idMatches = body.match(/\bT0\d{3,4}\b/g);
-    if (idMatches) {
-      for (const id of idMatches) {
-        if (!idToCommit.has(id)) idToCommit.set(id, sha);
-      }
-    }
-  }
+  const { idToCommit, lastCommit } = parseCompletedTaskIds(recentChanges.output);
 
   const completed: PlanTask[] = [];
   for (const t of openTasks) {
