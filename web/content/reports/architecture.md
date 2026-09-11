@@ -1,11 +1,12 @@
 # Architecture — BlockID.au (living)
 
-**Version:** v3.11.0  ·  **Last reviewed:** 2026-09-10T16:00:02.533Z
+**Version:** v3.12.0  ·  **Last reviewed:** 2026-09-11T16:00:02.024Z
 
 ## Summary
 BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.
 
 ## Change notes
+- v3.12.0 — CTO: Update Essential Eight Vulnerabilities to reflect ACSC alerts
 - v3.11.0 — CMO: Evaluator Progress Radar digest: extend watchlist-digest to evaluator-owned projects, merge G11 Money Radar signals (grant deadlines, program intakes) for tracked startups
 - v3.11.0 — IR: Growth extras: investor reverse-match (getDealFlow inverted), per-grant application_prompts drafts, quarterly expert analysis refresh
 - v3.11.0 — CPO: MoneyRadarTile (5 states) on /dashboard + /workspace/funding tabs + lib/funding/copy.ts messaging keys + VI review
@@ -25,4 +26,3 @@ BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → S
 - v3.0.0 — RND: Develop Conversion/CTA experiment ideas & A/B test hypotheses for startup tooling
 - v3.0.0 — RND: Conversion/CTA experiment ideas & A/B test hypotheses
 - v3.0.0 — CSO: Pricing & segment A/B test infra (/admin/pricing-test)
-- v3.0.0 — RND: New AI tools & capabilities for startup tooling

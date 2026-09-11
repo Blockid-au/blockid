@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v3.11.0  ·  **Updated:** 2026-09-10T19:42:18.019Z  ·  **Decided by:** ceo (2026-09-10T12:04:03.482Z)
+**Version:** v3.12.0  ·  **Updated:** 2026-09-11T16:00:02.024Z  ·  **Decided by:** ceo (2026-09-10T12:04:03.482Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -31,7 +31,6 @@
 | T0258 | CTO | First-Principles Redesign | minor | ⬜ pending |
 | T0259 | CLO | SCN Report + PDF Redesign | major | ⬜ pending |
 | T0260 | CRO | Implement VC Method Valuation & Pricing Strategy | minor | ⬜ pending |
-| T0261 | CTO | Update Essential Eight Vulnerabilities to reflect ACSC alerts | minor | ⬜ pending |
 | T0262 | CFO | Refine Startup Valuation Engine for PitchBook benchmark comparison | minor | ⬜ pending |
 | T0263 | CRO | ACSC alerts integration | patch | ⬜ pending |
 | T0265 | CRO | CISA alerts integration | patch | ⬜ pending |
@@ -49,6 +48,7 @@
 - ✅ `T0250` **CMO** — Hero one-liners: lib/marketing/hero-variants.ts (F1/F2/F3 arms) + GA4 hero_variant + hero-section + layout SITE_DESCRIPTION + messages hero.* (EN/VI) + 5-second test protocol (`f04879155`)
 
 ## Milestones
+- **M022** v3.12.0 — CTO: Update Essential Eight Vulnerabilities to reflect ACSC alerts (2026-09-11, 1 tasks)
 - **M021** v3.11.0 — CPO: /funding/report/[id] (cards, 12-month SVG Gantt, actions, disclaimers) + PDF + lib/dataroom/save-deliverable.ts + /workspace/funding + nav leaf validate.discover + recommender secondary money lan (2026-09-10, 9 tasks)
 - **M020** v3.9.0 — CFO: Implement Top-Down/Bottom-Up TAM/SAM/SOM Calculator; CFO: Build Top-Down/Bottom-Up TAM/SAM/SOM Calculator (2026-08-31, 2 tasks)
 - **M019** v3.8.1 — CFO: Sector-Specific Revenue Multiple Library (2026-08-30, 1 tasks)
@@ -60,4 +60,3 @@
 - **M013** v2.6.0 — CFO: Integrate sector ARR/revenue multiples for valuation benchmarking (2026-07-18, 1 tasks)
 - **M020** v2.2.0 — T0102-T0110 Batch 9: ESOP scoring engine, governance API, knowledge base API, SVI roadmap widget, ESOP checklist SEO tool, data room readiness API (2026-06-14, 7 tasks)
 - **M019** v2.1.0 — T0094–T0101 ESOP + SVI + Data Room + Knowledge Base — investor-ready documents, ESOP Manager UI live (2026-06-14, 8 tasks)
-- **M018** v2.0.0 — Feature Batch 8 (T0086–T0090): Financial Projection Norms calculator, Term Sheet AI v2 persistence, Fundraising Report v2, Google Analytics evidence connector, SVI Cohort Benchmark page (2026-06-13, 6 tasks)

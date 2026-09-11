@@ -1,9 +1,9 @@
 {
-  "version": "3.11.0",
-  "updatedAt": "2026-09-10T19:42:18.019Z",
+  "version": "3.12.0",
+  "updatedAt": "2026-09-11T16:00:02.024Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
-    "lastReviewedAt": "2026-09-10T16:00:02.533Z",
+    "lastReviewedAt": "2026-09-11T16:00:02.024Z",
     "notes": [
       "v0.2.0 — CEO implementing-plan loop (research → CEO plan → code → version/milestone/architecture), off-peak deploy gating.",
       "v0.3.0 — CFO VC-grade valuation engine (src/lib/agents/cfo-valuation.ts): market sizing (TAM/SAM/SOM), 4 valuation methods, projections, unit economics, break-even, payback, financial injection.",
@@ -41,7 +41,8 @@
       "v3.11.0 — CRO: Founder Radar packaging: plans.csv flags money_radar/grant_finder (Starter, Growth, Package), pricing matrix row, A$3→subscribe upsell card, GA4 radar_upsell_*",
       "v3.11.0 — CPO: MoneyRadarTile (5 states) on /dashboard + /workspace/funding tabs + lib/funding/copy.ts messaging keys + VI review",
       "v3.11.0 — IR: Growth extras: investor reverse-match (getDealFlow inverted), per-grant application_prompts drafts, quarterly expert analysis refresh",
-      "v3.11.0 — CMO: Evaluator Progress Radar digest: extend watchlist-digest to evaluator-owned projects, merge G11 Money Radar signals (grant deadlines, program intakes) for tracked startups"
+      "v3.11.0 — CMO: Evaluator Progress Radar digest: extend watchlist-digest to evaluator-owned projects, merge G11 Money Radar signals (grant deadlines, program intakes) for tracked startups",
+      "v3.12.0 — CTO: Update Essential Eight Vulnerabilities to reflect ACSC alerts"
     ]
   },
   "plan": {
@@ -1548,9 +1549,11 @@
         "title": "Update Essential Eight Vulnerabilities to reflect ACSC alerts",
         "rationale": "Recent ACSC alerts require an update to the Essential Eight Vulnerability categories. This will ensure that BlockID stays secure and relevant in the startup ecosystem.",
         "versionImpact": "minor",
-        "status": "pending",
+        "status": "done",
         "createdAt": "2026-09-07T12:04:02.971Z",
-        "notes": "[re-id from duplicate T0206 on 2026-09-10]"
+        "notes": "[re-id from duplicate T0206 on 2026-09-10]",
+        "completedAt": "2026-09-11T16:00:02.024Z",
+        "commit": "45075be52"
       },
       {
         "id": "T0262",
@@ -2765,6 +2768,15 @@
         "T0273",
         "T0274"
       ]
+    },
+    {
+      "id": "M022",
+      "title": "CTO: Update Essential Eight Vulnerabilities to reflect ACSC alerts",
+      "version": "3.12.0",
+      "completedAt": "2026-09-11T16:00:02.024Z",
+      "taskIds": [
+        "T0261"
+      ]
     }
   ],
   "history": [
@@ -2953,6 +2965,12 @@
       "action": "release",
       "version": "3.11.0",
       "note": "9 task(s), minor bump (v3.10.0→v3.11.0)"
+    },
+    {
+      "ts": "2026-09-11T16:00:02.024Z",
+      "action": "release",
+      "version": "3.12.0",
+      "note": "1 task(s), minor bump (v3.11.0→v3.12.0)"
     }
   ],
   "shipped_this_session": {
