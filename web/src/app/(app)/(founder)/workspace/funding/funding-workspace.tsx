@@ -71,9 +71,7 @@ export interface FundingWorkspaceProps {
   capitalMap: CapitalMapSection[];
   alertKinds: ReadonlyArray<{ kind: string; label: string; detail: string }>;
   initialTab?: FundingTab;
-  /** `?draft=<ref>&kind=program` — programs still get the acknowledgement stub (grant drafts render `draftEditor`). */
-  draftRef?: string | null;
-  /** Grant draft editor built by the server page for `?draft=<grantId>&kind=grant` (T0251). */
+  /** Draft editor (or the "not in the catalogue" note) built by the server page for `?draft=<id>&kind=grant|program` (T0251 + S16-A). */
   draftEditor?: React.ReactNode;
   growth?: GrowthExtras | null;
 }
@@ -82,7 +80,7 @@ export function isFundingTab(v: string | null | undefined): v is FundingTab {
   return FUNDING_TABS.some((t) => t.id === v);
 }
 
-export function FundingWorkspace({ report, events, capitalMap, alertKinds, initialTab = "grants", draftRef, draftEditor, growth }: FundingWorkspaceProps) {
+export function FundingWorkspace({ report, events, capitalMap, alertKinds, initialTab = "grants", draftEditor, growth }: FundingWorkspaceProps) {
   const [tab, setTab] = React.useState<FundingTab>(initialTab);
   // S8-B: ARIA tabs pattern — one tab stop, ArrowLeft/Right/Home/End move
   // between tabs (roving tabindex) and select on focus.
@@ -101,12 +99,6 @@ export function FundingWorkspace({ report, events, capitalMap, alertKinds, initi
   return (
     <div data-funding-workspace data-tab={tab} data-growth={growth?.unlocked ? "1" : "0"}>
       {draftEditor ?? null}
-      {draftRef && !draftEditor ? (
-        <p className="mb-4 rounded-xl border border-action/40 bg-surface-raised px-4 py-3 text-sm text-secondary" data-draft-stub>
-          <span className="font-semibold text-primary">Draft application for {draftRef}</span> — the CFO / CLO drafter for grant applications lands with
-          the credits release. Your report is saved; we will prefill the application from it.
-        </p>
-      ) : null}
 
       <div role="tablist" aria-label="Money Radar" className="flex flex-wrap gap-1 border-b border-line-subtle">
         {FUNDING_TABS.map((t, i) => (

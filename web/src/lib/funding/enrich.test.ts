@@ -262,6 +262,11 @@ describe("enrich — program builders (fixtures)", () => {
     ]);
     expect(h.officialUrl).toBe("https://example.org/apply");
     expect(h.prompts).toEqual([]);
+    // S16-A: seeded application_prompts (0329) surface as "You will be asked", capped at three like grants.
+    const seeded = programHowToApply(
+      program({ application_prompts: [{ id: "a", question: "Q one?" }, { id: "b", question: "Q two?" }, { id: "c", question: "Q three?" }, { id: "d", question: "Q four?" }] }),
+    );
+    expect(seeded.prompts).toEqual(["Q one?", "Q two?", "Q three?"]);
     expect(programHowToApply(program({ applications_open: "rolling" })).steps[0]).toBe("Applications are rolling — you can apply at any time.");
     // Bare accelerator: the generic type hint + the official-page step only.
     expect(programHowToApply(bare).steps).toHaveLength(2);

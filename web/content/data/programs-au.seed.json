@@ -66,7 +66,54 @@
       "summary": "Australia's best-known accelerator; 2 cohorts/yr.",
       "last_verified_at": "2026-09-10",
       "verified_by": "seed",
-      "status_confidence": "high"
+      "status_confidence": "high",
+      "application_prompts": [
+        {
+          "id": "one_liner",
+          "question": "Describe your company in one sentence: what you do and for whom.",
+          "guidance": "Startmate reads thousands of these — plain words, no adjectives.",
+          "max_words": 40
+        },
+        {
+          "id": "problem",
+          "question": "What problem are you solving, who has it, and how do they solve it today?",
+          "guidance": "Name the customer and the workaround they use now.",
+          "max_words": 200
+        },
+        {
+          "id": "product",
+          "question": "What have you built so far, and what is live with customers today?",
+          "max_words": 200
+        },
+        {
+          "id": "traction",
+          "question": "What traction do you have — users, revenue, pilots, waitlist, growth rate?",
+          "guidance": "Numbers with dates. If you are pre-revenue, say what you have learned from customer conversations.",
+          "max_words": 150
+        },
+        {
+          "id": "team",
+          "question": "Who is on the founding team, how do you know each other, and why are you the people to win this market?",
+          "guidance": "Startmate backs founders first — unfair advantages, domain depth, prior collaboration.",
+          "max_words": 200
+        },
+        {
+          "id": "ambition",
+          "question": "How big can this get? Describe the company in five years if everything goes right.",
+          "guidance": "Startmate looks for venture-scale outcomes (A$100M+ revenue potential).",
+          "max_words": 150
+        },
+        {
+          "id": "why_startmate",
+          "question": "Why Startmate, and why now? What do you want from the 12 weeks and the mentor network?",
+          "max_words": 150
+        },
+        {
+          "id": "milestones",
+          "question": "What are your goals for the next 12 months, and what would make Demo Day a success for you?",
+          "max_words": 150
+        }
+      ]
     },
     {
       "id": "syd-antler-residency",
@@ -108,7 +155,41 @@
       "summary": "Pre-team residency for individual founders.",
       "last_verified_at": "2026-09-10",
       "verified_by": "seed",
-      "status_confidence": "high"
+      "status_confidence": "high",
+      "application_prompts": [
+        {
+          "id": "background",
+          "question": "Tell us about your professional background and the achievements you are proudest of.",
+          "guidance": "Antler assesses individuals before ideas — spike, drive and grit.",
+          "max_words": 200
+        },
+        {
+          "id": "why_founder",
+          "question": "Why do you want to build a company now, and why full-time?",
+          "max_words": 150
+        },
+        {
+          "id": "idea_space",
+          "question": "What problem space or idea do you want to explore, and what insight do you have that others lack?",
+          "guidance": "It is fine not to have a fixed idea — show depth in a space.",
+          "max_words": 200
+        },
+        {
+          "id": "cofounder",
+          "question": "What skills do you bring, and what would you look for in a co-founder?",
+          "max_words": 120
+        },
+        {
+          "id": "evidence",
+          "question": "What evidence of drive can you point to — prior ventures, side projects, results delivered under pressure?",
+          "max_words": 150
+        },
+        {
+          "id": "commitment",
+          "question": "Can you commit full-time to the residency from the cohort start date, and are you based in (or willing to move to) Sydney?",
+          "max_words": 80
+        }
+      ]
     },
     {
       "id": "syd-unsw-10x",
@@ -472,7 +553,41 @@
       "summary": "Fully funded deep-tech intensives; no fees, no equity.",
       "last_verified_at": "2026-09-10",
       "verified_by": "seed",
-      "status_confidence": "high"
+      "status_confidence": "high",
+      "application_prompts": [
+        {
+          "id": "technology",
+          "question": "Describe the deep-tech innovation: the science or engineering breakthrough and where it came from (lab, PhD, industry).",
+          "guidance": "Cicada streams: Deep Tech, HealthTech, Space, Grains — say which stream you are applying to.",
+          "max_words": 200
+        },
+        {
+          "id": "problem",
+          "question": "What problem does the technology solve and who feels it most acutely?",
+          "max_words": 150
+        },
+        {
+          "id": "readiness",
+          "question": "What is the current technology readiness level (TRL) and what evidence supports it (prototype, data, publications)?",
+          "max_words": 150
+        },
+        {
+          "id": "team",
+          "question": "Who is on the team, and what technical and commercial capability do you bring?",
+          "guidance": "Solo researchers are welcome — say what you need in a co-founder.",
+          "max_words": 150
+        },
+        {
+          "id": "commercial_path",
+          "question": "What is your current view of the path to market — first customer, regulatory or manufacturing hurdles, likely business model?",
+          "max_words": 200
+        },
+        {
+          "id": "why_elevate",
+          "question": "What do you want from the intensive, and what decision will you be able to make afterwards that you cannot make today?",
+          "max_words": 120
+        }
+      ]
     },
     {
       "id": "syd-cicada-stride",
@@ -884,7 +999,40 @@
       "summary": "Applications close 30 Sep 2026; program 15 Oct-3 Dec.",
       "last_verified_at": "2026-09-10",
       "verified_by": "seed",
-      "status_confidence": "high"
+      "status_confidence": "high",
+      "application_prompts": [
+        {
+          "id": "founder_story",
+          "question": "Tell us about yourself: your migration or refugee journey and what led you to this business idea.",
+          "guidance": "At least one co-founder must be a migrant or refugee — say who, briefly.",
+          "max_words": 200
+        },
+        {
+          "id": "problem",
+          "question": "What problem are you solving and who experiences it?",
+          "max_words": 150
+        },
+        {
+          "id": "solution",
+          "question": "Describe your idea or early product and how it solves the problem.",
+          "max_words": 150
+        },
+        {
+          "id": "progress",
+          "question": "What have you done so far — conversations, prototypes, first sales, partnerships?",
+          "max_words": 150
+        },
+        {
+          "id": "nsw",
+          "question": "Where in NSW is the business based, and how does it benefit the NSW community or economy?",
+          "max_words": 100
+        },
+        {
+          "id": "goals",
+          "question": "What do you want from the 8-week fellowship, and what would success look like at the end of the 12-week Accelerate stream?",
+          "max_words": 150
+        }
+      ]
     },
     {
       "id": "syd-remarkable-launcher",
@@ -965,7 +1113,45 @@
       "summary": "2025 cycle apps 9 Apr-15 May, program Aug-Nov; 2026 dates not published.",
       "last_verified_at": "2026-09-10",
       "verified_by": "seed",
-      "status_confidence": "medium"
+      "status_confidence": "medium",
+      "application_prompts": [
+        {
+          "id": "disability_problem",
+          "question": "What problem do people with disability face that your product addresses, and how did you come to understand it?",
+          "guidance": "Lived experience on the team or deep co-design evidence counts strongly.",
+          "max_words": 200
+        },
+        {
+          "id": "solution",
+          "question": "Describe the product or service and what stage it is at (MVP, pilots, revenue).",
+          "max_words": 200
+        },
+        {
+          "id": "traction",
+          "question": "What traction do you have — users, paying customers, NDIS or clinical partners, revenue?",
+          "max_words": 150
+        },
+        {
+          "id": "inclusive_design",
+          "question": "How are people with disability involved in designing, testing and leading the company?",
+          "max_words": 150
+        },
+        {
+          "id": "team",
+          "question": "Who is on the team and what relevant experience do you bring?",
+          "max_words": 150
+        },
+        {
+          "id": "investment_use",
+          "question": "How would you use the investment and the 16-week program, and what would investor-readiness look like at the end?",
+          "max_words": 150
+        },
+        {
+          "id": "commitment",
+          "question": "Can the founders commit 3–5 hours per week for 16 weeks, and are you available for the in-person components?",
+          "max_words": 60
+        }
+      ]
     },
     {
       "id": "syd-energylab-accelerator",
@@ -1007,7 +1193,46 @@
       "summary": "2026 program 3 Aug-11 Dec; apps 12 Jan-15 Mar.",
       "last_verified_at": "2026-09-10",
       "verified_by": "seed",
-      "status_confidence": "high"
+      "status_confidence": "high",
+      "application_prompts": [
+        {
+          "id": "climate_problem",
+          "question": "What climate or energy problem are you solving, and what emissions or system impact could a successful company have?",
+          "guidance": "Quantify the impact pathway (tCO2e, MWh, dollars) where you can; say what is an estimate.",
+          "max_words": 200
+        },
+        {
+          "id": "solution",
+          "question": "Describe your solution and what makes it hard to replicate.",
+          "max_words": 200
+        },
+        {
+          "id": "validation",
+          "question": "What customer validation do you have — paid pilots, LOIs, signed customers, revenue?",
+          "guidance": "EnergyLab requires customer validation for this program: be concrete about who, when and what they paid.",
+          "max_words": 200
+        },
+        {
+          "id": "team",
+          "question": "Who is on the founding team, and what relevant energy, climate or technical experience do you bring?",
+          "max_words": 150
+        },
+        {
+          "id": "capital",
+          "question": "What have you raised to date, and how would EnergyLab's investment and the program help you reach the next round?",
+          "max_words": 150
+        },
+        {
+          "id": "milestones",
+          "question": "What are your key milestones for the next 12 months, and which ones does the program accelerate?",
+          "max_words": 150
+        },
+        {
+          "id": "why_energylab",
+          "question": "Why EnergyLab? Which mentors, corporate partners or investors in the network matter most to you?",
+          "max_words": 120
+        }
+      ]
     },
     {
       "id": "syd-greenhouse",
@@ -1504,7 +1729,46 @@
       "summary": "10th cohort 2026 (apps closed 14 May); expect Apr-May 2027 window.",
       "last_verified_at": "2026-09-10",
       "verified_by": "seed",
-      "status_confidence": "high"
+      "status_confidence": "high",
+      "application_prompts": [
+        {
+          "id": "company",
+          "question": "Describe your startup in two or three sentences: product, customer and business model.",
+          "max_words": 80
+        },
+        {
+          "id": "problem_solution",
+          "question": "What problem are you solving, and how does your solution beat the alternatives customers use today?",
+          "max_words": 200
+        },
+        {
+          "id": "traction",
+          "question": "What traction do you have (users, revenue, pilots, partnerships) and how fast is it growing?",
+          "guidance": "Dates and numbers. Pre-revenue teams should describe validation evidence.",
+          "max_words": 150
+        },
+        {
+          "id": "team",
+          "question": "Who are the founders, are you full-time, and what makes this team the right one?",
+          "guidance": "Plus Eight requires full-time founders for the sprint and residency phases.",
+          "max_words": 150
+        },
+        {
+          "id": "market",
+          "question": "How large is the market, and how will you win it from Western Australia?",
+          "max_words": 150
+        },
+        {
+          "id": "investment_use",
+          "question": "How would you use the Plus Eight SAFE investment and the program to hit your next milestones?",
+          "max_words": 150
+        },
+        {
+          "id": "why_plus_eight",
+          "question": "Why Plus Eight and Spacecubed, and what do you want from the EIRs and mentor network?",
+          "max_words": 120
+        }
+      ]
     },
     {
       "id": "per-plus-eight-sprint",
@@ -1659,7 +1923,45 @@
       "summary": "Applications open now for the 2027 cohort (pattern: 5 Sep-26 Oct).",
       "last_verified_at": "2026-09-10",
       "verified_by": "seed",
-      "status_confidence": "medium"
+      "status_confidence": "medium",
+      "application_prompts": [
+        {
+          "id": "curtin_link",
+          "question": "What is your connection to Curtin University (student, alumni, staff, Ignition graduate)?",
+          "guidance": "Eligibility gate — name the faculty and year.",
+          "max_words": 60
+        },
+        {
+          "id": "problem",
+          "question": "What problem are you solving and for whom?",
+          "max_words": 150
+        },
+        {
+          "id": "solution",
+          "question": "Describe your product or service and its current stage (idea, prototype, MVP, paying customers).",
+          "max_words": 200
+        },
+        {
+          "id": "validation",
+          "question": "What evidence do you have that customers want this — interviews, waitlist, pilots, revenue?",
+          "max_words": 150
+        },
+        {
+          "id": "team",
+          "question": "Who is on the team and what skills or experience do you bring?",
+          "max_words": 120
+        },
+        {
+          "id": "goals",
+          "question": "What do you want to achieve during the 12-week program, and where will the A$5k and AWS credits go?",
+          "max_words": 150
+        },
+        {
+          "id": "commitment",
+          "question": "How much time can each founder commit to the program, and what could get in the way?",
+          "max_words": 100
+        }
+      ]
     },
     {
       "id": "per-venture-uwa",
@@ -3067,7 +3369,41 @@
       "summary": "Cohort 1 applications close 4 Oct 2026.",
       "last_verified_at": "2026-09-10",
       "verified_by": "seed",
-      "status_confidence": "high"
+      "status_confidence": "high",
+      "application_prompts": [
+        {
+          "id": "science",
+          "question": "Describe the scientific or technical idea you want to prototype and where it came from.",
+          "guidance": "Lab-embedded program: biotech, medtech, agtech, advanced manufacturing or AI applied to those fields.",
+          "max_words": 200
+        },
+        {
+          "id": "problem",
+          "question": "What problem does it solve, for whom, and why is now the time?",
+          "max_words": 150
+        },
+        {
+          "id": "prototype_plan",
+          "question": "What would you build with the A$5k prototyping cash and the CoLabs lab in 18 weeks?",
+          "guidance": "Be specific about experiments, materials and what result would count as success.",
+          "max_words": 200
+        },
+        {
+          "id": "team",
+          "question": "Who is on the team (2–4 people), and what are each person's skills and time commitment?",
+          "max_words": 150
+        },
+        {
+          "id": "validation",
+          "question": "What conversations have you had with potential customers, clinicians, growers or partners, and what did you learn?",
+          "max_words": 150
+        },
+        {
+          "id": "after_kinesis",
+          "question": "What is the plan after Kinesis — next funding, partners, regulatory path?",
+          "max_words": 120
+        }
+      ]
     },
     {
       "id": "mel-cicada-assemble",
@@ -4083,7 +4419,46 @@
       "summary": "2026 cohort 17 Aug-2 Nov.",
       "last_verified_at": "2026-09-10",
       "verified_by": "seed",
-      "status_confidence": "high"
+      "status_confidence": "high",
+      "application_prompts": [
+        {
+          "id": "uq_link",
+          "question": "What is your connection to The University of Queensland (student, alumni, staff, researcher)?",
+          "guidance": "Eligibility gate for the SAFE-backed ilab cohort.",
+          "max_words": 60
+        },
+        {
+          "id": "problem",
+          "question": "Describe the problem you are solving and the customer who has it.",
+          "max_words": 150
+        },
+        {
+          "id": "solution",
+          "question": "What is your solution, and what have you built or tested so far?",
+          "max_words": 200
+        },
+        {
+          "id": "validation",
+          "question": "What customer validation do you have (interviews, pilots, pre-orders, revenue)?",
+          "max_words": 150
+        },
+        {
+          "id": "team",
+          "question": "Who is on the team, and what technical, domain and commercial capability does it cover?",
+          "max_words": 150
+        },
+        {
+          "id": "program_use",
+          "question": "How would you use the A$15k SAFE and the 12-week program, and what milestones would each instalment unlock?",
+          "guidance": "The SAFE pays in three milestone instalments — propose the milestones.",
+          "max_words": 150
+        },
+        {
+          "id": "ambition",
+          "question": "Where do you want the company to be in 12 months and in three years?",
+          "max_words": 120
+        }
+      ]
     },
     {
       "id": "bne-uq-ventures-ladder",
@@ -4660,7 +5035,45 @@
       "summary": "2026 cohort running; next apps Jan-Mar 2027.",
       "last_verified_at": "2026-09-10",
       "verified_by": "seed",
-      "status_confidence": "high"
+      "status_confidence": "high",
+      "application_prompts": [
+        {
+          "id": "clinical_problem",
+          "question": "What clinical or health-system problem are you solving, and what is its cost to patients, clinicians or payers today?",
+          "guidance": "LuminaX mentors are clinicians — cite the care pathway and the metric you move.",
+          "max_words": 200
+        },
+        {
+          "id": "solution",
+          "question": "Describe your healthtech product, its regulatory class (if any) and current TRL or evidence stage.",
+          "max_words": 200
+        },
+        {
+          "id": "validation",
+          "question": "What validation do you have — clinical pilots, ethics approvals, letters from hospitals, paying customers?",
+          "max_words": 150
+        },
+        {
+          "id": "regulatory_reimbursement",
+          "question": "What is your TGA / reimbursement pathway, and what are the next two regulatory or evidence milestones?",
+          "max_words": 150
+        },
+        {
+          "id": "team",
+          "question": "Who is on the team, and what clinical, technical and commercial expertise does it cover?",
+          "max_words": 150
+        },
+        {
+          "id": "program_use",
+          "question": "How would you use the 20-week program, the clinical trial access and any LuminaX investment?",
+          "max_words": 150
+        },
+        {
+          "id": "milestones",
+          "question": "What are your 12-month milestones, and what does success look like at the end of the cohort?",
+          "max_words": 120
+        }
+      ]
     },
     {
       "id": "bne-cohort-innovation-space",
@@ -5375,7 +5788,40 @@
       "summary": "Oct 2026 intake 6 Oct-24 Nov.",
       "last_verified_at": "2026-09-10",
       "verified_by": "seed",
-      "status_confidence": "high"
+      "status_confidence": "high",
+      "application_prompts": [
+        {
+          "id": "idea",
+          "question": "Describe your business idea in a few sentences: what it is and who it is for.",
+          "max_words": 100
+        },
+        {
+          "id": "problem",
+          "question": "What problem are you solving, and how do people deal with it today?",
+          "max_words": 150
+        },
+        {
+          "id": "stage",
+          "question": "How far along are you — idea, customer conversations, prototype, first sales?",
+          "max_words": 120
+        },
+        {
+          "id": "founder",
+          "question": "Tell us about yourself and any co-founders: background, skills and why this idea.",
+          "max_words": 150
+        },
+        {
+          "id": "goals",
+          "question": "What do you want to get out of the 8-week Venture Dorm program?",
+          "guidance": "Tuesday evenings suit day-job founders — say how you will fit the work in.",
+          "max_words": 120
+        },
+        {
+          "id": "next_steps",
+          "question": "What are your next three milestones after the program, and what help do you need?",
+          "max_words": 120
+        }
+      ]
     },
     {
       "id": "adl-flinders-envision",
@@ -5805,7 +6251,45 @@
       "summary": "Apps typically open July; 2026 window unverified (site 429).",
       "last_verified_at": "2026-09-10",
       "verified_by": "seed",
-      "status_confidence": "low"
+      "status_confidence": "low",
+      "application_prompts": [
+        {
+          "id": "business",
+          "question": "Describe the business: what you sell, to whom, and how you make money.",
+          "max_words": 150
+        },
+        {
+          "id": "problem_solution",
+          "question": "What problem do you solve and why is your solution better than what customers use now?",
+          "max_words": 200
+        },
+        {
+          "id": "traction",
+          "question": "What traction do you have — revenue, customers, pilots, letters of intent?",
+          "max_words": 150
+        },
+        {
+          "id": "team",
+          "question": "Who is on the founding team, what is each person's role, and how much time is each committing?",
+          "max_words": 150
+        },
+        {
+          "id": "canberra",
+          "question": "What is your connection to Canberra, and can the team attend the weekly sessions in person?",
+          "guidance": "GRIFFIN is Canberra-region only and mentor-led in person.",
+          "max_words": 80
+        },
+        {
+          "id": "investment_use",
+          "question": "How would you use the A$25k phase-one investment, and what would you achieve before pitching for phase two?",
+          "max_words": 150
+        },
+        {
+          "id": "twelve_months",
+          "question": "What are your goals for the next 12 months, and what does the investor showcase need to deliver for you?",
+          "max_words": 120
+        }
+      ]
     },
     {
       "id": "cbr-kiln-incubator",
@@ -7244,7 +7728,39 @@
       "summary": "Spring 2026 open.",
       "last_verified_at": "2026-09-10",
       "verified_by": "seed",
-      "status_confidence": "medium"
+      "status_confidence": "medium",
+      "application_prompts": [
+        {
+          "id": "background",
+          "question": "Describe your professional background and any previous businesses or projects you have started.",
+          "max_words": 200
+        },
+        {
+          "id": "idea",
+          "question": "What is the business idea you want to work on during the program (it can change)?",
+          "max_words": 150
+        },
+        {
+          "id": "problem",
+          "question": "What problem does it solve and who is the customer?",
+          "max_words": 150
+        },
+        {
+          "id": "motivation",
+          "question": "Why do you want to become a founder now, and what will you do differently from the last thing you tried?",
+          "max_words": 150
+        },
+        {
+          "id": "time",
+          "question": "How many hours per week can you commit to the program's weekly sessions and assignments while working?",
+          "max_words": 60
+        },
+        {
+          "id": "goals",
+          "question": "What do you want to have achieved by graduation — incorporated company, first customers, a co-founder, a raise?",
+          "max_words": 120
+        }
+      ]
     },
     {
       "id": "nat-blackbird-giants-virtual",
@@ -7421,7 +7937,52 @@
       "summary": "AU companies need a foreign parent.",
       "last_verified_at": "2026-09-10",
       "verified_by": "seed",
-      "status_confidence": "medium"
+      "status_confidence": "medium",
+      "application_prompts": [
+        {
+          "id": "company_one_liner",
+          "question": "Describe what your company does in 50 characters or less.",
+          "guidance": "YC reads this first — a plain noun phrase, no adjectives.",
+          "max_words": 12
+        },
+        {
+          "id": "what_and_why",
+          "question": "What is your company going to make? Describe the product and what it does or will do.",
+          "max_words": 200
+        },
+        {
+          "id": "why_this_idea",
+          "question": "Why did you pick this idea to work on? Do you have domain expertise? How do you know people need what you are making?",
+          "max_words": 200
+        },
+        {
+          "id": "competitors",
+          "question": "Who are your competitors, and who might become competitors? What do you understand about your business that they do not?",
+          "max_words": 150
+        },
+        {
+          "id": "progress",
+          "question": "How far along are you? How long have you been working on this, and how much of that full-time?",
+          "guidance": "Users, revenue and growth per month, with dates.",
+          "max_words": 150
+        },
+        {
+          "id": "founders",
+          "question": "Who are the founders, how do you know each other, and how long have you worked together?",
+          "max_words": 150
+        },
+        {
+          "id": "money",
+          "question": "How do or will you make money? How much could you make?",
+          "max_words": 120
+        },
+        {
+          "id": "entity",
+          "question": "What is your legal entity structure, and are you willing to set up a US, Cayman, Singapore or Canadian parent if accepted?",
+          "guidance": "Australian companies need a foreign parent to take YC's investment.",
+          "max_words": 80
+        }
+      ]
     },
     {
       "id": "nat-techstars-au",

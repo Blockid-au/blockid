@@ -14,6 +14,8 @@ const CLIENT_ENTRIES = [
   // T0251 — draft editor + workspace tabs (investor-match / analysis-refresh types only).
   "components/funding/grant-draft-editor.tsx",
   "app/(app)/(founder)/workspace/funding/funding-workspace.tsx",
+  // S16-A — signed-in-only "Draft application" link on the static detail pages.
+  "components/funding/draft-application-link.tsx",
 ];
 const FORBIDDEN = ["lib/ai-client.ts", "lib/supabase.ts", "lib/agents/grant-advisor-narrative.ts"];
 

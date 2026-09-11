@@ -13,7 +13,7 @@ vi.mock("./workspace", () => ({
   stageFromNumeric: (n: number | null) => (n === 2 ? "mvp" : null),
 }));
 
-import { gatherDraftContext, getGrantDraft, latestGrantDraft, rowFromDb } from "./application-drafts";
+import { gatherDraftContext, getGrantDraft, insertGrantDraft, latestDraftFor, latestGrantDraft, latestProgramDraft, rowFromDb } from "./application-drafts";
 
 const PROJECT = { id: "p1", userId: "u1", name: "Acme", slug: "acme", description: "Soil sensors", industry: "AgTech", stage: 2, isDefault: true, archivedAt: null, createdAt: "", updatedAt: "", growth_phase_current: null };
 
@@ -102,5 +102,63 @@ describe("gatherDraftContext", () => {
     expect(ctx.startup).toBe("Our startup");
     expect(ctx.description).toBe("From the intake");
     expect(ctx.svi).toBeNull();
+  });
+
+  it("S16-A: a { kind: 'program' } ref reads program_matches (not grant_matches) for the match notes", async () => {
+    latestReportMock.mockResolvedValue({
+      intake: { state: "VIC" },
+      grant_matches: [{ ref_id: "p1", why: ["WRONG — grant with the same id"], eligibility_checklist: [] }],
+      program_matches: [{ ref_id: "p1", why: ["Runs MVP cohorts in Melbourne."], eligibility_checklist: [{ label: "Full-time founders", status: "unknown" }] }],
+    });
+    const ctx = await gatherDraftContext({ id: "u1", email: null }, PROJECT, { kind: "program", id: "p1" }, { db: fakeDb({}) });
+    expect(ctx.state).toBe("VIC");
+    expect(ctx.matchWhy).toEqual(["Runs MVP cohorts in Melbourne."]);
+    expect(ctx.eligibility).toEqual(["Full-time founders: unknown"]);
+  });
+});
+
+// ─── S16-A: program drafts share the table (program_id, grant_id null) ───────
+describe("program drafts (S16-A)", () => {
+  it("rowFromDb carries program_id and a null grant_id; legacy rows without the column still map", () => {
+    const program = rowFromDb({ id: "d2", user_id: "u1", grant_id: null, program_id: "syd-startmate-accelerator", answers: {}, prompts: [], status: "draft" });
+    expect(program.grant_id).toBeNull();
+    expect(program.program_id).toBe("syd-startmate-accelerator");
+    const legacy = rowFromDb({ id: "d1", user_id: "u1", grant_id: "g1", answers: {}, prompts: [], status: "draft" });
+    expect(legacy.grant_id).toBe("g1");
+    expect(legacy.program_id).toBeNull();
+  });
+
+  it("latestProgramDraft filters on program_id (never grant_id) and still hides spend_failed rows", async () => {
+    const ops: Array<{ table: string; op: string; args: unknown[] }> = [];
+    await latestProgramDraft("u1", "p1", "syd-startmate-accelerator", { db: fakeDb({}, ops) });
+    expect(ops.some((o) => o.op === "eq" && o.args[0] === "program_id" && o.args[1] === "syd-startmate-accelerator")).toBe(true);
+    expect(ops.some((o) => o.op === "eq" && o.args[0] === "grant_id")).toBe(false);
+    expect(ops.some((o) => o.op === "neq" && o.args[0] === "status" && o.args[1] === "spend_failed")).toBe(true);
+    ops.splice(0);
+    await latestDraftFor("u1", null, { kind: "grant", id: "g1" }, { db: fakeDb({}, ops) });
+    expect(ops.some((o) => o.op === "eq" && o.args[0] === "grant_id" && o.args[1] === "g1")).toBe(true);
+    expect(ops.some((o) => o.op === "is" && o.args[0] === "project_id")).toBe(true);
+  });
+
+  it("insertGrantDraft refuses a row with both or neither of grant_id / program_id (mirrors the 0329 CHECK) and writes program_id otherwise", async () => {
+    const inserted: Array<Record<string, unknown>> = [];
+    const db = {
+      from: () => ({
+        insert: (row: Record<string, unknown>) => {
+          inserted.push(row);
+          return { select: () => ({ single: async () => ({ data: { id: "d9", ...row, created_at: "", updated_at: "" }, error: null }) }) };
+        },
+      }),
+    } as unknown as NonNullable<ReturnType<typeof import("@/lib/supabase").getSupabaseAdmin>>;
+    const base = { user_id: "u1", project_id: null, answers: {}, prompts: [], credits_cost: 0, status: "draft" as const, meta: {} };
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    expect(await insertGrantDraft({ ...base, grant_id: "g1", program_id: "p1" }, { db })).toBeNull();
+    expect(await insertGrantDraft({ ...base, grant_id: null, program_id: null }, { db })).toBeNull();
+    expect(inserted).toHaveLength(0);
+    const ok = await insertGrantDraft({ ...base, grant_id: null, program_id: "p1" }, { db });
+    expect(ok?.program_id).toBe("p1");
+    expect(ok?.grant_id).toBeNull();
+    expect(inserted[0]).toMatchObject({ grant_id: null, program_id: "p1" });
+    errSpy.mockRestore();
   });
 });

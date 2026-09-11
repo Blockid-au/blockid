@@ -164,7 +164,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<Pa
               ) : null}
             </Prose>
 
-            <HowToApply data={e.howToApply} officialLabel="Apply on the official page" />
+            <HowToApply data={e.howToApply} officialLabel="Apply on the official page" draft={{ refId: p.id, kind: "program" }} />
 
             <Timing data={e.timing} />
 

@@ -29,7 +29,8 @@ export type FundingStatus = "open" | "closed" | "paused" | "upcoming";
 
 /**
  * One application question for a grant (`au_grants.application_prompts[]`,
- * migration 0323, T0251). `guidance` is a one-line hint from the official
+ * migration 0323, T0251) or a program (`au_programs.application_prompts[]`,
+ * migration 0329, S16-A). `guidance` is a one-line hint from the official
  * guidelines ("generic" marks a fallback set); `max_words` caps the drafted
  * answer.
  */
@@ -192,6 +193,8 @@ export interface AuProgramRow {
   last_verified_at: string | null;
   verified_by: VerifiedBy;
   status_confidence: StatusConfidence;
+  /** Per-program accelerator application questions (0329, S16-A). Optional so older fixtures / cached rows still type-check; the mapper always sets it. */
+  application_prompts?: ApplicationPrompt[];
 }
 
 // ─── Coercion helpers ────────────────────────────────────────────────────────
@@ -361,6 +364,7 @@ export function mapProgramSeed(raw: SeedRecord): AuProgramRow {
     last_verified_at: isoDate(raw.last_verified_at),
     verified_by: oneOf(raw.verified_by, VERIFIED_BY, "seed"),
     status_confidence: oneOf(raw.status_confidence, STATUS_CONFIDENCES, "medium"),
+    application_prompts: parseApplicationPrompts(raw.application_prompts),
   };
 }
 

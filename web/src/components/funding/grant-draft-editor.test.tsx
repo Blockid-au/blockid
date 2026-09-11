@@ -58,4 +58,66 @@ describe("GrantDraftEditor — S8-B a11y", () => {
     expect(out).toContain("bg-warn/10 text-warn");
     expect(out).not.toContain("bg-amber-50");
   });
+
+  it("defaults to kind=grant: data-grant, grant title, official guidelines link, 'Closes …' line", () => {
+    const out = render();
+    expect(out).toContain('data-kind="grant"');
+    expect(out).toContain('data-grant="mvp-ventures"');
+    expect(out).not.toContain("data-program=");
+    expect(out).toContain("Draft application: MVP Ventures");
+    expect(out).toContain("Official guidelines");
+    expect(out).toContain("Closes 2026-11-30.");
+  });
+});
+
+describe("GrantDraftEditor — kind=program (S16-A)", () => {
+  const PROGRAM = {
+    id: "syd-startmate-accelerator",
+    name: "Startmate Accelerator",
+    official_url: "https://www.startmate.com/accelerator",
+    closes_at: null,
+    intake: "Applications open Sep 2026, close 8 Nov 2026; next cohort 25 Jan 2027",
+  };
+  const PROGRAM_PROMPTS = [
+    { id: "one_liner", question: "Describe your company in one sentence.", guidance: "Plain words.", max_words: 40 },
+    { id: "why_startmate", question: "Why Startmate, and why now?", max_words: 150 },
+  ];
+
+  it("retitles the panel, shows the intake window + official program link, POST-ready data attributes, per-question word caps", () => {
+    const out = render({ kind: "program", grant: PROGRAM, prompts: PROGRAM_PROMPTS as Parameters<typeof GrantDraftEditor>[0]["prompts"] });
+    expect(out).toContain('data-kind="program"');
+    expect(out).toContain('data-program="syd-startmate-accelerator"');
+    expect(out).not.toContain("data-grant=");
+    expect(out).toContain("Program application draft");
+    expect(out).toContain("Application draft — Startmate Accelerator");
+    expect(out).toContain("Applications open Sep 2026, close 8 Nov 2026; next cohort 25 Jan 2027.");
+    expect(out).toContain('href="https://www.startmate.com/accelerator"');
+    expect(out).toContain("Official program page");
+    expect(out).not.toContain("Official guidelines");
+    // Same rails: transparent price on the button + inline confirm, Save / Mark final / Copy all.
+    expect(out).toContain("Drafting this application costs 2 credits. You confirm before we spend them.");
+    expect(out).toContain("Generate draft — 2 credits");
+    expect(out).toContain("data-draft-save");
+    expect(out).toContain("data-draft-final");
+    expect(out).toContain("data-draft-copy");
+    // Per-question word caps.
+    expect(out).toContain('data-prompt="one_liner"');
+    expect(out).toContain("0 / 40 words");
+    expect(out).toContain("0 / 150 words");
+    expect(out).toContain("Plain words.");
+  });
+
+  it("generic program set shows the accelerator fallback note; Growth shows 'included'", () => {
+    const out = render({ kind: "program", grant: PROGRAM, generic: true, unlimited: true, cost: 0 });
+    expect(out).toContain("data-draft-generic");
+    expect(out).toContain("This program has no published question set yet, so these are the six questions every accelerator form asks.");
+    expect(out).toContain("Application drafts are unlimited on your plan.");
+    expect(out).toContain("Generate draft — included");
+  });
+
+  it("a program with no recorded intake omits the intake line entirely", () => {
+    const out = render({ kind: "program", grant: { ...PROGRAM, intake: null } });
+    expect(out).not.toContain("Applications");
+    expect(out).not.toContain("Closes");
+  });
 });

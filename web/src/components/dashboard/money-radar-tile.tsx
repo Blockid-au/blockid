@@ -39,7 +39,8 @@ export interface MoneyRadarTileProps {
 export const TILE_HREFS = {
   workspace: "/workspace/funding",
   trial: founderRadarSignupHref(MONEY_RADAR_TILE_FROM),
-  draft: (ref: string) => `/workspace/funding?draft=${encodeURIComponent(ref)}`,
+  /** S16-A: programs open the program editor; the kind defaults to grant when omitted. */
+  draft: (ref: string, kind: "grant" | "program" = "grant") => `/workspace/funding?draft=${encodeURIComponent(ref)}${kind === "program" ? "&kind=program" : ""}`,
   report: (id: string) => `/funding/report/${id}`,
   events: "/workspace/funding?tab=events",
   alerts: "/workspace/funding?tab=alerts",
@@ -250,11 +251,11 @@ function Ctas({ data, c }: { data: MoneyRadarTileData; c: (group: Parameters<typ
         </>
       );
     case "subscriber": {
-      const ref = data.next_deadlines[0]?.ref_id ?? data.top3[0]?.ref_id ?? "";
+      const next = data.next_deadlines[0] ?? data.top3[0] ?? null;
       return (
         <>
           <Primary href={TILE_HREFS.workspace} cta="open_radar" label={c("cta", "openRadar")} />
-          <Secondary href={ref ? TILE_HREFS.draft(ref) : TILE_HREFS.workspace} cta="draft_application" label={c("cta", "draftApplication")} />
+          <Secondary href={next ? TILE_HREFS.draft(next.ref_id, next.ref_kind) : TILE_HREFS.workspace} cta="draft_application" label={c("cta", "draftApplication")} />
         </>
       );
     }

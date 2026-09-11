@@ -12,7 +12,9 @@
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, ExternalLink } from "lucide-react";
 import type { Fact, FaqItem, HowToApplySection as HowToApplyData, RelatedLink, RelatedSection as RelatedData, TimingSection as TimingData } from "@/lib/funding/enrich";
+import type { DraftKind } from "@/lib/funding/application-prompts";
 import { DEADLINE_LABELS, DEADLINE_TONE } from "@/lib/funding/deadline-status";
+import { DraftApplicationLink } from "./draft-application-link";
 
 const H2 = "font-display text-xl font-semibold text-primary";
 
@@ -65,7 +67,16 @@ export function Prose({
   );
 }
 
-export function HowToApply({ data, officialLabel = "Official page" }: { data: HowToApplyData; officialLabel?: string }) {
+export function HowToApply({
+  data,
+  officialLabel = "Official page",
+  draft,
+}: {
+  data: HowToApplyData;
+  officialLabel?: string;
+  /** S16-A: when set, signed-in founders also get "Draft application (credits)" → /workspace/funding?draft=<id>&kind=<kind> (client-resolved; guests see the official link only). */
+  draft?: { refId: string; kind: DraftKind } | null;
+}) {
   const hasContent = data.intro || data.steps.length || data.evidence.length || data.prompts.length;
   if (!hasContent) return null;
   return (
@@ -112,7 +123,7 @@ export function HowToApply({ data, officialLabel = "Official page" }: { data: Ho
           </ul>
         </div>
       ) : null}
-      <p className="mt-5 text-sm font-semibold">
+      <p className="mt-5 flex flex-wrap items-center gap-3 text-sm font-semibold" data-apply-actions>
         <a
           href={data.officialUrl}
           rel="nofollow noopener noreferrer"
@@ -123,6 +134,7 @@ export function HowToApply({ data, officialLabel = "Official page" }: { data: Ho
           <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
           <span className="sr-only">(opens the official site in a new tab)</span>
         </a>
+        {draft ? <DraftApplicationLink refId={draft.refId} kind={draft.kind} /> : null}
       </p>
     </section>
   );

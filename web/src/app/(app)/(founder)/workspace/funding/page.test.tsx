@@ -9,8 +9,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // Capital map sections + article links, Alerts kinds); the "no report yet"
 // prompt for a paid founder without a row; T0251 — `?draft=<grantId>&kind=grant`
 // opens the draft editor (Starter: 2 credits on the button; Growth: included),
-// `kind=program` keeps the stub, and the Investors / Expert update tabs show
-// locked cards for Starter and the live data for Growth.
+// S16-A — `?draft=<programId>&kind=program` opens the same editor for the
+// program's prompts (intake window, program title, program_id lookup) and an
+// unknown id renders the "not in the catalogue" note (no stub any more), and
+// the Investors / Expert update tabs show locked cards for Starter and the
+// live data for Growth.
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/components/workspace/workspace-layout", () => ({
@@ -39,10 +42,12 @@ vi.mock("@/lib/projects", () => ({
 }));
 
 const getGrantMock = vi.fn();
+const getProgramMock = vi.fn();
 vi.mock("@/lib/funding/data", () => ({
   listGrants: async () => [{ id: "g1", last_verified_at: "2026-09-10" }, { id: "g2", last_verified_at: "2026-09-01" }],
   listPrograms: async () => [{ id: "p1", last_verified_at: "2026-09-05" }],
   getGrant: (id: string) => getGrantMock(id),
+  getProgram: (id: string) => getProgramMock(id),
 }));
 
 // T0251 Growth extras — plan gate, investor reverse-match, quarterly note, draft row.
@@ -56,7 +61,7 @@ vi.mock("@/lib/funding/analysis-refresh", async (importOriginal) => {
   return { ...orig, latestAnalysisRefresh: (u: string, p: string | null) => refreshMock(u, p) };
 });
 const latestDraftMock = vi.fn();
-vi.mock("@/lib/funding/application-drafts", () => ({ latestGrantDraft: (...a: unknown[]) => latestDraftMock(...a) }));
+vi.mock("@/lib/funding/application-drafts", () => ({ latestDraftFor: (...a: unknown[]) => latestDraftMock(...a) }));
 
 const latestReportMock = vi.fn();
 const eventsMock = vi.fn();
@@ -93,6 +98,21 @@ function grantRow() {
     exclude_from_matching: false, official_url: "https://www.investment.nsw.gov.au/mvp", source_url: null,
     summary: "s", how_to_apply: null, evidence_needed: [], last_verified_at: "2026-09-10", verified_by: "seed",
     status_confidence: "high", sources: null,
+  };
+}
+
+function programRow() {
+  return {
+    id: "p1", name: "Startmate Accelerator", operator: "Startmate", program_type: "accelerator", city: "Sydney", capital: "Sydney", state: "NSW",
+    venue: null, stage_tags: ["mvp"], industry_tags: [], demographic_tags: [], length_weeks: 12, intake_months: [1, 7],
+    applications_open: "2026-09", applications_close: "2026-11-08", next_cohort_start: "2027-01-25", benefits: ["4,000+ mentor network"],
+    funding_aud: 120000, equity_pct: "≤8%", cost_to_founder: "free", eligibility: {}, status: "open",
+    official_url: "https://www.startmate.com/accelerator", summary: "s", last_verified_at: "2026-09-10", verified_by: "seed", status_confidence: "high",
+    application_prompts: [
+      { id: "one_liner", question: "Describe your company in one sentence.", max_words: 40 },
+      { id: "why_startmate", question: "Why Startmate, and why now?", max_words: 150 },
+      { id: "milestones", question: "What are your goals for the next 12 months?", max_words: 150 },
+    ],
   };
 }
 
@@ -141,6 +161,7 @@ beforeEach(() => {
   eventsMock.mockReset().mockResolvedValue([EVENT]);
   redirectMock.mockClear();
   getGrantMock.mockReset().mockResolvedValue(grantRow());
+  getProgramMock.mockReset().mockResolvedValue(programRow());
   growthMock.mockReset().mockResolvedValue(false);
   investorsMock.mockReset().mockResolvedValue([]);
   refreshMock.mockReset().mockResolvedValue(null);
@@ -265,7 +286,8 @@ describe("/workspace/funding (T0244)", { timeout: 20_000 }, () => {
     expect(starter).toContain("data-draft-generic");
     expect(starter).toContain('data-prompt="project"');
     expect(starter).toContain('data-prompt="outcomes"');
-    expect(latestDraftMock).toHaveBeenCalledWith("u-1", "proj-1", "g1");
+    expect(latestDraftMock).toHaveBeenCalledWith("u-1", "proj-1", { kind: "grant", id: "g1" });
+    expect(getProgramMock).not.toHaveBeenCalled();
 
     growthMock.mockResolvedValue(true);
     const growth = await html({ draft: "g1", kind: "grant" });
@@ -275,15 +297,52 @@ describe("/workspace/funding (T0244)", { timeout: 20_000 }, () => {
     expect(growth).toContain("Generate draft — included");
   });
 
-  it("?draft=<ref>&kind=program keeps the acknowledgement stub; an unknown grant id falls back to the stub too", async () => {
+  it("?draft=<programId>&kind=program opens the editor for the program's prompts — title, intake window, program_id lookup, no stub (S16-A)", async () => {
     const program = await html({ draft: "p1", kind: "program" });
-    expect(program).toContain("data-draft-stub");
-    expect(program).toContain("Draft application for p1");
-    expect(program).not.toContain("data-grant-draft-editor");
+    expect(program).not.toContain("data-draft-stub");
+    expect(program).toContain("data-grant-draft-editor");
+    expect(program).toContain('data-kind="program"');
+    expect(program).toContain('data-program="p1"');
+    expect(program).toContain("Application draft — Startmate Accelerator");
+    expect(program).toContain("Applications open Sep 2026, close 8 Nov 2026; next cohort 25 Jan 2027.");
+    expect(program).toContain('href="https://www.startmate.com/accelerator"');
+    expect(program).toContain("Official program page");
+    // Seeded prompts, not the generic set; Starter price on the button.
+    expect(program).not.toContain("data-draft-generic");
+    expect(program).toContain('data-prompt="one_liner"');
+    expect(program).toContain('data-prompt="why_startmate"');
+    expect(program).toContain('data-prompt="milestones"');
+    expect(program).toContain("Generate draft — 2 credits");
+    expect(getProgramMock).toHaveBeenCalledWith("p1");
+    expect(getGrantMock).not.toHaveBeenCalled();
+    expect(latestDraftMock).toHaveBeenCalledWith("u-1", "proj-1", { kind: "program", id: "p1" });
 
+    // Unseeded program → generic 6-question accelerator set + fallback note.
+    getProgramMock.mockResolvedValueOnce({ ...programRow(), application_prompts: [] });
+    const generic = await html({ draft: "p1", kind: "program" });
+    expect(generic).toContain("data-draft-generic");
+    expect(generic).toContain('data-prompt="why_program"');
+    expect(generic).toContain("six questions every accelerator form asks");
+
+    // Growth → included.
+    growthMock.mockResolvedValue(true);
+    const growth = await html({ draft: "p1", kind: "program" });
+    expect(growth).toContain('data-unlimited="1"');
+    expect(growth).toContain("Generate draft — included");
+  });
+
+  it("an unknown grant or program id renders the 'not in the catalogue' note instead of an editor (stub removed)", async () => {
     getGrantMock.mockResolvedValueOnce(null);
-    const unknown = await html({ draft: "zzz", kind: "grant" });
-    expect(unknown).toContain("data-draft-stub");
+    const unknownGrant = await html({ draft: "zzz", kind: "grant" });
+    expect(unknownGrant).not.toContain("data-draft-stub");
+    expect(unknownGrant).not.toContain("data-grant-draft-editor");
+    expect(unknownGrant).toContain('data-draft-missing="zzz"');
+    expect(unknownGrant).toContain("Nothing to draft yet.");
+
+    getProgramMock.mockResolvedValueOnce(null);
+    const unknownProgram = await html({ draft: "zzz", kind: "program" });
+    expect(unknownProgram).toContain('data-draft-missing="zzz"');
+    expect(unknownProgram).not.toContain("data-grant-draft-editor");
   });
 
   it("prompts to run a match when no report exists", async () => {
