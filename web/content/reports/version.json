@@ -1,30 +1,21 @@
 {
-  "version": "v3.10.0",
-  "updated_at": "2026-09-09T00:00:00Z",
-  "git_sha": "03b8e86e9",
-  "release_id": "context-aware-intake-light-first-design-persistence",
+  "version": "v3.12.0",
+  "updated_at": "2026-09-11T22:19:38Z",
+  "git_sha": "81c088f73",
+  "release_id": "money-finder-evaluator-ladder-hardening",
   "shipped_summary": [
-    "v3.10.0 \u2014 195 commits since v3.9.23. Three themes: the analyser understands what you give it, the product remembers you, and the whole app finally looks like one product.",
-    "Intake \u2014 one box takes a pitch deck (PDF/DOCX/PPTX, OCR fallback), a URL (multi-page crawl), or free text. A classifier routes it, stage is detected, and only the agents that matter at that stage run.",
-    "Persistence \u2014 every analysis is saved against an anonymous key and claimed on signup/login. Before this, a founder's result ceased to exist the moment they navigated.",
-    "Signup gate \u2014 the first run in 30 days is free and unwalled; from the second we ask for an email BEFORE running, so no model spend is burned on a visitor who bounces. The A$3 guest path is unaffected.",
-    "Data room \u2014 /api/investor-data-room rewritten against the real schema (it had never worked; it inserted five non-existent columns). Investors open a real page at /s/dr/<token>; bad tokens 404. Generated rooms now carry real content, and what the platform cannot produce is marked honestly as missing.",
-    "Design system rev.2 \u2192 rev.4 \u2014 light-first across marketing, dashboard, workspace and admin. The lux dark theme is retired from all 34 marketing pages. pa11y WCAG2AA 26/26.",
-    "Homepage rebuilt to show the product's own output \u2014 valuation intervals, an eight-dimension radar, the twelve-phase journey, data-room completeness \u2014 instead of describing it in prose.",
-    "Pricing \u2014 A$29 Founder / A$69 Growth / +A$59 Equity add-on; A$299 Pro retired (it exceeded JPMorgan Workplace Solutions at A$277). Credit grants right-sized to hold \u226570% gross margin at full burn.",
-    "Correctness \u2014 'pre-revenue' no longer matched the substring 'revenue', which had been pricing a two-founder pre-revenue startup as Series A at A$37.3M.",
-    "Privacy \u2014 scores.investor_visible (default false) now gates investor deal flow, which had been surfacing 18 founders' company names and scores without consent.",
-    "Billing integrity \u2014 three places that charged for nothing were closed: the A$59 add-on (sale suspended until entitlements resolve), /api/data-room/generate (charged 3 credits and discarded the result), and Stripe prices that billed Starter A$29 as A$99 and Pro A$299 as A$499.",
-    "Compliance \u2014 the site claimed GST-exclusive pricing while every Stripe price is tax_behavior=inclusive, including in FAQ JSON-LD that Google indexes."
+    "v3.12.0 — Money Finder (G11) and the Evaluator ladder (G12) shipped end-to-end on 2026-09-10, then hardened through eighteen review-fix-deploy cycles on 2026-09-11 (S6–S18).",
+    "Money Finder — 5-item public nav with 'Do you need money?', /funding intake → free preview → A$3 report (3 credits or plan), 56 grants + 199 programs as free directories with enriched detail pages, a public sample report, application drafts for grants and 15 programs, Founder Radar alerts bundled into Starter with activation nudges and a weekly refresh cron.",
+    "Evaluators — Scout A$79 / Firm A$149 / Program A$349 live with Stripe, card-required 7-day trial with one included Trust BizReport, 'Startups I am evaluating', batch scoring with cohort CSV and sponsor/LP report, weekly progress radar, activation checklist, investor 'Let matching founders see me' opt-in.",
+    "Security — atomic credit spend, spend-before-run on paid work, SSRF guard on catalogue fetches, constant-time secrets on every cron and internal route, edge CSRF gate for cookie-authenticated API mutations, member-aware project access with role enforcement (co-founder sharing works; two IDORs closed).",
+    "Quality — ESLint errors 271 → 0, accessibility fixes across the new UI, SEO sweep of 163 public pages (titles, OG, JSON-LD, sitemap of 252 funding pages), lean grouped directories (1.28 MB → ~390 KB), hourly cached catalogue reads, Gate-12 smoke extended to the new surfaces.",
+    "Compliance — privacy policy v2.2 covering Money Finder intake, evaluator-entered startup data, discoverability and retention, with a weekly retention sweep that mirrors the policy table (parity-tested).",
+    "Docs — generated phase×tier unlock matrix at /docs/unlocks, traction kit (angel groups, accelerator pilots, ProductHunt) under docs/marketing, roadmap-v2 reconciled against the codebase (25 shipped / 28 partial / 8 open)."
   ],
   "task_ids": [
-    "Context-aware intake pipeline (classifier, stage detection, dynamic agent selection)",
-    "Analysis persistence + claim-on-signup",
-    "Investor data-room share + real generated content",
-    "Light-first design system rollout (marketing, app, admin)",
-    "Homepage visual rebuild",
-    "Pricing ladder + credit-grant right-sizing",
-    "Signup gate (first run free, email from the second)"
+    "T0237–T0251 Money Finder",
+    "T0268–T0275 Evaluator Traction",
+    "S6–S18 post-launch hardening & conversion"
   ],
-  "notes": "The defects that mattered most this release were not found by reading code \u2014 they surfaced by running the product and looking at screenshots: white-on-white headings, an invisible SVI numeral on the dashboard, invisible form labels on /submit, a data room of 34 documents marked complete with no content behind them, and a share button that had returned 500 on every call since it was written."
+  "notes": "Every phase followed deploy → verify live → post-ship review → fix → deploy; nine reviews under docs/plans/reviews/. Two things the reviews caught that tests did not: a client component reaching server-only code through a dynamic import (build gate), and a viewer role reaching owner data through routes the feature had not converted (access review)."
 }

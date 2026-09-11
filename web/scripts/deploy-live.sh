@@ -375,6 +375,8 @@ fi
 # web/.githooks/pre-commit (installed by scripts/install-git-hooks.sh).
 gate "Secret scan (gitleaks)"
 
+# Cron/self-upgrade runs have a minimal PATH; gitleaks lives in ~/.local/bin.
+export PATH="$HOME/.local/bin:$PATH"
 if ! command -v gitleaks >/dev/null 2>&1; then
   echo "  ⚠ gitleaks not installed — secret scan did NOT run (pre-commit hook still enforces)"
   GITLEAKS_STATUS="skipped"
