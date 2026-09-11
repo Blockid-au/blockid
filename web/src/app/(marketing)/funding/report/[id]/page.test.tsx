@@ -95,7 +95,10 @@ beforeEach(() => {
   notFoundMock.mockClear();
 });
 
-describe("/funding/report/[id] (T0244 full view)", () => {
+// First test pays the cold transform of the report view import graph
+// (cards, Gantt, markdown, upsell); under full-suite load that exceeds the
+// 5 s default, so the suite gets a wider per-test budget.
+describe("/funding/report/[id] (T0244 full view)", { timeout: 20_000 }, () => {
   it("404s for a viewer with no token / session / ownership", async () => {
     await expect(html()).rejects.toThrow("NEXT_NOT_FOUND");
     expect(notFoundMock).toHaveBeenCalled();
