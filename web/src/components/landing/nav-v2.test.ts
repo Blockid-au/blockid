@@ -111,3 +111,25 @@ describe("nav CTAs", () => {
     expect(WORKSPACE_LINK).toEqual({ label: "My workspace", href: "/dashboard" });
   });
 });
+
+// G7 Q2 (S19-A, decision adopted 2026-09-11): Demo is a top-nav entry on
+// every page — never a floating CTA. `MENU` is rendered by NavV2 (public
+// MarketingShell) and site/navbar (app + docs), and the workspace topbar
+// carries its own Demo link (pinned by tests/e2e/nav/menu-structure.spec.ts),
+// so pinning the entry here covers the whole site.
+describe("G7 Q2 — Demo placement", () => {
+  it("Demo is a top-nav entry linking to the Atlassian walkthrough", () => {
+    const demo = MENU.find((e) => e.key === "demo");
+    expect(demo).toBeDefined();
+    expect(demo!.kind).toBe("group");
+    expect(group("demo").items[0].href).toBe("/showcase/atlassian?step=1");
+  });
+
+  it("no floating / fixed Demo CTA is declared alongside the menu", () => {
+    // Only the two CTAs the nav knows about exist; a floating Demo CTA
+    // would need a new export here first (Q2: "ship top-nav link first").
+    expect(NEED_MONEY_CTA.label).not.toMatch(/demo/i);
+    expect(WORKSPACE_LINK.label).not.toMatch(/demo/i);
+    expect(MENU.filter((e) => e.label === "Demo")).toHaveLength(1);
+  });
+});

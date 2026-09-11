@@ -149,3 +149,32 @@ describe("WorkspaceLayout — one founder phase for every page (S7-A)", () => {
     }
   });
 });
+
+// G7 Q1 (S19-A, decision adopted 2026-09-11): keep at most 5 phase-clusters
+// visible at once. The sidebar catalogue carries 4 phase-gated clusters
+// (Validate / Build / Fundraise / Scale & Exit) plus Home, Roles, Account —
+// a phase-0 founder sees Home + Validate (+ Roles only when the reseller
+// feature is on, as in this mock) + Account, with Build / Fundraise hidden
+// by decideGroupVisibility and Scale & Exit folded under "Later phases".
+// This pins the count so a future catalogue edit cannot creep past 5.
+describe("WorkspaceLayout — G7 Q1: <= 5 phase-clusters visible at once", () => {
+  // Labels as they appear in the static markup (`&` is entity-escaped).
+  const PHASE_CLUSTERS = ["Validate", "Build", "Fundraise", "Scale &amp; Exit"];
+
+  it("a phase-0 founder sees at most 5 groups and exactly 1 phase-cluster", () => {
+    const groups = renderDashboardStyle(0);
+    expect(groups.length).toBeLessThanOrEqual(5);
+    expect(groups.filter((g) => PHASE_CLUSTERS.includes(g))).toEqual(["Validate"]);
+    expect(groups[0]).toBe("Home");
+  });
+
+  it("no phase 0..5 ever shows more than 5 phase-clusters (Miller 7±2 guard)", () => {
+    for (let phase = 0; phase <= 5; phase += 1) {
+      const clusters = renderDashboardStyle(phase).filter((g) => PHASE_CLUSTERS.includes(g));
+      expect(clusters.length, `phase ${phase}`).toBeLessThanOrEqual(5);
+      // Clusters unlock in catalogue order and are never re-ordered.
+      expect(clusters).toEqual(PHASE_CLUSTERS.filter((c) => clusters.includes(c)));
+    }
+    expect(renderDashboardStyle(5).filter((g) => PHASE_CLUSTERS.includes(g))).toEqual(PHASE_CLUSTERS);
+  });
+});
