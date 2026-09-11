@@ -18,7 +18,7 @@ import {
   EMPTY_FOUNDER_NAV_CONTEXT,
   pickNavPhase,
   type FounderNavContextValue,
-} from "@/lib/nav/founder-phase";
+} from "@/lib/nav/founder-phase-shared";
 
 const FounderNavContext = React.createContext<FounderNavContextValue | null>(null);
 
