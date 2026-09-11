@@ -44,13 +44,14 @@
 ### G4 — Feature-upgrade roadmap v2
 - **Source:** [`.claude/goals/feature-upgrade-roadmap-v2.md`](../../.claude/goals/feature-upgrade-roadmap-v2.md)
 - **Status:** Q3 2026 in-flight (partially shipped; 21 sections). **v3.9.23 sync — items 1 and 2 shipped as Contact Sales row** (Enterprise custom + Accelerator A$500+ + VC A$349+ landed via B8 `58f34d45d`).
-- **Top-5 open Q3 items:**
-  1. Enterprise tier + team features — **shipped** (Contact Sales row + Pro A$299/mo tier delivered team features via `58f34d45d`).
-  2. Accelerator partnership pricing — **shipped** (Contact Sales row Accelerator from A$500 via `58f34d45d`).
-  3. PDF branding customisation for paid plans — **shipped** (feature-gate + settings form `26678366`; renderer wire `880df71c`).
-  4. Dashboard personalisation (pin/reorder widgets) — `react-expert`.
-  5. ProductHunt launch campaign — `cmo` + `media-studio`.
-- **Next action:** items 4-5 remain open — G4 continues.
+- **Top-5 open Q3 items:** (SHAs re-mapped after the 2026-09-10 history rewrite)
+  1. Enterprise tier + team features — **shipped** (Contact Sales row Enterprise custom + `founder_enterprise` SKU + project members via `d7557c3ec`).
+  2. Accelerator partnership pricing — **shipped** (Contact Sales row Accelerator from A$500/mo + `accelerator_*` cohort SKUs via `d7557c3ec`).
+  3. PDF branding customisation for paid plans — **shipped** (feature-gate + settings form `b9311f0eb`; renderer wire `adbc48326`).
+  4. Dashboard personalisation (pin/reorder widgets) — **shipped** (server-synced layout, S6-A 2026-09-11).
+  5. ProductHunt launch campaign — **partial** (launch kit `docs/marketing/traction-kit-2026-09/producthunt-launch-kit.md`; launch dated 13 Oct 2026, founder-gated).
+- **Reconciliation 2026-09-11:** all 61 unchecked roadmap-v2 items checked against code + git log → **25 shipped (ticked), 28 partial, 8 open**; per-item evidence inline and a ranked 8-item no-human-input backlog under `## Reconciliation 2026-09-11` in the roadmap-v2 file.
+- **Next action:** pick from the ranked backlog — #1 project-permission enforcement in `lib/projects.ts`, #2 audit-log coverage to all mutating routes, #3 outbound webhooks; ProductHunt (#5 above) waits on the founder.
 - **Blocker:** none.
 
 ### G5 — Pricing upgrade v2 — **✅ CLOSED (v3.9.23, 2026-09-07)**
