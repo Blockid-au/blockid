@@ -121,7 +121,7 @@ export async function POST(request: Request) {
     if (denied) return denied;
     const projectId = scope?.projectId ?? null;
     const dataEmail = scope?.dataEmail ?? user.email;
-    const reportOwnerIds = scope ? [user.id, scope.ownerUserId] : [user.id];
+    const reportOwnerIds = [...new Set([user.id, scope?.ownerUserId ?? user.id])];
 
     const account = await findSVIAccountWithFallback(
       dataEmail,
