@@ -1,9 +1,14 @@
 /**
- * /funding/programs/[capital]/[id] — one program: benefits, funding and
- * equity, cost, eligibility checklist, intake dates, official link, and
+ * /funding/programs/[capital]/[id] — one program: at a glance, who it is
+ * for, what you get, how to apply, timing, FAQ and related funding, plus
  * "Add to my plan for A$3" into /funding (T0242). A row requested under the
  * wrong capital redirects nowhere — it 404s, so the canonical URL is the
  * only one that indexes. T0241.
+ *
+ * S9-B: the sections below the header are built by `lib/funding/enrich.ts`
+ * from the row's structured fields only (fixed vocabulary + generic
+ * per-type explainers), so a five-word `summary` no longer leaves the page
+ * thin. `FAQPage` JSON-LD is emitted only when ≥ 2 Q&As render.
  */
 
 import type { Metadata } from "next";
@@ -17,7 +22,8 @@ import { StatusChip } from "@/components/funding/status-chip";
 import { programTerms } from "@/components/funding/program-card";
 import { FundingDisclaimer } from "@/components/funding/funding-disclaimer";
 import { FundingGuides } from "@/components/funding/funding-guides";
-import { getProgram, listPrograms } from "@/lib/funding/data";
+import { AtAGlance, Faq, HowToApply, Prose, Related, Timing } from "@/components/funding/enrichment-sections";
+import { getProgram, listGrants, listPrograms } from "@/lib/funding/data";
 import {
   buildProgramEventsJsonLd,
   buildProgramJsonLd,
@@ -25,15 +31,12 @@ import {
   capitalFromSlug,
   capitalSlug,
   eligibilityRequirements,
-  formatAudCompact,
-  formatLooseDate,
   humanize,
-  monthLong,
   programTypeLabel,
-  stageLabel,
   stateLabel,
 } from "@/lib/funding/directory";
-import { FUNDING_CRUMBS, PROGRAM_GUIDES, grantsStatePath, programDescription, programPath, programTitle } from "@/lib/funding/seo";
+import { enrichProgram } from "@/lib/funding/enrich";
+import { FUNDING_CRUMBS, PROGRAM_GUIDES, programDescription, programPath, programTitle } from "@/lib/funding/seo";
 import { pageMetadata } from "@/lib/seo/page-meta";
 
 export const revalidate = 3600;
@@ -56,31 +59,27 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   return pageMetadata({ title: { absolute: programTitle(p) }, description: programDescription(p), path: programPath(p.capital, p.id) });
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <dt className="text-xs font-semibold uppercase tracking-wide text-secondary">{label}</dt>
-      <dd className="text-sm text-primary">{children}</dd>
-    </div>
-  );
-}
-
 export default async function ProgramDetailPage({ params }: { params: Promise<Params> }) {
   const { capital: slug, id } = await params;
   const capital = capitalFromSlug(slug);
   const p = await getProgram(id);
   if (!capital || !p || p.capital !== capital) notFound();
 
+  const [programs, grants] = await Promise.all([listPrograms({ capital }), listGrants()]);
+  const e = enrichProgram(p, { programs, grants });
+
   const capitalPath = `/funding/programs/${capitalSlug(capital)}`;
   const planHref = `/funding?program=${encodeURIComponent(p.id)}`;
   const requirements = eligibilityRequirements(p.eligibility);
   const terms = programTerms(p);
   const closed = p.status === "closed";
+  const jsonLd = [buildProgramJsonLd(p), ...buildProgramEventsJsonLd([p])];
+  if (e.faqJsonLd) jsonLd.push(e.faqJsonLd);
 
   return (
     <MarketingShell>
       <BreadcrumbListJsonLd items={FUNDING_CRUMBS.program(p)} />
-      <FundingJsonLd data={[buildProgramJsonLd(p), ...buildProgramEventsJsonLd([p])]} />
+      <FundingJsonLd data={jsonLd} />
 
       <article className="mx-auto max-w-5xl px-6 pt-12 pb-12 sm:pt-16" data-program-id={p.id}>
         <Link href={capitalPath} className="inline-flex items-center gap-1 text-sm font-semibold text-action hover:text-action-hover">
@@ -131,36 +130,9 @@ export default async function ProgramDetailPage({ params }: { params: Promise<Pa
 
         <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-10">
-            {p.benefits.length ? (
-              <section aria-labelledby="benefits-heading">
-                <h2 id="benefits-heading" className="font-display text-xl font-semibold text-primary">
-                  What you get
-                </h2>
-                <ul className="mt-4 list-disc space-y-1.5 pl-5 text-sm text-primary" data-benefits>
-                  {p.benefits.map((b) => (
-                    <li key={b}>{b}</li>
-                  ))}
-                </ul>
-              </section>
-            ) : null}
+            <AtAGlance facts={e.atAGlance} />
 
-            <section aria-labelledby="terms-heading">
-              <h2 id="terms-heading" className="font-display text-xl font-semibold text-primary">
-                Funding, equity and cost
-              </h2>
-              <dl className="mt-4 grid gap-4 sm:grid-cols-3">
-                <Field label="Funding">
-                  {typeof p.funding_aud === "number" && p.funding_aud > 0 ? formatAudCompact(p.funding_aud) : "None stated"}
-                </Field>
-                <Field label="Equity">{p.equity_pct ?? "None stated"}</Field>
-                <Field label="Cost to founder">{p.cost_to_founder ?? "Not stated"}</Field>
-              </dl>
-            </section>
-
-            <section aria-labelledby="eligibility-heading">
-              <h2 id="eligibility-heading" className="font-display text-xl font-semibold text-primary">
-                Who can apply
-              </h2>
+            <Prose id="who" heading="Who it is for" sentences={e.whoItIsFor}>
               {requirements.length ? (
                 <ul className="mt-4 divide-y divide-line-subtle rounded-2xl border border-line-subtle bg-surface-raised" data-eligibility>
                   {requirements.map((r) => (
@@ -180,38 +152,38 @@ export default async function ProgramDetailPage({ params }: { params: Promise<Pa
               {p.industry_tags.length ? (
                 <p className="mt-1 text-sm text-secondary">Industries: {p.industry_tags.map(humanize).join(", ")}.</p>
               ) : null}
-            </section>
+            </Prose>
+
+            <Prose id="get" heading="What you get" sentences={e.whatYouGet}>
+              {p.benefits.length ? (
+                <ul className="mt-4 list-disc space-y-1.5 pl-5 text-sm text-primary" data-benefits>
+                  {p.benefits.map((b) => (
+                    <li key={b}>{b}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </Prose>
+
+            <HowToApply data={e.howToApply} officialLabel="Apply on the official page" />
+
+            <Timing data={e.timing} />
+
+            <Faq items={e.faq} />
+
+            <Related data={e.related} programsHeading={`More ${capitalDisplayName(capital)} programs`} grantsHeading="Grants that fit this stage" />
           </div>
 
           <aside className="h-fit rounded-2xl border border-line-subtle bg-surface-sunken p-5">
-            <dl className="space-y-4">
-              {p.venue ? <Field label="Venue">{p.venue}</Field> : null}
-              {typeof p.length_weeks === "number" && p.length_weeks > 0 ? (
-                <Field label="Length">{p.length_weeks} weeks</Field>
-              ) : null}
-              {p.intake_months.length ? (
-                <Field label="Usual intake months">{p.intake_months.map(monthLong).join(", ")}</Field>
-              ) : null}
-              {p.applications_open ? <Field label="Applications open">{formatLooseDate(p.applications_open)}</Field> : null}
-              {p.applications_close ? <Field label="Applications close">{formatLooseDate(p.applications_close)}</Field> : null}
-              {p.next_cohort_start ? <Field label="Next cohort starts">{formatLooseDate(p.next_cohort_start)}</Field> : null}
-              {p.stage_tags.length ? <Field label="Stages">{p.stage_tags.map(stageLabel).join(", ")}</Field> : null}
-              <Field label="Last verified">
-                {p.last_verified_at ? formatLooseDate(p.last_verified_at) : "not yet recorded"}
-                {" · "}
-                <span className="text-secondary">{p.status_confidence} confidence</span>
-              </Field>
-            </dl>
-            <nav className="mt-6 space-y-1.5 border-t border-line-subtle pt-4 text-sm" aria-label="Related">
+            <nav className="space-y-1.5 text-sm" aria-label="Related">
               <p className="text-xs font-semibold uppercase tracking-wide text-secondary">More funding</p>
               <p>
-                <Link href={capitalPath} className="text-action underline-offset-2 hover:underline">
-                  All {capitalDisplayName(capital)} programs
+                <Link href={e.related.capital.href} className="text-action underline-offset-2 hover:underline">
+                  {e.related.capital.label}
                 </Link>
               </p>
               <p>
-                <Link href={grantsStatePath(p.state)} className="text-action underline-offset-2 hover:underline">
-                  {p.state === "national" ? "Federal startup grants" : `${stateLabel(p.state)} startup grants`}
+                <Link href={e.related.stateGrants.href} className="text-action underline-offset-2 hover:underline">
+                  {e.related.stateGrants.label}
                 </Link>
               </p>
               <p>

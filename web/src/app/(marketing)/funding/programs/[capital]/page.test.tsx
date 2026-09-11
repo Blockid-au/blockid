@@ -68,8 +68,10 @@ const rows: AuProgram[] = [
 ];
 
 vi.mock("@/lib/funding/data", () => ({
-  listPrograms: async () => rows,
+  listPrograms: async (opts?: { capital?: string }) => (opts?.capital ? rows.filter((r) => r.capital === opts.capital) : rows),
   getProgram: async (id: string) => rows.find((r) => r.id === id) ?? null,
+  // S9-B: the detail page ranks related grants through the matcher; an empty pool just omits the list.
+  listGrants: async () => [],
 }));
 
 import { extractJsonLd, validateJsonLd } from "@/lib/seo/structured-data";
@@ -226,7 +228,8 @@ describe("/funding/programs/[capital]/[id]", () => {
     expect(html).toContain('data-funding-guides="compact"');
     expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
     const blocks = extractJsonLd(html);
-    expect(blocks.map((b) => b["@type"]).sort()).toEqual(["BreadcrumbList", "Event", "Service"]);
+    // S9-B adds FAQPage (≥ 2 field-backed Q&As on this row).
+    expect(blocks.map((b) => b["@type"]).sort()).toEqual(["BreadcrumbList", "Event", "FAQPage", "Service"]);
     for (const b of blocks) expect(validateJsonLd(b), String(b["@type"])).toEqual({ ok: true, errors: [] });
     const crumbs = blocks.find((b) => b["@type"] === "BreadcrumbList")!;
     expect((crumbs.itemListElement as unknown[]).length).toBe(5);
