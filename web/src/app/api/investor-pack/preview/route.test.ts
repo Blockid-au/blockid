@@ -56,7 +56,7 @@
 //  21. Both GET and POST call the same underlying handler (single source
 //      of truth for the branch matrix).
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ── auth ────────────────────────────────────────────────────
 const getCurrentUserMock = vi.fn();
@@ -66,9 +66,17 @@ vi.mock("@/lib/auth", () => ({
 
 // ── projects (getProjectIdFromRequest) ──────────────────────
 const getProjectIdFromRequestMock = vi.fn();
-vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => getProjectIdFromRequestMock(),
-}));
+// S18-A — member-aware scope on top of the existing project-id spy: the
+// route now calls getProjectScope(minRole); owner → data keyed on the
+// caller, member → keyed on the OWNER (owner@x.test / owner-1).
+const scopeRole = vi.hoisted(() => ({ value: "owner" as "owner" | "admin" | "editor" | "viewer" }));
+vi.mock("@/lib/projects", async () => {
+  const { scopeAdapter } = await import("@/test/project-scope-mock");
+  return scopeAdapter(() => getProjectIdFromRequestMock(), scopeRole, {
+    callerEmail: "founder@example.com",
+    callerId: "u-42",
+  });
+});
 
 // ── supabase admin ──────────────────────────────────────────
 type MaybeSingleFn = () => Promise<{ data: Record<string, unknown> | null }>;
@@ -451,5 +459,29 @@ describe("GET + POST /api/investor-pack/preview", () => {
     expect(data.capTable).toBeUndefined();
     expect(Array.isArray(data.traction.mrrHistory)).toBe(true);
     expect(data.traction.mrrHistory).toHaveLength(0);
+  });
+});
+
+// S18-A — member access: viewer+ read; the pack is assembled on the
+// project OWNER's records (app_users display name via the owner's id).
+describe("GET /api/investor-pack/preview — S18-A member access", () => {
+  afterEach(() => {
+    scopeRole.value = "owner";
+  });
+
+  it("viewer on a shared project: allowed; app_users looked up by the OWNER's id", async () => {
+    scopeRole.value = "viewer";
+    const res = await GET(req());
+    expect(res.status).toBe(200);
+    const appUsers = supabaseCalls.find((c) => c.table === "app_users");
+    expect(appUsers?.eqCol).toBe("id");
+    expect(appUsers?.eqVal).toBe("owner-1");
+    expect(supabaseCalls.some((c) => c.eqVal === USER.id)).toBe(false);
+  });
+
+  it("owner: app_users looked up by the owner's own id", async () => {
+    await GET(req());
+    const appUsers = supabaseCalls.find((c) => c.table === "app_users");
+    expect(appUsers?.eqVal).toBe(USER.id);
   });
 });

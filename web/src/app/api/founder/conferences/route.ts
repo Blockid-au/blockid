@@ -17,7 +17,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { type ConferenceCost } from "@/lib/conferences";
 import { recommendConferencesWithProgramEvents } from "@/lib/funding/events";
 
@@ -74,7 +74,10 @@ export async function GET(req: NextRequest) {
       : null;
 
   const sb = getSupabaseAdmin();
-  const projectId = await getProjectIdFromRequest();
+  // S18-A — read-only recommender seeded from the project row: viewer+.
+  const { scope, denied } = await projectScopeOrDeny("viewer");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
 
   if (sb && projectId && (!sector || stage === null || Number.isNaN(stage))) {
     const { data } = await sb

@@ -21,7 +21,7 @@ import { createHash } from "crypto";
 import { analyzeTermSheet } from "@/lib/term-sheet/analyze";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { generateLawyerQuestions } from "@/lib/term-sheet-lawyer-questions";
 
 const HolderSchema = z.object({
@@ -97,7 +97,13 @@ export async function POST(request: Request) {
   // Resolve active project before charging so the reseller sandbox routing
   // in spendCredits (metadata.project_id) can activate for reseller-scoped
   // callers. Non-reseller callers fall through to credit_balances unchanged.
-  const projectId = await getProjectIdFromRequest();
+  //
+  // S18-A — editor+: the analysis is persisted against the project. The
+  // row itself stays keyed on the CALLER (user_id / email): it is their
+  // upload, charged to their credits, and DELETE is scoped the same way.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
 
   try {
     const result = await analyzeTermSheet({

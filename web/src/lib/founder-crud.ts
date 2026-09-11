@@ -6,7 +6,12 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
+
+// S18-A — every founder-feature row is keyed on (user_id = project OWNER,
+// project_id). A shared-project member reads (viewer+) and writes (editor+)
+// the same rows the owner sees; the caller's own id is never used as the
+// key on a shared project.
 
 export interface CrudConfig {
   table: string;
@@ -21,13 +26,15 @@ export function listHandler(cfg: CrudConfig) {
     if (!user) return NextResponse.json({ ok: false, error: "auth" }, { status: 401 });
     const sb = getSupabaseAdmin();
     if (!sb) return NextResponse.json({ ok: false, error: "db" }, { status: 503 });
-    const projectId = await getProjectIdFromRequest();
+    const { scope, denied } = await projectScopeOrDeny("viewer");
+    if (denied) return denied;
+    const projectId = scope?.projectId ?? null;
     if (!projectId) return NextResponse.json({ ok: true, items: [] });
 
     let query = sb
       .from(cfg.table)
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", scope?.ownerUserId ?? user.id)
       .eq("project_id", projectId);
     for (const o of cfg.orderBy ?? [{ column: "created_at", ascending: true }]) {
       query = query.order(o.column, { ascending: o.ascending ?? true });
@@ -44,7 +51,9 @@ export function createHandler(cfg: CrudConfig) {
     if (!user) return NextResponse.json({ ok: false, error: "auth" }, { status: 401 });
     const sb = getSupabaseAdmin();
     if (!sb) return NextResponse.json({ ok: false, error: "db" }, { status: 503 });
-    const projectId = await getProjectIdFromRequest();
+    const { scope, denied } = await projectScopeOrDeny("editor");
+    if (denied) return denied;
+    const projectId = scope?.projectId ?? null;
     if (!projectId) return NextResponse.json({ ok: false, error: "no project" }, { status: 400 });
 
     let body: Record<string, unknown> = {};
@@ -59,7 +68,10 @@ export function createHandler(cfg: CrudConfig) {
         return NextResponse.json({ ok: false, error: `${rf} required` }, { status: 400 });
       }
     }
-    const payload: Record<string, unknown> = { user_id: user.id, project_id: projectId };
+    const payload: Record<string, unknown> = {
+      user_id: scope?.ownerUserId ?? user.id,
+      project_id: projectId,
+    };
     for (const [k, v] of Object.entries(body)) {
       if (cfg.fields.has(k)) payload[k] = v === "" ? null : v;
     }
@@ -77,6 +89,8 @@ export function patchHandler(cfg: CrudConfig) {
     if (!user) return NextResponse.json({ ok: false, error: "auth" }, { status: 401 });
     const sb = getSupabaseAdmin();
     if (!sb) return NextResponse.json({ ok: false, error: "db" }, { status: 503 });
+    const { scope, denied } = await projectScopeOrDeny("editor");
+    if (denied) return denied;
 
     let body: Record<string, unknown> = {};
     try {
@@ -92,13 +106,13 @@ export function patchHandler(cfg: CrudConfig) {
       return NextResponse.json({ ok: false, error: "nothing to update" }, { status: 400 });
     }
 
-    const { data, error } = await sb
+    let update = sb
       .from(cfg.table)
       .update(payload)
       .eq("id", id)
-      .eq("user_id", user.id)
-      .select("*")
-      .single();
+      .eq("user_id", scope?.ownerUserId ?? user.id);
+    if (scope?.projectId) update = update.eq("project_id", scope.projectId);
+    const { data, error } = await update.select("*").single();
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true, item: data });
   };
@@ -111,12 +125,16 @@ export function deleteHandler(cfg: CrudConfig) {
     if (!user) return NextResponse.json({ ok: false, error: "auth" }, { status: 401 });
     const sb = getSupabaseAdmin();
     if (!sb) return NextResponse.json({ ok: false, error: "db" }, { status: 503 });
+    const { scope, denied } = await projectScopeOrDeny("editor");
+    if (denied) return denied;
 
-    const { error } = await sb
+    let del = sb
       .from(cfg.table)
       .delete()
       .eq("id", id)
-      .eq("user_id", user.id);
+      .eq("user_id", scope?.ownerUserId ?? user.id);
+    if (scope?.projectId) del = del.eq("project_id", scope.projectId);
+    const { error } = await del;
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
   };

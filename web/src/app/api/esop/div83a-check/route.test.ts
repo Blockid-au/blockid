@@ -15,7 +15,7 @@
 // checker itself, the grant row loader, and the div83a cache updater are
 // each covered by their own colocated tests.
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextResponse } from "next/server";
 
 // ── Feature gate ────────────────────────────────────────────
@@ -54,9 +54,17 @@ vi.mock("@/lib/supabase", () => ({
 
 // ── Project resolver ────────────────────────────────────────
 const getProjectIdFromRequestMock = vi.fn<() => Promise<string | null>>();
-vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => getProjectIdFromRequestMock(),
-}));
+// S18-A — member-aware scope on top of the existing project-id spy: the
+// route now calls getProjectScope(minRole); owner → data keyed on the
+// caller, member → keyed on the OWNER (owner@x.test / owner-1).
+const scopeRole = vi.hoisted(() => ({ value: "owner" as "owner" | "admin" | "editor" | "viewer" }));
+vi.mock("@/lib/projects", async () => {
+  const { scopeAdapter } = await import("@/test/project-scope-mock");
+  return scopeAdapter(() => getProjectIdFromRequestMock(), scopeRole, {
+    callerEmail: "founder@x.co",
+    callerId: "u-42",
+  });
+});
 
 // ── Div83A checker (lib) ────────────────────────────────────
 type Div83ACheckResult = {
@@ -378,5 +386,35 @@ describe("POST /api/esop/div83a-check", () => {
       disclaimer:
         "General information only. Not legal or tax advice. Confirm eligibility with a registered tax agent.",
     });
+  });
+});
+
+// S18-A — member access: editor+ (persists a check + updates the grant);
+// the grant is looked up and updated under the project OWNER's user_id.
+describe("POST /api/esop/div83a-check — S18-A member access", () => {
+  afterEach(() => {
+    scopeRole.value = "owner";
+  });
+
+  it("viewer: 403 before the grant lookup or any persist", async () => {
+    scopeRole.value = "viewer";
+    gateMock.mockResolvedValue(gateOk(USER));
+    getProjectIdFromRequestMock.mockResolvedValue("proj-1");
+    const res = await POST(req({ grantId: "g-1" }));
+    expect(res.status).toBe(403);
+    expect(getGrantMock).not.toHaveBeenCalled();
+    expect(insertMock).not.toHaveBeenCalled();
+    expect(updateDiv83AStatusMock).not.toHaveBeenCalled();
+  });
+
+  it("editor: grant resolved + status updated under the OWNER's user_id", async () => {
+    scopeRole.value = "editor";
+    gateMock.mockResolvedValue(gateOk(USER));
+    getProjectIdFromRequestMock.mockResolvedValue("proj-1");
+    getGrantMock.mockResolvedValue(grantFixture());
+    const res = await POST(req({ grantId: "g-1" }));
+    expect(res.status).toBe(200);
+    expect(getGrantMock).toHaveBeenCalledWith("g-1", "owner-1");
+    expect(updateDiv83AStatusMock).toHaveBeenCalledWith("g-1", "owner-1", expect.any(String));
   });
 });

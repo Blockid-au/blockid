@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -17,10 +18,14 @@ export async function GET(_request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Database not configured" }, { status: 503 });
   }
 
+  // S18-A — viewer+ read; the pool belongs to the project OWNER.
+  const { scope, denied } = await projectScopeOrDeny("viewer");
+  if (denied) return denied;
+
   const { data, error } = await supabase
     .from("esop_pools")
     .select("*")
-    .eq("account_id", user.id)
+    .eq("account_id", scope?.ownerUserId ?? user.id)
     .maybeSingle();
 
   if (error) {
@@ -47,11 +52,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "total_shares must be > 0" }, { status: 400 });
   }
 
+  // S18-A — editor+ write; upserted under the project OWNER's account_id,
+  // audit columns record the CALLER.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+
   const { data, error } = await supabase
     .from("esop_pools")
     .upsert(
       {
-        account_id: user.id,
+        account_id: scope?.ownerUserId ?? user.id,
         total_shares,
         allocated_shares: 0,
         vesting_cliff_months: Number(body.vesting_cliff_months) || 12,

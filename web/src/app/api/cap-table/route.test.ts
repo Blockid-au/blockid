@@ -41,7 +41,7 @@
 //   - regressing the fully-diluted % rounding — 4dp regressions would
 //     re-order the founder-facing register vs the DOCX register.
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
 // Mocks — declared BEFORE the SUT import so the module picks them up.
@@ -68,9 +68,17 @@ vi.mock("@/lib/supabase", () => ({
 }));
 
 const getProjectIdFromRequestMock = vi.fn<() => Promise<string | null>>();
-vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => getProjectIdFromRequestMock(),
-}));
+// S18-A — member-aware scope on top of the existing project-id spy: the
+// route now calls getProjectScope(minRole); owner → data keyed on the
+// caller, member → keyed on the OWNER (owner@x.test / owner-1).
+const scopeRole = vi.hoisted(() => ({ value: "owner" as "owner" | "admin" | "editor" | "viewer" }));
+vi.mock("@/lib/projects", async () => {
+  const { scopeAdapter } = await import("@/test/project-scope-mock");
+  return scopeAdapter(() => getProjectIdFromRequestMock(), scopeRole, {
+    callerEmail: "u@x.com",
+    callerId: "user-1",
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Fake supabase — records .from(t).select/insert/update/delete/upsert().eq()
@@ -636,6 +644,7 @@ describe("POST /api/cap-table action=add_class", () => {
     const c = findChain("share_classes", "insert");
     expect(c?.payload).toEqual({
       account_id: "user-1",
+      project_id: null, // S18-A: stamped so the project-filtered GET sees the row
       name: "Ordinary",
       class_type: "ordinary",
       total_authorized: 10_000_000,
@@ -710,6 +719,7 @@ describe("POST /api/cap-table action=add_shareholder", () => {
     const c = findChain("shareholders", "insert");
     expect(c?.payload).toEqual({
       account_id: "user-1",
+      project_id: null,
       name: "Ava",
       email: null,
       role: "founder",
@@ -910,6 +920,7 @@ describe("POST /api/cap-table action=issue_shares", () => {
     const tx = findChain("share_transactions", "insert");
     expect(tx?.payload).toEqual({
       account_id: "user-1",
+      project_id: null,
       transaction_type: "issue",
       to_shareholder_id: "sh-1",
       share_class_id: "cls-1",
@@ -956,6 +967,7 @@ describe("POST /api/cap-table action=setup_esop", () => {
     expect(c?.upsertOpts).toEqual({ onConflict: "account_id" });
     expect(c?.payload).toEqual({
       account_id: "user-1",
+      project_id: null,
       total_pool_shares: 500_000,
       pool_pct: 12,
       allocated_shares: 0,
@@ -1208,5 +1220,69 @@ describe("DELETE /api/cap-table", () => {
     const res = await DELETE(makeReq({ shareholderId: "sh-1" }, "DELETE"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true });
+  });
+});
+
+// ===========================================================================
+// S18-A — member access (getProjectScope): viewer reads, editor writes,
+// every row keyed on the project OWNER's account_id + project_id.
+// ===========================================================================
+
+describe("S18-A member access", () => {
+  beforeEach(() => {
+    getProjectIdFromRequestMock.mockResolvedValue("proj-shared");
+  });
+  afterEach(() => {
+    scopeRole.value = "owner";
+  });
+
+  it("GET as viewer: allowed; every table filtered on the OWNER's account_id + project_id", async () => {
+    scopeRole.value = "viewer";
+    queueGet({ data: [], error: null }, { data: [], error: null }, { data: null, error: null });
+    const res = await GET({} as NextRequest);
+    expect(res.status).toBe(200);
+    for (const c of state.chains) {
+      expect(c.eqCalls.find((e) => e.col === "account_id")?.val).toBe("owner-1");
+      expect(c.eqCalls.find((e) => e.col === "project_id")?.val).toBe("proj-shared");
+    }
+  });
+
+  it("POST as viewer: 403 forbidden before any DB chain", async () => {
+    scopeRole.value = "viewer";
+    const res = await POST(makeReq({ action: "add_shareholder", data: { name: "Ava" } }));
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("forbidden");
+    expect(state.chains).toEqual([]);
+  });
+
+  it("POST add_shareholder as editor: stamped with the OWNER's account_id + project_id", async () => {
+    scopeRole.value = "editor";
+    queue({ data: { id: "sh-1" }, error: null });
+    const res = await POST(makeReq({ action: "add_shareholder", data: { name: "Ava" } }));
+    expect(res.status).toBe(201);
+    const c = findChain("shareholders", "insert");
+    expect(c?.payload).toMatchObject({ account_id: "owner-1", project_id: "proj-shared" });
+  });
+
+  it("POST issue_shares as editor: ownership pre-check keyed on the OWNER's account_id", async () => {
+    scopeRole.value = "editor";
+    queue({ data: { id: "sh-1", shares_held: 10 }, error: null }, { data: null, error: null }, { data: null, error: null });
+    await POST(makeReq({ action: "issue_shares", data: { shareholderId: "sh-1", shareClassId: "cls-1", shares: 5 } }));
+    const pre = findChain("shareholders", "select");
+    expect(pre?.eqCalls.find((e) => e.col === "account_id")?.val).toBe("owner-1");
+  });
+
+  it("DELETE as viewer: 403; DELETE as editor: pre-check keyed on the OWNER's account_id", async () => {
+    scopeRole.value = "viewer";
+    const denied = await DELETE(makeReq({ shareholderId: "sh-1" }, "DELETE"));
+    expect(denied.status).toBe(403);
+    expect(state.chains).toEqual([]);
+
+    scopeRole.value = "editor";
+    queue({ data: { id: "sh-1" }, error: null }, { data: null, error: null }, { data: null, error: null });
+    const res = await DELETE(makeReq({ shareholderId: "sh-1" }, "DELETE"));
+    expect(res.status).toBe(200);
+    const pre = findChain("shareholders", "select");
+    expect(pre?.eqCalls.find((e) => e.col === "account_id")?.val).toBe("owner-1");
   });
 });

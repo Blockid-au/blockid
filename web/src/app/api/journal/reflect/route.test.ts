@@ -62,9 +62,17 @@ vi.mock("@/lib/credits", () => ({
     mocks.spendCredits(userId, feature, meta),
   FEATURE_COSTS: { journal_reflect: 0.5 },
 }));
-vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => mocks.getProjectIdFromRequest(),
-}));
+// S18-A — member-aware scope on top of the existing project-id spy: the
+// route now calls getProjectScope(minRole); owner → data keyed on the
+// caller, member → keyed on the OWNER (owner@x.test / owner-1).
+const scopeRole = vi.hoisted(() => ({ value: "owner" as "owner" | "admin" | "editor" | "viewer" }));
+vi.mock("@/lib/projects", async () => {
+  const { scopeAdapter } = await import("@/test/project-scope-mock");
+  return scopeAdapter(() => mocks.getProjectIdFromRequest(), scopeRole, {
+    callerEmail: "founder@example.com",
+    callerId: "user-1",
+  });
+});
 
 import { POST } from "./route";
 
@@ -83,6 +91,7 @@ interface FakeState {
     growthJournalSelect: string[];
     growthJournalInsert: Array<Record<string, unknown>>;
     sviSnapshotsFilters: Array<[string, unknown]>;
+    sviAccountsFilters: Array<[string, unknown]>;
     growthJournalFilters: Array<[string, unknown]>;
     growthJournalOrder: Array<[string, unknown]>;
     evidenceSelect: Array<{ cols: string; opts?: unknown }>;
@@ -104,6 +113,7 @@ function makeState(): FakeState {
       growthJournalSelect: [],
       growthJournalInsert: [],
       sviSnapshotsFilters: [],
+      sviAccountsFilters: [],
       growthJournalFilters: [],
       growthJournalOrder: [],
       evidenceSelect: [],
@@ -196,7 +206,12 @@ function makeSupabase(state: FakeState) {
       select() {
         return chain;
       },
-      eq() {
+      eq(col: string, val: unknown) {
+        state.calls.sviAccountsFilters.push([`eq:${col}`, val]);
+        return chain;
+      },
+      is(col: string, val: unknown) {
+        state.calls.sviAccountsFilters.push([`is:${col}`, val]);
         return chain;
       },
       maybeSingle: async () => ({ data: state.sviAccount }),
@@ -628,5 +643,46 @@ describe("POST /api/journal/reflect", () => {
     expect(stats.evidenceCount).toBe(4);
     expect(stats.actionsCompleted).toBe(2);
     expect(stats.sviDelta).toBe("SVI moved from 680 to 700 (+20 points)");
+  });
+});
+
+// S18-A — member access: editor+ (an AI reflection entry is written).
+// Journal + SVI context are keyed on the project OWNER; credits on the caller.
+describe("POST /api/journal/reflect — S18-A member access", () => {
+  afterEach(() => {
+    scopeRole.value = "owner";
+  });
+
+  it("viewer: 403 before the credit spend or any read", async () => {
+    scopeRole.value = "viewer";
+    const res = await POST(req({ month: "2026-05" }));
+    expect(res.status).toBe(403);
+    expect(mocks.spendCredits).not.toHaveBeenCalled();
+    expect(mocks.callAI).not.toHaveBeenCalled();
+  });
+
+  it("editor: reads + insert keyed on the OWNER (account_id / email + project); credits on the caller", async () => {
+    scopeRole.value = "editor";
+    const state = makeState();
+    state.sviAccount = { current_svi: 600 };
+    mocks.getSupabaseAdmin.mockReturnValue(makeSupabase(state));
+    const res = await POST(req({ month: "2026-05" }));
+    expect(res.status).toBe(200);
+    expect(mocks.spendCredits).toHaveBeenCalledWith("user-1", "journal_reflect", expect.objectContaining({ project_id: "proj-1" }));
+    expect(state.calls.growthJournalFilters).toContainEqual(["eq:account_id", "owner-1"]);
+    expect(state.calls.sviSnapshotsFilters).toContainEqual(["eq:email", "owner@x.test"]);
+    expect(state.calls.sviAccountsFilters).toEqual([["eq:email", "owner@x.test"], ["eq:project_id", "proj-1"]]);
+    const payload = state.calls.growthJournalInsert[0];
+    expect(payload.account_id).toBe("owner-1");
+    expect(payload.email).toBe("owner@x.test");
+    expect(JSON.stringify(state.calls)).not.toContain(USER.email);
+  });
+
+  it("no project: svi_accounts lookup binds project_id IS NULL on the caller's own email", async () => {
+    mocks.getProjectIdFromRequest.mockResolvedValue(null);
+    const state = makeState();
+    mocks.getSupabaseAdmin.mockReturnValue(makeSupabase(state));
+    await POST(req({ month: "2026-05" }));
+    expect(state.calls.sviAccountsFilters).toEqual([["eq:email", USER.email], ["is:project_id", null]]);
   });
 });

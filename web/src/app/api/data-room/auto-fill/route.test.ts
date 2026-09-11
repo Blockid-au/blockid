@@ -23,7 +23,7 @@
 //   - dropping the update to status='complete' + completed_at on save — the
 //     data-room readiness score reads status='complete' to count filled docs.
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
 
 // ── Feature-gate mock (data_room.access) ───────────────────────────────
@@ -74,6 +74,10 @@ function makeFakeSupabase() {
       if (state.afterUpdate) state.updateEqAfter.push({ col, val });
       return chain;
     },
+    is(col: string, val: unknown) {
+      state.eqCalls.push({ col: `is:${col}`, val });
+      return chain;
+    },
     order(_col: string, _opts?: unknown) { return chain; },
     limit(_n: number) { return chain; },
     update(payload: Record<string, unknown>) {
@@ -114,9 +118,17 @@ vi.mock("@/lib/credits", () => ({
 
 // ── Projects mock ──────────────────────────────────────────────────────
 const getProjectIdFromRequestMock = vi.fn<() => Promise<string | null>>();
-vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => getProjectIdFromRequestMock(),
-}));
+// S18-A — member-aware scope on top of the existing project-id spy: the
+// route now calls getProjectScope(minRole); owner → data keyed on the
+// caller, member → keyed on the OWNER (owner@x.test / owner-1).
+const scopeRole = vi.hoisted(() => ({ value: "owner" as "owner" | "admin" | "editor" | "viewer" }));
+vi.mock("@/lib/projects", async () => {
+  const { scopeAdapter } = await import("@/test/project-scope-mock");
+  return scopeAdapter(() => getProjectIdFromRequestMock(), scopeRole, {
+    callerEmail: "founder@x.co",
+    callerId: "u-1",
+  });
+});
 
 // ── Anthropic SDK mock — captured constructor + messages.create ────────
 const anthropicCreateMock = vi.fn<
@@ -465,5 +477,49 @@ describe("POST /api/data-room/auto-fill — AI failure fallback", () => {
     // Synthesised fallback should mention the document_name so the founder
     // can tell what got filled from the AI's perspective.
     expect(prompt).toContain("Blank Doc");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// S18-A — member access: editor+ (the document is written back); document +
+// cap table keyed on the OWNER's user id, svi_accounts on (owner email,
+// project_id); credits stay the CALLER's.
+// ---------------------------------------------------------------------------
+describe("POST /api/data-room/auto-fill — S18-A member access", () => {
+  afterEach(() => {
+    scopeRole.value = "owner";
+  });
+
+  it("viewer: 403 after the gate, before the credit spend or any DB call", async () => {
+    scopeRole.value = "viewer";
+    gateMock.mockResolvedValue(gateOk(USER));
+    const res = await POST(jsonReq({ documentId: "doc-1" }));
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("forbidden");
+    expect(spendCreditsMock).not.toHaveBeenCalled();
+    expect(state.fromCalls).toEqual([]);
+  });
+
+  it("editor: document + shareholders keyed on the OWNER; svi_accounts on (owner email, project); credits on the caller", async () => {
+    scopeRole.value = "editor";
+    gateMock.mockResolvedValue(gateOk(USER));
+    queueDocRow({ id: "doc-1", document_name: "X", template_content: "T [STARTUP_NAME]", account_id: "owner-1" });
+    queueSvi({ id: "svi-1", current_svi: 700, current_stage: 3, startup_name: "Acme" });
+    queueEmpty(2);
+    state.responses.push({ data: [], error: null }); // shareholders
+    state.responses.push({ data: [], error: null }); // svi_evidence
+    state.responses.push({ data: null, error: null }); // update
+    anthropicCreateMock.mockResolvedValue(aiText("done"));
+
+    const res = await POST(jsonReq({ documentId: "doc-1" }));
+    expect(res.status).toBe(200);
+    expect(spendCreditsMock).toHaveBeenCalledWith("u-1", "data_room_auto_fill", expect.objectContaining({ email: "founder@x.co" }));
+    const accountEqs = state.eqCalls.filter((e) => e.col === "account_id" && e.val === "owner-1");
+    // data_room_documents fetch + shareholders + data_room_documents update
+    expect(accountEqs.length).toBeGreaterThanOrEqual(3);
+    expect(state.eqCalls.some((e) => e.col === "account_id" && e.val === "u-1")).toBe(false);
+    expect(state.eqCalls).toContainEqual({ col: "email", val: "owner@x.test" });
+    expect(state.eqCalls).toContainEqual({ col: "project_id", val: "proj-active" });
+    expect(state.updateEqAfter).toContainEqual({ col: "account_id", val: "owner-1" });
   });
 });

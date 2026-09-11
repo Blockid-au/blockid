@@ -12,7 +12,7 @@
 //
 // Scoping:
 //   - Auth: getCurrentUser() → 401 if anonymous.
-//   - startup_id: the user's active project (getProjectIdFromRequest) is
+//   - startup_id: the user's active project (getProjectScope, viewer+) is
 //     used as the scope key. When no project is selected, the endpoint
 //     still returns a shape-compatible envelope with the user-level Stripe
 //     totals so the dashboard doesn't crash.
@@ -20,7 +20,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import {
@@ -258,7 +258,12 @@ export async function GET(): Promise<NextResponse> {
     );
   }
 
-  const startupId = await getProjectIdFromRequest();
+  // S18-A — viewer+ for the project label. The Stripe customer id stays
+  // the CALLER's own (app_users.stripe_customer_id is a billing identity,
+  // never read for another user — see the scope guard allow-list).
+  const { scope, denied } = await projectScopeOrDeny("viewer");
+  if (denied) return denied;
+  const startupId = scope?.projectId ?? null;
 
   // Resolve the Stripe customer id for this user. It lives on app_users; if
   // Supabase is unconfigured (dev) we just proceed with a null customer,

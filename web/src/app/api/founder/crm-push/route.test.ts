@@ -23,9 +23,17 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => mocks.getCurrentUser() }));
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => mocks.getSupabaseAdmin() }));
-vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => mocks.getProjectIdFromRequest(),
-}));
+// S18-A — member-aware scope on top of the existing project-id spy: the
+// route now calls getProjectScope(minRole); owner → data keyed on the
+// caller, member → keyed on the OWNER (owner@x.test / owner-1).
+const scopeRole = vi.hoisted(() => ({ value: "owner" as "owner" | "admin" | "editor" | "viewer" }));
+vi.mock("@/lib/projects", async () => {
+  const { scopeAdapter } = await import("@/test/project-scope-mock");
+  return scopeAdapter(() => mocks.getProjectIdFromRequest(), scopeRole, {
+    callerEmail: "founder@example.com",
+    callerId: "user-1",
+  });
+});
 vi.mock("@/lib/rate-limit", () => ({
   enforceRateLimit: (
     route: string,
@@ -217,5 +225,38 @@ describe("POST /api/founder/crm-push", () => {
     const body = await res.json() as { ok: boolean; error: string };
     expect(body.ok).toBe(false);
     expect(body.error).toMatch(/400/);
+  });
+});
+
+// S18-A — member access: editor+ (pushes the project's profile to an
+// external CRM); the project row is read on the OWNER's user_id.
+describe("POST /api/founder/crm-push — S18-A member access", () => {
+  afterEach(() => {
+    scopeRole.value = "owner";
+  });
+
+  it("viewer: 403 before the project read or the webhook call", async () => {
+    scopeRole.value = "viewer";
+    const sb = makeSupabase();
+    mocks.getSupabaseAdmin.mockReturnValue(sb);
+    const res = await POST(makeRequest());
+    expect(res.status).toBe(403);
+    expect(sb.from).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("editor: project row read with user_id = OWNER; founder_email in the payload is the caller", async () => {
+    scopeRole.value = "editor";
+    const sb = makeSupabase();
+    mocks.getSupabaseAdmin.mockReturnValue(sb);
+    const res = await POST(makeRequest());
+    expect(res.status).toBe(200);
+    const select = sb.from.mock.results[0].value.select as ReturnType<typeof vi.fn>;
+    const eq1 = select.mock.results[0].value.eq as ReturnType<typeof vi.fn>;
+    const eq2 = eq1.mock.results[0].value.eq as ReturnType<typeof vi.fn>;
+    expect(eq1).toHaveBeenCalledWith("id", "project-1");
+    expect(eq2).toHaveBeenCalledWith("user_id", "owner-1");
+    const body = JSON.parse((fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1].body as string);
+    expect(body.founder_email).toBe("founder@example.com");
   });
 });

@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -24,13 +24,16 @@ export async function GET(_req: NextRequest) {
   if (!user) return unauth();
   const sb = getSupabaseAdmin();
   if (!sb) return noDb();
-  const projectId = await getProjectIdFromRequest();
+  // S18-A — viewer+ read; the strategy row is the project OWNER's.
+  const { scope, denied } = await projectScopeOrDeny("viewer");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
   if (!projectId) return noProject();
 
   const { data, error } = await sb
     .from("gtm_strategies")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", scope?.ownerUserId ?? user.id)
     .eq("project_id", projectId)
     .maybeSingle();
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
@@ -56,7 +59,11 @@ export async function PUT(req: NextRequest) {
   if (!user) return unauth();
   const sb = getSupabaseAdmin();
   if (!sb) return noDb();
-  const projectId = await getProjectIdFromRequest();
+  // S18-A — editor+ write; upserted under the project OWNER's user_id so
+  // a co-founder edits the same strategy row the owner sees.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
   if (!projectId) return noProject();
 
   let body: Record<string, unknown> = {};
@@ -67,7 +74,7 @@ export async function PUT(req: NextRequest) {
   }
 
   const payload: Record<string, unknown> = {
-    user_id: user.id,
+    user_id: scope?.ownerUserId ?? user.id,
     project_id: projectId,
   };
   for (const [k, v] of Object.entries(body)) {

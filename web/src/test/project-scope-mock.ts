@@ -191,18 +191,28 @@ export function projectsMock(state: ScopeState) {
  * Owner → `dataEmail` = the caller's own email; member → `ownerEmail`
  * (default owner@x.test) so the shared record is used.
  */
+export interface AdapterIds {
+  callerEmail: string;
+  callerId: string;
+  ownerEmail?: string;
+  ownerId?: string;
+}
+
 export function scopeAdapter(
   projectIdSource: () => Promise<string | null> | string | null,
   role: { value: ScopeRole },
-  ids: { callerEmail: string; callerId: string; ownerEmail?: string; ownerId?: string },
+  idsOrGetter: AdapterIds | (() => AdapterIds),
 ) {
-  const ownerEmail = ids.ownerEmail ?? "owner@x.test";
-  const ownerId = ids.ownerId ?? "owner-1";
   const build = (projectId: string | null, minRole?: string) => {
     if (!projectId) return null;
     if (minRole && RANK[role.value] < RANK[minRole as ScopeRole]) {
       throw accessError("forbidden");
     }
+    // `ids` may be a getter so a test that swaps the signed-in user
+    // mid-suite keeps owner === caller without rebuilding the mock.
+    const ids = typeof idsOrGetter === "function" ? idsOrGetter() : idsOrGetter;
+    const ownerEmail = ids.ownerEmail ?? "owner@x.test";
+    const ownerId = ids.ownerId ?? "owner-1";
     const isOwner = role.value === "owner";
     return {
       projectId,

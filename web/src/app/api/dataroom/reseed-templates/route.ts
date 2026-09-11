@@ -2,8 +2,8 @@
 // 10-doc Day-0 dataroom seed. Idempotent (upsert:false + natural-key row
 // dedupe), rate-limited to 5/hour/user via the persistent limiter.
 //
-// Auth via getCurrentUser + project resolved via getProjectIdFromRequest —
-// the founder can only re-seed their own currently-active workspace.
+// Auth via the feature gate + project resolved via getProjectScope (editor+)
+// — the founder (or an accepted editor) re-seeds the active workspace.
 //
 // Response envelope mirrors seedDataroomTemplates:
 //   { ok, uploaded, skipped, failed }
@@ -12,7 +12,7 @@
 
 import { NextResponse } from "next/server";
 import { gateRequireFeature } from "@/lib/feature-gate";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { consumeRateLimit } from "@/lib/rate-limit/persistent";
 import { seedDataroomTemplates } from "@/lib/dataroom/seed-templates";
 
@@ -47,7 +47,12 @@ export async function POST() {
     );
   }
 
-  const projectId = await getProjectIdFromRequest();
+  // S18-A — editor+; the seeded rows belong to the project OWNER
+  // (user_id / email) so a co-founder re-seeds the shared room, not a
+  // private copy. The rate limit above stays per-caller.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
   if (!projectId) {
     return NextResponse.json(
       { ok: false, reason: "no_active_project" },
@@ -57,8 +62,8 @@ export async function POST() {
 
   const result = await seedDataroomTemplates({
     projectId,
-    userId: user.id,
-    email: user.email,
+    userId: scope?.ownerUserId ?? user.id,
+    email: scope?.dataEmail ?? user.email,
   });
 
   return NextResponse.json({

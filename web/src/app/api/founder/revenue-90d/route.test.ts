@@ -9,7 +9,7 @@
 //     renders the "Connect Stripe" empty state on `stripe.connected === false`
 //     rather than a 500 that would blow up the dashboard.
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const getCurrentUserMock = vi.fn<
   () => Promise<{ id: string; email: string } | null>
@@ -19,9 +19,17 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 const getProjectIdFromRequestMock = vi.fn<() => Promise<string | null>>();
-vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => getProjectIdFromRequestMock(),
-}));
+// S18-A — member-aware scope on top of the existing project-id spy: the
+// route now calls getProjectScope(minRole); owner → data keyed on the
+// caller, member → keyed on the OWNER (owner@x.test / owner-1).
+const scopeRole = vi.hoisted(() => ({ value: "owner" as "owner" | "admin" | "editor" | "viewer" }));
+vi.mock("@/lib/projects", async () => {
+  const { scopeAdapter } = await import("@/test/project-scope-mock");
+  return scopeAdapter(() => getProjectIdFromRequestMock(), scopeRole, {
+    callerEmail: "founder@x.com",
+    callerId: "u-1",
+  });
+});
 
 const supabaseSingleMock = vi.fn<
   () => Promise<{ data: { stripe_customer_id: string | null } | null }>
@@ -50,13 +58,15 @@ import { GET, dynamic } from "./route";
 
 // Build a supabase.from().select().eq().maybeSingle() chain that resolves to
 // whatever supabaseSingleMock returns.
+const supabaseEqMock = vi.fn<(col: string, val: unknown) => void>();
 function buildSupabaseChain(): unknown {
   return {
     from: () => ({
       select: () => ({
-        eq: () => ({
-          maybeSingle: () => supabaseSingleMock(),
-        }),
+        eq: (col: string, val: unknown) => {
+          supabaseEqMock(col, val);
+          return { maybeSingle: () => supabaseSingleMock() };
+        },
       }),
     }),
   };
@@ -291,5 +301,22 @@ describe("GET — empty defaults (never 500)", () => {
     const body = await (await GET()).json();
     expect(body.startup_id).toBeNull();
     expect(body.ok).toBe(true);
+  });
+});
+
+// S18-A — member access: viewer+ for the project label; the Stripe customer
+// id is the CALLER's own billing identity (never the owner's).
+describe("GET — S18-A member access", () => {
+  afterEach(() => {
+    scopeRole.value = "owner";
+  });
+
+  it("viewer on a shared project: 200; startup_id is the shared project; Stripe customer resolved for the CALLER", async () => {
+    scopeRole.value = "viewer";
+    const res = await GET();
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { startup_id: string | null };
+    expect(body.startup_id).toBe("proj-1");
+    expect(supabaseEqMock).toHaveBeenCalledWith("id", "u-1");
   });
 });
