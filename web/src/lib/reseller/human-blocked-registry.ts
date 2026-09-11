@@ -48,17 +48,11 @@ export const HUMAN_BLOCKED_ITEMS: readonly HumanBlockedItem[] = [
       "Swap the ABN + contact_email placeholders in 0106_infovision_seed.sql with InfoVision's real 11-digit ABN and partnership contact, then run `docker exec -i supabase-db psql -U postgres -d postgres < web/supabase/migrations/0106_infovision_seed.sql` and issue `NOTIFY pgrst, 'reload schema'`. Tier 20/40 Stripe coupon/promo IDs are separately minted in P8.5.",
     owner: "admin@blockid.au",
   },
-  {
-    id: "P8.5_env_and_playwright",
-    phase: "P8",
-    title: "Share-management add-on Stripe env vars",
-    blocker:
-      "STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY and STRIPE_PRICE_ADDON_SHARE_MGMT_ANNUAL must be minted in the Stripe dashboard before the Playwright happy-path suite can green.",
-    action_required:
-      "Mint the two add-on price IDs in the Stripe dashboard (test + live mode) and paste them into the .env.local + production env store so P8.5 unblocks.",
-    owner: "admin@blockid.au",
-  },
 ] as const;
+
+// Resolved 2026-09-11: P8.5 — both add-on prices exist in live Stripe
+// (monthly price_1UDNbTJ7OAnXQ9sVifbuph1e, annual price_1UEdGcJ7OAnXQ9sVGs6PUrqy,
+// A$59 / A$590 GST-inclusive) and are set in web/.env + web/.env.runtime.
 
 /**
  * Build a snapshot suitable for JSONL append (e.g. reseller-goal-history.jsonl

@@ -7,9 +7,9 @@ import {
 } from "./human-blocked-registry";
 
 describe("HUMAN_BLOCKED_ITEMS registry", () => {
-  it("carries the two open escalations from the reseller goal file", () => {
+  it("carries the one open escalation from the reseller goal file (P8.5 resolved 2026-09-11)", () => {
     const ids = HUMAN_BLOCKED_ITEMS.map((i) => i.id).sort();
-    expect(ids).toEqual(["P1.5_infovision_seed", "P8.5_env_and_playwright"]);
+    expect(ids).toEqual(["P1.5_infovision_seed"]);
   });
 
   it("has no duplicate ids so the digest table cannot render the same row twice", () => {
@@ -52,12 +52,8 @@ describe("HUMAN_BLOCKED_ITEMS registry", () => {
     expect(p15Item.action_required).toContain("NOTIFY pgrst");
   });
 
-  it("P8.5 wording names both Stripe env var slugs so the operator can paste them into .env.local", () => {
-    const p85 = HUMAN_BLOCKED_ITEMS.find((i) => i.id === "P8.5_env_and_playwright");
-    expect(p85).toBeDefined();
-    const p85Item = p85 as HumanBlockedItem;
-    expect(p85Item.blocker).toContain("STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY");
-    expect(p85Item.blocker).toContain("STRIPE_PRICE_ADDON_SHARE_MGMT_ANNUAL");
+  it("P8.5 is no longer listed — both add-on prices are minted and in env", () => {
+    expect(HUMAN_BLOCKED_ITEMS.find((i) => i.id === "P8.5_env_and_playwright")).toBeUndefined();
   });
 });
 

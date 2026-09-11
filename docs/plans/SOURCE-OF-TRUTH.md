@@ -12,8 +12,8 @@
 - **Source:** [`docs/plans/reseller-module-goal.md`](./reseller-module-goal.md) · plan [`docs/plans/reseller-module-plan.md`](./reseller-module-plan.md) · delta [`docs/plans/plan-delta-2026-07-23.md`](./plan-delta-2026-07-23.md)
 - **Tick:** 317 · **Track A focus:** `P2_redemption_attribution` (P0/P1/P2 landed, P3/P4/P5/P6/P7/P8 shipped except P8.5, P10 pin-hardening in-flight). **Track B focus:** `done` (B1..B10 shipped).
 - **Status:** in-progress; C-Level blocking reviewers all approved; advisory notes closed at tick 68.
-- **Next action:** P10 wire-shape pin cross-surface pairs continue (auto-loop). Track A HUMAN-BLOCKED on P1.5 (InfoVision seed) + P8.5 (Stripe env vars).
-- **Blocker:** H.20 InfoVision ABN + GST status; `STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL` env mint.
+- **Next action:** P10 wire-shape pin cross-surface pairs continue (auto-loop). Track A HUMAN-BLOCKED on P1.5 (InfoVision seed) only — **P8.5 resolved 2026-09-11** (annual add-on price `price_1UEdGcJ7OAnXQ9sVGs6PUrqy` minted A$590 GST-inc; monthly already live; both in `.env` + `.env.runtime`).
+- **Blocker:** H.20 InfoVision ABN + contact email for `0106_infovision_seed.sql`; reseller-agreement counsel (founder).
 
 ### G2 — Real-world workflow parity
 - **Source:** [`docs/plans/real-world-workflow-parity-audit-2026-07-23.md`](./real-world-workflow-parity-audit-2026-07-23.md)
