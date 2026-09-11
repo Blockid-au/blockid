@@ -99,6 +99,40 @@ describe("/funding/programs — index", () => {
     expect(html).toContain('data-program-id="per-plus-eight"');
   });
 
+  it("groups the list by capital in CAPITALS order — H2 links to the capital page, count + satellite note, compact rows open-first, every detail URL once (S10-A)", async () => {
+    const html = await toHtml(await ProgramsDirectoryPage({ searchParams: Promise.resolve({}) }));
+    const syd = html.indexOf('data-capital-group="Sydney"');
+    const per = html.indexOf('data-capital-group="Perth"');
+    expect(syd).toBeGreaterThanOrEqual(0);
+    expect(syd).toBeLessThan(per);
+    expect(html).not.toContain('data-capital-group="Melbourne"');
+    expect(html).toContain('<h2 id="capital-sydney" class="font-display text-2xl font-semibold tracking-tight text-primary"><a class="underline-offset-4 hover:underline" href="/funding/programs/sydney">Sydney</a></h2>');
+    expect(html).toContain("3 programs · 1 open · also covers Wollongong");
+    expect(html).toContain("1 program · 1 open");
+    // Open → upcoming → closed inside the Sydney group; the closed row has no plan CTA; Wollongong shows its city.
+    const open = html.indexOf('data-program-id="syd-startmate"');
+    const upcoming = html.indexOf('data-program-id="syd-wollongong"');
+    const closed = html.indexOf('data-program-id="syd-techstars"');
+    expect(open).toBeLessThan(upcoming);
+    expect(upcoming).toBeLessThan(closed);
+    expect(html).toContain('href="/funding?program=syd-startmate"');
+    expect(html).not.toContain('href="/funding?program=syd-techstars"');
+    expect(html).toContain("Wollongong");
+    expect(html).toContain('data-deadline-status="overdue"');
+    expect(html).toContain("A$120,000 · ≤8% equity");
+    // No card body: the summary and official link live on the detail page; no inline SVG per row.
+    expect(html).not.toContain("Short summary.");
+    expect(html).not.toContain('href="https://example.com/apply"');
+    for (const p of rows) expect(html.split(`href="/funding/programs/${p.capital.toLowerCase()}/${p.id}"`).length - 1, p.id).toBe(1);
+    // Under six rows: no <details> tail, the group links to its calendar instead.
+    expect(html).not.toContain("<details");
+    expect(html).toContain("See the Sydney intake calendar");
+    // Heading order: one H1, the "Pick your capital" H2, then the group H2s; rows are H3.
+    expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
+    expect(html.indexOf("Pick your capital")).toBeLessThan(syd);
+    expect(html.indexOf("<h3>")).toBeGreaterThan(syd);
+  });
+
   it("filters by capital slug from searchParams", async () => {
     const html = await toHtml(await ProgramsDirectoryPage({ searchParams: Promise.resolve({ capital: "perth" }) }));
     expect(html).toContain('data-program-id="per-plus-eight"');

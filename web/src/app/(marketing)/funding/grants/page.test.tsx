@@ -116,24 +116,53 @@ describe("/funding/grants — rendered", () => {
     expect(html).toContain("A$4,240,000");
   });
 
-  it("lists every row open-first with official nofollow links and the eligibility CTA", async () => {
+  it("groups federal first (compact rows, open-first, deadline chip, eligibility CTA) and collapses each state into a <details> of name-only links (S10-A)", async () => {
     const html = await render();
-    for (const id of ["mvp-ventures", "rdti", "igp", "wa-only"]) expect(html).toContain(`data-grant-id="${id}"`);
-    expect(html.indexOf('data-grant-id="mvp-ventures"')).toBeLessThan(html.indexOf('data-grant-id="igp"'));
-    expect(html).toContain('href="https://business.gov.au/example" rel="nofollow noopener noreferrer" target="_blank"');
-    expect(html).toContain("Official page");
-    expect(html).toContain('href="/funding?grant=mvp-ventures"');
+    // Group order: national, NSW, WA — each H2 links to its state view.
+    const nat = html.indexOf('data-state-group="national"');
+    const nsw = html.indexOf('data-state-group="NSW"');
+    const wa = html.indexOf('data-state-group="WA"');
+    expect(nat).toBeGreaterThanOrEqual(0);
+    expect(nat).toBeLessThan(nsw);
+    expect(nsw).toBeLessThan(wa);
+    expect(html).toContain('data-state-group="national" data-expanded="true"');
+    expect(html).toContain('data-state-group="NSW" data-expanded="false"');
+    expect(html).toContain('href="/funding/grants?state=national">Federal grants, open Australia-wide</a></h2>');
+    expect(html).toContain('href="/funding/grants?state=NSW">New South Wales grants</a></h2>');
+    // Federal rows are compact rows, open before paused, with the deadline ladder + the paid door.
+    for (const id of ["rdti", "igp"]) expect(html).toContain(`data-grant-id="${id}"`);
+    expect(html.indexOf('data-grant-id="rdti"')).toBeLessThan(html.indexOf('data-grant-id="igp"'));
+    expect(html).toContain('data-deadline-status="open"');
+    expect(html).toContain("Rolling — apply any time");
+    expect(html).toContain("Paused — next round not announced");
+    expect(html).toContain('href="/funding?grant=rdti"');
     expect(html).toContain("Am I eligible?");
-    expect(html).toContain("A$25,000 – A$200,000");
-    expect(html).toContain("closes 10 Apr 2027");
-    expect(html).toContain("Paused pending review");
+    expect(html).toContain("up to A$4,000,000");
+    // State rows are name-only links inside a native <details>; no compact row, no card.
+    expect(html).not.toContain('data-grant-id="mvp-ventures"');
+    expect(html).toContain('href="/funding/grants/mvp-ventures">MVP Ventures</a>');
+    expect(html).toContain("<summary");
+    expect(html).toContain("The one New South Wales grant");
+    expect(html).toContain("See the NSW grant with the federal schemes");
+    // Every detail URL exactly once; official links live on the detail pages now.
+    for (const id of ["mvp-ventures", "rdti", "igp", "wa-only"]) {
+      expect(html.split(`href="/funding/grants/${id}"`).length - 1, id).toBe(1);
+    }
+    expect(html).not.toContain("onclick");
   });
 
-  it("filters server-side from searchParams — a state keeps national rows; chips link, never script", async () => {
+  it("filters server-side from searchParams — a state leads and expands, national follows; chips link, never script", async () => {
     const html = await render({ state: "WA" });
+    expect(html).toContain('data-state-group="WA" data-expanded="true"');
+    expect(html.indexOf('data-state-group="WA"')).toBeLessThan(html.indexOf('data-state-group="national"'));
+    expect(html).toContain("Federal grants WA startups can also apply for");
+    // The group that is this page never links to itself.
+    expect(html).not.toContain("See the WA grant with the federal schemes");
+    expect(html).not.toContain("See all 1 WA grants");
     expect(html).toContain('data-grant-id="wa-only"');
     expect(html).toContain('data-grant-id="rdti"');
     expect(html).not.toContain('data-grant-id="mvp-ventures"');
+    expect(html).not.toContain('href="/funding/grants/mvp-ventures"');
     expect(html).toContain('href="/funding/grants?state=WA&amp;type=voucher"');
     expect(html).toContain("Clear all filters");
     expect(html).not.toContain("onclick");

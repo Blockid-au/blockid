@@ -4,6 +4,11 @@
  * all eight capitals + Remote). Capital cards carry live counts from
  * `au_programs`; the list below filters by capital / program type / stage
  * off `searchParams` with plain links (no client state).
+ *
+ * S10-A (perf audit finding 4): the list is grouped by capital in
+ * `CAPITALS` order — six compact rows per capital, the rest as name-only
+ * links in a native `<details>` — so the page stays under 300 KB of HTML
+ * while every one of the 199 detail URLs is still linked exactly once.
  */
 
 import type { Metadata } from "next";
@@ -15,7 +20,8 @@ import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { FundingJsonLd } from "@/components/funding/funding-json-ld";
 import { CapitalPicker } from "@/components/funding/capital-picker";
 import { FilterChips, type FilterChipGroup } from "@/components/funding/filter-chips";
-import { ProgramCard } from "@/components/funding/program-card";
+import { DirectoryGroup } from "@/components/funding/directory-group";
+import { INDEX_ROWS_CLASS, ProgramRow } from "@/components/funding/index-rows";
 import { FundingDisclaimer } from "@/components/funding/funding-disclaimer";
 import { FundingGuides } from "@/components/funding/funding-guides";
 import { listPrograms } from "@/lib/funding/data";
@@ -23,18 +29,29 @@ import { CAPITALS } from "@/lib/funding/seed-map";
 import {
   SITE_URL,
   applyProgramFilters,
+  capitalDisplayName,
   capitalSlug,
+  capitalUrl,
   countByCapital,
   distinct,
   latestVerifiedAt,
   parseProgramFilters,
   programTypeLabel,
   programUrl,
-  sortByStatusThenName,
   stageLabel,
   type SearchParamsLike,
 } from "@/lib/funding/directory";
-import { FUNDING_CRUMBS, PROGRAMS_DESCRIPTION, PROGRAMS_TITLE, PROGRAM_GUIDES } from "@/lib/funding/seo";
+import { groupProgramsByCapital } from "@/lib/funding/index-groups";
+import {
+  FUNDING_CRUMBS,
+  PROGRAMS_DESCRIPTION,
+  PROGRAMS_TITLE,
+  PROGRAM_GUIDES,
+  capitalPath,
+  capitalSeo,
+  programPath,
+  satelliteList,
+} from "@/lib/funding/seo";
 import { pageMetadata } from "@/lib/seo/page-meta";
 
 export const revalidate = 3600;
@@ -54,7 +71,8 @@ export default async function ProgramsDirectoryPage({
   const filters = parseProgramFilters(sp);
   const all = await listPrograms();
   const counts = countByCapital(all);
-  const rows = sortByStatusThenName(applyProgramFilters(all, filters));
+  const rows = applyProgramFilters(all, filters);
+  const capitalGroups = groupProgramsByCapital(rows);
   const openTotal = all.filter((p) => p.status === "open").length;
   const lastVerified = latestVerifiedAt(all);
 
@@ -95,18 +113,19 @@ export default async function ProgramsDirectoryPage({
     },
   ];
 
+  // Capped at the rows visible per group; each capital page (which carries
+  // its full list) is referenced as its own ListItem ahead of its rows.
+  const listItems = capitalGroups.flatMap((g) => [
+    { name: capitalSeo(g.key).h1, url: capitalUrl(g.key) },
+    ...g.visible.map((p) => ({ name: p.name, url: programUrl(p.capital, p.id) })),
+  ]);
   const itemList = {
     "@context": "https://schema.org",
     "@type": "ItemList",
     name: "Australian startup programs",
     url: `${SITE_URL}${PATH}`,
-    numberOfItems: rows.length,
-    itemListElement: rows.slice(0, 100).map((p, i) => ({
-      "@type": "ListItem",
-      position: i + 1,
-      name: p.name,
-      url: programUrl(p.capital, p.id),
-    })),
+    numberOfItems: rows.length + capitalGroups.length,
+    itemListElement: listItems.map((it, i) => ({ "@type": "ListItem", position: i + 1, ...it })),
   };
 
   return (
@@ -160,12 +179,13 @@ export default async function ProgramsDirectoryPage({
       </section>
 
       <section className="mx-auto max-w-5xl px-6 pb-12" aria-labelledby="programs-list-heading">
-        <h2 id="programs-list-heading" className="mb-4 text-sm font-semibold text-secondary">
+        <p id="programs-list-heading" className="mb-4 text-sm font-semibold text-secondary">
           {rows.length} {rows.length === 1 ? "program" : "programs"}
           {filters.capital ? ` · ${filters.capital}` : ""}
           {filters.type ? ` · ${programTypeLabel(filters.type)}` : ""}
           {filters.stage ? ` · ${stageLabel(filters.stage)}` : ""}
-        </h2>
+          {capitalGroups.length > 1 ? " · grouped by capital, open first" : ""}
+        </p>
         {rows.length === 0 ? (
           <p className="rounded-2xl border border-line-subtle bg-surface-sunken p-6 text-sm text-secondary">
             {all.length === 0
@@ -173,10 +193,39 @@ export default async function ProgramsDirectoryPage({
               : "No programs match those filters. Try clearing one."}
           </p>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {rows.map((p) => (
-              <ProgramCard key={p.id} program={p} />
-            ))}
+          <div className="space-y-10">
+            {capitalGroups.map((g) => {
+              const name = capitalDisplayName(g.key);
+              const sats = satelliteList(g.key);
+              const n = g.rows.length;
+              const note = [
+                `${n} ${n === 1 ? "program" : "programs"}`,
+                `${g.open} open`,
+                sats ? `also covers ${sats}` : g.key === "Remote" ? "online and national programs" : null,
+              ]
+                .filter(Boolean)
+                .join(" · ");
+              return (
+                <DirectoryGroup
+                  key={g.key}
+                  dataAttrs={{ "data-capital-group": g.key }}
+                  headingId={`capital-${capitalSlug(g.key)}`}
+                  heading={name}
+                  href={capitalPath(g.key)}
+                  note={note}
+                  seeAllLabel={n > g.visible.length ? `See all ${n} programs in ${name}` : `See the ${name} intake calendar`}
+                  tail={g.tail.map((p) => ({ href: programPath(p.capital, p.id), name: p.name }))}
+                  tailSummary={`All ${n} programs in ${name}`}
+                  tailLead="Continuing from the rows above, open first then by name:"
+                >
+                  <ul className={INDEX_ROWS_CLASS}>
+                    {g.visible.map((p) => (
+                      <ProgramRow key={p.id} program={p} showCity={p.city !== g.key} />
+                    ))}
+                  </ul>
+                </DirectoryGroup>
+              );
+            })}
           </div>
         )}
       </section>

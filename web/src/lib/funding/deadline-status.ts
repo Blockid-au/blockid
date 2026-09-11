@@ -90,6 +90,12 @@ export function deadlineStatus(win: DeadlineWindow, today: Date = new Date()): D
   }
 
   const closesIn = daysUntil(win.closes_at, today, "end");
+  // Catalogue says the round has not opened yet and only the close is known:
+  // it is still "future", not "open" (S10-A — the directory indexes chip
+  // upcoming rows through this ladder).
+  if (cat === "upcoming" && opensIn === null && closesIn !== null && closesIn >= 0) {
+    return { status: "future", days_until: closesIn, label: `Upcoming — closes ${formatLooseDate(win.closes_at)}` };
+  }
   if (closesIn === null) {
     return { status: "open", days_until: null, label: win.rolling === false ? "Open — close date to be confirmed" : "Rolling — apply any time" };
   }
