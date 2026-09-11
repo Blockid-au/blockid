@@ -10,6 +10,7 @@ import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { sendTelegram } from "@/lib/telegram";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -19,12 +20,7 @@ const SCRIPT_PATH = "/home/dovanlong/blockid.au/web/scripts/server-cleanup.sh";
 const LOG_PATH = "/tmp/blockid-cleanup.log";
 
 function authorised(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  const header = request.headers.get("x-cron-secret");
-  if (header && header === secret) return true;
-  const auth = request.headers.get("authorization") ?? "";
-  return auth === `Bearer ${secret}`;
+  return isCronAuthorised(request, { xCronSecretHeader: true });
 }
 
 interface RunResult {

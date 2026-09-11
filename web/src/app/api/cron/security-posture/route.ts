@@ -24,12 +24,12 @@ import { exec } from "child_process";
 import { promisify } from "util";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { sendTelegram, mdEscape } from "@/lib/telegram";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const execAsync = promisify(exec);
-const CRON_SECRET = process.env.CRON_SECRET;
 const WEB_DIR = process.env.BLOCKID_WEB_DIR ?? "/home/dovanlong/blockid.au/web";
 const REPORTS_DIR = `${WEB_DIR}/content/reports`;
 const LATEST_FILE = `${REPORTS_DIR}/security-posture.json`;
@@ -83,7 +83,7 @@ async function scoreAuthCoverage(): Promise<DimensionScore> {
   for (const file of routes) {
     let body = "";
     try { body = fs.readFileSync(file, "utf8"); } catch { continue; }
-    const hasBearer = /CRON_SECRET|process\.env\.CRON_SECRET|Bearer/i.test(body);
+    const hasBearer = /isCronAuthorised|CRON_SECRET|process\.env\.CRON_SECRET|Bearer/i.test(body);
     const hasUserAuth = /getCurrentUser|requireUser|getServerSession/.test(body);
     const isPublic = /\/\/\s*PUBLIC|@public-route/i.test(body);
     if (hasBearer || hasUserAuth || isPublic) guarded++;
@@ -300,8 +300,7 @@ function buildRecommendations(dims: DimensionScore[]): string[] {
 }
 
 export async function POST(request: Request) {
-  const auth = request.headers.get("authorization");
-  if (CRON_SECRET && auth !== `Bearer ${CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const rl = await checkRateLimit("security-posture", 4, 600_000);

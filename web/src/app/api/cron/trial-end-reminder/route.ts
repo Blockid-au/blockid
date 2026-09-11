@@ -23,6 +23,7 @@ import { redactPii } from "@/lib/log-redact";
 import { renderReminder, reminderSubject, resolvePlanDisplay } from "./reminder-copy";
 import { countTrialReportsUsed, TRIAL_REPORT_ALLOWANCE } from "@/lib/evaluations/report-quota";
 import { isEvaluatorPlanId } from "@/lib/plans/signup-plans";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -31,12 +32,7 @@ export const maxDuration = 60;
 const REMINDER_KEY = "trial_reminder_t3d";
 
 function authorised(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false; // dev: no secret configured
-  const header = request.headers.get("x-cron-secret");
-  if (header && header === secret) return true;
-  const auth = request.headers.get("authorization") ?? "";
-  return auth === `Bearer ${secret}`;
+  return isCronAuthorised(request, { xCronSecretHeader: true });
 }
 
 interface HistoryEntry {

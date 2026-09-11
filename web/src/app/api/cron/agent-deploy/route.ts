@@ -17,6 +17,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { sendTelegram, mdEscape } from "@/lib/telegram";
 import { callAIForUpgrade } from "@/lib/ai-client";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 min for build
@@ -24,7 +25,6 @@ export const maxDuration = 300; // 5 min for build
 // process.cwd() in standalone = .next/standalone/, not the web/ source dir
 const WEB_DIR = process.env.BLOCKID_WEB_DIR ?? "/home/dovanlong/blockid.au/web";
 const RESOLVED_WEB_DIR = path.resolve(WEB_DIR);
-const CRON_SECRET = process.env.CRON_SECRET;
 
 /** Validate a file path: only alphanumerics, dots, hyphens, underscores, and forward slashes. No spaces or shell metacharacters. */
 const SAFE_PATH_RE = /^[a-zA-Z0-9._\-\/]+$/;
@@ -168,8 +168,7 @@ async function autofixErrors(
 
 export async function POST(request: Request) {
   // Auth check
-  const auth = request.headers.get("authorization");
-  if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 

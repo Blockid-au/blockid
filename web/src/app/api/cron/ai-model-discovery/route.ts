@@ -30,11 +30,11 @@ import {
 } from "@/lib/ai/registry";
 import { FREE_MODELS_CONFIG } from "@/lib/ai-client";
 import { endpointFor } from "@/lib/ai/health-check";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-const CRON_SECRET = process.env.CRON_SECRET;
 const TOP_CANDIDATES = 10;
 const AUTO_INJECT = 3;
 const THROTTLE_MS = 1_000;
@@ -112,8 +112,7 @@ async function sleep(ms: number): Promise<void> {
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const auth = request.headers.get("authorization");
-  if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 

@@ -7,6 +7,7 @@ import {
   SVI_STAGE_LABELS,
 } from "@/lib/svi-analysis";
 import { getBadge } from "@/lib/svi-badges";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -57,8 +58,7 @@ interface UserReviewData {
  * 3. Tracks all sent notifications to avoid duplicates
  */
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

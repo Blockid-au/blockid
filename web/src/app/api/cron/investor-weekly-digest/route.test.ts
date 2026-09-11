@@ -250,12 +250,12 @@ describe("kill switch + auth gate", () => {
     expect(res.status).toBe(401);
   });
 
-  it("no CRON_SECRET set → auth gate is skipped (public cron)", async () => {
+  it("fails closed with 401 when CRON_SECRET is unset, and rejects a prefix of the secret (S8-E)", async () => {
+    expect((await GET(makeReq({ auth: `Bearer ${SECRET.slice(0, -1)}` }))).status).toBe(401);
     delete process.env.CRON_SECRET;
-    const res = await GET(makeReq());
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body).toEqual({ ok: true, investor_count: 0, emailed: 0 });
+    const res = await GET(makeReq({ auth: `Bearer ${SECRET}` }));
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ ok: false, reason: "unauthorized" });
   });
 });
 

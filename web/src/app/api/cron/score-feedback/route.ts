@@ -10,16 +10,14 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { grantCredits } from "@/lib/credits";
 import { getAnthropicClient, isAnthropicConfigured } from "@/lib/ai-client";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const CRON_SECRET = process.env.CRON_SECRET;
 
 function authorised(request: Request): boolean {
-  if (!CRON_SECRET) return false;
-  const auth = request.headers.get("authorization") ?? "";
-  return auth === `Bearer ${CRON_SECRET}`;
+  return isCronAuthorised(request);
 }
 
 interface AIScore {

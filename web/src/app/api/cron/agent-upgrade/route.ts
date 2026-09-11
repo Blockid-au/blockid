@@ -19,6 +19,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { getAllArticles } from "@/lib/insights";
 import { sendEmail } from "@/lib/email";
 import * as fs from "fs";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -719,9 +720,7 @@ async function sendWeeklyGrowthReport(
 
 export async function POST(request: Request) {
   // Verify cron secret
-  const auth = request.headers.get("authorization");
-  const secret = process.env.CRON_SECRET;
-  if (!secret || auth !== `Bearer ${secret}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

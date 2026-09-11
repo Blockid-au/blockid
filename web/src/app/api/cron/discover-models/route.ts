@@ -18,10 +18,10 @@ import * as fs from "fs";
 import { FREE_MODELS_CONFIG } from "@/lib/ai-client";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchJson, filterFreeOpenRouter, rank } from "@/lib/model-discovery";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 
-const CRON_SECRET = process.env.CRON_SECRET;
 const NEW_PER_PROVIDER = 5; // top-5 strongest NEW models added per provider per call
                              // (bumped from 3 → 5 on 2026-09-08: quota-exhaustion and
                              // provider-offline events now trigger this endpoint
@@ -69,8 +69,7 @@ function prependDedupCap(existing: string[] | undefined, fresh: string[]): strin
 }
 
 export async function POST(request: Request) {
-  const auth = request.headers.get("authorization");
-  if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 

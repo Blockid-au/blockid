@@ -9,16 +9,14 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendTelegram, mdEscape } from "@/lib/telegram";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const CRON_SECRET = process.env.CRON_SECRET;
 
 function authorised(request: Request): boolean {
-  if (!CRON_SECRET) return false;
-  const auth = request.headers.get("authorization") ?? "";
-  return auth === `Bearer ${CRON_SECRET}`;
+  return isCronAuthorised(request);
 }
 
 export async function GET(request: Request) {

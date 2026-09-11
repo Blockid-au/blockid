@@ -16,6 +16,7 @@ import {
   getPreferencesUrl,
 } from "@/lib/email-preferences";
 import { redactPii } from "@/lib/log-redact";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -242,8 +243,7 @@ const TEMPLATES: Record<1 | 4 | 9, EmailTemplate> = {
 // ── Handler ─────────────────────────────────────────────────────────────────
 
 export async function GET(request: Request): Promise<Response> {
-  const authHeader = request.headers.get("authorization");
-  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 

@@ -11,7 +11,7 @@
 //
 // Coverage priorities:
 //   * kill switch (FOUNDER_DIGEST=off) short-circuits BEFORE any supabase read
-//   * CRON_SECRET Bearer gate (401 when set + wrong / missing; passes when unset)
+//   * CRON_SECRET Bearer gate (401 when wrong / missing, and when unset — fail-closed since S8-E)
 //   * 503 not_configured when getSupabaseAdmin returns null
 //   * 500 founders_query_failed surfaces the underlying error
 //   * account_type is pinned to ["founder"] with a 30-day last_login cutoff
@@ -390,12 +390,12 @@ describe("kill switch + auth gate", () => {
     expect(res.status).toBe(401);
   });
 
-  it("no CRON_SECRET set → auth gate is skipped (public cron)", async () => {
+  it("fails closed with 401 when CRON_SECRET is unset, and rejects a prefix of the secret (S8-E)", async () => {
+    expect((await GET(makeReq({ auth: `Bearer ${SECRET.slice(0, -1)}` }))).status).toBe(401);
     delete process.env.CRON_SECRET;
-    const res = await GET(makeReq());
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body).toEqual({ ok: true, founder_count: 0, emailed: 0 });
+    const res = await GET(makeReq({ auth: `Bearer ${SECRET}` }));
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ ok: false, reason: "unauthorized" });
   });
 });
 

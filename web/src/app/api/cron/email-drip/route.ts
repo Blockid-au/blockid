@@ -35,6 +35,7 @@ import {
   suppressDrip,
   type DripPayload,
 } from "@/lib/email-drip";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -42,8 +43,7 @@ export const maxDuration = 60;
 const BATCH_LIMIT = 50;
 
 async function handle(request: Request): Promise<Response> {
-  const authHeader = request.headers.get("authorization");
-  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 

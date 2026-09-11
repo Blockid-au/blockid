@@ -19,6 +19,7 @@
 
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -27,10 +28,7 @@ export const maxDuration = 60;
 const DEFAULT_INTERVAL = "2 hours";
 
 function authorised(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  const auth = request.headers.get("authorization") ?? "";
-  return auth === `Bearer ${secret}`;
+  return isCronAuthorised(request);
 }
 
 async function handle(request: Request): Promise<Response> {

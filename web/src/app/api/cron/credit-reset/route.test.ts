@@ -4,7 +4,7 @@
 // refactor (route.ts:118-138) that swapped the raw credit_transactions
 // insert for grantCredits() calls. Contract locked here:
 //
-//   - CRON_SECRET auth gate (401 on mismatch, allowed when unset)
+//   - CRON_SECRET auth gate (401 on mismatch, missing header, or unset secret — fail-closed since S8-E)
 //   - 503 when Supabase is not configured
 //   - Skips plans with usage_limits.monthly_credits missing / 0 / -1
 //   - Idempotency: users with a credit_transactions row this monthKey are
@@ -90,7 +90,10 @@ function makeSupabase(fixtures: {
   return { from };
 }
 
-function makeRequest(authHeader?: string): Request {
+const SECRET = "expected";
+
+// Default = the correct bearer; pass `null` for an anonymous request.
+function makeRequest(authHeader: string | null = `Bearer ${SECRET}`): Request {
   return new Request("http://localhost/api/cron/credit-reset", {
     headers: authHeader ? { authorization: authHeader } : {},
   });
@@ -102,7 +105,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   grantCreditsMock.mockReset();
   getSupabaseAdminMock.mockReset();
-  delete process.env.CRON_SECRET;
+  process.env.CRON_SECRET = SECRET;
   grantCreditsMock.mockResolvedValue({ ok: true, balance: 200 });
 });
 
@@ -110,7 +113,6 @@ beforeEach(() => {
 
 describe("credit-reset — auth gate", () => {
   it("returns 401 when CRON_SECRET is set and header does not match", async () => {
-    process.env.CRON_SECRET = "expected";
     getSupabaseAdminMock.mockReturnValue(makeSupabase({}));
 
     const res = await GET(makeRequest("Bearer wrong"));
@@ -121,18 +123,6 @@ describe("credit-reset — auth gate", () => {
   });
 
   it("passes when CRON_SECRET is set and header matches", async () => {
-    process.env.CRON_SECRET = "expected";
-    getSupabaseAdminMock.mockReturnValue(makeSupabase({
-      plans: [{ id: "growth", usage_limits: { monthly_credits: 200 }, active: true }],
-      app_users: [{ id: "u1", plan: "growth" }],
-    }));
-
-    const res = await GET(makeRequest("Bearer expected"));
-    expect(res.status).toBe(200);
-    expect(grantCreditsMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("passes when CRON_SECRET is unset (local dev)", async () => {
     getSupabaseAdminMock.mockReturnValue(makeSupabase({
       plans: [{ id: "growth", usage_limits: { monthly_credits: 200 }, active: true }],
       app_users: [{ id: "u1", plan: "growth" }],
@@ -141,6 +131,19 @@ describe("credit-reset — auth gate", () => {
     const res = await GET(makeRequest());
     expect(res.status).toBe(200);
     expect(grantCreditsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 401 without a header, on a prefix of the secret, and fails closed when CRON_SECRET is unset (S8-E)", async () => {
+    getSupabaseAdminMock.mockReturnValue(makeSupabase({
+      plans: [{ id: "growth", usage_limits: { monthly_credits: 200 }, active: true }],
+      app_users: [{ id: "u1", plan: "growth" }],
+    }));
+
+    expect((await GET(makeRequest(null))).status).toBe(401);
+    expect((await GET(makeRequest(`Bearer ${SECRET.slice(0, -1)}`))).status).toBe(401);
+    delete process.env.CRON_SECRET;
+    expect((await GET(makeRequest())).status).toBe(401);
+    expect(grantCreditsMock).not.toHaveBeenCalled();
   });
 });
 

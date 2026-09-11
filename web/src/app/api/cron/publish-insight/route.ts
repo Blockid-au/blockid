@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { callAI } from "@/lib/ai-client";
 import { optimizeForSearch } from "@/lib/adk/agents";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 /** Adapter: ADK ModelCaller (system, user, maxTokens) → free callAI(). */
 const adkModel = async (system: string, user: string, maxTokens: number): Promise<string> =>
@@ -41,8 +42,7 @@ interface ManifestArticle {
  * Trigger: GET /api/cron/publish-insight  (Authorization: Bearer CRON_SECRET)
  */
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

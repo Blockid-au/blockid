@@ -21,6 +21,7 @@
 import { NextResponse } from "next/server";
 import { purgeArchivedOlderThan } from "@/lib/projects";
 import { logUserAction } from "@/lib/audit/log";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -30,12 +31,7 @@ const RETENTION_DAYS = 90;
 const ROUTE_PATH = "/api/cron/archived-purge";
 
 function authorised(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  // Fail-closed: refuse when the secret is missing so a misconfigured
-  // deploy cannot be triggered externally.
-  if (!secret) return false;
-  const auth = request.headers.get("authorization") ?? "";
-  return auth === `Bearer ${secret}`;
+  return isCronAuthorised(request);
 }
 
 export async function POST(request: Request): Promise<Response> {

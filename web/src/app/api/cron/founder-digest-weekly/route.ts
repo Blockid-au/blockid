@@ -21,6 +21,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendEmail } from "@/lib/email";
 import { buildFounderDigest, type DigestPayload } from "@/lib/digest/weekly";
 import { renderFounderDigestEmail } from "@/lib/digest/email-template";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,8 +37,7 @@ interface EnrolledRow {
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const auth = request.headers.get("authorization");
-  if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 

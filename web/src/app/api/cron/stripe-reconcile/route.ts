@@ -21,6 +21,7 @@ import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { grantCredits, PLAN_CREDITS } from "@/lib/credits";
 import { sendTelegram } from "@/lib/telegram";
 import { FOUNDING_PROMO_END } from "@/lib/founding-promo";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -30,12 +31,7 @@ const LOOKBACK_HOURS = Number(process.env.STRIPE_RECONCILE_LOOKBACK_HOURS ?? 48)
 const MAX_SESSIONS = 500;
 
 function authorised(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  const header = request.headers.get("x-cron-secret");
-  if (header && header === secret) return true;
-  const auth = request.headers.get("authorization") ?? "";
-  return auth === `Bearer ${secret}`;
+  return isCronAuthorised(request, { xCronSecretHeader: true });
 }
 
 interface Miss {

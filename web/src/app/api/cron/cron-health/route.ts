@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import * as fs from "fs";
 import { sendTelegram, mdEscape } from "@/lib/telegram";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -43,8 +44,7 @@ const EXPECTED_PERIODIC = ["blockchain-sync", "ai-health"];
 const EXPECTED_WEEKLY = ["weekly-insights"];
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

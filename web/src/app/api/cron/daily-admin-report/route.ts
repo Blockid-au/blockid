@@ -3,6 +3,7 @@ import { execSync } from "child_process";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAIBudgetStatus } from "@/lib/ai-client";
 import { sendEmail } from "@/lib/email";
+import { cronSecret, isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -47,8 +48,7 @@ function collectDiskUsage(): DiskRow[] {
  * Schedule: 22:00 UTC daily (= 8:00 AM AEST next day)
  */
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -199,13 +199,13 @@ export async function GET(request: Request) {
     // ── 10. Run C-Level agent tasks and collect results ────────────────
     let agentResults: Array<{ agent: string; task: string; result: string; ok: boolean }> = [];
     try {
-      const cronSecret = process.env.CRON_SECRET ?? "";
+      const cronSecretValue = cronSecret() ?? "";
       const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT || "3000"}`;
       const agentRes = await fetch(
         `${baseUrl}/api/cron/agent-upgrade`,
         {
           method: "POST",
-          headers: { "Authorization": `Bearer ${cronSecret}` },
+          headers: { "Authorization": `Bearer ${cronSecretValue}` },
           signal: AbortSignal.timeout(60_000),
         },
       );

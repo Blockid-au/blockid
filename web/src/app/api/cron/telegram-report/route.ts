@@ -10,11 +10,11 @@ import { NextResponse } from "next/server";
 import * as fs from "fs";
 import * as path from "path";
 import { sendTelegram as sharedSendTelegram } from "@/lib/telegram";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID ?? "";
-const CRON_SECRET = process.env.CRON_SECRET;
 const REPORTS_DIR = "/home/dovanlong/blockid.au/web/content/reports";
 const DEPLOY_LOG = path.join(REPORTS_DIR, "deploy-log.jsonl");
 
@@ -62,8 +62,7 @@ async function sendTelegram(text: string): Promise<boolean> {
 }
 
 export async function POST(request: Request) {
-  const auth = request.headers.get("authorization");
-  if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 

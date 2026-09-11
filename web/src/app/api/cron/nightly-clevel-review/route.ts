@@ -3,6 +3,7 @@ import { appendFileSync } from "node:fs";
 import { spawn, execSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { cronSecret, isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,20 +25,15 @@ const HEALTH_LOG = "/home/dovanlong/blockid.au/web/content/reports/cron-health.j
  * health is logged here on trigger; the script itself does not call this route.
  */
 export async function GET(req: Request) {
-  const expected = process.env.CRON_SECRET;
-  if (!expected) {
+  if (!cronSecret()) {
     return NextResponse.json(
       { ok: false, error: "CRON_SECRET not configured on server" },
       { status: 503 },
     );
   }
 
-  const auth = req.headers.get("authorization") ?? "";
-  const bearer = auth.startsWith("Bearer ") ? auth.slice("Bearer ".length) : "";
-  const url = new URL(req.url);
-  const querySecret = url.searchParams.get("secret") ?? "";
-  const provided = bearer || querySecret;
-  if (provided !== expected) {
+  // Bearer header or `?secret=` query (the nightly script passes it either way).
+  if (!isCronAuthorised(req, { querySecret: true })) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 

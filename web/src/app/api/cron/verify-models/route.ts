@@ -20,11 +20,11 @@ import { NextResponse } from "next/server";
 import * as fs from "fs";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { sendTelegram, mdEscape } from "@/lib/telegram";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-const CRON_SECRET = process.env.CRON_SECRET;
 const REPORTS_DIR = "/home/dovanlong/blockid.au/web/content/reports";
 const SRC_FILE = `${REPORTS_DIR}/ai-free-models.json`;
 const VERIFIED_FILE = `${REPORTS_DIR}/ai-free-models-verified.json`;
@@ -95,8 +95,7 @@ async function pingModel(provider: string, model: string, apiKey: string): Promi
 }
 
 export async function POST(request: Request) {
-  const auth = request.headers.get("authorization");
-  if (CRON_SECRET && auth !== `Bearer ${CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const rl = await checkRateLimit("verify-models", 3, 1800_000);

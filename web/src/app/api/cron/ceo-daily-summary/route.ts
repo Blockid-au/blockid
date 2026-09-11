@@ -14,11 +14,11 @@ import { sendTelegram, mdEscape } from "@/lib/telegram";
 import { sendEmail } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { GROWTH_PHASES, getPhaseProgress } from "@/lib/startup-growth-phases";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-const CRON_SECRET = process.env.CRON_SECRET;
 const REPORTS_DIR = "/home/dovanlong/blockid.au/web/content/reports";
 const ADMIN_EMAIL = "admin@blockid.au";
 
@@ -92,8 +92,7 @@ function readDeployLog(date: string): string[] {
 }
 
 export async function POST(request: Request) {
-  const auth = request.headers.get("authorization");
-  if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

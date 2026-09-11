@@ -13,11 +13,11 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendEmail } from "@/lib/email";
 import { sendTelegram } from "@/lib/telegram";
 import { getGA4Report, isGAConfigured } from "@/lib/google-analytics";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const CRON_SECRET = process.env.CRON_SECRET;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@blockid.au";
 
 function pct(n: number, d: number): string {
@@ -25,8 +25,7 @@ function pct(n: number, d: number): string {
 }
 
 export async function POST(request: Request) {
-  const auth = request.headers.get("authorization");
-  if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 

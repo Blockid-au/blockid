@@ -36,12 +36,13 @@ import {
 } from "@/lib/project-state";
 import { exec } from "child_process";
 import * as fs from "fs";
+import { cronSecret, isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 const WEB_DIR = process.env.BLOCKID_WEB_DIR ?? "/home/dovanlong/blockid.au/web";
-const CRON_SECRET = process.env.CRON_SECRET;
+const CRON_SECRET = cronSecret();
 const STATE_FILE = "/tmp/blockid-orchestrator-state.json";
 const HISTORY_FILE = `${WEB_DIR}/content/reports/orchestrator-history.jsonl`;
 const BASE_URL = "http://127.0.0.1:4001";
@@ -575,8 +576,7 @@ function determineStages(state: OrchestratorState, budget: { callsRemaining: num
 // ── Main handler ────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
