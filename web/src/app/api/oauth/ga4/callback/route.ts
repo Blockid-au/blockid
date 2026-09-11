@@ -16,6 +16,7 @@ import { cookies } from "next/headers";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { findOrCreateSVIAccount } from "@/lib/projects";
 import { projectScopeOrRedirect } from "@/lib/project-members/http";
+import { oauthSessionOrRedirect } from "@/lib/project-members/oauth-session";
 
 export const dynamic = "force-dynamic";
 
@@ -111,6 +112,15 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${siteUrl}/workspace/evidence?error=analytics_csrf_mismatch`);
   }
 
+  // S18-A review P1-2 — the callback runs as the SESSION user and the state
+  // email must be theirs; the no-project fallback is the session email.
+  const { user, denied: notSession } = await oauthSessionOrRedirect(
+    email,
+    `${siteUrl}/workspace/evidence`,
+    "analytics",
+  );
+  if (notSession) return notSession;
+
   // S18-A — linking writes oauth_connections + evidence on the project
   // OWNER's svi_accounts row → admin+; gate BEFORE the code exchange.
   const { scope, denied } = await projectScopeOrRedirect(
@@ -120,7 +130,7 @@ export async function GET(request: Request) {
   );
   if (denied) return denied;
   const projectId = scope?.projectId ?? null;
-  const dataEmail = scope?.dataEmail ?? email;
+  const dataEmail = scope?.dataEmail ?? user.email;
 
   const redirectUri = `${siteUrl}/api/oauth/ga4/callback`;
 
@@ -192,7 +202,7 @@ export async function GET(request: Request) {
       {
         account_id: accountId,
         provider: "analytics",
-        provider_user_id: email,
+        provider_user_id: user.email,
         access_token: accessToken,
         refresh_token: tokenData.refresh_token ?? null,
         raw_profile: JSON.stringify({

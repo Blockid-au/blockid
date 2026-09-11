@@ -16,6 +16,7 @@ import { cookies } from "next/headers";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { findOrCreateSVIAccount } from "@/lib/projects";
 import { projectScopeOrRedirect } from "@/lib/project-members/http";
+import { oauthSessionOrRedirect } from "@/lib/project-members/oauth-session";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +80,15 @@ export async function GET(request: Request) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au";
   const redirectUri = `${siteUrl}/api/oauth/linkedin/callback`;
 
+  // S18-A review P1-2 — the callback runs as the SESSION user and the state
+  // email must be theirs; the no-project fallback is the session email.
+  const { user, denied: notSession } = await oauthSessionOrRedirect(
+    email,
+    `${siteUrl}/workspace/evidence`,
+    "linkedin",
+  );
+  if (notSession) return notSession;
+
   // S18-A — linking writes oauth_connections + evidence on the project
   // OWNER's svi_accounts row → admin+; gate BEFORE the code exchange.
   const { scope, denied } = await projectScopeOrRedirect(
@@ -88,7 +98,7 @@ export async function GET(request: Request) {
   );
   if (denied) return denied;
   const projectId = scope?.projectId ?? null;
-  const dataEmail = scope?.dataEmail ?? email;
+  const dataEmail = scope?.dataEmail ?? user.email;
 
   try {
     // 1. Exchange code for access token
@@ -169,7 +179,7 @@ export async function GET(request: Request) {
           .from("oauth_connections")
           .upsert(
             {
-              user_email: email,
+              user_email: user.email,
               provider: "linkedin",
               provider_user_id: profile.sub,
               access_token: tokenData.access_token,
