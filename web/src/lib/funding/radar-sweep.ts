@@ -53,6 +53,22 @@
 // once, and `last_notified.<tier>` stops a repeat. Run daily and the same
 // code fires each tier on (or just after) the exact day.
 //
+// ── Activation nudge (S11-A) ─────────────────────────────────────────────────
+// A Radar subscriber with ZERO targets (no `project_grant_profiles` row and
+// no Money Finder intake) can never be matched — the live sweep found 4
+// subscribers and 0 targets. After `listTargets` returns empty for an
+// email-channel subscriber the sweep sends the D-2 `no_profile` message
+// where they will see it:
+//
+//   touch 1  in-app `radar_setup_nudge` (dedupe `radar_setup:<user>`, 30 d)
+//            + email drip `radar_setup`            — first empty sweep
+//   touch 2  in-app again (same key — throttle decides) + `radar_setup_2`
+//            — ≥ 14 days after touch 1, still empty
+//   never a third. The drip rows ARE the counter (`listRadarSetupTouches`,
+//   any status), so no new table; `canSendEmail(email,"money_radar")` is
+//   respected before any enqueue. In-app-only buyers (A$3) are not Radar
+//   subscribers and are not nudged.
+//
 // Everything with side effects goes through `RadarStore`; tests pass a fake.
 // `dryRun` computes everything and writes nothing. Colocated tests:
 // radar-sweep.test.ts.
@@ -61,6 +77,16 @@ import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { insertNotification } from "@/lib/notifications";
 import type { NotificationKind } from "@/lib/notification-kinds";
+import { canSendEmail, getEmailPreferences } from "@/lib/email-preferences";
+import {
+  RADAR_SETUP_FOLLOWUP_DAYS,
+  enqueueRadarSetupDrip,
+  listRadarSetupTouches,
+  type DripPayload,
+  type EnqueueRadarDripResult,
+  type RadarSetupCampaign,
+  type RadarSetupTouch,
+} from "@/lib/email-drip";
 import {
   screenGrants,
   screenPrograms,
@@ -103,6 +129,8 @@ export interface RadarSubscriber {
   plan: string | null;
   /** `inapp` always; `email` + `ics` only with the `money_radar` flag. */
   channels: RadarChannel[];
+  /** `app_users.startup_name` when known — the activation nudge names it. */
+  startup?: string | null;
 }
 
 export interface RadarTarget {
@@ -160,6 +188,12 @@ export interface NotifyArgs {
   throttleMs?: number;
 }
 
+/** `canSendEmail` + unsubscribe token, one lookup per address. */
+export interface EmailGate {
+  allowed: boolean;
+  token: string | null;
+}
+
 /** Every side effect the sweep performs. Tests inject a fake. */
 export interface RadarStore {
   listSubscribers(now: Date): Promise<RadarSubscriber[]>;
@@ -169,6 +203,10 @@ export interface RadarStore {
   insertMatches(rows: FundingMatchRow[]): Promise<void>;
   updateMatch(id: string, patch: Partial<FundingMatchRow>): Promise<void>;
   notify(args: NotifyArgs): Promise<void>;
+  // S11-A activation nudge — the drip rows are the only state.
+  listSetupTouches(email: string): Promise<RadarSetupTouch[]>;
+  emailGate(email: string): Promise<EmailGate>;
+  enqueueSetupDrip(email: string, userId: string, campaign: RadarSetupCampaign, payload: DripPayload): Promise<EnqueueRadarDripResult>;
 }
 
 export interface SweepOptions {
@@ -198,7 +236,24 @@ export interface SweepSummary {
   byType: Record<RadarEventType, number>;
   errors: number;
   skipped: number;
+  /** S11-A activation nudges for zero-target subscribers ("would write" on dryRun). */
+  setup_nudges: SetupNudgeSummary;
   error?: string;
+}
+
+export interface SetupNudgeSummary {
+  /** Email-channel subscribers the sweep found with zero targets. */
+  candidates: number;
+  /** In-app `radar_setup_nudge` rows written (the 30 d throttle is inside insertNotification). */
+  inapp: number;
+  /** `radar_setup` / `radar_setup_2` drips queued. */
+  email: number;
+  /** Candidates whose first touch is < 14 days old (follow-up not due yet). */
+  skipped_recent: number;
+  /** Candidates who already had both touches — never nudged again. */
+  capped: number;
+  /** Candidates whose address opted out of `money_radar` (in-app still written). */
+  unsubscribed: number;
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -211,6 +266,10 @@ export const DEADLINE_TIERS: ReadonlyArray<{ tier: DeadlineTier; maxDays: number
 ];
 /** ≤ 1 in-app row per kind per ref per day. */
 export const INAPP_THROTTLE_MS = 24 * 60 * 60 * 1000;
+/** S11-A: one in-app activation nudge per user per 30 days. */
+export const SETUP_NUDGE_THROTTLE_MS = 30 * 24 * 60 * 60 * 1000;
+/** Hard cap on activation touches per address, ever. */
+export const SETUP_NUDGE_MAX_TOUCHES = 2;
 const RADAR_EVENTS_KEEP = 8;
 const PENDING_EMAIL_KEEP = 12;
 const DEFAULT_BUDGET_MS = 240_000;
@@ -507,6 +566,67 @@ export function planNotifications(target: RadarTarget, events: RadarEvent[]): No
   return out;
 }
 
+// ─── Pure: activation nudge (S11-A) ──────────────────────────────────────────
+
+export type SetupNudgeDecision =
+  | { touch: 1; campaign: "radar_setup" }
+  | { touch: 2; campaign: "radar_setup_2" }
+  | { touch: null; reason: "recent" | "capped" };
+
+/**
+ * Which activation touch (if any) is due for a zero-target subscriber, read
+ * off the drip rows already queued for their address:
+ *   none            → touch 1
+ *   radar_setup ≥ 14 days old, no radar_setup_2 → touch 2
+ *   radar_setup < 14 days old                   → recent (wait)
+ *   radar_setup_2 present (or ≥ 2 rows)         → capped, forever
+ * Day granularity (UTC) so a weekly Sunday sweep hits +14 d exactly.
+ */
+export function planSetupNudge(touches: readonly RadarSetupTouch[], now: Date): SetupNudgeDecision {
+  const today = startOfUtcDay(now);
+  const first = touches.filter((t) => t.campaign === "radar_setup");
+  const second = touches.filter((t) => t.campaign === "radar_setup_2");
+  if (second.length > 0 || touches.length >= SETUP_NUDGE_MAX_TOUCHES) return { touch: null, reason: "capped" };
+  if (first.length === 0) return { touch: 1, campaign: "radar_setup" };
+  const firstAt = parseIsoDay(first[0].scheduled_for);
+  const age = firstAt ? daysBetween(startOfUtcDay(firstAt), today) : Number.POSITIVE_INFINITY;
+  if (age < RADAR_SETUP_FOLLOWUP_DAYS) return { touch: null, reason: "recent" };
+  return { touch: 2, campaign: "radar_setup_2" };
+}
+
+/** The in-app half of a touch — dedupe key + 30 d throttle is the frequency cap. */
+export function planSetupNotification(
+  sub: RadarSubscriber,
+  touch: 1 | 2,
+  counts: { open_grants: number; open_programs: number },
+  now: Date,
+): NotifyArgs {
+  return {
+    userId: sub.userId,
+    projectId: null,
+    kind: "radar_setup_nudge",
+    dedupeKey: `radar_setup:${sub.userId}`,
+    throttleMs: SETUP_NUDGE_THROTTLE_MS,
+    payload: {
+      event: "radar_setup",
+      touch,
+      startup: sub.startup ?? null,
+      open_grants: counts.open_grants,
+      open_programs: counts.open_programs,
+      at: isoDay(now),
+    },
+  };
+}
+
+/** Grants / programs open today — the "never blank" counts on both channels. */
+export function openCounts(catalogue: { grants: AuGrantRow[]; programs: AuProgramRow[] }, now: Date): { open_grants: number; open_programs: number } {
+  const today = startOfUtcDay(now);
+  return {
+    open_grants: catalogue.grants.filter((g) => !g.exclude_from_matching && effectiveGrantStatus(g, today) === "open").length,
+    open_programs: catalogue.programs.filter((p) => effectiveProgramStatus(p, today) === "open").length,
+  };
+}
+
 // ─── Profile assembly (shared by the Supabase store and tests) ───────────────
 
 /** Overlay non-null `project_grant_profiles` columns on an intake-derived profile. */
@@ -613,7 +733,7 @@ export function createSupabaseRadarStore(db: SupabaseLike): RadarStore {
 
       const radarUsers = new Map<string, UserRow>();
       if (radarPlans.length > 0) {
-        const { data } = await db.from("app_users").select("id, email, plan").in("plan", radarPlans).limit(10_000);
+        const { data } = await db.from("app_users").select("id, email, plan, startup_name").in("plan", radarPlans).limit(10_000);
         for (const u of (data ?? []) as UserRow[]) radarUsers.set(u.id, u);
       }
       // Per-user grants (add-on / support override) widen the plan layer.
@@ -627,7 +747,7 @@ export function createSupabaseRadarStore(db: SupabaseLike): RadarStore {
         .map((g) => g.user_id)
         .filter((id) => !radarUsers.has(id));
       if (grantIds.length > 0) {
-        const { data } = await db.from("app_users").select("id, email, plan").in("id", grantIds);
+        const { data } = await db.from("app_users").select("id, email, plan, startup_name").in("id", grantIds);
         for (const u of (data ?? []) as UserRow[]) radarUsers.set(u.id, u);
       }
       // Timed grants (Startup Package → `app_users.money_radar_until`,
@@ -637,13 +757,13 @@ export function createSupabaseRadarStore(db: SupabaseLike): RadarStore {
       // entitlements row (review 2026-09-10 #5). Same full channel set.
       const { data: timed } = await db
         .from("app_users")
-        .select("id, email, plan, money_radar_until")
+        .select("id, email, plan, startup_name, money_radar_until")
         .gt("money_radar_until", now.toISOString())
         .limit(10_000);
       for (const u of (timed ?? []) as Array<UserRow & { money_radar_until?: unknown }>) {
         if (!u.id || radarUsers.has(u.id)) continue;
         if (liveTimedGrants({ money_radar_until: u.money_radar_until }, now.getTime()).includes("money_radar")) {
-          radarUsers.set(u.id, { id: u.id, email: u.email, plan: u.plan });
+          radarUsers.set(u.id, { id: u.id, email: u.email, plan: u.plan, startup_name: u.startup_name ?? null });
         }
       }
 
@@ -670,6 +790,7 @@ export function createSupabaseRadarStore(db: SupabaseLike): RadarStore {
           email: u.email,
           plan: u.plan,
           channels: ["inapp", "email", "ics"],
+          startup: u.startup_name ?? null,
         })),
         ...buyers.map<RadarSubscriber>((u) => ({ userId: u.id, email: u.email, plan: u.plan, channels: ["inapp"] })),
       ];
@@ -810,6 +931,20 @@ export function createSupabaseRadarStore(db: SupabaseLike): RadarStore {
     async notify(args) {
       await insertNotification(args);
     },
+
+    // S11-A — activation nudge state lives on the drip rows.
+    async listSetupTouches(email) {
+      return listRadarSetupTouches(email, { db });
+    },
+
+    async emailGate(email) {
+      const [allowed, prefs] = await Promise.all([canSendEmail(email, "money_radar"), getEmailPreferences(email)]);
+      return { allowed, token: prefs?.unsubscribe_token ?? null };
+    },
+
+    async enqueueSetupDrip(email, userId, campaign, payload) {
+      return enqueueRadarSetupDrip(email, userId, campaign, payload, { db });
+    },
   };
 }
 
@@ -842,6 +977,7 @@ export async function runMoneyRadarSweep(opts: SweepOptions = {}): Promise<Sweep
     byType: EMPTY_BY_TYPE(),
     errors: 0,
     skipped: 0,
+    setup_nudges: { candidates: 0, inapp: 0, email: 0, skipped_recent: 0, capped: 0, unsubscribed: 0 },
   };
 
   let store = opts.store ?? null;
@@ -862,6 +998,7 @@ export async function runMoneyRadarSweep(opts: SweepOptions = {}): Promise<Sweep
   if (catalogue.grants.length === 0 && catalogue.programs.length === 0) {
     return { ...summary, ok: false, error: "empty_catalogue" };
   }
+  const counts = openCounts(catalogue, now);
 
   for (const sub of subscribers) {
     if (Date.now() - startedAt > budgetMs) {
@@ -874,6 +1011,18 @@ export async function runMoneyRadarSweep(opts: SweepOptions = {}): Promise<Sweep
     } catch (err) {
       summary.errors++;
       console.warn("[radar-sweep] listTargets failed", sub.userId, err instanceof Error ? err.message : String(err));
+      continue;
+    }
+    if (targets.length === 0) {
+      // S11-A: a Radar subscriber Radar cannot match yet — nudge, capped at two touches.
+      if (sub.channels.includes("email")) {
+        try {
+          await nudgeSetup(store, sub, counts, now, dryRun, summary.setup_nudges);
+        } catch (err) {
+          summary.errors++;
+          console.warn("[radar-sweep] setup nudge failed", sub.userId, err instanceof Error ? err.message : String(err));
+        }
+      }
       continue;
     }
     for (const target of targets) {
@@ -918,4 +1067,56 @@ export async function runMoneyRadarSweep(opts: SweepOptions = {}): Promise<Sweep
   }
 
   return summary;
+}
+
+/**
+ * One zero-target subscriber → at most one in-app row + one drip, per the
+ * touch the drip rows say is due. Without an address the drip rows cannot
+ * count, so the in-app nudge alone recurs at the 30 d throttle.
+ */
+async function nudgeSetup(
+  store: RadarStore,
+  sub: RadarSubscriber,
+  counts: { open_grants: number; open_programs: number },
+  now: Date,
+  dryRun: boolean,
+  out: SetupNudgeSummary,
+): Promise<void> {
+  out.candidates++;
+  const email = (sub.email ?? "").toLowerCase().trim();
+  const hasEmail = email.includes("@");
+  const touches = hasEmail ? await store.listSetupTouches(email) : [];
+  const plan = planSetupNudge(touches, now);
+  if (plan.touch === null) {
+    if (plan.reason === "recent") out.skipped_recent++;
+    else out.capped++;
+    return;
+  }
+
+  const inapp = planSetupNotification(sub, plan.touch, counts, now);
+  let gate: EmailGate | null = null;
+  if (hasEmail) {
+    gate = await store.emailGate(email);
+    if (!gate.allowed) out.unsubscribed++;
+  }
+  const wantsEmail = hasEmail && gate?.allowed === true;
+
+  if (dryRun) {
+    out.inapp++;
+    if (wantsEmail) out.email++;
+    return;
+  }
+  await store.notify(inapp);
+  out.inapp++;
+  if (!wantsEmail) return;
+  const payload: DripPayload = {
+    startup: sub.startup ?? null,
+    open_grants: counts.open_grants,
+    open_programs: counts.open_programs,
+    unsubscribe_token: gate?.token ?? null,
+  };
+  const result = await store.enqueueSetupDrip(email, sub.userId, plan.campaign, payload);
+  if (result === "queued") out.email++;
+  else if (result === "error") throw new Error(`setup drip ${plan.campaign}: ${result}`);
+  // "duplicate" — the 30 d (email, campaign) dedupe already holds a copy; nothing to count.
 }

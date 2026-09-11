@@ -8,6 +8,8 @@ import {
   KIND_LABELS,
   MONEY_KINDS,
   NOTIFICATION_KINDS,
+  RADAR_SETUP_NUDGE_HREF,
+  RADAR_SETUP_NUDGE_TITLE,
   daysLeftPhrase,
   describeNotification,
   isNotificationKind,
@@ -15,14 +17,15 @@ import {
   type FounderNotificationRow,
 } from "./notification-kinds";
 
-const RADAR_KINDS = ["grant_deadline", "program_intake", "event_match", "weekly_next_step", "new_matches", "analysis_refresh"] as const;
+// T0245's six + the S11-A activation nudge (all under the "Money" chip).
+const RADAR_KINDS = ["grant_deadline", "program_intake", "event_match", "weekly_next_step", "new_matches", "analysis_refresh", "radar_setup_nudge"] as const;
 
 function row(kind: string, payload: Record<string, unknown> = {}): FounderNotificationRow {
   return { id: 1, project_id: null, kind, payload, read_at: null, created_at: "2026-09-13T05:00:00Z" };
 }
 
 describe("registry", () => {
-  it("registers the six Money Radar kinds alongside the Wave 27C six, all labelled, no duplicates", () => {
+  it("registers the Money Radar kinds (six + the setup nudge) alongside the Wave 27C six, all labelled, no duplicates", () => {
     for (const k of RADAR_KINDS) expect(NOTIFICATION_KINDS).toContain(k);
     for (const k of ["tbr_view", "tbr_qa_asked", "tbr_lead", "report_shared", "analysis_done", "svi_trend_alert"]) {
       expect(NOTIFICATION_KINDS).toContain(k);
@@ -110,6 +113,29 @@ describe("describeNotification / notificationAction — Money Radar payloads (D-
     expect(daysLeftPhrase(0)).toBe("today");
     expect(daysLeftPhrase(1)).toBe("tomorrow");
     expect(daysLeftPhrase(30)).toBe("in 30 days");
+  });
+});
+
+// S11-A — the Founder Radar activation nudge the weekly sweep writes for a
+// subscriber with no grant profile / intake. Title is the approved D-3-style
+// line; the action lands on the intake, open and focused.
+describe("radar_setup_nudge (S11-A activation nudge)", () => {
+  it("title is the approved line, with live counts appended when the sweep supplied them", () => {
+    expect(RADAR_SETUP_NUDGE_TITLE).toBe("Your Founder Radar is on — tell us 3 things to start matching");
+    expect(describeNotification(row("radar_setup_nudge"))).toBe(RADAR_SETUP_NUDGE_TITLE);
+    expect(describeNotification(row("radar_setup_nudge", { open_grants: 14, open_programs: 6, touch: 1 }))).toBe(
+      "Your Founder Radar is on — tell us 3 things to start matching — 14 grants and 6 programs are open right now",
+    );
+    // Never "0 grants and 0 programs".
+    expect(describeNotification(row("radar_setup_nudge", { open_grants: 0, open_programs: 0 }))).toBe(RADAR_SETUP_NUDGE_TITLE);
+    expect(KIND_LABELS.radar_setup_nudge).toBe("Founder Radar setup");
+  });
+
+  it("action opens /workspace/funding?from=radar_setup", () => {
+    expect(RADAR_SETUP_NUDGE_HREF).toBe("/workspace/funding?from=radar_setup");
+    expect(notificationAction(row("radar_setup_nudge", { touch: 2 }))).toEqual({ href: "/workspace/funding?from=radar_setup", label: "Set up matching" });
+    expect(isNotificationKind("radar_setup_nudge")).toBe(true);
+    expect(MONEY_KINDS).toContain("radar_setup_nudge");
   });
 });
 

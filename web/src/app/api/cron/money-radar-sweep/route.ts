@@ -11,6 +11,10 @@
 // entry (contract in `@/lib/funding/radar-sweep`) into a `radar_t30/t14/t3`
 // email_drips row that the hourly /api/cron/email-drip sends. That call is
 // guarded — a drip failure never fails the sweep — and reported as `drips`.
+// S11-A: subscribers the sweep finds with zero targets (no profile, no
+// intake) get the activation nudge inside the sweep itself — in-app
+// `radar_setup_nudge` + `radar_setup` / `radar_setup_2` drips, two touches
+// ever — reported as `setup_nudges` (`?dry=1` counts without writing).
 //
 // Auth: `Authorization: Bearer ${CRON_SECRET}` (pattern: refresh-funding-sources).
 // `?dry=1` computes everything, writes nothing and returns the full event list.

@@ -21,15 +21,33 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => null }));
 vi.mock("@/lib/notifications", () => ({ insertNotification: vi.fn(async () => undefined) }));
 vi.mock("./data", () => ({ listGrants: vi.fn(async () => []), listPrograms: vi.fn(async () => []) }));
+// S11-A — the Supabase store delegates the setup-nudge state to email-drip
+// and the opt-out to email-preferences; both are pinned by their own suites.
+const canSendEmailMock = vi.fn(async () => true);
+const getPrefsMock = vi.fn(async () => ({ unsubscribe_token: "tok-1" }));
+vi.mock("@/lib/email-preferences", () => ({
+  canSendEmail: (...a: unknown[]) => canSendEmailMock(...(a as [])),
+  getEmailPreferences: (...a: unknown[]) => getPrefsMock(...(a as [])),
+}));
+const enqueueSetupMock = vi.fn(async () => "queued" as const);
+const listTouchesMock = vi.fn(async () => [] as Array<{ campaign: "radar_setup" | "radar_setup_2"; scheduled_for: string }>);
+vi.mock("@/lib/email-drip", () => ({
+  RADAR_SETUP_FOLLOWUP_DAYS: 14,
+  enqueueRadarSetupDrip: (...a: unknown[]) => enqueueSetupMock(...(a as [])),
+  listRadarSetupTouches: (...a: unknown[]) => listTouchesMock(...(a as [])),
+}));
 
 import {
   INAPP_THROTTLE_MS,
   PAID_REPORT_LOOKBACK_DAYS,
+  SETUP_NUDGE_THROTTLE_MS,
   createSupabaseRadarStore,
   diffTarget,
   matchDeadline,
   mergeGrantProfile,
+  openCounts,
   planNotifications,
+  planSetupNudge,
   runMoneyRadarSweep,
   stageFromLoose,
   tierFor,
@@ -39,6 +57,7 @@ import {
   type RadarSubscriber,
   type RadarTarget,
 } from "./radar-sweep";
+import type { DripPayload, RadarSetupCampaign, RadarSetupTouch } from "@/lib/email-drip";
 import { screenGrants, screenPrograms, type GrantProfile } from "@/lib/agents/grant-advisor";
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -144,14 +163,32 @@ function fakeStore(opts: {
   subscribers: RadarSubscriber[];
   catalogue: { grants: AuGrantRow[]; programs: AuProgramRow[] };
   targets?: (sub: RadarSubscriber) => RadarTarget[];
+  /** S11-A: addresses that opted out of money_radar. */
+  optedOut?: string[];
 }) {
   const rows: FundingMatchRow[] = [];
   const notifications: NotifyArgs[] = [];
+  // S11-A: the drip rows ARE the activation-nudge state, so they persist too.
+  const drips: Array<{ email: string; userId: string; campaign: RadarSetupCampaign; payload: DripPayload; scheduled_for: string }> = [];
   let seq = 0;
-  const store: RadarStore & { rows: FundingMatchRow[]; notifications: NotifyArgs[]; writes: number } = {
+  let clock = TODAY;
+  const store: RadarStore & { rows: FundingMatchRow[]; notifications: NotifyArgs[]; drips: typeof drips; writes: number; setClock: (d: Date) => void } = {
     rows,
     notifications,
+    drips,
     writes: 0,
+    setClock: (d) => {
+      clock = d;
+    },
+    listSetupTouches: async (email): Promise<RadarSetupTouch[]> =>
+      drips.filter((d) => d.email === email).map((d) => ({ campaign: d.campaign, scheduled_for: d.scheduled_for })).reverse(),
+    emailGate: async (email) => ({ allowed: !(opts.optedOut ?? []).includes(email), token: "tok-1" }),
+    enqueueSetupDrip: async (email, userId, campaign, payload) => {
+      if (drips.some((d) => d.email === email && d.campaign === campaign)) return "duplicate";
+      store.writes++;
+      drips.push({ email, userId, campaign, payload, scheduled_for: clock.toISOString() });
+      return "queued";
+    },
     listSubscribers: async () => opts.subscribers,
     listTargets: async (sub) => (opts.targets ?? ((s) => [target(s)]))(sub),
     listCatalogue: async () => opts.catalogue,
@@ -404,6 +441,174 @@ describe("runMoneyRadarSweep", () => {
 });
 
 // ─── Supabase store: subscriber discovery ────────────────────────────────────
+
+// ─── S11-A activation nudge ──────────────────────────────────────────────────
+// Live fact 2026-09-11: 4 Radar subscribers, 0 targets. A subscriber the
+// sweep cannot match gets the D-2 `no_profile` message as an in-app row +
+// a `radar_setup` drip, one follow-up (`radar_setup_2`) at +14 d, never a
+// third. The drip rows are the only state.
+
+describe("runMoneyRadarSweep — setup nudge for zero-target subscribers (S11-A)", () => {
+  beforeEach(() => vi.clearAllMocks());
+  const NO_TARGETS = () => [];
+  const CAT = { grants: [grant()], programs: [program()] };
+  const SUB: RadarSubscriber = { ...RADAR, startup: "Acme" };
+
+  it("zero targets → one in-app radar_setup_nudge (dedupe radar_setup:<user>, 30 d) + one radar_setup drip with live counts", async () => {
+    const store = fakeStore({ subscribers: [SUB], catalogue: CAT, targets: NO_TARGETS });
+    const s = await runMoneyRadarSweep({ now: TODAY, store });
+    expect(s.ok).toBe(true);
+    expect(s.targets).toBe(0);
+    expect(s.setup_nudges).toEqual({ candidates: 1, inapp: 1, email: 1, skipped_recent: 0, capped: 0, unsubscribed: 0 });
+    expect(store.notifications).toHaveLength(1);
+    expect(store.notifications[0]).toMatchObject({
+      userId: "u-radar",
+      projectId: null,
+      kind: "radar_setup_nudge",
+      dedupeKey: "radar_setup:u-radar",
+      throttleMs: SETUP_NUDGE_THROTTLE_MS,
+      payload: { event: "radar_setup", touch: 1, startup: "Acme", open_grants: 1, open_programs: 1, at: day(0) },
+    });
+    expect(SETUP_NUDGE_THROTTLE_MS).toBe(30 * 86_400_000);
+    expect(store.drips).toHaveLength(1);
+    expect(store.drips[0]).toMatchObject({
+      email: "r@x.au",
+      userId: "u-radar",
+      campaign: "radar_setup",
+      payload: { startup: "Acme", open_grants: 1, open_programs: 1, unsubscribe_token: "tok-1" },
+    });
+    // No funding_matches touched.
+    expect(store.rows).toHaveLength(0);
+  });
+
+  it("a subscriber with a target gets the normal fan-out and no setup nudge", async () => {
+    const store = fakeStore({ subscribers: [SUB], catalogue: CAT });
+    const s = await runMoneyRadarSweep({ now: TODAY, store });
+    expect(s.targets).toBe(1);
+    expect(s.setup_nudges).toEqual({ candidates: 0, inapp: 0, email: 0, skipped_recent: 0, capped: 0, unsubscribed: 0 });
+    expect(store.notifications.some((n) => n.kind === "radar_setup_nudge")).toBe(false);
+    expect(store.drips).toHaveLength(0);
+  });
+
+  it("second touch exactly at +14 d if still empty, then never again (cap 2, ever)", async () => {
+    const store = fakeStore({ subscribers: [SUB], catalogue: CAT, targets: NO_TARGETS });
+    const at = (d: number) => new Date(TODAY.getTime() + d * 86_400_000);
+
+    await runMoneyRadarSweep({ now: TODAY, store });
+    expect(store.drips.map((d) => d.campaign)).toEqual(["radar_setup"]);
+
+    // +7 d: first touch too recent — nothing, reported as skipped_recent.
+    store.setClock(at(7));
+    let s = await runMoneyRadarSweep({ now: at(7), store });
+    expect(s.setup_nudges).toMatchObject({ candidates: 1, inapp: 0, email: 0, skipped_recent: 1, capped: 0 });
+    expect(store.drips).toHaveLength(1);
+    expect(store.notifications).toHaveLength(1);
+
+    // +14 d: the one follow-up, with the approved second subject's campaign.
+    store.setClock(at(14));
+    s = await runMoneyRadarSweep({ now: at(14), store });
+    expect(s.setup_nudges).toMatchObject({ candidates: 1, inapp: 1, email: 1, skipped_recent: 0, capped: 0 });
+    expect(store.drips.map((d) => d.campaign)).toEqual(["radar_setup", "radar_setup_2"]);
+    expect(store.notifications).toHaveLength(2);
+    expect(store.notifications[1].payload).toMatchObject({ touch: 2 });
+    // Same dedupe key both times — insertNotification's 30 d throttle decides.
+    expect(store.notifications[1].dedupeKey).toBe("radar_setup:u-radar");
+
+    // +21 d, +60 d, +400 d: capped forever.
+    for (const d of [21, 60, 400]) {
+      store.setClock(at(d));
+      s = await runMoneyRadarSweep({ now: at(d), store });
+      expect(s.setup_nudges, `day ${d}`).toMatchObject({ candidates: 1, inapp: 0, email: 0, skipped_recent: 0, capped: 1 });
+    }
+    expect(store.drips).toHaveLength(2);
+    expect(store.notifications).toHaveLength(2);
+  });
+
+  it("planSetupNudge: none → 1; radar_setup < 14 d → recent; ≥ 14 d → 2; radar_setup_2 (or 2 rows) → capped; cancelled rows still count", () => {
+    const first = (d: number): RadarSetupTouch => ({ campaign: "radar_setup", scheduled_for: new Date(TODAY.getTime() - d * 86_400_000).toISOString() });
+    expect(planSetupNudge([], TODAY)).toEqual({ touch: 1, campaign: "radar_setup" });
+    expect(planSetupNudge([first(13)], TODAY)).toEqual({ touch: null, reason: "recent" });
+    expect(planSetupNudge([first(14)], TODAY)).toEqual({ touch: 2, campaign: "radar_setup_2" });
+    expect(planSetupNudge([first(90)], TODAY)).toEqual({ touch: 2, campaign: "radar_setup_2" });
+    expect(planSetupNudge([{ campaign: "radar_setup_2", scheduled_for: day(-1) }, first(15)], TODAY)).toEqual({ touch: null, reason: "capped" });
+    expect(planSetupNudge([first(40), first(20)], TODAY)).toEqual({ touch: null, reason: "capped" });
+    // Same UTC day, a few seconds later than the first touch → still exactly 14 days.
+    const w0 = new Date(Date.UTC(2026, 8, 13, 5, 0, 30));
+    const w2 = new Date(Date.UTC(2026, 8, 27, 5, 0, 5));
+    expect(planSetupNudge([{ campaign: "radar_setup", scheduled_for: w0.toISOString() }], w2)).toEqual({ touch: 2, campaign: "radar_setup_2" });
+  });
+
+  it("dryRun reports setup_nudges { inapp, email, skipped_recent } and writes nothing", async () => {
+    const store = fakeStore({ subscribers: [SUB, { ...RADAR, userId: "u-2", email: "two@x.au" }], catalogue: CAT, targets: NO_TARGETS });
+    const s = await runMoneyRadarSweep({ now: TODAY, store, dryRun: true });
+    expect(s.dryRun).toBe(true);
+    expect(s.setup_nudges).toMatchObject({ candidates: 2, inapp: 2, email: 2, skipped_recent: 0, capped: 0 });
+    expect(store.writes).toBe(0);
+    expect(store.notifications).toHaveLength(0);
+    expect(store.drips).toHaveLength(0);
+    // A recent first touch is counted as skipped_recent on a dry run too.
+    store.drips.push({ email: "r@x.au", userId: "u-radar", campaign: "radar_setup", payload: {}, scheduled_for: day(-3) });
+    const s2 = await runMoneyRadarSweep({ now: TODAY, store, dryRun: true });
+    expect(s2.setup_nudges).toMatchObject({ candidates: 2, inapp: 1, email: 1, skipped_recent: 1 });
+    expect(store.notifications).toHaveLength(0);
+    expect(store.drips).toHaveLength(1);
+  });
+
+  it("email opt-out (canSendEmail money_radar = false): in-app still written, no drip queued, counted as unsubscribed", async () => {
+    const store = fakeStore({ subscribers: [SUB], catalogue: CAT, targets: NO_TARGETS, optedOut: ["r@x.au"] });
+    const s = await runMoneyRadarSweep({ now: TODAY, store });
+    expect(s.setup_nudges).toEqual({ candidates: 1, inapp: 1, email: 0, skipped_recent: 0, capped: 0, unsubscribed: 1 });
+    expect(store.notifications).toHaveLength(1);
+    expect(store.drips).toHaveLength(0);
+  });
+
+  it("in-app-only A$3 buyers are not Radar subscribers and are never nudged; a subscriber without an address gets in-app only", async () => {
+    const store = fakeStore({
+      subscribers: [BUYER, { ...RADAR, userId: "u-noemail", email: null }],
+      catalogue: CAT,
+      targets: NO_TARGETS,
+    });
+    const s = await runMoneyRadarSweep({ now: TODAY, store });
+    expect(s.setup_nudges).toMatchObject({ candidates: 1, inapp: 1, email: 0 });
+    expect(store.notifications.map((n) => n.userId)).toEqual(["u-noemail"]);
+    expect(store.drips).toHaveLength(0);
+  });
+
+  it("a duplicate drip (30 d dedupe) is not counted as an email; a drip error counts as a sweep error, not a crash", async () => {
+    const store = fakeStore({ subscribers: [SUB], catalogue: CAT, targets: NO_TARGETS });
+    store.enqueueSetupDrip = async () => "duplicate";
+    let s = await runMoneyRadarSweep({ now: TODAY, store });
+    expect(s.setup_nudges).toMatchObject({ inapp: 1, email: 0 });
+    expect(s.errors).toBe(0);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    store.enqueueSetupDrip = async () => "error";
+    s = await runMoneyRadarSweep({ now: TODAY, store });
+    expect(s.ok).toBe(true);
+    expect(s.errors).toBe(1);
+  });
+
+  it("openCounts counts open, matchable rows only", () => {
+    const cat = {
+      grants: [grant(), grant({ id: "g-closed", status: "closed" }), grant({ id: "g-x", exclude_from_matching: true })],
+      programs: [program(), program({ id: "p-up", status: "upcoming", applications_open: day(30), applications_close: day(60) })],
+    };
+    expect(openCounts(cat, TODAY)).toEqual({ open_grants: 1, open_programs: 1 });
+  });
+
+  it("the Supabase store delegates: touches → listRadarSetupTouches(db), gate → canSendEmail + prefs token, enqueue → enqueueRadarSetupDrip(db)", async () => {
+    const db = { from: () => ({}) };
+    const store = createSupabaseRadarStore(db);
+    listTouchesMock.mockResolvedValueOnce([{ campaign: "radar_setup", scheduled_for: day(-20) }]);
+    expect(await store.listSetupTouches("r@x.au")).toEqual([{ campaign: "radar_setup", scheduled_for: day(-20) }]);
+    expect(listTouchesMock).toHaveBeenCalledWith("r@x.au", { db });
+    canSendEmailMock.mockResolvedValueOnce(false);
+    expect(await store.emailGate("r@x.au")).toEqual({ allowed: false, token: "tok-1" });
+    expect(canSendEmailMock).toHaveBeenCalledWith("r@x.au", "money_radar");
+    const payload: DripPayload = { startup: "Acme", open_grants: 1, open_programs: 1 };
+    expect(await store.enqueueSetupDrip("r@x.au", "u-radar", "radar_setup_2", payload)).toBe("queued");
+    expect(enqueueSetupMock).toHaveBeenCalledWith("r@x.au", "u-radar", "radar_setup_2", payload, { db });
+  });
+});
 
 describe("createSupabaseRadarStore.listSubscribers", () => {
   /** Query-builder fake: every chain resolves to the canned result for its table. */

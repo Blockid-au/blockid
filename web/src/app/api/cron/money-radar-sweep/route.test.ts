@@ -34,6 +34,8 @@ const OK = {
   byType: { new_match: 3, deadline_t30: 1, deadline_t14: 0, deadline_t3: 0, status_changed: 0, new_round_opened: 0 },
   errors: 0,
   skipped: 0,
+  // S11-A activation nudge counts ride the same summary → the cron-health line.
+  setup_nudges: { candidates: 1, inapp: 1, email: 1, skipped_recent: 0, capped: 0, unsubscribed: 0 },
 };
 
 function req(url = "http://localhost/api/cron/money-radar-sweep", auth?: string) {
@@ -77,6 +79,7 @@ describe("money-radar-sweep route", () => {
     expect(r.status).toBe(200);
     const body = await r.json();
     expect(body).toMatchObject({ ok: true, subscribers: 2, inserted: 3, notifications: 4, byType: { new_match: 3 } });
+    expect(body.setup_nudges).toEqual({ candidates: 1, inapp: 1, email: 1, skipped_recent: 0, capped: 0, unsubscribed: 0 });
     expect(body.events).toBeUndefined();
     expect(typeof body.duration_ms).toBe("number");
     expect(sweepMock).toHaveBeenCalledWith({ dryRun: false });
