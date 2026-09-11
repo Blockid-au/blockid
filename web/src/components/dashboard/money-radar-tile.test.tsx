@@ -47,6 +47,19 @@ const DEADLINES: MoneyRadarTileData["next_deadlines"] = [
   { ref_kind: "program", ref_id: "p1", name: "Plus Eight", closes_at: "2026-11-30", days_until: 81, status: "open", date_label: "30 Nov 2026 (AEST)", url: null },
 ];
 
+describe("MoneyRadarTile — S8-B a11y", () => {
+  it("T-N deadline chips carry the rung + date as screen-reader text (title alone is not exposed) and new-tab links say so", async () => {
+    const out = await html(base({ state: "subscriber", next_deadlines: DEADLINES, report_id: "r1" }));
+    expect(out).toContain('aria-hidden="true">T-2');
+    expect(out).toContain('class="sr-only">Last call, 2 days left, closes 12 Sep 2026 (AEST)');
+    expect(out).toContain('class="sr-only">Closing soon, 12 days left, closes 22 Sep 2026 (AEST)');
+    expect(out).toContain('class="sr-only"> (opens in a new tab)');
+    // Section landmark named by its heading; every icon decorative.
+    expect(out).toContain('aria-labelledby="money-radar-tile-heading"');
+    for (const svg of out.match(/<svg[^>]*>/g) ?? []) expect(svg).toContain("aria-hidden");
+  });
+});
+
 describe("MoneyRadarTile — five states (D-2)", () => {
   it("no_profile: counts sentence with bold numbers, Match me → /workspace/funding, footer counts + next event", async () => {
     const out = await html(base());

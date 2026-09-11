@@ -101,14 +101,16 @@ export function InvestorVisibilityForm({ initialDiscoverable, initialFirm, initi
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-ink-900">{VISIBILITY_COPY.title}</h2>
-          <p className="mt-1 text-sm text-ink-600 leading-relaxed">{VISIBILITY_COPY.sub}</p>
+          <h2 id="investor-visibility-title" className="text-lg font-semibold text-ink-900">{VISIBILITY_COPY.title}</h2>
+          <p id="investor-visibility-sub" className="mt-1 text-sm text-ink-600 leading-relaxed">{VISIBILITY_COPY.sub}</p>
         </div>
         <button
           type="button"
           role="switch"
           aria-checked={on}
-          aria-label={VISIBILITY_COPY.title}
+          aria-labelledby="investor-visibility-title"
+          aria-describedby="investor-visibility-sub"
+          aria-busy={saving}
           disabled={saving}
           onClick={() => {
             const next = !on;
@@ -120,7 +122,7 @@ export function InvestorVisibilityForm({ initialDiscoverable, initialFirm, initi
           }`}
           data-visibility-switch
         >
-          <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${on ? "translate-x-6" : "translate-x-1"}`} />
+          <span aria-hidden="true" className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ${on ? "translate-x-6" : "translate-x-1"}`} />
         </button>
       </div>
 
@@ -134,7 +136,7 @@ export function InvestorVisibilityForm({ initialDiscoverable, initialFirm, initi
             maxLength={firmMaxLen}
             placeholder={VISIBILITY_COPY.firmPlaceholder}
             onChange={(e) => setFirm(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-ink-900 placeholder:text-slate-400"
+            className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-ink-900 placeholder:text-slate-500 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
           />
         </label>
         <label className="block text-sm sm:col-span-2">
@@ -146,7 +148,7 @@ export function InvestorVisibilityForm({ initialDiscoverable, initialFirm, initi
             maxLength={thesisMaxLen}
             placeholder={VISIBILITY_COPY.thesisPlaceholder}
             onChange={(e) => setThesis(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-ink-900 placeholder:text-slate-400"
+            className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-ink-900 placeholder:text-slate-500 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
           />
         </label>
       </div>
@@ -155,6 +157,7 @@ export function InvestorVisibilityForm({ initialDiscoverable, initialFirm, initi
         <button
           type="button"
           disabled={saving}
+          aria-busy={saving}
           onClick={() => void save(on)}
           className="inline-flex items-center gap-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-60"
           data-visibility-save

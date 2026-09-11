@@ -255,6 +255,25 @@ test.describe("Post-deploy hydrated smoke", () => {
     ).toBeVisible({ timeout: PAGE_TIMEOUT });
   });
 
+  // S8-B (2026-09-11) mobile check: at a 400px viewport the /funding page
+  // must not scroll sideways. The intake form, the compact Money Radar tile
+  // and the marketing tables all wrap or live inside overflow-x-auto
+  // containers; any element wider than the viewport shows up here as
+  // documentElement.scrollWidth > innerWidth.
+  test("/funding — no horizontal page overflow at a 400px viewport", async ({ page }) => {
+    test.setTimeout(20_000);
+    await page.setViewportSize({ width: 400, height: 800 });
+    await page.goto("/funding", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("form[data-funding-intake]")).toBeVisible({ timeout: PAGE_TIMEOUT });
+    const overflow = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth: window.innerWidth,
+    }));
+    expect(overflow.scrollWidth, `scrollWidth ${overflow.scrollWidth} > innerWidth ${overflow.innerWidth}`).toBeLessThanOrEqual(
+      overflow.innerWidth,
+    );
+  });
+
   test("/funding/report/demo — sample banner, >= 3 grant cards, Gantt, A$3 CTA", async ({
     page,
   }) => {

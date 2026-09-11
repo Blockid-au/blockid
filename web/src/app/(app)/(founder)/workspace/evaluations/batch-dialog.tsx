@@ -9,6 +9,7 @@
 
 import * as React from "react";
 import { Loader2, X } from "lucide-react";
+import { useModalDialog } from "@/hooks/useModalDialog";
 import type { EvaluationListRow } from "@/lib/evaluations";
 import {
   DIMENSION_KEYS,
@@ -45,6 +46,9 @@ export function BatchDialog({ selected, quotaRemaining, quotaLimit, trialActive 
   const [showWeights, setShowWeights] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  // S8-B: focus trap, Escape → onClose, focus returns to "Batch score".
+  const dialogRef = React.useRef<HTMLDivElement | null>(null);
+  useModalDialog(dialogRef, { onClose, initialFocus: "#batch-name" });
 
   const normalised = React.useMemo(() => normaliseWeights(weights), [weights]);
   const rawSum = DIMENSION_KEYS.reduce((s, k) => s + (Number(weights[k]) || 0), 0);
@@ -79,16 +83,16 @@ export function BatchDialog({ selected, quotaRemaining, quotaLimit, trialActive 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="batch-title">
+    <div ref={dialogRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="batch-title" aria-describedby="batch-intro">
       <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-surface-200 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-200">
           <h2 id="batch-title" className="text-lg font-bold text-ink-900">Batch score {n} startup{n === 1 ? "" : "s"}</h2>
           <button type="button" onClick={onClose} aria-label="Close" className="h-8 w-8 flex items-center justify-center rounded-lg text-ink-500 hover:text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer">
-            <X strokeWidth={1.75} className="h-4 w-4" />
+            <X strokeWidth={1.75} className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
         <form onSubmit={submit} className="px-6 py-5 space-y-4">
-          <p className="text-sm text-ink-600">
+          <p id="batch-intro" className="text-sm text-ink-600">
             Every selected startup gets a full Trust BizReport on the same rubric, scored off-peak tonight. You&apos;ll get a notification when the cohort table is ready.
           </p>
           <div>
@@ -106,13 +110,19 @@ export function BatchDialog({ selected, quotaRemaining, quotaLimit, trialActive 
 
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-ink-700">Rubric weights</span>
-              <button type="button" onClick={() => setShowWeights((v) => !v)} className="text-xs font-medium text-brand-700 hover:underline cursor-pointer">
+              <span id="batch-weights-label" className="text-sm font-medium text-ink-700">Rubric weights</span>
+              <button
+                type="button"
+                onClick={() => setShowWeights((v) => !v)}
+                aria-expanded={showWeights}
+                aria-controls="batch-weight-sliders"
+                className="inline-flex min-h-6 items-center text-xs font-medium text-brand-700 hover:underline cursor-pointer"
+              >
                 {showWeights ? "Hide" : isEqualWeights(normalised) ? "Customise (equal by default)" : "Edit"}
               </button>
             </div>
             {showWeights ? (
-              <div className="mt-2 space-y-2" data-testid="weight-sliders">
+              <div id="batch-weight-sliders" role="group" aria-labelledby="batch-weights-label" className="mt-2 space-y-2" data-testid="weight-sliders">
                 {DIMENSION_KEYS.map((k) => (
                   <div key={k} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 text-xs">
                     <label htmlFor={`w-${k}`} className="text-ink-700">{DIMENSION_LABELS[k]}</label>
@@ -123,21 +133,22 @@ export function BatchDialog({ selected, quotaRemaining, quotaLimit, trialActive 
                       max={40}
                       step={0.5}
                       value={weights[k]}
+                      aria-valuetext={`${normalised[k]}% of the weighted score`}
                       onChange={(e) => setWeights((w) => ({ ...w, [k]: Number(e.target.value) }))}
-                      className="w-40 accent-brand-600"
+                      className="w-40 max-w-full accent-brand-600"
                     />
-                    <span className="w-14 text-right tabular-nums text-ink-800">{normalised[k]}%</span>
+                    <span className="w-14 text-right tabular-nums text-ink-800" aria-hidden="true">{normalised[k]}%</span>
                   </div>
                 ))}
                 <div className="flex items-center justify-between text-xs text-ink-500">
                   <span>Sliders sum to {Math.round(rawSum * 10) / 10}; the split is normalised to 100% and only changes the displayed weighted score — the SVI stays unweighted.</span>
-                  <button type="button" onClick={() => setWeights(equalWeights())} className="font-medium text-brand-700 hover:underline cursor-pointer">Equal weights</button>
+                  <button type="button" onClick={() => setWeights(equalWeights())} className="inline-flex min-h-6 shrink-0 items-center font-medium text-brand-700 hover:underline cursor-pointer">Equal weights</button>
                 </div>
               </div>
             ) : null}
           </div>
 
-          <div data-testid="batch-cost" className={`rounded-xl px-4 py-3 text-sm ${insufficient ? "border border-amber-300 bg-amber-50 text-amber-800" : "border border-surface-200 bg-surface-50 text-ink-700"}`}>
+          <div data-testid="batch-cost" role="status" aria-live="polite" className={`rounded-xl px-4 py-3 text-sm ${insufficient ? "border border-amber-300 bg-amber-50 text-amber-800" : "border border-surface-200 bg-surface-50 text-ink-700"}`}>
             <strong>{n}</strong> of your included Trust BizReports {trialActive ? "in your trial" : "this month"}
             {quotaRemaining != null ? <> ({quotaRemaining}{quotaLimit != null ? ` of ${quotaLimit}` : ""} left)</> : null}.
             {insufficient
@@ -156,9 +167,10 @@ export function BatchDialog({ selected, quotaRemaining, quotaLimit, trialActive 
             <button
               type="submit"
               disabled={submitting || n === 0 || insufficient}
+              aria-busy={submitting}
               className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50"
             >
-              {submitting && <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" />}
+              {submitting && <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
               Queue {n} report{n === 1 ? "" : "s"}
             </button>
           </div>

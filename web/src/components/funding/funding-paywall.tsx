@@ -198,10 +198,14 @@ export function FundingPaywall({ intake, preview, rail }: FundingPaywallProps) {
           ) : rail === "credits" ? (
             <CreditsRail busy={busy} balance={balance} onStart={() => setConfirmOpen(true)} />
           ) : (
-            <GuestRail busy={busy} email={email} onEmail={setEmail} onSubmit={startGuestCheckout} disabled={rail === "anonymous"} />
+            <GuestRail busy={busy} email={email} onEmail={setEmail} onSubmit={startGuestCheckout} disabled={rail === "anonymous"} errorId={error ? "fp-error" : undefined} />
           )}
+          {/* Busy state announced for screen readers (the button label alone is not re-read). */}
+          <p className="sr-only" role="status" aria-live="polite" data-paywall-status>
+            {busy ? (rail === "guest" ? "Opening checkout" : "Generating your report") : ""}
+          </p>
           {error ? (
-            <p role="alert" className="mt-3 rounded-lg border border-bear/30 bg-bear/10 px-3 py-2 text-xs text-bear">
+            <p id="fp-error" role="alert" className="mt-3 rounded-lg border border-bear/30 bg-bear/10 px-3 py-2 text-xs text-bear">
               {error}
             </p>
           ) : null}
@@ -247,12 +251,15 @@ function GuestRail({
   onEmail,
   onSubmit,
   disabled,
+  errorId,
 }: {
   busy: boolean;
   email: string;
   onEmail: (v: string) => void;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   disabled: boolean;
+  /** id of the visible error line, wired to the input via aria-describedby. */
+  errorId?: string;
 }) {
   return (
     <form onSubmit={onSubmit} className="space-y-3" data-rail-form="guest">
@@ -266,7 +273,8 @@ function GuestRail({
       <label htmlFor="fp-email" className="block text-xs font-medium text-secondary">
         Email for the report link
       </label>
-      <div className="flex items-center gap-2 rounded-lg border border-line-subtle bg-surface-raised px-3">
+      {/* The input drops its own outline; the wrapper carries the visible focus ring (WCAG 2.4.7). */}
+      <div className="flex items-center gap-2 rounded-lg border border-line-subtle bg-surface-raised px-3 focus-within:border-action focus-within:ring-2 focus-within:ring-action/30">
         <Mail className="h-4 w-4 text-tertiary" aria-hidden />
         <input
           id="fp-email"
@@ -276,12 +284,15 @@ function GuestRail({
           value={email}
           onChange={(e) => onEmail(e.target.value)}
           placeholder="you@startup.com.au"
+          aria-describedby={errorId}
+          aria-invalid={errorId ? true : undefined}
           className="w-full bg-transparent py-2.5 text-sm text-primary placeholder:text-tertiary focus:outline-none"
         />
       </div>
       <button
         type="submit"
         disabled={busy || disabled || email.trim().length < 5}
+        aria-busy={busy}
         className="inline-flex w-full items-center justify-center rounded-lg bg-action px-5 py-3 text-sm font-semibold text-on-action shadow-sm transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
         {busy ? "Opening checkout…" : `Unlock for ${FUNDING_REPORT_PRICE_LABEL} — pay with card`}
@@ -313,6 +324,7 @@ function CreditsRail({ busy, balance, onStart }: { busy: boolean; balance: numbe
         type="button"
         onClick={onStart}
         disabled={busy}
+        aria-busy={busy}
         className="inline-flex w-full items-center justify-center rounded-lg bg-action px-5 py-3 text-sm font-semibold text-on-action shadow-sm transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
         {busy ? "Generating…" : `Generate for ${GRANT_MATCH_CREDITS} credits`}
@@ -336,6 +348,7 @@ function PlanRail({ busy, onGenerate, total }: { busy: boolean; onGenerate: () =
         type="button"
         onClick={onGenerate}
         disabled={busy}
+        aria-busy={busy}
         className="inline-flex w-full items-center justify-center rounded-lg bg-action px-5 py-3 text-sm font-semibold text-on-action shadow-sm transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
         {busy ? "Generating…" : `Generate my report (${total} matches)`}

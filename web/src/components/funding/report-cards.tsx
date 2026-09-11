@@ -34,8 +34,9 @@ export function EligibilityChecklist({ items }: { items: EligibilityCheck[] }) {
     <ul className="mt-3 grid gap-1 text-sm sm:grid-cols-2" aria-label="Eligibility checklist">
       {items.map((c, i) => (
         <li key={`${c.label}-${i}`} className="flex items-start gap-2">
-          <span className={`font-mono font-bold ${CHECK_GLYPH[c.status].cls}`} aria-label={CHECK_GLYPH[c.status].label}>
-            {CHECK_GLYPH[c.status].glyph}
+          <span className={`font-mono font-bold ${CHECK_GLYPH[c.status].cls}`}>
+            <span aria-hidden="true">{CHECK_GLYPH[c.status].glyph}</span>
+            <span className="sr-only">{CHECK_GLYPH[c.status].label}:</span>
           </span>
           <span className="text-secondary">
             {c.label}
@@ -63,21 +64,22 @@ export function ScoreBar({ score }: { score: number }) {
 function CardActions({ ctx, refId, officialUrl, kind }: { ctx: ReportCardContext; refId: string; officialUrl: string; kind: "grant" | "program" }) {
   return (
     <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-semibold">
-      <a href={officialUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-action">
+      <a href={officialUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-6 items-center gap-1 text-action">
         Official page <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+        <span className="sr-only">(opens in a new tab)</span>
       </a>
       {ctx.signedIn ? (
         <>
           <a
             href={`/api/funding/calendar.ics?report=${encodeURIComponent(ctx.reportId)}&ref=${encodeURIComponent(refId)}`}
-            className="inline-flex items-center gap-1 text-secondary hover:text-primary"
+            className="inline-flex min-h-6 items-center gap-1 text-secondary hover:text-primary"
             data-ics={refId}
           >
             <CalendarPlus className="h-3.5 w-3.5" aria-hidden /> Add to calendar
           </a>
           <Link
             href={`/workspace/funding?draft=${encodeURIComponent(refId)}&kind=${kind}`}
-            className="inline-flex items-center gap-1 text-secondary hover:text-primary"
+            className="inline-flex min-h-6 items-center gap-1 text-secondary hover:text-primary"
             data-draft={refId}
           >
             <PenLine className="h-3.5 w-3.5" aria-hidden /> Draft application (credits)

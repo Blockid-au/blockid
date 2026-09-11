@@ -183,6 +183,9 @@ export default function UnlocksPage() {
         </p>
         <div className="overflow-x-auto rounded-2xl border border-line-subtle">
           <table className="w-full min-w-[1100px] text-left text-xs" data-testid="unlock-matrix-table">
+            <caption className="sr-only">
+              Table 1 — growth phase by plan: which sidebar groups open on each plan at each phase
+            </caption>
             <thead className="bg-surface-sunken text-[11px] uppercase tracking-wider text-muted">
               <tr>
                 <th scope="col" className="px-3 py-3 font-semibold">
@@ -194,6 +197,10 @@ export default function UnlocksPage() {
                 {columns.map((c) => (
                   <th key={c.id} scope="col" className="px-3 py-3 font-semibold" title={`${c.planName} · ${c.segment}`}>
                     {c.label}
+                    <span className="sr-only">
+                      {" "}
+                      — {c.planName}, {c.segment}
+                    </span>
                   </th>
                 ))}
               </tr>
@@ -246,6 +253,7 @@ export default function UnlocksPage() {
         </p>
         <div className="overflow-x-auto rounded-2xl border border-line-subtle">
           <table className="w-full min-w-[820px] text-left text-sm" data-testid="unlock-rules-table">
+            <caption className="sr-only">Table 2 — exit gate per phase: required evidence, SVI dimension floors and what unlocks next</caption>
             <thead className="bg-surface-sunken text-[11px] uppercase tracking-wider text-muted">
               <tr>
                 <th scope="col" className="px-3 py-3 font-semibold">

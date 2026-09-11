@@ -21,6 +21,7 @@ import * as React from "react";
 import Link from "next/link";
 import { ExternalLink, FileDown, Loader2, X } from "lucide-react";
 import { EvaluatorReportDisclaimer } from "@/components/legal/evaluator-report-disclaimer";
+import { useModalDialog } from "@/hooks/useModalDialog";
 
 export type ReportKind = "full" | "rescore";
 
@@ -228,6 +229,9 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
   const idempotencyKey = React.useRef<string | null>(null);
   if (idempotencyKey.current === null) idempotencyKey.current = newIdempotencyKey();
   const copy = KIND_COPY[kind];
+  // S8-B: focus trap, Escape → onClose, focus returns to the row button.
+  const dialogRef = React.useRef<HTMLDivElement | null>(null);
+  useModalDialog(dialogRef, { onClose, initialFocus: "#report-dialog-title" });
 
   // The parent mounts one dialog per (evaluationId, kind) via `key`, so the
   // initial state already reads "loading, no error" — no reset needed here.
@@ -283,15 +287,17 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="report-dialog-title"
+      aria-describedby="report-dialog-what"
       data-testid="report-dialog"
     >
       <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-surface-200 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-200">
-          <h2 id="report-dialog-title" className="text-lg font-bold text-ink-900">
+          <h2 id="report-dialog-title" tabIndex={-1} className="text-lg font-bold text-ink-900 outline-none">
             {copy.title} — {startupName}
           </h2>
           <button
@@ -300,19 +306,19 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
             aria-label="Close"
             className="h-8 w-8 flex items-center justify-center rounded-lg text-ink-500 hover:text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer"
           >
-            <X strokeWidth={1.75} className="h-4 w-4" />
+            <X strokeWidth={1.75} className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
 
         <div className="px-6 py-5 space-y-4 text-sm text-ink-700">
-          <p>{copy.what}</p>
+          <p id="report-dialog-what">{copy.what}</p>
 
           {/* Cost preview — shown BEFORE the confirm button is enabled */}
-          <div data-testid="report-cost" className="rounded-xl border border-surface-200 bg-surface-50 px-4 py-3">
+          <div data-testid="report-cost" role="status" aria-live="polite" className="rounded-xl border border-surface-200 bg-surface-50 px-4 py-3">
             <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-500">Cost</div>
             {loadingPreview ? (
               <div className="mt-1 flex items-center gap-2 text-ink-600">
-                <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" /> Checking your plan and balance…
+                <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" aria-hidden="true" /> Checking your plan and balance…
               </div>
             ) : preview ? (
               <p className={`mt-1 ${preview.via === "none" ? "text-amber-800" : "text-ink-800"}`}>{describeCost(kind, preview)}</p>
@@ -337,14 +343,15 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
                   >
-                    <ExternalLink className="h-3.5 w-3.5" /> Open report
+                    <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /> Open report
+                    <span className="sr-only">(opens in a new tab)</span>
                   </a>
                   {result.pdf_url ? (
                     <a
                       href={result.pdf_url}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-brand-300 bg-white px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-50"
                     >
-                      <FileDown className="h-3.5 w-3.5" /> Download PDF
+                      <FileDown className="h-3.5 w-3.5" aria-hidden="true" /> Download PDF
                     </a>
                   ) : null}
                 </div>
@@ -381,10 +388,11 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
                 type="button"
                 onClick={handleRun}
                 disabled={!canRun}
+                aria-busy={running}
                 data-testid="report-confirm"
                 className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50"
               >
-                {running && <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" />}
+                {running && <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
                 {running ? (kind === "full" ? "Generating (up to 3 min)…" : "Re-scoring…") : copy.button}
               </button>
             )}

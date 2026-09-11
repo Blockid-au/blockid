@@ -677,6 +677,20 @@ export function NavV2() {
     setMobileOpen(false);
   }, [closeImmediately]);
 
+  // S8-B: Escape closes the mobile sheet and puts focus back on the toggle
+  // (the desktop dropdowns already do this through their own handlers).
+  const mobileToggleRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setMobileOpen(false);
+      mobileToggleRef.current?.focus();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [mobileOpen]);
+
   return (
     <header
       ref={navRef}
@@ -790,6 +804,7 @@ export function NavV2() {
 
         {/* Mobile toggle */}
         <button
+          ref={mobileToggleRef}
           type="button"
           className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-brand-ink xl:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
           aria-expanded={mobileOpen}
@@ -807,9 +822,10 @@ export function NavV2() {
 
       {/* Mobile panel */}
       {mobileOpen && (
-        <div
+        <nav
           id="nav-v2-mobile-menu"
-          className="border-t border-white/5 bg-brand-navy px-4 pb-4 pt-2 xl:hidden"
+          aria-label="Mobile"
+          className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-white/5 bg-brand-navy px-4 pb-4 pt-2 xl:hidden"
         >
           <ul className="flex flex-col gap-1">
             {MENU.map((entry) =>
@@ -884,7 +900,7 @@ export function NavV2() {
               </>
             )}
           </div>
-        </div>
+        </nav>
       )}
     </header>
   );
