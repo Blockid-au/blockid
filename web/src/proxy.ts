@@ -29,6 +29,9 @@ import { getMiddlewareClient } from "@/lib/supabase/server-anon";
  *   2. Per-request Content-Security-Policy with a fresh 128-bit nonce, so
  *      `script-src` can drop `'unsafe-inline'`/`'unsafe-eval'`. Echoed on
  *      `x-nonce` so the root layout can thread it onto inline `<Script>`.
+ *      This is the ONLY CSP the app emits — see buildContentSecurityPolicy()
+ *      (release QA-2 F2: a second static policy in lib/security-headers.ts
+ *      used to be intersected with it and blocked GA4/GTM site-wide).
  *   3. Request-path stamping (`x-pathname`) so Server Components can see
  *      the URL they are rendering — see requestHeadersFor() below.
  *   4. CSRF gate (S9-A) — a cookie-authenticated, non-safe-method request
@@ -37,8 +40,8 @@ import { getMiddlewareClient } from "@/lib/supabase/server-anon";
  *   5. Rate-limit gate on expensive `/api/*` routes → 429 + Retry-After.
  *   6. Supabase SSO session refresh (Master Upgrade Plan §8.9 stage 2).
  *   7. `bid_jur` jurisdiction cookie seeding (CISO spec).
- *   8. Security headers (HSTS, Referrer-Policy, …) on EVERY response,
- *      including 403s and 429s.
+ *   8. Non-CSP security headers (HSTS, Referrer-Policy, …) on EVERY
+ *      response, including 403s and 429s.
  *
  * Deeper jurisdiction triangulation (billing address vs. declared vs. IP)
  * lives in lib/jurisdiction.ts and runs in Node route handlers.
