@@ -416,7 +416,8 @@ export default async function DashboardPage({
   // S18-B — member-aware: the startup record (analyses, account, snapshots,
   // evidence, cap table, criteria) is read under the OWNER's email + project
   // and a member never creates a split svi_accounts row. Credits, share
-  // views, actions and saved sections stay per caller.
+  // views and actions stay per caller; saved report sections are per
+  // analysis (shared by everyone on the project).
   const scope = await getProjectScope("viewer");
   const { projectId, dataEmail, role, canEdit, isMember } = pageScopeKeys(scope, user);
   const activeProject = scope?.project ?? null;
@@ -570,13 +571,17 @@ export default async function DashboardPage({
       }
     }
 
-    // Saved report sections
+    // Saved report sections — keyed on the ANALYSIS only (S18-B review P1).
+    // report_sections is unique per (analysis_id, section_id, depth) and the
+    // analysis is already the owner's (dataEmail), so a section unlocked by
+    // the owner or by any editor is unlocked for everyone on the project —
+    // filtering by the caller's user_id made a member re-buy it and the
+    // upsert then hid it from the owner.
     if (latestAnalysisId) {
       const { data: sectionsData } = await supabase
         .from("report_sections")
         .select("section_id, depth, content, word_count, credits_cost")
         .eq("analysis_id", latestAnalysisId)
-        .eq("user_id", user.id)
         .order("created_at", { ascending: true });
 
       if (sectionsData) {

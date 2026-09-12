@@ -5,7 +5,13 @@
 // all-or-nothing full report with progressive, per-section generation.
 //
 // Body: { sectionId: string, depth: "summary" | "full" }
-// Returns: { ok, sectionId, depth, content, wordCount, creditsCost, balance }
+// Returns: { ok, sectionId, depth, content, wordCount, creditsCost,
+//            credits_spent, alreadyUnlocked, balance }
+//
+// S18-B review P1: a section row is unique per (analysis_id, section_id,
+// depth) and shared by everyone on the project. If it already exists the
+// route returns it with `alreadyUnlocked: true`, `credits_spent: 0` — no AI
+// call, no charge — and never re-stamps `user_id` on the existing row.
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
@@ -95,44 +101,7 @@ export async function POST(request: Request) {
     );
   }
   // depth === "summary" on free/included sections = 0 cost
-
-  if (requiresPayment) {
-    const affordCheck = await canAfford(user.id, featureKey);
-    // canAfford checks FEATURE_COSTS[featureKey] — if the key doesn't exist,
-    // fall back to the section's declared cost for the check.
-    if (FEATURE_COSTS[featureKey] !== undefined) {
-      if (!affordCheck.allowed) {
-        return NextResponse.json(
-          {
-            ok: false,
-            error: "Insufficient credits",
-            balance: affordCheck.balance,
-            cost: affordCheck.cost,
-            sectionId,
-            sectionTitle: sectionDef.title,
-          },
-          { status: 402 },
-        );
-      }
-    } else {
-      // Feature key not in FEATURE_COSTS — use manual balance check
-      const { getBalance } = await import("@/lib/credits");
-      const balance = await getBalance(user.id);
-      if (balance < creditsCost) {
-        return NextResponse.json(
-          {
-            ok: false,
-            error: "Insufficient credits",
-            balance,
-            cost: creditsCost,
-            sectionId,
-            sectionTitle: sectionDef.title,
-          },
-          { status: 402 },
-        );
-      }
-    }
-  }
+  // (affordability is checked at step 4c, after the already-unlocked check)
 
   // ── 4. Gather startup data (same pattern as full-report/route.ts) ────
   const supabase = getSupabaseAdmin();
@@ -174,6 +143,82 @@ export async function POST(request: Request) {
     "id, raw_input, total_svi, analysis_json",
     { callerEmail: user.email },
   );
+
+  // ── 4b. Already unlocked for this analysis? (S18-B review P1) ────────
+  // report_sections is unique per (analysis_id, section_id, depth) — one
+  // unlock per project analysis, shared by owner + members. When the row
+  // already exists (the owner or another editor paid for it) we return it
+  // as-is: no AI call, no charge, and the original purchaser's `user_id`
+  // is never overwritten.
+  if (latestAnalysis?.id) {
+    const { data: existing } = await supabase
+      .from("report_sections")
+      .select("content, word_count, credits_cost, user_id, created_at")
+      .eq("analysis_id", latestAnalysis.id)
+      .eq("section_id", sectionId)
+      .eq("depth", depth)
+      .maybeSingle();
+    if (existing?.content) {
+      const { getBalance } = await import("@/lib/credits");
+      const balance = await getBalance(user.id);
+      return NextResponse.json({
+        ok: true,
+        sectionId,
+        depth,
+        title: sectionDef.title,
+        tier: sectionDef.tier,
+        content: existing.content as string,
+        wordCount: Number(existing.word_count ?? 0),
+        creditsCost: 0,
+        credits_spent: 0,
+        alreadyUnlocked: true,
+        unlockedBySelf: existing.user_id === user.id,
+        balance,
+        creditNote: "Already unlocked for this analysis — no credits charged.",
+        generatedAt: (existing.created_at as string | null) ?? new Date().toISOString(),
+      });
+    }
+  }
+
+  // ── 4c. Affordability — checked AFTER the already-unlocked short-circuit
+  // so an existing section is free even for a caller with no credits. ────
+  if (requiresPayment) {
+    const affordCheck = await canAfford(user.id, featureKey);
+    // canAfford checks FEATURE_COSTS[featureKey] — if the key doesn't exist,
+    // fall back to the section's declared cost for the check.
+    if (FEATURE_COSTS[featureKey] !== undefined) {
+      if (!affordCheck.allowed) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Insufficient credits",
+            balance: affordCheck.balance,
+            cost: affordCheck.cost,
+            sectionId,
+            sectionTitle: sectionDef.title,
+          },
+          { status: 402 },
+        );
+      }
+    } else {
+      // Feature key not in FEATURE_COSTS — use manual balance check
+      const { getBalance } = await import("@/lib/credits");
+      const balance = await getBalance(user.id);
+      if (balance < creditsCost) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Insufficient credits",
+            balance,
+            cost: creditsCost,
+            sectionId,
+            sectionTitle: sectionDef.title,
+          },
+          { status: 402 },
+        );
+      }
+    }
+  }
 
   // Evidence items
   const { data: evidenceItems } = await supabase
@@ -309,6 +354,9 @@ Formatting for visual impact:
     const wordCount = content.split(/\s+/).filter(Boolean).length;
 
     // ── 8. Persist generated section to DB ──────────────────────────────
+    // `ignoreDuplicates` → ON CONFLICT DO NOTHING: step 4b already returned
+    // when the row existed, so this only races a concurrent unlock — and a
+    // race must never flip `user_id` (the purchaser) on the existing row.
     if (latestAnalysis?.id) {
       const validDepth = depth as "summary" | "full";
       await supabase.from("report_sections").upsert(
@@ -322,7 +370,7 @@ Formatting for visual impact:
           credits_cost: creditsCost,
           updated_at: new Date().toISOString(),
         },
-        { onConflict: "analysis_id,section_id,depth" },
+        { onConflict: "analysis_id,section_id,depth", ignoreDuplicates: true },
       );
     }
 
@@ -335,6 +383,8 @@ Formatting for visual impact:
       content,
       wordCount,
       creditsCost,
+      credits_spent: creditsCost,
+      alreadyUnlocked: false,
       balance,
       creditNote: creditChargeNote(scope),
       generatedAt: new Date().toISOString(),

@@ -28,6 +28,11 @@
 //   E. A page that resolves a scope must read its keys through
 //      `scope?.dataEmail` / `scope?.ownerUserId` or `pageScopeKeys()` —
 //      never `findSVIAccountWithFallback(user.email` etc.
+//   F. `report_sections` rows are unique per (analysis_id, section_id,
+//      depth) — one unlock per analysis, shared by the whole project. A
+//      page reading them must never add a `user_id` filter (S18-B review
+//      P1: a member re-bought the owner's section and the upsert hid it
+//      from the owner).
 
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -46,9 +51,9 @@ const LEGACY_PROJECT_ID_ALLOW: Record<string, string> = {
  */
 const CALLER_EMAIL_ALLOW: Record<string, string> = {
   "dashboard/page.tsx":
-    "svi_analyses count for the onboarding redirect is per caller (has this user ever run an analysis); scores + user_actions are the caller's own share links / completed actions. Project record reads use dataEmail.",
+    "svi_analyses count for the onboarding redirect is per caller (has this user ever run an analysis) and only runs for a non-member; scores + user_actions are the caller's own share links / completed actions. Project record reads use dataEmail; report_sections are keyed on the owner's analysis only (never on the caller — S18-B review P1).",
   "dashboard/svi/page.tsx":
-    "scores + user_actions are the caller's own share links / completed actions. Project record reads use dataEmail.",
+    "scores + user_actions are the caller's own share links / completed actions. Project record reads use dataEmail; report_sections are keyed on the owner's analysis only (never on the caller — S18-B review P1).",
 };
 
 const LEGACY_PROJECT_ID = /\b(getProjectIdFromRequest|getActiveProjectIdOrNull)\s*\(/;
@@ -64,6 +69,9 @@ const FOUNDER_FEATURE_READERS =
 const FOUNDER_FEATURES_IMPORT = /from\s+["']@\/lib\/founder-features["']/;
 const PROJECT_RECORD_TABLE =
   /\.from\(\s*["'](svi_analyses|svi_accounts|startup_metrics|svi_snapshots|svi_evidence)["']\s*\)/;
+const REPORT_SECTIONS_READ = /\.from\(\s*["']report_sections["']\s*\)/;
+const REPORT_SECTIONS_USER_FILTER =
+  /\.from\(\s*["']report_sections["']\s*\)[\s\S]{0,400}?\.eq\(\s*["']user_id["']/;
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
@@ -143,6 +151,20 @@ describe("S18-B pages scope guard — src/app/(app)/(founder)/**/page.tsx", () =
       )
       .map((p) => p.path);
     expect(offenders, "call getProjectScope(\"viewer\") before deriving keys").toEqual([]);
+  });
+
+  it("F. report_sections are read per analysis, never filtered by the caller's user_id (review P1)", () => {
+    const readers = pages.filter((p) => REPORT_SECTIONS_READ.test(p.src)).map((p) => p.path);
+    expect(readers, "the three section readers still exist").toEqual(
+      expect.arrayContaining(["dashboard/page.tsx", "dashboard/svi/page.tsx", "workspace/reports/[id]/page.tsx"]),
+    );
+    const offenders = pages
+      .filter((p) => REPORT_SECTIONS_USER_FILTER.test(p.src))
+      .map((p) => p.path);
+    expect(
+      offenders,
+      "report_sections are unique per (analysis_id, section_id, depth) — key the read on the owner's analysis only",
+    ).toEqual([]);
   });
 
   it("allow-lists only name pages that exist and still match the pattern they excuse (no stale entries)", () => {
