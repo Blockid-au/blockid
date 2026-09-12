@@ -5,9 +5,10 @@
  * co-founder / team member, see the current roster, and revoke access.
  *
  * Server component fetches the roster via the same helpers the API route
- * uses (assertProjectOwner + listMembers). If the caller isn't the owner
- * we notFound() — matches the sibling /analyze surface's zero-info
- * disclosure model.
+ * uses (assertProjectOwner + listMembers). A non-member gets notFound()
+ * (zero-info disclosure); an accepted editor/viewer is already on the
+ * project, so they get the page shell with a "view only" note and no
+ * roster (S18-B) instead of a 404.
  */
 
 import type { Metadata } from "next";
@@ -16,8 +17,10 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { getActiveProject, getCurrentProjectIsSandbox, roleCanAdmin } from "@/lib/projects";
+import type { ProjectRole } from "@/lib/projects";
 import { listMembers } from "@/lib/project-members/scope";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
+import { ViewOnlyNote } from "@/components/workspace/view-only-note";
 import { ProjectMembersClient } from "./project-members-client";
 
 export const dynamic = "force-dynamic";
@@ -47,13 +50,13 @@ export default async function ProjectMembersPage({ params }: PageProps) {
   if (!project) notFound();
 
   // Admin surface — owner or an accepted admin member (the same rule the
-  // /members API enforces). Editors/viewers collapse to notFound() so the
-  // page never confirms what they cannot manage.
-  if (!roleCanAdmin(project.role ?? (project.userId === user.id ? "owner" : "viewer"))) {
-    notFound();
-  }
+  // /members API enforces). Editors/viewers are members already, so they
+  // get the shell + a "view only" note (S18-B) rather than a 404; the
+  // roster itself stays admin-only (the /members API would refuse it).
+  const role: ProjectRole = project.role ?? (project.userId === user.id ? "owner" : "viewer");
+  const canAdmin = roleCanAdmin(role);
 
-  const members = await listMembers(project.id);
+  const members = canAdmin ? await listMembers(project.id) : [];
   const isSandbox = await getCurrentProjectIsSandbox();
 
   return (
@@ -93,10 +96,14 @@ export default async function ProjectMembersPage({ params }: PageProps) {
           </p>
         </header>
 
-        <ProjectMembersClient
-          projectId={project.id}
-          initialMembers={members}
-        />
+        {canAdmin ? (
+          <ProjectMembersClient
+            projectId={project.id}
+            initialMembers={members}
+          />
+        ) : (
+          <ViewOnlyNote role={role} action="invite or remove members" />
+        )}
       </div>
     </WorkspaceLayout>
   );

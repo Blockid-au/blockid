@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest, findOrCreateSVIAccount, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getProjectScope, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { pageScopeKeys, resolveSVIAccountIdForPage } from "@/lib/project-members/page-scope";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { BarChart3 } from "lucide-react";
 import { ReportsClient, type SnapshotRow } from "./reports-client";
@@ -101,10 +102,13 @@ export default async function ReportsPage() {
   let gaps: string[] = [];
   let latestAISummary: string | null = null;
 
+  // S18-B — member-aware: snapshots + analyses are read off the OWNER's
+  // record; the archive (investor packs a caller minted) stays per caller.
+  const scope = await getProjectScope("viewer");
+  const { projectId, dataEmail } = pageScopeKeys(scope, user);
+
   if (sb) {
-    // Resolve active project
-    const projectId = await getProjectIdFromRequest();
-    const accountId = await findOrCreateSVIAccount(user.email, projectId);
+    const accountId = await resolveSVIAccountIdForPage(scope, user);
 
     if (accountId) {
       const { data: account } = await sb
@@ -142,7 +146,7 @@ export default async function ReportsPage() {
         const analysisQuery = sb
           .from("svi_analyses")
           .select("analysis_json")
-          .eq("email", user.email);
+          .eq("email", dataEmail);
         if (projectId) analysisQuery.eq("project_id", projectId);
         else analysisQuery.is("project_id", null);
 

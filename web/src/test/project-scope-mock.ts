@@ -103,6 +103,13 @@ export function buildScope(state: ScopeState, minRole?: string) {
 export function projectsMock(state: ScopeState) {
   return {
     getProjectScope: async (minRole?: string) => buildScope(state, minRole),
+    // S18-B — server pages: the sandbox banner probe and the slug-addressed
+    // project lookup (members / analyze pages) resolve off the same state.
+    getCurrentProjectIsSandbox: async () => false,
+    getActiveProject: async () => {
+      const scope = buildScope(state);
+      return scope ? scope.project : null;
+    },
     assertProjectScope: async (
       _user: { id: string; email: string },
       projectId: string,

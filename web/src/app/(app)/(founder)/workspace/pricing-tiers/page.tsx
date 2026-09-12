@@ -4,9 +4,11 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getCurrentProjectIsSandbox, getProjectScope } from "@/lib/projects";
+import { pageScopeKeys } from "@/lib/project-members/page-scope";
+import { ViewOnlyNote } from "@/components/workspace/view-only-note";
 import { getPlatformConfig } from "@/lib/platform-config";
-import { listPricingTiers, getActiveProjectIdOrNull } from "@/lib/founder-features";
+import { listPricingTiers, founderFeatureScope } from "@/lib/founder-features";
 import { PricingTiersClient } from "./pricing-tiers-client";
 
 export const metadata: Metadata = {
@@ -22,12 +24,15 @@ export default async function Page() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/pricing-tiers");
 
-  const [isSandbox, projectId, cfg] = await Promise.all([
+  // S18-B — member-aware: a shared-project member reads the OWNER's rows
+  // (the key /api/founder/* writes under); a viewer gets a read-only form.
+  const [isSandbox, scope, cfg] = await Promise.all([
     getCurrentProjectIsSandbox(),
-    getActiveProjectIdOrNull(),
+    getProjectScope("viewer"),
     getPlatformConfig(),
   ]);
-  const tiers = await listPricingTiers(user, projectId);
+  const { projectId, role, canEdit, isMember } = pageScopeKeys(scope, user);
+  const tiers = await listPricingTiers(founderFeatureScope(scope, user));
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
@@ -45,8 +50,9 @@ export default async function Page() {
             Create or select a startup first — pricing tiers are stored per startup.
           </div>
         )}
+        {isMember && !canEdit && <ViewOnlyNote role={role} action="edit pricing tiers" />}
 
-        <PricingTiersClient initial={tiers} disabled={!projectId} />
+        <PricingTiersClient initial={tiers} disabled={!projectId || !canEdit} />
       </div>
     </WorkspaceLayout>
   );

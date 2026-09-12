@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest, findOrCreateSVIAccount, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getProjectScope, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { pageScopeKeys, resolveSVIAccountIdForPage } from "@/lib/project-members/page-scope";
+import { ViewOnlyNote } from "@/components/workspace/view-only-note";
 import Link from "next/link";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { EvidenceVaultClient } from "@/components/svi/evidence-vault-client";
@@ -39,10 +41,15 @@ export default async function EvidencePage() {
   let evidenceGaps: SVIEvidenceGap[] = [];
   let currentSVI: number | null = null;
 
+  // S18-B — member-aware: evidence lives under the OWNER's svi_account; a
+  // member only reads it (never creates a split account row). Viewers get
+  // a list-only vault.
+  const scope = await getProjectScope("viewer");
+  const { projectId, dataEmail, role, canEdit, isMember } = pageScopeKeys(scope, user);
+
   const supabase = getSupabaseAdmin();
   if (supabase) {
-    const projectId = await getProjectIdFromRequest();
-    const accountId = await findOrCreateSVIAccount(user.email, projectId);
+    const accountId = await resolveSVIAccountIdForPage(scope, user);
 
     if (accountId) {
       const { data: accountRow } = await supabase
@@ -65,12 +72,11 @@ export default async function EvidencePage() {
     }
 
     // Load latest SVI analysis to get evidence gaps (project-scoped)
-    const projectId2 = await getProjectIdFromRequest();
     const analysisQuery = supabase
       .from("svi_analyses")
       .select("analysis_json")
-      .eq("email", user.email);
-    if (projectId2) analysisQuery.eq("project_id", projectId2);
+      .eq("email", dataEmail);
+    if (projectId) analysisQuery.eq("project_id", projectId);
     else analysisQuery.is("project_id", null);
 
     const { data: latestAnalysis } = await analysisQuery
@@ -131,11 +137,15 @@ export default async function EvidencePage() {
           </Link>
         </div>
 
+        {isMember && !canEdit && (
+          <ViewOnlyNote role={role} action="add or connect evidence" />
+        )}
         <EvidenceVaultClient
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           initialEvidence={evidence as any}
           evidenceGaps={evidenceGaps}
           currentSVI={currentSVI}
+          readOnly={!canEdit}
         />
         <div>
           <h2 className="text-lg font-semibold text-ink-800 mb-3">Cap Table Health</h2>

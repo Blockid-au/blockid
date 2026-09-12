@@ -41,6 +41,8 @@ interface EvidenceVaultClientProps {
   initialEvidence: EvidenceItem[];
   evidenceGaps?: EvidenceGap[];
   currentSVI?: number | null;
+  /** S18-B — viewer on a shared project: list only, no add / connect / disconnect. */
+  readOnly?: boolean;
 }
 
 const CONFIDENCE_LABELS: Record<string, { label: string; color: string }> = {
@@ -89,7 +91,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   analytics: "Google Analytics",
 };
 
-export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI }: EvidenceVaultClientProps) {
+export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI, readOnly = false }: EvidenceVaultClientProps) {
   const [evidence, setEvidence] = React.useState<EvidenceItem[]>(initialEvidence);
   const [showWizard, setShowWizard] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
@@ -235,37 +237,43 @@ export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI 
             Upload and manage your startup evidence to lift your SVI.
           </p>
         </div>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => setShowWizard(true)}
-        >
-          <Plus strokeWidth={1.75} className="h-4 w-4" />
-          Add Evidence
-        </Button>
+        {!readOnly && (
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setShowWizard(true)}
+          >
+            <Plus strokeWidth={1.75} className="h-4 w-4" />
+            Add Evidence
+          </Button>
+        )}
       </div>
 
       {/* Connect buttons — quick access to OAuth/URL connectors */}
-      <ConnectButtons
-        evidence={evidence}
-        onEvidenceAdded={() => {
-          void refreshEvidence();
-          void triggerRescore();
-        }}
-        onOpenWizard={() => setShowWizard(true)}
-      />
-
-      {/* Bank statement CSV import */}
-      <div className="mb-6">
-        <h2 className="text-sm font-semibold text-ink-800 mb-1">Import Bank Statement</h2>
-        <p className="text-xs text-ink-500 mb-3">Auto-extract burn rate and cash flow from your AU bank CSV export.</p>
-        <BankStatementImport
-          onImported={() => {
+      {!readOnly && (
+        <ConnectButtons
+          evidence={evidence}
+          onEvidenceAdded={() => {
             void refreshEvidence();
             void triggerRescore();
           }}
+          onOpenWizard={() => setShowWizard(true)}
         />
-      </div>
+      )}
+
+      {/* Bank statement CSV import */}
+      {!readOnly && (
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-ink-800 mb-1">Import Bank Statement</h2>
+          <p className="text-xs text-ink-500 mb-3">Auto-extract burn rate and cash flow from your AU bank CSV export.</p>
+          <BankStatementImport
+            onImported={() => {
+              void refreshEvidence();
+              void triggerRescore();
+            }}
+          />
+        </div>
+      )}
 
       {/* Evidence Gaps — What to add next */}
       {evidenceGaps && evidenceGaps.length > 0 && (
@@ -287,7 +295,7 @@ export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI 
                 <button
                   key={gap.label}
                   type="button"
-                  onClick={() => setShowWizard(true)}
+                  onClick={() => !readOnly && setShowWizard(true)}
                   className={`w-full text-left rounded-xl border ${config.border} ${config.bg} px-4 py-3 transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer`}
                 >
                   <div className="flex items-start gap-3">
@@ -373,7 +381,7 @@ export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI 
                   </div>
 
                   {/* Disconnect button for OAuth-connected sources */}
-                  {item.confidence_level === "connected_source" && ["github", "linkedin", "stripe", "analytics"].includes(item.evidence_type) && (
+                  {!readOnly && item.confidence_level === "connected_source" && ["github", "linkedin", "stripe", "analytics"].includes(item.evidence_type) && (
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); void handleDisconnect(item.evidence_type); }}
@@ -453,7 +461,7 @@ export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI 
         </div>
       )}
 
-      {showWizard && (
+      {showWizard && !readOnly && (
         <EvidenceWizard
           onClose={() => setShowWizard(false)}
           onSuccess={handleWizardSuccess}

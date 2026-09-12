@@ -7,7 +7,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getCurrentProjectIsSandbox, getProjectIdFromRequest } from "@/lib/projects";
+import { getCurrentProjectIsSandbox, getProjectScope } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { SviTrendClient } from "./svi-trend-client";
 
@@ -23,7 +23,9 @@ export default async function SviTrendPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/svi-trend");
   const isSandbox = await getCurrentProjectIsSandbox();
-  const projectId = await getProjectIdFromRequest();
+  // S18-B — member-aware project resolution (viewer+).
+  const scope = await getProjectScope("viewer");
+  const projectId = scope?.projectId ?? null;
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <SviTrendClient projectId={projectId ?? "default"} />

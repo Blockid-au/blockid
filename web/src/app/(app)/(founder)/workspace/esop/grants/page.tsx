@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getProjectIdFromRequest, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getProjectScope, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { pageScopeKeys } from "@/lib/project-members/page-scope";
+import { ViewOnlyNote } from "@/components/workspace/view-only-note";
 import { listGrants } from "@/lib/esop-grants";
 import { DIV83A_DISCLAIMER } from "@/lib/div83a-checker";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
@@ -22,15 +24,22 @@ export default async function EsopGrantsPage() {
 
   const isSandbox = await getCurrentProjectIsSandbox();
 
-  const projectId = await getProjectIdFromRequest();
-  const grants = await listGrants(user.id, projectId);
+  // S18-B — member-aware: grants are keyed on the OWNER's id + project
+  // (same key /api/esop/grants uses); viewers get a read-only table.
+  const scope = await getProjectScope("viewer");
+  const { projectId, ownerUserId, role, canEdit, isMember } = pageScopeKeys(scope, user);
+  const grants = await listGrants(ownerUserId, projectId);
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-6xl mx-auto">
+        {isMember && !canEdit && (
+          <ViewOnlyNote role={role} action="create or update option grants" className="mb-4" />
+        )}
         <GrantsClient
           initialGrants={grants}
           disclaimer={DIV83A_DISCLAIMER}
+          readOnly={!canEdit}
         />
       </div>
     </WorkspaceLayout>

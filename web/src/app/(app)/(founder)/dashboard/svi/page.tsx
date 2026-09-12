@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest, findOrCreateSVIAccount, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getProjectScope, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { pageScopeKeys, resolveSVIAccountIdForPage } from "@/lib/project-members/page-scope";
+import { ViewOnlyNote } from "@/components/workspace/view-only-note";
 import { getBalance } from "@/lib/credits";
 import { Lightbulb, Target, Sparkles } from "lucide-react";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
@@ -94,15 +96,19 @@ export default async function SVIDashboardPage() {
     valuation_multiplier_boost: number;
   } | null = null;
 
-  if (supabase) {
-    // Resolve the active project for this user
-    const projectId = await getProjectIdFromRequest();
+  // S18-B — member-aware: the startup record (analyses, account, snapshots,
+  // evidence) is read under the OWNER's email + project; a member never
+  // creates a split svi_accounts row. Share views / actions / credits /
+  // saved sections stay per caller.
+  const scope = await getProjectScope("viewer");
+  const { projectId, dataEmail, role, canEdit, isMember } = pageScopeKeys(scope, user);
 
+  if (supabase) {
     // ── Load latest SVI analysis ─────────────────────────────────────────
     const analysisQuery = supabase
       .from("svi_analyses")
       .select("id, analysis_json, total_svi, created_at, raw_input")
-      .eq("email", user.email);
+      .eq("email", dataEmail);
     if (projectId) analysisQuery.eq("project_id", projectId);
     else analysisQuery.is("project_id", null);
 
@@ -122,7 +128,7 @@ export default async function SVIDashboardPage() {
     const historyQuery = supabase
       .from("svi_analyses")
       .select("total_svi, created_at")
-      .eq("email", user.email);
+      .eq("email", dataEmail);
     if (projectId) historyQuery.eq("project_id", projectId);
     else historyQuery.is("project_id", null);
 
@@ -144,7 +150,7 @@ export default async function SVIDashboardPage() {
     const reportsQuery = supabase
       .from("svi_analyses")
       .select("id, total_svi, created_at, input_type, raw_input")
-      .eq("email", user.email);
+      .eq("email", dataEmail);
     if (projectId) reportsQuery.eq("project_id", projectId);
     else reportsQuery.is("project_id", null);
 
@@ -162,8 +168,8 @@ export default async function SVIDashboardPage() {
       }));
     }
 
-    // ── Load or create SVI account (project-scoped) ──────────────────────
-    const accountId = await findOrCreateSVIAccount(user.email, projectId);
+    // ── Load (owner: or create) SVI account (project-scoped) ─────────────
+    const accountId = await resolveSVIAccountIdForPage(scope, user);
 
     let account: {
       id: string;
@@ -334,6 +340,9 @@ export default async function SVIDashboardPage() {
   return (
     <WorkspaceLayout user={user} startupName={startupName} isSandbox={isSandbox}>
       <div className="max-w-5xl mx-auto px-6 pb-24 pt-6 space-y-6">
+        {isMember && !canEdit && (
+          <ViewOnlyNote role={role} action="run analyses or unlock report sections" />
+        )}
         {/* ── Headline SVI gauge — the "score at a glance" viz called out in
             the UI audit. Score comes off analysisWithDelta.totalSVI. ── */}
         <div className="flex justify-center">
@@ -390,6 +399,7 @@ export default async function SVIDashboardPage() {
           snapshotHistory={snapshotHistory}
           startupName={startupName}
           userEmail={user.email}
+          readOnly={!canEdit}
           creditBalance={creditBalance}
           evidenceCount={evidenceCount}
           shareViews={shareViews}

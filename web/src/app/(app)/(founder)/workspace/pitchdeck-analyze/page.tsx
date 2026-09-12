@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getCurrentProjectIsSandbox, getProjectIdFromRequest } from "@/lib/projects";
+import { getCurrentProjectIsSandbox, getProjectScope } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { PitchdeckAnalyzeClient } from "./pitchdeck-analyze-client";
 
@@ -16,10 +16,13 @@ export const dynamic = "force-dynamic";
 export default async function PitchdeckAnalyzePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/pitchdeck-analyze");
-  const [isSandbox, projectId] = await Promise.all([
+  // S18-B — member-aware project resolution (viewer+); the analysis API
+  // enforces editor for the upload/analyse writes.
+  const [isSandbox, scope] = await Promise.all([
     getCurrentProjectIsSandbox(),
-    getProjectIdFromRequest(),
+    getProjectScope("viewer"),
   ]);
+  const projectId = scope?.projectId ?? null;
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-5xl mx-auto">

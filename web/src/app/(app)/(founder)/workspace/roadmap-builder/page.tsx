@@ -4,11 +4,13 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getCurrentProjectIsSandbox, getProjectScope } from "@/lib/projects";
+import { pageScopeKeys } from "@/lib/project-members/page-scope";
+import { ViewOnlyNote } from "@/components/workspace/view-only-note";
 import { getPlatformConfig } from "@/lib/platform-config";
 import {
   listRoadmapMilestones,
-  getActiveProjectIdOrNull,
+  founderFeatureScope,
   nextQuarters,
 } from "@/lib/founder-features";
 import { RoadmapBuilderClient } from "./roadmap-builder-client";
@@ -27,12 +29,15 @@ export default async function Page() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/roadmap-builder");
 
-  const [isSandbox, projectId, cfg] = await Promise.all([
+  // S18-B — member-aware: a shared-project member reads the OWNER's rows
+  // (the key /api/founder/* writes under); a viewer gets a read-only form.
+  const [isSandbox, scope, cfg] = await Promise.all([
     getCurrentProjectIsSandbox(),
-    getActiveProjectIdOrNull(),
+    getProjectScope("viewer"),
     getPlatformConfig(),
   ]);
-  const milestones = await listRoadmapMilestones(user, projectId);
+  const { projectId, role, canEdit, isMember } = pageScopeKeys(scope, user);
+  const milestones = await listRoadmapMilestones(founderFeatureScope(scope, user));
   const quarters = nextQuarters(cfg.founder_features_copy.roadmap_quarters_ahead);
 
   return (
@@ -53,11 +58,12 @@ export default async function Page() {
             Create or select a startup first — milestones are stored per startup.
           </div>
         )}
+        {isMember && !canEdit && <ViewOnlyNote role={role} action="edit milestones" />}
 
         <RoadmapBuilderClient
           initial={milestones}
           quarters={quarters}
-          disabled={!projectId}
+          disabled={!projectId || !canEdit}
         />
 
         <ConferenceRecommender />

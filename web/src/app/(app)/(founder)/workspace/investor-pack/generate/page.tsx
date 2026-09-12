@@ -8,7 +8,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getProjectIdFromRequest, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getProjectScope, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { pageScopeKeys } from "@/lib/project-members/page-scope";
 import { assemblePackData } from "@/lib/investor-pack-assembler";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { InvestorPackGenerateClient } from "./generate-client";
@@ -30,8 +31,11 @@ export default async function InvestorPackGeneratePage() {
 
   const isSandbox = await getCurrentProjectIsSandbox();
 
-  const projectId = await getProjectIdFromRequest();
-  const data = await assemblePackData(user.id, projectId);
+  // S18-B — member-aware: assembled from the OWNER's records (the same key
+  // /api/investor-pack/generate uses); generation is caller-paid, viewer+.
+  const scope = await getProjectScope("viewer");
+  const { projectId, ownerUserId } = pageScopeKeys(scope, user);
+  const data = await assemblePackData(ownerUserId, projectId);
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>

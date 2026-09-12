@@ -19,7 +19,9 @@ import {
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { getCurrentUser } from "@/lib/auth";
 import { getBalance } from "@/lib/credits";
-import { getProjectIdFromRequest, getActiveProject, findOrCreateSVIAccount, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getProjectScope, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { pageScopeKeys, resolveSVIAccountIdForPage } from "@/lib/project-members/page-scope";
+import { ViewOnlyNote } from "@/components/workspace/view-only-note";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { OnboardingWelcomeModal } from "@/components/dashboard/onboarding-welcome-modal";
@@ -411,13 +413,14 @@ export default async function DashboardPage({
   }
 
   // ── Fetch data in parallel where possible ────────────────────────────────
-  const projectId = await getProjectIdFromRequest();
-  const [activeProject, creditBalance] = await Promise.all([
-    projectId
-      ? getActiveProject(user.id, undefined).then((p) => p)
-      : getActiveProject(user.id),
-    getBalance(user.id),
-  ]);
+  // S18-B — member-aware: the startup record (analyses, account, snapshots,
+  // evidence, cap table, criteria) is read under the OWNER's email + project
+  // and a member never creates a split svi_accounts row. Credits, share
+  // views, actions and saved sections stay per caller.
+  const scope = await getProjectScope("viewer");
+  const { projectId, dataEmail, role, canEdit, isMember } = pageScopeKeys(scope, user);
+  const activeProject = scope?.project ?? null;
+  const creditBalance = await getBalance(user.id);
 
   // ── Load latest SVI analysis ─────────────────────────────────────────────
   let analysis: SVIAnalysis | null = null;
@@ -470,7 +473,7 @@ export default async function DashboardPage({
     const analysisQuery = supabase
       .from("svi_analyses")
       .select("id, analysis_json, total_svi, created_at, raw_input")
-      .eq("email", user.email);
+      .eq("email", dataEmail);
     if (projectId) analysisQuery.eq("project_id", projectId);
     else analysisQuery.is("project_id", null);
 
@@ -489,7 +492,7 @@ export default async function DashboardPage({
     const historyQuery = supabase
       .from("svi_analyses")
       .select("total_svi, created_at")
-      .eq("email", user.email);
+      .eq("email", dataEmail);
     if (projectId) historyQuery.eq("project_id", projectId);
     else historyQuery.is("project_id", null);
 
@@ -511,7 +514,7 @@ export default async function DashboardPage({
     const reportsQuery = supabase
       .from("svi_analyses")
       .select("id, total_svi, created_at, input_type, raw_input")
-      .eq("email", user.email);
+      .eq("email", dataEmail);
     if (projectId) reportsQuery.eq("project_id", projectId);
     else reportsQuery.is("project_id", null);
 
@@ -529,8 +532,8 @@ export default async function DashboardPage({
       }));
     }
 
-    // SVI account data
-    const accountId = await findOrCreateSVIAccount(user.email, projectId);
+    // SVI account data (owner: find-or-create; member: read-only)
+    const accountId = await resolveSVIAccountIdForPage(scope, user);
     if (accountId) {
       const { data: account } = await supabase
         .from("svi_accounts")
@@ -783,6 +786,10 @@ export default async function DashboardPage({
       <div className="max-w-5xl mx-auto px-6 pb-24 pt-6 space-y-6">
         {/* ── Role hero + guided tour launcher (role-based-2026-07-25) ──── */}
         <RoleLandingIntro role="founder" variant="compact" hasGlobalSpotlight />
+
+        {isMember && !canEdit && (
+          <ViewOnlyNote role={role} action="run analyses, upload evidence or unlock report sections" />
+        )}
 
         {/* ── Banners ───────────────────────────────────────────────────────── */}
         {sp.checkout === "success" && (
@@ -1169,6 +1176,7 @@ export default async function DashboardPage({
             snapshotHistory={snapshotHistory}
             startupName={startupName}
             userEmail={user.email}
+            readOnly={!canEdit}
             creditBalance={creditBalance}
             evidenceCount={evidenceCount}
             shareViews={shareViews}

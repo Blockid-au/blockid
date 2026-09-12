@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { getCurrentProjectIsSandbox, getProjectIdFromRequest } from "@/lib/projects";
+import { getCurrentProjectIsSandbox, getProjectScope } from "@/lib/projects";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import {
   compareTrendAcross12Weeks,
@@ -85,7 +85,9 @@ export default async function CLevelReportsPage() {
   if (!user) redirect("/auth/login?next=/dashboard/c-level-reports");
 
   const isSandbox = await getCurrentProjectIsSandbox();
-  const projectId = await getProjectIdFromRequest();
+  // S18-B — member-aware (viewer+): reports are keyed on project_id only.
+  const scope = await getProjectScope("viewer");
+  const projectId = scope?.projectId ?? null;
 
   const cards = await Promise.all(
     ROLES.map(async (cfg) => {
