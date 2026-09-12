@@ -2,9 +2,9 @@ import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // S18-B render test for /dashboard/integrations. Pins: a member reads the
-// OWNER's integration evidence (read-only account lookup, no insert); the
-// connect forms (OAuth callbacks are admin+) render for owner + admin only,
-// editors/viewers see the status + view-only note.
+// OWNER's integration evidence (read-only account lookup, no insert); OAuth
+// linking (callbacks are admin+) renders for owner + admin only; the manual
+// GitHub form (editor+) also renders for editors; viewers see status only.
 
 const scopeState = vi.hoisted(async () => {
   const { makeScopeState } = await import("@/test/project-scope-mock");
@@ -31,7 +31,9 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/github", () => ({ isGitHubOAuthConfigured: () => true }));
 vi.mock("@/lib/google-analytics-oauth", () => ({ isGoogleAnalyticsOAuthConfigured: () => true }));
 vi.mock("@/components/dashboard/github-connect-form", () => ({
-  GitHubConnectForm: (p: { initialRepo: string | null }) => <div data-gh-form data-repo={String(p.initialRepo)} />,
+  GitHubConnectForm: (p: { initialRepo: string | null; oauthEnabled: boolean }) => (
+    <div data-gh-form data-repo={String(p.initialRepo)} data-oauth={String(p.oauthEnabled)} />
+  ),
 }));
 
 import { fakeSupabase, type FakeSupabase } from "@/test/fake-supabase";
@@ -56,10 +58,11 @@ beforeEach(() => {
 });
 
 describe("/dashboard/integrations (S18-B)", () => {
-  it("owner: own account, GitHub form + GA connect rendered", async () => {
+  it("owner: own account, GitHub form (OAuth on) + GA connect rendered", async () => {
     const out = await html();
     expect(keyCalls(state, "findOrCreateSVIAccount")).toHaveLength(1);
     expect(out).toContain("data-gh-form");
+    expect(dataAttr(out, "oauth")).toBe("true");
     expect(dataAttr(out, "repo")).toBe("https://github.com/acme/app");
     expect(out).toContain("/api/integrations/google-analytics/start");
     expect(out).not.toContain("viewer-readonly-note");
@@ -75,17 +78,24 @@ describe("/dashboard/integrations (S18-B)", () => {
     expect(out).not.toContain("viewer-readonly-note");
   });
 
-  it("member (editor / viewer): status only — no connect form, view-only note", async () => {
-    for (const role of ["editor", "viewer"] as const) {
-      state.role = role;
-      state.calls.length = 0;
-      const out = await html();
-      expect(keyCalls(state, "findOrCreateSVIAccount"), role).toEqual([]);
-      expect(out, role).not.toContain("data-gh-form");
-      expect(out, role).not.toContain("/api/integrations/google-analytics/start");
-      expect(out, role).toContain("Connected · https://github.com/acme/app");
-      expect(out, role).toContain('data-testid="viewer-readonly-note"');
-    }
+  it("member (editor): manual GitHub form without OAuth, no GA link, admin-only note", async () => {
+    state.role = "editor";
+    const out = await html();
+    expect(keyCalls(state, "findOrCreateSVIAccount")).toEqual([]);
+    expect(out).toContain("data-gh-form");
+    expect(dataAttr(out, "oauth")).toBe("false");
+    expect(out).not.toContain("/api/integrations/google-analytics/start");
+    expect(out).toContain("admin only");
+  });
+
+  it("member (viewer): status only — no connect form, no GA link, view-only note", async () => {
+    state.role = "viewer";
+    const out = await html();
+    expect(keyCalls(state, "findOrCreateSVIAccount")).toEqual([]);
+    expect(out).not.toContain("data-gh-form");
+    expect(out).not.toContain("/api/integrations/google-analytics/start");
+    expect(out).toContain("Connected · https://github.com/acme/app");
+    expect(out).toContain('data-testid="viewer-readonly-note"');
   });
 
   it("member whose owner has no account: nothing connected, no insert", async () => {

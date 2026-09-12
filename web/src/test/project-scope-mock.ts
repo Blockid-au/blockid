@@ -106,7 +106,7 @@ export function projectsMock(state: ScopeState) {
     // S18-B — server pages: the sandbox banner probe and the slug-addressed
     // project lookup (members / analyze pages) resolve off the same state.
     getCurrentProjectIsSandbox: async () => false,
-    getActiveProject: async (_userId: string, _slug?: string) => {
+    getActiveProject: async () => {
       const scope = buildScope(state);
       return scope ? scope.project : null;
     },

@@ -33,11 +33,13 @@ export default async function IntegrationsPage({
   let existingRepoUrl: string | null = null;
   let existingGaSummary: string | null = null;
   // S18-B — member-aware: integration evidence lives under the OWNER's
-  // svi_account (read-only for members); connecting a source is admin+
-  // (OAuth callbacks) so non-admin members see the status only.
+  // svi_account (read-only for members). Linking an OAuth source is admin+
+  // (every callback gates "admin"); the manual GitHub repo form is editor+
+  // (/api/integrations/github/manual). Viewers see the status only.
   const scope = await getProjectScope("viewer");
-  const { role, isMember } = pageScopeKeys(scope, user);
-  const canConnect = !isMember || role === "admin";
+  const { role, canEdit, isMember } = pageScopeKeys(scope, user);
+  const canOAuth = !isMember || role === "admin";
+  const canConnect = canEdit;
 
   const supabase = getSupabaseAdmin();
   if (supabase) {
@@ -112,7 +114,7 @@ export default async function IntegrationsPage({
         )}
         {canConnect ? (
           <GitHubConnectForm
-            oauthEnabled={isGitHubOAuthConfigured()}
+            oauthEnabled={canOAuth && isGitHubOAuthConfigured()}
             initialRepo={existingRepoUrl}
           />
         ) : (
@@ -143,7 +145,11 @@ export default async function IntegrationsPage({
           )}
 
           <div className="mt-4">
-            {!canConnect ? null : isGoogleAnalyticsOAuthConfigured() ? (
+            {!canOAuth ? (
+              isMember && canEdit && (
+                <ViewOnlyNote role={role} action="link Google Analytics (admin only)" />
+              )
+            ) : isGoogleAnalyticsOAuthConfigured() ? (
               <a
                 href="/api/integrations/google-analytics/start"
                 className="inline-flex items-center gap-2 rounded-lg bg-ink-900 px-4 py-2 text-sm font-medium text-white hover:bg-ink-800"
