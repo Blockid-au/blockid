@@ -19,6 +19,8 @@ export default defineConfig({
       "tests/chrome/**/*.test.ts",
       "scripts/docs/**/*.test.ts",
       "scripts/codemods/**/*.test.mjs",
+      // S23-B: CLI wrappers colocated with their script (scripts/<name>.test.mjs).
+      "scripts/*.test.mjs",
       "../scripts/**/*.test.mjs",
     ],
     exclude: ["**/node_modules/**", "**/.next/**"],
