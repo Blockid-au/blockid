@@ -427,3 +427,53 @@ describe("apiRoute — thrown redirect()/notFound() (P2-2)", () => {
     expect(records[0].detail).toMatchObject({ status: 500, threw: true });
   });
 });
+
+// ---------------------------------------------------------------------------
+// S20-A review P2-6 — auditNote(entityId) goes through isIdLike
+// ---------------------------------------------------------------------------
+
+describe("auditNote(entityId) is id-gated (P2-6)", () => {
+  async function noteThen(entityId: string | null | undefined, params?: Record<string, string>) {
+    records = [];
+    const POST = apiRoute({ route: "api/x/[id]/route.ts", method: "POST" }, async () => {
+      auditNote(entityId);
+      return NextResponse.json({ ok: true });
+    });
+    await POST(req(), params ? { params: Promise.resolve(params) } : undefined);
+    await flushAudits();
+    return records[0].resource_id;
+  }
+
+  it("stores uuids, slugs and short ids verbatim", async () => {
+    expect(await noteThen(PID)).toBe(PID);
+    expect(await noteThen("inv_01HZX")).toBe("inv_01HZX");
+    expect(await noteThen("cs_test_a1B2c3")).toBe("cs_test_a1B2c3");
+  });
+
+  it("drops emails, secrets, long hashes and free text — falls back to the route param", async () => {
+    expect(await noteThen("someone@example.com", { id: PID })).toBe(PID);
+    expect(await noteThen("bk_live_abcdefghijklmnop", { id: PID })).toBe(PID);
+    expect(await noteThen("a".repeat(64), { id: PID })).toBe(PID);
+    expect(await noteThen("hello world", { id: PID })).toBe(PID);
+    expect(await noteThen("x".repeat(129), { id: PID })).toBe(PID);
+    expect(await noteThen("someone@example.com")).toBeNull();
+    for (const r of records) expect(JSON.stringify(r)).not.toContain("example.com");
+  });
+
+  it("a rejected value never overwrites an earlier id-like one", async () => {
+    records = [];
+    const POST = apiRoute({ route: "api/x/route.ts", method: "POST" }, async () => {
+      auditNote(PID);
+      auditNote("someone@example.com");
+      return NextResponse.json({ ok: true });
+    });
+    await POST(req());
+    await flushAudits();
+    expect(records[0].resource_id).toBe(PID);
+  });
+
+  it("is a no-op outside apiRoute()", () => {
+    expect(() => auditNote("someone@example.com")).not.toThrow();
+    expect(getAuditContext()).toBeUndefined();
+  });
+});
