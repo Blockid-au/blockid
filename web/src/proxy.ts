@@ -165,6 +165,45 @@ function requestHeadersFor(
   return h;
 }
 
+/**
+ * The ONE enforced Content-Security-Policy for the whole site (release
+ * QA-2 F2). It is stamped on the request (so Next threads the nonce onto
+ * its own inline scripts and echoes the header on the rendered page) and
+ * on the proxy response. Nothing else may set a `Content-Security-Policy`
+ * header: two enforced policies are intersected by the browser, and the
+ * legacy static policy that `lib/security-headers.ts` used to carry had no
+ * Google hosts, so GTM / GA4 / Cloudflare Insights were blocked site-wide
+ * while the analytics dashboards quietly read zero. `src/proxy.test.ts`
+ * pins the single-source rule with a static scan.
+ *
+ * `'strict-dynamic'` means every host in `script-src` is only consulted by
+ * browsers without CSP3 support; nonce-carrying scripts (gtag/js, gtm.js,
+ * Stripe.js) may load whatever they inject. The hosts stay listed as the
+ * CSP2 fallback and as documentation of what is expected to run.
+ *
+ * @internal — exported for unit tests only.
+ */
+export function buildContentSecurityPolicy(nonce: string): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com https://challenges.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com https://static.cloudflareinsights.com`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https: https://www.google-analytics.com https://www.googletagmanager.com",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    // API surface: Supabase, Stripe, GA4 collect endpoints (regional +
+    // doubleclick for signed-in Google users), GA4 Data API, GitHub API,
+    // Cloudflare Insights beacon. Every new host is an exfil path — add
+    // with care.
+    "connect-src 'self' https://*.supabase.co https://api.stripe.com https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://stats.g.doubleclick.net https://www.googletagmanager.com https://analyticsdata.googleapis.com https://api.github.com https://cloudflareinsights.com https://static.cloudflareinsights.com",
+    "frame-src https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com https://www.googletagmanager.com",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+    "upgrade-insecure-requests",
+  ].join("; ");
+}
+
 function applySecurityHeaders(res: NextResponse): NextResponse {
   for (const [name, value] of Object.entries(securityHeaders())) {
     res.headers.set(name, value);
@@ -329,20 +368,7 @@ export async function proxy(request: NextRequest) {
   const locale = detectLocale(request);
   const nonce = randomBytes(16).toString("base64");
 
-  const cspHeader = [
-    "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com https://www.googletagmanager.com`,
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https:",
-    "font-src 'self' data: https://fonts.gstatic.com",
-    "connect-src 'self' https://*.supabase.co https://api.stripe.com https://www.google-analytics.com",
-    "frame-src https://js.stripe.com https://hooks.stripe.com",
-    "frame-ancestors 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "object-src 'none'",
-    "upgrade-insecure-requests",
-  ].join("; ");
+  const cspHeader = buildContentSecurityPolicy(nonce);
 
   // ── Rate-limit gate for expensive API routes ────────────────────────
   const bucket = bucketFor(pathname);
