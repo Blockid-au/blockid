@@ -8,7 +8,7 @@
 goal_id: ux-ia-startup-flow-v1
 status: done
 completed_at: 2026-07-24
-version: 2026-07-24.3
+version: 2026-09-11.1
 owner: admin@blockid.au
 created: 2026-07-24
 loop_flag_env: UX_IA_GOAL_LOOP
@@ -99,8 +99,15 @@ phased_tracks:
       NavV2 + ToolsDropdown already had onClick alongside onMouseEnter,
       so no data-open shim was needed.
   P8_founder_review:
-    status: human_blocked
-    description: Founder reviews §C new IA proposal (esp. Q1..Q4) before P9 ship-hardening
+    status: shipped
+    completed_at: 2026-09-11
+    description: |
+      Founder delegated Q1..Q4 on 2026-09-11 — each recorded
+      `recommendation:` is adopted as the decision (see open_questions
+      `decision:` / `decided_by:` / `status:` fields). Implemented in
+      S19-A: mobile-collapsed JourneyStepLadder with "Show all 12" toggle,
+      "Skip to current phase" anchor + `aria-current="step"`, Demo top-nav
+      pin, <= 5 phase-cluster sidebar guard.
   P9_ship_hardening:
     status: shipped
     completed_at: 2026-07-24
@@ -116,24 +123,50 @@ phased_tracks:
       Q1–Q4 founder review outstanding (all non-blocking).
 
 open_questions:
+  # 2026-09-11 — founder delegated all four: recommendation == decision (S19-A).
   Q1:
     text: "How many phases should be visible as top-nav CTAs vs collapsed under a single 'My Startup' menu?"
     recommendation: "Keep 5 phase-clusters visible (My Startup, Build, Fundraise, Compliance, Resources). Anything beyond that = cognitive overload per Miller's 7±2."
+    decision: "Keep <= 5 phase-clusters visible at once. Applies to the logged-in workspace sidebar only — the public nav is G11's 5-item MENU (unchanged). Already satisfied after G8-P3 + S7-A: the catalogue has 4 phase-gated clusters (Validate / Build / Fundraise / Scale & Exit); a phase-0 founder sees Home + Validate + Account with Build / Fundraise phase-hidden and Scale & Exit folded under 'Later phases'. No catalogue change needed; the count is now pinned by test."
+    decided_by: admin@blockid.au (delegated 2026-09-11)
+    status: shipped
+    files:
+      - web/src/components/workspace/nav-groups.ts          # verified, unchanged
+      - web/src/components/workspace/workspace-layout.test.tsx  # "G7 Q1" guard
     human_owner: admin@blockid.au
     blocking: false
   Q2:
     text: "Should 'Demo' always be a top-nav link, or a floating CTA (bottom-right) so it never crowds the main nav?"
     recommendation: "Top-nav link on every page. Floating CTA only on landing pages where the fold is already busy — but that requires a new component. Ship top-nav link first."
+    decision: "Top-nav link on every page; no floating CTA. Already shipped (P1 `27ab1553`, kept through G11 T0238 as the MENU 'Demo' dropdown + workspace topbar link). Colocated pin added so the entry cannot be dropped."
+    decided_by: admin@blockid.au (delegated 2026-09-11)
+    status: shipped
+    files:
+      - web/src/components/landing/nav-v2.tsx       # verified, unchanged
+      - web/src/components/landing/nav-v2.test.ts   # "G7 Q2" pin
     human_owner: admin@blockid.au
     blocking: false
   Q3:
     text: "Should the dashboard step ladder show all 12 phases at once, or just current + next 2?"
     recommendation: "All 12 on desktop (horizontal rail — fits in ~1200px wide); collapsed to current + next 2 on mobile with a 'Show all' toggle."
+    decision: "All 12 on desktop (>= md rail, completed check-marks never hidden). Below 640px the vertical rail collapses to current + next 2 with a 'Show all 12 phases' <button> (client state only, aria-expanded + aria-controls, 44px target, motion-reduce safe). Between sm and md the vertical rail shows all 12."
+    decided_by: admin@blockid.au (delegated 2026-09-11)
+    status: shipped
+    files:
+      - web/src/components/dashboard/journey-step-ladder.tsx
+      - web/src/components/dashboard/journey-step-ladder.test.tsx
     human_owner: admin@blockid.au
     blocking: false
   Q4:
     text: "How do we handle a returning founder who is already at phase 6 — they don't want tutorials for phase 1-5?"
     recommendation: "Completed phases render as check-marks (already implemented in journey-bar); clicking them jumps to their landing route (evidence/cap-table/etc.). Show a 'Skip to current phase' anchor when the ladder is first seen."
+    decision: "Completed phases = check-mark links to PHASE_ROUTES (verified in journey-bar + ladder). The ladder now renders a 'Skip to current phase' anchor (href=#phase-current; visible on mobile, sr-only-until-focus from sm) once the current phase's 0-based index is >= 3; the current <li> carries id=phase-current + aria-current=step exactly once (single responsive list replaces the duplicated desktop/mobile rails)."
+    decided_by: admin@blockid.au (delegated 2026-09-11)
+    status: shipped
+    files:
+      - web/src/components/dashboard/journey-step-ladder.tsx
+      - web/src/components/dashboard/journey-bar.tsx   # verified, unchanged
+      - web/src/components/dashboard/journey-step-ladder.test.tsx
     human_owner: admin@blockid.au
     blocking: false
 
