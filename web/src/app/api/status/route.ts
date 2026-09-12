@@ -15,6 +15,7 @@ import { headers } from "next/headers";
 import { cronSecret, safeEqualStrings } from "@/lib/security/cron-auth";
 import { readChainStatus, type AuditChainStatus } from "@/lib/audit/chain-verify";
 import { readOAuthTokenHealth, type OAuthTokensSealedStatus } from "@/lib/security/oauth-token-health";
+import { readGa4EventAuditStatus } from "@/lib/analytics/ga4-event-audit";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
@@ -75,6 +76,14 @@ type StatusResponse = {
    * Cached 10 min server-side. Public: it names no table, row or user.
    */
   oauth_tokens_sealed: OAuthTokensSealedStatus;
+  /**
+   * S23-B — whether the G11/G12 + hero-test GA4 events arrived in the last
+   * 7 days, as last checked by /api/cron/ga4-event-audit (weekly Mon 04:30
+   * UTC): `ok` | `missing:<event,event>` | `blocked` (Data API disabled /
+   * no access — operator steps in content/reports/ga4-event-audit.json) |
+   * `unknown` (never run or stale > 8 days).
+   */
+  ga4_events: string;
 };
 
 // Whether the caller is trusted enough to see the full internal telemetry
@@ -363,7 +372,7 @@ function computeUptimeFromCrons(crons: CronRow[]): number | undefined {
 // ---------- Handler ----------
 
 export async function GET(): Promise<Response> {
-  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens] = await Promise.all([
+  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens, ga4Events] = await Promise.all([
     fetchHealthz(2000),
     summariseCrons().catch(() => [] as CronRow[]),
     readGitShaFallback(),
@@ -371,6 +380,7 @@ export async function GET(): Promise<Response> {
     isTrustedCaller(),
     readChainStatus(REPO_ROOT).catch(() => ({ status: "unknown" as const })),
     readOAuthTokenHealth().catch(() => ({ status: "unknown" as const })),
+    readGa4EventAuditStatus(REPO_ROOT).catch(() => "unknown"),
   ]);
 
   const last_deploy = await readLastDeploy(fallbackSha).catch(() => ({
@@ -414,6 +424,7 @@ export async function GET(): Promise<Response> {
     crons: [],
     audit_chain: auditChain.status,
     oauth_tokens_sealed: oauthTokens.status,
+    ga4_events: ga4Events,
   };
 
   const fullBody: StatusResponse = {
@@ -426,6 +437,7 @@ export async function GET(): Promise<Response> {
     crons,
     audit_chain: auditChain.status,
     oauth_tokens_sealed: oauthTokens.status,
+    ga4_events: ga4Events,
   };
 
   return NextResponse.json(trusted ? fullBody : publicBody, {

@@ -39,6 +39,20 @@ function makeGtagRecorder(): {
   };
 }
 
+// S23-B: when gtag.js has not run yet, every helper queues the gtag command
+// on window.dataLayer as a real `arguments` object (what the official
+// snippet's `dataLayer.push(arguments)` does) so gtag.js replays it on load.
+// These split the queue into "gtag commands" and "GTM-style rows".
+function isGtagCommand(row: unknown): boolean {
+  return Object.prototype.toString.call(row) === "[object Arguments]";
+}
+function queuedCommands(dl: Record<string, unknown>[] | undefined): unknown[][] {
+  return (dl ?? []).filter(isGtagCommand).map((row) => Array.from(row as unknown as ArrayLike<unknown>));
+}
+function gtmRows(dl: Record<string, unknown>[] | undefined): Record<string, unknown>[] {
+  return (dl ?? []).filter((row) => !isGtagCommand(row));
+}
+
 function install(opts?: {
   gtag?: FakeWindow["gtag"];
   dataLayer?: Record<string, unknown>[];
@@ -175,9 +189,21 @@ describe("trackEvent", () => {
     expect(() =>
       trackEvent("svi_form_started", { method: "voice" }),
     ).not.toThrow();
-    expect(ctx.win.dataLayer).toEqual([
+    expect(gtmRows(ctx.win.dataLayer)).toEqual([
       { event: "svi_form_started", method: "voice" },
     ]);
+    // S23-B: the gtag command is queued for replay, not dropped — mount-time
+    // events (hero_variant_shown …) fire before the afterInteractive script.
+    expect(queuedCommands(ctx.win.dataLayer)).toEqual([
+      ["event", "svi_form_started", { method: "voice" }],
+    ]);
+    expect(ctx.win.dataLayer).toHaveLength(2);
+  });
+
+  it("queues nothing extra once window.gtag exists (no double send)", () => {
+    trackEvent("dashboard_viewed", {});
+    expect(queuedCommands(ctx.win.dataLayer)).toEqual([]);
+    expect(rec.calls).toEqual([["event", "dashboard_viewed", {}]]);
   });
 
   it("stacks multiple calls in dataLayer in call order", () => {
@@ -303,9 +329,10 @@ describe("setUserProperties", () => {
     ctx.restore();
     ctx = install({ withoutGtag: true });
     expect(() => setUserProperties({ plan: "growth" })).not.toThrow();
-    expect(ctx.win.dataLayer).toEqual([
+    expect(gtmRows(ctx.win.dataLayer)).toEqual([
       { event: "user_properties_set", plan: "growth" },
     ]);
+    expect(queuedCommands(ctx.win.dataLayer)).toEqual([["set", "user_properties", { plan: "growth" }]]);
   });
 
   it("accepts string, number, and boolean prop values (union in the signature)", () => {
@@ -443,7 +470,8 @@ describe("trackPurchase", () => {
         plan: "p",
       }),
     ).not.toThrow();
-    expect(ctx.win.dataLayer).toEqual([
+    expect(queuedCommands(ctx.win.dataLayer)[0]?.slice(0, 2)).toEqual(["event", "purchase"]);
+    expect(gtmRows(ctx.win.dataLayer)).toEqual([
       {
         event: "purchase",
         transaction_id: "t3",
@@ -525,9 +553,10 @@ describe("trackPageView", () => {
   it("pushes { event: 'page_view', page_path } onto window.dataLayer", () => {
     const ctx = install({ withoutGtag: true });
     trackPageView("/pricing");
-    expect(ctx.win.dataLayer).toEqual([
+    expect(gtmRows(ctx.win.dataLayer)).toEqual([
       { event: "page_view", page_path: "/pricing" },
     ]);
+    expect(queuedCommands(ctx.win.dataLayer)[0]?.[0]).toBe("config");
     ctx.restore();
   });
 });
@@ -548,7 +577,7 @@ describe("G11/G12 funnel events are in AnalyticsEventMap", () => {
     trackEvent("hero_variant_shown", { arm: "money" });
     trackEvent("evaluator_pricing_viewed", { via: "tab" });
     trackEvent("compare_viewed", { variant: "chatgpt" });
-    expect(ctx.win.dataLayer?.map((e) => e.event)).toEqual([
+    expect(gtmRows(ctx.win.dataLayer).map((e) => e.event)).toEqual([
       "funding_preview",
       "funding_paywall_hit",
       "funding_report_paid",
@@ -560,7 +589,7 @@ describe("G11/G12 funnel events are in AnalyticsEventMap", () => {
       "evaluator_pricing_viewed",
       "compare_viewed",
     ]);
-    expect(ctx.win.dataLayer?.[4]).toMatchObject({ kind: "programs", capital: "Sydney" });
+    expect(gtmRows(ctx.win.dataLayer)[4]).toMatchObject({ kind: "programs", capital: "Sydney" });
     ctx.restore();
   });
 

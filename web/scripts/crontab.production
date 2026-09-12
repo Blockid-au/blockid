@@ -127,6 +127,15 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Weekly revenue + credit-spend report → admin@blockid.au (Mondays 09:00 UTC = 19:00 AEST)
 0 9 * * 1 bash $RUN weekly-revenue-report --timeout 120
 
+# GA4 event audit — weekly Mon 04:30 UTC (14:30 AEST). Data API check that the
+# G11/G12 + hero-test events (hero_variant_shown, funding_*, evaluator_*,
+# compare_viewed, funding_directory_viewed) arrived in the last 7 days and
+# whether the `arm` ("Hero variant") custom dimension is registered. Writes
+# content/reports/ga4-event-audit.json → /api/status `ga4_events`. A disabled
+# API / missing access is recorded as `blocked` with the operator steps, never
+# a failure. Register dimensions: node scripts/ga4-register-dimensions.mjs --apply
+30 4 * * 1 bash $RUN ga4-event-audit --timeout 120
+
 # Weekly disk cleanup — prune docker, /tmp logs, JSONL state, releases (Sun 03:30 UTC = 13:30 AEST)
 30 3 * * 0 /home/dovanlong/blockid.au/web/scripts/weekly-disk-cleanup.sh
 

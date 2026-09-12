@@ -935,3 +935,45 @@ describe("oauth_tokens_sealed (S23-A)", () => {
     expect((body as unknown as Body).oauth_tokens_sealed).toBe("unknown");
   });
 });
+
+// ─── S23-B ga4_events (weekly GA4 Data API event audit) ────────────────
+
+describe("ga4_events (S23-B) — read from content/reports/ga4-event-audit.json", () => {
+  const AUDIT_FILE = path.join(REPO_ROOT, "content", "reports", "ga4-event-audit.json");
+  const read = (body: unknown) => (body as { ga4_events: string }).ga4_events;
+
+  it("unknown when the cron has never written the report", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    const { body } = await callGet();
+    expect(read(body)).toBe("unknown");
+  });
+
+  it("ok / missing:<list> / blocked from a fresh report, on the public payload too", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    const fresh = { ts: new Date().toISOString() };
+
+    fsState.files.set(AUDIT_FILE, JSON.stringify({ ...fresh, status: "ok", missing: [] }));
+    expect(read((await callGet()).body)).toBe("ok");
+
+    fsState.files.set(AUDIT_FILE, JSON.stringify({ ...fresh, status: "missing", missing: ["funding_preview", "compare_viewed"] }));
+    expect(read((await callGet()).body)).toBe("missing:funding_preview,compare_viewed");
+
+    fsState.files.set(AUDIT_FILE, JSON.stringify({ ...fresh, status: "blocked", blocked: { reason: "api_disabled", steps: ["1", "2"], message: "" } }));
+    expect(read((await callGet()).body)).toBe("blocked");
+
+    process.env.STATUS_FULL_TOKEN = "";
+    try {
+      expect(read((await callGet()).body)).toBe("blocked");
+    } finally {
+      process.env.STATUS_FULL_TOKEN = "test-trusted-token";
+    }
+  });
+
+  it("a report older than 8 days or unparsable degrades to unknown", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    fsState.files.set(AUDIT_FILE, JSON.stringify({ ts: new Date(Date.now() - 9 * 86_400_000).toISOString(), status: "ok" }));
+    expect(read((await callGet()).body)).toBe("unknown");
+    fsState.files.set(AUDIT_FILE, "{nope");
+    expect(read((await callGet()).body)).toBe("unknown");
+  });
+});

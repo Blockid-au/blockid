@@ -23,6 +23,7 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/admin/drive/upload/route.ts", family: "admin.drive.upload", methods: ["POST"] },
   { route: "api/admin/funding/[kind]/[id]/route.ts", family: "admin.funding", methods: ["PATCH"] },
   { route: "api/admin/ga4-refresh/route.ts", family: "admin.ga4-refresh", methods: ["POST"] },
+  { route: "api/admin/ga4/register-dimensions/route.ts", family: "admin.ga4.register-dimensions", methods: ["POST"] },
   { route: "api/admin/investor-verify/route.ts", family: "admin.investor-verify", methods: ["POST"] },
   { route: "api/admin/leads/route.ts", family: "admin.leads", methods: ["POST"] },
   { route: "api/admin/platform-config/route.ts", family: "admin.platform-config", methods: ["PUT"] },

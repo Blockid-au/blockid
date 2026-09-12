@@ -23,6 +23,7 @@ import { SandboxScopeChip } from "@/components/admin/sandbox-scope-chip";
 import { GA4DailyTiles } from "@/components/admin/ga4-daily-tiles";
 import { Ga4RefreshButton } from "@/components/admin/ga4-refresh-button";
 import { Ga4TrafficReport } from "@/components/admin/ga4-traffic-report";
+import { Ga4DimensionsPanel } from "@/components/admin/ga4-dimensions-panel";
 // D3-CISO-05: sandbox scope chip is display-only on /admin/growth — the
 // growth_insights materialised view aggregates across live+sandbox.
 // no sandbox column on growth_insights — chip is display-only for future consistency
@@ -198,6 +199,9 @@ export default async function GrowthPage() {
 
         {/* GA4 Traffic Report — top 10 pages, last 30 days (live REST call) */}
         <Ga4TrafficReport />
+
+        {/* GA4 custom dimensions (S23-B) — registration state + operator steps when the Admin API is blocked */}
+        <Ga4DimensionsPanel />
 
         {/* AI Recommendations */}
         <section>
