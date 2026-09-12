@@ -46,6 +46,14 @@ function req(body: unknown, opts?: { cookies?: string }) {
   });
 }
 
+function rawReq(body: string) {
+  return new Request("http://x/api/auth/reset-password", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body,
+  });
+}
+
 async function json(res: Response) {
   return (await res.json()) as Record<string, unknown>;
 }
@@ -82,6 +90,20 @@ describe("POST /api/auth/reset-password", () => {
     mocks.isValidEmail.mockReturnValue(false);
     const res = await POST(req({}));
     expect(res.status).toBe(400);
+  });
+
+  // Release QA-4 P2-b — empty / malformed bodies are 400, never 500.
+  it("returns 400 invalid_json on an empty body", async () => {
+    const res = await POST(rawReq(""));
+    expect(res.status).toBe(400);
+    expect((await json(res)).error).toBe("invalid_json");
+    expect(mocks.resetWithTempPassword).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 invalid_json on a malformed body", async () => {
+    const res = await POST(rawReq("{not json"));
+    expect(res.status).toBe(400);
+    expect((await json(res)).error).toBe("invalid_json");
   });
 
   it("always returns ok:true even when user not found (no email enumeration)", async () => {

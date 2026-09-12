@@ -4,6 +4,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute } from "@/lib/audit/api-route";
+import { readJsonBody } from "@/lib/security/request-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +12,11 @@ const VALID_REASONS = ["too_many", "not_relevant", "didnt_signup", "using_compet
 
 async function POST_handler(request: Request) {
   try {
-    const body = await request.json();
-    const { token, reason, detail } = body ?? {};
+    // QA-4 P2-b — an empty / malformed body is a 400, never a 500.
+    const parsed = await readJsonBody<Record<string, unknown>>(request);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.body && typeof parsed.body === "object" ? parsed.body : {};
+    const { token, reason, detail } = body;
 
     if (!token || typeof token !== "string") {
       return NextResponse.json({ ok: false, error: "Token required" }, { status: 400 });

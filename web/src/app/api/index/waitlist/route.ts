@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute } from "@/lib/audit/api-route";
+import { readJsonBody } from "@/lib/security/request-guards";
 
 async function POST_handler(request: Request) {
   try {
-    const { email, name } = await request.json();
+    // QA-4 P2-b — an empty / malformed body is a 400, never a 500.
+    const parsed = await readJsonBody<{ email?: unknown; name?: unknown }>(request);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.body && typeof parsed.body === "object" ? parsed.body : {};
+    const { email, name } = body;
 
     if (!email || !name) {
       return NextResponse.json(

@@ -182,15 +182,31 @@ const UPLOAD_PASSWORD = process.env.UPLOAD_PASSWORD;
 
 async function POST_handler(request: Request) {
   const origin = request.headers.get("origin");
+  const unauthorized = () =>
+    corsJson({ error: "Unauthorized — sign in to upload" }, origin, { status: 401 });
 
-  const formData = await request.formData();
-
-  // Auth: require a session cookie, OR a password field that matches a
-  // configured UPLOAD_PASSWORD (no default — disabled unless set).
-  const password = formData.get("password") as string | null;
+  // Auth FIRST (QA-4 P2-b): require a session cookie, OR a password field
+  // that matches a configured UPLOAD_PASSWORD (no default — disabled unless
+  // set). The password can only arrive in a multipart body, so an anonymous
+  // caller is refused with 401 BEFORE any body is parsed unless that path
+  // is actually open to them; a body that is not valid multipart is a 400
+  // for a signed-in caller and still a 401 for an anonymous one.
   const user = await getCurrentUser();
-  if (!user && (!UPLOAD_PASSWORD || password !== UPLOAD_PASSWORD)) {
-    return corsJson({ error: "Unauthorized — sign in to upload" }, origin, { status: 401 });
+  const contentType = request.headers.get("content-type") ?? "";
+  const passwordPathOpen = Boolean(UPLOAD_PASSWORD) && /multipart\/form-data/i.test(contentType);
+  if (!user && !passwordPathOpen) return unauthorized();
+
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    if (!user) return unauthorized();
+    return corsJson({ error: "Invalid body — send multipart/form-data with field 'file'" }, origin, { status: 400 });
+  }
+
+  if (!user) {
+    const password = formData.get("password");
+    if (typeof password !== "string" || password !== UPLOAD_PASSWORD) return unauthorized();
   }
 
   const file = formData.get("file") as File | null;

@@ -8,6 +8,7 @@ import { isValidEmail, normaliseEmail, resetWithTempPassword } from "@/lib/auth"
 import { sendPasswordReset } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { apiRoute } from "@/lib/audit/api-route";
+import { readJsonBody } from "@/lib/security/request-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +24,10 @@ async function POST_handler(request: Request) {
       );
     }
 
-    const body = await request.json();
-    const { email } = body ?? {};
+    // QA-4 P2-b — an empty / malformed body is a 400, never a 500.
+    const parsed = await readJsonBody<{ email?: unknown }>(request);
+    if (!parsed.ok) return parsed.response;
+    const { email } = parsed.body ?? {};
 
     if (!isValidEmail(email)) {
       return NextResponse.json({ ok: false, error: "Valid email is required" }, { status: 400 });

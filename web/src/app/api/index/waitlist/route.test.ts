@@ -273,20 +273,31 @@ describe("other DB errors", () => {
 // ─── malformed body ───────────────────────────────────────────────────────
 
 describe("malformed body", () => {
-  it("returns 500 with 'Internal server error' when the body is not JSON (request.json() throws SyntaxError)", async () => {
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  // Release QA-4 P2-b — a body that is not JSON is a 400 (readJsonBody),
+  // never a 500 that pollutes the error log.
+  it("returns 400 invalid_json when the body is not JSON", async () => {
     const { status, body } = await callPost("not json {[");
-    expect(status).toBe(500);
-    expect(body.error).toBe("Internal server error");
-    consoleSpy.mockRestore();
+    expect(status).toBe(400);
+    expect(body.error).toBe("invalid_json");
+    expect(insertMock).not.toHaveBeenCalled();
   });
 
-  it("logs to console.error when body parse throws", async () => {
+  it("returns 400 invalid_json on an empty body", async () => {
+    const { status, body } = await callPost("");
+    expect(status).toBe(400);
+    expect(body.error).toBe("invalid_json");
+  });
+
+  it("returns 400 when the body is valid JSON but not an object", async () => {
+    const { status } = await callPost("42");
+    expect(status).toBe(400);
+    expect(insertMock).not.toHaveBeenCalled();
+  });
+
+  it("does not log a server error for a malformed body", async () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     await callPost("not json {[");
-    expect(consoleSpy).toHaveBeenCalled();
-    const firstArg = consoleSpy.mock.calls[0][0] as string;
-    expect(firstArg).toContain("[index:waitlist]");
+    expect(consoleSpy).not.toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
 });
