@@ -100,4 +100,18 @@ describe("loadEndpointForCaller", () => {
     accessMock.mockRejectedValue(new Error("db down"));
     await expect(loadEndpointForCaller(store, { id: "x" }, ID)).rejects.toThrow("db down");
   });
+  it("P1: the CREATOR of a project-level endpoint is subject to the same membership check — revoked → 404", async () => {
+    const store = memoryWebhookStore({ endpoints: [ep({ project_id: "p-1", user_id: "creator" })] });
+    accessMock.mockReset().mockResolvedValue({ role: "admin" });
+    expect((await loadEndpointForCaller(store, { id: "creator" }, ID)).endpoint?.id).toBe(ID);
+    expect(accessMock).toHaveBeenCalledWith("creator", "p-1", "admin");
+    // Membership revoked → assertProjectAccess answers not_found → 404 like any outsider.
+    accessMock.mockRejectedValue(accessError("not_found"));
+    const revoked = await loadEndpointForCaller(store, { id: "creator" }, ID);
+    expect(revoked.endpoint).toBeNull();
+    expect(revoked.denied?.status).toBe(404);
+    // Downgraded to editor → 403.
+    accessMock.mockRejectedValue(accessError("forbidden"));
+    expect((await loadEndpointForCaller(store, { id: "creator" }, ID)).denied?.status).toBe(403);
+  });
 });

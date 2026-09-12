@@ -116,6 +116,22 @@ describe("PATCH /api/webhooks/[id]", () => {
     expect((await (await PATCH(req("PATCH", {}), ctx())).json()).error).toBe("nothing_to_update");
   });
 
+  it("P1: a revoked creator gets 404 on PATCH / DELETE / test / deliveries of their project-level endpoint", async () => {
+    store = memoryWebhookStore({ endpoints: [ep({ project_id: PID, user_id: "creator" })] });
+    accessMock.mockRejectedValue(accessError("not_found"));
+    expect((await PATCH(req("PATCH", { active: true }), ctx())).status).toBe(404);
+    expect(store!.endpoints[0].active).toBe(false);
+    expect((await DELETE(req("DELETE"), ctx())).status).toBe(404);
+    expect(store!.endpoints).toHaveLength(1);
+    expect((await TEST(req("POST"), ctx())).status).toBe(404);
+    expect(sendPingMock).not.toHaveBeenCalled();
+    expect((await DELIVERIES(req("GET"), ctx())).status).toBe(404);
+    expect(accessMock).toHaveBeenCalledWith("creator", PID, "admin");
+    // Still an admin → everything works again.
+    accessMock.mockResolvedValue({ role: "admin" });
+    expect((await PATCH(req("PATCH", { active: true }), ctx())).status).toBe(200);
+  });
+
   it("project-level endpoint: admin member may edit, editor 403, non-member 404", async () => {
     store = memoryWebhookStore({ endpoints: [ep({ project_id: PID })] });
     getCurrentUserMock.mockResolvedValue({ ...creator, id: "member" });

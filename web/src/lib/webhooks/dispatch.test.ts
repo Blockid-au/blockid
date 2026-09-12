@@ -1,6 +1,9 @@
 // S20-B — dispatcher: lease, signature headers, retry ladder, dead after
 // the schedule, auto-disable at 20 consecutive failures (+ notification),
-// SSRF refusal, timeout, plan lapse, dry run, ping.
+// SSRF refusal, timeout, plan lapse, dry run, ping. S20-B review: creator
+// lost project membership (P1), atomic failure counting via the 0340 RPC
+// with the pre-migration fallback (P2), 25/tick default, secret_unreadable
+// fail-closed (P2).
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -9,11 +12,14 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/entitlements", () => ({ getEntitlements: async () => [] }));
 
 import {
+  DEFAULT_BATCH,
   DELIVERY_TIMEOUT_MS,
   dispatchDue,
   isHttpsUrl,
   LEASE_MS,
+  lostCreatorEndpoints,
   MAX_ATTEMPTS,
+  MAX_BATCH,
   MAX_CONSECUTIVE_FAILURES,
   recordOutcome,
   RETRY_DELAYS_MS,
@@ -90,6 +96,10 @@ describe("constants + helpers", () => {
     expect(DELIVERY_TIMEOUT_MS).toBe(8_000);
     expect(MAX_CONSECUTIVE_FAILURES).toBe(20);
     expect(LEASE_MS).toBeGreaterThan(DELIVERY_TIMEOUT_MS);
+    // P2: 25 × 8 s worst case (200 s) fits inside the 5 min cron period.
+    expect(DEFAULT_BATCH).toBe(25);
+    expect(MAX_BATCH).toBe(50);
+    expect(DEFAULT_BATCH * DELIVERY_TIMEOUT_MS).toBeLessThan(5 * 60_000);
   });
   it("isHttpsUrl: https only, no credentials", () => {
     expect(isHttpsUrl("https://a.example.com/x")).toBe(true);
@@ -175,11 +185,15 @@ describe("dispatchDue", () => {
     notify = vi.fn(async () => undefined);
   });
 
-  function seeded(deliveries: DeliveryRow[], endpoints: EndpointRow[] = [endpoint()]) {
+  function seeded(deliveries: DeliveryRow[], endpoints: EndpointRow[] = [endpoint()], extra: { owners?: Map<string, string>; adminMemberships?: Set<string>; rpcAvailable?: boolean } = {}) {
     return memoryWebhookStore({
       endpoints,
       deliveries,
       plans: [{ id: "u-growth", plan: "founder_growth", role: "user" }, { id: "u-free", plan: "founder_free", role: "user" }],
+      // The default creator (u-growth) owns p-1, so the P1 gate is satisfied.
+      owners: extra.owners ?? new Map([["p-1", "u-growth"]]),
+      adminMemberships: extra.adminMemberships,
+      rpcAvailable: extra.rpcAvailable,
     });
   }
 
@@ -230,7 +244,7 @@ describe("dispatchDue", () => {
     expect(store.endpoints[0].disabled_reason).toContain("auto_disabled");
     expect(store.endpoints[0].failure_count).toBe(MAX_CONSECUTIVE_FAILURES);
     expect(notify).toHaveBeenCalledTimes(1);
-    expect(notify).toHaveBeenCalledWith({ userId: "u-growth", projectId: "p-1", endpointId: "ep-1", url: "https://hooks.example.com/blockid" });
+    expect(notify).toHaveBeenCalledWith({ userId: "u-growth", projectId: "p-1", endpointId: "ep-1", url: "https://hooks.example.com/blockid", reason: "auto_disabled" });
     // 20 failed on the ladder, the 21st never sent: endpoint_disabled → dead.
     expect(s.failed).toBe(20);
     expect(s.dead).toBe(1);
@@ -266,7 +280,7 @@ describe("dispatchDue", () => {
   });
 
   it("parks deliveries of a lapsed-plan owner as dead:plan_lapsed without counting a failure", async () => {
-    const store = seeded([delivery()], [endpoint({ user_id: "u-free" })]);
+    const store = seeded([delivery()], [endpoint({ user_id: "u-free" })], { owners: new Map([["p-1", "u-free"]]) });
     const fetchMock = vi.fn();
     const s = await dispatchDue({}, { store, fetch: fetchMock as never, checkUrl: okCheck, notify, now: () => T0, env: ENV });
     expect(fetchMock).not.toHaveBeenCalled();
@@ -285,12 +299,103 @@ describe("dispatchDue", () => {
     expect(store.deliveries.every((d) => d.status === "queued" && d.locked_until === null)).toBe(true);
   });
 
-  it("caps a tick at `limit` (≤ 50) and reports supabase_unavailable without a store", async () => {
+  it("defaults to 25 per tick, caps `limit` at MAX_BATCH (50), and reports supabase_unavailable without a store", async () => {
     const rows = Array.from({ length: 60 }, (_, i) => delivery({ id: `d-${i}` }));
     const store = seeded(rows);
-    const s = await dispatchDue({ limit: 500 }, { store, fetch: fetchReturning(200), checkUrl: okCheck, notify, now: () => T0, env: ENV });
-    expect(s.delivered).toBe(50);
+    const deps = { store, fetch: fetchReturning(200), checkUrl: okCheck, notify, now: () => T0, env: ENV };
+    expect((await dispatchDue({}, deps)).delivered).toBe(25);
+    expect((await dispatchDue({ limit: 500 }, deps)).delivered).toBe(35);
     expect((await dispatchDue({}, { store: null })).error).toBe("supabase_unavailable");
+  });
+
+  // ── S20-B review P1: creator no longer owner/admin ──────────────────────
+
+  it("P1: a project-level endpoint whose creator is no longer owner/admin dies as creator_not_member, is deactivated, owner notified, no failure counted", async () => {
+    // Creator u-agency made the endpoint while an admin; the owner (u-owner) later revoked them.
+    const store = seeded([delivery(), delivery({ id: "d-2" })], [endpoint({ user_id: "u-growth", failure_count: 3 })], { owners: new Map([["p-1", "u-owner"]]) });
+    const fetchMock = vi.fn();
+    const s = await dispatchDue({}, { store, fetch: fetchMock as never, checkUrl: okCheck, notify, now: () => T0, env: ENV });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(s.dead).toBe(2);
+    expect(s.results.map((r) => r.error)).toEqual(["creator_not_member", "creator_not_member"]);
+    expect(store.deliveries.map((d) => d.status)).toEqual(["dead", "dead"]);
+    expect(store.deliveries[0].last_error).toBe("creator_not_member");
+    expect(store.endpoints[0]).toMatchObject({ active: false, disabled_reason: "creator_not_member", failure_count: 3 });
+    expect(s.disabled_endpoints).toEqual(["ep-1"]);
+    // ONE notification, to the project OWNER (not the revoked creator).
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(notify).toHaveBeenCalledWith({ userId: "u-owner", projectId: "p-1", endpointId: "ep-1", url: "https://hooks.example.com/blockid", reason: "creator_not_member" });
+  });
+
+  it("P1: an accepted admin member still receives; owner always does; user-level endpoints are not membership-gated", async () => {
+    const admin = seeded([delivery()], [endpoint({ user_id: "u-growth" })], { owners: new Map([["p-1", "u-owner"]]), adminMemberships: new Set(["p-1:u-growth"]) });
+    expect((await dispatchDue({}, { store: admin, fetch: fetchReturning(200), checkUrl: okCheck, notify, now: () => T0, env: ENV })).delivered).toBe(1);
+    const userLevel = seeded([delivery()], [endpoint({ project_id: null })], { owners: new Map() });
+    expect((await dispatchDue({}, { store: userLevel, fetch: fetchReturning(200), checkUrl: okCheck, notify, now: () => T0, env: ENV })).delivered).toBe(1);
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it("lostCreatorEndpoints: one owners read + one memberships read for the batch; editor/viewer/revoked creators are lost", async () => {
+    const store = seeded([], [
+      endpoint({ id: "ep-owner", user_id: "u-owner" }),
+      endpoint({ id: "ep-admin", user_id: "u-admin" }),
+      endpoint({ id: "ep-editor", user_id: "u-editor" }),
+      endpoint({ id: "ep-user", user_id: "u-anyone", project_id: null }),
+    ], { owners: new Map([["p-1", "u-owner"]]), adminMemberships: new Set(["p-1:u-admin"]) });
+    const owners = vi.spyOn(store, "projectOwnerIds");
+    const admins = vi.spyOn(store, "projectAdminMemberships");
+    const lost = await lostCreatorEndpoints(store, store.endpoints);
+    expect([...lost.entries()]).toEqual([["ep-editor", "u-owner"]]);
+    expect(owners).toHaveBeenCalledTimes(1);
+    expect(admins).toHaveBeenCalledTimes(1);
+    expect(admins).toHaveBeenCalledWith(["p-1", "p-1", "p-1"], ["u-owner", "u-admin", "u-editor"]);
+    // Nothing project-level → no reads at all.
+    expect((await lostCreatorEndpoints(store, [store.endpoints[3]])).size).toBe(0);
+    expect(owners).toHaveBeenCalledTimes(1);
+  });
+
+  // ── S20-B review P2: atomic failure counting ─────────────────────────────
+
+  it("P2: failure bookkeeping goes through the atomic RPC (recordFailure/recordSuccess), never a computed failure_count write", async () => {
+    const store = seeded([delivery(), delivery({ id: "d-2" })], [endpoint({ failure_count: 18 })]);
+    const update = vi.spyOn(store, "updateEndpoint");
+    const fail = vi.spyOn(store, "recordFailure");
+    const succeed = vi.spyOn(store, "recordSuccess");
+    let status = 500;
+    const s = await dispatchDue({}, { store, fetch: async () => new Response(null, { status }), checkUrl: okCheck, notify, now: () => T0, env: ENV });
+    expect(s.failed).toBe(2);
+    expect(fail).toHaveBeenCalledTimes(2);
+    // 18 → 19 → 20: the second call flips the endpoint inside the RPC and reports it.
+    expect(await fail.mock.results[0].value).toMatchObject({ failure_count: 19, active: true, disabled: false });
+    expect(await fail.mock.results[1].value).toMatchObject({ failure_count: 20, active: false, disabled: true });
+    expect(update).not.toHaveBeenCalled();
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(store.endpoints[0]).toMatchObject({ active: false, failure_count: 20, disabled_reason: "auto_disabled:20_consecutive_failures" });
+
+    // Re-enabled by the user, then a success resets through the RPC too.
+    store.endpoints[0].active = true;
+    status = 200;
+    await store.insertDeliveries([{ id: "d-3", endpoint_id: "ep-1", event: "svi.rescored", payload: {}, next_attempt_at: T0.toISOString() }]);
+    await dispatchDue({}, { store, fetch: async () => new Response(null, { status }), checkUrl: okCheck, notify, now: () => T0, env: ENV });
+    expect(succeed).toHaveBeenCalledWith("ep-1");
+    expect(store.endpoints[0].failure_count).toBe(0);
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("P2: while the 0340 RPCs are missing (null / false) the read-modify-write fallback keeps the same semantics", async () => {
+    const rows = Array.from({ length: 20 }, (_, i) => delivery({ id: `d-${i}` }));
+    const store = seeded(rows, [endpoint({ failure_count: 0 })], { rpcAvailable: false });
+    const update = vi.spyOn(store, "updateEndpoint");
+    const s = await dispatchDue({ limit: 50 }, { store, fetch: fetchReturning(500), checkUrl: okCheck, notify, now: () => T0, env: ENV });
+    expect(s.failed).toBe(20);
+    expect(update).toHaveBeenCalledTimes(20);
+    expect(update).toHaveBeenLastCalledWith("ep-1", { failure_count: 20, last_failure_at: T0.toISOString(), active: false, disabled_reason: "auto_disabled:20_consecutive_failures" });
+    expect(store.endpoints[0]).toMatchObject({ active: false, failure_count: 20 });
+    expect(notify).toHaveBeenCalledTimes(1);
+    store.endpoints[0].active = true;
+    await store.insertDeliveries([{ id: "d-ok", endpoint_id: "ep-1", event: "svi.rescored", payload: {}, next_attempt_at: T0.toISOString() }]);
+    await dispatchDue({}, { store, fetch: fetchReturning(200), checkUrl: okCheck, notify, now: () => T0, env: ENV });
+    expect(update).toHaveBeenLastCalledWith("ep-1", { failure_count: 0, last_success_at: T0.toISOString() });
   });
 });
 

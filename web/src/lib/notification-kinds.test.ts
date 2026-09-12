@@ -152,3 +152,13 @@ describe("describeNotification — svi_trend_alert (T0246 writer payload)", () =
     expect(notificationAction(row("svi_trend_alert", { delta: 6 }))).toEqual({ href: "/workspace/svi-trend", label: "Open SVI trend" });
   });
 });
+
+describe("webhook_disabled reasons (S20-B review)", () => {
+  const row = (payload: Record<string, unknown>) => ({ id: 1, project_id: null, kind: "webhook_disabled", payload, read_at: null, created_at: "2026-09-12T00:00:00.000Z" });
+  it("auto-disable (default), creator_not_member and secret_unreadable read differently", () => {
+    expect(describeNotification(row({ host: "hooks.example.com", failures: 20 }))).toContain("after 20 consecutive failed deliveries");
+    expect(describeNotification(row({ host: "hooks.example.com", reason: "creator_not_member" }))).toMatch(/no longer has admin access/);
+    expect(describeNotification(row({ host: "hooks.example.com", reason: "secret_unreadable" }))).toMatch(/signing secret could not be read/);
+    expect(describeNotification(row({ reason: "creator_not_member" }))).toMatch(/^A webhook endpoint was disabled/);
+  });
+});

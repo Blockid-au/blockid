@@ -1,14 +1,23 @@
 // S20-B — webhook dispatcher. Runs from /api/cron/webhook-dispatch every
-// 5 minutes (≤ 50 deliveries per tick) and from the endpoint test button
-// (one synchronous `ping`).
+// 5 minutes (DEFAULT_BATCH = 25 deliveries per tick, MAX_BATCH = 50) and
+// from the endpoint test button (one synchronous `ping`).
 //
 // Per delivery:
 //   1. lease   — `claim()` is a conditional UPDATE (status queued|failed AND
 //                lease free) so an overlapping tick never sends the same
 //                row twice; the lease (LEASE_MS) outlives the 8 s timeout.
-//   2. gate    — endpoint inactive → `dead:endpoint_disabled`; owner's plan
-//                no longer unlocks webhooks → `dead:plan_lapsed` (no failure
-//                counted); URL refused by the S8-C SSRF guard (https only,
+//   2. gate    — project-level endpoint whose creator is no longer the
+//                project's owner or an accepted admin (one batched
+//                membership read per tick) → endpoint deactivated
+//                (`creator_not_member`, owner notified) and the delivery
+//                `dead:creator_not_member` (S20-B review P1 — a revoked
+//                member must not keep receiving project data); endpoint
+//                inactive → `dead:endpoint_disabled`; owner's plan no longer
+//                unlocks webhooks → `dead:plan_lapsed`; sealed secret cannot
+//                be opened (key missing / rotated, legacy `obf:` row with a
+//                key set) → endpoint deactivated (`secret_unreadable`) and
+//                `dead:secret_unreadable`. None of these count as a
+//                failure. URL refused by the S8-C SSRF guard (https only,
 //                no private / internal hosts, every resolved address public)
 //                → a failure like any other (`ssrf_refused:<reason>`) so a
 //                DNS record that later goes public is retried, but an
@@ -22,10 +31,16 @@
 //   4. ladder  — attempt n fails → next_attempt_at = now + RETRY_DELAYS_MS[n-1]
 //                (1 m / 10 m / 1 h / 6 h); after MAX_ATTEMPTS (5) → `dead`.
 //   5. health  — endpoint.failure_count resets on success, increments on
-//                failure; at MAX_CONSECUTIVE_FAILURES (20) the endpoint is
-//                disabled (`active=false`, `disabled_reason`) and ONE
-//                `webhook_disabled` in-app notification is written for its
-//                owner (dedupe key = endpoint id, 24 h throttle).
+//                failure — ATOMICALLY, through the 0340 RPCs
+//                (`webhook_endpoint_record_failure` / `_success`: the
+//                increment, the auto-disable at MAX_CONSECUTIVE_FAILURES
+//                (20) and the "did this call flip it" flag are one SQL
+//                statement, so overlapping ticks cannot lose an update —
+//                S20-B review P2). While the RPCs are not deployed the
+//                store returns null and the old read-modify-write path
+//                runs. When an endpoint is disabled ONE `webhook_disabled`
+//                in-app notification is written for its owner (dedupe key
+//                = endpoint id, 24 h throttle — lib/webhooks/notify.ts).
 //
 // `dryRun` lists what the tick would send and writes nothing. `fetch` and
 // `checkUrl` are injectable so the tests never touch the network.
@@ -34,15 +49,22 @@ import { randomUUID } from "node:crypto";
 import { checkOutboundUrl, type OutboundUrlOptions } from "@/lib/security/outbound-url";
 import { buildSignatureHeader, DELIVERY_HEADER, EVENT_HEADER, nowSec, openSecret, SIGNATURE_HEADER } from "./sign";
 import { buildEnvelope, usersAllowedWebhooks, type PingPayload } from "./registry";
-import { supabaseWebhookStore, type DeliveryRow, type EndpointRow, type WebhookStore } from "./store";
+import { notifyEndpointDisabled, type DisabledNotifier } from "./notify";
+import { AUTO_DISABLED_REASON, MAX_CONSECUTIVE_FAILURES, supabaseWebhookStore, type DeliveryRow, type EndpointRow, type WebhookStore } from "./store";
+
+export { MAX_CONSECUTIVE_FAILURES };
 
 export const DELIVERY_TIMEOUT_MS = 8_000;
 export const LEASE_MS = 2 * 60_000;
 export const RETRY_DELAYS_MS: readonly number[] = Object.freeze([60_000, 10 * 60_000, 60 * 60_000, 6 * 60 * 60_000]);
 export const MAX_ATTEMPTS = RETRY_DELAYS_MS.length + 1;
-export const MAX_CONSECUTIVE_FAILURES = 20;
-export const DEFAULT_BATCH = 50;
+/** Deliveries per tick by default — 25 × 8 s worst case = 200 s, inside the 5 min cron period. */
+export const DEFAULT_BATCH = 25;
+/** Hard cap a caller may raise `limit` to (manual catch-up). */
+export const MAX_BATCH = 50;
 export const USER_AGENT = "BlockID-Webhooks/1.0 (+https://blockid.au/docs#webhooks)";
+export const CREATOR_NOT_MEMBER = "creator_not_member";
+export const SECRET_UNREADABLE = "secret_unreadable";
 
 export type DeliveryOutcome =
   | { ok: true; status: number; durationMs: number }
@@ -55,8 +77,8 @@ export interface DispatchDeps {
   fetch?: FetchLike;
   /** SSRF check seam (defaults to the S8-C guard with real DNS). */
   checkUrl?: (url: string) => Promise<{ ok: true } | { ok: false; reason: string }>;
-  /** In-app notification writer (defaults to lib/notifications). */
-  notify?: (args: { userId: string; projectId: string | null; endpointId: string; url: string }) => Promise<void>;
+  /** In-app notification writer (defaults to lib/webhooks/notify). */
+  notify?: DisabledNotifier;
   now?: () => Date;
   env?: NodeJS.ProcessEnv;
 }
@@ -160,24 +182,6 @@ export interface DispatchSummary {
   error?: string;
 }
 
-async function defaultNotify(args: { userId: string; projectId: string | null; endpointId: string; url: string }): Promise<void> {
-  const { insertNotification } = await import("@/lib/notifications");
-  let host = args.url;
-  try {
-    host = new URL(args.url).host;
-  } catch {
-    // keep raw
-  }
-  await insertNotification({
-    userId: args.userId,
-    projectId: args.projectId,
-    kind: "webhook_disabled",
-    payload: { endpoint_id: args.endpointId, host, failures: MAX_CONSECUTIVE_FAILURES, href: "/workspace/integrations" },
-    dedupeKey: `webhook_disabled:${args.endpointId}`,
-    throttleMs: 24 * 60 * 60_000,
-  });
-}
-
 /**
  * Apply one attempt's outcome to the delivery + endpoint rows. Exported for
  * the test route (ping) which sends synchronously but books the same way.
@@ -187,7 +191,7 @@ export async function recordOutcome(
   endpoint: EndpointRow,
   delivery: Pick<DeliveryRow, "id" | "attempts">,
   outcome: DeliveryOutcome,
-  opts: { now: Date; singleShot?: boolean; notify: NonNullable<DispatchDeps["notify"]>; countTowardsHealth?: boolean },
+  opts: { now: Date; singleShot?: boolean; notify: DisabledNotifier; countTowardsHealth?: boolean },
 ): Promise<{ status: "delivered" | "failed" | "dead"; next_attempt_at: string | null; disabled: boolean }> {
   const attempts = delivery.attempts + 1;
   const nowIso = opts.now.toISOString();
@@ -201,9 +205,14 @@ export async function recordOutcome(
       last_error: null,
       delivered_at: nowIso,
     });
-    if (health) await store.updateEndpoint(endpoint.id, { failure_count: 0, last_success_at: nowIso });
-    else await store.updateEndpoint(endpoint.id, { last_success_at: nowIso });
-    endpoint.failure_count = health ? 0 : endpoint.failure_count;
+    if (health) {
+      // Atomic reset (0340 RPC); plain update until the migration is applied.
+      if (!(await store.recordSuccess(endpoint.id))) await store.updateEndpoint(endpoint.id, { failure_count: 0, last_success_at: nowIso });
+      endpoint.failure_count = 0;
+    } else {
+      await store.updateEndpoint(endpoint.id, { last_success_at: nowIso });
+    }
+    endpoint.last_success_at = nowIso;
     return { status: "delivered", next_attempt_at: null, disabled: false };
   }
 
@@ -221,29 +230,66 @@ export async function recordOutcome(
 
   let disabled = false;
   if (health) {
-    const failures = endpoint.failure_count + 1;
-    endpoint.failure_count = failures;
-    if (failures >= MAX_CONSECUTIVE_FAILURES && endpoint.active) {
-      disabled = true;
-      endpoint.active = false;
-      await store.updateEndpoint(endpoint.id, {
-        failure_count: failures,
-        last_failure_at: nowIso,
-        active: false,
-        disabled_reason: `auto_disabled:${MAX_CONSECUTIVE_FAILURES}_consecutive_failures`,
-      });
-      try {
-        await opts.notify({ userId: endpoint.user_id, projectId: endpoint.project_id, endpointId: endpoint.id, url: endpoint.url });
-      } catch (err) {
-        console.error("[blockid:webhooks] disable notification failed", { endpoint: endpoint.id, err: String(err) });
-      }
-    } else {
-      await store.updateEndpoint(endpoint.id, { failure_count: failures, last_failure_at: nowIso });
+    disabled = await bookFailure(store, endpoint, nowIso);
+    if (disabled) {
+      await opts.notify({ userId: endpoint.user_id, projectId: endpoint.project_id, endpointId: endpoint.id, url: endpoint.url, reason: "auto_disabled" });
     }
   } else {
     await store.updateEndpoint(endpoint.id, { last_failure_at: nowIso });
   }
+  endpoint.last_failure_at = nowIso;
   return { status, next_attempt_at: next, disabled };
+}
+
+/**
+ * failure_count + 1 and auto-disable at MAX_CONSECUTIVE_FAILURES. The 0340
+ * RPC does it in one statement and reports whether THIS call flipped
+ * `active`; before the migration is applied (`recordFailure` → null) the
+ * pre-0340 read-modify-write runs — same semantics, lost-update prone.
+ * Returns true when the endpoint was disabled by this call.
+ */
+async function bookFailure(store: WebhookStore, endpoint: EndpointRow, nowIso: string): Promise<boolean> {
+  const atomic = await store.recordFailure(endpoint.id);
+  if (atomic) {
+    endpoint.failure_count = atomic.failure_count;
+    if (!atomic.active) {
+      endpoint.active = false;
+      if (atomic.disabled) endpoint.disabled_reason = AUTO_DISABLED_REASON;
+    }
+    return atomic.disabled;
+  }
+  const failures = endpoint.failure_count + 1;
+  endpoint.failure_count = failures;
+  if (failures >= MAX_CONSECUTIVE_FAILURES && endpoint.active) {
+    endpoint.active = false;
+    endpoint.disabled_reason = AUTO_DISABLED_REASON;
+    await store.updateEndpoint(endpoint.id, { failure_count: failures, last_failure_at: nowIso, active: false, disabled_reason: AUTO_DISABLED_REASON });
+    return true;
+  }
+  await store.updateEndpoint(endpoint.id, { failure_count: failures, last_failure_at: nowIso });
+  return false;
+}
+
+/**
+ * P1 — which of the tick's PROJECT-level endpoints have a creator who is no
+ * longer the project's owner or an accepted admin. One `projects` read +
+ * one `project_members` read for the whole batch. Value = the project
+ * owner to notify (null when the project row is gone).
+ */
+export async function lostCreatorEndpoints(store: WebhookStore, endpoints: readonly EndpointRow[]): Promise<Map<string, string | null>> {
+  const lost = new Map<string, string | null>();
+  const projectLevel = endpoints.filter((e) => e.project_id);
+  if (!projectLevel.length) return lost;
+  const projectIds = projectLevel.map((e) => e.project_id as string);
+  const owners = await store.projectOwnerIds(projectIds);
+  const admins = await store.projectAdminMemberships(projectIds, projectLevel.map((e) => e.user_id));
+  for (const e of projectLevel) {
+    const pid = e.project_id as string;
+    const owner = owners.get(pid) ?? null;
+    if (owner === e.user_id || admins.has(`${pid}:${e.user_id}`)) continue;
+    lost.set(e.id, owner);
+  }
+  return lost;
 }
 
 /**
@@ -251,13 +297,13 @@ export async function recordOutcome(
  * `summary.error` so cron-health can see it.
  */
 export async function dispatchDue(opts: { limit?: number; dryRun?: boolean } = {}, deps: DispatchDeps = {}): Promise<DispatchSummary> {
-  const limit = Math.max(1, Math.min(DEFAULT_BATCH, opts.limit ?? DEFAULT_BATCH));
+  const limit = Math.max(1, Math.min(MAX_BATCH, opts.limit ?? DEFAULT_BATCH));
   const dry = Boolean(opts.dryRun);
   const summary: DispatchSummary = { ok: true, dry, claimed: 0, delivered: 0, failed: 0, dead: 0, skipped: 0, disabled_endpoints: [], results: [] };
   const now = deps.now ?? (() => new Date());
   const store = deps.store === undefined ? supabaseWebhookStore() : deps.store;
   if (!store) return { ...summary, ok: false, error: "supabase_unavailable" };
-  const notify = deps.notify ?? defaultNotify;
+  const notify = deps.notify ?? notifyEndpointDisabled;
 
   try {
     const due = await store.listDue(now(), limit);
@@ -266,6 +312,24 @@ export async function dispatchDue(opts: { limit?: number; dryRun?: boolean } = {
     const endpoints = new Map<string, EndpointRow>();
     for (const e of await store.getEndpoints(due.map((d) => d.endpoint_id))) endpoints.set(e.id, e);
     const allowedUsers = await usersAllowedWebhooks(store, [...endpoints.values()].map((e) => e.user_id));
+    const lostCreator = dry ? new Map<string, string | null>() : await lostCreatorEndpoints(store, [...endpoints.values()]);
+
+    /** Park the delivery + switch the endpoint off for a non-retryable reason (no failure counted). */
+    const parkAndDisable = async (d: DeliveryRow, endpoint: EndpointRow, reason: "creator_not_member" | "secret_unreadable", recipient: string | null) => {
+      await store.updateDelivery(d.id, { status: "dead", locked_until: null, last_error: reason });
+      if (endpoint.active || endpoint.disabled_reason !== reason) {
+        const wasActive = endpoint.active;
+        endpoint.active = false;
+        endpoint.disabled_reason = reason;
+        await store.updateEndpoint(endpoint.id, { active: false, disabled_reason: reason });
+        if (wasActive) {
+          summary.disabled_endpoints.push(endpoint.id);
+          if (recipient) await notify({ userId: recipient, projectId: endpoint.project_id, endpointId: endpoint.id, url: endpoint.url, reason });
+        }
+      }
+      summary.dead++;
+      summary.results.push({ id: d.id, endpoint_id: d.endpoint_id, event: d.event, outcome: "dead", error: reason });
+    };
 
     for (const d of due) {
       const endpoint = endpoints.get(d.endpoint_id);
@@ -283,6 +347,12 @@ export async function dispatchDue(opts: { limit?: number; dryRun?: boolean } = {
       }
       summary.claimed++;
 
+      if (endpoint && lostCreator.has(endpoint.id)) {
+        // P1: the creator lost owner/admin standing on the project — the
+        // channel closes now, whatever `active` says.
+        await parkAndDisable(d, endpoint, CREATOR_NOT_MEMBER, lostCreator.get(endpoint.id) ?? null);
+        continue;
+      }
       if (!endpoint || !endpoint.active) {
         await store.updateDelivery(d.id, { status: "dead", locked_until: null, last_error: "endpoint_disabled" });
         summary.dead++;
@@ -293,6 +363,12 @@ export async function dispatchDue(opts: { limit?: number; dryRun?: boolean } = {
         await store.updateDelivery(d.id, { status: "dead", locked_until: null, last_error: "plan_lapsed" });
         summary.dead++;
         summary.results.push({ ...base, outcome: "dead", error: "plan_lapsed" });
+        continue;
+      }
+      if (!openSecret(endpoint.secret_enc, deps.env)) {
+        // Fail closed: nothing can be signed, so nothing is sent — and the
+        // endpoint is switched off so the owner sees why (delete + recreate).
+        await parkAndDisable(d, endpoint, SECRET_UNREADABLE, endpoint.user_id);
         continue;
       }
 

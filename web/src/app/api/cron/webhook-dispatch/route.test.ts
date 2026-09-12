@@ -39,16 +39,16 @@ describe("GET /api/cron/webhook-dispatch", () => {
     expect(dispatchMock).not.toHaveBeenCalled();
   });
 
-  it("runs a live tick with the default batch and echoes the summary", async () => {
+  it("runs a live tick with the default batch (25) and echoes the summary", async () => {
     const res = await GET(req());
     expect(res.status).toBe(200);
-    expect(dispatchMock).toHaveBeenCalledWith({ limit: 50, dryRun: false });
+    expect(dispatchMock).toHaveBeenCalledWith({ limit: 25, dryRun: false });
     const body = await res.json();
-    expect(body).toMatchObject({ ok: true, delivered: 1, limit: 50 });
+    expect(body).toMatchObject({ ok: true, delivered: 1, limit: 25 });
     expect(typeof body.duration_ms).toBe("number");
   });
 
-  it("?dry=1 previews; ?limit clamps to ≤ 50 and ignores junk", async () => {
+  it("?dry=1 previews; ?limit clamps to ≤ 50 (MAX_BATCH) and junk falls back to 25", async () => {
     dispatchMock.mockResolvedValue({ ...ok, dry: true, claimed: 0, delivered: 0, results: [{ id: "d", endpoint_id: "e", event: "ping", outcome: "dry" }] });
     const body = await (await GET(req("?dry=1&limit=7"))).json();
     expect(dispatchMock).toHaveBeenCalledWith({ limit: 7, dryRun: true });
@@ -57,7 +57,7 @@ describe("GET /api/cron/webhook-dispatch", () => {
     await GET(req("?limit=999"));
     expect(dispatchMock).toHaveBeenLastCalledWith({ limit: 50, dryRun: false });
     await GET(req("?limit=abc"));
-    expect(dispatchMock).toHaveBeenLastCalledWith({ limit: 50, dryRun: false });
+    expect(dispatchMock).toHaveBeenLastCalledWith({ limit: 25, dryRun: false });
   });
 
   it("503 when Supabase is unavailable, 500 on a dispatcher error; POST is the same handler", async () => {
