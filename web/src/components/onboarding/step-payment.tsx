@@ -29,6 +29,7 @@ import type {
 } from "@stripe/stripe-js";
 import { getStripeClient } from "@/lib/stripe-client";
 import { PLANS_V2, formatAud } from "@/lib/plans-v2";
+import { formatGstInclusiveAud } from "@/lib/gst";
 import type { WizardAction, WizardState } from "./wizard-types";
 
 type Mode = "loading" | "redirecting" | "card" | "error";
@@ -198,6 +199,14 @@ export function StepPayment({
         {plan ? `${plan.name} · ${formatAud(plan.monthly_aud)}/mo` : "Your plan"}{" "}
         — 7-day free trial starts now.
       </p>
+      {plan && typeof plan.monthly_aud === "number" && plan.monthly_aud > 0 ? (
+        // QA-3 P2: the amount Stripe will charge when the trial ends, GST
+        // shown, before the redirect — matches the invoice tax line.
+        <p className="mt-1 text-sm text-brand-ink-muted" data-testid="gst-line">
+          After the trial: {formatGstInclusiveAud(Math.round(plan.monthly_aud * 100))} per month,
+          charged in AUD. Cancel any time before the trial ends and nothing is charged.
+        </p>
+      ) : null}
 
       {(mode === "loading" || mode === "redirecting") && (
         <div className="mt-10 flex items-center gap-3 text-brand-ink-muted">

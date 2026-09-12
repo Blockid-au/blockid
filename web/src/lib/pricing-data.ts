@@ -1,7 +1,8 @@
 // Shared pricing display data — single source of truth for all pricing UIs.
 //
-// Both `src/components/landing/pricing.tsx` and `src/app/pricing/page.tsx`
-// import from here so credit counts, plan names, and prices never diverge.
+// The live pricing surfaces read the DB-backed catalogue (plans-v2 +
+// plans.csv) via <PricingMatrix />; this module keeps the legacy exports
+// (NEW_SIGNUP_TIER_IDS, CREDIT_PACKS re-export, COMPARISON_ROWS, FAQ_ITEMS).
 //
 // Underlying plan IDs, cent-prices, and billing helpers live in `@/lib/plans`.
 //
@@ -116,17 +117,14 @@ export function buildPricingTiers(cfg: {
 // DB-backed catalogue in `src/lib/plans-v2.ts` + `src/config/pricing/plans.csv`
 // which the live `<PricingMatrix />` component reads.
 //
-// The remaining consumers of this file are:
-//   - `src/components/landing/pricing.tsx` — dead landing component
-//     already superseded by <PricingMatrix /> on every pricing surface.
-//     Renders an empty grid now; scheduled for deletion in Phase 3 tail.
-//   - `src/app/api/auth/register-with-card/route.ts` — imports the
-//     `NEW_SIGNUP_TIER_IDS` allow-list only. Legacy string list still valid.
+// The remaining consumer of this file is
+//   - `src/lib/plans/signup-plans.ts` — imports the `NEW_SIGNUP_TIER_IDS`
+//     allow-list only. Legacy string list still valid.
+// `src/components/landing/pricing.tsx` (the dead legacy render, empty grid)
+// was deleted on 2026-09-12 (QA-3 P2) together with `landing/hero.tsx`.
 //
-// TODO: remove after Phase 3 tail — the /founding-50 route was deleted on
-// 2026-09-07 (Phase 3b) along with the founding50 tier row, so once the
-// legacy landing/pricing.tsx render is deleted, drop this stub, the
-// `discountablePrices` map, and `buildPricingTiers()` outright.
+// TODO: drop this stub, the `discountablePrices` map, and
+// `buildPricingTiers()` outright once `pricing-data.test.ts` is retired.
 export const PRICING_TIERS: PricingTier[] = [];
 
 // Prior canonical fixture kept below as commented-out reference so

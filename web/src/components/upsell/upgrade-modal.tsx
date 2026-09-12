@@ -11,6 +11,8 @@ import { X } from "lucide-react";
 
 import { useUpgradePrompt } from "@/hooks/useUpgradePrompt";
 import { UPGRADE_COPY } from "./upgrade-copy";
+import { PLANS_V2 } from "@/lib/plans-v2";
+import { formatGstInclusiveAud } from "@/lib/gst";
 
 export function UpgradeModal() {
   const { trigger, accept, dismiss } = useUpgradePrompt();
@@ -119,6 +121,17 @@ export function UpgradeModal() {
         <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
           {copy.body}
         </p>
+        {(() => {
+          // QA-3 P2: GST-inclusive amount before the Stripe redirect.
+          const plan = PLANS_V2.find((p) => p.id === copy.suggestedPlan);
+          const monthly = plan?.monthly_aud;
+          if (typeof monthly !== "number" || monthly <= 0) return null;
+          return (
+            <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400" data-testid="gst-line">
+              {plan?.name}: {formatGstInclusiveAud(Math.round(monthly * 100))} per month, 7-day free trial, cancel any time.
+            </p>
+          );
+        })()}
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           {copy.secondaryCta ? (
             <button
