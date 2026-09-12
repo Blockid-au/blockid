@@ -11,6 +11,7 @@ import {
   consumeReauthToken,
   getDeletionStatus,
   hashToken,
+  hashesEqual,
   isDue,
   listDueForErasure,
   mintReauthToken,
@@ -89,6 +90,10 @@ describe("deletion-request helpers", () => {
     expect(isDue("2026-09-12T00:00:00.000Z", new Date("2026-09-19T00:00:00Z"))).toBe(true);
     expect(isDue(null, new Date())).toBe(false);
     expect(hashToken("abc")).toMatch(/^[0-9a-f]{64}$/);
+    expect(hashesEqual(hashToken("abc"), hashToken("abc"))).toBe(true);
+    expect(hashesEqual(hashToken("abc"), hashToken("abd"))).toBe(false);
+    expect(hashesEqual(null, hashToken("abc"))).toBe(false);
+    expect(hashesEqual("short", hashToken("abc"))).toBe(false);
   });
 
   it("request → status pending with cancel token hash stored; cancel clears; token cancel works once", async () => {

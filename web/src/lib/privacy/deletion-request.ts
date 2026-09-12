@@ -22,7 +22,7 @@
 // password_reset_tokens, 0343). Columns are added by migration 0348.
 
 import "server-only";
-import { createHash } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { nanoid } from "nanoid";
 
 export const GRACE_DAYS = 7;
@@ -39,6 +39,12 @@ export function hashToken(token: string): string {
 
 export function newToken(): string {
   return nanoid(32);
+}
+
+/** Constant-time compare of two hex digests (length mismatch → false). */
+export function hashesEqual(a: string | null | undefined, b: string): boolean {
+  if (typeof a !== "string" || a.length !== b.length) return false;
+  return timingSafeEqual(Buffer.from(a, "utf8"), Buffer.from(b, "utf8"));
 }
 
 export function scheduledFor(requestedAt: Date | string, graceDays = GRACE_DAYS): Date {
@@ -105,7 +111,7 @@ export async function consumeReauthToken(db: DeletionDb, userId: string, token: 
     .eq("id", userId)
     .maybeSingle();
   if (error) return "error";
-  if (!data?.deletion_reauth_token_hash || data.deletion_reauth_token_hash !== hashToken(token)) return "invalid";
+  if (!hashesEqual(data?.deletion_reauth_token_hash as string | null | undefined, hashToken(token))) return "invalid";
   const storedHash = data.deletion_reauth_token_hash as string;
   const exp = data.deletion_reauth_expires_at ? new Date(data.deletion_reauth_expires_at as string).getTime() : 0;
   // Burn the token first (single use), then judge expiry.
