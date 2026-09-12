@@ -14,6 +14,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { sealToken } from "@/lib/oauth-token-seal";
 import { findOrCreateSVIAccount } from "@/lib/projects";
 import { projectScopeOrRedirect } from "@/lib/project-members/http";
 import { oauthSessionOrRedirect } from "@/lib/project-members/oauth-session";
@@ -182,7 +183,7 @@ export async function GET(request: Request) {
               user_email: user.email,
               provider: "linkedin",
               provider_user_id: profile.sub,
-              access_token: tokenData.access_token,
+              access_token: sealToken(tokenData.access_token),
               metadata,
               connected_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),

@@ -15,6 +15,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { sealToken } from "@/lib/oauth-token-seal";
 import { auditGitHubRepo, type GitHubRepoAudit } from "@/lib/github-repo-audit";
 import { findOrCreateSVIAccount } from "@/lib/projects";
 import { projectScopeOrRedirect } from "@/lib/project-members/http";
@@ -348,7 +349,7 @@ export async function GET(request: Request) {
               user_email: user.email,
               provider: "github",
               provider_user_id: ghUser.login,
-              access_token: tokenData.access_token,
+              access_token: sealToken(tokenData.access_token),
               metadata,
               connected_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),

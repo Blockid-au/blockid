@@ -24,7 +24,11 @@ export async function GET() {
     return {
       provider,
       configured: isProviderConfigured(provider),
-      connected: Boolean(conn),
+      connected: Boolean(conn) && !conn?.tokenUnreadable,
+      // S23-A — stored token exists but cannot be opened (unsealed row
+      // refused after the key was set, or a rotated-away key): the founder
+      // must re-authorise. Never "connected" with a token we cannot use.
+      needsReconnect: Boolean(conn?.tokenUnreadable),
       id: conn?.id ?? null,
       providerAccountId: conn?.providerAccountId ?? null,
       lastSyncAt: conn?.lastSyncAt ?? null,

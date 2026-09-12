@@ -14,6 +14,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import Stripe from "stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { sealToken } from "@/lib/oauth-token-seal";
 import { findOrCreateSVIAccount } from "@/lib/projects";
 import { projectScopeOrRedirect } from "@/lib/project-members/http";
 import { oauthSessionOrRedirect } from "@/lib/project-members/oauth-session";
@@ -195,7 +196,7 @@ export async function GET(request: Request) {
         account_id: accountId,
         provider: "stripe",
         provider_user_id: stripeUserId,
-        access_token: accessToken,
+        access_token: sealToken(accessToken),
         raw_profile: JSON.stringify({
           stripe_user_id: stripeUserId,
           business_name: account.business_profile?.name,

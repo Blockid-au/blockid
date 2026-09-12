@@ -13,6 +13,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { sealToken } from "@/lib/oauth-token-seal";
 import { findOrCreateSVIAccount } from "@/lib/projects";
 import { projectScopeOrRedirect } from "@/lib/project-members/http";
 import { oauthSessionOrRedirect } from "@/lib/project-members/oauth-session";
@@ -274,8 +275,8 @@ export async function GET(request: Request) {
         account_id: accountId,
         provider: "xero",
         provider_user_id: tenantId,
-        access_token: accessToken,
-        refresh_token: tokenData.refresh_token ?? null,
+        access_token: sealToken(accessToken),
+        refresh_token: sealToken(tokenData.refresh_token ?? null),
         raw_profile: JSON.stringify({
           tenantId,
           tenantName,
