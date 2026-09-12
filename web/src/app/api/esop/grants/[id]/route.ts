@@ -17,13 +17,15 @@ export async function PATCH(
   if (!gate.ok) return gate.response;
   const user = gate.user;
 
-  // S18-A — editor+; the grant lives under the project OWNER's user_id.
+  // S18-A — editor+; the grant lives under the project OWNER's user_id AND
+  // the active project_id (review P1-1: a foreign-project id → 404).
   const { scope, denied } = await projectScopeOrDeny("editor");
   if (denied) return denied;
   const ownerUserId = scope?.ownerUserId ?? user.id;
+  const projectId = scope?.projectId ?? null;
 
   const { id } = await params;
-  const existing = await getGrant(id, ownerUserId);
+  const existing = await getGrant(id, ownerUserId, projectId);
   if (!existing) {
     return NextResponse.json({ ok: false, error: "Grant not found" }, { status: 404 });
   }
@@ -41,7 +43,7 @@ export async function PATCH(
     );
   }
 
-  const ok = await updateGrantStatus(id, ownerUserId, b.status);
+  const ok = await updateGrantStatus(id, ownerUserId, b.status, projectId);
   if (!ok) {
     return NextResponse.json(
       { ok: false, error: "Failed to update grant" },
@@ -49,7 +51,7 @@ export async function PATCH(
     );
   }
 
-  const updated = await getGrant(id, ownerUserId);
+  const updated = await getGrant(id, ownerUserId, projectId);
   return NextResponse.json({
     ok: true,
     grant: updated,
@@ -65,18 +67,20 @@ export async function DELETE(
   if (!gate.ok) return gate.response;
   const user = gate.user;
 
-  // S18-A — editor+; the grant lives under the project OWNER's user_id.
+  // S18-A — editor+; the grant lives under the project OWNER's user_id AND
+  // the active project_id (review P1-1: a foreign-project id → 404).
   const { scope, denied } = await projectScopeOrDeny("editor");
   if (denied) return denied;
   const ownerUserId = scope?.ownerUserId ?? user.id;
+  const projectId = scope?.projectId ?? null;
 
   const { id } = await params;
-  const existing = await getGrant(id, ownerUserId);
+  const existing = await getGrant(id, ownerUserId, projectId);
   if (!existing) {
     return NextResponse.json({ ok: false, error: "Grant not found" }, { status: 404 });
   }
 
-  const ok = await updateGrantStatus(id, ownerUserId, "cancelled");
+  const ok = await updateGrantStatus(id, ownerUserId, "cancelled", projectId);
   if (!ok) {
     return NextResponse.json(
       { ok: false, error: "Failed to cancel grant" },

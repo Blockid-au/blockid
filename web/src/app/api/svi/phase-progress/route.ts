@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
+import { findLatestAnalysisWithFallback } from "@/lib/projects";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { GROWTH_PHASES } from "@/lib/startup-growth-phases";
 
@@ -126,7 +127,7 @@ export async function POST(request: Request) {
   }
 
   if (action === "auto_detect") {
-    return await autoDetectProgress(supabase, accountId, projectId, dataEmail);
+    return await autoDetectProgress(supabase, accountId, projectId, dataEmail, user.email);
   }
 
   if ((action === "complete_step" || action === "uncomplete_step") && phaseId && stepId) {
@@ -202,6 +203,7 @@ async function autoDetectProgress(
   accountId: string,
   projectId: string | null,
   email: string,
+  callerEmail: string,
 ) {
   const detected: Record<string, string[]> = {};
 
@@ -213,14 +215,17 @@ async function autoDetectProgress(
 
   const criteriaMap = new Map((criteria ?? []).map(c => [c.criterion_key, c]));
 
-  // Check analyses for SVI data
-  const { data: latestAnalysis } = await supabase
-    .from("svi_analyses")
-    .select("analysis_json, total_svi")
-    .eq("email", email)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // Check analyses for SVI data — S18-A review P2-1: bounded to the ACTIVE
+  // project (`svi_analyses.project_id`, 0020) via the shared reader, so a
+  // member on project A never auto-detects from the owner's project-B
+  // analysis. The legacy (null-project) fallback stays owner-only
+  // (`callerEmail` must equal the data email).
+  const latestAnalysis = (await findLatestAnalysisWithFallback(
+    email,
+    projectId,
+    "analysis_json, total_svi",
+    { callerEmail },
+  )) as { analysis_json?: unknown; total_svi?: number } | null;
 
   const svi = latestAnalysis?.total_svi ?? 0;
   const hasData = (key: string) => {

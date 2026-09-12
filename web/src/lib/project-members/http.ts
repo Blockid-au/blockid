@@ -9,7 +9,7 @@
 // that mock `@/lib/projects` do not have to re-export the error class.
 
 import { NextResponse } from "next/server";
-import { getProjectScope } from "@/lib/projects";
+import { assertProjectScope, getProjectScope } from "@/lib/projects";
 import type { ProjectMemberRole, ProjectScope } from "@/lib/projects";
 
 type AccessCode = "not_found" | "forbidden" | "service_unavailable";
@@ -111,6 +111,33 @@ export async function projectScopeOrDeny(
 > {
   try {
     const scope = await getProjectScope(minRole);
+    return { scope, denied: null };
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return { scope: null, denied };
+    throw err;
+  }
+}
+
+/**
+ * S18-A review P2-2 — `projectScopeOrDeny` for routes that also accept an
+ * EXPLICIT project id (`?projectId=` / `body.projectId`). An explicit id is
+ * verified with `assertProjectScope` (404 non-member, 403 below `minRole`)
+ * instead of being trusted; without one the cookie project resolves as
+ * usual (`scope` null when the caller has no project).
+ */
+export async function projectScopeOrDenyFor(
+  user: { id: string; email: string },
+  explicitProjectId: string | null | undefined,
+  minRole: ProjectMemberRole,
+): Promise<
+  | { scope: ProjectScope | null; denied: null }
+  | { scope: null; denied: NextResponse }
+> {
+  try {
+    const scope = explicitProjectId
+      ? await assertProjectScope(user, explicitProjectId, minRole)
+      : await getProjectScope(minRole);
     return { scope, denied: null };
   } catch (err) {
     const denied = projectAccessResponse(err);

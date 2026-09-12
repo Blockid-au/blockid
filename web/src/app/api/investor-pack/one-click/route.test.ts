@@ -41,14 +41,30 @@ vi.mock("@/lib/credits", () => ({
 
 // ── Mock getSupabaseAdmin ────────────────────────────────────────────────────
 const insertMock = vi.fn().mockResolvedValue({ error: null });
-const supabaseFromMock = vi.fn(() => ({
-  select: vi.fn().mockReturnThis(),
-  insert: insertMock,
-  eq: vi.fn().mockReturnThis(),
-  order: vi.fn().mockReturnThis(),
-  limit: vi.fn().mockReturnThis(),
-  maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-}));
+// Every `.from(table)` chain is recorded so a test can pin the filters a
+// specific table read used (S18-A review P2-1: svi_accounts must be bounded
+// by project_id, not just user_id).
+const chains: Array<{ table: string; eq: Array<[string, unknown]>; is: Array<[string, unknown]> }> = [];
+const supabaseFromMock = vi.fn((table: string) => {
+  const rec = { table, eq: [] as Array<[string, unknown]>, is: [] as Array<[string, unknown]> };
+  chains.push(rec);
+  const chain = {
+    select: vi.fn().mockReturnThis(),
+    insert: insertMock,
+    eq: vi.fn(function (this: unknown, col: string, val: unknown) {
+      rec.eq.push([col, val]);
+      return this;
+    }),
+    is: vi.fn(function (this: unknown, col: string, val: unknown) {
+      rec.is.push([col, val]);
+      return this;
+    }),
+    order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+  };
+  return chain;
+});
 const getSupabaseAdminMock = vi.fn(() => ({
   from: supabaseFromMock,
 }));
@@ -162,5 +178,55 @@ describe("POST /api/investor-pack/one-click — S18-A member access", () => {
     expect(res.status).toBe(200);
     expect(renderInvestorPackMock).toHaveBeenCalledOnce();
     expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ user_id: "user-growth", project_id: "proj-1" }));
+  });
+});
+
+// S18-A review P2-1 — the exit-strategy block resolves the founder's
+// svi_accounts row; it must be the ACTIVE project's row (or the legacy
+// null-project row), never "the owner's latest account across projects".
+describe("POST /api/investor-pack/one-click — S18-A review P2-1 svi_accounts bounded by project", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    chains.length = 0;
+    renderInvestorPackMock.mockResolvedValue(Buffer.from("%PDF-1.4 test"));
+    insertMock.mockResolvedValue({ error: null });
+    getCurrentUserMock.mockResolvedValue({ id: "user-growth", email: "growth@example.com" });
+    canAffordMock.mockResolvedValue({ allowed: true, balance: 50, cost: 5 });
+  });
+  afterEach(() => {
+    scopeRole.value = "owner";
+  });
+
+  function sviAccountsChain() {
+    const c = chains.find((x) => x.table === "svi_accounts");
+    expect(c).toBeDefined();
+    return c!;
+  }
+
+  it("owner on project A: svi_accounts filtered on user_id AND project_id = A", async () => {
+    getProjectIdFromRequestMock.mockResolvedValue("proj-A");
+    const res = await POST(new Request("http://localhost/api/investor-pack/one-click", { method: "POST" }));
+    expect(res.status).toBe(200);
+    const c = sviAccountsChain();
+    expect(c.eq).toEqual([["user_id", "user-growth"], ["project_id", "proj-A"]]);
+    expect(c.is).toEqual([]);
+  });
+
+  it("editor on the owner's project A: svi_accounts keyed on the OWNER's user_id + project A (never B)", async () => {
+    scopeRole.value = "editor";
+    getProjectIdFromRequestMock.mockResolvedValue("proj-A");
+    const res = await POST(new Request("http://localhost/api/investor-pack/one-click", { method: "POST" }));
+    expect(res.status).toBe(200);
+    const c = sviAccountsChain();
+    expect(c.eq).toEqual([["user_id", "owner-1"], ["project_id", "proj-A"]]);
+  });
+
+  it("no active project: legacy row only (.is('project_id', null))", async () => {
+    getProjectIdFromRequestMock.mockResolvedValue(null);
+    const res = await POST(new Request("http://localhost/api/investor-pack/one-click", { method: "POST" }));
+    expect(res.status).toBe(200);
+    const c = sviAccountsChain();
+    expect(c.eq).toEqual([["user_id", "user-growth"]]);
+    expect(c.is).toEqual([["project_id", null]]);
   });
 });

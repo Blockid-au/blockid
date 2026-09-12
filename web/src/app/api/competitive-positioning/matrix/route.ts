@@ -5,7 +5,7 @@ import {
   computeMpcBoostFromCompetitiveAnalysis,
   computeSvmBoostFromCompetitiveDifferentiation,
 } from "@/lib/competitive-positioning";
-import { getActiveProjectIdOrNull } from "@/lib/founder-features";
+import { projectScopeOrDenyFor } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -15,9 +15,14 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, reason: "Authentication required" }, { status: 401 });
   }
 
+  // S18-A review P2-2 — viewer+ read. An explicit `?projectId=` is verified
+  // (404 non-member) rather than trusted; the rows are keyed on the project
+  // OWNER's user id so a member reads the same matrix as the owner.
   const { searchParams } = new URL(request.url);
-  const projectIdParam = searchParams.get("projectId");
-  const projectId = projectIdParam ?? (await getActiveProjectIdOrNull());
+  const { scope, denied } = await projectScopeOrDenyFor(user, searchParams.get("projectId"), "viewer");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const dataUser = scope ? { ...user, id: scope.ownerUserId } : user;
 
   if (!projectId) {
     return NextResponse.json({
@@ -37,7 +42,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const context = await getCompetitivePositioningContext(user, projectId);
+    const context = await getCompetitivePositioningContext(dataUser, projectId);
 
     const mpcBoost = computeMpcBoostFromCompetitiveAnalysis(
       context.competitors_analyzed,

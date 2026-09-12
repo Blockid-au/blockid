@@ -455,14 +455,14 @@ describe("esop-grants — getGrant", () => {
   it("returns null when supabase admin is not configured", async () => {
     const { getGrant } = await import("./esop-grants");
     state.adminConfigured = false;
-    const g = await getGrant("g1", "u1");
+    const g = await getGrant("g1", "u1", null);
     expect(g).toBeNull();
   });
 
   it("filters by id AND user_id (ownership guard) via maybeSingle", async () => {
     const { getGrant } = await import("./esop-grants");
     state.data = null;
-    await getGrant("g1", "u1");
+    await getGrant("g1", "u1", null);
     expect(state.captured.from).toBe("esop_option_grants");
     expect(state.captured.terminal).toBe("maybeSingle");
     expect(state.captured.eqCalls).toEqual([
@@ -474,14 +474,14 @@ describe("esop-grants — getGrant", () => {
   it("returns null when the row is missing (no error)", async () => {
     const { getGrant } = await import("./esop-grants");
     state.data = null;
-    const g = await getGrant("g1", "u1");
+    const g = await getGrant("g1", "u1", null);
     expect(g).toBeNull();
   });
 
   it("returns null + logs when supabase errors", async () => {
     const { getGrant } = await import("./esop-grants");
     state.error = { message: "db-down" };
-    const g = await getGrant("g1", "u1");
+    const g = await getGrant("g1", "u1", null);
     expect(g).toBeNull();
     expect(errorSpy).toHaveBeenCalledWith(
       "[esop-grants] getGrant failed",
@@ -509,7 +509,7 @@ describe("esop-grants — getGrant", () => {
       created_at: "x",
       updated_at: "x",
     };
-    const g = await getGrant("g9", "u1");
+    const g = await getGrant("g9", "u1", null);
     expect(g).not.toBeNull();
     expect(g!.id).toBe("g9");
     expect(g!.sharesUnderOption).toBe(9999);
@@ -524,7 +524,7 @@ describe("esop-grants — updateGrantStatus", () => {
     const { updateGrantStatus } = await import("./esop-grants");
     // TS-level rejection is bypassed here to prove the runtime guard actually
     // fires — critical because callers may pass user-typed strings.
-    const ok = await updateGrantStatus("g1", "u1", "revoked" as never);
+    const ok = await updateGrantStatus("g1", "u1", "revoked" as never, null);
     expect(ok).toBe(false);
     expect(state.captured.from).toBeNull();
     expect(state.captured.updatePayload).toBeNull();
@@ -533,7 +533,7 @@ describe("esop-grants — updateGrantStatus", () => {
   it("returns false when supabase admin is not configured (after status guard)", async () => {
     const { updateGrantStatus } = await import("./esop-grants");
     state.adminConfigured = false;
-    const ok = await updateGrantStatus("g1", "u1", "active");
+    const ok = await updateGrantStatus("g1", "u1", "active", null);
     expect(ok).toBe(false);
   });
 
@@ -541,7 +541,7 @@ describe("esop-grants — updateGrantStatus", () => {
     const { updateGrantStatus } = await import("./esop-grants");
     state.error = null;
     const before = Date.now();
-    const ok = await updateGrantStatus("g1", "u1", "exercised");
+    const ok = await updateGrantStatus("g1", "u1", "exercised", null);
     const after = Date.now();
     expect(ok).toBe(true);
     expect(state.captured.from).toBe("esop_option_grants");
@@ -560,7 +560,7 @@ describe("esop-grants — updateGrantStatus", () => {
   it("returns false + logs when supabase update errors", async () => {
     const { updateGrantStatus } = await import("./esop-grants");
     state.error = { message: "rls-denied" };
-    const ok = await updateGrantStatus("g1", "u1", "cancelled");
+    const ok = await updateGrantStatus("g1", "u1", "cancelled", null);
     expect(ok).toBe(false);
     expect(errorSpy).toHaveBeenCalledWith(
       "[esop-grants] updateGrantStatus failed",
@@ -573,7 +573,7 @@ describe("esop-grants — updateGrantStatus", () => {
     for (const s of ["active", "exercised", "lapsed", "cancelled"] as const) {
       state.captured = freshCaptured();
       state.error = null;
-      const ok = await updateGrantStatus("g1", "u1", s);
+      const ok = await updateGrantStatus("g1", "u1", s, null);
       expect(ok).toBe(true);
       expect(state.captured.updatePayload!.status).toBe(s);
     }
@@ -584,7 +584,7 @@ describe("esop-grants — updateDiv83AStatus", () => {
   it("returns false when supabase admin is not configured", async () => {
     const { updateDiv83AStatus } = await import("./esop-grants");
     state.adminConfigured = false;
-    const ok = await updateDiv83AStatus("g1", "u1", "eligible");
+    const ok = await updateDiv83AStatus("g1", "u1", "eligible", null);
     expect(ok).toBe(false);
   });
 
@@ -592,7 +592,7 @@ describe("esop-grants — updateDiv83AStatus", () => {
     const { updateDiv83AStatus } = await import("./esop-grants");
     state.error = null;
     const before = Date.now();
-    const ok = await updateDiv83AStatus("g1", "u1", "eligible");
+    const ok = await updateDiv83AStatus("g1", "u1", "eligible", null);
     const after = Date.now();
     expect(ok).toBe(true);
     expect(state.captured.from).toBe("esop_option_grants");
@@ -617,7 +617,7 @@ describe("esop-grants — updateDiv83AStatus", () => {
     for (const s of ["eligible", "ineligible", "unsure"] as const) {
       state.captured = freshCaptured();
       state.error = null;
-      const ok = await updateDiv83AStatus("g1", "u1", s);
+      const ok = await updateDiv83AStatus("g1", "u1", s, null);
       expect(ok).toBe(true);
       expect(state.captured.updatePayload!.div83a_status).toBe(s);
     }
@@ -626,7 +626,7 @@ describe("esop-grants — updateDiv83AStatus", () => {
   it("returns false + logs when supabase update errors", async () => {
     const { updateDiv83AStatus } = await import("./esop-grants");
     state.error = { message: "constraint-violation" };
-    const ok = await updateDiv83AStatus("g1", "u1", "ineligible");
+    const ok = await updateDiv83AStatus("g1", "u1", "ineligible", null);
     expect(ok).toBe(false);
     expect(errorSpy).toHaveBeenCalledWith(
       "[esop-grants] updateDiv83AStatus failed",
@@ -653,5 +653,71 @@ describe("esop-grants — isValidStatus type guard", () => {
     expect(isValidStatus(undefined)).toBe(false);
     expect(isValidStatus(0)).toBe(false);
     expect(isValidStatus({})).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// S18-A review P1-1 — single-row paths carry the PROJECT boundary, mirroring
+// listGrants: `.eq("project_id", pid)` when a project resolves,
+// `.is("project_id", null)` (legacy rows only) when it does not. A member on
+// project A holding a grant id from the owner's project B gets null / no-op.
+// ---------------------------------------------------------------------------
+
+describe("esop-grants — S18-A P1-1 project boundary on single-row paths", () => {
+  it("getGrant(pid) filters by id + user_id + project_id (never .is)", async () => {
+    const { getGrant } = await import("./esop-grants");
+    state.data = null;
+    await getGrant("g1", "u1", "proj-A");
+    expect(state.captured.eqCalls).toEqual([
+      { col: "id", val: "g1" },
+      { col: "user_id", val: "u1" },
+      { col: "project_id", val: "proj-A" },
+    ]);
+    expect(state.captured.isCalls).toEqual([]);
+    expect(state.captured.terminal).toBe("maybeSingle");
+  });
+
+  it("getGrant(null) filters legacy rows only via .is('project_id', null)", async () => {
+    const { getGrant } = await import("./esop-grants");
+    await getGrant("g1", "u1", null);
+    expect(state.captured.eqCalls).toEqual([
+      { col: "id", val: "g1" },
+      { col: "user_id", val: "u1" },
+    ]);
+    expect(state.captured.isCalls).toEqual([{ col: "project_id", val: null }]);
+  });
+
+  it("getGrant: a foreign-project row (query returns null under the A filter) → null", async () => {
+    const { getGrant } = await import("./esop-grants");
+    state.data = null; // the B row does not satisfy project_id = A
+    const g = await getGrant("g-in-B", "owner-1", "proj-A");
+    expect(g).toBeNull();
+    expect(state.captured.eqCalls).toContainEqual({ col: "project_id", val: "proj-A" });
+  });
+
+  it("updateGrantStatus(pid) scopes the UPDATE by id + user_id + project_id", async () => {
+    const { updateGrantStatus } = await import("./esop-grants");
+    const ok = await updateGrantStatus("g1", "u1", "lapsed", "proj-A");
+    expect(ok).toBe(true);
+    expect(state.captured.eqCalls).toEqual([
+      { col: "id", val: "g1" },
+      { col: "user_id", val: "u1" },
+      { col: "project_id", val: "proj-A" },
+    ]);
+    expect(state.captured.isCalls).toEqual([]);
+  });
+
+  it("updateGrantStatus(null) scopes the UPDATE to legacy rows via .is('project_id', null)", async () => {
+    const { updateGrantStatus } = await import("./esop-grants");
+    await updateGrantStatus("g1", "u1", "lapsed", null);
+    expect(state.captured.isCalls).toEqual([{ col: "project_id", val: null }]);
+  });
+
+  it("updateDiv83AStatus(pid) scopes the UPDATE by id + user_id + project_id", async () => {
+    const { updateDiv83AStatus } = await import("./esop-grants");
+    const ok = await updateDiv83AStatus("g1", "u1", "eligible", "proj-A");
+    expect(ok).toBe(true);
+    expect(state.captured.eqCalls).toContainEqual({ col: "project_id", val: "proj-A" });
+    expect(state.captured.isCalls).toEqual([]);
   });
 });

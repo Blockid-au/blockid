@@ -1,7 +1,9 @@
 // Colocated tests for POST/GET /api/valuation/clevel — S18-A member access.
 //
-// The route inserts a valuation snapshot on the project's svi_accounts row,
-// so it is editor+. The record is the OWNER's on a shared project.
+// POST inserts a valuation snapshot on the project's svi_accounts row, so it
+// is editor+. GET (S18-A review P2-5) is a viewer+ READ-ONLY compute — same
+// numbers, no snapshot insert — so a viewer can see the valuation. The
+// record is the OWNER's on a shared project either way.
 //
 // IDOR fix pinned here: `body.email` used to be honoured as the lookup key,
 // letting ANY signed-in user read another founder's SVI record and write a
@@ -97,9 +99,9 @@ describe("POST /api/valuation/clevel — body.email override removed", () => {
     expect(call.projectId).toBeNull();
   });
 
-  it("viewer: 403 before any read or snapshot insert (GET alias included)", async () => {
+  it("viewer: POST → 403 before any read or snapshot insert", async () => {
     scopeState.role = "viewer";
-    const res = await GET(post({ email: "victim@x.test" }));
+    const res = await POST(post({ email: "victim@x.test" }));
     expect(res.status).toBe(403);
     expect(keyCalls(scopeState, "findSVIAccountWithFallback")).toEqual([]);
     expect(db.sb!.calls).toEqual([]);
@@ -108,5 +110,60 @@ describe("POST /api/valuation/clevel — body.email override removed", () => {
   it("401 when unauthenticated", async () => {
     auth.user = null;
     expect((await POST(post())).status).toBe(401);
+  });
+});
+
+// S18-A review P2-5 — GET is a viewer+ read-only compute.
+function get() {
+  return new Request("http://x/api/valuation/clevel", { method: "GET" }) as unknown as NextRequest;
+}
+
+describeMemberAccess("GET /api/valuation/clevel", {
+  state: scopeState,
+  kind: "read",
+  reset,
+  run: () => GET(get()),
+  expectKeyFns: ["findSVIAccountWithFallback"],
+});
+
+describe("GET /api/valuation/clevel — viewer read-only compute (S18-A P2-5)", () => {
+  it("viewer on a shared project: 200 with the valuation, computed on the OWNER's record, NO svi_snapshots insert", async () => {
+    scopeState.role = "viewer";
+    const res = await GET(get());
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; valuation: unknown; persisted: boolean };
+    expect(body.ok).toBe(true);
+    expect(body.valuation).toBeTruthy();
+    expect(body.persisted).toBe(false);
+    const [call] = keyCalls(scopeState, "findSVIAccountWithFallback");
+    expect(call.email).toBe("owner@x.test");
+    expect(call.projectId).toBe("proj-1");
+    expect(call.opts).toEqual({ callerEmail: "caller@x.test" });
+    expect(db.sb!.find("svi_snapshots", "insert")).toEqual([]);
+    expect(scopeState.lastMinRole).toBe("viewer");
+  });
+
+  it("owner: GET never inserts a snapshot either (reads svi_analyses + startup_metrics only)", async () => {
+    const res = await GET(get());
+    expect(res.status).toBe(200);
+    expect(db.sb!.find("svi_snapshots", "insert")).toEqual([]);
+    expect(db.sb!.calls.some((c) => c.table === "svi_analyses")).toBe(true);
+    expect(db.sb!.calls.some((c) => c.table === "startup_metrics")).toBe(true);
+  });
+
+  it("POST (editor) still inserts the snapshot — the write path is unchanged", async () => {
+    scopeState.role = "editor";
+    const res = await POST(post());
+    expect(res.status).toBe(200);
+    expect(db.sb!.find("svi_snapshots", "insert")).toHaveLength(1);
+    expect(scopeState.lastMinRole).toBe("editor");
+  });
+
+  it("GET 401 when unauthenticated; 503 without a DB", async () => {
+    auth.user = null;
+    expect((await GET(get())).status).toBe(401);
+    auth.user = { id: "user-caller", email: "caller@x.test" };
+    db.sb = null;
+    expect((await GET(get())).status).toBe(503);
   });
 });

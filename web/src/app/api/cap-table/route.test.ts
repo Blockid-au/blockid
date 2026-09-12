@@ -17,6 +17,10 @@
 //   - dropping the `.eq("account_id", user.id)` on the ownership pre-check
 //     for issue_shares / update_shareholder / DELETE — the final UPDATE /
 //     DELETE only filters by id, so the pre-check IS the tenancy boundary;
+//   - dropping the project boundary on that same pre-check (S18-A review
+//     P1-1) — `.eq("project_id", scope.projectId)` when a project resolves,
+//     `.is("project_id", null)` for an owner with no active project — so an
+//     editor on project A could mutate the owner's project-B rows by id;
 //   - dropping the auth gate on POST or DELETE (a caller could seed / mutate
 //     / delete another founder's register by guessing a shareholder id);
 //   - dropping the `data.pricePerShare != null` guard on the share_transactions
@@ -34,8 +38,10 @@
 //   - dropping the `!== null` guard on the update_shareholder payload
 //     assembly so a caller with `{email:null}` blanks the row's email
 //     instead of no-oping;
-//   - swapping the `esop_pool` upsert `onConflict:"account_id"` so a founder
-//     ends up with N esop_pool rows per project;
+//   - swapping the `esop_pool` upsert `onConflict:"account_id,project_id"`
+//     (S18-A review P2-4 / migration 0334) — back to `account_id` alone and
+//     the second project's setup overwrites + relabels the first project's
+//     pool; dropped entirely and a founder ends up with N rows per project;
 //   - dropping the transaction-cascade DELETE on share_transactions so
 //     removing a shareholder leaves orphan transaction rows;
 //   - regressing the fully-diluted % rounding — 4dp regressions would
@@ -92,6 +98,7 @@ interface ChainRecord {
   upsertOpts: Record<string, unknown> | undefined;
   selectCols: string | undefined;
   eqCalls: Array<{ col: string; val: unknown }>;
+  isCalls: Array<{ col: string; val: unknown }>;
   orderCalls: Array<{ col: string; opts: Record<string, unknown> | undefined }>;
   orCalls: string[];
   singleCalled: boolean;
@@ -133,6 +140,7 @@ function makeFakeSupabase() {
         upsertOpts: undefined,
         selectCols: undefined,
         eqCalls: [],
+        isCalls: [],
         orderCalls: [],
         orCalls: [],
         singleCalled: false,
@@ -169,6 +177,10 @@ function makeFakeSupabase() {
         },
         eq(col: string, val: unknown) {
           chain.eqCalls.push({ col, val });
+          return api;
+        },
+        is(col: string, val: unknown) {
+          chain.isCalls.push({ col, val });
           return api;
         },
         or(filter: string) {
@@ -957,14 +969,14 @@ describe("POST /api/cap-table action=setup_esop", () => {
     expect(res.status).toBe(400);
   });
 
-  it("upserts esop_pool with onConflict:'account_id' so a re-setup replaces the founder's row (no duplicates)", async () => {
+  it("upserts esop_pool with onConflict:'account_id,project_id' so a re-setup replaces THIS project's row only (0334)", async () => {
     queue({ data: { id: "pool-1" }, error: null });
     await POST(
       makeReq({ action: "setup_esop", data: { totalPoolShares: 500_000, poolPct: 12 } }),
     );
     const c = findChain("esop_pool", "upsert");
     expect(c).toBeDefined();
-    expect(c?.upsertOpts).toEqual({ onConflict: "account_id" });
+    expect(c?.upsertOpts).toEqual({ onConflict: "account_id,project_id" });
     expect(c?.payload).toEqual({
       account_id: "user-1",
       project_id: null,
@@ -1284,5 +1296,141 @@ describe("S18-A member access", () => {
     expect(res.status).toBe(200);
     const pre = findChain("shareholders", "select");
     expect(pre?.eqCalls.find((e) => e.col === "account_id")?.val).toBe("owner-1");
+  });
+});
+
+// ===========================================================================
+// S18-A review P1-1 — id-keyed mutations are bounded by project_id, not just
+// the owner's account_id. An editor on project A holding a shareholder id
+// from the owner's project B must 404 (pre-check misses) and nothing is
+// written. An owner with no active project only reaches legacy
+// (project_id IS NULL) rows.
+// ===========================================================================
+
+describe("S18-A review P1-1 — project boundary on id-keyed mutations", () => {
+  afterEach(() => {
+    scopeRole.value = "owner";
+  });
+
+  it("issue_shares as editor on A: pre-check carries .eq('project_id', A); a foreign-project row → 404, no UPDATE, no tx insert", async () => {
+    getProjectIdFromRequestMock.mockResolvedValue("proj-A");
+    scopeRole.value = "editor";
+    queue({ data: null, error: null }); // the B row does not match project A
+    const res = await POST(
+      makeReq({ action: "issue_shares", data: { shareholderId: "sh-in-B", shareClassId: "cls-1", shares: 5 } }),
+    );
+    expect(res.status).toBe(404);
+    const pre = findChain("shareholders", "select");
+    expect(pre?.eqCalls).toEqual(
+      expect.arrayContaining([
+        { col: "id", val: "sh-in-B" },
+        { col: "account_id", val: "owner-1" },
+        { col: "project_id", val: "proj-A" },
+      ]),
+    );
+    expect(pre?.isCalls).toEqual([]);
+    expect(findChain("shareholders", "update")).toBeUndefined();
+    expect(findChain("share_transactions")).toBeUndefined();
+  });
+
+  it("update_shareholder as editor on A: foreign-project row → 404, no UPDATE", async () => {
+    getProjectIdFromRequestMock.mockResolvedValue("proj-A");
+    scopeRole.value = "editor";
+    queue({ data: null, error: null });
+    const res = await POST(
+      makeReq({ action: "update_shareholder", data: { shareholderId: "sh-in-B", name: "Renamed" } }),
+    );
+    expect(res.status).toBe(404);
+    const pre = findChain("shareholders", "select");
+    expect(pre?.eqCalls.find((e) => e.col === "project_id")?.val).toBe("proj-A");
+    expect(findChain("shareholders", "update")).toBeUndefined();
+  });
+
+  it("DELETE as editor on A: foreign-project row → 404, no cascade, no delete", async () => {
+    getProjectIdFromRequestMock.mockResolvedValue("proj-A");
+    scopeRole.value = "editor";
+    queue({ data: null, error: null });
+    const res = await DELETE(makeReq({ shareholderId: "sh-in-B" }, "DELETE"));
+    expect(res.status).toBe(404);
+    const pre = findChain("shareholders", "select");
+    expect(pre?.eqCalls.find((e) => e.col === "project_id")?.val).toBe("proj-A");
+    expect(findChain("share_transactions")).toBeUndefined();
+    expect(findChain("shareholders", "delete")).toBeUndefined();
+  });
+
+  it("owner on the same project: pre-check carries the project_id and the mutation proceeds", async () => {
+    getProjectIdFromRequestMock.mockResolvedValue("proj-A");
+    queue({ data: { id: "sh-1", shares_held: 10 }, error: null }, { data: null, error: null }, { data: null, error: null });
+    const res = await POST(
+      makeReq({ action: "issue_shares", data: { shareholderId: "sh-1", shareClassId: "cls-1", shares: 5 } }),
+    );
+    expect(res.status).toBe(200);
+    const pre = findChain("shareholders", "select");
+    expect(pre?.eqCalls.find((e) => e.col === "project_id")?.val).toBe("proj-A");
+    expect(findChain("shareholders", "update")).toBeDefined();
+  });
+
+  it("owner with NO active project: pre-check uses .is('project_id', null) (legacy rows only) on issue_shares / update_shareholder / DELETE", async () => {
+    getProjectIdFromRequestMock.mockResolvedValue(null);
+
+    queue({ data: null, error: null });
+    await POST(makeReq({ action: "issue_shares", data: { shareholderId: "sh-1", shareClassId: "cls-1", shares: 5 } }));
+    let pre = findChain("shareholders", "select");
+    expect(pre?.isCalls).toEqual([{ col: "project_id", val: null }]);
+    expect(pre?.eqCalls.find((e) => e.col === "project_id")).toBeUndefined();
+
+    resetState();
+    queue({ data: null, error: null });
+    await POST(makeReq({ action: "update_shareholder", data: { shareholderId: "sh-1", name: "X" } }));
+    pre = findChain("shareholders", "select");
+    expect(pre?.isCalls).toEqual([{ col: "project_id", val: null }]);
+
+    resetState();
+    queue({ data: null, error: null });
+    await DELETE(makeReq({ shareholderId: "sh-1" }, "DELETE"));
+    pre = findChain("shareholders", "select");
+    expect(pre?.isCalls).toEqual([{ col: "project_id", val: null }]);
+  });
+});
+
+// ===========================================================================
+// S18-A review P2-4 — esop_pool is one-per-(account, project), not
+// one-per-account: setting up project B's pool must not overwrite A's.
+// ===========================================================================
+
+describe("S18-A review P2-4 — esop_pool per project", () => {
+  afterEach(() => {
+    scopeRole.value = "owner";
+  });
+
+  it("owner on project B: the upsert is keyed on (account_id, project_id) and stamps B — A's row is a different conflict target", async () => {
+    getProjectIdFromRequestMock.mockResolvedValue("proj-B");
+    queue({ data: { id: "pool-B" }, error: null });
+    const res = await POST(makeReq({ action: "setup_esop", data: { totalPoolShares: 100_000 } }));
+    expect(res.status).toBe(201);
+    const c = findChain("esop_pool", "upsert");
+    expect(c?.upsertOpts).toEqual({ onConflict: "account_id,project_id" });
+    expect(c?.payload).toMatchObject({ account_id: "user-1", project_id: "proj-B" });
+  });
+
+  it("editor on the owner's project A: pool stamped with the OWNER's account_id + project A, same composite conflict target", async () => {
+    scopeRole.value = "editor";
+    getProjectIdFromRequestMock.mockResolvedValue("proj-A");
+    queue({ data: { id: "pool-A" }, error: null });
+    const res = await POST(makeReq({ action: "setup_esop", data: { totalPoolShares: 100_000 } }));
+    expect(res.status).toBe(201);
+    const c = findChain("esop_pool", "upsert");
+    expect(c?.upsertOpts).toEqual({ onConflict: "account_id,project_id" });
+    expect(c?.payload).toMatchObject({ account_id: "owner-1", project_id: "proj-A" });
+  });
+
+  it("owner with no active project: legacy row (project_id null) still upserts on the same composite key (NULLS NOT DISTINCT)", async () => {
+    getProjectIdFromRequestMock.mockResolvedValue(null);
+    queue({ data: { id: "pool-legacy" }, error: null });
+    const res = await POST(makeReq({ action: "setup_esop", data: { totalPoolShares: 100_000 } }));
+    expect(res.status).toBe(201);
+    const c = findChain("esop_pool", "upsert");
+    expect(c?.upsertOpts).toEqual({ onConflict: "account_id,project_id" });
+    expect(c?.payload).toMatchObject({ account_id: "user-1", project_id: null });
   });
 });

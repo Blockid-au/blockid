@@ -104,18 +104,39 @@ describe("/api/esop/grants/[id] — member access", () => {
     expect(grants.get).not.toHaveBeenCalled();
   });
 
-  it("editor: grant looked up + updated under the OWNER's user_id", async () => {
+  it("editor: grant looked up + updated under the OWNER's user_id AND the active project_id", async () => {
     scopeState.role = "editor";
     const res = await PATCH(post({ status: "lapsed" }), ctx);
     expect(res.status).toBe(200);
-    expect(grants.get).toHaveBeenCalledWith("g-1", "user-owner");
-    expect(grants.updateStatus).toHaveBeenCalledWith("g-1", "user-owner", "lapsed");
+    expect(grants.get).toHaveBeenCalledWith("g-1", "user-owner", "proj-1");
+    expect(grants.updateStatus).toHaveBeenCalledWith("g-1", "user-owner", "lapsed", "proj-1");
     await DELETE(post(), ctx);
-    expect(grants.updateStatus).toHaveBeenCalledWith("g-1", "user-owner", "cancelled");
+    expect(grants.updateStatus).toHaveBeenCalledWith("g-1", "user-owner", "cancelled", "proj-1");
   });
 
-  it("owner: keyed on the owner's own id", async () => {
+  it("owner: keyed on the owner's own id + project", async () => {
     await PATCH(post({ status: "exercised" }), ctx);
-    expect(grants.get).toHaveBeenCalledWith("g-1", "user-caller");
+    expect(grants.get).toHaveBeenCalledWith("g-1", "user-caller", "proj-1");
+  });
+
+  it("owner with no active project: legacy (null project) key", async () => {
+    scopeState.projectId = null;
+    await PATCH(post({ status: "exercised" }), ctx);
+    expect(grants.get).toHaveBeenCalledWith("g-1", "user-caller", null);
+    expect(grants.updateStatus).toHaveBeenCalledWith("g-1", "user-caller", "exercised", null);
+  });
+
+  // S18-A review P1-1 — a grant id from the owner's OTHER project resolves
+  // null under the active project's boundary → 404, no status write.
+  it("editor on project A with a grant id from project B: 404 on PATCH + DELETE, no update", async () => {
+    scopeState.role = "editor";
+    scopeState.projectId = "proj-A";
+    grants.get.mockResolvedValue(null);
+    const patched = await PATCH(post({ status: "lapsed" }), { params: Promise.resolve({ id: "g-in-B" }) });
+    expect(patched.status).toBe(404);
+    const deleted = await DELETE(post(), { params: Promise.resolve({ id: "g-in-B" }) });
+    expect(deleted.status).toBe(404);
+    expect(grants.get).toHaveBeenCalledWith("g-in-B", "user-owner", "proj-A");
+    expect(grants.updateStatus).not.toHaveBeenCalled();
   });
 });

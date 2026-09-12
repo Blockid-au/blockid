@@ -23,6 +23,85 @@ export const dynamic = "force-dynamic";
 // Returns: { ok, valuation: CLevelValuationResult }
 // ---------------------------------------------------------------------------
 
+// S18-A review P2-5 — the compute is shared; only POST persists a snapshot.
+async function assembleValuation(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  user: { id: string; email: string },
+  scope: { projectId: string; dataEmail: string } | null,
+  body: Partial<CLevelValuationInput>,
+) {
+  const projectId = scope?.projectId ?? null;
+  const targetEmail = scope?.dataEmail ?? user.email ?? "";
+  const account = await findSVIAccountWithFallback(targetEmail, projectId, undefined, {
+    callerEmail: user.email,
+  });
+
+  // Pull latest SVI analysis for dimension scores
+  let dimensions = body.dimensions;
+  let sviScore = body.sviScore;
+  let stage = body.stage;
+
+  if (!dimensions || sviScore == null || stage == null) {
+    const { data: latestAnalysis } = await supabase
+      .from("svi_analyses")
+      .select("svi_score, stage, dimensions")
+      .eq("account_id", account?.id ?? user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (latestAnalysis) {
+      sviScore  = sviScore  ?? latestAnalysis.svi_score;
+      stage     = stage     ?? latestAnalysis.stage;
+      dimensions = dimensions ?? latestAnalysis.dimensions;
+    }
+  }
+
+  // Pull latest startup metrics for revenue context
+  let mrrAud = body.mrrAud;
+  let burnRateAud = body.burnRateAud;
+  let runwayMonths = body.runwayMonths;
+  let customers = body.customers;
+
+  if (mrrAud == null || burnRateAud == null) {
+    const { data: metrics } = await supabase
+      .from("startup_metrics")
+      .select("mrr, burn_rate, runway_months, total_customers")
+      .eq("account_id", account?.id ?? user.id)
+      .order("recorded_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (metrics) {
+      mrrAud       = mrrAud       ?? metrics.mrr ?? 0;
+      burnRateAud  = burnRateAud  ?? metrics.burn_rate ?? 1057;
+      runwayMonths = runwayMonths ?? metrics.runway_months ?? 24;
+      customers    = customers    ?? metrics.total_customers ?? 0;
+    }
+  }
+
+  const input: CLevelValuationInput = {
+    name:              String(account?.startup_name ?? targetEmail),
+    email:             targetEmail,
+    sviScore:          sviScore  ?? 100,
+    stage:             stage     ?? 2,
+    dimensions:        dimensions ?? undefined,
+    mrrAud:            mrrAud        ?? 0,
+    monthlyGrowthRate: body.monthlyGrowthRate ?? 0.15,
+    churnRate:         body.churnRate         ?? 0.05,
+    arpu:              body.arpu              ?? 75,
+    burnRateAud:       burnRateAud   ?? 1057,
+    runwayMonths:      runwayMonths  ?? 24,
+    tamAud:            body.tamAud   ?? 4_000_000_000,
+    samAud:            body.samAud   ?? 400_000_000,
+    sector:            body.sector   ?? String(account?.sector ?? "SaaS"),
+    teamSize:          body.teamSize ?? 1,
+    customers:         customers     ?? 0,
+  };
+
+  return { account, input, valuation: computeCLevelValuation(input) };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -39,76 +118,8 @@ export async function POST(req: NextRequest) {
     // user read another founder's record and write a snapshot on it.
     const { scope, denied } = await projectScopeOrDeny("editor");
     if (denied) return denied;
-    const projectId = scope?.projectId ?? null;
-    const targetEmail = scope?.dataEmail ?? user.email ?? "";
-    const account = await findSVIAccountWithFallback(targetEmail, projectId, undefined, {
-      callerEmail: user.email,
-    });
 
-    // Pull latest SVI analysis for dimension scores
-    let dimensions = body.dimensions;
-    let sviScore = body.sviScore;
-    let stage = body.stage;
-
-    if (!dimensions || sviScore == null || stage == null) {
-      const { data: latestAnalysis } = await supabase
-        .from("svi_analyses")
-        .select("svi_score, stage, dimensions")
-        .eq("account_id", account?.id ?? user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-
-      if (latestAnalysis) {
-        sviScore  = sviScore  ?? latestAnalysis.svi_score;
-        stage     = stage     ?? latestAnalysis.stage;
-        dimensions = dimensions ?? latestAnalysis.dimensions;
-      }
-    }
-
-    // Pull latest startup metrics for revenue context
-    let mrrAud = body.mrrAud;
-    let burnRateAud = body.burnRateAud;
-    let runwayMonths = body.runwayMonths;
-    let customers = body.customers;
-
-    if (mrrAud == null || burnRateAud == null) {
-      const { data: metrics } = await supabase
-        .from("startup_metrics")
-        .select("mrr, burn_rate, runway_months, total_customers")
-        .eq("account_id", account?.id ?? user.id)
-        .order("recorded_at", { ascending: false })
-        .limit(1)
-        .single();
-
-      if (metrics) {
-        mrrAud       = mrrAud       ?? metrics.mrr ?? 0;
-        burnRateAud  = burnRateAud  ?? metrics.burn_rate ?? 1057;
-        runwayMonths = runwayMonths ?? metrics.runway_months ?? 24;
-        customers    = customers    ?? metrics.total_customers ?? 0;
-      }
-    }
-
-    const input: CLevelValuationInput = {
-      name:              String(account?.startup_name ?? targetEmail),
-      email:             targetEmail,
-      sviScore:          sviScore  ?? 100,
-      stage:             stage     ?? 2,
-      dimensions:        dimensions ?? undefined,
-      mrrAud:            mrrAud        ?? 0,
-      monthlyGrowthRate: body.monthlyGrowthRate ?? 0.15,
-      churnRate:         body.churnRate         ?? 0.05,
-      arpu:              body.arpu              ?? 75,
-      burnRateAud:       burnRateAud   ?? 1057,
-      runwayMonths:      runwayMonths  ?? 24,
-      tamAud:            body.tamAud   ?? 4_000_000_000,
-      samAud:            body.samAud   ?? 400_000_000,
-      sector:            body.sector   ?? String(account?.sector ?? "SaaS"),
-      teamSize:          body.teamSize ?? 1,
-      customers:         customers     ?? 0,
-    };
-
-    const valuation = computeCLevelValuation(input);
+    const { account, input, valuation } = await assembleValuation(supabase, user, scope, body);
 
     // Persist snapshot to svi_snapshots for tracking
     if (account?.id) {
@@ -133,8 +144,28 @@ export async function POST(req: NextRequest) {
 
 // ---------------------------------------------------------------------------
 // GET /api/valuation/clevel
-// Quick valuation for the calling user using latest SVI + metrics data
+// Quick valuation for the calling user using latest SVI + metrics data.
+// S18-A review P2-5 — viewer+ READ-ONLY compute: no snapshot is inserted
+// (POST stays editor+ and persists), so a viewer on a shared project can see
+// the valuation without a 403. No body is read.
 // ---------------------------------------------------------------------------
-export async function GET(req: NextRequest) {
-  return POST(req);
+export async function GET() {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
+    }
+
+    const supabase = getSupabaseAdmin();
+    if (!supabase) return NextResponse.json({ ok: false, error: "DB unavailable" }, { status: 503 });
+    const { scope, denied } = await projectScopeOrDeny("viewer");
+    if (denied) return denied;
+
+    const { valuation } = await assembleValuation(supabase, user, scope, {});
+    return NextResponse.json({ ok: true, valuation, persisted: false });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    console.error("[blockid:valuation:clevel:get]", msg);
+    return NextResponse.json({ ok: false, error: msg }, { status: 500 });
+  }
 }

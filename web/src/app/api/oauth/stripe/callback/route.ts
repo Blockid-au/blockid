@@ -16,6 +16,7 @@ import Stripe from "stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { findOrCreateSVIAccount } from "@/lib/projects";
 import { projectScopeOrRedirect } from "@/lib/project-members/http";
+import { oauthSessionOrRedirect } from "@/lib/project-members/oauth-session";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,15 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${siteUrl}/workspace/evidence?error=stripe_csrf_mismatch`);
   }
 
+  // S18-A review P1-2 — the callback runs as the SESSION user and the state
+  // email must be theirs; the no-project fallback is the session email.
+  const { user, denied: notSession } = await oauthSessionOrRedirect(
+    email,
+    `${siteUrl}/workspace/evidence`,
+    "stripe",
+  );
+  if (notSession) return notSession;
+
   // S18-A — linking a Stripe account writes oauth_connections + evidence on
   // the project OWNER's svi_accounts row → admin+. Gate BEFORE the code
   // exchange; the row is keyed on the owner's email for a member.
@@ -66,7 +76,7 @@ export async function GET(request: Request) {
   );
   if (denied) return denied;
   const projectId = scope?.projectId ?? null;
-  const dataEmail = scope?.dataEmail ?? email;
+  const dataEmail = scope?.dataEmail ?? user.email;
 
   const platformSecretKey = process.env.STRIPE_SECRET_KEY;
   const clientSecret = process.env.STRIPE_CLIENT_SECRET ?? process.env.STRIPE_SECRET_KEY;

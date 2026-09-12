@@ -47,7 +47,23 @@ const scopeRoleMock = vi.fn<() => "owner" | "admin" | "editor" | "viewer">(() =>
 const findOrCreateSVIAccountMock = vi.fn<
   (email: string, projectId: string | null) => Promise<string | null>
 >();
+// S18-A review P2-1 — GET resolves the project's svi_accounts row (no
+// side-effect insert) and bounds the read on its id.
+const findSVIAccountWithFallbackMock = vi.fn<
+  (
+    email: string,
+    projectId: string | null,
+    cols?: string,
+    opts?: { callerEmail?: string },
+  ) => Promise<Record<string, unknown> | null>
+>();
 vi.mock("@/lib/projects", () => ({
+  findSVIAccountWithFallback: (
+    email: string,
+    projectId: string | null,
+    cols?: string,
+    opts?: { callerEmail?: string },
+  ) => findSVIAccountWithFallbackMock(email, projectId, cols, opts),
   getProjectScope: async (minRole?: string) => {
     const projectId = await getProjectIdFromRequestMock();
     if (!projectId) return null;
@@ -93,6 +109,7 @@ interface FakeState {
   getSelectCols: string | null;
   getEqCol: string | null;
   getEqVal: unknown;
+  getEqCalls: Array<{ col: string; val: unknown }>;
   getGteCol: string | null;
   getGteVal: unknown;
   getOrderCol: string | null;
@@ -113,6 +130,7 @@ const state: FakeState = {
   getSelectCols: null,
   getEqCol: null,
   getEqVal: null,
+  getEqCalls: [],
   getGteCol: null,
   getGteVal: null,
   getOrderCol: null,
@@ -141,8 +159,13 @@ function makeFake() {
           state.getSelectCols = cols;
           const chain = {
             eq(col: string, val: unknown) {
-              state.getEqCol = col;
-              state.getEqVal = val;
+              state.getEqCalls.push({ col, val });
+              // `getEqCol` / `getEqVal` keep pointing at the email key the
+              // older assertions pin; account_id is asserted via getEqCalls.
+              if (col === "email" || state.getEqCol === null) {
+                state.getEqCol = col;
+                state.getEqVal = val;
+              }
               return chain;
             },
             gte(col: string, val: unknown) {
@@ -229,6 +252,7 @@ function resetState(): void {
   state.getSelectCols = null;
   state.getEqCol = null;
   state.getEqVal = null;
+  state.getEqCalls = [];
   state.getGteCol = null;
   state.getGteVal = null;
   state.getOrderCol = null;
@@ -242,6 +266,8 @@ beforeEach(() => {
   getCurrentUserMock.mockReset();
   getProjectIdFromRequestMock.mockReset();
   findOrCreateSVIAccountMock.mockReset();
+  findSVIAccountWithFallbackMock.mockReset();
+  findSVIAccountWithFallbackMock.mockResolvedValue({ id: "account-1" });
   getSupabaseAdminMock.mockReset();
   resetState();
 
@@ -825,5 +851,61 @@ describe("GET S18-A member access", () => {
     getProjectIdFromRequestMock.mockResolvedValueOnce(null);
     await callGet();
     expect(state.getEqVal).toBe("jane@example.com");
+  });
+});
+
+// ─── S18-A review P2-1 — GET bounded by the project's account ────────────
+
+describe("GET S18-A review P2-1 — project-bounded read", () => {
+  it("resolves the project's svi_accounts row via findSVIAccountWithFallback(dataEmail, projectId, 'id', { callerEmail }) — never findOrCreate on a read", async () => {
+    await callGet();
+    expect(findSVIAccountWithFallbackMock).toHaveBeenCalledWith(
+      "jane@example.com",
+      "project-1",
+      "id",
+      { callerEmail: "jane@example.com" },
+    );
+    expect(findOrCreateSVIAccountMock).not.toHaveBeenCalled();
+  });
+
+  it("filters startup_metrics on BOTH email AND account_id (an email alone spans every project the owner has)", async () => {
+    await callGet();
+    expect(state.getEqCalls).toEqual([
+      { col: "email", val: "jane@example.com" },
+      { col: "account_id", val: "account-1" },
+    ]);
+  });
+
+  it("viewer on a shared project: account resolved for (OWNER email, project) with the viewer as callerEmail; rows bounded to that account", async () => {
+    scopeRoleMock.mockReturnValue("viewer");
+    findSVIAccountWithFallbackMock.mockResolvedValue({ id: "owner-acct-A" });
+    const { status } = await callGet();
+    expect(status).toBe(200);
+    expect(findSVIAccountWithFallbackMock).toHaveBeenCalledWith(
+      "owner@example.com",
+      "project-1",
+      "id",
+      { callerEmail: "jane@example.com" },
+    );
+    expect(state.getEqCalls).toContainEqual({ col: "account_id", val: "owner-acct-A" });
+  });
+
+  it("no account for (email, project) → 200 { ok:true, metrics: [] } without querying startup_metrics", async () => {
+    findSVIAccountWithFallbackMock.mockResolvedValue(null);
+    const { status, body } = await callGet();
+    expect(status).toBe(200);
+    expect(body).toEqual({ ok: true, metrics: [] });
+    expect(state.getTable).toBeNull();
+  });
+
+  it("no active project → legacy (null project) account lookup under the caller's own email", async () => {
+    getProjectIdFromRequestMock.mockResolvedValueOnce(null);
+    await callGet();
+    expect(findSVIAccountWithFallbackMock).toHaveBeenCalledWith(
+      "jane@example.com",
+      null,
+      "id",
+      { callerEmail: "jane@example.com" },
+    );
   });
 });

@@ -86,15 +86,39 @@ export async function POST(request: NextRequest) {
   let templateContent: string | null = null;
   let documentName = "Template";
 
+  // S18-A review P1-1 — the document must belong to the ACTIVE project's
+  // room, not merely to the owner's account: `data_room_documents` is keyed
+  // on (account_id = owner) only, so an editor on project A holding a
+  // document id from the owner's project-B room would otherwise rewrite it.
+  // Resolve the project's room the same way `readiness` does —
+  // `data_rooms(user_id, project_id)` (0123 unique index) — and require
+  // `document.data_room_id === room.id`.
+  let roomId: string | null = null;
   if (body.documentId) {
+    const roomQuery = supabase
+      .from("data_rooms")
+      .select("id")
+      .eq("user_id", ownerUserId);
+    if (projectId) roomQuery.eq("project_id", projectId);
+    else roomQuery.is("project_id", null);
+    const { data: room } = await roomQuery
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!room?.id) {
+      return NextResponse.json({ ok: false, error: "Document not found" }, { status: 404 });
+    }
+    roomId = room.id as string;
+
     const { data: doc } = await supabase
       .from("data_room_documents")
-      .select("id, document_name, template_content, account_id")
+      .select("id, document_name, template_content, account_id, data_room_id")
       .eq("id", body.documentId)
       .eq("account_id", ownerUserId)
+      .eq("data_room_id", roomId)
       .maybeSingle();
 
-    if (!doc) {
+    if (!doc || doc.data_room_id !== roomId) {
       return NextResponse.json({ ok: false, error: "Document not found" }, { status: 404 });
     }
     templateContent = doc.template_content as string | null;
@@ -281,7 +305,8 @@ Return ONLY the filled document in Markdown format.`;
         updated_at: new Date().toISOString(),
       })
       .eq("id", body.documentId)
-      .eq("account_id", ownerUserId);
+      .eq("account_id", ownerUserId)
+      .eq("data_room_id", roomId);
 
     if (saveErr) {
       console.error("Failed to save filled content:", saveErr);

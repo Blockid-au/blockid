@@ -141,12 +141,19 @@ function makeSupabase(tables: FakeTables, calls: Calls) {
             return {
               eq(col: string, val: unknown) {
                 calls.esopEqs.push([col, val]);
-                return {
+                const terminal = {
                   maybeSingle() {
                     return Promise.resolve({
                       data: t.data ?? null,
                       error: t.error ?? null,
                     });
+                  },
+                };
+                // 0334: .order(created_at desc).limit(1) precede maybeSingle
+                return {
+                  ...terminal,
+                  order(_c: string, _o: unknown) {
+                    return { ...terminal, limit(_n: number) { return terminal; } };
                   },
                 };
               },

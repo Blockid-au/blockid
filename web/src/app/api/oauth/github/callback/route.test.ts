@@ -120,3 +120,42 @@ describe("GET /api/oauth/github/callback — member access", () => {
     expect(scopeState.lastMinRole).toBeUndefined();
   });
 });
+
+// S18-A review P1-2 — the callback is bound to the SESSION: the state
+// email must be the signed-in user's (case-insensitive), the no-project
+// fallback is `user.email` (never the state value), and an unauthenticated
+// or mismatched caller is redirected before the code exchange or any write.
+describe("GET /api/oauth/github/callback — session binding (S18-A P1-2)", () => {
+  it("state email ≠ session email: redirected with error=github_email_mismatch; no exchange, no writes", async () => {
+    const res = await run("victim@x.test");
+    expect(res.status).toBeGreaterThanOrEqual(300);
+    expect(res.status).toBeLessThan(400);
+    const loc = location(res);
+    expect(loc.pathname).toBe("/workspace/evidence");
+    expect(loc.searchParams.get("error")).toBe("github_email_mismatch");
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(keyCalls(scopeState, "findOrCreateSVIAccount")).toEqual([]);
+    expect(db.sb!.calls).toEqual([]);
+    expect(scopeState.lastMinRole).toBeUndefined();
+  });
+
+  it("unauthenticated: redirected with error=github_unauthenticated; no exchange, no writes", async () => {
+    auth.user = null;
+    const res = await run();
+    expect(location(res).searchParams.get("error")).toBe("github_unauthenticated");
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(keyCalls(scopeState, "findOrCreateSVIAccount")).toEqual([]);
+    expect(db.sb!.calls).toEqual([]);
+  });
+
+  it("no project + case-different state email: linked under the SESSION email (fallback is user.email, not state.email)", async () => {
+    scopeState.projectId = null;
+    const res = await run("Caller@X.TEST");
+    expect(location(res).searchParams.get("connected")).toBe("github");
+    const [acct] = keyCalls(scopeState, "findOrCreateSVIAccount");
+    expect(acct.email).toBe("caller@x.test");
+    expect(acct.projectId).toBeNull();
+    const upserts = db.sb!.find("oauth_connections", "upsert");
+    expect((upserts[0].args[0] as { user_email: string }).user_email).toBe("caller@x.test");
+  });
+});

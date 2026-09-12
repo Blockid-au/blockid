@@ -327,10 +327,17 @@ async function assembleOneClick(
   if (admin) {
     try {
       // Resolve founder's account_id via svi_accounts (mirrors exit-strategy API).
-      const { data: account } = await admin
+      // S18-A review P2-1 — bounded to the ACTIVE project (legacy null-project
+      // row when none): `user_id` alone would pick the owner's latest account
+      // across every project and leak B's sector / ARR / team size — and B's
+      // pinned exit scenario — into A's pack.
+      const accountQuery = admin
         .from("svi_accounts")
         .select("id, sector, current_arr_aud, team_size")
-        .eq("user_id", userId)
+        .eq("user_id", userId);
+      if (projectId) accountQuery.eq("project_id", projectId);
+      else accountQuery.is("project_id", null);
+      const { data: account } = await accountQuery
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();

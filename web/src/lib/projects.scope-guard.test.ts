@@ -13,11 +13,18 @@
 //   A. HARD — `getProjectIdFromRequest(` together with a caller-email data
 //      key (`findOrCreateSVIAccount(user.email`, `.eq("email", user.email)`,
 //      …) is never allowed. No allow-list.
-//   B. `getProjectIdFromRequest(` at all must be allow-listed with a reason
-//      (LEGACY_PROJECT_ID_ALLOW). Empty today — keep it that way.
+//   B. `getProjectIdFromRequest(` — or any wrapper of it, today
+//      `getActiveProjectIdOrNull(` (S18-A review P2-2) — at all must be
+//      allow-listed with a reason (LEGACY_PROJECT_ID_ALLOW). Empty today —
+//      keep it that way.
 //   C. A route that resolves a scope but still keys SVI data on the
 //      CALLER's email must be a deliberately owner-only action, allow-listed
 //      with a reason (OWNER_ONLY_ALLOW).
+//   C2. (S18-A review P2-2) A route that resolves a scope but keys a
+//      project table on the CALLER's id — `.eq("user_id", user.id)` /
+//      `.eq("account_id", user.id)` — must be allow-listed with a reason
+//      (CALLER_ID_ALLOW): those rows are deliberately the caller's own
+//      (their paid reports / analyses), never the project's shared data.
 
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -41,9 +48,29 @@ const OWNER_ONLY_ALLOW: Record<string, string> = {
     "POST mints the project's equity token — owner-only via ownerOnlyDenied(); GET (viewer) uses scope.dataEmail",
 };
 
-const LEGACY_PROJECT_ID = /\bgetProjectIdFromRequest\s*\(/;
+/**
+ * Routes that resolve a scope AND key a project table on the caller's own
+ * id (`.eq("user_id", user.id)` / `.eq("account_id", user.id)`). Each entry
+ * names rows that are the CALLER's by design — paid by / minted for them —
+ * not the project's shared data a member should see through the owner.
+ */
+const CALLER_ID_ALLOW: Record<string, string> = {
+  "term-sheet/route.ts":
+    "term_sheet_analyses rows are caller-owned (caller-paid analysis, documented in the route); DELETE scopes to the caller so a session can only remove its own rows",
+  "svi/docx/route.ts":
+    "assembled_reports by (id, user_id = caller): the DOCX export renders a report the caller generated and paid for; project data comes through scope.dataEmail",
+  "svi/full-report/route.ts":
+    "report_sections by (analysis_id, user_id = caller): previously purchased sections are the caller's own paid content; the analysis itself is resolved via scope.dataEmail",
+};
+
+// Rule B — the legacy reader and every thin wrapper of it (a wrapper hides
+// the literal call from this regex, which is how competitive-positioning
+// slipped through pre-review).
+const LEGACY_PROJECT_ID = /\b(getProjectIdFromRequest|getActiveProjectIdOrNull)\s*\(/;
 const SCOPE_RESOLVERS =
-  /\b(getProjectScope|projectScopeOrDeny|projectScopeOrRedirect|assertProjectScope)\s*\(/;
+  /\b(getProjectScope|projectScopeOrDeny|projectScopeOrDenyFor|projectScopeOrRedirect|assertProjectScope)\s*\(/;
+const CALLER_ID_KEY =
+  /\.eq\(\s*["'](user_id|account_id)["']\s*,\s*(user|auth|gate\.user)\.id\s*\)/;
 const CALLER_EMAIL_KEY = [
   /findOrCreateSVIAccount\(\s*(user|auth|gate\.user)\.email/,
   /findSVIAccountWithFallback\(\s*(user|auth|gate\.user)\.email/,
@@ -105,6 +132,29 @@ describe("S18-A scope guard — src/app/api/**/route.ts", () => {
     ).toEqual([]);
   });
 
+  it("C2. a scope-aware route keys project tables on scope.ownerUserId, not the caller's id, unless the rows are deliberately the caller's own", () => {
+    const offenders = routes
+      .filter((r) => SCOPE_RESOLVERS.test(r.src) && CALLER_ID_KEY.test(r.src) && !(r.path in CALLER_ID_ALLOW))
+      .map((r) => r.path);
+    expect(
+      offenders,
+      "key on scope?.ownerUserId ?? user.id, or add the route to CALLER_ID_ALLOW with a reason (rows that are the caller's own paid content)",
+    ).toEqual([]);
+  });
+
+  it("wrappers of getProjectIdFromRequest are caught by rule B (getActiveProjectIdOrNull)", () => {
+    expect(LEGACY_PROJECT_ID.test("const p = await getActiveProjectIdOrNull();")).toBe(true);
+    expect(LEGACY_PROJECT_ID.test("const p = await getProjectIdFromRequest();")).toBe(true);
+    expect(LEGACY_PROJECT_ID.test("const p = await getProjectScope('viewer');")).toBe(false);
+  });
+
+  it("rule C2 matches caller-id keys on project tables and ignores owner-keyed ones", () => {
+    expect(CALLER_ID_KEY.test('.eq("user_id", user.id)')).toBe(true);
+    expect(CALLER_ID_KEY.test(".eq('account_id', gate.user.id)")).toBe(true);
+    expect(CALLER_ID_KEY.test('.eq("user_id", scope?.ownerUserId ?? user.id)')).toBe(false);
+    expect(CALLER_ID_KEY.test('.eq("account_id", accountId)')).toBe(false);
+  });
+
   it("allow-lists only name routes that exist and still match the pattern they excuse (no stale entries)", () => {
     const byPath = new Map(routes.map((r) => [r.path, r.src]));
     for (const path of Object.keys(LEGACY_PROJECT_ID_ALLOW)) {
@@ -119,6 +169,12 @@ describe("S18-A scope guard — src/app/api/**/route.ts", () => {
         /ownerOnlyDenied\s*\(/.test(src!),
         `${path} is excused as owner-only but never calls ownerOnlyDenied()`,
       ).toBe(true);
+    }
+    for (const path of Object.keys(CALLER_ID_ALLOW)) {
+      const src = byPath.get(path);
+      expect(src, `${path} is allow-listed but does not exist`).toBeDefined();
+      expect(CALLER_ID_KEY.test(src!), `${path} no longer keys on the caller's id — drop the entry`).toBe(true);
+      expect(SCOPE_RESOLVERS.test(src!), `${path} no longer resolves a scope — drop the entry`).toBe(true);
     }
   });
 });
