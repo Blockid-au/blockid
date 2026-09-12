@@ -125,7 +125,16 @@ export function buildAuditQuery(
   };
 }
 
-/** Run the query. Returns `[]` on any failure so the page degrades. */
+/**
+ * Run the query. Returns `[]` on any failure so the page degrades.
+ *
+ * ORDER BY id DESC — and only id — on purpose: migration 0338 indexes
+ * `((detail->>'project_id'), id DESC)` and `(user_id, id DESC)` so the
+ * project / actor filters walk an index in output order. Ordering by `ts`
+ * (or adding it as a secondary key) would drop back to a PK scan + Filter.
+ * `id` is monotonic per insert (bigserial + the chain trigger's advisory
+ * lock), so it is also the chain order.
+ */
 export async function listAuditEvents(q: AuditQuery): Promise<AuditEventRow[]> {
   const admin = getSupabaseAdmin();
   if (!admin) return [];

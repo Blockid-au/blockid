@@ -104,6 +104,18 @@ describe("listAuditEvents", () => {
     expect(chain.eq).toHaveBeenCalledTimes(1);
     expect(chain.like).toBeUndefined();
   });
+
+  // S20-A review P2-4: the 0338 indexes are ((detail->>'project_id'), id DESC)
+  // and (user_id, id DESC). The query must order by id — and ONLY id — or
+  // the planner cannot walk them in output order.
+  it("orders by id DESC only (matches the 0338 indexes; never ts)", async () => {
+    await listAuditEvents({ projectId: PID, actorUserId: null, actionPrefix: null, limit: 50, offset: 0 });
+    expect(chain.order).toHaveBeenCalledTimes(1);
+    expect(chain.order).toHaveBeenCalledWith("id", { ascending: false });
+    expect(chain.order.mock.calls.some(([col]) => col === "ts")).toBe(false);
+    // project filter uses the exact expression the index is built on
+    expect(chain.eq).toHaveBeenCalledWith("detail->>project_id", PID);
+  });
 });
 
 describe("CSV", () => {
