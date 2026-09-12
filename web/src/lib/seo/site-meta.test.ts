@@ -135,6 +135,7 @@ const UNCONSTRUCTABLE: Record<string, string> = {
   "/s/p/[slug]": "noindex; public share page, headers() + DB",
   "/startup/[slug]": "noindex; generateMetadata reads a live startup row",
   "/verify/[proofId]": "noindex; proof lookup against a live row",
+  "/verify/valuation/[no]": "noindex; certificate lookup against a live row (S22-A)",
 };
 
 // ─── Resolution ──────────────────────────────────────────────────────────────
