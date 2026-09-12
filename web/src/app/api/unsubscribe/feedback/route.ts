@@ -21,7 +21,7 @@ async function POST_handler(request: Request) {
     if (!token || typeof token !== "string") {
       return NextResponse.json({ ok: false, error: "Token required" }, { status: 400 });
     }
-    if (!reason || !VALID_REASONS.includes(reason)) {
+    if (typeof reason !== "string" || !VALID_REASONS.includes(reason)) {
       return NextResponse.json({ ok: false, error: "Valid reason required" }, { status: 400 });
     }
 
