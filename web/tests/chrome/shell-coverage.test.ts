@@ -96,7 +96,9 @@ const ALLOWLIST: Record<string, string> = {
   // chrome. They intentionally skip MarketingShell in favour of branded
   // full-bleed layouts.
   "showcase": "G8-P6 skip: public index page uses its own branded chrome",
+  "showcase/airwallex": "G8-P6 skip: bespoke case-study chrome (PublicRecordShowcase), same as canva/safetyculture",
   "showcase/canva": "G8-P6 skip: bespoke case-study chrome, not a marketing page",
+  "showcase/culture-amp": "G8-P6 skip: bespoke case-study chrome (PublicRecordShowcase), same as canva/safetyculture",
   "showcase/safetyculture": "G8-P6 skip: bespoke case-study chrome, not a marketing page",
   "showcase/sprocketbay": "G8-P6 skip: bespoke case-study chrome, not a marketing page",
   "showcase/xero": "G8-P6 skip: bespoke case-study chrome, not a marketing page",
