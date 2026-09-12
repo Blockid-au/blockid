@@ -39,7 +39,7 @@ To avoid penalties and protect your employees from immediate tax liabilities, fo
 * **Update Annually**: FMV changes as you hit milestones; don't use 2022 prices in 2024.
 * **Separate Option vs Share**: Value the underlying share, then apply the discount for options.
 
-> **[Calculate your compliant valuation →](/tools/valuation-calculator)**
+> **[Calculate your compliant valuation →](/tools/idea-valuation)**
 
 <svg viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
   <rect width="700" height="300" fill="#0f172a" rx="14"/>

@@ -44,7 +44,7 @@ Stop guessing. Use a data-backed framework to defend your valuation during the t
 * **Present a "Bottom-Up" forecast** based on actual acquisition costs, not top-down percentages.
 * **Lead with a lead investor** to set the price before filling the rest of the round.
 
-> **[Calculate Your Valuation →](/tools/pre-money-valuation-calculator)**
+> **[Calculate Your Valuation →](/tools/idea-valuation)**
 
 ## The Seed Pricing Framework
 Follow this logic flow to arrive at a number that VCs will respect.

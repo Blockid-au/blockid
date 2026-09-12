@@ -41,7 +41,7 @@ To maintain founder control and avoid the overvaluation trap, focus on finding t
 
 ### Bullet Checklist: 5-7 Items, Action Verbs
 
-> **Find Your Valuation Sweet Spot** → [Calculate Your Valuation](/tools/pre-money-valuation-calculator)
+> **Find Your Valuation Sweet Spot** → [Calculate Your Valuation](/tools/idea-valuation)
 
 * Identify your startup's unique growth potential and financial situation
 * Assess your runway targets and revenue multiples

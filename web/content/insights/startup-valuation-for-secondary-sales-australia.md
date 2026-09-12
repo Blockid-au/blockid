@@ -58,4 +58,4 @@ To set a fair price without triggering a full valuation event, follow this check
 
 Secondary sales keep founders motivated and cap tables lean. Balance the need for cash with the long-term signal the price sends to future investors.
 
-> **[Calculate Your Valuation →](/tools/pre-money-valuation-calculator)**
+> **[Calculate Your Valuation →](/tools/idea-valuation)**

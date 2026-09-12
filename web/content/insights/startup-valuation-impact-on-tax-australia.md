@@ -36,7 +36,7 @@ Avoid the "equity trap" by aligning your issuance price with a defensible valuat
 * **Audit the Gap**: Compare your internal valuation against recent seed rounds.
 * **Track Cost Bases**: Record the exact value at issuance for future CGT calculations.
 
-> **[Calculate Your Valuation →](/tools/valuation-calculator)**
+> **[Calculate Your Valuation →](/tools/idea-valuation)**
 
 <svg viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
   <rect width="700" height="300" fill="#0f172a" rx="14"/>

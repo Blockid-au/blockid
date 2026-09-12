@@ -44,7 +44,7 @@ To avoid tax surprises and excessive dilution, follow this execution checklist:
 * **Cap the option pool** at 10-15% to prevent founder dilution.
 * **Document the valuation** logic in a formal board minute.
 
-> **[Calculate your current valuation →](/tools/pre-money-valuation-calculator)**
+> **[Calculate your current valuation →](/tools/idea-valuation)**
 
 <svg viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
   <rect width="700" height="300" fill="#0f172a" rx="14"/>

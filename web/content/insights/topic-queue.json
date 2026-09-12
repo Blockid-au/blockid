@@ -996,7 +996,7 @@
       ],
       "cta": {
         "label": "Get Your Free Cap Table Template",
-        "href": "/tools/cap-table-template"
+        "href": "/tools/cap-table"
       },
       "angle": "Learn how to optimise your startup's cap table for fundraising success in Australia. Discover common mistakes to avoid and best practices to implement, and get access to our free cap table template to streamline your equity management."
     },
@@ -1016,22 +1016,6 @@
       "angle": "Learn how to calculate your pre-money valuation with our calculator and expert guide, essential for Australian founders raising capital and negotiating with investors."
     },
     {
-      "slug": "optimising-startup-cap-table-for-acquisition-exit",
-      "title": "Cap Table Optimisation for M&A: A Founder's Guide",
-      "category": "cap-table",
-      "keywords": [
-        "startup acquisition",
-        "merger and acquisition",
-        "cap table optimisation",
-        "exit strategy"
-      ],
-      "cta": {
-        "label": "Get Your Cap Table Ready for Exit",
-        "href": "/tools/cap-table"
-      },
-      "angle": "Learn how to optimise your startup's cap table for a smooth M&A process and maximise shareholder value. This guide provides actionable tips and best practices for Australian founders."
-    },
-    {
       "slug": "optimise-startup-cap-table-for-acquisition-exit",
       "title": "Maximize Exit Value: Optimise Cap Table for M&A",
       "category": "valuation",
@@ -1044,7 +1028,7 @@
       ],
       "cta": {
         "label": "Get Your Free Cap Table Template",
-        "href": "/tools/cap-table-template"
+        "href": "/tools/cap-table"
       },
       "angle": "Learn how to optimise your startup's cap table for a successful M&A exit in Australia. Discover practical tips and tools to maximise your exit value."
     },
@@ -1074,7 +1058,7 @@
       ],
       "cta": {
         "label": "Calculate Your Valuation",
-        "href": "/tools/valuation-calculator"
+        "href": "/tools/idea-valuation"
       },
       "angle": "Explain the direct relationship between valuation shifts (up-rounds vs down-rounds) and founder ownership. Provide a practical walkthrough on how to simulate different valuation scenarios to avoid unexpected dilution before a pitch."
     },
@@ -1089,7 +1073,7 @@
       ],
       "cta": {
         "label": "Simulate Your Valuation",
-        "href": "/tools/valuation-calculator"
+        "href": "/tools/idea-valuation"
       },
       "angle": "Explain the direct relationship between a company's valuation and the resulting equity dilution for founders. Provide a step-by-step guide on how to simulate different valuation scenarios to decide the 'sweet spot' for their next funding round."
     },
@@ -1119,7 +1103,7 @@
       ],
       "cta": {
         "label": "Calculate Your Valuation",
-        "href": "/tools/valuation-calculator"
+        "href": "/tools/idea-valuation"
       },
       "angle": "Explain the tax implications of setting an aggressive vs conservative valuation for founders and early employees. Focus on Capital Gains Tax (CGT) and the risks of 'undervaluing' shares during equity issuance in the eyes of the ATO."
     },
@@ -1134,7 +1118,7 @@
       ],
       "cta": {
         "label": "Calculate Valuation",
-        "href": "/tools/valuation-calculator"
+        "href": "/tools/idea-valuation"
       },
       "angle": "Explain how to determine a 'fair market value' for shares issued under an Employee Share Scheme (ESS) to avoid ATO penalties. Provide a step-by-step approach for founders to value shares for employees without over-inflating the price or triggering immediate tax liabilities."
     },
@@ -1149,7 +1133,7 @@
       ],
       "cta": {
         "label": "Calculate Valuation",
-        "href": "/tools/pre-money-valuation-calculator"
+        "href": "/tools/idea-valuation"
       },
       "angle": "Explain how to determine a fair share price for issuing options or shares to early hires without triggering immediate tax liabilities. Guide founders on balancing employee incentive with dilution and ATO compliance."
     },
@@ -1164,7 +1148,7 @@
       ],
       "cta": {
         "label": "Calculate Your Valuation",
-        "href": "/tools/pre-money-valuation-calculator"
+        "href": "/tools/idea-valuation"
       },
       "angle": "Explain how founders and early employees can determine a fair price for secondary share sales without triggering a new priced round. Provide a framework for balancing liquidity needs with the impact on the current cap table and investor relations."
     },
@@ -1194,7 +1178,7 @@
       ],
       "cta": {
         "label": "Calculate Your Valuation",
-        "href": "/tools/pre-money-valuation-calculator"
+        "href": "/tools/idea-valuation"
       },
       "angle": "A tactical guide for founders moving from pre-seed to seed. It explains how to move from 'idea-based' valuation to 'traction-based' valuation using specific AU metrics and how to use the BlockID calculator to justify the number to VCs."
     },
@@ -1210,7 +1194,7 @@
       ],
       "cta": {
         "label": "Calculate Valuation",
-        "href": "/tools/pre-money-valuation-calculator"
+        "href": "/tools/idea-valuation"
       },
       "angle": "Explain how to value a company when raising a 'bridge' or 'seed extension' round between major milestones. Provide a framework for handling valuation caps and avoiding excessive dilution when the startup isn't yet ready for a Series A priced round."
     },
@@ -1225,7 +1209,7 @@
       ],
       "cta": {
         "label": "Calculate Your Valuation",
-        "href": "/tools/pre-money-valuation-calculator"
+        "href": "/tools/idea-valuation"
       },
       "angle": "Explain the inverse relationship between a high valuation and future dilution risks (overvaluation trap). Provide a step-by-step guide on how to find the 'sweet spot' valuation to maintain founder control while attracting investors."
     },
@@ -1255,7 +1239,7 @@
       ],
       "cta": {
         "label": "Calculate Valuation",
-        "href": "/tools/valuation-calculator"
+        "href": "/tools/idea-valuation"
       },
       "angle": "Explain how to determine a fair share price for issuing new equity grants to early hires without triggering immediate tax liabilities. Focus on the balance between incentive and dilution using BlockID's tools."
     },
