@@ -302,7 +302,7 @@ export const SAFETYCULTURE_TIMELINE: readonly Milestone[] = [
     headline: "Founded in Townsville by Luke Anear",
     detail:
       "Ex-Private Investigator with a passion for workplace safety builds paper-forms replacement for construction + mining sites. Regional Aussie founder — unusual for tech.",
-    source: "https://en.wikipedia.org/wiki/SafetyCulture",
+    source: "https://mitti.com/about", // Wikipedia article removed; company (now Mitti) About page (release QA-1 #14)
   },
   {
     company: "safetyculture",

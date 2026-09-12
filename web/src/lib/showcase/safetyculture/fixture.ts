@@ -4,7 +4,7 @@
 // module — no DB, no I/O.
 //
 // Primary sources:
-//   - Wikipedia (SafetyCulture)   https://en.wikipedia.org/wiki/SafetyCulture
+//   - Mitti (SafetyCulture) About  https://mitti.com/about (Wikipedia article removed)
 //   - SafetyCulture press         https://safetyculture.com/press/
 //   - AFR profiles                Luke Anear founder profile pieces
 //   - Crunchbase                  https://www.crunchbase.com/organization/safetyculture
@@ -28,7 +28,10 @@ export type SafetyCultureDemo = AtlassianDemo;
 
 // ── Citation URL constants ─────────────────────────────────────────────────
 
-const SRC_WIKI = "https://en.wikipedia.org/wiki/SafetyCulture";
+// Release QA-1 #14: the Wikipedia article 404s; SafetyCulture rebranded to
+// Mitti in 2026 and safetyculture.com now 301s to mitti.com — cite the
+// company's own About page.
+const SRC_WIKI = "https://mitti.com/about";
 const SRC_PRESS = "https://safetyculture.com/press/";
 const SRC_CB = "https://www.crunchbase.com/organization/safetyculture";
 const SRC_TIGER =
@@ -68,7 +71,7 @@ const MILESTONES: SafetyCultureMilestone[] = [
     title: "Founded in Townsville by Luke Anear",
     body:
       "Ex-Private Investigator with a passion for workplace safety builds paper-forms replacement for construction + mining sites. Regional Aussie founder — atypical for a tech company that will eventually raise from Softbank.",
-    source: { label: "Wikipedia — SafetyCulture", url: SRC_WIKI },
+    source: { label: "Mitti (SafetyCulture) — About", url: SRC_WIKI },
   },
   {
     year: 2012,
@@ -135,7 +138,7 @@ const MILESTONES: SafetyCultureMilestone[] = [
     title: "Secondary trades reprice to ~US$2B (down from US$2.7B peak)",
     body:
       "Consistent with global late-stage valuation resets (Klarna, Stripe, Canva). Company remains cash-flow positive per press disclosures — the primary financing intact.",
-    source: { label: "Wikipedia — SafetyCulture", url: SRC_WIKI },
+    source: { label: "Mitti (SafetyCulture) — About", url: SRC_WIKI },
     usd: "$2B secondary",
   },
   {
@@ -302,7 +305,7 @@ Anear is a Private Investigator in Townsville. He's read 100+ industrial-acciden
 3. Your day-job before founding is a moat, not a resume line. Anear's PI years were the moat.
 `,
     sources: [
-      { label: "Wikipedia — SafetyCulture", url: SRC_WIKI },
+      { label: "Mitti (SafetyCulture) — About", url: SRC_WIKI },
       { label: "SafetyCulture press", url: SRC_PRESS },
     ],
   },
@@ -349,7 +352,7 @@ Web-first is the tempting default. Every SMB software from 2012 was web-first. B
 `,
     sources: [
       { label: "SafetyCulture press", url: SRC_PRESS },
-      { label: "Wikipedia — SafetyCulture", url: SRC_WIKI },
+      { label: "Mitti (SafetyCulture) — About", url: SRC_WIKI },
     ],
   },
   {

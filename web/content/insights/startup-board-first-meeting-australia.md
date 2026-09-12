@@ -13,7 +13,7 @@ In Australia, directors have specific duties and responsibilities under the Corp
 | **Duty of Loyalty** | Act in the best interests of the company, not personal interests. |
 | **Duty of Confidentiality** | Keep confidential information about the company and its affairs. |
 
-> **"A director's duties are not just about compliance; they're about creating a culture of accountability and transparency within the organization."** [More on ASIC's director duties →](https://asic.gov.au/for-business/director-duties/)
+> **"A director's duties are not just about compliance; they're about creating a culture of accountability and transparency within the organization."** [More on ASIC's company officeholder duties →](https://www.asic.gov.au/for-business-and-companies/companies/company-officeholder-rules-and-changes/obligations-of-company-officeholders)
 
 ### Preparing for Your First Board Meeting
 

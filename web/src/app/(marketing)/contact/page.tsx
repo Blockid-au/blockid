@@ -104,15 +104,10 @@ export default function ContactPage() {
                     <ExternalLink strokeWidth={1.75} className="h-3.5 w-3.5" />
                     LinkedIn
                   </a>
-                  <a
-                    href="https://twitter.com/blockid_au"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-sm text-[#94A3B8] hover:text-[#00D4FF] transition-colors"
-                  >
-                    <ExternalLink strokeWidth={1.75} className="h-3.5 w-3.5" />
-                    Twitter / X
-                  </a>
+                  {/* No X / Twitter link: @blockid_au does not exist (404 on
+                      twitter.com and x.com — release QA-1 #14). LinkedIn is
+                      the one live company profile (config/marketing-partners
+                      + footer agree). Re-add only with a verified handle. */}
                 </div>
               </div>
             </div>
