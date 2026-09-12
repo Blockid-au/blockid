@@ -27,6 +27,7 @@ function toAud(amountMinor: number, currency: string): number {
 
 interface StripeSubscription {
   status: string;
+  canceled_at?: number | null;
   items: {
     data: Array<{
       quantity?: number;
@@ -128,4 +129,81 @@ export async function fetchStripeSignals(
     recentPayments30d,
     averageOrderAud: Math.round(averageOrderAud * 100) / 100,
   };
+}
+
+// ── S25-A — Stripe Connect resync metrics ───────────────────────────────────
+//
+// The weekly `api/cron/connector-resync` re-pulls what the callbacks pull
+// (MRR + active subscriptions + customers) and adds the 90-day subscription
+// churn the SVI contribution table (lib/svi/connected-revenue-score.ts)
+// penalises. Same REST seam as `fetchStripeSignals` — the connected
+// account's own OAuth access token as bearer, never the platform key.
+
+export interface StripeConnectMetrics {
+  mrrAud: number;
+  arrAud: number;
+  activeSubscriptions: number;
+  activeCustomers: number;
+  /** Subscriptions whose `canceled_at` falls in the last 90 days. */
+  churnedSubscriptions90d: number;
+  /** churned / (active + churned) × 100, one decimal; null when there is no base. */
+  churnRate90dPct: number | null;
+  /** Dominant subscription currency (lower-case ISO), "aud" when unknown. */
+  currency: string;
+}
+
+export const STRIPE_CHURN_WINDOW_DAYS = 90;
+
+/** Pure: fold subscription lists into the resync metrics (exported for tests). */
+export function stripeConnectMetricsFrom(
+  active: StripeSubscription[],
+  canceled: StripeSubscription[],
+  customerCount: number,
+  now: number = Date.now(),
+): StripeConnectMetrics {
+  const since = Math.floor(now / 1000) - STRIPE_CHURN_WINDOW_DAYS * 24 * 60 * 60;
+  const mrr = active.reduce((sum, s) => sum + subscriptionMrrAud(s), 0);
+  const churned = canceled.filter((s) => typeof s.canceled_at === "number" && s.canceled_at >= since).length;
+  const base = active.length + churned;
+  const currencies = new Map<string, number>();
+  for (const s of active) {
+    for (const item of s.items.data) {
+      const c = (item.price.currency ?? "aud").toLowerCase();
+      currencies.set(c, (currencies.get(c) ?? 0) + 1);
+    }
+  }
+  let currency = "aud";
+  let best = 0;
+  for (const [c, n] of currencies) {
+    if (n > best) {
+      best = n;
+      currency = c;
+    }
+  }
+  const mrrAud = Math.round(mrr * 100) / 100;
+  return {
+    mrrAud,
+    arrAud: Math.round(mrrAud * 12 * 100) / 100,
+    activeSubscriptions: active.length,
+    activeCustomers: customerCount,
+    churnedSubscriptions90d: churned,
+    churnRate90dPct: base > 0 ? Math.round((churned / base) * 1000) / 10 : null,
+    currency,
+  };
+}
+
+export async function fetchStripeConnectMetrics(accessToken: string): Promise<StripeConnectMetrics> {
+  const since = Math.floor(Date.now() / 1000) - STRIPE_CHURN_WINDOW_DAYS * 24 * 60 * 60;
+  const [active, canceled, customers] = await Promise.all([
+    stripeGet<StripeSubscription>("/v1/subscriptions?limit=100&status=active", accessToken),
+    // `created` bounds the canceled list to subscriptions young enough to
+    // have churned inside the window (created ≤ 1 y before the window opens
+    // is a generous floor); `canceled_at` is filtered client-side.
+    stripeGet<StripeSubscription>(
+      `/v1/subscriptions?limit=100&status=canceled&created[gte]=${since - 365 * 24 * 60 * 60}`,
+      accessToken,
+    ),
+    stripeGet<{ id: string }>("/v1/customers?limit=100", accessToken),
+  ]);
+  return stripeConnectMetricsFrom(active?.data ?? [], canceled?.data ?? [], customers?.data.length ?? 0);
 }
