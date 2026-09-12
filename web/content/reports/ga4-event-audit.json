@@ -1,0 +1,42 @@
+{
+  "ts": "2026-09-12T10:12:00.134Z",
+  "ok": false,
+  "status": "missing",
+  "property": "properties/538350801",
+  "range": {
+    "start": "2026-09-05",
+    "end": "2026-09-11",
+    "days": 7
+  },
+  "expected": [
+    "hero_variant_shown",
+    "funding_preview",
+    "funding_paywall_hit",
+    "funding_report_paid",
+    "evaluator_pricing_viewed",
+    "evaluator_checklist_viewed",
+    "compare_viewed",
+    "funding_directory_viewed"
+  ],
+  "seen": {},
+  "missing": [
+    "hero_variant_shown",
+    "funding_preview",
+    "funding_paywall_hit",
+    "funding_report_paid",
+    "evaluator_pricing_viewed",
+    "evaluator_checklist_viewed",
+    "compare_viewed",
+    "funding_directory_viewed"
+  ],
+  "total_event_names": 6,
+  "hero_variant": {
+    "parameter": "arm",
+    "registered": false,
+    "arms": {}
+  },
+  "blocked": null,
+  "error": null,
+  "dry": false,
+  "duration_ms": 1688
+}
