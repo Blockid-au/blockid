@@ -12,12 +12,25 @@
 // `?from=<id>` starts from that row id (default AUDIT_CHAIN_VERIFY_FROM or
 // 0 = full scan); `?max=<rows>` caps rows checked (default 2,000,000).
 //
+// Windowed runs (from > 0) trust the rows before `from` as stored, so the
+// route first cross-checks the previous run's persisted checkpoint
+// (last_id / last_hash in audit-chain-verify.json) against the live row
+// and reports `broken` (reason checkpoint_mismatch / checkpoint_missing /
+// checkpoint_rpc_error) when it no longer matches — see the header of
+// lib/audit/chain-verify.ts. Full scans skip the cross-check.
+//
 // audit-exempt: system actor; result is the audit evidence itself.
 
 import { NextResponse } from "next/server";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { persistChainState, verifyAuditChain } from "@/lib/audit/chain-verify";
+import {
+  applyCheckpoint,
+  crossCheckCheckpoint,
+  persistChainState,
+  readChainState,
+  verifyAuditChain,
+} from "@/lib/audit/chain-verify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,8 +61,18 @@ export async function GET(request: Request) {
 
   const { dry, from, max } = params(request);
   const startedAt = Date.now();
-  const result = await verifyAuditChain({ db: getSupabaseAdmin(), fromId: from, maxRows: max });
-  const state = { ...result, ts: new Date().toISOString(), dry, duration_ms: Date.now() - startedAt };
+  const db = getSupabaseAdmin();
+  // Read the previous checkpoint BEFORE this run overwrites the state file.
+  const previous = from > 0 ? await readChainState() : null;
+  const checkpoint = await crossCheckCheckpoint({ db, fromId: from, previous });
+  const result = applyCheckpoint(await verifyAuditChain({ db, fromId: from, maxRows: max }), checkpoint);
+  const state = {
+    ...result,
+    ts: new Date().toISOString(),
+    dry,
+    duration_ms: Date.now() - startedAt,
+    ...(from > 0 ? { checkpoint } : {}),
+  };
 
   if (result.error === "supabase_unavailable") {
     return NextResponse.json({ ...state, ok: false }, { status: 503 });
