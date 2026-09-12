@@ -20,9 +20,11 @@
 //   C. No page keys a founder-feature read on the caller: the five
 //      `founder-features` readers take a `FounderFeatureScope`, so any
 //      `(user, projectId)` / `(user.id` call shape is a regression.
-//   D. A page that keys svi_analyses / startup_metrics on the caller's
-//      email (`.eq("email", user.email)`) must be allow-listed as
-//      deliberately caller-scoped.
+//   D. A page that reads a PROJECT-record table (svi_analyses, svi_accounts,
+//      startup_metrics, svi_snapshots, svi_evidence) and keys anything on
+//      the caller's email (`.eq("email", user.email)`) must be allow-listed
+//      as deliberately caller-scoped. Pages that only touch per-user tables
+//      (app_users onboarding flags) are not project pages.
 //   E. A page that resolves a scope must read its keys through
 //      `scope?.dataEmail` / `scope?.ownerUserId` or `pageScopeKeys()` —
 //      never `findSVIAccountWithFallback(user.email` etc.
@@ -60,6 +62,8 @@ const CALLER_EMAIL_KEY = [
 const FOUNDER_FEATURE_READERS =
   /\b(getGtmStrategy|listCompetitors|listTeamMembers|listPricingTiers|listRoadmapMilestones)\s*\(\s*(user\b|\{\s*ownerUserId\s*:\s*user\.id)/;
 const FOUNDER_FEATURES_IMPORT = /from\s+["']@\/lib\/founder-features["']/;
+const PROJECT_RECORD_TABLE =
+  /\.from\(\s*["'](svi_analyses|svi_accounts|startup_metrics|svi_snapshots|svi_evidence)["']\s*\)/;
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
@@ -81,6 +85,11 @@ const pages = walk(FOUNDER_ROOT).map((file) => ({
 
 function usesCallerEmailKey(src: string): boolean {
   return CALLER_EMAIL_KEY.some((re) => re.test(src));
+}
+
+/** Caller-email key on a page that also reads a project-record table. */
+function callerKeysProjectRecord(src: string): boolean {
+  return usesCallerEmailKey(src) && PROJECT_RECORD_TABLE.test(src);
 }
 
 describe("S18-B pages scope guard — src/app/(app)/(founder)/**/page.tsx", () => {
@@ -117,7 +126,7 @@ describe("S18-B pages scope guard — src/app/(app)/(founder)/**/page.tsx", () =
 
   it("D. a page that keys startup data on the caller's email is deliberately caller-scoped (allow-listed)", () => {
     const offenders = pages
-      .filter((p) => usesCallerEmailKey(p.src) && !(p.path in CALLER_EMAIL_ALLOW))
+      .filter((p) => callerKeysProjectRecord(p.src) && !(p.path in CALLER_EMAIL_ALLOW))
       .map((p) => p.path);
     expect(
       offenders,
@@ -145,7 +154,7 @@ describe("S18-B pages scope guard — src/app/(app)/(founder)/**/page.tsx", () =
     for (const path of Object.keys(CALLER_EMAIL_ALLOW)) {
       const src = byPath.get(path);
       expect(src, `${path} is allow-listed but does not exist`).toBeDefined();
-      expect(usesCallerEmailKey(src!), `${path} no longer keys on the caller's email — drop the entry`).toBe(true);
+      expect(callerKeysProjectRecord(src!), `${path} no longer keys on the caller's email — drop the entry`).toBe(true);
       // An excused page must still read the PROJECT record through the scope.
       expect(SCOPE_RESOLVERS.test(src!), `${path} is excused but never resolves a scope`).toBe(true);
       expect(/\bdataEmail\b/.test(src!), `${path} is excused but never uses dataEmail for the project record`).toBe(true);
