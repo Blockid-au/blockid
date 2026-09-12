@@ -11,9 +11,11 @@
 //     operator can pin cross-day uniqueness for a fraud-analysis window
 //   • falsy inputs (null/undefined/empty-string) short-circuit to null so
 //     callers do not persist a sentinel hash for an untrackable viewer
-//   • `clientIpFromHeaders` prefers the first XFF entry (real client) over
-//     `x-real-ip` per Caddy convention — a rewrite that read the last entry
-//     would silently hash the Caddy loopback for every request
+//   • `clientIpFromHeaders` trusts only the hop our edge saw (S20-A review
+//     P2-3): `cf-connecting-ip`, else the LAST XFF entry (nginx appends its
+//     peer via $proxy_add_x_forwarded_for — the FIRST entry is whatever the
+//     client sent), else `x-real-ip`. A rewrite back to "first entry" would
+//     let a forged X-Forwarded-For pick the view hash / rate-limit key
 //
 // Pure lib — only depends on node:crypto + `Date`. Fake timers isolate the
 // daily-salt path.
@@ -174,13 +176,28 @@ describe("hashIp — daily-default salt path (no env)", () => {
 });
 
 describe("clientIpFromHeaders", () => {
-  it("returns the first XFF entry when present", () => {
-    const h = new Headers({ "x-forwarded-for": "203.0.113.1, 10.0.0.2" });
-    expect(clientIpFromHeaders(h)).toBe("203.0.113.1");
+  it("prefers cf-connecting-ip over XFF and x-real-ip", () => {
+    const h = new Headers({
+      "cf-connecting-ip": " 203.0.113.77 ",
+      "x-forwarded-for": "203.0.113.1, 10.0.0.2",
+      "x-real-ip": "10.0.0.1",
+    });
+    expect(clientIpFromHeaders(h)).toBe("203.0.113.77");
   });
 
-  it("trims whitespace around the first XFF entry", () => {
-    const h = new Headers({ "x-forwarded-for": "   203.0.113.7   , 10.0.0.2" });
+  it("returns the LAST XFF entry (the proxy's peer), not the client-sent first one", () => {
+    const h = new Headers({ "x-forwarded-for": "203.0.113.1, 10.0.0.2" });
+    expect(clientIpFromHeaders(h)).toBe("10.0.0.2");
+  });
+
+  it("a forged X-Forwarded-For cannot pick the address", () => {
+    // Client sends `X-Forwarded-For: <victim>`; nginx appends the real peer.
+    const h = new Headers({ "x-forwarded-for": "198.51.100.200, 203.0.113.9" });
+    expect(clientIpFromHeaders(h)).toBe("203.0.113.9");
+  });
+
+  it("trims whitespace around the chosen XFF entry and skips empty trailing slots", () => {
+    const h = new Headers({ "x-forwarded-for": "10.0.0.2,   203.0.113.7   , , " });
     expect(clientIpFromHeaders(h)).toBe("203.0.113.7");
   });
 
@@ -206,11 +223,9 @@ describe("clientIpFromHeaders", () => {
     expect(clientIpFromHeaders(new Headers())).toBeNull();
   });
 
-  it("falls back to x-real-ip when XFF is present but the first entry is empty after trim", () => {
-    // XFF like "   , 10.0.0.2" — the first slot is whitespace-only. The
-    // helper short-circuits on the first slot yielding a non-empty string.
+  it("falls back to x-real-ip when XFF holds only empty slots", () => {
     const h = new Headers({
-      "x-forwarded-for": "   , 10.0.0.2",
+      "x-forwarded-for": "   ,  ",
       "x-real-ip": "10.0.0.99",
     });
     expect(clientIpFromHeaders(h)).toBe("10.0.0.99");
@@ -224,24 +239,26 @@ describe("clientIpFromHeaders", () => {
     expect(clientIpFromHeaders(h)).toBe("10.0.0.42");
   });
 
-  it("returns null when both XFF is empty and x-real-ip is unset", () => {
-    const h = new Headers({ "x-forwarded-for": "" });
+  it("returns null when XFF is empty, cf-connecting-ip is empty and x-real-ip is unset", () => {
+    const h = new Headers({ "x-forwarded-for": "", "cf-connecting-ip": "  " });
     expect(clientIpFromHeaders(h)).toBeNull();
   });
 
-  it("preserves IPv6 with brackets stripped by Headers normalisation", () => {
-    // A single IPv6 XFF entry — should round-trip verbatim (no bracket
-    // stripping) because callers pass through to `hashIp` which treats the
-    // string opaquely.
+  it("preserves IPv6 verbatim", () => {
+    // Callers pass through to `hashIp`, which treats the string opaquely.
     const h = new Headers({ "x-forwarded-for": "2001:db8::1" });
     expect(clientIpFromHeaders(h)).toBe("2001:db8::1");
   });
 
-  it("preserves any non-IP token in the XFF slot without validation", () => {
+  it("preserves any non-IP token in the chosen slot without validation", () => {
     // Pin: this helper does not validate the IP shape. A downstream sanity
-    // check must happen at the caller. Documenting this prevents a caller
-    // from assuming they can persist the output without validation.
+    // check must happen at the caller.
     const h = new Headers({ "x-forwarded-for": "not-an-ip" });
     expect(clientIpFromHeaders(h)).toBe("not-an-ip");
+  });
+
+  it("keeps the exported signature — string | null — so rate-limit keys (`?? \"unknown\"`) still work", () => {
+    const key = clientIpFromHeaders(new Headers()) ?? "unknown";
+    expect(key).toBe("unknown");
   });
 });

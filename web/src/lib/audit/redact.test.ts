@@ -1,10 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   REDACTED,
   clientIp,
   defaultAction,
   defaultEntity,
   hashIp,
+  resetIpSaltWarning,
+  resolveIpSalt,
   isIdLike,
   pickIdParams,
   primaryEntityId,
@@ -97,9 +99,24 @@ describe("redaction", () => {
 });
 
 describe("ip + ua", () => {
-  it("clientIp prefers first x-forwarded-for hop", () => {
-    expect(clientIp(new Headers({ "x-forwarded-for": "1.2.3.4, 5.6.7.8", "x-real-ip": "9.9.9.9" }))).toBe("1.2.3.4");
+  // S20-A review P2-3: the first x-forwarded-for hop is client-controlled
+  // (nginx appends its peer with $proxy_add_x_forwarded_for). Trust order:
+  // cf-connecting-ip → LAST xff hop → x-real-ip.
+  it("clientIp prefers cf-connecting-ip over everything", () => {
+    expect(
+      clientIp(new Headers({ "cf-connecting-ip": " 203.0.113.50 ", "x-forwarded-for": "1.2.3.4, 5.6.7.8", "x-real-ip": "9.9.9.9" })),
+    ).toBe("203.0.113.50");
+  });
+  it("clientIp takes the LAST x-forwarded-for hop, never the client-sent first one", () => {
+    expect(clientIp(new Headers({ "x-forwarded-for": "1.2.3.4, 5.6.7.8", "x-real-ip": "9.9.9.9" }))).toBe("5.6.7.8");
+    expect(clientIp(new Headers({ "x-forwarded-for": "<victim>, 203.0.113.7" }))).toBe("203.0.113.7");
+    expect(clientIp(new Headers({ "x-forwarded-for": "198.51.100.9" }))).toBe("198.51.100.9");
+    expect(clientIp(new Headers({ "x-forwarded-for": "1.2.3.4, 5.6.7.8, ,  " }))).toBe("5.6.7.8");
+  });
+  it("clientIp falls back to x-real-ip, then null", () => {
     expect(clientIp(new Headers({ "x-real-ip": "9.9.9.9" }))).toBe("9.9.9.9");
+    expect(clientIp(new Headers({ "x-forwarded-for": " , ", "x-real-ip": "9.9.9.9" }))).toBe("9.9.9.9");
+    expect(clientIp(new Headers({ "cf-connecting-ip": "" }))).toBeNull();
     expect(clientIp(new Headers())).toBeNull();
   });
   it("hashIp is salted, stable, 32 hex, never the raw ip", () => {
@@ -108,6 +125,41 @@ describe("ip + ua", () => {
     expect(hashIp("1.2.3.4", "salt-a")).toBe(a);
     expect(hashIp("1.2.3.4", "salt-b")).not.toBe(a);
     expect(hashIp(null)).toBeNull();
+  });
+  describe("resolveIpSalt", () => {
+    const env = { salt: process.env.AUDIT_IP_SALT, cron: process.env.CRON_SECRET };
+    afterEach(() => {
+      if (env.salt === undefined) delete process.env.AUDIT_IP_SALT;
+      else process.env.AUDIT_IP_SALT = env.salt;
+      if (env.cron === undefined) delete process.env.CRON_SECRET;
+      else process.env.CRON_SECRET = env.cron;
+      resetIpSaltWarning();
+      vi.restoreAllMocks();
+    });
+    it("AUDIT_IP_SALT wins, CRON_SECRET is the fallback, empty strings fall through", () => {
+      process.env.AUDIT_IP_SALT = "audit-salt";
+      process.env.CRON_SECRET = "cron";
+      expect(resolveIpSalt()).toBe("audit-salt");
+      process.env.AUDIT_IP_SALT = "";
+      expect(resolveIpSalt()).toBe("cron");
+      expect(hashIp("1.2.3.4")).toBe(hashIp("1.2.3.4", "cron"));
+    });
+    it("logs ONCE per process when the salt resolves to empty", () => {
+      delete process.env.AUDIT_IP_SALT;
+      delete process.env.CRON_SECRET;
+      const err = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      resetIpSaltWarning();
+      expect(resolveIpSalt()).toBe("");
+      expect(hashIp("1.2.3.4")).toMatch(/^[0-9a-f]{32}$/);
+      resolveIpSalt();
+      expect(err).toHaveBeenCalledTimes(1);
+      expect(String(err.mock.calls[0][0])).toContain("AUDIT_IP_SALT");
+      // A salted call never logs.
+      process.env.AUDIT_IP_SALT = "s";
+      resetIpSaltWarning();
+      resolveIpSalt();
+      expect(err).toHaveBeenCalledTimes(1);
+    });
   });
   it("uaFamily is coarse", () => {
     expect(uaFamily("Mozilla/5.0 Chrome/128.0 Safari/537.36")).toBe("chrome");

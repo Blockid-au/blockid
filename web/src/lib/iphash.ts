@@ -21,13 +21,26 @@ export function hashIp(ip: string | null | undefined): string | null {
   return createHash("sha256").update(`${ip}|${salt}`).digest("hex");
 }
 
-// Best-effort extraction of client IP from a Headers object. Caddy sets
-// X-Forwarded-For; we take the first entry (the client) when present.
+// Best-effort extraction of the client IP from a Headers object — the hop
+// our edge actually saw, never a value the client can forge (S20-A review
+// P2-3; same rule as lib/audit/redact.ts `clientIp`):
+//   1. `cf-connecting-ip` (Cloudflare sets it at the edge);
+//   2. the LAST `x-forwarded-for` hop — nginx appends its `$remote_addr`
+//      via `$proxy_add_x_forwarded_for`, so the last entry is the peer of
+//      our proxy while the FIRST entry is whatever the client sent. The
+//      old "first hop" rule let `X-Forwarded-For: <victim>` pick the
+//      view-tracking hash and the promo-code rate-limit key;
+//   3. `x-real-ip`.
+// Signature unchanged: rate-limit keys (`?? "unknown"`) keep working.
 export function clientIpFromHeaders(headers: Headers): string | null {
+  const cf = headers.get("cf-connecting-ip")?.trim();
+  if (cf) return cf;
   const xff = headers.get("x-forwarded-for");
   if (xff) {
-    const first = xff.split(",")[0]?.trim();
-    if (first) return first;
+    const hops = xff.split(",").map((h) => h.trim()).filter(Boolean);
+    const last = hops[hops.length - 1];
+    if (last) return last;
   }
-  return headers.get("x-real-ip") || null;
+  const real = headers.get("x-real-ip")?.trim();
+  return real || null;
 }
