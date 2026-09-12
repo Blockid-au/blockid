@@ -223,10 +223,10 @@ export function ESICChecker() {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <label className="text-sm font-semibold text-ink-800">
+                    <label htmlFor={`esic-${item.key}`} className="text-sm font-semibold text-ink-800">
                       {item.label}
                     </label>
-                    <p className="text-xs text-ink-500 mt-0.5">
+                    <p id={`esic-${item.key}-desc`} className="text-xs text-ink-500 mt-0.5">
                       {item.description}
                     </p>
                   </div>
@@ -237,7 +237,10 @@ export function ESICChecker() {
                       </span>
                       <button
                         type="button"
+                        id={`esic-${item.key}`}
                         role="switch"
+                        aria-label={item.label}
+                        aria-describedby={`esic-${item.key}-desc`}
                         aria-checked={
                           innovation[item.key] as boolean
                         }
@@ -276,6 +279,10 @@ export function ESICChecker() {
                   <div className="mt-3">
                     <input
                       type="range"
+                      id={`esic-${item.key}`}
+                      aria-label={item.label}
+                      aria-describedby={`esic-${item.key}-desc`}
+                      aria-valuetext={`${innovation[item.key] as number} of ${item.max} points`}
                       min={0}
                       max={item.max}
                       step={5}
@@ -288,7 +295,7 @@ export function ESICChecker() {
                       }
                       className="w-full accent-brand-600 cursor-pointer"
                     />
-                    <div className="flex justify-between text-[10px] text-ink-400 mt-1">
+                    <div className="flex justify-between text-xs text-ink-500 mt-1">
                       <span>0 pts</span>
                       <span>{item.max} pts</span>
                     </div>
@@ -371,16 +378,19 @@ export function ESICChecker() {
                 className="rounded-xl border border-surface-200 bg-white p-5 flex items-start justify-between gap-4"
               >
                 <div className="flex-1">
-                  <label className="text-sm font-semibold text-ink-800">
+                  <label htmlFor={`esic-${item.key}`} className="text-sm font-semibold text-ink-800">
                     {item.label}
                   </label>
-                  <p className="text-xs text-ink-500 mt-0.5">
+                  <p id={`esic-${item.key}-desc`} className="text-xs text-ink-500 mt-0.5">
                     {item.description}
                   </p>
                 </div>
                 <button
                   type="button"
+                  id={`esic-${item.key}`}
                   role="switch"
+                  aria-label={item.label}
+                  aria-describedby={`esic-${item.key}-desc`}
                   aria-checked={earlyStage[item.key]}
                   onClick={() =>
                     setEarlyStage((prev) => ({

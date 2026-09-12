@@ -50,7 +50,7 @@ export function LogoBand({ className }: { className?: string }) {
       <div className="mx-auto max-w-5xl px-6">
         <h2
           id="trust-strip-heading"
-          className="mb-8 text-center font-mono text-[11px] uppercase tracking-[0.28em] text-muted"
+          className="mb-8 text-center font-mono text-xs uppercase tracking-[0.28em] text-muted"
         >
           Where this is built, and how it is run
         </h2>
@@ -89,7 +89,7 @@ export function LogoBand({ className }: { className?: string }) {
           >
             Meet the team
           </Link>
-          <span aria-hidden className="mx-2 text-line">
+          <span aria-hidden className="mx-2 text-muted">
             ·
           </span>
           <Link

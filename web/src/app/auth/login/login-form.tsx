@@ -117,7 +117,7 @@ function GoogleSignIn({ nextUrl }: { nextUrl: string | null }) {
   return (
     <div className="space-y-2">
       {loading && (
-        <p className="text-xs text-surface-400 text-center">Signing in...</p>
+        <p className="text-xs text-ink-500 text-center">Signing in...</p>
       )}
       <div ref={btnRef} className={`w-full min-h-[44px] ${!gsiReady && !gsiError ? "animate-pulse bg-surface-100 rounded-lg" : ""}`} />
       {gsiError && (
@@ -143,7 +143,7 @@ function Divider() {
   return (
     <div className="flex items-center gap-3 my-5">
       <span className="flex-1 h-px bg-surface-300" />
-      <span className="text-[11px] uppercase tracking-[0.15em] text-surface-400">
+      <span className="text-[11px] uppercase tracking-[0.15em] text-ink-500">
         or continue with email
       </span>
       <span className="flex-1 h-px bg-surface-300" />
@@ -216,7 +216,7 @@ function MagicLinkForm({
           <span className="text-ink-800 font-medium">{email}</span>{" "}
           for your sign-in link.
         </p>
-        <p className="text-surface-400 text-xs">
+        <p className="text-ink-500 text-xs">
           The link expires in 15 minutes. Didn&rsquo;t arrive? Check spam or{" "}
           <button
             type="button"
@@ -234,7 +234,7 @@ function MagicLinkForm({
   return (
     <form onSubmit={onSubmit} className="space-y-3">
       <label className="block">
-        <span className="block text-xs uppercase tracking-[0.12em] text-surface-400 mb-1">
+        <span className="block text-xs uppercase tracking-[0.12em] text-ink-500 mb-1">
           Email
         </span>
         <input
@@ -306,7 +306,7 @@ function CouponInput() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-xs text-surface-400 hover:text-brand-600 transition-colors mt-1"
+        className="text-xs text-ink-500 hover:text-brand-600 transition-colors mt-1"
       >
         Have a partner code?
       </button>
@@ -523,34 +523,54 @@ function EmailPasswordForm({
         </button>
       </div>
 
+      {/* Visible labels (release QA-1 #6): placeholder-only inputs have no
+          accessible name (pa11y H91.InputEmail.Name / F68) and the label
+          vanishes the moment the field is typed into. */}
       {mode === "register" && (
-        <input
-          type="text"
-          placeholder="Display name (optional)"
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          className="w-full rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm text-ink-800 placeholder:text-ink-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none transition-all"
-        />
+        <label className="block">
+          <span className="block text-xs uppercase tracking-[0.12em] text-ink-500 mb-1">Display name (optional)</span>
+          <input
+            type="text"
+            name="displayName"
+            autoComplete="name"
+            placeholder="e.g. Sam Founder"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            className="w-full rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm text-ink-800 placeholder:text-ink-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none transition-all"
+          />
+        </label>
       )}
 
-      <input
-        type="email"
-        required
-        placeholder="Email address"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        className="w-full rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm text-ink-800 placeholder:text-ink-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none transition-all"
-      />
+      <label className="block">
+        <span className="block text-xs uppercase tracking-[0.12em] text-ink-500 mb-1">Email address</span>
+        <input
+          type="email"
+          name="email"
+          autoComplete="email"
+          required
+          placeholder="founder@startup.au"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm text-ink-800 placeholder:text-ink-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none transition-all"
+        />
+      </label>
 
-      <input
-        type="password"
-        required
-        minLength={mode === "register" ? 8 : 1}
-        placeholder={mode === "register" ? "Password (min 8 characters)" : "Password"}
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        className="w-full rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm text-ink-800 placeholder:text-ink-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none transition-all"
-      />
+      <label className="block">
+        <span className="block text-xs uppercase tracking-[0.12em] text-ink-500 mb-1">
+          {mode === "register" ? "Password (min 8 characters)" : "Password"}
+        </span>
+        <input
+          type="password"
+          name="password"
+          autoComplete={mode === "register" ? "new-password" : "current-password"}
+          required
+          minLength={mode === "register" ? 8 : 1}
+          placeholder={mode === "register" ? "At least 8 characters" : "Your password"}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm text-ink-800 placeholder:text-ink-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none transition-all"
+        />
+      </label>
 
       {error && (
         <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
@@ -619,7 +639,7 @@ export function LoginForm() {
   return (
     <div className="space-y-0">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Sign in to BlockID</h2>
+        <h1 className="text-lg font-semibold">Sign in to BlockID</h1>
       </div>
       <p className="text-ink-600 text-sm leading-relaxed mb-4">
         Own your cap table. Prove your equity. Raise with confidence.

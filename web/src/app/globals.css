@@ -17,7 +17,11 @@
   --color-ink-700: #334155;
   --color-ink-600: #475569;
   --color-ink-500: #64748b;
-  --color-ink-400: #94a3b8; /* default muted meta — matches Tailwind slate-400 */
+  /* Release QA-1 #7 (2026-09-12): was #94a3b8 (slate-400, 2.56:1 on white —
+     59 pa11y contrast failures on /tools/*, insights meta, showcase
+     separators). #68778c is 4.56:1 on white; the dark scope keeps its own
+     value. `globals.contrast.test.ts` pins both. */
+  --color-ink-400: #68778c; /* default muted meta — AA on white */
   --color-ink-300: #cbd5e1; /* mid muted */
   --color-ink-200: #e2e8f0; /* light muted */
   --color-ink-100: #f8fafc; /* near-white, decorative */
@@ -48,7 +52,10 @@
   --color-gold-300: #fcd34d;
   --color-gold-400: #fbbf24;
   --color-gold-500: #f59e0b;
-  --color-gold-600: #d97706;
+  /* Release QA-1 #7: was #d97706 (amber-600, 3.19:1 on white — the
+     "Free tool · No login" eyebrow on every /tools/* hero). #b45309 is
+     amber-700 / the --ds-warn value, 5.05:1 on white. */
+  --color-gold-600: #b45309;
 
   /* ── Luxury palette — colours pulled straight from the BlockID logo ── */
   /* Opt in via a [data-theme="lux"] wrapper on <body> or a section. */
@@ -295,6 +302,7 @@
     --color-ink-600: #9ca3af;
     --color-ink-500: #9ca3af;
     --color-ink-400: #e5e7eb;
+    --color-gold-600: #f59e0b; /* release QA-1 #7 — see the [data-theme="dark"] note */
     --color-ink-300: #d1d5db;
     --color-ink-200: #9ca3af;
     --color-ink-100: #9ca3af;
@@ -378,6 +386,9 @@
   --color-ink-600: #9ca3af;
   --color-ink-500: #9ca3af;
   --color-ink-400: #e5e7eb;
+  /* release QA-1 #7: light gold-600 is now amber-700 (#b45309), only 3.8:1
+     on the dark ground — lift to amber-500 here (8.9:1 on #0b0f1a). */
+  --color-gold-600: #f59e0b;
   --color-ink-300: #d1d5db;
   --color-ink-200: #9ca3af;
   --color-ink-100: #9ca3af;
@@ -501,7 +512,7 @@
   --color-ink-700: #334155;
   --color-ink-600: #475569;
   --color-ink-500: #64748b;
-  --color-ink-400: #94a3b8;
+  --color-ink-400: #68778c; /* release QA-1 #7 — same AA value as the @theme ramp */
   --color-ink-300: #cbd5e1;
   --color-ink-200: #e2e8f0;
   --color-ink-100: #f8fafc;

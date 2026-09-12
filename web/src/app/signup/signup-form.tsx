@@ -53,6 +53,9 @@ function getStripe(pk: string): Promise<Stripe | null> {
   return stripeSingleton;
 }
 
+/** Accessible name for Stripe frames that arrive without one (Link button). */
+export const STRIPE_FRAME_TITLE = "Secure card payment input (Stripe)";
+
 const CARD_STYLE = {
   style: {
     base: {
@@ -158,6 +161,28 @@ function InnerForm(props: SignupFormProps) {
     React.useState<PromoValidation | null>(null);
   const [promoError, setPromoError] = React.useState<string | null>(null);
   const [promoValidating, setPromoValidating] = React.useState(false);
+
+  // Release QA-1 #6: Stripe's Link button frame
+  // (`elements-inner-link-button-for-card…`, name="cardButton…") is injected
+  // without a `title`, which WCAG 2.4.1 / pa11y H64.1 flags on the
+  // card-required trial form. The main card input frame is titled by
+  // Stripe; only the untitled ones get a name here. Attributes on the
+  // <iframe> element are ours to set even though the document is
+  // cross-origin.
+  const cardWrapRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    const root = cardWrapRef.current;
+    if (!root || typeof MutationObserver === "undefined") return;
+    const titleFrames = () => {
+      for (const frame of Array.from(root.querySelectorAll("iframe"))) {
+        if (!frame.getAttribute("title")) frame.setAttribute("title", STRIPE_FRAME_TITLE);
+      }
+    };
+    titleFrames();
+    const obs = new MutationObserver(titleFrames);
+    obs.observe(root, { childList: true, subtree: true });
+    return () => obs.disconnect();
+  }, []);
 
   // Hydrate promo code from cookie on mount + revalidate once. Must run
   // post-mount (not as a lazy initialiser) so the SSR markup and the first
@@ -390,7 +415,7 @@ function InnerForm(props: SignupFormProps) {
       </label>
       <label className="block mb-3.5">
         {fieldLabel("Card details")}
-        <div className="bg-[#0B1220] border border-[#1F2A44] rounded-xl px-3 py-3">
+        <div ref={cardWrapRef} className="bg-[#0B1220] border border-[#1F2A44] rounded-xl px-3 py-3">
           <CardElement options={CARD_STYLE} />
         </div>
       </label>

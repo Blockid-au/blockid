@@ -30,7 +30,10 @@ async function html(): Promise<string> {
   return renderPage(Page({ searchParams: Promise.resolve({ next: "/dashboard", plan: "growth" }) }));
 }
 
-describe("/auth/login — hydration safety", () => {
+// 20 s budget: this file is the first to import the full page (real Navbar +
+// Footer + LoginForm) and the double deterministic render sits at ~0.7 s
+// alone but tripped the 5 s default under a 45-file parallel run.
+describe("/auth/login — hydration safety", { timeout: 20_000 }, () => {
   it("signed out: form + footer email render, no relocated nesting, deterministic", async () => {
     auth.user = null;
     const out = await assertDeterministicRender(html);
@@ -45,5 +48,35 @@ describe("/auth/login — hydration safety", () => {
     expect(out).toContain("already signed in");
     expect(out).toContain('href="/dashboard"');
     assertHydratableNesting(out, "/auth/login signed-in");
+  });
+});
+
+// Release QA-1 #6 / #16 (2026-09-12): pa11y flagged the email + password
+// inputs as having no accessible name (H91.InputEmail.Name /
+// H91.InputPassword.Name / F68 — placeholder-only) and the page had no <h1>.
+describe("/auth/login — accessible names + heading (release QA-1 #6/#16)", () => {
+  it("signed out: exactly one <h1>, and every input sits inside a <label> with visible text", async () => {
+    auth.user = null;
+    const out = await html();
+    expect(out.match(/<h1\b/g)?.length).toBe(1);
+    expect(out).toMatch(/<h1[^>]*>Sign in to BlockID<\/h1>/);
+    // Every <input> on the page is wrapped by a <label> whose first child is
+    // the visible caption <span>, so its accessible name never depends on a
+    // placeholder. `<label …><span …>Email address</span><input …>`.
+    const inputs = out.match(/<input\b[^>]*>/g) ?? [];
+    expect(inputs.length).toBeGreaterThanOrEqual(2);
+    for (const tag of inputs) {
+      const idx = out.indexOf(tag);
+      const before = out.slice(Math.max(0, idx - 400), idx);
+      const lastLabel = before.lastIndexOf("<label");
+      const lastClose = before.lastIndexOf("</label>");
+      expect(lastLabel, `input without a wrapping <label>: ${tag.slice(0, 80)}`).toBeGreaterThan(lastClose);
+      expect(before.slice(lastLabel)).toMatch(/<span[^>]*>[^<]+<\/span>/);
+    }
+    // The old placeholder-only inputs are gone.
+    expect(out).not.toMatch(/<input[^>]*placeholder="Email address"/);
+    expect(out).not.toMatch(/<input[^>]*placeholder="Password"/);
+    // Divider copy no longer uses the 1.48:1 surface-400 tint.
+    expect(out).toMatch(/text-ink-500[^>]*>or continue with email/);
   });
 });
