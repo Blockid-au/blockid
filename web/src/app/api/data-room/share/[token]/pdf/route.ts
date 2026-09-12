@@ -9,8 +9,10 @@
 //   - the room's NDA gate is enforced HERE, server-side, not just on the page:
 //     a pending gate → 403 `nda_required`, whatever the UI showed;
 //   - the per-recipient watermark is applied when the room has
-//     `watermark_enabled` AND the owner's plan carries investor_links.premium.
-//     The recipient line follows lib/dataroom/watermark-recipient:
+//     `watermark_enabled`. Turning it (or the NDA) on needed
+//     investor_links.premium on the owner's plan; enforcing it does not
+//     (S21-A review P2-5 — a lapse never releases documents or strips the
+//     mark). The recipient line follows lib/dataroom/watermark-recipient:
 //     `data_room_access_tokens.watermark` (0339, mirror of
 //     share_packages.watermark) → investor name / firm / email → the email
 //     on the NDA ledger (read from data_room_nda_acceptances, never from
@@ -26,7 +28,6 @@ import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { shareLinkState, type ShareLinkRow } from "@/lib/data-room";
 import { ndaAllowsDocuments, ndaGate, normaliseNdaVersion } from "@/lib/dataroom/nda";
-import { ownerTrustEntitled } from "@/lib/dataroom/nda-server";
 import { clientIpFromHeaders, hashIp } from "@/lib/iphash";
 import { watermarkRecipient, willWatermark } from "@/lib/dataroom/watermark-recipient";
 import { renderDataRoomDocumentPdf } from "@/lib/pdf/data-room-document-pdf";
@@ -79,7 +80,6 @@ export async function GET(
     .maybeSingle();
   if (!room) return NOT_FOUND();
 
-  const entitled = await ownerTrustEntitled(String(room.user_id ?? link.account_id ?? ""));
   const gate = ndaGate(
     {
       ndaRequired: Boolean(room.nda_required),
@@ -91,7 +91,6 @@ export async function GET(
       ndaSignedAt: (link.nda_signed_at as string | null) ?? null,
       ndaSignedVersion: typeof link.nda_signed_version === "number" ? link.nda_signed_version : null,
     },
-    entitled,
   );
   if (!ndaAllowsDocuments(gate)) {
     return NextResponse.json(
@@ -123,7 +122,7 @@ export async function GET(
     investor_firm: link.investor_firm as string | null,
     investor_email: link.investor_email as string | null,
   };
-  const stamps = entitled && willWatermark(Boolean(room.watermark_enabled), linkFields);
+  const stamps = willWatermark(Boolean(room.watermark_enabled), linkFields);
   let watermark: string | null = null;
   if (stamps) {
     // Only reach for the ledger when the founder named nothing on the link.

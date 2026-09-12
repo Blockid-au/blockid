@@ -76,6 +76,7 @@ describe("RoomTrustSettings", () => {
     expect(html).toContain('data-testid="trust-locked"');
     expect(html).toContain("/pricing?feature=investor_links.premium");
     expect(html).toContain("Starter and above");
+    expect(html).toContain("stays enforced on your links");
     expect(html).toMatch(/id="trust-nda"[^>]*disabled=""/);
     expect(html).toContain("Keep it secret.");
   });

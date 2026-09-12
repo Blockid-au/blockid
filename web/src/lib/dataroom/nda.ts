@@ -8,12 +8,17 @@
 // The rule:
 //   - a room asks for an NDA when `data_rooms.nda_required` is true, or the
 //     individual link was minted with `nda_required` (0062);
-//   - the ask is only honoured when the room owner's plan carries
-//     `investor_links.premium` (founder_starter+, migration 0131). A Free
-//     room renders without the gate rather than showing a clause the plan
-//     does not include — the founder is told this in settings;
 //   - a link has accepted when `nda_signed_version` equals the room's
 //     current `nda_version`. Bumping the version re-prompts every link.
+//
+// Plan gating (S21-A review P2-5): the owner's plan (`investor_links.premium`,
+// founder_starter+, migration 0131) controls whether the founder can TURN
+// the gate on — api/data-room/settings PUT and api/data-room/access both
+// refuse without it — not whether an already-enabled gate is enforced. A
+// room whose owner later lapses to Free keeps withholding documents from
+// links that have not accepted; a confidentiality promise made to the
+// investor does not expire with the founder's subscription. So the gate
+// here takes no entitlement argument at all.
 //
 // No `server-only` import and no node built-ins: the client-side gate
 // component reads DEFAULT_NDA_TEXT and the disclaimer line too. The clause
@@ -51,7 +56,7 @@ export interface NdaLinkState {
 }
 
 export type NdaGateStatus =
-  /** Room does not ask, or the plan does not include the gate. */
+  /** Neither the room nor the link asks. */
   | "not_required"
   /** Must accept before documents are listed / served. */
   | "pending"
@@ -81,20 +86,14 @@ export function resolveNdaText(text: string | null | undefined): string {
 }
 
 /**
- * Does this link have to accept before it sees anything?
- *
- * `entitled` is whether the ROOM OWNER's plan includes investor_links.premium.
- * Passing false collapses the gate to `not_required` regardless of settings —
- * the Free room must never show a clause its plan does not include.
+ * Does this link have to accept before it sees anything? Independent of the
+ * owner's current plan on purpose — see the header. Only the settings
+ * surface consults `ownerTrustEntitled()`.
  */
-export function ndaGate(
-  room: NdaRoomSettings,
-  link: NdaLinkState,
-  entitled: boolean,
-): NdaGate {
+export function ndaGate(room: NdaRoomSettings, link: NdaLinkState): NdaGate {
   const version = normaliseNdaVersion(room.ndaVersion);
   const text = resolveNdaText(room.ndaText);
-  const required = entitled && (room.ndaRequired || link.ndaRequired);
+  const required = room.ndaRequired || link.ndaRequired;
   if (!required) return { status: "not_required", version, text, reason: null };
   const signed = link.ndaSignedVersion;
   if (link.ndaSignedAt && typeof signed === "number" && signed >= version) {

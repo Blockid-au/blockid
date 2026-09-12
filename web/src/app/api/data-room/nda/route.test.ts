@@ -2,7 +2,8 @@
 //
 // Pins:
 //   - a bad / revoked / expired / orphaned token 404s identically (no oracle);
-//   - a Free room (owner not entitled) answers not_required and writes nothing;
+//   - a room that does not ask answers not_required and writes nothing; the
+//     owner's plan is never consulted (P2-5: an enabled gate survives a lapse);
 //   - a stale version (founder bumped mid-read) is refused with 409 and the
 //     current version, and writes nothing;
 //   - the acceptance row shape: (link, version, hash of the clause shown,
@@ -102,13 +103,23 @@ describe("POST /api/data-room/nda", () => {
     expect(sb.hasEq("data_rooms", "id", "room-1")).toBe(true);
   });
 
-  it("Free room: answers not_required and writes nothing — the plan does not include the gate", async () => {
-    mocks.ownerTrustEntitled.mockResolvedValue(false);
+  it("a room that does not ask: answers not_required and writes nothing", async () => {
+    setup(LINK, { ...ROOM, nda_required: false });
     const res = await POST(req({ token: TOKEN, version: 2 }));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true, status: "not_required" });
     expect(sb.find("data_room_nda_acceptances", "upsert").length).toBe(0);
     expect(sb.find("data_room_access_tokens", "update").length).toBe(0);
+  });
+
+  it("owner's plan lapsed: the enabled gate still takes the acceptance — never consults the plan (P2-5)", async () => {
+    mocks.ownerTrustEntitled.mockResolvedValue(false);
+    const res = await POST(req({ token: TOKEN, version: 2 }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, status: "accepted", version: 2 });
+    expect(sb.find("data_room_nda_acceptances", "upsert").length).toBe(1);
+    expect(mocks.ownerTrustEntitled).not.toHaveBeenCalled();
+    expect(sb.find("app_users", "select").length).toBe(0);
   });
 
   it("409s a stale version with the current one, writing nothing", async () => {

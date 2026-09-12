@@ -23,8 +23,9 @@
 // acceptance would be for text the investor never saw — so a stale version
 // is refused with 409 and the page reloads to show the new clause.
 //
-// r-03-exempt: investor-facing click-wrap; entitlement is the room owner's
-// plan (checked via ownerTrustEntitled), not the anonymous caller's.
+// r-03-exempt: investor-facing click-wrap; the founder's entitlement was
+// checked when the gate was turned on (settings PUT / access POST); the
+// gate itself is plan-independent (S21-A review P2-5).
 
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
@@ -32,7 +33,7 @@ import { apiRoute, auditNote } from "@/lib/audit/api-route";
 import { uaFamily } from "@/lib/audit/redact";
 import { shareLinkState, type ShareLinkRow } from "@/lib/data-room";
 import { ndaGate, normaliseNdaVersion, parseNdaAcceptBody } from "@/lib/dataroom/nda";
-import { ndaTextHash, ownerTrustEntitled } from "@/lib/dataroom/nda-server";
+import { ndaTextHash } from "@/lib/dataroom/nda-server";
 import { clientIpFromHeaders, hashIp } from "@/lib/iphash";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
@@ -68,7 +69,6 @@ async function POST_handler(req: NextRequest) {
     .maybeSingle();
   if (!room) return NOT_FOUND();
 
-  const entitled = await ownerTrustEntitled(String(room.user_id ?? link.account_id ?? ""));
   const gate = ndaGate(
     {
       ndaRequired: Boolean(room.nda_required),
@@ -80,7 +80,6 @@ async function POST_handler(req: NextRequest) {
       ndaSignedAt: (link.nda_signed_at as string | null) ?? null,
       ndaSignedVersion: typeof link.nda_signed_version === "number" ? link.nda_signed_version : null,
     },
-    entitled,
   );
 
   if (gate.status === "not_required") {
