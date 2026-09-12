@@ -79,4 +79,39 @@ describe("supabaseWebhookStore", () => {
     expect((await store.activePackageUserIds([])).size).toBe(0);
     expect(await store.projectOwnerIds(["p"])).toEqual(new Map([["p", "o"]]));
   });
+
+  it("projectAdminMemberships: one accepted+admin read over project_members, keyed project:user (P1)", async () => {
+    const sb = fakeSupabase({ project_members: [{ project_id: "p", user_id: "u" }, { project_id: "p", user_id: null }] });
+    const store = supabaseWebhookStore(sb)!;
+    expect(await store.projectAdminMemberships(["p", "p"], ["u", "v"])).toEqual(new Set(["p:u"]));
+    expect(sb.find("project_members", "in").map((c) => c.args)).toEqual([["project_id", ["p"]], ["user_id", ["u", "v"]]]);
+    expect(sb.hasEq("project_members", "status", "accepted")).toBe(true);
+    expect(sb.hasEq("project_members", "role", "admin")).toBe(true);
+    expect((await store.projectAdminMemberships([], ["u"])).size).toBe(0);
+    expect(sb.find("project_members", "in")).toHaveLength(2);
+  });
+
+  it("recordFailure / recordSuccess call the 0340 RPCs; a missing function (42883 / PGRST202) → null / false so the caller falls back (P2)", async () => {
+    const sb = fakeSupabase();
+    const store = supabaseWebhookStore(sb)!;
+    sb.rpc = async (fn: string, args?: Record<string, unknown>) => {
+      sb.calls.push({ table: "rpc", op: fn, args: [args] });
+      return { data: [{ failure_count: 7, active: true, disabled: false }], error: null };
+    };
+    expect(await store.recordFailure("e1")).toEqual({ failure_count: 7, active: true, disabled: false });
+    expect(sb.find("rpc", "webhook_endpoint_record_failure")[0].args).toEqual([{ p_id: "e1" }]);
+    expect(await store.recordSuccess("e1")).toBe(true);
+    expect(sb.find("rpc", "webhook_endpoint_record_success")[0].args).toEqual([{ p_id: "e1" }]);
+
+    sb.rpc = async () => ({ data: null, error: { code: "42883", message: "function public.webhook_endpoint_record_failure(uuid) does not exist" } as never });
+    expect(await store.recordFailure("e1")).toBeNull();
+    expect(await store.recordSuccess("e1")).toBe(false);
+    sb.rpc = async () => ({ data: null, error: { code: "PGRST202", message: "Could not find the function public.webhook_endpoint_record_success(p_id) in the schema cache" } as never });
+    expect(await store.recordFailure("e1")).toBeNull();
+    expect(await store.recordSuccess("e1")).toBe(false);
+    // Any other error is raised (a real failure must not be silently swallowed).
+    sb.rpc = async () => ({ data: null, error: { code: "57014", message: "canceling statement" } as never });
+    await expect(store.recordFailure("e1")).rejects.toThrow("canceling statement");
+    await expect(store.recordSuccess("e1")).rejects.toThrow("canceling statement");
+  });
 });

@@ -8,12 +8,18 @@
 //        recreate to rotate.
 // DELETE 200 { ok } — cascades the delivery log.
 //
-// Access (lib/webhooks/http.ts loadEndpointForCaller): the creator, or an
-// admin+ member of the endpoint's project. Anyone else → 404.
+// Access (lib/webhooks/http.ts loadEndpointForCaller): user-level → its
+// creator; project-level → a CURRENT admin+ member of the project (S20-B
+// review P1: creator status alone no longer counts). Anyone else → 404.
+//
+// PATCH is rate-limited 30/min per user (S20-B review P2-6): a URL change
+// costs a DNS resolution, so an unlimited PATCH was a cheap DNS oracle /
+// DoS surface next to create (20/h) and test (10/min).
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { PRIVATE_JSON_HEADERS, readJsonBody } from "@/lib/security/request-guards";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { apiRoute } from "@/lib/audit/api-route";
 import { validateEndpointUrl } from "@/lib/webhooks/dispatch";
 import { supabaseWebhookStore, type EndpointPatch } from "@/lib/webhooks/store";
@@ -34,6 +40,8 @@ function noDb() {
 async function PATCH_handler(request: Request, ctx: Ctx) {
   const user = await getCurrentUser();
   if (!user) return unauth();
+  const limited = enforceRateLimit("webhooks-patch", user.id, request, 30, 60 * 1000);
+  if (limited) return limited;
   const store = supabaseWebhookStore();
   if (!store) return noDb();
 

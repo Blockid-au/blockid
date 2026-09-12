@@ -4,9 +4,15 @@
 //
 // Access rule for an existing endpoint (`loadEndpointForCaller`):
 //   * user-level endpoint (project_id NULL)  → its creator only
-//   * project-level endpoint                 → its creator, or any admin+
-//                                              member of that project
-//                                              (`assertProjectAccess`)
+//   * project-level endpoint                 → an admin+ member of that
+//                                              project RIGHT NOW
+//                                              (`assertProjectAccess`) —
+//                                              being the creator is
+//                                              irrelevant (S20-B review P1:
+//                                              a revoked admin must lose
+//                                              manage / test / deliveries
+//                                              access, not keep it via the
+//                                              creator shortcut)
 //   anything else → 404 (a non-member must not learn the row exists).
 //
 // Creating a project-level endpoint requires admin+ on that project
@@ -125,8 +131,11 @@ export async function loadEndpointForCaller(
   if (!isUuid(endpointId)) return { endpoint: null, denied: notFound() };
   const endpoint = await store.getEndpoint(endpointId);
   if (!endpoint) return { endpoint: null, denied: notFound() };
-  if (endpoint.user_id === user.id) return { endpoint, denied: null };
-  if (!endpoint.project_id) return { endpoint: null, denied: notFound() };
+  if (!endpoint.project_id) {
+    // User-level: creator only.
+    return endpoint.user_id === user.id ? { endpoint, denied: null } : { endpoint: null, denied: notFound() };
+  }
+  // Project-level: current admin+ membership decides, creator or not (P1).
   try {
     await assertProjectAccess(user.id, endpoint.project_id, "admin");
     return { endpoint, denied: null };

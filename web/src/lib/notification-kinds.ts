@@ -215,11 +215,21 @@ export function describeNotification(row: FounderNotificationRow): string {
       return FUNDING_COPY.notification.weekly_next_step;
     }
     case "webhook_disabled": {
+      // S20-B review: payload.reason distinguishes the three disable paths
+      // (lib/webhooks/notify.ts). Missing reason = the original auto-disable.
       const host = s(p.host);
+      const reason = s(p.reason) ?? "auto_disabled";
+      const target = host ? `Webhook to ${host}` : "A webhook endpoint";
+      if (reason === "creator_not_member") {
+        return `${target} was disabled — the team member who created it no longer has admin access to this project. Recreate it yourself if you still need it.`;
+      }
+      if (reason === "secret_unreadable") {
+        return `${target} was disabled — its signing secret could not be read. Delete the endpoint and create it again.`;
+      }
       const failures = n(p.failures) ?? 20;
       return host
-        ? `Webhook to ${host} was disabled after ${failures} consecutive failed deliveries — fix the receiver and re-enable it.`
-        : `A webhook endpoint was disabled after ${failures} consecutive failed deliveries.`;
+        ? `${target} was disabled after ${failures} consecutive failed deliveries — fix the receiver and re-enable it.`
+        : `${target} was disabled after ${failures} consecutive failed deliveries.`;
     }
     case "radar_setup_nudge": {
       // Counts come from the sweep's catalogue so the line is never blank

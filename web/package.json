@@ -66,6 +66,7 @@
     "stripe": "^22.1.1",
     "tailwind-merge": "^3.5.0",
     "tesseract.js": "^7.0.0",
+    "undici": "^6.28.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {

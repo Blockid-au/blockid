@@ -98,6 +98,33 @@ describe("POST /api/webhooks", () => {
     expect(list.events.map((e: { event: string }) => e.event)).toContain("funding.report_ready");
   });
 
+  it("P2-4: production without a sealing key → 500 sealing_key_missing, nothing stored, no secret returned", async () => {
+    const saved = { NODE_ENV: process.env.NODE_ENV, WEBHOOK_SECRET_KEY: process.env.WEBHOOK_SECRET_KEY, OAUTH_TOKEN_ENCRYPTION_KEY: process.env.OAUTH_TOKEN_ENCRYPTION_KEY };
+    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      delete process.env.WEBHOOK_SECRET_KEY;
+      delete process.env.OAUTH_TOKEN_ENCRYPTION_KEY;
+      (process.env as Record<string, string>).NODE_ENV = "production";
+      const res = await POST(post({ url: "https://h.example.com/x", events: ["svi.rescored"] }));
+      expect(res.status).toBe(500);
+      const body = await res.json();
+      expect(body).toEqual({ ok: false, error: "sealing_key_missing" });
+      expect(JSON.stringify(body)).not.toContain("whsec_");
+      expect(store!.endpoints).toHaveLength(0);
+      // With the key present production creates normally (gcm: sealed).
+      process.env.WEBHOOK_SECRET_KEY = "unit-key";
+      const ok = await POST(post({ url: "https://h.example.com/x", events: ["svi.rescored"] }));
+      expect(ok.status).toBe(201);
+      expect(store!.endpoints[0].secret_enc.startsWith("gcm:")).toBe(true);
+    } finally {
+      spy.mockRestore();
+      for (const [k, v] of Object.entries(saved)) {
+        if (v === undefined) delete process.env[k];
+        else (process.env as Record<string, string>)[k] = v;
+      }
+    }
+  });
+
   it("400 on missing url / unknown event / empty events / bad json / bad project id", async () => {
     expect((await (await POST(post({ events: ["svi.rescored"] }))).json()).error).toBe("url_required");
     expect((await (await POST(post({ url: "https://h.example.com/x", events: ["ping"] }))).json()).error).toBe("unknown_event:ping");

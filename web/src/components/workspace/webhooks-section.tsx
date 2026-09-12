@@ -37,6 +37,25 @@ const STATUS_CHIP: Record<PublicDelivery["status"], string> = {
   dead: "border-red-500/40 bg-red-500/10 text-red-300",
 };
 
+// S20-B review: `disabled_reason` values the API writes — auto_disabled:*
+// (20 consecutive failures), paused_by_user, creator_not_member (the admin
+// who created a project endpoint was removed from the project — P1) and
+// secret_unreadable (sealing key missing / rotated — P2-4). The last two
+// cannot be "resumed" into a working state: recreate the endpoint.
+function disabledLabel(reason: string | null | undefined): string {
+  if (reason?.startsWith("auto_disabled")) return "Auto-disabled";
+  if (reason === "creator_not_member") return "Creator removed";
+  if (reason === "secret_unreadable") return "Secret unreadable";
+  return "Paused";
+}
+
+function disabledHint(reason: string | null | undefined): string | null {
+  if (reason?.startsWith("auto_disabled")) return "Disabled after 20 consecutive failed deliveries. Fix the receiver, then resume.";
+  if (reason === "creator_not_member") return "The team member who created this endpoint no longer has admin access to the project. Delete it and create your own if you still need it.";
+  if (reason === "secret_unreadable") return "The signing secret for this endpoint could not be read. Delete it and create a new one.";
+  return null;
+}
+
 function fmt(iso: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -311,11 +330,11 @@ export function WebhooksSection({ initialEndpoints, events, access, projectId, r
                   }`}
                   data-webhook-status={ep.active ? "active" : "disabled"}
                 >
-                  {ep.active ? "Active" : ep.disabled_reason?.startsWith("auto_disabled") ? "Auto-disabled" : "Paused"}
+                  {ep.active ? "Active" : disabledLabel(ep.disabled_reason)}
                 </span>
               </div>
-              {!ep.active && ep.disabled_reason?.startsWith("auto_disabled") ? (
-                <p className="text-xs text-amber-300">Disabled after 20 consecutive failed deliveries. Fix the receiver, then resume.</p>
+              {!ep.active && disabledHint(ep.disabled_reason) ? (
+                <p className="text-xs text-amber-300">{disabledHint(ep.disabled_reason)}</p>
               ) : null}
               {canManage ? (
                 <div className="flex flex-wrap gap-2">

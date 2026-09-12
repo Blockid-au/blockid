@@ -487,5 +487,18 @@ export async function revokeMember(
     );
   }
 
-  return mapMember(data);
+  const revoked = mapMember(data);
+
+  // S20-B review P1 — a revoked member must not keep a live event channel:
+  // every ACTIVE project-level webhook endpoint they created on this
+  // project is switched off (`creator_not_member`) and the owner is told.
+  // Never throws (lib/webhooks/membership.ts); the dispatcher re-checks
+  // membership every tick as the backstop. Lazy import keeps the webhook
+  // store out of this module's graph for callers that never revoke.
+  if (revoked.userId) {
+    const { deactivateEndpointsForRevokedMember } = await import("@/lib/webhooks/membership");
+    await deactivateEndpointsForRevokedMember(revoked.projectId, revoked.userId);
+  }
+
+  return revoked;
 }

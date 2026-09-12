@@ -1,7 +1,7 @@
 // Colocated vitest for lib/security/outbound-url.ts (S8-C, 2026-09-11).
 
 import { describe, expect, it } from "vitest";
-import { checkOutboundUrl, isForbiddenHostname, isPrivateIp } from "./outbound-url";
+import { checkOutboundUrl, isForbiddenHostname, isPrivateIp, makePinnedLookup, OutboundLookupRefusedError } from "./outbound-url";
 
 describe("isPrivateIp", () => {
   it("flags loopback, RFC1918, link-local / metadata, CGNAT and reserved v4", () => {
@@ -110,5 +110,58 @@ describe("checkOutboundUrl", () => {
   it("skipDns still runs the hostname checks", async () => {
     expect((await checkOutboundUrl("https://business.gov.au/", { skipDns: true })).ok).toBe(true);
     expect((await checkOutboundUrl("https://169.254.169.254/", { skipDns: true })).ok).toBe(false);
+  });
+});
+
+// ── S20-B review P2-3: connection pinning against DNS rebinding ────────────
+
+type LookupResult = { err: Error | null; address?: unknown; family?: number };
+function lookup(fn: ReturnType<typeof makePinnedLookup>, hostname: string, options: Record<string, unknown> = {}): Promise<LookupResult> {
+  return new Promise((resolve) => {
+    fn(hostname, options as never, (err, address, family) => resolve({ err, address, family }));
+  });
+}
+
+describe("makePinnedLookup", () => {
+  it("connects to the pinned (already validated) addresses without a second DNS lookup", async () => {
+    let resolves = 0;
+    const fn = makePinnedLookup(["93.184.216.34", "2606:2800:220:1:248:1893:25c8:1946"], { resolve: async () => { resolves++; return ["10.0.0.1"]; } });
+    expect(await lookup(fn, "hooks.example.com")).toEqual({ err: null, address: "93.184.216.34", family: 4 });
+    expect(await lookup(fn, "hooks.example.com", { all: true })).toEqual({
+      err: null,
+      address: [{ address: "93.184.216.34", family: 4 }, { address: "2606:2800:220:1:248:1893:25c8:1946", family: 6 }],
+      family: undefined,
+    });
+    expect(await lookup(fn, "hooks.example.com", { family: 6 })).toMatchObject({ err: null, address: "2606:2800:220:1:248:1893:25c8:1946", family: 6 });
+    expect(resolves).toBe(0);
+  });
+
+  it("refuses a rebinding record: public at check time, private at connect time", async () => {
+    // The check resolved the name to a public address; by the time the
+    // socket opens the (short-TTL) record points inside the network.
+    const answers = [["93.184.216.34"], ["169.254.169.254"]];
+    const resolve = async () => answers.shift() ?? ["169.254.169.254"];
+    const check = await checkOutboundUrl("https://evil.example.com/", { resolve });
+    expect(check.ok).toBe(true);
+    // Unpinned lookup (no addresses handed over) re-resolves → refused.
+    const unpinned = makePinnedLookup([], { resolve });
+    const r = await lookup(unpinned, "evil.example.com", { all: true });
+    expect(r.err).toBeInstanceOf(OutboundLookupRefusedError);
+    expect(r.err?.message).toBe("outbound_lookup_refused:private_ip:169.254.169.254");
+    expect((r.err as OutboundLookupRefusedError).code).toBe("EBLOCKED");
+    // Pinned lookup never asks DNS again, so the flip cannot be observed at all.
+    const pinned = makePinnedLookup(check.ok ? check.addresses : [], { resolve });
+    expect(await lookup(pinned, "evil.example.com")).toEqual({ err: null, address: "93.184.216.34", family: 4 });
+  });
+
+  it("re-checks even the pinned list, refuses empty answers / wrong family, and passes resolver errors through", async () => {
+    expect((await lookup(makePinnedLookup(["10.1.2.3"]), "h.example.com")).err?.message).toBe("outbound_lookup_refused:private_ip:10.1.2.3");
+    expect((await lookup(makePinnedLookup([], { resolve: async () => [] }), "h.example.com")).err?.message).toBe("outbound_lookup_refused:no_addresses");
+    expect((await lookup(makePinnedLookup(["93.184.216.34"]), "h.example.com", { family: 6 })).err?.message).toBe("outbound_lookup_refused:no_addresses");
+    const failing = makePinnedLookup([], { resolve: async () => { throw new Error("ENOTFOUND"); } });
+    expect((await lookup(failing, "nx.example.com")).err?.message).toBe("ENOTFOUND");
+    // An IP-literal host never resolves; it is judged directly.
+    expect(await lookup(makePinnedLookup([]), "93.184.216.34")).toEqual({ err: null, address: "93.184.216.34", family: 4 });
+    expect((await lookup(makePinnedLookup([]), "127.0.0.1")).err?.message).toBe("outbound_lookup_refused:private_ip:127.0.0.1");
   });
 });

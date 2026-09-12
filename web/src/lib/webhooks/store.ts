@@ -98,6 +98,39 @@ export interface WebhookStore {
   activePackageUserIds(userIds: readonly string[]): Promise<Set<string>>;
   /** Project owner ids — the default recipients of a project's user-level endpoints. */
   projectOwnerIds(projectIds: readonly string[]): Promise<Map<string, string>>;
+  /**
+   * Accepted `admin` memberships among projectIds × userIds, as
+   * `${projectId}:${userId}` keys (S20-B review P1 — the dispatcher checks
+   * every project-level endpoint's creator is STILL owner/admin each tick).
+   */
+  projectAdminMemberships(projectIds: readonly string[], userIds: readonly string[]): Promise<Set<string>>;
+  /**
+   * Atomic consecutive-failure bookkeeping (migration 0340 RPC
+   * `webhook_endpoint_record_failure`): failure_count + 1, last_failure_at,
+   * auto-disable at MAX inside SQL. `disabled` is true only for the call
+   * that flipped `active`. Null when the RPC is not deployed yet — the
+   * caller falls back to the read-modify-write path.
+   */
+  recordFailure(id: string): Promise<FailureState | null>;
+  /** Atomic success bookkeeping (RPC `webhook_endpoint_record_success`): failure_count = 0, last_success_at. False when the RPC is missing. */
+  recordSuccess(id: string): Promise<boolean>;
+}
+
+export interface FailureState {
+  failure_count: number;
+  active: boolean;
+  disabled: boolean;
+}
+
+/** Consecutive failures before the endpoint is disabled — mirrored in the 0340 SQL function. */
+export const MAX_CONSECUTIVE_FAILURES = 20;
+export const AUTO_DISABLED_REASON = `auto_disabled:${MAX_CONSECUTIVE_FAILURES}_consecutive_failures`;
+
+/** PostgREST / Postgres "function does not exist" — the 0340 RPCs are not applied yet. */
+export function isMissingRpcError(error: { code?: string | null; message?: string | null } | null | undefined): boolean {
+  if (!error) return false;
+  if (error.code === "42883" || error.code === "PGRST202") return true;
+  return /could not find the function|function .* does not exist/i.test(error.message ?? "");
 }
 
 const ENDPOINT_COLUMNS =
@@ -106,7 +139,7 @@ const DELIVERY_COLUMNS =
   "id, endpoint_id, event, payload, status, attempts, next_attempt_at, locked_until, response_status, last_error, created_at, delivered_at";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Db = { from(table: string): any };
+type Db = { from(table: string): any; rpc?(fn: string, args?: Record<string, unknown>): any };
 
 function uniq(ids: readonly string[]): string[] {
   return Array.from(new Set(ids.filter(Boolean)));
@@ -236,6 +269,44 @@ export function supabaseWebhookStore(db: Db | null = getSupabaseAdmin()): Webhoo
       for (const r of (data ?? []) as Array<{ id: string; user_id: string }>) if (r.user_id) out.set(r.id, r.user_id);
       return out;
     },
+    async projectAdminMemberships(projectIds, userIds) {
+      const ps = uniq(projectIds);
+      const us = uniq(userIds);
+      const out = new Set<string>();
+      if (!ps.length || !us.length) return out;
+      const { data, error } = await sb
+        .from("project_members")
+        .select("project_id, user_id")
+        .in("project_id", ps)
+        .in("user_id", us)
+        .eq("status", "accepted")
+        .eq("role", "admin");
+      if (error) throw new Error(error.message ?? "projectAdminMemberships failed");
+      for (const r of (data ?? []) as Array<{ project_id: string; user_id: string | null }>) {
+        if (r.user_id) out.add(`${r.project_id}:${r.user_id}`);
+      }
+      return out;
+    },
+    async recordFailure(id) {
+      if (typeof sb.rpc !== "function") return null;
+      const { data, error } = await sb.rpc("webhook_endpoint_record_failure", { p_id: id });
+      if (error) {
+        if (isMissingRpcError(error)) return null;
+        throw new Error(error.message ?? "record_failure failed");
+      }
+      const row = (Array.isArray(data) ? data[0] : data) as Partial<FailureState> | null | undefined;
+      if (!row || typeof row.failure_count !== "number") return null;
+      return { failure_count: row.failure_count, active: Boolean(row.active), disabled: Boolean(row.disabled) };
+    },
+    async recordSuccess(id) {
+      if (typeof sb.rpc !== "function") return false;
+      const { error } = await sb.rpc("webhook_endpoint_record_success", { p_id: id });
+      if (error) {
+        if (isMissingRpcError(error)) return false;
+        throw new Error(error.message ?? "record_success failed");
+      }
+      return true;
+    },
   };
 }
 
@@ -247,21 +318,30 @@ export interface MemoryStore extends WebhookStore {
   plans: UserPlanRow[];
   packageUsers: Set<string>;
   owners: Map<string, string>;
+  /** Accepted admin memberships as `${projectId}:${userId}`. */
+  adminMemberships: Set<string>;
+  /** Simulate a deploy where migration 0340 is not applied yet (RPCs missing). */
+  rpcAvailable: boolean;
 }
 
 let seq = 0;
-export function memoryWebhookStore(seed: Partial<Pick<MemoryStore, "endpoints" | "deliveries" | "plans" | "packageUsers" | "owners">> = {}): MemoryStore {
+export function memoryWebhookStore(
+  seed: Partial<Pick<MemoryStore, "endpoints" | "deliveries" | "plans" | "packageUsers" | "owners" | "adminMemberships" | "rpcAvailable">> = {},
+): MemoryStore {
   const endpoints = seed.endpoints ?? [];
   const deliveries = seed.deliveries ?? [];
   const plans = seed.plans ?? [];
   const packageUsers = seed.packageUsers ?? new Set<string>();
   const owners = seed.owners ?? new Map<string, string>();
-  return {
+  const adminMemberships = seed.adminMemberships ?? new Set<string>();
+  const self: MemoryStore = {
     endpoints,
     deliveries,
     plans,
     packageUsers,
     owners,
+    adminMemberships,
+    rpcAvailable: seed.rpcAvailable ?? true,
     async listActiveEndpointsFor(event, projectId, userIds) {
       const users = new Set(userIds);
       return endpoints.filter(
@@ -367,5 +447,31 @@ export function memoryWebhookStore(seed: Partial<Pick<MemoryStore, "endpoints" |
       }
       return out;
     },
+    async projectAdminMemberships(projectIds, userIds) {
+      const out = new Set<string>();
+      for (const p of projectIds) for (const u of userIds) if (adminMemberships.has(`${p}:${u}`)) out.add(`${p}:${u}`);
+      return out;
+    },
+    async recordFailure(id) {
+      if (!self.rpcAvailable) return null;
+      const e = endpoints.find((x) => x.id === id);
+      if (!e) return null;
+      const wasActive = e.active;
+      const next = e.failure_count + 1;
+      const patch: EndpointPatch = { failure_count: next, last_failure_at: new Date().toISOString() };
+      if (e.active && next >= MAX_CONSECUTIVE_FAILURES) {
+        patch.active = false;
+        patch.disabled_reason = AUTO_DISABLED_REASON;
+      }
+      Object.assign(e, patch, { updated_at: new Date().toISOString() });
+      return { failure_count: e.failure_count, active: e.active, disabled: wasActive && !e.active };
+    },
+    async recordSuccess(id) {
+      if (!self.rpcAvailable) return false;
+      const e = endpoints.find((x) => x.id === id);
+      if (e) Object.assign(e, { failure_count: 0, last_success_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+      return true;
+    },
   };
+  return self;
 }

@@ -9,7 +9,8 @@ vi.mock("server-only", () => ({}));
 
 const getCurrentUserMock = vi.fn();
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => getCurrentUserMock() }));
-vi.mock("@/lib/rate-limit", () => ({ enforceRateLimit: () => null }));
+const rateLimitMock = vi.fn<(key: string, id: string, req: Request, max: number, windowMs: number) => Response | null>(() => null);
+vi.mock("@/lib/rate-limit", () => ({ enforceRateLimit: (...a: [string, string, Request, number, number]) => rateLimitMock(...a) }));
 
 const accessMock = vi.fn<(userId: string, projectId: string, minRole?: string) => Promise<unknown>>();
 vi.mock("@/lib/projects", () => ({
@@ -75,6 +76,7 @@ function accessError(code: "not_found" | "forbidden") {
 }
 
 beforeEach(() => {
+  rateLimitMock.mockReset().mockReturnValue(null);
   store = memoryWebhookStore({ endpoints: [ep()] });
   getCurrentUserMock.mockReset().mockResolvedValue(creator);
   accessMock.mockReset().mockResolvedValue({ role: "admin" });
@@ -91,6 +93,17 @@ describe("PATCH /api/webhooks/[id]", () => {
     getCurrentUserMock.mockResolvedValue({ ...creator, id: "stranger" });
     expect((await PATCH(req("PATCH", { active: true }), ctx())).status).toBe(404);
     expect(accessMock).not.toHaveBeenCalled();
+  });
+
+  it("P2-6: PATCH is rate-limited 30/min per user, before any store or DNS work", async () => {
+    await PATCH(req("PATCH", { active: true }), ctx());
+    expect(rateLimitMock).toHaveBeenCalledWith("webhooks-patch", "creator", expect.anything(), 30, 60_000);
+    rateLimitMock.mockReturnValue(new Response(JSON.stringify({ ok: false, error: "rate_limited" }), { status: 429 }));
+    checkUrlMock.mockClear();
+    const res = await PATCH(req("PATCH", { url: "https://new.example.com/x" }), ctx());
+    expect(res.status).toBe(429);
+    expect(checkUrlMock).not.toHaveBeenCalled();
+    expect(store!.endpoints[0].url).toBe("https://h.example.com/x");
   });
 
   it("resume resets failure_count + disabled_reason; pause records paused_by_user", async () => {
@@ -114,6 +127,22 @@ describe("PATCH /api/webhooks/[id]", () => {
     expect((await (await PATCH(req("PATCH", { events: ["nope"] }), ctx())).json()).error).toBe("unknown_event:nope");
     expect((await (await PATCH(req("PATCH", { active: "yes" }), ctx())).json()).error).toBe("invalid_active");
     expect((await (await PATCH(req("PATCH", {}), ctx())).json()).error).toBe("nothing_to_update");
+  });
+
+  it("P1: a revoked creator gets 404 on PATCH / DELETE / test / deliveries of their project-level endpoint", async () => {
+    store = memoryWebhookStore({ endpoints: [ep({ project_id: PID, user_id: "creator" })] });
+    accessMock.mockRejectedValue(accessError("not_found"));
+    expect((await PATCH(req("PATCH", { active: true }), ctx())).status).toBe(404);
+    expect(store!.endpoints[0].active).toBe(false);
+    expect((await DELETE(req("DELETE"), ctx())).status).toBe(404);
+    expect(store!.endpoints).toHaveLength(1);
+    expect((await TEST(req("POST"), ctx())).status).toBe(404);
+    expect(sendPingMock).not.toHaveBeenCalled();
+    expect((await DELIVERIES(req("GET"), ctx())).status).toBe(404);
+    expect(accessMock).toHaveBeenCalledWith("creator", PID, "admin");
+    // Still an admin → everything works again.
+    accessMock.mockResolvedValue({ role: "admin" });
+    expect((await PATCH(req("PATCH", { active: true }), ctx())).status).toBe(200);
   });
 
   it("project-level endpoint: admin member may edit, editor 403, non-member 404", async () => {

@@ -11,12 +11,16 @@
 //                                    "metadata" names, IP literals that are private
 //   checkOutboundUrl(url, opts)      scheme + hostname + (optionally) DNS
 //                                    resolution check → { ok } | { ok:false, reason }
+//   makePinnedLookup(addresses)      socket-level lookup that connects ONLY to
+//                                    the addresses the check validated (or
+//                                    re-validates) — closes the DNS-rebinding
+//                                    window between check and connect
 //
 // Pure apart from the injectable `resolve` (defaults to node:dns lookup with
 // all addresses) so tests never hit the network. No `server-only`.
 
 import { promises as dns } from "node:dns";
-import { isIP } from "node:net";
+import { isIP, type LookupFunction } from "node:net";
 
 export type OutboundUrlReason =
   | "invalid_url"
@@ -150,6 +154,58 @@ export function isForbiddenHostname(hostname: string): boolean {
 async function defaultResolve(hostname: string): Promise<string[]> {
   const rows = await dns.lookup(hostname, { all: true, order: "verbatim" });
   return rows.map((r) => r.address);
+}
+
+// ── Connection pinning (S20-B review P2-3, DNS rebinding) ──────────────────
+//
+// `checkOutboundUrl` resolves the name once; a plain `fetch` resolves it
+// AGAIN when it connects, so a short-TTL record can flip to a private
+// address in between (TOCTOU). `makePinnedLookup(addresses)` is a Node
+// `net.LookupFunction` for the socket connect (`undici.Agent({ connect:
+// { lookup } })` — lib/security/pinned-fetch.ts) that:
+//
+//   * hands the socket the ALREADY-VALIDATED addresses (no second DNS
+//     round-trip → no window), re-checked with `isPrivateIp` anyway;
+//   * with no pinned list (an IP-literal URL, `skipDns`, an injected
+//     check that returned none) resolves via `resolve` and refuses the
+//     connect when any answer is private — fail closed, never fall open.
+//
+// Honours `options.all` (Node ≥ 20 connects with `autoSelectFamily`, i.e.
+// `all: true`) and `options.family`.
+
+export type PinnedLookup = LookupFunction;
+
+export class OutboundLookupRefusedError extends Error {
+  code = "EBLOCKED";
+  constructor(
+    public hostname: string,
+    public detail: string,
+  ) {
+    super(`outbound_lookup_refused:${detail}`);
+    this.name = "OutboundLookupRefusedError";
+  }
+}
+
+export function makePinnedLookup(pinned: readonly string[] = [], opts: Pick<OutboundUrlOptions, "resolve"> = {}): PinnedLookup {
+  const pinnedList = pinned.map((a) => a.replace(/^\[|\]$/g, "")).filter((a) => isIP(a) !== 0);
+  return (hostname, options, callback) => {
+    const wantAll = typeof options === "object" && options !== null && Boolean(options.all);
+    const family = typeof options === "object" && options !== null ? Number(options.family) || 0 : 0;
+    const finish = (addresses: string[]) => {
+      const bad = addresses.find((a) => isPrivateIp(a));
+      if (bad) return callback(new OutboundLookupRefusedError(hostname, `private_ip:${bad}`), []);
+      let rows = addresses.map((a) => ({ address: a, family: isIP(a) }));
+      if (family === 4 || family === 6) rows = rows.filter((r) => r.family === family);
+      if (!rows.length) return callback(new OutboundLookupRefusedError(hostname, "no_addresses"), []);
+      if (wantAll) return callback(null, rows);
+      return callback(null, rows[0].address, rows[0].family);
+    };
+    const literal = hostname.replace(/^\[|\]$/g, "");
+    if (isIP(literal)) return finish([literal]);
+    if (pinnedList.length) return finish(pinnedList);
+    // On error Node ignores the address argument; the typed signature still wants one.
+    (opts.resolve ?? defaultResolve)(hostname).then(finish, (err: unknown) => callback(err instanceof Error ? err : new Error(String(err)), []));
+  };
 }
 
 /**

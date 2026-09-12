@@ -6,6 +6,7 @@ import { Footer } from "@/components/site/footer";
 import { JOURNEY_VOCAB_VERSION } from "@/lib/journey-vocabulary";
 import { getPlatformConfig } from "@/lib/platform-config";
 import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
+import { WEBHOOK_VERIFY_EXPRESS_EXAMPLE, WEBHOOK_VERIFY_SNIPPET } from "@/lib/webhooks/sign";
 
 export const metadata: Metadata = pageMetadata({
   title: "Platform docs — company, roadmap, team, SVI, pricing",
@@ -350,25 +351,10 @@ export default async function DocsPage() {
               </li>
             </ul>
             <pre className="rounded-xl border border-surface-200 bg-surface-50 p-4 text-xs leading-relaxed overflow-x-auto text-ink-800">
-{`// Node 18+ — verify a BlockID webhook (Express with the raw body)
-import { createHmac, timingSafeEqual } from "node:crypto";
+{/* S20-B review P2-5: rendered from the same string sign.test.ts executes, so the docs cannot drift from verifySignature. */}
+{`${WEBHOOK_VERIFY_SNIPPET}
 
-export function verifyBlockIdWebhook(rawBody, header, secret, toleranceSec = 300) {
-  const parts = Object.fromEntries(header.split(",").map((p) => p.split("=")));
-  const t = Number(parts.t);
-  if (!Number.isInteger(t) || Math.abs(Date.now() / 1000 - t) > toleranceSec) return false;
-  const expected = createHmac("sha256", secret).update(\`\${t}.\${rawBody}\`).digest("hex");
-  const got = parts.v1 ?? "";
-  return got.length === expected.length && timingSafeEqual(Buffer.from(got, "hex"), Buffer.from(expected, "hex"));
-}
-
-app.post("/hooks/blockid", express.raw({ type: "application/json" }), (req, res) => {
-  const ok = verifyBlockIdWebhook(req.body.toString("utf8"), req.get("X-BlockID-Signature") ?? "", process.env.BLOCKID_WEBHOOK_SECRET);
-  if (!ok) return res.status(400).send("bad signature");
-  const envelope = JSON.parse(req.body.toString("utf8"));
-  // envelope.event === "svi.rescored" → envelope.data.svi_total, .delta, .project_id …
-  res.sendStatus(200);
-});`}
+${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
             </pre>
             <p className="text-xs text-ink-500 mt-3">
               Source: <code>web/src/lib/webhooks/sign.ts</code> (signing + verification),{" "}

@@ -2,7 +2,7 @@
 //
 // S20-B — delivers queued outbound webhooks (`webhook_deliveries`, migration
 // 0336). Crontab: `*/5 * * * * bash $RUN webhook-dispatch --timeout 120`.
-// ≤ 50 deliveries per tick (`?limit=` may lower it); each is leased with a
+// 25 deliveries per tick by default (`?limit=` may move it, ≤ 50); each is leased with a
 // conditional UPDATE before it is sent, so an overlapping tick never sends
 // the same row twice. Retry ladder 1 m / 10 m / 1 h / 6 h then `dead`;
 // an endpoint is disabled after 20 consecutive failures (in-app
@@ -15,7 +15,7 @@
 
 import { NextResponse } from "next/server";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
-import { DEFAULT_BATCH, dispatchDue } from "@/lib/webhooks/dispatch";
+import { DEFAULT_BATCH, dispatchDue, MAX_BATCH } from "@/lib/webhooks/dispatch";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
   const q = query(request);
   const dry = q.get("dry") === "1" || q.get("dry") === "true";
   const limitRaw = Number(q.get("limit"));
-  const limit = Number.isInteger(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, DEFAULT_BATCH) : DEFAULT_BATCH;
+  const limit = Number.isInteger(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, MAX_BATCH) : DEFAULT_BATCH;
 
   const startedAt = Date.now();
   const summary = await dispatchDue({ limit, dryRun: dry });

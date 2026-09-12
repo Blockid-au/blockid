@@ -73,6 +73,13 @@ vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => supabaseMock,
 }));
 
+// S20-B review P1 — revokeMember cascades into the webhook store (lazy
+// import); stubbed here so the scope tests stay Supabase-mock only.
+const cascadeMock = vi.fn(async () => ({ deactivated: [] as string[] }));
+vi.mock("@/lib/webhooks/membership", () => ({
+  deactivateEndpointsForRevokedMember: (...a: unknown[]) => cascadeMock(...(a as [])),
+}));
+
 import {
   assertProjectOwner,
   assertProjectMemberCan,
@@ -102,6 +109,7 @@ beforeEach(() => {
   handlers.clear();
   lastInsert.clear();
   lastUpdate.clear();
+  cascadeMock.mockClear();
 });
 
 // ---------------------------------------------------------------------------
@@ -544,6 +552,38 @@ describe("revokeMember", () => {
     const patch = lastUpdate.get("project_members") as Record<string, unknown>;
     expect(patch.status).toBe("revoked");
     expect(typeof patch.revoked_at).toBe("string");
+    // Never-accepted invite (user_id null) → nothing to cascade.
+    expect(cascadeMock).not.toHaveBeenCalled();
+  });
+
+  it("S20-B P1: revoking an ACCEPTED member deactivates their webhook endpoints on that project (cascade)", async () => {
+    setHandler("project_members", "select", { id: "m2", project_id: "p1", status: "accepted" });
+    setHandler("projects", "select", { user_id: "u1" });
+    setHandler("project_members", "update", {
+      id: "m2",
+      project_id: "p1",
+      user_email: "agency@y.com",
+      user_id: "u-agency",
+      role: "admin",
+      status: "revoked",
+      invited_by: "u1",
+      invited_at: "2026-07-23T00:00:00Z",
+      accepted_at: "2026-07-23T01:00:00Z",
+      revoked_at: "2026-09-12T02:00:00Z",
+      token: "TOK2",
+    });
+    const member = await revokeMember("m2", "u1");
+    expect(member.status).toBe("revoked");
+    expect(cascadeMock).toHaveBeenCalledTimes(1);
+    expect(cascadeMock).toHaveBeenCalledWith("p1", "u-agency");
+  });
+
+  it("S20-B P1: an already-revoked row is a no-op — no second cascade", async () => {
+    setHandler("project_members", "select", { id: "m3", project_id: "p1", status: "revoked", user_id: "u-agency", user_email: "a@y.com", role: "admin", token: "T" });
+    setHandler("projects", "select", { user_id: "u1" });
+    const member = await revokeMember("m3", "u1");
+    expect(member.status).toBe("revoked");
+    expect(cascadeMock).not.toHaveBeenCalled();
   });
 
   it("non-owner non-member is rejected with forbidden (via assertProjectMemberCan)", async () => {
