@@ -13,7 +13,7 @@
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { PRIVATE_JSON_HEADERS, readJsonBody, rejectCrossSite } from "@/lib/security/request-guards";
+import { PRIVATE_JSON_HEADERS, readJsonBody } from "@/lib/security/request-guards";
 import { apiRoute } from "@/lib/audit/api-route";
 import { validateEndpointUrl } from "@/lib/webhooks/dispatch";
 import { supabaseWebhookStore, type EndpointPatch } from "@/lib/webhooks/store";
@@ -32,8 +32,6 @@ function noDb() {
 }
 
 async function PATCH_handler(request: Request, ctx: Ctx) {
-  const crossSite = rejectCrossSite(request);
-  if (crossSite) return crossSite;
   const user = await getCurrentUser();
   if (!user) return unauth();
   const store = supabaseWebhookStore();
@@ -83,8 +81,6 @@ async function PATCH_handler(request: Request, ctx: Ctx) {
 }
 
 async function DELETE_handler(request: Request, ctx: Ctx) {
-  const crossSite = rejectCrossSite(request);
-  if (crossSite) return crossSite;
   const user = await getCurrentUser();
   if (!user) return unauth();
   const store = supabaseWebhookStore();

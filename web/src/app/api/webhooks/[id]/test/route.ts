@@ -12,7 +12,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
-import { PRIVATE_JSON_HEADERS, rejectCrossSite } from "@/lib/security/request-guards";
+import { PRIVATE_JSON_HEADERS } from "@/lib/security/request-guards";
 import { apiRoute } from "@/lib/audit/api-route";
 import { sendPing } from "@/lib/webhooks/dispatch";
 import { supabaseWebhookStore } from "@/lib/webhooks/store";
@@ -25,8 +25,6 @@ export const maxDuration = 30;
 type Ctx = { params: Promise<{ id: string }> };
 
 async function POST_handler(request: Request, ctx: Ctx) {
-  const crossSite = rejectCrossSite(request);
-  if (crossSite) return crossSite;
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
 

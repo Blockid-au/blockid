@@ -21,7 +21,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { assertProjectScope } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
 import { enforceRateLimit } from "@/lib/rate-limit";
-import { isUuid, PRIVATE_JSON_HEADERS, readJsonBody, rejectCrossSite } from "@/lib/security/request-guards";
+import { isUuid, PRIVATE_JSON_HEADERS, readJsonBody } from "@/lib/security/request-guards";
 import { apiRoute } from "@/lib/audit/api-route";
 import { canUseWebhooks, WEBHOOK_EVENT_LABELS, WEBHOOK_EVENTS } from "@/lib/webhooks/registry";
 import { validateEndpointUrl } from "@/lib/webhooks/dispatch";
@@ -77,8 +77,6 @@ export async function GET(request: Request) {
 }
 
 async function POST_handler(request: Request) {
-  const crossSite = rejectCrossSite(request);
-  if (crossSite) return crossSite;
   const user = await getCurrentUser();
   if (!user) return unauth();
 

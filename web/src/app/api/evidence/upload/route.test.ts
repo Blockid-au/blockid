@@ -144,6 +144,10 @@ vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => getSupabaseAdminMock(),
 }));
 
+// S20-B — outbound webhook emitter (enqueue only).
+const enqueueMock = vi.fn(async () => ({ queued: 1, endpoints: ["ep"], envelopeId: "evt" }));
+vi.mock("@/lib/webhooks/registry", () => ({ enqueueWebhook: (...a: unknown[]) => enqueueMock(...(a as [])) }));
+
 // ---- Import after mocks ------------------------------------------------
 
 import { POST } from "./route";
@@ -170,6 +174,7 @@ beforeEach(() => {
   getProjectIdFromRequestMock.mockReset();
   findOrCreateSVIAccountMock.mockReset();
   getSupabaseAdminMock.mockClear();
+  enqueueMock.mockClear();
   inserts = [];
   dedupeState = { match: null };
 
@@ -348,6 +353,40 @@ describe("POST /api/evidence/upload", () => {
     // the uploader (member) is still recorded as the acting user
     expect(ev.row.owner_user_id).toBe("user-1");
     scopeRoleMock.mockReturnValue("owner");
+  });
+
+  it("S20-B: enqueues evidence.uploaded (ids + file metadata, no Drive link) to the OWNER's endpoints once the Phase-3 row exists; dedupe / infected never fire", async () => {
+    scopeRoleMock.mockReturnValue("editor");
+    scanBufferMock.mockResolvedValue({ ok: true });
+    const res = await POST(buildRequest("hello world", "deck.pdf"));
+    expect(res.status).toBe(200);
+    expect(enqueueMock).toHaveBeenCalledTimes(1);
+    const [event, projectId, payload, opts] = enqueueMock.mock.calls[0] as unknown as [string, string, Record<string, unknown>, { userIds: string[] }];
+    expect(event).toBe("evidence.uploaded");
+    expect(projectId).toBe("project-1");
+    const ev = inserts.find((i) => i.table === "evidence")!;
+    expect(payload).toEqual({
+      project_id: "project-1",
+      evidence_id: "evidence-inserted-id",
+      category: "financial",
+      label: "deck.pdf",
+      content_type: "application/pdf",
+      size_bytes: 11,
+      sha256: ev.row.sha256,
+    });
+    expect(JSON.stringify(payload)).not.toContain("drive.example");
+    expect(opts).toEqual({ userIds: ["owner-1"] });
+    scopeRoleMock.mockReturnValue("owner");
+
+    enqueueMock.mockClear();
+    dedupeState = { match: { id: "existing-evidence-1" } };
+    expect((await POST(buildRequest())).status).toBe(200);
+    expect(enqueueMock).not.toHaveBeenCalled();
+
+    dedupeState = { match: null };
+    scanBufferMock.mockResolvedValue({ ok: false, verdict: "infected", signature: "Eicar" });
+    expect((await POST(buildRequest())).status).toBe(422);
+    expect(enqueueMock).not.toHaveBeenCalled();
   });
 
   it("race: concurrent duplicate that beats us to the evidence insert returns 200 deduped, no crash", async () => {

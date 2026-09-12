@@ -90,9 +90,14 @@ vi.mock("@/lib/supabase", () => ({
   },
 }));
 
+// S20-B — outbound webhook emitter (enqueue only).
+const enqueueMock = vi.fn(async () => ({ queued: 1, endpoints: ["ep"], envelopeId: "evt" }));
+vi.mock("@/lib/webhooks/registry", () => ({ enqueueWebhook: (...a: unknown[]) => enqueueMock(...(a as [])) }));
+
 import { POST } from "./route";
 
 beforeEach(() => {
+  enqueueMock.mockClear();
   updates = [];
   analysisCountFilters = [];
   fromSpy.mockReset();
@@ -162,5 +167,28 @@ describe("POST /api/svi/rescore — S17-A", () => {
     findSVIAccountWithFallbackMock.mockResolvedValue(null);
     expect((await POST()).status).toBe(404);
     expect(updates).toHaveLength(0);
+    expect(enqueueMock).not.toHaveBeenCalled();
+  });
+
+  it("S20-B: enqueues svi.rescored (ids + score summary, source=rescore) to the project + the OWNER's endpoints after the update", async () => {
+    scopeRoleMock.mockReturnValue("editor");
+    expect((await POST()).status).toBe(200);
+    expect(enqueueMock).toHaveBeenCalledTimes(1);
+    const [event, projectId, payload, opts] = enqueueMock.mock.calls[0] as unknown as [string, string, Record<string, unknown>, { userIds: string[] }];
+    expect(event).toBe("svi.rescored");
+    expect(projectId).toBe("proj-shared");
+    expect(payload).toEqual({
+      project_id: "proj-shared",
+      account_id: "acc-owner",
+      svi_total: 110,
+      previous_svi: 100,
+      delta: 10,
+      stage: 2,
+      source: "rescore",
+      snapshot_date: new Date().toISOString().split("T")[0],
+    });
+    expect(Object.keys(payload).some((k) => /email|token/i.test(k))).toBe(false);
+    // Recipient of user-level endpoints = the project OWNER, not the editor.
+    expect(opts).toEqual({ userIds: ["owner-1"] });
   });
 });
