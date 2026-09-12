@@ -1,6 +1,6 @@
 {
-  "version": "3.12.0",
-  "updatedAt": "2026-09-11T16:00:02.024Z",
+  "version": "3.12.1",
+  "updatedAt": "2026-09-12T16:00:02.323Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-09-11T16:00:02.024Z",
@@ -907,8 +907,10 @@
         "title": "Fix orchestrator stageUpdateArtifacts — agent commit match closes pending tasks prematurely",
         "rationale": "Bug found 2026-06-21: line 398 in agent-orchestrator/route.ts matches /src/lib/agents/<agent>-*/ in any commit, then closes ALL of that agent's pending tasks regardless of task content. Caused T0202 (CCSO NPS) + T0209 (IR accelerator tracker) to be marked done 2026-06-16 when artifacts didn't exist. FIX: match commit subject/body against task id (T0XXX) AND/OR match touched files against the task's expected paths (parse rationale or add explicit filePatterns field to PlanTask). Until fixed, daily fan-out can falsely show YELLOW agents as GREEN.",
         "versionImpact": "patch",
-        "status": "pending",
-        "createdAt": "2026-06-21T06:02:58Z"
+        "status": "done",
+        "createdAt": "2026-06-21T06:02:58Z",
+        "completedAt": "2026-09-12T16:00:02.323Z",
+        "commit": "81c088f73"
       },
       {
         "id": "T0128",
@@ -2777,6 +2779,15 @@
       "taskIds": [
         "T0261"
       ]
+    },
+    {
+      "id": "M023",
+      "title": "CTO: Fix orchestrator stageUpdateArtifacts — agent commit match closes pending tasks prematurely",
+      "version": "3.12.1",
+      "completedAt": "2026-09-12T16:00:02.323Z",
+      "taskIds": [
+        "T0216"
+      ]
     }
   ],
   "history": [
@@ -2971,6 +2982,12 @@
       "action": "release",
       "version": "3.12.0",
       "note": "1 task(s), minor bump (v3.11.0→v3.12.0)"
+    },
+    {
+      "ts": "2026-09-12T16:00:02.323Z",
+      "action": "release",
+      "version": "3.12.1",
+      "note": "1 task(s), patch bump (v3.12.0→v3.12.1)"
     }
   ],
   "shipped_this_session": {
