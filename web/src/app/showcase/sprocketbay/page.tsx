@@ -51,6 +51,9 @@ export const metadata: Metadata = {
   description:
     "SAMPLE DATA. A fictional company walked through all six BlockID stages: the evidence uploaded, the scores the engines returned, the artefacts produced and what each one unlocked.",
   robots: { index: false, follow: true },
+  // Sample-data walkthrough: noindex, own canonical, never in the sitemap
+  // (release QA-1 #5 / #13).
+  alternates: { canonical: "https://blockid.au/showcase/sprocketbay" },
 };
 
 const STATE_STYLES: Record<string, string> = {

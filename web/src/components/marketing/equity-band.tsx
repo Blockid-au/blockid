@@ -63,7 +63,7 @@ export function EquityBand({ className }: { className?: string }) {
       <div className="mx-auto max-w-6xl px-6">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-12">
           <div className="lg:col-span-5">
-            <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.28em] text-muted">
+            <p className="mb-3 font-mono text-xs uppercase tracking-[0.28em] text-muted">
               When you are ready to issue
             </p>
             <h2

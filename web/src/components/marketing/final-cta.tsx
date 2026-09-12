@@ -21,7 +21,7 @@ export function FinalCTA({ className }: { className?: string }) {
     >
       <div className="mx-auto max-w-3xl px-6 text-center">
         <div className="rounded-2xl border border-line-subtle bg-surface-sunken px-6 py-10 shadow-sm sm:px-12">
-          <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.28em] text-muted">
+          <p className="mb-3 font-mono text-xs uppercase tracking-[0.28em] text-muted">
             Ready when you are
           </p>
 

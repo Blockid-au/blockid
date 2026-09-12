@@ -112,8 +112,10 @@ export type AtlassianDemo = {
 // ── Citation URL constants (deduped) ────────────────────────────────────────
 
 const SRC_WIKIPEDIA = "https://en.wikipedia.org/wiki/Atlassian";
-const SRC_BRAINDUMP_JIRA =
-  "https://braindump.maxoxo.me/posts/20221011135007-a_brief_history_of_atlassian_and_jira/";
+// Release QA-1 #14: the braindump.maxoxo.me "brief history of Atlassian and
+// Jira" post is gone (404); the Jira-history citations now point at the
+// Wikipedia article on Jira.
+const SRC_JIRA_HISTORY = "https://en.wikipedia.org/wiki/Jira_(software)";
 const SRC_20LESSONS =
   "https://www.atlassian.com/blog/announcements/atlassian-founders-20-years-20-lessons";
 const SRC_CONFLUENCE_HISTORY = "https://nira.com/confluence-history/";
@@ -184,7 +186,7 @@ const MILESTONES: AtlassianMilestone[] = [
     title: "Jira v1.0 released",
     body:
       "First flagship product; low-price self-serve model — no salespeople, no consultants, no arm-and-a-leg licensing. The pricing itself was the go-to-market.",
-    source: { label: "Braindump — A brief history of Atlassian and Jira", url: SRC_BRAINDUMP_JIRA },
+    source: { label: "Wikipedia — Jira (software)", url: SRC_JIRA_HISTORY },
   },
   {
     year: 2003,
@@ -381,7 +383,7 @@ const PHASE_SNAPSHOTS: PhaseSnapshot[] = [
       "Talk to buyers before you write more code. Their credit-card behaviour is the only signal that matters.",
     atlassianMoment:
       "Atlassian's earliest validation was a spreadsheet of dev-tool prices — the insight was that mid-market teams would self-serve if you priced under the enterprise floor.",
-    sourceUrl: SRC_BRAINDUMP_JIRA,
+    sourceUrl: SRC_JIRA_HISTORY,
     sviAtThisPoint: 40,
   },
   {
@@ -391,7 +393,7 @@ const PHASE_SNAPSHOTS: PhaseSnapshot[] = [
       "Size the market from the bottom up. Number of dev teams × average seat price beats top-down slide-deck TAM.",
     atlassianMoment:
       "Atlassian priced Jira at hundreds of dollars — not tens of thousands — which redefined the dev-tools market rather than fought inside it.",
-    sourceUrl: SRC_BRAINDUMP_JIRA,
+    sourceUrl: SRC_JIRA_HISTORY,
     sviAtThisPoint: 46,
   },
   {
@@ -431,7 +433,7 @@ const PHASE_SNAPSHOTS: PhaseSnapshot[] = [
       "Instrument your funnel. Every trial→paid conversion percentage becomes the lever for the next round.",
     atlassianMoment:
       "Self-serve download → licence purchase remained the primary growth motion for over a decade — measurable, repeatable, no CAC on humans.",
-    sourceUrl: SRC_BRAINDUMP_JIRA,
+    sourceUrl: SRC_JIRA_HISTORY,
     sviAtThisPoint: 74,
   },
   {
@@ -657,7 +659,7 @@ Jira has been shipping for two years. Customers want a wiki. Do you build one, b
 `,
     sources: [
       { label: "Nira — Confluence history", url: SRC_CONFLUENCE_HISTORY },
-      { label: "Braindump — Atlassian & Jira history", url: SRC_BRAINDUMP_JIRA },
+      { label: "Wikipedia — Jira (software)", url: SRC_JIRA_HISTORY },
     ],
   },
   {
@@ -688,7 +690,7 @@ American Airlines just faxed in a Jira purchase order. Nobody sold them. What do
 `,
     sources: [
       { label: "Atlassian — 20 years, 20 lessons", url: SRC_20LESSONS },
-      { label: "Braindump — Atlassian & Jira history", url: SRC_BRAINDUMP_JIRA },
+      { label: "Wikipedia — Jira (software)", url: SRC_JIRA_HISTORY },
     ],
   },
   {
@@ -834,12 +836,12 @@ const DATA_ROOM_ROWS: DataRoomRow[] = [
   { category: CAT_FIN, title: "FY2025 10-K Cash Flow Statement (~US$1.4B FCF)", status: "present", phaseSlug: "11", sourceUrl: SRC_SEC_10K_FY25 },
   { category: CAT_FIN, title: "FY2025 10-K Balance Sheet", status: "present", phaseSlug: "11", sourceUrl: SRC_SEC_10K_FY25 },
   { category: CAT_FIN, title: "Gross Margin Analysis — 83% FY2025", status: "present", phaseSlug: "11", sourceUrl: SRC_SEC_10K_FY25 },
-  { category: CAT_FIN, title: "Unit Economics Model (self-serve CAC → LTV)", status: "inferred", phaseSlug: "7", sourceUrl: SRC_BRAINDUMP_JIRA },
+  { category: CAT_FIN, title: "Unit Economics Model (self-serve CAC → LTV)", status: "inferred", phaseSlug: "7", sourceUrl: SRC_JIRA_HISTORY },
   { category: CAT_FIN, title: "Valuation Report — Accel Round US$400M pre (2010)", status: "inferred", phaseSlug: "10", sourceUrl: SRC_TC_ACCEL_2010 },
   { category: CAT_FIN, title: "Valuation Report — T. Rowe Round US$3.3B (2014)", status: "present", phaseSlug: "10", sourceUrl: SRC_TC_TROWE_2014 },
 
   // 4. Product & Technology
-  { category: CAT_PROD, title: "Jira v1.0 Release Notes (2002)", status: "inferred", phaseSlug: "4", sourceUrl: SRC_BRAINDUMP_JIRA },
+  { category: CAT_PROD, title: "Jira v1.0 Release Notes (2002)", status: "inferred", phaseSlug: "4", sourceUrl: SRC_JIRA_HISTORY },
   { category: CAT_PROD, title: "Confluence v1.0 Release Notes (2004)", status: "inferred", phaseSlug: "4", sourceUrl: SRC_CONFLUENCE_HISTORY },
   { category: CAT_PROD, title: "Atlassian Plugin Framework Architecture", status: "inferred", phaseSlug: "7" },
   { category: CAT_PROD, title: "Bitbucket Acquisition — technical due diligence (2010)", status: "redacted", phaseSlug: "11", sourceUrl: SRC_TC_BITBUCKET },
@@ -904,8 +906,8 @@ const VALUATIONS: ValuationSnapshot[] = [
   // 2005 — first profitable year, ~US$10-20M ARR estimate
   { timestamp: "2005", method: "DCF", valueAUD: 60_000_000, fxRate: 1.33, narrative: "DCF on US$10M ARR × 4.5× multiple × FX 0.75 USD/AUD.", sourceUrl: SRC_20LESSONS },
   { timestamp: "2005", method: "Berkus", valueAUD: 3_300_000, fxRate: 1.33, narrative: "Berkus caps at US$2.5M pre-revenue; profitability puts it at ceiling.", sourceUrl: SRC_20LESSONS },
-  { timestamp: "2005", method: "Scorecard", valueAUD: 26_600_000, fxRate: 1.33, narrative: "Scorecard vs 2005 median AU tech seed of US$5M pre × 4× founder/PMF adjust.", sourceUrl: SRC_BRAINDUMP_JIRA },
-  { timestamp: "2005", method: "Comparables", valueAUD: 40_000_000, fxRate: 1.33, narrative: "Comparable to 37signals-era self-serve devtools valuations circa 2005.", sourceUrl: SRC_BRAINDUMP_JIRA },
+  { timestamp: "2005", method: "Scorecard", valueAUD: 26_600_000, fxRate: 1.33, narrative: "Scorecard vs 2005 median AU tech seed of US$5M pre × 4× founder/PMF adjust.", sourceUrl: SRC_JIRA_HISTORY },
+  { timestamp: "2005", method: "Comparables", valueAUD: 40_000_000, fxRate: 1.33, narrative: "Comparable to 37signals-era self-serve devtools valuations circa 2005.", sourceUrl: SRC_JIRA_HISTORY },
 
   // 2010 — Accel secondary at implied ~US$400M pre-money
   { timestamp: "2010-Accel", method: "DCF", valueAUD: 480_000_000, fxRate: 1.09, narrative: "DCF on US$60M ARR × ~7× × FX ~0.92 USD/AUD (2010 average).", sourceUrl: SRC_TC_ACCEL_2010 },

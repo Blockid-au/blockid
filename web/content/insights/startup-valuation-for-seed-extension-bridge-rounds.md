@@ -43,7 +43,7 @@ Avoid the "Flat Round" trap. Use a valuation cap that reflects your progress sin
 * **Check SVI Score**: Ensure your "investability" justifies the cap.
 * **Model Dilution**: Run scenarios for the Series A conversion.
 
-> **[Calculate your precise bridge dilution →](/tools/pre-money-valuation-calculator)**
+> **[Calculate your precise bridge dilution →](/tools/idea-valuation)**
 
 <svg viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
   <rect width="700" height="300" fill="#0f172a" rx="14"/>

@@ -294,7 +294,7 @@ Setting up an ESS is a multi-step process that involves legal, financial, and ad
 
 <svg viewBox="0 0 700 292" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
   <rect width="700" height="292" fill="#f8fafc" rx="12" stroke="#e2e8f0"/>
-  <rect width="700" height="44" fill="#3B7DD8" rx="12 12 0 0"/>
+  <path d="M12 0H688a12 12 0 0 1 12 12V44H0V12A12 12 0 0 1 12 0Z" fill="#3B7DD8"/>
   <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="white">Key Takeaways: Setting Up an ESOP in Australia</text>
   <circle cx="40" cy="74" r="14" fill="#dbeafe"/>
   <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">1</text>

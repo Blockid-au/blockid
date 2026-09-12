@@ -36,7 +36,7 @@ describe("FOOTER_COLUMNS", () => {
   it("absorbs the entries that left the top nav", () => {
     const product = column("Product").items.map((i) => i.href);
     expect(product).toEqual(
-      expect.arrayContaining(["/features", "/index", "/solutions/founder#captable"]),
+      expect.arrayContaining(["/features", "/startup-index", "/solutions/founder#captable"]),
     );
     expect(column("For").items.map((i) => i.href)).toEqual([
       "/solutions/founder",

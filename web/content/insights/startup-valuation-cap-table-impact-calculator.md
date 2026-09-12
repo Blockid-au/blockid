@@ -46,7 +46,7 @@ Avoid "valuation vanity." Raising too much at too high a price creates a valuati
 * **Model "What-If" Scenarios** — Simulate a 20% drop in valuation before signing a term sheet.
 * **Optimize Burn Rate** — Lower spend means less frequent fundraising and less dilution.
 
-> **[Simulate your cap table →](/tools/valuation-calculator)**
+> **[Simulate your cap table →](/tools/idea-valuation)**
 
 <svg viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
   <rect width="700" height="300" fill="#0f172a" rx="14"/>

@@ -82,7 +82,7 @@ export function FeaturesGrid({ className }: { className?: string }) {
         {/* Section header */}
         <div className="mb-14 text-center">
           <p
-            className="mb-3 font-mono text-[11px] uppercase tracking-[0.28em]"
+            className="mb-3 font-mono text-xs uppercase tracking-[0.28em]"
             style={{ color: "#94A3B8" }}
           >
             Platform capabilities

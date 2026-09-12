@@ -44,7 +44,9 @@ function Banner({ answer }: { answer: VerifyAnswer }) {
           <ShieldX strokeWidth={1.75} className="h-6 w-6 text-red-600" />
         </div>
         <div>
-          <p className="text-lg font-semibold text-red-800">Not on record</p>
+          {/* The only heading on the not-found page (release QA-1 #16): the
+              certificate <h1> further down renders only when `found`. */}
+          <h1 className="text-lg font-semibold text-red-800">Not on record</h1>
           <p className="text-sm text-red-700 mt-0.5">
             No certificate with the number <span className="font-mono">{answer.certificateNo || "—"}</span> exists in the
             BlockID register. Check the number on the PDF cover and try again.

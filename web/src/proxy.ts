@@ -194,8 +194,10 @@ export function buildContentSecurityPolicy(nonce: string): string {
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com https://challenges.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com https://static.cloudflareinsights.com`,
     // Google Identity Services (the Sign in with Google button on
     // /auth/login) injects its stylesheet + iframe from accounts.google.com;
-    // both were blocked under the old policies (release QA-2 F9 probe).
-    "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style",
+    // both were blocked under the old policies (release QA-2 F9 probe). The
+    // whole origin is allowed, not just `/gsi/…`: GSI also opens a frame at
+    // the bare `https://accounts.google.com/` (release QA-1 #10).
+    "style-src 'self' 'unsafe-inline' https://accounts.google.com",
     "img-src 'self' data: blob: https: https://www.google-analytics.com https://www.googletagmanager.com",
     "font-src 'self' data: https://fonts.gstatic.com",
     // API surface: Supabase, Stripe, GA4 collect endpoints (regional,
@@ -203,8 +205,8 @@ export function buildContentSecurityPolicy(nonce: string): string {
     // the cookieless ping Consent Mode sends while analytics_storage is
     // denied), GA4 Data API, GitHub API, Cloudflare Insights beacon, Google
     // Identity Services. Every new host is an exfil path — add with care.
-    "connect-src 'self' https://*.supabase.co https://api.stripe.com https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://stats.g.doubleclick.net https://www.google.com https://www.googletagmanager.com https://analyticsdata.googleapis.com https://api.github.com https://cloudflareinsights.com https://static.cloudflareinsights.com https://accounts.google.com/gsi/",
-    "frame-src https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com https://www.googletagmanager.com https://accounts.google.com/gsi/",
+    "connect-src 'self' https://*.supabase.co https://api.stripe.com https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://stats.g.doubleclick.net https://www.google.com https://www.googletagmanager.com https://analyticsdata.googleapis.com https://api.github.com https://cloudflareinsights.com https://static.cloudflareinsights.com https://accounts.google.com",
+    "frame-src https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com https://www.googletagmanager.com https://accounts.google.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

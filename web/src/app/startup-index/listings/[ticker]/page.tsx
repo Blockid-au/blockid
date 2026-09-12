@@ -1,16 +1,59 @@
-// /index/listings/[ticker] — per-startup detail page (T0230, v2.15).
+// /startup-index/listings/[ticker] — per-startup detail page (T0230, v2.15).
 
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { ArrowDownRight, ArrowUpRight, ExternalLink, Minus, Sparkles, TrendingUp } from "lucide-react";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { computeListingDetail } from "@/lib/startup-index-listings";
+import { pageMetadata } from "@/lib/seo/page-meta";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 300;
+
+class ListingNotFound extends Error {
+  constructor(ticker: string) {
+    super(`listing not found: ${ticker}`);
+    this.name = "ListingNotFound";
+  }
+}
+
+/** Data-cache tag for the per-ticker aggregate; bump via `revalidateTag` after a re-score. */
+const LISTING_DETAIL_CACHE_TAG = "startup-index-listing-detail";
+/** 10 minutes — the aggregate walks up to 5 000 analyses (release QA-1 #15: 2.2 s TTFB uncached). */
+const LISTING_DETAIL_CACHE_SECONDS = 600;
+
+/**
+ * `computeListingDetail` runs the full listings aggregate (100-row page +
+ * a 90-day scan of svi_analyses when the ticker is not on it) on every
+ * request — 2.2–2.3 s TTFB on the crawled tickers. Same pattern as the
+ * funding catalogue: `unstable_cache` for 10 min keyed on the ticker, with
+ * a direct read outside the Next runtime (vitest) where the data cache
+ * throws its "incrementalCache missing" invariant. A `null` result (unknown
+ * ticker) is not cached so a freshly listed startup is visible at once.
+ */
+const cachedListingDetail = unstable_cache(
+  async (ticker: string) => {
+    const detail = await computeListingDetail(ticker);
+    if (!detail) throw new ListingNotFound(ticker);
+    return detail;
+  },
+  ["startup-index:listing-detail"],
+  { tags: [LISTING_DETAIL_CACHE_TAG], revalidate: LISTING_DETAIL_CACHE_SECONDS },
+);
+
+async function getListingDetail(ticker: string) {
+  try {
+    return await cachedListingDetail(ticker);
+  } catch (err) {
+    if (err instanceof ListingNotFound) return null;
+    if (err instanceof Error && /incrementalCache missing/.test(err.message)) return computeListingDetail(ticker);
+    throw err;
+  }
+}
 
 interface PageProps {
   params: Promise<{ ticker: string }>;
@@ -18,10 +61,11 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { ticker } = await params;
-  return {
-    title: `${ticker} · BlockID Startup Listing`,
+  return pageMetadata({
+    title: `${ticker} · Startup Listing`,
     description: `Live SVI score, blended valuation, growth chart and Antler signals for ${ticker} on the BlockID Startup Value Index.`,
-  };
+    path: `/startup-index/listings/${encodeURIComponent(ticker)}`,
+  });
 }
 
 function fmtAud(v: number): string {
@@ -88,7 +132,7 @@ function DeltaPill({ delta }: { delta: number }) {
 
 export default async function TickerDetailPage({ params }: PageProps) {
   const { ticker } = await params;
-  const detail = await computeListingDetail(ticker);
+  const detail = await getListingDetail(ticker);
   if (!detail) notFound();
 
   const lastUpdatedRel = relativeTime(detail.lastAnalysisAt);
@@ -100,9 +144,9 @@ export default async function TickerDetailPage({ params }: PageProps) {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-20 pb-16">
         {/* Breadcrumb */}
         <div className="mb-4 text-xs text-ink-500">
-          <Link href="/index" className="hover:text-brand-700">Index</Link>
+          <Link href="/startup-index" className="hover:text-brand-700">Index</Link>
           <span className="mx-1">/</span>
-          <Link href="/index/listings" className="hover:text-brand-700">Listings</Link>
+          <Link href="/startup-index/listings" className="hover:text-brand-700">Listings</Link>
           <span className="mx-1">/</span>
           <span className="text-ink-700 font-mono">{detail.ticker}</span>
         </div>

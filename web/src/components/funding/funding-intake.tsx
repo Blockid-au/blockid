@@ -377,24 +377,24 @@ export function FundingIntake({ openGrantCount, openProgramCount, initial, proje
                   <legend className="text-xs font-semibold uppercase tracking-wide text-secondary">Founder groups</legend>
                   <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2">
                     {DEMOGRAPHIC_TOGGLES.map((t) => (
-                      <label key={t.key} className="inline-flex items-center gap-2 text-sm text-primary">
+                      <label key={t.key} className="inline-flex min-h-6 cursor-pointer items-center gap-2 py-1 text-sm text-primary">
                         <input
                           type="checkbox"
                           name={t.key}
                           checked={form.toggles[t.key]}
                           onChange={(e) => set("toggles", { ...form.toggles, [t.key]: e.target.checked })}
-                          className="accent-action"
+                          className="h-4 w-4 accent-action"
                         />
                         {t.label}
                       </label>
                     ))}
-                    <label className="inline-flex items-center gap-2 text-sm text-primary">
+                    <label className="inline-flex min-h-6 cursor-pointer items-center gap-2 py-1 text-sm text-primary">
                       <input
                         type="checkbox"
                         name="export_intent"
                         checked={form.export_intent}
                         onChange={(e) => set("export_intent", e.target.checked)}
-                        className="accent-action"
+                        className="h-4 w-4 accent-action"
                       />
                       Planning to export
                     </label>

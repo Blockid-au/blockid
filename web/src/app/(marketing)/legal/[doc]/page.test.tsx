@@ -9,6 +9,8 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 
 vi.mock("@/components/marketing/marketing-shell", () => ({
   MarketingShell: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -262,5 +264,28 @@ describe("/legal/terms v2.1 — the one refund policy (QA-3)", () => {
   it("is canonical at /legal/terms", async () => {
     const meta = await generateMetadata({ params: Promise.resolve({ doc: "terms" }) });
     expect(meta.alternates?.canonical).toBe("https://blockid.au/legal/terms");
+  });
+});
+
+// Release QA-1 #16 (2026-09-12): /legal/disclaimers rendered six <h1>s and
+// /legal/privacy + /legal/terms two each — the MarketingHero title plus every
+// `# Title` in the MDX. The renderer now demotes a document's own `#` to h2.
+describe("/legal/* — exactly one <h1> per page (release QA-1 #16)", () => {
+  for (const doc of ["terms", "privacy", "disclaimers", "mentor-access-policy"] as const) {
+    it(`/legal/${doc} has one <h1> (the hero) and the document title(s) render as <h2>`, async () => {
+      const html = await render(doc);
+      const h1s = html.match(/<h1\b/g) ?? [];
+      expect(h1s.length, `${doc} h1 count`).toBe(1);
+      // The MDX `# …` line is still present as a heading, one level down.
+      expect(html).toMatch(/<h2[^>]*class="mt-6 text-3xl font-bold tracking-tight text-primary sm:text-4xl"/);
+    });
+  }
+
+  it("disclaimers: every concatenated document title is an h2 (five -en.mdx files today)", async () => {
+    const html = await render("disclaimers");
+    const docTitles = html.match(/<h2[^>]*class="mt-6 text-3xl[^"]*"/g) ?? [];
+    const files = readdirSync(join(process.cwd(), "content", "legal", "disclaimers")).filter((f) => f.endsWith("-en.mdx"));
+    expect(files.length).toBeGreaterThanOrEqual(5);
+    expect(docTitles.length).toBe(files.length);
   });
 });

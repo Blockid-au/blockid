@@ -12,6 +12,9 @@ export const metadata: Metadata = {
   title: "Sign in · BlockID",
   description: "Sign in to your BlockID account with Google or a magic link.",
   robots: { index: false, follow: false },
+  // Own canonical (release QA-1 #5): without one this page inherited the
+  // old root default and declared the homepage as its canonical.
+  alternates: { canonical: "https://blockid.au/auth/login" },
 };
 
 export default async function LoginPage({

@@ -60,7 +60,7 @@ export default async function SearchPage({
 
         <div className="mt-10 flex flex-wrap gap-3">
           <a
-            href="/index"
+            href="/startup-index"
             className="rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-[#0A0F1E] hover:bg-white/90"
           >
             Browse Startup Index →

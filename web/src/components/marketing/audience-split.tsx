@@ -60,7 +60,7 @@ export function AudienceSplit({ className }: { className?: string }) {
               key={a.who}
               className="flex flex-col gap-4 rounded-2xl border border-line-subtle bg-surface-raised p-6 shadow-sm sm:p-8"
             >
-              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted">
+              <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted">
                 {a.who}
               </p>
               <h3 className="font-display text-lg font-semibold leading-snug text-primary sm:text-xl">

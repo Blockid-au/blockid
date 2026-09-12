@@ -64,7 +64,7 @@ export function InsightsCategoryFilter({ categories, categoryLabels, articles }:
         >
           <div className="p-8 md:p-10">
             <div className="flex items-center gap-3 mb-4">
-              <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-action bg-[rgba(0,212,255,0.1)] px-2.5 py-1 rounded-full">
+              <span className="text-xs uppercase tracking-[0.15em] font-semibold text-action bg-[rgba(0,212,255,0.1)] px-2.5 py-1 rounded-full">
                 Featured
               </span>
               <CategoryBadge category={featured.category} labels={categoryLabels} />

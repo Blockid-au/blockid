@@ -235,7 +235,7 @@ function splitHeadingAnchor(text: string): { text: string; id: string | null } {
   return { text: m[1]!, id: m[2]! };
 }
 
-function headingTag(level: 1 | 2 | 3, raw: string, className: string): string {
+function headingTag(level: 2 | 3, raw: string, className: string): string {
   const { text, id } = splitHeadingAnchor(raw);
   const idAttr = id ? ` id="${id}"` : "";
   return `<h${level}${idAttr} class="${className}">${renderInline(text)}</h${level}>`;
@@ -327,9 +327,13 @@ function renderMarkdown(md: string): string {
     if (trimmed.startsWith("# ")) {
       flushPara();
       flushList();
+      // The page's one <h1> is the MarketingHero title; a document's own
+      // `# Title` (six of them on /legal/disclaimers, one each on terms /
+      // privacy) renders as an h2 so every legal page has exactly one h1
+      // (release QA-1 #16).
       out.push(
         headingTag(
-          1,
+          2,
           trimmed.slice(2),
           "mt-6 text-3xl font-bold tracking-tight text-primary sm:text-4xl",
         ),

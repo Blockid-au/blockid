@@ -187,11 +187,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         },
       },
     },
-    // B1 Task 5 — /score, /svi, /startup-index all 301 → /index (canonical).
-    // Only the canonical /index (served via internal rewrite to /startup-index)
-    // is advertised to search engines.
+    // Release QA-1 #5 — /index, /index/*, /svi all 301 → /startup-index, the
+    // one canonical Startup Value Index URL (the page declares the same
+    // canonical). Only that URL is advertised to search engines.
     {
-      url: `${SITE_URL}/index`,
+      url: `${SITE_URL}/startup-index`,
       lastModified,
       changeFrequency: "weekly",
       priority: 0.9,
@@ -640,37 +640,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "yearly",
       priority: 0.3,
     },
-    // Wave 33b — explicit /score entry (in addition to canonical /index).
-    // Both URLs are indexable landing surfaces for the free investor-readiness
-    // funnel; /score is the historical shareable link format still used in
-    // outbound campaigns and OG previews.
+    // The free analyser. `/score` (the historical shareable link) 301s to
+    // `/analyze?tier=free` since Block 2 (2026-09-08), so the sitemap lists
+    // the destination — a sitemap must only carry URLs that answer 200
+    // (release QA-1 #3; `sitemap.test.ts` pins that no redirect source is
+    // listed).
     {
-      url: `${SITE_URL}/score`,
+      url: `${SITE_URL}/analyze`,
       lastModified,
       changeFrequency: "daily",
       priority: 0.9,
     },
-    // Wave 33b — /live public activity ticker (crawl daily for freshness).
-    {
-      url: `${SITE_URL}/live`,
-      lastModified,
-      changeFrequency: "daily",
-      priority: 0.6,
-    },
-    // Wave 33b — /company profile hub.
-    {
-      url: `${SITE_URL}/company`,
-      lastModified,
-      changeFrequency: "monthly",
-      priority: 0.5,
-    },
-    // Wave 33b — public API pricing surface.
-    {
-      url: `${SITE_URL}/api-pricing`,
-      lastModified,
-      changeFrequency: "weekly",
-      priority: 0.7,
-    },
+    // Release QA-1 #3 (2026-09-12): the Wave 33b `/live`, `/company`,
+    // `/api-pricing` and `/founding-50` entries were removed — none ever had
+    // a `page.tsx` and all four 404'd in the release crawl. Each now 301s to
+    // its nearest live page in next.config.ts; `sitemap.test.ts` asserts
+    // every static entry resolves to a real route.
     // Static pages
     {
       url: `${SITE_URL}/about`,
@@ -689,12 +674,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified,
       changeFrequency: "monthly",
       priority: 0.5,
-    },
-    {
-      url: `${SITE_URL}/founding-50`,
-      lastModified,
-      changeFrequency: "weekly",
-      priority: 0.9,
     },
     {
       url: `${SITE_URL}/investors`,
@@ -726,18 +705,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.7,
     },
-    {
-      url: `${SITE_URL}/idea-lab`,
-      lastModified,
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
-    {
-      url: `${SITE_URL}/idea-clarify`,
-      lastModified,
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
+    // `/idea-lab` and `/idea-clarify` are noindex redirect aliases of the
+    // `/tools/*` twins listed above — only the canonical tool URLs are
+    // advertised (release QA-1 #13 sweep).
     {
       url: `${SITE_URL}/sample`,
       lastModified,
@@ -786,12 +756,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.6,
     },
-    {
-      url: `${SITE_URL}/showcase/sprocketbay`,
-      lastModified,
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
+    // /showcase/sprocketbay is `robots: { index: false }` (sample data) and
+    // is deliberately NOT listed — a noindex URL in the sitemap is a
+    // contradictory signal (release QA-1 #13).
     {
       url: `${SITE_URL}/showcase/blockid`,
       lastModified,

@@ -278,6 +278,22 @@ test.describe("Post-deploy hydrated smoke", () => {
     );
   });
 
+  // Release QA-1 #19 (2026-09-12): /signup never reaches `networkidle` on
+  // desktop — Stripe.js keeps its telemetry channel (`r.stripe.com/b`, ×19
+  // in 12 s) open for as long as the card element is mounted. Any smoke
+  // check on this page must key off `domcontentloaded` + a hydrated element,
+  // never `waitForLoadState("networkidle")` (it would time out and fail a
+  // healthy deploy). The account-type <select> only renders after the
+  // client form hydrates, so its visibility proves the page is usable.
+  test("/signup — card-required trial form hydrates (no networkidle wait: Stripe telemetry never idles)", async ({
+    page,
+  }) => {
+    test.setTimeout(20_000);
+    await page.goto("/signup", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("h1")).toBeVisible({ timeout: PAGE_TIMEOUT });
+    await expect(page.getByTestId("signup-account-type")).toBeVisible({ timeout: PAGE_TIMEOUT });
+  });
+
   test("/funding/report/demo — sample banner, >= 3 grant cards, Gantt, A$3 CTA", async ({
     page,
   }) => {

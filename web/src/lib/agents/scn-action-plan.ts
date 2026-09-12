@@ -227,7 +227,7 @@ function actionsForPosition(ctx: ActionContext): ScnAction[] {
       effort: "low",
       impact: "Discovery boost",
       tactic: "Make your SVI score share-page public → list on /index leaderboard → backlink from your landing page footer. Free SEO + investor discovery loop.",
-      resources: ["/dashboard/svi/share", "blockid.au/index"],
+      resources: ["/dashboard/svi/share", "blockid.au/startup-index"],
       timeline: "this_week",
     },
   ];

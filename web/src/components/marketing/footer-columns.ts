@@ -40,7 +40,7 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
       { href: "/solutions/founder#valuation", label: "Valuation" },
       { href: "/solutions/founder#pack", label: "Investor pack" },
       // B1 Task 5 — canonical SVI URL is /index (was /svi; now 301-redirected).
-      { href: "/index", label: "Startup Index" },
+      { href: "/startup-index", label: "Startup Index" },
       { href: "/pricing", label: "Pricing" },
     ],
   },

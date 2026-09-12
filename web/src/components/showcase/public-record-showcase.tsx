@@ -82,10 +82,10 @@ function MilestoneItem({ m }: { m: PublicMilestone }) {
         <span className="font-mono text-xs text-ink-500">{m.date}</span>
         <span className="font-semibold text-ink-900">{m.headline}</span>
         {m.figure ? (
-          <span className="rounded bg-brand-50 px-1.5 py-0.5 text-[10px] text-brand-800">{m.figure}</span>
+          <span className="rounded bg-brand-50 px-1.5 py-0.5 text-xs text-brand-800">{m.figure}</span>
         ) : null}
         {m.valuation ? (
-          <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-800">
+          <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-xs text-emerald-800">
             {m.valuation} valuation
           </span>
         ) : null}

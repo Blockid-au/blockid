@@ -42,7 +42,7 @@ export function CTASection({ className }: { className?: string }) {
             />
 
             <p
-              className="relative mb-4 font-mono text-[11px] uppercase tracking-[0.28em]"
+              className="relative mb-4 font-mono text-xs uppercase tracking-[0.28em]"
               style={{ color: "#94A3B8" }}
             >
               Free to start · No credit card
@@ -80,7 +80,7 @@ export function CTASection({ className }: { className?: string }) {
 
               {/* SECONDARY: Startup Index (public directory). */}
               <Link
-                href="/index"
+                href="/startup-index"
                 className="inline-flex items-center gap-2 rounded-xl border px-8 py-3.5 text-sm font-semibold transition-all duration-200 hover:border-[rgba(0,212,255,0.4)] hover:text-white"
                 style={{
                   borderColor: "rgba(255,255,255,0.12)",

@@ -110,9 +110,12 @@ export const metadata: Metadata = {
       "max-image-preview": "large",
     },
   },
-  alternates: {
-    canonical: SITE_URL,
-  },
+  // No root-level `alternates.canonical`. Next merges layout metadata into
+  // every page, so a default of SITE_URL told Google "the homepage is the
+  // canonical" for every page that set no canonical of its own — 24
+  // /startup-index/listings/* pages, /auth/login, /s/* … (release QA-1 #5).
+  // The homepage declares its own canonical in `(marketing)/page.tsx`; every
+  // other page uses `pageMetadata()` or sets `alternates.canonical` itself.
   verification: {
     google: process.env.NEXT_PUBLIC_GSC_VERIFICATION ?? undefined,
   },

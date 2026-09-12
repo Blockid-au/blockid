@@ -77,6 +77,10 @@ describe("/verify/valuation/[no]", () => {
     expect(html).toContain("Not on record");
     expect(html).toContain("VC-ZZZZZ-ZZZZZ");
     expect(html).not.toContain('data-testid="content-hash"');
+    // Release QA-1 #16: the invalid-number state had no <h1> (the
+    // certificate heading only renders when found). Exactly one now.
+    expect(html.match(/<h1\b/g)?.length).toBe(1);
+    expect(html).toMatch(/<h1[^>]*>Not on record<\/h1>/);
   });
 
   it("hash mismatch: red state; ?hash= comparison line renders", async () => {

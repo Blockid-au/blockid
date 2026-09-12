@@ -33,15 +33,6 @@ const nextConfig: NextConfig = {
    * dynamic-route 404). `/for/advisor` joined the list on 2026-09-10 when
    * `/solutions/advisor` became a real page (T0274).
    */
-  async rewrites() {
-    return [
-      // /index/* → /startup-index/* (internal rename to avoid Next.js 16 webpack
-      // naming clash where `app/index/page.tsx` compiles to a doubled
-      // `app/index/index/page.js` path with no client reference manifest).
-      { source: "/index", destination: "/startup-index" },
-      { source: "/index/:path*", destination: "/startup-index/:path*" },
-    ];
-  },
   async redirects() {
     return [
       // B1 Task 3 — legacy `/for/*` marketing URLs return HTTP 301 (was 308).
@@ -95,10 +86,14 @@ const nextConfig: NextConfig = {
         destination: "/legal/terms",
         statusCode: 301,
       },
-      // B1 Task 5 — consolidate SVI landing routes onto a single canonical
-      // `/index` URL. `/index` is served via the /startup-index rewrite (see
-      // rewrites() above) because Next 16 webpack cannot compile an
-      // `app/index/page.tsx` route.
+      // Release QA-1 #5 (2026-09-12) — ONE canonical for the Startup Value
+      // Index: `/startup-index`. Until today `/index` was rewritten to the
+      // `/startup-index` route while `/startup-index` 301'd back to `/index`
+      // and the page declared `canonical: /startup-index` — a canonical
+      // loop Google resolves by dropping the page. `/startup-index` is the
+      // physical route (Next 16 webpack cannot compile `app/index/page.tsx`),
+      // so it is also the public URL now; `/index`, `/index/*` and `/svi`
+      // 301 to it and the old rewrite is gone (redirects run first anyway).
       //
       // NOTE: `/score` is intentionally NOT redirected here — it hosts the
       // real Investor-Ready Score form (`app/score/page.tsx` +
@@ -109,17 +104,58 @@ const nextConfig: NextConfig = {
       // add the redirect back.
       {
         source: "/svi",
-        destination: "/index",
+        destination: "/startup-index",
         statusCode: 301,
       },
       {
-        source: "/startup-index",
-        destination: "/index",
+        source: "/index",
+        destination: "/startup-index",
         statusCode: 301,
       },
+      {
+        source: "/index/:path*",
+        destination: "/startup-index/:path*",
+        statusCode: 301,
+      },
+      // Release QA-1 #3 — `/founding-50` (Founding 100 promo landing) was
+      // retired with the promo (`lib/founding-promo.ts`), but transactional
+      // emails (`lib/email.ts`), CTA variants and the hero still link it.
+      // Both promo aliases now land on /pricing instead of a 404.
       {
         source: "/founding-100",
-        destination: "/founding-50",
+        destination: "/pricing",
+        statusCode: 301,
+      },
+      {
+        source: "/founding-50",
+        destination: "/pricing",
+        statusCode: 301,
+      },
+      // Release QA-1 #3 — the other sitemap entries that never had a route.
+      // `/company` → /about (the company profile hub is the About page),
+      // `/api-pricing` → /developers (the API surface and its pricing live
+      // there), `/live` → /startup-index (the live ticker is the index page).
+      {
+        source: "/company",
+        destination: "/about",
+        statusCode: 301,
+      },
+      {
+        source: "/api-pricing",
+        destination: "/developers",
+        statusCode: 301,
+      },
+      {
+        source: "/live",
+        destination: "/startup-index",
+        statusCode: 301,
+      },
+      // Release QA-1 #12 — duplicate article (identical <title> + topic).
+      // `optimising-…` was removed from the manifest / topic queue; the
+      // surviving `optimise-…` article keeps the ranking signal.
+      {
+        source: "/insights/optimising-startup-cap-table-for-acquisition-exit",
+        destination: "/insights/optimise-startup-cap-table-for-acquisition-exit",
         statusCode: 301,
       },
       {

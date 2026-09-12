@@ -143,7 +143,7 @@ export function GrowthPhaseStrip({
                         : undefined
                     }
                   >
-                    <span aria-hidden="true" className="font-mono text-[11px] tabular-nums">
+                    <span aria-hidden="true" className="font-mono text-xs tabular-nums">
                       {isPast ? "✓" : phase.order}
                     </span>
                     <span className="hidden sm:inline">{phase.title}</span>
