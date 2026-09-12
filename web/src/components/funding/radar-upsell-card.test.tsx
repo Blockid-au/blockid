@@ -64,7 +64,7 @@ describe("<RadarUpsellCard />", () => {
     const out = html(<RadarUpsellCard surface="funding_report" viewer="evaluator" facts={FACTS} />);
     expect(out).toContain("Or unlock alerts for the startups you evaluate");
     expect(out).toContain("Scout A$79");
-    expect(out).toContain('href="/signup?segment=evaluator&amp;plan=investor_angel"');
+    expect(out).toContain('href="/signup?segment=evaluator&amp;plan=investor_angel&amp;trial=1"');
     expect(out).toContain('data-radar-cta="investor_angel"');
   });
 
