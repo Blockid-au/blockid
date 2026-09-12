@@ -21,7 +21,7 @@ interface ProShellProps {
 }
 
 const NAV_LINKS = [
-  { href: "/index", label: "Startup Index" },
+  { href: "/startup-index", label: "Startup Index" },
   { href: "/funding", label: "Get funding" },
   { href: "/pricing", label: "Pricing" },
   { href: "/auth/login", label: "Login" },
@@ -139,7 +139,7 @@ export function ProShell({ children, variant = "landing" }: ProShellProps) {
             <Link href="/legal/terms" className="hover:text-white">
               Terms
             </Link>
-            <Link href="/index" className="hover:text-white">
+            <Link href="/startup-index" className="hover:text-white">
               Startup Index™
             </Link>
             <Link href="/funding" className="hover:text-white">

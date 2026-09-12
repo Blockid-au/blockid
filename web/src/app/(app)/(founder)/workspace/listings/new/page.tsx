@@ -88,7 +88,7 @@ export default async function NewListingPage() {
               Refresh my SVI
             </Link>
             <Link
-              href="/index"
+              href="/startup-index"
               className="inline-flex h-10 items-center rounded-full border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               Browse the index

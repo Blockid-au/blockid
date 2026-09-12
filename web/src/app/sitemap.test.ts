@@ -87,3 +87,77 @@ describe("sitemap — funding surfaces", () => {
     }
   });
 });
+
+// ─── Release QA-1 #3 / #5 / #12 / #13 (2026-09-12) ───────────────────────────
+// The release crawl found four sitemap URLs that 404'd (/api-pricing,
+// /company, /founding-50, /live — never had a page.tsx), a noindex page
+// (/showcase/sprocketbay) and a canonical loop on /index. Every static entry
+// must now resolve to a real App Router page, must not be a redirect source
+// in next.config.ts, and must not be a noindex page.
+
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import nextConfig from "../../next.config";
+import { listAppRoutes, matchRoute, pathnameOf } from "@/lib/seo/app-routes";
+
+const APP_DIR = resolve(__dirname);
+const ROUTES = listAppRoutes(APP_DIR);
+
+type Redirect = { source: string; destination: string };
+async function redirectSources(): Promise<string[]> {
+  const list = (await nextConfig.redirects!()) as Redirect[];
+  return list.map((r) => r.source);
+}
+
+/** Entries the dynamic data sources contribute (mocked above), so only the hand-written static list is checked. */
+function isStaticEntry(url: string): boolean {
+  const p = pathnameOf(url);
+  return !/^\/(funding\/(grants|programs)\/|insights\/|reports\/|listings\/|id\/|vi\/id\/)/.test(p) && !/\?/.test(url);
+}
+
+describe("sitemap — every static entry is a real page (release QA-1)", () => {
+  it("resolves every static entry to an existing page.tsx", async () => {
+    const urls = (await entries()).map((e) => e.url).filter(isStaticEntry);
+    expect(urls.length).toBeGreaterThan(60);
+    const unresolved = urls.map(pathnameOf).filter((p) => !matchRoute(ROUTES, p));
+    expect(unresolved, "sitemap URLs with no page.tsx").toEqual([]);
+  });
+
+  it("never lists the four routes the crawl found 404 (they 301 in next.config.ts)", async () => {
+    const paths = (await entries()).map((e) => pathnameOf(e.url));
+    for (const p of ["/api-pricing", "/company", "/founding-50", "/live", "/founding-100"]) {
+      expect(paths, p).not.toContain(p);
+    }
+    const sources = await redirectSources();
+    for (const p of ["/api-pricing", "/company", "/founding-50", "/live"]) expect(sources, `${p} 301`).toContain(p);
+  });
+
+  it("never lists a redirect source from next.config.ts (no /index, /score, /svi, /startup-index loop)", async () => {
+    const paths = new Set((await entries()).map((e) => pathnameOf(e.url)));
+    const sources = (await redirectSources()).filter((s) => !s.includes(":"));
+    const listed = sources.filter((s) => paths.has(s));
+    expect(listed, "redirect sources in the sitemap").toEqual([]);
+    expect(paths.has("/startup-index"), "/startup-index is the one canonical index URL").toBe(true);
+    expect(paths.has("/index")).toBe(false);
+    expect(paths.has("/analyze"), "/score 301s to /analyze — the destination is listed").toBe(true);
+  });
+
+  it("never lists a noindex page (/showcase/sprocketbay is sample data)", async () => {
+    const paths = (await entries()).map((e) => pathnameOf(e.url)).filter((p) => isStaticEntry(p));
+    const noindex: string[] = [];
+    for (const p of paths) {
+      const r = matchRoute(ROUTES, p);
+      if (!r || r.route.includes("[")) continue;
+      const src = readFileSync(r.file, "utf8");
+      if (/robots:\s*\{[^}]*index:\s*false/.test(src)) noindex.push(p);
+    }
+    expect(noindex, "noindex pages in the sitemap").toEqual([]);
+    expect(paths).not.toContain("/showcase/sprocketbay");
+  });
+
+  it("the duplicate cap-table exit article is a 301 and not listed", async () => {
+    const list = (await nextConfig.redirects!()) as Redirect[];
+    const r = list.find((x) => x.source === "/insights/optimising-startup-cap-table-for-acquisition-exit");
+    expect(r?.destination).toBe("/insights/optimise-startup-cap-table-for-acquisition-exit");
+  });
+});

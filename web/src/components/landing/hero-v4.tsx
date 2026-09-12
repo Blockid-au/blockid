@@ -259,7 +259,7 @@ export function HeroV4({ signedInHref, verifiedCount }: HeroV4Props) {
             How the SVI works
           </Link>
           <span aria-hidden>·</span>
-          <Link href="/index" className="hover:text-[var(--fintech-ink)]">
+          <Link href="/startup-index" className="hover:text-[var(--fintech-ink)]">
             Live BSI-AU index
           </Link>
           <span aria-hidden>·</span>

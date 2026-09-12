@@ -336,6 +336,9 @@ export async function generateMetadata({
       images: [ogImageUrl],
     },
     robots: { index: false, follow: false },
+    // Own canonical (release QA-1 #5) — the root layout no longer supplies
+    // a homepage default, and a share page must never claim "/" as canonical.
+    alternates: { canonical: url },
   };
 }
 

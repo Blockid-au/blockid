@@ -875,8 +875,8 @@ echo "  ✅ Temp server healthy"
 SMOKE_FAIL=0
 # Counts below are derived from these arrays so the summary line can never
 # drift from what is actually probed (it used to claim "6" while checking 8+1).
-SMOKE_PATHS=("/" "/auth/login" "/pricing" "/api/auth/me" "/index" "/analyze" "/tools/idea-valuation" "/one-click-report")
-SMOKE_REDIRECTS=("/score")
+SMOKE_PATHS=("/" "/auth/login" "/pricing" "/api/auth/me" "/startup-index" "/analyze" "/tools/idea-valuation" "/one-click-report")
+SMOKE_REDIRECTS=("/score" "/index")
 for path in "${SMOKE_PATHS[@]}"; do
   SC=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$TEMP_PORT$path" 2>/dev/null)
   if [ "$SC" = "200" ]; then

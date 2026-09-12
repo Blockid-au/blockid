@@ -301,6 +301,41 @@ describe("site-wide metadata sweep (S12-A)", { timeout: 120_000 }, () => {
     expect(dupes).toEqual([]);
   });
 
+  // Release QA-1 #5 (2026-09-12): 34 pages told Google "the homepage is the
+  // canonical" — 24 /startup-index/listings/* pages, /auth/login, /s/* and
+  // /showcase/sprocketbay inherited a root-layout `alternates.canonical =
+  // SITE_URL`, and /index ↔ /startup-index formed a redirect loop.
+  it("no page other than the homepage declares the homepage as its canonical (indexable or not)", async () => {
+    const pages = (await RESOLVED).filter((p) => p.metadata && p.route !== "/");
+    const offenders: string[] = [];
+    for (const p of pages) {
+      const c = p.metadata!.alternates?.canonical;
+      const href = typeof c === "string" ? c : c && typeof c === "object" && "url" in c ? String(c.url) : "";
+      if (href && /^https:\/\/blockid\.au\/?$/.test(href)) offenders.push(`${p.route}: canonical "${href}"`);
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("the root layout carries no default canonical (it would be merged into every page)", () => {
+    const src = readFileSync(join(APP_DIR, "layout.tsx"), "utf8");
+    expect(src).not.toMatch(/alternates:\s*\{\s*canonical:\s*SITE_URL/);
+  });
+
+  it("/startup-index is the one canonical index URL and /index is a 301, not a page", async () => {
+    const pages = await RESOLVED;
+    const idx = pages.find((p) => p.route === "/startup-index");
+    expect(idx?.kind).toBe("indexable");
+    const c = idx!.metadata!.alternates!.canonical;
+    expect(typeof c === "string" ? c : String((c as { url: string }).url)).toBe("https://blockid.au/startup-index");
+    expect(pages.find((p) => p.route === "/index")).toBeUndefined();
+    const listings = pages.filter((p) => p.route.startsWith("/startup-index/listings"));
+    expect(listings.length).toBe(2);
+    for (const l of listings) {
+      const lc = l.metadata!.alternates!.canonical;
+      expect(typeof lc === "string" ? lc : String((lc as { url: string }).url), l.route).toMatch(/^https:\/\/blockid\.au\/startup-index\/listings/);
+    }
+  });
+
   it("the root template is what the sweep assumes (%s | BlockID.au)", () => {
     // The root layout loads next/font at module scope, so read the source
     // rather than importing it.

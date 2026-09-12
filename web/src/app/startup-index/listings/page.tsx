@@ -1,7 +1,8 @@
-// /index/listings — the "Markets" view of startupvalueindex.com (T0230, v2.15).
+// /startup-index/listings — the "Markets" view of startupvalueindex.com (T0230, v2.15).
 //
 // Server-rendered ranked table of every analysed startup. Sort + filter +
-// pagination handled via query params so the URL is shareable.
+// pagination handled via query params so the URL is shareable. The filtered
+// / sorted variants canonicalise to the bare listing (release QA-1 #5).
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -9,11 +10,13 @@ import { ArrowDownRight, ArrowUpRight, BarChart3, Filter, Minus, Sparkles } from
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { computeListings, type ListingSort } from "@/lib/startup-index-listings";
+import { pageMetadata } from "@/lib/seo/page-meta";
 
-export const metadata: Metadata = {
-  title: "Startup Listings · BlockID Startup Value Index",
+export const metadata: Metadata = pageMetadata({
+  title: "Startup Listings · Startup Value Index",
   description: "Ranked listing of every AU startup analysed by BlockID. Filter by sector, stage, revenue status — sort by SVI, weekly delta, valuation.",
-};
+  path: "/startup-index/listings",
+});
 
 export const dynamic = "force-dynamic";
 export const revalidate = 300;
@@ -112,7 +115,7 @@ export default async function ListingsPage({ searchParams }: PageProps) {
       if (v == null || v === "" || v === "all") next.delete(k);
       else next.set(k, String(v));
     }
-    return `/index/listings?${next.toString()}`;
+    return `/startup-index/listings?${next.toString()}`;
   }
 
   function sortHeader({ field, label, align = "left" }: { field: ListingSort; label: string; align?: "left" | "right" }) {
@@ -148,7 +151,7 @@ export default async function ListingsPage({ searchParams }: PageProps) {
                 {data.total.toLocaleString()} AU startups analysed by BlockID — ranked by SVI score. Anonymous tickers protect founder identity unless they opt in.
               </p>
             </div>
-            <Link href="/index" className="text-sm text-brand-700 hover:underline">← Back to Index</Link>
+            <Link href="/startup-index" className="text-sm text-brand-700 hover:underline">← Back to Index</Link>
           </div>
         </div>
 
@@ -225,7 +228,7 @@ export default async function ListingsPage({ searchParams }: PageProps) {
                   <tr key={row.ticker + row.identityHash} className="border-b border-ink-100 last:border-0 hover:bg-amber-50/30 transition-colors">
                     <td className="py-2 px-2 text-xs text-ink-400 tabular-nums">{(data.page - 1) * data.pageSize + i + 1}</td>
                     <td className="py-2 px-2">
-                      <Link href={`/index/listings/${row.ticker}`} className="text-xs font-mono font-bold text-brand-700 hover:underline">
+                      <Link href={`/startup-index/listings/${row.ticker}`} className="text-xs font-mono font-bold text-brand-700 hover:underline">
                         {row.ticker}
                       </Link>
                       {row.publicName && (

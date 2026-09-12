@@ -1,4 +1,5 @@
-// /index — Startup Value Index Exchange (T0228, v2.14).
+// /startup-index — Startup Value Index Exchange (T0228, v2.14). Public URL
+// since release QA-1 #5 (2026-09-12); /index and /svi 301 here.
 //
 // Public-facing brand surface at startupvalueindex.com (proxied via nginx since
 // v2.4 / T0212). Investing.com aesthetic: hero index, sector heatmap, top
@@ -153,7 +154,7 @@ export default async function IndexExchangePage() {
           {/* View all listings CTA */}
           <div className="mt-5 pt-5 border-t border-brand-100 text-center">
             <Link
-              href="/index/listings"
+              href="/startup-index/listings"
               className="inline-flex items-center gap-1.5 text-sm font-bold text-brand-700 hover:text-brand-800 hover:underline"
             >
               Browse all {data.bsiAu.totalCompanies.toLocaleString()} listings →

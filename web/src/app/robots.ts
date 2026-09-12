@@ -26,7 +26,7 @@ export default function robots(): MetadataRoute.Robots {
         allow: [
           "/",
           "/score",
-          "/index",
+          "/startup-index",
           "/solutions/",
           "/business-id",
           "/id/",
