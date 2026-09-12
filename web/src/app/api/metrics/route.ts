@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { findOrCreateSVIAccount, findSVIAccountWithFallback, getProjectScope } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +57,7 @@ function isTextField(key: string): key is TextField {
 // Body: { date?, source?, metrics: { mrr_aud?: number, arr_aud?: number, ... } }
 // ---------------------------------------------------------------------------
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -278,3 +279,6 @@ export async function GET(request: Request) {
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/metrics/route.ts", method: "POST" }, POST_handler);

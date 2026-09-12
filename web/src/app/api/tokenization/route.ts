@@ -10,6 +10,7 @@ import {
   sharesToTokens,
   DEFAULT_CHAIN_CONFIG,
 } from "@/lib/tokenization";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +67,7 @@ export async function GET() {
   });
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const gate = await gateRequireFeature("share_management");
   if (!gate.ok) return gate.response;
   const user = gate.user;
@@ -107,3 +108,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Unknown action: ${body.action}` }, { status: 400 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/tokenization/route.ts", method: "POST" }, POST_handler);

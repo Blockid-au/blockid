@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { listApiKeys, createApiKey, canCreateApiKeys, getRateLimitForPlan } from "@/lib/api-keys";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // GET /api/keys — List user's API keys (session auth required)
 export async function GET() {
@@ -18,7 +19,7 @@ export async function GET() {
 }
 
 // POST /api/keys — Create a new API key (session auth, Growth+ plan required)
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -84,3 +85,6 @@ export async function POST(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/keys/route.ts", method: "POST" }, POST_handler);

@@ -6,6 +6,7 @@ import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +55,7 @@ const ALLOWED_FIELDS = new Set([
   "north_star_target",
 ]);
 
-export async function PUT(req: NextRequest) {
+async function PUT_handler(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return unauth();
   const sb = getSupabaseAdmin();
@@ -89,3 +90,6 @@ export async function PUT(req: NextRequest) {
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true, strategy: data });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const PUT = apiRoute({ route: "api/founder/gtm/route.ts", method: "PUT" }, PUT_handler);

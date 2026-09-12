@@ -32,6 +32,7 @@ import { detectInputType, scrapeUrl, deepTechAudit, type TechAuditResult } from 
 import { generateSectionReport, type SectionRequest } from "@/lib/rnd-analysis";
 import { canAfford, spendCredits, calculateSectionCost, SECTION_DEPTH_CONFIG, type SectionDepth } from "@/lib/credits";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ const VALID_SECTIONS = [
   "traction", "team", "financial", "risk", "recommendations",
 ];
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   let body: {
     email?: string;
     rawText?: string;
@@ -294,3 +295,6 @@ export async function POST(request: Request) {
     },
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/rnd/sections/route.ts", method: "POST" }, POST_handler);

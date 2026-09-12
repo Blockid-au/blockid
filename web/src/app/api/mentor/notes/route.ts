@@ -19,6 +19,7 @@ import {
   validateBody,
   type NoteVisibility,
 } from "@/lib/mentor/notes";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,7 @@ async function requireScope(user: { id: string } | null): Promise<RequireScopeRe
   }
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   const scoped = await requireScope(user);
   if (scoped.err) return scoped.err;
@@ -119,7 +120,7 @@ export async function POST(request: Request) {
   return NextResponse.json({ ok: true, note: inserted });
 }
 
-export async function PATCH(request: Request) {
+async function PATCH_handler(request: Request) {
   const user = await getCurrentUser();
   const scoped = await requireScope(user);
   if (scoped.err) return scoped.err;
@@ -202,7 +203,7 @@ export async function PATCH(request: Request) {
   return NextResponse.json({ ok: true, note: updated });
 }
 
-export async function DELETE(request: Request) {
+async function DELETE_handler(request: Request) {
   const user = await getCurrentUser();
   const scoped = await requireScope(user);
   if (scoped.err) return scoped.err;
@@ -263,3 +264,8 @@ export async function DELETE(request: Request) {
 
   return NextResponse.json({ ok: true, deleted_id: id });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/mentor/notes/route.ts", method: "POST" }, POST_handler);
+export const PATCH = apiRoute({ route: "api/mentor/notes/route.ts", method: "PATCH" }, PATCH_handler);
+export const DELETE = apiRoute({ route: "api/mentor/notes/route.ts", method: "DELETE" }, DELETE_handler);

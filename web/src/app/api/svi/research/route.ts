@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -46,7 +47,7 @@ Scoring guide:
 - competitiveScore 80-100: Very differentiated, few competitors. 50-79: Some competitors. 0-49: Crowded.
 - growthScore 80-100: 20%+ YoY, strong investor interest. 50-79: Steady. 0-49: Mature/declining.`;
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -163,3 +164,6 @@ Name actual companies with real URLs. Return ONLY the JSON object.`;
     return NextResponse.json({ ok: false, error: "Research failed" }, { status: 500 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/research/route.ts", method: "POST" }, POST_handler);

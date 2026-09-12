@@ -11,6 +11,7 @@ import {
 import { sendMagicLink } from "@/lib/email";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // POST /api/auth/request
 // Body: { email, intent?, pendingPayload? }
@@ -25,7 +26,7 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 // We never confirm or deny whether the email already has an account. Account
 // upsert happens at consume-time, so a bad actor can't enumerate users.
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   let body: unknown = null;
   try {
     body = await request.json();
@@ -102,3 +103,6 @@ export async function POST(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/auth/request/route.ts", method: "POST" }, POST_handler);

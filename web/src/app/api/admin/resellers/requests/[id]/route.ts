@@ -27,6 +27,7 @@ import { getStripe } from "@/lib/stripe";
 import { validateAdminDecision } from "@/lib/reseller/requests";
 import { monthKey } from "@/lib/reseller/credit-grants";
 import { decideCodeMint } from "@/lib/reseller/promotion-code-mint";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,7 @@ interface RequestRow {
   payload: Record<string, unknown>;
 }
 
-export async function PATCH(
+async function PATCH_handler(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -393,3 +394,6 @@ async function ensureStripeCoupon(
     throw err;
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const PATCH = apiRoute({ route: "api/admin/resellers/requests/[id]/route.ts", method: "PATCH" }, PATCH_handler);

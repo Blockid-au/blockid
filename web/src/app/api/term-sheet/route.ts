@@ -23,6 +23,7 @@ import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { generateLawyerQuestions } from "@/lib/term-sheet-lawyer-questions";
+import { apiRoute } from "@/lib/audit/api-route";
 
 const HolderSchema = z.object({
   id: z.string(),
@@ -49,7 +50,7 @@ const BodySchema = z.object({
   round: RoundSchema.nullable().optional(),
 });
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -203,7 +204,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+async function DELETE_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -252,3 +253,7 @@ function extractCompanyName(raw: string): string | null {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/term-sheet/route.ts", method: "POST" }, POST_handler);
+export const DELETE = apiRoute({ route: "api/term-sheet/route.ts", method: "DELETE" }, DELETE_handler);

@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false }, { status: 401 });
 
@@ -36,3 +37,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/onboarding/complete/route.ts", method: "POST" }, POST_handler);

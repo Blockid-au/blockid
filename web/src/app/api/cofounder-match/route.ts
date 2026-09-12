@@ -7,13 +7,14 @@ import {
 import { insertCofounderProfile } from "@/lib/cofounder-match.server";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
 import nodemailer from "nodemailer";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // POST /api/cofounder-match
 // Validates a cofounder profile submission, hashes the client IP for soft
 // rate-limit attribution, persists to Supabase, and fires off two notification
 // emails (founder + admin) via the existing Resend wrapper. Email is
 // fire-and-forget — we never block the funnel on transactional infra.
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   let body: unknown = null;
   try {
     body = await request.json();
@@ -197,3 +198,6 @@ function adminHtml(args: {
     </td></tr>
   </table>`);
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/cofounder-match/route.ts", method: "POST" }, POST_handler);

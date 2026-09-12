@@ -21,6 +21,7 @@ import { getFundingReport, publicFundingReport } from "@/lib/funding/reports";
 import { latestVerifiedAt } from "@/lib/funding/directory";
 import { fundingReportFilename, renderFundingReportPdf } from "@/lib/pdf/funding-report-pdf";
 import { saveDeliverable } from "@/lib/dataroom/save-deliverable";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ const FUNDING_REPORT_TEMPLATE_SLUG = "funding_money_finder_report";
 export const SAVE_RATE_MAX = 10;
 export const SAVE_RATE_WINDOW_MS = 60 * 60 * 1000;
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function POST_handler(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
@@ -104,3 +105,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     template_slug: FUNDING_REPORT_TEMPLATE_SLUG,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/funding/report/[id]/save-to-dataroom/route.ts", method: "POST" }, POST_handler);

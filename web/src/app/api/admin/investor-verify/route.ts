@@ -4,10 +4,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   const me = await getCurrentUser();
   if (!me || me.role !== "admin") {
     return NextResponse.json({ ok: false, error: "Admin only" }, { status: 403 });
@@ -29,3 +30,6 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/admin/investor-verify/route.ts", method: "POST" }, POST_handler);

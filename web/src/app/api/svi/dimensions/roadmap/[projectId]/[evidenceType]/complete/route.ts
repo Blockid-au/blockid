@@ -13,6 +13,7 @@ import {
   computeRoadmapAndForecast,
 } from "../../../../_helpers";
 import { EVIDENCE_CATALOG } from "@/lib/svi-completeness";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ interface PatchBody {
   notes?: string;
 }
 
-export async function PATCH(
+async function PATCH_handler(
   request: NextRequest,
   {
     params,
@@ -186,3 +187,6 @@ export async function PATCH(
     },
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const PATCH = apiRoute({ route: "api/svi/dimensions/roadmap/[projectId]/[evidenceType]/complete/route.ts", method: "PATCH" }, PATCH_handler);

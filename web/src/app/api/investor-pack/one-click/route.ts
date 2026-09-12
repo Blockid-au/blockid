@@ -38,6 +38,7 @@ import {
   computeExitReadiness,
 } from "@/lib/exit-strategy.helpers";
 import type { ProjectionOutput } from "@/types/financial";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -467,7 +468,7 @@ async function assembleOneClick(
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-export async function POST(_request: Request): Promise<Response> {
+async function POST_handler(_request: Request): Promise<Response> {
   try {
     // ── Auth ────────────────────────────────────────────────────────────────
     const user = await getCurrentUser();
@@ -567,3 +568,6 @@ export async function POST(_request: Request): Promise<Response> {
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/investor-pack/one-click/route.ts", method: "POST" }, POST_handler);

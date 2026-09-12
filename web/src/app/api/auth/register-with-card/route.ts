@@ -60,6 +60,7 @@ import {
 } from "@/lib/plans/signup-plans";
 import { initializeCredits } from "@/lib/credits";
 import { sendPaymentConfirmation } from "@/lib/email";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -100,7 +101,7 @@ function sanitizeName(raw: string | undefined): string | undefined {
   return raw.replace(/<[^>]*>/g, "").trim().slice(0, 100) || undefined;
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const ip = clientIpFromHeaders(request.headers) ?? "unknown";
   const rl = checkRateLimit(`register-with-card:${ip}`, 5, 15 * 60 * 1000);
   if (!rl.allowed) {
@@ -374,3 +375,6 @@ export async function POST(request: Request) {
     },
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/auth/register-with-card/route.ts", method: "POST" }, POST_handler);

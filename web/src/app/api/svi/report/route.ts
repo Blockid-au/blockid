@@ -13,6 +13,7 @@ import {
   GROWTH_PHASES,
 } from "@/lib/startup-growth-phases";
 import { growthPhaseToStageLabel } from "@/lib/journey-map";
+import { apiRoute } from "@/lib/audit/api-route";
 
 function detectLanguage(text: string): "en" | "vi" | "auto" {
   // Simple heuristic: check for Vietnamese diacritical marks
@@ -27,7 +28,7 @@ function detectLanguage(text: string): "en" | "vi" | "auto" {
   return "en";
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -293,3 +294,6 @@ Write naturally, be thorough, and remember: this founder is trusting you with th
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120; // Allow up to 2 minutes for long AI reports
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/report/route.ts", method: "POST" }, POST_handler);

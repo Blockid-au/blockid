@@ -13,6 +13,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { getCurrentUser, ADMIN_EMAIL } from "@/lib/auth";
 import { fetchDailySnapshot } from "@/lib/ga4/data-api-client";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,7 +25,7 @@ const THROTTLE_MS = 60_000;
 const g = globalThis as any;
 if (typeof g.__ga4RefreshLastAt !== "number") g.__ga4RefreshLastAt = 0;
 
-export async function POST() {
+async function POST_handler() {
   const user = await getCurrentUser();
   const isAdmin = !!user && (user.email === ADMIN_EMAIL || user.role === "admin");
   if (!isAdmin) {
@@ -82,3 +83,6 @@ export async function POST() {
     return NextResponse.json({ ok: false, error: `write failed: ${msg}` }, { status: 500 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/admin/ga4-refresh/route.ts", method: "POST" }, POST_handler);

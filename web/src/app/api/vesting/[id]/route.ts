@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { computeVestingTimeline, type VestingSchedule } from "@/lib/vesting";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -72,7 +73,7 @@ export async function GET(
 // PATCH /api/vesting/[id] — Update schedule (terminate, accelerate)
 // ---------------------------------------------------------------------------
 
-export async function PATCH(
+async function PATCH_handler(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -139,7 +140,7 @@ export async function PATCH(
 // DELETE /api/vesting/[id] — Remove schedule
 // ---------------------------------------------------------------------------
 
-export async function DELETE(
+async function DELETE_handler(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -170,3 +171,7 @@ export async function DELETE(
 
   return NextResponse.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const PATCH = apiRoute({ route: "api/vesting/[id]/route.ts", method: "PATCH" }, PATCH_handler);
+export const DELETE = apiRoute({ route: "api/vesting/[id]/route.ts", method: "DELETE" }, DELETE_handler);

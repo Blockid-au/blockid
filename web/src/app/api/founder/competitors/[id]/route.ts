@@ -4,6 +4,7 @@
 // keyed on (user_id = project OWNER, project_id) and gated at editor+,
 // exactly like the sibling /founder/*/[id] routes.
 import { patchHandler, deleteHandler, type CrudConfig } from "@/lib/founder-crud";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -22,5 +23,9 @@ const CFG: CrudConfig = {
   ]),
 };
 
-export const PATCH = patchHandler(CFG);
-export const DELETE = deleteHandler(CFG);
+const PATCH_handler = patchHandler(CFG);
+const DELETE_handler = deleteHandler(CFG);
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const PATCH = apiRoute({ route: "api/founder/competitors/[id]/route.ts", method: "PATCH" }, PATCH_handler);
+export const DELETE = apiRoute({ route: "api/founder/competitors/[id]/route.ts", method: "DELETE" }, DELETE_handler);

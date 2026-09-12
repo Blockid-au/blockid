@@ -54,6 +54,7 @@ import { computeSVI, type SVIAnalysis } from "@/lib/svi-analysis";
 import { estimateValuation } from "@/lib/valuation";
 import { extractProjectName } from "@/lib/project-name-extractor";
 import { savedAnalysisUrl } from "@/lib/analyses/summary";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -89,7 +90,7 @@ function siteOrigin(request: Request): string {
   }
 }
 
-export async function POST(
+async function POST_handler(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -215,3 +216,6 @@ export async function POST(
     return reply("send_failed");
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/analyses/[id]/free-summary/route.ts", method: "POST" }, POST_handler);

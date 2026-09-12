@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { detectSector, SECTOR_LABELS } from "@/lib/svi-analysis";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // Sector-aware idea value estimator.
 // Returns AUD range based on text signals + industry vertical.
@@ -170,7 +171,7 @@ function estimateFromText(text: string): {
   };
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -195,3 +196,6 @@ export async function POST(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/idea-estimate/route.ts", method: "POST" }, POST_handler);

@@ -6,10 +6,11 @@ import { gateRequireFeature } from "@/lib/feature-gate";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { getGrant, isValidStatus, updateGrantStatus } from "@/lib/esop-grants";
 import { DIV83A_DISCLAIMER } from "@/lib/div83a-checker";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
-export async function PATCH(
+async function PATCH_handler(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -59,7 +60,7 @@ export async function PATCH(
   });
 }
 
-export async function DELETE(
+async function DELETE_handler(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -95,3 +96,7 @@ export async function DELETE(
     disclaimer: DIV83A_DISCLAIMER,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const PATCH = apiRoute({ route: "api/esop/grants/[id]/route.ts", method: "PATCH" }, PATCH_handler);
+export const DELETE = apiRoute({ route: "api/esop/grants/[id]/route.ts", method: "DELETE" }, DELETE_handler);

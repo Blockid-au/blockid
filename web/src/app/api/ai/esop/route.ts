@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { gateRequireFeature } from "@/lib/feature-gate";
 import { callAI } from "@/lib/ai-client";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // POST /api/ai/esop — AI ESOP pool recommendation (0.50 credit)
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const gate = await gateRequireFeature("esop.manage");
   if (!gate.ok) return gate.response;
 
@@ -30,3 +31,6 @@ export async function POST(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/ai/esop/route.ts", method: "POST" }, POST_handler);

@@ -28,6 +28,7 @@ import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
 import { randomBytes } from "crypto";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +55,7 @@ function safeFilename(originalName: string): string {
   return originalName.replace(/[^\w.\- ]+/g, "_").slice(0, 255);
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const limited = enforceRateLimit(
     "guest-analysis-upload-pitch",
     null,
@@ -146,3 +147,6 @@ export async function POST(request: Request) {
     filename: safeFilename(file.name || storedName),
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/guest-analysis/upload-pitch/route.ts", method: "POST" }, POST_handler);

@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getProjectById } from "@/lib/projects";
 import { getEquitySummary, addTeamMember } from "@/lib/equity";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/equity — add a team member
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -111,3 +112,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true, member: result.member }, { status: 201 });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/equity/route.ts", method: "POST" }, POST_handler);

@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { queueSyncEvent, getSyncConfig } from "@/lib/blockchain-sync";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,7 @@ export async function GET(_request: NextRequest) {
 // POST /api/vesting — Create new vesting schedule
 // ---------------------------------------------------------------------------
 
-export async function POST(request: NextRequest) {
+async function POST_handler(request: NextRequest) {
   const gate = await gateRequireFeature("vesting.write");
   if (!gate.ok) return gate.response;
   const user = gate.user;
@@ -151,3 +152,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: true, schedule: data }, { status: 201 });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/vesting/route.ts", method: "POST" }, POST_handler);

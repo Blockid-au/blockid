@@ -33,6 +33,7 @@ import {
   shareLinkState,
   type ShareLinkRow,
 } from "@/lib/data-room";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +66,7 @@ function trim(v: unknown, max = 200): string | null {
 // POST — mint a share link
 // ---------------------------------------------------------------------------
 
-export async function POST(request: NextRequest) {
+async function POST_handler(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -232,7 +233,7 @@ export async function GET(request: NextRequest) {
 // DELETE ?token=… — revoke
 // ---------------------------------------------------------------------------
 
-export async function DELETE(request: NextRequest) {
+async function DELETE_handler(request: NextRequest) {
   const token = new URL(request.url).searchParams.get("token");
   if (!token) {
     return NextResponse.json(
@@ -281,3 +282,7 @@ export async function DELETE(request: NextRequest) {
 
   return NextResponse.json({ ok: true, revoked: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/investor-data-room/route.ts", method: "POST" }, POST_handler);
+export const DELETE = apiRoute({ route: "api/investor-data-room/route.ts", method: "DELETE" }, DELETE_handler);

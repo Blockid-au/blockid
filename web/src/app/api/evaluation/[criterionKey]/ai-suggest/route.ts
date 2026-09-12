@@ -20,10 +20,11 @@ import {
   creditChargeNote,
 } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(
+async function POST_handler(
   _request: Request,
   { params }: { params: Promise<{ criterionKey: string }> },
 ) {
@@ -201,3 +202,6 @@ Provide 5 specific suggestions to improve this criterion's evidence, plus 3 qual
     }, { status: 500 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/evaluation/[criterionKey]/ai-suggest/route.ts", method: "POST" }, POST_handler);

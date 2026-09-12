@@ -9,6 +9,7 @@ import {
   EVIDENCE_CONFIDENCE,
   type EvidenceItem,
 } from "@/lib/svi-analysis";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export const dynamic = "force-dynamic";
 // appending evidence summaries, re-runs extractSignals + computeSVI, and
 // saves the new analysis + snapshot.
 
-export async function POST() {
+async function POST_handler() {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -167,3 +168,6 @@ export async function POST() {
     analysisId: savedAnalysis?.id ?? null,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/evidence/rescore/route.ts", method: "POST" }, POST_handler);

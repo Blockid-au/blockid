@@ -7,10 +7,11 @@ import { NextResponse } from "next/server";
 import { isValidEmail, normaliseEmail, resetWithTempPassword } from "@/lib/auth";
 import { sendPasswordReset } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   try {
     // Rate limit: 3 resets per IP per 15 minutes (prevent email flooding)
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
@@ -52,3 +53,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Internal server error" }, { status: 500 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/auth/reset-password/route.ts", method: "POST" }, POST_handler);

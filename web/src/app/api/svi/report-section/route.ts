@@ -15,10 +15,11 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { findSVIAccountWithFallback, findLatestAnalysisWithFallback, creditChargeNote } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { getSection, REPORT_SECTIONS } from "@/lib/report-sections";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   // ── 1. Authenticate ──────────────────────────────────────────────────
   const user = await getCurrentUser();
   if (!user) {
@@ -360,3 +361,6 @@ Formatting for visual impact:
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/report-section/route.ts", method: "POST" }, POST_handler);

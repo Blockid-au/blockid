@@ -35,6 +35,7 @@ import { sessionIdempotencyKey } from "@/lib/stripe/idempotency";
 import { TRUST_REPORT_5AUD } from "@/lib/pricing/v3-skus";
 import { resolvePromoCode } from "@/lib/reseller/resolve-promo";
 import { normaliseResellerCode } from "@/lib/reseller/attribution";
+import { apiRoute } from "@/lib/audit/api-route";
 
 interface CheckoutBody {
   businessId?: unknown;
@@ -57,7 +58,7 @@ function siteOrigin(request: Request): string {
   }
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -350,3 +351,6 @@ export async function POST(request: Request) {
     appliedDiscount,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/reports/checkout/route.ts", method: "POST" }, POST_handler);

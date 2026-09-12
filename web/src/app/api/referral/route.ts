@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getReferralCode, getReferralUrl } from "@/lib/referrals";
 import { grantCredits } from "@/lib/credits";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -103,7 +104,7 @@ export async function GET() {
 // POST /api/referral — record a referral signup
 // ---------------------------------------------------------------------------
 
-export async function POST(request: NextRequest) {
+async function POST_handler(request: NextRequest) {
   let body: unknown;
   try {
     body = await request.json();
@@ -203,3 +204,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: true, creditsAwarded: REFERRAL_CREDITS });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/referral/route.ts", method: "POST" }, POST_handler);

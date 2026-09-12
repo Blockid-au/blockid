@@ -12,6 +12,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { getBalance, SECTION_DEPTH_CONFIG, calculateSectionCost, type SectionDepth } from "@/lib/credits";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +66,7 @@ const SECTION_PROMPTS: Record<string, { title: string; focus: string }> = {
   },
 };
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   // ── Auth ────────────────────────────────────────────────────────────────
   const user = await getCurrentUser();
   if (!user) {
@@ -357,3 +358,6 @@ Return as JSON: { "sections": { "sectionId": "markdown content", ... } }`;
     ...(errors.length > 0 && { warnings: errors }),
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/modular/route.ts", method: "POST" }, POST_handler);

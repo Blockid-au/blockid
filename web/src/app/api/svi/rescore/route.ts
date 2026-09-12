@@ -5,13 +5,14 @@ import { checkAndAwardBadges, type BadgeCheckContext } from "@/lib/svi-badges";
 import { extractSignals, computeSVI } from "@/lib/svi-analysis";
 import { getProjectScope, findSVIAccountWithFallback, findLatestAnalysisWithFallback } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // POST /api/svi/rescore
 // Re-calculates SVI based on the original analysis text + accumulated evidence.
 // Uses the full extractSignals → computeSVI pipeline for accurate rescoring.
 // Requires authentication. Scoped to active project.
 
-export async function POST() {
+async function POST_handler() {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, reason: "Authentication required" }, { status: 401 });
@@ -215,3 +216,6 @@ export async function POST() {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/rescore/route.ts", method: "POST" }, POST_handler);

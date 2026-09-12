@@ -10,6 +10,7 @@ import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { sendSVIReport, sendWelcomeWithReport } from "@/lib/email";
 import { autoCreateUserWithTempPassword } from "@/lib/auth";
 import { createReportGoogleDoc } from "@/lib/google-drive";
+import { apiRoute } from "@/lib/audit/api-route";
 
 /** Map tier to the credit feature key used for billing. */
 function tierToFeature(tier: ReportTier): string {
@@ -32,7 +33,7 @@ function tierToFeature(tier: ReportTier): string {
 // svi_analysis_usage). This is by design — requiring auth would block
 // the top-of-funnel free trial experience.
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   // ── Parse body ─────────────────────────────────────────────────────────
   let body: { email?: string; rawText?: string; fileName?: string; tier?: ReportTier } | null = null;
   try {
@@ -491,3 +492,6 @@ export async function POST(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/rnd/route.ts", method: "POST" }, POST_handler);

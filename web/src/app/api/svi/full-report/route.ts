@@ -20,12 +20,13 @@ import {
   findLatestAnalysisWithFallback,
 } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
 type ReportTier = "standard" | "premium";
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, reason: "Authentication required" }, { status: 401 });
@@ -302,3 +303,6 @@ ${sections}`;
     return NextResponse.json({ ok: false, error: "Report generation failed" }, { status: 500 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/full-report/route.ts", method: "POST" }, POST_handler);

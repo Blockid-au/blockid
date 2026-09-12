@@ -6,6 +6,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { callAI } from "@/lib/ai-client";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -79,7 +80,7 @@ function looksLikeJson(raw: string): boolean {
   }
 }
 
-export async function POST(req: Request) {
+async function POST_handler(req: Request) {
   if (!isLocal(req)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
@@ -153,3 +154,6 @@ export async function POST(req: Request) {
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/investor-portal/ai-generate/route.ts", method: "POST" }, POST_handler);

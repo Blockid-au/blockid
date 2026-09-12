@@ -12,6 +12,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { findOrCreateSVIAccount } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +58,7 @@ async function authenticateRequest(
 }
 
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   try {
     const supabase = getSupabaseAdmin();
     if (!supabase) {
@@ -222,3 +223,6 @@ export async function POST(request: Request) {
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/evidence/connect-url/route.ts", method: "POST" }, POST_handler);

@@ -20,6 +20,7 @@ import {
   generateGtmStrategy,
   type GtmChannel,
 } from "@/lib/agents/cmo-market-research";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -129,7 +130,7 @@ function pickSecondaryChannels(channels: GtmChannel[], stage: number): string[] 
   return ["paid-ads", "events", "partnerships"];
 }
 
-export async function POST() {
+async function POST_handler() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth" }, { status: 401 });
 
@@ -200,3 +201,6 @@ export async function POST() {
     },
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/founder/gtm/ai-fill/route.ts", method: "POST" }, POST_handler);

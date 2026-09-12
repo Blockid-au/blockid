@@ -48,6 +48,7 @@ import {
   type PublishSnapshot,
 } from "@/lib/landing-page/publish-snapshot";
 import type { LandingPageInput } from "@/lib/landing-page/preview";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -84,7 +85,7 @@ function buildFileName(snapshot: PublishSnapshot): string {
   return `landing-page-${snapshot.canonical_slug}-${sha}.html`;
 }
 
-export async function POST(request: Request): Promise<Response> {
+async function POST_handler(request: Request): Promise<Response> {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -228,3 +229,6 @@ export async function POST(request: Request): Promise<Response> {
     { status: 201, headers: { "cache-control": "no-store" } },
   );
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/landing-page/publish/route.ts", method: "POST" }, POST_handler);

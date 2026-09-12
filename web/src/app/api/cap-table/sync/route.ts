@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -137,7 +138,7 @@ export async function GET() {
 // POST /api/cap-table/sync — sync cap table to blockchain (mint to fix gaps)
 // ---------------------------------------------------------------------------
 
-export async function POST() {
+async function POST_handler() {
   const gate = await gateRequireFeature("share_management");
   if (!gate.ok) return gate.response;
   const user = gate.user;
@@ -230,3 +231,6 @@ export async function POST() {
     ...results,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/cap-table/sync/route.ts", method: "POST" }, POST_handler);

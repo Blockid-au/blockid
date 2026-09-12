@@ -12,6 +12,7 @@ import { requireAdmin, AdminGateError } from "@/lib/reseller/require-admin";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { grantCredits } from "@/lib/credits";
 import { appendAudit } from "@/lib/audit";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ interface Body {
   metadata?: Record<string, unknown>;
 }
 
-export async function POST(
+async function POST_handler(
   request: Request,
   { params }: { params: Promise<Params> },
 ) {
@@ -118,3 +119,6 @@ export async function POST(
 
   return NextResponse.json({ ok: true, balance: result.balance });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/admin/users/[id]/credits/route.ts", method: "POST" }, POST_handler);

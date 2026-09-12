@@ -29,6 +29,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -69,7 +70,7 @@ function queueRevocationAnchor(jti: string): void {
   });
 }
 
-export async function POST(req: NextRequest, ctx: RouteParams) {
+async function POST_handler(req: NextRequest, ctx: RouteParams) {
   const { jti } = await ctx.params;
 
   // ─── Rate limit ────────────────────────────────────────────────
@@ -250,3 +251,6 @@ export async function POST(req: NextRequest, ctx: RouteParams) {
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/v1/vc/[jti]/revoke/route.ts", method: "POST" }, POST_handler);

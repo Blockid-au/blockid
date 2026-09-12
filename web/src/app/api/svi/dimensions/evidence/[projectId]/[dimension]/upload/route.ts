@@ -14,6 +14,7 @@ import {
   groupRoadmapByWeek,
 } from "../../../../_helpers";
 import { EVIDENCE_CATALOG } from "@/lib/svi-completeness";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ interface UploadBody {
   confidenceLevel?: string;
 }
 
-export async function POST(
+async function POST_handler(
   request: NextRequest,
   {
     params,
@@ -194,3 +195,6 @@ export async function POST(
     { status: 201 },
   );
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/dimensions/evidence/[projectId]/[dimension]/upload/route.ts", method: "POST" }, POST_handler);

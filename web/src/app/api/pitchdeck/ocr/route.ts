@@ -13,6 +13,7 @@ import path from "node:path";
 import { getCurrentUser } from "@/lib/auth";
 import { canAfford, spendCredits } from "@/lib/credits";
 import { callAI } from "@/lib/ai-client";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -71,7 +72,7 @@ async function tryVisionLlm(buffer: Buffer, mimeType: string): Promise<string> {
   }
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, error: "auth required" }, { status: 401 });
@@ -146,3 +147,6 @@ export async function POST(request: Request) {
     credits_charged: charged,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/pitchdeck/ocr/route.ts", method: "POST" }, POST_handler);

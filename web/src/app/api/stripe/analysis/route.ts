@@ -7,8 +7,9 @@ import { NextResponse } from "next/server";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { isEarlyBird } from "@/lib/plans";
 import { sessionIdempotencyKey } from "@/lib/stripe/idempotency";
+import { apiRoute } from "@/lib/audit/api-route";
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   if (!isStripeConfigured()) {
     return NextResponse.json(
       { ok: false, reason: "Payments not configured" },
@@ -80,3 +81,6 @@ export async function POST(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/stripe/analysis/route.ts", method: "POST" }, POST_handler);

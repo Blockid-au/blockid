@@ -6,6 +6,7 @@ import {
   decidePortalAccess,
   isWholesaleProvisionedFounder,
 } from "@/lib/stripe/portal-gate";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // POST /api/stripe/portal
 // Creates a Stripe Customer Portal session so the user can manage their
@@ -18,7 +19,7 @@ import {
 // Retail-attributed founders own their own Stripe Customer and MUST
 // retain portal access. See @/lib/stripe/portal-gate.
 
-export async function POST() {
+async function POST_handler() {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -84,3 +85,6 @@ export async function POST() {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/stripe/portal/route.ts", method: "POST" }, POST_handler);

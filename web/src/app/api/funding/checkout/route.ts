@@ -24,6 +24,7 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { FUNDING_REPORT_3AUD } from "@/lib/pricing/v3-skus";
 import { parseFundingIntake } from "@/lib/funding/intake";
 import { createPendingGuestReport } from "@/lib/funding/reports";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +67,7 @@ function siteOrigin(request: Request): string {
   }
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const limited = enforceRateLimit("funding-checkout", null, request, 10, 60 * 60 * 1000);
   if (limited) return limited;
 
@@ -185,3 +186,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true, checkoutUrl: session.url, fundingReportId });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/funding/checkout/route.ts", method: "POST" }, POST_handler);

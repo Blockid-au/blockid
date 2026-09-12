@@ -30,6 +30,7 @@ import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { ONE_CLICK_REPORT_3AUD } from "@/lib/pricing/v3-skus";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -82,7 +83,7 @@ function siteOrigin(request: Request): string {
   }
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   // Per-IP throttle — 10/hour. No auth identity here (guest), so IP is the
   // only stable key. enforceRateLimit falls back to "anon" if all headers
   // are missing which is acceptable — that only happens in test contexts.
@@ -307,3 +308,6 @@ export async function POST(request: Request) {
     guestAnalysisId,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/guest-analysis/create-order/route.ts", method: "POST" }, POST_handler);

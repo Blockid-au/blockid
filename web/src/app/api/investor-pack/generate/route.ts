@@ -20,6 +20,7 @@ import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { assemblePackData } from "@/lib/investor-pack-assembler";
 import { InvestorPackPDF } from "@/components/pdf/investor-pack-pdf";
 import { canAfford, spendCredits } from "@/lib/credits";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -70,7 +71,7 @@ function parseOverrides(body: BodyShape): {
   return overrides;
 }
 
-export async function POST(request: Request): Promise<Response> {
+async function POST_handler(request: Request): Promise<Response> {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -144,3 +145,6 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/investor-pack/generate/route.ts", method: "POST" }, POST_handler);

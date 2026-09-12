@@ -28,6 +28,7 @@ import {
   SVI_13_CRITERIA,
   type InvestorPackData,
 } from "@/lib/pdf/investor-pack";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -185,6 +186,9 @@ export async function GET(request: Request): Promise<Response> {
   return handle(request);
 }
 
-export async function POST(request: Request): Promise<Response> {
+async function POST_handler(request: Request): Promise<Response> {
   return handle(request);
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/investor-pack/preview/route.ts", method: "POST" }, POST_handler);

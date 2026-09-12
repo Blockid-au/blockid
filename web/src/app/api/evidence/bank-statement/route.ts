@@ -16,6 +16,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { findOrCreateSVIAccount } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -135,7 +136,7 @@ function analyzeTransactions(txs: Tx[]): {
 
 // ── Route handler ────────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 
@@ -227,3 +228,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Parse failed" }, { status: 500 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/evidence/bank-statement/route.ts", method: "POST" }, POST_handler);

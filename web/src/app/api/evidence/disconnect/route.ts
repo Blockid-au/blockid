@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { findOrCreateSVIAccount, getProjectScope } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ async function authenticateRequest(supabase: NonNullable<ReturnType<typeof getSu
   return { userId: user.id as string, email: user.email as string };
 }
 
-export async function DELETE(request: Request) {
+async function DELETE_handler(request: Request) {
   try {
     const supabase = getSupabaseAdmin();
     if (!supabase) {
@@ -104,3 +105,6 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ ok: false, error: "Internal error" }, { status: 500 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const DELETE = apiRoute({ route: "api/evidence/disconnect/route.ts", method: "DELETE" }, DELETE_handler);

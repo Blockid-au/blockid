@@ -32,10 +32,11 @@ import {
   buildAppUsersInsert,
   validateCreateUserBody,
 } from "@/lib/admin/user-create";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const currentUser = await getCurrentUser();
   try {
     requireAdmin(currentUser);
@@ -150,3 +151,6 @@ export async function POST(request: Request) {
     magic_link_issued: magic.ok,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/admin/users/create/route.ts", method: "POST" }, POST_handler);

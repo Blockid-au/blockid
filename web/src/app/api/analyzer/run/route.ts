@@ -16,6 +16,7 @@ import { consumeRateLimit } from "@/lib/rate-limit/persistent";
 import { analyseGithub } from "@/lib/analyzer/github";
 import { analyseWebsite } from "@/lib/analyzer/website";
 import { scoreAnalyzer } from "@/lib/analyzer/score";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ interface Body {
   website_url?: string | null;
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -122,3 +123,6 @@ export async function POST(request: Request) {
     persist_warning: persistError,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/analyzer/run/route.ts", method: "POST" }, POST_handler);

@@ -20,6 +20,7 @@ import {
   type S708OfferEvent,
   type S708OfferType,
 } from "@/lib/compliance/s708-small-scale-counter";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -44,7 +45,7 @@ function isS708Event(row: unknown): row is S708OfferEvent {
   return true;
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -117,3 +118,6 @@ export async function POST(request: Request) {
   const result = assessS708SmallScale(input);
   return NextResponse.json({ ok: true, result });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/compliance/s708-small-scale-counter/route.ts", method: "POST" }, POST_handler);

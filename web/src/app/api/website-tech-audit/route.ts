@@ -19,6 +19,7 @@ import {
   getSectorEbitdaBenchmarks,
   type WebsiteCompetitiveIntelligence,
 } from "@/lib/competitive-intelligence";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -182,7 +183,7 @@ function buildEvidenceEntries(audit: TechAuditResult, accountId: string) {
   return entries;
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   try {
     const body = (await request.json()) as { url?: string; analyzeCI?: boolean };
 
@@ -309,3 +310,6 @@ export async function POST(request: Request) {
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/website-tech-audit/route.ts", method: "POST" }, POST_handler);

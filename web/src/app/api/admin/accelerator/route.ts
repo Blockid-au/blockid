@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -82,7 +83,7 @@ export async function GET() {
 /**
  * POST /api/admin/accelerator — create a new cohort
  */
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await requireAdmin();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -135,3 +136,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true, cohort: data }, { status: 201 });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/admin/accelerator/route.ts", method: "POST" }, POST_handler);

@@ -20,6 +20,7 @@ import { loadFounderProfileByEmail, profileToSviInputText } from "@/lib/founder-
 import { evaluateAcceleratorReadiness } from "@/lib/agents/accelerator-readiness";
 import { emitEvent } from "@/lib/analytics/server";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // POST /api/svi
 // Body: { email, input: { rawText, fileName? } }
@@ -41,7 +42,7 @@ const SviInputSchema = z.object({
   locale: z.enum(["en", "vi", "es", "ja"]).optional(),
 });
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   let body: unknown = null;
   try {
     body = await request.json();
@@ -592,3 +593,6 @@ export async function POST(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/route.ts", method: "POST" }, POST_handler);

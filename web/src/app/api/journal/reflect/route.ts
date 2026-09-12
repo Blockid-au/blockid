@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI } from "@/lib/ai-client";
 import { spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export const dynamic = "force-dynamic";
 // Costs 0.50 credits
 // ---------------------------------------------------------------------------
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
@@ -232,3 +233,6 @@ Be specific to the actual entries. If there are few entries, encourage more cons
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/journal/reflect/route.ts", method: "POST" }, POST_handler);

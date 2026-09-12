@@ -3,12 +3,13 @@
 
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
 const VALID_REASONS = ["too_many", "not_relevant", "didnt_signup", "using_competitor", "project_ended", "other"];
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   try {
     const body = await request.json();
     const { token, reason, detail } = body ?? {};
@@ -52,3 +53,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Internal server error" }, { status: 500 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/unsubscribe/feedback/route.ts", method: "POST" }, POST_handler);

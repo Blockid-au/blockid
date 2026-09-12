@@ -1,0 +1,61 @@
+{
+  "$comment": "S20-A — mutating API route files that are deliberately NOT wrapped with apiRoute(). Every entry needs a reason; the static guard (coverage.test.ts) and the codemod (scripts/codemods/wrap-api-routes.mjs) both read this file. Patterns are relative to web/src/app; `**` matches any depth.",
+  "entries": [
+    {
+      "pattern": "api/cron/**",
+      "reason": "System actor (CRON_SECRET bearer, no user). Every run is appended to content/reports/cron-health.jsonl by scripts/cron-runner.sh; the sweeps that touch user data write their own ledgers (retention-history.jsonl, project.purged via logUserAction)."
+    },
+    {
+      "pattern": "api/stripe/webhook/route.ts",
+      "reason": "External actor (Stripe-signed event). Idempotency-keyed on stripe_event_id / stripe_session_id; plan changes are appended to the hash chain via lib/audit appendAudit and logUserAction inside the handler."
+    },
+    {
+      "pattern": "api/webhook/github/route.ts",
+      "reason": "External actor (GitHub HMAC). Push events are appended to content/reports/deploy-log.jsonl which /api/status surfaces."
+    },
+    {
+      "pattern": "api/internal/ai-complete/route.ts",
+      "reason": "Internal loopback for scripts/agents (CRON_SECRET bearer, system actor); no state of record is mutated."
+    },
+    {
+      "pattern": "api/analytics/ingest/route.ts",
+      "reason": "High-volume anonymous telemetry batch; no state of record."
+    },
+    {
+      "pattern": "api/track/view/route.ts",
+      "reason": "High-volume engagement heartbeat (scroll depth / dwell); no state of record."
+    },
+    {
+      "pattern": "api/conversion/track/route.ts",
+      "reason": "CTA impression telemetry; no state of record."
+    },
+    {
+      "pattern": "api/funnel/route.ts",
+      "reason": "Funnel-step telemetry; no state of record."
+    },
+    {
+      "pattern": "api/ab/pricing-expose/route.ts",
+      "reason": "A/B exposure telemetry fired on first paint; no state of record."
+    },
+    {
+      "pattern": "api/experiments/expose/route.ts",
+      "reason": "Experiment exposure telemetry fired per surface; no state of record."
+    },
+    {
+      "pattern": "api/i18n/translate/route.ts",
+      "reason": "Client DOM-walker translation cache warmer, one call per page view; no state of record."
+    },
+    {
+      "pattern": "api/health/**",
+      "reason": "Health / status endpoints have no mutating handlers; listed so a future POST there is a conscious decision."
+    },
+    {
+      "pattern": "api/healthz/**",
+      "reason": "Health / status endpoints have no mutating handlers; listed so a future POST there is a conscious decision."
+    },
+    {
+      "pattern": "api/status/**",
+      "reason": "Health / status endpoints have no mutating handlers; listed so a future POST there is a conscious decision."
+    }
+  ]
+}

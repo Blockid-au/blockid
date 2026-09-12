@@ -25,6 +25,7 @@ import {
   setInvestorPreferences,
   type InvestorPreferences,
 } from "@/lib/investor-portal";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +61,7 @@ export async function GET() {
   );
 }
 
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -131,3 +132,6 @@ export async function POST(req: NextRequest) {
     { status: prefsOk && flagOk ? 200 : 500 },
   );
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/investor/preferences/route.ts", method: "POST" }, POST_handler);

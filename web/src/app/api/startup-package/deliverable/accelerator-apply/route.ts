@@ -21,13 +21,14 @@ import {
 } from "@/lib/agents/accelerator-drafter";
 import { renderAcceleratorApplyPdf } from "@/lib/pdf/accelerator-apply-pdf";
 import { saveDeliverable } from "@/lib/dataroom/save-deliverable";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
 const RATE_LIMIT_PER_HOUR = 20;
 const FEATURE_KEY = "accelerator_apply";
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   // 1. Auth
   const user = await getCurrentUser();
   if (!user) {
@@ -250,3 +251,6 @@ async function loadLatestSviForUser(
     return null;
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/startup-package/deliverable/accelerator-apply/route.ts", method: "POST" }, POST_handler);

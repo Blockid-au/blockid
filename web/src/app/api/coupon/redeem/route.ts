@@ -3,12 +3,13 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { getPlanPrice, getPlan, buildPlansFromConfig } from "@/lib/plans";
 import { getPlatformConfig } from "@/lib/platform-config";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // POST /api/coupon/redeem
 // Body: { code, plan }
 // Requires: authenticated user (session cookie).
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -176,3 +177,6 @@ export async function POST(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/coupon/redeem/route.ts", method: "POST" }, POST_handler);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export async function GET() {
 // PATCH /api/insights — mark an insight as read
 // ---------------------------------------------------------------------------
 
-export async function PATCH(request: Request) {
+async function PATCH_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
@@ -86,3 +87,6 @@ export async function PATCH(request: Request) {
 
   return NextResponse.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const PATCH = apiRoute({ route: "api/insights/route.ts", method: "PATCH" }, PATCH_handler);

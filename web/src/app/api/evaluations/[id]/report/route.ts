@@ -52,6 +52,7 @@ import {
   type EvaluationReportRow,
 } from "@/lib/evaluations/report-quota";
 import { runRescoreForProject, runTrustReportForProject } from "@/lib/report-pipeline/run-for-project";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -126,7 +127,7 @@ export async function GET(request: Request, { params }: Ctx) {
   );
 }
 
-export async function POST(request: Request, { params }: Ctx) {
+async function POST_handler(request: Request, { params }: Ctx) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   const { id } = await params;
@@ -310,3 +311,6 @@ export async function POST(request: Request, { params }: Ctx) {
     report_id: row?.id ?? null,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/evaluations/[id]/report/route.ts", method: "POST" }, POST_handler);

@@ -35,6 +35,7 @@ import {
   type ResellerBillingRow,
 } from "@/lib/reseller/stripe-billing";
 import { canProvisionSandbox } from "@/lib/reseller/sandbox-provision";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -48,7 +49,7 @@ function readClientMeta(request: Request): { ip: string; ua: string } {
   return { ip, ua };
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const gate = await gateRequireFeature("reseller.console");
   if (!gate.ok) return gate.response;
   const user = gate.user;
@@ -165,3 +166,6 @@ export async function POST(request: Request) {
     customer_created: ensured.created,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/reseller/billing/setup-intent/route.ts", method: "POST" }, POST_handler);

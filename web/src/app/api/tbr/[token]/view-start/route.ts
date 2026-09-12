@@ -13,6 +13,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { insertNotification, ownerFromShareToken } from "@/lib/notifications";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,7 +39,7 @@ function deviceClass(ua: string | null): string {
   return "desktop";
 }
 
-export async function POST(
+async function POST_handler(
   request: Request,
   { params }: { params: Promise<{ token: string }> },
 ) {
@@ -119,3 +120,6 @@ export async function POST(
 
   return NextResponse.json({ ok: true, viewId: (inserted as { id: number }).id });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/tbr/[token]/view-start/route.ts", method: "POST" }, POST_handler);

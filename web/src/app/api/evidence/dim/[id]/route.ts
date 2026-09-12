@@ -25,10 +25,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { assessEvidenceQuality } from "@/lib/computeEvidenceCompleteness";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
-export async function DELETE(
+async function DELETE_handler(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -105,3 +106,6 @@ export async function DELETE(
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const DELETE = apiRoute({ route: "api/evidence/dim/[id]/route.ts", method: "DELETE" }, DELETE_handler);

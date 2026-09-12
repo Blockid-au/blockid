@@ -22,6 +22,7 @@ import {
   findOrCreateSVIAccount,
 } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -144,7 +145,7 @@ export async function GET() {
 // POST — create or update a single criterion's evidence
 // ---------------------------------------------------------------------------
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
@@ -274,3 +275,6 @@ export async function POST(request: Request) {
     qualityLevel,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/evaluation/route.ts", method: "POST" }, POST_handler);

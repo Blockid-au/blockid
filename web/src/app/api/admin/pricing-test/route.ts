@@ -17,6 +17,7 @@ import {
   type ExperimentStatus,
   type PricingExperimentVariant,
 } from "@/lib/pricing-experiments";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -91,7 +92,7 @@ export async function GET() {
   return NextResponse.json({ ok: true, experiments, summaries: summaryMap });
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await requireAdmin();
   if (!user) return NextResponse.json({ ok: false, error: "Admin required" }, { status: 403 });
 
@@ -155,7 +156,7 @@ export async function POST(request: Request) {
   return NextResponse.json({ ok: true, id: data.id });
 }
 
-export async function PATCH(request: Request) {
+async function PATCH_handler(request: Request) {
   const user = await requireAdmin();
   if (!user) return NextResponse.json({ ok: false, error: "Admin required" }, { status: 403 });
 
@@ -214,3 +215,7 @@ export async function PATCH(request: Request) {
   }
   return NextResponse.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/admin/pricing-test/route.ts", method: "POST" }, POST_handler);
+export const PATCH = apiRoute({ route: "api/admin/pricing-test/route.ts", method: "PATCH" }, PATCH_handler);

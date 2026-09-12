@@ -11,6 +11,7 @@ import {
 import { assertESICEligibleOrWarn } from "@/lib/compliance/esic-funding-gate";
 import { assertDiv83AEligibleOrWarn } from "@/lib/compliance/div83a-funding-gate";
 import { detectEsicMarketing } from "@/lib/compliance/esic-marketing-gate";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // Extra body flag — the /api/fundraise endpoint historically took only
 // FundraiseRound fields. The ESIC gate (P6) needs to know whether the
@@ -34,7 +35,7 @@ export const dynamic = "force-dynamic";
 // POST /api/fundraise — Configure a new fundraise round
 // ---------------------------------------------------------------------------
 
-export async function POST(request: NextRequest) {
+async function POST_handler(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -324,3 +325,6 @@ export async function GET() {
 
   return NextResponse.json({ ok: true, rounds: rounds ?? [] });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/fundraise/route.ts", method: "POST" }, POST_handler);

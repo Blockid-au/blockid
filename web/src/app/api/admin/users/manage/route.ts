@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { grantCredits, PLAN_CREDITS } from "@/lib/credits";
 import { isFoundingPromoActive } from "@/lib/founding-promo";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ async function requireAdmin() {
   return user;
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await requireAdmin();
   if (!user) {
     return NextResponse.json({ ok: false, error: "Admin access required" }, { status: 403 });
@@ -126,3 +127,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true, user: updatedUser });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/admin/users/manage/route.ts", method: "POST" }, POST_handler);

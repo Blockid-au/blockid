@@ -20,6 +20,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { normaliseResellerCode } from "@/lib/reseller/attribution";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ interface ValidateBody {
   code?: string;
 }
 
-export async function POST(req: Request) {
+async function POST_handler(req: Request) {
   let body: ValidateBody = {};
   try {
     body = (await req.json()) as ValidateBody;
@@ -86,3 +87,6 @@ export async function POST(req: Request) {
     },
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/reseller/code/validate/route.ts", method: "POST" }, POST_handler);

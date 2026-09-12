@@ -27,6 +27,7 @@ import { FEATURE_COSTS } from "@/lib/credits";
 import type { IntakeContext } from "@/lib/intake/detect-context";
 import type { AgentRole } from "@/lib/report-pipeline/types";
 import { getProjectScope, creditChargeNote, type ProjectRole } from "@/lib/projects";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -216,7 +217,7 @@ interface PostBody {
   context?: IntakeContext;
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -268,3 +269,6 @@ export async function POST(request: Request) {
     role,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/report-estimate/route.ts", method: "POST" }, POST_handler);

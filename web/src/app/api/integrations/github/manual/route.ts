@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { findOrCreateSVIAccount } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { parseRepoInput, fetchRepoStats } from "@/lib/github";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ function impactFor(stats: { commitsLast90: number; stars: number }): number {
   return Math.min(impact, 10);
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user)
     return NextResponse.json(
@@ -93,3 +94,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true, stats, persisted: true, impact });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/integrations/github/manual/route.ts", method: "POST" }, POST_handler);

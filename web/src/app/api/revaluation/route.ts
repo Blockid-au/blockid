@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI } from "@/lib/ai-client";
 import { spendCredits, FEATURE_COSTS } from "@/lib/credits";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export const dynamic = "force-dynamic";
 // Costs 1.00 credit
 // ---------------------------------------------------------------------------
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
@@ -259,3 +260,6 @@ Use Australian English. Be data-driven and reference the actual numbers. Keep ea
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/revaluation/route.ts", method: "POST" }, POST_handler);

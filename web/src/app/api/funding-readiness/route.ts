@@ -17,6 +17,7 @@ import {
   type FundingReadinessInput,
   type FundingStage,
 } from "@/lib/agents/cro-funding-readiness";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -83,7 +84,7 @@ function validate(raw: Record<string, unknown>): ValidatedInput | ValidationErro
   return { input };
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   let body: unknown;
   try {
     body = await request.json();
@@ -131,3 +132,6 @@ export async function POST(request: Request) {
     disclaimer: AFSL_DISCLAIMER,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/funding-readiness/route.ts", method: "POST" }, POST_handler);

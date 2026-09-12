@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { canAfford, FEATURE_COSTS } from "@/lib/credits";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // POST /api/credits/check
 // Pre-flight check: can the authenticated user afford a given feature?
 // Body: { feature: "svi_analysis" }
 // Returns: { allowed, balance, cost, reason? }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -54,3 +55,6 @@ export async function POST(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/credits/check/route.ts", method: "POST" }, POST_handler);

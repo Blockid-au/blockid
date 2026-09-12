@@ -6,6 +6,7 @@ import { getPlan } from "@/lib/plans";
 import { sendPaymentLink } from "@/lib/email";
 import { sessionIdempotencyKey } from "@/lib/stripe/idempotency";
 import { isFoundingPromoActive } from "@/lib/founding-promo";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // Zod ceiling schema — CISO P1 (2026-08-23 audit). Runs AFTER the existing
 // email/source validators so their tested error strings ("Valid email is
@@ -25,7 +26,7 @@ const LeadSchema = z
 //
 // When source === "founding50" and Stripe is configured, also creates a
 // Checkout Session and emails the payment link to the user.
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   let body: unknown = null;
   try {
     body = await request.json();
@@ -209,3 +210,6 @@ export async function POST(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/lead/route.ts", method: "POST" }, POST_handler);

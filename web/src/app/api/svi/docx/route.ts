@@ -20,12 +20,13 @@ import { reconstructAssembledReport } from "@/lib/paywall/report-delivery";
 import type { AssembledReport, ReportSection } from "@/lib/report-pipeline/types";
 import { findSVIAccountWithFallback, findLatestAnalysisWithFallback } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   // ── 1. Auth ─────────────────────────────────────────────────────────────
   const user = await getCurrentUser();
   if (!user) {
@@ -314,3 +315,6 @@ function buildReportFromMarkdown(
     createdAt: new Date().toISOString(),
   };
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/docx/route.ts", method: "POST" }, POST_handler);

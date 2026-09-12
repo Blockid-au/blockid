@@ -7,6 +7,7 @@ import { projectScopeOrDeny } from "@/lib/project-members/http";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { loadConnectedRevenueSignals } from "@/lib/connected-revenue";
 import { applyConnectedRevenueBridge } from "@/lib/valuation-mrr-bridge";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -204,7 +205,7 @@ export async function GET() {
  * Scenario modelling: compute VC-grade valuation with custom inputs (no auth required
  * for the basic scenario; auth required to save results).
  */
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   try {
     const body = await request.json().catch(() => null);
     if (!body || typeof body !== "object") {
@@ -244,3 +245,6 @@ export async function POST(request: Request) {
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/valuation/vc/route.ts", method: "POST" }, POST_handler);

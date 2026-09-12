@@ -7,6 +7,7 @@ import {
   getProjectScope,
 } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -80,7 +81,7 @@ async function authenticateRequest(supabase: ReturnType<typeof getSupabaseAdmin>
 
 
 // POST /api/evidence — add an evidence item
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   try {
     const supabase = getSupabaseAdmin();
     if (!supabase) {
@@ -248,3 +249,6 @@ export async function GET() {
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/evidence/route.ts", method: "POST" }, POST_handler);

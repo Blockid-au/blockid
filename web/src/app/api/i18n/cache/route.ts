@@ -17,6 +17,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { LOCALES, isLocale, type Locale } from "@/lib/i18n/locales";
 import { cacheSetMany, hashKey } from "@/lib/i18n/translate-cache";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,7 +66,7 @@ export async function GET(req: Request): Promise<Response> {
   return NextResponse.json({ locale, count: entries.length, entries });
 }
 
-export async function POST(req: Request): Promise<Response> {
+async function POST_handler(req: Request): Promise<Response> {
   const denied = guard(req);
   if (denied) return denied;
   let body: { locale?: string; en?: string; vi?: string };
@@ -87,3 +88,6 @@ export async function POST(req: Request): Promise<Response> {
   await cacheSetMany(locale as Locale, { [en]: vi });
   return NextResponse.json({ ok: true, key: hashKey(en) });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/i18n/cache/route.ts", method: "POST" }, POST_handler);

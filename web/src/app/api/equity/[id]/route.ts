@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { updateTeamMember, removeMember } from "@/lib/equity";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,7 @@ async function verifyMemberOwnership(
 }
 
 // PATCH /api/equity/[id] — update a team member
-export async function PATCH(
+async function PATCH_handler(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -108,7 +109,7 @@ export async function PATCH(
 }
 
 // DELETE /api/equity/[id] — soft-delete a team member
-export async function DELETE(
+async function DELETE_handler(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -141,3 +142,7 @@ export async function DELETE(
 
   return NextResponse.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const PATCH = apiRoute({ route: "api/equity/[id]/route.ts", method: "PATCH" }, PATCH_handler);
+export const DELETE = apiRoute({ route: "api/equity/[id]/route.ts", method: "DELETE" }, DELETE_handler);

@@ -28,6 +28,7 @@ import {
   getInterviewStep,
   isInterviewStepKey,
 } from "@/lib/startup-package/interview-steps";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,7 @@ interface SaveAnswerBody {
   projectId?: string;
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   // ── Auth ──────────────────────────────────────────────────────────────
   const user = await getCurrentUser();
   if (!user) {
@@ -187,3 +188,6 @@ export async function POST(request: Request) {
     },
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/startup-package/save-answer/route.ts", method: "POST" }, POST_handler);

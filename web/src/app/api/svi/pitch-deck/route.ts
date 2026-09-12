@@ -4,10 +4,11 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Auth required" }, { status: 401 });
 
@@ -71,3 +72,6 @@ Return a JSON array of 12 objects with: { "slide": 1-12, "title": "...", "keyMes
     return NextResponse.json({ ok: false, error: "Generation failed" }, { status: 500 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/pitch-deck/route.ts", method: "POST" }, POST_handler);

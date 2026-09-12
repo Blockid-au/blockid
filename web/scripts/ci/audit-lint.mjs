@@ -72,7 +72,10 @@ function walk(root, out) {
 function methodsInFile(src) {
   const found = new Set();
   for (const verb of MUTATION_METHODS) {
-    const re = new RegExp(`export\\s+(async\\s+)?function\\s+${verb}\\b`);
+    // S20-A: plain function export OR the audited `export const X = apiRoute(` form.
+    const re = new RegExp(
+      `export\\s+(async\\s+)?function\\s+${verb}\\b|export\\s+const\\s+${verb}\\s*=\\s*apiRoute\\(`,
+    );
     if (re.test(src)) found.add(verb);
   }
   return found;

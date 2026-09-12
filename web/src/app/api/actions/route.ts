@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // POST /api/actions — Record a user action from SVI report
 // Body: { email, actionType, actionLabel, dimension?, sourceGap?, toolSlug?, metadata? }
 // No auth required (actions can be tracked for anonymous users by email)
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   let body: unknown = null;
   try { body = await request.json(); } catch {
     return NextResponse.json({ ok: false, reason: "Invalid JSON" }, { status: 400 });
@@ -83,3 +84,6 @@ export async function GET(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/actions/route.ts", method: "POST" }, POST_handler);

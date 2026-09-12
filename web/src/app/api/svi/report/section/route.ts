@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
+import { apiRoute } from "@/lib/audit/api-route";
 
 function detectLanguage(text: string): "en" | "vi" | "auto" {
   // Simple heuristic: check for Vietnamese diacritical marks
@@ -50,7 +51,7 @@ const SECTIONS = {
   },
 };
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Auth required" }, { status: 401 });
   if (!isAIConfigured()) return NextResponse.json({ ok: false, error: "AI not configured" }, { status: 503 });
@@ -87,3 +88,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Section generation failed" }, { status: 500 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/report/section/route.ts", method: "POST" }, POST_handler);

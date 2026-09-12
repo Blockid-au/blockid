@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { revokeApiKey } from "@/lib/api-keys";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // DELETE /api/keys/[id] — Revoke an API key (session auth + ownership check)
-export async function DELETE(
+async function DELETE_handler(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -55,3 +56,6 @@ export async function DELETE(
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const DELETE = apiRoute({ route: "api/keys/[id]/route.ts", method: "DELETE" }, DELETE_handler);

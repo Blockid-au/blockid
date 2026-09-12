@@ -3,6 +3,7 @@
 // S18-A — routed through the shared founder-crud handlers: rows are keyed
 // on (user_id = project OWNER, project_id); viewer+ lists, editor+ creates.
 import { listHandler, createHandler, type CrudConfig } from "@/lib/founder-crud";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -24,4 +25,7 @@ const CFG: CrudConfig = {
 };
 
 export const GET = listHandler(CFG);
-export const POST = createHandler(CFG);
+const POST_handler = createHandler(CFG);
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/founder/competitors/route.ts", method: "POST" }, POST_handler);

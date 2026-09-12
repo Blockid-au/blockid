@@ -3,6 +3,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { EMPTY_PROFILE, loadFounderProfile, saveFounderProfile, type FounderProfile } from "@/lib/founder-profile";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export async function GET() {
   });
 }
 
-export async function POST(request: NextRequest) {
+async function POST_handler(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
 
@@ -50,3 +51,6 @@ export async function POST(request: NextRequest) {
   const result = await saveFounderProfile(safe);
   return NextResponse.json(result, { status: result.ok ? 200 : 500 });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/founder-profile/route.ts", method: "POST" }, POST_handler);

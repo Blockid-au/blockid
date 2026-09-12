@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -141,7 +142,7 @@ export async function GET(_request: NextRequest) {
 // POST /api/cap-table/documents — add a document on-chain + DB
 // ---------------------------------------------------------------------------
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const gate = await gateRequireFeature("share_management");
   if (!gate.ok) return gate.response;
   const user = gate.user;
@@ -236,3 +237,6 @@ export async function POST(request: Request) {
     },
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/cap-table/documents/route.ts", method: "POST" }, POST_handler);

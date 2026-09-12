@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { authenticateAPIKey } from "@/lib/api-auth";
 import { extractSignals, computeSVI } from "@/lib/svi-analysis";
 import { canAfford, spendCredits } from "@/lib/credits";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   // Authenticate via API key
   const auth = await authenticateAPIKey(request);
   if (!auth) {
@@ -137,3 +138,6 @@ export async function POST(request: Request) {
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/v1/analyze/route.ts", method: "POST" }, POST_handler);

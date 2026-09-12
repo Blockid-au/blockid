@@ -13,6 +13,7 @@ import {
   computeExitReadiness,
 } from "@/lib/exit-strategy.helpers";
 import type { FetchExitScenarioResponse } from "@/types/exit-strategy";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -122,7 +123,7 @@ export async function GET(
 // investor pack PDF. Only a small allowlist of fields is patchable to
 // keep the surface tight.
 
-export async function PATCH(
+async function PATCH_handler(
   request: NextRequest,
   { params }: RouteParams,
 ): Promise<NextResponse> {
@@ -217,7 +218,7 @@ export async function PATCH(
 
 // ─── DELETE — remove scenario ─────────────────────────────────────────────────
 
-export async function DELETE(
+async function DELETE_handler(
   _request: NextRequest,
   { params }: RouteParams,
 ): Promise<NextResponse> {
@@ -274,3 +275,7 @@ export async function DELETE(
 
   return NextResponse.json({ ok: true, deleted: scenarioId });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const PATCH = apiRoute({ route: "api/exit-strategy/scenarios/[scenarioId]/route.ts", method: "PATCH" }, PATCH_handler);
+export const DELETE = apiRoute({ route: "api/exit-strategy/scenarios/[scenarioId]/route.ts", method: "DELETE" }, DELETE_handler);

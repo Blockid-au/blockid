@@ -5,6 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { sessionIdempotencyKey } from "@/lib/stripe/idempotency";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ const TIER_MAP: Record<string, keyof typeof STRIPE_PRICE_MAP> = {
   institutional: "svi_api_institutional",
 };
 
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   const me = await getCurrentUser();
   if (!me) return NextResponse.json({ ok: false, error: "Sign in required" }, { status: 401 });
 
@@ -54,3 +55,6 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ ok: true, url: session.url });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi-api/checkout/route.ts", method: "POST" }, POST_handler);

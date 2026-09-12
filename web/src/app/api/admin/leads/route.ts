@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export async function GET() {
   return NextResponse.json({ leads: data ?? [] });
 }
 
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -35,3 +36,6 @@ export async function POST(req: NextRequest) {
   await supabase.from("leads").update({ status, notes }).eq("id", id);
   return NextResponse.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/admin/leads/route.ts", method: "POST" }, POST_handler);

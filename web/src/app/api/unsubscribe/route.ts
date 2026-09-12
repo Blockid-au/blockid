@@ -7,6 +7,7 @@ import {
   type EmailCategory,
 } from "@/lib/email-preferences";
 import { sendFarewellEmail } from "@/lib/email";
+import { apiRoute } from "@/lib/audit/api-route";
 
 const VALID_CATEGORIES: EmailCategory[] = [
   "weekly_reports",
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
 
 // POST: update specific preferences
 // Body: { token, preferences: { weekly_reports: false, ... } }
-export async function POST(request: NextRequest) {
+async function POST_handler(request: NextRequest) {
   let body: { token?: string; preferences?: Record<string, boolean> };
   try {
     body = await request.json();
@@ -108,3 +109,6 @@ export async function POST(request: NextRequest) {
 
   return Response.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/unsubscribe/route.ts", method: "POST" }, POST_handler);

@@ -43,6 +43,7 @@ import {
   type ReportModel,
 } from "@/lib/pricing/report-credit-cost";
 import { TRUST_REPORT_5AUD } from "@/lib/pricing/v3-skus";
+import { apiRoute } from "@/lib/audit/api-route";
 
 interface RedeemBody {
   businessId?: unknown;
@@ -69,7 +70,7 @@ function parseDepth(raw: unknown): ReportDepth | undefined {
   return undefined;
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -291,3 +292,6 @@ export async function POST(request: Request) {
     newBalance,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/reports/redeem/route.ts", method: "POST" }, POST_handler);

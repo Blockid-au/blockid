@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -110,7 +111,7 @@ export async function GET(
 /**
  * POST /api/admin/accelerator/[id] — add member to cohort
  */
-export async function POST(
+async function POST_handler(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -178,7 +179,7 @@ export async function POST(
 /**
  * DELETE /api/admin/accelerator/[id] — delete cohort
  */
-export async function DELETE(
+async function DELETE_handler(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -199,3 +200,7 @@ export async function DELETE(
 
   return NextResponse.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/admin/accelerator/[id]/route.ts", method: "POST" }, POST_handler);
+export const DELETE = apiRoute({ route: "api/admin/accelerator/[id]/route.ts", method: "DELETE" }, DELETE_handler);

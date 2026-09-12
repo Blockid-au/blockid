@@ -10,13 +10,14 @@ import {
 import { fetchGithubSignals } from "@/lib/oauth-github-signals";
 import { fetchStripeSignals } from "@/lib/oauth-stripe-signals";
 import { fetchGa4Signals } from "@/lib/oauth-ga4-signals";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
 const PROVIDERS: OAuthProvider[] = ["github", "stripe", "ga4"];
 const RATE_LIMIT_MS = 60_000;
 
-export async function POST(
+async function POST_handler(
   _request: Request,
   ctx: { params: Promise<{ provider: string }> },
 ) {
@@ -97,3 +98,6 @@ export async function POST(
     return NextResponse.json({ ok: false, error: message }, { status: 502 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/integrations/[provider]/sync/route.ts", method: "POST" }, POST_handler);

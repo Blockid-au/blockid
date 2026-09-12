@@ -19,6 +19,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { insertNotification, ownerFromShareToken } from "@/lib/notifications";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -158,7 +159,7 @@ async function loadSnapshot(
   return (data as SnapshotRow | null) ?? null;
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   let body: {
     projectId?: string;
     token?: string;
@@ -273,3 +274,6 @@ Answer per the rules above. Cite the dimension or criterion you're drawing from.
     return NextResponse.json({ ok: false, error: "ai_error", detail: msg }, { status: 502 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/report/qa/route.ts", method: "POST" }, POST_handler);

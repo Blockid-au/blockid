@@ -11,6 +11,7 @@ import {
   capTableSummary,
   type DocumentKind,
 } from "@/lib/equity/au-templates";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +57,7 @@ interface Body {
   targetMemberName?: string;
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Auth required" }, { status: 401 });
 
@@ -156,3 +157,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: `Unknown kind: ${body.kind}` }, { status: 400 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/equity/documents/route.ts", method: "POST" }, POST_handler);
