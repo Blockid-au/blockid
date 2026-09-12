@@ -14,6 +14,7 @@ import { reconcileSubscriptionAddon } from "@/lib/stripe/addon-entitlements";
 import { hashUserId } from "@/lib/reseller/hash";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 import { apiRoute } from "@/lib/audit/api-route";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 // POST /api/stripe/change-plan
 // Body (three modes):
@@ -32,6 +33,12 @@ import { apiRoute } from "@/lib/audit/api-route";
 //        commission clawback fires (per plan § F.5).
 // Cross-segment plan moves require confirmCrossSegment=true.
 
+// QA-3 P1-10 (2026-09-12): 10 calls per user per 15 minutes. Auth-gated and
+// idempotency-keyed already; this stops a scripted loop on one account from
+// minting hundreds of Stripe objects (sessions / portal links / schedules).
+const STRIPE_RL_MAX = 10;
+const STRIPE_RL_WINDOW_MS = 15 * 60 * 1000;
+
 async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
@@ -40,6 +47,9 @@ async function POST_handler(request: Request) {
       { status: 401 },
     );
   }
+
+  const limited = enforceRateLimit("stripe-change-plan", user.id, request, STRIPE_RL_MAX, STRIPE_RL_WINDOW_MS);
+  if (limited) return limited;
 
   if (!isStripeConfigured() || !isSupabaseConfigured()) {
     return NextResponse.json(

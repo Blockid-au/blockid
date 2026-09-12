@@ -72,6 +72,23 @@ vi.mock("@/lib/audit/log", () => ({
   extractUserAgent: () => "vitest",
 }));
 
+
+// QA-3 P1-10 (2026-09-12): the route is rate-limited per user (10 / 15 min).
+// Mocked so the shared in-memory limiter cannot bleed 429s across this file;
+// the dedicated describe below pins the call shape and the 429 pass-through.
+const enforceRateLimitMock = vi.hoisted(() =>
+  vi.fn<(route: string, identity: string | null | undefined, req: Request, max: number, windowMs: number) => Response | null>(),
+);
+vi.mock("@/lib/rate-limit", () => ({
+  enforceRateLimit: (
+    route: string,
+    identity: string | null | undefined,
+    req: Request,
+    max: number,
+    windowMs: number,
+  ) => enforceRateLimitMock(route, identity, req, max, windowMs),
+}));
+
 import { POST } from "./route";
 
 function wireSupabase(customer: string | null, currentPlan: string | null) {
@@ -92,6 +109,7 @@ function wireSupabase(customer: string | null, currentPlan: string | null) {
 
 beforeEach(() => {
   getCurrentUserMock.mockReset();
+  enforceRateLimitMock.mockReset().mockReturnValue(null);
   stripeMock.subscriptions.list.mockReset();
   stripeMock.subscriptions.update.mockReset();
   stripeMock.subscriptions.cancel.mockReset();
@@ -153,5 +171,24 @@ describe("POST /api/stripe/change-plan audit wire-in", () => {
     const res = await POST(req);
     expect(res.status).toBe(401);
     expect(logUserActionMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("QA-3 P1-10 — per-user rate limit on /api/stripe/change-plan", () => {
+  it("calls enforceRateLimit('stripe-change-plan', user.id, request, 10, 15 min) after auth", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u-rl", email: "rl@x.au", plan: "growth" });
+    wireSupabase("cus_1", "growth");
+    stripeMock.subscriptions.list.mockResolvedValue({ data: [] });
+    await POST(new Request("http://x/api/stripe/change-plan", { method: "POST", body: JSON.stringify({ plan: "growth" }) }));
+    expect(enforceRateLimitMock).toHaveBeenCalledWith("stripe-change-plan", "u-rl", expect.any(Request), 10, 15 * 60 * 1000);
+  });
+
+  it("returns the limiter's 429 before any Stripe call", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u-rl", email: "rl@x.au", plan: "growth" });
+    enforceRateLimitMock.mockReturnValueOnce(new Response("{}", { status: 429, headers: { "Retry-After": "60" } }));
+    const res = await POST(new Request("http://x/api/stripe/change-plan", { method: "POST", body: JSON.stringify({ plan: "growth" }) }));
+    expect(res.status).toBe(429);
+    expect(stripeMock.subscriptions.list).not.toHaveBeenCalled();
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
   });
 });

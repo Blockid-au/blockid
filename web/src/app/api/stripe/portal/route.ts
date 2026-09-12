@@ -7,6 +7,7 @@ import {
   isWholesaleProvisionedFounder,
 } from "@/lib/stripe/portal-gate";
 import { apiRoute } from "@/lib/audit/api-route";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 // POST /api/stripe/portal
 // Creates a Stripe Customer Portal session so the user can manage their
@@ -19,7 +20,13 @@ import { apiRoute } from "@/lib/audit/api-route";
 // Retail-attributed founders own their own Stripe Customer and MUST
 // retain portal access. See @/lib/stripe/portal-gate.
 
-async function POST_handler() {
+// QA-3 P1-10 (2026-09-12): 10 calls per user per 15 minutes. Auth-gated and
+// idempotency-keyed already; this stops a scripted loop on one account from
+// minting hundreds of Stripe objects (sessions / portal links / schedules).
+const STRIPE_RL_MAX = 10;
+const STRIPE_RL_WINDOW_MS = 15 * 60 * 1000;
+
+async function POST_handler(request?: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -27,6 +34,17 @@ async function POST_handler() {
       { status: 401 },
     );
   }
+
+  // Keyed on user.id; the Request is only consulted for an IP fallback, so a
+  // caller without one (unit tests invoke POST() bare) still gets limited.
+  const limited = enforceRateLimit(
+    "stripe-portal",
+    user.id,
+    request ?? new Request("http://localhost/api/stripe/portal", { method: "POST" }),
+    STRIPE_RL_MAX,
+    STRIPE_RL_WINDOW_MS,
+  );
+  if (limited) return limited;
 
   if (!isStripeConfigured() || !isSupabaseConfigured()) {
     return NextResponse.json(

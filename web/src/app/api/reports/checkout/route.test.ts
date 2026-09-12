@@ -128,6 +128,23 @@ vi.mock("@/lib/pricing/v3-skus", () => ({
 
 process.env.STRIPE_PRICE_TRUST_REPORT_5AUD = "price_trust_report";
 
+
+// QA-3 P1-10 (2026-09-12): the route is rate-limited per user (10 / 15 min).
+// Mocked so the shared in-memory limiter cannot bleed 429s across this file;
+// the dedicated describe below pins the call shape and the 429 pass-through.
+const enforceRateLimitMock = vi.hoisted(() =>
+  vi.fn<(route: string, identity: string | null | undefined, req: Request, max: number, windowMs: number) => Response | null>(),
+);
+vi.mock("@/lib/rate-limit", () => ({
+  enforceRateLimit: (
+    route: string,
+    identity: string | null | undefined,
+    req: Request,
+    max: number,
+    windowMs: number,
+  ) => enforceRateLimitMock(route, identity, req, max, windowMs),
+}));
+
 import { POST } from "./route";
 
 const BUSINESS_ID = "11111111-2222-3333-4444-555555555555";
@@ -141,6 +158,7 @@ function makeReq(body: Record<string, unknown>) {
 
 beforeEach(() => {
   resetSupabaseBehaviour();
+  enforceRateLimitMock.mockReset().mockReturnValue(null);
   getCurrentUserMock.mockReset();
   getCurrentUserMock.mockResolvedValue({ id: "user-1", email: "u@x.au" });
   sessionCreateMock.mockReset();
@@ -318,6 +336,20 @@ describe("POST /api/reports/checkout — blockid_via cookie fallback (task M3)",
       makeReq({ businessId: BUSINESS_ID, promoCode: "NOPE" }),
     );
     expect(res.status).toBe(400);
+    expect(sessionCreateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("QA-3 P1-10 — per-user rate limit on /api/reports/checkout", () => {
+  it("calls enforceRateLimit('reports-checkout', user.id, request, 10, 15 min) after auth", async () => {
+    await POST(makeReq({ businessId: BUSINESS_ID }));
+    expect(enforceRateLimitMock).toHaveBeenCalledWith("reports-checkout", "user-1", expect.any(Request), 10, 15 * 60 * 1000);
+  });
+
+  it("returns the limiter's 429 and never mints a Checkout session", async () => {
+    enforceRateLimitMock.mockReturnValueOnce(new Response("{}", { status: 429, headers: { "Retry-After": "60" } }));
+    const res = await POST(makeReq({ businessId: BUSINESS_ID }));
+    expect(res.status).toBe(429);
     expect(sessionCreateMock).not.toHaveBeenCalled();
   });
 });
