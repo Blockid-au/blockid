@@ -22,10 +22,13 @@ import {
   Eye,
   Loader2,
   Share2,
+  ShieldCheck,
   Trash2,
 } from "lucide-react";
 
 import { formatRunDateTime } from "@/lib/analyses/summary";
+import { EngagementHeatmap } from "./engagement-heatmap";
+import { RoomTrustSettings } from "./room-trust-settings";
 
 export type ShareState = "active" | "revoked" | "expired";
 
@@ -41,6 +44,10 @@ export interface ShareLink {
   lastAccessed: string | null;
   expiresAt: string | null;
   createdAt: string | null;
+  /** S21-A — NDA state per link (absent on responses from before it shipped). */
+  ndaRequired?: boolean;
+  ndaSignedAt?: string | null;
+  ndaSignedVersion?: number | null;
 }
 
 export interface DocumentCounts {
@@ -62,6 +69,23 @@ export interface InvestorSharePanelProps {
   documents?: DocumentCounts | null;
   outstanding?: OutstandingDoc[];
   onToast?: (message: string, kind?: "success" | "error") => void;
+  /** S18-B — viewer / editor on a shared project: trust settings read-only. */
+  readOnly?: boolean;
+}
+
+/** "NDA accepted 12 Sep, v2" / "NDA pending" / "" for the link row. */
+export function ndaSummary(link: {
+  ndaRequired?: boolean;
+  ndaSignedAt?: string | null;
+  ndaSignedVersion?: number | null;
+}): string {
+  if (link.ndaSignedAt) {
+    const when = formatRunDateTime(link.ndaSignedAt);
+    const v = typeof link.ndaSignedVersion === "number" ? ` (v${link.ndaSignedVersion})` : "";
+    return when ? `NDA accepted ${when}${v}` : `NDA accepted${v}`;
+  }
+  if (link.ndaRequired) return "NDA pending";
+  return "";
 }
 
 // ── Pure helpers ─────────────────────────────────────────────────────────
@@ -136,6 +160,7 @@ export function InvestorSharePanel({
   documents,
   outstanding = [],
   onToast,
+  readOnly = false,
 }: InvestorSharePanelProps) {
   const [links, setLinks] = React.useState<ShareLink[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -447,6 +472,15 @@ export function InvestorSharePanel({
                       <Eye aria-hidden strokeWidth={1.75} className="h-3.5 w-3.5" />
                       {accessSummary(link)}
                     </p>
+                    {ndaSummary(link) && (
+                      <p
+                        className={`mt-0.5 flex items-center gap-1.5 text-xs ${link.ndaSignedAt ? "text-bull" : "text-warn"}`}
+                        data-testid="investor-share-nda"
+                      >
+                        <ShieldCheck aria-hidden strokeWidth={1.75} className="h-3.5 w-3.5" />
+                        {ndaSummary(link)}
+                      </p>
+                    )}
                     {link.expiresAt && (
                       <p className="mt-0.5 text-xs text-tertiary">
                         Expires {formatRunDateTime(link.expiresAt)}
@@ -498,6 +532,15 @@ export function InvestorSharePanel({
           </ul>
         )}
       </div>
+
+      {/* ── S21-A: NDA + watermark settings, and what each investor read ── */}
+      <RoomTrustSettings
+        dataRoomId={dataRoomId}
+        readOnly={readOnly}
+        onToast={onToast}
+        linkLabels={Object.fromEntries(links.map((l) => [l.id, shareRecipient(l)]))}
+      />
+      <EngagementHeatmap dataRoomId={dataRoomId} />
 
       {/* ── What the investor will find missing ──────────────────────── */}
       {documents && documents.total > 0 && (

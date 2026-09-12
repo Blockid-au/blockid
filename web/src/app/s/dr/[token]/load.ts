@@ -16,6 +16,13 @@ import {
   type ShareLinkRow,
   type ShareLinkState,
 } from "@/lib/data-room";
+import {
+  ndaAllowsDocuments,
+  ndaGate,
+  normaliseNdaVersion,
+  type NdaGate,
+} from "@/lib/dataroom/nda";
+import { ownerTrustEntitled } from "@/lib/dataroom/nda-server";
 
 export interface SharedRoomDocument {
   id: string;
@@ -57,6 +64,14 @@ export interface SharedRoom {
   headlines: SharedRoomHeadline[];
   counts: { total: number; complete: number; pending: number; missing: number };
   completeness: number;
+  /**
+   * S21-A — the NDA click-wrap. When `status === "pending"` the loader did
+   * NOT query documents: `folders` is empty and `counts` are zero, so nothing
+   * confidential reaches the render tree before the investor accepts.
+   */
+  nda: NdaGate;
+  /** PDFs downloaded through this link carry the per-recipient watermark. */
+  watermarked: boolean;
 }
 
 const STAGE_LABELS = [
@@ -153,7 +168,7 @@ export async function loadSharedDataRoom(
   const { data: link } = await supabase
     .from("data_room_access_tokens")
     .select(
-      "id, data_room_id, investor_name, investor_firm, access_count, is_active, revoked_at, expires_at, created_at",
+      "id, data_room_id, account_id, investor_name, investor_firm, access_count, is_active, revoked_at, expires_at, created_at, nda_required, nda_signed_at, nda_signed_version",
     )
     .eq("token", token)
     .maybeSingle();
@@ -166,20 +181,49 @@ export async function loadSharedDataRoom(
   const { data: room } = await supabase
     .from("data_rooms")
     .select(
-      "id, name, startup_name, stage, sections, completeness_score, last_generated_at",
+      "id, user_id, name, startup_name, stage, sections, completeness_score, last_generated_at, nda_required, nda_text, nda_version, watermark_enabled",
     )
     .eq("id", link.data_room_id)
     .maybeSingle();
 
   if (!room) return null;
 
-  const { data: rows } = await supabase
-    .from("data_room_documents")
-    .select(
-      "id, section, folder, document_name, document_type, status, priority, template_content, file_url, notes",
-    )
-    .eq("data_room_id", room.id)
-    .order("folder", { ascending: true });
+  // S21-A — NDA gate + watermark are Starter+ (investor_links.premium) on the
+  // OWNER's plan. A Free room renders as before, with neither.
+  const entitled = await ownerTrustEntitled(
+    String(room.user_id ?? link.account_id ?? ""),
+  );
+  const nda = ndaGate(
+    {
+      ndaRequired: Boolean(room.nda_required),
+      ndaText: (room.nda_text as string | null) ?? null,
+      ndaVersion: normaliseNdaVersion(room.nda_version),
+    },
+    {
+      ndaRequired: Boolean(link.nda_required),
+      ndaSignedAt: (link.nda_signed_at as string | null) ?? null,
+      ndaSignedVersion:
+        typeof link.nda_signed_version === "number"
+          ? link.nda_signed_version
+          : null,
+    },
+    entitled,
+  );
+  const watermarked = entitled && Boolean(room.watermark_enabled);
+
+  // Documents are not even queried until the gate is cleared — the page
+  // cannot leak what the loader never fetched.
+  const rows = ndaAllowsDocuments(nda)
+    ? (
+        await supabase
+          .from("data_room_documents")
+          .select(
+            "id, section, folder, document_name, document_type, status, priority, template_content, file_url, notes",
+          )
+          .eq("data_room_id", room.id)
+          .order("folder", { ascending: true })
+      ).data
+    : [];
 
   const documents: SharedRoomDocument[] = ((rows ?? []) as Array<
     Record<string, unknown>
@@ -226,6 +270,8 @@ export async function loadSharedDataRoom(
       counts.total > 0
         ? Math.round((counts.complete / counts.total) * 100)
         : Number(room.completeness_score ?? 0),
+    nda,
+    watermarked,
   };
 }
 

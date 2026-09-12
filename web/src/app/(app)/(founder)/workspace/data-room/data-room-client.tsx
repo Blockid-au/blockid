@@ -811,6 +811,7 @@ export function DataRoomClient({
         documents={documentCounts}
         outstanding={outstandingDocs}
         onToast={showToast}
+        readOnly={readOnly}
       />
 
       {/* Generated Data Room Results */}

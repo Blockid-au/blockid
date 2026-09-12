@@ -1,197 +1,126 @@
-// Colocated vitest for POST + GET /api/data-room/engage — P9-data-room-engage-route-test.
+// Colocated vitest for POST + GET /api/data-room/engage.
 //
-// The route is the investor-facing engagement telemetry endpoint cited under
-// P1_dataroom_map in docs/plans/atlassian-standard-mapping-goal.md. POST is
-// intentionally unauthenticated (r-03-exempt): the caller proves entitlement
-// by holding a valid data_room_access_tokens row. GET is founder-facing and
-// returns the per-section heatmap the /workspace surface renders.
+// POST is intentionally unauthenticated (r-03-exempt): the caller proves
+// entitlement by holding a valid data_room_access_tokens row. GET is
+// founder-facing and, since S21-A, authenticated + room-scoped.
 //
 // Silent regressions this pins:
-//   - dropping the 503 branch when getSupabaseAdmin returns null so the route
-//     NPEs the anonymous investor page load with a 500.
-//   - dropping the token/eventType 400 branch so a malformed POST from a
-//     misbehaving client silently writes a null-riddled engagement row.
-//   - dropping the .eq("token", ...) lookup so an attacker can substitute any
-//     token string and hit the insert path.
-//   - dropping the is_active check so a revoked-but-not-expired share link
-//     keeps recording events (breaks the "revoke instantly" contract).
-//   - dropping the expires_at check so an expired link keeps recording events.
-//   - flipping the ipHash to un-salted / full-length so the raw IP leaks into
-//     data_room_engagement (Privacy Act breach; must remain a 16-char salted
-//     SHA-256 prefix).
-//   - dropping the eventType==="open" branch on first_accessed so the
-//     "investor first opened your room at ..." tile never populates.
-//   - dropping the .eq("id", accessToken.id) on the token update so the
-//     last_accessed clock leaks across tenants.
-//   - dropping the rpc("increment_access_count") call so the /workspace
-//     "views" counter never advances.
-//   - dropping the .eq("data_room_id", roomId) on GET so heatmaps cross-render
-//     across tenants.
-//   - flipping the GET section-average maths (sum→count→round) so the
-//     heatmap displays cumulative durations instead of averages.
-//   - flipping recentEvents cap off 20 so the /workspace client crashes on
-//     large tenants (renders 500 rows in a tooltip).
-//   - flipping the totalViews filter off `event_type === "open"` so the
-//     "unique opens" number rolls in section_view / document_open events.
+//   - dropping the 503 branch when getSupabaseAdmin returns null;
+//   - dropping the validation (`parseEngageEvent`): unknown event types,
+//     over-long sections, out-of-range dwell must never reach the insert;
+//   - dropping the .eq("token", ...) lookup / is_active / expires_at checks;
+//   - dropping the 30 s dedupe so a looping client inflates the heatmap;
+//   - hashing the FIRST x-forwarded-for hop (client-forgeable) instead of the
+//     edge-observed one, or storing more than a 16-char salted prefix;
+//   - dropping the eventType==="open" first_accessed stamp, the
+//     .eq("id", accessToken.id) on the token update, or the rpc;
+//   - GET without a session (the pre-S21-A IDOR), GET for a stranger's room,
+//     dropping the .eq("data_room_id", roomId) on the events pull;
+//   - the per-link × section heatmap disappearing from the GET envelope.
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
 
-const getSupabaseAdminMock = vi.fn<() => unknown | null>();
-vi.mock("@/lib/supabase", () => ({
-  getSupabaseAdmin: () => getSupabaseAdminMock(),
+const mocks = vi.hoisted(() => ({
+  getSupabaseAdmin: vi.fn<() => unknown | null>(),
+  getCurrentUser: vi.fn<() => Promise<{ id: string; email: string } | null>>(),
+  assertProjectScope: vi.fn<(...a: unknown[]) => Promise<{ role: string }>>(),
 }));
 
-// Route import must come AFTER the mock is registered.
+vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => mocks.getSupabaseAdmin() }));
+vi.mock("@/lib/auth", () => ({ getCurrentUser: () => mocks.getCurrentUser() }));
+vi.mock("@/lib/projects", () => ({
+  assertProjectScope: (...a: unknown[]) => mocks.assertProjectScope(...a),
+  roleCanAdmin: (r: string) => r === "admin" || r === "owner",
+  ProjectAccessError: class ProjectAccessError extends Error {
+    code: string;
+    constructor(msg: string, code: string) {
+      super(msg);
+      this.name = "ProjectAccessError";
+      this.code = code;
+    }
+  },
+}));
+
 import { GET, POST } from "./route";
 
-interface AccessTokenRow {
-  id: string;
-  data_room_id: string;
-  is_active: boolean;
-  expires_at: string | null;
+const TOKEN = "a".repeat(32);
+
+interface Call {
+  table: string;
+  op: string;
+  args: unknown[];
 }
 
-interface EngagementRow {
-  event_type: string;
-  section: string | null;
-  document_name: string | null;
-  duration_ms: number | null;
-  scroll_pct: number | null;
-  occurred_at: string;
+interface State {
+  accessToken: Record<string, unknown> | null;
+  lastEvent: { occurred_at: string | null } | null;
+  events: Record<string, unknown>[] | null;
+  room: Record<string, unknown> | null;
+  links: Record<string, unknown>[];
+  calls: Call[];
 }
 
-interface FakeState {
-  accessToken: AccessTokenRow | null;
-  engagementEvents: EngagementRow[] | null;
-  calls: {
-    from: string[];
-    tokenSelect: string | null;
-    tokenEq: { col: string; val: unknown } | null;
-    engagementInsertPayload: Record<string, unknown> | null;
-    tokenUpdatePayload: Record<string, unknown> | null;
-    tokenUpdateEq: { col: string; val: unknown } | null;
-    rpc: { fn: string; args: Record<string, unknown> } | null;
-    engagementSelect: string | null;
-    engagementSelectEq: { col: string; val: unknown } | null;
-    engagementSelectOrder: { col: string; ascending?: boolean } | null;
-    engagementSelectLimit: number | null;
-  };
+let state: State;
+
+function fresh(): State {
+  return { accessToken: null, lastEvent: null, events: null, room: null, links: [], calls: [] };
 }
 
-const state: FakeState = {
-  accessToken: null,
-  engagementEvents: null,
-  calls: {
-    from: [],
-    tokenSelect: null,
-    tokenEq: null,
-    engagementInsertPayload: null,
-    tokenUpdatePayload: null,
-    tokenUpdateEq: null,
-    rpc: null,
-    engagementSelect: null,
-    engagementSelectEq: null,
-    engagementSelectOrder: null,
-    engagementSelectLimit: null,
-  },
-};
-
-function resetState() {
-  state.accessToken = null;
-  state.engagementEvents = null;
-  state.calls = {
-    from: [],
-    tokenSelect: null,
-    tokenEq: null,
-    engagementInsertPayload: null,
-    tokenUpdatePayload: null,
-    tokenUpdateEq: null,
-    rpc: null,
-    engagementSelect: null,
-    engagementSelectEq: null,
-    engagementSelectOrder: null,
-    engagementSelectLimit: null,
-  };
-}
-
-function makeFakeSupabase() {
+/** Chainable fake: every op is recorded; terminals resolve per-table state. */
+function fakeSupabase() {
+  function chain(table: string, ctx: { selecting?: boolean; write?: string }) {
+    const proxy: Record<string, unknown> = new Proxy(
+      {},
+      {
+        get(_t, prop: string) {
+          if (prop === "then") {
+            const p = Promise.resolve(terminal(table, ctx, "list"));
+            return p.then.bind(p);
+          }
+          if (prop === "maybeSingle" || prop === "single") {
+            return () => {
+              state.calls.push({ table, op: prop, args: [] });
+              return Promise.resolve(terminal(table, ctx, "single"));
+            };
+          }
+          return (...args: unknown[]) => {
+            state.calls.push({ table, op: prop, args });
+            if (prop === "insert" || prop === "update" || prop === "upsert") return chain(table, { ...ctx, write: prop });
+            return proxy;
+          };
+        },
+      },
+    );
+    return proxy;
+  }
+  function terminal(table: string, ctx: { write?: string }, mode: "list" | "single") {
+    if (ctx.write) return { data: null, error: null };
+    if (table === "data_room_access_tokens") {
+      if (mode === "single") return { data: state.accessToken, error: null };
+      return { data: state.links, error: null };
+    }
+    if (table === "data_room_engagement") {
+      if (mode === "single") return { data: state.lastEvent, error: null };
+      return { data: state.events, error: null };
+    }
+    if (table === "data_rooms") return { data: state.room, error: null };
+    return { data: null, error: null };
+  }
   return {
-    from(table: string) {
-      state.calls.from.push(table);
-
-      if (table === "data_room_access_tokens") {
-        return {
-          select(cols: string) {
-            state.calls.tokenSelect = cols;
-            return {
-              eq(col: string, val: unknown) {
-                state.calls.tokenEq = { col, val };
-                return {
-                  single: () =>
-                    Promise.resolve({ data: state.accessToken }),
-                };
-              },
-            };
-          },
-          update(payload: Record<string, unknown>) {
-            state.calls.tokenUpdatePayload = payload;
-            return {
-              eq(col: string, val: unknown) {
-                state.calls.tokenUpdateEq = { col, val };
-                return Promise.resolve({ data: null, error: null });
-              },
-            };
-          },
-        };
-      }
-
-      if (table === "data_room_engagement") {
-        return {
-          insert(payload: Record<string, unknown>) {
-            state.calls.engagementInsertPayload = payload;
-            return Promise.resolve({ data: null, error: null });
-          },
-          select(cols: string) {
-            state.calls.engagementSelect = cols;
-            return {
-              eq(col: string, val: unknown) {
-                state.calls.engagementSelectEq = { col, val };
-                return {
-                  order(col2: string, opts?: { ascending?: boolean }) {
-                    state.calls.engagementSelectOrder = {
-                      col: col2,
-                      ...opts,
-                    };
-                    return {
-                      limit(n: number) {
-                        state.calls.engagementSelectLimit = n;
-                        return Promise.resolve({
-                          data: state.engagementEvents,
-                        });
-                      },
-                    };
-                  },
-                };
-              },
-            };
-          },
-        };
-      }
-
-      throw new Error(`unexpected table: ${table}`);
-    },
-    rpc(fn: string, args: Record<string, unknown>) {
-      state.calls.rpc = { fn, args };
+    from: (table: string) => chain(table, {}),
+    rpc: (fn: string, args: Record<string, unknown>) => {
+      state.calls.push({ table: "rpc", op: fn, args: [args] });
       return Promise.resolve({ data: null, error: null });
     },
   };
 }
 
-function postReq(
-  body: unknown,
-  headers: Record<string, string> = {},
-): NextRequest {
+const find = (table: string, op: string) => state.calls.filter((c) => c.table === table && c.op === op);
+const hasEq = (table: string, col: string, val: unknown) =>
+  state.calls.some((c) => c.table === table && c.op === "eq" && c.args[0] === col && c.args[1] === val);
+
+function postReq(body: unknown, headers: Record<string, string> = {}): NextRequest {
   return new Request("http://localhost/api/data-room/engage", {
     method: "POST",
     headers: { "content-type": "application/json", ...headers },
@@ -206,566 +135,271 @@ function getReq(roomId: string | null): NextRequest {
   return new Request(url) as unknown as NextRequest;
 }
 
+const activeToken = () => ({ id: "tok-id", data_room_id: "room-1", is_active: true, expires_at: null });
+
 beforeEach(() => {
-  resetState();
-  getSupabaseAdminMock.mockReset();
-  getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
+  state = fresh();
+  mocks.getSupabaseAdmin.mockReset();
+  mocks.getSupabaseAdmin.mockReturnValue(fakeSupabase());
+  mocks.getCurrentUser.mockReset();
+  mocks.getCurrentUser.mockResolvedValue({ id: "user-owner", email: "owner@x.test" });
+  mocks.assertProjectScope.mockReset();
   delete process.env.IP_HASH_SALT;
 });
 
 describe("POST /api/data-room/engage", () => {
   it("503s when getSupabaseAdmin returns null (db not configured)", async () => {
-    getSupabaseAdminMock.mockReturnValueOnce(null);
-    const res = await POST(postReq({ token: "t", eventType: "open" }));
+    mocks.getSupabaseAdmin.mockReturnValueOnce(null);
+    const res = await POST(postReq({ token: TOKEN, eventType: "open" }));
     expect(res.status).toBe(503);
-    const body = await res.json();
-    expect(body.ok).toBe(false);
-    // No table touched.
-    expect(state.calls.from.length).toBe(0);
+    expect(state.calls.length).toBe(0);
   });
 
-  it("400s when token is missing", async () => {
-    const res = await POST(postReq({ eventType: "open" }));
-    expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.ok).toBe(false);
-    expect(body.error).toContain("Missing token");
-    expect(state.calls.from.length).toBe(0);
+  it("400s when token or eventType is missing, or the body is not JSON", async () => {
+    expect((await POST(postReq({ eventType: "open" }))).status).toBe(400);
+    expect((await POST(postReq({ token: TOKEN }))).status).toBe(400);
+    expect((await POST(postReq("not json at all"))).status).toBe(400);
+    expect(state.calls.length).toBe(0);
   });
 
-  it("400s when eventType is missing", async () => {
-    const res = await POST(postReq({ token: "t" }));
-    expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toContain("Missing token or eventType");
+  it("400s an unknown eventType and a section_view with no section (validation, S21-A)", async () => {
+    const a = await POST(postReq({ token: TOKEN, eventType: "drop table" }));
+    expect(a.status).toBe(400);
+    expect((await a.json()).error).toContain("Unknown eventType");
+    const b = await POST(postReq({ token: TOKEN, eventType: "section_view" }));
+    expect(b.status).toBe(400);
+    expect(state.calls.length).toBe(0);
   });
 
-  it("400s when the body is not valid JSON (parse falls back to {})", async () => {
-    const req = new Request("http://localhost/api/data-room/engage", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: "not json at all",
-    }) as unknown as NextRequest;
-    const res = await POST(req);
-    // Empty body → both token and eventType missing → 400.
-    expect(res.status).toBe(400);
-  });
-
-  it("403s when the token lookup returns no row", async () => {
+  it("403s when the token lookup returns no row / is revoked / is expired", async () => {
     state.accessToken = null;
-    const res = await POST(postReq({ token: "bogus", eventType: "open" }));
+    expect((await POST(postReq({ token: TOKEN, eventType: "open" }))).status).toBe(403);
+    expect(hasEq("data_room_access_tokens", "token", TOKEN)).toBe(true);
+
+    state.accessToken = { ...activeToken(), is_active: false };
+    expect((await POST(postReq({ token: TOKEN, eventType: "open" }))).status).toBe(403);
+
+    state.accessToken = { ...activeToken(), expires_at: new Date(Date.now() - 60_000).toISOString() };
+    const res = await POST(postReq({ token: TOKEN, eventType: "open" }));
     expect(res.status).toBe(403);
-    const body = await res.json();
-    expect(body.error).toContain("Invalid or expired token");
-    // Token was looked up.
-    expect(state.calls.tokenEq).toEqual({ col: "token", val: "bogus" });
-    // No insert / update / rpc side effects.
-    expect(state.calls.engagementInsertPayload).toBeNull();
-    expect(state.calls.tokenUpdatePayload).toBeNull();
-    expect(state.calls.rpc).toBeNull();
+    expect((await res.json()).error).toContain("expired");
+    expect(find("data_room_engagement", "insert").length).toBe(0);
   });
 
-  it("403s when the token is inactive (revoked)", async () => {
-    state.accessToken = {
-      id: "tok-id",
-      data_room_id: "room-1",
-      is_active: false,
-      expires_at: null,
-    };
-    const res = await POST(postReq({ token: "t", eventType: "open" }));
-    expect(res.status).toBe(403);
-    expect(state.calls.engagementInsertPayload).toBeNull();
+  it("allows an active token with a null or future expires_at", async () => {
+    state.accessToken = activeToken();
+    expect((await POST(postReq({ token: TOKEN, eventType: "open" }))).status).toBe(200);
+    state.accessToken = { ...activeToken(), expires_at: new Date(Date.now() + 60_000).toISOString() };
+    expect((await POST(postReq({ token: TOKEN, eventType: "open" }))).status).toBe(200);
   });
 
-  it("403s when the token is expired (expires_at in the past)", async () => {
-    state.accessToken = {
-      id: "tok-id",
-      data_room_id: "room-1",
-      is_active: true,
-      expires_at: new Date(Date.now() - 60_000).toISOString(),
-    };
-    const res = await POST(postReq({ token: "t", eventType: "open" }));
-    expect(res.status).toBe(403);
-    const body = await res.json();
-    expect(body.error).toContain("expired");
-    expect(state.calls.engagementInsertPayload).toBeNull();
-  });
-
-  it("allows an active token with null expires_at (perpetual link)", async () => {
-    state.accessToken = {
-      id: "tok-id",
-      data_room_id: "room-1",
-      is_active: true,
-      expires_at: null,
-    };
-    const res = await POST(postReq({ token: "t", eventType: "open" }));
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.ok).toBe(true);
-  });
-
-  it("allows an active token with a future expires_at", async () => {
-    state.accessToken = {
-      id: "tok-id",
-      data_room_id: "room-1",
-      is_active: true,
-      expires_at: new Date(Date.now() + 60_000).toISOString(),
-    };
-    const res = await POST(postReq({ token: "t", eventType: "open" }));
-    expect(res.status).toBe(200);
-  });
-
-  it("inserts a full engagement row with every optional field forwarded", async () => {
-    state.accessToken = {
-      id: "tok-id",
-      data_room_id: "room-1",
-      is_active: true,
-      expires_at: null,
-    };
+  it("inserts a full engagement row with every optional field forwarded and clamped", async () => {
+    state.accessToken = activeToken();
     await POST(
       postReq(
         {
-          token: "t",
-          eventType: "document_open",
-          section: "financials",
-          documentName: "P&L.pdf",
-          durationMs: 12345,
-          scrollPct: 87,
+          token: TOKEN,
+          eventType: "section_view",
+          section: "  3. Financial   Projections  ",
+          documentName: "P&L",
+          durationMs: 99_999_999, // clamped to an hour
+          scrollPct: 140, // clamped to 100
         },
-        { "user-agent": "Chrome/1.0" },
+        { "user-agent": "Mozilla/5.0 Chrome/120" },
       ),
     );
-    const payload = state.calls.engagementInsertPayload!;
-    expect(payload.data_room_id).toBe("room-1");
-    expect(payload.access_token_id).toBe("tok-id");
-    expect(payload.event_type).toBe("document_open");
-    expect(payload.section).toBe("financials");
-    expect(payload.document_name).toBe("P&L.pdf");
-    expect(payload.duration_ms).toBe(12345);
-    expect(payload.scroll_pct).toBe(87);
-    expect(payload.user_agent).toBe("Chrome/1.0");
-  });
-
-  it("nulls out optional insert fields when the body omits them", async () => {
-    state.accessToken = {
-      id: "tok-id",
+    const ins = find("data_room_engagement", "insert")[0];
+    expect(ins).toBeTruthy();
+    expect(ins.args[0]).toMatchObject({
       data_room_id: "room-1",
-      is_active: true,
-      expires_at: null,
-    };
-    await POST(postReq({ token: "t", eventType: "open" }));
-    const payload = state.calls.engagementInsertPayload!;
-    expect(payload.section).toBeNull();
-    expect(payload.document_name).toBeNull();
-    expect(payload.duration_ms).toBeNull();
-    expect(payload.scroll_pct).toBeNull();
-    expect(payload.user_agent).toBeNull();
-  });
-
-  it("hashes the IP with IP_HASH_SALT and truncates to 16 hex chars", async () => {
-    process.env.IP_HASH_SALT = "pepper";
-    state.accessToken = {
-      id: "tok-id",
-      data_room_id: "room-1",
-      is_active: true,
-      expires_at: null,
-    };
-    await POST(
-      postReq(
-        { token: "t", eventType: "open" },
-        { "x-forwarded-for": "203.0.113.5, 10.0.0.1" },
-      ),
-    );
-    const payload = state.calls.engagementInsertPayload!;
-    // sha256("203.0.113.5" + "pepper") → first 16 hex chars
-    const { createHash } = await import("crypto");
-    const expected = createHash("sha256")
-      .update("203.0.113.5" + "pepper")
-      .digest("hex")
-      .slice(0, 16);
-    expect(payload.ip_hash).toBe(expected);
-    expect(String(payload.ip_hash)).toHaveLength(16);
-    // Raw IP must NEVER be persisted.
-    expect(payload.ip_hash).not.toContain("203.0.113.5");
-  });
-
-  it("falls back to 'unknown' when x-forwarded-for is absent", async () => {
-    state.accessToken = {
-      id: "tok-id",
-      data_room_id: "room-1",
-      is_active: true,
-      expires_at: null,
-    };
-    await POST(postReq({ token: "t", eventType: "open" }));
-    const payload = state.calls.engagementInsertPayload!;
-    const { createHash } = await import("crypto");
-    const expected = createHash("sha256")
-      .update("unknown")
-      .digest("hex")
-      .slice(0, 16);
-    expect(payload.ip_hash).toBe(expected);
-  });
-
-  it("truncates user-agent to 200 chars so a hostile UA cannot bloat the row", async () => {
-    state.accessToken = {
-      id: "tok-id",
-      data_room_id: "room-1",
-      is_active: true,
-      expires_at: null,
-    };
-    const huge = "A".repeat(500);
-    await POST(
-      postReq(
-        { token: "t", eventType: "open" },
-        { "user-agent": huge },
-      ),
-    );
-    const payload = state.calls.engagementInsertPayload!;
-    expect(String(payload.user_agent)).toHaveLength(200);
-  });
-
-  it("stamps both first_accessed and last_accessed on eventType=open", async () => {
-    state.accessToken = {
-      id: "tok-id",
-      data_room_id: "room-1",
-      is_active: true,
-      expires_at: null,
-    };
-    await POST(postReq({ token: "t", eventType: "open" }));
-    const upd = state.calls.tokenUpdatePayload!;
-    expect(typeof upd.last_accessed).toBe("string");
-    expect(typeof upd.first_accessed).toBe("string");
-    expect(state.calls.tokenUpdateEq).toEqual({ col: "id", val: "tok-id" });
-  });
-
-  it("only stamps last_accessed on non-open events (first_accessed untouched)", async () => {
-    state.accessToken = {
-      id: "tok-id",
-      data_room_id: "room-1",
-      is_active: true,
-      expires_at: null,
-    };
-    await POST(postReq({ token: "t", eventType: "section_view" }));
-    const upd = state.calls.tokenUpdatePayload!;
-    expect(typeof upd.last_accessed).toBe("string");
-    expect(upd.first_accessed).toBeUndefined();
-  });
-
-  it("fires the increment_access_count rpc with token_id=accessToken.id", async () => {
-    state.accessToken = {
-      id: "tok-id-xyz",
-      data_room_id: "room-1",
-      is_active: true,
-      expires_at: null,
-    };
-    await POST(postReq({ token: "t", eventType: "open" }));
-    expect(state.calls.rpc).toEqual({
-      fn: "increment_access_count",
-      args: { token_id: "tok-id-xyz" },
+      access_token_id: "tok-id",
+      event_type: "section_view",
+      section: "3. Financial Projections",
+      document_name: "P&L",
+      duration_ms: 60 * 60 * 1000,
+      scroll_pct: 100,
+      user_agent: "Mozilla/5.0 Chrome/120",
     });
   });
 
-  it("selects the access-token columns the handler branches on", async () => {
-    state.accessToken = {
-      id: "tok-id",
-      data_room_id: "room-1",
-      is_active: true,
-      expires_at: null,
-    };
-    await POST(postReq({ token: "t", eventType: "open" }));
-    const cols = state.calls.tokenSelect ?? "";
-    expect(cols).toContain("id");
-    expect(cols).toContain("data_room_id");
-    expect(cols).toContain("is_active");
-    expect(cols).toContain("expires_at");
+  it("nulls out optional insert fields when the body omits them", async () => {
+    state.accessToken = activeToken();
+    await POST(postReq({ token: TOKEN, eventType: "open" }));
+    const ins = find("data_room_engagement", "insert")[0].args[0] as Record<string, unknown>;
+    expect(ins.section).toBeNull();
+    expect(ins.document_name).toBeNull();
+    expect(ins.duration_ms).toBeNull();
+    expect(ins.scroll_pct).toBeNull();
   });
 
-  it("returns {ok:true} on the happy path", async () => {
-    state.accessToken = {
-      id: "tok-id",
-      data_room_id: "room-1",
-      is_active: true,
-      expires_at: null,
-    };
-    const res = await POST(postReq({ token: "t", eventType: "open" }));
+  it("dedupes: a same (link, type, section, document) event inside 30 s is acknowledged, not inserted", async () => {
+    state.accessToken = activeToken();
+    state.lastEvent = { occurred_at: new Date(Date.now() - 5_000).toISOString() };
+    const res = await POST(postReq({ token: TOKEN, eventType: "section_view", section: "Team" }));
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body).toEqual({ ok: true });
+    expect(await res.json()).toEqual({ ok: true, deduped: true });
+    expect(find("data_room_engagement", "insert").length).toBe(0);
+    // The dedupe read was scoped to this link, type and section.
+    expect(hasEq("data_room_engagement", "access_token_id", "tok-id")).toBe(true);
+    expect(hasEq("data_room_engagement", "event_type", "section_view")).toBe(true);
+    expect(hasEq("data_room_engagement", "section", "Team")).toBe(true);
+  });
+
+  it("does not dedupe once the window has passed, and never dedupes a download", async () => {
+    state.accessToken = activeToken();
+    state.lastEvent = { occurred_at: new Date(Date.now() - 31_000).toISOString() };
+    await POST(postReq({ token: TOKEN, eventType: "section_view", section: "Team" }));
+    expect(find("data_room_engagement", "insert").length).toBe(1);
+
+    state.calls = [];
+    state.lastEvent = { occurred_at: new Date().toISOString() };
+    await POST(postReq({ token: TOKEN, eventType: "document_download", section: "Team", documentName: "Deck" }));
+    expect(find("data_room_engagement", "insert").length).toBe(1);
+  });
+
+  it("hashes the EDGE-observed IP (cf-connecting-ip / last XFF hop) with the salt, 16 hex chars — never the forgeable first hop", async () => {
+    process.env.IP_HASH_SALT = "unit-salt";
+    state.accessToken = activeToken();
+    await POST(postReq({ token: TOKEN, eventType: "open" }, { "x-forwarded-for": "6.6.6.6, 203.0.113.9" }));
+    const ins = find("data_room_engagement", "insert")[0].args[0] as { ip_hash: string };
+    expect(ins.ip_hash).toMatch(/^[0-9a-f]{16}$/);
+    const { createHash } = await import("node:crypto");
+    const expected = createHash("sha256").update("203.0.113.9|unit-salt").digest("hex").slice(0, 16);
+    expect(ins.ip_hash).toBe(expected);
+    const forged = createHash("sha256").update("6.6.6.6|unit-salt").digest("hex").slice(0, 16);
+    expect(ins.ip_hash).not.toBe(forged);
+  });
+
+  it("still writes a hash when no IP header is present ('unknown' sentinel)", async () => {
+    state.accessToken = activeToken();
+    await POST(postReq({ token: TOKEN, eventType: "open" }));
+    const ins = find("data_room_engagement", "insert")[0].args[0] as { ip_hash: string };
+    expect(ins.ip_hash).toMatch(/^[0-9a-f]{16}$/);
+  });
+
+  it("truncates user-agent to 200 chars so a hostile UA cannot bloat the row", async () => {
+    state.accessToken = activeToken();
+    await POST(postReq({ token: TOKEN, eventType: "open" }, { "user-agent": "x".repeat(500) }));
+    const ins = find("data_room_engagement", "insert")[0].args[0] as { user_agent: string };
+    expect(ins.user_agent.length).toBe(200);
+  });
+
+  it("stamps first_accessed only on open, last_accessed always, scoped to the token id, and fires the rpc", async () => {
+    state.accessToken = activeToken();
+    await POST(postReq({ token: TOKEN, eventType: "open" }));
+    let upd = find("data_room_access_tokens", "update")[0].args[0] as Record<string, unknown>;
+    expect(upd.first_accessed).toBeTruthy();
+    expect(upd.last_accessed).toBeTruthy();
+    expect(hasEq("data_room_access_tokens", "id", "tok-id")).toBe(true);
+    expect(find("rpc", "increment_access_count")[0].args[0]).toEqual({ token_id: "tok-id" });
+
+    state.calls = [];
+    await POST(postReq({ token: TOKEN, eventType: "document_open", section: "Team" }));
+    upd = find("data_room_access_tokens", "update")[0].args[0] as Record<string, unknown>;
+    expect(upd.first_accessed).toBeUndefined();
+    expect(upd.last_accessed).toBeTruthy();
   });
 });
 
 describe("GET /api/data-room/engage", () => {
-  it("400s when roomId is missing", async () => {
+  const EVENTS = [
+    { access_token_id: "l1", event_type: "open", section: null, document_name: null, duration_ms: null, scroll_pct: null, occurred_at: "2026-09-10T00:00:00.000Z" },
+    { access_token_id: "l1", event_type: "section_view", section: "Team", document_name: null, duration_ms: 40_000, scroll_pct: 80, occurred_at: "2026-09-10T00:01:00.000Z" },
+    { access_token_id: "l1", event_type: "section_view", section: "Team", document_name: null, duration_ms: 20_000, scroll_pct: 100, occurred_at: "2026-09-10T00:02:00.000Z" },
+    { access_token_id: "l2", event_type: "section_view", section: "Financials", document_name: null, duration_ms: 5_000, scroll_pct: 30, occurred_at: "2026-09-10T00:03:00.000Z" },
+    { access_token_id: "l2", event_type: "document_open", section: null, document_name: "Deck", duration_ms: null, scroll_pct: null, occurred_at: "2026-09-10T00:04:00.000Z" },
+  ];
+
+  beforeEach(() => {
+    state.room = { id: "room-1", user_id: "user-owner", project_id: "proj-1" };
+    state.links = [
+      { id: "l2", investor_name: null, investor_firm: "Blackbird", investor_email: null, created_at: "2026-09-02" },
+      { id: "l1", investor_name: "Jane", investor_firm: null, investor_email: "j@x.vc", created_at: "2026-09-01" },
+    ];
+  });
+
+  it("400s when roomId is missing — before auth and before the DB", async () => {
     const res = await GET(getReq(null));
     expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.ok).toBe(false);
-    expect(body.error).toContain("roomId required");
-    // No DB touched when the query-string guard fires.
-    expect(getSupabaseAdminMock).not.toHaveBeenCalled();
+    expect(mocks.getSupabaseAdmin).not.toHaveBeenCalled();
+  });
+
+  it("401s an anonymous caller — the pre-S21-A route served any room's engagement to anyone", async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce(null);
+    const res = await GET(getReq("room-1"));
+    expect(res.status).toBe(401);
+    expect(find("data_room_engagement", "select").length).toBe(0);
   });
 
   it("503s when getSupabaseAdmin returns null", async () => {
-    getSupabaseAdminMock.mockReturnValueOnce(null);
+    mocks.getSupabaseAdmin.mockReturnValueOnce(null);
     const res = await GET(getReq("room-1"));
     expect(res.status).toBe(503);
-    const body = await res.json();
-    expect(body.error).toBe("Database not configured");
   });
 
-  it("scopes the engagement lookup to the requested roomId", async () => {
-    state.engagementEvents = [];
-    await GET(getReq("room-abc"));
-    expect(state.calls.engagementSelectEq).toEqual({
-      col: "data_room_id",
-      val: "room-abc",
-    });
+  it("404s a stranger — a room id is not an oracle", async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: "user-stranger", email: "s@x.test" });
+    mocks.assertProjectScope.mockRejectedValueOnce(
+      Object.assign(new Error("not_found"), { name: "ProjectAccessError", code: "not_found" }),
+    );
+    const res = await GET(getReq("room-1"));
+    expect(res.status).toBe(404);
+    expect(find("data_room_engagement", "select").length).toBe(0);
   });
 
-  it("orders newest-first and caps the pull at 500 rows", async () => {
-    state.engagementEvents = [];
-    await GET(getReq("room-1"));
-    expect(state.calls.engagementSelectOrder).toEqual({
-      col: "occurred_at",
-      ascending: false,
-    });
-    expect(state.calls.engagementSelectLimit).toBe(500);
-  });
-
-  it("returns empty analytics envelope when the tenant has no events", async () => {
-    state.engagementEvents = null;
+  it("lets an accepted project viewer read (member-aware), resolving the role via assertProjectScope", async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: "user-member", email: "m@x.test" });
+    mocks.assertProjectScope.mockResolvedValueOnce({ role: "viewer" });
+    state.events = EVENTS;
     const res = await GET(getReq("room-1"));
     expect(res.status).toBe(200);
+    expect(mocks.assertProjectScope).toHaveBeenCalledWith(expect.objectContaining({ id: "user-member" }), "proj-1", "viewer");
+  });
+
+  it("scopes the events pull to the requested roomId, newest first, capped at 500", async () => {
+    state.events = [];
+    await GET(getReq("room-1"));
+    expect(hasEq("data_room_engagement", "data_room_id", "room-1")).toBe(true);
+    expect(find("data_room_engagement", "order")[0].args).toEqual(["occurred_at", { ascending: false }]);
+    expect(find("data_room_engagement", "limit")[0].args).toEqual([500]);
+    expect(hasEq("data_room_access_tokens", "data_room_id", "room-1")).toBe(true);
+  });
+
+  it("returns an empty envelope (legacy shape + empty heatmap) when the tenant has no events", async () => {
+    state.events = null;
+    state.links = [];
+    const res = await GET(getReq("room-1"));
     const body = await res.json();
-    expect(body.ok).toBe(true);
     expect(body.analytics.totalViews).toBe(0);
     expect(body.analytics.totalEvents).toBe(0);
     expect(body.analytics.sectionHeatmap).toEqual({});
     expect(body.analytics.recentEvents).toEqual([]);
+    expect(body.analytics.heatmap).toEqual({ sections: [], rows: [], maxDwellMs: 0, maxViews: 0, totalEvents: 0 });
   });
 
-  it("counts totalViews from event_type=open only (not section_view etc.)", async () => {
-    state.engagementEvents = [
-      {
-        event_type: "open",
-        section: null,
-        document_name: null,
-        duration_ms: null,
-        scroll_pct: null,
-        occurred_at: "2026-08-01T00:00:00.000Z",
-      },
-      {
-        event_type: "open",
-        section: null,
-        document_name: null,
-        duration_ms: null,
-        scroll_pct: null,
-        occurred_at: "2026-08-02T00:00:00.000Z",
-      },
-      {
-        event_type: "section_view",
-        section: "financials",
-        document_name: null,
-        duration_ms: 1000,
-        scroll_pct: 40,
-        occurred_at: "2026-08-03T00:00:00.000Z",
-      },
-      {
-        event_type: "document_open",
-        section: "financials",
-        document_name: "P&L.pdf",
-        duration_ms: 3000,
-        scroll_pct: null,
-        occurred_at: "2026-08-04T00:00:00.000Z",
-      },
-    ];
-    const res = await GET(getReq("room-1"));
-    const body = await res.json();
-    expect(body.analytics.totalViews).toBe(2);
-    expect(body.analytics.totalEvents).toBe(4);
-  });
-
-  it("builds the per-section heatmap with averaged duration + scroll", async () => {
-    state.engagementEvents = [
-      {
-        event_type: "section_view",
-        section: "financials",
-        document_name: null,
-        duration_ms: 1000,
-        scroll_pct: 40,
-        occurred_at: "2026-08-01T00:00:00.000Z",
-      },
-      {
-        event_type: "section_view",
-        section: "financials",
-        document_name: null,
-        duration_ms: 3000,
-        scroll_pct: 60,
-        occurred_at: "2026-08-02T00:00:00.000Z",
-      },
-      {
-        event_type: "section_view",
-        section: "cap_table",
-        document_name: null,
-        duration_ms: 2000,
-        scroll_pct: 80,
-        occurred_at: "2026-08-03T00:00:00.000Z",
-      },
-    ];
-    const res = await GET(getReq("room-1"));
-    const body = await res.json();
-    // (1000 + 3000) / 2 = 2000; (40 + 60) / 2 = 50
-    expect(body.analytics.sectionHeatmap.financials).toEqual({
-      views: 2,
-      avgDuration: 2000,
-      avgScroll: 50,
-    });
-    expect(body.analytics.sectionHeatmap.cap_table).toEqual({
-      views: 1,
-      avgDuration: 2000,
-      avgScroll: 80,
-    });
-  });
-
-  it("skips events with null section (no phantom '' bucket in the heatmap)", async () => {
-    state.engagementEvents = [
-      {
-        event_type: "open",
-        section: null,
-        document_name: null,
-        duration_ms: null,
-        scroll_pct: null,
-        occurred_at: "2026-08-01T00:00:00.000Z",
-      },
-    ];
-    const res = await GET(getReq("room-1"));
-    const body = await res.json();
-    expect(body.analytics.sectionHeatmap).toEqual({});
-    // But it still counts toward totalEvents and totalViews.
-    expect(body.analytics.totalEvents).toBe(1);
+  it("keeps the legacy per-section averages and counts totalViews from opens only", async () => {
+    state.events = EVENTS;
+    const body = await (await GET(getReq("room-1"))).json();
     expect(body.analytics.totalViews).toBe(1);
+    expect(body.analytics.totalEvents).toBe(5);
+    expect(body.analytics.sectionHeatmap.Team).toEqual({ views: 2, avgDuration: 30000, avgScroll: 90 });
+    expect(body.analytics.sectionHeatmap.Financials).toEqual({ views: 1, avgDuration: 5000, avgScroll: 30 });
+    expect(body.analytics.recentEvents.length).toBe(5);
   });
 
-  it("caps recentEvents at 20 rows (widget renders a compact tail)", async () => {
-    state.engagementEvents = Array.from({ length: 50 }, (_, i) => ({
-      event_type: "section_view",
-      section: "financials",
-      document_name: null,
-      duration_ms: 100,
-      scroll_pct: 50,
-      occurred_at: `2026-08-01T00:00:${String(i).padStart(2, "0")}.000Z`,
-    }));
-    const res = await GET(getReq("room-1"));
-    const body = await res.json();
-    expect(body.analytics.recentEvents.length).toBe(20);
-    // The first 20 rows of the pre-sorted (newest-first) list.
-    expect(body.analytics.recentEvents[0].occurred_at).toBe(
-      "2026-08-01T00:00:00.000Z",
-    );
-  });
-
-  it("rounds averaged duration + scroll to integers", async () => {
-    state.engagementEvents = [
-      {
-        event_type: "section_view",
-        section: "team",
-        document_name: null,
-        duration_ms: 1000,
-        scroll_pct: 33,
-        occurred_at: "2026-08-01T00:00:00.000Z",
-      },
-      {
-        event_type: "section_view",
-        section: "team",
-        document_name: null,
-        duration_ms: 1001,
-        scroll_pct: 34,
-        occurred_at: "2026-08-02T00:00:00.000Z",
-      },
-      {
-        event_type: "section_view",
-        section: "team",
-        document_name: null,
-        duration_ms: 1002,
-        scroll_pct: 34,
-        occurred_at: "2026-08-03T00:00:00.000Z",
-      },
-    ];
-    const res = await GET(getReq("room-1"));
-    const body = await res.json();
-    const heat = body.analytics.sectionHeatmap.team;
-    expect(Number.isInteger(heat.avgDuration)).toBe(true);
-    expect(Number.isInteger(heat.avgScroll)).toBe(true);
-    // (1000 + 1001 + 1002) / 3 = 1001; (33 + 34 + 34) / 3 = 33.66… → 34
-    expect(heat.avgDuration).toBe(1001);
-    expect(heat.avgScroll).toBe(34);
-  });
-
-  it("skips duration/scroll accumulation when the source field is nullish", async () => {
-    state.engagementEvents = [
-      {
-        event_type: "section_view",
-        section: "risks",
-        document_name: null,
-        duration_ms: null,
-        scroll_pct: null,
-        occurred_at: "2026-08-01T00:00:00.000Z",
-      },
-      {
-        event_type: "section_view",
-        section: "risks",
-        document_name: null,
-        duration_ms: 400,
-        scroll_pct: 20,
-        occurred_at: "2026-08-02T00:00:00.000Z",
-      },
-    ];
-    const res = await GET(getReq("room-1"));
-    const body = await res.json();
-    const heat = body.analytics.sectionHeatmap.risks;
-    // The single non-null sample carries the whole average (400 / 2 = 200,
-    // 20 / 2 = 10) because the average uses `views`, not the count of
-    // non-null contributors — pin the current shape so the /workspace
-    // widget wording stays consistent with the numbers.
-    expect(heat.views).toBe(2);
-    expect(heat.avgDuration).toBe(200);
-    expect(heat.avgScroll).toBe(10);
-  });
-
-  it("returns the newest-first event tail verbatim in recentEvents", async () => {
-    const rows: EngagementRow[] = [
-      {
-        event_type: "open",
-        section: null,
-        document_name: null,
-        duration_ms: null,
-        scroll_pct: null,
-        occurred_at: "2026-08-05T00:00:00.000Z",
-      },
-      {
-        event_type: "section_view",
-        section: "team",
-        document_name: null,
-        duration_ms: 500,
-        scroll_pct: 25,
-        occurred_at: "2026-08-04T00:00:00.000Z",
-      },
-    ];
-    state.engagementEvents = rows;
-    const res = await GET(getReq("room-1"));
-    const body = await res.json();
-    expect(body.analytics.recentEvents).toEqual(rows);
-  });
-
-  it("selects only the engagement columns the heatmap depends on", async () => {
-    state.engagementEvents = [];
-    await GET(getReq("room-1"));
-    const cols = state.calls.engagementSelect ?? "";
-    expect(cols).toContain("event_type");
-    expect(cols).toContain("section");
-    expect(cols).toContain("document_name");
-    expect(cols).toContain("duration_ms");
-    expect(cols).toContain("scroll_pct");
-    expect(cols).toContain("occurred_at");
+  it("builds the per-link × section heatmap with human labels and never the token", async () => {
+    state.events = EVENTS;
+    const body = await (await GET(getReq("room-1"))).json();
+    const hm = body.analytics.heatmap;
+    expect(hm.rows.map((r: { label: string }) => r.label)).toEqual(["Blackbird", "Jane"]);
+    expect(hm.sections).toEqual(["Team", "Financials"]);
+    const jane = hm.rows[1];
+    expect(jane.opens).toBe(1);
+    expect(jane.cells).toEqual([
+      { linkId: "l1", section: "Team", views: 2, dwellMs: 60_000 },
+      { linkId: "l1", section: "Financials", views: 0, dwellMs: 0 },
+    ]);
+    expect(hm.maxDwellMs).toBe(60_000);
+    expect(JSON.stringify(body)).not.toContain(TOKEN);
   });
 });

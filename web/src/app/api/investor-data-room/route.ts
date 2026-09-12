@@ -54,6 +54,8 @@ interface ShareBody {
   investorEmail?: string;
   investorFirm?: string;
   expiresInDays?: number | null;
+  /** S21-A — require the NDA on this link even when the room does not. */
+  ndaRequired?: boolean;
 }
 
 function trim(v: unknown, max = 200): string | null {
@@ -118,18 +120,27 @@ async function POST_handler(request: NextRequest) {
   const token = mintShareToken();
   const expiresAt = resolveExpiry(body.expiresInDays);
 
+  // S21-A — the recipient line burned into PDFs served through this link
+  // (mirror of share_packages.watermark, 0251): name, else firm, else email.
+  const investorName = trim(body.investorName);
+  const investorEmail = trim(body.investorEmail);
+  const investorFirm = trim(body.investorFirm);
+  const watermark = investorName ?? investorFirm ?? investorEmail;
+
   const { data: link, error: insertErr } = await supabase
     .from("data_room_access_tokens")
     .insert({
       data_room_id: room.id,
       account_id: user.id,
       token,
-      investor_name: trim(body.investorName),
-      investor_email: trim(body.investorEmail),
-      investor_firm: trim(body.investorFirm),
+      investor_name: investorName,
+      investor_email: investorEmail,
+      investor_firm: investorFirm,
       access_level: "view",
       is_active: true,
       expires_at: expiresAt,
+      nda_required: body.ndaRequired === true,
+      watermark,
     })
     .select("id, created_at")
     .maybeSingle();
@@ -203,7 +214,7 @@ export async function GET(request: NextRequest) {
   const { data: links } = await supabase
     .from("data_room_access_tokens")
     .select(
-      "id, token, data_room_id, investor_name, investor_email, investor_firm, access_count, first_accessed, last_accessed, expires_at, is_active, revoked_at, created_at",
+      "id, token, data_room_id, investor_name, investor_email, investor_firm, access_count, first_accessed, last_accessed, expires_at, is_active, revoked_at, created_at, nda_required, nda_signed_at, nda_signed_version, watermark",
     )
     .eq("account_id", user.id)
     .order("created_at", { ascending: false });
@@ -225,6 +236,12 @@ export async function GET(request: NextRequest) {
       lastAccessed: l.last_accessed ?? null,
       expiresAt: l.expires_at ?? null,
       createdAt: l.created_at ?? null,
+      // S21-A — NDA state per link; the founder's activity shows it.
+      ndaRequired: Boolean(l.nda_required),
+      ndaSignedAt: (l.nda_signed_at as string | null) ?? null,
+      ndaSignedVersion:
+        typeof l.nda_signed_version === "number" ? l.nda_signed_version : null,
+      watermark: (l.watermark as string | null) ?? null,
     })),
   });
 }

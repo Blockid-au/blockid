@@ -624,8 +624,13 @@ describe("public founder rungs claim only what the product ships", () => {
     expect(bullets()).not.toContain("slack");
   });
 
-  it("does not promise watermarking — no renderer watermarks a report", () => {
-    expect(bullets()).not.toContain("watermark");
+  it("sells watermarking only on the rung whose flag delivers it (S21-A: Starter+, investor_links.premium)", () => {
+    // Free must not promise it — a Free room renders clean (lib/dataroom/nda-server
+    // ownerTrustEntitled). Starter carries the flag, so the bullet is true there.
+    const free = PLANS_V2.find((p) => p.id === "founder_free")!;
+    expect(free.features.join(" ").toLowerCase()).not.toContain("watermark");
+    const starter = PLANS_V2.find((p) => p.id === "founder_starter")!;
+    expect(starter.features.join(" ").toLowerCase()).toContain("watermark");
   });
 
   it("does not call any export unlimited — docx_export is credit-metered", () => {
