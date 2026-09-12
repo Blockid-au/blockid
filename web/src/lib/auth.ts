@@ -25,6 +25,7 @@ import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { nanoid } from "nanoid";
+import { createHash } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { getSupabaseAdmin, isSupabaseConfigured } from "./supabase";
 import { initializeCredits } from "./credits";
@@ -844,13 +845,44 @@ export async function autoCreateUserWithTempPassword(
 }
 
 // -----------------------------------------------------------------------------
-// Reset password with temp password. Generates a new temp password for an
-// existing user and returns it for emailing.
+// Password reset — token-based (release QA-4 P2-d, 2026-09-12).
+//
+// The previous `resetWithTempPassword` overwrote `password_hash` the moment
+// anyone POSTed a victim's email, so an unauthenticated caller could lock a
+// founder out (forced reset) 3×/15 min/IP. Now a reset REQUEST only mints a
+// single-use, 30-minute token (stored as a sha256 hash — a DB read cannot
+// replay it) and the hash is rotated only when the token is CONSUMED with a
+// new password. The existing password keeps working until then.
 // -----------------------------------------------------------------------------
 
-export async function resetWithTempPassword(
+export const PASSWORD_RESET_TTL_MIN = 30;
+
+/** 32-char nanoid (~190 bits) — same strength as a session token. */
+export function newPasswordResetToken(): string {
+  return nanoid(32);
+}
+
+/** Only the sha256 of the token is stored (`password_reset_tokens.token_hash`). */
+export function hashPasswordResetToken(token: string): string {
+  return createHash("sha256").update(token, "utf8").digest("hex");
+}
+
+export interface RequestPasswordResetResult {
+  ok: boolean;
+  /** Present only when an account exists — the caller emails it, never returns it. */
+  token?: string;
+  expiresAt?: string;
+  reason?: "not_configured" | "db_error";
+}
+
+/**
+ * Mint a reset token for `email`. Does NOT touch `password_hash`.
+ * Unknown email → `{ ok: true }` with no token (no enumeration).
+ */
+export async function requestPasswordReset(
   email: string,
-): Promise<{ ok: boolean; tempPassword?: string; reason?: string }> {
+  opts?: { ipHash?: string | null },
+): Promise<RequestPasswordResetResult> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { ok: false, reason: "not_configured" };
 
@@ -866,18 +898,95 @@ export async function resetWithTempPassword(
     return { ok: true };
   }
 
-  const tempPassword = generateTempPassword();
-  const hash = await bcrypt.hash(tempPassword, BCRYPT_ROUNDS);
-
-  const { error } = await supabase
-    .from("app_users")
-    .update({ password_hash: hash })
-    .eq("id", user.id);
-
+  const token = newPasswordResetToken();
+  const expiresAt = new Date(Date.now() + PASSWORD_RESET_TTL_MIN * 60 * 1000).toISOString();
+  const { error } = await supabase.from("password_reset_tokens").insert({
+    token_hash: hashPasswordResetToken(token),
+    user_id: user.id,
+    email: normalised,
+    expires_at: expiresAt,
+    ip_hash: opts?.ipHash ?? null,
+  });
   if (error) {
-    console.error("[blockid:auth] reset temp password failed", error);
+    console.error("[blockid:auth] password_reset_tokens insert failed", error);
+    return { ok: false, reason: "db_error" };
+  }
+  return { ok: true, token, expiresAt };
+}
+
+export interface ConsumePasswordResetResult {
+  ok: boolean;
+  userId?: string;
+  email?: string;
+  reason?:
+    | "not_configured"
+    | "weak_password"
+    | "invalid_token"
+    | "expired"
+    | "already_used"
+    | "db_error";
+}
+
+/**
+ * Consume a reset token: verify (exists, unused, unexpired), flip
+ * `consumed_at` FIRST so it can never be replayed, then rotate
+ * `password_hash`. Other sessions for the user are revoked best-effort —
+ * a reset is the standard "I may have lost control of this account" signal.
+ */
+export async function consumePasswordReset(
+  token: string,
+  newPassword: string,
+): Promise<ConsumePasswordResetResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { ok: false, reason: "not_configured" };
+  if (typeof newPassword !== "string" || newPassword.length < 8) {
+    return { ok: false, reason: "weak_password" };
+  }
+  if (typeof token !== "string" || token.length < 16 || token.length > 128) {
+    return { ok: false, reason: "invalid_token" };
+  }
+
+  const tokenHash = hashPasswordResetToken(token);
+  const { data: row, error: readErr } = await supabase
+    .from("password_reset_tokens")
+    .select("token_hash, user_id, email, expires_at, consumed_at")
+    .eq("token_hash", tokenHash)
+    .maybeSingle();
+  if (readErr) {
+    console.error("[blockid:auth] password_reset_tokens read failed", readErr);
+    return { ok: false, reason: "db_error" };
+  }
+  if (!row) return { ok: false, reason: "invalid_token" };
+  if (row.consumed_at) return { ok: false, reason: "already_used" };
+  if (new Date(row.expires_at as string).getTime() < Date.now()) {
+    return { ok: false, reason: "expired" };
+  }
+
+  // Flip consumed_at first; if anything below fails the token can't be replayed.
+  const { error: consumeErr } = await supabase
+    .from("password_reset_tokens")
+    .update({ consumed_at: new Date().toISOString() })
+    .eq("token_hash", tokenHash)
+    .is("consumed_at", null);
+  if (consumeErr) {
+    console.error("[blockid:auth] password_reset_tokens consume failed", consumeErr);
     return { ok: false, reason: "db_error" };
   }
 
-  return { ok: true, tempPassword };
+  const hash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+  const userId = String(row.user_id);
+  const { error: updErr } = await supabase
+    .from("app_users")
+    .update({ password_hash: hash })
+    .eq("id", userId);
+  if (updErr) {
+    console.error("[blockid:auth] password reset — hash rotate failed", updErr);
+    return { ok: false, reason: "db_error" };
+  }
+
+  // Best-effort: sign out every existing session for this user.
+  const { error: sessErr } = await supabase.from("sessions").delete().eq("user_id", userId);
+  if (sessErr) console.warn("[blockid:auth] password reset — session revoke failed", sessErr);
+
+  return { ok: true, userId, email: String(row.email) };
 }

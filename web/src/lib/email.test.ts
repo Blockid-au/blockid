@@ -625,28 +625,32 @@ describe("sendPasswordReset (transactional — no unsub check)", () => {
 
   it("never calls canSendEmail so a fully-unsubscribed user still gets their reset", async () => {
     const { sendPasswordReset } = await import("./email");
-    await sendPasswordReset({ to: "a@b.co", tempPassword: "hunter2!" });
+    await sendPasswordReset({ to: "a@b.co", token: "tok_abc" });
     expect(canSendEmailMock).not.toHaveBeenCalled();
     expect(ensureEmailPreferencesMock).not.toHaveBeenCalled();
   });
 
-  it("renders the temp password inline in the HTML body", async () => {
+  it("renders a single-use /auth/reset link carrying the token (never a password)", async () => {
+    // Release QA-4 P2-d: the mail carries a link, the hash rotates on consume.
     const { sendPasswordReset } = await import("./email");
-    await sendPasswordReset({ to: "a@b.co", tempPassword: "TempPw123!" });
-    expect(lastMail().html).toContain("TempPw123!");
+    await sendPasswordReset({ to: "a@b.co", token: "tok/with?chars", ttlMinutes: 30 });
+    const html = lastMail().html;
+    expect(html).toContain("/auth/reset?token=tok%2Fwith%3Fchars");
+    expect(html).toContain("30 minutes");
+    expect(html).not.toMatch(/temporary password|Your New Password/i);
   });
 
   it("does NOT stamp a List-Unsubscribe header (no unsubscribeUrl passed through)", async () => {
     const { sendPasswordReset } = await import("./email");
-    await sendPasswordReset({ to: "a@b.co", tempPassword: "x" });
+    await sendPasswordReset({ to: "a@b.co", token: "x" });
     const headers = lastMail().headers ?? {};
     expect(headers["List-Unsubscribe"]).toBeUndefined();
   });
 
   it("uses Vietnamese subject when locale='vi'", async () => {
     const { sendPasswordReset } = await import("./email");
-    await sendPasswordReset({ to: "a@b.co", tempPassword: "x", locale: "vi" });
-    expect(lastMail().subject).toBe("BlockID — Mat Khau Moi Cua Ban");
+    await sendPasswordReset({ to: "a@b.co", token: "x", locale: "vi" });
+    expect(lastMail().subject).toBe("BlockID — Dat Lai Mat Khau Cua Ban");
   });
 });
 
