@@ -322,4 +322,24 @@ describe("scripts/sync-stripe-pricing.mjs — credit-pack rows match CREDIT_PACK
       CREDIT_PACKS.map((p) => ({ credits: p.credits, priceAudCents: p.priceAudCents })),
     );
   });
+
+  // QA-3 P1-5 (2026-09-12): the Startup Package (plans.csv founder_package,
+  // 14900¢ once) was absent from the script, so `--fix` could never mint its
+  // one-off price and the env var silently pointed at a recurring one.
+  it("declares the founder_package row as a one-off A$149 (matches plans.csv) with inclusive tax", () => {
+    const m = /planId:\s*"founder_package"[^\n]*/.exec(source);
+    expect(m, "founder_package row present").not.toBeNull();
+    const row = m![0];
+    expect(row).toContain("configCents: 14900");
+    expect(row).toContain('cadence: "one-off"');
+    expect(row).toContain('envVar: "STRIPE_PRICE_STARTUP_PACKAGE"');
+    expect(row).toContain('taxBehavior: "inclusive"');
+    const csv = readFileSync(resolve(__dirname, "../config/pricing/plans.csv"), "utf8");
+    expect(csv).toMatch(/^founder_package,founder,Startup Package,14900,0,once,0,STRIPE_PRICE_STARTUP_PACKAGE,/m);
+  });
+
+  it("audits Stripe cadence (one_time vs recurring) so a same-cents recurring price cannot pass as a one-off", () => {
+    expect(source).toContain("CADENCE_DRIFT");
+    expect(source).toMatch(/price\.type === "one_time"/);
+  });
 });

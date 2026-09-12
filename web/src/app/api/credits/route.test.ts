@@ -97,6 +97,19 @@ vi.mock("@/lib/stripe/idempotency", () => ({
     mocks.sessionIdempotencyKeyMock(kind, parts),
 }));
 
+const enforceRateLimitMock = vi.hoisted(() =>
+  vi.fn<(route: string, identity: string | null | undefined, req: Request, max: number, windowMs: number) => Response | null>(),
+);
+vi.mock("@/lib/rate-limit", () => ({
+  enforceRateLimit: (
+    route: string,
+    identity: string | null | undefined,
+    req: Request,
+    max: number,
+    windowMs: number,
+  ) => enforceRateLimitMock(route, identity, req, max, windowMs),
+}));
+
 import { GET, POST, dynamic } from "./route";
 
 const USER: AppUser = {
@@ -132,6 +145,7 @@ async function json(res: Response): Promise<Record<string, unknown>> {
 }
 
 beforeEach(() => {
+  enforceRateLimitMock.mockReset().mockReturnValue(null);
   mocks.getCurrentUserMock.mockReset().mockResolvedValue(USER);
   mocks.getBalanceMock.mockReset().mockResolvedValue(150);
   mocks.getTransactionHistoryMock.mockReset().mockResolvedValue([
@@ -340,6 +354,34 @@ describe("POST /api/credits — Stripe Checkout path", () => {
     await POST(postReq({ amount: 25 }));
     const call = mocks.stripeCreateMock.mock.calls[0]?.[0];
     expect(call?.customer_email).toBe(USER.email);
+  });
+
+  it("enables automatic_tax + tax_id_collection + billing address (GST line on the receipt — QA-3 P1-5)", async () => {
+    await POST(postReq({ amount: 25 }));
+    const call = mocks.stripeCreateMock.mock.calls[0]?.[0];
+    expect(call?.automatic_tax).toEqual({ enabled: true });
+    expect(call?.tax_id_collection).toEqual({ enabled: true });
+    expect(call?.billing_address_collection).toBe("required");
+  });
+
+  it("rate-limits Checkout minting per user: 10 / 15 min, keyed on user.id (QA-3 P1-10)", async () => {
+    await POST(postReq({ amount: 25 }));
+    expect(enforceRateLimitMock).toHaveBeenCalledWith(
+      "credits-checkout",
+      USER.id,
+      expect.any(Request),
+      10,
+      15 * 60 * 1000,
+    );
+  });
+
+  it("returns the limiter's 429 and never reaches Stripe when the cap is hit", async () => {
+    enforceRateLimitMock.mockReturnValueOnce(
+      new Response(JSON.stringify({ ok: false }), { status: 429, headers: { "Retry-After": "60" } }),
+    );
+    const blocked = await POST(postReq({ amount: 25 }));
+    expect(blocked.status).toBe(429);
+    expect(mocks.stripeCreateMock).not.toHaveBeenCalled();
   });
 
   it("passes an idempotencyKey to the Stripe create call (double-click safety)", async () => {

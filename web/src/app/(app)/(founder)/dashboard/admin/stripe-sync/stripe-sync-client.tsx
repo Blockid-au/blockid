@@ -21,6 +21,8 @@ interface Props {
 const STATUS_META: Record<PlanAuditRow["status"], { label: string; color: string; bg: string; icon: typeof CheckCircle2 }> = {
   match: { label: "Match", color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/20", icon: CheckCircle2 },
   drift: { label: "DRIFT", color: "text-red-700 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950/20", icon: AlertTriangle },
+  // QA-3 P1-5: amount matches but one-off vs recurring (or the interval) does not — checkout mode will not match the Price.
+  cadence_drift: { label: "CADENCE DRIFT", color: "text-red-700 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950/20", icon: AlertTriangle },
   archived: { label: "Archived", color: "text-amber-700 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/20", icon: Archive },
   missing_price_id: { label: "Missing ID", color: "text-amber-700 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/20", icon: AlertTriangle },
   stripe_not_configured: { label: "Stripe off", color: "text-muted-foreground", bg: "bg-muted/30", icon: XCircle },
@@ -129,7 +131,7 @@ export function StripeSyncClient({ initialAudit }: Props) {
               const meta = STATUS_META[row.status];
               const Icon = meta.icon;
               const result = results[row.planId];
-              const needsCreate = row.status === "drift" || row.status === "archived";
+              const needsCreate = row.status === "drift" || row.status === "cadence_drift" || row.status === "archived";
               return (
                 <React.Fragment key={row.planId}>
                   <tr className="hover:bg-muted/20 transition-colors">
