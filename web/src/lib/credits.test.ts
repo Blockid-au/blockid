@@ -85,6 +85,8 @@ describe("FEATURE_COSTS", () => {
     // T0271 — evaluator ladder (docs/plans/evaluator-traction-2026-09-10.md §3b)
     expect(FEATURE_COSTS.trust_report).toBe(3.0);
     expect(FEATURE_COSTS.trust_report_rescore).toBe(1.0);
+    // S22-A — investor-DD valuation certificate (included for Growth+ / Startup Package)
+    expect(FEATURE_COSTS.valuation_certificate).toBe(5);
   });
 
   it("keeps every 0-cost 'free' feature at exactly 0 (not undefined)", () => {
