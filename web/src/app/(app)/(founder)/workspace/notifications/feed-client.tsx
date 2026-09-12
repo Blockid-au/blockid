@@ -25,6 +25,7 @@ import {
   Sparkles,
   RefreshCw,
   Radar,
+  Webhook,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -81,6 +82,7 @@ export const KIND_META: Record<string, { icon: typeof Bell; color: string; label
   new_matches: { icon: Sparkles, color: "text-violet-600", label: "New matches" },
   analysis_refresh: { icon: RefreshCw, color: "text-ink-600", label: "Analysis refreshed" },
   radar_setup_nudge: { icon: Radar, color: "text-amber-600", label: "Founder Radar setup" },
+  webhook_disabled: { icon: Webhook, color: "text-red-600", label: "Webhook paused" },
 };
 
 function timeAgo(iso: string): string {
