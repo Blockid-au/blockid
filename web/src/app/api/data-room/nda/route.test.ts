@@ -185,6 +185,18 @@ describe("POST /api/data-room/nda", () => {
     expect((up2.args[0] as { viewer_email: unknown }).viewer_email).toBe("partner@blackbird.vc");
   });
 
+  it("keys the ledger row on the ROOM OWNER, not the member who minted the link (P2-6)", async () => {
+    setup({ ...LINK, account_id: "member-7" }, { ...ROOM, user_id: "owner-1" });
+    await POST(req({ token: TOKEN, version: 2 }));
+    const [up] = sb.find("data_room_nda_acceptances", "upsert");
+    expect((up.args[0] as { account_id: string }).account_id).toBe("owner-1");
+    // Only a room with no owner on record falls back to the minter.
+    setup({ ...LINK, account_id: "member-7" }, { ...ROOM, user_id: null });
+    await POST(req({ token: TOKEN, version: 2 }));
+    const [up2] = sb.find("data_room_nda_acceptances", "upsert");
+    expect((up2.args[0] as { account_id: string }).account_id).toBe("member-7");
+  });
+
   it("hashes the clause the founder actually set, not the default, when one exists", async () => {
     setup(LINK, { ...ROOM, nda_text: "Keep it secret." });
     await POST(req({ token: TOKEN, version: 2 }));

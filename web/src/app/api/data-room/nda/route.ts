@@ -105,7 +105,10 @@ async function POST_handler(req: NextRequest) {
     {
       data_room_id: room.id,
       access_token_id: link.id,
-      account_id: link.account_id ?? room.user_id,
+      // Tenancy key = the ROOM OWNER (RLS drna_owner_select, 0339). A link
+      // minted by a project member carries the member's id in
+      // `account_id`; the ledger must not follow it (S21-A review P2-6).
+      account_id: room.user_id ?? link.account_id,
       nda_version: gate.version,
       nda_text_sha256: ndaTextHash(gate.text),
       viewer_email: parsed.email,
