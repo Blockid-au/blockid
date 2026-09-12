@@ -14,6 +14,7 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 import type { GtmStrategyOutput } from "@/lib/agents/cmo-market-research";
+import { AdviceDisclaimer } from "./advice-disclaimer";
 
 const C = {
   ink900: "#0F172A",
@@ -259,6 +260,9 @@ export function GtmStrategyPDF({ input }: { input: GtmStrategyPdfInput }) {
             validate CAC payback under 18 months.
           </Text>
         </View>
+
+        {/* QA-3 P1-7: general-advice disclaimer */}
+        <AdviceDisclaimer />
 
         <Text style={s.footer}>
           Prepared by BlockID.au — Page 2 of 2 · Go-to-Market Playbook

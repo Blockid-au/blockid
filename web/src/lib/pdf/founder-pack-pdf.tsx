@@ -13,6 +13,7 @@ import {
   StyleSheet,
   renderToBuffer,
 } from "@react-pdf/renderer";
+import { AdviceDisclaimer } from "./advice-disclaimer";
 import type { HydratedFounderPack } from "@/lib/idea-phase/persist";
 
 const C = {
@@ -352,6 +353,9 @@ export function FounderPackPDF({ data }: { data: FounderPackPdfData }) {
           </>
         )}
 
+        {/* QA-3 P1-7: general-advice disclaimer on page 1 (always rendered) */}
+        <AdviceDisclaimer />
+
         <View style={styles.footer} fixed>
           <Text>{shareUrl}</Text>
           <Text>
@@ -582,6 +586,9 @@ export function FounderPackPDF({ data }: { data: FounderPackPdfData }) {
               — every page in this PDF is a checkpoint, not a final answer.
             </Text>
           </View>
+
+          {/* Equity split / funding plan is the page most likely to be forwarded on its own */}
+          <AdviceDisclaimer variant="financial" />
 
           <View style={styles.footer} fixed>
             <Text>{shareUrl}</Text>

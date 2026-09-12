@@ -15,6 +15,7 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 import type { FinancialProjectionOutput } from "@/lib/agents/cfo-financial-projection";
+import { AdviceDisclaimer } from "./advice-disclaimer";
 
 const C = {
   ink900: "#0F172A",
@@ -238,6 +239,9 @@ export function FinancialProjectionPDF({
           <Text style={s.sectionTitle}>Investor takeaway</Text>
           <Text style={s.para}>{data.narrative.investorTakeaway}</Text>
         </View>
+
+        {/* QA-3 P1-7: forward-looking + general-advice disclaimer */}
+        <AdviceDisclaimer variant="financial" />
 
         <Text style={s.footer}>
           Prepared by BlockID.au · Sources: {data.sources.slice(0, 2).join("; ")}
