@@ -123,3 +123,77 @@ export {
   computeDimensionPercentiles,
   type DimensionPercentileResult,
 } from "@/lib/svi-dimension-benchmarks";
+
+// ─── Positioning label (T0254) ────────────────────────────────────────────────
+// Translates a percentile + cohort context into a founder-friendly
+// "Top X% of AU ${stage} startups" phrase for dashboards, reports, and share
+// links. Pure function — no I/O, safe to call on any surface.
+
+export type PositioningTier =
+  | "elite"
+  | "top"
+  | "above_median"
+  | "approaching_median"
+  | "early";
+
+export interface StartupPositioning {
+  tier: PositioningTier;
+  /** Short label suitable for a dashboard chip. */
+  headline: string;
+  /** Long-form phrase with cohort context. */
+  detail: string;
+}
+
+/**
+ * Map a percentile + cohort context to a founder-friendly positioning phrase.
+ *
+ * Tiers:
+ *   • elite               (≥95): top 1–5 %
+ *   • top                 (75–94): top 6–25 %
+ *   • above_median        (50–74)
+ *   • approaching_median  (25–49)
+ *   • early               (0–24): priority upgrade zone
+ *
+ * The detail suffix distinguishes a real-cohort result ("based on N AU peers")
+ * from a benchmark fallback ("benchmark estimate") so surfaces can label the
+ * claim honestly.
+ */
+export function startupPositioning(input: {
+  percentile: number;
+  cohortSize: number;
+  source: "real_cohort" | "benchmark_fallback";
+  stageLabel?: string;
+}): StartupPositioning {
+  const { cohortSize, source, stageLabel } = input;
+  const p = Math.max(0, Math.min(100, Math.round(input.percentile)));
+  const stageBit = stageLabel ? `${stageLabel} ` : "";
+  const cohortBit =
+    source === "real_cohort" && cohortSize > 0
+      ? ` (based on ${cohortSize} AU peers)`
+      : " (benchmark estimate)";
+
+  let tier: PositioningTier;
+  let headline: string;
+  if (p >= 95) {
+    tier = "elite";
+    headline = `Elite — top ${Math.max(1, 100 - p)}% of AU ${stageBit}startups`;
+  } else if (p >= 75) {
+    tier = "top";
+    headline = `Top ${100 - p}% of AU ${stageBit}startups`;
+  } else if (p >= 50) {
+    tier = "above_median";
+    headline = `Above median for AU ${stageBit}startups`;
+  } else if (p >= 25) {
+    tier = "approaching_median";
+    headline = `Approaching median for AU ${stageBit}startups`;
+  } else {
+    tier = "early";
+    headline = "Early-stage development — priority upgrade zone";
+  }
+
+  return {
+    tier,
+    headline,
+    detail: `${headline}${cohortBit}`,
+  };
+}

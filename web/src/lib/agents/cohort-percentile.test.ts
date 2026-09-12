@@ -59,7 +59,7 @@ vi.mock("@/lib/supabase", () => ({
   },
 }));
 
-import { computeCohortPercentile } from "./cohort-percentile";
+import { computeCohortPercentile, startupPositioning } from "./cohort-percentile";
 
 function makeRows(scores: number[]): Array<{ svi: number; stage: number }> {
   return scores.map((s) => ({ svi: s, stage: 3 }));
@@ -404,5 +404,165 @@ describe("computeCohortPercentile", () => {
     expect(result.cohortSize).toBe(20);
     // 9 scores strictly below 100 → 9/20 = 45.
     expect(result.percentile).toBe(45);
+  });
+});
+
+describe("startupPositioning", () => {
+  it("returns elite tier for the top 5% with a real-cohort suffix", () => {
+    const r = startupPositioning({
+      percentile: 97,
+      cohortSize: 60,
+      source: "real_cohort",
+      stageLabel: "seed",
+    });
+    expect(r.tier).toBe("elite");
+    expect(r.headline).toBe("Elite — top 3% of AU seed startups");
+    expect(r.detail).toBe(
+      "Elite — top 3% of AU seed startups (based on 60 AU peers)",
+    );
+  });
+
+  it("clamps the 'top X%' floor to 1% when percentile is 100", () => {
+    const r = startupPositioning({
+      percentile: 100,
+      cohortSize: 40,
+      source: "real_cohort",
+      stageLabel: "MVP",
+    });
+    expect(r.tier).toBe("elite");
+    expect(r.headline).toBe("Elite — top 1% of AU MVP startups");
+  });
+
+  it("returns top tier for the 75–94 band", () => {
+    const r = startupPositioning({
+      percentile: 82,
+      cohortSize: 47,
+      source: "real_cohort",
+      stageLabel: "pre-seed",
+    });
+    expect(r.tier).toBe("top");
+    expect(r.headline).toBe("Top 18% of AU pre-seed startups");
+    expect(r.detail).toContain("based on 47 AU peers");
+  });
+
+  it("returns above_median for the 50–74 band and omits the numeric top-X phrase", () => {
+    const r = startupPositioning({
+      percentile: 62,
+      cohortSize: 30,
+      source: "real_cohort",
+      stageLabel: "seed",
+    });
+    expect(r.tier).toBe("above_median");
+    expect(r.headline).toBe("Above median for AU seed startups");
+    expect(r.headline).not.toMatch(/top \d/i);
+  });
+
+  it("returns approaching_median for the 25–49 band", () => {
+    const r = startupPositioning({
+      percentile: 33,
+      cohortSize: 25,
+      source: "real_cohort",
+      stageLabel: "Concept",
+    });
+    expect(r.tier).toBe("approaching_median");
+    expect(r.headline).toBe("Approaching median for AU Concept startups");
+  });
+
+  it("returns early tier for the 0–24 band with a coaching phrase, not a bottom-X percentage", () => {
+    const r = startupPositioning({
+      percentile: 12,
+      cohortSize: 25,
+      source: "real_cohort",
+      stageLabel: "Concept",
+    });
+    expect(r.tier).toBe("early");
+    expect(r.headline).toBe(
+      "Early-stage development — priority upgrade zone",
+    );
+    expect(r.headline).not.toMatch(/bottom/i);
+  });
+
+  it("uses a benchmark-estimate suffix when the source is fallback", () => {
+    const r = startupPositioning({
+      percentile: 60,
+      cohortSize: 8, // real cohort too small — caller passed fallback source
+      source: "benchmark_fallback",
+      stageLabel: "seed",
+    });
+    expect(r.detail).toBe(
+      "Above median for AU seed startups (benchmark estimate)",
+    );
+  });
+
+  it("uses the benchmark-estimate suffix when cohortSize is 0 even on real_cohort", () => {
+    const r = startupPositioning({
+      percentile: 80,
+      cohortSize: 0,
+      source: "real_cohort",
+      stageLabel: "seed",
+    });
+    expect(r.detail).toContain("(benchmark estimate)");
+  });
+
+  it("omits the stage label cleanly when none is provided", () => {
+    const r = startupPositioning({
+      percentile: 80,
+      cohortSize: 30,
+      source: "real_cohort",
+    });
+    expect(r.headline).toBe("Top 20% of AU startups");
+    expect(r.headline).not.toMatch(/undefined/);
+  });
+
+  it("clamps a negative percentile to 0 (early tier)", () => {
+    const r = startupPositioning({
+      percentile: -12,
+      cohortSize: 25,
+      source: "real_cohort",
+      stageLabel: "seed",
+    });
+    expect(r.tier).toBe("early");
+  });
+
+  it("clamps a > 100 percentile to 100 (elite tier)", () => {
+    const r = startupPositioning({
+      percentile: 240,
+      cohortSize: 25,
+      source: "real_cohort",
+      stageLabel: "seed",
+    });
+    expect(r.tier).toBe("elite");
+    expect(r.headline).toBe("Elite — top 1% of AU seed startups");
+  });
+
+  it("uses inclusive boundaries: 95 → elite, 75 → top, 50 → above_median, 25 → approaching_median", () => {
+    const commonCohort = { cohortSize: 40, source: "real_cohort" as const };
+    expect(startupPositioning({ percentile: 95, ...commonCohort }).tier).toBe(
+      "elite",
+    );
+    expect(startupPositioning({ percentile: 75, ...commonCohort }).tier).toBe(
+      "top",
+    );
+    expect(startupPositioning({ percentile: 50, ...commonCohort }).tier).toBe(
+      "above_median",
+    );
+    expect(startupPositioning({ percentile: 25, ...commonCohort }).tier).toBe(
+      "approaching_median",
+    );
+    expect(startupPositioning({ percentile: 24, ...commonCohort }).tier).toBe(
+      "early",
+    );
+  });
+
+  it("rounds a fractional percentile before applying tier bands", () => {
+    // 74.6 → rounds to 75 → top band, not above_median.
+    const r = startupPositioning({
+      percentile: 74.6,
+      cohortSize: 40,
+      source: "real_cohort",
+      stageLabel: "seed",
+    });
+    expect(r.tier).toBe("top");
+    expect(r.headline).toBe("Top 25% of AU seed startups");
   });
 });
