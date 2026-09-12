@@ -538,6 +538,55 @@ export async function sendMagicLink(args: {
   return sendEmail({ to: args.to, subject, html, unsubscribeUrl });
 }
 
+// ---------- existing-account notice -------------------------------------------
+// TRANSACTIONAL: sent when someone tries to REGISTER with an email that is
+// already on file. The HTTP response is the same generic 200 as a fresh
+// signup ("check your email"), so the only party told the account exists is
+// the mailbox owner (release QA-4 P2-a — no user enumeration on register).
+
+export async function sendExistingAccountNotice(args: {
+  to: string;
+  locale?: "en" | "vi";
+}): Promise<SendResult> {
+  const isVi = args.locale === "vi";
+  const loginUrl = `${siteUrl()}/auth/login`;
+  const resetUrl = `${siteUrl()}/auth/login?reset=1`;
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const subject = isVi ? "Ban da co tai khoan BlockID" : "You already have a BlockID account";
+  const headline = isVi ? "Tai khoan cua ban da ton tai" : "Your account already exists";
+  const sub = isVi
+    ? "Ai do (co the la ban) vua thu tao tai khoan BlockID voi email nay. Ban da co tai khoan — hay dang nhap, hoac dat lai mat khau neu ban quen."
+    : "Someone (probably you) just tried to create a BlockID account with this email. You already have one — sign in, or reset your password if you have forgotten it.";
+
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(headline)}</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${escapeHtml(sub)}</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+            <tr>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${loginUrl}" style="display:inline-block;width:100%;background:#2563EB;color:#FFFFFF;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${isVi ? "Dang Nhap" : "Sign In"}</a></td>
+              <td width="4%"></td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${resetUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${isVi ? "Dat Lai Mat Khau" : "Reset Password"}</a></td>
+            </tr>
+          </table>
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:0 0 16px 0;">
+          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">${isVi
+    ? `Neu ban khong thuc hien viec nay, ban co the bo qua email — tai khoan cua ban khong thay doi. Thac mac: ${ADMIN_EMAIL}.`
+    : `If this wasn't you, you can safely ignore this email — nothing about your account has changed. Questions: ${ADMIN_EMAIL}.`
+  }</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl, args.locale)}`);
+
+  return sendEmail({ to: args.to, subject, html, unsubscribeUrl });
+}
+
 // ---------- score-viewed -------------------------------------------------------
 
 export async function sendScoreViewed(args: {

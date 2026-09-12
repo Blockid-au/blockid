@@ -12,6 +12,10 @@ import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
+/** The ONE message every failed credential check returns (P2-a). */
+export const GENERIC_LOGIN_ERROR =
+  "Invalid email or password. If you signed up with Google or a magic link, use that method or reset your password.";
+
 async function POST_handler(request: Request) {
   // Rate limit: 5 attempts per IP per 15 minutes
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
@@ -54,17 +58,21 @@ async function POST_handler(request: Request) {
     });
 
     if (!result.ok) {
+      // Release QA-4 P2-a — the failure reason stays in the server log only.
+      // `no_password` (known account with no password set) and
+      // `invalid_credentials` (unknown email / wrong password) MUST be
+      // indistinguishable to the caller: one message, one status, no
+      // `reason` field — otherwise an attacker can enumerate which emails
+      // exist and which auth method they use. Infrastructure failures are
+      // a 503 so the client can retry, still without an account hint.
       console.warn("[auth:login-password] failed:", result.reason);
-      const msg = result.reason === "no_password"
-        ? "This account uses Google or magic link login. Set a password first or use those methods."
-        : result.reason === "invalid_credentials"
-          ? "Invalid email or password"
-          : result.reason === "not_configured"
-            ? "Authentication service unavailable"
-            : result.reason === "db_error"
-              ? "Database error — please try again"
-              : `Login failed (${result.reason ?? "unknown"})`;
-      return NextResponse.json({ ok: false, error: msg, reason: result.reason }, { status: 401 });
+      if (result.reason === "not_configured" || result.reason === "db_error") {
+        return NextResponse.json(
+          { ok: false, error: "Authentication service unavailable — please try again" },
+          { status: 503 },
+        );
+      }
+      return NextResponse.json({ ok: false, error: GENERIC_LOGIN_ERROR }, { status: 401 });
     }
 
     await setSessionCookie(result.sessionToken!);

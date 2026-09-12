@@ -6,12 +6,17 @@
 
 import { NextResponse } from "next/server";
 import { registerWithPassword, setSessionCookie, isValidEmail } from "@/lib/auth";
+import { sendExistingAccountNotice } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { claimForCurrentBrowser } from "@/lib/analyses/claim";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
 import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
+
+/** Generic response body for a signup that could not be completed inline (P2-a). */
+export const CHECK_EMAIL_MESSAGE =
+  "Check your email to continue — we've sent you a message with your next step.";
 
 // Strip HTML tags to prevent stored XSS
 function sanitizeName(raw: unknown): string | undefined {
@@ -58,12 +63,22 @@ async function POST_handler(request: Request) {
     });
 
     if (!result.ok) {
-      const msg = result.reason === "email_taken"
-        ? "An account with this email already exists. Try logging in instead."
-        : result.reason === "weak_password"
-          ? "Password must be at least 8 characters"
-          : "Registration failed";
-      return NextResponse.json({ ok: false, error: msg }, { status: result.reason === "email_taken" ? 409 : 400 });
+      if (result.reason === "email_taken") {
+        // Release QA-4 P2-a — never confirm to the caller that an account
+        // exists. The response is the same generic "check your email" a
+        // fresh signup would get when it needs confirmation; the mailbox
+        // owner is told they already have an account (with sign-in / reset
+        // links) so the legitimate user is not stranded. No session, no
+        // claim. Fire-and-forget: a mail failure must not change the response.
+        void sendExistingAccountNotice({ to: (email as string).trim().toLowerCase() }).catch((err) => {
+          console.error("[auth:register] existing-account notice failed", err);
+        });
+        return NextResponse.json({ ok: true, pending: true, message: CHECK_EMAIL_MESSAGE });
+      }
+      const msg = result.reason === "weak_password"
+        ? "Password must be at least 8 characters"
+        : "Registration failed";
+      return NextResponse.json({ ok: false, error: msg }, { status: 400 });
     }
 
     await setSessionCookie(result.sessionToken!);
