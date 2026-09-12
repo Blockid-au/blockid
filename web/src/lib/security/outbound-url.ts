@@ -193,17 +193,18 @@ export function makePinnedLookup(pinned: readonly string[] = [], opts: Pick<Outb
     const family = typeof options === "object" && options !== null ? Number(options.family) || 0 : 0;
     const finish = (addresses: string[]) => {
       const bad = addresses.find((a) => isPrivateIp(a));
-      if (bad) return callback(new OutboundLookupRefusedError(hostname, `private_ip:${bad}`));
+      if (bad) return callback(new OutboundLookupRefusedError(hostname, `private_ip:${bad}`), []);
       let rows = addresses.map((a) => ({ address: a, family: isIP(a) }));
       if (family === 4 || family === 6) rows = rows.filter((r) => r.family === family);
-      if (!rows.length) return callback(new OutboundLookupRefusedError(hostname, "no_addresses"));
+      if (!rows.length) return callback(new OutboundLookupRefusedError(hostname, "no_addresses"), []);
       if (wantAll) return callback(null, rows);
       return callback(null, rows[0].address, rows[0].family);
     };
     const literal = hostname.replace(/^\[|\]$/g, "");
     if (isIP(literal)) return finish([literal]);
     if (pinnedList.length) return finish(pinnedList);
-    (opts.resolve ?? defaultResolve)(hostname).then(finish, (err: unknown) => callback(err instanceof Error ? err : new Error(String(err))));
+    // On error Node ignores the address argument; the typed signature still wants one.
+    (opts.resolve ?? defaultResolve)(hostname).then(finish, (err: unknown) => callback(err instanceof Error ? err : new Error(String(err)), []));
   };
 }
 
