@@ -64,11 +64,10 @@ export function defaultAction(route: string, method: MutationMethod): string {
 export function defaultEntity(route: string): string {
   const fam = routeFamily(route);
   const last = fam.split(".").pop() ?? fam;
-  return last.endsWith("ies")
-    ? last.slice(0, -3) + "y"
-    : last.endsWith("s") && !last.endsWith("ss")
-      ? last.slice(0, -1)
-      : last;
+  if (last.endsWith("yses")) return last.slice(0, -4) + "ysis";
+  if (last.endsWith("ies")) return last.slice(0, -3) + "y";
+  if (last.endsWith("s") && !last.endsWith("ss")) return last.slice(0, -1);
+  return last;
 }
 
 // ---------------------------------------------------------------------------
@@ -83,7 +82,9 @@ const LOOKS_SECRET_RE =
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const ID_LIKE_RE = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
+const ID_LIKE_RE = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/;
+/** `foo_id` / `fooId` / `id` keys are identifiers even when the stem is sensitive (`stripe_session_id`). */
+const ID_KEY_RE = /(?:^id$|_id$|Id$)/;
 
 export const REDACTED = "[redacted]";
 
@@ -116,7 +117,7 @@ export function redactDetail(input: unknown, depth = 0): unknown {
     let n = 0;
     for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
       if (n++ >= 24) break;
-      if (SENSITIVE_KEY_RE.test(k)) continue;
+      if (!ID_KEY_RE.test(k) && SENSITIVE_KEY_RE.test(k)) continue;
       out[k.slice(0, 64)] = redactDetail(v, depth + 1);
     }
     return out;
@@ -134,7 +135,7 @@ export function pickIdParams(
   if (!params || typeof params !== "object") return null;
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(params as Record<string, unknown>)) {
-    if (SENSITIVE_KEY_RE.test(k)) continue;
+    if (!ID_KEY_RE.test(k) && SENSITIVE_KEY_RE.test(k)) continue;
     const s = Array.isArray(v) ? v.join("/") : typeof v === "string" ? v : null;
     if (s && isIdLike(s)) out[k] = s;
   }

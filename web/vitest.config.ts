@@ -18,6 +18,7 @@ export default defineConfig({
       "src/**/*.test.tsx",
       "tests/chrome/**/*.test.ts",
       "scripts/docs/**/*.test.ts",
+      "scripts/codemods/**/*.test.mjs",
       "../scripts/**/*.test.mjs",
     ],
     exclude: ["**/node_modules/**", "**/.next/**"],

@@ -113,7 +113,7 @@ export function transformSource(src, routeRel) {
   out = out.replace(CONST_RE, (whole, kw, method, typeAnn) => {
     if (already.has(method) || todo.includes(method)) return whole;
     todo.push(method);
-    return `${kw} ${method}_handler${typeAnn ?? ""} =`;
+    return `${kw} ${method}_handler${typeAnn ? typeAnn.trimEnd() : ""} =`;
   });
 
   if (todo.length === 0) return { changed: false, src, methods: [] };

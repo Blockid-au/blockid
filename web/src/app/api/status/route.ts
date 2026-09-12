@@ -13,6 +13,7 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { cronSecret, safeEqualStrings } from "@/lib/security/cron-auth";
+import { readChainStatus, type AuditChainStatus } from "@/lib/audit/chain-verify";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
@@ -58,6 +59,13 @@ type StatusResponse = {
   };
   last_deploy: DeployRow;
   crons: CronRow[];
+  /**
+   * S20-A — integrity of the hash-chained `audit_events` log as last
+   * verified by /api/cron/audit-chain-verify (`unknown` = never run or
+   * stale > 48h). Distinct from the `audit_chain` SERVICE row, which is the
+   * EVM chain RPC probe.
+   */
+  audit_chain: AuditChainStatus;
 };
 
 // Whether the caller is trusted enough to see the full internal telemetry
@@ -346,12 +354,13 @@ function computeUptimeFromCrons(crons: CronRow[]): number | undefined {
 // ---------- Handler ----------
 
 export async function GET(): Promise<Response> {
-  const [healthz, crons, fallbackSha, fallbackVersion, trusted] = await Promise.all([
+  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain] = await Promise.all([
     fetchHealthz(2000),
     summariseCrons().catch(() => [] as CronRow[]),
     readGitShaFallback(),
     readVersionFallback(),
     isTrustedCaller(),
+    readChainStatus(REPO_ROOT).catch(() => ({ status: "unknown" as const })),
   ]);
 
   const last_deploy = await readLastDeploy(fallbackSha).catch(() => ({
@@ -393,6 +402,7 @@ export async function GET(): Promise<Response> {
       gates_expected: last_deploy.gates_expected,
     },
     crons: [],
+    audit_chain: auditChain.status,
   };
 
   const fullBody: StatusResponse = {
@@ -403,6 +413,7 @@ export async function GET(): Promise<Response> {
     slo,
     last_deploy,
     crons,
+    audit_chain: auditChain.status,
   };
 
   return NextResponse.json(trusted ? fullBody : publicBody, {
