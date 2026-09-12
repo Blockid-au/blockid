@@ -56,7 +56,8 @@ describe("contrast helper", () => {
 describe("globals.css light tokens meet WCAG AA on white (release QA-1 #7)", () => {
   it("--color-ink-400 (default muted meta) is ≥ 4.5:1 on white", () => {
     const v = light.get("color-ink-400")!;
-    expect(v).toBe("#68778c");
+    expect(v).toBe("#647389");
+    expect(contrastRatio(v, OFF_WHITE), "on surface-100 (showcase separators, tool cards)").toBeGreaterThanOrEqual(AA_TEXT);
     expect(contrastRatio(v, WHITE)).toBeGreaterThanOrEqual(AA_TEXT);
   });
 

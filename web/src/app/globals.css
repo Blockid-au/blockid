@@ -19,9 +19,11 @@
   --color-ink-500: #64748b;
   /* Release QA-1 #7 (2026-09-12): was #94a3b8 (slate-400, 2.56:1 on white —
      59 pa11y contrast failures on /tools/*, insights meta, showcase
-     separators). #68778c is 4.56:1 on white; the dark scope keeps its own
+     separators). #647389 is 4.82:1 on white and 4.61:1 on the #f8fafc
+     surface-100 ground (pa11y's #68778c suggestion was 4.36:1 there —
+     the showcase "·" separators sit on it); the dark scope keeps its own
      value. `globals.contrast.test.ts` pins both. */
-  --color-ink-400: #68778c; /* default muted meta — AA on white */
+  --color-ink-400: #647389; /* default muted meta — AA on white + surface-100 */
   --color-ink-300: #cbd5e1; /* mid muted */
   --color-ink-200: #e2e8f0; /* light muted */
   --color-ink-100: #f8fafc; /* near-white, decorative */
@@ -512,7 +514,7 @@
   --color-ink-700: #334155;
   --color-ink-600: #475569;
   --color-ink-500: #64748b;
-  --color-ink-400: #68778c; /* release QA-1 #7 — same AA value as the @theme ramp */
+  --color-ink-400: #647389; /* release QA-1 #7 — same AA value as the @theme ramp */
   --color-ink-300: #cbd5e1;
   --color-ink-200: #e2e8f0;
   --color-ink-100: #f8fafc;
