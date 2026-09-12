@@ -14,6 +14,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { redactPii } from "@/lib/log-redact";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
+import { openToken } from "@/lib/oauth-token-seal";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -145,6 +146,14 @@ export async function POST(request: Request) {
         results.push({ email: account.email, status: "skipped", reason: "no_token" });
         continue;
       }
+      // S23-A — tokens are sealed at rest; an unsealed row after the key
+      // was set (or one no configured key opens) is refused, never used.
+      const accessToken = openToken(conn.access_token);
+      if (!accessToken) {
+        skipped++;
+        results.push({ email: account.email, status: "skipped", reason: "token_unreadable" });
+        continue;
+      }
 
       // Determine top dimension from latest analysis
       let topDimension = "Traction & Revenue";
@@ -164,7 +173,7 @@ export async function POST(request: Request) {
       const postText = buildPostText(score, stage, topDimension, topScore);
 
       // Get LinkedIn personId
-      const personId = await getPersonId(conn.access_token, conn.metadata as Record<string, unknown> | null);
+      const personId = await getPersonId(accessToken, conn.metadata as Record<string, unknown> | null);
       if (!personId) {
         skipped++;
         results.push({ email: account.email, status: "skipped", reason: "no_person_id" });
@@ -197,7 +206,7 @@ export async function POST(request: Request) {
       const postRes = await fetch("https://api.linkedin.com/v2/ugcPosts", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${conn.access_token}`,
+          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
           "X-Restli-Protocol-Version": "2.0.0",
         },

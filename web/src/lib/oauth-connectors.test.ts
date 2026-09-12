@@ -154,6 +154,8 @@ function callsFor(table: string): CapturedCall[] {
 
 const ENV_KEYS = [
   "OAUTH_TOKEN_ENCRYPTION_KEY",
+  "OAUTH_TOKEN_ENCRYPTION_KEY_PREVIOUS",
+  "OAUTH_TOKEN_MIGRATION",
   "GITHUB_OAUTH_CLIENT_ID",
   "GITHUB_CLIENT_ID",
   "STRIPE_OAUTH_CLIENT_ID",
@@ -311,6 +313,135 @@ describe("oauth-connectors — decrypt", () => {
     process.env.OAUTH_TOKEN_ENCRYPTION_KEY = hex;
     const { decrypt: decryptHex } = await import("./oauth-connectors");
     expect(decryptHex(enc)).toBe("token");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// S23-A — sealed at rest: fail-closed open, migration flag, rotation,
+// tokenUnreadable on the row helper
+// ---------------------------------------------------------------------------
+
+function v2Row(over: Record<string, unknown>): Record<string, unknown> {
+  return {
+    id: "conn-1",
+    user_id: "u-1",
+    project_id: null,
+    provider: "github",
+    provider_account_id: "gh-42",
+    access_token_encrypted: null,
+    refresh_token_encrypted: null,
+    scopes: [],
+    expires_at: null,
+    status: "active",
+    last_sync_at: null,
+    last_sync_error: null,
+    metadata: {},
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-02-01T00:00:00Z",
+    ...over,
+  };
+}
+
+describe("oauth-connectors — S23-A sealed at rest", () => {
+  it("decrypt REFUSES an obf: row once a key is set (migration flag off) — null, logged once", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    process.env.OAUTH_TOKEN_ENCRYPTION_KEY = "k";
+    const { decrypt, encrypt } = await import("./oauth-connectors");
+    const obf = `obf:${Buffer.from("plain-token", "utf8").toString("base64")}`;
+    expect(decrypt(obf)).toBeNull();
+    expect(decrypt(obf)).toBeNull();
+    expect(err).toHaveBeenCalledTimes(1);
+    // …while a freshly sealed token still opens
+    expect(decrypt(encrypt("fresh"))).toBe("fresh");
+    err.mockRestore();
+  });
+
+  it("decrypt accepts obf: with OAUTH_TOKEN_MIGRATION=1 (transitional, until the reseal script has run)", async () => {
+    process.env.OAUTH_TOKEN_ENCRYPTION_KEY = "k";
+    process.env.OAUTH_TOKEN_MIGRATION = "1";
+    const { decrypt } = await import("./oauth-connectors");
+    expect(decrypt(`obf:${Buffer.from("plain-token", "utf8").toString("base64")}`)).toBe("plain-token");
+  });
+
+  it("decrypt falls back to OAUTH_TOKEN_ENCRYPTION_KEY_PREVIOUS after a rotation", async () => {
+    process.env.OAUTH_TOKEN_ENCRYPTION_KEY = "old-key";
+    const { encrypt } = await import("./oauth-connectors");
+    const sealedOld = encrypt("rotate-me");
+    vi.resetModules();
+    process.env.OAUTH_TOKEN_ENCRYPTION_KEY = "new-key";
+    process.env.OAUTH_TOKEN_ENCRYPTION_KEY_PREVIOUS = "old-key";
+    const { decrypt, encrypt: encryptNew } = await import("./oauth-connectors");
+    expect(decrypt(sealedOld)).toBe("rotate-me");
+    expect(decrypt(encryptNew("x"))).toBe("x");
+  });
+
+  it("encrypt THROWS in production without a key (never persists plaintext-equivalent tokens)", async () => {
+    const { sealToken, OAuthSealKeyMissingError } = await import("./oauth-connectors");
+    expect(() => sealToken("tok", { NODE_ENV: "production" } as NodeJS.ProcessEnv)).toThrow(OAuthSealKeyMissingError);
+  });
+
+  it("resealToken is re-exported for the migration script's TS callers", async () => {
+    process.env.OAUTH_TOKEN_ENCRYPTION_KEY = "k";
+    const { resealToken, decrypt } = await import("./oauth-connectors");
+    const r = resealToken(`obf:${Buffer.from("plain-token", "utf8").toString("base64")}`);
+    expect(r.action).toBe("resealed");
+    expect(decrypt(r.sealed)).toBe("plain-token");
+  });
+
+  it("getConnection: an obf: row under a key → accessToken null + tokenUnreadable true (connector shows reconnect)", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    process.env.OAUTH_TOKEN_ENCRYPTION_KEY = "k";
+    state.queue = [{ data: v2Row({ access_token_encrypted: `obf:${Buffer.from("gh-token").toString("base64")}` }) }];
+    const { getConnection } = await import("./oauth-connectors");
+    const c = await getConnection("u-1", "github");
+    expect(c?.accessToken).toBeNull();
+    expect(c?.tokenUnreadable).toBe(true);
+    expect(c?.status).toBe("active"); // status is the DB's word; unreadable is the vault's
+  });
+
+  it("getConnection: a sealed row under the right key → tokenUnreadable false", async () => {
+    process.env.OAUTH_TOKEN_ENCRYPTION_KEY = "k";
+    const { encrypt } = await import("./oauth-connectors");
+    const sealed = encrypt("gh-token");
+    vi.resetModules();
+    state.queue = [{ data: v2Row({ access_token_encrypted: sealed }) }];
+    const { getConnection } = await import("./oauth-connectors");
+    const c = await getConnection("u-1", "github");
+    expect(c?.accessToken).toBe("gh-token");
+    expect(c?.tokenUnreadable).toBe(false);
+  });
+
+  it("getConnection: no stored token at all → tokenUnreadable false (nothing to read)", async () => {
+    process.env.OAUTH_TOKEN_ENCRYPTION_KEY = "k";
+    state.queue = [{ data: v2Row({}) }];
+    const { getConnection } = await import("./oauth-connectors");
+    const c = await getConnection("u-1", "github");
+    expect(c?.tokenUnreadable).toBe(false);
+  });
+
+  it("getConnection: readable access token but unreadable refresh token → tokenUnreadable true", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    process.env.OAUTH_TOKEN_ENCRYPTION_KEY = "k";
+    const { encrypt } = await import("./oauth-connectors");
+    const sealed = encrypt("gh-token");
+    vi.resetModules();
+    state.queue = [{ data: v2Row({ access_token_encrypted: sealed, refresh_token_encrypted: "raw-refresh" }) }];
+    const { getConnection } = await import("./oauth-connectors");
+    const c = await getConnection("u-1", "github");
+    expect(c?.accessToken).toBe("gh-token");
+    expect(c?.refreshToken).toBeNull();
+    expect(c?.tokenUnreadable).toBe(true);
+  });
+
+  it("saveConnection writes gcm: sealed columns under a key (never obf:)", async () => {
+    process.env.OAUTH_TOKEN_ENCRYPTION_KEY = "k";
+    state.queue = [{ data: null }, { data: v2Row({}) }];
+    const { saveConnection } = await import("./oauth-connectors");
+    await saveConnection({ userId: "u-1", provider: "github", providerAccountId: "gh", accessToken: "a", refreshToken: "r" });
+    const ins = callsFor("oauth_connections_v2").find((c) => c.insertPayload);
+    const payload = ins?.insertPayload as { access_token_encrypted: string; refresh_token_encrypted: string };
+    expect(payload.access_token_encrypted.startsWith("gcm:")).toBe(true);
+    expect(payload.refresh_token_encrypted.startsWith("gcm:")).toBe(true);
   });
 });
 

@@ -14,6 +14,8 @@
 //   5. Dependency vulns — npm audit summary (high/critical count).
 //   6. Supabase RLS     — % of tables in supabase/migrations with RLS enabled.
 //   7. Deploy hygiene   — last deploy < 7d, git push not behind > 5 commits.
+//   8. OAuth tokens     — S23-A: connector tokens sealed (gcm:) at rest — key set
+//                         and zero obf:/raw rows (lib/security/oauth-token-health).
 //
 // Schedule: daily 22:30 UTC (08:30 AEST). Cheap (~5s). Surfaces straight into
 // CISO daily brief via content/reports/security-posture.json.
@@ -25,6 +27,7 @@ import { promisify } from "util";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { sendTelegram, mdEscape } from "@/lib/telegram";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
+import { readOAuthTokenHealth } from "@/lib/security/oauth-token-health";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -283,6 +286,24 @@ async function scoreDeployHygiene(): Promise<DimensionScore> {
   };
 }
 
+async function scoreOAuthTokensSealed(): Promise<DimensionScore> {
+  const key = "oauth_tokens_sealed";
+  const label = "OAuth connector tokens sealed at rest (S23-A)";
+  const h = await readOAuthTokenHealth({ force: true }).catch(() => null);
+  if (!h || h.status === "unknown") {
+    return { key, label, score: 5, detail: "could not count token rows — unable to verify", findings: ["Supabase unreachable or count query failed; see oauth-token-health"] };
+  }
+  const v2 = h.unsealed?.oauth_connections_v2 ?? 0;
+  const legacy = h.unsealed?.oauth_connections ?? 0;
+  if (h.status === "no_key") {
+    return { key, label, score: 0, detail: "OAUTH_TOKEN_ENCRYPTION_KEY unset — tokens stored plaintext-equivalent", findings: ["Mint OAUTH_TOKEN_ENCRYPTION_KEY (docs/ops/oauth-token-sealing.md) and run scripts/reseal-oauth-tokens.mjs --write"] };
+  }
+  if (h.status === "obf_rows_present") {
+    return { key, label, score: 3, detail: `key set; ${v2} v2 + ${legacy} legacy rows still unsealed`, findings: [`oauth_connections_v2: ${v2} unsealed row(s)`, `oauth_connections: ${legacy} unsealed row(s)`, "Run scripts/reseal-oauth-tokens.mjs --write, then unset OAUTH_TOKEN_MIGRATION"] };
+  }
+  return { key, label, score: 10, detail: "key set; every stored connector token is gcm: sealed", findings: [] };
+}
+
 function buildRecommendations(dims: DimensionScore[]): string[] {
   const recs: string[] = [];
   const weakest = [...dims].sort((a, b) => a.score - b.score).slice(0, 3);
@@ -295,6 +316,7 @@ function buildRecommendations(dims: DimensionScore[]): string[] {
     if (d.key === "deps" && d.score < 7) recs.push("Run `npm audit fix` for moderate; manually upgrade high/critical");
     if (d.key === "supabase_rls" && d.score < 9) recs.push("Add `alter table <name> enable row level security` migrations for uncovered tables");
     if (d.key === "deploy_hygiene" && d.score < 8) recs.push("Run deploy-live.sh during next off-peak window + git push outstanding commits");
+    if (d.key === "oauth_tokens_sealed" && d.score < 10) recs.push("Seal OAuth tokens: mint OAUTH_TOKEN_ENCRYPTION_KEY, run scripts/reseal-oauth-tokens.mjs --dry-run then --write (docs/ops/oauth-token-sealing.md)");
   }
   return recs;
 }
@@ -316,6 +338,7 @@ export async function POST(request: Request) {
     scoreDeps(),
     scoreSupabaseRls(),
     scoreDeployHygiene(),
+    scoreOAuthTokensSealed(),
   ]);
 
   // Overall: weighted average × 10 → 0–100.

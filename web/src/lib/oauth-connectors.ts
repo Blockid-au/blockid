@@ -1,6 +1,6 @@
 import "server-only";
-import crypto from "crypto";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { sealToken, openToken } from "@/lib/oauth-token-seal";
 
 export type OAuthProvider = "github" | "stripe" | "ga4";
 
@@ -12,6 +12,12 @@ export interface OAuthConnection {
   providerAccountId: string | null;
   accessToken: string | null;
   refreshToken: string | null;
+  /**
+   * S23-A — a token IS stored but could not be opened (plaintext-equivalent
+   * row refused while a key is set, or a `gcm:` payload no configured key
+   * opens). The connector must show "reconnect" rather than "connected".
+   */
+  tokenUnreadable: boolean;
   scopes: string[];
   expiresAt: string | null;
   status: "active" | "revoked" | "error";
@@ -22,45 +28,24 @@ export interface OAuthConnection {
   updatedAt: string;
 }
 
-// AES-256-GCM at rest. Falls back to a base64 "obf:" wrapper when
-// OAUTH_TOKEN_ENCRYPTION_KEY is unset so local dev doesn't 500 — a later
-// hardening pass just needs to set the env var.
-function getKey(): Buffer | null {
-  const raw = process.env.OAUTH_TOKEN_ENCRYPTION_KEY;
-  if (!raw) return null;
-  if (raw.length === 64) return Buffer.from(raw, "hex");
-  return crypto.createHash("sha256").update(raw).digest();
-}
+// S23-A — tokens are sealed by `lib/oauth-token-seal.ts` (AES-256-GCM,
+// fail-closed open, previous-key rotation). `encrypt`/`decrypt` stay as the
+// historical names for this vault; both delegate.
+export {
+  sealToken,
+  openToken,
+  resealToken,
+  classifyToken,
+  isPlaintextEquivalent,
+  OAuthSealKeyMissingError,
+} from "@/lib/oauth-token-seal";
 
 export function encrypt(plain: string | null | undefined): string | null {
-  if (plain == null || plain === "") return null;
-  const key = getKey();
-  if (!key) return `obf:${Buffer.from(plain, "utf8").toString("base64")}`;
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
-  const enc = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return `gcm:${iv.toString("base64")}:${tag.toString("base64")}:${enc.toString("base64")}`;
+  return sealToken(plain);
 }
 
 export function decrypt(payload: string | null | undefined): string | null {
-  if (!payload) return null;
-  if (payload.startsWith("obf:")) {
-    return Buffer.from(payload.slice(4), "base64").toString("utf8");
-  }
-  if (payload.startsWith("gcm:")) {
-    const [, ivB64, tagB64, dataB64] = payload.split(":");
-    const key = getKey();
-    if (!key) return null;
-    const iv = Buffer.from(ivB64, "base64");
-    const tag = Buffer.from(tagB64, "base64");
-    const data = Buffer.from(dataB64, "base64");
-    const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
-    decipher.setAuthTag(tag);
-    const dec = Buffer.concat([decipher.update(data), decipher.final()]);
-    return dec.toString("utf8");
-  }
-  return payload;
+  return openToken(payload);
 }
 
 interface OAuthConnectionRow {
@@ -82,14 +67,20 @@ interface OAuthConnectionRow {
 }
 
 function rowToConnection(row: OAuthConnectionRow): OAuthConnection {
+  const accessToken = openToken(row.access_token_encrypted);
+  const refreshToken = openToken(row.refresh_token_encrypted);
+  const tokenUnreadable =
+    (Boolean(row.access_token_encrypted) && accessToken === null) ||
+    (Boolean(row.refresh_token_encrypted) && refreshToken === null);
   return {
     id: row.id,
     userId: row.user_id,
     projectId: row.project_id,
     provider: row.provider,
     providerAccountId: row.provider_account_id,
-    accessToken: decrypt(row.access_token_encrypted),
-    refreshToken: decrypt(row.refresh_token_encrypted),
+    accessToken,
+    refreshToken,
+    tokenUnreadable,
     scopes: row.scopes ?? [],
     expiresAt: row.expires_at,
     status: row.status,
@@ -161,8 +152,8 @@ export async function saveConnection(
     project_id: args.projectId ?? null,
     provider: args.provider,
     provider_account_id: args.providerAccountId,
-    access_token_encrypted: encrypt(args.accessToken),
-    refresh_token_encrypted: encrypt(args.refreshToken ?? null),
+    access_token_encrypted: sealToken(args.accessToken),
+    refresh_token_encrypted: sealToken(args.refreshToken ?? null),
     scopes: args.scopes ?? [],
     expires_at: args.expiresAt ?? null,
     status: "active" as const,
