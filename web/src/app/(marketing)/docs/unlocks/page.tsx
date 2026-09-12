@@ -102,7 +102,7 @@ function Chip({ cell }: { cell: GroupCell }) {
     return (
       <span
         title={STATE_NOTE[cell.state]}
-        className="inline-flex items-center rounded-full border border-dashed border-line px-2 py-0.5 text-[11px] text-muted"
+        className="inline-flex items-center rounded-full border border-dashed border-line px-2 py-0.5 text-xs text-muted"
       >
         Later: {cell.label}
       </span>
@@ -114,7 +114,7 @@ function Chip({ cell }: { cell: GroupCell }) {
   return (
     <span
       title={`${cell.visibleItems} rows${notes.length ? ` · ${notes.join(", ")} dimmed` : ""}`}
-      className="inline-flex items-center gap-1 rounded-full border border-line-subtle bg-surface px-2 py-0.5 text-[11px] text-primary"
+      className="inline-flex items-center gap-1 rounded-full border border-line-subtle bg-surface px-2 py-0.5 text-xs text-primary"
     >
       {cell.label}
       {notes.length > 0 ? <span className="text-muted">({notes.join(", ")})</span> : null}
@@ -188,7 +188,7 @@ export default function UnlocksPage() {
             <caption className="sr-only">
               Table 1 — growth phase by plan: which sidebar groups open on each plan at each phase
             </caption>
-            <thead className="bg-surface-sunken text-[11px] uppercase tracking-wider text-muted">
+            <thead className="bg-surface-sunken text-xs uppercase tracking-wider text-muted">
               <tr>
                 <th scope="col" className="px-3 py-3 font-semibold">
                   #
@@ -213,7 +213,7 @@ export default function UnlocksPage() {
                   <td className="px-3 py-3 font-mono tabular-nums text-muted">{p.order}</td>
                   <td className="px-3 py-3">
                     <span className="font-semibold text-primary">{p.labelEn}</span>
-                    <span className="block font-mono text-[11px] text-muted">{p.id}</span>
+                    <span className="block font-mono text-xs text-muted">{p.id}</span>
                   </td>
                   {columns.map((c) => (
                     <td key={c.id} className="px-3 py-3">
@@ -256,7 +256,7 @@ export default function UnlocksPage() {
         <div className="overflow-x-auto rounded-2xl border border-line-subtle">
           <table className="w-full min-w-[820px] text-left text-sm" data-testid="unlock-rules-table">
             <caption className="sr-only">Table 2 — exit gate per phase: required evidence, SVI dimension floors and what unlocks next</caption>
-            <thead className="bg-surface-sunken text-[11px] uppercase tracking-wider text-muted">
+            <thead className="bg-surface-sunken text-xs uppercase tracking-wider text-muted">
               <tr>
                 <th scope="col" className="px-3 py-3 font-semibold">
                   #

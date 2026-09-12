@@ -80,7 +80,7 @@ export function HowItWorksSection({
     >
       <div className="mx-auto max-w-5xl px-6">
         <div className="mb-12 text-center">
-          <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.28em] text-muted">
+          <p className="mb-3 font-mono text-xs uppercase tracking-[0.28em] text-muted">
             How it works
           </p>
           <h2

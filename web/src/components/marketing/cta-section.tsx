@@ -42,7 +42,7 @@ export function CTASection({ className }: { className?: string }) {
             />
 
             <p
-              className="relative mb-4 font-mono text-[11px] uppercase tracking-[0.28em]"
+              className="relative mb-4 font-mono text-xs uppercase tracking-[0.28em]"
               style={{ color: "#94A3B8" }}
             >
               Free to start · No credit card

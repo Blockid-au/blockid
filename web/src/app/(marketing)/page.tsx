@@ -182,7 +182,7 @@ export default async function HomePage() {
           <div className="mx-auto max-w-6xl px-6">
             <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start lg:gap-12">
               <div>
-                <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted">
+                <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted">
                   What is it worth
                 </p>
                 <h2
@@ -222,7 +222,7 @@ export default async function HomePage() {
         >
           <div className="mx-auto max-w-6xl px-6">
             <div className="max-w-2xl">
-              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted">
+              <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted">
                 What state am I in
               </p>
               <h2
@@ -281,7 +281,7 @@ export default async function HomePage() {
         >
           <div className="mx-auto max-w-6xl px-6">
             <div className="max-w-2xl">
-              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted">
+              <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted">
                 And where on the path
               </p>
               <h2
@@ -317,7 +317,7 @@ export default async function HomePage() {
         >
           <div className="mx-auto max-w-6xl px-6">
             <div className="max-w-2xl">
-              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted">
+              <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted">
                 What do I do next
               </p>
               <h2
@@ -382,7 +382,7 @@ export default async function HomePage() {
         >
           <div className="mx-auto max-w-6xl px-6">
             <div className="max-w-2xl">
-              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted">
+              <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted">
                 What it costs
               </p>
               <h2

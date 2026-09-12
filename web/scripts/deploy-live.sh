@@ -1119,7 +1119,12 @@ sleep 5
 # distinct dynamic-render cache entry is hot before the deterministic
 # first-render smoke assertion probes it (Next 16 keys the RSC cache on
 # the full URL including searchParams).
-WARMUP_URLS=(/ /pricing "/pricing?tier=accelerator" /roadmap /dashboard/portfolio /funding /funding/report/demo /docs/unlocks /compare/chatgpt /solutions/accelerator)
+WARMUP_URLS=(/ /pricing "/pricing?tier=accelerator" /roadmap /dashboard/portfolio /funding /funding/report/demo /docs/unlocks /compare/chatgpt /solutions/accelerator /signup)
+# /signup NEVER reaches Playwright's `networkidle` (Stripe.js telemetry to
+# r.stripe.com/b keeps firing while the card element is mounted — release
+# QA-1 #19). Every check against it, here (curl) and in post-deploy.spec.ts,
+# keys off `domcontentloaded` + a visible hydrated element. Do not add a
+# networkidle wait for that page to any gate.
 echo "  ℹ  Warming up ${#WARMUP_URLS[@]} routes before hydrated smoke..."
 for url in "${WARMUP_URLS[@]}"; do
   for i in {1..3}; do

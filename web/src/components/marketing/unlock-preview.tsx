@@ -131,7 +131,7 @@ export function UnlockPreview({ tone = "sunken", className = "" }: UnlockPreview
     >
       <div className="mx-auto max-w-6xl px-6">
         <div className="max-w-2xl">
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted">
+          <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted">
             What you unlock after login
           </p>
           <h2
