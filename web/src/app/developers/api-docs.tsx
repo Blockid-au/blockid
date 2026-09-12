@@ -140,6 +140,56 @@ const ENDPOINTS: Endpoint[] = [
 }`,
   },
   {
+    method: "POST",
+    path: "/api/evaluations/batch",
+    title: "Batch Scoring (Program)",
+    description:
+      "Queue up to 200 of your evaluations for scoring in one batch. Nothing runs inline — the off-peak runner scores 5 per tick and records one Trust BizReport per success against your monthly quota (a failed item consumes nothing). Optional rubric_weights re-weight the 8 SVI dimensions. Requires Program (A$349/mo inc. GST) or an Enterprise plan; Scout / Firm receive 403 feature_locked with an upgrade hint. GET the same path to list your batches; GET /api/evaluations/batch/{id}/export.csv downloads the cohort table.",
+    credits: 0,
+    body: `{
+  "evaluation_ids": ["3f9c…", "a81d…"],
+  "name": "Cohort 12 — Q3 intake",
+  "rubric_weights": { "ftv": 1.5, "mpc": 1, "ptd": 1, "tre": 1.2, "cgh": 1, "iri": 1, "lco": 1, "svm": 1 }
+}`,
+    response: `{
+  "ok": true,
+  "batch_id": "b7e2…",
+  "queued": 2,
+  "quota_left": 98,
+  "batch": { "id": "b7e2…", "name": "Cohort 12 — Q3 intake", "status": "queued", "total": 2, "done": 0 }
+}`,
+  },
+  {
+    method: "GET",
+    path: "/api/reports/quarterly?batch={id}",
+    title: "Sponsor / LP Report Export (Program)",
+    description:
+      "Print-ready quarterly report for a scored batch (or ?cohort={id} for an accelerator cohort): cover, cohort summary (n, median SVI, movers), one line per startup, methodology footnote and evaluator disclaimer. Returns text/html — use your browser's Save as PDF. Requires the lp_report / lp_export entitlement (Program, VC Enterprise, Cohort Enterprise).",
+    credits: 0,
+    response: `HTTP/1.1 200 OK
+Content-Type: text/html; charset=utf-8
+
+<!doctype html>… (quarterly report document) …`,
+  },
+  {
+    method: "POST",
+    path: "/api/webhooks",
+    title: "Register an Outbound Webhook",
+    description:
+      "Register an HTTPS endpoint to receive svi.rescored, evidence.uploaded, funding.report_ready and evaluation.report_ready events. The signing secret is returned once. Deliveries carry X-BlockID-Signature (t=<unix>,v1=<hex> HMAC-SHA256 of `${t}.${rawBody}`), X-BlockID-Event and an idempotent X-BlockID-Delivery id; retries at 1 min, 10 min, 1 h and 6 h. Available on Growth and Startup Package founder plans and every evaluator plan; 20 creates per hour. Verification snippet: /docs#webhooks.",
+    credits: 0,
+    body: `{
+  "url": "https://example.com/hooks/blockid",
+  "events": ["svi.rescored", "evaluation.report_ready"],
+  "description": "CRM sync"
+}`,
+    response: `{
+  "ok": true,
+  "endpoint": { "id": "wh_…", "url": "https://example.com/hooks/blockid", "events": ["svi.rescored", "evaluation.report_ready"], "status": "active" },
+  "secret": "whsec_… (shown once)"
+}`,
+  },
+  {
     method: "GET",
     path: "/api/credits",
     title: "Check Credit Balance",
@@ -310,8 +360,17 @@ export function ApiDocs() {
             <code className="rounded bg-surface-100 px-1.5 py-0.5 text-xs font-mono text-brand-700">
               Authorization
             </code>{" "}
-            header. API keys are available on the{" "}
-            <strong>Growth plan ($499/mo)</strong> and above.
+            header. API access is included with{" "}
+            <strong>Program (A$349/mo inc. GST)</strong> and{" "}
+            <strong>Enterprise</strong> plans (Enterprise, VC Enterprise,
+            Cohort Enterprise) — see{" "}
+            <Link
+              href="/pricing?segment=evaluator"
+              className="text-brand-600 underline underline-offset-2"
+            >
+              evaluator pricing
+            </Link>
+            . Prices are in AUD and include GST.
           </p>
 
           <CodeBlock
@@ -327,13 +386,13 @@ export function ApiDocs() {
                   className="h-4 w-4 text-brand-600"
                 />
                 <p className="text-sm font-semibold text-ink-800">
-                  Growth Plan
+                  Program
                 </p>
               </div>
               <p className="text-xs text-ink-500">
                 100 requests/minute rate limit
               </p>
-              <p className="text-xs text-ink-400 mt-1">$499/mo</p>
+              <p className="text-xs text-ink-400 mt-1">A$349/mo inc. GST</p>
             </div>
             <div className="rounded-xl border border-surface-200 bg-surface-50 p-4">
               <div className="flex items-center gap-2 mb-2">
@@ -480,10 +539,10 @@ export function ApiDocs() {
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="rounded-xl border border-brand-200 bg-brand-50/50 p-5">
               <p className="text-xs font-semibold text-brand-600 uppercase tracking-wider mb-1">
-                Growth Plan
+                Program
               </p>
               <p className="text-2xl font-bold text-ink-800">
-                $499<span className="text-sm font-normal text-ink-400">/mo</span>
+                A$349<span className="text-sm font-normal text-ink-400">/mo inc. GST</span>
               </p>
               <ul className="mt-3 space-y-1.5 text-sm text-ink-600">
                 <li className="flex items-center gap-2">
@@ -588,12 +647,13 @@ export function ApiDocs() {
             Ready to integrate?
           </h2>
           <p className="mt-3 text-base text-ink-500 max-w-md mx-auto">
-            Get API access with the Growth plan or purchase credit packs for
-            pay-per-use access.
+            API access is included with Program (A$349/mo inc. GST) and
+            Enterprise plans. Credit packs cover pay-per-use calls on any
+            plan.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link
-              href="/pricing"
+              href="/pricing?segment=evaluator"
               className="inline-flex h-12 items-center gap-2.5 rounded-2xl bg-brand-600 px-8 text-base font-semibold text-white hover:bg-brand-700 transition-colors cta-glow"
             >
               Get API Access{" "}

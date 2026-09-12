@@ -175,7 +175,7 @@ const VERSION_HISTORY = [
       "[Fix] Reseller login — grant /reseller access via reseller_admins membership check",
       "[Fix] Post-onboarding redirect → /workspace/guide/01-vision",
       "[Fix] lifecycle-mailer + trial-end-reminder cron POST method fix",
-      "[Fix] STRIPE_PRICE_STARTUP_PACKAGE wired — A$149 checkout no longer broken",
+      "[Fix] STRIPE_PRICE_STARTUP_PACKAGE env var read by checkout (the id it pointed at was a recurring Advisor price until 2026-09-12, when a one-off A$149 Startup Package price was minted in Stripe and the env corrected — release QA-3)",
       "[Fix] Redis rate-limit hardened against bad REDIS_URL — 0.18s response time restored",
       "[AI] Model IDs updated: Claude Sonnet 4.6, Haiku 4.5, Opus 4.7 — cost tracking fixed",
       "[AI] Free provider chain optimized: Cerebras → Groq → SambaNova priority, 128 socket pool",
