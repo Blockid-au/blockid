@@ -345,6 +345,10 @@ export type RateLimitBucket =
   | "auth-login"
   | "auth-register"
   | "auth-password-reset"
+  // QA-3 P1-9 (2026-09-12) — /api/lead (contact form + waitlists): 10 per
+  // IP per 10 minutes. Anonymous, writes a DB row and (for source=contact)
+  // pages support, so it needs a slower window than the per-minute buckets.
+  | "lead"
   | "default";
 
 export type RateLimitResult = {
@@ -379,8 +383,19 @@ const BUCKET_LIMITS_PER_MINUTE: Record<RateLimitBucket, number> = {
   "auth-login": 8,
   "auth-register": 5,
   "auth-password-reset": 3,
+  lead: 10,
   default: 100,
 };
+
+// Per-bucket window override (ms). Buckets not listed use one minute.
+const BUCKET_WINDOW_MS: Partial<Record<RateLimitBucket, number>> = {
+  lead: 10 * 60_000,
+};
+
+/** Window length for a bucket — exported so proxy tests can pin it. */
+export function bucketWindowMs(bucket: RateLimitBucket): number {
+  return BUCKET_WINDOW_MS[bucket] ?? 60_000;
+}
 
 // Fail-closed buckets — when the backing store errors out for one of these
 // routes, the limiter returns `allowed:false, failedClosed:true` (503) rather
@@ -402,7 +417,7 @@ async function checkBucketInternal(
   keyParts: string[],
 ): Promise<RateLimitResult> {
   const limit = BUCKET_LIMITS_PER_MINUTE[bucket] ?? BUCKET_LIMITS_PER_MINUTE.default;
-  const windowMs = 60_000;
+  const windowMs = bucketWindowMs(bucket);
   const key = `bkt:${bucket}:${keyParts.map((p) => p.trim() || "-").join("|")}`;
   try {
     const result = await checkRateLimitAsync(key, limit, windowMs);

@@ -95,3 +95,24 @@ describe("checkRateLimit — bucketed async API", () => {
     expect(r.limit).toBe(100); // default bucket ceiling
   });
 });
+
+describe("checkRateLimit — `lead` bucket (QA-3 P1-9): 10 per IP per 10 minutes", () => {
+  it("declares limit 10 with a 10-minute window and blocks the 11th call", async () => {
+    const { bucketWindowMs } = await import("./rate-limit");
+    expect(bucketWindowMs("lead")).toBe(10 * 60_000);
+    expect(bucketWindowMs("svi")).toBe(60_000);
+
+    const key = [`/api/lead`, `ip:${Math.random()}`];
+    let last: { allowed: boolean; limit: number; remaining: number; resetAt: number } | null = null;
+    for (let i = 0; i < 10; i += 1) {
+      last = await (checkRateLimit("lead", key) as Promise<{ allowed: boolean; limit: number; remaining: number; resetAt: number }>);
+      expect(last.allowed).toBe(true);
+      expect(last.limit).toBe(10);
+    }
+    expect(last!.remaining).toBe(0);
+    // The window is 10 minutes, not one.
+    expect(last!.resetAt - Date.now()).toBeGreaterThan(5 * 60_000);
+    const blocked = await (checkRateLimit("lead", key) as Promise<{ allowed: boolean }>);
+    expect(blocked.allowed).toBe(false);
+  });
+});

@@ -3,10 +3,80 @@ import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getPlan } from "@/lib/plans";
-import { sendPaymentLink } from "@/lib/email";
+import { sendEmail, sendPaymentLink } from "@/lib/email";
+import { sendTelegram } from "@/lib/telegram";
 import { sessionIdempotencyKey } from "@/lib/stripe/idempotency";
 import { isFoundingPromoActive } from "@/lib/founding-promo";
 import { apiRoute } from "@/lib/audit/api-route";
+
+// QA-3 P1-9 (2026-09-12) — the contact form notified nobody and had no bot
+// defence. Now: a hidden honeypot field (`company_website`) that humans never
+// fill — a non-empty value is dropped silently with the same 200 a real lead
+// gets, so the bot learns nothing; `?topic=` from the page is carried in the
+// payload and drives the alert subject; and every source="contact" lead
+// pages ops on Telegram and lands in the support inbox. The IP rate limit
+// (10 / 10 min) lives in src/proxy.ts (bucket "lead").
+export const HONEYPOT_FIELD = "company_website";
+export const SUPPORT_INBOX = "support@blockid.au";
+export const CONTACT_TOPICS = ["general", "demo", "sales", "support", "legal", "partnership", "press"] as const;
+export type ContactTopic = (typeof CONTACT_TOPICS)[number];
+
+export function normaliseTopic(raw: unknown): ContactTopic {
+  const v = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  return (CONTACT_TOPICS as readonly string[]).includes(v) ? (v as ContactTopic) : "general";
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function clip(s: unknown, max: number): string {
+  return typeof s === "string" ? s.slice(0, max) : "";
+}
+
+/** Page ops + the support inbox for a contact-form lead. Fire-and-forget. */
+export function notifyContactLead(args: {
+  email: string;
+  topic: ContactTopic;
+  name: string;
+  message: string;
+  ip: string | null;
+}): void {
+  const subject = `[Contact · ${args.topic}] ${args.name || args.email}`;
+  const text = [
+    `📨 *Contact form* — ${args.topic}`,
+    `From: ${args.name ? `${args.name} <${args.email}>` : args.email}`,
+    args.ip ? `IP: ${args.ip}` : null,
+    "",
+    args.message.slice(0, 1500),
+    "",
+    "Reply from support@blockid.au · /admin/leads",
+  ]
+    .filter((l) => l !== null)
+    .join("\n");
+  sendTelegram(text).catch((err) => console.error("[blockid:lead] telegram alert failed", err));
+  sendEmail({
+    to: SUPPORT_INBOX,
+    subject,
+    html: `<!doctype html><html><body style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#0f172a;max-width:600px;margin:0 auto;padding:24px;">
+  <p style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#64748b;margin:0 0 8px">Contact form · ${escapeHtml(args.topic)}</p>
+  <h1 style="font-size:18px;margin:0 0 12px">${escapeHtml(args.name || args.email)}</h1>
+  <p style="margin:0 0 4px"><strong>Email:</strong> <a href="mailto:${escapeHtml(args.email)}">${escapeHtml(args.email)}</a></p>
+  ${args.ip ? `<p style="margin:0 0 12px;color:#64748b;font-size:12px">IP: ${escapeHtml(args.ip)}</p>` : ""}
+  <pre style="white-space:pre-wrap;font:inherit;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px">${escapeHtml(args.message)}</pre>
+  <p style="font-size:12px;color:#64748b;margin-top:16px">Reply directly to the founder. The lead is also listed at /admin/leads. Internal notification — Auschain PTY LTD.</p>
+</body></html>`,
+  }).catch((err) => console.error("[blockid:lead] support email failed", err));
+}
+
+function clientIp(request: Request): string | null {
+  return (
+    request.headers.get("cf-connecting-ip") ??
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("x-real-ip") ??
+    null
+  );
+}
 
 // Zod ceiling schema — CISO P1 (2026-08-23 audit). Runs AFTER the existing
 // email/source validators so their tested error strings ("Valid email is
@@ -44,6 +114,15 @@ async function POST_handler(request: Request) {
       payload?: unknown;
     }) ?? {};
 
+  // Honeypot — checked on the raw body AND inside payload (the form posts
+  // it at top level; a scraper replaying the JSON shape may nest it).
+  const rawPayload = payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
+  const honey = (body as Record<string, unknown>)?.[HONEYPOT_FIELD] ?? rawPayload[HONEYPOT_FIELD];
+  if (typeof honey === "string" && honey.trim() !== "") {
+    console.warn("[blockid:lead] honeypot tripped — dropped", { source: typeof source === "string" ? source : null });
+    return NextResponse.json({ ok: true });
+  }
+
   // Sanitize email: reject HTML tags, scripts, and invalid formats
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   if (!email || typeof email !== "string" || !emailRegex.test(email) || /<|>|script/i.test(email)) {
@@ -75,6 +154,13 @@ async function POST_handler(request: Request) {
 
   const safePayload =
     payload && typeof payload === "object" ? stripHtml(payload) : {};
+  if (safePayload && typeof safePayload === "object") {
+    delete (safePayload as Record<string, unknown>)[HONEYPOT_FIELD];
+  }
+  // `?topic=` from /contact (demo / legal / sales …) — normalised so the
+  // alert subject and /admin/leads filter on a closed set.
+  const topic = normaliseTopic((safePayload as Record<string, unknown>).topic);
+  if (source === "contact") (safePayload as Record<string, unknown>).topic = topic;
 
   // Zod ceiling check — protects against oversized email/source strings that
   // slipped past the format regex. Runs post-normalisation so the tested
@@ -107,6 +193,17 @@ async function POST_handler(request: Request) {
       source,
       email,
       payload: safePayload,
+    });
+  }
+
+  if (source === "contact") {
+    const p = safePayload as Record<string, unknown>;
+    notifyContactLead({
+      email,
+      topic,
+      name: clip(p.name, 120).trim(),
+      message: clip(p.message, 4000).trim(),
+      ip: clientIp(request),
     });
   }
 
@@ -146,7 +243,8 @@ async function POST_handler(request: Request) {
             customer_email: email,
             line_items: [{ price: priceId, quantity: 1 }],
             success_url: `${siteUrl}/checkout/success?plan=founding50`,
-            cancel_url: `${siteUrl}/founding-50`,
+            // QA-3 P2: /founding-50 was deleted 2026-09-07 (404) — land on /pricing.
+            cancel_url: `${siteUrl}/pricing`,
             metadata: {
               blockid_source: "founding50",
               blockid_email: email,

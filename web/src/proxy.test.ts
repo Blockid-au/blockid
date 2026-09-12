@@ -296,3 +296,23 @@ describe("static guards", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe("rate-limit buckets — /api/lead contact + waitlist form (QA-3 P1-9)", () => {
+  it("POST /api/lead sits in the `lead` bucket, keyed per IP for anonymous traffic", async () => {
+    checkRateLimitMock.mockClear();
+    const res = await proxy(req("/api/lead", { method: "POST", site: "same-origin" }));
+    expect(res.status).toBe(200);
+    const [bucket, parts] = checkRateLimitMock.mock.calls[0] as [string, string[]];
+    expect(bucket).toBe("lead");
+    expect(parts[0]).toBe("/api/lead");
+    expect(parts[1]).toMatch(/^ip:/);
+  });
+
+  it("a 429 from the limiter is returned with Retry-After", async () => {
+    checkRateLimitMock.mockResolvedValueOnce({ allowed: false, remaining: 0, limit: 10, resetAt: Date.now() + 5 * 60_000 });
+    const res = await proxy(req("/api/lead", { method: "POST", site: "same-origin" }));
+    expect(res.status).toBe(429);
+    expect(await res.json()).toMatchObject({ ok: false, bucket: "lead" });
+    expect(Number(res.headers.get("retry-after"))).toBeGreaterThan(0);
+  });
+});
