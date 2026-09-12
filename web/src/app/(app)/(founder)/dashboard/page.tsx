@@ -46,7 +46,7 @@ import { getAllStartupSummaries } from "@/lib/analysis/aggregate-startup-summary
 import { ValueImpactBanner } from "@/components/dashboard/value-impact-banner";
 import { SviDimensionChart } from "@/components/dashboard/svi-dimension-chart";
 import { DataRoomReadinessCard } from "@/components/dashboard/data-room-readiness-card";
-import { NextUnlockCard } from "@/components/dashboard/next-unlock-card";
+import { NEXT_UNLOCK_START_HERE, NextUnlockCard } from "@/components/dashboard/next-unlock-card";
 import { EmptyDashboardState } from "@/components/dashboard/empty-dashboard-state";
 import { WidgetGrid } from "@/components/dashboard/widget-grid";
 import { RevenueTrackerTile } from "@/components/founder/revenue-tracker-tile";
@@ -909,14 +909,18 @@ export default async function DashboardPage({
           <SviDimensionChart dimensionScores={analysis.dimensionScores as Record<string, number>} />
         )}
 
-        {/* ── G8-P4: Next Unlock card — phase gate progress + top blockers ──── */}
-        {phaseGateResult && (
+        {/* ── G8-P4: Next Unlock card — phase gate progress + top blockers.
+              Release QA-2 F8: a founder with no project / phase yet gets the
+              "start here" state (Phase 1 · 0 % → /analyze) instead of nothing. */}
+        {phaseGateResult ? (
           <NextUnlockCard
             currentPhase={phaseGateResult.currentPhase}
             completionPct={phaseGateResult.completionPct}
             topBlockers={phaseGateTopBlockers}
             nextAction={phaseGateNextAction}
           />
+        ) : (
+          <NextUnlockCard {...NEXT_UNLOCK_START_HERE} />
         )}
 
         {/* ── Row 2: Project Context Card (sticky header, not personalizable) ─ */}

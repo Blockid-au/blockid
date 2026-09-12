@@ -97,7 +97,12 @@ vi.mock("@/components/dashboard/ai-evaluation-summary", () => ({ AIEvaluationSum
 vi.mock("@/components/dashboard/value-impact-banner", () => ({ ValueImpactBanner: NULL }));
 vi.mock("@/components/dashboard/svi-dimension-chart", () => ({ SviDimensionChart: NULL }));
 vi.mock("@/components/dashboard/data-room-readiness-card", () => ({ DataRoomReadinessCard: NULL }));
-vi.mock("@/components/dashboard/next-unlock-card", () => ({ NextUnlockCard: NULL }));
+vi.mock("@/components/dashboard/next-unlock-card", () => ({
+  NEXT_UNLOCK_START_HERE: { currentPhase: "vision", completionPct: 0, topBlockers: [], nextAction: "start", startHere: true },
+  NextUnlockCard: (p: { currentPhase: string; startHere?: boolean }) => (
+    <div data-next-unlock={p.currentPhase} data-next-unlock-start={p.startHere ? "true" : "false"} />
+  ),
+}));
 vi.mock("@/components/dashboard/widget-grid", () => ({ WidgetGrid: ({ children }: { children?: React.ReactNode }) => <div>{children}</div> }));
 vi.mock("@/components/founder/revenue-tracker-tile", () => ({ RevenueTrackerTile: NULL }));
 vi.mock("@/components/founder/health-score-widget", () => ({ HealthScoreWidget: NULL }));
@@ -251,6 +256,24 @@ describe("/dashboard (S18-B)", () => {
     ]);
     expect(tileMock.mock.calls[0][1]).toBeNull();
     expect(tileMock.mock.calls[0][3]).toEqual({ ownerUserId: state.callerId, dataEmail: state.callerEmail });
+  });
+
+  it("release QA-2 F8: no project → NextUnlockCard renders in the 'start here' state (phase 1, not hidden)", async () => {
+    state.projectId = null;
+    const out = await html();
+    expect(dataAttr(out, "next-unlock")).toBe("vision");
+    expect(dataAttr(out, "next-unlock-start")).toBe("true");
+  });
+
+  it("release QA-2 F8: project with a growth phase → real phase-gate card, not the start-here state", async () => {
+    state.projectExtra = { growth_phase_current: "legal_equity" };
+    try {
+      const out = await html();
+      expect(dataAttr(out, "next-unlock")).toBe("legal_equity");
+      expect(dataAttr(out, "next-unlock-start")).toBe("false");
+    } finally {
+      state.projectExtra = undefined;
+    }
   });
 
   it("a failed Money Radar read never breaks the dashboard", async () => {
