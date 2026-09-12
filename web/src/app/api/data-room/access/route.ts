@@ -65,7 +65,13 @@ async function POST_handler(req: NextRequest) {
       investor_type: investorType,
       access_level: accessLevel,
       sections_allowed: sectionsAllowed,
-      nda_required: ndaRequired,
+      nda_required: ndaRequired === true,
+      // S21-A — recipient line for the per-investor PDF watermark (0339).
+      watermark:
+        (typeof investorName === "string" && investorName.trim()) ||
+        (typeof investorFirm === "string" && investorFirm.trim()) ||
+        (typeof investorEmail === "string" && investorEmail.trim()) ||
+        null,
       expires_at: expiresAt.toISOString(),
       is_active: true,
     })
@@ -99,7 +105,7 @@ export async function GET() {
 
   const { data: tokens } = await supabase
     .from("data_room_access_tokens")
-    .select("id, token, investor_name, investor_email, investor_firm, investor_type, access_level, access_count, first_accessed, last_accessed, expires_at, is_active, revoked_at, nda_signed_at")
+    .select("id, token, investor_name, investor_email, investor_firm, investor_type, access_level, access_count, first_accessed, last_accessed, expires_at, is_active, revoked_at, nda_required, nda_signed_at, nda_signed_version, watermark")
     .eq("account_id", user.id)
     .order("created_at", { ascending: false });
 

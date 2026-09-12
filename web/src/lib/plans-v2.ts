@@ -107,9 +107,12 @@ const FOUNDER: Plan[] = [
     // product does not have:
     //   • "Community Slack access" — there is no Slack community, and no
     //     invite link anywhere in the codebase.
-    //   • "Watermarked PDF export" — no renderer watermarks anything. The only
-    //     `watermark` style in lib/pdf is the static "Not financial or legal
-    //     advice." line on the cover, which every tier gets.
+    //   • "Watermarked PDF export" — at the time no renderer watermarked
+    //     anything. S21-A (2026-09-12) shipped a real one — `lib/pdf/
+    //     watermark.tsx` stamps "Prepared for <investor> · <date> · BlockID.au"
+    //     on every page of a data-room PDF served through an investor link —
+    //     but it is a Starter+ feature (`investor_links.premium`, migration
+    //     0131) and is sold on that rung, not here. Free rooms render clean.
     //   • "Idea validation checklist" — the phrase appears nowhere but here.
     // "10-page valuation report" also went: `usage_limits.report_pages` has no
     // reader in src/, and what a free run actually delivers is the five-page
@@ -159,6 +162,12 @@ const FOUNDER: Plan[] = [
       "1 startup workspace",
       "Your data room, filling up in the order investors ask",
       "Share a live link with an investor instead of a PDF",
+      // S21-A (2026-09-12): both live behind `investor_links.premium` —
+      // NDA click-wrap gate on /s/dr/[token] (api/data-room/nda, migration
+      // 0339) and the per-investor watermark layer (lib/pdf/watermark.tsx)
+      // applied to PDFs served through api/data-room/share/[token]/pdf.
+      "NDA click-wrap before an investor sees a document, and PDFs watermarked with their name",
+      "See which sections each investor read, and for how long",
       // G11 D10 (2026-09-10, T0247): Founder Radar is bundled here, not sold
       // as a 4th tier or an add-on. Flag `money_radar` (plans.csv, 0316).
       FOUNDER_RADAR_FEATURE_LINE,

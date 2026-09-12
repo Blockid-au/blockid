@@ -12,9 +12,25 @@ import {
   InvestorSharePanel,
   STATE_LABEL,
   accessSummary,
+  ndaSummary,
   shareRecipient,
   tokenFromUrl,
 } from "./investor-share-panel";
+
+describe("ndaSummary (S21-A)", () => {
+  it("names the acceptance with its date and version", () => {
+    const s = ndaSummary({ ndaRequired: true, ndaSignedAt: "2026-09-11T03:00:00.000Z", ndaSignedVersion: 2 });
+    expect(s).toMatch(/^NDA accepted .*2026.* \(v2\)$/);
+  });
+  it("says pending when required and unsigned, nothing when not required", () => {
+    expect(ndaSummary({ ndaRequired: true, ndaSignedAt: null })).toBe("NDA pending");
+    expect(ndaSummary({ ndaRequired: false, ndaSignedAt: null })).toBe("");
+    expect(ndaSummary({})).toBe("");
+  });
+  it("still reports an acceptance on a link that no longer requires it (the room asked at the time)", () => {
+    expect(ndaSummary({ ndaRequired: false, ndaSignedAt: "2026-09-11T03:00:00.000Z" })).toContain("NDA accepted");
+  });
+});
 
 describe("shareRecipient", () => {
   it("combines a name and a firm", () => {
@@ -116,5 +132,12 @@ describe("InvestorSharePanel", () => {
   it("omits the gaps block entirely when nothing has been generated", () => {
     const html = renderToStaticMarkup(<InvestorSharePanel />);
     expect(html).not.toContain("What an investor sees as missing");
+  });
+
+  it("mounts the trust settings and the engagement heatmap only once a room exists (S21-A)", () => {
+    expect(renderToStaticMarkup(<InvestorSharePanel />)).not.toContain('data-testid="room-trust-settings"');
+    const html = renderToStaticMarkup(<InvestorSharePanel dataRoomId="room-1" />);
+    expect(html).toContain('data-testid="room-trust-settings"');
+    expect(html).toContain('data-testid="engagement-heatmap"');
   });
 });

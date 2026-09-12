@@ -18,10 +18,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getSupabaseAdminMock: vi.fn<() => unknown | null>(),
+  // S21-A — whether the room OWNER's plan carries investor_links.premium.
+  // Defaults to false: a Free room renders exactly as it did before.
+  ownerTrustEntitled: vi.fn<() => Promise<boolean>>(async () => false),
 }));
 
 vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => mocks.getSupabaseAdminMock(),
+}));
+vi.mock("@/lib/dataroom/nda-server", () => ({
+  ownerTrustEntitled: () => mocks.ownerTrustEntitled(),
+  TRUST_FEATURE: "investor_links.premium",
 }));
 
 import {
@@ -154,6 +161,79 @@ beforeEach(() => {
   state = fresh();
   mocks.getSupabaseAdminMock.mockReset();
   mocks.getSupabaseAdminMock.mockReturnValue(makeSupabase());
+  mocks.ownerTrustEntitled.mockReset();
+  mocks.ownerTrustEntitled.mockResolvedValue(false);
+});
+
+describe("loadSharedDataRoom — the NDA click-wrap (S21-A)", () => {
+  const NDA_ROOM = { ...ROOM, user_id: "owner-1", nda_required: true, nda_text: null, nda_version: 2, watermark_enabled: true };
+
+  it("Free room: nda_required is ignored, documents load, no watermark — the plan does not include the gate", async () => {
+    mocks.ownerTrustEntitled.mockResolvedValue(false);
+    state.replies = [{ data: LINK }, { data: NDA_ROOM }, { data: DOCS }];
+    const room = (await loadSharedDataRoom("tok-good-00000000000000000000000"))!;
+    expect(room.nda.status).toBe("not_required");
+    expect(room.watermarked).toBe(false);
+    expect(room.folders.length).toBe(2);
+  });
+
+  it("Starter+ room with nda_required and no acceptance: gate pending, documents NOT queried, folders empty", async () => {
+    mocks.ownerTrustEntitled.mockResolvedValue(true);
+    state.replies = [{ data: LINK }, { data: NDA_ROOM }, { data: DOCS }];
+    const room = (await loadSharedDataRoom("tok-good-00000000000000000000000"))!;
+    expect(room.nda.status).toBe("pending");
+    expect(room.nda.reason).toBe("never");
+    expect(room.nda.version).toBe(2);
+    expect(room.nda.text.length).toBeGreaterThan(50);
+    expect(room.folders).toEqual([]);
+    expect(room.counts.total).toBe(0);
+    expect(state.from).not.toContain("data_room_documents");
+    expect(room.watermarked).toBe(true);
+  });
+
+  it("a link that accepted the CURRENT version sees the documents", async () => {
+    mocks.ownerTrustEntitled.mockResolvedValue(true);
+    state.replies = [
+      { data: { ...LINK, nda_signed_at: "2026-09-10T00:00:00Z", nda_signed_version: 2 } },
+      { data: NDA_ROOM },
+      { data: DOCS },
+    ];
+    const room = (await loadSharedDataRoom("tok-good-00000000000000000000000"))!;
+    expect(room.nda.status).toBe("accepted");
+    expect(room.folders.length).toBe(2);
+    expect(state.from).toContain("data_room_documents");
+  });
+
+  it("a version bump re-prompts a link that accepted an older version", async () => {
+    mocks.ownerTrustEntitled.mockResolvedValue(true);
+    state.replies = [
+      { data: { ...LINK, nda_signed_at: "2026-09-10T00:00:00Z", nda_signed_version: 1 } },
+      { data: NDA_ROOM },
+      { data: DOCS },
+    ];
+    const room = (await loadSharedDataRoom("tok-good-00000000000000000000000"))!;
+    expect(room.nda.status).toBe("pending");
+    expect(room.nda.reason).toBe("stale_version");
+    expect(room.folders).toEqual([]);
+  });
+
+  it("a per-LINK nda_required gates even when the room does not ask", async () => {
+    mocks.ownerTrustEntitled.mockResolvedValue(true);
+    state.replies = [
+      { data: { ...LINK, nda_required: true } },
+      { data: { ...ROOM, user_id: "owner-1", nda_required: false, nda_version: 1 } },
+      { data: DOCS },
+    ];
+    const room = (await loadSharedDataRoom("tok-good-00000000000000000000000"))!;
+    expect(room.nda.status).toBe("pending");
+  });
+
+  it("uses the founder's own clause when set", async () => {
+    mocks.ownerTrustEntitled.mockResolvedValue(true);
+    state.replies = [{ data: LINK }, { data: { ...NDA_ROOM, nda_text: "  Keep it secret.  " } }, { data: DOCS }];
+    const room = (await loadSharedDataRoom("tok-good-00000000000000000000000"))!;
+    expect(room.nda.text).toBe("Keep it secret.");
+  });
 });
 
 describe("loadSharedDataRoom — the 404 surface", () => {

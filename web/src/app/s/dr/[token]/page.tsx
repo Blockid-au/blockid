@@ -11,7 +11,15 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, CircleDashed, CircleAlert, FileText, Lock } from "lucide-react";
+import {
+  CheckCircle2,
+  CircleDashed,
+  CircleAlert,
+  Download,
+  FileText,
+  Lock,
+  ShieldCheck,
+} from "lucide-react";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import {
@@ -22,6 +30,8 @@ import {
   type SharedRoomDocument,
 } from "./load";
 import { DocMarkdown } from "./markdown";
+import { NdaGate } from "./nda-gate";
+import { EngagementTracker } from "./engagement-tracker";
 
 export const dynamic = "force-dynamic";
 
@@ -69,8 +79,16 @@ export default async function DataRoomSharePage({
     .flatMap((f) => f.documents)
     .filter((d) => d.status !== "complete" && d.status !== "not_applicable");
 
+  // S21-A — the NDA click-wrap. `load.ts` already withheld the documents
+  // (folders is empty) while the gate is pending; this decides what the
+  // investor sees instead.
+  const ndaPending = room.nda.status === "pending";
+  const pdfHref = (docId: string) =>
+    `/api/data-room/share/${encodeURIComponent(room.token)}/pdf?doc=${encodeURIComponent(docId)}`;
+
   return (
     <main id="main" className="min-h-screen bg-surface">
+      <EngagementTracker token={room.token} />
       <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
         <header>
           <p className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted">
@@ -94,10 +112,27 @@ export default async function DataRoomSharePage({
             BlockID cannot produce are listed as missing rather than shown as
             complete.
           </p>
+          {room.nda.status === "accepted" && (
+            <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-tertiary">
+              <ShieldCheck aria-hidden="true" strokeWidth={1.75} className="h-3.5 w-3.5 text-bull" />
+              Confidentiality terms accepted (v{room.nda.version}).
+            </p>
+          )}
         </header>
 
+        {ndaPending && (
+          <NdaGate
+            token={room.token}
+            version={room.nda.version}
+            text={room.nda.text}
+            startupName={title}
+            reason={room.nda.reason}
+          />
+        )}
+
         {/* ── Headline figures ─────────────────────────────────────────── */}
-        <section aria-labelledby="headline-h" className="mt-8">
+        {!ndaPending && (
+        <section aria-labelledby="headline-h" className="mt-8" data-engage-section="Headline figures">
           <h2 id="headline-h" className="sr-only">
             Headline figures
           </h2>
@@ -119,11 +154,14 @@ export default async function DataRoomSharePage({
             </dl>
           )}
         </section>
+        )}
 
         {/* ── What is missing, up front ────────────────────────────────── */}
+        {!ndaPending && (
         <section
           aria-labelledby="gaps-h"
           className="mt-8 rounded-xl border border-line-subtle bg-surface-sunken p-5"
+          data-engage-section="Outstanding items"
         >
           <h2
             id="gaps-h"
@@ -158,16 +196,21 @@ export default async function DataRoomSharePage({
             </>
           )}
         </section>
+        )}
 
         {/* ── Sections ─────────────────────────────────────────────────── */}
-        {room.folders.length === 0 ? (
+        {ndaPending ? null : room.folders.length === 0 ? (
           <p className="mt-8 rounded-xl border border-line-subtle p-5 text-sm text-secondary">
             The founder has not assembled any documents in this room yet.
           </p>
         ) : (
           <div className="mt-10 space-y-8">
             {room.folders.map((folder) => (
-              <section key={folder.folder} aria-labelledby={`f-${slug(folder.folder)}`}>
+              <section
+                key={folder.folder}
+                aria-labelledby={`f-${slug(folder.folder)}`}
+                data-engage-section={folder.folder}
+              >
                 <h2
                   id={`f-${slug(folder.folder)}`}
                   className="border-b border-line-subtle pb-2 text-base font-semibold tracking-tight text-primary"
@@ -195,6 +238,19 @@ export default async function DataRoomSharePage({
                       {doc.content ? (
                         <div className="mt-4 border-t border-line-subtle pt-4">
                           <DocMarkdown source={doc.content} />
+                          <p className="mt-4">
+                            <a
+                              href={pdfHref(doc.id)}
+                              className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-line-subtle px-3 py-2 text-xs font-semibold text-primary transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
+                              data-testid="doc-pdf-link"
+                            >
+                              <Download aria-hidden="true" strokeWidth={2} className="h-3.5 w-3.5" />
+                              Download as PDF
+                              {room.watermarked ? (
+                                <span className="font-normal text-tertiary">· watermarked for you</span>
+                              ) : null}
+                            </a>
+                          </p>
                         </div>
                       ) : doc.hasFile ? (
                         <p className="mt-2 text-sm text-secondary">

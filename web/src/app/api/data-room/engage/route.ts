@@ -1,8 +1,16 @@
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { createHash } from "crypto";
+import { clientIpFromHeaders, hashIp } from "@/lib/iphash";
 import { apiRoute } from "@/lib/audit/api-route";
+import { getCurrentUser } from "@/lib/auth";
+import {
+  buildEngagementHeatmap,
+  isDuplicateEvent,
+  parseEngageEvent,
+  type HeatmapEventInput,
+} from "@/lib/dataroom/engagement";
+import { resolveRoomForCaller } from "@/lib/dataroom/room-access";
 
 export const dynamic = "force-dynamic";
 
@@ -10,8 +18,19 @@ export const dynamic = "force-dynamic";
 // POST /api/data-room/engage — Track investor engagement events
 // GET  /api/data-room/engage?roomId=... — Fetch engagement analytics
 //
-// Called from the investor-facing data room view page (no auth required
-// for posting events; auth required for fetching analytics).
+// POST is called from the investor-facing data room view page (no auth
+// required for posting events; the share token is the credential). S21-A
+// added validation (`parseEngageEvent`: whitelisted event types, clamped
+// dwell / scroll, capped strings) and a server-side dedupe — a second
+// (link, type, section, document) event inside 30 s is acknowledged and
+// dropped, so a misbehaving client cannot inflate a heatmap.
+//
+// GET is founder-facing. Before S21-A it took any roomId with no auth at all
+// (an IDOR: any room's engagement by guessing its uuid). It now requires a
+// session and resolves the caller's role on the room through
+// lib/dataroom/room-access (owner or accepted project member; stranger →
+// 404), and returns the per-link × per-section heatmap the /workspace page
+// renders alongside the legacy sectionHeatmap shape.
 // ---------------------------------------------------------------------------
 
 // r-03-exempt: investor engagement telemetry from anonymous investor-facing view; auth handled by data_room_access_tokens.token lookup, not by user entitlement
@@ -21,19 +40,13 @@ async function POST_handler(req: NextRequest) {
     return NextResponse.json({ ok: false }, { status: 503 });
   }
 
-  const body = await req.json().catch(() => ({}));
-  const {
-    token,         // data_room_access_tokens.token
-    eventType,     // open|section_view|document_open|document_download|nda_sign
-    section,
-    documentName,
-    durationMs,
-    scrollPct,
-  } = body;
-
-  if (!token || !eventType) {
-    return NextResponse.json({ ok: false, error: "Missing token or eventType" }, { status: 400 });
+  // sendBeacon posts a Blob with an application/json type; `req.json()`
+  // reads it the same as a fetch body.
+  const parsed = parseEngageEvent(await req.json().catch(() => ({})));
+  if (!parsed.ok) {
+    return NextResponse.json({ ok: false, error: parsed.error }, { status: 400 });
   }
+  const { token, eventType, section, documentName, durationMs, scrollPct } = parsed.event;
 
   // Resolve token to data_room_id and access_token_id
   const { data: accessToken } = await supabase
@@ -50,9 +63,23 @@ async function POST_handler(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Link has expired" }, { status: 403 });
   }
 
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0] ?? "unknown";
-  const salt = process.env.IP_HASH_SALT ?? "";
-  const ipHash = createHash("sha256").update(ip + salt).digest("hex").slice(0, 16);
+  // Dedupe: same (link, type, section, document) inside the window → drop.
+  let dupQuery = supabase
+    .from("data_room_engagement")
+    .select("occurred_at")
+    .eq("access_token_id", accessToken.id)
+    .eq("event_type", eventType);
+  dupQuery = section === null ? dupQuery.is("section", null) : dupQuery.eq("section", section);
+  dupQuery = documentName === null ? dupQuery.is("document_name", null) : dupQuery.eq("document_name", documentName);
+  const { data: last } = await dupQuery.order("occurred_at", { ascending: false }).limit(1).maybeSingle();
+  if (isDuplicateEvent(parsed.event, last as { occurred_at: string | null } | null)) {
+    return NextResponse.json({ ok: true, deduped: true });
+  }
+
+  // S21-A: the edge-observed hop (cf-connecting-ip / LAST x-forwarded-for),
+  // never the first hop the client can forge — same rule as lib/iphash and
+  // the S20-A audit writer. Still a salted, 16-char prefix, never the address.
+  const ipHash = hashIp(clientIpFromHeaders(req.headers) ?? "unknown")?.slice(0, 16) ?? null;
 
   // Insert engagement event
   await supabase.from("data_room_engagement").insert({
@@ -93,15 +120,23 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "roomId required" }, { status: 400 });
   }
 
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
+  }
+
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json({ ok: false, error: "Database not configured" }, { status: 503 });
   }
 
+  const resolved = await resolveRoomForCaller(user, roomId, "viewer");
+  if (!resolved.ok) return resolved.response;
+
   // Fetch engagement summary grouped by section
   const { data: events } = await supabase
     .from("data_room_engagement")
-    .select("event_type, section, document_name, duration_ms, scroll_pct, occurred_at")
+    .select("access_token_id, event_type, section, document_name, duration_ms, scroll_pct, occurred_at")
     .eq("data_room_id", roomId)
     .order("occurred_at", { ascending: false })
     .limit(500);
@@ -130,6 +165,23 @@ export async function GET(req: NextRequest) {
   const totalViews = (events ?? []).filter(e => e.event_type === "open").length;
   const totalEvents = (events ?? []).length;
 
+  // S21-A — per investor link × section matrix. Links fix the row order
+  // (newest first); a link's label never includes the token.
+  const { data: links } = await supabase
+    .from("data_room_access_tokens")
+    .select("id, investor_name, investor_firm, investor_email, created_at, nda_signed_at, nda_signed_version")
+    .eq("data_room_id", roomId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  const linkRows = ((links ?? []) as Array<Record<string, unknown>>).map((l) => {
+    const name = (l.investor_name as string | null)?.trim();
+    const firm = (l.investor_firm as string | null)?.trim();
+    const email = (l.investor_email as string | null)?.trim();
+    const label = name && firm ? `${name} · ${firm}` : name || firm || email || "Anonymous link";
+    return { id: String(l.id), label, ndaSignedAt: (l.nda_signed_at as string | null) ?? null };
+  });
+  const heatmap = buildEngagementHeatmap((events ?? []) as HeatmapEventInput[], linkRows);
+
   return NextResponse.json({
     ok: true,
     analytics: {
@@ -137,6 +189,8 @@ export async function GET(req: NextRequest) {
       totalEvents,
       sectionHeatmap: sectionStats,
       recentEvents: (events ?? []).slice(0, 20),
+      heatmap,
+      links: linkRows,
     },
   });
 }

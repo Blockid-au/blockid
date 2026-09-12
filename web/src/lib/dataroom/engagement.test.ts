@@ -1,0 +1,141 @@
+// Colocated suite for the engagement rules and heatmap aggregation (S21-A).
+
+import { describe, expect, it } from "vitest";
+import {
+  ENGAGE_DEDUPE_WINDOW_MS,
+  ENGAGE_MAX_DURATION_MS,
+  buildEngagementHeatmap,
+  formatDwell,
+  heatBucket,
+  isDuplicateEvent,
+  parseEngageEvent,
+} from "./engagement";
+
+const token = "t".repeat(32);
+
+describe("parseEngageEvent", () => {
+  it("accepts a whitelisted type and cleans every optional field", () => {
+    const r = parseEngageEvent({ token, eventType: "section_view", section: "  A   B ", documentName: " D ", durationMs: "1500.6", scrollPct: 55 });
+    expect(r).toEqual({
+      ok: true,
+      event: { token, eventType: "section_view", section: "A B", documentName: "D", durationMs: 1501, scrollPct: 55 },
+    });
+  });
+  it("clamps dwell to an hour and scroll to 0..100; nullifies junk", () => {
+    const r = parseEngageEvent({ token, eventType: "open", durationMs: 1e12, scrollPct: -5 });
+    expect(r).toMatchObject({ ok: true, event: { durationMs: ENGAGE_MAX_DURATION_MS, scrollPct: 0 } });
+    const j = parseEngageEvent({ token, eventType: "open", durationMs: "abc", scrollPct: {} });
+    expect(j).toMatchObject({ ok: true, event: { durationMs: null, scrollPct: null } });
+  });
+  it("caps section and document strings so a hostile client cannot bloat a row", () => {
+    const r = parseEngageEvent({ token, eventType: "document_open", section: "s".repeat(500), documentName: "d".repeat(500) });
+    expect(r.ok && r.event.section!.length).toBe(120);
+    expect(r.ok && r.event.documentName!.length).toBe(160);
+  });
+  it("rejects missing fields, unknown types, short tokens, and section_view without a section", () => {
+    expect(parseEngageEvent({})).toMatchObject({ ok: false, error: "Missing token or eventType" });
+    expect(parseEngageEvent({ token, eventType: "hack" })).toMatchObject({ ok: false });
+    expect(parseEngageEvent({ token: "abc", eventType: "open" })).toMatchObject({ ok: false, error: "Invalid token" });
+    expect(parseEngageEvent({ token, eventType: "section_view" })).toMatchObject({ ok: false });
+    expect(parseEngageEvent(null)).toMatchObject({ ok: false });
+  });
+});
+
+describe("isDuplicateEvent", () => {
+  const now = Date.parse("2026-09-12T00:01:00Z");
+  const ev = { eventType: "section_view" as const, section: "Team", documentName: null };
+  it("is a duplicate inside the window, not after it, not with no prior row", () => {
+    expect(isDuplicateEvent(ev, { occurred_at: "2026-09-12T00:00:45Z" }, now)).toBe(true);
+    expect(isDuplicateEvent(ev, { occurred_at: "2026-09-12T00:00:29Z" }, now)).toBe(false);
+    expect(isDuplicateEvent(ev, null, now)).toBe(false);
+    expect(isDuplicateEvent(ev, { occurred_at: null }, now)).toBe(false);
+    expect(isDuplicateEvent(ev, { occurred_at: "garbage" }, now)).toBe(false);
+  });
+  it("uses the shared window constant", () => {
+    expect(isDuplicateEvent(ev, { occurred_at: new Date(now - ENGAGE_DEDUPE_WINDOW_MS + 1).toISOString() }, now)).toBe(true);
+    expect(isDuplicateEvent(ev, { occurred_at: new Date(now - ENGAGE_DEDUPE_WINDOW_MS).toISOString() }, now)).toBe(false);
+  });
+  it("never dedupes a download — each one counts", () => {
+    expect(isDuplicateEvent({ ...ev, eventType: "document_download" }, { occurred_at: new Date(now - 1000).toISOString() }, now)).toBe(false);
+  });
+});
+
+describe("buildEngagementHeatmap", () => {
+  const links = [
+    { id: "l2", label: "Blackbird" },
+    { id: "l1", label: "Jane" },
+  ];
+  const events = [
+    { access_token_id: "l1", event_type: "open", section: null, duration_ms: null, occurred_at: "2026-09-10T00:00:00Z" },
+    { access_token_id: "l1", event_type: "section_view", section: "Team", duration_ms: 40_000, occurred_at: "2026-09-10T00:01:00Z" },
+    { access_token_id: "l1", event_type: "section_view", section: "Team", duration_ms: 20_000, occurred_at: "2026-09-10T00:02:00Z" },
+    { access_token_id: "l1", event_type: "section_view", section: "Financials", duration_ms: 10_000, occurred_at: "2026-09-10T00:03:00Z" },
+    { access_token_id: "l2", event_type: "section_view", section: "Financials", duration_ms: 5_000, occurred_at: "2026-09-10T00:04:00Z" },
+    { access_token_id: "l2", event_type: "document_open", section: "Financials", duration_ms: null, occurred_at: "2026-09-10T00:05:00Z" },
+    { access_token_id: "l2", event_type: "document_download", section: "Financials", duration_ms: null, occurred_at: "2026-09-10T00:06:00Z" },
+    { access_token_id: "gone", event_type: "section_view", section: "Team", duration_ms: 99_000, occurred_at: "2026-09-10T00:07:00Z" },
+    { access_token_id: null, event_type: "section_view", section: "Team", duration_ms: 99_000, occurred_at: "2026-09-10T00:08:00Z" },
+  ];
+
+  it("keeps the link order as rows, drops events for unknown / null links, orders sections by dwell", () => {
+    const m = buildEngagementHeatmap(events, links);
+    expect(m.rows.map((r) => r.label)).toEqual(["Blackbird", "Jane"]);
+    expect(m.sections).toEqual(["Team", "Financials"]);
+    expect(m.totalEvents).toBe(7);
+  });
+
+  it("sums views and dwell per cell; document_open / download count a view with no dwell", () => {
+    const m = buildEngagementHeatmap(events, links);
+    const jane = m.rows[1];
+    expect(jane.opens).toBe(1);
+    expect(jane.totalDwellMs).toBe(70_000);
+    expect(jane.cells).toEqual([
+      { linkId: "l1", section: "Team", views: 2, dwellMs: 60_000 },
+      { linkId: "l1", section: "Financials", views: 1, dwellMs: 10_000 },
+    ]);
+    const bb = m.rows[0];
+    expect(bb.downloads).toBe(1);
+    expect(bb.cells).toEqual([
+      { linkId: "l2", section: "Team", views: 0, dwellMs: 0 },
+      { linkId: "l2", section: "Financials", views: 3, dwellMs: 5_000 },
+    ]);
+    expect(bb.lastSeen).toBe("2026-09-10T00:06:00Z");
+    expect(m.maxDwellMs).toBe(60_000);
+    expect(m.maxViews).toBe(3);
+  });
+
+  it("honours an explicit section order (the room's folder order) and appends unknown sections", () => {
+    const m = buildEngagementHeatmap(events, links, ["Financials", "Never viewed", "Team"]);
+    expect(m.sections).toEqual(["Financials", "Team"]);
+  });
+
+  it("returns an empty model for no links / no events", () => {
+    expect(buildEngagementHeatmap([], [])).toEqual({ sections: [], rows: [], maxDwellMs: 0, maxViews: 0, totalEvents: 0 });
+    const m = buildEngagementHeatmap([], links);
+    expect(m.rows.length).toBe(2);
+    expect(m.rows[0].cells).toEqual([]);
+    expect(m.totalEvents).toBe(0);
+  });
+});
+
+describe("heatBucket", () => {
+  it("0 for no views, 1 for views with no dwell, then a 4-step ramp on dwell share", () => {
+    expect(heatBucket({ views: 0, dwellMs: 0 }, 100)).toBe(0);
+    expect(heatBucket({ views: 1, dwellMs: 0 }, 100)).toBe(1);
+    expect(heatBucket({ views: 1, dwellMs: 10 }, 100)).toBe(1);
+    expect(heatBucket({ views: 1, dwellMs: 20 }, 100)).toBe(2);
+    expect(heatBucket({ views: 1, dwellMs: 50 }, 100)).toBe(3);
+    expect(heatBucket({ views: 1, dwellMs: 90 }, 100)).toBe(4);
+    expect(heatBucket({ views: 3, dwellMs: 50 }, 0)).toBe(1);
+  });
+});
+
+describe("formatDwell", () => {
+  it("formats seconds and minutes, dash for nothing", () => {
+    expect(formatDwell(0)).toBe("—");
+    expect(formatDwell(-5)).toBe("—");
+    expect(formatDwell(4_400)).toBe("4s");
+    expect(formatDwell(65_000)).toBe("1m 05s");
+    expect(formatDwell(3_600_000)).toBe("60m 00s");
+  });
+});

@@ -234,6 +234,9 @@ describe("POST — the insert writes columns that actually exist", () => {
     "is_active",
     "expires_at",
     "revoked_at",
+    // S21-A (migration 0339): per-link NDA pointer + watermark recipient.
+    "nda_signed_version",
+    "watermark",
   ]);
 
   it("writes only real data_room_access_tokens columns — the phantom-column 500 regression", async () => {
