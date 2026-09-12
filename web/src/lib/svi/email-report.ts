@@ -14,7 +14,7 @@
 // — no new provider or npm package is wired here.
 
 import { nanoid } from "nanoid";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, complianceFooter } from "@/lib/email";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import type { CriterionResult } from "@/app/api/svi/dimensions/stream/route";
 
@@ -109,6 +109,8 @@ function renderHtml(args: {
   shareUrl: string | null;
   industry: string | null;
   stage: string | null;
+  /** Spam Act footer (identity + unsubscribe) — see lib/email complianceFooter. */
+  footerHtml?: string;
 }): string {
   const listItems = (items: string[], color: string) =>
     items
@@ -138,6 +140,7 @@ function renderHtml(args: {
     ${shareBlock}
     <p style="margin:20px 0 0 0;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#94a3b8;">The 10-page PDF is attached to this email. Directional analysis only — not a formal valuation.</p>
   </div>
+  ${args.footerHtml ?? ""}
 </body></html>`;
 }
 
@@ -253,7 +256,9 @@ export async function sendReportEmail(
   const strengths = pickTopStrengths(args.criterionResults ?? [], 3);
   const gaps = pickTopGaps(args.criterionResults ?? [], 3);
 
+  const { unsubscribeUrl, footerHtml } = await complianceFooter(email);
   const html = renderHtml({
+    footerHtml,
     startupName,
     totalSvi,
     bandLabel: bnd.label,
@@ -290,6 +295,7 @@ export async function sendReportEmail(
     subject: `Your Business Report is ready — SVI ${totalSvi}/100 (${bnd.label})`,
     html,
     attachments,
+    unsubscribeUrl,
   });
 
   if (result.ok && snapshotId) {

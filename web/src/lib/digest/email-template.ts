@@ -28,17 +28,41 @@ const INTEREST_COLOUR: Record<string, string> = {
   ready_to_talk: "#047857",
 };
 
-export function renderFounderDigestEmail(payload: DigestPayload): RenderedFounderDigest {
+// Spam Act 2003 s17/s18 — sender identity + a working unsubscribe on every
+// digest (QA-3 P1-6, 2026-09-12). The cron passes the recipient's
+// category-scoped unsubscribe URL; the identity line is always rendered.
+export const DIGEST_SENDER_IDENTITY = "Auschain PTY LTD · ABN 79 659 615 111 · Sydney NSW";
+const DIGEST_REASON = "You're receiving this because you have a BlockID account and weekly digests are on.";
+
+export interface DigestFooterOptions {
+  unsubscribeUrl?: string | null;
+  preferencesUrl?: string | null;
+}
+
+export function renderFounderDigestEmail(
+  payload: DigestPayload,
+  footer: DigestFooterOptions = {},
+): RenderedFounderDigest {
   const subject = `📊 Your BlockID week — ${payload.views.count} view${
     payload.views.count === 1 ? "" : "s"
   }, ${payload.leads.count} new lead${payload.leads.count === 1 ? "" : "s"}`;
 
-  const html = renderHtml(payload);
-  const text = renderText(payload);
+  const html = renderHtml(payload, footer);
+  const text = renderText(payload, footer);
   return { subject, html, text };
 }
 
-function renderHtml(p: DigestPayload): string {
+function renderComplianceFooterHtml(f: DigestFooterOptions): string {
+  const links = [
+    f.unsubscribeUrl ? `<a href="${escapeAttr(f.unsubscribeUrl)}" style="color:#64748b;text-decoration:underline">Unsubscribe</a>` : "",
+    f.preferencesUrl ? `<a href="${escapeAttr(f.preferencesUrl)}" style="color:#64748b;text-decoration:underline">Manage email preferences</a>` : "",
+  ].filter(Boolean).join(" &middot; ");
+  return `<div style="padding:12px 24px 20px;border-top:1px solid #e2e8f0;background:#f8fafc;font-size:11px;color:#64748b;line-height:1.6">
+      ${escapeHtml(DIGEST_SENDER_IDENTITY)}<br>${escapeHtml(DIGEST_REASON)}${links ? ` ${links}` : ""}
+    </div>`;
+}
+
+function renderHtml(p: DigestPayload, footer: DigestFooterOptions): string {
   const viewsBlock = renderViewsBlock(p);
   const leadsBlock = renderLeadsBlock(p);
   const sviBlock = renderSviBlock(p);
@@ -70,6 +94,7 @@ function renderHtml(p: DigestPayload): string {
     <div style="padding:16px 24px 20px;border-top:1px solid #e2e8f0;background:#f8fafc;font-size:11px;color:#64748b">
       ${escapeHtml(AFSL_DISCLAIMER)}
     </div>
+    ${renderComplianceFooterHtml(footer)}
   </div>
 </body></html>`;
 }
@@ -228,7 +253,7 @@ function renderMoneyText(p: DigestPayload, lines: string[]): void {
   lines.push("");
 }
 
-function renderText(p: DigestPayload): string {
+function renderText(p: DigestPayload, footer: DigestFooterOptions): string {
   const lines: string[] = [];
   lines.push(`Hi ${p.founderName},`, "");
   lines.push(
@@ -302,7 +327,11 @@ function renderText(p: DigestPayload): string {
     lines.push(`Your share link: ${p.shareUrl}`);
   }
   lines.push(`Notifications inbox: ${p.notificationsUrl}`, "");
-  lines.push(AFSL_DISCLAIMER);
+  lines.push(AFSL_DISCLAIMER, "");
+  lines.push(DIGEST_SENDER_IDENTITY);
+  lines.push(DIGEST_REASON);
+  if (footer.unsubscribeUrl) lines.push(`Unsubscribe: ${footer.unsubscribeUrl}`);
+  if (footer.preferencesUrl) lines.push(`Manage email preferences: ${footer.preferencesUrl}`);
   return lines.join("\n");
 }
 

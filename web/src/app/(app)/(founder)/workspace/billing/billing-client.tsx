@@ -53,15 +53,18 @@ function formatPrice(cents: number, cadence: Plan["cadence"]): string {
     maximumFractionDigits: 0,
   }).format(dollars);
 
+  // QA-3 P1-5 (2026-09-12): every paid price in the workspace is quoted
+  // GST-inclusive AUD, matching /pricing and the Stripe Checkout receipt
+  // (automatic_tax splits the 10% line on the invoice).
   switch (cadence) {
     case "free":
       return "Free";
     case "monthly":
-      return `${fmt}/mo`;
+      return `${fmt}/mo inc. GST`;
     case "yearly":
-      return `${fmt}/yr`;
+      return `${fmt}/yr inc. GST`;
     case "once":
-      return `${fmt} once`;
+      return `${fmt} once inc. GST`;
   }
 }
 
@@ -681,7 +684,9 @@ function CreditsPurchaseSection() {
         <div>
           <h2 className="text-base font-semibold text-ink-800">Credits</h2>
           <p className="text-xs text-ink-600">
-            Purchase credit packs to use premium features
+            Purchase credit packs to use premium features. Prices are in AUD
+            and include GST; Stripe emails an ATO tax invoice for every
+            purchase.
           </p>
         </div>
       </div>
@@ -712,7 +717,7 @@ function CreditsPurchaseSection() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {CREDIT_PACKS.map((pack) => {
             const priceDollars = pack.priceAudCents / 100;
-            const priceLabel = `A$${priceDollars}`;
+            const priceLabel = `A$${priceDollars} inc. GST`;
             const perCredit = `A$${(pack.priceAudCents / pack.credits / 100).toFixed(2)}/credit`;
             return (
             <div

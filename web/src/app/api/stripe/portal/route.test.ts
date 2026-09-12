@@ -66,6 +66,23 @@ vi.mock("@/lib/stripe/portal-gate", () => ({
 }));
 
 // Route import MUST come after mocks are registered.
+
+// QA-3 P1-10 (2026-09-12): the route is rate-limited per user (10 / 15 min).
+// Mocked so the shared in-memory limiter cannot bleed 429s across this file;
+// the dedicated describe below pins the call shape and the 429 pass-through.
+const enforceRateLimitMock = vi.hoisted(() =>
+  vi.fn<(route: string, identity: string | null | undefined, req: Request, max: number, windowMs: number) => Response | null>(),
+);
+vi.mock("@/lib/rate-limit", () => ({
+  enforceRateLimit: (
+    route: string,
+    identity: string | null | undefined,
+    req: Request,
+    max: number,
+    windowMs: number,
+  ) => enforceRateLimitMock(route, identity, req, max, windowMs),
+}));
+
 import { POST, dynamic } from "./route";
 
 // --- Fake Stripe + Supabase --------------------------------------------------
@@ -122,6 +139,7 @@ const USER: AppUser = { id: "user-42", email: "founder@example.com" };
 
 beforeEach(() => {
   state.customerRow = { stripe_customer_id: "cus_test_abc" };
+  enforceRateLimitMock.mockReset().mockReturnValue(null);
   state.fromCalls = [];
   state.selectCalls = [];
   state.eqCalls = [];
@@ -466,5 +484,19 @@ describe("POST /api/stripe/portal — gate precedence", () => {
     const res = await POST();
     expect(res.status).toBe(404);
     expect(mocks.stripeCreateSessionMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("QA-3 P1-10 — per-user rate limit on /api/stripe/portal", () => {
+  it("calls enforceRateLimit('stripe-portal', user.id, <request>, 10, 15 min) after auth", async () => {
+    await POST();
+    expect(enforceRateLimitMock).toHaveBeenCalledWith("stripe-portal", USER.id, expect.any(Request), 10, 15 * 60 * 1000);
+  });
+
+  it("returns the limiter's 429 before touching Stripe or Supabase", async () => {
+    enforceRateLimitMock.mockReturnValueOnce(new Response("{}", { status: 429, headers: { "Retry-After": "60" } }));
+    const res = await POST();
+    expect(res.status).toBe(429);
+    expect(state.fromCalls).toEqual([]);
   });
 });

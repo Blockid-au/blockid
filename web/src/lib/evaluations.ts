@@ -34,7 +34,7 @@ import "server-only";
 import { nanoid } from "nanoid";
 import { getSupabaseAdmin } from "./supabase";
 import { getProjectLimit } from "./projects";
-import { sendEmail } from "./email";
+import { sendEmail, complianceFooter } from "./email";
 import { can } from "./entitlements";
 import type { AppUser } from "./auth";
 import { MENTOR_ACCESS_TIERS, type MentorAccessTier } from "./mentor/access-tiers";
@@ -554,7 +554,10 @@ export async function createEvaluation(
       claimUrl: claimUrlForToken(inviteToken),
     });
     try {
-      const sent = await sendEmail({ to: input.founderEmail, subject, html });
+      // Spam Act: the founder may not be a BlockID user yet — identity line +
+      // unsubscribe on the invite (QA-3 P1-6).
+      const { unsubscribeUrl, footerHtml } = await complianceFooter(input.founderEmail);
+      const sent = await sendEmail({ to: input.founderEmail, subject, html: html + footerHtml, unsubscribeUrl });
       inviteSent = sent.ok;
     } catch (err) {
       console.error("[blockid:evaluations] invite email failed", err);

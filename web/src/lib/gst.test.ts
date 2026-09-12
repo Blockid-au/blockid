@@ -17,7 +17,7 @@
 //   • non-integer / non-finite gross is truncated to an integer or 0.
 
 import { describe, expect, it } from "vitest";
-import { calculateGst } from "./gst";
+import { calculateGst, formatGstInclusiveAud } from "./gst";
 
 describe("calculateGst — guards + zero-GST branches", () => {
   it("returns zero GST when not registered even for an AU customer", () => {
@@ -196,5 +196,15 @@ describe("calculateGst — invariants across every branch", () => {
     expect(calculateGst(12_345, false, "AU").gross_cents).toBe(12_345);
     // Fractional truncation path
     expect(calculateGst(12_345.99, true, "AU").gross_cents).toBe(12_345);
+  });
+});
+
+describe("formatGstInclusiveAud — pre-redirect line (QA-3 P2)", () => {
+  it("A$69/mo → 'A$69 inc. A$6.27 GST' (1/11 split, rounded to the cent)", () => {
+    expect(formatGstInclusiveAud(6900)).toBe("A$69 inc. A$6.27 GST");
+    expect(formatGstInclusiveAud(2900)).toBe("A$29 inc. A$2.64 GST");
+    expect(formatGstInclusiveAud(34900)).toBe("A$349 inc. A$31.73 GST");
+    expect(formatGstInclusiveAud(300)).toBe("A$3 inc. A$0.27 GST");
+    expect(formatGstInclusiveAud(14900)).toBe("A$149 inc. A$13.55 GST");
   });
 });

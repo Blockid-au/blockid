@@ -357,11 +357,16 @@ export default async function StatusPage() {
           >
             Service level objectives
           </h3>
+          {/* QA-3 P2 (2026-09-12): these are internal targets, not a contractual SLA. */}
+          <p className="mt-2 text-xs text-secondary">
+            Internal SLO targets we hold ourselves to. They are not a service-level
+            agreement and no plan includes uptime credits.
+          </p>
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <SloTile
               label="Uptime (24h)"
               value={fmtPct(status.slo.uptime_pct_24h, 2)}
-              target={`Target ${UPTIME_TARGET_PCT}%`}
+              target={`Internal SLO target ${UPTIME_TARGET_PCT}%`}
               level={uptimeLevel}
             />
             <SloTile
@@ -371,7 +376,7 @@ export default async function StatusPage() {
                   ? DASH
                   : `${fmtInt(status.slo.p95_ms)} ms`
               }
-              target={`Target ${P95_TARGET_MS} ms`}
+              target={`Internal SLO target ${P95_TARGET_MS} ms`}
               level={p95Level}
             />
             <SloTile

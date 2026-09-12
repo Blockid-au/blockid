@@ -65,7 +65,21 @@ const PLANS = [
   { planId: "credits_100",   label: "100 credits pack",       configCents: 6000,  cadence: "one-off",  envVar: "STRIPE_PRICE_CREDITS_100" },
   { planId: "one_click_report", label: "One-Click Report (A$3)", configCents: 300, cadence: "one-off", envVar: "STRIPE_PRICE_ONE_CLICK_REPORT" },
   { planId: "funding_report", label: "Money Finder report (A$3)", configCents: 300, cadence: "one-off", envVar: "STRIPE_PRICE_FUNDING_REPORT" },
+  // QA-3 P1-5 (2026-09-12): the Startup Package env var pointed at a
+  // RECURRING A$149/mo Advisor price — same cents, wrong cadence — and the
+  // `mode:"payment"` checkout 500'd. Cents alone cannot catch that, so the
+  // audit below also compares Stripe `type` / `recurring.interval` against
+  // `cadence` (see plans.csv founder_package: 14900, once, inclusive).
+  { planId: "founder_package", label: "Startup Package (one-off)", configCents: 14900, cadence: "one-off", envVar: "STRIPE_PRICE_STARTUP_PACKAGE", taxBehavior: "inclusive" },
 ];
+
+// Stripe cadence for a plan row: one-off → "one_time"; monthly / yearly →
+// "recurring" with the matching interval.
+function cadenceMatches(plan, price) {
+  if (plan.cadence === "one-off") return price.type === "one_time" && !price.recurring;
+  const interval = plan.cadence === "monthly" ? "month" : plan.cadence === "yearly" ? "year" : null;
+  return price.type === "recurring" && price.recurring?.interval === interval;
+}
 
 // ─── Audit + (optionally) fix ──────────────────────────────────────────────
 const flags = new Set(process.argv.slice(2));
@@ -91,9 +105,12 @@ for (const plan of PLANS) {
 
   try {
     const price = await stripe.prices.retrieve(priceId);
-    const actual = `${price.currency.toUpperCase()} ${price.unit_amount}¢`;
-    const match = price.unit_amount === plan.configCents && price.currency === "aud" && price.active;
-    const status = !price.active ? "ARCHIVED" : (price.unit_amount === plan.configCents && price.currency === "aud") ? "MATCH" : "DRIFT";
+    const cadenceLabel = price.type === "recurring" ? `/${price.recurring?.interval ?? "?"}` : " once";
+    const actual = `${price.currency.toUpperCase()} ${price.unit_amount}¢${cadenceLabel}`;
+    const amountOk = price.unit_amount === plan.configCents && price.currency === "aud";
+    const cadenceOk = cadenceMatches(plan, price);
+    const match = amountOk && cadenceOk && price.active;
+    const status = !price.active ? "ARCHIVED" : !amountOk ? "DRIFT" : !cadenceOk ? "CADENCE_DRIFT" : "MATCH";
 
     console.log(`${plan.label.padEnd(38)}${expected.padEnd(14)}${actual.padEnd(14)}${status}`);
 
@@ -156,6 +173,7 @@ for (const { plan } of drifts) {
     currency: "aud",
     unit_amount: plan.configCents,
     recurring,
+    ...(plan.taxBehavior ? { tax_behavior: plan.taxBehavior } : {}),
     metadata: { blockid_plan_id: plan.planId, created_by: "sync-stripe-pricing.mjs" },
   });
 

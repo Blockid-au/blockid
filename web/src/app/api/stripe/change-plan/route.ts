@@ -14,6 +14,7 @@ import { reconcileSubscriptionAddon } from "@/lib/stripe/addon-entitlements";
 import { hashUserId } from "@/lib/reseller/hash";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 import { apiRoute } from "@/lib/audit/api-route";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 // POST /api/stripe/change-plan
 // Body (three modes):
@@ -32,6 +33,12 @@ import { apiRoute } from "@/lib/audit/api-route";
 //        commission clawback fires (per plan § F.5).
 // Cross-segment plan moves require confirmCrossSegment=true.
 
+// QA-3 P1-10 (2026-09-12): 10 calls per user per 15 minutes. Auth-gated and
+// idempotency-keyed already; this stops a scripted loop on one account from
+// minting hundreds of Stripe objects (sessions / portal links / schedules).
+const STRIPE_RL_MAX = 10;
+const STRIPE_RL_WINDOW_MS = 15 * 60 * 1000;
+
 async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
@@ -40,6 +47,9 @@ async function POST_handler(request: Request) {
       { status: 401 },
     );
   }
+
+  const limited = enforceRateLimit("stripe-change-plan", user.id, request, STRIPE_RL_MAX, STRIPE_RL_WINDOW_MS);
+  if (limited) return limited;
 
   if (!isStripeConfigured() || !isSupabaseConfigured()) {
     return NextResponse.json(
@@ -255,10 +265,16 @@ async function POST_handler(request: Request) {
     }
 
     // Changing to a one-off plan.
+    //
+    // QA-3 P1-13 (2026-09-12): the active subscription used to be cancelled
+    // HERE, before the Checkout session was paid — an abandoned checkout
+    // left the founder with no subscription and no package. The
+    // subscription id now rides in session metadata and the webhook cancels
+    // it on `checkout.session.completed` (api/stripe/webhook/route.ts,
+    // handleCheckoutSessionCompleted → cancelSupersededSubscription).
     if (activeSub) {
-      await stripe.subscriptions.cancel(activeSub.id);
       console.info(
-        `[blockid:stripe] cancelled subscription ${activeSub.id} for one-off plan change`,
+        `[blockid:stripe] subscription ${activeSub.id} will be cancelled by the webhook once the one-off checkout is paid`,
       );
     }
 
@@ -276,6 +292,7 @@ async function POST_handler(request: Request) {
           blockid_user_id: user.id,
           blockid_user_hash: hashUserId(user.id),
           blockid_plan: newPlanId,
+          ...(activeSub ? { cancel_subscription_id: activeSub.id } : {}),
         },
       },
       {
@@ -283,6 +300,7 @@ async function POST_handler(request: Request) {
           user.id,
           newPlanId,
           newPriceId,
+          activeSub?.id ?? "no-sub",
         ]),
       },
     );
@@ -301,8 +319,8 @@ async function POST_handler(request: Request) {
     });
 
     // SOC2-lite audit — one-off checkout branch also counts as a plan
-    // change once the checkout session is created (subscription cancels
-    // above and the customer commits to the new plan on payment).
+    // change once the checkout session is created (the old subscription is
+    // cancelled by the webhook when the customer pays).
     await logUserAction({
       userId: user.id,
       action: "stripe.plan.changed",

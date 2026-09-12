@@ -85,6 +85,16 @@ const nextConfig: NextConfig = {
         destination: "/legal/privacy",
         statusCode: 301,
       },
+      // QA-3 commercial audit (2026-09-12) — the short-form `/terms` page
+      // (`app/terms/page.tsx`, deleted) carried a refund clause that
+      // contradicted `/legal/terms`. One Terms of Service now lives at
+      // `/legal/terms` (content/legal/terms-v2.mdx v2.1); the refund policy
+      // is clause 3A at `/legal/terms#refunds`.
+      {
+        source: "/terms",
+        destination: "/legal/terms",
+        statusCode: 301,
+      },
       // B1 Task 5 — consolidate SVI landing routes onto a single canonical
       // `/index` URL. `/index` is served via the /startup-index rewrite (see
       // rewrites() above) because Next 16 webpack cannot compile an

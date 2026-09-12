@@ -36,6 +36,7 @@ import { TRUST_REPORT_5AUD } from "@/lib/pricing/v3-skus";
 import { resolvePromoCode } from "@/lib/reseller/resolve-promo";
 import { normaliseResellerCode } from "@/lib/reseller/attribution";
 import { apiRoute } from "@/lib/audit/api-route";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 interface CheckoutBody {
   businessId?: unknown;
@@ -58,6 +59,12 @@ function siteOrigin(request: Request): string {
   }
 }
 
+// QA-3 P1-10 (2026-09-12): 10 calls per user per 15 minutes. Auth-gated and
+// idempotency-keyed already; this stops a scripted loop on one account from
+// minting hundreds of Stripe objects (sessions / portal links / schedules).
+const STRIPE_RL_MAX = 10;
+const STRIPE_RL_WINDOW_MS = 15 * 60 * 1000;
+
 async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
@@ -66,6 +73,9 @@ async function POST_handler(request: Request) {
       { status: 401 },
     );
   }
+
+  const limited = enforceRateLimit("reports-checkout", user.id, request, STRIPE_RL_MAX, STRIPE_RL_WINDOW_MS);
+  if (limited) return limited;
 
   if (!isStripeConfigured()) {
     return NextResponse.json(

@@ -144,6 +144,50 @@ export async function POST(request: Request) {
   // Handlers
   // -------------------------------------------------------------------------
 
+  /**
+   * QA-3 P1-13 (2026-09-12). `change-plan` stamps `cancel_subscription_id`
+   * on a one-off Checkout session instead of cancelling the live
+   * subscription up front (an abandoned checkout used to leave the founder
+   * with nothing). Cancel it here, after payment. Idempotent: an already
+   * cancelled / missing subscription is logged and ignored; the
+   * subscription must belong to the paying customer (metadata is ours, but
+   * never trust a cross-customer id). Never fails the webhook.
+   */
+  async function cancelSupersededSubscription(
+    session: Stripe.Checkout.Session,
+    customerId: string | null,
+  ): Promise<void> {
+    const subId = session.metadata?.cancel_subscription_id;
+    if (!subId || session.mode === "subscription") return;
+    const stripe = getStripe();
+    if (!stripe) return;
+    try {
+      const sub = await stripe.subscriptions.retrieve(subId);
+      const subCustomer = typeof sub.customer === "string" ? sub.customer : sub.customer?.id ?? null;
+      if (customerId && subCustomer && subCustomer !== customerId) {
+        console.error("[blockid:stripe] refusing to cancel subscription for a different customer", {
+          sessionId: session.id,
+          subId,
+        });
+        return;
+      }
+      if (sub.status === "canceled") {
+        console.info(`[blockid:stripe] superseded subscription ${subId} already cancelled`);
+        return;
+      }
+      await stripe.subscriptions.cancel(subId);
+      console.info(
+        `[blockid:stripe] cancelled subscription ${subId} — superseded by paid one-off session ${session.id}`,
+      );
+    } catch (err) {
+      console.error("[blockid:stripe] superseded-subscription cancel failed (manual follow-up)", {
+        sessionId: session.id,
+        subId,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
   async function handleCheckoutSessionCompleted(
     e: Stripe.Event,
   ): Promise<void> {
@@ -395,6 +439,10 @@ export async function POST(request: Request) {
     console.info(
       `[blockid:stripe] activated plan "${planId}" for user ${userId}`,
     );
+
+    // QA-3 P1-13: a one-off plan change (api/stripe/change-plan) supersedes
+    // the founder's active subscription only once this session is PAID.
+    await cancelSupersededSubscription(session, customerId);
 
     // CDO T-1009: checkout_completed → analytics_events → BQ pipeline.
     void emitEvent({

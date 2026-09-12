@@ -60,3 +60,16 @@ describe("FOOTER_COLUMNS", () => {
     expect(new Set(all).size).toBe(all.length);
   });
 });
+
+describe("FOOTER_COLUMNS — Legal column (QA-3, 2026-09-12)", () => {
+  it("links the one refund policy (Terms clause 3A) next to Terms", () => {
+    const legal = column("Legal").items.map((i) => i.href);
+    expect(legal).toEqual([
+      "/legal/terms",
+      "/legal/terms#refunds",
+      "/legal/privacy",
+      "/legal/disclaimers",
+    ]);
+    expect(column("Legal").items.find((i) => i.href === "/legal/terms#refunds")?.label).toBe("Refunds");
+  });
+});

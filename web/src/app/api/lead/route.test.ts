@@ -72,6 +72,9 @@ const sendPaymentLinkMock = vi.fn<(args: {
   features: string[];
 }) => Promise<unknown>>();
 
+const sendEmailMock = vi.fn<(args: { to: string; subject: string; html: string }) => Promise<unknown>>();
+const sendTelegramMock = vi.fn<(text: string) => Promise<boolean>>();
+
 vi.mock("@/lib/email", () => ({
   sendPaymentLink: (args: {
     to: string;
@@ -80,6 +83,11 @@ vi.mock("@/lib/email", () => ({
     finalPrice: number;
     features: string[];
   }) => sendPaymentLinkMock(args),
+  sendEmail: (args: { to: string; subject: string; html: string }) => sendEmailMock(args),
+}));
+
+vi.mock("@/lib/telegram", () => ({
+  sendTelegram: (text: string) => sendTelegramMock(text),
 }));
 
 const sessionIdempotencyKeyMock = vi.fn<
@@ -131,6 +139,8 @@ beforeEach(() => {
   getStripeMock.mockReset().mockReturnValue(null);
   getPlanMock.mockReset().mockReturnValue({ features: ["a", "b"] });
   sendPaymentLinkMock.mockReset().mockResolvedValue({ ok: true });
+  sendEmailMock.mockReset().mockResolvedValue({ ok: true });
+  sendTelegramMock.mockReset().mockResolvedValue(true);
   sessionIdempotencyKeyMock
     .mockReset()
     .mockImplementation((scope, parts) => `bid:${scope}:${parts.join("|")}`);
@@ -536,7 +546,7 @@ describe("POST /api/lead — founding50 happy path", () => {
     expect(args.success_url).toBe(
       "https://staging.blockid.au/checkout/success?plan=founding50",
     );
-    expect(args.cancel_url).toBe("https://staging.blockid.au/founding-50");
+    expect(args.cancel_url).toBe("https://staging.blockid.au/pricing");
   });
 
   it("falls back to https://blockid.au for the checkout URLs when NEXT_PUBLIC_SITE_URL is unset", async () => {
@@ -547,7 +557,7 @@ describe("POST /api/lead — founding50 happy path", () => {
       cancel_url: string;
     };
     expect(args.success_url).toBe("https://blockid.au/checkout/success?plan=founding50");
-    expect(args.cancel_url).toBe("https://blockid.au/founding-50");
+    expect(args.cancel_url).toBe("https://blockid.au/pricing");
   });
 
   it("builds the Stripe idempotency key from lower-cased trimmed email + priceId", async () => {
@@ -741,5 +751,93 @@ describe("POST /api/lead — founding50 cutover", () => {
     isFoundingPromoActiveMock.mockReturnValue(true);
     await POST(req({ source: "founding50", email: "u@example.com" }));
     expect(stripeSessionsCreateMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// QA-3 P1-9 (2026-09-12) — honeypot, ?topic=, support alert on contact leads
+// ---------------------------------------------------------------------------
+
+describe("QA-3 P1-9 — honeypot", () => {
+  it("drops a lead whose hidden company_website field is filled — same 200, nothing persisted, nobody paged", async () => {
+    const res = await POST(
+      req({ source: "contact", email: "bot@example.com", company_website: "https://spam.example", payload: { message: "buy now" } }),
+    );
+    expect(res.status).toBe(200);
+    expect(await json(res)).toEqual({ ok: true });
+    expect(insertMock).not.toHaveBeenCalled();
+    expect(sendEmailMock).not.toHaveBeenCalled();
+    expect(sendTelegramMock).not.toHaveBeenCalled();
+  });
+
+  it("also trips when the honeypot is nested inside payload", async () => {
+    await POST(req({ source: "contact", email: "bot@example.com", payload: { company_website: "x", message: "hi" } }));
+    expect(insertMock).not.toHaveBeenCalled();
+  });
+
+  it("an empty honeypot (what the browser sends for a hidden input) is a real lead and the field is not persisted", async () => {
+    await POST(req({ source: "contact", email: "jo@acme.io", company_website: "", payload: { message: "hello", company_website: "" } }));
+    expect(insertMock).toHaveBeenCalledTimes(1);
+    const row = insertMock.mock.calls[0]?.[0] as { payload: Record<string, unknown> };
+    expect(row.payload).not.toHaveProperty("company_website");
+  });
+});
+
+describe("QA-3 P1-9 — contact leads page ops + support inbox, honouring ?topic=", () => {
+  it("source=contact → Telegram alert + email to support@blockid.au with the topic, name, message and IP", async () => {
+    const r = new Request("http://x/api/lead", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-forwarded-for": "203.0.113.9, 10.0.0.1" },
+      body: JSON.stringify({ source: "contact", email: "jo@acme.io", payload: { name: "Jo", message: "Can we see a demo?", topic: "demo" } }),
+    });
+    const res = await POST(r);
+    expect(res.status).toBe(200);
+    // Allow the fire-and-forget promises to settle.
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(sendTelegramMock).toHaveBeenCalledTimes(1);
+    const tg = sendTelegramMock.mock.calls[0]?.[0] ?? "";
+    expect(tg).toContain("Contact form");
+    expect(tg).toContain("demo");
+    expect(tg).toContain("Jo <jo@acme.io>");
+    expect(tg).toContain("203.0.113.9");
+    expect(tg).toContain("Can we see a demo?");
+
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+    const mail = sendEmailMock.mock.calls[0]?.[0];
+    expect(mail?.to).toBe("support@blockid.au");
+    expect(mail?.subject).toBe("[Contact · demo] Jo");
+    expect(mail?.html).toContain("Can we see a demo?");
+    expect(mail?.html).toContain("mailto:jo@acme.io");
+
+    // The topic is persisted on the lead row, normalised.
+    const row = insertMock.mock.calls[0]?.[0] as { payload: Record<string, unknown> };
+    expect(row.payload.topic).toBe("demo");
+  });
+
+  it("an unknown or missing topic normalises to 'general'", async () => {
+    await POST(req({ source: "contact", email: "jo@acme.io", payload: { message: "hi", topic: "<script>x" } }));
+    const row = insertMock.mock.calls[0]?.[0] as { payload: Record<string, unknown> };
+    expect(row.payload.topic).toBe("general");
+    expect(sendEmailMock.mock.calls[0]?.[0]?.subject).toBe("[Contact · general] jo@acme.io");
+  });
+
+  it("escapes HTML in the support email body (message is untrusted)", async () => {
+    await POST(req({ source: "contact", email: "jo@acme.io", payload: { message: "a & b" } }));
+    expect(sendEmailMock.mock.calls[0]?.[0]?.html).toContain("a &amp; b");
+  });
+
+  it("non-contact sources (waitlist, demo strip, tools) do not page ops", async () => {
+    await POST(req({ source: "cta-strip", email: "jo@acme.io", payload: { message: "hi" } }));
+    expect(sendEmailMock).not.toHaveBeenCalled();
+    expect(sendTelegramMock).not.toHaveBeenCalled();
+  });
+
+  it("a Telegram or email failure never breaks the funnel", async () => {
+    sendTelegramMock.mockRejectedValue(new Error("tg down"));
+    sendEmailMock.mockRejectedValue(new Error("smtp down"));
+    const res = await POST(req({ source: "contact", email: "jo@acme.io", payload: { message: "hi" } }));
+    expect(res.status).toBe(200);
+    expect(await json(res)).toEqual({ ok: true });
   });
 });

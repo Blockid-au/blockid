@@ -58,7 +58,7 @@ const FAQ_JSONLD_VI = [
   {
     question: "Sau 7 ngày dùng thử miễn phí thì sao?",
     answer:
-      "Gói của bạn sẽ tự động tính phí vào ngày thứ 8, trừ khi bạn huỷ ít nhất 24 giờ trước khi hết hạn dùng thử. Chúng tôi gửi email nhắc vào T-3, T-1 và T-0 để bạn luôn nắm được lịch.",
+      "Gói của bạn sẽ tự động tính phí khi hết 7 ngày dùng thử, trừ khi bạn huỷ trước khi hết hạn dùng thử (gói Cohort cho vườn ươm và chương trình có 14 ngày dùng thử). Chúng tôi gửi email nhắc vào T-3, T-1 và T-0 để bạn luôn nắm được lịch.",
   },
   {
     question: "Có cần thẻ tín dụng để bắt đầu dùng thử không?",
@@ -73,7 +73,7 @@ const FAQ_JSONLD_VI = [
   {
     question: "Chính sách hoàn tiền như thế nào?",
     answer:
-      "Bảo hành hoàn tiền 7 ngày cho tháng trả phí đầu tiên. Liên hệ hỗ trợ và chúng tôi xử lý trong 3 ngày làm việc.",
+      "Hoàn tiền 100% trong 7 ngày cho khoản thanh toán gói tháng đầu tiên, không cần lý do — email hỗ trợ và chúng tôi hoàn tiền trong 3 ngày làm việc. Gói năm được hoàn theo tỷ lệ nếu huỷ trong 14 ngày. Báo cáo lẻ A$3 và gói tín dụng không hoàn tiền sau khi đã giao, trừ khi Luật Người tiêu dùng Úc yêu cầu. Quyền lợi của bạn theo Luật Người tiêu dùng Úc không bao giờ bị loại trừ. Chính sách đầy đủ: /legal/terms#refunds.",
   },
 ];
 

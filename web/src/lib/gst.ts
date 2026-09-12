@@ -36,3 +36,22 @@ export function calculateGst(
   const net = gross - gst;
   return { gst_cents: gst, net_cents: net, gross_cents: gross };
 }
+
+/**
+ * Customer-facing GST-inclusive line for a pre-redirect confirmation, e.g.
+ * `A$69 inc. A$6.27 GST`. QA-3 P2 (2026-09-12): the onboarding payment step
+ * and the upgrade modal show it before handing off to Stripe so the amount
+ * on the Stripe page (and the tax line on the invoice) is never a surprise.
+ * Always the AU-registered split — BlockID quotes GST-inclusive AUD.
+ */
+export function formatGstInclusiveAud(gross_aud_cents: number): string {
+  const { gst_cents, gross_cents } = calculateGst(gross_aud_cents, true, "AU");
+  const aud = (cents: number): string => {
+    const whole = cents % 100 === 0;
+    return `A$${(cents / 100).toLocaleString("en-AU", {
+      minimumFractionDigits: whole ? 0 : 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+  return `${aud(gross_cents)} inc. ${aud(gst_cents)} GST`;
+}

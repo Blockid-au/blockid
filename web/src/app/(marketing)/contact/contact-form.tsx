@@ -1,9 +1,34 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Send } from "lucide-react";
 
+// Mirrors CONTACT_TOPICS in app/api/lead/route.ts — the API normalises
+// anything else to "general".
+const TOPICS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: "general", label: "General question" },
+  { value: "demo", label: "Book a demo" },
+  { value: "sales", label: "Sales / plans" },
+  { value: "support", label: "Support" },
+  { value: "legal", label: "Legal / privacy" },
+  { value: "partnership", label: "Partnership" },
+  { value: "press", label: "Press" },
+];
+
+export function topicFromSearch(raw: string | null | undefined): string {
+  const v = (raw ?? "").trim().toLowerCase();
+  return TOPICS.some((t) => t.value === v) ? v : "general";
+}
+
 export function ContactForm() {
+  // QA-3 P1-9: `/contact?topic=demo|legal|…` pre-selects the topic; it is
+  // sent with the lead so the support alert subject and /admin/leads carry it.
+  const searchParams = useSearchParams();
+  const [topic, setTopic] = React.useState(() => topicFromSearch(searchParams?.get("topic")));
+  // Honeypot — hidden from humans (and screen readers); bots that fill every
+  // field trip it and the API drops the submission silently.
+  const [companyWebsite, setCompanyWebsite] = React.useState("");
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [message, setMessage] = React.useState("");
@@ -29,7 +54,8 @@ export function ContactForm() {
         body: JSON.stringify({
           source: "contact",
           email: email.trim(),
-          payload: { name: name.trim(), message: message.trim() },
+          company_website: companyWebsite,
+          payload: { name: name.trim(), message: message.trim(), topic },
         }),
       });
       const data = await res.json();
@@ -75,6 +101,39 @@ export function ContactForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Honeypot: off-screen, tabindex -1, autocomplete off. Real users never see it. */}
+      <div aria-hidden="true" className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden">
+        <label htmlFor="contact-company-website">Company website</label>
+        <input
+          id="contact-company-website"
+          name="company_website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          value={companyWebsite}
+          onChange={(e) => setCompanyWebsite(e.target.value)}
+        />
+      </div>
+      <div>
+        <label
+          htmlFor="contact-topic"
+          className="block text-sm font-medium text-[#F8FAFC] mb-1.5"
+        >
+          Topic
+        </label>
+        <select
+          id="contact-topic"
+          value={topic}
+          onChange={(e) => setTopic(e.target.value)}
+          className="w-full h-11 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] px-4 text-sm text-[#F8FAFC] focus:outline-none focus:border-[rgba(0,212,255,0.5)] focus:ring-1 focus:ring-[rgba(0,212,255,0.3)] transition-colors"
+        >
+          {TOPICS.map((t) => (
+            <option key={t.value} value={t.value} className="bg-[#0A0F1E] text-[#F8FAFC]">
+              {t.label}
+            </option>
+          ))}
+        </select>
+      </div>
       <div>
         <label
           htmlFor="contact-name"

@@ -21,7 +21,12 @@ import { getPlatformConfig } from "@/lib/platform-config";
 import { GENERATED_PLANS } from "@/config/pricing/plans.generated";
 import { CREDIT_PACKS } from "@/lib/credit-packs";
 
-export type AuditStatus = "match" | "drift" | "missing_price_id" | "stripe_not_configured" | "stripe_lookup_failed" | "archived";
+// `cadence_drift` (QA-3 P1-5, 2026-09-12): the amount and currency match but
+// the Stripe Price is recurring where the plan is one-off (or the interval
+// differs). The Startup Package env var pointed at the A$149/**month** Advisor
+// price for weeks — same cents, so the audit said "match" while
+// `mode:"payment"` checkout 500'd. Treated as drift by `hasDrift`.
+export type AuditStatus = "match" | "drift" | "cadence_drift" | "missing_price_id" | "stripe_not_configured" | "stripe_lookup_failed" | "archived";
 
 export interface PlanAuditRow {
   planId: string;                  // internal plan id (founding50, growth, ...)
@@ -32,6 +37,10 @@ export interface PlanAuditRow {
   stripeUnitAmount: number | null; // cents from Stripe
   stripeCurrency: string | null;
   stripeActive: boolean | null;
+  /** Stripe `type` — "one_time" | "recurring" — when the Price was fetched. */
+  stripeType: "one_time" | "recurring" | null;
+  /** Stripe `recurring.interval` when the Price is recurring. */
+  stripeInterval: string | null;
   status: AuditStatus;
   remediation: string;             // human guidance
   cadence?: "one-off" | "monthly" | "yearly" | "credit-pack";
@@ -120,6 +129,46 @@ function allPlans(): PlanExpectation[] {
   return [...LEGACY_PLANS, ...v2];
 }
 
+// ─── Cadence (one-off vs recurring) ──────────────────────────────────────────
+
+interface StripeCadence {
+  type: "one_time" | "recurring" | null;
+  interval: string | null;
+}
+
+/** The Stripe `type` / `recurring.interval` a plan cadence must map to. */
+export function expectedStripeCadence(cadence: PlanAuditRow["cadence"]): StripeCadence | null {
+  switch (cadence) {
+    case "one-off":
+    case "credit-pack":
+      return { type: "one_time", interval: null };
+    case "monthly":
+      return { type: "recurring", interval: "month" };
+    case "yearly":
+      return { type: "recurring", interval: "year" };
+    default:
+      return null;
+  }
+}
+
+export function cadenceMatches(
+  expected: StripeCadence,
+  stripeType: string | null,
+  stripeInterval: string | null,
+): boolean {
+  // Older fixtures / partial Stripe objects may omit `type`; only judge when
+  // Stripe told us something.
+  if (stripeType === null) return true;
+  if (expected.type === "one_time") return stripeType === "one_time";
+  return stripeType === "recurring" && stripeInterval === expected.interval;
+}
+
+function describeCadence(c: StripeCadence): string {
+  if (c.type === "recurring") return `recurring/${c.interval ?? "?"}`;
+  if (c.type === "one_time") return "one-off";
+  return "unknown";
+}
+
 // ─── Audit a single plan ──────────────────────────────────────────────────────
 
 async function auditPlan(plan: PlanExpectation, cfg: Awaited<ReturnType<typeof getPlatformConfig>>): Promise<PlanAuditRow> {
@@ -141,6 +190,8 @@ async function auditPlan(plan: PlanExpectation, cfg: Awaited<ReturnType<typeof g
     stripeUnitAmount: null,
     stripeCurrency: null,
     stripeActive: null,
+    stripeType: null,
+    stripeInterval: null,
     status: "missing_price_id",
     remediation: "",
     cadence: plan.cadence,
@@ -165,6 +216,8 @@ async function auditPlan(plan: PlanExpectation, cfg: Awaited<ReturnType<typeof g
     const stripeUnitAmount = price.unit_amount ?? null;
     const stripeCurrency = price.currency ?? null;
     const stripeActive = price.active ?? null;
+    const stripeType = price.type ?? null;
+    const stripeInterval = price.recurring?.interval ?? null;
 
     if (!stripeActive) {
       return {
@@ -172,17 +225,34 @@ async function auditPlan(plan: PlanExpectation, cfg: Awaited<ReturnType<typeof g
         stripeUnitAmount,
         stripeCurrency,
         stripeActive,
+        stripeType,
+        stripeInterval,
         status: "archived",
         remediation: `Stripe Price ${stripePriceId} is archived. Create a new Price at A$${expectedCents / 100} and update the env var.`,
       };
     }
 
     if (stripeUnitAmount === expectedCents && stripeCurrency?.toLowerCase() === "aud") {
+      const expectedCadence = expectedStripeCadence(plan.cadence);
+      if (expectedCadence && !cadenceMatches(expectedCadence, stripeType, stripeInterval)) {
+        return {
+          ...base,
+          stripeUnitAmount,
+          stripeCurrency,
+          stripeActive,
+          stripeType,
+          stripeInterval,
+          status: "cadence_drift",
+          remediation: `Cadence drift: plan is ${plan.cadence} (Stripe should be ${describeCadence(expectedCadence)}) but Price ${stripePriceId} is ${describeCadence({ type: stripeType, interval: stripeInterval })}. Checkout mode will not match the Price. Create a ${describeCadence(expectedCadence)} Price at A$${expectedCents / 100}, paste new ID into ${envVar}, redeploy.`,
+        };
+      }
       return {
         ...base,
         stripeUnitAmount,
         stripeCurrency,
         stripeActive,
+        stripeType,
+        stripeInterval,
         status: "match",
         remediation: "OK — Stripe matches platform-config.",
       };
@@ -194,6 +264,8 @@ async function auditPlan(plan: PlanExpectation, cfg: Awaited<ReturnType<typeof g
       stripeUnitAmount,
       stripeCurrency,
       stripeActive,
+      stripeType,
+      stripeInterval,
       status: "drift",
       remediation: `Drift: platform-config expects A$${expectedCents / 100} (${expectedCents}¢), Stripe has ${stripeCurrency?.toUpperCase()} ${stripeUnitAmount}¢. Stripe Prices are immutable — create a new Price at A$${expectedCents / 100}, paste new ID into env var, redeploy. Then archive the old Price.`,
     };
@@ -214,7 +286,7 @@ export async function runStripePricingAudit(): Promise<AuditResult> {
   return {
     rows,
     generatedAt: new Date().toISOString(),
-    hasDrift: rows.some((r) => r.status === "drift" || r.status === "archived"),
+    hasDrift: rows.some((r) => r.status === "drift" || r.status === "cadence_drift" || r.status === "archived"),
     hasMissingIds: rows.some((r) => r.status === "missing_price_id"),
     stripeConfigured: rows.every((r) => r.status !== "stripe_not_configured"),
   };

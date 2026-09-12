@@ -127,6 +127,23 @@ vi.mock("@/lib/audit/log", () => ({
   extractUserAgent: (h: Headers) => mocks.extractUserAgentMock(h),
 }));
 
+
+// QA-3 P1-10 (2026-09-12): the route is rate-limited per user (10 / 15 min).
+// Mocked so the shared in-memory limiter cannot bleed 429s across this file;
+// the dedicated describe below pins the call shape and the 429 pass-through.
+const enforceRateLimitMock = vi.hoisted(() =>
+  vi.fn<(route: string, identity: string | null | undefined, req: Request, max: number, windowMs: number) => Response | null>(),
+);
+vi.mock("@/lib/rate-limit", () => ({
+  enforceRateLimit: (
+    route: string,
+    identity: string | null | undefined,
+    req: Request,
+    max: number,
+    windowMs: number,
+  ) => enforceRateLimitMock(route, identity, req, max, windowMs),
+}));
+
 import { POST, dynamic } from "./route";
 
 const USER: AppUser = {
@@ -163,6 +180,7 @@ async function json(res: Response): Promise<Record<string, unknown>> {
 
 beforeEach(() => {
   mocks.getCurrentUserMock.mockReset().mockResolvedValue(USER);
+  enforceRateLimitMock.mockReset().mockReturnValue(null);
   // Empty cookie store (no blockid_via) → reseller path skipped.
   mocks.cookiesMock.mockReset().mockResolvedValue({ get: () => undefined });
   mocks.isStripeConfiguredMock.mockReset().mockReturnValue(true);
@@ -503,5 +521,26 @@ describe("stripe/checkout — gate precedence", () => {
     mocks.getPlanMock.mockReturnValue({ id: "founding50", cadence: "once", price: 500 });
     const res = await POST(req({ plan: "founding50", promoCode: "TYPO" }));
     expect(res.status).toBe(410);
+  });
+});
+
+describe("QA-3 P1-10 — per-user rate limit on /api/stripe/checkout", () => {
+  it("calls enforceRateLimit('stripe-checkout', user.id, request, 10, 15 min) after auth", async () => {
+    await POST(req({ plan: "growth" }));
+    expect(enforceRateLimitMock).toHaveBeenCalledWith("stripe-checkout", USER.id, expect.any(Request), 10, 15 * 60 * 1000);
+  });
+
+  it("returns the limiter's 429 and never reaches Stripe", async () => {
+    enforceRateLimitMock.mockReturnValueOnce(new Response("{}", { status: 429, headers: { "Retry-After": "60" } }));
+    const res = await POST(req({ plan: "growth" }));
+    expect(res.status).toBe(429);
+    expect(mocks.stripeCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("does not consult the limiter for an unauthenticated caller (401 first)", async () => {
+    mocks.getCurrentUserMock.mockResolvedValue(null);
+    const res = await POST(req({ plan: "growth" }));
+    expect(res.status).toBe(401);
+    expect(enforceRateLimitMock).not.toHaveBeenCalled();
   });
 });

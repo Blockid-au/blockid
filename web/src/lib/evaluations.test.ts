@@ -97,6 +97,13 @@ vi.mock("@/lib/projects", () => ({
 const sendEmailMock = vi.fn<(args: unknown) => Promise<{ ok: boolean; id?: string; reason?: string }>>(async () => ({ ok: true, id: "m-1" }));
 vi.mock("@/lib/email", () => ({
   sendEmail: (args: unknown) => sendEmailMock(args),
+  // QA-3 P1-6: Spam Act footer + List-Unsubscribe URL on the founder invite.
+  complianceFooter: async (to: string) => ({
+    unsubscribeUrl: `https://blockid.au/unsubscribe?token=tok-${to}`,
+    preferencesUrl: `https://blockid.au/unsubscribe?token=tok-${to}&manage=1`,
+    footerHtml: `<p data-footer>Auschain PTY LTD · ABN 79 659 615 111 · Sydney NSW · <a href="https://blockid.au/unsubscribe?token=tok-${to}">Unsubscribe</a></p>`,
+    footerText: "",
+  }),
 }));
 
 const canMock = vi.fn<(u: unknown, f: string) => Promise<boolean>>(async () => false);
@@ -259,6 +266,10 @@ describe("createEvaluation", () => {
     expect(mail.to).toBe("jo@acme.io");
     expect(mail.subject).toBe("Sam Scout is evaluating Acme on BlockID — claim it to share your evidence");
     expect(mail.html).toContain(claimUrlForToken("t".repeat(24)));
+    // Spam Act (QA-3 P1-6): identity line + unsubscribe on the invite, and
+    // the List-Unsubscribe URL handed to sendEmail.
+    expect(mail.html).toContain("ABN 79 659 615 111");
+    expect((mail as { unsubscribeUrl?: string }).unsubscribeUrl).toBe("https://blockid.au/unsubscribe?token=tok-jo@acme.io");
     expect(res.inviteSent).toBe(true);
     expect(res.evaluation.ownerKind).toBe("founder_invited");
   });

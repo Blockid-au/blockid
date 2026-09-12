@@ -2173,7 +2173,7 @@ function BottomFooter() {
             <span className="text-tertiary">Australia</span>
             <Link href="/about" className="hover:text-primary transition-colors">About</Link>
             <Link href="/privacy" className="hover:text-primary transition-colors">Privacy</Link>
-            <Link href="/terms" className="hover:text-primary transition-colors">Terms</Link>
+            <Link href="/legal/terms" className="hover:text-primary transition-colors">Terms</Link>
             <Link href="/contact" className="hover:text-primary transition-colors">Contact</Link>
             <Link href="/insights" className="hover:text-primary transition-colors">Insights</Link>
             <Link href="/investors" className="hover:text-primary transition-colors">Investors</Link>

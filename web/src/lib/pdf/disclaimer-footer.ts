@@ -10,6 +10,19 @@ import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
 
+// Static render-time disclaimer (QA-3 P1-7): the @react-pdf templates that
+// cannot run the DB-backed stamper below render <AdviceDisclaimer /> from
+// ./advice-disclaimer instead. Re-exported here so this module stays the
+// single entry point for "the disclaimer a PDF must carry".
+export {
+  AdviceDisclaimer,
+  adviceDisclaimerText,
+  PDF_ENTITY_LINE,
+  PDF_FINANCIAL_PROJECTION_DISCLAIMER,
+  PDF_GENERAL_ADVICE_DISCLAIMER,
+  PDF_PITCH_DECK_DISCLAIMER,
+} from "./advice-disclaimer";
+
 export type DisclaimerKind =
   | "not_financial_advice"
   | "equity_offer_disclaimer"

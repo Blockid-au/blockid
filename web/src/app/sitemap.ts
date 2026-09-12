@@ -708,14 +708,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.4,
     },
-    // T0275 (2026-09-10) — `/privacy` now 301s to `/legal/privacy`, which is
-    // already listed above; advertising the source would be a duplicate.
-    {
-      url: `${SITE_URL}/terms`,
-      lastModified,
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
+    // T0275 (2026-09-10) — `/privacy` now 301s to `/legal/privacy`, and
+    // QA-3 (2026-09-12) — `/terms` now 301s to `/legal/terms`; both targets
+    // are already listed above, so advertising the sources would duplicate.
     // P1 backlog (2026-08-23) — routes discovered by the audit that were
     // reachable via internal links but never advertised. Added here so
     // Google Search Console reports full coverage.

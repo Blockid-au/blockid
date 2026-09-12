@@ -8,7 +8,9 @@ type FAQItem = {
 const FAQS: FAQItem[] = [
   {
     q: "What happens after the 7-day free trial?",
-    a: "Your plan auto-charges on Day 8 unless you cancel at least 24 hours before the trial ends. We send email reminders at T-3, T-1, and T-0 so you always know what's coming.",
+    // QA-3 (2026-09-12): trial + refund copy mirror Terms v2.1 clauses 3 /
+    // 3A (/legal/terms#refunds) and FAQ_JSONLD in app/(marketing)/pricing.
+    a: "Your plan auto-charges when the 7-day trial ends unless you cancel before the trial ends (Cohort plans for accelerators and programs have a 14-day trial). We send email reminders at T-3, T-1, and T-0 so you always know what's coming.",
   },
   {
     q: "Is a credit card required to start the trial?",
@@ -20,7 +22,7 @@ const FAQS: FAQItem[] = [
   },
   {
     q: "What's the refund policy?",
-    a: "We offer a 7-day money-back guarantee on your first paid month, no questions asked. Contact support and we'll process the refund within 3 business days.",
+    a: "7-day money-back guarantee on your first monthly subscription payment, no questions asked — email support and we refund within 3 business days. Annual plans are refunded pro-rata if you cancel within 14 days. One-off A$3 reports and credit packs are non-refundable once delivered, except where the Australian Consumer Law requires a refund. Your Australian Consumer Law guarantees are never excluded. Full policy: /legal/terms#refunds.",
   },
   {
     q: 'What does "equity in lieu of cash" mean?',
@@ -38,7 +40,7 @@ const FAQS: FAQItem[] = [
     // G12 (2026-09-10, T0268): describes the Founder / Evaluator switch that
     // sits above the plans on /pricing — not the retired four persona tabs.
     q: "Founder or Evaluator — which plans do I see?",
-    a: "Use the Founder / Evaluator switch above the plans. Founder shows Free, Starter A$29 and Growth A$69. Evaluator shows Scout A$79, Firm A$149 and Program A$349 for investors, advisors, accelerators and programs — each with a 7-day free trial, card required, cancel anytime. Without a subscription, every full Trust BizReport is A$3 per startup. Need more than Program (5+ seats, multi-cohort, SSO)? Contact sales.",
+    a: "Use the Founder / Evaluator switch above the plans. Founder shows Free, Starter A$29 and Growth A$69. Evaluator shows Scout A$79, Firm A$149 and Program A$349 for investors, advisors, accelerators and programs — each with a 7-day free trial, card required, cancel anytime (Cohort plans: 14-day trial). Without a subscription, every full Trust BizReport is A$3 per startup. Need more than Program (5+ seats, multi-cohort, SSO)? Contact sales.",
   },
   {
     // G11 (2026-09-10, T0249): Money Finder ladder. Keep in sync with

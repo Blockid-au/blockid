@@ -16,6 +16,7 @@ import {
   StyleSheet,
   renderToBuffer,
 } from "@react-pdf/renderer";
+import { AdviceDisclaimer } from "./advice-disclaimer";
 
 // BlockID palette (mirrors design-system/blockid/MASTER.md).
 const C = {
@@ -467,6 +468,9 @@ export function ScorePDF({ data }: { data: ScorePdfData }) {
             </View>
           ))}
         </View>
+
+        {/* QA-3 P1-7: general-advice disclaimer (not a valuation, no AFSL) */}
+        <AdviceDisclaimer />
 
         <View style={styles.footer} fixed>
           <Text>{data.shareUrl}</Text>

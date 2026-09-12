@@ -90,7 +90,16 @@ vi.mock("@/lib/supabase", () => ({
 }));
 
 const sendEmailMock = vi.fn(async () => ({ ok: true }));
-vi.mock("@/lib/email", () => ({ sendEmail: (args: unknown) => sendEmailMock(args as never) }));
+vi.mock("@/lib/email", () => ({
+  sendEmail: (args: unknown) => sendEmailMock(args as never),
+  // QA-3 P1-6: Spam Act footer + List-Unsubscribe URL threaded into every send.
+  complianceFooter: async (to: string) => ({
+    unsubscribeUrl: `https://blockid.au/unsubscribe?token=tok-${to}`,
+    preferencesUrl: `https://blockid.au/unsubscribe?token=tok-${to}&manage=1`,
+    footerHtml: `<p data-footer>Auschain PTY LTD · ABN 79 659 615 111 · Sydney NSW · <a href="https://blockid.au/unsubscribe?token=tok-${to}">Unsubscribe</a></p>`,
+    footerText: "",
+  }),
+}));
 
 vi.mock("@/lib/funding/data", () => ({
   listGrants: vi.fn(async () => []),
@@ -186,7 +195,10 @@ describe("handleFundingReportCompleted", () => {
     expect((generateMock.mock.calls[0][0] as { withNarrative: boolean }).withNarrative).toBe(true);
 
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
-    const mail = sendEmailMock.mock.calls[0][0] as unknown as { to: string; subject: string; html: string };
+    const mail = sendEmailMock.mock.calls[0][0] as unknown as { to: string; subject: string; html: string; unsubscribeUrl?: string };
+    // Spam Act (QA-3 P1-6): identity line + List-Unsubscribe on the delivery.
+    expect(mail.html).toContain("ABN 79 659 615 111");
+    expect(mail.unsubscribeUrl).toMatch(/^https:\/\/blockid\.au\/unsubscribe\?token=/);
     expect(mail.to).toBe("founder@example.com");
     expect(mail.subject).toMatch(/1 grants, 1 programs/);
     expect(mail.html).toContain("/funding/report/fr_guest?t=tok_abc");

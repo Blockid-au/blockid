@@ -3,7 +3,14 @@ import { getCurrentUser } from "@/lib/auth";
 import { getBalance, getTransactionHistory, grantCredits, CREDIT_PACKS } from "@/lib/credits";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { sessionIdempotencyKey } from "@/lib/stripe/idempotency";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { apiRoute } from "@/lib/audit/api-route";
+
+// QA-3 P1-10 (2026-09-12): 10 Checkout sessions per user per 15 minutes.
+// The idempotency key already collapses a double-click; this stops a
+// scripted loop from minting hundreds of open sessions on one account.
+const CHECKOUT_RL_MAX = 10;
+const CHECKOUT_RL_WINDOW_MS = 15 * 60 * 1000;
 
 // GET /api/credits
 // Returns the authenticated user's credit balance + recent transactions.
@@ -46,6 +53,9 @@ async function POST_handler(request: Request) {
     );
   }
 
+  const limited = enforceRateLimit("credits-checkout", user.id, request, CHECKOUT_RL_MAX, CHECKOUT_RL_WINDOW_MS);
+  if (limited) return limited;
+
   let body: unknown = null;
   try {
     body = await request.json();
@@ -84,6 +94,14 @@ async function POST_handler(request: Request) {
           line_items: [{ price: creditsPriceId, quantity: 1 }],
           success_url: `${siteUrl}/workspace/billing?credits_purchased=${amount}#credits`,
           cancel_url: `${siteUrl}/workspace/billing#credits`,
+          // QA-3 P1-5 (2026-09-12): same ATO tax-invoice trio as the
+          // subscription checkout (api/stripe/checkout/route.ts). Credit
+          // pack prices are GST-inclusive AUD; without `automatic_tax` the
+          // Stripe receipt carried no GST line, so the customer's invoice
+          // did not match the "inc. GST" price shown in /workspace/billing.
+          automatic_tax: { enabled: true },
+          tax_id_collection: { enabled: true },
+          billing_address_collection: "required",
           metadata: {
             blockid_user_id: user.id,
             blockid_credits: String(amount),

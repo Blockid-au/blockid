@@ -76,6 +76,8 @@ const BUCKET_ROUTES: ReadonlyArray<readonly [prefix: string, bucket: RateLimitBu
   ["/api/data-room/share/", "data-room-pdf"],
   ["/api/evidence/upload", "evidence-upload"],
   ["/api/upload", "upload"],
+  // QA-3 P1-9 — anonymous contact / waitlist form: 10 per IP per 10 min.
+  ["/api/lead", "lead"],
   // Auth surfaces — fail-closed (see FAIL_CLOSED_BUCKETS in lib/rate-limit.ts).
   ["/api/auth/login-password", "auth-login"],
   ["/api/auth/register", "auth-register"],

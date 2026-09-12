@@ -29,11 +29,13 @@ export async function OrganizationJsonLd() {
     "@type": "Organization",
     name: "BlockID.au",
     legalName: "Auschain PTY LTD",
+    // QA-3 P2 (2026-09-12): ABN as schema.org taxID; support inbox, not admin@.
+    taxID: "79 659 615 111",
     url: "https://blockid.au",
     logo: "https://blockid.au/images/logo-transparent.png",
     description:
       "Know your startup's SVI score in 60 seconds. BlockID.au scores Australian startups on 8 SVI dimensions, guides them through 12 growth phases, and produces a 9-chapter investor-ready pack.",
-    email: "admin@blockid.au",
+    email: "support@blockid.au",
     address: {
       "@type": "PostalAddress",
       addressLocality: "Sydney",

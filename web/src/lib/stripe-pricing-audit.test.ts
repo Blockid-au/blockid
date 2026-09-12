@@ -40,6 +40,8 @@ interface FakePrice {
   unit_amount: number | null;
   currency: string | null;
   active: boolean;
+  type?: "one_time" | "recurring";
+  recurring?: { interval: "month" | "year" } | null;
 }
 
 function makeStripe(overrides: {
@@ -210,6 +212,72 @@ describe("stripe-pricing-audit — runStripePricingAudit", () => {
     const growth = rowFor(rows, "growth");
     expect(growth.status).toBe("drift");
     expect(growth.remediation).toContain("USD");
+  });
+
+  // QA-3 P1-5 (2026-09-12): the exact production failure — STRIPE_PRICE_
+  // STARTUP_PACKAGE pointed at the A$149/month Advisor price. 14900¢ AUD
+  // matched, so the audit said "match" while `mode:"payment"` checkout 500'd.
+  it("founder_package: flags cadence_drift when the one-off plan points at a RECURRING price with the same cents", async () => {
+    process.env.STRIPE_PRICE_STARTUP_PACKAGE = "price_advisor_monthly";
+    try {
+      const { stripe } = makeStripe({
+        prices: {
+          price_advisor_monthly: { unit_amount: 14900, currency: "aud", active: true, type: "recurring", recurring: { interval: "month" } },
+        },
+      });
+      getStripeMock.mockReturnValue(stripe);
+      getPlatformConfigMock.mockResolvedValue(makeConfig());
+
+      const { rows, hasDrift } = await runStripePricingAudit();
+      const pkg = rowFor(rows, "founder_package");
+      expect(pkg.expectedCents).toBe(14900);
+      expect(pkg.stripeUnitAmount).toBe(14900);
+      expect(pkg.stripeType).toBe("recurring");
+      expect(pkg.stripeInterval).toBe("month");
+      expect(pkg.status).toBe("cadence_drift");
+      expect(pkg.remediation).toContain("recurring/month");
+      expect(pkg.remediation).toContain("STRIPE_PRICE_STARTUP_PACKAGE");
+      expect(hasDrift).toBe(true);
+    } finally {
+      delete process.env.STRIPE_PRICE_STARTUP_PACKAGE;
+    }
+  });
+
+  it("founder_package: matches a one_time A$149 price", async () => {
+    process.env.STRIPE_PRICE_STARTUP_PACKAGE = "price_package_once";
+    try {
+      const { stripe } = makeStripe({
+        prices: {
+          price_package_once: { unit_amount: 14900, currency: "aud", active: true, type: "one_time", recurring: null },
+        },
+      });
+      getStripeMock.mockReturnValue(stripe);
+      getPlatformConfigMock.mockResolvedValue(makeConfig());
+
+      const { rows } = await runStripePricingAudit();
+      const pkg = rowFor(rows, "founder_package");
+      expect(pkg.status).toBe("match");
+      expect(pkg.stripeType).toBe("one_time");
+    } finally {
+      delete process.env.STRIPE_PRICE_STARTUP_PACKAGE;
+    }
+  });
+
+  it("monthly plan pointing at a yearly price is cadence_drift; a price object without `type` is not judged", async () => {
+    stripePriceMap.growth = "price_growth_yearly";
+    stripePriceMap.founding50 = "price_founding50";
+    const { stripe } = makeStripe({
+      prices: {
+        price_growth_yearly: { unit_amount: 9900, currency: "aud", active: true, type: "recurring", recurring: { interval: "year" } },
+        price_founding50: { unit_amount: 500, currency: "aud", active: true },
+      },
+    });
+    getStripeMock.mockReturnValue(stripe);
+    getPlatformConfigMock.mockResolvedValue(makeConfig());
+
+    const { rows } = await runStripePricingAudit();
+    expect(rowFor(rows, "growth").status).toBe("cadence_drift");
+    expect(rowFor(rows, "founding50").status).toBe("match");
   });
 
   it("returns archived when Stripe reports active=false even with matching amount", async () => {

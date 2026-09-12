@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
+import { AdviceDisclaimer } from "./advice-disclaimer";
 import * as path from "path";
 import * as fs from "fs";
 
@@ -510,6 +511,8 @@ export function PitchDeckPDF() {
             <Text style={{ fontSize: 10, color: C.ink400, marginTop: 4 }}>ceo@longcare.au | linkedin.com/in/dovanlong | blockid.au</Text>
             <Text style={{ fontSize: 9, color: C.ink500, marginTop: 4 }}>Auschain PTY LTD | ACN 659 615 111 | ABN 79 659 615 111 | Sydney, NSW</Text>
           </View>
+          {/* QA-3 P1-7: not an offer of securities / forward-looking + general-advice disclaimer */}
+          <AdviceDisclaimer variant="pitch" dark style={{ marginTop: 18, marginHorizontal: 48 }} />
         </View>
         <Footer num={12} dark />
       </Page>
