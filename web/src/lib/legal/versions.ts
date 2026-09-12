@@ -28,7 +28,7 @@ export const DISCLAIMER_VERSIONS: Record<DisclaimerKind, string> = {
   // 14 days, A$3 reports + credit packs non-refundable once delivered
   // except where the ACL requires, ACL guarantees never excluded; clause 3
   // trial length per plan (7 days founder/evaluator, 14 days Cohort).
-  // Registry row: supabase/migrations/0343_terms_v2_1_registry.sql.
+  // Registry row: supabase/migrations/0346_terms_v2_1_registry.sql.
   tos: "v2.1-2026-09-12",
   // v2.1 (T0275, 2026-09-10): one canonical policy at /legal/privacy; AI
   // provider chain listed as actually run (groq → cerebras → sambanova →
