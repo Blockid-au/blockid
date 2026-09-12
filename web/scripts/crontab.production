@@ -277,6 +277,16 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # line per rule → content/reports/retention-history.jsonl. `?dry=1` previews.
 15 3 * * 1 bash $RUN privacy-retention --timeout 300
 
+# S24-B (2026-09-12) — daily account erasure. Executes self-service deletion
+# requests (POST /api/account/delete → app_users.deletion_requested_at) once
+# the 7-day grace has elapsed and the request was not cancelled: Stripe
+# subscriptions cancelled + payment methods detached (customer + invoices
+# kept 7 y), then the atomic erase_account() RPC (migration 0348, walks
+# src/lib/privacy/erasure-map.ts), dataroom bucket purge, one account.erased
+# audit row. ≤ 25 accounts per tick; a Stripe failure leaves the request
+# pending for the next tick. `?dry=1` previews the per-table counts.
+20 3 * * * bash $RUN account-erasure --timeout 300
+
 # S20-A (2026-09-12) — nightly integrity check of the hash-chained
 # audit_events log (every mutating /api/** route writes one row via the
 # apiRoute wrapper). Pages through the audit_events_verify_chain RPC
