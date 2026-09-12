@@ -4,8 +4,9 @@
  * Soft-deletes a `svi_dimension_evidence` row by its UUID, then
  * recalculates evidence completeness for the affected project.
  *
- * Auth: requires a valid session; only the project owner may delete.
- * Multi-startup safe: always scopes ownership via project_id → projects.owner_id.
+ * Auth: requires a valid session; the project owner or an accepted member
+ * with role ≥ editor may delete (assertProjectAccess — S17-A). Multi-startup
+ * safe: ownership is always resolved via the row's project_id.
  *
  * Response:
  *   200 { ok: true, completeness }
@@ -26,12 +27,14 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { assessEvidenceQuality } from "@/lib/computeEvidenceCompleteness";
 import { apiRoute } from "@/lib/audit/api-route";
+import { assertProjectAccess } from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
 async function DELETE_handler(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -39,7 +42,7 @@ async function DELETE_handler(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     if (!id) {
       return NextResponse.json({ error: "Evidence id is required" }, { status: 400 });
     }
@@ -68,19 +71,17 @@ async function DELETE_handler(
       return NextResponse.json({ error: "Evidence row not found" }, { status: 404 });
     }
 
-    // Verify project ownership
-    const { data: project, error: projErr } = await supabase
-      .from("projects")
-      .select("id, owner_id")
-      .eq("id", row.project_id as string)
-      .maybeSingle();
-
-    if (projErr || !project) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
-    }
-
-    if ((project.owner_id as string) !== user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // Release QA-4 P2-e: the previous check selected `projects.owner_id`, a column
+    // that does not exist, so every call was denied (fail-closed, feature dead).
+    // Access now goes through the S17-A chokepoint `assertProjectAccess`
+    // (owner or accepted member ≥ minRole; 404 for a non-member so the project's
+    // existence is not confirmed, 403 for an under-ranked member, 503 no DB).
+    try {
+      await assertProjectAccess(user.id, row.project_id as string, "editor");
+    } catch (err) {
+      const denied = projectAccessResponse(err);
+      if (denied) return denied;
+      throw err;
     }
 
     // Hard delete the evidence row

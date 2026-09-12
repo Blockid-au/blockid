@@ -9,12 +9,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import type { ProjectionMonth, ProjectionOutput } from '@/types/financial';
+import { assertProjectAccess } from '@/lib/projects';
+import { projectAccessResponse } from '@/lib/project-members/http';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { modelId: string } }
+  { params }: { params: Promise<{ modelId: string }> }
 ) {
   try {
     // Authenticate user
@@ -26,7 +28,7 @@ export async function GET(
       );
     }
 
-    const { modelId } = params;
+    const { modelId } = await params;
     const format = request.nextUrl.searchParams.get('format') || 'csv';
 
     const supabase = getSupabaseAdmin();
@@ -52,18 +54,17 @@ export async function GET(
       );
     }
 
-    // Verify ownership
-    const { data: project, error: projectError } = await supabase
-      .from('projects')
-      .select('id, created_by')
-      .eq('id', model.project_id)
-      .single();
-
-    if (projectError || !project || project.created_by !== user.id) {
-      return NextResponse.json(
-        { ok: false, error: 'Unauthorized' },
-        { status: 403 }
-      );
+    // Release QA-4 P2-e: the previous check selected `projects.created_by`, a column
+    // that does not exist, so every call was denied (fail-closed, feature dead).
+    // Access now goes through the S17-A chokepoint `assertProjectAccess`
+    // (owner or accepted member ≥ minRole; 404 for a non-member so the project's
+    // existence is not confirmed, 403 for an under-ranked member, 503 no DB).
+    try {
+      await assertProjectAccess(user.id, String(model.project_id), 'viewer');
+    } catch (err) {
+      const denied = projectAccessResponse(err);
+      if (denied) return denied;
+      throw err;
     }
 
     // Export as CSV
