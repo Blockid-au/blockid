@@ -7,7 +7,7 @@ import {
   getCompetitivePositioningContext,
   buildAnonymizedCompetitiveMatrix,
 } from "@/lib/competitive-positioning";
-import { getActiveProjectIdOrNull } from "@/lib/founder-features";
+import { projectScopeOrDenyFor } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -17,16 +17,21 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, reason: "Authentication required" }, { status: 401 });
   }
 
+  // S18-A review P2-2 — viewer+ read; an explicit `?projectId=` is verified
+  // (404 non-member) rather than trusted. Statements are keyed on the
+  // project OWNER's user id so a member reads the owner's statement.
   const { searchParams } = new URL(request.url);
-  const projectIdParam = searchParams.get("projectId");
-  const projectId = projectIdParam ?? (await getActiveProjectIdOrNull());
+  const { scope, denied } = await projectScopeOrDenyFor(user, searchParams.get("projectId"), "viewer");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const dataUser = scope ? { ...user, id: scope.ownerUserId } : user;
 
   if (!projectId) {
     return NextResponse.json({ ok: true, statement: null });
   }
 
   try {
-    const statement = await getLatestPositioningStatement(user, projectId);
+    const statement = await getLatestPositioningStatement(dataUser, projectId);
     return NextResponse.json({ ok: true, statement });
   } catch (err) {
     console.error("[competitive-positioning/positioning GET]", err);
@@ -46,16 +51,24 @@ export async function POST(request: Request) {
       prompt?: string;
     };
 
-    const projectId = body.projectId ?? (await getActiveProjectIdOrNull());
+    // S18-A review P2-2 — editor+ write (generates + saves a statement on
+    // the project); an explicit body.projectId is verified (404 non-member,
+    // 403 viewer) rather than trusted. The statement is saved under the
+    // project OWNER's user id — never an orphan (member id, owner project)
+    // row.
+    const { scope, denied } = await projectScopeOrDenyFor(user, body.projectId, "editor");
+    if (denied) return denied;
+    const projectId = scope?.projectId ?? null;
     if (!projectId) {
       return NextResponse.json({ ok: false, error: "No active project found" }, { status: 400 });
     }
+    const dataUser = { ...user, id: scope!.ownerUserId };
 
     // Step 1: Get competitive context
-    const context = await getCompetitivePositioningContext(user, projectId);
+    const context = await getCompetitivePositioningContext(dataUser, projectId);
 
     // Step 2: Build anonymized matrix (no real competitor names passed to AI)
-    const anonymizedMatrix = await buildAnonymizedCompetitiveMatrix(user, projectId);
+    const anonymizedMatrix = await buildAnonymizedCompetitiveMatrix(dataUser, projectId);
 
     // Step 3: Build AI prompt using ONLY anonymized competitor labels
     const competitorSummary = anonymizedMatrix.competitors
@@ -115,7 +128,7 @@ Generate a positioning statement in the format: "We're [category] for [segment],
     }
 
     // Step 5: Save positioning statement
-    const saved = await savePositioningStatement(user, projectId, {
+    const saved = await savePositioningStatement(dataUser, projectId, {
       text: parsed.statement,
       category: parsed.category ?? null,
       targetSegment: parsed.targetSegment ?? null,
