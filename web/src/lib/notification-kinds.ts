@@ -37,6 +37,8 @@ export const NOTIFICATION_KINDS = [
   "analysis_refresh",
   // S11-A activation nudge: Radar subscriber with no grant profile / intake.
   "radar_setup_nudge",
+  // S20-B outbound webhooks: endpoint auto-disabled after 20 consecutive failures.
+  "webhook_disabled",
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -92,6 +94,7 @@ export const KIND_LABELS: Record<NotificationKind, string> = {
   new_matches: "New matches",
   analysis_refresh: "Analysis refreshed",
   radar_setup_nudge: "Founder Radar setup",
+  webhook_disabled: "Webhook disabled",
 };
 
 function s(v: unknown): string | null {
@@ -211,6 +214,13 @@ export function describeNotification(row: FounderNotificationRow): string {
       }
       return FUNDING_COPY.notification.weekly_next_step;
     }
+    case "webhook_disabled": {
+      const host = s(p.host);
+      const failures = n(p.failures) ?? 20;
+      return host
+        ? `Webhook to ${host} was disabled after ${failures} consecutive failed deliveries — fix the receiver and re-enable it.`
+        : `A webhook endpoint was disabled after ${failures} consecutive failed deliveries.`;
+    }
     case "radar_setup_nudge": {
       // Counts come from the sweep's catalogue so the line is never blank
       // (D-3 "always show counts"); the title alone when they are missing.
@@ -268,6 +278,8 @@ export function notificationAction(row: FounderNotificationRow): { href: string;
       return { href: s(p.href) ?? "/workspace/business-report", label: "Read the update" };
     case "radar_setup_nudge":
       return { href: RADAR_SETUP_NUDGE_HREF, label: RADAR_SETUP_NUDGE_ACTION_LABEL };
+    case "webhook_disabled":
+      return { href: "/workspace/integrations#webhooks", label: "Open webhooks" };
     default:
       return null;
   }

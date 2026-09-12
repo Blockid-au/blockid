@@ -53,6 +53,7 @@ import {
 } from "@/lib/evaluations/report-quota";
 import { runRescoreForProject, runTrustReportForProject } from "@/lib/report-pipeline/run-for-project";
 import { apiRoute } from "@/lib/audit/api-route";
+import { enqueueWebhook } from "@/lib/webhooks/registry";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -293,6 +294,23 @@ async function POST_handler(request: Request, { params }: Ctx) {
   if (!row) {
     console.error("[blockid:evaluations:report] evaluation_reports row missing — run not billed", { evaluationId: evaluation.id, reportRef });
   }
+
+  // S20-B — `evaluation.report_ready` to the EVALUATOR's endpoints (the
+  // caller, never the startup's owner — the report is the evaluator's).
+  // Ids + score only; the share token stays out of the payload.
+  await enqueueWebhook(
+    "evaluation.report_ready",
+    evaluation.projectId,
+    {
+      evaluation_id: evaluation.id,
+      project_id: evaluation.projectId,
+      report_id: row?.id ?? null,
+      kind,
+      svi_total: svi,
+      via: paidVia,
+    },
+    { userIds: [user.id], projectEndpoints: false },
+  );
 
   return NextResponse.json({
     ok: true,

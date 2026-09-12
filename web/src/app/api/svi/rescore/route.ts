@@ -6,6 +6,7 @@ import { extractSignals, computeSVI } from "@/lib/svi-analysis";
 import { getProjectScope, findSVIAccountWithFallback, findLatestAnalysisWithFallback } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
 import { apiRoute } from "@/lib/audit/api-route";
+import { enqueueWebhook } from "@/lib/webhooks/registry";
 
 // POST /api/svi/rescore
 // Re-calculates SVI based on the original analysis text + accumulated evidence.
@@ -126,6 +127,25 @@ async function POST_handler() {
       .update({ price_per_share: pricePerShare })
       .eq("account_id", accountId);
   }
+
+  // S20-B — outbound webhook (enqueue only; delivered by cron/webhook-dispatch).
+  // Recipients: project-level endpoints + the OWNER's user-level endpoints
+  // (a member's rescore still notifies the owner's integrations).
+  await enqueueWebhook(
+    "svi.rescored",
+    projectId,
+    {
+      project_id: projectId,
+      account_id: accountId,
+      svi_total: newSVI,
+      previous_svi: baseSVI,
+      delta,
+      stage: newAnalysis.stage ?? null,
+      source: "rescore",
+      snapshot_date: new Date().toISOString().split("T")[0],
+    },
+    { userIds: [scope?.ownerUserId ?? user.id] },
+  );
 
   // 7. Check and award milestone badges
   const evidenceItems = evidence ?? [];
