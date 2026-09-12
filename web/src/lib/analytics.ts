@@ -276,9 +276,36 @@ declare global {
 }
 
 /**
+ * Call `window.gtag` when gtag.js has defined it, otherwise queue the command
+ * the way the official snippet does (`dataLayer.push(arguments)`) so gtag.js
+ * replays it once it loads. Events fired on mount (`hero_variant_shown`,
+ * `funding_directory_viewed`, `compare_viewed` …) run before the
+ * `afterInteractive` gtag <Script> has executed; with a bare `window.gtag?.()`
+ * they were silently dropped — S23-B's first event audit saw only GA4's
+ * automatic events for the whole week. gtag.js only treats a real
+ * `arguments` object as a command, hence the classic `function`.
+ */
+function gtagOrQueue(...args: any[]): void {
+  if (typeof window.gtag === "function") {
+    window.gtag(...args);
+    return;
+  }
+  window.dataLayer = window.dataLayer || [];
+  const queue = window.dataLayer;
+  // The rest parameter only satisfies the spread call's typing; the body
+  // pushes the real `arguments` object because that is the only shape
+  // gtag.js replays as a command (a plain array is ignored).
+  (function (..._cmd: any[]) {
+    void _cmd;
+    // eslint-disable-next-line prefer-rest-params -- see above
+    queue.push(arguments as unknown as Record<string, any>);
+  })(...args);
+}
+
+/**
  * Fire a GA4 event and push to dataLayer (for GTM).
  *
- * Safe to call server-side (no-ops) or when GA is not loaded.
+ * Safe to call server-side (no-ops) or when GA is not loaded (queued).
  */
 export function trackEvent<E extends EventName>(
   event: E,
@@ -286,8 +313,8 @@ export function trackEvent<E extends EventName>(
 ): void {
   if (typeof window === "undefined") return;
 
-  // GA4 gtag
-  window.gtag?.("event", event, params);
+  // GA4 gtag (or the gtag.js replay queue when the script has not run yet)
+  gtagOrQueue("event", event, params);
 
   // GTM dataLayer
   window.dataLayer = window.dataLayer || [];
@@ -299,7 +326,7 @@ export function trackEvent<E extends EventName>(
  */
 export function setUserProperties(props: Record<string, string | number | boolean>): void {
   if (typeof window === "undefined") return;
-  window.gtag?.("set", "user_properties", props);
+  gtagOrQueue("set", "user_properties", props);
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({ event: "user_properties_set", ...props });
 }
@@ -311,7 +338,7 @@ export function setUserProperties(props: Record<string, string | number | boolea
 export function trackPageView(url: string): void {
   if (typeof window === "undefined") return;
   const measurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "";
-  window.gtag?.("config", measurementId, { page_path: url });
+  gtagOrQueue("config", measurementId, { page_path: url });
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({ event: "page_view", page_path: url });
 }
@@ -326,7 +353,7 @@ export function trackPurchase(params: {
   plan: string;
 }): void {
   if (typeof window === "undefined") return;
-  window.gtag?.("event", "purchase", {
+  gtagOrQueue("event", "purchase", {
     transaction_id: params.transaction_id,
     value: params.value,
     currency: params.currency,
