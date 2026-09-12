@@ -48,6 +48,25 @@ type CronRow = {
   avg_duration_ms: number;
 };
 
+/**
+ * Anonymous payload (release QA-4 P2-f): enough for a status widget or an
+ * uptime monitor — `ok`, `version`, per-service up/down, the 24h uptime
+ * figure and the last deploy's time/gate count. Nothing that describes the
+ * fleet or the operator posture: no git sha / release id, no host resource
+ * percentages, no cron catalogue, and none of the S20-A / S23-A / S23-B
+ * internal-telemetry verdicts (`audit_chain`, `oauth_tokens_sealed`,
+ * `ga4_events`) — those keys are ABSENT, not blanked, for an untrusted caller.
+ */
+type PublicStatusResponse = {
+  ok: boolean;
+  version: string;
+  updated_at: string;
+  services: Array<Pick<ServiceRow, "name" | "status">>;
+  slo: { uptime_pct_24h?: number };
+  last_deploy: Pick<DeployRow, "ts" | "gates_passed" | "gates_expected">;
+};
+
+/** Full payload — Bearer STATUS_FULL_TOKEN (or CRON_SECRET) only. */
 type StatusResponse = {
   ok: boolean;
   version: string;
@@ -73,7 +92,7 @@ type StatusResponse = {
    * `no_key` = OAUTH_TOKEN_ENCRYPTION_KEY unset; `obf_rows_present` = key
    * set but unsealed rows remain (run scripts/reseal-oauth-tokens.mjs);
    * `ok` = every stored token is `gcm:`; `unknown` = DB not reachable.
-   * Cached 10 min server-side. Public: it names no table, row or user.
+   * Cached 10 min server-side. Trusted callers only (QA-4 P2-f).
    */
   oauth_tokens_sealed: OAuthTokensSealedStatus;
   /**
@@ -81,7 +100,7 @@ type StatusResponse = {
    * 7 days, as last checked by /api/cron/ga4-event-audit (weekly Mon 04:30
    * UTC): `ok` | `missing:<event,event>` | `blocked` (Data API disabled /
    * no access — operator steps in content/reports/ga4-event-audit.json) |
-   * `unknown` (never run or stale > 8 days).
+   * `unknown` (never run or stale > 8 days). Trusted callers only.
    */
   ga4_events: string;
 };
@@ -408,7 +427,10 @@ export async function GET(): Promise<Response> {
   // uptime monitor, but nothing that helps a would-be attacker map the fleet.
   // Bearer STATUS_FULL_TOKEN (or CRON_SECRET fallback) unlocks the full
   // telemetry: git sha, release id, host resource %, per-cron catalogue.
-  const publicBody: StatusResponse = {
+  // QA-4 P2-f: the internal-telemetry verdicts (audit_chain,
+  // oauth_tokens_sealed, ga4_events), the cron catalogue and sha/release are
+  // not on the anonymous payload at all.
+  const publicBody: PublicStatusResponse = {
     ok: servicesOk && sloOk,
     version: healthz?.version ?? fallbackVersion,
     updated_at: new Date().toISOString(),
@@ -416,15 +438,9 @@ export async function GET(): Promise<Response> {
     slo: { uptime_pct_24h: slo.uptime_pct_24h },
     last_deploy: {
       ts: last_deploy.ts,
-      sha: "",
-      release_id: "",
       gates_passed: last_deploy.gates_passed,
       gates_expected: last_deploy.gates_expected,
     },
-    crons: [],
-    audit_chain: auditChain.status,
-    oauth_tokens_sealed: oauthTokens.status,
-    ga4_events: ga4Events,
   };
 
   const fullBody: StatusResponse = {

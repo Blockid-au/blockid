@@ -843,13 +843,24 @@ describe("public payload redaction", () => {
     process.env.STATUS_FULL_TOKEN = "";
     process.env.CRON_SECRET = "";
     const { body, headers } = await callGet();
-    expect(body.last_deploy.sha).toBe("");
-    expect(body.last_deploy.release_id).toBe("");
+    expect(body.last_deploy.sha).toBeUndefined();
+    expect(body.last_deploy.release_id).toBeUndefined();
     expect(body.slo.disk_pct).toBeUndefined();
     expect(body.slo.mem_pct).toBeUndefined();
     expect(body.slo.p95_ms).toBeUndefined();
     expect(body.slo.uptime_pct_24h).toBeDefined();
-    expect(body.crons).toEqual([]);
+    expect(body.crons).toBeUndefined();
+    // QA-4 P2-f: internal telemetry verdicts are absent for anonymous callers.
+    const raw = body as unknown as Record<string, unknown>;
+    expect(raw).not.toHaveProperty("audit_chain");
+    expect(raw).not.toHaveProperty("oauth_tokens_sealed");
+    expect(raw).not.toHaveProperty("ga4_events");
+    expect(raw).not.toHaveProperty("backups");
+    expect(Object.keys(raw).sort()).toEqual(
+      ["last_deploy", "ok", "services", "slo", "updated_at", "version"],
+    );
+    expect(typeof raw.ok).toBe("boolean");
+    expect(typeof raw.version).toBe("string");
     // Public payload is safe to CDN-cache for 30s.
     expect(headers.get("cache-control")).toBe("s-maxage=30, stale-while-revalidate=60");
   });
@@ -876,7 +887,7 @@ describe("audit_chain (S20-A) — read from content/reports/audit-chain-verify.j
     expect((body as unknown as { audit_chain: string }).audit_chain).toBe("unknown");
   });
 
-  it.each(["ok", "broken"])("surfaces a fresh '%s' verdict on the public payload", async (status) => {
+  it.each(["ok", "broken"])("surfaces a fresh '%s' verdict on the trusted payload", async (status) => {
     fsState.files.set(CHAIN_STATE, JSON.stringify({ ts: new Date().toISOString(), status, checked: 5, first_broken_id: status === "broken" ? 3 : null }));
     fetchState.responder = { kind: "json", body: healthyHealthz() };
     const { body } = await callGet();
@@ -906,7 +917,7 @@ describe("oauth_tokens_sealed (S23-A)", () => {
     },
   );
 
-  it("is present on the PUBLIC payload too (it names no table, row or user)", async () => {
+  it("is ABSENT from the public payload (QA-4 P2-f — operator posture is trusted-only)", async () => {
     const originalToken = process.env.STATUS_FULL_TOKEN;
     process.env.STATUS_FULL_TOKEN = "";
     process.env.CRON_SECRET = "";
@@ -914,8 +925,8 @@ describe("oauth_tokens_sealed (S23-A)", () => {
       oauthState.status = "obf_rows_present";
       fetchState.responder = { kind: "json", body: healthyHealthz() };
       const { body } = await callGet();
-      expect(body.last_deploy.sha).toBe(""); // still redacted
-      expect((body as unknown as Body).oauth_tokens_sealed).toBe("obf_rows_present");
+      expect(body.last_deploy.sha).toBeUndefined(); // still redacted
+      expect(body as unknown as Record<string, unknown>).not.toHaveProperty("oauth_tokens_sealed");
     } finally {
       process.env.STATUS_FULL_TOKEN = originalToken;
     }
@@ -948,7 +959,7 @@ describe("ga4_events (S23-B) — read from content/reports/ga4-event-audit.json"
     expect(read(body)).toBe("unknown");
   });
 
-  it("ok / missing:<list> / blocked from a fresh report, on the public payload too", async () => {
+  it("ok / missing:<list> / blocked from a fresh report (trusted); absent on the public payload", async () => {
     fetchState.responder = { kind: "json", body: healthyHealthz() };
     const fresh = { ts: new Date().toISOString() };
 
@@ -961,9 +972,11 @@ describe("ga4_events (S23-B) — read from content/reports/ga4-event-audit.json"
     fsState.files.set(AUDIT_FILE, JSON.stringify({ ...fresh, status: "blocked", blocked: { reason: "api_disabled", steps: ["1", "2"], message: "" } }));
     expect(read((await callGet()).body)).toBe("blocked");
 
+    // QA-4 P2-f: absent for anonymous callers.
     process.env.STATUS_FULL_TOKEN = "";
+    process.env.CRON_SECRET = "";
     try {
-      expect(read((await callGet()).body)).toBe("blocked");
+      expect(read((await callGet()).body)).toBeUndefined();
     } finally {
       process.env.STATUS_FULL_TOKEN = "test-trusted-token";
     }
