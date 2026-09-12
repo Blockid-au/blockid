@@ -50,10 +50,20 @@ describe("watermarkLabel", () => {
     expect(label).toBe("Prepared for jane@blackbird.vc · 12 Sept 2026 · BlockID.au");
   });
 
-  it("returns null for a blank recipient so an empty mark is never drawn", () => {
+  it("returns null for a blank recipient with no link id so an empty mark is never drawn", () => {
     expect(watermarkLabel({ recipient: "" })).toBeNull();
     expect(watermarkLabel({ recipient: "   " })).toBeNull();
     expect(watermarkLabel({ recipient: null })).toBeNull();
+    expect(watermarkLabel({ recipient: null, linkId: "" })).toBeNull();
+  });
+
+  it("falls back to `link <first 8 chars of the id>` for a blank recipient (P2-3: every served PDF is traceable)", () => {
+    expect(watermarkLabel({ recipient: null, linkId: "9f3c2a1b-0000-4000-8000-000000000000", date: "2026-09-12T00:00:00Z" })).toBe(
+      "Prepared for link 9f3c2a1b · 12 Sept 2026 · BlockID.au",
+    );
+    expect(watermarkLabel({ recipient: "  ", linkId: "abcdefghij", date: "2026-09-12" })).toContain("Prepared for link abcdefgh");
+    // A named recipient still wins over the id.
+    expect(watermarkLabel({ recipient: "Jane", linkId: "abcdefghij", date: "2026-09-12" })).toContain("Prepared for Jane ·");
   });
 
   it("collapses whitespace and caps a hostile recipient at 80 chars", () => {

@@ -23,6 +23,7 @@ import {
   type NdaGate,
 } from "@/lib/dataroom/nda";
 import { ownerTrustEntitled } from "@/lib/dataroom/nda-server";
+import { willWatermark } from "@/lib/dataroom/watermark-recipient";
 
 export interface SharedRoomDocument {
   id: string;
@@ -209,7 +210,10 @@ export async function loadSharedDataRoom(
     },
     entitled,
   );
-  const watermarked = entitled && Boolean(room.watermark_enabled);
+  // Same rule as the PDF route (lib/dataroom/watermark-recipient): with the
+  // `link <id8>` fallback every link with an id can be named, so the badge
+  // never promises a mark the PDF would not carry (S21-A review P2-3).
+  const watermarked = entitled && willWatermark(Boolean(room.watermark_enabled), { id: String(link.id) });
 
   // Documents are not even queried until the gate is cleared — the page
   // cannot leak what the loader never fetched.
