@@ -95,6 +95,40 @@ const TABS = [
 
 type Tab = (typeof TABS)[number]["key"];
 
+/* ─── Empty state (release QA-2 F4) ───────────────────────────────────────── */
+/**
+ * Rendered when /api/valuation/vc answers `{ empty: true }` — the founder
+ * has never run a score. Copy mirrors the certificate panel's
+ * "Complete an SVI analysis first." so both halves of the page agree.
+ * Exported for the colocated render test.
+ */
+export function ValuationEmptyState() {
+  return (
+    <div
+      data-testid="valuation-empty-state"
+      className="rounded-2xl border border-dashed border-surface-300 bg-surface-50 p-8 text-center"
+    >
+      <p className="text-xs uppercase tracking-[0.2em] text-brand-600 font-semibold">
+        No valuation yet
+      </p>
+      <h2 className="mt-2 text-xl font-semibold text-ink-800">
+        Run your first score to see a valuation
+      </h2>
+      <p className="mx-auto mt-2 max-w-md text-sm text-ink-500">
+        Your VC-grade range, confidence and Bear / Base / Bull cases are
+        derived from your SVI analysis. Complete an SVI analysis first — it
+        takes about five minutes and your first score is free.
+      </p>
+      <Link
+        href="/analyze"
+        className="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+      >
+        Run my first score <ArrowRight strokeWidth={2} className="h-4 w-4" />
+      </Link>
+    </div>
+  );
+}
+
 /* ─── Component ───────────────────────────────────────────────────────────── */
 export function VcValuationDashboard() {
   const [tab, setTab] = React.useState<Tab>("summary");
@@ -137,11 +171,16 @@ export function VcValuationDashboard() {
     }
   }, [report, pdfLoading]);
 
+  const [empty, setEmpty] = React.useState(false);
+
   React.useEffect(() => {
     fetch("/api/valuation/vc")
       .then((r) => r.json())
       .then((d) => {
-        if (d.ok) {
+        if (d.ok && d.empty) {
+          // Release QA-2 F4 — no score yet: honest empty state, no number.
+          setEmpty(true);
+        } else if (d.ok) {
           setReport(d.report);
           setSvi(d.svi ?? null);
           setConnectedRevenue(d.connectedRevenue ?? null);
@@ -162,6 +201,10 @@ export function VcValuationDashboard() {
         <div className="h-32 bg-surface-100 rounded-2xl" />
       </div>
     );
+  }
+
+  if (empty) {
+    return <ValuationEmptyState />;
   }
 
   if (error || !report) {
