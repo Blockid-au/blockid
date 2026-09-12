@@ -76,6 +76,7 @@ fundraise	Compliance Calendar	/compliance/calendar
 fundraise	Fundraise Readiness	/dashboard/fundraise
 fundraise	Raise Capital	/workspace/fundraise
 account / account.profile	My Profile	/workspace/profile
+account / account.profile	Account settings	/workspace/settings
 account / account.profile	Founder Profile	/workspace/founder-profile
 account / account.profile	Notifications	/workspace/notifications
 account / account.profile	Referrals	/workspace/referrals
@@ -83,6 +84,7 @@ account / account.profile	Feedback & Credits	/workspace/feedback
 account / account.billing	Billing	/workspace/billing
 account / account.enterprise	Integrations	/workspace/integrations
 account	My Profile	/workspace/profile
+account	Account settings	/workspace/settings
 account	Founder Profile	/workspace/founder-profile
 account	Notifications	/workspace/notifications
 account	Referrals	/workspace/referrals
