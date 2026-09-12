@@ -10,12 +10,38 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  EVALUATOR_MONTHLY_REPORTS,
   EVALUATOR_TRIAL_COPY,
+  EVALUATOR_TRIAL_REPORT_ALLOWANCE,
   TRIAL_COPY,
   TRIAL_DAYS,
   TRIAL_WARNING_HOURS_BEFORE,
+  evaluatorTrialIncludedLine,
   formatAud,
 } from "./trial-copy";
+
+describe("evaluatorTrialIncludedLine (release QA-2 F10 / S7-C)", () => {
+  it("states the 1-report trial allowance then the plan's monthly quota", () => {
+    expect(EVALUATOR_TRIAL_REPORT_ALLOWANCE).toBe(1);
+    expect(evaluatorTrialIncludedLine("investor_angel", "Scout")).toBe(
+      "1 full Trust BizReport included during the trial, then 10/month on Scout",
+    );
+    expect(evaluatorTrialIncludedLine("investor_advisor", "Firm")).toBe(
+      "1 full Trust BizReport included during the trial, then 30/month on Firm",
+    );
+    expect(evaluatorTrialIncludedLine("investor_vc_small", "Program")).toBe(
+      "1 full Trust BizReport included during the trial, then 100/month on Program",
+    );
+  });
+  it("mirrors plans.csv reports_per_month (Scout 10 / Firm 30 / Program 100)", () => {
+    expect(EVALUATOR_MONTHLY_REPORTS).toEqual({ investor_angel: 10, investor_advisor: 30, investor_vc_small: 100 });
+  });
+  it("degrades to the allowance alone for an unknown plan", () => {
+    expect(evaluatorTrialIncludedLine("investor_vc_ent", "Enterprise")).toBe(
+      "1 full Trust BizReport included during the trial",
+    );
+  });
+});
 
 describe("TRIAL_DAYS + TRIAL_WARNING_HOURS_BEFORE constants", () => {
   it("pins TRIAL_DAYS at 7 (must match plans.csv trial_days column)", () => {

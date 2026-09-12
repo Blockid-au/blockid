@@ -123,4 +123,4 @@ export function founderRadarSignupHref(from: string): string {
 }
 
 /** Same target `evaluatorSignupHref("investor_angel")` builds on /pricing. */
-export const SCOUT_SIGNUP_HREF = "/signup?segment=evaluator&plan=investor_angel";
+export const SCOUT_SIGNUP_HREF = "/signup?segment=evaluator&plan=investor_angel&trial=1";

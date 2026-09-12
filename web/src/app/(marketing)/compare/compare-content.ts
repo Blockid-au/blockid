@@ -50,7 +50,7 @@ export function comparePath(variant: CompareVariant, lang: "en" | "vi" = "en"): 
 
 export const COMPARE_CTA_HREF = {
   report: "/analyze",
-  trial: "/signup?segment=evaluator&plan=investor_angel",
+  trial: "/signup?segment=evaluator&plan=investor_angel&trial=1",
   plans: EVALUATOR_PRICING_HREF,
 } as const;
 

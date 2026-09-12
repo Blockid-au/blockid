@@ -18,7 +18,7 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
-import { EVALUATOR_TRIAL_COPY, TRIAL_COPY, TRIAL_DAYS } from "@/lib/plans/trial-copy";
+import { EVALUATOR_TRIAL_COPY, TRIAL_COPY, TRIAL_DAYS, evaluatorTrialIncludedLine } from "@/lib/plans/trial-copy";
 import {
   FOUNDER_ACCOUNT_TYPE_OPTIONS,
   type AccountTypeOption,
@@ -442,6 +442,12 @@ function InnerForm(props: SignupFormProps) {
         {TRIAL_COPY.fine_print}
         {selectedPlan ? " " + priceLine : ""}
       </p>
+      {isEvaluator && selectedPlan ? (
+        /* Release QA-2 F10 / S7-C — what the trial actually includes. */
+        <p className="mt-1.5 text-xs text-slate-400 leading-relaxed" data-testid="evaluator-trial-included">
+          {evaluatorTrialIncludedLine(selectedPlan.id, selectedPlan.name)}
+        </p>
+      ) : null}
       <p className="mt-1.5 text-[11px] text-slate-600 leading-relaxed">
         No indefinite free tier — every account starts with a {selectedPlan?.trialDays ?? TRIAL_DAYS}-day trial.
       </p>

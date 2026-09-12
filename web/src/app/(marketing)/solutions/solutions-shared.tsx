@@ -90,9 +90,9 @@ export type SolutionSlug =
  * Vietnamese mirrors cannot drift.
  */
 export const EVALUATOR_SIGNUP_HREF = {
-  investor: "/signup?segment=evaluator&plan=investor_angel",
-  advisor: "/signup?segment=evaluator&plan=investor_advisor",
-  accelerator: "/signup?segment=evaluator&plan=investor_vc_small",
+  investor: "/signup?segment=evaluator&plan=investor_angel&trial=1",
+  advisor: "/signup?segment=evaluator&plan=investor_advisor&trial=1",
+  accelerator: "/signup?segment=evaluator&plan=investor_vc_small&trial=1",
 } as const;
 
 /** The pricing page's evaluator view, for the evaluator pages' secondary CTA. */

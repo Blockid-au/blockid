@@ -35,7 +35,7 @@ const HEADLINE_EN =
   "A C-suite review of every client, in AUD, with ESIC and R&D Tax checks — white-labelled, A$3 a report.";
 const HEADLINE_VI =
   "Một bản đánh giá cấp C-suite cho mỗi khách hàng, tính bằng AUD, kèm kiểm tra ESIC và R&D Tax — gắn thương hiệu của bạn, A$3 mỗi báo cáo.";
-const SIGNUP = "/signup?segment=evaluator&plan=investor_advisor";
+const SIGNUP = "/signup?segment=evaluator&plan=investor_advisor&trial=1";
 const PRICING = "/pricing?segment=evaluator";
 
 /** `&` is entity-encoded inside an href attribute. */

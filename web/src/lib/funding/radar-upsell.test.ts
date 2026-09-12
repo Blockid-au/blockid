@@ -91,6 +91,6 @@ describe("radarViewerKind + CTA targets", () => {
 
   it("builds the approved signup links", () => {
     expect(founderRadarSignupHref("funding_report")).toBe("/signup?plan=founder_starter&trial=1&from=funding_report");
-    expect(SCOUT_SIGNUP_HREF).toBe("/signup?segment=evaluator&plan=investor_angel");
+    expect(SCOUT_SIGNUP_HREF).toBe("/signup?segment=evaluator&plan=investor_angel&trial=1");
   });
 });

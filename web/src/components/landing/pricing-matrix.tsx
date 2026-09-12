@@ -25,7 +25,7 @@ import {
   type Plan,
   type Segment,
 } from "@/lib/plans-v2";
-import { TRIAL_COPY } from "@/lib/plans/trial-copy";
+import { TRIAL_COPY, evaluatorTrialIncludedLine } from "@/lib/plans/trial-copy";
 import { CREDIT_PACKS } from "@/lib/credit-packs";
 import { TRUST_REPORT_5AUD } from "@/lib/pricing/v3-skus";
 
@@ -84,9 +84,14 @@ const CONTACT_SALES_SEGMENTS: readonly Segment[] = ["accelerator"];
 /** Segments whose public cards are sold on the Evaluator tab. */
 const EVALUATOR_SEGMENTS: readonly Segment[] = ["investor", "advisor"];
 
-/** CTA target for an Evaluator rung — built by T0269, link-only here. */
+/**
+ * CTA target for an Evaluator rung — built by T0269, link-only here.
+ * Release QA-2 F10: carries `trial=1` like the founder CTA
+ * (`/onboarding?trial=1&plan=…`) so the signup step, GA4 and the QA
+ * contract agree that this click starts the 7-day card-required trial.
+ */
 export function evaluatorSignupHref(planId: string): string {
-  return `/signup?segment=evaluator&plan=${encodeURIComponent(planId)}`;
+  return `/signup?segment=evaluator&plan=${encodeURIComponent(planId)}&trial=1`;
 }
 
 export interface PricingMatrixProps {
@@ -459,6 +464,13 @@ function PlanCard({
           {plan.trial_days}-day free trial
           {isEvaluatorPlan && !isContact ? " · card required · cancel anytime" : ""}
         </span>
+      )}
+      {isEvaluatorPlan && !isContact && plan.trial_days > 0 && (
+        /* Release QA-2 F10 / S7-C: the trial includes ONE full report; the
+           monthly quota in the feature list starts on day 8. */
+        <p className="-mt-3 mb-5 text-xs text-secondary" data-testid="evaluator-trial-included">
+          {evaluatorTrialIncludedLine(plan.id, plan.name)}
+        </p>
       )}
 
       <ul className="mb-8 flex-1 space-y-2.5 text-sm text-secondary">
