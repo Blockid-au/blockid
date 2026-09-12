@@ -406,12 +406,26 @@ describe("Content-Security-Policy — exactly one enforced policy (release QA-2 
     expect(imgSrc).toContain("https://www.googletagmanager.com");
   });
 
-  it("allows Google Identity Services (Sign in with Google) style + iframe + connect", () => {
+  it("allows Google Identity Services (Sign in with Google) style + iframe + connect on the whole accounts.google.com origin", () => {
+    // Release QA-1 #10: with only the `/gsi/` paths allowed, the crawl still
+    // logged `Framing 'https://accounts.google.com/' violates frame-src` and
+    // a blocked `gsi/style` — GSI opens a second frame at the bare origin.
+    // The origin is allowed; a path-scoped source must never come back.
     const csp = buildContentSecurityPolicy("n");
     const directive = (name: string) => csp.split("; ").find((d) => d.startsWith(`${name} `))!;
-    expect(directive("style-src")).toContain("https://accounts.google.com/gsi/style");
-    expect(directive("frame-src")).toContain("https://accounts.google.com/gsi/");
-    expect(directive("connect-src")).toContain("https://accounts.google.com/gsi/");
+    for (const name of ["style-src", "frame-src", "connect-src"]) {
+      const sources = directive(name).split(" ").slice(1);
+      expect(sources, name).toContain("https://accounts.google.com");
+      expect(sources.some((s) => s.startsWith("https://accounts.google.com/")), `${name} path-scoped GSI source`).toBe(false);
+    }
+  });
+
+  it("emits no Content-Security-Policy-Report-Only anywhere (release QA-1 #9 — stale report-only noise)", async () => {
+    const res = await proxy(req("/auth/login", { method: "GET", site: "none" }));
+    expect(res.headers.get("content-security-policy-report-only")).toBeNull();
+    expect(res.headers.get("x-middleware-request-content-security-policy-report-only")).toBeNull();
+    const cfg = readFileSync(join(SRC_ROOT, "..", "next.config.ts"), "utf8");
+    expect(cfg).not.toMatch(/Report-Only/i);
   });
 
   it("keeps Stripe + Turnstile + Supabase hosts", () => {
