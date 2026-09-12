@@ -1,0 +1,876 @@
+{
+  "dumped_at": "2026-09-12",
+  "source": "pg_constraint (contype=f) on production supabase-db, confrelid = public.app_users; regenerate with `node scripts/db/app-users-fk-inventory.mjs --json --fixture`",
+  "referenced": "public.app_users(id)",
+  "count": 124,
+  "fks": [
+    {
+      "constraint": "ab_assignments_user_id_fkey",
+      "table": "ab_assignments",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "advisor_client_roster_advisor_id_fkey",
+      "table": "advisor_client_roster",
+      "column": "advisor_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "advisor_clients_advisor_id_fkey",
+      "table": "advisor_clients",
+      "column": "advisor_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "advisor_clients_client_id_fkey",
+      "table": "advisor_clients",
+      "column": "client_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "advisor_invites_advisor_id_fkey",
+      "table": "advisor_invites",
+      "column": "advisor_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "advisor_notes_advisor_id_fkey",
+      "table": "advisor_notes",
+      "column": "advisor_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "advisor_portal_advisor_id_fkey",
+      "table": "advisor_portal",
+      "column": "advisor_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "ai_runs_user_id_fkey",
+      "table": "ai_runs",
+      "column": "user_id",
+      "on_delete": "NO ACTION",
+      "not_null": false
+    },
+    {
+      "constraint": "analyses_user_id_fkey",
+      "table": "analyses",
+      "column": "user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "analysis_refreshes_user_id_fkey",
+      "table": "analysis_refreshes",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "analytics_events_user_id_fkey",
+      "table": "analytics_events",
+      "column": "user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "api_keys_user_id_fkey",
+      "table": "api_keys",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "app_user_audit_log_user_id_fkey",
+      "table": "app_user_audit_log",
+      "column": "user_id",
+      "on_delete": "RESTRICT",
+      "not_null": true
+    },
+    {
+      "constraint": "app_users_referred_by_fkey",
+      "table": "app_users",
+      "column": "referred_by",
+      "on_delete": "NO ACTION",
+      "not_null": false
+    },
+    {
+      "constraint": "app_users_verified_by_fkey",
+      "table": "app_users",
+      "column": "verified_by",
+      "on_delete": "NO ACTION",
+      "not_null": false
+    },
+    {
+      "constraint": "assembled_reports_user_id_fkey",
+      "table": "assembled_reports",
+      "column": "user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "brand_settings_user_id_fkey",
+      "table": "brand_settings",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "checkout_session_reseller_commissions_founder_id_fkey",
+      "table": "checkout_session_reseller_commissions",
+      "column": "founder_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "churn_events_user_id_fkey",
+      "table": "churn_events",
+      "column": "user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "competitors_user_id_fkey",
+      "table": "competitors",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "compliance_esic_assessments_user_id_fkey",
+      "table": "compliance_esic_assessments",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "compliance_gst_status_user_id_fkey",
+      "table": "compliance_gst_status",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "compliance_modern_slavery_status_user_id_fkey",
+      "table": "compliance_modern_slavery_status",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "compliance_rd_registrations_user_id_fkey",
+      "table": "compliance_rd_registrations",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "compliance_s708_certs_user_id_fkey",
+      "table": "compliance_s708_certs",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "compliance_tax_invoice_checks_user_id_fkey",
+      "table": "compliance_tax_invoice_checks",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "compliance_wgea_status_user_id_fkey",
+      "table": "compliance_wgea_status",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "consent_events_user_id_fkey",
+      "table": "consent_events",
+      "column": "user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "consents_grantor_user_id_fkey",
+      "table": "consents",
+      "column": "grantor_user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "contact_unlock_requests_investor_id_fkey",
+      "table": "contact_unlock_requests",
+      "column": "investor_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "conversion_events_user_id_fkey",
+      "table": "conversion_events",
+      "column": "user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "coupon_redemptions_user_id_fkey",
+      "table": "coupon_redemptions",
+      "column": "user_id",
+      "on_delete": "NO ACTION",
+      "not_null": true
+    },
+    {
+      "constraint": "credit_balances_user_id_fkey",
+      "table": "credit_balances",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "credit_transactions_user_id_fkey",
+      "table": "credit_transactions",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "data_rooms_user_id_fkey",
+      "table": "data_rooms",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": false
+    },
+    {
+      "constraint": "dataroom_files_user_id_fkey",
+      "table": "dataroom_files",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "email_preferences_user_id_fkey",
+      "table": "email_preferences",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": false
+    },
+    {
+      "constraint": "entitlements_user_id_fkey",
+      "table": "entitlements",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "eoi_book_investor_id_fkey",
+      "table": "eoi_book",
+      "column": "investor_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "equity_requests_reviewer_id_fkey",
+      "table": "equity_requests",
+      "column": "reviewer_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "equity_requests_user_id_fkey",
+      "table": "equity_requests",
+      "column": "user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "equity_splits_user_id_fkey",
+      "table": "equity_splits",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "evaluation_batches_user_id_fkey",
+      "table": "evaluation_batches",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "evaluation_reports_user_id_fkey",
+      "table": "evaluation_reports",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "evaluations_evaluator_user_id_fkey",
+      "table": "evaluations",
+      "column": "evaluator_user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "evaluations_founder_user_id_fkey",
+      "table": "evaluations",
+      "column": "founder_user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "evaluator_progress_sends_user_id_fkey",
+      "table": "evaluator_progress_sends",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "evidence_owner_user_id_fkey",
+      "table": "evidence",
+      "column": "owner_user_id",
+      "on_delete": "NO ACTION",
+      "not_null": true
+    },
+    {
+      "constraint": "evidence_items_user_id_fkey",
+      "table": "evidence_items",
+      "column": "user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "evidence_versions_created_by_fkey",
+      "table": "evidence_versions",
+      "column": "created_by",
+      "on_delete": "NO ACTION",
+      "not_null": false
+    },
+    {
+      "constraint": "feedback_submissions_user_id_fkey",
+      "table": "feedback_submissions",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "first_principles_sessions_user_id_fkey",
+      "table": "first_principles_sessions",
+      "column": "user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "founder_packs_user_id_fkey",
+      "table": "founder_packs",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "founder_profiles_account_id_fkey",
+      "table": "founder_profiles",
+      "column": "account_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "funding_matches_user_id_fkey",
+      "table": "funding_matches",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "funding_plans_user_id_fkey",
+      "table": "funding_plans",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "funding_reports_user_id_fkey",
+      "table": "funding_reports",
+      "column": "user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "grant_application_drafts_user_id_fkey",
+      "table": "grant_application_drafts",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "gtm_strategies_user_id_fkey",
+      "table": "gtm_strategies",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "guest_analyses_user_id_fkey",
+      "table": "guest_analyses",
+      "column": "user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "idea_evaluations_user_id_fkey",
+      "table": "idea_evaluations",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "investor_links_founder_user_id_fkey",
+      "table": "investor_links",
+      "column": "founder_user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "investor_portfolio_investor_user_id_fkey",
+      "table": "investor_portfolio",
+      "column": "investor_user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "lifecycle_state_user_id_fkey",
+      "table": "lifecycle_state",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "mentor_access_grants_founder_user_id_fkey",
+      "table": "mentor_access_grants",
+      "column": "founder_user_id",
+      "on_delete": "CASCADE",
+      "not_null": false
+    },
+    {
+      "constraint": "mentor_access_grants_granted_by_fkey",
+      "table": "mentor_access_grants",
+      "column": "granted_by",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "mentor_check_ins_founder_user_id_fkey",
+      "table": "mentor_check_ins",
+      "column": "founder_user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "mentor_check_ins_mentor_id_fkey",
+      "table": "mentor_check_ins",
+      "column": "mentor_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "mentor_engagement_snapshots_founder_user_id_fkey",
+      "table": "mentor_engagement_snapshots",
+      "column": "founder_user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "mentor_notes_founder_user_id_fkey",
+      "table": "mentor_notes",
+      "column": "founder_user_id",
+      "on_delete": "CASCADE",
+      "not_null": false
+    },
+    {
+      "constraint": "mentor_notes_mentor_id_fkey",
+      "table": "mentor_notes",
+      "column": "mentor_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "notifications_user_id_fkey",
+      "table": "notifications",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "nurture_email_queue_user_id_fkey",
+      "table": "nurture_email_queue",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "oauth2_tokens_subject_user_id_fkey",
+      "table": "oauth2_tokens",
+      "column": "subject_user_id",
+      "on_delete": "CASCADE",
+      "not_null": false
+    },
+    {
+      "constraint": "onchain_documents_user_id_fkey",
+      "table": "onchain_documents",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": false
+    },
+    {
+      "constraint": "password_reset_tokens_user_id_fkey",
+      "table": "password_reset_tokens",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "pitchdeck_analyses_user_id_fkey",
+      "table": "pitchdeck_analyses",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "positioning_statements_user_id_fkey",
+      "table": "positioning_statements",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "pricing_experiment_events_user_id_fkey",
+      "table": "pricing_experiment_events",
+      "column": "user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "pricing_tiers_user_id_fkey",
+      "table": "pricing_tiers",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "project_members_invited_by_fkey",
+      "table": "project_members",
+      "column": "invited_by",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "project_members_user_id_fkey",
+      "table": "project_members",
+      "column": "user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "projects_user_id_fkey",
+      "table": "projects",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "published_analyses_user_id_fkey",
+      "table": "published_analyses",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "referral_events_referred_id_fkey",
+      "table": "referral_events",
+      "column": "referred_id",
+      "on_delete": "NO ACTION",
+      "not_null": true
+    },
+    {
+      "constraint": "referral_events_referrer_id_fkey",
+      "table": "referral_events",
+      "column": "referrer_id",
+      "on_delete": "NO ACTION",
+      "not_null": true
+    },
+    {
+      "constraint": "referrals_referrer_id_fkey",
+      "table": "referrals",
+      "column": "referrer_id",
+      "on_delete": "NO ACTION",
+      "not_null": true
+    },
+    {
+      "constraint": "report_orders_user_id_fkey",
+      "table": "report_orders",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "reseller_admins_user_id_fkey",
+      "table": "reseller_admins",
+      "column": "user_id",
+      "on_delete": "RESTRICT",
+      "not_null": true
+    },
+    {
+      "constraint": "reseller_attributions_subject_user_id_fkey",
+      "table": "reseller_attributions",
+      "column": "subject_user_id",
+      "on_delete": "RESTRICT",
+      "not_null": false
+    },
+    {
+      "constraint": "reseller_audit_log_actor_user_id_fkey",
+      "table": "reseller_audit_log",
+      "column": "actor_user_id",
+      "on_delete": "RESTRICT",
+      "not_null": true
+    },
+    {
+      "constraint": "reseller_audit_log_subject_user_id_fkey",
+      "table": "reseller_audit_log",
+      "column": "subject_user_id",
+      "on_delete": "RESTRICT",
+      "not_null": false
+    },
+    {
+      "constraint": "reseller_credit_grants_granted_by_user_id_fkey",
+      "table": "reseller_credit_grants",
+      "column": "granted_by_user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "reseller_credit_grants_target_user_id_fkey",
+      "table": "reseller_credit_grants",
+      "column": "target_user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "reseller_customers_customer_user_id_fkey",
+      "table": "reseller_customers",
+      "column": "customer_user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "reseller_customers_stage_set_by_fkey",
+      "table": "reseller_customers",
+      "column": "stage_set_by",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "reseller_notes_author_user_id_fkey",
+      "table": "reseller_notes",
+      "column": "author_user_id",
+      "on_delete": "NO ACTION",
+      "not_null": false
+    },
+    {
+      "constraint": "reseller_requests_decision_by_fkey",
+      "table": "reseller_requests",
+      "column": "decision_by",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "reseller_requests_requested_by_fkey",
+      "table": "reseller_requests",
+      "column": "requested_by",
+      "on_delete": "RESTRICT",
+      "not_null": true
+    },
+    {
+      "constraint": "revenue_events_user_id_fkey",
+      "table": "revenue_events",
+      "column": "user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "revocations_revoked_by_user_id_fkey",
+      "table": "revocations",
+      "column": "revoked_by_user_id",
+      "on_delete": "NO ACTION",
+      "not_null": false
+    },
+    {
+      "constraint": "roadmap_milestones_user_id_fkey",
+      "table": "roadmap_milestones",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "secondary_offers_account_id_fkey",
+      "table": "secondary_offers",
+      "column": "account_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "secondary_offers_reviewed_by_fkey",
+      "table": "secondary_offers",
+      "column": "reviewed_by",
+      "on_delete": "NO ACTION",
+      "not_null": false
+    },
+    {
+      "constraint": "sessions_user_id_fkey",
+      "table": "sessions",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "share_packages_owner_user_id_fkey",
+      "table": "share_packages",
+      "column": "owner_user_id",
+      "on_delete": "NO ACTION",
+      "not_null": true
+    },
+    {
+      "constraint": "startup_listings_startup_id_fkey",
+      "table": "startup_listings",
+      "column": "startup_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "startup_package_interview_user_id_fkey",
+      "table": "startup_package_interview",
+      "column": "user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "startup_package_purchases_user_id_fkey",
+      "table": "startup_package_purchases",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "startup_score_history_user_id_fkey",
+      "table": "startup_score_history",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "subscription_trial_state_user_id_fkey",
+      "table": "subscription_trial_state",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "svi_api_keys_user_id_fkey",
+      "table": "svi_api_keys",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "svi_dimension_evidence_verified_by_user_id_fkey",
+      "table": "svi_dimension_evidence",
+      "column": "verified_by_user_id",
+      "on_delete": "NO ACTION",
+      "not_null": false
+    },
+    {
+      "constraint": "svi_readiness_snapshots_user_id_fkey",
+      "table": "svi_readiness_snapshots",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "tech_analyses_user_id_fkey",
+      "table": "tech_analyses",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "transfer_whitelist_user_id_fkey",
+      "table": "transfer_whitelist",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": false
+    },
+    {
+      "constraint": "upload_scans_user_id_fkey",
+      "table": "upload_scans",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "usage_logs_user_id_fkey",
+      "table": "usage_logs",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "user_feedback_user_id_fkey",
+      "table": "user_feedback",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": false
+    },
+    {
+      "constraint": "user_source_folders_user_id_fkey",
+      "table": "user_source_folders",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "valuation_certificates_user_id_fkey",
+      "table": "valuation_certificates",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "watchlist_account_id_fkey",
+      "table": "watchlist",
+      "column": "account_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "watchlist_digest_account_id_fkey",
+      "table": "watchlist_digest",
+      "column": "account_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "webhook_endpoints_user_id_fkey",
+      "table": "webhook_endpoints",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    }
+  ]
+}
