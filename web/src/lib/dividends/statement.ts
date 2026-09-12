@@ -212,7 +212,9 @@ const AUD = new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD",
 
 /** `A$1,234.56` — the statement's money format. */
 export function formatAudCents(v: number): string {
-  return AUD.format(roundCents(v)).replace(/^\$|^A\$/, "A$");
+  const cents = roundCents(v);
+  const body = AUD.format(Math.abs(cents)).replace(/^A?\$/, "");
+  return `${cents < 0 ? "-" : ""}A$${body}`;
 }
 
 /** Idempotency key for a (record, shareholder) pair. */

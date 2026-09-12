@@ -282,6 +282,7 @@ describe("helpers", () => {
     expect(formatAcn(null)).toBeNull();
     expect(formatAudCents(1234.5)).toBe("A$1,234.50");
     expect(formatAudCents(0)).toBe("A$0.00");
+    expect(formatAudCents(-20_000)).toBe("-A$20,000.00");
   });
   it("cost label", () => {
     expect(statementCostLabel(2, false)).toBe("2 credits");
