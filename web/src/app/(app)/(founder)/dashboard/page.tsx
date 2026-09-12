@@ -19,7 +19,7 @@ import {
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { getCurrentUser } from "@/lib/auth";
 import { getBalance } from "@/lib/credits";
-import { getProjectScope, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getProjectScope, getCurrentProjectIsSandbox, creditChargeNote } from "@/lib/projects";
 import { pageScopeKeys, resolveSVIAccountIdForPage } from "@/lib/project-members/page-scope";
 import { ViewOnlyNote } from "@/components/workspace/view-only-note";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -401,8 +401,21 @@ export default async function DashboardPage({
   const sp = await searchParams;
   const supabase = getSupabaseAdmin();
 
-  // First-time user: redirect to onboarding wizard before showing the dashboard
-  if (supabase && !user.onboardingCompleted) {
+  // ── Resolve the project scope first ──────────────────────────────────────
+  // S18-B — member-aware: the startup record (analyses, account, snapshots,
+  // evidence, cap table, criteria) is read under the OWNER's email + project
+  // and a member never creates a split svi_accounts row. Credits, share
+  // views and actions stay per caller; saved report sections are per
+  // analysis (shared by everyone on the project).
+  const scope = await getProjectScope("viewer");
+  const { projectId, dataEmail, ownerUserId, role, canEdit, isMember } = pageScopeKeys(scope, user);
+  const activeProject = scope?.project ?? null;
+
+  // First-time user: redirect to onboarding wizard before showing the dashboard.
+  // S18-B review P2-6 — never for an invited MEMBER: the wizard creates the
+  // caller's own startup, and a member landing on the owner's project has
+  // nothing of their own to set up (they were bounced on every visit).
+  if (supabase && !user.onboardingCompleted && !isMember) {
     const { count: priorSviCount } = await supabase
       .from("svi_analyses")
       .select("id", { count: "exact", head: true })
@@ -413,14 +426,6 @@ export default async function DashboardPage({
   }
 
   // ── Fetch data in parallel where possible ────────────────────────────────
-  // S18-B — member-aware: the startup record (analyses, account, snapshots,
-  // evidence, cap table, criteria) is read under the OWNER's email + project
-  // and a member never creates a split svi_accounts row. Credits, share
-  // views and actions stay per caller; saved report sections are per
-  // analysis (shared by everyone on the project).
-  const scope = await getProjectScope("viewer");
-  const { projectId, dataEmail, role, canEdit, isMember } = pageScopeKeys(scope, user);
-  const activeProject = scope?.project ?? null;
   const creditBalance = await getBalance(user.id);
 
   // ── Load latest SVI analysis ─────────────────────────────────────────────
@@ -760,10 +765,13 @@ export default async function DashboardPage({
   const ideaSummary = rawInput ? rawInput.slice(0, 200) : analysis?.summary?.slice(0, 200) ?? null;
 
   // Money Radar tile (T0248) — never lets a funding read break the dashboard.
-  const moneyRadar = await getMoneyRadarTileData(user, activeProject ?? null).catch((err) => {
+  // S18-B review P2-7: the OWNER's project data (report, matches, data room),
+  // the CALLER's entitlement + credits (creditNote on the tile for a member).
+  const moneyRadar = await getMoneyRadarTileData(user, activeProject ?? null, {}, { ownerUserId, dataEmail }).catch((err) => {
     console.warn("[dashboard] money radar tile", err instanceof Error ? err.message : String(err));
     return null;
   });
+  const moneyRadarCreditNote = isMember ? creditChargeNote(scope) : null;
 
   // For the LivingSVIDashboard
   const computedDelta = previousSVI != null && analysis ? analysis.totalSVI - previousSVI : undefined;
@@ -879,7 +887,7 @@ export default async function DashboardPage({
           </div>
           {moneyRadar && (
             <div className="lg:col-span-2">
-              <MoneyRadarTile data={moneyRadar} />
+              <MoneyRadarTile data={moneyRadar} creditNote={moneyRadarCreditNote} />
             </div>
           )}
         </div>
