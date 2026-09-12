@@ -87,7 +87,7 @@ export default async function CLevelReportDetailPage({ params }: PageProps) {
 
   const isSandbox = await getCurrentProjectIsSandbox();
   // S18-B — member-aware (viewer+): reports are keyed on project_id only;
-  // the "export to investor pack" write is hidden from viewers.
+  // the investor-pack CTA (a paid, editor+ generation) is hidden from viewers.
   const scope = await getProjectScope("viewer");
   const projectId = scope?.projectId ?? null;
   const canEdit = roleCanWrite(scope?.role ?? "owner");
@@ -114,15 +114,19 @@ export default async function CLevelReportDetailPage({ params }: PageProps) {
               </p>
             )}
           </div>
+          {/* S18-B review P2-4: the old form posted to /api/investor-pack/append,
+              a route that never existed. The C-level narrative is folded into
+              the investor pack by the one-click generator, which shows the
+              credit cost before charging — so link there (editor+; the pack
+              route itself is editor+). */}
           {canEdit && (
-            <form action={`/api/investor-pack/append?role=${typedRole}`} method="post">
-              <button
-                type="submit"
-                className="rounded bg-bull px-4 py-2 text-sm font-medium text-white hover:bg-bull"
-              >
-                Export to investor pack
-              </button>
-            </form>
+            <Link
+              href={`/workspace/investor-pack/generate?from=c-level-${typedRole}`}
+              data-testid="clevel-investor-pack-link"
+              className="rounded bg-bull px-4 py-2 text-sm font-medium text-white hover:bg-bull"
+            >
+              Include in investor pack
+            </Link>
           )}
         </header>
 

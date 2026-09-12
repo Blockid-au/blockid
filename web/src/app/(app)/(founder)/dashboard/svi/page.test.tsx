@@ -38,7 +38,7 @@ vi.mock("@/components/dashboard/empty-dashboard-state", () => ({
   EmptyDashboardState: (p: { title: string }) => <div data-empty>{p.title}</div>,
 }));
 vi.mock("@/components/dashboard/living-svi-dashboard", () => ({
-  LivingSVIDashboard: (p: { readOnly?: boolean; userEmail: string; creditBalance: number; evidenceCount: number; shareViews: number; analysis: { totalSVI: number } }) => (
+  LivingSVIDashboard: (p: { readOnly?: boolean; userEmail: string; creditBalance: number; evidenceCount: number; shareViews: number; analysis: { totalSVI: number }; savedSections?: Array<{ section_id: string; depth: string }> }) => (
     <div
       data-living
       data-readonly={String(Boolean(p.readOnly))}
@@ -47,6 +47,7 @@ vi.mock("@/components/dashboard/living-svi-dashboard", () => ({
       data-evidence={p.evidenceCount}
       data-views={p.shareViews}
       data-svi={p.analysis.totalSVI}
+      data-sections={(p.savedSections ?? []).map((s) => `${s.section_id}:${s.depth}`).join(",")}
     />
   ),
 }));
@@ -132,11 +133,25 @@ describe("/dashboard/svi (S18-B)", () => {
     expect(getBalanceMock).toHaveBeenCalledWith(state.callerId);
     expect(sb.hasEq("scores", "email", state.callerEmail)).toBe(true);
     expect(sb.hasEq("user_actions", "email", state.callerEmail)).toBe(true);
-    expect(sb.hasEq("report_sections", "user_id", state.callerId)).toBe(true);
+    // report_sections are per ANALYSIS (review P1) — never filtered by the caller
+    expect(sb.hasEq("report_sections", "analysis_id", "an-1")).toBe(true);
+    expect(sb.hasEq("report_sections", "user_id", state.callerId)).toBe(false);
     expect(dataAttr(out, "svi")).toBe("64");
     expect(dataAttr(out, "email")).toBe(state.callerEmail);
     expect(dataAttr(out, "credits")).toBe("12");
     expect(dataAttr(out, "readonly")).toBe("false");
+  });
+
+  it("member sees the sections the OWNER unlocked as saved (review P1 — no re-buy)", async () => {
+    state.role = "editor";
+    sb.rows.report_sections = [
+      { section_id: "market", depth: "full", content: "## Market", word_count: 900, credits_cost: 0.75, user_id: state.ownerId },
+      { section_id: "executive", depth: "summary", content: "## Exec", word_count: 200, credits_cost: 0, user_id: state.ownerId },
+    ];
+    const out = await html();
+    expect(dataAttr(out, "sections")).toBe("market:full,executive:summary");
+    expect(sb.hasEq("report_sections", "user_id", state.callerId)).toBe(false);
+    expect(sb.hasEq("report_sections", "user_id", state.ownerId)).toBe(false);
   });
 
   it("member (viewer): same owner data, readOnly + view-only note", async () => {

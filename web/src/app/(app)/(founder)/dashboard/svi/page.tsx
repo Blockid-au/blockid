@@ -98,8 +98,8 @@ export default async function SVIDashboardPage() {
 
   // S18-B — member-aware: the startup record (analyses, account, snapshots,
   // evidence) is read under the OWNER's email + project; a member never
-  // creates a split svi_accounts row. Share views / actions / credits /
-  // saved sections stay per caller.
+  // creates a split svi_accounts row. Share views / actions / credits stay
+  // per caller; saved report sections are per analysis (shared).
   const scope = await getProjectScope("viewer");
   const { projectId, dataEmail, role, canEdit, isMember } = pageScopeKeys(scope, user);
 
@@ -216,12 +216,14 @@ export default async function SVIDashboardPage() {
     }
 
     // ── Saved report sections (for latest analysis) ──────────────────────
+    // Keyed on the ANALYSIS only (S18-B review P1): the row is unique per
+    // (analysis_id, section_id, depth) and the analysis is the owner's, so
+    // an unlock by the owner or any editor is visible to the whole project.
     if (latestAnalysisId) {
       const { data: sectionsData } = await supabase
         .from("report_sections")
         .select("section_id, depth, content, word_count, credits_cost")
         .eq("analysis_id", latestAnalysisId)
-        .eq("user_id", user.id)
         .order("created_at", { ascending: true });
 
       if (sectionsData) {

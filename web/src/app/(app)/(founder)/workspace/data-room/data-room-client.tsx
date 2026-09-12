@@ -533,8 +533,9 @@ export function DataRoomClient({
         </div>
       </div>
 
-      {/* Google Drive Setup CTA */}
-      <div className="rounded-xl border border-brand-100 bg-brand-50/30 p-5 shadow-sm mb-6">
+      {/* Google Drive Setup CTA — hidden for a read-only viewer (S18-B review P2-2) */}
+      {!readOnly && (
+      <div className="rounded-xl border border-brand-100 bg-brand-50/30 p-5 shadow-sm mb-6" data-testid="dataroom-drive-setup">
         <div className="flex items-start gap-4">
           <div className="h-10 w-10 rounded-lg bg-white border border-brand-100 flex items-center justify-center shrink-0">
             <HardDrive strokeWidth={1.5} className="h-5 w-5 text-brand-600" />
@@ -580,6 +581,7 @@ export function DataRoomClient({
           </div>
         </div>
       </div>
+      )}
 
       {/* Progress bar */}
       <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-sm mb-6">
@@ -761,8 +763,9 @@ export function DataRoomClient({
         </div>
       )}
 
-      {/* One-Click Data Room Generator */}
-      <div className="rounded-xl border border-amber-100 bg-amber-50/30 p-5 shadow-sm mb-6">
+      {/* One-Click Data Room Generator — hidden for a read-only viewer (S18-B review P2-2) */}
+      {!readOnly && (
+      <div className="rounded-xl border border-amber-100 bg-amber-50/30 p-5 shadow-sm mb-6" data-testid="dataroom-generate">
         <div className="flex items-start gap-4">
           <div className="h-10 w-10 rounded-lg bg-white border border-amber-200 flex items-center justify-center shrink-0">
             <Sparkles strokeWidth={1.5} className="h-5 w-5 text-amber-600" />
@@ -800,6 +803,7 @@ export function DataRoomClient({
           </div>
         </div>
       </div>
+      )}
 
       {/* ── Investor access — links, who they went to, and who opened them ── */}
       <InvestorSharePanel
@@ -862,7 +866,7 @@ export function DataRoomClient({
               folder={folder}
               onDownload={downloadTemplate}
               onUpload={triggerUpload}
-              onAutoFill={(docName) => handleAutoFill(docName)}
+              onAutoFill={readOnly ? undefined : (docName) => handleAutoFill(docName)}
               autoFillingId={autoFilling ? autoFillDocId : null}
             />
           ))}

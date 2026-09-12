@@ -33,6 +33,12 @@ export interface MoneyRadarTileProps {
   compact?: boolean;
   /** VI catalogue when the page is localised; EN otherwise. */
   messages?: Readonly<Record<string, string>> | null;
+  /**
+   * S18-B review P2-7 — shared project: the data is the OWNER's, the CTAs
+   * spend the CALLER's credits. Pass `creditChargeNote(scope)` for a member;
+   * null/undefined renders nothing.
+   */
+  creditNote?: string | null;
   className?: string;
 }
 
@@ -46,7 +52,7 @@ export const TILE_HREFS = {
   alerts: "/workspace/funding?tab=alerts",
 } as const;
 
-export function MoneyRadarTile({ data, compact = false, messages = null, className = "" }: MoneyRadarTileProps) {
+export function MoneyRadarTile({ data, compact = false, messages = null, creditNote = null, className = "" }: MoneyRadarTileProps) {
   const c = (group: Parameters<typeof fundingCopy>[0], key: string, tokens: Record<string, string | number> = {}) =>
     fundingCopy(group, key, tokens, messages);
   const headline = tileHeadline(data, messages);
@@ -109,6 +115,11 @@ export function MoneyRadarTile({ data, compact = false, messages = null, classNa
       <div className="mt-4 flex flex-wrap items-center gap-2" data-tile-ctas>
         <Ctas data={data} c={c} />
       </div>
+      {creditNote ? (
+        <p className="mt-2 text-xs text-tertiary" data-tile-credit-note>
+          {creditNote}
+        </p>
+      ) : null}
 
       <footer className={`mt-auto ${compact ? "pt-3" : "pt-4"} text-xs text-tertiary`} data-tile-footer>
         <span data-tile-counts>

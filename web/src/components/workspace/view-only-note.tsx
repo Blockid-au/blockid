@@ -16,7 +16,15 @@ export function ViewOnlyNote({
   action?: string;
   className?: string;
 }) {
-  const needsOwner = role === "admin" || role === "editor";
+  // S18-B review P2-3: an editor on an admin surface (members roster, GA
+  // link) can ask an ADMIN as well as the owner — "only the owner" was
+  // wrong there. An admin only ever sees this note on an owner-only surface.
+  const hint =
+    role === "admin"
+      ? `only the project owner can ${action}.`
+      : role === "editor"
+        ? `ask an admin or the project owner to ${action}.`
+        : `ask the owner for editor rights to ${action}.`;
   return (
     <div
       data-testid="viewer-readonly-note"
@@ -27,12 +35,7 @@ export function ViewOnlyNote({
       }
     >
       <SharedRoleChip role={role} />
-      <span>
-        View-only access —{" "}
-        {needsOwner
-          ? `only the project owner can ${action}.`
-          : `ask the owner for editor rights to ${action}.`}
-      </span>
+      <span>View-only access — {hint}</span>
     </div>
   );
 }

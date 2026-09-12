@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getProjectScope, getCurrentProjectIsSandbox } from "@/lib/projects";
-import { pageScopeKeys } from "@/lib/project-members/page-scope";
+import { resolveSVIAccountIdForPage } from "@/lib/project-members/page-scope";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { AcceleratorClient } from "./accelerator-client";
 
@@ -35,49 +35,43 @@ export default async function AcceleratorPage() {
   const milestones: Array<{ id: string; title: string; completedAt: string }> = [];
 
   if (supabase) {
-    // S18-B — member-aware: rows are keyed on the OWNER's id.
+    // S18-B review P2-5 — svi_accounts has no `account_id` / `score` /
+    // `stage` columns (migrations 0008 + 0020: id, email, project_id,
+    // current_svi, current_stage, startup_name) and svi_milestones.account_id
+    // references svi_accounts.id — so the old `.eq("account_id", userId)`
+    // read always came back empty. Resolve the project's account id (owner
+    // find-or-creates, member reads the OWNER's row) and key both reads on it.
     const scope = await getProjectScope("viewer");
-    const { projectId, ownerUserId } = pageScopeKeys(scope, user);
+    const accountId = await resolveSVIAccountIdForPage(scope, user);
 
-    // Fetch latest SVI
-    const sviQuery = supabase
-      .from("svi_accounts")
-      .select("score, stage, startup_name, updated_at")
-      .eq("account_id", ownerUserId)
-      .order("updated_at", { ascending: false })
-      .limit(1);
-
-    if (projectId) {
-      const { data } = await sviQuery.eq("project_id", projectId).maybeSingle();
+    if (accountId) {
+      const { data } = await supabase
+        .from("svi_accounts")
+        .select("current_svi, current_stage, startup_name")
+        .eq("id", accountId)
+        .maybeSingle();
       if (data) {
-        currentSvi = (data.score as number) ?? 0;
-        stage = (data.stage as number) ?? 0;
+        currentSvi = (data.current_svi as number) ?? 0;
+        stage = (data.current_stage as number) ?? 0;
         startupName = (data.startup_name as string) ?? startupName;
       }
-    } else {
-      const { data } = await sviQuery.maybeSingle();
-      if (data) {
-        currentSvi = (data.score as number) ?? 0;
-        stage = (data.stage as number) ?? 0;
-        startupName = (data.startup_name as string) ?? startupName;
-      }
-    }
 
-    // Fetch completed milestones from svi_milestones
-    const { data: mData } = await supabase
-      .from("svi_milestones")
-      .select("id, milestone_label, achieved_at")
-      .eq("account_id", ownerUserId)
-      .order("achieved_at", { ascending: false })
-      .limit(10);
+      // Completed milestone badges for this account
+      const { data: mData } = await supabase
+        .from("svi_milestones")
+        .select("id, badge_label, achieved_at")
+        .eq("account_id", accountId)
+        .order("achieved_at", { ascending: false })
+        .limit(10);
 
-    if (mData) {
-      for (const m of mData) {
-        milestones.push({
-          id: m.id as string,
-          title: m.milestone_label as string,
-          completedAt: m.achieved_at as string,
-        });
+      if (mData) {
+        for (const m of mData) {
+          milestones.push({
+            id: m.id as string,
+            title: m.badge_label as string,
+            completedAt: m.achieved_at as string,
+          });
+        }
       }
     }
   }

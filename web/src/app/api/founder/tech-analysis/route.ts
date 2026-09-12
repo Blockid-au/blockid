@@ -6,14 +6,20 @@
 // column exists.
 //
 // Body:  { startup_id: string, website_url: string, github_url?: string }
-// Auth:  getCurrentUser() — scoped to user_id
-// Rate:  5/hour per user (same limit as startup-package/analyze)
+// Auth:  getCurrentUser() + assertProjectScope(startup_id, "editor") —
+//        S18-B review P2-1: an accepted editor/admin on a shared project can
+//        run it; the project row and the persisted tech_analyses row are
+//        keyed on the OWNER's user id (one row per project), a viewer gets
+//        403 and a non-member 404.
+// Rate:  5/hour per caller (same limit as startup-package/analyze)
 // Gate:  startup_package feature flag
 
 import "server-only";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { assertProjectScope } from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
 import { consumeRateLimit } from "@/lib/rate-limit/persistent";
 import { runTechIntelligence } from "@/lib/agents/tech-intelligence";
 
@@ -85,7 +91,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, reason: "invalid_website_url" }, { status: 400 });
   }
 
-  // ── Verify project ownership (user_id scoping) ───────────────────────
+  // ── Verify project access (owner or editor+ member) ──────────────────
+  // S18-B review P2-1 — was `projects.user_id = user.id` (owner-only), so
+  // every member hit 404 from the Run button. The scope resolves the
+  // OWNER's id; the project row is read under that key.
+  let ownerUserId: string;
+  try {
+    const scope = await assertProjectScope(user, startup_id, "editor");
+    ownerUserId = scope.ownerUserId;
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
+    throw err;
+  }
+
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json({ ok: false, reason: "db_unavailable" }, { status: 503 });
@@ -95,7 +114,7 @@ export async function POST(request: Request) {
     .from("projects")
     .select("id, name, sector, user_id")
     .eq("id", startup_id)
-    .eq("user_id", user.id)
+    .eq("user_id", ownerUserId)
     .maybeSingle();
 
   if (!project) {
@@ -118,12 +137,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, reason: "analysis_failed" }, { status: 500 });
   }
 
-  // ── Persist to tech_analyses (upsert — one row per startup per user) ──
+  // ── Persist to tech_analyses (upsert — one row per project, keyed on
+  //    the OWNER so the dashboard/svi read by startup_id sees the same row
+  //    whoever ran it) ──────────────────────────────────────────────────
   try {
     await supabase.from("tech_analyses").upsert(
       {
         startup_id,
-        user_id: user.id,
+        user_id: ownerUserId,
         tech_score: result.techScore,
         svi_contribution: result.sviContribution,
         valuation_multiplier_boost: result.valuationMultiplierBoost / 100, // store as decimal

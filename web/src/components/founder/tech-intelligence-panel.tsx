@@ -171,6 +171,8 @@ interface TechIntelligencePanelProps {
   initialGithubUrl?: string;
   locale?: Locale;
   className?: string;
+  /** S18-B — viewer on a shared project: inputs + Run are disabled. */
+  readOnly?: boolean;
 }
 
 type Status = "idle" | "loading" | "success" | "error";
@@ -181,6 +183,7 @@ export function TechIntelligencePanel({
   initialGithubUrl = "",
   locale = "en",
   className = "",
+  readOnly = false,
 }: TechIntelligencePanelProps) {
   const c: Copy = COPY[locale];
 
@@ -192,7 +195,7 @@ export function TechIntelligencePanel({
   const [result, setResult] = useState<TechIntelligenceResult | null>(null);
 
   async function handleAnalyse() {
-    if (!websiteUrl.trim()) return;
+    if (readOnly || !websiteUrl.trim()) return;
     setStatus("loading");
     setError(null);
     setLoadingStep(0);
@@ -258,7 +261,7 @@ export function TechIntelligencePanel({
             onChange={(e) => setWebsiteUrl(e.target.value)}
             placeholder={c.websitePlaceholder}
             className="w-full text-sm px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={status === "loading"}
+            disabled={readOnly || status === "loading"}
           />
         </div>
         <div>
@@ -271,12 +274,13 @@ export function TechIntelligencePanel({
             onChange={(e) => setGithubUrl(e.target.value)}
             placeholder={c.githubPlaceholder}
             className="w-full text-sm px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={status === "loading"}
+            disabled={readOnly || status === "loading"}
           />
         </div>
         <button
           onClick={handleAnalyse}
-          disabled={status === "loading" || !websiteUrl.trim()}
+          data-testid="tech-analysis-run"
+          disabled={readOnly || status === "loading" || !websiteUrl.trim()}
           className="w-full py-2 px-4 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {status === "loading" ? c.loadingSteps[loadingStep] : c.analyseButton}

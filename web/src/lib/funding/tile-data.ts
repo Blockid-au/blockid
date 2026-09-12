@@ -1,7 +1,15 @@
 // Data for the dashboard MoneyRadarTile (G11 plan §4i D-2, T0248).
 //
-//   getMoneyRadarTileData(user, project, preloaded?)  → MoneyRadarTileData
-//   buildMoneyRadarTileData(sources)                  pure — the state machine
+//   getMoneyRadarTileData(user, project, preloaded?, keys?)  → MoneyRadarTileData
+//   buildMoneyRadarTileData(sources)                          pure — the state machine
+//
+// Shared projects (S18-B review P2-7) — "the OWNER's project data, the
+// CALLER's credits": `keys.ownerUserId` / `keys.dataEmail` (from
+// `pageScopeKeys`) key the project's funding report, `funding_matches`,
+// `dataroom_files` and the intake prefill on the owner, so a member sees the
+// same radar the owner sees. The entitlement (`can`), and the calendar token
+// stay on the caller — every CTA the tile offers is paid from the caller's
+// own wallet (`creditNote` on the tile says so).
 //
 // Five states, decided in this order:
 //   subscriber   `can(user, "money_radar")` (plan flag or timed grant) and at
@@ -461,6 +469,17 @@ export interface TilePreloaded {
   today?: Date;
 }
 
+/**
+ * Whose project record the tile reads (S18-B review P2-7). Both default to
+ * the caller — pass `pageScopeKeys(scope, user)` values for a shared project.
+ */
+export interface TileDataKeys {
+  /** OWNER's app_users id — funding_reports / funding_matches / dataroom_files live under it. */
+  ownerUserId?: string;
+  /** OWNER's email — svi_snapshots stage for the intake prefill. */
+  dataEmail?: string;
+}
+
 interface MatchRowLite {
   ref_kind: "grant" | "program";
   ref_id: string;
@@ -533,18 +552,22 @@ export async function getMoneyRadarTileData(
   user: Pick<AppUser, "id" | "email" | "plan">,
   project: Project | null,
   pre: TilePreloaded = {},
+  keys: TileDataKeys = {},
 ): Promise<MoneyRadarTileData> {
   const today = pre.today ?? new Date();
+  // Project record → the OWNER (defaults to the caller); entitlement + calendar
+  // token → the CALLER (S18-B review P2-7).
+  const owner = { id: keys.ownerUserId ?? user.id, email: keys.dataEmail ?? user.email };
   const [hasMoneyRadar, reportRow, grants, programs, prefill, matches, nextStepTitle] = await Promise.all([
     pre.hasMoneyRadar !== undefined
       ? Promise.resolve(pre.hasMoneyRadar)
       : can({ id: user.id, plan: user.plan ?? "free", segment: "founder" }, "money_radar").catch(() => false),
-    pre.report !== undefined ? Promise.resolve(pre.report) : latestFundingReportForUser(user.id, project?.id ?? null).catch(() => null),
+    pre.report !== undefined ? Promise.resolve(pre.report) : latestFundingReportForUser(owner.id, project?.id ?? null).catch(() => null),
     pre.grants ? Promise.resolve(pre.grants) : listGrants({ status: "open" }).catch(() => [] as AuGrantRow[]),
     pre.programs ? Promise.resolve(pre.programs) : listPrograms({}).catch(() => [] as AuProgramRow[]),
-    intakePrefillFor(user, project).catch((): FundingIntakePrefill => ({})),
-    loadMatches(user.id, project?.id ?? null),
-    loadNextStepTitle(user, project),
+    intakePrefillFor(owner, project).catch((): FundingIntakePrefill => ({})),
+    loadMatches(owner.id, project?.id ?? null),
+    loadNextStepTitle(owner, project),
   ]);
 
   // Profile: the stored report intake wins (it is what the matches were built
