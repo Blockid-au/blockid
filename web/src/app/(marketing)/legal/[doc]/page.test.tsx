@@ -25,11 +25,22 @@ const DATA_PRINCIPLE =
   "Your data belongs to your startup. We store it so every report builds on your own evidence and the AI reasons on your case. Founder-consented access tiers control who sees what.";
 
 describe("/legal/privacy — the one privacy policy (T0275)", () => {
-  it("renders version 2.2, effective 11 September 2026", async () => {
+  it("renders version 2.3, effective 12 September 2026", async () => {
     const html = await render("privacy");
-    expect(html).toContain("This version 2.2 takes effect on");
-    expect(html).toContain("11 September 2026");
+    expect(html).toContain("This version 2.3 takes effect on");
+    expect(html).toContain("12 September 2026");
+    expect(html).not.toContain("This version 2.2 takes effect on");
     expect(html).not.toContain("This version 2.1 takes effect on");
+  });
+
+  it("v2.3 (S21-A review): lists the investor data-room NDA acceptance + engagement records with their retention rows", async () => {
+    const html = await render("privacy");
+    expect(html).toMatch(/Investor data-room records/);
+    expect(html).toMatch(/data_room_nda_acceptances/);
+    expect(html).toMatch(/data_room_engagement/);
+    expect(html).toMatch(/Life of the data room \+ <strong[^>]*>7 years<\/strong>/);
+    expect(html).toMatch(/<strong[^>]*>12 months<\/strong> from the event/);
+    expect(html).toContain("v2.3 — effective 12 September 2026");
   });
 
   it("keeps the Auschain entity line (legal/billing entity — not the marketing brand)", async () => {

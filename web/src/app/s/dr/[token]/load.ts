@@ -22,7 +22,7 @@ import {
   normaliseNdaVersion,
   type NdaGate,
 } from "@/lib/dataroom/nda";
-import { ownerTrustEntitled } from "@/lib/dataroom/nda-server";
+import { willWatermark } from "@/lib/dataroom/watermark-recipient";
 
 export interface SharedRoomDocument {
   id: string;
@@ -188,11 +188,10 @@ export async function loadSharedDataRoom(
 
   if (!room) return null;
 
-  // S21-A — NDA gate + watermark are Starter+ (investor_links.premium) on the
-  // OWNER's plan. A Free room renders as before, with neither.
-  const entitled = await ownerTrustEntitled(
-    String(room.user_id ?? link.account_id ?? ""),
-  );
+  // S21-A — NDA gate + watermark. Turning either on needs investor_links.premium
+  // on the OWNER's plan (settings PUT); once on, both are enforced here
+  // whatever the plan is today (S21-A review P2-5) — a room's documents are
+  // never released to an unaccepted link because a subscription lapsed.
   const nda = ndaGate(
     {
       ndaRequired: Boolean(room.nda_required),
@@ -207,9 +206,11 @@ export async function loadSharedDataRoom(
           ? link.nda_signed_version
           : null,
     },
-    entitled,
   );
-  const watermarked = entitled && Boolean(room.watermark_enabled);
+  // Same rule as the PDF route (lib/dataroom/watermark-recipient): with the
+  // `link <id8>` fallback every link with an id can be named, so the badge
+  // never promises a mark the PDF would not carry (S21-A review P2-3).
+  const watermarked = willWatermark(Boolean(room.watermark_enabled), { id: String(link.id) });
 
   // Documents are not even queried until the gate is cleared — the page
   // cannot leak what the loader never fetched.

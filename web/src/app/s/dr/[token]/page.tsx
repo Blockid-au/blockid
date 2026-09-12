@@ -29,9 +29,15 @@ import {
   type SharedRoom,
   type SharedRoomDocument,
 } from "./load";
+import { ENGAGE_PAGE_SECTIONS } from "@/lib/dataroom/engagement";
 import { DocMarkdown } from "./markdown";
 import { NdaGate } from "./nda-gate";
 import { EngagementTracker } from "./engagement-tracker";
+
+// The two non-folder `data-engage-section` names. The engage POST only
+// accepts these plus the room's real folders (S21-A review P2-1), so they
+// are shared with lib/dataroom/engagement rather than typed twice.
+const [HEADLINE_SECTION, GAPS_SECTION] = ENGAGE_PAGE_SECTIONS;
 
 export const dynamic = "force-dynamic";
 
@@ -88,7 +94,8 @@ export default async function DataRoomSharePage({
 
   return (
     <main id="main" className="min-h-screen bg-surface">
-      <EngagementTracker token={room.token} />
+      {/* P2-2: keyed on the gate so tracking starts right after acceptance. */}
+      <EngagementTracker token={room.token} gateStatus={room.nda.status} />
       <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
         <header>
           <p className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted">
@@ -132,7 +139,7 @@ export default async function DataRoomSharePage({
 
         {/* ── Headline figures ─────────────────────────────────────────── */}
         {!ndaPending && (
-        <section aria-labelledby="headline-h" className="mt-8" data-engage-section="Headline figures">
+        <section aria-labelledby="headline-h" className="mt-8" data-engage-section={HEADLINE_SECTION}>
           <h2 id="headline-h" className="sr-only">
             Headline figures
           </h2>
@@ -161,7 +168,7 @@ export default async function DataRoomSharePage({
         <section
           aria-labelledby="gaps-h"
           className="mt-8 rounded-xl border border-line-subtle bg-surface-sunken p-5"
-          data-engage-section="Outstanding items"
+          data-engage-section={GAPS_SECTION}
         >
           <h2
             id="gaps-h"

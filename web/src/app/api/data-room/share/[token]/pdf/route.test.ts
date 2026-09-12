@@ -5,8 +5,11 @@
 //   - NDA pending on a Starter+ room → 403 nda_required, no render;
 //   - the document lookup is scoped to the LINK's room (never just the id);
 //   - watermark_enabled + entitled → the PDF carries "Prepared for <recipient>",
-//     recipient from data_room_access_tokens.watermark first, then name/firm/email;
-//   - watermark off, or a Free owner → clean PDF, no X-BlockID-Watermark;
+//     recipient from data_room_access_tokens.watermark first, then name/firm/email,
+//     then the NDA-ledger email, then `link <id8>` (P2-3) — never a clean PDF
+//     while the page says "watermarked for you";
+//   - watermark off → clean PDF, no X-BlockID-Watermark; the owner's plan is
+//     never consulted — gate and mark survive a lapse (P2-5);
 //   - a document_download engagement row is written.
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -63,11 +66,17 @@ const DOC = {
 };
 
 let sb: FakeSupabase;
-function setup(link: Record<string, unknown> | null = LINK, room: Record<string, unknown> | null = ROOM, doc: Record<string, unknown> | null = DOC) {
+function setup(
+  link: Record<string, unknown> | null = LINK,
+  room: Record<string, unknown> | null = ROOM,
+  doc: Record<string, unknown> | null = DOC,
+  acceptances: Record<string, unknown>[] = [],
+) {
   sb = fakeSupabase({
     data_room_access_tokens: link ? [link] : [],
     data_rooms: room ? [room] : [],
     data_room_documents: doc ? [doc] : [],
+    data_room_nda_acceptances: acceptances,
   });
   mocks.sb = sb;
 }
@@ -137,13 +146,19 @@ describe("GET /api/data-room/share/[token]/pdf", () => {
     expect((await call()).status).toBe(200);
   }, 60_000);
 
-  it("Free room: nda_required is ignored and the PDF is clean", async () => {
+  it("owner's plan lapsed: an enabled gate still 403s, and an accepted link still gets the mark (P2-5)", async () => {
     mocks.ownerTrustEntitled.mockResolvedValue(false);
     setup(LINK, { ...ROOM, nda_required: true, watermark_enabled: true });
+    expect((await call()).status).toBe(403);
+    expect(sb.find("data_room_documents", "select").length).toBe(0);
+
+    setup({ ...LINK, nda_signed_at: "2026-09-01T00:00:00Z", nda_signed_version: 1 }, { ...ROOM, nda_required: true, watermark_enabled: true });
     const res = await call();
     expect(res.status).toBe(200);
-    expect(res.headers.get("X-BlockID-Watermark")).toBeNull();
-    expect(await textOf(res)).not.toContain("Prepared for");
+    expect(res.headers.get("X-BlockID-Watermark")).toBe("1");
+    expect(await textOf(res)).toContain("Prepared for Jane Chen");
+    expect(mocks.ownerTrustEntitled).not.toHaveBeenCalled();
+    expect(sb.find("app_users", "select").length).toBe(0);
   }, 60_000);
 
   it("scopes the document lookup to the LINK's room and 404s a doc it does not find", async () => {
@@ -206,11 +221,31 @@ describe("GET /api/data-room/share/[token]/pdf", () => {
     expect(await textOf(res)).not.toContain("Prepared for");
   }, 60_000);
 
-  it("renders clean (no empty mark) for an anonymous link even with the watermark on", async () => {
-    setup({ ...LINK, investor_name: null, investor_firm: null, investor_email: null, watermark: null });
+  it("stamps `link <id8>` for an anonymous link so the PDF is still traceable (P2-3)", async () => {
+    setup({ ...LINK, id: "9f3c2a1b-0000-4000-8000-000000000000", investor_name: null, investor_firm: null, investor_email: null, watermark: null });
     const res = await call();
     expect(res.status).toBe(200);
-    expect(res.headers.get("X-BlockID-Watermark")).toBeNull();
-    expect(await textOf(res)).not.toContain("Prepared for");
+    expect(res.headers.get("X-BlockID-Watermark")).toBe("1");
+    expect(await textOf(res)).toContain("Prepared for link 9f3c2a1b");
+  }, 60_000);
+
+  it("uses the NDA-ledger email (acceptance row, never the token row) before the link-id fallback", async () => {
+    setup(
+      { ...LINK, investor_name: null, investor_firm: null, investor_email: null, watermark: null },
+      ROOM,
+      DOC,
+      [{ viewer_email: "viewer@fund.vc", accepted_at: "2026-09-10T00:00:00Z" }],
+    );
+    const text = await textOf(await call());
+    expect(text).toContain("Prepared for viewer@fund.vc");
+    expect(sb.hasEq("data_room_nda_acceptances", "access_token_id", "link-1")).toBe(true);
+  }, 60_000);
+
+  it("does not read the ledger when the founder named the link (founder-set identity wins)", async () => {
+    setup(LINK, ROOM, DOC, [{ viewer_email: "partner@blackbird.vc", accepted_at: "2026-09-10T00:00:00Z" }]);
+    const text = await textOf(await call());
+    expect(text).toContain("Prepared for Jane Chen");
+    expect(text).not.toContain("blackbird.vc");
+    expect(sb.find("data_room_nda_acceptances", "select").length).toBe(0);
   }, 60_000);
 });

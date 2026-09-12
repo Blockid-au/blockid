@@ -9,8 +9,9 @@
 //   - entitled + read-only  → controls disabled with the S18-B view-only note
 //                             (viewer / editor on a shared project);
 //   - not entitled          → controls disabled with the upgrade line. The
-//                             stored values still show so a founder who
-//                             downgraded sees what will come back.
+//                             stored values still show, and anything already
+//                             turned on stays enforced on the links (S21-A
+//                             review P2-5) — only changing it needs the plan.
 //
 // Form rules: visible labels, helper text under the textarea, inline save
 // feedback via the parent's toast, no autosave on keystroke (save button for
@@ -161,7 +162,7 @@ export function RoomTrustSettings({ dataRoomId, readOnly = false, onToast, initi
               <Link href={`/pricing?feature=${encodeURIComponent(settings.feature)}`} className="font-semibold text-action underline underline-offset-2">
                 Starter and above
               </Link>
-              . Your links keep working without them.
+              . Anything you already turned on stays enforced on your links; changing it needs Starter.
             </p>
           )}
           {!locked && (readOnly || !settings.canEdit) && (

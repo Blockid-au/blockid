@@ -333,6 +333,13 @@ export type RateLimitBucket =
   | "fundraise"
   | "integrations"
   | "investor-link"
+  // S21-A review P1-2 — the three anonymous data-room token routes. The
+  // share token is the only credential, so these are keyed per IP (the
+  // proxy's clientIdentity has no cookie to prefer). `data-room-token`
+  // covers the NDA accept + engagement POSTs; `data-room-pdf` the
+  // server-side @react-pdf render, which is the expensive one.
+  | "data-room-token"
+  | "data-room-pdf"
   | "evidence-upload"
   | "upload"
   | "auth-login"
@@ -360,6 +367,13 @@ const BUCKET_LIMITS_PER_MINUTE: Record<RateLimitBucket, number> = {
   fundraise: 60,
   integrations: 30,
   "investor-link": 20,
+  // One investor reading a room: an `open`, then at most one section_view
+  // per section per 30 s flush — 30/min leaves room for an office NAT.
+  "data-room-token": 30,
+  // A PDF render holds a worker for up to 60 s (route maxDuration); 10/min
+  // per IP is more than a human downloads and far below what exhausts the
+  // single production box.
+  "data-room-pdf": 10,
   "evidence-upload": 10,
   upload: 10,
   "auth-login": 8,

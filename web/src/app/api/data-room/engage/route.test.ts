@@ -8,7 +8,12 @@
 //   - dropping the 503 branch when getSupabaseAdmin returns null;
 //   - dropping the validation (`parseEngageEvent`): unknown event types,
 //     over-long sections, out-of-range dwell must never reach the insert;
-//   - dropping the .eq("token", ...) lookup / is_active / expires_at checks;
+//   - dropping the .eq("token", ...) lookup / shareLinkState (is_active,
+//     revoked_at, expires_at) check, or answering different bodies for
+//     "unknown" vs "expired" (S21-A review P2-4: one 404, no oracle);
+//   - accepting a `section` that is not one of the room's folders or the two
+//     page sections (S21-A review P2-1: heatmap column injection), or
+//     rendering such a stored section in the GET heatmap;
 //   - dropping the 30 s dedupe so a looping client inflates the heatmap;
 //   - hashing the FIRST x-forwarded-for hop (client-forgeable) instead of the
 //     edge-observed one, or storing more than a 16-char salted prefix;
@@ -58,13 +63,23 @@ interface State {
   events: Record<string, unknown>[] | null;
   room: Record<string, unknown> | null;
   links: Record<string, unknown>[];
+  /** `data_room_documents` rows — only `folder` is read (the section allow-list). */
+  documents: Record<string, unknown>[];
   calls: Call[];
 }
 
 let state: State;
 
 function fresh(): State {
-  return { accessToken: null, lastEvent: null, events: null, room: null, links: [], calls: [] };
+  return {
+    accessToken: null,
+    lastEvent: null,
+    events: null,
+    room: null,
+    links: [],
+    documents: [{ folder: "Team" }, { folder: "Financials" }, { folder: "3. Financial Projections" }],
+    calls: [],
+  };
 }
 
 /** Chainable fake: every op is recorded; terminals resolve per-table state. */
@@ -105,6 +120,7 @@ function fakeSupabase() {
       return { data: state.events, error: null };
     }
     if (table === "data_rooms") return { data: state.room, error: null };
+    if (table === "data_room_documents") return { data: state.documents, error: null };
     return { data: null, error: null };
   }
   return {
@@ -171,19 +187,54 @@ describe("POST /api/data-room/engage", () => {
     expect(state.calls.length).toBe(0);
   });
 
-  it("403s when the token lookup returns no row / is revoked / is expired", async () => {
+  it("404s an unknown / inactive / revoked / expired / orphaned token with ONE body (P2-4: no oracle)", async () => {
+    const bodies = new Set<string>();
+    const post = async () => {
+      const res = await POST(postReq({ token: TOKEN, eventType: "open" }));
+      expect(res.status).toBe(404);
+      bodies.add(JSON.stringify(await res.json()));
+    };
     state.accessToken = null;
-    expect((await POST(postReq({ token: TOKEN, eventType: "open" }))).status).toBe(403);
+    await post();
     expect(hasEq("data_room_access_tokens", "token", TOKEN)).toBe(true);
-
     state.accessToken = { ...activeToken(), is_active: false };
-    expect((await POST(postReq({ token: TOKEN, eventType: "open" }))).status).toBe(403);
-
+    await post();
+    state.accessToken = { ...activeToken(), revoked_at: "2026-09-01T00:00:00Z" };
+    await post();
     state.accessToken = { ...activeToken(), expires_at: new Date(Date.now() - 60_000).toISOString() };
-    const res = await POST(postReq({ token: TOKEN, eventType: "open" }));
-    expect(res.status).toBe(403);
-    expect((await res.json()).error).toContain("expired");
+    await post();
+    state.accessToken = { ...activeToken(), data_room_id: null };
+    await post();
+    expect(bodies.size).toBe(1);
+    expect([...bodies][0]).not.toMatch(/expired|revoked/i);
     expect(find("data_room_engagement", "insert").length).toBe(0);
+  });
+
+  it("400s a section that is not one of the room's folders or the two page sections, and never stores it (P2-1)", async () => {
+    state.accessToken = activeToken();
+    const res = await POST(postReq({ token: TOKEN, eventType: "section_view", section: "<b>Injected column</b>" }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("Unknown section");
+    expect(hasEq("data_room_documents", "data_room_id", "room-1")).toBe(true);
+    expect(find("data_room_engagement", "insert").length).toBe(0);
+
+    // A document_open naming a foreign section is refused the same way.
+    state.calls = [];
+    expect((await POST(postReq({ token: TOKEN, eventType: "document_open", section: "Nope", documentName: "Deck" }))).status).toBe(400);
+    expect(find("data_room_engagement", "insert").length).toBe(0);
+  });
+
+  it("accepts the two page sections and the room's real folders (normalised), and skips the folder read for section-less events", async () => {
+    state.accessToken = activeToken();
+    for (const section of ["Headline figures", "Outstanding items", "Team", "  Financials "]) {
+      state.calls = [];
+      const res = await POST(postReq({ token: TOKEN, eventType: "section_view", section }));
+      expect(res.status, section).toBe(200);
+      expect(find("data_room_engagement", "insert").length, section).toBe(1);
+    }
+    state.calls = [];
+    await POST(postReq({ token: TOKEN, eventType: "open" }));
+    expect(find("data_room_documents", "select").length).toBe(0);
   });
 
   it("allows an active token with a null or future expires_at", async () => {
@@ -368,6 +419,7 @@ describe("GET /api/data-room/engage", () => {
   it("returns an empty envelope (legacy shape + empty heatmap) when the tenant has no events", async () => {
     state.events = null;
     state.links = [];
+    state.documents = [];
     const res = await GET(getReq("room-1"));
     const body = await res.json();
     expect(body.analytics.totalViews).toBe(0);
@@ -392,6 +444,8 @@ describe("GET /api/data-room/engage", () => {
     const body = await (await GET(getReq("room-1"))).json();
     const hm = body.analytics.heatmap;
     expect(hm.rows.map((r: { label: string }) => r.label)).toEqual(["Blackbird", "Jane"]);
+    // Column order = the room's folder order (from data_room_documents), not dwell.
+    expect(hasEq("data_room_documents", "data_room_id", "room-1")).toBe(true);
     expect(hm.sections).toEqual(["Team", "Financials"]);
     const jane = hm.rows[1];
     expect(jane.opens).toBe(1);
@@ -401,5 +455,22 @@ describe("GET /api/data-room/engage", () => {
     ]);
     expect(hm.maxDwellMs).toBe(60_000);
     expect(JSON.stringify(body)).not.toContain(TOKEN);
+  });
+
+  it("drops a stored section the room does not have from BOTH heatmap shapes (P2-1)", async () => {
+    state.events = [
+      ...EVENTS,
+      { access_token_id: "l1", event_type: "section_view", section: "<img src=x onerror=alert(1)>", document_name: null, duration_ms: 999_000, scroll_pct: 100, occurred_at: "2026-09-10T00:09:00.000Z" },
+    ];
+    const body = await (await GET(getReq("room-1"))).json();
+    expect(body.analytics.heatmap.sections).toEqual(["Team", "Financials"]);
+    expect(Object.keys(body.analytics.sectionHeatmap).sort()).toEqual(["Financials", "Team"]);
+    expect(JSON.stringify(body.analytics.heatmap)).not.toContain("onerror");
+    expect(JSON.stringify(body.analytics.sectionHeatmap)).not.toContain("onerror");
+    // Column headers only ever come from the allow-list, so a room whose
+    // documents are gone shows no section columns at all.
+    state.documents = [];
+    const bare = await (await GET(getReq("room-1"))).json();
+    expect(bare.analytics.heatmap.sections).toEqual([]);
   });
 });

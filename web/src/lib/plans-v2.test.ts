@@ -625,8 +625,9 @@ describe("public founder rungs claim only what the product ships", () => {
   });
 
   it("sells watermarking only on the rung whose flag delivers it (S21-A: Starter+, investor_links.premium)", () => {
-    // Free must not promise it — a Free room renders clean (lib/dataroom/nda-server
-    // ownerTrustEntitled). Starter carries the flag, so the bullet is true there.
+    // Free must not promise it — a Free owner cannot turn it on (settings PUT
+    // 402 via lib/dataroom/nda-server ownerTrustEntitled). Starter carries the
+    // flag, so the bullet is true there.
     const free = PLANS_V2.find((p) => p.id === "founder_free")!;
     expect(free.features.join(" ").toLowerCase()).not.toContain("watermark");
     const starter = PLANS_V2.find((p) => p.id === "founder_starter")!;

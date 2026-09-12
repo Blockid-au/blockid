@@ -29,10 +29,17 @@
  */
 
 import { Text, View } from "@react-pdf/renderer";
+import { linkFallbackRecipient } from "@/lib/dataroom/watermark-recipient";
 
 export interface WatermarkInput {
   /** Investor name, firm or email — whatever identifies the disclosure. */
   recipient: string | null | undefined;
+  /**
+   * The share link's id. When `recipient` is blank the label falls back to
+   * `link <first 8 chars>` so an anonymous link's PDF is still traceable
+   * (S21-A review P2-3). Omit it only for owner-side exports.
+   */
+  linkId?: string | null;
   /** en-AU date; defaults to today. */
   date?: Date | string;
 }
@@ -50,11 +57,13 @@ export function watermarkDate(date?: Date | string): string {
 }
 
 /**
- * The line burned onto every page. Returns null when there is no recipient
- * — a blank watermark is worse than none because it looks like a bug.
+ * The line burned onto every page. Falls back to `link <id8>` when the
+ * recipient is blank and a link id is given; returns null only when neither
+ * names the disclosure — a blank watermark is worse than none because it
+ * looks like a bug.
  */
 export function watermarkLabel(input: WatermarkInput): string | null {
-  const who = (input.recipient ?? "").replace(/\s+/g, " ").trim();
+  const who = (input.recipient ?? "").replace(/\s+/g, " ").trim() || linkFallbackRecipient(input.linkId);
   if (!who) return null;
   return `Prepared for ${who.slice(0, 80)} · ${watermarkDate(input.date)} · BlockID.au`;
 }

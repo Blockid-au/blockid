@@ -11,13 +11,21 @@
 //                               nda_signed_version }
 //   data_room_engagement      { event_type: 'nda_sign' }
 //
+// The optional email the viewer types lives on the acceptance ledger ONLY.
+// It is never copied onto `data_room_access_tokens.investor_email`: that
+// column is the founder's record of who the link went to, and
+// api/showcase-reviews trusts it as the reviewer's identity (S21-A review
+// P1-1 — a token holder could otherwise sign as "partner@fund.vc" and post
+// a review under that name).
+//
 // Version handling: the body carries the version the investor was shown.
 // If the founder bumped the clause between render and click, the stored
 // acceptance would be for text the investor never saw — so a stale version
 // is refused with 409 and the page reloads to show the new clause.
 //
-// r-03-exempt: investor-facing click-wrap; entitlement is the room owner's
-// plan (checked via ownerTrustEntitled), not the anonymous caller's.
+// r-03-exempt: investor-facing click-wrap; the founder's entitlement was
+// checked when the gate was turned on (settings PUT / access POST); the
+// gate itself is plan-independent (S21-A review P2-5).
 
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
@@ -25,7 +33,7 @@ import { apiRoute, auditNote } from "@/lib/audit/api-route";
 import { uaFamily } from "@/lib/audit/redact";
 import { shareLinkState, type ShareLinkRow } from "@/lib/data-room";
 import { ndaGate, normaliseNdaVersion, parseNdaAcceptBody } from "@/lib/dataroom/nda";
-import { ndaTextHash, ownerTrustEntitled } from "@/lib/dataroom/nda-server";
+import { ndaTextHash } from "@/lib/dataroom/nda-server";
 import { clientIpFromHeaders, hashIp } from "@/lib/iphash";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
@@ -61,7 +69,6 @@ async function POST_handler(req: NextRequest) {
     .maybeSingle();
   if (!room) return NOT_FOUND();
 
-  const entitled = await ownerTrustEntitled(String(room.user_id ?? link.account_id ?? ""));
   const gate = ndaGate(
     {
       ndaRequired: Boolean(room.nda_required),
@@ -73,7 +80,6 @@ async function POST_handler(req: NextRequest) {
       ndaSignedAt: (link.nda_signed_at as string | null) ?? null,
       ndaSignedVersion: typeof link.nda_signed_version === "number" ? link.nda_signed_version : null,
     },
-    entitled,
   );
 
   if (gate.status === "not_required") {
@@ -99,7 +105,10 @@ async function POST_handler(req: NextRequest) {
     {
       data_room_id: room.id,
       access_token_id: link.id,
-      account_id: link.account_id ?? room.user_id,
+      // Tenancy key = the ROOM OWNER (RLS drna_owner_select, 0339). A link
+      // minted by a project member carries the member's id in
+      // `account_id`; the ledger must not follow it (S21-A review P2-6).
+      account_id: room.user_id ?? link.account_id,
       nda_version: gate.version,
       nda_text_sha256: ndaTextHash(gate.text),
       viewer_email: parsed.email,
@@ -120,7 +129,6 @@ async function POST_handler(req: NextRequest) {
       nda_signed_at: now,
       nda_signed_ip: ipHash,
       nda_signed_version: gate.version,
-      ...(parsed.email ? { investor_email: parsed.email } : {}),
     })
     .eq("id", link.id);
   if (updateErr) {

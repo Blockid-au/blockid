@@ -17,9 +17,16 @@
 //
 // Nothing about the viewer travels beyond the share token: no email, no
 // name, no identifiers. The server hashes the network address.
+//
+// `gateStatus` (S21-A review P2-2): the sections only exist in the DOM once
+// the NDA gate is not pending. The gate accepts with `router.refresh()`,
+// which re-renders the server tree in place — it does not remount this
+// component — so the observer effect is keyed on the gate status and
+// re-runs (re-querying `[data-engage-section]`) the moment the documents
+// appear. The `open` event is still sent once per mount, not per re-key.
 
 import * as React from "react";
-import { ENGAGE_DEDUPE_WINDOW_MS } from "@/lib/dataroom/engagement";
+import { ENGAGE_DEDUPE_WINDOW_MS, type NdaGateStatus } from "@/lib/dataroom/engagement";
 import { EngagementBuffer, encodePayload, type EngagePayload } from "@/lib/dataroom/engagement-client";
 
 const ENDPOINT = "/api/data-room/engage";
@@ -41,13 +48,17 @@ function send(payload: EngagePayload, unloading: boolean): void {
   });
 }
 
-export function EngagementTracker({ token }: { token: string }) {
+export function EngagementTracker({ token, gateStatus }: { token: string; gateStatus: NdaGateStatus }) {
+  const openedFor = React.useRef<string | null>(null);
   React.useEffect(() => {
     if (!token) return;
     const buffer = new EngagementBuffer(token);
     const visible = new Set<string>();
 
-    send({ token, eventType: "open" }, false);
+    if (openedFor.current !== token) {
+      openedFor.current = token;
+      send({ token, eventType: "open" }, false);
+    }
 
     const observer =
       typeof IntersectionObserver === "function"
@@ -103,7 +114,7 @@ export function EngagementTracker({ token }: { token: string }) {
       buffer.pause(Date.now());
       flush(true);
     };
-  }, [token]);
+  }, [token, gateStatus]);
 
   return null;
 }

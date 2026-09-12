@@ -18,50 +18,53 @@ const FRESH = { ndaRequired: false, ndaSignedAt: null, ndaSignedVersion: null };
 
 describe("ndaGate", () => {
   it("is not_required when neither the room nor the link asks", () => {
-    const g = ndaGate({ ...ROOM, ndaRequired: false }, FRESH, true);
+    const g = ndaGate({ ...ROOM, ndaRequired: false }, FRESH);
     expect(g.status).toBe("not_required");
     expect(ndaAllowsDocuments(g)).toBe(true);
   });
 
-  it("is not_required for a Free room even when nda_required is set — plan gating collapses the gate", () => {
-    const g = ndaGate(ROOM, FRESH, false);
-    expect(g.status).toBe("not_required");
-    expect(ndaAllowsDocuments(g)).toBe(true);
+  it("takes no entitlement argument — a room that turned the gate on keeps it after the owner's plan lapses (P2-5)", () => {
+    // The plan only decides whether the founder can flip nda_required
+    // (settings PUT / access POST); enforcement never depends on it.
+    expect(ndaGate.length).toBe(2);
+    const g = ndaGate(ROOM, FRESH);
+    expect(g.status).toBe("pending");
+    expect(ndaAllowsDocuments(g)).toBe(false);
   });
 
-  it("is pending (reason never) for a fresh link on a Starter+ room", () => {
-    const g = ndaGate(ROOM, FRESH, true);
+  it("is pending (reason never) for a fresh link on a room that asks", () => {
+    const g = ndaGate(ROOM, FRESH);
     expect(g).toMatchObject({ status: "pending", reason: "never", version: 3 });
     expect(ndaAllowsDocuments(g)).toBe(false);
     expect(g.text).toBe(DEFAULT_NDA_TEXT);
   });
 
   it("is accepted when the link signed the current version", () => {
-    const g = ndaGate(ROOM, { ndaRequired: false, ndaSignedAt: "2026-09-10T00:00:00Z", ndaSignedVersion: 3 }, true);
+    const g = ndaGate(ROOM, { ndaRequired: false, ndaSignedAt: "2026-09-10T00:00:00Z", ndaSignedVersion: 3 });
     expect(g.status).toBe("accepted");
     expect(ndaAllowsDocuments(g)).toBe(true);
   });
 
   it("re-prompts (reason stale_version) after the founder bumps the version", () => {
-    const g = ndaGate(ROOM, { ndaRequired: false, ndaSignedAt: "2026-09-10T00:00:00Z", ndaSignedVersion: 2 }, true);
+    const g = ndaGate(ROOM, { ndaRequired: false, ndaSignedAt: "2026-09-10T00:00:00Z", ndaSignedVersion: 2 });
     expect(g).toMatchObject({ status: "pending", reason: "stale_version", version: 3 });
     expect(ndaAllowsDocuments(g)).toBe(false);
   });
 
   it("a signed_at with no version (pre-0339 row) counts as never signed the current version", () => {
-    const g = ndaGate(ROOM, { ndaRequired: false, ndaSignedAt: "2026-01-01T00:00:00Z", ndaSignedVersion: null }, true);
+    const g = ndaGate(ROOM, { ndaRequired: false, ndaSignedAt: "2026-01-01T00:00:00Z", ndaSignedVersion: null });
     expect(g.status).toBe("pending");
     expect(g.reason).toBe("stale_version");
   });
 
   it("honours a per-link nda_required when the room does not ask", () => {
-    const g = ndaGate({ ...ROOM, ndaRequired: false }, { ...FRESH, ndaRequired: true }, true);
+    const g = ndaGate({ ...ROOM, ndaRequired: false }, { ...FRESH, ndaRequired: true });
     expect(g.status).toBe("pending");
   });
 
   it("uses the founder's clause when set, the default otherwise, always trimmed and capped", () => {
-    expect(ndaGate({ ...ROOM, ndaText: "  Custom.  " }, FRESH, true).text).toBe("Custom.");
-    expect(ndaGate({ ...ROOM, ndaText: "   " }, FRESH, true).text).toBe(DEFAULT_NDA_TEXT);
+    expect(ndaGate({ ...ROOM, ndaText: "  Custom.  " }, FRESH).text).toBe("Custom.");
+    expect(ndaGate({ ...ROOM, ndaText: "   " }, FRESH).text).toBe(DEFAULT_NDA_TEXT);
     expect(resolveNdaText("x".repeat(NDA_TEXT_MAX_CHARS + 50)).length).toBe(NDA_TEXT_MAX_CHARS);
   });
 

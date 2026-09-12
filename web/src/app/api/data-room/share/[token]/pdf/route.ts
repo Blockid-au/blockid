@@ -9,10 +9,15 @@
 //   - the room's NDA gate is enforced HERE, server-side, not just on the page:
 //     a pending gate → 403 `nda_required`, whatever the UI showed;
 //   - the per-recipient watermark is applied when the room has
-//     `watermark_enabled` AND the owner's plan carries investor_links.premium.
-//     The recipient line comes from `data_room_access_tokens.watermark`
-//     (0339, mirror of share_packages.watermark) falling back to the link's
-//     investor name / firm / email;
+//     `watermark_enabled`. Turning it (or the NDA) on needed
+//     investor_links.premium on the owner's plan; enforcing it does not
+//     (S21-A review P2-5 — a lapse never releases documents or strips the
+//     mark). The recipient line follows lib/dataroom/watermark-recipient:
+//     `data_room_access_tokens.watermark` (0339, mirror of
+//     share_packages.watermark) → investor name / firm / email → the email
+//     on the NDA ledger (read from data_room_nda_acceptances, never from
+//     the token row — P1-1) → `link <id8>` (P2-3: every served PDF traces
+//     to a disclosure; the page badge uses the same rule);
 //   - every download is an engagement event (`document_download`) so the
 //     founder's activity shows it.
 //
@@ -23,8 +28,8 @@ import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { shareLinkState, type ShareLinkRow } from "@/lib/data-room";
 import { ndaAllowsDocuments, ndaGate, normaliseNdaVersion } from "@/lib/dataroom/nda";
-import { ownerTrustEntitled } from "@/lib/dataroom/nda-server";
 import { clientIpFromHeaders, hashIp } from "@/lib/iphash";
+import { watermarkRecipient, willWatermark } from "@/lib/dataroom/watermark-recipient";
 import { renderDataRoomDocumentPdf } from "@/lib/pdf/data-room-document-pdf";
 import { watermarkLabel } from "@/lib/pdf/watermark";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -75,7 +80,6 @@ export async function GET(
     .maybeSingle();
   if (!room) return NOT_FOUND();
 
-  const entitled = await ownerTrustEntitled(String(room.user_id ?? link.account_id ?? ""));
   const gate = ndaGate(
     {
       ndaRequired: Boolean(room.nda_required),
@@ -87,7 +91,6 @@ export async function GET(
       ndaSignedAt: (link.nda_signed_at as string | null) ?? null,
       ndaSignedVersion: typeof link.nda_signed_version === "number" ? link.nda_signed_version : null,
     },
-    entitled,
   );
   if (!ndaAllowsDocuments(gate)) {
     return NextResponse.json(
@@ -112,13 +115,30 @@ export async function GET(
     );
   }
 
-  const recipient =
-    (link.watermark as string | null)?.trim() ||
-    (link.investor_name as string | null)?.trim() ||
-    (link.investor_firm as string | null)?.trim() ||
-    (link.investor_email as string | null)?.trim() ||
-    null;
-  const watermark = entitled && Boolean(room.watermark_enabled) ? watermarkLabel({ recipient }) : null;
+  const linkFields = {
+    id: String(link.id),
+    watermark: link.watermark as string | null,
+    investor_name: link.investor_name as string | null,
+    investor_firm: link.investor_firm as string | null,
+    investor_email: link.investor_email as string | null,
+  };
+  const stamps = willWatermark(Boolean(room.watermark_enabled), linkFields);
+  let watermark: string | null = null;
+  if (stamps) {
+    // Only reach for the ledger when the founder named nothing on the link.
+    let ledgerEmail: string | null = null;
+    if (!watermarkRecipient({ ...linkFields, id: "" })) {
+      const { data: acceptance } = await supabase
+        .from("data_room_nda_acceptances")
+        .select("viewer_email")
+        .eq("access_token_id", link.id)
+        .order("accepted_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      ledgerEmail = (acceptance?.viewer_email as string | null) ?? null;
+    }
+    watermark = watermarkLabel({ recipient: watermarkRecipient(linkFields, ledgerEmail), linkId: linkFields.id });
+  }
 
   const startupName = (room.startup_name as string | null)?.trim() || "Startup";
   const roomName = (room.name as string | null)?.trim() || "Investor Data Room";

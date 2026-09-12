@@ -18,18 +18,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getSupabaseAdminMock: vi.fn<() => unknown | null>(),
-  // S21-A — whether the room OWNER's plan carries investor_links.premium.
-  // Defaults to false: a Free room renders exactly as it did before.
-  ownerTrustEntitled: vi.fn<() => Promise<boolean>>(async () => false),
 }));
 
 vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => mocks.getSupabaseAdminMock(),
 }));
-vi.mock("@/lib/dataroom/nda-server", () => ({
-  ownerTrustEntitled: () => mocks.ownerTrustEntitled(),
-  TRUST_FEATURE: "investor_links.premium",
-}));
+// S21-A review P2-5: the loader must NOT consult the owner's plan — a room
+// that turned the gate on keeps it after a lapse. If load.ts ever imports
+// nda-server again this throws and the suite fails loudly.
+vi.mock("@/lib/dataroom/nda-server", () => {
+  throw new Error("load.ts must not depend on lib/dataroom/nda-server (P2-5: gate is plan-independent)");
+});
 
 import {
   loadSharedDataRoom,
@@ -161,24 +160,29 @@ beforeEach(() => {
   state = fresh();
   mocks.getSupabaseAdminMock.mockReset();
   mocks.getSupabaseAdminMock.mockReturnValue(makeSupabase());
-  mocks.ownerTrustEntitled.mockReset();
-  mocks.ownerTrustEntitled.mockResolvedValue(false);
 });
 
 describe("loadSharedDataRoom — the NDA click-wrap (S21-A)", () => {
   const NDA_ROOM = { ...ROOM, user_id: "owner-1", nda_required: true, nda_text: null, nda_version: 2, watermark_enabled: true };
 
-  it("Free room: nda_required is ignored, documents load, no watermark — the plan does not include the gate", async () => {
-    mocks.ownerTrustEntitled.mockResolvedValue(false);
-    state.replies = [{ data: LINK }, { data: NDA_ROOM }, { data: DOCS }];
+  it("a room that never asked: no gate, documents load, no watermark", async () => {
+    state.replies = [{ data: LINK }, { data: { ...NDA_ROOM, nda_required: false, watermark_enabled: false } }, { data: DOCS }];
     const room = (await loadSharedDataRoom("tok-good-00000000000000000000000"))!;
     expect(room.nda.status).toBe("not_required");
     expect(room.watermarked).toBe(false);
     expect(room.folders.length).toBe(2);
   });
 
-  it("Starter+ room with nda_required and no acceptance: gate pending, documents NOT queried, folders empty", async () => {
-    mocks.ownerTrustEntitled.mockResolvedValue(true);
+  it("the gate and the watermark do not depend on the owner's plan — no app_users / entitlement read at all (P2-5)", async () => {
+    state.replies = [{ data: LINK }, { data: NDA_ROOM }, { data: DOCS }];
+    const room = (await loadSharedDataRoom("tok-good-00000000000000000000000"))!;
+    expect(room.nda.status).toBe("pending");
+    expect(room.watermarked).toBe(true);
+    expect(state.from).not.toContain("app_users");
+    expect(state.from).not.toContain("data_room_documents");
+  });
+
+  it("room with nda_required and no acceptance: gate pending, documents NOT queried, folders empty", async () => {
     state.replies = [{ data: LINK }, { data: NDA_ROOM }, { data: DOCS }];
     const room = (await loadSharedDataRoom("tok-good-00000000000000000000000"))!;
     expect(room.nda.status).toBe("pending");
@@ -192,7 +196,6 @@ describe("loadSharedDataRoom — the NDA click-wrap (S21-A)", () => {
   });
 
   it("a link that accepted the CURRENT version sees the documents", async () => {
-    mocks.ownerTrustEntitled.mockResolvedValue(true);
     state.replies = [
       { data: { ...LINK, nda_signed_at: "2026-09-10T00:00:00Z", nda_signed_version: 2 } },
       { data: NDA_ROOM },
@@ -205,7 +208,6 @@ describe("loadSharedDataRoom — the NDA click-wrap (S21-A)", () => {
   });
 
   it("a version bump re-prompts a link that accepted an older version", async () => {
-    mocks.ownerTrustEntitled.mockResolvedValue(true);
     state.replies = [
       { data: { ...LINK, nda_signed_at: "2026-09-10T00:00:00Z", nda_signed_version: 1 } },
       { data: NDA_ROOM },
@@ -218,7 +220,6 @@ describe("loadSharedDataRoom — the NDA click-wrap (S21-A)", () => {
   });
 
   it("a per-LINK nda_required gates even when the room does not ask", async () => {
-    mocks.ownerTrustEntitled.mockResolvedValue(true);
     state.replies = [
       { data: { ...LINK, nda_required: true } },
       { data: { ...ROOM, user_id: "owner-1", nda_required: false, nda_version: 1 } },
@@ -229,7 +230,6 @@ describe("loadSharedDataRoom — the NDA click-wrap (S21-A)", () => {
   });
 
   it("uses the founder's own clause when set", async () => {
-    mocks.ownerTrustEntitled.mockResolvedValue(true);
     state.replies = [{ data: LINK }, { data: { ...NDA_ROOM, nda_text: "  Keep it secret.  " } }, { data: DOCS }];
     const room = (await loadSharedDataRoom("tok-good-00000000000000000000000"))!;
     expect(room.nda.text).toBe("Keep it secret.");

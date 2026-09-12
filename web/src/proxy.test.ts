@@ -222,6 +222,48 @@ describe("proxy() — gate wiring", () => {
   });
 });
 
+describe("rate-limit buckets — anonymous data-room token routes (S21-A review P1-2)", () => {
+  const TOKEN = "t".repeat(32);
+
+  async function bucketUsed(path: string, method = "POST"): Promise<[string, string[]] | null> {
+    checkRateLimitMock.mockClear();
+    const res = await proxy(req(path, { method, site: "same-origin" }));
+    expect(res.status).toBe(200);
+    if (!checkRateLimitMock.mock.calls.length) return null;
+    const [bucket, parts] = checkRateLimitMock.mock.calls[0] as [string, string[]];
+    return [bucket, parts];
+  }
+
+  it("NDA accept and engagement POSTs sit in the data-room-token bucket, keyed per IP for anonymous traffic", async () => {
+    const nda = await bucketUsed("/api/data-room/nda");
+    expect(nda?.[0]).toBe("data-room-token");
+    expect(nda?.[1][1]).toMatch(/^ip:/);
+    expect((await bucketUsed("/api/data-room/engage"))?.[0]).toBe("data-room-token");
+  });
+
+  it("the per-document PDF render sits in its own (tighter) data-room-pdf bucket", async () => {
+    const pdf = await bucketUsed(`/api/data-room/share/${TOKEN}/pdf?doc=11111111-2222-4333-8444-555555555555`, "GET");
+    expect(pdf?.[0]).toBe("data-room-pdf");
+    expect(pdf?.[1][0]).toBe(`/api/data-room/share/${TOKEN}/pdf`);
+  });
+
+  it("a 429 from the limiter is returned to the token holder with Retry-After and security headers", async () => {
+    checkRateLimitMock.mockResolvedValueOnce({ allowed: false, remaining: 0, limit: 10, resetAt: Date.now() + 30_000 });
+    const res = await proxy(req(`/api/data-room/share/${TOKEN}/pdf`, { method: "GET", site: "same-origin" }));
+    expect(res.status).toBe(429);
+    expect(await res.json()).toMatchObject({ ok: false, bucket: "data-room-pdf" });
+    expect(Number(res.headers.get("retry-after"))).toBeGreaterThan(0);
+    expect(res.headers.get("x-test-security")).toBe("1");
+  });
+
+  it("the founder-side data-room routes are NOT swept into the anonymous buckets", async () => {
+    for (const p of ["/api/data-room/settings", "/api/data-room/access", "/api/data-room/generate", "/api/data-room"]) {
+      const used = await bucketUsed(p);
+      expect(used?.[0] ?? "none", p).not.toMatch(/^data-room-/);
+    }
+  });
+});
+
 describe("static guards", () => {
   it("config.matcher covers every /api/** path (the gate is only as global as the matcher)", () => {
     const source = (config.matcher[0] as { source: string }).source;
