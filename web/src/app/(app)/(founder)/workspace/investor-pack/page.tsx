@@ -12,7 +12,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getProjectScope, getCurrentProjectIsSandbox } from "@/lib/projects";
-import { pageScopeKeys } from "@/lib/project-members/page-scope";
+import { pageScopeKeys, resolveSVIAccountIdForPage } from "@/lib/project-members/page-scope";
 import { ViewOnlyNote } from "@/components/workspace/view-only-note";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
@@ -135,8 +135,11 @@ async function loadOverview(
 }
 // v3.7.1 — Fetch the pinned forecast + exit scenario names so the pack page
 // shows what will land in the generated PDF before the founder clicks Generate.
+// S18-B review P2-5 — `accountId` is the project's svi_accounts.id (resolved
+// by `resolveSVIAccountIdForPage`); svi_accounts has no `user_id` column, so
+// the old `.eq("user_id", …)` probe never found the pinned exit scenario.
 async function loadPinnedArtefacts(
-  ownerUserId: string,
+  accountId: string | null,
   projectId: string | null,
 ): Promise<{
   pinnedForecast: { id: string; name: string; scenario: string } | null;
@@ -173,19 +176,12 @@ async function loadPinnedArtefacts(
     }
   }
 
-  try {
-    const { data: acc } = await admin
-      .from("svi_accounts")
-      .select("id")
-      .eq("user_id", ownerUserId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (acc) {
+  if (accountId) {
+    try {
       const { data } = await admin
         .from("exit_scenarios")
         .select("id, scenario_name, exit_type")
-        .eq("account_id", (acc as { id: string }).id)
+        .eq("account_id", accountId)
         .eq("use_for_investor_pack", true)
         .order("updated_at", { ascending: false })
         .limit(1)
@@ -197,9 +193,9 @@ async function loadPinnedArtefacts(
           exit_type: (data as { exit_type: string }).exit_type,
         };
       }
+    } catch {
+      /* column may not exist yet before migration is applied — degrade silently */
     }
-  } catch {
-    /* column may not exist yet before migration is applied — degrade silently */
   }
 
   return { pinnedForecast, pinnedExit };
@@ -242,10 +238,13 @@ export default async function InvestorPackPage() {
   // share links + generation stay per caller (one-click is editor+).
   const scope = await getProjectScope("viewer");
   const { projectId, ownerUserId, role, canEdit, isMember } = pageScopeKeys(scope, user);
+  // Project's svi_accounts.id — owner find-or-creates, member reads the
+  // OWNER's row (null when the owner has no record yet).
+  const accountId = await resolveSVIAccountIdForPage(scope, user);
   const [overview, recentPacks, pinned] = await Promise.all([
     loadOverview(ownerUserId, user.id, projectId),
     loadRecentPacks(user.id),
-    loadPinnedArtefacts(ownerUserId, projectId),
+    loadPinnedArtefacts(accountId, projectId),
   ]);
 
   const previewHref = "/api/investor-pack/preview";
