@@ -187,15 +187,19 @@ export function buildContentSecurityPolicy(nonce: string): string {
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com https://challenges.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com https://static.cloudflareinsights.com`,
-    "style-src 'self' 'unsafe-inline'",
+    // Google Identity Services (the Sign in with Google button on
+    // /auth/login) injects its stylesheet + iframe from accounts.google.com;
+    // both were blocked under the old policies (release QA-2 F9 probe).
+    "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style",
     "img-src 'self' data: blob: https: https://www.google-analytics.com https://www.googletagmanager.com",
     "font-src 'self' data: https://fonts.gstatic.com",
-    // API surface: Supabase, Stripe, GA4 collect endpoints (regional +
-    // doubleclick for signed-in Google users), GA4 Data API, GitHub API,
-    // Cloudflare Insights beacon. Every new host is an exfil path — add
-    // with care.
-    "connect-src 'self' https://*.supabase.co https://api.stripe.com https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://stats.g.doubleclick.net https://www.googletagmanager.com https://analyticsdata.googleapis.com https://api.github.com https://cloudflareinsights.com https://static.cloudflareinsights.com",
-    "frame-src https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com https://www.googletagmanager.com",
+    // API surface: Supabase, Stripe, GA4 collect endpoints (regional,
+    // doubleclick for signed-in Google users, and www.google.com/g/collect —
+    // the cookieless ping Consent Mode sends while analytics_storage is
+    // denied), GA4 Data API, GitHub API, Cloudflare Insights beacon, Google
+    // Identity Services. Every new host is an exfil path — add with care.
+    "connect-src 'self' https://*.supabase.co https://api.stripe.com https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://stats.g.doubleclick.net https://www.google.com https://www.googletagmanager.com https://analyticsdata.googleapis.com https://api.github.com https://cloudflareinsights.com https://static.cloudflareinsights.com https://accounts.google.com/gsi/",
+    "frame-src https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com https://www.googletagmanager.com https://accounts.google.com/gsi/",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

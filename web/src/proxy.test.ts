@@ -377,12 +377,21 @@ describe("Content-Security-Policy — exactly one enforced policy (release QA-2 
       "https://analytics.google.com",
       "https://region1.google-analytics.com",
       "https://stats.g.doubleclick.net",
+      "https://www.google.com",
       "https://cloudflareinsights.com",
     ]) expect(connectSrc).toContain(host);
 
     const imgSrc = directive("img-src");
     expect(imgSrc).toContain("https://www.google-analytics.com");
     expect(imgSrc).toContain("https://www.googletagmanager.com");
+  });
+
+  it("allows Google Identity Services (Sign in with Google) style + iframe + connect", () => {
+    const csp = buildContentSecurityPolicy("n");
+    const directive = (name: string) => csp.split("; ").find((d) => d.startsWith(`${name} `))!;
+    expect(directive("style-src")).toContain("https://accounts.google.com/gsi/style");
+    expect(directive("frame-src")).toContain("https://accounts.google.com/gsi/");
+    expect(directive("connect-src")).toContain("https://accounts.google.com/gsi/");
   });
 
   it("keeps Stripe + Turnstile + Supabase hosts", () => {

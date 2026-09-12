@@ -9,6 +9,7 @@ import { renderToReadableStream } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { DEMO_BANNER, DEMO_CTA_HREF, DEMO_CTA_LABEL, buildDemoFundingReport } from "@/lib/funding/demo-report";
 import { extractJsonLd, validateJsonLd } from "@/lib/seo/structured-data";
+import { assertDeterministicRender, assertHydratableNesting } from "@/test/hydration-guard";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/components/marketing/marketing-shell", () => ({
@@ -105,5 +106,14 @@ describe("/funding/report/demo", () => {
     expect(out).toContain('href="/funding/grants"');
     expect(out).toContain('href="/funding/programs"');
     expect(out.match(/<h1[\s>]/g)).toHaveLength(1);
+  });
+});
+
+describe("/funding/report/demo — hydration safety (release QA-2 F9)", () => {
+  it("SSR markup has no nesting the browser parser would relocate (React #418)", async () => {
+    assertHydratableNesting(await html(), "/funding/report/demo");
+  });
+  it("renders identically twice under a fixed clock", async () => {
+    await assertDeterministicRender(html);
   });
 });
