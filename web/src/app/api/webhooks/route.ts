@@ -25,7 +25,7 @@ import { isUuid, PRIVATE_JSON_HEADERS, readJsonBody } from "@/lib/security/reque
 import { apiRoute } from "@/lib/audit/api-route";
 import { canUseWebhooks, WEBHOOK_EVENT_LABELS, WEBHOOK_EVENTS } from "@/lib/webhooks/registry";
 import { validateEndpointUrl } from "@/lib/webhooks/dispatch";
-import { generateSecret, hashSecret, sealSecret } from "@/lib/webhooks/sign";
+import { generateSecret, hashSecret, sealSecret, WebhookSealKeyMissingError } from "@/lib/webhooks/sign";
 import { supabaseWebhookStore } from "@/lib/webhooks/store";
 import { badRequest, MAX_ENDPOINTS_PER_SCOPE, parseDescription, parseEventsInput, publicEndpoint } from "@/lib/webhooks/http";
 
@@ -128,13 +128,25 @@ async function POST_handler(request: Request) {
   }
 
   const secret = generateSecret();
+  let sealed: string;
+  try {
+    sealed = sealSecret(secret);
+  } catch (err) {
+    // S20-B review P2-4: production without WEBHOOK_SECRET_KEY must not
+    // persist a plaintext-equivalent secret — fail the create, loudly.
+    if (err instanceof WebhookSealKeyMissingError) {
+      console.error("[blockid:webhooks] endpoint create refused —", err.message);
+      return NextResponse.json({ ok: false, error: "sealing_key_missing" }, { status: 500 });
+    }
+    throw err;
+  }
   const row = await store.insertEndpoint({
     user_id: user.id,
     project_id: projectId,
     url,
     description: description.description,
     secret_hash: hashSecret(secret),
-    secret_enc: sealSecret(secret),
+    secret_enc: sealed,
     events: events.events,
   });
   if (!row) return NextResponse.json({ ok: false, error: "insert_failed" }, { status: 500 });

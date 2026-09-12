@@ -1,6 +1,6 @@
 // S20-B — signing + verification (Stripe-style t=,v1=) and secret sealing.
 import { createHmac } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildSignatureHeader,
   computeSignature,
@@ -12,6 +12,7 @@ import {
   sealSecret,
   secretHint,
   verifySignature,
+  WebhookSealKeyMissingError,
 } from "./sign";
 
 const SECRET = "whsec_test_secret";
@@ -95,5 +96,29 @@ describe("sealSecret / openSecret", () => {
     expect(openSecret(obf, none)).toBe(SECRET);
     expect(openSecret(null, none)).toBeNull();
     expect(openSecret("garbage", none)).toBeNull();
+  });
+  it("P2-4: in production sealSecret throws without a key instead of storing an obf: wrapper", () => {
+    const prodNoKey = { NODE_ENV: "production" } as NodeJS.ProcessEnv;
+    expect(() => sealSecret(SECRET, prodNoKey)).toThrow(WebhookSealKeyMissingError);
+    expect(() => sealSecret(SECRET, prodNoKey)).toThrow(/WEBHOOK_SECRET_KEY/);
+    // With a key, production seals normally; outside production the dev fallback stays.
+    const prodKey = { NODE_ENV: "production", WEBHOOK_SECRET_KEY: "k" } as NodeJS.ProcessEnv;
+    expect(sealSecret(SECRET, prodKey).startsWith("gcm:")).toBe(true);
+    expect(sealSecret(SECRET, { NODE_ENV: "test" } as NodeJS.ProcessEnv).startsWith("obf:")).toBe(true);
+  });
+  it("P2-4: openSecret refuses an obf: row once a key is configured (logged, null → fail closed)", () => {
+    const none = {} as NodeJS.ProcessEnv;
+    const obf = sealSecret(SECRET, none);
+    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      expect(openSecret(obf, { WEBHOOK_SECRET_KEY: "k" } as NodeJS.ProcessEnv)).toBeNull();
+      expect(openSecret(obf, { OAUTH_TOKEN_ENCRYPTION_KEY: "k" } as NodeJS.ProcessEnv)).toBeNull();
+      expect(spy).toHaveBeenCalledTimes(2);
+      expect(String(spy.mock.calls[0][0])).toMatch(/refusing obf:/);
+    } finally {
+      spy.mockRestore();
+    }
+    // Keyless dev still opens it.
+    expect(openSecret(obf, none)).toBe(SECRET);
   });
 });

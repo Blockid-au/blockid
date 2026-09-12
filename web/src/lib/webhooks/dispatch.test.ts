@@ -374,6 +374,30 @@ describe("dispatchDue", () => {
     expect(owners).toHaveBeenCalledTimes(1);
   });
 
+  // ── S20-B review P2-4: sealing fail-closed ───────────────────────────────
+
+  it("P2-4: an unreadable secret parks the delivery as dead:secret_unreadable, deactivates the endpoint and notifies — nothing sent, no failure counted", async () => {
+    const withKey = { WEBHOOK_SECRET_KEY: "k".repeat(32) } as NodeJS.ProcessEnv;
+    // A legacy obf: row (sealed without a key) once the key is set — refused, not decoded.
+    const store = seeded([delivery(), delivery({ id: "d-2" })], [endpoint({ secret_enc: sealSecret(SECRET, ENV), failure_count: 2 })]);
+    const fetchMock = vi.fn();
+    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      const s = await dispatchDue({}, { store, fetch: fetchMock as never, checkUrl: okCheck, notify, now: () => T0, env: withKey });
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(s.dead).toBe(2);
+      // First row trips the gate; the endpoint is off by the second row.
+      expect(s.results.map((r) => r.error)).toEqual(["secret_unreadable", "endpoint_disabled"]);
+      expect(store.deliveries[0]).toMatchObject({ status: "dead", last_error: "secret_unreadable" });
+      expect(store.endpoints[0]).toMatchObject({ active: false, disabled_reason: "secret_unreadable", failure_count: 2 });
+      expect(s.disabled_endpoints).toEqual(["ep-1"]);
+      expect(notify).toHaveBeenCalledTimes(1);
+      expect(notify).toHaveBeenCalledWith(expect.objectContaining({ userId: "u-growth", endpointId: "ep-1", reason: "secret_unreadable" }));
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   // ── S20-B review P2: atomic failure counting ─────────────────────────────
 
   it("P2: failure bookkeeping goes through the atomic RPC (recordFailure/recordSuccess), never a computed failure_count write", async () => {

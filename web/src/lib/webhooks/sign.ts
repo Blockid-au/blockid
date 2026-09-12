@@ -13,7 +13,11 @@
 // with WEBHOOK_SECRET_KEY, falling back to OAUTH_TOKEN_ENCRYPTION_KEY — the
 // same scheme lib/oauth-connectors.ts uses for tokens) so the dispatcher can
 // sign. With neither key set the seal degrades to a base64 `obf:` wrapper
-// exactly like the OAuth tokens do (local dev), never to a 500.
+// exactly like the OAuth tokens do — LOCAL DEV ONLY: in production
+// `sealSecret` throws instead (S20-B review P2-4 — a mis-deployed env must
+// not persist plaintext-equivalent secrets; the create route answers 500),
+// and `openSecret` refuses an `obf:` row whenever a key IS set (logged,
+// null → the dispatcher parks the endpoint as `secret_unreadable`).
 //
 // Pure `node:crypto`; no `server-only`, no Supabase — safe to unit test and
 // to copy into the /docs verification snippet.
@@ -118,10 +122,25 @@ function sealKey(env: NodeJS.ProcessEnv = process.env): Buffer | null {
   return createHash("sha256").update(raw).digest();
 }
 
-/** Seal a secret for `webhook_endpoints.secret_enc`. */
+export class WebhookSealKeyMissingError extends Error {
+  code = "webhook_seal_key_missing";
+  constructor() {
+    super("WEBHOOK_SECRET_KEY (or OAUTH_TOKEN_ENCRYPTION_KEY) is required to seal webhook secrets in production");
+    this.name = "WebhookSealKeyMissingError";
+  }
+}
+
+/**
+ * Seal a secret for `webhook_endpoints.secret_enc`. Throws
+ * `WebhookSealKeyMissingError` in production when no key is configured —
+ * never store an `obf:` (plaintext-equivalent) secret where it matters.
+ */
 export function sealSecret(secret: string, env: NodeJS.ProcessEnv = process.env): string {
   const key = sealKey(env);
-  if (!key) return `obf:${Buffer.from(secret, "utf8").toString("base64")}`;
+  if (!key) {
+    if (env.NODE_ENV === "production") throw new WebhookSealKeyMissingError();
+    return `obf:${Buffer.from(secret, "utf8").toString("base64")}`;
+  }
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", key, iv);
   const enc = Buffer.concat([cipher.update(secret, "utf8"), cipher.final()]);
@@ -129,13 +148,24 @@ export function sealSecret(secret: string, env: NodeJS.ProcessEnv = process.env)
   return `gcm:${iv.toString("base64")}:${tag.toString("base64")}:${enc.toString("base64")}`;
 }
 
-/** Open a sealed secret. Null when the key is missing / the payload is tampered. */
+/**
+ * Open a sealed secret. Null when the key is missing / the payload is
+ * tampered / an `obf:` row is met while a key is configured (a leftover
+ * from a keyless deploy — refused rather than trusted; recreate the
+ * endpoint).
+ */
 export function openSecret(sealed: string | null | undefined, env: NodeJS.ProcessEnv = process.env): string | null {
   if (!sealed) return null;
-  if (sealed.startsWith("obf:")) return Buffer.from(sealed.slice(4), "base64").toString("utf8");
+  const key = sealKey(env);
+  if (sealed.startsWith("obf:")) {
+    if (key) {
+      console.error("[blockid:webhooks] refusing obf: sealed secret while a sealing key is configured — recreate the endpoint");
+      return null;
+    }
+    return Buffer.from(sealed.slice(4), "base64").toString("utf8");
+  }
   if (!sealed.startsWith("gcm:")) return null;
   const [, ivB64, tagB64, dataB64] = sealed.split(":");
-  const key = sealKey(env);
   if (!key || !ivB64 || !tagB64 || !dataB64) return null;
   try {
     const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(ivB64, "base64"));
