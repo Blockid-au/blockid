@@ -104,10 +104,11 @@ vi.mock("@/lib/supabase", () => ({
 // Stripe: only used by the webhook module for subscription lookups + plan-id
 // mapping. We keep the SDK out of the tests entirely.
 const stripeSubscriptionsRetrieve = vi.fn();
+const stripeSubscriptionsCancel = vi.fn();
 vi.mock("@/lib/stripe", () => ({
   isStripeConfigured: () => true,
   getStripe: () => ({
-    subscriptions: { retrieve: stripeSubscriptionsRetrieve },
+    subscriptions: { retrieve: stripeSubscriptionsRetrieve, cancel: stripeSubscriptionsCancel },
   }),
   STRIPE_PRICE_MAP: {
     founding50: "price_founding50_TEST",
@@ -261,6 +262,7 @@ beforeEach(() => {
   markWebhookEventProcessed.mockReset();
   markWebhookEventProcessed.mockResolvedValue(undefined);
   stripeSubscriptionsRetrieve.mockReset();
+  stripeSubscriptionsCancel.mockReset().mockResolvedValue({ id: "sub_old", status: "canceled" });
   grantCreditsMock.mockReset();
   grantCreditsMock.mockResolvedValue({ ok: true });
   sendTelegramMock.mockReset();
@@ -739,5 +741,67 @@ describe("POST /api/stripe/webhook — Founding 100 cutover race hole", () => {
         (c) => c.table === "app_users" && (c.row as { plan?: string }).plan === "growth",
       ),
     ).toBe(true);
+  });
+});
+
+// QA-3 P1-13 (2026-09-12): change-plan → one-off Checkout stamps
+// `cancel_subscription_id`; the superseded subscription is cancelled HERE,
+// after payment — never before.
+describe("checkout.session.completed — cancel_subscription_id (QA-3 P1-13)", () => {
+  function paidPackageEvent(extra: Record<string, string> = {}, customer = "cus_1") {
+    return buildCheckoutEvent({
+      id: `evt_pkg_${Math.random().toString(36).slice(2)}`,
+      metadata: {
+        blockid_user_id: "user-1",
+        blockid_plan: "founder_package",
+        cancel_subscription_id: "sub_old",
+        ...extra,
+      },
+      customer,
+      amountTotal: 14900,
+    });
+  }
+
+  it("cancels the superseded subscription once the one-off session is paid (same customer)", async () => {
+    stripeSubscriptionsRetrieve.mockResolvedValue({ id: "sub_old", customer: "cus_1", status: "active" });
+    verifyWebhookSignature.mockReturnValue(paidPackageEvent());
+    const res = await invoke();
+    expect(res.status).toBe(200);
+    expect(stripeSubscriptionsRetrieve).toHaveBeenCalledWith("sub_old");
+    expect(stripeSubscriptionsCancel).toHaveBeenCalledWith("sub_old");
+    // The plan grant still happened.
+    expect(updateCalls.some((c) => c.table === "app_users" && (c.row as Row).plan === "founder_package")).toBe(true);
+  });
+
+  it("is idempotent: an already-cancelled subscription is not cancelled again", async () => {
+    stripeSubscriptionsRetrieve.mockResolvedValue({ id: "sub_old", customer: "cus_1", status: "canceled" });
+    verifyWebhookSignature.mockReturnValue(paidPackageEvent());
+    await invoke();
+    expect(stripeSubscriptionsCancel).not.toHaveBeenCalled();
+  });
+
+  it("refuses to cancel a subscription that belongs to a different customer", async () => {
+    stripeSubscriptionsRetrieve.mockResolvedValue({ id: "sub_old", customer: "cus_other", status: "active" });
+    verifyWebhookSignature.mockReturnValue(paidPackageEvent());
+    await invoke();
+    expect(stripeSubscriptionsCancel).not.toHaveBeenCalled();
+  });
+
+  it("a Stripe error on cancel never fails the webhook (200, plan still granted)", async () => {
+    stripeSubscriptionsRetrieve.mockRejectedValue(new Error("No such subscription"));
+    verifyWebhookSignature.mockReturnValue(paidPackageEvent());
+    const res = await invoke();
+    expect(res.status).toBe(200);
+    expect(stripeSubscriptionsCancel).not.toHaveBeenCalled();
+    expect(markWebhookEventProcessed).toHaveBeenCalledTimes(1);
+  });
+
+  it("does nothing when the session carries no cancel_subscription_id", async () => {
+    verifyWebhookSignature.mockReturnValue(
+      buildCheckoutEvent({ id: "evt_plain", metadata: { blockid_user_id: "user-1", blockid_plan: "founder_package" }, customer: "cus_1", amountTotal: 14900 }),
+    );
+    await invoke();
+    expect(stripeSubscriptionsRetrieve).not.toHaveBeenCalled();
+    expect(stripeSubscriptionsCancel).not.toHaveBeenCalled();
   });
 });

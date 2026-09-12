@@ -265,10 +265,16 @@ async function POST_handler(request: Request) {
     }
 
     // Changing to a one-off plan.
+    //
+    // QA-3 P1-13 (2026-09-12): the active subscription used to be cancelled
+    // HERE, before the Checkout session was paid — an abandoned checkout
+    // left the founder with no subscription and no package. The
+    // subscription id now rides in session metadata and the webhook cancels
+    // it on `checkout.session.completed` (api/stripe/webhook/route.ts,
+    // handleCheckoutSessionCompleted → cancelSupersededSubscription).
     if (activeSub) {
-      await stripe.subscriptions.cancel(activeSub.id);
       console.info(
-        `[blockid:stripe] cancelled subscription ${activeSub.id} for one-off plan change`,
+        `[blockid:stripe] subscription ${activeSub.id} will be cancelled by the webhook once the one-off checkout is paid`,
       );
     }
 
@@ -286,6 +292,7 @@ async function POST_handler(request: Request) {
           blockid_user_id: user.id,
           blockid_user_hash: hashUserId(user.id),
           blockid_plan: newPlanId,
+          ...(activeSub ? { cancel_subscription_id: activeSub.id } : {}),
         },
       },
       {
@@ -293,6 +300,7 @@ async function POST_handler(request: Request) {
           user.id,
           newPlanId,
           newPriceId,
+          activeSub?.id ?? "no-sub",
         ]),
       },
     );
@@ -311,8 +319,8 @@ async function POST_handler(request: Request) {
     });
 
     // SOC2-lite audit — one-off checkout branch also counts as a plan
-    // change once the checkout session is created (subscription cancels
-    // above and the customer commits to the new plan on payment).
+    // change once the checkout session is created (the old subscription is
+    // cancelled by the webhook when the customer pays).
     await logUserAction({
       userId: user.id,
       action: "stripe.plan.changed",
