@@ -314,6 +314,69 @@ export default async function DocsPage() {
             </p>
           </section>
 
+          {/* Outbound webhooks (S20-B) */}
+          <section id="webhooks" className="mb-14 scroll-mt-28">
+            <h2 className="text-2xl font-bold text-ink-800 mb-2">
+              Outbound webhooks
+            </h2>
+            <p className="text-sm text-ink-600 mb-4">
+              Growth and Startup Package founders and every evaluator plan can
+              register HTTPS endpoints at{" "}
+              <Link href="/workspace/integrations#webhooks" className="text-brand-600 underline">
+                /workspace/integrations
+              </Link>
+              . BlockID POSTs a JSON envelope{" "}
+              <code>{"{ id, event, created_at, api_version, data }"}</code>{" "}
+              for <code>svi.rescored</code>, <code>evidence.uploaded</code>,{" "}
+              <code>funding.report_ready</code> and{" "}
+              <code>evaluation.report_ready</code> (plus <code>ping</code> from
+              the test button). Payloads carry ids and a small summary only —
+              never emails, share tokens or report bodies.
+            </p>
+            <ul className="list-disc list-inside space-y-1 text-sm text-ink-700 mb-4">
+              <li>
+                <code>X-BlockID-Signature: t=&lt;unix seconds&gt;,v1=&lt;hex&gt;</code>{" "}
+                — HMAC-SHA256 of <code>{"`${t}.${rawBody}`"}</code> with the secret shown
+                once when the endpoint was created. Reject timestamps older than 5 minutes.
+              </li>
+              <li>
+                <code>X-BlockID-Event</code> — the event name; <code>X-BlockID-Delivery</code>{" "}
+                — idempotency key, stable across retries. Answer 2xx within 8 s.
+              </li>
+              <li>
+                Retries at 1 min, 10 min, 1 h and 6 h, then the delivery is marked dead.
+                Twenty consecutive failures pause the endpoint (you get an in-app
+                notification). Redirects are not followed; private / internal hosts are refused.
+              </li>
+            </ul>
+            <pre className="rounded-xl border border-surface-200 bg-surface-50 p-4 text-xs leading-relaxed overflow-x-auto text-ink-800">
+{`// Node 18+ — verify a BlockID webhook (Express with the raw body)
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+export function verifyBlockIdWebhook(rawBody, header, secret, toleranceSec = 300) {
+  const parts = Object.fromEntries(header.split(",").map((p) => p.split("=")));
+  const t = Number(parts.t);
+  if (!Number.isInteger(t) || Math.abs(Date.now() / 1000 - t) > toleranceSec) return false;
+  const expected = createHmac("sha256", secret).update(\`\${t}.\${rawBody}\`).digest("hex");
+  const got = parts.v1 ?? "";
+  return got.length === expected.length && timingSafeEqual(Buffer.from(got, "hex"), Buffer.from(expected, "hex"));
+}
+
+app.post("/hooks/blockid", express.raw({ type: "application/json" }), (req, res) => {
+  const ok = verifyBlockIdWebhook(req.body.toString("utf8"), req.get("X-BlockID-Signature") ?? "", process.env.BLOCKID_WEBHOOK_SECRET);
+  if (!ok) return res.status(400).send("bad signature");
+  const envelope = JSON.parse(req.body.toString("utf8"));
+  // envelope.event === "svi.rescored" → envelope.data.svi_total, .delta, .project_id …
+  res.sendStatus(200);
+});`}
+            </pre>
+            <p className="text-xs text-ink-500 mt-3">
+              Source: <code>web/src/lib/webhooks/sign.ts</code> (signing + verification),{" "}
+              <code>web/src/lib/webhooks/dispatch.ts</code> (retry ladder, SSRF guard),{" "}
+              <code>web/src/app/api/webhooks/*</code> (management API).
+            </p>
+          </section>
+
           {/* Company / product overview */}
           <section className="mb-14">
             <h2 className="text-2xl font-bold text-ink-800 mb-2">

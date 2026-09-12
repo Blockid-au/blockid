@@ -103,9 +103,14 @@ vi.mock("@/lib/agents/grant-advisor", async (importOriginal) => {
   return { ...orig, generateFundingReport: (input: unknown) => generateMock(input) };
 });
 
+// S20-B — outbound webhook emitter (enqueue only).
+const enqueueMock = vi.fn(async () => ({ queued: 1, endpoints: ["ep"], envelopeId: "evt" }));
+vi.mock("@/lib/webhooks/registry", () => ({ enqueueWebhook: (...a: unknown[]) => enqueueMock(...(a as [])) }));
+
 import {
   canViewFundingReport,
   countPaidFundingReports,
+  generateAndStoreFundingReport,
   handleFundingReportCompleted,
   newAccessToken,
   publicFundingReport,
@@ -154,6 +159,7 @@ beforeEach(() => {
   updates.length = 0;
   inserts.length = 0;
   sendEmailMock.mockClear();
+  enqueueMock.mockClear();
   generateMock.mockReset();
   generateMock.mockResolvedValue(fakeReport());
 });
@@ -227,6 +233,39 @@ describe("handleFundingReportCompleted", () => {
     // Not stamped — the holding note is not the report email, so the retry
     // sweep (#11) still sends the real one once it regenerates.
     expect((row.meta as Row).email_sent_at).toBeUndefined();
+  });
+});
+
+// S20-B — the shared generator (webhook path + retry cron) enqueues
+// funding.report_ready for a signed-in owner / attached project; guest
+// rows have no subscriber; a failed generation never fires.
+describe("generateAndStoreFundingReport → funding.report_ready", () => {
+  it("guest row (no user, no project): nothing enqueued", async () => {
+    seedPending();
+    await handleFundingReportCompleted(session, "evt_w1");
+    expect(rows.get("fr_guest")!.status).toBe("ready");
+    expect(enqueueMock).not.toHaveBeenCalled();
+  });
+
+  it("signed-in owner with a project: ids + counts + tokenless url, recipient = the owner", async () => {
+    seedPending("fr_user", { user_id: "u-1", project_id: "p-1", status: "paid", guest_email: null });
+    const report = await generateAndStoreFundingReport("fr_user", { withNarrative: true });
+    expect(report).not.toBeNull();
+    expect(enqueueMock).toHaveBeenCalledTimes(1);
+    expect(enqueueMock).toHaveBeenCalledWith(
+      "funding.report_ready",
+      "p-1",
+      { report_id: "fr_user", project_id: "p-1", grant_count: 1, program_count: 1, url: reportUrl("fr_user") },
+      { userIds: ["u-1"] },
+    );
+    expect(JSON.stringify(enqueueMock.mock.calls[0])).not.toContain("tok_abc");
+  });
+
+  it("a failed generation never fires", async () => {
+    seedPending("fr_user", { user_id: "u-1", project_id: "p-1", status: "paid" });
+    generateMock.mockRejectedValueOnce(new Error("LLM down"));
+    expect(await generateAndStoreFundingReport("fr_user")).toBeNull();
+    expect(enqueueMock).not.toHaveBeenCalled();
   });
 });
 

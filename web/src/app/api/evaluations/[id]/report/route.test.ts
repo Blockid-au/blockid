@@ -55,6 +55,10 @@ vi.mock("@/lib/report-pipeline/run-for-project", () => ({
   runRescoreForProject: (a: unknown) => runRescoreMock(a),
 }));
 
+// S20-B — outbound webhook emitter (enqueue only).
+const enqueueMock = vi.fn(async () => ({ queued: 1, endpoints: ["ep"], envelopeId: "evt" }));
+vi.mock("@/lib/webhooks/registry", () => ({ enqueueWebhook: (...a: unknown[]) => enqueueMock(...(a as [])) }));
+
 import { GET, POST } from "./route";
 
 const KEY = "0b7f3f2e-9c1a-4c6e-8e5d-2f0a1b2c3d4e";
@@ -262,6 +266,29 @@ describe("POST /api/evaluations/[id]/report", () => {
       pdf_url: "https://blockid.au/api/svi/report/pdf?token=tok123",
       report_id: "r-1",
     });
+  });
+
+  it("S20-B: a successful run enqueues evaluation.report_ready to the EVALUATOR only (no project endpoints, no share token); a failed run never does", async () => {
+    const res = await POST(post({ kind: "full", confirm: true }), ctx());
+    expect(res.status).toBe(200);
+    expect(enqueueMock).toHaveBeenCalledTimes(1);
+    const [event, projectId, payload, opts] = enqueueMock.mock.calls[0] as unknown as [string, string, Record<string, unknown>, Record<string, unknown>];
+    expect(event).toBe("evaluation.report_ready");
+    expect(projectId).toBe("p-1");
+    expect(payload).toEqual({ evaluation_id: "e-1", project_id: "p-1", report_id: "r-1", kind: "full", svi_total: 72, via: "quota" });
+    expect(JSON.stringify(payload)).not.toContain("tok123");
+    expect(opts).toEqual({ userIds: ["u-1"], projectEndpoints: false });
+
+    enqueueMock.mockClear();
+    runFullMock.mockRejectedValue(new Error("orchestrator exploded"));
+    expect((await POST(post({ kind: "full", confirm: true }), ctx())).status).toBe(500);
+    expect(enqueueMock).not.toHaveBeenCalled();
+    // A reused row (idempotent replay) does not re-fire either.
+    findRecentMock.mockResolvedValue({ id: "r-1", kind: "full", paidVia: "quota", creditsCost: 0, reportRef: "rpt-1", shareToken: "tok123", sviTotal: 72, createdAt: "2026-09-12T00:00:00.000Z" });
+    runFullMock.mockResolvedValue({ kind: "full", reportId: "rpt-1", snapshotId: "snap-1", shareToken: "tok123", svi: 72, stage: 3 });
+    const replay = await POST(post({ kind: "full", confirm: true, idempotency_key: KEY }), ctx());
+    expect((await replay.json()).reused).toBe(true);
+    expect(enqueueMock).not.toHaveBeenCalled();
   });
 
   it("#1: credits run — spendCredits(trust_report) BEFORE the pipeline, row after success, no refund", async () => {

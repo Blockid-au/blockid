@@ -257,6 +257,15 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # stale > 48h). `?dry=1` verifies without writing the state file.
 40 3 * * * bash $RUN audit-chain-verify --timeout 300
 
+# S20-B (2026-09-12) — every 5 min: outbound webhook dispatcher. Sends the
+# queued webhook_deliveries rows (migration 0336) that the SVI rescore /
+# snapshot, evidence upload, funding report and evaluation report writers
+# enqueued: ≤ 50 per tick, leased with a conditional UPDATE, HMAC-signed
+# (X-BlockID-Signature), 8 s timeout, S8-C SSRF guard, retry ladder
+# 1 m / 10 m / 1 h / 6 h then dead; an endpoint is disabled after 20
+# consecutive failures (webhook_disabled notification). `?dry=1` previews.
+*/5 * * * * bash $RUN webhook-dispatch --timeout 120
+
 # ═══════════════════════════════════════════════════════════════
 # PIPELINE FLOW DIAGRAM
 # ═══════════════════════════════════════════════════════════════

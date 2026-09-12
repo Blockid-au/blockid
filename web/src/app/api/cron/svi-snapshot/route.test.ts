@@ -21,6 +21,9 @@ const { insertMock, state } = vi.hoisted(() => ({
   },
 }));
 vi.mock("@/lib/notifications", () => ({ insertNotification: (...a: unknown[]) => insertMock(...a) }));
+// S20-B — outbound webhook emitter (enqueue only).
+const enqueueMock = vi.hoisted(() => vi.fn(async () => ({ queued: 1, endpoints: ["ep"], envelopeId: "evt" })));
+vi.mock("@/lib/webhooks/registry", () => ({ enqueueWebhook: (...a: unknown[]) => enqueueMock(...(a as [])) }));
 vi.mock("@/lib/svi-index", () => ({
   computeSVIIndex: () => ({ indexValue: 100, dataRichnessFactor: 1 }),
 }));
@@ -83,6 +86,7 @@ describe("svi-snapshot cron — svi_trend_alert writer", () => {
   beforeEach(() => {
     process.env.CRON_SECRET = "s3cret";
     insertMock.mockClear();
+    enqueueMock.mockClear();
     state.adminNull = false;
     state.upserts = [];
     state.accounts = [
@@ -135,6 +139,31 @@ describe("svi-snapshot cron — svi_trend_alert writer", () => {
       throttleMs: 7 * 24 * 60 * 60 * 1000,
     });
     expect(SVI_TREND_ALERT_THRESHOLD).toBe(5);
+  });
+
+  it("S20-B: enqueues svi.rescored (source=snapshot) only for accounts whose score moved; first snapshot is silent", async () => {
+    const body = await (await GET(req("Bearer s3cret"))).json();
+    // a-big (+6), a-small (+2), a-nouser (+80) moved; a-first has no prior → no delta.
+    expect(body.webhooks_queued).toBe(3);
+    expect(enqueueMock).toHaveBeenCalledTimes(3);
+    const calls = enqueueMock.mock.calls as unknown as Array<[string, string | null, Record<string, unknown>, Record<string, unknown>]>;
+    expect(calls.map((c) => c[0])).toEqual(["svi.rescored", "svi.rescored", "svi.rescored"]);
+    expect(calls[0][1]).toBe("p-big");
+    expect(calls[0][2]).toEqual({
+      project_id: "p-big",
+      account_id: "a-big",
+      svi_total: 66,
+      previous_svi: 60,
+      delta: 6,
+      stage: 2,
+      source: "snapshot",
+      snapshot_date: TODAY,
+    });
+    expect(calls[0][3]).toEqual({ userIds: ["u-big"] });
+    // No user_id → project-level endpoints only (owner resolved by the registry).
+    expect(calls[2][1]).toBe("p-nouser");
+    expect(calls[2][3]).toEqual({});
+    expect(calls.some((c) => c[2].account_id === "a-first")).toBe(false);
   });
 
   it("a drop of exactly the threshold fires too", async () => {

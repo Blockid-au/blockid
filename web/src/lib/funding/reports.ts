@@ -31,6 +31,7 @@ import {
 import { listGrants, listPrograms } from "./data";
 import { catalogueForIntake } from "./preview";
 import { intakeToGrantProfile, parseFundingIntake, type FundingIntake } from "./intake";
+import { enqueueWebhook } from "@/lib/webhooks/registry";
 
 export type FundingReportStatus =
   | "pending_payment"
@@ -186,6 +187,23 @@ export async function generateAndStoreFundingReport(
       .update(reportColumns(report, row.meta ?? null))
       .eq("id", reportId);
     if (error) throw new Error(error.message);
+    // S20-B — `funding.report_ready` for the owner's / project's endpoints
+    // (enqueue only). Guest rows (no user_id, no project) have no
+    // subscriber and are a no-op; the tokenised link is never sent.
+    if (row.user_id || row.project_id) {
+      await enqueueWebhook(
+        "funding.report_ready",
+        row.project_id ?? null,
+        {
+          report_id: reportId,
+          project_id: row.project_id ?? null,
+          grant_count: report.summary.grant_count,
+          program_count: report.summary.program_count,
+          url: reportUrl(reportId),
+        },
+        { userIds: row.user_id ? [row.user_id] : [] },
+      );
+    }
     return report;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

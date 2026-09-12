@@ -30,7 +30,11 @@ const h = vi.hoisted(() => ({
   runMock: vi.fn(),
   recordMock: vi.fn(),
   notifyMock: vi.fn(),
+  enqueueMock: vi.fn(),
 }));
+
+// S20-B — outbound webhook emitter (enqueue only).
+vi.mock("@/lib/webhooks/registry", () => ({ enqueueWebhook: (...a: unknown[]) => h.enqueueMock(...a) }));
 
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => (h.supabaseAvailable ? { from: () => ({}) } : null) }));
 vi.mock("@/lib/ai-client", () => ({ isAIConfigured: () => h.aiConfigured }));
@@ -77,6 +81,7 @@ beforeEach(() => {
     kind: "full", reportId: `r-${projectId}`, snapshotId: `s-${projectId}`, shareToken: `tok-${projectId}`, svi: 71, stage: 3, wordCount: 5000, qualityScore: 80, synthesisedAnalysis: false,
   }));
   h.recordMock.mockResolvedValue({ id: "er-1" });
+  h.enqueueMock.mockResolvedValue({ queued: 1, endpoints: ["ep"], envelopeId: "evt" });
   h.finaliseMock.mockResolvedValue({ batch: { ...BATCH, status: "running", doneCount: 2 }, closed: false });
   h.notifyMock.mockResolvedValue(undefined);
   h.sweepMock.mockResolvedValue({ requeued: [], failed: [] });
@@ -164,6 +169,22 @@ describe("/api/cron/evaluation-batch-runner", () => {
     expect(json).toMatchObject({ ok: true, dryRun: false, processed: 2, done: 2, failed: 0, closed: false });
     expect(json.items.map((i: { outcome: string }) => i.outcome)).toEqual(["done", "done"]);
     expect(h.notifyMock).not.toHaveBeenCalled();
+  });
+
+  it("S20-B: every scored item enqueues evaluation.report_ready to the batch OWNER only (no project endpoints); failed items never do", async () => {
+    h.nextItemsMock.mockResolvedValue([item(1, "e-1"), item(2, "e-2")]);
+    h.runMock.mockImplementationOnce(async () => {
+      throw new Error("owner_not_found");
+    });
+    await GET(req());
+    expect(h.enqueueMock).toHaveBeenCalledTimes(1);
+    expect(h.enqueueMock).toHaveBeenCalledWith(
+      "evaluation.report_ready",
+      "p-2",
+      { evaluation_id: "e-2", project_id: "p-2", report_id: "er-1", kind: "full", svi_total: 71, via: "quota" },
+      { userIds: ["u-1"], projectEndpoints: false },
+    );
+    expect(JSON.stringify(h.enqueueMock.mock.calls[0])).not.toContain("tok-p-2");
   });
 
   it("a thrown item is marked failed with its error, nothing is recorded for it, and the loop continues", async () => {

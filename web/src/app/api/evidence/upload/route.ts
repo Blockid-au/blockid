@@ -8,6 +8,7 @@ import { projectAccessResponse } from "@/lib/project-members/http";
 import { getScannerVersion, scanBuffer } from "@/lib/security/clamav";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { apiRoute } from "@/lib/audit/api-route";
+import { enqueueWebhook } from "@/lib/webhooks/registry";
 
 export const dynamic = "force-dynamic";
 
@@ -311,6 +312,24 @@ async function POST_handler(req: NextRequest) {
           if (verErr) {
             console.error("[blockid:evidence:upload] evidence_versions insert failed", verErr);
           }
+
+          // S20-B — `evidence.uploaded` (enqueue only). Only for a real new
+          // Phase-3 row: a dedupe returns above and never re-fires. Ids +
+          // file metadata only — no bytes, no Drive link.
+          await enqueueWebhook(
+            "evidence.uploaded",
+            projectId,
+            {
+              project_id: projectId,
+              evidence_id: evidenceId,
+              category,
+              label: file.name,
+              content_type: file.type,
+              size_bytes: file.size,
+              sha256,
+            },
+            { userIds: [scope?.ownerUserId ?? user.id] },
+          );
         }
       }
     }

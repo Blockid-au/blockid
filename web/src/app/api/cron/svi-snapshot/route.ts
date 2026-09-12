@@ -4,6 +4,7 @@ import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { computeSVIIndex } from "@/lib/svi-index";
 import { maybeWriteSviTrendAlert } from "@/lib/svi-trend-alert";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
+import { enqueueWebhook } from "@/lib/webhooks/registry";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,7 @@ export async function GET(request: Request) {
     const today = new Date().toISOString().split("T")[0];
     let processed = 0;
     let trendAlerts = 0;
+    let webhooksQueued = 0;
 
     for (const account of accounts ?? []) {
       // Get the most recent analysis for THIS account's project (not all projects!)
@@ -166,10 +168,31 @@ export async function GET(request: Request) {
       });
       if (alerted) trendAlerts++;
 
+      // S20-B — `svi.rescored` only when the score actually moved (a
+      // nightly no-op snapshot must not spam a subscriber). Enqueue only.
+      if (delta !== null && delta !== 0) {
+        const r = await enqueueWebhook(
+          "svi.rescored",
+          account.project_id ?? null,
+          {
+            project_id: account.project_id ?? null,
+            account_id: account.id,
+            svi_total: analysis.total_svi,
+            previous_svi: prior?.svi_total ?? null,
+            delta,
+            stage: account.current_stage ?? null,
+            source: "snapshot",
+            snapshot_date: today,
+          },
+          acctRaw.user_id ? { userIds: [acctRaw.user_id as string] } : {},
+        );
+        webhooksQueued += r.queued;
+      }
+
       processed++;
     }
 
-    return NextResponse.json({ ok: true, processed, trend_alerts: trendAlerts, date: today });
+    return NextResponse.json({ ok: true, processed, trend_alerts: trendAlerts, webhooks_queued: webhooksQueued, date: today });
   } catch (err) {
     console.error("[blockid:svi-snapshot] snapshot cron failed", err);
     return NextResponse.json({ ok: false, error: "Internal server error" }, { status: 500 });

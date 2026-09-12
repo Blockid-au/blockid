@@ -48,6 +48,7 @@ import { isAIConfigured } from "@/lib/ai-client";
 import { insertNotification } from "@/lib/notifications";
 import { getReportQuota, recordEvaluationReport } from "@/lib/evaluations/report-quota";
 import { runTrustReportForProject } from "@/lib/report-pipeline/run-for-project";
+import { enqueueWebhook } from "@/lib/webhooks/registry";
 import {
   claimNextBatch,
   finaliseBatch,
@@ -185,7 +186,7 @@ export async function GET(request: Request) {
         dimensionScores: flattenDimensionScores(rawScores),
         error: null,
       });
-      await recordEvaluationReport({
+      const reportRow = await recordEvaluationReport({
         evaluationId: it.evaluationId,
         projectId: it.projectId,
         userId: batch.userId,
@@ -196,6 +197,21 @@ export async function GET(request: Request) {
         shareToken: run.shareToken,
         sviTotal: run.svi,
       });
+      // S20-B — `evaluation.report_ready` to the batch owner's endpoints
+      // (enqueue only; never the startup owner's).
+      await enqueueWebhook(
+        "evaluation.report_ready",
+        it.projectId,
+        {
+          evaluation_id: it.evaluationId,
+          project_id: it.projectId,
+          report_id: reportRow?.id ?? null,
+          kind: "full",
+          svi_total: run.svi,
+          via: "quota",
+        },
+        { userIds: [batch.userId], projectEndpoints: false },
+      );
       done++;
       summaries.push({ ...base, outcome: "done", svi: run.svi });
     } catch (err) {
