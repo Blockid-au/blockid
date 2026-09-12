@@ -14,6 +14,7 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { cronSecret, safeEqualStrings } from "@/lib/security/cron-auth";
 import { readChainStatus, type AuditChainStatus } from "@/lib/audit/chain-verify";
+import { readOAuthTokenHealth, type OAuthTokensSealedStatus } from "@/lib/security/oauth-token-health";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
@@ -66,6 +67,14 @@ type StatusResponse = {
    * EVM chain RPC probe.
    */
   audit_chain: AuditChainStatus;
+  /**
+   * S23-A — are OAuth connector tokens sealed (AES-256-GCM) at rest?
+   * `no_key` = OAUTH_TOKEN_ENCRYPTION_KEY unset; `obf_rows_present` = key
+   * set but unsealed rows remain (run scripts/reseal-oauth-tokens.mjs);
+   * `ok` = every stored token is `gcm:`; `unknown` = DB not reachable.
+   * Cached 10 min server-side. Public: it names no table, row or user.
+   */
+  oauth_tokens_sealed: OAuthTokensSealedStatus;
 };
 
 // Whether the caller is trusted enough to see the full internal telemetry
@@ -354,13 +363,14 @@ function computeUptimeFromCrons(crons: CronRow[]): number | undefined {
 // ---------- Handler ----------
 
 export async function GET(): Promise<Response> {
-  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain] = await Promise.all([
+  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens] = await Promise.all([
     fetchHealthz(2000),
     summariseCrons().catch(() => [] as CronRow[]),
     readGitShaFallback(),
     readVersionFallback(),
     isTrustedCaller(),
     readChainStatus(REPO_ROOT).catch(() => ({ status: "unknown" as const })),
+    readOAuthTokenHealth().catch(() => ({ status: "unknown" as const })),
   ]);
 
   const last_deploy = await readLastDeploy(fallbackSha).catch(() => ({
@@ -403,6 +413,7 @@ export async function GET(): Promise<Response> {
     },
     crons: [],
     audit_chain: auditChain.status,
+    oauth_tokens_sealed: oauthTokens.status,
   };
 
   const fullBody: StatusResponse = {
@@ -414,6 +425,7 @@ export async function GET(): Promise<Response> {
     last_deploy,
     crons,
     audit_chain: auditChain.status,
+    oauth_tokens_sealed: oauthTokens.status,
   };
 
   return NextResponse.json(trusted ? fullBody : publicBody, {

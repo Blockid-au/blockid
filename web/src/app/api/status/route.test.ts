@@ -75,6 +75,23 @@ vi.mock("node:fs", () => ({
   },
 }));
 
+// ─── S23-A oauth_tokens_sealed fixture ─────────────────────────────────
+// The route reads `readOAuthTokenHealth()` (Supabase COUNTs, 10-min cache);
+// stub it so this suite stays DB-free. Its own behaviour is pinned in
+// src/lib/security/oauth-token-health.test.ts.
+
+const oauthState: { status: "ok" | "obf_rows_present" | "no_key" | "unknown"; throwErr: boolean } = {
+  status: "ok",
+  throwErr: false,
+};
+
+vi.mock("@/lib/security/oauth-token-health", () => ({
+  readOAuthTokenHealth: vi.fn(async () => {
+    if (oauthState.throwErr) throw new Error("db down");
+    return { status: oauthState.status, unsealed: null, checked_at: new Date().toISOString() };
+  }),
+}));
+
 // ─── fetch fixture ─────────────────────────────────────────────────────
 
 type FetchResponder =
@@ -103,6 +120,8 @@ function resetFetch(): void {
 beforeEach(() => {
   resetFs();
   resetFetch();
+  oauthState.status = "ok";
+  oauthState.throwErr = false;
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
@@ -869,5 +888,50 @@ describe("audit_chain (S20-A) — read from content/reports/audit-chain-verify.j
     fetchState.responder = { kind: "json", body: healthyHealthz() };
     const { body } = await callGet();
     expect((body as unknown as { audit_chain: string }).audit_chain).toBe("unknown");
+  });
+});
+
+// ─── S23-A oauth_tokens_sealed (connector tokens sealed at rest) ────────
+
+describe("oauth_tokens_sealed (S23-A)", () => {
+  type Body = { oauth_tokens_sealed: string; ok: boolean };
+
+  it.each(["ok", "obf_rows_present", "no_key", "unknown"] as const)(
+    "surfaces '%s' on the trusted payload",
+    async (status) => {
+      oauthState.status = status;
+      fetchState.responder = { kind: "json", body: healthyHealthz() };
+      const { body } = await callGet();
+      expect((body as unknown as Body).oauth_tokens_sealed).toBe(status);
+    },
+  );
+
+  it("is present on the PUBLIC payload too (it names no table, row or user)", async () => {
+    const originalToken = process.env.STATUS_FULL_TOKEN;
+    process.env.STATUS_FULL_TOKEN = "";
+    process.env.CRON_SECRET = "";
+    try {
+      oauthState.status = "obf_rows_present";
+      fetchState.responder = { kind: "json", body: healthyHealthz() };
+      const { body } = await callGet();
+      expect(body.last_deploy.sha).toBe(""); // still redacted
+      expect((body as unknown as Body).oauth_tokens_sealed).toBe("obf_rows_present");
+    } finally {
+      process.env.STATUS_FULL_TOKEN = originalToken;
+    }
+  });
+
+  it("does not flip the aggregate ok flag (it is an operator signal, not an outage)", async () => {
+    oauthState.status = "no_key";
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    const { body } = await callGet();
+    expect((body as unknown as Body).ok).toBe(true);
+  });
+
+  it("degrades to 'unknown' when the health read throws", async () => {
+    oauthState.throwErr = true;
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    const { body } = await callGet();
+    expect((body as unknown as Body).oauth_tokens_sealed).toBe("unknown");
   });
 });
