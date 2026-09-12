@@ -20,6 +20,7 @@ import {
   type WebsiteCompetitiveIntelligence,
 } from "@/lib/competitive-intelligence";
 import { apiRoute } from "@/lib/audit/api-route";
+import { readJsonBody } from "@/lib/security/request-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -185,7 +186,10 @@ function buildEvidenceEntries(audit: TechAuditResult, accountId: string) {
 
 async function POST_handler(request: Request) {
   try {
-    const body = (await request.json()) as { url?: string; analyzeCI?: boolean };
+    // QA-4 P2-b — an empty / malformed body is a 400, never a 500.
+    const parsed = await readJsonBody<{ url?: string; analyzeCI?: boolean }>(request);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.body;
 
     if (!body?.url || typeof body.url !== "string") {
       return NextResponse.json({ ok: false, error: "url is required" }, { status: 400 });

@@ -5,10 +5,28 @@
 // shape that `BusinessReportClient` expects (`PersistedState`), so the TBR
 // page can render even when localStorage has expired (30-min TTL) or been
 // cleared. Auth-required: the caller must own the snapshot's account.
+//
+// Release QA-4 (P1-1, 2026-09-12): the previous ownership lookup selected
+// `svi_accounts.user_id`, a column no migration ever added, so the account
+// resolved to null and the `account_id` filter was silently dropped — any
+// signed-in user could read another tenant's snapshot by project id (or the
+// newest row in the table via `default`). The route now resolves the project
+// through the S17-A/S18-A role gate (`assertProjectScope` for an explicit id,
+// cookie scope for `default`), resolves the svi_accounts row on the scope's
+// data email, and ALWAYS filters on (account_id, project_id). No account →
+// 404, never an unfiltered query.
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import {
+  assertProjectScope,
+  findSVIAccountWithFallback,
+  getProjectScope,
+  type ProjectScope,
+} from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
+import { isUuid } from "@/lib/security/request-guards";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -125,32 +143,58 @@ export async function GET(
     return NextResponse.json({ ok: false, error: "supabase_unavailable" }, { status: 503 });
   }
 
-  // Ownership: must have an svi_accounts row for this user.
-  const { data: account } = await supabase
-    .from("svi_accounts")
-    .select("id")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // Project scope — `default` is the cookie-selected project (member-aware,
+  // viewer+); an explicit id must be one the caller can open (404 for a
+  // non-member so existence is not confirmed, 403 below viewer, 503 no DB).
+  let scope: ProjectScope | null;
+  try {
+    scope =
+      projectId === "default"
+        ? await getProjectScope("viewer")
+        : await assertProjectScope(user, projectId, "viewer");
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
+    throw err;
+  }
 
-  const accountId = (account?.id as string | undefined) ?? null;
+  // Ownership: the svi_accounts row keyed on the scope's data email (the
+  // owner's email for a shared project, the caller's own otherwise). A
+  // caller with no project at all only ever reaches their OWN legacy
+  // (project_id IS NULL) record; a member never reaches the owner's legacy
+  // record (`callerEmail`, P2-1).
+  const dataEmail = scope?.dataEmail ?? user.email;
+  const scopedProjectId = scope?.projectId ?? null;
+  const account = await findSVIAccountWithFallback(dataEmail, scopedProjectId, "id, project_id", {
+    callerEmail: user.email,
+  });
+  const accountId = typeof account?.id === "string" ? account.id : null;
+  if (!accountId) {
+    return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+  }
+  const accountProjectId =
+    typeof account?.project_id === "string" ? (account.project_id as string) : null;
 
-  // Latest snapshot for this project — scoped to the user's account so a
-  // wrong `projectId` from the URL can't leak another founder's report.
+  // Latest snapshot for this project — ALWAYS scoped to the resolved account
+  // AND project. The account filter is the tenancy boundary; the project
+  // filter keeps a multi-project founder on the right startup. A legacy
+  // (pre-project) account may hold rows stamped with the scoped project id
+  // or none at all — both are the caller's own data.
   let query = supabase
     .from("svi_snapshots")
     .select(
       "id, account_id, project_id, svi_total, created_at, criterion_results, dim_results, dimension_scores, analysis_json",
     )
+    .eq("account_id", accountId)
     .order("created_at", { ascending: false })
     .limit(1);
 
-  if (projectId !== "default") {
-    query = query.eq("project_id", projectId);
-  }
-  if (accountId) {
-    query = query.eq("account_id", accountId);
+  if (accountProjectId) {
+    query = query.eq("project_id", accountProjectId);
+  } else if (scopedProjectId && isUuid(scopedProjectId)) {
+    query = query.or(`project_id.eq.${scopedProjectId},project_id.is.null`);
+  } else {
+    query = query.is("project_id", null);
   }
 
   const { data, error } = await query.maybeSingle();

@@ -4,14 +4,16 @@
 // regress: (1) IP-scoped rate limit (3 signups per IP per 15 min) so a bot
 // can't drain the app_users id space; (2) HTML-tag stripping on displayName
 // so a founder can't seed stored XSS by registering with
-// "<script>fetch(...)</script>" as their name; (3) email_taken → 409 (not
-// 200, not 400) so client can trigger the "log in instead" CTA reliably.
+// "<script>fetch(...)</script>" as their name; (3) email_taken → the SAME
+// generic 200 "check your email" a pending signup gets (release QA-4 P2-a) —
+// the account owner is told by email, never the caller — with no session
+// cookie and no claim.
 //
 // Regressions this suite is designed to catch:
 //   - dropping sanitizeName() would let stored XSS reach every rendered
 //     display-name surface (dashboard, /admin/users, invoice-to);
-//   - collapsing email_taken and weak_password into a single 400 would
-//     silently break the "existing account? log in →" UX;
+//   - reintroducing a 409 / "already exists" message on email_taken would
+//     let anyone enumerate registered emails;
 //   - loosening the 8-char password guard (or moving it below the auth
 //     library call) would let 6-char passwords through if registerWithPassword
 //     itself ever drops the check;
@@ -55,6 +57,11 @@ const mocks = vi.hoisted(() => ({
     analyses: number;
     guestAnalyses: number;
   }>>(),
+  sendExistingAccountNoticeMock: vi.fn<(a: { to: string }) => Promise<{ ok: boolean }>>(),
+}));
+
+vi.mock("@/lib/email", () => ({
+  sendExistingAccountNotice: (a: { to: string }) => mocks.sendExistingAccountNoticeMock(a),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -115,6 +122,7 @@ beforeEach(() => {
   mocks.hashIpMock.mockReset().mockReturnValue("hash_x");
   mocks.clientIpFromHeadersMock.mockReset().mockReturnValue("1.1.1.1");
   mocks.claimMock.mockReset().mockResolvedValue({ analyses: 0, guestAnalyses: 0 });
+  mocks.sendExistingAccountNoticeMock.mockReset().mockResolvedValue({ ok: true });
 });
 
 afterEach(() => {
@@ -306,15 +314,33 @@ describe("POST /api/auth/register — displayName sanitisation", () => {
 // -----------------------------------------------------------------------------
 
 describe("POST /api/auth/register — failure mapping", () => {
-  it("maps email_taken to 409 (conflict) with a login-hint message", async () => {
-    // 409 is what enables the client's "already have an account? log in →"
-    // CTA — a refactor to 400 would silently break the sign-up funnel.
+  it("email_taken → generic 200 'check your email' (no 409, no 'already exists'), notice emailed to the owner", async () => {
+    // Release QA-4 P2-a: the caller must not learn the email is registered.
     mocks.registerMock.mockResolvedValue({ ok: false, reason: "email_taken" });
-    const res = await POST(req({ email: "a@b.co", password: "longenough" }));
-    expect(res.status).toBe(409);
+    const res = await POST(req({ email: "Taken@Example.com", password: "longenough" }));
+    expect(res.status).toBe(200);
     const body = await json(res);
-    expect(String(body.error)).toMatch(/already exists/i);
-    expect(String(body.error)).toMatch(/log(ging)? in/i);
+    expect(body.ok).toBe(true);
+    expect(body.pending).toBe(true);
+    expect(String(body.message)).toMatch(/check your email/i);
+    expect(body.error).toBeUndefined();
+    expect(body.user).toBeUndefined();
+    expect(JSON.stringify(body)).not.toMatch(/already exists|log(ging)? in/i);
+    expect(mocks.sendExistingAccountNoticeMock).toHaveBeenCalledTimes(1);
+    expect(mocks.sendExistingAccountNoticeMock).toHaveBeenCalledWith({ to: "taken@example.com" });
+  });
+
+  it("email_taken response is unaffected by a failing notice email (fire-and-forget)", async () => {
+    mocks.registerMock.mockResolvedValue({ ok: false, reason: "email_taken" });
+    mocks.sendExistingAccountNoticeMock.mockRejectedValue(new Error("smtp down"));
+    const res = await POST(req({ email: "taken@example.com", password: "longenough" }));
+    expect(res.status).toBe(200);
+    expect((await json(res)).pending).toBe(true);
+  });
+
+  it("does NOT send the existing-account notice on a fresh signup", async () => {
+    await POST(req({ email: "new@example.com", password: "longenough" }));
+    expect(mocks.sendExistingAccountNoticeMock).not.toHaveBeenCalled();
   });
 
   it("maps weak_password to 400", async () => {

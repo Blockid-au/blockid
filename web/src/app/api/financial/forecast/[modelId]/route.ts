@@ -14,11 +14,13 @@ import type {
   UpdateForecastResponse,
 } from "@/types/financial";
 import { apiRoute } from "@/lib/audit/api-route";
+import { assertProjectAccess } from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
 interface RouteParams {
-  params: { modelId: string };
+  params: Promise<{ modelId: string }>;
 }
 
 // ─── GET — list models for a project ─────────────────────────────────────────
@@ -32,20 +34,23 @@ export async function GET(
     return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
   }
 
-  const { modelId: projectId } = params;
+  const { modelId: projectId } = await params;
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json({ ok: false, error: "Service unavailable" }, { status: 503 });
   }
 
-  const { data: project, error: projectError } = await supabase
-    .from("projects")
-    .select("id, created_by")
-    .eq("id", projectId)
-    .single();
-
-  if (projectError || !project || project.created_by !== user.id) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 403 });
+  // Release QA-4 P2-e: the previous check selected `projects.created_by`, a column
+  // that does not exist, so every call was denied (fail-closed, feature dead).
+  // Access now goes through the S17-A chokepoint `assertProjectAccess`
+  // (owner or accepted member ≥ minRole; 404 for a non-member so the project's
+  // existence is not confirmed, 403 for an under-ranked member, 503 no DB).
+  try {
+    await assertProjectAccess(user.id, projectId, "viewer");
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
+    throw err;
   }
 
   const { data: models, error: modelsError } = await supabase
@@ -77,7 +82,7 @@ async function PUT_handler(
     return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
   }
 
-  const { modelId: projectId } = params;
+  const { modelId: projectId } = await params;
 
   let body: { modelId?: string; name?: string; useForInvestorPack?: boolean; notes?: string };
   try {
@@ -139,7 +144,7 @@ async function DELETE_handler(
     return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
   }
 
-  const { modelId: projectId } = params;
+  const { modelId: projectId } = await params;
   const targetModelId = request.nextUrl.searchParams.get("modelId");
 
   if (!targetModelId) {

@@ -234,18 +234,28 @@ describe("POST /api/auth/login-password — body parsing", () => {
 // -----------------------------------------------------------------------------
 
 describe("POST /api/auth/login-password — failure reason mapping", () => {
-  it("maps no_password to a 401 with 'Google or magic link' hint", async () => {
+  // Release QA-4 P2-a: `no_password` (known account, no password set) and
+  // `invalid_credentials` (unknown email / wrong password) MUST produce a
+  // byte-identical response — same status, same message, no `reason` —
+  // otherwise the endpoint enumerates which emails exist and which auth
+  // method they use.
+  it("no_password and invalid_credentials are indistinguishable (one generic 401, no reason field)", async () => {
     mocks.loginWithPasswordMock.mockResolvedValue({ ok: false, reason: "no_password" });
-    const res = await POST(req({ email: "a@b.co", password: "pw" }));
-    expect(res.status).toBe(401);
-    const body = await json(res);
-    expect(String(body.error)).toMatch(/google or magic link/i);
-    expect(body.reason).toBe("no_password");
+    const resNoPw = await POST(req({ email: "a@b.co", password: "pw" }));
+    mocks.loginWithPasswordMock.mockResolvedValue({ ok: false, reason: "invalid_credentials" });
+    const resBad = await POST(req({ email: "a@b.co", password: "pw" }));
+
+    expect(resNoPw.status).toBe(401);
+    expect(resBad.status).toBe(401);
+    const a = await json(resNoPw);
+    const b = await json(resBad);
+    expect(a).toEqual(b);
+    expect(a.reason).toBeUndefined();
+    expect(String(a.error)).not.toMatch(/this account uses/i);
+    expect(String(a.error)).toMatch(/invalid email or password/i);
   });
 
-  it("maps invalid_credentials to 401 with generic 'Invalid email or password' (no enumeration)", async () => {
-    // Critical anti-enumeration pin: a user-not-found and a wrong-password
-    // MUST NOT be distinguishable, otherwise attackers can enumerate accounts.
+  it("maps invalid_credentials to 401 with the generic message (no enumeration)", async () => {
     mocks.loginWithPasswordMock.mockResolvedValue({
       ok: false,
       reason: "invalid_credentials",
@@ -253,31 +263,34 @@ describe("POST /api/auth/login-password — failure reason mapping", () => {
     const res = await POST(req({ email: "a@b.co", password: "pw" }));
     expect(res.status).toBe(401);
     const body = await json(res);
-    expect(body.error).toBe("Invalid email or password");
+    expect(String(body.error)).toMatch(/^Invalid email or password/);
+    expect(body.reason).toBeUndefined();
   });
 
-  it("maps not_configured to 'Authentication service unavailable'", async () => {
+  it("maps not_configured to a 503 'service unavailable' (retryable, no account hint)", async () => {
     mocks.loginWithPasswordMock.mockResolvedValue({ ok: false, reason: "not_configured" });
     const res = await POST(req({ email: "a@b.co", password: "pw" }));
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(503);
     const body = await json(res);
-    expect(body.error).toBe("Authentication service unavailable");
+    expect(String(body.error)).toMatch(/service unavailable/i);
+    expect(body.reason).toBeUndefined();
   });
 
-  it("maps db_error to a retryable message", async () => {
+  it("maps db_error to the same 503 retryable message", async () => {
     mocks.loginWithPasswordMock.mockResolvedValue({ ok: false, reason: "db_error" });
     const res = await POST(req({ email: "a@b.co", password: "pw" }));
+    expect(res.status).toBe(503);
     const body = await json(res);
-    expect(String(body.error)).toMatch(/database error/i);
     expect(String(body.error)).toMatch(/try again/i);
   });
 
-  it("maps an unknown reason to 'Login failed (<reason>)'", async () => {
+  it("maps an unknown reason to the generic 401 (never echoes the reason)", async () => {
     mocks.loginWithPasswordMock.mockResolvedValue({ ok: false, reason: "cosmic_ray" });
     const res = await POST(req({ email: "a@b.co", password: "pw" }));
+    expect(res.status).toBe(401);
     const body = await json(res);
-    expect(String(body.error)).toContain("Login failed");
-    expect(String(body.error)).toContain("cosmic_ray");
+    expect(String(body.error)).not.toContain("cosmic_ray");
+    expect(String(body.error)).toMatch(/invalid email or password/i);
   });
 
   it("MUST NOT set a session cookie on a failed login", async () => {

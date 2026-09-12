@@ -24,7 +24,7 @@
 //     "email_taken" 400 to a founder who signed up via Google first
 //     and is now trying to add a password — the merge branch is the
 //     documented UX per the route comment
-//   - flipping the "reveal user exists" branch on resetWithTempPassword
+//   - flipping the "reveal user exists" branch on requestPasswordReset
 //     from ok:true-with-no-body to ok:false would leak the enumeration
 //     the comment explicitly protects
 //
@@ -62,7 +62,7 @@
 //     minted on success
 //   - autoCreateUserWithTempPassword — existing user → no temp password,
 //     new user → temp password issued + credits initialised
-//   - resetWithTempPassword — enumeration protection (ok:true w/o body
+//   - requestPasswordReset — enumeration protection (ok:true w/o token
 //     when user missing), db_error passthrough on the update path
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -261,7 +261,10 @@ import {
   normaliseEmail,
   registerWithPassword,
   requestMagicLink,
-  resetWithTempPassword,
+  requestPasswordReset,
+  consumePasswordReset,
+  hashPasswordResetToken,
+  PASSWORD_RESET_TTL_MIN,
   setSessionCookie,
 } from "./auth";
 
@@ -1083,7 +1086,7 @@ describe("auth — loginWithPassword", () => {
 });
 
 // ---------------------------------------------------------------------------
-// autoCreateUserWithTempPassword + resetWithTempPassword
+// autoCreateUserWithTempPassword + password reset (token-based)
 // ---------------------------------------------------------------------------
 
 describe("auth — autoCreateUserWithTempPassword", () => {
@@ -1122,37 +1125,136 @@ describe("auth — autoCreateUserWithTempPassword", () => {
   });
 });
 
-describe("auth — resetWithTempPassword", () => {
+describe("auth — requestPasswordReset (QA-4 P2-d: token, never a hash rotate)", () => {
   it("returns not_configured when supabase is unconfigured", async () => {
     state.adminConfigured = false;
-    const out = await resetWithTempPassword("a@b.co");
+    const out = await requestPasswordReset("a@b.co");
     expect(out).toEqual({ ok: false, reason: "not_configured" });
   });
 
-  it("returns ok:true with NO tempPassword when the user does not exist (enumeration guard)", async () => {
+  it("returns ok:true with NO token when the user does not exist (enumeration guard)", async () => {
     push("app_users", "select", { data: null, error: null });
-    const out = await resetWithTempPassword("ghost@x.co");
+    const out = await requestPasswordReset("ghost@x.co");
     expect(out).toEqual({ ok: true });
-    // No update fires
+    expect(state.calls.filter((c) => c.op === "insert").length).toBe(0);
     expect(state.calls.filter((c) => c.op === "update").length).toBe(0);
   });
 
-  it("existing user: issues a new temp password + writes the bcrypt hash", async () => {
+  it("existing user: inserts a hashed, 30-minute token and does NOT touch password_hash", async () => {
     push("app_users", "select", { data: { id: "u-1" }, error: null });
-    push("app_users", "update", { error: null });
-    const out = await resetWithTempPassword("a@b.co");
+    push("password_reset_tokens", "insert", { error: null });
+    const before = Date.now();
+    const out = await requestPasswordReset("A@B.co", { ipHash: "iph" });
     expect(out.ok).toBe(true);
-    expect(out.tempPassword).toHaveLength(10);
-    const upd = state.calls.find((c) => c.table === "app_users" && c.op === "update")!;
-    const hash = String(upd.payload!.password_hash);
-    expect(hash).toMatch(/^\$2[aby]\$/);
-    expect(await bcrypt.compare(out.tempPassword!, hash)).toBe(true);
+    expect(out.token).toHaveLength(32);
+
+    const ins = state.calls.find((c) => c.table === "password_reset_tokens" && c.op === "insert")!;
+    expect(ins.payload!.token_hash).toBe(hashPasswordResetToken(out.token!));
+    expect(ins.payload!.token_hash).not.toBe(out.token); // plaintext never stored
+    expect(ins.payload!.user_id).toBe("u-1");
+    expect(ins.payload!.email).toBe("a@b.co");
+    expect(ins.payload!.ip_hash).toBe("iph");
+    const exp = new Date(String(ins.payload!.expires_at)).getTime();
+    expect(exp - before).toBeGreaterThanOrEqual(PASSWORD_RESET_TTL_MIN * 60 * 1000 - 1000);
+    expect(exp - before).toBeLessThanOrEqual(PASSWORD_RESET_TTL_MIN * 60 * 1000 + 1000);
+
+    // The existing password stays valid: no app_users update at request time.
+    expect(state.calls.filter((c) => c.table === "app_users" && c.op === "update").length).toBe(0);
   });
 
-  it("db_error surfaces on the update path", async () => {
+  it("db_error surfaces on the insert path", async () => {
     push("app_users", "select", { data: { id: "u-1" }, error: null });
-    push("app_users", "update", { error: { message: "update boom" } });
-    const out = await resetWithTempPassword("a@b.co");
+    push("password_reset_tokens", "insert", { error: { message: "insert boom" } });
+    const out = await requestPasswordReset("a@b.co");
     expect(out).toEqual({ ok: false, reason: "db_error" });
+  });
+});
+
+describe("auth — consumePasswordReset (single-use, rotates hash on consume only)", () => {
+  const TOKEN = "t".repeat(32);
+  const future = () => new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  const row = (over: Record<string, unknown> = {}) => ({
+    token_hash: hashPasswordResetToken(TOKEN),
+    user_id: "u-1",
+    email: "a@b.co",
+    expires_at: future(),
+    consumed_at: null,
+    ...over,
+  });
+
+  it("returns not_configured when supabase is unconfigured", async () => {
+    state.adminConfigured = false;
+    expect(await consumePasswordReset(TOKEN, "longenough")).toEqual({ ok: false, reason: "not_configured" });
+  });
+
+  it("weak password → weak_password before any DB read", async () => {
+    expect(await consumePasswordReset(TOKEN, "short")).toEqual({ ok: false, reason: "weak_password" });
+    expect(state.calls.length).toBe(0);
+  });
+
+  it("unknown token → invalid_token, nothing written", async () => {
+    push("password_reset_tokens", "select", { data: null, error: null });
+    expect(await consumePasswordReset(TOKEN, "longenough")).toEqual({ ok: false, reason: "invalid_token" });
+    expect(state.calls.filter((c) => c.op === "update").length).toBe(0);
+  });
+
+  it("looks the row up by sha256(token), never by the plaintext", async () => {
+    push("password_reset_tokens", "select", { data: null, error: null });
+    await consumePasswordReset(TOKEN, "longenough");
+    const sel = state.calls.find((c) => c.table === "password_reset_tokens")!;
+    expect(sel.eqs).toEqual([{ col: "token_hash", val: hashPasswordResetToken(TOKEN) }]);
+  });
+
+  it("already consumed → already_used, hash untouched", async () => {
+    push("password_reset_tokens", "select", { data: row({ consumed_at: new Date().toISOString() }), error: null });
+    expect(await consumePasswordReset(TOKEN, "longenough")).toEqual({ ok: false, reason: "already_used" });
+    expect(state.calls.filter((c) => c.table === "app_users").length).toBe(0);
+  });
+
+  it("expired → expired, hash untouched", async () => {
+    push("password_reset_tokens", "select", {
+      data: row({ expires_at: new Date(Date.now() - 1000).toISOString() }),
+      error: null,
+    });
+    expect(await consumePasswordReset(TOKEN, "longenough")).toEqual({ ok: false, reason: "expired" });
+    expect(state.calls.filter((c) => c.table === "app_users").length).toBe(0);
+  });
+
+  it("valid token: flips consumed_at (guarded on IS NULL) BEFORE rotating the bcrypt hash, then revokes sessions", async () => {
+    push("password_reset_tokens", "select", { data: row(), error: null });
+    push("password_reset_tokens", "update", { error: null });
+    push("app_users", "update", { error: null });
+    push("sessions", "delete", { error: null });
+
+    const out = await consumePasswordReset(TOKEN, "NewPassw0rd!");
+    expect(out).toEqual({ ok: true, userId: "u-1", email: "a@b.co" });
+
+    const consume = state.calls.find((c) => c.table === "password_reset_tokens" && c.op === "update")!;
+    expect(consume.payload!.consumed_at).toBeTruthy();
+    expect(consume.iss).toEqual([{ col: "consumed_at", val: null }]);
+
+    const upd = state.calls.find((c) => c.table === "app_users" && c.op === "update")!;
+    expect(state.calls.indexOf(consume)).toBeLessThan(state.calls.indexOf(upd));
+    expect(upd.eqs).toEqual([{ col: "id", val: "u-1" }]);
+    const hash = String(upd.payload!.password_hash);
+    expect(hash).toMatch(/^\$2[aby]\$/);
+    expect(await bcrypt.compare("NewPassw0rd!", hash)).toBe(true);
+
+    const revoke = state.calls.find((c) => c.table === "sessions" && c.op === "delete")!;
+    expect(revoke.eqs).toEqual([{ col: "user_id", val: "u-1" }]);
+  });
+
+  it("consume-flip failure → db_error and the hash is NOT rotated", async () => {
+    push("password_reset_tokens", "select", { data: row(), error: null });
+    push("password_reset_tokens", "update", { error: { message: "boom" } });
+    expect(await consumePasswordReset(TOKEN, "longenough")).toEqual({ ok: false, reason: "db_error" });
+    expect(state.calls.filter((c) => c.table === "app_users" && c.op === "update").length).toBe(0);
+  });
+
+  it("hash-rotate failure → db_error", async () => {
+    push("password_reset_tokens", "select", { data: row(), error: null });
+    push("password_reset_tokens", "update", { error: null });
+    push("app_users", "update", { error: { message: "boom" } });
+    expect(await consumePasswordReset(TOKEN, "longenough")).toEqual({ ok: false, reason: "db_error" });
   });
 });

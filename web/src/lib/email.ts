@@ -538,6 +538,55 @@ export async function sendMagicLink(args: {
   return sendEmail({ to: args.to, subject, html, unsubscribeUrl });
 }
 
+// ---------- existing-account notice -------------------------------------------
+// TRANSACTIONAL: sent when someone tries to REGISTER with an email that is
+// already on file. The HTTP response is the same generic 200 as a fresh
+// signup ("check your email"), so the only party told the account exists is
+// the mailbox owner (release QA-4 P2-a — no user enumeration on register).
+
+export async function sendExistingAccountNotice(args: {
+  to: string;
+  locale?: "en" | "vi";
+}): Promise<SendResult> {
+  const isVi = args.locale === "vi";
+  const loginUrl = `${siteUrl()}/auth/login`;
+  const resetUrl = `${siteUrl()}/auth/login?reset=1`;
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const subject = isVi ? "Ban da co tai khoan BlockID" : "You already have a BlockID account";
+  const headline = isVi ? "Tai khoan cua ban da ton tai" : "Your account already exists";
+  const sub = isVi
+    ? "Ai do (co the la ban) vua thu tao tai khoan BlockID voi email nay. Ban da co tai khoan — hay dang nhap, hoac dat lai mat khau neu ban quen."
+    : "Someone (probably you) just tried to create a BlockID account with this email. You already have one — sign in, or reset your password if you have forgotten it.";
+
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(headline)}</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${escapeHtml(sub)}</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+            <tr>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${loginUrl}" style="display:inline-block;width:100%;background:#2563EB;color:#FFFFFF;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${isVi ? "Dang Nhap" : "Sign In"}</a></td>
+              <td width="4%"></td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${resetUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${isVi ? "Dat Lai Mat Khau" : "Reset Password"}</a></td>
+            </tr>
+          </table>
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:0 0 16px 0;">
+          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">${isVi
+    ? `Neu ban khong thuc hien viec nay, ban co the bo qua email — tai khoan cua ban khong thay doi. Thac mac: ${ADMIN_EMAIL}.`
+    : `If this wasn't you, you can safely ignore this email — nothing about your account has changed. Questions: ${ADMIN_EMAIL}.`
+  }</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl, args.locale)}`);
+
+  return sendEmail({ to: args.to, subject, html, unsubscribeUrl });
+}
+
 // ---------- score-viewed -------------------------------------------------------
 
 export async function sendScoreViewed(args: {
@@ -1043,20 +1092,26 @@ export async function sendWholesaleWelcome(args: {
   return sendEmail({ to: args.to, subject, html, unsubscribeUrl });
 }
 
-// ---------- Password reset email (with temp password) -------------------------
+// ---------- Password reset email (single-use link) ----------------------------
+// TRANSACTIONAL: always sends regardless of preferences. Release QA-4 P2-d:
+// the email carries a 30-minute single-use link to /auth/reset?token=…; the
+// account's current password keeps working until the link is used.
 
 export async function sendPasswordReset(args: {
   to: string;
-  tempPassword: string;
+  token: string;
+  ttlMinutes?: number;
   locale?: "en" | "vi";
 }): Promise<SendResult> {
   const isVi = args.locale === "vi";
-  const loginUrl = `${siteUrl()}/auth/login`;
-  const profileUrl = `${siteUrl()}/workspace/profile`;
+  const ttl = Number.isFinite(args.ttlMinutes) && (args.ttlMinutes as number) > 0
+    ? Math.floor(args.ttlMinutes as number)
+    : 30;
+  const resetUrl = `${siteUrl()}/auth/reset?token=${encodeURIComponent(args.token)}`;
 
   const subject = isVi
-    ? "BlockID — Mat Khau Moi Cua Ban"
-    : "BlockID — Your New Password";
+    ? "BlockID — Dat Lai Mat Khau Cua Ban"
+    : "BlockID — Reset Your Password";
 
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
@@ -1066,43 +1121,19 @@ export async function sendPasswordReset(args: {
           <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID</p>
           <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${isVi ? "Dat Lai Mat Khau" : "Password Reset"}</h1>
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${isVi
-    ? "Mat khau moi da duoc tao cho tai khoan cua ban. Hay su dung mat khau tam ben duoi de dang nhap."
-    : "A new password has been generated for your account. Use the temporary password below to sign in."
+    ? `Nhan nut ben duoi de chon mat khau moi cho ${escapeHtml(args.to)}. Lien ket chi su dung mot lan va het han trong ${ttl} phut. Mat khau hien tai cua ban van hoat dong cho den khi ban doi.`
+    : `Click the button below to choose a new password for ${escapeHtml(args.to)}. The link is single-use and expires in ${ttl} minutes. Your current password keeps working until you change it.`
   }</p>
-
-          <!-- New credentials box -->
-          <div style="background:linear-gradient(135deg,#1a2744 0%,#0f1d35 100%);border:1px solid #2563EB;border-radius:12px;padding:20px;margin:0 0 24px 0;">
-            <p style="margin:0 0 12px 0;font-size:13px;font-weight:600;color:#60A5FA;">${isVi ? "Mat Khau Moi" : "Your New Password"}</p>
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <td style="padding:4px 0;color:#94A3B8;font-size:13px;width:120px;">${isVi ? "Email:" : "Email:"}</td>
-                <td style="padding:4px 0;color:#F8FAFC;font-size:13px;font-weight:500;">${escapeHtml(args.to)}</td>
-              </tr>
-              <tr>
-                <td style="padding:4px 0;color:#94A3B8;font-size:13px;">${isVi ? "Mat khau:" : "Password:"}</td>
-                <td style="padding:4px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:15px;font-weight:600;color:#4ADE80;letter-spacing:0.05em;">${escapeHtml(args.tempPassword)}</td>
-              </tr>
-            </table>
-            <p style="margin:12px 0 0 0;color:#FBBF24;font-size:11px;line-height:1.5;">${isVi
-    ? "Hay doi mat khau nay thanh mat khau rieng sau khi dang nhap."
-    : "Please change this to your own password after signing in."
-  }</p>
-          </div>
-
-          <!-- Login + Profile buttons -->
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
-            <tr>
-              <td width="48%" style="text-align:center;padding:4px;"><a href="${loginUrl}" style="display:inline-block;width:100%;background:#2563EB;color:#FFFFFF;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${isVi ? "Dang Nhap" : "Sign In"}</a></td>
-              <td width="4%"></td>
-              <td width="48%" style="text-align:center;padding:4px;"><a href="${profileUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${isVi ? "Doi Mat Khau" : "Change Password"}</a></td>
-            </tr>
-          </table>
-
+          <p style="margin:0 0 24px 0;text-align:center;">
+            <a href="${resetUrl}" style="display:inline-block;background:#2563EB;color:#FFFFFF;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${isVi ? "Chon Mat Khau Moi" : "Choose a new password"}</a>
+          </p>
+          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">${isVi ? "Hoac dan lien ket nay" : "Or paste this URL"}</p>
+          <p style="margin:0 0 24px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#94A3B8;word-break:break-all;">${resetUrl}</p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:0 0 16px 0;">
           <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
           <p style="margin:0;color:#64748B;font-size:11px;line-height:1.5;">${isVi
-    ? `Neu ban khong yeu cau dat lai mat khau, hay lien he ${ADMIN_EMAIL}.`
-    : `If you didn't request this password reset, please contact ${ADMIN_EMAIL}.`
+    ? `Neu ban khong yeu cau dat lai mat khau, hay bo qua email nay — khong co gi thay doi. Thac mac: ${ADMIN_EMAIL}.`
+    : `If you didn't request this password reset, ignore this email — nothing has changed. Questions: ${ADMIN_EMAIL}.`
   }</p>
         </td></tr>
       </table>

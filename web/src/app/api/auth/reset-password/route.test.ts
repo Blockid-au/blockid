@@ -6,9 +6,9 @@
 //   - 400 on invalid email
 //   - 400 on missing body
 //   - always returns ok:true (no email enumeration)
-//   - calls resetWithTempPassword on valid email
-//   - sends password reset email when tempPassword returned
-//   - does NOT send email when resetWithTempPassword returns no tempPassword
+//   - calls requestPasswordReset on valid email (QA-4 P2-d: token, no hash rotate)
+//   - sends the reset LINK email when a token is returned
+//   - does NOT send email when requestPasswordReset returns no token
 //   - detects locale from cookie header (vi / en)
 //   - 500 on unexpected internal error
 
@@ -17,7 +17,7 @@ import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   isValidEmail: vi.fn(),
   normaliseEmail: vi.fn(),
-  resetWithTempPassword: vi.fn(),
+  requestPasswordReset: vi.fn(),
   sendPasswordReset: vi.fn(),
   checkRateLimit: vi.fn(),
 }));
@@ -25,7 +25,12 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/auth", () => ({
   isValidEmail: (e: string) => mocks.isValidEmail(e),
   normaliseEmail: (e: string) => mocks.normaliseEmail(e),
-  resetWithTempPassword: (e: string) => mocks.resetWithTempPassword(e),
+  requestPasswordReset: (e: string, o?: unknown) => mocks.requestPasswordReset(e, o),
+  PASSWORD_RESET_TTL_MIN: 30,
+}));
+vi.mock("@/lib/iphash", () => ({
+  hashIp: (ip: string) => `h(${ip})`,
+  clientIpFromHeaders: () => "1.2.3.4",
 }));
 vi.mock("@/lib/email", () => ({
   sendPasswordReset: (args: unknown) => mocks.sendPasswordReset(args),
@@ -46,6 +51,14 @@ function req(body: unknown, opts?: { cookies?: string }) {
   });
 }
 
+function rawReq(body: string) {
+  return new Request("http://x/api/auth/reset-password", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body,
+  });
+}
+
 async function json(res: Response) {
   return (await res.json()) as Record<string, unknown>;
 }
@@ -54,7 +67,7 @@ beforeEach(() => {
   mocks.checkRateLimit.mockResolvedValue({ allowed: true });
   mocks.isValidEmail.mockReturnValue(true);
   mocks.normaliseEmail.mockImplementation((e: string) => e.toLowerCase().trim());
-  mocks.resetWithTempPassword.mockResolvedValue({ ok: true, tempPassword: "Tmp123!@#" });
+  mocks.requestPasswordReset.mockResolvedValue({ ok: true, token: "tok_123", expiresAt: "2026-01-01T00:30:00Z" });
   mocks.sendPasswordReset.mockResolvedValue(undefined);
 });
 
@@ -84,38 +97,67 @@ describe("POST /api/auth/reset-password", () => {
     expect(res.status).toBe(400);
   });
 
+  // Release QA-4 P2-b — empty / malformed bodies are 400, never 500.
+  it("returns 400 invalid_json on an empty body", async () => {
+    const res = await POST(rawReq(""));
+    expect(res.status).toBe(400);
+    expect((await json(res)).error).toBe("invalid_json");
+    expect(mocks.requestPasswordReset).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 invalid_json on a malformed body", async () => {
+    const res = await POST(rawReq("{not json"));
+    expect(res.status).toBe(400);
+    expect((await json(res)).error).toBe("invalid_json");
+  });
+
   it("always returns ok:true even when user not found (no email enumeration)", async () => {
-    mocks.resetWithTempPassword.mockResolvedValue({ ok: false, tempPassword: undefined });
+    mocks.requestPasswordReset.mockResolvedValue({ ok: true });
     const res = await POST(req({ email: "nobody@example.com" }));
     expect(res.status).toBe(200);
     const body = await json(res);
     expect(body.ok).toBe(true);
   });
 
-  it("calls resetWithTempPassword with normalised email", async () => {
+  it("calls requestPasswordReset with normalised email + ip hash", async () => {
     await POST(req({ email: "User@EXAMPLE.com" }));
-    expect(mocks.resetWithTempPassword).toHaveBeenCalledWith("user@example.com");
+    expect(mocks.requestPasswordReset).toHaveBeenCalledWith("user@example.com", { ipHash: "h(1.2.3.4)" });
   });
 
-  it("sends password reset email when tempPassword is returned", async () => {
-    mocks.resetWithTempPassword.mockResolvedValue({ ok: true, tempPassword: "Tmp123!@#" });
+  it("sends the reset LINK email (token + 30-min ttl) when a token is returned — never a password", async () => {
+    mocks.requestPasswordReset.mockResolvedValue({ ok: true, token: "tok_123", expiresAt: "2026-01-01T00:30:00Z" });
     await POST(req({ email: "user@example.com" }));
     // sendPasswordReset is called via void — wait for micro-tasks
     await new Promise((r) => setTimeout(r, 10));
     expect(mocks.sendPasswordReset).toHaveBeenCalledWith(
-      expect.objectContaining({ to: "user@example.com", tempPassword: "Tmp123!@#" }),
+      expect.objectContaining({ to: "user@example.com", token: "tok_123", ttlMinutes: 30 }),
     );
+    const arg = mocks.sendPasswordReset.mock.calls[0][0] as Record<string, unknown>;
+    expect(arg.tempPassword).toBeUndefined();
   });
 
-  it("does NOT send email when resetWithTempPassword returns no tempPassword", async () => {
-    mocks.resetWithTempPassword.mockResolvedValue({ ok: false });
+  it("never returns the token to the HTTP caller", async () => {
+    mocks.requestPasswordReset.mockResolvedValue({ ok: true, token: "tok_123", expiresAt: "2026-01-01T00:30:00Z" });
+    const res = await POST(req({ email: "user@example.com" }));
+    expect(JSON.stringify(await json(res))).not.toContain("tok_123");
+  });
+
+  it("does NOT send email when requestPasswordReset returns no token (unknown email)", async () => {
+    mocks.requestPasswordReset.mockResolvedValue({ ok: true });
+    await POST(req({ email: "user@example.com" }));
+    await new Promise((r) => setTimeout(r, 10));
+    expect(mocks.sendPasswordReset).not.toHaveBeenCalled();
+  });
+
+  it("does NOT send email when requestPasswordReset fails", async () => {
+    mocks.requestPasswordReset.mockResolvedValue({ ok: false, reason: "db_error" });
     await POST(req({ email: "user@example.com" }));
     await new Promise((r) => setTimeout(r, 10));
     expect(mocks.sendPasswordReset).not.toHaveBeenCalled();
   });
 
   it("detects Vietnamese locale from cookie", async () => {
-    mocks.resetWithTempPassword.mockResolvedValue({ ok: true, tempPassword: "Tmp123!@#" });
+    mocks.requestPasswordReset.mockResolvedValue({ ok: true, token: "tok_123", expiresAt: "2026-01-01T00:30:00Z" });
     await POST(req({ email: "user@example.com" }, { cookies: "blockid_lang=vi; other=val" }));
     await new Promise((r) => setTimeout(r, 10));
     expect(mocks.sendPasswordReset).toHaveBeenCalledWith(
@@ -124,7 +166,7 @@ describe("POST /api/auth/reset-password", () => {
   });
 
   it("defaults to English locale when cookie not set", async () => {
-    mocks.resetWithTempPassword.mockResolvedValue({ ok: true, tempPassword: "Tmp123!@#" });
+    mocks.requestPasswordReset.mockResolvedValue({ ok: true, token: "tok_123", expiresAt: "2026-01-01T00:30:00Z" });
     await POST(req({ email: "user@example.com" }));
     await new Promise((r) => setTimeout(r, 10));
     expect(mocks.sendPasswordReset).toHaveBeenCalledWith(
@@ -141,7 +183,7 @@ describe("POST /api/auth/reset-password", () => {
   });
 
   it("returns 500 on unexpected internal error", async () => {
-    mocks.resetWithTempPassword.mockRejectedValue(new Error("DB down"));
+    mocks.requestPasswordReset.mockRejectedValue(new Error("DB down"));
     const res = await POST(req({ email: "user@example.com" }));
     expect(res.status).toBe(500);
     const body = await json(res);

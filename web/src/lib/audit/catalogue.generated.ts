@@ -57,6 +57,7 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/auth/register-with-card/route.ts", family: "auth.register-with-card", methods: ["POST"] },
   { route: "api/auth/register/route.ts", family: "auth.register", methods: ["POST"] },
   { route: "api/auth/request/route.ts", family: "auth.request", methods: ["POST"] },
+  { route: "api/auth/reset-password/confirm/route.ts", family: "auth.reset-password.confirm", methods: ["POST"] },
   { route: "api/auth/reset-password/route.ts", family: "auth.reset-password", methods: ["POST"] },
   { route: "api/auth/set-password/route.ts", family: "auth.set-password", methods: ["POST"] },
   { route: "api/auth/stripe/connect/route.ts", family: "auth.stripe.connect", methods: ["POST"] },

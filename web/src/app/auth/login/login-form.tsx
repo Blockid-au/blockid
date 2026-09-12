@@ -391,8 +391,8 @@ function ForgotPasswordLink() {
   if (state === "sent") {
     return (
       <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center">
-        <p className="text-xs text-emerald-700 font-medium">New password sent!</p>
-        <p className="text-[11px] text-emerald-600 mt-1">Check your email for a temporary password. Use it to sign in, then set your own password in your profile.</p>
+        <p className="text-xs text-emerald-700 font-medium">Reset link sent!</p>
+        <p className="text-[11px] text-emerald-600 mt-1">If an account exists for that email, a single-use link (valid 30 minutes) is on its way. Your current password keeps working until you use it.</p>
       </div>
     );
   }
@@ -438,11 +438,13 @@ function EmailPasswordForm({
   const [mode, setMode] = useState<"login" | "register">(initialMode);
   const [state, setState] = useState<"idle" | "loading" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setState("loading");
     setError(null);
+    setNotice(null);
 
     const endpoint = mode === "register" ? "/api/auth/register" : "/api/auth/login-password";
     const body = mode === "register"
@@ -460,6 +462,15 @@ function EmailPasswordForm({
       if (!res.ok) {
         setError(data.error ?? "Authentication failed");
         setState("error");
+        return;
+      }
+
+      // Register could not be completed inline (e.g. the email is already on
+      // file — the server never says which, P2-a): show the generic
+      // "check your email" note instead of redirecting.
+      if (data.pending) {
+        setNotice(data.message ?? "Check your email to continue.");
+        setState("idle");
         return;
       }
 
@@ -543,6 +554,9 @@ function EmailPasswordForm({
 
       {error && (
         <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+      )}
+      {notice && (
+        <p role="status" className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{notice}</p>
       )}
 
       <button
