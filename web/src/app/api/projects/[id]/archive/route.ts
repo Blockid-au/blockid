@@ -19,11 +19,12 @@ import {
   unarchiveProject,
 } from "@/lib/projects";
 import { assertProjectMemberCan } from "@/lib/project-members/scope";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
 // POST /api/projects/[id]/archive — soft-delete (set archived_at = now())
-export async function POST(
+async function POST_handler(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -78,7 +79,7 @@ export async function POST(
 }
 
 // DELETE /api/projects/[id]/archive — unarchive (clear archived_at)
-export async function DELETE(
+async function DELETE_handler(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -130,3 +131,7 @@ export async function DELETE(
     project: { id, archived_at: null },
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/projects/[id]/archive/route.ts", method: "POST" }, POST_handler);
+export const DELETE = apiRoute({ route: "api/projects/[id]/archive/route.ts", method: "DELETE" }, DELETE_handler);

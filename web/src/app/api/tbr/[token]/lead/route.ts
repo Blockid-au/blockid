@@ -18,6 +18,7 @@ import { sendTelegram, mdEscape } from "@/lib/telegram";
 import { sendEmail } from "@/lib/email";
 import { insertNotification, ownerFromShareToken } from "@/lib/notifications";
 import { sendStep1 } from "@/lib/investor-drips/send";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,7 +57,7 @@ interface Body {
   message?: string;
 }
 
-export async function POST(
+async function POST_handler(
   request: Request,
   { params }: { params: Promise<{ token: string }> },
 ) {
@@ -262,3 +263,6 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/tbr/[token]/lead/route.ts", method: "POST" }, POST_handler);

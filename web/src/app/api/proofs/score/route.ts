@@ -15,12 +15,13 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { canonicalizeScore } from "@/lib/proofs/canonical-json";
 import { hashScore } from "@/lib/proofs/hash";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
 /* ── POST ───────────────────────────────────────────────────────────────────── */
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json(
@@ -205,3 +206,6 @@ export async function GET(request: Request) {
 
   return NextResponse.json({ ok: true, proof });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/proofs/score/route.ts", method: "POST" }, POST_handler);

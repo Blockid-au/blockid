@@ -49,6 +49,7 @@ import { hasGrowthExtras } from "@/lib/funding/growth-extras";
 import { promptsForGrant, promptsForProgram, emptyAnswers, programIntakeLabel, programFundingLabel } from "@/lib/funding/application-prompts";
 import { gatherDraftContext, insertGrantDraft, updateGrantDraft, type DraftRef } from "@/lib/funding/application-drafts";
 import { draftGrantApplication, type DraftTarget } from "@/lib/agents/grant-application-drafter";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -67,7 +68,7 @@ function str(v: unknown): string | null {
   return typeof v === "string" && v.trim() ? v.trim() : null;
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
 
@@ -243,7 +244,7 @@ export async function POST(request: Request) {
   });
 }
 
-export async function PATCH(request: Request) {
+async function PATCH_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
 
@@ -283,3 +284,7 @@ export async function PATCH(request: Request) {
   if (!draft) return NextResponse.json({ ok: false, error: "draft_not_found" }, { status: 404 });
   return NextResponse.json({ ok: true, draft });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/funding/draft/route.ts", method: "POST" }, POST_handler);
+export const PATCH = apiRoute({ route: "api/funding/draft/route.ts", method: "PATCH" }, PATCH_handler);

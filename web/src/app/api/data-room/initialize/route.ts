@@ -1,6 +1,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { gateRequireFeature } from "@/lib/feature-gate";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,7 @@ const GONE = {
   use: "/api/data-room/generate",
 } as const;
 
-export async function POST() {
+async function POST_handler() {
   const gate = await gateRequireFeature("data_room.access");
   if (!gate.ok) return gate.response;
   return NextResponse.json(GONE, { status: 410 });
@@ -53,3 +54,6 @@ export async function GET() {
   if (!gate.ok) return gate.response;
   return NextResponse.json(GONE, { status: 410 });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/data-room/initialize/route.ts", method: "POST" }, POST_handler);

@@ -18,6 +18,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { spendCredits } from "@/lib/credits";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -132,7 +133,7 @@ export async function GET(request: NextRequest) {
 // body: { dataRoomId, action: "init" } — seed progress rows
 // body: { dataRoomId, templateId, status, evidence? } — update single goal
 // ---------------------------------------------------------------------------
-export async function POST(request: NextRequest) {
+async function POST_handler(request: NextRequest) {
   const gate = await gateRequireFeature("data_room.access");
   if (!gate.ok) return gate.response;
   const user = gate.user;
@@ -266,3 +267,6 @@ export async function POST(request: NextRequest) {
     creditsAwarded: creditsReward,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/data-room/goals/route.ts", method: "POST" }, POST_handler);

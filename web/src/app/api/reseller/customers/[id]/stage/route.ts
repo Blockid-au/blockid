@@ -27,6 +27,7 @@ import {
   CUSTOMER_STAGES,
   resolveManualTransition,
 } from "@/lib/reseller/customer-stage";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,7 @@ function readClientMeta(request: Request): { ip: string; ua: string } {
   return { ip, ua };
 }
 
-export async function POST(
+async function POST_handler(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -151,3 +152,6 @@ export async function POST(
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/reseller/customers/[id]/stage/route.ts", method: "POST" }, POST_handler);

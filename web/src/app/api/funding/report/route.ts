@@ -36,6 +36,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { getProject, roleCanWrite, creditChargeNote } from "@/lib/projects";
 import { parseFundingIntake, intakeToProjectGrantProfile } from "@/lib/funding/intake";
 import { buildReportFromIntake, countPaidFundingReports, newAccessToken, reportColumns } from "@/lib/funding/reports";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,7 @@ export async function GET() {
   return NextResponse.json({ ok: true, paid_count }, { headers: { "cache-control": "private, no-store" } });
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   // 1. Auth
   const user = await getCurrentUser();
   if (!user) {
@@ -208,3 +209,6 @@ export async function POST(request: Request) {
     { headers: PRIVATE_JSON_HEADERS },
   );
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/funding/report/route.ts", method: "POST" }, POST_handler);

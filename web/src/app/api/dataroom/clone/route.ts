@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +57,7 @@ const SVI_DATAROOM_STRUCTURE: Record<string, { label: string; description: strin
  * Clones files from a user's source folders into SVI-structured subfolders.
  * Creates the folder structure in the user's BlockID Drive folder.
  */
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const gate = await gateRequireFeature("data_room.access");
   if (!gate.ok) return gate.response;
   const user = gate.user;
@@ -236,3 +237,6 @@ export async function GET() {
     })),
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/dataroom/clone/route.ts", method: "POST" }, POST_handler);

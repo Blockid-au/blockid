@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cronSecret, safeEqualStrings } from "@/lib/security/cron-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ interface IngestBody {
   source: "svi";
 }
 
-export async function POST(req: Request) {
+async function POST_handler(req: Request) {
   const apiKey = req.headers.get("x-blockid-api-key");
   const expectedKey = process.env.HISTORY_INGEST_KEY ?? cronSecret();
 
@@ -71,3 +72,6 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ok: true, startup_id: startupId });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/history/ingest/route.ts", method: "POST" }, POST_handler);

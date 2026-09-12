@@ -5,6 +5,7 @@ import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getProjectScope } from "@/lib/projects";
 import { SECTOR_LABELS } from "@/lib/svi-analysis";
 import { generateIdeaLab, type Audience, type IdeaLabRequest } from "@/lib/agents/rnd-idea-lab";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ function isAudience(v: unknown): v is Audience {
   return typeof v === "string" && (ALLOWED_AUDIENCES as readonly string[]).includes(v);
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   let body: unknown = null;
   try {
     body = await request.json();
@@ -179,3 +180,6 @@ export async function POST(request: Request) {
     });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/idea-lab/route.ts", method: "POST" }, POST_handler);

@@ -8,6 +8,7 @@ import {
   buildAnonymizedCompetitiveMatrix,
 } from "@/lib/competitive-positioning";
 import { projectScopeOrDenyFor } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, reason: "Authentication required" }, { status: 401 });
@@ -144,3 +145,6 @@ Generate a positioning statement in the format: "We're [category] for [segment],
     return NextResponse.json({ ok: false, error: "Failed to generate positioning statement" }, { status: 500 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/competitive-positioning/positioning/route.ts", method: "POST" }, POST_handler);

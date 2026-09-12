@@ -9,6 +9,7 @@ import {
   CONFIG_DEFAULTS,
   type PlatformConfig,
 } from "@/lib/platform-config";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ export async function GET() {
   return NextResponse.json({ config: cfg, defaults: CONFIG_DEFAULTS });
 }
 
-export async function PUT(req: NextRequest) {
+async function PUT_handler(req: NextRequest) {
   const user = await getCurrentUser();
   if (!isAdmin(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
@@ -55,3 +56,6 @@ export async function PUT(req: NextRequest) {
 
   return NextResponse.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const PUT = apiRoute({ route: "api/admin/platform-config/route.ts", method: "PUT" }, PUT_handler);

@@ -8,6 +8,7 @@ import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -18,7 +19,7 @@ const FeedbackBody = z.object({
   rating: z.number().int().min(1).max(5),
 });
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -70,3 +71,6 @@ export async function POST(request: Request) {
     { status: 201 },
   );
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/feedback/submit/route.ts", method: "POST" }, POST_handler);

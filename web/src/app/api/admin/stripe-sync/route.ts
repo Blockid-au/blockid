@@ -9,6 +9,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { createFreshStripePrice, runStripePricingAudit } from "@/lib/stripe-pricing-audit";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export async function GET() {
   return NextResponse.json({ ok: true, ...result });
 }
 
-export async function POST(request: NextRequest) {
+async function POST_handler(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user || user.role !== "admin") {
     return NextResponse.json({ ok: false, error: "Admin only" }, { status: 403 });
@@ -49,3 +50,6 @@ export async function POST(request: NextRequest) {
     instruction: `Set env var ${result.envVarName}=${result.newPriceId} in your .env and redeploy. After that, archive the old Stripe Price.`,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/admin/stripe-sync/route.ts", method: "POST" }, POST_handler);

@@ -15,11 +15,12 @@ import { gateRequireFeature } from "@/lib/feature-gate";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { consumeRateLimit } from "@/lib/rate-limit/persistent";
 import { seedDataroomTemplates } from "@/lib/dataroom/seed-templates";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function POST() {
+async function POST_handler() {
   const gate = await gateRequireFeature("data_room.access");
   if (!gate.ok) return gate.response;
   const user = gate.user;
@@ -73,3 +74,6 @@ export async function POST() {
     failed: result.failed,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/dataroom/reseed-templates/route.ts", method: "POST" }, POST_handler);

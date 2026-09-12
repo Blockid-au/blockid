@@ -44,6 +44,7 @@ import {
   extractUserAgent,
   logUserAction,
 } from "@/lib/audit/log";
+import { apiRoute } from "@/lib/audit/api-route";
 
 interface RequestBody {
   businessId?: unknown;
@@ -79,7 +80,7 @@ export function _resetIdempotencyGuard(): void {
 /* Route                                                               */
 /* ------------------------------------------------------------------ */
 
-export async function POST(request: Request): Promise<NextResponse> {
+async function POST_handler(request: Request): Promise<NextResponse> {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -235,3 +236,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     abrResult,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/verification/abr/route.ts", method: "POST" }, POST_handler);

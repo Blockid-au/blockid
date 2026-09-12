@@ -19,6 +19,7 @@ import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { spendCredits } from "@/lib/credits";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import Anthropic from "@anthropic-ai/sdk";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ const AUTO_FILL_COST = 0.25;
 // ---------------------------------------------------------------------------
 // POST /api/data-room/auto-fill
 // ---------------------------------------------------------------------------
-export async function POST(request: NextRequest) {
+async function POST_handler(request: NextRequest) {
   const gate = await gateRequireFeature("data_room.access");
   if (!gate.ok) return gate.response;
   const user = gate.user;
@@ -324,3 +325,6 @@ Return ONLY the filled document in Markdown format.`;
     wordsGenerated: filledContent.split(/\s+/).length,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/data-room/auto-fill/route.ts", method: "POST" }, POST_handler);

@@ -6,6 +6,7 @@ import {
   revokeConnection,
   type OAuthProvider,
 } from "@/lib/oauth-connectors";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export async function GET() {
   return NextResponse.json({ ok: true, connections: summary });
 }
 
-export async function DELETE(request: Request) {
+async function DELETE_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false }, { status: 401 });
 
@@ -57,3 +58,6 @@ export async function DELETE(request: Request) {
   await revokeConnection(conn.id);
   return NextResponse.json({ ok: true, revoked: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const DELETE = apiRoute({ route: "api/integrations/route.ts", method: "DELETE" }, DELETE_handler);

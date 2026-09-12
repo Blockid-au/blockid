@@ -28,6 +28,7 @@ import { normaliseResellerCode } from "@/lib/reseller/attribution";
 import { resolvePromoCode } from "@/lib/reseller/resolve-promo";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { clientIpFromHeaders } from "@/lib/iphash";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -36,7 +37,7 @@ interface Body {
   code?: unknown;
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const ip = clientIpFromHeaders(request.headers) ?? "unknown";
   const rl = checkRateLimit(`promo_validate:${ip}`, 30, 60_000);
   if (!rl.allowed) {
@@ -103,3 +104,6 @@ export async function POST(request: Request) {
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/reseller/validate-promo-code/route.ts", method: "POST" }, POST_handler);

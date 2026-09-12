@@ -11,6 +11,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ export async function GET() {
   return NextResponse.json({ ok: true, plans: data ?? [] });
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Auth required" }, { status: 401 });
   if (!isSupabaseConfigured()) return NextResponse.json({ ok: false, error: "Supabase not configured" }, { status: 500 });
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
   return NextResponse.json({ ok: true, plan: data });
 }
 
-export async function PUT(request: NextRequest) {
+async function PUT_handler(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Auth required" }, { status: 401 });
   if (!isSupabaseConfigured()) return NextResponse.json({ ok: false, error: "Supabase not configured" }, { status: 500 });
@@ -106,7 +107,7 @@ export async function PUT(request: NextRequest) {
   return NextResponse.json({ ok: true, plan: data });
 }
 
-export async function DELETE(request: NextRequest) {
+async function DELETE_handler(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Auth required" }, { status: 401 });
   if (!isSupabaseConfigured()) return NextResponse.json({ ok: false, error: "Supabase not configured" }, { status: 500 });
@@ -123,3 +124,8 @@ export async function DELETE(request: NextRequest) {
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/equity/plans/route.ts", method: "POST" }, POST_handler);
+export const PUT = apiRoute({ route: "api/equity/plans/route.ts", method: "PUT" }, PUT_handler);
+export const DELETE = apiRoute({ route: "api/equity/plans/route.ts", method: "DELETE" }, DELETE_handler);

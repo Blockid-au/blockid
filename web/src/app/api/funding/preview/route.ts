@@ -23,13 +23,14 @@ import { listGrants, listPrograms } from "@/lib/funding/data";
 import { parseFundingIntake } from "@/lib/funding/intake";
 import { buildFundingPreview } from "@/lib/funding/preview";
 import { FUNDING_DISCLAIMER } from "@/lib/agents/grant-advisor";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
 const PREVIEW_RATE_LIMIT = { max: 30, windowMs: 10 * 60 * 1000 } as const;
 export const INTAKE_BODY_MAX_BYTES = 16 * 1024;
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const limited = enforceRateLimit("funding-preview", null, request, PREVIEW_RATE_LIMIT.max, PREVIEW_RATE_LIMIT.windowMs);
   if (limited) return limited;
 
@@ -57,3 +58,6 @@ export async function POST(request: Request) {
     { headers: { "Cache-Control": "no-store" } },
   );
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/funding/preview/route.ts", method: "POST" }, POST_handler);

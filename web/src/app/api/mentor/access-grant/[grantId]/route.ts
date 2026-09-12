@@ -12,6 +12,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ function readClientMeta(request: Request): { ip: string; ua: string } {
   return { ip, ua };
 }
 
-export async function POST(
+async function POST_handler(
   request: Request,
   { params }: { params: Promise<{ grantId: string }> },
 ) {
@@ -118,3 +119,6 @@ export async function POST(
 
   return NextResponse.json({ ok: true, grant: updated });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/mentor/access-grant/[grantId]/route.ts", method: "POST" }, POST_handler);

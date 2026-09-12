@@ -24,6 +24,7 @@ import {
 } from "@/lib/dataroom/populate";
 import { ATLASSIAN_DATAROOM_TEMPLATE } from "@/lib/dataroom/atlassian-template";
 import { consumeRateLimit } from "@/lib/rate-limit/persistent";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,7 @@ const BodySchema = z.object({
 const RATE_LIMIT = 5;
 const WINDOW_SECONDS = 60 * 60;
 
-export async function POST(request: NextRequest) {
+async function POST_handler(request: NextRequest) {
   const gate = await gateRequireFeature("data_room.access");
   if (!gate.ok) return gate.response;
   const user = gate.user;
@@ -162,3 +163,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json(result);
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/dataroom/populate-from-template/route.ts", method: "POST" }, POST_handler);

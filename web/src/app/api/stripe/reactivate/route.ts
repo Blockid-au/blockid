@@ -3,13 +3,14 @@ import { getCurrentUser } from "@/lib/auth";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // POST /api/stripe/reactivate
 // Reactivates a subscription that was previously scheduled for cancellation
 // (cancel_at_period_end = true). Clears the cancellation so the subscription
 // continues normally after the current period.
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -117,3 +118,6 @@ export async function POST(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/stripe/reactivate/route.ts", method: "POST" }, POST_handler);

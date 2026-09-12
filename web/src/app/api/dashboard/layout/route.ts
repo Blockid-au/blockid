@@ -18,6 +18,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { getDashboardLayout, setDashboardLayout } from "@/lib/dashboard/layout-store";
 import { LAYOUT_MAX_BYTES, parseLayout } from "@/lib/dashboard/widget-layout";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,7 @@ export async function GET() {
   return NextResponse.json({ ok: true, layout }, { headers: PRIVATE_JSON_HEADERS });
 }
 
-export async function PUT(req: NextRequest) {
+async function PUT_handler(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
@@ -82,3 +83,6 @@ export async function PUT(req: NextRequest) {
   }
   return NextResponse.json({ ok: true, layout });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const PUT = apiRoute({ route: "api/dashboard/layout/route.ts", method: "PUT" }, PUT_handler);

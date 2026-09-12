@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createInvestorLink, listInvestorLinksForFounder, revokeInvestorLink } from "@/lib/investor-links";
 import { getCurrentUser } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // Zod input schema — CISO P1 (2026-08-23 audit).
 // Limits are ceiling-only defence against oversized-payload DoS; the existing
@@ -66,7 +67,7 @@ function unauthorized() {
 // ---------------------------------------------------------------------------
 // POST — create a new per-investor link
 // ---------------------------------------------------------------------------
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   if (!isSupabaseConfigured()) return notConfigured();
 
   const user = await getCurrentUser();
@@ -210,7 +211,7 @@ export async function GET() {
 // ---------------------------------------------------------------------------
 // DELETE — revoke a link by token (query param: ?id=<token>)
 // ---------------------------------------------------------------------------
-export async function DELETE(request: Request) {
+async function DELETE_handler(request: Request) {
   if (!isSupabaseConfigured()) return notConfigured();
 
   const user = await getCurrentUser();
@@ -244,3 +245,7 @@ export async function DELETE(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/investor-link/route.ts", method: "POST" }, POST_handler);
+export const DELETE = apiRoute({ route: "api/investor-link/route.ts", method: "DELETE" }, DELETE_handler);

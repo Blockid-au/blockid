@@ -16,11 +16,12 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { isLocale, LOCALES } from "@/lib/i18n/locales";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request): Promise<Response> {
+async function POST_handler(req: Request): Promise<Response> {
   const user = await getCurrentUser();
   if (!user) return new Response(null, { status: 204 });
 
@@ -57,3 +58,6 @@ export async function POST(req: Request): Promise<Response> {
 
   return NextResponse.json({ ok: true, preferred_locale: locale });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/founder-profile/locale/route.ts", method: "POST" }, POST_handler);

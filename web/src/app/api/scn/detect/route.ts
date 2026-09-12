@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { buildScnContext, type ScnInput, type ScnDeps } from "@/lib/scn-detect";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -50,7 +51,7 @@ async function auditRepo(fullName: string): Promise<{ hasSourceCode: boolean; ha
 
 const deps: ScnDeps = { fetchUrl, auditRepo };
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser().catch(() => null);
   const rlKey = `scn-detect:${user?.id ?? request.headers.get("x-forwarded-for") ?? "anon"}`;
   const rl = checkRateLimit(rlKey, 20, 60_000);
@@ -76,3 +77,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: err instanceof Error ? err.message : "Detection failed" }, { status: 500 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/scn/detect/route.ts", method: "POST" }, POST_handler);

@@ -9,10 +9,11 @@ import { ValuationReportPDF } from "@/lib/pdf/valuation-report-pdf";
 import type { VcValuationReport } from "@/lib/agents/cfo-valuation";
 import { getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -46,3 +47,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "PDF generation failed" }, { status: 500 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/valuation/pdf/route.ts", method: "POST" }, POST_handler);

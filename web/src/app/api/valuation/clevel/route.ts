@@ -7,6 +7,7 @@ import {
 } from "@/lib/clevel-valuation";
 import { findSVIAccountWithFallback } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -102,7 +103,7 @@ async function assembleValuation(
   return { account, input, valuation: computeCLevelValuation(input) };
 }
 
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -169,3 +170,6 @@ export async function GET() {
     return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/valuation/clevel/route.ts", method: "POST" }, POST_handler);

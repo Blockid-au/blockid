@@ -10,6 +10,7 @@
 import "server-only";
 import { getCurrentUser } from "./auth";
 import { validateApiKey, checkRateLimit } from "./api-keys";
+import { setAuditActor } from "./audit/context";
 
 export interface AuthResult {
   userId: string;
@@ -56,6 +57,7 @@ export async function authenticateRequest(
       return null; // Caller should check headers for rate-limit info
     }
 
+    setAuditActor({ userId: validated.userId, kind: "api_key" });
     return {
       auth: {
         userId: validated.userId,
@@ -107,6 +109,7 @@ export async function authenticateApiKey(
     validated.rateLimitPerMin!,
   );
 
+  setAuditActor({ userId: validated.userId, kind: "api_key" });
   return {
     auth: {
       userId: validated.userId,

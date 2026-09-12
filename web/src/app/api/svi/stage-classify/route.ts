@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import { extractSignals, detectStage } from "@/lib/svi-analysis";
 import { detectMaturity } from "@/lib/agents/maturity-detector";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ const CONFIDENCE_TABLE: Record<string, number> = {
   high: 0.85,
 };
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   let body: Body;
   try {
     body = (await request.json()) as Body;
@@ -66,3 +67,6 @@ export async function POST(request: Request) {
     },
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/stage-classify/route.ts", method: "POST" }, POST_handler);

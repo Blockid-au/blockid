@@ -7,6 +7,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ interface OfferBody {
   notes?: string;
 }
 
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   const me = await getCurrentUser();
   if (!me) return NextResponse.json({ ok: false, error: "Sign in required" }, { status: 401 });
 
@@ -115,3 +116,6 @@ export async function GET() {
     .order("created_at", { ascending: false });
   return NextResponse.json({ ok: true, rows: data ?? [] });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/secondary-offer/route.ts", method: "POST" }, POST_handler);

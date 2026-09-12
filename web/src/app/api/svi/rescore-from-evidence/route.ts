@@ -10,6 +10,7 @@ import {
 import { checkAndAwardBadges, type BadgeContext } from "@/lib/badges";
 import { getProjectScope } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // POST /api/svi/rescore-from-evidence
 // Re-computes SVI using the original analysis text + all evidence items.
@@ -29,7 +30,7 @@ const VALID_DIMENSIONS = new Set([
   "ftv", "mpc", "ptd", "tre", "cgh", "iri", "lco", "svm",
 ]);
 
-export async function POST() {
+async function POST_handler() {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, reason: "Authentication required" }, { status: 401 });
@@ -230,3 +231,6 @@ export async function POST() {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/rescore-from-evidence/route.ts", method: "POST" }, POST_handler);

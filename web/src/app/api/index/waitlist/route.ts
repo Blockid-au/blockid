@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   try {
     const { email, name } = await request.json();
 
@@ -48,3 +49,6 @@ export async function POST(request: Request) {
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/index/waitlist/route.ts", method: "POST" }, POST_handler);

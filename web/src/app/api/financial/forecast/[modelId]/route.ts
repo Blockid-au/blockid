@@ -13,6 +13,7 @@ import type {
   ListForecastsResponse,
   UpdateForecastResponse,
 } from "@/types/financial";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -67,7 +68,7 @@ export async function GET(
 
 // ─── PUT — update model metadata ─────────────────────────────────────────────
 
-export async function PUT(
+async function PUT_handler(
   request: NextRequest,
   { params }: RouteParams,
 ): Promise<NextResponse> {
@@ -129,7 +130,7 @@ export async function PUT(
 
 // ─── DELETE — soft-delete model ───────────────────────────────────────────────
 
-export async function DELETE(
+async function DELETE_handler(
   request: NextRequest,
   { params }: RouteParams,
 ): Promise<NextResponse> {
@@ -173,3 +174,7 @@ export async function DELETE(
 
   return NextResponse.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const PUT = apiRoute({ route: "api/financial/forecast/[modelId]/route.ts", method: "PUT" }, PUT_handler);
+export const DELETE = apiRoute({ route: "api/financial/forecast/[modelId]/route.ts", method: "DELETE" }, DELETE_handler);

@@ -4,6 +4,7 @@ import Stripe from "stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { findOrCreateSVIAccount } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ async function authenticateRequest(supabase: NonNullable<ReturnType<typeof getSu
 }
 
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   try {
     const secretKey = process.env.STRIPE_SECRET_KEY;
     if (!secretKey) {
@@ -258,3 +259,6 @@ export async function POST(request: Request) {
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/auth/stripe/connect/route.ts", method: "POST" }, POST_handler);

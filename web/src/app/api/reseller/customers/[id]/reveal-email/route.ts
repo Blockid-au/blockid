@@ -13,6 +13,7 @@ import { scopedReseller, ResellerScopeError } from "@/lib/reseller/scope";
 import { resellerSupabase } from "@/lib/reseller/supabase";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { decideReveal } from "@/lib/reseller/customer-reveal";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ function readClientMeta(request: Request): { ip: string; ua: string } {
   return { ip, ua };
 }
 
-export async function POST(
+async function POST_handler(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -94,3 +95,6 @@ export async function POST(
 
   return NextResponse.json({ ok: true, email: userRow.email });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/reseller/customers/[id]/reveal-email/route.ts", method: "POST" }, POST_handler);

@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getBalance, getTransactionHistory, grantCredits, CREDIT_PACKS } from "@/lib/credits";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { sessionIdempotencyKey } from "@/lib/stripe/idempotency";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // GET /api/credits
 // Returns the authenticated user's credit balance + recent transactions.
@@ -36,7 +37,7 @@ export async function GET() {
 // If STRIPE is not configured or no price ID exists for credits, falls back
 // to granting credits directly (dev/staging convenience).
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -130,3 +131,6 @@ export async function POST(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/credits/route.ts", method: "POST" }, POST_handler);

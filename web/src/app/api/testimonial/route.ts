@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   try {
     const { text, name, company, public: isPublic } = await req.json() as {
       text: string;
@@ -46,7 +47,7 @@ export async function GET() {
   return NextResponse.json({ testimonials: data ?? [] });
 }
 
-export async function PATCH(req: NextRequest) {
+async function PATCH_handler(req: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -59,3 +60,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ ok: false }, { status: 500 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/testimonial/route.ts", method: "POST" }, POST_handler);
+export const PATCH = apiRoute({ route: "api/testimonial/route.ts", method: "PATCH" }, PATCH_handler);

@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSyncConfig } from "@/lib/blockchain-sync";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
 // POST /api/blockchain/verify — Verify off-chain vs on-chain balances
-export async function POST() {
+async function POST_handler() {
   const gate = await gateRequireFeature("blockchain.sync");
   if (!gate.ok) return gate.response;
   const user = gate.user;
@@ -82,3 +83,6 @@ export async function POST() {
     tokenSymbol: config.tokenSymbol,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/blockchain/verify/route.ts", method: "POST" }, POST_handler);

@@ -18,6 +18,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { consumeRateLimit } from "@/lib/rate-limit/persistent";
 import { sendEmail } from "@/lib/email";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -50,7 +51,7 @@ function parseBody(raw: unknown): ContactPayload | null {
   return { from_name, from_email, message };
 }
 
-export async function POST(
+async function POST_handler(
   request: Request,
   ctx: { params: Promise<{ slug: string }> },
 ) {
@@ -162,3 +163,6 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/startup/[slug]/contact/route.ts", method: "POST" }, POST_handler);

@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { listProjects, createProject, getProjectLimit } from "@/lib/projects";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 import { FOUNDER_ONE_STARTUP_ERROR } from "@/lib/plans/startup-limit";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export async function GET() {
 
 // POST /api/projects — create a new project
 // Body: { name: string, description?: string, industry?: string }
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -123,3 +124,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true, project: result.project }, { status: 201 });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/projects/route.ts", method: "POST" }, POST_handler);

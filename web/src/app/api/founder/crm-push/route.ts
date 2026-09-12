@@ -13,6 +13,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ function noProject() {
   return NextResponse.json({ ok: false, error: "No active project" }, { status: 400 });
 }
 
-export async function POST(request: NextRequest) {
+async function POST_handler(request: NextRequest) {
   // ── Auth ──────────────────────────────────────────────────────────────
   const user = await getCurrentUser();
   if (!user) return unauth();
@@ -118,3 +119,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: true, pushed_at: pushedAt });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/founder/crm-push/route.ts", method: "POST" }, POST_handler);

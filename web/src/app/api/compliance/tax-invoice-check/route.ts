@@ -17,10 +17,11 @@ import {
   TAX_INVOICE_DISCLAIMER,
   type TaxInvoiceInput,
 } from "@/lib/compliance/tax-invoice-checker";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -119,3 +120,6 @@ export async function GET() {
     disclaimer: TAX_INVOICE_DISCLAIMER,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/compliance/tax-invoice-check/route.ts", method: "POST" }, POST_handler);

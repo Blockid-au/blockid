@@ -31,6 +31,7 @@ import { grantCredits } from "@/lib/credits";
 import { getPlanCached } from "@/lib/plans-db";
 import { decidePlanChange, validatePlanBody } from "@/lib/admin/plan-mutation";
 import { isFoundingPromoActive } from "@/lib/founding-promo";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ interface Params {
   id: string;
 }
 
-export async function POST(
+async function POST_handler(
   request: Request,
   { params }: { params: Promise<Params> },
 ) {
@@ -162,3 +163,6 @@ export async function POST(
     credits_granted,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/admin/users/[id]/plan/route.ts", method: "POST" }, POST_handler);

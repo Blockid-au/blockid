@@ -13,6 +13,7 @@ import {
   listApplicants,
   getCohortSviAvg,
 } from "@/lib/accelerator-portal";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -46,7 +47,7 @@ interface DraftCohort {
   founder_count?: unknown;
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
@@ -80,3 +81,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true, cohort: draft, persisted: false });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/accelerator/cohort/route.ts", method: "POST" }, POST_handler);

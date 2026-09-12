@@ -3,6 +3,7 @@ import { gateRequireFeature } from "@/lib/feature-gate";
 import { getOrCreateUserFolder } from "@/lib/google-drive";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { DATA_ROOM_STRUCTURE } from "@/lib/data-room-templates";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export const dynamic = "force-dynamic";
  *
  * Idempotent — if folders already exist they are reused.
  */
-export async function POST() {
+async function POST_handler() {
   const gate = await gateRequireFeature("data_room.access");
   if (!gate.ok) return gate.response;
   const user = gate.user;
@@ -206,3 +207,6 @@ export async function GET() {
     })),
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/dataroom/setup/route.ts", method: "POST" }, POST_handler);

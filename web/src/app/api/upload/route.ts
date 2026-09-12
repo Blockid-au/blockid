@@ -6,6 +6,7 @@ import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
 import { randomBytes } from "crypto";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -179,7 +180,7 @@ async function recordScan(a: ScanAudit): Promise<void> {
 // an authenticated session. This removes the previously hardcoded "1243".
 const UPLOAD_PASSWORD = process.env.UPLOAD_PASSWORD;
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const origin = request.headers.get("origin");
 
   const formData = await request.formData();
@@ -324,3 +325,6 @@ export async function GET(request: Request) {
 
   return corsJson({ ok: true, files: files.slice(0, 50), total: files.length }, origin);
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/upload/route.ts", method: "POST" }, POST_handler);

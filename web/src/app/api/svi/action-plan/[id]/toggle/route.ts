@@ -10,6 +10,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,7 +33,7 @@ interface TaskRow {
   order_index: number;
 }
 
-export async function POST(
+async function POST_handler(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -120,3 +121,6 @@ export async function POST(
 
   return NextResponse.json({ ok: true, task: updated as TaskRow });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/action-plan/[id]/toggle/route.ts", method: "POST" }, POST_handler);

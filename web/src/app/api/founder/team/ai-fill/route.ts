@@ -21,6 +21,7 @@ import {
   type TeamPlanSuggestion as LlmTeamPlanItem,
   type HirePhase,
 } from "@/lib/agents/chro-team";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -115,7 +116,7 @@ function statusForPriority(p: LlmTeamPlanItem["priority"]): "open" | "planned" {
   return p === "critical" ? "open" : "planned";
 }
 
-export async function POST() {
+async function POST_handler() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth" }, { status: 401 });
 
@@ -238,3 +239,6 @@ export async function POST() {
     },
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/founder/team/ai-fill/route.ts", method: "POST" }, POST_handler);

@@ -9,6 +9,7 @@ import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendTelegram, mdEscape } from "@/lib/telegram";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -37,7 +38,7 @@ const SubmitBody = z.object({
   is_public_opt_in:  z.boolean().optional().default(true),
 });
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   // IP-based rate limit: 5 submissions per hour per IP.
   const limited = enforceRateLimit("index-submit", null, request, 5, 3_600_000);
   if (limited) return limited;
@@ -94,3 +95,6 @@ export async function POST(request: Request) {
     { status: 200 },
   );
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/index/submit/route.ts", method: "POST" }, POST_handler);

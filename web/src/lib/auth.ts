@@ -29,6 +29,7 @@ import bcrypt from "bcryptjs";
 import { getSupabaseAdmin, isSupabaseConfigured } from "./supabase";
 import { initializeCredits } from "./credits";
 import { processReferral } from "./referrals";
+import { setAuditActor } from "./audit/context";
 import { processAttribution } from "./reseller/process-attribution";
 import { enqueueNurtureSequence } from "./nurture";
 import { SESSION_COOKIE } from "./auth-cookie";
@@ -339,6 +340,9 @@ export async function createSessionRow(
     console.error("[blockid:auth] sessions insert failed", error);
     return null;
   }
+  // S20-A: login / register routes create the session before any
+  // getCurrentUser() call — attribute the audit row to the new session owner.
+  setAuditActor({ userId: args.userId, kind: "user" });
   return token;
 }
 
@@ -424,7 +428,10 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<App
     .eq("id", session.user_id)
     .maybeSingle();
   if (!user) return null;
-  return mapAppUser(user);
+  const mapped = mapAppUser(user);
+  // S20-A: annotate the request's audit context (no-op outside apiRoute()).
+  setAuditActor({ userId: mapped.id, kind: "user", role: mapped.role });
+  return mapped;
 });
 
 // -----------------------------------------------------------------------------

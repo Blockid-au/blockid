@@ -13,6 +13,7 @@ import { buildAddonRemovalSchedulePhases } from "@/lib/stripe/addon-schedule";
 import { reconcileSubscriptionAddon } from "@/lib/stripe/addon-entitlements";
 import { hashUserId } from "@/lib/reseller/hash";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // POST /api/stripe/change-plan
 // Body (three modes):
@@ -31,7 +32,7 @@ import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 //        commission clawback fires (per plan § F.5).
 // Cross-segment plan moves require confirmCrossSegment=true.
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -688,3 +689,6 @@ async function handleRemoveItem(args: {
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/stripe/change-plan/route.ts", method: "POST" }, POST_handler);

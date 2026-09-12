@@ -23,6 +23,7 @@ import type { ReportTier } from "@/lib/report-pipeline/types";
 import { generateAndPersistReport, loadProjectReportContext } from "@/lib/report-pipeline/run-for-project";
 import { getProjectScope, creditChargeNote } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ const TIER_FEATURE_MAP: Record<ReportTier, string> = {
   investor_memo: "enhanced_report_investor",
 };
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   // ── 1. Auth ─────────────────────────────────────────────────────────────
   const user = await getCurrentUser();
   if (!user) {
@@ -183,3 +184,6 @@ export async function POST(request: Request) {
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/enhanced-report/route.ts", method: "POST" }, POST_handler);

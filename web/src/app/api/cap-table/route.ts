@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -129,7 +130,7 @@ export async function GET(_request: NextRequest) {
 // POST /api/cap-table — add class / shareholder / issue shares / setup ESOP
 // ---------------------------------------------------------------------------
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const gate = await gateRequireFeature("share_management");
   if (!gate.ok) return gate.response;
   const user = gate.user;
@@ -425,7 +426,7 @@ export async function POST(request: Request) {
 // DELETE /api/cap-table — remove a shareholder
 // ---------------------------------------------------------------------------
 
-export async function DELETE(request: Request) {
+async function DELETE_handler(request: Request) {
   const gate = await gateRequireFeature("share_management");
   if (!gate.ok) return gate.response;
   const user = gate.user;
@@ -498,3 +499,7 @@ export async function DELETE(request: Request) {
 
   return NextResponse.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/cap-table/route.ts", method: "POST" }, POST_handler);
+export const DELETE = apiRoute({ route: "api/cap-table/route.ts", method: "DELETE" }, DELETE_handler);

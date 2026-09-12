@@ -5,6 +5,7 @@ import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { sendCancellationEmail } from "@/lib/email";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // Whitelist of save-offer coupons the cancel-flow may apply. Blocks users
 // from replaying admin/internal coupon codes via the save_offer payload.
@@ -41,7 +42,7 @@ const BodySchema = z.object({
 // churn_events row with accepted_coupon=true. When declined (or no
 // save_offer is present) we schedule the cancellation at period end.
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, reason: "Authentication required" }, { status: 401 });
@@ -241,3 +242,6 @@ export async function POST(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/stripe/cancel/route.ts", method: "POST" }, POST_handler);

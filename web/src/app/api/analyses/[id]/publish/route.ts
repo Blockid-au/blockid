@@ -21,6 +21,7 @@ import {
   publishAnalysis,
   unpublishAnalysis,
 } from "@/lib/publish/store";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,7 +59,7 @@ export async function GET(
   return NextResponse.json({ ok: true, state });
 }
 
-export async function POST(
+async function POST_handler(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -105,7 +106,7 @@ export async function POST(
   return NextResponse.json({ ok: true, slug: result.slug, url: result.url });
 }
 
-export async function DELETE(
+async function DELETE_handler(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -124,3 +125,7 @@ export async function DELETE(
   }
   return NextResponse.json({ ok: true, published: false });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/analyses/[id]/publish/route.ts", method: "POST" }, POST_handler);
+export const DELETE = apiRoute({ route: "api/analyses/[id]/publish/route.ts", method: "DELETE" }, DELETE_handler);

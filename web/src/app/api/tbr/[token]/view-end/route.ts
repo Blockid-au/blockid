@@ -8,11 +8,12 @@
 
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(
+async function POST_handler(
   request: Request,
   { params }: { params: Promise<{ token: string }> },
 ) {
@@ -45,3 +46,6 @@ export async function POST(
 
   return NextResponse.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/tbr/[token]/view-end/route.ts", method: "POST" }, POST_handler);

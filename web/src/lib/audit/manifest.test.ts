@@ -29,8 +29,10 @@ describe("audit-log manifest", () => {
     for (const entry of AUDIT_MANIFEST) {
       const abs = path.join(APP_ROOT, entry.route);
       const src = readFileSync(abs, "utf8");
+      // S20-A: plain `export async function POST` OR the audited form
+      // `export const POST = apiRoute(…, POST_handler)`.
       const re = new RegExp(
-        `export\\s+(async\\s+)?function\\s+${entry.method}\\b`,
+        `export\\s+(async\\s+)?function\\s+${entry.method}\\b|export\\s+const\\s+${entry.method}\\s*=\\s*apiRoute\\(`,
       );
       if (!re.test(src)) unexported.push(`${entry.method} ${entry.route}`);
     }

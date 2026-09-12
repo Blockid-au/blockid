@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // POST /api/coupon/validate
 // Body: { code }
@@ -8,7 +9,7 @@ import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 // Validates that a coupon exists, is active, not expired, and under max_uses.
 // Does NOT require authentication — validation is informational.
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   let body: unknown = null;
   try {
     body = await request.json();
@@ -79,3 +80,6 @@ export async function POST(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/coupon/validate/route.ts", method: "POST" }, POST_handler);

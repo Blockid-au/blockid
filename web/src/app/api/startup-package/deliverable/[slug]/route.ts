@@ -27,6 +27,7 @@ import {
   type DeliverableEntry,
   type DeliverableInputContext,
 } from "@/lib/startup-package/deliverable-registry";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,7 @@ interface RouteContext {
   params: Promise<{ slug: string }>;
 }
 
-export async function POST(request: Request, ctx: RouteContext) {
+async function POST_handler(request: Request, ctx: RouteContext) {
   const { slug } = await ctx.params;
 
   // 1. Auth
@@ -482,3 +483,6 @@ async function renderPdfForEntry(
     }
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/startup-package/deliverable/[slug]/route.ts", method: "POST" }, POST_handler);

@@ -5,6 +5,7 @@ import {
   getEmailPreferences,
   updateEmailPreferences,
 } from "@/lib/email-preferences";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export async function GET() {
   });
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user)
     return NextResponse.json(
@@ -46,3 +47,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/account/notify-prefs/route.ts", method: "POST" }, POST_handler);

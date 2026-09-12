@@ -14,6 +14,7 @@ import {
   calculateESOP,
   generateVestingTimeline,
 } from "@/lib/equity/engine";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ type Action =
   | "calculate_dilution"
   | "calculate_esop";
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
@@ -85,3 +86,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: msg }, { status: 400 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/equity/calculate/route.ts", method: "POST" }, POST_handler);

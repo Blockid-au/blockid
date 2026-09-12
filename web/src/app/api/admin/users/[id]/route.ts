@@ -20,6 +20,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { requireAdmin, AdminGateError } from "@/lib/reseller/require-admin";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { appendAudit } from "@/lib/audit";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -132,7 +133,7 @@ export async function GET(
   }
 }
 
-export async function DELETE(
+async function DELETE_handler(
   request: Request,
   { params }: { params: Promise<Params> },
 ) {
@@ -237,3 +238,6 @@ export async function DELETE(
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const DELETE = apiRoute({ route: "api/admin/users/[id]/route.ts", method: "DELETE" }, DELETE_handler);

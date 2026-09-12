@@ -19,6 +19,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { ResellerScopeError, scopedReseller } from "@/lib/reseller/scope";
 import { isResellerOwner } from "@/lib/reseller/roster";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ const BodySchema = z
   })
   .strict();
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -152,3 +153,6 @@ export async function POST(request: Request) {
     created_at: noteRow.created_at,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/reseller/note/route.ts", method: "POST" }, POST_handler);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -158,7 +159,7 @@ async function runResearch(topic: Exclude<RndTopic, "full">): Promise<string> {
 
 // ── Route handler ──────────────────────────────────────────────────────
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
@@ -246,3 +247,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/admin/rnd/route.ts", method: "POST" }, POST_handler);

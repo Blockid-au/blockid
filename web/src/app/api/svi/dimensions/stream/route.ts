@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI } from "@/lib/ai-client";
 import { getCriteriaByDimension, CRITERIA } from "@/lib/evaluation-criteria";
 import { insertNotification } from "@/lib/notifications";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -384,7 +385,7 @@ Output the JSON array of 13 CriterionResult objects now.`;
 
 // ── POST handler ──────────────────────────────────────────────────────────────
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   // Auth check
   const user = await getCurrentUser();
   if (!user) {
@@ -760,3 +761,6 @@ export async function POST(request: Request) {
     },
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/dimensions/stream/route.ts", method: "POST" }, POST_handler);

@@ -9,6 +9,7 @@ import { getSupabaseAdmin } from "./supabase";
 import { getPlanCached } from "./plans-db";
 import { LEGACY_PLAN_MAP } from "./plans";
 import { canCreateAnotherStartup } from "./plans/startup-limit";
+import { setAuditProject } from "./audit/context";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -394,6 +395,7 @@ export async function assertProjectScope(
   const dataEmail = access.isOwner
     ? user.email
     : await resolveProjectDataEmail(user.email, projectId);
+  setAuditProject({ projectId, role: access.role, userId: user.id });
   return {
     projectId,
     project: access.project,
@@ -649,6 +651,9 @@ export async function getProjectScope(
   const dataEmail = isOwner
     ? user.email
     : await resolveProjectDataEmail(user.email, project.id);
+
+  // S20-A: the audit row for this request carries the project + role.
+  setAuditProject({ projectId: project.id, role, userId: user.id });
 
   return {
     projectId: project.id,

@@ -17,10 +17,11 @@ import {
   GST_DISCLAIMER,
   type GSTInput,
 } from "@/lib/compliance/gst-threshold";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -109,3 +110,6 @@ export async function GET() {
     disclaimer: GST_DISCLAIMER,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/compliance/gst-threshold/route.ts", method: "POST" }, POST_handler);

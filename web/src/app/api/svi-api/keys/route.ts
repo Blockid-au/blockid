@@ -4,6 +4,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { createSviApiKey, listSviApiKeys, revokeSviApiKey } from "@/lib/svi-api-auth";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export async function GET() {
   return NextResponse.json({ ok: true, keys });
 }
 
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   const me = await getCurrentUser();
   if (!me) return NextResponse.json({ ok: false, error: "Sign in required" }, { status: 401 });
 
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true, key: result.raw, id: result.id, message: "Store this key — it won't be shown again." });
 }
 
-export async function DELETE(req: NextRequest) {
+async function DELETE_handler(req: NextRequest) {
   const me = await getCurrentUser();
   if (!me) return NextResponse.json({ ok: false, error: "Sign in required" }, { status: 401 });
 
@@ -39,3 +40,7 @@ export async function DELETE(req: NextRequest) {
   const ok = await revokeSviApiKey(me.id, id);
   return NextResponse.json({ ok });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi-api/keys/route.ts", method: "POST" }, POST_handler);
+export const DELETE = apiRoute({ route: "api/svi-api/keys/route.ts", method: "DELETE" }, DELETE_handler);

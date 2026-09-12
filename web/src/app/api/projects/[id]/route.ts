@@ -8,6 +8,7 @@ import {
   getProject,
 } from "@/lib/projects";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +55,7 @@ export async function GET(
 
 // PATCH /api/projects/[id] — update a project
 // Body: { name?: string, description?: string, industry?: string }
-export async function PATCH(
+async function PATCH_handler(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -149,7 +150,7 @@ export async function PATCH(
 }
 
 // DELETE /api/projects/[id] — archive (soft delete) a project
-export async function DELETE(
+async function DELETE_handler(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -195,3 +196,7 @@ export async function DELETE(
 
   return NextResponse.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const PATCH = apiRoute({ route: "api/projects/[id]/route.ts", method: "PATCH" }, PATCH_handler);
+export const DELETE = apiRoute({ route: "api/projects/[id]/route.ts", method: "DELETE" }, DELETE_handler);

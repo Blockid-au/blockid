@@ -18,6 +18,7 @@ import {
   generateCompetitorAnalysis,
   type CompetitorProfile,
 } from "@/lib/agents/cmo-market-research";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -76,7 +77,7 @@ function positionalNote(sector: string, stage: number): string {
   return `Strategic navigation positioning commands ${multiple}x multiples vs utility tools (AU benchmark 2024–2026, implied val ~A$${Math.round(val / 1000)}K).`;
 }
 
-export async function POST() {
+async function POST_handler() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth" }, { status: 401 });
 
@@ -154,3 +155,6 @@ export async function POST() {
     },
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/founder/competitors/ai-fill/route.ts", method: "POST" }, POST_handler);

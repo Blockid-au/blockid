@@ -15,6 +15,7 @@ import {
   validateAdminResellerPatch,
   type AdminResellerPatch,
 } from "@/lib/reseller/admin-validator";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -129,7 +130,7 @@ export async function GET(
   });
 }
 
-export async function PATCH(
+async function PATCH_handler(
   request: Request,
   { params }: { params: Promise<{ code: string }> },
 ) {
@@ -218,7 +219,7 @@ export async function PATCH(
   return NextResponse.json({ ok: true, reseller: data });
 }
 
-export async function DELETE(
+async function DELETE_handler(
   request: Request,
   { params }: { params: Promise<{ code: string }> },
 ) {
@@ -281,3 +282,7 @@ export async function DELETE(
 
   return NextResponse.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const PATCH = apiRoute({ route: "api/admin/resellers/[code]/route.ts", method: "PATCH" }, PATCH_handler);
+export const DELETE = apiRoute({ route: "api/admin/resellers/[code]/route.ts", method: "DELETE" }, DELETE_handler);

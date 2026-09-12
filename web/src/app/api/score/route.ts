@@ -17,6 +17,7 @@ import {
   type BridgeResult,
   type ValuationMethod,
 } from "@/lib/valuation-mrr-bridge";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // ── Wave 29/30: 8-Dimension SVI Analysis + 13 Criteria Sub-breakdown ─────────
 
@@ -1137,7 +1138,7 @@ const ScorePostSchema = z.object({
   inputs: ScoreInputSchema,
 });
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   let body: unknown = null;
   try {
     body = await request.json();
@@ -1384,3 +1385,6 @@ export async function POST(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/score/route.ts", method: "POST" }, POST_handler);

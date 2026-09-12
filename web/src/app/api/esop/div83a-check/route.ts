@@ -12,6 +12,7 @@ import {
   type Div83AProjectInput,
 } from "@/lib/div83a-checker";
 import { getGrant, updateDiv83AStatus } from "@/lib/esop-grants";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ interface CheckBody {
   granteePostGrantOwnershipPct?: number;
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const gate = await gateRequireFeature("esop.manage");
   if (!gate.ok) return gate.response;
   const user = gate.user;
@@ -110,3 +111,6 @@ export async function POST(request: Request) {
     disclaimer: DIV83A_DISCLAIMER,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/esop/div83a-check/route.ts", method: "POST" }, POST_handler);

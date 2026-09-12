@@ -13,6 +13,7 @@ import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { findSVIAccountWithFallback, findLatestAnalysisWithFallback, creditChargeNote } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,7 @@ const DIMENSION_INFO: Record<string, { label: string; weight: number; focus: str
   },
 };
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, reason: "Authentication required" }, { status: 401 });
@@ -252,3 +253,6 @@ Provide a thorough ${info.label} assessment.`;
     }, { status: isRateLimit ? 429 : 500 });
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/dimension-analyze/route.ts", method: "POST" }, POST_handler);

@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { gateRequireFeature } from "@/lib/feature-gate";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export async function GET() {
 }
 
 // POST /api/branding — save brand settings
-export async function POST(request: NextRequest) {
+async function POST_handler(request: NextRequest) {
   // Feature-gate: Growth+/Scale/Enterprise only. Gate manifest entry is in
   // web/src/lib/feature-gates.manifest.ts; see also lib/branding/gate.ts.
   const gate = await gateRequireFeature("pdf_branding");
@@ -86,3 +87,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/branding/route.ts", method: "POST" }, POST_handler);

@@ -17,6 +17,7 @@ import { scopedReseller, ResellerScopeError } from "@/lib/reseller/scope";
 import { resellerSupabase } from "@/lib/reseller/supabase";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { validateResellerRequestBody } from "@/lib/reseller/requests";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,7 @@ const VALIDATION_STATUS: Record<string, number> = {
   reason_too_long: 400,
 };
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, reason: "unauthorised" }, { status: 401 });
@@ -184,3 +185,6 @@ export async function GET() {
 
   return NextResponse.json({ ok: true, requests: data ?? [] });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/reseller/requests/route.ts", method: "POST" }, POST_handler);

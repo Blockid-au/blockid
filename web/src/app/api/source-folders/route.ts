@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getOrCreateUserFolder, listUserFolderFiles } from "@/lib/google-drive";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +62,7 @@ export async function GET() {
   });
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -140,7 +141,7 @@ export async function POST(request: Request) {
   return NextResponse.json({ ok: true });
 }
 
-export async function PUT(request: Request) {
+async function PUT_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -164,7 +165,7 @@ export async function PUT(request: Request) {
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(request: Request) {
+async function DELETE_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -183,3 +184,8 @@ export async function DELETE(request: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/source-folders/route.ts", method: "POST" }, POST_handler);
+export const PUT = apiRoute({ route: "api/source-folders/route.ts", method: "PUT" }, PUT_handler);
+export const DELETE = apiRoute({ route: "api/source-folders/route.ts", method: "DELETE" }, DELETE_handler);

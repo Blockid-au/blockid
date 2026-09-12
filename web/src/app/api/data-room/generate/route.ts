@@ -10,6 +10,7 @@ import {
   documentCompleteness,
 } from "@/lib/data-room";
 import { computeValuation, type ValuationInput } from "@/lib/valuation";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ function mapStage(numericStage: number): string {
 // Costs 3.00 credits.
 // ---------------------------------------------------------------------------
 
-export async function POST() {
+async function POST_handler() {
   const gate = await gateRequireFeature("data_room.access");
   if (!gate.ok) return gate.response;
   const user = gate.user;
@@ -386,3 +387,6 @@ export async function POST() {
     balance: spend.balance,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/data-room/generate/route.ts", method: "POST" }, POST_handler);

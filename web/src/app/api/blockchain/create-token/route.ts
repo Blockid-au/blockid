@@ -7,6 +7,7 @@ import { deployCompanyToken } from "@/lib/evm-deploy";
 import { findSVIAccountWithFallback } from "@/lib/projects";
 import { projectScopeOrDeny, ownerOnlyDenied } from "@/lib/project-members/http";
 import { BLOCKID_CHAIN } from "@/lib/wallet";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 // TokenFactory.createCompany, signed server-side by the factory owner key.
 // The founder's wallet (adminAddress) receives 100% of the initial shares
 // and ADMIN_ROLE. Returns the deployed token address.
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const gate = await gateRequireFeature("blockchain.sync");
   if (!gate.ok) return gate.response;
   const user = gate.user;
@@ -227,3 +228,6 @@ export async function GET(request: Request) {
     defaultTokenName: `${startupName} Shares`,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/blockchain/create-token/route.ts", method: "POST" }, POST_handler);

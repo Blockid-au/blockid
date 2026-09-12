@@ -5,6 +5,7 @@ import {
   generateInitialQuestions,
   synthesizeRecommendation,
 } from "@/lib/first-principles-engine";
+import { apiRoute } from "@/lib/audit/api-route";
 
 const MAX_IDEA_LEN = 4000;
 const MAX_ANSWER_KEYS = 10;
@@ -22,7 +23,7 @@ function sanitizeAnswers(raw: unknown): Record<string, string> | null {
   return clean;
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   let body: unknown = null;
   try {
     body = await request.json();
@@ -80,3 +81,6 @@ export async function POST(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/idea-questions/route.ts", method: "POST" }, POST_handler);

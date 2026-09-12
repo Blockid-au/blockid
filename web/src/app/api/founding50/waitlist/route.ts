@@ -2,13 +2,14 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { z } from "zod";
+import { apiRoute } from "@/lib/audit/api-route";
 
 const schema = z.object({
   email: z.string().email(),
   name: z.string().max(100).optional(),
 });
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
 
@@ -36,3 +37,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true, message: "You're on the waitlist!" });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/founding50/waitlist/route.ts", method: "POST" }, POST_handler);

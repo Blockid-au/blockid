@@ -33,6 +33,7 @@ import { getProjectById } from "@/lib/projects";
 import { consumeRateLimit } from "@/lib/rate-limit/persistent";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import type { PitchSnapshotProps } from "@/remotion/pitch-snapshot/PitchSnapshot";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 // Remotion renders can take up to 5 minutes; override Next.js default timeout.
@@ -51,7 +52,7 @@ interface RequestBody {
   startup_id: string;
 }
 
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   // ── 1. Auth ────────────────────────────────────────────────────────────────
   const user = await getCurrentUser();
   if (!user) {
@@ -337,3 +338,6 @@ async function renderPitchVideo(props: PitchSnapshotProps): Promise<Buffer> {
     }
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/founder/pitch-video/route.ts", method: "POST" }, POST_handler);

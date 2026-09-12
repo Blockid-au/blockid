@@ -10,6 +10,7 @@ import {
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { claimForCurrentBrowser } from "@/lib/analyses/claim";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // POST /api/auth/google
 // Body: { credential } — the Google ID token from Sign In With Google.
@@ -18,7 +19,7 @@ import { claimForCurrentBrowser } from "@/lib/analyses/claim";
 // profile, upserts the app_user, creates a session, sets the cookie,
 // and returns { ok, user, redirect }.
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   let body: unknown = null;
   try {
     body = await request.json();
@@ -161,3 +162,6 @@ export async function POST(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/auth/google/route.ts", method: "POST" }, POST_handler);

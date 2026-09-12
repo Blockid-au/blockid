@@ -11,12 +11,13 @@ import { getCurrentUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/reseller/require-admin";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { appendAudit } from "@/lib/audit";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export async function POST(
+async function POST_handler(
   request: Request,
   { params }: { params: Promise<{ attributionId: string }> },
 ) {
@@ -135,3 +136,6 @@ export async function POST(
 
   return NextResponse.json({ ok: true, attribution_id: attributionId });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/admin/affiliate/attributions/[attributionId]/revoke/route.ts", method: "POST" }, POST_handler);

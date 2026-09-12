@@ -8,6 +8,7 @@ import {
   forecastRoadmapImpact,
   EVIDENCE_CATALOG,
 } from "@/lib/svi-completeness";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -84,7 +85,7 @@ export async function GET() {
   return NextResponse.json({ ok: true, dimensions, roadmap, forecast, currentSvi });
 }
 
-export async function POST(request: NextRequest) {
+async function POST_handler(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 
@@ -143,7 +144,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(request: NextRequest) {
+async function DELETE_handler(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 
@@ -176,3 +177,7 @@ export async function DELETE(request: NextRequest) {
 
   return NextResponse.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/evidence-completeness/route.ts", method: "POST" }, POST_handler);
+export const DELETE = apiRoute({ route: "api/svi/evidence-completeness/route.ts", method: "DELETE" }, DELETE_handler);

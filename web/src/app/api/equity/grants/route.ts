@@ -20,6 +20,7 @@ import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { calculateVestingSchedule } from "@/lib/equity/engine";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -204,7 +205,7 @@ export async function GET(request: NextRequest) {
 // ---------------------------------------------------------------------------
 // POST /api/equity/grants — Create a new ESOP grant
 // ---------------------------------------------------------------------------
-export async function POST(request: NextRequest) {
+async function POST_handler(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
@@ -384,3 +385,6 @@ export async function POST(request: NextRequest) {
     timelineEvents: vestingTimeline.length,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/equity/grants/route.ts", method: "POST" }, POST_handler);

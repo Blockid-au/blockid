@@ -7,6 +7,7 @@ import { getProjectScope, findOrCreateSVIAccount } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
 import { getScannerVersion, scanBuffer } from "@/lib/security/clamav";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +52,7 @@ export const dynamic = "force-dynamic";
  * returns the existing evidenceId with `deduped: true` — matches
  * Stripe's idempotent-request behaviour.
  */
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -399,3 +400,6 @@ function isUniqueViolation(err: unknown): boolean {
   const code = (err as { code?: unknown }).code;
   return code === "23505";
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/evidence/upload/route.ts", method: "POST" }, POST_handler);

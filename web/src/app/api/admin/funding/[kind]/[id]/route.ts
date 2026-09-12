@@ -14,6 +14,7 @@ import { requireAdmin, AdminGateError } from "@/lib/reseller/require-admin";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { KIND_TABLE, parseFundingKind, validateFundingAdminPatch } from "@/lib/funding/admin-patch";
 import { revalidateFundingCatalogue } from "@/lib/funding/data";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +62,7 @@ export async function GET(_request: Request, { params }: Params) {
   return NextResponse.json({ ok: true, kind: t.kind, row: data });
 }
 
-export async function PATCH(request: Request, { params }: Params) {
+async function PATCH_handler(request: Request, { params }: Params) {
   const g = await gate();
   if ("response" in g) return g.response;
 
@@ -97,3 +98,6 @@ export async function PATCH(request: Request, { params }: Params) {
 
   return NextResponse.json({ ok: true, kind: t.kind, row: data, applied: v.update });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const PATCH = apiRoute({ route: "api/admin/funding/[kind]/[id]/route.ts", method: "PATCH" }, PATCH_handler);

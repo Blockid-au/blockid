@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export async function GET(_request: NextRequest) {
   return NextResponse.json({ ok: true, pool: data ?? null });
 }
 
-export async function POST(request: NextRequest) {
+async function POST_handler(request: NextRequest) {
   const gate = await gateRequireFeature("esop.manage");
   if (!gate.ok) return gate.response;
   const user = gate.user;
@@ -81,3 +82,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: true, pool: data });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/esop/pool/route.ts", method: "POST" }, POST_handler);

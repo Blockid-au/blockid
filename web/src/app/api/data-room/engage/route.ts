@@ -2,6 +2,7 @@ import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { createHash } from "crypto";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export const dynamic = "force-dynamic";
 // ---------------------------------------------------------------------------
 
 // r-03-exempt: investor engagement telemetry from anonymous investor-facing view; auth handled by data_room_access_tokens.token lookup, not by user entitlement
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json({ ok: false }, { status: 503 });
@@ -139,3 +140,6 @@ export async function GET(req: NextRequest) {
     },
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/data-room/engage/route.ts", method: "POST" }, POST_handler);

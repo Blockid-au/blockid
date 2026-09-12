@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 // GET  /api/data-room/access — List all investor access tokens
 // ---------------------------------------------------------------------------
 
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   const gate = await gateRequireFeature("investor_links.premium");
   if (!gate.ok) return gate.response;
   const user = gate.user;
@@ -104,3 +105,6 @@ export async function GET() {
 
   return NextResponse.json({ ok: true, tokens: tokens ?? [] });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/data-room/access/route.ts", method: "POST" }, POST_handler);

@@ -844,3 +844,30 @@ describe("public payload redaction", () => {
     expect(headers.get("cache-control")).toBe("no-store");
   });
 });
+
+// ─── S20-A audit_chain (hash-chained audit_events integrity) ───────────
+
+describe("audit_chain (S20-A) — read from content/reports/audit-chain-verify.json", () => {
+  const CHAIN_STATE = path.join(REPO_ROOT, "content", "reports", "audit-chain-verify.json");
+
+  it("unknown when the cron has never written the state file", async () => {
+    const h = healthyHealthz();
+    fetchState.responder = { kind: "json", body: h };
+    const { body } = await callGet();
+    expect((body as unknown as { audit_chain: string }).audit_chain).toBe("unknown");
+  });
+
+  it.each(["ok", "broken"])("surfaces a fresh '%s' verdict on the public payload", async (status) => {
+    fsState.files.set(CHAIN_STATE, JSON.stringify({ ts: new Date().toISOString(), status, checked: 5, first_broken_id: status === "broken" ? 3 : null }));
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    const { body } = await callGet();
+    expect((body as unknown as { audit_chain: string }).audit_chain).toBe(status);
+  });
+
+  it("a verdict older than 48h degrades to unknown", async () => {
+    fsState.files.set(CHAIN_STATE, JSON.stringify({ ts: new Date(Date.now() - 49 * 3600 * 1000).toISOString(), status: "ok" }));
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    const { body } = await callGet();
+    expect((body as unknown as { audit_chain: string }).audit_chain).toBe("unknown");
+  });
+});

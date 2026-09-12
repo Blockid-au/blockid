@@ -7,6 +7,7 @@
 
 import { NextResponse } from "next/server";
 import { getExperimentByName, recordEvent } from "@/lib/pricing-experiments";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -20,7 +21,7 @@ interface EventBody {
   valueAud?: unknown;
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const body = (await request.json().catch(() => null)) as EventBody | null;
   if (!body) return NextResponse.json({ ok: false, error: "invalid body" }, { status: 400 });
 
@@ -50,3 +51,6 @@ export async function POST(request: Request) {
   void recordEvent(experiment.id, variantKey, type, { sessionId, userId, valueAud });
   return NextResponse.json({ ok: true, recorded: true }, { status: 202 });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/pricing-test/event/route.ts", method: "POST" }, POST_handler);

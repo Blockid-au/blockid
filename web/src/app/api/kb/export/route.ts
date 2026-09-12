@@ -5,10 +5,11 @@ import { writeFile, mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
-export async function POST() {
+async function POST_handler() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -106,3 +107,6 @@ export async function POST() {
     methodology_count: methodologies?.length ?? 0,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/kb/export/route.ts", method: "POST" }, POST_handler);

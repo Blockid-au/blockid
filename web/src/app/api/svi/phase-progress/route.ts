@@ -10,6 +10,7 @@ import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { findLatestAnalysisWithFallback } from "@/lib/projects";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { GROWTH_PHASES } from "@/lib/startup-growth-phases";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -95,7 +96,7 @@ export async function GET() {
   return NextResponse.json({ ok: true, phases, overallPct, completedSteps, totalSteps });
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   if (!isSupabaseConfigured()) return NextResponse.json({ ok: false, error: "DB not configured" }, { status: 503 });
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
@@ -421,3 +422,6 @@ async function updateOverallProgress(
       .eq("id", projectId);
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/phase-progress/route.ts", method: "POST" }, POST_handler);

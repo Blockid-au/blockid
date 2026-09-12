@@ -21,6 +21,7 @@ import {
   listEvaluations,
   type CreateEvaluationInput,
 } from "@/lib/evaluations";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -59,7 +60,7 @@ export async function GET() {
   return NextResponse.json({ ok: true, evaluations, used: quota.used, limit: quota.limit }, { headers: PRIVATE_JSON_HEADERS });
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const { user, response } = await gate();
   if (!user) return response;
 
@@ -97,3 +98,6 @@ export async function POST(request: Request) {
     { status: 201 },
   );
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/evaluations/route.ts", method: "POST" }, POST_handler);

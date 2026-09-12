@@ -15,12 +15,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import type { SaveForecastRequest, SaveForecastResponse } from '@/types/financial';
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = 'force-dynamic';
 
 const FORECAST_SAVE_COST = 2; // Credits
 
-export async function POST(request: NextRequest) {
+async function POST_handler(request: NextRequest) {
   try {
     // 1. Authenticate user
     const user = await getCurrentUser();
@@ -180,3 +181,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/financial/forecast/save/route.ts", method: "POST" }, POST_handler);

@@ -15,6 +15,8 @@
 // still has a mutation handler and no exemption pragma — which is exactly the
 // drift signal we want.
 
+import { AUDIT_ROUTE_CATALOGUE, type AuditCatalogueRow } from "./catalogue.generated";
+
 export type HttpMethod = "POST" | "PATCH" | "PUT" | "DELETE";
 
 export interface AuditManifestEntry {
@@ -162,4 +164,48 @@ export function auditEntryFor(
   return (
     AUDIT_MANIFEST.find((e) => e.route === route && e.method === method) ?? null
   );
+}
+
+// ---------------------------------------------------------------------------
+// S20-A — route-family catalogue
+//
+// Since S20-A every mutating route is wrapped by `apiRoute()` (./api-route.ts)
+// and records an `audit_events` row whose action is, by default,
+// `<route family>.<verb>` (`projects.members.create`). The rows above stay
+// the curated overrides: `auditEntryFor(route, method)` wins over the
+// default name, so a route listed here keeps its historical action string.
+// The generated catalogue (scripts/codemods/wrap-api-routes.mjs --catalogue)
+// is the exhaustive list of wrapped routes; `coverage.test.ts` pins it to
+// the route tree.
+// ---------------------------------------------------------------------------
+
+export { AUDIT_ROUTE_CATALOGUE };
+export type { AuditCatalogueRow };
+
+const CATALOGUE_VERB: Record<HttpMethod, string> = {
+  POST: "create",
+  PUT: "update",
+  PATCH: "update",
+  DELETE: "delete",
+};
+
+/** Route family of a catalogue route path (`api/projects/[id]/members/route.ts` → `projects.members`). */
+export function catalogueFamily(route: string): string {
+  return AUDIT_ROUTE_CATALOGUE.find((r) => r.route === route)?.family ?? route;
+}
+
+/**
+ * Every action name the platform can emit: manifest overrides first, then
+ * the `<family>.<verb>` defaults for each wrapped route + method. Sorted,
+ * de-duplicated — the audit-log UI and downstream reporting group on it.
+ */
+export function catalogueActions(): string[] {
+  const out = new Set<string>();
+  for (const e of AUDIT_MANIFEST) out.add(e.action);
+  for (const row of AUDIT_ROUTE_CATALOGUE) {
+    for (const m of row.methods) {
+      if (!auditEntryFor(row.route, m)) out.add(`${row.family}.${CATALOGUE_VERB[m]}`);
+    }
+  }
+  return [...out].sort();
 }

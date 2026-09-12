@@ -22,6 +22,7 @@ import { assertProjectScope } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
 import { consumeRateLimit } from "@/lib/rate-limit/persistent";
 import { runTechIntelligence } from "@/lib/agents/tech-intelligence";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,7 @@ interface TechAnalysisBody {
   github_url?: string | null;
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   // ── Auth ─────────────────────────────────────────────────────────────
   const user = await getCurrentUser();
   if (!user) {
@@ -170,3 +171,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true, ...result });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/founder/tech-analysis/route.ts", method: "POST" }, POST_handler);

@@ -5,10 +5,11 @@
 import { NextResponse } from "next/server";
 import { cronSecret } from "@/lib/security/cron-auth";
 import { getCurrentUser, ADMIN_EMAIL } from "@/lib/auth";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request): Promise<NextResponse> {
+async function POST_handler(request: Request): Promise<NextResponse> {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const isAdmin = user.email === ADMIN_EMAIL || user.role === "admin";
@@ -34,3 +35,6 @@ export async function POST(request: Request): Promise<NextResponse> {
   const json = await res.json().catch(() => ({}));
   return NextResponse.json({ ok: res.ok, status: res.status, result: json });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/admin/ai-health/trigger/route.ts", method: "POST" }, POST_handler);

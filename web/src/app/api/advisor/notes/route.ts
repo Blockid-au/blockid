@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getClientNotes, saveNote } from "@/lib/advisor-portal";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -30,7 +31,7 @@ interface NoteBody {
   body?: unknown;
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
@@ -65,3 +66,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true, persisted: true, note });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/advisor/notes/route.ts", method: "POST" }, POST_handler);

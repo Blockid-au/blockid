@@ -38,6 +38,7 @@ import { AdminGateError, requireAdmin } from "@/lib/reseller/require-admin";
 import { normaliseResellerCode } from "@/lib/reseller/attribution";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { monthKey } from "@/lib/reseller/credit-grants";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -146,7 +147,7 @@ async function safeAudit(entry: {
   }
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   try {
     requireAdmin(user);
@@ -664,3 +665,6 @@ export async function POST(request: Request) {
     invite,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/admin/affiliate/provision/route.ts", method: "POST" }, POST_handler);

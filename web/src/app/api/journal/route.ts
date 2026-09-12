@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI } from "@/lib/ai-client";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
 // POST /api/journal — create a new journal entry
 // ---------------------------------------------------------------------------
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
@@ -161,7 +162,7 @@ async function generateReflection(
 // PUT /api/journal — update an existing journal entry
 // ---------------------------------------------------------------------------
 
-export async function PUT(request: Request) {
+async function PUT_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
@@ -226,7 +227,7 @@ export async function PUT(request: Request) {
 // DELETE /api/journal — remove a journal entry
 // ---------------------------------------------------------------------------
 
-export async function DELETE(request: Request) {
+async function DELETE_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
@@ -273,3 +274,8 @@ export async function DELETE(request: Request) {
 
   return NextResponse.json({ ok: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/journal/route.ts", method: "POST" }, POST_handler);
+export const PUT = apiRoute({ route: "api/journal/route.ts", method: "PUT" }, PUT_handler);
+export const DELETE = apiRoute({ route: "api/journal/route.ts", method: "DELETE" }, DELETE_handler);

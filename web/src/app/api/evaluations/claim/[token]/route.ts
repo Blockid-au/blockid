@@ -18,6 +18,7 @@ import { NextResponse } from "next/server";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { getCurrentUser } from "@/lib/auth";
 import { claimEvaluation } from "@/lib/evaluations";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -25,7 +26,7 @@ export const runtime = "nodejs";
 export const CLAIM_RATE_MAX = 20;
 export const CLAIM_RATE_WINDOW_MS = 10 * 60 * 1000;
 
-export async function POST(
+async function POST_handler(
   request: Request,
   { params }: { params: Promise<{ token: string }> },
 ) {
@@ -57,3 +58,6 @@ export async function POST(
     project_name: result.projectName,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/evaluations/claim/[token]/route.ts", method: "POST" }, POST_handler);

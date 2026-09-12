@@ -13,10 +13,11 @@ import { getCurrentUser } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { computeProjection, validateForecastInput } from '@/lib/forecast-builder';
 import type { GenerateForecastRequest, GenerateForecastResponse } from '@/types/financial';
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(request: NextRequest) {
+async function POST_handler(request: NextRequest) {
   try {
     // 1. Authenticate user
     const user = await getCurrentUser();
@@ -125,3 +126,6 @@ export async function POST(request: NextRequest) {
 function getDisclaimer(): string {
   return 'General information only. Not financial advice. Projections are illustrative estimates based on Australian sector benchmarks and may differ materially from actual outcomes.';
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/financial/forecast/generate/route.ts", method: "POST" }, POST_handler);

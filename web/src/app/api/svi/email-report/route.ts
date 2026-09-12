@@ -3,12 +3,13 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { sendSVIReport } from "@/lib/email";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // POST /api/svi/email-report
 // Body: { email, slug, analysis }
 // Generates the SVI PDF report and sends it as an email attachment.
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -63,3 +64,6 @@ export async function POST(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/svi/email-report/route.ts", method: "POST" }, POST_handler);

@@ -75,6 +75,7 @@ import {
 } from "@/lib/reseller/stripe-billing";
 import { createResellerWholesaleSubscription } from "@/lib/reseller/stripe-billing-adapter";
 import { seedDataroomTemplates } from "@/lib/dataroom/seed-templates";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -496,7 +497,7 @@ async function execute(
   };
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const gate = await gateRequireFeature("reseller.create_startup");
   if (!gate.ok) return gate.response;
   const user = gate.user;
@@ -682,3 +683,6 @@ function describeStripeWiring(outcome: StripeWiringOutcome): string {
       return `Stripe subscription create failed (${outcome.reason}). Workspace stays live; retry billing from /reseller/customers.`;
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/reseller/create-startup/route.ts", method: "POST" }, POST_handler);

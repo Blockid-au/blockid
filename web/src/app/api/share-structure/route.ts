@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { computeSharePriceFromSVI, getDefaultShareStructure, type ShareMode } from "@/lib/share-structure";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +53,7 @@ export async function GET() {
 // POST /api/share-structure — Create or update share structure config
 // ---------------------------------------------------------------------------
 
-export async function POST(request: NextRequest) {
+async function POST_handler(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
@@ -126,3 +127,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: true, config: data, computed });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/share-structure/route.ts", method: "POST" }, POST_handler);

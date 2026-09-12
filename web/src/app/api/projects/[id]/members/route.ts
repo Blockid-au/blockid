@@ -28,6 +28,7 @@ import {
   type ProjectMemberRole,
 } from "@/lib/project-members/scope";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
+import { apiRoute } from "@/lib/audit/api-route";
 
 // Extract the domain portion of an email for PII-safe audit metadata.
 // We NEVER log the full local-part — only the host, or null if malformed.
@@ -114,7 +115,7 @@ export async function GET(
 // POST — invite a member
 // ---------------------------------------------------------------------------
 
-export async function POST(
+async function POST_handler(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -205,7 +206,7 @@ export async function POST(
 // DELETE — revoke a member (by ?memberId=)
 // ---------------------------------------------------------------------------
 
-export async function DELETE(
+async function DELETE_handler(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -274,3 +275,7 @@ export async function DELETE(
     );
   }
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/projects/[id]/members/route.ts", method: "POST" }, POST_handler);
+export const DELETE = apiRoute({ route: "api/projects/[id]/members/route.ts", method: "DELETE" }, DELETE_handler);

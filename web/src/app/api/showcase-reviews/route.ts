@@ -21,6 +21,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { hashComment } from "@/lib/reseller/reviews";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ interface ReviewPostBody {
 
 const MAX_COMMENT_LEN = 4000;
 
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json({ ok: false, error: "Storage not configured" }, { status: 503 });
@@ -142,3 +143,6 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({ ok: true, reviews: data ?? [] });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/showcase-reviews/route.ts", method: "POST" }, POST_handler);

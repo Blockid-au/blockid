@@ -11,6 +11,7 @@ import { NextResponse } from "next/server";
 import { readJsonBody } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { deleteEvaluation, getEvaluationForUser, updateEvaluation } from "@/lib/evaluations";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -19,7 +20,7 @@ type Ctx = { params: Promise<{ id: string }> };
 
 const PATCH_BODY_MAX_BYTES = 64 * 1024;
 
-export async function PATCH(request: Request, { params }: Ctx) {
+async function PATCH_handler(request: Request, { params }: Ctx) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   const { id } = await params;
@@ -53,7 +54,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
   return NextResponse.json({ ok: true, evaluation });
 }
 
-export async function DELETE(request: Request, { params }: Ctx) {
+async function DELETE_handler(request: Request, { params }: Ctx) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   const { id } = await params;
@@ -62,3 +63,7 @@ export async function DELETE(request: Request, { params }: Ctx) {
   if (!removed) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
   return NextResponse.json({ ok: true, deleted: id, project_kept: true });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const PATCH = apiRoute({ route: "api/evaluations/[id]/route.ts", method: "PATCH" }, PATCH_handler);
+export const DELETE = apiRoute({ route: "api/evaluations/[id]/route.ts", method: "DELETE" }, DELETE_handler);

@@ -39,6 +39,7 @@ import {
   isInterviewStepKey,
   type InterviewStepKey,
 } from "@/lib/startup-package/interview-steps";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +61,7 @@ const STEP_TO_CRITERION: Record<InterviewStepKey, CriterionKey> = {
   first_traction: "code_git",
 };
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -378,3 +379,6 @@ function extractExecSummary(md: string): string {
   const firstPara = stripped.split(/\n\n+/, 1)[0]?.trim() ?? stripped;
   return firstPara.length > 480 ? `${firstPara.slice(0, 480)}…` : firstPara;
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/startup-package/analyze/route.ts", method: "POST" }, POST_handler);

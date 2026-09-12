@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { gateRequireFeature } from "@/lib/feature-gate";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ interface HealthIssue {
   recommendation: string;
 }
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const gate = await gateRequireFeature("share_management");
   if (!gate.ok) return gate.response;
 
@@ -147,3 +148,6 @@ export async function POST(request: Request) {
     recommendations,
   });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/cap-table/health/route.ts", method: "POST" }, POST_handler);

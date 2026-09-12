@@ -9,6 +9,7 @@ import {
   SVI_STAGE_LABELS,
 } from "@/lib/svi-analysis";
 import { estimateValuation, formatAUD } from "@/lib/valuation";
+import { apiRoute } from "@/lib/audit/api-route";
 
 /**
  * Anonymous instant-value endpoint for the marketing hero.
@@ -26,7 +27,7 @@ export const runtime = "nodejs";
 const MIN_TEXT = 20;
 const MAX_TEXT = 4000;
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const limited = enforceRateLimit(
     "hero-analyze",
     null,
@@ -167,3 +168,5 @@ function estimatePercentile(
   return 50;
 }
 
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/hero/analyze/route.ts", method: "POST" }, POST_handler);
