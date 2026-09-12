@@ -43,12 +43,19 @@ vi.mock("@/lib/i18n/locales", () => ({
   LOCALE_HEADER: "x-locale",
   isLocale: (v: string) => ["en", "vi"].includes(v),
 }));
-vi.mock("@/lib/security-headers", () => ({
-  securityHeaders: () => ({ "X-Test-Security": "1" }),
-}));
+// Real header set + a marker so tests can tell the proxy applied it. The
+// real module is kept in the loop so the "single CSP header" assertions
+// below would catch a Content-Security-Policy creeping back into it.
+vi.mock("@/lib/security-headers", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/security-headers")>();
+  return {
+    ...actual,
+    securityHeaders: () => ({ ...actual.securityHeaders(), "X-Test-Security": "1" }),
+  };
+});
 
 // Import AFTER mocks are in place.
-import { config, crossSiteApiGate, proxy } from "./proxy";
+import { buildContentSecurityPolicy, config, crossSiteApiGate, proxy } from "./proxy";
 import { SESSION_COOKIE } from "@/lib/auth-cookie";
 
 const COOKIE = `${SESSION_COOKIE}=sess-token-123`;
@@ -314,5 +321,131 @@ describe("rate-limit buckets — /api/lead contact + waitlist form (QA-3 P1-9)",
     expect(res.status).toBe(429);
     expect(await res.json()).toMatchObject({ ok: false, bucket: "lead" });
     expect(Number(res.headers.get("retry-after"))).toBeGreaterThan(0);
+  });
+});
+
+describe("Content-Security-Policy — exactly one enforced policy (release QA-2 F2)", () => {
+  const SRC_ROOT = join(__dirname);
+
+  function walk(dir: string, out: string[] = []): string[] {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, entry.name);
+      if (entry.isDirectory()) walk(p, out);
+      else if (/\.(ts|tsx|mjs|js)$/.test(entry.name) && !/\.test\.(ts|tsx|mjs|js)$/.test(entry.name)) out.push(p);
+    }
+    return out;
+  }
+
+  function cspOf(res: Response): string {
+    const csp = res.headers.get("content-security-policy");
+    expect(csp, "CSP header present").toBeTruthy();
+    return csp!;
+  }
+
+  it("a page response carries ONE Content-Security-Policy, no Report-Only twin, and the nonce", async () => {
+    const res = await proxy(req("/pricing", { method: "GET", site: "none" }));
+    expect(res.status).toBe(200);
+    const csp = cspOf(res);
+    // Headers.get() joins duplicates with ", " — a second policy would show
+    // up as a second default-src directive.
+    expect(csp.match(/default-src/g)?.length).toBe(1);
+    expect(res.headers.get("content-security-policy-report-only")).toBeNull();
+    const nonce = res.headers.get("x-nonce");
+    expect(nonce).toBeTruthy();
+    expect(csp).toContain(`'nonce-${nonce}'`);
+    expect(csp).toBe(buildContentSecurityPolicy(nonce!));
+  });
+
+  it("the same single policy is stamped on the request so Next threads the nonce onto its inline scripts", async () => {
+    const res = await proxy(req("/pricing", { method: "GET", site: "none" }));
+    // NextResponse.next({ request: { headers } }) surfaces overridden request
+    // headers as x-middleware-request-*.
+    const reqCsp = res.headers.get("x-middleware-request-content-security-policy");
+    expect(reqCsp).toBe(cspOf(res));
+  });
+
+  it("rate-limited (allowed) API responses carry the same single policy", async () => {
+    const res = await proxy(req("/api/svi", { site: "same-origin", cookie: COOKIE }));
+    expect(res.status).toBe(200);
+    expect(checkRateLimitMock).toHaveBeenCalledTimes(1);
+    expect(cspOf(res).match(/default-src/g)?.length).toBe(1);
+    expect(res.headers.get("content-security-policy-report-only")).toBeNull();
+  });
+
+  it("script-src uses nonce + 'strict-dynamic' and never 'unsafe-inline' / 'unsafe-eval'", () => {
+    const csp = buildContentSecurityPolicy("abc123");
+    const scriptSrc = csp.split("; ").find((d) => d.startsWith("script-src "))!;
+    expect(scriptSrc).toContain("'nonce-abc123'");
+    expect(scriptSrc).toContain("'strict-dynamic'");
+    expect(scriptSrc).not.toContain("'unsafe-inline'");
+    expect(scriptSrc).not.toContain("'unsafe-eval'");
+  });
+
+  it("allows GTM / GA4 / Cloudflare Insights to load and to phone home", () => {
+    const csp = buildContentSecurityPolicy("n");
+    const directive = (name: string) => csp.split("; ").find((d) => d.startsWith(`${name} `))!;
+    const scriptSrc = directive("script-src");
+    for (const host of [
+      "https://www.googletagmanager.com",
+      "https://www.google-analytics.com",
+      "https://static.cloudflareinsights.com",
+    ]) expect(scriptSrc).toContain(host);
+
+    const connectSrc = directive("connect-src");
+    for (const host of [
+      "https://www.google-analytics.com",
+      "https://analytics.google.com",
+      "https://region1.google-analytics.com",
+      "https://stats.g.doubleclick.net",
+      "https://www.google.com",
+      "https://cloudflareinsights.com",
+    ]) expect(connectSrc).toContain(host);
+
+    const imgSrc = directive("img-src");
+    expect(imgSrc).toContain("https://www.google-analytics.com");
+    expect(imgSrc).toContain("https://www.googletagmanager.com");
+  });
+
+  it("allows Google Identity Services (Sign in with Google) style + iframe + connect", () => {
+    const csp = buildContentSecurityPolicy("n");
+    const directive = (name: string) => csp.split("; ").find((d) => d.startsWith(`${name} `))!;
+    expect(directive("style-src")).toContain("https://accounts.google.com/gsi/style");
+    expect(directive("frame-src")).toContain("https://accounts.google.com/gsi/");
+    expect(directive("connect-src")).toContain("https://accounts.google.com/gsi/");
+  });
+
+  it("keeps Stripe + Turnstile + Supabase hosts", () => {
+    const csp = buildContentSecurityPolicy("n");
+    const directive = (name: string) => csp.split("; ").find((d) => d.startsWith(`${name} `))!;
+    expect(directive("script-src")).toContain("https://js.stripe.com");
+    expect(directive("script-src")).toContain("https://challenges.cloudflare.com");
+    expect(directive("frame-src")).toContain("https://js.stripe.com");
+    expect(directive("frame-src")).toContain("https://hooks.stripe.com");
+    expect(directive("frame-src")).toContain("https://challenges.cloudflare.com");
+    expect(directive("connect-src")).toContain("https://api.stripe.com");
+    expect(directive("connect-src")).toContain("https://*.supabase.co");
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).toContain("object-src 'none'");
+    expect(csp).toContain("base-uri 'self'");
+    expect(csp).toContain("form-action 'self'");
+  });
+
+  it("no module other than src/proxy.ts sets a Content-Security-Policy header (static scan)", () => {
+    const offenders = walk(SRC_ROOT)
+      .filter((p) => !p.endsWith(join("src", "proxy.ts")))
+      .filter((p) => {
+        const text = readFileSync(p, "utf8");
+        // Only header *assignments* count — mentions in comments/docs and
+        // the security-posture scanner's regex are fine.
+        return /["'`]Content-Security-Policy(?:-Report-Only)?["'`]\s*[:,]/i.test(text)
+          && !/security-posture/.test(p);
+      })
+      .map((p) => p.slice(SRC_ROOT.length + 1));
+    expect(offenders).toEqual([]);
+  });
+
+  it("next.config.ts does not add a CSP via headers()", () => {
+    const cfg = readFileSync(join(SRC_ROOT, "..", "next.config.ts"), "utf8");
+    expect(/key:\s*["'`]Content-Security-Policy/i.test(cfg)).toBe(false);
   });
 });

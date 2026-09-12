@@ -20,7 +20,23 @@ export interface NextUnlockCardProps {
   completionPct: number;
   topBlockers: readonly PhaseBlocker[];
   nextAction: string | null;
+  /**
+   * Release QA-2 F8 — "start here" state for a founder with no project /
+   * no phase yet. The dashboard used to render nothing, so a fresh founder
+   * never saw the phase ladder at all. Renders Phase 1 · 0 % with a single
+   * CTA to /analyze (the first score creates the project + phase).
+   */
+  startHere?: boolean;
 }
+
+/** Props for the "start here" state — exported so the page + tests share one definition. */
+export const NEXT_UNLOCK_START_HERE: NextUnlockCardProps = {
+  currentPhase: "vision",
+  completionPct: 0,
+  topBlockers: [],
+  nextAction: "Run your first SVI score — it creates your startup profile and unlocks the phase ladder.",
+  startHere: true,
+};
 
 const BLOCKER_CODE_LABEL: Record<string, string> = {
   missing_required_criteria: "Missing evidence",
@@ -52,6 +68,7 @@ export function NextUnlockCard({
   completionPct,
   topBlockers,
   nextAction,
+  startHere = false,
 }: NextUnlockCardProps) {
   const phaseOrder = growthPhaseOrder(currentPhase);
   const phaseLabel = GROWTH_PHASE_LABELS[currentPhase]?.en ?? currentPhase;
@@ -64,6 +81,7 @@ export function NextUnlockCard({
     <div
       data-testid="next-unlock-card"
       data-phase={currentPhase}
+      data-start-here={startHere ? "true" : undefined}
       className="rounded-2xl border border-line-subtle bg-surface p-5 space-y-4"
       role="region"
       aria-labelledby="next-unlock-heading"
@@ -109,11 +127,24 @@ export function NextUnlockCard({
           />
         </div>
         <p className="text-[10px] text-tertiary mt-1">
-          {clamped === 100
-            ? "All exit conditions met — ready to advance"
-            : `${clamped}% of exit conditions met`}
+          {startHere
+            ? "Start here — nothing scored yet"
+            : clamped === 100
+              ? "All exit conditions met — ready to advance"
+              : `${clamped}% of exit conditions met`}
         </p>
       </div>
+
+      {/* Start-here CTA (no project / no phase yet) */}
+      {startHere && (
+        <Link
+          href="/analyze"
+          data-testid="next-unlock-start-cta"
+          className="inline-flex min-h-10 items-center justify-center rounded-xl bg-action px-4 text-xs font-semibold text-on-action hover:bg-action-hover transition-colors"
+        >
+          Score my startup
+        </Link>
+      )}
 
       {/* Top-3 blockers */}
       {top3.length > 0 && (

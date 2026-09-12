@@ -3,7 +3,33 @@
 
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { NextUnlockCard, progressColor, progressTextColor } from "./next-unlock-card";
+import { NEXT_UNLOCK_START_HERE, NextUnlockCard, progressColor, progressTextColor } from "./next-unlock-card";
+
+describe("NextUnlockCard — start-here state (release QA-2 F8)", () => {
+  it("renders Phase 1 · 0 % with a single CTA to /analyze for a founder with no project", () => {
+    const out = renderToStaticMarkup(<NextUnlockCard {...NEXT_UNLOCK_START_HERE} />);
+    expect(out).toContain('data-testid="next-unlock-card"');
+    expect(out).toContain('data-start-here="true"');
+    expect(out).toContain('data-phase="vision"');
+    expect(out).toContain("Phase 1");
+    expect(out).toContain("Vision &amp; Mission");
+    expect(out).toContain('aria-valuenow="0"');
+    expect(out).toContain("Start here");
+    expect(out).toContain('data-testid="next-unlock-start-cta"');
+    expect(out).toMatch(/href="\/analyze"/);
+    expect(out).toContain("Run your first SVI score");
+    expect(out).not.toContain("Blockers");
+  });
+
+  it("the normal state carries no start-here marker or CTA", () => {
+    const out = renderToStaticMarkup(
+      <NextUnlockCard currentPhase="vision" completionPct={40} topBlockers={[]} nextAction={null} />,
+    );
+    expect(out).not.toContain("data-start-here");
+    expect(out).not.toContain("next-unlock-start-cta");
+    expect(out).toContain("40% of exit conditions met");
+  });
+});
 
 describe("NextUnlockCard", () => {
   it("renders the phase, completion and a 'How unlocks work' link to /docs/unlocks", () => {

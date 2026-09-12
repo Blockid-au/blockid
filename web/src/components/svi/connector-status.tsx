@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { GitBranch, BarChart3, CreditCard, Building2, CheckCircle2, Loader2, ExternalLink } from "lucide-react";
+import { probeConnector } from "@/lib/oauth/connector-probe";
 
 function LinkedInIcon({ className }: { className?: string }) {
   return (
@@ -69,7 +70,10 @@ const CONNECTORS: ConnectorDef[] = [
   },
 ];
 
-export function ConnectorStatus() {
+/** Tooltip shown on write affordances for a viewer (release QA-2 F11). */
+export const EVIDENCE_READ_ONLY_HINT = "View-only access — ask the project owner for editor rights to add or connect evidence.";
+
+export function ConnectorStatus({ readOnly = false }: { readOnly?: boolean } = {}) {
   const [evidence, setEvidence] = React.useState<EvidenceItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [connectingId, setConnectingId] = React.useState<string | null>(null);
@@ -95,12 +99,7 @@ export function ConnectorStatus() {
       const results: Record<string, boolean> = {};
       await Promise.all(
         CONNECTORS.filter((c) => c.headUrl).map(async (c) => {
-          try {
-            const res = await fetch(c.headUrl!, { method: "HEAD", redirect: "manual" });
-            results[c.id] = res.status !== 503;
-          } catch {
-            results[c.id] = false;
-          }
+          results[c.id] = await probeConnector(c.headUrl!);
         }),
       );
       if (!cancelled) setAvailability(results);
@@ -261,8 +260,13 @@ export function ConnectorStatus() {
               ) : (
                 <button
                   type="button"
-                  disabled={isConnecting}
-                  onClick={() => void handleConnect(connector)}
+                  disabled={isConnecting || readOnly}
+                  aria-disabled={readOnly || undefined}
+                  title={readOnly ? EVIDENCE_READ_ONLY_HINT : undefined}
+                  data-readonly={readOnly ? "true" : undefined}
+                  onClick={() => {
+                    if (!readOnly) void handleConnect(connector);
+                  }}
                   className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isConnecting ? (

@@ -16,6 +16,10 @@ export const dynamic = "force-dynamic";
  * Returns the full VC-grade valuation report for the authenticated user.
  * Pulls SVI data + metrics from Supabase and runs buildVcValuationReport().
  * No credits charged — this is a free read endpoint that enriches the dashboard.
+ *
+ * Responds `{ ok: true, empty: true, reason: "no_svi_analysis" }` when the
+ * account has never been scored (release QA-2 F4) — the client shows an
+ * empty state with a CTA to /analyze rather than a made-up number.
  */
 export async function GET() {
   try {
@@ -122,8 +126,29 @@ export async function GET() {
       else stage = "series-a";
     }
 
-    // Use SVI score from analysis if account has no current_svi
-    const sviScore = (account.current_svi as number | null) ?? (latestAnalysis?.total_svi as number | null) ?? 100;
+    // Release QA-2 F4 — never fabricate a valuation. A fresh account has an
+    // svi_accounts row (created at signup) but no score; the old `?? 100`
+    // default produced "A$535K · SVI 100 · 60% confidence" for a founder who
+    // had never run an analysis, while the certificate panel next to it
+    // correctly said "Complete an SVI analysis first" (409). Same rule as
+    // the certificate: no analysis row, no snapshot, no stored score → the
+    // dashboard renders an honest empty state instead of a number.
+    const accountSvi = account.current_svi as number | null;
+    const analysisSvi = (latestAnalysis?.total_svi as number | null | undefined) ?? null;
+    const hasScore =
+      !!latestAnalysis ||
+      !!snapshot ||
+      (typeof accountSvi === "number" && Number.isFinite(accountSvi) && accountSvi > 0);
+    if (!hasScore) {
+      return NextResponse.json({
+        ok: true,
+        empty: true,
+        reason: "no_svi_analysis",
+        message: "Run your first score to see a valuation.",
+      });
+    }
+
+    const sviScore = accountSvi ?? analysisSvi ?? null;
 
     // Estimate TAM from market size signal in analysis (per-startup differentiation)
     function tamFromMarketSize(marketSize?: string): number | undefined {
@@ -175,6 +200,7 @@ export async function GET() {
 
     return NextResponse.json({
       ok: true,
+      empty: false,
       report,
       svi: sviScore,
       stage,

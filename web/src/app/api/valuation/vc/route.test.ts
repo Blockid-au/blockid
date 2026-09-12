@@ -90,6 +90,40 @@ describe("GET /api/valuation/vc", () => {
     );
   });
 
+  it("scored account → ok:true, empty:false, svi from the account", async () => {
+    const res = await GET();
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.empty).toBe(false);
+    expect(body.svi).toBe(120);
+    expect(body.report.blended.midAud).toBeGreaterThan(0);
+  });
+
+  it("release QA-2 F4: never fabricates a valuation — no analysis / snapshot / score → { empty: true }, no report", async () => {
+    scopeState.account = { id: "acct-1", current_svi: null, current_stage: 0 };
+    db.sb = fakeSupabase({ startup_metrics: [], svi_snapshots: [], svi_analyses: [] });
+    const res = await GET();
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toMatchObject({ ok: true, empty: true, reason: "no_svi_analysis" });
+    expect(body.report).toBeUndefined();
+    expect(body.svi).toBeUndefined();
+    expect(JSON.stringify(body)).not.toContain("100");
+    expect(revenue.load).not.toHaveBeenCalled();
+  });
+
+  it("release QA-2 F4: an analysis row alone is enough to score (svi from the analysis, no 100 default)", async () => {
+    scopeState.account = { id: "acct-1", current_svi: null, current_stage: 0 };
+    db.sb = fakeSupabase({
+      startup_metrics: [],
+      svi_snapshots: [],
+      svi_analyses: [{ analysis_json: { stage: 1 }, total_svi: 87, raw_input: "fintech" }],
+    });
+    const body = await (await GET()).json();
+    expect(body.empty).toBe(false);
+    expect(body.svi).toBe(87);
+  });
+
   it("no account → 404 before any table read", async () => {
     scopeState.account = null;
     const res = await GET();

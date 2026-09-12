@@ -105,7 +105,7 @@ export function ValuationCertificatePanel({ initial }: { initial?: CertificatePa
     try {
       const { res, json } = await post("/api/valuation/certificate", {});
       if (!res.ok) {
-        setError(json.error === "insufficient_credits" ? `Not enough credits — ${json.creditsRequired} needed, balance ${json.balance}.` : json.error === "no_svi_analysis" ? "Complete an SVI analysis first." : json.error ?? "Could not prepare the certificate");
+        setError(json.error === "insufficient_credits" ? `Not enough credits — ${json.creditsRequired} needed, balance ${json.balance}.` : json.error === "no_svi_analysis" ? "Complete an SVI analysis first — run your first score to see a valuation." : json.error ?? "Could not prepare the certificate");
         return;
       }
       if (json.preview) setPreview({ cost: json.cost, included: json.included, balance: json.balance, creditNote: json.creditNote, subject: json.subject });

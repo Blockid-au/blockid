@@ -1,7 +1,8 @@
 // Colocated vitest for POST /api/auth/login-password — P9-login-password-route-test.
 //
 // The password login is the surface EVERY brute-force / credential-stuffing
-// attempt hits, so both the rate limit (5/IP/15min) and the error-mapping
+// attempt hits, so both the rate limit (per-IP ceiling 30/15min + 5/15min
+// per (IP, email) — release QA-2 F7) and the error-mapping
 // (never confirm "email exists but password wrong" separately from "email
 // doesn't exist") are load-bearing. A regression that drops the rate limit
 // or maps `no_password` to a distinct error would let attackers enumerate
@@ -160,29 +161,86 @@ describe("POST /api/auth/login-password — rate limit", () => {
     expect(mocks.setSessionCookieMock).not.toHaveBeenCalled();
   });
 
-  it("keys the rate limit by client IP (first x-forwarded-for)", async () => {
-    await POST(req({ email: "a@b.co", password: "pw" }, { ip: "9.9.9.9, 1.1.1.1" }));
-    expect(mocks.checkRateLimitMock).toHaveBeenCalledWith(
-      "login:9.9.9.9",
-      5,
+  // Release QA-2 F7 — two buckets: a per-IP ceiling (30/15 min) checked
+  // first, then the D3-CISO 5/15 min cap per (IP, email-hash). The IP is the
+  // TRUSTED hop from clientIpFromHeaders (cf-connecting-ip / last XFF hop),
+  // never the client-controlled first x-forwarded-for entry.
+  it("bucket 1 = per-IP ceiling: 30 / 15 min, keyed on the trusted hop", async () => {
+    mocks.clientIpFromHeadersMock.mockReturnValue("203.0.113.7");
+    await POST(req({ email: "a@b.co", password: "pw" }, { ip: "9.9.9.9, 203.0.113.7" }));
+    expect(mocks.checkRateLimitMock.mock.calls[0]).toEqual([
+      "login:ip:203.0.113.7",
+      30,
       15 * 60 * 1000,
-    );
+    ]);
   });
 
-  it("keys the rate limit by 'unknown' when x-forwarded-for is missing", async () => {
-    await POST(req({ email: "a@b.co", password: "pw" }));
-    expect(mocks.checkRateLimitMock).toHaveBeenCalledWith(
-      "login:unknown",
-      5,
-      15 * 60 * 1000,
-    );
-  });
-
-  it("uses max=5 attempts / 15-minute window (D3-CISO bruteforce cap)", async () => {
-    await POST(req({ email: "a@b.co", password: "pw" }));
-    const call = mocks.checkRateLimitMock.mock.calls[0];
+  it("bucket 2 = per (IP, email hash): 5 / 15 min (D3-CISO bruteforce cap), email never raw", async () => {
+    mocks.clientIpFromHeadersMock.mockReturnValue("203.0.113.7");
+    await POST(req({ email: "Founder@Example.com", password: "pw" }));
+    const call = mocks.checkRateLimitMock.mock.calls[1];
+    expect(call?.[0]).toMatch(/^login:203\.0\.113\.7:[0-9a-f]{16}$/);
+    expect(call?.[0]).not.toMatch(/founder|example/i);
     expect(call?.[1]).toBe(5);
     expect(call?.[2]).toBe(15 * 60 * 1000);
+  });
+
+  it("two accounts behind one IP get DIFFERENT identity buckets (shared NAT / QA egress)", async () => {
+    mocks.clientIpFromHeadersMock.mockReturnValue("203.0.113.7");
+    await POST(req({ email: "a@b.co", password: "pw" }));
+    await POST(req({ email: "c@d.co", password: "pw" }));
+    const [, first, , second] = mocks.checkRateLimitMock.mock.calls;
+    expect(first?.[0]).not.toBe(second?.[0]);
+  });
+
+  it("a client-forged first x-forwarded-for hop never picks the key", async () => {
+    mocks.clientIpFromHeadersMock.mockReturnValue("203.0.113.7");
+    await POST(req({ email: "a@b.co", password: "pw" }, { ip: "9.9.9.9, 203.0.113.7" }));
+    for (const call of mocks.checkRateLimitMock.mock.calls) {
+      expect(call[0]).not.toContain("9.9.9.9");
+    }
+  });
+
+  it("keys on 'unknown' when no trusted IP header is present", async () => {
+    mocks.clientIpFromHeadersMock.mockReturnValue(null as unknown as string);
+    await POST(req({ email: "a@b.co", password: "pw" }));
+    expect(mocks.checkRateLimitMock.mock.calls[0]?.[0]).toBe("login:ip:unknown");
+  });
+
+  it("identity bucket denial → 429 before loginWithPassword, with Retry-After", async () => {
+    mocks.checkRateLimitMock
+      .mockReturnValueOnce({ allowed: true, resetIn: 0 })
+      .mockReturnValueOnce({ allowed: false, resetIn: 30_000 });
+    const res = await POST(req({ email: "a@b.co", password: "pw" }));
+    expect(res.status).toBe(429);
+    expect(res.headers.get("Retry-After")).toBe("30");
+    expect(res.headers.get("X-RateLimit-Remaining")).toBe("0");
+    expect(mocks.loginWithPasswordMock).not.toHaveBeenCalled();
+  });
+
+  it("IP-ceiling denial short-circuits: the identity bucket is never consulted", async () => {
+    mocks.checkRateLimitMock.mockReturnValue({ allowed: false, resetIn: 10_000 });
+    await POST(req({ email: "a@b.co", password: "pw" }));
+    expect(mocks.checkRateLimitMock).toHaveBeenCalledTimes(1);
+    expect(mocks.checkRateLimitMock.mock.calls[0]?.[0]).toMatch(/^login:ip:/);
+  });
+
+  it("a 429 is a distinct 'too many' body — never the generic credential error (QA-2 + QA-4 coexist)", async () => {
+    mocks.checkRateLimitMock
+      .mockReturnValueOnce({ allowed: true, resetIn: 0 })
+      .mockReturnValueOnce({ allowed: false, resetIn: 30_000 });
+    const res = await POST(req({ email: "a@b.co", password: "pw" }));
+    const body = await json(res);
+    expect(res.status).toBe(429);
+    expect(String(body.error)).not.toMatch(/invalid email or password/i);
+    expect(body.reason).toBeUndefined();
+  });
+
+  it("a failed credential check still burns BOTH buckets (limiters run before loginWithPassword)", async () => {
+    mocks.loginWithPasswordMock.mockResolvedValue({ ok: false, reason: "invalid_credentials" });
+    const res = await POST(req({ email: "a@b.co", password: "pw" }));
+    expect(res.status).toBe(401);
+    expect(mocks.checkRateLimitMock).toHaveBeenCalledTimes(2);
   });
 });
 

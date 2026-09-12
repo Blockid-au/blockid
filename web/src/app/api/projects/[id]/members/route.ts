@@ -29,6 +29,8 @@ import {
 } from "@/lib/project-members/scope";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 import { apiRoute } from "@/lib/audit/api-route";
+import { absoluteSiteUrl } from "@/lib/site-url";
+import { auditNote, setAuditProject } from "@/lib/audit/context";
 
 // Extract the domain portion of an email for PII-safe audit metadata.
 // We NEVER log the full local-part — only the host, or null if malformed.
@@ -43,13 +45,12 @@ export const dynamic = "force-dynamic";
 
 const VALID_ROLES: ProjectMemberRole[] = ["viewer", "editor", "admin"];
 
-function inviteUrlFor(request: Request, token: string): string {
-  try {
-    const origin = new URL(request.url).origin;
-    return `${origin}/invites/${token}`;
-  } catch {
-    return `/invites/${token}`;
-  }
+// Release QA-2 F3: the invite link must be the canonical public URL. The
+// old `new URL(request.url).origin` was the upstream bind address behind
+// nginx (`https://0.0.0.0:4001/invites/…`) and shipped to founders as
+// "Copy link". Never derive user-facing absolute URLs from request.url.
+function inviteUrlFor(token: string): string {
+  return absoluteSiteUrl(`/invites/${encodeURIComponent(token)}`);
 }
 
 function scopeErrorToStatus(err: ProjectMemberScopeError): number {
@@ -160,8 +161,13 @@ async function POST_handler(
     // Admin-perm required — owner OR accepted admin members may invite.
     // Editors/viewers get 403; non-members 404 (P2-3); inviting new
     // collaborators is admin-level.
-    await assertProjectAccess(user.id, id, "admin");
+    const access = await assertProjectAccess(user.id, id, "admin");
+    // Release QA-2 F6: assertProjectAccess() (unlike getProjectScope()) does
+    // not annotate the audit context, so `project.member.invited` rows
+    // carried project_id NULL and were invisible in the project-scoped log.
+    setAuditProject({ projectId: id, role: access.role, userId: user.id });
     const member = await inviteMember(id, email, role, user.id);
+    auditNote(member.id, { role: member.role });
 
     // SOC2-lite audit: record the successful invite. Domain only — never
     // the local-part — so PII is preserved.
@@ -183,7 +189,7 @@ async function POST_handler(
     return NextResponse.json({
       ok: true,
       member,
-      invite_url: inviteUrlFor(request, member.token),
+      invite_url: inviteUrlFor(member.token),
     });
   } catch (err) {
     const denied = projectAccessResponse(err);

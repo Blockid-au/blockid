@@ -143,7 +143,7 @@ describe("/compare — props", () => {
 
   it("the CTA hrefs are the brief's three targets", () => {
     expect(COMPARE_CTA_HREF.report).toBe("/analyze");
-    expect(COMPARE_CTA_HREF.trial).toBe("/signup?segment=evaluator&plan=investor_angel");
+    expect(COMPARE_CTA_HREF.trial).toBe("/signup?segment=evaluator&plan=investor_angel&trial=1");
     expect(COMPARE_CTA_HREF.plans).toBe("/pricing?segment=evaluator");
   });
 });

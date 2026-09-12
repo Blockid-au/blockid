@@ -13,6 +13,7 @@ function LinkedInIcon({ className }: { className?: string }) {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
+import { probeConnector } from "@/lib/oauth/connector-probe";
 
 interface EvidenceItem {
   id: string;
@@ -63,21 +64,11 @@ export function ConnectButtons({ evidence, onEvidenceAdded, onOpenWizard }: Conn
   const [analyticsAvailable, setAnalyticsAvailable] = React.useState<boolean | null>(null);
   const [xeroAvailable, setXeroAvailable] = React.useState<boolean | null>(null);
   React.useEffect(() => {
-    fetch("/api/oauth/github", { method: "HEAD", redirect: "manual" })
-      .then((res) => setGithubAvailable(res.status !== 503))
-      .catch(() => setGithubAvailable(false));
-    fetch("/api/oauth/linkedin", { method: "HEAD", redirect: "manual" })
-      .then((res) => setLinkedinAvailable(res.status !== 503))
-      .catch(() => setLinkedinAvailable(false));
-    fetch("/api/oauth/stripe", { method: "HEAD", redirect: "manual" })
-      .then((res) => setStripeAvailable(res.status !== 503))
-      .catch(() => setStripeAvailable(false));
-    fetch("/api/oauth/ga4", { method: "HEAD", redirect: "manual" })
-      .then((res) => setAnalyticsAvailable(res.status !== 503))
-      .catch(() => setAnalyticsAvailable(false));
-    fetch("/api/oauth/xero", { method: "HEAD", redirect: "manual" })
-      .then((res) => setXeroAvailable(res.status !== 503))
-      .catch(() => setXeroAvailable(false));
+    void probeConnector("/api/oauth/github").then(setGithubAvailable);
+    void probeConnector("/api/oauth/linkedin").then(setLinkedinAvailable);
+    void probeConnector("/api/oauth/stripe").then(setStripeAvailable);
+    void probeConnector("/api/oauth/ga4").then(setAnalyticsAvailable);
+    void probeConnector("/api/oauth/xero").then(setXeroAvailable);
   }, []);
 
   const handleUrlSubmit = async () => {

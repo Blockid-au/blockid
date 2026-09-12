@@ -10,18 +10,17 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { connectorProbeHeaders } from "@/lib/oauth/connector-probe";
 
 export const dynamic = "force-dynamic";
 
 // HEAD /api/oauth/github — check if GitHub OAuth is configured
 // Used by the Evidence Wizard and ConnectButtons to show availability.
-// Returns 200 if configured, 503 if not.
+// Release QA-2 F11: always 204 + `X-Connector-Configured: true|false` —
+// "not configured" is a state, not a 5xx (see lib/oauth/connector-probe.ts).
 export async function HEAD() {
-  const clientId = process.env.GITHUB_CLIENT_ID;
-  if (!clientId) {
-    return new NextResponse(null, { status: 503 });
-  }
-  return new NextResponse(null, { status: 200 });
+  const configured = Boolean(process.env.GITHUB_CLIENT_ID);
+  return new NextResponse(null, { status: 204, headers: connectorProbeHeaders(configured) });
 }
 
 // GET /api/oauth/github — redirect to GitHub OAuth authorization

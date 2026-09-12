@@ -1,7 +1,8 @@
 // Colocated vitest for POST /api/auth/register — P9-register-route-test.
 //
 // The registration surface has three security-critical gates that MUST NEVER
-// regress: (1) IP-scoped rate limit (3 signups per IP per 15 min) so a bot
+// regress: (1) rate limit — per-IP ceiling (20 / 15 min, trusted hop) plus a
+// per-(IP, email) bucket (5 / 15 min), release QA-2 F7 — so a bot
 // can't drain the app_users id space; (2) HTML-tag stripping on displayName
 // so a founder can't seed stored XSS by registering with
 // "<script>fetch(...)</script>" as their name; (3) email_taken → the SAME
@@ -158,20 +159,86 @@ describe("POST /api/auth/register — rate limit", () => {
     expect(res.headers.get("Retry-After")).toBe("90");
   });
 
-  it("uses max=3 attempts per 15-min window (tighter than login)", async () => {
-    await POST(req({ email: "a@b.co", password: "longenough" }));
+  // Release QA-2 F7 — two buckets: a per-IP ceiling (20/15 min) checked
+  // first, then a per-(IP, email-hash) bucket (5/15 min). The IP is the
+  // TRUSTED hop from clientIpFromHeaders (cf-connecting-ip / last XFF hop),
+  // never the client-controlled first x-forwarded-for entry.
+  it("bucket 1 = per-IP ceiling: 20 / 15 min, keyed on the trusted hop", async () => {
+    mocks.clientIpFromHeadersMock.mockReturnValue("203.0.113.7");
+    await POST(req({ email: "a@b.co", password: "longenough" }, { ip: "8.8.8.8, 203.0.113.7" }));
     const call = mocks.checkRateLimitMock.mock.calls[0];
-    expect(call?.[1]).toBe(3);
+    expect(call?.[0]).toBe("register:ip:203.0.113.7");
+    expect(call?.[1]).toBe(20);
     expect(call?.[2]).toBe(15 * 60 * 1000);
   });
 
-  it("keys the rate limit by client IP", async () => {
-    await POST(req({ email: "a@b.co", password: "longenough" }, { ip: "8.8.8.8" }));
-    expect(mocks.checkRateLimitMock).toHaveBeenCalledWith(
-      "register:8.8.8.8",
-      3,
-      15 * 60 * 1000,
-    );
+  it("bucket 2 = per (IP, email hash): 5 / 15 min, email never raw in the key", async () => {
+    mocks.clientIpFromHeadersMock.mockReturnValue("203.0.113.7");
+    await POST(req({ email: "Alice@B.co", password: "longenough" }));
+    const call = mocks.checkRateLimitMock.mock.calls[1];
+    expect(call?.[0]).toMatch(/^register:203\.0\.113\.7:[0-9a-f]{16}$/);
+    expect(call?.[0]).not.toMatch(/alice|b\.co/i);
+    expect(call?.[1]).toBe(5);
+    expect(call?.[2]).toBe(15 * 60 * 1000);
+  });
+
+  it("the same email from the same IP hits the same identity bucket regardless of case", async () => {
+    mocks.clientIpFromHeadersMock.mockReturnValue("203.0.113.7");
+    await POST(req({ email: "Alice@B.co", password: "longenough" }));
+    await POST(req({ email: "alice@b.co", password: "longenough" }));
+    const [, first, , second] = mocks.checkRateLimitMock.mock.calls;
+    expect(first?.[0]).toBe(second?.[0]);
+  });
+
+  it("two different emails behind one IP get DIFFERENT identity buckets (shared NAT / QA egress)", async () => {
+    mocks.clientIpFromHeadersMock.mockReturnValue("203.0.113.7");
+    await POST(req({ email: "a@b.co", password: "longenough" }));
+    await POST(req({ email: "c@d.co", password: "longenough" }));
+    const [, first, , second] = mocks.checkRateLimitMock.mock.calls;
+    expect(first?.[0]).not.toBe(second?.[0]);
+  });
+
+  it("a client-forged first x-forwarded-for hop never picks the key", async () => {
+    mocks.clientIpFromHeadersMock.mockReturnValue("203.0.113.7");
+    await POST(req({ email: "a@b.co", password: "longenough" }, { ip: "1.1.1.1, 203.0.113.7" }));
+    for (const call of mocks.checkRateLimitMock.mock.calls) {
+      expect(call[0]).not.toContain("1.1.1.1");
+    }
+  });
+
+  it("keys on 'unknown' when no trusted IP header is present", async () => {
+    mocks.clientIpFromHeadersMock.mockReturnValue(null as unknown as string);
+    await POST(req({ email: "a@b.co", password: "longenough" }));
+    expect(mocks.checkRateLimitMock.mock.calls[0]?.[0]).toBe("register:ip:unknown");
+  });
+
+  it("identity bucket denial → 429 before registerWithPassword", async () => {
+    mocks.checkRateLimitMock
+      .mockReturnValueOnce({ allowed: true, resetIn: 0 })
+      .mockReturnValueOnce({ allowed: false, resetIn: 30_000 });
+    const res = await POST(req({ email: "a@b.co", password: "longenough" }));
+    expect(res.status).toBe(429);
+    expect(res.headers.get("Retry-After")).toBe("30");
+    expect(mocks.registerMock).not.toHaveBeenCalled();
+  });
+
+  it("IP-ceiling denial short-circuits: the identity bucket is never consulted", async () => {
+    mocks.checkRateLimitMock.mockReturnValue({ allowed: false, resetIn: 10_000 });
+    await POST(req({ email: "a@b.co", password: "longenough" }));
+    expect(mocks.checkRateLimitMock).toHaveBeenCalledTimes(1);
+    expect(mocks.checkRateLimitMock.mock.calls[0]?.[0]).toMatch(/^register:ip:/);
+  });
+
+  it("a 429 never sends the existing-account notice nor the generic 'check your email' body", async () => {
+    mocks.checkRateLimitMock
+      .mockReturnValueOnce({ allowed: true, resetIn: 0 })
+      .mockReturnValueOnce({ allowed: false, resetIn: 30_000 });
+    const res = await POST(req({ email: "taken@example.com", password: "longenough" }));
+    expect(res.status).toBe(429);
+    const body = await json(res);
+    expect(body.pending).toBeUndefined();
+    expect(String(body.error)).toMatch(/too many/i);
+    expect(mocks.sendExistingAccountNoticeMock).not.toHaveBeenCalled();
   });
 
   it("MUST NOT call registerWithPassword when rate-limited", async () => {
@@ -336,6 +403,15 @@ describe("POST /api/auth/register — failure mapping", () => {
     const res = await POST(req({ email: "taken@example.com", password: "longenough" }));
     expect(res.status).toBe(200);
     expect((await json(res)).pending).toBe(true);
+  });
+
+  it("email_taken generic 200 is reached only after BOTH limiters allowed (QA-2 + QA-4 coexist)", async () => {
+    mocks.registerMock.mockResolvedValue({ ok: false, reason: "email_taken" });
+    const res = await POST(req({ email: "taken@example.com", password: "longenough" }));
+    expect(res.status).toBe(200);
+    expect(mocks.checkRateLimitMock).toHaveBeenCalledTimes(2);
+    expect(mocks.checkRateLimitMock.mock.calls[0]?.[0]).toMatch(/^register:ip:/);
+    expect(mocks.checkRateLimitMock.mock.calls[1]?.[0]).toMatch(/^register:[^:]+:[0-9a-f]{16}$/);
   });
 
   it("does NOT send the existing-account notice on a fresh signup", async () => {

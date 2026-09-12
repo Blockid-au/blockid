@@ -16,13 +16,13 @@ describe("primaryCtaHrefForSlug", () => {
 
   it("sends each evaluator persona to the evaluator signup with its rung pre-selected (G12 D2)", () => {
     expect(primaryCtaHrefForSlug("investor")).toBe(
-      "/signup?segment=evaluator&plan=investor_angel",
+      "/signup?segment=evaluator&plan=investor_angel&trial=1",
     );
     expect(primaryCtaHrefForSlug("advisor")).toBe(
-      "/signup?segment=evaluator&plan=investor_advisor",
+      "/signup?segment=evaluator&plan=investor_advisor&trial=1",
     );
     expect(primaryCtaHrefForSlug("accelerator")).toBe(
-      "/signup?segment=evaluator&plan=investor_vc_small",
+      "/signup?segment=evaluator&plan=investor_vc_small&trial=1",
     );
   });
 

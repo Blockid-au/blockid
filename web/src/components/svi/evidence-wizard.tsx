@@ -13,6 +13,7 @@ function LinkedInIcon({ className, strokeWidth: _sw }: { className?: string; str
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
+import { probeConnector } from "@/lib/oauth/connector-probe";
 
 // ---------- GitHub OAuth connect step ----------
 
@@ -23,9 +24,7 @@ function GitHubConnectStep() {
 
   React.useEffect(() => {
     // Check availability via HEAD
-    fetch("/api/oauth/github", { method: "HEAD", redirect: "manual" })
-      .then((res) => setAvailable(res.status !== 503))
-      .catch(() => setAvailable(false));
+    void probeConnector("/api/oauth/github").then(setAvailable);
 
     // Check if already connected by looking at evidence
     fetch("/api/evidence")
@@ -171,9 +170,7 @@ function LinkedInConnectStep() {
   const [connectedLabel, setConnectedLabel] = React.useState<string>("");
 
   React.useEffect(() => {
-    fetch("/api/oauth/linkedin", { method: "HEAD", redirect: "manual" })
-      .then((res) => setAvailable(res.status !== 503))
-      .catch(() => setAvailable(false));
+    void probeConnector("/api/oauth/linkedin").then(setAvailable);
 
     fetch("/api/evidence")
       .then((res) => res.json())

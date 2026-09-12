@@ -8,7 +8,7 @@
 //   5. Supabase env absent (getSupabaseAdmin() → null) → 200 { ok:true, skipped:true }
 //   6. Happy path → single UPDATE against `app_users` filtered by id=user.id
 //      with payload { onboarding_state: { step, state, updated_at: ISO } }
-//   7. Undefined column error (code 42703) → 200 { ok:true, skipped:true }
+//   7. Undefined column error (code 42703 or PostgREST PGRST204) → 200 { ok:true, skipped:true }
 //   8. Undefined column detected by message regex → 200 { ok:true, skipped:true }
 //   9. Other DB error → 500 { ok:false, reason: "Persistence failed" }
 //  10. UPDATE chain throws → 200 { ok:true, skipped:true } (fail-open by design)
@@ -340,6 +340,44 @@ describe("POST /api/onboarding/save-progress", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as { ok: boolean; skipped?: boolean };
     expect(body).toEqual({ ok: true, skipped: true });
+  });
+
+  it("release QA-2 F5: swallows PostgREST PGRST204 (schema-cache column miss) → { ok:true, skipped:true }, no error log", async () => {
+    getCurrentUserMock.mockResolvedValue(makeUser());
+    const state = makeState({
+      eqReply: {
+        data: null,
+        error: {
+          code: "PGRST204",
+          message: "Could not find the 'onboarding_state' column of 'app_users' in the schema cache",
+        },
+      },
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase(state) as any);
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const res = await POST(makeRequest({ step: 1, state: {} }));
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ ok: true, skipped: true });
+      expect(errSpy).not.toHaveBeenCalled();
+    } finally {
+      errSpy.mockRestore();
+    }
+  });
+
+  it("release QA-2 F5: swallows the PostgREST schema-cache message even when the code is missing", async () => {
+    getCurrentUserMock.mockResolvedValue(makeUser());
+    const state = makeState({
+      eqReply: {
+        data: null,
+        error: { message: "Could not find the 'onboarding_state' column of 'app_users' in the schema cache" },
+      },
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase(state) as any);
+    const res = await POST(makeRequest({ step: 1, state: {} }));
+    expect(await res.json()).toEqual({ ok: true, skipped: true });
   });
 
   it("swallows undefined_column via message regex when code missing", async () => {

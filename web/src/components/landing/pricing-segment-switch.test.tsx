@@ -93,13 +93,21 @@ describe("<PricingSegmentSwitch /> — Evaluator tab (deep link)", () => {
     expect(out).not.toContain('aria-label="VC Small plan"');
   });
 
-  it("routes every rung to /signup?segment=evaluator&plan=<id> as a 7-day card-required trial", () => {
+  it("routes every rung to /signup?segment=evaluator&plan=<id>&trial=1 as a 7-day card-required trial", () => {
     for (const id of ["investor_angel", "investor_advisor", "investor_vc_small"]) {
+      expect(evaluatorSignupHref(id)).toBe(`/signup?segment=evaluator&plan=${id}&trial=1`);
       expect(out).toContain(evaluatorSignupHref(id).replace(/&/g, "&amp;"));
     }
     expect(out).toContain("Start 7-day free trial");
     expect(out).toContain("card required · cancel anytime");
     expect(out).not.toContain("/contact?plan=investor_");
+  });
+
+  it("release QA-2 F10 / S7-C: every evaluator card says the trial includes 1 full report, then the monthly quota", () => {
+    expect(out).toContain("1 full Trust BizReport included during the trial, then 10/month on Scout");
+    expect(out).toContain("1 full Trust BizReport included during the trial, then 30/month on Firm");
+    expect(out).toContain("1 full Trust BizReport included during the trial, then 100/month on Program");
+    expect(out.match(/data-testid="evaluator-trial-included"/g)?.length).toBe(3);
   });
 
   it("shows the A$3 pay-as-you-go Trust BizReport line", () => {

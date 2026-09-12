@@ -5,7 +5,7 @@ import { FileText, Plus, ExternalLink, CheckCircle2, Clock, Loader2, Globe, Code
 import { Button } from "@/components/ui/button";
 import { ConnectButtons } from "@/components/ui/connect-buttons";
 import { EvidenceWizard } from "./evidence-wizard";
-import { ConnectorStatus } from "./connector-status";
+import { ConnectorStatus, EVIDENCE_READ_ONLY_HINT } from "./connector-status";
 import { AnalyzeTierModal } from "./analyze-tier-modal";
 import { BankStatementImport } from "./bank-statement-import";
 
@@ -228,7 +228,7 @@ export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI,
       )}
 
       {/* Connector status dashboard */}
-      <ConnectorStatus />
+      <ConnectorStatus readOnly={readOnly} />
 
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -237,16 +237,24 @@ export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI,
             Upload and manage your startup evidence to lift your SVI.
           </p>
         </div>
-        {!readOnly && (
+        {/* Release QA-2 F11: a viewer sees the button disabled with the
+            reason, rather than a missing button they go looking for. */}
+        <span title={readOnly ? EVIDENCE_READ_ONLY_HINT : undefined} className="inline-flex">
           <Button
             variant="primary"
             size="sm"
-            onClick={() => setShowWizard(true)}
+            disabled={readOnly}
+            aria-disabled={readOnly || undefined}
+            data-testid="add-evidence-button"
+            data-readonly={readOnly ? "true" : undefined}
+            onClick={() => {
+              if (!readOnly) setShowWizard(true);
+            }}
           >
             <Plus strokeWidth={1.75} className="h-4 w-4" />
             Add Evidence
           </Button>
-        )}
+        </span>
       </div>
 
       {/* Connect buttons — quick access to OAuth/URL connectors */}
@@ -295,8 +303,11 @@ export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI,
                 <button
                   key={gap.label}
                   type="button"
+                  disabled={readOnly}
+                  aria-disabled={readOnly || undefined}
+                  title={readOnly ? EVIDENCE_READ_ONLY_HINT : undefined}
                   onClick={() => !readOnly && setShowWizard(true)}
-                  className={`w-full text-left rounded-xl border ${config.border} ${config.bg} px-4 py-3 transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer`}
+                  className={`w-full text-left rounded-xl border ${config.border} ${config.bg} px-4 py-3 transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-none`}
                 >
                   <div className="flex items-start gap-3">
                     <span className="text-xl mt-0.5">{icon}</span>

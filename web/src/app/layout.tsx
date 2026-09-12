@@ -16,6 +16,7 @@ import { AuthSyncClient } from "@/components/auth/AuthSyncClient";
 import { FeedbackWidget } from "@/components/ui/feedback-widget";
 import { ResellerRefCapture } from "@/components/marketing/reseller-ref-capture";
 import { TranslationProvider } from "@/components/i18n/translation-provider";
+import { CloudflareEmailOffEnd, CloudflareEmailOffStart } from "@/components/site/cloudflare-email-off";
 import { DEFAULT_LOCALE, LOCALE_HEADER, isLocale, type Locale } from "@/lib/i18n/locales";
 import { buildSeedCatalog } from "@/lib/i18n/seed-catalog";
 import { heroLine } from "@/lib/marketing/hero-variants";
@@ -194,6 +195,12 @@ export default async function RootLayout({
         </Script>
       </head>
       <body className="min-h-full bg-surface-50 text-brand-900 dark:text-ink-800 font-sans flex flex-col">
+        {/* Release QA-2 F9 — Cloudflare Email Obfuscation rewrote every
+            rendered email address (footer support@, invite + onboarding
+            emails) into a data-cfemail <span>, which React then failed to
+            hydrate (#418, text) on every page. The <!--email_off--> markers
+            switch the rewriter off for the whole body. */}
+        <CloudflareEmailOffStart />
         <GTMNoScript />
         <Providers>
           {/* Cross-tab SSO sync — Master Upgrade Plan §8.9 stage 2.
@@ -230,6 +237,7 @@ export default async function RootLayout({
         <Suspense fallback={null}>
           <ConsentBanner />
         </Suspense>
+        <CloudflareEmailOffEnd />
       </body>
     </html>
   );

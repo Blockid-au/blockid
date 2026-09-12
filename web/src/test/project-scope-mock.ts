@@ -42,6 +42,8 @@ export interface ScopeState {
   analysis: Record<string, unknown> | null;
   /** last minRole passed to getProjectScope / assertProjectScope */
   lastMinRole: string | undefined;
+  /** extra columns merged onto the scope's `project` row (e.g. growth_phase_current) */
+  projectExtra?: Record<string, unknown>;
 }
 
 export function makeScopeState(overrides: Partial<ScopeState> = {}): ScopeState {
@@ -90,6 +92,7 @@ export function buildScope(state: ScopeState, minRole?: string) {
       userId: ownerId,
       role: state.role,
       isShared: !isOwner,
+      ...(state.projectExtra ?? {}),
     },
     role: state.role,
     isOwner,

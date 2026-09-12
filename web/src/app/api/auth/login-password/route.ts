@@ -5,7 +5,7 @@
 
 import { NextResponse } from "next/server";
 import { loginWithPassword, setSessionCookie, isValidEmail } from "@/lib/auth";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkAuthIdentityLimit, checkAuthIpCeiling } from "@/lib/security/auth-rate-limit";
 import { claimForCurrentBrowser } from "@/lib/analyses/claim";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
 import { apiRoute } from "@/lib/audit/api-route";
@@ -16,22 +16,26 @@ export const dynamic = "force-dynamic";
 export const GENERIC_LOGIN_ERROR =
   "Invalid email or password. If you signed up with Google or a magic link, use that method or reset your password.";
 
-async function POST_handler(request: Request) {
-  // Rate limit: 5 attempts per IP per 15 minutes
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  const rl = checkRateLimit(`login:${ip}`, 5, 15 * 60 * 1000);
-  if (!rl.allowed) {
-    return NextResponse.json(
-      { ok: false, error: "Too many login attempts. Please try again later." },
-      {
-        status: 429,
-        headers: {
-          "Retry-After": String(Math.ceil(rl.resetIn / 1000)),
-          "X-RateLimit-Remaining": "0",
-        },
+function tooMany(resetIn: number) {
+  return NextResponse.json(
+    { ok: false, error: "Too many login attempts. Please try again later." },
+    {
+      status: 429,
+      headers: {
+        "Retry-After": String(Math.ceil(resetIn / 1000)),
+        "X-RateLimit-Remaining": "0",
       },
-    );
-  }
+    },
+  );
+}
+
+async function POST_handler(request: Request) {
+  // Release QA-2 F7: per-IP ceiling (trusted hop, 30/15 min) before the
+  // body is parsed; the D3-CISO 5/15 min brute-force cap now applies per
+  // (IP, email) so two founders behind one NAT never share a bucket.
+  // See lib/security/auth-rate-limit.ts.
+  const ceiling = checkAuthIpCeiling("login", request.headers);
+  if (!ceiling.allowed) return tooMany(ceiling.resetIn);
 
   let body: Record<string, unknown> | null = null;
   try {
@@ -46,6 +50,8 @@ async function POST_handler(request: Request) {
     if (!isValidEmail(email)) {
       return NextResponse.json({ ok: false, error: "Valid email is required" }, { status: 400 });
     }
+    const identity = checkAuthIdentityLimit("login", request.headers, email as string);
+    if (!identity.allowed) return tooMany(identity.resetIn);
     if (!password || typeof password !== "string" || password.length < 1) {
       return NextResponse.json({ ok: false, error: "Password is required" }, { status: 400 });
     }
