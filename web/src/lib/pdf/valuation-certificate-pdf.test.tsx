@@ -23,6 +23,7 @@ import {
   DOCTORAL_SENTENCE,
   type ValuationCertificateData,
 } from "@/lib/valuation-certificate/types";
+import { SAMPLE_CERTIFICATE as SAMPLE } from "@/lib/valuation-certificate/fixtures";
 
 async function pageTexts(buffer: Buffer): Promise<string[]> {
   expect(buffer.subarray(0, 4).toString("latin1")).toBe("%PDF");
@@ -35,58 +36,6 @@ async function pageTexts(buffer: Buffer): Promise<string[]> {
   }
 }
 
-export const SAMPLE: ValuationCertificateData = {
-  version: "vc-1",
-  certificateNo: "VC-7K3MP-Q9X2A",
-  issuedAt: "2026-09-12T03:00:00.000Z",
-  startupName: "Acme Robotics Pty Ltd",
-  abn: "79 659 615 111",
-  stageLabel: "Seed",
-  sviScore: 138,
-  sviVersion: "v3.6.8",
-  valuation: {
-    lowAud: 1_250_000,
-    midAud: 2_400_000,
-    highAud: 3_900_000,
-    method: "svi+arr_multiple",
-    methodNote: null,
-  },
-  connectedRevenue: {
-    provider: "stripe",
-    mrrAud: 8_200,
-    arrAud: 98_400,
-    capturedAt: "2026-09-01T00:00:00.000Z",
-    label: "Includes connected revenue (A$8.2K MRR from Stripe)",
-  },
-  sectorMultiple: { sector: "saas", low: 6, mid: 6.75, high: 7.5, source: "Bessemer Venture Partners" },
-  dimensions: [
-    { key: "ftv", label: "Founder & Team Value", score: 72, weightPct: 15 },
-    { key: "mpc", label: "Market & Problem Clarity", score: 64, weightPct: 18 },
-    { key: "ptd", label: "Product & Technical Depth", score: 58, weightPct: 12 },
-    { key: "tre", label: "Traction & Revenue", score: 41, weightPct: 20 },
-    { key: "cgh", label: "Cap Table & Governance", score: 66, weightPct: 12 },
-    { key: "iri", label: "Investor Readiness", score: 50, weightPct: 10 },
-    { key: "lco", label: "Legal & Compliance", score: 70, weightPct: 8 },
-    { key: "svm", label: "Strategic Vision & Moat", score: 55, weightPct: 5 },
-  ],
-  evidence: {
-    total: 14,
-    verified: 9,
-    byCategory: [
-      { category: "document_uploaded", count: 8 },
-      { category: "public_url", count: 4 },
-      { category: "connected_source", count: 2 },
-    ],
-    byDimension: [
-      { dimension: "tre", count: 6 },
-      { dimension: "cgh", count: 4 },
-      { dimension: "lco", count: 4 },
-    ],
-    lastVerifiedAt: "2026-09-10T00:00:00.000Z",
-  },
-  verifyUrl: "https://blockid.au/verify/valuation/VC-7K3MP-Q9X2A",
-  scoreHistoryId: null,
-};
 
 const HASH = certificateContentHash(SAMPLE);
 
