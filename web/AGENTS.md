@@ -81,3 +81,22 @@ Each also has a CLI for manual inspection:
 node scripts/cron/truncation-guard.mjs --dry-run .   # report, do not restore
 node scripts/cron/test-gate.mjs --dry-run .          # run tests, do not revert
 ```
+
+# DB migrations — ledger + apply script (release QA-2 P0, 2026-09-12)
+
+Migrations are **never auto-applied on deploy**. Apply every new
+`web/supabase/migrations/*.sql` with `scripts/db/apply-migration.sh <file>` —
+it runs the file in one transaction (`ON_ERROR_STOP`, `postgres` with a
+`supabase_admin` retry on "must be owner"), records it in
+`public.schema_migrations` (filename, applied_at, sha256 checksum, applied_by,
+notes — created by `0345_schema_migrations_ledger.sql`), sends `NOTIFY pgrst,
+'reload schema'` and refreshes `content/reports/schema-migrations.json`, the
+manifest `/api/status` diffs against the live ledger to publish
+`schema_migrations: ok | pending:<n> | unknown` (commit that JSON with the
+migration). `node scripts/db/migration-status.mjs` lists pending / deferred /
+checksum-drift files; `node scripts/db/migration-parity.mjs` audits the live
+catalog against every file without needing the ledger and honours the
+documented waivers in `scripts/db/parity-exceptions.json`. Write migrations
+idempotently (`IF NOT EXISTS`, `OR REPLACE`, DO-guarded `CREATE POLICY`) and
+reference `public.app_users(id)` — never `auth.users(id)` — for user FKs.
+Full runbook: `docs/ops/db-migrations.md`.

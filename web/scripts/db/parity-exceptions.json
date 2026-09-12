@@ -1,0 +1,53 @@
+{
+  "_comment": "Known, documented schema drift that migration-parity.mjs must not report as missing. Keys are migration filenames; `ignore` is a list of object-key globs (kind.schema.table[.name]) — see parseMigration() in migration-parity.mjs for key shapes. Every waiver is printed by the audit; keep `reason` honest and remove the entry once a reconciliation migration lands. `deferred: true` marks a migration that is intentionally NOT applied yet (still reported as missing, but migration-status.mjs / /api/status do not count it as pending).",
+  "0030_investor_data_room_and_fundraise.sql": {
+    "reason": "data_rooms / data_room_views / fundraise_rounds were re-defined by 0043_missing_tables.sql; the live shape matches 0043 (id,user_id,project_id,name,… vs 0030's account_id,email,token,…). 0030's shape was never live.",
+    "ignore": [
+      "column.public.data_rooms.*",
+      "column.public.data_room_views.*",
+      "column.public.fundraise_rounds.closed_at",
+      "index.public.idx_data_rooms_token",
+      "index.public.idx_data_rooms_account"
+    ]
+  },
+  "0047_agent_pipeline_tables.sql": {
+    "reason": "Documented no-op since 2026-05-30: 0045_agent_reports.sql is the canonical (code-matching) schema for assembled_reports / agent_report_tasks / agent_knowledge_base; the 0047 shapes were dropped and rebuilt from 0045.",
+    "ignore": [
+      "column.public.agent_knowledge_base.*",
+      "column.public.agent_report_tasks.*",
+      "column.public.assembled_reports.*",
+      "index.public.idx_agent_kb_role"
+    ]
+  },
+  "0304_founder_core_features.sql": {
+    "reason": "OPEN ISSUE — team_members already existed from 0023_equity_members.sql (name/email/role/equity_pct/is_active, used by src/lib/equity.ts) so 0304's CREATE TABLE IF NOT EXISTS was a no-op and its org-chart shape (user_id/role_title/full_name/status…, used by src/lib/founder-features.ts + api/founder/team) is NOT live. The two code paths disagree on the table; needs a reconciliation migration (make `name` nullable or split the table), not a blind ADD COLUMN. 0344 repaired the other three tables (gtm_strategies, pricing_tiers, roadmap_milestones).",
+    "ignore": [
+      "column.public.team_members.*",
+      "index.public.team_members_*"
+    ]
+  },
+  "20260816_clevel_reports_v2.sql": {
+    "reason": "calculate_trend_delta() is a stub that returns hard-coded placeholder numbers (145 → 150) and nothing in src/ calls it; deliberately NOT applied by 0344. The two real helpers were applied.",
+    "ignore": [
+      "function.public.calculate_trend_delta"
+    ]
+  },
+  "20260825_exit_scenarios.sql": {
+    "reason": "exit_scenarios_account_name_unique_idx is declared `WHERE deleted_at IS NULL` but exit_scenarios has no deleted_at column, so the original statement can never run. Creating it unpredicated would change API behaviour (duplicate scenario names → 23505) so it was NOT created by 0344. Everything else from this file was repaired by 0344.",
+    "ignore": [
+      "index.public.exit_scenarios_account_name_unique_idx"
+    ]
+  },
+  "20260827_svi_evidence_completeness.sql": {
+    "reason": "The file's CREATE POLICY statements are invalid as written (TO clause after USING; references projects.owner_id which does not exist). Equivalent policies were created by hand under other names (sde_auth_read, ser_auth_read, ser_auth_update on projects.user_id); a 'service role full access' policy is unnecessary because service_role has BYPASSRLS.",
+    "ignore": [
+      "policy.public.svi_dimension_evidence.*",
+      "policy.public.svi_evidence_roadmap.*"
+    ]
+  },
+  "20260822_investor_portal_core.sql": {
+    "reason": "DEFERRED — 17 new tables (claims, portfolios, dd_projects, …) with no runtime reader anywhere in src/ and no RLS on any of them. Apply with scripts/db/apply-migration.sh (after adding RLS) when the investor-portal feature that reads them ships.",
+    "deferred": true,
+    "ignore": []
+  }
+}

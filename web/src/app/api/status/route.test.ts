@@ -92,6 +92,20 @@ vi.mock("@/lib/security/oauth-token-health", () => ({
   }),
 }));
 
+// ─── QA-2 P0 schema_migrations fixture ─────────────────────────────────
+// The route reads `readSchemaMigrationsStatus()` (manifest + Supabase
+// ledger, 5-min cache); stub it so this suite stays DB-free. Its own
+// behaviour is pinned in src/lib/ops/schema-migrations.test.ts.
+
+const schemaState: { status: string; throwErr: boolean } = { status: "ok", throwErr: false };
+
+vi.mock("@/lib/ops/schema-migrations", () => ({
+  readSchemaMigrationsStatus: vi.fn(async () => {
+    if (schemaState.throwErr) throw new Error("db down");
+    return schemaState.status;
+  }),
+}));
+
 // ─── fetch fixture ─────────────────────────────────────────────────────
 
 type FetchResponder =
@@ -933,6 +947,53 @@ describe("oauth_tokens_sealed (S23-A)", () => {
     fetchState.responder = { kind: "json", body: healthyHealthz() };
     const { body } = await callGet();
     expect((body as unknown as Body).oauth_tokens_sealed).toBe("unknown");
+  });
+});
+
+// ─── QA-2 P0 schema_migrations (ledger vs migration files) ─────────────
+
+describe("schema_migrations (QA-2 P0)", () => {
+  type Body = { schema_migrations: string; ok: boolean };
+
+  beforeEach(() => {
+    schemaState.status = "ok";
+    schemaState.throwErr = false;
+  });
+
+  it.each(["ok", "pending:3", "unknown"])("surfaces '%s' on the trusted payload", async (status) => {
+    schemaState.status = status;
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    const { body } = await callGet();
+    expect((body as unknown as Body).schema_migrations).toBe(status);
+  });
+
+  it("is present on the PUBLIC payload too (names no file, table or host)", async () => {
+    const originalToken = process.env.STATUS_FULL_TOKEN;
+    process.env.STATUS_FULL_TOKEN = "";
+    process.env.CRON_SECRET = "";
+    try {
+      schemaState.status = "pending:1";
+      fetchState.responder = { kind: "json", body: healthyHealthz() };
+      const { body } = await callGet();
+      expect(body.last_deploy.sha).toBe(""); // still redacted
+      expect((body as unknown as Body).schema_migrations).toBe("pending:1");
+    } finally {
+      process.env.STATUS_FULL_TOKEN = originalToken;
+    }
+  });
+
+  it("does not flip the aggregate ok flag (operator signal, not an outage)", async () => {
+    schemaState.status = "pending:2";
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    const { body } = await callGet();
+    expect((body as unknown as Body).ok).toBe(true);
+  });
+
+  it("degrades to 'unknown' when the read throws", async () => {
+    schemaState.throwErr = true;
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    const { body } = await callGet();
+    expect((body as unknown as Body).schema_migrations).toBe("unknown");
   });
 });
 

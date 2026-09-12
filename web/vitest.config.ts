@@ -21,6 +21,8 @@ export default defineConfig({
       "scripts/codemods/**/*.test.mjs",
       // S23-B: CLI wrappers colocated with their script (scripts/<name>.test.mjs).
       "scripts/*.test.mjs",
+      // QA-2 P0: migration parity parser + ledger status (scripts/db/*.test.mjs).
+      "scripts/db/*.test.mjs",
       "../scripts/**/*.test.mjs",
     ],
     exclude: ["**/node_modules/**", "**/.next/**"],
