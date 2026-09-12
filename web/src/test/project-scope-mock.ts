@@ -115,11 +115,13 @@ export function projectsMock(state: ScopeState) {
       projectId: string,
       minRole?: string,
     ) => {
+      state.lastMinRole = minRole;
       const scope = buildScope({ ...state, projectId }, minRole);
       if (!scope) throw accessError("not_found");
       return scope;
     },
     assertProjectAccess: async (_userId: string, projectId: string, minRole?: string) => {
+      state.lastMinRole = minRole;
       const scope = buildScope({ ...state, projectId }, minRole);
       if (!scope) throw accessError("not_found");
       return {
