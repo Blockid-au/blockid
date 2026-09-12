@@ -7,9 +7,11 @@ import {
   formatWeeklyDigestCsv,
   formatWeeklyDigestEmail,
   formatWeeklyDigestHumanBlockedSection,
+  formatWeeklyDigestStageMovesSection,
   isoWeekKey,
   type WeeklyDigestRow,
 } from "./weekly-digest";
+import { countStageMoves } from "./customer-stage";
 
 function summary(overrides: Partial<LeadingSignalSummary> = {}): LeadingSignalSummary {
   return {
@@ -277,5 +279,44 @@ describe("formatWeeklyDigestHumanBlockedSection", () => {
     expect(html).not.toContain("<script>alert");
     expect(html).toContain("&amp;");
     expect(html).toContain("&quot;bad&quot;");
+  });
+});
+
+describe("formatWeeklyDigestStageMovesSection (G2 #7)", () => {
+  it("returns empty string for no resellers", () => {
+    expect(formatWeeklyDigestStageMovesSection([])).toBe("");
+  });
+
+  it("renders the 'n customers moved stage this week' line per reseller, sorted by code, with the landing-stage breakdown", () => {
+    const now = new Date("2026-09-14T04:15:00Z");
+    const moves = countStageMoves(
+      [
+        { reseller_id: "rid-b", stage: "scored", stage_source: "auto", stage_updated_at: "2026-09-12T00:00:00Z" },
+        { reseller_id: "rid-b", stage: "churned", stage_source: "manual", stage_updated_at: "2026-09-13T00:00:00Z" },
+        { reseller_id: "rid-b", stage: "scored", stage_source: "auto", stage_updated_at: "2026-09-13T00:00:00Z" },
+        { reseller_id: "rid-b", stage: "lead", stage_source: "auto", stage_updated_at: "2026-09-13T00:00:00Z" },
+      ],
+      { now },
+    );
+    const html = formatWeeklyDigestStageMovesSection([
+      { reseller_id: "rid-b", reseller_code: "BETA", reseller_display_name: "Beta Partners", moves: moves.get("rid-b") ?? null },
+      { reseller_id: "rid-a", reseller_code: "ALPHA", reseller_display_name: "Alpha & Co", moves: null },
+    ]);
+    expect(html).toContain("Pipeline stage moves");
+    expect(html).toContain("<strong>Alpha &amp; Co</strong>: 0 customers moved stage this week");
+    expect(html).toContain("<strong>Beta Partners</strong>: 3 customers moved stage this week — Scored 2, Churned 1 (1 manual)");
+    expect(html.indexOf("ALPHA")).toBeLessThan(html.indexOf("BETA"));
+  });
+
+  it("uses the singular noun for exactly one mover", () => {
+    const html = formatWeeklyDigestStageMovesSection([
+      {
+        reseller_id: "r",
+        reseller_code: "R",
+        reseller_display_name: "R",
+        moves: { reseller_id: "r", moved: 1, manual: 0, by_stage: { fundraising: 1 } },
+      },
+    ]);
+    expect(html).toContain("1 customer moved stage this week — Fundraising 1</li>");
   });
 });

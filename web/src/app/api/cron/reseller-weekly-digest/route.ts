@@ -1615,9 +1615,12 @@ import {
   formatWeeklyDigestCsv,
   formatWeeklyDigestEmail,
   formatWeeklyDigestHumanBlockedSection,
+  formatWeeklyDigestStageMovesSection,
   isoWeekKey,
   type WeeklyDigestRow,
+  type WeeklyDigestStageMovesRow,
 } from "@/lib/reseller/weekly-digest";
+import { countStageMoves, type StageMoveRow } from "@/lib/reseller/customer-stage";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
@@ -1847,6 +1850,35 @@ export async function GET(req: Request) {
   // file. Static registry — see human-blocked-registry.ts for the source list.
   const humanBlockedSection = formatWeeklyDigestHumanBlockedSection(HUMAN_BLOCKED_ITEMS);
   if (humanBlockedSection) html += humanBlockedSection;
+
+  // G2 #7 (S19-B): "n customers moved stage this week" per reseller, from
+  // reseller_customers.stage_updated_at (nightly reseller-stage-sync + manual
+  // overrides). Degrades to a skipped section while migration 0333 is
+  // pending — the leading-signal digest must still ship.
+  let stageMovesSkippedReason: string | null = null;
+  let stageMovesRows: WeeklyDigestStageMovesRow[] = [];
+  {
+    const since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: stageRows, error: stageErr } = await supabase
+      .from("reseller_customers")
+      .select("reseller_id, stage, stage_source, stage_updated_at")
+      .in("reseller_id", resellerIds)
+      .gte("stage_updated_at", since);
+    if (stageErr) {
+      console.error("[reseller-weekly-digest] reseller_customers query failed", stageErr.message);
+      stageMovesSkippedReason = "stage_query_failed";
+    } else {
+      const moves = countStageMoves((stageRows ?? []) as StageMoveRow[], { now });
+      stageMovesRows = resellers.map((r) => ({
+        reseller_id: r.id,
+        reseller_code: r.code,
+        reseller_display_name: r.display_name ?? r.code,
+        moves: moves.get(r.id) ?? null,
+      }));
+      const section = formatWeeklyDigestStageMovesSection(stageMovesRows);
+      if (section) html += section;
+    }
+  }
 
   // P11 canonical KPI (`credit_budget_utilization` + `sandbox_share_of_budget`
   // from reseller-module-goal.md `weekly_digest_kpis`). Roll monthly grants
@@ -12187,6 +12219,18 @@ export async function GET(req: Request) {
       count: HUMAN_BLOCKED_ITEMS.length,
       ids: HUMAN_BLOCKED_ITEMS.map((i) => i.id),
     },
+    stage_moves: stageMovesSkippedReason
+      ? { skipped_reason: stageMovesSkippedReason }
+      : {
+          window_days: 7,
+          rows: stageMovesRows.map((r) => ({
+            reseller_id: r.reseller_id,
+            reseller_code: r.reseller_code,
+            moved: r.moves?.moved ?? 0,
+            manual: r.moves?.manual ?? 0,
+            by_stage: r.moves?.by_stage ?? {},
+          })),
+        },
     budget_utilization: budgetSkippedReason
       ? { skipped_reason: budgetSkippedReason }
       : {

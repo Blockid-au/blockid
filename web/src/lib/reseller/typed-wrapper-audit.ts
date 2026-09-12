@@ -32,6 +32,7 @@ export const RESELLER_SCOPED_TABLES = [
   "reseller_commissions",
   "reseller_events",
   "reseller_audit_log",
+  "reseller_customers",
 ] as const;
 
 export type ResellerScopedTable = (typeof RESELLER_SCOPED_TABLES)[number];

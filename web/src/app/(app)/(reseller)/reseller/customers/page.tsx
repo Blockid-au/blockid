@@ -13,6 +13,7 @@ import { maskEmail } from "@/lib/reseller/customer-reveal";
 import { RevealEmailCell } from "./reveal-email-cell";
 import { DrawerOpener } from "./drawer-opener";
 import { StageCell } from "./stage-cell";
+import { PipelineStageCell } from "./pipeline-stage-cell";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,8 @@ export default async function ResellerCustomersPage() {
 
   const db = resellerSupabase(scope);
   const customers = await db.attributedCustomers();
+  // Manual pipeline override is owner/admin only (the route re-checks).
+  const canOverride = scope.role === "owner" || scope.role === "admin";
 
   return (
     <>
@@ -70,6 +73,9 @@ export default async function ResellerCustomersPage() {
                 <th className="p-3">Company / Name</th>
                 <th className="p-3">Contact</th>
                 <th className="p-3">Stage</th>
+                <th className="p-3" title="Your partner pipeline — auto-advanced nightly from real product signals; owners/admins can override">
+                  Pipeline
+                </th>
                 <th className="p-3">Joined</th>
                 <th className="p-3">Last active</th>
                 <th className="p-3">Details</th>
@@ -89,6 +95,15 @@ export default async function ResellerCustomersPage() {
                   </td>
                   <td className="p-3">
                     <StageCell stage={c.canonical_stage} />
+                  </td>
+                  <td className="p-3">
+                    <PipelineStageCell
+                      customerId={c.user_id}
+                      stage={c.pipeline_stage}
+                      source={c.pipeline_stage_source}
+                      updatedAt={c.pipeline_stage_updated_at}
+                      canOverride={canOverride}
+                    />
                   </td>
                   <td className="p-3 text-ink-600">{fmtDate(c.created_at)}</td>
                   <td className="p-3 text-ink-600">{fmtDate(c.last_login_at)}</td>

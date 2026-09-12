@@ -68,6 +68,7 @@ describe("typed-wrapper-audit: canonical table list", () => {
       "reseller_commissions",
       "reseller_events",
       "reseller_audit_log",
+      "reseller_customers",
     ]);
   });
 
