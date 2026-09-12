@@ -11,8 +11,12 @@ import {
   type BlockchainConfigSummary,
   type OAuthConnectionSummary,
 } from "@/lib/integrations/catalogue";
-import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getCurrentProjectIsSandbox, getProjectScope, roleCanAdmin } from "@/lib/projects";
 import { CrmPushButton } from "@/components/founder/crm-push-button";
+import { WebhooksSection } from "@/components/workspace/webhooks-section";
+import { canUseWebhooks, WEBHOOK_EVENT_LABELS, WEBHOOK_EVENTS } from "@/lib/webhooks/registry";
+import { supabaseWebhookStore } from "@/lib/webhooks/store";
+import { publicEndpoint, type PublicEndpoint } from "@/lib/webhooks/http";
 
 export const metadata: Metadata = {
   title: "Integrations",
@@ -67,6 +71,31 @@ export default async function IntegrationsPage({
   });
   const summary = summariseCatalogue(rows);
 
+  // S20-B — Webhooks: the caller's own endpoints plus the active project's
+  // (admin+ manages project-level ones; an editor / viewer sees view-only).
+  // Never throws — a scope error or missing table just hides the list.
+  let webhookProjectId: string | null = null;
+  let webhookReadOnly = false;
+  let webhookEndpoints: PublicEndpoint[] = [];
+  try {
+    const scope = await getProjectScope();
+    if (scope) {
+      if (roleCanAdmin(scope.role)) webhookProjectId = scope.projectId;
+      else webhookReadOnly = true;
+    }
+    const store = supabaseWebhookStore();
+    if (store) {
+      const own = await store.listEndpoints({ userId: user.id });
+      const project = webhookProjectId ? await store.listEndpoints({ projectId: webhookProjectId }) : [];
+      const seen = new Set<string>();
+      webhookEndpoints = [...project, ...own].filter((e) => !seen.has(e.id) && seen.add(e.id)).map(publicEndpoint);
+    }
+  } catch {
+    webhookEndpoints = [];
+  }
+  const webhookAccess = await canUseWebhooks({ id: user.id, plan: user.plan, role: user.role });
+  const webhookEvents = WEBHOOK_EVENTS.map((e) => ({ event: e, ...WEBHOOK_EVENT_LABELS[e] }));
+
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-3xl mx-auto space-y-6">
@@ -112,6 +141,15 @@ export default async function IntegrationsPage({
           </p>
           <CrmPushButton />
         </section>
+
+        {/* ── Outbound webhooks (S20-B) ─────────────────────────────── */}
+        <WebhooksSection
+          initialEndpoints={webhookEndpoints}
+          events={webhookEvents}
+          access={webhookAccess}
+          projectId={webhookProjectId}
+          readOnly={webhookReadOnly}
+        />
       </div>
     </WorkspaceLayout>
   );

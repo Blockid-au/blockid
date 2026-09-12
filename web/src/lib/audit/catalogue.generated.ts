@@ -307,5 +307,8 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/vesting/[id]/route.ts", family: "vesting", methods: ["PATCH","DELETE"] },
   { route: "api/vesting/route.ts", family: "vesting", methods: ["POST"] },
   { route: "api/watchlist/route.ts", family: "watchlist", methods: ["POST"] },
+  { route: "api/webhooks/[id]/route.ts", family: "webhooks", methods: ["PATCH","DELETE"] },
+  { route: "api/webhooks/[id]/test/route.ts", family: "webhooks.test", methods: ["POST"] },
+  { route: "api/webhooks/route.ts", family: "webhooks", methods: ["POST"] },
   { route: "api/website-tech-audit/route.ts", family: "website-tech-audit", methods: ["POST"] },
 ]);
