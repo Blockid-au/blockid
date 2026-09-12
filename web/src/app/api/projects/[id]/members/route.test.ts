@@ -79,6 +79,7 @@ vi.mock("@/lib/audit/log", () => ({
 }));
 
 import { GET, POST, DELETE } from "./route";
+import { flushAudits, setAuditSink, type AuditRecord } from "@/lib/audit/api-route";
 
 const ORIGINAL_SITE_URL = process.env.NEXT_PUBLIC_SITE_URL;
 
@@ -100,6 +101,48 @@ beforeEach(() => {
 afterEach(() => {
   if (ORIGINAL_SITE_URL === undefined) delete process.env.NEXT_PUBLIC_SITE_URL;
   else process.env.NEXT_PUBLIC_SITE_URL = ORIGINAL_SITE_URL;
+});
+
+// ---------------------------------------------------------------------------
+// Release QA-2 F6 — the apiRoute audit row carries project_id
+// ---------------------------------------------------------------------------
+
+describe("release QA-2 F6 — project.member.invited audit row carries project_id", () => {
+  let records: AuditRecord[];
+  beforeEach(() => {
+    records = [];
+    setAuditSink(async (r) => {
+      records.push(r);
+    });
+  });
+  afterEach(() => setAuditSink(null));
+
+  it("annotates the audit context with the project + role so detail.project_id is set", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1" });
+    assertProjectAccessMock.mockResolvedValue(OWNER_ACCESS);
+    inviteMemberMock.mockResolvedValue({
+      id: "m1",
+      projectId: "proj-1",
+      userEmail: "alice@example.com",
+      role: "viewer",
+      token: "tok-abc",
+    });
+    const req = new Request("http://x/api/projects/proj-1/members", {
+      method: "POST",
+      body: JSON.stringify({ email: "alice@example.com", role: "viewer" }),
+    });
+    const res = await POST(req, params("proj-1"));
+    expect(res.status).toBe(200);
+    await flushAudits();
+    expect(records).toHaveLength(1);
+    const row = records[0];
+    expect(row.action).toBe("project.member.invited");
+    expect(row.detail.project_id).toBe("proj-1");
+    expect(row.detail.actor_role).toBe("owner");
+    expect(row.user_id).toBe("u1");
+    expect(row.resource_id).toBe("m1");
+    expect(JSON.stringify(row)).not.toContain("alice");
+  });
 });
 
 // ---------------------------------------------------------------------------

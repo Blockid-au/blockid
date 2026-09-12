@@ -4,6 +4,7 @@ import { listProjects, createProject, getProjectLimit } from "@/lib/projects";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 import { FOUNDER_ONE_STARTUP_ERROR } from "@/lib/plans/startup-limit";
 import { apiRoute } from "@/lib/audit/api-route";
+import { auditNote, setAuditProject } from "@/lib/audit/context";
 
 export const dynamic = "force-dynamic";
 
@@ -103,6 +104,15 @@ async function POST_handler(request: Request) {
       { ok: false, error: result.error },
       { status: 422 },
     );
+  }
+
+  // Release QA-2 F6: the apiRoute audit row must carry the NEW project's id
+  // — nothing upstream could set it (the project did not exist when the
+  // request started), so `project.create` landed with project_id NULL and
+  // the project-scoped /workspace/audit-log never showed it.
+  if (result.project?.id) {
+    setAuditProject({ projectId: result.project.id, role: "owner", userId: user.id });
+    auditNote(result.project.id);
   }
 
   // SOC2-lite audit: record the successful project creation. Never throws.
