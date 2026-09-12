@@ -209,7 +209,7 @@ function redactEmail(e: string): string {
 
 // ---------- Helpers for subscription-aware sending ----------------------------
 
-async function prepareUnsubscribe(to: string): Promise<{
+export async function prepareUnsubscribe(to: string): Promise<{
   token: string;
   unsubscribeUrl: string;
   preferencesUrl: string;
@@ -222,26 +222,63 @@ async function prepareUnsubscribe(to: string): Promise<{
   };
 }
 
-function unsubFooter(unsubUrl: string, prefsUrl: string, locale?: "en" | "vi"): string {
+/**
+ * Spam Act 2003 (Cth) s17 sender identification. Every commercial electronic
+ * message must clearly identify the individual or organisation that
+ * authorised it and how to contact them; s18 requires a functional
+ * unsubscribe facility. QA-3 P1-6 (2026-09-12): `unsubFooter()` used to carry
+ * only the unsubscribe link — no business name, ABN, or place of business.
+ */
+export const SENDER_IDENTITY_LINE = "Auschain PTY LTD · ABN 79 659 615 111 · Sydney NSW";
+export const SENDER_IDENTITY_HTML =
+  "Auschain PTY LTD &middot; ABN 79 659 615 111 &middot; Sydney NSW";
+
+export function unsubFooter(
+  unsubUrl: string,
+  prefsUrl: string,
+  locale?: "en" | "vi",
+  theme: "dark" | "light" = "dark",
+): string {
   const isVi = locale === "vi";
   const receivingText = isVi
-    ? "Ban nhan duoc email nay vi ban co tai khoan BlockID.au."
-    : "You're receiving this because you have a BlockID.au account.";
+    ? "Ban nhan duoc email nay vi ban co tai khoan BlockID."
+    : "You're receiving this because you have a BlockID account.";
   const unsubText = isVi ? "Huy dang ky" : "Unsubscribe";
   const prefsText = isVi ? "Quan ly tuy chon email" : "Manage email preferences";
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:0 16px 32px 16px;">
+  const bg = theme === "dark" ? "#0B1220" : "transparent";
+  const fg = theme === "dark" ? "#475569" : "#64748B";
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${bg};padding:0 16px 32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;">
         <tr><td>
-          <p style="margin:16px 0 0 0;color:#475569;font-size:11px;line-height:1.5;text-align:center;">
-            ${receivingText}
-            <a href="${unsubUrl}" style="color:#475569;text-decoration:underline;">${unsubText}</a> &middot;
-            <a href="${prefsUrl}" style="color:#475569;text-decoration:underline;">${prefsText}</a>
+          <p style="margin:16px 0 0 0;color:${fg};font-size:11px;line-height:1.5;text-align:center;">
+            ${SENDER_IDENTITY_HTML} &middot; ${receivingText}
+            <a href="${unsubUrl}" style="color:${fg};text-decoration:underline;">${unsubText}</a> &middot;
+            <a href="${prefsUrl}" style="color:${fg};text-decoration:underline;">${prefsText}</a>
           </p>
         </td></tr>
       </table>
     </td></tr>
   </table>`;
+}
+
+/**
+ * One call for senders outside this module (report deliveries, digests,
+ * trial reminders, evaluator invites): mints the recipient's preference
+ * token, and returns the List-Unsubscribe URL for `sendEmail` plus the
+ * rendered Spam Act footer (identity line + unsubscribe + preferences).
+ */
+export async function complianceFooter(
+  to: string,
+  opts: { locale?: "en" | "vi"; theme?: "dark" | "light" } = {},
+): Promise<{ unsubscribeUrl: string; preferencesUrl: string; footerHtml: string; footerText: string }> {
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(to);
+  return {
+    unsubscribeUrl,
+    preferencesUrl,
+    footerHtml: unsubFooter(unsubscribeUrl, preferencesUrl, opts.locale, opts.theme ?? "light"),
+    footerText: `\n\n—\n${SENDER_IDENTITY_LINE}\nYou're receiving this because you have a BlockID account.\nUnsubscribe: ${unsubscribeUrl}\nManage email preferences: ${preferencesUrl}`,
+  };
 }
 
 // ---------- score-ready --------------------------------------------------------

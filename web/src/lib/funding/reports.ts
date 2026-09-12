@@ -19,7 +19,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import type Stripe from "stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, complianceFooter } from "@/lib/email";
 import {
   FUNDING_DISCLAIMER,
   generateFundingReport,
@@ -273,11 +273,16 @@ export async function handleFundingReportCompleted(
       // Generation failed: a holding note, NOT stamped — the
       // funding-report-retry cron regenerates and sends the real one.
       const url = reportUrl(reportId, existing.access_token ?? null);
-      sendEmail({
-        to,
-        subject: "Your Money Finder report is being prepared",
-        html: fundingReportEmailHtml({ url, report: null }),
-      }).catch((err) => console.error("[funding/reports] email failed", { reportId, err: String(err) }));
+      complianceFooter(to)
+        .then(({ unsubscribeUrl, footerHtml }) =>
+          sendEmail({
+            to,
+            subject: "Your Money Finder report is being prepared",
+            html: fundingReportEmailHtml({ url, report: null, footerHtml }),
+            unsubscribeUrl,
+          }),
+        )
+        .catch((err) => console.error("[funding/reports] email failed", { reportId, err: String(err) }));
     }
   }
   return { ok: true, reportId };
@@ -304,10 +309,12 @@ export async function sendFundingReportReadyEmail(args: {
   if (fresh?.meta && typeof fresh.meta[EMAIL_SENT_AT_KEY] === "string") return "already_sent";
   const url = reportUrl(args.reportId, args.accessToken);
   try {
+    const { unsubscribeUrl, footerHtml } = await complianceFooter(args.to);
     const res = await sendEmail({
       to: args.to,
       subject: `Your Money Finder report — ${args.report.summary.grant_count} grants, ${args.report.summary.program_count} programs`,
-      html: fundingReportEmailHtml({ url, report: args.report }),
+      html: fundingReportEmailHtml({ url, report: args.report, footerHtml }),
+      unsubscribeUrl,
     });
     if (!res.ok) {
       console.error("[funding/reports] email not sent", { reportId: args.reportId, reason: res.reason });
@@ -325,7 +332,7 @@ export async function sendFundingReportReadyEmail(args: {
   return "sent";
 }
 
-export function fundingReportEmailHtml(args: { url: string; report: FundingReport | null }): string {
+export function fundingReportEmailHtml(args: { url: string; report: FundingReport | null; footerHtml?: string }): string {
   const r = args.report;
   const top = r ? r.grants.slice(0, 3).map((g) => `<li>${escapeHtml(g.name)}</li>`).join("") : "";
   const body = r
@@ -340,6 +347,7 @@ export function fundingReportEmailHtml(args: { url: string; report: FundingRepor
   <p style="margin:24px 0"><a href="${args.url}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">Open my report</a></p>
   <p style="font-size:12px;color:#6b7280">This link is private to you — anyone with it can read the report. Grant information is free from government; what you paid for is the analysis against your profile.</p>
   <p style="font-size:11px;color:#6b7280;line-height:1.5">${escapeHtml(FUNDING_DISCLAIMER)}</p>
+  ${args.footerHtml ?? ""}
 </body></html>`;
 }
 

@@ -18,7 +18,7 @@
 
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, prepareUnsubscribe } from "@/lib/email";
 import { buildFounderDigest, type DigestPayload } from "@/lib/digest/weekly";
 import { renderFounderDigestEmail } from "@/lib/digest/email-template";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
@@ -108,11 +108,14 @@ export async function POST(request: Request): Promise<NextResponse> {
         continue;
       }
 
-      const rendered = renderFounderDigestEmail(payload);
+      // QA-3 P1-6: Spam Act identity + List-Unsubscribe on every digest.
+      const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(pref.email);
+      const rendered = renderFounderDigestEmail(payload, { unsubscribeUrl, preferencesUrl });
       const result = await sendEmail({
         to: pref.email,
         subject: rendered.subject,
         html: rendered.html,
+        unsubscribeUrl,
       });
       if (result.ok) {
         sent++;

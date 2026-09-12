@@ -87,3 +87,26 @@ describe("renderFounderDigestEmail — money block", () => {
     expect(out.text).not.toContain("MONEY");
   });
 });
+
+// QA-3 P1-6 (2026-09-12): Spam Act s17/s18 — identity line always, and the
+// unsubscribe / preferences links whenever the cron passes them.
+describe("renderFounderDigestEmail — Spam Act footer", () => {
+  it("renders the Auschain identity line and reason even without links", () => {
+    const { html, text } = renderFounderDigestEmail(payload());
+    expect(html).toContain("Auschain PTY LTD · ABN 79 659 615 111 · Sydney NSW");
+    expect(html).toContain("weekly digests are on");
+    expect(text).toContain("Auschain PTY LTD · ABN 79 659 615 111 · Sydney NSW");
+    expect(html).not.toContain("Unsubscribe</a>");
+  });
+
+  it("links unsubscribe + preferences in HTML and text when the cron passes them", () => {
+    const { html, text } = renderFounderDigestEmail(payload(), {
+      unsubscribeUrl: "https://blockid.au/unsubscribe?token=t1",
+      preferencesUrl: "https://blockid.au/unsubscribe?token=t1&manage=1",
+    });
+    expect(html).toContain('<a href="https://blockid.au/unsubscribe?token=t1" style="color:#64748b;text-decoration:underline">Unsubscribe</a>');
+    expect(html).toContain("Manage email preferences</a>");
+    expect(text).toContain("Unsubscribe: https://blockid.au/unsubscribe?token=t1");
+    expect(text).toContain("Manage email preferences: https://blockid.au/unsubscribe?token=t1&manage=1");
+  });
+});

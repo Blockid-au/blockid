@@ -18,7 +18,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, complianceFooter } from "@/lib/email";
 import { apiRoute } from "@/lib/audit/api-route";
 
 export const runtime = "nodejs";
@@ -125,12 +125,15 @@ async function POST_handler(request: Request): Promise<Response> {
   if (!deck) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
 
   const filename = String(deck.filename ?? "pitchdeck");
-  const html = renderHtml({ filename, totalSVI, dimResults });
+  // QA-3 P1-6: Spam Act identity line + unsubscribe on the report email.
+  const { unsubscribeUrl, footerHtml } = await complianceFooter(email);
+  const html = renderHtml({ filename, totalSVI, dimResults }) + footerHtml;
 
   const result = await sendEmail({
     to: email,
     subject: `Your SVI report: ${totalSVI}/100 — ${filename}`,
     html,
+    unsubscribeUrl,
   });
   return NextResponse.json({
     ok: true,

@@ -17,7 +17,7 @@
 
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, complianceFooter } from "@/lib/email";
 import { sendTelegram } from "@/lib/telegram";
 import { redactPii } from "@/lib/log-redact";
 import { renderReminder, reminderSubject, resolvePlanDisplay } from "./reminder-copy";
@@ -150,7 +150,14 @@ export async function GET(request: Request) {
       includedReportsLeft: reportsLeft,
     });
 
-    const result = await sendEmail({ to: user.email, subject, html }).catch((err: unknown) => {
+    // QA-3 P1-6: identity line + List-Unsubscribe on the reminder.
+    const footer = await complianceFooter(user.email).catch(() => null);
+    const result = await sendEmail({
+      to: user.email,
+      subject,
+      html: footer ? html + footer.footerHtml : html,
+      ...(footer ? { unsubscribeUrl: footer.unsubscribeUrl } : {}),
+    }).catch((err: unknown) => {
       console.error("[cron:trial-end-reminder] email failed", err);
       return { ok: false } as const;
     });

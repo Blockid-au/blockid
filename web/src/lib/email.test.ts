@@ -521,6 +521,50 @@ describe("sendSVIWelcome (transactional welcome — always sends)", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Spam Act 2003 s17/s18 footer — QA-3 P1-6 (2026-09-12)
+// ---------------------------------------------------------------------------
+
+describe("Spam Act footer (unsubFooter / complianceFooter)", () => {
+  beforeEach(() => {
+    process.env.SMTP_USER = "u";
+    process.env.SMTP_PASS = "p";
+  });
+
+  it("every marketing send carries the Auschain identity line, the reason, and both links", async () => {
+    const { sendNurtureFreeDay2, sendNurtureReengageDay14, sendMilestoneEmail } = await import("./email");
+    await sendNurtureFreeDay2({ to: "a@b.co", name: "Jo" });
+    for (const fn of [
+      () => sendNurtureReengageDay14({ to: "a@b.co" }),
+      () => sendMilestoneEmail({ to: "a@b.co", badge: "b", badgeLabel: "First 50", message: "m" }),
+    ]) {
+      await fn();
+    }
+    const calls = sendMailSpy.mock.calls as unknown as SentMailArgs[][];
+    expect(calls.length).toBe(3);
+    for (const [mail] of calls) {
+      expect(mail.html).toContain("Auschain PTY LTD &middot; ABN 79 659 615 111 &middot; Sydney NSW");
+      expect(mail.html).toContain("You're receiving this because you have a BlockID account.");
+      expect(mail.html).toContain("https://blockid.au/unsubscribe?token=tok-abc");
+      expect(mail.html).toContain("https://blockid.au/unsubscribe?token=tok-abc&amp;manage=1".replace("&amp;", "&"));
+      expect(mail.headers?.["List-Unsubscribe"]).toBe("<https://blockid.au/unsubscribe?token=tok-abc>");
+    }
+  });
+
+  it("complianceFooter() gives outside senders the same identity + unsubscribe block (light theme) and the header URL", async () => {
+    const { complianceFooter, SENDER_IDENTITY_LINE } = await import("./email");
+    const f = await complianceFooter("guest@x.io");
+    expect(SENDER_IDENTITY_LINE).toBe("Auschain PTY LTD · ABN 79 659 615 111 · Sydney NSW");
+    expect(f.unsubscribeUrl).toBe("https://blockid.au/unsubscribe?token=tok-abc");
+    expect(f.footerHtml).toContain("Auschain PTY LTD &middot; ABN 79 659 615 111 &middot; Sydney NSW");
+    expect(f.footerHtml).toContain(f.unsubscribeUrl);
+    expect(f.footerHtml).toContain("background:transparent");
+    expect(f.footerText).toContain(SENDER_IDENTITY_LINE);
+    expect(f.footerText).toContain(`Unsubscribe: ${f.unsubscribeUrl}`);
+    expect(ensureEmailPreferencesMock).toHaveBeenCalledWith("guest@x.io");
+  });
+});
+
 describe("sendSVIWeeklyReport (weekly_reports gate)", () => {
   beforeEach(() => {
     process.env.SMTP_USER = "u";
