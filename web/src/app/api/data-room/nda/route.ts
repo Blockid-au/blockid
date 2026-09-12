@@ -11,6 +11,13 @@
 //                               nda_signed_version }
 //   data_room_engagement      { event_type: 'nda_sign' }
 //
+// The optional email the viewer types lives on the acceptance ledger ONLY.
+// It is never copied onto `data_room_access_tokens.investor_email`: that
+// column is the founder's record of who the link went to, and
+// api/showcase-reviews trusts it as the reviewer's identity (S21-A review
+// P1-1 — a token holder could otherwise sign as "partner@fund.vc" and post
+// a review under that name).
+//
 // Version handling: the body carries the version the investor was shown.
 // If the founder bumped the clause between render and click, the stored
 // acceptance would be for text the investor never saw — so a stale version
@@ -120,7 +127,6 @@ async function POST_handler(req: NextRequest) {
       nda_signed_at: now,
       nda_signed_ip: ipHash,
       nda_signed_version: gate.version,
-      ...(parsed.email ? { investor_email: parsed.email } : {}),
     })
     .eq("id", link.id);
   if (updateErr) {

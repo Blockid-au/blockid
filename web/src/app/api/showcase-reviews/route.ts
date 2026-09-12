@@ -7,6 +7,13 @@
 // the reviewer_email is copied off the access-token row so the reviewer
 // can't spoof an identity.
 //
+// That only holds while `investor_email` is FOUNDER-set. S21-A review P1-1:
+// the NDA accept route used to copy the viewer-typed email onto the token
+// row, which made this column attacker-controlled; it no longer does, and
+// this route refuses a link with no founder-set email rather than inventing
+// an anonymous identity. Token state goes through `shareLinkState()` (also
+// honours `revoked_at`), and every not-usable state answers the same body.
+//
 // Founder flow authenticates via getCurrentUser() and scopes by
 // projects.user_id = user.id.
 //
@@ -22,6 +29,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { hashComment } from "@/lib/reseller/reviews";
 import { apiRoute } from "@/lib/audit/api-route";
+import { shareLinkState, type ShareLinkRow } from "@/lib/data-room";
 
 export const dynamic = "force-dynamic";
 
@@ -60,17 +68,19 @@ async function POST_handler(req: NextRequest) {
 
   const { data: accessToken, error: tokenErr } = await supabase
     .from("data_room_access_tokens")
-    .select("id, data_room_id, investor_email, is_active, expires_at")
+    .select("id, data_room_id, investor_email, is_active, revoked_at, expires_at")
     .eq("token", token)
     .maybeSingle();
 
-  if (tokenErr || !accessToken || !accessToken.is_active) {
+  // One body for missing / revoked / expired — the token is not an oracle.
+  if (tokenErr || !accessToken || shareLinkState(accessToken as ShareLinkRow) !== "active") {
     return NextResponse.json({ ok: false, error: "Invalid or expired token" }, { status: 403 });
   }
-  if (accessToken.expires_at && new Date(accessToken.expires_at) < new Date()) {
-    return NextResponse.json({ ok: false, error: "Link has expired" }, { status: 403 });
-  }
-  if (!accessToken.investor_email) {
+  // Identity comes from the founder's own record of who the link went to —
+  // never from the request, never from the NDA ledger. No email, no review.
+  const reviewerEmail =
+    typeof accessToken.investor_email === "string" ? accessToken.investor_email.trim().toLowerCase() : "";
+  if (!reviewerEmail) {
     return NextResponse.json({ ok: false, error: "Access token missing reviewer email" }, { status: 400 });
   }
 
@@ -89,7 +99,7 @@ async function POST_handler(req: NextRequest) {
       {
         project_id: room.project_id,
         access_token_id: accessToken.id,
-        reviewer_email: accessToken.investor_email,
+        reviewer_email: reviewerEmail,
         rating,
         comment: comment.length > 0 ? comment : null,
         comment_hash: hashComment(comment),

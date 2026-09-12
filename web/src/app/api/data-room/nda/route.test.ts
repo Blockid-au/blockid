@@ -8,7 +8,10 @@
 //   - the acceptance row shape: (link, version, hash of the clause shown,
 //     viewer email if given, salted ip hash, UA family, ts) — never the raw
 //     IP or the full UA — with ON CONFLICT DO NOTHING on (link, version);
-//   - the link row gets nda_signed_at / nda_signed_ip (hash) / nda_signed_version;
+//   - the link row gets nda_signed_at / nda_signed_ip (hash) / nda_signed_version
+//     and NOTHING else — the viewer-typed email never reaches
+//     `investor_email` (S21-A review P1-1: showcase-reviews trusts that
+//     column as the reviewer identity);
 //   - an nda_sign engagement event is written for the founder's activity;
 //   - a link that already accepted the current version is a no-op 200.
 
@@ -145,7 +148,9 @@ describe("POST /api/data-room/nda", () => {
     expect(up.args[1]).toEqual({ onConflict: "access_token_id,nda_version", ignoreDuplicates: true });
 
     const [upd] = sb.find("data_room_access_tokens", "update");
-    expect(upd.args[0]).toMatchObject({ nda_signed_at: body.acceptedAt, nda_signed_version: 2, investor_email: "jane@fund.vc" });
+    expect(upd.args[0]).toMatchObject({ nda_signed_at: body.acceptedAt, nda_signed_version: 2 });
+    expect(upd.args[0]).not.toHaveProperty("investor_email");
+    expect(Object.keys(upd.args[0] as object).sort()).toEqual(["nda_signed_at", "nda_signed_ip", "nda_signed_version"]);
     expect((upd.args[0] as { nda_signed_ip: string }).nda_signed_ip).toMatch(/^[0-9a-f]{64}$/);
     expect(sb.hasEq("data_room_access_tokens", "id", "link-1")).toBe(true);
 
@@ -153,12 +158,20 @@ describe("POST /api/data-room/nda", () => {
     expect(ev.args[0]).toMatchObject({ data_room_id: "room-1", access_token_id: "link-1", event_type: "nda_sign" });
   });
 
-  it("does not overwrite the founder-entered investor email when the viewer gives none", async () => {
+  it("never writes investor_email from the body — with or without a viewer email (P1-1)", async () => {
     await POST(req({ token: TOKEN, version: 2 }));
-    const [upd] = sb.find("data_room_access_tokens", "update");
+    let [upd] = sb.find("data_room_access_tokens", "update");
     expect(upd.args[0]).not.toHaveProperty("investor_email");
     const [up] = sb.find("data_room_nda_acceptances", "upsert");
     expect((up.args[0] as { viewer_email: unknown }).viewer_email).toBeNull();
+
+    // A token holder claiming a partner's address gets it on the ledger only.
+    setup(LINK);
+    await POST(req({ token: TOKEN, version: 2, email: "partner@blackbird.vc" }));
+    [upd] = sb.find("data_room_access_tokens", "update");
+    expect(JSON.stringify(upd.args[0])).not.toContain("partner@blackbird.vc");
+    const [up2] = sb.find("data_room_nda_acceptances", "upsert");
+    expect((up2.args[0] as { viewer_email: unknown }).viewer_email).toBe("partner@blackbird.vc");
   });
 
   it("hashes the clause the founder actually set, not the default, when one exists", async () => {
