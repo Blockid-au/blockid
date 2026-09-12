@@ -175,3 +175,54 @@ export function openSecret(sealed: string | null | undefined, env: NodeJS.Proces
     return null;
   }
 }
+
+// ── Reference receiver implementation (docs) ────────────────────────────────
+//
+// S20-B review P2-5: the /docs snippet used to be a hand-written copy that
+// could THROW on a 64-char non-hex `v1` (`timingSafeEqual` on buffers of
+// different length → RangeError → the receiver 500s). This string is the
+// single source: /docs renders it verbatim and sign.test.ts executes it
+// against `verifySignature` so the two cannot drift. Same rules:
+//   * header `t=<int>,v1=<64 hex>[,v1=…]` — anything else → false
+//   * |now − t| ≤ toleranceSec (both directions)
+//   * HMAC-SHA256(secret, `${t}.${rawBody}`), constant-time compare with a
+//     length guard, any listed v1 may match (key rotation)
+// Dependency-free apart from node:crypto; Node 18+.
+
+export const WEBHOOK_VERIFY_SNIPPET = `// Node 18+ — verify a BlockID webhook. rawBody = the exact bytes received, as a string.
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+export function verifyBlockIdWebhook(rawBody, header, secret, toleranceSec = 300, nowSec = Math.floor(Date.now() / 1000)) {
+  if (typeof header !== "string" || !header) return false;
+  let t = null;
+  const signatures = [];
+  for (const part of header.split(",")) {
+    const eq = part.indexOf("=");
+    if (eq <= 0) continue;
+    const key = part.slice(0, eq).trim();
+    const value = part.slice(eq + 1).trim();
+    if (key === "t") {
+      const n = Number(value);
+      if (Number.isInteger(n) && n > 0) t = n;
+    } else if (key === "v1" && /^[0-9a-f]{64}$/i.test(value)) {
+      signatures.push(value.toLowerCase());
+    }
+  }
+  if (t === null || signatures.length === 0) return false;
+  if (Math.abs(nowSec - t) > toleranceSec) return false;
+  const expected = Buffer.from(createHmac("sha256", secret).update(\`\${t}.\${rawBody}\`, "utf8").digest("hex"), "hex");
+  for (const sig of signatures) {
+    const got = Buffer.from(sig, "hex");
+    if (got.length === expected.length && timingSafeEqual(got, expected)) return true;
+  }
+  return false;
+}`;
+
+/** Express usage shown under the reference implementation on /docs. */
+export const WEBHOOK_VERIFY_EXPRESS_EXAMPLE = `app.post("/hooks/blockid", express.raw({ type: "application/json" }), (req, res) => {
+  const ok = verifyBlockIdWebhook(req.body.toString("utf8"), req.get("${SIGNATURE_HEADER}") ?? "", process.env.BLOCKID_WEBHOOK_SECRET);
+  if (!ok) return res.status(400).send("bad signature");
+  const envelope = JSON.parse(req.body.toString("utf8"));
+  // envelope.event === "svi.rescored" → envelope.data.svi_total, .delta, .project_id …
+  res.sendStatus(200);
+});`;

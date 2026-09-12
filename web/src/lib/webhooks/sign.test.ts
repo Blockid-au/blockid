@@ -1,5 +1,5 @@
 // S20-B — signing + verification (Stripe-style t=,v1=) and secret sealing.
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import {
   buildSignatureHeader,
@@ -12,6 +12,8 @@ import {
   sealSecret,
   secretHint,
   verifySignature,
+  WEBHOOK_VERIFY_EXPRESS_EXAMPLE,
+  WEBHOOK_VERIFY_SNIPPET,
   WebhookSealKeyMissingError,
 } from "./sign";
 
@@ -120,5 +122,69 @@ describe("sealSecret / openSecret", () => {
     }
     // Keyless dev still opens it.
     expect(openSecret(obf, none)).toBe(SECRET);
+  });
+});
+
+// ── S20-B review P2-5: the /docs reference verifier is executed here ───────
+
+type Verify = (rawBody: string, header: string, secret: string, toleranceSec?: number, nowSec?: number) => boolean;
+
+/** Turn the published snippet into a callable (strip the import + export; inject node:crypto). */
+function loadSnippet(): Verify {
+  const body = WEBHOOK_VERIFY_SNIPPET.split("\n")
+    .filter((l) => !l.startsWith("import "))
+    .join("\n")
+    .replace("export function", "function");
+  const factory = new Function("createHmac", "timingSafeEqual", "Buffer", `${body}\nreturn verifyBlockIdWebhook;`);
+  return factory(createHmac, timingSafeEqual, Buffer) as Verify;
+}
+
+describe("docs reference verifier (WEBHOOK_VERIFY_SNIPPET)", () => {
+  const verify = loadSnippet();
+  const now = 1_800_000_000;
+  const header = buildSignatureHeader(SECRET, BODY, now);
+
+  it("agrees with verifySignature on the full matrix — and never throws", () => {
+    const hex64NonHex = "g".repeat(64);
+    const cases: Array<[string, string, string, number | undefined, number]> = [
+      [BODY, header, SECRET, undefined, now],
+      [BODY, header, "whsec_wrong", undefined, now],
+      [`${BODY} `, header, SECRET, undefined, now],
+      [BODY, header, SECRET, undefined, now + DEFAULT_TOLERANCE_SEC],
+      [BODY, header, SECRET, undefined, now + DEFAULT_TOLERANCE_SEC + 1],
+      [BODY, header, SECRET, undefined, now - DEFAULT_TOLERANCE_SEC - 1],
+      [BODY, header, SECRET, 10, now + 11],
+      [BODY, `t=${now},v1=${hex64NonHex}`, SECRET, undefined, now], // old snippet: RangeError
+      [BODY, `t=${now},v1=abc`, SECRET, undefined, now],
+      [BODY, `t=${now}`, SECRET, undefined, now],
+      [BODY, `v1=${header.split("v1=")[1]}`, SECRET, undefined, now],
+      [BODY, `t=abc,v1=${header.split("v1=")[1]}`, SECRET, undefined, now],
+      [BODY, `t=-5,v1=${header.split("v1=")[1]}`, SECRET, undefined, now],
+      [BODY, "", SECRET, undefined, now],
+      [BODY, `t=${now},v1=${"0".repeat(64)},v1=${header.split("v1=")[1]}`, SECRET, undefined, now], // rotation: second matches
+      [BODY, `t=${now},v1=${header.split("v1=")[1].toUpperCase()}`, SECRET, undefined, now],
+      [BODY, ` t = ${now} , v1 = ${header.split("v1=")[1]} `, SECRET, undefined, now],
+    ];
+    for (const [body, h, secret, tol, at] of cases) {
+      const reference = verifySignature(secret, h, body, { toleranceSec: tol, now: at }).ok;
+      let got: boolean | "threw" = "threw";
+      try {
+        got = verify(body, h, secret, tol, at);
+      } catch {
+        // stays "threw"
+      }
+      expect(got, `header=${JSON.stringify(h)} secret=${secret} now=${at}`).toBe(reference);
+    }
+    expect(verify(BODY, header, SECRET, undefined, now)).toBe(true);
+    expect(verify(BODY, `t=${now},v1=${hex64NonHex}`, SECRET, undefined, now)).toBe(false);
+  });
+
+  it("validates hex before the constant-time compare and defaults to a 300 s tolerance", () => {
+    expect(WEBHOOK_VERIFY_SNIPPET).toContain("/^[0-9a-f]{64}$/i");
+    expect(WEBHOOK_VERIFY_SNIPPET).toContain("got.length === expected.length && timingSafeEqual(got, expected)");
+    expect(WEBHOOK_VERIFY_SNIPPET).toContain("toleranceSec = 300");
+    expect(WEBHOOK_VERIFY_EXPRESS_EXAMPLE).toContain('req.get("X-BlockID-Signature")');
+    // Live-clock default path.
+    expect(verify(BODY, buildSignatureHeader(SECRET, BODY), SECRET)).toBe(true);
   });
 });
