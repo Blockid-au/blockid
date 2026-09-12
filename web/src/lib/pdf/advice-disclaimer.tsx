@@ -18,6 +18,9 @@
 import * as React from "react";
 import { StyleSheet, Text, View } from "@react-pdf/renderer";
 
+// Typed off the component so no transitive @react-pdf/* package is imported.
+type PdfStyle = Exclude<NonNullable<React.ComponentProps<typeof View>["style"]>, readonly unknown[]>;
+
 export const PDF_ENTITY_LINE =
   "Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW";
 
@@ -68,12 +71,12 @@ export function AdviceDisclaimer({
 }: {
   variant?: AdviceDisclaimerVariant;
   dark?: boolean;
-  style?: Record<string, unknown>;
+  style?: PdfStyle;
 }) {
   const color = dark ? "#94A3B8" : "#64748B";
   const border = dark ? "#1E293B" : "#E2E8F0";
   return (
-    <View style={[st.box, { borderTopColor: border }, style ?? {}]} wrap={false}>
+    <View style={style ? [st.box, { borderTopColor: border }, style] : [st.box, { borderTopColor: border }]} wrap={false}>
       <Text style={[st.text, { color }]}>{adviceDisclaimerText(variant)}</Text>
     </View>
   );
