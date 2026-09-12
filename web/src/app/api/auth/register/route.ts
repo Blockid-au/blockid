@@ -6,7 +6,7 @@
 
 import { NextResponse } from "next/server";
 import { registerWithPassword, setSessionCookie, isValidEmail } from "@/lib/auth";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkAuthIdentityLimit, checkAuthIpCeiling } from "@/lib/security/auth-rate-limit";
 import { claimForCurrentBrowser } from "@/lib/analyses/claim";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
 import { apiRoute } from "@/lib/audit/api-route";
@@ -19,16 +19,19 @@ function sanitizeName(raw: unknown): string | undefined {
   return raw.replace(/<[^>]*>/g, "").trim().slice(0, 100);
 }
 
+function tooMany(resetIn: number) {
+  return NextResponse.json(
+    { ok: false, error: "Too many registration attempts. Please try again later." },
+    { status: 429, headers: { "Retry-After": String(Math.ceil(resetIn / 1000)) } },
+  );
+}
+
 async function POST_handler(request: Request) {
-  // Rate limit: 3 registrations per IP per 15 minutes
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  const rl = checkRateLimit(`register:${ip}`, 3, 15 * 60 * 1000);
-  if (!rl.allowed) {
-    return NextResponse.json(
-      { ok: false, error: "Too many registration attempts. Please try again later." },
-      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.resetIn / 1000)) } },
-    );
-  }
+  // Release QA-2 F7: per-IP ceiling (trusted hop, 20/15 min) before the
+  // body is parsed; the tight per-(IP, email) bucket (5/15 min) is checked
+  // once the email is known. See lib/security/auth-rate-limit.ts.
+  const ceiling = checkAuthIpCeiling("register", request.headers);
+  if (!ceiling.allowed) return tooMany(ceiling.resetIn);
   let body: Record<string, unknown> | null = null;
   try {
     body = await request.json();
@@ -42,6 +45,8 @@ async function POST_handler(request: Request) {
     if (!isValidEmail(email)) {
       return NextResponse.json({ ok: false, error: "Valid email is required" }, { status: 400 });
     }
+    const identity = checkAuthIdentityLimit("register", request.headers, email as string);
+    if (!identity.allowed) return tooMany(identity.resetIn);
     if (!password || typeof password !== "string") {
       return NextResponse.json({ ok: false, error: "Password is required" }, { status: 400 });
     }
