@@ -4,7 +4,9 @@ import {
   apiRoute,
   auditNote,
   buildAuditRecord,
+  flushAudits,
   isAuditedHandler,
+  isStreamingResponse,
   setAuditSink,
   type AuditRecord,
 } from "./api-route";
@@ -13,6 +15,9 @@ import { getAuditContext, newAuditContext, setAuditActor, setAuditProject } from
 // S20-A — the apiRoute wrapper: one audit row per invocation, for 2xx, 4xx
 // AND 5xx (and thrown errors, rethrown untouched); the sink can never throw
 // into the handler; body never read; ids only.
+// S20-A review P2-1: the write is fire-and-forget (an SSE first byte and
+// a rethrow are never held behind the insert — `flushAudits()` is the test
+// seam) and streaming responses carry `streamed: true`.
 
 const ROUTE = "api/projects/[id]/members/route.ts";
 const UID = "11111111-2222-4333-8444-555555555555";
@@ -56,6 +61,7 @@ describe("apiRoute — records every outcome", () => {
     });
     const res = await POST(req(), { params: Promise.resolve({ id: PID }) });
     expect(res.status).toBe(201);
+    await flushAudits();
     expect(records).toHaveLength(1);
     const r = records[0];
     expect(r.user_id).toBe(UID);
@@ -85,6 +91,7 @@ describe("apiRoute — records every outcome", () => {
       NextResponse.json({ ok: false }, { status: 401 }),
     );
     await DELETE(req("https://blockid.au/api/keys/abc", { method: "DELETE" }));
+    await flushAudits();
     expect(records[0].detail.status).toBe(401);
     expect(records[0].user_id).toBeNull();
     expect(records[0].actor).toBe("anonymous");
@@ -96,6 +103,7 @@ describe("apiRoute — records every outcome", () => {
       NextResponse.json({ ok: false }, { status: 500 }),
     );
     await PUT(req());
+    await flushAudits();
     expect(records[0].detail.status).toBe(500);
     expect(records[0].action).toBe("svi.answers.update");
     expect(records[0].resource_type).toBe("answer");
@@ -107,9 +115,11 @@ describe("apiRoute — records every outcome", () => {
       throw boom;
     });
     await expect(PATCH(req())).rejects.toBe(boom);
+    await flushAudits();
     expect(records).toHaveLength(1);
     expect(records[0].detail.status).toBe(500);
     expect(records[0].detail.threw).toBe(true);
+    expect(records[0].detail.streamed).toBeUndefined();
     expect(records[0].action).toBe("evidence.update");
   });
 
@@ -117,6 +127,7 @@ describe("apiRoute — records every outcome", () => {
     const POST = apiRoute({ route: "api/x/route.ts", method: "POST" }, async () => undefined);
     const out = await POST(req());
     expect(out).toBeUndefined();
+    await flushAudits();
     expect(records[0].detail.status).toBe(500);
   });
 
@@ -132,6 +143,7 @@ describe("apiRoute — records every outcome", () => {
       async () => new Response("ok", { status: 200 }),
     );
     await POST(req());
+    await flushAudits();
     expect(records[0].action).toBe("svi.rescore");
     expect(records[0].resource_type).toBe("svi_account");
     expect(records[0].detail.ua_family).toBe("none");
@@ -146,6 +158,7 @@ describe("apiRoute — never throws into the handler", () => {
     const POST = apiRoute({ route: "api/x/route.ts", method: "POST" }, async () => NextResponse.json({ ok: true }));
     const res = await POST(req());
     expect(res.status).toBe(200);
+    await flushAudits();
   });
 
   it("sink that hangs is bounded by the write timeout", async () => {
@@ -156,6 +169,7 @@ describe("apiRoute — never throws into the handler", () => {
     await vi.advanceTimersByTimeAsync(1600);
     const res = await p;
     expect(res.status).toBe(200);
+    await flushAudits();
     vi.useRealTimers();
   });
 
@@ -171,6 +185,7 @@ describe("apiRoute — never throws into the handler", () => {
       async () => NextResponse.json({ ok: true }),
     );
     await POST(req());
+    await flushAudits();
     expect(records).toHaveLength(1);
   });
 
@@ -188,6 +203,7 @@ describe("apiRoute — context isolation + shape preservation", () => {
       return NextResponse.json({ ok: true });
     });
     await Promise.all([POST(req(undefined, { headers: { "x-who": "a" } })), POST(req(undefined, { headers: { "x-who": "b" } }))]);
+    await flushAudits();
     const actors = records.map((r) => r.user_id).sort();
     expect(actors).toEqual([null, UID].sort());
     expect(getAuditContext()).toBeUndefined();
@@ -221,3 +237,112 @@ describe("apiRoute — context isolation + shape preservation", () => {
     expect(rec.detail.duration_ms).toBe(4);
   });
 });
+
+// ---------------------------------------------------------------------------
+// S20-A review P2-1 — non-blocking finalize + streaming rows
+// ---------------------------------------------------------------------------
+
+function slowSink(ms: number) {
+  setAuditSink(
+    (r) =>
+      new Promise<void>((resolve) => {
+        setTimeout(() => {
+          records.push(r);
+          resolve();
+        }, ms);
+      }),
+  );
+}
+
+function sseResponse(status = 200) {
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode("event: open\n\n"));
+      // The stream stays open — exactly what an SSE handler does.
+    },
+  });
+  return new Response(stream, {
+    status,
+    headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
+  });
+}
+
+describe("apiRoute — audit write never holds the response (P2-1)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("SSE: headers are returned immediately even with a slow sink; row says status + streamed", async () => {
+    vi.useFakeTimers();
+    slowSink(1000);
+    const POST = apiRoute({ route: "api/svi/dimensions/stream/route.ts", method: "POST" }, async () => sseResponse());
+    // No timer advance before this await: a blocking finalize would hang here.
+    const res = await POST(req());
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("text/event-stream");
+    expect(records).toHaveLength(0); // the write is still in flight
+    await vi.advanceTimersByTimeAsync(1000);
+    await flushAudits();
+    expect(records).toHaveLength(1);
+    expect(records[0].detail.status).toBe(200);
+    expect(records[0].detail.streamed).toBe(true);
+    expect(records[0].detail.threw).toBeUndefined();
+  });
+
+  it("JSON: response returns before the write lands; no `streamed` flag", async () => {
+    vi.useFakeTimers();
+    slowSink(1000);
+    const POST = apiRoute({ route: "api/x/route.ts", method: "POST" }, async () => NextResponse.json({ ok: true }));
+    const res = await POST(req());
+    expect(res.status).toBe(200);
+    expect(records).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(1000);
+    await flushAudits();
+    expect(records).toHaveLength(1);
+    expect(records[0].detail.streamed).toBeUndefined();
+  });
+
+  it("throw path: the error is rethrown immediately, not after the write", async () => {
+    vi.useFakeTimers();
+    slowSink(1000);
+    const boom = new Error("boom");
+    const POST = apiRoute({ route: "api/x/route.ts", method: "POST" }, async () => {
+      throw boom;
+    });
+    await expect(POST(req())).rejects.toBe(boom);
+    expect(records).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(1000);
+    await flushAudits();
+    expect(records).toHaveLength(1);
+    expect(records[0].detail).toMatchObject({ status: 500, threw: true });
+  });
+
+  it("the write still lands when the handler is long gone (context captured synchronously)", async () => {
+    const POST = apiRoute({ route: "api/x/route.ts", method: "POST" }, async () => {
+      setAuditActor({ userId: UID });
+      auditNote(PID);
+      return sseResponse(201);
+    });
+    await POST(req());
+    await flushAudits();
+    expect(records[0].user_id).toBe(UID);
+    expect(records[0].resource_id).toBe(PID);
+    expect(records[0].detail.status).toBe(201);
+    expect(records[0].detail.streamed).toBe(true);
+  });
+});
+
+describe("isStreamingResponse", () => {
+  it("true for SSE / ndjson / chunked; false for JSON, text, no body", () => {
+    expect(isStreamingResponse(sseResponse())).toBe(true);
+    expect(isStreamingResponse(new Response("x", { headers: { "content-type": "application/x-ndjson" } }))).toBe(true);
+    expect(isStreamingResponse(new Response("x", { headers: { "content-type": "text/event-stream; charset=utf-8" } }))).toBe(true);
+    expect(isStreamingResponse(new Response("x", { headers: { "transfer-encoding": "chunked" } }))).toBe(true);
+    expect(isStreamingResponse(NextResponse.json({ ok: true }))).toBe(false);
+    expect(isStreamingResponse(new Response("ok"))).toBe(false);
+    expect(isStreamingResponse(new Response(null, { status: 204 }))).toBe(false);
+    expect(isStreamingResponse(undefined)).toBe(false);
+    expect(isStreamingResponse({})).toBe(false);
+  });
+});
+
