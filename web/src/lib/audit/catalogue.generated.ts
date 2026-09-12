@@ -11,10 +11,12 @@ export interface AuditCatalogueRow {
 
 export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze([
   { route: "api/accelerator/cohort/route.ts", family: "accelerator.cohort", methods: ["POST"] },
+  { route: "api/account/delete/route.ts", family: "account.delete", methods: ["POST"] },
   { route: "api/account/notify-prefs/route.ts", family: "account.notify-prefs", methods: ["POST"] },
   { route: "api/actions/route.ts", family: "actions", methods: ["POST"] },
   { route: "api/admin/accelerator/[id]/route.ts", family: "admin.accelerator", methods: ["POST","DELETE"] },
   { route: "api/admin/accelerator/route.ts", family: "admin.accelerator", methods: ["POST"] },
+  { route: "api/admin/account/erase/route.ts", family: "admin.account.erase", methods: ["POST"] },
   { route: "api/admin/affiliate/attributions/[attributionId]/revoke/route.ts", family: "admin.affiliate.attributions.revoke", methods: ["POST"] },
   { route: "api/admin/affiliate/provision/route.ts", family: "admin.affiliate.provision", methods: ["POST"] },
   { route: "api/admin/ai-health/trigger/route.ts", family: "admin.ai-health.trigger", methods: ["POST"] },
