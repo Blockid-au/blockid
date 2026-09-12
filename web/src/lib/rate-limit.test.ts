@@ -73,6 +73,17 @@ describe("checkRateLimit — bucketed async API", () => {
     expect(result.resetAt).toBeGreaterThan(Date.now() - 1000);
   });
 
+  it("declares the two anonymous data-room buckets (S21-A review P1-2): token 30/min, pdf 10/min", async () => {
+    const tok = await (checkRateLimit("data-room-token", [`t:${Math.random()}`]) as Promise<{ allowed: boolean; limit: number }>);
+    expect(tok.allowed).toBe(true);
+    expect(tok.limit).toBe(30);
+    const pdf = await (checkRateLimit("data-room-pdf", [`p:${Math.random()}`]) as Promise<{ allowed: boolean; limit: number }>);
+    expect(pdf.allowed).toBe(true);
+    expect(pdf.limit).toBe(10);
+    // Tighter than the generic default and than the founder's investor-link mint bucket.
+    expect(pdf.limit).toBeLessThan(20);
+  });
+
   it("degrades gracefully — no Redis configured means MemoryStore fallback allows the request", async () => {
     // REDIS_URL is unset in this env so the singleton store is MemoryStore.
     // Every unique bucket + key combination should therefore be allowed on

@@ -64,6 +64,16 @@ const BUCKET_ROUTES: ReadonlyArray<readonly [prefix: string, bucket: RateLimitBu
   ["/api/integrations/", "integrations"],
   // CISO P1 (2026-08-23 audit) — sensitive upload + investor-link buckets.
   ["/api/investor-link", "investor-link"],
+  // S21-A review P1-2 — anonymous share-token routes (token in body / path,
+  // no session): NDA accept, engagement telemetry, and the per-document PDF
+  // render. Without these an unauthenticated caller could loop the PDF
+  // route (server-side @react-pdf, maxDuration 60) or insert unbounded
+  // engagement rows by rotating `section`. Prefix with trailing slash so
+  // /api/data-room/share/<token>/pdf matches; the two POST routes are
+  // exact-or-subpath.
+  ["/api/data-room/nda", "data-room-token"],
+  ["/api/data-room/engage", "data-room-token"],
+  ["/api/data-room/share/", "data-room-pdf"],
   ["/api/evidence/upload", "evidence-upload"],
   ["/api/upload", "upload"],
   // Auth surfaces — fail-closed (see FAIL_CLOSED_BUCKETS in lib/rate-limit.ts).
