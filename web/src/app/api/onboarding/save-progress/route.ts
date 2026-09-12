@@ -75,11 +75,20 @@ async function POST_handler(request: Request) {
       .eq("id", user.id);
 
     if (error) {
-      // 42703 = undefined_column — column not present. Skip silently.
+      // Column not present → skip silently. Two spellings of the same
+      // condition:
+      //   42703    = Postgres undefined_column (raw SQL path)
+      //   PGRST204 = PostgREST "Could not find the '<col>' column of
+      //              '<table>' in the schema cache" (what the REST client
+      //              actually returns — release QA-2 F5 saw this 500 once
+      //              per wizard step in production).
       const code = (error as { code?: string }).code;
+      const message = error.message ?? "";
       if (
         code === "42703" ||
-        /column\s+.*onboarding_state.*does not exist/i.test(error.message ?? "")
+        code === "PGRST204" ||
+        /column\s+.*onboarding_state.*does not exist/i.test(message) ||
+        /could not find the '?onboarding_state'? column/i.test(message)
       ) {
         return NextResponse.json({ ok: true, skipped: true });
       }
