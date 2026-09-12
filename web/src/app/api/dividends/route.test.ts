@@ -191,6 +191,10 @@ function makeFakeSupabase(): { client: unknown; state: FakeSupabaseState } {
             error: state.dividendError,
           });
         }
+        // 0334: esop_pool also terminates on .maybeSingle after .limit
+        if (table === "esop_pool") {
+          return { maybeSingle: async () => ({ data: state.esopRow, error: null }) };
+        }
         // startup_metrics chain terminates on .maybeSingle after .limit
         return {
           maybeSingle: async () => ({

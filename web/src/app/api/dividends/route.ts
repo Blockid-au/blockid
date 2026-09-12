@@ -122,6 +122,11 @@ export async function POST(request: Request) {
       .from("esop_pool")
       .select("total_pool_shares")
       .eq("account_id", user.id)
+      // 0334: esop_pool is one-per-(account, project); this owner-only route
+      // is not project-aware, so take the latest pool deterministically
+      // instead of erroring on a multi-row maybeSingle().
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle(),
   ]);
 

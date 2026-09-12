@@ -38,8 +38,10 @@
 //   - dropping the `!== null` guard on the update_shareholder payload
 //     assembly so a caller with `{email:null}` blanks the row's email
 //     instead of no-oping;
-//   - swapping the `esop_pool` upsert `onConflict:"account_id"` so a founder
-//     ends up with N esop_pool rows per project;
+//   - swapping the `esop_pool` upsert `onConflict:"account_id,project_id"`
+//     (S18-A review P2-4 / migration 0334) — back to `account_id` alone and
+//     the second project's setup overwrites + relabels the first project's
+//     pool; dropped entirely and a founder ends up with N rows per project;
 //   - dropping the transaction-cascade DELETE on share_transactions so
 //     removing a shareholder leaves orphan transaction rows;
 //   - regressing the fully-diluted % rounding — 4dp regressions would
@@ -967,14 +969,14 @@ describe("POST /api/cap-table action=setup_esop", () => {
     expect(res.status).toBe(400);
   });
 
-  it("upserts esop_pool with onConflict:'account_id' so a re-setup replaces the founder's row (no duplicates)", async () => {
+  it("upserts esop_pool with onConflict:'account_id,project_id' so a re-setup replaces THIS project's row only (0334)", async () => {
     queue({ data: { id: "pool-1" }, error: null });
     await POST(
       makeReq({ action: "setup_esop", data: { totalPoolShares: 500_000, poolPct: 12 } }),
     );
     const c = findChain("esop_pool", "upsert");
     expect(c).toBeDefined();
-    expect(c?.upsertOpts).toEqual({ onConflict: "account_id" });
+    expect(c?.upsertOpts).toEqual({ onConflict: "account_id,project_id" });
     expect(c?.payload).toEqual({
       account_id: "user-1",
       project_id: null,
@@ -1388,5 +1390,47 @@ describe("S18-A review P1-1 — project boundary on id-keyed mutations", () => {
     await DELETE(makeReq({ shareholderId: "sh-1" }, "DELETE"));
     pre = findChain("shareholders", "select");
     expect(pre?.isCalls).toEqual([{ col: "project_id", val: null }]);
+  });
+});
+
+// ===========================================================================
+// S18-A review P2-4 — esop_pool is one-per-(account, project), not
+// one-per-account: setting up project B's pool must not overwrite A's.
+// ===========================================================================
+
+describe("S18-A review P2-4 — esop_pool per project", () => {
+  afterEach(() => {
+    scopeRole.value = "owner";
+  });
+
+  it("owner on project B: the upsert is keyed on (account_id, project_id) and stamps B — A's row is a different conflict target", async () => {
+    getProjectIdFromRequestMock.mockResolvedValue("proj-B");
+    queue({ data: { id: "pool-B" }, error: null });
+    const res = await POST(makeReq({ action: "setup_esop", data: { totalPoolShares: 100_000 } }));
+    expect(res.status).toBe(201);
+    const c = findChain("esop_pool", "upsert");
+    expect(c?.upsertOpts).toEqual({ onConflict: "account_id,project_id" });
+    expect(c?.payload).toMatchObject({ account_id: "user-1", project_id: "proj-B" });
+  });
+
+  it("editor on the owner's project A: pool stamped with the OWNER's account_id + project A, same composite conflict target", async () => {
+    scopeRole.value = "editor";
+    getProjectIdFromRequestMock.mockResolvedValue("proj-A");
+    queue({ data: { id: "pool-A" }, error: null });
+    const res = await POST(makeReq({ action: "setup_esop", data: { totalPoolShares: 100_000 } }));
+    expect(res.status).toBe(201);
+    const c = findChain("esop_pool", "upsert");
+    expect(c?.upsertOpts).toEqual({ onConflict: "account_id,project_id" });
+    expect(c?.payload).toMatchObject({ account_id: "owner-1", project_id: "proj-A" });
+  });
+
+  it("owner with no active project: legacy row (project_id null) still upserts on the same composite key (NULLS NOT DISTINCT)", async () => {
+    getProjectIdFromRequestMock.mockResolvedValue(null);
+    queue({ data: { id: "pool-legacy" }, error: null });
+    const res = await POST(makeReq({ action: "setup_esop", data: { totalPoolShares: 100_000 } }));
+    expect(res.status).toBe(201);
+    const c = findChain("esop_pool", "upsert");
+    expect(c?.upsertOpts).toEqual({ onConflict: "account_id,project_id" });
+    expect(c?.payload).toMatchObject({ account_id: "user-1", project_id: null });
   });
 });

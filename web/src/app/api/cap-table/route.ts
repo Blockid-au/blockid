@@ -338,7 +338,11 @@ export async function POST(request: Request) {
         );
       }
 
-      // Upsert the ESOP pool
+      // Upsert the ESOP pool — one per (account, project). S18-A review
+      // P2-4: conflicting on `account_id` alone (the 0029 unique) made the
+      // second project's setup overwrite + relabel the first project's
+      // pool; migration 0334 replaces it with a unique
+      // (account_id, project_id) NULLS NOT DISTINCT index.
       const { data: row, error } = await supabase
         .from("esop_pool")
         .upsert(
@@ -349,7 +353,7 @@ export async function POST(request: Request) {
             pool_pct: poolPct,
             allocated_shares: 0,
           },
-          { onConflict: "account_id" },
+          { onConflict: "account_id,project_id" },
         )
         .select()
         .single();
