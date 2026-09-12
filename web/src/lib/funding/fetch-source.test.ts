@@ -1,6 +1,14 @@
 // Colocated vitest for the funding fetch helper + dependency-free parsers (T0243).
 
 import { describe, expect, it, vi } from "vitest";
+
+// S20-B review P2-3 — without an injected fetchImpl the helper goes through
+// the DNS-pinned transport; stubbed so the suite stays off the network.
+const pinnedFetchMock = vi.fn<(url: string, init: RequestInit, addresses: readonly string[]) => Promise<Response>>();
+vi.mock("@/lib/security/pinned-fetch", () => ({
+  pinnedFetch: (url: string, init: RequestInit, addresses: readonly string[]) => pinnedFetchMock(url, init, addresses),
+}));
+
 import {
   FUNDING_BOT_UA,
   MAX_BODY_BYTES,
@@ -102,6 +110,22 @@ describe("fetchText", () => {
     expect(seen).toEqual(["business.gov.au", "www.business.gov.au", "www.business.gov.au"]);
     const init = (impl as unknown as { mock: { calls: Array<[string, RequestInit]> } }).mock.calls[0][1];
     expect(init.redirect).toBe("manual");
+  });
+
+  it("P2-3: the default transport pins every hop's socket to the addresses the guard validated for THAT hop", async () => {
+    const byHost: Record<string, string[]> = { "business.gov.au": ["13.54.1.1"], "www.business.gov.au": ["13.54.2.2", "2400:cb00::1"] };
+    pinnedFetchMock.mockReset();
+    pinnedFetchMock
+      .mockResolvedValueOnce(new Response("", { status: 301, headers: { location: "https://www.business.gov.au/grants" } }))
+      .mockResolvedValueOnce(new Response("landed", { status: 200 }));
+    const r = await fetchText("https://business.gov.au/x", { sleep: noSleep, resolve: async (h) => byHost[h] });
+    expect(r).toMatchObject({ ok: true, status: 200, text: "landed" });
+    expect(pinnedFetchMock).toHaveBeenCalledTimes(2);
+    expect(pinnedFetchMock.mock.calls[0][0]).toBe("https://business.gov.au/x");
+    expect(pinnedFetchMock.mock.calls[0][2]).toEqual(["13.54.1.1"]);
+    expect(pinnedFetchMock.mock.calls[1][0]).toBe("https://www.business.gov.au/grants");
+    expect(pinnedFetchMock.mock.calls[1][2]).toEqual(["13.54.2.2", "2400:cb00::1"]);
+    expect(pinnedFetchMock.mock.calls[1][1].redirect).toBe("manual");
   });
 
   it("SSRF: refuses the cloud metadata address, loopback and non-http schemes without fetching", async () => {

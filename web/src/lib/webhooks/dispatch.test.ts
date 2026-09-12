@@ -136,6 +136,26 @@ describe("sendOnce", () => {
     expect(verifySignature("whsec_wrong", h["X-BlockID-Signature"], body).ok).toBe(false);
   });
 
+  it("P2-3: hands the addresses the SSRF check validated to the transport (pinned connect), [] when the check has none", async () => {
+    const seen: Array<readonly string[]> = [];
+    const capture = async (_url: string, _init: RequestInit, addresses: readonly string[]) => {
+      seen.push(addresses);
+      return new Response(null, { status: 204 });
+    };
+    await sendOnce(endpoint(), delivery(), { fetch: capture, checkUrl: async () => ({ ok: true, addresses: ["93.184.216.34", "2606:2800:220:1:248:1893:25c8:1946"] }), env: ENV });
+    await sendOnce(endpoint(), delivery(), { fetch: capture, checkUrl: okCheck, env: ENV });
+    expect(seen).toEqual([["93.184.216.34", "2606:2800:220:1:248:1893:25c8:1946"], []]);
+  });
+
+  it("P2-3: a connect refused by the pinned lookup surfaces its cause in the failure", async () => {
+    const refusing = async () => {
+      const cause = new Error("outbound_lookup_refused:private_ip:169.254.169.254");
+      throw new TypeError("fetch failed", { cause });
+    };
+    const out = await sendOnce(endpoint(), delivery(), { fetch: refusing, checkUrl: okCheck, env: ENV });
+    expect(out).toMatchObject({ ok: false, error: "network:fetch failed (outbound_lookup_refused:private_ip:169.254.169.254)" });
+  });
+
   it("refuses an SSRF-rejected URL before any fetch", async () => {
     const fetchMock = vi.fn();
     const out = await sendOnce(endpoint({ url: "https://10.0.0.1/x" }), delivery(), {

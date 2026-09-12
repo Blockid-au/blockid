@@ -15,6 +15,7 @@
 // for regex + a small state machine. Colocated tests: fetch-source.test.ts.
 
 import { checkOutboundUrl, type OutboundUrlOptions } from "@/lib/security/outbound-url";
+import { pinnedFetch } from "@/lib/security/pinned-fetch";
 
 export const FUNDING_BOT_UA =
   "Mozilla/5.0 (compatible; BlockID-FundingBot/1.0; +https://blockid.au/funding)";
@@ -35,7 +36,11 @@ export interface FetchTextOptions {
   /** Base backoff; doubles per attempt (250 → 500 → 1000 …). Default 500 ms. */
   backoffMs?: number;
   userAgent?: string;
-  /** Injected for tests. Defaults to the global fetch. */
+  /**
+   * Injected for tests. Defaults to the DNS-pinned fetch
+   * (lib/security/pinned-fetch.ts, S20-B review P2-3): each hop's socket
+   * connects only to the addresses `checkOutboundUrl` validated for it.
+   */
   fetchImpl?: typeof fetch;
   /** Injected for tests so backoff does not actually sleep. */
   sleep?: (ms: number) => Promise<void>;
@@ -113,7 +118,7 @@ export async function fetchText(url: string, opts: FetchTextOptions = {}): Promi
   const retries = Math.max(0, opts.retries ?? 2);
   const backoffMs = Math.max(0, opts.backoffMs ?? 500);
   const ua = opts.userAgent ?? FUNDING_BOT_UA;
-  const doFetch = opts.fetchImpl ?? globalThis.fetch;
+  const injected = opts.fetchImpl;
   const sleep = opts.sleep ?? defaultSleep;
   const maxRedirects = Math.max(0, opts.maxRedirects ?? MAX_REDIRECTS);
   const guardOpts: OutboundUrlOptions = { resolve: opts.resolve };
@@ -133,6 +138,11 @@ export async function fetchText(url: string, opts: FetchTextOptions = {}): Promi
   // final (retrying cannot make a private address public).
   const first = await checkOutboundUrl(url, guardOpts);
   if (!first.ok) return refuse(first.reason, 0);
+  // Addresses the guard validated for the URL currently being fetched; the
+  // default transport pins the socket to them (no second DNS lookup).
+  let pinned: readonly string[] = first.addresses;
+  const doFetch = (u: string, init: RequestInit): Promise<Response> =>
+    injected ? injected(u, init) : pinnedFetch(u, init, pinned, { resolve: opts.resolve });
 
   let attempts = 0;
   let lastError = "";
@@ -146,6 +156,7 @@ export async function fetchText(url: string, opts: FetchTextOptions = {}): Promi
     // Redirects are followed by hand so every hop goes through the guard —
     // `redirect: "follow"` would let a seed host bounce us to 169.254.169.254.
     let current = first.url.toString();
+    pinned = first.addresses;
     let hops = 0;
     let settled = false;
     while (!settled) {
@@ -182,6 +193,7 @@ export async function fetchText(url: string, opts: FetchTextOptions = {}): Promi
           const hop = await checkOutboundUrl(next, guardOpts);
           if (!hop.ok) return refuse(hop.reason, attempts);
           current = hop.url.toString();
+          pinned = hop.addresses;
           hops++;
           continue;
         }

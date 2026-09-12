@@ -21,7 +21,10 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["lucide-react", "recharts"],
   },
   // Include native/binary packages in standalone output
-  serverExternalPackages: ["ioredis", "bcryptjs", "@anthropic-ai/sdk", "pptxgenjs", "node-pptx-parser", "unzipper", "tesseract.js", "@aws-sdk/client-s3", "@remotion/renderer", "@remotion/bundler", "@remotion/compositor-linux-x64-gnu", "@rspack/binding", "@rspack/core", "esbuild"],
+  // undici: S20-B review P2-3 — the DNS-pinned outbound fetch (lib/security/pinned-fetch.ts)
+  // needs undici's Agent; kept external so the standalone build loads the real
+  // package (Node's bundled copy is not importable as a module).
+  serverExternalPackages: ["undici", "ioredis", "bcryptjs", "@anthropic-ai/sdk", "pptxgenjs", "node-pptx-parser", "unzipper", "tesseract.js", "@aws-sdk/client-s3", "@remotion/renderer", "@remotion/bundler", "@remotion/compositor-linux-x64-gnu", "@rspack/binding", "@rspack/core", "esbuild"],
   /**
    * Stage-3 sub-B3 (Master Upgrade Plan §7.1): legacy `/for/*` marketing
    * URLs migrate to `/solutions/*`. Only the /for/[segment] slugs that

@@ -25,6 +25,10 @@
 //   3. send    — POST JSON, 8 s AbortController timeout, `redirect: "manual"`
 //                (a 3xx is a failure — redirects are never followed, so the
 //                SSRF check on the original host is the only host reached).
+//                The socket is PINNED to the addresses the SSRF check
+//                validated (lib/security/pinned-fetch.ts, S20-B review
+//                P2-3) so a short-TTL record cannot flip to a private
+//                address between the check and the connect.
 //                Headers: Content-Type, User-Agent, X-BlockID-Event,
 //                X-BlockID-Delivery (idempotency), X-BlockID-Signature
 //                (t=<ts>,v1=<hmac>). 2xx = delivered; anything else fails.
@@ -47,6 +51,7 @@
 
 import { randomUUID } from "node:crypto";
 import { checkOutboundUrl, type OutboundUrlOptions } from "@/lib/security/outbound-url";
+import { pinnedFetch } from "@/lib/security/pinned-fetch";
 import { buildSignatureHeader, DELIVERY_HEADER, EVENT_HEADER, nowSec, openSecret, SIGNATURE_HEADER } from "./sign";
 import { buildEnvelope, usersAllowedWebhooks, type PingPayload } from "./registry";
 import { notifyEndpointDisabled, type DisabledNotifier } from "./notify";
@@ -70,13 +75,16 @@ export type DeliveryOutcome =
   | { ok: true; status: number; durationMs: number }
   | { ok: false; status: number | null; error: string; durationMs: number };
 
-export type FetchLike = (url: string, init: RequestInit) => Promise<Response>;
+/** `addresses` = what the SSRF check resolved; the default fetch pins the socket to them. */
+export type FetchLike = (url: string, init: RequestInit, addresses: readonly string[]) => Promise<Response>;
+
+export type UrlCheck = { ok: true; addresses?: readonly string[] } | { ok: false; reason: string };
 
 export interface DispatchDeps {
   store?: WebhookStore | null;
   fetch?: FetchLike;
   /** SSRF check seam (defaults to the S8-C guard with real DNS). */
-  checkUrl?: (url: string) => Promise<{ ok: true } | { ok: false; reason: string }>;
+  checkUrl?: (url: string) => Promise<UrlCheck>;
   /** In-app notification writer (defaults to lib/webhooks/notify). */
   notify?: DisabledNotifier;
   now?: () => Date;
@@ -99,17 +107,21 @@ export function isHttpsUrl(url: string): boolean {
   }
 }
 
-async function defaultCheckUrl(url: string, opts: OutboundUrlOptions = {}): Promise<{ ok: true } | { ok: false; reason: string }> {
+async function defaultCheckUrl(url: string, opts: OutboundUrlOptions = {}): Promise<UrlCheck> {
   if (!isHttpsUrl(url)) return { ok: false, reason: "https_required" };
   const res = await checkOutboundUrl(url, opts);
-  return res.ok ? { ok: true } : { ok: false, reason: res.reason };
+  return res.ok ? { ok: true, addresses: res.addresses } : { ok: false, reason: res.reason };
 }
 
 /** Validate a subscriber URL at creation time (same rules as at send time). */
 export async function validateEndpointUrl(url: string, opts: OutboundUrlOptions = {}): Promise<{ ok: true } | { ok: false; reason: string }> {
   if (typeof url !== "string" || url.length > 2048) return { ok: false, reason: "invalid_url" };
-  return defaultCheckUrl(url, opts);
+  const res = await defaultCheckUrl(url, opts);
+  return res.ok ? { ok: true } : res;
 }
+
+/** Default transport: undici fetch on a dispatcher pinned to the checked addresses. */
+const defaultFetch: FetchLike = (url, init, addresses) => pinnedFetch(url, init, addresses);
 
 function truncate(s: string, n = 300): string {
   return s.length > n ? `${s.slice(0, n)}…` : s;
@@ -128,6 +140,7 @@ export async function sendOnce(
 
   const check = await (deps.checkUrl ?? defaultCheckUrl)(endpoint.url);
   if (!check.ok) return fail(`ssrf_refused:${check.reason}`);
+  const addresses = check.addresses ?? [];
 
   const secret = openSecret(endpoint.secret_enc, deps.env);
   if (!secret) return fail("secret_unavailable");
@@ -144,13 +157,17 @@ export async function sendOnce(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), DELIVERY_TIMEOUT_MS);
   try {
-    const res = await (deps.fetch ?? fetch)(endpoint.url, {
-      method: "POST",
-      headers,
-      body,
-      redirect: "manual",
-      signal: controller.signal,
-    });
+    const res = await (deps.fetch ?? defaultFetch)(
+      endpoint.url,
+      {
+        method: "POST",
+        headers,
+        body,
+        redirect: "manual",
+        signal: controller.signal,
+      },
+      addresses,
+    );
     // Drain without reading into memory — a receiver's body is never stored.
     try {
       await res.body?.cancel();
@@ -163,7 +180,10 @@ export async function sendOnce(
   } catch (err) {
     const name = err instanceof Error ? err.name : "";
     if (name === "AbortError") return fail("timeout");
-    return fail(truncate(`network:${err instanceof Error ? err.message : String(err)}`));
+    // undici wraps connect errors (incl. the pinned lookup's refusal) as
+    // TypeError("fetch failed", { cause }) — keep the cause, it is the story.
+    const cause = err instanceof Error && err.cause instanceof Error ? ` (${err.cause.message})` : "";
+    return fail(truncate(`network:${err instanceof Error ? err.message : String(err)}${cause}`));
   } finally {
     clearTimeout(timer);
   }

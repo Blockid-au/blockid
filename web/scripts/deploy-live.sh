@@ -664,7 +664,10 @@ fi
 # importing them die at runtime with ERR_MODULE_NOT_FOUND. Past breakage:
 # bcryptjs missing in v7WPHLwrMWQmVu8_qHf9x deploy (2026-06-19).
 # `gaxios`/`gcp-metadata` are sub-deps of @google libs — keep in list.
+# `undici` — S20-B review P2-3: the DNS-pinned outbound fetch
+# (lib/security/pinned-fetch.ts) requires the npm package at runtime.
 for pkg in \
+    undici \
     ioredis \
     bcryptjs \
     "@anthropic-ai/sdk" \
