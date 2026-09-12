@@ -8,7 +8,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { describeMemberAccess } from "@/test/member-access-suite";
 import { fakeSupabase } from "@/test/fake-supabase";
-import { makeScopeState } from "@/test/project-scope-mock";
+import { makeScopeState, keyCalls } from "@/test/project-scope-mock";
 
 const scopeState = await vi.hoisted(async () => {
   const { makeScopeState } = await import("@/test/project-scope-mock");
@@ -82,5 +82,42 @@ describe("/api/svi/phase-progress — data key", () => {
     expect(res.status).toBeLessThan(500);
     expect(db.sb!.hasEq("svi_accounts", "email", "owner@x.test")).toBe(true);
     expect(db.sb!.hasEq("svi_accounts", "email", "caller@x.test")).toBe(false);
+  });
+});
+
+// S18-A review P2-1 — auto_detect reads the latest svi_analyses row through
+// the project-bounded shared reader (email + project_id, owner-only legacy
+// fallback), never by email alone.
+describe("/api/svi/phase-progress — S18-A review P2-1 auto_detect analysis read", () => {
+  it("editor on the owner's project: findLatestAnalysisWithFallback(owner email, proj-1, …, { callerEmail: caller })", async () => {
+    scopeState.role = "editor";
+    scopeState.analysis = { analysis_json: {}, total_svi: 420 };
+    const res = await POST(post({ action: "auto_detect" }));
+    expect(res.status).toBeLessThan(500);
+    const [call] = keyCalls(scopeState, "findLatestAnalysisWithFallback");
+    expect(call).toBeDefined();
+    expect(call.email).toBe("owner@x.test");
+    expect(call.projectId).toBe("proj-1");
+    expect(call.opts).toEqual({ callerEmail: "caller@x.test" });
+    // no direct email-only read of svi_analyses
+    expect(db.sb!.calls.some((c) => c.table === "svi_analyses")).toBe(false);
+  });
+
+  it("owner: analysis read under their own email + the active project", async () => {
+    const res = await POST(post({ action: "auto_detect" }));
+    expect(res.status).toBeLessThan(500);
+    const [call] = keyCalls(scopeState, "findLatestAnalysisWithFallback");
+    expect(call.email).toBe("caller@x.test");
+    expect(call.projectId).toBe("proj-1");
+    expect(call.opts).toEqual({ callerEmail: "caller@x.test" });
+  });
+
+  it("no active project: legacy (null project) analysis under the caller's own email", async () => {
+    scopeState.projectId = null;
+    const res = await POST(post({ action: "auto_detect" }));
+    expect(res.status).toBeLessThan(500);
+    const [call] = keyCalls(scopeState, "findLatestAnalysisWithFallback");
+    expect(call.projectId).toBeNull();
+    expect(call.email).toBe("caller@x.test");
   });
 });

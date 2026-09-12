@@ -81,8 +81,8 @@ const USER = { id: "user-1", email: "founder@example.com" };
 interface FakeState {
   entries: unknown[] | null;
   entriesError: { message: string } | null;
-  sviHistory: Array<{ score: number; snapshot_date: string }> | null;
-  sviAccount: { current_svi: number | null } | null;
+  sviHistory: Array<{ svi_total: number; snapshot_date: string }> | null;
+  sviAccount: { id?: string; current_svi: number | null } | null;
   evidenceCount: number | null;
   actions: unknown[] | null;
   insertRow: unknown;
@@ -95,6 +95,7 @@ interface FakeState {
     growthJournalFilters: Array<[string, unknown]>;
     growthJournalOrder: Array<[string, unknown]>;
     evidenceSelect: Array<{ cols: string; opts?: unknown }>;
+    evidenceFilters: Array<[string, unknown]>;
     userActionsCalls: Array<[string, ...unknown[]]>;
   };
 }
@@ -104,7 +105,9 @@ function makeState(): FakeState {
     entries: [],
     entriesError: null,
     sviHistory: [],
-    sviAccount: null,
+    // S18-A review P2-1 — the SVI-side reads are bounded by the project's
+    // svi_accounts row; a resolved account is the default so they run.
+    sviAccount: { id: "acct-1", current_svi: null },
     evidenceCount: 0,
     actions: [],
     insertRow: { id: "entry-1", entry_type: "ai_reflection" },
@@ -117,6 +120,7 @@ function makeState(): FakeState {
       growthJournalFilters: [],
       growthJournalOrder: [],
       evidenceSelect: [],
+      evidenceFilters: [],
       userActionsCalls: [],
     },
   };
@@ -225,7 +229,8 @@ function makeSupabase(state: FakeState) {
         state.calls.evidenceSelect.push({ cols, opts });
         return chain;
       },
-      eq() {
+      eq(col: string, val: unknown) {
+        state.calls.evidenceFilters.push([`eq:${col}`, val]);
         return chain;
       },
       gte() {
@@ -414,18 +419,18 @@ describe("POST /api/journal/reflect", () => {
     );
   });
 
-  it("scopes svi_snapshots by email + orders ascending so sviDelta subtracts newest - oldest", async () => {
+  it("scopes svi_snapshots by the project's account_id + orders ascending so sviDelta subtracts newest - oldest", async () => {
     const state = makeState();
     state.sviHistory = [
-      { score: 420, snapshot_date: "2026-05-02" },
-      { score: 435, snapshot_date: "2026-05-20" },
-      { score: 470, snapshot_date: "2026-05-28" },
+      { svi_total: 420, snapshot_date: "2026-05-02" },
+      { svi_total: 435, snapshot_date: "2026-05-20" },
+      { svi_total: 470, snapshot_date: "2026-05-28" },
     ];
     mocks.getSupabaseAdmin.mockReturnValue(makeSupabase(state));
     await POST(req({ month: "2026-05" }));
     expect(state.calls.sviSnapshotsFilters).toEqual(
       expect.arrayContaining([
-        ["eq:email", USER.email],
+        ["eq:account_id", "acct-1"],
         ["gte:snapshot_date", "2026-05-01"],
         ["lte:snapshot_date", "2026-05-31"],
         ["order:snapshot_date", { ascending: true }],
@@ -448,8 +453,8 @@ describe("POST /api/journal/reflect", () => {
   it("renders a negative sviDelta with the leading minus (no double-sign)", async () => {
     const state = makeState();
     state.sviHistory = [
-      { score: 500, snapshot_date: "2026-05-01" },
-      { score: 480, snapshot_date: "2026-05-30" },
+      { svi_total: 500, snapshot_date: "2026-05-01" },
+      { svi_total: 480, snapshot_date: "2026-05-30" },
     ];
     mocks.getSupabaseAdmin.mockReturnValue(makeSupabase(state));
     await POST(req({ month: "2026-05" }));
@@ -459,7 +464,7 @@ describe("POST /api/journal/reflect", () => {
 
   it("threads currentSVI + evidenceCount + actionsCompleted counts into the prompt", async () => {
     const state = makeState();
-    state.sviAccount = { current_svi: 612 };
+    state.sviAccount = { id: "acct-1", current_svi: 612 };
     state.evidenceCount = 7;
     state.actions = [
       { action_key: "upload_pitch_deck", completed_at: "2026-05-05" },
@@ -569,10 +574,10 @@ describe("POST /api/journal/reflect", () => {
 
   it("inserts an ai_reflection row into growth_journal with the expected shape", async () => {
     const state = makeState();
-    state.sviAccount = { current_svi: 600 };
+    state.sviAccount = { id: "acct-1", current_svi: 600 };
     state.sviHistory = [
-      { score: 500, snapshot_date: "2026-05-01" },
-      { score: 600, snapshot_date: "2026-05-30" },
+      { svi_total: 500, snapshot_date: "2026-05-01" },
+      { svi_total: 600, snapshot_date: "2026-05-30" },
     ];
     state.evidenceCount = 3;
     state.actions = [{ action_key: "a", completed_at: "2026-05-02" }];
@@ -615,10 +620,10 @@ describe("POST /api/journal/reflect", () => {
 
   it("happy path returns {ok:true, entry, reflection, stats}", async () => {
     const state = makeState();
-    state.sviAccount = { current_svi: 700 };
+    state.sviAccount = { id: "acct-1", current_svi: 700 };
     state.sviHistory = [
-      { score: 680, snapshot_date: "2026-05-01" },
-      { score: 700, snapshot_date: "2026-05-30" },
+      { svi_total: 680, snapshot_date: "2026-05-01" },
+      { svi_total: 700, snapshot_date: "2026-05-30" },
     ];
     state.evidenceCount = 4;
     state.actions = [
@@ -664,13 +669,13 @@ describe("POST /api/journal/reflect — S18-A member access", () => {
   it("editor: reads + insert keyed on the OWNER (account_id / email + project); credits on the caller", async () => {
     scopeRole.value = "editor";
     const state = makeState();
-    state.sviAccount = { current_svi: 600 };
+    state.sviAccount = { id: "acct-1", current_svi: 600 };
     mocks.getSupabaseAdmin.mockReturnValue(makeSupabase(state));
     const res = await POST(req({ month: "2026-05" }));
     expect(res.status).toBe(200);
     expect(mocks.spendCredits).toHaveBeenCalledWith("user-1", "journal_reflect", expect.objectContaining({ project_id: "proj-1" }));
     expect(state.calls.growthJournalFilters).toContainEqual(["eq:account_id", "owner-1"]);
-    expect(state.calls.sviSnapshotsFilters).toContainEqual(["eq:email", "owner@x.test"]);
+    expect(state.calls.sviSnapshotsFilters).toContainEqual(["eq:account_id", "acct-1"]);
     expect(state.calls.sviAccountsFilters).toEqual([["eq:email", "owner@x.test"], ["eq:project_id", "proj-1"]]);
     const payload = state.calls.growthJournalInsert[0];
     expect(payload.account_id).toBe("owner-1");
@@ -684,5 +689,54 @@ describe("POST /api/journal/reflect — S18-A member access", () => {
     mocks.getSupabaseAdmin.mockReturnValue(makeSupabase(state));
     await POST(req({ month: "2026-05" }));
     expect(state.calls.sviAccountsFilters).toEqual([["eq:email", USER.email], ["is:project_id", null]]);
+  });
+});
+
+// S18-A review P2-1 — every SVI-side read (snapshots / evidence / actions)
+// is bounded by the PROJECT's svi_accounts row, resolved first. An email
+// alone spans every project the owner has.
+describe("POST /api/journal/reflect — S18-A review P2-1 project-bounded reads", () => {
+  it("resolves svi_accounts BEFORE the snapshot / evidence / action reads and keys them on its id", async () => {
+    const state = makeState();
+    state.sviAccount = { id: "acct-A", current_svi: 500 };
+    mocks.getSupabaseAdmin.mockReturnValue(makeSupabase(state));
+    await POST(req({ month: "2026-05" }));
+    expect(state.calls.sviSnapshotsFilters).toContainEqual(["eq:account_id", "acct-A"]);
+    expect(state.calls.sviSnapshotsFilters.some(([k]) => k === "eq:email")).toBe(false);
+    expect(state.calls.evidenceFilters).toContainEqual(["eq:account_id", "acct-A"]);
+    expect(state.calls.evidenceFilters.some(([k]) => k === "eq:email")).toBe(false);
+    expect(state.calls.userActionsCalls).toContainEqual(["eq", "account_id", "acct-A"]);
+    expect(state.calls.userActionsCalls).toContainEqual(["eq", "email", USER.email]);
+  });
+
+  it("no svi_accounts row for (email, project): snapshot / evidence / action reads are skipped and the prompt renders the empty states", async () => {
+    const state = makeState();
+    state.sviAccount = null;
+    state.sviHistory = [{ svi_total: 1, snapshot_date: "2026-05-01" }]; // would leak if read
+    state.evidenceCount = 9;
+    state.actions = [{ action_key: "x", completed_at: "2026-05-02" }];
+    mocks.getSupabaseAdmin.mockReturnValue(makeSupabase(state));
+    const res = await POST(req({ month: "2026-05" }));
+    expect(res.status).toBe(200);
+    expect(state.calls.sviSnapshotsFilters).toEqual([]);
+    expect(state.calls.evidenceFilters).toEqual([]);
+    expect(state.calls.userActionsCalls).toEqual([]);
+    const promptArg = mocks.callAI.mock.calls[0]?.[0] as { user: string };
+    expect(promptArg.user).toContain("No SVI data available for this month");
+    expect(promptArg.user).toContain("Evidence documents added: 0");
+    expect(promptArg.user).toContain("Actions completed: 0");
+  });
+
+  it("editor on the owner's project A: account resolved on (owner email, A); reads keyed on THAT account, never B's", async () => {
+    scopeRole.value = "editor";
+    const state = makeState();
+    state.sviAccount = { id: "owner-acct-A", current_svi: 600 };
+    mocks.getSupabaseAdmin.mockReturnValue(makeSupabase(state));
+    await POST(req({ month: "2026-05" }));
+    expect(state.calls.sviAccountsFilters).toEqual([["eq:email", "owner@x.test"], ["eq:project_id", "proj-1"]]);
+    expect(state.calls.sviSnapshotsFilters).toContainEqual(["eq:account_id", "owner-acct-A"]);
+    expect(state.calls.evidenceFilters).toContainEqual(["eq:account_id", "owner-acct-A"]);
+    expect(state.calls.userActionsCalls).toContainEqual(["eq", "account_id", "owner-acct-A"]);
+    scopeRole.value = "owner";
   });
 });

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { findOrCreateSVIAccount, getProjectScope } from "@/lib/projects";
+import { findOrCreateSVIAccount, findSVIAccountWithFallback, getProjectScope } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
@@ -227,7 +227,12 @@ export async function GET(request: Request) {
     const cutoff = cutoffDate.toISOString().slice(0, 10);
 
     // S18-A — member-aware read (viewer+): rows are keyed on the OWNER's
-    // email (the same key POST writes), scoped to the project's account.
+    // email (the same key POST writes). S18-A review P2-1: an email alone
+    // spans every project the owner has, so the read is ALSO bounded by the
+    // project's svi_accounts row (`account_id` — the key POST upserts on);
+    // a viewer on project A never sees B's metrics. No account for this
+    // (email, project) → nothing has been written → empty list, no
+    // side-effect insert on a read.
     let scope;
     try {
       scope = await getProjectScope("viewer");
@@ -236,7 +241,15 @@ export async function GET(request: Request) {
       if (denied) return denied;
       throw err;
     }
+    const projectId = scope?.projectId ?? null;
     const dataEmail = scope?.dataEmail ?? user.email;
+    const account = await findSVIAccountWithFallback(dataEmail, projectId, "id", {
+      callerEmail: user.email,
+    });
+    const accountId = typeof account?.id === "string" ? account.id : null;
+    if (!accountId) {
+      return NextResponse.json({ ok: true, metrics: [] });
+    }
 
     const { data: metrics, error } = await supabase
       .from("startup_metrics")
@@ -244,6 +257,7 @@ export async function GET(request: Request) {
         "id, metric_date, mrr_aud, arr_aud, revenue_growth_pct, revenue, mau, dau, users_total, users_new, monthly_churn_pct, nrr_pct, cac_aud, ltv_aud, burn_rate_aud, runway_months, nps, notes, source, created_at",
       )
       .eq("email", dataEmail)
+      .eq("account_id", accountId)
       .gte("metric_date", cutoff)
       .order("metric_date", { ascending: true });
 

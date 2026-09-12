@@ -76,50 +76,69 @@ export async function POST(request: Request) {
 
   const journalEntries = entries ?? [];
 
-  // Get SVI history for the month (start and end)
-  const { data: sviHistory } = await supabase
-    .from("svi_snapshots")
-    .select("score, snapshot_date")
-    .eq("email", dataEmail)
-    .gte("snapshot_date", monthStart)
-    .lte("snapshot_date", monthEnd)
-    .order("snapshot_date", { ascending: true });
-
-  let sviDelta = "No SVI data available for this month";
-  if (sviHistory && sviHistory.length > 0) {
-    const startSVI = sviHistory[0].score;
-    const endSVI = sviHistory[sviHistory.length - 1].score;
-    const delta = endSVI - startSVI;
-    sviDelta = `SVI moved from ${startSVI} to ${endSVI} (${delta >= 0 ? "+" : ""}${delta} points)`;
-  }
-
-  // Get current SVI for context
+  // Get the project's SVI account first — S18-A review P2-1: every SVI-side
+  // read below is bounded by its id. An email alone spans every project the
+  // owner has, so a member on project A would otherwise read B's snapshots,
+  // evidence and actions. (`svi_snapshots` / `evidence_items` have no
+  // `email` column at all — they are keyed on `account_id`; `user_actions`
+  // carries both, so it is filtered on both.)
   const sviAccountQuery = supabase
     .from("svi_accounts")
-    .select("current_svi")
+    .select("id, current_svi")
     .eq("email", dataEmail);
   if (projectId) sviAccountQuery.eq("project_id", projectId);
   else sviAccountQuery.is("project_id", null);
   const { data: sviAccount } = await sviAccountQuery.maybeSingle();
 
   const currentSVI = sviAccount?.current_svi ?? null;
+  const sviAccountId = typeof sviAccount?.id === "string" ? sviAccount.id : null;
 
-  // Get evidence count for the month
-  const { count: evidenceCount } = await supabase
-    .from("evidence_items")
-    .select("id", { count: "exact", head: true })
-    .eq("email", dataEmail)
-    .gte("created_at", monthStart)
-    .lte("created_at", monthEnd + "T23:59:59Z");
+  // Get SVI history for the month (start and end) — this project's account only
+  let sviHistory: Array<{ svi_total: number; snapshot_date: string }> | null = null;
+  if (sviAccountId) {
+    const { data } = await supabase
+      .from("svi_snapshots")
+      .select("svi_total, snapshot_date")
+      .eq("account_id", sviAccountId)
+      .gte("snapshot_date", monthStart)
+      .lte("snapshot_date", monthEnd)
+      .order("snapshot_date", { ascending: true });
+    sviHistory = data;
+  }
 
-  // Get actions completed this month
-  const { data: actions } = await supabase
-    .from("user_actions")
-    .select("action_key, completed_at")
-    .eq("email", dataEmail)
-    .not("completed_at", "is", null)
-    .gte("completed_at", monthStart)
-    .lte("completed_at", monthEnd + "T23:59:59Z");
+  let sviDelta = "No SVI data available for this month";
+  if (sviHistory && sviHistory.length > 0) {
+    const startSVI = sviHistory[0].svi_total;
+    const endSVI = sviHistory[sviHistory.length - 1].svi_total;
+    const delta = endSVI - startSVI;
+    sviDelta = `SVI moved from ${startSVI} to ${endSVI} (${delta >= 0 ? "+" : ""}${delta} points)`;
+  }
+
+  // Get evidence count for the month — this project's account only
+  let evidenceCount: number | null = 0;
+  if (sviAccountId) {
+    const { count } = await supabase
+      .from("evidence_items")
+      .select("id", { count: "exact", head: true })
+      .eq("account_id", sviAccountId)
+      .gte("created_at", monthStart)
+      .lte("created_at", monthEnd + "T23:59:59Z");
+    evidenceCount = count;
+  }
+
+  // Get actions completed this month — this project's account only
+  let actions: Array<Record<string, unknown>> | null = null;
+  if (sviAccountId) {
+    const { data } = await supabase
+      .from("user_actions")
+      .select("action_key, completed_at")
+      .eq("email", dataEmail)
+      .eq("account_id", sviAccountId)
+      .not("completed_at", "is", null)
+      .gte("completed_at", monthStart)
+      .lte("completed_at", monthEnd + "T23:59:59Z");
+    actions = data;
+  }
 
   const actionsCompleted = actions ?? [];
 
