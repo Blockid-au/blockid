@@ -10,16 +10,16 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { connectorProbeHeaders } from "@/lib/oauth/connector-probe";
 
 export const dynamic = "force-dynamic";
 
 // HEAD /api/oauth/linkedin — check if LinkedIn OAuth is configured
+// Release QA-2 F11: always 204 + `X-Connector-Configured: true|false` —
+// "not configured" is a state, not a 5xx (see lib/oauth/connector-probe.ts).
 export async function HEAD() {
-  const clientId = process.env.LINKEDIN_CLIENT_ID;
-  if (!clientId) {
-    return new NextResponse(null, { status: 503 });
-  }
-  return new NextResponse(null, { status: 200 });
+  const configured = Boolean(process.env.LINKEDIN_CLIENT_ID);
+  return new NextResponse(null, { status: 204, headers: connectorProbeHeaders(configured) });
 }
 
 // GET /api/oauth/linkedin — redirect to LinkedIn OAuth authorization
