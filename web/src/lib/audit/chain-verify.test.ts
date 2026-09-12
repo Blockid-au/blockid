@@ -5,9 +5,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CHAIN_HISTORY_FILE,
   CHAIN_STATE_FILE,
+  applyCheckpoint,
+  crossCheckCheckpoint,
   persistChainState,
+  readChainState,
   readChainStatus,
   verifyAuditChain,
+  type ChainVerifyResult,
   type ChainVerifyState,
 } from "./chain-verify";
 
@@ -133,5 +137,98 @@ describe("persist + read state", () => {
     expect((await readChainStatus(dir)).status).toBe("unknown");
     writeFileSync(path.join(dir, CHAIN_STATE_FILE), "{not json");
     expect((await readChainStatus(dir)).status).toBe("unknown");
+  });
+
+  it("readChainState returns the raw persisted run, null when missing / unparsable", async () => {
+    dir = mkdtempSync(path.join(tmpdir(), "audit-chain-"));
+    expect(await readChainState(dir)).toBeNull();
+    await persistChainState(state({ last_id: 77, last_hash: "h77" }), dir);
+    expect(await readChainState(dir)).toMatchObject({ last_id: 77, last_hash: "h77", status: "ok" });
+    writeFileSync(path.join(dir, CHAIN_STATE_FILE), "{not json");
+    expect(await readChainState(dir)).toBeNull();
+    writeFileSync(path.join(dir, CHAIN_STATE_FILE), "null");
+    expect(await readChainState(dir)).toBeNull();
+  });
+});
+
+// S20-A review (verifier note): a windowed run (AUDIT_CHAIN_VERIFY_FROM > 0)
+// trusts rows before `from` as stored. The previous run's persisted
+// last_id / last_hash is the checkpoint: the live row must still carry
+// that hash, otherwise the prefix was rewritten and the run is `broken`.
+describe("crossCheckCheckpoint", () => {
+  const prev = { last_id: 499, last_hash: "h499", status: "ok" as const };
+
+  function rpcRow(row: { last_id: number | null; last_hash?: string | null; first_broken_id?: number | null }) {
+    return vi.fn().mockResolvedValue({
+      data: [{ checked: row.first_broken_id ? 0 : 1, first_broken_id: row.first_broken_id ?? null, reason: null, last_id: row.last_id, last_hash: row.last_hash ?? null }],
+      error: null,
+    });
+  }
+
+  it("full scan (from 0) never compares", async () => {
+    const rpc = vi.fn();
+    const c = await crossCheckCheckpoint({ db: { rpc }, fromId: 0, previous: prev });
+    expect(c).toMatchObject({ compared: false, ok: true, reason: "full_scan" });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("no previous state, no last_hash, or a previous broken run → skipped (ok)", async () => {
+    const rpc = vi.fn();
+    expect(await crossCheckCheckpoint({ db: { rpc }, fromId: 500, previous: null })).toMatchObject({ compared: false, ok: true, reason: "no_previous_checkpoint" });
+    expect(await crossCheckCheckpoint({ db: { rpc }, fromId: 500, previous: { last_id: null, last_hash: null, status: "ok" } })).toMatchObject({ compared: false, reason: "no_previous_checkpoint" });
+    expect(await crossCheckCheckpoint({ db: { rpc }, fromId: 500, previous: { ...prev, status: "broken" } })).toMatchObject({ compared: false, reason: "no_previous_checkpoint" });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("matching hash at the checkpoint row (= from - 1 for an incremental run) → ok", async () => {
+    const rpc = rpcRow({ last_id: 499, last_hash: "h499" });
+    const c = await crossCheckCheckpoint({ db: { rpc }, fromId: 500, previous: prev });
+    expect(c).toEqual({ compared: true, ok: true, checkpoint_id: 499, expected_hash: "h499", actual_hash: "h499", reason: null });
+    expect(rpc).toHaveBeenCalledWith("audit_events_verify_chain", { p_from_id: 499, p_limit: 1 });
+  });
+
+  it("the checkpoint row also holds when FROM stays fixed and last_id has moved past it", async () => {
+    const rpc = rpcRow({ last_id: 9000, last_hash: "h9000" });
+    const c = await crossCheckCheckpoint({ db: { rpc }, fromId: 500, previous: { last_id: 9000, last_hash: "h9000", status: "ok" } });
+    expect(c.ok).toBe(true);
+    expect(rpc).toHaveBeenCalledWith("audit_events_verify_chain", { p_from_id: 9000, p_limit: 1 });
+  });
+
+  it("hash differs → checkpoint_mismatch (prefix rewritten)", async () => {
+    const rpc = rpcRow({ last_id: 499, last_hash: "TAMPERED" });
+    const c = await crossCheckCheckpoint({ db: { rpc }, fromId: 500, previous: prev });
+    expect(c).toMatchObject({ compared: true, ok: false, checkpoint_id: 499, expected_hash: "h499", actual_hash: "TAMPERED", reason: "checkpoint_mismatch" });
+  });
+
+  it("row gone (RPC returns a later id, nothing, or that row fails its recompute) → checkpoint_missing", async () => {
+    expect((await crossCheckCheckpoint({ db: { rpc: rpcRow({ last_id: 503, last_hash: "h503" }) }, fromId: 500, previous: prev })).reason).toBe("checkpoint_missing");
+    expect((await crossCheckCheckpoint({ db: { rpc: rpcRow({ last_id: null }) }, fromId: 500, previous: prev })).reason).toBe("checkpoint_missing");
+    expect((await crossCheckCheckpoint({ db: { rpc: rpcRow({ last_id: 499, last_hash: "h499", first_broken_id: 499 }) }, fromId: 500, previous: prev })).reason).toBe("checkpoint_missing");
+  });
+
+  it("RPC error / throw / no db → checkpoint_rpc_error, NOT ok (fail closed)", async () => {
+    const errRpc = vi.fn().mockResolvedValue({ data: null, error: { message: "boom" } });
+    expect(await crossCheckCheckpoint({ db: { rpc: errRpc }, fromId: 500, previous: prev })).toMatchObject({ compared: true, ok: false, reason: "checkpoint_rpc_error" });
+    const throwRpc = vi.fn().mockRejectedValue(new Error("net"));
+    expect((await crossCheckCheckpoint({ db: { rpc: throwRpc }, fromId: 500, previous: prev })).reason).toBe("checkpoint_rpc_error");
+    expect((await crossCheckCheckpoint({ db: null, fromId: 500, previous: prev })).ok).toBe(false);
+  });
+});
+
+describe("applyCheckpoint", () => {
+  const okResult: ChainVerifyResult = { ok: true, status: "ok", checked: 10, from_id: 500, first_broken_id: null, reason: null, last_id: 509, last_hash: "h509", pages: 1 };
+
+  it("a failed checkpoint turns an ok run into broken at the checkpoint row", () => {
+    const r = applyCheckpoint(okResult, { compared: true, ok: false, checkpoint_id: 499, expected_hash: "h499", actual_hash: "x", reason: "checkpoint_mismatch" });
+    expect(r).toMatchObject({ ok: false, status: "broken", first_broken_id: 499, reason: "checkpoint_mismatch", checked: 10, last_id: 509 });
+  });
+
+  it("an ok / skipped checkpoint leaves the result untouched; a broken run keeps its own break", () => {
+    const ok = { compared: true, ok: true, checkpoint_id: 499, expected_hash: "h", actual_hash: "h", reason: null } as const;
+    expect(applyCheckpoint(okResult, ok)).toBe(okResult);
+    const broken: ChainVerifyResult = { ...okResult, ok: false, status: "broken", first_broken_id: 505, reason: "curr_hash_mismatch" };
+    const r = applyCheckpoint(broken, { ...ok, ok: false, reason: "checkpoint_mismatch" });
+    expect(r.first_broken_id).toBe(505);
+    expect(r.reason).toBe("curr_hash_mismatch");
   });
 });

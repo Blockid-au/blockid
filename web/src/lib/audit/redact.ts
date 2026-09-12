@@ -154,15 +154,53 @@ export function primaryEntityId(params: Record<string, string> | null): string |
 // IP + UA
 // ---------------------------------------------------------------------------
 
-/** Client IP from proxy headers (first `x-forwarded-for` hop, then `x-real-ip`). */
+/**
+ * Client IP from proxy headers — always the hop our edge actually saw,
+ * never a value the client can forge (S20-A review P2-3):
+ *
+ *   1. `cf-connecting-ip` — set by Cloudflare at the edge (a client-sent
+ *      copy is overwritten there);
+ *   2. the LAST `x-forwarded-for` hop — nginx (`$proxy_add_x_forwarded_for`)
+ *      appends its own `$remote_addr`, so the last entry is the TCP peer
+ *      of our proxy while the FIRST entry is whatever the client sent
+ *      (`X-Forwarded-For: <victim>` would otherwise poison ip_hash);
+ *   3. `x-real-ip`.
+ */
 export function clientIp(headers: Headers): string | null {
+  const cf = headers.get("cf-connecting-ip")?.trim();
+  if (cf) return cf;
   const xff = headers.get("x-forwarded-for");
   if (xff) {
-    const first = xff.split(",")[0]?.trim();
-    if (first) return first;
+    const hops = xff.split(",").map((h) => h.trim()).filter(Boolean);
+    const last = hops[hops.length - 1];
+    if (last) return last;
   }
-  const real = headers.get("x-real-ip");
-  return real ? real.trim() : null;
+  const real = headers.get("x-real-ip")?.trim();
+  return real || null;
+}
+
+let warnedEmptySalt = false;
+
+/** Test-only: allow the "salt is empty" warning to fire again. */
+export function resetIpSaltWarning(): void {
+  warnedEmptySalt = false;
+}
+
+/**
+ * The salt `hashIp()` uses when none is passed: `AUDIT_IP_SALT`, else
+ * `CRON_SECRET` (so rotating CRON_SECRET silently re-keys ip_hash — set
+ * AUDIT_IP_SALT to decouple them). Logs ONCE per process when it resolves
+ * to empty, because an unsalted hash is dictionary-reversible over IPv4.
+ */
+export function resolveIpSalt(): string {
+  const s = process.env.AUDIT_IP_SALT || process.env.CRON_SECRET || "";
+  if (!s && !warnedEmptySalt) {
+    warnedEmptySalt = true;
+    console.error(
+      "[blockid:audit] AUDIT_IP_SALT and CRON_SECRET are both unset — audit ip_hash is unsalted (reversible over the IPv4 space). Set AUDIT_IP_SALT.",
+    );
+  }
+  return s;
 }
 
 /**
@@ -173,7 +211,7 @@ export function clientIp(headers: Headers): string | null {
  */
 export function hashIp(ip: string | null, salt?: string): string | null {
   if (!ip) return null;
-  const s = salt ?? process.env.AUDIT_IP_SALT ?? process.env.CRON_SECRET ?? "";
+  const s = salt ?? resolveIpSalt();
   return createHash("sha256").update(`${s}|${ip}`).digest("hex").slice(0, 32);
 }
 

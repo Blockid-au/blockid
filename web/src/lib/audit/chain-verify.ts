@@ -8,6 +8,22 @@
 // and persists a small state file that /api/status reads as
 // `audit_chain: ok | broken | unknown`.
 //
+// Trust boundary — `AUDIT_CHAIN_VERIFY_FROM` / `?from=<id>`:
+//   The default run is a full scan from id 0, so every row is recomputed
+//   and nothing is trusted. A windowed run (from > 0) verifies rows
+//   id >= from and seeds the linkage from the DB row at from-1: rows
+//   BEFORE `from` are trusted as stored, and a consistent rewrite of the
+//   whole prefix (tamper + recompute every hash up to and including the
+//   seed row) would pass. That is why the cron cross-checks the previous
+//   run's persisted checkpoint (`last_id` / `last_hash` in
+//   content/reports/audit-chain-verify.json) against the live row before
+//   verifying: `crossCheckCheckpoint()` fails the run as `broken` when
+//   that row's curr_hash no longer equals what the last run saw. When an
+//   operator advances FROM to `last_id + 1` (the incremental use), the
+//   checkpoint row IS the seed row at from-1. Rotating or deleting the
+//   state file resets the checkpoint — the next windowed run trusts the
+//   DB prefix again; only a full scan needs no checkpoint.
+//
 // Pure with respect to the database: pass any object with `.rpc()`.
 
 import { promises as fs } from "node:fs";
@@ -33,6 +49,26 @@ export interface ChainVerifyState extends ChainVerifyResult {
   ts: string;
   dry: boolean;
   duration_ms: number;
+  /** Cross-check of the previous run's checkpoint (windowed runs only). */
+  checkpoint?: CheckpointCheck;
+}
+
+export type CheckpointReason =
+  | "checkpoint_mismatch"
+  | "checkpoint_missing"
+  | "checkpoint_rpc_error"
+  | "no_previous_checkpoint"
+  | "full_scan";
+
+export interface CheckpointCheck {
+  /** True when a comparison actually happened. */
+  compared: boolean;
+  /** True when not compared, or compared and matching. */
+  ok: boolean;
+  checkpoint_id: number | null;
+  expected_hash: string | null;
+  actual_hash: string | null;
+  reason: CheckpointReason | null;
 }
 
 interface RpcRow {
@@ -155,6 +191,81 @@ export async function verifyAuditChain(opts: {
   };
 }
 
+/**
+ * Compare the previous run's persisted checkpoint (`last_id`, `last_hash`)
+ * with the live row. Only meaningful for a windowed run (`fromId > 0`):
+ * a full scan recomputes everything and needs no checkpoint. Uses the
+ * same RPC with `p_limit = 1`, which also recomputes that one row's
+ * curr_hash. Never throws; an RPC failure is reported as
+ * `checkpoint_rpc_error` and treated as NOT ok (fail closed — the run
+ * cannot prove the prefix is intact).
+ */
+export async function crossCheckCheckpoint(opts: {
+  db: RpcClient | null | undefined;
+  fromId: number;
+  previous: Partial<Pick<ChainVerifyState, "last_id" | "last_hash" | "status">> | null | undefined;
+}): Promise<CheckpointCheck> {
+  const skip = (reason: CheckpointReason): CheckpointCheck => ({
+    compared: false,
+    ok: true,
+    checkpoint_id: null,
+    expected_hash: null,
+    actual_hash: null,
+    reason,
+  });
+  if (!(opts.fromId > 0)) return skip("full_scan");
+  const prev = opts.previous;
+  const id = prev ? num(prev.last_id) : null;
+  const expected = prev?.last_hash ?? null;
+  // A previous `broken` run's checkpoint is not evidence of anything.
+  if (!prev || id === null || id <= 0 || !expected || prev.status === "broken") {
+    return skip("no_previous_checkpoint");
+  }
+  const base = { compared: true, checkpoint_id: id, expected_hash: expected };
+  if (!opts.db) return { ...base, ok: false, actual_hash: null, reason: "checkpoint_rpc_error" };
+  try {
+    const { data, error } = await opts.db.rpc("audit_events_verify_chain", { p_from_id: id, p_limit: 1 });
+    if (error) return { ...base, ok: false, actual_hash: null, reason: "checkpoint_rpc_error" };
+    const row = (Array.isArray(data) ? data[0] : data) as RpcRow | undefined;
+    const rowId = row ? num(row.last_id) : null;
+    const broken = row ? num(row.first_broken_id) : null;
+    // The RPC returns the first row with id >= checkpoint; a different id
+    // (or none, or that row failing its own recompute) means the
+    // checkpoint row is gone.
+    if (!row || rowId !== id || broken !== null) {
+      return { ...base, ok: false, actual_hash: row?.last_hash ?? null, reason: "checkpoint_missing" };
+    }
+    const actual = row.last_hash ?? null;
+    if (actual !== expected) return { ...base, ok: false, actual_hash: actual, reason: "checkpoint_mismatch" };
+    return { ...base, ok: true, actual_hash: actual, reason: null };
+  } catch {
+    return { ...base, ok: false, actual_hash: null, reason: "checkpoint_rpc_error" };
+  }
+}
+
+/** Fold a failed checkpoint into the run result: the chain is `broken` at the checkpoint row. */
+export function applyCheckpoint(result: ChainVerifyResult, checkpoint: CheckpointCheck): ChainVerifyResult {
+  if (checkpoint.ok || result.status === "broken") return result;
+  return {
+    ...result,
+    ok: false,
+    status: "broken",
+    first_broken_id: checkpoint.checkpoint_id,
+    reason: checkpoint.reason ?? "checkpoint_mismatch",
+  };
+}
+
+/** The last persisted run, or `null` when missing / unparsable. Never throws. */
+export async function readChainState(root: string = process.cwd()): Promise<Partial<ChainVerifyState> | null> {
+  try {
+    const raw = await fs.readFile(path.join(root, CHAIN_STATE_FILE), "utf8");
+    const s = JSON.parse(raw) as unknown;
+    return s && typeof s === "object" ? (s as Partial<ChainVerifyState>) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Persist the run for /api/status + history. Never throws. */
 export async function persistChainState(
   state: ChainVerifyState,
@@ -181,8 +292,8 @@ export async function readChainStatus(
   now: number = Date.now(),
 ): Promise<{ status: AuditChainStatus; ts: string | null; checked: number | null; first_broken_id: number | null }> {
   try {
-    const raw = await fs.readFile(path.join(root, CHAIN_STATE_FILE), "utf8");
-    const s = JSON.parse(raw) as Partial<ChainVerifyState>;
+    const s = await readChainState(root);
+    if (!s) return { status: "unknown", ts: null, checked: null, first_broken_id: null };
     const t = s.ts ? new Date(s.ts).getTime() : Number.NaN;
     if (!Number.isFinite(t) || now - t > CHAIN_STATE_MAX_AGE_MS) {
       return { status: "unknown", ts: s.ts ?? null, checked: null, first_broken_id: null };

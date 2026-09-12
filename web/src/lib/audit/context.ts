@@ -19,6 +19,7 @@
 // this module from an edge route (`runtime = "edge"`).
 
 import { AsyncLocalStorage } from "node:async_hooks";
+import { isIdLike } from "./redact";
 
 export type AuditActorKind = "user" | "api_key" | "cron" | "anonymous";
 
@@ -95,8 +96,11 @@ export function setAuditProject(input: SetAuditProjectInput): void {
 
 /**
  * Attach an entity id and/or a small id-only summary to the row the
- * wrapper will write. Values are redacted again at write time, so a
- * handler cannot accidentally persist a secret through here.
+ * wrapper will write. `extra` is redacted at write time; `entityId` is
+ * stored verbatim as `resource_id`, so it must pass the same `isIdLike`
+ * gate (no emails, tokens, 64+ hex hashes, free text — S20-A review P2-6).
+ * A value that fails the gate is dropped, never stored redacted, and an
+ * earlier id-like value is kept.
  */
 export function auditNote(
   entityId: string | null | undefined,
@@ -104,6 +108,9 @@ export function auditNote(
 ): void {
   const ctx = storage.getStore();
   if (!ctx) return;
-  if (entityId) ctx.entityId = String(entityId).slice(0, 128);
+  if (entityId) {
+    const id = String(entityId);
+    if (isIdLike(id)) ctx.entityId = id;
+  }
   if (extra) ctx.note = { ...(ctx.note ?? {}), ...extra };
 }

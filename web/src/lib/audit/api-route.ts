@@ -14,11 +14,21 @@
 //
 // Semantics:
 //   * every response is recorded — 2xx, 4xx AND 5xx (with its status);
-//   * a handler that throws is recorded as status 500 and the error is
-//     rethrown untouched;
+//   * a handler that throws is recorded as status 500 + `threw` and the
+//     error is rethrown untouched. A thrown Next control-flow error
+//     (`redirect()` → NEXT_REDIRECT, `notFound()` / `forbidden()` /
+//     `unauthorized()` → NEXT_HTTP_ERROR_FALLBACK;<code>) is recorded with
+//     the status Next will actually send (307/308, 404/403/401) and no
+//     `threw` flag — Next turns it into that response, not a 500;
+//   * the audit write never blocks the response: `finalizeAudit()` is
+//     fire-and-forget (it never rejects) so an SSE / streaming handler's
+//     first byte is not held behind the insert, and a thrown error is not
+//     delayed by it. The write is still bounded by AUDIT_WRITE_TIMEOUT_MS;
+//   * a streaming response (`text/event-stream`, ndjson, chunked) is
+//     recorded with the status of the HEAD of the stream plus
+//     `streamed: true` — the row cannot know how the stream ended;
 //   * the audit write can never throw into the handler: sink errors are
-//     logged and swallowed, and the write is bounded by AUDIT_WRITE_TIMEOUT_MS
-//     so a slow database cannot hold the response;
+//     logged and swallowed;
 //   * the request body is never read; query strings are never stored.
 //
 // Test seam: `setAuditSink(fn)` replaces the writer. Under vitest the
@@ -87,6 +97,8 @@ export interface AuditRecord {
     note: unknown;
     duration_ms: number;
     threw?: true;
+    /** Status is that of the stream head; the row cannot know how the stream ended. */
+    streamed?: true;
   };
 }
 
@@ -149,6 +161,7 @@ export function buildAuditRecord(args: {
   params: Record<string, string> | null;
   durationMs: number;
   threw?: boolean;
+  streamed?: boolean;
 }): AuditRecord {
   const { meta, ctx, headers, status, params } = args;
   const manifest = auditEntryFor(meta.route, meta.method);
@@ -169,6 +182,7 @@ export function buildAuditRecord(args: {
     note: ctx.note ? redactDetail(ctx.note) : null,
     duration_ms: Math.max(0, Math.round(args.durationMs)),
     ...(args.threw ? { threw: true as const } : {}),
+    ...(args.streamed ? { streamed: true as const } : {}),
   };
   if (meta.redact) {
     try {
@@ -200,6 +214,7 @@ export async function finalizeAudit(args: {
   status: number;
   startedAt: number;
   threw?: boolean;
+  streamed?: boolean;
 }): Promise<void> {
   try {
     const ctx = getAuditContext() ?? newAuditContext();
@@ -212,6 +227,7 @@ export async function finalizeAudit(args: {
       params,
       durationMs: Date.now() - args.startedAt,
       threw: args.threw,
+      streamed: args.streamed,
     });
     const write = sink ?? defaultSink;
     await withTimeout(Promise.resolve().then(() => write(record)), AUDIT_WRITE_TIMEOUT_MS);
@@ -222,6 +238,68 @@ export async function finalizeAudit(args: {
       err: err instanceof Error ? err.message : String(err),
     });
   }
+}
+
+// In-flight fire-and-forget writes. `flushAudits()` lets a test (or a
+// shutdown hook) wait for them without the request path ever doing so.
+const inflight = new Set<Promise<void>>();
+
+function enqueueAudit(p: Promise<void>): void {
+  inflight.add(p);
+  void p.then(
+    () => inflight.delete(p),
+    () => inflight.delete(p),
+  );
+}
+
+/** Wait for every audit write started so far (tests / graceful shutdown). */
+export async function flushAudits(): Promise<void> {
+  while (inflight.size) await Promise.allSettled([...inflight]);
+}
+
+const STREAMING_CONTENT_TYPE_RE =
+  /^(?:text\/event-stream|application\/(?:x-ndjson|stream\+json|jsonl)|multipart\/x-mixed-replace)\b/i;
+
+/**
+ * True when the response is an open-ended stream whose status is known
+ * only for the head (SSE, ndjson, explicit chunked). Note: under undici
+ * EVERY `Response` with a body exposes it as a `ReadableStream` — a
+ * `NextResponse.json()` included — so `body instanceof ReadableStream`
+ * cannot tell a stream from a buffered body; the headers can.
+ */
+export function isStreamingResponse(response: unknown): boolean {
+  if (!response || typeof response !== "object") return false;
+  const headers = (response as { headers?: unknown }).headers;
+  if (!headers || typeof (headers as Headers).get !== "function") return false;
+  const h = headers as Headers;
+  const ct = h.get("content-type") ?? "";
+  if (STREAMING_CONTENT_TYPE_RE.test(ct.trim())) return true;
+  const te = h.get("transfer-encoding") ?? "";
+  return /\bchunked\b/i.test(te);
+}
+
+/**
+ * Status Next will send for a thrown control-flow error, or `null` for an
+ * ordinary error. Digest formats (next/dist/client/components):
+ *   `NEXT_REDIRECT;<push|replace>;<url>;<307|308>;`
+ *   `NEXT_HTTP_ERROR_FALLBACK;<404|403|401>`
+ *   `NEXT_NOT_FOUND` (pre-15 notFound())
+ */
+export function statusFromNextDigest(err: unknown): number | null {
+  if (!err || typeof err !== "object") return null;
+  const digest = (err as { digest?: unknown }).digest;
+  if (typeof digest !== "string") return null;
+  if (digest.startsWith("NEXT_REDIRECT")) {
+    const parts = digest.split(";");
+    const code = Number(parts.at(-2));
+    return code === 307 || code === 308 || code === 301 || code === 302 || code === 303 ? code : 307;
+  }
+  if (digest.startsWith("NEXT_NOT_FOUND")) return 404;
+  if (digest.startsWith("NEXT_HTTP_ERROR_FALLBACK")) {
+    const code = Number(digest.split(";")[1]);
+    return code === 404 || code === 403 || code === 401 ? code : 404;
+  }
+  return null;
 }
 
 /**
@@ -247,14 +325,20 @@ export function apiRoute<
       try {
         response = await handler(request, ...rest);
       } catch (err) {
-        await finalizeAudit({
-          meta,
-          request,
-          routeCtx: rest[0] as Ctx,
-          status: 500,
-          startedAt,
-          threw: true,
-        });
+        // redirect()/notFound() are control flow, not failures: record the
+        // status Next will send and omit `threw`. Fire-and-forget so the
+        // rethrow (and Next's 500/307/404) is not held behind the insert.
+        const controlStatus = statusFromNextDigest(err);
+        enqueueAudit(
+          finalizeAudit({
+            meta,
+            request,
+            routeCtx: rest[0] as Ctx,
+            status: controlStatus ?? 500,
+            startedAt,
+            threw: controlStatus === null ? true : undefined,
+          }),
+        );
         throw err;
       }
       // A handler that falls through without a Response makes Next 500 — record it as such.
@@ -262,7 +346,10 @@ export function apiRoute<
         response && typeof response === "object" && typeof response.status === "number"
           ? response.status
           : 500;
-      await finalizeAudit({ meta, request, routeCtx: rest[0] as Ctx, status, startedAt });
+      const streamed = isStreamingResponse(response);
+      // Fire-and-forget: finalizeAudit never rejects, and the first byte of
+      // an SSE response must not wait for the audit insert.
+      enqueueAudit(finalizeAudit({ meta, request, routeCtx: rest[0] as Ctx, status, startedAt, streamed }));
       return response;
     });
   };
