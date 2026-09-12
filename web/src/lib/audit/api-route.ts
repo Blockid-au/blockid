@@ -15,7 +15,11 @@
 // Semantics:
 //   * every response is recorded — 2xx, 4xx AND 5xx (with its status);
 //   * a handler that throws is recorded as status 500 + `threw` and the
-//     error is rethrown untouched;
+//     error is rethrown untouched. A thrown Next control-flow error
+//     (`redirect()` → NEXT_REDIRECT, `notFound()` / `forbidden()` /
+//     `unauthorized()` → NEXT_HTTP_ERROR_FALLBACK;<code>) is recorded with
+//     the status Next will actually send (307/308, 404/403/401) and no
+//     `threw` flag — Next turns it into that response, not a 500;
 //   * the audit write never blocks the response: `finalizeAudit()` is
 //     fire-and-forget (it never rejects) so an SSE / streaming handler's
 //     first byte is not held behind the insert, and a thrown error is not
@@ -275,6 +279,30 @@ export function isStreamingResponse(response: unknown): boolean {
 }
 
 /**
+ * Status Next will send for a thrown control-flow error, or `null` for an
+ * ordinary error. Digest formats (next/dist/client/components):
+ *   `NEXT_REDIRECT;<push|replace>;<url>;<307|308>;`
+ *   `NEXT_HTTP_ERROR_FALLBACK;<404|403|401>`
+ *   `NEXT_NOT_FOUND` (pre-15 notFound())
+ */
+export function statusFromNextDigest(err: unknown): number | null {
+  if (!err || typeof err !== "object") return null;
+  const digest = (err as { digest?: unknown }).digest;
+  if (typeof digest !== "string") return null;
+  if (digest.startsWith("NEXT_REDIRECT")) {
+    const parts = digest.split(";");
+    const code = Number(parts.at(-2));
+    return code === 307 || code === 308 || code === 301 || code === 302 || code === 303 ? code : 307;
+  }
+  if (digest.startsWith("NEXT_NOT_FOUND")) return 404;
+  if (digest.startsWith("NEXT_HTTP_ERROR_FALLBACK")) {
+    const code = Number(digest.split(";")[1]);
+    return code === 404 || code === 403 || code === 401 ? code : 404;
+  }
+  return null;
+}
+
+/**
  * Wrap a Next.js route handler so every invocation is audited. The
  * handler's parameter and return types are preserved so Next's route
  * export type-check and the colocated tests are unaffected.
@@ -297,16 +325,18 @@ export function apiRoute<
       try {
         response = await handler(request, ...rest);
       } catch (err) {
-        // Fire-and-forget so the rethrow (and Next's 500) is not held
-        // behind the insert.
+        // redirect()/notFound() are control flow, not failures: record the
+        // status Next will send and omit `threw`. Fire-and-forget so the
+        // rethrow (and Next's 500/307/404) is not held behind the insert.
+        const controlStatus = statusFromNextDigest(err);
         enqueueAudit(
           finalizeAudit({
             meta,
             request,
             routeCtx: rest[0] as Ctx,
-            status: 500,
+            status: controlStatus ?? 500,
             startedAt,
-            threw: true,
+            threw: controlStatus === null ? true : undefined,
           }),
         );
         throw err;

@@ -8,6 +8,7 @@ import {
   isAuditedHandler,
   isStreamingResponse,
   setAuditSink,
+  statusFromNextDigest,
   type AuditRecord,
 } from "./api-route";
 import { getAuditContext, newAuditContext, setAuditActor, setAuditProject } from "./context";
@@ -15,9 +16,10 @@ import { getAuditContext, newAuditContext, setAuditActor, setAuditProject } from
 // S20-A — the apiRoute wrapper: one audit row per invocation, for 2xx, 4xx
 // AND 5xx (and thrown errors, rethrown untouched); the sink can never throw
 // into the handler; body never read; ids only.
-// S20-A review P2-1: the write is fire-and-forget (an SSE first byte and
+// S20-A review P2-1/P2-2: the write is fire-and-forget (an SSE first byte and
 // a rethrow are never held behind the insert — `flushAudits()` is the test
-// seam) and streaming responses carry `streamed: true`.
+// seam), streaming responses carry `streamed: true`, and a thrown
+// redirect()/notFound() is recorded with the status Next will send.
 
 const ROUTE = "api/projects/[id]/members/route.ts";
 const UID = "11111111-2222-4333-8444-555555555555";
@@ -346,3 +348,82 @@ describe("isStreamingResponse", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// S20-A review P2-2 — redirect()/notFound() thrown inside a handler
+// ---------------------------------------------------------------------------
+
+function nextError(digest: string): Error & { digest: string } {
+  const e = new Error(digest) as Error & { digest: string };
+  e.digest = digest;
+  return e;
+}
+
+describe("statusFromNextDigest", () => {
+  it("maps NEXT_REDIRECT to the digest's code (307 default), NEXT_HTTP_ERROR_FALLBACK and NEXT_NOT_FOUND", () => {
+    expect(statusFromNextDigest(nextError("NEXT_REDIRECT;replace;/login;307;"))).toBe(307);
+    expect(statusFromNextDigest(nextError("NEXT_REDIRECT;push;/x;308;"))).toBe(308);
+    expect(statusFromNextDigest(nextError("NEXT_REDIRECT;replace;/a;b;c;308;"))).toBe(308); // url with ';'
+    expect(statusFromNextDigest(nextError("NEXT_REDIRECT"))).toBe(307);
+    expect(statusFromNextDigest(nextError("NEXT_HTTP_ERROR_FALLBACK;404"))).toBe(404);
+    expect(statusFromNextDigest(nextError("NEXT_HTTP_ERROR_FALLBACK;403"))).toBe(403);
+    expect(statusFromNextDigest(nextError("NEXT_HTTP_ERROR_FALLBACK;401"))).toBe(401);
+    expect(statusFromNextDigest(nextError("NEXT_NOT_FOUND"))).toBe(404);
+  });
+
+  it("null for ordinary errors, non-errors and unrelated digests", () => {
+    expect(statusFromNextDigest(new Error("boom"))).toBeNull();
+    expect(statusFromNextDigest(nextError("1234567890"))).toBeNull(); // React error digest
+    expect(statusFromNextDigest(null)).toBeNull();
+    expect(statusFromNextDigest("NEXT_REDIRECT")).toBeNull();
+    expect(statusFromNextDigest({ digest: 42 })).toBeNull();
+  });
+});
+
+describe("apiRoute — thrown redirect()/notFound() (P2-2)", () => {
+  it("redirect(): recorded as 307 without `threw`, error rethrown unchanged", async () => {
+    const err = nextError("NEXT_REDIRECT;replace;/login;307;");
+    const POST = apiRoute({ route: "api/auth/logout/route.ts", method: "POST" }, async () => {
+      throw err;
+    });
+    await expect(POST(req())).rejects.toBe(err);
+    await flushAudits();
+    expect(records).toHaveLength(1);
+    expect(records[0].detail.status).toBe(307);
+    expect(records[0].detail.threw).toBeUndefined();
+  });
+
+  it("permanentRedirect(): 308 from the digest", async () => {
+    const err = nextError("NEXT_REDIRECT;replace;/new;308;");
+    const POST = apiRoute({ route: "api/x/route.ts", method: "POST" }, async () => {
+      throw err;
+    });
+    await expect(POST(req())).rejects.toBe(err);
+    await flushAudits();
+    expect(records[0].detail.status).toBe(308);
+    expect(records[0].detail.threw).toBeUndefined();
+  });
+
+  it("notFound(): recorded as 404 without `threw` (both digest generations)", async () => {
+    for (const digest of ["NEXT_HTTP_ERROR_FALLBACK;404", "NEXT_NOT_FOUND"]) {
+      records = [];
+      const err = nextError(digest);
+      const DELETE = apiRoute({ route: "api/x/[id]/route.ts", method: "DELETE" }, async () => {
+        throw err;
+      });
+      await expect(DELETE(req(undefined, { method: "DELETE" }))).rejects.toBe(err);
+      await flushAudits();
+      expect(records[0].detail.status).toBe(404);
+      expect(records[0].detail.threw).toBeUndefined();
+    }
+  });
+
+  it("an ordinary error with a digest is still 500 + threw", async () => {
+    const err = nextError("3141592653");
+    const POST = apiRoute({ route: "api/x/route.ts", method: "POST" }, async () => {
+      throw err;
+    });
+    await expect(POST(req())).rejects.toBe(err);
+    await flushAudits();
+    expect(records[0].detail).toMatchObject({ status: 500, threw: true });
+  });
+});
