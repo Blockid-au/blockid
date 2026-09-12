@@ -36,6 +36,9 @@ export const ENGAGE_DOCUMENT_MAX_CHARS = 160;
  */
 export const ENGAGE_PAGE_SECTIONS = ["Headline figures", "Outstanding items"] as const;
 
+/** Re-exported for the client tracker so it does not import the NDA module. */
+export type { NdaGateStatus } from "./nda";
+
 /** Same whitespace normalisation `parseEngageEvent` applies to `section`. */
 export function normaliseSection(v: unknown): string | null {
   return cleanString(v, ENGAGE_SECTION_MAX_CHARS);

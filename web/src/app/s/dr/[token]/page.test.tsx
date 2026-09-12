@@ -40,7 +40,9 @@ vi.mock("./load", async () => {
   };
 });
 vi.mock("./engagement-tracker", () => ({
-  EngagementTracker: ({ token }: { token: string }) => <span data-tracker={token} />,
+  EngagementTracker: ({ token, gateStatus }: { token: string; gateStatus: string }) => (
+    <span data-tracker={token} data-gate={gateStatus} />
+  ),
 }));
 
 const TOKEN = "r".repeat(32);
@@ -171,5 +173,13 @@ describe("/s/dr/[token] — engagement", () => {
     const html = await render(room({ folders: [], nda: { status: "pending", version: 1, text: "t", reason: "never" } }));
     expect(html).toContain(`data-tracker="${TOKEN}"`);
     expect(html).not.toContain("data-engage-section=");
+  });
+
+  it("keys the tracker on the gate status so the observer re-runs after acceptance (P2-2)", async () => {
+    const pending = await render(room({ folders: [], nda: { status: "pending", version: 1, text: "t", reason: "never" } }));
+    expect(pending).toContain('data-gate="pending"');
+    const accepted = await render(room({ nda: { status: "accepted", version: 1, text: "t", reason: null } }));
+    expect(accepted).toContain('data-gate="accepted"');
+    expect(await render(room({}))).toContain('data-gate="not_required"');
   });
 });

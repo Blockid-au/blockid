@@ -94,7 +94,8 @@ export default async function DataRoomSharePage({
 
   return (
     <main id="main" className="min-h-screen bg-surface">
-      <EngagementTracker token={room.token} />
+      {/* P2-2: keyed on the gate so tracking starts right after acceptance. */}
+      <EngagementTracker token={room.token} gateStatus={room.nda.status} />
       <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
         <header>
           <p className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted">
