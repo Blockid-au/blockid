@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 import {
   ENGAGE_DEDUPE_WINDOW_MS,
   ENGAGE_MAX_DURATION_MS,
+  ENGAGE_PAGE_SECTIONS,
+  allowedSections,
   buildEngagementHeatmap,
   formatDwell,
   heatBucket,
@@ -38,6 +40,19 @@ describe("parseEngageEvent", () => {
     expect(parseEngageEvent({ token: "abc", eventType: "open" })).toMatchObject({ ok: false, error: "Invalid token" });
     expect(parseEngageEvent({ token, eventType: "section_view" })).toMatchObject({ ok: false });
     expect(parseEngageEvent(null)).toMatchObject({ ok: false });
+  });
+});
+
+describe("allowedSections (S21-A review P2-1)", () => {
+  it("is the two page sections plus the room's folders, normalised like the POST body", () => {
+    const allowed = allowedSections(["1. Corporate &  Legal ", "  3. Financials", null, "", 42]);
+    expect([...allowed]).toEqual([...ENGAGE_PAGE_SECTIONS, "1. Corporate & Legal", "3. Financials"]);
+    expect(allowed.has("Headline figures")).toBe(true);
+    expect(allowed.has("Outstanding items")).toBe(true);
+    expect(allowed.has("<img src=x onerror=1>")).toBe(false);
+  });
+  it("a room with no documents still accepts the page sections only", () => {
+    expect([...allowedSections([])]).toEqual([...ENGAGE_PAGE_SECTIONS]);
   });
 });
 
@@ -104,9 +119,19 @@ describe("buildEngagementHeatmap", () => {
     expect(m.maxViews).toBe(3);
   });
 
-  it("honours an explicit section order (the room's folder order) and appends unknown sections", () => {
+  it("honours an explicit section order (the room's folder order) and DROPS sections not in it (P2-1)", () => {
     const m = buildEngagementHeatmap(events, links, ["Financials", "Never viewed", "Team"]);
     expect(m.sections).toEqual(["Financials", "Team"]);
+    const injected = [
+      ...events,
+      { access_token_id: "l1", event_type: "section_view", section: "<b>HACKED</b>", duration_ms: 999_000, occurred_at: "2026-09-10T00:09:00Z" },
+    ];
+    const m2 = buildEngagementHeatmap(injected, links, ["Financials", "Team"]);
+    expect(m2.sections).toEqual(["Financials", "Team"]);
+    expect(m2.rows[1].cells.map((c) => c.section)).toEqual(["Financials", "Team"]);
+    expect(m2.maxDwellMs).toBe(60_000);
+    // An empty (but given) order means no section columns at all — never a fall-through to "anything seen".
+    expect(buildEngagementHeatmap(injected, links, []).sections).toEqual([]);
   });
 
   it("returns an empty model for no links / no events", () => {

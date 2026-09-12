@@ -27,6 +27,33 @@ export const ENGAGE_MAX_DURATION_MS = 60 * 60 * 1000;
 export const ENGAGE_SECTION_MAX_CHARS = 120;
 export const ENGAGE_DOCUMENT_MAX_CHARS = 160;
 
+/**
+ * The two sections the investor page renders that are not folders (the
+ * `data-engage-section` values in s/dr/[token]/page.tsx). Everything else a
+ * client may name must be a real `data_room_documents.folder` of the room —
+ * S21-A review P2-1: a token holder could otherwise inject arbitrary column
+ * headers into the founder's heatmap.
+ */
+export const ENGAGE_PAGE_SECTIONS = ["Headline figures", "Outstanding items"] as const;
+
+/** Same whitespace normalisation `parseEngageEvent` applies to `section`. */
+export function normaliseSection(v: unknown): string | null {
+  return cleanString(v, ENGAGE_SECTION_MAX_CHARS);
+}
+
+/**
+ * The set of section names a room accepts: the fixed page sections plus its
+ * real folders, all normalised the way the POST body is.
+ */
+export function allowedSections(folders: Iterable<unknown>): Set<string> {
+  const out = new Set<string>(ENGAGE_PAGE_SECTIONS);
+  for (const f of folders) {
+    const n = normaliseSection(f);
+    if (n) out.add(n);
+  }
+  return out;
+}
+
 export interface EngageEvent {
   token: string;
   eventType: EngageEventType;
@@ -150,7 +177,10 @@ export interface HeatmapModel {
  *   shows them); events for a link not in the list (a deleted link whose
  *   events were SET NULL) are dropped rather than invented as a row.
  * - `sections` are ordered by first appearance in the room's folder order
- *   when `sectionOrder` is given, otherwise by total dwell desc.
+ *   when `sectionOrder` is given, and a section NOT in that order is dropped
+ *   (P2-1: the allow-list is authoritative — a stored event with a name the
+ *   room does not have never becomes a column); without `sectionOrder`,
+ *   ordered by total dwell desc.
  * - a `section_view` counts one view and adds its dwell; `document_open`
  *   counts a view on its section with no dwell; `open` / `download` roll up
  *   to the row totals only.
@@ -206,10 +236,9 @@ export function buildEngagementHeatmap(
   }
 
   let sections: string[];
-  if (sectionOrder && sectionOrder.length) {
+  if (sectionOrder) {
     const seen = new Set(sectionDwell.keys());
-    sections = sectionOrder.filter((s) => seen.has(s));
-    for (const s of sectionDwell.keys()) if (!sections.includes(s)) sections.push(s);
+    sections = [...new Set(sectionOrder)].filter((s) => seen.has(s));
   } else {
     sections = [...sectionDwell.entries()]
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))

@@ -4,7 +4,9 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { clientIpFromHeaders, hashIp } from "@/lib/iphash";
 import { apiRoute } from "@/lib/audit/api-route";
 import { getCurrentUser } from "@/lib/auth";
+import { shareLinkState, type ShareLinkRow } from "@/lib/data-room";
 import {
+  allowedSections,
   buildEngagementHeatmap,
   isDuplicateEvent,
   parseEngageEvent,
@@ -13,6 +15,8 @@ import {
 import { resolveRoomForCaller } from "@/lib/dataroom/room-access";
 
 export const dynamic = "force-dynamic";
+
+const NOT_FOUND = () => NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
 
 // ---------------------------------------------------------------------------
 // POST /api/data-room/engage — Track investor engagement events
@@ -23,7 +27,12 @@ export const dynamic = "force-dynamic";
 // added validation (`parseEngageEvent`: whitelisted event types, clamped
 // dwell / scroll, capped strings) and a server-side dedupe — a second
 // (link, type, section, document) event inside 30 s is acknowledged and
-// dropped, so a misbehaving client cannot inflate a heatmap.
+// dropped, so a misbehaving client cannot inflate a heatmap. S21-A review:
+//   - P2-1: `section` must be one of the room's real folders or one of the
+//     two fixed page sections; anything else is a 400 and never stored;
+//   - P2-4: token state goes through `shareLinkState()` (honours
+//     `revoked_at`) and every not-usable state answers ONE 404 body, so the
+//     route is not an oracle for "expired" vs "never existed".
 //
 // GET is founder-facing. Before S21-A it took any roomId with no auth at all
 // (an IDOR: any room's engagement by guessing its uuid). It now requires a
@@ -51,16 +60,26 @@ async function POST_handler(req: NextRequest) {
   // Resolve token to data_room_id and access_token_id
   const { data: accessToken } = await supabase
     .from("data_room_access_tokens")
-    .select("id, data_room_id, is_active, expires_at")
+    .select("id, data_room_id, is_active, revoked_at, expires_at")
     .eq("token", token)
-    .single();
+    .maybeSingle();
 
-  if (!accessToken || !accessToken.is_active) {
-    return NextResponse.json({ ok: false, error: "Invalid or expired token" }, { status: 403 });
+  if (!accessToken || !accessToken.data_room_id || shareLinkState(accessToken as ShareLinkRow) !== "active") {
+    return NOT_FOUND();
   }
 
-  if (accessToken.expires_at && new Date(accessToken.expires_at) < new Date()) {
-    return NextResponse.json({ ok: false, error: "Link has expired" }, { status: 403 });
+  // P2-1 — the section must exist in this room. Folders are the only
+  // caller-visible names besides the two page sections; an event naming
+  // anything else never reaches the table (and so never the heatmap).
+  if (section !== null) {
+    const { data: folderRows } = await supabase
+      .from("data_room_documents")
+      .select("folder")
+      .eq("data_room_id", accessToken.data_room_id);
+    const allowed = allowedSections(((folderRows ?? []) as Array<{ folder: unknown }>).map((r) => r.folder));
+    if (!allowed.has(section)) {
+      return NextResponse.json({ ok: false, error: "Unknown section" }, { status: 400 });
+    }
   }
 
   // Dedupe: same (link, type, section, document) inside the window → drop.
@@ -141,10 +160,20 @@ export async function GET(req: NextRequest) {
     .order("occurred_at", { ascending: false })
     .limit(500);
 
+  // P2-1 — the allow-list: the room's real folders (in folder order) plus
+  // the two page sections. A stored section outside it never renders, in
+  // the legacy per-section averages or in the matrix below.
+  const { data: folderRows } = await supabase
+    .from("data_room_documents")
+    .select("folder")
+    .eq("data_room_id", roomId)
+    .order("folder", { ascending: true });
+  const allowed = allowedSections(((folderRows ?? []) as Array<{ folder: unknown }>).map((r) => r.folder));
+
   // Build section heatmap
   const sectionStats: Record<string, { views: number; avgDuration: number; avgScroll: number }> = {};
   for (const event of events ?? []) {
-    if (!event.section) continue;
+    if (!event.section || !allowed.has(event.section)) continue;
     if (!sectionStats[event.section]) {
       sectionStats[event.section] = { views: 0, avgDuration: 0, avgScroll: 0 };
     }
@@ -180,7 +209,7 @@ export async function GET(req: NextRequest) {
     const label = name && firm ? `${name} · ${firm}` : name || firm || email || "Anonymous link";
     return { id: String(l.id), label, ndaSignedAt: (l.nda_signed_at as string | null) ?? null };
   });
-  const heatmap = buildEngagementHeatmap((events ?? []) as HeatmapEventInput[], linkRows);
+  const heatmap = buildEngagementHeatmap((events ?? []) as HeatmapEventInput[], linkRows, [...allowed]);
 
   return NextResponse.json({
     ok: true,
