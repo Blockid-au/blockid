@@ -2,7 +2,7 @@
 # BlockID.au — Backup Verify (daily)
 #
 # Runs 04:00 AEST (18:00 UTC). Confirms:
-#   1. A DB dump under /data/backups (*.sql.gz | *.sql | *.dump) exists and is
+#   1. A DB dump under /data/backups (*.dump.gz | *.sql.gz | *.sql | *.dump) exists and is
 #      less than 24h old.
 #   2. A release snapshot dir under /data/blockid-releases/ exists (any age —
 #      snapshots only rotate on deploy, so a quiet week is fine).
@@ -36,7 +36,7 @@ db_ok=false
 
 if [ -d "$BACKUP_DIR" ]; then
   # newest matching file by mtime
-  db_latest=$(find "$BACKUP_DIR" -type f \( -name '*.sql.gz' -o -name '*.sql' -o -name '*.dump' \) \
+  db_latest=$(find "$BACKUP_DIR" -type f \( -name '*.dump.gz' -o -name '*.sql.gz' -o -name '*.sql' -o -name '*.dump' \) \
     -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -1 | cut -d' ' -f2-)
 fi
 

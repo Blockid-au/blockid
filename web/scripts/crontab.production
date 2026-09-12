@@ -136,6 +136,25 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # a failure. Register dimensions: node scripts/ga4-register-dimensions.mjs --apply
 30 4 * * 1 bash $RUN ga4-event-audit --timeout 120
 
+# ═══════════════════════════════════════════════════════════════
+# BACKUPS — Postgres (release QA-3 P0-4). Runbook: docs/runbooks/db-restore.md
+# ═══════════════════════════════════════════════════════════════
+# Daily pg_dump -Fc from supabase-db → /data/backups/db-<ts>.dump.gz (+.sha256),
+# TOC-validated, 14 daily + 8 weekly retained. Health → backup-health.jsonl,
+# Telegram on failure (scripts/lib/ops-alert.sh). 02:20 UTC = 12:20 AEST.
+20 2 * * * /home/dovanlong/blockid.au/scripts/db-backup.sh >> /tmp/blockid-db-backup.log 2>&1
+
+# Off-site copy of the newest dump + sidecar → Google Drive blockid-db-backups/
+# (30-day Drive retention, md5 re-verified). 02:40 UTC. Needs founder-owned
+# GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN (scripts/db-backup-offsite-auth.mjs) — the
+# bare service account has no Drive quota.
+40 2 * * * cd /home/dovanlong/blockid.au && node --env-file=web/.env scripts/db-backup-offsite.mjs >> /tmp/blockid-db-offsite.log 2>&1
+
+# Weekly restore drill — newest dump → scratch DB blockid_restore_test, row-count
+# sanity vs prod, drop. Sun 03:00 UTC = 13:00 AEST. /api/status `backups` goes
+# `stale` if no successful drill in 8 days.
+0 3 * * 0 /home/dovanlong/blockid.au/scripts/db-restore-test.sh >> /tmp/blockid-db-restore-test.log 2>&1
+
 # Weekly disk cleanup — prune docker, /tmp logs, JSONL state, releases (Sun 03:30 UTC = 13:30 AEST)
 30 3 * * 0 /home/dovanlong/blockid.au/web/scripts/weekly-disk-cleanup.sh
 
@@ -375,6 +394,9 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Every 15m       | blockchain-sync    | 0   | system       | ✅ runner
 # Every 30m       | ai-token-guardian  | 0   | system       | logfile
 # Every 30m       | git-sync-deploy    | 0   | CI/CD        | logfile
+# 12:20pm daily   | db-backup          | 0   | backups      | jsonl+tg
+# 12:40pm daily   | db-backup-offsite  | 0   | backups      | jsonl+tg
+# Sun 1:00pm      | db-restore-test    | 0   | backups      | jsonl+tg
 # Every 3h        | ai-health          | 0   | system       | ✅ runner
 # Every 4h        | token-refresh      | 0   | system       | logfile
 # 12am,2am,4am    | orchestrator (AM)  | 1-3 | orchestrate  | ✅ runner

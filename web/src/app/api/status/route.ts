@@ -16,6 +16,7 @@ import { cronSecret, safeEqualStrings } from "@/lib/security/cron-auth";
 import { readChainStatus, type AuditChainStatus } from "@/lib/audit/chain-verify";
 import { readOAuthTokenHealth, type OAuthTokensSealedStatus } from "@/lib/security/oauth-token-health";
 import { readGa4EventAuditStatus } from "@/lib/analytics/ga4-event-audit";
+import { readBackupHealth, type BackupStatus } from "@/lib/ops/backup-health";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
@@ -84,6 +85,13 @@ type StatusResponse = {
    * `unknown` (never run or stale > 8 days).
    */
   ga4_events: string;
+  /**
+   * QA-3 P0-4 — Postgres backup freshness from content/reports/backup-health.jsonl:
+   * `ok` = newest successful pg_dump < 26 h AND newest successful restore
+   * drill < 8 days; `stale` = either threshold missed; `missing` = no
+   * successful backup row at all. Public: no paths, sizes or hosts.
+   */
+  backups: BackupStatus;
 };
 
 // Whether the caller is trusted enough to see the full internal telemetry
@@ -372,7 +380,7 @@ function computeUptimeFromCrons(crons: CronRow[]): number | undefined {
 // ---------- Handler ----------
 
 export async function GET(): Promise<Response> {
-  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens, ga4Events] = await Promise.all([
+  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens, ga4Events, backups] = await Promise.all([
     fetchHealthz(2000),
     summariseCrons().catch(() => [] as CronRow[]),
     readGitShaFallback(),
@@ -381,6 +389,7 @@ export async function GET(): Promise<Response> {
     readChainStatus(REPO_ROOT).catch(() => ({ status: "unknown" as const })),
     readOAuthTokenHealth().catch(() => ({ status: "unknown" as const })),
     readGa4EventAuditStatus(REPO_ROOT).catch(() => "unknown"),
+    readBackupHealth(REPO_ROOT).catch(() => ({ status: "missing" as const, last_backup: "", last_restore_test: "" })),
   ]);
 
   const last_deploy = await readLastDeploy(fallbackSha).catch(() => ({
@@ -425,6 +434,7 @@ export async function GET(): Promise<Response> {
     audit_chain: auditChain.status,
     oauth_tokens_sealed: oauthTokens.status,
     ga4_events: ga4Events,
+    backups: backups.status,
   };
 
   const fullBody: StatusResponse = {
@@ -438,6 +448,7 @@ export async function GET(): Promise<Response> {
     audit_chain: auditChain.status,
     oauth_tokens_sealed: oauthTokens.status,
     ga4_events: ga4Events,
+    backups: backups.status,
   };
 
   return NextResponse.json(trusted ? fullBody : publicBody, {

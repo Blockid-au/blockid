@@ -977,3 +977,41 @@ describe("ga4_events (S23-B) — read from content/reports/ga4-event-audit.json"
     expect(read((await callGet()).body)).toBe("unknown");
   });
 });
+
+// ─── QA-3 P0-4 backups (daily pg_dump + weekly restore drill) ──────────
+
+describe("backups (QA-3 P0-4) — read from content/reports/backup-health.jsonl", () => {
+  const HEALTH_FILE = path.join(REPO_ROOT, "content", "reports", "backup-health.jsonl");
+  const read = (body: unknown) => (body as { backups: string }).backups;
+  const row = (job: string, status: string, ageMs: number) =>
+    JSON.stringify({ ts: new Date(Date.now() - ageMs).toISOString(), job, status });
+
+  it("missing when the log does not exist or has no successful backup", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    expect(read((await callGet()).body)).toBe("missing");
+    fsState.files.set(HEALTH_FILE, [row("db-backup", "fail", 3_600_000), "garbage"].join("\n"));
+    expect(read((await callGet()).body)).toBe("missing");
+  });
+
+  it("ok when backup < 26h and restore_test < 8d — on the public payload too", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    fsState.files.set(HEALTH_FILE, [row("db-backup", "ok", 20 * 3_600_000), row("restore_test", "ok", 6 * 86_400_000)].join("\n"));
+    expect(read((await callGet()).body)).toBe("ok");
+    process.env.STATUS_FULL_TOKEN = "";
+    try {
+      expect(read((await callGet()).body)).toBe("ok");
+    } finally {
+      process.env.STATUS_FULL_TOKEN = "test-trusted-token";
+    }
+  });
+
+  it("stale when the backup is > 26h old or the restore drill is > 8d old / never ran", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    fsState.files.set(HEALTH_FILE, [row("db-backup", "ok", 27 * 3_600_000), row("restore_test", "ok", 86_400_000)].join("\n"));
+    expect(read((await callGet()).body)).toBe("stale");
+    fsState.files.set(HEALTH_FILE, [row("db-backup", "ok", 3_600_000), row("restore_test", "ok", 9 * 86_400_000)].join("\n"));
+    expect(read((await callGet()).body)).toBe("stale");
+    fsState.files.set(HEALTH_FILE, row("db-backup", "ok", 3_600_000));
+    expect(read((await callGet()).body)).toBe("stale");
+  });
+});
