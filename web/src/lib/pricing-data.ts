@@ -289,7 +289,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "Do you offer refunds?",
-    a: "Growth plan includes a 30-day money-back guarantee. Credit packs are non-refundable once used.",
+    a: "7-day money-back guarantee on your first monthly subscription payment, no questions asked — email support and we refund within 3 business days. Annual plans are refunded pro-rata if you cancel within 14 days. One-off A$3 reports and credit packs are non-refundable once delivered, except where the Australian Consumer Law requires a refund. Your Australian Consumer Law guarantees are never excluded. Full policy: /legal/terms#refunds.",
   },
   {
     q: "Do you have a permanent free plan?",

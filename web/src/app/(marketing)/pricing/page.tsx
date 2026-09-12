@@ -53,8 +53,9 @@ export const metadata: Metadata = pageMetadata({
 const FAQ_JSONLD = [
   {
     question: "What happens after the 7-day free trial?",
+    // QA-3 (2026-09-12): mirrors Terms v2.1 clause 3 + faq-v2.tsx.
     answer:
-      "Your plan auto-charges on Day 8 unless you cancel at least 24 hours before the trial ends. We email reminders at T-3, T-1, and T-0 so you always know what's coming.",
+      "Your plan auto-charges when the 7-day trial ends unless you cancel before the trial ends (Cohort plans for accelerators and programs have a 14-day trial). We send email reminders at T-3, T-1, and T-0 so you always know what's coming.",
   },
   {
     question: "Is a credit card required to start the trial?",
@@ -69,12 +70,14 @@ const FAQ_JSONLD = [
   {
     question: "Founder or Evaluator — which plans do I see?",
     answer:
-      "Use the Founder / Evaluator switch above the plans. Founder shows Free, Starter A$29 and Growth A$69. Evaluator shows Scout A$79, Firm A$149 and Program A$349 for investors, advisors, accelerators and programs — each with a 7-day free trial, card required, cancel anytime. Without a subscription, every full Trust BizReport is A$3 per startup.",
+      "Use the Founder / Evaluator switch above the plans. Founder shows Free, Starter A$29 and Growth A$69. Evaluator shows Scout A$79, Firm A$149 and Program A$349 for investors, advisors, accelerators and programs — each with a 7-day free trial, card required, cancel anytime (Cohort plans: 14-day trial). Without a subscription, every full Trust BizReport is A$3 per startup.",
   },
   {
     question: "What's the refund policy?",
+    // QA-3 (2026-09-12): the ONE refund policy — Terms v2.1 clause 3A
+    // (/legal/terms#refunds). Keep identical to faq-v2.tsx.
     answer:
-      "7-day money-back guarantee on your first paid month. Contact support and we'll process within 3 business days.",
+      "7-day money-back guarantee on your first monthly subscription payment, no questions asked — email support and we refund within 3 business days. Annual plans are refunded pro-rata if you cancel within 14 days. One-off A$3 reports and credit packs are non-refundable once delivered, except where the Australian Consumer Law requires a refund. Your Australian Consumer Law guarantees are never excluded. Full policy: /legal/terms#refunds.",
   },
   {
     // G11 (2026-09-10, T0249): Money Finder ladder — mirrors faq-v2.tsx.

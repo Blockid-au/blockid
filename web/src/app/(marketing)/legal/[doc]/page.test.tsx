@@ -207,3 +207,60 @@ describe("/legal/privacy v2.2 — Money Finder + Evaluator data (S14-A)", () => 
     expect(visible).not.toMatch(/\*\*|\|/);
   });
 });
+
+// QA-3 commercial audit (2026-09-12): ONE Terms of Service, ONE refund
+// policy. The legacy short-form /terms page (cooling-off + unused-credit
+// refund) is deleted and 301s here; the pricing FAQ promise ("7-day
+// money-back, no questions asked") is now the Terms clause 3A.
+describe("/legal/terms v2.1 — the one refund policy (QA-3)", () => {
+  it("renders version 2.1, effective 12 September 2026, and retires /terms", async () => {
+    const html = await render("terms");
+    expect(html).toContain("This version 2.1 takes effect on");
+    expect(html).toContain("12 September 2026");
+    expect(html).not.toContain("This version 2.0 replaces");
+    expect(html).toMatch(/previously\s+published at <code[^>]*>\/terms<\/code>/);
+  });
+
+  it("exposes the #refunds, #trial and #changelog anchors the footer and FAQ deep-link", async () => {
+    const html = await render("terms");
+    expect(html).toContain('id="refunds"');
+    expect(html).toContain('id="trial"');
+    expect(html).toContain('id="changelog"');
+    expect(html).not.toContain("{#");
+  });
+
+  it("clause 3A states the customer-favourable, ACL-compliant policy the FAQ promises", async () => {
+    const html = await render("terms");
+    expect(html).toContain("3A. Cancellation and refunds");
+    expect(html).toMatch(/7-day money-back, no questions\s+asked/);
+    expect(html).toMatch(/within 3 business days/);
+    expect(html).toMatch(/Annual plans — pro-rata within 14\s+days/);
+    expect(html).toMatch(/non-refundable once\s+delivered/);
+    expect(html).toMatch(/except where the ACL requires/);
+    expect(html).toMatch(/Australian Consumer Law guarantees are never excluded/);
+    // The v2.0 "refunds only where the ACL requires" sentence is gone.
+    expect(html).not.toMatch(/provided only where required\s+by the non-excludable/);
+  });
+
+  it("clause 3 trial copy matches plans.csv: 7 days founder/evaluator, 14 days Cohort, cancel any time before the trial ends", async () => {
+    const html = await render("terms");
+    expect(html).toMatch(/<strong[^>]*>7-day free trial<\/strong>/);
+    expect(html).toMatch(/<strong[^>]*>14-day free trial<\/strong>/);
+    expect(html).toMatch(/<strong[^>]*>before the trial ends<\/strong>/);
+    expect(html).not.toMatch(/24 hours/);
+    expect(html).not.toMatch(/end of day 7/);
+  });
+
+  it("keeps the Auschain entity line and the changelog history", async () => {
+    const html = await render("terms");
+    expect(html).toContain("Auschain PTY LTD");
+    expect(html).toContain("ABN 79 659 615 111");
+    expect(html).toMatch(/v2\.1 — effective 12 September 2026/);
+    expect(html).toMatch(/v2\.0 — effective 30 July 2026/);
+  });
+
+  it("is canonical at /legal/terms", async () => {
+    const meta = await generateMetadata({ params: Promise.resolve({ doc: "terms" }) });
+    expect(meta.alternates?.canonical).toBe("https://blockid.au/legal/terms");
+  });
+});

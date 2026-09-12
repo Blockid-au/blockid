@@ -82,6 +82,8 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
     title: "Legal",
     items: [
       { href: "/legal/terms", label: "Terms" },
+      // QA-3 (2026-09-12): the one refund policy is Terms clause 3A.
+      { href: "/legal/terms#refunds", label: "Refunds" },
       { href: "/legal/privacy", label: "Privacy" },
       { href: "/legal/disclaimers", label: "Disclaimers" },
     ],
