@@ -18,6 +18,9 @@ const db = vi.hoisted(() => ({
   can: true,
   report: null as null | Record<string, unknown>,
   prefill: {} as Record<string, unknown>,
+  /** every `.eq(col, value)` per table + every helper call, so a test can pin WHOSE record was read */
+  eqs: [] as Array<{ table: string; col: string; value: unknown }>,
+  calls: [] as Array<{ fn: string; args: unknown[] }>,
 }));
 
 vi.mock("@/lib/supabase", () => ({
@@ -26,7 +29,10 @@ vi.mock("@/lib/supabase", () => ({
     from: (table: string) => {
       const q = {
         select: () => q,
-        eq: () => q,
+        eq: (col: string, value: unknown) => {
+          db.eqs.push({ table, col, value });
+          return q;
+        },
         is: () => q,
         order: () => q,
         limit: async () => (table === "funding_matches" ? { data: db.matches, error: null } : { data: [], error: null }),
@@ -37,13 +43,29 @@ vi.mock("@/lib/supabase", () => ({
     },
   }),
 }));
-vi.mock("@/lib/entitlements", () => ({ can: async () => db.can }));
+vi.mock("@/lib/entitlements", () => ({
+  can: async (...args: unknown[]) => {
+    db.calls.push({ fn: "can", args });
+    return db.can;
+  },
+}));
 vi.mock("./workspace", () => ({
-  intakePrefillFor: async () => db.prefill,
-  latestFundingReportForUser: async () => db.report,
+  intakePrefillFor: async (...args: unknown[]) => {
+    db.calls.push({ fn: "intakePrefillFor", args });
+    return db.prefill;
+  },
+  latestFundingReportForUser: async (...args: unknown[]) => {
+    db.calls.push({ fn: "latestFundingReportForUser", args });
+    return db.report;
+  },
   CAPITAL_MAP_TYPES: ["angel_group", "vc", "rd_advance_loan", "advisory"],
 }));
-vi.mock("./calendar-token", () => ({ getOrMintCalendarToken: async () => db.calendarToken }));
+vi.mock("./calendar-token", () => ({
+  getOrMintCalendarToken: async (...args: unknown[]) => {
+    db.calls.push({ fn: "getOrMintCalendarToken", args });
+    return db.calendarToken;
+  },
+}));
 vi.mock("./data", () => ({ listGrants: async () => GRANTS, listPrograms: async () => PROGRAMS }));
 
 import {
@@ -321,6 +343,56 @@ describe("getMoneyRadarTileData — loader", () => {
     db.can = true;
     db.report = null;
     db.prefill = {};
+    db.eqs.length = 0;
+    db.calls.length = 0;
+  });
+
+  const call = (fn: string) => db.calls.find((c) => c.fn === fn);
+  const eq = (table: string, col: string) => db.eqs.filter((e) => e.table === table && e.col === col).map((e) => e.value);
+
+  it("no keys: every read is the caller's own (owner path unchanged)", async () => {
+    db.matches = [{ ref_kind: "grant", ref_id: "g1", closes_at: "2026-09-22", first_seen_at: "2026-09-09T00:00:00Z", score: 80 }];
+    await getMoneyRadarTileData(USER, PROJECT, { today: TODAY });
+    expect(call("latestFundingReportForUser")?.args).toEqual(["u-1", "proj-1"]);
+    expect(call("intakePrefillFor")?.args[0]).toEqual({ id: "u-1", email: "f@acme.io" });
+    expect(eq("funding_matches", "user_id")).toEqual(["u-1"]);
+    expect(eq("dataroom_files", "user_id")).toEqual(["u-1"]);
+    expect(call("can")?.args[0]).toMatchObject({ id: "u-1", plan: "founder_starter" });
+    expect(call("getOrMintCalendarToken")?.args).toEqual(["u-1"]);
+  });
+
+  it("shared project (S18-B P2-7): report / matches / data room / prefill on the OWNER, entitlement + calendar token on the CALLER", async () => {
+    db.matches = [{ ref_kind: "grant", ref_id: "g1", closes_at: "2026-09-22", first_seen_at: "2026-09-09T00:00:00Z", score: 80 }];
+    db.prefill = { state: "NSW", stage: "mvp", industry_tags: ["agtech_food"] };
+    const OWNER_PROJECT = { ...PROJECT, userId: "u-owner" };
+    const d = await getMoneyRadarTileData(USER, OWNER_PROJECT, { today: TODAY }, { ownerUserId: "u-owner", dataEmail: "owner@acme.io" });
+    // owner's project record
+    expect(call("latestFundingReportForUser")?.args).toEqual(["u-owner", "proj-1"]);
+    expect(call("intakePrefillFor")?.args[0]).toEqual({ id: "u-owner", email: "owner@acme.io" });
+    expect(eq("funding_matches", "user_id")).toEqual(["u-owner"]);
+    expect(eq("funding_matches", "project_id")).toEqual(["proj-1"]);
+    expect(eq("dataroom_files", "user_id")).toEqual(["u-owner"]);
+    expect(db.eqs.some((e) => e.col === "user_id" && e.value === "u-1")).toBe(false);
+    // caller's wallet / plan
+    expect(call("can")?.args[0]).toMatchObject({ id: "u-1", plan: "founder_starter" });
+    expect(call("getOrMintCalendarToken")?.args).toEqual(["u-1"]);
+    // the member sees the owner's subscriber-state radar
+    expect(d.state).toBe("subscriber");
+    expect(d.next_deadlines[0].name).toBe("MVP Ventures");
+  });
+
+  it("member without money_radar sees the owner's ready report as buyer state (CTAs then charge the caller)", async () => {
+    db.can = false;
+    db.report = {
+      id: "rep-owner", status: "ready", intake: { description: "Soil sensors", state: "WA", stage: "early_revenue", city: "Perth" },
+      grant_matches: REPORT.grants, program_matches: REPORT.programs, timeline: REPORT.timeline, meta: { today: "2026-09-10" },
+    };
+    const d = await getMoneyRadarTileData(USER, PROJECT, { today: TODAY }, { ownerUserId: "u-owner", dataEmail: "owner@acme.io" });
+    expect(call("latestFundingReportForUser")?.args).toEqual(["u-owner", "proj-1"]);
+    expect(d.state).toBe("buyer");
+    expect(d.report_id).toBe("rep-owner");
+    expect(d.calendar_href).toBeNull();
+    expect(call("getOrMintCalendarToken")).toBeUndefined();
   });
 
   it("subscriber path: entitlement + funding_matches + calendar token", async () => {

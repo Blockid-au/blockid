@@ -60,6 +60,18 @@ describe("MoneyRadarTile — S8-B a11y", () => {
   });
 });
 
+describe("MoneyRadarTile — shared project credit note (S18-B P2-7)", () => {
+  it("renders the caller-pays note under the CTAs when given, nothing otherwise", async () => {
+    const withNote = await html(base({ state: "free_previewed", top3: TOP3 }), { creditNote: "Charged to your own credits — not the project owner's." });
+    expect(withNote).toContain("data-tile-credit-note");
+    expect(withNote).toContain("Charged to your own credits — not the project owner");
+    expect(withNote.indexOf("data-tile-ctas")).toBeLessThan(withNote.indexOf("data-tile-credit-note"));
+    const without = await html(base({ state: "free_previewed", top3: TOP3 }));
+    expect(without).not.toContain("data-tile-credit-note");
+    expect(await html(base(), { creditNote: null })).not.toContain("data-tile-credit-note");
+  });
+});
+
 describe("MoneyRadarTile — five states (D-2)", () => {
   it("no_profile: counts sentence with bold numbers, Match me → /workspace/funding, footer counts + next event", async () => {
     const out = await html(base());
