@@ -29,6 +29,7 @@ import {
 } from "@/lib/project-members/scope";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 import { apiRoute } from "@/lib/audit/api-route";
+import { absoluteSiteUrl } from "@/lib/site-url";
 
 // Extract the domain portion of an email for PII-safe audit metadata.
 // We NEVER log the full local-part — only the host, or null if malformed.
@@ -43,13 +44,12 @@ export const dynamic = "force-dynamic";
 
 const VALID_ROLES: ProjectMemberRole[] = ["viewer", "editor", "admin"];
 
-function inviteUrlFor(request: Request, token: string): string {
-  try {
-    const origin = new URL(request.url).origin;
-    return `${origin}/invites/${token}`;
-  } catch {
-    return `/invites/${token}`;
-  }
+// Release QA-2 F3: the invite link must be the canonical public URL. The
+// old `new URL(request.url).origin` was the upstream bind address behind
+// nginx (`https://0.0.0.0:4001/invites/…`) and shipped to founders as
+// "Copy link". Never derive user-facing absolute URLs from request.url.
+function inviteUrlFor(token: string): string {
+  return absoluteSiteUrl(`/invites/${encodeURIComponent(token)}`);
 }
 
 function scopeErrorToStatus(err: ProjectMemberScopeError): number {
@@ -183,7 +183,7 @@ async function POST_handler(
     return NextResponse.json({
       ok: true,
       member,
-      invite_url: inviteUrlFor(request, member.token),
+      invite_url: inviteUrlFor(member.token),
     });
   } catch (err) {
     const denied = projectAccessResponse(err);

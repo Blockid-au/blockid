@@ -10,7 +10,7 @@
 // never 403, so the route is not an existence oracle. Only an accepted
 // member below admin sees 403.
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
@@ -80,6 +80,8 @@ vi.mock("@/lib/audit/log", () => ({
 
 import { GET, POST, DELETE } from "./route";
 
+const ORIGINAL_SITE_URL = process.env.NEXT_PUBLIC_SITE_URL;
+
 function params(id: string) {
   return { params: Promise.resolve({ id }) };
 }
@@ -92,6 +94,64 @@ beforeEach(() => {
   revokeMemberMock.mockReset();
   logUserActionMock.mockReset();
   logUserActionMock.mockResolvedValue({ ok: true });
+  process.env.NEXT_PUBLIC_SITE_URL = "https://blockid.au";
+});
+
+afterEach(() => {
+  if (ORIGINAL_SITE_URL === undefined) delete process.env.NEXT_PUBLIC_SITE_URL;
+  else process.env.NEXT_PUBLIC_SITE_URL = ORIGINAL_SITE_URL;
+});
+
+// ---------------------------------------------------------------------------
+// Release QA-2 F3 — invite_url is the canonical public origin
+// ---------------------------------------------------------------------------
+
+describe("release QA-2 F3 — invite_url uses the canonical site URL, never request.url", () => {
+  it("returns https://blockid.au/invites/<token> even when the request hit the upstream bind address", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1" });
+    assertProjectAccessMock.mockResolvedValue(OWNER_ACCESS);
+    inviteMemberMock.mockResolvedValue({
+      id: "m1",
+      projectId: "proj-1",
+      userEmail: "alice@example.com",
+      role: "viewer",
+      token: "tok-abc",
+    });
+    const req = new Request("https://0.0.0.0:4001/api/projects/proj-1/members", {
+      method: "POST",
+      headers: { host: "0.0.0.0:4001" },
+      body: JSON.stringify({ email: "alice@example.com", role: "viewer" }),
+    });
+    const res = await POST(req, params("proj-1"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.invite_url).toBe("https://blockid.au/invites/tok-abc");
+  });
+
+  it("falls back to https://blockid.au when no site URL env is set", async () => {
+    delete process.env.NEXT_PUBLIC_SITE_URL;
+    const prevSite = process.env.SITE_URL;
+    delete process.env.SITE_URL;
+    try {
+      getCurrentUserMock.mockResolvedValue({ id: "u1" });
+      assertProjectAccessMock.mockResolvedValue(OWNER_ACCESS);
+      inviteMemberMock.mockResolvedValue({
+        id: "m1",
+        projectId: "proj-1",
+        userEmail: "alice@example.com",
+        role: "viewer",
+        token: "tok-xyz",
+      });
+      const req = new Request("http://x/api/projects/proj-1/members", {
+        method: "POST",
+        body: JSON.stringify({ email: "alice@example.com", role: "viewer" }),
+      });
+      const res = await POST(req, params("proj-1"));
+      expect((await res.json()).invite_url).toBe("https://blockid.au/invites/tok-xyz");
+    } finally {
+      if (prevSite !== undefined) process.env.SITE_URL = prevSite;
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------
