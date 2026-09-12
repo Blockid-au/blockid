@@ -33,7 +33,11 @@ export const DISCLAIMER_VERSIONS: Record<DisclaimerKind, string> = {
   // (money_radar opt-out) + calendar tokens, evaluator-entered startup data
   // (claim, consent tiers, founder removal route), investor discoverability,
   // per-table retention. Registry row: 0328_privacy_v2_2_registry.sql.
-  privacy: "v2.2-2026-09-11",
+  // v2.3 (S21-A review, 2026-09-12): investor data-room NDA acceptance
+  // record + engagement telemetry listed in clause 1, with clause-4
+  // retention rows (acceptances: life of the room + 7 years, no sweep;
+  // engagement: 12 months, swept). Registry row: 0342_privacy_v2_3_registry.sql.
+  privacy: "v2.3-2026-09-12",
   general_advice_warning: "v1.0-2026-07-16",
   wholesale_certification: "v1.0-2026-07-16",
   equity_offer_disclaimer: "v1.0-2026-07-16",

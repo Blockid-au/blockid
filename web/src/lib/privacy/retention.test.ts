@@ -132,6 +132,7 @@ describe("RETENTION_RULES ↔ privacy-v2.mdx clause 4 parity", () => {
       funding_matches: ["last_seen_at", "user_id"],
       email_drips: ["sent_at", "scheduled_for", "status", "campaign"],
       evaluations: ["invited_at", "invite_token", "claimed_at"],
+      data_room_engagement: ["occurred_at"],
     };
     for (const rule of RETENTION_RULES) {
       expect(hasApplier(rule.id), rule.id).toBe(true);
@@ -146,6 +147,7 @@ describe("RETENTION_RULES ↔ privacy-v2.mdx clause 4 parity", () => {
       ["radar_matches", "funding_matches", 90, "delete"],
       ["email_drips", "email_drips", 90, "delete"],
       ["evaluator_claim_tokens", "evaluations", 90, "expire"],
+      ["data_room_engagement", "data_room_engagement", 365, "delete"],
     ]);
   });
 
@@ -280,6 +282,16 @@ function fixture(): Record<string, Row[]> {
       { id: "ev-recent", invite_token: "tok-3", invited_at: daysAgo(10), claimed_at: null, founder_email: "h@x" },
       { id: "ev-no-token", invite_token: null, invited_at: daysAgo(300), claimed_at: null, founder_email: null },
     ],
+    data_room_engagement: [
+      { id: "dre-old", data_room_id: "room-1", access_token_id: "l1", event_type: "section_view", occurred_at: daysAgo(400) }, // delete
+      { id: "dre-old-sign", data_room_id: "room-1", access_token_id: "l1", event_type: "nda_sign", occurred_at: daysAgo(366) }, // delete (telemetry, not the consent record)
+      { id: "dre-edge", data_room_id: "room-1", access_token_id: "l2", event_type: "open", occurred_at: daysAgo(364) }, // keep
+      { id: "dre-fresh", data_room_id: "room-1", access_token_id: "l2", event_type: "document_download", occurred_at: daysAgo(2) },
+    ],
+    // The consent record is NOT a swept table — the sweep must never touch it.
+    data_room_nda_acceptances: [
+      { id: "drna-old", data_room_id: "room-1", access_token_id: "l1", nda_version: 1, accepted_at: daysAgo(3000) },
+    ],
   };
 }
 
@@ -318,6 +330,7 @@ describe("runRetentionSweep", () => {
     expect(byRule(s, "radar_matches")).toMatchObject({ candidates: 3, protected: 1, would_affect: 2, affected: 0 });
     expect(byRule(s, "email_drips")).toMatchObject({ candidates: 7, protected: 3, would_affect: 4, affected: 0 });
     expect(byRule(s, "evaluator_claim_tokens")).toMatchObject({ candidates: 2, protected: 0, would_affect: 2, affected: 0 });
+    expect(byRule(s, "data_room_engagement")).toMatchObject({ candidates: 2, protected: 0, would_affect: 2, affected: 0 });
     expect(s.affected_total).toBe(0);
     expect(s.protected_total).toBe(4);
     expect(JSON.stringify(db.tables)).toBe(before);
@@ -365,6 +378,17 @@ describe("runRetentionSweep", () => {
     expect(rows.find((r) => r.id === "ev-old-unclaimed")).toMatchObject({ invite_token: null, founder_email: "f@x" });
     expect(rows.find((r) => r.id === "ev-old-claimed")).toMatchObject({ invite_token: null, claimed_at: daysAgo(99) });
     expect(rows.find((r) => r.id === "ev-recent")).toMatchObject({ invite_token: "tok-3" });
+  });
+
+  it("data_room_engagement: telemetry older than 12 months is deleted (nda_sign rows included); the NDA acceptance ledger is never touched (S21-A review)", async () => {
+    const db = fakeDb(fixture());
+    const s = await runRetentionSweep({ db, now: NOW, activeRadarUserIds: activeIds, historyFile: null });
+    expect(byRule(s, "data_room_engagement")).toMatchObject({ table: "data_room_engagement", days: 365, mode: "delete", candidates: 2, affected: 2 });
+    expect(db.tables.data_room_engagement.map((r) => r.id).sort()).toEqual(["dre-edge", "dre-fresh"]);
+    expect(db.tables.data_room_nda_acceptances).toHaveLength(1);
+    expect(db.ops.some((o) => o.includes("data_room_nda_acceptances"))).toBe(false);
+    expect(RETENTION_RULES.some((r) => r.table === "data_room_nda_acceptances")).toBe(false);
+    expect(NON_SWEEP_POLICY_ROWS.some((n) => n.policyRow === "Investor data-room NDA acceptances")).toBe(true);
   });
 
   it("batch limit: at most `limit` rows per rule per tick, `more` flags the remainder, clamp caps at 500", async () => {

@@ -64,6 +64,11 @@ export const DEFAULT_BATCH_ROWS = 500;
 export const NON_SWEEP_POLICY_ROWS: readonly { policyRow: string; handledBy: string }[] = [
   { policyRow: "Financial records", handledBy: "Kept for 7 years — never swept; Stripe + credit_transactions are the record." },
   { policyRow: "Application, security, and access logs", handledBy: "nginx / journald logrotate (30 d) — not a database table." },
+  {
+    policyRow: "Investor data-room NDA acceptances",
+    handledBy:
+      "Consent record (S21-A, migration 0339): life of the data room + 7 years — never swept while the room exists; rows go with the room via ON DELETE CASCADE, and the 7-year tail is the room's own deletion policy, not a timed sweep.",
+  },
 ];
 
 export const RETENTION_RULES: readonly RetentionRule[] = Object.freeze([
@@ -110,6 +115,16 @@ export const RETENTION_RULES: readonly RetentionRule[] = Object.freeze([
     policyRow: "Evaluator invitation and claim tokens",
     note:
       "Claim link dies 90 days after issue (invite_token → null); the evaluation row itself lives with the evaluator's account (clause 2C). A claimed link is already single-use via founder_user_id.",
+  },
+  {
+    id: "data_room_engagement",
+    table: "data_room_engagement",
+    column: "occurred_at",
+    days: 365,
+    mode: "delete",
+    policyRow: "Investor data-room engagement telemetry",
+    note:
+      "Investor engagement telemetry (S21-A): section dwell, document opens / downloads, salted ip-hash prefix, truncated UA. Deleted 12 months after the event (privacy v2.3 clause 4). The nda_sign row in this table is telemetry too — the consent record itself is data_room_nda_acceptances, which is never swept.",
   },
 ]);
 
@@ -184,6 +199,11 @@ const APPLIERS: Readonly<Record<string, Applier>> = {
     columns: "id, invited_at",
     scope: (q) => q.not("invite_token", "is", null),
     act: (db, ids) => db.from("evaluations").update({ invite_token: null }).in("id", ids),
+  },
+  data_room_engagement: {
+    columns: "id, occurred_at",
+    scope: (q) => q,
+    act: (db, ids) => db.from("data_room_engagement").delete().in("id", ids),
   },
 };
 

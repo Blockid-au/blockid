@@ -1,7 +1,7 @@
 ---
 title: Privacy Policy
-version: 2.2
-effective_from: 2026-09-11
+version: 2.3
+effective_from: 2026-09-12
 ---
 
 # Privacy Policy
@@ -14,12 +14,14 @@ hold, use, disclose, and protect personal information in accordance with
 the *Privacy Act 1988* (Cth) (the "Privacy Act") and the **Australian
 Privacy Principles (APPs 1–13)** in Schedule 1 of that Act.
 
-This version 2.2 takes effect on **11 September 2026** and replaces all
+This version 2.3 takes effect on **12 September 2026** and replaces all
 prior versions, including the separate notice that was previously
 published at `/privacy`. This page, `/legal/privacy`, is the single
-canonical Privacy Policy for BlockID. Version 2.2 adds the Money Finder,
-Founder Radar, evaluator, and investor-matching features released on
-10 September 2026 (see the changelog at the end of this page).
+canonical Privacy Policy for BlockID. Version 2.3 adds the investor
+data-room confidentiality (NDA) acceptance record and engagement
+telemetry released on 11 September 2026; version 2.2 added the Money
+Finder, Founder Radar, evaluator, and investor-matching features (see the
+changelog at the end of this page).
 
 ## 1. What we collect (APP 3, APP 5)
 
@@ -59,6 +61,15 @@ Services. The categories we collect are:
   whether you have chosen to be discoverable to founders (clause 2D).
 - **Notification and calendar preferences** — your Money Radar email
   setting, your calendar-feed token, and your dashboard layout.
+- **Investor data-room records** — where a founder shares a data room
+  through an investor link: the confidentiality terms the investor
+  accepted (version and a hash of the clause text), the email address the
+  investor chooses to give when accepting, a salted hash of their network
+  address and their browser family; and engagement telemetry — which
+  sections were read and for how long, documents opened or downloaded, a
+  salted hash of the network address and a truncated browser string. The
+  founder sees who accepted and what was read; the investor's raw network
+  address is never stored.
 
 We collect this information directly from you where practical (APP 3.6).
 Where a third party (for example an accountant, co-founder, or
@@ -255,13 +266,16 @@ maximums:
 | Investor preferences and discoverability flag | Until you change them, or on request; the flag is cleared immediately when you opt out |
 | Calendar-feed token | Until you mint a new one or delete your account |
 | Dashboard layout and notification preferences | Life of the account |
+| Investor data-room NDA acceptances (`data_room_nda_acceptances`) — version, clause hash, optional viewer email, hashed network address, browser family | Life of the data room + **7 years** — a consent record, kept with the room it protects; never swept while the room exists |
+| Investor data-room engagement telemetry (`data_room_engagement`) — section, dwell, document name, hashed network address, truncated browser string | **12 months** from the event, then deleted |
 
 When retention expires, we delete, de-identify, or securely archive the
 records in accordance with APP 11.2. An automated retention sweep runs
 **weekly** and applies the fixed periods in this table to the Money Finder,
-Founder Radar, email, and evaluator-invitation records; it never removes
-records that an active subscription still relies on, and it keeps the
-financial records for the statutory period.
+Founder Radar, email, evaluator-invitation, and data-room engagement
+records; it never removes records that an active subscription still relies
+on, and it keeps the financial records and the NDA acceptance records for
+the statutory period.
 
 ## 5. Disclosure to third parties {#third-parties}
 
@@ -395,6 +409,15 @@ Privacy Officer: `privacy@blockid.au`
 ---
 
 ## Changelog {#changelog}
+
+**v2.3 — effective 12 September 2026**
+
+- Clause 1 lists the investor data-room records: the confidentiality
+  (NDA) acceptance an investor gives on a share link and the engagement
+  telemetry the founder sees. Clause 4 adds a retention row for each —
+  acceptances are a consent record kept for the life of the data room plus
+  7 years; engagement telemetry is deleted after 12 months by the weekly
+  sweep. Nothing else changes.
 
 **v2.2 — effective 11 September 2026**
 
