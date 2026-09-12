@@ -78,14 +78,13 @@ describe("POST /api/account/delete", () => {
     mocks.db = null;
   });
 
-  it("401 without a session; 503 without Supabase; 403 cross-site", async () => {
+  it("401 without a session; 503 without Supabase (cross-site is refused at the edge proxy, see src/proxy.test.ts)", async () => {
     mocks.user = null;
     expect((await POST(post({ action: "request" }))).status).toBe(401);
     mocks.user = { id: UID, email: "f@x.io", role: "user" };
     mocks.db = null;
     expect((await POST(post({ action: "request" }))).status).toBe(503);
     mocks.db = makeDb({ password_hash: HASH }).db;
-    expect((await POST(post({ action: "request" }, { "sec-fetch-site": "cross-site" }))).status).toBe(403);
     expect((await POST(post("{not json"))).status).toBe(400);
   });
 

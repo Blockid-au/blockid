@@ -26,7 +26,7 @@ import bcrypt from "bcryptjs";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute } from "@/lib/audit/api-route";
-import { readJsonBody, rejectCrossSite } from "@/lib/security/request-guards";
+import { readJsonBody } from "@/lib/security/request-guards";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import {
   CONFIRMATION_PHRASE,
@@ -61,8 +61,6 @@ export async function GET() {
 }
 
 async function POST_handler(request: Request) {
-  const csrf = rejectCrossSite(request);
-  if (csrf) return csrf;
 
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, reason: "unauthorized" }, { status: 401 });

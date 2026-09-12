@@ -29,7 +29,7 @@ import { NAV_GROUPS, type NavGroup, type NavItem } from "@/components/workspace/
 import { decideVisibility, type LockedDecision } from "@/lib/nav/hide-when-locked";
 import { getMenuOverlayForRole } from "@/lib/nav/role-menu-overlay";
 import type { WorkflowStep } from "@/lib/nav/workflow-steps";
-import { GROWTH_PHASE_TO_WORKFLOW_STEP, navPhaseFromGrowthPhase } from "@/lib/nav/founder-phase";
+import { GROWTH_PHASE_TO_WORKFLOW_STEP, navPhaseFromGrowthPhase } from "@/lib/nav/founder-phase-shared";
 import { meetsMinPlan, planIdToTier, type PlanTier, type Segment } from "@/lib/segments";
 import { PHASE_EXIT_RULES, REQUIRED_QUALITY, type SviDimension } from "@/lib/growth/phase-gate";
 import {
