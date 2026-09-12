@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { VcValuationReport } from "@/lib/agents/cfo-valuation";
+import { ValuationCertificatePanel } from "./valuation-certificate-panel";
 
 /* ─── Formatting ──────────────────────────────────────────────────────────── */
 function fmtAud(v: number): string {
@@ -250,6 +251,9 @@ export function VcValuationDashboard() {
           ))}
         </div>
       </div>
+
+      {/* S22-A — investor-DD valuation certificate: issue / list / verify / revoke */}
+      <ValuationCertificatePanel />
 
       {/* Tabs */}
       <div className="flex gap-1 overflow-x-auto rounded-xl border border-surface-200 bg-surface-50 p-1">
