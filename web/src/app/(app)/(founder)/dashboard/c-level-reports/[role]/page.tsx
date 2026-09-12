@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { getCurrentProjectIsSandbox, getProjectIdFromRequest } from "@/lib/projects";
+import { getCurrentProjectIsSandbox, getProjectScope, roleCanWrite } from "@/lib/projects";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import {
   compareTrendAcross12Weeks,
@@ -86,7 +86,11 @@ export default async function CLevelReportDetailPage({ params }: PageProps) {
   if (!user) redirect(`/auth/login?next=/dashboard/c-level-reports/${role}`);
 
   const isSandbox = await getCurrentProjectIsSandbox();
-  const projectId = await getProjectIdFromRequest();
+  // S18-B — member-aware (viewer+): reports are keyed on project_id only;
+  // the "export to investor pack" write is hidden from viewers.
+  const scope = await getProjectScope("viewer");
+  const projectId = scope?.projectId ?? null;
+  const canEdit = roleCanWrite(scope?.role ?? "owner");
 
   const report = projectId ? await loadLatestReport(projectId, typedRole) : null;
   const snapshots = projectId ? await loadTrend(projectId, typedRole) : [];
@@ -110,14 +114,16 @@ export default async function CLevelReportDetailPage({ params }: PageProps) {
               </p>
             )}
           </div>
-          <form action={`/api/investor-pack/append?role=${typedRole}`} method="post">
-            <button
-              type="submit"
-              className="rounded bg-bull px-4 py-2 text-sm font-medium text-white hover:bg-bull"
-            >
-              Export to investor pack
-            </button>
-          </form>
+          {canEdit && (
+            <form action={`/api/investor-pack/append?role=${typedRole}`} method="post">
+              <button
+                type="submit"
+                className="rounded bg-bull px-4 py-2 text-sm font-medium text-white hover:bg-bull"
+              >
+                Export to investor pack
+              </button>
+            </form>
+          )}
         </header>
 
         {!report && (

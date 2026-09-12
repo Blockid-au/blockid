@@ -71,6 +71,8 @@ interface DataRoomClientProps {
   categories: string[];
   initialStates: DataRoomItemState[];
   templateStructure: DataRoomFolder[];
+  /** S18-B — viewer on a shared project: checklist + downloads only, no uploads / generation. */
+  readOnly?: boolean;
 }
 
 // Goals types (T0098)
@@ -161,6 +163,7 @@ export function DataRoomClient({
   categories,
   initialStates,
   templateStructure,
+  readOnly = false,
 }: DataRoomClientProps) {
   const [states, setStates] = React.useState<Record<string, DataRoomItemState>>(() => {
     const map: Record<string, DataRoomItemState> = {};
@@ -276,7 +279,13 @@ export function DataRoomClient({
     });
   }
 
+  const READ_ONLY_MSG = "View-only access — ask the project owner for editor rights.";
+
   function triggerUpload(itemId: string) {
+    if (readOnly) {
+      showToast(READ_ONLY_MSG, "error");
+      return;
+    }
     setPendingItemId(itemId);
     fileInputRef.current?.click();
   }
@@ -349,6 +358,10 @@ export function DataRoomClient({
   }
 
   async function handleSetupDrive() {
+    if (readOnly) {
+      showToast(READ_ONLY_MSG, "error");
+      return;
+    }
     setSettingUpDrive(true);
     try {
       const res = await fetch("/api/dataroom/setup", { method: "POST" });
@@ -375,6 +388,10 @@ export function DataRoomClient({
   }
 
   async function handleGenerateDataRoom() {
+    if (readOnly) {
+      showToast(READ_ONLY_MSG, "error");
+      return;
+    }
     setGenerating(true);
     try {
       const res = await fetch("/api/data-room/generate", { method: "POST" });
@@ -402,6 +419,10 @@ export function DataRoomClient({
   }
 
   async function handleAutoFill(documentId: string, templateSlug?: string) {
+    if (readOnly) {
+      showToast(READ_ONLY_MSG, "error");
+      return;
+    }
     setAutoFillDocId(documentId);
     setAutoFilling(true);
     setAutoFillResult(null);
@@ -1007,7 +1028,8 @@ export function DataRoomClient({
                           {statusConfig.label}
                         </span>
 
-                        {/* Upload button */}
+                        {/* Upload button (editor+) */}
+                        {!readOnly && (
                         <button
                           type="button"
                           onClick={() => triggerUpload(item.id)}
@@ -1027,6 +1049,7 @@ export function DataRoomClient({
                           )}
                           <span className="hidden sm:inline">Upload</span>
                         </button>
+                        )}
                       </div>
                     );
                   })}

@@ -11,7 +11,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getProjectIdFromRequest, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getProjectScope, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { pageScopeKeys } from "@/lib/project-members/page-scope";
+import { ViewOnlyNote } from "@/components/workspace/view-only-note";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
@@ -28,7 +30,14 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-async function loadOverview(userId: string, projectId: string | null): Promise<{
+// S18-B — `ownerUserId` keys the project's SVI report (owner's record,
+// shared with members); `callerUserId` keys the share links, which the
+// one-click route stamps with the CALLER who minted them.
+async function loadOverview(
+  ownerUserId: string,
+  callerUserId: string,
+  projectId: string | null,
+): Promise<{
   startupName: string;
   sviGrade: string;
   lastGeneratedAt: string | null;
@@ -63,7 +72,7 @@ async function loadOverview(userId: string, projectId: string | null): Promise<{
       const q = admin
         .from("svi_reports")
         .select("grade")
-        .eq("user_id", userId)
+        .eq("user_id", ownerUserId)
         .order("created_at", { ascending: false })
         .limit(1);
       if (projectId) q.eq("project_id", projectId);
@@ -82,7 +91,7 @@ async function loadOverview(userId: string, projectId: string | null): Promise<{
       const q = admin
         .from("investor_pack_shares")
         .select("share_id, created_at, expires_at")
-        .eq("user_id", userId)
+        .eq("user_id", callerUserId)
         .order("created_at", { ascending: false })
         .limit(1);
       const { data, error } = await q.maybeSingle();
@@ -109,7 +118,7 @@ async function loadOverview(userId: string, projectId: string | null): Promise<{
         const q = admin
           .from("investor_pack_history")
           .select("generated_at")
-          .eq("user_id", userId)
+          .eq("user_id", callerUserId)
           .order("generated_at", { ascending: false })
           .limit(1);
         const { data, error } = await q.maybeSingle();
@@ -127,7 +136,7 @@ async function loadOverview(userId: string, projectId: string | null): Promise<{
 // v3.7.1 — Fetch the pinned forecast + exit scenario names so the pack page
 // shows what will land in the generated PDF before the founder clicks Generate.
 async function loadPinnedArtefacts(
-  userId: string,
+  ownerUserId: string,
   projectId: string | null,
 ): Promise<{
   pinnedForecast: { id: string; name: string; scenario: string } | null;
@@ -168,7 +177,7 @@ async function loadPinnedArtefacts(
     const { data: acc } = await admin
       .from("svi_accounts")
       .select("id")
-      .eq("user_id", userId)
+      .eq("user_id", ownerUserId)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -229,11 +238,14 @@ export default async function InvestorPackPage() {
 
   const isSandbox = await getCurrentProjectIsSandbox();
 
-  const projectId = await getProjectIdFromRequest();
+  // S18-B — member-aware: the pack is assembled from the OWNER's records;
+  // share links + generation stay per caller (one-click is editor+).
+  const scope = await getProjectScope("viewer");
+  const { projectId, ownerUserId, role, canEdit, isMember } = pageScopeKeys(scope, user);
   const [overview, recentPacks, pinned] = await Promise.all([
-    loadOverview(user.id, projectId),
+    loadOverview(ownerUserId, user.id, projectId),
     loadRecentPacks(user.id),
-    loadPinnedArtefacts(user.id, projectId),
+    loadPinnedArtefacts(ownerUserId, projectId),
   ]);
 
   const previewHref = "/api/investor-pack/preview";
@@ -290,9 +302,13 @@ export default async function InvestorPackPage() {
           </dl>
 
           {/* One-click generate form (T-1203) */}
+          {isMember && !canEdit && (
+            <ViewOnlyNote role={role} action="generate an investor pack" className="mb-3" />
+          )}
           <InvestorPackGenerateForm
             initialDownloadUrl={overview.lastDownloadUrl}
             previewHref={previewHref}
+            readOnly={!canEdit}
           />
         </section>
 

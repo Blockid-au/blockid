@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getProjectIdFromRequest, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getProjectScope, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { pageScopeKeys } from "@/lib/project-members/page-scope";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { TechIntelligencePanel } from "@/components/founder/tech-intelligence-panel";
@@ -19,7 +20,9 @@ export default async function TechAnalysisPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/tech-analysis");
 
-  const startupId = await getProjectIdFromRequest();
+  // S18-B — member-aware: the project row is read under the OWNER's id.
+  const scope = await getProjectScope("viewer");
+  const { projectId: startupId, ownerUserId } = pageScopeKeys(scope, user);
   if (!startupId) redirect("/workspace/projects");
 
   const isSandbox = await getCurrentProjectIsSandbox();
@@ -34,7 +37,7 @@ export default async function TechAnalysisPage() {
       .from("projects")
       .select("website_url, github_url")
       .eq("id", startupId)
-      .eq("user_id", user.id)
+      .eq("user_id", ownerUserId)
       .maybeSingle();
 
     websiteUrl = (project?.website_url as string | null) ?? "";

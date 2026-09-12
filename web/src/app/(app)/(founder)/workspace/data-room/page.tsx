@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest, findOrCreateSVIAccount, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getProjectScope, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { pageScopeKeys, resolveSVIAccountIdForPage } from "@/lib/project-members/page-scope";
+import { ViewOnlyNote } from "@/components/workspace/view-only-note";
 import { FileText, ClipboardList, ArrowUpFromLine } from "lucide-react";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { EmptyDashboardState } from "@/components/dashboard/empty-dashboard-state";
@@ -189,9 +191,13 @@ export default async function DataRoomPage() {
   const itemStates: DataRoomItemState[] = [];
   const supabase = getSupabaseAdmin();
 
+  // S18-B — member-aware: uploads live under the OWNER's svi_account (read
+  // for members, never a split account row); viewers get checklist + downloads.
+  const scope = await getProjectScope("viewer");
+  const { role, canEdit, isMember } = pageScopeKeys(scope, user);
+
   if (supabase) {
-    const projectId = await getProjectIdFromRequest();
-    const accountId = await findOrCreateSVIAccount(user.email, projectId);
+    const accountId = await resolveSVIAccountIdForPage(scope, user);
 
     if (accountId) {
       const account = { id: accountId };
@@ -267,11 +273,15 @@ export default async function DataRoomPage() {
         )}
 
         <div id="data-room-checklist">
+          {isMember && !canEdit && (
+            <ViewOnlyNote role={role} action="upload or generate documents" className="mb-4" />
+          )}
           <DataRoomClient
             items={DATA_ROOM_ITEMS}
             categories={CATEGORIES}
             initialStates={itemStates}
             templateStructure={DATA_ROOM_STRUCTURE}
+            readOnly={!canEdit}
           />
         </div>
       </div>

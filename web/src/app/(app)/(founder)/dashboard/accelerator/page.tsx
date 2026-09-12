@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getProjectScope, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { pageScopeKeys } from "@/lib/project-members/page-scope";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { AcceleratorClient } from "./accelerator-client";
 
@@ -34,13 +35,15 @@ export default async function AcceleratorPage() {
   const milestones: Array<{ id: string; title: string; completedAt: string }> = [];
 
   if (supabase) {
-    const projectId = await getProjectIdFromRequest();
+    // S18-B — member-aware: rows are keyed on the OWNER's id.
+    const scope = await getProjectScope("viewer");
+    const { projectId, ownerUserId } = pageScopeKeys(scope, user);
 
     // Fetch latest SVI
     const sviQuery = supabase
       .from("svi_accounts")
       .select("score, stage, startup_name, updated_at")
-      .eq("account_id", user.id)
+      .eq("account_id", ownerUserId)
       .order("updated_at", { ascending: false })
       .limit(1);
 
@@ -64,7 +67,7 @@ export default async function AcceleratorPage() {
     const { data: mData } = await supabase
       .from("svi_milestones")
       .select("id, milestone_label, achieved_at")
-      .eq("account_id", user.id)
+      .eq("account_id", ownerUserId)
       .order("achieved_at", { ascending: false })
       .limit(10);
 

@@ -108,6 +108,8 @@ export interface LivingDashboardProps {
     industry: string | null;
     startupGoals: string[] | null;
   };
+  /** S18-B — viewer on a shared project: no section unlocks (editor+ write). */
+  readOnly?: boolean;
 }
 
 /* ─── Stage Detection (maps SVI score to 5 mentor stages) ────────────────── */
@@ -335,6 +337,7 @@ export function LivingSVIDashboard(props: LivingDashboardProps) {
     lastAnalysisDate,
     previousSVI,
     userProfile,
+    readOnly = false,
   } = props;
 
   const [activeTab, setActiveTab] = React.useState<TabId>("journey");
@@ -590,6 +593,7 @@ export function LivingSVIDashboard(props: LivingDashboardProps) {
         <FullReportTab
           savedSections={localSections}
           creditBalance={creditBalance}
+          readOnly={readOnly}
           onSectionUnlocked={(section) => {
             setLocalAdditions((prev) => [
               ...prev.filter(
@@ -821,10 +825,12 @@ function FullReportTab({
   savedSections,
   creditBalance,
   onSectionUnlocked,
+  readOnly = false,
 }: {
   savedSections: SavedSection[];
   creditBalance: number;
   onSectionUnlocked: (section: SavedSection) => void;
+  readOnly?: boolean;
 }) {
   // Track which phases are expanded (all expanded by default)
   const [expandedPhases, setExpandedPhases] = React.useState<
@@ -953,6 +959,7 @@ function FullReportTab({
                     saved={ps.saved}
                     creditBalance={creditBalance}
                     onUnlocked={onSectionUnlocked}
+                    readOnly={readOnly}
                   />
                 ))}
               </div>
@@ -963,7 +970,7 @@ function FullReportTab({
 
       {/* Unlock All Bundle — bottom CTA */}
       {/* WHY: Bulk unlock at a discount encourages deeper engagement */}
-      {bundle.sections.length > 0 && (
+      {!readOnly && bundle.sections.length > 0 && (
         <div className="rounded-2xl border border-brand-200 bg-gradient-to-r from-brand-50 to-emerald-50/40 shadow-sm p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -1061,12 +1068,14 @@ function ReportSectionRow({
   saved,
   creditBalance,
   onUnlocked,
+  readOnly = false,
 }: {
   sectionId: string;
   def: ReportSectionDef | undefined;
   saved: SavedSection | undefined;
   creditBalance: number;
   onUnlocked: (section: SavedSection) => void;
+  readOnly?: boolean;
 }) {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -1223,8 +1232,8 @@ function ReportSectionRow({
             </div>
           )}
 
-          {/* Unlock CTA for sections without full content */}
-          {!hasFull && creditCost > 0 && (
+          {/* Unlock CTA for sections without full content (editor+ — S18-B) */}
+          {!readOnly && !hasFull && creditCost > 0 && (
             <div className="mt-3">
               {/* Summary preview: show summary content + unlock CTA */}
               {hasSummary && saved && !isExpanded && (

@@ -9,6 +9,8 @@ import type { Div83ACheck } from "@/lib/div83a-checker";
 interface GrantsClientProps {
   initialGrants: Grant[];
   disclaimer: string;
+  /** S18-B — viewer on a shared project: hide the editor+ create / status actions. */
+  readOnly?: boolean;
 }
 
 interface CreateForm {
@@ -79,7 +81,7 @@ function tristate(v: "yes" | "no" | "unknown"): boolean | undefined {
   return undefined;
 }
 
-export function GrantsClient({ initialGrants, disclaimer }: GrantsClientProps) {
+export function GrantsClient({ initialGrants, disclaimer, readOnly = false }: GrantsClientProps) {
   const [grants, setGrants] = React.useState<Grant[]>(() => initialGrants);
   const [createOpen, setCreateOpen] = React.useState<boolean>(() => false);
   const [form, setForm] = React.useState<CreateForm>(() => makeEmptyForm());
@@ -232,18 +234,20 @@ export function GrantsClient({ initialGrants, disclaimer }: GrantsClientProps) {
             Startup Concession (ITAA 1997 Subdivision 83A).
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setCreateOpen(true);
-            setError(null);
-            setSuccess(null);
-          }}
-          className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
-        >
-          <Plus strokeWidth={1.75} className="h-4 w-4" />
-          Create grant
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={() => {
+              setCreateOpen(true);
+              setError(null);
+              setSuccess(null);
+            }}
+            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+          >
+            <Plus strokeWidth={1.75} className="h-4 w-4" />
+            Create grant
+          </button>
+        )}
       </header>
 
       <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-2.5 text-xs text-amber-800">
@@ -330,7 +334,7 @@ export function GrantsClient({ initialGrants, disclaimer }: GrantsClientProps) {
                           <ShieldCheck strokeWidth={1.75} className="h-3.5 w-3.5" />
                           Check 83A
                         </button>
-                        {g.status === "active" ? (
+                        {g.status === "active" && !readOnly ? (
                           <>
                             <button
                               type="button"

@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { GitBranch, LineChart } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { findOrCreateSVIAccount, getProjectIdFromRequest, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getProjectScope, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { pageScopeKeys, resolveSVIAccountIdForPage } from "@/lib/project-members/page-scope";
+import { ViewOnlyNote } from "@/components/workspace/view-only-note";
 import { isGitHubOAuthConfigured } from "@/lib/github";
 import { isGoogleAnalyticsOAuthConfigured } from "@/lib/google-analytics-oauth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
@@ -30,10 +32,16 @@ export default async function IntegrationsPage({
 
   let existingRepoUrl: string | null = null;
   let existingGaSummary: string | null = null;
+  // S18-B — member-aware: integration evidence lives under the OWNER's
+  // svi_account (read-only for members); connecting a source is admin+
+  // (OAuth callbacks) so non-admin members see the status only.
+  const scope = await getProjectScope("viewer");
+  const { role, isMember } = pageScopeKeys(scope, user);
+  const canConnect = !isMember || role === "admin";
+
   const supabase = getSupabaseAdmin();
   if (supabase) {
-    const projectId = await getProjectIdFromRequest();
-    const accountId = await findOrCreateSVIAccount(user.email, projectId);
+    const accountId = await resolveSVIAccountIdForPage(scope, user);
     if (accountId) {
       const { data } = await supabase
         .from("svi_evidence")
@@ -99,10 +107,21 @@ export default async function IntegrationsPage({
           </p>
         </div>
 
-        <GitHubConnectForm
-          oauthEnabled={isGitHubOAuthConfigured()}
-          initialRepo={existingRepoUrl}
-        />
+        {!canConnect && (
+          <ViewOnlyNote role={role} action="connect or change integrations" />
+        )}
+        {canConnect ? (
+          <GitHubConnectForm
+            oauthEnabled={isGitHubOAuthConfigured()}
+            initialRepo={existingRepoUrl}
+          />
+        ) : (
+          existingRepoUrl && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+              Connected · {existingRepoUrl}
+            </div>
+          )
+        )}
 
         <div className="rounded-2xl border border-surface-200 bg-white p-6">
           <div className="flex items-center gap-3 mb-2">
@@ -124,7 +143,7 @@ export default async function IntegrationsPage({
           )}
 
           <div className="mt-4">
-            {isGoogleAnalyticsOAuthConfigured() ? (
+            {!canConnect ? null : isGoogleAnalyticsOAuthConfigured() ? (
               <a
                 href="/api/integrations/google-analytics/start"
                 className="inline-flex items-center gap-2 rounded-lg bg-ink-900 px-4 py-2 text-sm font-medium text-white hover:bg-ink-800"

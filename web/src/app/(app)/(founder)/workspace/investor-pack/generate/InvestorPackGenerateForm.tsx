@@ -16,6 +16,8 @@ interface Props {
   initialDownloadUrl: string | null;
   /** Preview href for the inline viewer. */
   previewHref: string;
+  /** S18-B — viewer on a shared project: hide the (editor+) generate CTA. */
+  readOnly?: boolean;
 }
 
 interface GenerateResult {
@@ -26,7 +28,7 @@ interface GenerateResult {
   upgradeUrl?: string;
 }
 
-export function InvestorPackGenerateForm({ initialDownloadUrl, previewHref }: Props) {
+export function InvestorPackGenerateForm({ initialDownloadUrl, previewHref, readOnly = false }: Props) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GenerateResult | null>(null);
 
@@ -55,6 +57,7 @@ export function InvestorPackGenerateForm({ initialDownloadUrl, previewHref }: Pr
     <div className="space-y-4">
       {/* Primary CTA */}
       <div className="flex flex-wrap gap-3 items-center">
+        {!readOnly && (
         <button
           type="button"
           onClick={handleGenerate}
@@ -91,6 +94,7 @@ export function InvestorPackGenerateForm({ initialDownloadUrl, previewHref }: Pr
             "Generate Investor Pack"
           )}
         </button>
+        )}
 
         <a
           href={previewHref}

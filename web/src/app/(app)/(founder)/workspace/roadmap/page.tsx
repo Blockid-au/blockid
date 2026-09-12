@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest, findOrCreateSVIAccount, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getProjectScope, getCurrentProjectIsSandbox } from "@/lib/projects";
+import type { ProjectScope } from "@/lib/projects";
+import { pageScopeKeys, resolveSVIAccountIdForPage } from "@/lib/project-members/page-scope";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { RoadmapSteps } from "@/components/workspace/roadmap-steps";
 import { PlatformRoadmap } from "@/components/workspace/platform-roadmap";
@@ -15,28 +17,32 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-async function getCompletedSteps(email: string): Promise<number[]> {
+// S18-B — member-aware: steps are read off the OWNER's record (`dataEmail`
+// + project); a member never creates a split svi_accounts row here.
+async function getCompletedSteps(
+  scope: ProjectScope | null,
+  user: { id: string; email: string },
+): Promise<number[]> {
   const sb = getSupabaseAdmin();
   if (!sb) return [];
 
   const completed: number[] = [];
 
-  // Resolve active project
-  const projectId = await getProjectIdFromRequest();
+  const { projectId, dataEmail } = pageScopeKeys(scope, user);
 
   // Step 1: Get SVI Baseline — at least 1 svi_analyses record (project-scoped)
   const countQuery = sb
     .from("svi_analyses")
     .select("id", { count: "exact", head: true })
-    .eq("email", email);
+    .eq("email", dataEmail);
   if (projectId) countQuery.eq("project_id", projectId);
   else countQuery.is("project_id", null);
 
   const { count: analysisCount } = await countQuery;
   if (analysisCount && analysisCount > 0) completed.push(1);
 
-  // Find the user's svi_account (project-scoped)
-  const accountId = await findOrCreateSVIAccount(email, projectId);
+  // Find the project's svi_account (owner: find-or-create; member: read-only)
+  const accountId = await resolveSVIAccountIdForPage(scope, user);
 
   if (accountId) {
     const { data: evidence } = await sb
@@ -91,7 +97,8 @@ export default async function RoadmapPage() {
 
   const isSandbox = await getCurrentProjectIsSandbox();
 
-  const completedSteps = await getCompletedSteps(user.email);
+  const scope = await getProjectScope("viewer");
+  const completedSteps = await getCompletedSteps(scope, user);
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>

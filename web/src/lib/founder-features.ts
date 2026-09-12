@@ -3,13 +3,21 @@
 // roadmap milestones). All rows are scoped to (user_id, project_id) so
 // multi-startup founders never see cross-startup data.
 //
+// S18-B — `user_id` is the project OWNER's id (the key `/api/founder/*`
+// writes under, see `founder-crud.ts`), so every reader takes a
+// `FounderFeatureScope` ({ ownerUserId, projectId }) rather than the
+// caller. A `ProjectScope` from `getProjectScope()` satisfies it directly;
+// `founderFeatureScope(scope, user)` builds one for the owner's legacy
+// (no-project) path. A shared-project member therefore reads the same
+// rows the owner sees instead of an empty list keyed on their own id.
+//
 // Every helper returns a plain array/object and swallows Supabase errors
 // after logging — the callers render a graceful empty state instead of
 // crashing when the migration has not been applied yet.
 
-import type { AppUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getProjectIdFromRequest } from "@/lib/projects";
+import type { ProjectScope } from "@/lib/projects";
 
 const LOG = "[blockid:founder-features]";
 
@@ -99,22 +107,53 @@ export interface RoadmapMilestone {
   updated_at: string;
 }
 
-/** Return the active project_id for the current request, or null. */
+/**
+ * Data key for the founder-feature tables: the project OWNER's id plus the
+ * project. `ProjectScope` (from `getProjectScope`) is assignable as-is.
+ */
+export interface FounderFeatureScope {
+  ownerUserId: string;
+  projectId: string | null;
+}
+
+/**
+ * Build the read key for a server page: the resolved `ProjectScope` when
+ * there is one (owner or member — `ownerUserId` is the owner either way),
+ * else the caller's own id with no project (legacy path — every reader
+ * returns empty for a null project, exactly as before S18-B).
+ */
+export function founderFeatureScope(
+  scope: Pick<ProjectScope, "ownerUserId" | "projectId"> | null | undefined,
+  user: { id: string },
+): FounderFeatureScope {
+  return {
+    ownerUserId: scope?.ownerUserId ?? user.id,
+    projectId: scope?.projectId ?? null,
+  };
+}
+
+/**
+ * Return the active project_id for the current request, or null.
+ *
+ * @deprecated Role-free (S18-A review P2-2). Only the two
+ * `competitive-positioning` routes still call it; pages use
+ * `getProjectScope("viewer")` + `founderFeatureScope()`.
+ */
 export async function getActiveProjectIdOrNull(): Promise<string | null> {
   return getProjectIdFromRequest();
 }
 
-/** Fetch the single GTM strategy for (user, project). Returns null if none. */
+/** Fetch the single GTM strategy for (owner, project). Returns null if none. */
 export async function getGtmStrategy(
-  user: AppUser,
-  projectId: string | null,
+  scope: FounderFeatureScope,
 ): Promise<GtmStrategy | null> {
   const sb = getSupabaseAdmin();
+  const { ownerUserId, projectId } = scope;
   if (!sb || !projectId) return null;
   const { data, error } = await sb
     .from("gtm_strategies")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", ownerUserId)
     .eq("project_id", projectId)
     .maybeSingle();
   if (error) {
@@ -125,15 +164,15 @@ export async function getGtmStrategy(
 }
 
 export async function listCompetitors(
-  user: AppUser,
-  projectId: string | null,
+  scope: FounderFeatureScope,
 ): Promise<Competitor[]> {
   const sb = getSupabaseAdmin();
+  const { ownerUserId, projectId } = scope;
   if (!sb || !projectId) return [];
   const { data, error } = await sb
     .from("competitors")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", ownerUserId)
     .eq("project_id", projectId)
     .order("created_at", { ascending: true });
   if (error) {
@@ -144,15 +183,15 @@ export async function listCompetitors(
 }
 
 export async function listTeamMembers(
-  user: AppUser,
-  projectId: string | null,
+  scope: FounderFeatureScope,
 ): Promise<TeamMember[]> {
   const sb = getSupabaseAdmin();
+  const { ownerUserId, projectId } = scope;
   if (!sb || !projectId) return [];
   const { data, error } = await sb
     .from("team_members")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", ownerUserId)
     .eq("project_id", projectId)
     .order("created_at", { ascending: true });
   if (error) {
@@ -163,15 +202,15 @@ export async function listTeamMembers(
 }
 
 export async function listPricingTiers(
-  user: AppUser,
-  projectId: string | null,
+  scope: FounderFeatureScope,
 ): Promise<PricingTier[]> {
   const sb = getSupabaseAdmin();
+  const { ownerUserId, projectId } = scope;
   if (!sb || !projectId) return [];
   const { data, error } = await sb
     .from("pricing_tiers")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", ownerUserId)
     .eq("project_id", projectId)
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
@@ -183,15 +222,15 @@ export async function listPricingTiers(
 }
 
 export async function listRoadmapMilestones(
-  user: AppUser,
-  projectId: string | null,
+  scope: FounderFeatureScope,
 ): Promise<RoadmapMilestone[]> {
   const sb = getSupabaseAdmin();
+  const { ownerUserId, projectId } = scope;
   if (!sb || !projectId) return [];
   const { data, error } = await sb
     .from("roadmap_milestones")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", ownerUserId)
     .eq("project_id", projectId)
     .order("quarter", { ascending: true })
     .order("sort_order", { ascending: true });

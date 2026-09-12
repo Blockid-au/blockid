@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest, findOrCreateSVIAccount, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getProjectScope, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { pageScopeKeys, resolveSVIAccountIdForPage } from "@/lib/project-members/page-scope";
+import { ViewOnlyNote } from "@/components/workspace/view-only-note";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { MetricsClient, type MetricRow } from "./metrics-client";
@@ -27,10 +29,13 @@ export default async function MetricsPage() {
   let metrics: MetricRow[] = [];
   let stage = "pre-seed";
 
+  // S18-B — member-aware: metrics are keyed on the OWNER's email + project
+  // (the key /api/metrics writes under); viewers get the dashboard only.
+  const scope = await getProjectScope("viewer");
+  const { projectId, dataEmail, role, canEdit, isMember } = pageScopeKeys(scope, user);
+
   if (sb) {
-    // Resolve active project
-    const projectId = await getProjectIdFromRequest();
-    const accountId = await findOrCreateSVIAccount(user.email, projectId);
+    const accountId = await resolveSVIAccountIdForPage(scope, user);
 
     if (accountId) {
       const { data: account } = await sb
@@ -61,7 +66,7 @@ export default async function MetricsPage() {
       .select(
         "id, metric_date, mrr_aud, arr_aud, revenue_growth_pct, revenue, mau, dau, users_total, users_new, monthly_churn_pct, nrr_pct, cac_aud, ltv_aud, burn_rate_aud, runway_months, nps, notes, source, created_at",
       )
-      .eq("email", user.email);
+      .eq("email", dataEmail);
     if (projectId) metricsQuery.eq("project_id", projectId);
     else metricsQuery.is("project_id", null);
 
@@ -85,7 +90,10 @@ export default async function MetricsPage() {
           </p>
         </div>
 
-        <MetricsClient metrics={metrics} stage={stage} />
+        {isMember && !canEdit && (
+          <ViewOnlyNote role={role} action="record metrics" className="mb-4" />
+        )}
+        <MetricsClient metrics={metrics} stage={stage} readOnly={!canEdit} />
       </div>
     </WorkspaceLayout>
   );
