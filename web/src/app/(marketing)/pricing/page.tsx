@@ -14,6 +14,7 @@ import { MarketingSection } from "@/components/marketing/marketing-section";
 import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
 import { LogoCloud } from "@/components/landing/logo-cloud";
 import { StickyCta } from "@/components/sales/sticky-cta";
+import { PricingFeatureNotice } from "@/components/landing/pricing-feature-notice";
 
 // Force dynamic — pricing reads platform_config (Supabase) on every
 // request, and searchParams (?segment=…) picks the initial tab. ISR would
@@ -98,6 +99,10 @@ interface PricingPageProps {
     segment?: string | string[];
     tab?: string | string[];
     tier?: string | string[];
+    // S31-B: set by requireTierForPage() / <FeatureGate> when a locked page
+    // redirects here — rendered as the notice above the hero.
+    feature?: string | string[];
+    from?: string | string[];
   }>;
 }
 
@@ -119,6 +124,9 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         ]}
       />
       <PageViewTracker event="pricing_viewed" params={{}} />
+
+      {/* S31-B — why the visitor is here, when a gate sent them. */}
+      <PricingFeatureNotice feature={sp?.feature} from={sp?.from} />
 
       {/* Above-the-fold hero — ONE primary CTA + text-link secondary, per
           CRO §06. Height reserved with min-h to keep CLS < 0.02 across the
