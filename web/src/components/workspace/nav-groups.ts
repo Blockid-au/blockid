@@ -30,7 +30,7 @@ import {
   Target, TrendingUp, User, Users, Wand2, Wallet, Zap,
   ClipboardList, Eye, Layers, Settings2, MessageSquare, Send, Building2,
   ClipboardCheck, FileBarChart, Handshake, LayoutDashboard, Tag, Coins, Plug,
-  Inbox, GraduationCap, LayoutGrid, Cpu, History, Receipt, BookUser,
+  Inbox, GraduationCap, LayoutGrid, Cpu, History, Receipt, BookUser, Lock,
 } from "lucide-react";
 
 import type { PlanTier, Segment } from "@/lib/segments";
@@ -447,6 +447,10 @@ const SCALE_EXIT_SUBGROUPS: NavSubgroup[] = [
       // it dimmed with a lock instead of being bounced. Nobody loses a row:
       // under-plan items render locked, not hidden.
       { href: "/dashboard/exit-readiness", label: "Exit Benchmark", icon: BarChart3, minPlan: "growth", minTier: "growth", growthPhase: 5 },
+      // S29-A — ASX / Nasdaq admission conditions as readiness indicators computed from the cap table, share price, bank lines and profile.
+      { href: "/workspace/listing-readiness", label: "Listing Readiness", icon: ClipboardCheck, minPlan: "growth", minTier: "growth", growthPhase: 5 },
+      // S29-A — clean-team checklist for a strategic sale, backed by the data room's NDA / watermark / link controls.
+      { href: "/workspace/clean-room", label: "Clean-Room Prep", icon: Lock, minPlan: "growth", minTier: "growth", growthPhase: 5 },
     ],
   },
 ];
