@@ -850,6 +850,19 @@ describe("POST /api/cap-table action=issue_shares", () => {
     expect(state.chains).toHaveLength(0);
   });
 
+  it("S29-review: a fractional or oversized shares count is a 400 before any DB read (not an invalid_delta 500)", async () => {
+    const fractional = await POST(
+      makeReq({ action: "issue_shares", data: { shareholderId: "sh-1", shareClassId: "cls-1", shares: 1.5 } }),
+    );
+    expect(fractional.status).toBe(400);
+    expect((await fractional.json()).error).toContain("whole number");
+    const oversized = await POST(
+      makeReq({ action: "issue_shares", data: { shareholderId: "sh-1", shareClassId: "cls-1", shares: 1_000_000_000_001 } }),
+    );
+    expect(oversized.status).toBe(400);
+    expect(state.chains).toHaveLength(0);
+  });
+
   it("returns 404 { ok:false, error:'Shareholder not found' } when the ownership pre-check misses", async () => {
     queue({ data: null, error: null });
     const res = await POST(

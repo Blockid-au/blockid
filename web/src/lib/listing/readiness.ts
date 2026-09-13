@@ -68,6 +68,12 @@ export interface ListingFacts {
   incorporatedAt: string | null;
   listed: boolean | null;
   profile: ListingProfileFacts;
+  /**
+   * The date the checklist is computed for (YYYY-MM-DD) — company age and
+   * operating history are measured to this day, never to the rules' as-at
+   * constant. Absent → today (UTC).
+   */
+  asOf?: string;
 }
 
 /* ── Rule constants (as at the date below) ──────────────────────────── */
@@ -104,7 +110,7 @@ export const NASDAQ_EQUITY_STANDARD = { equityUsd: 5_000_000, mvuphsUsd: 15_000_
 export const NASDAQ_MVLS_STANDARD = { equityUsd: 4_000_000, mvuphsUsd: 15_000_000, mvlsUsd: 50_000_000 } as const;
 export const NASDAQ_NET_INCOME_STANDARD = { equityUsd: 4_000_000, mvuphsUsd: 5_000_000, netIncomeUsd: 750_000 } as const;
 export const NASDAQ_AUDIT_COMMITTEE_MIN_INDEPENDENT = 3;
-/** Officers, directors and ≥ 10 % holders are excluded from "unrestricted publicly held" (Rule 5005(a)). */
+/** Officers, directors and holders of MORE THAN 10 % are excluded from "publicly held" (Rule 5005(a)(35)); a holder at exactly 10 % is public. */
 export const NASDAQ_INSIDER_HOLDING_PCT = 10;
 
 /** Cap-table roles treated as affiliated / restricted for spread and free-float purposes. */
@@ -191,7 +197,7 @@ export function computeFreeFloat(holders: CapTableHolder[], restrictedIds: reado
 }
 
 export interface NasdaqPublicResult {
-  /** Shares held by non-affiliated holders each below the 10 % insider line. */
+  /** Shares held by non-affiliated holders each at or below the 10 % insider line (Rule 5005(a)(35) excludes "more than 10 %"). */
   unrestrictedPublicShares: number;
   /** Non-affiliated holders with ≥ 100 shares. */
   roundLotHolders: number;
@@ -200,7 +206,7 @@ export interface NasdaqPublicResult {
   priceUsd: number | null;
 }
 
-/** Nasdaq public-holding maths: officers / directors / ≥ 10 % holders excluded; round lot = 100 shares. */
+/** Nasdaq public-holding maths: officers / directors / more-than-10 % holders excluded; round lot = 100 shares. */
 export function computeNasdaqPublic(holders: CapTableHolder[], priceUsd: number | null, restrictedIds: readonly string[] = []): NasdaqPublicResult {
   const issued = holders.reduce((s, h) => s + (h.sharesHeld > 0 ? h.sharesHeld : 0), 0);
   let publicShares = 0;
@@ -209,7 +215,8 @@ export function computeNasdaqPublic(holders: CapTableHolder[], priceUsd: number 
   for (const h of holders) {
     if (!(h.sharesHeld > 0) || isAffiliated(h, restrictedIds)) continue;
     const pct = issued > 0 ? (h.sharesHeld / issued) * 100 : 0;
-    if (pct >= NASDAQ_INSIDER_HOLDING_PCT) continue;
+    // Rule 5005(a)(35): "more than 10 %" is excluded — exactly 10 % stays public.
+    if (pct > NASDAQ_INSIDER_HOLDING_PCT) continue;
     publicShares += h.sharesHeld;
     if (h.sharesHeld >= NASDAQ_ROUND_LOT_SHARES) {
       roundLot++;
@@ -220,6 +227,11 @@ export function computeNasdaqPublic(holders: CapTableHolder[], priceUsd: number 
 }
 
 /* ── Helpers ─────────────────────────────────────────────────────────── */
+
+/** The day the checklist is computed for — `facts.asOf` or today (UTC). Company age never freezes at the rules' as-at constant. */
+function asOfDate(f: ListingFacts): string {
+  return f.asOf ?? new Date().toISOString().slice(0, 10);
+}
 
 function yearsBetween(fromIso: string | null, toIso: string): number | null {
   if (!fromIso) return null;
@@ -344,8 +356,13 @@ export function buildAsxChecklist(f: ListingFacts): ReadinessRow[] {
   // Audited accounts — 3 FYs for the profit test (LR 1.2.3), 2 for the assets test (LR 1.3.5(a)).
   const fys = p.audited_accounts_fys ?? [];
   const needed = p.asx_test === "profit" ? ASX_PROFIT_TEST_AUDITED_FYS : ASX_ASSETS_TEST_AUDITED_FYS;
-  const yearsOld = yearsBetween(f.incorporatedAt, ASX_RULES_AS_AT);
-  const auditedStatus: ReadinessStatus = fys.length === 0 && !p.audited_accounts_confirmed_at ? "not_confirmed" : fys.length >= needed ? "met" : "not_met";
+  const yearsOld = yearsBetween(f.incorporatedAt, asOfDate(f));
+  // A company younger than the audited period cannot have `needed` full
+  // financial years; with at least one audited year on file the row stays
+  // "not confirmed" (ASX may accept the shorter period), never "not met".
+  const youngerThanNeeded = yearsOld !== null && yearsOld < needed;
+  const auditedStatus: ReadinessStatus =
+    fys.length === 0 && !p.audited_accounts_confirmed_at ? "not_confirmed" : fys.length >= needed ? "met" : fys.length > 0 && youngerThanNeeded ? "not_confirmed" : "not_met";
   rows.push(
     row("asx", {
       id: "asx.audited-accounts",
@@ -354,8 +371,8 @@ export function buildAsxChecklist(f: ListingFacts): ReadinessRow[] {
       status: auditedStatus,
       basis:
         fys.length === 0
-          ? `No audited financial years recorded${yearsOld !== null && yearsOld < needed ? `; incorporated ${f.incorporatedAt} — ${yearsOld.toFixed(1)} years old, so ASX may accept a shorter audited period` : ""}`
-          : `${fys.length} audited financial year${fys.length === 1 ? "" : "s"} on file (${fys.join(", ")})${p.audited_accounts_confirmed_at ? `, confirmed ${p.audited_accounts_confirmed_at}` : ""}; ASX also wants an audited or reviewed pro-forma balance sheet and, for a half-year gap, a reviewed half-year`,
+          ? `No audited financial years recorded${youngerThanNeeded ? `; incorporated ${f.incorporatedAt} — ${yearsOld.toFixed(1)} years old, so ASX may accept a shorter audited period` : ""}`
+          : `${fys.length} audited financial year${fys.length === 1 ? "" : "s"} on file (${fys.join(", ")})${p.audited_accounts_confirmed_at ? `, confirmed ${p.audited_accounts_confirmed_at}` : ""}${fys.length < needed && youngerThanNeeded ? `; incorporated ${f.incorporatedAt} — ${yearsOld.toFixed(1)} years old, so ASX may accept a shorter audited period (since incorporation)` : ""}; ASX also wants an audited or reviewed pro-forma balance sheet and, for a half-year gap, a reviewed half-year`,
       nextStep: auditedStatus === "met" ? null : `Engage a registered company auditor now — ASX expects ${needed} audited full financial years (or since incorporation) with unqualified opinions; tick each year here once the audit report is signed`,
     }),
   );
@@ -479,7 +496,7 @@ export function buildNasdaqChecklist(f: ListingFacts): ReadinessRow[] {
       rule: "Nasdaq Rule 5505(a)(2)",
       label: `At least ${count(NASDAQ_MIN_UNRESTRICTED_PUBLIC_SHARES)} unrestricted publicly held shares`,
       status: pub.unrestrictedPublicShares >= NASDAQ_MIN_UNRESTRICTED_PUBLIC_SHARES ? "met" : "not_met",
-      basis: `${count(pub.unrestrictedPublicShares)} shares held by holders who are not founders, directors, executives or ≥ ${NASDAQ_INSIDER_HOLDING_PCT} % holders (Rule 5005(a) 'publicly held'); lock-up and other restricted shares also come out — mark them as restricted`,
+      basis: `${count(pub.unrestrictedPublicShares)} shares held by holders who are not founders, directors, executives or holders of more than ${NASDAQ_INSIDER_HOLDING_PCT} % (Rule 5005(a)(35) 'publicly held'); lock-up and other restricted shares also come out — mark them as restricted`,
       nextStep: pub.unrestrictedPublicShares >= NASDAQ_MIN_UNRESTRICTED_PUBLIC_SHARES ? null : "Size the IPO so at least 1,000,000 shares are unrestricted and publicly held after the offering (a pre-IPO split is common)",
     }),
   );
@@ -538,7 +555,7 @@ export function buildNasdaqChecklist(f: ListingFacts): ReadinessRow[] {
   const issued = f.holders.reduce((s, h) => s + (h.sharesHeld > 0 ? h.sharesHeld : 0), 0);
   const mvlsUsd = priceUsd === null || issued <= 0 ? null : issued * priceUsd;
   const netIncomeUsd = usd(f, f.profitLast12mAud ?? (p.profit_by_fy ?? []).slice().sort((a, b) => b.fy.localeCompare(a.fy))[0]?.profit_aud ?? null);
-  const history = yearsBetween(f.incorporatedAt, NASDAQ_RULES_AS_AT);
+  const history = yearsBetween(f.incorporatedAt, asOfDate(f));
 
   type Sub = { label: string; value: number | null; min: number; fmt: (v: number) => string };
   const judge = (subs: Sub[]): { status: ReadinessStatus; basis: string } => {

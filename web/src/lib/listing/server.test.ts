@@ -92,6 +92,8 @@ describe("loaders", () => {
       incorporatedAt: "2021-03-01",
       listed: false,
       profile: { aud_usd_rate: 0.65 },
+      // S29-review: company age is measured to today, never to the rules' as-at constant.
+      asOf: new Date().toISOString().slice(0, 10),
     });
     expect(out.company).toEqual({ name: "Acme Robotics Pty Ltd", abn: "12 345 678 901", acn: "123 456 789", address: "Sydney NSW" });
     expect(sb.hasEq("bank_transactions", "project_id", "proj-1")).toBe(true);

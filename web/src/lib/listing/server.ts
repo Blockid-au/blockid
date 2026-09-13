@@ -219,6 +219,8 @@ export async function loadListingFactsForScope(db: ListingDb, scope: ListingScop
       incorporatedAt: grant?.incorporated_at ?? null,
       listed: grant ? Boolean(grant.listed) : null,
       profile: profile.facts,
+      // Company age / operating history measured to today, not the rules' as-at constant.
+      asOf: new Date().toISOString().slice(0, 10),
     },
     company: companyFromGrant(scope.project.name, grant),
     profile,
