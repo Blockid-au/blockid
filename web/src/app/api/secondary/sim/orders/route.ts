@@ -17,6 +17,7 @@
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
@@ -41,6 +42,10 @@ export async function GET() {
   const orders = await listOrders(supabase, scope.projectId);
   return NextResponse.json({ ok: true, ...SANDBOX, role: scope.role, orders });
 }
+
+/** S29-hardening: 60 `place` orders per user per minute (429 with Retry-After, the shared `enforceRateLimit` body). */
+export const SIM_PLACE_RATE_MAX = 60;
+export const SIM_PLACE_RATE_WINDOW_MS = 60_000;
 
 async function POST_handler(request: Request) {
   const gate = await gateRequireFeature("secondary_market.view");
@@ -78,6 +83,11 @@ async function POST_handler(request: Request) {
   }
 
   if (action !== "place") return NextResponse.json({ ok: false, ...SANDBOX, error: `Unknown action: ${action}` }, { status: 400 });
+
+  // S29-hardening (S27 review #10): `place` is the only action that grows
+  // the book (matching, tape, positions) — 60 per user per minute.
+  const limited = enforceRateLimit("sim-place", user.id, request, SIM_PLACE_RATE_MAX, SIM_PLACE_RATE_WINDOW_MS);
+  if (limited) return limited;
 
   const side = body.side === "buy" || body.side === "sell" ? body.side : null;
   if (!side) return NextResponse.json({ ok: false, ...SANDBOX, error: "side must be buy or sell" }, { status: 400 });
