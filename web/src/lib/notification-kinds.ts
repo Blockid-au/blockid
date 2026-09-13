@@ -46,6 +46,10 @@ export const NOTIFICATION_KINDS = [
   // time, or a viewer read ≥3 sections / dwelt ≥5 min. One per link per 24 h
   // (lib/dataroom/investor-viewed.ts); optional email on the same throttle.
   "investor_viewed",
+  // S27-B chain reconcile: the weekly read-back of the project's share-token
+  // contract disagrees with the register. One per project per 7 days
+  // (lib/onchain/notify-drift.ts); an unreachable chain never writes one.
+  "chain_drift",
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -104,6 +108,7 @@ export const KIND_LABELS: Record<NotificationKind, string> = {
   webhook_disabled: "Webhook disabled",
   connector_reconnect: "Reconnect needed",
   investor_viewed: "Investor viewed your data room",
+  chain_drift: "On-chain register drift",
 };
 
 function s(v: unknown): string | null {
@@ -261,6 +266,20 @@ export function describeNotification(row: FounderNotificationRow): string {
       }
       return `${who} opened your data room for the first time`;
     }
+    case "chain_drift": {
+      // S27-B: payload { drift_count, delta, unknown, missing, symbol }
+      // from lib/onchain/notify-drift.ts.
+      const count = n(p.drift_count) ?? 0;
+      const symbol = s(p.symbol);
+      const delta = n(p.delta);
+      const token = symbol ? `${symbol} on chain` : "The share token on chain";
+      const rows = `${count} holder${count === 1 ? "" : "s"}`;
+      if (delta !== null && delta !== 0) {
+        const dir = delta > 0 ? "short" : "over";
+        return `${token} no longer matches your register — ${rows} differ, chain ${dir} by ${Math.abs(delta).toLocaleString("en-AU")} shares`;
+      }
+      return `${token} no longer matches your register — ${rows} differ`;
+    }
     case "radar_setup_nudge": {
       // Counts come from the sweep's catalogue so the line is never blank
       // (D-3 "always show counts"); the title alone when they are missing.
@@ -324,6 +343,8 @@ export function notificationAction(row: FounderNotificationRow): { href: string;
       return { href: s(p.href) ?? "/workspace/evidence", label: "Reconnect" };
     case "investor_viewed":
       return { href: "/workspace/data-room", label: "See who read what" };
+    case "chain_drift":
+      return { href: "/workspace/cap-table#on-chain", label: "Review drift" };
     default:
       return null;
   }

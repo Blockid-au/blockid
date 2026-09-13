@@ -70,6 +70,7 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/board-resolutions/[kind]/[recordId]/data-room/route.ts", family: "board-resolutions.data-room", methods: ["POST"] },
   { route: "api/board-resolutions/[kind]/[recordId]/route.ts", family: "board-resolutions", methods: ["POST"] },
   { route: "api/branding/route.ts", family: "branding", methods: ["POST"] },
+  { route: "api/cap-table/chain-reconcile/route.ts", family: "cap-table.chain-reconcile", methods: ["POST"] },
   { route: "api/cap-table/documents/route.ts", family: "cap-table.documents", methods: ["POST"] },
   { route: "api/cap-table/health/route.ts", family: "cap-table.health", methods: ["POST"] },
   { route: "api/cap-table/restrictions/route.ts", family: "cap-table.restrictions", methods: ["POST"] },

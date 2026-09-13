@@ -608,6 +608,18 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # notification per 30 days. `?dry=1` lists the rows the next tick would take.
 0 5 * * 1 bash $RUN connector-resync --timeout 300
 
+# S27-B — Chain → register reconciliation. Sunday 06:00 UTC = 16:00 AEST,
+# after the Saturday-night blockchain-sync drains and before Monday's
+# connector resync. Reads every tokenised project's share-token contract
+# back (Transfer-log holders + balanceOf, fixed EVM_RPC_URL host) and
+# compares it with the off-chain register (`shareholders` keyed on the
+# project OWNER); one `cap_table_chain_reconciliations` row per project per
+# run (migration 0365, status in_sync | drift | unreachable). Drift → one
+# `chain_drift` founder notification per project per 7 days; an unreachable
+# chain is recorded and never notified. ≤ 50 projects per tick, oldest
+# reconciliation first. `?dry=1` lists the projects the next tick would take.
+0 6 * * 0 bash $RUN chain-reconcile --timeout 300
+
 # T0272 — Program batch scoring runner (G12 sprint S5). Every 20 min inside
 # 12:00–20:59 UTC (22:00–06:59 AEST, the off-peak window heavy work is gated
 # to). Picks the oldest queued|running `evaluation_batches` row and scores up
