@@ -161,6 +161,23 @@ describe("refreshSectorMultiples", () => {
     expect(ai).toHaveBeenCalledTimes(1);
   });
 
+  it("S29-hardening fetch-only: every source is fetched and reported, the model is never called, nothing inserted, dryRun implied", async () => {
+    const { client, inserted } = sb();
+    const fetch = vi.fn(async () => fetched(PAGE_HTML));
+    const ai = aiReturning(good);
+    const s = await refreshSectorMultiples({ fetchOnly: true, now: NOW, sources: [SRC], fetch, ai, supabase: client });
+    expect(s).toMatchObject({ ok: true, dryRun: true, fetchOnly: true, proposed: 0, entries: [] });
+    expect(s.sources[0]).toMatchObject({ id: "saas-capital-index", status: "fetched", httpStatus: 200, candidates: 0, accepted: 0 });
+    expect(s.sources[0].textChars).toBeGreaterThan(0);
+    expect(fetch).toHaveBeenCalledWith(SRC.url);
+    expect(ai).not.toHaveBeenCalled();
+    expect(inserted).toEqual([]);
+    // A fetch failure still reports as such (that is the point of the check).
+    const bad = await refreshSectorMultiples({ fetchOnly: true, now: NOW, sources: [SRC], fetch: vi.fn(async () => ({ ...fetched(PAGE_HTML), ok: false, status: 403, error: "HTTP 403" })), ai, supabase: client });
+    expect(bad.sources[0].status).toBe("fetch_failed");
+    expect(ai).not.toHaveBeenCalled();
+  });
+
   it("live run: inserts a `proposed` row per accepted candidate and never an approved one", async () => {
     const { client, inserted } = sb();
     const s = await refreshSectorMultiples({ now: NOW, sources: [SRC], fetch: async () => fetched(PAGE_HTML), ai: aiReturning(good), supabase: client });

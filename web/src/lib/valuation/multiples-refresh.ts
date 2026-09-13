@@ -21,8 +21,9 @@
 // Nothing is ever approved here. A fetch / AI / parse failure is logged per
 // source and the loop continues; the function never throws on one bad
 // source. `dryRun` performs no DB writes and returns the proposals it would
-// have inserted. Every side effect is injectable for tests
-// (multiples-refresh.test.ts).
+// have inserted; `fetchOnly` (S29-hardening) stops after the fetch — no
+// model call, no token spend — so ops can check the sources cheaply. Every
+// side effect is injectable for tests (multiples-refresh.test.ts).
 
 import { fetchText, htmlToText, type FetchTextResult } from "@/lib/funding/fetch-source";
 import { isSectorKey, SECTOR_KEYS } from "./sector-multiples-static";
@@ -76,6 +77,8 @@ export interface ValidatedProposal {
 export type SourceStatus =
   | "proposed"
   | "no_candidates"
+  /** S29-hardening fetch-only dry run: the page fetched and yielded text; the model was not called. */
+  | "fetched"
   | "fetch_failed"
   | "blocked"
   | "empty_text"
@@ -99,6 +102,8 @@ export interface SourceOutcome {
 export interface RefreshSummary {
   ok: boolean;
   dryRun: boolean;
+  /** S29-hardening: sources were fetched but the model was never called (cheap ops check). */
+  fetchOnly: boolean;
   ranAt: string;
   sources: SourceOutcome[];
   proposed: number;
@@ -110,6 +115,12 @@ export interface RefreshSummary {
 
 export interface RefreshDeps {
   dryRun?: boolean;
+  /**
+   * S29-hardening (S27 review #11): stop after the fetch — no model call, no
+   * token spend — and report `fetched` / `textChars` per source. Implies
+   * `dryRun` (nothing to insert without candidates).
+   */
+  fetchOnly?: boolean;
   now?: Date;
   sources?: readonly MultiplesSource[];
   /** Page fetcher — defaults to `fetchText` (pinned + guarded). */
@@ -252,14 +263,15 @@ async function defaultSupabase(): Promise<SupabaseLike | null> {
 }
 
 export async function refreshSectorMultiples(deps: RefreshDeps = {}): Promise<RefreshSummary> {
-  const dryRun = deps.dryRun === true;
+  const fetchOnly = deps.fetchOnly === true;
+  const dryRun = deps.dryRun === true || fetchOnly;
   const now = deps.now ?? new Date();
   const sources = deps.sources ?? MULTIPLES_SOURCES;
   const doFetch = deps.fetch ?? ((url: string) => fetchText(url, { timeoutMs: 15_000, retries: 2 }));
   const ai = deps.ai ?? defaultAi;
   const supabase = dryRun ? null : deps.supabase !== undefined ? deps.supabase : await defaultSupabase();
 
-  const summary: RefreshSummary = { ok: true, dryRun, ranAt: now.toISOString(), sources: [], proposed: 0, duplicates: 0, entries: [] };
+  const summary: RefreshSummary = { ok: true, dryRun, fetchOnly, ranAt: now.toISOString(), sources: [], proposed: 0, duplicates: 0, entries: [] };
 
   if (!dryRun && !supabase) {
     return { ...summary, ok: false, error: "supabase_unavailable" };
@@ -280,6 +292,11 @@ export async function refreshSectorMultiples(deps: RefreshDeps = {}): Promise<Re
       out.textChars = text.length;
       if (text.length < MIN_TEXT_CHARS) {
         out.status = "empty_text";
+        continue;
+      }
+      if (fetchOnly) {
+        // Cheap ops check: the source is reachable and readable — stop here.
+        out.status = "fetched";
         continue;
       }
 
