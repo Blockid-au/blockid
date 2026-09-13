@@ -39,12 +39,48 @@ interface RevenueData {
     monthlyOpex: number;
     netIncome: number;
     grossMarginPct: number;
+    /** S25-A — "last 12 months" | "3 months to 3 Sep" */
+    period?: string;
   };
   metrics: {
     burnRate: number;
   };
+  /** S25-A — per-figure provenance from lib/revenue/sources.ts. */
+  sources?: Partial<Record<RevenueFigureKey, RevenueSource>>;
+  connectors?: {
+    stripe: { takenAt: string; source: string } | null;
+    xero: { takenAt: string; source: string } | null;
+  };
   hasStripe: boolean;
+  hasStripeConnect?: boolean;
+  hasXero?: boolean;
   manualEntryCount: number;
+}
+
+export type RevenueFigureKey = "mrr" | "arr" | "activeSubscriptions" | "revenue" | "cogs" | "opex" | "netIncome" | "growth";
+
+export interface RevenueSource {
+  kind: string;
+  label: string;
+  takenAt: string | null;
+}
+
+/** "from Xero, 3 Sep" / "estimate" — falls back to `fallback` when the API predates S25-A. */
+export function sourceCaption(data: Pick<RevenueData, "sources"> | null | undefined, key: RevenueFigureKey, fallback: string): string {
+  const label = data?.sources?.[key]?.label;
+  return label ? label : fallback;
+}
+
+function shortSydneyDate(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const t = new Date(iso);
+  if (!Number.isFinite(t.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "numeric", timeZone: "Australia/Sydney" }).formatToParts(t);
+  const day = Number(parts.find((x) => x.type === "day")?.value);
+  const month = Number(parts.find((x) => x.type === "month")?.value);
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  if (!day || !month) return "";
+  return `${day} ${MONTHS[month - 1]}`;
 }
 
 interface DividendPayout {
@@ -409,23 +445,23 @@ export function RevenueClient() {
           <StatCard
             label="MRR"
             value={aud(revenue.revenue.mrr)}
-            sub="Monthly recurring revenue"
+            sub={sourceCaption(revenue, "mrr", "Monthly recurring revenue")}
           />
           <StatCard
             label="ARR"
             value={aud(revenue.revenue.arr)}
-            sub="Annual recurring revenue"
+            sub={sourceCaption(revenue, "arr", "Annual recurring revenue")}
           />
           <StatCard
-            label="Monthly Growth"
+            label={revenue.sources?.growth?.kind === "stripe_connect" ? "MRR Growth" : "Monthly Growth"}
             value={`${revenue.revenue.monthlyGrowthPct > 0 ? "+" : ""}${pct(revenue.revenue.monthlyGrowthPct)}`}
-            sub="Month-over-month"
+            sub={sourceCaption(revenue, "growth", "Month-over-month")}
             trend={revenue.revenue.monthlyGrowthPct > 0 ? "up" : revenue.revenue.monthlyGrowthPct < 0 ? "down" : "neutral"}
           />
           <StatCard
             label="Gross Margin"
             value={pct(pnl.grossMarginPct)}
-            sub={`Net income: ${aud(pnl.netIncome)}`}
+            sub={`Net income: ${aud(pnl.netIncome)} (${sourceCaption(revenue, "netIncome", "estimate")})`}
             trend={pnl.netIncome >= 0 ? "up" : "down"}
           />
         </div>
@@ -485,15 +521,20 @@ export function RevenueClient() {
       <section className="rounded-xl border border-surface-200 bg-white p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-ink-600 uppercase tracking-wide mb-4">
           Profit & Loss Statement
+          {pnl.period && <span className="ml-2 normal-case font-normal text-ink-500">· {pnl.period}</span>}
         </h2>
         <table className="w-full text-sm">
           <tbody>
-            <PnlRow label="Net Revenue" value={pnl.revenue} bold />
+            <PnlRow label="Net Revenue" value={pnl.revenue} bold sub={sourceCaption(revenue, "revenue", "")} />
             <PnlRow
               label="Cost of Goods Sold (COGS)"
               value={-pnl.cogs}
               indent
-              sub={`AI: ${aud(revenue.costs.ai)} | Infra: ${aud(revenue.costs.infra)}`}
+              sub={
+                revenue.sources?.cogs?.kind === "xero"
+                  ? sourceCaption(revenue, "cogs", "")
+                  : `AI: ${aud(revenue.costs.ai)} | Infra: ${aud(revenue.costs.infra)} · ${sourceCaption(revenue, "cogs", "estimate")}`
+              }
             />
             <PnlRow
               label="Gross Margin"
@@ -506,13 +547,14 @@ export function RevenueClient() {
               label="Operating Expenses"
               value={-pnl.opex}
               indent
-              sub={`${aud(pnl.monthlyOpex)}/month`}
+              sub={`${aud(pnl.monthlyOpex)}/month · ${sourceCaption(revenue, "opex", "estimate")}`}
             />
             <PnlRow
               label="Net Income"
               value={pnl.netIncome}
               bold
               highlight
+              sub={sourceCaption(revenue, "netIncome", "")}
               className={pnl.netIncome >= 0 ? "text-green-700" : "text-red-600"}
             />
           </tbody>
@@ -520,64 +562,7 @@ export function RevenueClient() {
       </section>
 
       {/* ── Data Connectors ────────────────────────────────────────────── */}
-      <section className="rounded-xl border border-surface-200 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-semibold text-ink-600 uppercase tracking-wide mb-4">
-          Data Sources
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className={`rounded-xl border p-4 ${revenue.hasStripe ? "border-green-200 bg-green-50" : "border-surface-200"}`}>
-            <div className="flex items-center gap-2 mb-2">
-              <div className={`h-2 w-2 rounded-full ${revenue.hasStripe ? "bg-green-500" : "bg-surface-300"}`} />
-              <span className="text-sm font-medium text-ink-700">Stripe</span>
-            </div>
-            <p className="text-xs text-ink-500 mb-3">
-              {revenue.hasStripe
-                ? "Connected — auto-importing charges and subscriptions."
-                : "Auto-import revenue from Stripe payments."}
-            </p>
-            {!revenue.hasStripe && (
-              <a
-                href="/api/auth/stripe/connect"
-                className="inline-flex h-8 items-center rounded-lg bg-brand-600 px-3 text-xs font-medium text-white hover:bg-brand-700 transition-colors"
-              >
-                Connect Stripe
-              </a>
-            )}
-          </div>
-          <div className="rounded-xl border border-surface-200 p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="h-2 w-2 rounded-full bg-surface-300" />
-              <span className="text-sm font-medium text-ink-700">Xero</span>
-            </div>
-            <p className="text-xs text-ink-500 mb-3">
-              Auto-import P&L, invoices, and expenses from Xero.
-            </p>
-            <button
-              type="button"
-              disabled
-              className="inline-flex h-8 items-center rounded-lg bg-surface-100 px-3 text-xs font-medium text-muted cursor-not-allowed"
-            >
-              Coming Soon
-            </button>
-          </div>
-          <div className="rounded-xl border border-surface-200 p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="h-2 w-2 rounded-full bg-surface-300" />
-              <span className="text-sm font-medium text-ink-700">QuickBooks</span>
-            </div>
-            <p className="text-xs text-ink-500 mb-3">
-              Sync revenue and expense data from QuickBooks.
-            </p>
-            <button
-              type="button"
-              disabled
-              className="inline-flex h-8 items-center rounded-lg bg-surface-100 px-3 text-xs font-medium text-muted cursor-not-allowed"
-            >
-              Coming Soon
-            </button>
-          </div>
-        </div>
-      </section>
+      <DataSourcesPanel data={revenue} />
 
       {/* ── Manual Revenue Entry ───────────────────────────────────────── */}
       <section className="rounded-xl border border-surface-200 bg-white p-5 shadow-sm">
@@ -844,6 +829,87 @@ export function RevenueClient() {
         </section>
       )}
     </div>
+  );
+}
+
+// ─── Data Sources Panel (S25-A) ─────────────────────────────────────────────
+//
+// Stripe Connect + Xero are live connectors (api/oauth/{stripe,xero}); both
+// resync weekly (api/cron/connector-resync) into the figures above. QuickBooks
+// has no OAuth app yet and stays "Coming Soon". Exported for the render test.
+
+export function DataSourcesPanel({ data }: { data: Pick<RevenueData, "hasStripe" | "hasStripeConnect" | "hasXero" | "connectors"> }) {
+  const stripeOn = Boolean(data.hasStripeConnect || data.hasStripe);
+  const xeroOn = Boolean(data.hasXero);
+  const stripeAt = shortSydneyDate(data.connectors?.stripe?.takenAt);
+  const xeroAt = shortSydneyDate(data.connectors?.xero?.takenAt);
+  return (
+    <section className="rounded-xl border border-surface-200 bg-white p-5 shadow-sm" data-testid="data-sources">
+      <h2 className="text-sm font-semibold text-ink-600 uppercase tracking-wide mb-1">
+        Data Sources
+      </h2>
+      <p className="text-xs text-ink-500 mb-4">
+        Connected sources re-sync every Monday; your valuation and P&L update with them.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className={`rounded-xl border p-4 ${stripeOn ? "border-green-200 bg-green-50" : "border-surface-200"}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <div className={`h-2 w-2 rounded-full ${stripeOn ? "bg-green-500" : "bg-surface-300"}`} />
+            <span className="text-sm font-medium text-ink-700">Stripe</span>
+          </div>
+          <p className="text-xs text-ink-500 mb-3">
+            {data.hasStripeConnect
+              ? `Connected — MRR, subscriptions and churn synced weekly${stripeAt ? ` (last: ${stripeAt})` : ""}.`
+              : stripeOn
+                ? "Connected — auto-importing charges and subscriptions."
+                : "Auto-import MRR, subscriptions and churn from your Stripe account."}
+          </p>
+          {!stripeOn && (
+            <a
+              href="/api/auth/stripe/connect"
+              className="inline-flex h-8 items-center rounded-lg bg-brand-600 px-3 text-xs font-medium text-white hover:bg-brand-700 transition-colors"
+            >
+              Connect Stripe
+            </a>
+          )}
+        </div>
+        <div className={`rounded-xl border p-4 ${xeroOn ? "border-green-200 bg-green-50" : "border-surface-200"}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <div className={`h-2 w-2 rounded-full ${xeroOn ? "bg-green-500" : "bg-surface-300"}`} />
+            <span className="text-sm font-medium text-ink-700">Xero</span>
+          </div>
+          <p className="text-xs text-ink-500 mb-3">
+            {xeroOn
+              ? `Connected — P&L income, expenses and bank balance synced weekly${xeroAt ? ` (last: ${xeroAt})` : ""}.`
+              : "Auto-import P&L income, expenses and bank balance from Xero."}
+          </p>
+          {!xeroOn && (
+            <a
+              href="/api/oauth/xero"
+              className="inline-flex h-8 items-center rounded-lg bg-brand-600 px-3 text-xs font-medium text-white hover:bg-brand-700 transition-colors"
+            >
+              Connect Xero
+            </a>
+          )}
+        </div>
+        <div className="rounded-xl border border-surface-200 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-2 w-2 rounded-full bg-surface-300" />
+            <span className="text-sm font-medium text-ink-700">QuickBooks</span>
+          </div>
+          <p className="text-xs text-ink-500 mb-3">
+            Sync revenue and expense data from QuickBooks.
+          </p>
+          <button
+            type="button"
+            disabled
+            className="inline-flex h-8 items-center rounded-lg bg-surface-100 px-3 text-xs font-medium text-muted cursor-not-allowed"
+          >
+            Coming Soon
+          </button>
+        </div>
+      </div>
+    </section>
   );
 }
 

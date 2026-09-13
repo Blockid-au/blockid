@@ -3,12 +3,23 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getStripe } from "@/lib/stripe";
 import { apiRoute } from "@/lib/audit/api-route";
+import { getProjectScope } from "@/lib/projects";
+import { loadSnapshotHistory } from "@/lib/connectors/snapshots";
+import { resolveRevenueFigures } from "@/lib/revenue/sources";
 
 export const dynamic = "force-dynamic";
 
 // ---------------------------------------------------------------------------
 // GET /api/revenue — real-time P&L dashboard
-// Works with Stripe data when available, falls back to manual metrics.
+//
+// S25-A — prefers the latest `connector_snapshots` (weekly resync, migration
+// 0349): Xero for the P&L actuals (3-month income / expenses / net), Stripe
+// Connect for MRR / ARR / subscriptions / growth vs ~90 days ago. Falls back
+// to the platform's own Stripe customer lookup, then manual revenue_entries
+// + startup_metrics + estimates, exactly as before. Every figure carries a
+// `sources.*` label ("from Xero, 3 Sep" / "estimate") the UI prints.
+// Snapshots are read for the active project's OWNER (getProjectScope) —
+// the same key the resync writes under.
 // ---------------------------------------------------------------------------
 
 interface MonthlyRevenue {
@@ -36,6 +47,23 @@ export async function GET() {
   }
 
   const stripe = getStripe();
+
+  // ── 0. S25-A — connector snapshots for the active project's owner ─────
+  let projectId: string | null = null;
+  let ownerUserId: string = user.id;
+  try {
+    const scope = await getProjectScope();
+    if (scope) {
+      projectId = scope.projectId;
+      ownerUserId = scope.ownerUserId;
+    }
+  } catch {
+    // Access errors on the active project → fall back to the caller's own rows.
+  }
+  const snapshots = await loadSnapshotHistory(supabase, { userId: ownerUserId, projectId });
+  const stripeSnapshot = snapshots.stripe?.latest ?? null;
+  const stripePrior = snapshots.stripe?.prior ?? null;
+  const xeroSnapshot = snapshots.xero?.latest ?? null;
 
   // ── 1. Find Stripe customer by email (if Stripe configured) ───────────
   let customer: { id: string } | null = null;
@@ -159,22 +187,16 @@ export async function GET() {
     }
   }
 
-  // Fall back to startup_metrics if no Stripe MRR
-  if (mrr === 0) {
-    const { data: latestMrr } = await supabase
-      .from("startup_metrics")
-      .select("mrr_aud, arr_aud")
-      .eq("email", user.email)
-      .order("metric_date", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (latestMrr) {
-      mrr = latestMrr.mrr_aud ?? 0;
-    }
-  }
-
-  const arr = mrr * 12;
+  // startup_metrics (manual MRR + burn rate) — fallback inputs.
+  const { data: latestMetric } = await supabase
+    .from("startup_metrics")
+    .select("mrr_aud, arr_aud, burn_rate_aud")
+    .eq("email", user.email)
+    .order("metric_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const metricsMrr = Number(latestMetric?.mrr_aud ?? 0) || 0;
+  const burnRate = Number(latestMetric?.burn_rate_aud ?? 0) || 0;
 
   // ── 4. Build monthly breakdown (sorted) ───────────────────────────────
   const monthly: MonthlyRevenue[] = [];
@@ -218,69 +240,75 @@ export async function GET() {
 
   const totalCogs = Math.round((aiCosts + infraCosts) * 100) / 100;
 
-  // ── 6. Operating expenses ─────────────────────────────────────────────
-  let burnRate = 0;
+  // ── 6+7. S25-A — resolve every figure with its source ─────────────────
+  const manualTotal = (manualEntries ?? []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  const platformNetRevenue = Math.round((totalRevenue - manualTotal) * 100) / 100;
+  const figures = resolveRevenueFigures({
+    stripeSnapshot,
+    stripePrior,
+    xeroSnapshot,
+    platform: {
+      hasStripe: !!(stripe && customer),
+      mrr,
+      activeSubscriptions,
+      netRevenue12m: platformNetRevenue,
+      refunds12m: totalRefunds,
+    },
+    manual: { total12m: manualTotal, count: manualEntries?.length ?? 0 },
+    startupMetrics: { mrr: metricsMrr, burnRate },
+    cogsEstimate: totalCogs,
+    monthlyGrowthPct,
+  });
 
-  const { data: latestMetric } = await supabase
-    .from("startup_metrics")
-    .select("burn_rate_aud")
-    .eq("email", user.email)
-    .order("metric_date", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  burnRate = latestMetric?.burn_rate_aud ?? 0;
-
-  // Monthly opex: use burn rate if available, otherwise estimate from COGS
-  const monthlyOpex = burnRate > 0 ? burnRate : totalCogs * 1.5;
-  // Annualize: use 12 months of opex for P&L
-  const annualOpex = Math.round(monthlyOpex * 12 * 100) / 100;
-
-  // Expense breakdown estimates
-  const marketingEst = Math.round(monthlyOpex * 0.20 * 12 * 100) / 100;
+  // Expense breakdown estimates (platform-side; labelled estimate in the UI)
+  const marketingEst = Math.round(figures.monthlyOpex * 0.20 * 12 * 100) / 100;
   const hostingEst = Math.round(infraCosts * 12 * 100) / 100;
-
-  // ── 7. P&L calculation ────────────────────────────────────────────────
-  const netRevenue = Math.round((totalRevenue - totalRefunds) * 100) / 100;
-  const grossMargin = Math.round((netRevenue - totalCogs) * 100) / 100;
-  const netIncome = Math.round((grossMargin - annualOpex) * 100) / 100;
 
   return NextResponse.json({
     ok: true,
     revenue: {
       monthly,
       total: Math.round(totalRevenue * 100) / 100,
-      refunds: Math.round(totalRefunds * 100) / 100,
-      netRevenue,
-      mrr: Math.round(mrr * 100) / 100,
-      arr: Math.round(arr * 100) / 100,
-      monthlyGrowthPct,
-      activeSubscriptions,
+      refunds: figures.refunds,
+      netRevenue: figures.revenue,
+      mrr: figures.mrr,
+      arr: figures.arr,
+      monthlyGrowthPct: figures.growthPct,
+      activeSubscriptions: figures.activeSubscriptions,
     },
     costs: {
       ai: aiCosts,
       infra: infraCosts,
       hosting: hostingEst,
       marketing: marketingEst,
-      totalCogs,
+      totalCogs: figures.cogs,
       analysisCount,
     },
     pnl: {
-      revenue: netRevenue,
-      cogs: totalCogs,
-      grossMargin,
-      opex: annualOpex,
-      monthlyOpex: Math.round(monthlyOpex * 100) / 100,
-      netIncome,
-      grossMarginPct:
-        netRevenue > 0
-          ? Math.round((grossMargin / netRevenue) * 10000) / 100
-          : 0,
+      revenue: figures.revenue,
+      cogs: figures.cogs,
+      grossMargin: figures.grossMargin,
+      opex: figures.opex,
+      monthlyOpex: figures.monthlyOpex,
+      netIncome: figures.netIncome,
+      grossMarginPct: figures.grossMarginPct,
+      period: figures.period,
     },
     metrics: {
       burnRate: Math.round(burnRate * 100) / 100,
     },
+    sources: figures.sources,
+    connectors: {
+      stripe: stripeSnapshot
+        ? { takenAt: stripeSnapshot.taken_at, source: stripeSnapshot.source, metrics: stripeSnapshot.metrics }
+        : null,
+      xero: xeroSnapshot
+        ? { takenAt: xeroSnapshot.taken_at, source: xeroSnapshot.source, metrics: xeroSnapshot.metrics }
+        : null,
+    },
     hasStripe: !!(stripe && customer),
+    hasStripeConnect: Boolean(stripeSnapshot),
+    hasXero: Boolean(xeroSnapshot),
     manualEntryCount: manualEntries?.length ?? 0,
   });
 }
