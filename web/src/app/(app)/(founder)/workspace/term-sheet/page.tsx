@@ -6,6 +6,8 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { formatAud } from "@/lib/utils";
 import { TermSheetHistoryClient } from "./term-sheet-history-client";
+import { TermSheetCompareClient } from "./term-sheet-compare-client";
+import { sheetLabel } from "@/lib/term-sheet/compare";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
@@ -89,7 +91,12 @@ export default async function TermSheetHistoryPage() {
           />
         )}
 
-        <p className="mt-8 text-xs leading-relaxed text-ink-600">
+        {/* S26-B — side-by-side comparison of 2–4 analysed sheets */}
+        <TermSheetCompareClient
+          options={rows.map((r, i) => ({ id: r.id, label: sheetLabel({ company_name: r.company_name, created_at: r.created_at, analysis: null }, `Sheet ${i + 1}`) }))}
+        />
+
+        <p className="mt-8 text-xs leading-relaxed text-ink-600 print:hidden">
           General information only. Not legal or financial advice. Consult a
           lawyer or licensed adviser before signing any binding document.
         </p>

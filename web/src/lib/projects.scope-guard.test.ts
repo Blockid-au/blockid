@@ -57,6 +57,8 @@ const OWNER_ONLY_ALLOW: Record<string, string> = {
 const CALLER_ID_ALLOW: Record<string, string> = {
   "term-sheet/route.ts":
     "term_sheet_analyses rows are caller-owned (caller-paid analysis, documented in the route); DELETE scopes to the caller so a session can only remove its own rows",
+  "term-sheet/compare/route.ts":
+    "S26-B: compares 2–4 term_sheet_analyses rows by (id, user_id = caller) — the caller's own paid analyses, same ownership as term-sheet/route.ts; the scope is resolved only for the credit-spend project metadata, no project data is read",
   "svi/docx/route.ts":
     "assembled_reports by (id, user_id = caller): the DOCX export renders a report the caller generated and paid for; project data comes through scope.dataEmail",
   "svi/full-report/route.ts":

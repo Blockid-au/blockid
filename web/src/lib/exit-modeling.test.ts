@@ -60,7 +60,11 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  ACQUI_HIRE_DEFAULTS,
+  EXIT_METHODS,
+  calculateAcquiHireExit,
   calculateExit,
+  computeAcquiHirePrice,
   generateScenarios,
   type CapTableInput,
   type ExitScenario,
@@ -560,5 +564,93 @@ describe("generateScenarios", () => {
     );
     expect(results[0].scenario.exitValuation).toBe(750_000);
     expect(results[3].scenario.exitValuation).toBe(5_000_000);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Acqui-hire (S26-B) — price = team × per-engineer value (+ IP premium),
+// retention pool carved out and vested over 2–3 years, only the equity
+// consideration runs through the waterfall.
+// ---------------------------------------------------------------------------
+
+describe("computeAcquiHirePrice", () => {
+  it("defaults: A$1M per engineer, 40 % retention over 3 years, no IP premium", () => {
+    const b = computeAcquiHirePrice({ teamSize: 5 });
+    expect(b.perEngineerValueAud).toBe(ACQUI_HIRE_DEFAULTS.perEngineerValueAud.mid);
+    expect(b.teamValueAud).toBe(5_000_000);
+    expect(b.ipPremiumAud).toBe(0);
+    expect(b.grossPriceAud).toBe(5_000_000);
+    expect(b.retentionBonusShare).toBe(0.4);
+    expect(b.retentionYears).toBe(3);
+    expect(b.retentionPoolAud).toBe(2_000_000);
+    expect(b.equityConsiderationAud).toBe(3_000_000);
+    expect(b.retentionSchedule).toEqual([
+      { year: 1, amountAud: 666_667, cumulativeAud: 666_667 },
+      { year: 2, amountAud: 666_667, cumulativeAud: 1_333_334 },
+      { year: 3, amountAud: 666_666, cumulativeAud: 2_000_000 },
+    ]);
+    expect(b.assumptions[0]).toBe(ACQUI_HIRE_DEFAULTS.assumptionNote);
+    expect(b.assumptions.join(" ")).toContain("A$500K–A$1.5M per retained engineer");
+    expect(b.assumptions.join(" ")).toContain("No premium is attributed to IP");
+    expect(EXIT_METHODS).toContain("acqui_hire");
+  });
+
+  it("editable inputs: per-engineer value, retention share, 2-year vesting, IP premium", () => {
+    const b = computeAcquiHirePrice({ teamSize: 4, perEngineerValueAud: 750_000, retentionBonusShare: 0.5, retentionYears: 2, ipPremiumAud: 200_000 });
+    expect(b.teamValueAud).toBe(3_000_000);
+    expect(b.grossPriceAud).toBe(3_200_000);
+    expect(b.retentionPoolAud).toBe(1_600_000);
+    expect(b.equityConsiderationAud).toBe(1_600_000);
+    expect(b.retentionSchedule).toEqual([
+      { year: 1, amountAud: 800_000, cumulativeAud: 800_000 },
+      { year: 2, amountAud: 800_000, cumulativeAud: 1_600_000 },
+    ]);
+    expect(b.assumptions.join(" ")).toContain("A$200,000 is attributed to IP");
+  });
+
+  it("clamps: negative / NaN inputs → 0, retention share capped at 90 %, never NaN", () => {
+    const b = computeAcquiHirePrice({ teamSize: -3, perEngineerValueAud: Number.NaN, retentionBonusShare: 5, ipPremiumAud: -1 });
+    expect(b.teamSize).toBe(0);
+    expect(b.perEngineerValueAud).toBe(ACQUI_HIRE_DEFAULTS.perEngineerValueAud.mid);
+    expect(b.retentionBonusShare).toBe(0.9);
+    expect(b.grossPriceAud).toBe(0);
+    expect(b.equityConsiderationAud).toBe(0);
+    expect(JSON.stringify(b)).not.toMatch(/NaN|Infinity/);
+  });
+});
+
+describe("calculateAcquiHireExit", () => {
+  it("runs only the equity consideration through the waterfall; preference holders are paid first", () => {
+    // 3 engineers × A$1M = A$3M gross, 40 % retention → A$1.8M equity.
+    // Series A: 200 pref × A$100 × 1× = A$20K liq pref (or pro-rata, whichever is higher).
+    const cap: CapTableInput = { shareholders: [ord({ shares: 800 }), pref({ shares: 200 })], totalShares: 1000 };
+    const r = calculateAcquiHireExit({ teamSize: 3 }, cap);
+    expect(r.scenario.method).toBe("acqui_hire");
+    expect(r.scenario.exitValuation).toBe(1_800_000);
+    expect(r.totalProceeds).toBe(1_800_000);
+    expect(r.scenario.acquiHire?.grossPriceAud).toBe(3_000_000);
+    expect(r.scenario.acquiHire?.retentionPoolAud).toBe(1_200_000);
+    // Same waterfall contract as every other method: A$20K pref paid first,
+    // remaining A$1.78M ÷ 800 ordinary shares = A$2,225/share; the
+    // non-participating pref takes the higher of its pref and pro-rata leg.
+    expect(r.liquidationPreference).toBe(20_000);
+    expect(r.shareholderPayouts.find((p) => p.name === "Alice")?.grossPayout).toBe(1_780_000);
+    expect(r.shareholderPayouts.find((p) => p.name === "SeriesA")?.grossPayout).toBe(445_000);
+    expect(r.perShareValue).toBe(1_800);
+  });
+
+  it("a 2× preference on a small acqui-hire consumes the equity consideration first", () => {
+    const cap: CapTableInput = { shareholders: [ord({ shares: 800 }), pref({ shares: 200, liquidationMultiple: 2, pricePerShare: 5_000 })], totalShares: 1000 };
+    const r = calculateAcquiHireExit({ teamSize: 2, perEngineerValueAud: 500_000 }, cap);
+    expect(r.scenario.exitValuation).toBe(600_000);
+    expect(r.liquidationPreference).toBe(600_000); // 2 × 200 × 5,000 = A$2M entitlement, capped at proceeds
+    expect(r.shareholderPayouts.find((p) => p.name === "Alice")?.grossPayout).toBe(0);
+  });
+
+  it("no team → zero price, zero payouts, no NaN", () => {
+    const r = calculateAcquiHireExit({ teamSize: 0 }, { shareholders: [ord()], totalShares: 1000 });
+    expect(r.totalProceeds).toBe(0);
+    expect(r.shareholderPayouts[0].grossPayout).toBe(0);
+    expect(JSON.stringify(r)).not.toMatch(/NaN|Infinity/);
   });
 });

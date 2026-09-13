@@ -3,8 +3,11 @@ import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import {
+  EXIT_METHODS,
+  calculateAcquiHireExit,
   calculateExit,
   generateScenarios,
+  type AcquiHireInputs,
   type CapTableInput,
   type ExitScenario,
   type ShareholderInput,
@@ -121,19 +124,37 @@ async function POST_handler(request: Request) {
   }
 
   const method = (body.method as ExitScenario["method"]) || "acquisition";
-  const exitValuation = Number(body.exitValuation);
-
-  if (!exitValuation || exitValuation <= 0) {
+  const validMethods = EXIT_METHODS;
+  if (!validMethods.includes(method)) {
     return NextResponse.json(
-      { ok: false, error: "exitValuation must be a positive number" },
+      { ok: false, error: `Invalid method. Must be one of: ${validMethods.join(", ")}` },
       { status: 400 },
     );
   }
 
-  const validMethods = ["acquisition", "ipo", "secondary", "buyout"];
-  if (!validMethods.includes(method)) {
+  // S26-B — acqui-hire: the price is built from the team, not typed in.
+  //   body.acquiHire = { teamSize (≥ 1), perEngineerValueAud?, retentionBonusShare?, retentionYears? (2|3), ipPremiumAud? }
+  let acquiHire: AcquiHireInputs | null = null;
+  if (method === "acqui_hire") {
+    const raw = (body.acquiHire && typeof body.acquiHire === "object" ? body.acquiHire : {}) as Record<string, unknown>;
+    const teamSize = Number(raw.teamSize);
+    if (!Number.isFinite(teamSize) || teamSize < 1) {
+      return NextResponse.json({ ok: false, error: "acquiHire.teamSize must be at least 1" }, { status: 400 });
+    }
+    const opt = (v: unknown) => (v == null || v === "" ? undefined : Number(v));
+    acquiHire = {
+      teamSize,
+      perEngineerValueAud: opt(raw.perEngineerValueAud),
+      retentionBonusShare: opt(raw.retentionBonusShare),
+      retentionYears: Number(raw.retentionYears) === 2 ? 2 : Number(raw.retentionYears) === 3 ? 3 : undefined,
+      ipPremiumAud: opt(raw.ipPremiumAud),
+    };
+  }
+
+  const exitValuation = Number(body.exitValuation);
+  if (!acquiHire && (!exitValuation || exitValuation <= 0)) {
     return NextResponse.json(
-      { ok: false, error: `Invalid method. Must be one of: ${validMethods.join(", ")}` },
+      { ok: false, error: "exitValuation must be a positive number" },
       { status: 400 },
     );
   }
@@ -145,6 +166,10 @@ async function POST_handler(request: Request) {
       { ok: false, error: "No shareholders found. Set up your cap table first." },
       { status: 400 },
     );
+  }
+
+  if (acquiHire) {
+    return NextResponse.json({ ok: true, result: calculateAcquiHireExit(acquiHire, capTable) });
   }
 
   const scenario: ExitScenario = {

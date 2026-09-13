@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EquityPie, type PieSlice } from "@/components/workspace/equity-pie";
+import { SharePriceCard } from "@/components/workspace/share-price-card";
 import { CreditGate } from "@/components/ui/credit-gate";
 
 // ---------------------------------------------------------------------------
@@ -1484,6 +1485,8 @@ function Step5ShareStructure({
             valuation. The share price updates automatically when your SVI
             changes by more than 5 points.
           </p>
+          {/* S26-B — the live price from the SVI valuation + connected revenue (Stripe / Xero ARR × sector multiple) */}
+          <SharePriceCard />
         </div>
       )}
 

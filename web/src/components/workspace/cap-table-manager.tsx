@@ -12,6 +12,8 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SharePriceCard } from "@/components/workspace/share-price-card";
+import { BoardResolutionButton } from "@/components/board-resolutions/board-resolution-button";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -55,6 +57,19 @@ interface EsopPool {
   allocated_shares: number;
   pool_pct: number;
   created_at: string;
+}
+
+interface ShareIssue {
+  id: string;
+  allotteeName: string;
+  allotteeRole: string | null;
+  shareClass: string;
+  shares: number;
+  pricePerShareAud: number | null;
+  totalValueAud: number | null;
+  roundName: string | null;
+  effectiveDate: string | null;
+  resolutionPdfUrl: string | null;
 }
 
 interface CapTableSummary {
@@ -218,6 +233,24 @@ export function CapTableManager() {
   const [classesOpen, setClassesOpen] = React.useState(true);
   const [esopOpen, setEsopOpen] = React.useState(true);
 
+  // S26-B — share-issue ledger (GET /api/cap-table/issues) for the board
+  // resolution buttons; the role decides who may generate (editor+).
+  const [issues, setIssues] = React.useState<ShareIssue[]>([]);
+  const [role, setRole] = React.useState<string>("owner");
+  const [notice, setNotice] = React.useState<string | null>(null);
+  const fetchIssues = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/cap-table/issues");
+      const json = await res.json();
+      if (json.ok) {
+        setIssues(json.issues ?? []);
+        if (json.role) setRole(json.role);
+      }
+    } catch {
+      /* the ledger is optional on this page */
+    }
+  }, []);
+
   // ---- Fetch ----
   const fetchCapTable = React.useCallback(async () => {
     try {
@@ -243,6 +276,11 @@ export function CapTableManager() {
     fetchCapTable();
   }, [fetchCapTable]);
 
+  React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only fetch of the issue ledger; the loader is a useCallback also used after mutations, the rule cannot see the async boundary through the reference
+    fetchIssues();
+  }, [fetchIssues]);
+
   // ---- Actions ----
   async function apiPost(action: string, payload: Record<string, unknown>) {
     setBusy(true);
@@ -255,6 +293,7 @@ export function CapTableManager() {
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || "Request failed");
       await fetchCapTable();
+      await fetchIssues();
       return json;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -342,6 +381,15 @@ export function CapTableManager() {
         </div>
       )}
 
+      {notice && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">
+          {notice}
+          <button type="button" onClick={() => setNotice(null)} className="ml-2 font-medium underline cursor-pointer">
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* ================================================================ */}
       {/* Section 1: Summary */}
       {/* ================================================================ */}
@@ -367,6 +415,9 @@ export function CapTableManager() {
           <PieChart slices={pieSlices} />
         </div>
       </div>
+
+      {/* S26-B — price per share from the SVI valuation + connected revenue */}
+      <SharePriceCard />
 
       {/* ================================================================ */}
       {/* Section 2: Shareholder Table */}
@@ -588,6 +639,45 @@ export function CapTableManager() {
       )}
 
       {/* ================================================================ */}
+      {/* Section 3b: Share issues (S26-B) — each issue → board resolution */}
+      {/* ================================================================ */}
+      {issues.length > 0 && (
+        <div className="rounded-2xl border border-surface-200 bg-white" data-testid="share-issues">
+          <div className="px-5 py-4 border-b border-surface-200">
+            <h2 className="text-lg font-semibold text-ink-800">Share issues</h2>
+            <p className="text-xs text-ink-500 mt-0.5">
+              Every issue recorded in the register. A circulating resolution of the directors (s 248A) approves each issue; lodge ASIC Form 484 within 28 days.
+            </p>
+          </div>
+          <ul className="divide-y divide-surface-200">
+            {issues.map((iss) => (
+              <li key={iss.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
+                <div>
+                  <p className="font-medium text-ink-800">
+                    {fmtNum(iss.shares)} {iss.shareClass} → {iss.allotteeName}
+                    {iss.roundName ? <span className="ml-2 rounded-full bg-surface-100 px-2 py-0.5 text-[11px] text-ink-600">{iss.roundName}</span> : null}
+                  </p>
+                  <p className="text-xs text-ink-500">
+                    {iss.pricePerShareAud != null ? `A$${iss.pricePerShareAud.toFixed(4)}/share` : "price not recorded"}
+                    {iss.totalValueAud != null ? ` · A$${iss.totalValueAud.toLocaleString("en-AU")}` : ""}
+                    {iss.effectiveDate ? ` · ${iss.effectiveDate}` : ""}
+                  </p>
+                </div>
+                <BoardResolutionButton
+                  kind="share-issue"
+                  recordId={iss.id}
+                  label={`${fmtNum(iss.shares)} ${iss.shareClass} to ${iss.allotteeName}`}
+                  canGenerate={role !== "viewer"}
+                  initial={iss.resolutionPdfUrl ? { pdfUrl: iss.resolutionPdfUrl } : undefined}
+                  onNotice={setNotice}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* ================================================================ */}
       {/* Section 4: ESOP Pool */}
       {/* ================================================================ */}
       <div className="rounded-2xl border border-surface-200 bg-white">
@@ -658,6 +748,10 @@ export function CapTableManager() {
                       : "0.0"}
                     % utilized
                   </p>
+                </div>
+                {/* S26-B — ESOP plan adoption resolution for this pool */}
+                <div className="col-span-full pt-2 border-t border-surface-200">
+                  <BoardResolutionButton kind="esop" recordId={esopPool.id} label="ESOP plan adoption" canGenerate={role !== "viewer"} onNotice={setNotice} />
                 </div>
               </div>
             ) : (
