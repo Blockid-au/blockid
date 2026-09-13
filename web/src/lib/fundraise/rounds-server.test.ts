@@ -23,13 +23,17 @@ const mocks = vi.hoisted(() => ({
   findRoom: vi.fn<(...a: unknown[]) => Promise<unknown>>(),
   compile: vi.fn<(...a: unknown[]) => Promise<unknown>>(),
   spend: vi.fn<(...a: unknown[]) => Promise<{ ok: boolean; balance: number }>>(),
+  grant: vi.fn<(...a: unknown[]) => Promise<{ ok: boolean; balance: number }>>(),
 }));
 vi.mock("@/lib/project-members/http", () => ({ projectScopeOrDeny: (...a: unknown[]) => mocks.scope(...a) }));
 vi.mock("@/lib/dataroom/generate-room", () => ({
   findRoomForScope: (...a: unknown[]) => mocks.findRoom(...a),
   compileDataRoom: (...a: unknown[]) => mocks.compile(...a),
 }));
-vi.mock("@/lib/credits", () => ({ spendCredits: (...a: unknown[]) => mocks.spend(...a) }));
+vi.mock("@/lib/credits", () => ({
+  spendCredits: (...a: unknown[]) => mocks.spend(...a),
+  grantCredits: (...a: unknown[]) => mocks.grant(...a),
+}));
 
 import { activateRound, recomputeRoundTotals, resolveRoundForCaller, type RoundRow } from "./rounds-server";
 
@@ -63,6 +67,7 @@ beforeEach(() => {
   mocks.findRoom.mockReset().mockResolvedValue(null);
   mocks.compile.mockReset().mockResolvedValue({ dataRoomId: "room-new", dataRoom: {}, documents: {} });
   mocks.spend.mockReset().mockResolvedValue({ ok: true, balance: 7 });
+  mocks.grant.mockReset().mockResolvedValue({ ok: true, balance: 10 });
 });
 
 describe("resolveRoundForCaller", () => {
@@ -198,9 +203,30 @@ describe("activateRound", () => {
     expect("status" in patch).toBe(false);
   });
 
-  it("a compile that persists nothing reports generate_failed and attaches nothing", async () => {
+  it("a compile that persists nothing reports generate_failed, attaches nothing and REFUNDS the 3 credits (S26 review P1)", async () => {
     mocks.compile.mockResolvedValue({ dataRoomId: null, dataRoom: {}, documents: {} });
+    mocks.grant.mockResolvedValue({ ok: true, balance: 10 });
     const r = await activateRound(sb, { ...base, round: ROUND });
-    expect(r.dataRoom).toEqual({ id: null, attached: "none", reason: "generate_failed" });
+    expect(r.dataRoom).toEqual({ id: null, attached: "none", reason: "generate_failed", cost: 3, refunded: true });
+    expect(mocks.grant).toHaveBeenCalledTimes(1);
+    expect(mocks.grant).toHaveBeenCalledWith(MEMBER, 3, "refund", expect.objectContaining({ feature: "data_room_generate", round_id: ROUND.id, reason: "data_room_generate_failed" }));
+    // The round still opens — the refund is about the room, not the status.
+    expect(r.round.status).toBe("active");
+    expect("data_room_id" in (sb.find("fundraise_rounds", "update")[0].args[0] as Record<string, unknown>)).toBe(false);
+  });
+
+  it("a refund that does not land is reported (refunded: false) and logged, never thrown", async () => {
+    mocks.compile.mockResolvedValue({ dataRoomId: null, dataRoom: {}, documents: {} });
+    mocks.grant.mockResolvedValue({ ok: false, balance: 0 });
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    const r = await activateRound(sb, { ...base, round: ROUND });
+    expect(r.dataRoom).toMatchObject({ attached: "none", reason: "generate_failed", refunded: false });
+    expect(err).toHaveBeenCalled();
+    err.mockRestore();
+  });
+
+  it("a successful compile never touches grantCredits", async () => {
+    await activateRound(sb, { ...base, round: ROUND });
+    expect(mocks.grant).not.toHaveBeenCalled();
   });
 });

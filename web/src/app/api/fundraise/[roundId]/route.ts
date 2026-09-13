@@ -1,6 +1,7 @@
 // /api/fundraise/[roundId] — one fundraise round (S26-A).
 //
-//   GET    → the round, its commitments and the progress summary (viewer+)
+//   GET    → the round, its commitments, the progress summary and — for a
+//            draft — the project's existing data room, if any (viewer+)
 //   PATCH  → { status: "closed" } closes an active round; { roundName }
 //            renames (editor+). Activation is its own route —
 //            POST /api/fundraise/[roundId]/activate — because it attaches
@@ -18,6 +19,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute, auditNote } from "@/lib/audit/api-route";
 import { canTransitionRound, isRoundStatus, summariseCommitments } from "@/lib/fundraise/commitments";
 import { listCommitments, resolveRoundForCaller, ROUND_COLUMNS } from "@/lib/fundraise/rounds-server";
+import { findRoomForScope } from "@/lib/dataroom/generate-room";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +34,7 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
 
   const access = await resolveRoundForCaller(supabase, user, roundId, "viewer");
   if (!access.ok) return access.response;
-  const { round, scope } = access;
+  const { round, scope, ownerUserId } = access;
 
   const commitments = await listCommitments(supabase, round.id);
   const summary = summariseCommitments(commitments, round.target_amount);
@@ -43,6 +45,13 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
     const r = data as { id: string; name: string | null } | null;
     if (r) dataRoom = { id: r.id, name: r.name ?? null };
   }
+  // S26 review P2: the project's existing room (not yet attached) — the
+  // "Open round" button must not promise a 3-credit compile when activation
+  // will link this room for free. Draft rounds only; nothing is written.
+  let projectDataRoom: { id: string; name: string | null } | null = null;
+  if (!dataRoom && round.status === "draft") {
+    projectDataRoom = await findRoomForScope(supabase, { ownerUserId, projectId: round.project_id ?? scope?.projectId ?? null });
+  }
 
   return NextResponse.json({
     ok: true,
@@ -50,6 +59,7 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
     commitments,
     summary,
     dataRoom,
+    projectDataRoom,
     role: scope?.role ?? "owner",
     canEdit: !scope || scope.role === "owner" || scope.role === "admin" || scope.role === "editor",
   });

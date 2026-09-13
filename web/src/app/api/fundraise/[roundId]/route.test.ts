@@ -103,6 +103,23 @@ describe("GET /api/fundraise/[roundId]", () => {
     const res = await GET(getReq(), ctx("round-nope"));
     expect(res.status).toBe(404);
   });
+
+  it("S26 review: a DRAFT round without a room reports the project's existing room (owner + project keyed) so the button never promises a 3-credit compile it will not run", async () => {
+    sb.rows.fundraise_rounds = [{ ...ROUND, status: "draft", data_room_id: null, activated_at: null }];
+    sb.rows.data_rooms = [{ id: "room-existing", name: "Acme data room" }];
+    const body = await (await GET(getReq(), ctx())).json();
+    expect(body.dataRoom).toBeNull();
+    expect(body.projectDataRoom).toEqual({ id: "room-existing", name: "Acme data room" });
+    expect(sb.hasEq("data_rooms", "user_id", OWNER)).toBe(true);
+    expect(sb.hasEq("data_rooms", "project_id", PID)).toBe(true);
+    expect(sb.find("data_rooms", "insert").length + sb.find("data_rooms", "upsert").length).toBe(0);
+  });
+
+  it("an active round with a room never looks the project room up", async () => {
+    const body = await (await GET(getReq(), ctx())).json();
+    expect(body.projectDataRoom).toBeNull();
+    expect(sb.hasEq("data_rooms", "user_id", OWNER)).toBe(false);
+  });
 });
 
 describe("PATCH /api/fundraise/[roundId]", () => {
