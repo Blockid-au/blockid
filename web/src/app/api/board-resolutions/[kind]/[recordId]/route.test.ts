@@ -8,7 +8,12 @@
 //          404, another project's record 404, bad kind 400, non-uuid 404;
 //          insufficient credits → 402 before preview; insert failure after a
 //          spend → refund; all three kinds resolve their record.
-//   GET  — viewer+ `resolution` or null.
+//   GET  — viewer+ `resolution` or null, every version, `stale`.
+//   S27-A regenerate — preview reports `stale` + `nextVersion`; confirm with
+//          `regenerate: true` charges like a first generation, marks the
+//          current row superseded, inserts version n+1; a plain confirm on
+//          an existing row still charges nothing; a supersede conflict
+//          refunds and answers 409.
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeSupabase, type FakeSupabase } from "@/test/fake-supabase";
@@ -252,11 +257,140 @@ describe("GET", () => {
   it("viewer reads the generated resolution or null", async () => {
     scopeState.role = "viewer";
     expect((await (await get()).json()).resolution).toBeNull();
-    seed({ board_resolutions: [{ id: "br-1", project_id: "proj-1", user_id: "user-caller", kind: "share-issue", record_id: TX, content_hash: "h", payload: { title: "T" }, credits_charged: "1.00", issued_at: "2026-09-13T00:00:00Z" }] });
+    seed({ board_resolutions: [{ id: "br-1", project_id: "proj-1", user_id: "user-caller", kind: "share-issue", record_id: TX, content_hash: "h", payload: { title: "T" }, credits_charged: "1.00", issued_at: "2026-09-13T00:00:00Z" }] }, "user-owner");
     const body = await (await get()).json();
     expect(body.role).toBe("viewer");
-    expect(body.resolution).toMatchObject({ id: "br-1", title: "T", creditsCharged: 1 });
+    expect(body.resolution).toMatchObject({ id: "br-1", title: "T", creditsCharged: 1, version: 1, current: true });
+    expect(body.versions).toHaveLength(1);
+    expect(body.stale).toBe(true); // "h" is not the hash of a fresh draft
     expect((await get("esop", TX)).status).toBe(200);
     expect((await get("nope", TX)).status).toBe(400);
+  });
+
+  it("S27-A: returns every version newest first, the current one as `resolution`, superseded ones with a versioned pdfUrl", async () => {
+    scopeState.role = "viewer";
+    const v1 = { id: "br-1", project_id: "proj-1", user_id: "user-caller", kind: "share-issue", record_id: TX, content_hash: "h1", payload: { title: "T" }, credits_charged: 1, issued_at: "2026-09-13T00:00:00Z", version: 1, superseded_at: "2026-09-14T00:00:00Z", superseded_by: "br-2" };
+    const v2 = { id: "br-2", project_id: "proj-1", user_id: "user-caller", kind: "share-issue", record_id: TX, content_hash: "h2", payload: { title: "T" }, credits_charged: 1, issued_at: "2026-09-14T00:00:00Z", version: 2, superseded_at: null, superseded_by: null };
+    seed({ board_resolutions: [v1, v2] });
+    const body = await (await get()).json();
+    expect(body.resolution).toMatchObject({ id: "br-2", version: 2, current: true, pdfUrl: `/api/board-resolutions/share-issue/${TX}/pdf` });
+    expect(body.versions.map((v: { id: string }) => v.id)).toEqual(["br-2", "br-1"]);
+    expect(body.versions[1]).toMatchObject({ version: 1, current: false, supersededAt: "2026-09-14T00:00:00Z", supersededBy: "br-2", pdfUrl: `/api/board-resolutions/share-issue/${TX}/pdf?version=1` });
+  });
+});
+
+describe("S27-A — regenerate / supersede", () => {
+  const current = () => ({ id: "br-1", project_id: "proj-1", user_id: "user-caller", kind: "share-issue", record_id: TX, content_hash: "blockid:v1:" + "0".repeat(64), payload: { title: "Circulating resolution of the directors — issue of shares", preparedAt: "2026-09-13T00:00:00.000Z" }, credits_charged: 1, issued_at: "2026-09-13T00:00:00Z", version: 1, superseded_at: null, superseded_by: null });
+
+  it("a fresh generation is version 1 with no supersede write; stale is false right after it", async () => {
+    await post({ confirm: true });
+    const row = db.sb!.find("board_resolutions", "insert")[0].args[0] as Record<string, unknown>;
+    expect(row.version).toBe(1);
+    expect(db.sb!.find("board_resolutions", "update")).toHaveLength(0);
+    // The stored hash of that exact payload is not stale even though `preparedAt` moves on.
+    const { resolutionIsStale, resolutionContentHash } = await import("@/lib/board-resolutions/server");
+    const payload = row.payload as never;
+    const stored = { content_hash: resolutionContentHash(payload), payload } as never;
+    const { buildResolution, loadResolutionInputs } = await import("@/lib/board-resolutions/server");
+    const inputs = (await loadResolutionInputs(db.sb as never, "share-issue", TX, { projectId: "proj-1", ownerUserId: "user-caller", projectName: "P" }))!;
+    expect(resolutionIsStale(stored, buildResolution(inputs.record, inputs.company, inputs.directors, new Date("2030-01-01T00:00:00Z")))).toBe(false);
+  });
+
+  it("preview: an existing resolution whose record changed reports stale + nextVersion; a regenerate preview prices it like a first generation", async () => {
+    seed({ board_resolutions: [current()] });
+    const plain = await (await post({})).json();
+    expect(plain.stale).toBe(true);
+    expect(plain.nextVersion).toBe(2);
+    expect(plain.cost).toBe(0);
+    expect(plain.regenerate).toBe(false);
+    expect(plain.versions).toHaveLength(1);
+    expect(credits.canAfford).not.toHaveBeenCalled();
+
+    const regen = await (await post({ regenerate: true })).json();
+    expect(regen.preview).toBe(true);
+    expect(regen.regenerate).toBe(true);
+    expect(regen.cost).toBe(1);
+    expect(regen.existing).toMatchObject({ id: "br-1", version: 1 });
+    expect(credits.canAfford).toHaveBeenCalledTimes(1);
+    expect(credits.spendCredits).not.toHaveBeenCalled();
+    expect(db.sb!.find("board_resolutions", "insert")).toHaveLength(0);
+    expect(db.sb!.find("board_resolutions", "update")).toHaveLength(0);
+  });
+
+  it("confirm + regenerate: spends 1 credit, marks v1 superseded, inserts v2, links superseded_by; plain confirm still charges nothing", async () => {
+    seed({ board_resolutions: [current()] });
+    const free = await (await post({ confirm: true })).json();
+    expect(free.existing).toBe(true);
+    expect(free.creditsCharged).toBe(0);
+    expect(free.stale).toBe(true);
+    expect(credits.spendCredits).not.toHaveBeenCalled();
+
+    const res = await post({ confirm: true, regenerate: true });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(credits.spendCredits).toHaveBeenCalledTimes(1);
+    const updates = db.sb!.find("board_resolutions", "update");
+    expect(updates[0].args[0]).toEqual({ superseded_at: expect.any(String) });
+    expect(db.sb!.hasEq("board_resolutions", "id", "br-1")).toBe(true);
+    const inserted = db.sb!.find("board_resolutions", "insert")[0].args[0] as Record<string, unknown>;
+    expect(inserted.version).toBe(2);
+    expect(inserted.credits_charged).toBe(1);
+    expect(updates[1].args[0]).toHaveProperty("superseded_by"); // the fake echoes the insert without an id
+    expect(body.existing).toBe(false);
+    expect(body.creditsCharged).toBe(1);
+    expect(body.resolution.version).toBe(2);
+    expect(body.superseded).toMatchObject({ id: "br-1", version: 1, current: false, supersededAt: expect.any(String) });
+  });
+
+  it("included plan → regenerate costs 0 and spends nothing", async () => {
+    gate.included = true;
+    seed({ board_resolutions: [current()] });
+    const body = await (await post({ confirm: true, regenerate: true })).json();
+    expect(credits.spendCredits).not.toHaveBeenCalled();
+    expect(body.creditsCharged).toBe(0);
+    expect(body.resolution.version).toBe(2);
+  });
+
+  it("regenerate with nothing to supersede is a first generation (version 1)", async () => {
+    await post({ confirm: true, regenerate: true });
+    const inserted = db.sb!.find("board_resolutions", "insert")[0].args[0] as Record<string, unknown>;
+    expect(inserted.version).toBe(1);
+    expect(db.sb!.find("board_resolutions", "update")).toHaveLength(0);
+  });
+
+  it("a supersede that lands on nothing (already regenerated elsewhere) → 409 + refund, nothing inserted", async () => {
+    seed({ board_resolutions: [current()] });
+    // Route the supersede update through the real lib but make the update answer with no matched rows.
+    const real = await vi.importActual<typeof import("@/lib/board-resolutions/server")>("@/lib/board-resolutions/server");
+    const sb = db.sb!;
+    const from = sb.from.bind(sb);
+    (sb as { from: (t: string) => unknown }).from = (table: string) => {
+      const chain = from(table) as Record<string, unknown>;
+      if (table !== "board_resolutions") return chain;
+      return new Proxy(chain, {
+        get(t, prop: string) {
+          if (prop === "update") {
+            return () => {
+              // An update chain whose terminal `.select()` resolves to zero rows.
+              const p: Record<string, unknown> = {};
+              const proxy: unknown = new Proxy(p, { get: (_t2, k: string) => (k === "then" ? Promise.resolve({ data: [], error: null }).then.bind(Promise.resolve({ data: [], error: null })) : () => proxy) });
+              return proxy;
+            };
+          }
+          return (t as Record<string, unknown>)[prop];
+        },
+      });
+    };
+    const conflict = await real.issueResolution({ db: sb as never, projectId: "proj-1", userId: "user-caller", kind: "share-issue", recordId: TX, payload: { preparedAt: "2026-09-15T00:00:00.000Z", title: "T" } as never, creditsCharged: 1, supersedes: current() as never });
+    expect(conflict).toEqual({ ok: false, error: "supersede_conflict" });
+    expect(sb.find("board_resolutions", "insert")).toHaveLength(0);
+  });
+
+  it("insert failure after the supersede mark → refund + 500 (the lib restores the old version)", async () => {
+    seed({ board_resolutions: [current()] });
+    issue.fail = true;
+    const res = await post({ confirm: true, regenerate: true });
+    expect(res.status).toBe(500);
+    expect(credits.grantCredits).toHaveBeenCalledWith("user-caller", 1, "refund", expect.objectContaining({ reason: "resolution_insert_failed" }));
   });
 });

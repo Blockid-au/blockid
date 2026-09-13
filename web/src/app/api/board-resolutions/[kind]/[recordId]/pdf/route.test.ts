@@ -1,7 +1,9 @@
 // Colocated tests for GET /api/board-resolutions/[kind]/[recordId]/pdf (S26-B):
 // editor+ (viewer 403), not generated → 404 not_issued, another project's
 // row → 404, renders the FROZEN payload with its stored hash (never a
-// recompute), `?for=` watermark header, bad kind 400.
+// recompute), `?for=` watermark header, bad kind 400. S27-A: `?version=n`
+// renders that version; a superseded version carries the banner props +
+// `X-BlockID-Superseded`; unknown / malformed version → 404 not_issued.
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeSupabase, type FakeSupabase } from "@/test/fake-supabase";
@@ -83,6 +85,31 @@ describe("GET /api/board-resolutions/[kind]/[recordId]/pdf", () => {
     expect(render.calls[0]).toMatchObject({ data: ROW.payload, contentHash: HASH, watermark: null });
     expect(db.sb!.hasEq("board_resolutions", "project_id", "proj-1")).toBe(true);
     expect(db.sb!.hasEq("board_resolutions", "kind", "share-issue")).toBe(true);
+  });
+
+  it("S27-A: the current version renders by default; ?version=1 renders the superseded row with the banner and headers", async () => {
+    const v1 = { ...ROW, id: "br-1", content_hash: "blockid:v1:" + "1".repeat(64), version: 1, superseded_at: "2026-09-14T00:00:00Z", superseded_by: "br-2" };
+    const v2 = { ...ROW, id: "br-2", content_hash: "blockid:v1:" + "2".repeat(64), version: 2, superseded_at: null, superseded_by: null };
+    seed([v1, v2]);
+    const cur = await get();
+    expect(cur.status).toBe(200);
+    expect(cur.headers.get("X-BlockID-Content-Hash")).toBe(v2.content_hash);
+    expect(cur.headers.get("X-BlockID-Version")).toBe("2");
+    expect(cur.headers.get("X-BlockID-Superseded")).toBeNull();
+    expect(cur.headers.get("Content-Disposition")).toContain("-v2.pdf");
+    expect(render.calls[0]).toMatchObject({ contentHash: v2.content_hash, version: 2, superseded: null });
+
+    const old = await get("share-issue", TX, "?version=1");
+    expect(old.status).toBe(200);
+    expect(old.headers.get("X-BlockID-Content-Hash")).toBe(v1.content_hash);
+    expect(old.headers.get("X-BlockID-Version")).toBe("1");
+    expect(old.headers.get("X-BlockID-Superseded")).toBe("2");
+    expect(render.calls[1]).toMatchObject({ contentHash: v1.content_hash, version: 1, superseded: { byVersion: 2, at: "2026-09-14T00:00:00Z" } });
+
+    expect((await get("share-issue", TX, "?version=3")).status).toBe(404);
+    expect((await get("share-issue", TX, "?version=abc")).status).toBe(404);
+    expect((await get("share-issue", TX, "?version=0")).status).toBe(404);
+    expect(resolutionFilename("esop", TX, 3)).toBe(`board-resolution-esop-${TX.slice(0, 8)}-v3.pdf`);
   });
 
   it("?for= burns the watermark", async () => {

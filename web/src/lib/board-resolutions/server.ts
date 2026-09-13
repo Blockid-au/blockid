@@ -1,8 +1,10 @@
 // Board resolutions (S26-B) — the server half: resolve the referenced
 // record for a project scope (share issue / dividend / ESOP pool), the
 // founder's company block and the cap table's directors; generate + persist
-// one frozen payload per (project, kind, record); read it back for the PDF
-// and the data-room save.
+// one frozen payload per (project, kind, record) — versioned since S27-A
+// (migration 0361): a regenerate supersedes the current row and inserts
+// version n+1, the old row stays as history; read the current version back
+// for the PDF and the data-room save, or a named version for its PDF.
 //
 // The content hash reuses the score-proof primitives (`lib/proofs`) exactly
 // like the dividend statements (S25-B). Every DB access takes the admin
@@ -40,12 +42,38 @@ export interface BoardResolutionRow {
   payload: BoardResolutionPayload;
   credits_charged: number | string;
   issued_at: string;
+  /** 1 for the first generation; n+1 per regenerate (0361). Older rows read as 1. */
+  version?: number | null;
+  /** NULL = the current version for (project, kind, record). */
+  superseded_at?: string | null;
+  superseded_by?: string | null;
 }
 
-export const RESOLUTION_COLUMNS = "id, project_id, user_id, kind, record_id, content_hash, payload, credits_charged, issued_at";
+export const RESOLUTION_COLUMNS = "id, project_id, user_id, kind, record_id, content_hash, payload, credits_charged, issued_at, version, superseded_at, superseded_by";
+
+/** The row's version, 1 when the column is unset (rows written before 0361). */
+export function resolutionVersion(row: Pick<BoardResolutionRow, "version">): number {
+  const v = Number(row.version);
+  return Number.isFinite(v) && v >= 1 ? Math.floor(v) : 1;
+}
+
+export function isCurrentResolution(row: Pick<BoardResolutionRow, "superseded_at">): boolean {
+  return !row.superseded_at;
+}
 
 export function resolutionContentHash(payload: BoardResolutionPayload): string {
   return hashScore(canonicalizeScore(payload));
+}
+
+/**
+ * Has the source record (or the company / director block, or the wording
+ * format) changed since `stored` was generated? Compares the stored hash
+ * with a fresh draft re-stamped with the stored `preparedAt`, so the
+ * preparation time alone never reads as a change (S27-A, review P2-7).
+ */
+export function resolutionIsStale(stored: Pick<BoardResolutionRow, "content_hash" | "payload">, draft: BoardResolutionPayload): boolean {
+  const preparedAt = stored.payload?.preparedAt ?? draft.preparedAt;
+  return stored.content_hash !== resolutionContentHash({ ...draft, preparedAt });
 }
 
 function num(v: unknown, fallback = 0): number {
@@ -242,26 +270,83 @@ export async function loadResolutionInputs(db: DividendDb, kind: ResolutionKind,
   return { record, company: { name: company.name, acn: company.acn, abn: company.abn, address: company.address } as ResolutionCompany, directors };
 }
 
+/** Every version generated for the record, newest version first (the current one first when present). */
+export async function listResolutionVersions(db: DividendDb, kind: ResolutionKind, recordId: string, projectId: string): Promise<BoardResolutionRow[]> {
+  const { data } = await db.from("board_resolutions").select(RESOLUTION_COLUMNS).eq("project_id", projectId).eq("kind", kind).eq("record_id", recordId).order("version", { ascending: false });
+  return ((data as BoardResolutionRow[] | null) ?? [])
+    .filter((r) => r && r.id && r.project_id === projectId && r.kind === kind && r.record_id === recordId)
+    .sort((a, b) => resolutionVersion(b) - resolutionVersion(a));
+}
+
+/** The CURRENT (not superseded) resolution for the record, or null. */
 export async function getResolution(db: DividendDb, kind: ResolutionKind, recordId: string, projectId: string): Promise<BoardResolutionRow | null> {
-  const { data } = await db.from("board_resolutions").select(RESOLUTION_COLUMNS).eq("project_id", projectId).eq("kind", kind).eq("record_id", recordId).maybeSingle();
-  const row = (data as BoardResolutionRow | null) ?? null;
-  if (!row || row.project_id !== projectId || row.kind !== kind || row.record_id !== recordId) return null;
-  return row;
+  const versions = await listResolutionVersions(db, kind, recordId, projectId);
+  return versions.find(isCurrentResolution) ?? null;
 }
 
+/** A named version of the record's resolution (current or superseded), or null. */
+export async function getResolutionVersion(db: DividendDb, kind: ResolutionKind, recordId: string, projectId: string, version: number): Promise<BoardResolutionRow | null> {
+  const versions = await listResolutionVersions(db, kind, recordId, projectId);
+  return versions.find((r) => resolutionVersion(r) === version) ?? null;
+}
+
+/** Current resolutions of a project (superseded versions excluded), newest first. */
 export async function listResolutionsForProject(db: DividendDb, projectId: string, limit = 200): Promise<BoardResolutionRow[]> {
-  const { data } = await db.from("board_resolutions").select(RESOLUTION_COLUMNS).eq("project_id", projectId).order("issued_at", { ascending: false }).limit(limit);
-  return ((data as BoardResolutionRow[] | null) ?? []).filter((r) => r && r.id && r.project_id === projectId);
+  const { data } = await db.from("board_resolutions").select(RESOLUTION_COLUMNS).eq("project_id", projectId).is("superseded_at", null).order("issued_at", { ascending: false }).limit(limit);
+  return ((data as BoardResolutionRow[] | null) ?? []).filter((r) => r && r.id && r.project_id === projectId && isCurrentResolution(r));
 }
 
-export type IssueResolutionResult = { ok: true; row: BoardResolutionRow; existing: boolean } | { ok: false; error: "insert_failed" };
+export type IssueResolutionResult =
+  | { ok: true; row: BoardResolutionRow; existing: boolean; superseded: BoardResolutionRow | null }
+  | { ok: false; error: "insert_failed" | "supersede_conflict" };
 
 /**
- * Persist the payload once per (project, kind, record). A unique hit means
- * a concurrent press landed first — that row is returned as `existing`.
+ * Persist the payload as the CURRENT resolution for (project, kind, record).
+ *
+ * First generation (`supersedes` absent): a unique hit on the partial index
+ * means a concurrent press landed first — that row is returned as
+ * `existing`, nothing new is written.
+ *
+ * Regenerate (`supersedes` = the current row, S27-A): the old row is marked
+ * superseded FIRST (the partial unique index admits one current row), then
+ * version n+1 is inserted; the old row is then pointed at the new one. If
+ * the insert fails the old row is restored as current. If the old row was
+ * already superseded by someone else the mark lands on nothing →
+ * `supersede_conflict` (the route refunds).
  */
-export async function issueResolution(input: { db: DividendDb; projectId: string; userId: string; kind: ResolutionKind; recordId: string; payload: BoardResolutionPayload; creditsCharged: number }): Promise<IssueResolutionResult> {
+export async function issueResolution(input: {
+  db: DividendDb;
+  projectId: string;
+  userId: string;
+  kind: ResolutionKind;
+  recordId: string;
+  payload: BoardResolutionPayload;
+  creditsCharged: number;
+  supersedes?: BoardResolutionRow | null;
+}): Promise<IssueResolutionResult> {
   const contentHash = resolutionContentHash(input.payload);
+  const prior = input.supersedes ?? null;
+  const version = prior ? resolutionVersion(prior) + 1 : 1;
+  const now = input.payload.preparedAt;
+
+  if (prior) {
+    const { data: marked, error: markError } = await input.db
+      .from("board_resolutions")
+      .update({ superseded_at: now })
+      .eq("id", prior.id)
+      .eq("project_id", input.projectId)
+      .is("superseded_at", null)
+      .select("id");
+    // The real client answers a filtered update + select with the matched rows ([] = someone else
+    // superseded it first). A non-array shape (the test fake echoes the patch) is not a miss.
+    const rows = Array.isArray(marked) ? (marked as Array<{ id?: string }>) : null;
+    const missed = rows !== null && !rows.some((m) => m?.id === prior.id);
+    if (markError || missed) {
+      console.error("[board-resolutions] supersede did not land", { kind: input.kind, record: input.recordId, prior: prior.id, error: markError });
+      return { ok: false, error: "supersede_conflict" };
+    }
+  }
+
   const { data, error } = await input.db
     .from("board_resolutions")
     .insert({
@@ -272,23 +357,44 @@ export async function issueResolution(input: { db: DividendDb; projectId: string
       content_hash: contentHash,
       payload: input.payload,
       credits_charged: input.creditsCharged,
-      issued_at: input.payload.preparedAt,
+      issued_at: now,
+      version,
     })
     .select(RESOLUTION_COLUMNS)
     .single();
-  if (!error && data) return { ok: true, row: data as BoardResolutionRow, existing: false };
+  if (!error && data) {
+    const row = data as BoardResolutionRow;
+    if (prior) {
+      const { error: linkError } = await input.db.from("board_resolutions").update({ superseded_by: row.id }).eq("id", prior.id).eq("project_id", input.projectId);
+      if (linkError) console.error("[board-resolutions] superseded_by link failed", { prior: prior.id, next: row.id, error: linkError });
+      return { ok: true, row, existing: false, superseded: { ...prior, superseded_at: now, superseded_by: row.id } };
+    }
+    return { ok: true, row, existing: false, superseded: null };
+  }
+
+  if (prior) {
+    // Put the old version back as current — the founder must never lose the only resolution they had.
+    const { error: restoreError } = await input.db.from("board_resolutions").update({ superseded_at: null, superseded_by: null }).eq("id", prior.id).eq("project_id", input.projectId);
+    if (restoreError) console.error("[board-resolutions] restore after failed regenerate did not land", { prior: prior.id, error: restoreError });
+    console.error("[board-resolutions] regenerate insert failed", { kind: input.kind, record: input.recordId, error });
+    return { ok: false, error: "insert_failed" };
+  }
+
   const msg = String((error as { message?: string } | null)?.message ?? "");
   const code = String((error as { code?: string } | null)?.code ?? "");
   if (code === "23505" || /duplicate key|unique/i.test(msg)) {
     const again = await getResolution(input.db, input.kind, input.recordId, input.projectId);
-    if (again) return { ok: true, row: again, existing: true };
+    if (again) return { ok: true, row: again, existing: true, superseded: null };
   }
   console.error("[board-resolutions] insert failed", { kind: input.kind, record: input.recordId, error });
   return { ok: false, error: "insert_failed" };
 }
 
-/** Public projection for the panel / API. */
+/** Public projection for the panel / API. A superseded version's `pdfUrl` names its version. */
 export function resolutionRowSummary(row: BoardResolutionRow) {
+  const version = resolutionVersion(row);
+  const current = isCurrentResolution(row);
+  const base = `/api/board-resolutions/${row.kind}/${row.record_id}/pdf`;
   return {
     id: row.id,
     kind: row.kind,
@@ -297,7 +403,11 @@ export function resolutionRowSummary(row: BoardResolutionRow) {
     contentHash: row.content_hash,
     issuedAt: row.issued_at,
     creditsCharged: Number(row.credits_charged ?? 0),
-    pdfUrl: `/api/board-resolutions/${row.kind}/${row.record_id}/pdf`,
+    version,
+    current,
+    supersededAt: row.superseded_at ?? null,
+    supersededBy: row.superseded_by ?? null,
+    pdfUrl: current ? base : `${base}?version=${version}`,
   };
 }
 

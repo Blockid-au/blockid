@@ -63,4 +63,33 @@ describe("BoardResolutionButton", () => {
     expect(viewer).not.toContain("Save to data room");
     expect(KIND_LABEL.esop).toBe("ESOP adoption");
   });
+
+  it("S27-A ready + stale: Regenerate for editors, the stale hint, previous versions with versioned (superseded) links; viewers get neither button", () => {
+    const versions = [
+      { id: "br-2", version: 2, current: true, issuedAt: "2026-09-14T00:00:00Z", supersededAt: null, pdfUrl: "/api/board-resolutions/esop/r-1/pdf" },
+      { id: "br-1", version: 1, current: false, issuedAt: "2026-09-13T00:00:00Z", supersededAt: "2026-09-14T00:00:00Z", pdfUrl: "/api/board-resolutions/esop/r-1/pdf?version=1" },
+    ];
+    const editor = renderToStaticMarkup(<BoardResolutionButton kind="esop" recordId="r-1" canGenerate initial={{ pdfUrl: "/api/board-resolutions/esop/r-1/pdf", stale: true, versions }} />);
+    expect(editor).toContain('data-stale="1"');
+    expect(editor).toContain('data-testid="board-resolution-regenerate"');
+    expect(editor).toContain("The record changed after this resolution was generated");
+    expect(editor).toContain('data-testid="board-resolution-versions"');
+    expect(editor).toContain('href="/api/board-resolutions/esop/r-1/pdf?version=1"');
+    expect(editor).toContain("v1");
+    expect(editor).toContain("superseded 14 Sept 2026");
+    expect(editor).not.toContain("v2</a>"); // the current version is the main PDF link, not a "previous" one
+    const viewer = renderToStaticMarkup(<BoardResolutionButton kind="esop" recordId="r-1" canGenerate={false} initial={{ pdfUrl: "/api/board-resolutions/esop/r-1/pdf", stale: true, versions }} />);
+    expect(viewer).not.toContain('data-testid="board-resolution-regenerate"');
+    expect(viewer).toContain('data-testid="board-resolution-versions"');
+  });
+
+  it("S27-A regenerate preview: says the current version is superseded, the next version number, and the cost before the click", () => {
+    const html = renderToStaticMarkup(<BoardResolutionButton kind="esop" recordId="r-1" canGenerate initial={{ pdfUrl: "/api/board-resolutions/esop/r-1/pdf", preview: { ...PREVIEW, regenerate: true, nextVersion: 2, existing: { pdfUrl: "/api/board-resolutions/esop/r-1/pdf", issuedAt: "2026-09-13T00:00:00Z" } } }} />);
+    expect(html).toContain('data-testid="board-resolution-preview"');
+    expect(html).toContain('data-testid="board-resolution-regenerate-note"');
+    expect(html).toContain("Regenerating as v2");
+    expect(html).toContain("marked SUPERSEDED");
+    expect(html).toContain("Regenerate (1 credit)");
+    expect(html).toContain("Cost: 1 credit · balance 9");
+  });
 });

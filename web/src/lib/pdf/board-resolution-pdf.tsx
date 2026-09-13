@@ -34,6 +34,15 @@ export interface BoardResolutionPdfProps {
   contentHash: string;
   /** From `watermarkLabel()`; null → clean page. */
   watermark: string | null;
+  /** Version number of this resolution (S27-A, migration 0361); 1 when omitted. */
+  version?: number | null;
+  /** Set when this version has been superseded — a banner names the replacing version and date. */
+  superseded?: { byVersion: number; at: string } | null;
+}
+
+/** "SUPERSEDED by v2 on 14 September 2026 — …" — the banner text, exported for the suites. */
+export function supersededBannerText(byVersion: number, at: string): string {
+  return `SUPERSEDED by v${byVersion} on ${longDate(at)} — this version is kept as a record only; the current resolution is v${byVersion}.`;
 }
 
 export const BOARD_RESOLUTION_NOTE =
@@ -66,6 +75,7 @@ const st = StyleSheet.create({
   bulletDot: { width: 9, color: C.ink500 },
   bulletText: { flex: 1, lineHeight: 1.35, fontSize: 8 },
   note: { marginTop: 8, padding: 8, borderWidth: 1, borderColor: C.amber500, backgroundColor: C.amber50, borderRadius: 6, fontSize: 7, color: C.ink700, lineHeight: 1.4 },
+  superseded: { position: "absolute", top: 10, left: 54, right: 54, padding: 4, backgroundColor: C.red100, borderRadius: 4, textAlign: "center", fontSize: 8, fontFamily: "Helvetica-Bold", color: C.red600 },
 });
 
 const KIND_EYEBROW: Record<ResolutionKind, string> = {
@@ -102,12 +112,18 @@ function Signatures({ data }: { data: BoardResolutionPayload }) {
   );
 }
 
-export function BoardResolutionPDF({ data, contentHash, watermark }: BoardResolutionPdfProps) {
+export function BoardResolutionPDF({ data, contentHash, watermark, version, superseded }: BoardResolutionPdfProps) {
+  const v = typeof version === "number" && Number.isFinite(version) && version >= 1 ? Math.floor(version) : 1;
   return (
     <Document title={`${data.title} — ${data.company.name}`} author={data.company.name} subject="Circulating resolution of the directors" creator="BlockID.au">
       <Page size="A4" style={st.page}>
         <HeaderBar />
         <WatermarkLayer label={watermark} />
+        {superseded ? (
+          <Text style={st.superseded} fixed>
+            {supersededBannerText(superseded.byVersion, superseded.at)}
+          </Text>
+        ) : null}
 
         <Text style={st.eyebrow}>{KIND_EYEBROW[data.kind]}</Text>
         <Text style={st.title}>{data.title}</Text>
@@ -159,7 +175,8 @@ export function BoardResolutionPDF({ data, contentHash, watermark }: BoardResolu
         <Text style={st.note}>{BOARD_RESOLUTION_NOTE}</Text>
         <AdviceDisclaimer />
         <Text style={[st.small, { marginTop: 6 }]}>
-          Prepared {longDate(data.preparedAt)} · format {data.version} · content hash (SHA-256 of the canonical resolution payload):
+          Prepared {longDate(data.preparedAt)} · version {v}
+          {superseded ? ` (superseded by v${superseded.byVersion})` : ""} · format {data.version} · content hash (SHA-256 of the canonical resolution payload):
         </Text>
         <Text style={st.mono}>{contentHash}</Text>
         <Footer brandText={`${data.company.name} · ${data.title}`} />
