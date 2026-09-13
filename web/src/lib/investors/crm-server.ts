@@ -254,25 +254,74 @@ export interface LinkOutcome {
   matched: boolean;
   contactId: string | null;
   stageMovedTo: ContactStage | null;
+  /** S28-review: a matching row already sat inside the window — nothing was written. */
+  throttled?: boolean;
 }
 
 const NONE: LinkOutcome = { matched: false, contactId: null, stageMovedTo: null };
 
 /**
+ * S28-review P1: one `data_room_view` row per (contact, link, trigger) per
+ * window. The engage beacon calls the hook on EVERY event, and once the
+ * cumulative depth crosses the deep-read threshold every later section /
+ * dwell event is a `deep_read` trigger — without this a single read session
+ * wrote dozens of identical rows, and a link holder could flood the
+ * timeline past the 200-row page. Same 24 h window as the founder
+ * notification (`INVESTOR_VIEWED_THROTTLE_MS`).
+ */
+export const DATA_ROOM_VIEW_TOUCHPOINT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/** True when a `data_room_view` row for this link + trigger already sits inside the window (re-checked on the row — the test fake ignores filters). */
+export async function recentDataRoomViewExists(
+  supabase: Db,
+  args: { contactId: string; projectId: string; linkId: string; trigger: string; now?: Date; windowMs?: number },
+): Promise<boolean> {
+  const now = args.now ?? new Date();
+  const since = new Date(now.getTime() - (args.windowMs ?? DATA_ROOM_VIEW_TOUCHPOINT_WINDOW_MS)).toISOString();
+  const { data } = await supabase
+    .from("investor_touchpoints")
+    .select("id, contact_id, project_id, kind, occurred_at, meta")
+    .eq("project_id", args.projectId)
+    .eq("contact_id", args.contactId)
+    .eq("kind", "data_room_view")
+    .contains("meta", { link_id: args.linkId, trigger: args.trigger })
+    .gte("occurred_at", since)
+    .order("occurred_at", { ascending: false })
+    .limit(5);
+  return ((data ?? []) as Array<Pick<TouchpointRow, "contact_id" | "project_id" | "kind" | "occurred_at" | "meta">>).some((r) => {
+    const meta = (r?.meta ?? {}) as Record<string, unknown>;
+    return (
+      r.contact_id === args.contactId &&
+      r.project_id === args.projectId &&
+      r.kind === "data_room_view" &&
+      meta.link_id === args.linkId &&
+      meta.trigger === args.trigger &&
+      typeof r.occurred_at === "string" &&
+      r.occurred_at >= since
+    );
+  });
+}
+
+/**
  * Data-room link opened / read deeply (called from
  * lib/dataroom/investor-viewed after the trigger fires). A contact whose
- * email matches the link's `investor_email` gets a `data_room_view` row.
+ * email matches the link's `investor_email` gets a `data_room_view` row —
+ * at most one per (link, trigger) per 24 h (`recentDataRoomViewExists`;
+ * a repeat inside the window answers `throttled: true` and writes nothing).
  * A view is a signal, not a meeting: the stage is left alone, only the
  * timeline and `last_touch_at` move.
  */
 export async function linkDataRoomView(
   supabase: Db,
-  args: { projectId: string | null | undefined; email: string | null | undefined; linkId: string; trigger: string; roomName?: string | null; sections?: number },
+  args: { projectId: string | null | undefined; email: string | null | undefined; linkId: string; trigger: string; roomName?: string | null; sections?: number; now?: Date },
 ): Promise<LinkOutcome> {
   try {
     if (!args.projectId) return NONE;
     const contact = await findContactByEmail(supabase, args.projectId, args.email);
     if (!contact) return NONE;
+    if (await recentDataRoomViewExists(supabase, { contactId: contact.id, projectId: args.projectId, linkId: args.linkId, trigger: args.trigger, now: args.now })) {
+      return { matched: true, contactId: contact.id, stageMovedTo: null, throttled: true };
+    }
     const what = args.trigger === "deep_read" ? "read the data room in depth" : "opened the data room";
     await appendTouchpoint(supabase, {
       contact,
