@@ -51,3 +51,4 @@ next-env.d.ts
 # Playwright output — never commit trace artefacts.
 test-results/
 playwright-report/
+playwright-report-live-qa/

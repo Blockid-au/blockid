@@ -1,0 +1,31 @@
+/**
+ * Live-QA environment flags — one place, read once, never logged with values
+ * other than booleans. See docs/ops/live-qa.md.
+ */
+export const QA_EMAIL_RE = /^qa-live-\d{8}-\d{4}@blockid\.au$/;
+
+function on(name: string): boolean {
+  const v = (process.env[name] ?? "").trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
+export const env = {
+  baseURL: (process.env.LIVE_QA_BASE_URL ?? "https://blockid.au").replace(/\/+$/, ""),
+  /** Permit the local `docker exec supabase-db psql` steps. */
+  allowDb: on("LIVE_QA_ALLOW_DB"),
+  /** Set app_users.plan='growth' for the QA email (needs allowDb). */
+  elevate: on("LIVE_QA_ELEVATE"),
+  /** Allow confirming an action that costs credits. Default: never. */
+  spendOk: on("LIVE_QA_SPEND_OK"),
+  /** Debugging only: leave the QA account in place (the teardown still refuses silently-lingering accounts in cron because the runner never sets this). */
+  keepAccount: on("LIVE_QA_KEEP_ACCOUNT"),
+  /** Reuse an existing run state instead of provisioning (debugging a single spec). */
+  reuseState: on("LIVE_QA_REUSE_STATE"),
+} as const;
+
+/** `qa-live-<yyyymmdd-hhmm>@blockid.au` in UTC. */
+export function qaEmailForNow(d = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  const stamp = `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}-${p(d.getUTCHours())}${p(d.getUTCMinutes())}`;
+  return `qa-live-${stamp}@blockid.au`;
+}
