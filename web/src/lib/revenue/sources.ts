@@ -11,6 +11,10 @@
 // Precedence (highest first)
 //   MRR / ARR / subscriptions   Stripe Connect snapshot → Xero (income ÷ 3)
 //                               → platform Stripe customer → startup_metrics
+//                               A zero / absent Stripe MRR is "no figure"
+//                               (a connected account with no subscriptions
+//                               yet must not hide Xero income), so it falls
+//                               through exactly like a missing snapshot.
 //   Revenue (P&L top line)      Xero 3-month income → platform charges +
 //                               manual revenue_entries (12 months)
 //   COGS                        always the AI/infra estimate — except with
@@ -142,7 +146,10 @@ export function resolveRevenueFigures(input: ResolveFiguresInput): RevenueFigure
   // ── MRR / ARR / subscriptions ────────────────────────────────────────────
   let mrr = 0;
   let mrrSource: RevenueSource;
-  const stripeMrr = stripeSnapshot ? snapshotMrrAud(stripeSnapshot) : null;
+  // S25-review-2 P3: `mrrAud: 0` (or negative / absent) is not a figure —
+  // fall through to Xero, then the platform lookup, then startup_metrics.
+  const stripeMrrRaw = stripeSnapshot ? snapshotMrrAud(stripeSnapshot) : null;
+  const stripeMrr = stripeMrrRaw !== null && stripeMrrRaw > 0 ? stripeMrrRaw : null;
   const xeroMrr = xeroSnapshot ? snapshotMrrAud(xeroSnapshot) : null;
   if (stripeMrr !== null) {
     mrr = stripeMrr;
