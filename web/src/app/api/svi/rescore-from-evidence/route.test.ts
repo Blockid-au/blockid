@@ -218,6 +218,22 @@ describe("POST /api/svi/rescore-from-evidence — S25-A magnitude-based connecte
     expect(body.evidenceBonusApplied).toBe(3);
   });
 
+  it("the Stripe customer-count row (stripe / mpc) keeps the flat +15 — only the TRE revenue row is priced by magnitude (S25-review)", async () => {
+    sviSubs = () => [
+      { key: "tre", value: 40, adjustment: 0, evidence: [] },
+      { key: "mpc", value: 30, adjustment: 0, evidence: [] },
+    ];
+    evidenceRows = [
+      { evidence_type: "stripe", confidence_level: "connected_source", dimension: "tre", label: "Stripe: MRR" },
+      { evidence_type: "stripe", confidence_level: "connected_source", dimension: "mpc", label: "Stripe Customers: 57 paying customers" },
+    ];
+    const res = await POST();
+    expect(res.status).toBe(200);
+    const json = analysisUpdates[0]?.analysis_json as { subs: Array<{ key: string; value: number }> };
+    expect(json.subs.find((s) => s.key === "mpc")!.value).toBe(45); // 30 + 15
+    expect(json.subs.find((s) => s.key === "tre")!.value).toBe(40); // no MRR payload → no magnitude points
+  });
+
   it("a non-revenue connected_source row (GitHub) keeps the flat +15 on its own dimension", async () => {
     sviSubs = () => [{ key: "ptd", value: 30, adjustment: 0, evidence: [] }];
     evidenceRows = [{ evidence_type: "github", confidence_level: "connected_source", dimension: "ptd", label: "GitHub" }];

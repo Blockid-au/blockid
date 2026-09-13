@@ -43,6 +43,21 @@ export const EVIDENCE_BONUS: Record<string, number> = {
 /** Evidence types whose points come from the magnitude table instead of the flat bonus. */
 export const REVENUE_CONNECTOR_EVIDENCE_TYPES = new Set(["stripe", "xero_revenue"]);
 
+/**
+ * Is this the revenue row the magnitude table replaces? Keyed on evidence
+ * type AND dimension: the Stripe callback / resync also write a
+ * `{ evidence_type: "stripe", dimension: "mpc" }` customer-count row, and
+ * that one is not revenue — it keeps its flat bonus (S25-review: carving it
+ * out by type alone cost every Stripe-linked account 15 MPC points).
+ */
+export function isRevenueConnectorRow(ev: Pick<EvidenceRowLite, "evidence_type" | "confidence_level" | "dimension">): boolean {
+  return (
+    ev.confidence_level === "connected_source" &&
+    REVENUE_CONNECTOR_EVIDENCE_TYPES.has(ev.evidence_type ?? "") &&
+    ev.dimension === CONNECTED_REVENUE_DIMENSION
+  );
+}
+
 export const VALID_DIMENSIONS = new Set(["ftv", "mpc", "ptd", "tre", "cgh", "iri", "lco", "svm"]);
 
 // Weight map matches computeSVI dimension weights.
@@ -67,7 +82,7 @@ export function flatEvidenceBonuses(evidence: EvidenceRowLite[]): Record<string,
   for (const ev of evidence) {
     const dim = ev.dimension ?? "";
     if (!VALID_DIMENSIONS.has(dim)) continue;
-    if (ev.confidence_level === "connected_source" && REVENUE_CONNECTOR_EVIDENCE_TYPES.has(ev.evidence_type ?? "")) continue;
+    if (isRevenueConnectorRow(ev)) continue;
     const bonus = EVIDENCE_BONUS[ev.confidence_level ?? ""] ?? EVIDENCE_BONUS.self_declared;
     out[dim] = (out[dim] ?? 0) + bonus;
   }
