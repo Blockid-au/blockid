@@ -85,7 +85,7 @@
 ### Valuation Engine v3 (CTO + CFO)
 - [x] Real-time valuation from connected Stripe data (shipped S17-B — `lib/valuation-mrr-bridge.ts` reads Stripe `svi_signals.mrr_aud` + Xero `xero_revenue` (3-mo P&L ÷ 3), ARR × `SECTOR_MULTIPLES` range narrows (overlap) / widens + `method_note` (disjoint), > 90 d ignored; wired into `api/valuation`, `api/valuation/vc`, `api/score` → `startup_score_history.valuation_method` (migration 0330); "Includes connected revenue (A$X MRR from Stripe/Xero)" on the VC dashboard + history)
 - [ ] Comparable startup database (anonymized, 1000+ AU startups) (partial — ~71 named rows `lib/au-comparable-raises.ts` + `lib/data/au-comparables.ts`; no anonymised 1000+ DB)
-- [ ] Sector-specific multiples auto-updated quarterly (partial — static `SECTOR_MULTIPLES` in `lib/agents/cfo-valuation.ts`; no quarterly refresh cron)
+- [x] Sector-specific multiples auto-updated quarterly — **shipped S27-C 2026-09-13**: approved-override resolver over the static table (0369), quarterly `sector-multiples-refresh` cron proposes rows only with verbatim fetched excerpts, admin approve/reject at `/dashboard/admin/sector-multiples`; nothing changes without an admin approval
 - [x] Valuation certificate PDF (for investor DD) — **shipped S22-A 2026-09-12**: `VC-XXXXX-XXXXX` + content hash, `/verify/valuation/[no]`, revoke, 5 credits / Growth+ (0341)
 - [x] Historical valuation graph (SVI timeline → AUD) (shipped S17-B — `components/dashboard/valuation-trend-chart.tsx` Recharts SVI panel + A$ low–high band / midpoint on a right axis, table twin + sr-only summary, light/dark; on `/dashboard/history` (list + per-startup) from `startup_score_history` rows; `/workspace/svi-trend` shows the `svi_snapshots.estimated_valuation` point series via `/api/svi/history/full`)
 
@@ -112,7 +112,7 @@
 - [x] Auto share-price from SVI + multiples — **shipped S26-B 2026-09-13**: `lib/share-price.ts` (40 % SVI / 60 % ARR × sector multiple ÷ fully diluted), `/api/share-price`, cap-table + wizard card with source label
 - [x] Dilution simulator (what-if scenarios) (shipped — `lib/fundraise.ts` dilutionTable/dilutionPct + `/workspace/fundraise` client, `338f86a02`)
 - [x] Board resolution templates (PDF generation) — **shipped S26-B 2026-09-13**: share issue (s 254X), dividend (s 254T), ESOP adoption; s 248A/248B circular form; `board_resolutions` (0360), 1 credit / Growth+ (regenerate-after-resize still open)
-- [ ] 409A-equivalent valuation report (AU compliance) (partial — VC valuation PDF `api/valuation/pdf`; no s960-410/ESS safe-harbour language)
+- [x] 409A-equivalent valuation report (AU compliance) — **shipped S27-A 2026-09-13**: ESS annex on the valuation certificate (s 83A-33 checklist from stored facts, ATO *Methods for Valuing Unlisted Shares* Approval 2015 named, explicit not-a-safe-harbour sentence); tax-agent review of the NTA conditions requested
 
 ### Fundraise Tools (CRO + CFO)
 - [ ] Investor CRM (track contacts, status, notes) (open — not found in code; nearest is per-investor share links `lib/investor-links.ts`)
@@ -126,7 +126,7 @@
 - [x] Per-startup token minting (NASDAQ-style tickers) (shipped — `lib/evm-deploy.ts deployCompanyToken` (tokenSymbol ticker) + `/admin/tokens` + `/workspace/wallet`, `e855b028b`)
 - [x] MetaMask wallet integration (shipped — `lib/wallet.ts` (connectWallet, switchToBlockIDChain, addTokenToMetaMask) + `/workspace/wallet`, `98620409e`)
 - [x] On-chain share issuance (shipped — `lib/evm-deploy.ts` + `lib/tokenization.ts` shares→tokens + `chain/contracts`, `e855b028b`)
-- [ ] Bi-directional cap table ↔ chain sync (partial — `lib/blockchain-sync.ts` push queue cap table→chain; no chain→cap-table read-back)
+- [ ] Bi-directional cap table ↔ chain sync (partial — read-back + weekly `chain-reconcile` + drift alerts **shipped S27-B 2026-09-13** (0365); push is queue-only because `executeOnChainTx` has no server signer — founder decision)
 
 ---
 
@@ -159,7 +159,7 @@
 
 ### Exchange Simulation (CBO)
 - [x] SVI-to-exchange index (shipped — `lib/svi-index.ts` + `lib/startup-index-aggregator.ts` + `/startup-index` (G-SVI-Exchange 15/15), `71878a50c`)
-- [ ] Pre-IPO secondary trading simulation (partial — `/workspace/secondary-offer` intake form (T_SVI_EXC_0012); no trading/order-book simulation)
+- [x] Pre-IPO secondary trading simulation — **shipped S27-B 2026-09-13**: sandbox order book (price-time, partial fills, ROFR hold, price discovery) on `/workspace/secondary-offer`, `secondary_market.view` Growth+, Chapter 6D/7 sandbox banner on every view
 - [ ] ASX/NASDAQ listing requirements checker (open — not found in code; only insight article `content/insights/asx-listing-requirements-tech-startups.md`)
 - [ ] Share/token conversion for real listing (partial — `lib/tokenization.ts` shares→token conversion only; no listing conversion path)
 
