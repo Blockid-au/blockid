@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated Playwright output (HTML reports, traces, artifacts) — the
+    // live-qa report tripped deploy gate 4 with 184 "errors" from
+    // Playwright's own bundled trace viewer (2026-09-13).
+    "playwright-report/**",
+    "playwright-report-live-qa/**",
+    "test-results/**",
   ]),
 ]);
 
