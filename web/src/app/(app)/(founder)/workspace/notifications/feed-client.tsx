@@ -84,6 +84,7 @@ export const KIND_META: Record<string, { icon: typeof Bell; color: string; label
   analysis_refresh: { icon: RefreshCw, color: "text-ink-600", label: "Analysis refreshed" },
   radar_setup_nudge: { icon: Radar, color: "text-amber-600", label: "Founder Radar setup" },
   webhook_disabled: { icon: Webhook, color: "text-red-600", label: "Webhook paused" },
+  investor_viewed: { icon: Eye, color: "text-emerald-600", label: "Investor viewed your data room" },
 };
 
 function timeAgo(iso: string): string {

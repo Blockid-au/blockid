@@ -13,6 +13,7 @@ import {
   type HeatmapEventInput,
 } from "@/lib/dataroom/engagement";
 import { resolveRoomForCaller } from "@/lib/dataroom/room-access";
+import { maybeNotifyInvestorViewed } from "@/lib/dataroom/investor-viewed";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +61,7 @@ async function POST_handler(req: NextRequest) {
   // Resolve token to data_room_id and access_token_id
   const { data: accessToken } = await supabase
     .from("data_room_access_tokens")
-    .select("id, data_room_id, is_active, revoked_at, expires_at")
+    .select("id, data_room_id, is_active, revoked_at, expires_at, first_accessed, investor_name, investor_firm, investor_email")
     .eq("token", token)
     .maybeSingle();
 
@@ -127,6 +128,30 @@ async function POST_handler(req: NextRequest) {
 
   // Increment access count via raw SQL (fire and forget)
   void supabase.rpc("increment_access_count", { token_id: accessToken.id });
+
+  // S26-A — founder alert: first open of the link, or the deep-read
+  // threshold (≥3 sections / ≥5 min). One `investor_viewed` per link per
+  // 24 h, optional email on the same throttle. Awaited (a few reads) so the
+  // decision is deterministic, but it never fails the beacon.
+  const tok = accessToken as {
+    id: string;
+    data_room_id: string;
+    first_accessed?: string | null;
+    investor_name?: string | null;
+    investor_firm?: string | null;
+    investor_email?: string | null;
+  };
+  await maybeNotifyInvestorViewed(supabase, {
+    link: {
+      id: tok.id,
+      data_room_id: tok.data_room_id,
+      first_accessed: tok.first_accessed ?? null,
+      investor_name: tok.investor_name ?? null,
+      investor_firm: tok.investor_firm ?? null,
+      investor_email: tok.investor_email ?? null,
+    },
+    event: { eventType, section, durationMs },
+  });
 
   return NextResponse.json({ ok: true });
 }

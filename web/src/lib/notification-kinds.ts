@@ -42,6 +42,10 @@ export const NOTIFICATION_KINDS = [
   // S25-A weekly connector resync: a Stripe/Xero token could not be opened
   // or was rejected — the founder must reconnect. One per 30 days per row.
   "connector_reconnect",
+  // S26-A investor follow-up: a data-room link was opened for the first
+  // time, or a viewer read ≥3 sections / dwelt ≥5 min. One per link per 24 h
+  // (lib/dataroom/investor-viewed.ts); optional email on the same throttle.
+  "investor_viewed",
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -99,6 +103,7 @@ export const KIND_LABELS: Record<NotificationKind, string> = {
   radar_setup_nudge: "Founder Radar setup",
   webhook_disabled: "Webhook disabled",
   connector_reconnect: "Reconnect needed",
+  investor_viewed: "Investor viewed your data room",
 };
 
 function s(v: unknown): string | null {
@@ -241,6 +246,21 @@ export function describeNotification(row: FounderNotificationRow): string {
       const name = provider === "xero" ? "Xero" : provider === "stripe" ? "Stripe" : "A revenue connector";
       return `${name} stopped syncing — reconnect it so your valuation and P&L keep updating weekly`;
     }
+    case "investor_viewed": {
+      // S26-A: payload { investor, trigger: "first_view" | "deep_read",
+      // sections, dwell_ms } from lib/dataroom/investor-viewed.ts.
+      const who = s(p.investor) ?? "An investor";
+      const trigger = s(p.trigger);
+      if (trigger === "deep_read") {
+        const sections = n(p.sections) ?? 0;
+        const mins = Math.round((n(p.dwell_ms) ?? 0) / 60_000);
+        const bits: string[] = [];
+        if (sections > 0) bits.push(`${sections} section${sections === 1 ? "" : "s"}`);
+        if (mins > 0) bits.push(`${mins} min`);
+        return bits.length ? `${who} is reading closely — ${bits.join(" · ")} in your data room` : `${who} is reading your data room closely`;
+      }
+      return `${who} opened your data room for the first time`;
+    }
     case "radar_setup_nudge": {
       // Counts come from the sweep's catalogue so the line is never blank
       // (D-3 "always show counts"); the title alone when they are missing.
@@ -302,6 +322,8 @@ export function notificationAction(row: FounderNotificationRow): { href: string;
       return { href: "/workspace/integrations#webhooks", label: "Open webhooks" };
     case "connector_reconnect":
       return { href: s(p.href) ?? "/workspace/evidence", label: "Reconnect" };
+    case "investor_viewed":
+      return { href: "/workspace/data-room", label: "See who read what" };
     default:
       return null;
   }

@@ -659,6 +659,61 @@ export async function sendScoreViewed(args: {
   return sendEmail({ to: args.to, subject: "Your score was just viewed", html, unsubscribeUrl });
 }
 
+// ---------- S26-A: data-room investor activity (founder alert) ---------------
+//
+// Optional email twin of the `investor_viewed` notification. The caller
+// (lib/dataroom/investor-viewed.ts) only sends it when the in-app row was
+// actually written, so the 24 h per-link throttle applies to both. Gated
+// on the founder's `svi_alerts` preference like the score-viewed mail.
+
+export async function sendInvestorViewedEmail(args: {
+  to: string;
+  investorLabel: string;
+  roomName: string | null;
+  trigger: "first_view" | "deep_read";
+  sections: number;
+  dwellMs: number;
+}): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "svi_alerts"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const url = `${siteUrl()}/workspace/data-room`;
+  const room = args.roomName?.trim() || "your data room";
+  const mins = Math.round(args.dwellMs / 60_000);
+  const headline =
+    args.trigger === "first_view"
+      ? `${args.investorLabel} opened ${room}`
+      : `${args.investorLabel} is reading ${room} closely`;
+  const detail =
+    args.trigger === "first_view"
+      ? "This is the first time this link has been opened. The engagement heatmap will show which sections they read."
+      : [
+          args.sections > 0 ? `${args.sections} section${args.sections === 1 ? "" : "s"} opened` : null,
+          mins > 0 ? `about ${mins} minute${mins === 1 ? "" : "s"} of reading` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ") + ". A good moment to follow up while it is fresh.";
+  const subject = args.trigger === "first_view" ? `${args.investorLabel} opened your data room` : `${args.investorLabel} is reading your data room closely`;
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Data room activity</p>
+          <h1 style="margin:0 0 8px 0;font-size:22px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(headline)}</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${escapeHtml(detail)}</p>
+          <p style="margin:0;text-align:center;">
+            <a href="${url}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">See who read what</a>
+          </p>
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:32px 0 16px 0;">
+          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">You're receiving this because you shared a BlockID data room link. Turn these alerts off under email preferences.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+  return sendEmail({ to: args.to, subject, html, unsubscribeUrl });
+}
+
 // ---------- HTML shell --------------------------------------------------------
 
 function shell(body: string): string {
