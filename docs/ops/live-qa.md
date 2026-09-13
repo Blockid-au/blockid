@@ -84,8 +84,10 @@ Known-issue handling: the Cloudflare-injected Google tag bootstrap (docs/ops/ana
 §4) is the **only** tolerated console error, and only while the served HTML still contains
 `google_tags_first_party` / `developer_id.dYzg1YT` — once the founder flips the switch the
 allow-list disarms itself. Lane-1 F10 (`POST /api/dividends` 400 on the revenue page with no
-shareholders) is allow-listed by request signature with an annotation; lane-1 F16 (fundraise
-wizard labels) is a `test.fail` that will show as *unexpected pass* when fixed — flip it then.
+shareholders) is allow-listed by request signature with an annotation; so is the
+`GET /api/svi/phase-progress` 429 the product tour trips when a run loads ~100 pages in
+four minutes (suite-induced, annotated `suite-induced`). Lane-1 F16 (fundraise wizard
+labels) is a `test.fail` that will show as *unexpected pass* when fixed — flip it then.
 The on-chain "Check chain now / Push" copy needs a `blockchain_sync_config` token row
 (Scale+), which the suite does not seed; the API contract (409 `no_token`) is covered.
 
@@ -94,7 +96,7 @@ The on-chain "Check chain now / Push" copy needs a `blockchain_sync_config` toke
 `content/reports/live-qa-latest.json`:
 
 ```json
-{ "ts": "…", "passed": 80, "failed": 0, "skipped": 3, "expectedFailures": 1,
+{ "ts": "…", "passed": 91, "failed": 4, "skipped": 1, "expectedFailures": 1, "exitCode": 1,
   "account": { "email": "qa-live-…", "elevated": true }, "erasure": { "ok": true, "detail": "…" },
   "findings": [ { "spec": "06-fundraise.spec.ts", "title": "…", "error": "…" } ] }
 ```
@@ -111,6 +113,13 @@ The on-chain "Check chain now / Push" copy needs a `blockchain_sync_config` toke
 A failing test is either a **product bug** (report it — the suite never fixes product code)
 or a **suite bug** (selector / contract drift — fix the spec). A 502/503/504 during a deploy
 swap is retried once after 60 s by `visit()` and the API helpers.
+
+First production run (2026-09-13 15:56 UTC, `LIVE_QA_ALLOW_DB=1 LIVE_QA_ELEVATE=1`): 91 passed ·
+4 failed · 1 skipped · 1 expected failure · 0 credits spent · account erased and verified.
+The 4 failures are product findings (fundraise round detail 404 — `ROUND_COLUMNS` selects
+`fundraise_rounds.closed_at`, which the live table created by 0043 never had — and the
+expense-import `creditNote` still saying "Charged to your credits." when included); they
+stay red until the product fixes land.
 
 ## Scheduling (proposal — not installed)
 

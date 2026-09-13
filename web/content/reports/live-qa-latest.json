@@ -1,0 +1,49 @@
+{
+  "ts": "2026-09-13T15:59:44.030Z",
+  "startedAt": "2026-09-13T15:56:14Z",
+  "baseURL": "https://blockid.au",
+  "exitCode": 1,
+  "passed": 91,
+  "failed": 4,
+  "skipped": 1,
+  "flaky": 0,
+  "expectedFailures": 1,
+  "durationMs": 208517.058,
+  "account": {
+    "email": "qa-live-20260913-1556@blockid.au",
+    "userId": "0fee85b9-3f54-4e58-86e0-414342934faa",
+    "projectId": "d1843d05-b049-464e-b532-64b82e9f1f86",
+    "plan": "growth",
+    "elevated": true
+  },
+  "erasure": {
+    "ok": true,
+    "detail": "erased 0fee85b9-3f54-4e58-86e0-414342934faa; verify dry-run exit 2 (no app_users row for the QA email)"
+  },
+  "findings": [
+    {
+      "spec": "06-fundraise.spec.ts",
+      "project": "live-qa",
+      "title": "round page: progress bar, empty commitments, Open-round copy names the data-room cost",
+      "error": "Error: GET /api/fundraise/900053f4-1d2e-4209-b6c4-69f4cde3e1b9 must resolve the round the wizard just created (it is listed by GET /api/fundraise)\n\nexpect(received).toBe(expected) // Object.is equality\n\nExpected: 200\nReceived: 404"
+    },
+    {
+      "spec": "06-fundraise.spec.ts",
+      "project": "live-qa",
+      "title": "add a soft-circled commitment through the form, then move it to committed",
+      "error": "Error: expect(locator).toBeVisible() failed\n\nLocator: getByTestId('commitment-form')\nExpected: visible\nTimeout: 30000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeVisible\" with timeout 30000ms\n  - waiting for getByTestId('commitment-form')\n"
+    },
+    {
+      "spec": "06-fundraise.spec.ts",
+      "project": "live-qa",
+      "title": "commitment validation + PATCH status ladder via API",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 409\nReceived: 404"
+    },
+    {
+      "spec": "08-expenses.spec.ts",
+      "project": "live-qa",
+      "title": "upload a 5-row CBA statement → rules categorise, ATO line needs review",
+      "error": "Error: import creditNote must not claim a charge when cost is 0 and included (lane-2 P3-d residual on /api/expenses/import)\n\nexpect(received).not.toMatch(expected)\n\nExpected pattern: not /Charged to your credits/\nReceived string:      \"Charged to your credits.\""
+    }
+  ]
+}

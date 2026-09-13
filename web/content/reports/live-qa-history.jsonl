@@ -1,0 +1,4 @@
+{"ts":"2026-09-13T15:33:40.267Z","passed":31,"failed":5,"skipped":61,"expectedFailures":0,"exitCode":1,"erasureOk":false,"elevated":false}
+{"ts":"2026-09-13T15:45:24.520Z","passed":43,"failed":11,"skipped":43,"expectedFailures":0,"exitCode":1,"erasureOk":false,"elevated":false}
+{"ts":"2026-09-13T15:52:04.119Z","passed":83,"failed":11,"skipped":2,"expectedFailures":1,"exitCode":1,"erasureOk":false,"elevated":true}
+{"ts":"2026-09-13T15:59:44.030Z","passed":91,"failed":4,"skipped":1,"expectedFailures":1,"exitCode":1,"erasureOk":true,"elevated":true}
