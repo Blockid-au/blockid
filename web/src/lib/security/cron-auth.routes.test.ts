@@ -292,7 +292,11 @@ describe.each(ROUTES.map((r) => [r.name, r] as const))("/api/cron/%s", (name, ro
       }
       const res = await handler(req(name, method, `Bearer ${SECRET}`));
       expect(res.status, `${name} ${method} rejected the correct secret`).not.toBe(401);
-    });
+      // 20 s: the positive path is the first call into each route's lazy
+      // imports (supabase, ai-client, fetchers); on a loaded box that cold
+      // start alone crossed vitest's 5 s default (sector-multiples-refresh,
+      // deploy gate 6, 2026-09-13) while passing in isolation.
+    }, 20_000);
   }
 
   it("legacy x-cron-secret header is accepted only where the route opts in", async () => {
