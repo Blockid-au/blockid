@@ -32,7 +32,7 @@ vi.mock("@/lib/rate-limit", () => ({ enforceRateLimit: () => null }));
 const credits = vi.hoisted(() => ({ canAfford: vi.fn(), spendCredits: vi.fn(), grantCredits: vi.fn() }));
 vi.mock("@/lib/credits", async () => {
   const real = await vi.importActual<typeof import("@/lib/credits")>("@/lib/credits");
-  return { FEATURE_COSTS: real.FEATURE_COSTS, canAfford: (...a: unknown[]) => credits.canAfford(...a), spendCredits: (...a: unknown[]) => credits.spendCredits(...a), grantCredits: (...a: unknown[]) => credits.grantCredits(...a) };
+  return { FEATURE_COSTS: real.FEATURE_COSTS, canAfford: (...a: unknown[]) => credits.canAfford(...a), spendCredits: (...a: unknown[]) => credits.spendCredits(...a), grantCredits: (...a: unknown[]) => credits.grantCredits(...a), getBalance: async () => 7 };
 });
 const gate = vi.hoisted(() => ({ included: false }));
 vi.mock("@/lib/dividends/gate", () => ({ statementsIncluded: async () => ({ included: gate.included, via: gate.included ? "addon" : null }) }));
@@ -175,8 +175,12 @@ describe("POST /api/dividends/tax-statements", () => {
     const preview = await (await post({ fy: "2025-26" })).json();
     expect(preview).toMatchObject({ cost: 0, included: true });
     expect(credits.canAfford).not.toHaveBeenCalled();
+    // Lane-2 P3-d: an included preview carries the real balance and an honest note.
+    expect(preview.balance).toBe(7);
+    expect(preview.creditNote).toBe("Included in your plan — no credits charged.");
     const body = await (await post({ fy: "2025-26", confirm: true })).json();
     expect(body.creditsCharged).toBe(0);
+    expect(body.creditNote).toBe("Included in your plan — no credits charged.");
     expect(credits.spendCredits).not.toHaveBeenCalled();
     expect((db.sb!.find("shareholder_tax_statements", "insert")[0].args[0] as { credits_charged: number }).credits_charged).toBe(0);
   });

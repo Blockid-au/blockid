@@ -29,6 +29,7 @@ import { readJsonBody } from "@/lib/security/request-guards";
 import { FEATURE_COSTS, getBalance, grantCredits, spendCreditsUnits } from "@/lib/credits";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { creditChargeNote } from "@/lib/projects";
+import { creditNoteFor } from "@/lib/credits-preview";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { apiRoute } from "@/lib/audit/api-route";
 import { categoriseIncluded } from "@/lib/expenses/gate";
@@ -62,7 +63,7 @@ async function POST_handler(request: Request) {
   const { scope, denied } = await projectScopeOrDeny("editor");
   if (denied) return denied;
   if (!scope) return NextResponse.json({ ok: false, error: "project_required" }, { status: 404 });
-  const creditNote = creditChargeNote(scope);
+  const chargeNote = creditChargeNote(scope);
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return NextResponse.json({ ok: false, error: "service_unavailable" }, { status: 503 });
@@ -77,16 +78,18 @@ async function POST_handler(request: Request) {
   const listedCost = FEATURE_COSTS[EXPENSE_CATEGORISE_FEATURE] ?? 1;
   const units = gate.included ? 0 : categoriseUnits(queue.length);
   const cost = categoriseCost(queue.length, listedCost, gate.included);
-  let balance: number | null = null;
+  // Lane-2 P3-d: the balance is read either way (included → the panel still
+  // shows it); the note says "Charged…" only when something is charged.
+  let balance: number | null = await getBalance(user.id).catch(() => null);
   if (cost > 0) {
-    balance = await getBalance(user.id);
-    if (balance < cost) {
+    if (balance === null || balance < cost) {
       return NextResponse.json(
-        { ok: false, error: "insufficient_credits", creditsRequired: cost, balance, reason: "insufficient_credits", creditNote },
+        { ok: false, error: "insufficient_credits", creditsRequired: cost, balance, reason: "insufficient_credits", creditNote: chargeNote },
         { status: 402 },
       );
     }
   }
+  const creditNote = creditNoteFor({ cost, included: gate.included, chargeNote });
   if (!confirmed) {
     return NextResponse.json({
       ok: true,
@@ -107,7 +110,7 @@ async function POST_handler(request: Request) {
   if (cost > 0) {
     const spent = await spendCreditsUnits(user.id, EXPENSE_CATEGORISE_FEATURE, units, { project_id: scope.projectId, rows: queue.length });
     if (!spent.ok) {
-      return NextResponse.json({ ok: false, error: "credit_spend_failed", creditsRequired: cost, balance: spent.balance, creditNote }, { status: 402 });
+      return NextResponse.json({ ok: false, error: "credit_spend_failed", creditsRequired: cost, balance: spent.balance, creditNote: chargeNote }, { status: 402 });
     }
     creditsCharged = spent.cost;
     balance = spent.balance;
@@ -158,7 +161,7 @@ async function POST_handler(request: Request) {
     creditsCharged,
     refunded,
     balance,
-    creditNote,
+    creditNote: creditNoteFor({ cost: creditsCharged, included: gate.included, chargeNote }),
     queueAfter,
   });
 }

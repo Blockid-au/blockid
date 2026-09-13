@@ -45,9 +45,10 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { isUuid, readJsonBody } from "@/lib/security/request-guards";
-import { canAfford, grantCredits, spendCredits, FEATURE_COSTS } from "@/lib/credits";
+import { canAfford, getBalance, grantCredits, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { creditChargeNote } from "@/lib/projects";
+import { creditNoteFor } from "@/lib/credits-preview";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { statementsIncluded } from "@/lib/dividends/gate";
 import { isResolutionKind } from "@/lib/board-resolutions/build";
@@ -93,7 +94,7 @@ async function POST_handler(request: Request, { params }: Params) {
   const { scope, denied } = await projectScopeOrDeny("editor");
   if (denied) return denied;
   if (!scope) return NextResponse.json({ ok: false, error: "project_required" }, { status: 404 });
-  const creditNote = creditChargeNote(scope);
+  const chargeNote = creditChargeNote(scope);
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return NextResponse.json({ ok: false, error: "service_unavailable" }, { status: 503 });
@@ -117,9 +118,15 @@ async function POST_handler(request: Request, { params }: Params) {
     cost = listedCost;
     balance = afford.balance;
     if (!afford.allowed) {
-      return NextResponse.json({ ok: false, error: "insufficient_credits", creditsRequired: cost, balance: afford.balance, reason: afford.reason ?? "insufficient_credits", creditNote }, { status: 402 });
+      return NextResponse.json({ ok: false, error: "insufficient_credits", creditsRequired: cost, balance: afford.balance, reason: afford.reason ?? "insufficient_credits", creditNote: chargeNote }, { status: 402 });
     }
+  } else {
+    // Lane-2 P3-d: included / already generated → nothing to afford, but the
+    // balance is still one read and the panel shows it.
+    balance = await getBalance(user.id).catch(() => null);
   }
+  // "Charged to your credits." only when something IS charged (lane-2 P3-d).
+  const creditNote = creditNoteFor({ cost, included: gate.included, chargeNote });
 
   if (!confirmed) {
     return NextResponse.json({
@@ -152,7 +159,7 @@ async function POST_handler(request: Request, { params }: Params) {
   let creditsCharged = 0;
   if (cost > 0) {
     const spent = await spendCredits(user.id, FEATURE_KEY, { project_id: scope.projectId, kind, record_id: recordId });
-    if (!spent.ok) return NextResponse.json({ ok: false, error: "credit_spend_failed", creditsRequired: cost, balance: spent.balance, creditNote }, { status: 402 });
+    if (!spent.ok) return NextResponse.json({ ok: false, error: "credit_spend_failed", creditsRequired: cost, balance: spent.balance, creditNote: chargeNote }, { status: 402 });
     creditsCharged = cost;
     balance = spent.balance;
   }
@@ -185,7 +192,7 @@ async function POST_handler(request: Request, { params }: Params) {
     cost,
     creditsCharged,
     balance,
-    creditNote,
+    creditNote: creditNoteFor({ cost: creditsCharged, included: gate.included, chargeNote }),
   });
 }
 

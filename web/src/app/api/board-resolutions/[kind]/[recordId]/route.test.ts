@@ -46,6 +46,8 @@ vi.mock("@/lib/credits", async () => {
     canAfford: (...a: unknown[]) => credits.canAfford(...a),
     spendCredits: (...a: unknown[]) => credits.spendCredits(...a),
     grantCredits: (...a: unknown[]) => credits.grantCredits(...a),
+    // Lane-2 P3-d: included / already-paid previews still read the balance.
+    getBalance: async () => 7,
   };
 });
 
@@ -197,10 +199,23 @@ describe("POST — preview / confirm", () => {
     expect(preview.included).toBe(true);
     expect(preview.includedVia).toBe("addon");
     expect(credits.canAfford).not.toHaveBeenCalled();
+    // Lane-2 P3-d: an included preview carries the real balance and an honest note.
+    expect(preview.balance).toBe(7);
+    expect(preview.creditNote).toBe("Included in your plan — no credits charged.");
     const body = await (await post({ confirm: true })).json();
     expect(credits.spendCredits).not.toHaveBeenCalled();
     expect((db.sb!.find("board_resolutions", "insert")[0].args[0] as { credits_charged: number }).credits_charged).toBe(0);
     expect(body.creditsCharged).toBe(0);
+    expect(body.creditNote).toBe("Included in your plan — no credits charged.");
+  });
+
+  it("lane-2 P3-d: a paid preview keeps 'Charged to your credits.' (member: own wallet) and the afford balance", async () => {
+    const owner = await (await post({})).json();
+    expect(owner).toMatchObject({ cost: 1, balance: 10, creditNote: "Charged to your credits." });
+    scopeState.role = "editor";
+    seed({}, "user-owner");
+    const member = await (await post({})).json();
+    expect(member.creditNote).toMatch(/your own credits — not the project owner's/);
   });
 
   it("already generated → preview cost 0 with `existing`; confirm returns the row and charges nothing", async () => {

@@ -36,6 +36,8 @@ vi.mock("@/lib/credits", async () => {
     canAfford: (...a: unknown[]) => credits.canAfford(...a),
     spendCredits: (...a: unknown[]) => credits.spendCredits(...a),
     grantCredits: (...a: unknown[]) => credits.grantCredits(...a),
+    // Lane-2 P3-d: included / already-paid previews still read the balance.
+    getBalance: async () => 7,
   };
 });
 const gate = vi.hoisted(() => ({ included: false, via: null as "addon" | "growth" | null }));
@@ -155,6 +157,9 @@ describe("POST /api/listing/readiness/pdf", () => {
     gate.via = "growth";
     const preview = await (await post({})).json();
     expect(preview).toMatchObject({ preview: true, cost: 0, included: true, includedVia: "growth" });
+    // Lane-2 P3-d: an included preview carries the real balance and an honest note.
+    expect(preview.balance).toBe(7);
+    expect(preview.creditNote).toBe("Included in your plan — no credits charged.");
     const res = await post({ confirm: true });
     expect(res.status).toBe(200);
     expect(credits.spendCredits).not.toHaveBeenCalled();
