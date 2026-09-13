@@ -92,6 +92,15 @@ export const STARTUP_PACKAGE_RADAR_DAYS = 90;
 export const STARTUP_PACKAGE_MONEY_FINDER_LINE =
   "1 Money Finder report + 3 months Founder Radar included";
 
+/**
+ * S25-A — connected revenue. Shown on the Growth rung only once the weekly
+ * resync shipped (api/cron/connector-resync): Stripe Connect + Xero re-pull
+ * every Monday, the SVI prices MRR by magnitude/growth/churn and the P&L
+ * page labels each figure with its source. Keep it ≤ 2 sentences.
+ */
+export const CONNECTED_REVENUE_FEATURE_LINE =
+  "Connect Stripe or Xero — your valuation and P&L update weekly from live revenue";
+
 // ─── Founder ──────────────────────────────────────────────────────────────
 const FOUNDER: Plan[] = [
   {
@@ -195,6 +204,12 @@ const FOUNDER: Plan[] = [
       // application drafts, quarterly expert analysis refresh. Wording is
       // mirrored by FUNDING_COPY.pricing.growth (lib/funding/copy.ts).
       "+ investor matching, unlimited application drafts, quarterly expert update",
+      // S25-A (2026-09-13): true as of the weekly connector resync
+      // (api/cron/connector-resync, migration 0349) — Stripe Connect + Xero
+      // re-pull every Monday into connector_snapshots, feed the magnitude-based
+      // SVI contribution (lib/svi/connected-revenue-score.ts) and the P&L
+      // page (api/revenue). Both OAuth routes exist; QuickBooks does not.
+      CONNECTED_REVENUE_FEATURE_LINE,
       "Priority support (24h)",
       // The add-on grants exactly four flags — esop.manage, vesting.read,
       // vesting.write, blockchain.sync (see entitlements/user-grants.ts
