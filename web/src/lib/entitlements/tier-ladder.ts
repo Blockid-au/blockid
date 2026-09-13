@@ -139,6 +139,9 @@ const GROWTH_FEATURES: readonly Feature[] = [
   "share_management",
   "vesting.read",
   "vesting.write",
+  // S27-B: secondary trading SANDBOX over the Growth cap table — paired
+  // with plans.csv, LEGACY_FEATURE_FALLBACK and migration 0367.
+  "secondary_market.view",
 ];
 
 const SCALE_FEATURES: readonly Feature[] = [

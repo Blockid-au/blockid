@@ -82,7 +82,8 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "investor_pack",
       "per_investor_share_links",
       "grant_finder",
-      "money_radar"
+      "money_radar",
+      "secondary_market.view"
     ],
     "usage_limits": {
       "profiles": 3,
@@ -120,7 +121,8 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "dividend_engine",
       "white_label_pdf",
       "grant_finder",
-      "money_radar"
+      "money_radar",
+      "secondary_market.view"
     ],
     "usage_limits": {
       "profiles": 10,
@@ -156,7 +158,8 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "api.access",
       "sso",
       "grant_finder",
-      "money_radar"
+      "money_radar",
+      "secondary_market.view"
     ],
     "usage_limits": {
       "profiles": -1,

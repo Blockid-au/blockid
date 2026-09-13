@@ -36,6 +36,9 @@ export type FeatureSlug =
   // card ("included in your plan") and the T0247 workspace leaf.
   | "grant_finder"
   | "money_radar"
+  // S27-B: pre-IPO secondary trading SANDBOX on /workspace/secondary-offer —
+  // Growth+, the rung that carries the cap table it trades over.
+  | "secondary_market.view"
   // Startup Package — visible to every tier because the paywall is a
   // per-project purchase gate, not a subscription tier. See
   // web/supabase/migrations/0118_startup_package.sql.
@@ -135,6 +138,13 @@ export const VISIBILITY: Readonly<Record<FeatureSlug, VisibilityRow>> = Object.f
     discoveryHint: "Send investors a signed equity offer in-app",
     upgradeCTA: "Unlock Equity Offers",
     bestAtPhase: 4,
+    monthlyDeltaAud: 70,
+  },
+  "secondary_market.view": {
+    minTier: "growth",
+    discoveryHint: "Sandbox order book: see what your shares would trade at (simulation)",
+    upgradeCTA: "Upgrade to Growth",
+    bestAtPhase: 6,
     monthlyDeltaAud: 70,
   },
   "reseller.console": {

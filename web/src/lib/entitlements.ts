@@ -93,7 +93,12 @@ export type Feature =
   // Granted from Starter up, to the Startup Package and to every evaluator
   // rung — mirrored in plans.csv + migration 0316.
   | "grant_finder"
-  | "money_radar";
+  | "money_radar"
+  // S27-B — pre-IPO secondary trading SANDBOX (/workspace/secondary-offer
+  // order book + /api/secondary/sim/*). Growth and above — the same rung
+  // that carries the cap table the sandbox trades over. Mirrored in
+  // plans.csv, tier-ladder.ts and migration 0367.
+  | "secondary_market.view";
 
 // ---------------------------------------------------------------------------
 // Session subset — matches what `/api/entitlement/me` returns to the client
@@ -169,6 +174,7 @@ export const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
     "share_management",
     "grant_finder",
     "money_radar",
+    "secondary_market.view",
   ],
   founder_scale: [
     "svi.run",
@@ -197,6 +203,7 @@ export const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
     "share_management",
     "grant_finder",
     "money_radar",
+    "secondary_market.view",
   ],
   founder_enterprise: [
     "svi.run",
@@ -227,6 +234,7 @@ export const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
     "share_management",
     "grant_finder",
     "money_radar",
+    "secondary_market.view",
   ],
   // Startup Package (A$149 one-off, plans.csv founder_package). Ship-1 gave
   // it startup_package + pdf_branding; T0242 adds the Money Finder report so
