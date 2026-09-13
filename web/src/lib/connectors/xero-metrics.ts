@@ -11,6 +11,24 @@
 
 export const XERO_PL_WINDOW_MONTHS = 3;
 
+/**
+ * SVI dimensions the two Xero evidence rows land in (S25-review-2 P3).
+ * `svi_evidence.dimension` must be one of the 8 SVI keys
+ * (`VALID_DIMENSIONS` in lib/svi/rescore-from-evidence.ts) or the rescore
+ * skips the row. The callback and the weekly resync share these so the
+ * `(account_id, evidence_type, dimension)` match key never drifts between
+ * them. Migration 0353 moved the historical `traction` / `financial_health`
+ * rows onto these keys.
+ *
+ *   • xero_revenue → `tre` (Traction & Revenue): priced by magnitude like
+ *     the Stripe row (REVENUE_CONNECTOR_EVIDENCE_TYPES).
+ *   • xero_pl      → `iri` (Investor Readiness): verified accounts / P&L
+ *     are the "financial model available" signal, and NOT `tre`, so a
+ *     connected Xero does not count its income twice.
+ */
+export const XERO_REVENUE_EVIDENCE_DIMENSION = "tre";
+export const XERO_PL_EVIDENCE_DIMENSION = "iri";
+
 export interface XeroReportRow {
   RowType?: string;
   Title?: string;

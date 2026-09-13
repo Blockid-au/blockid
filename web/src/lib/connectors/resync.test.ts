@@ -307,7 +307,9 @@ describe("resyncConnection — Xero (legacy vault)", () => {
     expect(sig.map((r) => [r.signal_key, r.signal_value_num])).toEqual([["mrr_aud", 9000], ["expenses_3m_aud", 19_500], ["bank_balance_aud", 42_100.5]]);
 
     const ev = ops.filter((o) => o.table === "svi_evidence" && o.op === "insert").map((o) => o.args[0] as Row);
-    expect(ev.map((r) => [r.evidence_type, r.dimension])).toEqual([["xero_pl", "financial_health"], ["xero_revenue", "traction"]]);
+    // S25-review-2 P3: real SVI keys (xero_pl → iri, xero_revenue → tre), never "financial_health" / "traction".
+    expect(ev.map((r) => [r.evidence_type, r.dimension])).toEqual([["xero_pl", "iri"], ["xero_revenue", "tre"]]);
+    for (const r of ev) expect(["ftv", "mpc", "ptd", "tre", "cgh", "iri", "lco", "svm"]).toContain(r.dimension);
     expect(JSON.parse(ev[0].value_or_url as string)).toMatchObject({ totalIncomeAud: 27_000, totalExpensesAud: 19_500, bankBalanceAud: 42_100.5 });
 
     expect(h.enqueue).toHaveBeenCalledWith("svi.rescored", "proj-1", expect.objectContaining({ source: "connector_resync" }), expect.objectContaining({ userIds: ["owner-1"] }));
