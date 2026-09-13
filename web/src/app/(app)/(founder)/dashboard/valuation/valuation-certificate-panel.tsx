@@ -7,6 +7,10 @@
  *   - "Issue valuation certificate (5 credits / included)" — transparent
  *     pricing: the first POST is a preview (cost, balance, what will be
  *     sealed); the founder confirms before anything is charged;
+ *   - "ESS annex" checkbox (S27-A): freezes Annex A — the Div 83A start-up
+ *     concession checklist from the facts on file + the ATO-approved
+ *     valuation methods — with the certificate, at no extra cost; the
+ *     preview says how many conditions the stored facts confirm;
  *   - list of issued certificates: number, issue date, SVI, A$ range,
  *     status; per row: download PDF (optionally "prepared for" an investor →
  *     watermarked copy), public verify link, add to data room (editor+),
@@ -36,6 +40,8 @@ export interface CertificateListItem {
   revokedReason: string | null;
   verifyUrl: string;
   pdfUrl: string;
+  /** S27-A: Annex A frozen with this certificate. */
+  annexes?: { ess: boolean };
 }
 
 export interface CertificatePanelState {
@@ -51,6 +57,16 @@ interface Preview {
   balance: number | null;
   creditNote: string;
   subject: { startupName: string; sviScore: number; valuation: ValuationCertificateData["valuation"]; evidence: { total: number; verified: number } };
+  annexes?: { ess: { included: boolean; extraCost: number; checklist?: { met: number; notMet: number; notConfirmed: number; total: number }; perShare?: boolean } };
+}
+
+/** The ESS line in the preview card — exported for the suite. */
+export function essPreviewLine(a: Preview["annexes"] | undefined): string | null {
+  const ess = a?.ess;
+  if (!ess?.included) return null;
+  const c = ess.checklist;
+  const counts = c ? ` — ${c.met} of ${c.total} Div 83A conditions confirmed from your project profile, ${c.notConfirmed} not confirmed${c.notMet ? `, ${c.notMet} not met` : ""}` : "";
+  return `ESS annex included (0 extra credits)${counts}${ess.perShare === false ? "; no share count on file, so no per-share comparison" : ""}.`;
 }
 
 const AU_DATE = new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "Australia/Sydney" });
@@ -74,6 +90,7 @@ export function ValuationCertificatePanel({ initial }: { initial?: CertificatePa
   const [error, setError] = React.useState<string | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
   const [investor, setInvestor] = React.useState("");
+  const [essAnnex, setEssAnnex] = React.useState(false);
 
   React.useEffect(() => {
     if (initial) return;
@@ -103,33 +120,33 @@ export function ValuationCertificatePanel({ initial }: { initial?: CertificatePa
     setNotice(null);
     setBusy("preview");
     try {
-      const { res, json } = await post("/api/valuation/certificate", {});
+      const { res, json } = await post("/api/valuation/certificate", essAnnex ? { annex: "ess" } : {});
       if (!res.ok) {
         setError(json.error === "insufficient_credits" ? `Not enough credits — ${json.creditsRequired} needed, balance ${json.balance}.` : json.error === "no_svi_analysis" ? "Complete an SVI analysis first — run your first score to see a valuation." : json.error ?? "Could not prepare the certificate");
         return;
       }
-      if (json.preview) setPreview({ cost: json.cost, included: json.included, balance: json.balance, creditNote: json.creditNote, subject: json.subject });
+      if (json.preview) setPreview({ cost: json.cost, included: json.included, balance: json.balance, creditNote: json.creditNote, subject: json.subject, annexes: json.annexes });
     } finally {
       setBusy(null);
     }
-  }, [post]);
+  }, [essAnnex, post]);
 
   const confirmIssue = React.useCallback(async () => {
     setBusy("issue");
     setError(null);
     try {
-      const { res, json } = await post("/api/valuation/certificate", { confirm: true });
+      const { res, json } = await post("/api/valuation/certificate", essAnnex ? { confirm: true, annex: "ess" } : { confirm: true });
       if (!res.ok || !json.certificate) {
         setError(json.error ?? "Issue failed");
         return;
       }
       setState((s) => (s ? { ...s, certificates: [json.certificate, ...s.certificates] } : s));
       setPreview(null);
-      setNotice(`Certificate ${json.certificate.certificateNo} issued${json.creditsCharged ? ` — ${json.creditsCharged} credits charged` : " — included in your plan"}.`);
+      setNotice(`Certificate ${json.certificate.certificateNo} issued${json.certificate.annexes?.ess ? " with the ESS annex" : ""}${json.creditsCharged ? ` — ${json.creditsCharged} credits charged` : " — included in your plan"}.`);
     } finally {
       setBusy(null);
     }
-  }, [post]);
+  }, [essAnnex, post]);
 
   const addToDataRoom = React.useCallback(
     async (c: CertificateListItem) => {
@@ -200,16 +217,30 @@ export function ValuationCertificatePanel({ initial }: { initial?: CertificatePa
           </p>
         </div>
         {issueAllowed ? (
-          <button
-            type="button"
-            onClick={() => void startIssue()}
-            disabled={busy !== null || preview !== null}
-            data-testid="issue-certificate"
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-60"
-          >
-            {busy === "preview" ? <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" /> : <Award strokeWidth={1.75} className="h-4 w-4" />}
-            Issue valuation certificate ({costLabel})
-          </button>
+          <div className="flex flex-col items-end gap-2">
+            <button
+              type="button"
+              onClick={() => void startIssue()}
+              disabled={busy !== null || preview !== null}
+              data-testid="issue-certificate"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-60"
+            >
+              {busy === "preview" ? <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" /> : <Award strokeWidth={1.75} className="h-4 w-4" />}
+              Issue valuation certificate ({costLabel})
+            </button>
+            <label className="flex items-center gap-2 text-xs text-ink-600" data-testid="certificate-ess-annex">
+              <input
+                type="checkbox"
+                checked={essAnnex}
+                onChange={(e) => setEssAnnex(e.target.checked)}
+                disabled={busy !== null || preview !== null}
+                className="h-3.5 w-3.5 rounded border-surface-300 text-brand-600"
+              />
+              <span>
+                ESS annex — Div 83A start-up concession checklist + ATO-approved valuation methods <span className="text-ink-400">(0 extra credits; not a safe-harbour valuation)</span>
+              </span>
+            </label>
+          </div>
         ) : (
           <p className="text-xs text-ink-400" data-testid="certificate-readonly">
             View only — {state.role ?? "your role"} on this project cannot issue certificates.
@@ -230,6 +261,7 @@ export function ValuationCertificatePanel({ initial }: { initial?: CertificatePa
               {formatAudCompact(preview.subject.valuation.highAud)} (mid {formatAudCompact(preview.subject.valuation.midAud)}) ·{" "}
               {preview.subject.evidence.verified}/{preview.subject.evidence.total} evidence items verified
             </li>
+            {essPreviewLine(preview.annexes) ? <li data-testid="certificate-preview-ess">{essPreviewLine(preview.annexes)}</li> : null}
             <li>The figures are frozen at issue; a later score run does not change this certificate. You can revoke it later.</li>
           </ul>
           <div className="mt-3 flex gap-2">
@@ -305,6 +337,7 @@ export function ValuationCertificatePanel({ initial }: { initial?: CertificatePa
                   Issued {fmtDate(c.issuedAt)} · SVI {c.sviScore}
                   {c.valuation ? ` · ${formatAudCompact(c.valuation.lowAud)} – ${formatAudCompact(c.valuation.highAud)}` : ""}
                   {c.creditsCharged > 0 ? ` · ${c.creditsCharged} credits` : " · included"}
+                  {c.annexes?.ess ? " · ESS annex" : ""}
                   {revoked && c.revokedReason ? ` · revoked: ${c.revokedReason}` : ""}
                 </p>
               </div>

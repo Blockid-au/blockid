@@ -17,11 +17,12 @@ import {
   issueCertificate,
   listCertificates,
   loadCertificateSubject,
+  loadEssFacts,
   revokeCertificate,
   summariseEvidence,
 } from "./server";
 import { certificateHashMatches } from "./hash";
-import { SAMPLE_CERTIFICATE } from "./fixtures";
+import { SAMPLE_CERTIFICATE, SAMPLE_CERTIFICATE_ESS } from "./fixtures";
 
 const ANALYSIS = {
   version: "v3.6.8",
@@ -153,6 +154,76 @@ describe("loadCertificateSubject", () => {
   it("no analysis and no snapshot → no_svi_analysis", async () => {
     const db = fakeSupabase({ svi_analyses: [], startup_score_history: [] });
     expect(await loadCertificateSubject(subjectInput(db))).toEqual({ ok: false, error: "no_svi_analysis" });
+  });
+});
+
+describe("ESS annex (S27-A)", () => {
+  it("loadEssFacts reads the project's grant profile and the OWNER's cap table for the project; nothing on file → nulls", async () => {
+    const db = fakeSupabase({
+      project_grant_profiles: [{ project_id: "proj-1", incorporated_at: "2022-03-15", listed: false, turnover_aud: "420000.00", entity_type: "pty_ltd", prior_raise_aud: null }],
+      shareholders: [
+        { shares_held: 6_000_000, project_id: "proj-1", account_id: "user-owner" },
+        { shares_held: "4000000", project_id: null, account_id: "user-owner" },
+        { shares_held: 999, project_id: "proj-2", account_id: "user-owner" },
+        { shares_held: 999, project_id: "proj-1", account_id: "someone-else" },
+      ],
+      esop_pool: [{ total_pool_shares: 1_000_000, project_id: "proj-1", account_id: "user-owner" }],
+    });
+    const facts = await loadEssFacts(db, { projectId: "proj-1", ownerUserId: "user-owner" });
+    expect(facts).toEqual({ incorporatedAt: "2022-03-15", yearsSinceIncorporation: null, listed: false, turnoverAud: 420_000, entityType: "pty_ltd", priorRaiseAud: null, issuedShares: 10_000_000, esopPoolShares: 1_000_000 });
+    expect(db.hasEq("project_grant_profiles", "project_id", "proj-1")).toBe(true);
+    expect(db.hasEq("shareholders", "account_id", "user-owner")).toBe(true);
+    expect(db.hasEq("esop_pool", "account_id", "user-owner")).toBe(true);
+
+    const empty = await loadEssFacts(fakeSupabase({}), { projectId: "proj-1", ownerUserId: "user-owner" });
+    expect(empty).toEqual({ incorporatedAt: null, yearsSinceIncorporation: null, listed: null, turnoverAud: null, entityType: null, priorRaiseAud: null, issuedShares: null, esopPoolShares: null });
+    // Another project's profile row is never used (the fake ignores filters — the code re-checks).
+    const other = await loadEssFacts(fakeSupabase({ project_grant_profiles: [{ project_id: "proj-9", incorporated_at: "2020-01-01", listed: true }] }), { projectId: "proj-1", ownerUserId: "user-owner" });
+    expect(other.incorporatedAt).toBeNull();
+    expect(other.listed).toBeNull();
+  });
+
+  it("loadCertificateSubject freezes the annex only when asked; the checklist comes from the facts on file", async () => {
+    const rows = {
+      svi_analyses: [{ id: "an-1", analysis_json: ANALYSIS, total_svi: 138, raw_input: "saas" }],
+      startup_score_history: [],
+      startup_metrics: [],
+      svi_snapshots: [],
+      svi_accounts: [{ id: "acct-1", current_svi: 138, current_stage: 3 }],
+      svi_evidence: [],
+      project_grant_profiles: [{ project_id: "proj-1", incorporated_at: "2022-03-15", listed: false, turnover_aud: 420_000, entity_type: "pty_ltd" }],
+      shareholders: [{ shares_held: 10_000_000, project_id: "proj-1", account_id: "user-owner" }],
+      esop_pool: [],
+    };
+    const without = await loadCertificateSubject(subjectInput(fakeSupabase(rows)));
+    expect(without.ok && without.subject.ess).toBeUndefined();
+    const withEss = await loadCertificateSubject(subjectInput(fakeSupabase(rows), { annexes: { ess: true }, now: new Date("2026-09-12T00:00:00Z") }));
+    expect(withEss.ok).toBe(true);
+    if (!withEss.ok) return;
+    const ess = withEss.subject.ess!;
+    expect(ess.version).toBe("ess-1");
+    expect(ess.facts.issuedShares).toBe(10_000_000);
+    expect(ess.checklist.filter((r) => r.status === "met").map((r) => r.key)).toEqual(["unlisted", "age", "turnover"]);
+    expect(ess.indicativePerShare?.basisShares).toBe(10_000_000);
+  });
+
+  it("issueCertificate re-stamps the annex at the issue date and the hash covers it", async () => {
+    const rest: Record<string, unknown> = { ...SAMPLE_CERTIFICATE_ESS };
+    for (const k of ["version", "certificateNo", "issuedAt", "verifyUrl"]) delete rest[k];
+    const db = fakeSupabase({ valuation_certificates: [] });
+    const res = await issueCertificate({ db, projectId: "proj-1", userId: "u-1", subject: rest as never, creditsCharged: 0, baseUrl: "https://blockid.au", now: new Date("2032-04-01T00:00:00Z") });
+    expect(res.ok).toBe(true);
+    const ins = db.find("valuation_certificates", "insert")[0].args[0] as Record<string, unknown>;
+    const payload = ins.payload as typeof SAMPLE_CERTIFICATE_ESS;
+    expect(payload.ess?.facts.yearsSinceIncorporation).toBe(10); // 2022-03-15 → 2032-04-01
+    expect(payload.ess?.checklist.find((r) => r.key === "age")?.status).toBe("not_confirmed");
+    expect(certificateHashMatches(payload, ins.content_hash as string)).toBe(true);
+    // Tampering with the frozen annex breaks the hash like any other field.
+    const tampered = { ...payload, ess: { ...payload.ess!, checklist: payload.ess!.checklist.map((r) => ({ ...r, status: "met" as const })) } };
+    expect(certificateHashMatches(tampered, ins.content_hash as string)).toBe(false);
+    const row = { id: "c-1", project_id: "proj-1", user_id: "u-1", score_history_id: null, certificate_no: payload.certificateNo, content_hash: ins.content_hash as string, payload, startup_name: "Acme", svi_score: 138, credits_charged: 0, issued_at: payload.issuedAt, revoked_at: null, revoked_reason: null };
+    expect(certificateSummary(row).annexes).toEqual({ ess: true });
+    expect(certificateSummary({ ...row, payload: SAMPLE_CERTIFICATE }).annexes).toEqual({ ess: false });
   });
 });
 

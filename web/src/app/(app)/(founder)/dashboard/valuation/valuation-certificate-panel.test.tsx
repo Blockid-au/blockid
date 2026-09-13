@@ -7,7 +7,7 @@
 
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ValuationCertificatePanel, canIssue, canRevoke, type CertificateListItem, type CertificatePanelState } from "./valuation-certificate-panel";
+import { ValuationCertificatePanel, canIssue, canRevoke, essPreviewLine, type CertificateListItem, type CertificatePanelState } from "./valuation-certificate-panel";
 
 const CERT: CertificateListItem = {
   id: "c-1",
@@ -89,5 +89,27 @@ describe("ValuationCertificatePanel", () => {
     const html = renderToStaticMarkup(<ValuationCertificatePanel initial={state({ certificates: [] })} />);
     expect(html).toContain('data-testid="certificate-empty"');
     expect(html).not.toContain('data-testid="certificate-investor"');
+  });
+
+  it("S27-A: issuers get the ESS annex checkbox (0 extra credits, not a safe harbour); viewers do not; a row issued with it says so", () => {
+    const owner = renderToStaticMarkup(<ValuationCertificatePanel initial={state({ certificates: [{ ...CERT, annexes: { ess: true } }] })} />);
+    expect(owner).toContain('data-testid="certificate-ess-annex"');
+    expect(owner).toContain("Div 83A start-up concession checklist");
+    expect(owner).toContain("0 extra credits; not a safe-harbour valuation");
+    expect(owner).toContain("· ESS annex");
+    const viewer = renderToStaticMarkup(<ValuationCertificatePanel initial={state({ role: "viewer" })} />);
+    expect(viewer).not.toContain('data-testid="certificate-ess-annex"');
+    expect(viewer).not.toContain("· ESS annex");
+  });
+
+  it("S27-A: essPreviewLine says what the annex adds before the click, or nothing when it is not included", () => {
+    expect(essPreviewLine(undefined)).toBeNull();
+    expect(essPreviewLine({ ess: { included: false, extraCost: 0 } })).toBeNull();
+    expect(essPreviewLine({ ess: { included: true, extraCost: 0, checklist: { met: 3, notMet: 0, notConfirmed: 4, total: 7 }, perShare: true } })).toBe(
+      "ESS annex included (0 extra credits) — 3 of 7 Div 83A conditions confirmed from your project profile, 4 not confirmed.",
+    );
+    expect(essPreviewLine({ ess: { included: true, extraCost: 0, checklist: { met: 0, notMet: 1, notConfirmed: 6, total: 7 }, perShare: false } })).toBe(
+      "ESS annex included (0 extra credits) — 0 of 7 Div 83A conditions confirmed from your project profile, 6 not confirmed, 1 not met; no share count on file, so no per-share comparison.",
+    );
   });
 });
