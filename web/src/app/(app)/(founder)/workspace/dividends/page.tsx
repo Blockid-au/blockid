@@ -4,6 +4,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { DividendsClient } from "./dividends-client";
 import { DividendStatementsPanel } from "./dividend-statements-panel";
+import { AnnualTaxStatementsPanel } from "./annual-tax-statements-panel";
+import { DripPanel } from "./drip-panel";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
@@ -27,6 +29,10 @@ export default async function DividendsPage() {
         <DividendsClient />
         {/* S25-B — per-shareholder distribution statements + register for the recorded dividends. */}
         <DividendStatementsPanel />
+        {/* S28-A — annual (financial-year) tax statements built from the issued distribution statements. */}
+        <AnnualTaxStatementsPanel />
+        {/* S28-A — dividend reinvestment plan elections + next-allocation preview. */}
+        <DripPanel />
       </div>
     </WorkspaceLayout>
   );

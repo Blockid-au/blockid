@@ -22,7 +22,7 @@
 import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import { C, Footer, HeaderBar } from "./svi-report-pdf";
 import { WatermarkLayer } from "./watermark";
-import { formatAudCents, type DividendStatementPayload } from "@/lib/dividends/statement";
+import { formatAudCents, formatSharePriceAud, type DividendStatementPayload } from "@/lib/dividends/statement";
 
 /**
  * Not-tax-advice footer for the statement. Names BlockID.au as the tool only
@@ -107,7 +107,7 @@ export function KV({ label, value, width }: { label: string; value: string; widt
   );
 }
 
-export function EntityBlock({ entity }: { entity: DividendStatementPayload["entity"] }) {
+export function EntityBlock({ entity }: { entity: Pick<DividendStatementPayload["entity"], "name" | "abn" | "acn" | "address"> }) {
   return (
     <View style={st.card}>
       <Text style={st.kvLabel}>Paying entity</Text>
@@ -178,6 +178,12 @@ export function DividendStatementPDF({ data, contentHash, watermark, voidedAt, v
         <AmountRow label={`Franking credit (corporate tax rate for imputation ${taxRateLabel(dv.companyTaxRate, data.entity.isBaseRateEntity)})`} value={formatAudCents(a.frankingCreditAud)} />
         <AmountRow label={a.tfnWithheldAud > 0 ? `TFN amount withheld (${Math.round(a.tfnWithholdingRate * 100)}% of the unfranked amount)` : "TFN amount withheld"} value={formatAudCents(a.tfnWithheldAud)} />
         <AmountRow label="Net amount paid to shareholder" value={formatAudCents(a.netPaidAud)} bold />
+        {data.drip && data.drip.shares > 0 ? (
+          <>
+            <AmountRow label={`Reinvested under DRIP: ${data.drip.shares.toLocaleString("en-AU")} shares at ${formatSharePriceAud(data.drip.priceAud)}`} value={formatAudCents(data.drip.reinvestedAud)} />
+            <AmountRow label="Cash paid after reinvestment" value={formatAudCents(data.drip.cashPaidAud)} />
+          </>
+        ) : null}
         <AmountRow label="Grossed-up (assessable) amount = dividend + franking credit" value={formatAudCents(a.grossedUpAud)} />
 
         <View style={[st.row, { marginTop: 8 }]}>

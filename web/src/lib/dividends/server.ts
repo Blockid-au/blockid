@@ -16,6 +16,7 @@ import { createHash, randomBytes } from "crypto";
 import { canonicalizeScore } from "@/lib/proofs/canonical-json";
 import { hashScore } from "@/lib/proofs/hash";
 import type { DividendPayout } from "@/lib/dividends";
+import { allocationToStatementDrip, allocationToStatementDripFromMaths, listAllocationsForRecord, planDripForShareholder, recordDripAllocation, type IssueDripContext } from "./drip-server";
 import {
   buildDividendRegister,
   buildDividendStatement,
@@ -176,6 +177,7 @@ export async function loadShareholdersForScope(db: DividendDb, scope: RecordScop
       name: h.name ?? "",
       role: h.role ?? "shareholder",
       shareClass: h.share_class_id ? (classById.get(h.share_class_id) ?? null) : null,
+      shareClassId: h.share_class_id ?? null,
       sharesHeld: num(h.shares_held),
       tfnOnFile: h.tfn_on_file === true,
     }));
@@ -280,6 +282,27 @@ export interface IssueStatementsInput {
   shareholders: StatementShareholder[];
   creditsCharged: number;
   now?: Date;
+  /**
+   * S28-A — DRIP context (active elections + price). When given, an electing
+   * shareholder's statement carries the frozen `drip` block and the
+   * allocation is written to `drip_allocations` + the cap table after the
+   * statement row lands. Absent → no DRIP (S25-B behaviour).
+   */
+  drip?: IssueDripContext | null;
+}
+
+export interface IssuedDripAllocation {
+  statementId: string | null;
+  statementNo: string;
+  shareholderName: string;
+  status: "recorded" | "skipped" | "reused";
+  shares: number;
+  priceAud: number;
+  reinvestedAud: number;
+  residualAud: number;
+  cashPaidAud: number;
+  shareTransactionId: string | null;
+  skipReason: string | null;
 }
 
 export interface IssueStatementsResult {
@@ -290,6 +313,8 @@ export interface IssueStatementsResult {
   existing: DividendStatementRow[];
   /** Payout names that could not be inserted (unique collision after retries / DB error). */
   failed: string[];
+  /** S28-A — DRIP allocations made (or reused) by this call, one per electing shareholder issued. */
+  drip: IssuedDripAllocation[];
 }
 
 /**
@@ -307,6 +332,12 @@ export async function issueStatementsForRecord(input: IssueStatementsInput): Pro
   const issued: DividendStatementRow[] = [];
   const existing: DividendStatementRow[] = [];
   const failed: string[] = [];
+  const drip: IssuedDripAllocation[] = [];
+
+  // S28-A — allocations already made for this record (a re-issue after a
+  // void must reuse them: the shares were allotted once).
+  const priorAllocations = input.drip ? await listAllocationsForRecord(input.db, input.record.id, input.projectId) : [];
+  const priorByKey = new Map(priorAllocations.map((a) => [a.shareholder_key, a]));
 
   for (const m of matches) {
     const have = liveByKey.get(m.key);
@@ -314,10 +345,17 @@ export async function issueStatementsForRecord(input: IssueStatementsInput): Pro
       existing.push(have);
       continue;
     }
+    // DRIP plan for this shareholder: the net cash comes from a first build
+    // of the statement; the numbered build below recomputes the same amounts.
+    const preview = buildDividendStatement({ company: input.company, record, payout: m.payout, shareholder: m.shareholder, now });
+    const prior = priorByKey.get(m.key) ?? null;
+    const plan = !prior && input.drip ? planDripForShareholder(input.drip, m.shareholder, preview.amounts.netPaidAud) : null;
+    const dripBlock = prior ? allocationToStatementDrip(prior) : plan ? allocationToStatementDripFromMaths(plan.allocation, plan.election) : null;
+
     let inserted: DividendStatementRow | null = null;
     for (let attempt = 0; attempt < 3 && !inserted; attempt++) {
       const statementNo = statementNumber(`${input.record.id}|${m.key}|${now.toISOString()}|${attempt}`);
-      const payload = buildDividendStatement({ company: input.company, record, payout: m.payout, shareholder: m.shareholder, now }, statementNo);
+      const payload = buildDividendStatement({ company: input.company, record, payout: m.payout, shareholder: m.shareholder, now, drip: dripBlock }, statementNo);
       const contentHash = statementContentHash(payload);
       const { data, error } = await input.db
         .from("dividend_statements")
@@ -355,10 +393,59 @@ export async function issueStatementsForRecord(input: IssueStatementsInput): Pro
       }
       // otherwise the statement_no collided → new number on the next attempt
     }
-    if (!inserted) failed.push(m.payout.name);
-    else if (!existing.includes(inserted)) issued.push(inserted);
+    if (!inserted) {
+      failed.push(m.payout.name);
+      continue;
+    }
+    if (existing.includes(inserted)) continue;
+    issued.push(inserted);
+
+    // S28-A — persist the allocation + cap-table issue AFTER the statement row landed.
+    if (prior) {
+      const d = allocationToStatementDrip(prior);
+      drip.push({
+        statementId: inserted.id ?? null,
+        statementNo: inserted.statement_no,
+        shareholderName: m.shareholder.name,
+        status: "reused",
+        shares: d.shares,
+        priceAud: d.priceAud,
+        reinvestedAud: d.reinvestedAud,
+        residualAud: d.residualAud,
+        cashPaidAud: d.cashPaidAud,
+        shareTransactionId: prior.share_transaction_id,
+        skipReason: d.skipped,
+      });
+    } else if (plan && input.drip) {
+      const res = await recordDripAllocation({
+        db: input.db,
+        projectId: input.projectId,
+        ctx: input.drip,
+        record: { id: input.record.id, period: input.record.period, paidAt: input.record.paid_at ?? null },
+        statement: { id: inserted.id ?? null, statementNo: inserted.statement_no ?? "" },
+        shareholder: m.shareholder,
+        shareholderKey: m.key,
+        election: plan.election,
+        allocation: plan.allocation,
+      });
+      const a = plan.allocation;
+      const recorded = res.status === "recorded";
+      drip.push({
+        statementId: inserted.id ?? null,
+        statementNo: inserted.statement_no,
+        shareholderName: m.shareholder.name,
+        status: res.status,
+        shares: recorded ? a.shares : 0,
+        priceAud: a.priceAud,
+        reinvestedAud: recorded ? a.reinvestedAud : 0,
+        residualAud: recorded ? a.residualAud : 0,
+        cashPaidAud: recorded ? a.cashPaidAud : a.netCashAud,
+        shareTransactionId: res.shareTransactionId,
+        skipReason: recorded ? null : (a.reason ?? "cap_table_write_failed"),
+      });
+    }
   }
-  return { ok: true, issued, existing, failed };
+  return { ok: true, issued, existing, failed, drip };
 }
 
 /* ── Void ─────────────────────────────────────────────────────────────── */
@@ -418,6 +505,8 @@ export function statementSummary(row: DividendStatementRow) {
     voidedAt: row.voided_at,
     voidReason: row.void_reason,
     pdfUrl: `/api/dividends/statements/${row.id}/pdf`,
+    /** S28-A — DRIP line when the shareholder reinvested (null otherwise). */
+    drip: row.payload?.drip && row.payload.drip.shares > 0 ? { shares: row.payload.drip.shares, priceAud: row.payload.drip.priceAud, reinvestedAud: row.payload.drip.reinvestedAud, cashPaidAud: row.payload.drip.cashPaidAud } : null,
   };
 }
 

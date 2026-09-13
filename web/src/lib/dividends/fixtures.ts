@@ -3,6 +3,7 @@
 
 import type { DividendPayout } from "@/lib/dividends";
 import { buildDividendRegister, buildDividendStatement, type DividendRegisterPayload, type DividendStatementPayload, type StatementCompany, type StatementDividendRecord } from "./statement";
+import { buildShareholderTaxStatement, summariseFinancialYear, type ShareholderTaxStatementPayload } from "./fy-summary";
 
 export const SAMPLE_COMPANY: StatementCompany = {
   name: "Acme Robotics Pty Ltd",
@@ -52,6 +53,34 @@ export const SAMPLE_STATEMENT_WITHHELD: DividendStatementPayload = buildDividend
   },
   "DS-ABCDE-FGHJK",
 );
+
+/** S28-A — Jane reinvests 50 % under the DRIP at A$1.37: 10,948 shares, A$14,998.76, residual A$1.24. */
+export const SAMPLE_STATEMENT_DRIP: DividendStatementPayload = buildDividendStatement(
+  {
+    company: SAMPLE_COMPANY,
+    record: SAMPLE_RECORD,
+    payout: SAMPLE_PAYOUTS[0],
+    shareholder: { id: "22222222-2222-4222-8222-222222222222", name: "Jane Founder", role: "founder", shareClass: "Ordinary", sharesHeld: 600_000, tfnOnFile: true },
+    now: SAMPLE_NOW,
+    drip: { electionId: "el-1", participationPct: 50, priceBasis: "share_price_mid", priceAud: 1.37, shares: 10_948, reinvestedAud: 14_998.76, residualAud: 1.24, cashPaidAud: 15_001.24, skipped: null },
+  },
+  "DS-DRIP1-DRIP1",
+);
+
+/** S28-A — Jane's FY 2025-26 annual statement: two fully franked distributions (Mar + 30 Jun), one of them under the DRIP. */
+export const SAMPLE_TAX_STATEMENT: ShareholderTaxStatementPayload = (() => {
+  const mar = { ...SAMPLE_STATEMENT, dividend: { ...SAMPLE_STATEMENT.dividend, paidAt: "2026-03-31", period: "2026-03" } };
+  const jun = { ...SAMPLE_STATEMENT_DRIP, dividend: { ...SAMPLE_STATEMENT_DRIP.dividend, paidAt: "2026-06-30", period: "2026-06" } };
+  const summary = summariseFinancialYear({
+    fy: "2025-26",
+    statements: [
+      { id: "s1", statementNo: "DS-7K3MP-Q9X2A", payload: mar, voidedAt: null },
+      { id: "s2", statementNo: "DS-DRIP1-DRIP1", payload: jun, voidedAt: null },
+      { id: "s3", statementNo: "DS-ABCDE-FGHJK", payload: SAMPLE_STATEMENT_WITHHELD, voidedAt: null }, // paid 15 Jul 2026 → next FY
+    ],
+  })!;
+  return buildShareholderTaxStatement({ company: SAMPLE_COMPANY, summary: summary.shareholders[0], fy: summary.fy, now: new Date("2026-07-20T02:00:00.000Z") }, "TS-2025-26-1");
+})();
 
 export const SAMPLE_REGISTER: DividendRegisterPayload = buildDividendRegister({
   company: SAMPLE_COMPANY,
