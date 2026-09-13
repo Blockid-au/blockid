@@ -154,6 +154,25 @@ describe("applyConnectedRevenueBridge", () => {
   });
 });
 
+describe("S25-A sviContribution — the bridge and the rescore route read the same table", () => {
+  const svi = { lowAud: 500_000, midAud: 1_000_000, highAud: 2_000_000 };
+
+  it("carries the TRE points for the selected signal (tier + growth + churn, fresh ×1)", () => {
+    const out = applyConnectedRevenueBridge(
+      svi,
+      [{ provider: "stripe", mrrAud: 8_200, capturedAt: FRESH, priorMrrAud: 7_321, churnRate90dPct: 2.1, origin: "connector_snapshot" }],
+      { now: NOW },
+    );
+    expect(out.connectedRevenue?.sviContribution).toMatchObject({ points: 13, tier: "1k_10k", tierPoints: 10, growthPoints: 3, churnPoints: 0, decay: 1 });
+    expect(out.connectedRevenue?.sviContribution.breakdown).toMatch(/→ \+13 TRE$/);
+  });
+
+  it("a legacy signal without history scores the tier alone", () => {
+    const out = applyConnectedRevenueBridge(svi, [stripe(60_000)], { now: NOW });
+    expect(out.connectedRevenue?.sviContribution).toMatchObject({ points: 20, growthPct: null, churnRate90dPct: null });
+  });
+});
+
 describe("formatAudCompact", () => {
   it("formats thousands, millions and billions compactly", () => {
     expect(formatAudCompact(0)).toBe("A$0");

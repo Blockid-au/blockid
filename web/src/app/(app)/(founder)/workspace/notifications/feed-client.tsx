@@ -70,6 +70,7 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 // presentation concern and stay here. T0245 added the six Money Radar kinds.
 export const KIND_META: Record<string, { icon: typeof Bell; color: string; label: string }> = {
   tbr_view: { icon: Eye, color: "text-sky-600", label: "Report viewed" },
+  connector_reconnect: { icon: Bell, color: "text-amber-600", label: "Reconnect needed" },
   tbr_qa_asked: { icon: MessageSquare, color: "text-violet-600", label: "Question asked" },
   tbr_lead: { icon: Users, color: "text-emerald-600", label: "New investor lead" },
   report_shared: { icon: Share2, color: "text-brand-600", label: "Report shared" },

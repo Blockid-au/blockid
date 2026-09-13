@@ -51,7 +51,14 @@ export async function GET() {
   url.searchParams.set("response_type", "code");
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("redirect_uri", callbackUrl);
-  url.searchParams.set("scope", "openid profile email accounting.transactions accounting.contacts");
+  // S25-A — `offline_access` is what makes Xero return a refresh token (the
+  // weekly resync cannot run without one: access tokens live 30 minutes) and
+  // `accounting.reports.read` is the scope the P&L / BankSummary reports the
+  // callback + resync pull actually require.
+  url.searchParams.set(
+    "scope",
+    "openid profile email offline_access accounting.transactions accounting.contacts accounting.reports.read",
+  );
   url.searchParams.set("state", state);
 
   return NextResponse.redirect(url.toString());

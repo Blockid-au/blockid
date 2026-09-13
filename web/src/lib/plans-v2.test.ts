@@ -11,6 +11,7 @@ import { describe, it, expect } from "vitest";
 // ---------------------------------------------------------------------------
 
 import {
+  CONNECTED_REVENUE_FEATURE_LINE,
   EVALUATOR_RADAR_LINE,
   FOUNDER_RADAR_BADGE,
   FOUNDER_RADAR_FEATURE_LINE,
@@ -238,6 +239,19 @@ describe("PLANS_V2 catalogue", () => {
     const growth = byId.get("founder_growth")!.features.join(" ");
     expect(growth).toContain("+ investor matching, unlimited application drafts, quarterly expert update");
     expect(growth).not.toContain("(coming)");
+  });
+
+  it("S25-A: Growth sells the connected-revenue loop now that the weekly resync exists (≤ 2 sentences, names both live connectors, never QuickBooks)", () => {
+    const byId = new Map(PLANS_V2.map((p) => [p.id, p]));
+    const growth = byId.get("founder_growth")!;
+    expect(growth.features).toContain(CONNECTED_REVENUE_FEATURE_LINE);
+    expect(CONNECTED_REVENUE_FEATURE_LINE).toMatch(/Stripe/);
+    expect(CONNECTED_REVENUE_FEATURE_LINE).toMatch(/Xero/);
+    expect(CONNECTED_REVENUE_FEATURE_LINE).toMatch(/weekly/);
+    expect(CONNECTED_REVENUE_FEATURE_LINE).not.toMatch(/QuickBooks/i);
+    expect(CONNECTED_REVENUE_FEATURE_LINE.split(/[.!?]\s/).length).toBeLessThanOrEqual(2);
+    // Only Growth carries it — Starter/Free copy is unchanged.
+    expect(byId.get("founder_starter")!.features).not.toContain(CONNECTED_REVENUE_FEATURE_LINE);
   });
 
   it("every public evaluator rung includes the Money Finder & Progress Radar line", () => {

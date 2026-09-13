@@ -39,6 +39,9 @@ export const NOTIFICATION_KINDS = [
   "radar_setup_nudge",
   // S20-B outbound webhooks: endpoint auto-disabled after 20 consecutive failures.
   "webhook_disabled",
+  // S25-A weekly connector resync: a Stripe/Xero token could not be opened
+  // or was rejected — the founder must reconnect. One per 30 days per row.
+  "connector_reconnect",
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -95,6 +98,7 @@ export const KIND_LABELS: Record<NotificationKind, string> = {
   analysis_refresh: "Analysis refreshed",
   radar_setup_nudge: "Founder Radar setup",
   webhook_disabled: "Webhook disabled",
+  connector_reconnect: "Reconnect needed",
 };
 
 function s(v: unknown): string | null {
@@ -231,6 +235,12 @@ export function describeNotification(row: FounderNotificationRow): string {
         ? `${target} was disabled after ${failures} consecutive failed deliveries — fix the receiver and re-enable it.`
         : `${target} was disabled after ${failures} consecutive failed deliveries.`;
     }
+    case "connector_reconnect": {
+      // S25-A: payload { provider: "stripe" | "xero" } from lib/connectors/resync.ts.
+      const provider = s(p.provider);
+      const name = provider === "xero" ? "Xero" : provider === "stripe" ? "Stripe" : "A revenue connector";
+      return `${name} stopped syncing — reconnect it so your valuation and P&L keep updating weekly`;
+    }
     case "radar_setup_nudge": {
       // Counts come from the sweep's catalogue so the line is never blank
       // (D-3 "always show counts"); the title alone when they are missing.
@@ -290,6 +300,8 @@ export function notificationAction(row: FounderNotificationRow): { href: string;
       return { href: RADAR_SETUP_NUDGE_HREF, label: RADAR_SETUP_NUDGE_ACTION_LABEL };
     case "webhook_disabled":
       return { href: "/workspace/integrations#webhooks", label: "Open webhooks" };
+    case "connector_reconnect":
+      return { href: s(p.href) ?? "/workspace/evidence", label: "Reconnect" };
     default:
       return null;
   }

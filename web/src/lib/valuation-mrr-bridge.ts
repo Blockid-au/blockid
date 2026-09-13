@@ -24,6 +24,7 @@
 
 import { vcBenchmark } from "@/lib/agents/cfo-valuation";
 import { formatAudCompact } from "@/lib/format-aud";
+import { scoreConnectedRevenue, type ConnectedRevenueScore } from "@/lib/svi/connected-revenue-score";
 
 export { formatAudCompact };
 
@@ -35,6 +36,16 @@ export interface ConnectedRevenueSignal {
   mrrAud: number;
   /** ISO timestamp the connector captured the figure. */
   capturedAt: string;
+  // S25-A — optional history from `connector_snapshots` (migration 0349) so
+  // the SVI contribution (lib/svi/connected-revenue-score.ts) can price
+  // growth and churn. Absent on the legacy svi_signals / svi_evidence rows.
+  /** MRR from the snapshot ~90 days before `capturedAt`, when one exists. */
+  priorMrrAud?: number | null;
+  priorCapturedAt?: string | null;
+  /** Stripe 90-day subscription churn in percent; null/undefined when unknown. */
+  churnRate90dPct?: number | null;
+  /** Which store the signal came from (diagnostics only). */
+  origin?: "connector_snapshot" | "svi_signals" | "svi_evidence";
 }
 
 export interface ValuationRange {
@@ -63,6 +74,12 @@ export interface ConnectedRevenueDetail {
   relation: BridgeRelation;
   /** Human copy for the UI: "Includes connected revenue (A$8.2K MRR from Stripe)". */
   label: string;
+  /**
+   * S25-A — the TRE points this same signal earns in the SVI, from the one
+   * contribution table the rescore route uses (magnitude + growth + churn +
+   * freshness decay), so the valuation card and the score agree.
+   */
+  sviContribution: ConnectedRevenueScore;
 }
 
 export interface IgnoredSignal {
@@ -201,6 +218,13 @@ export function applyConnectedRevenueBridge(
       : Math.round((lowAud + highAud) / 2);
 
   const label = `Includes connected revenue (${formatAudCompact(signal.mrrAud)} MRR from ${PROVIDER_LABEL[signal.provider]})`;
+  const sviContribution = scoreConnectedRevenue({
+    mrrAud: signal.mrrAud,
+    capturedAt: signal.capturedAt,
+    priorMrrAud: signal.priorMrrAud ?? null,
+    churnRate90dPct: signal.churnRate90dPct ?? null,
+    now: opts.now,
+  });
 
   return {
     lowAud,
@@ -221,6 +245,7 @@ export function applyConnectedRevenueBridge(
       arrRangeHighAud,
       relation,
       label,
+      sviContribution,
     },
     ignoredSignals: ignored,
   };

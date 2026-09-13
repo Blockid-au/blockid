@@ -29,7 +29,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 // is needed.
 
 import {
+  STRIPE_CHURN_WINDOW_DAYS,
+  fetchStripeConnectMetrics,
   fetchStripeSignals,
+  stripeConnectMetricsFrom,
   type StripeSignals,
 } from "./oauth-stripe-signals";
 
@@ -865,5 +868,54 @@ describe("integration — realistic multi-signal accounts", () => {
     // Basic invariants: rounding, non-negative
     expect(out.mrrAud).toBeGreaterThanOrEqual(0);
     expect(out.averageOrderAud).toBeGreaterThanOrEqual(0);
+  });
+});
+
+// ── S25-A — Stripe Connect resync metrics (MRR + subs + 90-day churn) ──────
+
+describe("stripeConnectMetricsFrom / fetchStripeConnectMetrics (S25-A)", () => {
+  const NOW_S = 1_800_000_000; // fixed clock, seconds
+  const daysAgoS = (d: number) => NOW_S - d * 86_400;
+
+  it("folds active subs into MRR/ARR, counts churn by canceled_at inside the window, dominant currency", () => {
+    const active = [
+      makeSub([{ unit_amount: 10000, currency: "aud", interval: "month" }]),
+      makeSub([{ unit_amount: 120000, currency: "aud", interval: "year" }]),
+      makeSub([{ unit_amount: 5000, currency: "usd", interval: "month" }]),
+    ];
+    const canceled = [
+      { ...makeSub([{ unit_amount: 1, currency: "aud", interval: "month" }], "canceled"), canceled_at: daysAgoS(10) },
+      { ...makeSub([{ unit_amount: 1, currency: "aud", interval: "month" }], "canceled"), canceled_at: daysAgoS(89) },
+      { ...makeSub([{ unit_amount: 1, currency: "aud", interval: "month" }], "canceled"), canceled_at: daysAgoS(91) }, // outside
+      { ...makeSub([{ unit_amount: 1, currency: "aud", interval: "month" }], "canceled"), canceled_at: null },
+    ];
+    const out = stripeConnectMetricsFrom(active, canceled, 57, NOW_S * 1000);
+    expect(STRIPE_CHURN_WINDOW_DAYS).toBe(90);
+    // 100 + 100 + (50 USD / 0.65 = 76.92) = 276.92
+    expect(out.mrrAud).toBe(276.92);
+    expect(out.arrAud).toBe(3323.04);
+    expect(out.activeSubscriptions).toBe(3);
+    expect(out.activeCustomers).toBe(57);
+    expect(out.churnedSubscriptions90d).toBe(2);
+    expect(out.churnRate90dPct).toBe(40); // 2 / (3 + 2)
+    expect(out.currency).toBe("aud");
+  });
+
+  it("no subscriptions at all → zero MRR and null churn (no base to divide by)", () => {
+    expect(stripeConnectMetricsFrom([], [], 0, NOW_S * 1000)).toEqual({
+      mrrAud: 0, arrAud: 0, activeSubscriptions: 0, activeCustomers: 0, churnedSubscriptions90d: 0, churnRate90dPct: null, currency: "aud",
+    });
+  });
+
+  it("fetchStripeConnectMetrics hits active + canceled subscriptions + customers with the connected account's bearer; a failed list degrades to empty", async () => {
+    queue(SUBS_URL_PREFIX, { data: [makeSub([{ unit_amount: 10000, currency: "aud", interval: "month" }])], has_more: false });
+    queue("https://api.stripe.com/v1/subscriptions?limit=100&status=canceled", { data: [], has_more: false });
+    queueStatus(CUSTOMERS_URL_PREFIX, 500, {});
+    const out = await fetchStripeConnectMetrics("connected-tok");
+    expect(out).toMatchObject({ mrrAud: 100, activeSubscriptions: 1, activeCustomers: 0, churnedSubscriptions90d: 0, churnRate90dPct: 0 });
+    for (const c of calls) {
+      expect((c.init?.headers as Record<string, string>).Authorization).toBe("Bearer connected-tok");
+    }
+    expect(calls.some((c) => c.url.includes("status=canceled") && c.url.includes("created[gte]="))).toBe(true);
   });
 });
