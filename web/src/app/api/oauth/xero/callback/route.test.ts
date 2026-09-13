@@ -116,6 +116,11 @@ describe("GET /api/oauth/xero/callback — session binding (S18-A P1-2)", () => 
     expect(acct.email).toBe("caller@x.test");
     expect(acct.projectId).toBe("proj-1");
     expect(db.sb!.find("oauth_connections", "upsert").length).toBe(1);
+    // 0352: legacy vault row carries user_email (owner data key) + account_id and
+    // conflicts on the (user_email, provider) index that actually exists.
+    const [connUpsert] = db.sb!.find("oauth_connections", "upsert");
+    expect(connUpsert.args[0]).toMatchObject({ user_email: "caller@x.test", account_id: "acct-1", provider: expect.any(String) });
+    expect(connUpsert.args[1]).toEqual({ onConflict: "user_email,provider" });
     expect(db.sb!.hasEq("svi_evidence", "account_id", "acct-1")).toBe(true);
   });
 

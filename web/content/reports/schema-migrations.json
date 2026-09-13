@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-13T00:27:52.310Z",
+  "generated_at": "2026-09-13T01:19:16.803Z",
   "ledger_present": true,
-  "total_files": 238,
+  "total_files": 239,
   "files": [
     "0001_init.sql",
     "0002_score_v2.sql",
@@ -212,6 +212,7 @@
     "0349_connector_snapshots.sql",
     "0350_dividend_statements.sql",
     "0351_erase_account_connector_snapshots.sql",
+    "0352_oauth_connections_account_columns.sql",
     "20260814_tech_analyses.sql",
     "20260815120000_analyzer_runs.sql",
     "20260816_clevel_reports_v2.sql",

@@ -192,9 +192,13 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${siteUrl}/workspace/evidence?error=stripe_account_failed`);
     }
 
-    // Save OAuth connection
-    await supabase.from("oauth_connections").upsert(
+    // Save OAuth connection (result checked: a silent failure here is what
+    // hid the 0352 schema drift for three months)
+    const { error: connErr } = await supabase.from("oauth_connections").upsert(
       {
+        // Legacy vault (0027) is keyed on (user_email, provider); account_id
+        // + raw_profile were added by 0352. user_email = the OWNER's data key.
+        user_email: dataEmail,
         account_id: accountId,
         provider: "stripe",
         provider_user_id: stripeUserId,
@@ -207,8 +211,12 @@ export async function GET(request: Request) {
         }),
         connected_at: new Date().toISOString(),
       },
-      { onConflict: "account_id,provider" },
+      { onConflict: "user_email,provider" },
     );
+    if (connErr) {
+      console.error("[oauth:stripe] oauth_connections upsert failed", { code: connErr.code, message: connErr.message });
+      return NextResponse.redirect(`${siteUrl}/workspace/evidence?error=stripe_save_failed`);
+    }
 
     // S25-A — first dated snapshot (growth baseline for the weekly resync;
     // churn is unknown at link time and stays null until the first resync).
