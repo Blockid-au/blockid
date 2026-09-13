@@ -122,6 +122,16 @@ async function POST_handler(request: Request) {
     return NextResponse.json({ ok: true, preview: true, cost, listedCost, included, balance, creditNote, sheets: inputs.map((s) => ({ id: s.id, label: s.label })) });
   }
 
+  // Pure and unpersisted, so it runs BEFORE the spend: a stored analysis
+  // the comparator cannot read must never cost credits (S26 review P2).
+  let comparison;
+  try {
+    comparison = compareTermSheets(inputs);
+  } catch (err) {
+    console.error("[term-sheet/compare] comparison failed before any charge", { ids, error: err instanceof Error ? err.message : String(err) });
+    return NextResponse.json({ ok: false, error: "comparison_failed", creditsCharged: 0 }, { status: 422 });
+  }
+
   let creditsCharged = 0;
   if (cost > 0) {
     const spent = await spendCredits(user.id, FEATURE_KEY, { project_id: scope?.projectId ?? null, sheet_ids: ids });
@@ -130,7 +140,6 @@ async function POST_handler(request: Request) {
     balance = spent.balance;
   }
 
-  const comparison = compareTermSheets(inputs);
   return NextResponse.json({ ok: true, comparison, cost, included, creditsCharged, balance, creditNote }, { headers: { "Cache-Control": "private, no-store" } });
 }
 

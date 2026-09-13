@@ -127,6 +127,28 @@ describe("POST /api/term-sheet/compare", () => {
     expect(credits.spendCredits).not.toHaveBeenCalled();
   });
 
+  it("S26 review: a stored analysis the comparator cannot read → 422 comparison_failed and NOTHING is spent", async () => {
+    const BROKEN = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+    db.sb!.rows.term_sheet_analyses.push({
+      id: BROKEN,
+      user_id: "user-caller",
+      created_at: null,
+      company_name: "Corrupt Co",
+      raw_text: null,
+      // an object, so the not-found guard passes, but `redline` is not iterable
+      analysis_json: { redline: 5 },
+      result_json: null,
+    });
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = await post({ ids: [A, BROKEN], confirm: true });
+    expect(res.status).toBe(422);
+    const body = await res.json();
+    expect(body.error).toBe("comparison_failed");
+    expect(body.creditsCharged).toBe(0);
+    expect(credits.spendCredits).not.toHaveBeenCalled();
+    err.mockRestore();
+  });
+
   it("402 when unaffordable; spend failure → 402", async () => {
     credits.canAfford.mockResolvedValue({ allowed: false, balance: 1, cost: 2, reason: "insufficient_credits" });
     expect((await post({ ids: [A, B] })).status).toBe(402);
