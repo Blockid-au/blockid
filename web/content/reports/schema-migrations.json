@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-13T11:13:48.600Z",
+  "generated_at": "2026-09-13T11:38:06.623Z",
   "ledger_present": true,
-  "total_files": 261,
+  "total_files": 263,
   "files": [
     "0001_init.sql",
     "0002_score_v2.sql",
@@ -233,6 +233,8 @@
     "0376_investor_touchpoints.sql",
     "0377_bank_transactions.sql",
     "0378_expense_rules.sql",
+    "0379_listing_profiles.sql",
+    "0380_clean_room_checklists.sql",
     "0381_increment_shares_held.sql",
     "0382_bank_transactions_ai_queue_index.sql",
     "20260814_tech_analyses.sql",
