@@ -32,6 +32,8 @@ describe("labels", () => {
     expect(sourceLabel("stripe_connect")).toBe("from Stripe");
     expect(sourceLabel("stripe_platform")).toBe("from your BlockID Stripe payments");
     expect(sourceLabel("manual")).toBe("manual entries");
+    expect(sourceLabel("bank_csv", "2026-09-03T02:00:00Z")).toBe("from bank CSV, 3 Sep");
+    expect(sourceLabel("bank_csv")).toBe("from bank CSV");
     expect(sourceLabel("startup_metrics")).toBe("from your metrics");
     expect(sourceLabel("estimate")).toBe("estimate");
     expect(sourceLabel("none")).toBe("no data yet");
@@ -69,6 +71,55 @@ describe("resolveRevenueFigures — fallbacks (no connector data)", () => {
     expect(f.sources.revenue.label).toBe("manual entries");
     expect(f.sources.mrr.label).toBe("from your metrics");
     expect(f.mrr).toBe(400);
+  });
+});
+
+describe("resolveRevenueFigures — bank CSV fallback (S28-C)", () => {
+  const bank = { monthlyOpex: 3100, monthlyIncome: 1500, income: 9000, monthsWithData: 6, takenAt: "2026-09-03T02:00:00Z" };
+
+  it("with nothing else: bank CSV owns MRR, revenue and opex, labelled with the import date", () => {
+    const f = resolveRevenueFigures({ ...BASE, bankCsv: bank });
+    expect(f).toMatchObject({ mrr: 1500, arr: 18000, revenue: 9000, monthlyOpex: 3100, opex: 37200 });
+    expect(f.sources.mrr.label).toBe("from bank CSV, 3 Sep");
+    expect(f.sources.revenue.label).toBe("from bank CSV, 3 Sep");
+    expect(f.sources.opex.label).toBe("from bank CSV, 3 Sep");
+    expect(f.sources.netIncome).toMatchObject({ kind: "bank_csv", label: "from bank CSV, 3 Sep" });
+    expect(f.netIncome).toBe(9000 - 60 - 37200);
+  });
+
+  it("sits AFTER the connectors and the platform lookup, BEFORE startup_metrics", () => {
+    const f = resolveRevenueFigures({
+      ...BASE,
+      bankCsv: bank,
+      platform: { hasStripe: true, mrr: 99, activeSubscriptions: 1, netRevenue12m: 1188, refunds12m: 0 },
+      startupMetrics: { mrr: 400, burnRate: 2000 },
+    });
+    expect(f.sources.mrr.kind).toBe("stripe_platform");
+    expect(f.sources.revenue.kind).toBe("stripe_platform");
+    expect(f.revenue).toBe(1188);
+    // opex: no Xero → bank CSV beats startup_metrics burn
+    expect(f.monthlyOpex).toBe(3100);
+    expect(f.sources.opex.kind).toBe("bank_csv");
+
+    const xero = snap("xero", "2026-09-05T02:00:00Z", { totalIncomeAud: 30000, totalExpensesAud: 21000, netProfitAud: 9000, windowMonths: 3 });
+    const g = resolveRevenueFigures({ ...BASE, bankCsv: bank, xeroSnapshot: xero });
+    expect(g.sources.opex.kind).toBe("xero");
+    expect(g.sources.revenue.kind).toBe("xero");
+    expect(g.sources.mrr.kind).toBe("xero");
+  });
+
+  it("manual entries still beat the bank CSV for the top line; the bank CSV still owns opex", () => {
+    const f = resolveRevenueFigures({ ...BASE, bankCsv: bank, manual: { total12m: 5000, count: 2 } });
+    expect(f.sources.revenue.kind).toBe("manual");
+    expect(f.revenue).toBe(5000);
+    expect(f.sources.opex.kind).toBe("bank_csv");
+  });
+
+  it("a bank CSV with no months (or null) changes nothing", () => {
+    const f = resolveRevenueFigures({ ...BASE, bankCsv: { ...bank, monthsWithData: 0 } });
+    expect(f.sources.opex.label).toBe("estimate");
+    const g = resolveRevenueFigures({ ...BASE, bankCsv: null, startupMetrics: { mrr: 0, burnRate: 2000 } });
+    expect(g.sources.opex.kind).toBe("startup_metrics");
   });
 });
 

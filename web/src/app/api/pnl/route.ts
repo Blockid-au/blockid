@@ -3,6 +3,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { generatePnL } from "@/lib/pnl";
 import { getStripe } from "@/lib/stripe";
+import { getProjectScope } from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
+import { burnRateWithBankFallback } from "@/lib/expenses/server";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +42,20 @@ export async function GET() {
 
   const mrr = latestMetric?.mrr_aud ?? 0;
   const arr = latestMetric?.arr_aud ?? (mrr * 12);
-  const burnRate = latestMetric?.burn_rate_aud ?? 0;
+
+  // S28-C — burn rate: startup_metrics first, then the categorised bank
+  // lines of the active project (average monthly spend), so the runway /
+  // cash-on-hand estimate below has a figure without a manual entry.
+  let projectId: string | null = null;
+  try {
+    projectId = (await getProjectScope())?.projectId ?? null;
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
+    throw err;
+  }
+  const burn = await burnRateWithBankFallback(supabase, projectId, latestMetric?.burn_rate_aud as number | null | undefined);
+  const burnRate = burn.burnRate;
 
   // ── 2. Compute revenue from Stripe if available ───────────────────────
   let stripeRevenue = 0;
@@ -120,5 +136,5 @@ export async function GET() {
     mrr,
   });
 
-  return NextResponse.json({ ok: true, report });
+  return NextResponse.json({ ok: true, report, burnRateSource: burn.source });
 }

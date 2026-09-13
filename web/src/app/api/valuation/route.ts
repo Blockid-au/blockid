@@ -5,6 +5,7 @@ import { computeValuation, type ValuationInput } from "@/lib/valuation";
 import { canAfford, spendCredits } from "@/lib/credits";
 import { findSVIAccountWithFallback, creditChargeNote } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
+import { burnRateWithBankFallback } from "@/lib/expenses/server";
 import { loadConnectedRevenueSignals } from "@/lib/connected-revenue";
 import { applyConnectedRevenueBridge } from "@/lib/valuation-mrr-bridge";
 import { primeSectorMultiples } from "@/lib/valuation/sector-multiples";
@@ -105,6 +106,10 @@ export async function GET() {
       .limit(1)
       .maybeSingle();
 
+    // S28-C — burn rate falls back to the categorised bank lines' average
+    // monthly spend when startup_metrics has none (feeds the runway figure).
+    const burn = await burnRateWithBankFallback(supabase, projectId, latestMetrics?.burn_rate_aud as number | null | undefined);
+
     // 4. Build valuation input
     const input: ValuationInput = {
       sviScore,
@@ -116,7 +121,7 @@ export async function GET() {
         (latestMetrics?.revenue_growth_pct as number) ?? undefined,
       monthlyChurnPct:
         (latestMetrics?.monthly_churn_pct as number) ?? undefined,
-      burnRateAud: (latestMetrics?.burn_rate_aud as number) ?? undefined,
+      burnRateAud: burn.burnRate > 0 ? burn.burnRate : undefined,
       runwayMonths: (latestMetrics?.runway_months as number) ?? undefined,
     };
 

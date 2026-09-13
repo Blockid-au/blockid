@@ -7,6 +7,7 @@ import { getProjectScope } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
 import { loadSnapshotHistory } from "@/lib/connectors/snapshots";
 import { resolveRevenueFigures } from "@/lib/revenue/sources";
+import { bankCsvFigures } from "@/lib/expenses/server";
 
 export const dynamic = "force-dynamic";
 
@@ -204,7 +205,14 @@ export async function GET() {
     .limit(1)
     .maybeSingle();
   const metricsMrr = Number(latestMetric?.mrr_aud ?? 0) || 0;
-  const burnRate = Number(latestMetric?.burn_rate_aud ?? 0) || 0;
+  const metricsBurn = Number(latestMetric?.burn_rate_aud ?? 0) || 0;
+
+  // S28-C — categorised bank lines (/workspace/expenses) are the fallback
+  // source after the connectors: average monthly income / spend over the
+  // last 12 months, labelled "from bank CSV, <date>". Burn rate follows the
+  // same precedence (metrics first, then the bank CSV).
+  const bankCsv = projectId ? await bankCsvFigures(supabase, projectId) : null;
+  const burnRate = metricsBurn > 0 ? metricsBurn : bankCsv?.monthlyOpex ?? 0;
 
   // ── 4. Build monthly breakdown (sorted) ───────────────────────────────
   const monthly: MonthlyRevenue[] = [];
@@ -263,7 +271,8 @@ export async function GET() {
       refunds12m: totalRefunds,
     },
     manual: { total12m: manualTotal, count: manualEntries?.length ?? 0 },
-    startupMetrics: { mrr: metricsMrr, burnRate },
+    startupMetrics: { mrr: metricsMrr, burnRate: metricsBurn },
+    bankCsv,
     cogsEstimate: totalCogs,
     monthlyGrowthPct,
   });
@@ -304,7 +313,9 @@ export async function GET() {
     },
     metrics: {
       burnRate: Math.round(burnRate * 100) / 100,
+      burnRateSource: metricsBurn > 0 ? "startup_metrics" : bankCsv?.monthlyOpex ? "bank_csv" : "none",
     },
+    bankCsv: bankCsv ? { takenAt: bankCsv.takenAt, monthsWithData: bankCsv.monthsWithData, needsReviewCount: bankCsv.needsReviewCount } : null,
     sources: figures.sources,
     connectors: {
       stripe: stripeSnapshot
