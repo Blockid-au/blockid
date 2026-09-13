@@ -253,10 +253,10 @@ export function parseCandidates(raw: string): ProposalCandidate[] | null {
     } catch {
       continue;
     }
-    if (isObjectArray(parsed)) return parsed as ProposalCandidate[];
+    if (isObjectArray(parsed)) return parsed as unknown as ProposalCandidate[];
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
       const arr = Object.values(parsed as Record<string, unknown>).find(isObjectArray);
-      if (arr) return arr as ProposalCandidate[];
+      if (arr) return arr as unknown as ProposalCandidate[];
     }
   }
   return null;
