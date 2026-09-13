@@ -124,6 +124,36 @@ describe("GET /api/oauth/xero/callback — session binding (S18-A P1-2)", () => 
     expect(db.sb!.hasEq("svi_evidence", "account_id", "acct-1")).toBe(true);
   });
 
+  it("evidence rows land in real SVI dimensions: xero_pl → iri, xero_revenue → tre (S25-review-2 P3), matched on the same keys", async () => {
+    const PL = {
+      Reports: [{
+        ReportName: "Profit and Loss",
+        Rows: [
+          { RowType: "Section", Title: "Income", Rows: [{ RowType: "SummaryRow", Cells: [{ Value: "Total Income" }, { Value: "27,000.00" }] }] },
+          { RowType: "Section", Title: "Less Operating Expenses", Rows: [{ RowType: "SummaryRow", Cells: [{ Value: "Total Operating Expenses" }, { Value: "19,500.00" }] }] },
+        ],
+      }],
+    };
+    fetchSpy.mockImplementation(async (url: string) => {
+      const u = String(url);
+      if (u.includes("identity.xero.com/connect/token")) return { ok: true, json: async () => ({ access_token: "xero-token", refresh_token: "r" }) };
+      if (u.includes("api.xero.com/connections")) return { ok: true, json: async () => [{ tenantId: "tenant-1", tenantName: "Acme Pty Ltd" }] };
+      if (u.includes("Reports/ProfitAndLoss")) return { ok: true, json: async () => PL };
+      if (u.includes("Reports/BankSummary")) return { ok: true, json: async () => ({ Reports: [] }) };
+      return { ok: false, status: 404, json: async () => ({}), text: async () => "" };
+    });
+    const res = await run();
+    expect(location(res).searchParams.get("connected")).toBe("xero");
+    const inserts = db.sb!.find("svi_evidence", "insert").map((c) => c.args[0] as Record<string, unknown>);
+    expect(inserts.map((r) => [r.evidence_type, r.dimension])).toEqual([["xero_pl", "iri"], ["xero_revenue", "tre"]]);
+    for (const r of inserts) expect(["ftv", "mpc", "ptd", "tre", "cgh", "iri", "lco", "svm"]).toContain(r.dimension);
+    // The existence lookup uses the SAME dimension it writes, so the resync's upsert finds the callback's row.
+    expect(db.sb!.hasEq("svi_evidence", "dimension", "iri")).toBe(true);
+    expect(db.sb!.hasEq("svi_evidence", "dimension", "tre")).toBe(true);
+    expect(db.sb!.hasEq("svi_evidence", "dimension", "financial_health")).toBe(false);
+    expect(db.sb!.hasEq("svi_evidence", "dimension", "traction")).toBe(false);
+  });
+
   it("admin on a shared project: evidence keyed on the OWNER's account", async () => {
     scopeState.role = "admin";
     const res = await run();

@@ -9,7 +9,9 @@
  *     charged; register PDF download; "Save to data room" (editor+);
  *   - per-shareholder statement list: number, gross, franking credit, TFN
  *     withheld, issued / voided; download PDF (optionally "prepared for" →
- *     watermark); void with a reason (owner / admin);
+ *     watermark); void with a reason (owner / admin) — an inline reason
+ *     textarea + Confirm / Cancel under the row, the same pattern as the
+ *     issue preview (no `window.prompt`, S25-review-2);
  *   - empty state when no dividend has been declared yet.
  *
  * `initial` lets the colocated render test seed the state without a fetch;
@@ -90,6 +92,91 @@ export function canVoid(role: StatementsPanelState["role"]): boolean {
   return role === "owner" || role === "admin";
 }
 
+/** Mirrors REASON_MAX_LEN in api/dividends/statements/[id]/void. */
+export const VOID_REASON_MAX_LEN = 500;
+
+/** The trimmed reason the void API accepts, or null when it would be rejected. */
+export function normaliseVoidReason(raw: string): string | null {
+  const reason = raw.trim();
+  if (!reason || reason.length > VOID_REASON_MAX_LEN) return null;
+  return reason;
+}
+
+export interface VoidReasonFormProps {
+  statementId: string;
+  statementNo: string;
+  reason: string;
+  busy: boolean;
+  onChange: (reason: string) => void;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+/**
+ * Inline void confirm (replaces `window.prompt`): a reason textarea +
+ * Confirm / Cancel under the statement row. Pure — the panel owns the state
+ * so the colocated test renders it statically.
+ */
+export function VoidReasonForm({ statementId, statementNo, reason, busy, onChange, onConfirm, onCancel }: VoidReasonFormProps) {
+  const inputId = `void-reason-${statementId}`;
+  const hintId = `${inputId}-hint`;
+  const valid = normaliseVoidReason(reason) !== null;
+  return (
+    <div
+      id={`void-confirm-${statementId}`}
+      role="group"
+      aria-labelledby={`${inputId}-label`}
+      className="mt-2 w-full rounded-xl border border-amber-200 bg-amber-50 p-3"
+      data-testid="void-confirm"
+      data-statement={statementNo}
+    >
+      <label id={`${inputId}-label`} htmlFor={inputId} className="block text-xs font-semibold text-amber-900">
+        Void {statementNo} — reason (printed on the VOID banner)
+      </label>
+      <textarea
+        id={inputId}
+        value={reason}
+        onChange={(e) => onChange(e.target.value)}
+        rows={2}
+        maxLength={VOID_REASON_MAX_LEN}
+        required
+        aria-required="true"
+        aria-describedby={hintId}
+        aria-invalid={reason.length > 0 && !valid ? "true" : undefined}
+        disabled={busy}
+        autoFocus
+        placeholder="e.g. wrong holding — 500,000 shares, not 600,000"
+        data-testid="void-reason"
+        className="mt-1.5 w-full rounded-lg border border-amber-200 bg-white px-2.5 py-1.5 text-xs text-ink-800 focus:outline-none focus:ring-2 focus:ring-amber-300"
+      />
+      <p id={hintId} className="mt-1 text-[11px] text-amber-800">
+        Voiding is one-way: the statement stays in the register marked VOID and a replacement can be issued at no extra charge.
+      </p>
+      <div className="mt-2 flex gap-2">
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={busy || !valid}
+          data-testid="confirm-void"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-800 disabled:opacity-60"
+        >
+          {busy ? <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" /> : <ShieldAlert strokeWidth={1.75} className="h-3.5 w-3.5" />}
+          Confirm void
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={busy}
+          data-testid="cancel-void"
+          className="rounded-lg border border-surface-200 px-3 py-1.5 text-xs font-medium text-ink-600 hover:bg-surface-50"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function DividendStatementsPanel({ initial }: { initial?: StatementsPanelState }) {
   const [state, setState] = React.useState<StatementsPanelState | null>(initial ?? null);
   const [loading, setLoading] = React.useState(!initial);
@@ -98,6 +185,8 @@ export function DividendStatementsPanel({ initial }: { initial?: StatementsPanel
   const [error, setError] = React.useState<string | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
   const [recipient, setRecipient] = React.useState("");
+  /** The statement whose inline void confirm is open, with the reason typed so far. */
+  const [voidTarget, setVoidTarget] = React.useState<{ id: string; reason: string } | null>(null);
 
   React.useEffect(() => {
     if (initial) return;
@@ -205,23 +294,24 @@ export function DividendStatementsPanel({ initial }: { initial?: StatementsPanel
 
   const voidOne = React.useCallback(
     async (s: StatementListItem) => {
-      const reason = typeof window !== "undefined" ? window.prompt("Reason for voiding this statement (printed on the VOID banner):") : null;
-      if (!reason || !reason.trim()) return;
+      const reason = voidTarget?.id === s.id ? normaliseVoidReason(voidTarget.reason) : null;
+      if (!reason) return;
       setBusy(`void:${s.id}`);
       setError(null);
       try {
-        const { res, json } = await post(`/api/dividends/statements/${s.id}/void`, { reason: reason.trim() });
+        const { res, json } = await post(`/api/dividends/statements/${s.id}/void`, { reason });
         if (!res.ok || !json.statement) {
           setError(json.error ?? "Void failed");
           return;
         }
         setState((st) => (st ? { ...st, records: st.records.map((r) => ({ ...r, statements: r.statements.map((x) => (x.id === s.id ? json.statement : x)) })) } : st));
+        setVoidTarget(null);
         setNotice(`Statement ${s.statementNo} voided — issue statements again to replace it.`);
       } finally {
         setBusy(null);
       }
     },
-    [post],
+    [post, voidTarget],
   );
 
   if (loading) return <div className="animate-pulse h-24 bg-surface-100 rounded-2xl" data-testid="statements-panel-loading" />;
@@ -383,6 +473,7 @@ export function DividendStatementsPanel({ initial }: { initial?: StatementsPanel
                     )}
                     {r.statements.map((s) => {
                       const voided = Boolean(s.voidedAt);
+                      const voidOpen = voidTarget?.id === s.id;
                       return (
                         <li key={s.id} className="py-2.5 flex flex-wrap items-center justify-between gap-3" data-testid="statement-row" data-statement={s.statementNo} data-voided={voided ? "1" : "0"}>
                           <div className="min-w-0">
@@ -411,8 +502,13 @@ export function DividendStatementsPanel({ initial }: { initial?: StatementsPanel
                             {voidAllowed && !voided && (
                               <button
                                 type="button"
-                                onClick={() => void voidOne(s)}
-                                disabled={busy !== null}
+                                onClick={() => {
+                                  setError(null);
+                                  setVoidTarget(voidOpen ? null : { id: s.id, reason: "" });
+                                }}
+                                disabled={busy !== null || (voidTarget !== null && !voidOpen)}
+                                aria-expanded={voidOpen}
+                                aria-controls={`void-confirm-${s.id}`}
                                 data-testid="statement-void"
                                 className="inline-flex items-center gap-1 rounded-lg border border-amber-200 px-2.5 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-50 disabled:opacity-60"
                               >
@@ -421,6 +517,17 @@ export function DividendStatementsPanel({ initial }: { initial?: StatementsPanel
                               </button>
                             )}
                           </div>
+                          {voidAllowed && !voided && voidOpen && voidTarget && (
+                            <VoidReasonForm
+                              statementId={s.id}
+                              statementNo={s.statementNo}
+                              reason={voidTarget.reason}
+                              busy={busy === `void:${s.id}`}
+                              onChange={(reason) => setVoidTarget({ id: s.id, reason })}
+                              onConfirm={() => void voidOne(s)}
+                              onCancel={() => setVoidTarget(null)}
+                            />
+                          )}
                         </li>
                       );
                     })}

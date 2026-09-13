@@ -17,7 +17,7 @@ import { sealToken } from "@/lib/oauth-token-seal";
 import { findOrCreateSVIAccount } from "@/lib/projects";
 import { projectScopeOrRedirect } from "@/lib/project-members/http";
 import { oauthSessionOrRedirect } from "@/lib/project-members/oauth-session";
-import { xeroMetricsFromReports, type XeroReportsResponse } from "@/lib/connectors/xero-metrics";
+import { XERO_PL_EVIDENCE_DIMENSION, XERO_REVENUE_EVIDENCE_DIMENSION, xeroMetricsFromReports, type XeroReportsResponse } from "@/lib/connectors/xero-metrics";
 import { insertConnectorSnapshot } from "@/lib/connectors/snapshots";
 
 export const dynamic = "force-dynamic";
@@ -245,13 +245,14 @@ export async function GET(request: Request) {
       source: "callback",
     });
 
-    // 7. Upsert CFO evidence (financial_health) — always created
+    // 7. Upsert P&L evidence (xero_pl → `iri`, S25-review-2 P3; was the
+    //    non-SVI key "financial_health", which the rescore skipped) — always created
     const { data: existingCfo } = await supabase
       .from("svi_evidence")
       .select("id")
       .eq("account_id", accountId)
       .eq("evidence_type", "xero_pl")
-      .eq("dimension", "financial_health")
+      .eq("dimension", XERO_PL_EVIDENCE_DIMENSION)
       .maybeSingle();
 
     const cfoPayload = {
@@ -266,7 +267,7 @@ export async function GET(request: Request) {
         connectedAt: new Date().toISOString(),
       }),
       confidence_level: "connected_source" as const,
-      dimension: "financial_health",
+      dimension: XERO_PL_EVIDENCE_DIMENSION,
       svi_impact: 18,
       verified_at: new Date().toISOString(),
     };
@@ -277,14 +278,14 @@ export async function GET(request: Request) {
       await supabase.from("svi_evidence").insert({ ...cfoPayload, created_at: new Date().toISOString() });
     }
 
-    // 8. Upsert TRE evidence (traction) — only if income > 0
+    // 8. Upsert TRE evidence (xero_revenue → `tre`; was the non-SVI key "traction") — only if income > 0
     if (totalIncomeAud > 0) {
       const { data: existingTre } = await supabase
         .from("svi_evidence")
         .select("id")
         .eq("account_id", accountId)
         .eq("evidence_type", "xero_revenue")
-        .eq("dimension", "traction")
+        .eq("dimension", XERO_REVENUE_EVIDENCE_DIMENSION)
         .maybeSingle();
 
       const incomeDisplay =
@@ -303,7 +304,7 @@ export async function GET(request: Request) {
           connectedAt: new Date().toISOString(),
         }),
         confidence_level: "connected_source" as const,
-        dimension: "traction",
+        dimension: XERO_REVENUE_EVIDENCE_DIMENSION,
         svi_impact: 15,
         verified_at: new Date().toISOString(),
       };

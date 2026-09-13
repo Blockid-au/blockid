@@ -125,6 +125,39 @@ describe("resolveRevenueFigures — connector snapshots win", () => {
     expect(f.growthPct).toBe(25);
   });
 
+  it("a Stripe snapshot with mrrAud 0 / absent is no figure: Xero income ÷ 3 wins, then platform, then metrics, then none (S25-review-2 P3)", () => {
+    const zeroStripe = snap("stripe", "2026-09-07T05:00:00Z", { mrrAud: 0, activeSubscriptions: 0 });
+    const noMrrStripe = snap("stripe", "2026-09-07T05:00:00Z", { activeSubscriptions: 0 });
+
+    const withXero = resolveRevenueFigures({ ...BASE, stripeSnapshot: zeroStripe, xeroSnapshot: xero });
+    expect(withXero.mrr).toBe(9000);
+    expect(withXero.sources.mrr).toEqual({ kind: "xero", label: "from Xero, 3 Sep", takenAt: "2026-09-03T02:00:00Z" });
+    // Subscriptions are still Stripe's honest zero (Xero has no such figure).
+    expect(withXero.activeSubscriptions).toBe(0);
+    expect(withXero.sources.activeSubscriptions.kind).toBe("stripe_connect");
+
+    const absent = resolveRevenueFigures({ ...BASE, stripeSnapshot: noMrrStripe, xeroSnapshot: xero });
+    expect(absent.mrr).toBe(9000);
+    expect(absent.sources.mrr.kind).toBe("xero");
+
+    const platformOnly = resolveRevenueFigures({ ...BASE, stripeSnapshot: zeroStripe, platform: { hasStripe: true, mrr: 99, activeSubscriptions: 1, netRevenue12m: 1188, refunds12m: 0 } });
+    expect(platformOnly.mrr).toBe(99);
+    expect(platformOnly.sources.mrr.kind).toBe("stripe_platform");
+
+    const metricsOnly = resolveRevenueFigures({ ...BASE, stripeSnapshot: zeroStripe, startupMetrics: { mrr: 400, burnRate: 0 } });
+    expect(metricsOnly.mrr).toBe(400);
+    expect(metricsOnly.sources.mrr.kind).toBe("startup_metrics");
+
+    const nothing = resolveRevenueFigures({ ...BASE, stripeSnapshot: zeroStripe });
+    expect(nothing.mrr).toBe(0);
+    expect(nothing.sources.mrr.kind).toBe("none");
+
+    // A positive Stripe figure still wins over Xero.
+    const positive = resolveRevenueFigures({ ...BASE, stripeSnapshot: snap("stripe", "2026-09-07T05:00:00Z", { mrrAud: 1 }), xeroSnapshot: xero });
+    expect(positive.mrr).toBe(1);
+    expect(positive.sources.mrr.kind).toBe("stripe_connect");
+  });
+
   it("Xero without a net-profit figure derives net = income − expenses; no prior → growth falls back to the monthly series", () => {
     const f = resolveRevenueFigures({
       ...BASE,

@@ -1,4 +1,5 @@
-// Colocated suite for the distribution statement + register renderers (S25-B).
+// Colocated suite for the distribution statement renderer (S25-B). The
+// register renderer has its own suite: dividend-register-pdf.test.tsx.
 //
 // Reads the text back with pdf-parse and pins:
 //   - one A4 page; every s 202-80 field (entity + ABN/ACN, date paid, gross,
@@ -9,17 +10,15 @@
 //   - never "PhD";
 //   - the TFN withholding line on a no-TFN partially franked statement;
 //   - watermark when a recipient label is given, clean page otherwise;
-//   - VOID banner; content hash printed in full;
-//   - register: rows, totals, reconciliation, landscape single page.
+//   - VOID banner; content hash printed in full.
 
 import { describe, expect, it } from "vitest";
 import { PDFParse } from "pdf-parse";
 
 import { pdfPageCount } from "./page-count";
 import { DIVIDEND_STATEMENT_DISCLAIMER, renderDividendStatementPdf } from "./dividend-statement-pdf";
-import { renderDividendRegisterPdf } from "./dividend-register-pdf";
 import { watermarkLabel } from "./watermark";
-import { SAMPLE_REGISTER, SAMPLE_STATEMENT, SAMPLE_STATEMENT_WITHHELD } from "@/lib/dividends/fixtures";
+import { SAMPLE_STATEMENT, SAMPLE_STATEMENT_WITHHELD } from "@/lib/dividends/fixtures";
 
 const HASH = "blockid:v1:" + "ab".repeat(32);
 
@@ -119,43 +118,5 @@ describe("renderDividendStatementPdf", () => {
 
     const clean = await pageTexts(await renderDividendStatementPdf({ data: SAMPLE_STATEMENT, contentHash: HASH, watermark: null }));
     expect(clean[0]).not.toContain("Prepared for");
-  });
-});
-
-describe("renderDividendRegisterPdf", () => {
-  it("lists every statement with totals and the reconciliation line on one landscape page", async () => {
-    const buf = await renderDividendRegisterPdf({ data: SAMPLE_REGISTER, watermark: null });
-    expect(pdfPageCount(buf)).toBe(1);
-    const [text] = await pageTexts(buf);
-    expect(text).toContain("Dividend register");
-    expect(text).toContain("June 2026");
-    expect(text).toContain("Acme Robotics Pty Ltd");
-    expect(text).toContain("ABN 12 345 678 901");
-    expect(text).toContain("DS-7K3MP-Q9X2A");
-    expect(text).toContain("DS-ABCDE-FGHJK");
-    expect(text).toContain("Jane Founder");
-    expect(text).toContain("Seed Investor Pty Ltd");
-    expect(text).toContain("no TFN");
-    expect(text).toContain("Totals");
-    expect(text).toContain("2 issued");
-    expect(text).toContain("1,000,000");
-    expect(text).toContain("A$50,000.00");
-    expect(text).toContain("A$16,666.67");
-    expect(text).toContain("Reconciled");
-    expect(text).toContain(DIVIDEND_STATEMENT_DISCLAIMER);
-    expect(text).not.toContain("Auschain");
-    expect(text).not.toMatch(/PhD/);
-  });
-
-  it("an empty register says so and a variance is flagged", async () => {
-    const empty = { ...SAMPLE_REGISTER, rows: [], totals: { ...SAMPLE_REGISTER.totals, grossAud: 0, statementsIssued: 0 }, reconciled: true, varianceAud: 0 };
-    const [t1] = await pageTexts(await renderDividendRegisterPdf({ data: empty, watermark: null }));
-    expect(t1).toContain("No statements have been issued for this dividend yet.");
-
-    const variance = { ...SAMPLE_REGISTER, reconciled: false, varianceAud: -20_000 };
-    const [t2] = await pageTexts(await renderDividendRegisterPdf({ data: variance, watermark: "Prepared for auditor · 16 Jul 2026 · BlockID.au" }));
-    expect(t2).toContain("Variance -A$20,000.00");
-    expect(t2).toContain("do not add up to the declared total");
-    expect(t2).toContain("Prepared for auditor");
   });
 });

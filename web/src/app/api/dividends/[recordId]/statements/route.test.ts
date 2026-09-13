@@ -7,7 +7,11 @@
 //          nothing); editor allowed, viewer 403, no project 404, another
 //          project's record 404, non-uuid 404; no payouts → 409;
 //          insufficient credits → 402 before preview; total insert failure
-//          after a spend → refund.
+//          after a spend → refund; PARTIAL insert failure keeps the charge
+//          (the inserted rows carry `credits_charged`), reports
+//          issued/failed counts and the retry is free (S25-review-2 P2);
+//          a record with any charged statement (live or voided) is never
+//          charged again.
 //   GET  — viewer+ statements + register for the record.
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -45,13 +49,19 @@ vi.mock("@/lib/credits", async () => {
 const gate = vi.hoisted(() => ({ included: false, via: null as "addon" | "growth" | null }));
 vi.mock("@/lib/dividends/gate", () => ({ statementsIncluded: async () => ({ included: gate.included, via: gate.via }) }));
 
-const issue = vi.hoisted(() => ({ failAll: false }));
+const issue = vi.hoisted(() => ({ failAll: false, failNames: [] as string[] }));
 vi.mock("@/lib/dividends/server", async () => {
   const real = await vi.importActual<typeof import("@/lib/dividends/server")>("@/lib/dividends/server");
   return {
     ...real,
-    issueStatementsForRecord: async (input: Parameters<typeof real.issueStatementsForRecord>[0]) =>
-      issue.failAll ? { ok: true, issued: [], existing: [], failed: ["Jane Founder", "Seed Investor Pty Ltd"] } : real.issueStatementsForRecord(input),
+    issueStatementsForRecord: async (input: Parameters<typeof real.issueStatementsForRecord>[0]) => {
+      if (issue.failAll) return { ok: true, issued: [], existing: [], failed: ["Jane Founder", "Seed Investor Pty Ltd"] };
+      if (issue.failNames.length === 0) return real.issueStatementsForRecord(input);
+      // Partial failure: the named payouts "fail to insert", the rest go through the real path.
+      const payouts = (input.record.payouts ?? []).filter((p) => !issue.failNames.includes(p.name));
+      const r = await real.issueStatementsForRecord({ ...input, record: { ...input.record, payouts } });
+      return { ...r, failed: [...r.failed, ...issue.failNames] };
+    },
   };
 });
 
@@ -108,7 +118,30 @@ function reset() {
   gate.included = false;
   gate.via = null;
   issue.failAll = false;
+  issue.failNames = [];
 }
+
+/** A stored statement row for `key` (`credits_charged` / `voided_at` overridable). */
+function storedStatement(key: string, id: string, over: Record<string, unknown> = {}) {
+  return {
+    id,
+    project_id: "proj-1",
+    user_id: "user-caller",
+    dividend_record_id: REC,
+    shareholder_id: key.startsWith("id:") ? key.slice(3) : null,
+    shareholder_key: key,
+    statement_no: `DS-AAAAA-${id.slice(0, 5).toUpperCase()}`,
+    content_hash: "blockid:v1:" + "0".repeat(64),
+    payload: { shareholder: { name: "x", role: "r", sharesHeld: 1 }, amounts: { grossAud: 1, frankingCreditAud: 0, tfnWithheldAud: 0, netPaidAud: 1, frankingPct: 100 } },
+    credits_charged: 2,
+    issued_at: "2026-07-16T00:00:00Z",
+    voided_at: null,
+    void_reason: null,
+    ...over,
+  };
+}
+const JANE_KEY = "id:22222222-2222-4222-8222-222222222222";
+const SEED_KEY = "id:33333333-3333-4333-8333-333333333333";
 
 const ctx = (recordId = REC) => ({ params: Promise.resolve({ recordId }) });
 function post(body: unknown = {}, recordId = REC) {
@@ -223,22 +256,7 @@ describe("POST — cost preview / confirm", () => {
   });
 
   it("idempotent: with every shareholder already issued, the preview costs 0 and confirm inserts + charges nothing", async () => {
-    const live = (key: string, id: string) => ({
-      id,
-      project_id: "proj-1",
-      user_id: "user-caller",
-      dividend_record_id: REC,
-      shareholder_id: key.startsWith("id:") ? key.slice(3) : null,
-      shareholder_key: key,
-      statement_no: `DS-AAAAA-${id.slice(0, 5).toUpperCase()}`,
-      content_hash: "blockid:v1:" + "0".repeat(64),
-      payload: { shareholder: { name: "x", role: "r", sharesHeld: 1 }, amounts: { grossAud: 1, frankingCreditAud: 0, tfnWithheldAud: 0, netPaidAud: 1, frankingPct: 100 } },
-      credits_charged: 2,
-      issued_at: "2026-07-16T00:00:00Z",
-      voided_at: null,
-      void_reason: null,
-    });
-    seed({ dividend_statements: [live("id:22222222-2222-4222-8222-222222222222", "aaaaa-1"), live("id:33333333-3333-4333-8333-333333333333", "bbbbb-2")] });
+    seed({ dividend_statements: [storedStatement(JANE_KEY, "aaaaa-1"), storedStatement(SEED_KEY, "bbbbb-2")] });
     const preview = await (await post({})).json();
     expect(preview.toIssue).toEqual([]);
     expect(preview.alreadyIssued).toBe(2);
@@ -253,12 +271,81 @@ describe("POST — cost preview / confirm", () => {
     expect(db.sb!.find("dividend_statements", "insert")).toHaveLength(0);
   });
 
-  it("insert failure after a spend → refund + 500", async () => {
+  it("TOTAL insert failure after a spend → refund + 500 (no row carries the marker, so the retry would charge again)", async () => {
     issue.failAll = true;
     const res = await post({ confirm: true });
     expect(res.status).toBe(500);
-    expect((await res.json()).error).toBe("statement_insert_failed");
+    const body = await res.json();
+    expect(body.error).toBe("statement_insert_failed");
+    expect(body.issuedCount).toBe(0);
+    expect(body.failedCount).toBe(2);
+    expect(body.retryCost).toBe(2);
     expect(credits.grantCredits).toHaveBeenCalledWith("user-caller", 2, "refund", expect.objectContaining({ feature: "dividend_statements", reason: "statement_insert_failed" }));
+  });
+
+  it("PARTIAL insert failure → 200 partial with counts, the charge stands (no refund), retryCost 0, inserted row carries the marker", async () => {
+    issue.failNames = ["Seed Investor Pty Ltd"];
+    const res = await post({ confirm: true });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.partial).toBe(true);
+    expect(body.issuedCount).toBe(1);
+    expect(body.failedCount).toBe(1);
+    expect(body.issued[0].shareholderName).toBe("Jane Founder");
+    expect(body.failed).toEqual(["Seed Investor Pty Ltd"]);
+    expect(body.creditsCharged).toBe(2);
+    expect(body.alreadyCharged).toBe(false);
+    expect(body.retryCost).toBe(0);
+    expect(credits.spendCredits).toHaveBeenCalledTimes(1);
+    expect(credits.grantCredits).not.toHaveBeenCalled();
+    const inserts = db.sb!.find("dividend_statements", "insert");
+    expect(inserts).toHaveLength(1);
+    expect((inserts[0].args[0] as { credits_charged: number }).credits_charged).toBe(2);
+  });
+
+  it("re-press after a partial failure: the charged row marks the record paid → preview cost 0, confirm inserts only the missing row and spends nothing", async () => {
+    seed({ dividend_statements: [storedStatement(JANE_KEY, "aaaaa-1", { credits_charged: 2 })] });
+    const preview = await (await post({})).json();
+    expect(preview.toIssue).toEqual(["Seed Investor Pty Ltd"]);
+    expect(preview.alreadyIssued).toBe(1);
+    expect(preview.alreadyCharged).toBe(true);
+    expect(preview.cost).toBe(0);
+    expect(credits.canAfford).not.toHaveBeenCalled();
+
+    const body = await (await post({ confirm: true })).json();
+    expect(body.ok).toBe(true);
+    expect(body.partial).toBe(false);
+    expect(body.issuedCount).toBe(1);
+    expect(body.issued[0].shareholderName).toBe("Seed Investor Pty Ltd");
+    expect(body.existing).toHaveLength(1);
+    expect(body.creditsCharged).toBe(0);
+    expect(body.alreadyCharged).toBe(true);
+    expect(body.retryCost).toBe(0);
+    expect(credits.spendCredits).not.toHaveBeenCalled();
+    const inserts = db.sb!.find("dividend_statements", "insert");
+    expect(inserts).toHaveLength(1);
+    expect((inserts[0].args[0] as { credits_charged: number }).credits_charged).toBe(0);
+  });
+
+  it("a VOIDED charged statement still marks the record paid: re-issue after void costs 0", async () => {
+    seed({ dividend_statements: [storedStatement(JANE_KEY, "aaaaa-1", { credits_charged: 2, voided_at: "2026-07-20T00:00:00Z", void_reason: "Wrong holding" })] });
+    const preview = await (await post({})).json();
+    expect(preview.toIssue).toEqual(["Jane Founder", "Seed Investor Pty Ltd"]);
+    expect(preview.alreadyCharged).toBe(true);
+    expect(preview.cost).toBe(0);
+    const body = await (await post({ confirm: true })).json();
+    expect(body.issuedCount).toBe(2);
+    expect(body.creditsCharged).toBe(0);
+    expect(credits.spendCredits).not.toHaveBeenCalled();
+  });
+
+  it("an INCLUDED (credits_charged 0) earlier issue does not mark the record paid for a later non-included caller", async () => {
+    seed({ dividend_statements: [storedStatement(JANE_KEY, "aaaaa-1", { credits_charged: 0 })] });
+    const preview = await (await post({})).json();
+    expect(preview.alreadyCharged).toBe(false);
+    expect(preview.cost).toBe(2);
+    expect(preview.toIssue).toEqual(["Seed Investor Pty Ltd"]);
   });
 
   it("credit spend failure → 402, nothing inserted", async () => {

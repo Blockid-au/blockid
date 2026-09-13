@@ -19,6 +19,7 @@ import {
   loadCompanyForScope,
   loadShareholdersForScope,
   matchPayouts,
+  recordAlreadyCharged,
   recordSummary,
   registerForRecord,
   statementContentHash,
@@ -245,6 +246,17 @@ describe("issueStatementsForRecord — idempotent", () => {
     const res = await issueStatementsForRecord({ db: sb as never, projectId: "proj-1", userId: "u", company, record: record(), shareholders: holders, creditsCharged: 0, now: NOW });
     expect(res.issued).toHaveLength(2);
     expect(sb.find("dividend_statements", "insert").map((c) => (c.args[0] as { shareholder_key: string }).shareholder_key)).toEqual(["id:sh-1", "id:sh-2"]);
+  });
+});
+
+describe("recordAlreadyCharged — once-per-record charge marker (S25-review-2 P2)", () => {
+  it("true when ANY row (live or voided) carries credits_charged > 0; false for included (0) rows, empty or malformed", () => {
+    expect(recordAlreadyCharged([])).toBe(false);
+    expect(recordAlreadyCharged([issueSync({ credits_charged: 0 })])).toBe(false);
+    expect(recordAlreadyCharged([issueSync({ credits_charged: 2 })])).toBe(true);
+    expect(recordAlreadyCharged([issueSync({ credits_charged: 0 }), issueSync({ id: "st-2", credits_charged: 2, voided_at: "2026-07-20T00:00:00Z" })])).toBe(true);
+    expect(recordAlreadyCharged([issueSync({ credits_charged: "2" as unknown as number })])).toBe(true);
+    expect(recordAlreadyCharged([issueSync({ credits_charged: null as unknown as number })])).toBe(false);
   });
 });
 

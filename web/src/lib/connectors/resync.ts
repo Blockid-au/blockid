@@ -34,6 +34,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { openToken, sealToken } from "@/lib/oauth-token-seal";
 import { fetchStripeConnectMetrics, type StripeConnectMetrics } from "@/lib/oauth-stripe-signals";
 import {
+  XERO_PL_EVIDENCE_DIMENSION,
+  XERO_REVENUE_EVIDENCE_DIMENSION,
   XeroRefreshError,
   fetchXeroMetrics,
   fetchXeroTenant,
@@ -390,7 +392,7 @@ async function applyXero(db: Db, scope: ResolvedScope, m: XeroMetrics, now: Date
     ], now);
   }
   if (scope.accountId) {
-    await upsertEvidence(db, scope.accountId, { evidence_type: "xero_pl", dimension: "financial_health" }, {
+    await upsertEvidence(db, scope.accountId, { evidence_type: "xero_pl", dimension: XERO_PL_EVIDENCE_DIMENSION }, {
       label: "Xero P&L (3 months)",
       value_or_url: JSON.stringify({
         totalIncomeAud: m.totalIncomeAud,
@@ -405,7 +407,7 @@ async function applyXero(db: Db, scope: ResolvedScope, m: XeroMetrics, now: Date
     }, now);
     if (m.totalIncomeAud > 0) {
       const score = scoreConnectedRevenue({ mrrAud: mrr, capturedAt: now.toISOString(), now });
-      await upsertEvidence(db, scope.accountId, { evidence_type: "xero_revenue", dimension: "traction" }, {
+      await upsertEvidence(db, scope.accountId, { evidence_type: "xero_revenue", dimension: XERO_REVENUE_EVIDENCE_DIMENSION }, {
         label: "Xero Revenue Verified",
         value_or_url: JSON.stringify({
           totalIncomeAud: m.totalIncomeAud,

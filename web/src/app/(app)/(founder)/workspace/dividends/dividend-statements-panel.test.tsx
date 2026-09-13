@@ -8,7 +8,18 @@
 
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { DividendStatementsPanel, canIssue, canVoid, periodLabel, type DividendRecordItem, type StatementListItem, type StatementsPanelState } from "./dividend-statements-panel";
+import {
+  DividendStatementsPanel,
+  VOID_REASON_MAX_LEN,
+  VoidReasonForm,
+  canIssue,
+  canVoid,
+  normaliseVoidReason,
+  periodLabel,
+  type DividendRecordItem,
+  type StatementListItem,
+  type StatementsPanelState,
+} from "./dividend-statements-panel";
 
 const ST: StatementListItem = {
   id: "s-1",
@@ -123,6 +134,58 @@ describe("DividendStatementsPanel", () => {
     expect(canVoid("editor")).toBe(false);
     expect(periodLabel("2026-06")).toBe("June 2026");
     expect(periodLabel("x")).toBe("x");
+  });
+
+  it("void button is a disclosure for the inline confirm (aria-expanded / aria-controls), closed by default — no window.prompt", () => {
+    const html = renderToStaticMarkup(<DividendStatementsPanel initial={state()} />);
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).toContain('aria-controls="void-confirm-s-1"');
+    expect(html).not.toContain('data-testid="void-confirm"');
+    expect(html).not.toContain("prompt(");
+  });
+
+  it("VoidReasonForm: labelled group, required textarea (maxLength = API limit), Confirm disabled until a reason is typed, Cancel", () => {
+    const noop = () => {};
+    const empty = renderToStaticMarkup(<VoidReasonForm statementId="s-1" statementNo="DS-7K3MP-Q9X2A" reason="" busy={false} onChange={noop} onConfirm={noop} onCancel={noop} />);
+    expect(empty).toContain('id="void-confirm-s-1"');
+    expect(empty).toContain('role="group"');
+    expect(empty).toContain('aria-labelledby="void-reason-s-1-label"');
+    expect(empty).toContain('for="void-reason-s-1"');
+    expect(empty).toContain("Void DS-7K3MP-Q9X2A — reason (printed on the VOID banner)");
+    expect(empty).toContain('<textarea id="void-reason-s-1"');
+    expect(empty).toContain(`maxLength="${VOID_REASON_MAX_LEN}"`);
+    expect(empty).toContain('aria-required="true"');
+    expect(empty).toContain('aria-describedby="void-reason-s-1-hint"');
+    expect(empty).toContain('id="void-reason-s-1-hint"');
+    expect(empty).toContain("Voiding is one-way");
+    expect(empty).toContain('data-testid="void-reason"');
+    // Confirm disabled while the reason is blank; Cancel enabled.
+    expect(empty).toMatch(/<button type="button" disabled="" data-testid="confirm-void"/);
+    expect(empty).toMatch(/<button type="button" data-testid="cancel-void"/);
+    expect(empty).toContain("Confirm void");
+    expect(empty).not.toContain('aria-invalid');
+
+    const typed = renderToStaticMarkup(<VoidReasonForm statementId="s-1" statementNo="DS-7K3MP-Q9X2A" reason="wrong holding" busy={false} onChange={noop} onConfirm={noop} onCancel={noop} />);
+    expect(typed).toMatch(/<button type="button" data-testid="confirm-void"/);
+    expect(typed).toContain(">wrong holding</textarea>");
+
+    const busy = renderToStaticMarkup(<VoidReasonForm statementId="s-1" statementNo="DS-7K3MP-Q9X2A" reason="wrong holding" busy onChange={noop} onConfirm={noop} onCancel={noop} />);
+    expect(busy).toMatch(/<button type="button" disabled="" data-testid="confirm-void"/);
+    expect(busy).toMatch(/<button type="button" disabled="" data-testid="cancel-void"/);
+    expect(busy).toContain("animate-spin");
+
+    const tooLong = renderToStaticMarkup(<VoidReasonForm statementId="s-1" statementNo="DS-7K3MP-Q9X2A" reason={"x".repeat(VOID_REASON_MAX_LEN + 1)} busy={false} onChange={noop} onConfirm={noop} onCancel={noop} />);
+    expect(tooLong).toContain('aria-invalid="true"');
+    expect(tooLong).toMatch(/<button type="button" disabled="" data-testid="confirm-void"/);
+  });
+
+  it("normaliseVoidReason mirrors the void API: trimmed, non-empty, ≤ 500 chars", () => {
+    expect(VOID_REASON_MAX_LEN).toBe(500);
+    expect(normaliseVoidReason("  wrong holding  ")).toBe("wrong holding");
+    expect(normaliseVoidReason("   ")).toBeNull();
+    expect(normaliseVoidReason("")).toBeNull();
+    expect(normaliseVoidReason("x".repeat(500))).toHaveLength(500);
+    expect(normaliseVoidReason("x".repeat(501))).toBeNull();
   });
 
   it("intro copy is at most two sentences", () => {
