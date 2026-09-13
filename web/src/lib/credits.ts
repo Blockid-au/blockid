@@ -131,6 +131,9 @@ export const FEATURE_COSTS: Record<string, number> = {
   // ── Financial Projections (T0120) ────────────────────────────────────
   financial_projections: 2, // 2 credits — 3-year monthly projection + YoY + CSV
 
+  // ── Listing readiness PDF (S29-A) ────────────────────────────────────
+  listing_readiness_pdf: 1, // 1 credit once per project — ASX / Nasdaq readiness checklist PDF with the founder's entity block; re-downloads free (included with `esop.manage` or Growth+ / Startup Package, same gate as dividend statements)
+
   // ── Expense categorisation AI (S28-C) ────────────────────────────────
   expense_categorise: 1, // 1 credit per started block of 100 AI-categorised bank lines (min 1; rules-matched rows are free; included for Growth+ / Startup Package via hasGrowthExtras) — charged through spendCreditsUnits()
 

@@ -93,6 +93,8 @@ describe("FEATURE_COSTS", () => {
     // S28-A — annual shareholder tax statements, 2 per FY run (same gate as dividend statements)
     expect(FEATURE_COSTS.shareholder_tax_statements).toBe(2);
     expect(FEATURE_COSTS.dividend_statements).toBe(2);
+    // S29-A — listing readiness PDF, 1 credit once per project (same gate as dividend statements)
+    expect(FEATURE_COSTS.listing_readiness_pdf).toBe(1);
   });
 
   it("keeps every 0-cost 'free' feature at exactly 0 (not undefined)", () => {

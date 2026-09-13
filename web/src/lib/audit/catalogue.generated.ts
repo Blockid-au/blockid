@@ -227,6 +227,8 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/lead/route.ts", family: "lead", methods: ["POST"] },
   { route: "api/legal/ack/route.ts", family: "legal.ack", methods: ["POST"] },
   { route: "api/legal/wholesale-verify/route.ts", family: "legal.wholesale-verify", methods: ["POST"] },
+  { route: "api/listing/profile/route.ts", family: "listing.profile", methods: ["PATCH"] },
+  { route: "api/listing/readiness/pdf/route.ts", family: "listing.readiness.pdf", methods: ["POST"] },
   { route: "api/mentor/access-grant/[grantId]/route.ts", family: "mentor.access-grant", methods: ["POST"] },
   { route: "api/mentor/access-request/route.ts", family: "mentor.access-request", methods: ["POST"] },
   { route: "api/mentor/check-ins/route.ts", family: "mentor.check-ins", methods: ["POST"] },
