@@ -5,9 +5,12 @@ import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { apiRoute } from "@/lib/audit/api-route";
-import { incrementSharesHeld } from "@/lib/cap-table/shares-held";
+import { incrementSharesHeld, MAX_SHARES_DELTA } from "@/lib/cap-table/shares-held";
 
 export const dynamic = "force-dynamic";
+
+/** S29-review: the most shares one `issue_shares` call may add (matches the helper's delta bound). */
+const MAX_SHARES_PER_ISSUE = MAX_SHARES_DELTA;
 
 // S18-A review P1-1 — id-keyed mutations (issue_shares / update_shareholder /
 // DELETE) must be bounded by the PROJECT, not just the owner's account_id:
@@ -283,6 +286,15 @@ async function POST_handler(request: Request) {
       if (!shareholderId || !shareClassId || !shares || shares <= 0) {
         return NextResponse.json(
           { ok: false, error: "shareholderId, shareClassId, and shares (> 0) are required" },
+          { status: 400 },
+        );
+      }
+      // S29-review: `shares_held` is a bigint and the 0381 RPC takes an
+      // integer delta — a fractional or oversized count is a 400 here, not
+      // an `invalid_delta` 500 from the helper.
+      if (!Number.isInteger(shares) || shares > MAX_SHARES_PER_ISSUE) {
+        return NextResponse.json(
+          { ok: false, error: `shares must be a whole number no greater than ${MAX_SHARES_PER_ISSUE.toLocaleString("en-AU")}` },
           { status: 400 },
         );
       }

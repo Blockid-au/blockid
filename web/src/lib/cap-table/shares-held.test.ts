@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { __resetIncrementSharesHeldDetection, incrementSharesHeld, type SharesHeldDb } from "./shares-held";
+import { __resetIncrementSharesHeldDetection, incrementSharesHeld, MAX_SHARES_DELTA, type SharesHeldDb } from "./shares-held";
 
 interface FakeOpts {
   rpc?: (fn: string, args: Record<string, unknown>) => { data: unknown; error: { code?: string; message?: string } | null };
@@ -100,7 +100,12 @@ describe("incrementSharesHeld", () => {
     expect(await incrementSharesHeld(f.db, { shareholderId: "sh-1", delta: 0, currentSharesHeld: 0 })).toEqual({ ok: false, reason: "invalid_delta" });
     expect(await incrementSharesHeld(f.db, { shareholderId: "sh-1", delta: 1.5, currentSharesHeld: 0 })).toEqual({ ok: false, reason: "invalid_delta" });
     expect(await incrementSharesHeld(f.db, { shareholderId: "sh-1", delta: Number.NaN, currentSharesHeld: 0 })).toEqual({ ok: false, reason: "invalid_delta" });
+    // S29-review: |delta| is bounded (1e12) so the value survives the JSON round-trip to the bigint RPC intact.
+    expect(await incrementSharesHeld(f.db, { shareholderId: "sh-1", delta: MAX_SHARES_DELTA + 1, currentSharesHeld: 0 })).toEqual({ ok: false, reason: "invalid_delta" });
+    expect(await incrementSharesHeld(f.db, { shareholderId: "sh-1", delta: -(MAX_SHARES_DELTA + 1), currentSharesHeld: 0 })).toEqual({ ok: false, reason: "invalid_delta" });
     expect(f.rpcCalls).toHaveLength(0);
+    expect(await incrementSharesHeld(f.db, { shareholderId: "sh-1", delta: MAX_SHARES_DELTA, currentSharesHeld: 0 })).toEqual({ ok: true, newSharesHeld: 1, via: "rpc" });
+    expect(f.rpcCalls).toHaveLength(1);
 
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const g = fake();

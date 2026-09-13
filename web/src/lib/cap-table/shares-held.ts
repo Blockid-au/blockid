@@ -38,6 +38,14 @@ export type IncrementSharesHeldResult =
   | { ok: true; newSharesHeld: number; via: "rpc" | "update" }
   | { ok: false; reason: "invalid_delta" | "below_zero" | "not_found" | "db_error"; error?: unknown };
 
+/**
+ * S29-review: the largest |delta| one call may apply (1e12 — far above any
+ * real register, far below bigint and Number.MAX_SAFE_INTEGER so the value
+ * survives the JSON round-trip to the RPC intact). Migration 0383 enforces
+ * the same bound inside `increment_shares_held`.
+ */
+export const MAX_SHARES_DELTA = 1_000_000_000_000;
+
 /** Postgres "function does not exist" / PostgREST "could not find function". */
 const RPC_MISSING_CODES = new Set(["42883", "PGRST202"]);
 let rpcState: "unknown" | "available" | "missing" = "unknown";
@@ -55,7 +63,7 @@ function isMissingFn(error: { code?: string; message?: string } | null | undefin
 
 export async function incrementSharesHeld(db: SharesHeldDb, args: IncrementSharesHeldArgs): Promise<IncrementSharesHeldResult> {
   const delta = Number(args.delta);
-  if (!Number.isFinite(delta) || !Number.isInteger(delta) || delta === 0) return { ok: false, reason: "invalid_delta" };
+  if (!Number.isFinite(delta) || !Number.isInteger(delta) || delta === 0 || Math.abs(delta) > MAX_SHARES_DELTA) return { ok: false, reason: "invalid_delta" };
 
   if (rpcState !== "missing" && typeof db.rpc === "function") {
     let res: { data: unknown; error: { code?: string; message?: string } | null };
