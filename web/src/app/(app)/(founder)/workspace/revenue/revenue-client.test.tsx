@@ -28,6 +28,15 @@ describe("DataSourcesPanel", () => {
     expect(out).toContain("re-sync every Monday");
   });
 
+  it("Xero OAuth app not configured on the server: no dead link, an honest 'not available yet' label (live QA F2)", async () => {
+    const out = await html(
+      <DataSourcesPanel data={{ hasStripe: false, hasStripeConnect: false, hasXero: false, connectors: { stripe: null, xero: null }, available: { xero: false, stripeConnect: true } }} />,
+    );
+    expect(out).not.toContain('href="/api/oauth/xero"');
+    expect(out).toContain("Xero — not available yet");
+    expect(out).toContain('data-testid="xero-unavailable"');
+  });
+
   it("connected Xero + Stripe Connect: green cards with the last sync date, no connect links", async () => {
     const out = await html(
       <DataSourcesPanel

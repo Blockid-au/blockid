@@ -54,6 +54,8 @@ interface RevenueData {
   hasStripe: boolean;
   hasStripeConnect?: boolean;
   hasXero?: boolean;
+  /** Whether the OAuth app for each connector is configured on the server. */
+  available?: { xero: boolean; stripeConnect: boolean };
   manualEntryCount: number;
 }
 
@@ -838,7 +840,9 @@ export function RevenueClient() {
 // resync weekly (api/cron/connector-resync) into the figures above. QuickBooks
 // has no OAuth app yet and stays "Coming Soon". Exported for the render test.
 
-export function DataSourcesPanel({ data }: { data: Pick<RevenueData, "hasStripe" | "hasStripeConnect" | "hasXero" | "connectors"> }) {
+export function DataSourcesPanel({ data }: { data: Pick<RevenueData, "hasStripe" | "hasStripeConnect" | "hasXero" | "connectors" | "available"> }) {
+  // `available` absent (older payload) → assume configured, as before.
+  const xeroAvailable = data.available ? data.available.xero : true;
   const stripeOn = Boolean(data.hasStripeConnect || data.hasStripe);
   const xeroOn = Boolean(data.hasXero);
   const stripeAt = shortSydneyDate(data.connectors?.stripe?.takenAt);
@@ -883,13 +887,22 @@ export function DataSourcesPanel({ data }: { data: Pick<RevenueData, "hasStripe"
               ? `Connected — P&L income, expenses and bank balance synced weekly${xeroAt ? ` (last: ${xeroAt})` : ""}.`
               : "Auto-import P&L income, expenses and bank balance from Xero."}
           </p>
-          {!xeroOn && (
+          {!xeroOn && xeroAvailable && (
             <a
               href="/api/oauth/xero"
               className="inline-flex h-8 items-center rounded-lg bg-brand-600 px-3 text-xs font-medium text-white hover:bg-brand-700 transition-colors"
             >
               Connect Xero
             </a>
+          )}
+          {!xeroOn && !xeroAvailable && (
+            <span
+              className="inline-flex h-8 items-center rounded-lg border border-surface-200 px-3 text-xs font-medium text-ink-400"
+              title="The Xero connection is not enabled on this deployment yet. Upload a bank CSV under Expenses in the meantime."
+              data-testid="xero-unavailable"
+            >
+              Xero — not available yet
+            </span>
           )}
         </div>
         <div className="rounded-xl border border-surface-200 p-4">

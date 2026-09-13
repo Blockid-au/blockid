@@ -6,6 +6,7 @@ import { findSVIAccountWithFallback } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { resolveBurnRate } from "@/lib/revenue/burn-rate-server";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
+import { hasRealSviScore } from "@/lib/svi/real-score";
 import { loadConnectedRevenueSignals } from "@/lib/connected-revenue";
 import { applyConnectedRevenueBridge } from "@/lib/valuation-mrr-bridge";
 import { primeSectorMultiples } from "@/lib/valuation/sector-multiples";
@@ -137,12 +138,16 @@ export async function GET() {
     // correctly said "Complete an SVI analysis first" (409). Same rule as
     // the certificate: no analysis row, no snapshot, no stored score → the
     // dashboard renders an honest empty state instead of a number.
+    // Live QA lane 1 F3 (2026-09-13): the first version of this guard accepted
+    // `current_svi > 0`, which the column DEFAULT (100) satisfies — so the
+    // empty state never showed. Evidence of scoring is the only rule now.
     const accountSvi = account.current_svi as number | null;
     const analysisSvi = (latestAnalysis?.total_svi as number | null | undefined) ?? null;
-    const hasScore =
-      !!latestAnalysis ||
-      !!snapshot ||
-      (typeof accountSvi === "number" && Number.isFinite(accountSvi) && accountSvi > 0);
+    const hasScore = hasRealSviScore({
+      hasAnalysis: !!latestAnalysis,
+      hasSnapshot: !!snapshot,
+      indexBaseDate: (account as { index_base_date?: string | null }).index_base_date ?? null,
+    });
     if (!hasScore) {
       return NextResponse.json({
         ok: true,

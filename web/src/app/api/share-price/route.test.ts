@@ -135,6 +135,17 @@ describe("GET /api/share-price", () => {
     expect(none.json.inputs.stage).toBe("idea");
   });
 
+  it("fresh account: current_svi = 100 is the column DEFAULT, not a score → no_valuation (live QA F3)", async () => {
+    Object.assign(scopeState, makeScopeState({ account: { id: "acct-1", current_svi: 100, current_stage: 1, index_base_date: null }, projectExtra: { industry: "saas" } }));
+    // no snapshot, no analysis row
+    seed({ svi_snapshots: [], svi_analyses: [] });
+    const { json } = await call();
+    expect(json.inputs.svi).toBeNull();
+    expect(json.sharePrice.ok).toBe(false);
+    expect(json.sharePrice.reason).toBe("no_valuation");
+    expect(JSON.stringify(json)).not.toContain("1.0875");
+  });
+
   it("mapStage mirrors api/valuation", () => {
     expect(mapStage(null)).toBe("idea");
     expect(mapStage(1)).toBe("idea");

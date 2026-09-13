@@ -16,6 +16,7 @@ import { findSVIAccountWithFallback, type ProjectScope } from "@/lib/projects";
 import { loadConnectedRevenueSignals } from "@/lib/connected-revenue";
 import { selectConnectedRevenue } from "@/lib/valuation-mrr-bridge";
 import { computeSharePrice, type SharePriceInput, type SharePriceResult } from "@/lib/share-price";
+import { realSviScore } from "@/lib/svi/real-score";
 import { primeSectorMultiples } from "@/lib/valuation/sector-multiples";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -58,16 +59,31 @@ export async function loadSharePriceForScope(supabase: Db, scope: ScopeLike, cal
   const ownerId = scope.ownerUserId;
 
   // 1. SVI score + stage (may be absent).
-  const account = await findSVIAccountWithFallback(scope.dataEmail, projectId, "id, current_svi, current_stage", { callerEmail: caller.email });
-  const svi = account && typeof account.current_svi === "number" ? (account.current_svi as number) : null;
+  const account = await findSVIAccountWithFallback(scope.dataEmail, projectId, "id, current_svi, current_stage, index_base_date", { callerEmail: caller.email });
   const stage = mapStage((account?.current_stage as number | null | undefined) ?? scope.project.stage);
 
+  // Live QA lane 1 F3 (2026-09-13): `current_svi` defaults to 100 at signup —
+  // only count it when the account has actually been scored (analysis row,
+  // snapshot, or index base date). Otherwise the SVI leg is absent and, with
+  // no ARR either, computeSharePrice() answers `no_valuation`.
   let dimensions: SharePriceInput["dimensions"] = null;
+  let hasSnapshot = false;
+  let hasAnalysis = false;
   if (account?.id) {
-    const { data: snapshot } = await supabase.from("svi_snapshots").select("dimension_scores").eq("account_id", account.id).order("snapshot_date", { ascending: false }).limit(1).maybeSingle();
+    const [{ data: snapshot }, { count: analysisCount }] = await Promise.all([
+      supabase.from("svi_snapshots").select("dimension_scores").eq("account_id", account.id).order("snapshot_date", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("svi_analyses").select("id", { count: "exact", head: true }).eq("email", scope.dataEmail),
+    ]);
+    hasSnapshot = !!snapshot;
+    hasAnalysis = (analysisCount ?? 0) > 0;
     const ds = (snapshot as { dimension_scores?: unknown } | null)?.dimension_scores;
     if (ds && typeof ds === "object") dimensions = ds as Record<string, number>;
   }
+  const svi = realSviScore(account?.current_svi, {
+    hasAnalysis,
+    hasSnapshot,
+    indexBaseDate: (account as { index_base_date?: string | null } | null)?.index_base_date ?? null,
+  });
 
   // 2. Fully diluted shares of the owner's cap table for this project.
   const [{ data: holders }, { data: pools }] = await Promise.all([

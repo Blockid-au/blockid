@@ -332,6 +332,14 @@ export async function GET() {
     hasStripe: !!(stripe && customer),
     hasStripeConnect: Boolean(stripeSnapshot),
     hasXero: Boolean(xeroSnapshot),
+    // Live QA lane 1 F2 (2026-09-13): "Connect Xero" sent founders to a JSON
+    // 503 when the OAuth app is not configured on the box. The panel now
+    // shows "not available yet" instead of a dead link. Same shape as the
+    // HEAD probes in api/oauth/{xero,stripe}.
+    available: {
+      xero: Boolean(process.env.XERO_CLIENT_ID),
+      stripeConnect: Boolean(process.env.STRIPE_CLIENT_ID),
+    },
     manualEntryCount: manualEntries?.length ?? 0,
   });
 }
