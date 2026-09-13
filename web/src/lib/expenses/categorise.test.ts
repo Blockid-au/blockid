@@ -5,9 +5,14 @@ import { describe, it, expect, vi } from "vitest";
 import {
   MAX_AI_BATCH,
   MIN_AI_CONFIDENCE,
+  MIN_AI_CONFIDENCE_HIGH_STAKES,
+  BANK_FEE_MAX_AUD_WITHOUT_KEYWORD,
+  BARE_COMPANY_CONFIDENCE,
   RECURRING_CONFIDENCE,
   LEARNED_CONFIDENCE,
   acceptAiAnswer,
+  isBareCompanyNarration,
+  looksLikeBankFee,
   aiSystemPrompt,
   aiUserPrompt,
   categoriseBatch,
@@ -62,8 +67,31 @@ describe("matchMerchantRule — keyword table + sign guard", () => {
     ["AUSINDUSTRY GRANT PAYMENT", 25000, "government_grants"],
     ["BIZCOVER INSURANCE", -95, "insurance"],
     ["LAWPATH LEGAL", -299, "professional_fees"],
+    // Lane-1 F5 (live QA 2026-09-13): a consulting invoice is a contractor line, not a bank fee.
+    ["BLRGH CONSULTING INV 1002", -2200, "contractors"],
+    ["ACME SERVICES INVOICE 77", -900, "contractors"],
+    ["NORTH ADVISORY INV 12", -1500, "professional_fees"],
   ])("%s (%s) → %s", (desc, amount, category) => {
     expect(matchMerchantRule(desc, amount)?.category).toBe(category);
+  });
+
+  it("lane-1 F5: a consulting invoice paid OUT is contractors; the same narration paid IN is revenue (invoice paid)", () => {
+    expect(matchMerchantRule("BLRGH CONSULTING INV 1002", -2200)?.category).toBe("contractors");
+    expect(matchMerchantRule("BLRGH CONSULTING INV 1002", 2200)?.category).toBe("revenue");
+  });
+
+  it("lane-1 F5: bank_fees rules only fire on known fee wording", () => {
+    expect(matchMerchantRule("INTERNATIONAL TRANSACTION FEE", -3.2)?.category).toBe("bank_fees");
+    expect(looksLikeBankFee("MONTHLY ACCOUNT KEEPING FEE")).toBe(true);
+    expect(looksLikeBankFee("BLRGH CONSULTING INV 1002")).toBe(false);
+    expect(looksLikeBankFee("XYZQ WIDGETS PTY LTD 4471")).toBe(false);
+  });
+
+  it("lane-1 F5: a bare company name with no other signal is recognised; a known merchant with Pty Ltd is not bare", () => {
+    expect(isBareCompanyNarration("XYZQ WIDGETS PTY LTD 4471", -88)).toBe(true);
+    expect(isBareCompanyNarration("ACME HOLDINGS LIMITED", -1200)).toBe(true);
+    expect(isBareCompanyNarration("Xero Australia Pty Ltd", -70)).toBe(false);
+    expect(isBareCompanyNarration("PAYMENT 88213 ZQ", -80)).toBe(false);
   });
 
   it("revenue / grants require money IN — a Stripe debit is not revenue", () => {
@@ -102,6 +130,19 @@ describe("categoriseRows — rules layer", () => {
     expect(decided.map((d) => d.id)).toEqual(["a"]);
     expect(decided[0].confidence).toBe(0.9);
     expect(remaining.map((r) => r.id)).toEqual(["b"]);
+  });
+
+  it("lane-1 F5: the two live-QA narrations — consulting invoice → contractors (rule); bare PTY LTD → other + review, never sent to the model", () => {
+    const rows = [tx("a", "BLRGH CONSULTING INV 1002", -2200), tx("b", "XYZQ WIDGETS PTY LTD 4471", -88)];
+    const { decided, remaining } = categoriseRows(rows);
+    expect(remaining).toEqual([]);
+    expect(decided.find((d) => d.id === "a")).toMatchObject({ category: "contractors", source: "rule", needsReview: false, gstTreatment: "gst" });
+    expect(decided.find((d) => d.id === "b")).toMatchObject({ category: "other", source: "rule", confidence: BARE_COMPANY_CONFIDENCE, needsReview: true, gstTreatment: "unknown" });
+  });
+
+  it("lane-1 F5: a learned rule for the bare company name still wins", () => {
+    const { decided } = categoriseRows([tx("b", "XYZQ WIDGETS PTY LTD 4471", -88)], { learned: { "xyzq widgets": "equipment" } });
+    expect(decided[0]).toMatchObject({ category: "equipment", source: "rule", needsReview: false });
   });
 
   it("stamps the category's default GST treatment", () => {
@@ -192,6 +233,25 @@ describe("acceptAiAnswer", () => {
 
   it("a missing answer is other + review", () => {
     expect(acceptAiAnswer(row, undefined)).toMatchObject({ category: "other", needsReview: true, confidence: 0 });
+  });
+
+  it("lane-1 F5: high-stakes categories (salaries_wages, bank_fees, owner_drawings, transfer) need confidence ≥ 0.7", () => {
+    expect(MIN_AI_CONFIDENCE_HIGH_STAKES).toBe(0.7);
+    for (const cat of ["salaries_wages", "bank_fees", "owner_drawings", "transfer"]) {
+      expect(acceptAiAnswer(row, { i: 0, category: cat, confidence: 0.69, counterparty: null })).toMatchObject({ category: "other", needsReview: true, confidence: 0.69 });
+    }
+    expect(acceptAiAnswer(row, { i: 0, category: "salaries_wages", confidence: 0.7, counterparty: null })).toMatchObject({ category: "salaries_wages", needsReview: false });
+    expect(acceptAiAnswer(row, { i: 0, category: "transfer", confidence: 0.9, counterparty: null })).toMatchObject({ category: "transfer", needsReview: false });
+    // An ordinary category still accepts at 0.5.
+    expect(acceptAiAnswer(row, { i: 0, category: "software_subscriptions", confidence: 0.55, counterparty: null })).toMatchObject({ category: "software_subscriptions", needsReview: false });
+  });
+
+  it("lane-1 F5: bank_fees above A$500 without a fee keyword is refused (the −A$2,200 consulting invoice); small or keyworded fees pass", () => {
+    expect(BANK_FEE_MAX_AUD_WITHOUT_KEYWORD).toBe(500);
+    const inv = tx("c", "BLRGH CONSULTING INV 1002", -2200);
+    expect(acceptAiAnswer(inv, { i: 0, category: "bank_fees", confidence: 0.8, counterparty: null })).toMatchObject({ category: "other", needsReview: true, gstTreatment: "unknown" });
+    expect(acceptAiAnswer(tx("d", "PAYMENT 55 ZQ", -12.5), { i: 0, category: "bank_fees", confidence: 0.8, counterparty: null })).toMatchObject({ category: "bank_fees", needsReview: false });
+    expect(acceptAiAnswer(tx("e", "MERCHANT SERVICE FEE JUNE", -640), { i: 0, category: "bank_fees", confidence: 0.8, counterparty: null })).toMatchObject({ category: "bank_fees", needsReview: false });
   });
 });
 

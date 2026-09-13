@@ -12,12 +12,21 @@
 //      (revenue / grants must be money IN);
 //   3. recurring-pattern detection across the batch: the same merchant
 //      charged a near-identical small amount in ≥ 3 distinct months with no
-//      keyword match is a subscription (0.6, no review).
+//      keyword match is a subscription (0.6, no review);
+//   4. a bare company name ("XYZQ WIDGETS PTY LTD 4471") with no other
+//      signal is `other` + review at BARE_COMPANY_CONFIDENCE — the founder
+//      names it once and the learned rule takes over. Live QA lane 1 F5
+//      (2026-09-13): the model had called that line `salaries_wages` 0.9.
 // Anything left is batched ≤ MAX_AI_BATCH per model call with a JSON
 // schema. A model answer is accepted ONLY when the category is in the enum,
 // the sign agrees, and confidence ≥ MIN_AI_CONFIDENCE — otherwise the row
-// stays `other` with `needsReview: true`. Pure: no I/O; `ai` is injected so
-// the colocated test never touches a model.
+// stays `other` with `needsReview: true`. The high-stakes categories
+// (`HIGH_STAKES_CATEGORIES`: salaries_wages, bank_fees, owner_drawings,
+// transfer — each moves a line OUT of the P&L or the GST estimate) need
+// MIN_AI_CONFIDENCE_HIGH_STAKES, and `bank_fees` additionally needs a
+// bank-fee keyword in the narration or an amount ≤ BANK_FEE_MAX_AUD_WITHOUT_KEYWORD
+// ("BLRGH CONSULTING INV 1002" −A$2,200 was `bank_fees` 0.8, GST input-taxed).
+// Pure: no I/O; `ai` is injected so the colocated test never touches a model.
 
 import {
   CATEGORIES,
@@ -32,6 +41,13 @@ import {
 
 export const MAX_AI_BATCH = 40;
 export const MIN_AI_CONFIDENCE = 0.5;
+/** Lane-1 F5: categories that take a line out of the P&L / GST estimate need a surer model. */
+export const MIN_AI_CONFIDENCE_HIGH_STAKES = 0.7;
+export const HIGH_STAKES_CATEGORIES: ReadonlySet<ExpenseCategory> = new Set<ExpenseCategory>(["salaries_wages", "bank_fees", "owner_drawings", "transfer"]);
+/** Lane-1 F5: the model may call a line `bank_fees` without a fee keyword only up to this amount. */
+export const BANK_FEE_MAX_AUD_WITHOUT_KEYWORD = 500;
+/** Rules-layer confidence for a bare company name with no other signal (flagged, never a guess). */
+export const BARE_COMPANY_CONFIDENCE = 0.3;
 export const RULE_CONFIDENCE = 0.9;
 export const LEARNED_CONFIDENCE = 0.97;
 export const RECURRING_CONFIDENCE = 0.6;
@@ -108,6 +124,34 @@ export interface MerchantRule {
   review?: boolean;
 }
 
+/** Known bank / card-provider fee wording — the only narrations the RULES call `bank_fees`. */
+export const BANK_FEE_RULE_PATTERN = /\b(account ?keeping|account fee|monthly fee|bank fee|service fee|fx fee|foreign (currency|transaction) fee|international transaction fee|overseas transaction fee|dishonour fee|overdrawn fee|card fee|atm fee|osko fee)\b/;
+
+/**
+ * Lane-1 F5: the fee wording that lets the MODEL call a line `bank_fees`
+ * above BANK_FEE_MAX_AUD_WITHOUT_KEYWORD — the rule wording plus merchant /
+ * processor fees (cost_of_sales by the earlier rule when the rules see them
+ * first) and a plain "fee" / "charge". Broader than the rule on purpose:
+ * this only gates a model answer, it never decides a category by itself.
+ */
+export const BANK_FEE_KEYWORD_PATTERN = /\b(account ?keeping|account fee|monthly fee|bank fee|service fee|fx fee|foreign (currency|transaction) fee|international transaction fee|overseas transaction fee|dishonour fee|overdrawn fee|card fee|atm fee|osko fee|merchant (service )?fee|(stripe|paypal|square|tyro) fees?|transaction fees?|fees?|charges?)\b/;
+
+/** True when the narration carries a fee keyword (see BANK_FEE_KEYWORD_PATTERN). */
+export function looksLikeBankFee(description: string): boolean {
+  return BANK_FEE_KEYWORD_PATTERN.test((description ?? "").toLowerCase().replace(/\s+/g, " "));
+}
+
+/**
+ * Lane-1 F5: a bare company name — "XYZQ WIDGETS PTY LTD 4471" — carries no
+ * signal about what was bought. True when the narration names a company
+ * (Pty Ltd / Ltd / Limited / Inc / LLC) and no merchant rule matched.
+ */
+export function isBareCompanyNarration(description: string, amountAud: number): boolean {
+  const text = (description ?? "").toLowerCase().replace(/\s+/g, " ");
+  if (!/\b(pty\.? ?ltd|pty\.? ?limited|ltd|limited|inc|llc)\b/.test(text)) return false;
+  return matchMerchantRule(description, amountAud) === null;
+}
+
 // Order matters: specific before generic ("stripe fee" before "stripe",
 // "uber eats" before "uber", "transfer" before anything that mentions one).
 export const MERCHANT_RULES: readonly MerchantRule[] = [
@@ -122,7 +166,7 @@ export const MERCHANT_RULES: readonly MerchantRule[] = [
 
   // ── Revenue (money in) ──
   { pattern: /\b(stripe|paypal|square|tyro|pin payments|gocardless|shopify|afterpay|braintree|ezidebit)\b/, category: "revenue", sign: "in" },
-  { pattern: /\b(payout|settlement|invoice (paid|payment)|inv(oice)? ?#?\d|payment received|customer payment|sales)\b/, category: "revenue", sign: "in" },
+  { pattern: /\b(payout|settlement|invoice (paid|payment)|inv(oice)? ?#?\d+|payment received|customer payment|sales)\b/, category: "revenue", sign: "in" },
 
   // ── Government money in / ATO ──
   { pattern: /\b(ausindustry|department of industry|accelerating commercialisation|export market development|emdg|austrade|launchvic|jobs (and|&) skills|grant|r&d tax (offset|incentive) refund|innovation connections)\b/, category: "government_grants", sign: "in" },
@@ -145,10 +189,13 @@ export const MERCHANT_RULES: readonly MerchantRule[] = [
   { pattern: /\b(google ads|googleads|adwords|facebk|facebook|meta ads|meta platforms|instagram|linkedin ads|linkedin|tiktok|twitter|x corp|eventbrite|sponsorship|99designs|semrush|ahrefs|hootsuite|buffer)\b/, category: "marketing_advertising" },
 
   // ── Contractors ──
-  { pattern: /\b(upwork|fiverr|freelancer\.com|toptal|contractor|consultant|agency invoice|expert360|airtasker)\b/, category: "contractors", sign: "out" },
+  { pattern: /\b(upwork|fiverr|freelancer\.com|toptal|contractors?|consultants?|consulting|consultancy|agency invoice|expert360|airtasker)\b/, category: "contractors", sign: "out" },
 
   // ── Professional fees ──
-  { pattern: /\b(asic|accountant|accounting|bookkeep\w*|lawyer|legal|solicitor|lawpath|sprintlaw|legalvision|ip australia|trade ?mark|auditor|registered agent|company secretary|notary|abn lookup)\b/, category: "professional_fees" },
+  { pattern: /\b(asic|accountant|accounting|bookkeep\w*|lawyer|legal|solicitor|lawpath|sprintlaw|legalvision|ip australia|trade ?mark|auditor|registered agent|company secretary|notary|abn lookup|advisory|advis[eo]rs?)\b/, category: "professional_fees" },
+  // Lane-1 F5: a supplier invoice for services (INV/INVOICE + SERVICES) paid
+  // OUT is a contractor / supplier line — never a bank fee or payroll.
+  { pattern: /\b(inv|invoice)\b.*\bservices?\b|\bservices?\b.*\b(inv|invoice)\b/, category: "contractors", sign: "out" },
 
   // ── Insurance ──
   { pattern: /\b(insurance|bizcover|allianz|qbe|aami|nrma|suncorp|youi|icare|worksafe|workcover|cgu|hiscox|upcover|coverwallet)\b/, category: "insurance" },
@@ -157,7 +204,7 @@ export const MERCHANT_RULES: readonly MerchantRule[] = [
   { pattern: /\b(interest|loan repayment|repayment|prospa|moula|lumi|bizcap|overdraft)\b/, category: "interest" },
 
   // ── Bank fees ──
-  { pattern: /\b(account ?keeping|account fee|monthly fee|bank fee|service fee|fx fee|foreign (currency|transaction) fee|international transaction fee|overseas transaction fee|dishonour fee|overdrawn fee|card fee|atm fee|osko fee)\b/, category: "bank_fees" },
+  { pattern: BANK_FEE_RULE_PATTERN, category: "bank_fees" },
 
   // ── Meals (before travel: "uber eats" before "uber") ──
   { pattern: /\b(uber ?eats|menulog|doordash|deliveroo|cafe|caf[eé]|coffee|restaurant|mcdonald|hungry jack|kfc|domino'?s|guzman|grill'?d|starbucks|gloria jean|bistro|sushi|pizza|thai|bakery|bar\b|pub\b|hotel bar|woolworths|coles|aldi|iga\b|7-?eleven|catering)/, category: "meals_entertainment" },
@@ -287,6 +334,12 @@ export function categoriseRows(rows: readonly CategoriseInput[], opts: RulesOpti
       decided.push(decision(row, "software_subscriptions", "rule", RECURRING_CONFIDENCE, false));
       continue;
     }
+    // Lane-1 F5: a bare "… PTY LTD" line has nothing for the model to go on
+    // either — flag it for the founder instead of buying a confident guess.
+    if (isBareCompanyNarration(row.description, row.amountAud)) {
+      decided.push(decision(row, "other", "rule", BARE_COMPANY_CONFIDENCE, true));
+      continue;
+    }
     remaining.push(row);
   }
   return { decided, remaining };
@@ -357,7 +410,10 @@ export function parseAiAnswers(raw: string): AiAnswer[] | null {
 /**
  * Accept a model answer for `row` or fall back to `other` + review. Rejects:
  * a key outside the enum, confidence below MIN_AI_CONFIDENCE (or > 1 / NaN),
- * and a sign clash (income category on money out).
+ * a high-stakes category (HIGH_STAKES_CATEGORIES) below
+ * MIN_AI_CONFIDENCE_HIGH_STAKES, `bank_fees` on a line with no fee keyword
+ * above BANK_FEE_MAX_AUD_WITHOUT_KEYWORD (lane-1 F5), and a sign clash
+ * (income category on money out).
  */
 export function acceptAiAnswer(row: CategoriseInput, answer: AiAnswer | undefined): CategoriseDecision {
   if (!answer) return decision(row, "other", "ai", 0, true);
@@ -365,6 +421,8 @@ export function acceptAiAnswer(row: CategoriseInput, answer: AiAnswer | undefine
   if (!isExpenseCategory(cat)) return decision(row, "other", "ai", 0, true);
   const conf = answer.confidence;
   if (!(conf >= MIN_AI_CONFIDENCE && conf <= 1)) return decision(row, "other", "ai", Math.max(0, Math.min(conf, 1)) || 0, true);
+  if (HIGH_STAKES_CATEGORIES.has(cat) && conf < MIN_AI_CONFIDENCE_HIGH_STAKES) return decision(row, "other", "ai", conf, true);
+  if (cat === "bank_fees" && Math.abs(row.amountAud) > BANK_FEE_MAX_AUD_WITHOUT_KEYWORD && !looksLikeBankFee(row.description)) return decision(row, "other", "ai", conf, true);
   if (categoryKind(cat) === "income" && row.amountAud < 0) return decision(row, "other", "ai", 0, true);
   // `counterparty` stays the deterministic merchantKey (the learned-rule key);
   // the model's free-text merchant name is not stored.
