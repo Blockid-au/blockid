@@ -1,7 +1,7 @@
 // Colocated vitest for POST /api/auth/register — P9-register-route-test.
 //
 // The registration surface has three security-critical gates that MUST NEVER
-// regress: (1) rate limit — per-IP ceiling (20 / 15 min, trusted hop) plus a
+// regress: (1) rate limit — per-IP ceiling (60 / 15 min since S31-C, trusted hop) plus a
 // per-(IP, email) bucket (5 / 15 min), release QA-2 F7 — so a bot
 // can't drain the app_users id space; (2) HTML-tag stripping on displayName
 // so a founder can't seed stored XSS by registering with
@@ -159,16 +159,16 @@ describe("POST /api/auth/register — rate limit", () => {
     expect(res.headers.get("Retry-After")).toBe("90");
   });
 
-  // Release QA-2 F7 — two buckets: a per-IP ceiling (20/15 min) checked
+  // Release QA-2 F7 — two buckets: a per-IP ceiling (60/15 min since S31-C) checked
   // first, then a per-(IP, email-hash) bucket (5/15 min). The IP is the
   // TRUSTED hop from clientIpFromHeaders (cf-connecting-ip / last XFF hop),
   // never the client-controlled first x-forwarded-for entry.
-  it("bucket 1 = per-IP ceiling: 20 / 15 min, keyed on the trusted hop", async () => {
+  it("bucket 1 = per-IP ceiling: 60 / 15 min, keyed on the trusted hop", async () => {
     mocks.clientIpFromHeadersMock.mockReturnValue("203.0.113.7");
     await POST(req({ email: "a@b.co", password: "longenough" }, { ip: "8.8.8.8, 203.0.113.7" }));
     const call = mocks.checkRateLimitMock.mock.calls[0];
     expect(call?.[0]).toBe("register:ip:203.0.113.7");
-    expect(call?.[1]).toBe(20);
+    expect(call?.[1]).toBe(60);
     expect(call?.[2]).toBe(15 * 60 * 1000);
   });
 

@@ -22,21 +22,32 @@ import { createHash } from "node:crypto";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { clientIpFromHeaders } from "@/lib/iphash";
 
-export type AuthRateLimitKind = "register" | "login";
+export type AuthRateLimitKind = "register" | "register-with-card" | "login";
 
 const WINDOW_MS = 15 * 60 * 1000;
 
+// S31-C capacity audit (2026-09-13): the per-IP ceilings were sized for an
+// office NAT (20 sign-ups / 15 min). A trial wave arrives from university
+// labs, accelerator cohorts and mobile CGNAT where hundreds of real people
+// share one egress, so the ceilings now only bound scripted floods; the
+// per-(IP, email) buckets stay at 5 and remain the brute-force / re-register
+// defence. `register-with-card` (the trial sign-up path) used to be a bare
+// `register-with-card:<ip>` 5 / 15 min key — the 6th trial sign-up from one
+// campus got `rate_limited`.
 export const AUTH_RATE_LIMITS: Record<
   AuthRateLimitKind,
   { perIp: { max: number; windowMs: number }; perIdentity: { max: number; windowMs: number } }
 > = {
-  // Register: 5 attempts for the same email from the same IP; 20 sign-ups
-  // per IP per 15 min as the ceiling (an office NAT or a QA lane creating a
-  // handful of accounts fits; a script does not).
-  register: { perIp: { max: 20, windowMs: WINDOW_MS }, perIdentity: { max: 5, windowMs: WINDOW_MS } },
+  // Register: 5 attempts for the same email from the same IP; 60 sign-ups
+  // per IP per 15 min as the ceiling (a classroom fits; a script does not).
+  register: { perIp: { max: 60, windowMs: WINDOW_MS }, perIdentity: { max: 5, windowMs: WINDOW_MS } },
+  // Card-required trial sign-up: same shape as register. Stripe's own
+  // card-testing controls sit behind this, so the ceiling is the same.
+  "register-with-card": { perIp: { max: 60, windowMs: WINDOW_MS }, perIdentity: { max: 5, windowMs: WINDOW_MS } },
   // Login: 5 attempts per account per IP (D3-CISO brute-force cap kept);
-  // 30 per IP per 15 min as the credential-stuffing ceiling.
-  login: { perIp: { max: 30, windowMs: WINDOW_MS }, perIdentity: { max: 5, windowMs: WINDOW_MS } },
+  // 120 per IP per 15 min as the credential-stuffing ceiling (one campus
+  // logging in after a lecture is ~1 per person; a stuffing script is not).
+  login: { perIp: { max: 120, windowMs: WINDOW_MS }, perIdentity: { max: 5, windowMs: WINDOW_MS } },
 };
 
 /** Trusted client IP for rate-limit keys: cf-connecting-ip → last XFF hop → x-real-ip → "unknown". */

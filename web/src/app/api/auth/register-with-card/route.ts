@@ -48,7 +48,7 @@ import {
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { getPlanCached } from "@/lib/plans-db";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkAuthIdentityLimit, checkAuthIpCeiling } from "@/lib/security/auth-rate-limit";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
 import { formatAud } from "@/lib/plans/trial-copy";
 import {
@@ -101,15 +101,21 @@ function sanitizeName(raw: string | undefined): string | undefined {
   return raw.replace(/<[^>]*>/g, "").trim().slice(0, 100) || undefined;
 }
 
+function rateLimited(resetIn: number): NextResponse {
+  return NextResponse.json(
+    { ok: false, error: "rate_limited" },
+    { status: 429, headers: { "Retry-After": String(Math.ceil(resetIn / 1000)) } },
+  );
+}
+
 async function POST_handler(request: Request) {
-  const ip = clientIpFromHeaders(request.headers) ?? "unknown";
-  const rl = checkRateLimit(`register-with-card:${ip}`, 5, 15 * 60 * 1000);
-  if (!rl.allowed) {
-    return NextResponse.json(
-      { ok: false, error: "rate_limited" },
-      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.resetIn / 1000)) } },
-    );
-  }
+  // S31-C capacity audit (2026-09-13): two buckets, same shape as
+  // /api/auth/register — a wide per-IP ceiling checked before the body is
+  // parsed, then a tight per-(IP, email-hash) bucket once the email is
+  // known. The old single `register-with-card:<ip>` 5 / 15 min key locked
+  // out the 6th trial sign-up from one campus / office / CGNAT egress.
+  const ceiling = checkAuthIpCeiling("register-with-card", request.headers);
+  if (!ceiling.allowed) return rateLimited(ceiling.resetIn);
 
   const read = await readJsonBody(request, BODY_MAX_BYTES);
   if (!read.ok) {
@@ -146,6 +152,9 @@ async function POST_handler(request: Request) {
   const supabase = getSupabaseAdmin()!;
 
   const email = normaliseEmail(body.email);
+
+  const identity = checkAuthIdentityLimit("register-with-card", request.headers, email);
+  if (!identity.allowed) return rateLimited(identity.resetIn);
 
   // Uniqueness check — 409 mirrors /api/auth/register response.
   const { data: existing } = await supabase
@@ -339,7 +348,7 @@ async function POST_handler(request: Request) {
   // 7. Log the user in.
   const sessionToken = await createSessionRow({
     userId,
-    ipHash: hashIp(ip),
+    ipHash: hashIp(clientIpFromHeaders(request.headers)),
     userAgent: request.headers.get("user-agent"),
   });
   if (!sessionToken) {

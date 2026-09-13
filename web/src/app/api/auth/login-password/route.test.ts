@@ -1,7 +1,7 @@
 // Colocated vitest for POST /api/auth/login-password — P9-login-password-route-test.
 //
 // The password login is the surface EVERY brute-force / credential-stuffing
-// attempt hits, so both the rate limit (per-IP ceiling 30/15min + 5/15min
+// attempt hits, so both the rate limit (per-IP ceiling 120/15min since S31-C + 5/15min
 // per (IP, email) — release QA-2 F7) and the error-mapping
 // (never confirm "email exists but password wrong" separately from "email
 // doesn't exist") are load-bearing. A regression that drops the rate limit
@@ -161,16 +161,16 @@ describe("POST /api/auth/login-password — rate limit", () => {
     expect(mocks.setSessionCookieMock).not.toHaveBeenCalled();
   });
 
-  // Release QA-2 F7 — two buckets: a per-IP ceiling (30/15 min) checked
+  // Release QA-2 F7 — two buckets: a per-IP ceiling (120/15 min since S31-C) checked
   // first, then the D3-CISO 5/15 min cap per (IP, email-hash). The IP is the
   // TRUSTED hop from clientIpFromHeaders (cf-connecting-ip / last XFF hop),
   // never the client-controlled first x-forwarded-for entry.
-  it("bucket 1 = per-IP ceiling: 30 / 15 min, keyed on the trusted hop", async () => {
+  it("bucket 1 = per-IP ceiling: 120 / 15 min, keyed on the trusted hop", async () => {
     mocks.clientIpFromHeadersMock.mockReturnValue("203.0.113.7");
     await POST(req({ email: "a@b.co", password: "pw" }, { ip: "9.9.9.9, 203.0.113.7" }));
     expect(mocks.checkRateLimitMock.mock.calls[0]).toEqual([
       "login:ip:203.0.113.7",
-      30,
+      120,
       15 * 60 * 1000,
     ]);
   });

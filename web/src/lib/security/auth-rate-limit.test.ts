@@ -51,12 +51,23 @@ describe("emailBucketHash", () => {
 });
 
 describe("buckets", () => {
-  it("per-IP ceiling: register 20/15min, login 30/15min", () => {
+  // S31-C capacity audit (2026-09-13): ceilings sized for a shared egress
+  // (university lab / accelerator cohort / CGNAT), not one office NAT.
+  it("per-IP ceiling: register 60/15min, register-with-card 60/15min, login 120/15min", () => {
     const headers = h({ "x-forwarded-for": "1.1.1.1, 203.0.113.7" });
     checkAuthIpCeiling("register", headers);
-    expect(rl.check).toHaveBeenLastCalledWith("register:ip:203.0.113.7", 20, 15 * 60 * 1000);
+    expect(rl.check).toHaveBeenLastCalledWith("register:ip:203.0.113.7", 60, 15 * 60 * 1000);
+    checkAuthIpCeiling("register-with-card", headers);
+    expect(rl.check).toHaveBeenLastCalledWith("register-with-card:ip:203.0.113.7", 60, 15 * 60 * 1000);
     checkAuthIpCeiling("login", headers);
-    expect(rl.check).toHaveBeenLastCalledWith("login:ip:203.0.113.7", 30, 15 * 60 * 1000);
+    expect(rl.check).toHaveBeenLastCalledWith("login:ip:203.0.113.7", 120, 15 * 60 * 1000);
+  });
+
+  it("the per-identity bucket is the tight one for every kind (5 < ceiling)", () => {
+    for (const kind of ["register", "register-with-card", "login"] as const) {
+      expect(AUTH_RATE_LIMITS[kind].perIdentity.max).toBe(5);
+      expect(AUTH_RATE_LIMITS[kind].perIp.max).toBeGreaterThan(AUTH_RATE_LIMITS[kind].perIdentity.max);
+    }
   });
 
   it("per-identity: 5/15min keyed on trusted IP + email hash", () => {

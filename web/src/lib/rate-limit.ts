@@ -380,9 +380,16 @@ const BUCKET_LIMITS_PER_MINUTE: Record<RateLimitBucket, number> = {
   "data-room-pdf": 10,
   "evidence-upload": 10,
   upload: 10,
-  "auth-login": 8,
-  "auth-register": 5,
-  "auth-password-reset": 3,
+  // S31-C capacity audit (2026-09-13): these three are keyed per IP at the
+  // proxy (no session cookie yet), so they are the ceiling for a whole
+  // office / university / CGNAT egress. 5 registers per minute per IP
+  // locked out the 6th person in a trial-wave classroom. Brute force and
+  // re-register abuse are stopped one layer down by the per-(IP, email)
+  // buckets in lib/security/auth-rate-limit.ts (5 per 15 min); these
+  // per-IP numbers only need to bound scripted floods.
+  "auth-login": 40,
+  "auth-register": 30,
+  "auth-password-reset": 10,
   lead: 10,
   default: 100,
 };

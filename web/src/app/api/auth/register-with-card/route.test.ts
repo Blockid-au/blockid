@@ -218,6 +218,58 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+// S31-C capacity audit (2026-09-13): the trial sign-up path is keyed like
+// /api/auth/register — a wide per-IP ceiling (60 / 15 min) checked BEFORE
+// the body is parsed, then a per-(IP, sha256(email)[0..16]) bucket (5 / 15
+// min). A single `register-with-card:<ip>` 5 / 15 min key used to lock out
+// the 6th real person behind one campus / office / CGNAT egress.
+describe("S31-C rate-limit keying (shared-IP trial wave)", () => {
+  const WINDOW = 15 * 60 * 1000;
+
+  it("bucket 1 = per-IP ceiling 60 / 15 min on the trusted hop, checked before the body is read", async () => {
+    mocks.checkRateLimit.mockReturnValueOnce({ allowed: false, resetIn: 90_000 });
+    const res = await POST(req("not json"));
+    expect(res.status).toBe(429);
+    expect(res.headers.get("retry-after")).toBe("90");
+    expect(await json(res)).toMatchObject({ ok: false, error: "rate_limited" });
+    const call = mocks.checkRateLimit.mock.calls[0];
+    expect(call?.[0]).toBe("register-with-card:ip:1.1.1.1");
+    expect(call?.[1]).toBe(60);
+    expect(call?.[2]).toBe(WINDOW);
+    expect(mocks.checkRateLimit).toHaveBeenCalledTimes(1);
+  });
+
+  it("bucket 2 = per (IP, email hash) 5 / 15 min — the email never appears raw in the key", async () => {
+    const res = await POST(req(body({ email: "Eva@Example.com" })));
+    expect(res.status).toBe(200);
+    const call = mocks.checkRateLimit.mock.calls[1];
+    expect(call?.[0]).toMatch(/^register-with-card:1\.1\.1\.1:[0-9a-f]{16}$/);
+    expect(call?.[0]).not.toContain("eva");
+    expect(call?.[1]).toBe(5);
+    expect(call?.[2]).toBe(WINDOW);
+  });
+
+  it("two different people behind one IP do not share the identity bucket", async () => {
+    await POST(req(body({ email: "a@example.com" })));
+    await POST(req(body({ email: "b@example.com" })));
+    const identityKeys = mocks.checkRateLimit.mock.calls
+      .map((c) => String(c[0]))
+      .filter((k) => /^register-with-card:1\.1\.1\.1:/.test(k));
+    expect(identityKeys).toHaveLength(2);
+    expect(identityKeys[0]).not.toBe(identityKeys[1]);
+  });
+
+  it("a 429 on the identity bucket carries Retry-After and stops before any DB write", async () => {
+    mocks.checkRateLimit
+      .mockReturnValueOnce({ allowed: true, resetIn: 0 })
+      .mockReturnValueOnce({ allowed: false, resetIn: 30_000 });
+    const res = await POST(req(body()));
+    expect(res.status).toBe(429);
+    expect(res.headers.get("retry-after")).toBe("30");
+    expect(mocks.inserted).toHaveLength(0);
+  });
+});
+
 describe("S8-C input guards", () => {
   it("413s an oversize body before parsing; 400s a payment_method_id that is not a Stripe pm_ id", async () => {
     const big = await POST(req(body({ display_name: "x".repeat(20 * 1024) })));
