@@ -202,6 +202,12 @@ describe("list filters + cursor", () => {
     expect(decodeCursor(c)).toEqual({ createdAt: "2026-09-01T00:00:00.000Z", id: UUID });
     expect(decodeCursor("garbage")).toBeNull();
     expect(decodeCursor(encodeCursor({ created_at: "2026-09-01T00:00:00.000Z", id: "not-a-uuid" }))).toBeNull();
+    // S28-review: only a strict ISO instant may reach the PostgREST or() filter —
+    // V8 parses "Jan 1 2026 (a,b)" as a date, which would carry filter syntax.
+    expect(decodeCursor(encodeCursor({ created_at: "Jan 1 2026 (a,b)", id: UUID }))).toBeNull();
+    expect(decodeCursor(encodeCursor({ created_at: "2026-09-01T00:00:00.000Z),id.eq.x", id: UUID }))).toBeNull();
+    expect(decodeCursor(encodeCursor({ created_at: "2026-09-01", id: UUID }))).toBeNull();
+    expect(decodeCursor(encodeCursor({ created_at: "2026-09-01T10:15:30+10:00", id: UUID }))).toEqual({ createdAt: "2026-09-01T10:15:30+10:00", id: UUID });
     expect(cursorOrFilter({ createdAt: "T", id: "I" })).toBe("created_at.lt.T,and(created_at.eq.T,id.lt.I)");
   });
 
