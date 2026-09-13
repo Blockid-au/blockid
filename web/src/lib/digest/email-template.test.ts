@@ -90,6 +90,47 @@ describe("renderFounderDigestEmail — money block", () => {
 
 // QA-3 P1-6 (2026-09-12): Spam Act s17/s18 — identity line always, and the
 // unsubscribe / preferences links whenever the cron passes them.
+describe("renderFounderDigestEmail — pipeline block (S28-B)", () => {
+  const pipeline = {
+    total: 3,
+    new_contacts: 1,
+    stage_moves: [{ name: "Jane <Chen>", from: "diligence" as const, to: "committed" as const, auto: "cheque signed" }],
+    overdue: [{ name: "Sam Lee", org: "Angel & Co", next_step: "Send SAFE", due: "2026-09-10", days: 4 }],
+    committed: 1,
+    href: "https://blockid.au/workspace/investors",
+  };
+
+  it("renders the header, the moves, the overdue list and the CTA in HTML + text, escaped", () => {
+    const out = renderFounderDigestEmail(payload({ pipeline }));
+    expect(out.html).toContain("Pipeline this week");
+    expect(out.html).toContain("3 investors in your pipeline — 1 new · 1 moved · 1 overdue");
+    expect(out.html).toContain("Jane &lt;Chen&gt;: Diligence → Committed (cheque signed)");
+    expect(out.html).toContain("Angel &amp; Co");
+    expect(out.html).toContain("(4 days late)");
+    expect(out.html).toContain('href="https://blockid.au/workspace/investors"');
+    expect(out.text).toContain("PIPELINE THIS WEEK");
+    expect(out.text).toContain("· Jane <Chen>: Diligence → Committed (cheque signed)");
+    expect(out.text).toContain("- Sam Lee · Angel & Co — Send SAFE (4 days late)");
+    // placed after the money block, before the share link
+    const both = renderFounderDigestEmail(payload({ pipeline, money: { radar: false, new_matches: 0, href: "https://blockid.au/pricing?from=digest_money" }, shareUrl: "https://blockid.au/tbr/x" })).html;
+    const money = both.indexOf("Money");
+    const pipe = both.indexOf("Pipeline this week");
+    const share = both.indexOf("Your current share link");
+    expect(money).toBeGreaterThan(-1);
+    expect(pipe).toBeGreaterThan(money);
+    expect(share).toBeGreaterThan(pipe);
+  });
+
+  it("a quiet pipeline says so; no `pipeline` on the payload renders nothing", () => {
+    const quiet = renderFounderDigestEmail(payload({ pipeline: { ...pipeline, new_contacts: 0, stage_moves: [], overdue: [] } }));
+    expect(quiet.html).toContain("No stage moves this week.");
+    expect(quiet.html).not.toContain("Overdue next steps");
+    const none = renderFounderDigestEmail(payload());
+    expect(none.html).not.toContain("Pipeline this week");
+    expect(none.text).not.toContain("PIPELINE THIS WEEK");
+  });
+});
+
 describe("renderFounderDigestEmail — Spam Act footer", () => {
   it("renders the Auschain identity line and reason even without links", () => {
     const { html, text } = renderFounderDigestEmail(payload());

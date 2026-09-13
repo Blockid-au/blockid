@@ -33,7 +33,6 @@ import {
   CONTACT_STAGES,
   CONTACT_TYPES,
   formatAud,
-  isOverdue,
   MANUAL_TOUCHPOINT_KINDS,
   STAGE_LABEL,
   TOUCHPOINT_LABEL,
@@ -206,7 +205,9 @@ export function InvestorsClient() {
   }, []);
 
   React.useEffect(() => {
-    void reload();
+    void (async () => {
+      await reload();
+    })();
   }, [reload]);
 
   const visible = React.useMemo(() => {
@@ -505,7 +506,9 @@ export function InvestorsClient() {
       )}
 
       {selected && (
+        // Keyed on the id so opening another contact remounts the form with its values.
         <ContactDrawer
+          key={selected.id}
           contact={selected}
           canEdit={canEdit}
           busy={busy === selected.id}
@@ -587,21 +590,6 @@ function ContactDrawer(props: {
   const [note, setNote] = React.useState({ kind: "note" as TouchpointKind, body: "", occurredAt: "" });
   const [saving, setSaving] = React.useState(false);
 
-  React.useEffect(() => {
-    setForm({
-      name: c.name,
-      email: c.email ?? "",
-      org: c.org ?? "",
-      role: c.role ?? "",
-      type: c.type,
-      stage: c.stage,
-      source: c.source ?? "",
-      tags: c.tags.join("; "),
-      nextStep: c.next_step ?? "",
-      nextStepDue: c.next_step_due ?? "",
-    });
-  }, [c]);
-
   const loadTimeline = React.useCallback(async () => {
     const res = await fetch(`/api/investors/crm/contacts/${encodeURIComponent(c.id)}/touchpoints`, { credentials: "same-origin" });
     const body = (await res.json().catch(() => ({ ok: false }))) as { ok: boolean; touchpoints?: TouchpointRow[] };
@@ -609,7 +597,9 @@ function ContactDrawer(props: {
   }, [c.id]);
 
   React.useEffect(() => {
-    void loadTimeline();
+    void (async () => {
+      await loadTimeline();
+    })();
   }, [loadTimeline]);
 
   async function save(e: React.FormEvent) {
@@ -963,6 +953,3 @@ function ImportDialog(props: { onClose: () => void; onDone: (r: ImportResult) =>
     </div>
   );
 }
-
-// `isOverdue` is the rule the API + digest use; the badge above derives from the same due date.
-export { isOverdue };
