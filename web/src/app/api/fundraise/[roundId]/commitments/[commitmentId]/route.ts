@@ -15,6 +15,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute, auditNote } from "@/lib/audit/api-route";
 import { parseCommitmentInput, stampStatusDates, type CommitmentPatch } from "@/lib/fundraise/commitments";
+import { linkCommitment } from "@/lib/investors/crm-server";
 import {
   COMMITMENT_COLUMNS,
   recomputeRoundTotals,
@@ -41,7 +42,7 @@ async function PATCH_handler(req: NextRequest, ctx: Ctx) {
 
   const access = await resolveRoundForCaller(supabase, user, roundId, "editor");
   if (!access.ok) return access.response;
-  const { round, ownerUserId } = access;
+  const { round, ownerUserId, scope } = access;
 
   const { data: existingRow } = await supabase
     .from("fundraise_commitments")
@@ -88,6 +89,23 @@ async function PATCH_handler(req: NextRequest, ctx: Ctx) {
   }
 
   const summary = await recomputeRoundTotals(supabase, round);
+  // S28-B — investor CRM: a status or amount change lands on the matching
+  // contact's timeline (additive; never throws). A pure notes / org edit
+  // is not a touchpoint.
+  if (update.status !== undefined || update.amount_aud !== undefined) {
+    const after = { ...existing, ...update } as CommitmentRow;
+    await linkCommitment(supabase, {
+      projectId: round.project_id ?? scope?.projectId ?? null,
+      email: after.investor_email,
+      commitmentId,
+      roundId: round.id,
+      roundName: round.round_name,
+      amountAud: after.amount_aud,
+      status: after.status,
+      event: "updated",
+      actorUserId: user.id,
+    });
+  }
   auditNote(commitmentId, { round_id: round.id, status: update.status ?? null });
   return NextResponse.json({ ok: true, commitment: data ?? { ...existing, ...update }, summary });
 }

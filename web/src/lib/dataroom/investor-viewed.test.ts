@@ -15,9 +15,11 @@ vi.mock("server-only", () => ({}));
 const mocks = vi.hoisted(() => ({
   insert: vi.fn<(...a: unknown[]) => Promise<boolean>>(),
   email: vi.fn<(...a: unknown[]) => Promise<{ ok: boolean }>>(),
+  crm: vi.fn<(...a: unknown[]) => Promise<unknown>>(),
 }));
 vi.mock("@/lib/notifications", () => ({ insertNotification: (...a: unknown[]) => mocks.insert(...a) }));
 vi.mock("@/lib/email", () => ({ sendInvestorViewedEmail: (...a: unknown[]) => mocks.email(...a) }));
+vi.mock("@/lib/investors/crm-server", () => ({ linkDataRoomView: (...a: unknown[]) => mocks.crm(...a) }));
 
 import { investorLabel, maybeNotifyInvestorViewed } from "./investor-viewed";
 
@@ -29,6 +31,7 @@ beforeEach(() => {
   sb = fakeSupabase({ data_room_engagement: [], data_rooms: [ROOM], app_users: [{ email: "founder@x.test" }] });
   mocks.insert.mockReset().mockResolvedValue(true);
   mocks.email.mockReset().mockResolvedValue({ ok: true });
+  mocks.crm.mockReset().mockResolvedValue({ matched: false, contactId: null, stageMovedTo: null });
 });
 
 describe("investorLabel", () => {
@@ -56,6 +59,9 @@ describe("maybeNotifyInvestorViewed", () => {
   it("first open → one notification for the room owner (dedupe per link, 24 h) + the email", async () => {
     const out = await maybeNotifyInvestorViewed(sb, { link: LINK, event: { eventType: "open", section: null, durationMs: null } });
     expect(out).toEqual({ trigger: "first_view", notified: true, emailed: true });
+    // S28-B — the CRM hook sees the room's project + the link's email once the trigger fires.
+    expect(mocks.crm).toHaveBeenCalledTimes(1);
+    expect(mocks.crm.mock.calls[0][1]).toMatchObject({ projectId: "proj-1", email: "j@bb.vc", linkId: "link-1", trigger: "first_view", roomName: "Acme" });
     expect(sb.hasEq("data_room_engagement", "access_token_id", "link-1")).toBe(true);
     expect(mocks.insert).toHaveBeenCalledTimes(1);
     expect(mocks.insert).toHaveBeenCalledWith(

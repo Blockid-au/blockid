@@ -12,6 +12,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute, auditNote } from "@/lib/audit/api-route";
 import { parseCommitmentInput, stampStatusDates, summariseCommitments, type CommitmentInput } from "@/lib/fundraise/commitments";
+import { linkCommitment } from "@/lib/investors/crm-server";
 import {
   COMMITMENT_COLUMNS,
   listCommitments,
@@ -53,7 +54,7 @@ async function POST_handler(req: NextRequest, ctx: Ctx) {
 
   const access = await resolveRoundForCaller(supabase, user, roundId, "editor");
   if (!access.ok) return access.response;
-  const { round, ownerUserId } = access;
+  const { round, ownerUserId, scope } = access;
   if (round.status === "closed") {
     return NextResponse.json({ ok: false, error: "round_closed", message: "A closed round does not take new commitments" }, { status: 409 });
   }
@@ -94,6 +95,20 @@ async function POST_handler(req: NextRequest, ctx: Ctx) {
 
   const summary = await recomputeRoundTotals(supabase, round);
   const created = data as { id?: string } | null;
+  // S28-B — investor CRM: a contact with this email gets a `commitment`
+  // touchpoint (and moves to committed / invested when the cheque says so).
+  // Additive; never throws.
+  await linkCommitment(supabase, {
+    projectId: round.project_id ?? scope?.projectId ?? null,
+    email: input.investorEmail,
+    commitmentId: created?.id ?? null,
+    roundId: round.id,
+    roundName: round.round_name,
+    amountAud: input.amountAud,
+    status: input.status,
+    event: "created",
+    actorUserId: user.id,
+  });
   auditNote(created?.id ?? null, { round_id: round.id, status: input.status, amount_aud: input.amountAud });
   return NextResponse.json({ ok: true, commitment: data, summary }, { status: 201 });
 }

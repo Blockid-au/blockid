@@ -6,6 +6,7 @@
 
 import type { DigestPayload } from "@/lib/digest/weekly";
 import { MONEY_DIGEST_TEASER, moneyDigestHeader } from "@/lib/funding/digest-money";
+import { describeMove, pipelineDigestHeader } from "@/lib/investors/digest";
 
 export interface RenderedFounderDigest {
   subject: string;
@@ -69,6 +70,7 @@ function renderHtml(p: DigestPayload, footer: DigestFooterOptions): string {
   const aiSummaryBlock = renderAiSummaryBlock(p);
   const actionBlock = renderActionBlock(p);
   const moneyBlock = renderMoneyBlock(p);
+  const pipelineBlock = renderPipelineBlock(p);
   const shareBlock = p.shareUrl
     ? `<div style="padding:16px 24px;border-top:1px solid #e2e8f0"><p style="margin:0;font-size:13px;color:#475569">Your current share link:</p><p style="margin:6px 0 0"><a href="${escapeAttr(p.shareUrl)}" style="color:#0f766e;font-weight:600;text-decoration:none;word-break:break-all">${escapeHtml(p.shareUrl)}</a></p></div>`
     : "";
@@ -87,6 +89,7 @@ function renderHtml(p: DigestPayload, footer: DigestFooterOptions): string {
     ${aiSummaryBlock}
     ${actionBlock}
     ${moneyBlock}
+    ${pipelineBlock}
     ${shareBlock}
     <div style="padding:16px 24px;border-top:1px solid #e2e8f0">
       <a href="${escapeAttr(p.notificationsUrl)}" style="color:#0f766e;font-weight:600;text-decoration:none">Open your notifications inbox →</a>
@@ -232,6 +235,45 @@ function renderMoneyBlock(p: DigestPayload): string {
   </div>`;
 }
 
+/**
+ * S28-B — "Pipeline this week": new contacts, the week's stage moves and
+ * the overdue next steps. Absent `pipeline` (no contacts yet, or a payload
+ * stored before S28-B) renders nothing.
+ */
+function renderPipelineBlock(p: DigestPayload): string {
+  const s = p.pipeline;
+  if (!s) return "";
+  const moves = s.stage_moves.length
+    ? `<ul style="margin:0 0 8px;padding-left:18px;font-size:13px;color:#0f172a">${s.stage_moves.map((m) => `<li>${escapeHtml(describeMove(m))}</li>`).join("")}</ul>`
+    : `<p style="margin:0 0 8px;font-size:13px;color:#475569">No stage moves this week.</p>`;
+  const overdue = s.overdue.length
+    ? `<p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#b91c1c">Overdue next steps</p><ul style="margin:0 0 12px;padding-left:18px;font-size:13px;color:#0f172a">${s.overdue
+        .map((o) => `<li><strong>${escapeHtml(o.name)}</strong>${o.org ? ` · ${escapeHtml(o.org)}` : ""}${o.next_step ? ` — ${escapeHtml(o.next_step)}` : ""} <span style="color:#b91c1c">(${o.days} day${o.days === 1 ? "" : "s"} late)</span></li>`)
+        .join("")}</ul>`
+    : "";
+  return `<div style="padding:16px 24px;border-top:1px solid #e2e8f0">
+    <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Pipeline this week</p>
+    <h2 style="margin:0 0 8px;font-size:15px;color:#0f172a">${escapeHtml(pipelineDigestHeader(s))}</h2>
+    ${moves}
+    ${overdue}
+    <a href="${escapeAttr(s.href)}" style="display:inline-block;padding:10px 16px;background:#0f766e;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Open the investor CRM →</a>
+  </div>`;
+}
+
+function renderPipelineText(p: DigestPayload, lines: string[]): void {
+  const s = p.pipeline;
+  if (!s) return;
+  lines.push("PIPELINE THIS WEEK");
+  lines.push(`  ${pipelineDigestHeader(s)}`);
+  for (const m of s.stage_moves) lines.push(`  · ${describeMove(m)}`);
+  if (s.overdue.length) {
+    lines.push("  Overdue next steps:");
+    for (const o of s.overdue) lines.push(`    - ${o.name}${o.org ? ` · ${o.org}` : ""}${o.next_step ? ` — ${o.next_step}` : ""} (${o.days} day${o.days === 1 ? "" : "s"} late)`);
+  }
+  lines.push(`  ${s.href}`);
+  lines.push("");
+}
+
 function renderMoneyText(p: DigestPayload, lines: string[]): void {
   const m = p.money;
   if (!m) return;
@@ -323,6 +365,7 @@ function renderText(p: DigestPayload, footer: DigestFooterOptions): string {
     lines.push("");
   }
   renderMoneyText(p, lines);
+  renderPipelineText(p, lines);
   if (p.shareUrl) {
     lines.push(`Your share link: ${p.shareUrl}`);
   }

@@ -127,3 +127,45 @@ describe("buildFounderDigest — money block", () => {
     expect(await buildFounderDigest("u1", PERIOD_START, PERIOD_END)).toBeNull();
   });
 });
+
+// ---- S28-B: pipeline block ---------------------------------------------------
+describe("buildFounderDigest — pipeline block (S28-B)", () => {
+  const CONTACTS = [
+    { id: "c1", project_id: "p1", name: "Jane Chen", org: "Blackbird", stage: "committed", next_step: null, next_step_due: null, archived_at: null, created_at: "2026-09-10T00:00:00.000Z" },
+    { id: "c2", project_id: "p1", name: "Sam Lee", org: null, stage: "meeting", next_step: "Send SAFE", next_step_due: "2026-09-10", archived_at: null, created_at: "2026-08-01T00:00:00.000Z" },
+  ];
+  const MOVES = [{ contact_id: "c1", project_id: "p1", kind: "status_change", occurred_at: "2026-09-11T00:00:00.000Z", meta: { from: "diligence", to: "committed", auto: "cheque signed" } }];
+
+  it("no contacts → no block (and no touchpoints read)", async () => {
+    const p = await buildFounderDigest("u1", PERIOD_START, PERIOD_END);
+    expect(p).not.toBeNull();
+    expect(p!.pipeline).toBeUndefined();
+    expect(state.reads).toContain("investor_contacts");
+    expect(state.reads).not.toContain("investor_touchpoints");
+  });
+
+  it("with contacts: new / moved / overdue from the project's rows, deep link to the board", async () => {
+    state.tables.investor_contacts = CONTACTS;
+    state.tables.investor_touchpoints = MOVES;
+    const p = await buildFounderDigest("u1", PERIOD_START, PERIOD_END);
+    expect(p!.pipeline).toEqual({
+      total: 2,
+      new_contacts: 1,
+      stage_moves: [{ name: "Jane Chen", from: "diligence", to: "committed", auto: "cheque signed" }],
+      overdue: [{ name: "Sam Lee", org: null, next_step: "Send SAFE", due: "2026-09-10", days: 4 }],
+      committed: 1,
+      href: "https://blockid.au/workspace/investors",
+    });
+  });
+
+  it("pipeline movement sends on an otherwise silent week; a static pipeline does not", async () => {
+    state.tables.svi_snapshots = [{ id: "s0", project_id: "p1", report_share_token: null, dim_results: {}, svi_total: 61, created_at: "2026-08-01T00:00:00Z" }];
+    state.tables.funding_matches = [];
+    state.tables.investor_contacts = [{ ...CONTACTS[1], next_step_due: null }];
+    state.tables.investor_touchpoints = [];
+    expect(await buildFounderDigest("u1", PERIOD_START, PERIOD_END)).toBeNull();
+    state.tables.investor_touchpoints = [{ contact_id: "c2", project_id: "p1", kind: "status_change", occurred_at: "2026-09-11T00:00:00.000Z", meta: { from: "contacted", to: "meeting" } }];
+    const p = await buildFounderDigest("u1", PERIOD_START, PERIOD_END);
+    expect(p?.pipeline?.stage_moves.length).toBe(1);
+  });
+});

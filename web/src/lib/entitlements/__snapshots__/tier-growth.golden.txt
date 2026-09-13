@@ -69,6 +69,7 @@ fundraise / fundraise.accelerators	Accelerator Tracker	/dashboard/accelerator
 fundraise / fundraise.accelerators	Accelerator Criteria	/dashboard/accelerator-criteria
 fundraise / fundraise.raise	Fundraise Readiness	/dashboard/fundraise
 fundraise / fundraise.raise	Raise Capital	/workspace/fundraise
+fundraise / fundraise.raise	Investor CRM	/workspace/investors
 fundraise	VC Valuation	/dashboard/valuation
 fundraise	CFO Advisor	/dashboard/cfo
 fundraise	Finance P&L	/dashboard/finance
@@ -83,6 +84,7 @@ fundraise	Accelerator Tracker	/dashboard/accelerator
 fundraise	Accelerator Criteria	/dashboard/accelerator-criteria
 fundraise	Fundraise Readiness	/dashboard/fundraise
 fundraise	Raise Capital	/workspace/fundraise
+fundraise	Investor CRM	/workspace/investors
 account / account.profile	My Profile	/workspace/profile
 account / account.profile	Account settings	/workspace/settings
 account / account.profile	Founder Profile	/workspace/founder-profile

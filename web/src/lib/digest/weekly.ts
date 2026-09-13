@@ -15,6 +15,8 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAllStartupSummaries, type StartupAISummary } from "@/lib/analysis/aggregate-startup-summary";
 import { can } from "@/lib/entitlements";
 import { buildDigestMoney, type DigestMoneyMatch, type DigestMoneySection } from "@/lib/funding/digest-money";
+import { buildDigestPipeline, hasPipelineSignal, type DigestPipelineSection } from "@/lib/investors/digest";
+import type { ContactRow } from "@/lib/investors/crm";
 
 export interface DigestActionRecommendation {
   /** Dimension key (ftv/mpc/ptd/tre/cgh/iri/lco/svm). */
@@ -77,9 +79,17 @@ export interface DigestPayload {
    * the upgrade link. Optional so older stored payloads still render.
    */
   money?: DigestMoneySection;
+  /**
+   * S28-B — "Pipeline this week" from `investor_contacts` +
+   * `investor_touchpoints` (new contacts, stage moves, overdue next steps).
+   * Undefined when the project has no contact yet (the block is not
+   * rendered) and on payloads stored before S28-B.
+   */
+  pipeline?: DigestPipelineSection;
 }
 
 export type { DigestMoneySection } from "@/lib/funding/digest-money";
+export type { DigestPipelineSection } from "@/lib/investors/digest";
 
 // ---- Dimension metadata (kept local so this file has no other deps). --------
 
@@ -255,6 +265,45 @@ async function loadMoneyMatches(
   }
 }
 
+// ---- Pipeline block (S28-B) ---------------------------------------------------
+
+/**
+ * The project's live investor contacts and the period's `status_change`
+ * touchpoints. Fail-safe: any error (0375/0376 not applied) → null, and
+ * the block is left off the payload. Null also when the project has no
+ * contact — a founder who has not started a pipeline is not nagged.
+ */
+async function loadPipeline(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  projectId: string,
+  periodStart: Date,
+  periodEnd: Date,
+): Promise<DigestPipelineSection | null> {
+  try {
+    const { data: contactRows, error } = await supabase
+      .from("investor_contacts")
+      .select("id, project_id, name, org, stage, next_step, next_step_due, archived_at, created_at")
+      .eq("project_id", projectId)
+      .is("archived_at", null)
+      .limit(2000);
+    if (error || !contactRows || contactRows.length === 0) return null;
+    const contacts = contactRows as unknown as ContactRow[];
+    const { data: moveRows } = await supabase
+      .from("investor_touchpoints")
+      .select("contact_id, occurred_at, meta")
+      .eq("project_id", projectId)
+      .eq("kind", "status_change")
+      .gte("occurred_at", periodStart.toISOString())
+      .lt("occurred_at", periodEnd.toISOString())
+      .order("occurred_at", { ascending: false })
+      .limit(200);
+    const moves = ((moveRows ?? []) as Array<{ contact_id: string; occurred_at: string; meta: Record<string, unknown> | null }>);
+    return buildDigestPipeline(contacts, moves, { periodStart, periodEnd, siteBase: siteBase() });
+  } catch {
+    return null;
+  }
+}
+
 // ---- Main builder ----------------------------------------------------------
 
 export async function buildFounderDigest(
@@ -425,10 +474,16 @@ export async function buildFounderDigest(
   const hasMoneySignal =
     money.radar && (money.new_matches > 0 || (money.next_deadline !== undefined && money.next_deadline.days <= 30));
 
+  // --- Section 6 (S28-B): Pipeline this week — only when the project has
+  // a contact. A new contact, a stage move or an overdue next step is a
+  // reason to send on an otherwise quiet week; a static pipeline is not.
+  const pipeline = projectId ? await loadPipeline(supabase, projectId, periodStart, periodEnd) : null;
+  const hasPipelineMovement = hasPipelineSignal(pipeline ?? undefined);
+
   // Skip decision — no signal, no email.
   const hasSviMovement =
     svi !== null && (svi.newSnapshot || (svi.delta !== null && svi.delta !== 0));
-  if (views.count === 0 && leads.count === 0 && !hasSviMovement && !hasMoneySignal) {
+  if (views.count === 0 && leads.count === 0 && !hasSviMovement && !hasMoneySignal && !hasPipelineMovement) {
     return null;
   }
 
@@ -451,5 +506,6 @@ export async function buildFounderDigest(
     shareUrl,
     notificationsUrl: `${siteBase()}/workspace/notifications`,
     money,
+    ...(pipeline ? { pipeline } : {}),
   };
 }
