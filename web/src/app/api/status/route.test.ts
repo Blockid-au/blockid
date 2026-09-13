@@ -106,6 +106,25 @@ vi.mock("@/lib/ops/schema-migrations", () => ({
   }),
 }));
 
+// ─── S31-A ai_providers / ai_queue_depth fixtures ──────────────────────
+// Both read in-process state (probe cache file / dispatcher counters) that
+// have their own suites (src/lib/ai/provider-status.test.ts, ai-client.test.ts).
+
+const aiState: { summary: Record<string, unknown>; throwErr: boolean; queue: Record<string, number> } = {
+  summary: { updated_at: "2026-09-13T22:40:00.000Z", providers: { anthropic: { status: "invalid_key", checked_at: "2026-09-13T22:40:00.000Z" }, groq: { status: "valid", checked_at: "2026-09-13T22:40:00.000Z", headroom: { tpm_remaining: 7990 } } }, usable: 1, quality_tier_ready: false },
+  throwErr: false,
+  queue: { queued: 3, queued_user: 2, queued_background: 1, running: 120, max_concurrent: 120 },
+};
+vi.mock("@/lib/ai/provider-status", () => ({
+  readAiProvidersSummary: vi.fn(async () => {
+    if (aiState.throwErr) throw new Error("disk");
+    return aiState.summary;
+  }),
+}));
+vi.mock("@/lib/ai-client", () => ({
+  getAIQueueDepth: vi.fn(() => aiState.queue),
+}));
+
 // ─── fetch fixture ─────────────────────────────────────────────────────
 
 type FetchResponder =
@@ -870,6 +889,8 @@ describe("public payload redaction", () => {
     expect(raw).not.toHaveProperty("oauth_tokens_sealed");
     expect(raw).not.toHaveProperty("ga4_events");
     expect(raw).not.toHaveProperty("backups");
+    expect(raw).not.toHaveProperty("ai_providers");
+    expect(raw).not.toHaveProperty("ai_queue_depth");
     expect(Object.keys(raw).sort()).toEqual(
       ["last_deploy", "ok", "services", "slo", "updated_at", "version"],
     );
@@ -1088,5 +1109,51 @@ describe("backups (QA-3 P0-4) — read from content/reports/backup-health.jsonl"
     expect(read((await callGet()).body)).toBe("stale");
     fsState.files.set(HEALTH_FILE, row("db-backup", "ok", 3_600_000));
     expect(read((await callGet()).body)).toBe("stale");
+  });
+});
+
+// ─── S31-A ai_providers + ai_queue_depth (trusted-only) ────────────────
+
+describe("ai_providers + ai_queue_depth (S31-A)", () => {
+  type Body = {
+    ai_providers?: { providers: Record<string, { status: string }>; usable: number; quality_tier_ready: boolean };
+    ai_queue_depth?: { queued: number; running: number; max_concurrent: number };
+  };
+
+  it("surfaces the probe summary and the live queue depth on the trusted payload", async () => {
+    aiState.throwErr = false;
+    const { body } = await callGet();
+    const b = body as unknown as Body;
+    expect(b.ai_providers?.providers.anthropic.status).toBe("invalid_key");
+    expect(b.ai_providers?.providers.groq.status).toBe("valid");
+    expect(b.ai_providers?.usable).toBe(1);
+    expect(b.ai_providers?.quality_tier_ready).toBe(false);
+    expect(b.ai_queue_depth).toEqual({ queued: 3, queued_user: 2, queued_background: 1, running: 120, max_concurrent: 120 });
+  });
+
+  it("degrades to an empty summary when the probe file cannot be read (never 5xx)", async () => {
+    aiState.throwErr = true;
+    const { status, body } = await callGet();
+    aiState.throwErr = false;
+    expect(status).toBe(200);
+    const b = body as unknown as Body;
+    expect(b.ai_providers).toEqual({ updated_at: "", providers: {}, usable: 0, quality_tier_ready: false });
+  });
+
+  it("is ABSENT from the public payload (operator posture is trusted-only)", async () => {
+    const savedToken = process.env.STATUS_FULL_TOKEN;
+    const savedSecret = process.env.CRON_SECRET;
+    process.env.STATUS_FULL_TOKEN = "";
+    process.env.CRON_SECRET = "";
+    try {
+      fetchState.responder = { kind: "json", body: healthyHealthz() };
+      const { body } = await callGet();
+      const b = body as unknown as Body;
+      expect(b.ai_providers).toBeUndefined();
+      expect(b.ai_queue_depth).toBeUndefined();
+    } finally {
+      process.env.STATUS_FULL_TOKEN = savedToken;
+      if (savedSecret === undefined) delete process.env.CRON_SECRET; else process.env.CRON_SECRET = savedSecret;
+    }
   });
 });

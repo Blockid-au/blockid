@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
+import { aiCapacityResponse, isAICapacityError } from "@/lib/ai/capacity";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { apiRoute } from "@/lib/audit/api-route";
 
@@ -80,7 +81,7 @@ ${body.rawText.slice(0, 4000)}
 
 The deterministic system scored this startup at SVI ${body.deterministicSVI}. Score it independently using ONLY the text above, then return the JSON.`;
 
-    const { text } = await callAI({ system: systemPrompt, user: userMessage, maxTokens: 1024 });
+    const { text } = await callAI({ userId: user.id, system: systemPrompt, user: userMessage, maxTokens: 1024 });
 
     let aiData: {
       aiSVI: number;
@@ -130,6 +131,7 @@ The deterministic system scored this startup at SVI ${body.deterministicSVI}. Sc
     });
 
   } catch (err) {
+    if (isAICapacityError(err)) return aiCapacityResponse(err); // S31-A: 503 + Retry-After, never a 500
     console.error("[blockid:ai-score]", err);
     return NextResponse.json({ ok: false, error: "AI scoring failed" }, { status: 500 });
   }

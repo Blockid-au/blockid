@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
+import { aiCapacityResponse, isAICapacityError } from "@/lib/ai/capacity";
 import { apiRoute } from "@/lib/audit/api-route";
 
 function detectLanguage(text: string): "en" | "vi" | "auto" {
@@ -71,7 +72,7 @@ async function POST_handler(request: Request) {
     const lang = detectLanguage(rawText);
     const langNote = lang === "vi" ? " Write your response in Vietnamese." : "";
 
-    const { text } = await callAI({
+    const { text } = await callAI({ userId: user.id,
       system: `You are a friendly startup mentor.${langNote} Write in plain language, be encouraging. Use markdown formatting.`,
       user: sectionDef.prompt(analysis, rawText),
       maxTokens: 1024, // Small per section — avoids timeout
@@ -84,6 +85,7 @@ async function POST_handler(request: Request) {
       content: text,
     });
   } catch (err) {
+    if (isAICapacityError(err)) return aiCapacityResponse(err); // S31-A: 503 + Retry-After, never a 500
     console.error(`[report-section]`, err);
     return NextResponse.json({ ok: false, error: "Section generation failed" }, { status: 500 });
   }

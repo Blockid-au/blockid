@@ -16,7 +16,7 @@
 // Nothing here logs or stores key material — only key length / first three
 // characters ever reach a log line. Probes are run by the ai-health-check
 // cron (every 30 min), lazily by ai-client on the first call after boot when
-// the cache is stale, and on demand by scripts/ai/probe-providers.mjs.
+// the cache is stale, and on demand by scripts/ai/probe-providers.ts.
 
 import * as fs from "fs";
 import * as path from "path";
@@ -316,8 +316,11 @@ export async function probeProviders(deps: ProbeDeps & { force?: boolean; file?:
       jobs.push(probeProvider(p, secret, deps).then((r) => { next.providers[p] = r; }));
     }
     await Promise.all(jobs);
-    writeProviderStatusFile(next, file);
-    return next;
+    // Stable key order (PROBE_PROVIDERS) so diffs of the file stay readable.
+    const ordered: ProviderStatusFile = { updated_at: next.updated_at, providers: {} };
+    for (const p of PROBE_PROVIDERS) if (next.providers[p]) ordered.providers[p] = next.providers[p];
+    writeProviderStatusFile(ordered, file);
+    return ordered;
   })().finally(() => { inflight = null; });
   return inflight;
 }

@@ -18,6 +18,8 @@ import { readOAuthTokenHealth, type OAuthTokensSealedStatus } from "@/lib/securi
 import { readGa4EventAuditStatus } from "@/lib/analytics/ga4-event-audit";
 import { readBackupHealth, type BackupStatus } from "@/lib/ops/backup-health";
 import { readSchemaMigrationsStatus, type SchemaMigrationsStatus } from "@/lib/ops/schema-migrations";
+import { readAiProvidersSummary, type AiProvidersSummary } from "@/lib/ai/provider-status";
+import { getAIQueueDepth } from "@/lib/ai-client";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
@@ -120,6 +122,20 @@ type StatusResponse = {
    * DB unreachable). Public: names no file, table or host.
    */
   schema_migrations: SchemaMigrationsStatus;
+  /**
+   * S31-A — per-provider AI validity from the last probe
+   * (content/reports/ai-provider-status.json, ≤ 1 probe / provider / 15 min):
+   * `valid | invalid_key | unreachable | quota_exceeded | low_credit |
+   * not_configured` plus headroom (RPM/TPM remaining, OpenRouter credits) and
+   * `quality_tier_ready` (Anthropic key present AND valid). Never key
+   * material. Trusted callers only.
+   */
+  ai_providers: AiProvidersSummary;
+  /**
+   * S31-A — live depth of the in-process AI dispatcher queue (user +
+   * background lanes) and running/max concurrency. Trusted callers only.
+   */
+  ai_queue_depth: ReturnType<typeof getAIQueueDepth>;
 };
 
 // Whether the caller is trusted enough to see the full internal telemetry
@@ -405,10 +421,18 @@ function computeUptimeFromCrons(crons: CronRow[]): number | undefined {
   return Math.round((total / crons.length) * 10) / 10;
 }
 
+function safeQueueDepth(): ReturnType<typeof getAIQueueDepth> {
+  try {
+    return getAIQueueDepth();
+  } catch {
+    return { queued: 0, queued_user: 0, queued_background: 0, running: 0, max_concurrent: 0 };
+  }
+}
+
 // ---------- Handler ----------
 
 export async function GET(): Promise<Response> {
-  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens, ga4Events, backups, schemaMigrations] = await Promise.all([
+  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens, ga4Events, backups, schemaMigrations, aiProviders] = await Promise.all([
     fetchHealthz(2000),
     summariseCrons().catch(() => [] as CronRow[]),
     readGitShaFallback(),
@@ -419,6 +443,7 @@ export async function GET(): Promise<Response> {
     readGa4EventAuditStatus(REPO_ROOT).catch(() => "unknown"),
     readBackupHealth(REPO_ROOT).catch(() => ({ status: "missing" as const, last_backup: "", last_restore_test: "" })),
     readSchemaMigrationsStatus(REPO_ROOT).catch(() => "unknown" as const),
+    readAiProvidersSummary(REPO_ROOT).catch(() => ({ updated_at: "", providers: {}, usable: 0, quality_tier_ready: false } as AiProvidersSummary)),
   ]);
 
   const last_deploy = await readLastDeploy(fallbackSha).catch(() => ({
@@ -475,6 +500,8 @@ export async function GET(): Promise<Response> {
     ga4_events: ga4Events,
     backups: backups.status,
     schema_migrations: schemaMigrations,
+    ai_providers: aiProviders,
+    ai_queue_depth: safeQueueDepth(),
   };
 
   return NextResponse.json(trusted ? fullBody : publicBody, {

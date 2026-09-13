@@ -239,7 +239,7 @@ BlockID auto-generates your data room structure → NDA-gated, investor-ready.
 
 async function generateFreshPost(): Promise<string | null> {
   try {
-    const result = await callAI({
+    const result = await callAI({ priority: "background", // S31-A: crons yield to user traffic
       system: `You are a LinkedIn content creator for BlockID.au — an AI startup valuation platform in Australia.
 
 Write ONE LinkedIn post (200–280 words) for the BlockID company page. Requirements:

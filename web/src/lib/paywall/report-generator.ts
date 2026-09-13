@@ -331,6 +331,7 @@ export async function generateTrustReportForOrder(
     systemPrompt: string,
     userPrompt: string,
     maxTokens: number,
+    taskClass?: "classify" | "report" | "synthesis",
   ): Promise<string> => {
     const result = await callAI({
       system: systemPrompt,
@@ -338,6 +339,7 @@ export async function generateTrustReportForOrder(
       maxTokens,
       timeoutMs: 120_000,
       agentId: paywallAgentId,
+      taskClass,
     });
     return result.text;
   };

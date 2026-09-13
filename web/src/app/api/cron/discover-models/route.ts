@@ -19,6 +19,7 @@ import { FREE_MODELS_CONFIG } from "@/lib/ai-client";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchJson, filterFreeOpenRouter, rank } from "@/lib/model-discovery";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
+import { readStrikes, recentlyPruned } from "@/lib/ai/model-strikes";
 
 export const dynamic = "force-dynamic";
 
@@ -75,12 +76,14 @@ export async function POST(request: Request) {
 
   const current = readCurrent();
   const added: Record<string, string[]> = {};
+  // S31-A: never re-add a model the health check pruned in the last 7 days.
+  const pruned = recentlyPruned(readStrikes());
 
   // ── OpenRouter — biggest source of NEW free models ──
   const orAll = await fetchJson("https://openrouter.ai/api/v1/models");
   const orFree = filterFreeOpenRouter(orAll);
   if (orFree.length > 0) {
-    const exclude = new Set(current.openrouter ?? []);
+    const exclude = new Set([...(current.openrouter ?? []), ...(pruned.openrouter ?? [])]);
     const fresh = rank(orFree, NEW_PER_PROVIDER, exclude);
     if (fresh.length > 0) added.openrouter = fresh;
   }
@@ -95,7 +98,7 @@ export async function POST(request: Request) {
     const key = (env && process.env[env]) || (await dbKey(provider));
     if (!key) continue;
     const models = await fetchJson(url, { Authorization: `Bearer ${key}` });
-    const exclude = new Set((current[provider] as string[] | undefined) ?? []);
+    const exclude = new Set([...((current[provider] as string[] | undefined) ?? []), ...(pruned[provider] ?? [])]);
     const fresh = rank(models, NEW_PER_PROVIDER, exclude);
     if (fresh.length > 0) added[provider] = fresh;
   }

@@ -202,7 +202,7 @@ Platform context:
     }> = [];
 
     try {
-      const aiResult = await callAI({
+      const aiResult = await callAI({ priority: "background", // S31-A: crons yield to user traffic
         system: `You are a growth advisor for BlockID.au, an Australian startup platform. Analyze the metrics and return ONLY a JSON array of 3-5 actionable recommendations. Each recommendation must have:
 - priority: "critical" | "high" | "medium"
 - title: short action title (max 60 chars)

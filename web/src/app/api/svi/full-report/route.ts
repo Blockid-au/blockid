@@ -11,6 +11,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
+import { aiCapacityResponse, isAICapacityError } from "@/lib/ai/capacity";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import {
@@ -251,7 +252,7 @@ IMPORTANT: The user has already paid for the section analyses above. Build upon 
 ` : ""}
 ${sections}`;
 
-    const { text: report } = await callAI({
+    const { text: report } = await callAI({ userId: user.id,
       system: systemPrompt,
       user: userMessage,
       maxTokens,
@@ -299,6 +300,7 @@ ${sections}`;
       role: scope?.role ?? "owner",
     });
   } catch (err) {
+    if (isAICapacityError(err)) return aiCapacityResponse(err); // S31-A: 503 + Retry-After, never a 500
     console.error("[blockid:full-report]", err);
     return NextResponse.json({ ok: false, error: "Report generation failed" }, { status: 500 });
   }

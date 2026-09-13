@@ -10,6 +10,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
+import { aiCapacityResponse, isAICapacityError } from "@/lib/ai/capacity";
 import { getBalance, SECTION_DEPTH_CONFIG, calculateSectionCost, type SectionDepth } from "@/lib/credits";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { apiRoute } from "@/lib/audit/api-route";
@@ -256,7 +257,7 @@ Target: ~${depthConfig.words} words (${depthConfig.label} depth — ${depthConfi
 
 Return as JSON: { "sections": { "sectionId": "markdown content", ... } }`;
 
-    const { text } = await callAI({
+    const { text } = await callAI({ userId: user.id,
       system: systemPrompt,
       user: userMessage,
       maxTokens,
@@ -288,6 +289,7 @@ Return as JSON: { "sections": { "sectionId": "markdown content", ... } }`;
       }
     }
   } catch (err) {
+    if (isAICapacityError(err)) return aiCapacityResponse(err); // S31-A: 503 + Retry-After, never a 500
     console.error("[blockid:modular]", err);
     return NextResponse.json({ ok: false, error: "Analysis generation failed" }, { status: 500 });
   }

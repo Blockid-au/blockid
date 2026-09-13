@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
+import { aiCapacityResponse, isAICapacityError } from "@/lib/ai/capacity";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { apiRoute } from "@/lib/audit/api-route";
 
@@ -105,7 +106,7 @@ Name actual companies with real URLs. Return ONLY the JSON object.`;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const webSearchTool = { type: "web_search_20250305", name: "web_search", max_uses: 5 } as any;
 
-    const { text: finalText } = await callAI({
+    const { text: finalText } = await callAI({ userId: user.id,
       system: SYSTEM_PROMPT,
       user: userMessage,
       maxTokens: 4096,
@@ -160,6 +161,7 @@ Name actual companies with real URLs. Return ONLY the JSON object.`;
     });
 
   } catch (err) {
+    if (isAICapacityError(err)) return aiCapacityResponse(err); // S31-A: 503 + Retry-After, never a 500
     console.error("[blockid:research]", err);
     return NextResponse.json({ ok: false, error: "Research failed" }, { status: 500 });
   }

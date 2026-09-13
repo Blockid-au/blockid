@@ -10,6 +10,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
+import { aiCapacityResponse, isAICapacityError } from "@/lib/ai/capacity";
 import {
   CRITERION_KEYS,
   getCriterion,
@@ -108,7 +109,7 @@ async function POST_handler(
   ].join("\n");
 
   try {
-    const { text } = await callAI({
+    const { text } = await callAI({ userId: user.id,
       system: `You are a senior startup advisor specialising in ${def.title} assessment for early-stage Australian startups. Your goal is to help founders strengthen their evidence for investor evaluation.
 
 Return ONLY valid JSON with this exact structure:
@@ -195,6 +196,7 @@ Provide 5 specific suggestions to improve this criterion's evidence, plus 3 qual
       creditNote: creditChargeNote(scope),
     });
   } catch (err) {
+    if (isAICapacityError(err)) return aiCapacityResponse(err); // S31-A: 503 + Retry-After, never a 500
     console.error("[blockid:evaluation:ai-suggest]", err);
     return NextResponse.json({
       ok: false,
