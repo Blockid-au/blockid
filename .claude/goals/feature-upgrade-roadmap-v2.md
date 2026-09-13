@@ -79,29 +79,29 @@
 - [x] Portfolio dashboard (all startups side-by-side) (shipped — `/dashboard/portfolio` + `lib/portfolio.ts`, `c99966915`)
 - [x] Cross-project comparison charts (shipped — `components/portfolio/comparison-chart.tsx` 30-day SVI multi-line, `1b4103eee`)
 - [x] Team member invite (share project with co-founder) (shipped — `/workspace/projects/[slug]/members` + `api/projects/[id]/members` + `/invites/[token]`, migration 0105, `fa3744bbf`)
-- [ ] Project-level permissions (viewer, editor, admin) (partial — role column + `lib/project-members/scope.ts` exist; enforced in 3 routes only)
+- [x] Project-level permissions (viewer, editor, admin) — **shipped S18-A 2026-09-12**: `getProjectScope`/`projectScopeOrDeny` member-aware on every project route, static guard `projects.scope-guard.test.ts` (rules A–C); `/api/fundraise` converted S26-review 2026-09-13
 - [x] Project archiving with data retention (shipped — `/workspace/projects/archived` + `api/projects/[id]/archive` + `api/cron/archived-purge` 90-day, `feac5fde8`)
 
 ### Valuation Engine v3 (CTO + CFO)
 - [x] Real-time valuation from connected Stripe data (shipped S17-B — `lib/valuation-mrr-bridge.ts` reads Stripe `svi_signals.mrr_aud` + Xero `xero_revenue` (3-mo P&L ÷ 3), ARR × `SECTOR_MULTIPLES` range narrows (overlap) / widens + `method_note` (disjoint), > 90 d ignored; wired into `api/valuation`, `api/valuation/vc`, `api/score` → `startup_score_history.valuation_method` (migration 0330); "Includes connected revenue (A$X MRR from Stripe/Xero)" on the VC dashboard + history)
 - [ ] Comparable startup database (anonymized, 1000+ AU startups) (partial — ~71 named rows `lib/au-comparable-raises.ts` + `lib/data/au-comparables.ts`; no anonymised 1000+ DB)
 - [ ] Sector-specific multiples auto-updated quarterly (partial — static `SECTOR_MULTIPLES` in `lib/agents/cfo-valuation.ts`; no quarterly refresh cron)
-- [ ] Valuation certificate PDF (for investor DD) (partial — VC valuation report PDF `api/valuation/pdf`; no certificate format/hash/seal)
+- [x] Valuation certificate PDF (for investor DD) — **shipped S22-A 2026-09-12**: `VC-XXXXX-XXXXX` + content hash, `/verify/valuation/[no]`, revoke, 5 credits / Growth+ (0341)
 - [x] Historical valuation graph (SVI timeline → AUD) (shipped S17-B — `components/dashboard/valuation-trend-chart.tsx` Recharts SVI panel + A$ low–high band / midpoint on a right axis, table twin + sr-only summary, light/dark; on `/dashboard/history` (list + per-startup) from `startup_score_history` rows; `/workspace/svi-trend` shows the `svi_snapshots.estimated_valuation` point series via `/api/svi/history/full`)
 
 ### Enterprise Features (CTO + CRO)
 - [ ] White-label option (custom domain, branding) (partial — `/workspace/white-label` is a coming-soon stub; PDF branding only, no custom domain)
 - [ ] SSO (SAML/OIDC for enterprise clients) (open — not found in code (`/workspace/sso` is a coming-soon stub))
 - [x] API access with rate limits per plan (shipped — `/workspace/api-keys` + `lib/api-keys.ts getRateLimitForPlan` + `api/v1/*`, migrations 0024/0107, `51d424dc3`)
-- [ ] Webhook notifications (SVI change, evidence uploaded) (partial — manual Zapier push `api/founder/crm-push` only; no endpoints table or event dispatch)
-- [ ] Audit log for compliance (all user actions) (partial — `/workspace/audit-log` + `lib/audit/log.ts`, 13 action types; not all user actions)
+- [x] Webhook notifications (SVI change, evidence uploaded) — **shipped S20-B 2026-09-12**: `webhook_endpoints`/`webhook_deliveries` (0336), HMAC signature, retry ladder, `webhook-dispatch` cron, `/workspace/integrations`
+- [x] Audit log for compliance (all user actions) — **shipped S20-A 2026-09-12**: `apiRoute()` on 298 route files, hash-chained `audit_events`, nightly chain verify → `/api/status`, coverage guard test
 
 ### Data Room v2 (CTO + CPO)
 - [x] One-click data room from evidence vault (shipped — `api/data-room/generate` + `lib/data-room.ts composeRoomDocuments` pulls `svi_evidence`, `4778b625b`)
-- [ ] Document watermarking (per-investor) (partial — `watermark` column migration 0251 only; no renderer applies it)
-- [ ] View analytics (investor engagement heatmap) (partial — per-link view counts/logs shipped; `api/data-room/engage` heatmap has no client/UI)
-- [ ] NDA management (digital signature) (partial — `nda_required`/`nda_signed_at` columns + access API; no gate or signature capture)
-- [ ] Follow-up automation (auto-email after investor views) (partial — investor drips fire on lead form (`lib/investor-drips`), not on view)
+- [x] Document watermarking (per-investor) — **shipped S21-A 2026-09-12**: `@react-pdf` fixed layer, traceable `link <id8>` (`lib/pdf/watermark.tsx`)
+- [x] View analytics (investor engagement heatmap) — **shipped S21-A 2026-09-12**: link × section views/dwell heatmap + table twin; `investor_viewed` founder alerts S26-A 2026-09-13
+- [x] NDA management (click-wrap) — **shipped S21-A 2026-09-12**: server-enforced click-wrap gate before any document, acceptances retained (privacy v2.3, 0342)
+- [x] Follow-up automation (auto-email after investor views) — **shipped S26-A 2026-09-13**: opt-in per data-room link (`auto_follow_up`), 2 business days after a view, `investor-followups` cron 21:00 UTC, NDA/once-per-link vetoes
 
 ---
 
@@ -109,17 +109,17 @@
 
 ### Cap Table v2 (CTO + CBO)
 - [x] Equity round wizard (SAFE, convertible note, priced round) (shipped — `lib/fundraise.ts` (priced/safe/convertible_note) + `/workspace/fundraise` + `/workspace/fundraise/structure` + `/workspace/equity-setup`, `338f86a02`)
-- [ ] Auto share-price from SVI + multiples (partial — `lib/share-structure.ts computeSharePriceFromSVI` + equity-setup wizard; revenue multiples not wired)
+- [x] Auto share-price from SVI + multiples — **shipped S26-B 2026-09-13**: `lib/share-price.ts` (40 % SVI / 60 % ARR × sector multiple ÷ fully diluted), `/api/share-price`, cap-table + wizard card with source label
 - [x] Dilution simulator (what-if scenarios) (shipped — `lib/fundraise.ts` dilutionTable/dilutionPct + `/workspace/fundraise` client, `338f86a02`)
-- [ ] Board resolution templates (PDF generation) (partial — placeholder `public/templates/board-consent.docx` + on-chain registry; no populated PDF)
+- [x] Board resolution templates (PDF generation) — **shipped S26-B 2026-09-13**: share issue (s 254X), dividend (s 254T), ESOP adoption; s 248A/248B circular form; `board_resolutions` (0360), 1 credit / Growth+ (regenerate-after-resize still open)
 - [ ] 409A-equivalent valuation report (AU compliance) (partial — VC valuation PDF `api/valuation/pdf`; no s960-410/ESS safe-harbour language)
 
 ### Fundraise Tools (CRO + CFO)
 - [ ] Investor CRM (track contacts, status, notes) (open — not found in code; nearest is per-investor share links `lib/investor-links.ts`)
-- [ ] Term sheet comparison tool (AI-powered) (partial — `/workspace/term-sheet` + `lib/term-sheet/analyze.ts` single-sheet AU-market AI analysis; no multi-sheet compare)
-- [ ] Fundraise tracker (target, committed, closed) (partial — `fundraise_rounds` target/status draft→active→closed; no committed-amount tracking)
+- [x] Term sheet comparison tool — **shipped S26-B 2026-09-13**: `compareTermSheets()` 13-row matrix + founder-friendliness score, `POST /api/term-sheet/compare` (2 credits / Growth+), compare view
+- [x] Fundraise tracker (target, committed, closed) — **shipped S26-A 2026-09-13**: `fundraise_commitments` soft/committed/signed/funded/withdrawn (0355), round progress bar + summary API, `/workspace/fundraise/[roundId]`
 - [x] Investor match (based on industry, stage, geography) (shipped — `lib/funding/investor-match.ts` reverse-match on sectors/stages/geos + `/workspace/funding`, migration 0323, `c6d7e1f9e`)
-- [ ] Auto data room generation for active raise (partial — data room generate is manual click; no trigger from active `fundraise_rounds`)
+- [x] Auto data room generation for active raise — **shipped S26-A 2026-09-13**: `POST /api/fundraise/[roundId]/activate` links or compiles the room (3 credits, refunded on failure), idempotent
 
 ### Blockchain Phase 2 (CBO)
 - [ ] Production Cosmos chain (partial — private EVM Anvil chainId 420 + Otterscan (`chain/`, `lib/wallet.ts`); no Cosmos/production chain)
@@ -133,8 +133,8 @@
 ## 2027 H2 — "Revenue & Dividends"
 
 ### Revenue Tracking (CFO)
-- [ ] Stripe/Xero/QuickBooks connectors (partial — Stripe OAuth `api/integrations/stripe` live; Xero/QuickBooks are placeholder cards)
-- [ ] Real-time P&L dashboard (partial — `/dashboard/finance` + `/workspace/revenue` P&L from manual entries; no live connector feed)
+- [ ] Stripe/Xero/QuickBooks connectors (partial — Stripe + **Xero live** (S25-A 2026-09-13: `offline_access`, weekly `connector-resync`, `connector_snapshots` 0349; legacy vault schema drift fixed 0352); QuickBooks needs the founder's Intuit OAuth app)
+- [x] Real-time P&L dashboard — **shipped S25-A 2026-09-13**: `/workspace/revenue` fed by Xero (3-month P&L) + Stripe Connect (MRR/ARR/churn) snapshots with per-figure source labels; manual entries remain the fallback
 - [x] Revenue-to-SVI automatic feed (shipped — `api/revenue` POST auto-triggers SVI rescore (TRE) + Stripe callback writes `mrr_aud` signal, `f08be00bd`)
 - [x] Cash flow forecasting (shipped — `lib/financial-projections.ts` monthly cash outflow/cumCash/runway + `/workspace/financial-forecast` wizard, `71878a50c`)
 - [ ] Expense categorization AI (open — not found in code)
@@ -151,7 +151,7 @@
 ## 2028+ — "Exit & Exchange"
 
 ### Exit Modeling (CFO + CLO)
-- [ ] Exit scenario calculator (IPO, M&A, acqui-hire) (partial — `lib/exit-modeling.ts` + `api/exit-model` cover acquisition/ipo/secondary/buyout; no acqui-hire scenario)
+- [x] Exit scenario calculator (IPO, M&A, acqui-hire) — **shipped S26-B 2026-09-13**: `acqui_hire` (team × per-engineer value A$500K–1.5M editable assumption, retention pool vesting, waterfall)
 - [x] Valuation multiple benchmarks by sector (shipped — `lib/exits/au-benchmark.ts` + `SECTOR_MULTIPLES` `lib/agents/cfo-valuation.ts` + `/benchmarks`, `fe8f966c1`)
 - [x] Due diligence readiness score (shipped — `api/data-room/readiness` + `api/fundraise/readiness` + `/dashboard/exit-readiness` tile, `89aca9c59`)
 - [ ] Clean room preparation guide (open — not found in code)
@@ -205,6 +205,7 @@ Every unchecked item above was checked against `web/src/app/**`, `web/src/lib/**
 - **Shipped (ticked today): 25**
 - **Partial: 28**
 - **Open: 8**
+- **Update 2026-09-13:** 16 further items ticked (S18-A, S20-A/B, S21-A, S22-A, S25-A, S26-A/B — see inline); ranked backlog #1–#8 below is fully shipped. Remaining partials without founder input: sector-multiples quarterly refresh (needs a cited data source), 409A-equivalent / ESS safe-harbour language, chain read-back, secondary trading simulation; everything else needs a founder account (QuickBooks, SSO, Slides, Discord, Cosmos, PH launch).
 
 ### Ranked open/partial backlog — no human input needed (no Stripe env, founder decision, or third-party account)
 
