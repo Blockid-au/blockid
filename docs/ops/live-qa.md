@@ -168,6 +168,34 @@ The 4 failures are product findings (fundraise round detail 404 — `ROUND_COLUM
 expense-import `creditNote` still saying "Charged to your credits." when included); they
 stay red until the product fixes land.
 
+S30-B run (2026-09-13 18:46 UTC, same flags, 157 tests): **143 passed · 1 failed · 11
+skipped · 2 expected failures · 0 credits spent · founder + member accounts erased and
+verified** (the S30-A 97 stay green). The one failure is a **P1 product bug**:
+`/workspace/funding` renders the workspace error boundary for every plan-included founder
+(Starter+/Growth) — `workspace/funding/page.tsx` calls `isFundingTab()` imported from the
+`"use client"` `funding-workspace.tsx` (server log digest `1907948635`: "Attempted to call
+isFundingTab() from the server but isFundingTab is on the client"); Free founders never
+reach that branch (release-qa2 row 7 passed on Free). The 11 skips are the data-room
+investor-link journey (needs `SPEND_OK`), the funding report (Free balance 3 = cost 3, so
+neither the 402 nor the included path is reachable without spending) and the own-report PDF
+(the suite never buys a report). A targeted `LIVE_QA_SPEND_OK=1` run of `01-elevate` +
+`23-data-room` (18:51 UTC) passed 11/11: 3 welcome credits → room with 14 documents, NDA
+403 → click-wrap accept persisted across reload, PDF stamped "Prepared for Jane Chen"
+(`X-BlockID-Watermark: 1`), 1 view / NDA-signed row in the engagement analytics,
+`autoFollowUp` round-trip, revoke → 404.
+
+Product findings recorded as annotations (not failures): `ReportPaywallGate` (the in-app
+"Confirm & Pay A$3" dialog) is mounted by no page; `POST /api/data-room/generate` has no
+preview / `included` response (flat 3 credits); `room-trust-settings` + `engagement-heatmap`
+render only in the browser session that generated the room (`dataRoomId` lives in
+`data-room-client.tsx` state — a reload loses the NDA/watermark controls and the heatmap);
+there is no `GET /api/account/export` (the settings page points at the audit-log CSV); a
+revoked project member cannot be re-invited (422 `duplicate`) and no role-change endpoint
+exists (pinned `test.fail`); Cloudflare Email Obfuscation is still on (CSP-refused
+`email-decode.min.js` + React #418 on `/pricing`, `/workspace/settings`). Observed once
+(run 2, not reproduced): every phase-gated nav leaf hidden at phase `funding` —
+`getFounderNavContext` swallows any lookup error into phase 0.
+
 ## Scheduling (proposal — not installed)
 
 ```
