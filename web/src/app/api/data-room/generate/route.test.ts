@@ -230,7 +230,7 @@ vi.mock("@/lib/valuation", () => ({
     computeValuationMock(input),
 }));
 
-import { POST } from "./route";
+import { GET, POST } from "./route";
 
 function gateOk(user: { id: string; email: string; displayName: string | null }) {
   return {
@@ -1212,5 +1212,74 @@ describe("POST /api/data-room/generate — writes real documents", () => {
       missing: 1,
       completeness: 50,
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// S30-B live QA (P2) — GET returns the scope's EXISTING room so the client
+// can seed `dataRoomId` on mount (trust settings + heatmap after a reload).
+// ---------------------------------------------------------------------------
+
+describe("GET /api/data-room/generate — existing room lookup (S30-B)", () => {
+  it("401s when the feature gate rejects — no DB read", async () => {
+    gateMock.mockResolvedValue(gateFail(401, "Authentication required"));
+    const res = await GET();
+    expect(res.status).toBe(401);
+    expect(getSupabaseAdminMock).not.toHaveBeenCalled();
+  });
+
+  it("503s when Supabase is not configured", async () => {
+    gateMock.mockResolvedValue(gateOk(USER));
+    getSupabaseAdminMock.mockReturnValue(null);
+    const res = await GET();
+    expect(res.status).toBe(503);
+  });
+
+  it("owner on a project: reads data_rooms scoped to (owner, project) and returns the id — never spends credits", async () => {
+    gateMock.mockResolvedValue(gateOk(USER));
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
+    getProjectIdFromRequestMock.mockResolvedValue("proj-1");
+    state.responses.push({ data: { id: "room-1", name: "Acme data room" }, error: null });
+
+    const res = await GET();
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body).toEqual({ ok: true, dataRoomId: "room-1", name: "Acme data room", role: "owner" });
+    expect(state.fromCalls).toEqual(["data_rooms"]);
+    expect(state.eqCalls).toEqual([
+      { table: "data_rooms", col: "user_id", val: "u-1" },
+      { table: "data_rooms", col: "project_id", val: "proj-1" },
+    ]);
+    expect(spendCreditsMock).not.toHaveBeenCalled();
+    expect(generateDataRoomMock).not.toHaveBeenCalled();
+  });
+
+  it("viewer member: allowed (viewer floor) and looks up the OWNER's room", async () => {
+    gateMock.mockResolvedValue(gateOk(USER));
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
+    getProjectIdFromRequestMock.mockResolvedValue("proj-1");
+    scopeRoleMock.mockReturnValueOnce("viewer");
+    state.responses.push({ data: { id: "room-9", name: null }, error: null });
+
+    const res = await GET();
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body).toEqual({ ok: true, dataRoomId: "room-9", name: null, role: "viewer" });
+    expect(state.eqCalls[0]).toEqual({ table: "data_rooms", col: "user_id", val: "owner-1" });
+  });
+
+  it("no project + no room: dataRoomId null (the client keeps the Generate CTA)", async () => {
+    gateMock.mockResolvedValue(gateOk(USER));
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
+    getProjectIdFromRequestMock.mockResolvedValue(null);
+
+    const res = await GET();
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body).toEqual({ ok: true, dataRoomId: null, name: null, role: "owner" });
+    expect(state.eqCalls).toEqual([
+      { table: "data_rooms", col: "user_id", val: "u-1" },
+      { table: "data_rooms", col: "project_id", val: null },
+    ]);
   });
 });

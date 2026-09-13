@@ -4,10 +4,55 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { spendCredits } from "@/lib/credits";
 import { getProjectScope, creditChargeNote } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
-import { compileDataRoom } from "@/lib/dataroom/generate-room";
+import { compileDataRoom, findRoomForScope } from "@/lib/dataroom/generate-room";
 import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
+
+// ---------------------------------------------------------------------------
+// GET /api/data-room/generate — the scope's EXISTING room, never a compile
+//
+// S30-B live QA (P2): `room-trust-settings` + `engagement-heatmap` rendered
+// only in the browser session that pressed Generate, because the room id
+// lived in DataRoomClient state. The client now asks this on mount and seeds
+// the same state, so NDA / watermark controls, the link list and the heatmap
+// survive a reload. Same scope rules as the POST (owner or any accepted
+// member — viewer floor, since reading the id is not a mutation) and the
+// same `findRoomForScope` the fundraise activation path uses; no credits.
+// ---------------------------------------------------------------------------
+
+export async function GET() {
+  const gate = await gateRequireFeature("data_room.access");
+  if (!gate.ok) return gate.response;
+  const user = gate.user;
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json(
+      { ok: false, error: "Database not configured" },
+      { status: 503 },
+    );
+  }
+
+  let scope;
+  try {
+    scope = await getProjectScope("viewer");
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
+    throw err;
+  }
+  const projectId = scope?.projectId ?? null;
+  const ownerUserId = scope?.ownerUserId ?? user.id;
+
+  const room = await findRoomForScope(supabase, { ownerUserId, projectId });
+  return NextResponse.json({
+    ok: true,
+    dataRoomId: room?.id ?? null,
+    name: room?.name ?? null,
+    role: scope?.role ?? "owner",
+  });
+}
 
 // ---------------------------------------------------------------------------
 // POST /api/data-room/generate — One-click Data Room Generator
