@@ -92,4 +92,27 @@ export const GROWTH_GATED_PAGES = new Set<string>([
   "/workspace/cap-table",
   "/workspace/listing-readiness",
   "/workspace/clean-room",
+  // requireTierForPage({ feature: "data_room.access" }) — Free → /pricing (S30-B).
+  "/workspace/data-room",
 ]);
+
+/**
+ * S30-B: money / third-party-data surfaces added to the per-page console +
+ * network sweep (20-cross-cutting). Marketing pages here are public, so they
+ * are NOT part of the logged-out 307 check (WORKSPACE_PAGES stays as is).
+ * `/settings` does not exist (404) — Account settings live at /workspace/settings.
+ */
+export const SWEEP_EXTRA_PAGES = [
+  "/funding",
+  "/funding/grants",
+  "/pricing",
+  "/compare",
+  "/solutions/advisor",
+  "/workspace/integrations",
+  "/workspace/data-room",
+  "/workspace/audit-log",
+  "/workspace/settings",
+] as const;
+
+/** Everything the console/network sweep visits. */
+export const SWEEP_PAGES = [...WORKSPACE_PAGES, ...SWEEP_EXTRA_PAGES] as const;

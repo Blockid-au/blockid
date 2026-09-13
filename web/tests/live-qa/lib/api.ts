@@ -5,7 +5,7 @@
  * client components do. Non-browser requests carry no `Sec-Fetch-Site`, so the
  * proxy's cross-site gate lets them through (src/proxy.ts crossSiteApiGate).
  */
-import type { APIRequestContext, APIResponse, Page, TestInfo } from "@playwright/test";
+import { request, type APIRequestContext, type APIResponse, type Page, type TestInfo } from "@playwright/test";
 
 export type Json = Record<string, unknown>;
 
@@ -75,6 +75,7 @@ export async function json<T = Json>(
 export const get = <T = Json>(ctx: APIRequestContext, path: string) => json<T>(ctx, "GET", path);
 export const post = <T = Json>(ctx: APIRequestContext, path: string, data?: unknown) => json<T>(ctx, "POST", path, data);
 export const patch = <T = Json>(ctx: APIRequestContext, path: string, data?: unknown) => json<T>(ctx, "PATCH", path, data);
+export const put = <T = Json>(ctx: APIRequestContext, path: string, data?: unknown) => json<T>(ctx, "PUT", path, data);
 export const del = <T = Json>(ctx: APIRequestContext, path: string, data?: unknown) => json<T>(ctx, "DELETE", path, data);
 
 /** Current credit balance (GET /api/credits). Throws on a non-200 so a spec never silently compares NaN. */
@@ -107,6 +108,29 @@ export async function evidence(testInfo: TestInfo, name: string, data: unknown):
     body: JSON.stringify(data, null, 2),
     contentType: "application/json",
   });
+}
+
+/**
+ * A request context with an EMPTY cookie jar. Inside a test,
+ * `request.newContext()` inherits the project's `use` (including the
+ * founder storageState) — the anonymous journeys (guest checkout previews,
+ * investor data-room links, logged-out redirects) must pass an empty jar
+ * explicitly. Dispose it in a `finally`.
+ */
+export async function anonRequest(baseURL: string): Promise<APIRequestContext> {
+  return request.newContext({ baseURL, storageState: { cookies: [], origins: [] } });
+}
+
+/** Text of a PDF body (pdf-parse v2, the same reader the unit tests use). */
+export async function pdfText(buffer: Buffer): Promise<string> {
+  const { PDFParse } = await import("pdf-parse");
+  const parser = new PDFParse({ data: new Uint8Array(buffer) });
+  try {
+    const result = await parser.getText();
+    return result.text;
+  } finally {
+    await parser.destroy();
+  }
 }
 
 /** Build a multipart CSV upload body for request.post. */

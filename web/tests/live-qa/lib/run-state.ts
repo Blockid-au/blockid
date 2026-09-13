@@ -16,6 +16,13 @@ export interface RunState {
   startedAt: string;
   baseURL: string;
   email: string;
+  /**
+   * The founder's password. Needed by 25-account (the deletion request
+   * re-authenticates with the password — there is no other self-service
+   * path a headless run can take). Scrubbed by the teardown once the
+   * account is erased; the file is gitignored and the account throw-away.
+   */
+  password?: string;
   userId: string | null;
   projectId: string | null;
   projectSlug: string | null;
@@ -25,8 +32,11 @@ export interface RunState {
   elevated: boolean;
   /** Free-form scratch the specs use to hand ids to later specs (roundId, contactId, …). */
   scratch: Record<string, string | number | boolean | null>;
+  /** Second account of the member lane (26) — registered by the spec, erased by the teardown. */
+  member?: { email: string; userId: string | null; memberId?: string | null };
   /** Filled in by the teardown. */
   erasure?: { ok: boolean; detail: string };
+  memberErasure?: { ok: boolean; detail: string };
 }
 
 export function readRunState(): RunState {

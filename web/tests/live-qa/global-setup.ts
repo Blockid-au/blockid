@@ -2,8 +2,11 @@
  * Live-QA global setup — provisions ONE founder account for the whole run.
  *
  *   1. POST /api/auth/register  (qa-live-<yyyymmdd-hhmm>@blockid.au, random
- *      password held in memory only) — one call per run; the register bucket
- *      is 3 per 15 min per IP so the suite never registers twice.
+ *      password) — one call per run; the register bucket is 3 per 15 min per
+ *      IP, and the member lane (26) needs the second slot, so nothing else
+ *      may register. The password is kept in the (gitignored) run state only
+ *      because 25-account re-authenticates the deletion request with it;
+ *      the teardown scrubs it after the erasure.
  *   2. POST /api/onboarding/complete so /dashboard does not bounce to the
  *      wizard, then POST /api/projects (the release-qa2 path: onboarding
  *      creates no project, the founder does).
@@ -40,7 +43,7 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
 
   const email = qaEmailForNow();
   if (!QA_EMAIL_RE.test(email)) throw new Error(`generated email does not match the QA pattern: ${email}`);
-  const password = `Qa!${randomBytes(18).toString("base64url")}`; // ≥ 8 chars, in memory only
+  const password = `Qa!${randomBytes(18).toString("base64url")}`; // ≥ 8 chars; persisted in the run state for 25-account only
   const projectName = `QA Live ${email.slice(8, 21)}`;
 
   const ctx = await request.newContext({ baseURL: env.baseURL, extraHTTPHeaders: { accept: "application/json" } });
@@ -104,6 +107,7 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
       startedAt: new Date().toISOString(),
       baseURL: env.baseURL,
       email,
+      password,
       userId,
       projectId: proj.body.project.id,
       projectSlug: proj.body.project.slug,

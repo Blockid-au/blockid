@@ -6,7 +6,7 @@
  * primary buttons.
  */
 import { request, type Locator, type Page } from "@playwright/test";
-import { test, expect, WORKSPACE_PAGES, GROWTH_GATED_PAGES } from "./fixtures";
+import { test, expect, WORKSPACE_PAGES, GROWTH_GATED_PAGES, SWEEP_PAGES } from "./fixtures";
 import { evidence } from "./lib/api";
 import { env } from "./lib/env";
 
@@ -80,7 +80,10 @@ test.describe("Logged-out redirects", () => {
 });
 
 test.describe("Console + network hygiene per page", () => {
-  for (const path of WORKSPACE_PAGES) {
+  // S30-B widened the sweep to the money / third-party-data surfaces
+  // (SWEEP_EXTRA_PAGES in fixtures.ts): /funding, /funding/grants, /pricing,
+  // /compare, /solutions/advisor, /workspace/{integrations,data-room,audit-log,settings}.
+  for (const path of SWEEP_PAGES) {
     test(`${path} — no console errors / failed requests (Cloudflare tag-gateway CSP error allow-listed by signature)`, async ({ page, visit, guard, qa }, testInfo) => {
       test.skip(!qa.elevated && GROWTH_GATED_PAGES.has(path), "Growth-gated page redirects to /pricing on Free — not swept");
       const allowRequest = [
