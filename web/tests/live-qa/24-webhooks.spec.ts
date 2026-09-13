@@ -119,11 +119,14 @@ test.describe("Webhooks", () => {
       page.waitForResponse((r) => r.url().endsWith(`/api/webhooks/${id}/test`) && r.request().method() === "POST", { timeout: 60_000 }),
       row.getByRole("button", { name: /Send test ping/ }).click(),
     ]);
-    const body = (await res.json().catch(() => ({}))) as { ok?: boolean; delivery_id?: string; status?: string; error?: string; duration_ms?: number };
+    const body = (await res.json().catch(() => ({}))) as { ok?: boolean; delivery_id?: string; status?: number; error?: string; duration_ms?: number };
     await evidence(testInfo, "POST /api/webhooks/[id]/test", { status: res.status(), body });
     expect(res.status()).toBe(200);
     expect(body.delivery_id).toBeTruthy();
-    expect(["queued", "delivered", "failed", "dead"]).toContain(body.status);
+    // `status` is the sink's HTTP status (example.com answers 405 to a POST):
+    // the signed ping went out and the attempt is on the ledger either way.
+    expect(body.status, "sink answered the signed POST").toBeGreaterThanOrEqual(200);
+    if (body.ok === false) testInfo.annotations.push({ type: "note", description: `sink ${SINK_URL} answered ${body.status} (${body.error}) — recorded as a failed delivery; the contract (signed POST + ledger row) holds` });
     await expect(row.locator("[data-webhook-test-result]")).toBeVisible({ timeout: 30_000 });
 
     const deliveries = await get<{ ok: boolean; deliveries: Delivery[] }>(api, `/api/webhooks/${id}/deliveries`);
@@ -132,7 +135,7 @@ test.describe("Webhooks", () => {
     expect(deliveries.status).toBe(200);
     expect(mine?.event).toBe("ping");
     expect(["queued", "delivered", "failed", "dead"]).toContain(mine?.status ?? "");
-    if (mine?.status !== "delivered") testInfo.annotations.push({ type: "note", description: `example.com answered ${mine?.response_status ?? "—"} (${mine?.last_error ?? "no error"}) — the delivery row records it as ${mine?.status}; the contract (signed POST + ledger row) holds either way` });
+    expect(mine?.response_status, "ledger row carries the sink's HTTP status").toBe(body.status);
 
     await row.getByRole("button", { name: /^Deliveries$/ }).click();
     const table = row.locator("table");

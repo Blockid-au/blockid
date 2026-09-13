@@ -15,6 +15,20 @@ import type { Page, Request, Response } from "@playwright/test";
 export const CF_GTM_SIGNATURES = ["google_tags_first_party", "developer_id.dYzg1YT"] as const;
 
 /**
+ * Cloudflare Scrape Shield → Email Obfuscation (S24 founder follow-up: turn
+ * it OFF). On every page that prints an email address the edge rewrites the
+ * text into `<a class="__cf_email__" data-cfemail=…>` and injects
+ * `/cdn-cgi/scripts/<hash>/cloudflare-static/email-decode.min.js` — the CSP
+ * refuses the script (nonce-less under strict-dynamic) and React 19 then
+ * hydrates against DOM it did not render → "Minified React error #418".
+ * Both are tolerated ONLY while the served HTML carries the signature, so the
+ * check tightens itself the moment the switch is flipped.
+ */
+export const CF_EMAIL_SIGNATURES = ["email-decode.min.js", "__cf_email__"] as const;
+const CF_EMAIL_SCRIPT_RE = /cloudflare-static\/email-decode\.min\.js/;
+const REACT_418_RE = /Minified React error #418/;
+
+/**
  * Chromium's wording for a refused nonce-less inline script under
  * strict-dynamic — "Refused to execute inline script because it violates…"
  * (≤ 130) and "Executing inline script violates…" (131+, seen on prod 2026-09-13).
@@ -41,6 +55,8 @@ export interface GuardReport {
   failedRequests: FailedRequest[];
   allowedRequests: FailedRequest[];
   cfInjected: boolean;
+  /** Served HTML carries the Cloudflare email-obfuscation rewrite. */
+  cfEmailObfuscated: boolean;
 }
 
 export interface GuardOptions {
@@ -52,6 +68,7 @@ export class ConsoleGuard {
   private readonly errors: ConsoleEntry[] = [];
   private readonly failed: FailedRequest[] = [];
   private htmlHasCfInjection = false;
+  private htmlHasCfEmail = false;
 
   constructor(private readonly page: Page, private readonly opts: GuardOptions = {}) {
     page.on("console", (msg) => {
@@ -82,6 +99,7 @@ export class ConsoleGuard {
       if (!ct.includes("text/html")) return;
       const body = await res.text();
       if (CF_GTM_SIGNATURES.some((s) => body.includes(s))) this.htmlHasCfInjection = true;
+      if (CF_EMAIL_SIGNATURES.some((s) => body.includes(s))) this.htmlHasCfEmail = true;
     } catch {
       /* body may be gone after navigation — a later response will refresh it */
     }
@@ -109,6 +127,10 @@ export class ConsoleGuard {
         cspAllowedCount += 1;
         continue;
       }
+      if (this.htmlHasCfEmail && ((e.type === "console" && CF_EMAIL_SCRIPT_RE.test(e.text)) || (e.type === "pageerror" && REACT_418_RE.test(e.text)))) {
+        allowed.push(e);
+        continue;
+      }
       // Chromium mirrors every ≥400 resource load into the console; if the
       // request itself is allow-listed, so is its console echo.
       const m = /Failed to load resource: the server responded with a status of (\d+)/.exec(e.text);
@@ -123,7 +145,7 @@ export class ConsoleGuard {
     for (const f of this.failed) {
       (this.requestAllowed(f.method, f.url, f.status) ? allowedRequests : failedRequests).push(f);
     }
-    return { page: pageLabel, errors, allowed, failedRequests, allowedRequests, cfInjected: this.htmlHasCfInjection };
+    return { page: pageLabel, errors, allowed, failedRequests, allowedRequests, cfInjected: this.htmlHasCfInjection, cfEmailObfuscated: this.htmlHasCfEmail };
   }
 }
 

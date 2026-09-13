@@ -24,7 +24,7 @@ test.describe("Trust BizReport — price before checkout", () => {
   test("/one-click-report states A$3 on the CTA; /pricing evaluator PAYG note prices the report at A$3", async ({ page, visit }, testInfo) => {
     await visit("/one-click-report");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible({ timeout: 30_000 });
-    const cta = page.getByRole("button", { name: /Get my A\$3 report/ });
+    const cta = page.getByRole("button", { name: /Get my A\$3 report/ }).first(); // the form renders the CTA twice (hero + "Ready to see your report?")
     await expect(cta).toBeVisible();
     await visit("/pricing?segment=evaluator");
     const payg = page.getByTestId("evaluator-payg");

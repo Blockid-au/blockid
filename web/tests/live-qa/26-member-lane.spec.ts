@@ -5,17 +5,24 @@
  * as EDITOR through `POST /api/projects/[id]/members` (invite_url must be the
  * public origin — F3 regression), accepts on `/invites/<token>`, can read
  * `/workspace/revenue` + `/workspace/investors` with the "Shared · Editor"
- * chip, is 403 on the owner-only exports and on close-round, and — after a
- * revoke + re-invite as VIEWER (there is no role-change endpoint) — is 403
- * on the commitments POST. The founder's deletion request is 409
- * shared_projects while the member is accepted. The member account is
- * recorded in the run state (`member`) and erased by the global teardown.
+ * chip, is 403 on the owner-only exports and on close-round, and — as a
+ * VIEWER — is 403 on the commitments / CRM POSTs. The founder's deletion
+ * request is 409 shared_projects while the member is accepted. The member
+ * account is recorded in the run state (`member`) and erased by the global
+ * teardown.
+ *
+ * Product finding (run 1, 2026-09-13): there is no role-change endpoint and a
+ * revoked address cannot be re-invited (`project_members` UNIQUE
+ * (project_id, user_email) keeps the revoked row → 422 duplicate). The
+ * re-invite is pinned with `test.fail`; the viewer downgrade itself is a
+ * local SQL step scoped to the two QA addresses (needs LIVE_QA_ALLOW_DB=1).
  */
 import { randomBytes } from "node:crypto";
 import type { BrowserContext, Page } from "@playwright/test";
 import { test, expect } from "./fixtures";
 import { anonRequest, del, evidence, get, patch, post } from "./lib/api";
-import { memberEmailFor, QA_MEMBER_EMAIL_RE } from "./lib/env";
+import { env, memberEmailFor, QA_MEMBER_EMAIL_RE } from "./lib/env";
+import { setMemberRole } from "./lib/db";
 import { getScratch, patchRunState, readRunState, setScratch } from "./lib/run-state";
 import { LIVE_QA_OUT } from "../../playwright.live-qa.config";
 import path from "node:path";
@@ -207,41 +214,54 @@ test.describe("Member lane — editor", () => {
   });
 });
 
+
 test.describe("Member lane — viewer", () => {
-  test("revoke + re-invite as VIEWER (no role-change endpoint): read-only — commitments POST is 403, /api/projects says viewer", async ({ api, browser, qa }, testInfo) => {
+  test("revoke then re-invite the same address as VIEWER (product finding: 422 duplicate — expected to fail until a role-change / re-invite path exists)", async ({ api, qa }, testInfo) => {
     requireMember();
-    const state = readRunState();
-    const member = state.member!;
+    test.fail(true, "project_members UNIQUE (project_id, user_email) keeps the revoked row, so a revoked collaborator can never be re-invited (422 duplicate) and there is no PATCH role endpoint — flips to 'unexpected pass' once fixed");
+    const member = readRunState().member!;
     const revoke = await del<{ ok: boolean; member?: Member }>(api, `/api/projects/${qa.projectId}/members?memberId=${member.memberId}`);
     expect(revoke.status).toBe(200);
     expect(revoke.body.member?.status).toBe("revoked");
-    const reinvite = await post<{ ok: boolean; member?: Member }>(api, `/api/projects/${qa.projectId}/members`, { email: member.email, role: "viewer" });
-    await evidence(testInfo, "revoke + re-invite", { revoke: revoke.body.member?.status, reinvite: { status: reinvite.status, role: reinvite.body.member?.role } });
-    expect(reinvite.status).toBe(200);
+    const reinvite = await post<{ ok: boolean; member?: Member; error?: string; code?: string }>(api, `/api/projects/${qa.projectId}/members`, { email: member.email, role: "viewer" });
+    await evidence(testInfo, "revoke + re-invite", { revoke: revoke.body.member?.status, reinvite: { status: reinvite.status, body: reinvite.body } });
+    expect(reinvite.status, "re-inviting a revoked address").toBe(200);
     expect(reinvite.body.member?.role).toBe("viewer");
-    patchRunState({ member: { ...member, memberId: reinvite.body.member!.id } });
     setScratch("member.token", reinvite.body.member!.token);
+    patchRunState({ member: { ...member, memberId: reinvite.body.member!.id } });
+  });
+
+  test("viewer (downgraded by the scoped SQL step) is read-only: commitments + CRM POST are 403, /api/projects says viewer, reads still work", async ({ browser, api, qa }, testInfo) => {
+    requireMember();
+    test.skip(!env.allowDb, "the viewer downgrade is a local SQL step on the QA member row — needs LIVE_QA_ALLOW_DB=1 (no product path exists, see the pinned finding above)");
+    const member = readRunState().member!;
+    const readBack = setMemberRole(qa.email, member.email, qa.projectId!, "viewer");
+    const roster = await get<{ ok: boolean; members: Member[] }>(api, `/api/projects/${qa.projectId}/members`);
+    const row = roster.body.members.find((m) => m.userEmail === member.email);
+    await evidence(testInfo, "downgrade", { readBack, roster: row ? { role: row.role, status: row.status } : null });
+    expect(row?.role).toBe("viewer");
+    expect(row?.status).toBe("accepted");
 
     const ctx = await browser.newContext({ storageState: MEMBER_STATE });
     try {
       const m = ctx.request;
-      const accept = await post<{ ok: boolean; project?: { role: string } }>(m, "/api/projects/members/accept", { token: reinvite.body.member!.token });
-      expect(accept.status).toBe(200);
-      expect(accept.body.project?.role).toBe("viewer");
-      await ctx.storageState({ path: MEMBER_STATE });
       const projects = await get<{ ok: boolean; projects: ProjectRow[] }>(m, "/api/projects");
       expect(projects.body.projects.find((p) => p.id === qa.projectId)?.role).toBe("viewer");
       const roundId = qa.scratch["fundraise.roundId"] as string | undefined;
       const commit = roundId ? await post(m, `/api/fundraise/${roundId}/commitments`, { investorName: "Viewer Should Not", amountAud: 1000 }) : null;
       const contact = await post(m, "/api/investors/crm/contacts", { name: "Viewer Should Not", email: "viewer-should-not@example.com" });
       const revenue = await m.get("/api/revenue");
-      await evidence(testInfo, "viewer RBAC", { commit: commit ? { status: commit.status, body: commit.body } : "no round", contact: { status: contact.status, body: contact.body }, revenueRead: revenue.status() });
+      const contacts = await get(m, "/api/investors/crm/contacts");
+      await evidence(testInfo, "viewer RBAC", { commit: commit ? { status: commit.status, body: commit.body } : "no round", contact: { status: contact.status, body: contact.body }, revenueRead: revenue.status(), contactsRead: contacts.status });
       if (commit) {
         expect(commit.status).toBe(403);
         expect(commit.body.code).toBe("forbidden");
+      } else {
+        testInfo.annotations.push({ type: "not-exercised", description: "no fundraise round in this run — commitments POST 403 skipped" });
       }
       expect(contact.status).toBe(403);
       expect(revenue.status()).toBeLessThan(400);
+      expect(contacts.status).toBe(200);
     } finally {
       await ctx.close();
     }

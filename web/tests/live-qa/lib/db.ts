@@ -7,7 +7,7 @@
  * connection is opened. Nothing runs unless LIVE_QA_ALLOW_DB=1.
  */
 import { execFileSync } from "node:child_process";
-import { QA_EMAIL_RE, env } from "./env";
+import { QA_EMAIL_RE, QA_MEMBER_EMAIL_RE, env } from "./env";
 
 const q = (s: string) => `'${String(s).replace(/'/g, "''")}'`;
 /** `psql -At` prints the RETURNING row, then the command tag ("UPDATE 1") — keep the row. */
@@ -61,6 +61,24 @@ export function setGrowthPhase(email: string, projectId: string, phase = "fundin
     `update public.projects p set growth_phase_current = ${q(phase)} from public.app_users u where p.id = ${q(projectId)}::uuid and p.user_id = u.id and u.email = ${q(email)} returning p.growth_phase_current;`,
   ));
   if (out !== phase) throw new Error(`setGrowthPhase: expected '${phase}' back, got '${out || "<no row>"}'`);
+  return out;
+}
+
+/**
+ * project_members.role / status for the QA MEMBER address on the QA
+ * founder's project. There is no role-change endpoint and a revoked address
+ * cannot be re-invited (UNIQUE (project_id, user_email) — product finding,
+ * 26-member-lane), so the viewer downgrade is a local SQL step, scoped to
+ * both QA addresses. Returns "role:status" read back.
+ */
+export function setMemberRole(founderEmail: string, memberEmail: string, projectId: string, role: "viewer" | "editor" | "admin"): string {
+  assertQaEmail(founderEmail);
+  if (!QA_MEMBER_EMAIL_RE.test(memberEmail)) throw new Error(`live-qa db step refused: "${memberEmail}" is not a live-QA member address`);
+  if (!/^[0-9a-f-]{36}$/i.test(projectId)) throw new Error("bad project id");
+  const out = firstLine(psql(
+    `update public.project_members m set role = ${q(role)}, status = 'accepted', revoked_at = null from public.projects p, public.app_users u where m.project_id = p.id and p.id = ${q(projectId)}::uuid and p.user_id = u.id and u.email = ${q(founderEmail)} and m.user_email = ${q(memberEmail)} returning m.role || ':' || m.status;`,
+  ));
+  if (out !== `${role}:accepted`) throw new Error(`setMemberRole: expected '${role}:accepted' back, got '${out || "<no row>"}'`);
   return out;
 }
 

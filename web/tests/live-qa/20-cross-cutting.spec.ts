@@ -100,8 +100,13 @@ test.describe("Console + network hygiene per page", () => {
       const loadMs = Date.now() - started;
       const report = g.report(path);
       await evidence(testInfo, "guard report", { ...report, loadMs });
-      if (report.allowed.length) {
-        testInfo.annotations.push({ type: "allow-listed", description: `${report.allowed.length}× Cloudflare-injected GTM bootstrap refused by CSP (docs/ops/analytics.md §4) — served HTML still carries the signature` });
+      const gtm = report.allowed.filter((e) => /inline script/.test(e.text)).length;
+      const cfEmail = report.allowed.length - gtm;
+      if (gtm) {
+        testInfo.annotations.push({ type: "allow-listed", description: `${gtm}× Cloudflare-injected GTM bootstrap refused by CSP (docs/ops/analytics.md §4) — served HTML still carries the signature` });
+      }
+      if (cfEmail) {
+        testInfo.annotations.push({ type: "known-issue", description: `${cfEmail}× Cloudflare Email Obfuscation on this page: email-decode.min.js refused by CSP + React #418 hydration mismatch (S24 founder follow-up: Scrape Shield → Email Obfuscation OFF) — tolerated only while the HTML carries __cf_email__` });
       }
       const f10 = report.allowedRequests.filter((r) => /\/api\/dividends$/.test(r.url));
       const limited = report.allowedRequests.filter((r) => /phase-progress/.test(r.url));

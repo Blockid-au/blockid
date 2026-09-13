@@ -154,7 +154,16 @@ test.describe("Money Finder — founder workspace and paid report contract", () 
   test("/workspace/funding on the QA project: heading, price hint (Free) or empty radar state (plan-included)", async ({ page, visit, qa }, testInfo) => {
     await visit("/workspace/funding");
     const root = page.locator("[data-workspace-funding]");
-    await expect(root).toBeVisible({ timeout: 30_000 });
+    const boundary = page.getByRole("heading", { name: /We couldn't load your workspace/ });
+    await expect(root.or(boundary).first()).toBeVisible({ timeout: 30_000 });
+    if (await boundary.isVisible().catch(() => false)) {
+      const errorId = (await page.getByText(/Error ID:/).innerText().catch(() => "")).trim();
+      await evidence(testInfo, "workspace error boundary", { errorId, elevated: qa.elevated });
+      // Product finding (run 1, 2026-09-13): page.tsx calls isFundingTab() from
+      // the 'use client' funding-workspace.tsx on the plan-included path, so
+      // every Starter+/Growth founder gets the error boundary here.
+      throw new Error(`/workspace/funding rendered the workspace error boundary (${errorId}) — server log: "Attempted to call isFundingTab() from the server but isFundingTab is on the client"`);
+    }
     await expect(page.getByRole("heading", { level: 1, name: /Grant & Program Finder/ })).toBeVisible();
     const included = (await root.getAttribute("data-plan-included")) === "1";
     setScratch("funding.planIncluded", included);

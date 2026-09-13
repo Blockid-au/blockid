@@ -145,8 +145,8 @@ test.describe("Account deletion", () => {
     expect(exportRes.status()).not.toBe(500);
     expect(csv.status()).toBe(200);
     expect(csv.headers()["content-type"]).toMatch(/text\/csv/);
-    expect(header).toMatch(/^id,ts,user_id,actor/);
-    // The CSV is the PROJECT's log (actor = kind, user_id = who): every row
+    expect(header).toMatch(/^id,ts,actor_user_id,actor_kind,actor_role,project_id,action/);
+    // The CSV is the PROJECT's log (actor_kind = kind, actor_user_id = who): every row
     // of the QA project so far was written by the QA founder.
     if (rows > 0) expect(text).toContain(qa.userId ?? "");
     else testInfo.annotations.push({ type: "note", description: "project-scoped audit export is empty for the QA project (release-qa2 F6: rows without detail.project_id are filtered out)" });

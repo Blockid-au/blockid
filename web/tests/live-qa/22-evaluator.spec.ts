@@ -103,8 +103,9 @@ test.describe("Evaluator registration — up to the card step", () => {
     try {
       const base = { email, password: "Qa!never-registered-1", account_type: "investor", plan_id: "investor_angel", terms_accepted: true };
       const noCard = await post(anon, "/api/auth/register-with-card", base);
-      const noTerms = await post(anon, "/api/auth/register-with-card", { ...base, payment_method_id: "pm_liveqa_placeholder", terms_accepted: false });
-      const badPlan = await post(anon, "/api/auth/register-with-card", { ...base, payment_method_id: "pm_liveqa_placeholder", plan_id: "founder_free" });
+      // The pm id only has to pass /^pm_[A-Za-z0-9]{1,125}$/ — it is never sent to Stripe because every call fails an earlier gate.
+      const noTerms = await post(anon, "/api/auth/register-with-card", { ...base, payment_method_id: "pm_liveQAplaceholder", terms_accepted: false });
+      const badPlan = await post(anon, "/api/auth/register-with-card", { ...base, payment_method_id: "pm_liveQAplaceholder", plan_id: "founder_free" });
       await evidence(testInfo, "register-with-card validation", { noCard: { status: noCard.status, body: noCard.body }, noTerms: { status: noTerms.status, body: noTerms.body }, badPlan: { status: badPlan.status, body: badPlan.body } });
       for (const r of [noCard, noTerms, badPlan]) {
         if (r.status === 429) test.skip(true, "register-with-card bucket (5 / 15 min per IP) is exhausted by another lane — re-run later");
