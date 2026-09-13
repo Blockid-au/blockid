@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-13T11:38:06.623Z",
+  "generated_at": "2026-09-13T12:18:50.095Z",
   "ledger_present": true,
-  "total_files": 263,
+  "total_files": 264,
   "files": [
     "0001_init.sql",
     "0002_score_v2.sql",
@@ -237,6 +237,7 @@
     "0380_clean_room_checklists.sql",
     "0381_increment_shares_held.sql",
     "0382_bank_transactions_ai_queue_index.sql",
+    "0383_increment_shares_held_hardening.sql",
     "20260814_tech_analyses.sql",
     "20260815120000_analyzer_runs.sql",
     "20260816_clevel_reports_v2.sql",
