@@ -143,7 +143,9 @@ export class ConsoleGuard {
     const allowedRequests: FailedRequest[] = [];
     const failedRequests: FailedRequest[] = [];
     for (const f of this.failed) {
-      (this.requestAllowed(f.method, f.url, f.status) ? allowedRequests : failedRequests).push(f);
+      // The refused email-decode.min.js load surfaces as requestfailed (csp) too.
+      const cfEmailScript = this.htmlHasCfEmail && f.status === null && CF_EMAIL_SCRIPT_RE.test(f.url);
+      (cfEmailScript || this.requestAllowed(f.method, f.url, f.status) ? allowedRequests : failedRequests).push(f);
     }
     return { page: pageLabel, errors, allowed, failedRequests, allowedRequests, cfInjected: this.htmlHasCfInjection, cfEmailObfuscated: this.htmlHasCfEmail };
   }

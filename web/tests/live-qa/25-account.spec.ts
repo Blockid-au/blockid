@@ -73,8 +73,18 @@ test.describe("Account deletion", () => {
     test.skip(!qa.password, "run state has no founder password (LIVE_QA_REUSE_STATE from an older run?) — cannot re-authenticate");
     await visit("/workspace/settings");
     const section = page.locator('section[aria-labelledby="delete-account-heading"]');
-    await section.getByRole("button", { name: /Delete my account/ }).click();
-    await section.getByLabel("Your password").fill(qa.password!);
+    // A click before React has hydrated is swallowed (the page also carries
+    // the Cloudflare email-obfuscation #418 mismatch, which delays it) —
+    // click until the form actually opens.
+    const password = section.getByLabel("Your password");
+    await expect
+      .poll(async () => {
+        if (await password.isVisible().catch(() => false)) return true;
+        await section.getByRole("button", { name: /Delete my account/ }).click();
+        return password.waitFor({ state: "visible", timeout: 3_000 }).then(() => true, () => false);
+      }, { timeout: 45_000, intervals: [500, 1_000, 2_000] })
+      .toBe(true);
+    await password.fill(qa.password!);
     await section.getByLabel(/Type DELETE to confirm/).fill("DELETE");
     await section.getByLabel(/Why are you leaving/).fill("live-QA suite — cancelled seconds later");
     const [res] = await Promise.all([
