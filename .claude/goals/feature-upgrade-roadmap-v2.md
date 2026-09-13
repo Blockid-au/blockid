@@ -154,13 +154,13 @@
 - [x] Exit scenario calculator (IPO, M&A, acqui-hire) — **shipped S26-B 2026-09-13**: `acqui_hire` (team × per-engineer value A$500K–1.5M editable assumption, retention pool vesting, waterfall)
 - [x] Valuation multiple benchmarks by sector (shipped — `lib/exits/au-benchmark.ts` + `SECTOR_MULTIPLES` `lib/agents/cfo-valuation.ts` + `/benchmarks`, `fe8f966c1`)
 - [x] Due diligence readiness score (shipped — `api/data-room/readiness` + `api/fundraise/readiness` + `/dashboard/exit-readiness` tile, `89aca9c59`)
-- [ ] Clean room preparation guide (open — not found in code)
+- [x] Clean room preparation guide — **shipped S29-A 2026-09-13**: `/workspace/clean-room`, 7 stages / 16 tasks, 6 computed from data-room controls (NDA gate, watermark, named links, restricted tier, sections, engagement log) (0380)
 - [x] Post-exit distribution calculator (shipped — `lib/exit-modeling.ts` liquidation-preference waterfall + ESOP + CGT per shareholder, `338f86a02`)
 
 ### Exchange Simulation (CBO)
 - [x] SVI-to-exchange index (shipped — `lib/svi-index.ts` + `lib/startup-index-aggregator.ts` + `/startup-index` (G-SVI-Exchange 15/15), `71878a50c`)
 - [x] Pre-IPO secondary trading simulation — **shipped S27-B 2026-09-13**: sandbox order book (price-time, partial fills, ROFR hold, price discovery) on `/workspace/secondary-offer`, `secondary_market.view` Growth+, Chapter 6D/7 sandbox banner on every view
-- [ ] ASX/NASDAQ listing requirements checker (open — not found in code; only insight article `content/insights/asx-listing-requirements-tech-startups.md`)
+- [x] ASX/NASDAQ listing requirements checker — **shipped S29-A 2026-09-13**: `/workspace/listing-readiness` (ASX Ch 1 + Nasdaq Capital Market rows with sourceRef/asAt, computed from cap table + share price + bank data + founder-ticked facts, `confirm_current_rule` where uncertain, PDF export) (0379)
 - [ ] Share/token conversion for real listing (partial — `lib/tokenization.ts` shares→token conversion only; no listing conversion path)
 
 ---
