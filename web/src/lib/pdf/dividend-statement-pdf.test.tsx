@@ -18,7 +18,7 @@ import { PDFParse } from "pdf-parse";
 import { pdfPageCount } from "./page-count";
 import { DIVIDEND_STATEMENT_DISCLAIMER, renderDividendStatementPdf } from "./dividend-statement-pdf";
 import { watermarkLabel } from "./watermark";
-import { SAMPLE_STATEMENT, SAMPLE_STATEMENT_WITHHELD } from "@/lib/dividends/fixtures";
+import { SAMPLE_STATEMENT, SAMPLE_STATEMENT_DRIP, SAMPLE_STATEMENT_WITHHELD } from "@/lib/dividends/fixtures";
 
 const HASH = "blockid:v1:" + "ab".repeat(32);
 
@@ -104,6 +104,24 @@ describe("renderDividendStatementPdf", () => {
     expect(text).not.toContain("base rate entity");
     expect(text).toContain("No TFN or ABN was quoted");
     expect(text).toContain("No");
+  });
+
+  it("S28-A: a DRIP statement prints the 'Reinvested under DRIP' line, the cash paid after reinvestment and the plan note", async () => {
+    const buf = await renderDividendStatementPdf({ data: SAMPLE_STATEMENT_DRIP, contentHash: HASH, watermark: null });
+    expect(pdfPageCount(buf)).toBe(1);
+    const [text] = await pageTexts(buf);
+    expect(text).toContain("Reinvested under DRIP: 10,948 shares at A$1.37");
+    expect(text).toContain("A$14,998.76");
+    expect(text).toContain("Cash paid after reinvestment");
+    expect(text).toContain("A$15,001.24");
+    expect(text).toContain("Net amount paid to shareholder");
+    expect(text).toContain("A$30,000.00"); // the dividend itself is unchanged
+    expect(text).toContain("50% of the net amount was applied under the dividend reinvestment plan");
+    expect(text).toContain("still a dividend for tax purposes");
+
+    // A statement without a DRIP block never prints the line.
+    const [plain] = await pageTexts(await renderDividendStatementPdf({ data: SAMPLE_STATEMENT, contentHash: HASH, watermark: null }));
+    expect(plain).not.toContain("DRIP");
   });
 
   it("burns the watermark when a recipient is given and prints the VOID banner when voided", async () => {
