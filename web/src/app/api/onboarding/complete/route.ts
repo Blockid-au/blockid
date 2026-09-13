@@ -20,11 +20,16 @@ async function POST_handler(request: Request) {
 
   const supabase = getSupabaseAdmin();
   if (supabase) {
+    // S31-B (2026-09-13): `role` is the AUTH column ("user" | "admin"). The
+    // welcome wizard posts role:"founder", and this update wrote it straight
+    // through — a live customer row carries role='founder' today, and an
+    // admin who ran the wizard would have demoted themselves. The persona
+    // already lives in account_type / segment (set at signup); ignore it here.
+    void body.role;
     await supabase
       .from("app_users")
       .update({
         display_name: body.name,
-        role: body.role,
         startup_name: body.startupName,
         startup_stage: body.stage,
         industry: body.industry,

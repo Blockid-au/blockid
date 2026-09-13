@@ -162,11 +162,28 @@ export function OnboardingWizard({
     dispatch({ type: "BACK" });
   }
 
-  function handleSkipTrial() {
-    // "Continue without card — 14-day evaluation, read-only exports."
-    // Skips straight past payment: no plan is charged, no payment method is
-    // collected, and the account starts in a read-only evaluation mode.
-    window.location.href = "/dashboard?onboarding=complete&mode=read_only_trial";
+  const [skippingTrial, setSkippingTrial] = React.useState(false);
+
+  async function handleSkipTrial() {
+    // "Continue without a card — stay on Free." No plan is charged and no
+    // payment method is collected; the account stays on founder_free.
+    // S31-B: this used to promise a "14-day evaluation, read-only exports"
+    // mode that nothing implements (`mode=read_only_trial` was read nowhere)
+    // and it never marked onboarding complete, so the dashboard bounced the
+    // founder straight into the second (3-step) wizard.
+    if (skippingTrial) return;
+    setSkippingTrial(true);
+    try {
+      await fetch("/api/onboarding/save-progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ step: state.step, state, completed: true }),
+      });
+    } catch {
+      // The dashboard redirect below still works; the flag is retried on
+      // the next save-progress round-trip.
+    }
+    window.location.href = "/dashboard?onboarding=complete";
   }
 
   return (
@@ -210,9 +227,10 @@ export function OnboardingWizard({
             <button
               type="button"
               onClick={handleSkipTrial}
-              className="rounded-lg px-2 py-1 text-sm font-medium text-muted underline decoration-brand-ink-muted/40 underline-offset-4 transition-colors hover:text-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
+              disabled={skippingTrial}
+              className="rounded-lg px-2 py-1 text-sm font-medium text-muted underline decoration-brand-ink-muted/40 underline-offset-4 transition-colors hover:text-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy disabled:opacity-60"
             >
-              Continue without card — 14-day evaluation, read-only exports
+              {skippingTrial ? "Opening your dashboard…" : "Continue without a card — stay on Free, upgrade any time"}
             </button>
           )}
         </div>

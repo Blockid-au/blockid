@@ -217,7 +217,11 @@ describe("POST /api/onboarding/complete", () => {
     expect(state.lastPayload?.display_name).toBe("Ava Nguyen");
   });
 
-  it("forwards role verbatim", async () => {
+  // S31-B (2026-09-13): `app_users.role` is the AUTH column ("user" |
+  // "admin"). The wizard posts role:"founder" and this route used to write
+  // it through — a live customer row carries role='founder' today, and an
+  // admin who ran the wizard would have demoted themselves.
+  it("S31-B: never writes the body's role into the auth role column", async () => {
     getCurrentUserMock.mockResolvedValue(makeUser());
     const state: FakeSupabaseState = {
       lastTable: null,
@@ -228,7 +232,8 @@ describe("POST /api/onboarding/complete", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     getSupabaseAdminMock.mockReturnValue(makeFakeSupabase(state) as any);
     await POST(makeRequest({ role: "cofounder" }));
-    expect(state.lastPayload?.role).toBe("cofounder");
+    expect(state.lastPayload).not.toBeNull();
+    expect(Object.keys(state.lastPayload ?? {})).not.toContain("role");
   });
 
   it("forwards startup_name from body.startupName (camelCase → snake_case)", async () => {
@@ -369,7 +374,7 @@ describe("POST /api/onboarding/complete", () => {
     expect(parsed).toBeLessThanOrEqual(after);
   });
 
-  it("passes all six body fields into a single UPDATE payload without dropping any", async () => {
+  it("passes the profile body fields into a single UPDATE payload without dropping any (role excluded — S31-B)", async () => {
     getCurrentUserMock.mockResolvedValue(makeUser());
     const state: FakeSupabaseState = {
       lastTable: null,
@@ -391,7 +396,6 @@ describe("POST /api/onboarding/complete", () => {
     );
     expect(state.lastPayload).toMatchObject({
       display_name: "Ava",
-      role: "founder",
       startup_name: "Acme",
       startup_stage: "mvp",
       industry: "saas",
