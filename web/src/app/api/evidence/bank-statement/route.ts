@@ -201,7 +201,9 @@ async function POST_handler(req: NextRequest) {
             label,
             value_or_url: valuePayload,
             confidence_level: "connected_source",
-            dimension: "financial_health",
+            // SVI key (bank P&L evidence sits with investor readiness, like xero_pl —
+            // "financial_health" was never one of the 8 dimensions; see 0353/0354)
+            dimension: "iri",
             svi_impact: sviImpact,
             source_provider: "bank_csv",
           })

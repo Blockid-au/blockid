@@ -65,6 +65,8 @@ describe("POST /api/evidence/bank-statement — write target", () => {
     expect(res.status).toBe(200);
     const insert = db.sb!.find("svi_evidence", "insert")[0];
     expect((insert.args[0] as { account_id: string }).account_id).toBe("acct-1");
+    // 0354: on a real SVI dimension key, never the legacy "financial_health"
+    expect((insert.args[0] as { dimension: string }).dimension).toBe("iri");
     expect(scopeState.calls.find((c) => c.fn === "findOrCreateSVIAccount")?.email).toBe("owner@x.test");
   });
 
