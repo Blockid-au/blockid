@@ -2,6 +2,7 @@ import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/render
 import { AdviceDisclaimer } from "./advice-disclaimer";
 import * as path from "path";
 import * as fs from "fs";
+import { PLANS_V2 } from "@/lib/plans-v2";
 
 // Load logo
 const LOGO_PATH = path.join(process.cwd(), "public", "images", "logo-transparent.png");
@@ -35,6 +36,28 @@ const C = {
 };
 
 /* ─── Styles ──────────────────────────────────────────────────────────── */
+// Slide 7 pricing comes from the live founder ladder (lib/plans-v2.ts) so the
+// deck can never drift from /pricing again (live QA 2026-09-13 found the
+// retired "Founding 100 A$5 / Growth A$99 for 100 credits" copy here).
+function rung(id: string) {
+  return PLANS_V2.find((p) => p.id === id);
+}
+function creditsLine(id: string): string | null {
+  return rung(id)?.features.find((f) => /AI credits/i.test(f)) ?? null;
+}
+function priceLine(id: string): string {
+  const r = rung(id);
+  if (!r) return "See pricing";
+  if (r.monthly_aud == null) return "Custom";
+  return r.monthly_aud === 0 ? "A$0" : `A$${r.monthly_aud}/mo`;
+}
+const BUSINESS_MODEL_TIERS = [
+  { tier: rung("founder_free")?.name ?? "Free", price: priceLine("founder_free"), features: [creditsLine("founder_free") ?? "SVI score", "Free tools", "A$3 Trust BizReport"], color: C.ink500 },
+  { tier: rung("founder_starter")?.name ?? "Starter", price: priceLine("founder_starter"), features: [creditsLine("founder_starter") ?? "Credits", "Evidence vault", "Founder Radar", "Data room"], color: C.brand },
+  { tier: rung("founder_growth")?.name ?? "Growth", price: priceLine("founder_growth"), features: [creditsLine("founder_growth") ?? "Credits", "Cap table + ESOP", "Term Sheet AI", "Investor tools"], color: C.emerald },
+  { tier: rung("founder_enterprise")?.name ?? "Enterprise", price: priceLine("founder_enterprise"), features: ["Portfolio dashboard", "API access", "White-label", "Dedicated CSM"], color: C.gold },
+];
+
 const s = StyleSheet.create({
   page: {
     paddingTop: 40,
@@ -315,12 +338,7 @@ export function PitchDeckPDF() {
       <Page size="A4" orientation="landscape" style={s.page}>
         <Text style={s.headline}>Land Free. Expand Paid. Grow with Founders.</Text>
         <View style={s.row}>
-          {[
-            { tier: "Free", price: "$0", features: ["SVI score", "Basic tools", "1 analysis"], color: C.ink500 },
-            { tier: "Founding 100", price: "A$5", features: ["50 credits lifetime", "Evidence vault", "Cap table tools", "Term sheet AI"], color: C.brand },
-            { tier: "Growth", price: "A$99/mo", features: ["100 credits/month", "Full reports", "Data room", "Priority support"], color: C.emerald },
-            { tier: "Enterprise", price: "Custom", features: ["Portfolio dashboard", "API access", "White-label", "Dedicated CSM"], color: C.gold },
-          ].map((t) => (
+          {BUSINESS_MODEL_TIERS.map((t) => (
             <View key={t.tier} style={[s.card, { flex: 1, borderTopWidth: 3, borderTopColor: t.color }]}>
               <Text style={{ fontSize: 12, fontWeight: "bold", color: t.color, marginBottom: 2 }}>{t.tier}</Text>
               <Text style={{ fontSize: 18, fontWeight: "bold", color: C.ink800, marginBottom: 8 }}>{t.price}</Text>
