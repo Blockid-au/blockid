@@ -9,7 +9,8 @@ import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight, BarChart3, Filter, Minus, Sparkles } from "lucide-react";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
-import { computeListings, type ListingSort } from "@/lib/startup-index-listings";
+import type { ListingSort, ListingsResult } from "@/lib/startup-index-listings";
+import { cachedListings } from "@/lib/startup-index-cache";
 import { pageMetadata } from "@/lib/seo/page-meta";
 
 export const metadata: Metadata = pageMetadata({
@@ -87,11 +88,11 @@ export default async function ListingsPage({ searchParams }: PageProps) {
   // Fail-soft: if the aggregator throws (e.g. Supabase env missing at build
   // or transient DB error) we render an empty-listings state instead of a
   // 500. The page still serves the filter chrome so crawlers see something.
-  let data: Awaited<ReturnType<typeof computeListings>>;
+  let data: ListingsResult;
   try {
-    data = await computeListings({ filter, sort, order, page, pageSize: 50 });
+    data = await cachedListings({ filter, sort, order, page, pageSize: 50 });
   } catch (err) {
-    console.error("[/index/listings] computeListings failed:", err);
+    console.error("[/index/listings] cachedListings failed:", err);
     data = {
       rows: [],
       total: 0,

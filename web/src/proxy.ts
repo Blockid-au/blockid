@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { SESSION_COOKIE } from "@/lib/auth-cookie";
 import {
   DEFAULT_LOCALE,
@@ -103,8 +103,17 @@ function ipCountryFromHeaders(req: NextRequest): string | null {
 
 function clientIdentity(req: NextRequest): string {
   // Prefer auth cookies as a stable identity so a shared IP (office NAT,
-  // corporate proxy) doesn't get one user throttled by another. Fall
-  // back to IP for anonymous traffic.
+  // university lab, mobile CGNAT) doesn't get one user throttled by
+  // another. Fall back to IP for anonymous traffic.
+  //
+  // S31-C capacity audit (2026-09-13): the app's own session cookie is
+  // `blockid_session` (lib/auth-cookie.ts) — the legacy `sb-*` names below
+  // are never set by this app, so every signed-in user was keyed by IP and
+  // a whole office shared one 20/min `svi` bucket (/api/svi/phase-progress
+  // 429'd at ~20 workspace page loads per minute per office). The session
+  // token is a secret, so only a short digest of it is used as the key.
+  const session = req.cookies.get(SESSION_COOKIE)?.value;
+  if (session) return `s:${createHash("sha256").update(session).digest("hex").slice(0, 16)}`;
   const sb = req.cookies.get("sb-access-token")?.value
     ?? req.cookies.get("sb:token")?.value;
   if (sb) return `sb:${sb.slice(0, 24)}`; // truncate — identity, not the JWT

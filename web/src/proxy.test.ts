@@ -304,6 +304,42 @@ describe("static guards", () => {
   });
 });
 
+// S31-C capacity audit (2026-09-13): the app's session cookie is
+// `blockid_session`, not the legacy `sb-*` names the identity helper used to
+// look for — so every signed-in user was keyed by IP and one office shared a
+// single 20/min `svi` bucket (/api/svi/phase-progress is fetched on every
+// workspace page load). Signed-in traffic must be keyed per session.
+describe("rate-limit identity — signed-in users are keyed per session, not per IP (S31-C)", () => {
+  async function identityFor(cookie?: string): Promise<string> {
+    checkRateLimitMock.mockClear();
+    const res = await proxy(req("/api/svi/phase-progress", { method: "GET", site: "same-origin", cookie }));
+    expect(res.status).toBe(200);
+    const [bucket, parts] = checkRateLimitMock.mock.calls[0] as [string, string[]];
+    expect(bucket).toBe("svi");
+    expect(parts[0]).toBe("/api/svi/phase-progress");
+    return parts[1];
+  }
+
+  it("anonymous traffic is keyed per IP", async () => {
+    expect(await identityFor()).toMatch(/^ip:/);
+  });
+
+  it("a blockid_session cookie yields a per-session key that never contains the raw token", async () => {
+    const token = "a".repeat(64);
+    const id = await identityFor(`${SESSION_COOKIE}=${token}`);
+    expect(id).toMatch(/^s:[0-9a-f]{16}$/);
+    expect(id).not.toContain(token.slice(0, 24));
+  });
+
+  it("two sessions behind the same IP get different keys; the same session is stable", async () => {
+    const a = await identityFor(`${SESSION_COOKIE}=${"a".repeat(64)}`);
+    const b = await identityFor(`${SESSION_COOKIE}=${"b".repeat(64)}`);
+    const a2 = await identityFor(`${SESSION_COOKIE}=${"a".repeat(64)}`);
+    expect(a).not.toBe(b);
+    expect(a2).toBe(a);
+  });
+});
+
 describe("rate-limit buckets — /api/lead contact + waitlist form (QA-3 P1-9)", () => {
   it("POST /api/lead sits in the `lead` bucket, keyed per IP for anonymous traffic", async () => {
     checkRateLimitMock.mockClear();

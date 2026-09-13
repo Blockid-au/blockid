@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { checkRateLimit } from "./rate-limit";
+import { bucketWindowMs, checkRateLimit, type RateLimitBucket, type RateLimitResult } from "./rate-limit";
 
 type SyncResult = { allowed: boolean; remaining: number; resetIn: number };
 
@@ -93,6 +93,34 @@ describe("checkRateLimit — bucketed async API", () => {
     const r = await (checkRateLimit("default", [uniq]) as Promise<{ allowed: boolean; limit: number }>);
     expect(r.allowed).toBe(true);
     expect(r.limit).toBe(100); // default bucket ceiling
+  });
+});
+
+// S31-C capacity audit (2026-09-13): the auth buckets are keyed per IP at the
+// proxy, so they are the ceiling for a whole shared egress (campus, office,
+// CGNAT). They now only bound scripted floods; the per-(IP, email) buckets
+// in lib/security/auth-rate-limit.ts stay the brute-force defence.
+describe("checkRateLimit — auth buckets sized for a shared-IP trial wave (S31-C)", () => {
+  it("auth-register 30/min, auth-login 40/min, auth-password-reset 10/min, all one-minute windows", async () => {
+    const expected: Array<[RateLimitBucket, number]> = [
+      ["auth-register", 30],
+      ["auth-login", 40],
+      ["auth-password-reset", 10],
+    ];
+    for (const [bucket, limit] of expected) {
+      const r = await checkRateLimit(bucket, [`s31c:${Math.random()}`]);
+      expect(r.allowed, bucket).toBe(true);
+      expect(r.limit, bucket).toBe(limit);
+      expect(bucketWindowMs(bucket)).toBe(60_000);
+    }
+  });
+
+  it("the 31st register attempt from one IP in a minute is refused (ceiling still bites)", async () => {
+    const key = [`s31c-flood:${Math.random()}`];
+    let last: RateLimitResult | null = null;
+    for (let i = 0; i < 31; i++) last = await checkRateLimit("auth-register", key);
+    expect(last?.allowed).toBe(false);
+    expect(last?.remaining).toBe(0);
   });
 });
 

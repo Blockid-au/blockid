@@ -14,7 +14,7 @@ import { Footer } from "@/components/site/footer";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { SampleSviCard } from "@/components/svi/sample-svi-card";
-import { computeIndexHeadlines } from "@/lib/startup-index-aggregator";
+import { cachedIndexHeadlines } from "@/lib/startup-index-cache";
 
 export const metadata: Metadata = pageMetadata({
   title: "Startup Value Index — live AU startup valuations",
@@ -86,7 +86,7 @@ function DeltaPill({ delta, suffix = "" }: { delta: number; suffix?: string }) {
 // ─── Page ───────────────────────────────────────────────────────────────
 
 export default async function IndexExchangePage() {
-  const data = await computeIndexHeadlines(90);
+  const data = await cachedIndexHeadlines(90);
   const updatedAt = new Date(data.generatedAt).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
 
   return (
