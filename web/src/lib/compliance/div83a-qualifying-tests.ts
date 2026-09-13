@@ -65,7 +65,7 @@ export const DIV83A_QUALIFYING_TESTS: readonly Div83AQualifyingTest[] = [
     key: "market_value",
     section: "ITAA 1997 s83A-33(5)",
     en: "Options are issued with a strike price at or above market value at grant, established under a s960-410 safe-harbour method or independent valuation (s83A-33(5)).",
-    vi: "Option phát hành với giá thực hiện bằng hoặc cao hơn giá thị trường tại ngày grant, xác định bằng phương pháp safe-harbour s960-410 hoặc định giá độc lập (s83A-33(4)).",
+    vi: "Option phát hành với giá thực hiện bằng hoặc cao hơn giá thị trường tại ngày grant, xác định bằng phương pháp safe-harbour s960-410 hoặc định giá độc lập (s83A-33(5)).",
   },
   {
     key: "ownership_cap",

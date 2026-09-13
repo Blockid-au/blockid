@@ -68,8 +68,9 @@ export function isPublicHttpUrl(v: unknown): v is string {
 /**
  * Validate the manual proposal body. Same band / excerpt rules as the cron
  * (the excerpt cannot be checked against a fetched page here — the admin is
- * attesting it is verbatim, and a second admin's approval is still required
- * for the row to take effect).
+ * attesting it is verbatim, and a separate approve step is still required
+ * for the row to take effect — by any admin, including the proposer; a
+ * same-admin approval is flagged `same_admin` in the audit row).
  */
 export function validateManualProposal(
   body: unknown,
