@@ -34,11 +34,13 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 //
 // USD per 1M tokens. Zero for anything not in the table — the ai_runs
 // row still stores tokens_in / tokens_out so a follow-up pricing back-
-// fill remains possible. Keep in sync with anthropic pricing page.
+// fill remains possible. Anthropic list prices, Sep 2026 (S31-A) — keep in
+// sync with lib/ai/anthropic-tier.ts ANTHROPIC_PRICING_USD_PER_1M.
 const MODEL_PRICING_USD_PER_1M: Record<string, { in: number; out: number }> = {
-  "claude-sonnet-5": { in: 3, out: 15 },
-  "claude-opus-5": { in: 15, out: 75 },
-  "claude-haiku-4-5-20251001": { in: 0.8, out: 4 },
+  "claude-sonnet-5": { in: 2, out: 10 },
+  "claude-opus-5": { in: 5, out: 25 },
+  "claude-haiku-4-5": { in: 1, out: 5 },
+  "claude-haiku-4-5-20251001": { in: 1, out: 5 },
 };
 
 function usdCost(model: string, tokensIn: number, tokensOut: number): number {
