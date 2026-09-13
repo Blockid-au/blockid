@@ -16,7 +16,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute, auditNote } from "@/lib/audit/api-route";
 import { parseContactInput, type ContactPatch, type ContactRow } from "@/lib/investors/crm";
-import { changeStage, CONTACT_COLUMNS, findContactByEmail, getContact, listTouchpoints, resolveCrmScope } from "@/lib/investors/crm-server";
+import { CONTACT_COLUMNS, changeStage, findContactByEmail, getContact, isProjectMemberOrOwner, listTouchpoints, ownerNotMemberResponse, resolveCrmScope } from "@/lib/investors/crm-server";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +65,11 @@ async function PATCH_handler(req: NextRequest, ctx: Ctx) {
         { status: 409 },
       );
     }
+  }
+
+  // S29-hardening (S28 review #8): a new owner must be the project owner or an accepted member.
+  if (patch.ownerUserId && !(await isProjectMemberOrOwner(supabase, { projectId, ownerUserId: access.ownerUserId, userId: patch.ownerUserId }))) {
+    return ownerNotMemberResponse();
   }
 
   const now = new Date().toISOString();

@@ -105,6 +105,25 @@ describe("PATCH /api/investors/crm/contacts/[contactId]", () => {
     expect(sb.find("investor_touchpoints", "insert").length).toBe(0);
   });
 
+  it("S29-hardening: PATCH ownerUserId to a non-member → 400 owner_not_member, nothing written; an accepted member or the owner is accepted; null clears", async () => {
+    const MEMBER = "33333333-3333-4333-8333-333333333333";
+    const STRANGER = "44444444-4444-4444-8444-444444444444";
+    sb.rows.project_members = [{ id: "pm1", project_id: PID, user_id: MEMBER, status: "accepted", role: "editor" }];
+    const bad = await PATCH(patchReq({ ownerUserId: STRANGER }), ctx());
+    expect(bad.status).toBe(400);
+    expect(await bad.json()).toMatchObject({ ok: false, error: "owner_not_member" });
+    expect(sb.find("investor_contacts", "update")).toHaveLength(0);
+
+    expect((await PATCH(patchReq({ ownerUserId: MEMBER }), ctx())).status).toBe(200);
+    expect(sb.find("investor_contacts", "update")[0].args[0]).toMatchObject({ owner_user_id: MEMBER });
+    const OWNER_UUID = "55555555-5555-4555-8555-555555555555";
+    const base = scopeOf("editor");
+    mocks.scope.mockResolvedValue({ ...base, scope: { ...base.scope, ownerUserId: OWNER_UUID } });
+    expect((await PATCH(patchReq({ ownerUserId: OWNER_UUID }), ctx())).status).toBe(200);
+    expect((await PATCH(patchReq({ ownerUserId: null }), ctx())).status).toBe(200);
+    expect(sb.find("project_members", "select")).toHaveLength(2); // owner + null never hit the table
+  });
+
   it("a stage move writes the status_change touchpoint with from/to and the caller", async () => {
     const res = await PATCH(patchReq({ stage: "diligence" }), ctx());
     expect(res.status).toBe(200);
