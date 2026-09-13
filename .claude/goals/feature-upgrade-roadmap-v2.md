@@ -115,7 +115,7 @@
 - [x] 409A-equivalent valuation report (AU compliance) — **shipped S27-A 2026-09-13**: ESS annex on the valuation certificate (s 83A-33 checklist from stored facts, ATO *Methods for Valuing Unlisted Shares* Approval 2015 named, explicit not-a-safe-harbour sentence); tax-agent review of the NTA conditions requested
 
 ### Fundraise Tools (CRO + CFO)
-- [ ] Investor CRM (track contacts, status, notes) (open — not found in code; nearest is per-investor share links `lib/investor-links.ts`)
+- [x] Investor CRM (track contacts, status, notes) — **shipped S28-B 2026-09-13**: `investor_contacts` + `investor_touchpoints` (0375–0376), `/workspace/investors` kanban, touchpoints auto-linked from data-room views + commitments, CSV import/export, weekly-digest pipeline block
 - [x] Term sheet comparison tool — **shipped S26-B 2026-09-13**: `compareTermSheets()` 13-row matrix + founder-friendliness score, `POST /api/term-sheet/compare` (2 credits / Growth+), compare view
 - [x] Fundraise tracker (target, committed, closed) — **shipped S26-A 2026-09-13**: `fundraise_commitments` soft/committed/signed/funded/withdrawn (0355), round progress bar + summary API, `/workspace/fundraise/[roundId]`
 - [x] Investor match (based on industry, stage, geography) (shipped — `lib/funding/investor-match.ts` reverse-match on sectors/stages/geos + `/workspace/funding`, migration 0323, `c6d7e1f9e`)
@@ -137,14 +137,14 @@
 - [x] Real-time P&L dashboard — **shipped S25-A 2026-09-13**: `/workspace/revenue` fed by Xero (3-month P&L) + Stripe Connect (MRR/ARR/churn) snapshots with per-figure source labels; manual entries remain the fallback
 - [x] Revenue-to-SVI automatic feed (shipped — `api/revenue` POST auto-triggers SVI rescore (TRE) + Stripe callback writes `mrr_aud` signal, `f08be00bd`)
 - [x] Cash flow forecasting (shipped — `lib/financial-projections.ts` monthly cash outflow/cumCash/runway + `/workspace/financial-forecast` wizard, `71878a50c`)
-- [ ] Expense categorization AI (open — not found in code)
+- [x] Expense categorization AI — **shipped S28-C 2026-09-13**: bank CSV → learned rules → merchant keyword table → AI (confirm-before-charge, 1 credit/100 rows), ATO-aligned 21-category chart, `/workspace/expenses`, monthly P&L feeds revenue sources + burn/runway (0377–0378)
 
 ### Dividend Distribution (CFO + CBO)
 - [x] Dividend calculation engine (shipped — `lib/dividends.ts calculateDividends` + `/workspace/dividends` + `api/dividends`, `9fab48b55`)
 - [x] On-chain dividend distribution (shipped — `lib/wallet.ts declareDividend`/claim via DividendDistributor on private EVM + `/workspace/dividends`, `98620409e`)
 - [x] Australian tax compliance (franking credits) (shipped — `lib/dividends.ts` franking credit / imputation per shareholder, `9fab48b55`)
-- [ ] Shareholder tax statements (open — not found in code)
-- [ ] Reinvestment option (DRIP) (open — not found in code)
+- [x] Shareholder tax statements — **shipped S28-A 2026-09-13**: per-shareholder FY summaries (`TS-<FY>-<n>`, franking credits, TFN withheld, per-distribution table, AEST FY boundary), versioned, 2 credits per FY run / Growth+ (0372)
+- [x] Reinvestment option (DRIP) — **shipped S28-A 2026-09-13**: elections (participation %, share-price mid or manual), allocations at statement issue → cap-table share issue + board-resolution button, DRIP line on the distribution statement (0373–0374)
 
 ---
 
