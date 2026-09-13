@@ -2,7 +2,8 @@
 // Anonymous tickers; opt-in public names.
 
 import { NextResponse, type NextRequest } from "next/server";
-import { computeListings, type ListingFilter, type ListingSort } from "@/lib/startup-index-listings";
+import type { ListingFilter, ListingSort } from "@/lib/startup-index-listings";
+import { cachedListings } from "@/lib/startup-index-cache";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 300;
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
   const page = Math.max(1, Number(q.get("page") ?? 1));
   const pageSize = Math.min(100, Math.max(10, Number(q.get("pageSize") ?? 50)));
 
-  const result = await computeListings({ filter, sort, order, page, pageSize });
+  const result = await cachedListings({ filter, sort, order, page, pageSize });
   return NextResponse.json({ ok: true, ...result }, {
     headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
   });
