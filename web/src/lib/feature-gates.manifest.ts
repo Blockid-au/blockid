@@ -36,6 +36,11 @@ export const FEATURE_GATES: readonly FeatureGate[] = Object.freeze([
   { route: "api/cap-table/health/route.ts", required_feature: "share_management" },
   { route: "api/cap-table/restrictions/route.ts", required_feature: "share_management" },
   { route: "api/cap-table/sync/route.ts", required_feature: "share_management" },
+  { route: "api/cap-table/chain-reconcile/route.ts", required_feature: "share_management", note: "S27-B — chain read-back + push register to chain; same gate as the register it reconciles" },
+
+  // Secondary trading SANDBOX (S27-B) — Growth+ via secondary_market.view;
+  // every response carries sandbox: true, nothing here is a securities offer.
+  { route: "api/secondary/sim/orders/route.ts", required_feature: "secondary_market.view" },
 
   // Data room — write side (read side handled elsewhere).
   //
@@ -149,6 +154,7 @@ export function requiredFeatureFor(route: string): Feature | null {
 export const GATED_DIRECTORIES: readonly string[] = Object.freeze([
   "api/branding",
   "api/cap-table",
+  "api/secondary/sim",
   "api/data-room",
   "api/dataroom",
   "api/vesting",

@@ -257,6 +257,7 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/scn/detect/route.ts", family: "scn.detect", methods: ["POST"] },
   { route: "api/score/route.ts", family: "score", methods: ["POST"] },
   { route: "api/secondary-offer/route.ts", family: "secondary-offer", methods: ["POST"] },
+  { route: "api/secondary/sim/orders/route.ts", family: "secondary.sim.orders", methods: ["POST"] },
   { route: "api/share-structure/route.ts", family: "share-structure", methods: ["POST"] },
   { route: "api/showcase-reviews/route.ts", family: "showcase-reviews", methods: ["POST"] },
   { route: "api/source-folders/route.ts", family: "source-folders", methods: ["POST","PUT","DELETE"] },
