@@ -12,14 +12,14 @@
 //   - S27-A Annex A (ESS): pages 4–5 when the payload carries `ess` — the
 //     approval instrument named, every s 83A-33 checklist row, the
 //     not-a-safe-harbour sentence, the per-share comparison; `annex: "none"`
-//     drops it; `annex: "ess"` on a payload without one prints it with every
-//     row "Not confirmed" and no per-share line.
+//     drops it; `annex: "ess"` on a payload without one prints NOTHING extra
+//     (S29-hardening: never an empty-facts annex — the route answers 409).
 
 import { describe, expect, it } from "vitest";
 import { PDFParse } from "pdf-parse";
 
 import { pdfPageCount } from "./page-count";
-import { renderValuationCertificatePdf } from "./valuation-certificate-pdf";
+import { essAnnexFor, renderValuationCertificatePdf } from "./valuation-certificate-pdf";
 import { watermarkLabel } from "./watermark";
 import { certificateContentHash, shortFingerprint } from "@/lib/valuation-certificate/hash";
 import {
@@ -168,19 +168,19 @@ describe("renderValuationCertificatePdf", () => {
     expect(pages[2]).toContain(DOCTORAL_SENTENCE);
   });
 
-  it("S27-A: annex:none drops Annex A; annex:ess on a payload issued without one prints every row Not confirmed and no per-share line", async () => {
+  it("S27-A: annex:none drops Annex A; S29-hardening: annex:ess on a payload issued without one renders NO annex (never empty facts)", async () => {
     const none = await renderValuationCertificatePdf({ data: SAMPLE_CERTIFICATE_ESS, contentHash: HASH, watermark: null, annex: "none" });
     expect(pdfPageCount(none)).toBe(3);
     expect((await pageTexts(none)).join(" ")).not.toContain(ESS_APPROVAL_INSTRUMENT);
 
+    expect(essAnnexFor(SAMPLE, "ess")).toBeNull();
+    expect(essAnnexFor(SAMPLE_CERTIFICATE_ESS, "ess")).toBe(SAMPLE_CERTIFICATE_ESS.ess);
+    expect(essAnnexFor(SAMPLE_CERTIFICATE_ESS, "none")).toBeNull();
     const forced = await renderValuationCertificatePdf({ data: SAMPLE, contentHash: HASH, watermark: null, annex: "ess" });
-    expect(pdfPageCount(forced)).toBe(5);
-    const annex = (await pageTexts(forced)).slice(3).join(" ");
-    expect(annex).toContain(ESS_APPROVAL_INSTRUMENT);
-    expect(annex).not.toContain("Met (on the facts recorded)");
-    expect(annex).toContain("Incorporation date not recorded");
-    expect(annex).toContain("No share count was on file at issue, so no per-share figure is shown");
-    expect(annex).toContain(ESS_NOT_SAFE_HARBOUR_SENTENCE);
+    expect(pdfPageCount(forced)).toBe(3);
+    const text = (await pageTexts(forced)).join(" ");
+    expect(text).not.toContain(ESS_APPROVAL_INSTRUMENT);
+    expect(text).not.toContain("Incorporation date not recorded");
     // Default (auto) on a payload without the annex → still 3 pages.
     expect(pdfPageCount(await renderValuationCertificatePdf({ data: SAMPLE, contentHash: HASH, watermark: null }))).toBe(3);
     // The watermark reaches the annex page too.

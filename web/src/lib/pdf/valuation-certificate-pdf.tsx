@@ -54,8 +54,6 @@ import {
   LEGAL_ENTITY_LINE,
   LEGAL_ENTITY_NAME,
   METHOD_LABELS,
-  buildEssAnnex,
-  emptyEssFacts,
   formatAudCompact,
   formatAudFull,
   formatAudPerShare,
@@ -74,19 +72,19 @@ export interface ValuationCertificatePdfProps {
   revokedAt?: string | null;
   /**
    * S27-A — which annexes to print. Default: the ESS annex when the payload
-   * carries `ess`. `"ess"` also prints it for a certificate issued without
-   * one (every checklist row "not confirmed", no per-share line); `"none"`
-   * suppresses it.
+   * carries `ess`; `"none"` suppresses it. S29-hardening (S27 review #9):
+   * `"ess"` prints ONLY the frozen annex — a certificate issued without one
+   * never gets an empty-facts annex synthesised at render time (the route
+   * answers 409 `annex_not_issued`), so the PDF is always the frozen
+   * payload and never a recompute.
    */
   annex?: "auto" | "ess" | "none";
 }
 
-/** Resolve the annex to print from the props — exported for the route + suite. */
+/** Resolve the annex to print from the props — exported for the route + suite. Null when the payload was issued without one. */
 export function essAnnexFor(data: ValuationCertificateData, annex: ValuationCertificatePdfProps["annex"] = "auto"): CertificateEssAnnex | null {
   if (annex === "none") return null;
-  if (data.ess) return data.ess;
-  if (annex === "ess") return buildEssAnnex(emptyEssFacts(), data.valuation, data.issuedAt);
-  return null;
+  return data.ess ?? null;
 }
 
 export const ESS_STATUS_LABEL: Record<EssChecklistStatus, string> = {

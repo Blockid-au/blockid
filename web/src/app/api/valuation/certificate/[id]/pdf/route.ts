@@ -15,6 +15,9 @@
 //   - `?annex=ess` (S27-A) prints Annex A (ESS start-up concession) — by
 //     default it prints whenever the payload was issued with it; `none`
 //     suppresses it. `X-BlockID-Annex: ess` when printed. 0 credits.
+//     S29-hardening (S27 review #9): `?annex=ess` on a certificate issued
+//     WITHOUT the annex → 409 `annex_not_issued` — an empty-facts annex is
+//     never rendered (the PDF is the frozen payload, never a recompute).
 //
 // GET only — nothing mutates, so apiRoute() is not required (S20-A).
 
@@ -54,6 +57,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const watermark = watermarkLabel({ recipient: query.get("for") });
   const annexParam = query.get("annex");
   const annex = annexParam === "ess" || annexParam === "none" ? annexParam : "auto";
+  if (annex === "ess" && !row.payload.ess) {
+    return NextResponse.json(
+      { ok: false, error: "annex_not_issued", message: "This certificate was issued without the ESS annex. Issue a new certificate with Annex A to include it." },
+      { status: 409 },
+    );
+  }
   const essPrinted = essAnnexFor(row.payload, annex) !== null;
 
   const buffer = await renderValuationCertificatePdf({
