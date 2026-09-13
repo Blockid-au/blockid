@@ -92,7 +92,7 @@ export function ChainReconcilePanel({ initial }: { initial?: ReconcileState | nu
         setNotice({
           kind: q > 0 ? "ok" : "warn",
           text: q > 0
-            ? `${q} correction${q === 1 ? "" : "s"} queued — the sync runner applies them within 15 minutes.${s ? ` ${s} row${s === 1 ? "" : "s"} skipped (no wallet or unknown on chain).` : ""}`
+            ? `${q} correction${q === 1 ? "" : "s"} queued on the sync queue.${d.push?.executes === false ? " On-chain execution is not enabled yet (no server signing key) — balances on chain will not change until it is; the queue keeps the corrections." : " The sync runner applies them within 15 minutes."}${s ? ` ${s} row${s === 1 ? "" : "s"} skipped (no wallet or unknown on chain).` : ""}`
             : "Nothing to push — every wallet-backed holder already matches, or the remaining rows need a wallet first.",
         });
       } else if (d.status === "unreachable") {
@@ -152,7 +152,7 @@ export function ChainReconcilePanel({ initial }: { initial?: ReconcileState | nu
               disabled={busy !== null || last?.status !== "drift" || pushable === 0}
               className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
               data-testid="chain-reconcile-push"
-              title={pushable === 0 ? "Nothing to push" : `Queue ${pushable} correction${pushable === 1 ? "" : "s"} on the sync queue`}
+              title={pushable === 0 ? "Nothing to push" : `Queue ${pushable} correction${pushable === 1 ? "" : "s"} on the sync queue (on-chain execution needs a server signing key — not enabled yet)`}
             >
               <UploadCloud className="h-3.5 w-3.5" /> Push register to chain
             </button>

@@ -111,7 +111,19 @@ async function POST_handler(request: Request) {
       );
     }
     const push = await pushRegisterToChain(config, outcome.result as ReconcileResult);
-    return NextResponse.json({ ok: true, action, status: outcome.status, driftCount: outcome.driftCount, push, last: outcome.row });
+    // Honest status (S27 review, open item 1): the sync runner records the
+    // queued mint/burn events but `blockchain-sync.ts#executeOnChainTx` has no
+    // server-side signer — there is no admin key on the box (wallet.ts is the
+    // founder's MetaMask path). Until a signer is configured the corrections
+    // sit on the queue and on-chain balances do not change.
+    return NextResponse.json({
+      ok: true,
+      action,
+      status: outcome.status,
+      driftCount: outcome.driftCount,
+      push: { ...push, executes: false, executeReason: "admin_signer_not_configured" as const },
+      last: outcome.row,
+    });
   }
 
   return NextResponse.json({

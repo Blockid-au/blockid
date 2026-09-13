@@ -188,6 +188,9 @@ describe("POST /api/cap-table/chain-reconcile", () => {
     expect(res.status).toBe(200);
     const body = await json(res);
     expect(body.push.queued).toBe(2);
+    // No server signer exists → the response must say the queue does not execute yet.
+    expect(body.push.executes).toBe(false);
+    expect(body.push.executeReason).toBe("admin_signer_not_configured");
     expect(body.push.skipped).toBe(1);
     expect(chain.queued).toEqual([
       { accountId: "acct-1", type: "burn", payload: expect.objectContaining({ from: B, amount: 50 }) },
