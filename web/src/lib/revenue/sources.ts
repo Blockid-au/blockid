@@ -121,8 +121,14 @@ export interface ResolveFiguresInput {
 export interface BankCsvInput {
   /** Average monthly operating spend over the months with data. */
   monthlyOpex: number;
-  /** Average monthly income (revenue + grants). */
+  /** Average monthly income (revenue + grants) — the P&L top line, never MRR. */
   monthlyIncome: number;
+  /**
+   * S28-review P2: average monthly `revenue`-category income only (no
+   * government grants) — the ONLY bank figure that may stand in for MRR.
+   * Absent (a payload from before the fix) → the bank CSV does not set MRR.
+   */
+  monthlyRevenue?: number;
   /** Income over the whole window (≤ 12 months). */
   income: number;
   monthsWithData: number;
@@ -189,8 +195,11 @@ export function resolveRevenueFigures(input: ResolveFiguresInput): RevenueFigure
   } else if (platform.hasStripe && platform.mrr > 0) {
     mrr = platform.mrr;
     mrrSource = source("stripe_platform");
-  } else if (bank && bank.monthlyIncome > 0) {
-    mrr = bank.monthlyIncome;
+  } else if (bank && typeof bank.monthlyRevenue === "number" && bank.monthlyRevenue > 0) {
+    // S28-review P2: revenue-category lines only — a grant received is
+    // income on the P&L but not recurring revenue, so it never becomes MRR
+    // (and never × 12 into an ARR multiple).
+    mrr = bank.monthlyRevenue;
     mrrSource = source("bank_csv", bankAt);
   } else if (startupMetrics.mrr > 0) {
     mrr = startupMetrics.mrr;

@@ -27,6 +27,7 @@ import {
   type DividendStatementPayload,
   type StatementCompany,
   type StatementDividendRecord,
+  type StatementDrip,
   type StatementShareholder,
 } from "./statement";
 
@@ -430,6 +431,26 @@ export async function issueStatementsForRecord(input: IssueStatementsInput): Pro
       });
       const a = plan.allocation;
       const recorded = res.status === "recorded";
+      // S28-review P2: the statement was frozen (and hashed) with the PLANNED
+      // block before the cap-table write. When the write failed the register
+      // has no new shares, so re-freeze the statement with the skipped block —
+      // the PDF must never show an allotment that did not land.
+      if (!recorded && a.ok && dripBlock) {
+        const skippedBlock: StatementDrip = { ...dripBlock, shares: 0, reinvestedAud: 0, residualAud: 0, cashPaidAud: a.netCashAud, skipped: "cap_table_write_failed" };
+        const payload = buildDividendStatement({ company: input.company, record, payout: m.payout, shareholder: m.shareholder, now, drip: skippedBlock }, inserted.statement_no);
+        const contentHash = statementContentHash(payload);
+        const { error } = await input.db
+          .from("dividend_statements")
+          .update({ payload, content_hash: contentHash })
+          .eq("id", inserted.id)
+          .eq("project_id", input.projectId)
+          .is("voided_at", null);
+        if (error) console.error("[dividends:drip] statement re-freeze after cap-table failure did not land", { statement: inserted.id, error });
+        else {
+          inserted = { ...inserted, payload, content_hash: contentHash };
+          issued[issued.length - 1] = inserted;
+        }
+      }
       drip.push({
         statementId: inserted.id ?? null,
         statementNo: inserted.statement_no,

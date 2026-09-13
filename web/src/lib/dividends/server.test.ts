@@ -319,6 +319,42 @@ describe("issueStatementsForRecord — DRIP hook (S28-A)", () => {
     expect(stmt.payload.drip).toMatchObject({ shares: 10_948, priceAud: 1.37, cashPaidAud: 15_001.24 });
   });
 
+  // S28-review P2: the statement row lands (frozen + hashed) with the PLANNED
+  // block before the cap-table write. A failed share_transactions insert
+  // must re-freeze the statement as skipped — the PDF never shows shares the
+  // register does not hold.
+  it("cap-table write failure → the frozen statement is re-written with the skipped block and a matching hash", async () => {
+    const sb = fakeSupabase({ dividend_statements: [], drip_allocations: [] });
+    const failing = {
+      from: (table: string) => {
+        if (table !== "share_transactions") return sb.from(table);
+        const chain: Record<string, unknown> = {};
+        chain.insert = () => chain;
+        chain.select = () => chain;
+        chain.single = async () => ({ data: null, error: { code: "23503", message: "share_class_id fk" } });
+        return chain;
+      },
+    };
+    const res = await issueStatementsForRecord({ db: failing as never, projectId: "proj-1", userId: "u", company, record: record(), shareholders: holders, creditsCharged: 0, now: NOW, drip: ctx() });
+    expect(res.drip[0]).toMatchObject({ status: "skipped", shares: 0, reinvestedAud: 0, cashPaidAud: 30_000, skipReason: "cap_table_write_failed", shareTransactionId: null });
+    expect(sb.find("drip_allocations", "insert")[0].args[0]).toMatchObject({ status: "skipped", skip_reason: "cap_table_write_failed", shares: 0 });
+
+    // The first insert carried the planned block; the follow-up update re-freezes it.
+    const inserted = sb.find("dividend_statements", "insert")[0].args[0] as DividendStatementRow;
+    expect(inserted.payload.drip).toMatchObject({ shares: 10_948, skipped: null });
+    const updates = sb.find("dividend_statements", "update");
+    expect(updates).toHaveLength(1);
+    const patch = updates[0].args[0] as { payload: DividendStatementRow["payload"]; content_hash: string };
+    expect(patch.payload.drip).toMatchObject({ shares: 0, reinvestedAud: 0, residualAud: 0, cashPaidAud: 30_000, skipped: "cap_table_write_failed", priceAud: 1.37 });
+    expect(patch.payload.statementNo).toBe(inserted.statement_no);
+    expect(patch.content_hash).toBe(statementContentHash(patch.payload));
+    expect(patch.content_hash).not.toBe(inserted.content_hash);
+    expect(sb.hasEq("dividend_statements", "project_id", "proj-1")).toBe(true);
+    // The returned row is the re-frozen one.
+    expect(res.issued[0].payload.drip?.skipped).toBe("cap_table_write_failed");
+    expect(res.issued[0].content_hash).toBe(patch.content_hash);
+  });
+
   it("no DRIP context → S25-B behaviour: no allocation reads, no drip block", async () => {
     const sb = fakeSupabase({ dividend_statements: [] });
     const res = await issueStatementsForRecord({ db: sb as never, projectId: "proj-1", userId: "u", company, record: record(), shareholders: holders, creditsCharged: 0, now: NOW });

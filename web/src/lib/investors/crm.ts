@@ -306,6 +306,14 @@ export function encodeCursor(row: { created_at: string; id: string }): string {
   return encodeURIComponent(`${row.created_at}|${row.id}`).replace(/%/g, "~");
 }
 
+/**
+ * S28-review: the cursor's timestamp is spliced into a PostgREST `or()`
+ * filter (`cursorOrFilter`), so it must be a strict ISO-8601 instant — V8's
+ * `new Date()` also accepts legacy forms with parenthesised comments
+ * (`Jan 1 2026 (a,b)`) that would carry filter syntax into the query.
+ */
+const ISO_INSTANT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/;
+
 export function decodeCursor(s: string): { createdAt: string; id: string } | null {
   try {
     const raw = decodeURIComponent(s.replace(/~/g, "%"));
@@ -313,7 +321,7 @@ export function decodeCursor(s: string): { createdAt: string; id: string } | nul
     if (i <= 0) return null;
     const createdAt = raw.slice(0, i);
     const id = raw.slice(i + 1);
-    if (Number.isNaN(new Date(createdAt).getTime()) || !isUuid(id)) return null;
+    if (!ISO_INSTANT_RE.test(createdAt) || Number.isNaN(new Date(createdAt).getTime()) || !isUuid(id)) return null;
     return { createdAt, id };
   } catch {
     return null;

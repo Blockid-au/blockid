@@ -167,6 +167,54 @@ describe("linkDataRoomView", () => {
     const boom = { from: () => { throw new Error("db down"); } };
     expect(await linkDataRoomView(boom as never, { projectId: PID, email: "jane@bb.vc", linkId: "l", trigger: "deep_read" })).toMatchObject({ matched: false });
   });
+
+  // S28-review P1: the engage beacon fires the hook on every event and every
+  // event after the deep-read threshold is a `deep_read` trigger — one row
+  // per (link, trigger) per 24 h, never one per beacon.
+  it("writes at most one row per (link, trigger) inside 24 h; a different trigger, link or an older row still writes", async () => {
+    const now = new Date("2026-09-13T10:00:00.000Z");
+    const recent = (over: Record<string, unknown>) => ({
+      id: "tp-1",
+      contact_id: C1,
+      project_id: PID,
+      kind: "data_room_view",
+      body: "x",
+      occurred_at: "2026-09-13T09:30:00.000Z",
+      created_by: null,
+      meta: { link_id: "link-1", trigger: "deep_read", sections: 4 },
+      created_at: "2026-09-13T09:30:00.000Z",
+      ...over,
+    });
+
+    sb = fakeSupabase({ investor_contacts: [contact()], investor_touchpoints: [recent({})] });
+    const again = await linkDataRoomView(sb as never, { projectId: PID, email: "jane@bb.vc", linkId: "link-1", trigger: "deep_read", sections: 5, now });
+    expect(again).toEqual({ matched: true, contactId: C1, stageMovedTo: null, throttled: true });
+    expect(sb.find("investor_touchpoints", "insert")).toHaveLength(0);
+    expect(sb.hasEq("investor_touchpoints", "kind", "data_room_view")).toBe(true);
+    expect(sb.find("investor_touchpoints", "contains")[0]?.args).toEqual(["meta", { link_id: "link-1", trigger: "deep_read" }]);
+
+    // A different trigger on the same link is a new signal (first_open → deep_read).
+    sb = fakeSupabase({ investor_contacts: [contact()], investor_touchpoints: [recent({ meta: { link_id: "link-1", trigger: "first_view" } })] });
+    const other = await linkDataRoomView(sb as never, { projectId: PID, email: "jane@bb.vc", linkId: "link-1", trigger: "deep_read", now });
+    expect(other).toEqual({ matched: true, contactId: C1, stageMovedTo: null });
+    expect(other.throttled).toBeUndefined();
+    expect(sb.find("investor_touchpoints", "insert")).toHaveLength(1);
+
+    // Another link for the same investor writes.
+    sb = fakeSupabase({ investor_contacts: [contact()], investor_touchpoints: [recent({ meta: { link_id: "link-2", trigger: "deep_read" } })] });
+    expect(await linkDataRoomView(sb as never, { projectId: PID, email: "jane@bb.vc", linkId: "link-1", trigger: "deep_read", now })).toMatchObject({ matched: true });
+    expect(sb.find("investor_touchpoints", "insert")).toHaveLength(1);
+
+    // A row older than the window does not throttle (a return visit next week is news).
+    sb = fakeSupabase({ investor_contacts: [contact()], investor_touchpoints: [recent({ occurred_at: "2026-09-11T09:30:00.000Z" })] });
+    expect(await linkDataRoomView(sb as never, { projectId: PID, email: "jane@bb.vc", linkId: "link-1", trigger: "deep_read", now })).toMatchObject({ matched: true });
+    expect(sb.find("investor_touchpoints", "insert")).toHaveLength(1);
+
+    // A row of another contact / project never throttles this one (the fake ignores filters — the re-check must).
+    sb = fakeSupabase({ investor_contacts: [contact()], investor_touchpoints: [recent({ contact_id: "other" }), recent({ project_id: "proj-2" })] });
+    expect(await linkDataRoomView(sb as never, { projectId: PID, email: "jane@bb.vc", linkId: "link-1", trigger: "deep_read", now })).toMatchObject({ matched: true });
+    expect(sb.find("investor_touchpoints", "insert")).toHaveLength(1);
+  });
 });
 
 describe("linkCommitment", () => {
