@@ -156,12 +156,13 @@ describe("admin gate — 401 anonymous / 403 non-admin on every handler", () => 
     mocks.getCurrentUser.mockResolvedValue(null);
     const anon = await call();
     expect(anon.status).toBe(401);
-    expect((await json(anon)).reason).toBe("no_user");
+    // Live QA lane 2 P3-a: the standard unauthenticated body, not `{reason:"no_user"}`.
+    expect(await json(anon)).toEqual({ ok: false, error: "unauthorized", reason: "unauthorized" });
 
     mocks.getCurrentUser.mockResolvedValue(USER);
     const user = await call();
     expect(user.status).toBe(403);
-    expect((await json(user)).reason).toBe("not_admin");
+    expect(await json(user)).toEqual({ ok: false, error: "not_admin", reason: "not_admin" });
   });
 });
 

@@ -63,11 +63,11 @@ export function SectorMultiplesClient({ initial, viewer, loadError }: Props) {
     setRefreshing(true);
     try {
       const res = await fetch("/api/admin/sector-multiples", { cache: "no-store" });
-      const data = (await res.json()) as { ok: boolean; reason?: string } & Partial<QueueSnapshot>;
+      const data = (await res.json()) as { ok: boolean; error?: string; reason?: string } & Partial<QueueSnapshot>;
       if (data.ok && data.proposed && data.approved && data.rejected && data.current && data.sources && data.today) {
         setSnap({ today: data.today, proposed: data.proposed, approved: data.approved, rejected: data.rejected, current: data.current, sources: data.sources });
       } else {
-        setFlash({ kind: "err", text: `Could not reload the queue (${data.reason ?? res.status}).` });
+        setFlash({ kind: "err", text: `Could not reload the queue (${data.error ?? data.reason ?? res.status}).` });
       }
     } finally {
       setRefreshing(false);
