@@ -1,5 +1,7 @@
 import "server-only";
 
+import { ConnectorHttpError } from "@/lib/connectors/http-error";
+
 export interface StripeSignals {
   mrrAud: number;
   activeCustomers: number;
@@ -192,18 +194,39 @@ export function stripeConnectMetricsFrom(
   };
 }
 
+/**
+ * Strict GET for the resync: a non-2xx THROWS `ConnectorHttpError` instead
+ * of degrading to an empty list. The weekly worker stores what this returns
+ * as a dated snapshot and rescores on it, so "Stripe said 401/429/500" must
+ * never be recorded as "MRR 0". (`fetchStripeSignals` above keeps the lenient
+ * shape for the one-shot link-time pull.)
+ */
+async function stripeGetStrict<T>(path: string, accessToken: string, resource: string): Promise<StripeList<T>> {
+  const res = await fetch(`https://api.stripe.com${path}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/json",
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) throw new ConnectorHttpError("stripe", res.status, resource);
+  return (await res.json()) as StripeList<T>;
+}
+
+/** Throws `ConnectorHttpError` on any non-2xx from Stripe (S25-review). */
 export async function fetchStripeConnectMetrics(accessToken: string): Promise<StripeConnectMetrics> {
   const since = Math.floor(Date.now() / 1000) - STRIPE_CHURN_WINDOW_DAYS * 24 * 60 * 60;
   const [active, canceled, customers] = await Promise.all([
-    stripeGet<StripeSubscription>("/v1/subscriptions?limit=100&status=active", accessToken),
+    stripeGetStrict<StripeSubscription>("/v1/subscriptions?limit=100&status=active", accessToken, "subscriptions"),
     // `created` bounds the canceled list to subscriptions young enough to
     // have churned inside the window (created ≤ 1 y before the window opens
     // is a generous floor); `canceled_at` is filtered client-side.
-    stripeGet<StripeSubscription>(
+    stripeGetStrict<StripeSubscription>(
       `/v1/subscriptions?limit=100&status=canceled&created[gte]=${since - 365 * 24 * 60 * 60}`,
       accessToken,
+      "subscriptions",
     ),
-    stripeGet<{ id: string }>("/v1/customers?limit=100", accessToken),
+    stripeGetStrict<{ id: string }>("/v1/customers?limit=100", accessToken, "customers"),
   ]);
-  return stripeConnectMetricsFrom(active?.data ?? [], canceled?.data ?? [], customers?.data.length ?? 0);
+  return stripeConnectMetricsFrom(active.data ?? [], canceled.data ?? [], customers.data?.length ?? 0);
 }

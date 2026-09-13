@@ -46,6 +46,7 @@ import {
   metricsChanged,
   type ConnectorProvider,
 } from "@/lib/connectors/snapshots";
+import { isConnectorHttpError } from "@/lib/connectors/http-error";
 import { scoreConnectedRevenue } from "@/lib/svi/connected-revenue-score";
 import { rescoreAccountFromEvidence } from "@/lib/svi/rescore-from-evidence";
 import { insertNotification } from "@/lib/notifications";
@@ -450,11 +451,23 @@ export async function resyncConnection(db: Db, c: ResyncCandidate, opts: { now?:
       return { ...base, outcome: "skipped_scope", error: "scope_unresolved" };
     }
 
-    // 2. Pull.
+    // 2. Pull. A non-2xx from the provider throws `ConnectorHttpError`
+    //    (S25-review): 401/403 → the token is dead → needs_reconnect; any
+    //    other status → failed. Either way NOTHING below runs, so a rate
+    //    limit or an outage can never be snapshotted as "MRR 0".
     let metrics: StripeConnectMetrics | XeroMetrics;
     if (c.provider === "stripe") {
       if (!accessToken) throw new Error("stripe_no_access_token");
-      metrics = await fetchStripeConnectMetrics(accessToken);
+      try {
+        metrics = await fetchStripeConnectMetrics(accessToken);
+      } catch (err) {
+        if (isConnectorHttpError(err) && err.isAuthRejected) {
+          await notifyReconnect(c, scope);
+          await releaseConnection(db, c, now, "stripe_auth_rejected");
+          return { ...base, outcome: "needs_reconnect", error: "stripe_auth_rejected" };
+        }
+        throw err;
+      }
     } else {
       if (!refreshToken) {
         await notifyReconnect(c, scope);
@@ -481,7 +494,16 @@ export async function resyncConnection(db: Db, c: ResyncCandidate, opts: { now?:
         tenantId = t.tenantId;
         tenantName = t.tenantName;
       }
-      metrics = await fetchXeroMetrics(pair.accessToken, tenantId, tenantName);
+      try {
+        metrics = await fetchXeroMetrics(pair.accessToken, tenantId, tenantName);
+      } catch (err) {
+        if (isConnectorHttpError(err) && err.isAuthRejected) {
+          await notifyReconnect(c, scope);
+          await releaseConnection(db, c, now, "xero_auth_rejected");
+          return { ...base, outcome: "needs_reconnect", error: "xero_auth_rejected" };
+        }
+        throw err;
+      }
     }
 
     // 3. Snapshot + change detection (owner-keyed; skipped when the owner is unknown).

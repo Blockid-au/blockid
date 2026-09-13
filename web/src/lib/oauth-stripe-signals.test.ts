@@ -907,15 +907,34 @@ describe("stripeConnectMetricsFrom / fetchStripeConnectMetrics (S25-A)", () => {
     });
   });
 
-  it("fetchStripeConnectMetrics hits active + canceled subscriptions + customers with the connected account's bearer; a failed list degrades to empty", async () => {
+  it("fetchStripeConnectMetrics hits active + canceled subscriptions + customers with the connected account's bearer", async () => {
     queue(SUBS_URL_PREFIX, { data: [makeSub([{ unit_amount: 10000, currency: "aud", interval: "month" }])], has_more: false });
     queue("https://api.stripe.com/v1/subscriptions?limit=100&status=canceled", { data: [], has_more: false });
-    queueStatus(CUSTOMERS_URL_PREFIX, 500, {});
+    queue(CUSTOMERS_URL_PREFIX, { data: [{ id: "cus_1" }, { id: "cus_2" }], has_more: false });
     const out = await fetchStripeConnectMetrics("connected-tok");
-    expect(out).toMatchObject({ mrrAud: 100, activeSubscriptions: 1, activeCustomers: 0, churnedSubscriptions90d: 0, churnRate90dPct: 0 });
+    expect(out).toMatchObject({ mrrAud: 100, activeSubscriptions: 1, activeCustomers: 2, churnedSubscriptions90d: 0, churnRate90dPct: 0 });
     for (const c of calls) {
       expect((c.init?.headers as Record<string, string>).Authorization).toBe("Bearer connected-tok");
     }
     expect(calls.some((c) => c.url.includes("status=canceled") && c.url.includes("created[gte]="))).toBe(true);
+  });
+
+  // S25-review: the resync stores what this returns as a dated snapshot and
+  // rescores on it, so a non-2xx must THROW — never come back as "0 customers".
+  it("fetchStripeConnectMetrics throws a typed ConnectorHttpError on any non-2xx (401 = auth rejected; 500 = not) and never a token", async () => {
+    queue(SUBS_URL_PREFIX, { data: [], has_more: false });
+    queue("https://api.stripe.com/v1/subscriptions?limit=100&status=canceled", { data: [], has_more: false });
+    queueStatus(CUSTOMERS_URL_PREFIX, 500, {});
+    await expect(fetchStripeConnectMetrics("connected-tok")).rejects.toMatchObject({ name: "ConnectorHttpError", provider: "stripe", status: 500, isAuthRejected: false });
+
+    calls.length = 0;
+    responders.length = 0;
+    queueStatus(SUBS_URL_PREFIX, 401, { error: { message: "Invalid API Key provided: sk_live_***" } });
+    queue("https://api.stripe.com/v1/subscriptions?limit=100&status=canceled", { data: [], has_more: false });
+    queue(CUSTOMERS_URL_PREFIX, { data: [], has_more: false });
+    const err = await fetchStripeConnectMetrics("connected-tok").catch((e: unknown) => e as Error & { isAuthRejected: boolean });
+    expect(err).toMatchObject({ name: "ConnectorHttpError", status: 401, isAuthRejected: true });
+    expect(err.message).toBe("stripe subscriptions responded 401");
+    expect(err.message).not.toContain("connected-tok");
   });
 });

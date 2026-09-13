@@ -9,6 +9,8 @@
 // take `fetch` from the global so tests stub it. Nothing in this file logs
 // a token — errors carry HTTP status + a short reason only.
 
+import { ConnectorHttpError } from "@/lib/connectors/http-error";
+
 export const XERO_PL_WINDOW_MONTHS = 3;
 
 export interface XeroReportRow {
@@ -189,7 +191,12 @@ export async function refreshXeroToken(
   return { accessToken: json.access_token, refreshToken: json.refresh_token ?? null, expiresAt };
 }
 
-async function xeroGet<T>(path: string, accessToken: string, tenantId: string): Promise<T | null> {
+/**
+ * GET a report. `strict` → any non-2xx throws `ConnectorHttpError`; lenient
+ * → only 401/403 throw (a dead token must never look like "no bank
+ * accounts") and other failures yield null. Never logs the token.
+ */
+async function xeroGet<T>(path: string, accessToken: string, tenantId: string, resource: string, strict: boolean): Promise<T | null> {
   const res = await fetch(`https://api.xero.com/api.xro/2.0/${path}`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -198,7 +205,10 @@ async function xeroGet<T>(path: string, accessToken: string, tenantId: string): 
     },
     cache: "no-store",
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    if (strict || res.status === 401 || res.status === 403) throw new ConnectorHttpError("xero", res.status, resource);
+    return null;
+  }
   return (await res.json()) as T;
 }
 
@@ -215,15 +225,23 @@ export async function fetchXeroTenant(accessToken: string): Promise<{ tenantId: 
   return { tenantId: first.tenantId, tenantName: first.tenantName ?? "Xero Organisation" };
 }
 
-/** The same two reports the callback pulls: 3-period P&L + BankSummary. */
+/**
+ * The same two reports the callback pulls: 3-period P&L + BankSummary.
+ * S25-review: the P&L is the figure the resync snapshots and rescores on,
+ * so a non-2xx there THROWS `ConnectorHttpError` (401/403 → the worker
+ * asks the founder to reconnect; anything else → `failed`, nothing written)
+ * instead of degrading to income 0. A failed BankSummary still degrades to
+ * `bankBalanceAud: null` (as the callback does) unless it is an auth
+ * rejection.
+ */
 export async function fetchXeroMetrics(
   accessToken: string,
   tenantId: string,
   tenantName: string | null,
 ): Promise<XeroMetrics> {
   const [pl, bank] = await Promise.all([
-    xeroGet<XeroReportsResponse>(`Reports/ProfitAndLoss?periods=${XERO_PL_WINDOW_MONTHS}`, accessToken, tenantId),
-    xeroGet<XeroReportsResponse>("Reports/BankSummary", accessToken, tenantId),
+    xeroGet<XeroReportsResponse>(`Reports/ProfitAndLoss?periods=${XERO_PL_WINDOW_MONTHS}`, accessToken, tenantId, "profit-and-loss", true),
+    xeroGet<XeroReportsResponse>("Reports/BankSummary", accessToken, tenantId, "bank-summary", false),
   ]);
   return xeroMetricsFromReports(pl ?? {}, bank ?? {}, tenantName);
 }

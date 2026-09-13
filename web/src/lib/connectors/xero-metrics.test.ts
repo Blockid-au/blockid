@@ -108,7 +108,7 @@ describe("network", () => {
     expect(unconfigured.status).toBe(0);
   });
 
-  it("fetchXeroMetrics pulls the 3-period P&L + BankSummary with the tenant header; a failed report degrades to zeros", async () => {
+  it("fetchXeroMetrics pulls the 3-period P&L + BankSummary with the tenant header; a failed BankSummary degrades to null", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
       const url = String(input);
       if (url.includes("ProfitAndLoss")) return new Response(JSON.stringify({ Reports: [PL] }), { status: 200 });
@@ -122,5 +122,28 @@ describe("network", () => {
     const headers = (fetchMock.mock.calls[0][1] as RequestInit).headers as Record<string, string>;
     expect(headers["Xero-Tenant-Id"]).toBe("tenant-1");
     expect(headers.Authorization).toBe("Bearer tok");
+  });
+
+  // S25-review: the P&L is what the resync snapshots and rescores on, so a
+  // non-2xx there must THROW instead of degrading to income 0; an auth
+  // rejection on either report throws too (a dead token is not "no banks").
+  it("fetchXeroMetrics throws ConnectorHttpError when the P&L fails (any status) or the BankSummary is 401/403; the message carries no token", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes("ProfitAndLoss")) return new Response("rate limited", { status: 429 });
+      return new Response(JSON.stringify({ Reports: [BANK] }), { status: 200 });
+    });
+    await expect(fetchXeroMetrics("tok", "tenant-1", "Acme")).rejects.toMatchObject({ name: "ConnectorHttpError", provider: "xero", status: 429, isAuthRejected: false });
+
+    vi.restoreAllMocks();
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes("ProfitAndLoss")) return new Response(JSON.stringify({ Reports: [PL] }), { status: 200 });
+      return new Response("forbidden", { status: 403 });
+    });
+    const err = await fetchXeroMetrics("tok", "tenant-1", "Acme").catch((e: unknown) => e as Error & { isAuthRejected: boolean });
+    expect(err).toMatchObject({ name: "ConnectorHttpError", status: 403, isAuthRejected: true });
+    expect(err.message).toBe("xero bank-summary responded 403");
+    expect(err.message).not.toContain("tok");
   });
 });
