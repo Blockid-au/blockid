@@ -476,7 +476,8 @@
         "investor_pack",
         "per_investor_share_links",
         "grant_finder",
-        "money_radar"
+        "money_radar",
+        "secondary_market.view"
       ],
       "lockedRows": [
         {
