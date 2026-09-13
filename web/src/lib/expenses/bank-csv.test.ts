@@ -1,7 +1,7 @@
 // S28-C — shared bank CSV parser: bank detection, AU dates, dedupe hash.
 
 import { describe, it, expect } from "vitest";
-import { analyzeTransactions, detectAndParse, normaliseTransactions, parseAuDate, parseCSV, statementRef, transactionHash } from "./bank-csv";
+import { analyzeTransactions, detectAndParse, normaliseDescription, normaliseTransactions, parseAuDate, parseCSV, statementRef, transactionHash } from "./bank-csv";
 
 describe("parseCSV + detectAndParse", () => {
   it("ANZ: Date, Details, Debit, Credit, Balance → signed amounts", () => {
@@ -73,6 +73,26 @@ describe("transactionHash — dedupe key", () => {
     expect(transactionHash("2026-06-01", -320.51, "AWS")).not.toBe(base);
     expect(transactionHash("2026-06-01", 320.5, "AWS")).not.toBe(base);
     expect(transactionHash("2026-06-01", -320.5, "AWS 2")).not.toBe(base);
+  });
+});
+
+describe("normaliseDescription — S29-hardening formula guard", () => {
+  it("strips a leading = + - @ / tab / CR after the trim (leading whitespace + '=' is covered); the hash follows the guarded text", () => {
+    expect(normaliseDescription("=HYPERLINK(\"http://x\")  AWS")).toBe("HYPERLINK(\"http://x\") AWS");
+    expect(normaliseDescription("  +cmd|' /C calc'!A0 ")).toBe("cmd|' /C calc'!A0");
+    expect(normaliseDescription("\t-@=  Rent  ")).toBe("Rent");
+    expect(normaliseDescription("@SUM(1)")).toBe("SUM(1)");
+    // A narration that is nothing but formula characters becomes empty (and is then skipped by normaliseTransactions).
+    expect(normaliseDescription("===")).toBe("");
+    // Inner characters are untouched: an amount like "AWS -320.50 USD" keeps its minus.
+    expect(normaliseDescription("AWS -320.50 USD")).toBe("AWS -320.50 USD");
+    expect(transactionHash("2026-06-01", -320.5, "=AWS")).toBe(transactionHash("2026-06-01", -320.5, "AWS"));
+    const { rows, skipped } = normaliseTransactions([
+      { date: "01/06/2026", description: "=cmd|' /C calc'!A0", amount: -10 },
+      { date: "01/06/2026", description: "===", amount: -10 },
+    ]);
+    expect(rows.map((r) => r.description)).toEqual(["cmd|' /C calc'!A0"]);
+    expect(skipped).toBe(1);
   });
 });
 
