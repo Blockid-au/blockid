@@ -19,8 +19,11 @@
 // API route so the two can never drift).
 
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth";
+import { signedInSignupRedirect } from "@/lib/plans/signed-in-upgrade";
 import { getPlansCached } from "@/lib/plans-db";
 import { EVALUATOR_TRIAL_COPY, TRIAL_COPY, formatAud } from "@/lib/plans/trial-copy";
 import {
@@ -49,6 +52,15 @@ export default async function SignupPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = await searchParams;
+
+  // S31-B (2026-09-13): a signed-in user landing here (the Money Radar tile,
+  // a /pricing card, an old campaign link) used to get a fresh registration
+  // form that always ended in "An account with this email already exists".
+  // They already have the account — send them to Billing with the plan they
+  // chose so the click starts a checkout instead of a dead end.
+  const existing = await getCurrentUser();
+  if (existing) redirect(signedInSignupRedirect(sp.plan));
+
   const segment = resolveSignupSegment(sp.segment, sp.plan);
   const preferredPlan = resolvePreferredPlan(segment, sp.plan);
   const isEvaluator = segment === "evaluator";

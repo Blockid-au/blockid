@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { signedInSignupRedirect } from "@/lib/plans/signed-in-upgrade";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
@@ -54,7 +55,12 @@ export default async function OnboardingPage({
       .select("onboarding_completed")
       .eq("email", user.email)
       .single();
-    if (data?.onboarding_completed) redirect("/dashboard/svi");
+    // S31-B (2026-09-13): every /pricing "Start trial" card links here with
+    // ?trial=1&plan=<id>. An already-onboarded user was bounced to
+    // /dashboard/svi with no checkout and no message — the only in-app
+    // upgrade path that did not work. Carry the plan through to Billing,
+    // which starts the Stripe checkout for it.
+    if (data?.onboarding_completed) redirect(signedInSignupRedirect(sp.plan));
   }
 
   const initialParams: OnboardingInitialParams = {

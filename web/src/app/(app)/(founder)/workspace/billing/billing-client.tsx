@@ -16,7 +16,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LegacyPlan as Plan } from "@/lib/plans";
-import { isGrowthEarlyBird, GROWTH_STANDARD_PRICE } from "@/lib/plans";
+import {
+  BILLING_TIER_RANK,
+  normaliseBillingPlanId,
+  resolveActivePlan,
+} from "./billing-plans";
 import { CREDIT_PACKS } from "@/lib/credit-packs";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { ShareMgmtDrawer } from "@/components/billing/share-mgmt-drawer";
@@ -34,6 +38,12 @@ interface BillingClientProps {
    *  server-side. Render an explanation instead of the button. */
   isWholesaleProvisioned?: boolean;
   plans: Plan[];
+  /**
+   * Legacy catalogue (free / founding50 / growth / growth_annual) — used only
+   * to name the Current Plan of a grandfathered subscriber. Never rendered
+   * in the Available Plans grid.
+   */
+  grandfatheredPlans?: Plan[];
   /** Stripe price ids for the Share Management add-on. Nulls when env not set. */
   shareMgmtAddonPriceIds?: {
     monthly: string | null;
@@ -91,6 +101,7 @@ export function BillingClient({
   hasStripeCustomer,
   isWholesaleProvisioned = false,
   plans,
+  grandfatheredPlans = [],
   shareMgmtAddonPriceIds,
 }: BillingClientProps) {
   const [loadingAction, setLoadingAction] = React.useState<string | null>(null);
@@ -117,7 +128,22 @@ export function BillingClient({
       deepLinkFired.current = true;
       // eslint-disable-next-line react-hooks/set-state-in-effect -- deep-link one-shot open
       setDrawerOpen(true);
+      return;
     }
+    // S31-B: /workspace/billing?plan=<id> — where /pricing and /onboarding
+    // send an already-onboarded user who clicked "Start trial". Start the
+    // Stripe checkout for that plan straight away (it is the button they
+    // pressed); an unknown or non-upgrade id just lands on the grid.
+    const wanted = searchParams.get("plan");
+    if (wanted) {
+      deepLinkFired.current = true;
+      const target = plans.find((p) => p.id === wanted);
+      const rank = BILLING_TIER_RANK[wanted] ?? 0;
+      if (target && target.cadence !== "free" && rank > currentRank && wanted !== effectivePlanId) {
+        void handleCheckout(wanted);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot on mount; handleCheckout is stable for the page's life
   }, [searchParams]);
 
   async function handleRemoveShareMgmt() {
@@ -151,18 +177,11 @@ export function BillingClient({
     }
   }
 
-  const activePlan = plans.find((p) => p.id === currentPlanId) ?? null;
-  const effectivePlanId = currentPlanId ?? "free";
+  const activePlan = resolveActivePlan(currentPlanId, plans, grandfatheredPlans);
+  const effectivePlanId = normaliseBillingPlanId(currentPlanId);
 
-  // Ordered tiers for upgrade/downgrade logic (index = rank)
-  const tierRank: Record<string, number> = {
-    free: 0,
-    founding50: 1,
-    founder: 2,
-    growth: 3,
-    pilot: 4,
-    accelerator: 5,
-  };
+  // Ordered tiers for upgrade/downgrade logic — covers v2 and legacy ids.
+  const tierRank = BILLING_TIER_RANK;
   const currentRank = tierRank[effectivePlanId] ?? 0;
 
   // -----------------------------------------------------------------------
@@ -281,7 +300,7 @@ export function BillingClient({
           <ul className="space-y-2">
             {(
               activePlan?.features ??
-              plans.find((p) => p.id === "free")?.features ??
+              plans.find((p) => p.id === "founder_free")?.features ??
               []
             ).map((f) => (
               <li key={f} className="flex items-start gap-2.5 text-sm">
@@ -298,7 +317,7 @@ export function BillingClient({
           <div className="flex items-center gap-3 pt-1">
             {effectivePlanId === "free" ? (
               <Link
-                href="/#pricing"
+                href="#plans"
                 className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
               >
                 <Sparkles strokeWidth={1.75} className="h-4 w-4" />
@@ -431,7 +450,7 @@ export function BillingClient({
       />
 
       {/* ---- Available Plans Grid ---- */}
-      <section>
+      <section id="plans">
         <h2 className="text-base font-semibold text-ink-800 mb-4">
           Available Plans
         </h2>
@@ -463,24 +482,12 @@ export function BillingClient({
                         Current
                       </span>
                     )}
-                    {plan.id === "growth" && isGrowthEarlyBird() && (
-                      <span className="text-[10px] uppercase tracking-wider font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                        Early Bird
-                      </span>
-                    )}
                   </div>
                   <p className="text-lg font-bold text-ink-800">
                     {formatPrice(plan.price, plan.cadence)}
-                    {plan.id === "growth" && isGrowthEarlyBird() && (
-                      <span className="ml-2 text-sm text-muted line-through font-normal">
-                        {formatPrice(GROWTH_STANDARD_PRICE, plan.cadence)}
-                      </span>
-                    )}
                   </p>
                   <p className="text-xs text-ink-600 mt-0.5">
-                    {plan.id === "growth" && isGrowthEarlyBird()
-                      ? "Early-bird until July 31, 2026"
-                      : cadenceLabel(plan.cadence)}
+                    {cadenceLabel(plan.cadence)}
                   </p>
                 </div>
 
@@ -536,7 +543,7 @@ export function BillingClient({
                       )}
                       Upgrade
                     </button>
-                  ) : (
+                  ) : isDowngrade ? (
                     <button
                       type="button"
                       onClick={() => handleDowngrade(plan.id)}
@@ -544,6 +551,13 @@ export function BillingClient({
                     >
                       Downgrade
                     </button>
+                  ) : (
+                    // Same rung under a legacy id (e.g. grandfathered `growth`
+                    // A$99 vs founder_growth A$69) — a price switch, not an
+                    // upgrade; the Billing Portal handles it.
+                    <div className="h-9 flex items-center justify-center rounded-[10px] bg-surface-100 text-xs font-medium text-ink-600 text-center px-2">
+                      Same tier as your plan — switch price in Manage billing
+                    </div>
                   )}
                 </div>
               </div>
