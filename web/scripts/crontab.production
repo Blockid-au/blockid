@@ -661,3 +661,9 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # inspect without writing or sending.
 # Auth: Bearer $CRON_SECRET via cron-runner.sh.
 7 * * * * bash $RUN guest-analysis-reconcile --timeout 120
+
+# ── Live QA (S30-A, 2026-09-13): hydrated Playwright journeys against
+# production with a self-provisioned qa-live-<stamp>@blockid.au account,
+# erased in teardown. Summary → content/reports/live-qa-latest.json.
+# Sunday 07:00 UTC, after the Sunday data jobs. Remove this line to stop.
+0 7 * * 0 cd /home/dovanlong/blockid.au/web && LIVE_QA_ALLOW_DB=1 LIVE_QA_ELEVATE=1 bash scripts/qa-live.sh >> /tmp/blockid-live-qa.log 2>&1
