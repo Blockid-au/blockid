@@ -4,9 +4,16 @@
 // For every entry in the fixed allow-list (./multiples-sources.ts):
 //   1. fetch the page through `fetchText` (browser UA, retries, 2 MB cap,
 //      DNS-pinned socket, SSRF guard on every hop);
-//   2. `htmlToText` → clip to MAX_TEXT_CHARS;
+//   2. `htmlToText` → `relevantTextWindow` (live QA lane 2 P3-h, 2026-09-13):
+//      the ~MAX_TEXT_CHARS most relevant characters — the head of the page
+//      plus windows around "multiple" / "EV/" / "ARR" / "revenue" — instead
+//      of the first 14 kB, which on a long page was nav + intro and no table;
 //   3. ask the AI client (same `callAI` the CFO agent uses) for
-//      `[{ sector, arr_low, arr_mid, arr_high, excerpt }]` — JSON only;
+//      `[{ sector, arr_low, arr_mid, arr_high, excerpt }]` — JSON only, the
+//      schema spelled out, at most MAX_CANDIDATES_PER_SOURCE elements;
+//      `parseCandidates` takes the FIRST balanced `[…]` / `{…}` block out
+//      of the reply (prose before / after it is ignored; a reply with no
+//      balanced block — truncated JSON, refusal prose — is `ai_unparseable`);
 //   4. keep a candidate ONLY when `validateCandidate` passes:
 //        * sector is a static-table key AND listed for that source,
 //        * 0 < low <= mid <= high <= 200, finite,
@@ -30,15 +37,21 @@ import { isSectorKey, SECTOR_KEYS } from "./sector-multiples-static";
 import { MULTIPLES_SOURCES, type MultiplesSource } from "./multiples-sources";
 import { OVERRIDES_TABLE, isoDate } from "./sector-multiples";
 
-/** Characters of page text handed to the model (≈ 3.5k tokens). */
-export const MAX_TEXT_CHARS = 14_000;
+/** Characters of page text handed to the model (≈ 3k tokens) — the most relevant windows, see `relevantTextWindow`. */
+export const MAX_TEXT_CHARS = 12_000;
+/** Characters kept from the top of the page (title, "as of" date) before the keyword windows. */
+export const HEAD_TEXT_CHARS = 1_500;
+/** Characters kept either side of a keyword hit. */
+export const WINDOW_RADIUS_CHARS = 600;
+/** The words a usable multiple sits next to. */
+export const RELEVANCE_KEYWORDS = /multiple|EV\s*\/|\bARR\b|revenue/gi;
 /** Below this the page is a shell (JS-rendered / error page) — logged as `empty_text`, not sent to the model. */
 export const MIN_TEXT_CHARS = 120;
 export const MIN_EXCERPT_CHARS = 20;
 export const MAX_EXCERPT_CHARS = 500;
 export const MAX_MULTIPLE = 200;
-/** Candidates kept per source per run — a page rarely states more sectors than this. */
-export const MAX_CANDIDATES_PER_SOURCE = 8;
+/** Candidates kept per source per run — a page rarely states more sectors than this; the prompt asks for at most this many. */
+export const MAX_CANDIDATES_PER_SOURCE = 12;
 
 export interface ProposalCandidate {
   sector: string;
@@ -145,8 +158,10 @@ export function extractionSystemPrompt(source: MultiplesSource): string {
     "You extract revenue-multiple benchmarks from a web page for an Australian startup valuation tool.",
     `Page: "${source.title}" (${source.publisher}). Expected content: ${source.expects}`,
     `Allowed sector keys for this page: ${source.sectors.join(", ")}. (Full key list: ${SECTOR_KEYS.join(", ")}.)`,
-    "Return ONLY a JSON array (no prose, no code fence). Each element:",
+    "OUTPUT FORMAT — strict. Your entire reply is ONE JSON array and nothing else: no reasoning, no explanation, no markdown, no code fence, no text before or after the array. Start the reply with [ and end it with ].",
+    "Schema of each element (every key present, exactly these keys):",
     '{ "sector": <key>, "arr_low": <number>, "arr_mid": <number>, "arr_high": <number>, "excerpt": <string>, "published_at": <"YYYY-MM-DD" or null> }',
+    `At most ${MAX_CANDIDATES_PER_SOURCE} elements. Keep excerpts short (one sentence) so the array is never cut off.`,
     "Rules:",
     "- arr_* are EV-to-revenue (or EV-to-ARR) multiples as plain numbers (7.5 not \"7.5x\"). If the page states one figure, use it as arr_mid and set arr_low/arr_high to the range the page gives, or to the same figure when it gives none.",
     "- excerpt MUST be copied character-for-character from the page text below (20–500 characters) and MUST contain the number(s) you used. Do not paraphrase, do not fix typos, do not merge sentences.",
@@ -155,22 +170,135 @@ export function extractionSystemPrompt(source: MultiplesSource): string {
   ].join("\n");
 }
 
-/** Strip a ```json fence and parse; returns null when not a JSON array. */
+/**
+ * End index (inclusive) of the balanced JSON block that opens at `start`, or
+ * -1 when it never closes (truncated reply) or closes with the wrong bracket.
+ * String-aware: brackets inside quoted strings do not count, escapes are
+ * honoured.
+ */
+function balancedBlockEnd(s: string, start: number): number {
+  const stack: string[] = [];
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < s.length; i++) {
+    const ch = s[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+    } else if (ch === "[" || ch === "{") {
+      stack.push(ch === "[" ? "]" : "}");
+    } else if (ch === "]" || ch === "}") {
+      if (stack.pop() !== ch) return -1;
+      if (stack.length === 0) return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Every balanced JSON block (`[…]` or `{…}`) in a model reply, in order —
+ * prose before / between / after them is ignored. A block that never closes
+ * (truncated output) is skipped, so a reply with no complete block yields
+ * nothing. Lane-2 P3-h.
+ */
+export function* balancedJsonBlocks(raw: string): Generator<string> {
+  const s = raw ?? "";
+  let from = 0;
+  for (;;) {
+    const rel = s.slice(from).search(/[[{]/);
+    if (rel < 0) return;
+    const start = from + rel;
+    const end = balancedBlockEnd(s, start);
+    if (end >= 0) {
+      yield s.slice(start, end + 1);
+      from = end + 1;
+    } else {
+      from = start + 1;
+    }
+  }
+}
+
+/** The first balanced JSON block in a reply, or null (no block / truncated / mismatched). */
+export function extractFirstBalancedJson(raw: string): string | null {
+  for (const block of balancedJsonBlocks(raw)) return block;
+  return null;
+}
+
+function isObjectArray(v: unknown): v is Record<string, unknown>[] {
+  return Array.isArray(v) && v.every((el) => el && typeof el === "object" && !Array.isArray(el));
+}
+
+/**
+ * Candidates out of a model reply: a ```json fence is stripped, then the
+ * balanced `[…]` / `{…}` blocks are tried in order and the FIRST one that is
+ * an array of objects wins — so a citation like "[1]" in reasoning prose
+ * before the real array is skipped. An object reply is accepted when one of
+ * its values is such an array (some models wrap: `{ "candidates": [...] }`).
+ * Null when no block qualifies (prose only, truncated JSON).
+ */
 export function parseCandidates(raw: string): ProposalCandidate[] | null {
   if (!raw) return null;
   let s = raw.trim();
   const fence = s.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
   if (fence) s = fence[1].trim();
-  // Tolerate a leading sentence before the array.
-  const start = s.indexOf("[");
-  const end = s.lastIndexOf("]");
-  if (start < 0 || end <= start) return null;
-  try {
-    const parsed: unknown = JSON.parse(s.slice(start, end + 1));
-    return Array.isArray(parsed) ? (parsed as ProposalCandidate[]) : null;
-  } catch {
-    return null;
+  for (const block of balancedJsonBlocks(s)) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(block);
+    } catch {
+      continue;
+    }
+    if (isObjectArray(parsed)) return parsed as ProposalCandidate[];
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const arr = Object.values(parsed as Record<string, unknown>).find(isObjectArray);
+      if (arr) return arr as ProposalCandidate[];
+    }
   }
+  return null;
+}
+
+/**
+ * Lane-2 P3-h: the slice of the page the model actually needs. Short pages
+ * go through whole. A long page keeps its head (title, "as of" date) plus a
+ * ±WINDOW_RADIUS_CHARS window around every RELEVANCE_KEYWORDS hit, merged
+ * when they overlap, in page order, until `max` is reached; windows are
+ * joined with `\n…\n`. With no keyword hit at all the head of the page is
+ * kept (the old behaviour). The returned string is what the model is shown,
+ * so `validateCandidate`'s verbatim check runs against it.
+ */
+export function relevantTextWindow(text: string, max = MAX_TEXT_CHARS): string {
+  if (text.length <= max) return text;
+  const spans: Array<[number, number]> = [[0, Math.min(HEAD_TEXT_CHARS, text.length)]];
+  for (const m of text.matchAll(RELEVANCE_KEYWORDS)) {
+    const at = m.index ?? 0;
+    spans.push([Math.max(0, at - WINDOW_RADIUS_CHARS), Math.min(text.length, at + m[0].length + WINDOW_RADIUS_CHARS)]);
+  }
+  if (spans.length === 1) return text.slice(0, max); // no keyword hit — the old first-N-chars clip
+  spans.sort((a, b) => a[0] - b[0]);
+  const merged: Array<[number, number]> = [];
+  for (const span of spans) {
+    const last = merged[merged.length - 1];
+    if (last && span[0] <= last[1]) last[1] = Math.max(last[1], span[1]);
+    else merged.push([span[0], span[1]]);
+  }
+  const SEP = "\n…\n";
+  const parts: string[] = [];
+  let used = 0;
+  for (const [from, to] of merged) {
+    const sep = parts.length ? SEP : "";
+    const room = max - used - sep.length;
+    if (room <= 0) break;
+    const piece = text.slice(from, Math.min(to, from + room));
+    parts.push(piece);
+    used += sep.length + piece.length;
+    if (used >= max) break;
+  }
+  return parts.join(SEP);
 }
 
 function num(v: unknown): number | null {
@@ -253,7 +381,9 @@ function round2(n: number): number {
 
 async function defaultAi(opts: { system: string; user: string }): Promise<{ text: string }> {
   const { callAI } = await import("@/lib/ai-client");
-  const r = await callAI({ system: opts.system, user: opts.user, maxTokens: 1500, temperature: 0, timeoutMs: 90_000, agentId: "cfo" });
+  // 2 500 tokens: 12 candidates × (keys + a one-sentence excerpt) fits with
+  // room — a reply cut off mid-array is `ai_unparseable` (lane-2 P3-h).
+  const r = await callAI({ system: opts.system, user: opts.user, maxTokens: 2500, temperature: 0, timeoutMs: 90_000, agentId: "cfo" });
   return { text: r.text };
 }
 
@@ -288,7 +418,7 @@ export async function refreshSectorMultiples(deps: RefreshDeps = {}): Promise<Re
         out.error = res.error ?? `HTTP ${res.status}`;
         continue;
       }
-      const text = htmlToText(res.text).slice(0, MAX_TEXT_CHARS);
+      const text = relevantTextWindow(htmlToText(res.text));
       out.textChars = text.length;
       if (text.length < MIN_TEXT_CHARS) {
         out.status = "empty_text";
