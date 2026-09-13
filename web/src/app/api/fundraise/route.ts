@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getActiveProject } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import {
   calculateRound,
   type FundraiseRound,
@@ -93,7 +93,13 @@ async function POST_handler(request: NextRequest) {
     );
   }
 
-  const accountId = user.id;
+  // S26-review: rounds are keyed on the project OWNER (like every
+  // /api/fundraise/[roundId] route via rounds-server.ts) so a co-founder's
+  // round shows up on the shared project instead of 404-ing. Editor+ creates.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const accountId = scope?.ownerUserId ?? user.id;
+  const projectId: string | null = scope?.projectId ?? null;
 
   // ---- ESIC funding gate (P6, atlassian-standard-mapping goal) ----
   //
@@ -122,13 +128,10 @@ async function POST_handler(request: NextRequest) {
   let div83aWarn: unknown = undefined;
   // S26-A: the round remembers its project so /workspace/fundraise/[roundId]
   // (member-aware via getProjectScope) can find it; legacy rows stay null.
-  let projectId: string | null = null;
   try {
-    const project = await getActiveProject(user.id);
-    projectId = project?.id ?? null;
     const gate = await assertESICEligibleOrWarn(supabase, {
-      userId: user.id,
-      projectId: project?.id ?? null,
+      userId: accountId,
+      projectId,
       requireEligible: esicRequireEligible,
       action: marketing.marketed
         ? "fundraise_round_create_marketed_esic"
@@ -161,8 +164,8 @@ async function POST_handler(request: NextRequest) {
     // out while an active grant has div83a_status='ineligible' /
     // 'unsure' / null. Warn-only for standard rounds.
     const div83a = await assertDiv83AEligibleOrWarn(supabase, {
-      userId: user.id,
-      projectId: project?.id ?? null,
+      userId: accountId,
+      projectId,
       requireEligible: wholesaleOnly,
       action: "fundraise_round_create",
     });
@@ -314,10 +317,13 @@ export async function GET() {
     );
   }
 
+  // Viewer+ on the active project lists the OWNER's rounds (S26-review).
+  const { scope, denied } = await projectScopeOrDeny("viewer");
+  if (denied) return denied;
   const { data: rounds, error } = await supabase
     .from("fundraise_rounds")
     .select("*")
-    .eq("account_id", user.id)
+    .eq("account_id", scope?.ownerUserId ?? user.id)
     .order("created_at", { ascending: false });
 
   if (error) {

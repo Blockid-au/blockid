@@ -50,6 +50,8 @@ const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   getSupabaseAdmin: vi.fn(),
   getActiveProject: vi.fn(),
+  scopeOwner: null as string | null,
+  lastMinRole: undefined as string | undefined,
   calculateRound: vi.fn(),
   assertESIC: vi.fn(),
   assertDiv83A: vi.fn(),
@@ -62,8 +64,16 @@ vi.mock("@/lib/auth", () => ({
 vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => mocks.getSupabaseAdmin(),
 }));
-vi.mock("@/lib/projects", () => ({
-  getActiveProject: (id: string) => mocks.getActiveProject(id),
+vi.mock("@/lib/project-members/http", () => ({
+  // S26-review: routes resolve the project OWNER via projectScopeOrDeny; the
+  // fake reuses the getActiveProject mock as the active project source and
+  // lets a test set `mocks.scopeOwner` to simulate a member on a shared project.
+  projectScopeOrDeny: async (minRole: string) => {
+    mocks.lastMinRole = minRole;
+    const project = await mocks.getActiveProject(USER.id);
+    if (!project) return { scope: null, denied: null };
+    return { scope: { projectId: project.id, ownerUserId: mocks.scopeOwner ?? USER.id, dataEmail: USER.email }, denied: null };
+  },
 }));
 vi.mock("@/lib/fundraise", () => ({
   calculateRound: (r: unknown, c: unknown) => mocks.calculateRound(r, c),
@@ -511,6 +521,18 @@ describe("POST /api/fundraise", () => {
     });
   });
 
+  it("200 member on a shared project: shareholders, ESOP, gates and the insert are keyed on the OWNER (S26-review)", async () => {
+    mocks.scopeOwner = "owner-9";
+    const res = await POST(postReq(goodBody()));
+    expect(res.status).toBe(200);
+    expect(mocks.lastMinRole).toBe("editor");
+    expect(calls.shareholderEqs).toEqual([["account_id", "owner-9"]]);
+    expect(calls.esopEqs).toEqual([["account_id", "owner-9"]]);
+    expect(calls.insertRows[0]).toMatchObject({ account_id: "owner-9", project_id: PROJECT.id });
+    expect(mocks.assertESIC.mock.calls[0][1]).toMatchObject({ userId: "owner-9", projectId: PROJECT.id });
+    mocks.scopeOwner = null;
+  });
+
   it("200 attaches esic_warn / div83a_warn when gates return warnings (non-blocking)", async () => {
     mocks.assertESIC.mockResolvedValue({
       ok: true,
@@ -619,5 +641,15 @@ describe("GET /api/fundraise", () => {
     // regressions this assertion pins.
     expect(calls.listEqs).toEqual([["account_id", USER.id]]);
     expect(calls.listOrders).toEqual([["created_at", { ascending: false }]]);
+  });
+
+  it("200 member on a shared project lists the OWNER's rounds at viewer role (S26-review)", async () => {
+    mocks.scopeOwner = "owner-9";
+    mocks.getSupabaseAdmin.mockReturnValue(makeSupabase({ fundraiseList: { data: [] } }, calls));
+    const res = await GET();
+    expect(res.status).toBe(200);
+    expect(mocks.lastMinRole).toBe("viewer");
+    expect(calls.listEqs).toEqual([["account_id", "owner-9"]]);
+    mocks.scopeOwner = null;
   });
 });
