@@ -178,12 +178,91 @@ export async function listOrders(db: Db, projectId: string, limit = 200): Promis
   return ((data ?? []) as Array<Record<string, unknown>>).map(rowToOrder);
 }
 
-/** Held sells whose window passed are opened in the store before any read / match. */
-async function releaseExpiredHolds(db: Db, book: SimOrder[], now: Date): Promise<void> {
-  const released = releaseHolds(book, now);
-  for (const o of released) {
-    await db.from("secondary_sim_orders").update({ status: "open", updated_at: now.toISOString() }).eq("id", o.id).eq("status", "held");
+/**
+ * Persist the fills `matchOrder(incoming, book)` calls for. Each resting
+ * order is written with a conditional UPDATE on its previous `remaining`
+ * (a lost race skips that fill), then the trade row is inserted. The
+ * in-memory `book` entries are updated in place so a caller that keeps
+ * matching (release of several holds) or renders the depth sees the
+ * post-fill book. Returns the fills that landed and the incoming order's
+ * final remaining / status (the caller persists the incoming row).
+ */
+async function persistMatch(
+  db: Db,
+  projectId: string,
+  incoming: SimOrder,
+  book: SimOrder[],
+  now: Date,
+): Promise<{ fills: Fill[]; remaining: number; status: SimOrder["status"] }> {
+  const result = matchOrder(incoming, book, now);
+  const fills: Fill[] = [];
+  let filledQty = 0;
+  for (const f of result.fills) {
+    const restingId = incoming.side === "buy" ? f.sellOrderId : f.buyOrderId;
+    const before = book.find((o) => o.id === restingId);
+    const after = result.updated.find((o) => o.id === restingId);
+    if (!before || !after) continue;
+    // Conditional update — a lost race (someone else filled it first) skips this fill.
+    const { data: upd } = await db
+      .from("secondary_sim_orders")
+      .update({ remaining: after.remaining, status: after.status, updated_at: now.toISOString() })
+      .eq("id", restingId)
+      .eq("remaining", before.remaining)
+      .select("id");
+    if (!upd || (Array.isArray(upd) && upd.length === 0)) continue;
+    const { error: tErr } = await db.from("secondary_sim_trades").insert({
+      project_id: projectId,
+      buy_order_id: f.buyOrderId,
+      sell_order_id: f.sellOrderId,
+      buyer_key: f.buyerKey,
+      buyer_label: f.buyerLabel,
+      seller_key: f.sellerKey,
+      seller_label: f.sellerLabel,
+      price_aud: f.price,
+      qty: f.qty,
+      traded_at: now.toISOString(),
+    });
+    if (tErr) throw new Error(tErr.message ?? "trade insert failed");
+    before.remaining = after.remaining;
+    before.status = after.status;
+    fills.push(f);
+    filledQty += f.qty;
   }
+  const remaining = incoming.remaining - filledQty;
+  const status: SimOrder["status"] = remaining === 0 ? "filled" : incoming.status;
+  return { fills, remaining, status };
+}
+
+/**
+ * Held sells whose window passed are opened in the store before any read /
+ * match — and then MATCHED against the bids that rested while they were
+ * held (S27 post-ship review): a bid placed during the ROFR window never
+ * saw the held ask, so without this step the book stays crossed (bid ≥
+ * ask, no trade) until an unrelated order happens to sweep one side.
+ * Releases run in `seq` order (time priority among the released asks); the
+ * trade prints at the resting bid's price like any other incoming sell.
+ */
+async function releaseExpiredHolds(db: Db, projectId: string, book: SimOrder[], now: Date): Promise<Fill[]> {
+  const released = releaseHolds(book, now).sort((a, b) => a.seq - b.seq);
+  const fills: Fill[] = [];
+  for (const o of released) {
+    const { data: upd } = await db
+      .from("secondary_sim_orders")
+      .update({ status: "open", updated_at: now.toISOString() })
+      .eq("id", o.id)
+      .eq("status", "held")
+      .select("id");
+    // Another request released (and possibly matched) it first — leave it to them.
+    if (Array.isArray(upd) && upd.length === 0) continue;
+    const m = await persistMatch(db, projectId, o, book, now);
+    if (m.fills.length > 0) {
+      await db.from("secondary_sim_orders").update({ remaining: m.remaining, status: m.status, updated_at: now.toISOString() }).eq("id", o.id);
+      o.remaining = m.remaining;
+      o.status = m.status;
+      fills.push(...m.fills);
+    }
+  }
+  return fills;
 }
 
 export async function buildBookView(db: Db, args: { projectId: string; ownerUserId: string; now?: Date }): Promise<BookView> {
@@ -194,15 +273,17 @@ export async function buildBookView(db: Db, args: { projectId: string; ownerUser
     loadOpenBook(db, args.projectId),
     loadTrades(db, args.projectId),
   ]);
-  await releaseExpiredHolds(db, book, now);
+  const releaseFills = await releaseExpiredHolds(db, args.projectId, book, now);
+  // A release that matched printed trades after the tape was read — re-read it.
+  const tape = releaseFills.length > 0 ? await loadTrades(db, args.projectId) : trades;
   const depth = buildDepth(book);
-  const discovery = priceDiscovery({ depth, trades: trades.map((t) => ({ price: t.price, qty: t.qty, tradedAt: t.tradedAt })), fullyDilutedShares: register.fullyDilutedShares });
+  const discovery = priceDiscovery({ depth, trades: tape.map((t) => ({ price: t.price, qty: t.qty, tradedAt: t.tradedAt })), fullyDilutedShares: register.fullyDilutedShares });
 
-  const pos = positions(register.holders.map((h) => ({ holderKey: h.holderKey, shares: h.shares })), trades);
+  const pos = positions(register.holders.map((h) => ({ holderKey: h.holderKey, shares: h.shares })), tape);
   const labels = new Map<string, string>();
   for (const h of register.holders) labels.set(h.holderKey, h.name);
   for (const o of book) if (!labels.has(o.holderKey)) labels.set(o.holderKey, o.holderLabel);
-  for (const t of trades) {
+  for (const t of tape) {
     if (!labels.has(t.buyerKey)) labels.set(t.buyerKey, t.buyerLabel);
     if (!labels.has(t.sellerKey)) labels.set(t.sellerKey, t.sellerLabel);
   }
@@ -217,7 +298,7 @@ export async function buildBookView(db: Db, args: { projectId: string; ownerUser
   }));
   holders.sort((a, b) => b.position - a.position || a.label.localeCompare(b.label));
 
-  return { sandbox: true, notice: SANDBOX_NOTICE, settings, depth, discovery, trades, holders, fullyDilutedShares: register.fullyDilutedShares };
+  return { sandbox: true, notice: SANDBOX_NOTICE, settings, depth, discovery, trades: tape, holders, fullyDilutedShares: register.fullyDilutedShares };
 }
 
 // ---------------------------------------------------------------------------
@@ -249,13 +330,14 @@ export async function placeOrder(db: Db, args: PlaceArgs): Promise<PlaceOutcome>
   const price = round4(Number(args.price));
   const qty = Number(args.qty);
 
-  const [settings, register, book, trades] = await Promise.all([
+  const [settings, register, book, loadedTrades] = await Promise.all([
     loadSettings(db, args.projectId),
     loadRegister(db, args.ownerUserId, args.projectId),
     loadOpenBook(db, args.projectId),
     loadTrades(db, args.projectId, 5000),
   ]);
-  await releaseExpiredHolds(db, book, now);
+  const releaseFills = await releaseExpiredHolds(db, args.projectId, book, now);
+  const trades = releaseFills.length > 0 ? await loadTrades(db, args.projectId, 5000) : loadedTrades;
 
   // Resolve the holder identity the order trades as.
   let holderKey: string;
@@ -304,43 +386,8 @@ export async function placeOrder(db: Db, args: PlaceArgs): Promise<PlaceOutcome>
   if (insErr || !inserted) throw new Error(insErr?.message ?? "order insert failed");
   const incoming = rowToOrder(inserted as Record<string, unknown>);
 
-  const result = matchOrder(incoming, book, now);
-  const fills: Fill[] = [];
-  let filledQty = 0;
-  for (let i = 0; i < result.fills.length; i++) {
-    const f = result.fills[i];
-    const restingId = incoming.side === "buy" ? f.sellOrderId : f.buyOrderId;
-    const before = book.find((o) => o.id === restingId);
-    const after = result.updated.find((o) => o.id === restingId);
-    if (!before || !after) continue;
-    // Conditional update — a lost race (someone else filled it first) skips this fill.
-    const { data: upd } = await db
-      .from("secondary_sim_orders")
-      .update({ remaining: after.remaining, status: after.status, updated_at: now.toISOString() })
-      .eq("id", restingId)
-      .eq("remaining", before.remaining)
-      .select("id");
-    if (!upd || (Array.isArray(upd) && upd.length === 0)) continue;
-    const { error: tErr } = await db.from("secondary_sim_trades").insert({
-      project_id: args.projectId,
-      buy_order_id: f.buyOrderId,
-      sell_order_id: f.sellOrderId,
-      buyer_key: f.buyerKey,
-      buyer_label: f.buyerLabel,
-      seller_key: f.sellerKey,
-      seller_label: f.sellerLabel,
-      price_aud: f.price,
-      qty: f.qty,
-      traded_at: now.toISOString(),
-    });
-    if (tErr) throw new Error(tErr.message ?? "trade insert failed");
-    fills.push(f);
-    filledQty += f.qty;
-  }
-
-  const remaining = incoming.qty - filledQty;
-  const status: SimOrder["status"] = remaining === 0 ? "filled" : incoming.status;
-  if (filledQty > 0) {
+  const { fills, remaining, status } = await persistMatch(db, args.projectId, incoming, book, now);
+  if (fills.length > 0) {
     await db.from("secondary_sim_orders").update({ remaining, status, updated_at: now.toISOString() }).eq("id", incoming.id);
   }
   return { ok: true, order: { ...incoming, remaining, status }, fills, held };

@@ -149,9 +149,36 @@ describe("placeOrder", () => {
 
     const during = await buildBookView(db, { ...base, now: new Date("2026-09-14T10:00:00Z") });
     expect(during.depth.asks).toEqual([{ price: 1, qty: 50, orders: 1, held: 50 }]);
+    expect(during.depth.bids).toEqual([{ price: 2, qty: 50, orders: 1, held: 0 }]);
+    // S27 review: the release MATCHES the ask against the bid that rested during the window —
+    // the book must not stay crossed (bid 2 ≥ ask 1) with no trade.
     const after = await buildBookView(db, { ...base, now: new Date("2026-09-16T10:00:00Z") });
-    expect(after.depth.asks).toEqual([{ price: 1, qty: 50, orders: 1, held: 0 }]);
-    expect(store.secondary_sim_orders.find((o) => o.side === "sell")?.status).toBe("open");
+    expect(after.depth.asks).toEqual([]);
+    expect(after.depth.bids).toEqual([]);
+    expect(after.trades).toEqual([expect.objectContaining({ buyerKey: "sb:angel", sellerKey: "sh:s1", price: 2, qty: 50, tradedAt: "2026-09-16T10:00:00.000Z" })]);
+    expect(after.discovery.last).toBe(2);
+    expect(store.secondary_sim_orders.find((o) => o.side === "sell")).toMatchObject({ status: "filled", remaining: 0 });
+    expect(store.secondary_sim_orders.find((o) => o.side === "buy")).toMatchObject({ status: "filled", remaining: 0 });
+    // positions reflect the release fill: Ada 600 − 50, Angel +50
+    expect(after.holders.find((h) => h.holderKey === "sh:s1")?.position).toBe(550);
+    expect(after.holders.find((h) => h.holderKey === "sb:angel")?.position).toBe(50);
+  });
+
+  it("a released hold that only partly crosses rests the remainder; releases match in seq order", async () => {
+    await saveSettings(db, PROJ, { rofrEnabled: true, rofrHoldHours: 1 });
+    await placeOrder(db, { ...base, side: "buy", price: 1.5, qty: 30, holderLabel: "Angel" });
+    const first = await placeOrder(db, { ...base, side: "sell", price: 1, qty: 50, shareholderId: "s1" });
+    const second = await placeOrder(db, { ...base, side: "sell", price: 1, qty: 20, shareholderId: "s2", now: new Date("2026-09-13T10:00:01Z") });
+    expect(first.ok && first.held && second.ok && second.held).toBe(true);
+    // Both holds lapse; a later placement releases them (seq order: Ada first) and matches before it trades.
+    const later = new Date("2026-09-13T12:00:00Z");
+    const probe = await placeOrder(db, { ...base, side: "buy", price: 0.5, qty: 1, holderLabel: "Nobody", now: later });
+    expect(probe.ok && probe.fills).toEqual([]);
+    expect(store.secondary_sim_trades).toEqual([expect.objectContaining({ seller_key: "sh:s1", buyer_key: "sb:angel", price_aud: 1.5, qty: 30 })]);
+    expect(store.secondary_sim_orders.find((o) => o.holder_key === "sh:s1")).toMatchObject({ status: "open", remaining: 20 });
+    expect(store.secondary_sim_orders.find((o) => o.holder_key === "sh:s2")).toMatchObject({ status: "open", remaining: 20 });
+    const view = await buildBookView(db, { ...base, now: later });
+    expect(view.depth.asks).toEqual([{ price: 1, qty: 40, orders: 2, held: 0 }]);
   });
 
   it("a lost race on the resting order's conditional update skips the fill (no trade, no double fill)", async () => {
