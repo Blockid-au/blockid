@@ -133,9 +133,10 @@ Scrape Shield → off) rewrites every printed email into `__cf_email__` spans an
 a `#418` hydration mismatch (`/pricing`, `/workspace/settings`, and release-qa2 F9's pages).
 Both are tolerated **only while the served HTML carries `__cf_email__` /
 `email-decode.min.js`** (annotated `known-issue`) — flip the switch and the check tightens
-itself. The member lane pins "re-invite a revoked address" with `test.fail` (422 `duplicate`
-— `project_members` UNIQUE (project_id, user_email) keeps the revoked row and there is no
-role-change endpoint); the viewer downgrade is therefore a local SQL step on the two QA
+itself. Re-inviting a revoked address and changing a member's role are supported since
+2026-09-13 (POST re-activates the revoked row → `reinvited: true`; `PATCH
+/api/projects/[id]/members/[memberId]` changes the role); the viewer downgrade in the member
+lane still uses the local SQL helper for speed, and may move to PATCH — on the two QA
 addresses (`setMemberRole` in `lib/db.ts`, needs `ALLOW_DB`).
 
 ## Reading the report
@@ -186,12 +187,11 @@ neither the 402 nor the included path is reachable without spending) and the own
 
 Product findings recorded as annotations (not failures): `ReportPaywallGate` (the in-app
 "Confirm & Pay A$3" dialog) is mounted by no page; `POST /api/data-room/generate` has no
-preview / `included` response (flat 3 credits); `room-trust-settings` + `engagement-heatmap`
-render only in the browser session that generated the room (`dataRoomId` lives in
-`data-room-client.tsx` state — a reload loses the NDA/watermark controls and the heatmap);
-there is no `GET /api/account/export` (the settings page points at the audit-log CSV); a
-revoked project member cannot be re-invited (422 `duplicate`) and no role-change endpoint
-exists (pinned `test.fail`); Cloudflare Email Obfuscation is still on (CSP-refused
+preview / `included` response (flat 3 credits); there is no `GET /api/account/export` (the
+settings page points at the audit-log CSV); **fixed 2026-09-13:** `room-trust-settings` +
+`engagement-heatmap` now survive a reload (`GET /api/data-room/generate` seeds the room id),
+revoked members can be re-invited and roles changed via PATCH; Cloudflare Email Obfuscation is
+still on (CSP-refused
 `email-decode.min.js` + React #418 on `/pricing`, `/workspace/settings`). Observed once
 (run 2, not reproduced): every phase-gated nav leaf hidden at phase `funding` —
 `getFounderNavContext` swallows any lookup error into phase 0.

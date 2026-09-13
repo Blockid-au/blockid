@@ -354,21 +354,17 @@ describe("DELETE /api/projects/[id]/members audit wire-in", () => {
     expect(logUserActionMock).not.toHaveBeenCalled();
   });
 
-  it("does not log when the target member belongs to a different project", async () => {
+  it("a member of a different project is 404 before any write (revokeMember gets the expected projectId) and nothing is logged", async () => {
     getCurrentUserMock.mockResolvedValue({ id: "u1" });
     assertProjectAccessMock.mockResolvedValue(OWNER_ACCESS);
-    revokeMemberMock.mockResolvedValue({
-      id: "m1",
-      projectId: "OTHER-project",
-      userEmail: "bob@acme.io",
-      role: "viewer",
-    });
+    revokeMemberMock.mockRejectedValue(new ProjectMemberScopeError("member not found", "not_found"));
     const req = new Request(
       "http://x/api/projects/proj-1/members?memberId=m1",
       { method: "DELETE" },
     );
     const res = await DELETE(req, params("proj-1"));
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(404);
+    expect(revokeMemberMock).toHaveBeenCalledWith("m1", "u1", "proj-1");
     expect(logUserActionMock).not.toHaveBeenCalled();
   });
 });

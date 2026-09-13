@@ -486,6 +486,12 @@ export async function acceptInvite(
 export async function revokeMember(
   memberId: string,
   requesterUserId: string,
+  /**
+   * When given, a member that belongs to a different project is `not_found`
+   * BEFORE the permission check and the write (the DELETE route used to
+   * revoke first and compare projectId after — live-qa S30-B follow-up).
+   */
+  expectedProjectId?: string,
 ): Promise<ProjectMember> {
   const supabase = getSupabaseAdmin();
   if (!supabase) {
@@ -508,6 +514,9 @@ export async function revokeMember(
     );
   }
   if (!existing) {
+    throw new ProjectMemberScopeError("member not found", "not_found");
+  }
+  if (expectedProjectId && existing.project_id !== expectedProjectId) {
     throw new ProjectMemberScopeError("member not found", "not_found");
   }
 

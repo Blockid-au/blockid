@@ -247,14 +247,9 @@ async function DELETE_handler(
     // Admin-perm required — owner OR accepted admin members may revoke.
     // Missing project AND non-member both 404 (P2-3).
     await assertProjectAccess(user.id, projectId, "admin");
-    const member = await revokeMember(memberId, user.id);
-    if (member.projectId !== projectId) {
-      // Guard against a memberId pointing to a member of a different project.
-      return NextResponse.json(
-        { ok: false, error: "member does not belong to this project" },
-        { status: 400 },
-      );
-    }
+    // A memberId from another project is `not_found` before any write (was:
+    // revoke first, compare after → 400 with the row already revoked).
+    const member = await revokeMember(memberId, user.id, projectId);
 
     // SOC2-lite audit: record the successful revoke.
     await logUserAction({
