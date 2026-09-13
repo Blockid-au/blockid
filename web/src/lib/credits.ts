@@ -128,6 +128,9 @@ export const FEATURE_COSTS: Record<string, number> = {
   // ── Financial Projections (T0120) ────────────────────────────────────
   financial_projections: 2, // 2 credits — 3-year monthly projection + YoY + CSV
 
+  // ── Expense categorisation AI (S28-C) ────────────────────────────────
+  expense_categorise: 1, // 1 credit per started block of 100 AI-categorised bank lines (min 1; rules-matched rows are free; included for Growth+ / Startup Package via hasGrowthExtras) — charged through spendCreditsUnits()
+
   // ── AI Equity Recommendations (Phase 4) ──────────────────────────────
   ai_equity_split: 1.00,      // Slicing Pie + AU benchmarks
   ai_vesting: 0.50,           // Vesting schedule recommendation
@@ -637,6 +640,47 @@ export async function spendCredits(
     return { ok: true, balance: await getBalance(userId) };
   }
 
+  return debitCredits(userId, feature, cost, metadata ?? {});
+}
+
+// ---------------------------------------------------------------------------
+// spendCreditsUnits — S28-C: `units` × the feature's configured cost in ONE
+// atomic debit (expense categorisation is priced per block of 100 rows).
+// Same rails as spendCredits (sandbox routing → spend_credits_atomic →
+// legacy guard); `units <= 0` logs nothing and spends nothing.
+// ---------------------------------------------------------------------------
+
+export async function spendCreditsUnits(
+  userId: string,
+  feature: string,
+  units: number,
+  metadata?: Record<string, unknown>,
+): Promise<{ ok: boolean; balance: number; cost: number }> {
+  const staticCost = FEATURE_COSTS[feature];
+  if (staticCost === undefined) return { ok: false, balance: 0, cost: 0 };
+  const n = Number.isFinite(units) ? Math.max(0, Math.floor(units)) : 0;
+  if (n === 0) return { ok: true, balance: await getBalance(userId), cost: 0 };
+  const unitCost = await getConfiguredCreditCost(feature);
+  const cost = Math.round(unitCost * n * 100) / 100;
+  const meta = { ...(metadata ?? {}), units: n, unit_cost: unitCost };
+  if (cost === 0) {
+    const supabase = getSupabaseAdmin();
+    if (supabase) {
+      await supabase.from("usage_logs").insert({ user_id: userId, feature, credits_used: 0, metadata: meta });
+    }
+    return { ok: true, balance: await getBalance(userId), cost: 0 };
+  }
+  const res = await debitCredits(userId, feature, cost, meta);
+  return { ...res, cost };
+}
+
+/** Shared tail of spendCredits / spendCreditsUnits: sandbox → atomic → legacy. */
+async function debitCredits(
+  userId: string,
+  feature: string,
+  cost: number,
+  metadata: Record<string, unknown>,
+): Promise<{ ok: boolean; balance: number }> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { ok: false, balance: 0 };
 
@@ -654,7 +698,7 @@ export async function spendCredits(
       feature,
       cost,
       projectId,
-      metadata: metadata ?? {},
+      metadata,
     });
     if (sandbox) return sandbox;
   }
@@ -667,13 +711,13 @@ export async function spendCredits(
   // When the function is not deployed yet (42883 / PGRST202) we warn once and
   // fall back to the legacy read-then-guard path below so an unapplied
   // migration never breaks production.
-  const atomic = await spendCreditsAtomic(supabase, { userId, feature, cost, metadata: metadata ?? {} });
+  const atomic = await spendCreditsAtomic(supabase, { userId, feature, cost, metadata });
   let newBalance: number;
   if (atomic) {
     if (!atomic.ok) return atomic;
     newBalance = atomic.balance;
   } else {
-    const legacy = await spendCreditsLegacy(supabase, { userId, feature, cost, metadata: metadata ?? {} });
+    const legacy = await spendCreditsLegacy(supabase, { userId, feature, cost, metadata });
     if (!legacy.ok) return legacy;
     newBalance = legacy.balance;
   }

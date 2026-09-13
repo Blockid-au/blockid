@@ -3,6 +3,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { generatePnL } from "@/lib/pnl";
 import { getStripe } from "@/lib/stripe";
+import { getProjectScope } from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
+import { burnRateWithBankFallback } from "@/lib/expenses/server";
 
 export const dynamic = "force-dynamic";
 
@@ -28,18 +31,38 @@ export async function GET() {
     );
   }
 
+  // S28-C — member-aware (S18-A rule C): metrics / analyses are keyed on the
+  // active project's OWNER (scope.dataEmail); the burn rate falls back to
+  // the project's categorised bank lines (average monthly spend) so the
+  // runway / cash-on-hand estimate below has a figure without a manual entry.
+  let projectId: string | null = null;
+  let dataEmail: string = user.email;
+  try {
+    const scope = await getProjectScope();
+    if (scope) {
+      projectId = scope.projectId;
+      dataEmail = scope.dataEmail;
+    }
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
+    throw err;
+  }
+
   // ── 1. Get latest metrics (MRR, burn rate) ────────────────────────────
   const { data: latestMetric } = await supabase
     .from("startup_metrics")
     .select("mrr_aud, arr_aud, burn_rate_aud, runway_months")
-    .eq("email", user.email)
+    .eq("email", dataEmail)
     .order("metric_date", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   const mrr = latestMetric?.mrr_aud ?? 0;
   const arr = latestMetric?.arr_aud ?? (mrr * 12);
-  const burnRate = latestMetric?.burn_rate_aud ?? 0;
+
+  const burn = await burnRateWithBankFallback(supabase, projectId, latestMetric?.burn_rate_aud as number | null | undefined);
+  const burnRate = burn.burnRate;
 
   // ── 2. Compute revenue from Stripe if available ───────────────────────
   let stripeRevenue = 0;
@@ -87,7 +110,7 @@ export async function GET() {
   const { count: analysisCount } = await supabase
     .from("svi_analyses")
     .select("id", { count: "exact", head: true })
-    .eq("email", user.email);
+    .eq("email", dataEmail);
 
   const AI_COST_PER_ANALYSIS = 0.05;
   const aiCosts = Math.round((analysisCount ?? 0) * AI_COST_PER_ANALYSIS * 100) / 100;
@@ -120,5 +143,5 @@ export async function GET() {
     mrr,
   });
 
-  return NextResponse.json({ ok: true, report });
+  return NextResponse.json({ ok: true, report, burnRateSource: burn.source });
 }

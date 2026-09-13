@@ -19,9 +19,16 @@
 //                               manual revenue_entries (12 months)
 //   COGS                        always the AI/infra estimate — except with
 //                               Xero, where it is inside Xero's expenses (0)
-//   Opex                        Xero 3-month expenses → burn rate × 12 →
-//                               1.5 × COGS estimate × 12
+//   Opex                        Xero 3-month expenses → bank CSV burn × 12
+//                               (S28-C) → burn rate × 12 → 1.5 × COGS
+//                               estimate × 12
 //   Net income                  Xero net profit → gross margin − opex
+//
+//   S28-C: `bankCsv` (categorised bank_transactions, lib/expenses/server.ts
+//   `bankCsvFigures`) is the "manual / estimate" fallback source — after the
+//   connectors, before startup_metrics — for MRR (average monthly income),
+//   revenue (when neither the platform Stripe nor manual entries have any)
+//   and opex (average monthly spend). Label: "from bank CSV, 3 Sep".
 //   Growth                      Stripe snapshot vs its ~90-day prior →
 //                               month-over-month from the monthly series
 //
@@ -35,6 +42,7 @@ export type RevenueSourceKind =
   | "stripe_connect"
   | "stripe_platform"
   | "manual"
+  | "bank_csv"
   | "startup_metrics"
   | "estimate"
   | "none";
@@ -75,6 +83,8 @@ export function sourceLabel(kind: RevenueSourceKind, takenAt: string | null = nu
       return "from your BlockID Stripe payments";
     case "manual":
       return "manual entries";
+    case "bank_csv":
+      return when ? `from bank CSV, ${when}` : "from bank CSV";
     case "startup_metrics":
       return "from your metrics";
     case "estimate":
@@ -97,10 +107,27 @@ export interface ResolveFiguresInput {
   platform: { hasStripe: boolean; mrr: number; activeSubscriptions: number; netRevenue12m: number; refunds12m: number };
   manual: { total12m: number; count: number };
   startupMetrics: { mrr: number; burnRate: number };
+  /**
+   * S28-C — categorised bank lines (lib/expenses/server.ts `bankCsvFigures`),
+   * or null / absent when the project has imported none.
+   */
+  bankCsv?: BankCsvInput | null;
   /** AI + infra cost estimate (COGS) for the platform-side P&L. */
   cogsEstimate: number;
   /** Month-over-month growth from the monthly series (already computed). */
   monthlyGrowthPct: number;
+}
+
+export interface BankCsvInput {
+  /** Average monthly operating spend over the months with data. */
+  monthlyOpex: number;
+  /** Average monthly income (revenue + grants). */
+  monthlyIncome: number;
+  /** Income over the whole window (≤ 12 months). */
+  income: number;
+  monthsWithData: number;
+  /** Latest import (ISO) — the label date. */
+  takenAt: string | null;
 }
 
 export interface RevenueFigures {
@@ -142,6 +169,8 @@ export function resolveRevenueFigures(input: ResolveFiguresInput): RevenueFigure
   const { stripeSnapshot, stripePrior, xeroSnapshot, platform, manual, startupMetrics } = input;
   const stripeAt = stripeSnapshot?.taken_at ?? null;
   const xeroAt = xeroSnapshot?.taken_at ?? null;
+  const bank = input.bankCsv && input.bankCsv.monthsWithData > 0 ? input.bankCsv : null;
+  const bankAt = bank?.takenAt ?? null;
 
   // ── MRR / ARR / subscriptions ────────────────────────────────────────────
   let mrr = 0;
@@ -160,6 +189,9 @@ export function resolveRevenueFigures(input: ResolveFiguresInput): RevenueFigure
   } else if (platform.hasStripe && platform.mrr > 0) {
     mrr = platform.mrr;
     mrrSource = source("stripe_platform");
+  } else if (bank && bank.monthlyIncome > 0) {
+    mrr = bank.monthlyIncome;
+    mrrSource = source("bank_csv", bankAt);
   } else if (startupMetrics.mrr > 0) {
     mrr = startupMetrics.mrr;
     mrrSource = source("startup_metrics");
@@ -221,9 +253,18 @@ export function resolveRevenueFigures(input: ResolveFiguresInput): RevenueFigure
         : manual.count > 0
           ? source("manual")
           : source("none");
+    // S28-C: no platform charges and no manual entries → the bank CSV's
+    // income is the top line (revenue + grants received, ≤ 12 months).
+    if (revenueSource.kind === "none" && bank && bank.income > 0) {
+      revenue = bank.income;
+      revenueSource = source("bank_csv", bankAt);
+    }
     cogs = input.cogsEstimate;
     cogsSource = source("estimate");
-    if (startupMetrics.burnRate > 0) {
+    if (bank && bank.monthlyOpex > 0) {
+      monthlyOpex = bank.monthlyOpex;
+      opexSource = source("bank_csv", bankAt);
+    } else if (startupMetrics.burnRate > 0) {
       monthlyOpex = startupMetrics.burnRate;
       opexSource = source("startup_metrics");
     } else {
@@ -232,7 +273,7 @@ export function resolveRevenueFigures(input: ResolveFiguresInput): RevenueFigure
     }
     opex = monthlyOpex * 12;
     netIncome = revenue - refunds - cogs - opex;
-    netSource = opexSource.kind === "estimate" || revenueSource.kind === "none" ? source("estimate") : source(opexSource.kind);
+    netSource = opexSource.kind === "estimate" || revenueSource.kind === "none" ? source("estimate") : source(opexSource.kind, opexSource.takenAt);
     period = "last 12 months";
   }
 

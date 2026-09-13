@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { buildVcValuationReport, type VcValuationInput } from "@/lib/agents/cfo-valuation";
 import { findSVIAccountWithFallback } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
+import { burnRateWithBankFallback } from "@/lib/expenses/server";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { loadConnectedRevenueSignals } from "@/lib/connected-revenue";
 import { applyConnectedRevenueBridge } from "@/lib/valuation-mrr-bridge";
@@ -164,6 +165,9 @@ export async function GET() {
 
     const tamAudFromSignals = tamFromMarketSize(analysisJson?.signals?.marketSize);
 
+    // S28-C — opex falls back to the bank CSV burn when the metric is empty.
+    const burn = await burnRateWithBankFallback(supabase, projectId, metrics?.burn_rate_aud as number | null | undefined);
+
     // Build VcValuationInput — prefer real metrics, fall back to analysis signals
     const mrrAud = (metrics?.mrr_aud as number | null) ?? undefined;
     const input: VcValuationInput = {
@@ -171,7 +175,7 @@ export async function GET() {
       stage,
       mrrAud,
       monthlyGrowthRatePct: (metrics?.revenue_growth_pct as number | null) ?? undefined,
-      monthlyOpexAud: (metrics?.burn_rate_aud as number | null) ?? undefined,
+      monthlyOpexAud: burn.burnRate > 0 ? burn.burnRate : undefined,
       monthlyChurnPct: (metrics?.monthly_churn_pct as number | null) ?? undefined,
       cacAud: (metrics?.cac_aud as number | null) ?? undefined,
       customers: (metrics?.mau as number | null) ?? undefined,
