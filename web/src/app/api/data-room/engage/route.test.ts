@@ -30,6 +30,7 @@ const mocks = vi.hoisted(() => ({
   getSupabaseAdmin: vi.fn<() => unknown | null>(),
   getCurrentUser: vi.fn<() => Promise<{ id: string; email: string } | null>>(),
   assertProjectScope: vi.fn<(...a: unknown[]) => Promise<{ role: string }>>(),
+  notifyInvestorViewed: vi.fn<(...a: unknown[]) => Promise<unknown>>(),
 }));
 
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => mocks.getSupabaseAdmin() }));
@@ -45,6 +46,10 @@ vi.mock("@/lib/projects", () => ({
       this.code = code;
     }
   },
+}));
+
+vi.mock("@/lib/dataroom/investor-viewed", () => ({
+  maybeNotifyInvestorViewed: (...a: unknown[]) => mocks.notifyInvestorViewed(...a),
 }));
 
 import { GET, POST } from "./route";
@@ -160,6 +165,7 @@ beforeEach(() => {
   mocks.getCurrentUser.mockReset();
   mocks.getCurrentUser.mockResolvedValue({ id: "user-owner", email: "owner@x.test" });
   mocks.assertProjectScope.mockReset();
+  mocks.notifyInvestorViewed.mockReset().mockResolvedValue({ trigger: null, notified: false, emailed: false });
   delete process.env.IP_HASH_SALT;
 });
 
@@ -349,6 +355,24 @@ describe("POST /api/data-room/engage", () => {
     upd = find("data_room_access_tokens", "update")[0].args[0] as Record<string, unknown>;
     expect(upd.first_accessed).toBeUndefined();
     expect(upd.last_accessed).toBeTruthy();
+  });
+
+  it("S26-A: hands the founder-alert helper the link's PRE-event first_accessed and the founder-typed identity, never the token", async () => {
+    state.accessToken = { ...activeToken(), first_accessed: null, investor_name: "Jane", investor_firm: "Blackbird", investor_email: "j@bb.vc" };
+    await POST(postReq({ token: TOKEN, eventType: "open" }));
+    expect(mocks.notifyInvestorViewed).toHaveBeenCalledTimes(1);
+    const [, args] = mocks.notifyInvestorViewed.mock.calls[0] as [unknown, { link: Record<string, unknown>; event: Record<string, unknown> }];
+    expect(args.link).toEqual({ id: "tok-id", data_room_id: "room-1", first_accessed: null, investor_name: "Jane", investor_firm: "Blackbird", investor_email: "j@bb.vc" });
+    expect(args.event).toEqual({ eventType: "open", section: null, durationMs: null });
+    expect(JSON.stringify(args)).not.toContain(TOKEN);
+  });
+
+  it("S26-A: a deduped event never reaches the founder-alert helper", async () => {
+    state.accessToken = activeToken();
+    state.lastEvent = { occurred_at: new Date().toISOString() };
+    const res = await POST(postReq({ token: TOKEN, eventType: "open" }));
+    expect((await res.json()).deduped).toBe(true);
+    expect(mocks.notifyInvestorViewed).not.toHaveBeenCalled();
   });
 });
 

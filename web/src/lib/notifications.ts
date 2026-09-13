@@ -27,12 +27,17 @@ interface InsertArgs {
   throttleMs?: number;
 }
 
-/** Insert a notification row for a founder. Silent on failure. */
-export async function insertNotification(args: InsertArgs): Promise<void> {
+/**
+ * Insert a notification row for a founder. Silent on failure. Resolves
+ * `true` only when a row was written — `false` when throttled, unconfigured
+ * or failed — so a caller can key an optional email on the same throttle
+ * (S26-A `investor_viewed`). Callers that ignore the result are unchanged.
+ */
+export async function insertNotification(args: InsertArgs): Promise<boolean> {
   try {
     const supabase = getSupabaseAdmin();
-    if (!supabase) return;
-    if (!args.userId) return;
+    if (!supabase) return false;
+    if (!args.userId) return false;
 
     // Throttle: check for an existing recent row with the same dedupeKey.
     if (args.dedupeKey && typeof args.throttleMs === "number" && args.throttleMs > 0) {
@@ -46,21 +51,23 @@ export async function insertNotification(args: InsertArgs): Promise<void> {
         .contains("payload", { dedupeKey: args.dedupeKey })
         .limit(1)
         .maybeSingle();
-      if (recent) return;
+      if (recent) return false;
     }
 
     const payload: Record<string, unknown> = { ...(args.payload ?? {}) };
     if (args.dedupeKey) payload.dedupeKey = args.dedupeKey;
 
-    await supabase.from("founder_notifications").insert({
+    const { error } = await supabase.from("founder_notifications").insert({
       user_id: args.userId,
       project_id: args.projectId ?? null,
       kind: args.kind,
       payload,
     });
+    return !error;
   } catch (err) {
     // Never propagate — this is an activity feed, not a hard dependency.
     console.warn("[notifications] insert failed:", err);
+    return false;
   }
 }
 

@@ -81,6 +81,11 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 
 # ── Phase 4: Auto-Improve + CI/CD (7:00am AEST / 21:00 UTC) ──
 0 21 * * * bash $RUN agent-auto-improve --timeout 300
+# S26-A — data-room investor follow-ups: one email per link, 2 business days after
+# a view with no return, only where the founder switched auto follow-up on and
+# any NDA is accepted. 21:00 UTC = 07:00 AEST so it lands at the start of the
+# investor's day. ?dry=1 lists without sending.
+0 21 * * * bash $RUN investor-followups --timeout 120
 5 21 * * * bash $RUN refresh-models
 # End-of-day AEST refresh (23:59 AEST = 13:59 UTC): re-rank top-12 free models per
 # provider and rewrite ai-free-models.json. Complements the 07:05 AEST refresh —

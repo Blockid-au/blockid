@@ -289,3 +289,59 @@ export function formatDwell(ms: number): string {
   const rest = s % 60;
   return `${m}m ${String(rest).padStart(2, "0")}s`;
 }
+
+// ── Founder alerts (S26-A) ────────────────────────────────────────────────
+//
+// Two moments are worth a notification: the FIRST open of a link, and the
+// point where a viewer has clearly read rather than skimmed — three or
+// more distinct sections, or five minutes of dwell. Both collapse into one
+// `investor_viewed` notification per link per 24 h (the throttle is the
+// notification writer's dedupe key; see lib/dataroom/investor-viewed.ts).
+
+export const INVESTOR_VIEWED_THROTTLE_MS = 24 * 60 * 60 * 1000;
+export const INVESTOR_VIEWED_SECTION_THRESHOLD = 3;
+export const INVESTOR_VIEWED_DWELL_THRESHOLD_MS = 5 * 60 * 1000;
+
+export type InvestorViewedTrigger = "first_view" | "deep_read";
+
+export interface ReadDepth {
+  sections: number;
+  dwellMs: number;
+}
+
+/**
+ * Distinct sections opened and total reading time across a link's events
+ * (`section_view` counts a section and its dwell; `document_open` counts
+ * the section only). Pass the incoming event as the last row.
+ */
+export function readDepth(events: ReadonlyArray<Pick<HeatmapEventInput, "event_type" | "section" | "duration_ms">>): ReadDepth {
+  const sections = new Set<string>();
+  let dwellMs = 0;
+  for (const e of events) {
+    if (e.event_type === "section_view" || e.event_type === "document_open") {
+      if (e.section) sections.add(e.section);
+    }
+    if (e.event_type === "section_view" && typeof e.duration_ms === "number" && e.duration_ms > 0) dwellMs += e.duration_ms;
+  }
+  return { sections: sections.size, dwellMs };
+}
+
+/**
+ * Which alert (if any) this event earns.
+ *   - an `open` on a link that had never been opened → `first_view`
+ *   - otherwise, once the link's cumulative depth crosses either threshold
+ *     → `deep_read` (the writer's 24 h throttle stops every later event
+ *     re-firing it)
+ */
+export function detectInvestorViewedTrigger(args: {
+  eventType: EngageEventType;
+  /** `data_room_access_tokens.first_accessed` BEFORE this event was recorded. */
+  firstAccessedBefore: string | null;
+  depth: ReadDepth;
+}): InvestorViewedTrigger | null {
+  if (args.eventType === "open" && !args.firstAccessedBefore) return "first_view";
+  if (args.depth.sections >= INVESTOR_VIEWED_SECTION_THRESHOLD || args.depth.dwellMs >= INVESTOR_VIEWED_DWELL_THRESHOLD_MS) {
+    return "deep_read";
+  }
+  return null;
+}

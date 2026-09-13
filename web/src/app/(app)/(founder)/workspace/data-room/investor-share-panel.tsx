@@ -48,6 +48,8 @@ export interface ShareLink {
   ndaRequired?: boolean;
   ndaSignedAt?: string | null;
   ndaSignedVersion?: number | null;
+  /** S26-A — founder opt-in: one follow-up email 2 business days after a view with no return. */
+  autoFollowUp?: boolean;
 }
 
 export interface DocumentCounts {
@@ -140,6 +142,23 @@ export const STATE_CLASS: Record<ShareState, string> = {
   expired: "border-warn/40 bg-warn/10 text-warn",
 };
 
+/**
+ * S26-A — can the founder switch auto follow-up on for this link? Needs an
+ * address to write to and a link that still works; the cron additionally
+ * refuses while an NDA is required and unaccepted (`followUpUnavailableReason`).
+ */
+export function followUpUnavailableReason(link: {
+  state: ShareState;
+  investorEmail?: string | null;
+  ndaRequired?: boolean;
+  ndaSignedAt?: string | null;
+}): string | null {
+  if (link.state !== "active") return "Link is no longer active";
+  if (!link.investorEmail?.trim()) return "Add an investor email when minting to enable follow-up";
+  if (link.ndaRequired && !link.ndaSignedAt) return "Sends only after the NDA is accepted";
+  return null;
+}
+
 /** The token in a share URL, for the revoke call. Empty when unparseable. */
 export function tokenFromUrl(url: string): string {
   const match = /\/s\/dr\/([^/?#]+)/.exec(url ?? "");
@@ -168,6 +187,7 @@ export function InvestorSharePanel({
   const [minting, setMinting] = React.useState(false);
   const [revokingToken, setRevokingToken] = React.useState<string | null>(null);
   const [copiedId, setCopiedId] = React.useState<string | null>(null);
+  const [togglingId, setTogglingId] = React.useState<string | null>(null);
 
   const [investorName, setInvestorName] = React.useState("");
   const [investorEmail, setInvestorEmail] = React.useState("");
@@ -282,6 +302,36 @@ export function InvestorSharePanel({
       toast("Could not revoke the link. Please try again.", "error");
     } finally {
       setRevokingToken(null);
+    }
+  }
+
+  // S26-A — per-link auto follow-up toggle (PATCH /api/investor-data-room).
+  async function handleFollowUpToggle(link: ShareLink, on: boolean) {
+    const token = tokenFromUrl(link.url);
+    if (!token || togglingId) return;
+    setTogglingId(link.id);
+    try {
+      const res = await fetch("/api/investor-data-room", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ token, autoFollowUp: on }),
+      });
+      const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !data?.ok) {
+        toast(data?.error ?? "Could not update the follow-up setting.", "error");
+        return;
+      }
+      setLinks((prev) => prev.map((l) => (l.id === link.id ? { ...l, autoFollowUp: on } : l)));
+      toast(
+        on
+          ? "Auto follow-up on — one email in your name, two business days after a view with no return."
+          : "Auto follow-up off for this link.",
+      );
+    } catch {
+      toast("Could not update the follow-up setting.", "error");
+    } finally {
+      setTogglingId(null);
     }
   }
 
@@ -486,6 +536,29 @@ export function InvestorSharePanel({
                         Expires {formatRunDateTime(link.expiresAt)}
                       </p>
                     )}
+                    {/* S26-A — auto follow-up opt-in, per link */}
+                    {(() => {
+                      const why = followUpUnavailableReason(link);
+                      return (
+                        <label
+                          className="mt-1.5 flex items-center gap-2 text-xs text-secondary"
+                          data-testid="investor-share-followup"
+                          title={why ?? undefined}
+                        >
+                          <input
+                            type="checkbox"
+                            className="h-3.5 w-3.5"
+                            checked={Boolean(link.autoFollowUp)}
+                            disabled={readOnly || togglingId === link.id || (why !== null && !link.autoFollowUp)}
+                            onChange={(e) => void handleFollowUpToggle(link, e.target.checked)}
+                          />
+                          <span>
+                            Auto follow-up
+                            {why ? <span className="text-tertiary"> — {why}</span> : <span className="text-tertiary"> — one email in your name, 2 business days after a view with no return</span>}
+                          </span>
+                        </label>
+                      );
+                    })()}
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
                     <button

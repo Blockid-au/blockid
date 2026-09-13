@@ -61,6 +61,9 @@ interface SavedRound {
   dilution_pct: number;
   status: string;
   created_at: string;
+  /** S26-A — maintained by the commitments API (migration 0355). */
+  committed_aud?: number | string | null;
+  funded_aud?: number | string | null;
 }
 
 interface InvestorAllocation {
@@ -1328,6 +1331,7 @@ export function FundraiseClient() {
                     <th className="text-right px-4 py-3 font-medium">Pre-Money</th>
                     <th className="text-left px-4 py-3 font-medium">Type</th>
                     <th className="text-right px-4 py-3 font-medium">Dilution</th>
+                    <th className="text-right px-4 py-3 font-medium">Committed</th>
                     <th className="text-left px-4 py-3 font-medium">Status</th>
                     <th className="text-left px-4 py-3 font-medium">Date</th>
                   </tr>
@@ -1335,11 +1339,19 @@ export function FundraiseClient() {
                 <tbody>
                   {pastRounds.map((r) => (
                     <tr key={r.id} className="border-t border-surface-100 hover:bg-surface-50/50">
-                      <td className="px-4 py-3 font-medium text-ink-800">{r.round_name}</td>
+                      <td className="px-4 py-3 font-medium text-ink-800">
+                        {/* S26-A — the round page: commitments, progress bar, data room. */}
+                        <Link href={`/workspace/fundraise/${encodeURIComponent(r.id)}`} className="text-brand-600 hover:underline">
+                          {r.round_name}
+                        </Link>
+                      </td>
                       <td className="px-4 py-3 text-right text-ink-700">{fmtAud(Number(r.target_amount))}</td>
                       <td className="px-4 py-3 text-right text-ink-700">{fmtAud(Number(r.pre_money_valuation))}</td>
                       <td className="px-4 py-3 text-ink-500 capitalize">{r.instrument_type.replace("_", " ")}</td>
                       <td className="px-4 py-3 text-right text-ink-700">{r.dilution_pct}%</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-ink-700">
+                        {fmtAud(Number(r.committed_aud ?? 0) + Number(r.funded_aud ?? 0))}
+                      </td>
                       <td className="px-4 py-3">
                         <span
                           className={cn(

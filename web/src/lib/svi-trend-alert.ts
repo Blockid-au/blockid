@@ -67,7 +67,7 @@ export function sviTrendAlertDecision(input: SviTrendAlertInput, threshold = SVI
   };
 }
 
-export type NotificationSink = (args: SviTrendAlertPlan) => Promise<void>;
+export type NotificationSink = (args: SviTrendAlertPlan) => Promise<unknown>;
 
 /**
  * Write the alert when warranted. Returns true when a row was attempted.

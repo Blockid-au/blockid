@@ -11,6 +11,11 @@ import {
   heatBucket,
   isDuplicateEvent,
   parseEngageEvent,
+  INVESTOR_VIEWED_DWELL_THRESHOLD_MS,
+  INVESTOR_VIEWED_SECTION_THRESHOLD,
+  INVESTOR_VIEWED_THROTTLE_MS,
+  detectInvestorViewedTrigger,
+  readDepth,
 } from "./engagement";
 
 const token = "t".repeat(32);
@@ -162,5 +167,52 @@ describe("formatDwell", () => {
     expect(formatDwell(4_400)).toBe("4s");
     expect(formatDwell(65_000)).toBe("1m 05s");
     expect(formatDwell(3_600_000)).toBe("60m 00s");
+  });
+});
+
+// ── S26-A founder alerts ──────────────────────────────────────────────────
+
+describe("readDepth", () => {
+  it("counts distinct sections across section_view + document_open and sums section_view dwell only", () => {
+    const d = readDepth([
+      { event_type: "open", section: null, duration_ms: null },
+      { event_type: "section_view", section: "Team", duration_ms: 30_000 },
+      { event_type: "section_view", section: "Team", duration_ms: 20_000 },
+      { event_type: "document_open", section: "Financials", duration_ms: 99_000 },
+      { event_type: "document_download", section: "Financials", duration_ms: null },
+      { event_type: "section_view", section: "Legal", duration_ms: -5 },
+      { event_type: "section_view", section: null, duration_ms: 10_000 },
+    ]);
+    expect(d).toEqual({ sections: 3, dwellMs: 60_000 });
+  });
+
+  it("is zero for no events", () => {
+    expect(readDepth([])).toEqual({ sections: 0, dwellMs: 0 });
+  });
+});
+
+describe("detectInvestorViewedTrigger", () => {
+  it("pins the thresholds the copy promises: 3 sections, 5 min, 24 h", () => {
+    expect(INVESTOR_VIEWED_SECTION_THRESHOLD).toBe(3);
+    expect(INVESTOR_VIEWED_DWELL_THRESHOLD_MS).toBe(5 * 60_000);
+    expect(INVESTOR_VIEWED_THROTTLE_MS).toBe(24 * 60 * 60_000);
+  });
+
+  it("first open of a never-opened link → first_view; a repeat open → nothing", () => {
+    expect(detectInvestorViewedTrigger({ eventType: "open", firstAccessedBefore: null, depth: { sections: 0, dwellMs: 0 } })).toBe("first_view");
+    expect(detectInvestorViewedTrigger({ eventType: "open", firstAccessedBefore: "2026-09-01T00:00:00Z", depth: { sections: 0, dwellMs: 0 } })).toBeNull();
+  });
+
+  it("deep_read once 3 sections OR 5 min are reached; nothing below both", () => {
+    const base = { eventType: "section_view" as const, firstAccessedBefore: "2026-09-01T00:00:00Z" };
+    expect(detectInvestorViewedTrigger({ ...base, depth: { sections: 2, dwellMs: 299_999 } })).toBeNull();
+    expect(detectInvestorViewedTrigger({ ...base, depth: { sections: 3, dwellMs: 0 } })).toBe("deep_read");
+    expect(detectInvestorViewedTrigger({ ...base, depth: { sections: 0, dwellMs: 300_000 } })).toBe("deep_read");
+    // a download after the threshold is still a deep read (the writer's throttle collapses it)
+    expect(detectInvestorViewedTrigger({ ...base, eventType: "document_download", depth: { sections: 4, dwellMs: 0 } })).toBe("deep_read");
+  });
+
+  it("a first open that already crosses the depth threshold reports first_view (the more useful of the two)", () => {
+    expect(detectInvestorViewedTrigger({ eventType: "open", firstAccessedBefore: null, depth: { sections: 5, dwellMs: 0 } })).toBe("first_view");
   });
 });
