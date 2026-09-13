@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SharePriceCard } from "@/components/workspace/share-price-card";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -367,6 +368,9 @@ export function CapTableManager() {
           <PieChart slices={pieSlices} />
         </div>
       </div>
+
+      {/* S26-B — price per share from the SVI valuation + connected revenue */}
+      <SharePriceCard />
 
       {/* ================================================================ */}
       {/* Section 2: Shareholder Table */}
