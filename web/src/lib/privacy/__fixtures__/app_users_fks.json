@@ -1,6 +1,5 @@
 {
   "dumped_at": "2026-09-13",
-  "amended": "S27-C 2026-09-13: +sector_multiples_overrides.approved_by (migration 0369, SET NULL) added by hand ahead of apply — re-run the inventory after 0369/0370 are applied",
   "source": "pg_constraint (contype=f) on production supabase-db, confrelid = public.app_users; regenerate with `node scripts/db/app-users-fk-inventory.mjs --json --fixture`",
   "referenced": "public.app_users(id)",
   "count": 127,
