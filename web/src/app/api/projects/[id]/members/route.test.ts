@@ -357,7 +357,7 @@ describe("DELETE /api/projects/[id]/members audit wire-in", () => {
   it("a member of a different project is 404 before any write (revokeMember gets the expected projectId) and nothing is logged", async () => {
     getCurrentUserMock.mockResolvedValue({ id: "u1" });
     assertProjectAccessMock.mockResolvedValue(OWNER_ACCESS);
-    revokeMemberMock.mockRejectedValue(new ProjectMemberScopeError("member not found", "not_found"));
+    revokeMemberMock.mockRejectedValue(new hoisted.ProjectMemberScopeError("member not found", "not_found"));
     const req = new Request(
       "http://x/api/projects/proj-1/members?memberId=m1",
       { method: "DELETE" },
