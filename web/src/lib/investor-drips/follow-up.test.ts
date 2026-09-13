@@ -11,6 +11,9 @@ import {
   FOLLOW_UP_BUSINESS_DAYS,
   addBusinessDays,
   followUpDueAt,
+  FOLLOW_UP_TIME_ZONE,
+  isSydneyWeekend,
+  sydneyWeekday,
   followUpSkipReason,
   investorFirstName,
   ndaUnmet,
@@ -58,6 +61,50 @@ describe("addBusinessDays / followUpDueAt", () => {
   it("due = view + 2 business days", () => {
     expect(FOLLOW_UP_BUSINESS_DAYS).toBe(2);
     expect(followUpDueAt(new Date("2026-09-10T03:00:00Z")).toISOString()).toBe("2026-09-14T03:00:00.000Z");
+  });
+});
+
+describe("business days run on the Australia/Sydney calendar (S26 review P3-9)", () => {
+  it("reads the weekday in Sydney, not UTC — AEST and AEDT alike", () => {
+    expect(FOLLOW_UP_TIME_ZONE).toBe("Australia/Sydney");
+    // Fri 11 Sep 22:00Z is already Sat 12 Sep 08:00 AEST.
+    expect(sydneyWeekday(new Date("2026-09-11T22:00:00Z"))).toBe("Sat");
+    expect(isSydneyWeekend(new Date("2026-09-11T22:00:00Z"))).toBe(true);
+    // Sun 13 Sep 22:00Z is Mon 14 Sep 08:00 AEST.
+    expect(sydneyWeekday(new Date("2026-09-13T22:00:00Z"))).toBe("Mon");
+    expect(isSydneyWeekend(new Date("2026-09-13T22:00:00Z"))).toBe(false);
+    // December is AEDT (UTC+11): Fri 11 Dec 13:30Z is Sat 12 Dec 00:30 AEDT.
+    expect(sydneyWeekday(new Date("2026-12-11T13:30:00Z"))).toBe("Sat");
+    expect(sydneyWeekday(new Date("2026-12-11T12:30:00Z"))).toBe("Fri");
+  });
+
+  it("a Friday-evening AEST view is due Tuesday evening — never on the weekend", () => {
+    // Fri 11 Sep 19:00 AEST = 09:00Z → Sat, Sun skipped → Mon (1) → Tue (2) 19:00 AEST.
+    const due = followUpDueAt(new Date("2026-09-11T09:00:00Z"));
+    expect(due.toISOString()).toBe("2026-09-15T09:00:00.000Z");
+    expect(sydneyWeekday(due)).toBe("Tue");
+    expect(isSydneyWeekend(due)).toBe(false);
+  });
+
+  it("UTC/AEST boundary: a Saturday-morning AEST view (still Friday in UTC) counts from Monday", () => {
+    // Sat 12 Sep 08:00 AEST = Fri 11 Sep 22:00Z. UTC maths would call this a Friday view and
+    // land on Wed 16 Sep 08:00 AEST; the Sydney calendar lands on Tue 15 Sep 08:00 AEST.
+    const due = followUpDueAt(new Date("2026-09-11T22:00:00Z"));
+    expect(due.toISOString()).toBe("2026-09-14T22:00:00.000Z");
+    expect(sydneyWeekday(due)).toBe("Tue");
+    // Sun 13 Sep 08:00 AEST (Sat 22:00Z) → Mon (1) → Tue (2) 08:00 AEST.
+    expect(followUpDueAt(new Date("2026-09-12T22:00:00Z")).toISOString()).toBe("2026-09-14T22:00:00.000Z");
+    // AEDT: Sat 12 Dec 00:30 AEDT (Fri 13:30Z) → Tue 15 Dec 00:30 AEDT = Mon 14 Dec 13:30Z.
+    expect(followUpDueAt(new Date("2026-12-11T13:30:00Z")).toISOString()).toBe("2026-12-14T13:30:00.000Z");
+    // …whereas one hour earlier it is still Friday in Sydney → Tue 15 Dec 23:30 AEDT = Tue 12:30Z.
+    expect(followUpDueAt(new Date("2026-12-11T12:30:00Z")).toISOString()).toBe("2026-12-15T12:30:00.000Z");
+  });
+
+  it("the 21:00 UTC cron: a Saturday-AEST view is sent on the Wednesday-morning tick, not Thursday", () => {
+    const link = { ...LINK, last_accessed: "2026-09-11T22:00:00Z" };
+    const at = (iso: string) => followUpSkipReason({ link, room: ROOM, alreadySent: false, unsubscribed: false, now: new Date(iso) });
+    expect(at("2026-09-14T21:00:00Z")).toBe("too_soon"); // Tue 07:00 AEST — due 08:00
+    expect(at("2026-09-15T21:00:00Z")).toBeNull(); // Wed 07:00 AEST
   });
 });
 

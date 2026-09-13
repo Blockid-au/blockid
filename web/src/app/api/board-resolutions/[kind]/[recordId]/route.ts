@@ -1,7 +1,7 @@
 /**
  * /api/board-resolutions/[kind]/[recordId] — generate a board resolution (S26-B).
  *
- * POST `{ confirm?: boolean }`
+ * POST `{ confirm?: boolean, regenerate?: boolean }`
  *   Generates the AU circulating resolution of the directors for the
  *   referenced record of the caller's active project:
  *     share-issue  → share_transactions (issue) id
@@ -16,16 +16,26 @@
  *     • otherwise `FEATURE_COSTS.board_resolution` (1 credit), charged to
  *       the CALLER. `confirm !== true` returns 200 `{ preview: true, cost,
  *       balance, included, company, directors, record }` and spends nothing.
- *   Idempotent per (project, kind, record): an existing resolution is
- *   returned (`existing: true`) and nothing is charged — the PDF is a free
- *   re-download. Spend runs BEFORE the insert; an insert failure refunds.
+ *   Idempotent per (project, kind, record): an existing CURRENT resolution
+ *   is returned (`existing: true`) and nothing is charged — the PDF is a
+ *   free re-download. Spend runs BEFORE the insert; an insert failure refunds.
  *
- *   200 { ok, preview: true, cost, listedCost, included, includedVia, balance, creditNote, company, directors, soleDirector, record, existing }
- *   200 { ok, resolution, existing, cost, creditsCharged, balance, creditNote }
+ *   Regenerate (S27-A, review P2-7): `{ regenerate: true }` (editor+) when
+ *   the source record changed after the resolution was generated (a
+ *   resized ESOP pool, an edited dividend). The preview reports `stale`
+ *   (stored hash ≠ hash of a fresh draft) and `nextVersion`; confirm
+ *   charges like a first generation (unless included), marks the current
+ *   row superseded and inserts version n+1 (migration 0361). The old
+ *   version stays downloadable with a SUPERSEDED banner. A regenerate that
+ *   finds nothing to supersede is simply a first generation.
+ *
+ *   200 { ok, preview: true, cost, listedCost, included, includedVia, balance, creditNote, company, directors, soleDirector, record, existing, stale, regenerate, nextVersion, versions }
+ *   200 { ok, resolution, existing, superseded, cost, creditsCharged, balance, creditNote }
  *   400 bad kind  401  402 insufficient_credits | credit_spend_failed
- *   403/404 scope / record  429  500 insert_failed  503
+ *   403/404 scope / record  409 supersede_conflict  429  500 insert_failed  503
  *
- * GET — the generated resolution for the record (viewer+), or `resolution: null`.
+ * GET — the current resolution for the record (viewer+) or `resolution:
+ *   null`, every `versions` (newest first) and `stale`.
  */
 
 import { NextResponse } from "next/server";
@@ -38,7 +48,15 @@ import { creditChargeNote } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { statementsIncluded } from "@/lib/dividends/gate";
 import { isResolutionKind } from "@/lib/board-resolutions/build";
-import { buildResolution, getResolution, issueResolution, loadResolutionInputs, resolutionRowSummary } from "@/lib/board-resolutions/server";
+import {
+  buildResolution,
+  issueResolution,
+  listResolutionVersions,
+  loadResolutionInputs,
+  resolutionIsStale,
+  resolutionRowSummary,
+  resolutionVersion,
+} from "@/lib/board-resolutions/server";
 import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
@@ -67,6 +85,7 @@ async function POST_handler(request: Request, { params }: Params) {
   }
   const body: Record<string, unknown> = read.body && typeof read.body === "object" ? read.body : {};
   const confirmed = body.confirm === true;
+  const regenerate = body.regenerate === true;
 
   const { scope, denied } = await projectScopeOrDeny("editor");
   if (denied) return denied;
@@ -80,13 +99,17 @@ async function POST_handler(request: Request, { params }: Params) {
   const inputs = await loadResolutionInputs(supabase, kind, recordId, recordScope);
   if (!inputs) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
 
-  // Already generated → free re-download, nothing to charge.
-  const existing = await getResolution(supabase, kind, recordId, scope.projectId);
+  // Already generated → free re-download, nothing to charge — unless the caller asked to regenerate.
+  const versions = await listResolutionVersions(supabase, kind, recordId, scope.projectId);
+  const existing = versions.find((v) => !v.superseded_at) ?? null;
+  const draft = buildResolution(inputs.record, inputs.company, inputs.directors);
+  const stale = existing ? resolutionIsStale(existing, draft) : false;
+  const supersedes = regenerate ? existing : null;
   const gate = await statementsIncluded({ id: user.id, plan: user.plan });
   const listedCost = FEATURE_COSTS[FEATURE_KEY] ?? 1;
   let cost = 0;
   let balance: number | null = null;
-  if (!existing && !gate.included) {
+  if ((!existing || regenerate) && !gate.included) {
     const afford = await canAfford(user.id, FEATURE_KEY);
     cost = listedCost;
     balance = afford.balance;
@@ -95,7 +118,6 @@ async function POST_handler(request: Request, { params }: Params) {
     }
   }
 
-  const draft = buildResolution(inputs.record, inputs.company, inputs.directors);
   if (!confirmed) {
     return NextResponse.json({
       ok: true,
@@ -113,11 +135,15 @@ async function POST_handler(request: Request, { params }: Params) {
       facts: draft.facts,
       record: inputs.record,
       existing: existing ? resolutionRowSummary(existing) : null,
+      stale,
+      regenerate,
+      nextVersion: existing ? resolutionVersion(existing) + 1 : 1,
+      versions: versions.map(resolutionRowSummary),
     });
   }
 
-  if (existing) {
-    return NextResponse.json({ ok: true, resolution: resolutionRowSummary(existing), existing: true, cost: 0, creditsCharged: 0, balance, creditNote });
+  if (existing && !regenerate) {
+    return NextResponse.json({ ok: true, resolution: resolutionRowSummary(existing), existing: true, superseded: null, cost: 0, creditsCharged: 0, balance, creditNote, stale });
   }
 
   let creditsCharged = 0;
@@ -128,12 +154,16 @@ async function POST_handler(request: Request, { params }: Params) {
     balance = spent.balance;
   }
 
-  const result = await issueResolution({ db: supabase, projectId: scope.projectId, userId: user.id, kind, recordId, payload: draft, creditsCharged });
+  const result = await issueResolution({ db: supabase, projectId: scope.projectId, userId: user.id, kind, recordId, payload: draft, creditsCharged, supersedes });
   if (!result.ok) {
     if (creditsCharged > 0) {
-      const refund = await grantCredits(user.id, creditsCharged, "refund", { feature: FEATURE_KEY, project_id: scope.projectId, reason: "resolution_insert_failed" });
+      const reason = result.error === "supersede_conflict" ? "resolution_supersede_conflict" : "resolution_insert_failed";
+      const refund = await grantCredits(user.id, creditsCharged, "refund", { feature: FEATURE_KEY, project_id: scope.projectId, reason });
       if (refund.ok) balance = refund.balance;
-      else console.error("[board-resolutions] refund after insert failure did not land", { user: user.id, project: scope.projectId });
+      else console.error("[board-resolutions] refund after failed generation did not land", { user: user.id, project: scope.projectId, reason });
+    }
+    if (result.error === "supersede_conflict") {
+      return NextResponse.json({ ok: false, error: "supersede_conflict", message: "This resolution was regenerated by someone else a moment ago — reload to see the current version." }, { status: 409 });
     }
     return NextResponse.json({ ok: false, error: "insert_failed", retryCost: cost }, { status: 500 });
   }
@@ -144,7 +174,16 @@ async function POST_handler(request: Request, { params }: Params) {
     creditsCharged = 0;
   }
 
-  return NextResponse.json({ ok: true, resolution: resolutionRowSummary(result.row), existing: result.existing, cost, creditsCharged, balance, creditNote });
+  return NextResponse.json({
+    ok: true,
+    resolution: resolutionRowSummary(result.row),
+    existing: result.existing,
+    superseded: result.superseded ? resolutionRowSummary(result.superseded) : null,
+    cost,
+    creditsCharged,
+    balance,
+    creditNote,
+  });
 }
 
 export async function GET(_request: Request, { params }: Params) {
@@ -158,8 +197,16 @@ export async function GET(_request: Request, { params }: Params) {
   if (!scope) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
   const supabase = getSupabaseAdmin();
   if (!supabase) return NextResponse.json({ ok: false, error: "service_unavailable" }, { status: 503 });
-  const row = await getResolution(supabase, kind, recordId, scope.projectId);
-  return NextResponse.json({ ok: true, role: scope.role, resolution: row ? resolutionRowSummary(row) : null });
+  const versions = await listResolutionVersions(supabase, kind, recordId, scope.projectId);
+  const row = versions.find((v) => !v.superseded_at) ?? null;
+  // `stale` compares the stored hash with a fresh draft — read-only, so a viewer may see it.
+  let stale = false;
+  if (row) {
+    const recordScope = { projectId: scope.projectId, ownerUserId: scope.ownerUserId, projectName: scope.project.name };
+    const inputs = await loadResolutionInputs(supabase, kind, recordId, recordScope);
+    if (inputs) stale = resolutionIsStale(row, buildResolution(inputs.record, inputs.company, inputs.directors));
+  }
+  return NextResponse.json({ ok: true, role: scope.role, resolution: row ? resolutionRowSummary(row) : null, versions: versions.map(resolutionRowSummary), stale });
 }
 
 // S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.

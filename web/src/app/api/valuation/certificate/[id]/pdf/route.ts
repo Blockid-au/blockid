@@ -1,4 +1,4 @@
-// GET /api/valuation/certificate/[id]/pdf?for=<investor>
+// GET /api/valuation/certificate/[id]/pdf?for=<investor>&annex=ess|none
 //
 // The issued certificate as a PDF (S22-A), rendered from the payload frozen
 // on the register row — never a recompute — so the bytes an investor holds
@@ -11,7 +11,10 @@
 //     <date> · BlockID.au" watermark on every page — the copy a founder
 //     hands to a named investor. Absent → clean pages;
 //   - a revoked certificate still renders (it is a record), with the
-//     REVOKED banner on every page and X-BlockID-Certificate-Revoked: 1.
+//     REVOKED banner on every page and X-BlockID-Certificate-Revoked: 1;
+//   - `?annex=ess` (S27-A) prints Annex A (ESS start-up concession) — by
+//     default it prints whenever the payload was issued with it; `none`
+//     suppresses it. `X-BlockID-Annex: ess` when printed. 0 credits.
 //
 // GET only — nothing mutates, so apiRoute() is not required (S20-A).
 
@@ -21,7 +24,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { isUuid } from "@/lib/security/request-guards";
-import { renderValuationCertificatePdf } from "@/lib/pdf/valuation-certificate-pdf";
+import { essAnnexFor, renderValuationCertificatePdf } from "@/lib/pdf/valuation-certificate-pdf";
 import { watermarkLabel } from "@/lib/pdf/watermark";
 import { getCertificateForProject } from "@/lib/valuation-certificate/server";
 
@@ -47,14 +50,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const row = await getCertificateForProject(supabase, id, scope.projectId);
   if (!row) return NOT_FOUND();
 
-  const recipient = new URL(req.url).searchParams.get("for");
-  const watermark = watermarkLabel({ recipient });
+  const query = new URL(req.url).searchParams;
+  const watermark = watermarkLabel({ recipient: query.get("for") });
+  const annexParam = query.get("annex");
+  const annex = annexParam === "ess" || annexParam === "none" ? annexParam : "auto";
+  const essPrinted = essAnnexFor(row.payload, annex) !== null;
 
   const buffer = await renderValuationCertificatePdf({
     data: row.payload,
     contentHash: row.content_hash,
     watermark,
     revokedAt: row.revoked_at,
+    annex,
   });
 
   const headers: Record<string, string> = {
@@ -65,5 +72,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   };
   if (watermark) headers["X-BlockID-Watermark"] = "1";
   if (row.revoked_at) headers["X-BlockID-Certificate-Revoked"] = "1";
+  if (essPrinted) headers["X-BlockID-Annex"] = "ess";
   return new NextResponse(new Uint8Array(buffer), { status: 200, headers });
 }

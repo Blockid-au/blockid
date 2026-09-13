@@ -1,7 +1,7 @@
 /**
  * /api/valuation/certificate — issue + list valuation certificates (S22-A).
  *
- * POST `{ confirm?: boolean }`
+ * POST `{ confirm?: boolean, annex?: "ess" | ["ess"] | { ess: boolean } }`
  *   Issues a hash-sealed valuation certificate for the caller's active
  *   project (cookie scope, member-aware). Same rails as the Money Finder
  *   drafts (`api/funding/draft`):
@@ -18,6 +18,10 @@
  *   Spend runs BEFORE the insert; an insert failure after a spend refunds.
  *   The certificate is frozen from the same numbers `/dashboard/valuation`
  *   shows (lib/valuation-certificate/server.ts).
+ *   `annex: "ess"` (S27-A) freezes Annex A — the Div 83A start-up
+ *   concession checklist from the facts on file + the ATO-approved
+ *   valuation methods — into the payload. 0 extra credits; the preview
+ *   reports `annexes.ess` with how many rows the stored facts confirm.
  *
  *   200 { ok, preview: true, cost, balance, included, creditNote, subject }
  *   200 { ok, certificate, cost, creditsCharged, balance, creditNote }
@@ -43,6 +47,7 @@ import {
   loadCertificateSubject,
 } from "@/lib/valuation-certificate/server";
 import { apiRoute } from "@/lib/audit/api-route";
+import { essChecklistSummary } from "@/lib/valuation-certificate/types";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -50,6 +55,16 @@ export const maxDuration = 60;
 export const FEATURE_KEY = "valuation_certificate";
 const RATE_LIMIT_PER_HOUR = 20;
 const BODY_MAX_BYTES = 4 * 1024;
+
+/** `annex: "ess"`, `annex: ["ess"]`, `annex: { ess: true }` or `ess: true` all ask for Annex A. Exported for the suite. */
+export function wantsEssAnnex(body: Record<string, unknown>): boolean {
+  if (body.ess === true) return true;
+  const a = body.annex ?? body.annexes;
+  if (a === "ess") return true;
+  if (Array.isArray(a)) return a.includes("ess");
+  if (a && typeof a === "object") return (a as { ess?: unknown }).ess === true;
+  return false;
+}
 
 async function POST_handler(request: Request) {
   const user = await getCurrentUser();
@@ -65,6 +80,7 @@ async function POST_handler(request: Request) {
   }
   const body: Record<string, unknown> = read.body && typeof read.body === "object" ? read.body : {};
   const confirmed = body.confirm === true;
+  const wantEss = wantsEssAnnex(body);
 
   // Editor+ on the active project. A member's credits are their own.
   const { scope, denied } = await projectScopeOrDeny("editor");
@@ -83,6 +99,7 @@ async function POST_handler(request: Request) {
     dataEmail: scope.dataEmail,
     ownerUserId: scope.ownerUserId,
     accountId: (account?.id as string | undefined) ?? null,
+    annexes: { ess: wantEss },
   });
   if (!subjectRes.ok) {
     return NextResponse.json({ ok: false, error: "no_svi_analysis", message: "Complete an SVI analysis first." }, { status: 409 });
@@ -119,6 +136,11 @@ async function POST_handler(request: Request) {
         sviScore: subjectRes.subject.sviScore,
         valuation: subjectRes.subject.valuation,
         evidence: { total: subjectRes.subject.evidence.total, verified: subjectRes.subject.evidence.verified },
+      },
+      annexes: {
+        ess: subjectRes.subject.ess
+          ? { included: true, extraCost: 0, checklist: essChecklistSummary(subjectRes.subject.ess.checklist), perShare: subjectRes.subject.ess.indicativePerShare !== null }
+          : { included: false, extraCost: 0 },
       },
     });
   }

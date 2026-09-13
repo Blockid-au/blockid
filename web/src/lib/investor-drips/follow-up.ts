@@ -6,9 +6,14 @@
 // that link. These rules are dependency-free so the colocated suite can pin
 // them; `follow-up-server.ts` does the reads, the ledger claim and the send.
 //
-// Business days are Mon–Fri in UTC (the cron runs at 21:00 UTC = 07:00
-// AEST next morning, so "two business days after a Thursday view" lands
-// in the founder's Monday-morning outbox, not on the weekend).
+// Business days are Mon–Fri in the founder's calendar — Australia/Sydney
+// (S26 review P3-9): a Saturday-morning AEST view is a Saturday view even
+// though it is still Friday in UTC, so the clock starts on Monday, not
+// Friday. The weekday is read through `Intl.DateTimeFormat` with the zone
+// (no dependency, DST-aware: AEST and AEDT alike); the due time keeps the
+// view's wall-clock time of day. The cron runs at 21:00 UTC = 07:00 AEST /
+// 08:00 AEDT, so "two business days after a Thursday view" lands in the
+// founder's Monday-morning outbox, never on the weekend.
 
 export const FOLLOW_UP_BUSINESS_DAYS = 2;
 /** Calendar-day lower bound for the candidate query: 2 business days is never less than 2 days. */
@@ -55,20 +60,37 @@ export type FollowUpSkipReason =
   | "no_room"
   | "no_owner";
 
-function isWeekend(d: Date): boolean {
-  const day = d.getUTCDay();
-  return day === 0 || day === 6;
+/** The calendar the business-day maths runs in — the founder's, not the server's. */
+export const FOLLOW_UP_TIME_ZONE = "Australia/Sydney";
+
+const WEEKDAY_FMT = new Intl.DateTimeFormat("en-AU", { timeZone: FOLLOW_UP_TIME_ZONE, weekday: "short" });
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Weekday of `d` in Australia/Sydney: "Mon" … "Sun". */
+export function sydneyWeekday(d: Date): string {
+  return WEEKDAY_FMT.format(d).replace(/\.$/, "");
 }
 
-/** `from` + `n` business days (Mon–Fri, UTC), preserving the time of day. */
+/** Saturday or Sunday in Australia/Sydney (not UTC). */
+export function isSydneyWeekend(d: Date): boolean {
+  const day = sydneyWeekday(d);
+  return day === "Sat" || day === "Sun";
+}
+
+/**
+ * `from` + `n` business days (Mon–Fri in Australia/Sydney), stepping in
+ * whole days so the due instant keeps the view's UTC time of day (across a
+ * DST change the Sydney wall clock shifts by an hour — harmless for a
+ * "due yet?" comparison against a once-a-day cron).
+ */
 export function addBusinessDays(from: Date, n: number): Date {
-  const d = new Date(from.getTime());
+  let t = from.getTime();
   let left = Math.max(0, Math.floor(n));
   while (left > 0) {
-    d.setUTCDate(d.getUTCDate() + 1);
-    if (!isWeekend(d)) left--;
+    t += DAY_MS;
+    if (!isSydneyWeekend(new Date(t))) left--;
   }
-  return d;
+  return new Date(t);
 }
 
 /** When the follow-up for a view at `viewedAt` becomes due. */

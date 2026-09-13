@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
 import { PDFParse } from "pdf-parse";
 
 import { pdfPageCount } from "./page-count";
-import { BOARD_RESOLUTION_NOTE, renderBoardResolutionPdf, renderDividendResolutionPdf, renderEsopResolutionPdf, renderShareIssueResolutionPdf } from "./board-resolution-pdf";
+import { BOARD_RESOLUTION_NOTE, renderBoardResolutionPdf, renderDividendResolutionPdf, renderEsopResolutionPdf, renderShareIssueResolutionPdf, supersededBannerText } from "./board-resolution-pdf";
 import { PDF_GENERAL_ADVICE_DISCLAIMER } from "./advice-disclaimer";
 import { watermarkLabel } from "./watermark";
 import { buildDividendResolution, buildEsopResolution, buildShareIssueResolution } from "@/lib/board-resolutions/build";
@@ -98,6 +98,17 @@ describe("renderBoardResolutionPdf", () => {
     expect(t).toContain("Div 83A");
     expect(t).toContain(PDF_GENERAL_ADVICE_DISCLAIMER);
     expect(t).toContain(HASH);
+  });
+
+  it("S27-A: a superseded version prints the SUPERSEDED banner + version line; a current one does not", async () => {
+    const ESOP = buildEsopResolution({ company: FIXTURE_COMPANY, record: FIXTURE_ESOP, directors: FIXTURE_DIRECTORS, now: NOW });
+    const cur = await text(await renderBoardResolutionPdf({ data: ESOP, contentHash: HASH, watermark: null, version: 2 }));
+    expect(cur).toContain("version 2");
+    expect(cur).not.toContain("SUPERSEDED");
+    const old = await text(await renderBoardResolutionPdf({ data: ESOP, contentHash: HASH, watermark: null, version: 1, superseded: { byVersion: 2, at: "2026-09-14T00:00:00Z" } }));
+    expect(old).toContain(supersededBannerText(2, "2026-09-14T00:00:00Z"));
+    expect(old).toContain("SUPERSEDED by v2 on 14 September 2026");
+    expect(old).toContain("version 1 (superseded by v2)");
   });
 
   it("no directors stored → two blank signature lines; watermark burned when a recipient is given", async () => {

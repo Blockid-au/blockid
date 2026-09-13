@@ -11,6 +11,13 @@
 // latest `startup_score_history.svi_analysis` for the owner — so a
 // certificate says what the founder's dashboard says on the issue date.
 //
+// S27-A: `annexes.ess` adds the ESS start-up concession annex (Div 83A) —
+// the company facts the project already stores (project_grant_profiles:
+// incorporated_at / listed / turnover_aud / entity_type / prior_raise_aud;
+// cap table: shares on issue + ESOP pool) frozen into `payload.ess` with
+// the s 83A-33 checklist built from them. Nothing is assumed: a fact that
+// is not on file makes its row "not confirmed".
+//
 // Every DB access takes the admin client as an argument so the colocated
 // suites drive it with `fakeSupabase`.
 
@@ -27,9 +34,12 @@ import {
   DIMENSION_KEYS,
   DIMENSION_LABELS,
   DIMENSION_WEIGHTS,
+  buildEssAnnex,
+  emptyEssFacts,
   formatAbn,
   verifyPathFor,
   type CertificateDimension,
+  type CertificateEssFacts,
   type CertificateEvidenceSummary,
   type DimensionKey,
   type ValuationCertificateData,
@@ -76,6 +86,8 @@ export interface CertificateSubjectInput {
   /** `svi_accounts.id` for (dataEmail, projectId); null → no analysis yet. */
   accountId: string | null;
   now?: Date;
+  /** S27-A: optional annexes to freeze with the certificate. */
+  annexes?: { ess?: boolean };
 }
 
 export type CertificateSubject = Omit<ValuationCertificateData, "version" | "certificateNo" | "issuedAt" | "verifyUrl">;
@@ -149,6 +161,53 @@ export function summariseEvidence(rows: EvidenceRow[]): CertificateEvidenceSumma
     byDimension: DIMENSION_KEYS.filter((k) => dim.has(k)).map((dimension) => ({ dimension, count: dim.get(dimension) ?? 0 })),
     lastVerifiedAt: last,
   };
+}
+
+/* ── ESS annex facts (S27-A) ──────────────────────────────────────────── */
+
+function numOrNull(v: unknown): number | null {
+  const n = typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : Number.NaN;
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * The company facts the ESS checklist can be populated from — the project's
+ * grant profile (founder-entered) and the OWNER's cap table for this
+ * project. Every miss is null, never a default.
+ */
+export async function loadEssFacts(db: CertificateDb, scope: { projectId: string; ownerUserId: string }): Promise<CertificateEssFacts> {
+  const facts = emptyEssFacts();
+
+  const { data: profile } = await db
+    .from("project_grant_profiles")
+    .select("project_id, incorporated_at, listed, turnover_aud, entity_type, prior_raise_aud")
+    .eq("project_id", scope.projectId)
+    .maybeSingle();
+  const p = (profile as { project_id?: string; incorporated_at?: string | null; listed?: boolean | null; turnover_aud?: unknown; entity_type?: string | null; prior_raise_aud?: unknown } | null) ?? null;
+  if (p && (!p.project_id || p.project_id === scope.projectId)) {
+    facts.incorporatedAt = typeof p.incorporated_at === "string" && p.incorporated_at ? p.incorporated_at.slice(0, 10) : null;
+    facts.listed = typeof p.listed === "boolean" ? p.listed : null;
+    facts.turnoverAud = numOrNull(p.turnover_aud);
+    facts.entityType = typeof p.entity_type === "string" && p.entity_type ? p.entity_type : null;
+    facts.priorRaiseAud = numOrNull(p.prior_raise_aud);
+  }
+
+  const [{ data: holders }, { data: pools }] = await Promise.all([
+    db.from("shareholders").select("shares_held, project_id, account_id").eq("account_id", scope.ownerUserId),
+    db.from("esop_pool").select("total_pool_shares, project_id, account_id").eq("account_id", scope.ownerUserId),
+  ]);
+  const holderRows = ((holders as Array<{ shares_held: unknown; project_id?: string | null; account_id?: string }> | null) ?? []).filter(
+    (h) => h && h.account_id === scope.ownerUserId && (!h.project_id || h.project_id === scope.projectId),
+  );
+  if (holderRows.length > 0) {
+    const issued = holderRows.reduce((sum, h) => sum + (numOrNull(h.shares_held) ?? 0), 0);
+    facts.issuedShares = issued > 0 ? issued : null;
+  }
+  const pool = ((pools as Array<{ total_pool_shares: unknown; project_id?: string | null; account_id?: string }> | null) ?? []).find(
+    (r) => r && r.account_id === scope.ownerUserId && (!r.project_id || r.project_id === scope.projectId),
+  );
+  facts.esopPoolShares = pool ? numOrNull(pool.total_pool_shares) : null;
+  return facts;
 }
 
 /**
@@ -255,6 +314,17 @@ export async function loadCertificateSubject(input: CertificateSubjectInput): Pr
   const inputs = (historyMatches ? (historyRow?.inputs as Record<string, unknown> | null) : null) ?? null;
   const abn = formatAbn(typeof inputs?.abn === "string" ? inputs.abn : null);
 
+  const valuation = {
+    lowAud: bridged.lowAud,
+    midAud: bridged.midAud,
+    highAud: bridged.highAud,
+    method: bridged.valuationMethod,
+    methodNote: bridged.methodNote,
+  };
+
+  // 6. ESS annex (S27-A) — only when asked for; the age row is re-stamped at issue.
+  const ess = input.annexes?.ess ? buildEssAnnex(await loadEssFacts(db, { projectId, ownerUserId }), valuation, (input.now ?? new Date()).toISOString()) : null;
+
   return {
     ok: true,
     subject: {
@@ -263,13 +333,7 @@ export async function loadCertificateSubject(input: CertificateSubjectInput): Pr
       stageLabel: typeof analysis?.stageLabel === "string" ? analysis.stageLabel : null,
       sviScore: Math.round(sviScore),
       sviVersion: (typeof analysis?.version === "string" ? analysis.version : null) ?? (historyRow?.score_version as string | null) ?? null,
-      valuation: {
-        lowAud: bridged.lowAud,
-        midAud: bridged.midAud,
-        highAud: bridged.highAud,
-        method: bridged.valuationMethod,
-        methodNote: bridged.methodNote,
-      },
+      valuation,
       connectedRevenue: bridged.connectedRevenue
         ? {
             provider: bridged.connectedRevenue.provider,
@@ -289,6 +353,7 @@ export async function loadCertificateSubject(input: CertificateSubjectInput): Pr
       dimensions: dimensionsFromAnalysis(analysis),
       evidence: summariseEvidence(evidenceRows),
       scoreHistoryId: historyMatches ? (historyRow?.id as string) : null,
+      ...(ess ? { ess } : {}),
     },
   };
 }
@@ -323,6 +388,8 @@ export async function issueCertificate(input: IssueCertificateInput): Promise<Is
       issuedAt,
       verifyUrl: `${base}${verifyPathFor(certificateNo)}`,
       ...input.subject,
+      // The annex's company-age row is measured at the issue date — rebuild it from the frozen facts now.
+      ...(input.subject.ess ? { ess: buildEssAnnex(input.subject.ess.facts, input.subject.valuation, issuedAt) } : {}),
     };
     const contentHash = certificateContentHash(payload);
     const { data, error } = await input.db
@@ -414,6 +481,8 @@ export function certificateSummary(row: ValuationCertificateRow, baseUrl = siteB
     revokedReason: row.revoked_reason,
     verifyUrl: `${baseUrl}${verifyPathFor(row.certificate_no)}`,
     pdfUrl: `/api/valuation/certificate/${row.id}/pdf`,
+    /** S27-A: Annex A (ESS start-up concession) frozen with this certificate. */
+    annexes: { ess: Boolean(row.payload?.ess) },
   };
 }
 

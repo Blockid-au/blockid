@@ -115,6 +115,255 @@ export interface ValuationCertificateData {
   verifyUrl: string;
   /** Optional provenance — which score snapshot the figures were read from. */
   scoreHistoryId: string | null;
+  /**
+   * S27-A — optional ESS start-up concession annex (Div 83A ITAA 1997),
+   * frozen with the rest of the payload when the founder asks for it at
+   * issue. Absent / null on certificates issued without it.
+   */
+  ess?: CertificateEssAnnex | null;
+}
+
+/* ── ESS annex (S27-A) ────────────────────────────────────────────────── */
+
+export const ESS_ANNEX_VERSION = "ess-1";
+
+/** Company facts the project already stores (project_grant_profiles + cap table). Null = not recorded. */
+export interface CertificateEssFacts {
+  /** ISO date (YYYY-MM-DD) from project_grant_profiles.incorporated_at. */
+  incorporatedAt: string | null;
+  /** Whole years between incorporation and the issue date, or null. */
+  yearsSinceIncorporation: number | null;
+  /** project_grant_profiles.listed — null when no profile row exists. */
+  listed: boolean | null;
+  /** project_grant_profiles.turnover_aud (the founder-entered figure, not necessarily aggregated). */
+  turnoverAud: number | null;
+  /** project_grant_profiles.entity_type (pty_ltd, …). */
+  entityType: string | null;
+  /** project_grant_profiles.prior_raise_aud — amount only; the raise date is not recorded. */
+  priorRaiseAud: number | null;
+  /** Ordinary shares on issue per the cap table (sum of shareholders.shares_held), null when no cap table. */
+  issuedShares: number | null;
+  /** ESOP pool shares reserved (esop_pool.total_pool_shares), null when none. */
+  esopPoolShares: number | null;
+}
+
+export type EssChecklistStatus = "met" | "not_met" | "not_confirmed";
+
+export interface EssChecklistRow {
+  key: "unlisted" | "age" | "turnover" | "resident" | "discount" | "holding" | "ownership";
+  /** The condition, in plain words. */
+  condition: string;
+  /** Statutory reference (ITAA 1997). */
+  reference: string;
+  status: EssChecklistStatus;
+  /** What the status rests on — the stored fact, or why it could not be confirmed. */
+  basis: string;
+}
+
+export interface CertificateEssAnnex {
+  version: typeof ESS_ANNEX_VERSION;
+  facts: CertificateEssFacts;
+  checklist: EssChecklistRow[];
+  /** Indicative per-share comparison from the certificate's own range ÷ issued shares; null without a share count. */
+  indicativePerShare: { lowAud: number; midAud: number; highAud: number; basisShares: number } | null;
+}
+
+/** Statutory thresholds for the start-up concession (s 83A-33 ITAA 1997). */
+export const ESS_MAX_COMPANY_AGE_YEARS = 10;
+export const ESS_MAX_AGGREGATED_TURNOVER_AUD = 50_000_000;
+export const ESS_MAX_SHARE_DISCOUNT_PCT = 15;
+export const ESS_MIN_HOLDING_YEARS = 3;
+/** Net tangible assets safe-harbour conditions under the 2015 approval instrument. */
+export const ESS_NTA_MAX_COMPANY_AGE_YEARS = 7;
+export const ESS_NTA_MAX_RAISE_PRIOR_12M_AUD = 10_000_000;
+
+export const ESS_ANNEX_TITLE = "Market value of an ordinary share for ESS purposes";
+
+export const ESS_APPROVAL_INSTRUMENT = "Income Tax Assessment (Methods for Valuing Unlisted Shares) Approval 2015";
+
+/** The one sentence that must never be softened: BlockID's figure is not a safe harbour. */
+export const ESS_NOT_SAFE_HARBOUR_SENTENCE =
+  "The BlockID.au indicative valuation on this certificate is not a market value determined under an ATO-approved method and is not an ATO safe-harbour valuation for ESS purposes; " +
+  "before granting ESS interests under the start-up concession the company must obtain a signed net tangible assets calculation or a valuation from a qualified valuer, and take its own tax advice.";
+
+export const ESS_ANNEX_INTRO =
+  "Employee share scheme (ESS) interests granted under the start-up concession in Subdivision 83A-B of the Income Tax Assessment Act 1997 (Cth) (Div 83A) are measured against the market value of an ordinary share in the company at the time the interest is acquired. " +
+  "This annex sets out the concession's conditions as they can be checked against the facts this startup has recorded with BlockID.au, and the valuation methods the Commissioner of Taxation has approved for unlisted start-up shares. It does not assess any particular grant.";
+
+export const ESS_APPROVED_METHODS: ReadonlyArray<{ title: string; body: string }> = [
+  {
+    title: "Net tangible assets (NTA) method — the start-up safe harbour",
+    body:
+      `Under the ${ESS_APPROVAL_INSTRUMENT} (a legislative instrument made by the Commissioner of Taxation), an unlisted company incorporated less than ${ESS_NTA_MAX_COMPANY_AGE_YEARS} years before the valuation that has not raised more than A$10 million of capital in the 12 months before the valuation may value an ordinary share at the company's net tangible assets divided by the number of shares on issue, subject to the instrument's other conditions (including the financial statements the calculation rests on). ` +
+      "The NTA calculation must be prepared in writing and signed off by a director or the chief financial officer of the company, and it must be made at or near the time of the grant. Check the instrument's current conditions before relying on it.",
+  },
+  {
+    title: "Valuation by a qualified valuer within 12 months",
+    body:
+      "A written market valuation of the company's ordinary shares by a suitably qualified independent valuer, dated within the 12 months before the ESS interest is acquired, may be used while nothing material has changed since it was made. " +
+      "Any generally accepted valuation method that produces the market value of the share is available to the valuer; the company remains responsible for the valuation it relies on.",
+  },
+  {
+    title: "Recent arm's-length sale or issue",
+    body:
+      "The price paid in a recent arm's-length sale or issue of shares of the same class (for example a priced funding round) is ordinarily strong evidence of market value, adjusted for any change in circumstances since. " +
+      "Whether it satisfies the approval instrument for a particular grant, and how far back it may be relied on, should be confirmed with the company's tax adviser.",
+  },
+];
+
+export const ESS_ANNEX_CLOSING_NOTES: readonly string[] = [
+  "Every row marked \"not confirmed\" is a condition BlockID.au cannot verify from the data on file; it is not a finding that the condition fails.",
+  "The conditions in s 83A-33 are tested when each ESS interest is acquired, not at the issue date of this certificate — a company that qualifies today may not qualify at a later grant.",
+  "Options and rights must have an exercise price at least equal to the market value of an ordinary share when they are acquired; shares must be acquired at a discount of no more than 15 % of market value (s 83A-33(5)).",
+  "This annex is general information only and is not tax, legal or financial advice. Confirm the concession and the valuation method with a registered tax agent before any grant.",
+];
+
+const NOT_RECORDED = "not recorded in BlockID.au";
+
+function wholeYearsBetween(fromIso: string, toIso: string): number | null {
+  const from = new Date(fromIso);
+  const to = new Date(toIso);
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || to.getTime() < from.getTime()) return null;
+  let years = to.getUTCFullYear() - from.getUTCFullYear();
+  const beforeAnniversary = to.getUTCMonth() < from.getUTCMonth() || (to.getUTCMonth() === from.getUTCMonth() && to.getUTCDate() < from.getUTCDate());
+  if (beforeAnniversary) years -= 1;
+  return Math.max(0, years);
+}
+
+/** Whole years since incorporation at `issuedAt`, or null when either date is unusable. */
+export function essYearsSinceIncorporation(incorporatedAt: string | null, issuedAt: string): number | null {
+  if (!incorporatedAt) return null;
+  return wholeYearsBetween(incorporatedAt, issuedAt);
+}
+
+/**
+ * The s 83A-33 / s 83A-45 checklist from the facts on file. Pure. A fact
+ * that is not stored is "not confirmed" — never assumed either way. Rows
+ * that depend on a specific grant (discount, holding period, ownership)
+ * are always "not confirmed" on a certificate.
+ */
+export function buildEssChecklist(facts: CertificateEssFacts, issuedAt: string): EssChecklistRow[] {
+  const years = facts.yearsSinceIncorporation ?? essYearsSinceIncorporation(facts.incorporatedAt, issuedAt);
+
+  const unlisted: EssChecklistRow = {
+    key: "unlisted",
+    condition: "No equity interests of the company (or of a subsidiary or holding company) are listed on an approved stock exchange",
+    reference: "s 83A-33(2)",
+    status: facts.listed === null ? "not_confirmed" : facts.listed ? "not_met" : "met",
+    basis:
+      facts.listed === null
+        ? `Listed status ${NOT_RECORDED} — no company profile on file`
+        : facts.listed
+          ? "The project profile records the company as listed"
+          : "The project profile records the company as not listed; confirm the same for any subsidiary or holding company",
+  };
+
+  const age: EssChecklistRow = {
+    key: "age",
+    condition: `The company (and any subsidiary or holding company) was incorporated less than ${ESS_MAX_COMPANY_AGE_YEARS} years before the end of the most recent income year before the ESS interest is acquired`,
+    reference: "s 83A-33(3)",
+    status: years === null ? "not_confirmed" : years < ESS_MAX_COMPANY_AGE_YEARS ? "met" : "not_confirmed",
+    basis:
+      years === null
+        ? `Incorporation date ${NOT_RECORDED}`
+        : years < ESS_MAX_COMPANY_AGE_YEARS
+          ? `Incorporated ${facts.incorporatedAt} — ${years} year${years === 1 ? "" : "s"} at the issue date, so fewer than ${ESS_MAX_COMPANY_AGE_YEARS} at the end of the prior income year; confirm for related companies`
+          : `Incorporated ${facts.incorporatedAt} — ${years} years at the issue date; test against the end of the most recent income year before the grant`,
+  };
+
+  const turnover: EssChecklistRow = {
+    key: "turnover",
+    condition: `Aggregated turnover for the most recent income year before the ESS interest is acquired does not exceed A$50 million`,
+    reference: "s 83A-33(4)",
+    status: facts.turnoverAud === null ? "not_confirmed" : facts.turnoverAud <= ESS_MAX_AGGREGATED_TURNOVER_AUD ? "met" : "not_met",
+    basis:
+      facts.turnoverAud === null
+        ? `Turnover ${NOT_RECORDED}`
+        : facts.turnoverAud <= ESS_MAX_AGGREGATED_TURNOVER_AUD
+          ? `Recorded turnover ${formatAudFull(facts.turnoverAud)} is within the cap; aggregated turnover also counts connected entities and affiliates — confirm`
+          : `Recorded turnover ${formatAudFull(facts.turnoverAud)} exceeds the cap`,
+  };
+
+  const resident: EssChecklistRow = {
+    key: "resident",
+    condition: "The employer is an Australian resident taxpayer",
+    reference: "s 83A-33(6)",
+    status: "not_confirmed",
+    basis:
+      facts.entityType === "pty_ltd"
+        ? "The project profile records a proprietary company; tax residency is not recorded — confirm with the company's tax agent"
+        : `Tax residency ${NOT_RECORDED} — confirm with the company's tax agent`,
+  };
+
+  const discount: EssChecklistRow = {
+    key: "discount",
+    condition: `Shares are acquired at a discount of no more than ${ESS_MAX_SHARE_DISCOUNT_PCT} % of market value; options or rights have an exercise price at least equal to the market value of an ordinary share when acquired`,
+    reference: "s 83A-33(5)",
+    status: "not_confirmed",
+    basis: "Assessed per grant against a market value determined under an approved method — not a certificate-level fact",
+  };
+
+  const holding: EssChecklistRow = {
+    key: "holding",
+    condition: `The ESS interest (or the share acquired on exercise) is held for at least ${ESS_MIN_HOLDING_YEARS} years, or until the employee ceases employment`,
+    reference: "s 83A-45(4)–(5)",
+    status: "not_confirmed",
+    basis: "A condition of each grant and of the plan rules — not a certificate-level fact",
+  };
+
+  const ownership: EssChecklistRow = {
+    key: "ownership",
+    condition: "Immediately after acquiring the ESS interest the employee holds no more than 10 % of the shares in, or voting power of, the company",
+    reference: "s 83A-45(6)",
+    status: "not_confirmed",
+    basis: "Assessed per employee at each grant — not a certificate-level fact",
+  };
+
+  return [unlisted, age, turnover, resident, discount, holding, ownership];
+}
+
+/** The certificate's own range ÷ ordinary shares on issue — an indicative comparison only. */
+export function essIndicativePerShare(valuation: ValuationCertificateData["valuation"], issuedShares: number | null): CertificateEssAnnex["indicativePerShare"] {
+  if (issuedShares === null || !Number.isFinite(issuedShares) || issuedShares <= 0) return null;
+  const per = (v: number) => (Number.isFinite(v) && v > 0 ? Math.round((v / issuedShares) * 10_000) / 10_000 : 0);
+  return { lowAud: per(valuation.lowAud), midAud: per(valuation.midAud), highAud: per(valuation.highAud), basisShares: Math.round(issuedShares) };
+}
+
+/** Assemble the frozen annex from the facts on file. Pure — the server loads the facts. */
+export function buildEssAnnex(facts: CertificateEssFacts, valuation: ValuationCertificateData["valuation"], issuedAt: string): CertificateEssAnnex {
+  // Years are derived from the date at THIS issue instant — a stale stored figure never survives a re-stamp.
+  const withYears: CertificateEssFacts = { ...facts, yearsSinceIncorporation: facts.incorporatedAt ? essYearsSinceIncorporation(facts.incorporatedAt, issuedAt) : facts.yearsSinceIncorporation };
+  return {
+    version: ESS_ANNEX_VERSION,
+    facts: withYears,
+    checklist: buildEssChecklist(withYears, issuedAt),
+    indicativePerShare: essIndicativePerShare(valuation, withYears.issuedShares),
+  };
+}
+
+/** Facts block with nothing on file — every row not confirmed. */
+export function emptyEssFacts(): CertificateEssFacts {
+  return { incorporatedAt: null, yearsSinceIncorporation: null, listed: null, turnoverAud: null, entityType: null, priorRaiseAud: null, issuedShares: null, esopPoolShares: null };
+}
+
+/** "3 of 7 conditions confirmed from your project profile" — the panel line. */
+export function essChecklistSummary(rows: EssChecklistRow[]): { met: number; notMet: number; notConfirmed: number; total: number } {
+  let met = 0;
+  let notMet = 0;
+  let notConfirmed = 0;
+  for (const r of rows) {
+    if (r.status === "met") met++;
+    else if (r.status === "not_met") notMet++;
+    else notConfirmed++;
+  }
+  return { met, notMet, notConfirmed, total: rows.length };
+}
+
+/** "A$0.0125" per-share figure (4 dp, trailing zeros trimmed to 2). */
+export function formatAudPerShare(v: number): string {
+  if (!Number.isFinite(v)) return "A$0.00";
+  const fixed = v.toFixed(4).replace(/(\.\d\d[1-9]?)0+$/, "$1");
+  return `A$${fixed}`;
 }
 
 /* ── Approved copy ────────────────────────────────────────────────────── */

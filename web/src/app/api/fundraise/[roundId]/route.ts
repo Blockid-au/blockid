@@ -2,7 +2,10 @@
 //
 //   GET    → the round, its commitments, the progress summary and — for a
 //            draft — the project's existing data room, if any (viewer+)
-//   PATCH  → { status: "closed" } closes an active round; { roundName }
+//   PATCH  → { status: "closed" } closes an active round (ADMIN+ — it is
+//            irreversible, `closed → []`, like a dividend void; S26 review
+//            P3-8) and is audited as `fundraise.round.closed` (handler-level
+//            `auditAction()` over the route's default verb); { roundName }
 //            renames (editor+). Activation is its own route —
 //            POST /api/fundraise/[roundId]/activate — because it attaches
 //            (and may compile) the data room and carries its own audit
@@ -16,12 +19,15 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { apiRoute, auditNote } from "@/lib/audit/api-route";
+import { apiRoute, auditAction, auditNote } from "@/lib/audit/api-route";
 import { canTransitionRound, isRoundStatus, summariseCommitments } from "@/lib/fundraise/commitments";
 import { listCommitments, resolveRoundForCaller, ROUND_COLUMNS } from "@/lib/fundraise/rounds-server";
 import { findRoomForScope } from "@/lib/dataroom/generate-room";
 
 export const dynamic = "force-dynamic";
+
+/** Audit action recorded when a PATCH closes the round (sibling of `fundraise.round.activated`). */
+export const CLOSE_AUDIT_ACTION = "fundraise.round.closed";
 
 type Ctx = { params: Promise<{ roundId: string }> };
 
@@ -62,6 +68,8 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
     projectDataRoom,
     role: scope?.role ?? "owner",
     canEdit: !scope || scope.role === "owner" || scope.role === "admin" || scope.role === "editor",
+    // Closing is irreversible → owner / admin only (PATCH enforces it; this only hides the button).
+    canClose: !scope || scope.role === "owner" || scope.role === "admin",
   });
 }
 
@@ -85,7 +93,9 @@ async function PATCH_handler(req: NextRequest, ctx: Ctx) {
   }
   if (!body || typeof body !== "object") return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
 
-  const access = await resolveRoundForCaller(supabase, user, roundId, "editor");
+  // Closing is irreversible → admin+; everything else on this route is editor+.
+  const closing = body.status === "closed";
+  const access = await resolveRoundForCaller(supabase, user, roundId, closing ? "admin" : "editor");
   if (!access.ok) return access.response;
   const { round, ownerUserId } = access;
 
@@ -130,6 +140,7 @@ async function PATCH_handler(req: NextRequest, ctx: Ctx) {
     console.error("[fundraise] round patch failed", error);
     return NextResponse.json({ ok: false, error: "Failed to update round" }, { status: 500 });
   }
+  if (patch.status === "closed") auditAction(CLOSE_AUDIT_ACTION);
   auditNote(round.id, { status: patch.status ?? null, renamed: patch.round_name !== undefined });
   return NextResponse.json({ ok: true, round: data ?? { ...round, ...patch } });
 }

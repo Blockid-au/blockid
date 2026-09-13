@@ -14,6 +14,15 @@
  *   Page 3  methodology (doctoral sentence verbatim), data principle,
  *           general-advice + not-a-valuation-report disclaimer (APES 225 /
  *           AFSL), signature block for Auschain PTY LTD (ACN / ABN).
+ *   Annex A (S27-A, optional, 2 pages) "Market value of an ordinary share for ESS
+ *           purposes" — the Div 83A start-up concession checklist populated
+ *           from the facts frozen in `payload.ess` ("not confirmed" where
+ *           nothing is on file), the ATO-approved valuation methods for
+ *           unlisted start-up shares (the 2015 approval instrument named),
+ *           the certificate's own range as an INDICATIVE comparison and the
+ *           not-a-safe-harbour sentence. Rendered when the payload carries
+ *           `ess` (unless `annex: "none"`), or on request with an empty
+ *           facts block for a certificate issued without it.
  *
  * Every page carries `<HeaderBar>` / `<Footer>` from the SVI report so the
  * certificate reads as the same product, and the S21-A `<WatermarkLayer>`
@@ -35,13 +44,23 @@ import {
   CERTIFICATE_DISCLAIMER,
   DATA_PRINCIPLE_SENTENCE,
   DOCTORAL_SENTENCE,
+  ESS_ANNEX_CLOSING_NOTES,
+  ESS_ANNEX_INTRO,
+  ESS_ANNEX_TITLE,
+  ESS_APPROVED_METHODS,
+  ESS_NOT_SAFE_HARBOUR_SENTENCE,
   LEGAL_ENTITY_ABN,
   LEGAL_ENTITY_ACN,
   LEGAL_ENTITY_LINE,
   LEGAL_ENTITY_NAME,
   METHOD_LABELS,
+  buildEssAnnex,
+  emptyEssFacts,
   formatAudCompact,
   formatAudFull,
+  formatAudPerShare,
+  type CertificateEssAnnex,
+  type EssChecklistStatus,
   type ValuationCertificateData,
 } from "@/lib/valuation-certificate/types";
 
@@ -53,7 +72,28 @@ export interface ValuationCertificatePdfProps {
   watermark: string | null;
   /** Set when the certificate has been revoked — a banner is printed on every page. */
   revokedAt?: string | null;
+  /**
+   * S27-A — which annexes to print. Default: the ESS annex when the payload
+   * carries `ess`. `"ess"` also prints it for a certificate issued without
+   * one (every checklist row "not confirmed", no per-share line); `"none"`
+   * suppresses it.
+   */
+  annex?: "auto" | "ess" | "none";
 }
+
+/** Resolve the annex to print from the props — exported for the route + suite. */
+export function essAnnexFor(data: ValuationCertificateData, annex: ValuationCertificatePdfProps["annex"] = "auto"): CertificateEssAnnex | null {
+  if (annex === "none") return null;
+  if (data.ess) return data.ess;
+  if (annex === "ess") return buildEssAnnex(emptyEssFacts(), data.valuation, data.issuedAt);
+  return null;
+}
+
+export const ESS_STATUS_LABEL: Record<EssChecklistStatus, string> = {
+  met: "Met (on the facts recorded)",
+  not_met: "Not met",
+  not_confirmed: "Not confirmed",
+};
 
 const AU_DATE = new Intl.DateTimeFormat("en-AU", {
   day: "numeric",
@@ -254,6 +294,7 @@ function CoverPage({ data, contentHash, watermark, revokedAt }: ValuationCertifi
         an investor can verify, independently of the founder, what BlockID.au assessed and when. Page 2 sets out the
         eight dimension scores, the evidence base and the assumptions; page 3 carries the methodology, the
         disclaimer and the issuing entity.
+        {data.ess ? " Annex A sets out the Div 83A start-up concession conditions and the ATO-approved valuation methods for ESS purposes; the certificate's figure is not a safe-harbour valuation." : ""}
       </Text>
       <Text style={st.small}>
         Indicative only — not an independent valuation report and not financial product advice. See page 3.
@@ -381,8 +422,95 @@ function MethodologyPage({ data, contentHash, watermark, revokedAt }: ValuationC
   );
 }
 
+/* ── Annex A — ESS start-up concession (S27-A) ───────────────────────── */
+
+/** Statutory wording must never be split mid-word — the checklist cells wrap on spaces only. */
+const noHyphen = (word: string): string[] => [word];
+
+function statusColor(status: EssChecklistStatus): string {
+  if (status === "met") return C.brand700;
+  if (status === "not_met") return C.red600;
+  return C.amber700;
+}
+
+function EssAnnexPage({ data, watermark, revokedAt, ess }: ValuationCertificatePdfProps & { ess: CertificateEssAnnex }) {
+  const f = ess.facts;
+  return (
+    <Page size="A4" style={st.page}>
+      <Chrome watermark={watermark} revokedAt={revokedAt} />
+      <Text style={st.eyebrow}>{data.certificateNo} · {data.startupName} · Annex A</Text>
+      <Text style={st.h2}>Annex A — {ESS_ANNEX_TITLE}</Text>
+      <Text style={st.p}>{ESS_ANNEX_INTRO}</Text>
+
+      <Text style={st.h2}>Start-up concession conditions (s 83A-33 ITAA 1997)</Text>
+      <View style={st.tr} wrap={false}>
+        <View style={[st.th, { width: "46%" }]}><Text>Condition</Text></View>
+        <View style={[st.th, { width: "12%" }]}><Text>Reference</Text></View>
+        <View style={[st.th, { width: "14%" }]}><Text>Status</Text></View>
+        <View style={[st.th, { width: "28%" }]}><Text>Basis</Text></View>
+      </View>
+      {ess.checklist.map((row) => (
+        <View key={row.key} style={st.tr} wrap={false}>
+          <View style={[st.td, { width: "46%" }]}><Text hyphenationCallback={noHyphen}>{row.condition}</Text></View>
+          <View style={[st.td, { width: "12%" }]}><Text hyphenationCallback={noHyphen}>{row.reference}</Text></View>
+          <View style={[st.td, { width: "14%" }]}><Text style={{ color: statusColor(row.status), fontFamily: "Helvetica-Bold", fontSize: 7.5 }} hyphenationCallback={noHyphen}>{ESS_STATUS_LABEL[row.status]}</Text></View>
+          <View style={[st.td, { width: "28%" }]}><Text style={{ fontSize: 7.5 }} hyphenationCallback={noHyphen}>{row.basis}</Text></View>
+        </View>
+      ))}
+      <Text style={[st.small, { marginTop: 4 }]}>
+        Facts on file at issue: incorporated {f.incorporatedAt ?? "not recorded"} · listed {f.listed === null ? "not recorded" : f.listed ? "yes" : "no"} · turnover{" "}
+        {f.turnoverAud === null ? "not recorded" : formatAudFull(f.turnoverAud)} · entity type {f.entityType ?? "not recorded"} · prior raise{" "}
+        {f.priorRaiseAud === null ? "not recorded" : `${formatAudFull(f.priorRaiseAud)} (date not recorded)`} · ordinary shares on issue{" "}
+        {f.issuedShares === null ? "not recorded" : f.issuedShares.toLocaleString("en-AU")} · ESOP pool {f.esopPoolShares === null ? "not recorded" : f.esopPoolShares.toLocaleString("en-AU")}
+      </Text>
+
+      <Text style={[st.small, { marginTop: 10 }]}>Continued on the next page — approved valuation methods and this certificate&apos;s figure.</Text>
+      <Footer />
+    </Page>
+  );
+}
+
+function EssAnnexMethodsPage({ data, watermark, revokedAt, ess }: ValuationCertificatePdfProps & { ess: CertificateEssAnnex }) {
+  const v = data.valuation;
+  const per = ess.indicativePerShare;
+  return (
+    <Page size="A4" style={st.page}>
+      <Chrome watermark={watermark} revokedAt={revokedAt} />
+      <Text style={st.eyebrow}>{data.certificateNo} · {data.startupName} · Annex A (continued)</Text>
+      <Text style={st.h2}>ATO-approved valuation methods for unlisted start-up shares</Text>
+      {ESS_APPROVED_METHODS.map((m) => (
+        <View key={m.title} style={{ marginBottom: 6 }} wrap={false}>
+          <Text style={[st.kvLabel, { textTransform: "none", letterSpacing: 0, fontSize: 9, color: C.ink900 }]}>{m.title}</Text>
+          <Text style={[st.small, { color: C.ink700, fontSize: 8.5 }]}>{m.body}</Text>
+        </View>
+      ))}
+
+      <Text style={st.h2}>This certificate&apos;s figure — indicative comparison only</Text>
+      <View style={st.card}>
+        <Text style={st.small}>
+          Indicative equity value on page 1 ({METHOD_LABELS[v.method] ?? v.method}): {formatAudFull(v.lowAud)} – {formatAudFull(v.highAud)}, midpoint {formatAudFull(v.midAud)}.
+          {per
+            ? ` Divided by the ${per.basisShares.toLocaleString("en-AU")} ordinary shares on issue per the cap table at issue, that is ${formatAudPerShare(per.lowAud)} – ${formatAudPerShare(per.highAud)} per share (midpoint ${formatAudPerShare(per.midAud)}) — before any ESOP pool or other dilution, and not adjusted for the preferences or rights of other share classes.`
+            : " No share count was on file at issue, so no per-share figure is shown."}
+        </Text>
+        <Text style={[st.disclaimer, { marginTop: 6 }]}>{ESS_NOT_SAFE_HARBOUR_SENTENCE}</Text>
+      </View>
+
+      {ESS_ANNEX_CLOSING_NOTES.map((line, i) => (
+        <View key={i} style={st.bulletRow}>
+          <Text style={st.bulletDot}>•</Text>
+          <Text style={st.bulletText}>{line}</Text>
+        </View>
+      ))}
+      <Text style={[st.small, { marginTop: 6 }]}>Annex format {ess.version} · frozen with the certificate payload and covered by its content hash.</Text>
+      <Footer />
+    </Page>
+  );
+}
+
 export function ValuationCertificatePDF(props: ValuationCertificatePdfProps) {
   const { data } = props;
+  const ess = essAnnexFor(data, props.annex);
   return (
     <Document
       title={`Valuation certificate ${data.certificateNo} — ${data.startupName}`}
@@ -393,6 +521,8 @@ export function ValuationCertificatePDF(props: ValuationCertificatePdfProps) {
       <CoverPage {...props} />
       <DimensionsPage {...props} />
       <MethodologyPage {...props} />
+      {ess ? <EssAnnexPage {...props} ess={ess} /> : null}
+      {ess ? <EssAnnexMethodsPage {...props} ess={ess} /> : null}
     </Document>
   );
 }

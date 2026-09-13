@@ -58,7 +58,7 @@ vi.mock("@/lib/valuation-certificate/server", async () => {
   };
 });
 
-import { GET, POST } from "./route";
+import { GET, POST, wantsEssAnnex } from "./route";
 
 const ANALYSIS = {
   version: "v3.6.8",
@@ -182,6 +182,61 @@ describe("POST /api/valuation/certificate — cost preview / confirm", () => {
     expect(res.status).toBe(500);
     expect((await res.json()).error).toBe("certificate_insert_failed");
     expect(credits.grantCredits).toHaveBeenCalledWith("user-caller", 5, "refund", expect.objectContaining({ feature: "valuation_certificate", reason: "certificate_insert_failed" }));
+  });
+});
+
+describe("POST /api/valuation/certificate — ESS annex (S27-A)", () => {
+  it("wantsEssAnnex accepts every body shape and nothing else", () => {
+    expect(wantsEssAnnex({})).toBe(false);
+    expect(wantsEssAnnex({ annex: "ess" })).toBe(true);
+    expect(wantsEssAnnex({ annex: ["ess"] })).toBe(true);
+    expect(wantsEssAnnex({ annex: { ess: true } })).toBe(true);
+    expect(wantsEssAnnex({ annexes: ["ess"] })).toBe(true);
+    expect(wantsEssAnnex({ ess: true })).toBe(true);
+    expect(wantsEssAnnex({ annex: "esop" })).toBe(false);
+    expect(wantsEssAnnex({ annex: { ess: "yes" } })).toBe(false);
+    expect(wantsEssAnnex({ ess: "true" })).toBe(false);
+  });
+
+  it("preview with annex:ess reports the annex at 0 extra credits with the checklist counts from the facts on file; the price is unchanged", async () => {
+    seed({
+      project_grant_profiles: [{ project_id: "proj-1", incorporated_at: "2022-03-15", listed: false, turnover_aud: 420_000, entity_type: "pty_ltd" }],
+      shareholders: [{ shares_held: 10_000_000, project_id: "proj-1", account_id: "user-caller" }],
+      esop_pool: [],
+    });
+    const body = await (await post({ annex: "ess" })).json();
+    expect(body.preview).toBe(true);
+    expect(body.cost).toBe(5);
+    expect(body.annexes).toEqual({ ess: { included: true, extraCost: 0, checklist: { met: 3, notMet: 0, notConfirmed: 4, total: 7 }, perShare: true } });
+    expect(credits.spendCredits).not.toHaveBeenCalled();
+    expect(db.sb!.find("valuation_certificates", "insert")).toHaveLength(0);
+    // Without the flag the preview says so and nothing ESS-related is read.
+    seed();
+    const plain = await (await post({})).json();
+    expect(plain.annexes).toEqual({ ess: { included: false, extraCost: 0 } });
+    expect(db.sb!.find("project_grant_profiles", "select")).toHaveLength(0);
+  });
+
+  it("confirm with annex:ess freezes payload.ess (facts + 7-row checklist) under the same hash and 5-credit price; summary flags it", async () => {
+    seed({ project_grant_profiles: [], shareholders: [], esop_pool: [] });
+    const res = await post({ confirm: true, annex: "ess" });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.creditsCharged).toBe(5);
+    const row = db.sb!.find("valuation_certificates", "insert")[0].args[0] as Record<string, unknown>;
+    const payload = row.payload as { ess?: { version: string; checklist: Array<{ status: string }>; indicativePerShare: unknown; facts: { incorporatedAt: string | null } } };
+    expect(payload.ess?.version).toBe("ess-1");
+    expect(payload.ess?.checklist).toHaveLength(7);
+    // Nothing on file → every row not confirmed, no per-share line; nothing was assumed.
+    expect(payload.ess?.checklist.every((r) => r.status === "not_confirmed")).toBe(true);
+    expect(payload.ess?.indicativePerShare).toBeNull();
+    expect(payload.ess?.facts.incorporatedAt).toBeNull();
+    expect(body.certificate.annexes).toEqual({ ess: true });
+    // A plain confirm never carries the annex.
+    seed();
+    await post({ confirm: true });
+    const plain = db.sb!.find("valuation_certificates", "insert")[0].args[0] as { payload: { ess?: unknown } };
+    expect(plain.payload.ess).toBeUndefined();
   });
 });
 

@@ -29,6 +29,7 @@ const db = vi.hoisted(() => ({ sb: null as FakeSupabase | null }));
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => db.sb }));
 
 import { GET } from "./route";
+import { SAMPLE_CERTIFICATE_ESS } from "@/lib/valuation-certificate/fixtures";
 
 const ID = "11111111-2222-4333-8444-555555555555";
 const HASH = certificateContentHash(SAMPLE);
@@ -122,6 +123,32 @@ describe("GET /api/valuation/certificate/[id]/pdf", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("x-blockid-certificate-revoked")).toBe("1");
     for (const page of await pages(res)) expect(page).toContain("REVOKED");
+  });
+
+  it("S27-A: a certificate issued with the ESS annex prints Annex A (5 pages, X-BlockID-Annex); ?annex=none drops it; ?annex=ess forces it on an older certificate", async () => {
+    db.sb = fakeSupabase({ valuation_certificates: [row({ payload: SAMPLE_CERTIFICATE_ESS, content_hash: certificateContentHash(SAMPLE_CERTIFICATE_ESS) })] });
+    const withAnnex = await call();
+    expect(withAnnex.status).toBe(200);
+    expect(withAnnex.headers.get("x-blockid-annex")).toBe("ess");
+    const p = await pages(withAnnex);
+    expect(p.length).toBe(5);
+    expect(p[3]).toContain("s 83A-33");
+    expect(p[4]).toContain("Income Tax Assessment (Methods for Valuing Unlisted Shares) Approval 2015");
+    expect(p[4]).toContain("not an ATO safe-harbour valuation for ESS purposes");
+
+    const none = await call(ID, "?annex=none");
+    expect(none.headers.get("x-blockid-annex")).toBeNull();
+    expect((await pages(none)).length).toBe(3);
+
+    db.sb = fakeSupabase({ valuation_certificates: [row()] });
+    const plain = await call();
+    expect(plain.headers.get("x-blockid-annex")).toBeNull();
+    expect((await pages(plain)).length).toBe(3);
+    const forced = await call(ID, "?annex=ess");
+    expect(forced.headers.get("x-blockid-annex")).toBe("ess");
+    const fp = await pages(forced);
+    expect(fp.length).toBe(5);
+    expect(fp[3]).toContain("Incorporation date not recorded");
   });
 
   it("503 without a database", async () => {

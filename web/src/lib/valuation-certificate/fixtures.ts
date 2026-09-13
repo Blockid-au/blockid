@@ -3,7 +3,7 @@
 // Not a test file: importing a `.test.tsx` module would re-register its
 // suites inside the importer.
 
-import type { ValuationCertificateData } from "./types";
+import { buildEssAnnex, type CertificateEssFacts, type ValuationCertificateData } from "./types";
 
 export const SAMPLE_CERTIFICATE: ValuationCertificateData = {
   version: "vc-1",
@@ -56,4 +56,21 @@ export const SAMPLE_CERTIFICATE: ValuationCertificateData = {
   },
   verifyUrl: "https://blockid.au/verify/valuation/VC-7K3MP-Q9X2A",
   scoreHistoryId: null,
+};
+
+/** S27-A — the same certificate issued WITH Annex A: facts on file for age / listed / turnover; residency, discount, holding and ownership stay "not confirmed". */
+export const SAMPLE_ESS_FACTS: CertificateEssFacts = {
+  incorporatedAt: "2022-03-15",
+  yearsSinceIncorporation: null,
+  listed: false,
+  turnoverAud: 420_000,
+  entityType: "pty_ltd",
+  priorRaiseAud: 750_000,
+  issuedShares: 10_000_000,
+  esopPoolShares: 1_000_000,
+};
+
+export const SAMPLE_CERTIFICATE_ESS: ValuationCertificateData = {
+  ...SAMPLE_CERTIFICATE,
+  ess: buildEssAnnex(SAMPLE_ESS_FACTS, SAMPLE_CERTIFICATE.valuation, SAMPLE_CERTIFICATE.issuedAt),
 };

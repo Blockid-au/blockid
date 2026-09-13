@@ -12,7 +12,7 @@
  * when nothing matches. Nothing is ever invented: a missing term scores the
  * neutral midpoint and is listed in `missing`.
  *
- * Matrix rows (12) — each with the per-sheet value, a display string, a
+ * Matrix rows (13; `valuation_post` and `instrument` are informational, weight 0) — each with the per-sheet value, a display string, a
  * 0–1 founder-friendliness sub-score and the `friendliest` sheet index(es):
  *
  *   valuation_pre       higher = friendlier (relative to the best sheet)
