@@ -75,11 +75,12 @@ describe("resolveRevenueFigures — fallbacks (no connector data)", () => {
 });
 
 describe("resolveRevenueFigures — bank CSV fallback (S28-C)", () => {
-  const bank = { monthlyOpex: 3100, monthlyIncome: 1500, income: 9000, monthsWithData: 6, takenAt: "2026-09-03T02:00:00Z" };
+  // income 9000 over 6 months = 1500 / month, of which 1200 / month is revenue-category (the rest a grant).
+  const bank = { monthlyOpex: 3100, monthlyIncome: 1500, monthlyRevenue: 1200, income: 9000, monthsWithData: 6, takenAt: "2026-09-03T02:00:00Z" };
 
   it("with nothing else: bank CSV owns MRR, revenue and opex, labelled with the import date", () => {
     const f = resolveRevenueFigures({ ...BASE, bankCsv: bank });
-    expect(f).toMatchObject({ mrr: 1500, arr: 18000, revenue: 9000, monthlyOpex: 3100, opex: 37200 });
+    expect(f).toMatchObject({ mrr: 1200, arr: 14400, revenue: 9000, monthlyOpex: 3100, opex: 37200 });
     expect(f.sources.mrr.label).toBe("from bank CSV, 3 Sep");
     expect(f.sources.revenue.label).toBe("from bank CSV, 3 Sep");
     expect(f.sources.opex.label).toBe("from bank CSV, 3 Sep");
@@ -113,6 +114,23 @@ describe("resolveRevenueFigures — bank CSV fallback (S28-C)", () => {
     expect(f.sources.revenue.kind).toBe("manual");
     expect(f.revenue).toBe(5000);
     expect(f.sources.opex.kind).toBe("bank_csv");
+  });
+
+  // S28-review P2: a grant received is income, not recurring revenue — MRR
+  // comes from the revenue-category lines only, never from monthlyIncome.
+  it("MRR uses revenue-category lines only: grants-only income sets the top line but never MRR / ARR", () => {
+    const grantsOnly = { ...bank, monthlyRevenue: 0 };
+    const f = resolveRevenueFigures({ ...BASE, bankCsv: grantsOnly, startupMetrics: { mrr: 0, burnRate: 0 } });
+    expect(f.mrr).toBe(0);
+    expect(f.arr).toBe(0);
+    expect(f.sources.mrr.kind).toBe("none");
+    expect(f.revenue).toBe(9000);
+    expect(f.sources.revenue.kind).toBe("bank_csv");
+    // A payload stored before the fix (no monthlyRevenue) never sets MRR from the bank either.
+    const legacy = { monthlyOpex: 3100, monthlyIncome: 1500, income: 9000, monthsWithData: 6, takenAt: null };
+    const g = resolveRevenueFigures({ ...BASE, bankCsv: legacy, startupMetrics: { mrr: 400, burnRate: 0 } });
+    expect(g.mrr).toBe(400);
+    expect(g.sources.mrr.kind).toBe("startup_metrics");
   });
 
   it("a bank CSV with no months (or null) changes nothing", () => {

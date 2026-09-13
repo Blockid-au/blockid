@@ -302,6 +302,12 @@ export interface BankCsvFigures {
   monthlyOpex: number;
   /** Average monthly income (revenue + grants) over the months with data. */
   monthlyIncome: number;
+  /**
+   * S28-review: average monthly `revenue`-category income ONLY (no
+   * government grants) — the figure that may stand in for MRR. A grant is
+   * income, not recurring revenue, and must not feed an ARR multiple.
+   */
+  monthlyRevenue: number;
   /** Income across the whole window. */
   income: number;
   monthsWithData: number;
@@ -336,6 +342,7 @@ export async function bankCsvFigures(
     return {
       monthlyOpex: summary.burnRateAud,
       monthlyIncome: Math.round((summary.totals.income / summary.monthsWithData) * 100) / 100,
+      monthlyRevenue: Math.round((Math.max(0, summary.totals.byCategory.revenue ?? 0) / summary.monthsWithData) * 100) / 100,
       income: summary.totals.income,
       monthsWithData: summary.monthsWithData,
       takenAt,
