@@ -6,7 +6,7 @@
  * primary buttons.
  */
 import { request, type Locator, type Page } from "@playwright/test";
-import { test, expect, WORKSPACE_PAGES, GROWTH_GATED_PAGES } from "./fixtures";
+import { test, expect, WORKSPACE_PAGES, GROWTH_GATED_PAGES, SWEEP_PAGES } from "./fixtures";
 import { evidence } from "./lib/api";
 import { env } from "./lib/env";
 
@@ -80,7 +80,10 @@ test.describe("Logged-out redirects", () => {
 });
 
 test.describe("Console + network hygiene per page", () => {
-  for (const path of WORKSPACE_PAGES) {
+  // S30-B widened the sweep to the money / third-party-data surfaces
+  // (SWEEP_EXTRA_PAGES in fixtures.ts): /funding, /funding/grants, /pricing,
+  // /compare, /solutions/advisor, /workspace/{integrations,data-room,audit-log,settings}.
+  for (const path of SWEEP_PAGES) {
     test(`${path} — no console errors / failed requests (Cloudflare tag-gateway CSP error allow-listed by signature)`, async ({ page, visit, guard, qa }, testInfo) => {
       test.skip(!qa.elevated && GROWTH_GATED_PAGES.has(path), "Growth-gated page redirects to /pricing on Free — not swept");
       const allowRequest = [
@@ -97,8 +100,13 @@ test.describe("Console + network hygiene per page", () => {
       const loadMs = Date.now() - started;
       const report = g.report(path);
       await evidence(testInfo, "guard report", { ...report, loadMs });
-      if (report.allowed.length) {
-        testInfo.annotations.push({ type: "allow-listed", description: `${report.allowed.length}× Cloudflare-injected GTM bootstrap refused by CSP (docs/ops/analytics.md §4) — served HTML still carries the signature` });
+      const gtm = report.allowed.filter((e) => /inline script/.test(e.text)).length;
+      const cfEmail = report.allowed.length - gtm;
+      if (gtm) {
+        testInfo.annotations.push({ type: "allow-listed", description: `${gtm}× Cloudflare-injected GTM bootstrap refused by CSP (docs/ops/analytics.md §4) — served HTML still carries the signature` });
+      }
+      if (cfEmail) {
+        testInfo.annotations.push({ type: "known-issue", description: `${cfEmail}× Cloudflare Email Obfuscation on this page: email-decode.min.js refused by CSP + React #418 hydration mismatch (S24 founder follow-up: Scrape Shield → Email Obfuscation OFF) — tolerated only while the HTML carries __cf_email__` });
       }
       const f10 = report.allowedRequests.filter((r) => /\/api\/dividends$/.test(r.url));
       const limited = report.allowedRequests.filter((r) => /phase-progress/.test(r.url));
