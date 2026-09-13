@@ -1,9 +1,9 @@
 {
-  "version": "3.12.1",
-  "updatedAt": "2026-09-12T16:00:02.323Z",
+  "version": "3.13.0",
+  "updatedAt": "2026-09-13T16:00:02.893Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
-    "lastReviewedAt": "2026-09-11T16:00:02.024Z",
+    "lastReviewedAt": "2026-09-13T16:00:02.892Z",
     "notes": [
       "v0.2.0 — CEO implementing-plan loop (research → CEO plan → code → version/milestone/architecture), off-peak deploy gating.",
       "v0.3.0 — CFO VC-grade valuation engine (src/lib/agents/cfo-valuation.ts): market sizing (TAM/SAM/SOM), 4 valuation methods, projections, unit economics, break-even, payback, financial injection.",
@@ -42,7 +42,8 @@
       "v3.11.0 — CPO: MoneyRadarTile (5 states) on /dashboard + /workspace/funding tabs + lib/funding/copy.ts messaging keys + VI review",
       "v3.11.0 — IR: Growth extras: investor reverse-match (getDealFlow inverted), per-grant application_prompts drafts, quarterly expert analysis refresh",
       "v3.11.0 — CMO: Evaluator Progress Radar digest: extend watchlist-digest to evaluator-owned projects, merge G11 Money Radar signals (grant deadlines, program intakes) for tracked startups",
-      "v3.12.0 — CTO: Update Essential Eight Vulnerabilities to reflect ACSC alerts"
+      "v3.12.0 — CTO: Update Essential Eight Vulnerabilities to reflect ACSC alerts",
+      "v3.13.0 — CMO: AU startup percentile/positioning model integration"
     ]
   },
   "plan": {
@@ -643,9 +644,11 @@
         "title": "AU startup percentile/positioning model integration",
         "rationale": "Develop 'Top X% of AU startups' ranking feature for founders",
         "versionImpact": "minor",
-        "status": "pending",
+        "status": "done",
         "createdAt": "2026-06-14T12:04:02.438Z",
-        "notes": "[re-id from duplicate T0102 on 2026-09-10]"
+        "notes": "[re-id from duplicate T0102 on 2026-09-10]",
+        "completedAt": "2026-09-13T16:00:02.892Z",
+        "commit": "0abb25802"
       },
       {
         "id": "T0255",
@@ -2788,6 +2791,15 @@
       "taskIds": [
         "T0216"
       ]
+    },
+    {
+      "id": "M024",
+      "title": "CMO: AU startup percentile/positioning model integration",
+      "version": "3.13.0",
+      "completedAt": "2026-09-13T16:00:02.892Z",
+      "taskIds": [
+        "T0254"
+      ]
     }
   ],
   "history": [
@@ -2988,6 +3000,12 @@
       "action": "release",
       "version": "3.12.1",
       "note": "1 task(s), patch bump (v3.12.0→v3.12.1)"
+    },
+    {
+      "ts": "2026-09-13T16:00:02.892Z",
+      "action": "release",
+      "version": "3.13.0",
+      "note": "1 task(s), minor bump (v3.12.1→v3.13.0)"
     }
   ],
   "shipped_this_session": {
