@@ -94,6 +94,8 @@ export interface BuildStatementInput {
   shareholder: StatementShareholder;
   /** Statement date; defaults to now. */
   now?: Date;
+  /** S28-A — the DRIP allocation to freeze on the statement (null / absent → no DRIP line). */
+  drip?: StatementDrip | null;
 }
 
 /* ── Payload ──────────────────────────────────────────────────────────── */
@@ -154,6 +156,27 @@ export interface DividendStatementPayload {
   amounts: StatementAmounts;
   totals: StatementTotalsCheck;
   notes: string[];
+  /**
+   * S28-A — dividend reinvestment plan allocation, when the shareholder held
+   * an active DRIP election at issue. Absent / null on statements issued
+   * before S28-A and for shareholders with no election.
+   */
+  drip?: StatementDrip | null;
+}
+
+/** Frozen DRIP line on a statement (S28-A) — see lib/dividends/drip.ts for the maths. */
+export interface StatementDrip {
+  electionId: string | null;
+  participationPct: number;
+  priceBasis: "share_price_mid" | "manual";
+  priceAud: number;
+  shares: number;
+  reinvestedAud: number;
+  residualAud: number;
+  /** Cash the shareholder receives after the reinvestment = net paid − reinvested. */
+  cashPaidAud: number;
+  /** Set when no share could be allotted (no usable price / below one share) — the whole net amount is paid in cash. */
+  skipped: string | null;
 }
 
 /* ── Helpers ──────────────────────────────────────────────────────────── */
@@ -217,6 +240,14 @@ export function formatAudCents(v: number): string {
   return `${cents < 0 ? "-" : ""}A$${body}`;
 }
 
+/** "A$1.25" / "A$0.0125" — a share price for the DRIP line (S28-A). */
+export function formatSharePriceAud(price: number): string {
+  if (!Number.isFinite(price)) return "A$0.00";
+  const cents = Math.round(price * 100) / 100;
+  const exact = Math.abs(cents - price) < 1e-9;
+  return `A$${exact || price >= 1 ? cents.toFixed(2) : price.toFixed(4)}`;
+}
+
 /** Idempotency key for a (record, shareholder) pair. */
 export function shareholderKey(sh: { id: string | null; name: string }): string {
   if (sh.id) return `id:${sh.id}`;
@@ -274,7 +305,7 @@ export function checkStatementTotals(a: StatementAmounts, companyTaxRate: number
 
 /* ── Statement ────────────────────────────────────────────────────────── */
 
-export function statementNotes(p: { isBaseRateEntity: boolean; amounts: StatementAmounts; shareholder: { tfnOnFile: boolean } }): string[] {
+export function statementNotes(p: { isBaseRateEntity: boolean; amounts: StatementAmounts; shareholder: { tfnOnFile: boolean }; drip?: StatementDrip | null }): string[] {
   const notes: string[] = [];
   const rate = p.isBaseRateEntity ? "25% (base rate entity)" : "30%";
   notes.push(`Franking credit calculated at the corporate tax rate for imputation purposes of ${rate}.`);
@@ -287,6 +318,11 @@ export function statementNotes(p: { isBaseRateEntity: boolean; amounts: Statemen
     );
   } else if (!p.shareholder.tfnOnFile) {
     notes.push("No TFN withholding applies because the dividend has no unfranked amount.");
+  }
+  if (p.drip && p.drip.shares > 0) {
+    notes.push(
+      `${p.drip.participationPct}% of the net amount was applied under the dividend reinvestment plan: ${p.drip.shares.toLocaleString("en-AU")} shares at ${formatSharePriceAud(p.drip.priceAud)} each (${formatAudCents(p.drip.reinvestedAud)}); the remaining ${formatAudCents(p.drip.cashPaidAud)} is paid in cash. The reinvested amount is still a dividend for tax purposes.`,
+    );
   }
   notes.push("Keep this statement for your tax return; the franking credit is claimed as a tax offset.");
   return notes;
@@ -344,7 +380,8 @@ export function buildDividendStatement(input: BuildStatementInput, statementNo =
     shareholder,
     amounts,
     totals,
-    notes: statementNotes({ isBaseRateEntity: base, amounts, shareholder }),
+    notes: statementNotes({ isBaseRateEntity: base, amounts, shareholder, drip: input.drip ?? null }),
+    ...(input.drip ? { drip: input.drip } : {}),
   };
 }
 
