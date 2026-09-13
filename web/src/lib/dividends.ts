@@ -5,6 +5,11 @@
 //
 // AU tax: Company tax rate is 25% for "base rate entities" (turnover < $50M and
 // <= 80% passive income). Otherwise 30%. We default to 25% for startups.
+//
+// S25-B: the per-shareholder distribution statement (franked / unfranked
+// split, TFN withholding, register) is built from a recorded result by
+// `lib/dividends/statement.ts`; its franking credit reconciles with the
+// `frankingCredit` computed here for a fully franked dividend.
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
