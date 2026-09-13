@@ -35,7 +35,10 @@
  *   403/404 scope / record  409 supersede_conflict  429  500 insert_failed  503
  *
  * GET — the current resolution for the record (viewer+) or `resolution:
- *   null`, every `versions` (newest first) and `stale`.
+ *   null`, every `versions` (newest first) and `stale`. A record that is
+ *   not in the caller's project (or does not exist) is 404 `not_found`,
+ *   exactly like POST and `/pdf` (live QA lane 2 P3-b, 2026-09-13 — it
+ *   used to answer 200 `resolution: null`).
  */
 
 import { NextResponse } from "next/server";
@@ -197,15 +200,15 @@ export async function GET(_request: Request, { params }: Params) {
   if (!scope) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
   const supabase = getSupabaseAdmin();
   if (!supabase) return NextResponse.json({ ok: false, error: "service_unavailable" }, { status: 503 });
+  // Record first, same as POST — a foreign / unknown record is 404, never a
+  // 200 with an empty version list.
+  const recordScope = { projectId: scope.projectId, ownerUserId: scope.ownerUserId, projectName: scope.project.name };
+  const inputs = await loadResolutionInputs(supabase, kind, recordId, recordScope);
+  if (!inputs) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
   const versions = await listResolutionVersions(supabase, kind, recordId, scope.projectId);
   const row = versions.find((v) => !v.superseded_at) ?? null;
   // `stale` compares the stored hash with a fresh draft — read-only, so a viewer may see it.
-  let stale = false;
-  if (row) {
-    const recordScope = { projectId: scope.projectId, ownerUserId: scope.ownerUserId, projectName: scope.project.name };
-    const inputs = await loadResolutionInputs(supabase, kind, recordId, recordScope);
-    if (inputs) stale = resolutionIsStale(row, buildResolution(inputs.record, inputs.company, inputs.directors));
-  }
+  const stale = row ? resolutionIsStale(row, buildResolution(inputs.record, inputs.company, inputs.directors)) : false;
   return NextResponse.json({ ok: true, role: scope.role, resolution: row ? resolutionRowSummary(row) : null, versions: versions.map(resolutionRowSummary), stale });
 }
 
