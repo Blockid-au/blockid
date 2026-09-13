@@ -27,7 +27,7 @@
     "video:render": "remotion render ../remotion/index.tsx HowItWorks public/media/how-it-works.mp4 --overwrite --crf 28 --props {}"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.115.0",
+    "@anthropic-ai/sdk": "^0.125.0",
     "@google/generative-ai": "^0.24.1",
     "@radix-ui/react-checkbox": "^1.3.11",
     "@radix-ui/react-radio-group": "^1.4.7",
