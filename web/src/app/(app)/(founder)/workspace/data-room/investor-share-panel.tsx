@@ -346,6 +346,7 @@ export function InvestorSharePanel({
 
   return (
     <section
+      id="share"
       className="mb-6 rounded-2xl border border-line-subtle bg-surface-raised"
       aria-labelledby="investor-share-heading"
       data-testid="investor-share-panel"
@@ -607,13 +608,18 @@ export function InvestorSharePanel({
       </div>
 
       {/* ── S21-A: NDA + watermark settings, and what each investor read ── */}
-      <RoomTrustSettings
-        dataRoomId={dataRoomId}
-        readOnly={readOnly}
-        onToast={onToast}
-        linkLabels={Object.fromEntries(links.map((l) => [l.id, shareRecipient(l)]))}
-      />
-      <EngagementHeatmap dataRoomId={dataRoomId} />
+      {/* S29-A — anchor ids so the clean-room guide can deep-link each control. */}
+      <div id="trust">
+        <RoomTrustSettings
+          dataRoomId={dataRoomId}
+          readOnly={readOnly}
+          onToast={onToast}
+          linkLabels={Object.fromEntries(links.map((l) => [l.id, shareRecipient(l)]))}
+        />
+      </div>
+      <div id="engagement">
+        <EngagementHeatmap dataRoomId={dataRoomId} />
+      </div>
 
       {/* ── What the investor will find missing ──────────────────────── */}
       {documents && documents.total > 0 && (

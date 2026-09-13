@@ -306,6 +306,18 @@
           "minPlan": "growth"
         },
         {
+          "group": "Scale & Exit",
+          "label": "Listing Readiness",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Clean-Room Prep",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
           "group": "Account",
           "label": "Custom Branding",
           "reason": "upgrade",
@@ -436,6 +448,18 @@
         {
           "group": "Scale & Exit",
           "label": "Exit Benchmark",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Listing Readiness",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Clean-Room Prep",
           "reason": "upgrade",
           "minPlan": "growth"
         },
@@ -842,6 +866,18 @@
           "minPlan": "growth"
         },
         {
+          "group": "Scale & Exit",
+          "label": "Listing Readiness",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Clean-Room Prep",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
           "group": "Account",
           "label": "Custom Branding",
           "reason": "upgrade",
@@ -1190,8 +1226,8 @@
           "id": "scale-exit",
           "label": "Scale & Exit",
           "state": "later_preview",
-          "visibleItems": 8,
-          "upgradeItems": 8,
+          "visibleItems": 10,
+          "upgradeItems": 10,
           "addOnItems": 0
         },
         {
@@ -1248,8 +1284,8 @@
           "id": "scale-exit",
           "label": "Scale & Exit",
           "state": "later_preview",
-          "visibleItems": 8,
-          "upgradeItems": 6,
+          "visibleItems": 10,
+          "upgradeItems": 8,
           "addOnItems": 0
         },
         {
@@ -1306,7 +1342,7 @@
           "id": "scale-exit",
           "label": "Scale & Exit",
           "state": "later_preview",
-          "visibleItems": 8,
+          "visibleItems": 10,
           "upgradeItems": 1,
           "addOnItems": 0
         },
@@ -1364,8 +1400,8 @@
           "id": "scale-exit",
           "label": "Scale & Exit",
           "state": "later_preview",
-          "visibleItems": 8,
-          "upgradeItems": 8,
+          "visibleItems": 10,
+          "upgradeItems": 10,
           "addOnItems": 0
         },
         {
@@ -2822,8 +2858,8 @@
           "id": "scale-exit",
           "label": "Scale & Exit",
           "state": "visible",
-          "visibleItems": 8,
-          "upgradeItems": 8,
+          "visibleItems": 10,
+          "upgradeItems": 10,
           "addOnItems": 0
         },
         {
@@ -2880,8 +2916,8 @@
           "id": "scale-exit",
           "label": "Scale & Exit",
           "state": "visible",
-          "visibleItems": 8,
-          "upgradeItems": 6,
+          "visibleItems": 10,
+          "upgradeItems": 8,
           "addOnItems": 0
         },
         {
@@ -2938,7 +2974,7 @@
           "id": "scale-exit",
           "label": "Scale & Exit",
           "state": "visible",
-          "visibleItems": 8,
+          "visibleItems": 10,
           "upgradeItems": 1,
           "addOnItems": 0
         },
@@ -2996,8 +3032,8 @@
           "id": "scale-exit",
           "label": "Scale & Exit",
           "state": "visible",
-          "visibleItems": 8,
-          "upgradeItems": 8,
+          "visibleItems": 10,
+          "upgradeItems": 10,
           "addOnItems": 0
         },
         {
@@ -3230,8 +3266,8 @@
           "id": "scale-exit",
           "label": "Scale & Exit",
           "state": "visible",
-          "visibleItems": 8,
-          "upgradeItems": 8,
+          "visibleItems": 10,
+          "upgradeItems": 10,
           "addOnItems": 0
         },
         {
@@ -3288,8 +3324,8 @@
           "id": "scale-exit",
           "label": "Scale & Exit",
           "state": "visible",
-          "visibleItems": 8,
-          "upgradeItems": 6,
+          "visibleItems": 10,
+          "upgradeItems": 8,
           "addOnItems": 0
         },
         {
@@ -3346,7 +3382,7 @@
           "id": "scale-exit",
           "label": "Scale & Exit",
           "state": "visible",
-          "visibleItems": 8,
+          "visibleItems": 10,
           "upgradeItems": 1,
           "addOnItems": 0
         },
@@ -3404,8 +3440,8 @@
           "id": "scale-exit",
           "label": "Scale & Exit",
           "state": "visible",
-          "visibleItems": 8,
-          "upgradeItems": 8,
+          "visibleItems": 10,
+          "upgradeItems": 10,
           "addOnItems": 0
         },
         {
