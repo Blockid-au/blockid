@@ -19,7 +19,7 @@
 //   4. auth-BEFORE-db ordering               (anonymous in null-supabase env still 401)
 //   5. POST invalid JSON                     → 400 'Invalid JSON body'
 //   6. POST missing / non-positive exitValuation → 400 'exitValuation must be a positive number'
-//   7. POST invalid method                   → 400 'Invalid method. Must be one of: acquisition, ipo, secondary, buyout'
+//   7. POST invalid method                   → 400 'Invalid method. Must be one of: acquisition, ipo, secondary, buyout, acqui_hire'
 //   8. POST unknown-user cap-table empty     → 400 'No shareholders found. Set up your cap table first.'
 //   9. POST default method === 'acquisition' when body.method missing
 //  10. POST honours body.exitMultiple        (surfaces via calculateExit's scenario)
@@ -511,7 +511,7 @@ describe("POST /api/exit-model — body parsing + validation", () => {
     const body = await res.json();
     expect(body.ok).toBe(false);
     expect(body.error).toBe(
-      "Invalid method. Must be one of: acquisition, ipo, secondary, buyout",
+      "Invalid method. Must be one of: acquisition, ipo, secondary, buyout, acqui_hire",
     );
   });
 
@@ -587,6 +587,32 @@ describe("POST /api/exit-model — happy path envelope", () => {
       expect(body.result.scenario.method).toBe(method);
       resetState();
     }
+  });
+
+  // S26-B — acqui-hire: no exitValuation needed; the price is built from the
+  // team and only the equity consideration (after the retention pool) runs
+  // through the waterfall.
+  it("acqui_hire: prices the team, carves the retention pool, waterfalls the equity consideration", async () => {
+    const res = await POST(makePostRequest({ method: "acqui_hire", acquiHire: { teamSize: 4, perEngineerValueAud: 750_000, retentionBonusShare: 0.5, retentionYears: 2, ipPremiumAud: 200_000 } }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.result.scenario.method).toBe("acqui_hire");
+    expect(body.result.scenario.acquiHire).toMatchObject({ teamSize: 4, grossPriceAud: 3_200_000, retentionPoolAud: 1_600_000, equityConsiderationAud: 1_600_000, retentionYears: 2 });
+    expect(body.result.scenario.exitValuation).toBe(1_600_000);
+    expect(body.result.totalProceeds).toBe(1_600_000);
+    expect(body.result.shareholderPayouts.find((p: { name: string }) => p.name === "Alice").grossPayout).toBe(960_000);
+    expect(JSON.stringify(body)).not.toMatch(/NaN/);
+  });
+
+  it("acqui_hire: defaults apply when only teamSize is given; 400 without a team", async () => {
+    const res = await POST(makePostRequest({ method: "acqui_hire", acquiHire: { teamSize: 3 } }));
+    const body = await res.json();
+    expect(body.result.scenario.acquiHire).toMatchObject({ perEngineerValueAud: 1_000_000, retentionBonusShare: 0.4, retentionYears: 3, ipPremiumAud: 0, grossPriceAud: 3_000_000 });
+    resetState();
+    const bad = await POST(makePostRequest({ method: "acqui_hire", acquiHire: { teamSize: 0 } }));
+    expect(bad.status).toBe(400);
+    expect((await bad.json()).error).toBe("acquiHire.teamSize must be at least 1");
+    expect(state.chains).toHaveLength(0);
   });
 
   it("threads body.exitMultiple through to result.scenario.exitMultiple", async () => {

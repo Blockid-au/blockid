@@ -8,6 +8,7 @@ import {
   Landmark,
   RefreshCw,
   TrendingUp,
+  UserCheck,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -32,11 +33,38 @@ interface ESOPExercise {
   netGain: number;
 }
 
+/** Mirrors `AcquiHireBreakdown` in lib/exit-modeling.ts (S26-B). */
+export interface AcquiHireBreakdown {
+  teamSize: number;
+  perEngineerValueAud: number;
+  teamValueAud: number;
+  ipPremiumAud: number;
+  grossPriceAud: number;
+  retentionBonusShare: number;
+  retentionYears: 2 | 3;
+  retentionPoolAud: number;
+  retentionSchedule: Array<{ year: number; amountAud: number; cumulativeAud: number }>;
+  equityConsiderationAud: number;
+  assumptions: string[];
+}
+
 interface ExitScenario {
   method: string;
   exitValuation: number;
   exitMultiple?: number;
+  acquiHire?: AcquiHireBreakdown;
 }
+
+/** Editable acqui-hire inputs (S26-B). Defaults mirror ACQUI_HIRE_DEFAULTS in lib/exit-modeling.ts. */
+export interface AcquiHireForm {
+  teamSize: string;
+  perEngineerValueAud: string;
+  retentionBonusPct: string;
+  retentionYears: "2" | "3";
+  ipPremiumAud: string;
+}
+
+export const ACQUI_HIRE_FORM_DEFAULTS: AcquiHireForm = { teamSize: "5", perEngineerValueAud: "1000000", retentionBonusPct: "40", retentionYears: "3", ipPremiumAud: "0" };
 
 interface ExitResult {
   scenario: ExitScenario;
@@ -56,6 +84,7 @@ const EXIT_METHODS = [
   { value: "ipo", label: "IPO", icon: Landmark, desc: "Public listing (15-30x)" },
   { value: "secondary", label: "Secondary Sale", icon: ArrowRightLeft, desc: "Partial exit (3-8x)" },
   { value: "buyout", label: "Buyout", icon: Users, desc: "Management/LBO (2-5x)" },
+  { value: "acqui_hire", label: "Acqui-hire", icon: UserCheck, desc: "Team × per-engineer value; retention vests 2–3 yrs" },
 ] as const;
 
 function formatAUD(value: number): string {
@@ -126,6 +155,8 @@ function ScenarioBarChart({ scenarios }: { scenarios: ExitResult[] }) {
 export function ExitClient() {
   const [method, setMethod] = React.useState<string>("acquisition");
   const [valuation, setValuation] = React.useState<string>("5000000");
+  const [acquiHire, setAcquiHire] = React.useState<AcquiHireForm>(ACQUI_HIRE_FORM_DEFAULTS);
+  const isAcquiHire = method === "acqui_hire";
   const [customResult, setCustomResult] = React.useState<ExitResult | null>(null);
   const [scenarios, setScenarios] = React.useState<ExitResult[]>([]);
   const [annualRevenue, setAnnualRevenue] = React.useState<number>(0);
@@ -172,17 +203,33 @@ export function ExitClient() {
   async function handleCalculate(e: React.FormEvent) {
     e.preventDefault();
     const val = parseFloat(valuation);
-    if (!val || val <= 0) return;
+    if (!isAcquiHire && (!val || val <= 0)) return;
+    if (isAcquiHire && !(parseInt(acquiHire.teamSize, 10) >= 1)) {
+      setError("Enter the number of retained engineers (at least 1).");
+      return;
+    }
 
     setLoading(true);
     setError(null);
     setCustomResult(null);
 
     try {
+      const payload = isAcquiHire
+        ? {
+            method,
+            acquiHire: {
+              teamSize: parseInt(acquiHire.teamSize, 10),
+              perEngineerValueAud: parseFloat(acquiHire.perEngineerValueAud) || undefined,
+              retentionBonusShare: acquiHire.retentionBonusPct === "" ? undefined : (parseFloat(acquiHire.retentionBonusPct) || 0) / 100,
+              retentionYears: Number(acquiHire.retentionYears),
+              ipPremiumAud: parseFloat(acquiHire.ipPremiumAud) || 0,
+            },
+          }
+        : { method, exitValuation: val, exitMultiple: revenueMultiple };
       const res = await fetch("/api/exit-model", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ method, exitValuation: val, exitMultiple: revenueMultiple }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.ok) {
@@ -244,8 +291,11 @@ export function ExitClient() {
         </h2>
 
         <form onSubmit={handleCalculate} className="space-y-5">
+          {/* S26-B — acqui-hire inputs (price is built from the team, not typed in) */}
+          {isAcquiHire && <AcquiHireFields form={acquiHire} onChange={setAcquiHire} />}
+
           {/* Revenue Multiple Slider */}
-          {annualRevenue > 0 && (
+          {!isAcquiHire && annualRevenue > 0 && (
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-medium text-ink-600">Revenue Multiple</label>
@@ -269,6 +319,7 @@ export function ExitClient() {
           )}
 
           {/* Valuation input */}
+          {!isAcquiHire && (
           <div>
             <label className="block text-xs font-medium text-ink-600 mb-1">
               Exit Valuation (AUD)
@@ -299,9 +350,10 @@ export function ExitClient() {
               </p>
             )}
           </div>
+          )}
 
           {/* Current ARR display */}
-          {annualRevenue > 0 && (
+          {!isAcquiHire && annualRevenue > 0 && (
             <div className="flex items-center gap-4 p-3 rounded-xl bg-surface-50 border border-surface-200">
               <div>
                 <span className="text-[10px] text-muted">Current ARR</span>
@@ -338,6 +390,7 @@ export function ExitClient() {
       </div>
 
       {/* Custom result */}
+      {customResult?.scenario.acquiHire && <AcquiHireBreakdownCard breakdown={customResult.scenario.acquiHire} />}
       {customResult && <ExitResultCard result={customResult} />}
 
       {/* Bar chart comparison */}
@@ -533,6 +586,92 @@ function ExitResultCard({
           </span>
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Acqui-hire (S26-B) — inputs + breakdown
+// ---------------------------------------------------------------------------
+
+export function AcquiHireFields({ form, onChange }: { form: AcquiHireForm; onChange: (f: AcquiHireForm) => void }) {
+  const set = (k: keyof AcquiHireForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => onChange({ ...form, [k]: e.target.value });
+  const field = "w-full px-3 py-2 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400";
+  return (
+    <fieldset className="rounded-xl border border-brand-100 bg-brand-50/40 p-4 space-y-3" data-testid="acqui-hire-fields">
+      <legend className="px-1 text-xs font-semibold text-brand-800">Acqui-hire assumptions (editable)</legend>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block text-xs font-medium text-ink-600">
+          Retained engineers / staff
+          <input type="number" min={1} step={1} value={form.teamSize} onChange={set("teamSize")} className={field} required data-testid="acqui-team-size" />
+        </label>
+        <label className="block text-xs font-medium text-ink-600">
+          Value per engineer (A$)
+          <input type="number" min={0} step={50000} value={form.perEngineerValueAud} onChange={set("perEngineerValueAud")} className={field} data-testid="acqui-per-engineer" />
+          <span className="block text-[10px] font-normal text-muted mt-0.5">Assumption — AU deals are commonly discussed at A$500K–A$1.5M per retained engineer; US deals US$1–2M.</span>
+        </label>
+        <label className="block text-xs font-medium text-ink-600">
+          Retention bonus share (% of price)
+          <input type="number" min={0} max={90} step={5} value={form.retentionBonusPct} onChange={set("retentionBonusPct")} className={field} data-testid="acqui-retention-pct" />
+          <span className="block text-[10px] font-normal text-muted mt-0.5">Paid to the retained team as it vests — never reaches the cap table.</span>
+        </label>
+        <label className="block text-xs font-medium text-ink-600">
+          Retention vesting
+          <select value={form.retentionYears} onChange={set("retentionYears")} className={field} data-testid="acqui-retention-years">
+            <option value="2">2 years</option>
+            <option value="3">3 years</option>
+          </select>
+        </label>
+        <label className="block text-xs font-medium text-ink-600 sm:col-span-2">
+          IP / product premium (A$)
+          <input type="number" min={0} step={10000} value={form.ipPremiumAud} onChange={set("ipPremiumAud")} className={field} data-testid="acqui-ip-premium" />
+          <span className="block text-[10px] font-normal text-muted mt-0.5">Low or nil in most acqui-hires — leave 0 unless the buyer has priced the IP.</span>
+        </label>
+      </div>
+    </fieldset>
+  );
+}
+
+export function AcquiHireBreakdownCard({ breakdown: b }: { breakdown: AcquiHireBreakdown }) {
+  return (
+    <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm space-y-4" data-testid="acqui-hire-breakdown">
+      <h2 className="text-sm font-semibold text-ink-800 flex items-center gap-2">
+        <UserCheck className="h-4 w-4 text-brand-500" />
+        Acqui-hire price build-up
+      </h2>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+        <div>
+          <p className="text-[10px] text-muted">Team ({b.teamSize} × {formatAUD(b.perEngineerValueAud)})</p>
+          <p className="font-semibold text-ink-800 font-mono">{formatAUD(b.teamValueAud)}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-muted">IP / product premium</p>
+          <p className="font-semibold text-ink-800 font-mono">{formatAUD(b.ipPremiumAud)}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-muted">Retention pool ({Math.round(b.retentionBonusShare * 100)}%, {b.retentionYears} yrs)</p>
+          <p className="font-semibold text-amber-700 font-mono">−{formatAUD(b.retentionPoolAud)}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-muted">Equity consideration → waterfall</p>
+          <p className="font-semibold text-brand-700 font-mono" data-testid="acqui-equity">{formatAUD(b.equityConsiderationAud)}</p>
+        </div>
+      </div>
+      <div>
+        <p className="text-[10px] text-muted mb-1">Retention bonus vesting (paid to retained staff, forfeited on leaving)</p>
+        <ul className="flex flex-wrap gap-2 text-xs">
+          {b.retentionSchedule.map((r) => (
+            <li key={r.year} className="rounded-lg bg-surface-50 border border-surface-200 px-2.5 py-1 font-mono">
+              Year {r.year}: {formatAUD(r.amountAud)} <span className="text-muted">(cum. {formatAUD(r.cumulativeAud)})</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <ul className="space-y-1 text-[11px] leading-relaxed text-ink-600 list-disc pl-4" data-testid="acqui-assumptions">
+        {b.assumptions.map((a, i) => (
+          <li key={i}>{a}</li>
+        ))}
+      </ul>
     </div>
   );
 }
