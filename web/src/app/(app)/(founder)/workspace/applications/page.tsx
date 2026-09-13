@@ -1,18 +1,18 @@
-// /workspace/applications — Accelerator cohort application inbox.
-// Nav-linked; ships with WorkspaceLayout so the sidebar renders correctly
-// while the full application engine is under development.
+// /workspace/applications — Accelerator application inbox.
+// S31-B (2026-09-13): honest "not available yet" surface. The previous page
+// promised "Coming Soon — Estimated: Q3 2026" and offered an
+// upgrade button under a feature that does not exist. An intake form and review pipeline are not built; cohorts are populated by hand.
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import { NotAvailableYet } from "@/components/workspace/not-available-yet";
 import { ClipboardCheck } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Applications | Workspace | BlockID",
-  description:
-    "Track and review accelerator cohort applications in one centralised inbox.",
+  description: "A structured application inbox for accelerator cohorts is not available yet.",
   robots: { index: false, follow: false },
 };
 
@@ -26,43 +26,17 @@ export default async function ApplicationsPage() {
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
-      <div className="p-6 max-w-2xl mx-auto">
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-brand-50 mb-4">
-            <ClipboardCheck className="w-7 h-7 text-brand-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-ink-900">Applications</h1>
-          <p className="mt-2 text-sm text-ink-600">
-            Track and review accelerator cohort applications in one centralised inbox.
-          </p>
-          {/* EN/VI copy */}
-          <p className="mt-1 text-xs text-muted">
-            Theo dõi và xem xét đơn đăng ký tham gia cohort tăng tốc trong một hộp thư tập trung.
-          </p>
-        </div>
-
-        <div className="rounded-lg border border-ink-200 bg-white p-6 text-center shadow-sm">
-          <p className="text-sm font-medium text-ink-700">Coming Soon</p>
-          <p className="mt-2 text-sm text-ink-500">
-            The Applications inbox is under active development. Once live,
-            accelerator managers can receive, score, and advance startup
-            applications through a structured review pipeline.
-          </p>
-          <p className="mt-1 text-xs text-muted">
-            Tính năng này đang được phát triển. Sẽ sớm ra mắt.
-          </p>
-          <p className="mt-4 text-xs text-muted">Estimated: Q3 2026</p>
-        </div>
-
-        <div className="mt-6 text-center">
-          <Link
-            href="/workspace"
-            className="inline-flex items-center rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-          >
-            Back to Workspace
-          </Link>
-        </div>
-      </div>
+      <NotAvailableYet
+        feature="accelerator_applications"
+        title="Applications"
+        icon={ClipboardCheck}
+        userEmail={user.email}
+        reason="A public application form with scoring and stage-by-stage review is not built yet. Today you add startups to a cohort yourself and track their SVI, evidence and progress from there; every startup you enter also appears under Startups I'm evaluating with its Progress Radar."
+        alternatives={[
+          { href: "/workspace/cohort", label: "Cohort — add and track startups" },
+          { href: "/workspace/evaluations", label: "Startups I'm evaluating" },
+        ]}
+      />
     </WorkspaceLayout>
   );
 }

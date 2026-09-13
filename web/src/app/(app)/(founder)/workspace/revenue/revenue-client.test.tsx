@@ -1,7 +1,8 @@
 // Colocated vitest for the revenue dashboard client (S25-A). SSR-renders the
 // exported DataSourcesPanel + the sourceCaption helper: Xero is a live
-// connector (link to /api/oauth/xero, no "Coming Soon"), QuickBooks stays
-// "Coming Soon", a connected Xero/Stripe card shows the last sync date, and
+// connector (link to /api/oauth/xero, no "Coming Soon"), QuickBooks is an
+// honest "not available yet" (S31-B), a connected Xero/Stripe card shows the
+// last sync date, and
 // the per-figure captions print the API's source labels with a fallback for
 // a pre-S25-A payload.
 
@@ -16,15 +17,17 @@ async function html(el: React.ReactElement): Promise<string> {
 }
 
 describe("DataSourcesPanel", () => {
-  it("nothing connected: Stripe + Xero offer Connect links (Xero is no longer 'Coming Soon'); QuickBooks stays Coming Soon", async () => {
+  it("nothing connected: Stripe + Xero offer Connect links; QuickBooks is an honest 'not available yet' with the CSV route (S31-B)", async () => {
     const out = await html(<DataSourcesPanel data={{ hasStripe: false, hasStripeConnect: false, hasXero: false, connectors: { stripe: null, xero: null } }} />);
     expect(out).toContain('href="/api/auth/stripe/connect"');
     expect(out).toContain("Connect Stripe");
     expect(out).toContain('href="/api/oauth/xero"');
     expect(out).toContain("Connect Xero");
     expect(out).toContain("QuickBooks");
-    expect((out.match(/Coming Soon/g) ?? []).length).toBe(1);
-    expect(out.indexOf("Coming Soon")).toBeGreaterThan(out.indexOf("QuickBooks"));
+    expect(out).not.toContain("Coming Soon");
+    expect(out).toContain("A QuickBooks connection is not available yet");
+    expect(out).toContain('data-testid="quickbooks-unavailable"');
+    expect(out).toContain('href="/workspace/expenses"');
     expect(out).toContain("re-sync every Monday");
   });
 

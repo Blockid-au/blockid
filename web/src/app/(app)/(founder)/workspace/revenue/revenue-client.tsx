@@ -838,7 +838,10 @@ export function RevenueClient() {
 //
 // Stripe Connect + Xero are live connectors (api/oauth/{stripe,xero}); both
 // resync weekly (api/cron/connector-resync) into the figures above. QuickBooks
-// has no OAuth app yet and stays "Coming Soon". Exported for the render test.
+// is a deferred partner integration (no OAuth app) and says so — S31-B
+// replaced the disabled "Coming Soon" button with an honest label and a
+// pointer at the CSV import that covers the same numbers. Exported for the
+// render test.
 
 export function DataSourcesPanel({ data }: { data: Pick<RevenueData, "hasStripe" | "hasStripeConnect" | "hasXero" | "connectors" | "available"> }) {
   // `available` absent (older payload) → assume configured, as before.
@@ -911,15 +914,15 @@ export function DataSourcesPanel({ data }: { data: Pick<RevenueData, "hasStripe"
             <span className="text-sm font-medium text-ink-700">QuickBooks</span>
           </div>
           <p className="text-xs text-ink-500 mb-3">
-            Sync revenue and expense data from QuickBooks.
+            A QuickBooks connection is not available yet. Export your P&amp;L as CSV and upload it under Expenses to get the same figures in.
           </p>
-          <button
-            type="button"
-            disabled
-            className="inline-flex h-8 items-center rounded-lg bg-surface-100 px-3 text-xs font-medium text-muted cursor-not-allowed"
+          <a
+            href="/workspace/expenses"
+            className="inline-flex h-8 items-center rounded-lg border border-surface-200 px-3 text-xs font-medium text-ink-700 hover:bg-surface-50 transition-colors"
+            data-testid="quickbooks-unavailable"
           >
-            Coming Soon
-          </button>
+            Upload a CSV instead
+          </a>
         </div>
       </div>
     </section>

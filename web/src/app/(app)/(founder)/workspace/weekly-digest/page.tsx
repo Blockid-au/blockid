@@ -1,18 +1,18 @@
-// /workspace/weekly-digest — Advisor weekly digest surface.
-// Nav-linked; ships with WorkspaceLayout so the sidebar renders correctly
-// while the full digest engine is under development.
+// /workspace/weekly-digest — Advisor weekly digest.
+// S31-B (2026-09-13): honest "not available yet" surface. The previous page
+// promised "Coming Soon — Estimated: Q3 2026" and offered an
+// upgrade button under a feature that does not exist. The founder and investor Monday digests exist as emails; a curated advisor roll-up page does not.
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import { NotAvailableYet } from "@/components/workspace/not-available-yet";
 import { Send } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Weekly Digest | Workspace | BlockID",
-  description:
-    "Auto-generated digest of your portfolio's week — advisor-curated highlights sent every Monday.",
+  description: "A curated Monday digest across your advisory clients is not available yet.",
   robots: { index: false, follow: false },
 };
 
@@ -26,43 +26,18 @@ export default async function WeeklyDigestPage() {
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
-      <div className="p-6 max-w-2xl mx-auto">
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-brand-50 mb-4">
-            <Send className="w-7 h-7 text-brand-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-ink-900">Weekly Digest</h1>
-          <p className="mt-2 text-sm text-ink-600">
-            Auto-generated digest of your portfolio&apos;s week — advisor-curated highlights sent every Monday.
-          </p>
-          {/* EN/VI copy */}
-          <p className="mt-1 text-xs text-muted">
-            Bản tóm tắt hàng tuần — tổng hợp tự động các điểm nổi bật của danh mục, gửi mỗi thứ Hai.
-          </p>
-        </div>
-
-        <div className="rounded-lg border border-ink-200 bg-white p-6 text-center shadow-sm">
-          <p className="text-sm font-medium text-ink-700">Coming Soon</p>
-          <p className="mt-2 text-sm text-ink-500">
-            The Weekly Digest surface is under active development. Once live,
-            you&apos;ll see curated highlights — portfolio performance, flagged
-            action items, and advisor notes — ready to forward to stakeholders.
-          </p>
-          <p className="mt-1 text-xs text-muted">
-            Tính năng này đang được phát triển. Sẽ sớm ra mắt.
-          </p>
-          <p className="mt-4 text-xs text-muted">Estimated: Q3 2026</p>
-        </div>
-
-        <div className="mt-6 text-center">
-          <Link
-            href="/workspace"
-            className="inline-flex items-center rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-          >
-            Back to Workspace
-          </Link>
-        </div>
-      </div>
+      <NotAvailableYet
+        feature="advisor_weekly_digest"
+        title="Weekly Digest"
+        icon={Send}
+        userEmail={user.email}
+        reason="A single Monday roll-up of every client's SVI move, new evidence and cap-table changes is not built yet. Each client's changes are visible on their roster row and in your notes, and your own Monday email digest (as a founder or investor) can be switched on under Notifications."
+        alternatives={[
+          { href: "/workspace/client-roster", label: "Client Roster — per-client SVI and engagement" },
+          { href: "/workspace/advisor-notes", label: "Engagement notes" },
+          { href: "/workspace/notifications", label: "Email digest preferences" },
+        ]}
+      />
     </WorkspaceLayout>
   );
 }
