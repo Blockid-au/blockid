@@ -321,6 +321,11 @@ describe("stripe/checkout — Founding 100 cutover", () => {
     const body = await json(res);
     expect(String(body.reason)).toMatch(/founding 100/i);
     expect(String(body.reason)).toMatch(/2026-08-31/);
+    // S31-B: the reason is shown verbatim by CreditGate — it must name the
+    // live ladder (Starter A$29 / Growth A$69), never the retired A$99.
+    expect(String(body.reason)).toContain("Starter (A$29/mo)");
+    expect(String(body.reason)).toContain("Growth (A$69/mo)");
+    expect(String(body.reason)).not.toContain("A$99");
     expect(mocks.stripeCreateMock).not.toHaveBeenCalled();
   });
 

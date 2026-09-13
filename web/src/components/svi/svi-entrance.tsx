@@ -42,6 +42,8 @@ import { LanguageToggle } from "@/components/ui/language-toggle";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import type { RndReport, ClientTechAuditResult } from "@/lib/rnd-types";
 import { usePricingExperiment } from "@/lib/hooks/use-pricing-experiment";
+import { PLANS_V2, formatAud } from "@/lib/plans-v2";
+import { CREDIT_PACKS } from "@/lib/credit-packs";
 
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -104,8 +106,13 @@ const ROADMAP_STEPS = [
   { num: 7, icon: FolderOpen, title: "Build Data Room", desc: "Organize documents, financials, legal & investor materials.", href: "/tools/data-room" },
   { num: 8, icon: FileText, title: "Prepare for Pre-Seed", desc: "Investor deck, metrics, traction, valuation & fundraising strategy.", href: "/" },
   { num: 9, icon: Rocket, title: "Go-to-Market", desc: "Define ICP, channels, messaging and growth strategy.", href: "/" },
-  { num: 10, icon: Target, title: "Attract Investors", desc: "Pitch, negotiate, close and grow together.", href: "/founding-50" },
+  { num: 10, icon: Target, title: "Attract Investors", desc: "Pitch, negotiate, close and grow together.", href: "/investors" },
 ];
+
+// Catalogue reads for the pricing section and paywall — one lookup at module load, no literals.
+const PAYWALL_STARTER = PLANS_V2.find((p) => p.id === "founder_starter");
+const PAYWALL_PACK_5 = CREDIT_PACKS.find((p) => p.credits === 5) ?? CREDIT_PACKS[0]!;
+const PAYWALL_PACK_25 = CREDIT_PACKS.find((p) => p.credits === 25) ?? CREDIT_PACKS[CREDIT_PACKS.length - 1]!;
 
 const BOTTOM_BENEFITS = [
   { icon: ShieldCheck, title: "Ownership Clarity", desc: "Stronger team alignment and trust." },
@@ -1623,27 +1630,30 @@ export function SVIEntrance() {
               </div>
             </div>
 
-            {/* Card 2: Founder Plan */}
-            <div className="rounded-2xl border-2 border-brand-400 bg-white px-5 sm:px-8 py-8 text-center shadow-lg flex flex-col relative overflow-hidden">
-              <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-brand-600 px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Best Value</div>
-              <p className="text-xs uppercase tracking-[0.15em] text-brand-600 font-medium mb-2">Founder Plan</p>
-              <h3 className="text-xl font-bold text-ink-800 mb-1">Founding 100 Account</h3>
-              <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">A$5</p>
-              <p className="text-xs text-ink-500 mb-4">Lifetime access &middot; Only 100 spots</p>
-              <ul className="text-left text-sm text-ink-700 space-y-2 mb-6 mx-auto max-w-xs">
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 50 credits included</li>
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Unlimited dashboard</li>
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Evidence vault</li>
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Cap table tools</li>
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Export packs</li>
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Growth plan</li>
-              </ul>
-              <div className="mt-auto">
-                <Link href="/founding-50" className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
-                  Claim Your Founding 100 Spot <ArrowRight strokeWidth={2} className="h-4 w-4" />
-                </Link>
+            {/* Card 2: Starter plan — read from plans-v2. Until S31-B
+                (2026-09-13) this card still sold the "Founding 100 Account,
+                A$5 lifetime, only 100 spots" promo that closed 2026-09-01. */}
+            {PAYWALL_STARTER && (
+              <div className="rounded-2xl border-2 border-brand-400 bg-white px-5 sm:px-8 py-8 text-center shadow-lg flex flex-col relative overflow-hidden" data-testid="svi-pricing-starter">
+                <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-brand-600 px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Best Value</div>
+                <p className="text-xs uppercase tracking-[0.15em] text-brand-600 font-medium mb-2">Founder Plan</p>
+                <h3 className="text-xl font-bold text-ink-800 mb-1">{PAYWALL_STARTER.name}</h3>
+                <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">{formatAud(PAYWALL_STARTER.monthly_aud)}<span className="text-base font-semibold text-ink-500">/mo</span></p>
+                <p className="text-xs text-ink-500 mb-4">
+                  {PAYWALL_STARTER.trial_days > 0 ? `${PAYWALL_STARTER.trial_days}-day free trial · ` : ""}Cancel anytime · GST inclusive
+                </p>
+                <ul className="text-left text-sm text-ink-700 space-y-2 mb-6 mx-auto max-w-xs">
+                  {PAYWALL_STARTER.features.slice(0, 6).map((f) => (
+                    <li key={f} className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> {f}</li>
+                  ))}
+                </ul>
+                <div className="mt-auto">
+                  <Link href="/pricing#tier-starter" className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
+                    See the {PAYWALL_STARTER.name} plan <ArrowRight strokeWidth={2} className="h-4 w-4" />
+                  </Link>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </section>
@@ -1789,7 +1799,7 @@ function CreditPackCard({
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Paywall overlay — shown after the first free analysis is consumed.
-// Displays credit pack upsell options and a Founding 100 upgrade link.
+// Displays credit pack upsell options and the Starter plan (plans-v2).
 // ═══════════════════════════════════════════════════════════════════════════════
 function SVIPaywall({
   onClose,
@@ -1954,41 +1964,49 @@ function SVIPaywall({
             </div>
           </button>
 
-          {/* Option C: Founder Plan */}
-          <button
-            type="button"
-            onClick={() => { trackEvent("svi_paywall_founding50_click", {}); window.location.href = "/founding-50"; }}
-            className="flex items-center justify-between rounded-2xl border border-surface-200 bg-white p-4 transition-all hover:shadow-md w-full text-left cursor-pointer hover:border-brand-300"
-          >
-            <div>
-              <p className="text-sm font-bold text-ink-900">C. Founder Plan</p>
-              <p className="text-xs text-ink-500 mt-0.5">50 credits + unlimited platform access</p>
-            </div>
-            <div className="text-right shrink-0 ml-3">
-              <p className="text-lg font-bold text-brand-600">A$5</p>
-              <p className="text-[10px] text-ink-500">one-time</p>
-            </div>
-          </button>
+          {/* Option C: Starter plan — from plans-v2. Until S31-B (2026-09-13)
+              this card sold the Founding 100 "50 credits for A$5" deal and
+              sent the click to /founding-50, a promo closed on 2026-09-01. */}
+          {PAYWALL_STARTER && (
+            <button
+              type="button"
+              data-testid="svi-paywall-starter"
+              onClick={() => {
+                trackEvent("svi_paywall_starter_click", {});
+                window.location.href = "/pricing?feature=svi.run#tier-starter";
+              }}
+              className="flex items-center justify-between rounded-2xl border border-surface-200 bg-white p-4 transition-all hover:shadow-md w-full text-left cursor-pointer hover:border-brand-300"
+            >
+              <div>
+                <p className="text-sm font-bold text-ink-900">C. {PAYWALL_STARTER.name} plan</p>
+                <p className="text-xs text-ink-500 mt-0.5">Unlimited SVI runs, score tracked over time, data room and investor link</p>
+              </div>
+              <div className="text-right shrink-0 ml-3">
+                <p className="text-lg font-bold text-brand-600">{formatAud(PAYWALL_STARTER.monthly_aud)}</p>
+                <p className="text-[10px] text-ink-500">per month{PAYWALL_STARTER.trial_days > 0 ? ` · ${PAYWALL_STARTER.trial_days}-day trial` : ""}</p>
+              </div>
+            </button>
+          )}
         </div>
 
         {/* Credit pack upsell */}
         <div className="mt-4 flex justify-center gap-3">
           <button
             type="button"
-            onClick={() => handleCreditPack(5, "starter")}
+            onClick={() => handleCreditPack(PAYWALL_PACK_5.credits, "starter")}
             disabled={!!checkoutLoading}
             className="text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors cursor-pointer disabled:opacity-50"
           >
-            {checkoutLoading === "starter" ? "..." : "Buy 5 credits (A$5)"}
+            {checkoutLoading === "starter" ? "..." : `Buy ${PAYWALL_PACK_5.credits} credits (${formatAud(PAYWALL_PACK_5.price)})`}
           </button>
           <span className="text-xs text-muted">|</span>
           <button
             type="button"
-            onClick={() => handleCreditPack(25, "growth")}
+            onClick={() => handleCreditPack(PAYWALL_PACK_25.credits, "growth")}
             disabled={!!checkoutLoading}
             className="text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors cursor-pointer disabled:opacity-50"
           >
-            {checkoutLoading === "growth" ? "..." : "Buy 25 credits (A$20, save 20%)"}
+            {checkoutLoading === "growth" ? "..." : `Buy ${PAYWALL_PACK_25.credits} credits (${formatAud(PAYWALL_PACK_25.price)}${PAYWALL_PACK_25.savings ? `, ${PAYWALL_PACK_25.savings.toLowerCase()}` : ""})`}
           </button>
         </div>
 
@@ -2035,7 +2053,7 @@ function SVIPaywall({
         <p className="mt-4 text-center text-sm text-ink-500">
           Already have an account?{" "}
           <a
-            href="/auth/login?plan=founding50"
+            href="/auth/login"
             className="font-semibold text-brand-600 hover:text-brand-700 transition-colors"
           >
             Sign in
@@ -2097,7 +2115,7 @@ function TopBar() {
               </div>
             )}
           </div>
-          <Link href="/founding-50" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Founding 100</Link>
+          <Link href="/pricing" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Pricing</Link>
           <Link href="/insights" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Insights</Link>
           <Link href="/dashboard/svi" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Dashboard</Link>
           <LanguageToggle variant="icon" className="ml-1" />
@@ -2132,7 +2150,7 @@ function TopBar() {
             <p className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-[0.15em] text-ink-600 font-semibold">Free Tools</p>
             {TOOLS.map((t) => (<Link key={t.href} href={t.href} onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm text-ink-700 hover:bg-surface-100 rounded-lg transition-colors">{t.label}</Link>))}
             <div className="my-2 border-t border-surface-200" />
-            <Link href="/founding-50" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-medium text-ink-700 hover:bg-surface-100 rounded-lg">Founding 100</Link>
+            <Link href="/pricing" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-medium text-ink-700 hover:bg-surface-100 rounded-lg">Pricing</Link>
             <Link href="/insights" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-medium text-ink-700 hover:bg-surface-100 rounded-lg">Insights</Link>
             <Link href="/dashboard/svi" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-medium text-ink-700 hover:bg-surface-100 rounded-lg">Dashboard</Link>
             <div className="my-2 border-t border-surface-200" />

@@ -1,8 +1,39 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Coins, Sparkles, Tag, TrendingUp, X, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CREDIT_PACKS, type CreditPack } from "@/lib/credit-packs";
+import { PLANS_V2, formatAud } from "@/lib/plans-v2";
+
+// ---------------------------------------------------------------------------
+// Prices come from the two catalogues, never from this file.
+//
+// 2026-09-13 (S31-B): this modal advertised 10 credits for A$5, 25 for A$9
+// and 50 for A$15 while /api/credits charged the credit-packs.ts ladder
+// (A$9 / A$20 / A$35) — the same drift `credit-packs.ts` was written to end.
+// It also still sold the Founding 100 A$5 lifetime deal, which the checkout
+// route has refused with a 410 since 2026-09-01. Both are derived now.
+// ---------------------------------------------------------------------------
+
+/** The three bundles the gate offers, in ladder order. Exported for the test. */
+export const CREDIT_GATE_PACK_SIZES = [10, 25, 50] as const;
+
+export function creditGatePacks(): CreditPack[] {
+  return CREDIT_GATE_PACK_SIZES.map((size) => {
+    const pack = CREDIT_PACKS.find((p) => p.credits === size);
+    if (!pack) throw new Error(`credit-gate: no ${size}-credit pack in CREDIT_PACKS`);
+    return pack;
+  });
+}
+
+export function perCreditLabel(pack: CreditPack): string {
+  const perCredit = pack.price / pack.credits;
+  return `A$${perCredit.toFixed(2)} per credit${pack.savings ? ` — ${pack.savings.toLowerCase()}` : ""}`;
+}
+
+const STARTER = PLANS_V2.find((p) => p.id === "founder_starter");
 
 // ---------------------------------------------------------------------------
 // Feature label + description map
@@ -141,7 +172,7 @@ export function CreditGate({
       });
       const data = await res.json();
       if (data.ok && data.url) {
-        window.location.href = data.url;
+        window.location.assign(data.url);
       } else if (data.ok && data.method === "direct") {
         // Dev fallback — credits granted directly; close the gate.
         onClose();
@@ -152,33 +183,6 @@ export function CreditGate({
       setErrorMsg("Network error. Please try again.");
     } finally {
       setBuyLoading(false);
-    }
-  };
-
-  /** Get Founder Plan via /api/stripe/checkout. */
-  const handlePlanCheckout = async () => {
-    setPlanLoading(true);
-    setErrorMsg("");
-    try {
-      const res = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: "founding50" }),
-      });
-      if (res.status === 401) {
-        window.location.href = "/auth/login?plan=founding50";
-        return;
-      }
-      const data = await res.json();
-      if (data.ok && data.url) {
-        window.location.href = data.url;
-      } else {
-        setErrorMsg(data.reason || "Could not start checkout. Please try again.");
-      }
-    } catch {
-      setErrorMsg("Network error. Please try again.");
-    } finally {
-      setPlanLoading(false);
     }
   };
 
@@ -262,7 +266,9 @@ export function CreditGate({
             <div className="mt-2 flex items-center justify-between text-sm">
               <span className="text-ink-600">This analysis costs</span>
               <span className="font-bold text-ink-800">
-                just {info.costLabel}
+                {cost > 0
+                  ? `${Number.isInteger(cost) ? cost : cost.toFixed(2)} credit${cost === 1 ? "" : "s"}`
+                  : info.costLabel}
               </span>
             </div>
           </div>
@@ -277,75 +283,53 @@ export function CreditGate({
             </p>
           </div>
 
-          {/* Credit pack options */}
+          {/* Credit pack options — read from lib/credit-packs so the price on
+              the card is the price Stripe charges. */}
           <div className="mt-6 space-y-2.5">
-            <CreditGatePackCard
-              credits={10}
-              price="A$5"
-              label="10 Credits"
-              desc="A$0.50 per credit"
-              onClick={() => handleBuyPack(10)}
-              highlight={false}
-              loading={buyLoading === "10"}
-              disabled={!!buyLoading || planLoading}
-            />
-            <CreditGatePackCard
-              credits={25}
-              price="A$9"
-              label="25 Credits"
-              desc="A$0.36 per credit — save 28%"
-              onClick={() => handleBuyPack(25)}
-              highlight={true}
-              badge="Most Popular"
-              loading={buyLoading === "25"}
-              disabled={!!buyLoading || planLoading}
-            />
-            <CreditGatePackCard
-              credits={50}
-              price="A$15"
-              label="50 Credits"
-              desc="A$0.30 per credit — save 40%"
-              onClick={() => handleBuyPack(50)}
-              highlight={false}
-              loading={buyLoading === "50"}
-              disabled={!!buyLoading || planLoading}
-            />
+            {creditGatePacks().map((pack, i) => (
+              <CreditGatePackCard
+                key={pack.credits}
+                credits={pack.credits}
+                price={formatAud(pack.price)}
+                label={pack.label}
+                desc={perCreditLabel(pack)}
+                onClick={() => handleBuyPack(pack.credits)}
+                highlight={i === 1}
+                badge={i === 1 ? "Most Popular" : undefined}
+                loading={buyLoading === String(pack.credits)}
+                disabled={!!buyLoading || planLoading}
+              />
+            ))}
           </div>
 
-          {/* Founding 50 lifetime CTA */}
-          <div className="mt-4 rounded-xl border border-brand-200 bg-gradient-to-r from-brand-50 to-violet-50 p-4">
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-100 shrink-0">
-                <Zap strokeWidth={1.75} className="h-4.5 w-4.5 text-brand-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-brand-800">
-                  Founding 100 Lifetime Deal
-                </p>
-                <p className="text-xs text-brand-600 mt-0.5 leading-relaxed">
-                  Get 50 credits + full platform access for A$5 one-time. Limited to 100 spots.
-                </p>
-                <button
-                  type="button"
-                  onClick={handlePlanCheckout}
-                  disabled={!!buyLoading || planLoading}
-                  className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  {planLoading ? (
-                    <span className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                      Redirecting...
-                    </span>
-                  ) : (
-                    <>
-                      Get Founding 100 for A$5
-                      <Sparkles strokeWidth={1.75} className="h-3 w-3" />
-                    </>
-                  )}
-                </button>
+          {/* Starter plan — unlimited SVI runs from plans-v2. Replaces the
+              Founding 100 A$5 lifetime deal, which closed on 2026-09-01. */}
+          {STARTER && (
+            <div className="mt-4 rounded-xl border border-brand-200 bg-gradient-to-r from-brand-50 to-violet-50 p-4" data-testid="credit-gate-plan">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-100 shrink-0">
+                  <Zap strokeWidth={1.75} className="h-4.5 w-4.5 text-brand-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-brand-800">
+                    {STARTER.name} plan — {formatAud(STARTER.monthly_aud)}/mo
+                  </p>
+                  <p className="text-xs text-brand-600 mt-0.5 leading-relaxed">
+                    Unlimited SVI runs, your score tracked over time, a data room and a live investor link.
+                    {STARTER.trial_days > 0 ? ` ${STARTER.trial_days}-day free trial, cancel anytime.` : ""}
+                  </p>
+                  <Link
+                    href="/pricing?feature=svi.run#tier-starter"
+                    onClick={() => setPlanLoading(true)}
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer"
+                  >
+                    See the {STARTER.name} plan
+                    <Sparkles strokeWidth={1.75} className="h-3 w-3" />
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Error message */}
           {errorMsg && (

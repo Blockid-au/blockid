@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getPlan, isGrowthEarlyBird, type LegacyPlan } from "@/lib/plans";
 import { isFoundingPromoActive } from "@/lib/founding-promo";
+import { PLANS_V2, formatAud } from "@/lib/plans-v2";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { normaliseResellerCode } from "@/lib/reseller/attribution";
 import { viaClientReferenceId } from "@/lib/reseller/attribution-server";
@@ -112,8 +113,7 @@ async function POST_handler(request: Request) {
     return NextResponse.json(
       {
         ok: false,
-        reason:
-          "The Founding 100 A$5 promo ended on 2026-08-31. Please select the Growth plan (A$99/mo).",
+        reason: foundingPromoClosedReason(),
       },
       { status: 410 },
     );
@@ -673,4 +673,17 @@ async function POST_handler(request: Request) {
 export const dynamic = "force-dynamic";
 
 // S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+// S31-B (2026-09-13): the 410 text named "Growth (A$99/mo)" — a price we
+// stopped charging on 2026-09-08 — and it is shown verbatim to the user by
+// every CreditGate / paywall that still posts `founding50`. Read the ladder.
+function foundingPromoClosedReason(): string {
+  const starter = PLANS_V2.find((p) => p.id === "founder_starter");
+  const growth = PLANS_V2.find((p) => p.id === "founder_growth");
+  const rungs = [starter, growth]
+    .filter((p): p is NonNullable<typeof p> => Boolean(p))
+    .map((p) => `${p.name} (${formatAud(p.monthly_aud)}/mo)`)
+    .join(" or ");
+  return `The Founding 100 A$5 promo ended on 2026-08-31. Please choose the ${rungs || "Starter or Growth"} plan at /pricing.`;
+}
+
 export const POST = apiRoute({ route: "api/stripe/checkout/route.ts", method: "POST" }, POST_handler);
