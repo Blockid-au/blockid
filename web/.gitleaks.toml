@@ -41,6 +41,7 @@ keywords = ["key","api","token","secret","client","passwd","password","auth","ac
     # rule fires on the word "key", not on anything secret.
     '''expects_2plus_venture_rounds''',
     '''attributed_churn_30d''',
+    '''churn_rate_90d_pct''',
     # ElevenLabs voice IDs are public catalogue identifiers.
     '''onwK4e9ZLuTAKqWW03F9''',
   ]
