@@ -21,7 +21,9 @@
 //                               Xero, where it is inside Xero's expenses (0)
 //   Opex                        Xero 3-month expenses → bank CSV burn × 12
 //                               (S28-C) → burn rate × 12 → 1.5 × COGS
-//                               estimate × 12
+//                               estimate × 12 — the first three ARE
+//                               `pickBurnRate` (S29-hardening), the one
+//                               burn precedence every route shares
 //   Net income                  Xero net profit → gross margin − opex
 //
 //   S28-C: `bankCsv` (categorised bank_transactions, lib/expenses/server.ts
@@ -171,6 +173,74 @@ function num(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
+// ── Burn rate (monthly opex) — the ONE precedence ─────────────────────────
+//
+// S29-hardening (S28 review #7): `/api/revenue` printed a metrics-first burn
+// while `resolveRevenueFigures` put the bank CSV first for opex, so a founder
+// with both saw two burn figures on one page. Every consumer — `/api/revenue`
+// `burnRate`, `/api/pnl`, `/api/valuation`, `/api/valuation/vc` and the P&L
+// opex line below — now goes through `pickBurnRate`:
+//
+//   connector Xero opex (expenses ÷ window months)
+//     → bank CSV average monthly spend
+//       → startup_metrics.burn_rate_aud (manual)
+//         → none (0)
+//
+// A connector figure beats a founder-typed one because it is dated and
+// reproducible; the bank CSV beats the manual metric for the same reason.
+// The P&L's "estimate" (1.5 × COGS) is NOT part of the burn precedence — it
+// only stands in for opex on the dashboard when nothing else exists, and a
+// runway / valuation must never be built on it.
+
+export const BURN_RATE_PRECEDENCE: readonly BurnRateSourceKind[] = ["xero", "bank_csv", "startup_metrics", "none"];
+
+export type BurnRateSourceKind = Extract<RevenueSourceKind, "xero" | "bank_csv" | "startup_metrics" | "none">;
+
+export interface BurnRateInput {
+  /** Latest Xero snapshot (connector), or null when the project has none. */
+  xeroSnapshot?: Pick<ConnectorSnapshotRow, "taken_at" | "metrics"> | null;
+  /** Categorised bank lines (`bankCsvFigures`), or null when none imported. */
+  bankCsv?: Pick<BankCsvInput, "monthlyOpex" | "monthsWithData" | "takenAt"> | null;
+  /** `startup_metrics.burn_rate_aud` — the founder's manual entry. */
+  metricBurn?: number | null;
+}
+
+export interface ResolvedBurnRate {
+  /** Average monthly operating spend in AUD; 0 when `source` is "none". */
+  burnRate: number;
+  source: BurnRateSourceKind;
+  /** The `RevenueSource` the UI prints under the figure. */
+  sourceInfo: RevenueSource;
+  takenAt: string | null;
+}
+
+/** Xero's average monthly expenses from a snapshot, or null when the snapshot has no usable expenses figure. */
+export function xeroMonthlyOpex(snapshot: Pick<ConnectorSnapshotRow, "metrics"> | null | undefined): number | null {
+  if (!snapshot) return null;
+  const expenses = num(snapshot.metrics.totalExpensesAud);
+  if (expenses === null || expenses <= 0) return null;
+  const months = num(snapshot.metrics.windowMonths);
+  return expenses / (months && months > 0 ? months : 3);
+}
+
+/** Pure: pick the monthly burn (opex) figure by the documented precedence. */
+export function pickBurnRate(input: BurnRateInput): ResolvedBurnRate {
+  const xero = xeroMonthlyOpex(input.xeroSnapshot);
+  if (xero !== null) {
+    const at = input.xeroSnapshot?.taken_at ?? null;
+    return { burnRate: r2(xero), source: "xero", sourceInfo: source("xero", at), takenAt: at };
+  }
+  const bank = input.bankCsv && input.bankCsv.monthsWithData > 0 && input.bankCsv.monthlyOpex > 0 ? input.bankCsv : null;
+  if (bank) {
+    return { burnRate: r2(bank.monthlyOpex), source: "bank_csv", sourceInfo: source("bank_csv", bank.takenAt), takenAt: bank.takenAt };
+  }
+  const metric = num(input.metricBurn ?? null) ?? 0;
+  if (metric > 0) {
+    return { burnRate: r2(metric), source: "startup_metrics", sourceInfo: source("startup_metrics"), takenAt: null };
+  }
+  return { burnRate: 0, source: "none", sourceInfo: source("none"), takenAt: null };
+}
+
 export function resolveRevenueFigures(input: ResolveFiguresInput): RevenueFigures {
   const { stripeSnapshot, stripePrior, xeroSnapshot, platform, manual, startupMetrics } = input;
   const stripeAt = stripeSnapshot?.taken_at ?? null;
@@ -270,12 +340,12 @@ export function resolveRevenueFigures(input: ResolveFiguresInput): RevenueFigure
     }
     cogs = input.cogsEstimate;
     cogsSource = source("estimate");
-    if (bank && bank.monthlyOpex > 0) {
-      monthlyOpex = bank.monthlyOpex;
-      opexSource = source("bank_csv", bankAt);
-    } else if (startupMetrics.burnRate > 0) {
-      monthlyOpex = startupMetrics.burnRate;
-      opexSource = source("startup_metrics");
+    // S29-hardening: same precedence as every burn-rate consumer (no Xero
+    // here — that branch is above): bank CSV → startup_metrics → estimate.
+    const burn = pickBurnRate({ xeroSnapshot: null, bankCsv: bank, metricBurn: startupMetrics.burnRate });
+    if (burn.source !== "none") {
+      monthlyOpex = burn.burnRate;
+      opexSource = burn.sourceInfo;
     } else {
       monthlyOpex = input.cogsEstimate * 1.5;
       opexSource = source("estimate");

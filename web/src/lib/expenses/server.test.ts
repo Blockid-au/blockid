@@ -4,15 +4,15 @@
 // Pins: `bankCsvFigures` separates recurring revenue from grants
 // (`monthlyRevenue` vs `monthlyIncome` — only the former may become MRR),
 // averages over the months with data, reports the latest import time, is
-// null with no rows / no project / a missing table; `burnRateWithBankFallback`
-// prefers the metric and falls back to the bank burn.
+// null with no rows / no project / a missing table. (The burn-rate precedence
+// moved to lib/revenue/sources.ts `pickBurnRate` in S29-hardening.)
 
 import { describe, expect, it, vi } from "vitest";
 import { fakeSupabase } from "@/test/fake-supabase";
 
 vi.mock("server-only", () => ({}));
 
-import { bankCsvFigures, burnRateWithBankFallback, type BankTransactionRow } from "./server";
+import { bankCsvFigures, type BankTransactionRow } from "./server";
 
 const NOW = new Date("2026-09-13T00:00:00.000Z");
 
@@ -69,14 +69,5 @@ describe("bankCsvFigures", () => {
     expect(await bankCsvFigures(fakeSupabase({ bank_transactions: [] }) as never, "proj-1")).toBeNull();
     const boom = { from: () => { throw new Error("relation does not exist"); } };
     expect(await bankCsvFigures(boom as never, "proj-1")).toBeNull();
-  });
-});
-
-describe("burnRateWithBankFallback", () => {
-  it("metric first, then the bank burn, else none", async () => {
-    const sb = fakeSupabase({ bank_transactions: [row({ occurred_on: "2026-08-10", amount_aud: -2500, category: "rent" })] });
-    expect(await burnRateWithBankFallback(sb as never, "proj-1", 4000)).toEqual({ burnRate: 4000, source: "startup_metrics", takenAt: null });
-    expect(await burnRateWithBankFallback(sb as never, "proj-1", 0)).toMatchObject({ burnRate: 2500, source: "bank_csv", takenAt: "2026-09-03T02:00:00.000Z" });
-    expect(await burnRateWithBankFallback(fakeSupabase({ bank_transactions: [] }) as never, "proj-1", null)).toEqual({ burnRate: 0, source: "none", takenAt: null });
   });
 });

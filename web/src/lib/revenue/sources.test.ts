@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from "vitest";
 import type { ConnectorSnapshotRow } from "@/lib/connectors/snapshots";
-import { formatShortDate, resolveRevenueFigures, sourceLabel, type ResolveFiguresInput } from "./sources";
+import { BURN_RATE_PRECEDENCE, formatShortDate, pickBurnRate, resolveRevenueFigures, sourceLabel, type ResolveFiguresInput } from "./sources";
 
 function snap(provider: "stripe" | "xero", taken_at: string, metrics: Record<string, unknown>): ConnectorSnapshotRow {
   return { id: `${provider}-${taken_at}`, user_id: "u", project_id: "p", provider, taken_at, metrics, source: "resync" };
@@ -237,5 +237,45 @@ describe("resolveRevenueFigures — connector snapshots win", () => {
     expect(f.netIncome).toBe(750);
     expect(f.growthPct).toBe(4);
     expect(f.sources.growth.kind).toBe("manual");
+  });
+});
+
+describe("pickBurnRate — S29-hardening: the ONE burn precedence (Xero → bank CSV → startup_metrics → none)", () => {
+  const xeroSnap = snap("xero", "2026-09-03T02:00:00Z", { totalIncomeAud: 27000, totalExpensesAud: 19500, netProfitAud: 7500, windowMonths: 3 });
+  const bank = { monthlyOpex: 3100, monthsWithData: 2, takenAt: "2026-09-01T02:00:00Z" };
+
+  it("Xero beats the bank CSV and the manual metric; figure = expenses ÷ window months, labelled with the sync date", () => {
+    const b = pickBurnRate({ xeroSnapshot: xeroSnap, bankCsv: bank, metricBurn: 2000 });
+    expect(b).toMatchObject({ burnRate: 6500, source: "xero", takenAt: "2026-09-03T02:00:00Z" });
+    expect(b.sourceInfo.label).toBe("from Xero, 3 Sep");
+    // A snapshot without a window defaults to the 3-month report.
+    expect(pickBurnRate({ xeroSnapshot: snap("xero", "2026-09-03T02:00:00Z", { totalExpensesAud: 3000 }) }).burnRate).toBe(1000);
+  });
+
+  it("no usable Xero expenses → bank CSV beats the manual metric", () => {
+    const b = pickBurnRate({ xeroSnapshot: null, bankCsv: bank, metricBurn: 2000 });
+    expect(b).toMatchObject({ burnRate: 3100, source: "bank_csv", takenAt: "2026-09-01T02:00:00Z" });
+    expect(b.sourceInfo.label).toBe("from bank CSV, 1 Sep");
+    // A Xero snapshot with zero expenses is "no figure", not a zero burn.
+    const zero = snap("xero", "2026-09-03T02:00:00Z", { totalIncomeAud: 100, totalExpensesAud: 0, windowMonths: 3 });
+    expect(pickBurnRate({ xeroSnapshot: zero, bankCsv: bank, metricBurn: 2000 }).source).toBe("bank_csv");
+  });
+
+  it("bank CSV with no months / zero opex is skipped → startup_metrics → none", () => {
+    expect(pickBurnRate({ bankCsv: { ...bank, monthsWithData: 0 }, metricBurn: 2000 })).toMatchObject({ burnRate: 2000, source: "startup_metrics", takenAt: null });
+    expect(pickBurnRate({ bankCsv: { ...bank, monthlyOpex: 0 }, metricBurn: 2000 }).source).toBe("startup_metrics");
+    expect(pickBurnRate({ metricBurn: 0 })).toEqual({ burnRate: 0, source: "none", sourceInfo: { kind: "none", label: "no data yet", takenAt: null }, takenAt: null });
+    expect(pickBurnRate({ metricBurn: Number.NaN }).source).toBe("none");
+    expect(pickBurnRate({})).toMatchObject({ burnRate: 0, source: "none" });
+  });
+
+  it("resolveRevenueFigures opex follows the same precedence (bank CSV over the metric, metric over the estimate)", () => {
+    const withBoth = resolveRevenueFigures({ ...BASE, bankCsv: { ...bank, monthlyIncome: 0, monthlyRevenue: 0, income: 0 }, startupMetrics: { mrr: 0, burnRate: 2000 } });
+    expect(withBoth.monthlyOpex).toBe(pickBurnRate({ bankCsv: bank, metricBurn: 2000 }).burnRate);
+    expect(withBoth.sources.opex.kind).toBe("bank_csv");
+    const metricOnly = resolveRevenueFigures({ ...BASE, startupMetrics: { mrr: 0, burnRate: 2000 } });
+    expect(metricOnly.monthlyOpex).toBe(2000);
+    expect(metricOnly.sources.opex.kind).toBe("startup_metrics");
+    expect(BURN_RATE_PRECEDENCE).toEqual(["xero", "bank_csv", "startup_metrics", "none"]);
   });
 });

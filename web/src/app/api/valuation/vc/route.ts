@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { buildVcValuationReport, type VcValuationInput } from "@/lib/agents/cfo-valuation";
 import { findSVIAccountWithFallback } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
-import { burnRateWithBankFallback } from "@/lib/expenses/server";
+import { resolveBurnRate } from "@/lib/revenue/burn-rate-server";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { loadConnectedRevenueSignals } from "@/lib/connected-revenue";
 import { applyConnectedRevenueBridge } from "@/lib/valuation-mrr-bridge";
@@ -165,8 +165,13 @@ export async function GET() {
 
     const tamAudFromSignals = tamFromMarketSize(analysisJson?.signals?.marketSize);
 
-    // S28-C — opex falls back to the bank CSV burn when the metric is empty.
-    const burn = await burnRateWithBankFallback(supabase, projectId, metrics?.burn_rate_aud as number | null | undefined);
+    // S28-C / S29-hardening — ONE burn precedence (Xero → bank CSV →
+    // startup_metrics → none), shared with /api/revenue and /api/pnl.
+    const burn = await resolveBurnRate(supabase, {
+      projectId,
+      ownerUserId: scope?.ownerUserId ?? user.id,
+      metricBurn: metrics?.burn_rate_aud as number | null | undefined,
+    });
 
     // Build VcValuationInput — prefer real metrics, fall back to analysis signals
     const mrrAud = (metrics?.mrr_aud as number | null) ?? undefined;

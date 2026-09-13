@@ -352,16 +352,3 @@ export async function bankCsvFigures(
     return null;
   }
 }
-
-/** Burn-rate fallback for routes that read `startup_metrics.burn_rate_aud`: the bank-CSV burn when the metric is empty. */
-export async function burnRateWithBankFallback(
-  db: ExpenseDb,
-  projectId: string | null | undefined,
-  metricBurn: number | null | undefined,
-): Promise<{ burnRate: number; source: "startup_metrics" | "bank_csv" | "none"; takenAt: string | null }> {
-  const metric = Number(metricBurn ?? 0) || 0;
-  if (metric > 0) return { burnRate: metric, source: "startup_metrics", takenAt: null };
-  const bank = await bankCsvFigures(db, projectId);
-  if (bank && bank.monthlyOpex > 0) return { burnRate: bank.monthlyOpex, source: "bank_csv", takenAt: bank.takenAt };
-  return { burnRate: 0, source: "none", takenAt: null };
-}
