@@ -30,7 +30,7 @@ import {
   Target, TrendingUp, User, Users, Wand2, Wallet, Zap,
   ClipboardList, Eye, Layers, Settings2, MessageSquare, Send, Building2,
   ClipboardCheck, FileBarChart, Handshake, LayoutDashboard, Tag, Coins, Plug,
-  Inbox, GraduationCap, LayoutGrid, Cpu, History,
+  Inbox, GraduationCap, LayoutGrid, Cpu, History, Receipt,
 } from "lucide-react";
 
 import type { PlanTier, Segment } from "@/lib/segments";
@@ -425,6 +425,9 @@ const SCALE_EXIT_SUBGROUPS: NavSubgroup[] = [
     label: "Revenue",
     items: [
       { href: "/workspace/revenue", label: "Revenue", icon: DollarSign, minPlan: "growth", minTier: "growth", growthPhase: 4 },
+      // S28-C — bank CSV → categorised spend, burn, GST estimate. Starter+: the
+      // rules layer is free, the AI run is priced per 100 rows (Growth+ included).
+      { href: "/workspace/expenses", label: "Expenses", icon: Receipt, minPlan: "starter", minTier: "starter", growthPhase: 4 },
       { href: "/workspace/tax-invoice-checker", label: "Tax Invoice Checker", icon: FileText, minPlan: "starter", minTier: "starter", growthPhase: 4 },
       { href: "/workspace/journal", label: "Growth Journal", icon: BookOpen, minPlan: "scale", minTier: "scale", growthPhase: 4 },
       { href: "/workspace/dividends", label: "Dividends", icon: Gift, minPlan: "growth", minTier: "growth", growthPhase: 4 },
