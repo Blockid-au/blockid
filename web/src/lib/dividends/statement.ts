@@ -82,6 +82,8 @@ export interface StatementShareholder {
   name: string;
   role: string;
   shareClass?: string | null;
+  /** `shareholders.share_class_id` — the class a DRIP allotment is issued in (S28-A). */
+  shareClassId?: string | null;
   sharesHeld: number;
   /** Has the shareholder quoted a TFN / ABN to the company? */
   tfnOnFile: boolean;

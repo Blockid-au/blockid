@@ -28,8 +28,17 @@
  *   and charges nothing. Only a TOTAL failure (no row inserted → no marker)
  *   refunds, because the retry would be charged again.
  *
- *   200 { ok, preview: true, cost, listedCost, included, alreadyCharged, balance, creditNote, toIssue, alreadyIssued, company }
- *   200 { ok, partial, issued[], existing[], failed[], issuedCount, failedCount, cost, creditsCharged, alreadyCharged, retryCost, balance, creditNote, register }
+ *   DRIP (S28-A): shareholders with an ACTIVE `drip_elections` row have
+ *   their net cash × participation % applied to new shares at the S26-B
+ *   share price (mid) or the plan's manual price — `issueStatementsForRecord`
+ *   freezes the line on the statement, records `drip_allocations` and writes
+ *   the cap-table issue (share_transactions + shares_held, the same path as
+ *   the cap-table "Issue shares" action). The preview lists who reinvests
+ *   and the estimated shares BEFORE anything is issued; no election → no
+ *   DRIP work at all.
+ *
+ *   200 { ok, preview: true, cost, listedCost, included, alreadyCharged, balance, creditNote, toIssue, alreadyIssued, company, drip }
+ *   200 { ok, partial, issued[], existing[], failed[], issuedCount, failedCount, cost, creditsCharged, alreadyCharged, retryCost, balance, creditNote, register, drip[] }
  *   401 unauthorized  402 insufficient_credits | credit_spend_failed
  *   403/404 scope / record  409 no_payouts  429 rate_limited  503 service_unavailable
  *
@@ -58,6 +67,10 @@ import {
   statementSummary,
 } from "@/lib/dividends/server";
 import { apiRoute } from "@/lib/audit/api-route";
+import { listActiveElections, loadDefaultShareClassId, planDripForShareholder, type IssueDripContext } from "@/lib/dividends/drip-server";
+import { loadSharePriceMidForScope } from "@/lib/share-price-server";
+import { buildDividendStatement } from "@/lib/dividends/statement";
+import { toStatementRecord } from "@/lib/dividends/server";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -105,8 +118,42 @@ async function POST_handler(request: Request, { params }: { params: Promise<{ re
     return NextResponse.json({ ok: false, error: "no_payouts", message: "This dividend has no paying shareholders — record a dividend against your cap table first." }, { status: 409 });
   }
   const liveKeys = new Set(live.filter((s) => !s.voided_at).map((s) => s.shareholder_key));
-  const toIssue = matches.filter((m) => !liveKeys.has(m.key)).map((m) => m.shareholder.name);
+  const pending = matches.filter((m) => !liveKeys.has(m.key));
+  const toIssue = pending.map((m) => m.shareholder.name);
   const alreadyIssued = matches.length - toIssue.length;
+
+  // S28-A — DRIP context: only when an electing shareholder is among those
+  // still to issue (no election → no share-price lookup, no cap-table write).
+  let drip: IssueDripContext | null = null;
+  const elections = await listActiveElections(supabase, scope.projectId);
+  const electing = pending.filter((m) => m.shareholder.id && elections.some((e) => e.shareholderId === m.shareholder.id));
+  if (electing.length > 0) {
+    const needsMarket = electing.some((m) => elections.find((e) => e.shareholderId === m.shareholder.id)?.priceBasis === "share_price_mid");
+    const [marketPriceAud, defaultShareClassId] = await Promise.all([
+      needsMarket ? loadSharePriceMidForScope(supabase, scope, { email: user.email }) : Promise.resolve(null),
+      loadDefaultShareClassId(supabase, scope.ownerUserId),
+    ]);
+    drip = { elections, marketPriceAud, ownerUserId: scope.ownerUserId, defaultShareClassId };
+  }
+  const statementRecord = toStatementRecord(record);
+  const dripPreview = drip
+    ? electing.map((m) => {
+        const net = buildDividendStatement({ company, record: statementRecord, payout: m.payout, shareholder: m.shareholder }).amounts.netPaidAud;
+        const plan = planDripForShareholder(drip!, m.shareholder, net);
+        const a = plan?.allocation;
+        return {
+          shareholderName: m.shareholder.name,
+          participationPct: plan?.election.participationPct ?? 0,
+          priceBasis: plan?.election.priceBasis ?? "share_price_mid",
+          priceAud: a?.priceAud ?? 0,
+          netCashAud: net,
+          estShares: a?.shares ?? 0,
+          estReinvestedAud: a?.reinvestedAud ?? 0,
+          estCashPaidAud: a?.cashPaidAud ?? net,
+          skipReason: a && !a.ok ? a.reason : null,
+        };
+      })
+    : [];
 
   // Gate → cost. Nothing to issue → nothing to charge. A record that already
   // carries a charged statement (live or voided) is paid for → nothing to
@@ -142,6 +189,8 @@ async function POST_handler(request: Request, { params }: { params: Promise<{ re
       alreadyIssued,
       company,
       record: recordSummary(record),
+      /** S28-A — who reinvests under the DRIP and the estimated allotment (empty when no one elects). */
+      drip: { electing: dripPreview, marketPriceAud: drip?.marketPriceAud ?? null },
     });
   }
 
@@ -163,6 +212,7 @@ async function POST_handler(request: Request, { params }: { params: Promise<{ re
     record,
     shareholders,
     creditsCharged,
+    drip,
   });
   if (result.issued.length === 0 && result.failed.length > 0) {
     // TOTAL failure: no row was inserted, so nothing carries the
@@ -202,6 +252,8 @@ async function POST_handler(request: Request, { params }: { params: Promise<{ re
     creditNote,
     record: recordSummary(record),
     register: registerForRecord(company, record, all),
+    /** S28-A — DRIP allocations made (or reused) by this call. */
+    drip: result.drip ?? [],
   });
 }
 

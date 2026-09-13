@@ -181,7 +181,7 @@ describe("loadShareholdersForScope + matchPayouts", () => {
     });
     const holders = await loadShareholdersForScope(sb as never, SCOPE);
     expect(holders.map((h) => h.id)).toEqual(["sh-1", "sh-2"]);
-    expect(holders[0]).toEqual({ id: "sh-1", name: "Jane  Founder", role: "founder", shareClass: "Ordinary", sharesHeld: 600_000, tfnOnFile: true });
+    expect(holders[0]).toEqual({ id: "sh-1", name: "Jane  Founder", role: "founder", shareClass: "Ordinary", shareClassId: "cls-1", sharesHeld: 600_000, tfnOnFile: true });
     expect(holders[1].tfnOnFile).toBe(false);
 
     const matched = matchPayouts(PAYOUTS, holders);
@@ -246,6 +246,86 @@ describe("issueStatementsForRecord — idempotent", () => {
     const res = await issueStatementsForRecord({ db: sb as never, projectId: "proj-1", userId: "u", company, record: record(), shareholders: holders, creditsCharged: 0, now: NOW });
     expect(res.issued).toHaveLength(2);
     expect(sb.find("dividend_statements", "insert").map((c) => (c.args[0] as { shareholder_key: string }).shareholder_key)).toEqual(["id:sh-1", "id:sh-2"]);
+    expect(res.drip).toEqual([]);
+  });
+});
+
+describe("issueStatementsForRecord — DRIP hook (S28-A)", () => {
+  const company = { name: "Acme Robotics Pty Ltd", abn: "12 345 678 901", acn: "123 456 789", address: null };
+  const holders = [
+    { id: "sh-1", name: "Jane Founder", role: "founder", shareClass: "Ordinary", shareClassId: "cls-1", sharesHeld: 600_000, tfnOnFile: true },
+    { id: "sh-2", name: "Seed Investor Pty Ltd", role: "investor", shareClass: null, sharesHeld: 400_000, tfnOnFile: false },
+  ];
+  const election = { id: "el-1", shareholderId: "sh-1", participationPct: 50, priceBasis: "share_price_mid" as const, manualPriceAud: null, electedAt: "2026-07-01T00:00:00Z", revokedAt: null };
+  const ctx = (over: Partial<Parameters<typeof issueStatementsForRecord>[0]["drip"] & object> = {}) => ({ elections: [election], marketPriceAud: 1.37, ownerUserId: "user-owner", defaultShareClassId: "cls-ord", ...over });
+
+  it("an electing shareholder: frozen drip block on the statement, drip_allocations row, cap-table issue on the same path as issue_shares", async () => {
+    const sb = fakeSupabase({ dividend_statements: [], drip_allocations: [] });
+    const res = await issueStatementsForRecord({ db: sb as never, projectId: "proj-1", userId: "u", company, record: record(), shareholders: holders, creditsCharged: 0, now: NOW, drip: ctx() });
+    expect(res.issued).toHaveLength(2);
+    expect(res.drip).toHaveLength(1);
+    // Jane: net 30,000 × 50 % = 15,000 at A$1.37 → 10,948 shares, A$14,998.76 reinvested, A$1.24 residual.
+    expect(res.drip[0]).toMatchObject({ shareholderName: "Jane Founder", status: "recorded", shares: 10_948, priceAud: 1.37, reinvestedAud: 14_998.76, residualAud: 1.24, cashPaidAud: 15_001.24, skipReason: null });
+
+    const stmt = sb.find("dividend_statements", "insert")[0].args[0] as { payload: DividendStatementRow["payload"]; content_hash: string };
+    expect(stmt.payload.drip).toMatchObject({ electionId: "el-1", participationPct: 50, priceBasis: "share_price_mid", priceAud: 1.37, shares: 10_948, reinvestedAud: 14_998.76, cashPaidAud: 15_001.24, skipped: null });
+    expect(stmt.content_hash).toBe(statementContentHash(stmt.payload)); // the drip block is inside the hash
+    expect(stmt.payload.notes.some((n) => n.includes("10,948 shares at A$1.37"))).toBe(true);
+    // Seed Investor has no election → no drip block.
+    const second = sb.find("dividend_statements", "insert")[1].args[0] as { payload: DividendStatementRow["payload"] };
+    expect(second.payload.drip).toBeUndefined();
+
+    // Cap-table issue: same columns as api/cap-table `issue_shares`, keyed on the OWNER, round "DRIP <period>".
+    const tx = sb.find("share_transactions", "insert");
+    expect(tx).toHaveLength(1);
+    expect(tx[0].args[0]).toMatchObject({ account_id: "user-owner", project_id: "proj-1", transaction_type: "issue", to_shareholder_id: "sh-1", share_class_id: "cls-1", shares: 10_948, price_per_share: 1.37, total_value: 14_998.76, round_name: "DRIP 2026-06", effective_date: "2026-07-15" });
+    const up = sb.find("shareholders", "update");
+    expect(up).toHaveLength(1);
+    expect(up[0].args[0]).toEqual({ shares_held: 610_948 });
+    expect(sb.hasEq("shareholders", "id", "sh-1")).toBe(true);
+    expect(sb.hasEq("shareholders", "account_id", "user-owner")).toBe(true);
+
+    const alloc = sb.find("drip_allocations", "insert");
+    expect(alloc).toHaveLength(1);
+    expect(alloc[0].args[0]).toMatchObject({ project_id: "proj-1", dividend_record_id: "rec-1", election_id: "el-1", shareholder_id: "sh-1", shareholder_key: "id:sh-1", status: "recorded", participation_pct: 50, price_basis: "share_price_mid", net_cash_aud: 30_000, price_aud: 1.37, shares: 10_948, reinvested_aud: 14_998.76, residual_aud: 1.24 });
+  });
+
+  it("manual price basis uses the plan price; no usable market price → skipped, cash paid, no cap-table write", async () => {
+    const sb = fakeSupabase({ dividend_statements: [], drip_allocations: [] });
+    const manual = { ...election, priceBasis: "manual" as const, manualPriceAud: 2.5 };
+    const res = await issueStatementsForRecord({ db: sb as never, projectId: "proj-1", userId: "u", company, record: record(), shareholders: holders, creditsCharged: 0, now: NOW, drip: ctx({ elections: [manual], marketPriceAud: null }) });
+    expect(res.drip[0]).toMatchObject({ status: "recorded", shares: 6_000, priceAud: 2.5, reinvestedAud: 15_000, residualAud: 0, cashPaidAud: 15_000 });
+
+    const sb2 = fakeSupabase({ dividend_statements: [], drip_allocations: [] });
+    const res2 = await issueStatementsForRecord({ db: sb2 as never, projectId: "proj-1", userId: "u", company, record: record(), shareholders: holders, creditsCharged: 0, now: NOW, drip: ctx({ marketPriceAud: 0 }) });
+    expect(res2.drip[0]).toMatchObject({ status: "skipped", shares: 0, reinvestedAud: 0, cashPaidAud: 30_000, skipReason: "no_price" });
+    expect(sb2.find("share_transactions", "insert")).toHaveLength(0);
+    expect(sb2.find("shareholders", "update")).toHaveLength(0);
+    expect(sb2.find("drip_allocations", "insert")[0].args[0]).toMatchObject({ status: "skipped", skip_reason: "no_price", shares: 0 });
+    const stmt = sb2.find("dividend_statements", "insert")[0].args[0] as { payload: DividendStatementRow["payload"] };
+    expect(stmt.payload.drip).toMatchObject({ shares: 0, skipped: "no_price", cashPaidAud: 30_000 });
+  });
+
+  it("re-issue after a void REUSES the prior allocation — shares are never allotted twice", async () => {
+    const voided: DividendStatementRow = { ...issueSync(), id: "st-old", shareholder_key: "id:sh-1", voided_at: "2026-07-20T00:00:00Z", void_reason: "wrong holding" };
+    const prior = { id: "al-1", project_id: "proj-1", dividend_record_id: "rec-1", dividend_statement_id: "st-old", election_id: "el-1", shareholder_id: "sh-1", shareholder_key: "id:sh-1", share_transaction_id: "tx-1", status: "recorded", skip_reason: null, participation_pct: 50, price_basis: "share_price_mid", net_cash_aud: 30_000, price_aud: 1.37, shares: 10_948, reinvested_aud: 14_998.76, residual_aud: 1.24, created_at: "2026-07-16T00:00:00Z" };
+    const sb = fakeSupabase({ dividend_statements: [voided], drip_allocations: [prior] });
+    const res = await issueStatementsForRecord({ db: sb as never, projectId: "proj-1", userId: "u", company, record: record(), shareholders: holders, creditsCharged: 0, now: NOW, drip: ctx({ marketPriceAud: 9.99 }) });
+    expect(res.drip).toHaveLength(1);
+    expect(res.drip[0]).toMatchObject({ status: "reused", shares: 10_948, priceAud: 1.37, shareTransactionId: "tx-1" });
+    expect(sb.find("share_transactions", "insert")).toHaveLength(0);
+    expect(sb.find("drip_allocations", "insert")).toHaveLength(0);
+    const stmt = sb.find("dividend_statements", "insert")[0].args[0] as { payload: DividendStatementRow["payload"] };
+    expect(stmt.payload.drip).toMatchObject({ shares: 10_948, priceAud: 1.37, cashPaidAud: 15_001.24 });
+  });
+
+  it("no DRIP context → S25-B behaviour: no allocation reads, no drip block", async () => {
+    const sb = fakeSupabase({ dividend_statements: [] });
+    const res = await issueStatementsForRecord({ db: sb as never, projectId: "proj-1", userId: "u", company, record: record(), shareholders: holders, creditsCharged: 0, now: NOW });
+    expect(res.drip).toEqual([]);
+    expect(sb.find("drip_allocations", "select")).toHaveLength(0);
+    const stmt = sb.find("dividend_statements", "insert")[0].args[0] as { payload: DividendStatementRow["payload"] };
+    expect(stmt.payload.drip).toBeUndefined();
   });
 });
 

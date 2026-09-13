@@ -46,6 +46,15 @@ vi.mock("@/lib/credits", async () => {
   };
 });
 
+// S28-A — the DRIP price lookup (lib/share-price-server) is stubbed: `mid` is what it returns, `calls` how often it ran.
+const sharePrice = vi.hoisted(() => ({ mid: null as number | null, calls: 0 }));
+vi.mock("@/lib/share-price-server", () => ({
+  loadSharePriceMidForScope: async () => {
+    sharePrice.calls++;
+    return sharePrice.mid;
+  },
+}));
+
 const gate = vi.hoisted(() => ({ included: false, via: null as "addon" | "growth" | null }));
 vi.mock("@/lib/dividends/gate", () => ({ statementsIncluded: async () => ({ included: gate.included, via: gate.via }) }));
 
@@ -119,6 +128,8 @@ function reset() {
   gate.via = null;
   issue.failAll = false;
   issue.failNames = [];
+  sharePrice.mid = null;
+  sharePrice.calls = 0;
 }
 
 /** A stored statement row for `key` (`credits_charged` / `voided_at` overridable). */
@@ -378,5 +389,50 @@ describe("GET /api/dividends/[recordId]/statements", () => {
     reset();
     scopeState.nonMember = true;
     expect((await GET(new Request("http://localhost/x"), ctx())).status).toBe(404);
+  });
+});
+
+describe("POST /api/dividends/[recordId]/statements — DRIP (S28-A)", () => {
+  const ELECTION = { id: "el-1", project_id: "proj-1", user_id: "user-caller", shareholder_id: "22222222-2222-4222-8222-222222222222", participation_pct: 50, price_basis: "share_price_mid", manual_price_aud: null, elected_at: "2026-07-01T00:00:00Z", revoked_at: null, created_at: "2026-07-01T00:00:00Z" };
+
+  it("no election → no share-price lookup, empty drip preview, no cap-table write", async () => {
+    const res = await post({});
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.drip).toEqual({ electing: [], marketPriceAud: null });
+    expect(sharePrice.calls).toBe(0);
+    await post({ confirm: true });
+    expect(db.sb!.find("share_transactions", "insert")).toHaveLength(0);
+  });
+
+  it("electing shareholder: the preview shows the estimated allotment; confirm records the allocation and the cap-table issue", async () => {
+    seed({ drip_elections: [ELECTION], drip_allocations: [], share_classes: [{ id: "cls-ord", account_id: "user-caller", class_type: "ordinary", name: "Ordinary" }] });
+    sharePrice.mid = 1.37;
+    const preview = await (await post({})).json();
+    expect(sharePrice.calls).toBe(1);
+    expect(preview.drip.marketPriceAud).toBe(1.37);
+    expect(preview.drip.electing).toEqual([
+      { shareholderName: "Jane Founder", participationPct: 50, priceBasis: "share_price_mid", priceAud: 1.37, netCashAud: 30_000, estShares: 10_948, estReinvestedAud: 14_998.76, estCashPaidAud: 15_001.24, skipReason: null },
+    ]);
+    expect(db.sb!.find("share_transactions", "insert")).toHaveLength(0);
+
+    const res = await post({ confirm: true });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.drip).toHaveLength(1);
+    expect(body.drip[0]).toMatchObject({ shareholderName: "Jane Founder", status: "recorded", shares: 10_948, priceAud: 1.37, reinvestedAud: 14_998.76 });
+    const tx = db.sb!.find("share_transactions", "insert");
+    expect(tx).toHaveLength(1);
+    expect(tx[0].args[0]).toMatchObject({ account_id: "user-caller", transaction_type: "issue", to_shareholder_id: "22222222-2222-4222-8222-222222222222", share_class_id: "cls-ord", shares: 10_948, round_name: "DRIP 2026-06" });
+    expect(db.sb!.find("drip_allocations", "insert")).toHaveLength(1);
+    const jane = db.sb!.find("dividend_statements", "insert")[0].args[0] as { payload: { drip?: { shares: number } } };
+    expect(jane.payload.drip?.shares).toBe(10_948);
+  });
+
+  it("manual price basis never calls the share-price lookup", async () => {
+    seed({ drip_elections: [{ ...ELECTION, price_basis: "manual", manual_price_aud: 2.5 }], drip_allocations: [] });
+    const preview = await (await post({})).json();
+    expect(sharePrice.calls).toBe(0);
+    expect(preview.drip.electing[0]).toMatchObject({ priceBasis: "manual", priceAud: 2.5, estShares: 6_000 });
   });
 });
