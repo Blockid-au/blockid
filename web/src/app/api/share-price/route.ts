@@ -26,6 +26,7 @@ import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { loadConnectedRevenueSignals } from "@/lib/connected-revenue";
 import { selectConnectedRevenue } from "@/lib/valuation-mrr-bridge";
 import { computeSharePrice, type SharePriceInput } from "@/lib/share-price";
+import { primeSectorMultiples } from "@/lib/valuation/sector-multiples";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,8 @@ function num(v: unknown): number {
 }
 
 export async function GET() {
+  // S27-C: admin-approved sector-multiple overrides (cached 10 min) feed vcBenchmark().
+  await primeSectorMultiples();
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
 

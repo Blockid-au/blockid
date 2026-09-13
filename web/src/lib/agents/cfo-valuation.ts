@@ -12,46 +12,14 @@ import {
   type AuExit,
 } from "@/lib/exits/au-benchmark";
 import { callAI } from "@/lib/ai-client";
+import { SECTOR_MULTIPLES, type Sector, type VcBenchmark } from "@/lib/valuation/sector-multiples-static";
+import { getSectorMultiples, type MultiplesSource } from "@/lib/valuation/sector-multiples";
 
-export type Sector =
-  | "saas"
-  | "fintech"
-  | "marketplace"
-  | "healthtech"
-  | "ai"
-  | "deeptech"
-  | "ecommerce"
-  | "cybertech"
-  | "wealthtech"
-  | "biotech"
-  | "cleantech"
-  | "edtech"
-  | "proptech"
-  | "agtech"
-  | "insurtech"
-  | "legaltech"
-  | "gaming"
-  | "hrtech"
-  | "mediatech"
-  | "sportstech"
-  | "traveltech"
-  | "logisticstech"
-  | "retailtech"
-  | "govtech"
-  | "constructiontech"
-  | "spacetech"
-  | "default";
-
-export interface VcBenchmark {
-  sector: Sector;
-  medianMultiple: number;
-  multipleRange: [number, number];
-  source: string;
-  sources?: string[];
-  premiumFactor?: number;
-  arrMultiple?: { low: number; mid: number; high: number };
-  grossMarginTarget?: number;
-}
+// S27-C: the static table now lives in lib/valuation/sector-multiples-static.ts
+// (re-exported here so every existing import keeps working) and every
+// multiple read below goes through `getSectorMultiples()` — the latest
+// admin-approved `sector_multiples_overrides` row wins, else the static row.
+export { SECTOR_MULTIPLES, type Sector, type VcBenchmark };
 
 export interface AuMarketBenchmarks {
   preSeedValuation: [number, number];
@@ -75,39 +43,6 @@ export const AU_MARKET_DATA: AuMarketBenchmarks = {
   rdtiRefundRate: 0.435,
   esicOffset: 0.20,
   marketSizeDiscount: 0.20, // 20% avg discount for lack of bottom-up validation
-};
-
-/**
- * Sector Multiples based on Bessemer, Carta, and PitchBook 2024/25
- */
-export const SECTOR_MULTIPLES: Record<Sector, VcBenchmark> = {
-  saas: { sector: "saas", medianMultiple: 6.75, multipleRange: [6.0, 7.5], source: "Bessemer Venture Partners" },
-  ai: { sector: "ai", medianMultiple: 16.0, multipleRange: [12.0, 20.0], source: "Carta / PitchBook", premiumFactor: 1.5 },
-  fintech: { sector: "fintech", medianMultiple: 5.25, multipleRange: [4.5, 6.0], source: "SaaS Capital / PitchBook" },
-  marketplace: { sector: "marketplace", medianMultiple: 4.0, multipleRange: [3.0, 5.0], source: "PitchBook" },
-  healthtech: { sector: "healthtech", medianMultiple: 6.5, multipleRange: [5.0, 8.0], source: "Digital Health Benchmarks" },
-  deeptech: { sector: "deeptech", medianMultiple: 8.0, multipleRange: [6.0, 12.0], source: "Internal BlockID / Industry" },
-  ecommerce: { sector: "ecommerce", medianMultiple: 2.5, multipleRange: [1.5, 4.0], source: "Public Comps" },
-  cybertech: { sector: "cybertech", medianMultiple: 7.0, multipleRange: [6.0, 9.0], source: "Bessemer" },
-  wealthtech: { sector: "wealthtech", medianMultiple: 5.0, multipleRange: [4.0, 6.0], source: "PitchBook" },
-  biotech: { sector: "biotech", medianMultiple: 10.0, multipleRange: [5.0, 25.0], source: "Biotech VC Index" },
-  cleantech: { sector: "cleantech", medianMultiple: 6.0, multipleRange: [4.0, 10.0], source: "Clean Energy VC" },
-  edtech: { sector: "edtech", medianMultiple: 4.0, multipleRange: [3.0, 6.0], source: "SaaS Capital" },
-  proptech: { sector: "proptech", medianMultiple: 4.5, multipleRange: [3.5, 6.0], source: "PitchBook" },
-  agtech: { sector: "agtech", medianMultiple: 4.0, multipleRange: [3.0, 5.0], source: "AgTech Global" },
-  insurtech: { sector: "insurtech", medianMultiple: 5.0, multipleRange: [4.0, 7.0], source: "SaaS Capital" },
-  legaltech: { sector: "legaltech", medianMultiple: 5.0, multipleRange: [4.0, 6.0], source: "PitchBook" },
-  gaming: { sector: "gaming", medianMultiple: 6.0, multipleRange: [4.0, 10.0], source: "Gaming Industry Benchmarks" },
-  hrtech: { sector: "hrtech", medianMultiple: 5.5, multipleRange: [4.5, 6.5], source: "SaaS Capital / Deel & Rippling comps 2025" },
-  mediatech: { sector: "mediatech", medianMultiple: 4.0, multipleRange: [3.0, 5.5], source: "PitchBook Media & CreatorTech 2025" },
-  sportstech: { sector: "sportstech", medianMultiple: 4.5, multipleRange: [3.5, 6.0], source: "PitchBook SportsTech Report 2025" },
-  traveltech: { sector: "traveltech", medianMultiple: 3.5, multipleRange: [2.5, 5.0], source: "Skift Research / Phocuswright 2025" },
-  logisticstech: { sector: "logisticstech", medianMultiple: 4.5, multipleRange: [3.5, 6.0], source: "PitchBook Supply Chain & Logistics 2025" },
-  retailtech: { sector: "retailtech", medianMultiple: 3.5, multipleRange: [2.5, 5.0], source: "SaaS Capital / RetailTech comps 2025" },
-  govtech: { sector: "govtech", medianMultiple: 6.0, multipleRange: [5.0, 8.0], source: "GovTech VC Index 2025 (long-cycle contracts)" },
-  constructiontech: { sector: "constructiontech", medianMultiple: 4.5, multipleRange: [3.5, 6.0], source: "PitchBook Built World / ConTech 2025" },
-  spacetech: { sector: "spacetech", medianMultiple: 7.0, multipleRange: [5.0, 12.0], source: "Space Capital / Bryce Space 2025 (deeptech premium)" },
-  default: { sector: "default", medianMultiple: 5.0, multipleRange: [4.0, 6.0], source: "Generalist VC" },
 };
 
 export interface UnitEconomics {
@@ -257,8 +192,8 @@ export function auExitRealisationCheck(
   const finalMrr = projection[projection.length - 1]?.mrrAud ?? mrrAud;
   const impliedExitArrAud = finalMrr * 12;
 
-  const bm = SECTOR_MULTIPLES[normSector];
-  const medianRevenueMultiple = bm ? bm.medianMultiple : null;
+  const bm = getSectorMultiples(normSector);
+  const medianRevenueMultiple = bm ? bm.mid : null;
 
   let auPrecedentExitValueAud: number | null = null;
   if (summary.medianValuationAud) {
@@ -293,12 +228,40 @@ export function auExitRealisationCheck(
 /* ─── Exports expected by dependents ─────────────────────────────────────── */
 
 export const VC_BENCHMARKS = SECTOR_MULTIPLES;
-export function vcBenchmark(sector: string): VcBenchmark & { cacPaybackMonthsTarget?: number; grossMarginTarget?: number; ltvCacTarget?: number; arrMultiple: { low: number; mid: number; high: number }; sources: string[] } {
-  const bm = SECTOR_MULTIPLES[sector as Sector] ?? SECTOR_MULTIPLES["default"];
+
+export interface VcBenchmarkResolved extends VcBenchmark {
+  cacPaybackMonthsTarget?: number;
+  grossMarginTarget?: number;
+  ltvCacTarget?: number;
+  arrMultiple: { low: number; mid: number; high: number };
+  sources: string[];
+  /** S27-C — "static" (table above) or "override" (admin-approved cited row). */
+  multiplesSource: MultiplesSource;
+  /** S27-C — label for method notes: "BlockID static table (2026-06) · …" or "<title>, <date>". */
+  sourceLabel: string;
+}
+
+/**
+ * Sector benchmark every consumer reads. S27-C: the ARR multiple band
+ * (`arrMultiple`, `medianMultiple`, `multipleRange`) comes from
+ * `getSectorMultiples()` — an admin-approved override when one is effective
+ * at `at` (default today), else the static row — and `source` becomes the
+ * override's citation in that case so the existing "(source)" notes stay honest.
+ */
+export function vcBenchmark(sector: string, at?: Date | string): VcBenchmarkResolved {
+  const key = (SECTOR_MULTIPLES[sector as Sector] ? sector : "default") as Sector;
+  const bm = SECTOR_MULTIPLES[key];
+  const r = getSectorMultiples(key, at);
+  const isOverride = r.sourceKind === "override";
   return {
     ...bm,
-    arrMultiple: bm.arrMultiple ?? { low: bm.multipleRange[0], mid: bm.medianMultiple, high: bm.multipleRange[1] },
-    sources: bm.sources ?? [bm.source],
+    source: isOverride ? r.sourceLabel : bm.source,
+    medianMultiple: r.mid,
+    multipleRange: [r.low, r.high],
+    arrMultiple: { low: r.low, mid: r.mid, high: r.high },
+    sources: isOverride ? [r.sourceLabel, ...(r.override?.sourceUrl ? [r.override.sourceUrl] : [])] : bm.sources ?? [bm.source],
+    multiplesSource: r.sourceKind,
+    sourceLabel: r.sourceLabel,
     cacPaybackMonthsTarget: 18,
     grossMarginTarget: bm.grossMarginTarget ?? 70,
     ltvCacTarget: 3,
@@ -384,21 +347,24 @@ export function growthAdjustedSectorMultiple(
 ): { low: number; mid: number; high: number; band: GrowthBand; sector: Sector; source: string } {
   const band = classifyGrowthBand(monthlyGrowthRatePct);
   const key = (SECTOR_MULTIPLES[sector as Sector] ? sector : "default") as Sector;
+  const resolved = getSectorMultiples(key);
   const row = GROWTH_MULTIPLES[key]?.[band];
-  if (row) {
+  // S27-C: the growth-band table is calibrated against the static row; once an
+  // admin-approved override is effective the band is scaled off the override
+  // instead so the cited number is what moves the valuation.
+  if (row && resolved.sourceKind === "static") {
     return { ...row, band, sector: key, source: SECTOR_MULTIPLES[key].source };
   }
-  // Sector without a growth-band table: scale the flat range by a
-  // cohort factor so callers still get a growth-sensitive number.
-  const base = SECTOR_MULTIPLES[key];
+  // Sector without a growth-band table (or an override in force): scale the
+  // flat range by a cohort factor so callers still get a growth-sensitive number.
   const factor = band === "high" ? 1.4 : band === "mid" ? 1.0 : 0.55;
   return {
-    low: Number((base.multipleRange[0] * factor).toFixed(2)),
-    mid: Number((base.medianMultiple * factor).toFixed(2)),
-    high: Number((base.multipleRange[1] * factor).toFixed(2)),
+    low: Number((resolved.low * factor).toFixed(2)),
+    mid: Number((resolved.mid * factor).toFixed(2)),
+    high: Number((resolved.high * factor).toFixed(2)),
     band,
     sector: key,
-    source: base.source,
+    source: resolved.sourceKind === "override" ? resolved.sourceLabel : SECTOR_MULTIPLES[key].source,
   };
 }
 
@@ -571,7 +537,9 @@ export type VcValuationInput = BuildVcValuationInput;
 
 export function buildVcValuationReport(input: BuildVcValuationInput): VcValuationReport {
   const { sector = "default", stage = "pre-seed", mrrAud = 0, monthlyGrowthRatePct = 10, esicQualifies = false, estimatedRdtiRefundAud = 0 } = input;
-  const bm = SECTOR_MULTIPLES[sector as Sector] ?? SECTOR_MULTIPLES["default"];
+  // S27-C: multiples resolve through lib/valuation/sector-multiples (approved
+  // override → static row); the label lands in the method rationale + notes.
+  const bm = vcBenchmark(sector);
   const [multiLow, multiHigh] = bm.multipleRange;
   const arrAud = mrrAud * 12;
   const annualGrowth = monthlyGrowthRatePct * 12;
@@ -620,7 +588,7 @@ export function buildVcValuationReport(input: BuildVcValuationInput): VcValuatio
   const scorecard = scorecardMethod(input);
 
   const rawMethods = [
-    { method: "revenue_multiple", lowAud: Math.round(revLow), midAud: Math.round(revMid), highAud: Math.round(revHigh), weight: arrAud > 0 ? 0.35 : 0.1, rationale: `AU ${sector} revenue multiples ${multiLow}–${multiHigh}x ARR for ${stage} stage.` },
+    { method: "revenue_multiple", lowAud: Math.round(revLow), midAud: Math.round(revMid), highAud: Math.round(revHigh), weight: arrAud > 0 ? 0.35 : 0.1, rationale: `AU ${sector} revenue multiples ${multiLow}–${multiHigh}x ARR for ${stage} stage. Multiples: ${bm.sourceLabel}.` },
     { method: "berkus", lowAud: Math.round(berkus * 0.7), midAud: Math.round(berkus), highAud: Math.round(berkus * 1.3), weight: arrAud > 0 ? 0.1 : 0.35, rationale: "Berkus milestone-based valuation (A$500K/milestone, AU-adjusted)." },
     { method: "dcf_proxy", lowAud: Math.round(dcfMid * 0.7), midAud: Math.round(dcfMid), highAud: Math.round(dcfMid * 1.4), weight: 0.25, rationale: "Simplified DCF using sector growth rate and AU exit comparables." },
     { method: "comparables", lowAud: Math.round(compMid * 0.75), midAud: Math.round(compMid), highAud: Math.round(compMid * 1.35), weight: 0.15, rationale: `Comparable AU ${sector} transactions — growth tier: ${growthTier.tier} (${annualGrowth}% YoY, Bessemer Cloud Index 2025 adjustment: ${growthTier.factor}x).` },
@@ -666,8 +634,9 @@ export function buildVcValuationReport(input: BuildVcValuationInput): VcValuatio
     notes: [
       ...(mrrAud === 0 ? ["MRR not provided — Berkus method drives valuation. Add MRR for revenue-multiple estimate."] : []),
       `AU exit precedent: ${auExitCheck.note}`,
+      `Sector multiples: ${bm.sourceLabel}.`,
     ],
-    sources: ["Austrade Startup Investment Report 2024", "Cut Through Ventures AU VC Landscape", "SaaS Capital Index 2024", "Airtree AU Benchmarks 2025", "au-benchmark: AU exit realisation data"],
+    sources: ["Austrade Startup Investment Report 2024", "Cut Through Ventures AU VC Landscape", "SaaS Capital Index 2024", "Airtree AU Benchmarks 2025", "au-benchmark: AU exit realisation data", `sector-multiples: ${bm.sourceLabel}`],
     auExitCheck,
   };
 }

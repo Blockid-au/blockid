@@ -169,7 +169,12 @@ export function generateMonthlyProjection(input: {
 
 // ── Revenue Multiple Valuation ─────────────────────────────────────────
 
-const SECTOR_MULTIPLES: Record<string, { low: number; mid: number; high: number }> = {
+// Forward-ARR multiples for the projections tool. NOTE (S27-C): this is a
+// different scale (projected ARR at month 12/24, not current ARR) from the
+// CFO sector table — it is NOT the resolver in lib/valuation/sector-multiples
+// and is left as-is on purpose; reconciling the two scales needs a cited
+// source and an admin approval, never a silent edit.
+const PROJECTION_ARR_MULTIPLES: Record<string, { low: number; mid: number; high: number }> = {
   saas: { low: 10, mid: 20, high: 40 },
   fintech: { low: 8, mid: 15, high: 30 },
   marketplace: { low: 3, mid: 6, high: 12 },
@@ -186,7 +191,7 @@ export function calculateValuationMultiples(input: {
   stage: number;
   monthlyGrowthRate: number;
 }): ValuationMultiple[] {
-  const multiples = SECTOR_MULTIPLES[input.sector.toLowerCase()] ?? SECTOR_MULTIPLES.default;
+  const multiples = PROJECTION_ARR_MULTIPLES[input.sector.toLowerCase()] ?? PROJECTION_ARR_MULTIPLES.default;
 
   // Growth premium: +1x per 10% monthly growth rate
   const growthPremium = Math.max(0, input.monthlyGrowthRate / 10);

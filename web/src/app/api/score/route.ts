@@ -18,6 +18,7 @@ import {
   type ValuationMethod,
 } from "@/lib/valuation-mrr-bridge";
 import { apiRoute } from "@/lib/audit/api-route";
+import { primeSectorMultiples } from "@/lib/valuation/sector-multiples";
 
 // ── Wave 29/30: 8-Dimension SVI Analysis + 13 Criteria Sub-breakdown ─────────
 
@@ -1148,6 +1149,9 @@ async function POST_handler(request: Request) {
       { status: 400 },
     );
   }
+  // S27-C: admin-approved sector-multiple overrides (cached 10 min) feed
+  // buildVcValuationReport / the MRR bridge below.
+  await primeSectorMultiples();
 
   const zparse = ScorePostSchema.safeParse(body);
   if (!zparse.success) {

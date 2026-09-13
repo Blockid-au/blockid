@@ -46,7 +46,7 @@ describe("computeSharePrice", () => {
     expect(r.method).toBe("svi+arr_multiple");
     expect(r.weights).toEqual({ svi: SHARE_PRICE_WEIGHTS.svi, arr: SHARE_PRICE_WEIGHTS.arr });
     const bm = vcBenchmark("saas");
-    expect(r.multiple).toEqual({ sector: "saas", low: bm.arrMultiple.low, mid: bm.arrMultiple.mid, high: bm.arrMultiple.high, source: bm.source });
+    expect(r.multiple).toEqual({ sector: "saas", low: bm.arrMultiple.low, mid: bm.arrMultiple.mid, high: bm.arrMultiple.high, source: bm.source, sourceLabel: bm.sourceLabel, multiplesSource: "static" });
     expect(r.arrValuation).toEqual({ lowAud: Math.round(arr * bm.arrMultiple.low), midAud: Math.round(arr * bm.arrMultiple.mid), highAud: Math.round(arr * bm.arrMultiple.high) });
     const svi = computeValuation({ sviScore: 120, stage: "validation", sector: "saas" });
     const expectedMid = Math.round(0.4 * svi.midAud + 0.6 * arr * bm.arrMultiple.mid);

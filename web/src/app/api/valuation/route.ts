@@ -7,6 +7,7 @@ import { findSVIAccountWithFallback, creditChargeNote } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { loadConnectedRevenueSignals } from "@/lib/connected-revenue";
 import { applyConnectedRevenueBridge } from "@/lib/valuation-mrr-bridge";
+import { primeSectorMultiples } from "@/lib/valuation/sector-multiples";
 import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +34,8 @@ export async function GET() {
         { status: 401 },
       );
     }
+    // S27-C: load admin-approved sector-multiple overrides (cached 10 min).
+    await primeSectorMultiples();
 
     const supabase = getSupabaseAdmin();
     if (!supabase) {
@@ -175,6 +178,7 @@ async function POST_handler(request: Request) {
         { status: 401 },
       );
     }
+    await primeSectorMultiples();
 
     // Parse request body
     const body = await request.json().catch(() => null);
