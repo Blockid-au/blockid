@@ -58,7 +58,8 @@ import { latestDraftFor } from "@/lib/funding/application-drafts";
 import { matchInvestorsForProject } from "@/lib/funding/investor-match";
 import { latestAnalysisRefresh, nextRefreshDate, previousQuarter } from "@/lib/funding/analysis-refresh";
 import { GrantDraftEditor } from "@/components/funding/grant-draft-editor";
-import { FundingWorkspace, isFundingTab, type CapitalMapSection, type GrowthExtras } from "./funding-workspace";
+import { FundingWorkspace, type CapitalMapSection, type GrowthExtras } from "./funding-workspace";
+import { isFundingTab } from "./funding-tabs";
 import { MoneyRadarTile } from "@/components/dashboard/money-radar-tile";
 import { getMoneyRadarTileData } from "@/lib/funding/tile-data";
 

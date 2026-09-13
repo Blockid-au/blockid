@@ -22,18 +22,11 @@ import { formatDateAu } from "@/lib/funding/deadline-status";
 import { capitalSlug, programTypeLabel } from "@/lib/funding/directory";
 import { rovingIndex } from "@/lib/a11y/keyboard";
 
-export type FundingTab = "grants" | "programs" | "events" | "timeline" | "capital" | "investors" | "refresh" | "alerts";
-
-export const FUNDING_TABS: ReadonlyArray<{ id: FundingTab; label: string }> = [
-  { id: "grants", label: "Grants" },
-  { id: "programs", label: "Programs" },
-  { id: "events", label: "Events" },
-  { id: "timeline", label: "Timeline" },
-  { id: "capital", label: "Capital map" },
-  { id: "investors", label: "Investors" },
-  { id: "refresh", label: "Expert update" },
-  { id: "alerts", label: "Alerts" },
-];
+// Tab ids + `isFundingTab` live in funding-tabs.ts (no "use client") so the
+// server page can call the guard — calling a client-module export from a
+// server component throws at render (live-qa S30-B P1, 2026-09-13).
+import { FUNDING_TABS, type FundingTab } from "./funding-tabs";
+export { FUNDING_TABS, isFundingTab, type FundingTab } from "./funding-tabs";
 
 /** Growth extras (T0251, §4h Growth row). `unlocked` false → locked cards with the D-3 copy. */
 export interface GrowthExtras {
@@ -76,9 +69,6 @@ export interface FundingWorkspaceProps {
   growth?: GrowthExtras | null;
 }
 
-export function isFundingTab(v: string | null | undefined): v is FundingTab {
-  return FUNDING_TABS.some((t) => t.id === v);
-}
 
 export function FundingWorkspace({ report, events, capitalMap, alertKinds, initialTab = "grants", draftEditor, growth }: FundingWorkspaceProps) {
   const [tab, setTab] = React.useState<FundingTab>(initialTab);
