@@ -150,10 +150,15 @@ export async function listResyncCandidates(db: Db, limit: number, now: Date = ne
   const staleBefore = new Date(now.getTime() - RESYNC_MIN_INTERVAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const out: ResyncCandidate[] = [];
 
+  // `error` rows are retried too (S25-review): releaseConnection() flips a
+  // v2 row to `error` on ANY failed tick, so an "active only" filter turned
+  // one rate limit / outage into a permanent drop from the weekly resync
+  // until the founder pressed Sync. A dead token still costs one throttled
+  // notification per 30 days and no provider call. `revoked` never returns.
   const v2 = await db
     .from("oauth_connections_v2")
     .select("id, user_id, project_id, provider, provider_account_id, access_token_encrypted, refresh_token_encrypted, metadata, resync_last_at")
-    .eq("status", "active")
+    .in("status", ["active", "error"])
     .in("provider", ["stripe", "xero"])
     .or(`resync_last_at.is.null,resync_last_at.lt.${staleBefore}`)
     .order("resync_last_at", { ascending: true, nullsFirst: true })

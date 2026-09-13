@@ -396,7 +396,9 @@ describe("listResyncCandidates / claimConnection", () => {
     expect(out.map((c) => [c.table, c.id, c.provider])).toEqual([["oauth_connections_v2", "v2-1", "stripe"], ["oauth_connections", "l-1", "xero"]]);
     expect(out[1]).toMatchObject({ accountId: "acc-1", providerAccountId: "t-1", metadata: { tenantId: "t-1", tenantName: "Acme" }, accessTokenSealed: "gcm:a:b:c" });
     // Only active v2 rows, both providers, oldest-synced first, stale-first filter.
-    expect(ops).toContainEqual({ table: "oauth_connections_v2", op: "eq", args: ["status", "active"] });
+    // active + error (a failed tick must self-heal next week); never revoked.
+    expect(ops).toContainEqual({ table: "oauth_connections_v2", op: "in", args: ["status", ["active", "error"]] });
+    expect(ops.some((o) => o.table === "oauth_connections_v2" && o.op === "eq" && o.args[0] === "status")).toBe(false);
     expect(ops).toContainEqual({ table: "oauth_connections_v2", op: "in", args: ["provider", ["stripe", "xero"]] });
     expect(ops).toContainEqual({ table: "oauth_connections_v2", op: "limit", args: [20] });
     expect(ops.find((o) => o.table === "oauth_connections_v2" && o.op === "or")?.args[0]).toMatch(/^resync_last_at\.is\.null,resync_last_at\.lt\./);
