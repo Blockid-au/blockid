@@ -17,10 +17,12 @@ const mocks = vi.hoisted(() => ({
   sb: null as unknown,
   user: { id: "member-1", email: "m@x.test" } as { id: string; email: string } | null,
   scope: vi.fn<(...a: unknown[]) => Promise<unknown>>(),
+  crm: vi.fn<(...a: unknown[]) => Promise<unknown>>(),
 }));
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => mocks.sb }));
 vi.mock("@/lib/auth", () => ({ getCurrentUser: async () => mocks.user }));
 vi.mock("@/lib/project-members/http", () => ({ projectScopeOrDeny: (...a: unknown[]) => mocks.scope(...a) }));
+vi.mock("@/lib/investors/crm-server", () => ({ linkCommitment: (...a: unknown[]) => mocks.crm(...a) }));
 
 import { DELETE, PATCH } from "./route";
 
@@ -68,6 +70,7 @@ beforeEach(() => {
   mocks.sb = sb;
   mocks.user = { id: "member-1", email: "m@x.test" };
   mocks.scope.mockReset().mockResolvedValue(scopeOf("editor"));
+  mocks.crm.mockReset().mockResolvedValue({ matched: false, contactId: null, stageMovedTo: null });
 });
 
 describe("PATCH /api/fundraise/[roundId]/commitments/[commitmentId]", () => {
@@ -107,6 +110,9 @@ describe("PATCH /api/fundraise/[roundId]/commitments/[commitmentId]", () => {
     expect(sb.hasEq("fundraise_commitments", "round_id", "round-1")).toBe(true);
     expect(sb.find("fundraise_rounds", "update").length).toBe(1);
     expect(sb.hasEq("fundraise_rounds", "account_id", OWNER)).toBe(true);
+    // S28-B — the CRM hook sees the round's project, the row's email and the new status.
+    expect(mocks.crm).toHaveBeenCalledTimes(1);
+    expect(mocks.crm.mock.calls[0][1]).toMatchObject({ projectId: PID, commitmentId: "c1", roundId: "round-1", status: "funded", event: "updated", actorUserId: "member-1" });
   });
 
   it("a same-status patch does not touch the dates", async () => {
@@ -115,6 +121,10 @@ describe("PATCH /api/fundraise/[roundId]/commitments/[commitmentId]", () => {
     expect(patch.amount_aud).toBe(120000);
     expect("committed_at" in patch).toBe(false);
     expect("status" in patch).toBe(false);
+    expect(mocks.crm).toHaveBeenCalledTimes(1); // amount changed → still a touchpoint
+    mocks.crm.mockClear();
+    await PATCH(patchReq({ notes: "just a note" }), ctx());
+    expect(mocks.crm).not.toHaveBeenCalled(); // a notes-only edit is not a touchpoint
   });
 
   it("404 when the row is not on the round; 400 when accessTokenId is not the owner's link", async () => {

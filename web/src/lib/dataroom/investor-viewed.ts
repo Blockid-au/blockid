@@ -16,6 +16,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { insertNotification } from "@/lib/notifications";
 import { sendInvestorViewedEmail } from "@/lib/email";
+import { linkDataRoomView } from "@/lib/investors/crm-server";
 import {
   INVESTOR_VIEWED_THROTTLE_MS,
   detectInvestorViewedTrigger,
@@ -103,6 +104,18 @@ export async function maybeNotifyInvestorViewed(
       .maybeSingle();
     const room = roomRow as { id: string; user_id: string | null; project_id: string | null; name: string | null } | null;
     if (!room?.user_id) return { trigger, notified: false, emailed: false };
+
+    // S28-B — investor CRM: a contact on the room's project whose email is
+    // the link's gets a `data_room_view` touchpoint. Additive, never
+    // throws, independent of the 24 h notification throttle below.
+    await linkDataRoomView(supabase, {
+      projectId: room.project_id,
+      email: link.investor_email,
+      linkId: link.id,
+      trigger,
+      roomName: room.name,
+      sections: depth.sections,
+    });
 
     const label = investorLabel(link);
     const notified = await insertNotification({

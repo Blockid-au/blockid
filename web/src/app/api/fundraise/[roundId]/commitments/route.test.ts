@@ -18,10 +18,12 @@ const mocks = vi.hoisted(() => ({
   sb: null as unknown,
   user: { id: "member-1", email: "m@x.test" } as { id: string; email: string } | null,
   scope: vi.fn<(...a: unknown[]) => Promise<unknown>>(),
+  crm: vi.fn<(...a: unknown[]) => Promise<unknown>>(),
 }));
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => mocks.sb }));
 vi.mock("@/lib/auth", () => ({ getCurrentUser: async () => mocks.user }));
 vi.mock("@/lib/project-members/http", () => ({ projectScopeOrDeny: (...a: unknown[]) => mocks.scope(...a) }));
+vi.mock("@/lib/investors/crm-server", () => ({ linkCommitment: (...a: unknown[]) => mocks.crm(...a) }));
 
 import { GET, POST } from "./route";
 
@@ -53,6 +55,7 @@ beforeEach(() => {
   mocks.sb = sb;
   mocks.user = { id: "member-1", email: "m@x.test" };
   mocks.scope.mockReset().mockResolvedValue(scopeOf("editor"));
+  mocks.crm.mockReset().mockResolvedValue({ matched: false, contactId: null, stageMovedTo: null });
 });
 
 describe("GET /api/fundraise/[roundId]/commitments", () => {
@@ -120,6 +123,9 @@ describe("POST /api/fundraise/[roundId]/commitments", () => {
     expect(upd[0].args[0]).toMatchObject({ soft_aud: 0, committed_aud: 100000, funded_aud: 0 });
     const body = await res.json();
     expect(body.summary.committedAud).toBe(100000);
+    // S28-B — the CRM hook sees the round's project + the lower-cased email + status.
+    expect(mocks.crm).toHaveBeenCalledTimes(1);
+    expect(mocks.crm.mock.calls[0][1]).toMatchObject({ projectId: PID, email: "sam@bb.vc", roundId: "round-1", status: "signed", event: "created", actorUserId: "member-1" });
   });
 
   it("409 on a closed round", async () => {
