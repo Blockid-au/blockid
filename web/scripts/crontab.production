@@ -264,6 +264,15 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # something changed. `?dry=1` previews without writes; `?force=1` rebuilds.
 0 6 1 1,4,7,10 * bash $RUN analysis-refresh-quarterly --timeout 300
 
+# 1:00pm AEST on the 1st of Jan/Apr/Jul/Oct (03:00 UTC) — Quarterly sector
+# revenue-multiple PROPOSALS (S27-C). Fetches the fixed allow-list of public
+# multiples pages (web/src/lib/valuation/multiples-sources.ts) through the
+# SSRF-guarded pinned fetcher, extracts {sector, low, mid, high, excerpt} and
+# inserts sector_multiples_overrides rows as status=proposed ONLY when the
+# excerpt is verbatim in the fetched text. Nothing is approved here — an
+# admin reviews at /dashboard/admin/sector-multiples. `?dry=1` previews.
+0 3 1 1,4,7,10 * bash $RUN sector-multiples-refresh --timeout 300
+
 # Every 30 min — stuck Money Finder report retry (review 2026-09-10 #11).
 # Paid guest rows the Stripe webhook left at paid / generating / failed
 # (paid marker older than 10 min) are regenerated with the same generator

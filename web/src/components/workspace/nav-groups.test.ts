@@ -544,8 +544,8 @@ describe("NAV_GROUPS — href uniqueness (documented duplicates only)", () => {
 });
 
 describe("ADMIN_NAV_GROUP — shape", () => {
-  it("ships exactly 7 admin nav rows", () => {
-    expect(ADMIN_NAV_GROUP.items).toHaveLength(7);
+  it("ships exactly 8 admin nav rows", () => {
+    expect(ADMIN_NAV_GROUP.items).toHaveLength(8);
   });
 
   it("labels the group 'Admin' with id 'admin'", () => {
@@ -575,6 +575,7 @@ describe("ADMIN_NAV_GROUP — shape", () => {
         "/admin/listings",
         "/dashboard/admin/content-pillars",
         "/dashboard/admin/pricing-test",
+        "/dashboard/admin/sector-multiples",
         "/dashboard/admin/stripe-sync",
         "/dashboard/admin/svi-exchange",
       ].sort(),

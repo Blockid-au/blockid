@@ -12,8 +12,9 @@
 //
 //   arr            = mrr × 12
 //   arrRange       = [arr × multiple.low, arr × multiple.high]
-//                    (sector multiples from SECTOR_MULTIPLES via vcBenchmark —
-//                    the same table the CFO agent already uses)
+//                    (sector multiples via vcBenchmark → lib/valuation/
+//                    sector-multiples: approved override, else the static
+//                    table the CFO agent already uses — S27-C)
 //   overlap        → narrow the SVI range to the overlap
 //   disjoint       → widen to cover both ranges + flag `methodNote`
 //   stale (> 90d)  → ignore the signal + note
@@ -67,8 +68,15 @@ export interface ConnectedRevenueDetail {
   sector: string;
   multipleLow: number;
   multipleHigh: number;
-  /** Citation for the multiple range (SECTOR_MULTIPLES[sector].source). */
+  /** Citation for the multiple range (static row source, or the approved override's "<title>, <date>"). */
   multipleSource: string;
+  /**
+   * S27-C — where the multiples came from: "static" (lib/valuation/
+   * sector-multiples-static.ts) or "override" (admin-approved cited row).
+   */
+  multiplesSource: "static" | "override";
+  /** S27-C — "BlockID static table (2026-06) · …" or "<source_title>, <date>". */
+  multipleSourceLabel: string;
   arrRangeLowAud: number;
   arrRangeHighAud: number;
   relation: BridgeRelation;
@@ -210,6 +218,14 @@ export function applyConnectedRevenueBridge(
     methodNote = stale ? `${DISAGREEMENT_NOTE}; ${stale}` : DISAGREEMENT_NOTE;
   }
 
+  // S27-C: when an admin-approved override (not the static table) supplied
+  // the multiples, say so in the method note — the static case stays silent
+  // here so nothing changes for users until an override is approved.
+  if (bm.multiplesSource === "override") {
+    const src = `sector multiples from ${bm.sourceLabel}`;
+    methodNote = methodNote ? `${methodNote}; ${src}` : src;
+  }
+
   lowAud = Math.max(0, lowAud);
   highAud = Math.max(lowAud, highAud);
   const midAud =
@@ -241,6 +257,8 @@ export function applyConnectedRevenueBridge(
       multipleLow,
       multipleHigh,
       multipleSource: bm.source,
+      multiplesSource: bm.multiplesSource,
+      multipleSourceLabel: bm.sourceLabel,
       arrRangeLowAud,
       arrRangeHighAud,
       relation,

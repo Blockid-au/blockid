@@ -683,6 +683,7 @@ export const ADMIN_NAV_GROUP: NavGroup = {
     { href: "/dashboard/admin/stripe-sync", label: "Stripe Sync", icon: CreditCard, lifecycle: "beta" },
     { href: "/dashboard/admin/pricing-test", label: "Pricing A/B", icon: BarChart3, lifecycle: "beta" },
     { href: "/dashboard/admin/svi-exchange", label: "SVI Exchange", icon: Rocket, lifecycle: "beta" },
+    { href: "/dashboard/admin/sector-multiples", label: "Sector Multiples", icon: TrendingUp, lifecycle: "beta" },
     { href: "/admin/listings", label: "Listings", icon: ExternalLink },
   ],
 };

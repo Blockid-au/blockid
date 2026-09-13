@@ -5,7 +5,7 @@
 // divided by the AUTHORISED share count. Two things were missing:
 //
 //   1. connected revenue — S17-B / S25-A give a Stripe / Xero MRR with a
-//      capture date, and `SECTOR_MULTIPLES` (lib/agents/cfo-valuation.ts)
+//      capture date, and the sector-multiple resolver (lib/valuation/sector-multiples.ts — approved override, else the static table; S27-C)
 //      gives an ARR-multiple range per sector, but neither reached the
 //      share price;
 //   2. the divisor — a price per share is quoted on the FULLY DILUTED
@@ -83,7 +83,7 @@ export interface SharePriceResult {
   sviValuation: SharePriceRange | null;
   /** ARR × multiple leg (null when no connected revenue). */
   arrValuation: SharePriceRange | null;
-  multiple: { sector: string; low: number; mid: number; high: number; source: string } | null;
+  multiple: { sector: string; low: number; mid: number; high: number; source: string; sourceLabel: string; multiplesSource: "static" | "override" } | null;
   arrAud: number | null;
   /** A$ per share, 6 dp. */
   pricePerShare: SharePriceRange;
@@ -163,7 +163,7 @@ export function computeSharePrice(input: SharePriceInput): SharePriceResult {
   let arrRange: SharePriceRange | null = null;
   if (hasArr) {
     const bm = vcBenchmark((input.sector ?? "default").toLowerCase());
-    multiple = { sector: bm.sector, low: bm.arrMultiple.low, mid: bm.arrMultiple.mid, high: bm.arrMultiple.high, source: bm.source };
+    multiple = { sector: bm.sector, low: bm.arrMultiple.low, mid: bm.arrMultiple.mid, high: bm.arrMultiple.high, source: bm.source, sourceLabel: bm.sourceLabel, multiplesSource: bm.multiplesSource };
     arrRange = clean({ lowAud: arr * multiple.low, midAud: arr * multiple.mid, highAud: arr * multiple.high });
   }
 
