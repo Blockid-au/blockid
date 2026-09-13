@@ -39,8 +39,9 @@ function publicHolders(n: number, shares: number, start = 0): CapTableHolder[] {
   return Array.from({ length: n }, (_, i) => holder({ id: `00000000-0000-4000-8000-${String(start + i).padStart(12, "0")}`, name: `Investor ${start + i}`, sharesHeld: shares }));
 }
 
+/** Pinned `asOf` so company-age / operating-history rows are deterministic (S29-review: age is measured to `asOf`, not the rules' as-at constant). */
 function facts(over: Partial<ListingFacts> = {}): ListingFacts {
-  return { ...emptyListingFacts(), ...over };
+  return { ...emptyListingFacts(), asOf: "2026-09-13", ...over };
 }
 
 const byId = (rows: ReturnType<typeof buildAsxChecklist>) => Object.fromEntries(rows.map((r) => [r.id, r]));
@@ -86,7 +87,7 @@ describe("computeFreeFloat", () => {
 });
 
 describe("computeNasdaqPublic", () => {
-  it("excludes ≥ 10 % holders, counts round lots of 100+ and the US$2,500 minimum-value nuance", () => {
+  it("excludes more-than-10 % holders, counts round lots of 100+ and the US$2,500 minimum-value nuance", () => {
     // Issued 1,000,000: whale 150,000 (15 % → excluded), 300 holders × 2,500 (0.25 % each), one 50-share holder, founder rest.
     const holders = [holder({ name: "Whale", sharesHeld: 150_000 }), ...publicHolders(300, 2_500), holder({ name: "Odd lot", sharesHeld: 50 }), holder({ role: "founder", sharesHeld: 99_950 })];
     const r = computeNasdaqPublic(holders, 1);
@@ -95,6 +96,14 @@ describe("computeNasdaqPublic", () => {
     expect(r.roundLotHoldersAboveMinValue).toBe(300); // 2,500 × US$1 = US$2,500 — inclusive
     expect(computeNasdaqPublic(holders, 0.99).roundLotHoldersAboveMinValue).toBe(0);
     expect(computeNasdaqPublic(holders, null).roundLotHoldersAboveMinValue).toBe(0);
+  });
+
+  it("S29-review: Rule 5005(a)(35) excludes MORE THAN 10 % — a holder at exactly 10 % is still public", () => {
+    // Issued 1,000,000: exactly-10 % holder 100,000, just-over 100,001 (excluded), founder rest.
+    const holders = [holder({ name: "Exactly ten", sharesHeld: 100_000 }), holder({ name: "Just over", sharesHeld: 100_001 }), holder({ role: "founder", sharesHeld: 799_999 })];
+    const r = computeNasdaqPublic(holders, 1);
+    expect(r.unrestrictedPublicShares).toBe(100_000);
+    expect(r.roundLotHolders).toBe(1);
   });
 });
 
@@ -218,6 +227,24 @@ describe("buildAsxChecklist", () => {
     expect(young.status).toBe("not_confirmed");
     expect(young.basis).toContain("ASX may accept a shorter audited period");
     expect(byId(buildAsxChecklist(facts({ profile: { audited_accounts_confirmed_at: "2026-09-01" } })))["asx.audited-accounts"].status).toBe("not_met");
+    // S29-review: a company younger than the audited period with at least one audited year is "not confirmed", never "not met".
+    const youngWithOne = byId(buildAsxChecklist(facts({ incorporatedAt: "2025-11-01", profile: { audited_accounts_fys: ["FY2026"] } })))["asx.audited-accounts"];
+    expect(youngWithOne.status).toBe("not_confirmed");
+    expect(youngWithOne.basis).toContain("0.9 years old");
+    expect(youngWithOne.basis).toContain("since incorporation");
+    // An older company with too few audited years is still "not met".
+    expect(byId(buildAsxChecklist(facts({ incorporatedAt: "2020-01-01", profile: { audited_accounts_fys: ["FY2026"] } })))["asx.audited-accounts"].status).toBe("not_met");
+  });
+
+  it("S29-review: company age is measured to `asOf` (today by default), not the rules' as-at constant", () => {
+    const later = byId(buildAsxChecklist(facts({ incorporatedAt: "2025-11-01", asOf: "2028-09-13" })))["asx.audited-accounts"];
+    expect(later.basis).not.toContain("ASX may accept a shorter audited period");
+    const nasdaqLater = byId(buildNasdaqChecklist(facts({ incorporatedAt: "2025-11-01", asOf: "2028-09-13", profile: { aud_usd_rate: 0.65, stockholders_equity_aud: 10_000_000 } })))["nasdaq.equity-standard"];
+    expect(nasdaqLater.basis).toContain("operating history 2.9 yrs ≥ 2.0 yrs");
+    const withoutAsOf = { ...facts({ incorporatedAt: "2000-01-01" }) };
+    delete withoutAsOf.asOf;
+    const expectedYears = ((Date.now() - Date.UTC(2000, 0, 1)) / (365.25 * 24 * 3600 * 1000)).toFixed(1);
+    expect(byId(buildNasdaqChecklist(withoutAsOf))["nasdaq.equity-standard"].basis).toContain(`operating history ${expectedYears} yrs`);
   });
 
   it("issue price: 20 cents inclusive; constitution / governance / director rows follow the ticked dates; escrow depends on the test path", () => {
