@@ -22,6 +22,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { creditChargeNote } from "@/lib/projects";
+import { creditNoteFor } from "@/lib/credits-preview";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { FEATURE_COSTS } from "@/lib/credits";
@@ -84,6 +85,7 @@ async function POST_handler(req: NextRequest) {
     const result = await importTransactions(supabase, scope.projectId, ref, rows, learned);
     const [queue, gate] = await Promise.all([countAiQueue(supabase, scope.projectId), categoriseIncluded({ id: user.id, plan: user.plan })]);
     const listedCost = FEATURE_COSTS[EXPENSE_CATEGORISE_FEATURE] ?? 1;
+    const cost = categoriseCost(queue, listedCost, gate.included);
     return NextResponse.json({
       ok: true,
       bankName: parsed.bankName,
@@ -95,10 +97,11 @@ async function POST_handler(req: NextRequest) {
       ruleCategorised: result.ruleCategorised,
       needsAi: result.needsAi,
       queue,
-      cost: categoriseCost(queue, listedCost, gate.included),
+      cost,
       listedCost,
       included: gate.included,
-      creditNote: creditChargeNote(scope),
+      // live-qa run 1 (2026-09-13): same note rule as every other preview.
+      creditNote: creditNoteFor({ cost, included: gate.included, chargeNote: creditChargeNote(scope) }),
     });
   } catch (err) {
     console.error("[expenses:import]", err);

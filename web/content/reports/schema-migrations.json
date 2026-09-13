@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-13T13:18:24.434Z",
+  "generated_at": "2026-09-13T16:03:53.645Z",
   "ledger_present": true,
-  "total_files": 267,
+  "total_files": 268,
   "files": [
     "0001_init.sql",
     "0002_score_v2.sql",
@@ -241,6 +241,7 @@
     "0384_fundraise_rounds_account_fk.sql",
     "0385_erase_account_cap_table_fundraise.sql",
     "0386_erase_account_account_text_cast.sql",
+    "0387_fundraise_rounds_closed_at.sql",
     "20260814_tech_analyses.sql",
     "20260815120000_analyzer_runs.sql",
     "20260816_clevel_reports_v2.sql",
