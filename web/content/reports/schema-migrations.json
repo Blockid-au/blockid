@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-13T03:39:20.610Z",
+  "generated_at": "2026-09-13T03:49:01.958Z",
   "ledger_present": true,
-  "total_files": 242,
+  "total_files": 244,
   "files": [
     "0001_init.sql",
     "0002_score_v2.sql",
@@ -215,6 +215,8 @@
     "0352_oauth_connections_account_columns.sql",
     "0353_xero_evidence_dimensions.sql",
     "0354_bank_statement_evidence_dimension.sql",
+    "0355_fundraise_commitments_investor_followups.sql",
+    "0356_erase_account_fundraise_commitments.sql",
     "0360_board_resolutions.sql",
     "20260814_tech_analyses.sql",
     "20260815120000_analyzer_runs.sql",
