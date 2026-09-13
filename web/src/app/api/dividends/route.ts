@@ -77,6 +77,7 @@ async function POST_handler(request: Request) {
   if (denied) return denied;
   const ownerUserId = scope?.ownerUserId ?? user.id;
   const projectId = scope?.projectId ?? null;
+  const dataEmail = scope?.dataEmail ?? user.email;
 
   let body: {
     distributionPct?: number;
@@ -112,7 +113,7 @@ async function POST_handler(request: Request) {
     const { data: latestMetric } = await supabase
       .from("startup_metrics")
       .select("mrr_aud, arr_aud, burn_rate_aud")
-      .eq("email", user.email)
+      .eq("email", dataEmail)
       .order("metric_date", { ascending: false })
       .limit(1)
       .maybeSingle();
