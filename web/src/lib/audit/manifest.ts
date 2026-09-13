@@ -80,6 +80,14 @@ export const AUDIT_MANIFEST: readonly AuditManifestEntry[] = Object.freeze([
     action: "project.member.revoked",
     subject_type: "project_member",
   },
+  // S30-B live QA (P2) — role change; the re-invite of a revoked row is
+  // logged by the POST above as `project.member.reinvited` (handler-level).
+  {
+    route: "api/projects/[id]/members/[memberId]/route.ts",
+    method: "PATCH",
+    action: "project.member.role_changed",
+    subject_type: "project_member",
+  },
   {
     route: "api/projects/members/accept/route.ts",
     method: "POST",

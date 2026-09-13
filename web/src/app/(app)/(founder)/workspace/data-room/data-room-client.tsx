@@ -73,6 +73,39 @@ interface DataRoomClientProps {
   templateStructure: DataRoomFolder[];
   /** S18-B — viewer on a shared project: checklist + downloads only, no uploads / generation. */
   readOnly?: boolean;
+  /**
+   * S30-B (P2) — the scope's existing `data_rooms.id`, when the caller already
+   * knows it. When omitted the client asks `GET /api/data-room/generate` on
+   * mount, so the trust settings, link list and heatmap survive a reload.
+   */
+  initialDataRoomId?: string | null;
+}
+
+/**
+ * S30-B (P2) — resolve the scope's existing room id from
+ * `GET /api/data-room/generate` (owner or member, no credits). `null` when
+ * there is no room yet or the lookup fails — the Generate CTA stays and
+ * nothing is charged. Exported so the mount path is testable with a fake
+ * fetch (the colocated render tests have no DOM to run effects in).
+ */
+export async function fetchExistingDataRoomId(
+  fetchImpl: typeof fetch = fetch,
+): Promise<string | null> {
+  try {
+    const res = await fetchImpl("/api/data-room/generate", {
+      method: "GET",
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const data = (await res.json().catch(() => null)) as
+      | { ok?: boolean; dataRoomId?: unknown }
+      | null;
+    if (!data?.ok) return null;
+    return typeof data.dataRoomId === "string" && data.dataRoomId ? data.dataRoomId : null;
+  } catch {
+    return null;
+  }
 }
 
 // Goals types (T0098)
@@ -164,6 +197,7 @@ export function DataRoomClient({
   initialStates,
   templateStructure,
   readOnly = false,
+  initialDataRoomId = null,
 }: DataRoomClientProps) {
   const [states, setStates] = React.useState<Record<string, DataRoomItemState>>(() => {
     const map: Record<string, DataRoomItemState> = {};
@@ -234,7 +268,23 @@ export function DataRoomClient({
   // panel can show the founder the same gaps the investor will see.
   const [documentCounts, setDocumentCounts] =
     React.useState<DocumentCounts | null>(null);
-  const [generatedRoomId, setGeneratedRoomId] = React.useState<string | null>(null);
+  const [generatedRoomId, setGeneratedRoomId] = React.useState<string | null>(initialDataRoomId);
+
+  // S30-B (P2) — seed the room id on mount so `room-trust-settings`,
+  // `engagement-heatmap` and the link list render after a reload, not only
+  // in the session that pressed Generate. Skipped when the id is already
+  // known; a failed lookup leaves the Generate CTA in place.
+  React.useEffect(() => {
+    if (initialDataRoomId) return;
+    let cancelled = false;
+    (async () => {
+      const id = await fetchExistingDataRoomId();
+      if (!cancelled && id) setGeneratedRoomId((prev) => prev ?? id);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialDataRoomId]);
 
   // The gaps an investor will actually hit, flattened out of the generated
   // room. `complete` items are dropped — a founder needs the list of what is

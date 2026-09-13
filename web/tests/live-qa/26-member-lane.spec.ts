@@ -11,11 +11,14 @@
  * account is recorded in the run state (`member`) and erased by the global
  * teardown.
  *
- * Product finding (run 1, 2026-09-13): there is no role-change endpoint and a
- * revoked address cannot be re-invited (`project_members` UNIQUE
- * (project_id, user_email) keeps the revoked row → 422 duplicate). The
- * re-invite is pinned with `test.fail`; the viewer downgrade itself is a
- * local SQL step scoped to the two QA addresses (needs LIVE_QA_ALLOW_DB=1).
+ * Product finding (run 1, 2026-09-13), fixed the same day: a revoked address
+ * could not be re-invited (`project_members` UNIQUE (project_id, user_email)
+ * kept the revoked row → 422 duplicate) and there was no role-change
+ * endpoint. POST now re-activates the revoked row (status invited, fresh
+ * token) and PATCH /api/projects/[id]/members/[memberId] changes the role;
+ * the re-invite test is a normal test. The viewer downgrade below is still
+ * a local SQL step scoped to the two QA addresses (needs LIVE_QA_ALLOW_DB=1)
+ * — follow-up: drive it through the PATCH endpoint instead.
  */
 import { randomBytes } from "node:crypto";
 import type { BrowserContext, Page } from "@playwright/test";
@@ -216,9 +219,8 @@ test.describe("Member lane — editor", () => {
 
 
 test.describe("Member lane — viewer", () => {
-  test("revoke then re-invite the same address as VIEWER (product finding: 422 duplicate — expected to fail until a role-change / re-invite path exists)", async ({ api, qa }, testInfo) => {
+  test("revoke then re-invite the same address as VIEWER (S30-B fix: the revoked row is re-activated in place with a fresh token)", async ({ api, qa }, testInfo) => {
     requireMember();
-    test.fail(true, "project_members UNIQUE (project_id, user_email) keeps the revoked row, so a revoked collaborator can never be re-invited (422 duplicate) and there is no PATCH role endpoint — flips to 'unexpected pass' once fixed");
     const member = readRunState().member!;
     const revoke = await del<{ ok: boolean; member?: Member }>(api, `/api/projects/${qa.projectId}/members?memberId=${member.memberId}`);
     expect(revoke.status).toBe(200);

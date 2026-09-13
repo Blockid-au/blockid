@@ -38,6 +38,7 @@ function chain(table: string, kind: keyof TableHandlers): Record<string, unknown
   const proxy: Record<string, unknown> = {
     select: () => proxy,
     eq: () => proxy,
+    neq: () => proxy,
     is: () => proxy,
     order: () => proxy,
     limit: () => proxy,
@@ -87,6 +88,7 @@ import {
   inviteMember,
   acceptInvite,
   revokeMember,
+  changeMemberRole,
   ProjectMemberScopeError,
 } from "./scope";
 
@@ -677,5 +679,144 @@ describe("listMembers", () => {
     expect(rows[0].status).toBe("invited");
     expect(rows[1].role).toBe("admin");
     expect(rows[1].acceptedAt).toBe("2026-07-22T01:00:00Z");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// S30-B live QA (P2) — re-invite a revoked member, change a member role
+// ---------------------------------------------------------------------------
+
+const REVOKED_ROW = {
+  id: "m1",
+  project_id: "p1",
+  user_email: "back@example.com",
+  user_id: "u2",
+  role: "editor",
+  status: "revoked",
+  invited_by: "u1",
+  invited_at: "2026-07-23T00:00:00Z",
+  accepted_at: "2026-07-24T00:00:00Z",
+  revoked_at: "2026-08-01T00:00:00Z",
+  token: "OLDTOKEN",
+};
+
+describe("inviteMember — re-invite after revoke (S30-B)", () => {
+  it("re-activates the revoked row in place: fresh token, requested role, status invited, acceptance + revocation cleared — no insert", async () => {
+    setHandler("app_users", "select", { id: "u2" });
+    setHandler("project_members", "select", REVOKED_ROW);
+    setHandler("project_members", "update", {
+      ...REVOKED_ROW,
+      role: "viewer",
+      status: "invited",
+      accepted_at: null,
+      revoked_at: null,
+      token: "NEWTOKEN",
+      invited_at: "2026-09-13T00:00:00Z",
+    });
+
+    const member = await inviteMember("p1", "Back@Example.com", "viewer", "u1");
+    expect(member.reinvited).toBe(true);
+    expect(member.status).toBe("invited");
+    expect(member.role).toBe("viewer");
+    expect(member.token).toBe("NEWTOKEN");
+
+    expect(lastInsert.has("project_members")).toBe(false);
+    const patch = lastUpdate.get("project_members") as Record<string, unknown>;
+    expect(patch.status).toBe("invited");
+    expect(patch.role).toBe("viewer");
+    expect(patch.accepted_at).toBeNull();
+    expect(patch.revoked_at).toBeNull();
+    expect(patch.invited_by).toBe("u1");
+    expect(patch.user_id).toBe("u2");
+    expect(typeof patch.token).toBe("string");
+    expect(patch.token).toHaveLength(64);
+    expect(patch.token).not.toBe("OLDTOKEN");
+  });
+
+  it("a live (accepted) row is still a duplicate — nothing is written", async () => {
+    setHandler("app_users", "select", null);
+    setHandler("project_members", "select", { ...REVOKED_ROW, status: "accepted" });
+    await expect(inviteMember("p1", "back@example.com", "viewer", "u1")).rejects.toMatchObject({ code: "duplicate" });
+    expect(lastUpdate.has("project_members")).toBe(false);
+    expect(lastInsert.has("project_members")).toBe(false);
+  });
+
+  it("a fresh invite reports reinvited:false", async () => {
+    setHandler("app_users", "select", null);
+    setHandler("project_members", "insert", { ...REVOKED_ROW, status: "invited", revoked_at: null, accepted_at: null });
+    const member = await inviteMember("p1", "new@example.com", "viewer", "u1");
+    expect(member.reinvited).toBe(false);
+  });
+});
+
+const ACCEPTED_ADMIN_ROW = {
+  ...REVOKED_ROW,
+  role: "admin",
+  status: "accepted",
+  revoked_at: null,
+};
+
+describe("changeMemberRole (S30-B)", () => {
+  it("owner downgrades an accepted admin to editor — role written, webhook cascade runs for the ex-admin", async () => {
+    setHandler("project_members", "select", ACCEPTED_ADMIN_ROW);
+    setHandler("projects", "select", { user_id: "u1" });
+    setHandler("project_members", "update", { ...ACCEPTED_ADMIN_ROW, role: "editor" });
+    cascadeMock.mockResolvedValueOnce({ deactivated: ["ep-1"] });
+
+    const out = await changeMemberRole("p1", "m1", "editor", "u1");
+    expect(out.previousRole).toBe("admin");
+    expect(out.member.role).toBe("editor");
+    expect(out.deactivatedEndpoints).toEqual(["ep-1"]);
+    expect(lastUpdate.get("project_members")).toEqual({ role: "editor" });
+    expect(cascadeMock).toHaveBeenCalledWith("p1", "u2");
+  });
+
+  it("editor → admin upgrade: no cascade", async () => {
+    setHandler("project_members", "select", { ...ACCEPTED_ADMIN_ROW, role: "editor" });
+    setHandler("projects", "select", { user_id: "u1" });
+    setHandler("project_members", "update", ACCEPTED_ADMIN_ROW);
+    const out = await changeMemberRole("p1", "m1", "admin", "u1");
+    expect(out.previousRole).toBe("editor");
+    expect(out.member.role).toBe("admin");
+    expect(cascadeMock).not.toHaveBeenCalled();
+  });
+
+  it("same role is an idempotent no-op — nothing written", async () => {
+    setHandler("project_members", "select", ACCEPTED_ADMIN_ROW);
+    setHandler("projects", "select", { user_id: "u1" });
+    const out = await changeMemberRole("p1", "m1", "admin", "u1");
+    expect(out.member.role).toBe("admin");
+    expect(lastUpdate.has("project_members")).toBe(false);
+  });
+
+  it("a memberId from ANOTHER project is not_found before any permission check or write (IDOR)", async () => {
+    setHandler("project_members", "select", { ...ACCEPTED_ADMIN_ROW, project_id: "p-other" });
+    setHandler("projects", "select", { user_id: "u1" });
+    await expect(changeMemberRole("p1", "m1", "viewer", "u1")).rejects.toMatchObject({ code: "not_found" });
+    expect(lastUpdate.has("project_members")).toBe(false);
+  });
+
+  it("a revoked row cannot be re-roled — re-invite instead", async () => {
+    setHandler("project_members", "select", REVOKED_ROW);
+    setHandler("projects", "select", { user_id: "u1" });
+    await expect(changeMemberRole("p1", "m1", "viewer", "u1")).rejects.toMatchObject({ code: "revoked" });
+    expect(lastUpdate.has("project_members")).toBe(false);
+  });
+
+  it("a non-owner non-admin requester is forbidden (assertProjectMemberCan)", async () => {
+    setHandler("project_members", "select", ACCEPTED_ADMIN_ROW);
+    setHandler("projects", "select", { user_id: "someone-else" });
+    // The requester lookup hits project_members.select too: the fixture row
+    // is an admin, so make the requester an editor for this case.
+    setHandler("project_members", "select", { ...ACCEPTED_ADMIN_ROW, role: "editor" });
+    await expect(changeMemberRole("p1", "m1", "viewer", "u3")).rejects.toMatchObject({ code: "forbidden" });
+    expect(lastUpdate.has("project_members")).toBe(false);
+  });
+
+  it("rejects invalid roles up-front", async () => {
+    await expect(
+      // @ts-expect-error — intentional bad role
+      changeMemberRole("p1", "m1", "owner", "u1"),
+    ).rejects.toMatchObject({ code: "invalid_role" });
   });
 });

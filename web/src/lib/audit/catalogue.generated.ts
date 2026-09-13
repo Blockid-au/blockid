@@ -247,6 +247,7 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/pitchdeck/save-snapshot/route.ts", family: "pitchdeck.save-snapshot", methods: ["POST"] },
   { route: "api/pricing-test/event/route.ts", family: "pricing-test.event", methods: ["POST"] },
   { route: "api/projects/[id]/archive/route.ts", family: "projects.archive", methods: ["POST","DELETE"] },
+  { route: "api/projects/[id]/members/[memberId]/route.ts", family: "projects.members", methods: ["PATCH"] },
   { route: "api/projects/[id]/members/route.ts", family: "projects.members", methods: ["POST","DELETE"] },
   { route: "api/projects/[id]/route.ts", family: "projects", methods: ["PATCH","DELETE"] },
   { route: "api/projects/members/accept/route.ts", family: "projects.members.accept", methods: ["POST"] },

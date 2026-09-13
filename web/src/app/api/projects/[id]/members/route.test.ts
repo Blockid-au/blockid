@@ -372,3 +372,52 @@ describe("DELETE /api/projects/[id]/members audit wire-in", () => {
     expect(logUserActionMock).not.toHaveBeenCalled();
   });
 });
+
+// ---------------------------------------------------------------------------
+// S30-B live QA (P2) — re-inviting a revoked address
+// ---------------------------------------------------------------------------
+
+describe("S30-B — POST re-invite of a revoked member", () => {
+  it("200 with a fresh invite_url and audits project.member.reinvited (domain only)", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1" });
+    assertProjectAccessMock.mockResolvedValue(OWNER_ACCESS);
+    inviteMemberMock.mockResolvedValue({
+      id: "m1",
+      projectId: "proj-1",
+      userEmail: "alice@example.com",
+      role: "viewer",
+      status: "invited",
+      token: "tok-new",
+      reinvited: true,
+    });
+    const req = new Request("http://x/api/projects/proj-1/members", {
+      method: "POST",
+      body: JSON.stringify({ email: "alice@example.com", role: "viewer" }),
+    });
+    const res = await POST(req, params("proj-1"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.member.status).toBe("invited");
+    expect(body.invite_url).toBe("https://blockid.au/invites/tok-new");
+    expect(inviteMemberMock).toHaveBeenCalledWith("proj-1", "alice@example.com", "viewer", "u1");
+
+    expect(logUserActionMock).toHaveBeenCalledTimes(1);
+    const call = logUserActionMock.mock.calls[0][0] as { action: string; fields: Record<string, unknown> };
+    expect(call.action).toBe("project.member.reinvited");
+    expect(call.fields.email_domain).toBe("example.com");
+    expect(JSON.stringify(call)).not.toContain("alice");
+  });
+
+  it("a live row is still 422 duplicate — no audit row", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1" });
+    assertProjectAccessMock.mockResolvedValue(OWNER_ACCESS);
+    inviteMemberMock.mockRejectedValue(new hoisted.ProjectMemberScopeError("that email is already a member of this project", "duplicate"));
+    const req = new Request("http://x/api/projects/proj-1/members", {
+      method: "POST",
+      body: JSON.stringify({ email: "alice@example.com", role: "viewer" }),
+    });
+    const res = await POST(req, params("proj-1"));
+    expect(res.status).toBe(422);
+    expect(logUserActionMock).not.toHaveBeenCalled();
+  });
+});
