@@ -6,10 +6,12 @@
 //   so a regression in the ESIC + Div 83A gate wire shape shows up as a
 //   failing unit test instead of a broken banner in production.
 //
-// No I/O, no imports beyond types — safe to unit-test under vitest.
-// Kept colocated with fundraise-client.tsx so the client can re-import
-// the same structural types without dragging server-side symbols across
-// the client boundary.
+// No I/O; the only runtime import is the client-safe tier ladder (for the
+// plan name in `capTableDeadEnd`). Kept colocated with fundraise-client.tsx
+// so the client can re-import the same structural types without dragging
+// server-side symbols across the client boundary.
+
+import { FOUNDER_LADDER } from "@/lib/entitlements/tier-ladder";
 
 /**
  * Non-blocking gate warning attached to a happy-path 200 response —
@@ -208,6 +210,64 @@ export function buildFundraisePostBody(
     ...safeFields,
     wholesaleOnly: input.wholesaleOnly,
     ...marketingFields,
+  };
+}
+
+/**
+ * Live QA lane 1 F8 (2026-09-13): `/api/fundraise` answers 400 "No
+ * shareholders found. Set up a cap table first." for a founder with no cap
+ * table — and the cap table is Growth-only, so a Free founder was dead-ended
+ * with a sentence and no way forward. This turns that error into a link:
+ *
+ *   caller can `cap_table.write`  → /workspace/cap-table ("Set up your cap table")
+ *   caller cannot                 → /pricing?feature=cap_table.write&from=fundraise
+ *                                    ("Upgrade to <plan>" — the cheapest founder
+ *                                    tier that carries the feature, from the ladder)
+ *
+ * Returns null for every other error so the plain banner keeps rendering.
+ */
+export const CAP_TABLE_FEATURE = "cap_table.write";
+export const FUNDRAISE_PRICING_HREF = `/pricing?feature=${CAP_TABLE_FEATURE}&from=fundraise`;
+
+export interface CapTableDeadEnd {
+  message: string;
+  href: string;
+  linkLabel: string;
+  /** True when the link goes to /pricing (the caller's tier cannot open the cap table). */
+  upgrade: boolean;
+}
+
+export function isCapTableDeadEndError(message: string): boolean {
+  return /no shareholders found|set up (a|your) cap table/i.test(message ?? "");
+}
+
+/** Cheapest founder tier whose cumulative feature set carries `feature` — "Growth" for cap_table.write. */
+export function planNameFor(feature: string): string {
+  const entry = [...FOUNDER_LADDER]
+    .filter((t) => !t.hiddenFromPublic && (t.supportingUnlocks as readonly string[]).includes(feature))
+    .sort((a, b) => a.rank - b.rank)[0];
+  return entry?.label ?? "Growth";
+}
+
+export function capTableDeadEnd(
+  message: string,
+  can: (feature: string) => boolean,
+): CapTableDeadEnd | null {
+  if (!isCapTableDeadEndError(message)) return null;
+  if (can(CAP_TABLE_FEATURE)) {
+    return {
+      message: "No shareholders yet — a round is priced against your cap table.",
+      href: "/workspace/cap-table",
+      linkLabel: "Set up your cap table",
+      upgrade: false,
+    };
+  }
+  const plan = planNameFor(CAP_TABLE_FEATURE);
+  return {
+    message: `No shareholders yet — a round is priced against your cap table, which is part of ${plan} and above.`,
+    href: FUNDRAISE_PRICING_HREF,
+    linkLabel: `Upgrade to ${plan} to build your cap table`,
+    upgrade: true,
   };
 }
 

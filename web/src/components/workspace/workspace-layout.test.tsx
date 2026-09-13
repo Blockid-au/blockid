@@ -157,6 +157,54 @@ describe("WorkspaceLayout — one founder phase for every page (S7-A)", () => {
 // feature is on, as in this mock) + Account, with Build / Fundraise hidden
 // by decideGroupVisibility and Scale & Exit folded under "Later phases".
 // This pins the count so a future catalogue edit cannot creep past 5.
+describe("WorkspaceLayout — topbar fits 390 px (live QA lane 1 F4)", () => {
+  const html = () =>
+    renderToStaticMarkup(
+      <WorkspaceLayout user={USER} currentPhase={0}>
+        <div />
+      </WorkspaceLayout>,
+    );
+
+  function header(): string {
+    const out = html();
+    const start = out.indexOf('data-testid="workspace-header"');
+    const end = out.indexOf("</header>", start);
+    expect(start).toBeGreaterThan(-1);
+    return out.slice(start, end);
+  }
+
+  /** The class attribute of the first element carrying `data-testid="<id>"`. */
+  function classesOf(fragment: string, id: string): string {
+    const m = new RegExp(`<[a-z]+[^>]*class="([^"]*)"[^>]*data-testid="${id}"|<[a-z]+[^>]*data-testid="${id}"[^>]*class="([^"]*)"`).exec(fragment);
+    expect(m, id).not.toBeNull();
+    return (m?.[1] ?? m?.[2] ?? "").trim();
+  }
+
+  it("the left cluster can shrink (min-w-0) and the right cluster does not (shrink-0)", () => {
+    const h = header();
+    expect(h).toMatch(/class="[^"]*\bmin-w-0\b[^"]*"/);
+    expect(classesOf(h, "header-actions")).toMatch(/\bshrink-0\b/);
+  });
+
+  it("below sm the inline wallet / credits / theme and avatar / Sign out clusters are hidden and the account menu shows; from sm the reverse", () => {
+    const h = header();
+    const desktopActions = classesOf(h, "header-actions-desktop");
+    expect(desktopActions).toMatch(/\bhidden\b/);
+    expect(desktopActions).toMatch(/\bsm:flex\b/);
+    const desktopAccount = classesOf(h, "header-account-desktop");
+    expect(desktopAccount).toMatch(/\bhidden\b/);
+    expect(desktopAccount).toMatch(/\bsm:flex\b/);
+    expect(classesOf(h, "header-account-menu")).toMatch(/\bsm:hidden\b/);
+    // The desktop "Sign out" is inside the sm+ cluster only; the mobile one lives in the menu.
+    expect(h).toContain('aria-label="Account menu"');
+  });
+
+  it("every workspace page shares this header (the shell is the single source), so the fix applies to /workspace/* and /dashboard/*", () => {
+    // Pages never render their own topbar — the shell is the only `workspace-header`.
+    expect((html().match(/data-testid="workspace-header"/g) ?? []).length).toBe(1);
+  });
+});
+
 describe("WorkspaceLayout — G7 Q1: <= 5 phase-clusters visible at once", () => {
   // Labels as they appear in the static markup (`&` is entity-escaped).
   const PHASE_CLUSTERS = ["Validate", "Build", "Fundraise", "Scale &amp; Exit"];

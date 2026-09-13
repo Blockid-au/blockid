@@ -32,7 +32,7 @@ vi.mock("@/lib/rate-limit", () => ({ enforceRateLimit: () => null }));
 const credits = vi.hoisted(() => ({ canAfford: vi.fn(), spendCredits: vi.fn(), grantCredits: vi.fn() }));
 vi.mock("@/lib/credits", async () => {
   const real = await vi.importActual<typeof import("@/lib/credits")>("@/lib/credits");
-  return { FEATURE_COSTS: real.FEATURE_COSTS, canAfford: (...a: unknown[]) => credits.canAfford(...a), spendCredits: (...a: unknown[]) => credits.spendCredits(...a), grantCredits: (...a: unknown[]) => credits.grantCredits(...a) };
+  return { FEATURE_COSTS: real.FEATURE_COSTS, canAfford: (...a: unknown[]) => credits.canAfford(...a), spendCredits: (...a: unknown[]) => credits.spendCredits(...a), grantCredits: (...a: unknown[]) => credits.grantCredits(...a), getBalance: async () => 7 };
 });
 const gate = vi.hoisted(() => ({ included: false }));
 vi.mock("@/lib/dividends/gate", () => ({ statementsIncluded: async () => ({ included: gate.included, via: gate.included ? "addon" : null }) }));
@@ -90,7 +90,7 @@ describe("GET /api/dividends/tax-statements", () => {
     expect((await get("?fy=2025-27")).status).toBe(400);
     scopeState.projectId = null;
     const empty = await (await get()).json();
-    expect(empty).toMatchObject({ ok: true, shareholders: [], statements: [], role: null, cost: 2 });
+    expect(empty).toMatchObject({ ok: true, shareholders: [], statements: [], role: null, cost: 2, listedCost: 2 });
     reset();
     scopeState.role = "viewer";
     seed({ shareholder_tax_statements: [storedRow(), storedRow({ id: "ts-0", statement_no: "TS-2025-26-0", superseded_at: "2026-07-11T00:00:00Z" })] });
@@ -100,6 +100,7 @@ describe("GET /api/dividends/tax-statements", () => {
     expect(body.fy).toBe("2025-26");
     expect(body.role).toBe("viewer");
     expect(body.cost).toBe(2);
+    expect(body.listedCost).toBe(2);
     expect(body.included).toBe(false);
     expect(body.options).toContain("2025-26");
     expect(body.options).toContain("2026-27");
@@ -170,13 +171,23 @@ describe("POST /api/dividends/tax-statements", () => {
     expect(body.generated[0].statementNo).toBe("TS-2025-26-1");
   });
 
+  it("lane-2 P3-e: GET for an included caller reports cost 0 + listedCost 2 — the same keys as the POST preview", async () => {
+    gate.included = true;
+    const body = await (await get("?fy=2025-26")).json();
+    expect(body).toMatchObject({ ok: true, cost: 0, listedCost: 2, included: true, includedVia: "addon" });
+  });
+
   it("included (equity add-on) → cost 0, no canAfford / spend, rows stamped 0", async () => {
     gate.included = true;
     const preview = await (await post({ fy: "2025-26" })).json();
     expect(preview).toMatchObject({ cost: 0, included: true });
     expect(credits.canAfford).not.toHaveBeenCalled();
+    // Lane-2 P3-d: an included preview carries the real balance and an honest note.
+    expect(preview.balance).toBe(7);
+    expect(preview.creditNote).toBe("Included in your plan — no credits charged.");
     const body = await (await post({ fy: "2025-26", confirm: true })).json();
     expect(body.creditsCharged).toBe(0);
+    expect(body.creditNote).toBe("Included in your plan — no credits charged.");
     expect(credits.spendCredits).not.toHaveBeenCalled();
     expect((db.sb!.find("shareholder_tax_statements", "insert")[0].args[0] as { credits_charged: number }).credits_charged).toBe(0);
   });

@@ -8,7 +8,9 @@
 //          404, another project's record 404, bad kind 400, non-uuid 404;
 //          insufficient credits → 402 before preview; insert failure after a
 //          spend → refund; all three kinds resolve their record.
-//   GET  — viewer+ `resolution` or null, every version, `stale`.
+//   GET  — viewer+ `resolution` or null, every version, `stale`; a record
+//          outside the project (or an unknown id) is 404 like POST / pdf
+//          (live QA lane 2 P3-b).
 //   S27-A regenerate — preview reports `stale` + `nextVersion`; confirm with
 //          `regenerate: true` charges like a first generation, marks the
 //          current row superseded, inserts version n+1; a plain confirm on
@@ -44,6 +46,8 @@ vi.mock("@/lib/credits", async () => {
     canAfford: (...a: unknown[]) => credits.canAfford(...a),
     spendCredits: (...a: unknown[]) => credits.spendCredits(...a),
     grantCredits: (...a: unknown[]) => credits.grantCredits(...a),
+    // Lane-2 P3-d: included / already-paid previews still read the balance.
+    getBalance: async () => 7,
   };
 });
 
@@ -195,10 +199,23 @@ describe("POST — preview / confirm", () => {
     expect(preview.included).toBe(true);
     expect(preview.includedVia).toBe("addon");
     expect(credits.canAfford).not.toHaveBeenCalled();
+    // Lane-2 P3-d: an included preview carries the real balance and an honest note.
+    expect(preview.balance).toBe(7);
+    expect(preview.creditNote).toBe("Included in your plan — no credits charged.");
     const body = await (await post({ confirm: true })).json();
     expect(credits.spendCredits).not.toHaveBeenCalled();
     expect((db.sb!.find("board_resolutions", "insert")[0].args[0] as { credits_charged: number }).credits_charged).toBe(0);
     expect(body.creditsCharged).toBe(0);
+    expect(body.creditNote).toBe("Included in your plan — no credits charged.");
+  });
+
+  it("lane-2 P3-d: a paid preview keeps 'Charged to your credits.' (member: own wallet) and the afford balance", async () => {
+    const owner = await (await post({})).json();
+    expect(owner).toMatchObject({ cost: 1, balance: 10, creditNote: "Charged to your credits." });
+    scopeState.role = "editor";
+    seed({}, "user-owner");
+    const member = await (await post({})).json();
+    expect(member.creditNote).toMatch(/your own credits — not the project owner's/);
   });
 
   it("already generated → preview cost 0 with `existing`; confirm returns the row and charges nothing", async () => {
@@ -256,6 +273,8 @@ describe("POST — preview / confirm", () => {
 describe("GET", () => {
   it("viewer reads the generated resolution or null", async () => {
     scopeState.role = "viewer";
+    // A viewer's project belongs to user-owner — the record must be theirs (P3-b: GET now resolves the record).
+    seed({}, "user-owner");
     expect((await (await get()).json()).resolution).toBeNull();
     seed({ board_resolutions: [{ id: "br-1", project_id: "proj-1", user_id: "user-caller", kind: "share-issue", record_id: TX, content_hash: "h", payload: { title: "T" }, credits_charged: "1.00", issued_at: "2026-09-13T00:00:00Z" }] }, "user-owner");
     const body = await (await get()).json();
@@ -263,15 +282,34 @@ describe("GET", () => {
     expect(body.resolution).toMatchObject({ id: "br-1", title: "T", creditsCharged: 1, version: 1, current: true });
     expect(body.versions).toHaveLength(1);
     expect(body.stale).toBe(true); // "h" is not the hash of a fresh draft
-    expect((await get("esop", TX)).status).toBe(200);
+    expect((await get("esop", POOL)).status).toBe(200);
     expect((await get("nope", TX)).status).toBe(400);
+  });
+
+  it("lane-2 P3-b: a record outside the project, an unknown uuid and a kind/id mismatch are 404 not_found — never 200 resolution:null", async () => {
+    // TX is a share_transactions id, not an esop pool → 404 (used to be 200 null).
+    const mismatch = await get("esop", TX);
+    expect(mismatch.status).toBe(404);
+    expect(await mismatch.json()).toEqual({ ok: false, error: "not_found" });
+    // Random uuid.
+    expect((await get("dividend", "7c9e6679-7425-40de-944b-e07fc1f90ae7")).status).toBe(404);
+    // Another project's real record (project_id proj-2) — the resolution row must not leak either.
+    seed({
+      share_transactions: [{ id: TX, account_id: "user-other", project_id: "proj-2", transaction_type: "issue", to_shareholder_id: SEED, share_class_id: CLS, shares: 1, price_per_share: "1", total_value: "1", round_name: "X", notes: null, effective_date: "2026-08-01" }],
+      board_resolutions: [{ id: "br-x", project_id: "proj-2", user_id: "user-other", kind: "share-issue", record_id: TX, content_hash: "h", payload: { title: "Foreign" }, credits_charged: "1.00", issued_at: "2026-09-13T00:00:00Z" }],
+    });
+    const foreign = await get("share-issue", TX);
+    expect(foreign.status).toBe(404);
+    const text = JSON.stringify(await foreign.json());
+    expect(text).not.toContain("Foreign");
+    expect(text).not.toContain("br-x");
   });
 
   it("S27-A: returns every version newest first, the current one as `resolution`, superseded ones with a versioned pdfUrl", async () => {
     scopeState.role = "viewer";
     const v1 = { id: "br-1", project_id: "proj-1", user_id: "user-caller", kind: "share-issue", record_id: TX, content_hash: "h1", payload: { title: "T" }, credits_charged: 1, issued_at: "2026-09-13T00:00:00Z", version: 1, superseded_at: "2026-09-14T00:00:00Z", superseded_by: "br-2" };
     const v2 = { id: "br-2", project_id: "proj-1", user_id: "user-caller", kind: "share-issue", record_id: TX, content_hash: "h2", payload: { title: "T" }, credits_charged: 1, issued_at: "2026-09-14T00:00:00Z", version: 2, superseded_at: null, superseded_by: null };
-    seed({ board_resolutions: [v1, v2] });
+    seed({ board_resolutions: [v1, v2] }, "user-owner");
     const body = await (await get()).json();
     expect(body.resolution).toMatchObject({ id: "br-2", version: 2, current: true, pdfUrl: `/api/board-resolutions/share-issue/${TX}/pdf` });
     expect(body.versions.map((v: { id: string }) => v.id)).toEqual(["br-2", "br-1"]);

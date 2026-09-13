@@ -32,7 +32,11 @@ Release QA-1 #8 (2026-09-12): every page logs two enforced CSP violations,
 (function(w,d,s,l){…    Refused to execute inline script …
 ```
 
-Both come from **Custom HTML** tags in container `GTM-TRHH4MH2`. GTM injects a Custom-HTML
+> **Amended 2026-09-13 (live QA lane 1 F6):** the two snippets are in fact inserted at the
+> Cloudflare edge (Google tag gateway), not by the container — see §4 for the founder
+> switch. The container guidance below still stands for any Custom-HTML tag that is added.
+
+Both looked like **Custom HTML** tags in container `GTM-TRHH4MH2`. GTM injects a Custom-HTML
 tag's markup with `innerHTML`, which is *parser-inserted*; `'strict-dynamic'` only trusts
 scripts inserted with `createElement`/`appendChild`, and the injected inline `<script>` has
 no nonce. So those two tags **never execute** — silently, on every page view. GA4 is
@@ -70,7 +74,37 @@ as a nonced script and then opens frames and a stylesheet from the **bare origin
 list still logged `Framing 'https://accounts.google.com/' violates frame-src`). Do not narrow
 it back to a path.
 
-## 4. Checklist for a new tag
+## 4. Cloudflare-injected scripts (founder step — dashboard only)
+
+Live QA lane 1 F6 (2026-09-13) re-read the two blocked snippets from §2 in the *served*
+HTML rather than in the container: they are **not** GTM Custom-HTML tags and they are
+**not in this repo** (`grep -rn "google_tags_first_party\|developer_id.dYzg1YT" web/src`
+returns nothing — only the nonced loader in `google-analytics.tsx`). Cloudflare inserts them
+at the edge, without a nonce, on every HTML response. Under `'strict-dynamic'` they can
+never run, so each one costs a console error per page view and nothing else — but if the
+CSP were ever relaxed both loaders would double-tag GA4.
+
+**Do not fix this in code.** No hash in `proxy.ts`, no `console.error` filter, no CSP
+report suppression — the report is the control working. The switches live in the
+Cloudflare dashboard for the `blockid.au` zone and only the founder account can flip
+them (the API token has no Zone Settings scope):
+
+| Cloudflare feature | What it injects (signature seen on prod) | Setting |
+| --- | --- | --- |
+| **Google tag gateway for advertisers** (Tag Management → Google tag gateway; a.k.a. Google tag "first-party mode") | inline `(function(w,i,g){…})('window','GTM-TRHH4MH2','google_tags_first_party')` + a second inline GTM loader carrying `developer_id.dYzg1YT` | **OFF** — the app already loads `GTM-TRHH4MH2` through the nonced `<Script>` |
+| **Web Analytics automatic setup** (Analytics & Logs → Web Analytics → the site → *Manage site* → JS snippet) | `<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/…" data-cf-beacon="…">` — also the cause of the React #418 hydration mismatch (release QA-1 #2) | **OFF** — if the beacon is wanted, add it as a nonced `<Script>` in `web/src/app/layout.tsx` (host already in `script-src`) |
+| **Email Address Obfuscation** (Scrape Shield) | `/cdn-cgi/scripts/…/email-decode.min.js` + `<span class="__cf_email__">` on every mailto (release QA-1 #1 / QA-2 F9) | **OFF** — origin already emits `<!--email_off-->` around addresses |
+
+Verify after flipping each one: `curl -s https://blockid.au/pricing | grep -c
+"google_tags_first_party\|beacon.min.js\|email-decode"` must print `0`, and DevTools →
+Console on `/pricing` and any `/workspace/*` page must show **zero** `Refused to execute
+inline script` / `violates the following Content Security Policy` lines. `dataLayer` must
+still carry `gtm.js` / `gtm.dom` / `gtm.load` (the in-app loader).
+
+If a future audit finds one of the §2 snippets *and* the container still lists a
+Custom-HTML tag, both fixes apply — the container one in §2, the edge one here.
+
+## 5. Checklist for a new tag
 
 - [ ] Native / Community-template tag, not Custom HTML.
 - [ ] Every host the tag talks to is in `connect-src` (beacons) and, if it drops pixels,

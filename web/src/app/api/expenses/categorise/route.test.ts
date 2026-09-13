@@ -141,8 +141,11 @@ describe("POST /api/expenses/categorise — preview → confirm", () => {
     gate.included = true;
     const prev = await (await POST(req({}))).json();
     expect(prev).toMatchObject({ preview: true, cost: 0, units: 0, included: true, includedVia: "growth" });
+    // Lane-2 P3-d: an included preview carries the real balance and an honest note.
+    expect(prev.balance).toBe(credits.balance);
+    expect(prev.creditNote).toBe("Included in your plan — no credits charged.");
     const body = await (await POST(req({ confirm: true }))).json();
-    expect(body).toMatchObject({ ok: true, cost: 0, creditsCharged: 0, included: true, accepted: 3 });
+    expect(body).toMatchObject({ ok: true, cost: 0, creditsCharged: 0, included: true, accepted: 3, creditNote: "Included in your plan — no credits charged." });
     expect(credits.spendCreditsUnits).not.toHaveBeenCalled();
   });
 

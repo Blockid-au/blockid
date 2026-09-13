@@ -19,8 +19,10 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEntitlement } from "@/hooks/useEntitlement";
 import {
   buildFundraisePostBody,
+  capTableDeadEnd,
   classifyFundraiseResponse,
   GATE_BLOCK_HEADING,
   type GateBlock,
@@ -182,6 +184,13 @@ export function FundraiseClient() {
   const [step, setStep] = React.useState(0);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  // Lane-1 F8: the "set up a cap table first" error links to the cap table,
+  // or to /pricing with the plan name when the caller's tier cannot open it.
+  const entitlement = useEntitlement();
+  const deadEnd = React.useMemo(
+    () => (error ? capTableDeadEnd(error, entitlement.can) : null),
+    [error, entitlement.can],
+  );
 
   // Step 1: Round Configuration
   const [roundName, setRoundName] = React.useState("Pre-Seed");
@@ -417,7 +426,23 @@ export function FundraiseClient() {
       </div>
 
       {/* Error banner */}
-      {error && (
+      {error && deadEnd && (
+        <div
+          role="alert"
+          data-testid="fundraise-cap-table-dead-end"
+          className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
+        >
+          <p>{deadEnd.message}</p>
+          <Link
+            href={deadEnd.href}
+            className="mt-2 inline-flex items-center gap-1 font-semibold text-amber-900 underline underline-offset-2"
+          >
+            {deadEnd.linkLabel}
+            <ArrowRight strokeWidth={1.75} className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      )}
+      {error && !deadEnd && (
         <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           {error}
         </div>

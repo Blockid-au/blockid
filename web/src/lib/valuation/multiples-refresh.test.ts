@@ -4,10 +4,15 @@
 
 import { describe, expect, it, vi } from "vitest";
 import {
+  HEAD_TEXT_CHARS,
+  MAX_CANDIDATES_PER_SOURCE,
+  MAX_TEXT_CHARS,
   excerptMentionsNumber,
+  extractFirstBalancedJson,
   extractionSystemPrompt,
   parseCandidates,
   refreshSectorMultiples,
+  relevantTextWindow,
   validateCandidate,
   type SupabaseLike,
 } from "./multiples-refresh";
@@ -65,6 +70,58 @@ describe("allow-list", () => {
     expect(p).toContain("Allowed sector keys for this page: saas");
     expect(p).toContain("character-for-character");
     expect(p).toContain("return []");
+    // Lane-2 P3-h: JSON only, schema shown, capped candidate count.
+    expect(p).toMatch(/no reasoning, no explanation, no markdown, no code fence/);
+    expect(p).toContain("Start the reply with [ and end it with ]");
+    expect(p).toContain('"sector": <key>, "arr_low": <number>, "arr_mid": <number>, "arr_high": <number>, "excerpt": <string>, "published_at"');
+    expect(p).toContain(`At most ${MAX_CANDIDATES_PER_SOURCE} elements`);
+    expect(MAX_CANDIDATES_PER_SOURCE).toBe(12);
+  });
+});
+
+describe("extractFirstBalancedJson (lane-2 P3-h)", () => {
+  it("returns the first balanced block and ignores prose around it, brackets inside strings and nested objects", () => {
+    expect(extractFirstBalancedJson('We need to extract… here: [{"sector":"saas","excerpt":"a [7.4x] mid"}] and then more [1]')).toBe('[{"sector":"saas","excerpt":"a [7.4x] mid"}]');
+    expect(extractFirstBalancedJson('{"candidates":[{"a":{"b":1}}]} trailing')).toBe('{"candidates":[{"a":{"b":1}}]}');
+    expect(extractFirstBalancedJson('x: ["escaped \\" quote ]"]')).toBe('["escaped \\" quote ]"]');
+  });
+  it("is null for prose only, a truncated (never closed) array and mismatched brackets", () => {
+    expect(extractFirstBalancedJson("I cannot help with that.")).toBeNull();
+    expect(extractFirstBalancedJson('[{"sector":"saas","arr_low":6.5,"arr_mid":7.4,"excerpt":"the SaaS Capital Index median EV/ARR multi')).toBeNull();
+    expect(extractFirstBalancedJson('[{"sector":"saas"]}')).toBeNull();
+    expect(extractFirstBalancedJson("")).toBeNull();
+    // A truncated array whose first element IS complete yields that inner
+    // object (the scan continues past the unclosed `[`) — parseCandidates
+    // then rejects it because it is not an array of objects.
+    expect(extractFirstBalancedJson('[{"sector":"saas"}')).toBe('{"sector":"saas"}');
+    expect(parseCandidates('[{"sector":"saas"}')).toBeNull();
+  });
+});
+
+describe("relevantTextWindow (lane-2 P3-h)", () => {
+  it("passes a short page through untouched", () => {
+    expect(relevantTextWindow(PAGE_TEXT)).toBe(PAGE_TEXT);
+  });
+  it("keeps the head plus windows around multiple / EV/ / ARR / revenue on a long page, in order, under the cap, and every window is verbatim page text", () => {
+    const filler = (n: number, ch = "lorem ipsum ") => ch.repeat(Math.ceil(n / ch.length)).slice(0, n);
+    const head = "SaaS Capital Index — as of 30 September 2026. ";
+    const hit1 = "The median EV/ARR multiple was 7.4x in September.";
+    const hit2 = "Fintech revenue multiples sit at 5.1x.";
+    const page = head + filler(9_000) + hit1 + filler(9_000) + hit2 + filler(9_000);
+    expect(page.length).toBeGreaterThan(MAX_TEXT_CHARS);
+    const out = relevantTextWindow(page);
+    expect(out.length).toBeLessThanOrEqual(MAX_TEXT_CHARS);
+    expect(out.startsWith(page.slice(0, HEAD_TEXT_CHARS))).toBe(true);
+    expect(out).toContain(hit1);
+    expect(out).toContain(hit2);
+    expect(out.indexOf(hit1)).toBeLessThan(out.indexOf(hit2));
+    for (const piece of out.split("\n…\n")) expect(page).toContain(piece);
+    // The old first-14kB clip would have lost hit2 (at ~18k).
+    expect(page.slice(0, 14_000)).not.toContain(hit2);
+  });
+  it("falls back to the head of the page when no keyword appears", () => {
+    const page = "x".repeat(MAX_TEXT_CHARS * 2);
+    expect(relevantTextWindow(page)).toBe(page.slice(0, MAX_TEXT_CHARS));
   });
 });
 
@@ -77,6 +134,14 @@ describe("parseCandidates", () => {
     expect(parseCandidates("")).toBeNull();
     expect(parseCandidates('{"sector":"saas"}')).toBeNull();
     expect(parseCandidates("[not json")).toBeNull();
+  });
+
+  it("lane-2 P3-h: a reasoning-prose reply wrapping the array parses; a wrapped object {candidates:[…]} parses; a truncated array is null", () => {
+    const prose = 'We need to extract the multiples. Looking at the page, the SaaS Capital Index median EV/ARR multiple was 7.4x [1].\n\nHere is the JSON:\n[{"sector":"saas","arr_low":6.5,"arr_mid":7.4,"arr_high":8.2,"excerpt":"median EV/ARR multiple was 7.4x","published_at":null}]\n\nLet me know if you need anything else.';
+    expect(parseCandidates(prose)).toEqual([{ sector: "saas", arr_low: 6.5, arr_mid: 7.4, arr_high: 8.2, excerpt: "median EV/ARR multiple was 7.4x", published_at: null }]);
+    expect(parseCandidates('{"candidates":[{"sector":"saas"}]}')).toEqual([{ sector: "saas" }]);
+    const truncated = 'Sure: [{"sector":"saas","arr_low":6.5,"arr_mid":7.4,"arr_high":8.2,"excerpt":"the SaaS Capital Index median EV/ARR multiple was 7.4x"},{"sector":"fintech","arr_low":4,"arr_mid":5.1,"arr_h';
+    expect(parseCandidates(truncated)).toBeNull();
   });
 });
 
@@ -215,13 +280,19 @@ describe("refreshSectorMultiples", () => {
       if (url === empty.url) return fetched("<html><body><div id=\"app\"></div></body></html>");
       return fetched(PAGE_HTML);
     });
+    const truncated: MultiplesSource = { ...SRC, id: "truncated", url: "https://truncated.example/" };
+    const prosey: MultiplesSource = { ...SRC, id: "prosey", url: "https://prosey.example/" };
     const ai = vi.fn(async ({ user }: { system: string; user: string }) => {
       if (user.includes(aiDown.url)) throw new Error("no provider");
       if (user.includes(garbage.url)) return { text: "I cannot help with that." };
+      // Lane-2 P3-h: a reply cut off mid-array has no balanced block → still ai_unparseable.
+      if (user.includes(truncated.url)) return { text: JSON.stringify(good).slice(0, -20) };
+      // …but prose around a complete array is fine.
+      if (user.includes(prosey.url)) return { text: `We need to extract the multiples from this page.\n\n${JSON.stringify(good)}\n\nDone.` };
       return { text: JSON.stringify(good) };
     });
     const { client, inserted } = sb();
-    const s = await refreshSectorMultiples({ now: NOW, sources: [blocked, thrower, aiDown, garbage, empty, SRC], fetch, ai, supabase: client });
+    const s = await refreshSectorMultiples({ now: NOW, sources: [blocked, thrower, aiDown, garbage, empty, truncated, prosey, SRC], fetch, ai, supabase: client });
     expect(s.ok).toBe(true);
     const byId = Object.fromEntries(s.sources.map((o) => [o.id, o]));
     expect(byId.blocked).toMatchObject({ status: "blocked", httpStatus: 403 });
@@ -229,9 +300,11 @@ describe("refreshSectorMultiples", () => {
     expect(byId["ai-down"]).toMatchObject({ status: "ai_failed", error: "no provider" });
     expect(byId.garbage).toMatchObject({ status: "ai_unparseable" });
     expect(byId.empty).toMatchObject({ status: "empty_text" });
+    expect(byId.truncated).toMatchObject({ status: "ai_unparseable" });
+    expect(byId.prosey).toMatchObject({ status: "proposed", accepted: 1 });
     expect(byId["saas-capital-index"]).toMatchObject({ status: "proposed", accepted: 1 });
-    expect(inserted).toHaveLength(1);
-    expect(s.proposed).toBe(1);
+    expect(inserted).toHaveLength(2);
+    expect(s.proposed).toBe(2);
   });
 
   it("a unique-index collision (re-run) counts as a duplicate, not a failure; other insert errors mark the source", async () => {

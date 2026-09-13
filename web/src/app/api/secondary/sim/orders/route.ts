@@ -43,9 +43,29 @@ export async function GET() {
   return NextResponse.json({ ok: true, ...SANDBOX, role: scope.role, orders });
 }
 
-/** S29-hardening: 60 `place` orders per user per minute (429 with Retry-After, the shared `enforceRateLimit` body). */
+/** S29-hardening: 60 `place` orders per user per minute (429 with Retry-After, the shared `enforceRateLimit` body + the sandbox marker). */
 export const SIM_PLACE_RATE_MAX = 60;
 export const SIM_PLACE_RATE_WINDOW_MS = 60_000;
+
+/**
+ * Live QA lane 2 P3-c (2026-09-13): the shared limiter body was the only
+ * `/api/secondary/sim/orders` response without `sandbox: true` + the notice
+ * the header promises on EVERY response. Re-wrap it, keeping status,
+ * `Retry-After` and the limiter's own fields (`error`, `retryInSeconds`).
+ */
+async function withSandboxMarker(limited: NextResponse): Promise<NextResponse> {
+  let body: Record<string, unknown> = {};
+  try {
+    const parsed: unknown = await limited.json();
+    if (parsed && typeof parsed === "object") body = parsed as Record<string, unknown>;
+  } catch {
+    /* a non-JSON limiter body still gets the marker */
+  }
+  const headers = new Headers();
+  const retryAfter = limited.headers.get("Retry-After");
+  if (retryAfter) headers.set("Retry-After", retryAfter);
+  return NextResponse.json({ ok: false, ...body, ...SANDBOX }, { status: limited.status, headers });
+}
 
 async function POST_handler(request: Request) {
   const gate = await gateRequireFeature("secondary_market.view");
@@ -87,7 +107,7 @@ async function POST_handler(request: Request) {
   // S29-hardening (S27 review #10): `place` is the only action that grows
   // the book (matching, tape, positions) — 60 per user per minute.
   const limited = enforceRateLimit("sim-place", user.id, request, SIM_PLACE_RATE_MAX, SIM_PLACE_RATE_WINDOW_MS);
-  if (limited) return limited;
+  if (limited) return withSandboxMarker(limited);
 
   const side = body.side === "buy" || body.side === "sell" ? body.side : null;
   if (!side) return NextResponse.json({ ok: false, ...SANDBOX, error: "side must be buy or sell" }, { status: 400 });

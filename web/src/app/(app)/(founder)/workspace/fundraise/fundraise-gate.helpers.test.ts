@@ -12,11 +12,45 @@
 import { describe, expect, it } from "vitest";
 import {
   buildFundraisePostBody,
+  capTableDeadEnd,
   classifyFundraiseResponse,
+  FUNDRAISE_PRICING_HREF,
   GATE_BLOCK_HEADING,
+  isCapTableDeadEndError,
   parseGateBlock,
   parseGateWarn,
+  planNameFor,
 } from "./fundraise-gate.helpers";
+
+describe("capTableDeadEnd (lane-1 F8)", () => {
+  const API_MSG = "No shareholders found. Set up a cap table first.";
+
+  it("recognises the API's no-cap-table error and nothing else", () => {
+    expect(isCapTableDeadEndError(API_MSG)).toBe(true);
+    expect(isCapTableDeadEndError("Set up your cap table first")).toBe(true);
+    expect(isCapTableDeadEndError("Failed to save fundraise round")).toBe(false);
+    expect(capTableDeadEnd("Failed to save fundraise round", () => true)).toBeNull();
+  });
+
+  it("a founder who can write the cap table is sent to /workspace/cap-table", () => {
+    const d = capTableDeadEnd(API_MSG, (f) => f === "cap_table.write");
+    expect(d).toMatchObject({ href: "/workspace/cap-table", linkLabel: "Set up your cap table", upgrade: false });
+    expect(d!.message).toMatch(/cap table/);
+  });
+
+  it("a founder whose tier cannot open the cap table is sent to /pricing with the feature, from=fundraise and the plan name", () => {
+    const d = capTableDeadEnd(API_MSG, () => false);
+    expect(d).toMatchObject({ href: FUNDRAISE_PRICING_HREF, upgrade: true });
+    expect(FUNDRAISE_PRICING_HREF).toBe("/pricing?feature=cap_table.write&from=fundraise");
+    expect(planNameFor("cap_table.write")).toBe("Growth");
+    expect(d!.linkLabel).toBe("Upgrade to Growth to build your cap table");
+    expect(d!.message).toContain("part of Growth and above");
+  });
+
+  it("planNameFor falls back to Growth for an unknown feature", () => {
+    expect(planNameFor("nope.feature")).toBe("Growth");
+  });
+});
 
 describe("parseGateWarn", () => {
   it("keeps required + optional fields", () => {

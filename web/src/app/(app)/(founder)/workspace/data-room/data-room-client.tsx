@@ -765,7 +765,7 @@ export function DataRoomClient({
 
       {/* One-Click Data Room Generator — hidden for a read-only viewer (S18-B review P2-2) */}
       {!readOnly && (
-      <div className="rounded-xl border border-amber-100 bg-amber-50/30 p-5 shadow-sm mb-6" data-testid="dataroom-generate">
+      <div id="generate" className="rounded-xl border border-amber-100 bg-amber-50/30 p-5 shadow-sm mb-6" data-testid="dataroom-generate">
         <div className="flex items-start gap-4">
           <div className="h-10 w-10 rounded-lg bg-white border border-amber-200 flex items-center justify-center shrink-0">
             <Sparkles strokeWidth={1.5} className="h-5 w-5 text-amber-600" />

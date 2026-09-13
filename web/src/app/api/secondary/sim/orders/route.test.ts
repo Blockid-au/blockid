@@ -128,13 +128,15 @@ describe("POST /api/secondary/sim/orders", () => {
     expect(sim.place).toHaveBeenCalledWith(expect.objectContaining({ projectId: "proj-1", ownerUserId: "user-owner", userId: "user-caller", side: "sell", price: 1.25, qty: 100, shareholderId: "s1", holderLabel: null }));
   });
 
-  it("S29-hardening: `place` is rate-limited per user (60/min) after scope + validation of the action; cancel / settings are not; the 429 is returned as-is", async () => {
+  it("S29-hardening: `place` is rate-limited per user (60/min) after scope + validation of the action; cancel / settings are not; the 429 keeps the limiter fields + Retry-After AND carries sandbox:true + notice (lane-2 P3-c)", async () => {
     scopeState.role = "editor";
     rate.enforceRateLimit.mockReturnValue(NextResponse.json({ ok: false, error: "Rate limit exceeded — please wait a moment before generating more.", retryInSeconds: 7 }, { status: 429, headers: { "Retry-After": "7" } }));
     const res = await post({ side: "sell", price: "1.25", qty: 100, shareholderId: "s1" });
     expect(res.status).toBe(429);
     expect(res.headers.get("Retry-After")).toBe("7");
-    expect(await json(res)).toMatchObject({ ok: false, retryInSeconds: 7 });
+    const limitedBody = await json(res);
+    expect(limitedBody).toMatchObject({ ok: false, retryInSeconds: 7, sandbox: true, error: expect.stringMatching(/Rate limit exceeded/) });
+    expect(limitedBody.notice).toMatch(/not an offer/);
     expect(rate.enforceRateLimit).toHaveBeenCalledWith("sim-place", "user-caller", expect.anything(), SIM_PLACE_RATE_MAX, SIM_PLACE_RATE_WINDOW_MS);
     expect([SIM_PLACE_RATE_MAX, SIM_PLACE_RATE_WINDOW_MS]).toEqual([60, 60_000]);
     expect(sim.place).not.toHaveBeenCalled();
