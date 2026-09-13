@@ -61,13 +61,15 @@ interface RoundResponse {
   commitments?: CommitmentDto[];
   summary?: RoundSummary;
   dataRoom?: { id: string; name: string | null } | null;
+  /** The project's existing room a draft round will link for free on activation. */
+  projectDataRoom?: { id: string; name: string | null } | null;
   canEdit?: boolean;
   error?: string;
 }
 
 type ActivationDataRoom =
   | { id: string; attached: "existing" | "generated"; creditsUsed?: number }
-  | { id: null; attached: "none"; reason: string; cost?: number };
+  | { id: null; attached: "none"; reason: string; cost?: number; refunded?: boolean };
 
 const SEGMENT_CLASS: Record<"funded" | "committed" | "soft", string> = {
   funded: "bg-emerald-500",
@@ -99,7 +101,9 @@ export function activationToast(dr: ActivationDataRoom): string {
   if (dr.attached !== "none") return "Round is open.";
   if (dr.reason === "insufficient_credits") return "Round is open. No data room yet — top up credits, then generate one from the Data Room page.";
   if (dr.reason === "feature_locked") return "Round is open. Data rooms are not on your plan — upgrade to attach one.";
-  return "Round is open. The data room could not be generated — try again from the Data Room page.";
+  return dr.refunded === false
+    ? "Round is open. The data room could not be generated — the 3 credits were charged; contact support to have them returned, then try again from the Data Room page."
+    : "Round is open. The data room could not be generated — nothing was charged. Try again from the Data Room page.";
 }
 
 export function RoundClient({ roundId }: { roundId: string }) {
@@ -287,6 +291,7 @@ export function RoundClient({ roundId }: { roundId: string }) {
   }
 
   const { round, summary, dataRoom } = data;
+  const projectDataRoom = data.projectDataRoom ?? null;
   const commitments = data.commitments ?? [];
   const canEdit = data.canEdit !== false;
   const segments = progressSegments(summary);
@@ -343,7 +348,7 @@ export function RoundClient({ roundId }: { roundId: string }) {
                 data-testid="round-activate"
               >
                 {busy === "activate" && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
-                {activateButtonCopy(Boolean(dataRoom))}
+                {activateButtonCopy(Boolean(dataRoom ?? projectDataRoom))}
               </button>
             )}
             {round.status === "active" && (
@@ -404,6 +409,11 @@ export function RoundClient({ roundId }: { roundId: string }) {
               Open the data room
             </Link>{" "}
             to mint investor links, turn on auto follow-up per investor and read the engagement heatmap.
+          </p>
+        ) : round.status === "draft" && projectDataRoom ? (
+          <p className="mt-2 text-sm text-ink-600">
+            Opening the round links <span className="font-medium text-ink-800">{projectDataRoom.name ?? "your existing data room"}</span> to it —
+            nothing is generated and nothing is charged.
           </p>
         ) : round.status === "draft" ? (
           <p className="mt-2 text-sm text-ink-600">

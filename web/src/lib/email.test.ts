@@ -1286,3 +1286,28 @@ describe("sendFreeSummary — the free tier's one email", () => {
     expect(lastMail().subject).toContain("your startup");
   });
 });
+
+// ---------------------------------------------------------------------------
+// S26 review — withFromName: the founder's display name on the PLATFORM
+// sender. Header-injection guard: CR/LF, quotes and angle brackets can never
+// reach the From header, and the address never changes.
+// ---------------------------------------------------------------------------
+
+describe("withFromName (S26-A founder display name on the platform sender)", () => {
+  it("wraps the name on the configured address; quotes / angle brackets / CRLF are stripped; 80-char cap", async () => {
+    const { withFromName } = await import("./email");
+    expect(withFromName("info@blockid.au", "Jane Chen")).toBe('"Jane Chen via BlockID.au" <info@blockid.au>');
+    expect(withFromName('"BlockID" <info@blockid.au>', "Jane Chen")).toBe('"Jane Chen via BlockID.au" <info@blockid.au>');
+    const injected = withFromName("info@blockid.au", 'Jane"\r\nBcc: victim@example.com\r\n<evil@example.com>');
+    expect(injected).not.toMatch(/[\r\n]/);
+    expect(injected).not.toContain("evil@example.com>");
+    expect(injected.endsWith("<info@blockid.au>")).toBe(true);
+    expect(withFromName("info@blockid.au", "x".repeat(200)).length).toBeLessThan(120);
+  });
+
+  it("an empty / whitespace / null name leaves the configured sender untouched", async () => {
+    const { withFromName } = await import("./email");
+    expect(withFromName('"BlockID" <info@blockid.au>', null)).toBe('"BlockID" <info@blockid.au>');
+    expect(withFromName("info@blockid.au", "  \r\n ")).toBe("info@blockid.au");
+  });
+});

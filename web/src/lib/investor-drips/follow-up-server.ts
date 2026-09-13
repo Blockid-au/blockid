@@ -3,8 +3,9 @@
 // `api/cron/investor-followups` (daily 21:00 UTC) calls:
 //   1. listFollowUpCandidates() — links with auto_follow_up = true, an
 //      investor email and a view at least 2 calendar days old (the
-//      business-day rule is applied in code), joined to their room and to
-//      the send ledger (`data_room_follow_ups`, UNIQUE per link);
+//      business-day rule is applied in code), paged in view order with the
+//      send ledger (`data_room_follow_ups`, UNIQUE per link) excluded so
+//      sent links never crowd out newer ones, joined to their room;
 //   2. followUpSkipReason() (pure) per candidate — opt-out, inactive,
 //      too soon, NDA unmet, already sent, unsubscribed;
 //   3. sendFollowUp() — claim the ledger row FIRST (a UNIQUE violation means
@@ -34,6 +35,14 @@ import {
 type Db = SupabaseClient<any, any, any>;
 
 export const MAX_FOLLOW_UPS_PER_TICK = 50;
+/**
+ * A sent link stays opted-in, active and "viewed ≥ 2 days ago" forever, so
+ * the candidate query alone would return the same 50 sent links every tick
+ * and starve every newer link (S26 review P1). Pages are read in order of
+ * last view and links already in the ledger are dropped until `limit`
+ * unsent candidates are found or the pages run out.
+ */
+export const MAX_CANDIDATE_PAGES = 20;
 
 export const LINK_COLUMNS =
   "id, token, data_room_id, account_id, investor_name, investor_email, investor_firm, auto_follow_up, is_active, revoked_at, expires_at, first_accessed, last_accessed, nda_required, nda_signed_at, nda_signed_version";
@@ -51,21 +60,50 @@ export interface FollowUpSummary {
   reason?: FollowUpSkipReason | string;
 }
 
-/** Links that MAY be due — the pure rule decides; this only narrows the read. */
+/**
+ * Links that MAY be due — the pure rule decides; this only narrows the read.
+ * Links with a ledger row (already sent) are never returned: the ledger is
+ * UNIQUE per link, so they can never become due again.
+ */
 export async function listFollowUpCandidates(supabase: Db, now: Date, limit: number = MAX_FOLLOW_UPS_PER_TICK): Promise<FollowUpCandidate[]> {
   const cutoff = new Date(now.getTime() - FOLLOW_UP_MIN_CALENDAR_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  const { data: linkRows, error } = await supabase
-    .from("data_room_access_tokens")
-    .select(LINK_COLUMNS)
-    .eq("auto_follow_up", true)
-    .eq("is_active", true)
-    .not("investor_email", "is", null)
-    .not("last_accessed", "is", null)
-    .lte("last_accessed", cutoff)
-    .order("last_accessed", { ascending: true })
-    .limit(limit);
-  if (error) throw new Error(`follow-up candidates: ${error.message}`);
-  const links = (linkRows ?? []) as FollowUpLinkRow[];
+  const pageSize = Math.max(1, limit);
+  const links: FollowUpLinkRow[] = [];
+  const seen = new Set<string>();
+  for (let page = 0; page < MAX_CANDIDATE_PAGES && links.length < limit; page++) {
+    const from = page * pageSize;
+    const { data: linkRows, error } = await supabase
+      .from("data_room_access_tokens")
+      .select(LINK_COLUMNS)
+      .eq("auto_follow_up", true)
+      .eq("is_active", true)
+      .not("investor_email", "is", null)
+      .not("last_accessed", "is", null)
+      .lte("last_accessed", cutoff)
+      .order("last_accessed", { ascending: true })
+      .range(from, from + pageSize - 1)
+      .limit(pageSize);
+    if (error) throw new Error(`follow-up candidates: ${error.message}`);
+    const pageLinks = ((linkRows ?? []) as FollowUpLinkRow[]).filter((l) => l?.id && !seen.has(l.id));
+    if (pageLinks.length === 0) break;
+    for (const l of pageLinks) seen.add(l.id);
+
+    const { data: sentRows } = await supabase
+      .from("data_room_follow_ups")
+      .select("access_token_id")
+      .in(
+        "access_token_id",
+        pageLinks.map((l) => l.id),
+      );
+    const sent = new Set(((sentRows ?? []) as Array<{ access_token_id: string }>).map((r) => r.access_token_id));
+    for (const l of pageLinks) {
+      if (sent.has(l.id)) continue;
+      links.push(l);
+      if (links.length >= limit) break;
+    }
+    // A short page is the last one.
+    if (pageLinks.length < pageSize) break;
+  }
   if (links.length === 0) return [];
 
   const roomIds = [...new Set(links.map((l) => l.data_room_id).filter((id): id is string => Boolean(id)))];
@@ -74,19 +112,10 @@ export async function listFollowUpCandidates(supabase: Db, now: Date, limit: num
     : { data: [] as FollowUpRoomRow[] };
   const rooms = new Map(((roomRows ?? []) as FollowUpRoomRow[]).map((r) => [r.id, r]));
 
-  const { data: sentRows } = await supabase
-    .from("data_room_follow_ups")
-    .select("access_token_id")
-    .in(
-      "access_token_id",
-      links.map((l) => l.id),
-    );
-  const sent = new Set(((sentRows ?? []) as Array<{ access_token_id: string }>).map((r) => r.access_token_id));
-
   return links.map((link) => ({
     link,
     room: link.data_room_id ? (rooms.get(link.data_room_id) ?? null) : null,
-    alreadySent: sent.has(link.id),
+    alreadySent: false,
   }));
 }
 

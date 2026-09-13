@@ -18,7 +18,7 @@ import type { AppUser } from "@/lib/auth";
 import type { ProjectMemberRole, ProjectScope } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { compileDataRoom, findRoomForScope } from "@/lib/dataroom/generate-room";
-import { spendCredits } from "@/lib/credits";
+import { grantCredits, spendCredits } from "@/lib/credits";
 import {
   roundTotalsFromSummary,
   summariseCommitments,
@@ -80,6 +80,9 @@ export type RoundAccess =
 
 const notFound = () => NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
 
+/** FEATURE_COSTS.data_room_generate — the figure the round page prints before the click. */
+export const DATA_ROOM_GENERATE_COST = 3;
+
 /**
  * Resolve the caller's access to a round at `minRole`. The round must belong
  * to the resolved project's OWNER and — when the round carries a
@@ -139,7 +142,14 @@ export async function recomputeRoundTotals(supabase: Db, round: Pick<RoundRow, "
 export type ActivationDataRoom =
   | { id: string; attached: "existing" }
   | { id: string; attached: "generated"; creditsUsed: number }
-  | { id: null; attached: "none"; reason: "insufficient_credits" | "feature_locked" | "generate_failed"; cost?: number };
+  | {
+      id: null;
+      attached: "none";
+      reason: "insufficient_credits" | "feature_locked" | "generate_failed";
+      cost?: number;
+      /** generate_failed only — whether the 3 credits went back to the caller. */
+      refunded?: boolean;
+    };
 
 export interface ActivateRoundResult {
   round: RoundRow;
@@ -153,8 +163,11 @@ export interface ActivateRoundResult {
  * same compile the manual "Generate data room" button runs is charged to
  * the CALLER's credits (3.00, `data_room_generate`) and attached. No
  * credits → the round still activates, `dataRoom.attached = "none"` tells
- * the UI why. Idempotent: an active round with a room is returned untouched;
- * an active round without one only gets the room attached.
+ * the UI why. A compile that persists nothing (`generate_failed`) refunds
+ * the 3 credits — the founder must never pay for a room that does not
+ * exist (S26 review P1). Idempotent: an active round with a room is
+ * returned untouched; an active round without one only gets the room
+ * attached.
  */
 export async function activateRound(
   supabase: Db,
@@ -191,7 +204,7 @@ export async function activateRound(
         round_id: round.id,
       });
       if (!spend.ok) {
-        dataRoom = { id: null, attached: "none", reason: "insufficient_credits", cost: 3 };
+        dataRoom = { id: null, attached: "none", reason: "insufficient_credits", cost: DATA_ROOM_GENERATE_COST };
       } else {
         const compiled = await compileDataRoom(supabase, {
           user: { email: user.email, displayName: user.displayName ?? null },
@@ -199,9 +212,20 @@ export async function activateRound(
           dataEmail,
           projectId,
         });
-        dataRoom = compiled.dataRoomId
-          ? { id: compiled.dataRoomId, attached: "generated", creditsUsed: 3 }
-          : { id: null, attached: "none", reason: "generate_failed" };
+        if (compiled.dataRoomId) {
+          dataRoom = { id: compiled.dataRoomId, attached: "generated", creditsUsed: DATA_ROOM_GENERATE_COST };
+        } else {
+          // Nothing was written — give the charge back (same "refund" ledger
+          // reason as api/funding/draft and api/board-resolutions).
+          const refund = await grantCredits(user.id, DATA_ROOM_GENERATE_COST, "refund", {
+            feature: "data_room_generate",
+            project_id: projectId,
+            round_id: round.id,
+            reason: "data_room_generate_failed",
+          });
+          if (!refund.ok) console.error("[fundraise] refund after failed data-room compile did not land", { user: user.id, round: round.id });
+          dataRoom = { id: null, attached: "none", reason: "generate_failed", cost: DATA_ROOM_GENERATE_COST, refunded: refund.ok };
+        }
       }
     }
   }

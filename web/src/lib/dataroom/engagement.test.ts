@@ -14,6 +14,7 @@ import {
   INVESTOR_VIEWED_DWELL_THRESHOLD_MS,
   INVESTOR_VIEWED_SECTION_THRESHOLD,
   INVESTOR_VIEWED_THROTTLE_MS,
+  FIRST_VIEW_STAMP_GRACE_MS,
   detectInvestorViewedTrigger,
   readDepth,
 } from "./engagement";
@@ -201,6 +202,21 @@ describe("detectInvestorViewedTrigger", () => {
   it("first open of a never-opened link → first_view; a repeat open → nothing", () => {
     expect(detectInvestorViewedTrigger({ eventType: "open", firstAccessedBefore: null, depth: { sections: 0, dwellMs: 0 } })).toBe("first_view");
     expect(detectInvestorViewedTrigger({ eventType: "open", firstAccessedBefore: "2026-09-01T00:00:00Z", depth: { sections: 0, dwellMs: 0 } })).toBeNull();
+  });
+
+  it("S26 review: a first_accessed stamp the page render wrote seconds ago, with no earlier open event, is still the first view", () => {
+    const now = Date.parse("2026-09-13T04:00:00Z");
+    const justNow = new Date(now - 800).toISOString();
+    const depth = { sections: 0, dwellMs: 0 };
+    expect(detectInvestorViewedTrigger({ eventType: "open", firstAccessedBefore: justNow, depth, priorOpens: 0, now })).toBe("first_view");
+    // an earlier open beacon exists → a repeat visit, whatever the stamp says
+    expect(detectInvestorViewedTrigger({ eventType: "open", firstAccessedBefore: justNow, depth, priorOpens: 1, now })).toBeNull();
+    // a stamp older than the grace window is a genuine earlier visit (events may predate S21-A)
+    const old = new Date(now - FIRST_VIEW_STAMP_GRACE_MS - 1).toISOString();
+    expect(detectInvestorViewedTrigger({ eventType: "open", firstAccessedBefore: old, depth, priorOpens: 0, now })).toBeNull();
+    // priorOpens unknown → the stamp alone decides (legacy behaviour)
+    expect(detectInvestorViewedTrigger({ eventType: "open", firstAccessedBefore: justNow, depth, now })).toBeNull();
+    expect(FIRST_VIEW_STAMP_GRACE_MS).toBe(15 * 60_000);
   });
 
   it("deep_read once 3 sections OR 5 min are reached; nothing below both", () => {

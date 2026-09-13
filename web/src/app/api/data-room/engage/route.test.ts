@@ -357,6 +357,14 @@ describe("POST /api/data-room/engage", () => {
     expect(upd.last_accessed).toBeTruthy();
   });
 
+  it("S26 review: a repeat open never moves first_accessed (only a link without one is stamped)", async () => {
+    state.accessToken = { ...activeToken(), first_accessed: "2026-09-01T00:00:00Z" };
+    await POST(postReq({ token: TOKEN, eventType: "open" }));
+    const upd = find("data_room_access_tokens", "update")[0].args[0] as Record<string, unknown>;
+    expect(upd.first_accessed).toBeUndefined();
+    expect(upd.last_accessed).toBeTruthy();
+  });
+
   it("S26-A: hands the founder-alert helper the link's PRE-event first_accessed and the founder-typed identity, never the token", async () => {
     state.accessToken = { ...activeToken(), first_accessed: null, investor_name: "Jane", investor_firm: "Blackbird", investor_email: "j@bb.vc" };
     await POST(postReq({ token: TOKEN, eventType: "open" }));

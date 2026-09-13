@@ -72,6 +72,32 @@ describe("maybeNotifyInvestorViewed", () => {
     expect(sb.hasEq("app_users", "id", "owner-1")).toBe(true);
   });
 
+  it("S26 review: the page render's fresh first_accessed stamp does not hide the first open (no earlier open event stored)", async () => {
+    const justNow = new Date(Date.now() - 500).toISOString();
+    // The route already wrote THIS open at the head of the list.
+    sb.rows.data_room_engagement = [{ event_type: "open", section: null, duration_ms: null }];
+    const out = await maybeNotifyInvestorViewed(sb, {
+      link: { ...LINK, first_accessed: justNow },
+      event: { eventType: "open", section: null, durationMs: null },
+    });
+    expect(out.trigger).toBe("first_view");
+    expect(mocks.insert).toHaveBeenCalledWith(expect.objectContaining({ payload: expect.objectContaining({ trigger: "first_view" }) }));
+  });
+
+  it("S26 review: an earlier open event on the link makes a fresh stamp a repeat visit, not a first view", async () => {
+    const justNow = new Date(Date.now() - 500).toISOString();
+    sb.rows.data_room_engagement = [
+      { event_type: "open", section: null, duration_ms: null },
+      { event_type: "open", section: null, duration_ms: null },
+    ];
+    const out = await maybeNotifyInvestorViewed(sb, {
+      link: { ...LINK, first_accessed: justNow },
+      event: { eventType: "open", section: null, durationMs: null },
+    });
+    expect(out).toEqual({ trigger: null, notified: false, emailed: false });
+    expect(mocks.insert).not.toHaveBeenCalled();
+  });
+
   it("deep read: stored events + the incoming one cross 3 sections → deep_read with the depth in the payload", async () => {
     sb.rows.data_room_engagement = [
       { event_type: "section_view", section: "Team", duration_ms: 40_000 },

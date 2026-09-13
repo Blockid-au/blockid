@@ -29,7 +29,7 @@ vi.mock("./send", async (importOriginal) => {
   return { ...real, isUnsubscribed: (e: string) => mocks.isUnsubscribed(e) };
 });
 
-import { followUpDecision, listFollowUpCandidates, MAX_FOLLOW_UPS_PER_TICK, sendFollowUp } from "./follow-up-server";
+import { followUpDecision, listFollowUpCandidates, MAX_CANDIDATE_PAGES, MAX_FOLLOW_UPS_PER_TICK, sendFollowUp } from "./follow-up-server";
 import type { FollowUpLinkRow, FollowUpRoomRow } from "./follow-up";
 
 const TOKEN = "s".repeat(48);
@@ -81,17 +81,47 @@ describe("listFollowUpCandidates", () => {
     expect(lte.args[0]).toBe("last_accessed");
     expect(lte.args[1]).toBe("2026-09-08T21:00:00.000Z");
     expect(sb.find("data_room_access_tokens", "limit")[0].args[0]).toBe(10);
+    expect(sb.find("data_room_access_tokens", "range")[0].args).toEqual([0, 9]);
     expect(sb.find("data_rooms", "in")[0].args).toEqual(["id", ["room-1"]]);
     expect(sb.find("data_room_follow_ups", "in")[0].args).toEqual(["access_token_id", ["link-1"]]);
     expect(MAX_FOLLOW_UPS_PER_TICK).toBe(50);
   });
 
-  it("marks a link with a ledger row as alreadySent; empty read → no joins", async () => {
+  it("drops a link with a ledger row (a sent link is never a candidate again — S26 review P1); empty read → no joins", async () => {
     sb.rows.data_room_follow_ups = [{ access_token_id: "link-1" }];
-    expect((await listFollowUpCandidates(sb, NOW))[0].alreadySent).toBe(true);
+    expect(await listFollowUpCandidates(sb, NOW)).toEqual([]);
+    expect(sb.find("data_rooms", "select").length).toBe(0);
     sb = fakeSupabase({ data_room_access_tokens: [] });
     expect(await listFollowUpCandidates(sb, NOW)).toEqual([]);
     expect(sb.find("data_rooms", "select").length).toBe(0);
+  });
+
+  it("pages past a full page of sent links so newer links are not starved, and stops at MAX_CANDIDATE_PAGES", async () => {
+    // Every page the stub returns is the same full page of `limit` links; the
+    // ledger says all of them were sent → the reader must move to the next
+    // page instead of returning the same sent rows, and must give up after
+    // MAX_CANDIDATE_PAGES rather than loop.
+    const limit = 2;
+    const sentLinks = [
+      { ...LINK, id: "sent-a" },
+      { ...LINK, id: "sent-b" },
+    ];
+    sb = fakeSupabase({ data_room_access_tokens: sentLinks, data_rooms: [ROOM], data_room_follow_ups: [{ access_token_id: "sent-a" }, { access_token_id: "sent-b" }] });
+    expect(await listFollowUpCandidates(sb, NOW, limit)).toEqual([]);
+    const ranges = sb.find("data_room_access_tokens", "range");
+    // First page [0,1]; the stub repeats the same ids, so page 2 is empty after de-duplication → stop.
+    expect(ranges[0].args).toEqual([0, 1]);
+    expect(ranges[1].args).toEqual([2, 3]);
+    expect(ranges.length).toBe(2);
+    expect(MAX_CANDIDATE_PAGES).toBe(20);
+  });
+
+  it("returns at most `limit` unsent links even when a page holds more", async () => {
+    const many = ["a", "b", "c"].map((id) => ({ ...LINK, id }));
+    sb = fakeSupabase({ data_room_access_tokens: many, data_rooms: [ROOM], data_room_follow_ups: [{ access_token_id: "a" }] });
+    const out = await listFollowUpCandidates(sb, NOW, 5);
+    expect(out.map((c) => c.link.id)).toEqual(["b", "c"]);
+    expect(out.every((c) => c.alreadySent === false)).toBe(true);
   });
 });
 

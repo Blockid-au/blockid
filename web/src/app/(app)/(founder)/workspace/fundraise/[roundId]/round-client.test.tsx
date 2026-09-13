@@ -24,6 +24,9 @@ describe("activationToast", () => {
     expect(activationToast({ id: null, attached: "none", reason: "insufficient_credits", cost: 3 })).toContain("No data room yet");
     expect(activationToast({ id: null, attached: "none", reason: "feature_locked" })).toContain("not on your plan");
     expect(activationToast({ id: null, attached: "none", reason: "generate_failed" })).toContain("could not be generated");
+    // S26 review: a failed compile refunds — the toast says so; a refund that did not land says that instead.
+    expect(activationToast({ id: null, attached: "none", reason: "generate_failed", cost: 3, refunded: true })).toContain("nothing was charged");
+    expect(activationToast({ id: null, attached: "none", reason: "generate_failed", cost: 3, refunded: false })).toContain("contact support");
   });
 });
 
