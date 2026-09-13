@@ -508,12 +508,28 @@ fi
 if [ "${1:-}" != "--skip-build" ] && [ "${1:-}" != "--quick" ]; then
   gate "TypeScript compilation"
 
-  TS_ERRORS=$(npx tsc --noEmit 2>&1 | grep -c "error TS" || true)
+  # Run ONCE, keep the log, and check the exit code as well as the error
+  # count: a compiler crash (node heap OOM — hit 2026-09-13 as the tree grew)
+  # prints zero "error TS" lines and would otherwise pass this gate silently.
+  # Same 8 GB heap as `npm run build`.
+  TS_LOG="$(mktemp)"
+  set +e
+  NODE_OPTIONS="--max-old-space-size=8192" npx tsc --noEmit > "$TS_LOG" 2>&1
+  TS_EXIT=$?
+  set -e
+  TS_ERRORS=$(grep -c "error TS" "$TS_LOG" || true)
   if [ "$TS_ERRORS" -gt 0 ]; then
     echo "  Found $TS_ERRORS TypeScript errors:"
-    npx tsc --noEmit 2>&1 | grep "error TS" | head -5
+    grep "error TS" "$TS_LOG" | head -5
+    rm -f "$TS_LOG"
     fail "TypeScript has $TS_ERRORS errors. Fix before deploy."
   fi
+  if [ "$TS_EXIT" -ne 0 ]; then
+    tail -5 "$TS_LOG"
+    rm -f "$TS_LOG"
+    fail "tsc exited $TS_EXIT without reporting errors (crash / OOM) — not a pass."
+  fi
+  rm -f "$TS_LOG"
   pass "Zero TypeScript errors"
 
 # ══════════════════════════════════════════════════════════════════════

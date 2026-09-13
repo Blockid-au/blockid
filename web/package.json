@@ -11,7 +11,7 @@
     "lint:reseller": "node scripts/ci/reseller-lints.mjs",
     "lint:audit": "node scripts/ci/audit-lint.mjs",
     "lint:docs-plans-secrets": "node scripts/ci/docs-plans-secrets.mjs",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "NODE_OPTIONS='--max-old-space-size=8192' tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test tests/e2e --reporter=list",

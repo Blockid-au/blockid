@@ -126,7 +126,7 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   printf '  %b$%b (cd %s && npx tsc --noEmit)\n' "$BOLD" "$RESET" "$WEB_DIR"
   ok "tsc (dry-run)"
 else
-  if (cd "$WEB_DIR" && npx tsc --noEmit); then
+  if (cd "$WEB_DIR" && NODE_OPTIONS="--max-old-space-size=8192" npx tsc --noEmit); then
     ok "tsc --noEmit"
   else
     fail_mark "tsc --noEmit"
