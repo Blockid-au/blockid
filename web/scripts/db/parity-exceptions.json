@@ -1,11 +1,10 @@
 {
   "_comment": "Known, documented schema drift that migration-parity.mjs must not report as missing. Keys are migration filenames; `ignore` is a list of object-key globs (kind.schema.table[.name]) — see parseMigration() in migration-parity.mjs for key shapes. Every waiver is printed by the audit; keep `reason` honest and remove the entry once a reconciliation migration lands. `deferred: true` marks a migration that is intentionally NOT applied yet (still reported as missing, but migration-status.mjs / /api/status do not count it as pending).",
   "0030_investor_data_room_and_fundraise.sql": {
-    "reason": "data_rooms / data_room_views / fundraise_rounds were re-defined by 0043_missing_tables.sql; the live shape matches 0043 (id,user_id,project_id,name,… vs 0030's account_id,email,token,…). 0030's shape was never live.",
+    "reason": "data_rooms / data_room_views / fundraise_rounds were re-defined by 0043_missing_tables.sql; the live shape matches 0043 (id,user_id,project_id,name,… vs 0030's account_id,email,token,…). 0030's shape was never live. closed_at was un-waived 2026-09-13: rounds-server.ts selects it, so 0387 added the column (live-QA suite run 1 found every [roundId] route 404).",
     "ignore": [
       "column.public.data_rooms.*",
       "column.public.data_room_views.*",
-      "column.public.fundraise_rounds.closed_at",
       "index.public.idx_data_rooms_token",
       "index.public.idx_data_rooms_account"
     ]
