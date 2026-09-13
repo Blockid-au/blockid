@@ -244,6 +244,18 @@ export async function listStatementsForRecord(db: DividendDb, recordId: string, 
   return ((data as DividendStatementRow[] | null) ?? []).filter((r) => r && r.id && r.dividend_record_id === recordId && r.project_id === projectId);
 }
 
+/**
+ * Has this dividend record already been paid for (S25-review-2 P2)?
+ * The per-record charge is stamped as `credits_charged` on every statement
+ * inserted by the charged call — live OR voided — so a record with any row
+ * carrying `credits_charged > 0` is "paid": a retry after a partial insert
+ * failure (or a re-issue after a void) must never charge the caller again.
+ * Included (add-on / Growth+) issues stamp 0 and never mark the record paid.
+ */
+export function recordAlreadyCharged(statements: Array<Pick<DividendStatementRow, "credits_charged">>): boolean {
+  return statements.some((s) => Number(s?.credits_charged ?? 0) > 0);
+}
+
 export async function listStatementsForProject(db: DividendDb, projectId: string, limit = 500): Promise<DividendStatementRow[]> {
   const { data } = await db.from("dividend_statements").select(STATEMENT_COLUMNS).eq("project_id", projectId).order("issued_at", { ascending: false }).limit(limit);
   return ((data as DividendStatementRow[] | null) ?? []).filter((r) => r && r.id && r.project_id === projectId);

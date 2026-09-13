@@ -18,9 +18,18 @@
  *   `existing`, never re-inserted, and nothing is charged when there is
  *   nothing left to issue. Spend runs BEFORE the insert; a total failure
  *   after a spend refunds.
+ *   Charged ONCE per record (S25-review-2 P2): the charge is stamped as
+ *   `credits_charged` on every statement the charged call inserts, so a
+ *   record with any statement row (live or voided) carrying
+ *   `credits_charged > 0` is already paid — `alreadyCharged: true`, cost 0.
+ *   A partial insert failure therefore keeps the charge (the record is paid)
+ *   and returns 200 `{ partial: true, issuedCount, failedCount,
+ *   retryCost: 0 }`; pressing "Issue" again inserts only the missing rows
+ *   and charges nothing. Only a TOTAL failure (no row inserted → no marker)
+ *   refunds, because the retry would be charged again.
  *
- *   200 { ok, preview: true, cost, listedCost, included, balance, creditNote, toIssue, alreadyIssued, company }
- *   200 { ok, issued[], existing[], failed[], cost, creditsCharged, balance, creditNote, register }
+ *   200 { ok, preview: true, cost, listedCost, included, alreadyCharged, balance, creditNote, toIssue, alreadyIssued, company }
+ *   200 { ok, partial, issued[], existing[], failed[], issuedCount, failedCount, cost, creditsCharged, alreadyCharged, retryCost, balance, creditNote, register }
  *   401 unauthorized  402 insufficient_credits | credit_spend_failed
  *   403/404 scope / record  409 no_payouts  429 rate_limited  503 service_unavailable
  *
@@ -43,6 +52,7 @@ import {
   loadCompanyForScope,
   loadShareholdersForScope,
   matchPayouts,
+  recordAlreadyCharged,
   recordSummary,
   registerForRecord,
   statementSummary,
@@ -98,12 +108,15 @@ async function POST_handler(request: Request, { params }: { params: Promise<{ re
   const toIssue = matches.filter((m) => !liveKeys.has(m.key)).map((m) => m.shareholder.name);
   const alreadyIssued = matches.length - toIssue.length;
 
-  // Gate → cost. Nothing to issue → nothing to charge.
+  // Gate → cost. Nothing to issue → nothing to charge. A record that already
+  // carries a charged statement (live or voided) is paid for → nothing to
+  // charge either, so a retry after a partial failure is free (P2).
   const gate = await statementsIncluded({ id: user.id, plan: user.plan });
   const listedCost = FEATURE_COSTS[FEATURE_KEY] ?? 2;
+  const alreadyCharged = recordAlreadyCharged(live);
   let cost = 0;
   let balance: number | null = null;
-  if (!gate.included && toIssue.length > 0) {
+  if (!gate.included && !alreadyCharged && toIssue.length > 0) {
     const afford = await canAfford(user.id, FEATURE_KEY);
     cost = listedCost;
     balance = afford.balance;
@@ -122,6 +135,7 @@ async function POST_handler(request: Request, { params }: { params: Promise<{ re
       listedCost,
       included: gate.included,
       includedVia: gate.via,
+      alreadyCharged,
       balance,
       creditNote,
       toIssue,
@@ -151,23 +165,39 @@ async function POST_handler(request: Request, { params }: { params: Promise<{ re
     creditsCharged,
   });
   if (result.issued.length === 0 && result.failed.length > 0) {
+    // TOTAL failure: no row was inserted, so nothing carries the
+    // `credits_charged` marker and the next press would charge again → refund.
     if (creditsCharged > 0) {
       const refund = await grantCredits(user.id, creditsCharged, "refund", { feature: FEATURE_KEY, project_id: scope.projectId, reason: "statement_insert_failed" });
       if (refund.ok) balance = refund.balance;
       else console.error("[dividends:statements] refund after insert failure did not land", { user: user.id, project: scope.projectId });
     }
-    return NextResponse.json({ ok: false, error: "statement_insert_failed", failed: result.failed }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "statement_insert_failed", failed: result.failed, issuedCount: 0, failedCount: result.failed.length, retryCost: cost }, { status: 500 });
   }
+
+  // PARTIAL failure (some inserted, some not): the inserted rows carry
+  // `credits_charged`, so the record is now paid for — the charge stands and
+  // the caller is told the retry is free (`retryCost: 0`). No refund here:
+  // refunding AND keeping the marker would make the statements free.
+  const partial = result.failed.length > 0;
+  if (partial) console.warn("[dividends:statements] partial issue", { record: record.id, issued: result.issued.length, failed: result.failed.length });
 
   const all = await listStatementsForRecord(supabase, record.id, scope.projectId);
   return NextResponse.json({
     ok: true,
+    partial,
     issued: result.issued.map(statementSummary),
     existing: result.existing.map(statementSummary),
     failed: result.failed,
+    issuedCount: result.issued.length,
+    failedCount: result.failed.length,
     cost,
     included: gate.included,
     creditsCharged,
+    /** The record was already paid for by an earlier issue → this call charged 0. */
+    alreadyCharged,
+    /** What pressing "Issue" again costs: 0 — at least one row now carries the charge marker (or the issue was included / already paid). */
+    retryCost: 0,
     balance,
     creditNote,
     record: recordSummary(record),
