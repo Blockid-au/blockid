@@ -90,7 +90,7 @@ describe("GET /api/dividends/tax-statements", () => {
     expect((await get("?fy=2025-27")).status).toBe(400);
     scopeState.projectId = null;
     const empty = await (await get()).json();
-    expect(empty).toMatchObject({ ok: true, shareholders: [], statements: [], role: null, cost: 2 });
+    expect(empty).toMatchObject({ ok: true, shareholders: [], statements: [], role: null, cost: 2, listedCost: 2 });
     reset();
     scopeState.role = "viewer";
     seed({ shareholder_tax_statements: [storedRow(), storedRow({ id: "ts-0", statement_no: "TS-2025-26-0", superseded_at: "2026-07-11T00:00:00Z" })] });
@@ -100,6 +100,7 @@ describe("GET /api/dividends/tax-statements", () => {
     expect(body.fy).toBe("2025-26");
     expect(body.role).toBe("viewer");
     expect(body.cost).toBe(2);
+    expect(body.listedCost).toBe(2);
     expect(body.included).toBe(false);
     expect(body.options).toContain("2025-26");
     expect(body.options).toContain("2026-27");
@@ -168,6 +169,12 @@ describe("POST /api/dividends/tax-statements", () => {
     expect(inserts[0].args[0]).toMatchObject({ project_id: "proj-1", user_id: "user-caller", fy: "2025-26", shareholder_key: JANE_KEY, statement_no: "TS-2025-26-1", credits_charged: 2, version: 1 });
     expect(inserts[1].args[0]).toMatchObject({ shareholder_key: "name:seed investor pty ltd", statement_no: "TS-2025-26-2" });
     expect(body.generated[0].statementNo).toBe("TS-2025-26-1");
+  });
+
+  it("lane-2 P3-e: GET for an included caller reports cost 0 + listedCost 2 — the same keys as the POST preview", async () => {
+    gate.included = true;
+    const body = await (await get("?fy=2025-26")).json();
+    expect(body).toMatchObject({ ok: true, cost: 0, listedCost: 2, included: true, includedVia: "addon" });
   });
 
   it("included (equity add-on) → cost 0, no canAfford / spend, rows stamped 0", async () => {

@@ -59,7 +59,10 @@ export interface TaxStatementsPanelState {
   fy: string;
   options: string[];
   role: "owner" | "admin" | "editor" | "viewer" | null;
+  /** What THIS caller pays per FY run — 0 when included (lane-2 P3-e: same key semantics as the POST preview). */
   cost: number;
+  /** Catalogue price of a run (2 credits). */
+  listedCost: number;
   included: boolean;
   excluded: { voided: number; outsideFy: number; undated: number };
   shareholders: FyShareholderRow[];
@@ -112,7 +115,11 @@ export function AnnualTaxStatementsPanel({ initial }: { initial?: TaxStatementsP
   const apply = React.useCallback((d: Record<string, unknown> | null) => {
     if (d?.ok) {
       const s = d as unknown as TaxStatementsPanelState & { included: unknown };
-      setState({ fy: s.fy, options: s.options ?? [], role: s.role ?? null, cost: s.cost ?? 2, included: Boolean(s.included), excluded: s.excluded ?? { voided: 0, outsideFy: 0, undated: 0 }, shareholders: s.shareholders ?? [], statements: s.statements ?? [] });
+      const listedCost = typeof s.listedCost === "number" ? s.listedCost : 2;
+      const included = Boolean(s.included);
+      // An included caller is never shown the catalogue price as their cost.
+      const cost = included ? 0 : typeof s.cost === "number" ? s.cost : listedCost;
+      setState({ fy: s.fy, options: s.options ?? [], role: s.role ?? null, cost, listedCost, included, excluded: s.excluded ?? { voided: 0, outsideFy: 0, undated: 0 }, shareholders: s.shareholders ?? [], statements: s.statements ?? [] });
       setFy(s.fy);
     } else setError((d?.error as string | undefined) ?? "Could not load annual tax statements");
   }, []);

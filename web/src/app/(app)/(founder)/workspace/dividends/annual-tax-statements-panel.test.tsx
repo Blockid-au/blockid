@@ -40,6 +40,7 @@ function state(over: Partial<TaxStatementsPanelState> = {}): TaxStatementsPanelS
     options: ["2026-27", "2025-26"],
     role: "owner",
     cost: 2,
+    listedCost: 2,
     included: false,
     excluded: { voided: 1, outsideFy: 1, undated: 0 },
     shareholders: [
@@ -92,8 +93,10 @@ describe("AnnualTaxStatementsPanel", () => {
   });
 
   it("included plan → 'included in your plan'; viewer → PDFs only; empty state without statements in the FY", () => {
-    const inc = html(state({ included: true }));
+    const inc = html(state({ included: true, cost: 0 }));
     expect(inc).toContain("Generate statements (included in your plan)");
+    // Lane-2 P3-e: an included caller never sees the catalogue price as their cost.
+    expect(inc).not.toContain("2 credits per financial year");
 
     const viewer = html(state({ role: "viewer" }));
     expect(viewer).not.toContain('data-testid="generate-tax-statements"');

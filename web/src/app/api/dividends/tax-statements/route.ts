@@ -6,7 +6,9 @@
  *   live distribution statements paid inside 1 Jul – 30 Jun), the statements
  *   already generated for the FY (current + superseded versions), the listed
  *   cost and whether the run is included for the caller. `fy` absent →
- *   the last completed FY; malformed → 400.
+ *   the last completed FY; malformed → 400. Price keys match the POST
+ *   preview (live QA lane 2 P3-e): `listedCost` is the catalogue price,
+ *   `cost` what THIS caller will be charged (0 when included).
  *
  * POST `{ fy, confirm?: boolean, regenerate?: boolean }` (editor+)
  *   Generates one statement per shareholder of the FY. Same rails as the
@@ -73,10 +75,10 @@ export async function GET(request: Request) {
   if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   const { scope, denied } = await projectScopeOrDeny("viewer");
   if (denied) return denied;
-  const cost = FEATURE_COSTS[FEATURE_KEY] ?? 2;
+  const listedCost = FEATURE_COSTS[FEATURE_KEY] ?? 2;
   const { fy, ok } = fyFromQuery(request);
   if (!ok) return NextResponse.json({ ok: false, error: "bad_fy" }, { status: 400 });
-  if (!scope) return NextResponse.json({ ok: true, fy, options: fyOptions([]), shareholders: [], statements: [], role: null, cost, included: false });
+  if (!scope) return NextResponse.json({ ok: true, fy, options: fyOptions([]), shareholders: [], statements: [], role: null, cost: listedCost, listedCost, included: false });
   const supabase = getSupabaseAdmin();
   if (!supabase) return NextResponse.json({ ok: false, error: "service_unavailable" }, { status: 503 });
 
@@ -87,7 +89,10 @@ export async function GET(request: Request) {
     role: scope.role,
     fy,
     options: fyOptions(statements),
-    cost,
+    // Lane-2 P3-e: same semantics as the POST preview — `cost` is what the
+    // caller pays (0 when included), `listedCost` the catalogue price.
+    cost: gate.included ? 0 : listedCost,
+    listedCost,
     included: gate.included,
     includedVia: gate.via,
     excluded: summary?.excluded ?? { voided: 0, outsideFy: 0, undated: 0 },
