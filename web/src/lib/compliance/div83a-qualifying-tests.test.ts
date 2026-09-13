@@ -30,12 +30,16 @@ describe("DIV83A_QUALIFYING_TESTS", () => {
     const joined = DIV83A_QUALIFYING_TESTS.map((t) => t.en).join(" ");
     // Same statutory grep the guide's own qualifyingTests carries.
     expect(joined).toMatch(/s83A-33/);
-    expect(joined).toMatch(/s83A-33\(1\)\(a\)/); // turnover cap
-    expect(joined).toMatch(/s83A-33\(1\)\(b\)/); // unlisted
-    expect(joined).toMatch(/s83A-33\(1\)\(c\)/); // 10-year age cap
-    expect(joined).toMatch(/s83A-33\(4\)/); // market-value strike
-    expect(joined).toMatch(/s83A-45\(4\)/); // 10% ownership cap
-    expect(joined).toMatch(/s83A-45\(5\)/); // holding-or-forfeiture
+    // Sub-section numbering per ITAA 1997 as amended 2015 (aligned with the
+    // valuation-certificate ESS annex, S27-A 2026-09-13): (2) unlisted,
+    // (3) < 10 years, (4) turnover, (5) discount / exercise price,
+    // (6) resident employer; s 83A-45(4)–(5) holding, (6) 10 % cap.
+    expect(joined).toMatch(/s83A-33\(4\)/); // turnover cap
+    expect(joined).toMatch(/s83A-33\(2\)/); // unlisted
+    expect(joined).toMatch(/s83A-33\(3\)/); // 10-year age cap
+    expect(joined).toMatch(/s83A-33\(5\)/); // market-value strike
+    expect(joined).toMatch(/s83A-45\(6\)/); // 10% ownership cap
+    expect(joined).toMatch(/s83A-45\(4\)–\(5\)/); // holding-or-forfeiture
     expect(joined).toMatch(/s83A-105/); // employee + forfeiture
     expect(joined).toMatch(/A\$50 million/);
     expect(joined).toMatch(/10 years/);

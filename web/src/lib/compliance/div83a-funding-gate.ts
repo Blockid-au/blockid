@@ -40,7 +40,7 @@ import { emitEvent } from "@/lib/analytics/server";
  * "no fresh check on file". 180 days is deliberately longer than the
  * ESIC 90-day window because grant terms (strike, vesting, cliff) rarely
  * change between checks — the check only re-fails when the *company*
- * crosses the s83A-33(1)(a) A$50m turnover cap or the s83A-33(1)(c)
+ * crosses the s83A-33(4) A$50m turnover cap or the s83A-33(3)
  * 10-year age cap.
  */
 export const DIV83A_STALE_AFTER_DAYS = 180;

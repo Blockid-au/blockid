@@ -39,7 +39,7 @@ export interface Div83AProjectInput {
   hasEsicRuling?: boolean;
   /**
    * True if the employer is an Australian resident-taxpayer for the income
-   * year of the grant (s83A-33(6)(d)). Undefined = unknown → treated as
+   * year of the grant (s83A-33(6)). Undefined = unknown → treated as
    * failing the test (fail-closed) in the qualifying-tests summary.
    */
   isAustralianResidentTaxpayer?: boolean;
@@ -87,13 +87,13 @@ export interface Div83ACheck {
 // Constants (AU Startup Concession thresholds)
 // ---------------------------------------------------------------------------
 
-/** s83A-33(1)(a) — aggregated turnover cap for eligible start-up. */
+/** s83A-33(4) — aggregated turnover cap for eligible start-up. */
 const TURNOVER_CAP_AUD = 50_000_000;
-/** s83A-33(1)(c) — maximum age since incorporation. */
+/** s83A-33(3) — maximum age since incorporation. */
 const MAX_AGE_YEARS = 10;
-/** s83A-45(4) — post-grant beneficial ownership cap. */
+/** s83A-45(6) — post-grant beneficial ownership cap. */
 const MAX_OWNERSHIP_PCT = 10;
-/** s83A-45(5) — minimum holding period for options. */
+/** s83A-45(4)–(5) — minimum holding period for options. */
 const MIN_HOLDING_YEARS = 3;
 
 const AFSL_DISCLAIMER =
@@ -148,7 +148,7 @@ export function checkDiv83A(
     });
   }
 
-  // 2. Company is unlisted at the grant time (s83A-33(1)(b)).
+  // 2. Company is unlisted at the grant time (s83A-33(2)).
   if (project.isListed === false) {
     criteria.push({
       key: "unlisted",
@@ -172,7 +172,7 @@ export function checkDiv83A(
     });
   }
 
-  // 3. Aggregated turnover ≤ A$50m for financial year of grant (s83A-33(1)(a)).
+  // 3. Aggregated turnover ≤ A$50m for financial year of grant (s83A-33(4)).
   if (typeof project.aggregatedTurnoverAud === "number") {
     if (project.aggregatedTurnoverAud <= TURNOVER_CAP_AUD) {
       criteria.push({
@@ -194,11 +194,11 @@ export function checkDiv83A(
       key: "turnover_cap",
       label: "Aggregated turnover ≤ A$50m (financial year of grant)",
       met: null,
-      evidence: "Aggregated turnover not provided — required to confirm the s83A-33(1)(a) test.",
+      evidence: "Aggregated turnover not provided — required to confirm the s83A-33(4) test.",
     });
   }
 
-  // 4. Company incorporated < 10 years ago (s83A-33(1)(c)).
+  // 4. Company incorporated < 10 years ago (s83A-33(3)).
   if (project.incorporatedAt) {
     const ageYears = yearsBetween(project.incorporatedAt, grant.grantDate);
     if (Number.isNaN(ageYears)) {
@@ -243,7 +243,7 @@ export function checkDiv83A(
       "Confirm the grantee is on PAYG payroll (not a contractor / ABN invoicer) at the grant date.",
   });
 
-  // 6. Options issued for consideration ≥ market value (s83A-33(4)).
+  // 6. Options issued for consideration ≥ market value (s83A-33(5)).
   // For options: strike must equal (or exceed) market value at grant.
   // We can only confirm the strike is > 0; the founder must verify FMV.
   if (grant.strikePriceAud > 0) {
@@ -259,11 +259,11 @@ export function checkDiv83A(
       label: "Options issued with strike ≥ market value at grant",
       met: false,
       evidence:
-        "Strike price is zero — options must be issued at strike ≥ market value to qualify (s83A-33(4)).",
+        "Strike price is zero — options must be issued at strike ≥ market value to qualify (s83A-33(5)).",
     });
   }
 
-  // 7. Post-grant beneficial ownership ≤ 10% (s83A-45(4)).
+  // 7. Post-grant beneficial ownership ≤ 10% (s83A-45(6)).
   if (typeof granteePostGrantOwnershipPct === "number") {
     if (granteePostGrantOwnershipPct <= MAX_OWNERSHIP_PCT) {
       criteria.push({
@@ -290,7 +290,7 @@ export function checkDiv83A(
     });
   }
 
-  // 8. Real risk of forfeiture OR ≥ 3-year holding period (s83A-45(5)).
+  // 8. Real risk of forfeiture OR ≥ 3-year holding period (s83A-45(4)–(5)).
   // vestingYears ≥ 3 → satisfies holding-period test.
   // Otherwise, if cliff_months ≥ 12 we consider real risk of forfeiture met.
   if (grant.vestingYears >= MIN_HOLDING_YEARS) {
@@ -356,7 +356,7 @@ function deriveQualifyingTests(
   grant: Div83AGrantInput,
   project: Div83AProjectInput,
 ): QualifyingTests {
-  // Test 1 — Employer < 10 years since incorporation (s83A-33(6)(a)).
+  // Test 1 — Employer < 10 years since incorporation (s83A-33(3)).
   let test_1_startup: QualifyingTest;
   if (project.incorporatedAt) {
     const ageYears = yearsBetween(project.incorporatedAt, grant.grantDate);
@@ -364,20 +364,20 @@ function deriveQualifyingTests(
       test_1_startup = {
         passed: false,
         reason:
-          "ITAA 1997 s83A-33(6)(a) — could not parse incorporation date; the 10-year start-up test cannot be verified.",
+          "ITAA 1997 s83A-33(3) — could not parse incorporation date; the 10-year start-up test cannot be verified.",
       };
     } else if (ageYears < MAX_AGE_YEARS) {
       test_1_startup = {
         passed: true,
         reason:
-          "ITAA 1997 s83A-33(6)(a) — employer incorporated less than 10 years before the grant.",
+          "ITAA 1997 s83A-33(3) — employer incorporated less than 10 years before the grant.",
         evidence: `Company age at grant: ${ageYears.toFixed(1)} years.`,
       };
     } else {
       test_1_startup = {
         passed: false,
         reason:
-          "ITAA 1997 s83A-33(6)(a) — employer incorporated 10 or more years before the grant.",
+          "ITAA 1997 s83A-33(3) — employer incorporated 10 or more years before the grant.",
         evidence: `Company age at grant: ${ageYears.toFixed(1)} years.`,
       };
     }
@@ -385,49 +385,49 @@ function deriveQualifyingTests(
     test_1_startup = {
       passed: false,
       reason:
-        "ITAA 1997 s83A-33(6)(a) — incorporation date not supplied; cannot confirm the 10-year start-up test.",
+        "ITAA 1997 s83A-33(3) — incorporation date not supplied; cannot confirm the 10-year start-up test.",
     };
   }
 
-  // Test 2 — Employer not listed on any stock exchange (s83A-33(6)(b)).
+  // Test 2 — Employer not listed on any stock exchange (s83A-33(2)).
   let test_2_unlisted: QualifyingTest;
   if (project.isListed === false) {
     test_2_unlisted = {
       passed: true,
       reason:
-        "ITAA 1997 s83A-33(6)(b) — employer and holding entities are not listed on any approved stock exchange.",
+        "ITAA 1997 s83A-33(2) — employer and holding entities are not listed on any approved stock exchange.",
       evidence: "Listing status recorded as unlisted.",
     };
   } else if (project.isListed === true) {
     test_2_unlisted = {
       passed: false,
       reason:
-        "ITAA 1997 s83A-33(6)(b) — employer (or a holding entity) is listed on a stock exchange.",
+        "ITAA 1997 s83A-33(2) — employer (or a holding entity) is listed on a stock exchange.",
       evidence: "Listing status recorded as listed.",
     };
   } else {
     test_2_unlisted = {
       passed: false,
       reason:
-        "ITAA 1997 s83A-33(6)(b) — listing status not supplied; cannot confirm the unlisted test.",
+        "ITAA 1997 s83A-33(2) — listing status not supplied; cannot confirm the unlisted test.",
     };
   }
 
-  // Test 3 — Aggregated turnover ≤ AUD 50m for prior year (s83A-33(6)(c)).
+  // Test 3 — Aggregated turnover ≤ AUD 50m for prior year (s83A-33(4)).
   let test_3_turnover_le_50m: QualifyingTest;
   if (typeof project.aggregatedTurnoverAud === "number") {
     if (project.aggregatedTurnoverAud <= TURNOVER_CAP_AUD) {
       test_3_turnover_le_50m = {
         passed: true,
         reason:
-          "ITAA 1997 s83A-33(6)(c) — aggregated turnover for the prior income year is within the A$50m cap.",
+          "ITAA 1997 s83A-33(4) — aggregated turnover for the prior income year is within the A$50m cap.",
         evidence: `Aggregated turnover: A$${project.aggregatedTurnoverAud.toLocaleString()}.`,
       };
     } else {
       test_3_turnover_le_50m = {
         passed: false,
         reason:
-          "ITAA 1997 s83A-33(6)(c) — aggregated turnover for the prior income year exceeds the A$50m cap.",
+          "ITAA 1997 s83A-33(4) — aggregated turnover for the prior income year exceeds the A$50m cap.",
         evidence: `Aggregated turnover: A$${project.aggregatedTurnoverAud.toLocaleString()}.`,
       };
     }
@@ -435,31 +435,31 @@ function deriveQualifyingTests(
     test_3_turnover_le_50m = {
       passed: false,
       reason:
-        "ITAA 1997 s83A-33(6)(c) — aggregated turnover not supplied; cannot confirm the A$50m cap.",
+        "ITAA 1997 s83A-33(4) — aggregated turnover not supplied; cannot confirm the A$50m cap.",
     };
   }
 
-  // Test 4 — Employer is an Australian resident-taxpayer (s83A-33(6)(d)).
+  // Test 4 — Employer is an Australian resident-taxpayer (s83A-33(6)).
   let test_4_australian_resident: QualifyingTest;
   if (project.isAustralianResidentTaxpayer === true) {
     test_4_australian_resident = {
       passed: true,
       reason:
-        "ITAA 1997 s83A-33(6)(d) — employer is an Australian resident-taxpayer for the income year of the grant.",
+        "ITAA 1997 s83A-33(6) — employer is an Australian resident-taxpayer for the income year of the grant.",
       evidence: "Australian residency declared on request.",
     };
   } else if (project.isAustralianResidentTaxpayer === false) {
     test_4_australian_resident = {
       passed: false,
       reason:
-        "ITAA 1997 s83A-33(6)(d) — employer is not an Australian resident-taxpayer for the income year of the grant.",
+        "ITAA 1997 s83A-33(6) — employer is not an Australian resident-taxpayer for the income year of the grant.",
       evidence: "Australian residency declared as false on request.",
     };
   } else {
     test_4_australian_resident = {
       passed: false,
       reason:
-        "ITAA 1997 s83A-33(6)(d) — Australian resident-taxpayer status not supplied; cannot confirm the residency test.",
+        "ITAA 1997 s83A-33(6) — Australian resident-taxpayer status not supplied; cannot confirm the residency test.",
     };
   }
 

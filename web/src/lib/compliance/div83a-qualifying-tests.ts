@@ -33,27 +33,27 @@ export interface Div83AQualifyingTest {
 export const DIV83A_QUALIFYING_TESTS: readonly Div83AQualifyingTest[] = [
   {
     key: "esic_eligible",
-    section: "ITAA 1997 s83A-33(1) (start-up gateway)",
+    section: "ITAA 1997 s83A-33 (start-up gateway)",
     en: "Company is an ESIC-eligible start-up (s83A-33 tests met) — confirm via ATO ESIC self-assessment or private ruling.",
     vi: "Công ty là start-up đủ điều kiện ESIC (các test s83A-33 đạt) — xác nhận qua ATO ESIC tự đánh giá hoặc private ruling.",
   },
   {
     key: "unlisted",
-    section: "ITAA 1997 s83A-33(1)(b)",
-    en: "Company (and any holding entity) is unlisted at the grant date — no class of shares quoted on an approved stock exchange (s83A-33(1)(b)).",
-    vi: "Công ty (và bất kỳ đơn vị mẹ nào) chưa niêm yết tại ngày grant — không có loại cổ phần nào niêm yết trên sàn giao dịch được công nhận (s83A-33(1)(b)).",
+    section: "ITAA 1997 s83A-33(2)",
+    en: "Company (and any holding entity) is unlisted at the grant date — no class of shares quoted on an approved stock exchange (s83A-33(2)).",
+    vi: "Công ty (và bất kỳ đơn vị mẹ nào) chưa niêm yết tại ngày grant — không có loại cổ phần nào niêm yết trên sàn giao dịch được công nhận (s83A-33(2)).",
   },
   {
     key: "turnover_cap",
-    section: "ITAA 1997 s83A-33(1)(a)",
-    en: "Aggregated turnover of the company group for the financial year of the grant is A$50 million or less (s83A-33(1)(a)).",
-    vi: "Doanh thu hợp nhất của cả nhóm công ty cho năm tài chính có ngày grant ≤ A$50 triệu (s83A-33(1)(a)).",
+    section: "ITAA 1997 s83A-33(4)",
+    en: "Aggregated turnover of the company group for the financial year of the grant is A$50 million or less (s83A-33(4)).",
+    vi: "Doanh thu hợp nhất của cả nhóm công ty cho năm tài chính có ngày grant ≤ A$50 triệu (s83A-33(4)).",
   },
   {
     key: "age_lt_10y",
-    section: "ITAA 1997 s83A-33(1)(c)",
-    en: "Company was incorporated less than 10 years before the grant date (s83A-33(1)(c)).",
-    vi: "Công ty được thành lập chưa đến 10 năm trước ngày grant (s83A-33(1)(c)).",
+    section: "ITAA 1997 s83A-33(3)",
+    en: "Company was incorporated less than 10 years before the grant date (s83A-33(3)).",
+    vi: "Công ty được thành lập chưa đến 10 năm trước ngày grant (s83A-33(3)).",
   },
   {
     key: "grantee_is_employee",
@@ -63,21 +63,21 @@ export const DIV83A_QUALIFYING_TESTS: readonly Div83AQualifyingTest[] = [
   },
   {
     key: "market_value",
-    section: "ITAA 1997 s83A-33(4)",
-    en: "Options are issued with a strike price at or above market value at grant, established under a s960-410 safe-harbour method or independent valuation (s83A-33(4)).",
+    section: "ITAA 1997 s83A-33(5)",
+    en: "Options are issued with a strike price at or above market value at grant, established under a s960-410 safe-harbour method or independent valuation (s83A-33(5)).",
     vi: "Option phát hành với giá thực hiện bằng hoặc cao hơn giá thị trường tại ngày grant, xác định bằng phương pháp safe-harbour s960-410 hoặc định giá độc lập (s83A-33(4)).",
   },
   {
     key: "ownership_cap",
-    section: "ITAA 1997 s83A-45(4)",
-    en: "Grantee's post-grant beneficial ownership and voting power in the company is 10% or less (s83A-45(4)).",
-    vi: "Tỷ lệ sở hữu hưởng lợi và quyền biểu quyết sau grant của người nhận trong công ty ≤ 10% (s83A-45(4)).",
+    section: "ITAA 1997 s83A-45(6)",
+    en: "Grantee's post-grant beneficial ownership and voting power in the company is 10% or less (s83A-45(6)).",
+    vi: "Tỷ lệ sở hữu hưởng lợi và quyền biểu quyết sau grant của người nhận trong công ty ≤ 10% (s83A-45(6)).",
   },
   {
     key: "holding_or_forfeiture",
-    section: "ITAA 1997 s83A-45(5) / s83A-105(6)",
-    en: "Grant satisfies the ≥ 3-year holding period OR carries a real risk of forfeiture (e.g. a 12-month or longer cliff) (s83A-45(5) / s83A-105(6)).",
-    vi: "Grant thoả điều kiện giữ ≥ 3 năm HOẶC có rủi ro mất quyền thực sự (ví dụ cliff từ 12 tháng trở lên) (s83A-45(5) / s83A-105(6)).",
+    section: "ITAA 1997 s83A-45(4)–(5) / s83A-105(6)",
+    en: "Grant satisfies the ≥ 3-year holding period OR carries a real risk of forfeiture (e.g. a 12-month or longer cliff) (s83A-45(4)–(5) / s83A-105(6)).",
+    vi: "Grant thoả điều kiện giữ ≥ 3 năm HOẶC có rủi ro mất quyền thực sự (ví dụ cliff từ 12 tháng trở lên) (s83A-45(4)–(5) / s83A-105(6)).",
   },
 ] as const;
 

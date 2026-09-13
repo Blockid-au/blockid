@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-13T03:49:01.958Z",
+  "generated_at": "2026-09-13T05:57:01.053Z",
   "ledger_present": true,
-  "total_files": 244,
+  "total_files": 245,
   "files": [
     "0001_init.sql",
     "0002_score_v2.sql",
@@ -218,6 +218,7 @@
     "0355_fundraise_commitments_investor_followups.sql",
     "0356_erase_account_fundraise_commitments.sql",
     "0360_board_resolutions.sql",
+    "0361_board_resolutions_supersede.sql",
     "20260814_tech_analyses.sql",
     "20260815120000_analyzer_runs.sql",
     "20260816_clevel_reports_v2.sql",
