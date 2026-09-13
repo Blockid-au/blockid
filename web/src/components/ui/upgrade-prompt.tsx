@@ -2,9 +2,16 @@
 
 import * as React from "react";
 import { Sparkles, X, Zap } from "lucide-react";
+import { PLANS_V2 } from "@/lib/plans-v2";
 
 const DISMISS_KEY = "blockid_upgrade_prompt_dismissed_v2";
 const DISMISS_HOURS = 48;
+
+// Price + credits come from the plan ladder (live QA 2026-09-13 found this
+// banner still saying "A$99/mo for 100 credits" while Growth is A$69 / 45).
+const growth = PLANS_V2.find((p) => p.id === "founder_growth") ?? { name: "Growth", monthly_aud: null as number | null, features: [] as string[] };
+const growthCredits = growth.features.find((f) => /AI credits/i.test(f))?.match(/(\d+) AI credits/i)?.[1] ?? null;
+const growthPriceLine = `${growth.monthly_aud != null ? `A$${growth.monthly_aud}/mo` : "see pricing"}${growthCredits ? ` for ${growthCredits} credits` : ""}`;
 
 export function UpgradePrompt() {
   const [visible, setVisible] = React.useState(false);
@@ -50,8 +57,8 @@ export function UpgradePrompt() {
       <p className="flex-1 text-xs leading-snug">
         <span className="font-semibold">Credits running low.</span>{" "}
         Upgrade to{" "}
-        <span className="font-semibold">Growth</span> — A$99/mo for 100
-        credits, Evidence Vault, cap table tools &amp; investor data room.
+        <span className="font-semibold">{growth.name}</span> — {growthPriceLine},
+        Evidence Vault, cap table tools &amp; investor data room.
       </p>
       <button
         type="button"

@@ -71,7 +71,21 @@ test.describe("Free plan gates", () => {
     expect(String(apiTry.body.error)).toMatch(/No shareholders found/);
 
     await visit("/workspace/fundraise");
-    await page.getByRole("button", { name: /Calculate Share Price/ }).click();
+    // `visit` resolves at domcontentloaded; a click before React hydrates is
+    // swallowed (run 2 trace: no page POST at all). Click until the page's own
+    // POST /api/fundraise is observed, at most 3 attempts.
+    const button = page.getByRole("button", { name: /Calculate Share Price/ });
+    await expect(button).toBeVisible({ timeout: 30_000 });
+    let posted = false;
+    for (let attempt = 0; attempt < 3 && !posted; attempt++) {
+      const waited = page
+        .waitForResponse((r) => r.url().endsWith("/api/fundraise") && r.request().method() === "POST", { timeout: 10_000 })
+        .then(() => true)
+        .catch(() => false);
+      await button.click();
+      posted = await waited;
+    }
+    expect(posted, "the wizard's Calculate click must reach POST /api/fundraise").toBe(true);
     const deadEnd = page.getByTestId("fundraise-cap-table-dead-end");
     await expect(deadEnd).toBeVisible({ timeout: 30_000 });
     await expect(deadEnd).toContainText(/priced against your cap table/);

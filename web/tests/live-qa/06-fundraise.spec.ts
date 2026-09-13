@@ -112,7 +112,8 @@ test.describe("Fundraise rounds", () => {
     const jane = after.body.commitments.find((c) => c.investor_name === "Jane Angel");
     expect(jane?.status).toBe("committed");
     setScratch("fundraise.commitmentId", jane!.id);
-    await expect(page.getByTestId("round-progress-bar")).toHaveAttribute("aria-label", /committed A\$250,000/);
+    // formatAud() prints "$250,000" (no A prefix) — accept either spelling.
+    await expect(page.getByTestId("round-progress-bar")).toHaveAttribute("aria-label", /committed (A\$|\$)250,000/);
   });
 
   test("commitment validation + PATCH status ladder via API", async ({ api, growth, qa }, testInfo) => {
