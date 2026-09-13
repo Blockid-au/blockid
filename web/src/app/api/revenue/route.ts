@@ -8,6 +8,7 @@ import { projectAccessResponse } from "@/lib/project-members/http";
 import { loadSnapshotHistory } from "@/lib/connectors/snapshots";
 import { resolveRevenueFigures } from "@/lib/revenue/sources";
 import { bankCsvFigures } from "@/lib/expenses/server";
+import { resolveBurnRate } from "@/lib/revenue/burn-rate-server";
 
 export const dynamic = "force-dynamic";
 
@@ -209,10 +210,12 @@ export async function GET() {
 
   // S28-C — categorised bank lines (/workspace/expenses) are the fallback
   // source after the connectors: average monthly income / spend over the
-  // last 12 months, labelled "from bank CSV, <date>". Burn rate follows the
-  // same precedence (metrics first, then the bank CSV).
+  // last 12 months, labelled "from bank CSV, <date>".
   const bankCsv = projectId ? await bankCsvFigures(supabase, projectId) : null;
-  const burnRate = metricsBurn > 0 ? metricsBurn : bankCsv?.monthlyOpex ?? 0;
+  // S29-hardening: ONE burn precedence (Xero → bank CSV → metrics → none),
+  // shared with /api/pnl and /api/valuation* — the same figure the P&L opex
+  // line below is built on.
+  const burn = await resolveBurnRate(supabase, { projectId, ownerUserId, metricBurn: metricsBurn, xeroSnapshot, bankCsv });
 
   // ── 4. Build monthly breakdown (sorted) ───────────────────────────────
   const monthly: MonthlyRevenue[] = [];
@@ -312,8 +315,9 @@ export async function GET() {
       period: figures.period,
     },
     metrics: {
-      burnRate: Math.round(burnRate * 100) / 100,
-      burnRateSource: metricsBurn > 0 ? "startup_metrics" : bankCsv?.monthlyOpex ? "bank_csv" : "none",
+      burnRate: burn.burnRate,
+      burnRateSource: burn.source,
+      burnRateSourceInfo: burn.sourceInfo,
     },
     bankCsv: bankCsv ? { takenAt: bankCsv.takenAt, monthsWithData: bankCsv.monthsWithData, needsReviewCount: bankCsv.needsReviewCount } : null,
     sources: figures.sources,

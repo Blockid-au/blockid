@@ -21,10 +21,12 @@ import {
   changeStage,
   findContactByEmail,
   getContact,
+  isProjectMemberOrOwner,
   linkCommitment,
   linkDataRoomView,
   listContacts,
   listProjectCommitments,
+  ownerNotMemberResponse,
   resolveCrmScope,
   stageForCommitmentStatus,
 } from "./crm-server";
@@ -270,5 +272,29 @@ describe("listProjectCommitments", () => {
     expect(sb.find("fundraise_commitments", "in")[0].args).toEqual(["round_id", ["r1", "r2"]]);
     sb.rows.fundraise_rounds = [];
     expect(await listProjectCommitments(sb as never, { ownerUserId: OWNER, projectId: PID })).toEqual([]);
+  });
+});
+
+describe("isProjectMemberOrOwner — S29-hardening (S28 review #8)", () => {
+  const MEMBER = "33333333-3333-4333-8333-333333333333";
+  it("unassigned and the project owner pass without a lookup; an accepted member passes; invited / stranger / other project / lookup error fail", async () => {
+    const sb = fakeSupabase({ project_members: [{ id: "pm1", project_id: PID, user_id: MEMBER, status: "accepted" }] });
+    expect(await isProjectMemberOrOwner(sb as never, { projectId: PID, ownerUserId: OWNER, userId: null })).toBe(true);
+    expect(await isProjectMemberOrOwner(sb as never, { projectId: PID, ownerUserId: OWNER, userId: OWNER })).toBe(true);
+    expect(sb.find("project_members", "select")).toHaveLength(0);
+    expect(await isProjectMemberOrOwner(sb as never, { projectId: PID, ownerUserId: OWNER, userId: MEMBER })).toBe(true);
+    expect(sb.hasEq("project_members", "project_id", PID)).toBe(true);
+    expect(sb.hasEq("project_members", "user_id", MEMBER)).toBe(true);
+    expect(sb.hasEq("project_members", "status", "accepted")).toBe(true);
+    // The fake ignores filters — the defensive re-check refuses a row for another project / user.
+    expect(await isProjectMemberOrOwner(sb as never, { projectId: "other", ownerUserId: OWNER, userId: MEMBER })).toBe(false);
+    expect(await isProjectMemberOrOwner(sb as never, { projectId: PID, ownerUserId: OWNER, userId: "44444444-4444-4444-8444-444444444444" })).toBe(false);
+    const invited = fakeSupabase({ project_members: [{ id: "pm1", project_id: PID, user_id: MEMBER, status: "invited" }] });
+    expect(await isProjectMemberOrOwner(invited as never, { projectId: PID, ownerUserId: OWNER, userId: MEMBER })).toBe(false);
+    const boom = { from: () => { throw new Error("relation does not exist"); } };
+    expect(await isProjectMemberOrOwner(boom as never, { projectId: PID, ownerUserId: OWNER, userId: MEMBER })).toBe(false);
+    const res = ownerNotMemberResponse();
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ ok: false, error: "owner_not_member" });
   });
 });

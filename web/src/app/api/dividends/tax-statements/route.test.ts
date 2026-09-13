@@ -208,6 +208,29 @@ describe("POST /api/dividends/tax-statements", () => {
     expect(db.sb!.find("shareholder_tax_statements", "delete")).toHaveLength(0);
   });
 
+  it("S29-hardening: regenerate after a PARTIAL regenerate failure is a free retry of that run — only the lagging shareholder, same run stamp, no second spend", async () => {
+    const RUN = "2026-07-16T02:00:00.123+00:00";
+    const jane2 = storedRow({ id: "j2", version: 2, statement_no: "TS-2025-26-2", issued_at: RUN, credits_charged: 2 });
+    const seed1 = storedRow({ id: "s1", shareholder_id: null, shareholder_key: "name:seed investor pty ltd", statement_no: "TS-2025-26-1", version: 1, issued_at: "2026-07-10T00:00:00Z", credits_charged: 2 });
+    seed({ shareholder_tax_statements: [jane2, seed1] });
+    const preview = await (await post({ fy: "2025-26", regenerate: true })).json();
+    expect(preview).toMatchObject({ cost: 0, alreadyCharged: true, regenerate: true, toGenerate: ["Seed Investor Pty Ltd"], alreadyGenerated: 2, retryOfRun: "2026-07-16T02:00:00.123Z" });
+    expect(credits.canAfford).not.toHaveBeenCalled();
+    const body = await (await post({ fy: "2025-26", regenerate: true, confirm: true })).json();
+    expect(body).toMatchObject({ ok: true, generatedCount: 1, creditsCharged: 0, alreadyCharged: true, retryOfRun: "2026-07-16T02:00:00.123Z" });
+    expect(body.existing.map((s: { id: string }) => s.id)).toEqual(["j2"]);
+    expect(body.superseded.map((s: { id: string }) => s.id)).toEqual(["s1"]);
+    expect(credits.spendCredits).not.toHaveBeenCalled();
+    const inserts = db.sb!.find("shareholder_tax_statements", "insert");
+    expect(inserts).toHaveLength(1);
+    expect(inserts[0].args[0]).toMatchObject({ shareholder_key: "name:seed investor pty ltd", version: 2, issued_at: "2026-07-16T02:00:00.123Z", credits_charged: 0 });
+    expect(db.sb!.find("shareholder_tax_statements", "update")).toHaveLength(1);
+    // Everyone at the run stamp (a complete regenerate) → the next regenerate is a NEW, charged run.
+    seed({ shareholder_tax_statements: [jane2, storedRow({ id: "s2", shareholder_id: null, shareholder_key: "name:seed investor pty ltd", statement_no: "TS-2025-26-3", version: 2, issued_at: RUN })] });
+    const fresh = await (await post({ fy: "2025-26", regenerate: true })).json();
+    expect(fresh).toMatchObject({ cost: 2, alreadyCharged: false, retryOfRun: null, toGenerate: ["Jane Founder", "Seed Investor Pty Ltd"] });
+  });
+
   it("TOTAL insert failure after a spend → refund + 500", async () => {
     gen.failAll = true;
     const res = await post({ fy: "2025-26", confirm: true });

@@ -16,6 +16,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute, auditNote } from "@/lib/audit/api-route";
 import { mergeImportRow, parseContactsCsv, type ContactRow } from "@/lib/investors/crm";
@@ -26,6 +27,10 @@ export const dynamic = "force-dynamic";
 const IMPORT_MAX_BYTES = 1_000_000;
 
 /** Pull the CSV text out of whichever body shape the client sent. */
+/** S29-hardening: 10 imports per user per hour (429 with Retry-After, the shared `enforceRateLimit` body). */
+export const CRM_IMPORT_RATE_MAX = 10;
+export const CRM_IMPORT_RATE_WINDOW_MS = 3_600_000;
+
 async function readCsvBody(req: NextRequest): Promise<{ ok: true; text: string } | { ok: false; error: string; status: number }> {
   const ct = (req.headers.get("content-type") ?? "").toLowerCase();
   const len = Number(req.headers.get("content-length") ?? 0);
@@ -56,6 +61,10 @@ async function readCsvBody(req: NextRequest): Promise<{ ok: true; text: string }
 async function POST_handler(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
+  // S29-hardening (S28 review #9): same per-user limiter as the expenses
+  // import — a CSV import is a bulk write (≤ 500 rows) and a lookup per row.
+  const limited = enforceRateLimit("crm-import", user.id, req, CRM_IMPORT_RATE_MAX, CRM_IMPORT_RATE_WINDOW_MS);
+  if (limited) return limited;
   const supabase = getSupabaseAdmin();
   if (!supabase) return NextResponse.json({ ok: false, error: "Database not configured" }, { status: 503 });
 

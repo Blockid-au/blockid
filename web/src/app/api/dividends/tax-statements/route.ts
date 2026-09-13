@@ -27,7 +27,11 @@
  *   included. Charged ONCE per run: the charge is stamped as
  *   `credits_charged` on every row the charged call inserts, so a retry
  *   after a partial insert failure is free (`retryCost: 0`); only a TOTAL
- *   failure refunds.
+ *   failure refunds. S29-hardening: `regenerate: true` after a PARTIAL
+ *   regenerate failure is the retry of that run (`pendingRegenerateRetry`,
+ *   `retryOfRun` = the run's `issued_at` stamp) — only the shareholders the
+ *   run did not reach are regenerated, stamped with the same `issued_at`,
+ *   and nothing is charged again.
  *
  *   200 { ok, preview: true, fy, cost, listedCost, included, alreadyCharged, balance, creditNote, toGenerate, alreadyGenerated, regenerate, company }
  *   200 { ok, partial, fy, generated[], existing[], superseded[], failed[], cost, creditsCharged, retryCost, balance, creditNote }
@@ -46,7 +50,7 @@ import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { statementsIncluded } from "@/lib/dividends/gate";
 import { listStatementsForProject, loadCompanyForScope } from "@/lib/dividends/server";
 import { fyOptions, lastCompletedFy, parseFy } from "@/lib/dividends/fy-summary";
-import { currentOnly, fyAlreadyCharged, generateTaxStatementsForFy, listTaxStatementsForFy, summariseFyFromStatements, taxStatementSummary } from "@/lib/dividends/tax-statements";
+import { currentOnly, fyAlreadyCharged, generateTaxStatementsForFy, listTaxStatementsForFy, pendingRegenerateRetry, summariseFyFromStatements, taxStatementSummary } from "@/lib/dividends/tax-statements";
 import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
@@ -127,16 +131,26 @@ async function POST_handler(request: Request) {
   }
   const current = currentOnly(rows);
   const currentKeys = new Set(current.map((r) => r.shareholder_key));
-  const toGenerate = regenerate ? shareholders.map((s) => s.name) : shareholders.filter((s) => !currentKeys.has(s.shareholderKey)).map((s) => s.name);
+  // S29-hardening (S28 review #5): a `regenerate` after a PARTIAL regenerate
+  // failure is a retry of that run — only the shareholders it did not reach,
+  // stamped with the same run `issued_at`, no second charge.
+  const retry = regenerate ? pendingRegenerateRetry(current, shareholders.map((s) => s.shareholderKey)) : null;
+  const retryKeys = retry ? new Set(retry.pendingKeys) : null;
+  const toGenerate = retryKeys
+    ? shareholders.filter((s) => retryKeys.has(s.shareholderKey)).map((s) => s.name)
+    : regenerate
+      ? shareholders.map((s) => s.name)
+      : shareholders.filter((s) => !currentKeys.has(s.shareholderKey)).map((s) => s.name);
   /** Shareholders who already hold a current statement (skipped without `regenerate`; superseded with it). */
   const alreadyGenerated = shareholders.filter((s) => currentKeys.has(s.shareholderKey)).length;
 
   // Gate → cost. Nothing to generate → nothing to charge. A run that already
   // stamped a charge on a CURRENT row is paid (a retry after a partial
-  // failure is free); a regenerate is a new run and looks at no marker.
+  // failure is free); a regenerate is a new run and looks at no marker —
+  // unless it is the retry of a partial regenerate (`retry`), which is free.
   const gate = await statementsIncluded({ id: user.id, plan: user.plan });
   const listedCost = FEATURE_COSTS[FEATURE_KEY] ?? 2;
-  const alreadyCharged = !regenerate && fyAlreadyCharged(current);
+  const alreadyCharged = regenerate ? retry !== null : fyAlreadyCharged(current);
   let cost = 0;
   let balance: number | null = null;
   if (!gate.included && !alreadyCharged && toGenerate.length > 0) {
@@ -162,6 +176,7 @@ async function POST_handler(request: Request) {
       toGenerate,
       alreadyGenerated,
       regenerate,
+      retryOfRun: retry?.runStamp ?? null,
       company,
     });
   }
@@ -174,7 +189,12 @@ async function POST_handler(request: Request) {
     balance = spent.balance;
   }
 
-  const result = await generateTaxStatementsForFy({ db: supabase, projectId: scope.projectId, userId: user.id, company, fy, statements, existingRows: rows, regenerate, creditsCharged });
+  const result = await generateTaxStatementsForFy({
+    db: supabase, projectId: scope.projectId, userId: user.id, company, fy, statements, existingRows: rows, regenerate, creditsCharged,
+    // A retry completes the partial run: same stamp, only the missing shareholders.
+    onlyKeys: retryKeys,
+    now: retry ? new Date(retry.runStamp) : undefined,
+  });
   if (result.generated.length === 0 && result.failed.length > 0) {
     if (creditsCharged > 0) {
       const refund = await grantCredits(user.id, creditsCharged, "refund", { feature: FEATURE_KEY, project_id: scope.projectId, fy, reason: "tax_statement_insert_failed" });
@@ -200,6 +220,7 @@ async function POST_handler(request: Request) {
     included: gate.included,
     creditsCharged,
     alreadyCharged,
+    retryOfRun: retry?.runStamp ?? null,
     retryCost: 0,
     balance,
     creditNote,

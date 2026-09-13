@@ -126,4 +126,30 @@ describe("POST /api/investors/crm/contacts", () => {
       created_by: "member-1",
     });
   });
+
+  it("S29-hardening: ownerUserId must be the project owner or an ACCEPTED member → 400 owner_not_member otherwise, nothing inserted", async () => {
+    const MEMBER = "33333333-3333-4333-8333-333333333333";
+    const STRANGER = "44444444-4444-4444-8444-444444444444";
+    sb.rows.investor_contacts = [];
+    sb.rows.project_members = [{ id: "pm1", project_id: PID, user_id: MEMBER, status: "accepted", role: "editor" }];
+    const bad = await POST(postReq({ name: "Sam Lee", type: "angel", stage: "contacted", ownerUserId: STRANGER }));
+    expect(bad.status).toBe(400);
+    expect(await bad.json()).toMatchObject({ ok: false, error: "owner_not_member" });
+    expect(sb.find("investor_contacts", "insert")).toHaveLength(0);
+    expect(sb.hasEq("project_members", "project_id", PID)).toBe(true);
+    expect(sb.hasEq("project_members", "status", "accepted")).toBe(true);
+
+    const ok = await POST(postReq({ name: "Sam Lee", type: "angel", stage: "contacted", ownerUserId: MEMBER }));
+    expect(ok.status).toBe(201);
+    expect(sb.find("investor_contacts", "insert")[0].args[0]).toMatchObject({ owner_user_id: MEMBER });
+
+    // The project owner needs no membership row; an invited (not accepted) member is refused.
+    const OWNER_UUID = "55555555-5555-4555-8555-555555555555";
+    const base = scopeOf("editor");
+    mocks.scope.mockResolvedValue({ ...base, scope: { ...base.scope, ownerUserId: OWNER_UUID } });
+    const owner = await POST(postReq({ name: "Ann", type: "angel", stage: "contacted", ownerUserId: OWNER_UUID }));
+    expect(owner.status).toBe(201);
+    sb.rows.project_members = [{ id: "pm2", project_id: PID, user_id: STRANGER, status: "invited", role: "editor" }];
+    expect((await POST(postReq({ name: "Bob", type: "angel", stage: "contacted", ownerUserId: STRANGER }))).status).toBe(400);
+  });
 });

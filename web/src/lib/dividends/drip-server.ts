@@ -17,6 +17,7 @@
 // server.ts can import this module without a cycle.
 
 import "server-only";
+import { incrementSharesHeld } from "@/lib/cap-table/shares-held";
 
 import { computeDripAllocation, electionPrice, type DripAllocation, type DripPriceBasis } from "./drip";
 import { periodEndDate, roundCents, type StatementDrip, type StatementShareholder } from "./statement";
@@ -24,6 +25,8 @@ import { periodEndDate, roundCents, type StatementDrip, type StatementShareholde
 /** Minimal query-builder surface (Supabase admin client or the test fake). */
 export interface DripDb {
   from(table: string): any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  /** S29-hardening: the atomic `increment_shares_held` RPC (optional on a query-builder fake). */
+  rpc?(fn: string, args?: Record<string, unknown>): PromiseLike<{ data: unknown; error: { code?: string; message?: string } | null }>;
 }
 
 export interface DripElectionRow {
@@ -301,12 +304,16 @@ export async function recordDripAllocation(input: RecordDripAllocationInput): Pr
       skipReason = "cap_table_write_failed";
     } else {
       shareTransactionId = (tx as { id?: string }).id ?? null;
-      const { error: upError } = await db
-        .from("shareholders")
-        .update({ shares_held: Math.floor(input.shareholder.sharesHeld) + a.shares })
-        .eq("id", input.shareholder.id)
-        .eq("account_id", input.ctx.ownerUserId);
-      if (upError) console.error("[dividends:drip] shares_held update failed — transaction row stands", { shareholder: input.shareholder.id, error: upError });
+      // S29-hardening: atomic `shares_held += shares` (migration 0381 RPC;
+      // read-modify-write fallback with the statement's holding while it is
+      // unapplied) — the same helper as the cap-table issue action.
+      const inc = await incrementSharesHeld(db, {
+        shareholderId: input.shareholder.id,
+        delta: a.shares,
+        currentSharesHeld: input.shareholder.sharesHeld,
+        fallbackWhere: { account_id: input.ctx.ownerUserId },
+      });
+      if (!inc.ok) console.error("[dividends:drip] shares_held update failed — transaction row stands", { shareholder: input.shareholder.id, reason: inc.reason, error: inc.error });
     }
   }
 

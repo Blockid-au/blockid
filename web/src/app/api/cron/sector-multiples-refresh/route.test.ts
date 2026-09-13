@@ -1,6 +1,6 @@
 // Colocated vitest for /api/cron/sector-multiples-refresh (S27-C).
 // Pins: Bearer CRON_SECRET gate (401 when unset or mismatched), 503 when the
-// loop reports supabase_unavailable, `?dry=1` → dryRun:true + entries in the
+// loop reports supabase_unavailable, `?dry=1` → fetch-only dryRun + entries in the
 // body and nothing inserted, and that GET and POST are the same handler.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,7 +10,7 @@ vi.mock("@/lib/valuation/multiples-refresh", () => ({
   refreshSectorMultiples: (opts: unknown) => refreshMock(opts),
 }));
 
-import { GET, POST, dynamic, maxDuration } from "./route";
+import { GET, POST, dynamic, maxDuration, refreshModeFor } from "./route";
 
 const OK = {
   ok: true,
@@ -64,17 +64,30 @@ describe("sector-multiples-refresh route", () => {
     expect(body.sources).toHaveLength(1);
     expect(body.entries).toBeUndefined();
     expect(typeof body.duration_ms).toBe("number");
-    expect(refreshMock).toHaveBeenCalledWith({ dryRun: false });
+    expect(refreshMock).toHaveBeenCalledWith({ dryRun: false, fetchOnly: false });
   });
 
-  it("?dry=1 → dryRun:true passed to the loop and the would-be proposals echoed", async () => {
-    refreshMock.mockResolvedValue({ ...OK, dryRun: true });
+  it("S29-hardening: ?dry=1 is FETCH-ONLY (no model); ?dry=1&extract=1 runs the model with no writes; the would-be proposals are echoed on both", async () => {
+    refreshMock.mockResolvedValue({ ...OK, dryRun: true, fetchOnly: true, proposed: 0, entries: [], sources: [{ ...OK.sources[0], status: "fetched", candidates: 0, accepted: 0 }] });
     const res = await GET(req("http://localhost/api/cron/sector-multiples-refresh?dry=1", "Bearer s3cret"));
     expect(res.status).toBe(200);
     const body = (await res.json()) as Record<string, unknown>;
-    expect(body.dryRun).toBe(true);
-    expect(body.entries).toEqual(OK.entries);
-    expect(refreshMock).toHaveBeenCalledWith({ dryRun: true });
+    expect(body).toMatchObject({ dryRun: true, fetchOnly: true, entries: [] });
+    expect((body.sources as Array<{ status: string }>)[0].status).toBe("fetched");
+    expect(refreshMock).toHaveBeenCalledWith({ dryRun: true, fetchOnly: true });
+
+    refreshMock.mockResolvedValue({ ...OK, dryRun: true, fetchOnly: false });
+    const full = await GET(req("http://localhost/api/cron/sector-multiples-refresh?dry=1&extract=1", "Bearer s3cret"));
+    const fb = (await full.json()) as Record<string, unknown>;
+    expect(fb.dryRun).toBe(true);
+    expect(fb.entries).toEqual(OK.entries);
+    expect(refreshMock).toHaveBeenCalledWith({ dryRun: true, fetchOnly: false });
+
+    // The explicit spelling wins over extract; extract without dry is a live run.
+    expect(refreshModeFor(req("http://localhost/x?dry=1&fetchOnly=1&extract=1"))).toEqual({ dryRun: true, fetchOnly: true });
+    expect(refreshModeFor(req("http://localhost/x?dry=true"))).toEqual({ dryRun: true, fetchOnly: true });
+    expect(refreshModeFor(req("http://localhost/x?extract=1"))).toEqual({ dryRun: false, fetchOnly: false });
+    expect(refreshModeFor(req("http://localhost/x"))).toEqual({ dryRun: false, fetchOnly: false });
   });
 
   it("503 when the loop reports supabase_unavailable; 500 on any other loop error", async () => {

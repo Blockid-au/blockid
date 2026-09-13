@@ -51,8 +51,17 @@ is loaded — tests inject rows with `setSectorMultiplesOverridesForTests()`.
 
 `POST /api/cron/sector-multiples-refresh` — `0 3 1 1,4,7,10 *` in
 `web/scripts/crontab.production` (1st of Jan / Apr / Jul / Oct, 03:00 UTC =
-1 pm AEST). Bearer `CRON_SECRET`; `?dry=1` runs the full loop with no writes
-and returns the rows it would have inserted.
+1 pm AEST). Bearer `CRON_SECRET`. Dry runs (S29-hardening, S27 review #11):
+
+| Query | Fetches | Calls the model | Writes | Use |
+|---|---|---|---|---|
+| `?dry=1` | yes | **no** | no | cheap source check — every source reports `fetched` (+ `textChars`) or `fetch_failed` / `blocked` / `empty_text`; no token spend |
+| `?dry=1&extract=1` | yes | yes | no | full rehearsal — returns the `entries` it would have inserted |
+| (none) | yes | yes | yes | the live quarterly run |
+
+`?dry=1&fetchOnly=1` is the explicit spelling of the first row and wins
+over `extract=1`. The body carries `dryRun` and `fetchOnly` so a heartbeat
+line never mistakes a rehearsal for a live run.
 
 Loop (`web/src/lib/valuation/multiples-refresh.ts`), per source in the fixed
 allow-list `web/src/lib/valuation/multiples-sources.ts`:
@@ -152,8 +161,10 @@ citation behind every valuation that used them stays in the table.
   `approved_by` is classified **detach** in
   `web/src/lib/privacy/erasure-map.ts`: the override stays, the approver
   pointer is nulled, the audit row keeps the actor).
-* **Dry run before the first live quarter:**
-  `curl -s -X POST -H "Authorization: Bearer $CRON_SECRET" "http://127.0.0.1:4001/api/cron/sector-multiples-refresh?dry=1" | jq .sources`
+* **Source check (no model, no token spend):**
+  `curl -s -X POST -H "Authorization: Bearer $CRON_SECRET" "http://127.0.0.1:4001/api/cron/sector-multiples-refresh?dry=1" | jq '.sources[] | {id, status, httpStatus, textChars}'`
+* **Full rehearsal before the first live quarter (model runs, nothing written):**
+  `curl -s -X POST -H "Authorization: Bearer $CRON_SECRET" "http://127.0.0.1:4001/api/cron/sector-multiples-refresh?dry=1&extract=1" | jq '{sources, entries}'`
 * **Tests:** `npx vitest run src/lib/valuation src/app/api/admin/sector-multiples src/app/api/cron/sector-multiples-refresh src/lib/privacy`.
 * **Changing the static table by hand** is still possible
   (`sector-multiples-static.ts`), but the point of this module is that you

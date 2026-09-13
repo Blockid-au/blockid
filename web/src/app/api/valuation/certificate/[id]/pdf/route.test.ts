@@ -125,7 +125,7 @@ describe("GET /api/valuation/certificate/[id]/pdf", () => {
     for (const page of await pages(res)) expect(page).toContain("REVOKED");
   });
 
-  it("S27-A: a certificate issued with the ESS annex prints Annex A (5 pages, X-BlockID-Annex); ?annex=none drops it; ?annex=ess forces it on an older certificate", async () => {
+  it("S27-A: a certificate issued with the ESS annex prints Annex A (5 pages, X-BlockID-Annex); ?annex=none drops it; S29-hardening: ?annex=ess on a certificate issued without it → 409 annex_not_issued, nothing rendered", async () => {
     db.sb = fakeSupabase({ valuation_certificates: [row({ payload: SAMPLE_CERTIFICATE_ESS, content_hash: certificateContentHash(SAMPLE_CERTIFICATE_ESS) })] });
     const withAnnex = await call();
     expect(withAnnex.status).toBe(200);
@@ -145,10 +145,12 @@ describe("GET /api/valuation/certificate/[id]/pdf", () => {
     expect(plain.headers.get("x-blockid-annex")).toBeNull();
     expect((await pages(plain)).length).toBe(3);
     const forced = await call(ID, "?annex=ess");
-    expect(forced.headers.get("x-blockid-annex")).toBe("ess");
-    const fp = await pages(forced);
-    expect(fp.length).toBe(5);
-    expect(fp[3]).toContain("Incorporation date not recorded");
+    expect(forced.status).toBe(409);
+    expect(forced.headers.get("content-type")).toContain("application/json");
+    expect(forced.headers.get("x-blockid-annex")).toBeNull();
+    expect(await forced.json()).toMatchObject({ ok: false, error: "annex_not_issued" });
+    // `auto` / `none` on the same certificate still serve the frozen 3 pages.
+    expect((await pages(await call(ID, "?annex=none"))).length).toBe(3);
   });
 
   it("503 without a database", async () => {

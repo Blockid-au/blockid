@@ -51,7 +51,10 @@ vi.mock("@/lib/secondary/sim", () => ({
   listOrders: (_db: unknown, projectId: string) => sim.list(projectId),
 }));
 
-import { GET, POST } from "./route";
+const rate = vi.hoisted(() => ({ enforceRateLimit: vi.fn<(...a: unknown[]) => unknown>(() => null) }));
+vi.mock("@/lib/rate-limit", () => ({ enforceRateLimit: (...a: unknown[]) => rate.enforceRateLimit(...a) }));
+
+import { GET, POST, SIM_PLACE_RATE_MAX, SIM_PLACE_RATE_WINDOW_MS } from "./route";
 
 const ORDER = { id: "o1", holderKey: "sh:s1", holderLabel: "Ada", side: "sell", price: 1.2, qty: 100, remaining: 100, status: "open", holdUntil: null, seq: 1, createdAt: "2026-09-13T00:00:00Z" };
 
@@ -64,6 +67,7 @@ function reset() {
   sim.cancel.mockReset().mockResolvedValue({ ok: true, order: { ...ORDER, status: "cancelled" } });
   sim.settings.mockReset().mockResolvedValue({ rofrEnabled: true, rofrHoldHours: 48 });
   sim.list.mockReset().mockResolvedValue([ORDER]);
+  rate.enforceRateLimit.mockReset().mockReturnValue(null);
 }
 
 function post(body: unknown, raw = false) {
@@ -122,6 +126,23 @@ describe("POST /api/secondary/sim/orders", () => {
     expect(body).toMatchObject({ ok: true, sandbox: true, order: ORDER, fills: [], held: false });
     expect(body.notice).toMatch(/not an offer/);
     expect(sim.place).toHaveBeenCalledWith(expect.objectContaining({ projectId: "proj-1", ownerUserId: "user-owner", userId: "user-caller", side: "sell", price: 1.25, qty: 100, shareholderId: "s1", holderLabel: null }));
+  });
+
+  it("S29-hardening: `place` is rate-limited per user (60/min) after scope + validation of the action; cancel / settings are not; the 429 is returned as-is", async () => {
+    scopeState.role = "editor";
+    rate.enforceRateLimit.mockReturnValue(NextResponse.json({ ok: false, error: "Rate limit exceeded — please wait a moment before generating more.", retryInSeconds: 7 }, { status: 429, headers: { "Retry-After": "7" } }));
+    const res = await post({ side: "sell", price: "1.25", qty: 100, shareholderId: "s1" });
+    expect(res.status).toBe(429);
+    expect(res.headers.get("Retry-After")).toBe("7");
+    expect(await json(res)).toMatchObject({ ok: false, retryInSeconds: 7 });
+    expect(rate.enforceRateLimit).toHaveBeenCalledWith("sim-place", "user-caller", expect.anything(), SIM_PLACE_RATE_MAX, SIM_PLACE_RATE_WINDOW_MS);
+    expect([SIM_PLACE_RATE_MAX, SIM_PLACE_RATE_WINDOW_MS]).toEqual([60, 60_000]);
+    expect(sim.place).not.toHaveBeenCalled();
+    // Cancel and settings do not consume the place budget.
+    rate.enforceRateLimit.mockClear();
+    expect((await post({ action: "cancel", orderId: "11111111-2222-4333-8444-555555555555" })).status).toBe(200);
+    expect((await post({ action: "settings", rofrEnabled: true, rofrHoldHours: 24 })).status).toBe(200);
+    expect(rate.enforceRateLimit).not.toHaveBeenCalled();
   });
 
   it("engine refusals surface with their status and detail", async () => {

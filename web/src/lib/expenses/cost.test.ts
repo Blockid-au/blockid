@@ -2,7 +2,7 @@
 
 import { describe, it, expect } from "vitest";
 import { FEATURE_COSTS } from "@/lib/credits";
-import { EXPENSE_CATEGORISE_FEATURE, ROWS_PER_CREDIT, categoriseCost, categoriseCostLabel, categoriseUnits } from "./cost";
+import { EXPENSE_CATEGORISE_FEATURE, ROWS_PER_CREDIT, categoriseCost, categoriseCostLabel, categoriseRefund, categoriseUnits } from "./cost";
 import { CATEGORIES, CATEGORY_KEYS, EXPENSE_CATEGORY_KEYS, INCOME_CATEGORY_KEYS, categoryLabel, gstDefaultFor, isExpenseCategory } from "./categories";
 
 describe("categoriseUnits — 1 credit per started block of 100, min 1", () => {
@@ -37,6 +37,27 @@ describe("categoriseCost", () => {
     expect(categoriseCostLabel(1, 1, false)).toBe("Categorise 1 row with AI (cost: 1 credit)");
     expect(categoriseCostLabel(40, 0, true)).toBe("Categorise 40 rows with AI (included in your plan)");
     expect(categoriseCostLabel(0, 0, false)).toBe("Nothing to categorise");
+  });
+});
+
+describe("categoriseRefund — S29-hardening pro-rata refund for failed batches", () => {
+  it("refunds ceil(failedRows / 100) units at the charged unit price, capped at what was charged", () => {
+    // 150 rows → 2 units → 2 credits; one 40-row batch failed → 1 unit → 1 credit.
+    expect(categoriseRefund(40, 2, 2)).toEqual({ units: 1, credits: 1 });
+    // 120 failed rows → 2 units but only 2 charged → whole charge back.
+    expect(categoriseRefund(120, 2, 2)).toEqual({ units: 2, credits: 2 });
+    // 3 units charged at 0.5 each (1.5 credits); 101 failed rows → 2 units → 1 credit.
+    expect(categoriseRefund(101, 3, 1.5)).toEqual({ units: 2, credits: 1 });
+    // Never more than the charge, even when the maths would round above it.
+    expect(categoriseRefund(500, 1, 1)).toEqual({ units: 1, credits: 1 });
+  });
+
+  it("nothing to refund when nothing failed, nothing was charged (included) or the inputs are unusable", () => {
+    expect(categoriseRefund(0, 2, 2)).toEqual({ units: 0, credits: 0 });
+    expect(categoriseRefund(40, 0, 0)).toEqual({ units: 0, credits: 0 });
+    expect(categoriseRefund(40, 2, 0)).toEqual({ units: 0, credits: 0 });
+    expect(categoriseRefund(Number.NaN, 2, 2)).toEqual({ units: 0, credits: 0 });
+    expect(categoriseRefund(-5, 2, 2)).toEqual({ units: 0, credits: 0 });
   });
 });
 

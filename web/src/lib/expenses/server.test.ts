@@ -4,15 +4,15 @@
 // Pins: `bankCsvFigures` separates recurring revenue from grants
 // (`monthlyRevenue` vs `monthlyIncome` — only the former may become MRR),
 // averages over the months with data, reports the latest import time, is
-// null with no rows / no project / a missing table; `burnRateWithBankFallback`
-// prefers the metric and falls back to the bank burn.
+// null with no rows / no project / a missing table. (The burn-rate precedence
+// moved to lib/revenue/sources.ts `pickBurnRate` in S29-hardening.)
 
 import { describe, expect, it, vi } from "vitest";
 import { fakeSupabase } from "@/test/fake-supabase";
 
 vi.mock("server-only", () => ({}));
 
-import { bankCsvFigures, burnRateWithBankFallback, type BankTransactionRow } from "./server";
+import { bankCsvFigures, runAiOnQueue, type BankTransactionRow } from "./server";
 
 const NOW = new Date("2026-09-13T00:00:00.000Z");
 
@@ -72,11 +72,36 @@ describe("bankCsvFigures", () => {
   });
 });
 
-describe("burnRateWithBankFallback", () => {
-  it("metric first, then the bank burn, else none", async () => {
-    const sb = fakeSupabase({ bank_transactions: [row({ occurred_on: "2026-08-10", amount_aud: -2500, category: "rent" })] });
-    expect(await burnRateWithBankFallback(sb as never, "proj-1", 4000)).toEqual({ burnRate: 4000, source: "startup_metrics", takenAt: null });
-    expect(await burnRateWithBankFallback(sb as never, "proj-1", 0)).toMatchObject({ burnRate: 2500, source: "bank_csv", takenAt: "2026-09-03T02:00:00.000Z" });
-    expect(await burnRateWithBankFallback(fakeSupabase({ bank_transactions: [] }) as never, "proj-1", null)).toEqual({ burnRate: 0, source: "none", takenAt: null });
+describe("runAiOnQueue — S29-hardening partial model failure", () => {
+  function q(i: number): BankTransactionRow {
+    return row({ id: `r${i}`, description: `PAYMENT ${i}`, category: "other", category_source: null, confidence: 0, needs_review: true });
+  }
+
+  it("writes the answered batches' decisions, leaves the failed batch's rows queued (no UPDATE), reports failedRows", async () => {
+    const rows = Array.from({ length: 95 }, (_, i) => q(i));
+    const sb = fakeSupabase({ bank_transactions: rows });
+    let call = 0;
+    const ai = async ({ user }: { system: string; user: string }) => {
+      call++;
+      if (call === 2) throw new Error("model down");
+      const batch = JSON.parse(user) as Array<{ i: number }>;
+      return { text: JSON.stringify(batch.map((b) => ({ i: b.i, category: "contractors", confidence: 0.8 }))) };
+    };
+    const res = await runAiOnQueue(sb as never, "proj-1", rows, ai);
+    expect(res).toEqual({ categorised: 55, accepted: 55, needsReview: 0, batches: 3, failedBatches: 1, failedRows: 40 });
+    const updates = sb.find("bank_transactions", "update");
+    expect(updates).toHaveLength(55);
+    const touched = new Set(sb.calls.filter((c) => c.table === "bank_transactions" && c.op === "eq" && c.args[0] === "id").map((c) => c.args[1]));
+    for (let i = 40; i < 80; i++) expect(touched.has(`r${i}`)).toBe(false);
+    expect(touched.has("r0")).toBe(true);
+    expect(touched.has("r94")).toBe(true);
+  });
+
+  it("every batch failed → nothing written, failedRows = the whole queue", async () => {
+    const rows = [q(0), q(1)];
+    const sb = fakeSupabase({ bank_transactions: rows });
+    const res = await runAiOnQueue(sb as never, "proj-1", rows, async () => { throw new Error("down"); });
+    expect(res).toEqual({ categorised: 0, accepted: 0, needsReview: 0, batches: 1, failedBatches: 1, failedRows: 2 });
+    expect(sb.find("bank_transactions", "update")).toHaveLength(0);
   });
 });

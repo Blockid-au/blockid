@@ -212,14 +212,34 @@ describe("categoriseWithAi — batching", () => {
     expect(res.decisions.every((d) => d.category === "contractors" && d.source === "ai")).toBe(true);
   });
 
-  it("a throwing or unparseable batch never throws — its rows become review items", async () => {
+  it("a throwing or unparseable batch never throws — its rows stay UNDECIDED (source null, review) and are counted in failedRows", async () => {
     const rows = [tx("a", "X", -1), tx("b", "Y", -2)];
     const ai = vi.fn(async () => {
       throw new Error("model down");
     });
     const res = await categoriseWithAi(rows, { ai });
     expect(res.failedBatches).toBe(1);
+    expect(res.failedRows).toBe(2);
     expect(res.decisions.map((d) => d.needsReview)).toEqual([true, true]);
+    // S29-hardening: the model never looked at them — not "ai" decisions.
+    expect(res.decisions.map((d) => d.source)).toEqual([null, null]);
+  });
+
+  it("S29-hardening: a partial failure keeps the answered batches' decisions and leaves only the failed batch undecided", async () => {
+    const rows = Array.from({ length: 95 }, (_, i) => tx(`r${i}`, `MERCHANT ${i}`, -10));
+    let call = 0;
+    const ai = vi.fn(async ({ user }: { system: string; user: string }) => {
+      call++;
+      if (call === 2) return { text: "I cannot help with that." };
+      const batch = JSON.parse(user) as Array<{ i: number }>;
+      return { text: JSON.stringify(batch.map((b) => ({ i: b.i, category: "contractors", confidence: 0.8 }))) };
+    });
+    const res = await categoriseWithAi(rows, { ai });
+    expect(res).toMatchObject({ batches: 3, failedBatches: 1, failedRows: MAX_AI_BATCH });
+    expect(res.decisions).toHaveLength(95);
+    const undecidedIds = res.decisions.filter((d) => d.source === null).map((d) => d.id);
+    expect(undecidedIds).toEqual(rows.slice(MAX_AI_BATCH, 2 * MAX_AI_BATCH).map((r) => r.id));
+    expect(res.decisions.filter((d) => d.source === "ai")).toHaveLength(55);
   });
 });
 

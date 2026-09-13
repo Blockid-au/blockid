@@ -299,7 +299,9 @@ export function CategoriseButton({
         return;
       }
       setPreview(null);
-      onDone(`AI categorised ${body.accepted} of ${body.categorised} lines${body.needsReview ? ` — ${body.needsReview} still need your pick` : ""}${body.creditsCharged ? ` · ${body.creditsCharged} credit${body.creditsCharged === 1 ? "" : "s"} charged` : " · no credits charged"}.`);
+      const failedRows = typeof body.failedRows === "number" ? body.failedRows : 0;
+      const refunded = typeof body.refunded === "number" ? body.refunded : 0;
+      onDone(`AI categorised ${body.accepted} of ${body.categorised} lines${body.needsReview ? ` — ${body.needsReview} still need your pick` : ""}${failedRows ? ` — ${failedRows} left in the queue (the model did not answer for them)` : ""}${body.creditsCharged ? ` · ${body.creditsCharged} credit${body.creditsCharged === 1 ? "" : "s"} charged` : " · no credits charged"}${refunded ? `, ${refunded} refunded` : ""}.`);
     } catch {
       setErr("Network error.");
     } finally {

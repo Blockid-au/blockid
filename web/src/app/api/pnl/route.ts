@@ -5,7 +5,7 @@ import { generatePnL } from "@/lib/pnl";
 import { getStripe } from "@/lib/stripe";
 import { getProjectScope } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
-import { burnRateWithBankFallback } from "@/lib/expenses/server";
+import { resolveBurnRate } from "@/lib/revenue/burn-rate-server";
 
 export const dynamic = "force-dynamic";
 
@@ -36,11 +36,13 @@ export async function GET() {
   // the project's categorised bank lines (average monthly spend) so the
   // runway / cash-on-hand estimate below has a figure without a manual entry.
   let projectId: string | null = null;
+  let ownerUserId: string = user.id;
   let dataEmail: string = user.email;
   try {
     const scope = await getProjectScope();
     if (scope) {
       projectId = scope.projectId;
+      ownerUserId = scope.ownerUserId;
       dataEmail = scope.dataEmail;
     }
   } catch (err) {
@@ -61,7 +63,9 @@ export async function GET() {
   const mrr = latestMetric?.mrr_aud ?? 0;
   const arr = latestMetric?.arr_aud ?? (mrr * 12);
 
-  const burn = await burnRateWithBankFallback(supabase, projectId, latestMetric?.burn_rate_aud as number | null | undefined);
+  // S29-hardening: ONE burn precedence (Xero → bank CSV → metrics → none),
+  // shared with /api/revenue and /api/valuation*.
+  const burn = await resolveBurnRate(supabase, { projectId, ownerUserId, metricBurn: latestMetric?.burn_rate_aud as number | null | undefined });
   const burnRate = burn.burnRate;
 
   // ── 2. Compute revenue from Stripe if available ───────────────────────
@@ -143,5 +147,5 @@ export async function GET() {
     mrr,
   });
 
-  return NextResponse.json({ ok: true, report, burnRateSource: burn.source });
+  return NextResponse.json({ ok: true, report, burnRateSource: burn.source, burnRateSourceInfo: burn.sourceInfo });
 }

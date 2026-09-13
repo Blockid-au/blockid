@@ -12,8 +12,11 @@
 // source in the JSON body and never abort the run.
 //
 // Auth: `Authorization: Bearer ${CRON_SECRET}` (pattern: refresh-funding-sources).
-// `?dry=1` runs the full loop (fetch + extraction) with no DB writes and
-// returns the proposals it would have inserted.
+// `?dry=1` (S29-hardening, S27 review #11) is FETCH-ONLY: every source is
+// pulled and reported (`fetched` / `fetch_failed` / `blocked` / `empty_text`
+// + `textChars`) but the model is never called — no token spend, no DB
+// writes. `?dry=1&extract=1` runs the full loop (fetch + extraction) with no
+// DB writes and returns the proposals it would have inserted.
 //
 // Heartbeat: cron-runner.sh appends one line per run to
 // content/reports/cron-health.jsonl from this JSON body, so the route does
@@ -27,13 +30,22 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-function isDry(request: Request): boolean {
+function flag(request: Request, name: string): boolean {
   try {
-    const v = new URL(request.url).searchParams.get("dry");
+    const v = new URL(request.url).searchParams.get(name);
     return v === "1" || v === "true";
   } catch {
     return false;
   }
+}
+
+/** `?dry=1` → fetch-only; `?dry=1&extract=1` → fetch + model, no writes; neither → live. Exported for the suite. */
+export function refreshModeFor(request: Request): { dryRun: boolean; fetchOnly: boolean } {
+  const dryRun = flag(request, "dry");
+  if (!dryRun) return { dryRun: false, fetchOnly: false };
+  // `fetchOnly=1` is accepted as the explicit spelling; `extract=1` opts into the model.
+  const fetchOnly = flag(request, "fetchOnly") || !flag(request, "extract");
+  return { dryRun: true, fetchOnly };
 }
 
 export async function GET(request: Request) {
@@ -41,9 +53,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
-  const dryRun = isDry(request);
+  const { dryRun, fetchOnly } = refreshModeFor(request);
   const startedAt = Date.now();
-  const summary = await refreshSectorMultiples({ dryRun });
+  const summary = await refreshSectorMultiples({ dryRun, fetchOnly });
 
   if (!summary.ok && summary.error === "supabase_unavailable") {
     return NextResponse.json({ ok: false, error: "supabase_unavailable" }, { status: 503 });
@@ -62,5 +74,5 @@ export async function GET(request: Request) {
   });
 }
 
-// cron-runner.sh sends POST; GET is kept for manual `?dry=1` checks.
+// cron-runner.sh sends POST; GET is kept for manual `?dry=1` / `?dry=1&extract=1` checks.
 export { GET as POST };

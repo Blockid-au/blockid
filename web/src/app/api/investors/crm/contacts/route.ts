@@ -15,7 +15,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute, auditNote } from "@/lib/audit/api-route";
 import { parseContactInput, parseListFilters, type ContactInput } from "@/lib/investors/crm";
-import { CONTACT_COLUMNS, findContactByEmail, listContacts, resolveCrmScope } from "@/lib/investors/crm-server";
+import { CONTACT_COLUMNS, findContactByEmail, isProjectMemberOrOwner, listContacts, ownerNotMemberResponse, resolveCrmScope } from "@/lib/investors/crm-server";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +55,12 @@ async function POST_handler(req: NextRequest) {
   const access = await resolveCrmScope("editor");
   if (!access.ok) return access.response;
   const { projectId } = access;
+
+  // S29-hardening (S28 review #8): the owner column is attribution to a
+  // real teammate — the project owner or an accepted member only.
+  if (input.ownerUserId && !(await isProjectMemberOrOwner(supabase, { projectId, ownerUserId: access.ownerUserId, userId: input.ownerUserId }))) {
+    return ownerNotMemberResponse();
+  }
 
   if (input.email) {
     const existing = await findContactByEmail(supabase, projectId, input.email);

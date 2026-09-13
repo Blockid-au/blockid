@@ -16,6 +16,7 @@
 //   Generic:  any CSV with Date + (Amount | Debit/Credit) columns
 
 import { createHash } from "node:crypto";
+import { stripFormulaPrefix } from "@/lib/investors/crm";
 
 export function parseCSV(text: string): string[][] {
   const rows: string[][] = [];
@@ -129,9 +130,18 @@ export function parseAuDate(raw: string): string | null {
 
 const MONTH_NAMES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
-/** Single-space, trimmed narration (what the hash and the rules see). */
+/**
+ * Single-space, trimmed narration (what the hash and the rules see).
+ * S29-hardening (S28 review #10): spreadsheet-formula guarded on the way
+ * IN — a leading `= + - @` (or tab / CR) is stripped AFTER the trim, the
+ * same `stripFormulaPrefix` the CRM import uses — so a stored narration can
+ * never come back out of a future CSV export as a formula. The dedupe hash
+ * is built on the guarded text, so a re-import of the same line still
+ * collapses. (`counterparty` is `merchantKey()` output, `[a-z&' ]` only,
+ * and needs no guard.)
+ */
 export function normaliseDescription(raw: string): string {
-  return (raw ?? "").replace(/\s+/g, " ").trim().slice(0, 500);
+  return stripFormulaPrefix((raw ?? "").replace(/\s+/g, " ").trim()).trim().slice(0, 500);
 }
 
 /**

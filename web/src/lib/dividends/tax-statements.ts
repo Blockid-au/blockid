@@ -86,6 +86,59 @@ export function fyAlreadyCharged(rows: Array<Pick<ShareholderTaxStatementRow, "c
   return rows.some((r) => Number(r?.credits_charged ?? 0) > 0);
 }
 
+/* ── Regenerate retry after a partial failure (S29-hardening, S28 review #5) ── */
+
+export interface PendingRegenerateRetry {
+  /** `issued_at` every row of the latest regenerate run carries — the run stamp. */
+  runStamp: string;
+  /** Shareholder keys the run did NOT reach (still on an older current row, or no row). */
+  pendingKeys: string[];
+  /** Shareholder keys the run reached (current row at the stamp). */
+  completedKeys: string[];
+  /** The run stamped a charge on its rows (a retry must not charge again). */
+  charged: boolean;
+}
+
+function stampMs(iso: string | null | undefined): number {
+  const t = iso ? Date.parse(iso) : Number.NaN;
+  return Number.isFinite(t) ? t : 0;
+}
+
+/**
+ * Was the latest run of this FY a regenerate that did not reach everyone?
+ *
+ * Every row a run inserts carries the same `issued_at` (the run's `now`, ms
+ * precision) — the run stamp. A regenerate run is the only one that inserts
+ * `version >= 2`, and it must reach every shareholder of the FY; so when
+ * the CURRENT rows at the latest stamp include a version >= 2 row AND some
+ * shareholder is still on a current row with an OLDER stamp, that
+ * regenerate failed part-way (the failed shareholders kept their previous
+ * current row). The retry then regenerates only `pendingKeys`, stamps them
+ * with the same `runStamp` (so the run completes instead of opening yet
+ * another partial one) and charges nothing.
+ *
+ * Shareholders with NO row at all never count as evidence on their own —
+ * an FY whose summary grew after a complete regenerate is a new run, not a
+ * retry (the free `!regenerate` path already covers them).
+ */
+export function pendingRegenerateRetry(
+  currentRows: Array<Pick<ShareholderTaxStatementRow, "shareholder_key" | "issued_at" | "version" | "credits_charged">>,
+  summaryKeys: string[],
+): PendingRegenerateRetry | null {
+  if (currentRows.length === 0) return null;
+  const latestMs = Math.max(...currentRows.map((r) => stampMs(r.issued_at)));
+  if (latestMs <= 0) return null;
+  const latestRows = currentRows.filter((r) => stampMs(r.issued_at) === latestMs);
+  if (!latestRows.some((r) => taxStatementVersion(r) >= 2)) return null;
+  const stale = currentRows.filter((r) => stampMs(r.issued_at) < latestMs);
+  if (stale.length === 0) return null;
+  const completed = new Set(latestRows.map((r) => r.shareholder_key));
+  const pendingKeys = summaryKeys.filter((k) => !completed.has(k));
+  if (pendingKeys.length === 0) return null;
+  const runStamp = new Date(latestMs).toISOString();
+  return { runStamp, pendingKeys, completedKeys: summaryKeys.filter((k) => completed.has(k)), charged: fyAlreadyCharged(latestRows) };
+}
+
 /* ── Summary ──────────────────────────────────────────────────────────── */
 
 /** The FY summary from the project's distribution statements (live rows paid inside the FY). */
@@ -111,6 +164,12 @@ export interface GenerateTaxStatementsInput {
   regenerate: boolean;
   creditsCharged: number;
   now?: Date;
+  /**
+   * S29-hardening: restrict the run to these shareholder keys (a regenerate
+   * retry after a partial failure — `pendingRegenerateRetry`). Everyone
+   * else keeps their current row and is reported as `existing`.
+   */
+  onlyKeys?: ReadonlySet<string> | null;
 }
 
 export interface GenerateTaxStatementsResult {
@@ -160,10 +219,11 @@ export async function generateTaxStatementsForFy(input: GenerateTaxStatementsInp
 
   for (const sh of shareholders) {
     const current = currentByKey.get(sh.shareholderKey) ?? null;
-    if (current && !input.regenerate) {
+    if (current && (!input.regenerate || (input.onlyKeys && !input.onlyKeys.has(sh.shareholderKey)))) {
       existing.push(current);
       continue;
     }
+    if (input.onlyKeys && !input.onlyKeys.has(sh.shareholderKey)) continue;
     const version = (versionByKey.get(sh.shareholderKey) ?? 0) + 1;
     let inserted: ShareholderTaxStatementRow | null = null;
     for (let attempt = 0; attempt < 3 && !inserted; attempt++) {

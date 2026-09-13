@@ -44,7 +44,7 @@ vi.mock("@/lib/credits", async () => {
 const gate = vi.hoisted(() => ({ included: false }));
 vi.mock("@/lib/expenses/gate", () => ({ categoriseIncluded: async () => ({ included: gate.included, via: gate.included ? "growth" : null }) }));
 
-const model = vi.hoisted(() => ({ mode: "ok" as "ok" | "throw" | "unsure" | "junk", calls: 0 }));
+const model = vi.hoisted(() => ({ mode: "ok" as "ok" | "throw" | "unsure" | "junk" | "partial", calls: 0 }));
 vi.mock("@/lib/expenses/categorise", async () => {
   const real = await vi.importActual<typeof import("@/lib/expenses/categorise")>("@/lib/expenses/categorise");
   return {
@@ -53,6 +53,7 @@ vi.mock("@/lib/expenses/categorise", async () => {
       model.calls++;
       if (model.mode === "throw") throw new Error("model down");
       if (model.mode === "junk") return { text: "I cannot help with that." };
+      if (model.mode === "partial" && model.calls === 2) throw new Error("model down");
       const batch = JSON.parse(user) as Array<{ i: number }>;
       const conf = model.mode === "unsure" ? 0.2 : 0.8;
       return { text: JSON.stringify(batch.map((b) => ({ i: b.i, category: "contractors", confidence: conf }))) };
@@ -181,6 +182,27 @@ describe("POST /api/expenses/categorise — preview → confirm", () => {
     const res = await POST(req({ confirm: true }));
     expect(res.status).toBe(503);
     expect(credits.grantCredits).toHaveBeenCalledTimes(1);
+  });
+
+  it("S29-hardening: PARTIAL model failure → the failed batch's rows stay queued and their credit blocks are refunded pro rata (`refunded`)", async () => {
+    // 150 rows → 4 batches (40/40/40/30) → 2 units; the second batch fails (40 rows → 1 unit back).
+    reset(150);
+    model.mode = "partial";
+    const res = await POST(req({ confirm: true }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toMatchObject({ ok: true, categorised: 110, accepted: 110, batches: 4, failedBatches: 1, failedRows: 40, cost: 2, creditsCharged: 2, refunded: 1, balance: 10 });
+    expect(credits.grantCredits).toHaveBeenCalledWith("user-caller", 1, "refund", expect.objectContaining({ feature: "expense_categorise", project_id: "proj-1", reason: "ai_partial", failed_rows: 40, units: 1 }));
+    expect(db.sb!.find("bank_transactions", "update")).toHaveLength(110);
+  });
+
+  it("S29-hardening: a partial failure on an included (free) run refunds nothing and reports refunded: 0", async () => {
+    reset(150);
+    gate.included = true;
+    model.mode = "partial";
+    const body = await (await POST(req({ confirm: true }))).json();
+    expect(body).toMatchObject({ ok: true, failedRows: 40, creditsCharged: 0, refunded: 0 });
+    expect(credits.grantCredits).not.toHaveBeenCalled();
   });
 
   it("unsure answers (confidence < 0.5) are written as other + review and the charge stands", async () => {

@@ -379,16 +379,24 @@ export interface AiOptions {
 export interface AiResult {
   decisions: CategoriseDecision[];
   batches: number;
-  /** Batches whose answer could not be parsed (their rows are `other` + review). */
+  /**
+   * Batches whose call threw or whose answer could not be parsed. S29-hardening
+   * (S28 review #6): their rows stay UNDECIDED (`source: null`, review) —
+   * the model never looked at them, so they are not "AI-categorised", keep
+   * their place in the queue and are refunded pro rata by the route.
+   */
   failedBatches: number;
+  /** Rows inside the failed batches. */
+  failedRows: number;
 }
 
-/** Model layer: `rows` in batches of ≤ MAX_AI_BATCH; a failed call never throws — its rows become review items. */
+/** Model layer: `rows` in batches of ≤ MAX_AI_BATCH; a failed call never throws — its rows stay undecided (queued). */
 export async function categoriseWithAi(rows: readonly CategoriseInput[], opts: AiOptions): Promise<AiResult> {
   const size = Math.max(1, Math.min(MAX_AI_BATCH, opts.batchSize ?? MAX_AI_BATCH));
   const decisions: CategoriseDecision[] = [];
   let batches = 0;
   let failedBatches = 0;
+  let failedRows = 0;
   const system = aiSystemPrompt();
   for (let at = 0; at < rows.length; at += size) {
     const batch = rows.slice(at, at + size);
@@ -400,12 +408,17 @@ export async function categoriseWithAi(rows: readonly CategoriseInput[], opts: A
     } catch {
       answers = null;
     }
-    if (!answers) failedBatches++;
+    if (!answers) {
+      failedBatches++;
+      failedRows += batch.length;
+      for (const row of batch) decisions.push(undecided(row));
+      continue;
+    }
     const byIndex = new Map<number, AiAnswer>();
-    for (const a of answers ?? []) if (!byIndex.has(a.i)) byIndex.set(a.i, a);
+    for (const a of answers) if (!byIndex.has(a.i)) byIndex.set(a.i, a);
     batch.forEach((row, i) => decisions.push(acceptAiAnswer(row, byIndex.get(i))));
   }
-  return { decisions, batches, failedBatches };
+  return { decisions, batches, failedBatches, failedRows };
 }
 
 export interface BatchOptions extends RulesOptions {

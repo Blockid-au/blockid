@@ -12,11 +12,13 @@
  * balance, included }` and runs nothing — the button shows that first.
  *
  * The spend runs BEFORE the model; a total model failure (every batch
- * unparseable → nothing accepted) refunds. A partial result keeps the
+ * unparseable → nothing accepted) refunds. S29-hardening: a PARTIAL
+ * failure (some batches) leaves those rows queued and refunds their credit
+ * blocks pro rata (`refunded`, `failedRows`). A partial result keeps the
  * charge: accepted rows are written, unsure rows are `other` + review at
  * no further cost.
  *
- * 200 preview | 200 { ok, categorised, accepted, needsReview, batches, cost, creditsCharged, balance, queueAfter }
+ * 200 preview | 200 { ok, categorised, accepted, needsReview, batches, failedBatches, failedRows, cost, creditsCharged, refunded, balance, queueAfter }
  * 401  402 insufficient_credits | credit_spend_failed  403/404 scope  409 nothing_to_categorise  429  503
  */
 
@@ -30,7 +32,7 @@ import { creditChargeNote } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { apiRoute } from "@/lib/audit/api-route";
 import { categoriseIncluded } from "@/lib/expenses/gate";
-import { EXPENSE_CATEGORISE_FEATURE, categoriseCost, categoriseUnits } from "@/lib/expenses/cost";
+import { EXPENSE_CATEGORISE_FEATURE, categoriseCost, categoriseRefund, categoriseUnits } from "@/lib/expenses/cost";
 import { defaultAi } from "@/lib/expenses/categorise";
 import { countAiQueue, loadAiQueue, runAiOnQueue } from "@/lib/expenses/server";
 
@@ -123,6 +125,25 @@ async function POST_handler(request: Request) {
     return NextResponse.json({ ok: false, error: "ai_unavailable", message: "The model did not answer — nothing was charged. Try again in a few minutes.", retryCost: cost }, { status: 503 });
   }
 
+  // S29-hardening (S28 review #6): PARTIAL failure — the rows of the failed
+  // batches were never categorised (they stay queued); refund their credit
+  // blocks pro rata, capped at what was charged.
+  let refunded = 0;
+  if (result.failedRows > 0 && creditsCharged > 0) {
+    const refund = categoriseRefund(result.failedRows, units, creditsCharged);
+    if (refund.credits > 0) {
+      const granted = await grantCredits(user.id, refund.credits, "refund", {
+        feature: EXPENSE_CATEGORISE_FEATURE, project_id: scope.projectId, reason: "ai_partial", failed_rows: result.failedRows, failed_batches: result.failedBatches, units: refund.units,
+      });
+      if (granted.ok) {
+        refunded = refund.credits;
+        balance = granted.balance;
+      } else {
+        console.error("[expenses:categorise] pro-rata refund after partial model failure did not land", { user: user.id, project: scope.projectId, refund });
+      }
+    }
+  }
+
   const queueAfter = await countAiQueue(supabase, scope.projectId);
   return NextResponse.json({
     ok: true,
@@ -131,9 +152,11 @@ async function POST_handler(request: Request) {
     needsReview: result.needsReview,
     batches: result.batches,
     failedBatches: result.failedBatches,
+    failedRows: result.failedRows,
     cost,
     included: gate.included,
     creditsCharged,
+    refunded,
     balance,
     creditNote,
     queueAfter,

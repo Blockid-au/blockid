@@ -61,6 +61,45 @@ export async function resolveCrmScope(minRole: ProjectMemberRole): Promise<CrmAc
   return { ok: true, projectId: scope.projectId, ownerUserId: scope.ownerUserId, scope };
 }
 
+/**
+ * S29-hardening (S28 review #8): may `userId` be a contact's `owner_user_id`
+ * on this project? The project OWNER always; otherwise only an ACCEPTED
+ * `project_members` row for (project, user). `null` / undefined (unassigned)
+ * is always fine. A lookup error counts as "not a member" (never assign to
+ * someone we could not verify).
+ */
+export async function isProjectMemberOrOwner(
+  supabase: Db,
+  args: { projectId: string; ownerUserId: string; userId: string | null | undefined },
+): Promise<boolean> {
+  if (!args.userId) return true;
+  if (args.userId === args.ownerUserId) return true;
+  try {
+    const { data, error } = await supabase
+      .from("project_members")
+      .select("id, project_id, user_id, status")
+      .eq("project_id", args.projectId)
+      .eq("user_id", args.userId)
+      .eq("status", "accepted")
+      .limit(1);
+    if (error) return false;
+    // Defensive re-check — the test fake ignores filters.
+    return ((data as Array<{ project_id?: string; user_id?: string | null; status?: string }> | null) ?? []).some(
+      (m) => m.project_id === args.projectId && m.user_id === args.userId && m.status === "accepted",
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** The 400 every CRM write answers when `ownerUserId` is not on the project. */
+export function ownerNotMemberResponse(): NextResponse {
+  return NextResponse.json(
+    { ok: false, error: "owner_not_member", message: "The contact owner must be the project owner or an accepted member of this project." },
+    { status: 400 },
+  );
+}
+
 // ── Contacts ─────────────────────────────────────────────────────────────
 
 export interface ContactPage {

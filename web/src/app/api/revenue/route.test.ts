@@ -104,6 +104,13 @@ describe("GET /api/revenue — connector-fed P&L (S25-A)", () => {
     expect(body.sources.netIncome.label).toBe("from Xero, 3 Sep");
     expect(body.sources.cogs.label).toBe("included in Xero expenses, 3 Sep");
     expect(body.sources.growth.label).toBe("vs 1 Jun, from Stripe");
+    // S29-hardening: the burn figure follows the ONE precedence — Xero
+    // beats the manual metric, and it equals the P&L's monthlyOpex.
+    h.metrics = { mrr_aud: 3000, arr_aud: 36000, burn_rate_aud: 4000 };
+    const again = await (await GET()).json();
+    expect(again.metrics).toMatchObject({ burnRate: 6500, burnRateSource: "xero" });
+    expect(again.metrics.burnRateSourceInfo.label).toBe("from Xero, 3 Sep");
+    expect(again.pnl.monthlyOpex).toBe(again.metrics.burnRate);
     expect(body).toMatchObject({ hasStripe: true, hasStripeConnect: true, hasXero: true });
     expect(body.connectors.stripe.takenAt).toBe("2026-09-07T05:00:00Z");
     expect(body.connectors.xero.metrics.totalIncomeAud).toBe(27000);
@@ -126,6 +133,7 @@ describe("GET /api/revenue — connector-fed P&L (S25-A)", () => {
       { month: "2026-08", revenue: 3000, refunds: 0, net: 3000 },
     ]);
     expect(body.pnl).toMatchObject({ revenue: 5000, opex: 48000, monthlyOpex: 4000, period: "last 12 months" });
+    expect(body.metrics).toMatchObject({ burnRate: 4000, burnRateSource: "startup_metrics" });
     // COGS estimate: 200 analyses × A$0.05 + (50 + 200 × 0.01) = 10 + 52 = 62
     expect(body.pnl.cogs).toBe(62);
     expect(body.sources.mrr.label).toBe("from your metrics");
