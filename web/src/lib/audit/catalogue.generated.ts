@@ -100,6 +100,7 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/dashboard/layout/route.ts", family: "dashboard.layout", methods: ["PUT"] },
   { route: "api/data-room/access/route.ts", family: "data-room.access", methods: ["POST"] },
   { route: "api/data-room/auto-fill/route.ts", family: "data-room.auto-fill", methods: ["POST"] },
+  { route: "api/data-room/clean-room/route.ts", family: "data-room.clean-room", methods: ["PATCH"] },
   { route: "api/data-room/engage/route.ts", family: "data-room.engage", methods: ["POST"] },
   { route: "api/data-room/generate/route.ts", family: "data-room.generate", methods: ["POST"] },
   { route: "api/data-room/goals/route.ts", family: "data-room.goals", methods: ["POST"] },
