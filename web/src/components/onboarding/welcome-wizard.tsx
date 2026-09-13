@@ -158,7 +158,9 @@ export function WelcomeWizard({ user }: WelcomeWizardProps) {
   async function handleFinish() {
     setCompleting(true);
     await persist({ skipped: false });
-    router.push("/score");
+    // S31-B: /analyze is the analyzer the dashboard reads (via the analyses
+    // bridge); /score wrote `scores`, which the dashboard never looked at.
+    router.push("/analyze");
   }
 
   async function handleSkip() {

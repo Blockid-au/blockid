@@ -227,7 +227,7 @@ const HOME_ITEMS: NavLeaf[] = [
   { href: "/dashboard/portfolio", label: "Portfolio", icon: LayoutDashboard, lifecycle: "beta", growthPhase: 0 },
   { href: "/dashboard/svi", label: "SVI Score", icon: TrendingUp, growthPhase: 0 },
   { href: "/dashboard/history", label: "Score History", icon: History, growthPhase: 0 },
-  { href: "/", label: "New Analysis", icon: Zap, growthPhase: 0 },
+  { href: "/analyze", label: "New Analysis", icon: Zap, growthPhase: 0 },
   { href: "/workspace/roadmap", label: "Action Plan", icon: Map, growthPhase: 0 },
 ];
 

@@ -107,6 +107,7 @@ vi.mock("@/components/dashboard/widget-grid", () => ({ WidgetGrid: ({ children }
 vi.mock("@/components/founder/revenue-tracker-tile", () => ({ RevenueTrackerTile: NULL }));
 vi.mock("@/components/founder/health-score-widget", () => ({ HealthScoreWidget: NULL }));
 
+import { extractSignals } from "@/lib/svi-analysis";
 import { fakeSupabase, type FakeSupabase } from "@/test/fake-supabase";
 import { keyCalls } from "@/test/project-scope-mock";
 import { renderPage, dataAttr } from "@/test/founder-page-harness";
@@ -118,6 +119,17 @@ async function html(sp: Record<string, string> = {}): Promise<string> {
 
 const state = await scopeState;
 let sb: FakeSupabase;
+
+// A claimed /analyze run — `analyses` row shape (lib/analyses/payload.ts).
+// The bridge recomputes from the stored signals and keeps the svi_total (58)
+// the founder was shown.
+const INTAKE_ROW = {
+  id: "an-1",
+  intake: { signals: extractSignals({ rawText: "Acme is a Sydney pre-seed startup building an inspection drone; 3 paying pilots, A$40k revenue, team of 4, raising A$1.2M." }) },
+  svi_total: 58,
+  input_text: "Acme is a Sydney pre-seed startup.",
+  created_at: "2026-09-13T00:00:00.000Z",
+};
 
 const ANALYSIS = {
   id: "an-1",
@@ -234,6 +246,27 @@ describe("/dashboard (S18-B)", () => {
     sb.rows.svi_analyses = [];
     await expect(html()).rejects.toThrow("REDIRECT:/dashboard/onboarding");
     expect(sb.hasEq("svi_analyses", "email", state.callerEmail)).toBe(true);
+  });
+
+  // S31-B — the dashboard's own CTA (/analyze) writes `analyses`, not
+  // svi_analyses. A founder who followed it must not be bounced back into
+  // onboarding, and must see their score rather than "run your first".
+  it("S31-B: an /analyze run (analyses table) counts as a prior analysis for the onboarding redirect", async () => {
+    userState.onboardingCompleted = false;
+    sb.rows.svi_analyses = [];
+    sb.rows.analyses = [INTAKE_ROW];
+    const out = await html();
+    expect(out).not.toContain("data-empty");
+    expect(sb.hasEq("analyses", "user_id", state.callerId)).toBe(true);
+  });
+
+  it("S31-B: with no svi_analyses row the latest analyses row (owner's) feeds the living dashboard", async () => {
+    sb.rows.svi_analyses = [];
+    sb.rows.analyses = [INTAKE_ROW];
+    const out = await html();
+    expect(out).not.toContain("data-empty");
+    expect(dataAttr(out, "svi")).toBe("58");
+    expect(sb.hasEq("analyses", "user_id", state.callerId)).toBe(true);
   });
 
   it("member whose owner has no analysis / account yet: empty state, no svi_accounts insert", async () => {
