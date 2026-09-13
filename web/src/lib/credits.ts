@@ -119,6 +119,12 @@ export const FEATURE_COSTS: Record<string, number> = {
   // ── Dividend statements (S25-B) ───────────────────────────────────────
   dividend_statements: 2, // 2 credits per dividend record — AU distribution statements for every shareholder + register PDF (included with the equity add-on `esop.manage` or Growth+ / Startup Package)
 
+  // ── Board resolutions (S26-B) ─────────────────────────────────────────
+  board_resolution: 1, // 1 credit per resolution (share issue / dividend / ESOP adoption) — AU circulating resolution PDF, s 248A; re-downloads free (included with `esop.manage` or Growth+ / Startup Package, same gate as dividend statements)
+
+  // ── Term-sheet comparison (S26-B) ─────────────────────────────────────
+  term_sheet_compare: 2, // 2 credits per comparison of 2–4 analysed term sheets — side-by-side matrix + founder-friendliness score (included for Growth+ / Startup Package)
+
   // ── Financial Projections (T0120) ────────────────────────────────────
   financial_projections: 2, // 2 credits — 3-year monthly projection + YoY + CSV
 

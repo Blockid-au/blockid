@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BoardResolutionButton } from "@/components/board-resolutions/board-resolution-button";
 import {
   CONTRACTS,
   connectWallet,
@@ -187,6 +188,8 @@ export function EsopClient() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
+  // S26-B — the cap-table ESOP pool id drives the plan-adoption resolution button.
+  const [esopPoolId, setEsopPoolId] = React.useState<string | null>(null);
 
   // Selected employee
   const [selectedEmployee, setSelectedEmployee] =
@@ -219,6 +222,7 @@ export function EsopClient() {
       const json = await res.json();
       if (json.ok) {
         setShareholders(json.shareholders ?? []);
+        setEsopPoolId(typeof json.esopPool?.id === "string" ? json.esopPool.id : null);
       }
     } catch {
       setError("Failed to load shareholders");
@@ -464,14 +468,19 @@ export function EsopClient() {
           </p>
         </div>
         {step === 0 && (
-          <button
-            type="button"
-            onClick={startWizard}
-            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer"
-          >
-            <Plus strokeWidth={1.75} className="h-4 w-4" />
-            New ESOP Grant
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {esopPoolId && (
+              <BoardResolutionButton kind="esop" recordId={esopPoolId} label="ESOP plan adoption" canGenerate onNotice={setSuccess} />
+            )}
+            <button
+              type="button"
+              onClick={startWizard}
+              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer"
+            >
+              <Plus strokeWidth={1.75} className="h-4 w-4" />
+              New ESOP Grant
+            </button>
+          </div>
         )}
         {step > 0 && (
           <button

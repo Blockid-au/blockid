@@ -87,6 +87,9 @@ describe("FEATURE_COSTS", () => {
     expect(FEATURE_COSTS.trust_report_rescore).toBe(1.0);
     // S22-A — investor-DD valuation certificate (included for Growth+ / Startup Package)
     expect(FEATURE_COSTS.valuation_certificate).toBe(5);
+    // S26-B — board resolution PDFs (1 each) + term-sheet comparison (2)
+    expect(FEATURE_COSTS.board_resolution).toBe(1);
+    expect(FEATURE_COSTS.term_sheet_compare).toBe(2);
   });
 
   it("keeps every 0-cost 'free' feature at exactly 0 (not undefined)", () => {

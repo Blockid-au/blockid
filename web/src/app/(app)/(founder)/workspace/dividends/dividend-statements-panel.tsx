@@ -22,6 +22,7 @@ import * as React from "react";
 import { CheckCircle2, Download, FileText, FolderPlus, Loader2, Receipt, ShieldAlert, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatAudCents, statementCostLabel } from "@/lib/dividends/statement";
+import { BoardResolutionButton } from "@/components/board-resolutions/board-resolution-button";
 
 export interface StatementListItem {
   id: string;
@@ -428,6 +429,12 @@ export function DividendStatementsPanel({ initial }: { initial?: StatementsPanel
                         </button>
                       )}
                     </div>
+                  </div>
+
+                  {/* S26-B — the directors' declaration resolution (s 254T) for this dividend */}
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-500" data-testid="dividend-resolution">
+                    <span>Directors&apos; declaration (s 254T):</span>
+                    <BoardResolutionButton kind="dividend" recordId={r.id} label={`Dividend ${periodLabel(r.period)}`} canGenerate={issueAllowed} onNotice={setNotice} />
                   </div>
 
                   {isPreview && preview && (
