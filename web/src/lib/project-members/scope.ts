@@ -271,12 +271,17 @@ export async function listMembers(projectId: string): Promise<ProjectMember[]> {
  *
  * Ownership must be pre-verified by the caller.
  */
+export interface InvitedMember extends ProjectMember {
+  /** S30-B — true when a revoked row was re-activated instead of inserted. */
+  reinvited: boolean;
+}
+
 export async function inviteMember(
   projectId: string,
   email: string,
   role: ProjectMemberRole,
   invitedBy: string,
-): Promise<ProjectMember> {
+): Promise<InvitedMember> {
   if (!VALID_ROLES.includes(role)) {
     throw new ProjectMemberScopeError(
       `invalid role: ${role}`,
@@ -303,6 +308,57 @@ export async function inviteMember(
     .select("id")
     .eq("email", cleanEmail)
     .maybeSingle();
+
+  // S30-B live QA (P2): project_members is UNIQUE (project_id, user_email)
+  // and revoke keeps the row, so a revoked collaborator could never be
+  // re-invited — the insert hit 23505 → `duplicate`. A revoked row is now
+  // re-activated in place: fresh token, the requested role, status back to
+  // `invited`, the old acceptance/revocation cleared. The caller sees
+  // `reinvited: true` and audits `project.member.reinvited`. A live
+  // (`invited` / `accepted`) row is still a duplicate.
+  const { data: priorRow, error: priorErr } = await supabase
+    .from("project_members")
+    .select("*")
+    .eq("project_id", projectId)
+    .eq("user_email", cleanEmail)
+    .maybeSingle();
+  if (priorErr) {
+    throw new ProjectMemberScopeError(
+      `inviteMember lookup failed: ${priorErr.message}`,
+      "service_unavailable",
+    );
+  }
+  if (priorRow && priorRow.status !== "revoked") {
+    throw new ProjectMemberScopeError(
+      "that email is already a member of this project",
+      "duplicate",
+    );
+  }
+  if (priorRow) {
+    const { data: revived, error: reviveErr } = await supabase
+      .from("project_members")
+      .update({
+        role,
+        status: "invited",
+        token,
+        user_id: existingUser?.id ?? null,
+        invited_by: invitedBy,
+        invited_at: new Date().toISOString(),
+        accepted_at: null,
+        revoked_at: null,
+      })
+      .eq("id", priorRow.id)
+      .eq("status", "revoked") // guard against a concurrent re-invite / accept
+      .select("*")
+      .single();
+    if (reviveErr || !revived) {
+      throw new ProjectMemberScopeError(
+        `inviteMember re-activate failed: ${reviveErr?.message ?? "no row"}`,
+        "service_unavailable",
+      );
+    }
+    return { ...mapMember(revived), reinvited: true };
+  }
 
   const { data, error } = await supabase
     .from("project_members")
@@ -332,7 +388,7 @@ export async function inviteMember(
     );
   }
 
-  return mapMember(data);
+  return { ...mapMember(data), reinvited: false };
 }
 
 // ---------------------------------------------------------------------------
@@ -501,4 +557,104 @@ export async function revokeMember(
   }
 
   return revoked;
+}
+
+// ---------------------------------------------------------------------------
+// Change role (S30-B live QA P2)
+// ---------------------------------------------------------------------------
+
+export interface RoleChange {
+  member: ProjectMember;
+  previousRole: ProjectMemberRole;
+  /** Webhook endpoint ids switched off because the member left admin. */
+  deactivatedEndpoints: string[];
+}
+
+/**
+ * Change a member role among viewer | editor | admin. The caller must be
+ * the project owner or an accepted admin (the same guard as invite/revoke).
+ *
+ * `projectId` is the route project: a memberId that belongs to another
+ * project is `not_found` BEFORE any permission check or write, so the
+ * endpoint is neither an existence oracle nor a cross-project mutation.
+ * A revoked row cannot be re-roled (`revoked`) — re-invite it instead.
+ *
+ * Cascade: the webhook dispatcher only keeps project-level endpoints whose
+ * creator is the owner or an accepted ADMIN (lib/webhooks/dispatch.ts
+ * `lostCreatorEndpoints`), so an admin → editor/viewer downgrade runs the
+ * same eager deactivation a revoke does. Nothing else in the S20-B revoke
+ * cascade depends on role. Idempotent when the role is unchanged.
+ */
+export async function changeMemberRole(
+  projectId: string,
+  memberId: string,
+  role: ProjectMemberRole,
+  requesterUserId: string,
+): Promise<RoleChange> {
+  if (!VALID_ROLES.includes(role)) {
+    throw new ProjectMemberScopeError(`invalid role: ${role}`, "invalid_role");
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    throw new ProjectMemberScopeError(
+      "supabase not configured",
+      "service_unavailable",
+    );
+  }
+
+  const { data: existing, error: readErr } = await supabase
+    .from("project_members")
+    .select("*")
+    .eq("id", memberId)
+    .maybeSingle();
+
+  if (readErr) {
+    throw new ProjectMemberScopeError(
+      `changeMemberRole lookup failed: ${readErr.message}`,
+      "service_unavailable",
+    );
+  }
+  if (!existing || existing.project_id !== projectId) {
+    throw new ProjectMemberScopeError("member not found", "not_found");
+  }
+
+  await assertProjectMemberCan(projectId, requesterUserId, "admin");
+
+  if (existing.status === "revoked") {
+    throw new ProjectMemberScopeError(
+      "this member was revoked — re-invite them to change their role",
+      "revoked",
+    );
+  }
+
+  const previousRole = existing.role as ProjectMemberRole;
+  if (previousRole === role) {
+    return { member: mapMember(existing), previousRole, deactivatedEndpoints: [] };
+  }
+
+  const { data, error } = await supabase
+    .from("project_members")
+    .update({ role })
+    .eq("id", memberId)
+    .neq("status", "revoked")
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw new ProjectMemberScopeError(
+      `changeMemberRole update failed: ${error?.message ?? "no row"}`,
+      "service_unavailable",
+    );
+  }
+
+  const member = mapMember(data);
+  let deactivatedEndpoints: string[] = [];
+  if (previousRole === "admin" && member.status === "accepted" && member.userId) {
+    const { deactivateEndpointsForRevokedMember } = await import("@/lib/webhooks/membership");
+    const cascade = await deactivateEndpointsForRevokedMember(member.projectId, member.userId);
+    deactivatedEndpoints = cascade.deactivated;
+  }
+
+  return { member, previousRole, deactivatedEndpoints };
 }

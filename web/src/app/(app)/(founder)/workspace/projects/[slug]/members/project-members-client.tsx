@@ -4,7 +4,9 @@
  * Client shell for /workspace/projects/[slug]/members.
  *
  * Presents the roster + invite form. Owner actions hit
- * /api/projects/[id]/members (POST/DELETE). The invite URL returned by
+ * /api/projects/[id]/members (POST/DELETE) and
+ * /api/projects/[id]/members/[memberId] (PATCH role — S30-B). A revoked row
+ * is re-invited in place via POST. The invite URL returned by
  * POST is surfaced verbatim for the owner to copy/paste — no email is
  * sent from this iteration (roadmap follow-up).
  */
@@ -92,6 +94,60 @@ export function ProjectMembersClient({ projectId, initialMembers }: Props) {
       );
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to revoke");
+    }
+  };
+
+  // S30-B (P2) — move a collaborator between viewer / editor / admin.
+  const [roleBusyId, setRoleBusyId] = React.useState<string | null>(null);
+  const handleRoleChange = async (memberId: string, nextRole: ProjectMemberRole) => {
+    setError(null);
+    setRoleBusyId(memberId);
+    try {
+      const res = await fetch(
+        `/api/projects/${projectId}/members/${encodeURIComponent(memberId)}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ role: nextRole }),
+        },
+      );
+      const body = await res.json();
+      if (!res.ok || !body.ok) {
+        setError(body.error ?? `HTTP ${res.status}`);
+        return;
+      }
+      setMembers((prev) => prev.map((m) => (m.id === memberId ? body.member : m)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to change role");
+    } finally {
+      setRoleBusyId(null);
+    }
+  };
+
+  // S30-B (P2) — a revoked address is re-invited in place (same row, fresh
+  // link) at the role it last held; the new link is shown like a fresh invite.
+  const handleReinvite = async (member: ProjectMember) => {
+    setError(null);
+    setLastInviteUrl(null);
+    setCopied(false);
+    setRoleBusyId(member.id);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/members`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: member.userEmail, role: member.role }),
+      });
+      const body = await res.json();
+      if (!res.ok || !body.ok) {
+        setError(body.error ?? `HTTP ${res.status}`);
+        return;
+      }
+      setMembers((prev) => prev.map((m) => (m.id === member.id ? body.member : m)));
+      setLastInviteUrl(body.invite_url ?? inviteLink(body.member.token));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to re-invite");
+    } finally {
+      setRoleBusyId(null);
     }
   };
 
@@ -217,13 +273,42 @@ export function ProjectMembersClient({ projectId, initialMembers }: Props) {
                     )}
                   </p>
                 </div>
-                {m.status !== "revoked" && (
+                {m.status !== "revoked" ? (
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-1.5 text-xs text-ink-600">
+                      <span className="sr-only">Role for {m.userEmail}</span>
+                      <select
+                        aria-label={`Role for ${m.userEmail}`}
+                        data-testid="member-role-select"
+                        value={m.role}
+                        disabled={roleBusyId === m.id}
+                        onChange={(e) => handleRoleChange(m.id, e.target.value as ProjectMemberRole)}
+                        className="rounded-md border border-surface-300 bg-white px-2 py-1.5 text-xs focus:border-gold-500 focus:outline-none disabled:opacity-50"
+                      >
+                        {ROLES.map((r) => (
+                          <option key={r.value} value={r.value}>
+                            {r.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => handleRevoke(m.id)}
+                      className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
+                    >
+                      Revoke
+                    </button>
+                  </div>
+                ) : (
                   <button
                     type="button"
-                    onClick={() => handleRevoke(m.id)}
-                    className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
+                    data-testid="member-reinvite"
+                    disabled={roleBusyId === m.id}
+                    onClick={() => handleReinvite(m)}
+                    className="rounded-md border border-surface-300 bg-white px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-surface-50 disabled:opacity-50"
                   >
-                    Revoke
+                    {roleBusyId === m.id ? "Re-inviting…" : "Re-invite"}
                   </button>
                 )}
               </li>

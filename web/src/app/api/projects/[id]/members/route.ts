@@ -6,6 +6,11 @@
 // GET    /api/projects/[id]/members            → list all members
 // POST   /api/projects/[id]/members            → invite {email, role}
 // DELETE /api/projects/[id]/members?memberId=… → revoke that member
+// PATCH  /api/projects/[id]/members/[memberId]  → change role (sibling route)
+//
+// S30-B live QA (P2): POST re-activates a revoked row for the same address
+// (fresh token, status invited, audit project.member.reinvited) instead of
+// answering 422 duplicate — the UNIQUE (project_id, user_email) row is kept.
 //
 // Access is enforced by assertProjectAccess(…, "admin") from lib/projects —
 // owner OR an accepted admin member — for GET, POST and DELETE alike
@@ -63,6 +68,8 @@ function scopeErrorToStatus(err: ProjectMemberScopeError): number {
     case "duplicate":
     case "invalid_role":
       return 422;
+    case "revoked":
+      return 409;
     case "service_unavailable":
       return 503;
     default:
@@ -167,13 +174,14 @@ async function POST_handler(
     // carried project_id NULL and were invisible in the project-scoped log.
     setAuditProject({ projectId: id, role: access.role, userId: user.id });
     const member = await inviteMember(id, email, role, user.id);
-    auditNote(member.id, { role: member.role });
+    auditNote(member.id, { role: member.role, reinvited: member.reinvited });
 
     // SOC2-lite audit: record the successful invite. Domain only — never
-    // the local-part — so PII is preserved.
+    // the local-part — so PII is preserved. S30-B: a revoked row that was
+    // re-activated in place is `project.member.reinvited` (same fields).
     await logUserAction({
       userId: user.id,
-      action: "project.member.invited",
+      action: member.reinvited ? "project.member.reinvited" : "project.member.invited",
       subjectType: "project",
       subjectId: id,
       fields: {
