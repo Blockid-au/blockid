@@ -9,6 +9,7 @@
  * the two documents read as one set.
  */
 
+import * as React from "react";
 import { Document, Page, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import { C, Footer, HeaderBar } from "./svi-report-pdf";
 import { WatermarkLayer } from "./watermark";
@@ -32,8 +33,13 @@ const COLS: Array<{ key: string; label: string; width: string; right?: boolean }
   { key: "netPaidAud", label: "Net paid", width: "9%", right: true },
 ];
 
-function cell(width: string, right?: boolean, extra?: object) {
-  return [st.td, { width }, right ? st.tdRight : {}, extra ?? {}];
+type PdfStyle = Exclude<NonNullable<React.ComponentProps<typeof View>["style"]>, readonly unknown[]>;
+
+function cell(width: string, right?: boolean, extra?: PdfStyle): PdfStyle[] {
+  const out: PdfStyle[] = [st.td, { width }];
+  if (right) out.push(st.tdRight);
+  if (extra) out.push(extra);
+  return out;
 }
 
 export function DividendRegisterPDF({ data, watermark }: DividendRegisterPdfProps) {

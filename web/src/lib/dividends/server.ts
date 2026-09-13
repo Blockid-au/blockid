@@ -366,7 +366,9 @@ export async function voidStatement(db: DividendDb, id: string, projectId: strin
     .select(STATEMENT_COLUMNS)
     .maybeSingle();
   if (error || !data) return { ok: false, error: "update_failed" };
-  return { ok: true, row: data as DividendStatementRow };
+  // The update returns the full row; merging over `existing` keeps the
+  // projection complete when a client returns only the changed columns.
+  return { ok: true, row: { ...existing, ...(data as Partial<DividendStatementRow>) } as DividendStatementRow };
 }
 
 /* ── Register ─────────────────────────────────────────────────────────── */
