@@ -318,7 +318,7 @@ export async function refreshSectorMultiples(deps: RefreshDeps = {}): Promise<Re
           summary.entries.push(v.proposal);
           continue;
         }
-        const { error } = await supabase.from(OVERRIDES_TABLE).insert(v.proposal);
+        const { error } = await supabase.from(OVERRIDES_TABLE).insert({ ...v.proposal });
         if (error) {
           if (error.code === "23505") {
             out.duplicates++;
