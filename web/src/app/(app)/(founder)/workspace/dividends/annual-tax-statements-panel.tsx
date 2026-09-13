@@ -75,6 +75,8 @@ interface Preview {
   toGenerate: string[];
   alreadyGenerated: number;
   regenerate: boolean;
+  /** S29-hardening: the run stamp when this regenerate completes a partial run (free, only the missing shareholders). */
+  retryOfRun: string | null;
   company: { name: string; abn: string | null };
 }
 
@@ -170,7 +172,7 @@ export function AnnualTaxStatementsPanel({ initial }: { initial?: TaxStatementsP
           );
           return;
         }
-        if (json.preview) setPreview({ fy: json.fy, cost: json.cost, included: json.included, balance: json.balance, creditNote: json.creditNote, toGenerate: json.toGenerate ?? [], alreadyGenerated: json.alreadyGenerated ?? 0, regenerate: Boolean(json.regenerate), company: json.company });
+        if (json.preview) setPreview({ fy: json.fy, cost: json.cost, included: json.included, balance: json.balance, creditNote: json.creditNote, toGenerate: json.toGenerate ?? [], alreadyGenerated: json.alreadyGenerated ?? 0, regenerate: Boolean(json.regenerate), retryOfRun: typeof json.retryOfRun === "string" ? json.retryOfRun : null, company: json.company });
       } finally {
         setBusy(null);
       }
@@ -381,7 +383,9 @@ export function AnnualTaxStatementsPanel({ initial }: { initial?: TaxStatementsP
                 </li>
                 <li>
                   {preview.toGenerate.length > 0 ? `Statements for: ${preview.toGenerate.join(", ")}` : "Every shareholder already has a current statement"}
-                  {preview.alreadyGenerated > 0 ? (preview.regenerate ? ` · ${preview.alreadyGenerated} current statement${preview.alreadyGenerated === 1 ? "" : "s"} will be superseded by a new version` : ` · ${preview.alreadyGenerated} already generated (not charged again)`) : ""}
+                  {preview.retryOfRun
+                    ? " · completes the last regenerate run, which did not reach everyone (not charged again)"
+                    : preview.alreadyGenerated > 0 ? (preview.regenerate ? ` · ${preview.alreadyGenerated} current statement${preview.alreadyGenerated === 1 ? "" : "s"} will be superseded by a new version` : ` · ${preview.alreadyGenerated} already generated (not charged again)`) : ""}
                 </li>
               </ul>
               <div className="mt-3 flex gap-2">

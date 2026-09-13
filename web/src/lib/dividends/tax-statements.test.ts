@@ -16,6 +16,7 @@ import {
   getTaxStatementForProject,
   listTaxStatementsForFy,
   listTaxStatementsForProject,
+  pendingRegenerateRetry,
   summariseFyFromStatements,
   taxStatementContentHash,
   taxStatementSummary,
@@ -150,5 +151,64 @@ describe("reads, charge marker, summaries", () => {
     expect(fyAlreadyCharged([])).toBe(false);
     const s = taxStatementSummary(stored({ version: null }));
     expect(s).toMatchObject({ id: "ts-1", statementNo: "TS-2025-26-1", fy: "2025-26", version: 1, current: true, shareholderName: "Jane Founder", distributions: 1, grossAud: 1, creditsCharged: 2, pdfUrl: "/api/dividends/tax-statements/ts-1/pdf" });
+  });
+});
+
+describe("pendingRegenerateRetry — S29-hardening (S28 review #5)", () => {
+  const JANE = "id:22222222-2222-4222-8222-222222222222";
+  const SEED = "name:seed investor pty ltd";
+  const KEYS = [JANE, SEED];
+  const T1 = "2026-07-10T00:00:00.000Z";
+  const T2 = "2026-07-16T02:00:00.123Z";
+  // Postgres hands timestamptz back with an offset, not "Z" — same instant.
+  const T2_PG = "2026-07-16T02:00:00.123+00:00";
+
+  it("a regenerate (version ≥ 2 at the latest stamp) that left someone on an OLDER current row → retry of that run: pending = the lagging keys, same stamp, charged", () => {
+    const rows = [
+      stored({ id: "j2", shareholder_key: JANE, version: 2, issued_at: T2_PG, credits_charged: 2 }),
+      stored({ id: "s1", shareholder_key: SEED, version: 1, issued_at: T1, credits_charged: 2 }),
+    ];
+    expect(pendingRegenerateRetry(rows, KEYS)).toEqual({ runStamp: T2, pendingKeys: [SEED], completedKeys: [JANE], charged: true });
+    // A shareholder new to the summary rides along with the retry.
+    expect(pendingRegenerateRetry(rows, [...KEYS, "name:newco"])?.pendingKeys).toEqual([SEED, "name:newco"]);
+    // A free (included) run is still a retry — just not charged.
+    expect(pendingRegenerateRetry([{ ...rows[0], credits_charged: 0 }, rows[1]], KEYS)?.charged).toBe(false);
+  });
+
+  it("not a retry: no rows; latest run inserted only version 1 (a first / incremental run); everyone at the latest stamp; summary grew after a COMPLETE regenerate", () => {
+    expect(pendingRegenerateRetry([], KEYS)).toBeNull();
+    // Incremental non-regenerate run (Seed added at T2 as v1) — mixed stamps but no regenerate evidence.
+    expect(pendingRegenerateRetry([stored({ shareholder_key: JANE, version: 1, issued_at: T1 }), stored({ id: "s", shareholder_key: SEED, version: 1, issued_at: T2 })], KEYS)).toBeNull();
+    // Complete regenerate: both at T2.
+    expect(pendingRegenerateRetry([stored({ shareholder_key: JANE, version: 2, issued_at: T2 }), stored({ id: "s", shareholder_key: SEED, version: 2, issued_at: T2 })], KEYS)).toBeNull();
+    // Summary grew (a third shareholder, no row) after that complete regenerate → a NEW run, not a retry.
+    expect(pendingRegenerateRetry([stored({ shareholder_key: JANE, version: 2, issued_at: T2 }), stored({ id: "s", shareholder_key: SEED, version: 2, issued_at: T2 })], [...KEYS, "name:newco"])).toBeNull();
+    // Unparsable stamps → null, never a throw.
+    expect(pendingRegenerateRetry([stored({ version: 2, issued_at: "garbage" })], KEYS)).toBeNull();
+  });
+
+  it("generate with onlyKeys + the run stamp completes the run: only the pending shareholder is inserted, at the original issued_at, the other is reported existing and untouched", async () => {
+    const jane2 = stored({ id: "j2", shareholder_key: JANE, version: 2, statement_no: "TS-2025-26-2", issued_at: T2_PG, credits_charged: 2 });
+    const seed1 = stored({ id: "s1", shareholder_key: SEED, shareholder_id: null, version: 1, statement_no: "TS-2025-26-1", issued_at: T1, credits_charged: 2 });
+    const rows = [jane2, seed1];
+    const retry = pendingRegenerateRetry(rows, KEYS)!;
+    const sb = fakeSupabase({ shareholder_tax_statements: rows });
+    const res = await generateTaxStatementsForFy({
+      db: sb as never, projectId: "proj-1", userId: "u", company: SAMPLE_COMPANY, fy: "2025-26", statements: STATEMENTS, existingRows: rows,
+      regenerate: true, creditsCharged: 0, onlyKeys: new Set(retry.pendingKeys), now: new Date(retry.runStamp),
+    });
+    expect(res.existing.map((r) => r.id)).toEqual(["j2"]);
+    expect(res.generated).toHaveLength(1);
+    const inserts = sb.find("shareholder_tax_statements", "insert");
+    expect(inserts).toHaveLength(1);
+    expect(inserts[0].args[0]).toMatchObject({ shareholder_key: SEED, version: 2, statement_no: "TS-2025-26-3", issued_at: T2, credits_charged: 0 });
+    expect(res.superseded.map((r) => r.id)).toEqual(["s1"]);
+    const updates = sb.find("shareholder_tax_statements", "update");
+    expect(updates).toHaveLength(1);
+    expect(sb.hasEq("shareholder_tax_statements", "id", "s1")).toBe(true);
+    expect(sb.hasEq("shareholder_tax_statements", "id", "j2")).toBe(false);
+    // After the retry both current rows share the stamp → no longer a pending retry.
+    const after = [jane2, { ...(inserts[0].args[0] as ShareholderTaxStatementRow), id: "s2", superseded_at: null }];
+    expect(pendingRegenerateRetry(after, KEYS)).toBeNull();
   });
 });
