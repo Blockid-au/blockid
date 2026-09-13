@@ -30,7 +30,7 @@ import {
   Target, TrendingUp, User, Users, Wand2, Wallet, Zap,
   ClipboardList, Eye, Layers, Settings2, MessageSquare, Send, Building2,
   ClipboardCheck, FileBarChart, Handshake, LayoutDashboard, Tag, Coins, Plug,
-  Inbox, GraduationCap, LayoutGrid, Cpu, History,
+  Inbox, GraduationCap, LayoutGrid, Cpu, History, BookUser,
 } from "lucide-react";
 
 import type { PlanTier, Segment } from "@/lib/segments";
@@ -414,6 +414,8 @@ const FUNDRAISE_SUBGROUPS: NavSubgroup[] = [
       { href: "/workspace/financial-forecast", label: "Financial Forecast", icon: LineChart, minPlan: "starter", minTier: "starter", growthPhase: 4 },
       { href: "/dashboard/fundraise", label: "Fundraise Readiness", icon: TrendingUp, minPlan: "starter", minTier: "starter", growthPhase: 3 },
       { href: "/workspace/fundraise", label: "Raise Capital", icon: Banknote, minPlan: "starter", minTier: "starter", growthPhase: 3 },
+      // S28-B — the investor pipeline (contacts, stages, next steps) that feeds the raise.
+      { href: "/workspace/investors", label: "Investor CRM", icon: BookUser, minPlan: "starter", minTier: "starter", growthPhase: 3 },
     ],
   },
 ];

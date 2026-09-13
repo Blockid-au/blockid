@@ -13,6 +13,7 @@ import {
   IMPORT_MAX_ROWS,
   isOverdue,
   isStageAdvance,
+  mergeImportRow,
   normaliseEmail,
   parseContactInput,
   parseContactsCsv,
@@ -172,6 +173,16 @@ describe("parseContactsCsv", () => {
     const r = parseContactsCsv(many);
     expect(r.ok && r.value.rows.length).toBe(IMPORT_MAX_ROWS);
     expect(r.ok && r.value.truncated).toBe(true);
+  });
+});
+
+describe("mergeImportRow", () => {
+  it("file wins on name/org/type, stage only forwards, tags unioned, archived revived; no-op → updated_at only", () => {
+    const existing = row({ name: "Jane", org: null, type: "other", stage: "diligence", tags: ["a"], archived_at: "2026-09-01T00:00:00Z" });
+    const imp = { line: 2, name: "Jane Chen", email: "j@x.co", org: "Blackbird", role: null, type: "vc" as const, stage: "contacted" as const, source: "csv_import", tags: ["b", "a"], nextStep: null, nextStepDue: null, ownerUserId: null };
+    expect(mergeImportRow(existing, imp, "NOW")).toEqual({ updated_at: "NOW", name: "Jane Chen", org: "Blackbird", type: "vc", tags: ["a", "b"], archived_at: null });
+    expect(mergeImportRow(row({ stage: "meeting" }), { ...imp, stage: "committed", name: "Jane", org: null, type: "other", tags: [] }, "NOW")).toEqual({ updated_at: "NOW", stage: "committed" });
+    expect(mergeImportRow(row(), { ...imp, name: "Jane", org: null, type: "other", stage: "meeting", tags: [] }, "NOW")).toEqual({ updated_at: "NOW" });
   });
 });
 

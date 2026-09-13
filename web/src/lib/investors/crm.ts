@@ -567,6 +567,25 @@ export function parseContactsCsv(text: string): { ok: true; value: ImportParseRe
   return { ok: true, value: { rows, skipped, truncated } };
 }
 
+/**
+ * The update an existing contact gets from a CSV row on re-import: the
+ * file wins on name / org / type (when it says something), the stage only
+ * moves FORWARD (a spreadsheet must never drag a committed investor back
+ * to "researching"), tags are unioned, and an archived contact comes back
+ * into the pipeline. Only the keys that change are returned (+ updated_at).
+ */
+export function mergeImportRow(existing: ContactRow, row: ImportRow, now: string): Record<string, unknown> {
+  const update: Record<string, unknown> = { updated_at: now };
+  if (row.name && row.name !== existing.name) update.name = row.name;
+  if (row.org && row.org !== existing.org) update.org = row.org;
+  if (row.type !== "other" && row.type !== existing.type) update.type = row.type;
+  if (row.stage !== existing.stage && isStageAdvance(existing.stage, row.stage)) update.stage = row.stage;
+  const tags = Array.from(new Set([...(existing.tags ?? []), ...row.tags]));
+  if (tags.length !== (existing.tags ?? []).length) update.tags = tags;
+  if (existing.archived_at) update.archived_at = null;
+  return update;
+}
+
 // ── CSV export ───────────────────────────────────────────────────────────
 
 /**
