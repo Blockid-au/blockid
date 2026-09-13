@@ -46,6 +46,7 @@ import {
   metricsChanged,
   type ConnectorProvider,
 } from "@/lib/connectors/snapshots";
+import { isConnectorHttpError } from "@/lib/connectors/http-error";
 import { scoreConnectedRevenue } from "@/lib/svi/connected-revenue-score";
 import { rescoreAccountFromEvidence } from "@/lib/svi/rescore-from-evidence";
 import { insertNotification } from "@/lib/notifications";
@@ -149,10 +150,15 @@ export async function listResyncCandidates(db: Db, limit: number, now: Date = ne
   const staleBefore = new Date(now.getTime() - RESYNC_MIN_INTERVAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const out: ResyncCandidate[] = [];
 
+  // `error` rows are retried too (S25-review): releaseConnection() flips a
+  // v2 row to `error` on ANY failed tick, so an "active only" filter turned
+  // one rate limit / outage into a permanent drop from the weekly resync
+  // until the founder pressed Sync. A dead token still costs one throttled
+  // notification per 30 days and no provider call. `revoked` never returns.
   const v2 = await db
     .from("oauth_connections_v2")
     .select("id, user_id, project_id, provider, provider_account_id, access_token_encrypted, refresh_token_encrypted, metadata, resync_last_at")
-    .eq("status", "active")
+    .in("status", ["active", "error"])
     .in("provider", ["stripe", "xero"])
     .or(`resync_last_at.is.null,resync_last_at.lt.${staleBefore}`)
     .order("resync_last_at", { ascending: true, nullsFirst: true })
@@ -450,11 +456,23 @@ export async function resyncConnection(db: Db, c: ResyncCandidate, opts: { now?:
       return { ...base, outcome: "skipped_scope", error: "scope_unresolved" };
     }
 
-    // 2. Pull.
+    // 2. Pull. A non-2xx from the provider throws `ConnectorHttpError`
+    //    (S25-review): 401/403 → the token is dead → needs_reconnect; any
+    //    other status → failed. Either way NOTHING below runs, so a rate
+    //    limit or an outage can never be snapshotted as "MRR 0".
     let metrics: StripeConnectMetrics | XeroMetrics;
     if (c.provider === "stripe") {
       if (!accessToken) throw new Error("stripe_no_access_token");
-      metrics = await fetchStripeConnectMetrics(accessToken);
+      try {
+        metrics = await fetchStripeConnectMetrics(accessToken);
+      } catch (err) {
+        if (isConnectorHttpError(err) && err.isAuthRejected) {
+          await notifyReconnect(c, scope);
+          await releaseConnection(db, c, now, "stripe_auth_rejected");
+          return { ...base, outcome: "needs_reconnect", error: "stripe_auth_rejected" };
+        }
+        throw err;
+      }
     } else {
       if (!refreshToken) {
         await notifyReconnect(c, scope);
@@ -481,7 +499,16 @@ export async function resyncConnection(db: Db, c: ResyncCandidate, opts: { now?:
         tenantId = t.tenantId;
         tenantName = t.tenantName;
       }
-      metrics = await fetchXeroMetrics(pair.accessToken, tenantId, tenantName);
+      try {
+        metrics = await fetchXeroMetrics(pair.accessToken, tenantId, tenantName);
+      } catch (err) {
+        if (isConnectorHttpError(err) && err.isAuthRejected) {
+          await notifyReconnect(c, scope);
+          await releaseConnection(db, c, now, "xero_auth_rejected");
+          return { ...base, outcome: "needs_reconnect", error: "xero_auth_rejected" };
+        }
+        throw err;
+      }
     }
 
     // 3. Snapshot + change detection (owner-keyed; skipped when the owner is unknown).

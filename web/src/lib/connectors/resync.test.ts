@@ -48,6 +48,7 @@ vi.mock("@/lib/webhooks/registry", () => ({ enqueueWebhook: (...a: unknown[]) =>
 vi.mock("@/lib/svi/rescore-from-evidence", () => ({ rescoreAccountFromEvidence: (db: unknown, a: unknown) => h.rescore(db, a) }));
 
 import { sealToken } from "@/lib/oauth-token-seal";
+import { ConnectorHttpError } from "./http-error";
 import {
   MAX_CONNECTIONS_PER_TICK,
   RECONNECT_NOTIFY_THROTTLE_MS,
@@ -184,6 +185,60 @@ describe("resyncConnection — unreadable token", () => {
     expect(text).not.toContain(sealedElsewhere);
     expect(text).not.toContain(RAW_STRIPE);
     expect(JSON.stringify(out)).not.toContain(RAW_STRIPE);
+  });
+});
+
+describe("resyncConnection — provider rejected the pull (S25-review)", () => {
+  it("Stripe 401 → needs_reconnect: one throttled notification, lease released, NO snapshot / signal / evidence / rescore", async () => {
+    h.stripeMetrics.mockRejectedValue(new ConnectorHttpError("stripe", 401, "subscriptions"));
+    const { db, ops } = fakeDb({ ...SCOPE_DATA, connector_snapshots: [] });
+    const out = await resyncConnection(db, v2Stripe(), { now: NOW });
+
+    expect(out).toMatchObject({ outcome: "needs_reconnect", error: "stripe_auth_rejected" });
+    expect(h.notify).toHaveBeenCalledTimes(1);
+    expect(h.notify).toHaveBeenCalledWith(expect.objectContaining({ kind: "connector_reconnect", userId: "owner-1", throttleMs: RECONNECT_NOTIFY_THROTTLE_MS }));
+    expect(ops.some((o) => o.table === "connector_snapshots")).toBe(false);
+    expect(ops.some((o) => o.table === "svi_signals")).toBe(false);
+    expect(ops.some((o) => o.table === "svi_evidence")).toBe(false);
+    expect(h.rescore).not.toHaveBeenCalled();
+    expect(h.enqueue).not.toHaveBeenCalled();
+    const release = ops.find((o) => o.table === "oauth_connections_v2" && o.op === "update");
+    expect(release?.args[0]).toMatchObject({ resync_leased_until: null, last_sync_error: "stripe_auth_rejected" });
+    expect(consoleText()).not.toContain(RAW_STRIPE);
+  });
+
+  it("Stripe 429 / 5xx → failed: nothing written (a rate limit must never become 'MRR 0'), no reconnect nag", async () => {
+    h.stripeMetrics.mockRejectedValue(new ConnectorHttpError("stripe", 429, "subscriptions"));
+    const { db, ops } = fakeDb({ ...SCOPE_DATA, connector_snapshots: [] });
+    const out = await resyncConnection(db, v2Stripe(), { now: NOW });
+
+    expect(out).toMatchObject({ outcome: "failed", error: "stripe subscriptions responded 429" });
+    expect(h.notify).not.toHaveBeenCalled();
+    expect(ops.some((o) => o.table === "connector_snapshots")).toBe(false);
+    expect(ops.some((o) => o.table === "svi_signals")).toBe(false);
+    expect(ops.some((o) => o.table === "svi_evidence")).toBe(false);
+    expect(h.rescore).not.toHaveBeenCalled();
+    const release = ops.find((o) => o.table === "oauth_connections_v2" && o.op === "update");
+    expect(release?.args[0]).toMatchObject({ resync_leased_until: null, last_sync_error: "stripe subscriptions responded 429" });
+    expect(consoleText()).not.toContain(RAW_STRIPE);
+  });
+
+  it("Xero P&L 403 after a good refresh → needs_reconnect; the rotated pair is still resealed, nothing else written", async () => {
+    h.xeroRefresh.mockResolvedValue({ accessToken: "xero-access-NEW", refreshToken: "xero-refresh-NEW", expiresAt: "2026-09-14T05:30:00Z" });
+    h.xeroMetrics.mockRejectedValue(new ConnectorHttpError("xero", 403, "profit-and-loss"));
+    const { db, ops } = fakeDb({ ...SCOPE_DATA, connector_snapshots: [] });
+    const c = v2Stripe({ id: "conn-x", provider: "xero", accessTokenSealed: sealToken("xero-access-OLD"), refreshTokenSealed: sealToken(RAW_XERO_REFRESH), providerAccountId: "tenant-1", metadata: { tenantName: "Acme" } });
+    const out = await resyncConnection(db, c, { now: NOW });
+
+    expect(out).toMatchObject({ outcome: "needs_reconnect", error: "xero_auth_rejected", provider: "xero" });
+    expect(h.notify).toHaveBeenCalledTimes(1);
+    const tokenPatch = ops.find((o) => o.table === "oauth_connections_v2" && o.op === "update" && "access_token_encrypted" in (o.args[0] as Record<string, unknown>));
+    expect(tokenPatch).toBeTruthy();
+    expect(ops.some((o) => o.table === "connector_snapshots")).toBe(false);
+    expect(ops.some((o) => o.table === "svi_signals")).toBe(false);
+    expect(h.rescore).not.toHaveBeenCalled();
+    expect(consoleText()).not.toContain(RAW_XERO_REFRESH);
+    expect(consoleText()).not.toContain("xero-refresh-NEW");
   });
 });
 
@@ -341,7 +396,9 @@ describe("listResyncCandidates / claimConnection", () => {
     expect(out.map((c) => [c.table, c.id, c.provider])).toEqual([["oauth_connections_v2", "v2-1", "stripe"], ["oauth_connections", "l-1", "xero"]]);
     expect(out[1]).toMatchObject({ accountId: "acc-1", providerAccountId: "t-1", metadata: { tenantId: "t-1", tenantName: "Acme" }, accessTokenSealed: "gcm:a:b:c" });
     // Only active v2 rows, both providers, oldest-synced first, stale-first filter.
-    expect(ops).toContainEqual({ table: "oauth_connections_v2", op: "eq", args: ["status", "active"] });
+    // active + error (a failed tick must self-heal next week); never revoked.
+    expect(ops).toContainEqual({ table: "oauth_connections_v2", op: "in", args: ["status", ["active", "error"]] });
+    expect(ops.some((o) => o.table === "oauth_connections_v2" && o.op === "eq" && o.args[0] === "status")).toBe(false);
     expect(ops).toContainEqual({ table: "oauth_connections_v2", op: "in", args: ["provider", ["stripe", "xero"]] });
     expect(ops).toContainEqual({ table: "oauth_connections_v2", op: "limit", args: [20] });
     expect(ops.find((o) => o.table === "oauth_connections_v2" && o.op === "or")?.args[0]).toMatch(/^resync_last_at\.is\.null,resync_last_at\.lt\./);
