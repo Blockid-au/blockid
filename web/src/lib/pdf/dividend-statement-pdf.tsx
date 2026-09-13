@@ -107,7 +107,7 @@ export function KV({ label, value, width }: { label: string; value: string; widt
   );
 }
 
-export function EntityBlock({ entity }: { entity: DividendStatementPayload["entity"] }) {
+export function EntityBlock({ entity }: { entity: Pick<DividendStatementPayload["entity"], "name" | "abn" | "acn" | "address"> }) {
   return (
     <View style={st.card}>
       <Text style={st.kvLabel}>Paying entity</Text>

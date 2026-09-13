@@ -17,11 +17,10 @@ import { loadConnectedRevenueSignals } from "@/lib/connected-revenue";
 import { selectConnectedRevenue } from "@/lib/valuation-mrr-bridge";
 import { computeSharePrice, type SharePriceInput, type SharePriceResult } from "@/lib/share-price";
 import { primeSectorMultiples } from "@/lib/valuation/sector-multiples";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-/** Minimal query-builder surface (Supabase admin client or the test fake). */
-interface Db {
-  from(table: string): any; // eslint-disable-line @typescript-eslint/no-explicit-any
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Db = SupabaseClient<any, any, any>;
 
 /** Numeric SVI stage (0-7) → the valuation engine's stage key (same map as api/valuation). */
 export function mapStage(numericStage: number | null | undefined): string {

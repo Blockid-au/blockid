@@ -90,6 +90,9 @@ describe("FEATURE_COSTS", () => {
     // S26-B — board resolution PDFs (1 each) + term-sheet comparison (2)
     expect(FEATURE_COSTS.board_resolution).toBe(1);
     expect(FEATURE_COSTS.term_sheet_compare).toBe(2);
+    // S28-A — annual shareholder tax statements, 2 per FY run (same gate as dividend statements)
+    expect(FEATURE_COSTS.shareholder_tax_statements).toBe(2);
+    expect(FEATURE_COSTS.dividend_statements).toBe(2);
   });
 
   it("keeps every 0-cost 'free' feature at exactly 0 (not undefined)", () => {

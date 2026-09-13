@@ -119,6 +119,9 @@ export const FEATURE_COSTS: Record<string, number> = {
   // ── Dividend statements (S25-B) ───────────────────────────────────────
   dividend_statements: 2, // 2 credits per dividend record — AU distribution statements for every shareholder + register PDF (included with the equity add-on `esop.manage` or Growth+ / Startup Package)
 
+  // ── Shareholder annual tax statements (S28-A) ─────────────────────────
+  shareholder_tax_statements: 2, // 2 credits per financial-year run — one FY summary per shareholder (franked / unfranked / credits / TFN withheld) as PDFs (included with `esop.manage` or Growth+ / Startup Package, same gate as dividend statements)
+
   // ── Board resolutions (S26-B) ─────────────────────────────────────────
   board_resolution: 1, // 1 credit per resolution (share issue / dividend / ESOP adoption) — AU circulating resolution PDF, s 248A; re-downloads free (included with `esop.manage` or Growth+ / Startup Package, same gate as dividend statements)
 
