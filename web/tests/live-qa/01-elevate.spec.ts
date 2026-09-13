@@ -10,7 +10,7 @@ import { elevatePlan, setGrowthPhase } from "./lib/db";
 import { patchRunState } from "./lib/run-state";
 import { evidence, get } from "./lib/api";
 
-test.describe.configure({ mode: "serial" });
+
 
 test("elevate the QA account to Growth + phase 'funding' (local SQL, QA email only)", async ({ api, qa }, testInfo) => {
   test.skip(!env.elevate, "LIVE_QA_ELEVATE not set — Free-plan coverage only");

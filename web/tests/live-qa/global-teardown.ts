@@ -23,7 +23,10 @@ import { patchRunState, readRunState, RUN_STATE_PATH } from "./lib/run-state";
 const WEB_DIR = path.resolve(__dirname, "..", "..");
 
 function erase(email: string, mode: "--dry-run" | "--write"): { code: number; out: string } {
-  const args = ["--env-file=.env", "scripts/db/erase-account.mjs", "--email", email, mode];
+  // `--env-file=.env` as documented; the script itself only reads PSQL /
+  // PGURL / SUPABASE_DB_CONTAINER, so a checkout without .env still erases.
+  const envFile = existsSync(path.join(WEB_DIR, ".env")) ? ["--env-file=.env"] : [];
+  const args = [...envFile, "scripts/db/erase-account.mjs", "--email", email, mode];
   const r = spawnSync("node", args, { cwd: WEB_DIR, encoding: "utf8", timeout: 120_000 });
   const out = `${r.stdout ?? ""}${r.stderr ?? ""}`.trim();
   return { code: r.status ?? -1, out };

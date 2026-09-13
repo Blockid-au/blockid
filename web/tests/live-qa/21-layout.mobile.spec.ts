@@ -7,7 +7,7 @@
 import { test, expect, WORKSPACE_PAGES, GROWTH_GATED_PAGES } from "./fixtures";
 import { evidence } from "./lib/api";
 
-test.describe.configure({ mode: "serial" });
+
 
 test.describe("Mobile 390 px", () => {
   for (const path of WORKSPACE_PAGES) {
@@ -21,10 +21,19 @@ test.describe("Mobile 390 px", () => {
         const header = document.querySelector('[data-testid="workspace-header"]');
         const actions = document.querySelector('[data-testid="header-actions"]');
         const rect = (el: Element | null) => (el ? el.getBoundingClientRect() : null);
+        // An element may be wider than the viewport only inside a horizontal
+        // scroller (tables get `overflow-x: auto` wrappers by design).
+        const inScroller = (el: Element | null): boolean => {
+          for (let n = el; n && n !== document.body; n = n.parentElement) {
+            const ox = getComputedStyle(n).overflowX;
+            if (ox === "auto" || ox === "scroll") return true;
+          }
+          return false;
+        };
         const wide = Array.from(document.querySelectorAll<HTMLElement>("body *"))
           .filter((el) => {
             const r = el.getBoundingClientRect();
-            return r.width > 0 && r.right > window.innerWidth + 1 && getComputedStyle(el).position !== "fixed";
+            return r.width > 0 && r.right > window.innerWidth + 1 && getComputedStyle(el).position !== "fixed" && !inScroller(el);
           })
           .slice(0, 8)
           .map((el) => ({ tag: el.tagName.toLowerCase(), testid: el.getAttribute("data-testid"), cls: el.className?.toString().slice(0, 60), right: Math.round(el.getBoundingClientRect().right) }));
@@ -41,9 +50,8 @@ test.describe("Mobile 390 px", () => {
       expect(metrics.scrollWidth, "document must not scroll horizontally").toBeLessThanOrEqual(metrics.innerWidth);
       expect(metrics.header?.right ?? 0, "header right edge inside the viewport").toBeLessThanOrEqual(metrics.innerWidth + 1);
       expect(metrics.actions?.right ?? 0, "header actions cluster inside the viewport").toBeLessThanOrEqual(metrics.innerWidth + 1);
-      // Elements overflowing to the right (outside an overflow-x:auto table) are a layout regression.
-      const overflowing = metrics.wide.filter((w) => !/table|overflow/.test(w.cls ?? ""));
-      expect(overflowing, "no element extends past the right edge").toEqual([]);
+      // Elements overflowing to the right outside a horizontal scroller are a layout regression.
+      expect(metrics.wide, "no element extends past the right edge (outside an overflow-x scroller)").toEqual([]);
     });
   }
 

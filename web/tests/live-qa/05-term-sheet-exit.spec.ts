@@ -6,7 +6,7 @@
 import { test, expect } from "./fixtures";
 import { evidence, post } from "./lib/api";
 
-test.describe.configure({ mode: "serial" });
+
 
 test.describe("Term sheet compare", () => {
   test("with fewer than two analysed sheets the compare view shows guidance, no picker", async ({ page, visit }, testInfo) => {

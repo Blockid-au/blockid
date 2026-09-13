@@ -6,26 +6,32 @@
 import { test, expect } from "./fixtures";
 import { evidence, get, post } from "./lib/api";
 
-test.describe.configure({ mode: "serial" });
+
 
 test.describe("Valuation certificate + ESS annex", () => {
   test("no SVI analysis → honest empty state (no A$535K hero) and the certificate preview is 409 without a charge", async ({ page, visit, api, credits }, testInfo) => {
-    const vc = await get<{ ok: boolean; empty?: boolean; reason?: string }>(api, "/api/valuation/vc");
+    const vc = await get<{ ok: boolean; empty?: boolean; reason?: string; error?: string }>(api, "/api/valuation/vc");
+    // A fresh founder has no svi_accounts row yet: the route answers
+    // `ok:false "No SVI account found"`; after a first (unscored) visit it is
+    // `ok:true, empty:true, reason:"no_svi_analysis"`. Both mean "no score".
+    const noScore = !vc.body.ok || vc.body.empty === true;
     const before = await credits.snapshot();
     const cert = await post<{ ok: boolean; error?: string; preview?: boolean; annexes?: { ess?: { included: boolean; extraCost: number } }; cost?: number; included?: boolean }>(api, "/api/valuation/certificate", { annex: "ess" });
     await evidence(testInfo, "API", { vc: vc.body, certificate: { status: cert.status, body: cert.body } });
     await credits.assertUnchanged(before, "certificate preview with ESS annex");
 
     await visit("/dashboard/valuation");
-    if (vc.body.empty) {
-      expect(vc.body.reason).toBe("no_svi_analysis");
+    if (noScore) {
+      if (vc.body.ok) expect(vc.body.reason).toBe("no_svi_analysis");
+      else expect(String(vc.body.error)).toMatch(/SVI (account|analysis)/);
       expect(cert.status).toBe(409);
       expect(cert.body.error).toBe("no_svi_analysis");
       const empty = page.getByTestId("valuation-empty-state");
-      await expect(empty).toBeVisible({ timeout: 30_000 });
-      await expect(empty).toContainText(/Run your first score/);
+      const notice = page.getByText(/Complete your SVI analysis first/);
+      await expect(empty.or(notice).first()).toBeVisible({ timeout: 30_000 });
       await expect(page.getByTestId("certificate-ess-annex")).toHaveCount(0);
       const body = await page.locator("body").innerText();
+      await evidence(testInfo, "UI state", { emptyState: await empty.count(), notice: await notice.count() });
       expect(body, "the hero must not fabricate a valuation from the default SVI of 100 (QA2 F4 / lane-1 F3)").not.toMatch(/A\$535K|SVI 100/);
     } else {
       // An account with a real score: the panel renders and the annex adds 0 credits.

@@ -9,7 +9,7 @@ import { test, expect } from "./fixtures";
 import { evidence, get, patch, post } from "./lib/api";
 import { env } from "./lib/env";
 
-test.describe.configure({ mode: "serial" });
+
 
 interface Readiness {
   ok: boolean;

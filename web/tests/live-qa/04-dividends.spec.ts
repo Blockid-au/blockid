@@ -10,7 +10,7 @@ import { evidence, get, post, del } from "./lib/api";
 import { env } from "./lib/env";
 import { setScratch } from "./lib/run-state";
 
-test.describe.configure({ mode: "serial" });
+
 
 interface StatementsList {
   ok: boolean;

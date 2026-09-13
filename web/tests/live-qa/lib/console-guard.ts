@@ -14,8 +14,12 @@ import type { Page, Request, Response } from "@playwright/test";
 
 export const CF_GTM_SIGNATURES = ["google_tags_first_party", "developer_id.dYzg1YT"] as const;
 
-/** Chromium's wording for a refused nonce-less inline script under strict-dynamic. */
-const CSP_INLINE_SCRIPT_RE = /Refused to execute inline script because it violates the following Content Security Policy directive/;
+/**
+ * Chromium's wording for a refused nonce-less inline script under
+ * strict-dynamic — "Refused to execute inline script because it violates…"
+ * (≤ 130) and "Executing inline script violates…" (131+, seen on prod 2026-09-13).
+ */
+const CSP_INLINE_SCRIPT_RE = /(Refused to execute inline script because it violates|Executing inline script violates) the following Content Security Policy directive/;
 
 export interface ConsoleEntry {
   type: "console" | "pageerror";

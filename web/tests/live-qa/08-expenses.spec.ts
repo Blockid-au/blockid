@@ -9,7 +9,7 @@ import { csvMultipart, evidence, get, patch, post } from "./lib/api";
 import { env } from "./lib/env";
 import { setScratch } from "./lib/run-state";
 
-test.describe.configure({ mode: "serial" });
+
 
 interface Tx {
   id: string;
@@ -36,6 +36,7 @@ interface ImportResult {
   queue?: number;
   cost?: number;
   included?: boolean;
+  creditNote?: string;
   error?: string;
 }
 
@@ -65,8 +66,12 @@ test.describe("Expenses", () => {
     await evidence(testInfo, "import", r);
     expect(r.status).toBe(200);
     expect(r.body.bankName).toBe("CBA");
-    expect(r.body.inserted).toBe(5);
-    expect(r.body.duplicates).toBe(0);
+    expect((r.body.inserted ?? 0) + (r.body.duplicates ?? 0), "5 lines parsed: inserted on a fresh run, duplicates on a re-run").toBe(5);
+    if (r.body.included) {
+      // lane-2 P3-d was fixed on the previews (creditNoteFor) but the import
+      // response still says "Charged to your credits." with cost 0 / included.
+      expect.soft(r.body.creditNote ?? "", "import creditNote must not claim a charge when cost is 0 and included (lane-2 P3-d residual on /api/expenses/import)").not.toMatch(/Charged to your credits/);
+    }
 
     const list = await get<ExpensesList>(api, "/api/expenses?limit=50");
     const byDesc = (re: RegExp) => list.body.transactions.find((t) => re.test(t.description));
@@ -99,8 +104,9 @@ test.describe("Expenses", () => {
     const r = await importCsv(api, "cba-unknown.csv", UNKNOWN_CSV);
     await evidence(testInfo, "import unknown", r);
     expect(r.status).toBe(200);
-    expect(r.body.inserted).toBe(2);
-    expect(r.body.needsAi ?? r.body.queue).toBeGreaterThanOrEqual(1);
+    expect((r.body.inserted ?? 0) + (r.body.duplicates ?? 0)).toBe(2);
+    test.skip((r.body.inserted ?? 0) === 0 && (r.body.queue ?? 0) === 0, "re-run against a kept account: the unknown lines were already categorised");
+    expect(r.body.queue ?? r.body.needsAi).toBeGreaterThanOrEqual(1);
 
     const before = await credits.snapshot();
     const preview = await post<{ ok: boolean; preview: boolean; queue: number; cost: number; included: boolean; balance: number | null; creditNote?: string }>(api, "/api/expenses/categorise", {});
@@ -151,14 +157,15 @@ test.describe("Expenses", () => {
 
   test("inline re-category persists, creates a learned rule, and the rule fires on the next import", async ({ page, visit, api }, testInfo) => {
     await visit("/workspace/expenses");
-    const select = page.getByRole("combobox", { name: /Category for LITTLE CAFE COFFEE PERTH/ });
+    // The 4 Sep A$18.50 line (a re-run also carries the 8 Sep A$21.00 re-import line).
+    const select = page.getByRole("row", { name: /LITTLE CAFE COFFEE PERTH/ }).filter({ hasText: "18.50" }).getByRole("combobox", { name: /Category for LITTLE CAFE COFFEE PERTH/ });
     await expect(select).toBeVisible({ timeout: 30_000 });
     await select.selectOption("travel");
     await expect(page.getByTestId("expenses-notice")).toContainText(/Saved/, { timeout: 20_000 });
     const notice = await page.getByTestId("expenses-notice").innerText();
 
     const list = await get<ExpensesList>(api, "/api/expenses?limit=50");
-    const cafe = list.body.transactions.find((t) => /LITTLE CAFE COFFEE PERTH/.test(t.description));
+    const cafe = list.body.transactions.find((t) => /LITTLE CAFE COFFEE PERTH/.test(t.description) && t.amountAud === -18.5);
     await evidence(testInfo, "after inline change", { notice, cafe });
     expect(cafe?.category).toBe("travel");
     expect(cafe?.categorySource).toBe("manual");
@@ -166,11 +173,14 @@ test.describe("Expenses", () => {
     const again = await importCsv(api, "cba-cafe-again.csv", [CBA_HEADER, "08/09/2026,-21.00,LITTLE CAFE COFFEE PERTH,4092.20"].join("\n"));
     await evidence(testInfo, "re-import cafe", again);
     expect(again.status).toBe(200);
-    expect(again.body.inserted).toBe(1);
-    expect(again.body.ruleCategorised).toBe(1);
-    const list2 = await get<ExpensesList>(api, "/api/expenses?limit=50");
-    const newCafe = list2.body.transactions.find((t) => /LITTLE CAFE COFFEE PERTH/.test(t.description) && t.amountAud === -21);
-    expect(newCafe?.category).toBe("travel");
+    if (again.body.inserted === 1) {
+      expect(again.body.ruleCategorised).toBe(1);
+      const list2 = await get<ExpensesList>(api, "/api/expenses?limit=50");
+      const newCafe = list2.body.transactions.find((t) => /LITTLE CAFE COFFEE PERTH/.test(t.description) && t.amountAud === -21);
+      expect(newCafe?.category).toBe("travel");
+    } else {
+      expect(again.body.duplicates, "re-run: the 8 Sep line already exists").toBe(1);
+    }
   });
 
   test("PATCH with a bad category is 400 bad_category; unknown id is 404", async ({ api }, testInfo) => {

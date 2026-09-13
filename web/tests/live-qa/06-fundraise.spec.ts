@@ -10,7 +10,7 @@ import { evidence, get, patch, post } from "./lib/api";
 import { env } from "./lib/env";
 import { setScratch } from "./lib/run-state";
 
-test.describe.configure({ mode: "serial" });
+
 
 interface Round {
   id: string;
@@ -71,8 +71,8 @@ test.describe("Fundraise rounds", () => {
     const roundId = qa.scratch["fundraise.roundId"] as string;
     expect(roundId).toBeTruthy();
     const detail = await get<{ ok: boolean; round: Round; commitments: Commitment[]; summary: Summary; dataRoom: unknown; projectDataRoom: unknown }>(api, `/api/fundraise/${roundId}`);
-    await evidence(testInfo, "GET round", { status: detail.status, round: detail.body.round, summary: detail.body.summary, dataRoom: detail.body.dataRoom, projectDataRoom: detail.body.projectDataRoom });
-    expect(detail.status).toBe(200);
+    await evidence(testInfo, "GET round", { status: detail.status, body: detail.body });
+    expect(detail.status, `GET /api/fundraise/${roundId} must resolve the round the wizard just created (it is listed by GET /api/fundraise)`).toBe(200);
 
     await visit(`/workspace/fundraise/${roundId}`);
     await expect(page.getByTestId("fundraise-round")).toBeVisible({ timeout: 30_000 });

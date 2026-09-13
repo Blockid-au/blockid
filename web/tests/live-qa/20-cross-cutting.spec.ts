@@ -10,22 +10,25 @@ import { test, expect, WORKSPACE_PAGES, GROWTH_GATED_PAGES } from "./fixtures";
 import { evidence } from "./lib/api";
 import { env } from "./lib/env";
 
-test.describe.configure({ mode: "serial" });
 
-const NAV_LEAVES: Array<{ href: string; label: string; pillar: RegExp; phase: number }> = [
-  { href: "/workspace/investors", label: "Investor CRM", pillar: /^Fundraise$/i, phase: 3 },
-  { href: "/workspace/expenses", label: "Expenses", pillar: /^Scale & Exit$/i, phase: 4 },
-  { href: "/workspace/listing-readiness", label: "Listing Readiness", pillar: /^Scale & Exit$/i, phase: 5 },
-  { href: "/workspace/clean-room", label: "Clean-Room Prep", pillar: /^Scale & Exit$/i, phase: 5 },
+
+const NAV_LEAVES: Array<{ href: string; label: string; pillar: string; phase: number }> = [
+  { href: "/workspace/investors", label: "Investor CRM", pillar: "Fundraise", phase: 3 },
+  { href: "/workspace/expenses", label: "Expenses", pillar: "Scale & Exit", phase: 4 },
+  { href: "/workspace/listing-readiness", label: "Listing Readiness", pillar: "Scale & Exit", phase: 5 },
+  { href: "/workspace/clean-room", label: "Clean-Room Prep", pillar: "Scale & Exit", phase: 5 },
 ];
 
-async function navLink(page: Page, href: string, pillar: RegExp): Promise<Locator> {
+async function navLink(page: Page, href: string, pillarLabel: string): Promise<Locator> {
   const nav = page.getByRole("navigation", { name: "Workspace navigation" });
   const link = nav.locator(`a[href="${href}"]`);
   if ((await link.count()) === 0) {
-    // Pillar may be collapsed — expand it once and look again.
-    const toggle = nav.getByRole("button", { name: pillar }).first();
-    if ((await toggle.count()) && (await toggle.getAttribute("aria-expanded")) === "false") await toggle.click();
+    // A collapsed pillar renders no items — expand it once and look again.
+    const toggle = nav.locator(`[data-group-label="${pillarLabel}"] button[aria-expanded="false"]`).first();
+    if (await toggle.count()) {
+      await toggle.click();
+      await nav.locator(`[data-group-label="${pillarLabel}"] button[aria-expanded="true"]`).first().waitFor({ timeout: 10_000 }).catch(() => undefined);
+    }
   }
   return link;
 }
@@ -45,7 +48,7 @@ test.describe("Navigation by growth phase", () => {
     for (const leaf of NAV_LEAVES) {
       if (qa.elevated) {
         expect(seen[leaf.href].count, `${leaf.label} visible at phase 'funding'`).toBeGreaterThan(0);
-        expect(seen[leaf.href].pillar ?? "", `${leaf.label} pillar`).toMatch(leaf.pillar);
+        expect(seen[leaf.href].pillar ?? "", `${leaf.label} pillar`).toBe(leaf.pillar);
       } else {
         // Phase 0 founder: hidden by design (menu-by-growth-phase, lane-1 F14).
         expect(seen[leaf.href].count, `${leaf.label} hidden at phase 0`).toBe(0);
@@ -56,7 +59,9 @@ test.describe("Navigation by growth phase", () => {
 
 test.describe("Logged-out redirects", () => {
   test("every workspace route and /dashboard/valuation answers 307 → /auth/login?next=<route> without a session", async ({}, testInfo) => {
-    const anon = await request.newContext({ baseURL: env.baseURL });
+    // Inside a test, request.newContext() inherits the project's `use`
+    // (including the founder storageState) — pass an empty jar explicitly.
+    const anon = await request.newContext({ baseURL: env.baseURL, storageState: { cookies: [], origins: [] } });
     const rows: Array<{ path: string; status: number; location: string | null }> = [];
     try {
       for (const path of WORKSPACE_PAGES) {
@@ -78,7 +83,14 @@ test.describe("Console + network hygiene per page", () => {
   for (const path of WORKSPACE_PAGES) {
     test(`${path} — no console errors / failed requests (Cloudflare tag-gateway CSP error allow-listed by signature)`, async ({ page, visit, guard, qa }, testInfo) => {
       test.skip(!qa.elevated && GROWTH_GATED_PAGES.has(path), "Growth-gated page redirects to /pricing on Free — not swept");
-      const allowRequest = path === "/workspace/revenue" && !qa.elevated ? [{ method: "POST", pathRe: /^\/api\/dividends$/, status: 400 }] : [];
+      const allowRequest = [
+        // Every workspace page GETs /api/svi/phase-progress (product tour); a
+        // full run loads ~100 pages in a few minutes and trips its per-user
+        // limiter (429) — suite-induced, so tolerated and annotated. Any
+        // other status on that route still fails the page.
+        { method: "GET", pathRe: /^\/api\/svi\/phase-progress$/, status: 429 },
+        ...(path === "/workspace/revenue" && !qa.elevated ? [{ method: "POST", pathRe: /^\/api\/dividends$/, status: 400 }] : []),
+      ];
       const g = guard(page, { allowRequest });
       const started = Date.now();
       await visit(path, { waitUntil: "networkidle" });
@@ -88,9 +100,10 @@ test.describe("Console + network hygiene per page", () => {
       if (report.allowed.length) {
         testInfo.annotations.push({ type: "allow-listed", description: `${report.allowed.length}× Cloudflare-injected GTM bootstrap refused by CSP (docs/ops/analytics.md §4) — served HTML still carries the signature` });
       }
-      if (report.allowedRequests.length) {
-        testInfo.annotations.push({ type: "known-issue", description: `lane-1 F10 (P3): POST /api/dividends 400 on load without shareholders ×${report.allowedRequests.length}` });
-      }
+      const f10 = report.allowedRequests.filter((r) => /\/api\/dividends$/.test(r.url));
+      const limited = report.allowedRequests.filter((r) => /phase-progress/.test(r.url));
+      if (f10.length) testInfo.annotations.push({ type: "known-issue", description: `lane-1 F10 (P3): POST /api/dividends 400 on load without shareholders ×${f10.length}` });
+      if (limited.length) testInfo.annotations.push({ type: "suite-induced", description: `GET /api/svi/phase-progress 429 ×${limited.length} — the run's page volume tripped the per-user limiter` });
       expect(report.errors, "unexpected console errors").toEqual([]);
       expect(report.failedRequests, "unexpected failed requests (≥400)").toEqual([]);
       expect(loadMs, "page load under 15 s").toBeLessThan(15_000);
@@ -102,7 +115,7 @@ test.describe("Keyboard reachability", () => {
   const TARGETS: Array<{ path: string; growth: boolean; name: string; find: (page: Page) => Locator }> = [
     { path: "/workspace/fundraise", growth: false, name: "Calculate Share Price", find: (p) => p.getByRole("button", { name: /Calculate Share Price/ }) },
     { path: "/workspace/investors", growth: false, name: "Add contact", find: (p) => p.getByTestId("crm-add") },
-    { path: "/workspace/dividends", growth: false, name: "DRIP add election", find: (p) => p.getByTestId("drip-add") },
+    { path: "/workspace/dividends", growth: true, name: "DRIP add election", find: (p) => p.getByTestId("drip-add") },
     { path: "/workspace/exit", growth: true, name: "Calculate Exit", find: (p) => p.getByRole("button", { name: /Calculate Exit/ }) },
     { path: "/workspace/cap-table", growth: true, name: "Add Shareholder", find: (p) => p.getByRole("button", { name: /Add Shareholder/ }).first() },
     { path: "/workspace/listing-readiness", growth: true, name: "Export PDF", find: (p) => p.getByTestId("listing-export") },

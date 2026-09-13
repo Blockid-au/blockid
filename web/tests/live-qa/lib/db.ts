@@ -10,6 +10,8 @@ import { execFileSync } from "node:child_process";
 import { QA_EMAIL_RE, env } from "./env";
 
 const q = (s: string) => `'${String(s).replace(/'/g, "''")}'`;
+/** `psql -At` prints the RETURNING row, then the command tag ("UPDATE 1") — keep the row. */
+const firstLine = (out: string) => out.trim().split("\n")[0] ?? "";
 
 function assertQaEmail(email: string): void {
   if (!QA_EMAIL_RE.test(email)) {
@@ -38,9 +40,9 @@ export function psql(sql: string): string {
 export function elevatePlan(email: string, plan = "growth"): string {
   assertQaEmail(email);
   if (!/^[a-z_]+$/.test(plan)) throw new Error("bad plan token");
-  const out = psql(
-    `update public.app_users set plan = ${q(plan)}, updated_at = now() where email = ${q(email)} and email ~ '^qa-live-[0-9]{8}-[0-9]{4}@blockid\\.au$' returning plan;`,
-  ).trim();
+  const out = firstLine(psql(
+    `update public.app_users set plan = ${q(plan)} where email = ${q(email)} and email ~ '^qa-live-[0-9]{8}-[0-9]{4}@blockid\\.au$' returning plan;`,
+  ));
   if (out !== plan) throw new Error(`elevatePlan: expected '${plan}' back, got '${out || "<no row>"}'`);
   return out;
 }
@@ -55,9 +57,9 @@ export function setGrowthPhase(email: string, projectId: string, phase = "fundin
   assertQaEmail(email);
   if (!/^[a-z_]+$/.test(phase)) throw new Error("bad phase token");
   if (!/^[0-9a-f-]{36}$/i.test(projectId)) throw new Error("bad project id");
-  const out = psql(
+  const out = firstLine(psql(
     `update public.projects p set growth_phase_current = ${q(phase)} from public.app_users u where p.id = ${q(projectId)}::uuid and p.user_id = u.id and u.email = ${q(email)} returning p.growth_phase_current;`,
-  ).trim();
+  ));
   if (out !== phase) throw new Error(`setGrowthPhase: expected '${phase}' back, got '${out || "<no row>"}'`);
   return out;
 }
@@ -65,5 +67,5 @@ export function setGrowthPhase(email: string, projectId: string, phase = "fundin
 /** Rows left for the QA email after erasure — must be 0 (tombstones carry a different address). */
 export function countAppUsersByEmail(email: string): number {
   assertQaEmail(email);
-  return Number(psql(`select count(*) from public.app_users where email = ${q(email)};`).trim() || "0");
+  return Number(firstLine(psql(`select count(*) from public.app_users where email = ${q(email)};`)) || "0");
 }

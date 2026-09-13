@@ -5,7 +5,7 @@
 import { test, expect } from "./fixtures";
 import { evidence, get, post } from "./lib/api";
 
-test.describe.configure({ mode: "serial" });
+
 
 test.describe("Free plan gates", () => {
   test("account is on Free with the welcome credits before any journey", async ({ api, qa }, testInfo) => {

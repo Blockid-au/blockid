@@ -6,7 +6,7 @@
 import { test, expect } from "./fixtures";
 import { evidence, get, patch } from "./lib/api";
 
-test.describe.configure({ mode: "serial" });
+
 
 interface Checklist {
   ok: boolean;

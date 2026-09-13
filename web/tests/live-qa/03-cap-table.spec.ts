@@ -8,7 +8,7 @@ import { test, expect } from "./fixtures";
 import { evidence, get, post } from "./lib/api";
 import { setScratch } from "./lib/run-state";
 
-test.describe.configure({ mode: "serial" });
+
 
 interface CapTable {
   ok: boolean;

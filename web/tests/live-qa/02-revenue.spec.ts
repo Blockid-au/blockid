@@ -7,7 +7,7 @@
 import { test, expect } from "./fixtures";
 import { evidence, get } from "./lib/api";
 
-test.describe.configure({ mode: "serial" });
+
 
 const KNOWN_LABELS = [/^from Xero/, /^from Stripe/, /^from your BlockID Stripe payments$/, /^manual entries$/, /^from bank CSV/, /^from your metrics$/, /^estimate$/, /^no data yet$/];
 
