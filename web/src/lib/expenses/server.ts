@@ -128,7 +128,7 @@ export async function applyRuleToSiblings(
     .neq("id", exceptId)
     .limit(MAX_ROWS);
   const ids = ((data ?? []) as Array<{ id: string; category_source: string | null }>)
-    .filter((r) => r.category_source !== "manual")
+    .filter((r) => r.id !== exceptId && r.category_source !== "manual")
     .map((r) => r.id);
   if (ids.length === 0) return 0;
   await db
