@@ -35,6 +35,20 @@ function fromAddress(): string {
   return process.env.SMTP_FROM_EMAIL || FROM_DEFAULT;
 }
 
+/**
+ * S26-A — a display name on the PLATFORM sender ("Jane Chen via BlockID.au
+ * <info@blockid.au>"): the founder's name, never the founder's address, so
+ * SPF / DKIM / DMARC stay ours. Quotes and angle brackets are stripped from
+ * the name; an empty name leaves the configured sender untouched.
+ */
+export function withFromName(configured: string, name: string | null | undefined): string {
+  const clean = (name ?? "").replace(/["<>\r\n]/g, "").replace(/\s+/g, " ").trim().slice(0, 80);
+  if (!clean) return configured;
+  const m = /<([^>]+)>/.exec(configured);
+  const addr = (m ? m[1] : configured).trim();
+  return `"${clean} via BlockID.au" <${addr}>`;
+}
+
 function isSmtpConfigured(): boolean {
   return Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
 }
@@ -73,12 +87,13 @@ async function sendViaResend(args: {
   to: string;
   subject: string;
   html: string;
+  fromName?: string | null;
   attachments?: { filename: string; content: Buffer | Uint8Array | string; contentType?: string }[];
 }): Promise<SendResult> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return { ok: false, reason: "not_configured" };
 
-  const from = process.env.RESEND_FROM_EMAIL || fromAddress();
+  const from = withFromName(process.env.RESEND_FROM_EMAIL || fromAddress(), args.fromName);
 
   // Resend API accepts attachments as an array of { filename, content }
   // where content is base64-encoded string (or a remote URL via `path`).
@@ -135,6 +150,8 @@ export async function sendEmail(args: {
   subject: string;
   html: string;
   unsubscribeUrl?: string;
+  /** S26-A — display name on the platform sender ("<name> via BlockID.au"); the address never changes. */
+  fromName?: string | null;
   attachments?: { filename: string; content: Buffer | Uint8Array; contentType?: string }[];
 }): Promise<SendResult> {
   // Priority 1: SMTP (Nodemailer)
@@ -148,7 +165,7 @@ export async function sendEmail(args: {
       }
 
       const info = await transporter.sendMail({
-        from: fromAddress(),
+        from: withFromName(fromAddress(), args.fromName),
         to: args.to,
         subject: args.subject,
         html: args.html,
@@ -175,6 +192,7 @@ export async function sendEmail(args: {
       to: args.to,
       subject: args.subject,
       html: args.html,
+      fromName: args.fromName,
       attachments: args.attachments,
     });
   }

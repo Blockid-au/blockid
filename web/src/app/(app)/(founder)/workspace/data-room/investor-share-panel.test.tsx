@@ -12,10 +12,24 @@ import {
   InvestorSharePanel,
   STATE_LABEL,
   accessSummary,
+  followUpUnavailableReason,
   ndaSummary,
   shareRecipient,
   tokenFromUrl,
 } from "./investor-share-panel";
+
+describe("followUpUnavailableReason (S26-A)", () => {
+  it("is null for an active link with an email and no pending NDA", () => {
+    expect(followUpUnavailableReason({ state: "active", investorEmail: "j@bb.vc" })).toBeNull();
+    expect(followUpUnavailableReason({ state: "active", investorEmail: "j@bb.vc", ndaRequired: true, ndaSignedAt: "2026-09-01T00:00:00Z" })).toBeNull();
+  });
+  it("names the blocker: inactive link, no email, NDA pending", () => {
+    expect(followUpUnavailableReason({ state: "revoked", investorEmail: "j@bb.vc" })).toBe("Link is no longer active");
+    expect(followUpUnavailableReason({ state: "expired", investorEmail: "j@bb.vc" })).toBe("Link is no longer active");
+    expect(followUpUnavailableReason({ state: "active", investorEmail: "  " })).toContain("investor email");
+    expect(followUpUnavailableReason({ state: "active", investorEmail: "j@bb.vc", ndaRequired: true, ndaSignedAt: null })).toContain("NDA");
+  });
+});
 
 describe("ndaSummary (S21-A)", () => {
   it("names the acceptance with its date and version", () => {

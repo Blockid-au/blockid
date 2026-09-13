@@ -96,6 +96,7 @@ export function activateButtonCopy(hasRoom: boolean): string {
 export function activationToast(dr: ActivationDataRoom): string {
   if (dr.attached === "generated") return "Round is open. Your data room was generated and attached (3 credits).";
   if (dr.attached === "existing") return "Round is open. Your existing data room is attached.";
+  if (dr.attached !== "none") return "Round is open.";
   if (dr.reason === "insufficient_credits") return "Round is open. No data room yet — top up credits, then generate one from the Data Room page.";
   if (dr.reason === "feature_locked") return "Round is open. Data rooms are not on your plan — upgrade to attach one.";
   return "Round is open. The data room could not be generated — try again from the Data Room page.";

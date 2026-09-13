@@ -174,6 +174,65 @@ export function renderStep3(ctx: Step3Context): RenderedDrip {
   return { subject, html, text };
 }
 
+// ---------- S26-A: data-room follow-up (2 business days after a view) --------
+//
+// Sent once per data-room link, in the founder's name via the platform
+// sender, only when the founder switched auto follow-up on for that link.
+// The footer is `unsubFooter()` from lib/email (Spam Act s17/s18 sender
+// identity + unsubscribe) — passed in rendered so this module stays pure.
+
+export interface FollowUpContext {
+  founderName: string;
+  startupName: string;
+  investorName?: string | null;
+  /** /s/dr/<token> */
+  roomUrl: string;
+  /** How many sections the investor opened on their last visit; 0 = unknown. */
+  sectionsViewed: number;
+  /** Rendered `unsubFooter(...)` HTML. */
+  footerHtml: string;
+}
+
+export function renderDataRoomFollowUp(ctx: FollowUpContext): RenderedDrip {
+  const greeting = ctx.investorName ? `Hi ${escapeHtml(ctx.investorName)},` : "Hi,";
+  const subject = `Following up on the ${ctx.startupName} data room`;
+  const read =
+    ctx.sectionsViewed >= 2
+      ? `Thanks for spending time in the ${escapeHtml(ctx.startupName)} data room earlier this week — I saw you opened ${ctx.sectionsViewed} sections.`
+      : `Thanks for opening the ${escapeHtml(ctx.startupName)} data room earlier this week.`;
+  const inner = `<p style="margin:0 0 6px;font-size:11px;font-weight:700;color:${BRAND_PRIMARY};text-transform:uppercase;letter-spacing:0.16em">Data room follow-up</p>
+     <h1 style="margin:8px 0 12px;font-size:22px;color:#0f172a">${escapeHtml(ctx.startupName)} — anything I can add?</h1>
+     <p style="margin:0 0 12px;color:#0f172a;font-size:14px;line-height:1.55">${greeting}</p>
+     <p style="margin:0 0 12px;color:#0f172a;font-size:14px;line-height:1.55">${read}</p>
+     <p style="margin:0 0 16px;color:#0f172a;font-size:14px;line-height:1.55">If anything was missing or raised a question, reply to this email and I will get it to you. The link below stays live and everything in it is current.</p>
+     <p style="margin:0 0 24px"><a href="${escapeAttr(ctx.roomUrl)}" style="display:inline-block;padding:10px 18px;background:${BRAND_PRIMARY};color:#ffffff;border-radius:8px;text-decoration:none;font-weight:600">Back to the data room</a></p>
+     <p style="margin:0;color:${TEXT_MUTED};font-size:13px;line-height:1.55">${escapeHtml(ctx.founderName)}<br>${escapeHtml(ctx.startupName)}</p>`;
+  const html = `<!doctype html>
+<html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;background:#f8fafc;padding:24px;margin:0">
+  <div style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid ${BORDER};border-radius:12px;overflow:hidden">
+    <div style="padding:28px 28px 20px">${inner}</div>
+    <div style="padding:14px 28px;border-top:1px solid ${BORDER};background:#f8fafc;font-size:11px;color:#64748b;line-height:1.5">
+      You're receiving this because ${escapeHtml(ctx.founderName)} shared a BlockID.au data room link with you and asked us to follow up once. This is the only follow-up for that link.
+    </div>
+  </div>
+  ${ctx.footerHtml}
+</body></html>`;
+  const text = [
+    ctx.investorName ? `Hi ${ctx.investorName},` : "Hi,",
+    "",
+    ctx.sectionsViewed >= 2
+      ? `Thanks for spending time in the ${ctx.startupName} data room earlier this week — I saw you opened ${ctx.sectionsViewed} sections.`
+      : `Thanks for opening the ${ctx.startupName} data room earlier this week.`,
+    "If anything was missing or raised a question, reply to this email and I will get it to you. The link stays live and everything in it is current.",
+    "",
+    ctx.roomUrl,
+    "",
+    ctx.founderName,
+    ctx.startupName,
+  ].join("\n");
+  return { subject, html, text };
+}
+
 // ---------- Shared helpers ----------------------------------------------------
 
 function shell(inner: string, unsubscribeUrl: string): string {

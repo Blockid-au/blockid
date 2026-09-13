@@ -192,7 +192,7 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/integrations/[provider]/sync/route.ts", family: "integrations.sync", methods: ["POST"] },
   { route: "api/integrations/github/manual/route.ts", family: "integrations.github.manual", methods: ["POST"] },
   { route: "api/integrations/route.ts", family: "integrations", methods: ["DELETE"] },
-  { route: "api/investor-data-room/route.ts", family: "investor-data-room", methods: ["POST","DELETE"] },
+  { route: "api/investor-data-room/route.ts", family: "investor-data-room", methods: ["POST","PATCH","DELETE"] },
   { route: "api/investor-link/route.ts", family: "investor-link", methods: ["POST","DELETE"] },
   { route: "api/investor-pack/generate/route.ts", family: "investor-pack.generate", methods: ["POST"] },
   { route: "api/investor-pack/one-click/route.ts", family: "investor-pack.one-click", methods: ["POST"] },

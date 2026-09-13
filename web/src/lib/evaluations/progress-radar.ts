@@ -296,7 +296,7 @@ export async function releaseProgressSend(p: EvaluatorProgress, store?: Progress
  */
 export async function notifyEvaluatorProgress(
   p: EvaluatorProgress,
-  notify: (args: Parameters<typeof insertNotification>[0]) => Promise<void> = insertNotification,
+  notify: (args: Parameters<typeof insertNotification>[0]) => Promise<unknown> = insertNotification,
 ): Promise<void> {
   await notify({
     userId: p.userId,

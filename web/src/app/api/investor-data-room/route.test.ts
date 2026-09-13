@@ -43,7 +43,7 @@ vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => mocks.getSupabaseAdminMock(),
 }));
 
-import { DELETE, GET, POST, dynamic } from "./route";
+import { DELETE, GET, PATCH, POST, dynamic } from "./route";
 
 // ---------------------------------------------------------------------------
 // Fake supabase — records every from/eq/insert/update, answers from a queue.
@@ -117,6 +117,13 @@ function get(qs = ""): NextRequest {
 function del(qs = ""): NextRequest {
   return new NextRequest(`https://blockid.au/api/investor-data-room${qs}`, {
     method: "DELETE",
+  });
+}
+function patch(body?: unknown): NextRequest {
+  return new NextRequest("https://blockid.au/api/investor-data-room", {
+    method: "PATCH",
+    body: body === undefined ? undefined : typeof body === "string" ? body : JSON.stringify(body),
+    headers: { "content-type": "application/json" },
   });
 }
 
@@ -468,5 +475,47 @@ describe("DELETE — revoke", () => {
     state.replies = [{ data: null, error: { message: "boom" } }];
     const res = await DELETE(del("?token=tok-1"));
     expect(res.status).toBe(500);
+  });
+});
+
+// S26-A — per-link auto follow-up opt-in.
+describe("PATCH — auto follow-up", () => {
+  it("401s an anonymous caller; 503s without a database", async () => {
+    mocks.getCurrentUserMock.mockResolvedValue(null);
+    expect((await PATCH(patch({ token: "tok-1", autoFollowUp: true }))).status).toBe(401);
+    mocks.getCurrentUserMock.mockResolvedValue(USER);
+    mocks.getSupabaseAdminMock.mockReturnValue(null);
+    expect((await PATCH(patch({ token: "tok-1", autoFollowUp: true }))).status).toBe(503);
+  });
+
+  it("400s bad JSON, a missing token and a non-boolean flag before touching the database", async () => {
+    mocks.getCurrentUserMock.mockResolvedValue(USER);
+    mocks.getSupabaseAdminMock.mockReturnValue(makeSupabase());
+    expect((await PATCH(patch("nope"))).status).toBe(400);
+    expect((await PATCH(patch({ autoFollowUp: true }))).status).toBe(400);
+    expect((await PATCH(patch({ token: "tok-1", autoFollowUp: "yes" }))).status).toBe(400);
+    expect(state.updates.length).toBe(0);
+  });
+
+  it("writes auto_follow_up scoped to the caller's account + token, and echoes the flag", async () => {
+    mocks.getCurrentUserMock.mockResolvedValue(USER);
+    mocks.getSupabaseAdminMock.mockReturnValue(makeSupabase());
+    state.replies = [{ data: { id: "s-1", auto_follow_up: true }, error: null }];
+    const res = await PATCH(patch({ token: "tok-1", autoFollowUp: true }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, autoFollowUp: true });
+    const upd = state.updates.find((u) => u.table === "data_room_access_tokens")!;
+    expect(upd.payload).toEqual({ auto_follow_up: true });
+    expect(state.eq).toContainEqual({ table: "data_room_access_tokens", col: "account_id", val: "u-1" });
+    expect(state.eq).toContainEqual({ table: "data_room_access_tokens", col: "token", val: "tok-1" });
+  });
+
+  it("404s for another founder's token exactly like a missing one; 500s on a database error", async () => {
+    mocks.getCurrentUserMock.mockResolvedValue(USER);
+    mocks.getSupabaseAdminMock.mockReturnValue(makeSupabase());
+    state.replies = [{ data: null, error: null }];
+    expect((await PATCH(patch({ token: "not-mine", autoFollowUp: false }))).status).toBe(404);
+    state.replies = [{ data: null, error: { message: "boom" } }];
+    expect((await PATCH(patch({ token: "tok-1", autoFollowUp: false }))).status).toBe(500);
   });
 });

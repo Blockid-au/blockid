@@ -33,7 +33,7 @@ import {
   shareLinkState,
   type ShareLinkRow,
 } from "@/lib/data-room";
-import { apiRoute } from "@/lib/audit/api-route";
+import { apiRoute, auditNote } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 
@@ -214,7 +214,7 @@ export async function GET(request: NextRequest) {
   const { data: links } = await supabase
     .from("data_room_access_tokens")
     .select(
-      "id, token, data_room_id, investor_name, investor_email, investor_firm, access_count, first_accessed, last_accessed, expires_at, is_active, revoked_at, created_at, nda_required, nda_signed_at, nda_signed_version, watermark",
+      "id, token, data_room_id, investor_name, investor_email, investor_firm, access_count, first_accessed, last_accessed, expires_at, is_active, revoked_at, created_at, nda_required, nda_signed_at, nda_signed_version, watermark, auto_follow_up",
     )
     .eq("account_id", user.id)
     .order("created_at", { ascending: false });
@@ -242,6 +242,8 @@ export async function GET(request: NextRequest) {
       ndaSignedVersion:
         typeof l.nda_signed_version === "number" ? l.nda_signed_version : null,
       watermark: (l.watermark as string | null) ?? null,
+      // S26-A — per-link follow-up opt-in (migration 0355).
+      autoFollowUp: Boolean(l.auto_follow_up),
     })),
   });
 }
@@ -300,6 +302,72 @@ async function DELETE_handler(request: NextRequest) {
   return NextResponse.json({ ok: true, revoked: true });
 }
 
+// ---------------------------------------------------------------------------
+// PATCH — per-link settings (S26-A: auto follow-up)
+//
+// Body: { token, autoFollowUp: boolean }. Scoped by account_id like DELETE, so
+// a stranger's token and a missing one are indistinguishable (404). The
+// follow-up itself is sent by api/cron/investor-followups two business days
+// after a view with no return, once per link, never while an NDA is unmet.
+// ---------------------------------------------------------------------------
+
+interface PatchBody {
+  token?: unknown;
+  autoFollowUp?: unknown;
+}
+
+async function PATCH_handler(request: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json(
+      { ok: false, error: "Authentication required" },
+      { status: 401 },
+    );
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json(
+      { ok: false, error: "Database not configured" },
+      { status: 503 },
+    );
+  }
+
+  let body: PatchBody;
+  try {
+    body = (await request.json()) as PatchBody;
+  } catch {
+    return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
+  }
+  const token = typeof body?.token === "string" ? body.token.trim() : "";
+  if (!token || token.length > 128) {
+    return NextResponse.json({ ok: false, error: "token is required" }, { status: 400 });
+  }
+  if (typeof body.autoFollowUp !== "boolean") {
+    return NextResponse.json({ ok: false, error: "autoFollowUp must be a boolean" }, { status: 400 });
+  }
+
+  const { data: updated, error } = await supabase
+    .from("data_room_access_tokens")
+    .update({ auto_follow_up: body.autoFollowUp })
+    .eq("token", token)
+    .eq("account_id", user.id)
+    .select("id, auto_follow_up")
+    .maybeSingle();
+
+  if (error) {
+    console.error("[blockid:investor-data-room] patch failed", error);
+    return NextResponse.json({ ok: false, error: "Failed to update share link" }, { status: 500 });
+  }
+  if (!updated) {
+    return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+  }
+
+  auditNote(String((updated as { id: string }).id), { auto_follow_up: body.autoFollowUp });
+  return NextResponse.json({ ok: true, autoFollowUp: body.autoFollowUp });
+}
+
 // S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
 export const POST = apiRoute({ route: "api/investor-data-room/route.ts", method: "POST" }, POST_handler);
+export const PATCH = apiRoute({ route: "api/investor-data-room/route.ts", method: "PATCH" }, PATCH_handler);
 export const DELETE = apiRoute({ route: "api/investor-data-room/route.ts", method: "DELETE" }, DELETE_handler);
