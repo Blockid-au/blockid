@@ -21,7 +21,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { SecondaryOfferIntakeForm } from "./intake-form";
-import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import { SecondarySimClient } from "./sim-client";
+import { getCurrentProjectIsSandbox, getProjectScope, roleCanWrite } from "@/lib/projects";
+import { can } from "@/lib/entitlements";
 
 export const metadata: Metadata = {
   title: "Secondary Offer — Founder Intake",
@@ -57,6 +59,15 @@ export default async function SecondaryOfferPage() {
   if (!user) redirect("/auth/login?next=/workspace/secondary-offer");
 
   const isSandbox = await getCurrentProjectIsSandbox();
+
+  // S27-B — sandbox order book: Growth+ (`secondary_market.view`, the rung
+  // that carries the cap table it trades over) and editor+ on the project.
+  // Viewers / locked plans still see the book read-only with the note.
+  const [scope, unlocked] = await Promise.all([
+    getProjectScope("viewer").catch(() => null),
+    can({ id: user.id, plan: user.plan ?? "free", segment: "founder" }, "secondary_market.view").catch(() => false),
+  ]);
+  const canTrade = unlocked && (scope ? roleCanWrite(scope.role) : true);
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
@@ -139,6 +150,8 @@ export default async function SecondaryOfferPage() {
         </section>
 
         <SecondaryOfferIntakeForm />
+
+        <SecondarySimClient canTrade={canTrade} locked={!unlocked} />
 
         <NotFinancialAdvice kind="equity_offer_disclaimer" compact />
       </div>

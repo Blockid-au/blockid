@@ -26,6 +26,7 @@ import {
   RefreshCw,
   Radar,
   Webhook,
+  Link2,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -85,6 +86,7 @@ export const KIND_META: Record<string, { icon: typeof Bell; color: string; label
   radar_setup_nudge: { icon: Radar, color: "text-amber-600", label: "Founder Radar setup" },
   webhook_disabled: { icon: Webhook, color: "text-red-600", label: "Webhook paused" },
   investor_viewed: { icon: Eye, color: "text-emerald-600", label: "Investor viewed your data room" },
+  chain_drift: { icon: Link2, color: "text-amber-600", label: "On-chain register drift" },
 };
 
 function timeAgo(iso: string): string {

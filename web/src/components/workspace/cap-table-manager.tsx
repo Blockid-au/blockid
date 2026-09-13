@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SharePriceCard } from "@/components/workspace/share-price-card";
+import { ChainReconcilePanel } from "@/components/workspace/chain-reconcile-panel";
 import { BoardResolutionButton } from "@/components/board-resolutions/board-resolution-button";
 
 // ---------------------------------------------------------------------------
@@ -418,6 +419,9 @@ export function CapTableManager() {
 
       {/* S26-B — price per share from the SVI valuation + connected revenue */}
       <SharePriceCard />
+
+      {/* S27-B — chain read-back vs register; renders nothing until the project has a token */}
+      <ChainReconcilePanel />
 
       {/* ================================================================ */}
       {/* Section 2: Shareholder Table */}
