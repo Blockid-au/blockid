@@ -9,6 +9,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
+import { aiCapacityResponse, isAICapacityError } from "@/lib/ai/capacity";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { findSVIAccountWithFallback, findLatestAnalysisWithFallback, creditChargeNote } from "@/lib/projects";
@@ -188,7 +189,7 @@ ${dimScore?.gaps ? `**Known Gaps:** ${JSON.stringify(dimScore.gaps).slice(0, 500
 
 Provide a thorough ${info.label} assessment.`;
 
-    const { text } = await callAI({
+    const { text } = await callAI({ userId: user.id,
       system: systemPrompt,
       user: userMessage,
       maxTokens: 3072,
@@ -238,6 +239,7 @@ Provide a thorough ${info.label} assessment.`;
       creditNote: creditChargeNote(scope),
     });
   } catch (err) {
+    if (isAICapacityError(err)) return aiCapacityResponse(err); // S31-A: 503 + Retry-After, never a 500
     const msg = err instanceof Error ? err.message : String(err);
     const isTimeout = msg.includes("timeout") || msg.includes("Timeout");
     const isRateLimit = msg.includes("429") || msg.includes("rate");

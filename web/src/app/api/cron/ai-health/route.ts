@@ -26,7 +26,7 @@ export async function GET(request: Request) {
 
   // Try a minimal AI call
   try {
-    const result = await callAI({
+    const result = await callAI({ priority: "background", // S31-A: crons yield to user traffic
       system: "Reply with exactly: OK",
       user: "health check",
       maxTokens: 5,

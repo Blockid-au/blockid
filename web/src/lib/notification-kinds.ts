@@ -50,6 +50,11 @@ export const NOTIFICATION_KINDS = [
   // contract disagrees with the register. One per project per 7 days
   // (lib/onchain/notify-drift.ts); an unreachable chain never writes one.
   "chain_drift",
+  // S31-A AI capacity guardrail: the paid AI tier paused for the day
+  // (AI_DAILY_SPEND_CAP_AUD reached) or OpenRouter credit fell under its
+  // floor. Written to the platform founder only, once per UTC day
+  // (lib/ai/spend-guard.ts).
+  "ai_capacity",
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -109,6 +114,7 @@ export const KIND_LABELS: Record<NotificationKind, string> = {
   connector_reconnect: "Reconnect needed",
   investor_viewed: "Investor viewed your data room",
   chain_drift: "On-chain register drift",
+  ai_capacity: "AI capacity",
 };
 
 function s(v: unknown): string | null {
@@ -290,6 +296,16 @@ export function describeNotification(row: FounderNotificationRow): string {
       }
       return RADAR_SETUP_NUDGE_TITLE;
     }
+    case "ai_capacity": {
+      // S31-A: payload { reason, spent_aud, cap_aud, calls } from lib/ai/spend-guard.ts.
+      const reason = s(p.reason);
+      if (reason === "openrouter_low_credit") return "OpenRouter paused — credit is below the floor; top up to resume";
+      const spent = n(p.spent_aud);
+      const cap = n(p.cap_aud);
+      return spent !== null && cap !== null
+        ? `Paid AI tier paused for today — A$${spent.toFixed(2)} of the A$${cap} daily cap spent; free tiers keep serving`
+        : "Paid AI tier paused for today — daily spend cap reached; free tiers keep serving";
+    }
     case "analysis_refresh": {
       const changes = n(p.changes) ?? (Array.isArray(p.changes) ? p.changes.length : null);
       if (changes !== null && changes > 0) return fill(FUNDING_COPY.notification.analysis_refresh, { n: changes });
@@ -345,6 +361,8 @@ export function notificationAction(row: FounderNotificationRow): { href: string;
       return { href: "/workspace/data-room", label: "See who read what" };
     case "chain_drift":
       return { href: "/workspace/cap-table#on-chain", label: "Review drift" };
+    case "ai_capacity":
+      return { href: "/admin/ai-keys", label: "Review AI spend" };
     default:
       return null;
   }

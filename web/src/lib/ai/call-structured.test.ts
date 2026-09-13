@@ -109,8 +109,8 @@ describe("callStructured — happy path", () => {
     expect(inserted[0]!.tokens_out).toBe(40);
     expect(inserted[0]!.purpose).toBe("customer_report");
     expect(inserted[0]!.output_hash).toBeTruthy();
-    // cost = 120 * 3 / 1M + 40 * 15 / 1M = 0.00036 + 0.0006 = 0.00096
-    expect(inserted[0]!.cost_usd).toBeCloseTo(0.00096, 6);
+    // cost = 120 * 2 / 1M + 40 * 10 / 1M = 0.00024 + 0.0004 = 0.00064 (Sonnet 5 list price, S31-A)
+    expect(inserted[0]!.cost_usd).toBeCloseTo(0.00064, 6);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 

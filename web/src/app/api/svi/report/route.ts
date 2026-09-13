@@ -5,6 +5,7 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
+import { aiCapacityResponse, isAICapacityError } from "@/lib/ai/capacity";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import {
   getPhaseProgress,
@@ -227,7 +228,7 @@ Write naturally, be thorough, and remember: this founder is trusting you with th
 
     for (const attempt of attempts) {
       try {
-        const result = await callAI({
+        const result = await callAI({ userId: user.id,
           system: systemPrompt,
           user: attempt.label === "full"
             ? userMessage
@@ -237,6 +238,7 @@ Write naturally, be thorough, and remember: this founder is trusting you with th
         text = result.text;
         break; // Success
       } catch (err) {
+    if (isAICapacityError(err)) return aiCapacityResponse(err); // S31-A: 503 + Retry-After, never a 500
         lastError = err instanceof Error ? err : new Error(String(err));
         console.warn(`[blockid:report] Attempt ${attempt.label} failed: ${lastError.message}`);
       }
@@ -287,6 +289,7 @@ Write naturally, be thorough, and remember: this founder is trusting you with th
     });
 
   } catch (err) {
+    if (isAICapacityError(err)) return aiCapacityResponse(err); // S31-A: 503 + Retry-After, never a 500
     console.error("[blockid:report]", err);
     return NextResponse.json({ ok: false, error: "Report generation failed. Please try again." }, { status: 500 });
   }

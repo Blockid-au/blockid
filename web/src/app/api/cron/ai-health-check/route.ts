@@ -10,6 +10,15 @@
 // from the KNOWN_GOOD_FREE_MODELS pool (skipping providers without keys or
 // models already active) and alerts via Telegram.
 //
+// S31-A additions:
+//   - provider-level validity probe (lib/ai/provider-status.ts) — one cheap
+//     call per configured provider, result written to
+//     content/reports/ai-provider-status.json and surfaced as `providers`
+//     here and as `ai_providers` on /api/status;
+//   - dead-model pruning (lib/ai/model-strikes.ts): a model that fails
+//     AI_MODEL_PRUNE_STRIKES (3) consecutive checks is removed from
+//     ai-free-models.json and kept out of refresh/discovery for 7 days.
+//
 // Auth: Bearer CRON_SECRET.
 
 import { NextResponse } from "next/server";
@@ -30,6 +39,8 @@ import { KNOWN_GOOD_FREE_MODELS, poolWithKeys } from "@/lib/ai/known-good-pool";
 import { FREE_MODELS_CONFIG } from "@/lib/ai-client";
 import { sendTelegram, mdEscape } from "@/lib/telegram";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
+import { probeProviders, type ProviderStatusFile } from "@/lib/ai/provider-status";
+import { applyHealthResults, compactStrikes, pruneDeadModels, pruneThreshold, readStrikes, writeStrikes } from "@/lib/ai/model-strikes";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -93,17 +104,30 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ ok: false, error: "No targets (no keys? no config?)" }, { status: 500 });
   }
 
+  // S31-A provider-level validity probe runs alongside the model pings.
+  const providerProbe: Promise<ProviderStatusFile | null> = probeProviders({ force: true }).catch((err) => {
+    console.warn(`[ai-health-check] provider probe failed: ${err instanceof Error ? err.message : err}`);
+    return null;
+  });
+
   const results = await checkModelsBatch(targets, {
     timeoutMs: CHECK_TIMEOUT_MS,
     concurrency: CHECK_CONCURRENCY,
   });
   persistHealthResults(results);
 
+  // S31-A dead-model pruning — N consecutive failed checks drop the model from
+  // the active list so the dispatcher stops paying a retry + cooldown for it.
+  const strikes = applyHealthResults(readStrikes(), results);
+  const pruned = pruneActiveModels(strikes);
+  writeStrikes(compactStrikes(pruned.strikes));
+  const prunedKeys = new Set(Object.entries(pruned.removed).flatMap(([p, ms]) => ms.map((m) => entryKey({ provider: p, model: m }))));
+
   const prior = pruneDegraded(readRegistry(true));
   const priorDegradedByKey = new Map<string, DegradedEntry>(prior.degraded.map((d) => [entryKey(d), d]));
 
   const nowIso = new Date().toISOString();
-  const activeKeys = new Set(active.map(entryKey));
+  const activeKeys = new Set(active.filter((t) => !prunedKeys.has(entryKey(t))).map(entryKey));
 
   // Update degraded list — add newly-quota'd, keep still-in-window ones, drop recovered.
   const nextDegraded: DegradedEntry[] = [];
@@ -134,6 +158,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   // Primary chain — active targets ranked by healthy first, latency asc.
   const primaryChain: RegistryEntry[] = active
+    .filter((t) => !prunedKeys.has(entryKey(t)))
     .map((t, i) => {
       const r = resultByKey.get(entryKey(t));
       return {
@@ -191,14 +216,21 @@ export async function POST(request: Request): Promise<NextResponse> {
   };
   writeRegistry(registry);
 
-  if (newlyDegraded.length > 0) {
+  const prunedCount = prunedKeys.size;
+  if (newlyDegraded.length > 0 || prunedCount > 0) {
     const lines = [
-      `AI health check: ${mdEscape(String(newlyDegraded.length))} new degradation(s)`,
+      `AI health check: ${mdEscape(String(newlyDegraded.length))} new degradation(s), ${mdEscape(String(prunedCount))} model(s) pruned`,
       ...newlyDegraded.slice(0, 6).map((d) => mdEscape(`• ${d.provider}/${d.model} → cooldown ${Math.round(d.backoff_ms / 60000)}m`)),
+      ...Object.entries(pruned.removed).slice(0, 6).map(([p, ms]) => mdEscape(`✂ ${p}: ${ms.join(", ")}`)),
       injectedCount > 0 ? mdEscape(`Injected ${injectedCount} backup model(s) from known-good pool.`) : mdEscape("No fresh backups available to inject."),
     ].join("\n");
     await sendTelegram(lines).catch(() => { /* best-effort */ });
   }
+
+  const providers = await providerProbe;
+  const providerSummary = providers
+    ? Object.fromEntries(Object.values(providers.providers).map((p) => [p.provider, p.status]))
+    : null;
 
   return NextResponse.json({
     ok: true,
@@ -208,9 +240,37 @@ export async function POST(request: Request): Promise<NextResponse> {
     quota_exceeded: results.filter((r) => r.quota_exceeded).length,
     newly_degraded: newlyDegraded.length,
     injected_backups: injectedCount,
+    pruned: pruned.removed,
+    prune_threshold: pruneThreshold(),
     primary_chain_size: primaryChain.length,
     fallback_pool_size: fallbackPool.length,
+    providers: providerSummary,
   });
+}
+
+/** Apply the strike table to ai-free-models.json in place (atomic write).
+ *  Returns the prune outcome; a write failure leaves the file untouched and
+ *  reports nothing removed so the registry does not drift from disk. */
+function pruneActiveModels(strikes: ReturnType<typeof readStrikes>) {
+  let file: FreeModelsFile = {};
+  try {
+    file = JSON.parse(fs.readFileSync(FREE_MODELS_CONFIG, "utf8")) as FreeModelsFile;
+  } catch {
+    return { config: {}, removed: {}, strikes };
+  }
+  const outcome = pruneDeadModels(file as Record<string, unknown>, strikes);
+  if (Object.keys(outcome.removed).length === 0) return outcome;
+  const next = { ...outcome.config, updatedAt: new Date().toISOString() };
+  const tmp = `${FREE_MODELS_CONFIG}.tmp.${process.pid}.${Date.now()}`;
+  try {
+    fs.writeFileSync(tmp, JSON.stringify(next, null, 2));
+    fs.renameSync(tmp, FREE_MODELS_CONFIG);
+  } catch (err) {
+    console.error("[ai-health-check] prune write failed", err);
+    return { config: file as Record<string, unknown>, removed: {}, strikes };
+  }
+  console.warn(`[ai-health-check] pruned dead models: ${JSON.stringify(outcome.removed)}`);
+  return outcome;
 }
 
 /** Prepend fresh models into ai-free-models.json so ai-client picks them up

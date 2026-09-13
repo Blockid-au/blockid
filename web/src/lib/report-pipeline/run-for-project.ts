@@ -340,13 +340,20 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
   // per-agent semaphore slot (see agent-dispatcher) so concurrent reports
   // run in parallel instead of serialising through one shared bucket.
   const svAgentId = `svi:${ctx.account.id}${ctx.projectId ? `:${ctx.projectId}` : ""}`;
-  const aiCaller = async (systemPrompt: string, userPrompt: string, maxTokens: number): Promise<string> => {
+  const aiCaller = async (
+    systemPrompt: string,
+    userPrompt: string,
+    maxTokens: number,
+    taskClass?: "classify" | "report" | "synthesis",
+  ): Promise<string> => {
     const result = await callAI({
       system: systemPrompt,
       user: userPrompt,
       maxTokens,
       timeoutMs: 120_000,
       agentId: svAgentId,
+      userId,
+      taskClass,
     });
     return result.text;
   };

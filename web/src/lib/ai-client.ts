@@ -1,15 +1,27 @@
 /**
- * Unified AI client — priority chain:
- *   1. Claude CLI OAuth token (~/.claude/.credentials.json)
- *   2. ANTHROPIC_API_KEY env var
- *   3. OpenAI (OPENAI_API_KEY) — ChatGPT / GPT-4o-mini
- *   4. Google Gemini (GOOGLE_GEMINI_API_KEY) — free quota fallback
+ * Unified AI client — tiered, parallel-load-aware dispatcher (S31-A, Sep 2026).
  *
- * All AI routes use `callAI()` which returns a plain text response.
- * This abstracts away the provider so routes don't care which model runs.
+ *   QUALITY tier  claude-apikey  — official @anthropic-ai/sdk on ANTHROPIC_API_KEY.
+ *                 Tried FIRST whenever the key is valid and the daily spend cap
+ *                 (AI_DAILY_SPEND_CAP_AUD) has not been reached. Model by task
+ *                 class: Haiku 4.5 (classify/extract/short JSON) · Sonnet 5
+ *                 (reports, narratives, chat — the default) · Opus 5 (CEO final
+ *                 synthesis / valuation certificate narrative). See lib/ai/anthropic-tier.ts.
+ *   FREE tier     groq · cerebras · sambanova · openrouter (free models) · ollama ·
+ *                 claude-oauth (Claude subscription; a personal CLI credential —
+ *                 overflow only, it 429s under load and is not a product licence).
+ *   PAID overflow deepinfra · claude-haiku-direct · openai · gemini — only when the
+ *                 free tier is saturated, and never past the daily cap.
  *
- * Fallback: if the primary provider fails (rate limit, auth error, etc.),
- * the system automatically tries the next available provider in the chain.
+ * All AI routes use `callAI()` which returns a plain text response, so a route
+ * never knows (or cares) which provider answered. The dispatcher picks by REAL
+ * remaining capacity (rate-limit headers for Anthropic, RPM windows elsewhere),
+ * skips providers whose key is invalid / quota spent / credit low (see
+ * lib/ai/provider-status.ts), and applies a bounded, user-fair queue so a trial
+ * surge gets an honest 503 + Retry-After (lib/ai/capacity.ts) instead of a 500.
+ *
+ * Fallback: if the chosen provider fails (rate limit, auth error, etc.) the next
+ * provider by headroom is tried, each at most once per call.
  */
 
 import * as fs from "fs";
@@ -17,6 +29,15 @@ import * as os from "os";
 import * as path from "path";
 import * as https from "https";
 import * as http from "http";
+import {
+  callAnthropicTier,
+  anthropicRequestsRemaining,
+  isAnthropicKeyInvalid,
+  type AITaskClass,
+} from "@/lib/ai/anthropic-tier";
+import { AICapacityError } from "@/lib/ai/capacity";
+import { isDailyCapReached, notifyCapReached, recordPaidSpend } from "@/lib/ai/spend-guard";
+import { cachedProviderStatus, probeProviders, readProviderStatusFile, PROBE_TTL_MS, type ProbeProvider } from "@/lib/ai/provider-status";
 
 // Embedded AI worker source. Written to a temp file as a last-resort fallback
 // when no on-disk ai-worker.mjs can be found — e.g. an incomplete standalone
@@ -440,14 +461,21 @@ function demoteFlaky(models: string[]): string[] {
 // ── Budget tracking ($100/month cap) ───────────────────────────────────
 // Tracks estimated cost per provider per month. Persisted to disk so it
 // survives container restarts. When budget exceeded, provider is skipped.
+// The DAILY cap (AI_DAILY_SPEND_CAP_AUD, lib/ai/spend-guard.ts) is the
+// finer-grained brake for the paid tiers; this monthly figure is the hard stop.
 
 const MONTHLY_BUDGET_USD = 100;
 const BUDGET_FILE = "/tmp/blockid-ai-budget.json";
 
-// Rough cost estimates per 1K tokens (input+output averaged)
+// Rough cost estimates per 1K tokens (input+output averaged). Anthropic
+// first-party list prices (Sep 2026): Haiku 4.5 $1/$5, Sonnet 5 $2/$10,
+// Opus 5 $5/$25 per 1M; cache reads 10 %. The Anthropic tier reports REAL
+// usage, so those calls are tracked from `usage`, not from this table.
 const COST_PER_1K: Record<string, number> = {
-  "claude-haiku-4-5-20251001": 0.003, // direct API: $1 in + $5 out per 1M ≈ $0.003/1K blended
-  "claude-sonnet-5": 0.015,
+  "claude-haiku-4-5": 0.003,           // $1 in + $5 out per 1M ≈ $0.003/1K blended
+  "claude-haiku-4-5-20251001": 0.003,  // dated alias (ANTHROPIC_HAIKU_API_KEY path)
+  "claude-sonnet-5": 0.006,            // $2 in + $10 out per 1M
+  "claude-opus-5": 0.015,              // $5 in + $25 out per 1M
   "gpt-4o-mini": 0.0003,
   "o3-mini": 0.0055,
   "gpt-4.1-mini": 0.002,
@@ -570,9 +598,9 @@ function writeBudget(data: BudgetData): void {
   } catch { /* ignore write errors */ }
 }
 
-function trackCost(model: string, estimatedTokens: number): void {
+function trackCost(model: string, estimatedTokens: number, exactUsd?: number): void {
   const costPer1K = COST_PER_1K[model] ?? 0.001;
-  const cost = (estimatedTokens / 1000) * costPer1K;
+  const cost = typeof exactUsd === "number" && Number.isFinite(exactUsd) ? exactUsd : (estimatedTokens / 1000) * costPer1K;
   const budget = readBudget();
   budget.totalUSD += cost;
   budget.calls += 1;
@@ -608,12 +636,34 @@ export interface AICallOptions {
    *  semaphore so one caller's burst can't hog the whole provider pool. Omit for
    *  ad-hoc calls — they share a generic "default" bucket. */
   agentId?: string;
+  /** S31-A — routes the Anthropic quality tier: `classify` → Haiku 4.5,
+   *  `report` (default) → Sonnet 5, `synthesis` → Opus 5. Inferred from
+   *  agentId / maxTokens when omitted (lib/ai/anthropic-tier.ts). */
+  taskClass?: AITaskClass;
+  /** S31-A — per-user fairness: at most AI_MAX_PER_USER (2) calls in flight
+   *  per user; extra calls queue briefly, then 503 (AICapacityError). */
+  userId?: string;
+  /** S31-A — `background` (crons, self-upgrade) yields to `user` traffic:
+   *  it only takes a slot while user work is not waiting and a reserve of
+   *  slots stays free. Default `user`. */
+  priority?: "user" | "background";
 }
 
-interface AICallResult {
+export interface AICallUsage {
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_input_tokens: number;
+  cache_creation_input_tokens: number;
+}
+
+export interface AICallResult {
   text: string;
   provider: "claude" | "openai" | "gemini" | "groq" | "openrouter" | "ollama";
   model: string;
+  /** Real token usage when the provider reports it (Anthropic API tier). */
+  usage?: AICallUsage;
+  /** Estimated USD for this call (0 for free tiers). */
+  cost_usd?: number;
 }
 
 // ── Claude CLI OAuth ───────────────────────────────────────────────────
@@ -640,33 +690,27 @@ type Provider = "claude-oauth" | "claude-apikey" | "claude-haiku-direct" | "clau
 function getAvailableProviders(): Provider[] {
   const providers: Provider[] = [];
   // ──────────────────────────────────────────────────────────────────────
-  // PRIORITY: FREE high-throughput first → subscription fallback → OpenRouter last
-  // NO paid API keys, NO Codex — zero marginal cost only.
+  // POLICY (S31-A, Sep 2026): quality tier when funded, free tiers as overflow.
   //
-  // Benchmark intelligence (Aug 2026):
-  //   S-tier (52+): Claude Sonnet 4.6, DeepSeek V3.2/V3.1, Kimi K2.6
-  //   A-tier (40-50): gpt-oss-120b, Nemotron 120B/550B, Qwen3
-  //   B-tier (35-42): gemma-4-31b, qwen3.6-27b, Llama 3.3 70B
-  //   C-tier (<35):  Llama 3.1 8B, small models
+  //   1. claude-apikey  — Anthropic API via the official SDK. The dispatcher
+  //                       tries it FIRST while the key is valid and the daily
+  //                       spend cap has headroom; an invalid key (401) is
+  //                       skipped for 1 h without a retry on the hot path.
+  //   2. free tiers     — Groq (1000 RPM but 8k TPM on the free tier), Cerebras,
+  //                       SambaNova, OpenRouter free models, Ollama, and the
+  //                       Claude subscription OAuth token (personal CLI
+  //                       credential: 429s under load, kept as overflow).
+  //   3. paid overflow  — DeepInfra, Haiku-direct, proxy — only when every free
+  //                       provider is saturated or cooling, never past the cap.
   //
-  // Throughput ranking (Aug 2026 — optimised for large-scale startup analysis):
-  //   cerebras      — ultra-fast 2000 t/s hardware; gemma-4-31b has 1424 prod successes
-  //   groq          — 400 RPM free, ~500 t/s; qwen3.6-27b top of Aug discovery
-  //   sambanova     — DeepSeek V3.2/V3.1 free, 294 TPS, high throughput
-  //   claude-oauth  — subscription Sonnet 4.6; demoted below free tiers because
-  //                   it's hitting 429 (rate-limited) when all free capacity is used
-  //   claude-proxy  — shared key Sonnet 4.6
-  //   ollama        — local GPU, offline fallback
-  //   openrouter    — LAST: 24+ free models but variable uptime + rate limits
+  // The list order below is only the tiebreak when several providers in the
+  // same tier have equal headroom; `pickBestProvider` does the real ranking.
   // ──────────────────────────────────────────────────────────────────────
-
-  // Parallel-load-aware ordering (Sep 2026): the dispatcher picks by remaining
-  // capacity, not by list position — this order is only the tiebreak when several
-  // providers have equal headroom (i.e. the first call in a quiet system).
-  // Groq gpt-oss production models advertise 1000 RPM — the highest free ceiling —
-  // so it becomes the natural first pick under any real concurrency; Cerebras
-  // stays high because it is ultra-fast (2000 t/s) for low-load calls.
-  // 1. Groq — 1000 RPM free / 4000+ RPM Developer tier. Best headroom under bursts.
+  // 0. Anthropic API key — quality tier (Haiku 4.5 / Sonnet 5 / Opus 5 by task class)
+  if (process.env.ANTHROPIC_API_KEY) providers.push("claude-apikey");
+  else if (getDBKey("anthropic")) providers.push("claude-apikey");
+  // 1. Groq — 1000 RPM free / 4000+ RPM Developer tier. Best headroom under bursts
+  //    (but only 8,000 tokens/min on the free tier — a single long report exceeds it).
   if (process.env.GROQ_API_KEY) providers.push("groq");
   else if (getDBKey("groq")) providers.push("groq");
   // 2. Cerebras — 30 RPM but ultra-fast (2000 t/s); wins under low load only
@@ -679,16 +723,15 @@ function getAvailableProviders(): Provider[] {
   //    Kicks in only when DEEPINFRA_API_KEY is set — free chain stays $0.
   if (process.env.DEEPINFRA_API_KEY) providers.push("deepinfra");
   else if (getDBKey("deepinfra")) providers.push("deepinfra");
-  // 5. Claude OAuth — Sonnet 4.6 (subscription, best quality) — after free tiers
+  // 5. Claude OAuth — Sonnet 5 on the Claude subscription — after free tiers
   //    to preserve rate-limit headroom for tasks only Claude handles well
   if (readCliOAuthToken()) providers.push("claude-oauth");
   // 6. Claude Haiku direct API — $1/$5 per 1M with prompt caching ($0.10/M read).
-  //    Ideal for final CEO synthesis where hallucination cost is highest.
   //    Requires ANTHROPIC_HAIKU_API_KEY (kept SEPARATE from ANTHROPIC_API_KEY so
-  //    ops can enable Haiku-only spending without unlocking the whole Sonnet chain).
+  //    ops can enable Haiku-only spending without unlocking the whole chain).
   if (process.env.ANTHROPIC_HAIKU_API_KEY) providers.push("claude-haiku-direct");
   else if (getDBKey("anthropic_haiku")) providers.push("claude-haiku-direct");
-  // 7. Proxy — Sonnet 4.6 (shared key)
+  // 7. Proxy — Sonnet 5 (shared key; dead as of 2026-09-13 — the probe marks it)
   if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
   else if (getDBKey("anthropic_proxy")) providers.push("claude-proxy");
   // 8. Ollama — local GPU backup
@@ -697,7 +740,7 @@ function getAvailableProviders(): Provider[] {
   if (process.env.OPENROUTER_API_KEY) providers.push("openrouter");
   else if (getDBKey("openrouter")) providers.push("openrouter");
 
-  // ❌ Gemini / Anthropic API / OpenAI API / Codex — DISABLED (paid or unreliable)
+  // ❌ Gemini / OpenAI API / Codex — not wired (no key policy for them yet)
   return providers;
 }
 
@@ -707,81 +750,36 @@ export function isAIConfigured(): boolean {
 
 // ── Claude call ────────────────────────────────────────────────────────
 
-async function callClaude(apiKey: string, opts: AICallOptions): Promise<AICallResult> {
-  const isOAuth = apiKey.startsWith("sk-ant-oat");
-  // Always use Sonnet 4.6 (S-tier, score 52) — subscription = no extra cost.
+/** Claude subscription OAuth token (~/.claude/.credentials.json). Raw fetch:
+ *  the token goes on `Authorization: Bearer`, not `x-api-key`. Sonnet 5. */
+async function callClaudeOAuth(apiKey: string, opts: AICallOptions): Promise<AICallResult> {
   const model = "claude-sonnet-5";
-
-  // Use raw fetch for OAuth tokens — SDK may send wrong header format
-  if (isOAuth) {
-    const raw = await workerFetch("https://api.anthropic.com/v1/messages", {
-      "Authorization": `Bearer ${apiKey}`,
-      "anthropic-version": "2023-06-01",
-      "Content-Type": "application/json",
-    }, JSON.stringify({
-      model,
-      max_tokens: opts.maxTokens ?? 4096,
-      system: opts.system,
-      messages: [{ role: "user", content: opts.user }],
-    }), opts.timeoutMs);
-    const data = JSON.parse(raw);
-    let text = "";
-    for (const block of (data.content ?? [])) {
-      if (block.type === "text") text = block.text;
-    }
-    return { text, provider: "claude", model };
-  }
-
-  // Standard API key — use SDK
-  const Anthropic = (await import("@anthropic-ai/sdk")).default;
-  const client = new Anthropic({ apiKey });
-
-  const response = await client.messages.create({
+  const raw = await workerFetch("https://api.anthropic.com/v1/messages", {
+    "Authorization": `Bearer ${apiKey}`,
+    "anthropic-version": "2023-06-01",
+    "anthropic-beta": "oauth-2025-04-20",
+    "Content-Type": "application/json",
+  }, JSON.stringify({
     model,
     max_tokens: opts.maxTokens ?? 4096,
-    system: opts.system,
+    system: [{ type: "text", text: opts.system, cache_control: { type: "ephemeral" } }],
     messages: [{ role: "user", content: opts.user }],
-    ...(opts.tools?.length ? { tools: opts.tools } : {}),
-  });
-
-  // Handle agentic tool_use loop (for web search etc.)
-  if (response.stop_reason === "tool_use" && opts.tools?.length) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const toolResults: any[] = [];
-    for (const block of response.content) {
-      if (block.type === "tool_use") {
-        toolResults.push({
-          type: "tool_result",
-          tool_use_id: block.id,
-          content: "Search completed. Analyse results and return the JSON.",
-        });
-      }
-    }
-
-    const followUp = await client.messages.create({
-      model,
-      max_tokens: opts.maxTokens ?? 4096,
-      system: opts.system,
-      messages: [
-        { role: "user", content: opts.user },
-        { role: "assistant", content: response.content },
-        { role: "user", content: toolResults },
-      ],
-      ...(opts.tools?.length ? { tools: opts.tools } : {}),
-    });
-
-    let text = "";
-    for (const block of followUp.content) {
-      if (block.type === "text") text = block.text;
-    }
-    return { text, provider: "claude", model };
-  }
-
+  }), opts.timeoutMs);
+  const data = JSON.parse(raw);
   let text = "";
-  for (const block of response.content) {
-    if (block.type === "text") text = block.text;
+  for (const block of (data.content ?? [])) {
+    if (block.type === "text") text += block.text;
   }
-  return { text, provider: "claude", model };
+  if (!text) throw new Error("Empty Claude (OAuth) response");
+  return { text, provider: "claude", model, cost_usd: 0 };
+}
+
+/** Anthropic API key — the quality tier via the official SDK (lib/ai/anthropic-tier.ts). */
+async function callClaudeApiKey(opts: AICallOptions): Promise<AICallResult> {
+  const apiKey = process.env.ANTHROPIC_API_KEY ?? getDBKey("anthropic")?.api_key ?? "";
+  if (!apiKey) throw new Error("Anthropic API key not configured");
+  const r = await callAnthropicTier(opts, { apiKey });
+  return { text: r.text, provider: "claude", model: r.model, usage: r.usage, cost_usd: r.cost_usd };
 }
 
 // ── OpenAI call (API key) ──────────────────────────────────────────────
@@ -1177,7 +1175,8 @@ async function callClaudeProxy(opts: AICallOptions): Promise<AICallResult> {
   const envKeys = (process.env.ANTHROPIC_PROXY_API_KEY ?? "").split(",").map((k) => k.trim()).filter(Boolean);
   const dbKeys = dbProxy?.api_key ? dbProxy.api_key.split(",").map((k) => k.trim()).filter(Boolean) : [];
   const keys = [...new Set([...envKeys, ...dbKeys])];
-  // Always use Sonnet 4.6 (S-tier) — maximize quality for every call.
+  // Sonnet 5 through the shared proxy key. Dead (401) as of 2026-09-13 — the
+  // provider probe marks it `invalid_key` so the dispatcher skips it.
   const model = "claude-sonnet-5";
   const maxTokens = opts.maxTokens ?? 8192;
 
@@ -1227,9 +1226,9 @@ async function callProvider(provider: Provider, opts: AICallOptions): Promise<AI
   const noTools = { ...opts, tools: undefined };
   switch (provider) {
     case "claude-oauth":
-      return callClaude(readCliOAuthToken()!, opts);
+      return callClaudeOAuth(readCliOAuthToken()!, noTools);
     case "claude-apikey":
-      return callClaude(process.env.ANTHROPIC_API_KEY ?? getDBKey("anthropic")?.api_key ?? "", opts);
+      return callClaudeApiKey(opts);
     case "claude-haiku-direct":
       return callClaudeHaikuDirect(noTools);
     case "claude-proxy":
@@ -1377,16 +1376,18 @@ const PROVIDER_RPM: Record<Provider, number> = {
   "none":                  0,
 };
 
-// ── Free-first tier segregation (user requirement Sep 2026) ──────────────
-// A "free" tier includes: zero-cost free-tier providers (Groq, Cerebras,
-// SambaNova, OpenRouter free models), the local Ollama runtime, and the
-// Claude subscription paths (already paid for as a flat fee — no per-call
-// marginal cost). The dispatcher tries EVERY free provider first; it only
-// engages the paid tier (DeepInfra, Haiku direct API) when every free
-// provider is either saturated OR on cooldown. This preserves the user's
-// "free before paid" contract even when capacity-based routing would
-// otherwise pick a higher-RPM paid provider.
-const PROVIDER_TIER: Record<Provider, "free" | "paid"> = {
+// ── Tier segregation (S31-A, Sep 2026) ──────────────────────────────────
+// Three tiers, evaluated in order:
+//   quality — the Anthropic API key (SDK). Tried first while the key is valid
+//             and the daily cap (AI_DAILY_SPEND_CAP_AUD) has headroom.
+//   free    — zero-marginal-cost providers (Groq, Cerebras, SambaNova,
+//             OpenRouter free models), the local Ollama runtime, and the Claude
+//             subscription paths (flat fee — no per-call cost). Overflow for
+//             the quality tier; the whole platform when no key is funded.
+//   paid    — DeepInfra, Haiku direct, OpenAI, Gemini: only when every free
+//             provider is saturated or cooling, and never past the daily cap.
+const PROVIDER_TIER: Record<Provider, "quality" | "free" | "paid"> = {
+  "claude-apikey":      "quality",
   "groq":               "free",
   "cerebras":           "free",
   "sambanova":          "free",
@@ -1396,16 +1397,58 @@ const PROVIDER_TIER: Record<Provider, "free" | "paid"> = {
   "claude-proxy":       "free",  // covered by subscription — no per-call cost
   "deepinfra":          "paid",
   "claude-haiku-direct":"paid",
-  "claude-apikey":      "paid",
   "openai-apikey":      "paid",
   "gemini":             "paid",
   "none":               "free",
 };
 
-/** True when the caller is about to burn per-token marginal cost. Emits an
- *  observable log line so the admin dashboard / user notification banner
- *  can show "AI đang chạy trên gói trả phí" when free capacity is exhausted.
- *  Debounced 60 s so a sustained free-outage doesn't spam the log. */
+/** Providers whose calls cost real money — governed by the daily cap. */
+function isPaidProvider(p: Provider): boolean {
+  return PROVIDER_TIER[p] === "quality" || PROVIDER_TIER[p] === "paid";
+}
+
+/** Map a dispatcher provider onto the probe's provider id (null = not probed). */
+function probeIdFor(p: Provider): ProbeProvider | null {
+  switch (p) {
+    case "claude-apikey": return "anthropic";
+    case "claude-oauth": return "claude-oauth";
+    case "claude-proxy": return "claude-proxy";
+    case "openrouter": return "openrouter";
+    case "groq": return "groq";
+    case "cerebras": return "cerebras";
+    case "sambanova": return "sambanova";
+    case "deepinfra": return "deepinfra";
+    case "ollama": return "ollama";
+    default: return null;
+  }
+}
+
+/** Why a provider must not be dialled right now (null = go ahead). Combines
+ *  the in-process cooldown, the Anthropic 401 latch, the daily spend cap and
+ *  the last probe verdict (invalid key / quota spent / low credit, honoured
+ *  while the probe is fresh). */
+export function providerBlockReason(p: Provider, now: number = Date.now()): string | null {
+  if ((providerCooldown.get(p) ?? 0) > now) return "cooldown";
+  if (p === "claude-apikey" && isAnthropicKeyInvalid(now)) return "invalid_key";
+  if (isPaidProvider(p) && isDailyCapReached(now)) return "daily_cap";
+  const id = probeIdFor(p);
+  if (id) {
+    const st = cachedProviderStatus(id);
+    if (st && now - new Date(st.checked_at).getTime() < PROBE_TTL_MS) {
+      if (st.status === "invalid_key") return "invalid_key";
+      if (st.status === "quota_exceeded") return "quota_exceeded";
+      if (st.status === "low_credit") return "low_credit";
+      if (st.status === "unreachable" && p === "claude-proxy") return "unreachable";
+    }
+  }
+  return null;
+}
+
+/** True when the caller is about to burn per-token marginal cost on the
+ *  overflow paid tier. Emits an observable log line so the admin dashboard /
+ *  user notification banner can show "AI đang chạy trên gói trả phí" when
+ *  free capacity is exhausted. Debounced 60 s so a sustained free-outage
+ *  doesn't spam the log. */
 const paidTierEvents: number[] = [];
 let lastPaidLogAt = 0;
 function notePaidTierEngaged(provider: Provider): void {
@@ -1420,9 +1463,9 @@ function notePaidTierEngaged(provider: Provider): void {
   );
 }
 
-/** Live counter — how many times paid tier was engaged in the last hour.
- *  Surface this in the admin dashboard so ops can see when to add more
- *  free-tier keys or lift caps. */
+/** Live counter — how many times the overflow paid tier was engaged in the
+ *  last hour. Surface this in the admin dashboard so ops can see when to add
+ *  more free-tier keys or lift caps. */
 export function getPaidTierEventsLastHour(): number {
   const now = Date.now();
   return paidTierEvents.filter((t) => t > now - 60 * 60_000).length;
@@ -1446,91 +1489,140 @@ function noteDone(p: Provider): void {
 }
 
 /** Remaining capacity = ceiling*headroom − recent-fires − in-flight.
- *  Negative means "already saturated, do not fire". */
+ *  Negative means "already saturated, do not fire". For the Anthropic tier
+ *  the ceiling is the REAL `anthropic-ratelimit-requests-remaining` from the
+ *  last response while that window is still open — so a key on a higher
+ *  usage tier ranks by what Anthropic actually granted, not a static guess. */
 function providerCapacity(p: Provider): number {
-  const ceiling = (PROVIDER_RPM[p] ?? 30) * RPM_HEADROOM;
   const now = Date.now();
   const recent = (rpmWindow.get(p) ?? []).filter((t) => now - t < RPM_WINDOW_MS).length;
   const inflight = inFlightByProvider.get(p) ?? 0;
+  if (p === "claude-apikey") {
+    const remaining = anthropicRequestsRemaining(now);
+    if (remaining !== null) return remaining * RPM_HEADROOM - inflight;
+  }
+  const ceiling = (PROVIDER_RPM[p] ?? 30) * RPM_HEADROOM;
   return ceiling - recent - inflight;
 }
 
-/** L1+L2: pick the provider with the most remaining capacity that isn't on
- *  cooldown. Ties keep the input order (which is the quality ranking, so a
+/** L1+L2: pick the provider with the most remaining capacity that isn't
+ *  blocked. Ties keep the input order (which is the quality ranking, so a
  *  quiet system still prefers the strongest provider). If EVERY candidate is
  *  saturated we still return the least-saturated one — worst case, that call
  *  gets 429'd and cools down, which is what we want. Returns null only when
- *  the input list is empty.
+ *  the input list is empty or every candidate is hard-blocked.
  *
- *  Free-first policy (Sep 2026): free-tier providers (see PROVIDER_TIER) are
- *  evaluated FIRST. Paid providers are only considered when every free
- *  provider is on cooldown OR has zero remaining capacity. This preserves
- *  the user's cost contract: paid credit is a fallback, not a peer. */
+ *  Tier policy (S31-A): the QUALITY tier (Anthropic API key) is taken first
+ *  whenever it is usable and has headroom; then every FREE provider; the
+ *  PAID overflow only when every free provider is blocked or saturated. A
+ *  provider blocked by an invalid key / quota / low credit / the daily cap
+ *  is never picked while any other candidate exists. */
 export function pickBestProvider(candidates: Provider[]): Provider | null {
   if (candidates.length === 0) return null;
   const now = Date.now();
 
-  const free = candidates.filter((p) => PROVIDER_TIER[p] === "free");
-  const paid = candidates.filter((p) => PROVIDER_TIER[p] === "paid");
+  const usable = candidates.filter((p) => providerBlockReason(p, now) === null);
+  // Every candidate blocked → retry only the ones merely on a transient
+  // cooldown (a 401 / cap / quota block is never bypassed).
+  const list = usable.length > 0 ? usable : candidates.filter((p) => providerBlockReason(p, now) === "cooldown");
+  if (list.length === 0) return null;
 
-  const pickFrom = (pool: Provider[]): Provider | null => {
-    if (pool.length === 0) return null;
-    const alive = pool.filter((p) => (providerCooldown.get(p) ?? 0) <= now);
-    const usable = alive.length > 0 ? alive : pool;
-    const scored = usable.map((p, i) => ({ p, i, cap: providerCapacity(p) }));
+  const quality = list.filter((p) => PROVIDER_TIER[p] === "quality");
+  const free = list.filter((p) => PROVIDER_TIER[p] === "free");
+  const paid = list.filter((p) => PROVIDER_TIER[p] === "paid");
+
+  const pickFrom = (tier: Provider[]): Provider | null => {
+    if (tier.length === 0) return null;
+    const scored = tier.map((p, i) => ({ p, i, cap: providerCapacity(p) }));
     const hasRoom = scored.filter((x) => x.cap > 0);
     const picks = hasRoom.length > 0 ? hasRoom : scored;
     picks.sort((a, b) => b.cap - a.cap || a.i - b.i);
     return picks[0].p;
   };
+  const anyRoom = (tier: Provider[]): boolean => tier.some((p) => providerCapacity(p) > 0);
 
-  // Prefer free tier when it has ANY provider with real headroom.
-  if (free.length > 0) {
-    const now2 = Date.now();
-    const freeAlive = free.filter((p) => (providerCooldown.get(p) ?? 0) <= now2);
-    const anyFreeHasRoom = freeAlive.some((p) => providerCapacity(p) > 0);
-    if (anyFreeHasRoom) return pickFrom(free);
-  }
+  if (quality.length > 0 && anyRoom(quality)) return pickFrom(quality);
+  if (free.length > 0 && anyRoom(free)) return pickFrom(free);
 
-  // Fall back to paid tier — every free provider is either cooling down or
-  // saturated. Log the engagement so the admin dashboard can react.
+  // Free tier saturated → overflow paid tier. Log the engagement so the
+  // admin dashboard can react.
   if (paid.length > 0) {
     const pick = pickFrom(paid);
     if (pick) notePaidTierEngaged(pick);
     return pick;
   }
 
-  // No paid providers configured — last-ditch attempt at free tier even
-  // though everything is saturated. Some call has to fail so cooldowns get
-  // fresh signals; better to let it 429 than return null.
-  return pickFrom(free);
+  // No paid overflow — last-ditch attempt at whatever is left even though
+  // everything is saturated. Some call has to fail so cooldowns get fresh
+  // signals; better to let it 429 than return null.
+  return pickFrom([...quality, ...free]);
 }
 
-// ── L3. Global concurrency semaphore ─────────────────────────────────────
+// ── L3. Global concurrency semaphore + bounded, priority-aware queue ──────
 // Chosen from sum(RPM ceilings) with a safety divisor. Sum ~= 1550 RPM;
 // at 5s avg call → ~130 concurrent sustainable. Default 120 leaves ~15%
 // buffer for latency spikes and is the "burst" sweet spot: ~90 profiles/min
 // (≈5,400/hr) without saturating Groq's 850 RPM headroom.
+//
+// S31-A backpressure: the wait queue is BOUNDED and two-lane. User traffic
+// (`priority: "user"`, the default) is served first; background work (crons,
+// self-upgrade) only takes a slot while no user is waiting AND a reserve of
+// slots stays free for people. A caller that cannot be queued gets an
+// `AICapacityError` (503 + Retry-After via lib/ai/capacity.ts), never a bare
+// 500. A queued caller that waits longer than AI_QUEUE_WAIT_MS also gets the
+// 503 so a browser is never held open indefinitely.
 const MAX_CONCURRENT_AI_CALLS = Number(process.env.AI_MAX_CONCURRENT ?? 120);
 const MAX_QUEUED_AI_CALLS = Number(process.env.AI_MAX_QUEUED ?? 400);
+const BACKGROUND_RESERVE = Number(process.env.AI_BACKGROUND_RESERVE ?? 0.25); // share of slots kept for users
+const MAX_QUEUE_WAIT_MS = Number(process.env.AI_QUEUE_WAIT_MS ?? 45_000);
+/** Average call time used to turn a queue position into a Retry-After. */
+const AVG_CALL_MS = Number(process.env.AI_AVG_CALL_MS ?? 6_000);
 
+type Waiter = { resolve: () => void; priority: "user" | "background" };
 let globalRunning = 0;
-const globalQueue: Array<() => void> = [];
+const userQueue: Waiter[] = [];
+const backgroundQueue: Waiter[] = [];
 
-async function acquireGlobal(): Promise<void> {
-  if (globalRunning < MAX_CONCURRENT_AI_CALLS) { globalRunning++; return; }
-  if (globalQueue.length >= MAX_QUEUED_AI_CALLS) {
-    throw new Error(
-      `AI queue full (${globalQueue.length}/${MAX_QUEUED_AI_CALLS} queued, ${globalRunning} running) — try again shortly`
-    );
+function queueDepth(): number {
+  return userQueue.length + backgroundQueue.length;
+}
+
+function backgroundMayRun(): boolean {
+  const reserve = Math.max(1, Math.floor(MAX_CONCURRENT_AI_CALLS * BACKGROUND_RESERVE));
+  return userQueue.length === 0 && globalRunning < MAX_CONCURRENT_AI_CALLS - reserve;
+}
+
+function retryAfterSec(position: number): number {
+  const perSlot = AVG_CALL_MS / Math.max(1, MAX_CONCURRENT_AI_CALLS);
+  return Math.max(2, Math.min(120, Math.ceil((position + 1) * perSlot / 1000) + 1));
+}
+
+async function acquireGlobal(priority: "user" | "background"): Promise<void> {
+  const canRun = priority === "user" ? globalRunning < MAX_CONCURRENT_AI_CALLS : backgroundMayRun();
+  if (canRun) { globalRunning++; return; }
+  const depth = queueDepth();
+  if (depth >= MAX_QUEUED_AI_CALLS) {
+    throw new AICapacityError("queue_full", retryAfterSec(depth), { queued: depth, running: globalRunning });
   }
-  await new Promise<void>((resolve) => globalQueue.push(resolve));
+  const lane = priority === "user" ? userQueue : backgroundQueue;
+  await new Promise<void>((resolve, reject) => {
+    const waiter: Waiter = { resolve: () => {}, priority };
+    const timer = setTimeout(() => {
+      const i = lane.indexOf(waiter);
+      if (i >= 0) lane.splice(i, 1);
+      reject(new AICapacityError("queue_full", retryAfterSec(queueDepth()), { queued: queueDepth(), running: globalRunning }));
+    }, MAX_QUEUE_WAIT_MS);
+    waiter.resolve = () => { clearTimeout(timer); resolve(); };
+    lane.push(waiter);
+  });
   globalRunning++;
 }
+
 function releaseGlobal(): void {
   globalRunning = Math.max(0, globalRunning - 1);
-  const next = globalQueue.shift();
-  if (next) next();
+  // Users first; background only when the reserve rule allows it.
+  const next = userQueue.shift() ?? (backgroundMayRun() ? backgroundQueue.shift() : undefined);
+  if (next) next.resolve();
 }
 
 // ── L4. Per-agent semaphore ──────────────────────────────────────────────
@@ -1558,12 +1650,60 @@ function releaseAgent(agentId: string): void {
   if (next) next();
 }
 
+// ── L5. Per-user fairness (S31-A) ────────────────────────────────────────
+// At most AI_MAX_PER_USER (2) calls in flight per user; up to AI_USER_QUEUE
+// (6) more wait briefly. Beyond that the user gets a 503 + Retry-After
+// instead of pushing everyone else's work back — one founder who opens six
+// tabs cannot starve the trial wave.
+const MAX_PER_USER = Number(process.env.AI_MAX_PER_USER ?? 2);
+const MAX_USER_QUEUE = Number(process.env.AI_USER_QUEUE ?? 6);
+const userRunning = new Map<string, number>();
+const userQueues = new Map<string, Array<() => void>>();
+
+async function acquireUser(userId: string): Promise<void> {
+  const running = userRunning.get(userId) ?? 0;
+  if (running < MAX_PER_USER) { userRunning.set(userId, running + 1); return; }
+  const q = userQueues.get(userId) ?? [];
+  userQueues.set(userId, q);
+  if (q.length >= MAX_USER_QUEUE) {
+    throw new AICapacityError("user_queue_full", retryAfterSec(q.length), { queued: q.length, running });
+  }
+  await new Promise<void>((resolve, reject) => {
+    const entry = () => { clearTimeout(timer); resolve(); };
+    const timer = setTimeout(() => {
+      const i = q.indexOf(entry);
+      if (i >= 0) q.splice(i, 1);
+      reject(new AICapacityError("user_limit", retryAfterSec(q.length), { queued: q.length, running: userRunning.get(userId) ?? 0 }));
+    }, MAX_QUEUE_WAIT_MS);
+    q.push(entry);
+  });
+  userRunning.set(userId, (userRunning.get(userId) ?? 0) + 1);
+}
+function releaseUser(userId: string): void {
+  userRunning.set(userId, Math.max(0, (userRunning.get(userId) ?? 1) - 1));
+  const q = userQueues.get(userId);
+  const next = q?.shift();
+  if (next) next();
+}
+
+/** Depth of the global wait queue (user + background lanes) for /api/status. */
+export function getAIQueueDepth(): { queued: number; queued_user: number; queued_background: number; running: number; max_concurrent: number } {
+  return {
+    queued: queueDepth(),
+    queued_user: userQueue.length,
+    queued_background: backgroundQueue.length,
+    running: globalRunning,
+    max_concurrent: MAX_CONCURRENT_AI_CALLS,
+  };
+}
+
 /** Debug/observability snapshot — useful in tests + admin dashboards. */
 export function getDispatcherState(): {
   globalRunning: number;
   globalQueued: number;
   perProvider: Record<string, { inFlight: number; recentFires: number; capacity: number }>;
   perAgent: Record<string, number>;
+  perUser: Record<string, number>;
 } {
   const now = Date.now();
   const perProvider: Record<string, { inFlight: number; recentFires: number; capacity: number }> = {};
@@ -1575,7 +1715,9 @@ export function getDispatcherState(): {
   }
   const perAgent: Record<string, number> = {};
   for (const [id, n] of agentRunning) if (n > 0) perAgent[id] = n;
-  return { globalRunning, globalQueued: globalQueue.length, perProvider, perAgent };
+  const perUser: Record<string, number> = {};
+  for (const [id, n] of userRunning) if (n > 0) perUser[id] = n;
+  return { globalRunning, globalQueued: queueDepth(), perProvider, perAgent, perUser };
 }
 
 /** Test-only reset — clears all dispatcher state. Never call from production code. */
@@ -1585,11 +1727,51 @@ export function _resetDispatcherForTests(): void {
   providerCooldown.clear();
   agentRunning.clear();
   agentQueues.clear();
+  userRunning.clear();
+  userQueues.clear();
   globalRunning = 0;
-  globalQueue.length = 0;
+  userQueue.length = 0;
+  backgroundQueue.length = 0;
+  paidTierEvents.length = 0;
+  lastProbeKickAt = 0;
+}
+
+// ── Boot-time probe kick ─────────────────────────────────────────────────
+// The first call after a (re)start checks whether the cached provider
+// verdicts are stale (> 15 min) and, if so, fires the probe in the background
+// — so an invalid key or a drained OpenRouter account is known within one
+// request of boot, not at the next 30-minute cron tick. Throttled in-process.
+let lastProbeKickAt = 0;
+function maybeKickProviderProbe(): void {
+  const now = Date.now();
+  if (now - lastProbeKickAt < PROBE_TTL_MS) return;
+  lastProbeKickAt = now;
+  if (process.env.AI_PROVIDER_PROBE === "off" || process.env.NODE_ENV === "test") return;
+  try {
+    const cached = readProviderStatusFile();
+    if (now - new Date(cached.updated_at).getTime() < PROBE_TTL_MS) return;
+  } catch { /* probe anyway */ }
+  probeProviders().catch((err) => {
+    console.warn(`[ai-client:probe] provider probe failed: ${err instanceof Error ? err.message : err}`);
+  });
 }
 
 // ═════════════════════════════════════════════════════════════════════════
+
+/** Cooldown length for a failed provider — three tiers plus the S31-A
+ *  Anthropic specifics (the 401 latch is 1 h in the tier module; a 429
+ *  honours `retry-after` when the provider gave one). */
+function cooldownForError(provider: Provider, err: Error): number {
+  const msg = err.message.toLowerCase();
+  const retryAfter = (err as { retryAfterMs?: number }).retryAfterMs;
+  if (provider === "claude-apikey" && typeof retryAfter === "number" && retryAfter > 0) {
+    return Math.min(15 * 60_000, Math.max(5_000, retryAfter));
+  }
+  if (/\b401\b|authentication_error|invalid.?(api.?)?key|unauthori[sz]ed/.test(msg)) return 60 * 60_000; // 1h — a bad key does not fix itself
+  if (/\b402\b|payment.?required|billing|insufficient.?quota|hard.?limit/.test(msg)) return 24 * 60 * 60_000; // 24h
+  if (/rate.?limit|\b429\b|quota|too many requests|overloaded|capacity/.test(msg)) return 15 * 60_000; // 15 min
+  return 120_000; // 2 min generic transient
+}
 
 export async function callAI(opts: AICallOptions): Promise<AICallResult> {
   // Phase 1: Try AI Gateway microservice first (if configured)
@@ -1614,15 +1796,30 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
     );
   }
 
-  // L3 + L4: acquire global slot, then agent-specific slot. Both use bounded
-  // queues so a stampede returns "queue full" instead of forming a stampede.
+  maybeKickProviderProbe();
+
+  // L3 + L4 + L5: global slot (priority lane), then agent slot, then the
+  // per-user fairness slot. Every queue is bounded; overflow throws
+  // AICapacityError so routes answer 503 + Retry-After, never a 500.
+  const priority = opts.priority ?? "user";
   const agentId = opts.agentId ?? "default";
-  await acquireGlobal();
-  await acquireAgent(agentId);
+  const userId = opts.userId;
+  await acquireGlobal(priority);
+  let agentHeld = false;
+  let userHeld = false;
+  try {
+    await acquireAgent(agentId);
+    agentHeld = true;
+    if (userId) { await acquireUser(userId); userHeld = true; }
+  } catch (err) {
+    if (agentHeld) releaseAgent(agentId);
+    releaseGlobal();
+    throw err;
+  }
 
   let lastError: Error | null = null;
   // Try each provider at most once per call. pickBestProvider excludes ones
-  // already on cooldown, so this loop terminates in O(providers) worst case.
+  // already blocked, so this loop terminates in O(providers) worst case.
   const tried = new Set<Provider>();
   try {
     while (tried.size < allProviders.length) {
@@ -1634,38 +1831,39 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
       try {
         const result = await callProvider(provider, opts);
         const estimatedTokens = Math.ceil((opts.system.length + opts.user.length) / 3) * 2;
-        trackCost(result.model, estimatedTokens);
-        return result;
+        const paid = isPaidProvider(provider);
+        const cost = typeof result.cost_usd === "number"
+          ? result.cost_usd
+          : (paid ? (estimatedTokens / 1000) * (COST_PER_1K[result.model] ?? 0.001) : 0);
+        trackCost(result.model, estimatedTokens, typeof result.cost_usd === "number" ? result.cost_usd : undefined);
+        if (paid) {
+          recordPaidSpend(provider, cost);
+          if (isDailyCapReached()) {
+            notifyCapReached("daily_cap", { provider }).catch(() => { /* best-effort */ });
+          }
+        }
+        return { ...result, cost_usd: cost };
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
-        // Cooldown so the next call skips this provider instantly. Three tiers:
-        //  - 24h  hard quota exhausted (HTTP 402 payment_required / billing) —
-        //         daily free-tier caps only reset at provider midnight.
-        //  - 15m  rate limited (429, "quota", "capacity") — transient burst.
-        //  - 2m   generic transient failure (timeouts, 5xx).
-        const msg = lastError.message.toLowerCase();
-        let cooldownMs: number;
-        if (/\b402\b|payment.?required|billing|insufficient.?quota|hard.?limit/.test(msg)) {
-          cooldownMs = 24 * 60 * 60_000; // 24h
-        } else if (/rate.?limit|\b429\b|quota|too many requests|overloaded|capacity/.test(msg)) {
-          cooldownMs = 15 * 60_000; // 15 min
-        } else {
-          cooldownMs = 120_000; // 2 min
-        }
+        const cooldownMs = cooldownForError(provider, lastError);
         providerCooldown.set(provider, Date.now() + cooldownMs);
         const cooldownLabel = cooldownMs >= 60 * 60_000
           ? `${Math.round(cooldownMs / (60 * 60_000))}h`
-          : `${Math.round(cooldownMs / 60_000)}min`;
+          : cooldownMs >= 60_000 ? `${Math.round(cooldownMs / 60_000)}min` : `${Math.round(cooldownMs / 1000)}s`;
         console.warn(`[ai-client] ${provider} failed (cooldown ${cooldownLabel}): ${lastError.message}`);
       } finally {
         noteDone(provider);
       }
     }
   } finally {
+    if (userHeld && userId) releaseUser(userId);
     releaseAgent(agentId);
     releaseGlobal();
   }
 
+  if (!lastError && tried.size === 0) {
+    lastError = new Error("All AI providers are blocked (invalid key / quota / daily cap) — see /api/status ai_providers");
+  }
   throw lastError ?? new Error("All AI providers failed");
 }
 
@@ -1677,10 +1875,10 @@ export function getAnthropicClient() {
 
   const oauthToken = readCliOAuthToken();
   if (oauthToken) {
-    return new Anthropic({ authToken: oauthToken });
+    return new Anthropic({ authToken: oauthToken, maxRetries: 2, timeout: 120_000 });
   }
   if (process.env.ANTHROPIC_API_KEY) {
-    return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2, timeout: 120_000 });
   }
   throw new Error("No Anthropic credentials for term-sheet analysis");
 }
@@ -1692,14 +1890,15 @@ export function isAnthropicConfigured(): boolean {
 }
 
 // ── Agent Self-Upgrade AI Call ─────────────────────────────────────────
-// Uses ONLY subscription/free models — zero additional API cost.
-// Priority: Cerebras → Groq → SambaNova → Claude OAuth → OpenRouter
-// NEVER uses paid API keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, Codex, proxy).
+// Background self-improvement work uses ONLY the free / subscription tiers —
+// zero marginal cost. The quality tier (ANTHROPIC_API_KEY) is reserved for
+// customer-facing work so trial capacity is never spent on crons.
+// Priority: Cerebras → Groq → SambaNova → OpenRouter → Claude OAuth.
 
 export async function callAIForUpgrade(opts: AICallOptions): Promise<AICallResult | null> {
   await getDBKeys(); // ensure cache is warm
 
-  // Only use FREE and subscription providers — NO paid API keys, NO Codex.
+  // Free and subscription providers only — the paid tiers are for customers.
   // Same throughput-first order as callAI: free high-volume first, Claude OAuth last.
   const freeProviders: Provider[] = [];
   // 1. Cerebras — ultra-fast 2000 t/s, gemma-4-31b most reliable in prod
@@ -1710,7 +1909,7 @@ export async function callAIForUpgrade(opts: AICallOptions): Promise<AICallResul
   if (process.env.SAMBANOVA_API_KEY || getDBKey("sambanova")) freeProviders.push("sambanova");
   // 4. OpenRouter — 24+ free models for breadth, but rate-limited per model
   if (process.env.OPENROUTER_API_KEY || getDBKey("openrouter")) freeProviders.push("openrouter");
-  // 5. Claude OAuth — subscription Sonnet 4.6 (last: save rate-limit headroom)
+  // 5. Claude OAuth — subscription Sonnet 5 (last: save rate-limit headroom)
   if (readCliOAuthToken()) freeProviders.push("claude-oauth");
   // NOTE: Gemini EXCLUDED — it costs $0.30-$2.50/1M tokens, NOT free.
   // NOTE: Codex EXCLUDED — refresh tokens keep expiring + paid quota.

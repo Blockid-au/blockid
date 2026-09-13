@@ -10,6 +10,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
+import { aiCapacityResponse, isAICapacityError } from "@/lib/ai/capacity";
 import {
   CRITERION_KEYS,
   getCriterion,
@@ -121,7 +122,7 @@ async function POST_handler(
   ].join("\n\n");
 
   try {
-    const { text } = await callAI({
+    const { text } = await callAI({ userId: user.id,
       system: `You are an expert startup evaluator scoring the "${def.title}" criterion for an Australian startup. You assess evidence quality, completeness, and investor-readiness.
 
 Score on a 0-100 scale:
@@ -243,6 +244,7 @@ Score this criterion's evidence from 0 to 100 and provide a brief summary with 3
       creditNote: creditChargeNote(scope),
     });
   } catch (err) {
+    if (isAICapacityError(err)) return aiCapacityResponse(err); // S31-A: 503 + Retry-After, never a 500
     console.error("[blockid:evaluation:ai-score]", err);
     return NextResponse.json({
       ok: false,

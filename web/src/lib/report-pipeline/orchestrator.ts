@@ -36,7 +36,10 @@ import { auditSections, type AuditableSection } from "./llm-auditor";
 import { researchMarket } from "@/lib/adk/agents";
 import { getAIBudgetStatus } from "@/lib/ai-client";
 
-type AICaller = (systemPrompt: string, userPrompt: string, maxTokens: number) => Promise<string>;
+// S31-A: the optional 4th argument is the Anthropic task class (lib/ai/anthropic-tier.ts).
+// Only the CEO final synthesis passes "synthesis" (→ Opus 5); everything else
+// is a "report" (→ Sonnet 5) on the quality tier.
+type AICaller = (systemPrompt: string, userPrompt: string, maxTokens: number, taskClass?: "classify" | "report" | "synthesis") => Promise<string>;
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -288,7 +291,7 @@ List issues as bullet points. If no issues found, respond with "No consistency i
 
 async function generateExecutiveSummary(
   context: ReportContext,
-  callAI: (systemPrompt: string, userPrompt: string, maxTokens: number) => Promise<string>,
+  callAI: AICaller,
 ): Promise<string> {
   const summaries = [...context.criterionResults.entries()]
     .map(([key, result]) => `**${key}** (${result.score}/100): ${result.highlights.slice(0, 2).join("; ")}`)
@@ -313,7 +316,8 @@ Include:
 5. Overall verdict and next milestone`;
 
   try {
-    return await callAI(systemPrompt, userPrompt, 2000);
+    // CEO final synthesis — the one call routed to Opus 5 on the quality tier.
+    return await callAI(systemPrompt, userPrompt, 2000, "synthesis");
   } catch {
     return `## Executive Summary\n\n**${context.startupName}** — SVI Score: ${context.sviAnalysis.totalSVI} (${context.sviAnalysis.stageLabel})\n\n*Executive summary generation encountered an error. Please refer to individual section analyses below.*`;
   }

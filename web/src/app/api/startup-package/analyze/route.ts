@@ -24,6 +24,7 @@ import { getActiveProject } from "@/lib/projects";
 import { consumeRateLimit } from "@/lib/rate-limit/persistent";
 import { spendCredits, getBalance, FEATURE_COSTS } from "@/lib/credits";
 import { callAI } from "@/lib/ai-client";
+import { aiCapacityResponse, isAICapacityError } from "@/lib/ai/capacity";
 import {
   computeSVI,
   extractSignals,
@@ -257,13 +258,14 @@ async function POST_handler(request: Request) {
   // ── Dispatch ONE agent ────────────────────────────────────────────────
   let response = "";
   try {
-    const result = await callAI({
+    const result = await callAI({ userId: user.id,
       system: systemPrompt,
       user: userPrompt,
       maxTokens: tierConfig.maxTokensPerAgent,
     });
     response = result.text;
   } catch (err) {
+    if (isAICapacityError(err)) return aiCapacityResponse(err); // S31-A: 503 + Retry-After, never a 500
     const msg = err instanceof Error ? err.message : "ai_call_failed";
     console.error("[startup-package:analyze] dispatch failed", err);
     return NextResponse.json(

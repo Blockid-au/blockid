@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
+import { aiCapacityResponse, isAICapacityError } from "@/lib/ai/capacity";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { apiRoute } from "@/lib/audit/api-route";
@@ -50,7 +51,7 @@ Key Gaps: ${analysis.evidenceGaps?.slice(0, 3).map(g => g.label).join(", ")}
 
 Return a JSON array of 12 objects with: { "slide": 1-12, "title": "...", "keyMessage": "...", "bullets": ["..."], "speakerNotes": "...", "visual": "..." }`;
 
-    const { text } = await callAI({ system: systemPrompt, user: userPrompt, maxTokens: 4096 });
+    const { text } = await callAI({ userId: user.id, system: systemPrompt, user: userPrompt, maxTokens: 4096 });
 
     let slides;
     try {
@@ -68,6 +69,7 @@ Return a JSON array of 12 objects with: { "slide": 1-12, "title": "...", "keyMes
       balance: spend.balance,
     });
   } catch (err) {
+    if (isAICapacityError(err)) return aiCapacityResponse(err); // S31-A: 503 + Retry-After, never a 500
     console.error("[pitch-deck]", err);
     return NextResponse.json({ ok: false, error: "Generation failed" }, { status: 500 });
   }

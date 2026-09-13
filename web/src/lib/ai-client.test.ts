@@ -110,6 +110,21 @@ const supabaseMock = vi.hoisted(() => {
 vi.mock("@/lib/supabase", () => supabaseMock);
 
 // ---------------------------------------------------------------------------
+// S31-A — the Anthropic quality tier is mocked so no test can dial
+// api.anthropic.com with a fake key. `tierMock.call` is swapped per test.
+// ---------------------------------------------------------------------------
+
+const tierMock = vi.hoisted(() => ({
+  call: vi.fn(async (): Promise<unknown> => {
+    throw new Error("Anthropic 401 authentication_error: mocked");
+  }),
+}));
+vi.mock("@/lib/ai/anthropic-tier", async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return { ...actual, callAnthropicTier: tierMock.call };
+});
+
+// ---------------------------------------------------------------------------
 // Env sandbox — every test starts with the AI-relevant env vars cleared, and
 // HOME pointed at a scratch dir so the OAuth-credentials probe is under our
 // control. process.env is restored after each test.
@@ -134,6 +149,15 @@ const AI_ENV_KEYS = [
   "CRON_SECRET",
   "NEXT_PUBLIC_SITE_URL",
   "SITE_URL",
+  // S31-A queue knobs + cap
+  "AI_MAX_CONCURRENT",
+  "AI_MAX_QUEUED",
+  "AI_MAX_PER_USER",
+  "AI_USER_QUEUE",
+  "AI_BACKGROUND_RESERVE",
+  "AI_QUEUE_WAIT_MS",
+  "AI_PROVIDER_PROBE",
+  "AI_DAILY_SPEND_CAP_AUD",
 ];
 
 const savedEnv: Record<string, string | undefined> = {};
@@ -175,6 +199,8 @@ let errorSpy: ReturnType<typeof vi.spyOn> | null = null;
 beforeEach(() => {
   resetFs();
   scrubEnv();
+  tierMock.call.mockReset();
+  tierMock.call.mockRejectedValue(new Error("Anthropic 401 authentication_error: mocked"));
   supabaseMock.getSupabaseAdmin.mockReset();
   supabaseMock.getSupabaseAdmin.mockReturnValue(null);
   warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -523,13 +549,12 @@ describe("isAIConfigured", () => {
     expect(isAIConfigured()).toBe(true);
   });
 
-  it("returns false when only ANTHROPIC_API_KEY is set (paid claude-apikey is not in the getAvailableProviders() chain)", async () => {
-    // Sanity: only the paid direct Anthropic key alone does NOT surface in
-    // the free-first chain (claude-apikey is excluded by design). Only OAuth
-    // (subscription) or the proxy (shared key) is considered.
+  it("returns true when only ANTHROPIC_API_KEY is set (S31-A: claude-apikey is the quality tier)", async () => {
+    // S31-A flipped this: a funded Anthropic key alone IS a configured
+    // platform — it is the quality tier the dispatcher tries first.
     process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
     const { isAIConfigured } = await loadClient();
-    expect(isAIConfigured()).toBe(false);
+    expect(isAIConfigured()).toBe(true);
   });
 });
 
@@ -564,12 +589,37 @@ describe("callAI", () => {
     ).rejects.toThrow(/No AI provider configured/);
   });
 
-  it("throws 'No AI provider configured' when only ANTHROPIC_API_KEY is set (paid claude-apikey excluded)", async () => {
+  it("dials the Anthropic quality tier when only ANTHROPIC_API_KEY is set, and surfaces its 401 (S31-A)", async () => {
     process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    tierMock.call.mockRejectedValueOnce(new Error("Anthropic 401 authentication_error: API key is invalid."));
     const { callAI } = await loadClient();
-    await expect(
-      callAI({ system: "s", user: "u" }),
-    ).rejects.toThrow(/No AI provider configured/);
+    await expect(callAI({ system: "s", user: "u" })).rejects.toThrow(/401 authentication_error/);
+    expect(tierMock.call).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns the Anthropic result (usage + cost) when the quality tier answers (S31-A)", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    process.env.GROQ_API_KEY = "gsk-free";
+    tierMock.call.mockResolvedValueOnce({
+      text: "hello", model: "claude-sonnet-5", streamed: false, cost_usd: 0.0012,
+      usage: { input_tokens: 100, output_tokens: 50, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
+    });
+    const { callAI } = await loadClient();
+    const out = await callAI({ system: "s", user: "u" });
+    expect(out.provider).toBe("claude");
+    expect(out.model).toBe("claude-sonnet-5");
+    expect(out.cost_usd).toBeCloseTo(0.0012, 6);
+    expect(out.usage?.input_tokens).toBe(100);
+  });
+
+  it("does NOT dial Anthropic again once the key is latched invalid — the free tier serves (S31-A)", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    const mod = await loadClient();
+    const tier = await import("@/lib/ai/anthropic-tier");
+    tier.markAnthropicKeyInvalid(Date.now(), "test");
+    await expect(mod.callAI({ system: "s", user: "u" })).rejects.toThrow(/blocked|invalid key/i);
+    expect(tierMock.call).not.toHaveBeenCalled();
+    tier._resetAnthropicTierForTests();
   });
 
   it("consults supabase for DB-sourced keys via getDBKeys() before failing", async () => {
@@ -784,5 +834,167 @@ describe("_resetDispatcherForTests — hermetic reset", () => {
       _resetDispatcherForTests();
       _resetDispatcherForTests();
     }).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// S31-A — backpressure: bounded queue, per-user fairness, background yields,
+// and the AICapacityError (503) contract. The Anthropic tier mock is the only
+// provider and each call resolves when the test says so.
+// ---------------------------------------------------------------------------
+
+function deferred<T>() {
+  let resolve!: (v: T) => void;
+  let reject!: (e: Error) => void;
+  const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; });
+  return { promise, resolve, reject };
+}
+
+const okResult = (n: number) => ({
+  text: `r${n}`, model: "claude-sonnet-5", streamed: false, cost_usd: 0,
+  usage: { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
+});
+
+/** Real-time settle: callAI awaits a dynamic import before it queues, so the
+ *  dispatcher state is only observable after a macrotask or two. */
+async function settle(ms = 120): Promise<void> {
+  await new Promise((r) => setTimeout(r, ms));
+}
+async function waitFor(cond: () => boolean, timeoutMs = 2000): Promise<void> {
+  const until = Date.now() + timeoutMs;
+  while (!cond()) {
+    if (Date.now() > until) throw new Error("waitFor timeout");
+    await new Promise((r) => setTimeout(r, 5));
+  }
+}
+
+describe("S31-A backpressure — per-user fairness (AI_MAX_PER_USER=2)", () => {
+  it("lets 2 calls per user run, queues the 3rd, and dispatches it when one finishes", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    const gates = [deferred<unknown>(), deferred<unknown>(), deferred<unknown>()];
+    let n = 0;
+    tierMock.call.mockImplementation(() => gates[n++].promise);
+    const { callAI, getDispatcherState, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    const calls = [0, 1, 2].map(() => callAI({ system: "s", user: "u", userId: "founder-1" }));
+    await waitFor(() => tierMock.call.mock.calls.length >= 2);
+    await settle();
+    expect(tierMock.call).toHaveBeenCalledTimes(2);
+    expect(getDispatcherState().perUser["founder-1"]).toBe(2);
+    gates[0].resolve(okResult(0));
+    await waitFor(() => tierMock.call.mock.calls.length >= 3);
+    gates[1].resolve(okResult(1));
+    gates[2].resolve(okResult(2));
+    const out = await Promise.all(calls);
+    expect(out.map((r) => r.text).sort()).toEqual(["r0", "r1", "r2"]);
+    expect(getDispatcherState().perUser).toEqual({});
+    expect(getDispatcherState().globalRunning).toBe(0);
+  });
+
+  it("a user past their in-flight AND queue allowance gets AICapacityError (503, Retry-After) — other users are untouched", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    process.env.AI_MAX_PER_USER = "1";
+    process.env.AI_USER_QUEUE = "0";
+    const gate = deferred<unknown>();
+    tierMock.call.mockImplementation(() => gate.promise);
+    const { callAI, _resetDispatcherForTests, getDispatcherState } = await loadClient();
+    const { isAICapacityError } = await import("@/lib/ai/capacity");
+    _resetDispatcherForTests();
+    const first = callAI({ system: "s", user: "u", userId: "u1" });
+    await waitFor(() => tierMock.call.mock.calls.length >= 1);
+    const err = await callAI({ system: "s", user: "u", userId: "u1" }).catch((e) => e as Error);
+    expect(isAICapacityError(err)).toBe(true);
+    expect((err as { status?: number }).status).toBe(503);
+    expect((err as { retryAfterSec?: number }).retryAfterSec).toBeGreaterThanOrEqual(2);
+    expect(err.message).toMatch(/try again in ~\d+ s/);
+    // The rejected call released its global slot; another user still runs.
+    expect(getDispatcherState().globalRunning).toBe(1);
+    const other = callAI({ system: "s", user: "u", userId: "u2" });
+    await waitFor(() => tierMock.call.mock.calls.length >= 2);
+    gate.resolve(okResult(1));
+    await Promise.all([first, other]);
+    expect(getDispatcherState().globalRunning).toBe(0);
+  });
+});
+
+describe("S31-A backpressure — bounded global queue + background yields to users", () => {
+  it("queue full → AICapacityError('queue_full'), never a bare Error; ai_queue_depth reports the wait", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    process.env.AI_MAX_CONCURRENT = "1";
+    process.env.AI_MAX_QUEUED = "1";
+    const gate = deferred<unknown>();
+    tierMock.call.mockImplementation(() => gate.promise);
+    const { callAI, getAIQueueDepth, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    const a = callAI({ system: "s", user: "u" });
+    await waitFor(() => tierMock.call.mock.calls.length >= 1);
+    const b = callAI({ system: "s", user: "u" }); // queued (1/1)
+    await waitFor(() => getAIQueueDepth().queued === 1);
+    expect(getAIQueueDepth()).toEqual({ queued: 1, queued_user: 1, queued_background: 0, running: 1, max_concurrent: 1 });
+    const err = await callAI({ system: "s", user: "u" }).catch((e) => e as Error & { reason?: string });
+    expect(err.name).toBe("AICapacityError");
+    expect(err.reason).toBe("queue_full");
+    gate.resolve(okResult(1));
+    await Promise.all([a, b]);
+    expect(getAIQueueDepth().queued).toBe(0);
+  });
+
+  it("background work leaves a reserve for users and is dequeued only after waiting users", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    process.env.AI_MAX_CONCURRENT = "4";
+    process.env.AI_BACKGROUND_RESERVE = "0.25"; // reserve = 1 slot
+    const gates: Array<ReturnType<typeof deferred<unknown>>> = [];
+    tierMock.call.mockImplementation(() => { const g = deferred<unknown>(); gates.push(g); return g.promise; });
+    const { callAI, getAIQueueDepth, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    const bg = [0, 1, 2, 3].map(() => callAI({ system: "s", user: "u", priority: "background" }));
+    await waitFor(() => getAIQueueDepth().queued_background === 1);
+    await settle();
+    // 3 background run, the 4th waits: slot #4 is the user reserve.
+    expect(tierMock.call).toHaveBeenCalledTimes(3);
+    expect(getAIQueueDepth()).toMatchObject({ running: 3, queued_background: 1, queued_user: 0 });
+    const user = callAI({ system: "s", user: "u", priority: "user" });
+    await waitFor(() => tierMock.call.mock.calls.length >= 4); // the user took the reserved slot immediately
+    expect(getAIQueueDepth()).toMatchObject({ running: 4, queued_background: 1 });
+    // A second user call queues; when a slot frees, the USER lane is served first.
+    const user2 = callAI({ system: "s", user: "u", priority: "user" });
+    await waitFor(() => getAIQueueDepth().queued_user === 1);
+    expect(getAIQueueDepth()).toMatchObject({ queued_user: 1, queued_background: 1 });
+    gates[0].resolve(okResult(0));
+    await waitFor(() => tierMock.call.mock.calls.length >= 5);
+    expect(getAIQueueDepth()).toMatchObject({ queued_user: 0, queued_background: 1 });
+    for (let i = 1; i < gates.length; i++) gates[i].resolve(okResult(i));
+    await waitFor(() => tierMock.call.mock.calls.length >= 6);
+    for (let i = 5; i < gates.length; i++) gates[i].resolve(okResult(i));
+    await Promise.all([...bg, user, user2]);
+    expect(getAIQueueDepth().queued).toBe(0);
+  });
+});
+
+describe("S31-A — daily spend cap skips the paid tiers, free tier keeps serving", () => {
+  it("with the cap reached, Anthropic is never dialled; the error names the cap when nothing else is configured", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    process.env.AI_DAILY_SPEND_CAP_AUD = "1";
+    const { callAI, _resetDispatcherForTests } = await loadClient();
+    const spend = await import("@/lib/ai/spend-guard");
+    spend._resetSpendGuardForTests();
+    spend.recordPaidSpend("claude-apikey", 5); // US$5 × 1.55 ≫ A$1
+    _resetDispatcherForTests();
+    await expect(callAI({ system: "s", user: "u" })).rejects.toThrow(/blocked .*daily cap/);
+    expect(tierMock.call).not.toHaveBeenCalled();
+    spend._resetSpendGuardForTests();
+  });
+
+  it("records real Anthropic usage cost into the daily ledger after a successful call", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    tierMock.call.mockResolvedValueOnce({ ...okResult(1), cost_usd: 0.42 });
+    const { callAI, _resetDispatcherForTests } = await loadClient();
+    const spend = await import("@/lib/ai/spend-guard");
+    spend._resetSpendGuardForTests();
+    _resetDispatcherForTests();
+    await callAI({ system: "s", user: "u" });
+    expect(spend.readDailySpend().spent_usd).toBeCloseTo(0.42, 8);
+    expect(spend.readDailySpend().by_provider["claude-apikey"]).toBeCloseTo(0.42, 8);
+    spend._resetSpendGuardForTests();
   });
 });

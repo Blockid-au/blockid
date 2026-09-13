@@ -18,6 +18,7 @@ import { FREE_MODELS_CONFIG } from "@/lib/ai-client";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchJson, filterFreeOpenRouter, rank } from "@/lib/model-discovery";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
+import { readStrikes, recentlyPruned } from "@/lib/ai/model-strikes";
 
 export const dynamic = "force-dynamic";
 
@@ -41,12 +42,14 @@ export async function POST(request: Request) {
 
   const config: Record<string, string[]> = {};
   const summary: Record<string, number> = {};
+  // S31-A: models the health check pruned in the last 7 days stay out.
+  const pruned = recentlyPruned(readStrikes());
 
   // ── OpenRouter (public catalogue — the richest source of free models) ──
   const orAll = await fetchJson("https://openrouter.ai/api/v1/models");
   const orFree = filterFreeOpenRouter(orAll);
   if (orFree.length > 0) {
-    config.openrouter = rank(orFree, 12); // top 12 strongest free models — wider fallback breadth
+    config.openrouter = rank(orFree, 12, pruned.openrouter ?? new Set()); // top 12 strongest free models — wider fallback breadth
     summary.openrouter = config.openrouter.length;
   }
 
@@ -60,7 +63,7 @@ export async function POST(request: Request) {
     const key = (env && process.env[env]) || (await dbKey(provider));
     if (!key) continue;
     const models = await fetchJson(url, { Authorization: `Bearer ${key}` });
-    const ranked = rank(models, 12); // top 12 strongest free models — wider fallback breadth
+    const ranked = rank(models, 12, pruned[provider] ?? new Set()); // top 12 strongest free models — wider fallback breadth
     if (ranked.length > 0) {
       config[provider] = ranked;
       summary[provider] = ranked.length;
@@ -87,5 +90,6 @@ export async function POST(request: Request) {
     updatedAt: payload.updatedAt,
     discovered: summary,
     openrouterTop5: config.openrouter?.slice(0, 5) ?? [],
+    excludedPruned: Object.fromEntries(Object.entries(pruned).map(([p, set]) => [p, set.size])),
   });
 }

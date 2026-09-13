@@ -7,7 +7,7 @@ import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 /** Adapter: ADK ModelCaller (system, user, maxTokens) → free callAI(). */
 const adkModel = async (system: string, user: string, maxTokens: number): Promise<string> =>
-  (await callAI({ system, user, maxTokens, timeoutMs: 60_000 })).text;
+  (await callAI({ system, user, maxTokens, timeoutMs: 60_000, priority: "background" })).text;
 
 export const dynamic = "force-dynamic";
 
@@ -120,7 +120,7 @@ function validateTopic(t: unknown): { ok: true; topic: TopicItem } | { ok: false
       // Auto-research: generate a new topic when queue is depleted
       try {
         const existingTitles = manifest.articles.map((a) => a.title).join("\n- ");
-        const researchResult = await callAI({
+        const researchResult = await callAI({ priority: "background", // S31-A: crons yield to user traffic
           system: `You are an SEO strategist for BlockID.au (Australian startup valuation platform). Generate ONE new blog topic that Australian founders would search for. Return ONLY valid JSON with this exact structure:
 {"slug":"kebab-case-slug","title":"Title Under 70 Chars","category":"valuation|cap-table|fundraising|equity|compliance|tools|growth","keywords":["keyword1","keyword2","keyword3"],"cta":{"label":"CTA Label","href":"/tools/xxx or /score or /"},"angle":"2-3 sentence brief for the writer"}
 No markdown, no explanation, just the JSON object.`,
@@ -183,7 +183,7 @@ No markdown, no explanation, just the JSON object.`,
         : nextTopic.keywords;
 
     // 3. Generate article via AI
-    const aiResult = await callAI({
+    const aiResult = await callAI({ priority: "background", // S31-A: crons yield to user traffic
       system: `You are a visual-first content designer for BlockID.au — an AI startup valuation platform. Your output is a VISUAL SKETCH, not an essay. Founders scan, not read.
 
 ## HARD LIMITS
@@ -266,7 +266,7 @@ Write the full article in markdown. Make it genuinely helpful, visually rich wit
     const articleContent = aiResult.text.trim();
 
     // 4. Generate meta description
-    const descResult = await callAI({
+    const descResult = await callAI({ priority: "background", // S31-A: crons yield to user traffic
       system: "Write a single meta description for an SEO blog post. Max 155 characters. Include the primary keyword. No quotes around it. Just the plain text.",
       user: `Title: ${nextTopic.title}\nKeywords: ${nextTopic.keywords[0]}\nFirst 200 chars of article: ${articleContent.slice(0, 200)}`,
       maxTokens: 100,
