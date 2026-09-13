@@ -120,8 +120,12 @@ async function POST_handler(request: NextRequest) {
   const esicRequireEligible = wholesaleOnly || marketing.marketed;
   let esicWarn: unknown = undefined;
   let div83aWarn: unknown = undefined;
+  // S26-A: the round remembers its project so /workspace/fundraise/[roundId]
+  // (member-aware via getProjectScope) can find it; legacy rows stay null.
+  let projectId: string | null = null;
   try {
     const project = await getActiveProject(user.id);
+    projectId = project?.id ?? null;
     const gate = await assertESICEligibleOrWarn(supabase, {
       userId: user.id,
       projectId: project?.id ?? null,
@@ -260,6 +264,7 @@ async function POST_handler(request: NextRequest) {
       dilution_table: result.dilutionTable,
       new_cap_table: result.newCapTable,
       status: "draft",
+      project_id: projectId,
     })
     .select()
     .single();
