@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-13T01:54:57.694Z",
+  "generated_at": "2026-09-13T03:39:20.610Z",
   "ledger_present": true,
-  "total_files": 241,
+  "total_files": 242,
   "files": [
     "0001_init.sql",
     "0002_score_v2.sql",
@@ -215,6 +215,7 @@
     "0352_oauth_connections_account_columns.sql",
     "0353_xero_evidence_dimensions.sql",
     "0354_bank_statement_evidence_dimension.sql",
+    "0360_board_resolutions.sql",
     "20260814_tech_analyses.sql",
     "20260815120000_analyzer_runs.sql",
     "20260816_clevel_reports_v2.sql",
