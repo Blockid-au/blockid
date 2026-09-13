@@ -143,8 +143,10 @@ describe("POST /api/secondary/sim/orders", () => {
     expect(await json(s)).toMatchObject({ ok: true, sandbox: true, settings: { rofrEnabled: true, rofrHoldHours: 48 } });
     expect(sim.settings).toHaveBeenCalledWith("proj-1", { rofrEnabled: true, rofrHoldHours: 24 });
 
-    expect((await post({ action: "nuke" })).status).toBe(400);
-    expect((await post({ side: "short", price: 1, qty: 1 })).status).toBe(400);
-    expect((await post("{nope", true)).status).toBe(400);
+    // S27 review: the sandbox marker is on EVERY response, validation errors included.
+    for (const res of [await post({ action: "nuke" }), await post({ side: "short", price: 1, qty: 1 }), await post("{nope", true), await post({ action: "cancel", orderId: "x" })]) {
+      expect(res.status).toBe(400);
+      expect(await json(res)).toMatchObject({ ok: false, sandbox: true, notice: expect.stringContaining("Chapter 6D") });
+    }
   });
 });

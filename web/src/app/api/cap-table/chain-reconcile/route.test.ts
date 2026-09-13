@@ -195,6 +195,17 @@ describe("POST /api/cap-table/chain-reconcile", () => {
     ]);
   });
 
+  it("push refuses when blockchain sync is paused for the project (409, nothing queued; the run is still recorded)", async () => {
+    seed({ blockchain_sync_config: [{ account_id: "acct-1", project_id: "proj-1", token_address: TOKEN, token_symbol: "ACME", sync_enabled: false }] });
+    chain.snapshot = { holders: [{ holderAddress: A, shares: 590 }, { holderAddress: B, shares: 400 }] };
+    const res = await post({ action: "push" });
+    expect(res.status).toBe(409);
+    const body = await json(res);
+    expect(body.error).toBe("sync_disabled");
+    expect(chain.queued).toEqual([]);
+    expect(body.last).toMatchObject({ status: "drift" });
+  });
+
   it("push refuses when the chain is unreachable (502, nothing queued)", async () => {
     chain.unreachable = true;
     const res = await post({ action: "push" });

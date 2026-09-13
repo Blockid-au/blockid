@@ -57,13 +57,13 @@ async function POST_handler(request: Request) {
   try {
     body = (await request.json()) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ ok: false, ...SANDBOX, error: "Invalid JSON" }, { status: 400 });
   }
   const action = String(body.action ?? "place");
 
   if (action === "cancel") {
     const orderId = typeof body.orderId === "string" ? body.orderId : "";
-    if (!/^[0-9a-f-]{36}$/i.test(orderId)) return NextResponse.json({ ok: false, error: "orderId required" }, { status: 400 });
+    if (!/^[0-9a-f-]{36}$/i.test(orderId)) return NextResponse.json({ ok: false, ...SANDBOX, error: "orderId required" }, { status: 400 });
     const r = await cancelOrder(supabase, { projectId: scope.projectId, orderId });
     if (!r.ok) return NextResponse.json({ ok: false, ...SANDBOX, error: r.error }, { status: r.status });
     return NextResponse.json({ ok: true, ...SANDBOX, order: r.order });
@@ -77,10 +77,10 @@ async function POST_handler(request: Request) {
     return NextResponse.json({ ok: true, ...SANDBOX, settings });
   }
 
-  if (action !== "place") return NextResponse.json({ ok: false, error: `Unknown action: ${action}` }, { status: 400 });
+  if (action !== "place") return NextResponse.json({ ok: false, ...SANDBOX, error: `Unknown action: ${action}` }, { status: 400 });
 
   const side = body.side === "buy" || body.side === "sell" ? body.side : null;
-  if (!side) return NextResponse.json({ ok: false, error: "side must be buy or sell" }, { status: 400 });
+  if (!side) return NextResponse.json({ ok: false, ...SANDBOX, error: "side must be buy or sell" }, { status: 400 });
   const price = Number(body.price);
   const qty = Number(body.qty);
   const shareholderId = typeof body.shareholderId === "string" && body.shareholderId ? body.shareholderId : null;

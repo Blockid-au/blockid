@@ -95,6 +95,15 @@ async function POST_handler(request: Request) {
   });
 
   if (action === "push") {
+    // The 5-minute blockchain-sync cron only drains accounts with sync_enabled —
+    // queueing while it is off would leave the corrections pending forever while
+    // the panel says "applied within 15 minutes" (S27 post-ship review).
+    if (!config.syncEnabled) {
+      return NextResponse.json(
+        { ok: false, error: "sync_disabled", message: "Blockchain sync is paused for this project — resume it before pushing corrections.", last: outcome.row },
+        { status: 409 },
+      );
+    }
     if (outcome.status === "unreachable" || !outcome.result) {
       return NextResponse.json(
         { ok: false, error: "chain_unreachable", message: "The chain could not be read — nothing was queued.", last: outcome.row },
