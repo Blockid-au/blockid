@@ -28,3 +28,20 @@ export function categoriseCostLabel(rows: number, cost: number, included: boolea
   if (included) return `Categorise ${n} with AI (included in your plan)`;
   return `Categorise ${n} with AI (cost: ${cost} credit${cost === 1 ? "" : "s"})`;
 }
+
+/**
+ * S29-hardening (S28 review #6) — pro-rata refund when some model batches
+ * failed: the credit blocks the failed rows would have cost
+ * (`ceil(failedRows / ROWS_PER_CREDIT)`), capped at the units actually
+ * charged, priced at the charged unit cost. `{ units: 0, credits: 0 }` when
+ * nothing failed, nothing was charged or the inputs are unusable.
+ */
+export function categoriseRefund(failedRows: number, chargedUnits: number, chargedCredits: number): { units: number; credits: number } {
+  const failed = Number.isFinite(failedRows) ? Math.max(0, Math.floor(failedRows)) : 0;
+  const charged = Number.isFinite(chargedUnits) ? Math.max(0, Math.floor(chargedUnits)) : 0;
+  const paid = Number.isFinite(chargedCredits) ? Math.max(0, chargedCredits) : 0;
+  if (failed === 0 || charged === 0 || paid === 0) return { units: 0, credits: 0 };
+  const units = Math.min(charged, Math.ceil(failed / ROWS_PER_CREDIT));
+  const credits = Math.min(paid, Math.round((paid / charged) * units * 100) / 100);
+  return { units, credits };
+}

@@ -234,30 +234,41 @@ export async function countAiQueue(db: ExpenseDb, projectId: string): Promise<nu
 }
 
 export interface AiRunResult {
+  /** Rows the model decided (written back — accepted or `other` + review). */
   categorised: number;
   accepted: number;
   needsReview: number;
   batches: number;
   failedBatches: number;
+  /**
+   * S29-hardening (S28 review #6): rows inside the failed batches — left in
+   * the queue (`category_source` NULL, nothing written) so the next press
+   * retries them; the route refunds their credit blocks.
+   */
+  failedRows: number;
 }
 
-/** Run the model over the queue and write every decision back (accepted or `other` + review). */
+/** Run the model over the queue and write every decision back (accepted or `other` + review); failed-batch rows stay queued. */
 export async function runAiOnQueue(db: ExpenseDb, projectId: string, rows: readonly BankTransactionRow[], ai: AiFn): Promise<AiRunResult> {
   const inputs: CategoriseInput[] = rows.map((r) => ({ id: r.id, occurredOn: r.occurred_on, description: r.description, amountAud: num(r.amount_aud) }));
   const res = await categoriseWithAi(inputs, { ai });
   let accepted = 0;
   let needsReview = 0;
+  let categorised = 0;
   // Every batch failed (model down / unparseable) → write nothing: the rows
   // stay in the queue (`category_source` NULL) and the route refunds.
   if (res.batches > 0 && res.failedBatches === res.batches) {
-    return { categorised: 0, accepted: 0, needsReview: 0, batches: res.batches, failedBatches: res.failedBatches };
+    return { categorised: 0, accepted: 0, needsReview: 0, batches: res.batches, failedBatches: res.failedBatches, failedRows: res.failedRows };
   }
   for (const d of res.decisions) {
+    // An undecided row (its batch failed) is not a model decision — leave it queued.
+    if (d.source === null) continue;
     if (d.needsReview) needsReview++;
     else accepted++;
+    categorised++;
     await db.from(TRANSACTIONS_TABLE).update(decisionToRow(d)).eq("id", d.id).eq("project_id", projectId);
   }
-  return { categorised: res.decisions.length, accepted, needsReview, batches: res.batches, failedBatches: res.failedBatches };
+  return { categorised, accepted, needsReview, batches: res.batches, failedBatches: res.failedBatches, failedRows: res.failedRows };
 }
 
 // ─── Read ────────────────────────────────────────────────────────────────────
