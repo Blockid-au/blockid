@@ -23,6 +23,7 @@ const h = vi.hoisted(() => ({
 vi.mock("@/lib/auth", () => ({ getCurrentUser: async () => h.user }));
 vi.mock("@/lib/stripe", () => ({ getStripe: () => h.stripe }));
 vi.mock("@/lib/projects", () => ({ getProjectScope: async () => h.scope }));
+vi.mock("@/lib/project-members/http", () => ({ projectAccessResponse: () => null }));
 vi.mock("@/lib/audit/api-route", () => ({ apiRoute: (_m: unknown, fn: unknown) => fn }));
 
 function fakeSupabase() {

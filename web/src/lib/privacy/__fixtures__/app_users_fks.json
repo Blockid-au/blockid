@@ -1,8 +1,8 @@
 {
-  "dumped_at": "2026-09-12",
+  "dumped_at": "2026-09-13",
   "source": "pg_constraint (contype=f) on production supabase-db, confrelid = public.app_users; regenerate with `node scripts/db/app-users-fk-inventory.mjs --json --fixture`",
   "referenced": "public.app_users(id)",
-  "count": 124,
+  "count": 125,
   "fks": [
     {
       "constraint": "ab_assignments_user_id_fkey",
@@ -189,6 +189,13 @@
     {
       "constraint": "compliance_wgea_status_user_id_fkey",
       "table": "compliance_wgea_status",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "connector_snapshots_user_id_fkey",
+      "table": "connector_snapshots",
       "column": "user_id",
       "on_delete": "CASCADE",
       "not_null": true

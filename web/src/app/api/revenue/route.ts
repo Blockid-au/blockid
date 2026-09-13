@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { getStripe } from "@/lib/stripe";
 import { apiRoute } from "@/lib/audit/api-route";
 import { getProjectScope } from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
 import { loadSnapshotHistory } from "@/lib/connectors/snapshots";
 import { resolveRevenueFigures } from "@/lib/revenue/sources";
 
@@ -49,16 +50,23 @@ export async function GET() {
   const stripe = getStripe();
 
   // ── 0. S25-A — connector snapshots for the active project's owner ─────
+  // Manual rows (revenue_entries / startup_metrics / svi_analyses) are keyed
+  // on the OWNER's email (scope.dataEmail) so a co-founder sees the project's
+  // figures, not their own empty ledger (S18-A rule C).
   let projectId: string | null = null;
   let ownerUserId: string = user.id;
+  let dataEmail: string = user.email;
   try {
     const scope = await getProjectScope();
     if (scope) {
       projectId = scope.projectId;
       ownerUserId = scope.ownerUserId;
+      dataEmail = scope.dataEmail;
     }
-  } catch {
-    // Access errors on the active project → fall back to the caller's own rows.
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
+    throw err;
   }
   const snapshots = await loadSnapshotHistory(supabase, { userId: ownerUserId, projectId });
   const stripeSnapshot = snapshots.stripe?.latest ?? null;
@@ -141,7 +149,7 @@ export async function GET() {
   const { data: manualEntries } = await supabase
     .from("revenue_entries")
     .select("month, amount, source")
-    .eq("email", user.email)
+    .eq("email", dataEmail)
     .order("month", { ascending: true });
 
   if (manualEntries && manualEntries.length > 0) {
@@ -191,7 +199,7 @@ export async function GET() {
   const { data: latestMetric } = await supabase
     .from("startup_metrics")
     .select("mrr_aud, arr_aud, burn_rate_aud")
-    .eq("email", user.email)
+    .eq("email", dataEmail)
     .order("metric_date", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -228,7 +236,7 @@ export async function GET() {
   const { count } = await supabase
     .from("svi_analyses")
     .select("id", { count: "exact", head: true })
-    .eq("email", user.email);
+    .eq("email", dataEmail);
 
   analysisCount = count ?? 0;
 
@@ -335,6 +343,18 @@ async function POST_handler(request: Request) {
     );
   }
 
+  // Editors+ on the active project write under the OWNER's data key (same
+  // rule as /api/metrics); an unshared account falls back to the caller.
+  let scope;
+  try {
+    scope = await getProjectScope("editor");
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
+    throw err;
+  }
+  const dataEmail = scope?.dataEmail ?? user.email;
+
   let body: { month?: string; amount?: number; source?: string } = {};
   try {
     body = await request.json();
@@ -370,7 +390,7 @@ async function POST_handler(request: Request) {
     .from("revenue_entries")
     .upsert(
       {
-        email: user.email,
+        email: dataEmail,
         month,
         amount,
         source,
@@ -394,7 +414,7 @@ async function POST_handler(request: Request) {
   const { data: account } = await supabase
     .from("svi_accounts")
     .select("id")
-    .eq("email", user.email)
+    .eq("email", dataEmail)
     .maybeSingle();
 
   if (account) {
@@ -403,7 +423,7 @@ async function POST_handler(request: Request) {
       .upsert(
         {
           account_id: account.id,
-          email: user.email,
+          email: dataEmail,
           metric_date: metricDate,
           mrr_aud: amount,
           arr_aud: amount * 12,
@@ -440,7 +460,7 @@ async function POST_handler(request: Request) {
       const { data: latestAnalysis } = await supabase
         .from("svi_analyses")
         .select("raw_input")
-        .eq("email", user.email)
+        .eq("email", dataEmail)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();

@@ -27,6 +27,7 @@ import {
   DETACH_END,
   EXTRAS_BEGIN,
   EXTRAS_END,
+  ERASURE_MIGRATION_FILE,
   MAP_BEGIN,
   MAP_END,
   extractBlock,
@@ -36,7 +37,7 @@ import {
   renderMapBlock,
 } from "./erasure-sql";
 
-const MIGRATION = path.resolve(__dirname, "..", "..", "..", "supabase", "migrations", "0348_erase_account.sql");
+const MIGRATION = path.resolve(__dirname, "..", "..", "..", "supabase", "migrations", ERASURE_MIGRATION_FILE);
 const sql = readFileSync(MIGRATION, "utf8");
 
 type Fk = { constraint: string; table: string; column: string; on_delete: string; not_null: boolean };
@@ -44,12 +45,12 @@ const fks = fixture.fks as Fk[];
 const fkByKey = new Map(fks.map((f) => [`${f.table}.${f.column}`, f]));
 
 describe("erasure map ↔ live-schema fixture", () => {
-  it("fixture is the 124-FK production dump", () => {
+  it("fixture is the 125-FK production dump", () => {
     expect(fixture.referenced).toBe("public.app_users(id)");
-    expect(fks.length).toBe(124);
+    expect(fks.length).toBe(125);
     expect(fixture.count).toBe(fks.length);
     const by = fks.reduce<Record<string, number>>((acc, f) => ({ ...acc, [f.on_delete]: (acc[f.on_delete] ?? 0) + 1 }), {});
-    expect(by).toEqual({ CASCADE: 81, "NO ACTION": 14, "SET NULL": 23, RESTRICT: 6 });
+    expect(by).toEqual({ CASCADE: 82, "NO ACTION": 14, "SET NULL": 23, RESTRICT: 6 });
   });
 
   it("every FK is mapped exactly once and nothing stale is mapped", () => {
@@ -145,9 +146,9 @@ describe("erasure map ↔ live-schema fixture", () => {
 
   it("summary matches the classification", () => {
     const s = summariseErasureMap();
-    expect(s.entries).toBe(124);
-    expect(s.delete + s.anonymise + s.detach).toBe(124);
-    expect(s).toMatchObject({ delete: 76, anonymise: 34, detach: 14, immutable: 3, tables: 110 });
+    expect(s.entries).toBe(125);
+    expect(s.delete + s.anonymise + s.detach).toBe(125);
+    expect(s).toMatchObject({ delete: 77, anonymise: 34, detach: 14, immutable: 3, tables: 111 });
     expect(s.project_detaches).toBe(PROJECT_DETACHES.length);
     expect(s.non_fk_extras).toBe(NON_FK_EXTRAS.length);
   });
@@ -163,16 +164,16 @@ describe("erasure map ↔ live-schema fixture", () => {
   });
 });
 
-describe("migration 0348 ↔ map parity", () => {
+describe("erasure migration ↔ map parity", () => {
   it("carries the three generated VALUES blocks verbatim", () => {
     expect(extractBlock(sql, MAP_BEGIN, MAP_END)).toBe(renderMapBlock());
     expect(extractBlock(sql, DETACH_BEGIN, DETACH_END)).toBe(renderDetachBlock());
     expect(extractBlock(sql, EXTRAS_BEGIN, EXTRAS_END)).toBe(renderExtrasBlock());
   });
 
-  it("the SQL block parses back to the same 124 entries", () => {
+  it("the SQL block parses back to the same 125 entries", () => {
     const parsed = parseMapBlock(extractBlock(sql, MAP_BEGIN, MAP_END)!);
-    expect(parsed.length).toBe(124);
+    expect(parsed.length).toBe(125);
     const ord = orderedEntries();
     parsed.forEach((p, i) => {
       const e = ord[i];
@@ -192,7 +193,7 @@ describe("migration 0348 ↔ map parity", () => {
     expect(sql).toMatch(/REVOKE ALL ON FUNCTION public\.erase_account\(uuid, boolean\) FROM anon, authenticated/);
     expect(sql).toMatch(/GRANT EXECUTE ON FUNCTION public\.erase_account\(uuid, boolean\) TO service_role/);
     expect(sql).toMatch(/'service_role'\)\s+THEN\s+RAISE EXCEPTION 'erase_account: service_role only'/);
-    expect(sql.trim().startsWith("-- 0348_erase_account.sql")).toBe(true);
+    expect(sql.trim().startsWith(`-- ${ERASURE_MIGRATION_FILE}`)).toBe(true);
     expect(sql).toMatch(/^BEGIN;$/m);
     expect(sql).toMatch(/^COMMIT;$/m);
     expect(sql).toMatch(/NOTIFY pgrst, 'reload schema'/);
