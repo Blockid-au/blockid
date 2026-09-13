@@ -21,7 +21,7 @@
 import * as React from "react";
 import { CheckCircle2, Download, FileText, FolderPlus, Loader2, Receipt, ShieldAlert, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatAudCents, statementCostLabel } from "@/lib/dividends/statement";
+import { formatAudCents, formatSharePriceAud, statementCostLabel } from "@/lib/dividends/statement";
 import { BoardResolutionButton } from "@/components/board-resolutions/board-resolution-button";
 
 export interface StatementListItem {
@@ -41,6 +41,8 @@ export interface StatementListItem {
   voidedAt: string | null;
   voidReason: string | null;
   pdfUrl: string;
+  /** S28-A — DRIP line when the shareholder reinvested part of this dividend. */
+  drip?: { shares: number; priceAud: number; reinvestedAud: number; cashPaidAud: number } | null;
 }
 
 export interface DividendRecordItem {
@@ -73,6 +75,8 @@ interface Preview {
   toIssue: string[];
   alreadyIssued: number;
   company: { name: string; abn: string | null; acn: string | null };
+  /** S28-A — who reinvests under the DRIP and the estimated allotment. */
+  drip: { electing: Array<{ shareholderName: string; participationPct: number; priceAud: number; estShares: number; estReinvestedAud: number; skipReason: string | null }>; marketPriceAud: number | null } | null;
 }
 
 const AU_DATE = new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "Australia/Sydney" });
@@ -230,7 +234,7 @@ export function DividendStatementsPanel({ initial }: { initial?: StatementsPanel
           return;
         }
         if (json.preview) {
-          setPreview({ recordId, cost: json.cost, included: json.included, balance: json.balance, creditNote: json.creditNote, toIssue: json.toIssue ?? [], alreadyIssued: json.alreadyIssued ?? 0, company: json.company });
+          setPreview({ recordId, cost: json.cost, included: json.included, balance: json.balance, creditNote: json.creditNote, toIssue: json.toIssue ?? [], alreadyIssued: json.alreadyIssued ?? 0, company: json.company, drip: json.drip ?? null });
         }
       } finally {
         setBusy(null);
@@ -453,6 +457,15 @@ export function DividendStatementsPanel({ initial }: { initial?: StatementsPanel
                           {preview.toIssue.length > 0 ? `Statements for: ${preview.toIssue.join(", ")}` : "Every shareholder already has a live statement"}
                           {preview.alreadyIssued > 0 ? ` · ${preview.alreadyIssued} already issued (not charged again)` : ""}
                         </li>
+                        {preview.drip && preview.drip.electing.length > 0 ? (
+                          <li data-testid="statements-preview-drip">
+                            DRIP:{" "}
+                            {preview.drip.electing
+                              .map((d) => (d.estShares > 0 ? `${d.shareholderName} reinvests ${d.participationPct}% → ${d.estShares.toLocaleString("en-AU")} shares at ${formatSharePriceAud(d.priceAud)} (${formatAudCents(d.estReinvestedAud)})` : `${d.shareholderName} — paid in cash (${d.skipReason ?? "no allotment"})`))
+                              .join("; ")}
+                            . Shares are recorded on the cap table when you confirm.
+                          </li>
+                        ) : null}
                       </ul>
                       <div className="mt-3 flex gap-2">
                         <button
@@ -494,7 +507,8 @@ export function DividendStatementsPanel({ initial }: { initial?: StatementsPanel
                             </p>
                             <p className="text-xs text-ink-500 mt-0.5">
                               {s.sharesHeld.toLocaleString("en-AU")} shares · gross {formatAudCents(s.grossAud)} · franking credit {formatAudCents(s.frankingCreditAud)}
-                              {s.tfnWithheldAud > 0 ? ` · TFN withheld ${formatAudCents(s.tfnWithheldAud)}` : ""} · net {formatAudCents(s.netPaidAud)} · issued {fmtDate(s.issuedAt)}
+                              {s.tfnWithheldAud > 0 ? ` · TFN withheld ${formatAudCents(s.tfnWithheldAud)}` : ""} · net {formatAudCents(s.netPaidAud)}
+                              {s.drip && s.drip.shares > 0 ? ` · DRIP ${s.drip.shares.toLocaleString("en-AU")} shares at ${formatSharePriceAud(s.drip.priceAud)}, cash ${formatAudCents(s.drip.cashPaidAud)}` : ""} · issued {fmtDate(s.issuedAt)}
                               {voided && s.voidReason ? ` · voided: ${s.voidReason}` : ""}
                             </p>
                           </div>
