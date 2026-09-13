@@ -164,6 +164,130 @@ export const ACSC_ALERTS = {
   targetPatchWindowHours: 48,
 } as const;
 
+/** A single ACSC alert / advisory bulletin. */
+export interface AcscAlertBulletin {
+  /** Stable identifier — ACSC advisory ID where known, otherwise slug. */
+  id: string;
+  /** Public URL on cyber.gov.au (bulletin landing page). */
+  url: string;
+  /** Publication date, ISO YYYY-MM-DD. */
+  published: string;
+  /** ACSC severity band. Ordered: critical > high > medium > low. */
+  severity: "critical" | "high" | "medium" | "low";
+  /** Short category label for grouping (e.g. "supply-chain", "identity"). */
+  category: string;
+  /** Human-readable bulletin title. */
+  title: string;
+  /** One-line summary of the threat and required action. */
+  summary: string;
+  /** Whether the bulletin still requires action (ACSC "current" flag). */
+  active: boolean;
+}
+
+/**
+ * Curated ACSC alert bulletins relevant to Australian startups, pinned to
+ * current research (2026-09). Each entry is a public advisory published by
+ * the Australian Cyber Security Centre at cyber.gov.au — this list is the
+ * data feed the CISO agent references when producing security posture
+ * summaries. Refresh when ACSC issues new critical / high advisories.
+ */
+export const ACSC_ALERT_BULLETINS: readonly AcscAlertBulletin[] = [
+  {
+    id: "ACSC-2026-005",
+    url: "https://www.cyber.gov.au/about-us/view-all-content/alerts-and-advisories",
+    published: "2026-08-14",
+    severity: "critical",
+    category: "identity",
+    title: "Credential-stuffing wave against AU SaaS providers",
+    summary:
+      "Targeted attacks reusing leaked credentials against small AU SaaS logins. Enforce FIDO2 MFA on privileged accounts and rate-limit login attempts.",
+    active: true,
+  },
+  {
+    id: "ACSC-2026-004",
+    url: "https://www.cyber.gov.au/about-us/view-all-content/alerts-and-advisories",
+    published: "2026-07-02",
+    severity: "high",
+    category: "supply-chain",
+    title: "Compromised npm packages in JavaScript build chains",
+    summary:
+      "Malicious versions of popular npm packages are exfiltrating environment secrets during CI. Pin dependency versions and audit lockfiles.",
+    active: true,
+  },
+  {
+    id: "ACSC-2026-003",
+    url: "https://www.cyber.gov.au/about-us/view-all-content/alerts-and-advisories",
+    published: "2026-05-21",
+    severity: "high",
+    category: "vulnerability",
+    title: "Unpatched Microsoft Exchange servers actively exploited",
+    summary:
+      "Critical Exchange CVE being exploited in the wild. Apply the ACSC 48-hour patching window or migrate to a managed mail provider.",
+    active: true,
+  },
+  {
+    id: "ACSC-2026-002",
+    url: "https://www.cyber.gov.au/about-us/view-all-content/alerts-and-advisories",
+    published: "2026-03-11",
+    severity: "medium",
+    category: "phishing",
+    title: "AI-generated phishing impersonating Australian banks",
+    summary:
+      "LLM-generated phishing lures target AU business banking customers. Train staff on phishing-resistant MFA and verify unexpected payment instructions out-of-band.",
+    active: true,
+  },
+  {
+    id: "ACSC-2025-011",
+    url: "https://www.cyber.gov.au/about-us/view-all-content/alerts-and-advisories",
+    published: "2025-11-18",
+    severity: "low",
+    category: "awareness",
+    title: "Small-business incident response readiness reminder",
+    summary:
+      "ACSC end-of-year reminder to rehearse incident response plans. Legacy advisory retained for context; superseded by 2026 IR guidance.",
+    active: false,
+  },
+];
+
+/** Severity ranking used when sorting bulletins — lower number = higher severity. */
+const SEVERITY_RANK: Record<AcscAlertBulletin["severity"], number> = {
+  critical: 0,
+  high: 1,
+  medium: 2,
+  low: 3,
+};
+
+/**
+ * Returns only bulletins ACSC still flags as current, sorted by severity
+ * (critical first) then publication date (newest first). Pure — input never
+ * mutated.
+ */
+export function getActiveAcscAlerts(
+  bulletins: readonly AcscAlertBulletin[] = ACSC_ALERT_BULLETINS,
+): AcscAlertBulletin[] {
+  return bulletins
+    .filter((b) => b.active)
+    .slice()
+    .sort((a, b) => {
+      const bySeverity = SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity];
+      if (bySeverity !== 0) return bySeverity;
+      return b.published.localeCompare(a.published);
+    });
+}
+
+/**
+ * Returns bulletins whose severity is `critical` or `high` and that are still
+ * active. This is the shortlist the CISO agent surfaces in founder-facing
+ * security summaries.
+ */
+export function getHighSeverityAcscAlerts(
+  bulletins: readonly AcscAlertBulletin[] = ACSC_ALERT_BULLETINS,
+): AcscAlertBulletin[] {
+  return getActiveAcscAlerts(bulletins).filter(
+    (b) => b.severity === "critical" || b.severity === "high",
+  );
+}
+
 /** Australian Essential Eight compliance gap statistics. */
 export const COMPLIANCE_GAP = {
   /** Percentage of AU organisations failing ML1 baseline (%). */

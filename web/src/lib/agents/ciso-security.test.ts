@@ -5,6 +5,7 @@ import {
   LLM_VULNERABILITY_RANKING,
   MFA_REQUIREMENT,
   ACSC_ALERTS,
+  ACSC_ALERT_BULLETINS,
   COMPLIANCE_GAP,
   calculateOverallScore,
   isWithinCriticalPatchingWindow,
@@ -12,6 +13,8 @@ import {
   getAverageBreachCostAU,
   enrichEssentialEight,
   applyResearchUpdates,
+  getActiveAcscAlerts,
+  getHighSeverityAcscAlerts,
   type SecurityAssessment,
   type EssentialEightItem,
   type SecurityRisk,
@@ -86,6 +89,92 @@ describe("LLM_VULNERABILITY_RANKING / MFA_REQUIREMENT / ACSC_ALERTS / COMPLIANCE
   it("COMPLIANCE_GAP.ml1BaselineFailPctAU > 50 so applyResearchUpdates always escalates Credential Compromise", () => {
     expect(COMPLIANCE_GAP.ml1BaselineFailPctAU).toBe(60);
     expect(COMPLIANCE_GAP.ml1BaselineFailPctAU).toBeGreaterThan(50);
+  });
+});
+
+// ── ACSC_ALERT_BULLETINS registry + query helpers ───────────────────────────
+
+describe("ACSC_ALERT_BULLETINS registry", () => {
+  it("every bulletin declares a non-empty id, title, summary and cyber.gov.au URL", () => {
+    expect(ACSC_ALERT_BULLETINS.length).toBeGreaterThan(0);
+    for (const b of ACSC_ALERT_BULLETINS) {
+      expect(b.id.trim().length).toBeGreaterThan(0);
+      expect(b.title.trim().length).toBeGreaterThan(0);
+      expect(b.summary.trim().length).toBeGreaterThan(0);
+      expect(b.url).toMatch(/^https:\/\/www\.cyber\.gov\.au\//);
+      expect(b.published).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+  });
+
+  it("ids are unique across the registry", () => {
+    const ids = ACSC_ALERT_BULLETINS.map((b) => b.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("registry contains at least one active critical or high advisory (current threat surface)", () => {
+    const highActive = ACSC_ALERT_BULLETINS.filter(
+      (b) => b.active && (b.severity === "critical" || b.severity === "high"),
+    );
+    expect(highActive.length).toBeGreaterThan(0);
+  });
+});
+
+describe("getActiveAcscAlerts / getHighSeverityAcscAlerts", () => {
+  it("getActiveAcscAlerts drops inactive bulletins and sorts by severity then newest-first", () => {
+    const active = getActiveAcscAlerts();
+    for (const b of active) expect(b.active).toBe(true);
+
+    const rank = { critical: 0, high: 1, medium: 2, low: 3 } as const;
+    for (let i = 1; i < active.length; i++) {
+      const prev = active[i - 1];
+      const curr = active[i];
+      const prevRank = rank[prev.severity];
+      const currRank = rank[curr.severity];
+      expect(prevRank).toBeLessThanOrEqual(currRank);
+      if (prevRank === currRank) {
+        expect(prev.published >= curr.published).toBe(true);
+      }
+    }
+  });
+
+  it("getHighSeverityAcscAlerts returns only active critical/high entries", () => {
+    const shortlist = getHighSeverityAcscAlerts();
+    expect(shortlist.length).toBeGreaterThan(0);
+    for (const b of shortlist) {
+      expect(b.active).toBe(true);
+      expect(["critical", "high"]).toContain(b.severity);
+    }
+  });
+
+  it("both helpers accept a caller-supplied bulletin list and never mutate it", () => {
+    const custom = [
+      {
+        id: "TEST-01",
+        url: "https://www.cyber.gov.au/x",
+        published: "2026-01-01",
+        severity: "high" as const,
+        category: "test",
+        title: "t",
+        summary: "s",
+        active: true,
+      },
+      {
+        id: "TEST-02",
+        url: "https://www.cyber.gov.au/x",
+        published: "2026-02-01",
+        severity: "low" as const,
+        category: "test",
+        title: "t2",
+        summary: "s2",
+        active: false,
+      },
+    ];
+    const before = JSON.stringify(custom);
+    const active = getActiveAcscAlerts(custom);
+    const highOnly = getHighSeverityAcscAlerts(custom);
+    expect(JSON.stringify(custom)).toBe(before);
+    expect(active.map((b) => b.id)).toEqual(["TEST-01"]);
+    expect(highOnly.map((b) => b.id)).toEqual(["TEST-01"]);
   });
 });
 
