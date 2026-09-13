@@ -9,14 +9,49 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import {
+  DATA_ROOM_GENERATE_CREDITS,
   InvestorSharePanel,
+  MintFailureNotice,
   STATE_LABEL,
   accessSummary,
   followUpUnavailableReason,
+  mintFailureGuidance,
   ndaSummary,
   shareRecipient,
   tokenFromUrl,
 } from "./investor-share-panel";
+
+describe("mintFailureGuidance + MintFailureNotice (lane-1 F7)", () => {
+  it("409 no_data_room → generate first, with the credit price and a link to the generator", () => {
+    const f = mintFailureGuidance(409, { error: "no_data_room", message: "Generate your data room first — there is nothing to share yet." });
+    expect(f.nextStep).toBe(`Generate the data room first — ${DATA_ROOM_GENERATE_CREDITS} credits`);
+    expect(f.href).toBe("/workspace/data-room#generate");
+    expect(f.message).toMatch(/no data room/i);
+    const html = renderToStaticMarkup(<MintFailureNotice failure={f} />);
+    expect(html).toContain('data-testid="investor-share-mint-error"');
+    expect(html).toContain('role="alert"');
+    expect(html).toContain('href="/workspace/data-room#generate"');
+    expect(html).toContain("Generate the data room first — 3 credits");
+  });
+
+  it("402 / insufficient_credits → top up, linking the billing credits section", () => {
+    expect(mintFailureGuidance(402, { error: "insufficient_credits" })).toMatchObject({ nextStep: "Top up credits", href: "/workspace/billing#credits" });
+    expect(mintFailureGuidance(409, { error: "payment_required", message: "3 credits needed" })).toMatchObject({ message: "3 credits needed", href: "/workspace/billing#credits" });
+  });
+
+  it("an unknown error keeps the API message and renders no link", () => {
+    const f = mintFailureGuidance(500, { error: "Database not configured" });
+    expect(f).toMatchObject({ message: "Database not configured", href: "" });
+    const html = renderToStaticMarkup(<MintFailureNotice failure={f} />);
+    expect(html).not.toContain("<a ");
+    expect(html).toContain("Try again");
+    expect(mintFailureGuidance(500, null).message).toBe("Could not create the link.");
+  });
+
+  it("the panel renders no inline error until a mint has failed", () => {
+    expect(renderToStaticMarkup(<InvestorSharePanel />)).not.toContain('data-testid="investor-share-mint-error"');
+  });
+});
 
 describe("followUpUnavailableReason (S26-A)", () => {
   it("is null for an active link with an email and no pending NDA", () => {

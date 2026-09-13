@@ -13,6 +13,12 @@
 //   1. a "who is this for?" form, so the log has names in it;
 //   2. the link list with state, views and access times, revocable per row;
 //   3. the outstanding-document list — the same gaps the investor will see.
+//
+// Live QA lane 1 F7 (2026-09-13): a mint that fails (409 `no_data_room`,
+// 402 credits) used to surface only as a toast that vanished — the founder
+// was left with a form that "does nothing". `mintFailureGuidance` turns the
+// API error into an inline notice under the form with the next step and a
+// link (`data-testid="investor-share-mint-error"`); the toast still fires.
 
 import * as React from "react";
 import {
@@ -165,6 +171,80 @@ export function tokenFromUrl(url: string): string {
   return match ? match[1] : "";
 }
 
+/** Credits the one-click data-room compile costs (`/api/data-room/generate`, FEATURE_COSTS.data_room_generate). */
+export const DATA_ROOM_GENERATE_CREDITS = 3;
+
+export interface MintFailure {
+  /** What went wrong, in the founder's words. */
+  message: string;
+  /** What to do about it — rendered as the link text. */
+  nextStep: string;
+  href: string;
+}
+
+/**
+ * Inline guidance for a failed mint (lane-1 F7). Maps the API's error code
+ * to a reason + next step + link; unknown errors fall back to the API's own
+ * message (or a generic one) with no link.
+ */
+export function mintFailureGuidance(
+  status: number,
+  data: { error?: string; message?: string } | null | undefined,
+): MintFailure {
+  const code = data?.error ?? "";
+  if (status === 409 && code === "no_data_room") {
+    return {
+      message: "There is no data room to share yet.",
+      nextStep: `Generate the data room first — ${DATA_ROOM_GENERATE_CREDITS} credits`,
+      href: "/workspace/data-room#generate",
+    };
+  }
+  if (status === 402 || code === "insufficient_credits" || code === "payment_required") {
+    return {
+      message: data?.message ?? "Not enough credits to create this link.",
+      nextStep: "Top up credits",
+      href: "/workspace/billing#credits",
+    };
+  }
+  if (status === 403) {
+    return {
+      message: data?.message ?? "You do not have permission to mint links for this project.",
+      nextStep: "Ask the project owner",
+      href: "/workspace/team",
+    };
+  }
+  return {
+    message: data?.message ?? data?.error ?? "Could not create the link.",
+    nextStep: "Try again",
+    href: "",
+  };
+}
+
+/** The inline notice under the mint form (exported so the branch renders in the colocated test). */
+export function MintFailureNotice({ failure }: { failure: MintFailure }) {
+  return (
+    <div
+      role="alert"
+      data-testid="investor-share-mint-error"
+      className="mt-3 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-primary"
+    >
+      <p className="flex items-start gap-1.5">
+        <AlertTriangle aria-hidden strokeWidth={1.75} className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warn" />
+        <span>{failure.message}</span>
+      </p>
+      <p className="mt-1 pl-5">
+        {failure.href ? (
+          <a href={failure.href} className="font-semibold text-action underline underline-offset-2">
+            {failure.nextStep}
+          </a>
+        ) : (
+          <span className="font-semibold">{failure.nextStep}</span>
+        )}
+      </p>
+    </div>
+  );
+}
+
 const EXPIRY_CHOICES: { value: number | null; label: string }[] = [
   { value: 7, label: "7 days" },
   { value: 30, label: "30 days" },
@@ -188,6 +268,8 @@ export function InvestorSharePanel({
   const [revokingToken, setRevokingToken] = React.useState<string | null>(null);
   const [copiedId, setCopiedId] = React.useState<string | null>(null);
   const [togglingId, setTogglingId] = React.useState<string | null>(null);
+  // Lane-1 F7 — inline reason + next step for a failed mint (null = none).
+  const [mintFailure, setMintFailure] = React.useState<MintFailure | null>(null);
 
   const [investorName, setInvestorName] = React.useState("");
   const [investorEmail, setInvestorEmail] = React.useState("");
@@ -240,6 +322,7 @@ export function InvestorSharePanel({
     e.preventDefault();
     if (minting) return;
     setMinting(true);
+    setMintFailure(null);
     try {
       const res = await fetch("/api/investor-data-room", {
         method: "POST",
@@ -257,10 +340,9 @@ export function InvestorSharePanel({
         | { ok?: boolean; url?: string; error?: string; message?: string }
         | null;
       if (!res.ok || !data?.ok) {
-        toast(
-          data?.message ?? data?.error ?? "Could not create the link.",
-          "error",
-        );
+        const failure = mintFailureGuidance(res.status, data);
+        setMintFailure(failure);
+        toast(failure.message, "error");
         return;
       }
       const who = investorName.trim() || investorFirm.trim();
@@ -274,6 +356,7 @@ export function InvestorSharePanel({
       setInvestorFirm("");
       await loadLinks();
     } catch {
+      setMintFailure({ message: "Could not create the link.", nextStep: "Check your connection and try again", href: "" });
       toast("Could not create the link. Please try again.", "error");
     } finally {
       setMinting(false);
@@ -473,6 +556,7 @@ export function InvestorSharePanel({
           Names are optional, but a link with no name gives you an access log
           you cannot read.
         </p>
+        {mintFailure && <MintFailureNotice failure={mintFailure} />}
       </form>
 
       {/* ── The links ────────────────────────────────────────────────── */}
