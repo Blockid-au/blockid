@@ -87,8 +87,13 @@ export async function maybeNotifyInvestorViewed(
     const alreadyStored =
       head && head.event_type === incoming.event_type && (head.section ?? null) === (incoming.section ?? null) && (head.duration_ms ?? null) === (incoming.duration_ms ?? null);
     const depth = readDepth(alreadyStored ? stored : [...stored, incoming]);
+    // Earlier `open` beacons on this link (the row the route just wrote for
+    // THIS open excluded) — the signal that survives the page render's
+    // `first_accessed` stamp; see engagement `FIRST_VIEW_STAMP_GRACE_MS`.
+    const storedOpens = stored.filter((r) => r.event_type === "open").length;
+    const priorOpens = Math.max(0, storedOpens - (event.eventType === "open" && alreadyStored ? 1 : 0));
 
-    const trigger = detectInvestorViewedTrigger({ eventType: event.eventType, firstAccessedBefore: link.first_accessed, depth });
+    const trigger = detectInvestorViewedTrigger({ eventType: event.eventType, firstAccessedBefore: link.first_accessed, depth, priorOpens });
     if (!trigger) return none;
 
     const { data: roomRow } = await supabase

@@ -117,7 +117,9 @@ async function POST_handler(req: NextRequest) {
   const tokenUpdate: Record<string, string> = {
     last_accessed: new Date().toISOString(),
   };
-  if (eventType === "open") {
+  // First open only — a later open must not move the first-open timestamp
+  // (S26 review: the investor_viewed trigger reads it).
+  if (eventType === "open" && !accessToken.first_accessed) {
     tokenUpdate.first_accessed = new Date().toISOString();
   }
 

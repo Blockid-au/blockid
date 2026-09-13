@@ -301,6 +301,14 @@ export function formatDwell(ms: number): string {
 export const INVESTOR_VIEWED_THROTTLE_MS = 24 * 60 * 60 * 1000;
 export const INVESTOR_VIEWED_SECTION_THRESHOLD = 3;
 export const INVESTOR_VIEWED_DWELL_THRESHOLD_MS = 5 * 60 * 1000;
+/**
+ * The investor page's server render (`s/dr/[token]` → `recordShareView`)
+ * stamps `first_accessed` on the very first page load — BEFORE the client
+ * `open` beacon reaches api/data-room/engage. Read literally, that stamp
+ * made every first open look like a repeat (S26 review P1). A stamp this
+ * fresh with no earlier `open` event on the link is the same visit.
+ */
+export const FIRST_VIEW_STAMP_GRACE_MS = 15 * 60 * 1000;
 
 export type InvestorViewedTrigger = "first_view" | "deep_read";
 
@@ -328,7 +336,10 @@ export function readDepth(events: ReadonlyArray<Pick<HeatmapEventInput, "event_t
 
 /**
  * Which alert (if any) this event earns.
- *   - an `open` on a link that had never been opened → `first_view`
+ *   - an `open` on a link that had never been opened → `first_view`. "Never
+ *     opened" = no `first_accessed` stamp, OR a stamp younger than
+ *     `FIRST_VIEW_STAMP_GRACE_MS` with no earlier `open` event stored for
+ *     the link (`priorOpens` = 0) — the page render's own stamp.
  *   - otherwise, once the link's cumulative depth crosses either threshold
  *     → `deep_read` (the writer's 24 h throttle stops every later event
  *     re-firing it)
@@ -338,8 +349,17 @@ export function detectInvestorViewedTrigger(args: {
   /** `data_room_access_tokens.first_accessed` BEFORE this event was recorded. */
   firstAccessedBefore: string | null;
   depth: ReadDepth;
+  /** `open` events already stored for the link, excluding this one. Omitted → unknown (stamp decides). */
+  priorOpens?: number;
+  now?: number;
 }): InvestorViewedTrigger | null {
-  if (args.eventType === "open" && !args.firstAccessedBefore) return "first_view";
+  if (args.eventType === "open") {
+    if (!args.firstAccessedBefore) return "first_view";
+    const stampedAt = Date.parse(args.firstAccessedBefore);
+    const now = args.now ?? Date.now();
+    const stampIsThisVisit = Number.isFinite(stampedAt) && now - stampedAt >= 0 && now - stampedAt < FIRST_VIEW_STAMP_GRACE_MS;
+    if (args.priorOpens === 0 && stampIsThisVisit) return "first_view";
+  }
   if (args.depth.sections >= INVESTOR_VIEWED_SECTION_THRESHOLD || args.depth.dwellMs >= INVESTOR_VIEWED_DWELL_THRESHOLD_MS) {
     return "deep_read";
   }
