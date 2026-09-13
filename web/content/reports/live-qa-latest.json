@@ -1,37 +1,24 @@
 {
-  "ts": "2026-09-13T16:40:30.909Z",
-  "startedAt": "2026-09-13T16:36:45Z",
+  "ts": "2026-09-13T20:27:31.740Z",
+  "startedAt": "2026-09-13T20:22:52Z",
   "baseURL": "https://blockid.au",
-  "exitCode": 1,
-  "passed": 93,
-  "failed": 2,
-  "skipped": 1,
+  "exitCode": 0,
+  "passed": 145,
+  "failed": 0,
+  "skipped": 10,
   "flaky": 0,
-  "expectedFailures": 1,
-  "durationMs": 224282.789,
+  "expectedFailures": 2,
+  "durationMs": 277729.006,
   "account": {
-    "email": "qa-live-20260913-1636@blockid.au",
-    "userId": "df1b95f9-6623-430d-93d3-83aaf76a7f97",
-    "projectId": "a8cb3613-abff-4210-b11c-2484e9e2c42f",
+    "email": "qa-live-20260913-2022@blockid.au",
+    "userId": "91633c31-cd4b-4796-95a6-91dec622be25",
+    "projectId": "990ee875-18c4-453b-886a-fc978dd3866a",
     "plan": "growth",
     "elevated": true
   },
   "erasure": {
     "ok": true,
-    "detail": "erased df1b95f9-6623-430d-93d3-83aaf76a7f97; verify dry-run exit 2 (no app_users row for the QA email)"
+    "detail": "erased 91633c31-cd4b-4796-95a6-91dec622be25; verify dry-run exit 2 (no app_users row for the QA founder email)"
   },
-  "findings": [
-    {
-      "spec": "00-free-plan-gates.spec.ts",
-      "project": "live-qa",
-      "title": "fundraise wizard on Free with no cap table dead-ends with an upgrade link (lane-1 F8 fix)",
-      "error": "Error: expect(locator).toBeVisible() failed\n\nLocator: getByTestId('fundraise-cap-table-dead-end')\nExpected: visible\nTimeout: 30000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeVisible\" with timeout 30000ms\n  - waiting for getByTestId('fundraise-cap-table-dead-end')\n"
-    },
-    {
-      "spec": "06-fundraise.spec.ts",
-      "project": "live-qa",
-      "title": "add a soft-circled commitment through the form, then move it to committed",
-      "error": "Error: expect(locator).toHaveAttribute(expected) failed\n\nLocator: getByTestId('round-progress-bar')\nExpected pattern: /committed A\\$250,000/\nReceived string:  \"Funded $0, committed $250,000, soft-circled $0 of a $500,000 target\"\nTimeout: 15000ms\n\nCall log:\n  - Expect \"toHaveAttribute\" with timeout 15000ms\n  - waiting for getByTestId('round-progress-bar')\n    34 × locator resolved to <div role=\"img\" data-testid=\"round-progress-bar\" class=\"mt-3 flex h-4 w-full overflow-hidden rounded-full bg-surface-100\" aria-label=\"Funded $0, committed $250,000, soft-circled $0 of a $500,000 target\">…</div>\n   "
-    }
-  ]
+  "findings": []
 }
