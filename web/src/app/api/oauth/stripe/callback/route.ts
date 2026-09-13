@@ -18,6 +18,7 @@ import { sealToken } from "@/lib/oauth-token-seal";
 import { findOrCreateSVIAccount } from "@/lib/projects";
 import { projectScopeOrRedirect } from "@/lib/project-members/http";
 import { oauthSessionOrRedirect } from "@/lib/project-members/oauth-session";
+import { insertConnectorSnapshot } from "@/lib/connectors/snapshots";
 
 export const dynamic = "force-dynamic";
 
@@ -78,6 +79,7 @@ export async function GET(request: Request) {
   if (denied) return denied;
   const projectId = scope?.projectId ?? null;
   const dataEmail = scope?.dataEmail ?? user.email;
+  const ownerUserId = scope?.ownerUserId ?? user.id;
 
   const platformSecretKey = process.env.STRIPE_SECRET_KEY;
   const clientSecret = process.env.STRIPE_CLIENT_SECRET ?? process.env.STRIPE_SECRET_KEY;
@@ -207,6 +209,24 @@ export async function GET(request: Request) {
       },
       { onConflict: "account_id,provider" },
     );
+
+    // S25-A — first dated snapshot (growth baseline for the weekly resync;
+    // churn is unknown at link time and stays null until the first resync).
+    await insertConnectorSnapshot(supabase, {
+      userId: ownerUserId,
+      projectId,
+      provider: "stripe",
+      metrics: {
+        mrrAud: mrr,
+        arrAud: Math.round(mrr * 12 * 100) / 100,
+        activeSubscriptions: subscriptions.data.length,
+        activeCustomers: customerCount,
+        churnedSubscriptions90d: 0,
+        churnRate90dPct: null,
+        currency,
+      },
+      source: "callback",
+    });
 
     // Upsert traction evidence (TRE)
     const { data: existingTre } = await supabase

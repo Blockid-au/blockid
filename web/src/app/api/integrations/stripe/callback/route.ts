@@ -4,6 +4,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { projectScopeOrRedirect } from "@/lib/project-members/http";
 import { saveConnection, writeSignals, markSynced } from "@/lib/oauth-connectors";
 import { fetchStripeSignals } from "@/lib/oauth-stripe-signals";
+import { getSupabaseAdmin } from "@/lib/supabase";
+import { insertConnectorSnapshot } from "@/lib/connectors/snapshots";
 
 export const dynamic = "force-dynamic";
 
@@ -112,6 +114,25 @@ export async function GET(request: Request) {
         { key: "recent_payments_30d", numeric: signals.recentPayments30d },
         { key: "average_order_aud", numeric: signals.averageOrderAud },
       ]);
+      // S25-A — first dated snapshot (growth baseline for the weekly resync).
+      const db = getSupabaseAdmin();
+      if (db) {
+        await insertConnectorSnapshot(db, {
+          userId: signalsUserId,
+          projectId,
+          provider: "stripe",
+          metrics: {
+            mrrAud: signals.mrrAud,
+            arrAud: Math.round(signals.mrrAud * 12 * 100) / 100,
+            activeSubscriptions: 0,
+            activeCustomers: signals.activeCustomers,
+            churnedSubscriptions90d: 0,
+            churnRate90dPct: null,
+            currency: "aud",
+          },
+          source: "callback",
+        });
+      }
       if (conn) await markSynced(conn.id);
     } catch (err) {
       if (conn) await markSynced(conn.id, (err as Error).message);

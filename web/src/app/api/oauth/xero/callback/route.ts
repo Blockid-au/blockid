@@ -17,6 +17,8 @@ import { sealToken } from "@/lib/oauth-token-seal";
 import { findOrCreateSVIAccount } from "@/lib/projects";
 import { projectScopeOrRedirect } from "@/lib/project-members/http";
 import { oauthSessionOrRedirect } from "@/lib/project-members/oauth-session";
+import { xeroMetricsFromReports, type XeroReportsResponse } from "@/lib/connectors/xero-metrics";
+import { insertConnectorSnapshot } from "@/lib/connectors/snapshots";
 
 export const dynamic = "force-dynamic";
 
@@ -34,73 +36,10 @@ interface XeroConnection {
   tenantType?: string;
 }
 
-interface XeroReportRow {
-  RowType?: string;
-  Title?: string;
-  Cells?: { Value?: string }[];
-  Rows?: XeroReportRow[];
-}
-
-interface XeroReport {
-  ReportID?: string;
-  ReportName?: string;
-  Rows?: XeroReportRow[];
-}
-
-interface XeroReportsResponse {
-  Reports?: XeroReport[];
-  Status?: string;
-  DateTimeUTC?: string;
-}
-
-function parseXeroAmount(value: string | undefined): number {
-  if (!value) return 0;
-  const cleaned = value.replace(/[,$\s]/g, "");
-  const num = parseFloat(cleaned);
-  return isNaN(num) ? 0 : num;
-}
-
-function extractPLValues(report: XeroReport): {
-  totalIncomeAud: number;
-  totalExpensesAud: number;
-  netProfitAud: number;
-} {
-  let totalIncomeAud = 0;
-  let totalExpensesAud = 0;
-  let netProfitAud = 0;
-
-  const rows = report.Rows ?? [];
-
-  for (const section of rows) {
-    if (section.RowType !== "Section") continue;
-    const title = (section.Title ?? "").toLowerCase();
-    const sectionRows = section.Rows ?? [];
-
-    // Find the summary row for each section (RowType === "SummaryRow")
-    const summaryRow = sectionRows.find((r) => r.RowType === "SummaryRow");
-    const summaryValue = summaryRow?.Cells?.[1]?.Value;
-
-    if (title.includes("income") || title.includes("revenue")) {
-      totalIncomeAud = parseXeroAmount(summaryValue);
-    } else if (title.includes("expense") || title.includes("cost")) {
-      totalExpensesAud = parseXeroAmount(summaryValue);
-    }
-  }
-
-  // Look for a net profit / net loss row at the top level
-  const netRow = rows.find(
-    (r) =>
-      r.RowType === "Row" &&
-      (r.Cells?.[0]?.Value ?? "").toLowerCase().includes("net"),
-  );
-  if (netRow) {
-    netProfitAud = parseXeroAmount(netRow.Cells?.[1]?.Value);
-  } else {
-    netProfitAud = totalIncomeAud - totalExpensesAud;
-  }
-
-  return { totalIncomeAud, totalExpensesAud, netProfitAud };
-}
+// S25-A — the report parsers live in lib/connectors/xero-metrics.ts so the
+// weekly resync (api/cron/connector-resync) pulls exactly what this
+// callback pulls; the callback also seeds the first `connector_snapshots`
+// row (source "callback") so growth has a baseline from day one.
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -158,6 +97,7 @@ export async function GET(request: Request) {
   if (denied) return denied;
   const projectId = scope?.projectId ?? null;
   const dataEmail = scope?.dataEmail ?? user.email;
+  const ownerUserId = scope?.ownerUserId ?? user.id;
 
   const clientId = process.env.XERO_CLIENT_ID;
   const clientSecret = process.env.XERO_CLIENT_SECRET;
@@ -250,11 +190,9 @@ export async function GET(request: Request) {
       console.warn("[blockid:oauth:xero] BankSummary fetch failed", bankRes.status);
     }
 
-    // 5. Extract P&L values
-    const plReport = plData.Reports?.[0];
-    const { totalIncomeAud, totalExpensesAud, netProfitAud } = plReport
-      ? extractPLValues(plReport)
-      : { totalIncomeAud: 0, totalExpensesAud: 0, netProfitAud: 0 };
+    // 5. Extract P&L values (shared parsers — S25-A)
+    const metrics = xeroMetricsFromReports(plData, bankData, tenantName);
+    const { totalIncomeAud, totalExpensesAud, netProfitAud } = metrics;
 
     const bankReportName = bankData.Reports?.[0]?.ReportName ?? null;
 
@@ -289,6 +227,15 @@ export async function GET(request: Request) {
       },
       { onConflict: "account_id,provider" },
     );
+
+    // 6b. S25-A — first dated snapshot (growth baseline for the weekly resync)
+    await insertConnectorSnapshot(supabase, {
+      userId: ownerUserId,
+      projectId,
+      provider: "xero",
+      metrics,
+      source: "callback",
+    });
 
     // 7. Upsert CFO evidence (financial_health) — always created
     const { data: existingCfo } = await supabase

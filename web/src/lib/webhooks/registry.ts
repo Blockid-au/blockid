@@ -4,7 +4,7 @@
 // project data — no emails, no share tokens, no report bodies):
 //
 //   svi.rescored             { project_id, account_id, svi_total, previous_svi,
-//                              delta, stage, source: "rescore" | "snapshot",
+//                              delta, stage, source: "rescore" | "snapshot" | "connector_resync",
 //                              snapshot_date }
 //   evidence.uploaded        { project_id, evidence_id, category, label,
 //                              content_type, size_bytes, sha256 }
@@ -48,7 +48,7 @@ export type WebhookWireEvent = WebhookEvent | "ping";
 export const WEBHOOK_API_VERSION = "2026-09-12";
 
 export const WEBHOOK_EVENT_LABELS: Record<WebhookEvent, { label: string; description: string }> = {
-  "svi.rescored": { label: "SVI rescored", description: "The project's SVI changed — manual rescore or the nightly snapshot." },
+  "svi.rescored": { label: "SVI rescored", description: "The project's SVI changed — manual rescore, the nightly snapshot, or the weekly Stripe/Xero resync." },
   "evidence.uploaded": { label: "Evidence uploaded", description: "A file landed in the Evidence Vault (after the malware scan)." },
   "funding.report_ready": { label: "Money Finder report ready", description: "A paid Money Finder report finished generating." },
   "evaluation.report_ready": { label: "Evaluation report ready", description: "A Trust BizReport / rescore you ran on a startup you evaluate is ready." },
@@ -65,7 +65,8 @@ export interface SviRescoredPayload {
   previous_svi: number | null;
   delta: number | null;
   stage: number | null;
-  source: "rescore" | "snapshot";
+  /** S25-A adds "connector_resync": the weekly Stripe/Xero re-pull moved the score. */
+  source: "rescore" | "snapshot" | "connector_resync";
   snapshot_date: string;
 }
 export interface EvidenceUploadedPayload {

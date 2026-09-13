@@ -160,7 +160,7 @@ export class XeroRefreshError extends Error {
  */
 export async function refreshXeroToken(
   refreshToken: string,
-  env: { XERO_CLIENT_ID?: string; XERO_CLIENT_SECRET?: string } = process.env,
+  env: NodeJS.ProcessEnv = process.env,
 ): Promise<XeroTokenPair> {
   const clientId = env.XERO_CLIENT_ID;
   const clientSecret = env.XERO_CLIENT_SECRET;
