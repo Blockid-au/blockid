@@ -21,8 +21,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => mocks.sb }));
 vi.mock("@/lib/auth", () => ({ getCurrentUser: async () => mocks.user }));
 vi.mock("@/lib/project-members/http", () => ({ projectScopeOrDeny: (...a: unknown[]) => mocks.scope(...a) }));
+const rate = vi.hoisted(() => ({ enforceRateLimit: vi.fn<(...a: unknown[]) => unknown>(() => null) }));
+vi.mock("@/lib/rate-limit", () => ({ enforceRateLimit: (...a: unknown[]) => rate.enforceRateLimit(...a) }));
 
-import { POST } from "./route";
+import { CRM_IMPORT_RATE_MAX, CRM_IMPORT_RATE_WINDOW_MS, POST } from "./route";
 
 const OWNER = "owner-1";
 const PID = "proj-1";
@@ -50,6 +52,7 @@ beforeEach(() => {
   mocks.sb = sb;
   mocks.user = { id: "member-1", email: "m@x.test" };
   mocks.scope.mockReset().mockResolvedValue(scopeOf("editor"));
+  rate.enforceRateLimit.mockReset().mockReturnValue(null);
 });
 
 describe("POST /api/investors/crm/import", () => {
@@ -99,6 +102,24 @@ describe("POST /api/investors/crm/import", () => {
       ["Evil", null, "other", "researching"],
     ]);
     expect(rows[0]).toMatchObject({ project_id: PID, source: "csv_import", created_by: "member-1", owner_user_id: "member-1" });
+  });
+
+  it("S29-hardening: rate-limited per user (10/hour) after auth and before the body is read; the 429 is returned as-is", async () => {
+    const { NextResponse } = await import("next/server");
+    rate.enforceRateLimit.mockReturnValue(NextResponse.json({ ok: false, error: "Rate limit exceeded — please wait a moment before generating more.", retryInSeconds: 60 }, { status: 429, headers: { "Retry-After": "60" } }));
+    const res = await POST(rawReq(CSV));
+    expect(res.status).toBe(429);
+    expect(res.headers.get("Retry-After")).toBe("60");
+    expect(await res.json()).toMatchObject({ ok: false, retryInSeconds: 60 });
+    expect(rate.enforceRateLimit).toHaveBeenCalledWith("crm-import", "member-1", expect.anything(), CRM_IMPORT_RATE_MAX, CRM_IMPORT_RATE_WINDOW_MS);
+    expect([CRM_IMPORT_RATE_MAX, CRM_IMPORT_RATE_WINDOW_MS]).toEqual([10, 3_600_000]);
+    expect(mocks.scope).not.toHaveBeenCalled();
+    expect(sb.find("investor_contacts", "insert")).toHaveLength(0);
+    // Anonymous callers never reach the limiter (401 first).
+    mocks.user = null;
+    rate.enforceRateLimit.mockClear();
+    expect((await POST(rawReq(CSV))).status).toBe(401);
+    expect(rate.enforceRateLimit).not.toHaveBeenCalled();
   });
 
   it("accepts JSON { csv } and reports truncation past 500 rows", async () => {
