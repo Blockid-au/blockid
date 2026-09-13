@@ -19,6 +19,7 @@
     "e2e:smoke": "playwright test tests/e2e/**/smoke*.spec.ts --reporter=list",
     "e2e:a11y": "playwright test tests/e2e/a11y/ --reporter=list",
     "a11y": "pa11y-ci --config pa11y.config.json",
+    "qa:live": "bash scripts/qa-live.sh",
     "e2e:post-deploy": "PLAYWRIGHT_BASE_URL=${PLAYWRIGHT_BASE_URL:-https://blockid.au} playwright test tests/e2e/smoke/post-deploy.spec.ts --reporter=list",
     "tour:capture": "node ../scripts/tour-capture.mjs",
     "tour:verify": "node ../scripts/tour-verify.mjs",
