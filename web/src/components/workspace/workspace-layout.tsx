@@ -30,6 +30,7 @@ import { TrialBanner } from "@/components/workspace/trial-banner";
 import { ProductTour } from "@/components/workspace/product-tour";
 import { FeatureSpotlight } from "@/components/product-tour/feature-spotlight";
 import { ResellerPill } from "@/components/workspace/reseller-pill";
+import { HeaderAccountMenu, HeaderAvatar } from "@/components/workspace/header-account-menu";
 import { SandboxBanner } from "@/components/workspace/sandbox-banner";
 import { TrialDayWatcher } from "@/components/upsell/trial-day-watcher";
 import { UpgradeModal } from "@/components/upsell/upgrade-modal";
@@ -706,8 +707,14 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase: cur
       {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
-        <header className="h-16 border-b border-line-subtle bg-surface/90 backdrop-blur-sm px-4 flex items-center justify-between shrink-0 sticky top-0 z-30">
-          <div className="flex items-center gap-3">
+        {/* Live QA lane 1 F4 (2026-09-13): at 390 px the right-hand cluster
+            measured 574 px and clipped the theme toggle, the bell and Sign
+            out. Below `sm` the cluster is now bell + avatar menu (wallet,
+            credits, theme, sign-out live inside `HeaderAccountMenu`); from
+            `sm` up the inline cluster renders as before. `min-w-0` on the
+            left and `shrink-0` on the right keep the row inside the viewport. */}
+        <header className="h-16 border-b border-line-subtle bg-surface/90 backdrop-blur-sm px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0 sticky top-0 z-30" data-testid="workspace-header">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             {/* Mobile menu toggle */}
             <button
               type="button"
@@ -719,7 +726,7 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase: cur
             <ProjectSwitcher />
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0" data-testid="header-actions">
             {/* ux-ia-startup-flow-v1 §C.3 + §C.7 — global Demo entry, always
                 visible from every workspace page so a founder can re-watch
                 the walkthrough at any point in their journey. */}
@@ -757,35 +764,34 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase: cur
             {/* Reseller co-branding pill (renders null when no attribution) */}
             <ResellerPill />
 
-            {/* Wallet connect (auto-adds/switches to the BlockID chain) */}
-            <ConnectWalletButton compact />
+            {/* sm+ only: wallet · credits · theme (below sm they sit in the account menu) */}
+            <div className="hidden sm:flex items-center gap-2" data-testid="header-actions-desktop">
+              {/* Wallet connect (auto-adds/switches to the BlockID chain) */}
+              <ConnectWalletButton compact />
 
-            {/* Credit balance */}
-            <CreditBalance />
+              {/* Credit balance */}
+              <CreditBalance />
 
-            {/* Dark mode toggle */}
-            <ThemeToggle />
-
-            {/* Notifications */}
-            <NotificationBell />
-
-            {/* Avatar */}
-            <div className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-surface-hover transition-colors cursor-pointer">
-              {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt="" className="h-7 w-7 rounded-full ring-2 ring-action/30" />
-              ) : (
-                <div className="h-7 w-7 rounded-full bg-action flex items-center justify-center text-xs font-bold text-on-action ring-2 ring-action/30">
-                  {(user.displayName ?? user.email)[0].toUpperCase()}
-                </div>
-              )}
-              <span className="text-sm text-muted hidden sm:block max-w-[140px] truncate">{user.displayName ?? user.email}</span>
+              {/* Dark mode toggle */}
+              <ThemeToggle />
             </div>
 
-            {/* Sign out */}
-            <LogoutButton className="h-8 px-2 sm:px-3 rounded-lg text-[11px] sm:text-xs font-medium text-muted hover:text-primary hover:bg-surface-hover transition-colors cursor-pointer">
-              <span className="hidden sm:inline">Sign out</span>
-              <span className="sm:hidden">Out</span>
-            </LogoutButton>
+            {/* Notifications — every width */}
+            <NotificationBell />
+
+            {/* sm+ only: avatar + name · Sign out */}
+            <div className="hidden sm:flex items-center gap-2" data-testid="header-account-desktop">
+              <div className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-surface-hover transition-colors cursor-pointer">
+                <HeaderAvatar user={user} />
+                <span className="text-sm text-muted max-w-[140px] truncate">{user.displayName ?? user.email}</span>
+              </div>
+              <LogoutButton className="h-8 px-3 rounded-lg text-xs font-medium text-muted hover:text-primary hover:bg-surface-hover transition-colors cursor-pointer">
+                Sign out
+              </LogoutButton>
+            </div>
+
+            {/* below sm: avatar → account menu (name · credits · wallet · theme · sign out) */}
+            <HeaderAccountMenu user={user} />
           </div>
         </header>
 

@@ -165,7 +165,8 @@ export function ProjectSwitcher() {
         className="inline-flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors cursor-pointer select-none hover:bg-surface-100"
       >
         <Briefcase strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0" />
-        <span className="font-semibold text-ink-800 truncate max-w-[160px]">
+        {/* Lane-1 F4: 88 px below `sm` so the topbar fits a 390 px viewport. */}
+        <span className="font-semibold text-ink-800 truncate max-w-[88px] sm:max-w-[160px]">
           {activeProject.name}
         </span>
         {activeProject.isShared && (
@@ -181,7 +182,7 @@ export function ProjectSwitcher() {
           />
         )}
         {data.limit > 1 && (
-          <span className="ml-0.5 text-[10px] font-medium text-ink-400 bg-surface-100 rounded-full px-1.5 py-0.5">
+          <span className="ml-0.5 hidden sm:inline text-[10px] font-medium text-ink-400 bg-surface-100 rounded-full px-1.5 py-0.5">
             {data.used}/{data.limit}
           </span>
         )}
