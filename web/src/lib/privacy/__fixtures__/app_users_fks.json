@@ -2,7 +2,7 @@
   "dumped_at": "2026-09-13",
   "source": "pg_constraint (contype=f) on production supabase-db, confrelid = public.app_users; regenerate with `node scripts/db/app-users-fk-inventory.mjs --json --fixture`",
   "referenced": "public.app_users(id)",
-  "count": 126,
+  "count": 127,
   "fks": [
     {
       "constraint": "ab_assignments_user_id_fkey",
@@ -745,6 +745,13 @@
       "column": "reviewed_by",
       "on_delete": "NO ACTION",
       "not_null": false
+    },
+    {
+      "constraint": "secondary_sim_orders_user_id_fkey",
+      "table": "secondary_sim_orders",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
     },
     {
       "constraint": "sessions_user_id_fkey",

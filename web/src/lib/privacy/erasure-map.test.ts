@@ -45,12 +45,12 @@ const fks = fixture.fks as Fk[];
 const fkByKey = new Map(fks.map((f) => [`${f.table}.${f.column}`, f]));
 
 describe("erasure map ↔ live-schema fixture", () => {
-  it("fixture is the 126-FK production dump", () => {
+  it("fixture is the 127-FK production dump", () => {
     expect(fixture.referenced).toBe("public.app_users(id)");
-    expect(fks.length).toBe(126);
+    expect(fks.length).toBe(127);
     expect(fixture.count).toBe(fks.length);
     const by = fks.reduce<Record<string, number>>((acc, f) => ({ ...acc, [f.on_delete]: (acc[f.on_delete] ?? 0) + 1 }), {});
-    expect(by).toEqual({ CASCADE: 82, "NO ACTION": 14, "SET NULL": 24, RESTRICT: 6 });
+    expect(by).toEqual({ CASCADE: 83, "NO ACTION": 14, "SET NULL": 24, RESTRICT: 6 });
   });
 
   it("every FK is mapped exactly once and nothing stale is mapped", () => {
@@ -146,9 +146,9 @@ describe("erasure map ↔ live-schema fixture", () => {
 
   it("summary matches the classification", () => {
     const s = summariseErasureMap();
-    expect(s.entries).toBe(126);
-    expect(s.delete + s.anonymise + s.detach).toBe(126);
-    expect(s).toMatchObject({ delete: 77, anonymise: 34, detach: 15, immutable: 3, tables: 112 });
+    expect(s.entries).toBe(127);
+    expect(s.delete + s.anonymise + s.detach).toBe(127);
+    expect(s).toMatchObject({ delete: 78, anonymise: 34, detach: 15, immutable: 3, tables: 113 });
     expect(s.project_detaches).toBe(PROJECT_DETACHES.length);
     expect(s.non_fk_extras).toBe(NON_FK_EXTRAS.length);
   });
@@ -171,9 +171,9 @@ describe("erasure migration ↔ map parity", () => {
     expect(extractBlock(sql, EXTRAS_BEGIN, EXTRAS_END)).toBe(renderExtrasBlock());
   });
 
-  it("the SQL block parses back to the same 126 entries", () => {
+  it("the SQL block parses back to the same 127 entries", () => {
     const parsed = parseMapBlock(extractBlock(sql, MAP_BEGIN, MAP_END)!);
-    expect(parsed.length).toBe(126);
+    expect(parsed.length).toBe(127);
     const ord = orderedEntries();
     parsed.forEach((p, i) => {
       const e = ord[i];
