@@ -2,10 +2,11 @@
 //
 // Pins: 401 anonymous, 503 no db; GET at viewer returns round + commitments
 // + summary + linked data room and keys the round on the OWNER's id; PATCH
-// at editor closes an active round (closed_at stamped), refuses viewer
-// (403 from the scope helper), refuses `status: "active"` (409 → the
-// activate route), refuses an invalid transition (409), 400s bad bodies,
-// and a stranger's round id answers 404.
+// closes an active round at ADMIN (closed_at stamped, audited as
+// `fundraise.round.closed`), renames at editor, refuses viewer (403 from
+// the scope helper), refuses `status: "active"` (409 → the activate
+// route), refuses an invalid transition (409), 400s bad bodies, and a
+// stranger's round id answers 404.
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
@@ -22,7 +23,8 @@ vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => mocks.sb }));
 vi.mock("@/lib/auth", () => ({ getCurrentUser: async () => mocks.user }));
 vi.mock("@/lib/project-members/http", () => ({ projectScopeOrDeny: (...a: unknown[]) => mocks.scope(...a) }));
 
-import { GET, PATCH } from "./route";
+import { flushAudits, setAuditSink, type AuditRecord } from "@/lib/audit/api-route";
+import { CLOSE_AUDIT_ACTION, GET, PATCH } from "./route";
 
 const OWNER = "owner-1";
 const PID = "proj-1";
@@ -91,8 +93,14 @@ describe("GET /api/fundraise/[roundId]", () => {
     expect(body.summary).toMatchObject({ targetAud: 500000, committedAud: 100000, fundedAud: 50000, hardAud: 150000 });
     expect(body.dataRoom).toEqual({ id: "room-1", name: "Acme data room" });
     expect(body.canEdit).toBe(false);
+    expect(body.canClose).toBe(false);
     expect(body.role).toBe("viewer");
     expect(mocks.scope).toHaveBeenCalledWith("viewer");
+    // S27-A: an editor may edit but not close; an admin may close.
+    mocks.scope.mockResolvedValue(scopeOf("editor"));
+    expect(await (await GET(getReq(), ctx())).json()).toMatchObject({ canEdit: true, canClose: false });
+    mocks.scope.mockResolvedValue(scopeOf("admin"));
+    expect(await (await GET(getReq(), ctx())).json()).toMatchObject({ canEdit: true, canClose: true });
     expect(sb.hasEq("fundraise_rounds", "account_id", OWNER)).toBe(true);
     expect(sb.hasEq("fundraise_rounds", "account_id", "member-1")).toBe(false);
     expect(sb.hasEq("data_rooms", "id", "room-1")).toBe(true);
@@ -130,24 +138,57 @@ describe("PATCH /api/fundraise/[roundId]", () => {
     expect((await PATCH(patchReq({ roundName: "   " }), ctx())).status).toBe(400);
   });
 
-  it("viewer is denied by the scope helper (403) and nothing is written", async () => {
+  it("viewer is denied by the scope helper (403) and nothing is written; a rename asks for editor", async () => {
     mocks.scope.mockResolvedValue({ scope: null, denied: new Response("no", { status: 403 }) });
-    const res = await PATCH(patchReq({ status: "closed" }), ctx());
+    const res = await PATCH(patchReq({ roundName: "Seed II" }), ctx());
     expect(res.status).toBe(403);
     expect(mocks.scope).toHaveBeenCalledWith("editor");
     expect(sb.find("fundraise_rounds", "update").length).toBe(0);
   });
 
-  it("editor closes an active round: status + closed_at written, scoped to id + owner", async () => {
+  it("S27-A: closing asks the scope helper for ADMIN — an editor is refused and nothing is written", async () => {
+    mocks.scope.mockImplementation(async (minRole: unknown) =>
+      minRole === "admin" ? { scope: null, denied: new Response("no", { status: 403 }) } : scopeOf("editor"),
+    );
     const res = await PATCH(patchReq({ status: "closed" }), ctx());
-    expect(res.status).toBe(200);
-    const upd = sb.find("fundraise_rounds", "update");
-    expect(upd.length).toBe(1);
-    const patch = upd[0].args[0] as Record<string, unknown>;
-    expect(patch.status).toBe("closed");
-    expect(typeof patch.closed_at).toBe("string");
-    expect(sb.hasEq("fundraise_rounds", "id", ROUND.id)).toBe(true);
-    expect(sb.hasEq("fundraise_rounds", "account_id", OWNER)).toBe(true);
+    expect(res.status).toBe(403);
+    expect(mocks.scope).toHaveBeenCalledWith("admin");
+    expect(sb.find("fundraise_rounds", "update").length).toBe(0);
+    // The same editor can still rename.
+    expect((await PATCH(patchReq({ roundName: "Seed II" }), ctx())).status).toBe(200);
+  });
+
+  it("admin closes an active round: status + closed_at written, scoped to id + owner, audited as fundraise.round.closed", async () => {
+    mocks.scope.mockResolvedValue(scopeOf("admin"));
+    const records: AuditRecord[] = [];
+    setAuditSink((r) => {
+      records.push(r);
+    });
+    try {
+      const res = await PATCH(patchReq({ status: "closed" }), ctx());
+      expect(res.status).toBe(200);
+      expect(mocks.scope).toHaveBeenCalledWith("admin");
+      const upd = sb.find("fundraise_rounds", "update");
+      expect(upd.length).toBe(1);
+      const patch = upd[0].args[0] as Record<string, unknown>;
+      expect(patch.status).toBe("closed");
+      expect(typeof patch.closed_at).toBe("string");
+      expect(sb.hasEq("fundraise_rounds", "id", ROUND.id)).toBe(true);
+      expect(sb.hasEq("fundraise_rounds", "account_id", OWNER)).toBe(true);
+      await flushAudits();
+      expect(CLOSE_AUDIT_ACTION).toBe("fundraise.round.closed");
+      expect(records.map((r) => r.action)).toEqual([CLOSE_AUDIT_ACTION]);
+      expect(records[0].resource_id).toBe(ROUND.id);
+
+      // A rename keeps the route's default action.
+      records.length = 0;
+      sb.rows.fundraise_rounds = [{ ...ROUND }];
+      expect((await PATCH(patchReq({ roundName: "Seed II" }), ctx())).status).toBe(200);
+      await flushAudits();
+      expect(records[0].action).not.toBe(CLOSE_AUDIT_ACTION);
+    } finally {
+      setAuditSink(null);
+    }
   });
 
   it("409 use_activate_route for status:active; 409 invalid_transition for closed → draft", async () => {

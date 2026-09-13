@@ -11,7 +11,7 @@ import {
   statusFromNextDigest,
   type AuditRecord,
 } from "./api-route";
-import { getAuditContext, newAuditContext, setAuditActor, setAuditProject } from "./context";
+import { auditAction, getAuditContext, newAuditContext, setAuditActor, setAuditProject } from "./context";
 
 // S20-A — the apiRoute wrapper: one audit row per invocation, for 2xx, 4xx
 // AND 5xx (and thrown errors, rethrown untouched); the sink can never throw
@@ -149,6 +149,24 @@ describe("apiRoute — records every outcome", () => {
     expect(records[0].action).toBe("svi.rescore");
     expect(records[0].resource_type).toBe("svi_account");
     expect(records[0].detail.ua_family).toBe("none");
+  });
+
+  it("S27-A: auditAction() from inside the handler wins over the meta action; a non-namespaced name is ignored", async () => {
+    const PATCH = apiRoute(
+      { route: "api/fundraise/[roundId]/route.ts", method: "PATCH", action: "fundraise.round.updated" },
+      async (r: Request) => {
+        const body = (await r.json()) as { status?: string };
+        if (body.status === "closed") auditAction("fundraise.round.closed");
+        else auditAction("free text with spaces");
+        return NextResponse.json({ ok: true });
+      },
+    );
+    await PATCH(req("https://blockid.au/api/fundraise/r1", { method: "PATCH", body: JSON.stringify({ status: "closed" }) }));
+    await PATCH(req("https://blockid.au/api/fundraise/r1", { method: "PATCH", body: JSON.stringify({ roundName: "Seed" }) }));
+    await flushAudits();
+    expect(records.map((r) => r.action)).toEqual(["fundraise.round.closed", "fundraise.round.updated"]);
+    // Outside a store it is a no-op, never a throw.
+    expect(() => auditAction("x.y")).not.toThrow();
   });
 });
 

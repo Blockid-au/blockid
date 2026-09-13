@@ -39,6 +39,7 @@
 // Supabase — the real writer is loaded lazily in ./sink.ts.
 
 import {
+  auditAction,
   auditNote,
   getAuditContext,
   newAuditContext,
@@ -63,7 +64,7 @@ import {
 } from "./redact";
 import { auditEntryFor } from "./manifest";
 
-export { auditNote };
+export { auditAction, auditNote };
 
 export interface ApiRouteMeta {
   /** Route file path relative to `web/src/app`, e.g. `api/projects/[id]/route.ts`. */
@@ -165,7 +166,8 @@ export function buildAuditRecord(args: {
 }): AuditRecord {
   const { meta, ctx, headers, status, params } = args;
   const manifest = auditEntryFor(meta.route, meta.method);
-  const action = meta.action ?? manifest?.action ?? defaultAction(meta.route, meta.method);
+  // Handler override (auditAction) → route meta → manifest → <family>.<verb>.
+  const action = ctx.action ?? meta.action ?? manifest?.action ?? defaultAction(meta.route, meta.method);
   const entity = meta.entity ?? manifest?.subject_type ?? defaultEntity(meta.route);
 
   let detail: Record<string, unknown> = {

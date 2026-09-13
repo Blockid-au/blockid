@@ -7,6 +7,10 @@
 //   * `authenticateRequest()` / `authenticateApiKey()` (lib/api-auth) → actor
 //   * `getProjectScope()` / `assertProjectScope()` (lib/projects) → project + role
 //   * any handler may call `auditNote()` to attach an entity id / summary
+//   * a handler whose one method covers several mutations may call
+//     `auditAction()` to name the one that ran (S27-A: `PATCH
+//     /api/fundraise/[roundId]` records `fundraise.round.closed` when it
+//     closes the round, the route's default verb when it only renames)
 //
 // so the wrapper can record WHO did WHAT on WHICH project without every
 // route having to call the logger by hand. Outside a store (a page render,
@@ -32,6 +36,8 @@ export interface AuditContext {
   entityId: string | null;
   /** Redacted, id-only summary a handler may attach via `auditNote()`. */
   note: Record<string, unknown> | null;
+  /** Handler-chosen action name (`auditAction()`); wins over the route meta / manifest / default. */
+  action: string | null;
 }
 
 const storage = new AsyncLocalStorage<AuditContext>();
@@ -44,6 +50,7 @@ export function newAuditContext(): AuditContext {
     projectId: null,
     entityId: null,
     note: null,
+    action: null,
   };
 }
 
@@ -113,4 +120,21 @@ export function auditNote(
     if (isIdLike(id)) ctx.entityId = id;
   }
   if (extra) ctx.note = { ...(ctx.note ?? {}), ...extra };
+}
+
+/** `<domain>.<verb>` — the same shape the catalogue test pins for every action. */
+export const AUDIT_ACTION_RE = /^[a-z0-9_-]+(\.[a-z0-9_-]+)+$/;
+
+/**
+ * Name the action this invocation performed when one handler covers
+ * several mutations (close vs rename, void vs edit). Takes precedence over
+ * `apiRoute()` meta, the manifest and the `<family>.<verb>` default. A
+ * name that is not dot-namespaced is ignored — the row keeps the route's
+ * action rather than storing free text.
+ */
+export function auditAction(action: string): void {
+  const ctx = storage.getStore();
+  if (!ctx) return;
+  if (typeof action !== "string" || !AUDIT_ACTION_RE.test(action) || action.length > 80) return;
+  ctx.action = action;
 }

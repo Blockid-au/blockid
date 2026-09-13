@@ -64,6 +64,8 @@ interface RoundResponse {
   /** The project's existing room a draft round will link for free on activation. */
   projectDataRoom?: { id: string; name: string | null } | null;
   canEdit?: boolean;
+  /** Owner / admin only — closing is irreversible (S26 review P3-8). */
+  canClose?: boolean;
   error?: string;
 }
 
@@ -294,6 +296,7 @@ export function RoundClient({ roundId }: { roundId: string }) {
   const projectDataRoom = data.projectDataRoom ?? null;
   const commitments = data.commitments ?? [];
   const canEdit = data.canEdit !== false;
+  const canClose = canEdit && data.canClose !== false;
   const segments = progressSegments(summary);
   const isClosed = round.status === "closed";
 
@@ -351,7 +354,7 @@ export function RoundClient({ roundId }: { roundId: string }) {
                 {activateButtonCopy(Boolean(dataRoom ?? projectDataRoom))}
               </button>
             )}
-            {round.status === "active" && (
+            {round.status === "active" && canClose && (
               <button
                 type="button"
                 onClick={() => void close()}
@@ -361,6 +364,11 @@ export function RoundClient({ roundId }: { roundId: string }) {
               >
                 Close round
               </button>
+            )}
+            {round.status === "active" && !canClose && (
+              <p className="self-center text-xs text-ink-500" data-testid="round-close-admin-only">
+                Closing a round is irreversible — ask the project owner or an admin.
+              </p>
             )}
           </div>
         )}
