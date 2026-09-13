@@ -45,12 +45,12 @@ const fks = fixture.fks as Fk[];
 const fkByKey = new Map(fks.map((f) => [`${f.table}.${f.column}`, f]));
 
 describe("erasure map ↔ live-schema fixture", () => {
-  it("fixture is the 128-FK production dump", () => {
+  it("fixture is the 129-FK production dump", () => {
     expect(fixture.referenced).toBe("public.app_users(id)");
-    expect(fks.length).toBe(128);
+    expect(fks.length).toBe(129);
     expect(fixture.count).toBe(fks.length);
     const by = fks.reduce<Record<string, number>>((acc, f) => ({ ...acc, [f.on_delete]: (acc[f.on_delete] ?? 0) + 1 }), {});
-    expect(by).toEqual({ CASCADE: 83, "NO ACTION": 14, "SET NULL": 25, RESTRICT: 6 });
+    expect(by).toEqual({ CASCADE: 84, "NO ACTION": 14, "SET NULL": 25, RESTRICT: 6 });
   });
 
   it("every FK is mapped exactly once and nothing stale is mapped", () => {
@@ -146,9 +146,9 @@ describe("erasure map ↔ live-schema fixture", () => {
 
   it("summary matches the classification", () => {
     const s = summariseErasureMap();
-    expect(s.entries).toBe(128);
-    expect(s.delete + s.anonymise + s.detach).toBe(128);
-    expect(s).toMatchObject({ delete: 78, anonymise: 34, detach: 16, immutable: 3, tables: 114 });
+    expect(s.entries).toBe(129);
+    expect(s.delete + s.anonymise + s.detach).toBe(129);
+    expect(s).toMatchObject({ delete: 79, anonymise: 34, detach: 16, immutable: 3, tables: 115 });
     expect(s.project_detaches).toBe(PROJECT_DETACHES.length);
     expect(s.non_fk_extras).toBe(NON_FK_EXTRAS.length);
   });
@@ -157,9 +157,17 @@ describe("erasure map ↔ live-schema fixture", () => {
     expect(tombstoneEmail("u", "abc")).toBe("deleted+abc@erased.blockid.au");
     for (const x of NON_FK_EXTRAS) {
       if (x.mode === "anonymise") expect(x.scrub, x.table).toBeTruthy();
-      expect(["email", "user_id"]).toContain(x.by);
+      expect(["email", "user_id", "account"]).toContain(x.by);
     }
     expect(NON_FK_EXTRAS.map((x) => x.table)).toContain("magic_links");
+    // Live QA 2026-09-13: the cap-table / dividend register is account_id-keyed
+    // with no FK and mixed ids → covered by the 'account' mode, in dependency
+    // order (share_transactions before shareholders / share_classes), and the
+    // RPC must carry the matching CASE branch.
+    const acct = NON_FK_EXTRAS.filter((x) => x.by === "account").map((x) => x.table);
+    expect(acct).toEqual(["dividend_records", "share_transactions", "shareholders", "share_classes"]);
+    expect(sql).toMatch(/WHEN v_step\.keyed = 'account'/);
+    expect(sql).toMatch(/%I::text IN \(SELECT id::text FROM public\.svi_accounts WHERE lower\(email\) = %L OR project_id IN/);
     for (const d of PROJECT_DETACHES) expect(["projects", "svi_accounts"]).toContain(d.parent);
   });
 });
@@ -171,9 +179,9 @@ describe("erasure migration ↔ map parity", () => {
     expect(extractBlock(sql, EXTRAS_BEGIN, EXTRAS_END)).toBe(renderExtrasBlock());
   });
 
-  it("the SQL block parses back to the same 128 entries", () => {
+  it("the SQL block parses back to the same 129 entries", () => {
     const parsed = parseMapBlock(extractBlock(sql, MAP_BEGIN, MAP_END)!);
-    expect(parsed.length).toBe(128);
+    expect(parsed.length).toBe(129);
     const ord = orderedEntries();
     parsed.forEach((p, i) => {
       const e = ord[i];

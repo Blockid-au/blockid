@@ -132,6 +132,7 @@ interface FakeSupabaseState {
 // --- Mocks (registered BEFORE route import) -------------------------------
 
 const mocks = vi.hoisted(() => ({
+  scope: null as null | { projectId: string; ownerUserId: string; dataEmail: string },
   getCurrentUserMock: vi.fn<() => Promise<AppUser | null>>(),
   getSupabaseAdminMock: vi.fn<() => unknown | null>(),
   calculateDividendsMock: vi.fn(),
@@ -147,6 +148,12 @@ vi.mock("@/lib/supabase", () => ({
 
 vi.mock("@/lib/dividends", () => ({
   calculateDividends: (policy: unknown) => mocks.calculateDividendsMock(policy),
+}));
+
+// Live QA 2026-09-13: records keyed on the project OWNER + project_id.
+// Default = no active project → falls back to the caller (existing pins hold).
+vi.mock("@/lib/project-members/http", () => ({
+  projectScopeOrDeny: async () => ({ scope: mocks.scope ?? null, denied: null }),
 }));
 
 import { GET, POST, dynamic } from "./route";
@@ -710,6 +717,7 @@ describe("POST /api/dividends — record path", () => {
     const row = state.captured.inserts[0];
     expect(row).toEqual({
       account_id: "u-42",
+      project_id: null,
       period: "2026-06",
       net_income: 10000,
       distribution_pct: 10,

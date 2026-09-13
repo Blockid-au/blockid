@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { calculateDividends } from "@/lib/dividends";
 import { apiRoute } from "@/lib/audit/api-route";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -27,10 +28,16 @@ export async function GET() {
     );
   }
 
+  // Member-aware (live QA 2026-09-13): records are keyed on the project
+  // OWNER, and carry project_id so erasure / S25-B statements can find them.
+  const { scope, denied } = await projectScopeOrDeny("viewer");
+  if (denied) return denied;
+  const ownerUserId = scope?.ownerUserId ?? user.id;
+
   const { data: dividends, error } = await supabase
     .from("dividend_records")
     .select("*")
-    .eq("account_id", user.id)
+    .eq("account_id", ownerUserId)
     .order("created_at", { ascending: false })
     .limit(50);
 
@@ -65,6 +72,11 @@ async function POST_handler(request: Request) {
       { status: 503 },
     );
   }
+
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const ownerUserId = scope?.ownerUserId ?? user.id;
+  const projectId = scope?.projectId ?? null;
 
   let body: {
     distributionPct?: number;
@@ -117,12 +129,12 @@ async function POST_handler(request: Request) {
     supabase
       .from("shareholders")
       .select("name, shares_held, role")
-      .eq("account_id", user.id)
+      .eq("account_id", ownerUserId)
       .order("shares_held", { ascending: false }),
     supabase
       .from("esop_pool")
       .select("total_pool_shares")
-      .eq("account_id", user.id)
+      .eq("account_id", ownerUserId)
       // 0334: esop_pool is one-per-(account, project); this owner-only route
       // is not project-aware, so take the latest pool deterministically
       // instead of erroring on a multi-row maybeSingle().
@@ -174,7 +186,8 @@ async function POST_handler(request: Request) {
     const { error: insertErr } = await supabase
       .from("dividend_records")
       .insert({
-        account_id: user.id,
+        account_id: ownerUserId,
+        project_id: projectId,
         period: body.period ?? new Date().toISOString().slice(0, 7),
         net_income: netIncome,
         distribution_pct: distributionPct,

@@ -2,7 +2,7 @@
   "dumped_at": "2026-09-13",
   "source": "pg_constraint (contype=f) on production supabase-db, confrelid = public.app_users; regenerate with `node scripts/db/app-users-fk-inventory.mjs --json --fixture`",
   "referenced": "public.app_users(id)",
-  "count": 128,
+  "count": 129,
   "fks": [
     {
       "constraint": "ab_assignments_user_id_fkey",
@@ -415,6 +415,13 @@
       "table": "fundraise_commitments",
       "column": "created_by",
       "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "fundraise_rounds_account_id_fkey",
+      "table": "fundraise_rounds",
+      "column": "account_id",
+      "on_delete": "CASCADE",
       "not_null": false
     },
     {
