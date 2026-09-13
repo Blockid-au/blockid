@@ -5,6 +5,7 @@ import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { apiRoute } from "@/lib/audit/api-route";
+import { incrementSharesHeld } from "@/lib/cap-table/shares-held";
 
 export const dynamic = "force-dynamic";
 
@@ -299,15 +300,26 @@ async function POST_handler(request: Request) {
         return NextResponse.json({ ok: false, error: "Shareholder not found" }, { status: 404 });
       }
 
-      const newTotal = Number(existing.shares_held) + shares;
-      const { error } = await supabase
-        .from("shareholders")
-        .update({ shares_held: newTotal, share_class_id: shareClassId })
-        .eq("id", shareholderId);
-
-      if (error) {
-        console.error("[cap-table] issue_shares error", error);
+      // S29-hardening: atomic `shares_held += shares` (migration 0381 RPC,
+      // read-modify-write fallback while it is unapplied) so a concurrent
+      // DRIP allotment / register edit cannot lose this increment.
+      const inc = await incrementSharesHeld(supabase, {
+        shareholderId,
+        delta: shares,
+        currentSharesHeld: Number(existing.shares_held),
+        fallbackExtra: { share_class_id: shareClassId },
+      });
+      if (!inc.ok) {
+        console.error("[cap-table] issue_shares error", inc.reason, inc.error);
         return NextResponse.json({ ok: false, error: "Failed to issue shares" }, { status: 500 });
+      }
+      const newTotal = inc.newSharesHeld;
+      if (inc.via === "rpc") {
+        const { error: classError } = await supabase
+          .from("shareholders")
+          .update({ share_class_id: shareClassId })
+          .eq("id", shareholderId);
+        if (classError) console.error("[cap-table] issue_shares share_class_id update failed — shares issued", classError);
       }
 
       // Record transaction

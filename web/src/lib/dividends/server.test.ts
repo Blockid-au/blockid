@@ -7,8 +7,9 @@
 // (a second call inserts nothing; a voided slot is re-issued), the insert
 // column contract + content hash, void one-way, the register projection.
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { fakeSupabase } from "@/test/fake-supabase";
+import { __resetIncrementSharesHeldDetection } from "@/lib/cap-table/shares-held";
 import type { DividendPayout } from "@/lib/dividends";
 import { buildDividendStatement } from "./statement";
 import {
@@ -279,15 +280,29 @@ describe("issueStatementsForRecord — DRIP hook (S28-A)", () => {
     const tx = sb.find("share_transactions", "insert");
     expect(tx).toHaveLength(1);
     expect(tx[0].args[0]).toMatchObject({ account_id: "user-owner", project_id: "proj-1", transaction_type: "issue", to_shareholder_id: "sh-1", share_class_id: "cls-1", shares: 10_948, price_per_share: 1.37, total_value: 14_998.76, round_name: "DRIP 2026-06", effective_date: "2026-07-15" });
+    // S29-hardening: the holding is bumped through the atomic RPC
+    // (migration 0381), never a read-modify-write UPDATE when it exists.
+    expect(sb.find("rpc", "rpc").map((c) => c.args)).toEqual([["increment_shares_held", { p_shareholder_id: "sh-1", p_delta: 10_948 }]]);
+    expect(sb.find("shareholders", "update")).toHaveLength(0);
+
+    const alloc = sb.find("drip_allocations", "insert");
+    expect(alloc).toHaveLength(1);
+    expect(alloc[0].args[0]).toMatchObject({ project_id: "proj-1", dividend_record_id: "rec-1", election_id: "el-1", shareholder_id: "sh-1", shareholder_key: "id:sh-1", status: "recorded", participation_pct: 50, price_basis: "share_price_mid", net_cash_aud: 30_000, price_aud: 1.37, shares: 10_948, reinvested_aud: 14_998.76, residual_aud: 1.24 });
+  });
+
+  it("RPC missing (0381 unapplied) → the legacy UPDATE keyed on id + OWNER with the statement's holding + shares", async () => {
+    __resetIncrementSharesHeldDetection();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const sb = fakeSupabase({ dividend_statements: [], drip_allocations: [] });
+    sb.rpc = async (...args: unknown[]) => { sb.calls.push({ table: "rpc", op: "rpc", args }); return { data: null, error: { code: "42883", message: "function does not exist" } as never }; };
+    const res = await issueStatementsForRecord({ db: sb as never, projectId: "proj-1", userId: "u", company, record: record(), shareholders: holders, creditsCharged: 0, now: NOW, drip: ctx() });
+    expect(res.drip[0]).toMatchObject({ status: "recorded", shares: 10_948 });
     const up = sb.find("shareholders", "update");
     expect(up).toHaveLength(1);
     expect(up[0].args[0]).toEqual({ shares_held: 610_948 });
     expect(sb.hasEq("shareholders", "id", "sh-1")).toBe(true);
     expect(sb.hasEq("shareholders", "account_id", "user-owner")).toBe(true);
-
-    const alloc = sb.find("drip_allocations", "insert");
-    expect(alloc).toHaveLength(1);
-    expect(alloc[0].args[0]).toMatchObject({ project_id: "proj-1", dividend_record_id: "rec-1", election_id: "el-1", shareholder_id: "sh-1", shareholder_key: "id:sh-1", status: "recorded", participation_pct: 50, price_basis: "share_price_mid", net_cash_aud: 30_000, price_aud: 1.37, shares: 10_948, reinvested_aud: 14_998.76, residual_aud: 1.24 });
+    __resetIncrementSharesHeldDetection();
   });
 
   it("manual price basis uses the plan price; no usable market price → skipped, cash paid, no cap-table write", async () => {

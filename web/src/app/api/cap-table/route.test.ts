@@ -68,6 +68,8 @@ vi.mock("@/lib/feature-gate", () => ({
   gateRequireFeature: (feature: string) => gateMock(feature),
 }));
 
+import { __resetIncrementSharesHeldDetection } from "@/lib/cap-table/shares-held";
+
 const getSupabaseAdminMock = vi.fn<() => unknown | null>();
 vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => getSupabaseAdminMock(),
@@ -893,6 +895,40 @@ describe("POST /api/cap-table action=issue_shares", () => {
     expect(await res.json()).toEqual({ ok: true, newSharesHeld: 500 });
     const upd = findChain("shareholders", "update");
     expect(upd?.payload).toEqual({ shares_held: 500, share_class_id: "cls-1" });
+  });
+
+  it("S29-hardening: with migration 0381 applied the holding is bumped through increment_shares_held (atomic) and only share_class_id is UPDATEd", async () => {
+    __resetIncrementSharesHeldDetection();
+    const rpcCalls: unknown[][] = [];
+    getSupabaseAdminMock.mockReturnValue({
+      ...makeFakeSupabase(),
+      rpc: async (...args: unknown[]) => { rpcCalls.push(args); return { data: "500", error: null }; },
+    });
+    queue(
+      { data: { id: "sh-1", shares_held: 400 }, error: null }, // ownership pre-check
+      { data: null, error: null }, // share_class_id UPDATE
+      { data: null, error: null }, // share_transactions insert
+    );
+    const res = await POST(makeReq({ action: "issue_shares", data: { shareholderId: "sh-1", shareClassId: "cls-1", shares: 100 } }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, newSharesHeld: 500 });
+    expect(rpcCalls).toEqual([["increment_shares_held", { p_shareholder_id: "sh-1", p_delta: 100 }]]);
+    const upd = findChain("shareholders", "update");
+    expect(upd?.payload).toEqual({ share_class_id: "cls-1" });
+    expect(findChain("share_transactions", "insert")).toBeDefined();
+  });
+
+  it("S29-hardening: the RPC refusing the write (below zero) → 500, no fallback UPDATE, no transaction row", async () => {
+    __resetIncrementSharesHeldDetection();
+    getSupabaseAdminMock.mockReturnValue({
+      ...makeFakeSupabase(),
+      rpc: async () => ({ data: null, error: { code: "23514", message: "increment_shares_held: delta would take shareholder below zero" } }),
+    });
+    queue({ data: { id: "sh-1", shares_held: 400 }, error: null });
+    const res = await POST(makeReq({ action: "issue_shares", data: { shareholderId: "sh-1", shareClassId: "cls-1", shares: 100 } }));
+    expect(res.status).toBe(500);
+    expect(findChain("shareholders", "update")).toBeUndefined();
+    expect(findChain("share_transactions", "insert")).toBeUndefined();
   });
 
   it("returns 500 { ok:false, error:'Failed to issue shares' } on UPDATE error", async () => {
