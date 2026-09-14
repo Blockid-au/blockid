@@ -762,9 +762,7 @@ function Pie({ segments }: { segments: PieSegment[] }) {
           r={R}
           fill={filtered[0].color}
         >
-          <title>
-            {filtered[0].label} — {filtered[0].value.toFixed(1)}%
-          </title>
+          <title>{`${filtered[0].label} — ${filtered[0].value.toFixed(1)}%`}</title>
         </circle>
       ) : (
         filtered.map((s) => {
@@ -784,9 +782,7 @@ function Pie({ segments }: { segments: PieSegment[] }) {
           ].join(" ");
           return (
             <path key={s.key} d={d} fill={s.color}>
-              <title>
-                {s.label} — {s.value.toFixed(1)}%
-              </title>
+              <title>{`${s.label} — ${s.value.toFixed(1)}%`}</title>
             </path>
           );
         })

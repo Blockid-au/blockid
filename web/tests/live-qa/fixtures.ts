@@ -101,8 +101,15 @@ export const GROWTH_GATED_PAGES = new Set<string>([
  * network sweep (20-cross-cutting). Marketing pages here are public, so they
  * are NOT part of the logged-out 307 check (WORKSPACE_PAGES stays as is).
  * `/settings` does not exist (404) — Account settings live at /workspace/settings.
+ * QA audit 2026-09-14 F2: `/`, `/showcase/atlassian/svi-report`, `/tools/funding-plan`
+ * and `/tools/cap-table` joined so a React #418 (SVG `<title>` with array
+ * children SSRs empty) is caught as a `pageerror` on the next sweep.
  */
 export const SWEEP_EXTRA_PAGES = [
+  "/",
+  "/showcase/atlassian/svi-report",
+  "/tools/funding-plan",
+  "/tools/cap-table",
   "/funding",
   "/funding/grants",
   "/pricing",

@@ -221,9 +221,7 @@ export default function AtlassianValuationPage() {
                               fill={METHOD_COLOUR[method]}
                               rx={2}
                             >
-                              <title>
-                                {method} · {ts} · {formatAUD(snap.valueAUD)}
-                              </title>
+                              <title>{`${method} · ${ts} · ${formatAUD(snap.valueAUD)}`}</title>
                             </rect>
                             <text
                               x={barX + barWidth / 2 - 1}
