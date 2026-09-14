@@ -499,3 +499,182 @@ describe("Content-Security-Policy — exactly one enforced policy (release QA-2 
     expect(/key:\s*["'`]Content-Security-Policy/i.test(cfg)).toBe(false);
   });
 });
+
+// ── S31-D public-page caching: hash CSP + shared cache-control ───────────
+
+import { createHash } from "node:crypto";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { buildHashContentSecurityPolicy, hasVisitorIdentityCookie } from "./proxy";
+import { resetPrerenderScriptHashCache } from "@/lib/security/prerender-script-hashes";
+import { THEME_RESTORE_SCRIPT } from "@/lib/security/inline-scripts";
+
+const sha = (s: string) => `'sha256-${createHash("sha256").update(s).digest("base64")}'`;
+const FLIGHT = `self.__next_f.push([1,"0:{\\"P\\":null}\\n"])`;
+const STATIC_DOC = `<!DOCTYPE html><html><head><script>${THEME_RESTORE_SCRIPT}</script><script src="/_next/static/chunks/main-app.js" async=""></script><script type="application/ld+json">{"@type":"Organization"}</script></head><body><script>${FLIGHT}</script></body></html>`;
+
+function cspOfRes(res: Response): string {
+  const csp = res.headers.get("content-security-policy");
+  expect(csp, "CSP header present").toBeTruthy();
+  return csp!;
+}
+
+describe("public-page caching (S31-D) — CSP_PUBLIC_HASH_MODE", () => {
+  let dir: string;
+  const pageReq = (path: string, cookie?: string) => req(path, { method: "GET", site: "none", cookie });
+  const scriptSrcOf = (csp: string) => csp.split("; ").find((d) => d.startsWith("script-src "))!;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "blockid-proxy-prerender-"));
+    process.env.BLOCKID_PRERENDER_HTML_DIR = dir;
+    resetPrerenderScriptHashCache();
+    // Prerendered documents: an allow-listed route and a force-static one
+    // that is NOT on the allow-list. `/dashboard` has none (dynamic).
+    writeFileSync(join(dir, "pricing.html"), STATIC_DOC);
+    writeFileSync(join(dir, "register.html"), STATIC_DOC);
+    mkdirSync(join(dir, "funding", "grants", "state"), { recursive: true });
+    writeFileSync(join(dir, "funding", "grants", "state", "NSW.html"), STATIC_DOC);
+  });
+  afterEach(() => {
+    delete process.env.CSP_PUBLIC_HASH_MODE;
+    delete process.env.BLOCKID_PRERENDER_HTML_DIR;
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  describe("buildHashContentSecurityPolicy()", () => {
+    it("has the document hashes + first-party hashes, no nonce, no strict-dynamic, no unsafe-*, same non-script directives", () => {
+      const hashes = [sha(FLIGHT), sha("a()")];
+      const csp = buildHashContentSecurityPolicy(hashes);
+      const scriptSrc = scriptSrcOf(csp);
+      expect(scriptSrc.startsWith("script-src 'self' ")).toBe(true);
+      for (const h of hashes) expect(scriptSrc).toContain(h);
+      expect(scriptSrc).toContain(sha(THEME_RESTORE_SCRIPT));
+      expect(scriptSrc).not.toMatch(/'nonce-/);
+      expect(scriptSrc).not.toContain("'strict-dynamic'");
+      expect(scriptSrc).not.toContain("'unsafe-inline'");
+      expect(scriptSrc).not.toContain("'unsafe-eval'");
+      expect(scriptSrc).toContain("https://www.googletagmanager.com");
+      // Everything but script-src is byte-identical to the nonce policy.
+      const rest = (p: string) => p.split("; ").filter((d) => !d.startsWith("script-src "));
+      expect(rest(csp)).toEqual(rest(buildContentSecurityPolicy("n")));
+    });
+
+    it("the nonce policy also carries the first-party hashes (the layout never reads the nonce any more)", () => {
+      const scriptSrc = scriptSrcOf(buildContentSecurityPolicy("abc"));
+      expect(scriptSrc).toContain("'nonce-abc'");
+      expect(scriptSrc).toContain("'strict-dynamic'");
+      expect(scriptSrc).toContain(sha(THEME_RESTORE_SCRIPT));
+    });
+  });
+
+  it("flag off (default): every page gets the nonce policy and the proxy sets no Cache-Control — today's behaviour", async () => {
+    const res = await proxy(pageReq("/pricing"));
+    expect(res.headers.get("x-blockid-csp")).toBe("nonce");
+    expect(cspOfRes(res)).toContain(`'nonce-${res.headers.get("x-nonce")}'`);
+    expect(res.headers.get("cache-control")).toBeNull();
+    expect(res.headers.get("set-cookie")).toContain("bid_jur=");
+    expect(refreshMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("flag on, anonymous, allow-listed + prerendered → hash CSP from the document, public cache-control, no nonce, no Set-Cookie, no session refresh", async () => {
+    process.env.CSP_PUBLIC_HASH_MODE = "1";
+    const res = await proxy(pageReq("/pricing"));
+    expect(res.headers.get("x-blockid-csp")).toBe("hash");
+    const csp = cspOfRes(res);
+    expect(csp.match(/default-src/g)?.length).toBe(1);
+    expect(scriptSrcOf(csp)).toContain(sha(FLIGHT));
+    expect(scriptSrcOf(csp)).toContain(sha(THEME_RESTORE_SCRIPT));
+    expect(csp).not.toMatch(/'nonce-/);
+    expect(scriptSrcOf(csp)).not.toContain("'unsafe-inline'");
+    expect(scriptSrcOf(csp)).not.toContain("'unsafe-eval'");
+    expect(res.headers.get("x-nonce")).toBeNull();
+    expect(res.headers.get("x-middleware-request-x-nonce")).toBeNull();
+    // Same policy on the request so Next renders a regeneration without a nonce.
+    expect(res.headers.get("x-middleware-request-content-security-policy")).toBe(csp);
+    expect(res.headers.get("cache-control")).toBe("public, s-maxage=300, stale-while-revalidate=600");
+    expect(res.headers.get("set-cookie")).toBeNull();
+    expect(refreshMock).not.toHaveBeenCalled();
+    expect(res.headers.get("X-Test-Security")).toBe("1");
+  });
+
+  it("flag on, SAME route with a session cookie → private, never shared-cached; the document is still the static one so the CSP is still its hash policy", async () => {
+    process.env.CSP_PUBLIC_HASH_MODE = "1";
+    const res = await proxy(pageReq("/pricing", COOKIE));
+    expect(res.headers.get("cache-control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+    expect(res.headers.get("x-blockid-csp")).toBe("hash");
+    expect(scriptSrcOf(cspOfRes(res))).toContain(sha(FLIGHT));
+    expect(refreshMock).toHaveBeenCalledTimes(1);
+    expect(res.headers.get("set-cookie")).toContain("bid_jur=");
+  });
+
+  it("flag on: a locale-override cookie or a legacy Supabase auth cookie is also 'not anonymous'", async () => {
+    process.env.CSP_PUBLIC_HASH_MODE = "1";
+    for (const cookie of ["locale=vi", "sb-access-token=x", "sb-abc-auth-token.0=x"]) {
+      const res = await proxy(pageReq("/pricing", cookie));
+      expect(res.headers.get("cache-control"), cookie).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+    }
+    expect(hasVisitorIdentityCookie(pageReq("/pricing"))).toBe(false);
+    expect(hasVisitorIdentityCookie(pageReq("/pricing", "bid_jur=AU; blockid_via=abc"))).toBe(false);
+    expect(hasVisitorIdentityCookie(pageReq("/pricing", COOKIE))).toBe(true);
+  });
+
+  it("flag on: a non-public route always gets the nonce policy (no document) and no proxy Cache-Control", async () => {
+    process.env.CSP_PUBLIC_HASH_MODE = "1";
+    for (const path of ["/dashboard", "/workspace/audit-log", "/auth/login"]) {
+      const res = await proxy(pageReq(path));
+      expect(res.headers.get("x-blockid-csp"), path).toBe("nonce");
+      expect(cspOfRes(res), path).toContain(`'nonce-${res.headers.get("x-nonce")}'`);
+      expect(res.headers.get("cache-control"), path).toBeNull();
+    }
+  });
+
+  it("flag on: an allow-listed route with NO document yet (ISR not rendered) → nonce policy + private, so a nonce'd render is never shared-cached", async () => {
+    process.env.CSP_PUBLIC_HASH_MODE = "1";
+    const res = await proxy(pageReq("/insights/never-rendered"));
+    expect(res.headers.get("x-blockid-csp")).toBe("nonce");
+    expect(res.headers.get("cache-control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+  });
+
+  it("flag on: a prerendered route OFF the allow-list gets the hash policy (correctness) but stays private", async () => {
+    process.env.CSP_PUBLIC_HASH_MODE = "1";
+    const res = await proxy(pageReq("/register"));
+    expect(res.headers.get("x-blockid-csp")).toBe("hash");
+    expect(res.headers.get("cache-control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+  });
+
+  it("flag on: API routes are untouched (nonce policy, no cache-control)", async () => {
+    process.env.CSP_PUBLIC_HASH_MODE = "1";
+    mkdirSync(join(dir, "api"));
+    writeFileSync(join(dir, "api", "platform-config.html"), STATIC_DOC); // a stray document must not matter
+    const res = await proxy(req("/api/platform-config", { method: "GET", site: "same-origin" }));
+    expect(res.headers.get("x-blockid-csp")).toBe("nonce");
+    expect(res.headers.get("cache-control")).toBeNull();
+  });
+
+  describe("/funding/grants rewrite (URL contract unchanged)", () => {
+    it("?state=NSW alone → the static per-state route, cached like the base page", async () => {
+      process.env.CSP_PUBLIC_HASH_MODE = "1";
+      const res = await proxy(pageReq("/funding/grants?state=nsw"));
+      expect(res.headers.get("x-middleware-rewrite")).toBe("https://blockid.au/funding/grants/state/NSW?state=nsw");
+      expect(res.headers.get("x-blockid-csp")).toBe("hash");
+      expect(res.headers.get("cache-control")).toBe("public, s-maxage=600, stale-while-revalidate=600");
+    });
+
+    it("any other filter combination → the dynamic view (nonce, private); the bare directory is not rewritten", async () => {
+      process.env.CSP_PUBLIC_HASH_MODE = "1";
+      const view = await proxy(pageReq("/funding/grants?state=NSW&type=voucher"));
+      expect(view.headers.get("x-middleware-rewrite")).toBe("https://blockid.au/funding/grants/view?state=NSW&type=voucher");
+      expect(view.headers.get("x-blockid-csp")).toBe("nonce");
+      // Not allow-listed and dynamic: Next itself emits `private, no-store` for the render.
+      expect(view.headers.get("cache-control")).toBeNull();
+      const base = await proxy(pageReq("/funding/grants"));
+      expect(base.headers.get("x-middleware-rewrite")).toBeNull();
+    });
+
+    it("rewrites happen with the flag off too (the routes exist regardless)", async () => {
+      const res = await proxy(pageReq("/funding/grants?state=WA"));
+      expect(res.headers.get("x-middleware-rewrite")).toBe("https://blockid.au/funding/grants/state/WA?state=WA");
+      expect(res.headers.get("x-blockid-csp")).toBe("nonce");
+    });
+  });
+});
