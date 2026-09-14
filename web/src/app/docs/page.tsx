@@ -8,6 +8,11 @@ import { getPlatformConfig } from "@/lib/platform-config";
 import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
 import { WEBHOOK_VERIFY_EXPRESS_EXAMPLE, WEBHOOK_VERIFY_SNIPPET } from "@/lib/webhooks/sign";
 
+// S31-D: static + ISR. The credit-cost table reads platform-config (admin
+// editable at /admin/config), so regenerate hourly rather than freezing it
+// at build.
+export const revalidate = 3600;
+
 export const metadata: Metadata = pageMetadata({
   title: "Platform docs — company, roadmap, team, SVI, pricing",
   description: "Public entry point to BlockID.au documentation — company overview, product roadmap, the 11-role AI C-Level team, the 8-dimension SVI and the pricing ladder.",

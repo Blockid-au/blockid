@@ -73,16 +73,21 @@ test.describe("S31-D public pages — hash CSP, hydrated, zero violations", () =
     test.skip(probe.headers()["x-blockid-csp"] !== "hash", "server is not running with CSP_PUBLIC_HASH_MODE=1");
   });
 
-  test("/ — hash headers, no CSP violations, hydrated (theme toggle / nav interaction)", async ({ page }) => {
+  test("/ — hash headers, no CSP violations, hydrated (router live, consent banner responds)", async ({ page }) => {
     const probe = await armCspProbe(page);
     const res = await page.goto("/", { waitUntil: "domcontentloaded" });
     expectHashModeHeaders(res!, "/");
     await expect(page.locator("h1").first()).toBeVisible({ timeout: PAGE_TIMEOUT });
-    // Hydration proof: React attached — the Next router is live and a
-    // client component responded. `__next_f` must have been consumed, i.e.
-    // the inline flight scripts executed (they are the hashed scripts).
-    await page.waitForFunction(() => Array.isArray((window as unknown as { __next_f?: unknown[] }).__next_f) && (window as unknown as { __next_f: unknown[] }).__next_f.length > 0, null, { timeout: PAGE_TIMEOUT });
+    // Hydration proof: the Next app router is live (`window.next.router`
+    // is only set by the client runtime after the hashed inline flight
+    // scripts ran) and a client component responded to a click.
     await page.waitForFunction(() => typeof (window as unknown as { next?: { router?: unknown } }).next?.router !== "undefined", null, { timeout: PAGE_TIMEOUT });
+    // Consent banner is a client component mounted by the root layout.
+    const consentButton = page.getByRole("button", { name: /accept|allow|agree|got it|decline|reject/i }).first();
+    if (await consentButton.isVisible().catch(() => false)) {
+      await consentButton.click();
+      await expect(consentButton).toBeHidden({ timeout: PAGE_TIMEOUT });
+    }
     expect(await collectViolations(page, probe)).toEqual([]);
   });
 

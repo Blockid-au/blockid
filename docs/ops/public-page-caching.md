@@ -223,22 +223,31 @@ but stay `private`), every `(app)` / auth / admin route.
   falls back to the nonce policy on the next request; the layout falls back
   to `headers()` at the next build. Purge the Cloudflare cache after either.
 
-## 6. Measured (local standalone build, flag on, 2026-09-14)
+## 6. Measured (local standalone build of this branch, flag on, 2026-09-14)
 
-See the S31-D hand-off in the commit message of `docs/ops/public-page-caching.md`
-and the numbers below — origin only, no Cloudflare in the loop:
+Origin only (`node server.js` on 127.0.0.1:4120, no nginx, no Cloudflare),
+same 8-vCPU box as production, one Node process:
 
 | Check | Result |
 | --- | --- |
-| `curl -I /`, `/pricing`, `/funding/grants` | `x-blockid-csp: hash`, `cache-control: public, s-maxage=300/300/600, stale-while-revalidate=…`, `x-nextjs-cache: HIT` |
-| same with `cookie: blockid_session=x` | `cache-control: private, no-cache, no-store, …` |
-| `/dashboard` | `x-blockid-csp: nonce` |
-| Playwright `public-hash-csp.spec.ts` | see hand-off |
-| autocannon 20 conn × 30 s on `/pricing` (origin, hash mode) | see hand-off — vs. the audit's ~50 renders/s |
+| `curl -I /`, `/pricing` | `x-blockid-csp: hash` · `cache-control: public, s-maxage=300, stale-while-revalidate=600` · `x-nextjs-cache: HIT` · no `set-cookie` |
+| `curl -I /funding/grants`, `/funding/grants?state=NSW` | hash · `public, s-maxage=600, stale-while-revalidate=600` · HIT (the `?state=` URL is served by the static state route) |
+| `curl -I /startup-index`, `/legal/terms` | hash · `public, s-maxage=300 / 3600` · HIT |
+| `curl -I /pricing` with `cookie: blockid_session=x` | hash · `private, no-cache, no-store, max-age=0, must-revalidate` |
+| `curl -I /dashboard` | `x-blockid-csp: nonce` (dynamic, 307 to login) |
+| `script-src` on `/pricing` | `'self' 'sha256-…' × 9 https://js.stripe.com … https://static.cloudflareinsights.com` — no nonce, no `'strict-dynamic'`, no `'unsafe-*'` |
+| Playwright `tests/e2e/smoke/public-hash-csp.spec.ts` (chromium) | 6/6 green: `/`, `/pricing` (tab switch works), `/pricing?segment=evaluator`, `/funding/grants` + `?state=NSW`, analytics, signed-in → private; **zero** `securitypolicyviolation` events / CSP console errors |
+| Analytics on hashed `/pricing` | `dataLayer[0] = consent:default`, then `gtag/js`, `gtm.js` and `/g/collect` requests observed; no CSP errors |
+| single `GET /pricing` (curl, warm) | 7–9 ms, 164 KB (audit: 23 ms cold render) |
+| autocannon `/pricing`, 20 conn × 30 s | **128 req/s avg** (p50 144 ms, p99 320 ms, 0 errors, 4k requests); 175 req/s with `accept-encoding: gzip` |
+| autocannon `/`, 20 conn × 15 s | 125 req/s (p50 155 ms) |
+| autocannon `/funding/grants`, 20 conn × 15 s | 137 req/s (p50 142 ms) |
+| autocannon `/pricing`, 1 conn × 10 s | 144 req/s, p50 6 ms — the per-request floor is now Next's cache-hit path (ETag over 164 KB + proxy), not React rendering |
 
-Note the origin number is a floor: with the Cloudflare rule in place the
-allow-listed pages are served from the edge and the origin sees one request
-per `s-maxage` window per page.
+vs. the audit's ≈ 50 renders/s at the origin (10 conn) — ~2.5–3.5× on the
+same process, and, more importantly, the response is now byte-identical
+across visitors, so with the Cloudflare rule in place the origin sees one
+request per page per `s-maxage` window instead of one per visitor.
 
 ## 7. Known trade-offs / follow-ups
 
