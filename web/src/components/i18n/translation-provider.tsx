@@ -41,9 +41,9 @@
  * its children unchanged.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { Locale } from "@/lib/i18n/locales";
-import { DEFAULT_LOCALE } from "@/lib/i18n/locales";
+import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale, localeFromPath } from "@/lib/i18n/locales";
 
 type SeedCatalog = Readonly<Record<string, string>>;
 
@@ -98,17 +98,72 @@ function collectTextNodes(root: Node, out: Text[]): void {
 }
 
 export interface TranslationProviderProps {
-  locale: Locale;
+  /**
+   * Locale resolved by the server (proxy header → root layout). Omitted
+   * when the root layout renders without request access (S31-D
+   * `CSP_PUBLIC_HASH_MODE=1`, so public pages can be static and
+   * edge-cached): the provider then resolves it on the client from the
+   * URL prefix (`/vi/*`) and the `blockid_locale` cookie — the same two
+   * signals the proxy reads — and syncs `<html lang>`.
+   */
+  locale?: Locale;
   /** Seed catalog: strings already translated at build time. */
   seed?: SeedCatalog;
   children: React.ReactNode;
 }
 
+/** Client-side twin of proxy.ts detectLocale(): cookie override, else `/vi` prefix. */
+export function detectClientLocale(): Locale {
+  if (typeof document === "undefined") return DEFAULT_LOCALE;
+  const raw = document.cookie
+    .split(";")
+    .map((c) => c.trim())
+    .find((c) => c.startsWith(`${LOCALE_COOKIE}=`))
+    ?.slice(LOCALE_COOKIE.length + 1);
+  if (raw && isLocale(raw)) return raw;
+  return localeFromPath(window.location.pathname).locale;
+}
+
+function subscribeNever(): () => void {
+  return () => {};
+}
+function serverSnapshotLocale(): Locale {
+  return DEFAULT_LOCALE;
+}
+
 export function TranslationProvider({
-  locale,
-  seed,
+  locale: serverLocale,
+  seed: serverSeed,
   children,
 }: TranslationProviderProps): React.ReactElement {
+  // With a server-resolved locale, behave exactly as before. Without one,
+  // the document was rendered as EN; the browser-side locale (cookie / URL
+  // prefix) is read as an external store — EN during hydration, the real
+  // value on the first client render — so there is never a hydration diff
+  // (this component renders no markup of its own).
+  const detectedLocale = useSyncExternalStore(subscribeNever, detectClientLocale, serverSnapshotLocale);
+  const locale: Locale = serverLocale ?? detectedLocale;
+  const [clientSeed, setClientSeed] = useState<SeedCatalog | undefined>(undefined);
+  useEffect(() => {
+    if (serverLocale !== undefined) return;
+    document.documentElement.lang = locale === "vi" ? "vi-VN" : "en-AU";
+    if (locale === DEFAULT_LOCALE) return;
+    let cancelled = false;
+    // The seed pair is ~150 KB raw; only visitors who actually need it pay
+    // for the chunk, and only once (the chunk is content-hashed).
+    import("@/lib/i18n/seed-catalog")
+      .then((m) => {
+        if (!cancelled) setClientSeed(m.buildSeedCatalog(locale));
+      })
+      .catch(() => {
+        /* no seed → runtime MT still translates everything */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [serverLocale, locale]);
+  const seed = serverLocale !== undefined ? serverSeed : clientSeed;
+
   const localeRef = useRef<Locale>(locale);
   const cacheRef = useRef<Map<string, string>>(new Map());
   const pendingRef = useRef<Set<string>>(new Set());

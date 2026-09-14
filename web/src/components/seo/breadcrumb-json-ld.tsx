@@ -4,8 +4,8 @@
 //
 // Absolute URLs are recommended by Google's Rich Results test; callers
 // pass a leading-slash path and we prefix SITE_URL for them.
-
-import { headers } from "next/headers";
+//
+// Data block (`application/ld+json`) — no CSP nonce needed (S31-D).
 
 const SITE_URL = "https://blockid.au";
 
@@ -14,15 +14,6 @@ export interface BreadcrumbItem {
   name: string;
   /** Absolute URL or leading-slash path (e.g. "/reports"). */
   href: string;
-}
-
-async function readNonce(): Promise<string | undefined> {
-  try {
-    const h = await headers();
-    return h.get("x-nonce") ?? undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 function absolute(href: string): string {
@@ -41,7 +32,6 @@ export async function BreadcrumbListJsonLd({
 }: {
   items: BreadcrumbItem[];
 }) {
-  const nonce = await readNonce();
   const data = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -55,7 +45,6 @@ export async function BreadcrumbListJsonLd({
   return (
     <script
       type="application/ld+json"
-      nonce={nonce}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );
