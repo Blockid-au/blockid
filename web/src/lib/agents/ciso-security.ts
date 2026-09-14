@@ -288,6 +288,131 @@ export function getHighSeverityAcscAlerts(
   );
 }
 
+// ── CISA alerts (US CISA — cross-border threat surface for AU startups) ─────
+
+/**
+ * A single CISA advisory / Known-Exploited-Vulnerability entry. CISA
+ * publishes cross-border threat guidance that AU startups running SaaS on US
+ * cloud infrastructure are exposed to (npm compromises, cloud identity
+ * abuses, KEV catalog entries). Kept structurally parallel to
+ * {@link AcscAlertBulletin} so downstream summaries can merge both feeds.
+ */
+export interface CisaAlertBulletin {
+  /** Stable identifier — CISA advisory / KEV catalog id (e.g. "AA26-207A"). */
+  id: string;
+  /** Public URL on cisa.gov (advisory landing page). */
+  url: string;
+  /** Publication date, ISO YYYY-MM-DD. */
+  published: string;
+  /** CISA severity band. Same ladder as ACSC for merged sorting. */
+  severity: "critical" | "high" | "medium" | "low";
+  /** Short category label for grouping (e.g. "kev", "identity", "supply-chain"). */
+  category: string;
+  /** Human-readable advisory title. */
+  title: string;
+  /** One-line summary of the threat and required action. */
+  summary: string;
+  /** Whether the bulletin still requires action (CISA "current" flag). */
+  active: boolean;
+}
+
+/**
+ * Curated CISA advisory bulletins relevant to Australian startups running
+ * on US SaaS / cloud infrastructure. Each entry is a public advisory from
+ * the US Cybersecurity and Infrastructure Security Agency (cisa.gov).
+ * Refresh when CISA issues new critical / high advisories or adds entries
+ * to the Known Exploited Vulnerabilities (KEV) catalog that AU founders
+ * are meaningfully exposed to.
+ */
+export const CISA_ALERT_BULLETINS: readonly CisaAlertBulletin[] = [
+  {
+    id: "AA26-215A",
+    url: "https://www.cisa.gov/news-events/cybersecurity-advisories",
+    published: "2026-08-03",
+    severity: "critical",
+    category: "identity",
+    title: "Cloud IdP token theft targeting SaaS providers",
+    summary:
+      "Threat actors are stealing OAuth refresh tokens from cloud identity providers to persist inside SaaS tenants. Rotate refresh tokens, shorten session TTLs, and enforce device-bound (FIDO2) auth for admins.",
+    active: true,
+  },
+  {
+    id: "KEV-2026-0716",
+    url: "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+    published: "2026-07-16",
+    severity: "high",
+    category: "kev",
+    title: "Next.js middleware auth bypass added to KEV catalog",
+    summary:
+      "A Next.js middleware auth bypass is being exploited in the wild. Apply the vendor patch within CISA's Binding Operational Directive window and audit route protections.",
+    active: true,
+  },
+  {
+    id: "AA26-160A",
+    url: "https://www.cisa.gov/news-events/cybersecurity-advisories",
+    published: "2026-06-09",
+    severity: "high",
+    category: "supply-chain",
+    title: "Typosquatted npm packages exfiltrating CI secrets",
+    summary:
+      "Malicious npm packages typosquatting popular libraries are exfiltrating CI environment variables during install. Pin lockfile hashes and require --ignore-scripts in build pipelines where practical.",
+    active: true,
+  },
+  {
+    id: "AA26-095A",
+    url: "https://www.cisa.gov/news-events/cybersecurity-advisories",
+    published: "2026-04-05",
+    severity: "medium",
+    category: "cloud",
+    title: "Public S3 / object-storage buckets exposing customer PII",
+    summary:
+      "Misconfigured object-storage buckets continue to leak customer PII. Enable public-access block policies and add automated bucket-policy drift checks to CI.",
+    active: true,
+  },
+  {
+    id: "AA25-320A",
+    url: "https://www.cisa.gov/news-events/cybersecurity-advisories",
+    published: "2025-11-16",
+    severity: "low",
+    category: "awareness",
+    title: "Legacy VPN appliance end-of-life reminder",
+    summary:
+      "CISA end-of-year reminder to retire unsupported VPN appliances. Legacy advisory retained for context; superseded by 2026 secure-remote-access guidance.",
+    active: false,
+  },
+];
+
+/**
+ * Returns only CISA bulletins still flagged as current, sorted by severity
+ * (critical first) then publication date (newest first). Pure — input
+ * never mutated.
+ */
+export function getActiveCisaAlerts(
+  bulletins: readonly CisaAlertBulletin[] = CISA_ALERT_BULLETINS,
+): CisaAlertBulletin[] {
+  return bulletins
+    .filter((b) => b.active)
+    .slice()
+    .sort((a, b) => {
+      const bySeverity = SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity];
+      if (bySeverity !== 0) return bySeverity;
+      return b.published.localeCompare(a.published);
+    });
+}
+
+/**
+ * Returns CISA bulletins whose severity is `critical` or `high` and that
+ * are still active — the shortlist surfaced in founder-facing security
+ * summaries alongside the ACSC shortlist.
+ */
+export function getHighSeverityCisaAlerts(
+  bulletins: readonly CisaAlertBulletin[] = CISA_ALERT_BULLETINS,
+): CisaAlertBulletin[] {
+  return getActiveCisaAlerts(bulletins).filter(
+    (b) => b.severity === "critical" || b.severity === "high",
+  );
+}
+
 /** Australian Essential Eight compliance gap statistics. */
 export const COMPLIANCE_GAP = {
   /** Percentage of AU organisations failing ML1 baseline (%). */

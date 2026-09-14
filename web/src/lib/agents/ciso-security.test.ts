@@ -6,6 +6,7 @@ import {
   MFA_REQUIREMENT,
   ACSC_ALERTS,
   ACSC_ALERT_BULLETINS,
+  CISA_ALERT_BULLETINS,
   COMPLIANCE_GAP,
   calculateOverallScore,
   isWithinCriticalPatchingWindow,
@@ -15,6 +16,8 @@ import {
   applyResearchUpdates,
   getActiveAcscAlerts,
   getHighSeverityAcscAlerts,
+  getActiveCisaAlerts,
+  getHighSeverityCisaAlerts,
   type SecurityAssessment,
   type EssentialEightItem,
   type SecurityRisk,
@@ -175,6 +178,92 @@ describe("getActiveAcscAlerts / getHighSeverityAcscAlerts", () => {
     expect(JSON.stringify(custom)).toBe(before);
     expect(active.map((b) => b.id)).toEqual(["TEST-01"]);
     expect(highOnly.map((b) => b.id)).toEqual(["TEST-01"]);
+  });
+});
+
+// ── CISA_ALERT_BULLETINS registry + query helpers ───────────────────────────
+
+describe("CISA_ALERT_BULLETINS registry", () => {
+  it("every bulletin declares a non-empty id, title, summary and cisa.gov URL", () => {
+    expect(CISA_ALERT_BULLETINS.length).toBeGreaterThan(0);
+    for (const b of CISA_ALERT_BULLETINS) {
+      expect(b.id.trim().length).toBeGreaterThan(0);
+      expect(b.title.trim().length).toBeGreaterThan(0);
+      expect(b.summary.trim().length).toBeGreaterThan(0);
+      expect(b.url).toMatch(/^https:\/\/www\.cisa\.gov\//);
+      expect(b.published).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+  });
+
+  it("ids are unique across the registry", () => {
+    const ids = CISA_ALERT_BULLETINS.map((b) => b.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("registry contains at least one active critical or high advisory (current threat surface)", () => {
+    const highActive = CISA_ALERT_BULLETINS.filter(
+      (b) => b.active && (b.severity === "critical" || b.severity === "high"),
+    );
+    expect(highActive.length).toBeGreaterThan(0);
+  });
+});
+
+describe("getActiveCisaAlerts / getHighSeverityCisaAlerts", () => {
+  it("getActiveCisaAlerts drops inactive bulletins and sorts by severity then newest-first", () => {
+    const active = getActiveCisaAlerts();
+    for (const b of active) expect(b.active).toBe(true);
+
+    const rank = { critical: 0, high: 1, medium: 2, low: 3 } as const;
+    for (let i = 1; i < active.length; i++) {
+      const prev = active[i - 1];
+      const curr = active[i];
+      const prevRank = rank[prev.severity];
+      const currRank = rank[curr.severity];
+      expect(prevRank).toBeLessThanOrEqual(currRank);
+      if (prevRank === currRank) {
+        expect(prev.published >= curr.published).toBe(true);
+      }
+    }
+  });
+
+  it("getHighSeverityCisaAlerts returns only active critical/high entries", () => {
+    const shortlist = getHighSeverityCisaAlerts();
+    expect(shortlist.length).toBeGreaterThan(0);
+    for (const b of shortlist) {
+      expect(b.active).toBe(true);
+      expect(["critical", "high"]).toContain(b.severity);
+    }
+  });
+
+  it("both helpers accept a caller-supplied bulletin list and never mutate it", () => {
+    const custom = [
+      {
+        id: "CISA-TEST-01",
+        url: "https://www.cisa.gov/x",
+        published: "2026-01-01",
+        severity: "high" as const,
+        category: "test",
+        title: "t",
+        summary: "s",
+        active: true,
+      },
+      {
+        id: "CISA-TEST-02",
+        url: "https://www.cisa.gov/x",
+        published: "2026-02-01",
+        severity: "low" as const,
+        category: "test",
+        title: "t2",
+        summary: "s2",
+        active: false,
+      },
+    ];
+    const before = JSON.stringify(custom);
+    const active = getActiveCisaAlerts(custom);
+    const highOnly = getHighSeverityCisaAlerts(custom);
+    expect(JSON.stringify(custom)).toBe(before);
+    expect(active.map((b) => b.id)).toEqual(["CISA-TEST-01"]);
+    expect(highOnly.map((b) => b.id)).toEqual(["CISA-TEST-01"]);
   });
 });
 
