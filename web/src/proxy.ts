@@ -8,8 +8,17 @@ import {
   isLocale,
   type Locale,
 } from "@/lib/i18n/locales";
+import { grantsRewriteTarget } from "@/lib/funding/grants-route";
 import { checkRateLimit, type RateLimitBucket } from "@/lib/rate-limit";
 import { securityHeaders } from "@/lib/security-headers";
+import { firstPartyInlineScriptHashes } from "@/lib/security/inline-script-hashes";
+import { prerenderScriptHashes } from "@/lib/security/prerender-script-hashes";
+import {
+  PRIVATE_CACHE_CONTROL,
+  publicCacheControl,
+  publicCacheableRoute,
+  publicHashModeEnabled,
+} from "@/lib/security/public-cacheable-routes";
 import { refreshSessionAndInjectHeaders } from "@/lib/supabase/refresh-session";
 import { getMiddlewareClient } from "@/lib/supabase/server-anon";
 
@@ -28,10 +37,18 @@ import { getMiddlewareClient } from "@/lib/supabase/server-anon";
  *      Never rewrites the URL; App Router serves the `/vi/*` tree natively.
  *   2. Per-request Content-Security-Policy with a fresh 128-bit nonce, so
  *      `script-src` can drop `'unsafe-inline'`/`'unsafe-eval'`. Echoed on
- *      `x-nonce` so the root layout can thread it onto inline `<Script>`.
- *      This is the ONLY CSP the app emits — see buildContentSecurityPolicy()
- *      (release QA-2 F2: a second static policy in lib/security-headers.ts
- *      used to be intersected with it and blocked GA4/GTM site-wide).
+ *      `x-nonce`. Next threads the nonce onto its own scripts by parsing
+ *      the request's CSP header; the app's first-party inline snippets are
+ *      allowed by hash instead (lib/security/inline-scripts.ts), so no
+ *      layout reads `headers()` for it. This is the ONLY CSP the app emits
+ *      — see buildContentSecurityPolicy() (release QA-2 F2: a second static
+ *      policy in lib/security-headers.ts used to be intersected with it and
+ *      blocked GA4/GTM site-wide).
+ *   2b. S31-D public-page caching (`CSP_PUBLIC_HASH_MODE=1`): prerendered
+ *      documents on the allow-list in lib/security/public-cacheable-routes.ts
+ *      are served to anonymous visitors with a nonce-less hash CSP + public
+ *      cache-control so Cloudflare / nginx can cache them. See
+ *      planPageResponse() and docs/ops/public-page-caching.md.
  *   3. Request-path stamping (`x-pathname`) so Server Components can see
  *      the URL they are rendering — see requestHeadersFor() below.
  *   4. CSRF gate (S9-A) — a cookie-authenticated, non-safe-method request
@@ -165,7 +182,7 @@ function detectLocale(req: NextRequest): Locale {
  */
 function requestHeadersFor(
   req: NextRequest,
-  nonce: string,
+  nonce: string | null,
   cspHeader: string,
   locale: Locale,
 ): Headers {
@@ -173,7 +190,8 @@ function requestHeadersFor(
   const { pathname, search } = req.nextUrl;
   h.set("x-pathname", `${pathname}${search}`);
   h.set("x-invoke-path", pathname);
-  h.set("x-nonce", nonce);
+  if (nonce) h.set("x-nonce", nonce);
+  else h.delete("x-nonce");
   h.set("Content-Security-Policy", cspHeader);
   h.set(LOCALE_HEADER, locale);
   return h;
@@ -190,17 +208,56 @@ function requestHeadersFor(
  * while the analytics dashboards quietly read zero. `src/proxy.test.ts`
  * pins the single-source rule with a static scan.
  *
- * `'strict-dynamic'` means every host in `script-src` is only consulted by
- * browsers without CSP3 support; nonce-carrying scripts (gtag/js, gtm.js,
- * Stripe.js) may load whatever they inject. The hosts stay listed as the
- * CSP2 fallback and as documentation of what is expected to run.
+ * Two shapes of `script-src`, everything else identical (S31-D):
+ *
+ *   nonce mode — `'self' 'nonce-…' 'strict-dynamic' <first-party hashes> <hosts>`
+ *     Every per-request render. `'strict-dynamic'` means every host in
+ *     `script-src` is only consulted by browsers without CSP3 support;
+ *     nonce-carrying scripts (gtag/js, gtm.js, Stripe.js) may load whatever
+ *     they inject. The hosts stay listed as the CSP2 fallback and as
+ *     documentation of what is expected to run.
+ *
+ *   hash mode — `'self' <document hashes> <first-party hashes> <hosts>`
+ *     Prerendered / ISR documents served to anonymous visitors of an
+ *     allow-listed public route (`lib/security/public-cacheable-routes.ts`)
+ *     when `CSP_PUBLIC_HASH_MODE=1`. No nonce, so the same bytes + the same
+ *     header can sit in Cloudflare / nginx for every visitor. The document
+ *     hashes come from the exact HTML Next serves for the route
+ *     (`lib/security/prerender-script-hashes.ts`); no `'strict-dynamic'`
+ *     because Next's parser-inserted `/_next/static` chunks carry no nonce
+ *     on a static page and are allowed by `'self'` instead. Never
+ *     `'unsafe-inline'`, never `'unsafe-eval'`, in either mode.
+ *
+ * The first-party hashes (theme restore, consent default, GA / GTM
+ * bootstraps — `lib/security/inline-scripts.ts`) ride in both modes so the
+ * root layout never has to read the nonce via `headers()`.
  *
  * @internal — exported for unit tests only.
  */
+const SCRIPT_HOSTS =
+  "https://js.stripe.com https://challenges.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com https://static.cloudflareinsights.com";
+
 export function buildContentSecurityPolicy(nonce: string): string {
+  const hashes = firstPartyInlineScriptHashes().join(" ");
+  return policyDirectives(`script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${hashes} ${SCRIPT_HOSTS}`).join("; ");
+}
+
+/**
+ * Hash-mode policy for a prerendered document (see above). `documentHashes`
+ * are the `'sha256-…'` sources of every inline script in the HTML Next will
+ * serve; the first-party snippet hashes are added so a document that
+ * happens not to contain one still allows it.
+ * @internal — exported for unit tests only.
+ */
+export function buildHashContentSecurityPolicy(documentHashes: readonly string[]): string {
+  const all = new Set<string>([...documentHashes, ...firstPartyInlineScriptHashes()]);
+  return policyDirectives(`script-src 'self' ${Array.from(all).join(" ")} ${SCRIPT_HOSTS}`).join("; ");
+}
+
+function policyDirectives(scriptSrc: string): string[] {
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com https://challenges.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com https://static.cloudflareinsights.com`,
+    scriptSrc,
     // Google Identity Services (the Sign in with Google button on
     // /auth/login) injects its stylesheet + iframe from accounts.google.com;
     // both were blocked under the old policies (release QA-2 F9 probe). The
@@ -221,7 +278,7 @@ export function buildContentSecurityPolicy(nonce: string): string {
     "form-action 'self'",
     "object-src 'none'",
     "upgrade-insecure-requests",
-  ].join("; ");
+  ];
 }
 
 function applySecurityHeaders(res: NextResponse): NextResponse {
@@ -442,18 +499,105 @@ export async function proxy(request: NextRequest) {
     return applySecurityHeaders(ok);
   }
 
-  // ── Default path — SSO refresh + cookie + CSP + security headers ────
-  const response = NextResponse.next({
-    request: { headers: requestHeadersFor(request, nonce, cspHeader, locale) },
-  });
-  await refreshSessionAndInjectHeaders(request, response, {
-    clientFactory: getMiddlewareClient,
-  });
-  seedJurisdictionCookie(request, response);
-  response.headers.set("Content-Security-Policy", cspHeader);
-  response.headers.set("x-nonce", nonce);
+  // ── Page path — public-page caching plan (S31-D), then SSO refresh +
+  // cookie + CSP + security headers ────────────────────────────────────
+  const plan = planPageResponse(request, nonce, cspHeader);
+  const reqHeaders = requestHeadersFor(request, plan.nonce, plan.csp, locale);
+  const response = plan.rewriteUrl
+    ? NextResponse.rewrite(plan.rewriteUrl, { request: { headers: reqHeaders } })
+    : NextResponse.next({ request: { headers: reqHeaders } });
+  if (plan.sharedCacheable) {
+    // Nothing that varies per visitor may ride on a response the edge
+    // will hand to everyone: no Set-Cookie (Cloudflare / nginx refuse to
+    // cache one anyway), no session refresh (anonymous by construction).
+  } else {
+    await refreshSessionAndInjectHeaders(request, response, {
+      clientFactory: getMiddlewareClient,
+    });
+    seedJurisdictionCookie(request, response);
+  }
+  response.headers.set("Content-Security-Policy", plan.csp);
+  if (plan.nonce) response.headers.set("x-nonce", plan.nonce);
+  if (plan.cacheControl) response.headers.set("Cache-Control", plan.cacheControl);
   response.headers.set(LOCALE_HEADER, locale);
+  response.headers.set("x-blockid-csp", plan.nonce ? "nonce" : "hash");
   return applySecurityHeaders(response);
+}
+
+// ── Public-page caching plan (S31-D) ────────────────────────────────────
+//
+// Decides, for one page request, which CSP shape to emit, whether the
+// response may be shared-cached, and whether the URL is served by another
+// route (the `/funding/grants?state=…` rewrite). See
+// `docs/ops/public-page-caching.md`.
+//
+//   flag off (default)         → nonce CSP, headers untouched — today's behaviour.
+//   flag on, document cached   → hash CSP built from that document
+//     (correct for ANY prerendered route, allow-listed or not: a static
+//     page rendered without a nonce would otherwise be served under a
+//     nonce policy and never hydrate — `/legal-templates` today).
+//     + allow-listed & anonymous → `public, s-maxage, stale-while-revalidate`
+//     + otherwise                → `private, no-store` (never let Next's
+//       default `s-maxage=31536000` for a static page reach the edge)
+//   flag on, no document       → nonce CSP (dynamic route, or ISR route not
+//     rendered yet) + `private` on allow-listed routes so a nonce'd render
+//     is never shared-cached.
+//
+// "Anonymous" = no app session, no legacy Supabase auth cookie, no locale
+// override: the cached document is the English, signed-out render, and a
+// visitor carrying any of those cookies must get a per-request render
+// (Cloudflare mirrors this with its cache rule; nginx with
+// `proxy_cache_bypass`).
+
+interface PageResponsePlan {
+  rewriteUrl: URL | null;
+  nonce: string | null;
+  csp: string;
+  cacheControl: string | null;
+  sharedCacheable: boolean;
+}
+
+const IDENTITY_COOKIE_RE = /^sb-.*-auth-token(\.\d+)?$/;
+
+/** @internal — exported for unit tests only */
+export function hasVisitorIdentityCookie(request: NextRequest): boolean {
+  if (request.cookies.get(SESSION_COOKIE)?.value) return true;
+  if (request.cookies.get(LOCALE_COOKIE)?.value) return true;
+  if (request.cookies.get("sb-access-token")?.value || request.cookies.get("sb:token")?.value) return true;
+  for (const c of request.cookies.getAll()) {
+    if (IDENTITY_COOKIE_RE.test(c.name) && c.value) return true;
+  }
+  return false;
+}
+
+function planPageResponse(request: NextRequest, nonce: string, nonceCsp: string): PageResponsePlan {
+  const { pathname, searchParams } = request.nextUrl;
+  const rewriteTarget = grantsRewriteTarget(pathname, searchParams);
+  let rewriteUrl: URL | null = null;
+  if (rewriteTarget) {
+    rewriteUrl = request.nextUrl.clone();
+    rewriteUrl.pathname = rewriteTarget;
+  }
+  const servedPath = rewriteTarget ?? pathname;
+  const nonceMode: PageResponsePlan = { rewriteUrl, nonce, csp: nonceCsp, cacheControl: null, sharedCacheable: false };
+
+  if (!publicHashModeEnabled()) return nonceMode;
+  if (pathname.startsWith("/api/")) return nonceMode;
+
+  const route = publicCacheableRoute(servedPath);
+  const documentHashes = prerenderScriptHashes(servedPath);
+  if (!documentHashes) {
+    return route ? { ...nonceMode, cacheControl: PRIVATE_CACHE_CONTROL } : nonceMode;
+  }
+  const anonymous = !hasVisitorIdentityCookie(request);
+  const shared = Boolean(route) && anonymous;
+  return {
+    rewriteUrl,
+    nonce: null,
+    csp: buildHashContentSecurityPolicy(documentHashes),
+    cacheControl: shared && route ? publicCacheControl(route) : PRIVATE_CACHE_CONTROL,
+    sharedCacheable: shared,
+  };
 }
 
 /**

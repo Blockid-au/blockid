@@ -26,7 +26,9 @@ import {
 } from "@/lib/showcase/atlassian/fixture";
 import { listChapters } from "@/lib/guide/startup-journey";
 
-export const dynamic = "force-dynamic";
+// S31-D: static + ISR (1 h) — showcase content is code + seed data, so
+// the edge can cache it (lib/security/public-cacheable-routes.ts).
+export const revalidate = 3600;
 
 export const metadata: Metadata = pageMetadata({
   title: "12-chapter mentor guide — Atlassian demo, step 8",

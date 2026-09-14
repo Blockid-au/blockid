@@ -110,7 +110,7 @@ const CLOSED_FINDINGS: ClosedFinding[] = [
     severity: "High",
     title: "CSP `unsafe-inline` + `unsafe-eval` on script-src",
     detail:
-      "`web/src/proxy.ts` generates a fresh 128-bit nonce per request and builds a `script-src 'nonce-…' 'strict-dynamic'` CSP. `'unsafe-inline'` and `'unsafe-eval'` are removed from script-src. Root layout threads the nonce onto the GoogleAnalytics `<Script>` tags via `x-nonce`. Tailwind's `style-src 'unsafe-inline'` remains intentionally.",
+      "`web/src/proxy.ts` generates a fresh 128-bit nonce per request and builds a `script-src 'nonce-…' 'strict-dynamic'` CSP. `'unsafe-inline'` and `'unsafe-eval'` are removed from script-src. First-party inline scripts (theme, consent default, GA / GTM bootstraps) are allowed by SHA-256 hash from one shared module, so no layout reads the nonce; prerendered public pages can be served under a nonce-less hash policy (S31-D, `CSP_PUBLIC_HASH_MODE`). Tailwind's `style-src 'unsafe-inline'` remains intentionally.",
     shipped_in: "v2.0.0-beta.6",
   },
 ];

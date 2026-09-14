@@ -62,9 +62,9 @@ function isDocSlug(v: string): v is DocSlug {
   );
 }
 
-// Read at request time so a hot-swap of a legal MDX file does not require a
-// full rebuild.
-export const dynamic = "force-dynamic";
+// S31-D: static + ISR (1 h) so the edge can cache the legal pages. A
+// hot-swapped MDX file shows within the hour; a deploy rebuilds anyway.
+export const revalidate = 3600;
 export const runtime = "nodejs";
 
 export function generateStaticParams(): { doc: DocSlug }[] {

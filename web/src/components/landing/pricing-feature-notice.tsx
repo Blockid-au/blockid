@@ -1,25 +1,26 @@
+"use client";
 // <PricingFeatureNotice> — the one sentence a locked user needed on /pricing.
 //
 // S31-B (2026-09-13). Every gated workspace page redirects to
 // `/pricing?feature=<slug>&from=<path>`; until now the page dropped both
-// params on the floor. Server component, no client JS: reads the resolver
-// and renders a band above the hero that says what the page needed, which
-// plan carries it, and jumps to that card.
-
+// params on the floor. Renders a band above the hero that says what the
+// page needed, which plan carries it, and jumps to that card.
+//
+// Client component reading useSearchParams (S31-D): /pricing is static /
+// ISR-cacheable, so the page itself must not read searchParams. Mount it
+// inside <Suspense> (Next requires a boundary around useSearchParams).
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Lock, ArrowDown } from "lucide-react";
 import {
   resolveFeatureRequirement,
   requiresPaidTier,
 } from "@/lib/entitlements/feature-requirement";
 
-export function PricingFeatureNotice({
-  feature,
-  from,
-}: {
-  feature: string | string[] | undefined;
-  from?: string | string[] | undefined;
-}) {
+export function PricingFeatureNotice(props: { feature?: string | string[]; from?: string | string[] } = {}) {
+  const params = useSearchParams();
+  const feature = props.feature ?? params?.get("feature") ?? undefined;
+  const from = props.from ?? params?.get("from") ?? undefined;
   const slug = Array.isArray(feature) ? feature[0] : feature;
   const fromPath = Array.isArray(from) ? from[0] : from;
   const req = resolveFeatureRequirement(slug, fromPath);

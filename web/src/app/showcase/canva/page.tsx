@@ -20,7 +20,9 @@ import {
 } from "@/lib/startup-package/case-study-milestones";
 import { GROWTH_PHASE_IDS } from "@/lib/journey-map";
 
-export const dynamic = "force-dynamic";
+// S31-D: static + ISR (1 h) — showcase content is code + seed data, so
+// the edge can cache it (lib/security/public-cacheable-routes.ts).
+export const revalidate = 3600;
 
 // Renderer-local shape — the shared Milestone carries a GrowthPhaseId, but
 // this page's layout groups by the legacy numeric phase (1..12). We derive the

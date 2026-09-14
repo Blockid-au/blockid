@@ -21,7 +21,9 @@ import {
 } from "@/lib/showcase/atlassian/fixture";
 import { CRITERIA, type CriterionKey } from "@/lib/evaluation-criteria";
 
-export const dynamic = "force-dynamic";
+// S31-D: static + ISR (1 h) — showcase content is code + seed data, so
+// the edge can cache it (lib/security/public-cacheable-routes.ts).
+export const revalidate = 3600;
 
 export const metadata: Metadata = pageMetadata({
   title: "Atlassian SVI report — demo step 3",

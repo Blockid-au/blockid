@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { headers } from "next/headers";
-import Script from "next/script";
 import { Inter, IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
 import { GoogleAnalytics, GTMNoScript } from "@/components/analytics/google-analytics";
 import { ConsentBanner } from "@/components/analytics/consent-banner";
@@ -20,6 +19,8 @@ import { CloudflareEmailOffEnd, CloudflareEmailOffStart } from "@/components/sit
 import { DEFAULT_LOCALE, LOCALE_HEADER, isLocale, type Locale } from "@/lib/i18n/locales";
 import { buildSeedCatalog } from "@/lib/i18n/seed-catalog";
 import { heroLine } from "@/lib/marketing/hero-variants";
+import { GTAG_CONSENT_DEFAULT_SCRIPT, THEME_RESTORE_SCRIPT } from "@/lib/security/inline-scripts";
+import { publicHashModeEnabled } from "@/lib/security/public-cacheable-routes";
 import "./globals.css";
 
 const inter = Inter({
@@ -126,15 +127,35 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Nonce is generated per-request by web/src/proxy.ts and echoed onto the
-  // `x-nonce` request header. Threaded onto every inline <script> so they
-  // satisfy the strict `script-src 'nonce-...'` CSP (no 'unsafe-inline').
-  const h = await headers();
-  const nonce = h.get("x-nonce") ?? "";
-  const localeRaw = h.get(LOCALE_HEADER) ?? DEFAULT_LOCALE;
-  const locale: Locale = isLocale(localeRaw) ? localeRaw : DEFAULT_LOCALE;
+  // S31-D — the ONE `headers()` call that used to sit here made every route
+  // dynamic (`private, no-store`, every `revalidate` inert — capacity audit
+  // §3). The nonce is no longer needed by this layout: Next threads it onto
+  // its own scripts from the request's CSP header, and the app's inline
+  // snippets below are allowed by SHA-256 hash in both CSP modes
+  // (lib/security/inline-scripts.ts). What remains is the locale.
+  //
+  //   CSP_PUBLIC_HASH_MODE unset (default) — read the proxy-resolved locale
+  //     from the request header exactly as before. Keeps every route
+  //     dynamic, i.e. today's behaviour, until the operator opts in.
+  //   CSP_PUBLIC_HASH_MODE=1 — no request access at all. Pages without
+  //     their own dynamic API use become static / ISR (the proxy then
+  //     serves them under the hash CSP). The locale is resolved on the
+  //     client by <TranslationProvider> (URL prefix `/vi`, `blockid_locale`
+  //     cookie) and `<html lang>` is synced there; the server always emits
+  //     the English document, which is what the DOM-walking translator
+  //     translated at runtime anyway.
+  //
+  // The env var is read at RENDER time: for prerendered pages that is
+  // `next build`, so flipping it means a rebuild + deploy — see
+  // docs/ops/public-page-caching.md.
+  let locale: Locale | undefined;
+  if (!publicHashModeEnabled()) {
+    const h = await headers();
+    const localeRaw = h.get(LOCALE_HEADER) ?? DEFAULT_LOCALE;
+    locale = isLocale(localeRaw) ? localeRaw : DEFAULT_LOCALE;
+  }
   const htmlLang = locale === "vi" ? "vi-VN" : "en-AU";
-  const seedCatalog = buildSeedCatalog(locale);
+  const seedCatalog = locale ? buildSeedCatalog(locale) : undefined;
 
   return (
     <html
@@ -163,39 +184,20 @@ export default async function RootLayout({
         <link rel="dns-prefetch" href="https://www.google-analytics.com" />
         <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
-        <script
-          nonce={nonce}
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("blockid_theme");if(t==="dark"){document.documentElement.classList.add("dark")}}catch(e){}})()`,
-          }}
-        />
+        {/* Both inline scripts below are allowed by SHA-256 hash in the
+            proxy's CSP (lib/security/inline-script-hashes.ts) — render the
+            shared constants verbatim; an edited copy would be blocked. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_RESTORE_SCRIPT }} />
         {/* Google Consent Mode v2 — set defaults to DENIED BEFORE gtag.js
             loads. Required for OAIC APP 3 / APP 6 (opt-in analytics) and to
             keep GA4 from firing a page_view before the visitor has answered
             the ConsentBanner. `wait_for_update` throttles GA4 for 500ms so
             an immediate accept still captures the first page_view. The
             banner's grantConsent()/denyConsent() helpers then push the
-            consent-update. Must be beforeInteractive so this executes ahead
-            of the gtag.js script tag that afterInteractive schedules. */}
-        <Script
-          id="gtag-consent-default"
-          strategy="beforeInteractive"
-          nonce={nonce}
-        >
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('consent', 'default', {
-              analytics_storage: 'denied',
-              ad_storage: 'denied',
-              ad_user_data: 'denied',
-              ad_personalization: 'denied',
-              functionality_storage: 'granted',
-              security_storage: 'granted',
-              wait_for_update: 500
-            });
-          `}
-        </Script>
+            consent-update. A parser-inserted <head> script always executes
+            ahead of the afterInteractive gtag.js tag (it used to be a
+            `next/script` beforeInteractive, which needed the nonce). */}
+        <script id="gtag-consent-default" dangerouslySetInnerHTML={{ __html: GTAG_CONSENT_DEFAULT_SCRIPT }} />
       </head>
       <body className="min-h-full bg-surface-50 text-brand-900 dark:text-ink-800 font-sans flex flex-col">
         {/* Release QA-2 F9 — Cloudflare Email Obfuscation rewrote every
@@ -208,15 +210,20 @@ export default async function RootLayout({
         <Providers>
           {/* Cross-tab SSO sync — Master Upgrade Plan §8.9 stage 2.
               Broadcasts sign-in/out on the `bid-auth` BroadcastChannel
-              and calls router.refresh() on peer tab events. */}
-          <AuthSyncClient />
+              and calls router.refresh() on peer tab events. Reads
+              useSearchParams() (the `?logged_in=true` redirect), so on a
+              static page it must sit under Suspense (S31-D) — it renders
+              null, so the boundary changes nothing visible. */}
+          <Suspense fallback={null}>
+            <AuthSyncClient />
+          </Suspense>
           {/* `?ref=<CODE>` deep-link capture — writes blockid_via cookie
               before any signup flow reads it. Task M1 (v3 reseller upgrade). */}
           <ResellerRefCapture />
           <TranslationProvider locale={locale} seed={seedCatalog}>
             {children}
           </TranslationProvider>
-          <GoogleAnalytics nonce={nonce} />
+          <GoogleAnalytics />
           {/* First-touch / last-touch attribution capture — writes to
               localStorage + first-party cookies (bid_ft / bid_lt) so
               server routes (e.g. /api/score) and downstream trackEvent

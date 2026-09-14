@@ -17,7 +17,6 @@
  */
 
 import type { ReactNode } from "react";
-import { headers } from "next/headers";
 
 /**
  * B2 Task 8 — marketing-scope structured data.
@@ -64,18 +63,17 @@ const marketingProductJsonLd = {
   },
 };
 
-export default async function MarketingLayout({ children }: { children: ReactNode }) {
-  // Thread the request-scoped CSP nonce onto every JSON-LD script tag so
-  // the strict-dynamic script-src directive accepts them. Without the nonce
-  // browsers block-and-report every page load (2 CSP violations per view
-  // caught by the Playwright audit).
-  const hdrs = await headers();
-  const nonce = hdrs.get("x-nonce") ?? undefined;
+export default function MarketingLayout({ children }: { children: ReactNode }) {
+  // S31-D: no `headers()` here any more — it made every marketing route
+  // dynamic. JSON-LD blocks are `type="application/ld+json"` data blocks:
+  // the HTML "prepare the script element" algorithm returns before the CSP
+  // check for a non-JavaScript type, so they need no nonce (the Playwright
+  // CSP audit in tests/e2e/smoke/public-hash-csp.spec.ts pins zero
+  // violations on the hashed pages).
   return (
     <>
       <script
         type="application/ld+json"
-        nonce={nonce}
         dangerouslySetInnerHTML={{ __html: JSON.stringify(marketingProductJsonLd) }}
       />
       {children}

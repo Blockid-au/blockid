@@ -30,7 +30,9 @@ import {
 } from "@/lib/showcase/atlassian/fixture";
 import { PHASE_LABELS, PHASE_COUNT } from "@/lib/showcase/gallery";
 
-export const dynamic = "force-dynamic";
+// S31-D: static + ISR (1 h) — showcase content is code + seed data, so
+// the edge can cache it (lib/security/public-cacheable-routes.ts).
+export const revalidate = 3600;
 
 export const metadata: Metadata = pageMetadata({
   title: "Atlassian 12-phase growth map — demo step 4",

@@ -1,4 +1,3 @@
-import { headers } from "next/headers";
 import {
   buildItemListJsonLd,
   buildWebPageJsonLd,
@@ -7,23 +6,13 @@ import {
 } from "@/lib/seo/structured-data";
 
 /**
- * Read the per-request CSP nonce (set by `web/src/proxy.ts` and echoed on
- * the `x-nonce` request header). All JSON-LD `<script>` tags below must
- * emit this nonce so they satisfy the strict `script-src 'nonce-...'`
- * directive (no 'unsafe-inline'). Returns undefined outside a request
- * scope so unit tests do not throw.
+ * JSON-LD blocks are `type="application/ld+json"` data blocks: browsers
+ * never execute them and the CSP inline check runs only for JavaScript
+ * types, so they carry no nonce. (S31-D removed the `headers()` read that
+ * used to fetch one — it made every page that rendered these dynamic.)
  */
-async function readNonce(): Promise<string | undefined> {
-  try {
-    const h = await headers();
-    return h.get("x-nonce") ?? undefined;
-  } catch {
-    return undefined;
-  }
-}
 
 export async function OrganizationJsonLd() {
-  const nonce = await readNonce();
   const data = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -47,7 +36,6 @@ export async function OrganizationJsonLd() {
   return (
     <script
       type="application/ld+json"
-      nonce={nonce}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );
@@ -60,7 +48,6 @@ export async function OrganizationJsonLd() {
  * 2026-09 as part of the P1 SEO backlog closure.
  */
 export async function WebSiteSearchJsonLd() {
-  const nonce = await readNonce();
   const data = {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -78,14 +65,12 @@ export async function WebSiteSearchJsonLd() {
   return (
     <script
       type="application/ld+json"
-      nonce={nonce}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );
 }
 
 export async function SoftwareApplicationJsonLd() {
-  const nonce = await readNonce();
   const data = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -105,31 +90,26 @@ export async function SoftwareApplicationJsonLd() {
   return (
     <script
       type="application/ld+json"
-      nonce={nonce}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );
 }
 
 export async function WebPageJsonLd(input: WebPageJsonLdInput) {
-  const nonce = await readNonce();
   const data = buildWebPageJsonLd(input);
   return (
     <script
       type="application/ld+json"
-      nonce={nonce}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );
 }
 
 export async function ItemListJsonLd(input: ItemListJsonLdInput) {
-  const nonce = await readNonce();
   const data = buildItemListJsonLd(input);
   return (
     <script
       type="application/ld+json"
-      nonce={nonce}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );
@@ -140,7 +120,6 @@ export async function FAQJsonLd({
 }: {
   items: { question: string; answer: string }[];
 }) {
-  const nonce = await readNonce();
   const data = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -153,7 +132,6 @@ export async function FAQJsonLd({
   return (
     <script
       type="application/ld+json"
-      nonce={nonce}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );
@@ -174,7 +152,6 @@ export async function ArticleJsonLd({
   updatedAt?: string;
   authorName?: string;
 }) {
-  const nonce = await readNonce();
   const data = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -200,7 +177,6 @@ export async function ArticleJsonLd({
   return (
     <script
       type="application/ld+json"
-      nonce={nonce}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );

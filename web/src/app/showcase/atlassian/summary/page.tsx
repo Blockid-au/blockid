@@ -24,7 +24,9 @@ import {
   buildStepUrl,
 } from "@/lib/showcase/atlassian/steps";
 
-export const dynamic = "force-dynamic";
+// S31-D: static + ISR (1 h) — showcase content is code + seed data, so
+// the edge can cache it (lib/security/public-cacheable-routes.ts).
+export const revalidate = 3600;
 
 export const metadata: Metadata = pageMetadata({
   title: "Wrap-up — Atlassian demo, step 9",

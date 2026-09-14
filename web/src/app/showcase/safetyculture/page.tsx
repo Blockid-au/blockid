@@ -19,7 +19,9 @@ import {
 } from "@/lib/startup-package/case-study-milestones";
 import { GROWTH_PHASE_IDS } from "@/lib/journey-map";
 
-export const dynamic = "force-dynamic";
+// S31-D: static + ISR (1 h) — showcase content is code + seed data, so
+// the edge can cache it (lib/security/public-cacheable-routes.ts).
+export const revalidate = 3600;
 
 // Renderer-local shape — sourced from the shared timeline module but
 // re-projected onto the numeric-phase axis this page's grouping still uses.

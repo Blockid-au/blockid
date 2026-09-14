@@ -3,6 +3,13 @@
 // Pages nest async server components (BreadcrumbListJsonLd, FundingJsonLd),
 // which renderToStaticMarkup cannot resolve, so the tree is rendered through
 // renderToReadableStream and read back in full.
+//
+// S31-D: the directory is rendered by the shared `GrantsDirectory` /
+// `grantsMetadata` (grants-directory.tsx) behind three routes — base
+// (static), state/[state] (static) and view (dynamic, reads searchParams).
+// The tests keep driving it with query-shaped input through
+// `parseGrantFilters`, exactly what the view route does, so every
+// assertion below still describes the public URL behaviour.
 
 import { describe, expect, it, vi } from "vitest";
 import { renderToReadableStream } from "react-dom/server";
@@ -19,7 +26,15 @@ vi.mock("@/lib/funding/data", () => ({
 }));
 
 import { extractJsonLd, validateJsonLd } from "@/lib/seo/structured-data";
-import GrantsDirectoryPage, { generateMetadata, revalidate } from "./page";
+import { parseGrantFilters, type SearchParamsLike } from "@/lib/funding/directory";
+import { GrantsDirectory, grantsMetadata } from "./grants-directory";
+import { revalidate } from "./page";
+import { dynamicParams, generateStaticParams, revalidate as stateRevalidate } from "./state/[state]/page";
+import { dynamic as viewDynamic } from "./view/page";
+
+async function generateMetadata({ searchParams }: { searchParams: Promise<SearchParamsLike> }) {
+  return grantsMetadata(parseGrantFilters(await searchParams));
+}
 
 function grant(over: Partial<AuGrant>): AuGrant {
   return {
@@ -68,7 +83,7 @@ rows.push(
 );
 
 async function render(sp: Record<string, string> = {}): Promise<string> {
-  const el = await GrantsDirectoryPage({ searchParams: Promise.resolve(sp) });
+  const el = await GrantsDirectory({ filters: parseGrantFilters(sp) });
   const stream = await renderToReadableStream(el);
   await stream.allReady;
   return new Response(stream).text();
@@ -85,6 +100,13 @@ describe("/funding/grants — metadata and caching", () => {
     expect((md.openGraph as { images?: unknown[] }).images).toEqual([{ url: "/opengraph-image", width: 1200, height: 630, alt: "BlockID.au" }]);
     expect(md.robots).toEqual({ index: true, follow: true });
     expect(revalidate).toBe(3600);
+  });
+
+  it("S31-D route split: base + per-state are static (ISR 1 h, one page per AU state, no on-demand params); the filtered view is dynamic", () => {
+    expect(stateRevalidate).toBe(3600);
+    expect(dynamicParams).toBe(false);
+    expect(generateStaticParams().map((p) => p.state)).toEqual(["national", "NSW", "VIC", "QLD", "WA", "SA", "TAS", "ACT", "NT"]);
+    expect(viewDynamic).toBe("force-dynamic");
   });
 
   it("a state-only filter is its own '<state> startup grants' landing page: self-canonical + state title; other filter combos canonicalise to the base (S8-A)", async () => {

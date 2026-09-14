@@ -16,8 +16,13 @@
  * toggle, "Most popular" ribbon and fine print are shared. The contact-sales
  * row on the page sits below the switch and is visible under both tabs.
  *
- * Deep link: the server page reads `?segment=evaluator` and passes
- * `initialSegment`; switching also rewrites the query string with
+ * Deep link: `?segment=evaluator` (also `?tab=` / legacy `?tier=`) is read
+ * from `window.location` after mount (`readTabFromUrl` prop, default on)
+ * — S31-D made /pricing a static, edge-cached page, so the server can no
+ * longer read `searchParams` for it. The document always carries the
+ * Founder ladder; a deep link switches within the first paint after
+ * hydration. Callers that know the tab (the /vi page) still pass
+ * `initialSegment`. Switching also rewrites the query string with
  * `history.replaceState` so a copied URL lands on the same tab. The
  * `evaluator_pricing_viewed` analytics event fires every time the Evaluator
  * ladder becomes visible (`via: "deep_link"` on first paint, `"tab"` after a
@@ -29,11 +34,11 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type KeyboardEvent,
 } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { PricingMatrix } from "@/components/landing/pricing-matrix";
-import type { Segment } from "@/lib/plans-v2";
 import {
   TAB_TO_SEGMENT,
   resolvePricingTab,
@@ -44,8 +49,14 @@ export { TAB_TO_SEGMENT, resolvePricingTab };
 export type { PricingTab };
 
 export interface PricingSegmentSwitchProps {
-  /** Tab shown on first paint (server reads `?segment=` and passes it). */
+  /** Tab shown on first paint when the caller already knows it. */
   initialSegment?: PricingTab;
+  /**
+   * Resolve the deep-link tab from `window.location` after mount
+   * (`?segment=` / `?tab=` / `?tier=`). Default true; the vi page passes
+   * `initialSegment` and leaves this on too so its deep links keep working.
+   */
+  readTabFromUrl?: boolean;
   /** Override the tab labels (the /vi page localises them). */
   labels?: Partial<Record<PricingTab, { label: string; sub: string }>>;
   /** Called after every tab change (analytics wiring for callers). */
@@ -59,12 +70,36 @@ const DEFAULT_LABELS: Record<PricingTab, { label: string; sub: string }> = {
 
 const TAB_ORDER: readonly PricingTab[] = ["founder", "evaluator"];
 
+function subscribeNever(): () => void {
+  return () => {};
+}
+function noTab(): PricingTab | null {
+  return null;
+}
+/** `?segment=` / `?tab=` / legacy `?tier=` → tab, or null when absent (or on the server). */
+function tabFromLocation(): PricingTab | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const sp = new URLSearchParams(window.location.search);
+    const raw = sp.get("segment") ?? sp.get("tab") ?? sp.get("tier");
+    return raw === null ? null : resolvePricingTab(raw);
+  } catch {
+    return null; // URL parsing can only fail in exotic embeds — the default tab stands.
+  }
+}
+
 export function PricingSegmentSwitch({
   initialSegment = "founder",
+  readTabFromUrl = true,
   labels,
   onChange,
 }: PricingSegmentSwitchProps) {
-  const [tab, setTabState] = useState<PricingTab>(initialSegment);
+  // The URL is an external store: "no tab" while hydrating (matches the
+  // server document), the deep-linked tab on the first client render. A
+  // click then overrides it for the rest of the visit.
+  const urlTab = useSyncExternalStore(subscribeNever, readTabFromUrl ? tabFromLocation : noTab, noTab);
+  const [chosen, setTabState] = useState<PricingTab | null>(null);
+  const tab: PricingTab = chosen ?? urlTab ?? initialSegment;
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   // "deep_link" for the very first Evaluator paint, "tab" afterwards.
   const viaRef = useRef<"deep_link" | "tab">("deep_link");

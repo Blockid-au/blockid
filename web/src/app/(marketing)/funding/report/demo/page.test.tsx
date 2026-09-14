@@ -75,10 +75,10 @@ describe("/funding/report/demo", () => {
     expect(out).not.toMatch(/access_token|cs_live|cs_test|@example\.com/);
   });
 
-  it("emits Article JSON-LD with the CSP nonce", async () => {
+  it("emits Article JSON-LD (a data block — no CSP nonce needed, S31-D)", async () => {
     const out = await html();
     expect(out).toContain('type="application/ld+json"');
-    expect(out).toContain('nonce="test-nonce"');
+    expect(out).not.toContain('nonce="test-nonce"');
     expect(out).toContain('"@type":"Article"');
     expect(out).toContain('"url":"https://blockid.au/funding/report/demo"');
   });

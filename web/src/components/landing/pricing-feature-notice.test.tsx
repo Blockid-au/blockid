@@ -1,4 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+// S31-D: the notice reads useSearchParams on the client; tests pass props
+// explicitly, so the hook just returns an empty bag.
+vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams() }));
 import { renderToStaticMarkup } from "react-dom/server";
 import { PLANS_V2 } from "@/lib/plans-v2";
 import { PricingFeatureNotice } from "./pricing-feature-notice";

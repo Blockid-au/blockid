@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { Building2, Check } from "lucide-react";
 import Link from "next/link";
 import { FAQV2 } from "@/components/landing/faq-v2";
 import { PricingSegmentSwitch } from "@/components/landing/pricing-segment-switch";
-import { resolvePricingTab, type PricingTab } from "@/components/landing/pricing-tab";
 import { FAQJsonLd } from "@/components/seo/json-ld";
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
@@ -16,10 +16,13 @@ import { LogoCloud } from "@/components/landing/logo-cloud";
 import { StickyCta } from "@/components/sales/sticky-cta";
 import { PricingFeatureNotice } from "@/components/landing/pricing-feature-notice";
 
-// Force dynamic — pricing reads platform_config (Supabase) on every
-// request, and searchParams (?segment=…) picks the initial tab. ISR would
-// serve stale copy while the pricing catalogue evolves.
-export const dynamic = "force-dynamic";
+// S31-D: static + ISR (300 s, the edge TTL in
+// lib/security/public-cacheable-routes.ts). The catalogue is code
+// (`lib/plans-v2`), there is no Supabase read on this page any more, and
+// the `?segment=` deep link is resolved client-side by
+// <PricingSegmentSwitch> instead of via `searchParams` (which would force a
+// per-request render).
+export const revalidate = 300;
 
 // 2026-09-07 (Workstream B5) retired the four persona tabs (Founder /
 // Investor / Advisor / Accelerator). 2026-09-10 (G12, T0268) brings back a
@@ -36,14 +39,6 @@ export const dynamic = "force-dynamic";
 // none of those links 404 or silently show the wrong ladder. Persona pages
 // keep deep-linking to a card via `#tier-growth` / `#tier-scout` fragments
 // defined on <PricingMatrix />.
-function resolveInitialTab(sp: {
-  segment?: string | string[];
-  tab?: string | string[];
-  tier?: string | string[];
-}): PricingTab {
-  return resolvePricingTab(sp.segment ?? sp.tab ?? sp.tier);
-}
-
 export const metadata: Metadata = pageMetadata({
   title: "Pricing — founder and evaluator plans",
   description: "Founder plans from free (Starter A$29, Growth A$69). Evaluator plans for investors, advisors and programs (Scout A$79, Firm A$149, Program A$349). 7-day free trial.",
@@ -94,21 +89,7 @@ const FAQ_JSONLD = [
 // Page
 // ---------------------------------------------------------------------------
 
-interface PricingPageProps {
-  searchParams: Promise<{
-    segment?: string | string[];
-    tab?: string | string[];
-    tier?: string | string[];
-    // S31-B: set by requireTierForPage() / <FeatureGate> when a locked page
-    // redirects here — rendered as the notice above the hero.
-    feature?: string | string[];
-    from?: string | string[];
-  }>;
-}
-
-export default async function PricingPage({ searchParams }: PricingPageProps) {
-  const sp = await searchParams;
-  const initialTab = resolveInitialTab(sp ?? {});
+export default function PricingPage() {
   // Founding-50 promo sunset 2026-09-01 (Phase 3b) — the urgency banner
   // that used to live here linked to the (now deleted) /founding-50 route
   // and has been removed outright. `getFoundingPromoState()` still exists
@@ -125,8 +106,11 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
       />
       <PageViewTracker event="pricing_viewed" params={{}} />
 
-      {/* S31-B — why the visitor is here, when a gate sent them. */}
-      <PricingFeatureNotice feature={sp?.feature} from={sp?.from} />
+      {/* S31-B — why the visitor is here, when a gate sent them. Client-side
+          (useSearchParams) so /pricing stays static/cacheable (S31-D). */}
+      <Suspense fallback={null}>
+        <PricingFeatureNotice />
+      </Suspense>
 
       {/* Above-the-fold hero — ONE primary CTA + text-link secondary, per
           CRO §06. Height reserved with min-h to keep CLS < 0.02 across the
@@ -209,7 +193,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         aria-label="Pricing matrix"
         className="mx-auto max-w-7xl px-6 py-8 sm:py-12 scroll-mt-24"
       >
-        <PricingSegmentSwitch initialSegment={initialTab} />
+        <PricingSegmentSwitch />
         {/* G11 §4g anchor line (T0249): prices the Money Finder scan against
             what a grants consultant charges. Sits under the ladder, outside
             <PricingMatrix /> so the matrix component stays untouched. */}
