@@ -15,6 +15,7 @@ import { FeatureGate } from "@/components/access/FeatureGate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import { AddNoteForm } from "./add-note-form";
 
 export const metadata: Metadata = {
   title: "Engagement Notes — Advisor Workspace",
@@ -138,33 +139,9 @@ export default async function AdvisorNotesPage({ searchParams }: PageProps) {
                   Notes stay private to you. Markdown-lite: use blank lines for
                   paragraphs and <code>**bold**</code> for emphasis.
                 </p>
-                <form
-                  action="/api/advisor/notes"
-                  method="post"
-                  className="mt-4 space-y-3"
-                >
-                  <input type="hidden" name="client_id" value={clientId} />
-                  <label className="block">
-                    <span className="text-xs uppercase tracking-wide text-slate-500">
-                      Note body
-                    </span>
-                    <textarea
-                      name="body"
-                      required
-                      rows={5}
-                      className="mt-1 block w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-                      placeholder="What did you discuss? Next actions? Blockers?"
-                    />
-                  </label>
-                  <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      className="inline-flex items-center gap-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
-                    >
-                      Save note
-                    </button>
-                  </div>
-                </form>
+                {/* S31-B: JSON client form — the native form-encoded POST
+                    hit a JSON-only route and always 400'd. */}
+                <AddNoteForm clientId={clientId} />
               </section>
 
               <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
