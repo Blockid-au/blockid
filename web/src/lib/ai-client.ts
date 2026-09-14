@@ -1216,7 +1216,7 @@ async function callClaudeProxy(opts: AICallOptions): Promise<AICallResult> {
       throw new Error("Empty response from proxy");
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
-      console.warn(`[ai-client] proxy key ${key.slice(0, 12)}... failed: ${lastErr.message}`);
+      console.warn(`[ai-client] proxy key len=${key.length} prefix=${key.slice(0, 3)}… failed: ${lastErr.message}`);
     }
   }
   throw lastErr ?? new Error("All proxy keys failed");
@@ -1798,22 +1798,32 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
 
   maybeKickProviderProbe();
 
-  // L3 + L4 + L5: global slot (priority lane), then agent slot, then the
-  // per-user fairness slot. Every queue is bounded; overflow throws
-  // AICapacityError so routes answer 503 + Retry-After, never a 500.
+  // L5 → L3 → L4: the per-user fairness slot FIRST, then the global slot
+  // (priority lane), then the agent slot. Every queue is bounded; overflow
+  // throws AICapacityError so routes answer 503 + Retry-After, never a 500.
+  //
+  // S31 post-ship review (2026-09-14): the user slot used to be taken
+  // last, so a founder past AI_MAX_PER_USER sat in the user queue for up
+  // to AI_QUEUE_WAIT_MS *while holding a global slot* — 15 users × 6 queued
+  // could pin 90 of the 120 global slots on calls that were not running.
+  // Taking the user slot before the global one keeps every held global
+  // slot a running (or agent-queued) call.
   const priority = opts.priority ?? "user";
   const agentId = opts.agentId ?? "default";
   const userId = opts.userId;
-  await acquireGlobal(priority);
-  let agentHeld = false;
   let userHeld = false;
+  if (userId) { await acquireUser(userId); userHeld = true; }
+  try {
+    await acquireGlobal(priority);
+  } catch (err) {
+    if (userHeld && userId) releaseUser(userId);
+    throw err;
+  }
   try {
     await acquireAgent(agentId);
-    agentHeld = true;
-    if (userId) { await acquireUser(userId); userHeld = true; }
   } catch (err) {
-    if (agentHeld) releaseAgent(agentId);
     releaseGlobal();
+    if (userHeld && userId) releaseUser(userId);
     throw err;
   }
 
