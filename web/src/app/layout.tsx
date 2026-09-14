@@ -210,8 +210,13 @@ export default async function RootLayout({
         <Providers>
           {/* Cross-tab SSO sync — Master Upgrade Plan §8.9 stage 2.
               Broadcasts sign-in/out on the `bid-auth` BroadcastChannel
-              and calls router.refresh() on peer tab events. */}
-          <AuthSyncClient />
+              and calls router.refresh() on peer tab events. Reads
+              useSearchParams() (the `?logged_in=true` redirect), so on a
+              static page it must sit under Suspense (S31-D) — it renders
+              null, so the boundary changes nothing visible. */}
+          <Suspense fallback={null}>
+            <AuthSyncClient />
+          </Suspense>
           {/* `?ref=<CODE>` deep-link capture — writes blockid_via cookie
               before any signup flow reads it. Task M1 (v3 reseller upgrade). */}
           <ResellerRefCapture />
