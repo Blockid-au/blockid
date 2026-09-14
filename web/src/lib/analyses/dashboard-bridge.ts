@@ -16,19 +16,24 @@
 
 import { computeSVI, type SVIAnalysis } from "@/lib/svi-analysis";
 
-/** The narrow slice of a Supabase client this module touches. */
+/**
+ * The narrow slice of a Supabase client this module touches. Kept
+ * structurally loose (`from` only) so passing the real, schema-generic
+ * client does not send tsc into a "type instantiation is excessively deep"
+ * comparison; the chain is typed privately below.
+ */
 export interface BridgeClient {
-  from(table: string): {
-    select(columns: string, opts?: { count?: "exact"; head?: boolean }): {
-      eq(col: string, val: unknown): {
-        order(col: string, opts: { ascending: boolean }): {
-          limit(n: number): {
-            maybeSingle(): PromiseLike<{ data: unknown; error: unknown }>;
-          } & PromiseLike<{ data: unknown; error: unknown }>;
-        };
-      } & PromiseLike<{ data: unknown; error: unknown; count?: number | null }>;
-    };
-  };
+  from(table: string): unknown;
+}
+
+type Reply = { data: unknown; error: unknown; count?: number | null };
+interface Chain {
+  select(columns: string, opts?: { count?: "exact"; head?: boolean }): Chain;
+  eq(col: string, val: unknown): Chain;
+  order(col: string, opts: { ascending: boolean }): Chain;
+  limit(n: number): Chain;
+  maybeSingle(): PromiseLike<Reply>;
+  then: PromiseLike<Reply>["then"];
 }
 
 export interface BridgedAnalysis {
@@ -79,8 +84,7 @@ export async function latestIntakeAnalysisForUser(
 ): Promise<BridgedAnalysis | null> {
   if (!supabase || !userId) return null;
   try {
-    const { data } = await supabase
-      .from("analyses")
+    const { data } = await (supabase.from("analyses") as Chain)
       .select("id, intake, svi_total, input_text, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
@@ -100,8 +104,7 @@ export async function countIntakeAnalysesForUser(
 ): Promise<number> {
   if (!supabase || !userId) return 0;
   try {
-    const { count } = await supabase
-      .from("analyses")
+    const { count } = await (supabase.from("analyses") as Chain)
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId);
     return typeof count === "number" ? count : 0;
