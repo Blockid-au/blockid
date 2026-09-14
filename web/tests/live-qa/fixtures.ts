@@ -103,13 +103,15 @@ export const GROWTH_GATED_PAGES = new Set<string>([
  * `/settings` does not exist (404) — Account settings live at /workspace/settings.
  * QA audit 2026-09-14 F2: `/`, `/showcase/atlassian/svi-report`, `/tools/funding-plan`
  * and `/tools/cap-table` joined so a React #418 (SVG `<title>` with array
- * children SSRs empty) is caught as a `pageerror` on the next sweep.
+ * children SSRs empty) is caught as a `pageerror` on the next sweep; `/analyze`
+ * (F4, now inside MarketingShell) is swept for the same reason.
  */
 export const SWEEP_EXTRA_PAGES = [
   "/",
   "/showcase/atlassian/svi-report",
   "/tools/funding-plan",
   "/tools/cap-table",
+  "/analyze",
   "/funding",
   "/funding/grants",
   "/pricing",
