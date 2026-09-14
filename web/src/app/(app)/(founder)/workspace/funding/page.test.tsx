@@ -359,7 +359,7 @@ describe("/workspace/funding (T0244)", { timeout: 20_000 }, () => {
     expect(starter).toContain("data-investors");
     expect(starter).toContain("data-growth-locked");
     expect(starter).toContain("Investor matching is a Growth feature. Upgrade to see the investors whose thesis fits your startup.");
-    expect(starter).toContain('href="/pricing"');
+    expect(starter).toContain('href="/pricing?feature=report.premium&amp;from=/workspace/funding"');
     expect(investorsMock).not.toHaveBeenCalled();
 
     growthMock.mockResolvedValue(true);

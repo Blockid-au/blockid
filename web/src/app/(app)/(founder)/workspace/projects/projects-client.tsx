@@ -358,7 +358,7 @@ export function ProjectsClient({
           </a>
         ) : (
           <a
-            href="/workspace/billing"
+            href="/pricing?feature=profile.multi&from=/workspace/projects"
             className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-100 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 focus-visible:ring-offset-2"
           >
             <ArrowUpRight strokeWidth={1.75} className="h-4 w-4" />
@@ -647,7 +647,7 @@ export function ProjectsClient({
             </p>
           </div>
           <a
-            href="/workspace/billing"
+            href="/pricing?feature=profile.multi&from=/workspace/projects"
             className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700 transition-colors"
           >
             Upgrade

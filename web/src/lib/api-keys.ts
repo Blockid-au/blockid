@@ -85,7 +85,9 @@ export async function createApiKey(
 ): Promise<{ key: string; id: string } | { error: string }> {
   const allowed = await canCreateApiKeys({ id: userId, plan });
   if (!allowed) {
-    return { error: "API keys require a Growth plan or above." };
+    // S31-B: api.access sits on the Enterprise rung (tier-ladder.ts); this
+    // said "Growth", which a Growth subscriber would have paid for in vain.
+    return { error: "API keys are available on Enterprise plans — contact sales." };
   }
 
   const supabase = getSupabaseAdmin();

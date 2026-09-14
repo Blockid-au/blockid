@@ -91,20 +91,20 @@ export function ApiKeysClient({
             </div>
             <div>
               <h2 className="text-base font-semibold text-ink-800">
-                API Access Requires Growth Plan
+                API access is on Enterprise plans
               </h2>
               <p className="text-sm text-ink-600">
-                Upgrade to the Growth plan or above to generate API keys and
-                integrate BlockID into your workflow.
+                API keys come with the Enterprise plan. Talk to us to set one
+                up and integrate BlockID into your workflow.
               </p>
             </div>
           </div>
           <Link
-            href="/workspace/billing"
+            href="/pricing?feature=api.access&from=/workspace/api-keys"
             className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
           >
             <Sparkles strokeWidth={1.75} className="h-4 w-4" />
-            Upgrade Now
+            Contact sales
           </Link>
         </section>
       )}

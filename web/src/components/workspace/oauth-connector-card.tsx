@@ -148,9 +148,9 @@ export function OAuthConnectorCard(props: OAuthConnectorCardProps): React.ReactE
             <button
               disabled
               className="px-3 py-1.5 text-sm rounded-md border border-ink-300 dark:border-ink-700 text-muted dark:text-ink-600 cursor-not-allowed"
-              title="OAuth client not configured on this server"
+              title="This connection is not enabled on this deployment yet."
             >
-              Disabled - awaiting configuration
+              Not available yet
             </button>
           ) : state.connected ? (
             <>

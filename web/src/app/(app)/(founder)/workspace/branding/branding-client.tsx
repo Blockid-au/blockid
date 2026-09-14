@@ -97,7 +97,7 @@ export function BrandingClient({ isPro }: BrandingClientProps) {
           the Growth plan and above.
         </p>
         <Link
-          href="/pricing"
+          href="/pricing?feature=pdf_branding&from=/workspace/branding"
           className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 transition-colors"
         >
           <Sparkles className="h-4 w-4" />
