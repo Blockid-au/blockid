@@ -87,6 +87,7 @@ export const KIND_META: Record<string, { icon: typeof Bell; color: string; label
   webhook_disabled: { icon: Webhook, color: "text-red-600", label: "Webhook paused" },
   investor_viewed: { icon: Eye, color: "text-emerald-600", label: "Investor viewed your data room" },
   chain_drift: { icon: Link2, color: "text-amber-600", label: "On-chain register drift" },
+  ai_capacity: { icon: Bell, color: "text-red-600", label: "AI capacity" },
 };
 
 function timeAgo(iso: string): string {
