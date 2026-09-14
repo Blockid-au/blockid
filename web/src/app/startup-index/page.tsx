@@ -22,7 +22,9 @@ export const metadata: Metadata = pageMetadata({
   path: "/startup-index",
 });
 
-export const dynamic = "force-dynamic";
+// S31-D: ISR 300 s (the `force-dynamic` that used to sit above it made
+// this `revalidate` inert — capacity audit §3). Data reads go through the
+// 300 s `unstable_cache` wrappers, so the document and the data age together.
 export const revalidate = 300;
 
 // ─── Helpers ────────────────────────────────────────────────────────────

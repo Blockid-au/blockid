@@ -86,7 +86,9 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export const dynamic = "force-dynamic";
+// S31-D: static + ISR (1 h) — showcase content is code + seed data, so
+// the edge can cache it (lib/security/public-cacheable-routes.ts).
+export const revalidate = 3600;
 
 // process.cwd() is either the repo root or the web workspace depending on
 // which server tsconfig started Next.js. Mirror the dual-candidate pattern

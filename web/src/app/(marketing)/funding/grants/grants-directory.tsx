@@ -1,8 +1,18 @@
 /**
  * /funding/grants — free, indexable directory of Australian startup grants
  * (T0241, G11 S2). Server-rendered from `au_grants`; filters by state /
- * funding type / stage come from `searchParams` and are plain links, so the
- * page has no client state.
+ * funding type / stage are plain links, so the page has no client state.
+ *
+ * S31-D (2026-09-13): this file is the shared renderer behind three routes
+ * so the two indexable shapes can be static + edge-cached without touching
+ * the public URLs (proxy rewrite, lib/funding/grants-route.ts):
+ *
+ *   /funding/grants                  → ./page.tsx               static, ISR 1 h
+ *   /funding/grants?state=NSW        → ./state/[state]/page.tsx  static per state (generateStaticParams)
+ *   /funding/grants?type=…&…         → ./view/page.tsx           dynamic (reads searchParams)
+ *
+ * `GrantsDirectory({ filters })` + `grantsMetadata(filters)` take the parsed
+ * filters; nothing here touches `searchParams`, `headers()` or `cookies()`.
  *
  * Positioning (plan §5a): business.gov.au says "don't pay for government
  * grant information", so the list and every official link are free. The
@@ -10,7 +20,9 @@
  * T0242). Counts and A$ totals are computed from the rows — never typed.
  *
  * SEO (S8-A): primary keyword "startup grants australia"; the state-only
- * filter view targets "<state> startup grants" (see `stateOnlyFilter`).
+ * view (`?state=NSW`) is its own landing page with its own title / H1 /
+ * canonical (lib/funding/seo.ts); every other filter combination
+ * canonicalises to the base page.
  *
  * S10-A (perf audit finding 4): rows are grouped by state — federal first
  * (six compact rows + a `<details>` tail), each state collapsed into its
@@ -44,10 +56,9 @@ import {
   grantStats,
   grantUrl,
   latestVerifiedAt,
-  parseGrantFilters,
   stageLabel,
   stateLabel,
-  type SearchParamsLike,
+  type GrantFilters,
 } from "@/lib/funding/directory";
 import { grantGroupExpanded, groupGrantsByState } from "@/lib/funding/index-groups";
 import {
@@ -63,12 +74,11 @@ import {
 } from "@/lib/funding/seo";
 import { pageMetadata } from "@/lib/seo/page-meta";
 
-export const revalidate = 3600;
-
 const PATH = "/funding/grants";
 
-export async function generateMetadata({ searchParams }: { searchParams: Promise<SearchParamsLike> }): Promise<Metadata> {
-  const filters = parseGrantFilters(await searchParams);
+export const EMPTY_GRANT_FILTERS: GrantFilters = { state: null, type: null, stage: null, status: null };
+
+export function grantsMetadata(filters: GrantFilters): Metadata {
   const state = stateOnlyFilter(filters);
   if (state) {
     const seo = grantsStateSeo(state);
@@ -77,13 +87,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   return pageMetadata({ title: GRANTS_TITLE, description: GRANTS_DESCRIPTION, path: PATH });
 }
 
-export default async function GrantsDirectoryPage({
-  searchParams,
-}: {
-  searchParams: Promise<SearchParamsLike>;
-}) {
-  const sp = await searchParams;
-  const filters = parseGrantFilters(sp);
+export async function GrantsDirectory({ filters }: { filters: GrantFilters }) {
   const stateOnly = stateOnlyFilter(filters);
   const stateSeo = stateOnly ? grantsStateSeo(stateOnly) : null;
   const pagePath = stateOnly ? grantsStatePath(stateOnly) : PATH;

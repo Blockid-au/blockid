@@ -21,10 +21,6 @@ import {
 } from "@/components/marketing/homepage/run-comparison";
 import { runById } from "@/components/marketing/homepage/sample-runs";
 import { heroLine } from "@/lib/marketing/hero-variants";
-import {
-  readSignedInHint,
-  SIGNED_IN_LANDING_HREF,
-} from "@/lib/supabase/session-hint";
 import { pageMetadata } from "@/lib/seo/page-meta";
 
 // Homepage v5 (2026-09-08) — the page now looks like the thing the product
@@ -116,8 +112,11 @@ export const metadata = pageMetadata({
   viPath: "/vi",
 });
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+// S31-D: static + ISR. The page reads no request state (the old
+// session-hint call read cookies and then discarded the result, which
+// alone forced a per-request render); `version.json` is a build artefact.
+// 300 s matches the edge TTL in lib/security/public-cacheable-routes.ts.
+export const revalidate = 300;
 
 /**
  * Reads the current build's version string from
@@ -140,13 +139,8 @@ function readVersionString(): string | null {
   return cachedVersion;
 }
 
-export default async function HomePage() {
+export default function HomePage() {
   const version = readVersionString();
-  const isSignedIn = await readSignedInHint();
-
-  // Redirect signed-in users via NavV2 hint (used for dashboard link)
-  void isSignedIn;
-  void SIGNED_IN_LANDING_HREF;
 
   const entityLine = ["PPL Food PTY LTD", version]
     .filter((s): s is string => typeof s === "string" && s.length > 0)
