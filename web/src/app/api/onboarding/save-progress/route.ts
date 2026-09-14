@@ -36,9 +36,11 @@ async function POST_handler(request: Request) {
     );
   }
 
-  const { step, state } = (body as {
+  const { step, state, completed } = (body as {
     step?: number;
     state?: Record<string, unknown>;
+    /** S31-B: the wizard's terminal actions set this (or firstStartupCreatedAt). */
+    completed?: boolean;
   }) ?? {};
 
   if (typeof step !== "number" || Number.isNaN(step)) {
@@ -60,12 +62,23 @@ async function POST_handler(request: Request) {
     return NextResponse.json({ ok: true, skipped: true });
   }
 
+  // S31-B (2026-09-13): the 6-step wizard saved progress but never set
+  // app_users.onboarding_completed — only the older 3-step WelcomeWizard
+  // (POST /api/onboarding/complete) did. Every Google / magic-link founder
+  // therefore finished this wizard and was immediately bounced into the
+  // second one by the dashboard's `!onboardingCompleted` check. The two
+  // terminal actions (step 6 create/skip → firstStartupCreatedAt; step 4
+  // "continue without card" → completed:true) now stamp the flag.
+  const finished = isWizardFinished(step, state, completed);
   const payload = {
     onboarding_state: {
       step,
       state,
       updated_at: new Date().toISOString(),
     },
+    ...(finished
+      ? { onboarding_completed: true, onboarding_completed_at: new Date().toISOString() }
+      : {}),
   };
 
   try {
@@ -106,4 +119,14 @@ async function POST_handler(request: Request) {
 }
 
 // S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+/** Exported for the colocated test. Pure. */
+export function isWizardFinished(
+  step: number,
+  state: Record<string, unknown>,
+  completed: boolean | undefined,
+): boolean {
+  if (completed === true) return true;
+  return step >= 6 && typeof state.firstStartupCreatedAt === "string" && state.firstStartupCreatedAt.length > 0;
+}
+
 export const POST = apiRoute({ route: "api/onboarding/save-progress/route.ts", method: "POST" }, POST_handler);

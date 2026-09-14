@@ -480,13 +480,16 @@ function EmailPasswordForm({
       // browser session. Carry the real number through so the destination can
       // say what actually happened instead of inventing a reassurance.
       const claimedCount = Number(data.claimed?.analyses ?? 0);
-      // New registrations go to Evidence Vault for guided onboarding — unless
-      // work was just claimed, in which case the honest landing is the list of
-      // analyses that were claimed.
+      // New registrations go to the dashboard (which runs the welcome wizard
+      // for a fresh account) — unless work was just claimed, in which case
+      // the honest landing is the list of analyses that were claimed.
+      // S31-B: this used to land on /workspace/evidence?onboarding=true — a
+      // page the free rung's sidebar hides (minTier starter) and a param
+      // nothing read.
       const target = mode === "register" && !nextUrl
         ? (claimedCount > 0
             ? "/workspace/analyses"
-            : "/workspace/evidence?onboarding=true")
+            : "/dashboard")
         : nextUrl ?? "/";
       const sep = target.includes("?") ? "&" : "?";
       const withLogged = mode === "register" && !nextUrl

@@ -73,13 +73,17 @@ export const UPGRADE_CATALOGUE: readonly UpgradeCandidate[] = Object.freeze([
     discoveryHint: "Cap table, data room and share register",
     upgradeCTA: "Upgrade to Growth",
   },
+  // 2026-09-09 moved the data room down to Starter (migration 0131,
+  // tier-visibility.ts, plans.csv). S31-B (2026-09-13) caught this row still
+  // selling it as a A$40 Growth step on the dashboard's "Recommended next
+  // step" tile.
   {
     feature: "data_room.access",
-    minTier: "growth",
+    minTier: "starter",
     bestAtPhase: 10,
-    monthlyDeltaAud: 40,
+    monthlyDeltaAud: 29,
     discoveryHint: "Open your data room to investors",
-    upgradeCTA: "Upgrade to Growth",
+    upgradeCTA: "Upgrade to Starter",
   },
   {
     feature: "term_sheet.ai",

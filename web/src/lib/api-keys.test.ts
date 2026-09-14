@@ -312,7 +312,7 @@ describe("api-keys — createApiKey", () => {
     canMock.mockResolvedValue(false);
     const { createApiKey } = await import("./api-keys");
     const res = await createApiKey("u-1", "free");
-    expect(res).toEqual({ error: "API keys require a Growth plan or above." });
+    expect(res).toEqual({ error: "API keys are available on Enterprise plans — contact sales." });
     expect(state.calls).toHaveLength(0);
   });
 

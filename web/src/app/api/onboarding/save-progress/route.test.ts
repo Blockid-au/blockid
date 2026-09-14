@@ -30,7 +30,7 @@ vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: vi.fn(),
 }));
 
-import { POST } from "./route";
+import { POST, isWizardFinished } from "./route";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
@@ -43,6 +43,8 @@ type UpdatePayload = {
     state: Record<string, unknown>;
     updated_at: string;
   };
+  onboarding_completed?: boolean;
+  onboarding_completed_at?: string;
 };
 
 type EqReply = { data: null; error: null | { code?: string; message?: string } };
@@ -286,6 +288,45 @@ describe("POST /api/onboarding/save-progress", () => {
     expect(state.lastPayload?.onboarding_state?.step).toBe(4);
     expect(state.lastPayload?.onboarding_state?.state).toEqual({ name: "Ava" });
     expect(typeof state.lastPayload?.onboarding_state?.updated_at).toBe("string");
+  });
+
+  // S31-B (2026-09-13): the wizard's terminal actions must stamp
+  // onboarding_completed, or the dashboard bounces the founder into the
+  // second (3-step) wizard. Mid-wizard saves must NOT.
+  it("S31-B: a mid-wizard save never stamps onboarding_completed", async () => {
+    getCurrentUserMock.mockResolvedValue(makeUser());
+    const state = makeState();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase(state) as any);
+    await POST(makeRequest({ step: 3, state: { tier: "founder_growth" } }));
+    expect(state.lastPayload?.onboarding_completed).toBeUndefined();
+  });
+
+  it("S31-B: step 6 with firstStartupCreatedAt (create or skip) stamps onboarding_completed", async () => {
+    getCurrentUserMock.mockResolvedValue(makeUser());
+    const state = makeState();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase(state) as any);
+    await POST(makeRequest({ step: 6, state: { firstStartupCreatedAt: "2026-09-13T00:00:00.000Z" } }));
+    expect(state.lastPayload?.onboarding_completed).toBe(true);
+    expect(typeof state.lastPayload?.onboarding_completed_at).toBe("string");
+  });
+
+  it("S31-B: 'continue without a card' (completed:true at step 4) stamps onboarding_completed", async () => {
+    getCurrentUserMock.mockResolvedValue(makeUser());
+    const state = makeState();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase(state) as any);
+    await POST(makeRequest({ step: 4, state: {}, completed: true }));
+    expect(state.lastPayload?.onboarding_completed).toBe(true);
+  });
+
+  it("isWizardFinished is pure and strict about the terminal shapes", () => {
+    expect(isWizardFinished(6, { firstStartupCreatedAt: "2026-09-13T00:00:00.000Z" }, undefined)).toBe(true);
+    expect(isWizardFinished(6, { firstStartupCreatedAt: "" }, undefined)).toBe(false);
+    expect(isWizardFinished(5, { firstStartupCreatedAt: "2026-09-13T00:00:00.000Z" }, undefined)).toBe(false);
+    expect(isWizardFinished(2, {}, true)).toBe(true);
+    expect(isWizardFinished(2, {}, false)).toBe(false);
   });
 
   it("forwards `step` verbatim (no coercion, no clamp)", async () => {

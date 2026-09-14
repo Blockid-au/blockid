@@ -10,6 +10,7 @@ import { getPlatformConfig } from "@/lib/platform-config";
 import { ADDON_PRICE_IDS } from "@/lib/stripe";
 import { isWholesaleProvisionedFounder } from "@/lib/stripe/portal-gate";
 import { BillingClient } from "./billing-client";
+import { billingPlansFor } from "./billing-plans";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
@@ -40,7 +41,12 @@ export default async function BillingPage() {
     // /api/stripe/portal route would otherwise return.
     isWholesaleProvisionedFounder(user.id),
   ]);
-  const plans = buildPlansFromConfig(cfg);
+  // S31-B (2026-09-13): the grid reads the v2 ladder (Free / Starter A$29 /
+  // Growth A$69) from plans-v2. The legacy catalogue is passed only so a
+  // grandfathered `growth` / `founding50` subscriber's Current Plan card can
+  // still name the plan they are on.
+  const plans = billingPlansFor(user.plan);
+  const grandfatheredPlans = buildPlansFromConfig(cfg);
 
   if (sb) {
     const { data: row } = await sb
@@ -75,6 +81,7 @@ export default async function BillingPage() {
             hasStripeCustomer={hasStripeCustomer}
             isWholesaleProvisioned={isWholesaleProvisioned}
             plans={plans}
+            grandfatheredPlans={grandfatheredPlans}
             shareMgmtAddonPriceIds={{
               monthly: ADDON_PRICE_IDS.share_management_monthly,
               annual: ADDON_PRICE_IDS.share_management_annual,

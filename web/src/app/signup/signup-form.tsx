@@ -474,7 +474,7 @@ function InnerForm(props: SignupFormProps) {
         </p>
       ) : null}
       <p className="mt-1.5 text-[11px] text-slate-600 leading-relaxed">
-        No indefinite free tier — every account starts with a {selectedPlan?.trialDays ?? TRIAL_DAYS}-day trial.
+        Paid plans start with a {selectedPlan?.trialDays ?? TRIAL_DAYS}-day trial. Prefer no card? A free account (no expiry) is available from the sign-in page.
       </p>
     </form>
   );

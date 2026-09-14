@@ -312,7 +312,7 @@ function LockedCard({ title, body, icon }: { title: string; body: string; icon: 
         {icon} {title} <Lock className="h-3.5 w-3.5 text-tertiary" aria-hidden />
       </p>
       <p className="mt-1 text-sm text-secondary">{body}</p>
-      <Link href="/pricing" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-action">
+      <Link href="/pricing?feature=report.premium&from=/workspace/funding" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-action">
         See Growth <ArrowRight className="h-3.5 w-3.5" aria-hidden />
       </Link>
     </div>

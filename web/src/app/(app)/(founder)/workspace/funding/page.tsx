@@ -276,7 +276,7 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
               <span className="inline-flex items-center gap-2 text-primary">
                 <ShieldCheck className="h-4 w-4 text-bull" aria-hidden /> included in <strong>Starter A$29/mo</strong> with weekly Money Radar alerts
               </span>
-              <Link href="/pricing" className="ml-auto font-semibold text-action">
+              <Link href="/pricing?feature=grant_finder&from=/workspace/funding" className="ml-auto font-semibold text-action">
                 Compare plans →
               </Link>
             </div>

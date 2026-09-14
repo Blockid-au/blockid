@@ -9,6 +9,7 @@
 // updates the completion percentage bar at the top.
 
 import * as React from "react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -246,7 +247,14 @@ export function ActionPlan({ sviRunId, initialPlan, initialTasks, className }: P
 
         {!loading && !error && tasks.length === 0 && (
           <div className="rounded-xl border border-surface-200 bg-surface-50 p-4 text-sm text-ink-500 text-center">
-            No tasks generated yet. Re-run your SVI analysis to unlock the plan.
+            <p>No tasks generated yet. Re-run your SVI analysis to unlock the plan.</p>
+            {/* S31-B: an empty state always offers the next step. */}
+            <Link
+              href="/analyze"
+              className="mt-3 inline-flex items-center rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+            >
+              Re-run my SVI analysis
+            </Link>
           </div>
         )}
 

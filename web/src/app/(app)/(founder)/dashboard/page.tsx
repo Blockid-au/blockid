@@ -58,6 +58,10 @@ import { computePhaseGate, topBlockers, type SviDimension } from "@/lib/growth/p
 import { isGrowthPhaseId } from "@/lib/growth/phase-taxonomy";
 import { NAV_PHASE_NAMES, resolveFounderNavPhase } from "@/lib/nav/founder-phase";
 import { getCompletedOnboardingSteps } from "@/lib/onboarding-steps";
+import {
+  countIntakeAnalysesForUser,
+  latestIntakeAnalysisForUser,
+} from "@/lib/analyses/dashboard-bridge";
 
 export const dynamic = "force-dynamic";
 
@@ -116,7 +120,7 @@ function computeNextAction(sviScore: number | null): {
     return {
       text: "Describe your startup idea to get your free SVI score. It takes less than 60 seconds and helps you understand where you stand.",
       label: "Get My SVI Score",
-      url: "/",
+      url: "/analyze",
       phase: "start",
     };
   }
@@ -125,7 +129,7 @@ function computeNextAction(sviScore: number | null): {
     return {
       text: "Your idea needs validation. Refine your problem statement, define your target customer, and research your market size. Run a deeper analysis with more detail to boost your score.",
       label: "Refine Your Idea",
-      url: "/",
+      url: "/analyze",
       phase: "idea",
     };
   }
@@ -194,7 +198,7 @@ function actionToUrl(title: string): string {
 function fallbackDirectionSteps(stage: number): DirectionStep[] {
   if (stage <= 0) {
     return [
-      { label: "Describe your idea in detail", detail: "Add target customer, problem, and market — the SVI engine needs this to score Validation.", impact: "+12 SVI", url: "/", priority: "P0" },
+      { label: "Describe your idea in detail", detail: "Add target customer, problem, and market — the SVI engine needs this to score Validation.", impact: "+12 SVI", url: "/analyze", priority: "P0" },
       { label: "Capture validation evidence", detail: "Upload customer interviews, waitlist signups, or survey results to the Evidence Vault.", impact: "+10 SVI", url: "/workspace/evidence", priority: "P1" },
       { label: "Map your market (TAM / SAM / SOM)", detail: "Quantify the opportunity so investors can size the prize.", impact: "+8 SVI", url: "/workspace/evaluation", priority: "P2" },
     ];
@@ -296,7 +300,7 @@ function QuickActionsList({ hasAnalysis, phase }: { hasAnalysis: boolean; phase:
   // All actions ordered by startup development roadmap
   const allActions: { href: string; icon: LucideIcon; label: string; desc: string; minPhase: number; badge?: string }[] = [
     // Phase 0: Idea — always available
-    { href: "/", icon: Sparkles, label: hasAnalysis ? "Re-analyze Idea" : "Get SVI Score", desc: hasAnalysis ? "Re-score with more detail" : "Free AI analysis in 60s", minPhase: 0 },
+    { href: "/analyze", icon: Sparkles, label: hasAnalysis ? "Re-analyze Idea" : "Get SVI Score", desc: hasAnalysis ? "Re-score with more detail" : "Free AI analysis in 60s", minPhase: 0 },
     { href: "/workspace/reports", icon: FileText, label: "View Reports", desc: "Your analysis history", minPhase: 0 },
     // Phase 1: Validation
     { href: "/workspace/evidence", icon: Upload, label: "Add Evidence", desc: "LinkedIn, team bios, market research", minPhase: 0, badge: phase < 2 ? "Boost Score" : undefined },
@@ -420,7 +424,14 @@ export default async function DashboardPage({
       .from("svi_analyses")
       .select("id", { count: "exact", head: true })
       .eq("email", user.email);
-    if (!priorSviCount || priorSviCount === 0) {
+    // S31-B: a run made through /analyze (the dashboard's own CTA) lands in
+    // `analyses`, not `svi_analyses`; count it too, or the founder who just
+    // scored their startup is bounced back into the welcome wizard.
+    const priorIntakeCount =
+      !priorSviCount || priorSviCount === 0
+        ? await countIntakeAnalysesForUser(supabase, user.id)
+        : 0;
+    if ((!priorSviCount || priorSviCount === 0) && priorIntakeCount === 0) {
       redirect("/dashboard/onboarding");
     }
   }
@@ -492,6 +503,17 @@ export default async function DashboardPage({
       analysis = latestAnalysis.analysis_json as SVIAnalysis;
       latestAnalysisId = latestAnalysis.id as string;
       rawInput = (latestAnalysis.raw_input as string | null) ?? undefined;
+    } else {
+      // S31-B read-side bridge — the latest /analyze run (`analyses` table)
+      // for the startup's owner, rebuilt with the same computeSVI the screen
+      // used. `latestAnalysisId` stays unset: it keys report_sections on
+      // svi_analyses ids, a different id space.
+      const bridged = await latestIntakeAnalysisForUser(supabase, ownerUserId ?? user.id);
+      if (bridged) {
+        analysis = bridged.analysis;
+        rawInput = bridged.rawInput;
+        sviHistory = [{ total_svi: bridged.totalSVI, created_at: bridged.createdAt }];
+      }
     }
 
     // SVI score history
@@ -507,6 +529,8 @@ export default async function DashboardPage({
       .limit(50);
 
     if (historyData && historyData.length > 0) {
+      // svi_analyses history wins; the bridged single point above is only
+      // kept when there is none.
       sviHistory = historyData.map((h) => ({
         total_svi: h.total_svi as number,
         created_at: h.created_at as string,
@@ -1060,8 +1084,14 @@ export default async function DashboardPage({
                   <FileText className="h-6 w-6 mx-auto text-muted/40 mb-2" />
                   <p className="text-sm text-muted">No reports yet.</p>
                   <p className="text-xs text-muted/60 mt-1">
-                    Run your first SVI analysis to generate a report.
+                    Run an SVI analysis to generate your first report.
                   </p>
+                  <Link
+                    href={sviScore == null ? "/analyze" : "/workspace/analyses"}
+                    className="mt-3 inline-flex items-center gap-1 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-white hover:bg-action/90"
+                  >
+                    {sviScore == null ? "Score my startup" : "Open my analyses"}
+                  </Link>
                 </div>
               ) : (
                 <div className="space-y-0">

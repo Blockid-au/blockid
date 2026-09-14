@@ -121,20 +121,22 @@ export default async function AdvisorWorkspacePage() {
             )}
           </section>
 
-          {/* Weekly Digest opt-in (placeholder toggle) */}
+          {/* S31-B: the advisor digest is not built — say so, no dead toggle. */}
           <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-ink-900">Weekly digest</h2>
                 <p className="text-sm text-ink-500 mt-1">
                   A single Monday email summarising every client&apos;s SVI move,
-                  new evidence and cap-table changes.
+                  new evidence and cap-table changes is not available yet.
                 </p>
               </div>
-              <label className="inline-flex items-center gap-2 cursor-not-allowed opacity-60">
-                <input type="checkbox" disabled className="h-4 w-4" />
-                <span className="text-sm text-ink-500">Opt in (coming soon)</span>
-              </label>
+              <Link
+                href="/workspace/weekly-digest"
+                className="shrink-0 text-sm font-medium text-brand-600 hover:underline underline-offset-4"
+              >
+                Register interest →
+              </Link>
             </div>
           </section>
         </div>

@@ -4,7 +4,7 @@
 // and links to the placeholder form target.
 
 import type { Metadata } from "next";
-import Link from "next/link";
+import { NotAvailableYet } from "@/components/workspace/not-available-yet";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
@@ -64,37 +64,23 @@ export default async function NewListingPage() {
             scoring — the number you see on your listing is exactly what your
             workspace shows.
           </p>
-          <p>
-            The full submission form is on the way. Once it&apos;s wired up
-            you&apos;ll capture the required fields on this page and the
-            ticker will land in your workspace within seconds.
-          </p>
         </section>
 
-        <section className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 p-6 dark:border-slate-700 dark:bg-slate-900/40">
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-            Coming soon
-          </h2>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-            The submission form ships in the next scaffold. Meanwhile, keep
-            your SVI report up to date so the moment you publish a listing,
-            the page has a live grade ready to render.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/workspace/evaluation"
-              className="inline-flex h-10 items-center rounded-full bg-cyan-500 px-4 text-sm font-semibold text-slate-950 transition-colors hover:bg-cyan-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2"
-            >
-              Refresh my SVI
-            </Link>
-            <Link
-              href="/startup-index"
-              className="inline-flex h-10 items-center rounded-full border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-            >
-              Browse the index
-            </Link>
-          </div>
-        </section>
+        {/* S31-B: honest card — the form is not built; interest is recorded. */}
+        <div className="mt-4 -mx-6">
+          <NotAvailableYet
+            feature="listing_submission_form"
+            title="Submit a listing"
+            userEmail={user.email}
+            reason="The submission form is not built yet, so a ticker cannot be reserved from this page today. Your SVI grade is what the listing will show, so keeping it current is the useful preparation; Listing Readiness checks the rest."
+            alternatives={[
+              { href: "/workspace/listing-readiness", label: "Listing Readiness checklist" },
+              { href: "/workspace/evaluation", label: "Refresh my SVI" },
+              { href: "/startup-index", label: "Browse the AU Startup Index" },
+            ]}
+            backHref="/workspace"
+          />
+        </div>
       </div>
     </WorkspaceLayout>
   );

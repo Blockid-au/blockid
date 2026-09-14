@@ -1339,6 +1339,13 @@ function HistoryTab({
           Your analysis timeline will appear here as you run SVI analyses.
           Each analysis is saved and can be revisited.
         </p>
+        {/* S31-B: an empty state always offers the next step. */}
+        <Link
+          href="/analyze"
+          className="mt-4 inline-flex items-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+        >
+          Run an SVI analysis
+        </Link>
       </div>
     );
   }

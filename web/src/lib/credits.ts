@@ -14,6 +14,7 @@
 
 import "server-only";
 import { getSupabaseAdmin } from "./supabase";
+import { FREE_SIGNUP_CREDITS } from "./credits-public";
 import { sendCreditLowAlert } from "./email";
 import {
   ceilSandboxCost,
@@ -289,7 +290,7 @@ export const PLAN_CREDITS: Record<string, { amount: number; recurring: boolean }
   // `growth` has live paying subscribers on the old 200/mo entitlement.
   // Cutting an existing customer's included allowance is a mid-term downgrade;
   // they keep 200 until they move to a v2 plan of their own accord.
-  free:           { amount: isPromoActive() ? 5 : 3, recurring: false },  // 3 = exactly one enhanced report, so a free user can taste the real output once
+  free:           { amount: isPromoActive() ? 5 : FREE_SIGNUP_CREDITS, recurring: false },  // 3 = exactly one enhanced report, so a free user can taste the real output once; the figure lives in credits-public.ts so client copy quotes the same number
   founding50:     { amount: 50,     recurring: false },  // 50 credits lifetime (expired A$5 promo; closed cohort)
   growth:         { amount: 200,    recurring: true  },  // grandfathered — live subscribers
   growth_annual:  { amount: 200,    recurring: true  },  // grandfathered — live subscribers
