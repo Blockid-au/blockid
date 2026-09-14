@@ -16,6 +16,7 @@
 import * as React from "react";
 
 import type { CancelReason } from "./exit-survey";
+import { PLANS_V2, formatAud } from "@/lib/plans-v2";
 
 type OfferKind =
   | { kind: "downgrade_50"; label: string; blurb: string; coupon: "DOWNGRADE_STARTER50" }
@@ -23,13 +24,21 @@ type OfferKind =
   | { kind: "pause_30d"; label: string; blurb: string }
   | { kind: "book_call"; label: string; blurb: string; href: string };
 
+// S31-B: the 50%-off line is arithmetic on plans-v2, never typed.
+function halfStarterLine(): string {
+  const starter = PLANS_V2.find((p) => p.id === "founder_starter");
+  if (!starter || starter.monthly_aud == null) return "Half price for 3 months.";
+  const half = Math.round(starter.monthly_aud * 50) / 100;
+  return `A$${half.toFixed(2)}/mo instead of ${formatAud(starter.monthly_aud)}.`;
+}
+
 function offerFor(reason: CancelReason): OfferKind {
   switch (reason) {
     case "too_expensive":
       return {
         kind: "downgrade_50",
         label: "Try Starter at 50% off for 3 months",
-        blurb: "A$14.50/mo instead of A$29. Keep your data and cap table — just fewer credits.",
+        blurb: `${halfStarterLine()} Keep your data and cap table — just fewer credits.`,
         coupon: "DOWNGRADE_STARTER50",
       };
     case "not_using":

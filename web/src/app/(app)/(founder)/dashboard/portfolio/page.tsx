@@ -84,7 +84,7 @@ function EmptyState() {
         Add your first startup profile to see it in the portfolio view.
       </p>
       <Link
-        href="/onboarding?step=6"
+        href="/workspace/projects?new=1"
         className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
       >
         <PlusCircle className="h-4 w-4" strokeWidth={1.75} />

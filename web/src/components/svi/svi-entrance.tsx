@@ -44,6 +44,7 @@ import type { RndReport, ClientTechAuditResult } from "@/lib/rnd-types";
 import { usePricingExperiment } from "@/lib/hooks/use-pricing-experiment";
 import { PLANS_V2, formatAud } from "@/lib/plans-v2";
 import { CREDIT_PACKS } from "@/lib/credit-packs";
+import { FREE_SIGNUP_CREDITS, freeSignupAnalyses } from "@/lib/credits-public";
 
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -980,12 +981,12 @@ export function SVIEntrance() {
                   <div className="rounded-2xl border border-brand-200 bg-gradient-to-r from-brand-50 to-blue-50 p-5">
                     <p className="text-sm font-semibold text-brand-800">Sign in to unlock your full report</p>
                     <p className="text-xs text-brand-700 mt-1 leading-relaxed">
-                      Create a free account to get <strong>5 bonus credits</strong> — enough for 10 analyses + report sections.
+                      Create a free account to get <strong>{FREE_SIGNUP_CREDITS} bonus credits</strong> — enough for {freeSignupAnalyses()} analyses, or one full report.
                       Your analysis is saved and waiting for you.
                     </p>
                     <div className="flex flex-wrap items-center gap-2 mt-3">
                       <a href={`/auth/login?next=/dashboard/svi`} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors">
-                        Sign In &amp; Get 5 Free Credits
+                        Sign In &amp; Get {FREE_SIGNUP_CREDITS} Free Credits
                       </a>
                       <span className="text-[10px] text-brand-500">Use code <strong>LAUNCH50</strong> for 50% off</span>
                     </div>
@@ -1272,10 +1273,7 @@ export function SVIEntrance() {
             <div className="mt-3 flex flex-col items-center gap-1.5">
               <p className="flex flex-wrap items-center justify-center gap-2 text-center text-sm font-semibold text-emerald-700">
                 <CheckCircle2 strokeWidth={2} className="h-4 w-4 shrink-0 text-emerald-500" />
-                5 free credits on signup &middot; No credit card required
-              </p>
-              <p className="text-xs text-muted">
-                Early Bird: A$0.50/analysis &middot; Expires July 31, 2026
+                {FREE_SIGNUP_CREDITS} free credits on signup &middot; No credit card required
               </p>
             </div>
             {/* Typing indicator hint — visible when textarea is empty */}

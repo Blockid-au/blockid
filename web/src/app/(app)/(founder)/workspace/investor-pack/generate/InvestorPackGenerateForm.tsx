@@ -174,11 +174,11 @@ export function InvestorPackGenerateForm({ initialDownloadUrl, previewHref, read
           className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4"
         >
           <p className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-1">
-            Growth or Scale plan required
+            Growth plan required
           </p>
           <p className="text-xs text-amber-700 dark:text-amber-400 mb-3">
-            The investor pack feature requires a Growth or Scale plan. Upgrade
-            to unlock one-click pack generation with share links.
+            The investor pack is included from the Growth plan. Upgrade to
+            unlock one-click pack generation with share links.
           </p>
           <a
             href={result.upgradeUrl}

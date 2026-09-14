@@ -6,6 +6,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { PLANS_V2, formatAud } from "@/lib/plans-v2";
+
+// S31-B (2026-09-13): the option label read "$99/mo" (live QA); plans-v2 owns it.
+const GROWTH_PRICE_LINE = `${formatAud(PLANS_V2.find((p) => p.id === "founder_growth")?.monthly_aud ?? null)}/mo`;
 
 interface Props {
   allowedTiers: number[];
@@ -130,7 +134,7 @@ export default function CreateStartupForm({ allowedTiers }: Props) {
             defaultValue="founder_growth"
             className="mt-1 block w-full rounded border border-surface-300 bg-white p-3 text-sm text-ink-900"
           >
-            <option value="founder_growth">Founder — Growth ($99/mo)</option>
+            <option value="founder_growth">Founder — Growth ({GROWTH_PRICE_LINE})</option>
           </select>
         </label>
 

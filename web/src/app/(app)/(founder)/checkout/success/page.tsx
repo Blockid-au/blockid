@@ -7,6 +7,7 @@ import { Footer } from "@/components/site/footer";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
 import { getPlan } from "@/lib/plans";
+import { PLANS_V2 } from "@/lib/plans-v2";
 import {
   ONBOARDING_RETURN_STEP_URL,
   shouldReturnToOnboarding,
@@ -26,8 +27,15 @@ export default async function CheckoutSuccessPage({
   searchParams: Promise<{ plan?: string; onboarding?: string }>;
 }) {
   const sp = await searchParams;
-  const planId = sp.plan ?? "founding50";
-  const plan = getPlan(planId);
+  // S31-B (2026-09-13): the id defaulted to the retired founding50 promo,
+  // and getPlan() only knew the legacy catalogue — a Starter / Growth buyer
+  // (the v2 ids every live checkout now carries) read "Thank you for
+  // joining the BlockID plan" with no feature list. plans-v2 first.
+  const planId = sp.plan ?? "";
+  const v2 = PLANS_V2.find((p) => p.id === planId);
+  const plan = v2
+    ? { id: v2.id, name: v2.name, features: v2.features }
+    : getPlan(planId);
   const user = await getCurrentUser();
 
   // Iteration-6 task #2: when the Stripe-hosted checkout was initiated from
@@ -94,7 +102,7 @@ export default async function CheckoutSuccessPage({
               </Button>
             </Link>
           )}
-          <Link href="/#svi">
+          <Link href="/analyze">
             <Button variant="secondary" size="lg">
               Get Your First SVI Score
             </Button>

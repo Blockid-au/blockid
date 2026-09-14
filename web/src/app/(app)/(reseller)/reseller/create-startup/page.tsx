@@ -10,8 +10,14 @@ import { getCurrentUser } from "@/lib/auth";
 import { scopedReseller, ResellerScopeError } from "@/lib/reseller/scope";
 import { resellerSupabase } from "@/lib/reseller/supabase";
 import CreateStartupForm from "./create-startup-form";
+import { PLANS_V2, formatAud } from "@/lib/plans-v2";
 
 export const dynamic = "force-dynamic";
+
+// S31-B (2026-09-13): read from plans-v2 — this page still said "$99/mo"
+// two weeks after Growth moved to A$69 (live QA 2026-09-13).
+const GROWTH = PLANS_V2.find((p) => p.id === "founder_growth");
+const GROWTH_PRICE_LINE = `${formatAud(GROWTH?.monthly_aud ?? null)}/mo`;
 
 export default async function ResellerCreateStartupPage() {
   const user = await getCurrentUser();
@@ -57,7 +63,7 @@ export default async function ResellerCreateStartupPage() {
         </h2>
         <p className="mt-1 text-sm text-ink-600">
           Provision a Growth-tier workspace on behalf of a founder. You (the reseller)
-          are billed <span className="font-medium">$99/mo per attributed startup</span>{" "}
+          are billed <span className="font-medium">{GROWTH_PRICE_LINE} per attributed startup</span>{" "}
           and the workspace receives <span className="font-medium">200 credits/month</span>.
           The founder must complete magic-link verification of their email before the
           workspace transitions out of provisional state.

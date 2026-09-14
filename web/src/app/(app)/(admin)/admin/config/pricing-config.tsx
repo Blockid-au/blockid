@@ -22,13 +22,13 @@ const FIELDS: Field[] = [
   // Founding plan
   { key: "founding_plan_name",    label: "Founding Plan Name",      description: 'Display name, e.g. "Founding 100"',    type: "text",    group: "founding" },
   { key: "founding_spots_total",  label: "Total Spots",             description: "Max number of founding members",        type: "number",  group: "founding" },
-  { key: "founding_price_cents",  label: "Price (cents AUD)",       description: "100 = A$1.00, 4900 = A$49.00",         type: "number",  unit: "¢", group: "founding" },
+  { key: "founding_price_cents",  label: "Price (cents AUD)",       description: "Historical promo price — closed 2026-09-01. 500 = A$5.00",         type: "number",  unit: "¢", group: "founding" },
   { key: "founding_credits",      label: "Credits Included",        description: "Credits given on signup",               type: "number",  group: "founding" },
   // Free plan
   { key: "free_credits_on_signup",label: "Free Credits on Signup",  description: "Credits for new free-tier users",       type: "number",  group: "free" },
   // Growth plan
-  { key: "growth_price_monthly_cents", label: "Growth Monthly (cents)", description: "9900 = A$99/mo",                   type: "number", unit: "¢", group: "growth" },
-  { key: "growth_price_yearly_cents",  label: "Growth Yearly (cents)",  description: "95000 = A$950/yr",                 type: "number", unit: "¢", group: "growth" },
+  { key: "growth_price_monthly_cents", label: "Growth Monthly (cents)", description: "Legacy `growth` SKU only (grandfathered renewals). v2 Growth is A$69 in plans-v2 / Stripe. 6900 = A$69.00",                   type: "number", unit: "¢", group: "growth" },
+  { key: "growth_price_yearly_cents",  label: "Growth Yearly (cents)",  description: "Legacy `growth_annual` SKU only. 69000 = A$690.00",                 type: "number", unit: "¢", group: "growth" },
   // Promo
   { key: "promo_code",            label: "Promo Code",              description: 'Displayed on pricing page (e.g. "LAUNCH100")', type: "text", group: "promo" },
   { key: "promo_label",           label: "Promo Description",       description: "Short CTA text next to promo code",    type: "text",    group: "promo" },

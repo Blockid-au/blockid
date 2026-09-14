@@ -3,7 +3,7 @@ home	Archived	/workspace/projects/archived
 home	Portfolio	/dashboard/portfolio
 home	SVI Score	/dashboard/svi
 home	Score History	/dashboard/history
-home	New Analysis	/
+home	New Analysis	/analyze
 home	Action Plan	/workspace/roadmap
 validate / validate.discover	Grant & Program Finder	/workspace/funding
 validate / validate.evaluate	Your Analyses	/workspace/analyses

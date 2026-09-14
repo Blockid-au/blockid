@@ -107,11 +107,14 @@ describe("nextBestUpgrade — rule detection", () => {
   it("stamps `next-tier` when neither match nor adjacent — cheapest wins", () => {
     // Free tier at phase 0 → no candidate has bestAtPhase in {0,1}
     // (svi.run bestAtPhase=2 diff=2). Every remaining candidate scores 10;
-    // cheapest is svi.run @ $29.
+    // cheapest is svi.run @ $29. data_room.access is also $29 at Starter
+    // since 2026-09-09 (S31-B fixed the row) — excluded so the price
+    // tie-break, not the alphabetical one, is what this case asserts.
     const out = nextBestUpgrade({
       currentTier: "free",
       currentPhase: 0,
       ownedFeatures: [],
+      excludeFeatures: ["data_room.access"],
     });
     expect(out).not.toBeNull();
     expect(out!.feature).toBe("svi.run");
@@ -279,6 +282,7 @@ describe("nextBestUpgrade — phase-input hygiene", () => {
       currentTier: "free",
       currentPhase: -5,
       ownedFeatures: [],
+      excludeFeatures: ["data_room.access"],
     });
     expect(out).not.toBeNull();
     expect(out!.feature).toBe("svi.run");
