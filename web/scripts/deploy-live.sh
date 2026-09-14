@@ -588,12 +588,17 @@ if [ "${1:-}" != "--skip-build" ]; then
   # so 6 currently-failing vitest tests were silently marked "All pass" (round
   # 5.3 QA finding). Mirrors the Gate 11 pattern below. `set +e` inside a
   # bounded scope so a test failure doesn't trip `set -e` before we can log it.
+  # Full output goes to a log; the console gets the failing test names + the
+  # summary (tail -10 alone hid WHICH test failed — 2026-09-14).
+  VITEST_LOG=/tmp/blockid-deploy-vitest.log
   set +e
-  npm test 2>&1 | tail -10
-  TEST_EXIT=${PIPESTATUS[0]}
+  NO_COLOR=1 npm test > "$VITEST_LOG" 2>&1
+  TEST_EXIT=$?
   set -e
+  grep -E "^ (FAIL|×) |AssertionError|Error: Test timed out" "$VITEST_LOG" | head -20 || true
+  tail -6 "$VITEST_LOG"
   if [ "$TEST_EXIT" -ne 0 ]; then
-    fail "Unit tests failed (exit $TEST_EXIT). Fix before deploy."
+    fail "Unit tests failed (exit $TEST_EXIT) — see $VITEST_LOG. Fix before deploy."
   fi
   pass "All unit tests pass"
 fi
