@@ -39,7 +39,7 @@ test.describe("Revenue data sources", () => {
     await expect(panel).toContainText(/Data Sources/);
     await expect(panel).toContainText(/Stripe/);
     await expect(panel).toContainText(/Xero/);
-    await expect(panel).toContainText(/Coming Soon/); // QuickBooks
+    await expect(panel).toContainText(/not available yet/i); // QuickBooks / Xero — S31-B NotAvailableYet copy (was "Coming Soon")
     const body = await page.locator("main").innerText().catch(() => page.locator("body").innerText());
     const captions = ["estimate", "no data yet", "manual entries", "from your metrics", "from Xero", "from Stripe", "from bank CSV"].filter((c) => body.includes(c));
     const report = g.report("/workspace/revenue");

@@ -1,24 +1,31 @@
 {
-  "ts": "2026-09-13T21:24:20.004Z",
-  "startedAt": "2026-09-13T21:19:37Z",
+  "ts": "2026-09-14T01:40:02.135Z",
+  "startedAt": "2026-09-14T01:34:10Z",
   "baseURL": "https://blockid.au",
-  "exitCode": 0,
-  "passed": 146,
-  "failed": 0,
+  "exitCode": 1,
+  "passed": 145,
+  "failed": 1,
   "skipped": 10,
   "flaky": 0,
   "expectedFailures": 1,
-  "durationMs": 281186.944,
+  "durationMs": 349695.06200000003,
   "account": {
-    "email": "qa-live-20260913-2119@blockid.au",
-    "userId": "2e897ff8-8f9f-4127-b40b-9446b049edce",
-    "projectId": "6e0ce255-ec29-4f54-9c0d-10f6e172f8b0",
+    "email": "qa-live-20260914-0134@blockid.au",
+    "userId": "0dce27cb-e9c3-42eb-a1c6-ed7f237d2910",
+    "projectId": "b872880f-72e2-4449-980f-19b4bfba7250",
     "plan": "growth",
     "elevated": true
   },
   "erasure": {
     "ok": true,
-    "detail": "erased 2e897ff8-8f9f-4127-b40b-9446b049edce; verify dry-run exit 2 (no app_users row for the QA founder email)"
+    "detail": "erased 0dce27cb-e9c3-42eb-a1c6-ed7f237d2910; verify dry-run exit 2 (no app_users row for the QA founder email)"
   },
-  "findings": []
+  "findings": [
+    {
+      "spec": "02-revenue.spec.ts",
+      "project": "live-qa",
+      "title": "page shows the source captions and the Data Sources panel",
+      "error": "Error: expect(locator).toContainText(expected) failed\n\nLocator: getByTestId('data-sources')\nExpected pattern: /Coming Soon/\nReceived string:  \"Data SourcesConnected sources re-sync every Monday; your valuation and P&L update with them.StripeAuto-import MRR, subscriptions and churn from your Stripe account.Connect StripeXeroAuto-import P&L income, expenses and bank balance from Xero.Xero — not available yetQuickBooksA QuickBooks connection is not available yet. Export your P&L as CSV and upload it under Expenses to get the same figures in.Upload a CSV instead\"\nTimeout: 15000ms\n\nCall log:\n  - Ex"
+    }
+  ]
 }
