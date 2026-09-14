@@ -159,13 +159,22 @@ function getStore(): RateLimitStore {
 const syncFallback = new Map<string, { count: number; resetAt: number }>();
 
 // Overloaded API:
-//   1. checkRateLimit(bucket, keyParts) — new bucketed API (CISO 2026-07-20).
-//      Async. Returns RateLimitResult. Used by root proxy/middleware.
+//   1. checkRateLimit(bucket, keyParts, opts?) — new bucketed API (CISO
+//      2026-07-20). Async. Returns RateLimitResult. Used by root
+//      proxy/middleware. `opts.limitMultiplier` (S31 review, 2026-09-14)
+//      scales the bucket's per-window limit — the proxy uses it for the
+//      per-IP ceiling that backs the per-session identity key.
 //   2. checkRateLimit(key, maxAttempts, windowMs) — legacy sync API.
 //      Preserved for existing callers (cron routes, api-key auth).
+export interface BucketCheckOptions {
+  /** Multiply the bucket's configured limit (≥ 1). Default 1. */
+  limitMultiplier?: number;
+}
+
 export function checkRateLimit(
   bucket: RateLimitBucket,
   keyParts: string[],
+  opts?: BucketCheckOptions,
 ): Promise<RateLimitResult>;
 export function checkRateLimit(
   key: string,
@@ -175,14 +184,14 @@ export function checkRateLimit(
 export function checkRateLimit(
   a: string,
   b: number | string[],
-  c?: number,
+  c?: number | BucketCheckOptions,
 ):
   | Promise<RateLimitResult>
   | { allowed: boolean; remaining: number; resetIn: number } {
   if (Array.isArray(b)) {
-    return checkBucketInternal(a as RateLimitBucket, b);
+    return checkBucketInternal(a as RateLimitBucket, b, typeof c === "object" && c !== null ? c : undefined);
   }
-  return checkSyncInternal(a, b, c ?? 60_000);
+  return checkSyncInternal(a, b, typeof c === "number" ? c : 60_000);
 }
 
 function checkSyncInternal(
@@ -422,8 +431,11 @@ const FAIL_CLOSED_BUCKETS: ReadonlySet<RateLimitBucket> = new Set<RateLimitBucke
 async function checkBucketInternal(
   bucket: RateLimitBucket,
   keyParts: string[],
+  opts?: BucketCheckOptions,
 ): Promise<RateLimitResult> {
-  const limit = BUCKET_LIMITS_PER_MINUTE[bucket] ?? BUCKET_LIMITS_PER_MINUTE.default;
+  const base = BUCKET_LIMITS_PER_MINUTE[bucket] ?? BUCKET_LIMITS_PER_MINUTE.default;
+  const mult = opts?.limitMultiplier;
+  const limit = typeof mult === "number" && Number.isFinite(mult) && mult >= 1 ? Math.ceil(base * mult) : base;
   const windowMs = bucketWindowMs(bucket);
   const key = `bkt:${bucket}:${keyParts.map((p) => p.trim() || "-").join("|")}`;
   try {
