@@ -6,6 +6,11 @@ import { trackEvent } from "@/lib/analytics";
 import { broadcastAuthEvent } from "@/components/auth/auth-sync-logic";
 import { withClaimedParam } from "@/lib/analyses/summary";
 import { safeNextPath } from "@/lib/security/safe-redirect";
+import {
+  GOOGLE_START_PATH,
+  describeGoogleSignInError,
+  sanitizeGoogleErrorCode,
+} from "@/lib/auth/google-sign-in-errors";
 
 /* ---------- Types ---------- */
 type EmailState = "idle" | "sending" | "sent" | "error";
@@ -21,42 +26,96 @@ interface CouponResult {
 /*  Google Sign-In                                                            */
 /* ========================================================================== */
 
-function GoogleSignIn({ nextUrl }: { nextUrl: string | null }) {
+const GOOGLE_LOGO = (
+  <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+);
+
+/** `/api/auth/google/start?next=…` — the server-side OAuth redirect flow. */
+export function googleRedirectHref(nextUrl: string | null): string {
+  return nextUrl ? `${GOOGLE_START_PATH}?next=${encodeURIComponent(nextUrl)}` : GOOGLE_START_PATH;
+}
+
+// One Tap "not displayed" reasons that mean the integration is broken (worth
+// an analytics event); everything else (no Google session, cooldown, user
+// closed it) is normal and only goes to the console.
+const ONE_TAP_HARD_REASONS = new Set([
+  "unregistered_origin",
+  "invalid_client",
+  "missing_client_id",
+  "secure_http_required",
+  "browser_not_supported",
+  "unknown_reason",
+]);
+
+type GoogleFlow = "gis" | "redirect";
+
+function GoogleSignIn({
+  nextUrl,
+  initialError,
+}: {
+  nextUrl: string | null;
+  /** `?google_error=` from the redirect flow's callback (already sanitised). */
+  initialError: string | null;
+}) {
   const btnRef = useRef<HTMLDivElement>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(initialError);
+  const [errorFlow, setErrorFlow] = useState<GoogleFlow>(initialError ? "redirect" : "gis");
   const [loading, setLoading] = useState(false);
+  const [gsiReady, setGsiReady] = useState(false);
+  const [gsiError, setGsiError] = useState(false);
+
+  const redirectHref = googleRedirectHref(nextUrl);
+
+  // One place for every client-side failure: console line (never the token),
+  // analytics event, visible copy, and the redirect button gets emphasised.
+  const fail = useCallback((flow: GoogleFlow, reason: string, detail?: unknown) => {
+    console.error(`[auth:google] client ${flow} ${reason}`, detail ?? "");
+    trackEvent("login_google_error", { flow, reason });
+    setErrorFlow(flow);
+    setErrorCode(reason);
+    setLoading(false);
+  }, []);
+
+  // The redirect flow already failed once on the server → record that too.
+  useEffect(() => {
+    if (initialError) trackEvent("login_google_error", { flow: "redirect", reason: initialError });
+  }, [initialError]);
 
   const handleCredentialResponse = useCallback(
-    async (response: { credential: string }) => {
+    async (response: { credential?: string }) => {
       setLoading(true);
-      setError(null);
+      setErrorCode(null);
+      if (!response?.credential) {
+        fail("gis", "no_credential");
+        return;
+      }
+      let res: Response;
       try {
-        const res = await fetch("/api/auth/google", {
+        res = await fetch("/api/auth/google", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ credential: response.credential }),
         });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          console.error("[blockid:auth] Google sign-in API error", res.status, data);
-          throw new Error(data.error ?? `Google sign-in failed (${res.status})`);
-        }
-        trackEvent("login_google_success", {});
-        broadcastAuthEvent("SIGNED_IN", data.user?.id);
-        const target = nextUrl ?? data.redirect ?? "/";
-        const sep = target.includes("?") ? "&" : "?";
-        window.location.href = `${target}${sep}logged_in=true`;
       } catch (err) {
-        console.error("[blockid:auth] Google sign-in error", err);
-        setError(err instanceof Error ? err.message : "Google sign-in failed");
-        setLoading(false);
+        fail("gis", "network", err instanceof Error ? err.message : err);
+        return;
       }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        fail("gis", typeof data.code === "string" ? data.code : `http_${res.status}`, {
+          status: res.status,
+          error: data.error,
+        });
+        return;
+      }
+      trackEvent("login_google_success", {});
+      broadcastAuthEvent("SIGNED_IN", data.user?.id);
+      const target = nextUrl ?? data.redirect ?? "/";
+      const sep = target.includes("?") ? "&" : "?";
+      window.location.href = `${target}${sep}logged_in=true`;
     },
-    [nextUrl],
+    [nextUrl, fail],
   );
-
-  const [gsiReady, setGsiReady] = useState(false);
-  const [gsiError, setGsiError] = useState(false);
 
   useEffect(() => {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -65,13 +124,23 @@ function GoogleSignIn({ nextUrl }: { nextUrl: string | null }) {
     const scriptId = "google-gsi-script";
 
     function initGoogle(id: string) {
+      const gis = window.google?.accounts?.id;
+      if (!gis) {
+        setGsiError(true);
+        return;
+      }
       try {
-        window.google?.accounts.id.initialize({
+        gis.initialize({
           client_id: id,
           callback: handleCredentialResponse,
+          // Safari / ITP: lets GIS fall back to a first-party flow instead of
+          // silently failing on blocked third-party cookies.
+          itp_support: true,
+          ux_mode: "popup",
+          cancel_on_tap_outside: true,
         });
         if (btnRef.current) {
-          window.google?.accounts.id.renderButton(btnRef.current, {
+          gis.renderButton(btnRef.current, {
             type: "standard",
             theme: "outline",
             size: "large",
@@ -79,10 +148,35 @@ function GoogleSignIn({ nextUrl }: { nextUrl: string | null }) {
             shape: "rectangular",
             logo_alignment: "left",
             width: btnRef.current.offsetWidth,
+            click_listener: () => {
+              trackEvent("login_google_clicked", {});
+              trackEvent("login_google_start", { flow: "gis" });
+            },
           });
           setGsiReady(true);
         }
-      } catch {
+        // One Tap. Its notification is the only place GIS reports WHY nothing
+        // happened (unregistered origin, no Google session, cooldown…). Under
+        // FedCM most getters return undefined — then nothing is logged.
+        try {
+          gis.prompt?.((n) => {
+            let reason: string | undefined;
+            if (n.isNotDisplayed?.()) reason = n.getNotDisplayedReason?.();
+            else if (n.isSkippedMoment?.()) reason = n.getSkippedReason?.();
+            if (!reason) return;
+            if (ONE_TAP_HARD_REASONS.has(reason)) {
+              console.error(`[auth:google] client one_tap ${reason}`);
+              trackEvent("login_google_error", { flow: "gis", reason: `one_tap_${reason}` });
+            } else {
+              console.info(`[auth:google] one_tap ${reason}`);
+            }
+          });
+        } catch (err) {
+          console.info("[auth:google] one_tap prompt unavailable", err instanceof Error ? err.message : err);
+        }
+      } catch (err) {
+        console.error("[auth:google] client gis_init_failed", err instanceof Error ? err.message : err);
+        trackEvent("login_google_error", { flow: "gis", reason: "gis_init_failed" });
         setGsiError(true);
       }
     }
@@ -94,7 +188,11 @@ function GoogleSignIn({ nextUrl }: { nextUrl: string | null }) {
       script.async = true;
       script.defer = true;
       script.onload = () => initGoogle(clientId);
-      script.onerror = () => setGsiError(true);
+      script.onerror = () => {
+        console.error("[auth:google] client gis_script_blocked");
+        trackEvent("login_google_error", { flow: "gis", reason: "gis_script_blocked" });
+        setGsiError(true);
+      };
       document.head.appendChild(script);
     } else if (window.google?.accounts) {
       initGoogle(clientId);
@@ -109,28 +207,56 @@ function GoogleSignIn({ nextUrl }: { nextUrl: string | null }) {
   }, [handleCredentialResponse]);
 
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  if (!clientId) return null;
 
-  if (!clientId) {
-    return null;
-  }
+  const copy = describeGoogleSignInError(errorCode);
+  // Emphasise the redirect button once the pop-up path has failed (or never loaded).
+  const redirectPrimary = gsiError || (errorCode !== null && errorFlow === "gis");
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-testid="google-sign-in">
       {loading && (
         <p className="text-xs text-ink-500 text-center">Signing in...</p>
       )}
-      <div ref={btnRef} className={`w-full min-h-[44px] ${!gsiReady && !gsiError ? "animate-pulse bg-surface-100 rounded-lg" : ""}`} />
-      {gsiError && (
-        <button
-          type="button"
-          onClick={() => { window.location.reload(); }}
-          className="w-full flex items-center justify-center gap-2 h-11 rounded-lg border border-surface-300 bg-white text-sm font-medium text-ink-700 hover:bg-surface-50 cursor-pointer transition-colors"
-        >
-          <svg className="h-5 w-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-          Sign in with Google
-        </button>
+      {/* GIS pop-up button (Google's script renders into this div). */}
+      <div
+        ref={btnRef}
+        className={`w-full min-h-[44px] ${!gsiReady && !gsiError ? "animate-pulse bg-surface-100 rounded-lg" : ""} ${gsiError ? "hidden" : ""}`}
+      />
+      {/* Server-side redirect flow — always offered; no pop-up, no third-party cookies. */}
+      <a
+        href={redirectHref}
+        data-testid="google-redirect-button"
+        onClick={() => trackEvent("login_google_start", { flow: "redirect" })}
+        className={`w-full flex items-center justify-center gap-2 h-11 rounded-lg border text-sm font-medium cursor-pointer transition-colors ${
+          redirectPrimary
+            ? "border-brand-500 bg-brand-50 text-brand-700 hover:bg-brand-100"
+            : "border-surface-300 bg-white text-ink-700 hover:bg-surface-50"
+        }`}
+      >
+        {GOOGLE_LOGO}
+        Continue with Google (redirect)
+      </a>
+      {gsiError && !copy && (
+        <p className="text-xs text-ink-500 text-center">
+          Google&rsquo;s sign-in pop-up didn&rsquo;t load here &mdash; the redirect option above works without it.
+        </p>
       )}
-      {error && <p className="text-rose-500 text-xs text-center">{error}</p>}
+      {copy && (
+        <div
+          role="alert"
+          data-testid="google-error"
+          className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"
+        >
+          <p className="font-medium">{copy.title}</p>
+          <p className="mt-1 text-rose-600 break-words">{copy.hint}</p>
+          {copy.configuration && (
+            <p className="mt-1 text-[11px] text-rose-500">
+              Error code: <code>{errorCode}</code> &mdash; see docs/ops/google-sign-in.md.
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -619,6 +745,9 @@ export function LoginForm() {
   // summary the analyse page just emailed them). Asking for it a second time
   // is how a single ask starts reading like two.
   const initialEmail = (searchParams.get("email") ?? "").trim().toLowerCase();
+  // `?google_error=` — the server-side Google redirect flow sends the browser
+  // back here with a short code when Google (or our callback) refused.
+  const googleError = sanitizeGoogleErrorCode(searchParams.get("google_error"));
   const [authMethod, setAuthMethod] = useState<"password" | "magic">("password");
 
   // Client-side auth guard — redirects if already signed in.
@@ -654,7 +783,7 @@ export function LoginForm() {
           plan.
         </p>
       )}
-      <GoogleSignIn nextUrl={nextUrl} />
+      <GoogleSignIn nextUrl={nextUrl} initialError={googleError} />
       <Divider />
 
       {/* Auth method tabs */}
@@ -695,6 +824,16 @@ export function LoginForm() {
 }
 
 /* ---------- Google GSI type augmentation ---------- */
+/** One Tap prompt notification (google.accounts.id.prompt). Getters are absent under FedCM. */
+interface GsiPromptNotification {
+  isNotDisplayed?: () => boolean;
+  isSkippedMoment?: () => boolean;
+  isDismissedMoment?: () => boolean;
+  getNotDisplayedReason?: () => string | undefined;
+  getSkippedReason?: () => string | undefined;
+  getDismissedReason?: () => string | undefined;
+}
+
 declare global {
   interface Window {
     google?: {
@@ -702,12 +841,18 @@ declare global {
         id: {
           initialize: (config: {
             client_id: string;
-            callback: (response: { credential: string }) => void;
+            callback: (response: { credential?: string; select_by?: string }) => void;
+            itp_support?: boolean;
+            ux_mode?: "popup" | "redirect";
+            cancel_on_tap_outside?: boolean;
+            use_fedcm_for_prompt?: boolean;
+            auto_select?: boolean;
           }) => void;
           renderButton: (
             element: HTMLElement,
             config: Record<string, unknown>,
           ) => void;
+          prompt?: (listener?: (notification: GsiPromptNotification) => void) => void;
         };
       };
     };
