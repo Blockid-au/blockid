@@ -243,12 +243,14 @@ describe("getReportQuota", () => {
 
 describe("S7-C trial allowance", () => {
   const NOW = new Date("2026-09-10T10:00:00Z");
-  const TRIALING = { status: "trialing", trial_start: "2026-09-08T00:00:00Z", trial_end: "2026-09-15T00:00:00Z", plan_id: "investor_angel" };
+  // trial_end far in the future: previewReportCharge() reads the real clock,
+  // so a fixed 2026-09-15 expired on that day and broke deploy gate 6.
+  const TRIALING = { status: "trialing", trial_start: "2026-09-08T00:00:00Z", trial_end: "2099-01-01T00:00:00Z", plan_id: "investor_angel" };
 
   it("trialFromState: active only while status=trialing and trial_end is in the future", () => {
     expect(TRIAL_REPORT_ALLOWANCE).toBe(1);
     expect(trialFromState(TRIALING, NOW, 0)).toEqual({
-      active: true, ends_at: "2026-09-15T00:00:00.000Z", started_at: "2026-09-08T00:00:00.000Z", allowance: 1, used: 0, plan_id: "investor_angel",
+      active: true, ends_at: "2099-01-01T00:00:00.000Z", started_at: "2026-09-08T00:00:00.000Z", allowance: 1, used: 0, plan_id: "investor_angel",
     });
     expect(trialFromState({ ...TRIALING, status: "active" }, NOW, 1)).toMatchObject({ active: false, used: 0 });
     expect(trialFromState({ ...TRIALING, trial_end: "2026-09-09T00:00:00Z" }, NOW).active).toBe(false);
@@ -261,7 +263,7 @@ describe("S7-C trial allowance", () => {
     state.queue.push({ table: "subscription_trial_state", data: TRIALING });
     state.queue.push({ table: "evaluation_reports", count: 0 });
     const q = await getReportQuota(SCOUT, NOW);
-    expect(q).toMatchObject({ limit: 1, used: 0, remaining: 1, unlimited: false, configured: true, trial: { active: true, allowance: 1, used: 0, ends_at: "2026-09-15T00:00:00.000Z" } });
+    expect(q).toMatchObject({ limit: 1, used: 0, remaining: 1, unlimited: false, configured: true, trial: { active: true, allowance: 1, used: 0, ends_at: "2099-01-01T00:00:00.000Z" } });
     expect(getPlanCachedMock).not.toHaveBeenCalled();
     const count = state.calls.find((c) => c.table === "evaluation_reports")!;
     expect(count.eqs).toEqual([{ col: "user_id", val: "u-1" }, { col: "paid_via", val: "quota" }]);
@@ -302,7 +304,7 @@ describe("S7-C trial allowance", () => {
     state.queue.push({ table: "subscription_trial_state", data: { ...TRIALING, status: "active" } });
     state.queue.push({ table: "evaluation_reports", count: 2 });
     const q = await getReportQuota(SCOUT, NOW);
-    expect(q).toMatchObject({ limit: 10, used: 2, remaining: 8, trial: { active: false, used: 0, ends_at: "2026-09-15T00:00:00.000Z" } });
+    expect(q).toMatchObject({ limit: 10, used: 2, remaining: 8, trial: { active: false, used: 0, ends_at: "2099-01-01T00:00:00.000Z" } });
     expect(getPlanCachedMock).toHaveBeenCalledWith("investor_angel");
     const count = state.calls.find((c) => c.table === "evaluation_reports")!;
     expect(count.gte).toEqual([{ col: "created_at", val: "2026-09-01T00:00:00.000Z" }]);
