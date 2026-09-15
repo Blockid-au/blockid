@@ -1,6 +1,6 @@
 {
-  "version": "3.13.0",
-  "updatedAt": "2026-09-13T16:00:02.893Z",
+  "version": "3.13.1",
+  "updatedAt": "2026-09-14T16:00:03.025Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-09-13T16:00:02.892Z",
@@ -1576,9 +1576,11 @@
         "title": "ACSC alerts integration",
         "rationale": "Integrating the latest ACSC alerts will provide timely security updates and maintain BlockID as a reliable source for founders in the Australian startup ecosystem.",
         "versionImpact": "patch",
-        "status": "pending",
+        "status": "done",
         "createdAt": "2026-09-08T12:04:04.647Z",
-        "notes": "[re-id from duplicate T0208 on 2026-09-10]"
+        "notes": "[re-id from duplicate T0208 on 2026-09-10]",
+        "completedAt": "2026-09-14T16:00:03.025Z",
+        "commit": "5a3f40e45"
       },
       {
         "id": "T0264",
@@ -2800,6 +2802,15 @@
       "taskIds": [
         "T0254"
       ]
+    },
+    {
+      "id": "M025",
+      "title": "CRO: ACSC alerts integration",
+      "version": "3.13.1",
+      "completedAt": "2026-09-14T16:00:03.025Z",
+      "taskIds": [
+        "T0263"
+      ]
     }
   ],
   "history": [
@@ -3006,6 +3017,12 @@
       "action": "release",
       "version": "3.13.0",
       "note": "1 task(s), minor bump (v3.12.1→v3.13.0)"
+    },
+    {
+      "ts": "2026-09-14T16:00:03.025Z",
+      "action": "release",
+      "version": "3.13.1",
+      "note": "1 task(s), patch bump (v3.13.0→v3.13.1)"
     }
   ],
   "shipped_this_session": {

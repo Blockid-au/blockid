@@ -144,3 +144,26 @@ describe("checkRateLimit — `lead` bucket (QA-3 P1-9): 10 per IP per 10 minutes
     expect(blocked.allowed).toBe(false);
   });
 });
+
+// S31 post-ship review (2026-09-14): the proxy backs the (unverified) cookie
+// identity with a per-IP ceiling at a multiple of the bucket limit.
+describe("checkRateLimit — `limitMultiplier` scales a bucket's limit for the per-IP ceiling (S31 review)", () => {
+  it("5× the `lead` limit allows 50 in the same 10-minute window, blocks the 51st, and reports the scaled limit", async () => {
+    const key = ["/api/lead", "ipc", `ip:${Math.random()}`];
+    let last: RateLimitResult | null = null;
+    for (let i = 0; i < 50; i += 1) {
+      last = await checkRateLimit("lead", key, { limitMultiplier: 5 });
+      expect(last.allowed).toBe(true);
+      expect(last.limit).toBe(50);
+    }
+    expect(last!.remaining).toBe(0);
+    expect((await checkRateLimit("lead", key, { limitMultiplier: 5 })).allowed).toBe(false);
+  });
+
+  it("a multiplier below 1, NaN or absent leaves the configured limit untouched", async () => {
+    for (const opts of [undefined, {}, { limitMultiplier: 0.5 }, { limitMultiplier: Number.NaN }]) {
+      const r = await checkRateLimit("lead", ["/api/lead", `ip:${Math.random()}`], opts);
+      expect(r.limit).toBe(10);
+    }
+  });
+});

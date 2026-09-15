@@ -153,9 +153,7 @@ function MilestoneTimeline({ milestones }: { milestones: AtlassianMilestone[] })
               r={4.5}
               className="fill-brand-600 dark:fill-emerald-400"
             >
-              <title>
-                {m.year} — {m.title}
-              </title>
+              <title>{`${m.year} — ${m.title}`}</title>
             </circle>
           </g>
         );

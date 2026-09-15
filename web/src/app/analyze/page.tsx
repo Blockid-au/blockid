@@ -5,11 +5,21 @@
 // a Server Component so the initial HTML ships fast; the actual
 // SmartIntake omnibox is a Client Component that handles drag/drop,
 // URL paste, and debounced classification.
+//
+// QA audit 2026-09-14 F4: this is the main conversion page (the hero hands
+// off here, /score 301s here) yet it shipped with no header, nav or footer —
+// a trial user had no path to Sign in / Pricing / Home / Privacy. It now
+// renders inside `MarketingShell` (skip link + NavV2 + `<main
+// id="main-content">` + MarketingFooter) like /pricing. The shell is a server
+// component with no `headers()`/`cookies()`; the page itself stays dynamic
+// (`getCurrentUser()` reads the session cookie) and is not on the S31-D
+// public-cacheable allow-list, so nothing about caching or CSP mode changes.
 
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { AnalyzeRoot } from "@/components/analyze/analyze-root";
+import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { getCurrentUser } from "@/lib/auth";
 import { parseClaimedParam } from "@/lib/analyses/summary";
 
@@ -54,7 +64,7 @@ export default async function AnalyzePage({
   const claimed = parseClaimedParam(params.claimed);
   const user = await getCurrentUser();
   return (
-    <main className="min-h-screen bg-surface">
+    <MarketingShell>
       <section
         aria-labelledby="analyze-hero-heading"
         className="border-b border-line-subtle bg-surface-raised"
@@ -91,6 +101,6 @@ export default async function AnalyzePage({
           </p>
         </div>
       </section>
-    </main>
+    </MarketingShell>
   );
 }

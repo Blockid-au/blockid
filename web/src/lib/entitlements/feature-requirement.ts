@@ -157,12 +157,23 @@ function ladderIdToTier(id: string): PlanTier | null {
 }
 
 /** Route path → label; unknown paths yield the last segment, title-cased. */
+// The title-case fallback below only runs for paths under these trees — the
+// only places that redirect to `/pricing?feature=…&from=…`. `from` is a URL
+// parameter anyone can craft, and the label is rendered into "To open
+// <label> you need …" on a public page; without the prefix + charset rule
+// `?from=/Your-Account-Is-Locked-Call-…` would be echoed as page copy (S31
+// review, 2026-09-14). React escapes the text, so this is copy hygiene, not
+// an HTML-injection fix.
+const FROM_FALLBACK_PREFIXES = ["/workspace/", "/dashboard/"] as const;
+const FROM_SEGMENT_RE = /^[a-z0-9]+(?:-[a-z0-9]+){0,5}$/;
+
 export function fromPathLabel(from: string | undefined | null): string | null {
   if (!from || !from.startsWith("/") || from.includes("//") || from.length > 200) return null;
   const clean = from.split("?")[0]!.split("#")[0]!.replace(/\/+$/, "");
   if (FROM_LABELS[clean]) return FROM_LABELS[clean]!;
+  if (!FROM_FALLBACK_PREFIXES.some((p) => clean.startsWith(p))) return null;
   const seg = clean.split("/").filter(Boolean).pop();
-  if (!seg || /^[0-9a-f-]{8,}$/i.test(seg)) return null;
+  if (!seg || seg.length > 40 || !FROM_SEGMENT_RE.test(seg) || /^[0-9a-f-]{8,}$/i.test(seg)) return null;
   return seg
     .split("-")
     .map((w) => (w ? w[0]!.toUpperCase() + w.slice(1) : w))

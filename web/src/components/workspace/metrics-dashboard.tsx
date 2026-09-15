@@ -193,12 +193,11 @@ function MiniChart({
           <g key={`point-${i}`}>
             <circle cx={xAt(i)} cy={yAt(d.value)} r="8" fill="transparent">
               <title>
-                {new Date(d.date).toLocaleDateString("en-AU", {
+                {`${new Date(d.date).toLocaleDateString("en-AU", {
                   day: "numeric",
                   month: "short",
                   year: "numeric",
-                })}
-                : {d.value.toLocaleString()}
+                })}: ${d.value.toLocaleString()}`}
               </title>
             </circle>
             <circle
