@@ -19,7 +19,7 @@ import { CloudflareEmailOffEnd, CloudflareEmailOffStart } from "@/components/sit
 import { DEFAULT_LOCALE, LOCALE_HEADER, isLocale, type Locale } from "@/lib/i18n/locales";
 import { buildSeedCatalog } from "@/lib/i18n/seed-catalog";
 import { heroLine } from "@/lib/marketing/hero-variants";
-import { GTAG_CONSENT_DEFAULT_SCRIPT, THEME_RESTORE_SCRIPT } from "@/lib/security/inline-scripts";
+import { GTAG_CONSENT_DEFAULT_SCRIPT, THEME_RESTORE_SCRIPT, analyticsIdsFromEnv, gaConfigScript } from "@/lib/security/inline-scripts";
 import { publicHashModeEnabled } from "@/lib/security/public-cacheable-routes";
 import "./globals.css";
 
@@ -50,6 +50,9 @@ const SITE_NAME = "BlockID.au — Startup Value Index";
 // its own (money-finder plan §8.1 correction 8).
 const SITE_DESCRIPTION = heroLine("G1").en;
 const SITE_URL = "https://blockid.au";
+// Same resolver as the proxy CSP hasher, so the rendered gtag bootstrap is
+// byte-identical to the hashed one.
+const GA_MEASUREMENT_ID = analyticsIdsFromEnv().gaMeasurementId;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -198,6 +201,18 @@ export default async function RootLayout({
             ahead of the afterInteractive gtag.js tag (it used to be a
             `next/script` beforeInteractive, which needed the nonce). */}
         <script id="gtag-consent-default" dangerouslySetInnerHTML={{ __html: GTAG_CONSENT_DEFAULT_SCRIPT }} />
+        {/* gtag('js') + gtag('config') must be QUEUED before any component
+            fires an event: gtag.js replays dataLayer in order and drops an
+            'event' command that precedes every 'config' (no target yet).
+            While this bootstrap was an afterInteractive <Script>, every
+            mount-time event (hero_variant_shown, funding_preview,
+            *_viewed …) landed in the queue ahead of it — the 2026-09-12
+            event audit saw only GA4's automatic events for a whole week.
+            The gtag.js loader itself stays afterInteractive
+            (components/analytics/google-analytics.tsx). */}
+        {GA_MEASUREMENT_ID && (
+          <script id="google-analytics" dangerouslySetInnerHTML={{ __html: gaConfigScript(GA_MEASUREMENT_ID) }} />
+        )}
       </head>
       <body className="min-h-full bg-surface-50 text-brand-900 dark:text-ink-800 font-sans flex flex-col">
         {/* Release QA-2 F9 — Cloudflare Email Obfuscation rewrote every

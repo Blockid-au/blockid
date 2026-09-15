@@ -1,7 +1,7 @@
 "use client";
 
 import Script from "next/script";
-import { gaConfigScript, gtmInitScript, safeAnalyticsId } from "@/lib/security/inline-scripts";
+import { gtmInitScript, safeAnalyticsId } from "@/lib/security/inline-scripts";
 
 // Literal `process.env.NEXT_PUBLIC_*` reads so Next inlines the same values
 // into this client bundle that the proxy (which hashes the snippets) sees.
@@ -43,15 +43,14 @@ export function GoogleAnalytics() {
             strategy="afterInteractive"
           />
           {/*
-            Consent Mode v2 default (all storage denied) is emitted from
-            web/src/app/layout.tsx via an inline <head> script BEFORE this
-            file loads. GA4 therefore respects consent even though
+            Consent Mode v2 default (all storage denied) AND the
+            gtag('js')/gtag('config') bootstrap are both emitted from
+            web/src/app/layout.tsx as parser-inserted <head> scripts, so they
+            sit in the dataLayer ahead of every mount-time trackEvent() and
+            ahead of this loader. GA4 therefore respects consent even though
             send_page_view remains true — the first page_view is queued
             until the ConsentBanner grants or denies (wait_for_update:500).
           */}
-          <Script id="google-analytics" strategy="afterInteractive">
-            {gaConfigScript(GA_MEASUREMENT_ID)}
-          </Script>
         </>
       )}
     </>
