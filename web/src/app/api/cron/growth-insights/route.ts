@@ -4,6 +4,11 @@ import { callAI } from "@/lib/ai-client";
 import { sendGrowthReport } from "@/lib/email";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
 
+// `npm run qa:live` registers qa-live-<stamp>@blockid.au and the erasure path
+// tombstones rows as deleted+<hash>@erased.blockid.au — neither is a customer.
+const QA_EMAIL_LIKE = "qa-live-%@blockid.au";
+const ERASED_EMAIL_LIKE = "%@erased.blockid.au";
+
 export const dynamic = "force-dynamic";
 
 /**
@@ -45,13 +50,17 @@ export async function GET(request: Request) {
       weeklySnapshotsRes,
       actionsRes,
     ] = await Promise.all([
-      // Total users
-      supabase.from("app_users").select("id", { count: "exact", head: true }),
+      // Total users (QA-live accounts and erased tombstones excluded so the
+      // funnel counts real founders, not `npm run qa:live` provisioning)
+      supabase.from("app_users").select("id", { count: "exact", head: true })
+        .not("email", "like", QA_EMAIL_LIKE).not("email", "like", ERASED_EMAIL_LIKE),
       // New users today
       supabase.from("app_users").select("id", { count: "exact", head: true })
+        .not("email", "like", QA_EMAIL_LIKE).not("email", "like", ERASED_EMAIL_LIKE)
         .gte("created_at", `${today}T00:00:00Z`),
       // New users this week
       supabase.from("app_users").select("id", { count: "exact", head: true })
+        .not("email", "like", QA_EMAIL_LIKE).not("email", "like", ERASED_EMAIL_LIKE)
         .gte("created_at", `${weekAgo}T00:00:00Z`),
       // SVI analyses today
       supabase.from("svi_analyses").select("id", { count: "exact", head: true })
@@ -140,9 +149,14 @@ export async function GET(request: Request) {
     ).size;
 
     // Conversion rates
-    const sviStartRate = totalUsers > 0 ? Math.round((sviWeek / Math.max(totalUsers, 1)) * 10000) / 100 : 0;
-    const signupRate = sviWeek > 0 ? Math.round((newUsersWeek / Math.max(sviWeek, 1)) * 10000) / 100 : 0;
-    const paymentRate = totalAccounts > 0 ? Math.round((payingUsers / Math.max(totalAccounts, 1)) * 10000) / 100 : 0;
+    // Rates land in numeric(5,2) columns (max 999.99); guest analyses can
+    // outnumber registered users, so clamp instead of letting the upsert
+    // fail with "numeric field overflow" (2026-09-14 cron outage).
+    const pct = (num: number, den: number): number =>
+      den > 0 ? Math.min(999.99, Math.round((num / den) * 10000) / 100) : 0;
+    const sviStartRate = pct(sviWeek, totalUsers);
+    const signupRate = pct(newUsersWeek, sviWeek);
+    const paymentRate = pct(payingUsers, totalAccounts);
 
     // Funnel: SVI → Signup → Paid (find biggest drop-off)
     const funnel = [
