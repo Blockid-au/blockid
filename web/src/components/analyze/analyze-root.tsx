@@ -273,6 +273,15 @@ export function AnalyzeRoot({
       setEstimateLoading(true);
       const placeholder = placeholderEstimate(context);
       setEstimate(placeholder);
+      // The server already told the page the visitor is anonymous: the
+      // estimate route would answer 401 (its guest signal) and the browser
+      // would log a console error on every guest analysis (live QA
+      // 2026-09-15). Take the guest branch without the round trip.
+      if (authenticated === false) {
+        setEstimate({ ...placeholder, signInRequired: true });
+        setEstimateLoading(false);
+        return;
+      }
       try {
         const res = await fetch("/api/svi/report-estimate", {
           method: "POST",
@@ -327,7 +336,7 @@ export function AnalyzeRoot({
         setEstimateLoading(false);
       }
     },
-    [],
+    [authenticated],
   );
 
   /**
