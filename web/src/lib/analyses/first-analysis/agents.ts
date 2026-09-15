@@ -12,7 +12,8 @@
 //   3. at least AGENT_SECTION_MIN_WORDS words and exactly three next steps.
 //
 // The model call is injected (`AgentCaller`) so the runner can pass the
-// platform's `callAI` with `priority: "user"` / `taskClass: "report"`, and
+// platform's `callAI` with `priority: "user"` and the task class of the
+// voice (`synthesis` for the CEO summary, `report` for the rest — S32-C), and
 // tests can pass a stub. No `server-only` here: the parser is pure and its
 // suite runs without a Next runtime.
 
@@ -34,10 +35,20 @@ export interface AgentCallRequest {
   user: string;
   maxTokens: number;
   agentId: string;
+  /** S32-C — routes the dispatcher: the CEO summary is `synthesis`
+   *  (Opus 5 / DeepSeek-V4-Flash / Gemini 3.1 Pro), every other voice is a
+   *  `report` section. */
+  taskClass: "report" | "synthesis";
+}
+
+/** The CEO voice is the executive synthesis; the other six are report sections. */
+export function taskClassForRole(role: FirstAnalysisAgent): "report" | "synthesis" {
+  return role === "ceo" ? "synthesis" : "report";
 }
 
 export interface AgentCallResult {
   text: string;
+  /** Dispatcher provider that served it (`deepinfra`, `gemini`, `claude-oauth`, …). */
   provider?: string;
   model?: string;
 }
@@ -375,8 +386,9 @@ export async function writeAgentSection(
   const system = buildAgentSystemPrompt(role);
   const user = buildAgentUserPrompt(grounding);
   const agentId = `first-analysis-${role}`;
+  const taskClass = taskClassForRole(role);
 
-  const first = await call({ system, user, maxTokens: MAX_TOKENS, agentId });
+  const first = await call({ system, user, maxTokens: MAX_TOKENS, agentId, taskClass });
   let parsed: ParsedAgentText | null = parseAgentText(first.text);
   let served = first;
   let grounded: GroundingVerdict | null = parsed ? checkGrounding(parsed.body, grounding) : null;
@@ -396,6 +408,7 @@ export async function writeAgentSection(
       user: `${user}\n\nIMPORTANT: ${why}. Rewrite the whole section in the exact TITLE / paragraphs / NEXT format, grounded only on the facts above.`,
       maxTokens: MAX_TOKENS + 400,
       agentId,
+      taskClass,
     });
     const reparsed = parseAgentText(second.text);
     const regrounded = reparsed ? checkGrounding(reparsed.body, grounding) : null;
@@ -435,6 +448,7 @@ export async function writeAgentSection(
     wordCount: parsed.wordCount,
     provider: served.provider,
     model: served.model,
+    taskClass,
     generatedAt: now().toISOString(),
   };
 }

@@ -33,10 +33,12 @@ import "server-only";
 
 import { callAI } from "@/lib/ai-client";
 import { isAICapacityError } from "@/lib/ai/capacity";
+import { writeLastReportProvider, type LastReportProvider } from "@/lib/ai/last-report";
 import { getEntitlements } from "@/lib/entitlements";
 import { buildDeterministicReport, type BuildIntake } from "./build";
 import type { SVIExtractedSignals } from "@/lib/svi-analysis";
 import { writeAgentSection, clipRaw, AgentSectionError, type AgentCaller } from "./agents";
+import { buildReportMeta } from "./meta";
 import {
   FULL_REPORT_MAX_ATTEMPTS,
   claimFullReportEmailSend,
@@ -92,6 +94,8 @@ export interface JobDeps {
   finish: (id: string, outcome: { status: "done" | "failed"; report: FirstAnalysisReport | null; error?: string | null }) => Promise<boolean>;
   callAgent: AgentCaller;
   deliver: (row: FullReportRow, report: FirstAnalysisReport, opts?: { force?: boolean }) => Promise<DeliveryOutcome>;
+  /** S32-C — persist "which model wrote the last report" for /api/status. Optional, never throws. */
+  recordLastReport?: (rec: LastReportProvider) => void;
   /** Max capacity waits per agent before the section is marked failed. */
   capacityRetries: number;
   /** Job attempts before a partial report is delivered as-is. */
@@ -110,11 +114,39 @@ export function makeAgentCaller(userId: string | null | undefined): AgentCaller 
       temperature: 0.4,
       timeoutMs: 150_000,
       agentId: req.agentId,
-      taskClass: "report",
+      taskClass: req.taskClass,
       priority: "user",
       userId: userId ?? undefined,
     });
-    return { text: res.text, provider: res.provider, model: res.model };
+    // `via` is the dispatcher provider (deepinfra / gemini / claude-oauth …);
+    // `provider` is only the coarse API family. The report must be truthful.
+    return { text: res.text, provider: res.via ?? res.provider, model: res.model };
+  };
+}
+
+/** The /api/status record for a finished report (S32-C). */
+export function lastReportRecord(analysisId: string, report: FirstAnalysisReport, now: Date): LastReportProvider {
+  const meta = report.meta ?? buildReportMeta(report.agents);
+  const counts = new Map<string, { provider: string; model: string; n: number }>();
+  const sections: LastReportProvider["sections"] = {};
+  for (const [role, s] of Object.entries(meta.sections)) {
+    if (!s) continue;
+    sections[role] = { provider: s.provider, model: s.model, task_class: s.taskClass };
+    const key = `${s.provider}|${s.model}`;
+    const cur = counts.get(key) ?? { provider: s.provider, model: s.model, n: 0 };
+    cur.n += 1;
+    counts.set(key, cur);
+  }
+  const primary = [...counts.values()].sort((a, b) => b.n - a.n)[0];
+  return {
+    at: now.toISOString(),
+    analysis_id: analysisId,
+    provider: primary?.provider ?? "",
+    model: primary?.model ?? "",
+    models: meta.models,
+    sections,
+    sections_written: report.progress.completed.length,
+    sections_failed: report.progress.failed.length,
   };
 }
 
@@ -249,6 +281,12 @@ export async function runFirstAnalysisJob(id: string, deps: JobDeps = defaultDep
   if (failed.length === 0 || lastTry) {
     report.completedAt = deps.now().toISOString();
     report.progress.current = null;
+    // S32-C — which model wrote which section, for the PDF's "Prepared with"
+    // line and /api/status `ai_last_report_provider`.
+    report.meta = buildReportMeta(report.agents);
+    try {
+      deps.recordLastReport?.(lastReportRecord(id, report, deps.now()));
+    } catch { /* observability never blocks delivery */ }
     await deps.finish(id, { status: "done", report, error });
     const fresh = (await deps.load(id)) ?? row;
     const emailed = await deps.deliver({ ...fresh, full_report_status: "done", full_report_json: report }, report);
@@ -368,6 +406,7 @@ export function defaultDeps(): JobDeps {
     // Bound to the row at claim time — see `runFirstAnalysisJobForRow`.
     callAgent: makeAgentCaller(null),
     deliver: (row, report, opts) => deliverFullReport(row, report, opts),
+    recordLastReport: writeLastReportProvider,
     capacityRetries: 4,
     maxAttempts: FULL_REPORT_MAX_ATTEMPTS,
     maxWaitMs: 60_000,

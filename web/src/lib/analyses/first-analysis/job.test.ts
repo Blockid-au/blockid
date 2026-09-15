@@ -144,6 +144,47 @@ describe("runFirstAnalysisJob", () => {
     expect(h.deliver.mock.calls[0][1].completedAt).toBe("2026-09-15T00:00:00.000Z");
   });
 
+  it("S32-C: routes the CEO as `synthesis` and the other voices as `report`, records the serving provider+model into meta and the last-report file", async () => {
+    const call = vi.fn(async (req: { agentId: string; taskClass: string }) => ({
+      text: GOOD(req.agentId),
+      provider: req.agentId === "first-analysis-ceo" ? "gemini" : "deepinfra",
+      model: req.agentId === "first-analysis-ceo" ? "gemini-3.1-pro-preview" : "deepseek-ai/DeepSeek-V4-Flash",
+    }));
+    const h = harness(row(), call);
+    const records: unknown[] = [];
+    h.deps.recordLastReport = (rec) => { records.push(rec); };
+    await runFirstAnalysisJob(SAMPLE_ANALYSIS_ID, h.deps);
+    const classes = Object.fromEntries(call.mock.calls.map(([req]) => [req.agentId, req.taskClass]));
+    expect(classes["first-analysis-ceo"]).toBe("synthesis");
+    for (const role of FIRST_ANALYSIS_AGENTS.filter((r) => r !== "ceo")) expect(classes[`first-analysis-${role}`]).toBe("report");
+
+    const delivered = h.deliver.mock.calls[0][1] as FirstAnalysisReport;
+    expect(delivered.agents.ceo?.taskClass).toBe("synthesis");
+    expect(delivered.agents.cfo?.taskClass).toBe("report");
+    expect(delivered.meta?.sections.ceo).toEqual({ provider: "gemini", model: "gemini-3.1-pro-preview", taskClass: "synthesis" });
+    expect(delivered.meta?.sections.cfo).toEqual({ provider: "deepinfra", model: "deepseek-ai/DeepSeek-V4-Flash", taskClass: "report" });
+    expect(delivered.meta?.models).toEqual(["DeepSeek-V4-Flash via DeepInfra", "gemini-3.1-pro-preview via Google Gemini"]);
+    expect(delivered.meta?.preparedWith).toBe("Prepared with DeepSeek-V4-Flash via DeepInfra · gemini-3.1-pro-preview via Google Gemini.");
+
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({
+      at: "2026-09-15T00:00:00.000Z",
+      analysis_id: SAMPLE_ANALYSIS_ID,
+      provider: "deepinfra",
+      model: "deepseek-ai/DeepSeek-V4-Flash",
+      sections_written: 7,
+      sections_failed: 0,
+    });
+    expect((records[0] as { sections: Record<string, { task_class: string }> }).sections.ceo.task_class).toBe("synthesis");
+  });
+
+  it("S32-C: a throwing last-report recorder never blocks delivery", async () => {
+    const call = vi.fn(async (req: { agentId: string }) => ({ text: GOOD(req.agentId), provider: "groq", model: "openai/gpt-oss-120b" }));
+    const h = harness(row(), call);
+    h.deps.recordLastReport = () => { throw new Error("disk full"); };
+    expect(await runFirstAnalysisJob(SAMPLE_ANALYSIS_ID, h.deps)).toMatchObject({ outcome: "done", emailed: "sent" });
+  });
+
   it("waits on a capacity error, records the queue, and retries the same agent", async () => {
     let cfoCalls = 0;
     const call = vi.fn(async (req: { agentId: string }) => {

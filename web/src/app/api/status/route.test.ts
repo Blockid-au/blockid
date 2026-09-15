@@ -125,6 +125,19 @@ vi.mock("@/lib/ai-client", () => ({
   getAIQueueDepth: vi.fn(() => aiState.queue),
 }));
 
+// S32-C ai_last_report_provider — read from content/reports/ai-last-report.json
+// by src/lib/ai/last-report.ts (own suite); stubbed here.
+const lastReportState: { rec: Record<string, unknown> | null; throwErr: boolean } = {
+  rec: { at: "2026-09-15T08:00:00.000Z", analysis_id: "a1", provider: "deepinfra", model: "deepseek-ai/DeepSeek-V4-Flash", models: ["DeepSeek-V4-Flash via DeepInfra"], sections: { ceo: { provider: "deepinfra", model: "deepseek-ai/DeepSeek-V4-Flash", task_class: "synthesis" } }, sections_written: 7, sections_failed: 0 },
+  throwErr: false,
+};
+vi.mock("@/lib/ai/last-report", () => ({
+  readLastReportProvider: vi.fn(async () => {
+    if (lastReportState.throwErr) throw new Error("disk");
+    return lastReportState.rec;
+  }),
+}));
+
 // ─── fetch fixture ─────────────────────────────────────────────────────
 
 type FetchResponder =
@@ -1151,9 +1164,37 @@ describe("ai_providers + ai_queue_depth (S31-A)", () => {
       const b = body as unknown as Body;
       expect(b.ai_providers).toBeUndefined();
       expect(b.ai_queue_depth).toBeUndefined();
+      expect(body).not.toHaveProperty("ai_last_report_provider");
     } finally {
       process.env.STATUS_FULL_TOKEN = savedToken;
       if (savedSecret === undefined) delete process.env.CRON_SECRET; else process.env.CRON_SECRET = savedSecret;
     }
+  });
+});
+
+// ─── S32-C ai_last_report_provider (trusted-only) ──────────────────────
+
+describe("ai_last_report_provider (S32-C)", () => {
+  type Body = { ai_last_report_provider?: { provider: string; model: string; sections: Record<string, { task_class: string }> } | null };
+
+  it("surfaces which provider + model wrote the last finished report", async () => {
+    lastReportState.throwErr = false;
+    const { body } = await callGet();
+    const b = body as unknown as Body;
+    expect(b.ai_last_report_provider?.provider).toBe("deepinfra");
+    expect(b.ai_last_report_provider?.model).toBe("deepseek-ai/DeepSeek-V4-Flash");
+    expect(b.ai_last_report_provider?.sections.ceo.task_class).toBe("synthesis");
+  });
+
+  it("is null when no report has finished, and null (never 5xx) when the file cannot be read", async () => {
+    const saved = lastReportState.rec;
+    lastReportState.rec = null;
+    expect((await callGet()).body).toHaveProperty("ai_last_report_provider", null);
+    lastReportState.rec = saved;
+    lastReportState.throwErr = true;
+    const { status, body } = await callGet();
+    lastReportState.throwErr = false;
+    expect(status).toBe(200);
+    expect(body).toHaveProperty("ai_last_report_provider", null);
   });
 });
