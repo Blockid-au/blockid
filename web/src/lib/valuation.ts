@@ -191,6 +191,19 @@ function revenueMultipleMethod(
 // A lightweight valuation estimate driven by the SVI score and stage number.
 // Used by the dashboard widget — not a substitute for computeValuation().
 
+/** How the indicative range compares with a figure the founder stated. */
+export interface CapCrossCheck {
+  /** The founder's number, AUD, exactly as read. */
+  statedAud: number;
+  kind: "cap" | "pre_money" | "post_money" | "valuation";
+  /** Indicative mid ÷ stated. */
+  ratio: number;
+  /** `consistent` within 0.5×–2×; otherwise which side the indicative sits. */
+  verdict: "consistent" | "indicative_above" | "indicative_below";
+  /** One founder-facing line, e.g. "Your stated cap A$6M · indicative A$4–9M → consistent". */
+  note: string;
+}
+
 export interface ValuationEstimate {
   low: number;
   mid: number;
@@ -200,45 +213,127 @@ export interface ValuationEstimate {
   currency: "AUD";
   /** AU comparable companies benchmark for the startup's industry and stage. */
   comparablesBenchmark?: ComparablesBenchmark;
+  /**
+   * Set when the ARR sanity clamp lowered the mid: a business with under
+   * A$250k ARR cannot be priced above max(pre-seed high, 40 × ARR).
+   */
+  arrClamp?: { arrAud: number; capAud: number; unclampedMidAud: number };
+  /** Present when the founder stated a cap / pre-money; never overrides the range. */
+  capCrossCheck?: CapCrossCheck;
+}
+
+// ─── Calibration (2026-09-15) ────────────────────────────────────────────────
+//
+// Every number here is a CALIBRATION ASSUMPTION with its source; none is a
+// measured fact about the startup being valued. Previous baselines were
+// fitted to 14 announced AU raises (survivorship bias — announced rounds
+// skew to the winners) and priced a two-pilot agri-robotics pre-seed at
+// A$29.7M–55.1M. These replace them with the medians of the whole market.
+//
+// AU pre-money medians by stage, AUD (Cut Through Venture, "State of
+// Australian Startup Funding" 2024 and 2025 reports; Carta AU data on SAFE
+// caps at pre-seed/seed):
+//   pre-seed ≈ A$4–6M, seed ≈ A$8–12M, Series A ≈ A$25–35M.
+// Stages 5–7 (Growth / Scale / Corporation) are left where they were.
+//
+// Berkus method (Dave Berkus, "The Berkus Method: Valuing an Early Stage
+// Investment"): five pillars, up to US$500k each, ≤ US$2.5M pre-money for a
+// pre-revenue company. Applied here as A$500k per pillar with no FX uplift —
+// the AU calibration assumption is that the AUD figure is the conservative
+// end of an AU pre-seed, which the CTV medians above bear out.
+//
+// Sanity clamp: with a known ARR below A$250k the mid cannot exceed
+// max(stage-2 high, 40 × ARR). 40× is above every public SaaS multiple
+// (Bessemer Cloud Index medians run single digits to low teens) and exists
+// only to stop a small revenue figure being priced as a Series A.
+
+/** AU pre-money baselines by SVI stage, AUD — see calibration note above. */
+export const VALUATION_BASELINES_AUD: Readonly<Record<number, { low: number; mid: number; high: number }>> = {
+  0: { low:     250_000, mid:   1_000_000, high:   2_000_000 }, // Concept — Berkus pre-revenue territory (≤ A$2.5M)
+  1: { low:   1_000_000, mid:   2_500_000, high:   4_000_000 }, // Validated idea — Berkus max A$2.5M as the mid
+  2: { low:   3_000_000, mid:   5_000_000, high:   8_000_000 }, // MVP / pre-seed — CTV 2024/25 pre-seed median ≈ A$4–6M
+  3: { low:   6_000_000, mid:  10_000_000, high:  15_000_000 }, // Traction / seed — CTV 2024/25 seed median ≈ A$8–12M
+  4: { low:  15_000_000, mid:  30_000_000, high:  45_000_000 }, // Revenue / Series A — CTV 2024/25 Series A median ≈ A$25–35M
+  5: { low:  50_000_000, mid: 100_000_000, high: 200_000_000 }, // Growth (unchanged)
+  6: { low: 100_000_000, mid: 250_000_000, high: 500_000_000 }, // Scale (unchanged)
+  7: { low: 300_000_000, mid: 750_000_000, high: 2_000_000_000 }, // Corporation (unchanged)
+};
+
+/** Berkus pillar cap, AUD — US$500k per pillar applied as A$500k (see note). */
+export const BERKUS_PILLAR_CAP_AUD = 500_000;
+/** ARR below this triggers the sanity clamp. */
+export const ARR_CLAMP_THRESHOLD_AUD = 250_000;
+/** Multiple of ARR the clamped mid may not exceed. */
+export const ARR_CLAMP_MULTIPLE = 40;
+
+export interface ValuationMetrics {
+  mrr?: number;
+  arr?: number;
+  users?: number;
+  sector?: string;
+  growthPctYoY?: number;
+  churnPct?: number;
+  isAINative?: boolean;
+  /** A founder-stated SAFE cap / pre-money / post-money, AUD. Reported, never applied. */
+  statedCapAud?: number;
+  statedCapKind?: CapCrossCheck["kind"];
 }
 
 /**
- * Evidence-based startup valuation V2.
+ * Compare the indicative range with the founder's own cap / pre-money.
+ * The founder's number is reported alongside and flagged when the
+ * indicative mid is more than 2× or less than 0.5× of it — never overridden.
+ */
+export function crossCheckStatedCap(
+  est: { low: number; mid: number; high: number },
+  statedAud: number,
+  kind: CapCrossCheck["kind"] = "cap",
+): CapCrossCheck | undefined {
+  if (!Number.isFinite(statedAud) || statedAud <= 0) return undefined;
+  const ratio = est.mid / statedAud;
+  const verdict: CapCrossCheck["verdict"] =
+    ratio > 2 ? "indicative_above" : ratio < 0.5 ? "indicative_below" : "consistent";
+  const label =
+    kind === "pre_money" ? "pre-money" : kind === "post_money" ? "post-money" : kind === "valuation" ? "valuation" : "cap";
+  const range = `${formatAUD(est.low)}–${formatAUD(est.high)}`;
+  const tail =
+    verdict === "consistent"
+      ? "consistent"
+      : verdict === "indicative_above"
+        ? `indicative mid is ${ratio.toFixed(1)}× your number — check the assumptions before quoting either`
+        : `indicative mid is ${(ratio * 100).toFixed(0)}% of your number — investors will ask what supports the gap`;
+  return {
+    statedAud,
+    kind,
+    ratio: Math.round(ratio * 100) / 100,
+    verdict,
+    note: `Your stated ${label} ${formatAUD(statedAud)} · indicative ${range} → ${tail}`,
+  };
+}
+
+/**
+ * Evidence-based startup valuation V3 (recalibrated 2026-09-15).
  *
  * Blends 3 methods with stage-dependent weights:
- *   - Berkus Method (A$750K per pillar, 5 pillars = A$3.75M cap)
- *   - Scorecard Method (Bill Payne weights against AU regional median)
+ *   - Berkus Method (A$500k per pillar, 5 pillars = A$2.5M cap)
+ *   - Scorecard Method (Bill Payne weights against the AU stage median)
  *   - Revenue Multiple (sector-specific, with growth/AI/churn adjustments)
  *
- * Stage baselines derived from:
- *   - Cut Through Venture 2024-2025 (AU startup funding data)
- *   - Carta global benchmarks with AU discount (0.55-0.70x)
- *   - AU SAFE cap data (Blackbird, AirTree, Square Peg)
- *   - AVCAL / ScaleSuite funding reports
+ * Stage baselines: Cut Through Venture "State of Australian Startup
+ * Funding" 2024 / 2025 medians (see VALUATION_BASELINES_AUD). A known ARR
+ * under A$250k clamps the mid; a founder-stated cap is cross-checked and
+ * reported, never applied.
  */
 export function estimateValuation(
   svi: number,
   stage: number,
-  metrics?: { mrr?: number; arr?: number; users?: number; sector?: string; growthPctYoY?: number; churnPct?: number; isAINative?: boolean },
+  metrics?: ValuationMetrics,
   dimensions?: Record<string, number>,
 ): ValuationEstimate {
   const s = clamp(stage, 0, 7);
 
-  // AU market baselines (pre-money, AUD) — calibrated against 14 real AU raises 2024-2025
-  // Sources: Cut Through Venture, ScaleSuite, NUVC, SmartCompany, Capital Brief
-  // Validated: avg delta was -80% with V2.0 baselines → raised 3-4x to match market
-  const BASELINES: Record<number, { low: number; mid: number; high: number }> = {
-    0: { low:   500_000, mid:  1_500_000, high:   3_000_000 }, // Concept (Bazaa A$2.6M, validated)
-    1: { low: 1_500_000, mid:  4_000_000, high:   8_000_000 }, // Validated (Parachute A$8.5M, Cor A$8M)
-    2: { low: 5_000_000, mid: 10_000_000, high:  16_000_000 }, // MVP/Seed (Aigentsphere A$20M, Hachiko A$10-12M)
-    3: { low: 10_000_000, mid: 20_000_000, high:  40_000_000 }, // Traction (Breaker A$36-45M)
-    4: { low: 25_000_000, mid: 50_000_000, high:  90_000_000 }, // Revenue/Series A (Operata A$89M, Block Earner A$67M)
-    5: { low: 50_000_000, mid: 100_000_000, high: 200_000_000 }, // Growth (Splose >A$100M)
-    6: { low: 100_000_000, mid: 250_000_000, high: 500_000_000 }, // Scale
-    7: { low: 300_000_000, mid: 750_000_000, high: 2_000_000_000 }, // Corporation (Airwallex A$9.6B)
-  };
-
-  const PILLAR_CAP = 2_000_000; // AUD per Berkus pillar (raised from A$750K to match market)
+  const BASELINES = VALUATION_BASELINES_AUD;
+  const PILLAR_CAP = BERKUS_PILLAR_CAP_AUD;
 
   const SCORECARD_WEIGHTS: Record<string, number> = {
     ftv: 0.30, mpc: 0.25, ptd: 0.15, svm: 0.10, tre: 0.10, iri: 0.05, lco: 0.025, cgh: 0.025,
@@ -320,11 +415,34 @@ export function estimateValuation(
     method = "Scorecard (70%) + Berkus (30%)";
   }
 
+  // ── ARR sanity clamp ───────────────────────────────────────────────────
+  // A known ARR under A$250k is a small business whatever the stage label
+  // says: the mid may not exceed max(pre-seed high, 40 × ARR).
+  let arrClamp: ValuationEstimate["arrClamp"];
+  if (hasRevenue) {
+    const arr = metrics!.arr ?? metrics!.mrr! * 12;
+    if (arr < ARR_CLAMP_THRESHOLD_AUD) {
+      const capAud = Math.max(BASELINES[2]!.high, Math.round(arr * ARR_CLAMP_MULTIPLE));
+      if (midAud > capAud) {
+        arrClamp = { arrAud: arr, capAud, unclampedMidAud: midAud };
+        midAud = capAud;
+        method = `${method} · ARR-clamped`;
+      }
+    }
+  }
+
   // ── Band width (uncertainty by stage) ──────────────────────────────────
   const band = s <= 1 ? 0.50 : s <= 3 ? 0.40 : s <= 5 ? 0.30 : 0.25;
   const base = BASELINES[s]!;
-  const lowAud = Math.max(Math.round(midAud * (1 - band)), base.low);
-  const highAud = Math.min(Math.round(midAud * (1 + band)), (BASELINES[Math.min(s + 1, 7)]?.high ?? base.high) * 1.2);
+  // The stage floor only applies when the mid itself sits at or above it —
+  // a revenue-anchored or ARR-clamped mid under the stage's baseline low
+  // keeps its full band rather than collapsing low onto mid.
+  const rawLow = Math.round(midAud * (1 - band));
+  const lowAud = midAud >= base.low ? Math.max(rawLow, base.low) : rawLow;
+  const highAud = Math.max(
+    Math.min(Math.round(midAud * (1 + band)), (BASELINES[Math.min(s + 1, 7)]?.high ?? base.high) * 1.2),
+    midAud,
+  );
 
   // ── Confidence ─────────────────────────────────────────────────────────
   let confidence = 10;
@@ -336,6 +454,12 @@ export function estimateValuation(
 
   const comparablesBenchmark = buildComparablesBenchmark(metrics?.sector, stage);
 
+  // ── Founder-stated cap / pre-money: reported alongside, never applied ──
+  const capCrossCheck =
+    metrics?.statedCapAud != null
+      ? crossCheckStatedCap({ low: lowAud, mid: midAud, high: highAud }, metrics.statedCapAud, metrics.statedCapKind ?? "cap")
+      : undefined;
+
   return {
     low: lowAud,
     mid: midAud,
@@ -344,7 +468,41 @@ export function estimateValuation(
     confidence,
     currency: "AUD",
     comparablesBenchmark,
+    ...(arrClamp ? { arrClamp } : {}),
+    ...(capCrossCheck ? { capCrossCheck } : {}),
   };
+}
+
+/**
+ * The metrics `estimateValuation` should see for a set of extracted signals:
+ * the founder's own revenue figure and stated cap, plus the sector. One
+ * place, so the stored row, the free summary, the hero widget and the first
+ * analysis all price the same numbers.
+ */
+export function valuationMetricsFromSignals(
+  signals:
+    | {
+        sector?: string;
+        mrrAud?: number;
+        arrAud?: number;
+        statedCapAud?: number;
+        statedCapKind?: CapCrossCheck["kind"];
+      }
+    | null
+    | undefined,
+  sectorOverride?: string,
+): ValuationMetrics {
+  const out: ValuationMetrics = {};
+  const sector = sectorOverride ?? signals?.sector;
+  if (sector) out.sector = sector;
+  if (signals?.mrrAud != null && signals.mrrAud > 0) out.mrr = signals.mrrAud;
+  if (signals?.arrAud != null && signals.arrAud > 0) out.arr = signals.arrAud;
+  if (out.arr != null && out.mrr == null) out.mrr = out.arr / 12;
+  if (signals?.statedCapAud != null && signals.statedCapAud > 0) {
+    out.statedCapAud = signals.statedCapAud;
+    if (signals.statedCapKind) out.statedCapKind = signals.statedCapKind;
+  }
+  return out;
 }
 
 export function formatAUD(value: number): string {

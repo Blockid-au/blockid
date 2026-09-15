@@ -12,7 +12,7 @@
 
 import type { IntakeResult } from "@/lib/intake/analyze-input";
 import { computeSVI, type SVIAnalysis } from "@/lib/svi-analysis";
-import { estimateValuation, type ValuationEstimate } from "@/lib/valuation";
+import { estimateValuation, valuationMetricsFromSignals, type ValuationEstimate } from "@/lib/valuation";
 
 /** Hard cap on stored raw text. ~64 KB covers every real deck we have seen. */
 export const MAX_INPUT_TEXT_CHARS = 65_536;
@@ -235,7 +235,7 @@ export function deriveCompactSvi(result: IntakeResult): CompactSvi | null {
     const valuation = estimateValuation(
       analysis.totalSVI,
       analysis.stage ?? 0,
-      { sector: analysis.sector ?? analysis.signals?.sector },
+      valuationMetricsFromSignals(analysis.signals ?? result.signals, analysis.sector ?? analysis.signals?.sector),
       dims,
     );
     return compactSvi(analysis, valuation);
