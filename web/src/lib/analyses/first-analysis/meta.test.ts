@@ -46,7 +46,7 @@ describe("buildReportMeta", () => {
       cmo: section("cmo", "deepinfra", "deepseek-ai/DeepSeek-V4-Flash"),
       cto: section("cto", "claude-oauth", "claude-sonnet-5"),
     });
-    expect(meta.sections.ceo).toEqual({ provider: "gemini", model: "gemini-3.1-pro-preview", taskClass: "synthesis" });
+    expect(meta.sections.ceo).toEqual({ provider: "gemini", model: "gemini-3.1-pro-preview", taskClass: "synthesis", status: "done" });
     expect(meta.sections.cfo?.taskClass).toBe("report");
     expect(meta.sections.clo).toBeUndefined();
     expect(meta.models).toEqual([
@@ -61,6 +61,22 @@ describe("buildReportMeta", () => {
     expect(buildReportMeta({}).preparedWith).toBe("Prepared with BlockID's C-level AI agents.");
     const meta = buildReportMeta({ ceo: section("ceo") });
     expect(meta.models).toEqual([]);
-    expect(meta.sections.ceo).toEqual({ provider: "", model: "", taskClass: "synthesis" });
+    expect(meta.sections.ceo).toEqual({ provider: "", model: "", taskClass: "synthesis", status: "done" });
+  });
+
+  it("S32-E: a failed / unavailable voice is listed with the model that last tried it, but never in the Prepared-with line", () => {
+    const meta = buildReportMeta(
+      { ceo: section("ceo", "deepinfra", "deepseek-ai/DeepSeek-V4-Flash") },
+      {
+        chro: { status: "failed", attempts: 1, provider: "groq", model: "allam-2-7b", error: "ungrounded" },
+        clo: { status: "unavailable", attempts: 3, provider: "groq", model: "allam-2-7b" },
+        cfo: { status: "pending", attempts: 0 },
+      },
+    );
+    expect(meta.sections.chro).toEqual({ provider: "groq", model: "allam-2-7b", taskClass: "report", status: "failed" });
+    expect(meta.sections.clo?.status).toBe("unavailable");
+    expect(meta.sections.cfo).toBeUndefined();
+    expect(meta.models).toEqual(["DeepSeek-V4-Flash via DeepInfra"]);
+    expect(meta.preparedWith).toBe("Prepared with DeepSeek-V4-Flash via DeepInfra.");
   });
 });
