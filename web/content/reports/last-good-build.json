@@ -1,1 +1,1 @@
-{"ts":"2026-09-15T15:07:23Z","epoch":1789484843,"sha":"d1066ac1773ca65222150e68a8dd5182d08cfaba","buildId":"jc7hrBy1Zq41ueoQg01MH","gates":"12/12","pid":"4160238","note":"final serialized deploy: master 14:45 (no code delta since 14:11; reports sweep)"}
+{"ts":"2026-09-15T17:11:05Z","epoch":1789492265,"sha":"f486fd5d16bd56b182bc59f5f374c08aaf5a8a8c","buildId":"fgaeBbMzoQ9IAK8HHT5dp","gates":"12/12","pid":"461581","note":"S32-F fix: interactive picks first usable provider in throughput order"}
