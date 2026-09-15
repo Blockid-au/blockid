@@ -6,6 +6,7 @@ import type { QualityLevel } from "@/lib/evaluation-criteria";
 import { CriterionCard, type CriterionData } from "./criterion-card";
 import { EvaluationProgress } from "./evaluation-progress";
 import { Loader2, ClipboardCheck } from "lucide-react";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -92,7 +93,7 @@ export function EvaluationClient({ user }: EvaluationClientProps) {
         setCriteriaData(map);
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Unknown error");
+          setError(userErrorMessage(err, "Something went wrong. Please try again."));
         }
       } finally {
         if (!cancelled) setLoading(false);

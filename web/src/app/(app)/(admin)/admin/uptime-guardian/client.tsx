@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 interface GuardianRow {
   ts: string;
@@ -56,7 +57,7 @@ export default function UptimeGuardianClient() {
         setError(null);
       } catch (err) {
         if (!alive) return;
-        setError(err instanceof Error ? err.message : String(err));
+        setError(userErrorMessage(err, "Something went wrong. Please try again."));
       }
     }
     void tick();

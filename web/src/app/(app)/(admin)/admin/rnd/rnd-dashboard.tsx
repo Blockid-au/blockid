@@ -14,6 +14,7 @@ import {
   Clock,
   Trash2,
 } from "lucide-react";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -179,7 +180,7 @@ export function RndDashboard() {
       setReport(newReport);
       setHistory(saveToHistory(newReport));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error. Please try again.");
+      setError(userErrorMessage(err, "Something went wrong. Please try again."));
     } finally {
       setLoading(false);
     }

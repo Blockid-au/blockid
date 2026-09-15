@@ -13,6 +13,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 const LOCAL_KEY_RETAIL = "blockid.wholesale.decl.retail";
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024; // 8 MB
@@ -105,7 +106,7 @@ export function WholesaleGate({
       setMode("success");
       onVerified?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
+      setError(userErrorMessage(err, "Something went wrong. Please try again."));
       setSubmitting(false);
     }
   }, [file, submitting, onVerified]);

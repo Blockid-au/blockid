@@ -9,6 +9,7 @@ import { Step2CostStructure } from "./steps/step-2-cost-structure";
 import { Step3Scenarios } from "./steps/step-3-scenarios";
 import { Step4Review } from "./steps/step-4-review";
 import type { ForecastBuilderInput, ProjectionOutput } from "@/types/financial";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 const TOTAL_STEPS = 4;
 
@@ -67,7 +68,7 @@ export function ForecastWizardClient() {
       const data = await res.json();
       setPreview(data.projection);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(userErrorMessage(err, "Something went wrong. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -106,13 +107,13 @@ export function ForecastWizardClient() {
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Failed to save forecast");
+        throw ApiError.fromBody(res.status, err);
       }
 
       const data = await res.json();
       router.push(`/workspace/financial-forecast/${data.modelId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(userErrorMessage(err, "Something went wrong. Please try again."));
     } finally {
       setSaving(false);
     }

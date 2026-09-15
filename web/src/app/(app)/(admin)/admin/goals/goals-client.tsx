@@ -23,6 +23,7 @@ import {
   Activity,
   Layers,
 } from "lucide-react";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -231,7 +232,7 @@ export function GoalsClient() {
       setData(await res.json());
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
+      setError(userErrorMessage(err, "Failed to load"));
     } finally {
       setLoading(false);
     }

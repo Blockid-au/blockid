@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CheckCircle2, XCircle, Code2, Globe, TrendingUp, Zap } from "lucide-react";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface ProjectOption {
   id: string;
@@ -133,10 +134,11 @@ export function AnalyzerForm({ projects }: { projects: ProjectOption[] }) {
         body: JSON.stringify({ startup_id: startupId, github_url: githubUrl || null, website_url: websiteUrl || null }),
       });
       const data = (await res.json()) as RunResponse;
-      if (!res.ok || !data.ok) setError(data.reason ?? `Request failed (${res.status})`);
+      if (!res.ok || !data.ok) setError(userErrorMessage(ApiError.fromBody(res.status, { ...data, error: data.reason }), "The analysis could not run. Please try again."));
       else setResult(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
+      console.error("[analyzer] run", err);
+      setError(userErrorMessage(err, "The analysis could not run. Please try again."));
     } finally {
       setBusy(false);
     }

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle } from "lucide-react";
 import type { PlatformConfig } from "@/lib/platform-config";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface Props {
   initial: PlatformConfig;
@@ -73,11 +74,11 @@ export function PricingConfig({ initial, defaults }: Props) {
         body: JSON.stringify(values),
       });
       const data = await res.json() as { ok?: boolean; error?: string };
-      if (!data.ok) throw new Error(data.error ?? "Save failed");
+      if (!data.ok) throw ApiError.fromBody(res.status, data);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unknown error");
+      setError(userErrorMessage(e, "Something went wrong. Please try again."));
     } finally {
       setSaving(false);
     }

@@ -16,6 +16,7 @@ import * as React from "react";
 import { Check, Columns3, Loader2, Printer, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TermSheetComparison } from "@/lib/term-sheet/compare";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 export interface CompareSheetOption {
   id: string;
@@ -82,7 +83,7 @@ export function TermSheetCompareClient({ options, initial }: { options: CompareS
     try {
       const { res, json } = await post({ ids: selected, confirm: true });
       if (!res.ok || !json.comparison) {
-        setError(json.error ?? "Comparison failed");
+        setError(userErrorMessage(ApiError.fromBody(res.status, json), "Comparison failed"));
         return;
       }
       setComparison(json.comparison as TermSheetComparison);

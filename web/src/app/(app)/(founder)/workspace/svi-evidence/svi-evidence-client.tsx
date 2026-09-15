@@ -15,6 +15,7 @@ import type {
 import { SviCompletenessHeatmap } from "@/components/svi/svi-completeness-heatmap";
 import { SviFixRoadmap } from "@/components/svi/svi-fix-roadmap";
 import { SviStreamAnalysis } from "@/components/svi/svi-stream-analysis";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 const DIMENSION_LABELS: Record<string, string> = {
   ftv: "Founder Traction Velocity",
@@ -63,12 +64,12 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
         ? `/api/svi/evidence-completeness?projectId=${encodeURIComponent(projectId)}`
         : "/api/svi/evidence-completeness";
       const res = await fetch(url);
-      if (!res.ok) throw new Error("Failed to load evidence data");
-      const json = await res.json() as CompletenessData & { ok: boolean };
-      if (!json.ok) throw new Error("API error");
+      const json = (await res.json().catch(() => null)) as (CompletenessData & { ok: boolean }) | null;
+      if (!res.ok || !json?.ok) throw ApiError.fromBody(res.status, json);
       setData(json);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unknown error");
+      console.error("[svi-evidence] load", e);
+      setError(userErrorMessage(e, "Could not load your evidence data. Please try again."));
     } finally {
       setLoading(false);
     }

@@ -12,6 +12,7 @@ import {
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 /* ─── Types (mirror cto-next-best-action.ts) ─────────────────────────────── */
 
@@ -145,10 +146,13 @@ export function NextBestActionWidget({ startupId, className }: Props) {
         if (json.ok && json.result) {
           setData(json.result);
         } else {
-          setError(json.error ?? "Failed to load recommendations.");
+          setError(userErrorMessage(json, "Could not load recommendations right now."));
         }
       })
-      .catch(() => setError("Network error."))
+      .catch((err: unknown) => {
+        console.error("[next-best-action] load", err);
+        setError(userErrorMessage(err, "Could not load recommendations right now."));
+      })
       .finally(() => setLoading(false));
   }, [startupId]);
 

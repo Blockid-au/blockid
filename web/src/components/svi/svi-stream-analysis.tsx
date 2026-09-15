@@ -22,6 +22,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 // ── Dimension metadata ────────────────────────────────────────────────────────
 
@@ -834,14 +835,15 @@ function EmailReportPanel({
       const body = (await res.json()) as { ok?: boolean; sent?: boolean; error?: string };
       if (!res.ok || !body.ok) {
         setStatus("err");
-        setErrorMsg(body.error ?? `failed_${res.status}`);
+        setErrorMsg(userErrorMessage(ApiError.fromBody(res.status, body), "Could not send the email. Please try again."));
         return;
       }
       setStatus(body.sent ? "sent" : "idle");
       if (!body.sent) setErrorMsg("Mailer unavailable — try again later.");
     } catch (err) {
       setStatus("err");
-      setErrorMsg(err instanceof Error ? err.message : "Network error");
+      console.error("[svi-stream] email report", err);
+      setErrorMsg(userErrorMessage(err, "Could not send the email. Please try again."));
     }
   };
   return (
@@ -1052,7 +1054,7 @@ function TbrOnboardingSteps({
         error?: string;
       };
       if (!res.ok || !body.ok || !body.token || !body.url) {
-        setShareError(body.error ?? "share_failed");
+        setShareError(userErrorMessage(ApiError.fromBody(res.status, body), "Could not create the share link. Please try again."));
         return;
       }
       setShareToken(body.token);
@@ -1068,7 +1070,8 @@ function TbrOnboardingSteps({
       }
       markStep(2);
     } catch (err) {
-      setShareError(err instanceof Error ? err.message : String(err));
+      console.error("[svi-stream] share", err);
+      setShareError(userErrorMessage(err, "Could not create the share link. Please try again."));
     } finally {
       setShareBusy(false);
     }
@@ -1580,14 +1583,16 @@ export function SviStreamAnalysis({
               break;
 
             case "fatal_error":
-              setFatalError(event.message);
+              // The server relays its raw exception text here; screen it.
+              setFatalError(userErrorMessage({ ok: false, error: event.message }, "The analysis stopped unexpectedly. Please try again."));
               break;
           }
         }
       }
     } catch (err) {
       if ((err as { name?: string }).name !== "AbortError") {
-        setFatalError(err instanceof Error ? err.message : String(err));
+        console.error("[svi-stream] run", err);
+        setFatalError(userErrorMessage(err, "The analysis stopped unexpectedly. Please try again."));
       }
     } finally {
       setRunning(false);

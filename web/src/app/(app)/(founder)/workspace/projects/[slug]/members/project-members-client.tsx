@@ -13,6 +13,7 @@
 
 import * as React from "react";
 import type { ProjectMember, ProjectMemberRole } from "@/lib/project-members/scope";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface Props {
   projectId: string;
@@ -64,14 +65,14 @@ export function ProjectMembersClient({ projectId, initialMembers }: Props) {
       });
       const body = await res.json();
       if (!res.ok || !body.ok) {
-        setError(body.error ?? `HTTP ${res.status}`);
+        setError(userErrorMessage(ApiError.fromBody(res.status, body), "Something went wrong. Please try again."));
         return;
       }
       setMembers((prev) => [...prev, body.member]);
       setLastInviteUrl(body.invite_url ?? inviteLink(body.member.token));
       setEmail("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send invite");
+      setError(userErrorMessage(err, "Failed to send invite"));
     } finally {
       setSubmitting(false);
     }
@@ -86,14 +87,15 @@ export function ProjectMembersClient({ projectId, initialMembers }: Props) {
       );
       const body = await res.json();
       if (!res.ok || !body.ok) {
-        alert(body.error ?? `HTTP ${res.status}`);
+        setError(userErrorMessage(ApiError.fromBody(res.status, body), "Could not revoke access. Please try again."));
         return;
       }
       setMembers((prev) =>
         prev.map((m) => (m.id === memberId ? body.member : m)),
       );
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to revoke");
+      console.error("[project-members] revoke", err);
+      setError(userErrorMessage(err, "Could not revoke access. Please try again."));
     }
   };
 
@@ -113,12 +115,12 @@ export function ProjectMembersClient({ projectId, initialMembers }: Props) {
       );
       const body = await res.json();
       if (!res.ok || !body.ok) {
-        setError(body.error ?? `HTTP ${res.status}`);
+        setError(userErrorMessage(ApiError.fromBody(res.status, body), "Something went wrong. Please try again."));
         return;
       }
       setMembers((prev) => prev.map((m) => (m.id === memberId ? body.member : m)));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to change role");
+      setError(userErrorMessage(err, "Failed to change role"));
     } finally {
       setRoleBusyId(null);
     }
@@ -139,13 +141,13 @@ export function ProjectMembersClient({ projectId, initialMembers }: Props) {
       });
       const body = await res.json();
       if (!res.ok || !body.ok) {
-        setError(body.error ?? `HTTP ${res.status}`);
+        setError(userErrorMessage(ApiError.fromBody(res.status, body), "Something went wrong. Please try again."));
         return;
       }
       setMembers((prev) => prev.map((m) => (m.id === member.id ? body.member : m)));
       setLastInviteUrl(body.invite_url ?? inviteLink(body.member.token));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to re-invite");
+      setError(userErrorMessage(err, "Failed to re-invite"));
     } finally {
       setRoleBusyId(null);
     }

@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { usePaywall } from "@/components/sales/paywall-nudge";
 import { PACKAGE_FEATURE_COST_DEFAULTS as FEATURE_COSTS } from "@/lib/startup-package/deliverable-registry-types";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 export interface AcceleratorOption {
   slug: string;
@@ -106,7 +107,7 @@ export function AcceleratorApplyCard({
       if (!res.ok || !json.ok) {
         setResult({
           ok: false,
-          message: json.error ?? `Request failed (${res.status})`,
+          message: userErrorMessage(ApiError.fromBody(res.status, json), "Something went wrong. Please try again."),
         });
         return;
       }
@@ -130,7 +131,7 @@ export function AcceleratorApplyCard({
     } catch (err) {
       setResult({
         ok: false,
-        message: err instanceof Error ? err.message : "Network error",
+        message: userErrorMessage(err, "Something went wrong. Please try again."),
       });
     } finally {
       setPending(false);

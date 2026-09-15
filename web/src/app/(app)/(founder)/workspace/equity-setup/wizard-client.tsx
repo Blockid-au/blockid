@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { EquityPie, type PieSlice } from "@/components/workspace/equity-pie";
 import { SharePriceCard } from "@/components/workspace/share-price-card";
 import { CreditGate } from "@/components/ui/credit-gate";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -436,7 +437,7 @@ export function EquityWizard({
       });
       const classData = await classRes.json();
       if (!classData.ok) {
-        throw new Error(classData.error || "Failed to create share class");
+        throw ApiError.fromBody(classRes.status, classData);
       }
       const shareClassId = classData.shareClass?.id;
 
@@ -490,7 +491,7 @@ export function EquityWizard({
         });
         const esopData = await esopRes.json();
         if (!esopData.ok) {
-          throw new Error(esopData.error || "Failed to setup ESOP");
+          throw ApiError.fromBody(esopRes.status, esopData);
         }
       }
 
@@ -503,7 +504,7 @@ export function EquityWizard({
       router.push("/workspace/cap-table");
     } catch (err) {
       setSaveError(
-        err instanceof Error ? err.message : "Something went wrong",
+        userErrorMessage(err, "Something went wrong. Please try again."),
       );
     } finally {
       setSaving(false);

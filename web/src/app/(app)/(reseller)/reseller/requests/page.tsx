@@ -44,7 +44,8 @@ export default async function ResellerRequestsPage() {
       .order("created_at", { ascending: false })
       .limit(100);
     if (error) {
-      queryError = error.message;
+      console.error("[reseller:requests] query failed", error);
+      queryError = "Could not load your requests right now. Please refresh in a moment.";
     } else {
       rows = (data ?? []) as ResellerRequestRow[];
     }

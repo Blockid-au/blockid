@@ -22,6 +22,7 @@ import { AlertTriangle, CheckCircle2, Loader2, Sparkles, Upload } from "lucide-r
 import { CATEGORIES, categoryLabel, type ExpenseCategory } from "@/lib/expenses/categories";
 import { categoriseCostLabel } from "@/lib/expenses/cost";
 import type { ExpenseSummary, MonthBucket } from "@/lib/expenses/summary";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 // ─── Types (API shapes) ─────────────────────────────────────────────────────
 
@@ -277,12 +278,13 @@ export function CategoriseButton({
       const res = await fetch("/api/expenses/categorise", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
       const body = await res.json();
       if (!res.ok) {
-        setErr(body.error === "insufficient_credits" ? `Not enough credits — this run costs ${body.creditsRequired}, you have ${body.balance}.` : body.message ?? body.error ?? "Could not price the run.");
+        setErr(body.error === "insufficient_credits" ? `Not enough credits — this run costs ${body.creditsRequired}, you have ${body.balance}.` : userErrorMessage(ApiError.fromBody(res.status, body), "Could not price the run."));
         return;
       }
       setPreview({ queue: body.queue, cost: body.cost, included: body.included, balance: body.balance, creditNote: body.creditNote });
-    } catch {
-      setErr("Network error.");
+    } catch (err) {
+      console.error("[expenses] preview", err);
+      setErr(userErrorMessage(err, "Could not price the run. Please try again."));
     } finally {
       setBusy(null);
     }
@@ -295,7 +297,7 @@ export function CategoriseButton({
       const res = await fetch("/api/expenses/categorise", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ confirm: true }) });
       const body = await res.json();
       if (!res.ok) {
-        setErr(body.message ?? body.error ?? "The run failed.");
+        setErr(userErrorMessage(ApiError.fromBody(res.status, body), "The run failed."));
         return;
       }
       setPreview(null);
@@ -377,7 +379,7 @@ function UploadCard({ onImported }: { onImported: () => void }) {
       const res = await fetch("/api/expenses/import", { method: "POST", body: fd });
       const body = await res.json();
       if (!res.ok) {
-        setErr(body.message ?? body.error ?? "Import failed.");
+        setErr(userErrorMessage(ApiError.fromBody(res.status, body), "Import failed."));
         return;
       }
       setResult(body as ImportResult);
@@ -539,7 +541,7 @@ export function ExpensesClient({ initial }: { initial?: ExpensesState }) {
     const res = await fetch(`/api/expenses/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ category }) });
     const body = await res.json();
     if (!res.ok) {
-      setNotice(body.message ?? body.error ?? "Could not save the category.");
+      setNotice(userErrorMessage(ApiError.fromBody(res.status, body), "Could not save the category."));
       return;
     }
     setNotice(body.siblingsUpdated > 0 ? `Saved — and applied to ${body.siblingsUpdated} other line${body.siblingsUpdated === 1 ? "" : "s"} from the same merchant.` : "Saved. Future imports of this merchant will use it.");

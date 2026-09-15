@@ -25,6 +25,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 // ---------------------------------------------------------------------------
 // Types — mirror engine/api shapes
@@ -157,6 +158,7 @@ export function EquityEsopClient() {
   const [addOpen, setAddOpen] = React.useState(false);
   const [generating, setGenerating] = React.useState<string | null>(null);
   const [docsLog, setDocsLog] = React.useState<Array<{ kind: string; markdown: string; ts: number }>>([]);
+  const [docsError, setDocsError] = React.useState<string | null>(null);
 
   // Grant Register state
   const [grants, setGrants] = React.useState<Grant[]>([]);
@@ -253,7 +255,7 @@ export function EquityEsopClient() {
             setGrants(j.grants ?? []);
             setPoolSummary(j.poolSummary ?? null);
           } else {
-            setGrantsError(j.error ?? "Failed to load grants");
+            setGrantsError(userErrorMessage(ApiError.fromBody(r.status, j), "Failed to load grants"));
           }
         }
       } catch {
@@ -268,10 +270,11 @@ export function EquityEsopClient() {
 
   async function handleAddGrant(form: AddGrantForm) {
     if (!plan.id) {
-      alert("Save the plan first (plan ID is required to create grants)");
+      setGrantsError("Save the plan first — a saved plan is needed before grants can be created.");
       return;
     }
     setAddingGrant(true);
+    setGrantsError(null);
     try {
       const r = await fetch("/api/equity/grants", {
         method: "POST",
@@ -299,10 +302,11 @@ export function EquityEsopClient() {
           setPoolSummary(j2.poolSummary ?? null);
         }
       } else {
-        alert(j.error ?? "Failed to create grant");
+        setGrantsError(userErrorMessage(ApiError.fromBody(r.status, j), "Could not create the grant. Please try again."));
       }
-    } catch {
-      alert("Failed to create grant");
+    } catch (err) {
+      console.error("[equity-esop] create grant", err);
+      setGrantsError(userErrorMessage(err, "Could not create the grant. Please try again."));
     } finally {
       setAddingGrant(false);
     }
@@ -330,6 +334,7 @@ export function EquityEsopClient() {
 
   async function generateDoc(kind: string) {
     setGenerating(kind);
+    setDocsError(null);
     try {
       const r = await fetch("/api/equity/documents", {
         method: "POST",
@@ -341,8 +346,11 @@ export function EquityEsopClient() {
         setDocsLog((cur) => [{ kind, markdown: j.markdown!, ts: Date.now() }, ...cur].slice(0, 8));
         downloadText(`${kind}-${plan.startup_name || "draft"}.md`, j.markdown);
       } else {
-        alert(j.error ?? "Failed to generate document");
+        setDocsError(userErrorMessage(ApiError.fromBody(r.status, j), "Could not generate the document. Please try again."));
       }
+    } catch (err) {
+      console.error("[equity-esop] generate document", err);
+      setDocsError(userErrorMessage(err, "Could not generate the document. Please try again."));
     } finally {
       setGenerating(null);
     }
@@ -709,6 +717,9 @@ export function EquityEsopClient() {
             </button>
           ))}
         </div>
+        {docsError && (
+          <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{docsError}</p>
+        )}
         {docsLog.length > 0 && (
           <ul className="mt-4 space-y-2 text-sm">
             {docsLog.map((d) => (

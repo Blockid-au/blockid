@@ -35,6 +35,7 @@ import {
   shortenAddress,
 } from "@/lib/wallet";
 import { cn } from "@/lib/utils";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 const EXPLORER_URL = BLOCKID_CHAIN.blockExplorerUrls[0];
 
@@ -125,7 +126,7 @@ export function ConnectWalletButton({
       onAccountChangeRef.current?.(addr);
       setChainId(await getCurrentChainId());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to connect");
+      setError(userErrorMessage(err, "Failed to connect"));
     } finally {
       setBusy(false);
     }
@@ -138,7 +139,7 @@ export function ConnectWalletButton({
       await switchToBlockIDChain();
       setChainId(await getCurrentChainId());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to switch network");
+      setError(userErrorMessage(err, "Failed to switch network"));
     } finally {
       setBusy(false);
     }

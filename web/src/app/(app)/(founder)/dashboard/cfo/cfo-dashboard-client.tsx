@@ -14,6 +14,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 
@@ -275,13 +276,14 @@ export function CFODashboardClient({
         | { ok: true; health_score: number; commentary: string[]; alerts: string[] }
         | { ok: false; error: string };
       if (!data.ok) {
-        setError(data.error);
+        setError(userErrorMessage(ApiError.fromBody(res.status, data), "Could not generate the commentary. Please try again."));
       } else {
         setResult(data);
         setHasGenerated(true);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Request failed");
+      console.error("[cfo-dashboard] commentary", e);
+      setError(userErrorMessage(e, "The request failed. Please try again."));
     } finally {
       setLoading(false);
     }

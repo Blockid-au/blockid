@@ -18,6 +18,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 
@@ -183,12 +184,14 @@ function AddRevenueForm({ onAdded }: { onAdded: () => void }) {
   const [amount, setAmount] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [msg, setMsg] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!amount || isNaN(Number(amount))) return;
     setLoading(true);
     setMsg(null);
+    setError(null);
     try {
       const res = await fetch("/api/revenue", {
         method: "POST",
@@ -202,10 +205,11 @@ function AddRevenueForm({ onAdded }: { onAdded: () => void }) {
         setOpen(false);
         onAdded();
       } else {
-        setMsg(data.error ?? "Error saving.");
+        setError(userErrorMessage(ApiError.fromBody(res.status, data), "Could not save the entry. Please try again."));
       }
-    } catch {
-      setMsg("Network error.");
+    } catch (err) {
+      console.error("[finance] manual entry", err);
+      setError(userErrorMessage(err, "Could not save the entry. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -268,6 +272,7 @@ function AddRevenueForm({ onAdded }: { onAdded: () => void }) {
               Cancel
             </button>
           </div>
+          {error && <p role="alert" className="text-xs font-medium text-red-600">{error}</p>}
           {msg && <p className="text-xs text-emerald-600">{msg}</p>}
         </form>
       )}

@@ -11,6 +11,7 @@
 // admin surface once an offer is promoted to `live`.
 
 import * as React from "react";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface FormState {
   ticker: string;
@@ -106,7 +107,7 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
           id?: string;
         };
         if (!res.ok || !payload.ok) {
-          setError(payload.error ?? `Request failed (HTTP ${res.status})`);
+          setError(userErrorMessage(ApiError.fromBody(res.status, payload), "Could not submit your request. Please try again."));
           return;
         }
         setResult({
@@ -114,7 +115,8 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
           id: payload.id ?? "",
         });
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Network error");
+        console.error("[secondary-offer] submit", err);
+        setError(userErrorMessage(err, "Could not submit your request. Please try again."));
       } finally {
         setSubmitting(false);
       }

@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, ArrowLeft, Bookmark, BookmarkCheck } from "lucide-react";
 import type { ProjectionOutput } from "@/types/financial";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 interface ForecastData {
   id: string;
@@ -52,7 +53,7 @@ export function ForecastResultsClient({ modelId }: ForecastResultsClientProps) {
           });
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
+        setError(userErrorMessage(err, "Something went wrong. Please try again."));
       } finally {
         setLoading(false);
       }
@@ -83,7 +84,7 @@ export function ForecastResultsClient({ modelId }: ForecastResultsClientProps) {
       setForecast((prev) => (prev ? { ...prev, useForInvestorPack: next } : prev));
       setPinMessage(next ? "Added to investor pack" : "Removed from investor pack");
     } catch (err) {
-      setPinMessage(err instanceof Error ? err.message : "Failed to update");
+      setPinMessage(userErrorMessage(err, "Failed to update"));
     } finally {
       setPinning(false);
       setTimeout(() => setPinMessage(null), 3500);
@@ -107,7 +108,7 @@ export function ForecastResultsClient({ modelId }: ForecastResultsClientProps) {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Export failed");
+      setError(userErrorMessage(err, "Export failed"));
     } finally {
       setExporting(false);
     }

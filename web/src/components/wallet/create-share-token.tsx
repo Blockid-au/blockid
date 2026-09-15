@@ -26,6 +26,7 @@ import {
 } from "@/lib/wallet";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { cn } from "@/lib/utils";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 const EXPLORER_URL = BLOCKID_CHAIN.blockExplorerUrls[0];
 
@@ -80,7 +81,7 @@ export function CreateShareToken({ className }: { className?: string }) {
           if (data.suggestions?.[0]?.ticker) setTicker(data.suggestions[0].ticker);
           setTokenName(data.defaultTokenName ?? "");
         } else {
-          setError(data.error ?? "Could not load token suggestions");
+          setError(userErrorMessage(ApiError.fromBody(res.status, data), "Could not load token suggestions"));
         }
       } catch {
         if (!cancelled) setError("Could not load token suggestions");
@@ -120,7 +121,7 @@ export function CreateShareToken({ className }: { className?: string }) {
       if (!res.ok || !data.ok) {
         // If it already exists, surface the address.
         if (data.tokenAddress) setExisting({ symbol: sym, address: data.tokenAddress });
-        throw new Error(data.error ?? "Deploy failed");
+        throw ApiError.fromBody(res.status, data);
       }
       setDeployed({
         symbol: data.token.symbol,
@@ -129,7 +130,7 @@ export function CreateShareToken({ className }: { className?: string }) {
         totalSupply: data.token.totalSupply,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Deploy failed");
+      setError(userErrorMessage(err, "Deploy failed"));
     } finally {
       setDeploying(false);
     }

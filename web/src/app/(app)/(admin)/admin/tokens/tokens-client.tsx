@@ -34,6 +34,7 @@ import {
   onAccountsChanged,
   BLOCKID_CHAIN,
 } from "@/lib/wallet";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -107,7 +108,7 @@ export function AdminTokensClient({ user }: AdminTokensClientProps) {
       setAccount(addr);
       await loadCompanies(addr);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to connect";
+      const msg = userErrorMessage(err, "Failed to connect");
       setError(msg);
     } finally {
       setConnecting(false);
@@ -234,7 +235,7 @@ export function AdminTokensClient({ user }: AdminTokensClientProps) {
         setTimeout(() => loadCompanies(account), 2000);
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Transaction failed";
+      const msg = userErrorMessage(err, "Transaction failed");
       setModalError(msg);
     } finally {
       setModalLoading(false);

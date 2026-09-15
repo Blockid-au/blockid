@@ -9,6 +9,7 @@ import {
   type CoverageMap,
 } from "@/components/svi/pitchdeck-coverage-grid";
 import { SviStreamAnalysis } from "@/components/svi/svi-stream-analysis";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 // Compact sample pitch — enough for the classifier to score every dim so
 // first-time founders can preview the flow without paying or uploading.
@@ -255,7 +256,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
         const upRes = await fetch("/api/upload", { method: "POST", body: fd });
         if (!upRes.ok) {
           const body = (await upRes.json().catch(() => ({}))) as { error?: string };
-          throw new Error(body.error ?? `upload_failed_${upRes.status}`);
+          throw ApiError.fromBody(upRes.status, body);
         }
         const upBody = (await upRes.json()) as { url?: string; filename?: string };
         storageUrl = upBody.url ?? "";
@@ -274,14 +275,14 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
       });
       const clsBody = (await clsRes.json()) as ClassifyResponse;
       if (!clsBody.ok || !clsBody.coverage || !clsBody.pitchdeckId) {
-        throw new Error(clsBody.error ?? "classify_failed");
+        throw ApiError.fromBody(clsRes.status, clsBody);
       }
       setPitchdeckId(clsBody.pitchdeckId);
       setCoverage(clsBody.coverage);
       primeSelection(clsBody.coverage);
       setStep("coverage");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(userErrorMessage(err, "Something went wrong. Please try again."));
     } finally {
       setBusy(false);
     }
@@ -305,7 +306,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
             balance: body.balance ?? 0,
           });
         } else {
-          setError(body.error ?? "analyze_failed");
+          setError(userErrorMessage(ApiError.fromBody(res.status, body), "Could not analyse the deck. Please try again."));
         }
         return;
       }
@@ -315,7 +316,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
       setSavedSvi(null);
       setStep("analyze");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(userErrorMessage(err, "Something went wrong. Please try again."));
     } finally {
       setBusy(false);
     }

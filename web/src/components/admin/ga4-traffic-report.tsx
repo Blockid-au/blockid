@@ -12,6 +12,7 @@
 
 import { useEffect, useState } from "react";
 import { BarChart3, AlertTriangle, RefreshCw } from "lucide-react";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface Ga4ReportRow {
   page: string;
@@ -60,12 +61,12 @@ export function Ga4TrafficReport() {
       const res = await fetch("/api/admin/ga4-report", { cache: "no-store" });
       if (!res.ok) {
         const body = await res.json().catch(() => ({})) as { error?: string };
-        throw new Error(body.error ?? `HTTP ${res.status}`);
+        throw ApiError.fromBody(res.status, body);
       }
       const json = await res.json() as Ga4ReportData;
       setData(json);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(userErrorMessage(err, "Something went wrong. Please try again."));
     } finally {
       setLoading(false);
     }

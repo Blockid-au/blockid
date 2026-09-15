@@ -8,6 +8,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, ShieldX, Undo2 } from "lucide-react";
 import type { MentorAccessTier } from "@/lib/mentor/access-tiers";
+import { readErrorBody, userErrorMessage } from "@/lib/ui/user-error";
 
 export interface RevokeButtonProps {
   grantId: string;
@@ -37,7 +38,7 @@ export function RevokeButton(props: RevokeButtonProps) {
           body: JSON.stringify({ reason: "founder_settings_revoke" }),
         },
       );
-      if (!res.ok) throw new Error(`revoke failed (${res.status})`);
+      if (!res.ok) throw await readErrorBody(res);
 
       // Fire founder-side GA4 event — the server route mirrors this into
       // reseller_audit_log so the two sides stay reconcilable.
@@ -58,7 +59,7 @@ export function RevokeButton(props: RevokeButtonProps) {
       }
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Revoke failed");
+      setError(userErrorMessage(err, "Revoke failed"));
       setState("confirm");
     }
   }, [props, router]);

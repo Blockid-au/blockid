@@ -7,6 +7,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 export function Ga4RefreshButton() {
   const router = useRouter();
@@ -19,11 +20,11 @@ export function Ga4RefreshButton() {
       const res = await fetch("/api/admin/ga4-refresh", { method: "POST" });
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(body.error ?? `HTTP ${res.status}`);
+        throw ApiError.fromBody(res.status, body);
       }
       startTransition(() => router.refresh());
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(userErrorMessage(e, "Something went wrong. Please try again."));
     }
   }
 

@@ -2,6 +2,7 @@
 // /workspace/svi-api — manage SVI institutional API keys (T_SVI_EXC_0014)
 
 import { useEffect, useState } from "react";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface SviKey {
   id: string;
@@ -25,6 +26,7 @@ export default function SviApiPage() {
   const [keyName, setKeyName] = useState("");
   const [creating, setCreating] = useState(false);
   const [upgrading, setUpgrading] = useState<string | null>(null);
+  const [pageError, setPageError] = useState<string | null>(null);
 
   const load = async () => {
     const res = await fetch("/api/svi-api/keys");
@@ -40,20 +42,27 @@ export default function SviApiPage() {
 
   const createKey = async () => {
     setCreating(true);
-    const res = await fetch("/api/svi-api/keys", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: keyName || "Default" }),
-    });
-    const d = await res.json();
-    if (d.ok) {
-      setNewKey(d.key);
-      setKeyName("");
-      load();
-    } else {
-      alert(d.error || "Failed to create key");
+    setPageError(null);
+    try {
+      const res = await fetch("/api/svi-api/keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: keyName || "Default" }),
+      });
+      const d = await res.json();
+      if (d.ok) {
+        setNewKey(d.key);
+        setKeyName("");
+        load();
+      } else {
+        setPageError(userErrorMessage(ApiError.fromBody(res.status, d), "Could not create the key. Please try again."));
+      }
+    } catch (err) {
+      console.error("[svi-api] create key", err);
+      setPageError(userErrorMessage(err, "Could not create the key. Please try again."));
+    } finally {
+      setCreating(false);
     }
-    setCreating(false);
   };
 
   const revokeKey = async (id: string) => {
@@ -64,18 +73,24 @@ export default function SviApiPage() {
 
   const upgrade = async (tier: "team" | "institutional") => {
     setUpgrading(tier);
-    const res = await fetch("/api/svi-api/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tier }),
-    });
-    const d = await res.json();
-    if (d.ok && d.url) {
-      window.location.href = d.url;
-    } else {
-      alert(d.error || "Checkout unavailable");
-      setUpgrading(null);
+    setPageError(null);
+    try {
+      const res = await fetch("/api/svi-api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier }),
+      });
+      const d = await res.json();
+      if (d.ok && d.url) {
+        window.location.href = d.url;
+        return;
+      }
+      setPageError(userErrorMessage(ApiError.fromBody(res.status, d), "Checkout is unavailable right now. Please try again."));
+    } catch (err) {
+      console.error("[svi-api] checkout", err);
+      setPageError(userErrorMessage(err, "Checkout is unavailable right now. Please try again."));
     }
+    setUpgrading(null);
   };
 
   const today = new Date().toISOString().slice(0, 10);
@@ -88,6 +103,9 @@ export default function SviApiPage() {
           Programmatic access to Startup Value Index™ data for institutional investors and analysts.
         </p>
       </div>
+      {pageError && (
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{pageError}</p>
+      )}
 
       {/* Tier cards */}
       <div className="grid grid-cols-3 gap-4">

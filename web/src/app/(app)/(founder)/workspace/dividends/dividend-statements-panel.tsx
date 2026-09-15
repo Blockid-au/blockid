@@ -23,6 +23,7 @@ import { CheckCircle2, Download, FileText, FolderPlus, Loader2, Receipt, ShieldA
 import { cn } from "@/lib/utils";
 import { formatAudCents, formatSharePriceAud, statementCostLabel } from "@/lib/dividends/statement";
 import { BoardResolutionButton } from "@/components/board-resolutions/board-resolution-button";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 export interface StatementListItem {
   id: string;
@@ -201,7 +202,7 @@ export function DividendStatementsPanel({ initial }: { initial?: StatementsPanel
       .then((d) => {
         if (!alive) return;
         if (d?.ok) setState({ records: d.records ?? [], role: d.role ?? null, cost: d.cost ?? 2, included: Boolean(d.included) });
-        else setError(d?.error ?? "Could not load dividend statements");
+        else setError(userErrorMessage(ApiError.fromBody(200, d), "Could not load dividend statements"));
       })
       .catch(() => alive && setError("Network error"))
       .finally(() => alive && setLoading(false));
@@ -250,7 +251,7 @@ export function DividendStatementsPanel({ initial }: { initial?: StatementsPanel
     try {
       const { res, json } = await post(`/api/dividends/${preview.recordId}/statements`, { confirm: true });
       if (!res.ok) {
-        setError(json.error ?? "Issue failed");
+        setError(userErrorMessage(ApiError.fromBody(res.status, json), "Issue failed"));
         return;
       }
       const issued = (json.issued ?? []) as StatementListItem[];
@@ -306,7 +307,7 @@ export function DividendStatementsPanel({ initial }: { initial?: StatementsPanel
       try {
         const { res, json } = await post(`/api/dividends/statements/${s.id}/void`, { reason });
         if (!res.ok || !json.statement) {
-          setError(json.error ?? "Void failed");
+          setError(userErrorMessage(ApiError.fromBody(res.status, json), "Void failed"));
           return;
         }
         setState((st) => (st ? { ...st, records: st.records.map((r) => ({ ...r, statements: r.statements.map((x) => (x.id === s.id ? json.statement : x)) })) } : st));

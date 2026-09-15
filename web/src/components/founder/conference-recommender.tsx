@@ -9,6 +9,7 @@
 
 import * as React from "react";
 import { CalendarDays, MapPin, ExternalLink, Sparkles } from "lucide-react";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface Conference {
   slug: string;
@@ -67,7 +68,7 @@ export function ConferenceRecommender() {
         const json = (await res.json()) as ApiResponse;
         if (cancelled) return;
         if (!res.ok || !json.ok) {
-          setState({ status: "error", message: json.error ?? `HTTP ${res.status}` });
+          setState({ status: "error", message: userErrorMessage(ApiError.fromBody(res.status, json), "Something went wrong. Please try again.") });
           return;
         }
         setState({
@@ -79,7 +80,7 @@ export function ConferenceRecommender() {
         if (cancelled) return;
         setState({
           status: "error",
-          message: err instanceof Error ? err.message : "fetch_failed",
+          message: userErrorMessage(err, "Something went wrong. Please try again."),
         });
       }
     })();

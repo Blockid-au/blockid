@@ -18,6 +18,7 @@ import {
   tierDisclosure,
   tierLabel,
 } from "@/lib/mentor/access-tiers";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 export interface AccessRequestBannerProps {
   currentTier: MentorAccessTier | null;
@@ -127,7 +128,7 @@ export function AccessRequestBanner({
       }
       setState("sent");
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Request failed");
+      setErrorMsg(userErrorMessage(err, "The request failed. Please try again."));
       setState("error");
     }
   }, [founderId, onRequest, projectId, requiredTier, resellerId, state]);

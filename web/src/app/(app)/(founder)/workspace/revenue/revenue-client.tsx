@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -301,6 +302,7 @@ export function RevenueClient() {
   const [entrySource, setEntrySource] = React.useState("manual");
   const [entrySaving, setEntrySaving] = React.useState(false);
   const [entryMsg, setEntryMsg] = React.useState<string | null>(null);
+  const [entryError, setEntryError] = React.useState<string | null>(null);
 
   // Fetch revenue data
   const loadData = React.useCallback(async () => {
@@ -313,7 +315,7 @@ export function RevenueClient() {
       const histData = await histRes.json();
 
       if (revData.ok) setRevenue(revData);
-      else setError(revData.error ?? "Failed to load revenue data");
+      else setError(userErrorMessage(ApiError.fromBody(revRes.status, revData), "Failed to load revenue data"));
 
       if (histData.ok) setHistory(histData.dividends ?? []);
     } catch (err) {
@@ -367,6 +369,7 @@ export function RevenueClient() {
 
     setEntrySaving(true);
     setEntryMsg(null);
+    setEntryError(null);
     try {
       const res = await fetch("/api/revenue", {
         method: "POST",
@@ -375,15 +378,16 @@ export function RevenueClient() {
       });
       const data = await res.json();
       if (data.ok) {
-        setEntryMsg(data.message ?? "Revenue entry saved.");
+        setEntryMsg(typeof data.message === "string" && data.message ? data.message : "Revenue entry saved.");
         setEntryAmount("");
         // Reload revenue data to reflect the new entry
         loadData();
       } else {
-        setEntryMsg(data.error ?? "Failed to save entry.");
+        setEntryError(userErrorMessage(ApiError.fromBody(res.status, data), "Could not save the entry. Please try again."));
       }
-    } catch {
-      setEntryMsg("Failed to connect to server.");
+    } catch (err) {
+      console.error("[revenue] manual entry", err);
+      setEntryError(userErrorMessage(err, "Could not save the entry. Please try again."));
     } finally {
       setEntrySaving(false);
     }
@@ -627,6 +631,9 @@ export function RevenueClient() {
             {entrySaving ? "Saving..." : "Add Revenue"}
           </button>
         </form>
+        {entryError && (
+          <p role="alert" className="mt-2 text-xs font-medium text-red-600">{entryError}</p>
+        )}
         {entryMsg && (
           <p className="mt-2 text-xs text-ink-600">{entryMsg}</p>
         )}

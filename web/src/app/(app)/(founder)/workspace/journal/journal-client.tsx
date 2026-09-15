@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -91,6 +92,7 @@ export function JournalClient() {
   const [deleting, setDeleting] = React.useState<string | null>(null);
   const [reflecting, setReflecting] = React.useState(false);
   const [revaluing, setRevaluing] = React.useState(false);
+  const [pageError, setPageError] = React.useState<string | null>(null);
   const [selectedEntry, setSelectedEntry] = React.useState<JournalEntry | null>(null);
   const [editingEntry, setEditingEntry] = React.useState<JournalEntry | null>(null);
 
@@ -112,9 +114,12 @@ export function JournalClient() {
       if (data.ok) {
         setEntries(data.entries);
         setTotal(data.total);
+      } else {
+        setPageError(userErrorMessage(ApiError.fromBody(res.status, data), "Could not load your journal. Please try again."));
       }
     } catch (err) {
       console.error("Failed to fetch journal:", err);
+      setPageError(userErrorMessage(err, "Could not load your journal. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -129,6 +134,7 @@ export function JournalClient() {
     e.preventDefault();
     if (!formTitle.trim()) return;
     setSubmitting(true);
+    setPageError(null);
 
     try {
       const tags = formTags
@@ -152,9 +158,12 @@ export function JournalClient() {
         resetForm();
         setPage(1);
         fetchEntries();
+      } else {
+        setPageError(userErrorMessage(ApiError.fromBody(res.status, data), "Could not save the entry. Please try again."));
       }
     } catch (err) {
       console.error("Failed to create entry:", err);
+      setPageError(userErrorMessage(err, "Could not save the entry. Please try again."));
     } finally {
       setSubmitting(false);
     }
@@ -164,6 +173,7 @@ export function JournalClient() {
     e.preventDefault();
     if (!editingEntry || !formTitle.trim()) return;
     setSubmitting(true);
+    setPageError(null);
 
     try {
       const tags = formTags
@@ -186,9 +196,12 @@ export function JournalClient() {
       if (data.ok) {
         resetForm();
         fetchEntries();
+      } else {
+        setPageError(userErrorMessage(ApiError.fromBody(res.status, data), "Could not update the entry. Please try again."));
       }
     } catch (err) {
       console.error("Failed to update entry:", err);
+      setPageError(userErrorMessage(err, "Could not update the entry. Please try again."));
     } finally {
       setSubmitting(false);
     }
@@ -197,15 +210,19 @@ export function JournalClient() {
   async function handleDelete(id: string) {
     if (!confirm("Delete this journal entry?")) return;
     setDeleting(id);
+    setPageError(null);
     try {
       const res = await fetch(`/api/journal/${id}`, { method: "DELETE" });
       const data = await res.json();
       if (data.ok) {
         if (selectedEntry?.id === id) setSelectedEntry(null);
         fetchEntries();
+      } else {
+        setPageError(userErrorMessage(ApiError.fromBody(res.status, data), "Could not delete the entry. Please try again."));
       }
     } catch (err) {
       console.error("Failed to delete entry:", err);
+      setPageError(userErrorMessage(err, "Could not delete the entry. Please try again."));
     } finally {
       setDeleting(null);
     }
@@ -214,6 +231,7 @@ export function JournalClient() {
   async function handleReflect() {
     if (reflecting) return;
     setReflecting(true);
+    setPageError(null);
     try {
       const res = await fetch("/api/journal/reflect", {
         method: "POST",
@@ -224,11 +242,11 @@ export function JournalClient() {
       if (data.ok) {
         fetchEntries();
       } else {
-        alert(data.error || "Failed to generate reflection");
+        setPageError(userErrorMessage(ApiError.fromBody(res.status, data), "Could not generate the reflection. Please try again."));
       }
     } catch (err) {
       console.error("Failed to generate reflection:", err);
-      alert("Failed to generate reflection. Please try again.");
+      setPageError(userErrorMessage(err, "Could not generate the reflection. Please try again."));
     } finally {
       setReflecting(false);
     }
@@ -237,6 +255,7 @@ export function JournalClient() {
   async function handleRevaluation() {
     if (revaluing) return;
     setRevaluing(true);
+    setPageError(null);
     try {
       const res = await fetch("/api/revaluation", {
         method: "POST",
@@ -247,11 +266,11 @@ export function JournalClient() {
       if (data.ok) {
         fetchEntries();
       } else {
-        alert(data.error || "Failed to generate revaluation");
+        setPageError(userErrorMessage(ApiError.fromBody(res.status, data), "Could not generate the revaluation. Please try again."));
       }
     } catch (err) {
       console.error("Failed to generate revaluation:", err);
-      alert("Failed to generate revaluation. Please try again.");
+      setPageError(userErrorMessage(err, "Could not generate the revaluation. Please try again."));
     } finally {
       setRevaluing(false);
     }
@@ -283,6 +302,11 @@ export function JournalClient() {
     <div className="flex gap-6">
       {/* Left: Timeline */}
       <div className="flex-1 min-w-0 space-y-6">
+        {pageError && (
+          <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {pageError}
+          </p>
+        )}
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-2">
           <button

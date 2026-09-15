@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X, ChevronRight, ChevronLeft, Loader2 } from "lucide-react";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface EsopGrantFormProps {
   poolId: string;
@@ -90,10 +91,10 @@ export function EsopGrantForm({ availableShares, onSuccess, onClose }: EsopGrant
         }),
       });
       const data = await res.json();
-      if (!data.ok) throw new Error(data.error ?? "Failed to create grant");
+      if (!data.ok) throw ApiError.fromBody(res.status, data);
       onSuccess();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      setError(userErrorMessage(e, "Something went wrong. Please try again."));
     } finally {
       setLoading(false);
     }

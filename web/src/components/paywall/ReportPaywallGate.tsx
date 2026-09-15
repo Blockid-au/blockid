@@ -30,6 +30,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { reportOrderPath } from "@/lib/paywall/report-delivery";
 import { TRUST_REPORT_5AUD } from "@/lib/pricing/v3-skus";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 export interface ReportPaywallQuote {
   credits: number;
@@ -119,14 +120,15 @@ export function ReportPaywallGate({
         reason?: string;
       };
       if (!res.ok || !data.ok || !data.url) {
-        setError(data.reason ?? `Checkout failed (${res.status})`);
+        setError(userErrorMessage(ApiError.fromBody(res.status, { ...data, error: data.reason }), "Checkout could not start. Please try again."));
         setPending(null);
         return;
       }
       // Full-page redirect to Stripe. No SPA transition — we leave the site.
       window.location.href = data.url;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
+      console.error("[paywall] checkout", err);
+      setError(userErrorMessage(err, "Checkout could not start. Please try again."));
       setPending(null);
     }
   }, [businessId, firstTouch]);
@@ -152,7 +154,7 @@ export function ReportPaywallGate({
         reason?: string;
       };
       if (!res.ok || !data.ok || !data.orderId) {
-        setError(data.reason ?? `Redeem failed (${res.status})`);
+        setError(userErrorMessage(ApiError.fromBody(res.status, { ...data, error: data.reason }), "Could not redeem the report. Please try again."));
         setPending(null);
         return;
       }
@@ -168,7 +170,8 @@ export function ReportPaywallGate({
       }
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
+      console.error("[paywall] redeem", err);
+      setError(userErrorMessage(err, "Could not redeem the report. Please try again."));
       setPending(null);
     }
   }, [

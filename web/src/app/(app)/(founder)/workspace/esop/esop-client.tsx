@@ -29,6 +29,7 @@ import {
   shortenAddress,
   type VestingInfo,
 } from "@/lib/wallet";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -349,7 +350,7 @@ export function EsopClient() {
         });
         const createJson = await createRes.json();
         if (!createJson.ok) {
-          setError(createJson.error ?? "Failed to add employee");
+          setError(userErrorMessage(ApiError.fromBody(createRes.status, createJson), "Failed to add employee"));
           setSubmitting(false);
           return;
         }
@@ -413,7 +414,7 @@ export function EsopClient() {
       setStep(0);
       await fetchShareholders();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Grant failed";
+      const msg = userErrorMessage(err, "Grant failed");
       setError(msg);
     } finally {
       setSubmitting(false);
@@ -443,7 +444,7 @@ export function EsopClient() {
       setSuccess(`Vesting revoked for ${grant.shareholder.name}.`);
       await loadActiveGrants();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Revoke failed";
+      const msg = userErrorMessage(err, "Revoke failed");
       setError(msg);
     } finally {
       setSubmitting(false);
