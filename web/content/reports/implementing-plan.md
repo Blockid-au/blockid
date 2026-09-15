@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v3.13.1  ·  **Updated:** 2026-09-14T16:00:03.025Z  ·  **Decided by:** ceo (2026-09-10T12:04:03.482Z)
+**Version:** v3.13.2  ·  **Updated:** 2026-09-15T16:00:02.514Z  ·  **Decided by:** ceo (2026-09-10T12:04:03.482Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -30,7 +30,6 @@
 | T0259 | CLO | SCN Report + PDF Redesign | major | ⬜ pending |
 | T0260 | CRO | Implement VC Method Valuation & Pricing Strategy | minor | ⬜ pending |
 | T0262 | CFO | Refine Startup Valuation Engine for PitchBook benchmark comparison | minor | ⬜ pending |
-| T0265 | CRO | CISA alerts integration | patch | ⬜ pending |
 
 ## Recently shipped
 - ✅ `T0275` **CLO** — S1 Compliance: one privacy policy (/legal/privacy canonical, /privacy 301), AI provider list = actual chain (groq/cerebras/sambanova/deepinfra/anthropic/openrouter/ollama), approved data sentence (no training claim either way), general-advice disclaimer on evaluator reports, doctoral-research sentence, PPL Food PTY LTD entity (`95b7033ef`)
@@ -45,6 +44,7 @@
 - ✅ `T0250` **CMO** — Hero one-liners: lib/marketing/hero-variants.ts (F1/F2/F3 arms) + GA4 hero_variant + hero-section + layout SITE_DESCRIPTION + messages hero.* (EN/VI) + 5-second test protocol (`f04879155`)
 
 ## Milestones
+- **M026** v3.13.2 — CRO: CISA alerts integration (2026-09-15, 1 tasks)
 - **M025** v3.13.1 — CRO: ACSC alerts integration (2026-09-14, 1 tasks)
 - **M024** v3.13.0 — CMO: AU startup percentile/positioning model integration (2026-09-13, 1 tasks)
 - **M023** v3.12.1 — CTO: Fix orchestrator stageUpdateArtifacts — agent commit match closes pending tasks prematurely (2026-09-12, 1 tasks)
@@ -56,4 +56,3 @@
 - **M017** v3.7.0 — CMO: Create Competitor Feature Release Tracker module (2026-08-28, 1 tasks)
 - **M016** v3.1.0 — CFO: Implement R&D Tax Incentive & ESIC Valuation Modifier (2026-07-22, 1 tasks)
 - **M015** v3.0.0 — RND: Evidence Vault Phase 2 — OAuth connectors (GitHub, Stripe, Google Analytics); CLO: Term Sheet AI v2 — persist analyses, Lawyer Questions, SVI link; CFO: Fundraising Readiness Report v2 — checklis (2026-07-20, 9 tasks)
-- **M014** v2.7.0 — CFO: R&D Tax Incentive and ESIC data integration (2026-07-19, 1 tasks)
