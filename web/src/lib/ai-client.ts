@@ -784,6 +784,17 @@ export interface AICallOptions {
 export const INTERACTIVE_PROVIDER_ORDER: Provider[] = ["groq", "cerebras", "gemini", "deepinfra", "claude-apikey", "sambanova", "claude-oauth", "openrouter", "ollama"];
 export const INTERACTIVE_TIMEOUT_MS = Number(process.env.AI_INTERACTIVE_TIMEOUT_MS ?? 30_000);
 
+/** First candidate (in the given order) that is not blocked and has headroom;
+ *  else the first merely-cooling one; else null. Used for interactive calls. */
+export function pickFirstUsable(candidates: Provider[]): Provider | null {
+  const now = Date.now();
+  const usable = candidates.filter((p) => providerBlockReason(p, now) === null);
+  const withRoom = usable.find((p) => providerCapacity(p) > 0);
+  if (withRoom) return withRoom;
+  if (usable.length > 0) return usable[0];
+  return candidates.find((p) => providerBlockReason(p, now) === "cooldown") ?? null;
+}
+
 /** Re-order a class candidate list for an interactive caller. Pure. */
 export function orderForInteractive(candidates: Provider[]): Provider[] {
   const rank = new Map(INTERACTIVE_PROVIDER_ORDER.map((p, i) => [p, i] as const));
@@ -2126,7 +2137,10 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
   try {
     while (tried.size < allProviders.length) {
       const remaining = allProviders.filter((p) => !tried.has(p));
-      const provider = pickBestProvider(remaining, taskClass);
+      // S32-F: an interactive caller takes the FIRST usable provider in the
+      // throughput order — the tier ranking in pickBestProvider would put the
+      // quality-cost tier (DeepInfra / Gemini) ahead of Groq and time out.
+      const provider = opts.interactive ? pickFirstUsable(remaining) : pickBestProvider(remaining, taskClass);
       if (!provider) break;
       tried.add(provider);
       noteFire(provider);

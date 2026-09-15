@@ -1245,3 +1245,11 @@ describe("S32-F interactive ordering", () => {
     expect(orderForInteractive([])).toEqual([]);
   });
 });
+
+describe("S32-F pickFirstUsable", () => {
+  it("returns the first candidate in order (no tier re-ranking) and null for an empty list", async () => {
+    const { pickFirstUsable } = await import("./ai-client");
+    expect(pickFirstUsable(["groq", "deepinfra"])).toBe("groq");
+    expect(pickFirstUsable([])).toBeNull();
+  });
+});
