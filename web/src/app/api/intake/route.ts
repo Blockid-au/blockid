@@ -60,6 +60,7 @@ import {
   type SignupGateDecision,
 } from "@/lib/analyses/signup-gate";
 import { apiRoute } from "@/lib/audit/api-route";
+import { startFirstAnalysisJob } from "@/lib/analyses/first-analysis/job";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -251,6 +252,18 @@ async function POST_handler(request: Request) {
       mimeType: file?.mimeType,
       bytes: file?.buffer.length,
     });
+    // S32-B — the full first analysis (SVI reasoning, indicative valuation,
+    // seven C-level sections, the emailed PDF) runs as a background job on
+    // the saved row. Fire-and-forget: the response never waits on a model
+    // call, and the 5-minute cron re-drives anything that stalls. Costs the
+    // founder nothing — the first analysis is free on every path.
+    if (analysisId) {
+      try {
+        startFirstAnalysisJob(analysisId, { userId });
+      } catch (err) {
+        console.error("[intake] could not start the first-analysis job —", err);
+      }
+    }
     return NextResponse.json({ ok: true, analysisId, ...result });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
