@@ -16,6 +16,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { mintHandoffToken, safeReturnUrl } from "@/lib/security/svi-handoff";
 
+const PUBLIC_ORIGIN = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://blockid.au";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -28,8 +30,10 @@ export async function GET(request: NextRequest) {
 
   const user = await getCurrentUser();
   if (!user) {
+    // Behind nginx `request.nextUrl.origin` is http://0.0.0.0:4001 — build
+    // the login URL on the public origin.
     const self = `/api/auth/svi-handoff?return=${encodeURIComponent(target.toString())}`;
-    return NextResponse.redirect(new URL(`/auth/login?next=${encodeURIComponent(self)}`, request.nextUrl.origin), 302);
+    return NextResponse.redirect(new URL(`/auth/login?next=${encodeURIComponent(self)}`, PUBLIC_ORIGIN), 302);
   }
 
   target.searchParams.set("svi_token", mintHandoffToken(user.id, secret));

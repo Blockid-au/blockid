@@ -34,6 +34,7 @@ describe("GET /api/auth/svi-handoff", () => {
     const res = await GET(req("https://blockid.au/api/auth/svi-handoff?return=https%3A%2F%2Fstartupvalueindex.com%2Fapi%2Fauth%2Fsession%3Freturn%3D%2Fpitchbook%2Fupload"));
     expect(res.status).toBe(302);
     const loc = new URL(res.headers.get("location")!);
+    expect(loc.origin).toBe("https://blockid.au"); // never the proxied 0.0.0.0:4001 origin
     expect(loc.pathname).toBe("/auth/login");
     expect(loc.searchParams.get("next")).toContain("/api/auth/svi-handoff?return=");
   });
