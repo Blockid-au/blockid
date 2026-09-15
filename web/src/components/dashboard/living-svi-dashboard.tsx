@@ -58,6 +58,7 @@ import { cn } from "@/lib/utils";
 import { AnalyzeCostModal, type CostRow } from "@/components/analyze/analyze-cost-modal";
 import type { ModelTier } from "@/lib/analyze/agent-plan";
 import type { AgentRole } from "@/lib/report-pipeline/types";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 /* ─── Types ───────────────────────────────────────────────────────────────── */
 
@@ -343,10 +344,12 @@ export function LivingSVIDashboard(props: LivingDashboardProps) {
   const [activeTab, setActiveTab] = React.useState<TabId>("journey");
   const [shareCopied, setShareCopied] = React.useState(false);
   const [pdfLoading, setPdfLoading] = React.useState(false);
+  const [pdfError, setPdfError] = React.useState<string | null>(null);
 
   const handleExportPdf = React.useCallback(async () => {
     if (!analysisId || pdfLoading) return;
     setPdfLoading(true);
+    setPdfError(null);
     try {
       const res = await fetch("/api/svi/pdf", {
         method: "POST",
@@ -361,8 +364,9 @@ export function LivingSVIDashboard(props: LivingDashboardProps) {
       a.download = `blockid-svi-report-${analysisId.slice(0, 8)}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch {
-      alert("PDF export failed. Please try again.");
+    } catch (err) {
+      console.error("[living-svi] pdf export", err);
+      setPdfError("PDF export failed. Please try again.");
     } finally {
       setPdfLoading(false);
     }
@@ -536,6 +540,9 @@ export function LivingSVIDashboard(props: LivingDashboardProps) {
                 Run New Analysis
               </Link>
             </div>
+            {pdfError && (
+              <p role="alert" className="mt-2 text-xs font-medium text-red-600">{pdfError}</p>
+            )}
           </div>
         </div>
       </div>
@@ -1138,12 +1145,12 @@ function ReportSectionRow({
         setConfirmingUnlock(false);
         setIsExpanded(true);
       } else {
-        setError(data.error ?? "Analysis failed. Please try again — no credits were charged.");
+        setError(userErrorMessage(ApiError.fromBody(res.status, data), "Analysis failed. Please try again — no credits were charged."));
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "";
+      console.error("[living-svi] unlock section", err);
       setError(
-        msg.includes("abort")
+        (err as { name?: string })?.name === "AbortError"
           ? "Analysis timed out. Our AI is busy — please try again in a moment. No credits charged."
           : "Connection interrupted. Please check your internet and try again. No credits charged.",
       );

@@ -36,6 +36,7 @@ import {
   type ReadinessLike,
   type SubScoreKey,
 } from "./investor-readiness-tile.helpers";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface NudgeCurrentPhase {
   slug: string;
@@ -123,7 +124,7 @@ export function InvestorReadinessTile() {
       if (!body.ok || !body.result?.readiness_score) {
         setState({
           kind: "error",
-          error: body.error ?? "no_readiness_payload",
+          error: userErrorMessage(ApiError.fromBody(res.status, body), "Could not load investor readiness right now."),
         });
         return;
       }
@@ -135,7 +136,7 @@ export function InvestorReadinessTile() {
     } catch (err) {
       setState({
         kind: "error",
-        error: err instanceof Error ? err.message : "fetch_failed",
+        error: userErrorMessage(err, "Could not load investor readiness right now."),
       });
     }
   }

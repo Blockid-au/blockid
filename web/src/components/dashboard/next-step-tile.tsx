@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 type NextAction = {
   title: string;
@@ -78,7 +79,7 @@ export function NextStepTile() {
       }
       const body = (await res.json()) as ApiResponse;
       if (!body.ok || !body.result) {
-        setState({ kind: "error", error: body.error ?? "unknown_error" });
+        setState({ kind: "error", error: userErrorMessage(ApiError.fromBody(res.status, body), "Could not load your next step right now.") });
         return;
       }
       setState({
@@ -89,7 +90,7 @@ export function NextStepTile() {
     } catch (err) {
       setState({
         kind: "error",
-        error: err instanceof Error ? err.message : "fetch_failed",
+        error: userErrorMessage(err, "Could not load your next step right now."),
       });
     }
   }

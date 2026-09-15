@@ -17,6 +17,7 @@ import {
   readPendingPayload,
   type PendingPackPayload,
 } from "@/lib/idea-phase/session-state";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 // Layer B CTA modal — "Save your Founder Pack".
 //
@@ -101,12 +102,13 @@ function SaveFounderPackModalContent({ onClose }: { onClose: () => void }) {
         error?: string;
       } | null;
       if (!res.ok || !data?.ok) {
-        throw new Error(data?.error ?? "Could not send the link. Try again.");
+        throw ApiError.fromBody(res.status, data);
       }
       setState("ok");
     } catch (err) {
+      console.error("[founder-pack] save", err);
       setState("err");
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(userErrorMessage(err, "Could not send the link. Please try again."));
     }
   };
 

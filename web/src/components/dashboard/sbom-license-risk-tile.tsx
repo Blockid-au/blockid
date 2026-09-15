@@ -26,6 +26,7 @@ import {
   type SbomTileBand,
   type SbomTilePayload,
 } from "./sbom-license-risk-tile.helpers";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 const BAND_STYLES: Record<
   SbomTileBand,
@@ -91,7 +92,7 @@ export function SbomLicenseRiskTile({ rowCap = DEFAULT_ROW_CAP }: SbomLicenseRis
     } catch (err) {
       setState({
         kind: "error",
-        error: err instanceof Error ? err.message : "fetch_failed",
+        error: userErrorMessage(err, "Could not load licence risk right now."),
       });
     }
   }, []);
