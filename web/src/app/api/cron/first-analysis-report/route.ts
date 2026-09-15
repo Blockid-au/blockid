@@ -1,8 +1,10 @@
 // GET|POST /api/cron/first-analysis-report — S32-B, every 5 minutes.
 //
 // Retries first-analysis jobs left `failed` (attempts < 3) or stuck in
-// `running` for > 15 min, and sends the PDF email for finished reports whose
-// destination became known after the job landed. Logic lives in
+// `running` for > 15 min, backfills the missing sections of `done_partial`
+// reports one section at a time (S32-E: <= SECTION_MAX_ATTEMPTS each, then
+// `unavailable`), and sends the PDF email for finished or partial reports
+// whose destination became known after the job landed. Logic lives in
 // `@/lib/analyses/first-analysis/sweep` (shares the job runner and the
 // deliverer with the intake path — nothing duplicated).
 //

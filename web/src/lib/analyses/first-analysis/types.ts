@@ -14,14 +14,32 @@ import type { ReportMeta } from "./meta";
 
 export const FIRST_ANALYSIS_REPORT_VERSION = 1 as const;
 
-export type FullReportStatus = "queued" | "running" | "done" | "failed";
+/**
+ * Job state. `done_partial` (migration 0391): at least
+ * FULL_REPORT_PARTIAL_MIN_SECTIONS of the seven voices exist after the run's
+ * retries; the founder sees and is emailed what exists ("part 1") while the
+ * cron backfills the rest section by section, then the row becomes `done`
+ * and the complete report is emailed once more.
+ */
+export type FullReportStatus = "queued" | "running" | "done" | "done_partial" | "failed";
 
 export const FULL_REPORT_STATUSES: readonly FullReportStatus[] = [
   "queued",
   "running",
   "done",
+  "done_partial",
   "failed",
 ];
+
+/** Sections that must exist before a run is delivered as a partial report. */
+export const FULL_REPORT_PARTIAL_MIN_SECTIONS = 4;
+/** Attempts per section (each job run that tries it counts one) before it is `unavailable`. */
+export const SECTION_MAX_ATTEMPTS = 3;
+
+/** A report the founder can read and download: complete or partial. */
+export function isFullReportReadable(status: FullReportStatus | null | undefined): boolean {
+  return status === "done" || status === "done_partial";
+}
 
 export function isFullReportStatus(v: unknown): v is FullReportStatus {
   return typeof v === "string" && (FULL_REPORT_STATUSES as readonly string[]).includes(v);
@@ -96,6 +114,11 @@ export const AGENT_META: Record<
   },
 };
 
+/** Inline marker appended to a market figure on its first occurrence in a section (agents.ts). */
+export const BENCHMARK_TAG = "(benchmark — not from your data)";
+/** Printed once under a section that carries any benchmark figure. */
+export const BENCHMARK_FOOTER = "Figures marked as benchmarks are market references, not your data.";
+
 /** Minimum words a section must carry to be accepted from the model. */
 export const AGENT_SECTION_MIN_WORDS = 150;
 /** Every section ends with exactly this many next steps. */
@@ -117,6 +140,44 @@ export interface AgentSection {
   /** How the call was routed: CEO = `synthesis`, the other voices = `report`. */
   taskClass?: "classify" | "report" | "synthesis";
   generatedAt: string;
+  /**
+   * Dollar figures in this section that are market references, not the
+   * founder's data (agents.ts `checkGrounding`). Each is tagged inline on
+   * first occurrence; when the list is non-empty the page and the PDF print
+   * the one-line footer.
+   */
+  benchmarkFigures?: string[];
+}
+
+/** Per-section job state (S32-E partial delivery). */
+export type SectionStatus = "pending" | "writing" | "done" | "failed" | "unavailable";
+
+export interface SectionState {
+  status: SectionStatus;
+  /** Job runs that tried this section (the in-call correction retry is part of one attempt). */
+  attempts: number;
+  /** Last failure reason, for support and the honest PDF one-liner. */
+  error?: string;
+  /** Provider / model of the last attempt, successful or not. */
+  provider?: string;
+  model?: string;
+  lastAttemptAt?: string;
+}
+
+/** The section as every consumer of the `/full-report` payload sees it — one shape, never a bare string. */
+export interface AgentSectionView {
+  role: FirstAnalysisAgent;
+  title: string | null;
+  body: string | null;
+  nextSteps: string[];
+  provider: string | null;
+  model: string | null;
+  status: SectionStatus;
+  wordCount: number;
+  generatedAt: string | null;
+  benchmarkFigures: string[];
+  attempts: number;
+  error: string | null;
 }
 
 export interface DimensionReasoning {
@@ -238,9 +299,23 @@ export interface FirstAnalysisReport {
   actionPlan: ActionPlanSection;
   agents: Partial<Record<FirstAnalysisAgent, AgentSection>>;
   progress: ReportProgress;
-  /** S32-C — which model wrote which section (./meta.ts); set when the report finishes. */
+  /** S32-C — which model wrote which section (./meta.ts); rebuilt after every section lands, so it is present on a failed or partial run too. */
   meta?: ReportMeta;
+  /** Per-section attempts and status — the cron backfills only `pending` / `failed` sections with attempts left. */
+  sections?: Partial<Record<FirstAnalysisAgent, SectionState>>;
+  /** ISO — set once, the first time the run was delivered as a partial report. */
+  partialAt?: string;
+  /** Email stamps that the send-once column cannot carry on its own. */
+  delivery?: {
+    /** ISO — the "(part 1)" email went out at this time; the complete report is emailed once more when the row is done. */
+    partialEmailedAt?: string;
+  };
 }
+
+/** The report as the `/full-report` payload carries it: every voice present, as an object. */
+export type FirstAnalysisReportView = Omit<FirstAnalysisReport, "agents"> & {
+  agents: Record<FirstAnalysisAgent, AgentSectionView>;
+};
 
 /** What the page sees pre-gate for a guest: echo + SVI + one CEO paragraph. */
 export interface FirstAnalysisPreview {
@@ -260,7 +335,7 @@ export interface FirstAnalysisPreview {
 export interface FullReportView {
   status: FullReportStatus | null;
   locked: boolean;
-  report: FirstAnalysisReport | null;
+  report: FirstAnalysisReportView | null;
   preview: FirstAnalysisPreview | null;
   emailedAt: string | null;
   /** Masked destination (a***@example.com) when one is known. */
@@ -269,6 +344,63 @@ export interface FullReportView {
   error: string | null;
   /** Seconds to wait before polling again — honest backoff under load. */
   pollAfterSec: number;
+}
+
+/**
+ * Normalise `agents` to one object per voice. Tolerates the shapes a stored
+ * row may carry — a full AgentSection, a bare string body (older writers),
+ * or nothing — and derives `status` from the section, the per-section state
+ * and the progress lists, in that order of trust.
+ */
+export function normaliseAgentSections(
+  report: Pick<FirstAnalysisReport, "agents" | "progress" | "sections">,
+): Record<FirstAnalysisAgent, AgentSectionView> {
+  const out = {} as Record<FirstAnalysisAgent, AgentSectionView>;
+  const agents = (report.agents ?? {}) as Partial<Record<FirstAnalysisAgent, AgentSection | string | null>>;
+  for (const role of FIRST_ANALYSIS_AGENTS) {
+    const raw = agents[role];
+    const section: AgentSection | null =
+      typeof raw === "string"
+        ? { role, title: AGENT_META[role].label, body: raw, nextSteps: [], wordCount: countWords(raw), generatedAt: "" }
+        : raw && typeof raw === "object" && typeof raw.body === "string"
+          ? raw
+          : null;
+    const state = report.sections?.[role];
+    const status: SectionStatus = section
+      ? "done"
+      : state?.status && state.status !== "done"
+        ? state.status
+        : report.progress?.failed?.includes(role)
+          ? "failed"
+          : report.progress?.current === role
+            ? "writing"
+            : "pending";
+    out[role] = {
+      role,
+      title: section?.title ?? null,
+      body: section?.body ?? null,
+      nextSteps: section?.nextSteps ?? [],
+      provider: section?.provider ?? state?.provider ?? null,
+      model: section?.model ?? state?.model ?? null,
+      status,
+      wordCount: section?.wordCount ?? 0,
+      generatedAt: section?.generatedAt || null,
+      benchmarkFigures: section?.benchmarkFigures ?? [],
+      attempts: state?.attempts ?? (section ? 1 : 0),
+      error: state?.error ?? null,
+    };
+  }
+  return out;
+}
+
+/** Voices the founder is still waiting on (not written, not given up on). */
+export function pendingSections(report: Pick<FirstAnalysisReport, "agents" | "sections">): FirstAnalysisAgent[] {
+  return FIRST_ANALYSIS_AGENTS.filter((role) => !report.agents?.[role] && report.sections?.[role]?.status !== "unavailable");
+}
+
+/** Voices given up on after SECTION_MAX_ATTEMPTS. */
+export function unavailableSections(report: Pick<FirstAnalysisReport, "agents" | "sections">): FirstAnalysisAgent[] {
+  return FIRST_ANALYSIS_AGENTS.filter((role) => !report.agents?.[role] && report.sections?.[role]?.status === "unavailable");
 }
 
 /** First paragraph of an agent body, for the pre-gate CEO preview. */

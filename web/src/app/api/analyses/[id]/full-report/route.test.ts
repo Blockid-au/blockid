@@ -155,4 +155,44 @@ describe("GET /api/analyses/[id]/full-report", () => {
     expect(body.attempts).toBe(3);
     expect(body.pollAfterSec).toBe(0);
   });
+  // S32-E: `report.agents` came back as strings in one shape and objects in
+  // another — the payload now carries one object per voice, always.
+  describe("payload shape", () => {
+    it("every voice is an object {role, title, body, nextSteps, provider, model, status} — written or not", async () => {
+      getCurrentUserMock.mockResolvedValue({ id: "u1" });
+      const r = sampleReport();
+      delete r.agents.clo;
+      delete r.agents.chro;
+      r.sections = { clo: { status: "failed", attempts: 1, provider: "groq", model: "allam-2-7b", error: "ungrounded" }, chro: { status: "unavailable", attempts: 3 } };
+      loadRowMock.mockResolvedValue(row({ user_id: "u1", full_report_status: "done_partial", full_report_error: "2 section(s) not written: clo, chro", full_report_json: r }));
+      const body = await (await req()).json();
+      expect(body.status).toBe("done_partial");
+      expect(body.error).toContain("clo");
+      expect(Object.keys(body.report.agents)).toEqual(["ceo", "cfo", "cmo", "cto", "cpo", "clo", "chro"]);
+      for (const role of Object.keys(body.report.agents)) {
+        const a = body.report.agents[role];
+        expect(typeof a).toBe("object");
+        expect(a).toMatchObject({ role, nextSteps: expect.any(Array), status: expect.any(String), wordCount: expect.any(Number) });
+        expect(a).toHaveProperty("title");
+        expect(a).toHaveProperty("body");
+        expect(a).toHaveProperty("provider");
+        expect(a).toHaveProperty("model");
+      }
+      expect(body.report.agents.ceo).toMatchObject({ status: "done", provider: "test", model: "stub", wordCount: expect.any(Number) });
+      expect(typeof body.report.agents.ceo.body).toBe("string");
+      expect(body.report.agents.clo).toMatchObject({ status: "failed", title: null, body: null, nextSteps: [], provider: "groq", model: "allam-2-7b", attempts: 1, error: "ungrounded" });
+      expect(body.report.agents.chro).toMatchObject({ status: "unavailable", body: null, attempts: 3 });
+      // A partial keeps polling on the cron cadence so the backfilled sections appear.
+      expect(body.pollAfterSec).toBe(20);
+    });
+
+    it("a bare-string section from an older writer is normalised to the same object", async () => {
+      getCurrentUserMock.mockResolvedValue({ id: "u1" });
+      const r = sampleReport() as unknown as { agents: Record<string, unknown> };
+      r.agents.cfo = "Only a body paragraph.\n\nAnd another.";
+      loadRowMock.mockResolvedValue(row({ user_id: "u1", full_report_json: r }));
+      const body = await (await req()).json();
+      expect(body.report.agents.cfo).toMatchObject({ role: "cfo", status: "done", title: "Finances & valuation", body: "Only a body paragraph.\n\nAnd another.", nextSteps: [], wordCount: 6 });
+    });
+  });
 });

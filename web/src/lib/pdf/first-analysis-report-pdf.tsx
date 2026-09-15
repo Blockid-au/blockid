@@ -60,13 +60,20 @@ import { pdfPageCount } from "./page-count";
 import { buildReportMeta } from "@/lib/analyses/first-analysis/meta";
 import {
   AGENT_META,
+  BENCHMARK_FOOTER,
   FIRST_ANALYSIS_AGENTS,
+  SECTION_MAX_ATTEMPTS,
+  pendingSections,
+  unavailableSections,
   type AgentSection,
   type FirstAnalysisAgent,
   type FirstAnalysisReport,
+  type SectionStatus,
 } from "@/lib/analyses/first-analysis/types";
 
 export type ReportVariant = "free" | "unlimited";
+/** Which delivery this render is (job.ts `DeliveryPart`): a partial prints "to follow" notes and a part-1 cover line. */
+export type ReportPart = "single" | "partial" | "complete";
 
 /** The free tier's floor. Pinned by the colocated suite. */
 export const FIRST_ANALYSIS_MIN_PAGES = 10;
@@ -110,8 +117,26 @@ function bodyParagraphs(body: string): string[] {
  *  wrote the sections (from `report.meta`, or folded from the sections
  *  themselves when a report pre-dates the meta block). */
 export function preparedWithLine(report: FirstAnalysisReport): string {
-  const meta = report.meta ?? buildReportMeta(report.agents);
+  const meta = report.meta ?? buildReportMeta(report.agents, report.sections ?? {});
   return meta.preparedWith;
+}
+
+/** Status of a voice's page: written, still to follow (partial), or given up on. */
+export function sectionPageStatus(report: FirstAnalysisReport, role: FirstAnalysisAgent): SectionStatus {
+  if (report.agents[role]) return "done";
+  return report.sections?.[role]?.status === "unavailable" ? "unavailable" : "pending";
+}
+
+/** The one-line note for a voice that is not on its page. */
+export function missingSectionNote(report: FirstAnalysisReport, role: FirstAnalysisAgent, part: ReportPart): string {
+  const meta = AGENT_META[role];
+  if (sectionPageStatus(report, role) === "unavailable") {
+    return `The ${meta.role} section for ${report.company} could not be written after ${SECTION_MAX_ATTEMPTS} attempts — the AI models available did not produce a section that met BlockID's grounding rules, so nothing is shown rather than something invented. The other voices stand on their own; the "What we read" table and the 30-day plan cover this lens in outline.`;
+  }
+  if (part === "partial") {
+    return `To follow — the ${meta.role} section for ${report.company} is still being written. This is part 1; the complete report, with this section, will be emailed when it finishes, and the analysis on screen updates as each voice lands.`;
+  }
+  return `The ${meta.role} section for ${report.company} could not be written in this run. It is retried automatically; open the analysis on screen for the latest version, or press "Resend report" once it lands.`;
 }
 
 function longDate(iso: string): string {
@@ -144,8 +169,17 @@ function Para({ children }: { children: string }) {
 
 /* ─── Cover ─────────────────────────────────────────────────────────────── */
 
-function CoverPage({ report, variant }: { report: FirstAnalysisReport; variant: ReportVariant }) {
+function CoverPage({ report, variant, part }: { report: FirstAnalysisReport; variant: ReportVariant; part: ReportPart }) {
   const v = report.valuation;
+  const written = FIRST_ANALYSIS_AGENTS.filter((r) => Boolean(report.agents[r]));
+  const pending = pendingSections(report);
+  const unavailable = unavailableSections(report);
+  const voicesLine =
+    part === "partial" && pending.length > 0
+      ? `Part 1 — ${written.length} of 7 written · ${pending.length} to follow`
+      : unavailable.length > 0
+        ? `${written.length} of 7 written · ${unavailable.length} unavailable`
+        : "7 C-level voices";
   return (
     <Page size="A4" style={[s.page, { backgroundColor: C.ink900 }]} wrap={false}>
       <View style={{ flex: 1, justifyContent: "space-between" }}>
@@ -157,8 +191,13 @@ function CoverPage({ report, variant }: { report: FirstAnalysisReport; variant: 
             {report.company}
           </Text>
           <Text style={{ fontSize: 14, color: C.brand200, marginTop: 8 }}>
-            {variant === "unlimited" ? "First analysis — full report" : "First analysis — free report"}
+            {`${variant === "unlimited" ? "First analysis — full report" : "First analysis — free report"}${part === "partial" ? " (part 1)" : ""}`}
           </Text>
+          {part === "partial" && pending.length > 0 && (
+            <Text style={{ fontSize: 9, color: C.ink300, marginTop: 8 }}>
+              {`${pending.length} section${pending.length === 1 ? " is" : "s are"} still being written (${pending.map((r) => AGENT_META[r].role).join(", ")}) — the complete report will be emailed when ${pending.length === 1 ? "it finishes" : "they finish"}.`}
+            </Text>
+          )}
           <Text style={{ fontSize: 9, color: C.ink400, marginTop: 6 }}>{longDate(report.generatedAt)}</Text>
         </View>
 
@@ -175,7 +214,7 @@ function CoverPage({ report, variant }: { report: FirstAnalysisReport; variant: 
           </View>
           <View style={{ flex: 1, backgroundColor: C.ink800, borderRadius: 8, padding: 14 }}>
             <Text style={{ fontSize: 7, color: C.ink400, textTransform: "uppercase", letterSpacing: 1 }}>Written by</Text>
-            <Text style={{ fontSize: 12, fontFamily: "Helvetica-Bold", color: C.white, marginTop: 6 }}>7 C-level voices</Text>
+            <Text style={{ fontSize: 12, fontFamily: "Helvetica-Bold", color: C.white, marginTop: 6 }}>{voicesLine}</Text>
             <Text style={{ fontSize: 8, color: C.ink300, marginTop: 2 }}>CEO · CFO · CMO · CTO · CPO · CLO · CHRO</Text>
           </View>
         </View>
@@ -408,12 +447,17 @@ function ValuationPage({ report }: { report: FirstAnalysisReport }) {
 
 /* ─── Agent pages ───────────────────────────────────────────────────────── */
 
-function AgentPage({ role, section, n, company }: { role: FirstAnalysisAgent; section: AgentSection | undefined; n: number; company: string }) {
+function AgentPage({ role, section, n, report, part }: { role: FirstAnalysisAgent; section: AgentSection | undefined; n: number; report: FirstAnalysisReport; part: ReportPart }) {
   const meta = AGENT_META[role];
+  const status = sectionPageStatus(report, role);
+  const subtitle = `${meta.role} · ${meta.label} — ${meta.lens}`;
   return (
     <Page size="A4" style={s.page}>
       <HeaderBar />
-      <PageTitle title={section ? clip(section.title, 110) : `${meta.label} (${meta.role})`} subtitle={`${meta.role} · ${meta.label} — ${meta.lens}`} />
+      <PageTitle
+        title={section ? clip(section.title, 110) : `${meta.label} (${meta.role})${status === "unavailable" ? " — unavailable" : part === "partial" ? " — to follow" : ""}`}
+        subtitle={subtitle}
+      />
       <PageMarker n={n} title={`${meta.label} (${meta.role})`} />
       {section ? (
         <>
@@ -424,12 +468,13 @@ function AgentPage({ role, section, n, company }: { role: FirstAnalysisAgent; se
           {section.nextSteps.map((step, i) => (
             <ActionItem key={`ns-${i}`} num={i + 1} text={clip(step, 260)} />
           ))}
+          {(section.benchmarkFigures?.length ?? 0) > 0 && (
+            <Text style={{ fontSize: 7.5, color: C.ink500, marginTop: 8 }}>{BENCHMARK_FOOTER}</Text>
+          )}
         </>
       ) : (
         <View style={{ marginTop: 10, borderWidth: 0.5, borderColor: C.surface200, borderRadius: 8, padding: 12, backgroundColor: C.surface50 }}>
-          <Text style={{ fontSize: 9, color: C.ink700, lineHeight: 1.5 }}>
-            {`The ${meta.role} section for ${company} could not be written in this run. It is retried automatically; open the analysis on screen for the latest version, or press "Resend report" once it lands.`}
-          </Text>
+          <Text style={{ fontSize: 9, color: C.ink700, lineHeight: 1.5 }}>{missingSectionNote(report, role, part)}</Text>
         </View>
       )}
       <Footer />
@@ -634,12 +679,14 @@ function AppendixMilestonesPage({ report }: { report: FirstAnalysisReport }) {
 export interface FirstAnalysisReportPDFProps {
   report: FirstAnalysisReport;
   variant?: ReportVariant;
+  /** `partial` renders the available voices with "to follow" pages for the rest — page count unchanged by construction. */
+  part?: ReportPart;
 }
 
-export function FirstAnalysisReportPDF({ report, variant = "free" }: FirstAnalysisReportPDFProps) {
+export function FirstAnalysisReportPDF({ report, variant = "free", part = "single" }: FirstAnalysisReportPDFProps) {
   return (
-    <Document title={`${report.company} — first analysis`} author="BlockID.au" subject="Startup Value Index first analysis">
-      <CoverPage report={report} variant={variant} />
+    <Document title={`${report.company} — first analysis${part === "partial" ? " (part 1)" : ""}`} author="BlockID.au" subject="Startup Value Index first analysis">
+      <CoverPage report={report} variant={variant} part={part} />
       <ContentsPage variant={variant} />
       <EchoPage report={report} />
       <SviPage report={report} />
@@ -647,7 +694,7 @@ export function FirstAnalysisReportPDF({ report, variant = "free" }: FirstAnalys
       <DimensionsPage report={report} from={4} to={8} n={6} />
       <ValuationPage report={report} />
       {FIRST_ANALYSIS_AGENTS.map((role, i) => (
-        <AgentPage key={role} role={role} section={report.agents[role]} n={8 + i} company={report.company} />
+        <AgentPage key={role} role={role} section={report.agents[role]} n={8 + i} report={report} part={part} />
       ))}
       <PlanPage report={report} />
       <GlossaryPage />

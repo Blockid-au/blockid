@@ -5,10 +5,14 @@
 // against; everyone else gets 404, never 403 (a 403 confirms the id).
 //
 // The body is a `FullReportView` (lib/analyses/first-analysis/view.ts):
-//   * `status`      queued | running | done | failed | null
+//   * `status`      queued | running | done | done_partial | failed | null
+//                   (`done_partial` — S32-E: >= 4 of 7 voices delivered, the
+//                   cron backfills the rest; the page keeps polling slowly)
 //   * `locked`      true for a guest who has not given an email yet — they
 //                   get `preview` (echo, SVI, valuation, one CEO paragraph);
-//   * `report`      the streaming FirstAnalysisReport once unlocked;
+//   * `report`      the streaming report once unlocked — `report.agents` is
+//                   always one object per voice ({role, title, body,
+//                   nextSteps, provider, model, status, …}), never a string;
 //   * `pollAfterSec` honest backoff — 0 when finished, longer while the AI
 //                   queue is saturated (`progress.queuedForSec`).
 //

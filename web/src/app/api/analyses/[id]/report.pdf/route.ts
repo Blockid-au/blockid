@@ -17,8 +17,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { readAnonKey } from "@/lib/analyses/anon-key";
 import { getAnalysisForViewer } from "@/lib/analyses/store";
 import { loadFullReportRow } from "@/lib/analyses/first-analysis/store";
-import { resolveReportVariant } from "@/lib/analyses/first-analysis/job";
+import { deliveryPartFor, resolveReportVariant } from "@/lib/analyses/first-analysis/job";
 import { verifyDownloadToken } from "@/lib/analyses/first-analysis/download-token";
+import { isFullReportReadable } from "@/lib/analyses/first-analysis/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -64,7 +65,9 @@ export async function GET(
   if (!authorised) return notFound();
 
   const row = await loadFullReportRow(id);
-  if (!row || row.full_report_status !== "done" || !row.full_report_json) {
+  // A partial report (done_partial) downloads too: the available sections,
+  // with a "to follow" note on each voice still being written.
+  if (!row || !isFullReportReadable(row.full_report_status) || !row.full_report_json) {
     return NextResponse.json(
       { ok: false, error: "Report not ready", status: row?.full_report_status ?? null },
       { status: 409 },
@@ -73,7 +76,7 @@ export async function GET(
 
   const variant = await resolveReportVariant(row);
   const { renderFirstAnalysisReportPdf } = await import("@/lib/pdf/first-analysis-report-pdf");
-  const { buffer } = await renderFirstAnalysisReportPdf({ report: row.full_report_json, variant });
+  const { buffer } = await renderFirstAnalysisReportPdf({ report: row.full_report_json, variant, part: deliveryPartFor(row, row.full_report_json) });
   return new Response(new Uint8Array(buffer), {
     status: 200,
     headers: {

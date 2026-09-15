@@ -15,7 +15,10 @@ const getForViewerMock = vi.fn();
 vi.mock("@/lib/analyses/store", () => ({ getAnalysisForViewer: (id: string, v: unknown) => getForViewerMock(id, v) }));
 const loadRowMock = vi.fn();
 vi.mock("@/lib/analyses/first-analysis/store", () => ({ loadFullReportRow: (id: string) => loadRowMock(id) }));
-vi.mock("@/lib/analyses/first-analysis/job", () => ({ resolveReportVariant: vi.fn().mockResolvedValue("free") }));
+vi.mock("@/lib/analyses/first-analysis/job", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/analyses/first-analysis/job")>()),
+  resolveReportVariant: vi.fn().mockResolvedValue("free"),
+}));
 const renderMock = vi.fn();
 vi.mock("@/lib/pdf/first-analysis-report-pdf", () => ({
   renderFirstAnalysisReportPdf: (a: unknown) => renderMock(a),
@@ -76,6 +79,20 @@ describe("GET /api/analyses/[id]/report.pdf", () => {
     const res = await get();
     expect(res.status).toBe(409);
     expect(await res.json()).toMatchObject({ ok: false, status: "running" });
+  });
+
+  it("S32-E: a partial report (done_partial) downloads, rendered as part 1", async () => {
+    getForViewerMock.mockResolvedValue({ id: ID });
+    const report = sampleReport();
+    delete report.agents.clo;
+    delete report.agents.chro;
+    delete report.agents.cpo;
+    report.sections = { clo: { status: "failed", attempts: 1 }, chro: { status: "failed", attempts: 1 }, cpo: { status: "failed", attempts: 1 } };
+    report.partialAt = "2026-09-15T00:05:00.000Z";
+    loadRowMock.mockResolvedValue({ id: ID, user_id: null, full_report_status: "done_partial", full_report_json: report });
+    const res = await get();
+    expect(res.status).toBe(200);
+    expect(renderMock).toHaveBeenCalledWith(expect.objectContaining({ part: "partial", variant: "free" }));
   });
 
   it("404s a malformed id", async () => {

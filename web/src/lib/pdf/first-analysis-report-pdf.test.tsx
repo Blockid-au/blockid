@@ -16,7 +16,8 @@ import { PDFParse } from "pdf-parse";
 
 import { pdfPageCount } from "./page-count";
 import { FIRST_ANALYSIS_MIN_PAGES, renderFirstAnalysisReportPdf } from "./first-analysis-report-pdf";
-import { sampleReport } from "@/lib/analyses/first-analysis/fixtures";
+import { sampleAgentSection, sampleReport } from "@/lib/analyses/first-analysis/fixtures";
+import { BENCHMARK_TAG } from "@/lib/analyses/first-analysis/types";
 
 async function fullText(buffer: Buffer): Promise<string> {
   expect(buffer.subarray(0, 4).toString("latin1")).toBe("%PDF");
@@ -102,5 +103,44 @@ describe("renderFirstAnalysisReportPdf", () => {
     expect(text).toContain("SVI-based");
     expect(text).toContain("No revenue was provided");
     expect(text).not.toContain("Revenue-anchored");
+  }, 60_000);
+  // S32-E: a partial report (4 of 7 voices) still clears the floor by
+  // structure, says "to follow" on the missing pages, and an unavailable
+  // voice gets the honest one-liner.
+  it("S32-E: a 4-of-7 partial renders part 1 — ≥ 10 pages, 'to follow' notes, part-1 cover line", async () => {
+    const report = sampleReport();
+    delete report.agents.cpo;
+    delete report.agents.clo;
+    delete report.agents.chro;
+    report.sections = { cpo: { status: "failed", attempts: 1 }, clo: { status: "failed", attempts: 2 }, chro: { status: "failed", attempts: 1 } };
+    report.partialAt = "2026-09-15T00:05:00.000Z";
+    delete report.completedAt;
+    const { buffer, pages } = await renderFirstAnalysisReportPdf({ report, variant: "free", part: "partial" });
+    expect(pages).toBe(pdfPageCount(buffer));
+    expect(pages).toBeGreaterThanOrEqual(FIRST_ANALYSIS_MIN_PAGES);
+    expect(pages).toBeGreaterThanOrEqual(17);
+    const text = await fullText(buffer);
+    expect(text).toContain("(part 1)");
+    expect(text).toMatch(/Part 1 — 4 of 7 written · 3 to\s+follow/);
+    expect(text).toContain("3 sections are still being written (CPO, CLO, CHRO)");
+    expect(text).toMatch(/To follow — the CLO section for Kelpie is still being written/);
+    expect(text).not.toContain("could not be written in this run");
+  }, 60_000);
+
+  it("S32-E: an unavailable voice prints the honest after-three-attempts line; the benchmark footer prints under a tagged section", async () => {
+    const report = sampleReport();
+    delete report.agents.chro;
+    report.sections = { chro: { status: "unavailable", attempts: 3, error: "ungrounded" } };
+    report.agents.cfo = sampleAgentSection("cfo", {
+      body: `Plan a budget of A$140k ${BENCHMARK_TAG} for two hires. ${report.agents.cfo!.body}`,
+      benchmarkFigures: ["A$140k"],
+    });
+    const { buffer, pages } = await renderFirstAnalysisReportPdf({ report, variant: "free", part: "single" });
+    expect(pages).toBeGreaterThanOrEqual(17);
+    const text = await fullText(buffer);
+    expect(text).toMatch(/CHRO section for Kelpie could not be written after 3 attempts/);
+    expect(text).toMatch(/6 of 7 written · 1 un-? ?available/);
+    expect(text).toContain("Figures marked as benchmarks are market references, not your data");
+    expect(text).toContain("(benchmark — not from your data)");
   }, 60_000);
 });

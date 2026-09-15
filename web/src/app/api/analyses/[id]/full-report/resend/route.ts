@@ -18,6 +18,7 @@ import { readAnonKey } from "@/lib/analyses/anon-key";
 import { getAnalysisForViewer } from "@/lib/analyses/store";
 import { loadFullReportRow } from "@/lib/analyses/first-analysis/store";
 import { deliverFullReport } from "@/lib/analyses/first-analysis/job";
+import { isFullReportReadable } from "@/lib/analyses/first-analysis/types";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { apiRoute } from "@/lib/audit/api-route";
 
@@ -65,7 +66,7 @@ async function POST_handler(
 
   const row = await loadFullReportRow(id);
   if (!row) return reply("not_found");
-  if (row.full_report_status !== "done" || !row.full_report_json) return reply("not_ready");
+  if (!isFullReportReadable(row.full_report_status) || !row.full_report_json) return reply("not_ready");
   if (!row.full_report_email && !row.user_id) return reply("no_email");
 
   const limit = checkRateLimit(`first-analysis-resend:${id}`, RESEND_LIMIT_PER_DAY, DAY_MS);

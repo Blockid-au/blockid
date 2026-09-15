@@ -7,16 +7,18 @@
 // wrote a founder's report — never a marketing name for a model that was
 // not used. Pure: no I/O, no Next runtime, safe for the PDF renderer.
 
-import { FIRST_ANALYSIS_AGENTS, type AgentSection, type FirstAnalysisAgent } from "./types";
+import { FIRST_ANALYSIS_AGENTS, type AgentSection, type FirstAnalysisAgent, type SectionState } from "./types";
 
 export interface ReportSectionMeta {
   provider: string;
   model: string;
   taskClass: "report" | "synthesis";
+  /** `done` for a written section; a failed / unavailable voice still names the model that last tried it. */
+  status?: SectionState["status"];
 }
 
 export interface ReportMeta {
-  /** Per-voice provider + model, in writing order, for the sections that exist. */
+  /** Per-voice provider + model, in writing order — every voice that was written or attempted, so a failed or partial run is auditable too. */
   sections: Partial<Record<FirstAnalysisAgent, ReportSectionMeta>>;
   /** Distinct "model via provider" labels, most-used first. */
   models: string[];
@@ -55,16 +57,32 @@ export function sectionLabel(section: Pick<AgentSection, "provider" | "model">):
   return section.provider ? `${m} via ${providerLabel(section.provider)}` : m;
 }
 
-export function buildReportMeta(agents: Partial<Record<FirstAnalysisAgent, AgentSection>>): ReportMeta {
+/**
+ * `preparedWith` and `models` are computed from whatever FINISHED; a
+ * failed or unavailable voice appears in `sections` with the model that
+ * last tried it (from the per-section state) but never in the line.
+ */
+export function buildReportMeta(
+  agents: Partial<Record<FirstAnalysisAgent, AgentSection>>,
+  states: Partial<Record<FirstAnalysisAgent, SectionState>> = {},
+): ReportMeta {
   const sections: ReportMeta["sections"] = {};
   const counts = new Map<string, number>();
   for (const role of FIRST_ANALYSIS_AGENTS) {
     const s = agents[role];
-    if (!s) continue;
+    const taskClass = role === "ceo" ? "synthesis" : "report";
+    if (!s) {
+      const st = states[role];
+      if (st && (st.status === "failed" || st.status === "unavailable")) {
+        sections[role] = { provider: st.provider ?? "", model: st.model ?? "", taskClass, status: st.status };
+      }
+      continue;
+    }
     sections[role] = {
       provider: s.provider ?? "",
       model: s.model ?? "",
-      taskClass: role === "ceo" ? "synthesis" : "report",
+      taskClass,
+      status: "done",
     };
     const label = sectionLabel(s);
     if (label) counts.set(label, (counts.get(label) ?? 0) + 1);

@@ -32,6 +32,8 @@ export function fullReportStatusText(row: {
   switch (row.full_report_status) {
     case "done":
       return row.full_report_emailed_at ? "Full report emailed" : "Full report ready";
+    case "done_partial":
+      return row.full_report_emailed_at ? "Part 1 emailed — rest being written" : "Partial report ready — rest being written";
     case "running":
       return "Agents writing…";
     case "queued":

@@ -238,7 +238,7 @@ export function AnalysesClient({ claimed = 0 }: AnalysesClientProps) {
                     </div>
                   </div>
                 </Link>
-                {row.full_report_status === "done" && (
+                {(row.full_report_status === "done" || row.full_report_status === "done_partial") && (
                   <div className="mt-1.5 flex flex-wrap items-center gap-4 px-4" data-testid="analyses-report-actions">
                     <a
                       href={`/api/analyses/${encodeURIComponent(row.id)}/report.pdf`}
