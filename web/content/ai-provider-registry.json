@@ -1,121 +1,121 @@
 {
-  "updated_at": "2026-09-15T17:00:10.176Z",
+  "updated_at": "2026-09-15T17:30:07.349Z",
   "primary_chain": [
     {
-      "provider": "groq",
-      "model": "openai/gpt-oss-20b",
+      "provider": "openrouter",
+      "model": "nvidia/nemotron-3-super-120b-a12b:free",
       "priority": 1,
       "healthy": true,
-      "latency_ms": 313,
-      "last_checked": "2026-09-15T17:00:02.992Z",
-      "http_status": 200
-    },
-    {
-      "provider": "groq",
-      "model": "openai/gpt-oss-120b",
-      "priority": 2,
-      "healthy": true,
-      "latency_ms": 316,
-      "last_checked": "2026-09-15T17:00:02.992Z",
+      "latency_ms": 359,
+      "last_checked": "2026-09-15T17:30:03.218Z",
       "http_status": 200
     },
     {
       "provider": "openrouter",
       "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-      "priority": 3,
+      "priority": 2,
       "healthy": true,
-      "latency_ms": 346,
-      "last_checked": "2026-09-15T17:00:03.311Z",
-      "http_status": 200
-    },
-    {
-      "provider": "groq",
-      "model": "qwen/qwen3.8-27b",
-      "priority": 4,
-      "healthy": true,
-      "latency_ms": 349,
-      "last_checked": "2026-09-15T17:00:02.991Z",
-      "http_status": 200
-    },
-    {
-      "provider": "groq",
-      "model": "allam-2-7b",
-      "priority": 5,
-      "healthy": true,
-      "latency_ms": 456,
-      "last_checked": "2026-09-15T17:00:02.993Z",
-      "http_status": 200
-    },
-    {
-      "provider": "openrouter",
-      "model": "nvidia/nemotron-3-super-120b-a12b:free",
-      "priority": 6,
-      "healthy": true,
-      "latency_ms": 513,
-      "last_checked": "2026-09-15T17:00:03.309Z",
+      "latency_ms": 591,
+      "last_checked": "2026-09-15T17:30:03.219Z",
       "http_status": 200
     },
     {
       "provider": "openrouter",
       "model": "inclusionai/ling-3.0-flash-fin:free",
-      "priority": 7,
+      "priority": 3,
       "healthy": true,
-      "latency_ms": 551,
-      "last_checked": "2026-09-15T17:00:04.281Z",
-      "http_status": 200
-    },
-    {
-      "provider": "groq",
-      "model": "groq/compound-mini",
-      "priority": 8,
-      "healthy": true,
-      "latency_ms": 818,
-      "last_checked": "2026-09-15T17:00:02.993Z",
-      "http_status": 200
-    },
-    {
-      "provider": "openrouter",
-      "model": "inclusionai/ling-3.0-flash-vl:free",
-      "priority": 9,
-      "healthy": true,
-      "latency_ms": 869,
-      "last_checked": "2026-09-15T17:00:03.450Z",
+      "latency_ms": 620,
+      "last_checked": "2026-09-15T17:30:03.721Z",
       "http_status": 200
     },
     {
       "provider": "openrouter",
       "model": "dots-studio/dots-3-note-preview:free",
-      "priority": 10,
+      "priority": 4,
       "healthy": true,
-      "latency_ms": 989,
-      "last_checked": "2026-09-15T17:00:03.341Z",
+      "latency_ms": 687,
+      "last_checked": "2026-09-15T17:30:03.314Z",
       "http_status": 200
     },
     {
       "provider": "openrouter",
-      "model": "cohere/north-mini-code:free",
-      "priority": 11,
+      "model": "inclusionai/ling-3.0-flash-vl:free",
+      "priority": 5,
       "healthy": true,
-      "latency_ms": 1093,
-      "last_checked": "2026-09-15T17:00:04.361Z",
+      "latency_ms": 728,
+      "last_checked": "2026-09-15T17:30:03.317Z",
       "http_status": 200
     },
     {
       "provider": "openrouter",
       "model": "inclusionai/ling-3.0-flash-sante:free",
-      "priority": 12,
+      "priority": 6,
       "healthy": true,
-      "latency_ms": 1350,
-      "last_checked": "2026-09-15T17:00:03.812Z",
+      "latency_ms": 729,
+      "last_checked": "2026-09-15T17:30:03.319Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "allam-2-7b",
+      "priority": 7,
+      "healthy": true,
+      "latency_ms": 1420,
+      "last_checked": "2026-09-15T17:30:01.779Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "qwen/qwen3.8-27b",
+      "priority": 8,
+      "healthy": true,
+      "latency_ms": 1422,
+      "last_checked": "2026-09-15T17:30:01.774Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "openai/gpt-oss-20b",
+      "priority": 9,
+      "healthy": true,
+      "latency_ms": 1423,
+      "last_checked": "2026-09-15T17:30:01.778Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "groq/compound-mini",
+      "priority": 10,
+      "healthy": true,
+      "latency_ms": 1424,
+      "last_checked": "2026-09-15T17:30:01.780Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "openai/gpt-oss-120b",
+      "priority": 11,
+      "healthy": true,
+      "latency_ms": 1428,
+      "last_checked": "2026-09-15T17:30:01.774Z",
       "http_status": 200
     },
     {
       "provider": "groq",
       "model": "groq/compound",
+      "priority": 12,
+      "healthy": true,
+      "latency_ms": 2043,
+      "last_checked": "2026-09-15T17:30:01.779Z",
+      "http_status": 200
+    },
+    {
+      "provider": "openrouter",
+      "model": "cohere/north-mini-code:free",
       "priority": 13,
       "healthy": true,
-      "latency_ms": 4446,
-      "last_checked": "2026-09-15T17:00:02.993Z",
+      "latency_ms": 3513,
+      "last_checked": "2026-09-15T17:30:03.823Z",
       "http_status": 200
     }
   ],
@@ -125,8 +125,8 @@
       "model": "llama-3.3-70b-versatile",
       "priority": 1,
       "healthy": false,
-      "latency_ms": 91,
-      "last_checked": "2026-09-15T17:00:04.363Z",
+      "latency_ms": 67,
+      "last_checked": "2026-09-15T17:30:04.066Z",
       "http_status": 404
     },
     {
@@ -134,8 +134,8 @@
       "model": "llama-3.1-8b-instant",
       "priority": 2,
       "healthy": false,
-      "latency_ms": 85,
-      "last_checked": "2026-09-15T17:00:04.456Z",
+      "latency_ms": 76,
+      "last_checked": "2026-09-15T17:30:04.071Z",
       "http_status": 404
     },
     {
@@ -143,8 +143,8 @@
       "model": "mixtral-8x7b-32768",
       "priority": 3,
       "healthy": false,
-      "latency_ms": 83,
-      "last_checked": "2026-09-15T17:00:04.542Z",
+      "latency_ms": 71,
+      "last_checked": "2026-09-15T17:30:04.134Z",
       "http_status": 400
     },
     {
@@ -152,8 +152,8 @@
       "model": "gemma2-9b-it",
       "priority": 4,
       "healthy": false,
-      "latency_ms": 84,
-      "last_checked": "2026-09-15T17:00:04.625Z",
+      "latency_ms": 70,
+      "last_checked": "2026-09-15T17:30:04.149Z",
       "http_status": 400
     },
     {
@@ -161,35 +161,35 @@
       "model": "Meta-Llama-3.3-70B-Instruct",
       "priority": 5,
       "healthy": false,
-      "latency_ms": 5002,
-      "last_checked": "2026-09-15T17:00:04.710Z",
-      "http_status": 0
+      "latency_ms": 2317,
+      "last_checked": "2026-09-15T17:30:04.206Z",
+      "http_status": 402
     },
     {
       "provider": "sambanova",
       "model": "Meta-Llama-3.1-405B-Instruct",
       "priority": 6,
       "healthy": false,
-      "latency_ms": 5000,
-      "last_checked": "2026-09-15T17:00:04.843Z",
-      "http_status": 0
+      "latency_ms": 2290,
+      "last_checked": "2026-09-15T17:30:04.219Z",
+      "http_status": 404
     },
     {
       "provider": "sambanova",
       "model": "DeepSeek-R1",
       "priority": 7,
       "healthy": false,
-      "latency_ms": 5001,
-      "last_checked": "2026-09-15T17:00:05.171Z",
-      "http_status": 0
+      "latency_ms": 2162,
+      "last_checked": "2026-09-15T17:30:04.351Z",
+      "http_status": 404
     },
     {
       "provider": "cerebras",
       "model": "llama-3.3-70b",
       "priority": 8,
       "healthy": false,
-      "latency_ms": 68,
-      "last_checked": "2026-09-15T17:00:05.380Z",
+      "latency_ms": 56,
+      "last_checked": "2026-09-15T17:30:04.459Z",
       "http_status": 404
     },
     {
@@ -197,8 +197,8 @@
       "model": "llama3.1-8b",
       "priority": 9,
       "healthy": false,
-      "latency_ms": 64,
-      "last_checked": "2026-09-15T17:00:05.448Z",
+      "latency_ms": 56,
+      "last_checked": "2026-09-15T17:30:04.516Z",
       "http_status": 404
     },
     {
@@ -206,8 +206,8 @@
       "model": "qwen-3-32b",
       "priority": 10,
       "healthy": false,
-      "latency_ms": 184,
-      "last_checked": "2026-09-15T17:00:05.495Z",
+      "latency_ms": 55,
+      "last_checked": "2026-09-15T17:30:04.573Z",
       "http_status": 404
     },
     {
@@ -215,8 +215,8 @@
       "model": "meta-llama/llama-3.3-70b-instruct:free",
       "priority": 11,
       "healthy": false,
-      "latency_ms": 72,
-      "last_checked": "2026-09-15T17:00:05.514Z",
+      "latency_ms": 46,
+      "last_checked": "2026-09-15T17:30:04.629Z",
       "http_status": 404
     },
     {
@@ -224,8 +224,8 @@
       "model": "deepseek/deepseek-r1:free",
       "priority": 12,
       "healthy": false,
-      "latency_ms": 94,
-      "last_checked": "2026-09-15T17:00:05.588Z",
+      "latency_ms": 46,
+      "last_checked": "2026-09-15T17:30:04.676Z",
       "http_status": 404
     },
     {
@@ -233,8 +233,8 @@
       "model": "qwen/qwen-2.5-72b-instruct:free",
       "priority": 13,
       "healthy": false,
-      "latency_ms": 47,
-      "last_checked": "2026-09-15T17:00:05.680Z",
+      "latency_ms": 40,
+      "last_checked": "2026-09-15T17:30:04.723Z",
       "http_status": 404
     },
     {
@@ -242,8 +242,8 @@
       "model": "google/gemma-2-9b-it:free",
       "priority": 14,
       "healthy": false,
-      "latency_ms": 71,
-      "last_checked": "2026-09-15T17:00:05.683Z",
+      "latency_ms": 40,
+      "last_checked": "2026-09-15T17:30:04.764Z",
       "http_status": 404
     },
     {
@@ -251,8 +251,8 @@
       "model": "mistralai/mistral-7b-instruct:free",
       "priority": 15,
       "healthy": false,
-      "latency_ms": 41,
-      "last_checked": "2026-09-15T17:00:05.728Z",
+      "latency_ms": 45,
+      "last_checked": "2026-09-15T17:30:04.806Z",
       "http_status": 404
     }
   ],
