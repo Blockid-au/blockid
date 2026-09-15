@@ -58,6 +58,22 @@ describe("renderFirstAnalysisReportPdf", () => {
     // Revenue-anchored fixture → the honest basis line.
     expect(text).toContain("Revenue-anchored");
     expect(text).toContain("A$18,500");
+    // S32-C: the cover says which model actually wrote the sections (the
+    // fixture's stub provider/model), folded from the sections when no meta.
+    expect(text).toContain("Prepared with stub via test");
+  }, 60_000);
+
+  it("S32-C: prints report.meta's Prepared-with line when the job wrote one", async () => {
+    const report = sampleReport();
+    report.meta = {
+      sections: { ceo: { provider: "deepinfra", model: "deepseek-ai/DeepSeek-V4-Flash", taskClass: "synthesis" } },
+      models: ["DeepSeek-V4-Flash via DeepInfra"],
+      preparedWith: "Prepared with DeepSeek-V4-Flash via DeepInfra.",
+    };
+    const { buffer } = await renderFirstAnalysisReportPdf({ report, variant: "free" });
+    const text = await fullText(buffer);
+    expect(text).toContain("Prepared with DeepSeek-V4-Flash via DeepInfra");
+    expect(text).not.toContain("stub via test");
   }, 60_000);
 
   it("clears the floor even with no agent sections, and says so honestly", async () => {

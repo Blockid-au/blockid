@@ -158,6 +158,12 @@ const AI_ENV_KEYS = [
   "AI_QUEUE_WAIT_MS",
   "AI_PROVIDER_PROBE",
   "AI_DAILY_SPEND_CAP_AUD",
+  // S32-C routing knobs
+  "DEEPINFRA_API_KEY",
+  "ANTHROPIC_HAIKU_API_KEY",
+  "AI_REPORT_PROVIDER_ORDER",
+  "AI_RPM_CLAUDE_OAUTH",
+  "AI_RPM_CLAUDE_PROXY",
 ];
 
 const savedEnv: Record<string, string | undefined> = {};
@@ -739,8 +745,11 @@ describe("pickBestProvider — capacity-aware routing", () => {
   });
 
   it("keeps input order when capacities tie (ties preserve quality ranking)", async () => {
+    // S32-C: claude-oauth defaults to 20 RPM (fallback-only); pin both
+    // subscription paths to the same ceiling so the tie-break is exercised.
+    process.env.AI_RPM_CLAUDE_OAUTH = "50";
+    process.env.AI_RPM_CLAUDE_PROXY = "50";
     const { pickBestProvider } = await loadClient();
-    // claude-oauth and claude-proxy both default to 50 RPM in the same table
     expect(pickBestProvider(["claude-oauth", "claude-proxy"])).toBe("claude-oauth");
     expect(pickBestProvider(["claude-proxy", "claude-oauth"])).toBe("claude-proxy");
   });
@@ -753,26 +762,37 @@ describe("pickBestProvider — capacity-aware routing", () => {
     expect(pick).not.toBeNull();
   });
 
-  it("prefers a free provider over a paid one even when the paid has more capacity", async () => {
+  it("classify: prefers a free provider over the quality-cost tier even when the paid one has more capacity", async () => {
     const { pickBestProvider } = await loadClient();
-    // deepinfra (paid, 300 RPM) has 15× the capacity of cerebras (free, 30 RPM),
-    // but the free-first policy must still pick cerebras.
-    expect(pickBestProvider(["deepinfra", "cerebras"])).toBe("cerebras");
-    expect(pickBestProvider(["cerebras", "deepinfra"])).toBe("cerebras");
+    // deepinfra (quality-cost, 300 RPM) has 10× the capacity of cerebras (free,
+    // 30 RPM), but classify is cheap-first so cerebras wins.
+    expect(pickBestProvider(["deepinfra", "cerebras"], "classify")).toBe("cerebras");
+    expect(pickBestProvider(["cerebras", "deepinfra"], "classify")).toBe("cerebras");
   });
 
-  it("only picks a paid provider when NO free provider is available in the candidate list", async () => {
+  it("report / synthesis: the quality-cost tier (deepinfra, gemini) beats every free provider (S32-C)", async () => {
     const { pickBestProvider } = await loadClient();
-    // No free tier in the list → paid tier is all there is.
-    expect(pickBestProvider(["deepinfra", "claude-haiku-direct"])).toBe("deepinfra");
-    // deepinfra has more capacity (300) than claude-haiku-direct (200)
+    expect(pickBestProvider(["cerebras", "deepinfra"], "report")).toBe("deepinfra");
+    expect(pickBestProvider(["groq", "gemini"], "synthesis")).toBe("gemini");
+    // default class is `report` (matches inferTaskClass's default)
+    expect(pickBestProvider(["groq", "deepinfra"])).toBe("deepinfra");
   });
 
-  it("classifies claude-oauth and claude-proxy as free (subscription = no per-call cost)", async () => {
+  it("only picks the last-resort paid tier when nothing better is in the candidate list", async () => {
     const { pickBestProvider } = await loadClient();
-    // Claude subscription paths must beat DeepInfra (paid).
-    expect(pickBestProvider(["deepinfra", "claude-oauth"])).toBe("claude-oauth");
-    expect(pickBestProvider(["deepinfra", "claude-proxy"])).toBe("claude-proxy");
+    expect(pickBestProvider(["claude-haiku-direct", "groq"], "report")).toBe("groq");
+    expect(pickBestProvider(["claude-haiku-direct"], "report")).toBe("claude-haiku-direct");
+  });
+
+  it("claude-oauth is a fallback, never primary: loses to deepinfra/gemini for reports and to free tiers for classify (S32-C)", async () => {
+    const { pickBestProvider } = await loadClient();
+    expect(pickBestProvider(["claude-oauth", "deepinfra"], "report")).toBe("deepinfra");
+    expect(pickBestProvider(["claude-oauth", "gemini"], "synthesis")).toBe("gemini");
+    expect(pickBestProvider(["claude-oauth", "groq"], "classify")).toBe("groq");
+    // …but it still beats the free tiers for a report (Sonnet 5 > a 27B model)
+    expect(pickBestProvider(["groq", "claude-oauth"], "report")).toBe("claude-oauth");
+    // …and the last-resort paid tier in every class
+    expect(pickBestProvider(["claude-haiku-direct", "claude-oauth"], "classify")).toBe("claude-oauth");
   });
 });
 
@@ -786,7 +806,7 @@ describe("getPaidTierEventsLastHour — paid-tier engagement counter", () => {
   it("increments after pickBestProvider chooses a paid provider (no free candidates)", async () => {
     const { pickBestProvider, getPaidTierEventsLastHour, _resetDispatcherForTests } = await loadClient();
     _resetDispatcherForTests();
-    pickBestProvider(["deepinfra"]);            // paid-only list → engages paid tier
+    pickBestProvider(["claude-haiku-direct"]);  // last-resort paid-only list → engages paid tier
     expect(getPaidTierEventsLastHour()).toBeGreaterThan(0);
   });
 });
@@ -1025,6 +1045,195 @@ describe("S31-A — daily spend cap skips the paid tiers, free tier keeps servin
     await callAI({ system: "s", user: "u" });
     expect(spend.readDailySpend().spent_usd).toBeCloseTo(0.42, 8);
     expect(spend.readDailySpend().by_provider["claude-apikey"]).toBeCloseTo(0.42, 8);
+    spend._resetSpendGuardForTests();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// S32-C — quality-first, cheapest-possible routing for report tasks.
+// Provider order per task class, report-grade model allow-list, per-class
+// model choice for the quality-cost providers, the AI_REPORT_PROVIDER_ORDER
+// override, cost table entries and the `via` field. No live calls.
+// ---------------------------------------------------------------------------
+
+function setOAuthFixture(): void {
+  fsMock.files.set(OAUTH_PATH, JSON.stringify({
+    claudeAiOauth: { accessToken: "sk-ant-oat-test", expiresAt: Date.now() + 60 * 60_000 },
+  }));
+}
+
+describe("S32-C — provider order per task class", () => {
+  it("report/synthesis: claude-apikey → deepinfra → gemini → claude-oauth → groq → sambanova → cerebras → openrouter (configured keys only)", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-x";
+    process.env.DEEPINFRA_API_KEY = "di";
+    process.env.GOOGLE_GEMINI_API_KEY = "gm";
+    process.env.GROQ_API_KEY = "gq";
+    process.env.SAMBANOVA_API_KEY = "sn";
+    process.env.CEREBRAS_API_KEY = "cb";
+    process.env.OPENROUTER_API_KEY = "or";
+    setOAuthFixture();
+    const { getAvailableProviders } = await loadClient();
+    const expected = ["claude-apikey", "deepinfra", "gemini", "claude-oauth", "groq", "sambanova", "cerebras", "openrouter"];
+    expect(getAvailableProviders("report")).toEqual(expected);
+    expect(getAvailableProviders("synthesis")).toEqual(expected);
+    expect(getAvailableProviders()).toEqual(expected); // default = report
+  });
+
+  it("classify: cheap-first — free tiers before gemini/deepinfra, claude-oauth after them", async () => {
+    process.env.DEEPINFRA_API_KEY = "di";
+    process.env.GOOGLE_GEMINI_API_KEY = "gm";
+    process.env.GROQ_API_KEY = "gq";
+    process.env.CEREBRAS_API_KEY = "cb";
+    process.env.OPENROUTER_API_KEY = "or";
+    setOAuthFixture();
+    const { getAvailableProviders } = await loadClient();
+    expect(getAvailableProviders("classify")).toEqual(["groq", "cerebras", "openrouter", "gemini", "deepinfra", "claude-oauth"]);
+  });
+
+  it("gemini is ENABLED when GOOGLE_GEMINI_API_KEY is set, and absent otherwise", async () => {
+    process.env.GOOGLE_GEMINI_API_KEY = "gm";
+    const withKey = await loadClient();
+    expect(withKey.getAvailableProviders("report")).toEqual(["gemini"]);
+    expect(withKey.isAIConfigured()).toBe(true);
+    delete process.env.GOOGLE_GEMINI_API_KEY;
+    const without = await loadClient();
+    expect(without.getAvailableProviders("report")).toEqual([]);
+  });
+
+  it("tier ranking: deepinfra/gemini are quality-cost, claude-oauth is subscription (fallback), haiku-direct is paid", async () => {
+    const { providerTier, TIER_ORDER_BY_CLASS } = await loadClient();
+    expect(providerTier("claude-apikey")).toBe("quality");
+    expect(providerTier("deepinfra")).toBe("quality-cost");
+    expect(providerTier("gemini")).toBe("quality-cost");
+    expect(providerTier("claude-oauth")).toBe("subscription");
+    expect(providerTier("groq")).toBe("free");
+    expect(providerTier("claude-haiku-direct")).toBe("paid");
+    expect(TIER_ORDER_BY_CLASS.report).toEqual(["quality", "quality-cost", "subscription", "free", "paid"]);
+    expect(TIER_ORDER_BY_CLASS.classify).toEqual(["quality", "free", "quality-cost", "subscription", "paid"]);
+  });
+
+  it("claude-oauth is never picked while deepinfra or gemini has headroom, even when it has the most capacity", async () => {
+    process.env.AI_RPM_CLAUDE_OAUTH = "5000";
+    const { pickBestProvider, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    expect(pickBestProvider(["claude-oauth", "deepinfra", "gemini"], "report")).toBe("deepinfra");
+    expect(pickBestProvider(["claude-oauth", "gemini"], "report")).toBe("gemini");
+  });
+
+  it("pickBestProvider still honours blocks: a provider on the daily cap is skipped for report classes too", async () => {
+    process.env.AI_DAILY_SPEND_CAP_AUD = "1";
+    const { pickBestProvider, _resetDispatcherForTests } = await loadClient();
+    const spend = await import("@/lib/ai/spend-guard");
+    spend._resetSpendGuardForTests();
+    spend.recordPaidSpend("deepinfra", 5); // US$5 ≫ A$1 cap
+    _resetDispatcherForTests();
+    // quality-cost is paid → blocked by the cap; free tier serves
+    expect(pickBestProvider(["deepinfra", "gemini", "groq"], "report")).toBe("groq");
+    // only capped providers → nothing usable (never bypass a cap)
+    expect(pickBestProvider(["deepinfra", "gemini"], "report")).toBeNull();
+    spend._resetSpendGuardForTests();
+  });
+});
+
+describe("S32-C — AI_REPORT_PROVIDER_ORDER override", () => {
+  it("parses a comma list: listed first, unknown ignored, '-name' drops, rest follow in default order", async () => {
+    const { parseProviderOrderOverride } = await loadClient();
+    expect(parseProviderOrderOverride(undefined)).toBeNull();
+    expect(parseProviderOrderOverride("   ")).toBeNull();
+    const out = parseProviderOrderOverride("gemini, deepinfra ,bogus,-claude-oauth,GROQ");
+    expect(out?.slice(0, 3)).toEqual(["gemini", "deepinfra", "groq"]);
+    expect(out).not.toContain("claude-oauth");
+    expect(out).toContain("sambanova");
+    expect(out?.indexOf("claude-apikey")).toBeGreaterThan(2);
+  });
+
+  it("re-orders the report chain without a deploy and is honoured strictly by pickBestProvider; classify is untouched", async () => {
+    process.env.AI_REPORT_PROVIDER_ORDER = "groq,deepinfra";
+    process.env.DEEPINFRA_API_KEY = "di";
+    process.env.GROQ_API_KEY = "gq";
+    const { getAvailableProviders, pickBestProvider, providerOrderForClass, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    expect(providerOrderForClass("report").slice(0, 2)).toEqual(["groq", "deepinfra"]);
+    expect(getAvailableProviders("report")).toEqual(["groq", "deepinfra"]);
+    expect(pickBestProvider(["deepinfra", "groq"], "report")).toBe("groq");
+    expect(getAvailableProviders("classify")).toEqual(["groq", "deepinfra"]);
+    expect(providerOrderForClass("classify")[0]).toBe("claude-apikey");
+  });
+});
+
+describe("S32-C — MIN_REPORT_MODEL allow-list for report classes", () => {
+  it("accepts report-grade families and rejects tiny / non-text models", async () => {
+    const { isReportGradeModel } = await loadClient();
+    for (const ok of [
+      "openai/gpt-oss-120b", "gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "nvidia/nemotron-3-super-120b-a12b:free", "qwen/qwen3.6-27b", "qwen-3-32b",
+      "Qwen3-235B-A22B-Instruct-2507", "qwen/qwen3-next-80b-a3b-instruct:free",
+      "DeepSeek-V3.2", "deepseek-ai/DeepSeek-V4-Flash", "llama-3.3-70b-versatile",
+      "Meta-Llama-3.3-70B-Instruct", "moonshotai/kimi-k2.6:free", "gemma-4-31b", "gemma-4-31B-it",
+      "google/gemini-2.5-flash:free",
+    ]) expect(isReportGradeModel(ok), ok).toBe(true);
+    for (const bad of [
+      "llama-3.1-8b-instant", "openai/gpt-oss-20b", "allam-2-7b", "canopylabs/orpheus-v1-english",
+      "whisper-large-v3", "text-embedding-3-small", "nvidia/nemotron-nano-12b-v2-vl:free",
+      "nvidia/nemotron-3-nano-30b-a3b:free", "nvidia/nemotron-3.5-lightning:free",
+      "liquid/lfm-2.5-2.6b:free", "google/gemma-4-26b-a4b-it:free", "gemini-2.5-flash-lite",
+      "deepseek-r1-distill-llama-70b", "google/lyria-3-pro-preview",
+    ]) expect(isReportGradeModel(bad), bad).toBe(false);
+  });
+
+  it("modelsForClass filters for report/synthesis, keeps everything for classify, and falls back to the full list when nothing qualifies", async () => {
+    const { modelsForClass } = await loadClient();
+    const list = ["llama-3.1-8b-instant", "openai/gpt-oss-120b", "allam-2-7b", "qwen/qwen3.6-27b"];
+    expect(modelsForClass(list, "report")).toEqual(["openai/gpt-oss-120b", "qwen/qwen3.6-27b"]);
+    expect(modelsForClass(list, "synthesis")).toEqual(["openai/gpt-oss-120b", "qwen/qwen3.6-27b"]);
+    expect(modelsForClass(list, "classify")).toEqual(list);
+    expect(modelsForClass(["llama-3.1-8b-instant"], "report")).toEqual(["llama-3.1-8b-instant"]);
+  });
+});
+
+describe("S32-C — per-class models on the quality-cost providers + cost table", () => {
+  it("deepinfra: V4-Flash → V3.2 → Qwen3-235B → gpt-oss-120b for reports; Kimi for synthesis; gpt-oss/Llama for classify", async () => {
+    const { DEEPINFRA_MODELS_BY_CLASS } = await loadClient();
+    expect(DEEPINFRA_MODELS_BY_CLASS.report).toEqual([
+      "deepseek-ai/DeepSeek-V4-Flash", "deepseek-ai/DeepSeek-V3.2", "Qwen/Qwen3-235B-A22B-Instruct-2507", "openai/gpt-oss-120b",
+    ]);
+    expect(DEEPINFRA_MODELS_BY_CLASS.synthesis).toEqual(["deepseek-ai/DeepSeek-V4-Flash", "deepseek-ai/DeepSeek-V3.2", "moonshotai/Kimi-K2.6"]);
+    expect(DEEPINFRA_MODELS_BY_CLASS.classify).toEqual(["openai/gpt-oss-120b", "meta-llama/Llama-3.3-70B-Instruct-Turbo"]);
+  });
+
+  it("gemini: 3-flash-preview → 2.5-flash for reports; 3.1-pro-preview → 2.5-pro for synthesis; flash-lite for classify", async () => {
+    const { GEMINI_MODELS_BY_CLASS } = await loadClient();
+    expect(GEMINI_MODELS_BY_CLASS.report).toEqual(["gemini-3-flash-preview", "gemini-2.5-flash"]);
+    expect(GEMINI_MODELS_BY_CLASS.synthesis).toEqual(["gemini-3.1-pro-preview", "gemini-2.5-pro"]);
+    expect(GEMINI_MODELS_BY_CLASS.classify).toEqual(["gemini-2.5-flash-lite"]);
+  });
+
+  it("every per-class model has a price row and usageCostUsd computes from real usage (previews billed as GA siblings)", async () => {
+    const { DEEPINFRA_MODELS_BY_CLASS, GEMINI_MODELS_BY_CLASS, PAID_PRICING_USD_PER_1M, usageCostUsd } = await loadClient();
+    for (const m of Object.values(DEEPINFRA_MODELS_BY_CLASS).flat()) expect(PAID_PRICING_USD_PER_1M[`deepinfra:${m}`], m).toBeDefined();
+    for (const m of Object.values(GEMINI_MODELS_BY_CLASS).flat()) expect(PAID_PRICING_USD_PER_1M[`gemini:${m}`], m).toBeDefined();
+    expect(PAID_PRICING_USD_PER_1M["deepinfra:deepseek-ai/DeepSeek-V4-Flash"]).toEqual({ in: 0.09, out: 0.18 });
+    expect(PAID_PRICING_USD_PER_1M["deepinfra:openai/gpt-oss-120b"]).toEqual({ in: 0.037, out: 0.17 });
+    expect(PAID_PRICING_USD_PER_1M["gemini:gemini-3-flash-preview"]).toEqual(PAID_PRICING_USD_PER_1M["gemini:gemini-2.5-flash"]);
+    expect(PAID_PRICING_USD_PER_1M["gemini:gemini-3.1-pro-preview"]).toEqual(PAID_PRICING_USD_PER_1M["gemini:gemini-2.5-pro"]);
+    // 1M in + 1M out on V4-Flash = $0.27
+    expect(usageCostUsd("deepinfra", "deepseek-ai/DeepSeek-V4-Flash", 1_000_000, 1_000_000)).toBeCloseTo(0.27, 8);
+    expect(usageCostUsd("gemini", "gemini-2.5-pro", 100_000, 10_000)).toBeCloseTo(0.225, 8);
+    expect(usageCostUsd("groq", "openai/gpt-oss-120b", 1000, 1000)).toBeNull(); // free — no row
+  });
+});
+
+describe("S32-C — callAI stamps `via` + `taskClass` on the result", () => {
+  it("reports the dispatcher provider and the inferred class", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    tierMock.call.mockResolvedValueOnce({ ...okResult(1), cost_usd: 0.01 });
+    const { callAI, _resetDispatcherForTests } = await loadClient();
+    const spend = await import("@/lib/ai/spend-guard");
+    spend._resetSpendGuardForTests();
+    _resetDispatcherForTests();
+    const r = await callAI({ system: "s", user: "u", agentId: "first-analysis-cfo", taskClass: "report" });
+    expect(r.via).toBe("claude-apikey");
+    expect(r.taskClass).toBe("report");
     spend._resetSpendGuardForTests();
   });
 });

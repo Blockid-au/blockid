@@ -10,6 +10,7 @@
 // is being written right now so the page can be honest about it.
 
 import type { InputEcho } from "@/lib/analyses/input-echo";
+import type { ReportMeta } from "./meta";
 
 export const FIRST_ANALYSIS_REPORT_VERSION = 1 as const;
 
@@ -108,9 +109,13 @@ export interface AgentSection {
   body: string;
   nextSteps: string[];
   wordCount: number;
-  /** Which provider / model served it — surfaced for observability only. */
+  /** Which provider / model served it — surfaced for observability only.
+   *  `provider` is the dispatcher id (`deepinfra`, `gemini`, `claude-oauth`,
+   *  …) when the platform caller served it (S32-C `via`). */
   provider?: string;
   model?: string;
+  /** How the call was routed: CEO = `synthesis`, the other voices = `report`. */
+  taskClass?: "classify" | "report" | "synthesis";
   generatedAt: string;
 }
 
@@ -217,6 +222,8 @@ export interface FirstAnalysisReport {
   actionPlan: ActionPlanSection;
   agents: Partial<Record<FirstAnalysisAgent, AgentSection>>;
   progress: ReportProgress;
+  /** S32-C — which model wrote which section (./meta.ts); set when the report finishes. */
+  meta?: ReportMeta;
 }
 
 /** What the page sees pre-gate for a guest: echo + SVI + one CEO paragraph. */

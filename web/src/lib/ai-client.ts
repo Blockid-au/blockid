@@ -1,27 +1,53 @@
 /**
- * Unified AI client — tiered, parallel-load-aware dispatcher (S31-A, Sep 2026).
+ * Unified AI client — task-class-aware, parallel-load-aware dispatcher
+ * (S31-A tiers, S32-C quality-first / cheapest-possible routing, Sep 2026).
  *
- *   QUALITY tier  claude-apikey  — official @anthropic-ai/sdk on ANTHROPIC_API_KEY.
- *                 Tried FIRST whenever the key is valid and the daily spend cap
- *                 (AI_DAILY_SPEND_CAP_AUD) has not been reached. Model by task
- *                 class: Haiku 4.5 (classify/extract/short JSON) · Sonnet 5
- *                 (reports, narratives, chat — the default) · Opus 5 (CEO final
- *                 synthesis / valuation certificate narrative). See lib/ai/anthropic-tier.ts.
- *   FREE tier     groq · cerebras · sambanova · openrouter (free models) · ollama ·
- *                 claude-oauth (Claude subscription; a personal CLI credential —
- *                 overflow only, it 429s under load and is not a product licence).
- *   PAID overflow deepinfra · claude-haiku-direct · openai · gemini — only when the
- *                 free tier is saturated, and never past the daily cap.
+ * POLICY (S32-C): the provider order depends on the TASK CLASS of the call
+ * (`taskClass` — `classify | report | synthesis`, inferred from agentId /
+ * maxTokens when omitted, see lib/ai/anthropic-tier.ts#inferTaskClass).
+ *
+ *   report / synthesis — a founder's first analysis (10+ page report + email)
+ *   and every other narrative gets BlockID's best model at the lowest cost
+ *   that still delivers report-grade prose:
+ *
+ *     1. claude-apikey   QUALITY — Anthropic API (Sonnet 5 / Opus 5), only
+ *                        while ANTHROPIC_API_KEY is valid and the daily cap
+ *                        (AI_DAILY_SPEND_CAP_AUD) has headroom.
+ *     2. deepinfra       QUALITY-COST — DeepSeek-V4-Flash ($0.09/$0.18 per 1M)
+ *                        → DeepSeek-V3.2 → Qwen3-235B (→ Kimi-K2.6 for synthesis).
+ *     3. gemini          QUALITY-COST — gemini-3-flash-preview → 2.5-flash
+ *                        (3.1-pro-preview → 2.5-pro for synthesis).
+ *     4. claude-oauth    SUBSCRIPTION FALLBACK — the Claude Max CLI token is a
+ *                        PERSONAL credential, not a product tier: it is never
+ *                        primary, capped at AI_RPM_CLAUDE_OAUTH (20) and only
+ *                        picked when neither deepinfra nor gemini has headroom.
+ *     5. groq → sambanova → cerebras → openrouter   FREE — report-grade
+ *                        models only (MIN_REPORT_MODEL allow-list: ≥ ~27B,
+ *                        no tts / whisper / embed / allam / vision-only).
+ *     6. claude-haiku-direct → claude-proxy → ollama   last resort.
+ *
+ *   classify — short JSON / labels / extraction: cheap-first.
+ *     claude-apikey (Haiku 4.5, when valid) → free tiers (groq → cerebras →
+ *     sambanova → openrouter → ollama) → gemini-2.5-flash-lite → deepinfra
+ *     gpt-oss-120b → claude-oauth → haiku-direct.
+ *
+ *   AI_REPORT_PROVIDER_ORDER (comma list, e.g. "deepinfra,gemini,groq") re-orders
+ *   the report/synthesis chain without a deploy; a "-name" entry drops a provider.
+ *   Every paid call (quality, quality-cost, paid) is tracked from the provider's
+ *   real `usage` into the daily ledger and stops at the cap.
  *
  * All AI routes use `callAI()` which returns a plain text response, so a route
- * never knows (or cares) which provider answered. The dispatcher picks by REAL
- * remaining capacity (rate-limit headers for Anthropic, RPM windows elsewhere),
- * skips providers whose key is invalid / quota spent / credit low (see
- * lib/ai/provider-status.ts), and applies a bounded, user-fair queue so a trial
- * surge gets an honest 503 + Retry-After (lib/ai/capacity.ts) instead of a 500.
+ * never knows (or cares) which provider answered. The dispatcher picks by tier
+ * for the class, then by REAL remaining capacity (rate-limit headers for
+ * Anthropic, RPM windows elsewhere), skips providers whose key is invalid /
+ * quota spent / credit low (see lib/ai/provider-status.ts), and applies a
+ * bounded, user-fair queue so a trial surge gets an honest 503 + Retry-After
+ * (lib/ai/capacity.ts) instead of a 500.
  *
  * Fallback: if the chosen provider fails (rate limit, auth error, etc.) the next
- * provider by headroom is tried, each at most once per call.
+ * provider by tier + headroom is tried, each at most once per call. The result
+ * carries `via` (the dispatcher provider) and `model` so a report can say
+ * truthfully which model wrote it.
  */
 
 import * as fs from "fs";
@@ -33,6 +59,8 @@ import {
   callAnthropicTier,
   anthropicRequestsRemaining,
   isAnthropicKeyInvalid,
+  inferTaskClass,
+  modelForTaskClass,
   type AITaskClass,
 } from "@/lib/ai/anthropic-tier";
 import { AICapacityError } from "@/lib/ai/capacity";
@@ -300,13 +328,59 @@ function modelReady(model: string): boolean {
   return Date.now() >= (modelCooldownUntil.get(model) ?? 0);
 }
 
+// ── MIN_REPORT_MODEL (S32-C) ──────────────────────────────────────────
+// A free-tier model may write a `report` / `synthesis` section only when it
+// is report-grade. The daily refresh ranks free models by raw availability,
+// so the shared list can carry 7B chat models, TTS / speech / embedding
+// endpoints and Arabic-only checkpoints — none of which can write a 10-page
+// founder report. The allow-list is by pattern (family + size), the
+// deny-list removes non-text and tiny models even when a family matches.
+const REPORT_MODEL_ALLOW: RegExp[] = [
+  /gpt-oss-120b/i,
+  /nemotron-3(\.\d+)?-(super|ultra)/i,
+  /qwen-?3(\.\d+)?[-_/]?.*?(27b|32b|80b|235b)/i,
+  /deepseek/i,
+  /llama-?3\.3-70b/i,
+  /kimi/i,
+  /gemma-4-31b/i,
+  /gemini-(2\.5|3)(\.\d)?-(flash|pro)(?!-lite)/i,
+];
+const REPORT_MODEL_DENY: RegExp[] = [
+  /allam/i,
+  /\btts\b|orpheus|speech|audio/i,
+  /whisper/i,
+  /embed/i,
+  /lyria|image|imagen|vision-only|-vl\b|-vl:/i,
+  // ≤ 20B dense / small MoE (nano, mini, lightning, 1–20B labels)
+  /\b(0\.\d+|[1-9]|1\d|20)b\b/i,
+  /nemotron-3(\.\d+)?-nano|lightning|:mini|-mini\b|\bmini\b|distill/i,
+];
+
+/** True when a model id looks strong enough to write a report section. */
+export function isReportGradeModel(model: string): boolean {
+  if (REPORT_MODEL_DENY.some((re) => re.test(model))) return false;
+  return REPORT_MODEL_ALLOW.some((re) => re.test(model));
+}
+
+/** Filter a free-tier model list for the task class: `report` / `synthesis`
+ *  keep report-grade models only (falling back to the full list when the
+ *  filter would leave nothing — a weak answer beats no answer, and the
+ *  grounding validator still checks it); `classify` keeps every model. */
+export function modelsForClass(models: string[], cls: AITaskClass): string[] {
+  if (cls === "classify") return models;
+  const strong = models.filter(isReportGradeModel);
+  return strong.length > 0 ? strong : models;
+}
+
 /** Order a model list with cooled-down models dropped; if ALL are cooling,
  *  return the full list so we still attempt (degraded) rather than give up.
  *  Within whichever set we return, chronically-failing models are sunk to the
- *  bottom so the models that actually answer get tried first. */
-function readyModels(models: string[]): string[] {
-  const ready = models.filter(modelReady);
-  return demoteFlaky(ready.length > 0 ? ready : models);
+ *  bottom so the models that actually answer get tried first. For report
+ *  classes the MIN_REPORT_MODEL allow-list is applied first (S32-C). */
+function readyModels(models: string[], cls: AITaskClass = "classify"): string[] {
+  const eligible = modelsForClass(models, cls);
+  const ready = eligible.filter(modelReady);
+  return demoteFlaky(ready.length > 0 ? ready : eligible);
 }
 
 function coolDownModel(model: string, errMsg: string): void {
@@ -479,7 +553,22 @@ const COST_PER_1K: Record<string, number> = {
   "gpt-4o-mini": 0.0003,
   "o3-mini": 0.0055,
   "gpt-4.1-mini": 0.002,
-  "gemini-2.5-flash": 0.0014,   // PAID: $0.30/1M input + $2.50/1M output averaged
+  // Gemini (PAID, quality-cost tier for report classes — S32-C, verified 2026-09-15)
+  "gemini-2.5-flash": 0.0014,        // $0.30 in / $2.50 out per 1M averaged
+  "gemini-2.5-flash-lite": 0.00025,  // $0.10 / $0.40
+  "gemini-2.5-pro": 0.0056,          // $1.25 / $10
+  "gemini-3-flash-preview": 0.0014,  // preview — billed as 2.5 Flash
+  "gemini-3.1-pro-preview": 0.0056,  // preview — billed as 2.5 Pro
+  "gemini-3.1-flash-lite": 0.00025,  // billed as 2.5 Flash-Lite
+  // DeepInfra (PAID, quality-cost tier — prices verified on the box 2026-09-15)
+  "deepseek-ai/DeepSeek-V4-Flash": 0.000135,           // $0.09 / $0.18, 1M ctx
+  "deepseek-ai/DeepSeek-V3.2": 0.00032,                // $0.26 / $0.38, 164k ctx
+  "Qwen/Qwen3-235B-A22B-Instruct-2507": 0.00032,       // $0.09 / $0.55
+  "meta-llama/Llama-3.3-70B-Instruct-Turbo": 0.00021,  // $0.10 / $0.32
+  "moonshotai/Kimi-K2.6": 0.0021,                      // $0.75 / $3.50
+  "deepseek-ai/DeepSeek-V4-Pro": 0.00195,              // $1.30 / $2.60
+  // NOTE: "openai/gpt-oss-120b" is ALSO a Groq free-tier id (0 below); the
+  // DeepInfra call reports its real usage cost via PAID_PRICING_USD_PER_1M.
   "llama-3.3-70b-versatile": 0,  // Groq free tier — verified live in Groq docs (Sep 2026): 280 t/s, 131K ctx, 32K max out
   "inclusionai/ling-3.0-flash-fin:free": 0, // OpenRouter free — 124B MoE, 262K ctx, finance-tuned (matches BlockID domain)
   "liquid/lfm-2.5-2.6b:free": 0, // OpenRouter free — Liquid AI 2.6B, 65K ctx, ultra-fast small-model fallback
@@ -568,6 +657,38 @@ const COST_PER_1K: Record<string, number> = {
   "gpt-image-1": 0.04,              // ~$0.04 per standard image
   "x-ai/grok-imagine-image-quality": 0.05,
 };
+
+/** USD per 1M tokens for the quality-cost providers, keyed `provider:model`
+ *  (a model id like `openai/gpt-oss-120b` exists on both Groq (free) and
+ *  DeepInfra (paid), so the provider is part of the key). Used to turn the
+ *  provider's real `usage` into the exact cost recorded in the daily ledger. */
+export const PAID_PRICING_USD_PER_1M: Record<string, { in: number; out: number }> = {
+  // DeepInfra — verified 2026-09-15
+  "deepinfra:deepseek-ai/DeepSeek-V4-Flash": { in: 0.09, out: 0.18 },
+  "deepinfra:deepseek-ai/DeepSeek-V3.2": { in: 0.26, out: 0.38 },
+  "deepinfra:Qwen/Qwen3-235B-A22B-Instruct-2507": { in: 0.09, out: 0.55 },
+  "deepinfra:openai/gpt-oss-120b": { in: 0.037, out: 0.17 },
+  "deepinfra:meta-llama/Llama-3.3-70B-Instruct-Turbo": { in: 0.10, out: 0.32 },
+  "deepinfra:moonshotai/Kimi-K2.6": { in: 0.75, out: 3.50 },
+  "deepinfra:deepseek-ai/DeepSeek-V4-Pro": { in: 1.30, out: 2.60 },
+  // Gemini — list prices; previews billed as their GA sibling
+  "gemini:gemini-2.5-flash": { in: 0.30, out: 2.50 },
+  "gemini:gemini-2.5-flash-lite": { in: 0.10, out: 0.40 },
+  "gemini:gemini-2.5-pro": { in: 1.25, out: 10 },
+  "gemini:gemini-3-flash-preview": { in: 0.30, out: 2.50 },
+  "gemini:gemini-3.1-pro-preview": { in: 1.25, out: 10 },
+  "gemini:gemini-3.1-flash-lite": { in: 0.10, out: 0.40 },
+};
+
+/** Exact USD for a call from the provider's reported usage; null when the
+ *  model has no price row (the caller then falls back to the COST_PER_1K
+ *  estimate). */
+export function usageCostUsd(provider: string, model: string, inputTokens: number, outputTokens: number): number | null {
+  const price = PAID_PRICING_USD_PER_1M[`${provider}:${model}`];
+  if (!price) return null;
+  const usd = (inputTokens / 1_000_000) * price.in + (outputTokens / 1_000_000) * price.out;
+  return Math.round(usd * 1e8) / 1e8;
+}
 
 interface BudgetData {
   month: string; // "2026-05"
@@ -658,8 +779,16 @@ export interface AICallUsage {
 
 export interface AICallResult {
   text: string;
+  /** Coarse family (kept for compatibility — Cerebras / SambaNova / DeepInfra
+   *  report "groq" because they speak the same OpenAI-compatible dialect).
+   *  Use `via` for the truthful dispatcher provider. */
   provider: "claude" | "openai" | "gemini" | "groq" | "openrouter" | "ollama";
   model: string;
+  /** S32-C — the dispatcher provider that actually served the call
+   *  (`deepinfra`, `gemini`, `claude-oauth`, …). Set by `callAI()`. */
+  via?: AIProviderId;
+  /** The task class the call was routed as. Set by `callAI()`. */
+  taskClass?: AITaskClass;
   /** Real token usage when the provider reports it (Anthropic API tier). */
   usage?: AICallUsage;
   /** Estimated USD for this call (0 for free tiers). */
@@ -686,62 +815,96 @@ function readCliOAuthToken(): string | null {
 // ── Provider detection ─────────────────────────────────────────────────
 
 type Provider = "claude-oauth" | "claude-apikey" | "claude-haiku-direct" | "claude-proxy" | "openai-apikey" | "gemini" | "groq" | "openrouter" | "cerebras" | "sambanova" | "deepinfra" | "ollama" | "none";
+/** Public alias of the dispatcher's provider id (what `AICallResult.via` carries). */
+export type AIProviderId = Provider;
 
-function getAvailableProviders(): Provider[] {
-  const providers: Provider[] = [];
-  // ──────────────────────────────────────────────────────────────────────
-  // POLICY (S31-A, Sep 2026): quality tier when funded, free tiers as overflow.
-  //
-  //   1. claude-apikey  — Anthropic API via the official SDK. The dispatcher
-  //                       tries it FIRST while the key is valid and the daily
-  //                       spend cap has headroom; an invalid key (401) is
-  //                       skipped for 1 h without a retry on the hot path.
-  //   2. free tiers     — Groq (1000 RPM but 8k TPM on the free tier), Cerebras,
-  //                       SambaNova, OpenRouter free models, Ollama, and the
-  //                       Claude subscription OAuth token (personal CLI
-  //                       credential: 429s under load, kept as overflow).
-  //   3. paid overflow  — DeepInfra, Haiku-direct, proxy — only when every free
-  //                       provider is saturated or cooling, never past the cap.
-  //
-  // The list order below is only the tiebreak when several providers in the
-  // same tier have equal headroom; `pickBestProvider` does the real ranking.
-  // ──────────────────────────────────────────────────────────────────────
-  // 0. Anthropic API key — quality tier (Haiku 4.5 / Sonnet 5 / Opus 5 by task class)
-  if (process.env.ANTHROPIC_API_KEY) providers.push("claude-apikey");
-  else if (getDBKey("anthropic")) providers.push("claude-apikey");
-  // 1. Groq — 1000 RPM free / 4000+ RPM Developer tier. Best headroom under bursts
-  //    (but only 8,000 tokens/min on the free tier — a single long report exceeds it).
-  if (process.env.GROQ_API_KEY) providers.push("groq");
-  else if (getDBKey("groq")) providers.push("groq");
-  // 2. Cerebras — 30 RPM but ultra-fast (2000 t/s); wins under low load only
-  if (process.env.CEREBRAS_API_KEY) providers.push("cerebras");
-  else if (getDBKey("cerebras")) providers.push("cerebras");
-  // 3. SambaNova — DeepSeek V3.2/V3.1 free, 294 TPS, excellent reasoning quality
-  if (process.env.SAMBANOVA_API_KEY) providers.push("sambanova");
-  else if (getDBKey("sambanova")) providers.push("sambanova");
-  // 4. DeepInfra — CHEAP PAID: DeepSeek V3 $0.32/$0.89 per 1M, 200 concurrent.
-  //    Kicks in only when DEEPINFRA_API_KEY is set — free chain stays $0.
-  if (process.env.DEEPINFRA_API_KEY) providers.push("deepinfra");
-  else if (getDBKey("deepinfra")) providers.push("deepinfra");
-  // 5. Claude OAuth — Sonnet 5 on the Claude subscription — after free tiers
-  //    to preserve rate-limit headroom for tasks only Claude handles well
-  if (readCliOAuthToken()) providers.push("claude-oauth");
-  // 6. Claude Haiku direct API — $1/$5 per 1M with prompt caching ($0.10/M read).
-  //    Requires ANTHROPIC_HAIKU_API_KEY (kept SEPARATE from ANTHROPIC_API_KEY so
-  //    ops can enable Haiku-only spending without unlocking the whole chain).
-  if (process.env.ANTHROPIC_HAIKU_API_KEY) providers.push("claude-haiku-direct");
-  else if (getDBKey("anthropic_haiku")) providers.push("claude-haiku-direct");
-  // 7. Proxy — Sonnet 5 (shared key; dead as of 2026-09-13 — the probe marks it)
-  if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
-  else if (getDBKey("anthropic_proxy")) providers.push("claude-proxy");
-  // 8. Ollama — local GPU backup
-  if (process.env.OLLAMA_HOST || process.env.OLLAMA_ENABLED === "true") providers.push("ollama");
-  // 9. OpenRouter — LAST: 24+ free models but 20 RPM/model + variable uptime
-  if (process.env.OPENROUTER_API_KEY) providers.push("openrouter");
-  else if (getDBKey("openrouter")) providers.push("openrouter");
+const ALL_PROVIDER_IDS: readonly Provider[] = [
+  "claude-apikey", "claude-oauth", "claude-haiku-direct", "claude-proxy", "openai-apikey",
+  "gemini", "groq", "openrouter", "cerebras", "sambanova", "deepinfra", "ollama",
+];
 
-  // ❌ Gemini / OpenAI API / Codex — not wired (no key policy for them yet)
-  return providers;
+/** Is this provider configured (env key, DB key, OAuth file, local host)? */
+function providerConfigured(p: Provider): boolean {
+  switch (p) {
+    case "claude-apikey": return Boolean(process.env.ANTHROPIC_API_KEY || getDBKey("anthropic"));
+    case "claude-oauth": return readCliOAuthToken() !== null;
+    case "claude-haiku-direct": return Boolean(process.env.ANTHROPIC_HAIKU_API_KEY || getDBKey("anthropic_haiku"));
+    case "claude-proxy":
+      return Boolean((process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) || getDBKey("anthropic_proxy"));
+    case "openai-apikey": return false; // not wired (no key policy) — see header
+    case "gemini": return Boolean(process.env.GOOGLE_GEMINI_API_KEY || getDBKey("gemini"));
+    case "groq": return Boolean(process.env.GROQ_API_KEY || getDBKey("groq"));
+    case "openrouter": return Boolean(process.env.OPENROUTER_API_KEY || getDBKey("openrouter"));
+    case "cerebras": return Boolean(process.env.CEREBRAS_API_KEY || getDBKey("cerebras"));
+    case "sambanova": return Boolean(process.env.SAMBANOVA_API_KEY || getDBKey("sambanova"));
+    case "deepinfra": return Boolean(process.env.DEEPINFRA_API_KEY || getDBKey("deepinfra"));
+    case "ollama": return Boolean(process.env.OLLAMA_HOST || process.env.OLLAMA_ENABLED === "true");
+    default: return false;
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// POLICY (S32-C, 2026-09-15): provider ORDER by task class. See the file
+// header for the rationale. The order is the tiebreak inside a tier; the
+// tier ranking (`providerTier`) and live capacity do the real picking in
+// `pickBestProvider`.
+//
+// report / synthesis — quality first, cheapest that is still report-grade:
+//   claude-apikey → deepinfra → gemini → claude-oauth (fallback only) →
+//   groq → sambanova → cerebras → openrouter → haiku-direct → proxy → ollama
+// classify — cheap first:
+//   claude-apikey (Haiku) → groq → cerebras → sambanova → openrouter → ollama
+//   → gemini (flash-lite) → deepinfra (gpt-oss-120b) → claude-oauth → haiku-direct → proxy
+// ──────────────────────────────────────────────────────────────────────
+const REPORT_PROVIDER_ORDER: readonly Provider[] = [
+  "claude-apikey", "deepinfra", "gemini", "claude-oauth",
+  "groq", "sambanova", "cerebras", "openrouter",
+  "claude-haiku-direct", "claude-proxy", "ollama",
+];
+const CLASSIFY_PROVIDER_ORDER: readonly Provider[] = [
+  "claude-apikey", "groq", "cerebras", "sambanova", "openrouter", "ollama",
+  "gemini", "deepinfra", "claude-oauth", "claude-haiku-direct", "claude-proxy",
+];
+
+/** Parse `AI_REPORT_PROVIDER_ORDER` ("deepinfra, gemini,-claude-oauth"):
+ *  listed providers first in the given order, unknown names ignored, a
+ *  leading `-` drops a provider, and everything not mentioned follows in
+ *  the default order. Returns null when the variable is unset / empty. */
+export function parseProviderOrderOverride(raw: string | undefined, defaults: readonly Provider[] = REPORT_PROVIDER_ORDER): Provider[] | null {
+  if (!raw || !raw.trim()) return null;
+  const known = new Set<string>(ALL_PROVIDER_IDS);
+  const ordered: Provider[] = [];
+  const dropped = new Set<Provider>();
+  for (const token of raw.split(",")) {
+    const t = token.trim().toLowerCase();
+    if (!t) continue;
+    const drop = t.startsWith("-");
+    const name = (drop ? t.slice(1) : t).trim() as Provider;
+    if (!known.has(name)) continue;
+    if (drop) { dropped.add(name); continue; }
+    if (!ordered.includes(name)) ordered.push(name);
+  }
+  for (const p of defaults) if (!ordered.includes(p) && !dropped.has(p)) ordered.push(p);
+  const out = ordered.filter((p) => !dropped.has(p));
+  return out.length > 0 ? out : null;
+}
+
+/** True when the founder has re-ordered the report chain via env — the
+ *  dispatcher then honours that order STRICTLY (position = rank) instead of
+ *  the tier ranking, so "groq before deepinfra" really means that. */
+function reportOrderOverridden(): boolean {
+  return parseProviderOrderOverride(process.env.AI_REPORT_PROVIDER_ORDER) !== null;
+}
+
+/** The ideal provider order for a task class, before checking keys. */
+export function providerOrderForClass(cls: AITaskClass): Provider[] {
+  if (cls === "classify") return [...CLASSIFY_PROVIDER_ORDER];
+  return parseProviderOrderOverride(process.env.AI_REPORT_PROVIDER_ORDER) ?? [...REPORT_PROVIDER_ORDER];
+}
+
+/** Configured providers in the order the class wants them tried. */
+export function getAvailableProviders(taskClass: AITaskClass = "report"): Provider[] {
+  return providerOrderForClass(taskClass).filter(providerConfigured);
 }
 
 export function isAIConfigured(): boolean {
@@ -751,9 +914,11 @@ export function isAIConfigured(): boolean {
 // ── Claude call ────────────────────────────────────────────────────────
 
 /** Claude subscription OAuth token (~/.claude/.credentials.json). Raw fetch:
- *  the token goes on `Authorization: Bearer`, not `x-api-key`. Sonnet 5. */
-async function callClaudeOAuth(apiKey: string, opts: AICallOptions): Promise<AICallResult> {
-  const model = "claude-sonnet-5";
+ *  the token goes on `Authorization: Bearer`, not `x-api-key`. Model by task
+ *  class (Haiku 4.5 / Sonnet 5 / Opus 5 — same map as the API tier). This is
+ *  a personal Max credential: a FALLBACK in the report chain, never primary. */
+async function callClaudeOAuth(apiKey: string, opts: AICallOptions, cls: AITaskClass = "report"): Promise<AICallResult> {
+  const model = modelForTaskClass(cls);
   const raw = await workerFetch("https://api.anthropic.com/v1/messages", {
     "Authorization": `Bearer ${apiKey}`,
     "anthropic-version": "2023-06-01",
@@ -803,35 +968,91 @@ async function callOpenAI(apiKey: string, opts: AICallOptions): Promise<AICallRe
   return { text, provider: "openai", model };
 }
 
-// ── Gemini call ────────────────────────────────────────────────────────
+// ── Gemini call (PAID, quality-cost tier — S32-C) ─────────────────────
+// GOOGLE_GEMINI_API_KEY verified 2026-09-15. Model by task class:
+//   report    → gemini-3-flash-preview → gemini-2.5-flash
+//   synthesis → gemini-3.1-pro-preview → gemini-2.5-pro
+//   classify  → gemini-2.5-flash-lite
+// The key travels in the `x-goog-api-key` header (never the URL, so it can
+// never land in a log line). 429 / RESOURCE_EXHAUSTED cools the model down
+// like every other provider; `usageMetadata` feeds the exact cost.
 
-async function callGemini(opts: AICallOptions): Promise<AICallResult> {
+export const GEMINI_MODELS_BY_CLASS: Record<AITaskClass, string[]> = {
+  report: ["gemini-3-flash-preview", "gemini-2.5-flash"],
+  synthesis: ["gemini-3.1-pro-preview", "gemini-2.5-pro"],
+  classify: ["gemini-2.5-flash-lite"],
+};
+
+/** Per-provider cooldown key — DeepInfra and Groq share model ids
+ *  (`openai/gpt-oss-120b`), so paid providers key their cooldown / health
+ *  records by `provider:model` to avoid cross-provider cool-downs. */
+function paidKey(provider: "deepinfra" | "gemini", model: string): string {
+  return `${provider}:${model}`;
+}
+
+function readyPaidModels(provider: "deepinfra" | "gemini", models: string[]): string[] {
+  const ready = models.filter((m) => modelReady(paidKey(provider, m)));
+  const list = ready.length > 0 ? ready : models;
+  return demoteFlaky(list.map((m) => paidKey(provider, m))).map((k) => k.slice(provider.length + 1));
+}
+
+async function callGemini(opts: AICallOptions, cls: AITaskClass = "report"): Promise<AICallResult> {
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY ?? getDBKey("gemini")?.api_key ?? "";
   if (!apiKey) throw new Error("Gemini API key not configured");
 
-  const model = "gemini-2.5-flash";
-  // Use workerFetch to bypass Next.js fetch patches (same as Claude/Groq)
-  const raw = await workerFetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    { "Content-Type": "application/json" },
-    JSON.stringify({
-      system_instruction: { parts: [{ text: opts.system }] },
-      contents: [{ role: "user", parts: [{ text: opts.user }] }],
-      generationConfig: { maxOutputTokens: opts.maxTokens ?? 4096 },
-    }),
-    opts.timeoutMs,
-  );
+  let lastErr: Error | null = null;
+  for (const model of readyPaidModels("gemini", GEMINI_MODELS_BY_CLASS[cls])) {
+    const key = paidKey("gemini", model);
+    try {
+      // workerFetch bypasses Next.js fetch patches (same as Claude/Groq)
+      const raw = await workerFetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        JSON.stringify({
+          system_instruction: { parts: [{ text: opts.system }] },
+          contents: [{ role: "user", parts: [{ text: opts.user }] }],
+          generationConfig: {
+            maxOutputTokens: opts.maxTokens ?? 4096,
+            ...(typeof opts.temperature === "number" ? { temperature: opts.temperature } : {}),
+          },
+        }),
+        opts.timeoutMs,
+      );
 
-  const data = JSON.parse(raw);
-  if (data.error) throw new Error(data.error.message ?? "Gemini error");
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-  if (!text) throw new Error("Empty Gemini response");
-  return { text, provider: "gemini", model };
+      const data = JSON.parse(raw);
+      if (data.error) {
+        const status = data.error.status ?? "";
+        throw new Error(`${status ? `${status} ` : ""}${data.error.message ?? "Gemini error"}`);
+      }
+      const parts: Array<{ text?: string }> = data.candidates?.[0]?.content?.parts ?? [];
+      const text = parts.map((p) => p.text ?? "").join("");
+      if (!text) throw new Error("Empty Gemini response");
+      const um = data.usageMetadata ?? {};
+      const input = Number(um.promptTokenCount ?? 0);
+      const output = Number(um.candidatesTokenCount ?? 0) + Number(um.thoughtsTokenCount ?? 0);
+      const cost = usageCostUsd("gemini", model, input, output);
+      recordModelOutcome(key, true);
+      return {
+        text,
+        provider: "gemini",
+        model,
+        usage: { input_tokens: input, output_tokens: output, cache_read_input_tokens: Number(um.cachedContentTokenCount ?? 0), cache_creation_input_tokens: 0 },
+        ...(cost !== null ? { cost_usd: cost } : {}),
+      };
+    } catch (err) {
+      lastErr = err instanceof Error ? err : new Error(String(err));
+      // RESOURCE_EXHAUSTED is Google's 429 — the shared regex reads "quota".
+      const msg = /resource_exhausted/i.test(lastErr.message) ? `429 quota ${lastErr.message}` : lastErr.message;
+      coolDownModel(key, msg);
+      console.warn(`[ai-client] Gemini ${model} failed: ${lastErr.message.slice(0, 200)}`);
+    }
+  }
+  throw lastErr ?? new Error("All Gemini models failed");
 }
 
 // ── Groq (OpenAI-compatible, free tier, llama-3.3-70b) ────────────────
 
-async function callGroq(opts: AICallOptions): Promise<AICallResult> {
+async function callGroq(opts: AICallOptions, cls: AITaskClass = "classify"): Promise<AICallResult> {
   const apiKey = process.env.GROQ_API_KEY ?? getDBKey("groq")?.api_key ?? "";
   if (!apiKey) throw new Error("Groq API key not configured");
 
@@ -847,7 +1068,7 @@ async function callGroq(opts: AICallOptions): Promise<AICallResult> {
   ]);
 
   let lastErr: Error | null = null;
-  for (const model of readyModels(GROQ_MODELS)) {
+  for (const model of readyModels(GROQ_MODELS, cls)) {
     try {
       const raw = await workerFetch("https://api.groq.com/openai/v1/chat/completions", {
         "Authorization": `Bearer ${apiKey}`,
@@ -881,7 +1102,7 @@ async function callGroq(opts: AICallOptions): Promise<AICallResult> {
 // Free: 30 RPM, 60K TPM, ~1M tokens/day. No credit card required.
 // API: https://api.cerebras.ai/v1 (OpenAI-compatible)
 
-async function callCerebras(opts: AICallOptions): Promise<AICallResult> {
+async function callCerebras(opts: AICallOptions, cls: AITaskClass = "classify"): Promise<AICallResult> {
   const apiKey = process.env.CEREBRAS_API_KEY ?? getDBKey("cerebras")?.api_key ?? "";
   if (!apiKey) throw new Error("Cerebras API key not configured");
 
@@ -899,7 +1120,7 @@ async function callCerebras(opts: AICallOptions): Promise<AICallResult> {
   ]);
 
   let lastErr: Error | null = null;
-  for (const model of readyModels(CEREBRAS_MODELS)) {
+  for (const model of readyModels(CEREBRAS_MODELS, cls)) {
     try {
       const raw = await workerFetch("https://api.cerebras.ai/v1/chat/completions", {
         "Authorization": `Bearer ${apiKey}`,
@@ -933,7 +1154,7 @@ async function callCerebras(opts: AICallOptions): Promise<AICallResult> {
 // Free: ~294 TPS, DeepSeek + Llama + Qwen models. No credit card.
 // API: https://api.sambanova.ai/v1 (OpenAI-compatible)
 
-async function callSambaNova(opts: AICallOptions): Promise<AICallResult> {
+async function callSambaNova(opts: AICallOptions, cls: AITaskClass = "classify"): Promise<AICallResult> {
   const apiKey = process.env.SAMBANOVA_API_KEY ?? getDBKey("sambanova")?.api_key ?? "";
   if (!apiKey) throw new Error("SambaNova API key not configured");
 
@@ -954,7 +1175,7 @@ async function callSambaNova(opts: AICallOptions): Promise<AICallResult> {
   ]);
 
   let lastErr: Error | null = null;
-  for (const model of readyModels(SAMBANOVA_MODELS)) {
+  for (const model of readyModels(SAMBANOVA_MODELS, cls)) {
     try {
       const raw = await workerFetch("https://api.sambanova.ai/v1/chat/completions", {
         "Authorization": `Bearer ${apiKey}`,
@@ -984,41 +1205,47 @@ async function callSambaNova(opts: AICallOptions): Promise<AICallResult> {
   throw lastErr ?? new Error("All SambaNova models failed");
 }
 
-// ── DeepInfra (OpenAI-compatible, cheap-paid) ─────────────────────────
-// Sep 2026: DeepSeek V3 verified at $0.32 in / $0.89 out per 1M, 200 concurrent
-// requests, no per-minute RPM published. Llama 3.3 70B at $0.10/$0.32.
-// API: https://api.deepinfra.com/v1/openai (OpenAI-compatible).
-// Only wired when DEEPINFRA_API_KEY is set — no free tier here, so the presence
-// of the key is the "user has opted into paid" signal.
+// ── DeepInfra (OpenAI-compatible, PAID quality-cost tier — S32-C) ─────
+// DEEPINFRA_API_KEY verified 2026-09-15 (194 models). Prices per 1M in/out:
+//   DeepSeek-V4-Flash $0.09/$0.18 (1M ctx) · DeepSeek-V3.2 $0.26/$0.38 (164k)
+//   Qwen3-235B-A22B-Instruct-2507 $0.09/$0.55 · gpt-oss-120b $0.037/$0.17
+//   Llama-3.3-70B-Instruct-Turbo $0.10/$0.32 · Kimi-K2.6 $0.75/$3.50
+// Model by task class — quality first, then cheaper, never a weak model for
+// a report. API: https://api.deepinfra.com/v1/openai (OpenAI-compatible),
+// 200 concurrent. Real `usage` → exact cost in the daily ledger.
 
-async function callDeepInfra(opts: AICallOptions): Promise<AICallResult> {
+export const DEEPINFRA_MODELS_BY_CLASS: Record<AITaskClass, string[]> = {
+  report: [
+    "deepseek-ai/DeepSeek-V4-Flash",
+    "deepseek-ai/DeepSeek-V3.2",
+    "Qwen/Qwen3-235B-A22B-Instruct-2507",
+    "openai/gpt-oss-120b",
+  ],
+  synthesis: [
+    "deepseek-ai/DeepSeek-V4-Flash",
+    "deepseek-ai/DeepSeek-V3.2",
+    "moonshotai/Kimi-K2.6",
+  ],
+  classify: [
+    "openai/gpt-oss-120b",
+    "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+  ],
+};
+
+async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): Promise<AICallResult> {
   const apiKey = process.env.DEEPINFRA_API_KEY ?? getDBKey("deepinfra")?.api_key ?? "";
   if (!apiKey) throw new Error("DeepInfra API key not configured");
 
-  // CHEAPEST-FIRST ranking (Sep 2026 — user-directed policy): once we've
-  // fallen through the free tier, spend the least possible per token. Live
-  // smoke-test cost per test call (5-token completion):
-  //   Llama-3.3-70B-Turbo    → $3.2e-6   ($0.10 in / $0.32 out per 1M)
-  //   Qwen2.5-72B-Instruct   → $2.7e-6   ($0.13 in / $0.39 out per 1M)
-  //   DeepSeek-V3.2          → $5.3e-6   ($0.32 in / $0.89 out per 1M)
-  // Llama 3.3 70B Turbo covers the bulk of SVI scoring at the lowest cost;
-  // DeepSeek V3.2 stays in the chain as a quality fallback only.
-  const DEEPINFRA_MODELS = getDynamicModels("deepinfra", [
-    "meta-llama/Llama-3.3-70B-Instruct-Turbo", // cheapest workhorse — first pick
-    "Qwen/Qwen2.5-72B-Instruct",               // second cheapest, best Vietnamese
-    "deepseek-ai/DeepSeek-V3.2",               // S-tier reasoning — quality fallback
-    "deepseek-ai/DeepSeek-V3.1",               // safety net if V3.2 unavailable
-  ]);
-
   let lastErr: Error | null = null;
-  for (const model of readyModels(DEEPINFRA_MODELS)) {
+  for (const model of readyPaidModels("deepinfra", DEEPINFRA_MODELS_BY_CLASS[cls])) {
+    const key = paidKey("deepinfra", model);
     try {
       const raw = await workerFetch("https://api.deepinfra.com/v1/openai/chat/completions", {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       }, JSON.stringify({
         model,
-        max_tokens: Math.min(opts.maxTokens ?? 4096, 8192),
+        max_tokens: Math.min(opts.maxTokens ?? 4096, 16_384),
         temperature: opts.temperature ?? 0.7,
         messages: [
           { role: "system", content: opts.system },
@@ -1030,12 +1257,21 @@ async function callDeepInfra(opts: AICallOptions): Promise<AICallResult> {
       if (data.error) throw new Error(data.error.message ?? "DeepInfra error");
       const text = data.choices?.[0]?.message?.content ?? "";
       if (!text) throw new Error("Empty DeepInfra response");
-      recordModelOutcome(model, true);
-      return { text, provider: "groq" as const, model }; // reuse "groq" provider type for compat
+      const input = Number(data.usage?.prompt_tokens ?? 0);
+      const output = Number(data.usage?.completion_tokens ?? 0);
+      const cost = usageCostUsd("deepinfra", model, input, output);
+      recordModelOutcome(key, true);
+      return {
+        text,
+        provider: "groq" as const, // OpenAI-compatible family (compat) — `via` says "deepinfra"
+        model,
+        usage: { input_tokens: input, output_tokens: output, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
+        ...(cost !== null ? { cost_usd: cost } : {}),
+      };
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
-      coolDownModel(model, lastErr.message);
-      console.warn(`[ai-client] DeepInfra ${model} failed: ${lastErr.message}`);
+      coolDownModel(key, lastErr.message);
+      console.warn(`[ai-client] DeepInfra ${model} failed: ${lastErr.message.slice(0, 200)}`);
     }
   }
   throw lastErr ?? new Error("All DeepInfra models failed");
@@ -1077,7 +1313,7 @@ async function callClaudeHaikuDirect(opts: AICallOptions): Promise<AICallResult>
 
 // ── OpenRouter (OpenAI-compatible, free models) ──────────────────────
 
-async function callOpenRouter(opts: AICallOptions): Promise<AICallResult> {
+async function callOpenRouter(opts: AICallOptions, cls: AITaskClass = "classify"): Promise<AICallResult> {
   const apiKey = process.env.OPENROUTER_API_KEY ?? getDBKey("openrouter")?.api_key ?? "";
   if (!apiKey) throw new Error("OpenRouter API key not configured");
 
@@ -1109,7 +1345,7 @@ async function callOpenRouter(opts: AICallOptions): Promise<AICallResult> {
   ]);
 
   let lastErr: Error | null = null;
-  for (const model of readyModels(FREE_MODELS)) {
+  for (const model of readyModels(FREE_MODELS, cls)) {
     try {
       const raw = await workerFetch("https://openrouter.ai/api/v1/chat/completions", {
         "Authorization": `Bearer ${apiKey}`,
@@ -1222,11 +1458,11 @@ async function callClaudeProxy(opts: AICallOptions): Promise<AICallResult> {
   throw lastErr ?? new Error("All proxy keys failed");
 }
 
-async function callProvider(provider: Provider, opts: AICallOptions): Promise<AICallResult> {
+async function callProvider(provider: Provider, opts: AICallOptions, cls: AITaskClass = inferTaskClass(opts)): Promise<AICallResult> {
   const noTools = { ...opts, tools: undefined };
   switch (provider) {
     case "claude-oauth":
-      return callClaudeOAuth(readCliOAuthToken()!, noTools);
+      return callClaudeOAuth(readCliOAuthToken()!, noTools, cls);
     case "claude-apikey":
       return callClaudeApiKey(opts);
     case "claude-haiku-direct":
@@ -1236,22 +1472,17 @@ async function callProvider(provider: Provider, opts: AICallOptions): Promise<AI
     case "openai-apikey":
       return callOpenAI(process.env.OPENAI_API_KEY ?? getDBKey("openai")?.api_key ?? "", noTools);
     case "groq":
-      return callGroq(noTools);
+      return callGroq(noTools, cls);
     case "cerebras":
-      return callCerebras(noTools);
+      return callCerebras(noTools, cls);
     case "sambanova":
-      return callSambaNova(noTools);
+      return callSambaNova(noTools, cls);
     case "deepinfra":
-      return callDeepInfra(noTools);
+      return callDeepInfra(noTools, cls);
     case "openrouter":
-      return callOpenRouter(noTools);
-    case "gemini": {
-      const dbGemini = getDBKey("gemini");
-      if (!process.env.GOOGLE_GEMINI_API_KEY && dbGemini) {
-        process.env.GOOGLE_GEMINI_API_KEY = dbGemini.api_key;
-      }
-      return callGemini(noTools);
-    }
+      return callOpenRouter(noTools, cls);
+    case "gemini":
+      return callGemini(noTools, cls);
     case "ollama":
       return callOllama(noTools);
     default:
@@ -1367,7 +1598,7 @@ const PROVIDER_RPM: Record<Provider, number> = {
   "cerebras":           Number(process.env.AI_RPM_CEREBRAS ?? 30),
   "deepinfra":          Number(process.env.AI_RPM_DEEPINFRA ?? 300),
   "claude-haiku-direct":Number(process.env.AI_RPM_CLAUDE_HAIKU ?? 200),
-  "claude-oauth":       Number(process.env.AI_RPM_CLAUDE_OAUTH ?? 50),
+  "claude-oauth":       Number(process.env.AI_RPM_CLAUDE_OAUTH ?? 20),  // personal Max token — fallback only (S32-C)
   "claude-proxy":       Number(process.env.AI_RPM_CLAUDE_PROXY ?? 50),
   "claude-apikey":      Number(process.env.AI_RPM_CLAUDE_APIKEY ?? 120),
   "openai-apikey":      Number(process.env.AI_RPM_OPENAI ?? 200),
@@ -1376,35 +1607,57 @@ const PROVIDER_RPM: Record<Provider, number> = {
   "none":                  0,
 };
 
-// ── Tier segregation (S31-A, Sep 2026) ──────────────────────────────────
-// Three tiers, evaluated in order:
-//   quality — the Anthropic API key (SDK). Tried first while the key is valid
-//             and the daily cap (AI_DAILY_SPEND_CAP_AUD) has headroom.
-//   free    — zero-marginal-cost providers (Groq, Cerebras, SambaNova,
-//             OpenRouter free models), the local Ollama runtime, and the Claude
-//             subscription paths (flat fee — no per-call cost). Overflow for
-//             the quality tier; the whole platform when no key is funded.
-//   paid    — DeepInfra, Haiku direct, OpenAI, Gemini: only when every free
-//             provider is saturated or cooling, and never past the daily cap.
-const PROVIDER_TIER: Record<Provider, "quality" | "free" | "paid"> = {
+// ── Tier segregation (S31-A tiers, S32-C per-class ranking) ─────────────
+// Tiers, evaluated in the order the task class wants them:
+//   quality      — the Anthropic API key (SDK). While the key is valid and
+//                  the daily cap (AI_DAILY_SPEND_CAP_AUD) has headroom.
+//   quality-cost — DeepInfra + Gemini: paid but cheap, strong models. For
+//                  report / synthesis they rank right after the quality tier
+//                  (a founder's first analysis deserves a real model); for
+//                  classify they are overflow behind the free tiers.
+//   subscription — claude-oauth (Claude Max CLI token) and claude-proxy: a
+//                  PERSONAL credential, not a product tier. Fallback only:
+//                  after quality-cost for reports, after free for classify,
+//                  never picked while a higher tier has headroom, capped at
+//                  AI_RPM_CLAUDE_OAUTH (20).
+//   free         — zero-marginal-cost providers (Groq, Cerebras, SambaNova,
+//                  OpenRouter free models) and the local Ollama runtime.
+//   paid         — Haiku direct, OpenAI: last resort, never past the cap.
+export type ProviderTier = "quality" | "quality-cost" | "subscription" | "free" | "paid";
+
+const PROVIDER_TIER_BASE: Record<Provider, ProviderTier> = {
   "claude-apikey":      "quality",
+  "deepinfra":          "quality-cost",
+  "gemini":             "quality-cost",
+  "claude-oauth":       "subscription",  // covered by subscription — no per-call cost, personal token
+  "claude-proxy":       "subscription",  // covered by subscription — no per-call cost
   "groq":               "free",
   "cerebras":           "free",
   "sambanova":          "free",
   "openrouter":         "free",
   "ollama":             "free",
-  "claude-oauth":       "free",  // covered by subscription — no per-call cost
-  "claude-proxy":       "free",  // covered by subscription — no per-call cost
-  "deepinfra":          "paid",
   "claude-haiku-direct":"paid",
   "openai-apikey":      "paid",
-  "gemini":             "paid",
   "none":               "free",
 };
 
+/** Tier evaluation order per task class. */
+export const TIER_ORDER_BY_CLASS: Record<AITaskClass, ProviderTier[]> = {
+  report:    ["quality", "quality-cost", "subscription", "free", "paid"],
+  synthesis: ["quality", "quality-cost", "subscription", "free", "paid"],
+  classify:  ["quality", "free", "quality-cost", "subscription", "paid"],
+};
+
+/** The tier a provider sits in (same for every class — the ORDER of tiers
+ *  is what changes by class). Exported for tests / dashboards. */
+export function providerTier(p: Provider): ProviderTier {
+  return PROVIDER_TIER_BASE[p] ?? "free";
+}
+
 /** Providers whose calls cost real money — governed by the daily cap. */
 function isPaidProvider(p: Provider): boolean {
-  return PROVIDER_TIER[p] === "quality" || PROVIDER_TIER[p] === "paid";
+  const t = providerTier(p);
+  return t === "quality" || t === "quality-cost" || t === "paid";
 }
 
 /** Map a dispatcher provider onto the probe's provider id (null = not probed). */
@@ -1418,6 +1671,7 @@ function probeIdFor(p: Provider): ProbeProvider | null {
     case "cerebras": return "cerebras";
     case "sambanova": return "sambanova";
     case "deepinfra": return "deepinfra";
+    case "gemini": return "gemini";
     case "ollama": return "ollama";
     default: return null;
   }
@@ -1512,12 +1766,16 @@ function providerCapacity(p: Provider): number {
  *  gets 429'd and cools down, which is what we want. Returns null only when
  *  the input list is empty or every candidate is hard-blocked.
  *
- *  Tier policy (S31-A): the QUALITY tier (Anthropic API key) is taken first
- *  whenever it is usable and has headroom; then every FREE provider; the
- *  PAID overflow only when every free provider is blocked or saturated. A
+ *  Tier policy (S32-C): tiers are walked in `TIER_ORDER_BY_CLASS[taskClass]`
+ *  — report / synthesis: quality → quality-cost → subscription → free →
+ *  paid; classify: quality → free → quality-cost → subscription → paid. The
+ *  first tier with a provider that has headroom wins; inside a tier the
+ *  provider with the most capacity wins (input order breaks ties). A
  *  provider blocked by an invalid key / quota / low credit / the daily cap
- *  is never picked while any other candidate exists. */
-export function pickBestProvider(candidates: Provider[]): Provider | null {
+ *  is never picked while any other candidate exists. When the founder set
+ *  AI_REPORT_PROVIDER_ORDER the list order IS the rank for report classes
+ *  (first provider with headroom wins). */
+export function pickBestProvider(candidates: Provider[], taskClass: AITaskClass = "report"): Provider | null {
   if (candidates.length === 0) return null;
   const now = Date.now();
 
@@ -1526,10 +1784,6 @@ export function pickBestProvider(candidates: Provider[]): Provider | null {
   // cooldown (a 401 / cap / quota block is never bypassed).
   const list = usable.length > 0 ? usable : candidates.filter((p) => providerBlockReason(p, now) === "cooldown");
   if (list.length === 0) return null;
-
-  const quality = list.filter((p) => PROVIDER_TIER[p] === "quality");
-  const free = list.filter((p) => PROVIDER_TIER[p] === "free");
-  const paid = list.filter((p) => PROVIDER_TIER[p] === "paid");
 
   const pickFrom = (tier: Provider[]): Provider | null => {
     if (tier.length === 0) return null;
@@ -1541,21 +1795,34 @@ export function pickBestProvider(candidates: Provider[]): Provider | null {
   };
   const anyRoom = (tier: Provider[]): boolean => tier.some((p) => providerCapacity(p) > 0);
 
-  if (quality.length > 0 && anyRoom(quality)) return pickFrom(quality);
-  if (free.length > 0 && anyRoom(free)) return pickFrom(free);
-
-  // Free tier saturated → overflow paid tier. Log the engagement so the
-  // admin dashboard can react.
-  if (paid.length > 0) {
-    const pick = pickFrom(paid);
-    if (pick) notePaidTierEngaged(pick);
+  // Founder override: strict priority in the listed order for report classes.
+  if (taskClass !== "classify" && reportOrderOverridden()) {
+    const order = providerOrderForClass(taskClass);
+    const ranked = [...list].sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    const withRoom = ranked.find((p) => providerCapacity(p) > 0);
+    const pick = withRoom ?? pickFrom(ranked);
+    if (pick && providerTier(pick) === "paid") notePaidTierEngaged(pick);
     return pick;
   }
 
-  // No paid overflow — last-ditch attempt at whatever is left even though
-  // everything is saturated. Some call has to fail so cooldowns get fresh
+  const order = TIER_ORDER_BY_CLASS[taskClass] ?? TIER_ORDER_BY_CLASS.report;
+  for (const tierName of order) {
+    const tier = list.filter((p) => providerTier(p) === tierName);
+    if (tier.length === 0 || !anyRoom(tier)) continue;
+    const pick = pickFrom(tier);
+    // Overflow onto the last-resort paid tier is worth a log line so the
+    // admin dashboard can react (quality-cost for a report is by design).
+    if (pick && tierName === "paid") notePaidTierEngaged(pick);
+    return pick;
+  }
+
+  // Everything is saturated — last-ditch attempt at the least-saturated
+  // provider in tier order. Some call has to fail so cooldowns get fresh
   // signals; better to let it 429 than return null.
-  return pickFrom([...quality, ...free]);
+  const ranked = order.flatMap((tierName) => list.filter((p) => providerTier(p) === tierName));
+  const pick = pickFrom(ranked);
+  if (pick && providerTier(pick) === "paid") notePaidTierEngaged(pick);
+  return pick;
 }
 
 // ── L3. Global concurrency semaphore + bounded, priority-aware queue ──────
@@ -1781,7 +2048,11 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
   // Fallback: local provider chain (existing behavior)
   await getDBKeys();
 
-  const allProviders = getAvailableProviders();
+  // S32-C — the task class decides the provider order AND the model each
+  // provider uses (see header). Inferred from agentId / maxTokens when the
+  // caller did not say.
+  const taskClass = inferTaskClass(opts);
+  const allProviders = getAvailableProviders(taskClass);
 
   if (allProviders.length === 0) {
     throw new Error(
@@ -1834,12 +2105,12 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
   try {
     while (tried.size < allProviders.length) {
       const remaining = allProviders.filter((p) => !tried.has(p));
-      const provider = pickBestProvider(remaining);
+      const provider = pickBestProvider(remaining, taskClass);
       if (!provider) break;
       tried.add(provider);
       noteFire(provider);
       try {
-        const result = await callProvider(provider, opts);
+        const result = await callProvider(provider, opts, taskClass);
         const estimatedTokens = Math.ceil((opts.system.length + opts.user.length) / 3) * 2;
         const paid = isPaidProvider(provider);
         const cost = typeof result.cost_usd === "number"
@@ -1852,7 +2123,7 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
             notifyCapReached("daily_cap", { provider }).catch(() => { /* best-effort */ });
           }
         }
-        return { ...result, cost_usd: cost };
+        return { ...result, cost_usd: cost, via: provider, taskClass };
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
         const cooldownMs = cooldownForError(provider, lastError);

@@ -57,6 +57,7 @@ import {
   sviLabel,
 } from "./svi-report-pdf";
 import { pdfPageCount } from "./page-count";
+import { buildReportMeta } from "@/lib/analyses/first-analysis/meta";
 import {
   AGENT_META,
   FIRST_ANALYSIS_AGENTS,
@@ -103,6 +104,14 @@ function bodyParagraphs(body: string): string[] {
     used += p.length;
   }
   return out;
+}
+
+/** S32-C — the truthful "Prepared with …" line: the models that actually
+ *  wrote the sections (from `report.meta`, or folded from the sections
+ *  themselves when a report pre-dates the meta block). */
+export function preparedWithLine(report: FirstAnalysisReport): string {
+  const meta = report.meta ?? buildReportMeta(report.agents);
+  return meta.preparedWith;
 }
 
 function longDate(iso: string): string {
@@ -175,7 +184,8 @@ function CoverPage({ report, variant }: { report: FirstAnalysisReport; variant: 
           <Text style={{ fontSize: 8, color: C.ink400, lineHeight: 1.5 }}>
             Prepared for the founder from the input they provided. Every number in this document traces to that input or to an assumption stated beside it. The method is grounded in the founder&apos;s doctoral research (DBA) on startup valuation.
           </Text>
-          <Text style={{ fontSize: 7, color: C.ink500, marginTop: 10 }}>{PDF_ENTITY_LINE}</Text>
+          <Text style={{ fontSize: 7, color: C.ink500, marginTop: 6 }}>{preparedWithLine(report)}</Text>
+          <Text style={{ fontSize: 7, color: C.ink500, marginTop: 6 }}>{PDF_ENTITY_LINE}</Text>
         </View>
       </View>
     </Page>

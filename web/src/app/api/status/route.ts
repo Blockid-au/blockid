@@ -19,6 +19,7 @@ import { readGa4EventAuditStatus } from "@/lib/analytics/ga4-event-audit";
 import { readBackupHealth, type BackupStatus } from "@/lib/ops/backup-health";
 import { readSchemaMigrationsStatus, type SchemaMigrationsStatus } from "@/lib/ops/schema-migrations";
 import { readAiProvidersSummary, type AiProvidersSummary } from "@/lib/ai/provider-status";
+import { readLastReportProvider, type LastReportProvider } from "@/lib/ai/last-report";
 import { getAIQueueDepth } from "@/lib/ai-client";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -136,6 +137,12 @@ type StatusResponse = {
    * background lanes) and running/max concurrency. Trusted callers only.
    */
   ai_queue_depth: ReturnType<typeof getAIQueueDepth>;
+  /**
+   * S32-C — which provider + model wrote the most recent finished first
+   * analysis (content/reports/ai-last-report.json), with the per-section
+   * breakdown; `null` until a report has finished. Trusted callers only.
+   */
+  ai_last_report_provider: LastReportProvider | null;
 };
 
 // Whether the caller is trusted enough to see the full internal telemetry
@@ -432,7 +439,7 @@ function safeQueueDepth(): ReturnType<typeof getAIQueueDepth> {
 // ---------- Handler ----------
 
 export async function GET(): Promise<Response> {
-  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens, ga4Events, backups, schemaMigrations, aiProviders] = await Promise.all([
+  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens, ga4Events, backups, schemaMigrations, aiProviders, aiLastReport] = await Promise.all([
     fetchHealthz(2000),
     summariseCrons().catch(() => [] as CronRow[]),
     readGitShaFallback(),
@@ -444,6 +451,7 @@ export async function GET(): Promise<Response> {
     readBackupHealth(REPO_ROOT).catch(() => ({ status: "missing" as const, last_backup: "", last_restore_test: "" })),
     readSchemaMigrationsStatus(REPO_ROOT).catch(() => "unknown" as const),
     readAiProvidersSummary(REPO_ROOT).catch(() => ({ updated_at: "", providers: {}, usable: 0, quality_tier_ready: false } as AiProvidersSummary)),
+    readLastReportProvider(REPO_ROOT).catch(() => null),
   ]);
 
   const last_deploy = await readLastDeploy(fallbackSha).catch(() => ({
@@ -502,6 +510,7 @@ export async function GET(): Promise<Response> {
     schema_migrations: schemaMigrations,
     ai_providers: aiProviders,
     ai_queue_depth: safeQueueDepth(),
+    ai_last_report_provider: aiLastReport,
   };
 
   return NextResponse.json(trusted ? fullBody : publicBody, {

@@ -50,7 +50,7 @@ function fetchImpl(url: string, init?: RequestInit): Promise<Response> {
   return Promise.resolve(new Response(r.body ?? "{}", { status: r.status, headers: r.headers ?? {} }));
 }
 
-const ENV_KEYS = ["ANTHROPIC_API_KEY", "ANTHROPIC_PROXY_API_KEY", "ANTHROPIC_PROXY_BASE_URL", "OPENROUTER_API_KEY", "GROQ_API_KEY", "CEREBRAS_API_KEY", "SAMBANOVA_API_KEY", "DEEPINFRA_API_KEY", "OLLAMA_HOST", "OLLAMA_ENABLED", "OPENROUTER_MIN_CREDIT_USD"];
+const ENV_KEYS = ["ANTHROPIC_API_KEY", "ANTHROPIC_PROXY_API_KEY", "ANTHROPIC_PROXY_BASE_URL", "OPENROUTER_API_KEY", "GROQ_API_KEY", "CEREBRAS_API_KEY", "SAMBANOVA_API_KEY", "DEEPINFRA_API_KEY", "GOOGLE_GEMINI_API_KEY", "OLLAMA_HOST", "OLLAMA_ENABLED", "OPENROUTER_MIN_CREDIT_USD"];
 
 beforeEach(() => {
   fsMock.files.clear();
@@ -146,6 +146,27 @@ describe("probeProvider — verdict ladder", () => {
     expect((await probeProvider("sambanova", "k", { fetchImpl, env: env() })).status).toBe("invalid_key");
     expect((await probeProvider("deepinfra", "k", { fetchImpl, env: env() })).status).toBe("unreachable");
     expect((await probeProvider("ollama", "http://localhost:11434", { fetchImpl, env: env() })).status).toBe("valid");
+  });
+
+  it("gemini (S32-C) probes the models endpoint with the key in a header, never the URL; 400 API_KEY_INVALID → invalid_key", async () => {
+    replies.set("https://generativelanguage.googleapis.com/v1beta/models", { status: 200, body: '{"models":[{"name":"models/gemini-2.5-flash"}]}' });
+    const ok = await probeProvider("gemini", "AIza-gemini-secret", { fetchImpl, env: env() });
+    expect(ok.status).toBe("valid");
+    expect(ok.detail).toContain("quality-cost");
+    const call = calls.find((c) => c.url.startsWith("https://generativelanguage.googleapis.com"));
+    expect(call?.url).not.toContain("AIza-gemini-secret");
+    expect((call?.init?.headers as Record<string, string>)["x-goog-api-key"]).toBe("AIza-gemini-secret");
+    expect(JSON.stringify(ok)).not.toContain("AIza-gemini-secret");
+
+    replies.set("https://generativelanguage.googleapis.com/v1beta/models", { status: 400, body: '{"error":{"message":"API key not valid. Please pass a valid API key.","status":"INVALID_ARGUMENT","details":[{"reason":"API_KEY_INVALID"}]}}' });
+    expect((await probeProvider("gemini", "bad", { fetchImpl, env: env() })).status).toBe("invalid_key");
+    replies.set("https://generativelanguage.googleapis.com/v1beta/models", { status: 429, body: '{"error":{"status":"RESOURCE_EXHAUSTED"}}' });
+    expect((await probeProvider("gemini", "k", { fetchImpl, env: env() })).status).toBe("quota_exceeded");
+  });
+
+  it("gemini is configured by GOOGLE_GEMINI_API_KEY and listed not_configured without it", async () => {
+    expect(configuredProviders(env({ GOOGLE_GEMINI_API_KEY: "g" })).gemini).toBe("g");
+    expect(configuredProviders(env()).gemini).toBeUndefined();
   });
 });
 
