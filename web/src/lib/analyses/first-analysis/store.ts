@@ -4,9 +4,15 @@
 // UPDATE so two workers (the intake request's fire-and-forget runner and
 // the 5-minute cron) can never both write the same report:
 //
-//   queued ──claim──▶ running ──▶ done
-//   failed ──claim──▶ running ──▶ failed   (attempts < FULL_REPORT_MAX_ATTEMPTS)
+//   queued ──claim──▶ running ──▶ done | done_partial | failed
+//   failed ──claim──▶ running ──▶ …        (attempts < FULL_REPORT_MAX_ATTEMPTS)
 //   running (stale > FULL_REPORT_STUCK_MS) ──claim──▶ running
+//   done_partial ──claim──▶ done_partial (in flight) ──▶ done | done_partial
+//                (migration 0391; the status is kept so the founder's page
+//                 and PDF stay readable while the cron backfills; "in
+//                 flight" = started_at set and finished_at null; bounded by
+//                 the per-section attempt cap, with a hard ceiling of
+//                 FULL_REPORT_MAX_ATTEMPTS + SECTION_MAX_ATTEMPTS claims)
 //
 // The email is the same shape: `claimFullReportEmailSend` stamps
 // `full_report_emailed_at` BEFORE the send and only when it is still null;
@@ -20,9 +26,11 @@ import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { ANALYSES_TABLE } from "@/lib/analyses/store";
-import type { FirstAnalysisReport, FullReportStatus } from "./types";
+import { SECTION_MAX_ATTEMPTS, type FirstAnalysisReport, type FullReportStatus } from "./types";
 
 export const FULL_REPORT_MAX_ATTEMPTS = 3;
+/** Hard ceiling on claims of a `done_partial` row (the per-section cap is the real bound). */
+export const FULL_REPORT_PARTIAL_MAX_CLAIMS = FULL_REPORT_MAX_ATTEMPTS + SECTION_MAX_ATTEMPTS;
 /** A `running` row older than this is treated as abandoned and re-claimed. */
 export const FULL_REPORT_STUCK_MS = 15 * 60 * 1000;
 
@@ -109,18 +117,24 @@ export async function claimFullReportJob(
   const current = await loadFullReportRow(id);
   if (!current) return null;
   const attempts = current.full_report_attempts ?? 0;
-  if (attempts >= maxAttempts) return null;
   const status = current.full_report_status;
-  const claimable =
-    status === "queued" ||
-    status === "failed" ||
-    (status === "running" && (!current.full_report_started_at || current.full_report_started_at < stuckBefore));
+  const stuck = !current.full_report_started_at || current.full_report_started_at < stuckBefore;
+  let claimable: boolean;
+  if (status === "done_partial") {
+    // Backfill: not while another worker is on it, and never past the ceiling.
+    const inFlight = Boolean(current.full_report_started_at) && !current.full_report_finished_at;
+    claimable = attempts < FULL_REPORT_PARTIAL_MAX_CLAIMS && (!inFlight || stuck);
+  } else {
+    claimable =
+      attempts < maxAttempts &&
+      (status === "queued" || status === "failed" || (status === "running" && stuck));
+  }
   if (!claimable) return null;
 
   const { data, error } = await supabase
     .from(ANALYSES_TABLE)
     .update({
-      full_report_status: "running",
+      full_report_status: status === "done_partial" ? "done_partial" : "running",
       full_report_attempts: attempts + 1,
       full_report_started_at: now.toISOString(),
       full_report_finished_at: null,
@@ -138,7 +152,7 @@ export async function claimFullReportJob(
   return rows.length === 1 ? rows[0] : null;
 }
 
-/** Write the partial report so the page can stream sections in. */
+/** Write the in-progress report so the page can stream sections in (a first run, or a partial being backfilled). */
 export async function saveFullReportProgress(id: string, report: FirstAnalysisReport): Promise<boolean> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return false;
@@ -146,7 +160,7 @@ export async function saveFullReportProgress(id: string, report: FirstAnalysisRe
     .from(ANALYSES_TABLE)
     .update({ full_report_json: report })
     .eq("id", id)
-    .eq("full_report_status", "running");
+    .in("full_report_status", ["running", "done_partial"]);
   if (error) {
     console.error("[first-analysis:progress] update failed —", error.message);
     return false;
@@ -156,7 +170,14 @@ export async function saveFullReportProgress(id: string, report: FirstAnalysisRe
 
 export async function finishFullReport(
   id: string,
-  outcome: { status: "done" | "failed"; report: FirstAnalysisReport | null; error?: string | null; now?: Date },
+  outcome: {
+    status: "done" | "done_partial" | "failed";
+    report: FirstAnalysisReport | null;
+    error?: string | null;
+    now?: Date;
+    /** A "(part 1)" email went out: give the send-once stamp back so the complete report is emailed once more. */
+    resetEmailed?: boolean;
+  },
 ): Promise<boolean> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return false;
@@ -166,6 +187,7 @@ export async function finishFullReport(
     full_report_error: outcome.error ? outcome.error.slice(0, 500) : null,
   };
   if (outcome.report) patch.full_report_json = outcome.report;
+  if (outcome.resetEmailed) patch.full_report_emailed_at = null;
   const { error } = await supabase.from(ANALYSES_TABLE).update(patch).eq("id", id);
   if (error) {
     console.error("[first-analysis:finish] update failed —", error.message);
@@ -246,9 +268,9 @@ export async function lookupUserPlan(userId: string): Promise<string | null> {
 }
 
 export interface PendingSweep {
-  /** Jobs to (re)run: queued, retryable failed, stuck running. */
+  /** Jobs to (re)run: queued, retryable failed, stuck running, and partials with sections left to backfill. */
   runnable: FullReportRow[];
-  /** Done, not yet emailed, with a destination resolvable. */
+  /** Done or partial, not yet emailed for that state, with a destination resolvable. */
   emailable: FullReportRow[];
 }
 
@@ -274,18 +296,33 @@ export async function sweepPendingFullReports(
     .order("created_at", { ascending: false })
     .limit(limit * 3);
   if (e1) console.error("[first-analysis:sweep] pending query failed —", e1.message);
-  const runnable = ((pending as unknown as FullReportRow[] | null) ?? [])
-    .filter((r) =>
+  // Partials: backfill only the rows nobody is on (finished_at set, or
+  // stuck), under the claim ceiling — the per-section cap does the rest.
+  const { data: partial, error: e3 } = await supabase
+    .from(ANALYSES_TABLE)
+    .select(FULL_REPORT_COLUMNS)
+    .eq("full_report_status", "done_partial")
+    .lt("full_report_attempts", FULL_REPORT_PARTIAL_MAX_CLAIMS)
+    .order("created_at", { ascending: false })
+    .limit(limit * 3);
+  if (e3) console.error("[first-analysis:sweep] partial query failed —", e3.message);
+  const runnable = [
+    ...((pending as unknown as FullReportRow[] | null) ?? []).filter((r) =>
       r.full_report_status !== "running" ||
       !r.full_report_started_at ||
       r.full_report_started_at < stuckBefore,
-    )
-    .slice(0, limit);
+    ),
+    ...((partial as unknown as FullReportRow[] | null) ?? []).filter((r) =>
+      !r.full_report_started_at ||
+      Boolean(r.full_report_finished_at) ||
+      r.full_report_started_at < stuckBefore,
+    ),
+  ].slice(0, limit);
 
   const { data: done, error: e2 } = await supabase
     .from(ANALYSES_TABLE)
     .select(FULL_REPORT_COLUMNS)
-    .eq("full_report_status", "done")
+    .in("full_report_status", ["done", "done_partial"])
     .is("full_report_emailed_at", null)
     .order("created_at", { ascending: false })
     .limit(limit * 3);

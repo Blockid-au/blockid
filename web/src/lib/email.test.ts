@@ -1335,6 +1335,28 @@ describe("sendFirstAnalysisReportEmail — the first analysis PDF (S32-B)", () =
     expect(mail.html).not.toMatch(/hurry|last chance|% off|discount|limited time|act now/i);
   });
 
+  it("a partial report goes out as '(part 1)' naming the voices still being written; the completion as '(complete)'", async () => {
+    canSendEmailMock.mockResolvedValue(true);
+    const { sendFirstAnalysisReportEmail } = await import("./email");
+    const a = await args();
+    delete a.report.agents.clo;
+    delete a.report.agents.chro;
+    delete a.report.agents.cpo;
+    a.report.sections = { clo: { status: "failed", attempts: 1 }, chro: { status: "failed", attempts: 1 }, cpo: { status: "unavailable", attempts: 3 } };
+    expect((await sendFirstAnalysisReportEmail({ ...a, part: "partial" })).ok).toBe(true);
+    let mail = lastMail();
+    expect(mail.subject).toBe("Your BlockID first analysis — Kelpie (part 1)");
+    expect(mail.html).toContain("2 sections are still being written (CLO, CHRO)");
+    expect(mail.html).toContain("4 of the seven C-level voices");
+    expect(mail.attachments?.[0].filename).toBe("blockid-first-analysis-part-1.pdf");
+
+    expect((await sendFirstAnalysisReportEmail({ ...(await args()), part: "complete" })).ok).toBe(true);
+    mail = lastMail();
+    expect(mail.subject).toBe("Your BlockID first analysis — Kelpie (complete)");
+    expect(mail.html).toContain("This replaces part 1");
+    expect(mail.attachments?.[0].filename).toBe("blockid-first-analysis.pdf");
+  });
+
   it("drops the attachment above 8 MB and relies on the signed link", async () => {
     canSendEmailMock.mockResolvedValue(true);
     const { sendFirstAnalysisReportEmail, FIRST_ANALYSIS_ATTACHMENT_MAX_BYTES } = await import("./email");

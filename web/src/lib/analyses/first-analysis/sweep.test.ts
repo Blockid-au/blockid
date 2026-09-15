@@ -18,9 +18,9 @@ import type { FullReportRow } from "./store";
 
 const r = (id: string, extra: Partial<FullReportRow> = {}) => ({ id, full_report_status: "failed", full_report_attempts: 1, full_report_email: "a@b.c", user_id: null, ...extra }) as FullReportRow;
 
-function deps(): SweepDeps & { run: ReturnType<typeof vi.fn>; deliver: ReturnType<typeof vi.fn> } {
+function deps(): SweepDeps & { sweep: ReturnType<typeof vi.fn>; run: ReturnType<typeof vi.fn>; deliver: ReturnType<typeof vi.fn> } {
   return {
-    sweep: vi.fn().mockResolvedValue({ runnable: [r("run-1"), r("run-2")], emailable: [r("mail-1", { full_report_status: "done" })] }),
+    sweep: vi.fn().mockResolvedValue({ runnable: [r("run-1"), r("run-2")], emailable: [r("mail-1", { full_report_status: "done" })] }) as SweepDeps["sweep"] & ReturnType<typeof vi.fn>,
     run: vi.fn().mockResolvedValue({ outcome: "done" }),
     deliver: vi.fn().mockResolvedValue("sent"),
   };
@@ -55,6 +55,19 @@ describe("sweepFirstAnalysisReports", () => {
     expect(out.emailed).toEqual([{ id: "mail-1", outcome: "sent" }]);
     expect(out.ran).toEqual([{ id: "run-1", outcome: "done" }, { id: "run-2", outcome: "failed" }]);
     expect(out.ok).toBe(true);
+  });
+
+  it("S32-E: a done_partial row is emailed (part 1) and re-run (backfill) like any other candidate", async () => {
+    const d = deps();
+    d.sweep.mockResolvedValue({
+      runnable: [r("partial-1", { full_report_status: "done_partial", full_report_attempts: 2, full_report_finished_at: "2026-09-15T00:05:00Z" })],
+      emailable: [r("partial-1", { full_report_status: "done_partial", full_report_attempts: 2 })],
+    });
+    d.run.mockResolvedValue({ outcome: "done" });
+    const out = await sweepFirstAnalysisReports({}, d);
+    expect(out.emailed).toEqual([{ id: "partial-1", outcome: "sent" }]);
+    expect(out.ran).toEqual([{ id: "partial-1", outcome: "done" }]);
+    expect(out.runnable[0]).toEqual({ id: "partial-1", status: "done_partial", attempts: 2 });
   });
 
   it("reports a sweep failure as ok:false", async () => {

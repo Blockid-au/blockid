@@ -68,7 +68,7 @@ function row(overrides: Partial<FullReportRow> = {}): FullReportRow {
 interface Harness {
   deps: JobDeps;
   saves: FirstAnalysisReport[];
-  finishes: { status: string; error?: string | null }[];
+  finishes: { status: string; error?: string | null; resetEmailed?: boolean }[];
   deliver: ReturnType<typeof vi.fn>;
   sleeps: number[];
 }
@@ -90,7 +90,7 @@ function harness(r: FullReportRow | null, callAgent: JobDeps["callAgent"]): Harn
       return true;
     },
     finish: async (_id, outcome) => {
-      finishes.push({ status: outcome.status, error: outcome.error });
+      finishes.push({ status: outcome.status, error: outcome.error, ...(outcome.status === "done" ? { resetEmailed: Boolean(outcome.resetEmailed) } : {}) });
       return true;
     },
     callAgent,
@@ -139,7 +139,7 @@ describe("runFirstAnalysisJob", () => {
     const last = h.saves.at(-1)!;
     expect(Object.keys(last.agents).sort()).toEqual([...FIRST_ANALYSIS_AGENTS].sort());
     expect(last.progress).toEqual({ current: null, completed: [...FIRST_ANALYSIS_AGENTS], failed: [] });
-    expect(h.finishes).toEqual([{ status: "done", error: null }]);
+    expect(h.finishes).toEqual([{ status: "done", error: null, resetEmailed: false }]);
     expect(h.deliver).toHaveBeenCalledTimes(1);
     expect(h.deliver.mock.calls[0][1].completedAt).toBe("2026-09-15T00:00:00.000Z");
   });
@@ -161,8 +161,8 @@ describe("runFirstAnalysisJob", () => {
     const delivered = h.deliver.mock.calls[0][1] as FirstAnalysisReport;
     expect(delivered.agents.ceo?.taskClass).toBe("synthesis");
     expect(delivered.agents.cfo?.taskClass).toBe("report");
-    expect(delivered.meta?.sections.ceo).toEqual({ provider: "gemini", model: "gemini-3.1-pro-preview", taskClass: "synthesis" });
-    expect(delivered.meta?.sections.cfo).toEqual({ provider: "deepinfra", model: "deepseek-ai/DeepSeek-V4-Flash", taskClass: "report" });
+    expect(delivered.meta?.sections.ceo).toEqual({ provider: "gemini", model: "gemini-3.1-pro-preview", taskClass: "synthesis", status: "done" });
+    expect(delivered.meta?.sections.cfo).toEqual({ provider: "deepinfra", model: "deepseek-ai/DeepSeek-V4-Flash", taskClass: "report", status: "done" });
     expect(delivered.meta?.models).toEqual(["DeepSeek-V4-Flash via DeepInfra", "gemini-3.1-pro-preview via Google Gemini"]);
     expect(delivered.meta?.preparedWith).toBe("Prepared with DeepSeek-V4-Flash via DeepInfra · gemini-3.1-pro-preview via Google Gemini.");
 
@@ -216,29 +216,38 @@ describe("runFirstAnalysisJob", () => {
     expect(call.mock.calls.filter((c) => c[0].agentId === "first-analysis-cmo")).toHaveLength(2);
   });
 
-  it("marks the job failed when one voice cannot be written, keeps the others, and does not deliver", async () => {
+  it("marks the job failed when fewer than four voices can be written, keeps the others, and does not deliver", async () => {
     const call = vi.fn(async (req: { agentId: string }) =>
-      req.agentId === "first-analysis-clo" ? { text: "No." } : { text: GOOD(req.agentId) },
+      ["first-analysis-clo", "first-analysis-chro", "first-analysis-cpo", "first-analysis-cto"].includes(req.agentId) ? { text: "No." } : { text: GOOD(req.agentId) },
     );
     const h = harness(row(), call);
     const out = await runFirstAnalysisJob(SAMPLE_ANALYSIS_ID, h.deps);
-    expect(out).toMatchObject({ outcome: "failed", failed: ["clo"] });
-    expect((out as { completed: string[] }).completed).toHaveLength(6);
+    expect(out).toMatchObject({ outcome: "failed", failed: ["cto", "cpo", "clo", "chro"] });
+    expect((out as { completed: string[] }).completed).toHaveLength(3);
     expect(h.finishes[0].status).toBe("failed");
     expect(h.finishes[0].error).toMatch(/clo/);
     expect(h.deliver).not.toHaveBeenCalled();
+    // Per-section state and meta are written even on a failed run (2026-09-15: meta was null).
+    const last = h.saves.at(-1)!;
+    expect(last.sections?.clo).toMatchObject({ status: "failed", attempts: 1 });
+    expect(last.sections?.ceo).toMatchObject({ status: "done", attempts: 1 });
+    expect(last.meta?.sections.ceo).toMatchObject({ status: "done" });
+    expect(last.meta?.preparedWith).toBe("Prepared with BlockID's C-level AI agents.");
   });
 
-  it("on the final attempt a partial report is delivered as-is, with the missing voice recorded", async () => {
+  it("S32-E: a whole-job last attempt with fewer than four voices marks the rest unavailable and delivers what exists", async () => {
     const call = vi.fn(async (req: { agentId: string }) =>
-      req.agentId === "first-analysis-clo" ? { text: "No." } : { text: GOOD(req.agentId) },
+      ["first-analysis-clo", "first-analysis-chro", "first-analysis-cpo", "first-analysis-cto"].includes(req.agentId) ? { text: "No." } : { text: GOOD(req.agentId) },
     );
     const h = harness(row({ full_report_status: "failed", full_report_attempts: 3 }), call);
     const out = await runFirstAnalysisJob(SAMPLE_ANALYSIS_ID, h.deps);
-    expect(out).toMatchObject({ outcome: "done", failed: ["clo"], emailed: "sent" });
+    expect(out).toMatchObject({ outcome: "done", failed: ["cto", "cpo", "clo", "chro"], emailed: "sent" });
     expect(h.finishes[0]).toMatchObject({ status: "done" });
     expect(h.finishes[0].error).toMatch(/clo/);
     expect(h.deliver).toHaveBeenCalledTimes(1);
+    const delivered = h.deliver.mock.calls[0][1] as FirstAnalysisReport;
+    expect(delivered.sections?.clo?.status).toBe("unavailable");
+    expect(delivered.completedAt).toBeTruthy();
   });
 
   it("re-uses sections a previous attempt already produced", async () => {
@@ -251,6 +260,108 @@ describe("runFirstAnalysisJob", () => {
     expect(call).toHaveBeenCalledTimes(1);
     expect(call.mock.calls[0][0].agentId).toBe("first-analysis-chro");
     expect(h.saves.at(-1)!.agents.ceo?.title).toBe(prior.agents.ceo!.title);
+  });
+
+  // Defect 2 (live run 2026-09-15 09:18 UTC): 3 of 7 written → `failed`,
+  // nothing shown, nothing emailed. Now ≥ 4 of 7 → `done_partial`, emailed
+  // as part 1, backfilled by the cron section by section, emailed again.
+  describe("S32-E: partial delivery", () => {
+    const BAD = new Set(["first-analysis-clo", "first-analysis-chro", "first-analysis-cpo"]);
+
+    it("4 of 7 → done_partial: the finished sections are kept, the row is emailed once as part 1, meta names every model", async () => {
+      const call = vi.fn(async (req: { agentId: string }) =>
+        BAD.has(req.agentId) ? { text: "No.", provider: "groq", model: "allam-2-7b" } : { text: GOOD(req.agentId), provider: "deepinfra", model: "deepseek-ai/DeepSeek-V4-Flash" },
+      );
+      const h = harness(row(), call);
+      const out = await runFirstAnalysisJob(SAMPLE_ANALYSIS_ID, h.deps);
+      expect(out).toMatchObject({ outcome: "done_partial", failed: ["cpo", "clo", "chro"], emailed: "sent" });
+      expect((out as { completed: string[] }).completed).toEqual(["ceo", "cfo", "cmo", "cto"]);
+      expect(h.finishes).toEqual([{ status: "done_partial", error: expect.stringMatching(/3 section\(s\) not written: cpo, clo, chro.*3 still being written/) }]);
+      expect(h.deliver).toHaveBeenCalledTimes(1);
+      expect(h.deliver.mock.calls[0][0].full_report_status).toBe("done_partial");
+      const delivered = h.deliver.mock.calls[0][1] as FirstAnalysisReport;
+      expect(delivered.partialAt).toBe("2026-09-15T00:00:00.000Z");
+      expect(delivered.completedAt).toBeUndefined();
+      expect(delivered.sections?.clo).toMatchObject({ status: "failed", attempts: 1, provider: "groq", model: "allam-2-7b" });
+      expect(delivered.meta?.sections.ceo).toMatchObject({ provider: "deepinfra", status: "done" });
+      expect(delivered.meta?.sections.clo).toMatchObject({ provider: "groq", model: "allam-2-7b", status: "failed" });
+      expect(delivered.meta?.preparedWith).toBe("Prepared with DeepSeek-V4-Flash via DeepInfra.");
+    });
+
+    it("the cron backfills only the missing sections, then the row is done and the complete report is emailed once more", async () => {
+      // Run 1 → partial (part 1 emailed, stamp set on the row).
+      const call1 = vi.fn(async (req: { agentId: string }) => (BAD.has(req.agentId) ? { text: "No." } : { text: GOOD(req.agentId) }));
+      const h1 = harness(row(), call1);
+      const out1 = await runFirstAnalysisJob(SAMPLE_ANALYSIS_ID, h1.deps);
+      expect(out1.outcome).toBe("done_partial");
+      const partial = h1.deliver.mock.calls[0][1] as FirstAnalysisReport;
+
+      // Run 2 (cron, 5 min later): the row is done_partial, part 1 was emailed.
+      const call2 = vi.fn(async (req: { agentId: string }) => ({ text: GOOD(req.agentId) }));
+      const r2 = row({ full_report_status: "done_partial", full_report_attempts: 2, full_report_json: partial, full_report_emailed_at: "2026-09-15T00:00:05Z", full_report_email: "founder@example.com" });
+      const h2 = harness(r2, call2);
+      h2.deps.now = () => new Date("2026-09-15T00:05:00Z");
+      const out2 = await runFirstAnalysisJob(SAMPLE_ANALYSIS_ID, h2.deps);
+      expect(out2).toMatchObject({ outcome: "done", failed: [], emailed: "sent", error: null });
+      // Only the three missing voices were written.
+      expect(call2.mock.calls.map((c) => c[0].agentId).sort()).toEqual(["first-analysis-chro", "first-analysis-clo", "first-analysis-cpo"]);
+      // Finished as done with the send-once stamp given back, so the complete email goes out.
+      expect(h2.finishes).toEqual([{ status: "done", error: null, resetEmailed: true }]);
+      expect(h2.deliver).toHaveBeenCalledTimes(1);
+      expect(h2.deliver.mock.calls[0][0]).toMatchObject({ full_report_status: "done", full_report_emailed_at: null });
+      const complete = h2.deliver.mock.calls[0][1] as FirstAnalysisReport;
+      expect(complete.delivery?.partialEmailedAt).toBe("2026-09-15T00:00:05Z");
+      expect(complete.partialAt).toBe("2026-09-15T00:00:00.000Z");
+      expect(complete.completedAt).toBe("2026-09-15T00:05:00.000Z");
+      expect(Object.keys(complete.agents)).toHaveLength(7);
+      expect(complete.sections?.clo).toMatchObject({ status: "done", attempts: 2 });
+      expect(complete.sections?.ceo).toMatchObject({ status: "done", attempts: 1 });
+    });
+
+    it("a partial whose part 1 was never emailed (no destination) finishes as a single, first-time email", async () => {
+      const prior = sampleReport();
+      delete prior.agents.clo;
+      prior.partialAt = "2026-09-15T00:00:00.000Z";
+      prior.sections = { clo: { status: "failed", attempts: 1 } };
+      const call = vi.fn(async (req: { agentId: string }) => ({ text: GOOD(req.agentId) }));
+      const h = harness(row({ full_report_status: "done_partial", full_report_attempts: 2, full_report_json: prior, full_report_emailed_at: null }), call);
+      const out = await runFirstAnalysisJob(SAMPLE_ANALYSIS_ID, h.deps);
+      expect(out.outcome).toBe("done");
+      expect(h.finishes[0]).toMatchObject({ status: "done", resetEmailed: false });
+      const complete = h.deliver.mock.calls[0][1] as FirstAnalysisReport;
+      expect(complete.delivery?.partialEmailedAt).toBeUndefined();
+    });
+
+    it("each section gets at most SECTION_MAX_ATTEMPTS; then it is unavailable and the row is done", async () => {
+      const prior = sampleReport();
+      delete prior.agents.clo;
+      delete prior.agents.chro;
+      prior.partialAt = "2026-09-15T00:00:00.000Z";
+      prior.sections = { clo: { status: "failed", attempts: 2 }, chro: { status: "failed", attempts: 3 } };
+      const call = vi.fn(async () => ({ text: "No." }));
+      const h = harness(row({ full_report_status: "done_partial", full_report_attempts: 3, full_report_json: prior, full_report_emailed_at: "2026-09-15T00:00:05Z" }), call);
+      const out = await runFirstAnalysisJob(SAMPLE_ANALYSIS_ID, h.deps);
+      // chro was already at the cap → not called; clo gets its third and last try.
+      expect(call.mock.calls.map((c) => c[0].agentId)).toEqual(["first-analysis-clo", "first-analysis-clo"]);
+      expect(out).toMatchObject({ outcome: "done", failed: ["clo", "chro"], emailed: "sent" });
+      expect(h.finishes[0]).toMatchObject({ status: "done", resetEmailed: true });
+      expect(h.finishes[0].error).toMatch(/2 unavailable after 3 attempts/);
+      const complete = h.deliver.mock.calls[0][1] as FirstAnalysisReport;
+      expect(complete.sections?.clo).toMatchObject({ status: "unavailable", attempts: 3 });
+      expect(complete.sections?.chro).toMatchObject({ status: "unavailable", attempts: 3 });
+      expect(complete.meta?.sections.clo?.status).toBe("unavailable");
+    });
+
+    it("a capacity wait that runs out does not spend one of the section's attempts", async () => {
+      const call = vi.fn(async (req: { agentId: string }) => {
+        if (req.agentId === "first-analysis-cfo") throw new AICapacityError("queue_full", 3, { queued: 5, running: 4 });
+        return { text: GOOD(req.agentId) };
+      });
+      const h = harness(row(), call);
+      const out = await runFirstAnalysisJob(SAMPLE_ANALYSIS_ID, h.deps);
+      expect(out.outcome).toBe("done_partial");
+      expect(h.saves.at(-1)!.sections?.cfo).toMatchObject({ status: "failed", attempts: 0 });
+    });
   });
 });
 

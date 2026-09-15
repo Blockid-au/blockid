@@ -3186,8 +3186,19 @@ export async function sendFirstAnalysisReportEmail(params: {
   report: import("@/lib/analyses/first-analysis/types").FirstAnalysisReport;
   pdf: Buffer | Uint8Array;
   pages: number;
+  /**
+   * `partial` — the sections written so far, subject "(part 1)"; the rest
+   * follows in a second email. `complete` — that second email. `single`
+   * (default) — the whole report in one go.
+   */
+  part?: "single" | "partial" | "complete";
 }): Promise<SendResult> {
   const { to, analysisId, company, report, pdf, pages } = params;
+  const part = params.part ?? "single";
+  const { FIRST_ANALYSIS_AGENTS, AGENT_META } = await import("@/lib/analyses/first-analysis/types");
+  const written = FIRST_ANALYSIS_AGENTS.filter((r) => Boolean(report.agents?.[r]));
+  const pending = FIRST_ANALYSIS_AGENTS.filter((r) => !report.agents?.[r] && report.sections?.[r]?.status !== "unavailable");
+  const pendingNames = pending.map((r) => AGENT_META[r].role).join(", ");
 
   if (!(await canSendEmail(to, "promotions"))) {
     return { ok: false, reason: "unsubscribed" };
@@ -3213,9 +3224,13 @@ export async function sendFirstAnalysisReportEmail(params: {
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
         <tr><td>
           <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — First analysis</p>
-          <h1 style="margin:0 0 12px;font-size:24px;font-weight:600;color:#F8FAFC;">Your first analysis of ${escapeHtml(name)} — ${pages} pages</h1>
+          <h1 style="margin:0 0 12px;font-size:24px;font-weight:600;color:#F8FAFC;">Your first analysis of ${escapeHtml(name)} — ${pages} pages${part === "partial" ? " (part 1)" : part === "complete" ? " (complete)" : ""}</h1>
           <p style="margin:0 0 20px;color:#94A3B8;font-size:15px;line-height:1.6;">
-            This is the written version of what BlockID read, scored and had seven C-level voices comment on. Start with page 3 — "What we read" — because anything marked <em>not provided</em> is the cheapest score improvement you have.
+            ${part === "partial"
+              ? `This is part 1: what BlockID read, scored and had ${written.length} of the seven C-level voices comment on. ${pending.length} section${pending.length === 1 ? " is" : "s are"} still being written (${escapeHtml(pendingNames)}) — we will email the complete report when ${pending.length === 1 ? "it finishes" : "they finish"}. Start with page 3 — "What we read" — because anything marked <em>not provided</em> is the cheapest score improvement you have.`
+              : part === "complete"
+                ? `The complete report: every section that was still being written when part 1 went out is now in. This replaces part 1. Start with page 3 — "What we read" — because anything marked <em>not provided</em> is the cheapest score improvement you have.`
+                : `This is the written version of what BlockID read, scored and had seven C-level voices comment on. Start with page 3 — "What we read" — because anything marked <em>not provided</em> is the cheapest score improvement you have.`}
           </p>
 
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 20px;">
@@ -3258,11 +3273,11 @@ export async function sendFirstAnalysisReportEmail(params: {
 
   const result = await sendEmail({
     to,
-    subject: `Your BlockID first analysis — ${name}`,
+    subject: `Your BlockID first analysis — ${name}${part === "partial" ? " (part 1)" : part === "complete" ? " (complete)" : ""}`,
     html,
     unsubscribeUrl,
     attachments: attach
-      ? [{ filename: "blockid-first-analysis.pdf", content: Buffer.from(pdf), contentType: "application/pdf" }]
+      ? [{ filename: part === "partial" ? "blockid-first-analysis-part-1.pdf" : "blockid-first-analysis.pdf", content: Buffer.from(pdf), contentType: "application/pdf" }]
       : undefined,
   });
 
@@ -3271,6 +3286,7 @@ export async function sendFirstAnalysisReportEmail(params: {
     to: redactEmail(to),
     ok: result.ok,
     pages,
+    part,
     attached: attach,
     bytes: pdf.byteLength,
   });

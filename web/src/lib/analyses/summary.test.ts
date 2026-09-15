@@ -31,6 +31,8 @@ describe("fullReportStatusText (S32-B)", () => {
     expect(fullReportStatusText({ full_report_status: "running" })).toBe("Agents writing…");
     expect(fullReportStatusText({ full_report_status: "queued" })).toBe("Full report queued");
     expect(fullReportStatusText({ full_report_status: "failed" })).toBe("Full report retrying");
+    expect(fullReportStatusText({ full_report_status: "done_partial", full_report_emailed_at: null })).toBe("Partial report ready — rest being written");
+    expect(fullReportStatusText({ full_report_status: "done_partial", full_report_emailed_at: "2026-09-15T00:00:00Z" })).toBe("Part 1 emailed — rest being written");
     expect(fullReportStatusText({})).toBe("Full report not started");
   });
 });

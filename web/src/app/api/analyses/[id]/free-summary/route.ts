@@ -231,7 +231,7 @@ async function recordFullReportDestination(id: string, email: string): Promise<v
   try {
     await setFullReportEmail(id, email);
     const row = await loadFullReportRow(id);
-    if (row && row.full_report_status === "done" && row.full_report_json && !row.full_report_emailed_at) {
+    if (row && (row.full_report_status === "done" || row.full_report_status === "done_partial") && row.full_report_json && !row.full_report_emailed_at) {
       await deliverFullReport({ ...row, full_report_email: email }, row.full_report_json);
     }
   } catch (err) {
