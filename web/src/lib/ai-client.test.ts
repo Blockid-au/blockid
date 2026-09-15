@@ -917,6 +917,36 @@ describe("S31-A backpressure — per-user fairness (AI_MAX_PER_USER=2)", () => {
   });
 });
 
+describe("S31 review — a user waiting at their per-user cap holds no global slot", () => {
+  it("3 calls from one user with AI_MAX_PER_USER=1 leave globalRunning at 1, so a second user runs immediately on a 2-slot dispatcher", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    process.env.AI_MAX_CONCURRENT = "2";
+    process.env.AI_MAX_PER_USER = "1";
+    process.env.AI_USER_QUEUE = "2";
+    const gates: Array<ReturnType<typeof deferred<unknown>>> = [];
+    tierMock.call.mockImplementation(() => { const g = deferred<unknown>(); gates.push(g); return g.promise; });
+    const { callAI, getDispatcherState, getAIQueueDepth, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    const u1 = [0, 1, 2].map(() => callAI({ system: "s", user: "u", userId: "u1" }));
+    await waitFor(() => tierMock.call.mock.calls.length >= 1);
+    await settle();
+    // Before the fix the two user-queued calls each held a global slot
+    // (globalRunning 3 > max 2 was impossible, but 2 of 2 were pinned).
+    expect(getDispatcherState().globalRunning).toBe(1);
+    expect(getAIQueueDepth().queued).toBe(0);
+    const u2 = callAI({ system: "s", user: "u", userId: "u2" });
+    await waitFor(() => tierMock.call.mock.calls.length >= 2); // u2 took the free slot at once
+    expect(getDispatcherState().globalRunning).toBe(2);
+    for (let i = 0; i < 4; i++) {
+      await waitFor(() => gates.length >= i + 1);
+      gates[i]!.resolve(okResult(i));
+    }
+    await Promise.all([...u1, u2]);
+    expect(getDispatcherState().globalRunning).toBe(0);
+    expect(getDispatcherState().perUser).toEqual({});
+  });
+});
+
 describe("S31-A backpressure — bounded global queue + background yields to users", () => {
   it("queue full → AICapacityError('queue_full'), never a bare Error; ai_queue_depth reports the wait", async () => {
     process.env.ANTHROPIC_API_KEY = "sk-ant-solo";

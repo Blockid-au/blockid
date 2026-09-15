@@ -118,28 +118,64 @@ function ipCountryFromHeaders(req: NextRequest): string | null {
   return null;
 }
 
+/**
+ * Trusted client IP for rate-limit keys — the hop our edge actually saw,
+ * never a value the client can forge (S8-C rule, same as
+ * lib/iphash.ts `clientIpFromHeaders`): `cf-connecting-ip`, else the LAST
+ * `x-forwarded-for` hop (nginx appends its `$remote_addr`), else
+ * `x-real-ip`. Before the S31 review the FIRST hop was used here, which a
+ * direct-to-origin caller could set to anything.
+ */
+function clientIpIdentity(req: NextRequest): string {
+  const cf = req.headers.get("cf-connecting-ip")?.trim();
+  if (cf) return `ip:${cf}`;
+  const hops = (req.headers.get("x-forwarded-for") ?? "").split(",").map((h) => h.trim()).filter(Boolean);
+  const last = hops[hops.length - 1];
+  if (last) return `ip:${last}`;
+  const real = req.headers.get("x-real-ip")?.trim();
+  return `ip:${real || "anon"}`;
+}
+
+/**
+ * Per-visitor identity for the rate-limit key. Prefer the session cookie so
+ * a shared IP (office NAT, university lab, mobile CGNAT) doesn't get one
+ * user throttled by another; fall back to the trusted IP for anonymous
+ * traffic.
+ *
+ * S31-C capacity audit (2026-09-13): the app's own session cookie is
+ * `blockid_session` (lib/auth-cookie.ts) — the legacy `sb-*` names below
+ * are never set by this app, so every signed-in user was keyed by IP and
+ * a whole office shared one 20/min `svi` bucket (/api/svi/phase-progress
+ * 429'd at ~20 workspace page loads per minute per office). The session
+ * token is a secret, so only a short digest of it is used as the key.
+ *
+ * S31 post-ship review (2026-09-14): the cookie is NOT verified here (the
+ * proxy has no session store), so a caller who mints a fresh random
+ * `blockid_session` value per request gets a fresh key per request and the
+ * per-visitor limit alone bounds nothing — including on the anonymous
+ * routes whose only protection is this bucket (`/api/lead`,
+ * `/api/data-room/share/<token>/pdf`, `/api/idea-*`, `/api/score`). The
+ * cookie key is therefore always backed by a per-IP CEILING
+ * (`IP_CEILING_MULTIPLIER` × the bucket limit) — see the gate below.
+ */
 function clientIdentity(req: NextRequest): string {
-  // Prefer auth cookies as a stable identity so a shared IP (office NAT,
-  // university lab, mobile CGNAT) doesn't get one user throttled by
-  // another. Fall back to IP for anonymous traffic.
-  //
-  // S31-C capacity audit (2026-09-13): the app's own session cookie is
-  // `blockid_session` (lib/auth-cookie.ts) — the legacy `sb-*` names below
-  // are never set by this app, so every signed-in user was keyed by IP and
-  // a whole office shared one 20/min `svi` bucket (/api/svi/phase-progress
-  // 429'd at ~20 workspace page loads per minute per office). The session
-  // token is a secret, so only a short digest of it is used as the key.
   const session = req.cookies.get(SESSION_COOKIE)?.value;
   if (session) return `s:${createHash("sha256").update(session).digest("hex").slice(0, 16)}`;
   const sb = req.cookies.get("sb-access-token")?.value
     ?? req.cookies.get("sb:token")?.value;
   if (sb) return `sb:${sb.slice(0, 24)}`; // truncate — identity, not the JWT
-  const ip = req.headers.get("cf-connecting-ip")
-    ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-    ?? req.headers.get("x-real-ip")
-    ?? "anon";
-  return `ip:${ip}`;
+  return clientIpIdentity(req);
 }
+
+/**
+ * How much more than the per-visitor limit one IP may spend on a bucket in
+ * a window when its visitors are keyed by cookie. 5× keeps the S31-C intent
+ * (an office of many signed-in founders is not throttled as one person)
+ * while bounding a cookie-rotating script to a fixed multiple of the
+ * anonymous limit instead of infinity.
+ * @internal — exported for unit tests only.
+ */
+export const IP_CEILING_MULTIPLIER = 5;
 
 function bucketFor(pathname: string): RateLimitBucket | null {
   for (const [prefix, bucket] of BUCKET_ROUTES) {
@@ -450,7 +486,17 @@ export async function proxy(request: NextRequest) {
   // ── Rate-limit gate for expensive API routes ────────────────────────
   const bucket = bucketFor(pathname);
   if (bucket) {
-    const result = await checkRateLimit(bucket, [pathname, clientIdentity(request)]);
+    const identity = clientIdentity(request);
+    let result = await checkRateLimit(bucket, [pathname, identity]);
+    if (result.allowed && !identity.startsWith("ip:")) {
+      // Cookie-keyed visitor: the unverified cookie must not be the only
+      // key (S31 review) — spend a token in the per-IP ceiling too and let
+      // the tighter of the two answer.
+      const ceiling = await checkRateLimit(bucket, [pathname, "ipc", clientIpIdentity(request)], {
+        limitMultiplier: IP_CEILING_MULTIPLIER,
+      });
+      if (!ceiling.allowed || ceiling.remaining < result.remaining) result = ceiling;
+    }
     if (!result.allowed) {
       const retryAfterSec = Math.max(1, Math.ceil((result.resetAt - Date.now()) / 1000));
       // CISO P1 (2026-08-23): auth buckets are fail-closed. When the limiter

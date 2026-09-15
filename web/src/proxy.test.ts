@@ -55,7 +55,7 @@ vi.mock("@/lib/security-headers", async (importOriginal) => {
 });
 
 // Import AFTER mocks are in place.
-import { buildContentSecurityPolicy, config, crossSiteApiGate, proxy } from "./proxy";
+import { IP_CEILING_MULTIPLIER, buildContentSecurityPolicy, config, crossSiteApiGate, proxy } from "./proxy";
 import { SESSION_COOKIE } from "@/lib/auth-cookie";
 
 const COOKIE = `${SESSION_COOKIE}=sess-token-123`;
@@ -68,9 +68,10 @@ function req(
     cookie,
     origin,
     host = "blockid.au",
-  }: { method?: string; site?: string; cookie?: string; origin?: string; host?: string } = {},
+    extraHeaders,
+  }: { method?: string; site?: string; cookie?: string; origin?: string; host?: string; extraHeaders?: Record<string, string> } = {},
 ): NextRequest {
-  const headers: Record<string, string> = { host };
+  const headers: Record<string, string> = { host, ...(extraHeaders ?? {}) };
   if (site !== undefined) headers["sec-fetch-site"] = site;
   if (cookie !== undefined) headers.cookie = cookie;
   if (origin !== undefined) headers.origin = origin;
@@ -204,7 +205,7 @@ describe("proxy() — gate wiring", () => {
   it("passes a same-origin cookie mutation through to the normal pipeline", async () => {
     const res = await proxy(req("/api/svi", { site: "same-origin", cookie: COOKIE }));
     expect(res.status).toBe(200);
-    expect(checkRateLimitMock).toHaveBeenCalledTimes(1);
+    expect(checkRateLimitMock).toHaveBeenCalledTimes(2); // visitor key + per-IP ceiling (S31 review)
     expect(refreshMock).toHaveBeenCalledTimes(1);
     expect(res.headers.get("x-nonce")).toBeTruthy();
   });
@@ -340,6 +341,78 @@ describe("rate-limit identity — signed-in users are keyed per session, not per
   });
 });
 
+describe("rate-limit identity — the unverified cookie key is backed by a per-IP ceiling (S31 review P1)", () => {
+  const PATH = "/api/data-room/share/" + "t".repeat(32) + "/pdf";
+  const IP = { "cf-connecting-ip": "203.0.113.9" };
+
+  it("anonymous traffic spends exactly one token, in the IP bucket", async () => {
+    const res = await proxy(req(PATH, { method: "GET", site: "same-origin", extraHeaders: IP }));
+    expect(res.status).toBe(200);
+    expect(checkRateLimitMock).toHaveBeenCalledTimes(1);
+    expect(checkRateLimitMock.mock.calls[0]).toEqual(["data-room-pdf", [PATH, "ip:203.0.113.9"]]);
+  });
+
+  it("a cookie-keyed request also spends a token in the per-IP ceiling (IP_CEILING_MULTIPLIER × the bucket limit)", async () => {
+    const res = await proxy(req(PATH, { method: "GET", site: "same-origin", cookie: COOKIE, extraHeaders: IP }));
+    expect(res.status).toBe(200);
+    expect(checkRateLimitMock).toHaveBeenCalledTimes(2);
+    expect(checkRateLimitMock.mock.calls[0][1][1]).toMatch(/^s:/);
+    expect(checkRateLimitMock.mock.calls[1]).toEqual([
+      "data-room-pdf",
+      [PATH, "ipc", "ip:203.0.113.9"],
+      { limitMultiplier: IP_CEILING_MULTIPLIER },
+    ]);
+    expect(IP_CEILING_MULTIPLIER).toBeGreaterThanOrEqual(1);
+    expect(IP_CEILING_MULTIPLIER).toBeLessThanOrEqual(10);
+  });
+
+  it("rotating the (unverified) cookie per request changes the visitor key but never the ceiling key", async () => {
+    const ceilingKeys = new Set<string>();
+    const visitorKeys = new Set<string>();
+    for (let i = 0; i < 5; i++) {
+      checkRateLimitMock.mockClear();
+      await proxy(req(PATH, { method: "GET", site: "same-origin", cookie: `${SESSION_COOKIE}=forged-${i}`, extraHeaders: IP }));
+      visitorKeys.add((checkRateLimitMock.mock.calls[0] as [string, string[]])[1][1]);
+      ceilingKeys.add((checkRateLimitMock.mock.calls[1] as [string, string[]])[1].join("|"));
+    }
+    expect(visitorKeys.size).toBe(5);
+    expect(ceilingKeys.size).toBe(1);
+  });
+
+  it("a full ceiling answers 429 + Retry-After even though the fresh cookie key still had tokens", async () => {
+    checkRateLimitMock
+      .mockResolvedValueOnce({ allowed: true, remaining: 9, limit: 10, resetAt: Date.now() + 60_000 })
+      .mockResolvedValueOnce({ allowed: false, remaining: 0, limit: 50, resetAt: Date.now() + 30_000 });
+    const res = await proxy(req(PATH, { method: "GET", site: "same-origin", cookie: `${SESSION_COOKIE}=forged-new`, extraHeaders: IP }));
+    expect(res.status).toBe(429);
+    expect(res.headers.get("x-ratelimit-limit")).toBe("50");
+    expect(Number(res.headers.get("retry-after"))).toBeGreaterThan(0);
+    expect(refreshMock).not.toHaveBeenCalled();
+  });
+
+  it("the allowed response advertises the tighter of the two remaining counts", async () => {
+    checkRateLimitMock
+      .mockResolvedValueOnce({ allowed: true, remaining: 9, limit: 10, resetAt: Date.now() + 60_000 })
+      .mockResolvedValueOnce({ allowed: true, remaining: 3, limit: 50, resetAt: Date.now() + 60_000 });
+    const res = await proxy(req(PATH, { method: "GET", site: "same-origin", cookie: COOKIE, extraHeaders: IP }));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-ratelimit-remaining")).toBe("3");
+    expect(res.headers.get("x-ratelimit-limit")).toBe("50");
+  });
+
+  it("the IP is the trusted hop: cf-connecting-ip, else the LAST x-forwarded-for hop, never the client-set first hop", async () => {
+    async function ipKey(extraHeaders: Record<string, string>): Promise<string> {
+      checkRateLimitMock.mockClear();
+      await proxy(req(PATH, { method: "GET", site: "same-origin", extraHeaders }));
+      return (checkRateLimitMock.mock.calls[0] as [string, string[]])[1][1];
+    }
+    expect(await ipKey({ "cf-connecting-ip": "198.51.100.7", "x-forwarded-for": "1.1.1.1, 10.0.0.1" })).toBe("ip:198.51.100.7");
+    expect(await ipKey({ "x-forwarded-for": "1.1.1.1, 10.0.0.1" })).toBe("ip:10.0.0.1");
+    expect(await ipKey({ "x-real-ip": "192.0.2.4" })).toBe("ip:192.0.2.4");
+    expect(await ipKey({})).toBe("ip:anon");
+  });
+});
+
 describe("rate-limit buckets — /api/lead contact + waitlist form (QA-3 P1-9)", () => {
   it("POST /api/lead sits in the `lead` bucket, keyed per IP for anonymous traffic", async () => {
     checkRateLimitMock.mockClear();
@@ -403,7 +476,7 @@ describe("Content-Security-Policy — exactly one enforced policy (release QA-2 
   it("rate-limited (allowed) API responses carry the same single policy", async () => {
     const res = await proxy(req("/api/svi", { site: "same-origin", cookie: COOKIE }));
     expect(res.status).toBe(200);
-    expect(checkRateLimitMock).toHaveBeenCalledTimes(1);
+    expect(checkRateLimitMock).toHaveBeenCalledTimes(2); // visitor key + per-IP ceiling (S31 review)
     expect(cspOf(res).match(/default-src/g)?.length).toBe(1);
     expect(res.headers.get("content-security-policy-report-only")).toBeNull();
   });

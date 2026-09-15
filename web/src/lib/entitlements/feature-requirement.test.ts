@@ -92,4 +92,13 @@ describe("fromPathLabel", () => {
     expect(fromPathLabel("https://evil.example/x")).toBeNull();
     expect(fromPathLabel(undefined)).toBeNull();
   });
+  it("title-cases only lower-case kebab segments under /workspace or /dashboard — never arbitrary page copy (S31 review)", () => {
+    expect(fromPathLabel("/Your-Account-Is-Locked-Call-0400")).toBeNull();
+    expect(fromPathLabel("/workspace/Your-Account-Is-Locked")).toBeNull(); // upper-case → not a route of ours
+    expect(fromPathLabel("/workspace/we%20moved%20to%20evil")).toBeNull();
+    expect(fromPathLabel("/workspace/a-b-c-d-e-f-g-h")).toBeNull(); // too many words
+    expect(fromPathLabel("/pricing/some-thing")).toBeNull(); // outside the gated trees
+    expect(fromPathLabel("/dashboard/exit-readiness")).toBe("Exit Readiness");
+    expect(fromPathLabel("/workspace/some-new-thing")).toBe("Some New Thing");
+  });
 });
