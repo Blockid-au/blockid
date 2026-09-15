@@ -25,6 +25,7 @@ async function once(
   path: string,
   data?: unknown,
   extraHeaders?: Record<string, string>,
+  opts: FetchOpts = {},
 ): Promise<APIResponse> {
   const headers: Record<string, string> = { accept: "application/json", ...(extraHeaders ?? {}) };
   if (data !== undefined && typeof data !== "string") headers["content-type"] = "application/json";
@@ -33,7 +34,16 @@ async function once(
     headers,
     data: data === undefined ? undefined : typeof data === "string" ? data : JSON.stringify(data),
     maxRedirects: 0,
+    // AI-backed routes (Money Finder narrative, CFO advisor) legitimately run
+    // past the 20 s `actionTimeout`; nginx allows 310 s on those paths.
+    ...(opts.timeoutMs ? { timeout: opts.timeoutMs } : {}),
   });
+}
+
+/** Per-call overrides for the JSON helpers. */
+export interface FetchOpts {
+  /** Request timeout in ms (default = the config `actionTimeout`, 20 s). */
+  timeoutMs?: number;
 }
 
 /**
@@ -46,12 +56,13 @@ export async function fetchWithSwapRetry(
   path: string,
   data?: unknown,
   extraHeaders?: Record<string, string>,
+  opts: FetchOpts = {},
 ): Promise<APIResponse> {
-  const first = await once(ctx, method, path, data, extraHeaders);
+  const first = await once(ctx, method, path, data, extraHeaders, opts);
   if (!SWAP_STATUSES.has(first.status())) return first;
   console.warn(`[live-qa] ${method} ${path} → ${first.status()} (deploy swap?) — waiting ${SWAP_WAIT_MS / 1000}s and retrying once`);
   await new Promise((r) => setTimeout(r, SWAP_WAIT_MS));
-  return once(ctx, method, path, data, extraHeaders);
+  return once(ctx, method, path, data, extraHeaders, opts);
 }
 
 export async function json<T = Json>(
@@ -60,8 +71,9 @@ export async function json<T = Json>(
   path: string,
   data?: unknown,
   extraHeaders?: Record<string, string>,
+  opts: FetchOpts = {},
 ): Promise<JsonResult<T>> {
-  const res = await fetchWithSwapRetry(ctx, method, path, data, extraHeaders);
+  const res = await fetchWithSwapRetry(ctx, method, path, data, extraHeaders, opts);
   const text = await res.text();
   let body: T;
   try {
@@ -73,7 +85,7 @@ export async function json<T = Json>(
 }
 
 export const get = <T = Json>(ctx: APIRequestContext, path: string) => json<T>(ctx, "GET", path);
-export const post = <T = Json>(ctx: APIRequestContext, path: string, data?: unknown) => json<T>(ctx, "POST", path, data);
+export const post = <T = Json>(ctx: APIRequestContext, path: string, data?: unknown, opts: FetchOpts = {}) => json<T>(ctx, "POST", path, data, undefined, opts);
 export const patch = <T = Json>(ctx: APIRequestContext, path: string, data?: unknown) => json<T>(ctx, "PATCH", path, data);
 export const put = <T = Json>(ctx: APIRequestContext, path: string, data?: unknown) => json<T>(ctx, "PUT", path, data);
 export const del = <T = Json>(ctx: APIRequestContext, path: string, data?: unknown) => json<T>(ctx, "DELETE", path, data);

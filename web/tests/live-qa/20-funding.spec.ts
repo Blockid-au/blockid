@@ -197,6 +197,12 @@ test.describe("Money Finder — founder workspace and paid report contract", () 
       api,
       "/api/funding/report",
       { ...INTAKE, project_id: qa.projectId },
+      // The route generates the narrative synchronously (S32-F: ≤ 30 s on the
+      // interactive provider chain, falling through providers on a slow one);
+      // the default 20 s actionTimeout aborted the client while the server
+      // kept going and inserted after teardown had erased the QA project
+      // (→ the funding_reports_project_id_fkey noise in the server log).
+      { timeoutMs: 150_000 },
     );
     await evidence(testInfo, "POST /api/funding/report", { status: r.status, body: { ...r.body, summary: undefined } });
     if (!included && before < 3) {
