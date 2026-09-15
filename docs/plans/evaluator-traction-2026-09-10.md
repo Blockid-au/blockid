@@ -1,5 +1,7 @@
 # Evaluator Traction — pricing + positioning for investors, accelerators, incubators, consulting & service firms — Goal Doc
 
+> **Amendment 2026-09-15 (G13):** evaluator surfaces evolve into the **Investor Dossier** (structured evaluator assessment, mandate fit, decision record, IC memo) on a canonical startup taxonomy + investor mandate; "Trust BizReport" is renamed "Trusted Business Report" everywhere pending F1. Pricing ladder and KPIs here stay authoritative. See [`investor-clarity-2026-09-15.md`](./investor-clarity-2026-09-15.md).
+
 > **Back-link:** [`docs/plans/SOURCE-OF-TRUTH.md`](./SOURCE-OF-TRUTH.md) — consult that file first.
 > **Goal ID:** G12 · **Opened:** 2026-09-10 · **Owner:** CEO (Do Van Long) · **Status:** **S1–S5 live — complete** (2026-09-10, final release `fea2aa62b`): T0268–T0275 all done; next = traction T1–T4 (§6) — see §9 and SOT.
 > **Companion:** [`money-finder-2026-09-10.md`](./money-finder-2026-09-10.md) (G11 — Money Finder / Founder Radar; the Evaluator Progress Radar consumes G11 signals).

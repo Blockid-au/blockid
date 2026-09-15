@@ -1,6 +1,6 @@
 # BlockID.au — SOURCE OF TRUTH
 
-> **Version:** 2026-07-23 (rev.317) · **Owner:** CEO (Do Van Long) · **Consumer:** founders, human team, autonomous loop agents.
+> **Version:** 2026-09-15 (rev.318) · **Owner:** CEO (Do Van Long) · **Consumer:** founders, human team, autonomous loop agents.
 > **Rule:** Consult this file BEFORE any specialised plan doc. Every specialised plan carries a top-of-file back-link to this one.
 > **Entity:** PPL Food PTY LTD · Sydney NSW (founder decision 2026-09-10; no ABN/ACN shown in copy).
 
@@ -290,6 +290,18 @@
 
 ---
 
+### G13 — Investor Clarity: Investor Dossier + startup taxonomy · simplified menus & post-login (founder + investor) · Trusted Business Report v2 (8-dimension agents + visuals)
+- **Source:** [`docs/plans/investor-clarity-2026-09-15.md`](./investor-clarity-2026-09-15.md) · specs in [`investor-clarity-2026-09-15/`](./investor-clarity-2026-09-15/) (01–03 codebase audits, 10 BA Investor Dossier + taxonomy, 11 PM/UX IA + post-login, 12 Product/AI TBR v2) · companion of G12 (evaluator surfaces) and G7/G8 (nav + phase scale — amended by this goal).
+- **Opened:** 2026-09-15 (founder brief: investors must see the Trusted Business Report + evaluator assessments clearly; investors pick categories/industry/startup type in their profile; founder menus cluttered/duplicated → group + simplify, benefit-first post-login for both groups; report must follow the 8-dimension structure with the most visual output and upgraded agent know-how per dimension; sell without confusion).
+- **Status:** plan approved for execution — **W1 (S-IA1 nav v4 + redirects · S-R1 ReportV2 contract + visuals · S-T1 taxonomy core) next**; 15 sprints in 5 waves; 3 hand-applied migrations (0392 `evaluation_assessments`, 0393 `investor_mandates` extend, 0394 `startup_taxonomy`).
+- **Decisions taken (D1–D10 in goal doc §3):** Dossier keyed on `evaluations.id`, never public · new `evaluation_assessments`; reuse `investor_mandates` / `investor_organisations` / `mandate_fit_scores` / `ic_reports` with ALTERs; do not reuse `investor_decisions`/`investor_scores` · `startup_taxonomy` 1:1 table (22 industries + professional_services + unclassified, 10 business models, 8 canonical stages, customer type, geo, 11 tags) · canonical phase scale = 12 `GrowthPhaseId`s · one nav config + `persona.ts`, dead nav systems deleted, Account → avatar menu · every old route redirects · deterministic SVG visuals from `report-visuals/` · dimension owners TRE→CRO, MPC→CMO, FTV→CHRO, PTD→CTO, CGH→CFO, IRI→CLO, LCO→CLO, SVM→CEO (CDO evidence officer; CISO/COO always-on cards) · A$3 report ≤ 30 calls / COGS ≤ A$0.60 / ≤ 120 s · renames `/workspace/evaluation` → `/workspace/score/criteria`, `/workspace/investor/preferences` → `/workspace/investor/mandate`, founder "Portfolio" → "Compare"; prices unchanged.
+- **Finding (audit 2026-09-15):** investors land on the founder dashboard (persona landing never wired); Preferences page edits only firm/thesis; deal-flow join keys on email vs `account_id` (filters no-op); evaluators can only store label + notes; ≥ 6 sector + ≥ 5 stage vocabularies; 16 `investor_portal_core` tables with zero code refs · sidebar 7 groups / 98 leaves, 3 nav architectures (1 mounted), 8 report surfaces, 5 "what-next" widgets on 2 phase scales, 2 onboarding wizards, 2 headers/2 footers, ~25 orphan pages · customer-facing report uses a generic analyst persona (C-level agents run only in the enhanced pipeline), `visuals: []` hardcoded so every chapter is text-only, knowledge/skill-map never injected, no owner for CGH/SVM, GATHER stubs, "500+ comparables" vs 33 in code.
+- **KPIs:** time-to-first-action after login median < 20 s · founder phase-0 sidebar ≤ 10 links · `tbr_view → tbr_share_created` ≥ 25 % · free `score_done → trust_report_purchased` ≥ 12 % (72 h) · reports/evaluator/mo ≥ 6 Scout / 15 Firm / 40 Program · `dossier_view → investor_decision_saved` ≥ 40 % (14 d) · grounded share median ≥ 0.85 · report-clarity survey ≥ 8.5/10 · "can't find" feedback −50 % in 30 d.
+- **Next action:** W1 in parallel worktrees: S-IA1 (PM §E) + S-R1 (Product §F) + S-T1 (BA E1.1–E1.3); apply 0394 before S-T1 deploy. Founder decisions F1–F6 default-ship if silent (see §5).
+- **Blocker:** none hard; F2 (`/investors` → `/about/invest`) needs CMO sign-off before S-IA5; F3 (weights visible to evaluators) is an svi-scoring guardrail exception the founder should confirm before S-D1.
+
+---
+
 ## 2. Requirements Register
 
 | ID | Source | Category | Status | Owner (skill) | Ship commit |
@@ -369,6 +381,21 @@
 | G12-P6 (T0273) | evaluator-traction-2026-09-10 | Evaluator Progress Radar digest (G11 signals) | open | cmo | — (after T0245) |
 | G12-P7 (T0274) | evaluator-traction-2026-09-10 | /solutions/advisor + rewrites + ChatGPT comparison + messaging + GA4 | open | cmo + seo-content-au | — |
 | G12-P8 (T0275) | evaluator-traction-2026-09-10 | compliance wording, disclaimers, doctoral-research sign-off | open | clo + au-compliance | — (founder wording) |
+| G13-W1-IA1 | investor-clarity-2026-09-15 (PM §E S-IA1) | nav v4 + persona.ts + ~95 redirects + delete dead nav systems | open | cpo + nextjs-developer | — |
+| G13-W1-R1 | investor-clarity-2026-09-15 (Product §F S-R1) | ReportV2 contract + dimension-owners + report-visuals + web TBR chapters | open | cto + dataviz | — (adds `svi_snapshots.report_v2`) |
+| G13-W1-T1 | investor-clarity-2026-09-15 (BA E1.1–E1.3) | canonical startup taxonomy + crosswalk + `startup_taxonomy` + backfill + pipeline suggest | open | cdo + db-migrate | — (migration 0394) |
+| G13-W2-IA2 | investor-clarity-2026-09-15 (PM §E S-IA2) | 17 hub pages with tabs; Reports / Investors / Documents hubs | open | cpo + react-expert | — |
+| G13-W2-R2 | investor-clarity-2026-09-15 (Product §B, C.2, C.6, C.10) | agent ownership matrix + knowledge injection + phase-aware selection + W4 chapters + 24 eval fixtures | open | cto + prompt-engineer | — |
+| G13-W2-D1 | investor-clarity-2026-09-15 (BA E4.1, E3.1–E3.2) | `evaluation_assessments` + Investor Dossier route + block 1 (radar, weighted table, 13 criteria) | open | fullstack-guardian + db-migrate | — (migration 0392) |
+| G13-W3-IA3 | investor-clarity-2026-09-15 (PM §B, S-IA3) | founder landing 5 blocks + single recommender; retire 9 next-step widgets | open | cpo + cro | — |
+| G13-W3-R3 | investor-clarity-2026-09-15 (Product §C.1, C.3, C.5) | pipeline unification + GATHER un-stub + 5-method valuation in body | open | cto + cfo | — |
+| G13-W3-T2 | investor-clarity-2026-09-15 (BA E2.1–E2.5) | investor mandate form + FIT_WEIGHTS_V2 + `mandate-fit-refresh` cron (fixes deal-flow join) + filters/saved views | open | investor-relations + db-migrate | — (migration 0393) |
+| G13-W4-IA4 | investor-clarity-2026-09-15 (PM §C, B.3) | persona-aware investor/advisor/accelerator landing + single onboarding wizard | open | cpo + customer-success | — |
+| G13-W4-R4 | investor-clarity-2026-09-15 (Product §F S-R4) | PDF/DOCX/email parity from ReportV2 + Dossier consumes ReportV2 | open | cto + code-documenter | — (`evaluation_reports.report_v2`) |
+| G13-W4-D2 | investor-clarity-2026-09-15 (BA E4.2–E4.4, E1.4–E1.5) | assessment form + share allow-list + history; founder taxonomy confirmation; legacy writers via crosswalk | open | fullstack-guardian + au-compliance | — |
+| G13-W5-IA5 | investor-clarity-2026-09-15 (PM §E S-IA5) | one header/footer + shared user menu + `/investors` → `/about/invest` | open | cmo + seo-content-au | — (F2) |
+| G13-W5-R5 | investor-clarity-2026-09-15 (Product §C.7, S-R5) | comparables table + ingest, LinkedIn/GA4/cap-table connectors, KPI tile, eval harness | open | cfo + cdo | — |
+| G13-W5-D3 | investor-clarity-2026-09-15 (BA E4.5–E4.7, E3.3–E3.7, E2.6, E5) | seats/consensus, IC memo PDF, cohort decisions + LP counts, watchlist project_id, portfolio write, intro CRM, qa:live lane, docs close-out | open | investor-relations + qa-lead | — |
 
 ---
 
@@ -478,6 +505,13 @@
 
 ---
 
+- **H.G13-F1** Unify public name "Trust BizReport" → "Trusted Business Report" (SKU key unchanged) — default yes at S-R1.
+- **H.G13-F2** `/investors` (invest-in-BlockID pitch) → `/about/invest` 301 — CMO sign-off before S-IA5.
+- **H.G13-F3** Show dimension weights to authenticated evaluators on the Investor Dossier (never on public `/tbr`) — svi-scoring guardrail exception; confirm before S-D1.
+- **H.G13-F4** CEO + CFO chapters on paid Sonnet-class model inside A$3 COGS (`MODEL_AGENT_CEO/CFO`) — default yes at S-R2.
+- **H.G13-F5** "500+ AU comparables" copy → live count until the table reaches 500 — default yes at S-R1.
+- **H.G13-F6** Final EN/VI sidebar label set (PM §D.2, 40 rows) — default ship as proposed at S-IA1.
+
 ## 6. Sync-back rules
 
 When you (loop agent) ship a task, you MUST — in the same commit or the immediately-following one:
@@ -540,6 +574,7 @@ the sentinels is overwritten._
 
 | When | Who | What |
 |---|---|---|
+| 2026-09-15 | CEO + Claude (plan session; BA / PM / Product agents) | G13 Investor Clarity opened (plan-only): goal doc `investor-clarity-2026-09-15.md` + folder (3 codebase audits, BA Investor Dossier/taxonomy spec, PM/UX IA + post-login plan, Product/AI TBR v2 plan); 15 sprints in 5 waves; decisions D1–D10; founder decisions F1–F6 → §5; §2 rows G13-W1…W5; ROADMAP.md §4 Phase 3.2, `feature-upgrade-roadmap-v2.md` Q4 block, GOALS.md Phase 4 rewritten, G7/G12 amendment lines. Same day: SVI upload page rework live (multi-format, valuation-first handoff), growth-insights cron + GA4 event ordering fixed. |
 | 2026-09-12 | Claude (S20-A worktree) | Audit coverage: `apiRoute()` wrapper + codemod wrapped 298 mutating route files (allow-list 94 with reasons), rows hash-chained in `audit_events`, migration 0335 (serialised chain trigger + verify RPC — **apply by hand**), nightly `audit-chain-verify` cron + `audit_chain` on `/api/status`, `/workspace/audit-log` project/actor/action filters + owner CSV, static coverage guard. Not pushed/deployed from the worktree. |
 | 2026-09-11 | Claude (S19-A worktree) | G7 closed: founder delegated Q1–Q4, recommendations adopted as decisions (`ux-ia-startup-flow-goal.md` open_questions now carry `decision` / `decided_by` / `status: shipped` / `files`; P8 `shipped`). Code: `journey-step-ladder.tsx` single responsive list, mobile collapse + "Show all 12 phases" toggle, `#phase-current` skip anchor, `aria-current="step"`; test pins for Q1 (`workspace-layout.test.tsx`), Q2 (`nav-v2.test.ts`), Q3/Q4 (`journey-step-ladder.test.tsx`). G7 "Next action" → none. |
 | 2026-07-23 | loop agent (SOT consolidation task) | Initial consolidation. §1–§7 authored; back-links applied to reseller-plan + unicorn-masterplan; memory pointer added. |

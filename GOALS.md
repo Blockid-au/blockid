@@ -283,8 +283,9 @@ POST /api/svi/account/create   -- create SVI account (post Founding 50)
 - [ ] In-app notification center
 - [ ] Milestone badges system
 
-### Phase 4 (Scale)
-- [ ] Investor share page
-- [ ] Anonymous benchmarks
-- [ ] Accelerator/partner portal
-- [ ] ASIC / legal connectors
+### Phase 4 (Scale) — now tracked as G13 Investor Clarity (`docs/plans/investor-clarity-2026-09-15.md`, SOT § G13)
+- [ ] Investor share page → **Investor Dossier** (`/workspace/evaluations/[evaluationId]`) + structured evaluator assessment + IC memo
+- [ ] Anonymous benchmarks → cohort percentile per dimension inside Trusted Business Report v2 (report-visuals)
+- [ ] Accelerator/partner portal → persona-aware landings (investor / advisor / accelerator) + mandate-driven deal flow on one startup taxonomy
+- [ ] ASIC / legal connectors (unchanged; LCO chapter owner CLO)
+- [ ] Simplified navigation: founder 4 groups + 17 hubs, evaluator 3 groups, one onboarding wizard, one header/footer

@@ -198,6 +198,22 @@
 
 ---
 
+## 2026 Q4 — G13 Investor Clarity (opened 2026-09-15; SOT § G13; goal doc `docs/plans/investor-clarity-2026-09-15.md`)
+
+Supersedes `report-v2-compelling.md` and `sub-agent-report-pipeline.md` (their intent lands as the `ReportV2` contract + dimension-owner agents) and amends the G7 sidebar catalogue + G8 phase scale (canonical = 12 growth phases).
+
+### Investor (IR + CDO)
+- [ ] Investor Dossier per startup (radar · weighted 8-dim table · 13 criteria · 5-method valuation vs ask · evidence by consent tier · structured evaluator assessment · progress Δ · IC memo)
+- [ ] Canonical startup taxonomy (`startup_taxonomy`) + investor mandate (`investor_mandates`) + FIT_WEIGHTS_V2 both directions + nightly fit refresh
+- [ ] Persona-aware landing `/workspace/investor|advisor|accelerator` (4 blocks) + single onboarding wizard
+### Navigation (CPO)
+- [ ] Nav v4: founder Home · Prove · Money · Company (≤ 10 leaves at phase 0), evaluator Home · Deal flow · Reports; 17 hubs with tabs; ~95 redirects; dead nav systems deleted; one header/footer
+- [ ] Founder landing = 5 benefit-ordered blocks + one recommender (retire 9 next-step widgets)
+### Report (CTO + all C-level)
+- [ ] `ReportV2` contract rendered by web/PDF/DOCX/email/Dossier; `report-visuals/` deterministic SVG; no text-only chapter
+- [ ] Dimension owners TRE→CRO, MPC→CMO, FTV→CHRO, PTD→CTO, CGH→CFO, IRI→CLO, LCO→CLO, SVM→CEO; CDO evidence officer; knowledge injection; phase-aware 13×12 selection; GATHER un-stub; valuation in body
+- [ ] Comparables table (live count), LinkedIn / GA4 / cap-table connectors, prompt-eval fixtures ×24, COGS guard A$0.60
+
 ## Reconciliation 2026-09-11
 
 Every unchecked item above was checked against `web/src/app/**`, `web/src/lib/**`, `web/supabase/migrations/**`, `chain/`, `docs/` and `git log` (history was rewritten 2026-09-10, so SHAs are first-commit-in-current-history; `e18a91205`/`fa3744bbf`/`feac5fde8` are bulk autonomous-tick commits). Strict rule: stub / coming-soon page or DB column without behaviour = partial.

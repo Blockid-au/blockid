@@ -1,5 +1,7 @@
 # Sub-Goal: Agent-Powered Customer Report Generation
 
+> **Superseded 2026-09-15 by G13** (`docs/plans/investor-clarity-2026-09-15.md`, spec `12-product-ai-tbr-v2.md` §C): one generator, knowledge injection into `buildAgentPrompt`, phase-aware selection, W4 dimension chapters.
+
 Parent: `goals/ai-agent-ecosystem.md`
 
 ## Mission

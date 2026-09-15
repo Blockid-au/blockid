@@ -1,5 +1,7 @@
 # Report V2 — Compelling Narrative Analysis
 
+> **Superseded 2026-09-15 by G13** (`docs/plans/investor-clarity-2026-09-15.md`, spec `12-product-ai-tbr-v2.md`): the compelling-report intent lands as the `ReportV2` contract, dimension-owner agents and the `report-visuals/` package.
+
 ## Objective
 Transform the SVI report from a bullet-point list format into a **full narrative essay** that reads like a professional VC/consulting analysis — engaging, insightful, and impossible to stop reading. The report should hook the user from the first paragraph and naturally lead them to want the full detailed version (paid).
 

@@ -43,6 +43,28 @@ Guided founder journey from idea → SVI → dataroom → reserved cap-table, wr
 
 ---
 
+## Phase 3.2: Investor Clarity — G13 (Planned — opened 2026-09-15)
+
+Spec: [`docs/plans/investor-clarity-2026-09-15.md`](plans/investor-clarity-2026-09-15.md) (SOT § G13). Investor Dossier + canonical startup taxonomy · simplified menus and benefit-first post-login for founders and investors · Trusted Business Report v2 with dimension-owner agents and mandatory visuals. 15 sprints in 5 waves, deploy-immediately cadence.
+
+- [ ] W1 S-IA1 — Nav v4: founder 4 groups (Home · Prove · Money · Company), evaluator 3 groups, `persona.ts`, ~95 redirects, dead nav systems deleted
+- [ ] W1 S-R1 — `ReportV2` contract + `dimension-owners.ts` + `report-visuals/` package + web TBR split into 8 chapters (≥ 1 SVG each)
+- [ ] W1 S-T1 — Canonical taxonomy (22 industries · 10 business models · 8 stages · tags) + `startup_taxonomy` (0394) + backfill + pipeline auto-suggest
+- [ ] W2 S-IA2 — 17 hub pages with tabs (Reports / Investors / Documents / Equity / ESOP / Strategy / Exit …), pages moved not rewritten
+- [ ] W2 S-R2 — Dimension-owner matrix (CGH→CFO, SVM→CEO, IRI→CLO …) + knowledge injection (skill-map, knowledge-base, agent_knowledge_base, domain modules) + phase-aware selection + 24 eval fixtures
+- [ ] W2 S-D1 — `evaluation_assessments` (0392) + Investor Dossier route `/workspace/evaluations/[evaluationId]` block 1 (radar, weighted table, 13 criteria)
+- [ ] W3 S-IA3 — Founder landing = 5 blocks (Where you stand · Next best action · Money on the table · Evidence to add · Your reports) + single recommender
+- [ ] W3 S-R3 — One generator (stream route → pipeline), GATHER un-stub, 5-method valuation in the report body, COGS ≤ A$0.60 / ≤ 120 s
+- [ ] W3 S-T2 — Investor mandate form (`investor_mandates` 0393) + FIT_WEIGHTS_V2 + nightly `mandate-fit-refresh` (fixes deal-flow join) + filters/saved views
+- [ ] W4 S-IA4 — Persona-aware investor/advisor/accelerator landing (4 blocks) + one onboarding wizard
+- [ ] W4 S-R4 — PDF / DOCX / email / Dossier parity from `ReportV2`
+- [ ] W4 S-D2 — Evaluator assessment form + share-with-founder allow-list + history; founder taxonomy confirmation
+- [ ] W5 S-IA5 — One header, one footer, shared user menu; `/investors` → `/about/invest` (F2)
+- [ ] W5 S-R5 — AU comparables table + ingest (live count in copy), LinkedIn / GA4 / cap-table connectors, KPI tile, nightly eval
+- [ ] W5 S-D3 — Seats & consensus, IC memo PDF, cohort decisions + LP counts, portfolio write, intro → CRM, `qa:live` dossier lane, docs close-out
+
+---
+
 ## Phase 3.1: Startup Package Ship 2 (Planned)
 
 Full spec in plan file. Ship 2 deliverables:
