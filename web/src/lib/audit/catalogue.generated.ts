@@ -54,6 +54,7 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/ai/vesting-review/route.ts", family: "ai.vesting-review", methods: ["POST"] },
   { route: "api/ai/vesting/route.ts", family: "ai.vesting", methods: ["POST"] },
   { route: "api/analyses/[id]/free-summary/route.ts", family: "analyses.free-summary", methods: ["POST"] },
+  { route: "api/analyses/[id]/full-report/resend/route.ts", family: "analyses.full-report.resend", methods: ["POST"] },
   { route: "api/analyses/[id]/publish/route.ts", family: "analyses.publish", methods: ["POST","DELETE"] },
   { route: "api/analyzer/run/route.ts", family: "analyzer.run", methods: ["POST"] },
   { route: "api/auth/google/route.ts", family: "auth.google", methods: ["POST"] },

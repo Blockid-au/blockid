@@ -158,6 +158,12 @@ export function buildAnalysisRow(input: AnalysisRowInput): Record<string, unknow
     // exist — so nothing written here can reach a public or investor surface.
     public_visible: false,
     investor_visible: false,
+    // S32-B: every run wants its full first analysis. The row is born
+    // `queued`; the intake route starts the runner the moment the insert
+    // returns, and the 5-minute cron catches anything that never started.
+    // Only rows that were scored can be reported on — a row without signals
+    // stays unqueued so the runner never spins on it.
+    full_report_status: input.result.signals ? "queued" : null,
   };
 }
 

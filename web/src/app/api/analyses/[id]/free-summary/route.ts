@@ -55,6 +55,8 @@ import { estimateValuation } from "@/lib/valuation";
 import { extractProjectName } from "@/lib/project-name-extractor";
 import { savedAnalysisUrl } from "@/lib/analyses/summary";
 import { apiRoute } from "@/lib/audit/api-route";
+import { loadFullReportRow, setFullReportEmail } from "@/lib/analyses/first-analysis/store";
+import { deliverFullReport } from "@/lib/analyses/first-analysis/job";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -208,12 +210,32 @@ async function POST_handler(
     }
 
     await markSummarySent(id);
+    // S32-B — this address is also where the full first-analysis PDF goes.
+    // Recording it is what unlocks the C-level sections on screen for a
+    // guest (the existing gate, nothing new walled). If the job has already
+    // landed, send the report now; otherwise the job's completion path or
+    // the 5-minute cron sends it. Awaited so the test harness and the audit
+    // wrapper see the whole request; never throws.
+    await recordFullReportDestination(id, email);
     return reply("sent", masked);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[free-summary] send failed —", message, { analysisId: id });
     await releaseSummaryClaim(id, message);
     return reply("send_failed");
+  }
+}
+
+/** Stamp the destination and deliver the full report if it is ready. Never throws. */
+async function recordFullReportDestination(id: string, email: string): Promise<void> {
+  try {
+    await setFullReportEmail(id, email);
+    const row = await loadFullReportRow(id);
+    if (row && row.full_report_status === "done" && row.full_report_json && !row.full_report_emailed_at) {
+      await deliverFullReport({ ...row, full_report_email: email }, row.full_report_json);
+    }
+  } catch (err) {
+    console.error("[free-summary] could not record the full-report destination —", err, { analysisId: id });
   }
 }
 

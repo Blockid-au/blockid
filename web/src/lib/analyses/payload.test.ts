@@ -195,6 +195,13 @@ describe("buildAnalysisRow", () => {
     expect(row.investor_visible).toBe(false);
   });
 
+  it("S32-B: a scored row is born queued for its full first analysis; an unscored one is not", () => {
+    expect(buildAnalysisRow({ anonKey: "k", result: intakeFixture() }).full_report_status).toBe("queued");
+    const unscored = intakeFixture();
+    (unscored as { signals?: unknown }).signals = undefined;
+    expect(buildAnalysisRow({ anonKey: "k", result: unscored }).full_report_status).toBeNull();
+  });
+
   it("writes the anon key and leaves user_id null for an anonymous run", () => {
     const row = buildAnalysisRow({ anonKey: "anon123", result: intakeFixture() });
     expect(row.anon_key).toBe("anon123");

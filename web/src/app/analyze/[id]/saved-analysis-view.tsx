@@ -39,6 +39,14 @@ const AnalyzeResults = dynamic(
   { ssr: false },
 );
 
+// S32-B — the full first analysis (echo, valuation working, C-level voices,
+// Download PDF / Email again) for a saved run.
+const FullReportPanel = dynamic(
+  () =>
+    import("@/components/analyze/full-report-panel").then((m) => m.FullReportPanel),
+  { ssr: false },
+);
+
 export interface SavedAnalysisPayload {
   id: string;
   createdAt: string;
@@ -244,6 +252,14 @@ export function SavedAnalysisView({ id, claimed = 0 }: SavedAnalysisViewProps) {
 
       <div className="mt-6">
         <AnalyzeResults intake={analysis.intake} />
+      </div>
+
+      <div className="mx-auto mt-6 max-w-6xl px-4">
+        <FullReportPanel
+          analysisId={analysis.id}
+          authenticated={analysis.owned}
+          intake={analysis.intake}
+        />
       </div>
     </div>
   );

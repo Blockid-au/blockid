@@ -185,7 +185,7 @@ export function FreeSummaryPanel({
           <p className="mt-1 text-sm text-secondary">
             {copy
               ? copy.body
-              : `Free, and yours to forward: a ${FREE_SUMMARY_PAGES.length}-page written version of everything above. One email, no account.`}
+              : `Free, and yours to forward: a ${FREE_SUMMARY_PAGES.length}-page written version of everything above now, and the full first-analysis report (10+ pages, all seven C-level voices) to the same address the moment the agents finish. No account.`}
           </p>
         </div>
       </div>
@@ -279,14 +279,14 @@ export function FreeSummaryPanel({
       )}
 
       <p className="mt-3 text-xs leading-relaxed text-muted">
-        We use it to send this summary and nothing else. Every email we send
-        carries a one-click unsubscribe.{" "}
+        We use it to send this summary and the first-analysis report, and
+        nothing else. Every email we send carries a one-click unsubscribe.{" "}
         <Link
           href="/one-click-report"
           className="font-medium text-action underline-offset-2 hover:underline"
           data-testid="analyze-free-summary-upgrade"
         >
-          The full written report, 10+ pages, is A$3
+          Later decks or sites: the One-Click Report is A$3
         </Link>
         .
       </p>

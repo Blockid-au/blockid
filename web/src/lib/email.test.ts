@@ -1287,6 +1287,66 @@ describe("sendFreeSummary — the free tier's one email", () => {
   });
 });
 
+describe("sendFirstAnalysisReportEmail — the first analysis PDF (S32-B)", () => {
+  beforeEach(() => {
+    process.env.SMTP_USER = "u";
+    process.env.SMTP_PASS = "p";
+    process.env.NEXT_PUBLIC_SITE_URL = "https://blockid.au";
+    process.env.OAUTH_TOKEN_ENCRYPTION_KEY = "0123456789abcdef0123456789abcdef";
+  });
+
+  async function args(overrides: Record<string, unknown> = {}) {
+    const { sampleReport } = await import("@/lib/analyses/first-analysis/fixtures");
+    return {
+      to: "founder@example.com",
+      analysisId: "0d4f7c1e-9b2a-4c3d-8e5f-6a7b8c9d0e1f",
+      company: "Kelpie",
+      report: sampleReport(),
+      pdf: Buffer.from("%PDF-1.3 fake"),
+      pages: 17,
+      ...overrides,
+    };
+  }
+
+  it("refuses an unsubscribed address before touching the transport", async () => {
+    canSendEmailMock.mockResolvedValueOnce(false);
+    const { sendFirstAnalysisReportEmail } = await import("./email");
+    expect(await sendFirstAnalysisReportEmail(await args())).toEqual({ ok: false, reason: "unsubscribed" });
+    expect(sendMailSpy).not.toHaveBeenCalled();
+  });
+
+  it("subject names the company; body carries score, range, CEO line, both links and the Spam Act footer", async () => {
+    canSendEmailMock.mockResolvedValue(true);
+    const { sendFirstAnalysisReportEmail } = await import("./email");
+    const a = await args();
+    const res = await sendFirstAnalysisReportEmail(a);
+    expect(res.ok).toBe(true);
+    const mail = lastMail();
+    expect(mail.subject).toBe("Your BlockID first analysis — Kelpie");
+    expect(mail.html).toContain(String(Math.round(a.report.svi.total)));
+    expect(mail.html).toContain("From the CEO section");
+    expect(mail.html).toContain("https://blockid.au/analyze/0d4f7c1e-9b2a-4c3d-8e5f-6a7b8c9d0e1f");
+    expect(mail.html).toMatch(/\/api\/analyses\/0d4f7c1e-9b2a-4c3d-8e5f-6a7b8c9d0e1f\/report\.pdf\?token=/);
+    expect(mail.html).toContain("Auschain PTY LTD");
+    expect(mail.html).toContain("/unsubscribe?token=");
+    expect(mail.headers?.["List-Unsubscribe"]).toBeTruthy();
+    expect(mail.attachments).toHaveLength(1);
+    expect(mail.attachments?.[0].filename).toBe("blockid-first-analysis.pdf");
+    expect(mail.html).not.toMatch(/hurry|last chance|% off|discount|limited time|act now/i);
+  });
+
+  it("drops the attachment above 8 MB and relies on the signed link", async () => {
+    canSendEmailMock.mockResolvedValue(true);
+    const { sendFirstAnalysisReportEmail, FIRST_ANALYSIS_ATTACHMENT_MAX_BYTES } = await import("./email");
+    const big = Buffer.alloc(FIRST_ANALYSIS_ATTACHMENT_MAX_BYTES + 1, 0x20);
+    await sendFirstAnalysisReportEmail(await args({ pdf: big }));
+    const mail = lastMail();
+    expect(mail.attachments ?? []).toHaveLength(0);
+    expect(mail.html).toMatch(/report\.pdf\?token=/);
+    expect(mail.html).not.toContain("also attached");
+  });
+});
+
 // ---------------------------------------------------------------------------
 // S26 review — withFromName: the founder's display name on the PLATFORM
 // sender. Header-injection guard: CR/LF, quotes and angle brackets can never

@@ -3162,3 +3162,118 @@ export async function sendFreeSummary(params: {
 
   return result;
 }
+
+// ---------- First analysis — the ≥ 10-page report (S32-B) --------------------
+//
+// Sent ONCE when the first-analysis job lands (send-once claim in
+// lib/analyses/first-analysis/store.ts), and again on the founder's own
+// "Resend report" press (rate-limited 3/day). Short body in the mentoring
+// register; the PDF is the product. The attachment rides along when it is
+// ≤ FIRST_ANALYSIS_ATTACHMENT_MAX_BYTES; above that the email carries the
+// signed download link only, so a huge deck never bounces on a mail server's
+// attachment limit. The signed link is always included when it can be minted.
+//
+// Suppression: `canSendEmail(to, "promotions")` — the same one mechanism as
+// every other founder-facing send — plus the Spam Act footer via
+// `unsubFooter()`.
+
+export const FIRST_ANALYSIS_ATTACHMENT_MAX_BYTES = 8 * 1024 * 1024;
+
+export async function sendFirstAnalysisReportEmail(params: {
+  to: string;
+  analysisId: string;
+  company: string;
+  report: import("@/lib/analyses/first-analysis/types").FirstAnalysisReport;
+  pdf: Buffer | Uint8Array;
+  pages: number;
+}): Promise<SendResult> {
+  const { to, analysisId, company, report, pdf, pages } = params;
+
+  if (!(await canSendEmail(to, "promotions"))) {
+    return { ok: false, reason: "unsubscribed" };
+  }
+
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(to);
+  const { mintDownloadToken, downloadPath } = await import("@/lib/analyses/first-analysis/download-token");
+  const token = mintDownloadToken(analysisId);
+  const downloadUrl = token ? `${siteUrl()}${downloadPath(analysisId, token)}` : null;
+  const analysisUrl = `${siteUrl()}/analyze/${encodeURIComponent(analysisId)}`;
+  const attach = pdf.byteLength <= FIRST_ANALYSIS_ATTACHMENT_MAX_BYTES;
+
+  const name = (company ?? "").trim() || "your startup";
+  const score = Math.round(report.svi.total);
+  const range = `${fmtAud(report.valuation.lowAud)} – ${fmtAud(report.valuation.highAud)}`;
+  const ceo = report.agents.ceo;
+  const ceoLine = ceo ? ceo.body.split(/\n\s*\n/)[0]?.trim() ?? "" : "";
+  const firstStep = report.actionPlan.thisWeek?.title ?? report.actionPlan.steps[1]?.title ?? null;
+
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — First analysis</p>
+          <h1 style="margin:0 0 12px;font-size:24px;font-weight:600;color:#F8FAFC;">Your first analysis of ${escapeHtml(name)} — ${pages} pages</h1>
+          <p style="margin:0 0 20px;color:#94A3B8;font-size:15px;line-height:1.6;">
+            This is the written version of what BlockID read, scored and had seven C-level voices comment on. Start with page 3 — "What we read" — because anything marked <em>not provided</em> is the cheapest score improvement you have.
+          </p>
+
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 20px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="vertical-align:top;">
+                  <p style="margin:0 0 2px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">Startup Value Index</p>
+                  <p style="margin:0;font-size:40px;font-weight:800;color:#4ADE80;line-height:1;">${score}</p>
+                  <p style="margin:6px 0 0;color:#94A3B8;font-size:13px;">${escapeHtml(report.svi.stageLabel)} stage</p>
+                </td>
+                <td style="vertical-align:top;text-align:right;">
+                  <p style="margin:0 0 2px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">Indicative valuation</p>
+                  <p style="margin:0;color:#F8FAFC;font-size:17px;font-weight:700;">${escapeHtml(range)}</p>
+                  <p style="margin:6px 0 0;color:#64748B;font-size:12px;">${report.valuation.basis === "revenue" ? "Anchored on the revenue figure you gave" : "SVI-based — no revenue figure was provided"}</p>
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          ${ceoLine ? `<div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 20px;">
+            <p style="margin:0 0 6px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">From the CEO section</p>
+            <p style="margin:0;color:#CBD5E1;font-size:14px;line-height:1.6;">${escapeHtml(ceoLine.length > 480 ? `${ceoLine.slice(0, 479)}…` : ceoLine)}</p>
+          </div>` : ""}
+
+          ${firstStep ? `<p style="margin:0 0 20px;color:#94A3B8;font-size:14px;line-height:1.6;"><strong style="color:#F8FAFC;">This week:</strong> ${escapeHtml(firstStep)}</p>` : ""}
+
+          <p style="margin:0 0 12px;text-align:center;">
+            <a href="${analysisUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:13px 28px;border-radius:10px;font-size:15px;">Open the analysis on screen</a>
+          </p>
+          ${downloadUrl ? `<p style="margin:0 0 24px;text-align:center;"><a href="${downloadUrl}" style="color:#3B7DD8;font-size:13px;font-weight:600;text-decoration:underline;">Download the PDF (${pages} pages)</a>${attach ? " — also attached" : ""}</p>` : `<p style="margin:0 0 24px;text-align:center;color:#64748B;font-size:13px;">The ${pages}-page PDF is attached.</p>`}
+
+          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">
+            Read it as a senior advisor's first pass, not a verdict: the index moves only on evidence, and page 15 sets out the first 30 days step by step. Reference: ${escapeHtml(analysisId.slice(0, 8))}.
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+
+  const result = await sendEmail({
+    to,
+    subject: `Your BlockID first analysis — ${name}`,
+    html,
+    unsubscribeUrl,
+    attachments: attach
+      ? [{ filename: "blockid-first-analysis.pdf", content: Buffer.from(pdf), contentType: "application/pdf" }]
+      : undefined,
+  });
+
+  console.info("[blockid:email] first analysis report", {
+    analysisId,
+    to: redactEmail(to),
+    ok: result.ok,
+    pages,
+    attached: attach,
+    bytes: pdf.byteLength,
+  });
+
+  return result;
+}

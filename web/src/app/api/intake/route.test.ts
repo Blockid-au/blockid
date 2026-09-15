@@ -55,6 +55,11 @@ vi.mock("@/lib/analyses/payload", () => ({
   deriveCompactSvi: () => deriveMock(),
 }));
 
+const startJobMock = vi.fn<(id: string, opts: { userId: string | null }) => void>();
+vi.mock("@/lib/analyses/first-analysis/job", () => ({
+  startFirstAnalysisJob: (id: string, opts: { userId: string | null }) => startJobMock(id, opts),
+}));
+
 import { POST, dynamic, runtime } from "./route";
 
 const RESULT = {
@@ -91,6 +96,7 @@ beforeEach(() => {
   countAnonRunsMock.mockReset().mockResolvedValue(0);
   checkAnonRunLimitMock.mockReset().mockReturnValue({ allowed: true });
   deriveMock.mockReset().mockReturnValue({ totalSVI: 118 });
+  startJobMock.mockReset();
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
 });
@@ -110,6 +116,25 @@ describe("POST /api/intake — analysis + persistence", () => {
     expect(body.ok).toBe(true);
     expect(body.analysisId).toBe("row-1");
     expect(body.inputKind).toBe("idea_text");
+  });
+
+  it("S32-B: starts the full first-analysis job on the saved row, bound to the caller", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1" });
+    await POST(req({ text: "an idea" }));
+    expect(startJobMock).toHaveBeenCalledWith("row-1", { userId: "u1" });
+  });
+
+  it("S32-B: does not start a job when the row was not saved, and a throwing starter never breaks the response", async () => {
+    saveAnalysisMock.mockResolvedValue(null);
+    await POST(req({ text: "an idea" }));
+    expect(startJobMock).not.toHaveBeenCalled();
+    saveAnalysisMock.mockResolvedValue("row-1");
+    startJobMock.mockImplementation(() => {
+      throw new Error("boom");
+    });
+    const res = await POST(req({ text: "an idea" }));
+    expect(res.status).toBe(200);
+    expect((await json(res)).analysisId).toBe("row-1");
   });
 
   it("mints the anon cookie so the row has an owner", async () => {
