@@ -1,1 +1,1 @@
-{"ts":"2026-09-09T14:05:06Z","epoch":1788962706,"sha":"41d762ec15aed40e7cb97132930e44f44d061cf5","buildId":"WjAexcbJrUhg8cquBK9BM","gates":"10/12","pid":"739599","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-15T13:04:38Z","epoch":1789477478,"sha":"cec124266dce526d142797d7a85947877ec18fac","buildId":"EvmiDS5hfTEQTyLfkJr7U","gates":"12/12","pid":"3753811","note":"fix: svi-handoff login redirect uses public origin (valuation-first upload handoff)"}

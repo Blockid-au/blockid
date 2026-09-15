@@ -1,0 +1,113 @@
+{
+  "updated_at": "2026-09-13T04:00:08.747Z",
+  "fallback_used": false,
+  "provider_counts": {
+    "openrouter": 21,
+    "groq": 9,
+    "cerebras": 3,
+    "sambanova": 6
+  },
+  "errors": {},
+  "candidates": [
+    {
+      "provider": "openrouter",
+      "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "family": "nemotron-3-",
+      "score": 150.59,
+      "context_length": 1000000,
+      "known_good_family": false,
+      "known_latency_ms": null,
+      "discovered_at": "2026-09-13T04:00:04.107Z"
+    },
+    {
+      "provider": "openrouter",
+      "model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "family": "nemotron-3-",
+      "score": 148.89,
+      "context_length": 262144,
+      "known_good_family": false,
+      "known_latency_ms": 398,
+      "discovered_at": "2026-09-13T04:00:04.107Z"
+    },
+    {
+      "provider": "openrouter",
+      "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+      "family": "nemotron-3-",
+      "score": 111.92,
+      "context_length": 256000,
+      "known_good_family": false,
+      "known_latency_ms": 397,
+      "discovered_at": "2026-09-13T04:00:04.107Z"
+    },
+    {
+      "provider": "openrouter",
+      "model": "google/gemma-4-31b-it:free",
+      "family": "gemma-4-31",
+      "score": 111.85,
+      "context_length": 262144,
+      "known_good_family": false,
+      "known_latency_ms": null,
+      "discovered_at": "2026-09-13T04:00:04.107Z"
+    },
+    {
+      "provider": "openrouter",
+      "model": "google/gemma-4-26b-a4b-it:free",
+      "family": "gemma-4-26",
+      "score": 111.15,
+      "context_length": 262144,
+      "known_good_family": false,
+      "known_latency_ms": null,
+      "discovered_at": "2026-09-13T04:00:04.107Z"
+    },
+    {
+      "provider": "openrouter",
+      "model": "dots-studio/dots-3-note-preview:free",
+      "family": "unknown",
+      "score": 106.3,
+      "context_length": 512000,
+      "known_good_family": false,
+      "known_latency_ms": 486,
+      "discovered_at": "2026-09-13T04:00:04.107Z"
+    },
+    {
+      "provider": "openrouter",
+      "model": "nex-agi/nex-n2.5-pro:free",
+      "family": "unknown",
+      "score": 104.84,
+      "context_length": 262144,
+      "known_good_family": false,
+      "known_latency_ms": 851,
+      "discovered_at": "2026-09-13T04:00:04.107Z"
+    },
+    {
+      "provider": "openrouter",
+      "model": "inclusionai/ling-3.0-flash-sante:free",
+      "family": "unknown",
+      "score": 104.24,
+      "context_length": 262144,
+      "known_good_family": false,
+      "known_latency_ms": 571,
+      "discovered_at": "2026-09-13T04:00:04.107Z"
+    },
+    {
+      "provider": "openrouter",
+      "model": "inclusionai/ling-3.0-flash-fin:free",
+      "family": "unknown",
+      "score": 104.2,
+      "context_length": 262144,
+      "known_good_family": false,
+      "known_latency_ms": 594,
+      "discovered_at": "2026-09-13T04:00:04.107Z"
+    },
+    {
+      "provider": "openrouter",
+      "model": "inclusionai/ling-3.0-flash-vl:free",
+      "family": "unknown",
+      "score": 103.51,
+      "context_length": 262144,
+      "known_good_family": false,
+      "known_latency_ms": 939,
+      "discovered_at": "2026-09-13T04:00:04.107Z"
+    }
+  ]
+}

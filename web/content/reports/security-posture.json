@@ -1,38 +1,38 @@
 {
-  "date": "2026-09-08",
-  "overall": 51,
-  "status": "RED",
+  "date": "2026-09-14",
+  "overall": 68,
+  "status": "YELLOW",
   "dimensions": [
     {
       "key": "auth_coverage",
       "label": "Auth coverage on /api/* routes",
       "score": 8,
-      "detail": "398/504 guarded (Bearer / user-auth / public-tagged)",
+      "detail": "481/602 guarded (Bearer / user-auth / public-tagged)",
       "findings": [
         "Ungated: api/ab/pricing-expose/route.ts",
         "Ungated: api/abr/lookup/route.ts",
         "Ungated: api/abs/lookup/route.ts",
+        "Ungated: api/account/delete/cancel/route.ts",
         "Ungated: api/actions/route.ts",
-        "Ungated: api/ai/esop/route.ts",
-        "Ungated: api/ai/registry/route.ts",
-        "Ungated: api/ai/vesting/route.ts",
-        "Ungated: api/ai/vesting-review/route.ts"
+        "Ungated: api/admin/sector-multiples/[id]/approve/route.ts",
+        "Ungated: api/admin/sector-multiples/[id]/reject/route.ts",
+        "Ungated: api/admin/sector-multiples/route.ts"
       ]
     },
     {
       "key": "rate_limit",
       "label": "Rate-limit coverage on /api/* routes",
       "score": 0,
-      "detail": "23/504 call checkRateLimit (or @rate-limit-exempt)",
+      "detail": "22/602 call checkRateLimit (or @rate-limit-exempt)",
       "findings": [
         "No rate-limit: api/ab/pricing-expose/route.ts",
         "No rate-limit: api/abr/lookup/route.ts",
         "No rate-limit: api/abs/lookup/route.ts",
         "No rate-limit: api/accelerator/cohort/route.ts",
+        "No rate-limit: api/account/delete/cancel/route.ts",
+        "No rate-limit: api/account/delete/route.ts",
         "No rate-limit: api/account/notify-prefs/route.ts",
-        "No rate-limit: api/actions/route.ts",
-        "No rate-limit: api/admin/accelerator/[id]/route.ts",
-        "No rate-limit: api/admin/accelerator/route.ts"
+        "No rate-limit: api/actions/route.ts"
       ]
     },
     {
@@ -41,11 +41,11 @@
       "score": 0,
       "detail": "20 suspicious lines",
       "findings": [
-        "Leak: src/app/api/cron/security-posture/route.ts:126:    \"STRIPE_SECRET_KEY=sk_\",",
-        "Leak: src/app/api/cron/security-posture/route.ts:127:    \"SUPABASE_SERVICE_ROLE_KEY=ey\",",
-        "Leak: src/app/api/cron/security-posture/route.ts:128:    \"LINKEDIN_PAGE_ACCESS_TOKEN=\",",
-        "Leak: src/app/api/cron/security-posture/route.ts:129:    \"GROQ_API_KEY=gsk_\",",
-        "Leak: src/app/api/cron/security-posture/route.ts:130:    \"OPENAI_API_KEY=sk-\","
+        "Leak: src/app/api/cron/security-posture/route.ts:129:    \"STRIPE_SECRET_KEY=sk_\",",
+        "Leak: src/app/api/cron/security-posture/route.ts:130:    \"SUPABASE_SERVICE_ROLE_KEY=ey\",",
+        "Leak: src/app/api/cron/security-posture/route.ts:131:    \"LINKEDIN_PAGE_ACCESS_TOKEN=\",",
+        "Leak: src/app/api/cron/security-posture/route.ts:132:    \"GROQ_API_KEY=gsk_\",",
+        "Leak: src/app/api/cron/security-posture/route.ts:133:    \"OPENAI_API_KEY=sk-\","
       ]
     },
     {
@@ -58,19 +58,17 @@
     {
       "key": "deps",
       "label": "Dependency vulnerabilities",
-      "score": 0,
-      "detail": "crit 1, high 9, mod 8",
+      "score": 8,
+      "detail": "crit 0, high 2, mod 0",
       "findings": [
-        "1 critical CVE(s)",
-        "9 high CVE(s)",
-        "8 moderate CVE(s)"
+        "2 high CVE(s)"
       ]
     },
     {
       "key": "supabase_rls",
       "label": "Supabase RLS enabled across tables",
       "score": 8,
-      "detail": "195/260 tables have RLS enabled in migrations",
+      "detail": "239/305 tables have RLS enabled in migrations",
       "findings": [
         "No RLS migration found for table: user_actions",
         "No RLS migration found for table: svi_analysis_usage",
@@ -86,13 +84,20 @@
       "key": "deploy_hygiene",
       "label": "Deploy hygiene",
       "score": 10,
-      "detail": "last deploy 0d ago, 1 unpushed commits",
+      "detail": "last deploy 0d ago, 0 unpushed commits",
+      "findings": []
+    },
+    {
+      "key": "oauth_tokens_sealed",
+      "label": "OAuth connector tokens sealed at rest (S23-A)",
+      "score": 10,
+      "detail": "key set; every stored connector token is gcm: sealed",
       "findings": []
     }
   ],
   "recommendations": [
     "Add checkRateLimit() to every /api/* route or tag with @rate-limit-exempt comment",
     "Move leaked secret patterns out of repo; rotate any exposed credentials immediately",
-    "Run `npm audit fix` for moderate; manually upgrade high/critical"
+    "Audit ungated routes — add Bearer or user-auth guard; mark intentional public with @public-route"
   ]
 }
