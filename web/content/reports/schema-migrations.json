@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-15T06:36:30.479Z",
+  "generated_at": "2026-09-15T11:19:43.507Z",
   "ledger_present": true,
-  "total_files": 270,
+  "total_files": 271,
   "files": [
     "0001_init.sql",
     "0002_score_v2.sql",
@@ -244,6 +244,7 @@
     "0387_fundraise_rounds_closed_at.sql",
     "0388_svi_analyses_hot_path_indexes.sql",
     "0390_analyses_first_analysis_full_report.sql",
+    "0391_analyses_full_report_done_partial.sql",
     "20260814_tech_analyses.sql",
     "20260815120000_analyzer_runs.sql",
     "20260816_clevel_reports_v2.sql",
