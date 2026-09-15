@@ -58,9 +58,8 @@ test.describe("Fundraise rounds", () => {
     expect(list.body.rounds.some((r) => r.id === body.round!.id)).toBe(true);
   });
 
-  test("wizard inputs are reachable by their labels (lane-1 F16 — expected to fail until fixed)", async ({ page, visit, growth }) => {
+  test("wizard inputs are reachable by their labels (lane-1 F16)", async ({ page, visit, growth }) => {
     void growth;
-    test.fail(true, "lane-1 F16 (P3): fundraise wizard <label>s have no htmlFor/id — flips to 'unexpected pass' once fixed");
     await visit("/workspace/fundraise");
     await expect(page.getByLabel("Target Raise (AUD)")).toBeVisible({ timeout: 10_000 });
     await expect(page.getByLabel("Pre-Money Valuation (AUD)")).toBeVisible({ timeout: 5_000 });

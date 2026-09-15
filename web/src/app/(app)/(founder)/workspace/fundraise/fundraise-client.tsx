@@ -513,8 +513,9 @@ export function FundraiseClient() {
 
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-ink-700 mb-1">Round Name</label>
+                <label htmlFor="fr-round-name" className="block text-sm font-medium text-ink-700 mb-1">Round Name</label>
                 <select
+                  id="fr-round-name"
                   value={roundName}
                   onChange={(e) => setRoundName(e.target.value)}
                   className="w-full rounded-xl border border-surface-200 bg-surface-50 px-4 py-2.5 text-sm text-ink-800 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 outline-none"
@@ -528,10 +529,11 @@ export function FundraiseClient() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-ink-700 mb-1">
+                <label htmlFor="fr-instrument" className="block text-sm font-medium text-ink-700 mb-1">
                   Instrument Type
                 </label>
                 <select
+                  id="fr-instrument"
                   value={instrumentType}
                   onChange={(e) => setInstrumentType(e.target.value as InstrumentType)}
                   className="w-full rounded-xl border border-surface-200 bg-surface-50 px-4 py-2.5 text-sm text-ink-800 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 outline-none"
@@ -554,12 +556,13 @@ export function FundraiseClient() {
 
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-ink-700 mb-1">
+                <label htmlFor="fr-target" className="block text-sm font-medium text-ink-700 mb-1">
                   Target Raise (AUD)
                 </label>
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
                   <input
+                    id="fr-target"
                     type="number"
                     min={1000}
                     step={10000}
@@ -571,12 +574,13 @@ export function FundraiseClient() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-ink-700 mb-1">
+                <label htmlFor="fr-premoney" className="block text-sm font-medium text-ink-700 mb-1">
                   Pre-Money Valuation (AUD)
                 </label>
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
                   <input
+                    id="fr-premoney"
                     type="number"
                     min={10000}
                     step={100000}
@@ -592,12 +596,13 @@ export function FundraiseClient() {
             {instrumentType !== "priced" && (
               <div className="grid sm:grid-cols-2 gap-4 pt-2 border-t border-surface-200">
                 <div>
-                  <label className="block text-sm font-medium text-ink-700 mb-1">
+                  <label htmlFor="fr-cap" className="block text-sm font-medium text-ink-700 mb-1">
                     Valuation Cap (AUD)
                   </label>
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
                     <input
+                      id="fr-cap"
                       type="number"
                       min={0}
                       step={100000}
@@ -608,12 +613,13 @@ export function FundraiseClient() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-ink-700 mb-1">
+                  <label htmlFor="fr-discount" className="block text-sm font-medium text-ink-700 mb-1">
                     Discount (%)
                   </label>
                   <div className="relative">
                     <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
                     <input
+                      id="fr-discount"
                       type="number"
                       min={0}
                       max={50}
@@ -920,10 +926,11 @@ export function FundraiseClient() {
                     </div>
                     <div className="grid sm:grid-cols-4 gap-3">
                       <div className="sm:col-span-2">
-                        <label className="block text-xs font-medium text-ink-600 mb-1">
+                        <label htmlFor={`fr-inv-name-${inv.id}`} className="block text-xs font-medium text-ink-600 mb-1">
                           Investor Name
                         </label>
                         <input
+                          id={`fr-inv-name-${inv.id}`}
                           type="text"
                           placeholder="e.g. Jane Smith"
                           value={inv.name}
@@ -932,10 +939,11 @@ export function FundraiseClient() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-ink-600 mb-1">
+                        <label htmlFor={`fr-inv-amount-${inv.id}`} className="block text-xs font-medium text-ink-600 mb-1">
                           Amount (AUD)
                         </label>
                         <input
+                          id={`fr-inv-amount-${inv.id}`}
                           type="number"
                           min={0}
                           step={10000}
@@ -945,9 +953,9 @@ export function FundraiseClient() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-ink-600 mb-1">
+                        <span className="block text-xs font-medium text-ink-600 mb-1">
                           Shares / Ownership
-                        </label>
+                        </span>
                         <div className="rounded-lg border border-surface-200 bg-white px-3 py-2 text-sm">
                           <span className="text-ink-800 font-medium">{fmtNum(shares)}</span>
                           <span className="text-muted mx-1">/</span>
