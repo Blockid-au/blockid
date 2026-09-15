@@ -1,8 +1,7 @@
 {
-  "updatedAt": "2026-09-15T13:59:12.586Z",
+  "updatedAt": "2026-09-15T15:00:11.725Z",
   "openrouter": [
     "nvidia/nemotron-3-super-120b-a12b:free",
-    "z-ai/glm-5.2:free",
     "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
     "dots-studio/dots-3-note-preview:free",
     "inclusionai/ling-3.0-flash-vl:free",

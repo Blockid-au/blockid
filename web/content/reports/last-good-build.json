@@ -1,1 +1,1 @@
-{"ts":"2026-09-15T14:11:51Z","epoch":1789481511,"sha":"3a726f7ba0e56971bcbb99ebf52436b3ccfa9ef9","buildId":"iSizTWNq9DDeUOxjoqjnr","gates":"12/12","pid":"3975034","note":"latest master: valuation/vc empty state, live-qa load wait, svi-handoff origin fix, reports sweep; repo cleaned"}
+{"ts":"2026-09-15T15:07:23Z","epoch":1789484843,"sha":"d1066ac1773ca65222150e68a8dd5182d08cfaba","buildId":"jc7hrBy1Zq41ueoQg01MH","gates":"12/12","pid":"4160238","note":"final serialized deploy: master 14:45 (no code delta since 14:11; reports sweep)"}
