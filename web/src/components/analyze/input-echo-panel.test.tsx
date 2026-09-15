@@ -31,7 +31,7 @@ describe("InputEchoPanel", () => {
   it("renders an all-missing echo without throwing", () => {
     const echo = buildInputEcho({ inputKind: "idea_text", rawText: "", structured: {}, signals: {} });
     const html = renderToStaticMarkup(<InputEchoPanel echo={echo} />);
-    expect(html).toContain("0 of 9 facts found");
-    expect((html.match(/Not provided/g) ?? []).length).toBe(9);
+    expect(html).toContain("0 of 10 facts found");
+    expect((html.match(/Not provided/g) ?? []).length).toBe(10);
   });
 });
