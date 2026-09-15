@@ -176,6 +176,22 @@ export interface ValuationSection {
   methods: ValuationMethodRow[];
   /** The one-line honesty note printed under the range. */
   note: string;
+  /** The round the founder said they are raising, AUD, when stated. */
+  askAud?: number;
+  /** A founder-stated SAFE cap / pre-money, AUD, when stated. */
+  statedCapAud?: number;
+  /**
+   * How the indicative range sits against the founder's own cap. Reported
+   * alongside the range; never used to set it.
+   */
+  capCrossCheck?: {
+    kind: "cap" | "pre_money" | "post_money" | "valuation";
+    /** Indicative mid ÷ stated. */
+    ratio: number;
+    verdict: "consistent" | "indicative_above" | "indicative_below";
+    /** e.g. "Your stated cap A$6.0M · indicative A$4.1M–A$8.7M → consistent". */
+    note: string;
+  };
 }
 
 export interface ActionPlanItem {

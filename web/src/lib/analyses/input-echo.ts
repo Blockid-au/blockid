@@ -18,6 +18,7 @@ import type { IntakeResult, IntakeStructured } from "@/lib/intake/analyze-input"
 import type { SVIExtractedSignals } from "@/lib/svi-analysis";
 import { LEGACY_SVI_STAGE_LABELS, SECTOR_LABELS } from "@/lib/svi-analysis";
 import { extractProjectName } from "@/lib/project-name-extractor";
+import { formatFigureAud, parseFinancialFigures, type RevenueFigure } from "@/lib/intake/financial-figures";
 
 export type EchoRowKey =
   | "company"
@@ -28,6 +29,7 @@ export type EchoRowKey =
   | "traction"
   | "revenue"
   | "ask"
+  | "cap"
   | "urls";
 
 export interface EchoRow {
@@ -97,8 +99,9 @@ const ROW_LABELS: Record<EchoRowKey, { label: string; hint: string }> = {
   stage: { label: "Stage", hint: "Say whether you have a prototype, users or revenue." },
   team: { label: "Team", hint: "Founders, their backgrounds, and how many people work on it." },
   traction: { label: "Traction", hint: "Users, customers, pilots, waitlist — with numbers." },
-  revenue: { label: "Revenue", hint: "MRR / ARR or 'pre-revenue' — a figure changes the valuation method." },
+  revenue: { label: "Revenue", hint: "MRR / ARR, or 'A$X over the last N months', or 'pre-revenue' — a figure changes the valuation method." },
   ask: { label: "The ask", hint: "How much you are raising and what it funds." },
+  cap: { label: "Stated cap / pre-money", hint: "The SAFE cap or pre-money you are raising at, if you have one — we cross-check it against the indicative range." },
   urls: { label: "Links", hint: "Website, product, repo or deck links." },
 };
 
@@ -177,7 +180,7 @@ const REVENUE_RE = new RegExp(
 const PRE_REVENUE_RE = /\bpre-?revenue\b|\bno revenue\b|\bnot (?:yet )?(?:generating|making) (?:any )?revenue\b/i;
 
 const TRACTION_RE =
-  /\b(\d[\d,]*(?:\.\d+)?\s?(?:k|m)?\+?)\s+(?:paying\s+|active\s+|monthly\s+|registered\s+|beta\s+|pilot\s+)?(customers?|users?|subscribers?|sign-?ups?|downloads?|clients?|schools?|clinics?|merchants?|members?|businesses|companies|waitlist(?:ed)?|installs?|pilots?|letters? of intent|lois?)\b/i;
+  /\b(\d[\d,]*(?:\.\d+)?\s?(?:k|m)?\+?)\s+(?:paying\s+|paid\s+|active\s+|monthly\s+|registered\s+|beta\s+|pilot\s+)?(customers?|users?|subscribers?|sign-?ups?|downloads?|clients?|schools?|clinics?|merchants?|members?|businesses|companies|waitlist(?:ed)?|installs?|pilots?|letters? of intent|lois?)\b/i;
 
 const ASK_RE = new RegExp(
   String.raw`\b(?:raising|raise|seeking|looking for|the ask|we ask|ask(?:ing)?\s+for|round of|pre-?seed of|seed of)\b[^.\n]{0,40}?(${MONEY})`,
@@ -202,6 +205,24 @@ function findWithSource(
   const end = endCandidates.length ? Math.min(...endCandidates) + 1 : Math.min(text.length, idx + 160);
   const sentence = text.slice(start, end).trim() || m[0];
   return { value: clip(sentence, 180), source: locateSource(m[0], structured) };
+}
+
+/** A regex that finds the parser's exact quote in the text (whitespace-tolerant). */
+function quoteRe(quote: string): RegExp {
+  const escaped = quote
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    .replace(/\s+/g, "\\s+");
+  return new RegExp(escaped, "i");
+}
+
+/** "read as MRR A$6,000 (ARR A$72,000 annualised)" — the founder-facing reading. */
+function readAs(r: RevenueFigure): string {
+  const mrr = formatFigureAud(r.mrrAud);
+  const arr = formatFigureAud(r.arrAud);
+  if (r.kind === "mrr") return `MRR ${mrr} (ARR ${arr})`;
+  if (r.kind === "arr") return `ARR ${arr} (MRR ${mrr})`;
+  if (r.kind === "period") return `MRR ${mrr} over ${r.periodMonths ?? 12} months (ARR ${arr} annualised)`;
+  return `ARR ${arr}, period not stated (treated as the last 12 months)`;
 }
 
 function stageLabelFor(stage: number | undefined | null): string | null {
@@ -308,9 +329,31 @@ export function buildInputEcho(intake: EchoInput, meta: EchoMeta = {}): InputEch
     }
   }
 
-  // ── Traction / revenue ─────────────────────────────────────────────────
-  const traction = findWithSource(TRACTION_RE, rawText, structured);
-  let revenue: { value: string; source: string } | null = findWithSource(REVENUE_RE, rawText, structured);
+  // ── Traction / revenue / ask / cap ─────────────────────────────────────
+  // The shared intake parser reads the figures (EN + VI, periods, pilots,
+  // SAFE caps); the older sentence regexes stay as the fallback for a
+  // revenue or ask mention that carries no parseable figure.
+  const figures = parseFinancialFigures(rawText);
+  let traction = findWithSource(TRACTION_RE, rawText, structured);
+  if (!traction && figures.pilots) {
+    traction = findWithSource(quoteRe(figures.pilots.quote), rawText, structured);
+  }
+  let revenue: { value: string; source: string } | null = null;
+  if (figures.revenue) {
+    const quoteHit = findWithSource(quoteRe(figures.revenue.quote), rawText, structured);
+    revenue = {
+      value: clip(`${quoteHit?.value ?? figures.revenue.quote} → read as ${readAs(figures.revenue)}`, 220),
+      source: quoteHit?.source ?? locateSource(figures.revenue.quote, structured),
+    };
+  } else if (figures.pilots) {
+    const quoteHit = findWithSource(quoteRe(figures.pilots.quote), rawText, structured);
+    revenue = {
+      value: clip(`${quoteHit?.value ?? figures.pilots.quote} → paid pilots count as traction, not recurring revenue`, 220),
+      source: quoteHit?.source ?? locateSource(figures.pilots.quote, structured),
+    };
+  } else {
+    revenue = findWithSource(REVENUE_RE, rawText, structured);
+  }
   if (!revenue) {
     const pre = findWithSource(PRE_REVENUE_RE, rawText, structured);
     if (pre) revenue = { value: "Pre-revenue (stated)", source: pre.source };
@@ -318,11 +361,38 @@ export function buildInputEcho(intake: EchoInput, meta: EchoMeta = {}): InputEch
   }
 
   // ── Ask ────────────────────────────────────────────────────────────────
-  let ask = findWithSource(ASK_RE, rawText, structured);
+  let ask: { value: string; source: string } | null = null;
+  if (figures.ask) {
+    const quoteHit = findWithSource(quoteRe(figures.ask.quote), rawText, structured);
+    ask = {
+      value: clip(`${quoteHit?.value ?? figures.ask.quote} → ${formatFigureAud(figures.ask.amountAud)}`, 220),
+      source: quoteHit?.source ?? locateSource(figures.ask.quote, structured),
+    };
+  } else {
+    ask = findWithSource(ASK_RE, rawText, structured);
+  }
   if (!ask && structured?.deckSections?.ask?.[0]) {
     const askSlide = structured.deckSections.ask[0];
     const money = askSlide.match(MONEY_RE);
     if (money) ask = { value: clip(askSlide, 180), source: locateSource(askSlide, structured) };
+  }
+
+  // ── Stated cap / pre-money ─────────────────────────────────────────────
+  let cap: { value: string; source: string } | null = null;
+  if (figures.cap) {
+    const quoteHit = findWithSource(quoteRe(figures.cap.quote), rawText, structured);
+    const kind =
+      figures.cap.kind === "pre_money"
+        ? "pre-money"
+        : figures.cap.kind === "post_money"
+          ? "post-money"
+          : figures.cap.kind === "valuation"
+            ? "valuation"
+            : "cap";
+    cap = {
+      value: clip(`${quoteHit?.value ?? figures.cap.quote} → ${kind} ${formatFigureAud(figures.cap.amountAud)}`, 220),
+      source: quoteHit?.source ?? locateSource(figures.cap.quote, structured),
+    };
   }
 
   // ── URLs ───────────────────────────────────────────────────────────────
@@ -356,6 +426,7 @@ export function buildInputEcho(intake: EchoInput, meta: EchoMeta = {}): InputEch
     row("traction", traction?.value ?? null, traction?.source ?? null),
     row("revenue", revenue?.value ?? null, revenue?.source ?? null),
     row("ask", ask?.value ?? null, ask?.source ?? null),
+    row("cap", cap?.value ?? null, cap?.source ?? null),
     row("urls", urls.length ? urls.join("  ·  ") : null, urls.length ? "from your input" : null),
   ];
 

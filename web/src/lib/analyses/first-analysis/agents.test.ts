@@ -134,7 +134,7 @@ describe("writeAgentSection", () => {
   });
 
   it("keeps a grounded rewrite over an ungrounded first answer", async () => {
-    const bad = `TITLE: Wrong\n\n${WORDS} Last quarter they made A$9.9M.\n\nNEXT:\n1. a\n2. b\n3. c`;
+    const bad = `TITLE: Wrong\n\n${WORDS} Last quarter they made A$99.9M.\n\nNEXT:\n1. a\n2. b\n3. c`;
     const call = vi.fn().mockResolvedValueOnce({ text: bad }).mockResolvedValueOnce({ text: GOOD });
     const section = await writeAgentSection("cfo", grounding(), call);
     expect(section.title).toBe("Strategy for Kelpie");

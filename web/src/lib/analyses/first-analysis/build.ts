@@ -12,7 +12,15 @@
 // carries a revenue figure; otherwise the range is SVI-based and says so.
 
 import { computeSVI, type SVIAnalysis, type SVIExtractedSignals } from "@/lib/svi-analysis";
-import { estimateValuation } from "@/lib/valuation";
+import {
+  BERKUS_PILLAR_CAP_AUD,
+  ARR_CLAMP_MULTIPLE,
+  ARR_CLAMP_THRESHOLD_AUD,
+  estimateValuation,
+  formatAUD,
+  valuationMetricsFromSignals,
+} from "@/lib/valuation";
+import { formatFigureAud, parseFinancialFigures, type RevenueKind } from "@/lib/intake/financial-figures";
 import { buildDeepValuationAnalysis } from "@/lib/agents/deep-valuation";
 import { buildScnActionPlan, type ScnAction } from "@/lib/agents/scn-action-plan";
 import { buildInputEcho, type EchoInput, type EchoMeta, type InputEcho } from "@/lib/analyses/input-echo";
@@ -42,47 +50,49 @@ export const DIM_WEIGHTS: Record<string, string> = {
 
 // ── Revenue figure from the founder's own words ──────────────────────────
 
-const AMOUNT = String.raw`(?:A?\$|AUD\s?)\s?(\d[\d,]*(?:\.\d+)?)\s?(k|m|b|bn|million|thousand|billion)?`;
-
-function toAud(num: string, unit: string | undefined): number {
-  const n = Number.parseFloat(num.replace(/,/g, ""));
-  if (!Number.isFinite(n)) return 0;
-  const u = (unit ?? "").toLowerCase();
-  if (u === "k" || u === "thousand") return n * 1_000;
-  if (u === "m" || u === "million") return n * 1_000_000;
-  if (u === "b" || u === "bn" || u === "billion") return n * 1_000_000_000;
-  return n;
-}
-
 export interface RevenueFigure {
   mrrAud?: number;
   arrAud?: number;
   /** The exact phrase it was read from. */
   quote: string;
+  /** How it was stated: monthly, annual, over N months, or bare. */
+  kind: RevenueKind;
+  periodMonths?: number;
 }
 
 /**
- * Read an explicit MRR / ARR figure out of the text. Returns null unless the
- * founder actually wrote one — a "we have revenue" with no number is NOT a
- * figure and must not become one.
+ * Read an explicit revenue figure out of the text — MRR, ARR, "A$36,000 in
+ * the last 6 months" (→ MRR = 36,000 / 6), or a bare "revenue of A$X"
+ * (treated as the trailing 12 months). Returns null unless the founder
+ * actually wrote one — "we have revenue" with no number is NOT a figure and
+ * must not become one. Paid pilots ("A$18,000 each") are traction, not
+ * recurring revenue, and are never read as the figure.
+ *
+ * Thin wrapper over the shared intake parser so the echo, the signals and
+ * this section all read the same number.
  */
 export function parseRevenueFigure(text: string): RevenueFigure | null {
-  if (!text) return null;
-  const mrrA = new RegExp(String.raw`\bmrr\b[^.\n]{0,30}?${AMOUNT}`, "i").exec(text);
-  const mrrB = new RegExp(String.raw`${AMOUNT}[^.\n]{0,20}?\b(?:mrr|per month|a month|/mo|monthly(?: recurring)? revenue)\b`, "i").exec(text);
-  const arrA = new RegExp(String.raw`\barr\b[^.\n]{0,30}?${AMOUNT}`, "i").exec(text);
-  const arrB = new RegExp(String.raw`${AMOUNT}[^.\n]{0,20}?\b(?:arr|per year|a year|/yr|annual(?: recurring)? revenue|in (?:annual )?revenue)\b`, "i").exec(text);
-  const mrr = mrrA ?? mrrB;
-  const arr = arrA ?? arrB;
-  if (mrr) {
-    const v = toAud(mrr[1], mrr[2]);
-    if (v > 0) return { mrrAud: v, arrAud: v * 12, quote: mrr[0].trim() };
+  const r = parseFinancialFigures(text).revenue;
+  if (!r) return null;
+  return {
+    mrrAud: r.mrrAud,
+    arrAud: r.arrAud,
+    quote: r.quote,
+    kind: r.kind,
+    ...(r.periodMonths != null ? { periodMonths: r.periodMonths } : {}),
+  };
+}
+
+function describeRevenue(figure: RevenueFigure): string {
+  const mrr = figure.mrrAud != null ? `MRR ${formatFigureAud(figure.mrrAud)}` : "";
+  const arr = figure.arrAud != null ? `ARR ${formatFigureAud(figure.arrAud)}` : "";
+  if (figure.kind === "period" && figure.periodMonths) {
+    return `${formatFigureAud((figure.mrrAud ?? 0) * figure.periodMonths)} over ${figure.periodMonths} months → ${mrr} (${arr} annualised)`;
   }
-  if (arr) {
-    const v = toAud(arr[1], arr[2]);
-    if (v > 0) return { arrAud: v, mrrAud: v / 12, quote: arr[0].trim() };
+  if (figure.kind === "unspecified") {
+    return `${arr} (period not stated — treated as the last 12 months; ${mrr})`;
   }
-  return null;
+  return [mrr, arr ? `(${arr})` : ""].filter(Boolean).join(" ");
 }
 
 // ── SVI ──────────────────────────────────────────────────────────────────
@@ -130,13 +140,20 @@ export function buildValuationSection(
     analysis.dimensionScores ??
     Object.fromEntries(analysis.subs.map((s) => [s.key, s.value]));
   const sector = analysis.sector ?? analysis.signals?.sector;
+  const figures = parseFinancialFigures(rawText);
   const figure = parseRevenueFigure(rawText);
-  const estimate = estimateValuation(
-    analysis.totalSVI,
-    analysis.stage ?? 0,
-    { sector, mrr: figure?.mrrAud, arr: figure?.arrAud },
-    dims,
+  // The figures come from the same parser the signals used; the signals win
+  // when connected metrics overrode the text, the text wins otherwise.
+  const metrics = valuationMetricsFromSignals(
+    {
+      mrrAud: analysis.signals?.mrrAud ?? figure?.mrrAud,
+      arrAud: analysis.signals?.arrAud ?? figure?.arrAud,
+      statedCapAud: analysis.signals?.statedCapAud ?? figures.cap?.amountAud,
+      statedCapKind: analysis.signals?.statedCapKind ?? figures.cap?.kind,
+    },
+    sector,
   );
+  const estimate = estimateValuation(analysis.totalSVI, analysis.stage ?? 0, metrics, dims);
   const basis: ValuationSection["basis"] = figure ? "revenue" : "svi_based";
   const stage = analysis.stage ?? 0;
   const band = STAGE_BAND[Math.max(0, Math.min(7, stage))] ?? 40;
@@ -144,21 +161,42 @@ export function buildValuationSection(
   const assumptions: string[] = [];
   if (figure) {
     assumptions.push(
-      `Revenue figure read from your input: "${figure.quote}" — treated as ${figure.mrrAud ? `MRR A$${Math.round(figure.mrrAud).toLocaleString("en-AU")}` : ""}${figure.arrAud ? ` (ARR A$${Math.round(figure.arrAud).toLocaleString("en-AU")})` : ""}.`,
+      `Revenue figure read from your input: "${figure.quote}" — treated as ${describeRevenue(figure)}.`,
     );
+    if (figures.pilots) {
+      assumptions.push(
+        `Paid pilots ("${figures.pilots.quote}") count as traction, not recurring revenue — they are not in the revenue multiple.`,
+      );
+    }
     assumptions.push(
       `Sector multiple: ${sector ? `${sector} band` : "generic band (no sector detected)"} from the AU 2024–25 calibration table; growth and churn were not provided, so no growth premium or churn discount was applied.`,
     );
+    if (estimate.arrClamp) {
+      assumptions.push(
+        `Sanity clamp: annualised revenue ${formatFigureAud(estimate.arrClamp.arrAud)} is under ${formatFigureAud(ARR_CLAMP_THRESHOLD_AUD)}, so the mid-point is capped at the larger of the AU pre-seed high and ${ARR_CLAMP_MULTIPLE}× ARR (${formatAUD(estimate.arrClamp.capAud)}); the unclamped blend was ${formatAUD(estimate.arrClamp.unclampedMidAud)}.`,
+      );
+    }
   } else {
     assumptions.push(
       "No revenue figure was provided, so no revenue multiple was used. The range rests on the Berkus and Scorecard methods, each mapped from your SVI dimension scores.",
     );
-    assumptions.push(
-      `Stage baseline: the AU pre-money median for the "${analysis.stageLabel}" stage (Cut Through Venture 2024–25, Carta AU-discounted). Your stage was detected from the evidence in the input.`,
-    );
+    if (figures.pilots) {
+      assumptions.push(
+        `Paid pilots ("${figures.pilots.quote}") count as traction, not recurring revenue — say what you have billed over how many months to get a revenue-based range.`,
+      );
+    }
   }
   assumptions.push(
-    `Berkus pillars capped at A$2.0M each (AU-adjusted); Scorecard weights FTV 30%, MPC 25%, PTD 15%, SVM 10%, TRE 10%, IRI 5%, LCO 2.5%, CGH 2.5%.`,
+    `Stage baseline: the AU pre-money median for the "${analysis.stageLabel}" stage (Cut Through Venture "State of Australian Startup Funding" 2024–25 medians: pre-seed ≈ A$4–6M, seed ≈ A$8–12M, Series A ≈ A$25–35M). Your stage was detected from the evidence in the input; "Revenue" stage needs ARR ≥ A$250k or 12 months of revenue.`,
+  );
+  if (estimate.capCrossCheck) {
+    assumptions.push(`${estimate.capCrossCheck.note}. Your number is reported as you gave it and was not used to set the range.`);
+  }
+  if (figures.ask) {
+    assumptions.push(`The ask read from your input: "${figures.ask.quote}" (${formatFigureAud(figures.ask.amountAud)}). It does not move the range.`);
+  }
+  assumptions.push(
+    `Berkus pillars capped at ${formatFigureAud(BERKUS_PILLAR_CAP_AUD)} each (five pillars, ≤ A$2.5M — Berkus method, applied in AUD as a calibration assumption); Scorecard weights FTV 30%, MPC 25%, PTD 15%, SVM 10%, TRE 10%, IRI 5%, LCO 2.5%, CGH 2.5%.`,
   );
   assumptions.push(
     `Band: ±${band}% around the mid-point — the uncertainty we assign to this stage. A narrower band needs more evidence, not a different formula.`,
@@ -202,6 +240,18 @@ export function buildValuationSection(
     assumptions,
     methods,
     note,
+    ...(figures.ask ? { askAud: figures.ask.amountAud } : {}),
+    ...(estimate.capCrossCheck
+      ? {
+          statedCapAud: estimate.capCrossCheck.statedAud,
+          capCrossCheck: {
+            kind: estimate.capCrossCheck.kind,
+            ratio: estimate.capCrossCheck.ratio,
+            verdict: estimate.capCrossCheck.verdict,
+            note: estimate.capCrossCheck.note,
+          },
+        }
+      : {}),
   };
 }
 
