@@ -950,9 +950,7 @@ function CapitalDonut({
                 strokeDasharray={`${dash} ${circumference - dash}`}
                 strokeDashoffset={offset}
               >
-                <title>
-                  {s.label} — {formatAud(s.value)}
-                </title>
+                <title>{`${s.label} — ${formatAud(s.value)}`}</title>
               </circle>
             );
           })}

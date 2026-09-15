@@ -148,15 +148,15 @@ export function SVIChart({ snapshots }: SVIChartProps) {
               {/* Outer ring for hover target */}
               <circle cx={cx} cy={cy} r="8" fill="transparent">
                 <title>
-                  {new Date(s.date).toLocaleDateString("en-AU", {
+                  {`${new Date(s.date).toLocaleDateString("en-AU", {
                     day: "numeric",
                     month: "short",
                     year: "numeric",
-                  })}
-                  : SVI {s.svi}
-                  {s.delta != null
-                    ? ` (${s.delta >= 0 ? "+" : ""}${s.delta})`
-                    : ""}
+                  })}: SVI ${s.svi}${
+                    s.delta != null
+                      ? ` (${s.delta >= 0 ? "+" : ""}${s.delta})`
+                      : ""
+                  }`}
                 </title>
               </circle>
               {/* Visible dot */}

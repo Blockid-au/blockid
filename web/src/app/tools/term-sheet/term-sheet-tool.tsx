@@ -1340,9 +1340,7 @@ function StackedBar({
               fill={rowColor(s.kind)}
               rx={isFirst || isLast ? 4 : 0}
             >
-              <title>
-                {s.name} — {s.pct.toFixed(1)}%
-              </title>
+              <title>{`${s.name} — ${s.pct.toFixed(1)}%`}</title>
             </rect>
           );
         })}

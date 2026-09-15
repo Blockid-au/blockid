@@ -96,9 +96,7 @@ export function DimensionRadar({ run }: DimensionRadarProps) {
         aria-labelledby={`${titleId} ${descId}`}
         className="mx-auto block h-auto w-full max-w-[400px]"
       >
-        <title id={titleId}>
-          Eight scoring dimensions for a {run.stage.toLowerCase()} run
-        </title>
+        <title id={titleId}>{`Eight scoring dimensions for a ${run.stage.toLowerCase()} run`}</title>
         <desc id={descId}>
           {`The shaded ring is the Australian cohort at ${stageLabel} stage, from average to top quartile. Four readings from this run are marked: ` +
             plotted.map((b) => `${b.label} ${b.measured}`).join(", ") +

@@ -220,9 +220,7 @@ export default function AtlassianSviReportMirrorPage() {
                         rx={3}
                         fill={color}
                       >
-                        <title>
-                          {s.title}: {s.score} / 100
-                        </title>
+                        <title>{`${s.title}: ${s.score} / 100`}</title>
                       </rect>
                       <text
                         x={LABEL_COL + width + 6}
