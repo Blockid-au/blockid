@@ -1,24 +1,55 @@
 {
-  "ts": "2026-09-14T02:19:37.622Z",
-  "startedAt": "2026-09-14T02:13:59Z",
+  "ts": "2026-09-15T12:39:42.982Z",
+  "startedAt": "2026-09-15T12:36:34Z",
   "baseURL": "https://blockid.au",
-  "exitCode": 0,
-  "passed": 146,
-  "failed": 0,
-  "skipped": 10,
+  "exitCode": 1,
+  "passed": 39,
+  "failed": 5,
+  "skipped": 0,
   "flaky": 0,
-  "expectedFailures": 1,
-  "durationMs": 336352.81899999996,
+  "expectedFailures": 0,
+  "durationMs": 186874.685,
   "account": {
-    "email": "qa-live-20260914-0214@blockid.au",
-    "userId": "cee9a6d6-5e2d-4195-af50-4d29b4c5f0bd",
-    "projectId": "8c9a32c5-6655-4381-957f-be6e8e591078",
+    "email": "qa-live-20260915-1236@blockid.au",
+    "userId": "51205b0f-4ab2-42eb-b7a1-a832cc7125e7",
+    "projectId": "5a8465d3-0fe6-4036-a816-f81597b1b48b",
     "plan": "growth",
     "elevated": true
   },
   "erasure": {
     "ok": true,
-    "detail": "erased cee9a6d6-5e2d-4195-af50-4d29b4c5f0bd; verify dry-run exit 2 (no app_users row for the QA founder email)"
+    "detail": "erased 51205b0f-4ab2-42eb-b7a1-a832cc7125e7; verify dry-run exit 2 (no app_users row for the QA founder email)"
   },
-  "findings": []
+  "findings": [
+    {
+      "spec": "20-cross-cutting.spec.ts",
+      "project": "live-qa",
+      "title": "/workspace/revenue — no console errors / failed requests (Cloudflare tag-gateway CSP error allow-listed by signature)",
+      "error": "Error: unexpected console errors\n\nexpect(received).toEqual(expected) // deep equality\n\n- Expected  - 1\n+ Received  + 7\n\n- Array []\n+ Array [\n+   Object {\n+     \"text\": \"Failed to load resource: the server responded with a status of 400 ()\",\n+     \"type\": \"console\",\n+     \"url\": \"https://blockid.au/api/dividends\",\n+   },\n+ ]"
+    },
+    {
+      "spec": "20-cross-cutting.spec.ts",
+      "project": "live-qa",
+      "title": "/dashboard/valuation — no console errors / failed requests (Cloudflare tag-gateway CSP error allow-listed by signature)",
+      "error": "Error: unexpected console errors\n\nexpect(received).toEqual(expected) // deep equality\n\n- Expected  - 1\n+ Received  + 7\n\n- Array []\n+ Array [\n+   Object {\n+     \"text\": \"Failed to load resource: the server responded with a status of 404 ()\",\n+     \"type\": \"console\",\n+     \"url\": \"https://blockid.au/api/valuation/vc\",\n+   },\n+ ]"
+    },
+    {
+      "spec": "20-cross-cutting.spec.ts",
+      "project": "live-qa",
+      "title": "/analyze — no console errors / failed requests (Cloudflare tag-gateway CSP error allow-listed by signature)",
+      "error": "Error: page load under 15 s\n\nexpect(received).toBeLessThan(expected)\n\nExpected: < 15000\nReceived:   30794"
+    },
+    {
+      "spec": "20-cross-cutting.spec.ts",
+      "project": "live-qa",
+      "title": "/workspace/dividends — Tab reaches \"DRIP add election\"",
+      "error": "Error: expect(locator).toBeVisible() failed\n\nLocator: getByTestId('drip-add')\nExpected: visible\nTimeout: 30000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeVisible\" with timeout 30000ms\n  - waiting for getByTestId('drip-add')\n"
+    },
+    {
+      "spec": "20-funding.spec.ts",
+      "project": "live-qa",
+      "title": "POST /api/funding/report: validation 400 shape; 402 insufficient_credits when the balance is short; generated only when plan-included (0 credits)",
+      "error": "TimeoutError: apiRequestContext.fetch: Timeout 20000ms exceeded.\nCall log:\n  - → POST https://blockid.au/api/funding/report\n    - user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 BlockID-LiveQA/1.0\n    - accept: application/json\n    - accept-encoding: gzip,deflate,br\n    - content-type: application/json\n    - content-length: 207\n    - cookie: bid_jur=US; blockid_session=qUM4-TrGjSP0UsT3yXcG-zoAQ01PFvQG; blockid_project=qa-live-20260915-1236\n"
+    }
+  ]
 }

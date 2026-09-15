@@ -52,10 +52,15 @@ export async function GET() {
     );
 
     if (!account) {
-      return NextResponse.json(
-        { ok: false, error: "No SVI account found. Complete an SVI analysis first." },
-        { status: 404 },
-      );
+      // No SVI account yet (fresh founder): same honest empty state as
+      // "no analysis" — a 404 here logged a console error on every new
+      // dashboard load (live-qa 2026-09-15).
+      return NextResponse.json({
+        ok: true,
+        empty: true,
+        reason: "no_svi_account",
+        message: "Run your first score to see a valuation.",
+      });
     }
 
     const numericStage = (account.current_stage as number) ?? 0;

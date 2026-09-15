@@ -96,7 +96,10 @@ test.describe("Console + network hygiene per page", () => {
       ];
       const g = guard(page, { allowRequest });
       const started = Date.now();
-      await visit(path, { waitUntil: "networkidle" });
+      // `load` not `networkidle`: a duplicated footer prefetch of /legal/privacy
+      // can hold one connection open ~30 s (P3, 2026-09-15) while the page is
+      // interactive at 0.5 s.
+      await visit(path, { waitUntil: "load" });
       const loadMs = Date.now() - started;
       const report = g.report(path);
       await evidence(testInfo, "guard report", { ...report, loadMs });

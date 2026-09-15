@@ -124,10 +124,11 @@ describe("GET /api/valuation/vc", () => {
     expect(body.svi).toBe(87);
   });
 
-  it("no account → 404 before any table read", async () => {
+  it("no account → 200 empty state (no_svi_account) before any table read", async () => {
     scopeState.account = null;
     const res = await GET();
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, empty: true, reason: "no_svi_account" });
     expect(db.sb!.calls).toEqual([]);
     expect(revenue.load).not.toHaveBeenCalled();
   });
