@@ -31,6 +31,7 @@ import type { GrowthPhase } from "@/lib/startup-growth-phases";
 import type { DeliverableEntry } from "@/lib/startup-package/deliverable-registry";
 import { ReservedAllocationForm } from "./reserved-allocation-form";
 import { UnicornPlaybookCollapsible } from "./unicorn-playbook-collapsible";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface Props {
   phase: GrowthPhase;
@@ -115,7 +116,7 @@ export function PhaseCard({
           ...r,
           [entry.key]: {
             ok: false,
-            message: json.error ?? `Request failed (${res.status})`,
+            message: userErrorMessage(ApiError.fromBody(res.status, json), "Something went wrong. Please try again."),
           },
         }));
         return;
@@ -144,7 +145,7 @@ export function PhaseCard({
         ...r,
         [entry.key]: {
           ok: false,
-          message: err instanceof Error ? err.message : "Network error",
+          message: userErrorMessage(err, "Something went wrong. Please try again."),
         },
       }));
     } finally {

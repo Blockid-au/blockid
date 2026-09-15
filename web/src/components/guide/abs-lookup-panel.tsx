@@ -20,6 +20,7 @@ import {
   type AbsLookupFormState,
   type AbsLookupSuccess,
 } from "./abs-lookup.helpers";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 type PanelVariant = "marketing" | "workspace";
 
@@ -160,7 +161,7 @@ export function AbsLookupPanel({
           status: "error",
           body: {
             error: "network_error",
-            message: err instanceof Error ? err.message : String(err),
+            message: userErrorMessage(err, "Something went wrong. Please try again."),
           },
         });
       }

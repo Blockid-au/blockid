@@ -131,6 +131,9 @@ export const USER_ERROR_COPY = {
   credits_unknown: "You need more credits to do this.",
   feature_locked_unknown: "This isn't included in your plan — see Pricing to upgrade.",
   generic: "Something went wrong. Please try again.",
+  wallet_rejected: "You cancelled the request in your wallet.",
+  wallet_pending: "Your wallet already has a request open — switch to it to continue.",
+  wallet_network: "Your wallet is on the wrong network — switch networks and try again.",
 } as const;
 
 const KNOWN_BARE_CODES = new Set(["unauthorized", "forbidden", "unauthenticated"]);
@@ -271,7 +274,11 @@ export function userErrorMessage(err: unknown, fallback: string, opts?: UserErro
   // 2. Copy we authored for the user.
   if (isUserError(err) && typeof err.message === "string" && err.message.trim()) return err.message;
 
-  // 3. Network problems (offline, DNS, CORS, aborted connection).
+  // 3. Wallet (EIP-1193 / ethers) user actions — the only provider codes we name.
+  const wallet = walletCopy(err);
+  if (wallet) return wallet;
+
+  // 3b. Network problems (offline, DNS, CORS, aborted connection).
   if (isNetworkError(err)) return USER_ERROR_COPY.network;
 
   // 4. Structured API errors.
@@ -334,6 +341,18 @@ export function userErrorMessage(err: unknown, fallback: string, opts?: UserErro
   }
 
   return fb;
+}
+
+function walletCopy(err: unknown): string | undefined {
+  if (typeof err !== "object" || err === null) return undefined;
+  const code = (err as { code?: unknown }).code;
+  const inner = (err as { cause?: unknown; error?: unknown }).cause ?? (err as { error?: unknown }).error;
+  const innerCode = typeof inner === "object" && inner !== null ? (inner as { code?: unknown }).code : undefined;
+  const c = code ?? innerCode;
+  if (c === 4001 || c === "ACTION_REJECTED") return USER_ERROR_COPY.wallet_rejected;
+  if (c === -32002) return USER_ERROR_COPY.wallet_pending;
+  if (c === 4902 || c === "UNSUPPORTED_NETWORK") return USER_ERROR_COPY.wallet_network;
+  return undefined;
 }
 
 function bodyOf(err: unknown): ApiErrorBody {

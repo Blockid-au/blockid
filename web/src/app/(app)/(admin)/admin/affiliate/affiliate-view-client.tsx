@@ -13,6 +13,7 @@ import type {
   AttributionSummaryBySource,
   ResellerListEntry,
 } from "./types";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 type SourceKey = "provisioned" | "code" | "admin_manual";
 type TabKey = SourceKey | "impersonation";
@@ -133,13 +134,13 @@ export function AffiliateViewClient({
         | AttributionsResponse
         | null;
       if (!res.ok || !body?.ok) {
-        setError(body?.error ?? `HTTP ${res.status}`);
+        setError(userErrorMessage(ApiError.fromBody(res.status, body), "Something went wrong. Please try again."));
         setData(null);
       } else {
         setData(body);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "network_error");
+      setError(userErrorMessage(e, "Something went wrong. Please try again."));
       setData(null);
     } finally {
       setLoading(false);
@@ -388,13 +389,13 @@ function AttributionRow({
       });
       const body = await r.json().catch(() => null);
       if (!r.ok) {
-        setMsg(body?.error ?? `HTTP ${r.status}`);
+        setMsg(userErrorMessage(ApiError.fromBody(r.status, body), "Something went wrong. Please try again."));
       } else {
         setMsg(`Plan set to ${plan}.`);
         onPlanChanged();
       }
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "network_error");
+      setMsg(userErrorMessage(e, "Something went wrong. Please try again."));
     } finally {
       setBusy(false);
     }
@@ -411,13 +412,13 @@ function AttributionRow({
       );
       const body = await r.json().catch(() => null);
       if (!r.ok) {
-        setMsg(body?.error ?? `HTTP ${r.status}`);
+        setMsg(userErrorMessage(ApiError.fromBody(r.status, body), "Something went wrong. Please try again."));
       } else {
         setMsg("Revoked.");
         onRevoked();
       }
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "network_error");
+      setMsg(userErrorMessage(e, "Something went wrong. Please try again."));
     } finally {
       setBusy(false);
     }
@@ -657,12 +658,12 @@ function GrantCreditsModal({
       );
       const body = await r.json().catch(() => null);
       if (!r.ok || !body?.ok) {
-        setError(body?.error ?? `HTTP ${r.status}`);
+        setError(userErrorMessage(ApiError.fromBody(r.status, body), "Something went wrong. Please try again."));
       } else {
         onClose(true);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "network_error");
+      setError(userErrorMessage(e, "Something went wrong. Please try again."));
     } finally {
       setBusy(false);
     }

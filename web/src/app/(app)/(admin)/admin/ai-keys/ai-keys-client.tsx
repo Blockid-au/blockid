@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 interface ProviderInfo {
   id: string;
@@ -126,7 +127,7 @@ export function AIKeysClient() {
       const json = await res.json();
       setTestResult(json.ok ? `AI working — ${json.recommendations?.length ?? 0} recommendations generated` : `Error: ${json.error ?? "Unknown"}`);
     } catch (err) {
-      setTestResult(`Network error: ${err instanceof Error ? err.message : "Unknown"}`);
+      setTestResult(`Network error: ${userErrorMessage(err, "Something went wrong. Please try again.")}`);
     }
     setTesting(false);
   };

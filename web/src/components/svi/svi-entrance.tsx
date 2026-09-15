@@ -382,7 +382,7 @@ export function SVIEntrance() {
     const w = typeof window !== "undefined" ? (window as any) : null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SpeechRec: (new () => any) | undefined = w?.SpeechRecognition ?? w?.webkitSpeechRecognition;
-    if (!SpeechRec) { alert("Voice input is not supported. Try Chrome or Edge."); return; }
+    if (!SpeechRec) { setError("Voice input is not supported in this browser. Try Chrome or Edge."); return; }
     if (listening) { recognitionRef.current?.stop(); setListening(false); return; }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rec: any = new SpeechRec();

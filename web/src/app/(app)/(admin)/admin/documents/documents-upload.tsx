@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { UploadCloud, CheckCircle, AlertCircle } from "lucide-react";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 export default function DocumentsUpload() {
   const [file, setFile] = useState<File | null>(null);
@@ -36,7 +37,7 @@ export default function DocumentsUpload() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Upload failed");
+        throw ApiError.fromBody(res.status, data);
       }
 
       setUploadStatus("success");
@@ -45,7 +46,7 @@ export default function DocumentsUpload() {
       }
     } catch (err) {
       setUploadStatus("error");
-      setErrorMessage(err instanceof Error ? err.message : "An unexpected error occurred.");
+      setErrorMessage(userErrorMessage(err, "Something went wrong. Please try again."));
     } finally {
       setIsUploading(false);
     }

@@ -5,6 +5,7 @@ import {
   TrendingUp, AlertTriangle, CheckCircle2, ChevronRight,
   Users, BarChart2, Shield, FolderOpen, Presentation, Crosshair, Zap,
 } from "lucide-react";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 /* ── Types (mirror cro-funding-readiness.ts) ──────────────────────────── */
 
@@ -177,11 +178,11 @@ export function CapitalScoreCard() {
         }),
       });
       const data = await res.json() as { ok: boolean; result?: CapitalResult; error?: string };
-      if (!res.ok || !data.ok) throw new Error(data.error ?? `Error ${res.status}`);
+      if (!res.ok || !data.ok) throw ApiError.fromBody(res.status, data);
       setResult(data.result!);
       setShowForm(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to score");
+      setError(userErrorMessage(err, "Failed to score"));
     } finally {
       setBusy(false);
     }

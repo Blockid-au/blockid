@@ -17,6 +17,7 @@
 import * as React from "react";
 import { getSurface } from "@/lib/legal/surfaces";
 import { DISCLAIMER_VERSIONS } from "@/lib/legal/versions";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 const SESSION_KEY = "blockid.awm.accepted.v1";
 const SCROLL_TOLERANCE_PX = 24;
@@ -121,7 +122,7 @@ export function AdviceWarningModal({
       setOpen(false);
       onAccepted?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
+      setError(userErrorMessage(err, "Something went wrong. Please try again."));
       setSubmitting(false);
     }
   }, [scrolledBottom, submitting, surfaceId, body, onAccepted]);

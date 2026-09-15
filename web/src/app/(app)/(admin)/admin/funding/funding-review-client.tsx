@@ -6,6 +6,7 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import type { AuGrant, AuProgram, FundingStatus } from "@/lib/funding/data";
 import type { FundingKind } from "@/lib/funding/admin-patch";
 import type { ReviewQueueEntry } from "@/lib/funding/review-queue";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 // /admin/funding — review table for au_grants + au_programs. Rows sort with
 // status_confidence=low first (they are the ones the seed could not verify),
@@ -396,7 +397,7 @@ function ReviewDialog({ row, onClose, onSaved }: { row: ReviewRow; onClose: () =
       });
       const json = (await res.json()) as { ok: boolean; error?: string; reason?: string; row?: Record<string, unknown> };
       if (!res.ok || !json.ok) {
-        setError(json.error ?? json.reason ?? `HTTP ${res.status}`);
+        setError(userErrorMessage(ApiError.fromBody(res.status, { ...json, error: json.error ?? json.reason }), "Something went wrong. Please try again."));
         return;
       }
       const saved = json.row ?? {};
@@ -410,7 +411,7 @@ function ReviewDialog({ row, onClose, onSaved }: { row: ReviewRow; onClose: () =
         note: (isGrant ? (saved.next_round_note as string | null) : (saved.next_cohort_start as string | null)) ?? null,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Request failed");
+      setError(userErrorMessage(err, "The request failed. Please try again."));
     } finally {
       setBusy(false);
     }

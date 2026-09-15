@@ -18,6 +18,7 @@ import * as React from "react";
 import type { Dispatch } from "react";
 import { Loader2, Rocket, SkipForward } from "lucide-react";
 import { useLocale, type Locale } from "@/lib/use-locale";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 import type { WizardAction, WizardState } from "./wizard-types";
 
 interface Copy {
@@ -136,7 +137,7 @@ export function StepFirstStartup({
       };
 
       if (!res.ok || !data.ok) {
-        setLocalError(data.error || copy.errorGeneric);
+        setLocalError(userErrorMessage(ApiError.fromBody(res.status, data), copy.errorGeneric));
         setSubmitting(false);
         return;
       }

@@ -22,6 +22,7 @@ import { Info, Loader2, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface Props {
   projectId: string;
@@ -89,7 +90,7 @@ export function ReservedAllocationForm({
       if (!res.ok || !json.ok) {
         setMessage({
           kind: "error",
-          text: json.error ?? `Request failed (${res.status})`,
+          text: userErrorMessage(ApiError.fromBody(res.status, json), "Something went wrong. Please try again."),
         });
         return;
       }
@@ -101,7 +102,7 @@ export function ReservedAllocationForm({
     } catch (err) {
       setMessage({
         kind: "error",
-        text: err instanceof Error ? err.message : "Network error",
+        text: userErrorMessage(err, "Something went wrong. Please try again."),
       });
     } finally {
       setPending(false);

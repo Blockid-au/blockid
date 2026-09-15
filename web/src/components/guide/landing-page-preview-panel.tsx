@@ -25,6 +25,7 @@ import {
   type LandingPagePreviewFormState,
   type LandingPagePreviewSuccess,
 } from "./landing-page-preview.helpers";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 type PanelVariant = "marketing" | "workspace";
 
@@ -224,7 +225,7 @@ export function LandingPagePreviewPanel({
         status: "error",
         body: {
           error: "network_error",
-          message: err instanceof Error ? err.message : String(err),
+          message: userErrorMessage(err, "Something went wrong. Please try again."),
         },
       });
     }

@@ -219,3 +219,13 @@ describe("UserError", () => {
     expect(isUserError(new Error("x"))).toBe(false);
   });
 });
+
+describe("wallet errors", () => {
+  it("EIP-1193 / ethers user-rejection and pending codes map; other wallet errors fall back", () => {
+    expect(userErrorMessage({ code: 4001, message: "MetaMask Tx Signature: User denied transaction signature." }, FB)).toBe(USER_ERROR_COPY.wallet_rejected);
+    expect(userErrorMessage({ code: "ACTION_REJECTED", message: "user rejected action" }, FB)).toBe(USER_ERROR_COPY.wallet_rejected);
+    expect(userErrorMessage({ code: -32002, message: "Request of type 'wallet_requestPermissions' already pending" }, FB)).toBe(USER_ERROR_COPY.wallet_pending);
+    expect(userErrorMessage({ code: 4902 }, FB)).toBe(USER_ERROR_COPY.wallet_network);
+    expect(userErrorMessage({ code: -32603, message: "Internal JSON-RPC error. execution reverted" }, FB)).toBe(FB);
+  });
+});

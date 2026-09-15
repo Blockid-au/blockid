@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, RefreshCw, Tag } from "lucide-react";
 import { GA4_CUSTOM_DIMENSIONS } from "@/lib/analytics/ga4-dimensions";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 interface Blocked {
   reason: string;
@@ -56,7 +57,7 @@ export function Ga4DimensionsPanel() {
       setResult(body);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(userErrorMessage(e, "Something went wrong. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -84,7 +85,7 @@ export function Ga4DimensionsPanel() {
       if (!res.ok) throw new Error((body as { error?: string } | null)?.error ?? `HTTP ${res.status}`);
       setResult(body as PanelResult);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(userErrorMessage(e, "Something went wrong. Please try again."));
     } finally {
       setApplying(false);
     }
