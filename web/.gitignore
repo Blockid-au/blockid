@@ -52,3 +52,5 @@ next-env.d.ts
 test-results/
 playwright-report/
 playwright-report-live-qa/
+content/reports/ai-last-report.json
+content/reports/ai-provider-status.json
