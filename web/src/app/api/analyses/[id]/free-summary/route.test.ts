@@ -70,6 +70,18 @@ vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: () => rateLimitMock(),
 }));
 
+// S32-B — the address also becomes the full first-analysis PDF's destination.
+const setFullReportEmailMock = vi.fn<(id: string, email: string) => Promise<boolean>>();
+const loadFullReportRowMock = vi.fn<(id: string) => Promise<Record<string, unknown> | null>>();
+vi.mock("@/lib/analyses/first-analysis/store", () => ({
+  setFullReportEmail: (id: string, email: string) => setFullReportEmailMock(id, email),
+  loadFullReportRow: (id: string) => loadFullReportRowMock(id),
+}));
+const deliverFullReportMock = vi.fn<(row: Record<string, unknown>, report: unknown) => Promise<string>>();
+vi.mock("@/lib/analyses/first-analysis/job", () => ({
+  deliverFullReport: (row: Record<string, unknown>, report: unknown) => deliverFullReportMock(row, report),
+}));
+
 const renderMock = vi.fn<() => Promise<Buffer>>();
 vi.mock("@react-pdf/renderer", () => ({
   renderToBuffer: () => renderMock(),
@@ -124,6 +136,34 @@ beforeEach(() => {
   sendMock.mockReset().mockResolvedValue({ ok: true, id: "msg-1" });
   rateLimitMock.mockReset().mockReturnValue({ allowed: true });
   renderMock.mockReset().mockResolvedValue(Buffer.from("%PDF-1.3 fake"));
+  setFullReportEmailMock.mockReset().mockResolvedValue(true);
+  loadFullReportRowMock.mockReset().mockResolvedValue({ id: ID, full_report_status: "running", full_report_json: null, full_report_emailed_at: null });
+  deliverFullReportMock.mockReset().mockResolvedValue("sent");
+});
+
+describe("S32-B — the address becomes the full report's destination", () => {
+  it("records the address on a send; delivers at once when the job already landed", async () => {
+    await POST(req({ email: "founder@example.com" }), ctx(ID));
+    expect(setFullReportEmailMock).toHaveBeenCalledWith(ID, "founder@example.com");
+    expect(deliverFullReportMock).not.toHaveBeenCalled(); // still running
+
+    loadFullReportRowMock.mockResolvedValue({ id: ID, full_report_status: "done", full_report_json: { version: 1 }, full_report_emailed_at: null });
+    await POST(req({ email: "founder@example.com" }), ctx(ID));
+    expect(deliverFullReportMock).toHaveBeenCalledTimes(1);
+    expect(deliverFullReportMock.mock.calls[0][0].full_report_email).toBe("founder@example.com");
+  });
+
+  it("does not record the address when the summary was not sent, and a failing stamp never breaks the reply", async () => {
+    claimMock.mockResolvedValue({ outcome: "already_claimed" });
+    await POST(req({ email: "founder@example.com" }), ctx(ID));
+    expect(setFullReportEmailMock).not.toHaveBeenCalled();
+
+    claimMock.mockResolvedValue({ outcome: "claimed" });
+    setFullReportEmailMock.mockRejectedValue(new Error("db down"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const body = await json(await POST(req({ email: "founder@example.com" }), ctx(ID)));
+    expect(body.outcome).toBe("sent");
+  });
 });
 
 describe("module invariants", () => {
