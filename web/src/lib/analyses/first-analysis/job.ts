@@ -11,9 +11,11 @@
 //      queue with `priority: "user"` / `taskClass: "report"`, persisting
 //      after EVERY section so the page streams them in as they land, and
 //      keeping the sections a previous attempt already paid for;
-//   4. marks the job done only when all seven voices exist — anything less
-//      is `failed` and retried (≤ FULL_REPORT_MAX_ATTEMPTS) with the
-//      finished sections kept;
+//   4. marks the job done when all seven voices exist — anything less is
+//      `failed` and retried (≤ FULL_REPORT_MAX_ATTEMPTS) with the finished
+//      sections kept; on the final attempt a partial report is delivered
+//      as-is (the PDF carries an honest note for a missing voice) rather
+//      than never arriving;
 //   5. on done, emails the PDF once (send-once claim) when a destination is
 //      known: the account email of a signed-in founder, or the address a
 //      guest gave at the free-summary card. A guest who has not given one
@@ -36,6 +38,7 @@ import { buildDeterministicReport, type BuildIntake } from "./build";
 import type { SVIExtractedSignals } from "@/lib/svi-analysis";
 import { writeAgentSection, clipRaw, AgentSectionError, type AgentCaller } from "./agents";
 import {
+  FULL_REPORT_MAX_ATTEMPTS,
   claimFullReportEmailSend,
   claimFullReportJob,
   finishFullReport,
@@ -56,7 +59,14 @@ import {
 export type JobOutcome =
   | { outcome: "not_claimable" }
   | { outcome: "no_signals" }
-  | { outcome: "done"; completed: FirstAnalysisAgent[]; emailed: DeliveryOutcome }
+  | {
+      outcome: "done";
+      completed: FirstAnalysisAgent[];
+      emailed: DeliveryOutcome;
+      /** Voices missing after the final attempt (empty on a clean run). */
+      failed: FirstAnalysisAgent[];
+      error: string | null;
+    }
   | { outcome: "failed"; completed: FirstAnalysisAgent[]; failed: FirstAnalysisAgent[]; error: string };
 
 export type DeliveryOutcome =
@@ -84,6 +94,8 @@ export interface JobDeps {
   deliver: (row: FullReportRow, report: FirstAnalysisReport, opts?: { force?: boolean }) => Promise<DeliveryOutcome>;
   /** Max capacity waits per agent before the section is marked failed. */
   capacityRetries: number;
+  /** Job attempts before a partial report is delivered as-is. */
+  maxAttempts: number;
   /** Ceiling on one capacity wait, ms. */
   maxWaitMs: number;
 }
@@ -126,6 +138,9 @@ export function intakeFromRow(row: FullReportRow): BuildIntake | null {
 }
 
 // ── The run ──────────────────────────────────────────────────────────────
+
+/** One more try per voice after a provider fault (not capacity, not a bad answer). */
+const PROVIDER_RETRIES = 1;
 
 export async function runFirstAnalysisJob(id: string, deps: JobDeps = defaultDeps()): Promise<JobOutcome> {
   const row = await deps.claim(id);
@@ -178,6 +193,7 @@ export async function runFirstAnalysisJob(id: string, deps: JobDeps = defaultDep
     await deps.saveProgress(id, report);
 
     let attempt = 0;
+    let providerRetry = 0;
     let section: FirstAnalysisReport["agents"][FirstAnalysisAgent] | null = null;
     while (attempt <= deps.capacityRetries) {
       try {
@@ -194,7 +210,16 @@ export async function runFirstAnalysisJob(id: string, deps: JobDeps = defaultDep
         }
         lastError = err instanceof Error ? err.message : String(err);
         if (!(err instanceof AgentSectionError) && !isAICapacityError(err)) {
+          // A provider fault (401 from a fallback key, a timeout, a network
+          // blip — 2026-09-15 smoke: "HTTP 401 INVALID_API_KEY" from an
+          // overflow provider). The dispatcher rotates providers per call,
+          // so one more try usually lands on a healthy one.
           console.error(`[first-analysis] ${role} failed —`, lastError, { analysisId: id });
+          if (providerRetry < PROVIDER_RETRIES) {
+            providerRetry += 1;
+            await deps.sleep(1_500);
+            continue;
+          }
         }
         break;
       }
@@ -213,17 +238,24 @@ export async function runFirstAnalysisJob(id: string, deps: JobDeps = defaultDep
 
   const failed = [...report.progress.failed];
   const completed = [...report.progress.completed];
-  if (failed.length === 0) {
+  const error = failed.length
+    ? `${failed.length} section(s) not written: ${failed.join(", ")}${lastError ? ` — ${lastError}` : ""}`
+    : null;
+  // Done when every voice exists — or when this was the LAST attempt: a
+  // report with an honest "could not be written" page for one voice beats
+  // a founder who never receives anything. `claim` incremented attempts
+  // before we ran, so the row already carries this attempt's number.
+  const lastTry = (row.full_report_attempts ?? 0) >= deps.maxAttempts;
+  if (failed.length === 0 || lastTry) {
     report.completedAt = deps.now().toISOString();
     report.progress.current = null;
-    await deps.finish(id, { status: "done", report });
+    await deps.finish(id, { status: "done", report, error });
     const fresh = (await deps.load(id)) ?? row;
     const emailed = await deps.deliver({ ...fresh, full_report_status: "done", full_report_json: report }, report);
-    return { outcome: "done", completed, emailed };
+    return { outcome: "done", completed, emailed, failed, error };
   }
-  const error = `${failed.length} section(s) not written: ${failed.join(", ")}${lastError ? ` — ${lastError}` : ""}`;
   await deps.finish(id, { status: "failed", report, error });
-  return { outcome: "failed", completed, failed, error };
+  return { outcome: "failed", completed, failed, error: error ?? "" };
 }
 
 // ── Delivery ─────────────────────────────────────────────────────────────
@@ -337,6 +369,7 @@ export function defaultDeps(): JobDeps {
     callAgent: makeAgentCaller(null),
     deliver: (row, report, opts) => deliverFullReport(row, report, opts),
     capacityRetries: 4,
+    maxAttempts: FULL_REPORT_MAX_ATTEMPTS,
     maxWaitMs: 60_000,
   };
 }

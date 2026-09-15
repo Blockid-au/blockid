@@ -18,6 +18,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/ai-client", () => ({ callAI: vi.fn() }));
 vi.mock("@/lib/entitlements", () => ({ getEntitlements: vi.fn().mockResolvedValue([]) }));
 vi.mock("./store", () => ({
+  FULL_REPORT_MAX_ATTEMPTS: 3,
   claimFullReportEmailSend: vi.fn(),
   claimFullReportJob: vi.fn(),
   finishFullReport: vi.fn(),
@@ -95,6 +96,7 @@ function harness(r: FullReportRow | null, callAgent: JobDeps["callAgent"]): Harn
     callAgent,
     deliver,
     capacityRetries: 2,
+    maxAttempts: 3,
     maxWaitMs: 60_000,
   };
   return { deps, saves, finishes, deliver, sleeps };
@@ -137,7 +139,7 @@ describe("runFirstAnalysisJob", () => {
     const last = h.saves.at(-1)!;
     expect(Object.keys(last.agents).sort()).toEqual([...FIRST_ANALYSIS_AGENTS].sort());
     expect(last.progress).toEqual({ current: null, completed: [...FIRST_ANALYSIS_AGENTS], failed: [] });
-    expect(h.finishes).toEqual([{ status: "done", error: undefined }]);
+    expect(h.finishes).toEqual([{ status: "done", error: null }]);
     expect(h.deliver).toHaveBeenCalledTimes(1);
     expect(h.deliver.mock.calls[0][1].completedAt).toBe("2026-09-15T00:00:00.000Z");
   });
@@ -159,6 +161,20 @@ describe("runFirstAnalysisJob", () => {
     expect(call.mock.calls.filter((c) => c[0].agentId === "first-analysis-cfo")).toHaveLength(2);
   });
 
+  it("retries a voice once after a provider fault (401 from an overflow key), then moves on", async () => {
+    let cmoCalls = 0;
+    const call = vi.fn(async (req: { agentId: string }) => {
+      if (req.agentId === "first-analysis-cmo" && cmoCalls++ === 0) throw new Error('HTTP 401: {"code":"INVALID_API_KEY"}');
+      return { text: GOOD(req.agentId) };
+    });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const h = harness(row(), call);
+    const out = await runFirstAnalysisJob(SAMPLE_ANALYSIS_ID, h.deps);
+    expect(out.outcome).toBe("done");
+    expect(h.sleeps).toEqual([1_500]);
+    expect(call.mock.calls.filter((c) => c[0].agentId === "first-analysis-cmo")).toHaveLength(2);
+  });
+
   it("marks the job failed when one voice cannot be written, keeps the others, and does not deliver", async () => {
     const call = vi.fn(async (req: { agentId: string }) =>
       req.agentId === "first-analysis-clo" ? { text: "No." } : { text: GOOD(req.agentId) },
@@ -170,6 +186,18 @@ describe("runFirstAnalysisJob", () => {
     expect(h.finishes[0].status).toBe("failed");
     expect(h.finishes[0].error).toMatch(/clo/);
     expect(h.deliver).not.toHaveBeenCalled();
+  });
+
+  it("on the final attempt a partial report is delivered as-is, with the missing voice recorded", async () => {
+    const call = vi.fn(async (req: { agentId: string }) =>
+      req.agentId === "first-analysis-clo" ? { text: "No." } : { text: GOOD(req.agentId) },
+    );
+    const h = harness(row({ full_report_status: "failed", full_report_attempts: 3 }), call);
+    const out = await runFirstAnalysisJob(SAMPLE_ANALYSIS_ID, h.deps);
+    expect(out).toMatchObject({ outcome: "done", failed: ["clo"], emailed: "sent" });
+    expect(h.finishes[0]).toMatchObject({ status: "done" });
+    expect(h.finishes[0].error).toMatch(/clo/);
+    expect(h.deliver).toHaveBeenCalledTimes(1);
   });
 
   it("re-uses sections a previous attempt already produced", async () => {
