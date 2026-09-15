@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Target, Clock, TrendingUp, Users, AlertTriangle, CheckCircle2, Bookmark, BookmarkCheck } from "lucide-react";
 import type { FetchExitScenarioResponse } from "@/types/exit-strategy";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 function formatAUD(value: number): string {
   if (value >= 1_000_000_000) return `A$${(value / 1_000_000_000).toFixed(1)}B`;
@@ -78,7 +79,7 @@ export function ExitStrategyResultsClient({ scenarioId }: { scenarioId: string }
       setPinned(next);
       setPinMessage(next ? "Added to investor pack" : "Removed from investor pack");
     } catch (err) {
-      setPinMessage(err instanceof Error ? err.message : "Failed to update");
+      setPinMessage(userErrorMessage(err, "Failed to update"));
     } finally {
       setPinning(false);
       setTimeout(() => setPinMessage(null), 3500);

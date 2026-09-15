@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { SharePriceCard } from "@/components/workspace/share-price-card";
 import { ChainReconcilePanel } from "@/components/workspace/chain-reconcile-panel";
 import { BoardResolutionButton } from "@/components/board-resolutions/board-resolution-button";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -257,7 +258,7 @@ export function CapTableManager() {
     try {
       const res = await fetch("/api/cap-table");
       const json = await res.json();
-      if (!json.ok) throw new Error(json.error || "Failed to load cap table");
+      if (!json.ok) throw ApiError.fromBody(res.status, json);
       setData({
         shareClasses: json.shareClasses,
         shareholders: json.shareholders,
@@ -266,7 +267,7 @@ export function CapTableManager() {
       });
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(userErrorMessage(err, "Something went wrong. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -292,12 +293,12 @@ export function CapTableManager() {
         body: JSON.stringify({ action, data: payload }),
       });
       const json = await res.json();
-      if (!json.ok) throw new Error(json.error || "Request failed");
+      if (!json.ok) throw ApiError.fromBody(res.status, json);
       await fetchCapTable();
       await fetchIssues();
       return json;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(userErrorMessage(err, "Something went wrong. Please try again."));
       return null;
     } finally {
       setBusy(false);
@@ -314,10 +315,10 @@ export function CapTableManager() {
         body: JSON.stringify({ shareholderId: id }),
       });
       const json = await res.json();
-      if (!json.ok) throw new Error(json.error || "Delete failed");
+      if (!json.ok) throw ApiError.fromBody(res.status, json);
       await fetchCapTable();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(userErrorMessage(err, "Something went wrong. Please try again."));
     } finally {
       setBusy(false);
     }

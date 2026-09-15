@@ -27,6 +27,7 @@ import {
   shortenAddress,
   type DividendRound,
 } from "@/lib/wallet";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -84,7 +85,7 @@ export function DividendsClient() {
       const addr = await connectWallet();
       setAccount(addr);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to connect");
+      setError(userErrorMessage(err, "Failed to connect"));
     } finally {
       setConnecting(false);
     }
@@ -178,7 +179,7 @@ export function DividendsClient() {
       // Reload rounds after a short delay for tx confirmation
       setTimeout(() => loadData(), 3000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Declaration failed");
+      setError(userErrorMessage(err, "Declaration failed"));
     } finally {
       setDeclaring(false);
     }
@@ -203,7 +204,7 @@ export function DividendsClient() {
       // Reload data
       setTimeout(() => loadData(), 3000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Claim failed");
+      setError(userErrorMessage(err, "Claim failed"));
     } finally {
       setClaiming(null);
     }

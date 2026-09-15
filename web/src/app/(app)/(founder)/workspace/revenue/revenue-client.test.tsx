@@ -81,3 +81,24 @@ describe("RevenueClient", () => {
     expect(out.length).toBeGreaterThan(0);
   });
 });
+
+// S31-E (#31): the manual-entry form no longer paints a server error in the
+// neutral success style, and the copy it derives from /api/revenue failure
+// bodies goes through userErrorMessage() — slugs and raw messages never
+// reach the screen. The effect-driven fetch cannot run without a DOM, so the
+// mapping is pinned through the same call the component makes.
+describe("manual entry error copy (S31-E)", () => {
+  it("maps /api/revenue failure bodies to user copy", async () => {
+    const { ApiError, userErrorMessage } = await import("@/lib/ui/user-error");
+    const FB = "Could not save the entry. Please try again.";
+    expect(userErrorMessage(ApiError.fromBody(400, { ok: false, error: "Amount must be a positive number." }), FB)).toBe("Amount must be a positive number.");
+    expect(userErrorMessage(ApiError.fromBody(401, { ok: false, error: "unauthorized" }), FB)).toBe("Please sign in again.");
+    expect(userErrorMessage(ApiError.fromBody(500, { ok: false, error: 'relation "revenue_entries" does not exist' }), FB)).toBe(FB);
+    expect(userErrorMessage(new TypeError("Failed to fetch"), FB)).toContain("Connection problem");
+  });
+
+  it("the SSR shell carries no stale success-styled error slot", async () => {
+    const out = await html(<RevenueClient />);
+    expect(out).not.toContain("Failed to connect to server.");
+  });
+});

@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { formatAudCents } from "@/lib/dividends/statement";
 import { dripSkipLabel, formatSharePriceAud, type DripPriceBasis, type DripSkipReason } from "@/lib/dividends/drip";
 import { BoardResolutionButton } from "@/components/board-resolutions/board-resolution-button";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 export interface DripElectionItem {
   id: string;
@@ -157,7 +158,7 @@ export function DripPanel({ initial }: { initial?: DripPanelState }) {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(json.message ?? json.error ?? "Could not record the election");
+        setError(userErrorMessage(ApiError.fromBody(res.status, json), "Could not record the election"));
         return;
       }
       setNotice(`${json.election?.shareholderName ?? "Shareholder"} now reinvests ${json.election?.participationPct ?? ""}% of each dividend${json.replaced ? " (previous election replaced)" : ""}.`);
@@ -178,7 +179,7 @@ export function DripPanel({ initial }: { initial?: DripPanelState }) {
         const res = await fetch("/api/dividends/drip/elections", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: e.id }) });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) {
-          setError(json.error ?? "Could not revoke the election");
+          setError(userErrorMessage(ApiError.fromBody(res.status, json), "Could not revoke the election"));
           return;
         }
         setNotice(`${e.shareholderName}'s election revoked — future dividends are paid in cash.`);

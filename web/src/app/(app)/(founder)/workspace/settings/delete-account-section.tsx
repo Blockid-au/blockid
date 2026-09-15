@@ -4,6 +4,7 @@
 // Talks to /api/account/delete: status (GET), reauth / request / cancel (POST).
 
 import { useEffect, useState } from "react";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 export interface DeletionStatusView {
   pending: boolean;
@@ -87,7 +88,7 @@ export function DeleteAccountSection({
     setMsg(null);
     try {
       const { res, data } = await post({ action: "reauth" });
-      if (!res.ok || !data.ok) setMsg({ kind: "err", text: data.error ?? data.reason ?? `HTTP ${res.status}` });
+      if (!res.ok || !data.ok) setMsg({ kind: "err", text: userErrorMessage(ApiError.fromBody(res.status, { ...data, error: data.error ?? data.reason }), "Something went wrong. Please try again.") });
       else setMsg({ kind: "info", text: "Check your email — the confirmation link is valid for 15 minutes." });
     } finally {
       setBusy(false);
@@ -122,7 +123,7 @@ export function DeleteAccountSection({
         return;
       }
       if (!res.ok || !data.ok) {
-        setMsg({ kind: "err", text: data.error ?? data.reason ?? `HTTP ${res.status}` });
+        setMsg({ kind: "err", text: userErrorMessage(ApiError.fromBody(res.status, { ...data, error: data.error ?? data.reason }), "Something went wrong. Please try again.") });
         return;
       }
       setStatus((s) => ({ ...s, pending: true, scheduledFor: data.scheduledFor ?? s.scheduledFor, requestedAt: new Date().toISOString() }));
@@ -140,7 +141,7 @@ export function DeleteAccountSection({
     setMsg(null);
     try {
       const { res, data } = await post({ action: "cancel" });
-      if (!res.ok || !data.ok) setMsg({ kind: "err", text: data.reason ?? `HTTP ${res.status}` });
+      if (!res.ok || !data.ok) setMsg({ kind: "err", text: userErrorMessage(ApiError.fromBody(res.status, { ...data, error: data?.reason }), "Something went wrong. Please try again.") });
       else {
         setStatus((s) => ({ ...s, pending: false, requestedAt: null, scheduledFor: null }));
         setMsg({ kind: "ok", text: "Deletion cancelled — your account stays." });

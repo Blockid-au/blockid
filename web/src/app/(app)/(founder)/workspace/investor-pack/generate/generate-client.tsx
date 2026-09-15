@@ -10,6 +10,7 @@
 
 import * as React from "react";
 import type { InvestorPackData } from "@/lib/investor-pack-assembler";
+import { readErrorBody, userErrorMessage } from "@/lib/ui/user-error";
 
 interface Props {
   preview: InvestorPackData;
@@ -88,14 +89,7 @@ export function InvestorPackGenerateClient({ preview }: Props): React.ReactEleme
       });
 
       if (!res.ok) {
-        let msg = `Generation failed (${res.status})`;
-        try {
-          const j = (await res.json()) as { error?: string };
-          if (j?.error) msg = j.error;
-        } catch {
-          /* not json */
-        }
-        setErrorMsg(msg);
+        setErrorMsg(userErrorMessage(await readErrorBody(res), "Could not generate the pack. Please try again."));
         setStatus("error");
         return;
       }
@@ -113,7 +107,8 @@ export function InvestorPackGenerateClient({ preview }: Props): React.ReactEleme
       URL.revokeObjectURL(url);
       setStatus("idle");
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Unexpected error");
+      console.error("[investor-pack] generate", err);
+      setErrorMsg(userErrorMessage(err, "Could not generate the pack. Please try again."));
       setStatus("error");
     }
   }

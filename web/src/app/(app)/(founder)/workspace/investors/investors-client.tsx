@@ -44,6 +44,7 @@ import {
   type TouchpointKind,
   type TouchpointRow,
 } from "@/lib/investors/crm";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 // ---------------------------------------------------------------------------
 // Pure helpers (exported for the colocated spec)
@@ -154,8 +155,8 @@ async function fetchAllContacts(): Promise<{ contacts: ContactRow[]; canEdit: bo
     if (cursor) qs.set("cursor", cursor);
     const res = await fetch(`/api/investors/crm/contacts?${qs.toString()}`, { credentials: "same-origin" });
     const body = (await res.json().catch(() => ({ ok: false }))) as ListResponse;
-    if (res.status === 409 && body.error === "no_project") return { contacts: [], canEdit: false, canExport: false, error: body.message ?? "Create your startup profile first.", noProject: true };
-    if (!res.ok || !body.ok) return { contacts, canEdit, canExport, error: body.error ?? `Could not load the pipeline (${res.status})`, noProject: false };
+    if (res.status === 409 && body.error === "no_project") return { contacts: [], canEdit: false, canExport: false, error: userErrorMessage(ApiError.fromBody(res.status, { ...body, error: body?.message }), "Create your startup profile first."), noProject: true };
+    if (!res.ok || !body.ok) return { contacts, canEdit, canExport, error: userErrorMessage(ApiError.fromBody(res.status, body), "Something went wrong. Please try again."), noProject: false };
     contacts.push(...(body.contacts ?? []));
     canEdit = body.canEdit === true;
     canExport = body.canExport === true;
@@ -233,7 +234,7 @@ export function InvestorsClient() {
       });
       const body = (await res.json().catch(() => ({ ok: false }))) as { ok: boolean; error?: string; message?: string; contact?: ContactRow };
       if (!res.ok || !body.ok || !body.contact) {
-        setToast({ kind: "err", text: body.message ?? body.error ?? "Could not update the contact." });
+        setToast({ kind: "err", text: userErrorMessage(ApiError.fromBody(res.status, body), "Could not update the contact.") });
         return null;
       }
       const updated = body.contact;
@@ -637,7 +638,7 @@ function ContactDrawer(props: {
       });
       const body = (await res.json().catch(() => ({ ok: false }))) as { ok: boolean; error?: string };
       if (!res.ok || !body.ok) {
-        props.onToast({ kind: "err", text: body.error ?? "Could not add the note." });
+        props.onToast({ kind: "err", text: userErrorMessage(ApiError.fromBody(res.status, body), "Could not add the note.") });
         return;
       }
       setNote({ kind: "note", body: "", occurredAt: "" });
@@ -815,7 +816,7 @@ function AddContactDialog(props: { onClose: () => void; onCreated: (c: ContactRo
       });
       const body = (await res.json().catch(() => ({ ok: false }))) as { ok: boolean; error?: string; message?: string; contact?: ContactRow };
       if (!res.ok || !body.ok || !body.contact) {
-        props.onToast({ kind: "err", text: body.message ?? body.error ?? "Could not add the contact." });
+        props.onToast({ kind: "err", text: userErrorMessage(ApiError.fromBody(res.status, body), "Could not add the contact.") });
         return;
       }
       props.onCreated(body.contact);
@@ -910,7 +911,7 @@ function ImportDialog(props: { onClose: () => void; onDone: (r: ImportResult) =>
       const res = await fetch("/api/investors/crm/import", { method: "POST", credentials: "same-origin", body: fd });
       const body = (await res.json().catch(() => ({ ok: false }))) as { ok: boolean; error?: string } & Partial<ImportResult>;
       if (!res.ok || !body.ok) {
-        setErr(body.error ?? `Import failed (${res.status})`);
+        setErr(userErrorMessage(ApiError.fromBody(res.status, body), "Something went wrong. Please try again."));
         return;
       }
       props.onDone({ created: body.created ?? 0, updated: body.updated ?? 0, skipped: body.skipped ?? 0, truncated: body.truncated === true });

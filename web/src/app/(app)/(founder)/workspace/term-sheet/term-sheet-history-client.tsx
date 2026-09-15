@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Trash2, Loader2 } from "lucide-react";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface Row {
   id: string;
@@ -45,11 +46,11 @@ export function TermSheetHistoryClient({ initialRows }: { initialRows: Row[] }) 
       });
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(body?.error || "Delete failed");
+        throw ApiError.fromBody(res.status, body);
       }
       setRows((prev) => prev.filter((r) => r.id !== id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Delete failed");
+      setError(userErrorMessage(err, "Delete failed"));
     } finally {
       setDeletingId(null);
     }

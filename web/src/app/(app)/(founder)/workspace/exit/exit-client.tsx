@@ -12,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 // ---------------------------------------------------------------------------
 // Types (mirrors server ExitResult)
@@ -235,7 +236,7 @@ export function ExitClient() {
       if (data.ok) {
         setCustomResult(data.result);
       } else {
-        setError(data.error ?? "Calculation failed");
+        setError(userErrorMessage(ApiError.fromBody(res.status, data), "Calculation failed"));
       }
     } catch (err) {
       console.error("Exit model error:", err);

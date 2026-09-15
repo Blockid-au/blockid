@@ -39,6 +39,7 @@ import {
   User,
   type LucideIcon,
 } from "lucide-react";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 // ── Criterion state (from criteria_synthesis SSE event) ───────────────────────
 
@@ -861,10 +862,11 @@ export function BusinessReportClient({
                       if (body.ok && body.url) {
                         setShareUrl(body.url);
                       } else {
-                        setShareError(body.error ?? "Share failed");
+                        setShareError(userErrorMessage(ApiError.fromBody(res.status, body), "Could not create the share link. Please try again."));
                       }
                     } catch (err) {
-                      setShareError(err instanceof Error ? err.message : "Share failed");
+                      console.error("[business-report] share", err);
+                      setShareError(userErrorMessage(err, "Could not create the share link. Please try again."));
                     } finally {
                       setShareBusy(false);
                     }

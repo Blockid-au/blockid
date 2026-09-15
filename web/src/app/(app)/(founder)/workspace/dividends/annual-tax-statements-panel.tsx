@@ -25,6 +25,7 @@ import { CalendarRange, CheckCircle2, Download, FileText, FolderPlus, Loader2, R
 import { cn } from "@/lib/utils";
 import { formatAudCents } from "@/lib/dividends/statement";
 import { taxStatementCostLabel } from "@/lib/dividends/fy-summary";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 export interface FyShareholderRow {
   key: string;
@@ -194,7 +195,7 @@ export function AnnualTaxStatementsPanel({ initial }: { initial?: TaxStatementsP
     try {
       const { res, json } = await post("/api/dividends/tax-statements", { fy: preview.fy, regenerate: preview.regenerate, confirm: true });
       if (!res.ok) {
-        setError(json.error ?? "Generation failed");
+        setError(userErrorMessage(ApiError.fromBody(res.status, json), "Generation failed"));
         return;
       }
       setPreview(null);

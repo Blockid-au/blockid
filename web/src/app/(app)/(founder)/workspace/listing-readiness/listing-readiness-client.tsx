@@ -23,6 +23,7 @@ import { Download, FileCheck2, Loader2, Save, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EXCHANGES, exchangeLabel, formatAud, LISTING_READINESS_NOTE, statusLabel, type Exchange, type ReadinessRow, type ReadinessScore, type ReadinessStatus } from "@/lib/listing/readiness";
 import type { ListingProfileFacts } from "@/lib/listing/profile";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 export interface ListingReadinessState {
   exchange: Exchange;
@@ -179,7 +180,7 @@ export function ListingReadinessClient({ initial }: { initial?: ListingReadiness
       const res = await fetch("/api/listing/profile", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patchFromDraft(draft, restricted)) });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(json.error ?? "Could not save your facts");
+        setError(userErrorMessage(ApiError.fromBody(res.status, json), "Could not save your facts"));
         return;
       }
       setNotice("Facts saved — the checklist has been recomputed.");
@@ -213,7 +214,7 @@ export function ListingReadinessClient({ initial }: { initial?: ListingReadiness
         const res = await fetch(`/api/listing/readiness/pdf?exchange=${exchange}`);
         if (!res.ok) {
           const json = await res.json().catch(() => ({}));
-          setError(json.error ?? "Could not export the PDF");
+          setError(userErrorMessage(ApiError.fromBody(res.status, json), "Could not export the PDF"));
           return;
         }
         await download(await res.blob());
@@ -230,7 +231,7 @@ export function ListingReadinessClient({ initial }: { initial?: ListingReadiness
       const res = await fetch("/api/listing/readiness/pdf", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ exchange, confirm: true }) });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        setError(json.error ?? "Could not export the PDF");
+        setError(userErrorMessage(ApiError.fromBody(res.status, json), "Could not export the PDF"));
         return;
       }
       await download(await res.blob());

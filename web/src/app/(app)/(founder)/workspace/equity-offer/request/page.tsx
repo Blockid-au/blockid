@@ -14,6 +14,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
+import { ApiError, readErrorBody, userErrorMessage } from "@/lib/ui/user-error";
 
 type Stage = "idea" | "pre-seed" | "seed" | "series-a+";
 
@@ -155,16 +156,16 @@ export default function EquityOfferRequestPage() {
           );
           return;
         }
-        let reason = `Request failed (HTTP ${res.status}).`;
-        try {
-          const j = (await res.json()) as { reason?: string };
-          if (j?.reason) reason = j.reason;
-        } catch {
-          /* ignore */
-        }
-        setError(reason);
+        const failed = await readErrorBody(res);
+        setError(
+          userErrorMessage(
+            ApiError.fromBody(res.status, { ...failed.body, error: failed.body.reason ?? failed.body.error }),
+            "Could not send your request. Please try again.",
+          ),
+        );
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Network error");
+        console.error("[equity-offer] request", err);
+        setError(userErrorMessage(err, "Could not send your request. Please try again."));
       } finally {
         setSubmitting(false);
       }
