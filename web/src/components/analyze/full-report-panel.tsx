@@ -23,9 +23,13 @@ import { InputEchoPanel } from "./input-echo-panel";
 import { buildInputEcho, type InputEcho } from "@/lib/analyses/input-echo";
 import {
   AGENT_META,
+  BENCHMARK_FOOTER,
   FIRST_ANALYSIS_AGENTS,
-  type AgentSection,
+  isFullReportReadable,
+  normaliseAgentSections,
+  type AgentSectionView,
   type FirstAnalysisAgent,
+  type FirstAnalysisReportView,
   type FullReportView,
   type ValuationSection,
 } from "@/lib/analyses/first-analysis/types";
@@ -52,6 +56,15 @@ function aud(n: number): string {
   return `A$${Math.round(n).toLocaleString("en-AU")}`;
 }
 
+/** Voices not yet written and not given up on, from the normalised payload. */
+export function stillBeingWritten(report: FirstAnalysisReportView | null): FirstAnalysisAgent[] {
+  if (!report) return [];
+  return FIRST_ANALYSIS_AGENTS.filter((role) => {
+    const st = report.agents[role]?.status;
+    return st !== "done" && st !== "unavailable";
+  });
+}
+
 /** The one-line progress statement. Exported for the test. */
 export function progressLine(view: Pick<FullReportView, "status" | "report" | "error"> | null): string {
   if (!view || view.status === null) return "Preparing your first analysis…";
@@ -59,11 +72,35 @@ export function progressLine(view: Pick<FullReportView, "status" | "report" | "e
   if (view.status === "failed") {
     return `We could not finish every section${view.error ? ` (${view.error})` : ""}. It is retried automatically; what was written is below.`;
   }
-  if (view.status === "done") return "Complete — seven C-level voices, the valuation working and your first 30 days.";
+  if (view.status === "done_partial") {
+    const p = view.report?.progress;
+    if (p?.current) return AGENT_META[p.current].writing;
+    const pending = stillBeingWritten(view.report ?? null);
+    const n = pending.length;
+    return `${n} section${n === 1 ? " is" : "s are"} still being written — we will email the full report when ${n === 1 ? "it finishes" : "they finish"}. What is ready is below.`;
+  }
+  if (view.status === "done") {
+    const unavailable = view.report ? FIRST_ANALYSIS_AGENTS.filter((r) => view.report!.agents[r]?.status === "unavailable") : [];
+    return unavailable.length
+      ? `Complete — ${7 - unavailable.length} of seven C-level voices, the valuation working and your first 30 days. ${unavailable.length} section${unavailable.length === 1 ? "" : "s"} could not be written after three attempts.`
+      : "Complete — seven C-level voices, the valuation working and your first 30 days.";
+  }
   const p = view.report?.progress;
   if (p?.queuedForSec) return `AI queue is busy — queued, ~${p.queuedForSec} s.`;
   if (p?.current) return AGENT_META[p.current].writing;
   return "Writing the deterministic sections…";
+}
+
+/**
+ * Whatever shape `report.agents` arrives in — objects, bare strings, or
+ * missing — the panel works on one: `{role, title, body, nextSteps,
+ * provider, model, status, …}` per voice.
+ */
+export function normaliseReport(raw: unknown): FirstAnalysisReportView | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as FirstAnalysisReportView & { progress?: FirstAnalysisReportView["progress"] };
+  const progress = r.progress ?? { current: null, completed: [], failed: [] };
+  return { ...r, progress, agents: normaliseAgentSections({ agents: r.agents as never, progress, sections: r.sections }) };
 }
 
 export function parseView(body: unknown): FullReportView | null {
@@ -72,7 +109,7 @@ export function parseView(body: unknown): FullReportView | null {
   return {
     status: b.status ?? null,
     locked: Boolean(b.locked),
-    report: b.report ?? null,
+    report: normaliseReport(b.report),
     preview: b.preview ?? null,
     emailedAt: b.emailedAt ?? null,
     emailTo: b.emailTo ?? null,
@@ -141,7 +178,9 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
   const valuation: ValuationSection | null = report?.valuation ?? preview?.valuation ?? null;
   const locked = Boolean(view?.locked);
   const status = view?.status ?? null;
-  const done = status === "done";
+  // A partial report is readable and downloadable; its missing voices say so.
+  const done = isFullReportReadable(status);
+  const partial = status === "done_partial";
   const canResend = done && !locked && (Boolean(view?.emailTo) || authenticated === true);
 
   async function handleResend() {
@@ -179,7 +218,7 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
               Your first analysis — what BlockID&apos;s agents make of it
             </h2>
             <p className="mt-1 flex items-center gap-2 text-xs text-secondary" role="status" aria-live="polite" data-testid="analyze-full-report-progress">
-              {status === "running" || status === "queued" || status === null ? (
+              {status === "running" || status === "queued" || status === null || partial ? (
                 <Loader2 aria-hidden strokeWidth={2} className="h-3.5 w-3.5 animate-spin text-action motion-reduce:animate-none" />
               ) : status === "failed" ? (
                 <AlertCircle aria-hidden strokeWidth={2} className="h-3.5 w-3.5 text-warn" />
@@ -221,11 +260,11 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
         {done && !locked && (
           <p className="mt-2 text-xs text-muted" data-testid="analyze-full-report-emailed">
             {view?.emailedAt
-              ? `The ${"PDF"} was emailed${view.emailTo ? ` to ${view.emailTo}` : ""} on ${new Date(view.emailedAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}.`
+              ? `The PDF${partial ? " (part 1)" : ""} was emailed${view.emailTo ? ` to ${view.emailTo}` : ""} on ${new Date(view.emailedAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}.${partial ? " The complete report follows when the remaining sections finish." : ""}`
               : view?.emailTo
-                ? `The PDF is on its way to ${view.emailTo}.`
+                ? `The PDF${partial ? " (part 1)" : ""} is on its way to ${view.emailTo}.`
                 : authenticated
-                  ? "The PDF is being emailed to your account address."
+                  ? `The PDF${partial ? " (part 1)" : ""} is being emailed to your account address.`
                   : "Enter your email below and the PDF follows."}
           </p>
         )}
@@ -266,12 +305,11 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
             <AgentCard
               key={role}
               role={role}
-              section={report?.agents[role]}
+              section={report?.agents[role] ?? null}
               ceoPreview={role === "ceo" && locked ? preview?.ceoParagraph ?? null : null}
               locked={locked && role !== "ceo"}
               status={status}
               current={report?.progress.current ?? null}
-              failed={Boolean(report?.progress.failed.includes(role))}
             />
           ))}
         </div>
@@ -297,42 +335,44 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
   );
 }
 
-function AgentCard({
+export function AgentCard({
   role,
   section,
   ceoPreview,
   locked,
   status,
   current,
-  failed,
 }: {
   role: FirstAnalysisAgent;
-  section: AgentSection | undefined;
+  section: AgentSectionView | null;
   ceoPreview: string | null;
   locked: boolean;
   status: FullReportView["status"];
   current: FirstAnalysisAgent | null;
-  failed: boolean;
 }) {
   const meta = AGENT_META[role];
-  const writing = current === role;
+  const written = section?.status === "done" && typeof section.body === "string";
+  const writing = current === role || section?.status === "writing";
+  const unavailable = section?.status === "unavailable";
+  const failed = section?.status === "failed";
   return (
     <article
-      className={cn("rounded-xl border p-3 sm:p-4", section || ceoPreview ? "border-line-subtle bg-surface" : "border-dashed border-line-subtle bg-surface-sunken")}
+      className={cn("rounded-xl border p-3 sm:p-4", written || ceoPreview ? "border-line-subtle bg-surface" : "border-dashed border-line-subtle bg-surface-sunken")}
       data-testid={`analyze-agent-${role}`}
-      aria-busy={writing}
+      data-status={section?.status ?? "pending"}
+      aria-busy={writing && !written}
     >
       <header className="flex flex-wrap items-baseline gap-2">
         <span className="rounded-full bg-surface-hover px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-tertiary">
           {meta.role}
         </span>
-        <h3 className="text-sm font-semibold text-primary">{section ? section.title : meta.label}</h3>
-        {section && <span className="ml-auto text-[10px] text-muted">{section.wordCount} words</span>}
+        <h3 className="text-sm font-semibold text-primary">{written && section.title ? section.title : meta.label}</h3>
+        {written && <span className="ml-auto text-[10px] text-muted">{section.wordCount} words</span>}
       </header>
-      {section ? (
+      {written ? (
         <>
           <div className="mt-2 space-y-2">
-            {section.body.split(/\n\s*\n/).filter((p) => p.trim()).map((p, i) => (
+            {(section.body ?? "").split(/\n\s*\n/).filter((p) => p.trim()).map((p, i) => (
               <p key={i} className="text-sm leading-relaxed text-secondary">{p.trim()}</p>
             ))}
           </div>
@@ -344,6 +384,9 @@ function AgentCard({
               </li>
             ))}
           </ol>
+          {section.benchmarkFigures.length > 0 && (
+            <p className="mt-2 text-[11px] text-muted" data-testid={`analyze-agent-${role}-benchmarks`}>{BENCHMARK_FOOTER}</p>
+          )}
         </>
       ) : ceoPreview ? (
         <>
@@ -354,8 +397,10 @@ function AgentCard({
         <p className="mt-2 flex items-center gap-1.5 text-xs text-muted">
           <Lock aria-hidden strokeWidth={2} className="h-3 w-3" /> {meta.lens} — unlocks with your email below.
         </p>
-      ) : failed ? (
-        <p className="mt-2 text-xs text-warn">This section could not be written in this run. It is retried automatically.</p>
+      ) : unavailable ? (
+        <p className="mt-2 text-xs text-warn">
+          This section could not be written after three attempts — the models available did not produce a section that met our grounding rules, so nothing is shown rather than something invented.
+        </p>
       ) : writing ? (
         <div className="mt-2 space-y-2" aria-hidden>
           <div className="h-3 w-11/12 animate-pulse rounded bg-surface-hover motion-reduce:animate-none" />
@@ -363,6 +408,10 @@ function AgentCard({
           <div className="h-3 w-2/3 animate-pulse rounded bg-surface-hover motion-reduce:animate-none" />
           <p className="text-xs text-secondary">{meta.writing}</p>
         </div>
+      ) : status === "done_partial" ? (
+        <p className="mt-2 text-xs text-secondary">Still being written — we will email the full report when it finishes.</p>
+      ) : failed ? (
+        <p className="mt-2 text-xs text-warn">This section could not be written in this run. It is retried automatically.</p>
       ) : (
         <p className="mt-2 text-xs text-muted">
           {status === "done" || status === "failed" ? "Not written in this run." : `${meta.lens} — waiting its turn.`}
