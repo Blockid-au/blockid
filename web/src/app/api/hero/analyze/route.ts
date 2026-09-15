@@ -8,7 +8,7 @@ import {
   SVI_BENCHMARKS,
   SVI_STAGE_LABELS,
 } from "@/lib/svi-analysis";
-import { estimateValuation, formatAUD } from "@/lib/valuation";
+import { estimateValuation, formatAUD, valuationMetricsFromSignals } from "@/lib/valuation";
 import { apiRoute } from "@/lib/audit/api-route";
 
 /**
@@ -71,7 +71,7 @@ async function POST_handler(request: Request) {
   const valuation = estimateValuation(
     analysis.totalSVI,
     analysis.stage,
-    sectorKey ? { sector: sectorKey } : undefined,
+    valuationMetricsFromSignals(analysis.signals, sectorKey ?? undefined),
     dimensionScores,
   );
 

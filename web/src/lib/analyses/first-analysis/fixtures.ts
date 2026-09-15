@@ -28,7 +28,8 @@ export function sampleIntake(rawText: string = SAMPLE_RAW_TEXT) {
     rawText,
     structured: {},
     signals: extractSignals({ rawText }),
-    context: { stage: 4 },
+    // MRR A$18,500 → ARR A$222k, under the A$250k stage-4 bar → Early Traction.
+    context: { stage: 3 },
     warnings: undefined,
   };
 }

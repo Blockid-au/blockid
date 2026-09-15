@@ -1,10 +1,16 @@
 import { describe, it, expect } from "vitest";
 import {
+  ARR_CLAMP_THRESHOLD_AUD,
+  BERKUS_PILLAR_CAP_AUD,
+  VALUATION_BASELINES_AUD,
   computeValuation,
+  crossCheckStatedCap,
   estimateValuation,
   formatAUD,
+  valuationMetricsFromSignals,
   type ValuationInput,
 } from "./valuation";
+import { computeSVI, extractSignals } from "./svi-analysis";
 
 // Baseline dimensions at the neutral midpoint so blends land near the
 // scorecard baseline for the given stage.
@@ -340,12 +346,128 @@ describe("estimateValuation band width", () => {
     );
   });
 
-  it("clamps the low bound at the stage baseline low", () => {
-    // With weak dims the mid gets pushed down; low should not fall below the
-    // BASELINES[stage].low floor for that stage.
+  it("clamps the low bound at the stage baseline low when the mid sits above it", () => {
+    // Stage-3 baseline low = A$6M (CTV 2024/25 seed median ≈ A$8–12M, low end
+    // of the band). With strong dims the mid is above the floor, so the ±40%
+    // band's low is lifted to the floor.
+    const est = estimateValuation(160, 3, undefined, { ...STRONG_DIMS });
+    expect(est.mid).toBeGreaterThanOrEqual(VALUATION_BASELINES_AUD[3].low);
+    expect(est.low).toBeGreaterThanOrEqual(VALUATION_BASELINES_AUD[3].low);
+    expect(est.low).toBeLessThanOrEqual(est.mid);
+  });
+
+  it("does not lift the low above a mid that itself sits under the stage floor", () => {
     const est = estimateValuation(20, 2, undefined, { ...WEAK_DIMS });
-    // Stage-2 baseline low = 5_000_000 per source table.
-    expect(est.low).toBeGreaterThanOrEqual(5_000_000);
+    expect(est.low).toBeLessThanOrEqual(est.mid);
+    expect(est.low).toBeGreaterThan(0);
+  });
+});
+
+// ─── estimateValuation — AU calibration (2026-09-15) ────────────────────────
+//
+// Sources for every pin below (calibration assumptions, cited in valuation.ts):
+//   * Cut Through Venture, "State of Australian Startup Funding" 2024 & 2025 —
+//     pre-money medians: pre-seed ≈ A$4–6M, seed ≈ A$8–12M, Series A ≈ A$25–35M.
+//   * Berkus method — five pillars ≤ US$500k each, ≤ US$2.5M pre-revenue,
+//     applied as A$500k per pillar without FX uplift.
+//   * ARR sanity clamp — under A$250k ARR the mid ≤ max(pre-seed high, 40 × ARR).
+
+describe("estimateValuation AU calibration", () => {
+  it("pins the stage baselines to the CTV 2024/25 medians", () => {
+    expect(VALUATION_BASELINES_AUD[2]).toEqual({ low: 3_000_000, mid: 5_000_000, high: 8_000_000 }); // pre-seed
+    expect(VALUATION_BASELINES_AUD[3]).toEqual({ low: 6_000_000, mid: 10_000_000, high: 15_000_000 }); // seed
+    expect(VALUATION_BASELINES_AUD[4]).toEqual({ low: 15_000_000, mid: 30_000_000, high: 45_000_000 }); // Series A
+    // Growth / Scale / Corporation unchanged.
+    expect(VALUATION_BASELINES_AUD[5].mid).toBe(100_000_000);
+    expect(VALUATION_BASELINES_AUD[6].mid).toBe(250_000_000);
+    expect(VALUATION_BASELINES_AUD[7].mid).toBe(750_000_000);
+    // Monotonic.
+    for (let s = 1; s <= 7; s++) {
+      expect(VALUATION_BASELINES_AUD[s].mid).toBeGreaterThan(VALUATION_BASELINES_AUD[s - 1].mid);
+    }
+  });
+
+  it("caps Berkus at A$500k per pillar — a perfect pre-revenue concept is ≤ A$2.5M from Berkus", () => {
+    expect(BERKUS_PILLAR_CAP_AUD).toBe(500_000);
+    // Stage 0 blends Berkus 50% + Scorecard 50%; with every dim at 100 the
+    // Berkus half is exactly 5 × A$500k = A$2.5M and the scorecard half is
+    // the A$1M concept baseline × 1.5, so the mid is A$2.0M.
+    const perfect = { ftv: 100, mpc: 100, ptd: 100, tre: 100, svm: 100, iri: 100, lco: 100, cgh: 100 };
+    const est = estimateValuation(200, 0, undefined, perfect);
+    expect(est.mid).toBe(2_000_000);
+  });
+
+  it("lands a neutral pre-seed near the CTV pre-seed median band, not at Series A", () => {
+    const est = estimateValuation(100, 2, undefined, { ...NEUTRAL_DIMS });
+    // Berkus 50% (5 × A$250k) + Scorecard 50% (A$5M × 1.0) = A$3.125M.
+    expect(est.mid).toBe(3_125_000);
+    expect(est.high).toBeLessThan(10_000_000);
+  });
+
+  it("clamps the mid when a known ARR is under A$250k, and says so in the method", () => {
+    expect(ARR_CLAMP_THRESHOLD_AUD).toBe(250_000);
+    // Stage 4 with A$60k ARR: the unclamped revenue blend would price the
+    // Series-A baseline in; the clamp holds it at max(A$8M, 40 × A$60k) = A$8M.
+    const est = estimateValuation(140, 4, { mrr: 5_000, sector: "saas" }, { ...STRONG_DIMS });
+    expect(est.arrClamp).toBeDefined();
+    expect(est.arrClamp?.arrAud).toBe(60_000);
+    expect(est.arrClamp?.capAud).toBe(8_000_000);
+    expect(est.mid).toBe(8_000_000);
+    expect(est.arrClamp!.unclampedMidAud).toBeGreaterThan(est.mid);
+    expect(est.method).toMatch(/ARR-clamped/);
+    expect(est.low).toBeLessThanOrEqual(est.mid);
+    expect(est.high).toBeGreaterThanOrEqual(est.mid);
+  });
+
+  it("uses 40 × ARR as the cap once that exceeds the pre-seed high", () => {
+    // ARR A$240k → 40× = A$9.6M > A$8M.
+    const est = estimateValuation(140, 4, { mrr: 20_000, sector: "saas" }, { ...STRONG_DIMS });
+    expect(est.arrClamp?.capAud).toBe(9_600_000);
+    expect(est.mid).toBeLessThanOrEqual(9_600_000);
+  });
+
+  it("does not clamp at or above A$250k ARR", () => {
+    const est = estimateValuation(140, 4, { mrr: 25_000, sector: "saas" }, { ...STRONG_DIMS });
+    expect(est.arrClamp).toBeUndefined();
+    expect(est.method).not.toMatch(/ARR-clamped/);
+  });
+
+  it("reports a founder-stated cap alongside the range and never applies it", () => {
+    const withCap = estimateValuation(100, 3, { mrr: 6_000, sector: "deeptech", statedCapAud: 6_000_000, statedCapKind: "cap" }, { ...NEUTRAL_DIMS });
+    const without = estimateValuation(100, 3, { mrr: 6_000, sector: "deeptech" }, { ...NEUTRAL_DIMS });
+    expect(withCap.mid).toBe(without.mid);
+    expect(withCap.low).toBe(without.low);
+    expect(withCap.capCrossCheck).toBeDefined();
+    expect(withCap.capCrossCheck?.statedAud).toBe(6_000_000);
+    expect(withCap.capCrossCheck?.note).toMatch(/^Your stated cap A\$6\.0M · indicative A\$/);
+  });
+
+  it("flags the cross-check only outside 0.5×–2× of the founder's number", () => {
+    const est = { low: 4_000_000, mid: 6_000_000, high: 9_000_000 };
+    expect(crossCheckStatedCap(est, 6_000_000)?.verdict).toBe("consistent");
+    expect(crossCheckStatedCap(est, 3_000_000)?.verdict).toBe("consistent"); // ratio 2.0 is still consistent
+    expect(crossCheckStatedCap(est, 2_500_000)?.verdict).toBe("indicative_above");
+    expect(crossCheckStatedCap(est, 12_000_000)?.verdict).toBe("consistent"); // ratio 0.5
+    expect(crossCheckStatedCap(est, 15_000_000)?.verdict).toBe("indicative_below");
+    expect(crossCheckStatedCap(est, 15_000_000, "pre_money")?.note).toMatch(/stated pre-money A\$15\.0M/);
+    expect(crossCheckStatedCap(est, 0)).toBeUndefined();
+  });
+
+  it("prices the 2026-09-15 live input (2 pilots, A$36k over 6 months, A$6M cap) in the A$4–12M band", () => {
+    const rawText =
+      "Brisbane agri-robotics pre-seed, 3 founders. Traction: 2 paid pilots (A$18,000 each), 14 orchards waitlist, LOIs from 2 co-ops. " +
+      "Revenue: A$36,000 in the last 6 months. Raising A$1.2M seed on a SAFE at A$6M cap.";
+    const signals = extractSignals({ rawText });
+    const analysis = computeSVI(signals);
+    const metrics = valuationMetricsFromSignals(signals, analysis.sector);
+    expect(metrics).toMatchObject({ mrr: 6_000, arr: 72_000, statedCapAud: 6_000_000, statedCapKind: "cap" });
+    const est = estimateValuation(analysis.totalSVI, analysis.stage, metrics, analysis.dimensionScores);
+    expect(analysis.stage).toBe(3);
+    expect(est.mid).toBeGreaterThanOrEqual(4_000_000);
+    expect(est.mid).toBeLessThanOrEqual(12_000_000);
+    expect(est.high).toBeLessThan(15_000_000);
+    expect(est.method).toMatch(/Revenue/);
+    expect(est.capCrossCheck?.verdict).toBe("consistent");
   });
 });
 

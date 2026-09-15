@@ -51,7 +51,7 @@ import { canSendEmail } from "@/lib/email-preferences";
 import { sendFreeSummary } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { computeSVI, type SVIAnalysis } from "@/lib/svi-analysis";
-import { estimateValuation } from "@/lib/valuation";
+import { estimateValuation, valuationMetricsFromSignals } from "@/lib/valuation";
 import { extractProjectName } from "@/lib/project-name-extractor";
 import { savedAnalysisUrl } from "@/lib/analyses/summary";
 import { apiRoute } from "@/lib/audit/api-route";
@@ -167,7 +167,7 @@ async function POST_handler(
     const valuation = estimateValuation(
       svi.totalSVI,
       svi.stage,
-      { sector: svi.sector ?? svi.signals?.sector },
+      valuationMetricsFromSignals(svi.signals, svi.sector ?? svi.signals?.sector),
       dims,
     );
 

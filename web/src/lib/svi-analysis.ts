@@ -6,6 +6,7 @@
 import type { TechAuditResult } from "./rnd-input";
 import type { GitHubRepoAudit } from "./github-repo-audit";
 import type { WebsiteCompetitiveIntelligence, MarketEbitdaMetrics } from "./competitive-intelligence";
+import { parseFinancialFigures } from "./intake/financial-figures";
 
 export const SVI_VERSION = "2.1.0";
 
@@ -202,6 +203,26 @@ export interface SVIExtractedSignals {
 
   // Evidence quality
   evidenceLevel: keyof typeof EVIDENCE_CONFIDENCE;
+
+  // Figures read from the founder's own words (intake/financial-figures.ts),
+  // or from connected startup_metrics when those are passed in. Undefined
+  // when nothing was stated — never inferred.
+  /** Monthly recurring revenue, AUD. */
+  mrrAud?: number;
+  /** Annualised revenue, AUD (MRR × 12 or the stated annual figure). */
+  arrAud?: number;
+  /** Months the stated revenue covers ("in the last 6 months" → 6). */
+  revenueMonths?: number;
+  /** How the revenue figure was stated. */
+  revenueKind?: "mrr" | "arr" | "period" | "unspecified";
+  /** The round the founder says they are raising, AUD. */
+  raiseAskAud?: number;
+  /** A founder-stated SAFE cap / pre-money / post-money / valuation, AUD. */
+  statedCapAud?: number;
+  statedCapKind?: "cap" | "pre_money" | "post_money" | "valuation";
+  /** Paid pilots: amount per pilot, AUD (traction, not recurring revenue). */
+  pilotRevenueAud?: number;
+  pilotCount?: number;
 }
 
 export interface SVISubScore {
@@ -332,28 +353,60 @@ export function computeMetricsBonus(metrics: StartupMetricsInput): number {
 }
 
 // ─── Stage detection ──────────────────────────────────────────────────────────
+
+/** Stage 4 "Revenue" needs at least this much annualised revenue… */
+export const STAGE4_MIN_ARR_AUD = 250_000;
+/** …or at least this many months of stated revenue evidence. */
+export const STAGE4_MIN_REVENUE_MONTHS = 12;
+
+/**
+ * Does the revenue evidence carry enough size or duration for stage ≥ 4?
+ *
+ * Live run 2026-09-15 (analysis bc9de1ac-…): "2 paid pilots (A$18,000
+ * each) … Revenue: A$36,000 in the last 6 months" was promoted to stage 4
+ * "Revenue" on the word "revenue" alone and priced at A$29.7M–55.1M. Pilots,
+ * LOIs, a waitlist and A$72k of annualised revenue over six months are
+ * traction (stage 3), not a revenue-stage business. The rule:
+ *   * a stated figure qualifies when ARR ≥ A$250k OR the revenue covers
+ *     ≥ 12 months;
+ *   * with no figure, only a band that itself implies size ("growing" /
+ *     "scaling" come from A$100k+/A$1M+ wording) qualifies — a bare "we
+ *     have revenue" does not.
+ */
+export function revenueQualifiesForStage4(signals: SVIExtractedSignals): boolean {
+  if (!signals.hasRevenue) return false;
+  if (signals.arrAud != null && Number.isFinite(signals.arrAud)) {
+    if (signals.arrAud >= STAGE4_MIN_ARR_AUD) return true;
+    return (signals.revenueMonths ?? 0) >= STAGE4_MIN_REVENUE_MONTHS;
+  }
+  return signals.revenueBand === "growing" || signals.revenueBand === "scaling";
+}
+
 export function detectStage(signals: SVIExtractedSignals): number {
   // Stage 7: Corporation (audit + ASIC + board)
   if (signals.hasFinancialAudit && signals.hasABN && signals.hasBoardCadence) {
     return 7;
   }
+  const revenueStage = revenueQualifiesForStage4(signals);
   // Stage 6: Scale ($1M+ ARR + cap table + data room)
-  if (signals.revenueBand === "scaling" && signals.hasCapTable && signals.hasDataRoom) {
+  if (revenueStage && signals.revenueBand === "scaling" && signals.hasCapTable && signals.hasDataRoom) {
     return 6;
   }
   // Stage 5: Growth ($100k+ ARR + team signals)
   if (
+    revenueStage &&
     (signals.revenueBand === "growing" || signals.revenueBand === "scaling") &&
     (signals.hasCoFounder || signals.founderExperience !== "first-time")
   ) {
     return 5;
   }
-  // Stage 4: Revenue (early band)
-  if (signals.revenueBand === "early" || signals.hasRevenue) {
+  // Stage 4: Revenue — ARR ≥ A$250k or ≥ 12 months of revenue evidence
+  if (revenueStage) {
     return 4;
   }
-  // Stage 3: Early Traction (customers / analytics / social)
-  if (signals.hasCustomers || signals.hasAnalytics || signals.hasSocialProof) {
+  // Stage 3: Early Traction (customers / pilots / small or short revenue /
+  // analytics / social)
+  if (signals.hasCustomers || signals.hasRevenue || signals.hasAnalytics || signals.hasSocialProof) {
     return 3;
   }
   // Stage 2: MVP / Prototype (has product / demo / website / source code)
@@ -501,7 +554,12 @@ export function extractSignals(
     "haven't landed", "havent landed", "no one is using", "nobody is using",
   );
 
-  const revenueBand: SVIExtractedSignals["revenueBand"] = deniesRevenue
+  // Figures the founder actually wrote: revenue (MRR / ARR / "A$36,000 in
+  // the last 6 months"), the ask, a SAFE cap or pre-money, paid pilots.
+  // Parsed from the raw text (case and diacritics intact), never inferred.
+  const figures = parseFinancialFigures(input.rawText);
+
+  const keywordBand: SVIExtractedSignals["revenueBand"] = deniesRevenue
     ? "pre-revenue"
     : has("mrr", "arr", "monthly revenue", "revenue", "paying", "$1m", "$500k", "1m arr")
       ? has("$1m", "$2m", "1m arr", "scaling", "growth stage")
@@ -510,6 +568,18 @@ export function extractSignals(
           ? "growing"
           : "early"
       : "pre-revenue";
+
+  // A stated revenue figure sets the band by magnitude; the keyword band is
+  // only the fallback when no figure was given. "$1m" in a market-size
+  // sentence must not read as A$1M ARR when the founder wrote A$72k.
+  const revenueBand: SVIExtractedSignals["revenueBand"] =
+    !deniesRevenue && figures.revenue
+      ? figures.revenue.arrAud >= 1_000_000
+        ? "scaling"
+        : figures.revenue.arrAud >= 100_000
+          ? "growing"
+          : "early"
+      : keywordBand;
 
   // Evidence quality: check file types and keywords
   let evidenceLevel: keyof typeof EVIDENCE_CONFIDENCE = "self_declared";
@@ -546,9 +616,37 @@ export function extractSignals(
     "looking to raise", "open round",
   );
   const targetRaiseMentioned =
-    assertsRaise || (!deniesRaise && has("funding", "investment", "series"));
+    assertsRaise || figures.ask != null || (!deniesRaise && has("funding", "investment", "series"));
 
   const sector = detectSector(text);
+
+  const statedFigures: Pick<
+    SVIExtractedSignals,
+    | "mrrAud"
+    | "arrAud"
+    | "revenueMonths"
+    | "revenueKind"
+    | "raiseAskAud"
+    | "statedCapAud"
+    | "statedCapKind"
+    | "pilotRevenueAud"
+    | "pilotCount"
+  > = {};
+  if (figures.revenue && !deniesRevenue) {
+    statedFigures.mrrAud = figures.revenue.mrrAud;
+    statedFigures.arrAud = figures.revenue.arrAud;
+    statedFigures.revenueKind = figures.revenue.kind;
+    if (figures.revenue.periodMonths != null) statedFigures.revenueMonths = figures.revenue.periodMonths;
+  }
+  if (figures.ask) statedFigures.raiseAskAud = figures.ask.amountAud;
+  if (figures.cap) {
+    statedFigures.statedCapAud = figures.cap.amountAud;
+    statedFigures.statedCapKind = figures.cap.kind;
+  }
+  if (figures.pilots) {
+    statedFigures.pilotRevenueAud = figures.pilots.amountEachAud;
+    if (figures.pilots.count != null) statedFigures.pilotCount = figures.pilots.count;
+  }
 
   const signals: SVIExtractedSignals = {
     hasCoFounder:
@@ -594,6 +692,7 @@ export function extractSignals(
     hasContracts: hasPos("contract", "agreement", "terms of service", "tos"),
     hasLegalDocs: hasPos("legal", "lawyer", "solicitor", "company constitution"),
     evidenceLevel,
+    ...statedFigures,
   };
 
   // ── Evidence overlay: boost signals from uploaded/connected evidence ──────
@@ -749,9 +848,12 @@ export function extractSignals(
     const users = metrics.users_total ?? 0;
     const nps = metrics.nps ?? 0;
 
-    // Revenue signals from actual MRR
+    // Revenue signals from actual MRR — connected data outranks the text.
     if (mrr > 0) {
       signals.hasRevenue = true;
+      signals.mrrAud = mrr;
+      signals.arrAud = metrics.arr && metrics.arr > 0 ? metrics.arr : mrr * 12;
+      signals.revenueKind = "mrr";
       if (mrr > 10000 && (signals.revenueBand === "pre-revenue" || signals.revenueBand === "early" || signals.revenueBand === "growing")) {
         signals.revenueBand = "scaling";
       } else if (mrr > 1000 && (signals.revenueBand === "pre-revenue" || signals.revenueBand === "early")) {

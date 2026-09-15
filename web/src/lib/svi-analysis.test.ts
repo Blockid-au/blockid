@@ -256,8 +256,67 @@ describe("detectStage", () => {
     expect(detectStage(makeSignals({ hasCustomers: true }))).toBe(3);
   });
 
-  it("returns 4 for revenue stage", () => {
-    expect(detectStage(makeSignals({ hasRevenue: true, revenueBand: "early" }))).toBe(4);
+  // Stage 4 "Revenue" needs size or duration (S32-D, 2026-09-15): ARR ≥ A$250k
+  // or ≥ 12 months of stated revenue. A bare "we have revenue" is traction.
+  it("returns 3, not 4, for early revenue with no figure", () => {
+    expect(detectStage(makeSignals({ hasRevenue: true, revenueBand: "early" }))).toBe(3);
+  });
+
+  it("returns 4 for revenue stage once ARR ≥ A$250k", () => {
+    expect(detectStage(makeSignals({ hasRevenue: true, revenueBand: "growing", arrAud: 300_000 }))).toBe(4);
+    expect(detectStage(makeSignals({ hasRevenue: true, revenueBand: "growing", arrAud: 250_000 }))).toBe(4);
+  });
+
+  it("returns 3 for a small ARR over a short period, 4 once it spans 12 months", () => {
+    expect(detectStage(makeSignals({ hasRevenue: true, revenueBand: "early", arrAud: 72_000, revenueMonths: 6 }))).toBe(3);
+    expect(detectStage(makeSignals({ hasRevenue: true, revenueBand: "early", arrAud: 72_000, revenueMonths: 12 }))).toBe(4);
+    // A "growing" band with a stated figure under the bar is still traction.
+    expect(detectStage(makeSignals({ hasRevenue: true, revenueBand: "growing", arrAud: 120_000, revenueMonths: 6 }))).toBe(3);
+  });
+
+  it("gates stage 5 and 6 on the same revenue rule", () => {
+    expect(detectStage(makeSignals({ hasRevenue: true, revenueBand: "growing", hasCoFounder: true, arrAud: 120_000, revenueMonths: 6 }))).toBe(3);
+    expect(detectStage(makeSignals({ hasRevenue: true, revenueBand: "growing", hasCoFounder: true, arrAud: 400_000 }))).toBe(5);
+  });
+
+  it("classifies the 2026-09-15 live input (2 pilots, A$36k over 6 months, A$6M cap) as stage 3 Early Traction", () => {
+    const rawText =
+      "Brisbane agri-robotics pre-seed, 3 founders. Traction: 2 paid pilots (A$18,000 each), 14 orchards waitlist, LOIs from 2 co-ops. " +
+      "Revenue: A$36,000 in the last 6 months. Raising A$1.2M seed on a SAFE at A$6M cap.";
+    const signals = extractSignals({ rawText });
+    expect(signals).toMatchObject({
+      hasRevenue: true,
+      revenueBand: "early",
+      mrrAud: 6_000,
+      arrAud: 72_000,
+      revenueMonths: 6,
+      revenueKind: "period",
+      raiseAskAud: 1_200_000,
+      statedCapAud: 6_000_000,
+      statedCapKind: "cap",
+      pilotRevenueAud: 18_000,
+      pilotCount: 2,
+      targetRaiseMentioned: true,
+    });
+    expect(detectStage(signals)).toBe(3);
+    const analysis = computeSVI(signals);
+    expect(analysis.stage).toBe(3);
+    expect(analysis.stageLabel).toBe("Early Traction");
+  });
+
+  it("reads Vietnamese figures into the same signals", () => {
+    const signals = extractSignals({
+      rawText: "Doanh thu: 36.000 AUD trong 6 tháng qua. Gọi vốn 1,2 triệu AUD, định giá 6 triệu AUD.",
+    });
+    expect(signals).toMatchObject({ hasRevenue: true, mrrAud: 6_000, arrAud: 72_000, revenueMonths: 6, raiseAskAud: 1_200_000, statedCapAud: 6_000_000, targetRaiseMentioned: true });
+    expect(detectStage(signals)).toBe(3);
+  });
+
+  it("sets the revenue band by the stated figure, not by a stray '$1m' in the text", () => {
+    const signals = extractSignals({ rawText: "We have A$40k MRR in a $1m niche market." });
+    expect(signals.arrAud).toBe(480_000);
+    expect(signals.revenueBand).toBe("growing");
+    expect(detectStage(signals)).toBe(4);
   });
 
   it("returns 5 for growth stage", () => {

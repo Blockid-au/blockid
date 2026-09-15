@@ -13,14 +13,23 @@ import { sampleIntake, SAMPLE_ANALYSIS_ID } from "./fixtures";
 import { FIRST_ANALYSIS_REPORT_VERSION } from "./types";
 import { computeSVI } from "@/lib/svi-analysis";
 
+const LIVE_INPUT =
+  "Brisbane agri-robotics pre-seed, 3 founders. Traction: 2 paid pilots (A$18,000 each), 14 orchards waitlist, LOIs from 2 co-ops. " +
+  "Revenue: A$36,000 in the last 6 months. Raising A$1.2M seed on a SAFE at A$6M cap.";
+
 describe("parseRevenueFigure", () => {
   it("reads MRR and ARR in founder phrasing, and nothing from 'we have revenue'", () => {
-    expect(parseRevenueFigure("MRR is A$18,500 and growing")).toMatchObject({ mrrAud: 18_500, arrAud: 222_000 });
+    expect(parseRevenueFigure("MRR is A$18,500 and growing")).toMatchObject({ mrrAud: 18_500, arrAud: 222_000, kind: "mrr" });
     expect(parseRevenueFigure("we do $4k a month in revenue")).toMatchObject({ mrrAud: 4_000 });
-    expect(parseRevenueFigure("ARR of A$1.2M")).toMatchObject({ arrAud: 1_200_000, mrrAud: 100_000 });
+    expect(parseRevenueFigure("ARR of A$1.2M")).toMatchObject({ arrAud: 1_200_000, mrrAud: 100_000, kind: "arr" });
     expect(parseRevenueFigure("$250k in annual revenue")).toMatchObject({ arrAud: 250_000 });
     expect(parseRevenueFigure("We have revenue and customers.")).toBeNull();
     expect(parseRevenueFigure("")).toBeNull();
+  });
+
+  it("reads 'Revenue: A$36,000 in the last 6 months' as MRR 36,000 / 6, never the pilots' A$18,000", () => {
+    expect(parseRevenueFigure(LIVE_INPUT)).toMatchObject({ mrrAud: 6_000, arrAud: 72_000, kind: "period", periodMonths: 6 });
+    expect(parseRevenueFigure("Doanh thu: 36.000 AUD trong 6 tháng qua")).toMatchObject({ mrrAud: 6_000, kind: "period", periodMonths: 6 });
   });
 });
 
@@ -37,6 +46,37 @@ describe("buildValuationSection", () => {
     expect(v.highAud).toBeGreaterThanOrEqual(v.midAud);
     expect(v.note).toMatch(/No revenue was provided/);
     expect(v.methods.length).toBe(4);
+  });
+
+  it("prices the 2026-09-15 live input at stage 3 in the A$4–12M band and cross-checks the stated cap", () => {
+    const analysis = computeSVI(extractSignals({ rawText: LIVE_INPUT }));
+    const v = buildValuationSection(analysis, LIVE_INPUT);
+    expect(analysis.stage).toBe(3);
+    expect(v.basis).toBe("revenue");
+    expect(v.midAud).toBeGreaterThanOrEqual(4_000_000);
+    expect(v.midAud).toBeLessThanOrEqual(12_000_000);
+    expect(v.lowAud).toBeLessThan(v.midAud);
+    expect(v.highAud).toBeGreaterThan(v.midAud);
+    expect(v.assumptions[0]).toContain("A$36,000 in the last 6 months");
+    expect(v.assumptions[0]).toContain("MRR A$6,000 (ARR A$72,000 annualised)");
+    expect(v.assumptions.some((a) => /Paid pilots .* traction, not recurring revenue/.test(a))).toBe(true);
+    expect(v.assumptions.some((a) => a.startsWith("Your stated cap A$6.0M · indicative A$"))).toBe(true);
+    expect(v.assumptions.some((a) => /Berkus pillars capped at A\$500,000 each/.test(a))).toBe(true);
+    expect(v.assumptions.some((a) => /No revenue figure was provided/.test(a))).toBe(false);
+    expect(v.askAud).toBe(1_200_000);
+    expect(v.statedCapAud).toBe(6_000_000);
+    expect(v.capCrossCheck?.verdict).toBe("consistent");
+    expect(v.capCrossCheck?.note).toMatch(/→ consistent$/);
+  });
+
+  it("flags a stated cap far above the indicative range without overriding it", () => {
+    const rawText = "An idea for a marketplace for surplus building materials. Pre-revenue, two founders, raising A$500k on a SAFE at A$40M cap.";
+    const analysis = computeSVI(extractSignals({ rawText }));
+    const v = buildValuationSection(analysis, rawText);
+    expect(v.basis).toBe("svi_based");
+    expect(v.statedCapAud).toBe(40_000_000);
+    expect(v.capCrossCheck?.verdict).toBe("indicative_below");
+    expect(v.midAud).toBeLessThan(40_000_000 * 0.5);
   });
 
   it("anchors on the founder's revenue figure when one is in the text", () => {
