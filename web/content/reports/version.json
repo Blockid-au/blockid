@@ -1,21 +1,20 @@
 {
-  "version": "v3.12.0",
-  "updated_at": "2026-09-11T22:19:38Z",
-  "git_sha": "81c088f73",
-  "release_id": "money-finder-evaluator-ladder-hardening",
+  "version": "v3.13.2",
+  "updated_at": "2026-09-15T17:30:00Z",
+  "git_sha": "fae426c6d",
+  "release_id": "first-analysis-google-signin-ai-routing",
   "shipped_summary": [
-    "v3.12.0 — Money Finder (G11) and the Evaluator ladder (G12) shipped end-to-end on 2026-09-10, then hardened through eighteen review-fix-deploy cycles on 2026-09-11 (S6–S18).",
-    "Money Finder — 5-item public nav with 'Do you need money?', /funding intake → free preview → A$3 report (3 credits or plan), 56 grants + 199 programs as free directories with enriched detail pages, a public sample report, application drafts for grants and 15 programs, Founder Radar alerts bundled into Starter with activation nudges and a weekly refresh cron.",
-    "Evaluators — Scout A$79 / Firm A$149 / Program A$349 live with Stripe, card-required 7-day trial with one included Trust BizReport, 'Startups I am evaluating', batch scoring with cohort CSV and sponsor/LP report, weekly progress radar, activation checklist, investor 'Let matching founders see me' opt-in.",
-    "Security — atomic credit spend, spend-before-run on paid work, SSRF guard on catalogue fetches, constant-time secrets on every cron and internal route, edge CSRF gate for cookie-authenticated API mutations, member-aware project access with role enforcement (co-founder sharing works; two IDORs closed).",
-    "Quality — ESLint errors 271 → 0, accessibility fixes across the new UI, SEO sweep of 163 public pages (titles, OG, JSON-LD, sitemap of 252 funding pages), lean grouped directories (1.28 MB → ~390 KB), hourly cached catalogue reads, Gate-12 smoke extended to the new surfaces.",
-    "Compliance — privacy policy v2.2 covering Money Finder intake, evaluator-entered startup data, discoverability and retention, with a weekly retention sweep that mirrors the policy table (parity-tested).",
-    "Docs — generated phase×tier unlock matrix at /docs/unlocks, traction kit (angel groups, accelerator pilots, ProductHunt) under docs/marketing, roadmap-v2 reconciled against the codebase (25 shipped / 28 partial / 8 open)."
+    "v3.13.2 — S25–S32 (2026-09-13 → 15): connector resync + revenue→SVI, dividend statements, fundraising/equity paperwork, ESS annex, chain read-back, FY tax statements + DRIP, investor CRM, listing readiness; then the founder-reported first-analysis rework.",
+    "First analysis (S32-B/D/E) — every /analyze run echoes what was read (source per row), scores the SVI, gives an indicative valuation calibrated to AU medians (CTV 2024/25, Berkus A$500k pillars, ARR clamp, founder-cap cross-check), streams 7 C-level sections and emails a ≥10-page PDF (17–18 pages live) once, with resend and a 5-minute retry cron; benchmark-aware grounding validator with partial delivery.",
+    "Google sign-in (S32-A) — server-side OAuth redirect flow (/api/auth/google/start → /callback, PKCE + sealed state) beside the GIS popup; Google error codes surfaced on /auth/login; console checklist in docs/ops/google-sign-in.md (redirect URI now registered).",
+    "AI routing (S32-C/F) — task classes classify | report | synthesis; report chain Anthropic API → DeepInfra DeepSeek-V4-Flash (≈US$0.003/report) → Gemini → Claude CLI fallback only (20 RPM) → Groq; interactive calls (Money Finder narrative, CFO advisor, SVI sections) ordered by throughput with a 30 s budget; daily spend cap, provider status + last report provider on /api/status.",
+    "Quality — live-qa suite 157 tests weekly (cron Sun 07:00 UTC) with a self-provisioned, self-erased account; 900-page crawl 0 × 404/5xx; desktop + mobile click tests; nginx canonical https/apex 301s; S31 security review (per-IP ceiling, AI per-user slot, log redaction) and user-facing error sweep (0 raw errors, static guard)."
   ],
   "task_ids": [
-    "T0237–T0251 Money Finder",
-    "T0268–T0275 Evaluator Traction",
-    "S6–S18 post-launch hardening & conversion"
+    "S25–S30 product depth",
+    "S31 security + error sweep",
+    "S32-A…F first analysis / Google sign-in / AI routing",
+    "T0265 (CEO loop)"
   ],
-  "notes": "Every phase followed deploy → verify live → post-ship review → fix → deploy; nine reviews under docs/plans/reviews/. Two things the reviews caught that tests did not: a client component reaching server-only code through a dynamic import (build gate), and a viewer role reaching owner data through routes the feature had not converted (access review)."
+  "notes": "Deploys serialized from one session after a concurrent peer-session deploy SIGTERM'd a build. Migrations applied through 0391 via scripts/db/apply-migration.sh. Founder-only follow-ups: sign in once via both Google buttons, valid ANTHROPIC_API_KEY, Cloudflare tag gateway / email obfuscation switches."
 }
