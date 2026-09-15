@@ -60,7 +60,11 @@ export interface AnalyticsEventMap {
   // ── Auth ──
   login_page_viewed: Record<string, never>;
   login_google_clicked: Record<string, never>;
+  /** Google sign-in attempt began — `gis` = pop-up button, `redirect` = server-side OAuth. */
+  login_google_start: { flow: "gis" | "redirect" };
   login_google_success: Record<string, never>;
+  /** Google sign-in failed on the page — `reason` is a short code (see lib/auth/google-sign-in-errors.ts). */
+  login_google_error: { flow: "gis" | "redirect"; reason: string };
   login_email_requested: Record<string, never>;
   login_email_verified: Record<string, never>;
   login_password_success: Record<string, never>;
