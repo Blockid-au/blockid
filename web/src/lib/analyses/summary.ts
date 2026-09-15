@@ -19,6 +19,28 @@ export interface AnalysisListRow {
   svi_total: number | null;
   valuation_mid_aud: number | null;
   user_id: string | null;
+  /** S32-B — first-analysis job state; absent on pre-0390 rows. */
+  full_report_status?: string | null;
+  full_report_emailed_at?: string | null;
+}
+
+/** Founder-facing label for the first-analysis job on a list row (S32-B). */
+export function fullReportStatusText(row: {
+  full_report_status?: string | null;
+  full_report_emailed_at?: string | null;
+}): string {
+  switch (row.full_report_status) {
+    case "done":
+      return row.full_report_emailed_at ? "Full report emailed" : "Full report ready";
+    case "running":
+      return "Agents writing…";
+    case "queued":
+      return "Full report queued";
+    case "failed":
+      return "Full report retrying";
+    default:
+      return "Full report not started";
+  }
 }
 
 /**

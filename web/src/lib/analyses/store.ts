@@ -22,7 +22,7 @@ export const GUEST_ANALYSES_TABLE = "guest_analyses";
 
 /** Columns a list view needs. Deliberately excludes `input_text`/`intake`. */
 export const LIST_COLUMNS =
-  "id, created_at, input_kind, input_url, input_filename, stage, stage_label, svi_total, valuation_mid_aud, user_id";
+  "id, created_at, input_kind, input_url, input_filename, stage, stage_label, svi_total, valuation_mid_aud, user_id, full_report_status, full_report_emailed_at";
 
 /** Every column, for the single-row read. */
 export const DETAIL_COLUMNS =

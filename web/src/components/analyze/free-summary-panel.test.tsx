@@ -68,7 +68,9 @@ describe("FreeSummaryPanel", () => {
     // Spam Act consent is only meaningful if the scope is stated where the
     // address is collected, not just in the email footer.
     const html = render({ analysisId: "abc-123" });
-    expect(html).toContain("send this summary and nothing else");
+    // S32-B: the same address also receives the first-analysis PDF — stated
+    // here, where consent is given, so the scope is exactly two documents.
+    expect(html).toContain("send this summary and the first-analysis report, and nothing else");
     expect(html).toContain("unsubscribe");
   });
 

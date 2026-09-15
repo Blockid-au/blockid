@@ -61,6 +61,12 @@ const AnalyzeResults = dynamic(
   () => import("./analyze-results").then((m) => m.AnalyzeResults),
   { ssr: false },
 );
+// S32-B — the full first analysis: "What we read", the valuation working and
+// the seven C-level sections, streamed in from the background job.
+const FullReportPanel = dynamic(
+  () => import("./full-report-panel").then((m) => m.FullReportPanel),
+  { ssr: false },
+);
 
 type Phase = "intake" | "gate" | "confirm" | "live" | "results";
 
@@ -249,6 +255,10 @@ export function AnalyzeRoot({
   // run-2 account wall can read as a continuation of that one ask rather
   // than a second, competing one — see the note above SignupGatePanel.
   const [summaryEmail, setSummaryEmail] = React.useState<string | null>(null);
+  // Bumped when the free-summary card reports a send, so the full-report
+  // panel re-polls at once and the guest's locked sections open without a
+  // reload.
+  const [unlockNonce, setUnlockNonce] = React.useState(0);
   // Set when /api/intake declines to run because this browser is past its
   // free anonymous run. The numbers come from the API so the prompt states
   // facts rather than invented copy; null means the gate has not fired.
@@ -716,6 +726,16 @@ export function AnalyzeRoot({
         <>
           <AnalyzeResults intake={intake} />
           <div className="mx-auto mt-6 flex max-w-6xl flex-col gap-4 px-4 text-left">
+            {/* S32-B — the first analysis in full: what we read, the
+                valuation working, the seven C-level voices as they land.
+                Renders the echo instantly from the intake; everything else
+                streams in from the job keyed on the saved row. */}
+            <FullReportPanel
+              analysisId={analysisId}
+              authenticated={authenticated}
+              unlockNonce={unlockNonce}
+              intake={intake}
+            />
             {claimedNote && (
               <div
                 role="status"
@@ -731,7 +751,10 @@ export function AnalyzeRoot({
                 itself. Never rendered before `phase === "results"`. */}
             <FreeSummaryPanel
               analysisId={analysisId}
-              onSent={(email) => setSummaryEmail(email)}
+              onSent={(email) => {
+                setSummaryEmail(email);
+                setUnlockNonce((n) => n + 1);
+              }}
             />
             <SavedAnalysisPanel
               analysisId={analysisId}

@@ -9,7 +9,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowRight, LineChart, Loader2 } from "lucide-react";
+import { ArrowRight, Download, LineChart, Loader2, Mail } from "lucide-react";
 
 import {
   claimedMessage,
@@ -17,6 +17,7 @@ import {
   formatRunDate,
   formatSviTotal,
   formatValuationMid,
+  fullReportStatusText,
   inputKindLabel,
   savedAnalysisPath,
   stageText,
@@ -47,6 +48,51 @@ export function resolveListState(res: { ok: boolean; body?: unknown }): Load {
     return { status: "error" };
   }
   return { status: "ready", rows: body.analyses as AnalysisListRow[] };
+}
+
+/** "Email again" for one row — S32-B. Rate-limited server-side (3/day). */
+function EmailAgainButton({ id }: { id: string }) {
+  const [msg, setMsg] = React.useState<string | null>(null);
+  const [busy, setBusy] = React.useState(false);
+  async function send() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/analyses/${encodeURIComponent(id)}/full-report/resend`, { method: "POST", credentials: "same-origin" });
+      const body = (await res.json().catch(() => null)) as { outcome?: string } | null;
+      const o = body?.outcome ?? "send_failed";
+      setMsg(
+        o === "sent"
+          ? "Sent."
+          : o === "rate_limited"
+            ? "Limit of three a day reached."
+            : o === "not_ready"
+              ? "Still being written."
+              : o === "no_email"
+                ? "No address on file."
+                : "Could not send.",
+      );
+    } catch {
+      setMsg("Could not send.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <span className="inline-flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => void send()}
+        disabled={busy}
+        className="inline-flex items-center gap-1 text-xs font-semibold text-action hover:underline disabled:opacity-60"
+        data-testid="analyses-email-again"
+      >
+        <Mail aria-hidden strokeWidth={2} className="h-3.5 w-3.5" />
+        {busy ? "Sending…" : "Email again"}
+      </button>
+      {msg && <span className="text-[11px] text-muted" role="status">{msg}</span>}
+    </span>
+  );
 }
 
 export function AnalysesClient({ claimed = 0 }: AnalysesClientProps) {
@@ -169,7 +215,7 @@ export function AnalysesClient({ claimed = 0 }: AnalysesClientProps) {
                         {describeInput(row)}
                       </p>
                       <p className="mt-0.5 text-xs text-muted">
-                        {stageText(row)}
+                        {stageText(row)} · <span data-testid="analyses-report-status">{fullReportStatusText(row)}</span>
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-5">
@@ -192,6 +238,19 @@ export function AnalysesClient({ claimed = 0 }: AnalysesClientProps) {
                     </div>
                   </div>
                 </Link>
+                {row.full_report_status === "done" && (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-4 px-4" data-testid="analyses-report-actions">
+                    <a
+                      href={`/api/analyses/${encodeURIComponent(row.id)}/report.pdf`}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-action hover:underline"
+                      data-testid="analyses-download-pdf"
+                    >
+                      <Download aria-hidden strokeWidth={2} className="h-3.5 w-3.5" />
+                      Download PDF
+                    </a>
+                    <EmailAgainButton id={row.id} />
+                  </div>
+                )}
               </li>
             ))}
           </ul>

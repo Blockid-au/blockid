@@ -14,6 +14,7 @@ import {
   formatRunDateTime,
   formatSviTotal,
   formatValuationMid,
+  fullReportStatusText,
   inputKindLabel,
   savedAnalysisPath,
   savedAnalysisUrl,
@@ -22,6 +23,17 @@ import {
   tidyUrl,
   withClaimedParam,
 } from "./summary";
+
+describe("fullReportStatusText (S32-B)", () => {
+  it("names every job state in founder words, and a pre-0390 row honestly", () => {
+    expect(fullReportStatusText({ full_report_status: "done", full_report_emailed_at: "2026-09-15T00:00:00Z" })).toBe("Full report emailed");
+    expect(fullReportStatusText({ full_report_status: "done", full_report_emailed_at: null })).toBe("Full report ready");
+    expect(fullReportStatusText({ full_report_status: "running" })).toBe("Agents writing…");
+    expect(fullReportStatusText({ full_report_status: "queued" })).toBe("Full report queued");
+    expect(fullReportStatusText({ full_report_status: "failed" })).toBe("Full report retrying");
+    expect(fullReportStatusText({})).toBe("Full report not started");
+  });
+});
 
 describe("savedAnalysisPath / savedAnalysisUrl", () => {
   it("nests the run under the tool that produced it", () => {
