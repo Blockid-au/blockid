@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CheckCircle2, Circle, ChevronRight, TrendingUp, AlertCircle } from "lucide-react";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface ChecklistItem {
   id: string;
@@ -71,7 +72,7 @@ export function FundraisingReadinessClient() {
       .then(r => r.json())
       .then(d => {
         if (d.ok) setData(d);
-        else setError(d.error ?? "Failed to load");
+        else setError(userErrorMessage(ApiError.fromBody(200, d), "Failed to load"));
       })
       .catch(() => setError("Network error"))
       .finally(() => setLoading(false));

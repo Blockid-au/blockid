@@ -29,6 +29,7 @@ import {
   shortenAddress,
 } from "@/lib/wallet";
 import { useStartupToken } from "@/components/wallet/use-startup-token";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -595,7 +596,7 @@ export function ShareholdersClient({ isAdmin }: { isAdmin: boolean }) {
       });
       const json = await res.json();
       if (!json.ok) {
-        setAddError(json.error ?? "Failed to add shareholder");
+        setAddError(userErrorMessage(ApiError.fromBody(res.status, json), "Failed to add shareholder"));
         setAddLoading(false);
         return;
       }
@@ -633,7 +634,7 @@ export function ShareholdersClient({ isAdmin }: { isAdmin: boolean }) {
             `${shares.toLocaleString()} SVT shares issued to ${form.name} (on-chain mint completed)`,
           );
         } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : "Mint failed";
+          const msg = userErrorMessage(err, "Mint failed");
           setSuccess(
             `Shareholder added to database. On-chain mint failed: ${msg}`,
           );
@@ -688,7 +689,7 @@ export function ShareholdersClient({ isAdmin }: { isAdmin: boolean }) {
       setTransferModal(null);
       await fetchData();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Transfer failed";
+      const msg = userErrorMessage(err, "Transfer failed");
       setTransferError(msg);
     } finally {
       setTransferLoading(false);

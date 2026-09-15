@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { CheckCircle2, Clock, XCircle, Copy, ExternalLink, Trash2, Plus, X } from "lucide-react";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface LinkRow {
   token: string;
@@ -167,7 +168,7 @@ function CreateLinkModal({ onClose, onCreated }: CreateModalProps) {
         createdAt?: string;
       };
       if (!json.ok) {
-        setError(json.error ?? "Failed to create link.");
+        setError(userErrorMessage(ApiError.fromBody(res.status, json), "Failed to create link."));
         setLoading(false);
         return;
       }
@@ -336,6 +337,7 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
   const [links, setLinks] = React.useState<LinkRow[]>(initialLinks);
   const [showModal, setShowModal] = React.useState(false);
   const [revoking, setRevoking] = React.useState<string | null>(null);
+  const [revokeError, setRevokeError] = React.useState<string | null>(null);
   const [copiedToken, setCopiedToken] = React.useState<string | null>(null);
 
   function handleCreated(link: LinkRow) {
@@ -346,6 +348,7 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
   async function handleRevoke(token: string) {
     if (!confirm("Revoke this investor link? The investor will no longer be able to view the report.")) return;
     setRevoking(token);
+    setRevokeError(null);
     try {
       const res = await fetch(`/api/investor-link?id=${encodeURIComponent(token)}`, {
         method: "DELETE",
@@ -360,10 +363,11 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
           ),
         );
       } else {
-        alert(json.error ?? "Failed to revoke link.");
+        setRevokeError(userErrorMessage(ApiError.fromBody(res.status, json), "Could not revoke the link. Please try again."));
       }
-    } catch {
-      alert("Network error. Please try again.");
+    } catch (err) {
+      console.error("[investor-links] revoke", err);
+      setRevokeError(userErrorMessage(err, "Could not revoke the link. Please try again."));
     } finally {
       setRevoking(null);
     }
@@ -409,6 +413,10 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
     <>
       {showModal && (
         <CreateLinkModal onClose={() => setShowModal(false)} onCreated={handleCreated} />
+      )}
+
+      {revokeError && (
+        <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{revokeError}</p>
       )}
 
       <div className="rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden">

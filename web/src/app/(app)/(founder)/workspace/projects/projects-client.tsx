@@ -9,6 +9,7 @@ import {
 import { cn } from "@/lib/utils";
 import { canCreateAnotherStartup } from "@/lib/plans/startup-limit";
 import { SharedRoleChip } from "@/components/ui/project-switcher";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -132,6 +133,8 @@ export function ProjectsClient({
   const [archivingId, setArchivingId] = React.useState<string | null>(null);
   const [restoringId, setRestoringId] = React.useState<string | null>(null);
   const [restoreError, setRestoreError] = React.useState<string | null>(null);
+  const [editError, setEditError] = React.useState<string | null>(null);
+  const [archiveError, setArchiveError] = React.useState<string | null>(null);
 
   // S17-A — shared projects (accepted memberships) never count toward the
   // caller's plan quota; only the ones they own do.
@@ -154,6 +157,7 @@ export function ProjectsClient({
 
   function startEdit(project: Project) {
     setEditingId(project.id);
+    setEditError(null);
     setEditName(project.name);
     setEditDesc(project.description ?? "");
     setEditIndustry(project.industry ?? "");
@@ -201,7 +205,7 @@ export function ProjectsClient({
           "Founder accounts can own one startup. Upgrade to Accelerator to manage multiple.",
         );
       } else {
-        setCreateError(json.error ?? "Failed to create project");
+        setCreateError(userErrorMessage(ApiError.fromBody(res.status, json), "Failed to create project"));
       }
     } catch {
       setCreateError("Network error. Please try again.");
@@ -216,8 +220,7 @@ export function ProjectsClient({
 
     // Client-side GitHub URL validation
     if (editGithubUrl.trim() && !editGithubUrl.trim().startsWith("https://github.com/")) {
-      // Surface inline error — reuse createError for simplicity (edit modal has no dedicated state)
-      alert("GitHub URL must start with https://github.com/");
+      setEditError("GitHub URL must start with https://github.com/");
       return;
     }
 
@@ -241,9 +244,12 @@ export function ProjectsClient({
         );
         setEditingId(null);
         router.refresh();
+      } else {
+        setEditError(userErrorMessage(ApiError.fromBody(res.status, json), "Could not save the changes. Please try again."));
       }
-    } catch {
-      // Silently fail for now
+    } catch (err) {
+      console.error("[projects] edit", err);
+      setEditError(userErrorMessage(err, "Could not save the changes. Please try again."));
     } finally {
       setSaving(false);
     }
@@ -257,6 +263,7 @@ export function ProjectsClient({
     if (!target) return;
 
     setArchivingId(projectId);
+    setArchiveError(null);
     setProjects((prev) => prev.filter((p) => p.id !== projectId));
     const nowIso = new Date().toISOString();
     setArchivedProjects((prev) => [
@@ -273,14 +280,15 @@ export function ProjectsClient({
         // Roll back on failure
         setArchivedProjects((prev) => prev.filter((p) => p.id !== projectId));
         setProjects((prev) => [...prev, target]);
-        alert(json.error ?? "Failed to archive project");
+        setArchiveError(userErrorMessage(ApiError.fromBody(res.status, json), "Could not archive the project. Please try again."));
       } else {
         router.refresh();
       }
-    } catch {
+    } catch (err) {
+      console.error("[projects] archive", err);
       setArchivedProjects((prev) => prev.filter((p) => p.id !== projectId));
       setProjects((prev) => [...prev, target]);
-      alert("Network error. Please try again.");
+      setArchiveError(userErrorMessage(err, "Could not archive the project. Please try again."));
     } finally {
       setArchivingId(null);
     }
@@ -312,7 +320,7 @@ export function ProjectsClient({
         // Roll back
         setProjects((prev) => prev.filter((p) => p.id !== projectId));
         setArchivedProjects((prev) => [target, ...prev]);
-        setRestoreError(json.error ?? "Failed to restore project");
+        setRestoreError(userErrorMessage(ApiError.fromBody(res.status, json), "Failed to restore project"));
       } else {
         router.refresh();
       }
@@ -425,6 +433,13 @@ export function ProjectsClient({
           That project is shared with you as a <strong>viewer</strong>. You can
           read everything, but running analyses, uploading evidence or editing
           settings needs editor access — ask the project owner.
+        </div>
+      )}
+
+      {archiveError && (
+        <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 flex items-start gap-3">
+          <p className="flex-1 text-sm font-medium text-red-700">{archiveError}</p>
+          <button type="button" onClick={() => setArchiveError(null)} className="text-sm text-red-600 hover:underline cursor-pointer">Dismiss</button>
         </div>
       )}
 
@@ -826,6 +841,9 @@ export function ProjectsClient({
                   className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 />
               </div>
+              {editError && (
+                <p role="alert" className="text-sm text-red-600 font-medium">{editError}</p>
+              )}
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"

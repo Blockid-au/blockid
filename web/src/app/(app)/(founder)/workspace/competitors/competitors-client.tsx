@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { Competitor } from "@/lib/founder-features";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 // Tech enrichment fields returned from the AI fill endpoint
 interface AiSuggestion {
@@ -90,7 +91,7 @@ export function CompetitorsClient({ initial, disabled }: Props) {
           avgCompetitorWebScore?: number | null;
         };
       };
-      if (!json.ok) throw new Error(json.error ?? "AI suggest failed");
+      if (!json.ok) throw ApiError.fromBody(res.status, json);
       const suggestions = json.suggestions ?? [];
       if (suggestions.length > 0) {
         // Pre-fill the draft form with the first suggestion
@@ -120,7 +121,7 @@ export function CompetitorsClient({ initial, disabled }: Props) {
         });
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "AI suggest failed");
+      setError(userErrorMessage(e, "AI suggest failed"));
     } finally {
       setAiBusy(false);
     }
@@ -140,11 +141,11 @@ export function CompetitorsClient({ initial, disabled }: Props) {
         body: JSON.stringify(draft),
       });
       const json = await res.json();
-      if (!json.ok) throw new Error(json.error ?? "Add failed");
+      if (!json.ok) throw ApiError.fromBody(res.status, json);
       setItems((xs) => [...xs, json.item as Competitor]);
       setDraft({ ...EMPTY_DRAFT });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Add failed");
+      setError(userErrorMessage(e, "Add failed"));
     } finally {
       setBusy(false);
     }
@@ -155,7 +156,7 @@ export function CompetitorsClient({ initial, disabled }: Props) {
     const res = await fetch(`/api/founder/competitors/${id}`, { method: "DELETE" });
     const json = await res.json();
     if (json.ok) setItems((xs) => xs.filter((x) => x.id !== id));
-    else setError(json.error ?? "Delete failed");
+    else setError(userErrorMessage(ApiError.fromBody(res.status, json), "Delete failed"));
   }
 
   async function saveEdit(id: string) {
@@ -167,12 +168,12 @@ export function CompetitorsClient({ initial, disabled }: Props) {
         body: JSON.stringify(editDraft),
       });
       const json = await res.json();
-      if (!json.ok) throw new Error(json.error ?? "Save failed");
+      if (!json.ok) throw ApiError.fromBody(res.status, json);
       setItems((xs) => xs.map((x) => (x.id === id ? (json.item as Competitor) : x)));
       setEditingId(null);
       setEditDraft({});
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed");
+      setError(userErrorMessage(e, "Save failed"));
     } finally {
       setBusy(false);
     }

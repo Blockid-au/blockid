@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { GtmStrategy } from "@/lib/founder-features";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface Props {
   initial: GtmStrategy | null;
@@ -83,7 +84,7 @@ export function GtmStrategyClient({ initial, disabled, placeholders }: Props) {
         suggestion?: Partial<FormState> & { secondary_channels?: string[] };
         meta?: { note?: string };
       };
-      if (!json.ok) throw new Error(json.error ?? "AI suggest failed");
+      if (!json.ok) throw ApiError.fromBody(res.status, json);
       const s = json.suggestion;
       if (s) {
         setForm((f) => ({
@@ -106,7 +107,7 @@ export function GtmStrategyClient({ initial, disabled, placeholders }: Props) {
         setSaved(null);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "AI suggest failed");
+      setError(userErrorMessage(e, "AI suggest failed"));
     } finally {
       setAiBusy(false);
     }
@@ -131,10 +132,10 @@ export function GtmStrategyClient({ initial, disabled, placeholders }: Props) {
         body: JSON.stringify(payload),
       });
       const json = await res.json();
-      if (!json.ok) throw new Error(json.error ?? "Save failed");
+      if (!json.ok) throw ApiError.fromBody(res.status, json);
       setSaved(new Date().toLocaleTimeString());
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed");
+      setError(userErrorMessage(e, "Save failed"));
     } finally {
       setSaving(false);
     }

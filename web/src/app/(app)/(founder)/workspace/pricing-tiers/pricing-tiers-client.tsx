@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { PricingTier } from "@/lib/founder-features";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface Props {
   initial: PricingTier[];
@@ -85,11 +86,11 @@ export function PricingTiersClient({ initial, disabled }: Props) {
         body: JSON.stringify(payload),
       });
       const json = await res.json();
-      if (!json.ok) throw new Error(json.error ?? "Add failed");
+      if (!json.ok) throw ApiError.fromBody(res.status, json);
       setTiers((xs) => [...xs, json.item as PricingTier]);
       setDraft({ ...EMPTY_DRAFT });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Add failed");
+      setError(userErrorMessage(e, "Add failed"));
     } finally {
       setBusy(false);
     }
@@ -117,7 +118,7 @@ export function PricingTiersClient({ initial, disabled }: Props) {
         }>;
         meta?: { benchmark?: { sources?: string[] } };
       };
-      if (!json.ok) throw new Error(json.error ?? "AI suggest failed");
+      if (!json.ok) throw ApiError.fromBody(res.status, json);
       const suggestions = json.suggestions ?? [];
       if (suggestions.length > 0) {
         // Pre-fill the draft form with the first non-free suggestion
@@ -137,7 +138,7 @@ export function PricingTiersClient({ initial, disabled }: Props) {
         setAiNote(sources ? `Pricing benchmarks from: ${sources}` : "Pre-filled from AU market benchmarks.");
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "AI suggest failed");
+      setError(userErrorMessage(e, "AI suggest failed"));
     } finally {
       setAiBusy(false);
     }

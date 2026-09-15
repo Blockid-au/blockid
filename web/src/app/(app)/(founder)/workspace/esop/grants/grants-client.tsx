@@ -5,6 +5,7 @@ import { AlertCircle, Check, Loader2, Plus, X, ShieldCheck } from "lucide-react"
 import { cn } from "@/lib/utils";
 import type { Grant, GrantStatus, Div83AStatus } from "@/lib/esop-grants";
 import type { Div83ACheck } from "@/lib/div83a-checker";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface GrantsClientProps {
   initialGrants: Grant[];
@@ -127,7 +128,7 @@ export function GrantsClient({ initialGrants, disclaimer, readOnly = false }: Gr
       });
       const json = (await res.json()) as { ok: boolean; grant?: Grant; error?: string };
       if (!res.ok || !json.ok || !json.grant) {
-        setError(json.error ?? "Failed to create grant");
+        setError(userErrorMessage(ApiError.fromBody(res.status, json), "Failed to create grant"));
         return;
       }
       setGrants((prev) => [json.grant as Grant, ...prev]);
@@ -135,7 +136,7 @@ export function GrantsClient({ initialGrants, disclaimer, readOnly = false }: Gr
       setCreateOpen(false);
       setForm(makeEmptyForm());
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to create grant");
+      setError(userErrorMessage(err, "Failed to create grant"));
     } finally {
       setSubmitting(false);
     }
@@ -151,13 +152,13 @@ export function GrantsClient({ initialGrants, disclaimer, readOnly = false }: Gr
       });
       const json = (await res.json()) as { ok: boolean; grant?: Grant; error?: string };
       if (!res.ok || !json.ok || !json.grant) {
-        setError(json.error ?? "Failed to update grant");
+        setError(userErrorMessage(ApiError.fromBody(res.status, json), "Failed to update grant"));
         return;
       }
       setGrants((prev) => prev.map((g) => (g.id === id ? (json.grant as Grant) : g)));
       setSuccess(`Grant marked ${STATUS_LABELS[status].toLowerCase()}.`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to update grant");
+      setError(userErrorMessage(err, "Failed to update grant"));
     }
   }
 
@@ -199,7 +200,7 @@ export function GrantsClient({ initialGrants, disclaimer, readOnly = false }: Gr
         error?: string;
       };
       if (!res.ok || !json.ok || !json.status || !json.criteria) {
-        setError(json.error ?? "Check failed");
+        setError(userErrorMessage(ApiError.fromBody(res.status, json), "Check failed"));
         return;
       }
       setCheckResult({
@@ -218,7 +219,7 @@ export function GrantsClient({ initialGrants, disclaimer, readOnly = false }: Gr
       });
       await refreshGrants();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Check failed");
+      setError(userErrorMessage(err, "Check failed"));
     } finally {
       setChecking(false);
     }

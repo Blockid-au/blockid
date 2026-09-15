@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Plus } from "lucide-react";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 export interface ForecastListItem {
   id: string;
@@ -30,7 +31,7 @@ export function ForecastListClient() {
         const data = await res.json();
         setForecasts(data.forecasts || []);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
+        setError(userErrorMessage(err, "Something went wrong. Please try again."));
       } finally {
         setLoading(false);
       }

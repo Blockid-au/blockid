@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { TeamMember } from "@/lib/founder-features";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface Props {
   initial: TeamMember[];
@@ -90,11 +91,11 @@ export function TeamPlannerClient({ initial, disabled, suggestedAdvisors }: Prop
         body: JSON.stringify(payload),
       });
       const json = await res.json();
-      if (!json.ok) throw new Error(json.error ?? "Add failed");
+      if (!json.ok) throw ApiError.fromBody(res.status, json);
       setItems((xs) => [...xs, json.item as TeamMember]);
       setDraft({ ...EMPTY_DRAFT });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Add failed");
+      setError(userErrorMessage(e, "Add failed"));
     } finally {
       setBusy(false);
     }
@@ -122,7 +123,7 @@ export function TeamPlannerClient({ initial, disabled, suggestedAdvisors }: Prop
         assessment?: { gaps?: string[]; recommendations?: string[] };
         meta?: { benchmarkKeyRoles?: string[] };
       };
-      if (!json.ok) throw new Error(json.error ?? "AI suggest failed");
+      if (!json.ok) throw ApiError.fromBody(res.status, json);
       const suggestions = json.suggestions ?? [];
       if (suggestions.length > 0) {
         const s = suggestions[0];
@@ -140,7 +141,7 @@ export function TeamPlannerClient({ initial, disabled, suggestedAdvisors }: Prop
         setAiNote(hint ? `Key roles for this stage: ${hint}` : "Pre-filled from AU team benchmarks.");
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "AI suggest failed");
+      setError(userErrorMessage(e, "AI suggest failed"));
     } finally {
       setAiBusy(false);
     }

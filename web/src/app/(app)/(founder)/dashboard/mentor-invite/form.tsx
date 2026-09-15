@@ -15,6 +15,7 @@ import {
   type MentorAccessTier,
   tierLabel,
 } from "@/lib/mentor/access-tiers";
+import { readErrorBody, userErrorMessage } from "@/lib/ui/user-error";
 
 export interface MentorInviteFormProps {
   grantRequestId: string;
@@ -66,7 +67,7 @@ export function MentorInviteForm(props: MentorInviteFormProps) {
           body: JSON.stringify(body),
         });
         if (!res.ok) {
-          throw new Error(`Request failed (${res.status})`);
+          throw await readErrorBody(res);
         }
         // Fire the founder-side GA4 event for immediate funnel visibility.
         try {
@@ -109,7 +110,7 @@ export function MentorInviteForm(props: MentorInviteFormProps) {
         }
         router.push("/dashboard/settings/mentor-access");
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong");
+        setError(userErrorMessage(err, "Something went wrong. Please try again."));
         setBusy(null);
       }
     },

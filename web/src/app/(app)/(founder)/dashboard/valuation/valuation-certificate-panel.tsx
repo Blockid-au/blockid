@@ -25,6 +25,7 @@ import * as React from "react";
 import { Award, CheckCircle2, Download, ExternalLink, FolderPlus, Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { certificateCostLabel, formatAudCompact, type ValuationCertificateData } from "@/lib/valuation-certificate/types";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 export interface CertificateListItem {
   id: string;
@@ -100,7 +101,7 @@ export function ValuationCertificatePanel({ initial }: { initial?: CertificatePa
       .then((d) => {
         if (!alive) return;
         if (d?.ok) setState({ certificates: d.certificates ?? [], role: d.role ?? null, cost: d.cost ?? 5, included: Boolean(d.included) });
-        else setError(d?.error ?? "Could not load certificates");
+        else setError(userErrorMessage(ApiError.fromBody(200, d), "Could not load certificates"));
       })
       .catch(() => alive && setError("Network error"))
       .finally(() => alive && setLoading(false));
@@ -137,7 +138,7 @@ export function ValuationCertificatePanel({ initial }: { initial?: CertificatePa
     try {
       const { res, json } = await post("/api/valuation/certificate", essAnnex ? { confirm: true, annex: "ess" } : { confirm: true });
       if (!res.ok || !json.certificate) {
-        setError(json.error ?? "Issue failed");
+        setError(userErrorMessage(ApiError.fromBody(res.status, json), "Issue failed"));
         return;
       }
       setState((s) => (s ? { ...s, certificates: [json.certificate, ...s.certificates] } : s));
@@ -175,7 +176,7 @@ export function ValuationCertificatePanel({ initial }: { initial?: CertificatePa
       try {
         const { res, json } = await post(`/api/valuation/certificate/${c.id}/revoke`, { reason: reason.trim() });
         if (!res.ok || !json.certificate) {
-          setError(json.error ?? "Revoke failed");
+          setError(userErrorMessage(ApiError.fromBody(200, json), "Revoke failed"));
           return;
         }
         setState((s) => (s ? { ...s, certificates: s.certificates.map((x) => (x.id === c.id ? json.certificate : x)) } : s));

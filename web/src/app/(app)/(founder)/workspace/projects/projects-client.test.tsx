@@ -88,3 +88,26 @@ describe("ProjectsClient — S17-A shared projects", () => {
     expect(out).toContain("reached your founder_growth plan limit");
   });
 });
+
+// S31-E: the archive / edit / restore paths no longer call window.alert();
+// failures land in inline role="alert" slots and go through userErrorMessage()
+// so a raw API slug never reaches the screen. The fetch handlers cannot run
+// without a DOM, so the static render pins the absence of alert-only copy and
+// the copy the handlers derive from /api/projects failure bodies is pinned
+// through the same helper call they make.
+describe("S31-E error surfaces", () => {
+  it("static render has no window.alert-era strings and no alert slot until an error exists", () => {
+    const out = render([project("a")]);
+    expect(out).not.toContain("Network error. Please try again.");
+    expect(out).not.toContain('role="alert"');
+  });
+
+  it("archive / edit failure bodies map to user copy, never the slug", async () => {
+    const { ApiError, userErrorMessage } = await import("@/lib/ui/user-error");
+    const fb = "Could not archive the project. Please try again.";
+    expect(userErrorMessage(ApiError.fromBody(403, { ok: false, error: "forbidden" }), fb)).toBe("You don't have access to this.");
+    expect(userErrorMessage(ApiError.fromBody(409, { ok: false, error: "project_has_active_analyses" }), fb)).toBe(fb);
+    expect(userErrorMessage(ApiError.fromBody(400, { ok: false, error: "GitHub URL must start with https://github.com/" }), fb)).toBe("GitHub URL must start with https://github.com/");
+    expect(userErrorMessage(new TypeError("Failed to fetch"), fb)).toContain("Connection problem");
+  });
+});

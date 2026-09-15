@@ -9,6 +9,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { VcValuationReport } from "@/lib/agents/cfo-valuation";
 import { ValuationCertificatePanel } from "./valuation-certificate-panel";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 /* ─── Formatting ──────────────────────────────────────────────────────────── */
 function fmtAud(v: number): string {
@@ -186,7 +187,7 @@ export function VcValuationDashboard() {
           setConnectedRevenue(d.connectedRevenue ?? null);
           setMethodNote(d.methodNote ?? null);
         } else {
-          setError(d.error ?? "Could not load valuation");
+          setError(userErrorMessage(ApiError.fromBody(200, d), "Could not load valuation"));
         }
       })
       .catch(() => setError("Network error"))

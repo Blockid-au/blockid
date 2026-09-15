@@ -17,6 +17,7 @@ import {
   toEsicInput,
   type EsicFormState,
 } from "./esic-form.helpers";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface Props {
   initialInput: ESICInput | null;
@@ -152,12 +153,12 @@ export function EsicAssessmentClient(props: Props) {
         error?: string;
       };
       if (!res.ok || !json.ok || !json.result) {
-        setError(json.error ?? `Request failed (${res.status})`);
+        setError(userErrorMessage(ApiError.fromBody(res.status, json), "Something went wrong. Please try again."));
         return;
       }
       setResult(json.result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unexpected error");
+      setError(userErrorMessage(err, "Something went wrong. Please try again."));
     } finally {
       setSubmitting(false);
     }

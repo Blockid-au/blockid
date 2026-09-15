@@ -38,6 +38,7 @@ import {
 } from "@/lib/wallet";
 import { useStartupToken } from "@/components/wallet/use-startup-token";
 import { CreateShareToken } from "@/components/wallet/create-share-token";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -147,7 +148,7 @@ export function WalletClient() {
       setChainOk(true);
     } catch (err: unknown) {
       const msg =
-        err instanceof Error ? err.message : "Failed to connect wallet";
+        userErrorMessage(err, "Failed to connect wallet");
       setError(msg);
     } finally {
       setConnecting(false);
@@ -228,7 +229,7 @@ export function WalletClient() {
       }
     } catch (err: unknown) {
       const msg =
-        err instanceof Error ? err.message : "Transfer failed";
+        userErrorMessage(err, "Transfer failed");
       setTransferError(msg);
     } finally {
       setTransferring(false);

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { RoadmapMilestone } from "@/lib/founder-features";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface Props {
   initial: RoadmapMilestone[];
@@ -101,11 +102,11 @@ export function RoadmapBuilderClient({ initial, quarters, disabled }: Props) {
         body: JSON.stringify(payload),
       });
       const json = await res.json();
-      if (!json.ok) throw new Error(json.error ?? "Add failed");
+      if (!json.ok) throw ApiError.fromBody(res.status, json);
       setItems((xs) => [...xs, json.item as RoadmapMilestone]);
       setDraft(emptyDraft(draft.quarter));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Add failed");
+      setError(userErrorMessage(e, "Add failed"));
     } finally {
       setBusy(false);
     }
@@ -131,7 +132,7 @@ export function RoadmapBuilderClient({ initial, quarters, disabled }: Props) {
         }>;
         meta?: { topInsight?: string };
       };
-      if (!json.ok) throw new Error(json.error ?? "AI suggest failed");
+      if (!json.ok) throw ApiError.fromBody(res.status, json);
       const suggestions = json.suggestions ?? [];
       if (suggestions.length > 0) {
         // Pre-fill the draft with the first suggestion
@@ -148,7 +149,7 @@ export function RoadmapBuilderClient({ initial, quarters, disabled }: Props) {
         setAiMeta(json.meta ?? null);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "AI suggest failed");
+      setError(userErrorMessage(e, "AI suggest failed"));
     } finally {
       setAiBusy(false);
     }
