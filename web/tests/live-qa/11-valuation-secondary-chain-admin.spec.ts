@@ -22,7 +22,8 @@ test.describe("Valuation certificate + ESS annex", () => {
 
     await visit("/dashboard/valuation");
     if (noScore) {
-      if (vc.body.ok) expect(vc.body.reason).toBe("no_svi_analysis");
+      // `no_svi_account` (fresh founder, 2026-09-15) or `no_svi_analysis` (account, no score)
+      if (vc.body.ok) expect(["no_svi_analysis", "no_svi_account"]).toContain(vc.body.reason);
       else expect(String(vc.body.error)).toMatch(/SVI (account|analysis)/);
       expect(cert.status).toBe(409);
       expect(cert.body.error).toBe("no_svi_analysis");

@@ -328,6 +328,7 @@ Formatting for visual impact:
       user: userMessage,
       maxTokens,
       timeoutMs: 120_000, // free models are slow — allow 120s
+      interactive: true, // S32-F: synchronous founder wait
     });
 
     // ── 7. Charge credits (only after successful generation) ───────────

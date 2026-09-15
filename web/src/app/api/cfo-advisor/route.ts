@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 /** Adapter: ADK ModelCaller (system, user, maxTokens) → free callAI(). */
 const adkModel = async (system: string, user: string, maxTokens: number): Promise<string> =>
-  (await callAI({ system, user, maxTokens, timeoutMs: 90_000 })).text;
+  (await callAI({ system, user, maxTokens, timeoutMs: 90_000, interactive: true })).text;
 
 function toNum(v: unknown): number | undefined {
   const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN;

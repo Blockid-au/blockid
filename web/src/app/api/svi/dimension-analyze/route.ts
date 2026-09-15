@@ -194,6 +194,7 @@ Provide a thorough ${info.label} assessment.`;
       user: userMessage,
       maxTokens: 3072,
       timeoutMs: 120_000,
+      interactive: true, // S32-F: synchronous founder wait
     });
 
     let analysisData: Record<string, unknown>;

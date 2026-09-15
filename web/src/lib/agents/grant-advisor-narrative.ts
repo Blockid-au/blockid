@@ -351,7 +351,10 @@ export async function narrateFundingPlan(profile: GrantProfile, top: NarrativeIn
       user: buildNarrativePrompt(profile, top),
       maxTokens: 1600,
       temperature: 0.4,
-      timeoutMs: 90_000,
+      // S32-F: the founder is waiting on this response — fastest capable
+      // provider first (Groq ≈ 5 s for 1,600 tokens); over budget → template.
+      timeoutMs: 30_000,
+      interactive: true,
       agentId: "grant-advisor",
     });
     draft = (res.text ?? "").trim();

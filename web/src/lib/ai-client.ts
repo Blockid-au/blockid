@@ -768,6 +768,26 @@ export interface AICallOptions {
    *  it only takes a slot while user work is not waiting and a reserve of
    *  slots stays free. Default `user`. */
   priority?: "user" | "background";
+  /** S32-F — the caller is waiting synchronously (a request/response route
+   *  behind nginx's 310 s and Cloudflare's 100 s walls). Providers are
+   *  re-ordered by THROUGHPUT for this call — `INTERACTIVE_PROVIDER_ORDER`
+   *  (Groq ≈ 500 t/s, Cerebras ≈ 2000 t/s, then the quality-cost tiers) —
+   *  and `timeoutMs` defaults to INTERACTIVE_TIMEOUT_MS. The Money Finder
+   *  narrative (1,600 tokens) took 60–90 s on DeepSeek-V4-Flash after S32-C
+   *  and timed out the client; on Groq it is ≈ 5 s. Background jobs (first
+   *  analysis, crons) keep the quality-first order. */
+  interactive?: boolean;
+}
+
+/** Throughput ranking for `interactive` calls (fastest usable first); any
+ *  configured provider missing here is appended in its class order. */
+export const INTERACTIVE_PROVIDER_ORDER: Provider[] = ["groq", "cerebras", "gemini", "deepinfra", "claude-apikey", "sambanova", "claude-oauth", "openrouter", "ollama"];
+export const INTERACTIVE_TIMEOUT_MS = Number(process.env.AI_INTERACTIVE_TIMEOUT_MS ?? 30_000);
+
+/** Re-order a class candidate list for an interactive caller. Pure. */
+export function orderForInteractive(candidates: Provider[]): Provider[] {
+  const rank = new Map(INTERACTIVE_PROVIDER_ORDER.map((p, i) => [p, i] as const));
+  return [...candidates].sort((a, b) => (rank.get(a) ?? 99) - (rank.get(b) ?? 99));
 }
 
 export interface AICallUsage {
@@ -2052,7 +2072,8 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
   // provider uses (see header). Inferred from agentId / maxTokens when the
   // caller did not say.
   const taskClass = inferTaskClass(opts);
-  const allProviders = getAvailableProviders(taskClass);
+  const allProviders = opts.interactive ? orderForInteractive(getAvailableProviders(taskClass)) : getAvailableProviders(taskClass);
+  if (opts.interactive && opts.timeoutMs == null) opts = { ...opts, timeoutMs: INTERACTIVE_TIMEOUT_MS };
 
   if (allProviders.length === 0) {
     throw new Error(

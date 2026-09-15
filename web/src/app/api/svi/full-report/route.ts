@@ -257,6 +257,7 @@ ${sections}`;
       user: userMessage,
       maxTokens,
       timeoutMs: 180_000, // 3 minutes — full reports need significant generation time
+      interactive: true, // S32-F: synchronous founder wait — fastest capable provider first
     });
 
     // Spend credits after success

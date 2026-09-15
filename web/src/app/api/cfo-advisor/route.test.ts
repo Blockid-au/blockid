@@ -334,6 +334,7 @@ describe("POST /api/cfo-advisor — adkModel adapter (callAI seam)", () => {
       user: "user",
       maxTokens: 700,
       timeoutMs: 90_000,
+      interactive: true,
     });
   });
 

@@ -1237,3 +1237,11 @@ describe("S32-C — callAI stamps `via` + `taskClass` on the result", () => {
     spend._resetSpendGuardForTests();
   });
 });
+
+describe("S32-F interactive ordering", () => {
+  it("orders configured providers by throughput for interactive calls and keeps unknowns last", async () => {
+    const { orderForInteractive } = await import("./ai-client");
+    expect(orderForInteractive(["deepinfra", "gemini", "claude-oauth", "groq", "openrouter"])).toEqual(["groq", "gemini", "deepinfra", "claude-oauth", "openrouter"]);
+    expect(orderForInteractive([])).toEqual([]);
+  });
+});
