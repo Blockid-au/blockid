@@ -34,10 +34,11 @@ export type ProbeProvider =
   | "cerebras"
   | "sambanova"
   | "deepinfra"
+  | "gemini"
   | "ollama";
 
 export const PROBE_PROVIDERS: ProbeProvider[] = [
-  "anthropic", "claude-oauth", "claude-proxy", "openrouter", "groq", "cerebras", "sambanova", "deepinfra", "ollama",
+  "anthropic", "claude-oauth", "claude-proxy", "openrouter", "groq", "cerebras", "sambanova", "deepinfra", "gemini", "ollama",
 ];
 
 export interface ProviderHeadroom {
@@ -96,6 +97,7 @@ export function configuredProviders(env: NodeJS.ProcessEnv = process.env): Parti
   if (env.CEREBRAS_API_KEY) out.cerebras = env.CEREBRAS_API_KEY;
   if (env.SAMBANOVA_API_KEY) out.sambanova = env.SAMBANOVA_API_KEY;
   if (env.DEEPINFRA_API_KEY) out.deepinfra = env.DEEPINFRA_API_KEY;
+  if (env.GOOGLE_GEMINI_API_KEY) out.gemini = env.GOOGLE_GEMINI_API_KEY;
   if (env.OLLAMA_HOST || env.OLLAMA_ENABLED === "true") out.ollama = env.OLLAMA_HOST ?? "http://localhost:11434";
   return out;
 }
@@ -248,6 +250,28 @@ export async function probeProvider(provider: ProbeProvider, secret: string, dep
         const res = await timedFetch(fetchImpl, url, { method: "GET", headers: { authorization: `Bearer ${secret}` } }, timeoutMs);
         const body = await res.text();
         const status = classifyHttp(res.status, body);
+        return base(status, { http_status: res.status, detail: status === "valid" ? undefined : head(body) });
+      }
+      case "gemini": {
+        // S32-C — the models endpoint answers 200 for a valid key (no token
+        // spend). Key travels in the x-goog-api-key header, never the URL.
+        const res = await timedFetch(fetchImpl, "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1", {
+          method: "GET",
+          headers: { "x-goog-api-key": secret },
+        }, timeoutMs);
+        const body = await res.text();
+        const status = res.status === 400 && /API key not valid|API_KEY_INVALID/i.test(body) ? "invalid_key" : classifyHttp(res.status, body);
+        return base(status, { http_status: res.status, detail: status === "valid" ? "quality-cost tier (report classes)" : head(body) });
+      }
+      case "gemini": {
+        // S32-C — the models list answers with the key in a HEADER (never
+        // the URL, so it cannot land in a log line). `valid` when it answers.
+        const res = await timedFetch(fetchImpl, "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1", {
+          method: "GET",
+          headers: { "x-goog-api-key": secret },
+        }, timeoutMs);
+        const body = await res.text();
+        const status = res.status === 400 && /api key not valid|api_key_invalid/i.test(body) ? "invalid_key" : classifyHttp(res.status, body);
         return base(status, { http_status: res.status, detail: status === "valid" ? undefined : head(body) });
       }
       case "ollama": {
