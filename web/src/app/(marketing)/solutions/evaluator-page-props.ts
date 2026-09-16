@@ -55,8 +55,14 @@ export const COMPARE_CHATGPT_HREF = "/compare/chatgpt";
  * the traction tracking sheet. The free 30-day scoring itself is an admin
  * credit grant on that account, not a Stripe coupon (plan §4).
  */
+// TEMP until the founder mints STRIPE_PRICE_ACCEL_INTAKE(_ANNUAL) (SOT §5,
+// G14 Wave A): `/signup` renders a plan without a Stripe price as
+// "(unavailable)", so the pilot lands on Program (A$349, 7-day) for now.
+// Flip both this and EVALUATOR_SIGNUP_HREF.accelerator back to
+// `accelerator_intake` in the same commit that adds the env vars, and update
+// tests/e2e/smoke/post-deploy.spec.ts ("pilot offer CTA").
 export const ACCELERATOR_PILOT_HREF =
-  "/signup?plan=accelerator_intake&trial=1&from=pilot";
+  "/signup?plan=investor_vc_small&trial=1&from=pilot";
 
 /**
  * Regulatory facts about Auschain PTY LTD that we can point at, not

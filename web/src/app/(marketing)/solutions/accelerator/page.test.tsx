@@ -51,7 +51,7 @@ describe("/solutions/accelerator — pilot CTA props", () => {
   it("lands on the evaluator signup with the Intake link pre-selected and a pilot referrer", () => {
     const url = new URL(ACCELERATOR_PILOT_HREF, "https://blockid.au");
     expect(url.pathname).toBe("/signup");
-    expect(url.searchParams.get("plan")).toBe("accelerator_intake");
+    expect(url.searchParams.get("plan")).toBe("investor_vc_small");
     expect(url.searchParams.get("trial")).toBe("1");
     expect(url.searchParams.get("from")).toBe("pilot");
     // `plan=` alone must resolve the evaluator segment on /signup.
