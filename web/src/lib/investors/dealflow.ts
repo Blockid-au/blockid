@@ -82,11 +82,12 @@ function num(v: unknown): number | null {
 
 /** Pure: apply the non-fit filters + sort to loaded rows (exported for the test). */
 export function applyDealFlowFilters(rows: DealFlowRowV2[], f: DealFlowFiltersV2): DealFlowRowV2[] {
+  const has = (list: readonly string[], v: string | null) => v !== null && list.includes(v);
   const out = rows.filter((r) => {
-    if (f.industry.length && !f.industry.includes(r.industry) && !(r.industry_secondary && f.industry.includes(r.industry_secondary))) return false;
-    if (f.business_model.length && !f.business_model.includes(r.business_model)) return false;
-    if (f.stage.length && !f.stage.includes(r.stage_key)) return false;
-    if (f.state.length && !(r.hq_state && f.state.includes(r.hq_state))) return false;
+    if (f.industry.length && !has(f.industry, r.industry) && !has(f.industry, r.industry_secondary)) return false;
+    if (f.business_model.length && !has(f.business_model, r.business_model)) return false;
+    if (f.stage.length && !has(f.stage, r.stage_key)) return false;
+    if (f.state.length && !has(f.state, r.hq_state)) return false;
     if (f.tags.length && !f.tags.some((t) => r.tags.includes(t))) return false;
     if (typeof f.min_svi === "number" && (r.svi === null || r.svi < f.min_svi)) return false;
     if (f.moved && (r.svi_delta_30d === null || Math.abs(r.svi_delta_30d) < MOVED_THRESHOLD)) return false;

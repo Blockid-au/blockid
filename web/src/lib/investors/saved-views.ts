@@ -17,24 +17,6 @@ export const SAVED_VIEW_NAME_MAX = 40;
 export const DEALFLOW_SORTS = ["fit", "svi", "updated"] as const;
 export type DealFlowSort = (typeof DEALFLOW_SORTS)[number];
 
-/** The deal-flow filter axes (§B.8): every list is an OR within the axis, AND across axes. */
-export interface DealFlowFiltersV2 {
-  industry: string[];
-  business_model: string[];
-  stage: string[];
-  state: string[];
-  tags: string[];
-  /** fit ≥ N (0–100); undefined = the FIT_FLOOR_V2 default. */
-  min_fit?: number;
-  /** SVI ≥ N. */
-  min_svi?: number;
-  /** "moved ≥ 5 pts in 30 d". */
-  moved?: boolean;
-  /** Which mandate's scores to read; undefined = the default mandate. */
-  mandate_id?: string;
-  sort: DealFlowSort;
-}
-
 export const EMPTY_FILTERS: DealFlowFiltersV2 = Object.freeze({
   industry: [],
   business_model: [],
@@ -47,6 +29,7 @@ export const EMPTY_FILTERS: DealFlowFiltersV2 = Object.freeze({
 const list = <T extends readonly [string, ...string[]]>(values: T) => z.array(z.enum(values)).max(32).default([]);
 const tuple = <T extends readonly string[]>(v: T) => v as unknown as [T[number], ...T[number][]];
 
+/** The deal-flow filter axes (§B.8): every list is an OR within the axis, AND across axes. */
 export const dealFlowFiltersSchema = z.object({
   industry: list(tuple(INDUSTRIES)),
   business_model: list(tuple(BUSINESS_MODELS)),
@@ -59,6 +42,13 @@ export const dealFlowFiltersSchema = z.object({
   mandate_id: z.uuid().optional(),
   sort: z.enum(DEALFLOW_SORTS).default("fit"),
 });
+
+/**
+ * `min_fit` = fit ≥ N (undefined → FIT_FLOOR_V2); `min_svi` = SVI ≥ N;
+ * `moved` = "moved ≥ 5 pts in 30 d"; `mandate_id` = which mandate's scores
+ * (undefined → the default mandate); `sort` = fit | svi | updated.
+ */
+export type DealFlowFiltersV2 = z.infer<typeof dealFlowFiltersSchema>;
 
 export const savedViewSchema = z.object({
   id: z.string().regex(/^[a-z0-9]{6,16}$/),
@@ -103,6 +93,11 @@ export function newViewId(existing: readonly SavedView[], rand: () => number = M
 
 // ─── URL ⇄ filters ───────────────────────────────────────────────────────────
 
+/** Keep only the values of a vocabulary (typed narrowing). */
+function keep<T extends readonly string[]>(values: readonly string[], vals: T): T[number][] {
+  return values.filter((x): x is T[number] => (vals as readonly string[]).includes(x));
+}
+
 type SP = Record<string, string | string[] | undefined>;
 
 function first(v: string | string[] | undefined): string | undefined {
@@ -132,13 +127,12 @@ export function filtersFromSearchParams(sp: SP): DealFlowFiltersV2 {
     mandate_id: first(sp.mandate) ?? first(sp.mandate_id),
     sort: first(sp.sort),
   };
-  const keep = <T extends readonly [string, ...string[]]>(values: readonly string[], vals: T) => values.filter((x) => (vals as readonly string[]).includes(x));
   const out: DealFlowFiltersV2 = {
-    industry: keep(raw.industry, tuple(INDUSTRIES)),
-    business_model: keep(raw.business_model, tuple(BUSINESS_MODELS)),
-    stage: keep(raw.stage, tuple(CANONICAL_STAGES)),
-    state: keep(raw.state, tuple(HQ_STATES)),
-    tags: keep(raw.tags, tuple(TAGS)),
+    industry: keep(raw.industry, INDUSTRIES),
+    business_model: keep(raw.business_model, BUSINESS_MODELS),
+    stage: keep(raw.stage, CANONICAL_STAGES),
+    state: keep(raw.state, HQ_STATES),
+    tags: keep(raw.tags, TAGS),
     sort: (DEALFLOW_SORTS as readonly string[]).includes(raw.sort ?? "") ? (raw.sort as DealFlowSort) : "fit",
   };
   if (raw.min_fit !== undefined && raw.min_fit >= 0 && raw.min_fit <= 100) out.min_fit = raw.min_fit;
@@ -166,9 +160,9 @@ export function filtersToQuery(f: Partial<DealFlowFiltersV2>): string {
 
 /** Toggle one value on a list axis and return the new href for the deal-flow page. */
 export function toggleFilterHref(base: string, f: DealFlowFiltersV2, axis: "industry" | "business_model" | "stage" | "state" | "tags", value: string): string {
-  const cur = f[axis];
+  const cur = f[axis] as string[];
   const next = cur.includes(value) ? cur.filter((x) => x !== value) : [...cur, value];
-  const q = filtersToQuery({ ...f, [axis]: next });
+  const q = filtersToQuery({ ...f, [axis]: next } as DealFlowFiltersV2);
   return q ? `${base}?${q}` : base;
 }
 
@@ -188,13 +182,12 @@ export function activeAxes(f: DealFlowFiltersV2): string[] {
 
 /** The default "My mandate" view = the mandate's own axes as filters (§B.8). */
 export function mandateAsFilters(m: { id: string; sectors_include: readonly string[]; business_models: readonly string[]; stages: readonly string[]; geographies: readonly string[]; tags_include: readonly string[]; min_svi: number | null }): DealFlowFiltersV2 {
-  const states = m.geographies.filter((g) => (HQ_STATES as readonly string[]).includes(g));
   return {
-    industry: m.sectors_include.filter((s) => (INDUSTRIES as readonly string[]).includes(s)),
-    business_model: m.business_models.filter((s) => (BUSINESS_MODELS as readonly string[]).includes(s)),
-    stage: m.stages.filter((s) => (CANONICAL_STAGES as readonly string[]).includes(s)),
-    state: states,
-    tags: m.tags_include.filter((t) => (TAGS as readonly string[]).includes(t)),
+    industry: keep(m.sectors_include, INDUSTRIES),
+    business_model: keep(m.business_models, BUSINESS_MODELS),
+    stage: keep(m.stages, CANONICAL_STAGES),
+    state: keep(m.geographies, HQ_STATES),
+    tags: keep(m.tags_include, TAGS),
     ...(typeof m.min_svi === "number" ? { min_svi: m.min_svi } : {}),
     mandate_id: m.id,
     sort: "fit",
