@@ -166,7 +166,13 @@ describe("GET /api/auth/google/callback — state guard", () => {
 
   it("tampered cookie → 400", async () => {
     const nonce = armState();
-    jar.get.set("blockid_google_oauth", jar.get.get("blockid_google_oauth")!.replace(/.$/, (c) => (c === "A" ? "B" : "A")));
+    // Flip a character in the MIDDLE of the sealed token. The last base64url
+    // character carries unused low bits, so flipping A↔B there can decode to
+    // the same bytes and the cookie still verifies (flaky 302 at deploy gate 6).
+    const sealed = jar.get.get("blockid_google_oauth")!;
+    const i = Math.floor(sealed.length / 2);
+    const flipped = sealed[i] === "A" ? "B" : "A";
+    jar.get.set("blockid_google_oauth", sealed.slice(0, i) + flipped + sealed.slice(i + 1));
     const res = await run(`?code=abc&state=${nonce}`);
     expect(res.status).toBe(400);
     expect(google.getToken).not.toHaveBeenCalled();
