@@ -299,7 +299,7 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
   {
     "id": "accelerator_starter",
     "segment": "accelerator",
-    "name": "Cohort Starter",
+    "name": "Cohort 25",
     "price_aud_cents": 50000,
     "annual_price_aud_cents": 500000,
     "interval": "monthly",
@@ -308,12 +308,20 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "feature_flags": [
       "cohort.view",
       "cohort.view.stats",
-      "accelerator.cohort"
+      "accelerator.cohort",
+      "investor.dealflow",
+      "watchlist",
+      "svi.feed",
+      "diligence_pack",
+      "lp_report",
+      "grant_finder",
+      "money_radar"
     ],
     "usage_limits": {
       "profiles": 25,
-      "seats": 15,
-      "monthly_credits": 2000
+      "reports_per_month": 50,
+      "seats": 5,
+      "monthly_credits": 200
     },
     "active": true,
     "sort_order": 100
@@ -321,7 +329,7 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
   {
     "id": "accelerator_growth",
     "segment": "accelerator",
-    "name": "Cohort Growth",
+    "name": "Cohort 100",
     "price_aud_cents": 150000,
     "annual_price_aud_cents": 1500000,
     "interval": "monthly",
@@ -331,12 +339,20 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "cohort.view",
       "cohort.view.stats",
       "accelerator.cohort",
+      "investor.dealflow",
+      "watchlist",
+      "svi.feed",
+      "diligence_pack",
+      "lp_report",
+      "grant_finder",
+      "money_radar",
       "cohort.manage"
     ],
     "usage_limits": {
       "profiles": 100,
-      "seats": 50,
-      "monthly_credits": 8000
+      "reports_per_month": 200,
+      "seats": 15,
+      "monthly_credits": 800
     },
     "active": true,
     "sort_order": 110
@@ -354,17 +370,24 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "cohort.view",
       "cohort.view.stats",
       "accelerator.cohort",
+      "investor.dealflow",
+      "watchlist",
+      "svi.feed",
+      "diligence_pack",
+      "lp_report",
+      "grant_finder",
+      "money_radar",
       "cohort.manage",
       "white_label",
       "api",
       "api.access",
-      "sso",
-      "lp_report"
+      "sso"
     ],
     "usage_limits": {
       "profiles": -1,
       "seats": -1,
-      "monthly_credits": -1
+      "monthly_credits": -1,
+      "reports_per_month": -1
     },
     "active": true,
     "sort_order": 120
@@ -389,6 +412,96 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     },
     "active": true,
     "sort_order": 95
+  },
+  {
+    "id": "investor_fund",
+    "segment": "investor_vc",
+    "name": "Fund",
+    "price_aud_cents": 99900,
+    "annual_price_aud_cents": 999000,
+    "interval": "monthly",
+    "trial_days": 7,
+    "stripe_env_var": "STRIPE_PRICE_INVESTOR_FUND",
+    "feature_flags": [
+      "watchlist",
+      "svi.feed",
+      "investor.dealflow",
+      "advisory_equity",
+      "advisor_portal",
+      "advisor.cohort",
+      "white_label",
+      "portfolio",
+      "diligence_pack",
+      "api",
+      "api.access",
+      "lp_export",
+      "lp_report",
+      "grant_finder",
+      "money_radar",
+      "custom_benchmark",
+      "multi_fund",
+      "weekly_delta"
+    ],
+    "usage_limits": {
+      "profiles": 500,
+      "portfolio_size": 500,
+      "reports_per_month": -1,
+      "seats": 10
+    },
+    "active": true,
+    "sort_order": 85
+  },
+  {
+    "id": "accelerator_intake",
+    "segment": "accelerator",
+    "name": "Intake link",
+    "price_aud_cents": 24900,
+    "annual_price_aud_cents": 249000,
+    "interval": "monthly",
+    "trial_days": 14,
+    "stripe_env_var": "STRIPE_PRICE_ACCEL_INTAKE",
+    "feature_flags": [
+      "cohort.view",
+      "cohort.view.stats",
+      "accelerator.cohort",
+      "investor.dealflow",
+      "watchlist",
+      "svi.feed",
+      "diligence_pack",
+      "lp_report",
+      "grant_finder",
+      "money_radar"
+    ],
+    "usage_limits": {
+      "profiles": 60,
+      "reports_per_month": 40,
+      "seats": 3
+    },
+    "active": true,
+    "sort_order": 98
+  },
+  {
+    "id": "index_api",
+    "segment": "investor_vc",
+    "name": "Index API",
+    "price_aud_cents": 29900,
+    "annual_price_aud_cents": 299000,
+    "interval": "monthly",
+    "trial_days": 0,
+    "stripe_env_var": "STRIPE_PRICE_INDEX_API",
+    "feature_flags": [
+      "api",
+      "api.access",
+      "svi.feed"
+    ],
+    "usage_limits": {
+      "profiles": 0,
+      "reports_per_month": 0,
+      "seats": 2,
+      "api_daily_calls": 1000
+    },
+    "active": true,
+    "sort_order": 130
   }
 ] as const;
 

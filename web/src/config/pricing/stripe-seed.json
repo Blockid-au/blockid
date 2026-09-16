@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-10T13:05:14.908Z",
+  "generated_at": "2026-09-16T14:52:17.810Z",
   "plans": [
     {
       "plan_id": "founder_starter",
@@ -80,7 +80,7 @@
     },
     {
       "plan_id": "accelerator_starter",
-      "product_name": "Cohort Starter",
+      "product_name": "Cohort 25",
       "segment": "accelerator",
       "stripe_env_var": "STRIPE_PRICE_ACCEL_STARTER",
       "currency": "aud",
@@ -91,7 +91,7 @@
     },
     {
       "plan_id": "accelerator_growth",
-      "product_name": "Cohort Growth",
+      "product_name": "Cohort 100",
       "segment": "accelerator",
       "stripe_env_var": "STRIPE_PRICE_ACCEL_GROWTH",
       "currency": "aud",
@@ -120,6 +120,39 @@
       "monthly_amount_cents": null,
       "annual_amount_cents": null,
       "interval": "once",
+      "trial_days": 0
+    },
+    {
+      "plan_id": "investor_fund",
+      "product_name": "Fund",
+      "segment": "investor_vc",
+      "stripe_env_var": "STRIPE_PRICE_INVESTOR_FUND",
+      "currency": "aud",
+      "monthly_amount_cents": 99900,
+      "annual_amount_cents": 999000,
+      "interval": "monthly",
+      "trial_days": 7
+    },
+    {
+      "plan_id": "accelerator_intake",
+      "product_name": "Intake link",
+      "segment": "accelerator",
+      "stripe_env_var": "STRIPE_PRICE_ACCEL_INTAKE",
+      "currency": "aud",
+      "monthly_amount_cents": 24900,
+      "annual_amount_cents": 249000,
+      "interval": "monthly",
+      "trial_days": 14
+    },
+    {
+      "plan_id": "index_api",
+      "product_name": "Index API",
+      "segment": "investor_vc",
+      "stripe_env_var": "STRIPE_PRICE_INDEX_API",
+      "currency": "aud",
+      "monthly_amount_cents": 29900,
+      "annual_amount_cents": 299000,
+      "interval": "monthly",
       "trial_days": 0
     }
   ]
