@@ -15,9 +15,21 @@
 //
 // Layout: pure scorer (client-safe, no supabase) + `matchInvestorsForProject`
 // which reads through a small store interface tests can fake.
+//
+// G13-W3-T2 (BA spec §B.8 "Startups → investors"): the same entry point now
+// ALSO ranks the investor's `investor_mandates` (0393) with the
+// FIT_WEIGHTS_V2 scorer (lib/investors/fit-v2.ts) — the mandate direction.
+// A mandate is a candidate only when BOTH the 0323 master flag
+// (app_users.investor_discoverable) and the mandate's own `discoverable`
+// are true. The `investor_prefs` path below stays for one release (the
+// mirror period, R4); an investor with a discoverable mandate is listed
+// once, from the mandate. `InvestorMatch.source` says which.
 
 import type { InvestorPreferences, StageBand } from "@/lib/investor-portal";
 import type { FounderStage } from "@/lib/agents/grant-advisor-rules";
+import { FIT_FLOOR_V2, fitStartupFromLegacy, scoreFit, type FitMandate, type FitStartup, type FitStartupTaxonomy } from "@/lib/investors/fit-v2";
+export { FIT_FLOOR_V2 };
+import { chequeBandFor } from "@/lib/investors/mandates-shared";
 import { fill, FUNDING_COPY } from "./copy";
 
 /** Canonical support inbox — the footer / signup form hard-code the same address. */
@@ -36,6 +48,16 @@ export interface InvestorMatchProject {
   state: string | null;
   /** Latest SVI (0–100); null = no snapshot. */
   svi: number | null;
+  /** G13 S-T2: the startup_taxonomy row (fit-v2 axes); null → crosswalked from the legacy fields. */
+  taxonomy?: FitStartupTaxonomy | null;
+  /** Founder ask (A$) for the cheque axis; null = unknown. */
+  raise_aud?: number | null;
+}
+
+/** G13 S-T2: one discoverable mandate + the (masked) investor behind it. */
+export interface MandateCandidate {
+  mandate: FitMandate & { id: string; label: string; thesis: string | null; discoverable: boolean };
+  investor: { id: string; name: string; plan: string | null; discoverable: boolean };
 }
 
 export interface InvestorCandidate {
@@ -62,15 +84,19 @@ export interface InvestorMatch {
   score: number;
   /** Human reasons — one per axis that passed ("Invests in agtech", …). */
   reasons: string[];
-  /** Axes the founder does NOT meet (still listed when the total clears the floor). */
-  gaps: FitGate[];
+  /** Axes the founder does NOT meet (still listed when the total clears the floor) — legacy axis keys or fit-v2 gap sentences. */
+  gaps: string[];
   sectors: string[];
-  stages: StageBand[];
+  stages: string[];
   geos: string[];
   cheque_band: string | null;
   min_svi: number | null;
   /** `mailto:` for the "Request intro" button (Q3: support routes it by hand). */
   intro_href: string;
+  /** G13 S-T2: "mandate" (investor_mandates + FIT_WEIGHTS_V2) or "prefs" (legacy investor_prefs, one release). */
+  source: "mandate" | "prefs";
+  /** Mandate id when `source === "mandate"`. */
+  mandate_id?: string;
 }
 
 // ─── Pure: normalisation ─────────────────────────────────────────────────────
@@ -257,7 +283,77 @@ export function scoreInvestorFit(project: InvestorMatchProject, investor: Invest
     cheque_band: typeof prefs.cheque_band === "string" ? prefs.cheque_band : null,
     min_svi: minSvi,
     intro_href: introHref(project.name, investor.name),
+    source: "prefs",
   };
+}
+
+// ─── Pure: mandate direction (G13 S-T2, fit-v2) ─────────────────────────────
+
+/** The fit-v2 startup for a founder project: its taxonomy row, else the crosswalked legacy fields. */
+export function fitStartupForProject(project: InvestorMatchProject): FitStartup {
+  if (project.taxonomy) {
+    return { project_id: project.id, taxonomy: project.taxonomy, svi: project.svi, raise_aud: project.raise_aud ?? null, revenue_aud: null, growth_pct: null };
+  }
+  return fitStartupFromLegacy({ id: project.id, industry: project.industry, stage: project.stage, state: project.state, svi: project.svi, raise_aud: project.raise_aud ?? null });
+}
+
+/** Score one discoverable mandate against the project. `null` = not discoverable (either flag) / gated / below the floor. */
+export function scoreMandateFit(project: InvestorMatchProject, cand: MandateCandidate): InvestorMatch | null {
+  if (!cand.investor.discoverable || !cand.mandate.discoverable) return null;
+  const fit = scoreFit(cand.mandate, fitStartupForProject(project));
+  if (fit.score < FIT_FLOOR_V2) return null;
+  const m = cand.mandate;
+  return {
+    investor_id: cand.investor.id,
+    name: cand.investor.name,
+    firm: m.label.trim() || null,
+    thesis: m.thesis && m.thesis.trim() ? m.thesis.trim() : null,
+    plan: cand.investor.plan,
+    score: fit.score,
+    reasons: fit.reasons,
+    gaps: fit.gaps,
+    sectors: [...m.sectors_include],
+    stages: [...m.stages],
+    geos: [...m.geographies],
+    cheque_band: chequeBandFor(m.cheque_min_aud, m.cheque_max_aud),
+    min_svi: m.min_svi,
+    intro_href: introHref(project.name, cand.investor.name),
+    source: "mandate",
+    mandate_id: m.id,
+  };
+}
+
+/**
+ * Rank mandates AND legacy prefs candidates together: an investor with a
+ * discoverable mandate is listed once (from the mandate); the rest fall
+ * back to their prefs for one release. Highest score first, ties → name.
+ */
+export function rankAll(
+  project: InvestorMatchProject,
+  prefsCandidates: readonly InvestorCandidate[],
+  mandateCandidates: readonly MandateCandidate[],
+  limit = INVESTOR_MATCH_LIMIT,
+): InvestorMatch[] {
+  const out: InvestorMatch[] = [];
+  const covered = new Set<string>();
+  const bestByInvestor = new Map<string, InvestorMatch>();
+  for (const c of mandateCandidates) {
+    const m = scoreMandateFit(project, c);
+    if (!m) continue;
+    const prev = bestByInvestor.get(m.investor_id);
+    if (!prev || m.score > prev.score) bestByInvestor.set(m.investor_id, m);
+  }
+  for (const m of bestByInvestor.values()) {
+    out.push(m);
+    covered.add(m.investor_id);
+  }
+  for (const c of prefsCandidates) {
+    if (covered.has(c.id)) continue;
+    const m = scoreInvestorFit(project, c);
+    if (m) out.push(m);
+  }
+  out.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+  return out.slice(0, Math.max(0, limit));
 }
 
 /** Rank every discoverable candidate, highest score first (ties → name), capped at `limit`. */
@@ -275,6 +371,8 @@ export function rankInvestors(project: InvestorMatchProject, candidates: readonl
 
 export interface InvestorMatchStore {
   listDiscoverableInvestors(): Promise<InvestorCandidate[]>;
+  /** G13 S-T2: active + discoverable mandates whose owner has the master flag on. Optional — legacy fakes omit it. */
+  listDiscoverableMandates?(): Promise<MandateCandidate[]>;
 }
 
 /** Minimal Supabase surface (same shape radar-sweep.ts uses). */
@@ -290,8 +388,97 @@ interface InvestorRow {
   investor_discoverable: boolean | null;
 }
 
+interface MandateRow {
+  id: string;
+  owner_user_id: string | null;
+  label: string | null;
+  thesis: string | null;
+  discoverable: boolean | null;
+  sectors_include: unknown;
+  sectors_exclude: unknown;
+  business_models: unknown;
+  customer_types: unknown;
+  stages: unknown;
+  cheque_min_aud: unknown;
+  cheque_max_aud: unknown;
+  lead_or_follow: unknown;
+  geographies: unknown;
+  revenue_min_aud: unknown;
+  growth_min_pct: unknown;
+  min_svi: unknown;
+  tags_include: unknown;
+  tags_exclude: unknown;
+  weights: unknown;
+}
+
+const list = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : []);
+const numOrNull = (v: unknown): number | null => {
+  if (v === null || v === undefined) return null;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
+/** Columns the founder direction reads — never the owner's email. */
+export const MANDATE_CANDIDATE_COLUMNS =
+  "id, owner_user_id, label, thesis, discoverable, sectors_include, sectors_exclude, business_models, customer_types, stages, cheque_min_aud, cheque_max_aud, lead_or_follow, geographies, revenue_min_aud, growth_min_pct, min_svi, tags_include, tags_exclude, weights";
+
 export function createSupabaseInvestorStore(db: SupabaseLike): InvestorMatchStore {
   return {
+    async listDiscoverableMandates() {
+      try {
+        const { data, error } = await db
+          .from("investor_mandates")
+          .select(MANDATE_CANDIDATE_COLUMNS)
+          .eq("is_active", true)
+          .eq("discoverable", true)
+          .limit(2000);
+        if (error || !Array.isArray(data) || data.length === 0) return [];
+        const rows = data as MandateRow[];
+        const ownerIds = Array.from(new Set(rows.map((r) => r.owner_user_id).filter((x): x is string => !!x)));
+        if (ownerIds.length === 0) return [];
+        const { data: owners, error: ownerErr } = await db
+          .from("app_users")
+          .select("id, display_name, plan, investor_discoverable")
+          .in("id", ownerIds)
+          .eq("investor_discoverable", true);
+        if (ownerErr || !Array.isArray(owners)) return [];
+        const byId = new Map((owners as Omit<InvestorRow, "investor_prefs">[]).map((o) => [o.id, o]));
+        const out: MandateCandidate[] = [];
+        for (const r of rows) {
+          const owner = r.owner_user_id ? byId.get(r.owner_user_id) : undefined;
+          if (!owner) continue;
+          const lof = r.lead_or_follow;
+          out.push({
+            mandate: {
+              id: r.id,
+              label: r.label ?? "",
+              thesis: r.thesis ?? null,
+              discoverable: r.discoverable === true,
+              sectors_include: list(r.sectors_include),
+              sectors_exclude: list(r.sectors_exclude),
+              business_models: list(r.business_models),
+              customer_types: list(r.customer_types),
+              stages: list(r.stages),
+              cheque_min_aud: numOrNull(r.cheque_min_aud),
+              cheque_max_aud: numOrNull(r.cheque_max_aud),
+              lead_or_follow: lof === "lead" || lof === "follow" || lof === "both" ? lof : null,
+              geographies: list(r.geographies),
+              revenue_min_aud: numOrNull(r.revenue_min_aud),
+              growth_min_pct: numOrNull(r.growth_min_pct),
+              min_svi: numOrNull(r.min_svi),
+              tags_include: list(r.tags_include),
+              tags_exclude: list(r.tags_exclude),
+              weights: r.weights && typeof r.weights === "object" ? (r.weights as Record<string, number>) : null,
+            },
+            investor: { id: owner.id, name: (owner.display_name ?? "").trim() || "Investor", plan: owner.plan ?? null, discoverable: owner.investor_discoverable === true },
+          });
+        }
+        return out;
+      } catch {
+        // 0393 not applied / fake db without .in() → no mandate candidates, never a crash.
+        return [];
+      }
+    },
     async listDiscoverableInvestors() {
       const { data, error } = await db
         .from("app_users")
@@ -333,8 +520,11 @@ export async function matchInvestorsForProject(
       if (!db) return [];
       store = createSupabaseInvestorStore(db);
     }
-    const candidates = await store.listDiscoverableInvestors();
-    return rankInvestors(project, candidates, opts.limit ?? INVESTOR_MATCH_LIMIT);
+    const [candidates, mandates] = await Promise.all([
+      store.listDiscoverableInvestors(),
+      store.listDiscoverableMandates ? store.listDiscoverableMandates().catch(() => [] as MandateCandidate[]) : Promise.resolve([] as MandateCandidate[]),
+    ]);
+    return rankAll(project, candidates, mandates, opts.limit ?? INVESTOR_MATCH_LIMIT);
   } catch (err) {
     console.warn("[investor-match] failed", err instanceof Error ? err.message : String(err));
     return [];

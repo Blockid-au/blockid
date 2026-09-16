@@ -194,3 +194,14 @@ export interface InvestorMandate extends FitMandate {
   created_at: string;
   updated_at: string;
 }
+
+/** Coarse legacy `investor_prefs.cheque_band` for a cheque range (mirror + founder card). */
+export function chequeBandFor(min: number | null, max: number | null): "under_25k" | "25k_100k" | "100k_500k" | "500k_2m" | "2m_plus" | "any" {
+  const hi = max ?? min;
+  if (hi === null) return "any";
+  if (hi < 25_000) return "under_25k";
+  if (hi <= 100_000) return "25k_100k";
+  if (hi <= 500_000) return "100k_500k";
+  if (hi <= 2_000_000) return "500k_2m";
+  return "2m_plus";
+}

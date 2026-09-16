@@ -54,6 +54,7 @@ import {
   MANDATE_KINDS,
   MANDATE_LABEL_MAX_LEN,
   MANDATE_THESIS_MAX_LEN,
+  chequeBandFor,
   type InvestorMandate,
   type InvestorOrganisation,
   type MandateInput,
@@ -439,16 +440,6 @@ export function mandateToLegacyPrefs(m: InvestorMandate): Partial<InvestorPrefer
     firm: m.label || null,
     thesis: m.thesis ? m.thesis.slice(0, THESIS_MAX_LEN) : null,
   };
-}
-
-function chequeBandFor(min: number | null, max: number | null): InvestorPreferences["cheque_band"] {
-  const hi = max ?? min;
-  if (hi === null) return "any";
-  if (hi < 25_000) return "under_25k";
-  if (hi <= 100_000) return "25k_100k";
-  if (hi <= 500_000) return "100k_500k";
-  if (hi <= 2_000_000) return "500k_2m";
-  return "2m_plus";
 }
 
 async function writePrefsMirror(user: UpsertMandateUser, m: InvestorMandate): Promise<{ ok: boolean; reason?: string }> {
