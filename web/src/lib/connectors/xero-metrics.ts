@@ -55,6 +55,13 @@ export interface XeroMetrics {
   totalIncomeAud: number;
   totalExpensesAud: number;
   netProfitAud: number;
+  // S-R5 §C.7 "Xero P&L → CGH/IRI: expose gross margin + opex for unit economics".
+  /** "Cost of Sales" section total when the P&L has one; null otherwise. */
+  costOfSalesAud?: number | null;
+  /** Operating expenses = expenses excluding cost of sales (or the only expenses section). */
+  operatingExpensesAud?: number | null;
+  /** (income − cost of sales) ÷ income, 0–100; null when there is no cost-of-sales section or no income. */
+  grossMarginPct?: number | null;
   /** Sum of closing balances across bank accounts; null when the report had none. */
   bankBalanceAud: number | null;
   windowMonths: number;
@@ -77,10 +84,15 @@ export function extractPLValues(report: XeroReport): {
   totalIncomeAud: number;
   totalExpensesAud: number;
   netProfitAud: number;
+  costOfSalesAud: number | null;
+  operatingExpensesAud: number | null;
+  grossMarginPct: number | null;
 } {
   let totalIncomeAud = 0;
   let totalExpensesAud = 0;
   let netProfitAud = 0;
+  let costOfSalesAud: number | null = null;
+  let operatingExpensesAud: number | null = null;
 
   const rows = report.Rows ?? [];
 
@@ -94,10 +106,18 @@ export function extractPLValues(report: XeroReport): {
 
     if (title.includes("income") || title.includes("revenue")) {
       totalIncomeAud = parseXeroAmount(summaryValue);
+    } else if (title.includes("cost of sales") || title.includes("cost of goods") || title.includes("direct cost")) {
+      // S-R5: Xero's "Less Cost of Sales" section sits between Income and
+      // Operating Expenses; it is what the gross margin is built from.
+      costOfSalesAud = parseXeroAmount(summaryValue);
+      totalExpensesAud += costOfSalesAud;
     } else if (title.includes("expense") || title.includes("cost")) {
-      totalExpensesAud = parseXeroAmount(summaryValue);
+      const v = parseXeroAmount(summaryValue);
+      operatingExpensesAud = (operatingExpensesAud ?? 0) + v;
+      totalExpensesAud += v;
     }
   }
+  const grossMarginPct = costOfSalesAud !== null && totalIncomeAud > 0 ? Math.round(((totalIncomeAud - costOfSalesAud) / totalIncomeAud) * 1000) / 10 : null;
 
   const netRow = rows.find(
     (r) => r.RowType === "Row" && (r.Cells?.[0]?.Value ?? "").toLowerCase().includes("net"),
@@ -108,7 +128,7 @@ export function extractPLValues(report: XeroReport): {
     netProfitAud = totalIncomeAud - totalExpensesAud;
   }
 
-  return { totalIncomeAud, totalExpensesAud, netProfitAud };
+  return { totalIncomeAud, totalExpensesAud, netProfitAud, costOfSalesAud, operatingExpensesAud, grossMarginPct };
 }
 
 /**
@@ -147,7 +167,7 @@ export function xeroMetricsFromReports(
   tenantName: string | null,
 ): XeroMetrics {
   const plReport = pl.Reports?.[0];
-  const totals = plReport ? extractPLValues(plReport) : { totalIncomeAud: 0, totalExpensesAud: 0, netProfitAud: 0 };
+  const totals = plReport ? extractPLValues(plReport) : { totalIncomeAud: 0, totalExpensesAud: 0, netProfitAud: 0, costOfSalesAud: null, operatingExpensesAud: null, grossMarginPct: null };
   return {
     ...totals,
     bankBalanceAud: extractBankBalance(bank.Reports?.[0]),

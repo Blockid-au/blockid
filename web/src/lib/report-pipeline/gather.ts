@@ -72,6 +72,9 @@ export interface ConnectedRevenueLike {
   priorMrrAud?: number | null;
   priorCapturedAt?: string | null;
   churnRate90dPct?: number | null;
+  /** S-R5: Xero P&L gross margin (0–100) / opex for the window (unit economics, CGH / IRI). */
+  grossMarginPct?: number | null;
+  operatingExpensesAud?: number | null;
 }
 
 /** Parsed founder signals as the report needs them (connectors/linkedin-upload.ts FounderSignals). */
@@ -528,9 +531,9 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
           rows.push(row("connector", prov, src, `${prov.toUpperCase()} signals (last sync)`, "evidenced", dimsFor[prov] ?? ["tre"], capturedAt, value));
         });
         revenue.forEach((r) => {
-          rows.push(row("connected_revenue", r.provider, r.provider, `${r.provider === "stripe" ? "Stripe" : "Xero"} revenue (last sync)`, "evidenced", ["tre", "iri", "cgh"], r.capturedAt, `mrr_aud = ${Math.round(r.mrrAud)}${typeof r.priorMrrAud === "number" ? `; prior_mrr_aud = ${Math.round(r.priorMrrAud)}` : ""}${typeof r.churnRate90dPct === "number" ? `; churn_90d_pct = ${r.churnRate90dPct}` : ""}`));
+          rows.push(row("connected_revenue", r.provider, r.provider, `${r.provider === "stripe" ? "Stripe" : "Xero"} revenue (last sync)`, "evidenced", ["tre", "iri", "cgh"], r.capturedAt, `mrr_aud = ${Math.round(r.mrrAud)}${typeof r.priorMrrAud === "number" ? `; prior_mrr_aud = ${Math.round(r.priorMrrAud)}` : ""}${typeof r.churnRate90dPct === "number" ? `; churn_90d_pct = ${r.churnRate90dPct}` : ""}${typeof r.grossMarginPct === "number" ? `; gross_margin_pct = ${r.grossMarginPct}` : ""}${typeof r.operatingExpensesAud === "number" ? `; opex_aud = ${Math.round(r.operatingExpensesAud)}` : ""}`));
         });
-        results.connectorSignals = { providers: Object.keys(byProvider), signals: byProvider, revenue: revenue.map((r) => ({ provider: r.provider, mrrAud: Math.round(r.mrrAud), capturedAt: r.capturedAt, priorMrrAud: r.priorMrrAud ?? null, churnRate90dPct: r.churnRate90dPct ?? null })) };
+        results.connectorSignals = { providers: Object.keys(byProvider), signals: byProvider, revenue: revenue.map((r) => ({ provider: r.provider, mrrAud: Math.round(r.mrrAud), capturedAt: r.capturedAt, priorMrrAud: r.priorMrrAud ?? null, churnRate90dPct: r.churnRate90dPct ?? null, grossMarginPct: r.grossMarginPct ?? null, operatingExpensesAud: r.operatingExpensesAud ?? null })) };
         diag("connectors", "ok", t0);
       })
     : Promise.resolve(void diag("connectors", "skipped", now(), "no db"));
