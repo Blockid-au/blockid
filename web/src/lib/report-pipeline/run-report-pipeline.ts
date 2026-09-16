@@ -292,6 +292,9 @@ export interface EmailArgs {
   industry: string;
   stage: string;
   baseUrl?: string;
+  /** S-R4: the run's own ReportV2 + the persisted snapshot, so the email renders the same document as the web/PDF. */
+  reportV2?: ReportV2 | null;
+  snapshotId?: string | null;
 }
 
 export interface RunReportPipelineInput {
@@ -542,7 +545,7 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
       state.dimResults.forEach((d) => {
         dimEmail[d.dimension] = { score: d.score, priority: d.priority, insights: d.insights, label: d.label };
       });
-      void (deps.sendEmail ?? defaultSendEmail)({ userId: input.userId, projectId: input.projectId, dimResults: dimEmail, criterionResults: state.criteria, industry: state.industry ?? "Technology", stage: state.stage ?? ctx.sviAnalysis.stageLabel, baseUrl: input.baseUrl }).catch((err: unknown) => console.warn("[run-report-pipeline:email] error", err));
+      void (deps.sendEmail ?? defaultSendEmail)({ userId: input.userId, projectId: input.projectId, dimResults: dimEmail, criterionResults: state.criteria, industry: state.industry ?? "Technology", stage: state.stage ?? ctx.sviAnalysis.stageLabel, baseUrl: input.baseUrl, reportV2: report.reportV2 ?? null, snapshotId: state.snapshotId ?? null }).catch((err: unknown) => console.warn("[run-report-pipeline:email] error", err));
     }
   }
 
