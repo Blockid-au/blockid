@@ -555,8 +555,8 @@ export function WorkspaceLayout({ children, user, currentPhase: currentPhaseProp
             {/* Notifications — every width */}
             <NotificationBell />
 
-            {/* Avatar → account menu (Profile · Billing · Settings · Guides · Sign out) — every width */}
-            <HeaderAccountMenu user={user} onNavigate={(item) => trackMenu("user-menu", item)} />
+            {/* Avatar → account menu — the shared rows (lib/nav/user-menu.ts), every width */}
+            <HeaderAccountMenu user={user} persona={personaKey} onNavigate={(item) => trackMenu("user-menu", item)} />
           </div>
         </header>
 

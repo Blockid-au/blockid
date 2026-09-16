@@ -19,10 +19,20 @@
  *    so the header stays mountable on statically generated pages. Signed
  *    out → "Sign in" + the "Do you need money?" CTA; signed in → "My
  *    workspace" + the account menu; a neutral skeleton while resolving.
+ *  - The ONLY public header (G13-W5-IA5, spec §E S-IA5). `site/navbar.tsx`
+ *    — the floating glass bar ~50 app / docs / tools / auth pages mounted —
+ *    is deleted; those pages mount this component instead. `variant="light"`
+ *    re-skins the bar with the semantic light tokens for pages whose own
+ *    ground is light and quiet (login, reset, error); the default `"dark"`
+ *    is the navy island every marketing page already carries.
+ *  - The signed-in menu is `lib/nav/user-menu.ts` — the same rows as the
+ *    workspace avatar menu, so a founder never meets two account menus.
  */
 
 import {
+  createContext,
   useCallback,
+  useContext,
   useEffect,
   useId,
   useRef,
@@ -38,6 +48,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Settings2,
   TrendingUp,
   X,
 } from "lucide-react";
@@ -49,7 +60,108 @@ import {
   type AuthUser,
 } from "@/hooks/useAuthUser";
 import { trackEvent } from "@/lib/analytics";
+import { USER_MENU_SIGN_OUT_LABEL, userMenuItems, type UserMenuIcon } from "@/lib/nav/user-menu";
 import { LocaleSwitcher } from "./locale-switcher";
+
+// ---------------------------------------------------------------------------
+// Variant (G13-W5-IA5) — one component, two skins
+// ---------------------------------------------------------------------------
+
+export type NavVariant = "dark" | "light";
+
+/**
+ * Every colour class the bar uses, per skin. `dark` is the pre-S-IA5 navy
+ * island verbatim (legacy `brand-*` utilities — fixed colours, not theme
+ * tokens); `light` uses only semantic tokens so it resolves against the
+ * light `--ds-*` ramp inside its own `data-theme="light"` scope.
+ */
+interface NavTheme {
+  header: string;
+  brandWord: string;
+  brandDot: string;
+  ring: string;
+  ringOffset: string;
+  navLink: string;
+  panel: string;
+  divider: string;
+  sectionHeading: string;
+  item: string;
+  mobileTrigger: string;
+  mobilePanel: string;
+  mobileToggle: string;
+  skeleton: string;
+  workspaceBtn: string;
+  signIn: string;
+  cta: string;
+  avatar: string;
+  avatarBtn: string;
+  text: string;
+  muted: string;
+  planBadge: string;
+  accentLink: string;
+}
+
+const NAV_THEMES: Readonly<Record<NavVariant, NavTheme>> = {
+  dark: {
+    header: "border-b border-white/5 bg-brand-navy/85 backdrop-blur",
+    brandWord: "text-brand-ink",
+    brandDot: "text-brand-cyan",
+    ring: "focus-visible:ring-brand-cyan",
+    ringOffset: "focus-visible:ring-offset-brand-navy",
+    navLink: "text-brand-ink-muted hover:text-brand-ink",
+    panel: "border border-brand-navy/40 bg-brand-navy shadow-2xl",
+    divider: "border-white/5",
+    sectionHeading: "text-brand-cyan/80",
+    item: "text-brand-ink hover:bg-brand-cyan/10 focus:bg-brand-cyan/10",
+    mobileTrigger: "text-brand-ink-muted hover:bg-white/5 hover:text-brand-ink",
+    mobilePanel: "border-t border-white/5 bg-brand-navy",
+    mobileToggle: "text-brand-ink",
+    skeleton: "bg-white/5",
+    workspaceBtn: "border border-brand-cyan/40 text-brand-cyan hover:border-brand-cyan hover:bg-brand-cyan/10",
+    signIn: "text-brand-ink-muted hover:text-brand-ink",
+    cta: "bg-brand-cyan text-brand-navy hover:bg-brand-blue-bright",
+    avatar: "bg-brand-cyan text-brand-navy",
+    avatarBtn: "hover:bg-white/5",
+    text: "text-brand-ink",
+    muted: "text-brand-ink-muted",
+    planBadge: "bg-brand-cyan/15 text-brand-cyan",
+    accentLink: "text-brand-cyan",
+  },
+  light: {
+    header: "border-b border-line-subtle bg-surface/90 backdrop-blur",
+    brandWord: "text-primary",
+    brandDot: "text-action",
+    ring: "focus-visible:ring-action",
+    ringOffset: "focus-visible:ring-offset-surface",
+    navLink: "text-secondary hover:text-primary",
+    panel: "border border-line-subtle bg-surface-raised shadow-xl",
+    divider: "border-line-subtle",
+    sectionHeading: "text-action",
+    item: "text-primary hover:bg-surface-hover focus:bg-surface-hover",
+    mobileTrigger: "text-secondary hover:bg-surface-hover hover:text-primary",
+    mobilePanel: "border-t border-line-subtle bg-surface",
+    mobileToggle: "text-primary",
+    skeleton: "bg-surface-hover",
+    workspaceBtn: "border border-action/40 text-action hover:border-action hover:bg-action/10",
+    signIn: "text-secondary hover:text-primary",
+    cta: "bg-action text-on-action hover:bg-action-hover",
+    avatar: "bg-action text-on-action",
+    avatarBtn: "hover:bg-surface-hover",
+    text: "text-primary",
+    muted: "text-secondary",
+    planBadge: "bg-action/10 text-action",
+    accentLink: "text-action",
+  },
+};
+
+const NavThemeContext = createContext<NavTheme>(NAV_THEMES.dark);
+
+function useNavTheme(): NavTheme {
+  return useContext(NavThemeContext);
+}
+
+/** Exported for the colocated test — the skin table is a contract, not styling trivia. */
+export const NAV_VARIANT_CLASSES = NAV_THEMES;
 
 // ---------------------------------------------------------------------------
 // Menu model
@@ -91,11 +203,11 @@ export interface MenuLink {
 export type MenuEntry = MenuGroup | MenuLink;
 
 /**
- * The site's one primary navigation. site/navbar.tsx (the auth-aware shell
- * used by ~50 app and docs pages) derives its items from this list, so the
- * two bars cannot drift again. They had: the legacy copy was still offering
- * "Trust Reports" and "Browse startups" after both were retired everywhere
- * else.
+ * The site's one primary navigation. Until G13-W5-IA5 a second bar
+ * (site/navbar.tsx, ~50 app and docs pages) derived its items from this
+ * list; that bar is gone and every public page mounts NavV2 itself, so the
+ * menu cannot drift again (the legacy copy once still offered "Trust
+ * Reports" and "Browse startups" after both were retired everywhere else).
  *
  * G11 T0238 (2026-09-10, docs/plans/money-finder-2026-09-10.md §3a): five
  * entries, ordered the way a founder reads the site — score, money, tools,
@@ -222,6 +334,7 @@ function DesktopDropdown({
   onCancelClose,
   onLinkActivate,
 }: DesktopDropdownProps) {
+  const t = useNavTheme();
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const itemRefs = useRef<Array<HTMLAnchorElement | null>>([]);
   const panelId = useId();
@@ -302,7 +415,7 @@ function DesktopDropdown({
         aria-controls={panelId}
         onClick={handleTriggerClick}
         onKeyDown={handleTriggerKeyDown}
-        className="inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium text-brand-ink-muted transition-colors duration-200 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+        className={`inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium transition-colors duration-200 focus:outline-none focus-visible:ring-2 ${t.navLink} ${t.ring}`}
       >
         {group.label}
         <ChevronDown
@@ -320,7 +433,7 @@ function DesktopDropdown({
           aria-label={group.label}
           onMouseEnter={onCancelClose}
           onMouseLeave={onClose}
-          className={`absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 rounded-xl border border-brand-navy/40 bg-brand-navy p-2 shadow-2xl ${group.width} nav-v2-panel-enter`}
+          className={`absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 rounded-xl p-2 ${t.panel} ${group.width} nav-v2-panel-enter`}
         >
           {group.sections ? (
             // Sectioned rendering (e.g. Free Tools): flatten items so
@@ -332,9 +445,9 @@ function DesktopDropdown({
                   {group.sections.map((section, sIdx) => (
                     <div
                       key={section.heading}
-                      className={sIdx > 0 ? "mt-1 border-t border-white/5 pt-1" : ""}
+                      className={sIdx > 0 ? `mt-1 border-t pt-1 ${t.divider}` : ""}
                     >
-                      <p className="px-3 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-cyan/80">
+                      <p className={`px-3 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] ${t.sectionHeading}`}>
                         {section.heading}
                       </p>
                       <ul>
@@ -350,7 +463,7 @@ function DesktopDropdown({
                                 href={item.href}
                                 onClick={onLinkActivate}
                                 onKeyDown={(e) => handleItemKeyDown(e, i)}
-                                className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-brand-ink hover:bg-brand-cyan/10 focus:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+                                className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus-visible:ring-2 ${t.item} ${t.ring}`}
                               >
                                 {item.label}
                               </Link>
@@ -375,7 +488,7 @@ function DesktopDropdown({
                     href={item.href}
                     onClick={onLinkActivate}
                     onKeyDown={(e) => handleItemKeyDown(e, i)}
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-brand-ink hover:bg-brand-cyan/10 focus:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+                    className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 ${t.item} ${t.ring}`}
                   >
                     {item.label}
                   </Link>
@@ -399,6 +512,7 @@ interface MobileGroupProps {
 }
 
 function MobileGroup({ group, onLinkActivate }: MobileGroupProps) {
+  const t = useNavTheme();
   const [open, setOpen] = useState(false);
   const panelId = useId();
   return (
@@ -409,7 +523,7 @@ function MobileGroup({ group, onLinkActivate }: MobileGroupProps) {
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium text-brand-ink-muted hover:bg-white/5 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+        className={`flex w-full items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium focus:outline-none focus-visible:ring-2 ${t.mobileTrigger} ${t.ring}`}
       >
         <span>{group.label}</span>
         <ChevronDown
@@ -429,7 +543,7 @@ function MobileGroup({ group, onLinkActivate }: MobileGroupProps) {
           >
             {group.sections.map((section) => (
               <div key={section.heading}>
-                <p className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-cyan/80">
+                <p className={`px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] ${t.sectionHeading}`}>
                   {section.heading}
                 </p>
                 <ul className="flex flex-col gap-0.5">
@@ -439,7 +553,7 @@ function MobileGroup({ group, onLinkActivate }: MobileGroupProps) {
                         role="menuitem"
                         href={item.href}
                         onClick={onLinkActivate}
-                        className="block rounded-md px-3 py-1.5 text-sm text-brand-ink hover:bg-brand-cyan/10 focus:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+                        className={`block rounded-md px-3 py-1.5 text-sm focus:outline-none focus-visible:ring-2 ${t.item} ${t.ring}`}
                       >
                         {item.label}
                       </Link>
@@ -462,7 +576,7 @@ function MobileGroup({ group, onLinkActivate }: MobileGroupProps) {
                   role="menuitem"
                   href={item.href}
                   onClick={onLinkActivate}
-                  className="block rounded-md px-3 py-2 text-sm text-brand-ink hover:bg-brand-cyan/10 focus:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+                  className={`block rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 ${t.item} ${t.ring}`}
                 >
                   {item.label}
                 </Link>
@@ -476,20 +590,24 @@ function MobileGroup({ group, onLinkActivate }: MobileGroupProps) {
 }
 
 // ---------------------------------------------------------------------------
-// Signed-in user menu (ported from site/navbar.tsx, restyled for the dark bar)
+// Signed-in user menu — rows from lib/nav/user-menu.ts (shared with the
+// workspace avatar menu, G13-W5-IA5); this file only maps icons and styles.
 // ---------------------------------------------------------------------------
 
-const USER_MENU_ITEMS = [
-  { href: "/score", label: "New analysis", Icon: BarChart3 },
-  { href: "/workspace/score", label: "My SVI score", Icon: TrendingUp },
-  { href: "/workspace/reports", label: "My reports", Icon: FileText },
-  { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
-] as const;
+const USER_MENU_ICONS: Readonly<Record<UserMenuIcon, typeof BarChart3>> = {
+  "new-analysis": BarChart3,
+  score: TrendingUp,
+  reports: FileText,
+  dashboard: LayoutDashboard,
+  settings: Settings2,
+};
 
 function UserMenu({ user }: { user: AuthUser }) {
+  const t = useNavTheme();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const panelId = useId();
+  const items = userMenuItems(user.persona);
 
   useEffect(() => {
     if (!open) return;
@@ -517,16 +635,16 @@ function UserMenu({ user }: { user: AuthUser }) {
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+        className={`flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors focus:outline-none focus-visible:ring-2 ${t.avatarBtn} ${t.ring}`}
       >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-cyan text-xs font-bold text-brand-navy">
+        <span className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${t.avatar}`}>
           {userInitials(user)}
         </span>
-        <span className="hidden max-w-[120px] truncate text-sm font-medium text-brand-ink lg:block">
+        <span className={`hidden max-w-[120px] truncate text-sm font-medium lg:block ${t.text}`}>
           {shortName}
         </span>
         <ChevronDown
-          className={`h-3.5 w-3.5 text-brand-ink-muted transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          className={`h-3.5 w-3.5 transition-transform duration-200 ${t.muted} ${open ? "rotate-180" : ""}`}
           aria-hidden="true"
         />
       </button>
@@ -536,46 +654,54 @@ function UserMenu({ user }: { user: AuthUser }) {
           id={panelId}
           role="menu"
           aria-label="Account"
-          className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl border border-brand-navy/40 bg-brand-navy shadow-2xl nav-v2-panel-enter"
+          data-testid="nav-v2-user-menu"
+          className={`absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl ${t.panel} nav-v2-panel-enter`}
         >
-          <div className="border-b border-white/5 px-4 py-3">
-            <p className="truncate text-sm font-medium text-brand-ink">{shortName}</p>
-            <p className="truncate text-xs text-brand-ink-muted">{user.email}</p>
+          <div className={`border-b px-4 py-3 ${t.divider}`}>
+            <p className={`truncate text-sm font-medium ${t.text}`}>{shortName}</p>
+            <p className={`truncate text-xs ${t.muted}`}>{user.email}</p>
             {user.plan && user.plan !== "free" && (
-              <span className="mt-1 inline-block rounded-full bg-brand-cyan/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-cyan">
+              <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${t.planBadge}`}>
                 {user.plan}
               </span>
             )}
           </div>
-          <div className="flex items-center justify-between border-b border-white/5 px-4 py-2">
-            <span className="text-xs text-brand-ink-muted">Credits</span>
+          <div className={`flex items-center justify-between border-b px-4 py-2 ${t.divider}`}>
+            <span className={`text-xs ${t.muted}`}>Credits</span>
             <Link
               href="/workspace/billing"
               role="menuitem"
               onClick={() => setOpen(false)}
-              className="text-xs font-semibold text-brand-cyan hover:underline"
+              className={`text-xs font-semibold hover:underline ${t.accentLink}`}
             >
               View billing →
             </Link>
           </div>
           <ul className="py-1">
-            {USER_MENU_ITEMS.map(({ href, label, Icon }) => (
-              <li key={href} role="none">
-                <Link
-                  href={href}
-                  role="menuitem"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-brand-ink hover:bg-brand-cyan/10 focus:bg-brand-cyan/10 focus:outline-none"
-                >
-                  <Icon className="h-4 w-4 text-brand-ink-muted" aria-hidden="true" />
-                  {label}
-                </Link>
-              </li>
-            ))}
+            {items.map(({ key, href, label, icon }) => {
+              const Icon = USER_MENU_ICONS[icon];
+              return (
+                <li key={key} role="none">
+                  <Link
+                    href={href}
+                    role="menuitem"
+                    data-user-menu-item={key}
+                    onClick={() => {
+                      trackEvent("nav_click", { group: "user-menu", item: label, href });
+                      setOpen(false);
+                    }}
+                    className={`flex items-center gap-2.5 px-4 py-2.5 text-sm focus:outline-none ${t.item}`}
+                  >
+                    <Icon className={`h-4 w-4 ${t.muted}`} aria-hidden="true" />
+                    {label}
+                  </Link>
+                </li>
+              );
+            })}
             <li role="none">
-              <LogoutButton className="flex w-full cursor-pointer items-center gap-2.5 px-4 py-2.5 text-left text-sm text-brand-ink hover:bg-brand-cyan/10 focus:bg-brand-cyan/10 focus:outline-none">
-                <LogOut className="h-4 w-4 text-brand-ink-muted" aria-hidden="true" />
-                Sign out
+              <LogoutButton className={`flex w-full cursor-pointer items-center gap-2.5 px-4 py-2.5 text-left text-sm focus:outline-none ${t.item}`}>
+                <LogOut className={`h-4 w-4 ${t.muted}`} aria-hidden="true" />
+                {USER_MENU_SIGN_OUT_LABEL}
               </LogoutButton>
             </li>
           </ul>
@@ -593,7 +719,13 @@ function trackNeedMoney(location: "nav" | "nav_mobile") {
   trackEvent("cta_clicked", { cta_id: NEED_MONEY_CTA.ctaId, location });
 }
 
-export function NavV2() {
+export interface NavV2Props {
+  /** `"dark"` (default) = the navy island; `"light"` = semantic light tokens for quiet pages (auth). */
+  variant?: NavVariant;
+}
+
+export function NavV2({ variant = "dark" }: NavV2Props = {}) {
+  const t = NAV_THEMES[variant];
   const [mobileOpen, setMobileOpen] = useState(false);
   // undefined = resolving (skeleton), null = signed out, object = signed in.
   const user = useAuthUser();
@@ -692,24 +824,25 @@ export function NavV2() {
   }, [mobileOpen]);
 
   return (
+    <NavThemeContext.Provider value={t}>
     <header
       ref={navRef}
-      // Intentional dark island — the persistent NavV2 header always renders
-      // against the deep-navy lux ground even when hosted in a light-theme
-      // page. Self-scoping with data-theme="dark" keeps its legacy
-      // `text-brand-ink*`, `bg-brand-navy`, `border-white/*` utilities
-      // resolving to the dark palette regardless of the surrounding page.
-      data-theme="dark"
-      className="sticky top-0 z-50 border-b border-white/5 bg-brand-navy/85 backdrop-blur"
+      // Self-scoped island: `dark` renders the deep-navy lux bar even inside
+      // a light page (its legacy `brand-*` utilities are fixed colours);
+      // `light` scopes the semantic tokens to the light ramp even when the
+      // page around it is a dark island of its own.
+      data-theme={variant}
+      data-nav-variant={variant}
+      className={`sticky top-0 z-50 ${t.header}`}
     >
-<nav
+      <nav
         aria-label="Primary"
         className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 xl:max-w-[92rem]"
       >
         <Link
           href="/"
           aria-label="BlockID.au — home"
-          className="flex items-center gap-2.5 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
+          className={`flex items-center gap-2.5 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${t.ring} ${t.ringOffset}`}
         >
           {/* Logo mark (octagon + star) — 32px square */}
           <Image
@@ -720,8 +853,8 @@ export function NavV2() {
             className="h-8 w-8 shrink-0 select-none"
             priority
           />
-          <span className="flex items-baseline gap-1 text-base font-semibold text-brand-ink">
-            BlockID<span className="text-brand-cyan">.au</span>
+          <span className={`flex items-baseline gap-1 text-base font-semibold ${t.brandWord}`}>
+            BlockID<span className={t.brandDot}>.au</span>
           </span>
         </Link>
 
@@ -734,7 +867,7 @@ export function NavV2() {
                   <Link
                     href={entry.href}
                     onClick={() => closeImmediately()}
-                    className="whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium text-brand-ink-muted transition-colors duration-200 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+                    className={`whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium transition-colors duration-200 focus:outline-none focus-visible:ring-2 ${t.navLink} ${t.ring}`}
                   >
                     {entry.label}
                   </Link>
@@ -768,7 +901,7 @@ export function NavV2() {
           <LocaleSwitcher />
           {user === undefined ? (
             <div
-              className="h-10 w-48 animate-pulse rounded-lg bg-white/5"
+              className={`h-10 w-48 animate-pulse rounded-lg ${t.skeleton}`}
               aria-hidden="true"
               data-testid="nav-v2-auth-skeleton"
             />
@@ -776,7 +909,7 @@ export function NavV2() {
             <>
               <Link
                 href={WORKSPACE_LINK.href}
-                className="whitespace-nowrap inline-flex h-10 items-center justify-center rounded-lg border border-brand-cyan/40 px-4 text-sm font-semibold text-brand-cyan transition-colors duration-200 hover:border-brand-cyan hover:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+                className={`whitespace-nowrap inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold transition-colors duration-200 focus:outline-none focus-visible:ring-2 ${t.workspaceBtn} ${t.ring}`}
               >
                 {WORKSPACE_LINK.label}
               </Link>
@@ -786,7 +919,7 @@ export function NavV2() {
             <>
               <Link
                 href="/auth/login"
-                className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-brand-ink-muted transition-colors duration-200 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+                className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-200 focus:outline-none focus-visible:ring-2 ${t.signIn} ${t.ring}`}
               >
                 Sign in
               </Link>
@@ -794,7 +927,7 @@ export function NavV2() {
                 href={NEED_MONEY_CTA.href}
                 data-cta-id={NEED_MONEY_CTA.ctaId}
                 onClick={() => trackNeedMoney("nav")}
-                className="whitespace-nowrap inline-flex h-10 items-center justify-center rounded-lg bg-brand-cyan px-4 text-sm font-semibold text-brand-navy transition duration-200 hover:bg-brand-blue-bright focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
+                className={`whitespace-nowrap inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${t.cta} ${t.ring} ${t.ringOffset}`}
               >
                 {NEED_MONEY_CTA.label}
               </Link>
@@ -806,7 +939,7 @@ export function NavV2() {
         <button
           ref={mobileToggleRef}
           type="button"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-brand-ink xl:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+          className={`inline-flex h-10 w-10 items-center justify-center rounded-lg xl:hidden focus:outline-none focus-visible:ring-2 ${t.mobileToggle} ${t.ring}`}
           aria-expanded={mobileOpen}
           aria-controls="nav-v2-mobile-menu"
           aria-label={mobileOpen ? "Close menu" : "Open menu"}
@@ -825,7 +958,7 @@ export function NavV2() {
         <nav
           id="nav-v2-mobile-menu"
           aria-label="Mobile"
-          className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-white/5 bg-brand-navy px-4 pb-4 pt-2 xl:hidden"
+          className={`max-h-[calc(100dvh-4rem)] overflow-y-auto px-4 pb-4 pt-2 xl:hidden ${t.mobilePanel}`}
         >
           <ul className="flex flex-col gap-1">
             {MENU.map((entry) =>
@@ -834,7 +967,7 @@ export function NavV2() {
                   <Link
                     href={entry.href}
                     onClick={() => handleLinkActivate()}
-                    className="block rounded-md px-3 py-2.5 text-sm font-medium text-brand-ink-muted hover:bg-white/5 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+                    className={`block rounded-md px-3 py-2.5 text-sm font-medium focus:outline-none focus-visible:ring-2 ${t.mobileTrigger} ${t.ring}`}
                   >
                     {entry.label}
                   </Link>
@@ -848,7 +981,7 @@ export function NavV2() {
               ),
             )}
           </ul>
-          <div className="mt-3 flex flex-col gap-2 border-t border-white/5 pt-3">
+          <div className={`mt-3 flex flex-col gap-2 border-t pt-3 ${t.divider}`}>
             {/* Language lived only in the desktop CTA row until the nav
                 breakpoint moved to xl (1280px), which would have taken EN/VI away
                 from every screen below that. */}
@@ -858,23 +991,42 @@ export function NavV2() {
             {user ? (
               <>
                 <div className="flex items-center gap-3 px-3 py-2">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-cyan text-xs font-bold text-brand-navy">
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${t.avatar}`}>
                     {userInitials(user)}
                   </span>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-brand-ink">{userShortName(user)}</p>
-                    <p className="truncate text-xs text-brand-ink-muted">{user.email}</p>
+                    <p className={`truncate text-sm font-medium ${t.text}`}>{userShortName(user)}</p>
+                    <p className={`truncate text-xs ${t.muted}`}>{user.email}</p>
                   </div>
                 </div>
                 <Link
                   href={WORKSPACE_LINK.href}
                   onClick={() => handleLinkActivate()}
-                  className="inline-flex h-11 items-center justify-center rounded-lg bg-brand-cyan px-4 text-sm font-semibold text-brand-navy hover:bg-brand-blue-bright focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+                  className={`inline-flex h-11 items-center justify-center rounded-lg px-4 text-sm font-semibold focus:outline-none focus-visible:ring-2 ${t.cta} ${t.ring}`}
                 >
                   {WORKSPACE_LINK.label}
                 </Link>
-                <LogoutButton className="rounded-lg px-3 py-2.5 text-center text-sm font-medium text-brand-ink-muted hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan">
-                  Sign out
+                {/* The same rows as the desktop avatar menu (lib/nav/user-menu.ts). */}
+                <ul className="flex flex-col gap-0.5">
+                  {userMenuItems(user.persona).map(({ key, href, label, icon }) => {
+                    const Icon = USER_MENU_ICONS[icon];
+                    return (
+                      <li key={key}>
+                        <Link
+                          href={href}
+                          data-user-menu-item={key}
+                          onClick={() => handleLinkActivate()}
+                          className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 ${t.item} ${t.ring}`}
+                        >
+                          <Icon className={`h-4 w-4 ${t.muted}`} aria-hidden="true" />
+                          {label}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <LogoutButton className={`rounded-lg px-3 py-2.5 text-center text-sm font-medium focus:outline-none focus-visible:ring-2 ${t.signIn} ${t.ring}`}>
+                  {USER_MENU_SIGN_OUT_LABEL}
                 </LogoutButton>
               </>
             ) : (
@@ -886,14 +1038,14 @@ export function NavV2() {
                     trackNeedMoney("nav_mobile");
                     handleLinkActivate();
                   }}
-                  className="inline-flex h-11 items-center justify-center rounded-lg bg-brand-cyan px-4 text-sm font-semibold text-brand-navy hover:bg-brand-blue-bright focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+                  className={`inline-flex h-11 items-center justify-center rounded-lg px-4 text-sm font-semibold focus:outline-none focus-visible:ring-2 ${t.cta} ${t.ring}`}
                 >
                   {NEED_MONEY_CTA.label}
                 </Link>
                 <Link
                   href="/auth/login"
                   onClick={() => handleLinkActivate()}
-                  className="rounded-lg px-3 py-2.5 text-center text-sm font-medium text-brand-ink-muted hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+                  className={`rounded-lg px-3 py-2.5 text-center text-sm font-medium focus:outline-none focus-visible:ring-2 ${t.signIn} ${t.ring}`}
                 >
                   Sign in
                 </Link>
@@ -903,6 +1055,7 @@ export function NavV2() {
         </nav>
       )}
     </header>
+    </NavThemeContext.Provider>
   );
 }
 
