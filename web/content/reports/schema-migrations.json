@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-16T07:47:21.614Z",
+  "generated_at": "2026-09-16T10:47:49.238Z",
   "ledger_present": true,
-  "total_files": 274,
+  "total_files": 275,
   "files": [
     "0001_init.sql",
     "0002_score_v2.sql",
@@ -245,6 +245,7 @@
     "0388_svi_analyses_hot_path_indexes.sql",
     "0390_analyses_first_analysis_full_report.sql",
     "0391_analyses_full_report_done_partial.sql",
+    "0392_evaluation_assessments.sql",
     "0394_startup_taxonomy.sql",
     "0395_report_v2_columns.sql",
     "0396_agent_knowledge_base_status.sql",
