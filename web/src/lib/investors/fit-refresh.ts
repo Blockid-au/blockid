@@ -123,8 +123,11 @@ export async function loadFitStartups(db: SupabaseLike, projectIds: readonly str
     const [projects, taxonomies, latest, older] = await Promise.all([
       db.from("projects").select("id, name, industry, stage, archived_at").in("id", chunk),
       db.from("startup_taxonomy").select("project_id, industry, industry_secondary, business_model, customer_types, stage_key, hq_state, hq_country, geo_scope, tags").in("project_id", chunk),
-      db.from("svi_snapshots").select("id, project_id, svi_total, stage, created_at").in("project_id", chunk).order("created_at", { ascending: false }).limit(chunk.length * 4),
-      db.from("svi_snapshots").select("project_id, svi_total, created_at").in("project_id", chunk).lte("created_at", cutoff).order("created_at", { ascending: false }).limit(chunk.length * 4),
+      // No row cap: a snapshot-heavy project (180+ rows) would crowd the
+      // others out of a `chunk × 4` window and leave them "SVI not scored"
+      // (W3 review). ~3.3k rows total today; newest-first, first per project wins.
+      db.from("svi_snapshots").select("id, project_id, svi_total, stage, created_at").in("project_id", chunk).order("created_at", { ascending: false }),
+      db.from("svi_snapshots").select("project_id, svi_total, created_at").in("project_id", chunk).lte("created_at", cutoff).order("created_at", { ascending: false }),
     ]);
     const taxByProject = new Map<string, FitStartupTaxonomy>();
     for (const r of ((taxonomies?.data ?? []) as Row[])) {
@@ -196,6 +199,10 @@ export interface FitRefreshSummary {
   pairs: number;
   upserts: number;
   deleted_inactive: number;
+  /** Rows for pairs this completed run did not recompute (revoked consent / archived / unlisted). */
+  deleted_stale: number;
+  /** True when the wall-clock budget cut the pass short; stale rows are then kept. */
+  partial?: boolean;
   batches: number;
   errors: number;
   ms: number;
@@ -206,6 +213,8 @@ export interface FitRefreshOptions {
   db?: SupabaseLike | null;
   dryRun?: boolean;
   batchSize?: number;
+  /** Wall-clock budget for the scoring loop (default 240 s; nginx/cron-runner cut at 300 s). */
+  deadlineMs?: number;
   now?: Date;
 }
 
@@ -220,7 +229,8 @@ export async function runMandateFitRefresh(opts: FitRefreshOptions = {}): Promis
   const dryRun = opts.dryRun === true;
   const now = opts.now ?? new Date();
   const batchSize = Math.max(1, opts.batchSize ?? FIT_REFRESH_BATCH);
-  const base: FitRefreshSummary = { ok: true, dryRun, migrated: true, mandates: 0, projects: 0, pairs: 0, upserts: 0, deleted_inactive: 0, batches: 0, errors: 0, ms: 0 };
+  const deadlineMs = Math.max(1_000, opts.deadlineMs ?? 240_000);
+  const base: FitRefreshSummary = { ok: true, dryRun, migrated: true, mandates: 0, projects: 0, pairs: 0, upserts: 0, deleted_inactive: 0, deleted_stale: 0, batches: 0, errors: 0, ms: 0 };
 
   const db = opts.db ?? getSupabaseAdmin();
   if (!db) return { ...base, ok: false, error: "supabase_unavailable", ms: Date.now() - started };
@@ -261,8 +271,16 @@ export async function runMandateFitRefresh(opts: FitRefreshOptions = {}): Promis
       batch = [];
     };
 
-    for (const m of mandates) {
+    // Wall-clock budget: the standalone server ignores `maxDuration`, nginx
+    // and cron-runner cut the client at 300 s. Flush what we have and report
+    // `partial` instead of running on with nobody listening (W3 review).
+    const deadlineAt = started + deadlineMs;
+    outer: for (const m of mandates) {
       for (const s of live) {
+        if (Date.now() > deadlineAt) {
+          base.partial = true;
+          break outer;
+        }
         const fit = scoreFit(m, s);
         base.pairs += 1;
         batch.push({
@@ -280,6 +298,25 @@ export async function runMandateFitRefresh(opts: FitRefreshOptions = {}): Promis
       }
     }
     await flush();
+
+    // Revoked consent / public_index off must drop a founder from every
+    // deal-flow: rows for pairs this run did not (re)compute are stale.
+    // Only when the run completed cleanly: a partial run or a failed upsert
+    // batch must not wipe pairs that were never (re)written.
+    if (!dryRun && !base.partial && base.errors === 0) {
+      const mandateIds = mandates.map((m) => m.id);
+      for (const idChunk of chunks(mandateIds, 200)) {
+        const { error, count } = await db
+          .from("mandate_fit_scores")
+          .delete({ count: "exact" })
+          .in("mandate_id", idChunk)
+          .lt("computed_at", computedAt);
+        if (error) {
+          base.errors += 1;
+          console.error("[mandate-fit-refresh] stale-row sweep failed", error.message ?? error);
+        } else base.deleted_stale += count ?? 0;
+      }
+    }
     return { ...base, ok: base.errors === 0, ...(base.errors ? { error: "upsert_failed" } : {}), ms: Date.now() - started };
   } catch (err) {
     return { ...base, ok: false, error: err instanceof Error ? err.message : String(err), ms: Date.now() - started };

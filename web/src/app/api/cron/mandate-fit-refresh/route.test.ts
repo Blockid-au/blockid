@@ -48,6 +48,7 @@ function fake(table: string) {
     is(col: string, v: unknown) { c.filters.push([`is:${col}`, v]); return b; },
     not(col: string) { c.filters.push([`not:${col}`, null]); return b; },
     lte(col: string, v: unknown) { c.filters.push([`lte:${col}`, v]); return b; },
+    lt(col: string, v: unknown) { c.filters.push([`lt:${col}`, v]); return b; },
     order() { return b; },
     limit() { return b; },
     then(ok: (v: unknown) => unknown, err?: (e: unknown) => unknown) { return result().then(ok, err); },
@@ -132,6 +133,12 @@ describe("mandate-fit-refresh route", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toMatchObject({ ok: true, dryRun: false, migrated: true, mandates: 1, projects: 2, pairs: 2, upserts: 2, batches: 1, errors: 0, deleted_inactive: 0 });
+    // W3 review P1: after a completed pass, rows not recomputed this run
+    // (revoked consent / unlisted / archived) are swept for the active mandates.
+    const sweep = state.calls.find((c) => c.table === "mandate_fit_scores" && c.op === "delete" && c.filters.some(([k]) => k === "lt:computed_at"));
+    expect(sweep).toBeTruthy();
+    expect(sweep!.filters).toContainEqual(["in:mandate_id", ["m-fintech"]]);
+    expect(body.deleted_stale).toBe(0);
     expect(typeof body.ms).toBe("number");
 
     const up = upserts();

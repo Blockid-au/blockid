@@ -366,6 +366,19 @@ export async function upsertMandate(user: UpsertMandateUser, input: MandateInput
       const { data, error } = await supabase.from("investor_mandates").insert(payload).select(MANDATE_COLUMNS).single();
       if (error) throw error;
       row = data as Row;
+      // Read-then-insert races (two POSTs on a Scout seat) can overshoot the
+      // plan limit; re-count after the insert and drop the overflow row —
+      // the newest one, i.e. ours — so the limit holds without a DB lock.
+      const limit = await mandateLimitFor(user.plan);
+      const { count } = await supabase
+        .from("investor_mandates")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_user_id", user.id)
+        .eq("is_active", true);
+      if (typeof count === "number" && count > limit) {
+        await supabase.from("investor_mandates").delete().eq("id", String(row.id));
+        return { ok: false, reason: "limit_reached", limit };
+      }
     }
   } catch (err) {
     if (isMissingRelation(err)) return { ok: false, reason: "not_migrated" };
