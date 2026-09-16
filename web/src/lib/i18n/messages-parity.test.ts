@@ -183,3 +183,31 @@ describe("funding.copy.* catalogue parity (en ⇄ vi) — T0248 messaging pack",
     expect(text).not.toMatch(/PhD|5\.50|A\$99/);
   });
 });
+
+describe("intake.* catalogue parity (en ⇄ vi) — G14 S35 /apply/[slug]", () => {
+  it("every intake.* key in either catalogue exists in the other, none empty, tokens match", () => {
+    expect(enKeys("intake.").filter((k) => !(k in VI)), "missing in vi.json").toEqual([]);
+    expect(viKeys("intake.").filter((k) => !(k in EN)), "missing in en.json").toEqual([]);
+    expect(enKeys("intake.").length).toBeGreaterThanOrEqual(30);
+    const tokens = (s: string) => (s.match(/\{[a-zA-Z]+\}/g) ?? []).sort();
+    for (const k of enKeys("intake.")) {
+      expect(EN[k]!.trim().length, `en ${k}`).toBeGreaterThan(0);
+      expect(VI[k]!.trim().length, `vi ${k}`).toBeGreaterThan(0);
+      expect(tokens(VI[k]!), k).toEqual(tokens(EN[k]!));
+    }
+  });
+
+  it("the consent checkbox carries the approved data principle verbatim (D2) in both languages", () => {
+    expect(EN["intake.consent.sentence"]).toBe(EN["solutions.principle.data"]);
+    expect(VI["intake.consent.sentence"]).toBe(VI["solutions.principle.data"]);
+    expect(enKeys("intake.").map((k) => EN[k]).join("\n")).not.toMatch(/PhD/);
+    expect(viKeys("intake.").map((k) => VI[k]).join("\n")).not.toMatch(/PhD/);
+  });
+
+  it("every runner error code the public form can receive has an intake.error.* line", () => {
+    for (const code of ["duplicate", "deck_required", "deck_too_large", "deck_type", "deck_infected", "scanner_unavailable", "consent_required", "invalid_input", "rate_limited", "closed", "generic"]) {
+      expect(EN[`intake.error.${code}`], code).toBeTruthy();
+    }
+    for (const reason of ["closed", "not_open_yet", "window_closed", "full"]) expect(EN[`intake.closed.${reason}`], reason).toBeTruthy();
+  });
+});

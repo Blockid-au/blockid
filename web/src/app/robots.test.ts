@@ -45,6 +45,7 @@ const DISALLOW_EXPECTED = [
   "/checkout/",
   "/admin",
   "/admin/",
+  "/apply/",
 ];
 
 function firstRule() {

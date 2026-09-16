@@ -53,6 +53,9 @@ export default function robots(): MetadataRoute.Robots {
           "/checkout/",
           "/admin",
           "/admin/",
+          // G14 S35 — program intake links are unlisted (the URL is the
+          // credential); the page is also noindex.
+          "/apply/",
         ],
       },
     ],
