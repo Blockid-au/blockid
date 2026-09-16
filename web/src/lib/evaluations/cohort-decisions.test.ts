@@ -24,7 +24,7 @@ function builder() {
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => (state.configured ? { from: () => builder() } : null) }));
 const { auditMock, upsertMock } = vi.hoisted(() => ({
   auditMock: vi.fn(async () => ({ id: 1n, curr_hash: "h" })),
-  upsertMock: vi.fn(async (_ctx: unknown, _input: unknown): Promise<Record<string, unknown>> => ({ ok: true, created: true, assessment: {}, version: 1, history: [] })),
+  upsertMock: vi.fn(async (): Promise<Record<string, unknown>> => ({ ok: true, created: true, assessment: {}, version: 1, history: [] })),
 }));
 vi.mock("@/lib/audit", () => ({ appendAudit: (p: unknown) => auditMock(p as never) }));
 vi.mock("@/lib/evaluations/assessments", async (importOriginal) => ({
