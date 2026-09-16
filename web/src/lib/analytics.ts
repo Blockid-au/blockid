@@ -73,8 +73,12 @@ export interface AnalyticsEventMap {
 
   // ── Pricing & Checkout ──
   pricing_viewed: Record<string, never>;
-  /** G12 (T0268): the Evaluator tab (Scout / Firm / Program) was shown on /pricing. */
-  evaluator_pricing_viewed: { via: "tab" | "deep_link" };
+  /**
+   * G12 (T0268): the Evaluator tab (Scout / Firm / Program / Fund) was shown
+   * on /pricing. Pricing v4 (2026-09-16): the Programs tab fires the same
+   * event with `tab: "programs"` so the two B2B ladders stay one funnel.
+   */
+  evaluator_pricing_viewed: { via: "tab" | "deep_link"; tab?: "evaluator" | "programs" };
   /** G12 (S13-A): the 4-step activation checklist under the trial banner was shown; `completed` = steps already done (0–4). */
   evaluator_checklist_viewed: { completed: number };
   /** G12 (S13-A): a checklist step CTA was clicked (1 add startup · 2 run report · 3 set thesis · 4 second startup). */

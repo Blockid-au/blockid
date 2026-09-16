@@ -1,15 +1,16 @@
 import { describe, it, expect } from "vitest";
 
 // ---------------------------------------------------------------------------
-// plans-v2 — colocated tests for the previously-untested pure
-// `src/lib/plans-v2.ts` — the 12-SKU pricing catalogue rendered by the
-// Homepage v2 `<PricingMatrix />` (founder × 5, investor × 4, accelerator × 3).
+// plans-v2 — colocated tests for the pure `src/lib/plans-v2.ts` — the
+// 15-SKU pricing catalogue rendered by `<PricingMatrix />` (founder × 5,
+// investor × 6, accelerator × 4 — Pricing v4, 2026-09-16).
 // A silent drift in per-plan price, feature copy, `most_popular` flag, or the
 // `founder_free` public-suppression filter would leak straight into the
 // marketing / onboarding pricing surfaces, so this suite pins the tariff
 // shape + segment routing + formatting + annual-saving math.
 // ---------------------------------------------------------------------------
 
+import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
 import {
   CONNECTED_REVENUE_FEATURE_LINE,
   EVALUATOR_RADAR_LINE,
@@ -41,11 +42,24 @@ const CTA_KINDS: readonly CtaKind[] = ["trial", "contact"];
 // ---------------------------------------------------------------------------
 
 describe("PLANS_V2 catalogue", () => {
-  it("ships exactly 12 SKUs (5 founder + 4 investor + 3 accelerator)", () => {
-    expect(PLANS_V2).toHaveLength(12);
+  it("ships exactly 15 SKUs (5 founder + 6 investor + 4 accelerator) — Pricing v4", () => {
+    expect(PLANS_V2).toHaveLength(15);
     expect(PLANS_V2.filter((p) => p.segment === "founder")).toHaveLength(5);
-    expect(PLANS_V2.filter((p) => p.segment === "investor")).toHaveLength(4);
-    expect(PLANS_V2.filter((p) => p.segment === "accelerator")).toHaveLength(3);
+    expect(PLANS_V2.filter((p) => p.segment === "investor")).toHaveLength(6);
+    expect(PLANS_V2.filter((p) => p.segment === "accelerator")).toHaveLength(4);
+  });
+
+  it("every SKU in the marketing catalogue is a plans.csv row with the same price (cents ÷ 100) and trial", () => {
+    for (const p of PLANS_V2) {
+      const row = GENERATED_PLANS_BY_ID[p.id];
+      expect(row, `${p.id} missing from plans.csv`).toBeDefined();
+      if (p.monthly_aud !== null) expect(p.monthly_aud, p.id).toBe(row!.price_aud_cents / 100);
+      if (p.annual_aud !== null) expect(p.annual_aud, p.id).toBe(row!.annual_price_aud_cents / 100);
+      // founder_enterprise / investor_vc_ent are custom-interval rows whose
+      // csv trial_days is 0; the marketing card keeps a 7-day figure for the
+      // contact-sales conversation, so only self-serve rows are pinned.
+      if (row!.interval === "monthly") expect(p.trial_days, p.id).toBe(row!.trial_days);
+    }
   });
 
   it("has zero rows in the `advisor` segment (advisor tab reuses investor)", () => {
@@ -57,9 +71,10 @@ describe("PLANS_V2 catalogue", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("every id is a non-empty snake_case string starting with its segment", () => {
+  it("every id is a non-empty snake_case string starting with its segment (index_api is the one data SKU exception)", () => {
     for (const p of PLANS_V2) {
       expect(p.id).toMatch(/^[a-z_]+$/);
+      if (p.id === "index_api") continue; // plans.csv id frozen (Pricing v4); lives in the investor group
       expect(p.id.startsWith(`${p.segment}_`)).toBe(true);
     }
   });
@@ -136,7 +151,7 @@ describe("PLANS_V2 catalogue", () => {
     ]);
   });
 
-  it("investor tier ladder (angel < advisor < vc_sm < vc_ent) is present in canonical order", () => {
+  it("investor tier ladder (angel < advisor < vc_sm < fund < vc_ent, then index_api) is present in canonical order", () => {
     const investorIds = PLANS_V2.filter((p) => p.segment === "investor").map(
       (p) => p.id,
     );
@@ -144,15 +159,18 @@ describe("PLANS_V2 catalogue", () => {
       "investor_angel",
       "investor_advisor",
       "investor_vc_small",
+      "investor_fund",
       "investor_vc_ent",
+      "index_api",
     ]);
   });
 
-  it("accelerator tier ladder (starter < growth < enterprise) is present in canonical order", () => {
+  it("accelerator tier ladder (intake < starter < growth < enterprise) is present in canonical order", () => {
     const acceleratorIds = PLANS_V2.filter(
       (p) => p.segment === "accelerator",
     ).map((p) => p.id);
     expect(acceleratorIds).toEqual([
+      "accelerator_intake",
       "accelerator_starter",
       "accelerator_growth",
       "accelerator_enterprise",
@@ -176,7 +194,7 @@ describe("PLANS_V2 catalogue", () => {
     expect(byId.get("founder_scale")!.public).toBe(false);
   });
 
-  it("evaluator pricing anchors (Scout=A$79, Firm=A$149, Program=A$349) are stable", () => {
+  it("evaluator pricing anchors (Scout=A$79, Firm=A$149, Program=A$349, Fund=A$999) are stable", () => {
     const byId = new Map(PLANS_V2.map((p) => [p.id, p]));
     expect(byId.get("investor_angel")!.monthly_aud).toBe(79);
     expect(byId.get("investor_angel")!.annual_aud).toBe(790);
@@ -184,6 +202,39 @@ describe("PLANS_V2 catalogue", () => {
     expect(byId.get("investor_advisor")!.annual_aud).toBe(1490);
     expect(byId.get("investor_vc_small")!.monthly_aud).toBe(349);
     expect(byId.get("investor_vc_small")!.annual_aud).toBe(3490);
+    expect(byId.get("investor_fund")!.monthly_aud).toBe(999);
+    expect(byId.get("investor_fund")!.annual_aud).toBe(9990);
+    expect(byId.get("index_api")!.monthly_aud).toBe(299);
+    expect(byId.get("index_api")!.annual_aud).toBe(2990);
+  });
+
+  // Pricing v4 (2026-09-16, plan §3.2): Fund is the fourth public evaluator
+  // rung. Truth rule — Slack / Affinity / Airtable ship with G14 S38 and are
+  // never on the card before then.
+  it("Fund is public, 7-day trial, and its copy names only shipped things (never Affinity / Slack / Airtable)", () => {
+    const fund = PLANS_V2.find((p) => p.id === "investor_fund")!;
+    expect(fund.name).toBe("Fund");
+    expect(fund.public).toBe(true);
+    expect(fund.cta_kind).toBe("trial");
+    expect(fund.trial_days).toBe(7);
+    expect(fund.tagline).toBe("VC funds and family offices");
+    const bullets = fund.features.join(" ");
+    expect(bullets).toMatch(/Unlimited Trusted Business Reports/);
+    expect(bullets).toMatch(/500 tracked startups, 10 seats/);
+    expect(bullets.toLowerCase()).toContain("read-only api");
+    expect(bullets.toLowerCase()).toMatch(/lp \/ sponsor report/);
+    expect(bullets.toLowerCase()).toContain("weekly progress radar");
+    expect(bullets).not.toMatch(/affinity|slack|airtable|hubspot/i);
+    expect(fund.features).toContain(EVALUATOR_RADAR_LINE);
+  });
+
+  it("Index API is a hidden, contact-sales data SKU (sold from /startup-index, /developers, contact-sales row)", () => {
+    const api = PLANS_V2.find((p) => p.id === "index_api")!;
+    expect(api.public).toBe(false);
+    expect(api.cta_kind).toBe("contact");
+    expect(api.trial_days).toBe(0);
+    expect(api.features.join(" ")).toMatch(/1,000 API calls a day/);
+    expect(api.features.join(" ").toLowerCase()).toContain("no workspace");
   });
 
   // G12 (2026-09-10, T0268): the three self-serve investor SKUs are sold as
@@ -266,23 +317,58 @@ describe("PLANS_V2 catalogue", () => {
     expect(STARTUP_PACKAGE_MONEY_FINDER_LINE).toBe("1 Money Finder report + 3 months Founder Radar included");
   });
 
-  it("investor_vc_ent and the accelerator_* cohort SKUs stay contact-sales (public:false)", () => {
+  it("investor_vc_ent, index_api and accelerator_enterprise stay contact-sales (public:false)", () => {
     const byId = new Map(PLANS_V2.map((p) => [p.id, p]));
-    for (const id of [
-      "investor_vc_ent",
-      "accelerator_starter",
-      "accelerator_growth",
-      "accelerator_enterprise",
-    ]) {
+    for (const id of ["investor_vc_ent", "index_api", "accelerator_enterprise"]) {
       expect(byId.get(id)!.public).toBe(false);
     }
   });
 
-  it("accelerator pricing anchors (starter=A$500, growth=A$1500, enterprise=A$3500) are stable", () => {
+  // Pricing v4 (2026-09-16): the Programs ladder is public, annual-first,
+  // 14-day trial; copy numbers are plans.csv usage_limits.
+  it("Programs ladder (Intake link A$249 / Cohort 25 A$500 / Cohort 100 A$1,500) is public, annual-first, 14-day trial", () => {
     const byId = new Map(PLANS_V2.map((p) => [p.id, p]));
+    expect(byId.get("accelerator_intake")!.name).toBe("Intake link");
+    expect(byId.get("accelerator_intake")!.monthly_aud).toBe(249);
+    expect(byId.get("accelerator_intake")!.annual_aud).toBe(2490);
+    expect(byId.get("accelerator_starter")!.name).toBe("Cohort 25");
     expect(byId.get("accelerator_starter")!.monthly_aud).toBe(500);
+    expect(byId.get("accelerator_growth")!.name).toBe("Cohort 100");
     expect(byId.get("accelerator_growth")!.monthly_aud).toBe(1500);
     expect(byId.get("accelerator_enterprise")!.monthly_aud).toBe(3500);
+    for (const id of ["accelerator_intake", "accelerator_starter", "accelerator_growth"]) {
+      const p = byId.get(id)!;
+      expect(p.public, id).toBe(true);
+      expect(p.cta_kind, id).toBe("trial");
+      expect(p.trial_days, id).toBe(14);
+      expect(p.billing_default, id).toBe("annual");
+      expect(p.features, id).toContain(EVALUATOR_RADAR_LINE);
+    }
+    // Only the Programs rungs are annual-first; every other SKU defaults monthly.
+    expect(PLANS_V2.filter((p) => p.billing_default === "annual").map((p) => p.id)).toEqual([
+      "accelerator_intake",
+      "accelerator_starter",
+      "accelerator_growth",
+    ]);
+  });
+
+  it("Programs feature copy matches plans.csv usage_limits (reports 40/50/200, startups 60/25/100, seats 3/5/15, credits 200/800)", () => {
+    const byId = new Map(PLANS_V2.map((p) => [p.id, p]));
+    const bullets = (id: string) => byId.get(id)!.features.join(" ");
+    expect(bullets("accelerator_intake")).toMatch(/40 Trusted Business Reports a month/);
+    expect(bullets("accelerator_intake")).toMatch(/60 tracked startups, 3 seats/);
+    expect(bullets("accelerator_intake").toLowerCase()).toContain("batch scoring");
+    expect(bullets("accelerator_starter")).toMatch(/50 Trusted Business Reports a month/);
+    expect(bullets("accelerator_starter")).toMatch(/25 tracked startups, 5 seats/);
+    expect(bullets("accelerator_starter")).toMatch(/200 AI credits \/ month/);
+    expect(bullets("accelerator_growth")).toMatch(/200 Trusted Business Reports a month/);
+    expect(bullets("accelerator_growth")).toMatch(/100 tracked startups, 15 seats/);
+    expect(bullets("accelerator_growth")).toMatch(/800 AI credits \/ month/);
+    // The retired copy must never resurface.
+    for (const id of ["accelerator_starter", "accelerator_growth", "accelerator_enterprise"]) {
+      expect(bullets(id)).not.toMatch(/Demo Day kit|mentor pool|Program brand kit|founder seats/i);
+      expect(bullets(id)).not.toMatch(/5,000|20,000|80,000/);
+    }
   });
 
   it("`most_popular` in the raw catalogue points to founder_growth + investor_angel + accelerator_growth", () => {
@@ -339,21 +425,21 @@ describe("plansForSegment()", () => {
     for (const p of founder) expect(p.segment).toBe("founder");
   });
 
-  it("investor segment returns exactly the 4 investor SKUs", () => {
+  it("investor segment returns exactly the 6 investor SKUs", () => {
     const investor = plansForSegment("investor");
-    expect(investor).toHaveLength(4);
+    expect(investor).toHaveLength(6);
     for (const p of investor) expect(p.segment).toBe("investor");
   });
 
-  it("accelerator segment returns exactly the 3 accelerator SKUs", () => {
+  it("accelerator segment returns exactly the 4 accelerator SKUs", () => {
     const accelerator = plansForSegment("accelerator");
-    expect(accelerator).toHaveLength(3);
+    expect(accelerator).toHaveLength(4);
     for (const p of accelerator) expect(p.segment).toBe("accelerator");
   });
 
-  it("advisor segment reuses the investor catalogue (4 rows, all segment='investor')", () => {
+  it("advisor segment reuses the investor catalogue (6 rows, all segment='investor')", () => {
     const advisor = plansForSegment("advisor");
-    expect(advisor).toHaveLength(4);
+    expect(advisor).toHaveLength(6);
     for (const p of advisor) expect(p.segment).toBe("investor");
   });
 
@@ -403,13 +489,12 @@ describe("plansForSegment()", () => {
 // ---------------------------------------------------------------------------
 
 describe("PUBLIC_HIDDEN_PLAN_IDS", () => {
-  it("hides the off-list SKUs (retired Pro + enterprise + VC Enterprise + all accelerator)", () => {
+  it("hides the off-list SKUs (retired Pro + enterprise + VC Enterprise + Index API + Cohort Enterprise)", () => {
     expect([...PUBLIC_HIDDEN_PLAN_IDS].sort()).toEqual([
       "accelerator_enterprise",
-      "accelerator_growth",
-      "accelerator_starter",
       "founder_enterprise",
       "founder_scale",
+      "index_api",
       "investor_vc_ent",
     ]);
   });
@@ -427,8 +512,16 @@ describe("PUBLIC_HIDDEN_PLAN_IDS", () => {
     }
   });
 
-  it("does NOT hide Scout / Firm / Program (the Evaluator ladder, G12 T0268)", () => {
-    for (const id of ["investor_angel", "investor_advisor", "investor_vc_small"]) {
+  it("does NOT hide Scout / Firm / Program / Fund (the Evaluator ladder) nor Intake / Cohort 25 / Cohort 100 (Programs)", () => {
+    for (const id of [
+      "investor_angel",
+      "investor_advisor",
+      "investor_vc_small",
+      "investor_fund",
+      "accelerator_intake",
+      "accelerator_starter",
+      "accelerator_growth",
+    ]) {
       expect(PUBLIC_HIDDEN_PLAN_IDS).not.toContain(id);
     }
   });
@@ -444,19 +537,27 @@ describe("publicPlansForSegment()", () => {
     ]);
   });
 
-  it("investor segment returns exactly the Evaluator ladder (Scout → Firm → Program), VC Enterprise stays contact-sales", () => {
+  it("investor segment returns exactly the Evaluator ladder (Scout → Firm → Program → Fund), VC Enterprise + Index API stay contact-sales", () => {
     const investor = publicPlansForSegment("investor");
     expect(investor.map((p) => p.id)).toEqual([
       "investor_angel",
       "investor_advisor",
       "investor_vc_small",
+      "investor_fund",
     ]);
-    expect(investor.map((p) => p.name)).toEqual(["Scout", "Firm", "Program"]);
-    expect(investor.map((p) => p.monthly_aud)).toEqual([79, 149, 349]);
+    expect(investor.map((p) => p.name)).toEqual(["Scout", "Firm", "Program", "Fund"]);
+    expect(investor.map((p) => p.monthly_aud)).toEqual([79, 149, 349, 999]);
   });
 
-  it("accelerator segment collapses to empty (all accelerator SKUs are contact-sales row)", () => {
-    expect(publicPlansForSegment("accelerator")).toEqual([]);
+  it("accelerator segment returns the Programs ladder (Intake link → Cohort 25 → Cohort 100), Cohort Enterprise stays contact-sales", () => {
+    const programs = publicPlansForSegment("accelerator");
+    expect(programs.map((p) => p.id)).toEqual([
+      "accelerator_intake",
+      "accelerator_starter",
+      "accelerator_growth",
+    ]);
+    expect(programs.map((p) => p.name)).toEqual(["Intake link", "Cohort 25", "Cohort 100"]);
+    expect(programs.map((p) => p.annual_aud)).toEqual([2490, 5000, 15000]);
   });
 
   it("advisor segment mirrors the Evaluator ladder with Firm highlighted", () => {
@@ -465,6 +566,7 @@ describe("publicPlansForSegment()", () => {
       "investor_angel",
       "investor_advisor",
       "investor_vc_small",
+      "investor_fund",
     ]);
     expect(advisor.find((p) => p.most_popular)!.id).toBe("investor_advisor");
   });

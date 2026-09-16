@@ -38,6 +38,14 @@
  *   scoutStartups, firmStartups, programStartups `usage_limits.profiles`
  *   firmSeats, programSeats                    `usage_limits.seats`
  *
+ * Pricing v4 (2026-09-16, plan §3.2) — Fund + the Programs ladder:
+ *
+ *   fundPrice, fundSeats, fundStartups          `investor_fund`
+ *   intakePrice, intakeAnnualPrice, intakeReports, intakeStartups, intakeSeats
+ *                                              `accelerator_intake`
+ *   cohortAnnualPrice, cohortReports, cohortStartups, cohortSeats
+ *                                              `accelerator_starter` (Cohort 25)
+ *
  * A token nobody defined is left in place rather than blanked, so a typo
  * surfaces as a visible `{typo}` in the rendered page and in the colocated
  * suite instead of silently deleting half a sentence.
@@ -70,6 +78,17 @@ function planCents(planId: string): number {
     throw new Error(`/solutions copy names unknown plan "${planId}"`);
   }
   return plan.price_aud_cents;
+}
+
+function planAnnualCents(planId: string): number {
+  const plan = GENERATED_PLANS_BY_ID[planId];
+  if (!plan) {
+    throw new Error(`/solutions copy names unknown plan "${planId}"`);
+  }
+  if (plan.annual_price_aud_cents <= 0) {
+    throw new Error(`/solutions copy names plan "${planId}" with no annual price`);
+  }
+  return plan.annual_price_aud_cents;
 }
 
 function planCredits(planId: string): number {
@@ -126,6 +145,20 @@ export const SOLUTION_PRICE_TOKENS: Readonly<Record<string, string>> = {
   programStartups: String(planLimit("investor_vc_small", "profiles")),
   firmSeats: String(planLimit("investor_advisor", "seats")),
   programSeats: String(planLimit("investor_vc_small", "seats")),
+  // Pricing v4 — Fund + Programs ladder (annual-first, so the cohort token
+  // is the yearly figure; Intake carries both cadences).
+  fundPrice: aud(planCents("investor_fund")),
+  fundSeats: String(planLimit("investor_fund", "seats")),
+  fundStartups: String(planLimit("investor_fund", "profiles")),
+  intakePrice: aud(planCents("accelerator_intake")),
+  intakeAnnualPrice: aud(planAnnualCents("accelerator_intake")),
+  intakeReports: String(planLimit("accelerator_intake", "reports_per_month")),
+  intakeStartups: String(planLimit("accelerator_intake", "profiles")),
+  intakeSeats: String(planLimit("accelerator_intake", "seats")),
+  cohortAnnualPrice: aud(planAnnualCents("accelerator_starter")),
+  cohortReports: String(planLimit("accelerator_starter", "reports_per_month")),
+  cohortStartups: String(planLimit("accelerator_starter", "profiles")),
+  cohortSeats: String(planLimit("accelerator_starter", "seats")),
 };
 
 const TOKEN_PATTERN = /\{([a-zA-Z]+)\}/g;

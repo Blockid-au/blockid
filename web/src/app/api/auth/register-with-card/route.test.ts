@@ -320,7 +320,8 @@ describe("plan allow-list", () => {
     expect(mocks.subscriptionCreates).toHaveLength(0);
   });
 
-  it.each(["founder_scale", "investor_vc_ent", "accelerator_starter", "founder_free", "bogus"])(
+  // Pricing v4 (2026-09-16): accelerator_starter (Cohort 25) is self-serve now; accelerator_enterprise + index_api stay out.
+  it.each(["founder_scale", "investor_vc_ent", "accelerator_enterprise", "index_api", "founder_free", "bogus"])(
     "rejects %s with 400 unsupported_plan before touching the DB",
     async (planId) => {
       const res = await POST(req(body({ plan_id: planId })));

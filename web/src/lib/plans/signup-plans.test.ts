@@ -46,11 +46,15 @@ describe("plan ladders + allow-list", () => {
     ]);
   });
 
-  it("evaluator ladder re-uses the three investor SKU ids (D2)", () => {
+  it("evaluator ladder re-uses the three investor SKU ids (D2) + Fund + the self-serve Programs rungs (Pricing v4)", () => {
     expect(EVALUATOR_TRIAL_PLAN_IDS).toEqual([
       "investor_angel",
       "investor_advisor",
       "investor_vc_small",
+      "investor_fund",
+      "accelerator_intake",
+      "accelerator_starter",
+      "accelerator_growth",
     ]);
   });
 
@@ -78,8 +82,7 @@ describe("plan ladders + allow-list", () => {
       "founder_scale",
       "founder_free",
       "investor_vc_ent",
-      "accelerator_starter",
-      "accelerator_growth",
+      "index_api",
       "accelerator_enterprise",
       "free",
       "founding50",
@@ -183,12 +186,22 @@ describe("account types (zod enum ↔ segments.ts ↔ migration 0310)", () => {
 });
 
 describe("segmentForAccountType — app_users.segment written at registration", () => {
-  it("investor → investor_angel on Scout / Firm, investor_vc on Program / VC Ent", () => {
+  it("investor → investor_angel on Scout / Firm, investor_vc on Program / Fund / VC Ent / Index API", () => {
     expect(segmentForAccountType("investor", "investor_angel")).toBe("investor_angel");
     expect(segmentForAccountType("investor", "investor_advisor")).toBe("investor_angel");
     expect(segmentForAccountType("investor", "investor_vc_small")).toBe("investor_vc");
+    expect(segmentForAccountType("investor", "investor_fund")).toBe("investor_vc");
     expect(segmentForAccountType("investor", "investor_vc_ent")).toBe("investor_vc");
+    expect(segmentForAccountType("investor", "index_api")).toBe("investor_vc");
     expect(segmentForAccountType("investor")).toBe("investor_angel");
+  });
+
+  it("any accelerator_* plan → accelerator, whatever the account type (Pricing v4)", () => {
+    for (const plan of ["accelerator_intake", "accelerator_starter", "accelerator_growth", "accelerator_enterprise"]) {
+      expect(segmentForAccountType("investor", plan), plan).toBe("accelerator");
+      expect(segmentForAccountType("advisor", plan), plan).toBe("accelerator");
+      expect(segmentForAccountType("founder", plan), plan).toBe("accelerator");
+    }
   });
 
   it("advisor + service_provider → advisor (segment enum stays at its 0073 shape)", () => {
@@ -237,12 +250,18 @@ describe("resolveTrialDays — plan row first, 7-day fallback", () => {
 });
 
 describe("evaluator public labels", () => {
-  it("Scout / Firm / Program map onto the three SKU ids", () => {
+  it("Scout / Firm / Program / Fund + Intake link / Cohort 25 / Cohort 100 map onto their SKU ids", () => {
     expect(EVALUATOR_PLAN_LABELS).toEqual({
       investor_angel: "Scout",
       investor_advisor: "Firm",
       investor_vc_small: "Program",
+      investor_fund: "Fund",
+      accelerator_intake: "Intake link",
+      accelerator_starter: "Cohort 25",
+      accelerator_growth: "Cohort 100",
     });
+    expect(evaluatorPlanLabel("investor_fund")).toBe("Fund");
+    expect(evaluatorPlanLabel("accelerator_starter")).toBe("Cohort 25");
     expect(evaluatorPlanLabel("investor_angel")).toBe("Scout");
     expect(evaluatorPlanLabel("investor_advisor")).toBe("Firm");
     expect(evaluatorPlanLabel("investor_vc_small")).toBe("Program");

@@ -272,3 +272,64 @@ Architect consolidates → `docs/upgrade-implementation-plan-2026-07-16.md`
 | K-factor | ≥0.5 |
 
 Ship `/dashboard/admin/pricing-metrics` graphing these weekly.
+
+## v4 evaluator-first (2026-09-16)
+
+Source: `.claude/plans/ph-n-t-tch-t-on-b-snuggly-panda.md` §3 (goal G14, CFO). Founder decisions 2026-09-16: evaluator-first, keep the A$3 wedge, raise the B2B tiers. **No live price changed** — a price change is always a new Stripe Price + grandfather via `plans.active`; annual = 10× monthly. Code: `web/src/config/pricing/plans.csv` (16 rows, 15 active) → `plans.generated.ts` / `stripe-seed.json` (`npx tsx scripts/build-plans.ts`), `web/src/lib/plans-v2.ts`, `web/src/lib/entitlements/tier-ladder.ts`, migration `0400_sync_plan_rows_v4.sql`.
+
+### Ladder v4
+
+| Tab | id | Name | A$/mo | A$/yr | Change | usage_limits |
+|---|---|---|---|---|---|---|
+| Evaluator | `investor_angel` | Scout | 79 | 790 | none | unchanged |
+| | `investor_advisor` | Firm | 149 | 1,490 | none | unchanged |
+| | `investor_vc_small` | Program | 349 | 3,490 | copy only | unchanged |
+| | **`investor_fund`** NEW | Fund | **999** | 9,990 | new, public, 7-day trial | `{"profiles":500,"portfolio_size":500,"reports_per_month":-1,"seats":10}` + Program flags + `custom_benchmark`, `multi_fund`, `weekly_delta` (no `sso`) |
+| | `investor_vc_ent` | VC Enterprise | custom | 30,000 | contact | unchanged |
+| Programs (annual-first, 14-day trial) | **`accelerator_intake`** NEW | Intake link | **249** | 2,490 | new, public | `{"profiles":60,"reports_per_month":40,"seats":3}` + `cohort.view`, `cohort.view.stats`, `accelerator.cohort`, `investor.dealflow`, `watchlist`, `svi.feed`, `diligence_pack`, `lp_report`, `grant_finder`, `money_radar` |
+| | `accelerator_starter` | **Cohort 25** | 500 | 5,000 | public + limits (price kept) | `{"profiles":25,"reports_per_month":50,"seats":5,"monthly_credits":200}`; flags ⊇ Intake |
+| | `accelerator_growth` | **Cohort 100** | 1,500 | 15,000 | public + limits (price kept) | `{"profiles":100,"reports_per_month":200,"seats":15,"monthly_credits":800}`; flags ⊇ Cohort 25 + `cohort.manage` |
+| | `accelerator_enterprise` | Cohort Enterprise | 3,500 | 35,000 | contact | adds `"reports_per_month":-1`; flags ⊇ Cohort 100 + `white_label`, `api`, `api.access`, `sso` |
+| Data | **`index_api`** NEW | Index API | **299** | 2,990 | new, `public:false` — sold from `/startup-index`, `/developers`, the /pricing contact-sales row; also `STRIPE_PRICE_MAP.svi_api_team` | `{"profiles":0,"reports_per_month":0,"seats":2,"api_daily_calls":1000}` + `api`, `api.access`, `svi.feed` |
+
+Notes:
+- `intake.manage` (plan §3.2) does not exist in the `Feature` union yet — it ships with G14 S35; the Intake row carries the evaluator flags instead, which is what batch scoring (`lp_export OR accelerator.cohort`) and the sponsor / LP export (`lp_report`) gate on today.
+- The cohort rows gained the Intake flags because the tier ladder requires each rung to be a superset of the rung below (`tier-ladder.test.ts` invariant b) — a A$500 Cohort 25 must not have fewer capabilities than a A$249 Intake link.
+- The Fund card names only shipped things: 10 seats, unlimited reports, 500 tracked startups, read-only API, quarterly LP / sponsor report, weekly Progress Radar, your own rubric weights. **Never Affinity / Slack / Airtable** until G14 S38 ships (truth rule). `custom_benchmark` / `multi_fund` / `weekly_delta` are on the row for future gating; no page gates on them yet, so the copy does not sell a "benchmark set".
+- `/pricing` now has three tabs — Founder | Evaluator (4 cards, `lg:grid-cols-4`) | Programs (annual-first via `billing_default: "annual"`). `?persona=` is accepted as a `?segment=` alias (deck v3 links).
+- `svi-api-auth.ts` Team tier A$199 → A$299 (mirrors `index_api`); `POST /api/svi-api/checkout` no longer 503s once `STRIPE_PRICE_INDEX_API` / `STRIPE_PRICE_INVESTOR_VC_ENT` are set.
+
+### Credit decision
+
+**1 credit = A$1 list** (`lib/credits.ts`); credit packs discount to A$0.60 (`credit-packs.ts`, 100 credits = A$60). The "1 credit ≈ A$0.025 (200 credits = A$5 report)" spec in `lib/pricing/v3-skus.ts` and its unshipped §8.5 ladder (Growth A$53.90 / Professional A$163.90 / Programme A$5,389 / Enterprise) were removed on 2026-09-16 — nothing imported them and no Stripe Product carried those ids. `v3-skus.ts` now holds only the three A$3 report SKUs.
+
+### ARR bottom-up AU (plan §3.3, Appendix D of G12) — deck S6/S11
+
+| SKU | Universe | Bear M12 | Base M12 | Base M24 | Bull M24 |
+|---|---|---|---|---|---|
+| Scout | ~1,200 angels | 60 → 56,880 | 120 → 113,760 | 250 → 237,000 | 400 → 379,200 |
+| Firm | 4,345 firms | 10 → 17,880 | 25 → 44,700 | 60 → 107,280 | 120 → 214,560 |
+| Program | ~400 orgs | 10 → 41,880 | 20 → 83,760 | 40 → 167,520 | 60 → 251,280 |
+| Fund | ~38 | 1 → 11,988 | 4 → 47,952 | 8 → 95,904 | 12 → 143,856 |
+| Cohort 25 | 56 | 3 → 15,000 | 8 → 40,000 | 15 → 75,000 | 25 → 125,000 |
+| Cohort 100 | ~10 | 0 | 2 → 30,000 | 4 → 60,000 | 6 → 90,000 |
+| Intake link | ~25 | 2 → 5,976 | 5 → 14,940 | 10 → 29,880 | 15 → 44,820 |
+| Index API | ~20 | 1 → 3,588 | 3 → 10,764 | 6 → 21,528 | 10 → 35,880 |
+| **Recurring ARR** | | **A$153K** | **A$386K** | **A$794K** | **A$1.28M** |
+
+### Stripe steps (founder-gated — never run by an agent)
+
+1. `cd web && npx tsx scripts/build-plans.ts` (already committed; re-run = only `generated_at` changes).
+2. Dry-run in test mode: `node scripts/seed-stripe.mjs --test-mode --dry-run --skus=investor_fund,accelerator_intake,index_api`.
+3. Test mode for real: `node scripts/seed-stripe.mjs --test-mode --skus=investor_fund,accelerator_intake,index_api` → check the three Products (metadata `plan_id`) and six Prices (`tax_behavior: inclusive`, monthly + annual) in the test dashboard; run a test checkout on each.
+4. Live: `node scripts/seed-stripe.mjs --skus=investor_fund,accelerator_intake,index_api` — writes `plans.stripe_price_id` / `stripe_price_id_annual` on the three rows.
+5. Copy the six ids into **both** `web/.env` and `web/.env.runtime`: `STRIPE_PRICE_INVESTOR_FUND(_ANNUAL)`, `STRIPE_PRICE_ACCEL_INTAKE(_ANNUAL)`, `STRIPE_PRICE_INDEX_API(_ANNUAL)`. `STRIPE_PRICE_INVESTOR_VC_ENT` powers `svi_api_institutional`.
+6. Verify on the dashboard that `STRIPE_PRICE_ACCEL_STARTER(_ANNUAL)` and `STRIPE_PRICE_ACCEL_GROWTH(_ANNUAL)` were actually minted (G12 §9.6 checkbox was never ticked) — if not, `node scripts/seed-stripe.mjs --skus=accelerator_starter,accelerator_growth` — otherwise the Programs cards show "(unavailable)" on `/signup`.
+7. `node scripts/sync-stripe-pricing.mjs` — the audit now lists every evaluator / programs row (monthly + annual, inclusive) and flags `MISSING_ID` / `DRIFT` / `CADENCE_DRIFT`.
+8. Apply the migration: `scripts/db/apply-migration.sh web/supabase/migrations/0400_sync_plan_rows_v4.sql`, then `node scripts/db/migration-status.mjs --write` and commit `web/content/reports/schema-migrations.json`.
+
+### Grandfather rule
+
+Existing subscribers keep their Stripe Price id and their row's entitlements. A rename (Cohort Starter → Cohort 25) changes `plans.name` only. A limits change on an existing row (0400) applies to every subscriber on it — v4 only ever *adds* to the accelerator rows (`reports_per_month`, flags) and re-bases seats / credits to the figures the founder approved; the Stripe amount is untouched. Any future price move = new Stripe Price + `active=false` on the old row (never delete a Price), exactly as founder_scale (Pro) was retired on 2026-09-08.
+
+Reseller never touches Stripe; Auschain PTY LTD is seller of record; all prices GST-inclusive.

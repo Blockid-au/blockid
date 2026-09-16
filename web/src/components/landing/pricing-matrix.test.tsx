@@ -11,7 +11,7 @@
 
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { PricingMatrix, effectiveCardInterval } from "./pricing-matrix";
+import { PricingMatrix, defaultIntervalForSegment, effectiveCardInterval } from "./pricing-matrix";
 import {
   EVALUATOR_RADAR_LINE,
   FOUNDER_RADAR_BADGE,
@@ -66,10 +66,20 @@ describe("<PricingMatrix segment='founder' /> — Founder Radar in Starter (T024
 describe("<PricingMatrix segment='investor' /> — Evaluator cards (T0247)", () => {
   const out = renderToStaticMarkup(<PricingMatrix segment="investor" />);
 
-  it("adds 'Money Finder & Progress Radar included' to Scout, Firm and Program", () => {
+  it("adds 'Money Finder & Progress Radar included' to Scout, Firm, Program and Fund", () => {
     const hits = out.match(new RegExp(esc(EVALUATOR_RADAR_LINE).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")) ?? [];
     expect(hits).toHaveLength(publicPlansForSegment("investor").length);
-    expect(hits).toHaveLength(3);
+    expect(hits).toHaveLength(4);
+  });
+
+  // Pricing v4 (2026-09-16): four evaluator cards → a four-column grid at lg.
+  it("renders four cards on a lg:grid-cols-4 grid, Fund last with #tier-fund", () => {
+    expect(out).toContain("lg:grid-cols-4");
+    expect(out).toContain('id="tier-fund"');
+    expect(out).toContain('aria-label="Fund plan"');
+    expect(out).toContain("A$999");
+    expect(out).toContain("/signup?segment=evaluator&amp;plan=investor_fund&amp;trial=1");
+    expect(out).not.toMatch(/affinity|slack|airtable/i);
   });
 
   it("carries no Founder Radar chip — the bundle is a Starter thing", () => {
@@ -100,5 +110,47 @@ describe("<PricingMatrix /> CTA hrefs under the default (monthly) toggle", () =>
     const out = renderToStaticMarkup(<PricingMatrix segment="investor" annualAvailable={[]} />);
     expect(out).not.toContain("interval=annual");
     expect(out).toContain("/signup?segment=evaluator&amp;plan=investor_angel&amp;trial=1");
+  });
+});
+
+// Pricing v4 (2026-09-16, plan §3.2): the Programs ladder is annual-first.
+describe("defaultIntervalForSegment + <PricingMatrix segment='accelerator' /> — Programs ladder", () => {
+  it("only the Programs ladder defaults to Annual (every public card carries billing_default: 'annual')", () => {
+    expect(defaultIntervalForSegment("accelerator")).toBe("annual");
+    expect(defaultIntervalForSegment("investor")).toBe("monthly");
+    expect(defaultIntervalForSegment("founder")).toBe("monthly");
+    expect(defaultIntervalForSegment("advisor")).toBe("monthly");
+  });
+
+  it("renders Intake link / Cohort 25 / Cohort 100 as three trial cards, billed annually, with 14-day trials", () => {
+    const out = renderToStaticMarkup(<PricingMatrix segment="accelerator" />);
+    expect(out).toContain('data-testid="programs-ladder"');
+    expect(out).toContain("lg:grid-cols-3");
+    expect(out).toContain('aria-label="Intake link plan"');
+    expect(out).toContain('aria-label="Cohort 25 plan"');
+    expect(out).toContain('aria-label="Cohort 100 plan"');
+    expect(out).not.toContain('aria-label="Cohort Enterprise plan"');
+    expect(out).toContain('id="tier-intake"');
+    expect(out).toContain('id="tier-cohort-25"');
+    expect(out).toContain('id="tier-cohort-100"');
+    // Annual-first: yearly figures + interval=annual on every CTA, 14-day trial.
+    expect(out).toContain("A$2,490");
+    expect(out).toContain("A$5,000");
+    expect(out).toContain("A$15,000");
+    expect(out).toContain("Billed annually");
+    expect(out).toContain("/signup?segment=evaluator&amp;plan=accelerator_intake&amp;trial=1&amp;interval=annual");
+    expect(out).toContain("/signup?segment=evaluator&amp;plan=accelerator_starter&amp;trial=1&amp;interval=annual");
+    expect(out).toContain("Start 14-day free trial");
+    expect(out).not.toContain("/contact?plan=accelerator_");
+    // Old copy must not resurface.
+    expect(out).not.toMatch(/Demo Day kit|mentor pool|5,000 AI credits/);
+  });
+
+  it("with no annual Stripe Price provisioned the Programs cards fall back to monthly figures", () => {
+    const out = renderToStaticMarkup(<PricingMatrix segment="accelerator" annualAvailable={[]} />);
+    expect(out).not.toContain("interval=annual");
+    expect(out).toContain("A$249");
+    expect(out).toContain("A$500");
+    expect(out).toContain("Billed monthly");
   });
 });

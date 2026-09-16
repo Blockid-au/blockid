@@ -1,22 +1,24 @@
 "use client";
 
 /**
- * PricingSegmentSwitch — the two-way Founder | Evaluator switch on /pricing.
+ * PricingSegmentSwitch — the Founder | Evaluator | Programs switch on /pricing.
  *
- * G12 (2026-09-10, T0268). The four persona tabs (Founder / Investor /
- * Advisor / Accelerator) were retired on 2026-09-07; this is deliberately
- * NOT their return. There are exactly two ladders a visitor can buy
- * self-serve, so there are exactly two tabs:
+ * G12 (2026-09-10, T0268) replaced the four retired persona tabs with two
+ * self-serve ladders; Pricing v4 (2026-09-16, plan §3.2) adds the third —
+ * one tab per ladder a visitor can buy self-serve:
  *
  *   Founder    → founder_free / founder_starter / founder_growth
  *   Evaluator  → investor_angel "Scout" / investor_advisor "Firm" /
- *                investor_vc_small "Program"
+ *                investor_vc_small "Program" / investor_fund "Fund"
+ *   Programs   → accelerator_intake "Intake link" / accelerator_starter
+ *                "Cohort 25" / accelerator_growth "Cohort 100" (annual-first)
  *
  * Both render through <PricingMatrix segment=… /> so the monthly ↔ annual
  * toggle, "Most popular" ribbon and fine print are shared. The contact-sales
  * row on the page sits below the switch and is visible under both tabs.
  *
- * Deep link: `?segment=evaluator` (also `?tab=` / legacy `?tier=`) is read
+ * Deep link: `?segment=evaluator` (also `?persona=` from the deck v3 /
+ * G14 links, `?tab=`, legacy `?tier=`) is read
  * from `window.location` after mount (`readTabFromUrl` prop, default on)
  * — S31-D made /pricing a static, edge-cached page, so the server can no
  * longer read `searchParams` for it. The document always carries the
@@ -40,6 +42,7 @@ import {
 import { trackEvent } from "@/lib/analytics";
 import { PricingMatrix } from "@/components/landing/pricing-matrix";
 import {
+  PRICING_TABS,
   TAB_TO_SEGMENT,
   resolvePricingTab,
   type PricingTab,
@@ -53,7 +56,7 @@ export interface PricingSegmentSwitchProps {
   initialSegment?: PricingTab;
   /**
    * Resolve the deep-link tab from `window.location` after mount
-   * (`?segment=` / `?tab=` / `?tier=`). Default true; the vi page passes
+   * (`?segment=` / `?persona=` / `?tab=` / `?tier=`). Default true; the vi page passes
    * `initialSegment` and leaves this on too so its deep links keep working.
    */
   readTabFromUrl?: boolean;
@@ -67,10 +70,11 @@ export interface PricingSegmentSwitchProps {
 
 const DEFAULT_LABELS: Record<PricingTab, { label: string; sub: string }> = {
   founder: { label: "Founder", sub: "Build, value and raise" },
-  evaluator: { label: "Evaluator", sub: "Investors · advisors · programs" },
+  evaluator: { label: "Evaluator", sub: "Angels · firms · VC funds" },
+  programs: { label: "Programs", sub: "Accelerators · incubators · universities" },
 };
 
-const TAB_ORDER: readonly PricingTab[] = ["founder", "evaluator"];
+const TAB_ORDER: readonly PricingTab[] = PRICING_TABS;
 
 function subscribeNever(): () => void {
   return () => {};
@@ -78,12 +82,15 @@ function subscribeNever(): () => void {
 function noTab(): PricingTab | null {
   return null;
 }
-/** `?segment=` / `?tab=` / legacy `?tier=` → tab, or null when absent (or on the server). */
-function tabFromLocation(): PricingTab | null {
+/**
+ * `?segment=` / `?persona=` (deck v3 alias, G14 §2.4) / `?tab=` / legacy
+ * `?tier=` → tab, or null when absent (or on the server).
+ */
+export function tabFromLocation(): PricingTab | null {
   if (typeof window === "undefined") return null;
   try {
     const sp = new URLSearchParams(window.location.search);
-    const raw = sp.get("segment") ?? sp.get("tab") ?? sp.get("tier");
+    const raw = sp.get("segment") ?? sp.get("persona") ?? sp.get("tab") ?? sp.get("tier");
     return raw === null ? null : resolvePricingTab(raw);
   } catch {
     return null; // URL parsing can only fail in exotic embeds — the default tab stands.
@@ -115,8 +122,8 @@ export function PricingSegmentSwitch({
       if (typeof window !== "undefined" && window.history?.replaceState) {
         try {
           const url = new URL(window.location.href);
-          if (next === "evaluator") url.searchParams.set("segment", "evaluator");
-          else url.searchParams.delete("segment");
+          if (next === "founder") url.searchParams.delete("segment");
+          else url.searchParams.set("segment", next);
           window.history.replaceState(window.history.state, "", url.toString());
         } catch {
           // URL parsing can only fail in exotic embeds — the tab still works.
@@ -127,11 +134,13 @@ export function PricingSegmentSwitch({
   );
 
   useEffect(() => {
-    if (tab !== "evaluator") return;
-    trackEvent("evaluator_pricing_viewed", { via: viaRef.current });
+    // Both non-founder ladders are evaluator surfaces for GA4 — the tab
+    // param tells the Programs and Evaluator views apart.
+    if (tab === "founder") return;
+    trackEvent("evaluator_pricing_viewed", { via: viaRef.current, tab: tab === "programs" ? "programs" : "evaluator" });
   }, [tab]);
 
-  // WAI-ARIA tablist keyboard pattern (two tabs, wraps around).
+  // WAI-ARIA tablist keyboard pattern (three tabs, wraps around).
   const onTabKeyDown = useCallback(
     (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
       let nextIndex: number | null = null;
@@ -187,7 +196,7 @@ export function PricingSegmentSwitch({
                 onClick={() => setTab(id)}
                 onKeyDown={(e) => onTabKeyDown(e, index)}
                 className={[
-                  "flex min-w-[9rem] flex-col items-center rounded-full px-5 py-2 text-center transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface sm:min-w-[11rem]",
+                  "flex min-w-[7rem] flex-col items-center rounded-full px-4 py-2 text-center transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface sm:min-w-[10rem] sm:px-5",
                   active
                     ? "bg-action text-on-action shadow-sm"
                     : "text-secondary hover:text-primary",

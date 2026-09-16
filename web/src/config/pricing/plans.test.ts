@@ -1,5 +1,5 @@
 /**
- * PRC-INV lane guard — asserts that all 12 active SKUs declared in
+ * PRC-INV lane guard — asserts that all 15 active SKUs declared in
  * `plans.csv` are surfaced by the generated catalogue that powers the
  * marketing /pricing page. Any drift here means the pricing page will
  * silently drop tiers.
@@ -66,16 +66,21 @@ function parseCsv(): CsvRow[] {
   });
 }
 
-describe("PRC-INV — 12-SKU pricing matrix (11 tier SKUs + Startup Package one-off)", () => {
+describe("PRC-INV — 15-SKU pricing matrix (14 tier SKUs + Startup Package one-off)", () => {
   const rows = parseCsv();
   const activeRows = rows.filter((r) => r.active === "true");
 
-  it("plans.csv declares exactly 12 active SKUs (11 recurring + founder_package one-off)", () => {
+  it("plans.csv declares exactly 15 active SKUs (14 recurring + founder_package one-off)", () => {
     // founder_scale (Pro, A$299) retired 2026-09-08 — active=false in the CSV,
     // row retained so historical invoices + grandfathered renewals resolve.
-    expect(activeRows).toHaveLength(12);
-    // Regression guard: the 13th active SKU MUST be the Startup Package.
+    // Pricing v4 (2026-09-16) added investor_fund, accelerator_intake and
+    // index_api (plan §3.2).
+    expect(activeRows).toHaveLength(15);
+    // Regression guard: the Startup Package MUST stay active.
     expect(activeRows.some((r) => r.id === "founder_package")).toBe(true);
+    for (const id of ["investor_fund", "accelerator_intake", "index_api"]) {
+      expect(activeRows.some((r) => r.id === id), id).toBe(true);
+    }
   });
 
   it("every active CSV SKU appears in the generated catalogue", () => {
@@ -83,10 +88,10 @@ describe("PRC-INV — 12-SKU pricing matrix (11 tier SKUs + Startup Package one-
     for (const row of activeRows) {
       expect(generatedIds.has(row.id), `missing generated SKU: ${row.id}`).toBe(true);
     }
-    expect(GENERATED_PLANS.filter((p) => p.active)).toHaveLength(12);
+    expect(GENERATED_PLANS.filter((p) => p.active)).toHaveLength(15);
   });
 
-  it("Founder / Investor / Advisor / Accelerator segment tabs collectively surface all 12 tier SKUs", () => {
+  it("Founder / Investor / Advisor / Accelerator segment tabs collectively surface all 15 tier SKUs", () => {
     const tabs: Segment[] = ["founder", "investor", "advisor", "accelerator"];
     const surfaced = new Set<string>();
     for (const seg of tabs) {
@@ -94,10 +99,11 @@ describe("PRC-INV — 12-SKU pricing matrix (11 tier SKUs + Startup Package one-
         surfaced.add(plan.id);
       }
     }
-    // 5 founder + 4 investor (incl. Advisor SKU reused on advisor tab) + 3 accelerator = 12
-    // founder_package is an add-on SKU, NOT a tier — it is intentionally
-    // absent from plansForSegment() so the segment tabs stay clean.
-    expect(surfaced.size).toBe(12);
+    // 5 founder + 6 investor (incl. Advisor SKU reused on advisor tab, Fund,
+    // hidden Index API) + 4 accelerator = 15. founder_package is an add-on
+    // SKU, NOT a tier — it is intentionally absent from plansForSegment() so
+    // the segment tabs stay clean.
+    expect(surfaced.size).toBe(15);
   });
 
   it("Founder tab renders the 5 Founder SKUs", () => {
@@ -115,26 +121,29 @@ describe("PRC-INV — 12-SKU pricing matrix (11 tier SKUs + Startup Package one-
     );
   });
 
-  it("Investor catalogue holds the 4 Investor SKUs (Scout / Firm / Program / VC Enterprise)", () => {
+  it("Investor catalogue holds the 6 Investor SKUs (Scout / Firm / Program / Fund / VC Enterprise / Index API)", () => {
     const investor = plansForSegment("investor");
-    expect(investor).toHaveLength(4);
+    expect(investor).toHaveLength(6);
     const ids = investor.map((p) => p.id);
     expect(ids).toEqual(
       expect.arrayContaining([
         "investor_angel",
         "investor_advisor",
         "investor_vc_small",
+        "investor_fund",
         "investor_vc_ent",
+        "index_api",
       ]),
     );
   });
 
-  it("Accelerator tab renders the 3 Accelerator SKUs", () => {
+  it("Accelerator tab renders the 4 Programs SKUs", () => {
     const accel = plansForSegment("accelerator");
-    expect(accel).toHaveLength(3);
+    expect(accel).toHaveLength(4);
     const ids = accel.map((p) => p.id);
     expect(ids).toEqual(
       expect.arrayContaining([
+        "accelerator_intake",
         "accelerator_starter",
         "accelerator_growth",
         "accelerator_enterprise",
@@ -162,70 +171,144 @@ describe("PRC-INV — 12-SKU pricing matrix (11 tier SKUs + Startup Package one-
 
   it("Advisor tab reuses the Investor catalogue with the Advisor SKU highlighted", () => {
     const advisor = plansForSegment("advisor");
-    expect(advisor).toHaveLength(4);
+    expect(advisor).toHaveLength(6);
     const popular = advisor.filter((p) => p.most_popular).map((p) => p.id);
     expect(popular).toEqual(["investor_advisor"]);
   });
 });
 
-describe("PRC-ACC — Accelerator per-cohort SKUs", () => {
+describe("PRC-ACC — Programs SKUs (Pricing v4, 2026-09-16)", () => {
   const byId = (id: string) => {
     const plan = GENERATED_PLANS.find((p) => p.id === id);
     if (!plan) throw new Error(`generated plan missing: ${id}`);
     return plan;
   };
 
-  // 2026-09-10 (G12 S0): accelerator flags now use the tier-ladder vocabulary
-  // that the workspace pages actually gate on (accelerator.cohort, cohort.*,
-  // lp_report) — the old marketing-only names (cohort_dashboard, co_mentor_pool,
-  // multi_cohort_management…) gated nothing. Migration 0309 re-synced the DB.
-  it("Cohort Starter — A$500/mo, 15 seats, accelerator.cohort feature flag", () => {
+  // The Intake link is the smallest Programs rung; every cohort rung above
+  // it is a strict superset (tier-ladder invariant b). `reports_per_month`
+  // is what report-quota.ts reads — a Programs row without it 402s
+  // `quota_not_configured` on batch scoring, which is why v4 added it.
+  const INTAKE_FLAGS = [
+    "cohort.view",
+    "cohort.view.stats",
+    "accelerator.cohort",
+    "investor.dealflow",
+    "watchlist",
+    "svi.feed",
+    "diligence_pack",
+    "lp_report",
+    "grant_finder",
+    "money_radar",
+  ];
+
+  it("Intake link — A$249/mo, 14-day trial, 60 startups / 40 reports / 3 seats", () => {
+    const p = byId("accelerator_intake");
+    expect(p.price_aud_cents).toBe(24900);
+    expect(p.annual_price_aud_cents).toBe(249000);
+    expect(p.trial_days).toBe(14);
+    expect(p.usage_limits).toEqual({ profiles: 60, reports_per_month: 40, seats: 3 });
+    expect(p.feature_flags).toEqual(INTAKE_FLAGS);
+    expect(p.stripe_env_var).toBe("STRIPE_PRICE_ACCEL_INTAKE");
+    expect(p.sort_order).toBe(98);
+  });
+
+  it("Cohort 25 — A$500/mo (price untouched), 25 startups / 50 reports / 5 seats / 200 credits", () => {
     const p = byId("accelerator_starter");
+    expect(p.name).toBe("Cohort 25");
     expect(p.price_aud_cents).toBe(50000);
     expect(p.annual_price_aud_cents).toBe(500000);
     expect(p.trial_days).toBe(14);
-    expect(p.usage_limits.seats).toBe(15);
-    expect(p.usage_limits.monthly_credits).toBe(2000);
-    expect(p.feature_flags).toEqual(
-      expect.arrayContaining([
-        "cohort.view",
-        "cohort.view.stats",
-        "accelerator.cohort",
-      ]),
-    );
+    expect(p.usage_limits).toEqual({ profiles: 25, reports_per_month: 50, seats: 5, monthly_credits: 200 });
+    expect(p.feature_flags).toEqual(expect.arrayContaining(INTAKE_FLAGS));
+    expect(p.stripe_env_var).toBe("STRIPE_PRICE_ACCEL_STARTER");
   });
 
-  it("Cohort Growth — A$1500/mo, 50 seats, adds cohort.manage", () => {
+  it("Cohort 100 — A$1500/mo (price untouched), 100 startups / 200 reports / 15 seats / 800 credits, adds cohort.manage", () => {
     const p = byId("accelerator_growth");
+    expect(p.name).toBe("Cohort 100");
     expect(p.price_aud_cents).toBe(150000);
     expect(p.annual_price_aud_cents).toBe(1500000);
     expect(p.trial_days).toBe(14);
-    expect(p.usage_limits.seats).toBe(50);
-    expect(p.usage_limits.monthly_credits).toBe(8000);
-    expect(p.feature_flags).toEqual(
-      expect.arrayContaining([
-        "accelerator.cohort",
-        "cohort.manage",
-      ]),
-    );
+    expect(p.usage_limits).toEqual({ profiles: 100, reports_per_month: 200, seats: 15, monthly_credits: 800 });
+    expect(p.feature_flags).toEqual(expect.arrayContaining([...INTAKE_FLAGS, "cohort.manage"]));
   });
 
-  it("Cohort Enterprise — A$3500/mo, unlimited seats, adds white_label + api + sso + lp_report", () => {
+  it("Cohort Enterprise — A$3500/mo, unlimited seats / credits / reports, adds white_label + api + sso", () => {
     const p = byId("accelerator_enterprise");
     expect(p.price_aud_cents).toBe(350000);
     expect(p.annual_price_aud_cents).toBe(3500000);
     expect(p.trial_days).toBe(14);
     expect(p.usage_limits.seats).toBe(-1);
     expect(p.usage_limits.monthly_credits).toBe(-1);
+    expect(p.usage_limits.reports_per_month).toBe(-1);
     expect(p.feature_flags).toEqual(
-      expect.arrayContaining([
-        "white_label",
-        "api.access",
-        "sso",
-        "lp_report",
-      ]),
+      expect.arrayContaining([...INTAKE_FLAGS, "cohort.manage", "white_label", "api", "api.access", "sso"]),
     );
     expect(p.stripe_env_var).toBe("STRIPE_PRICE_ACCEL_ENTERPRISE");
+  });
+
+  it("Programs ladder is a strict flag superset from Intake up (tier-ladder invariant b)", () => {
+    const ladder = ["accelerator_intake", "accelerator_starter", "accelerator_growth", "accelerator_enterprise"];
+    for (let i = 1; i < ladder.length; i += 1) {
+      const lower = new Set(byId(ladder[i - 1]!).feature_flags);
+      const higher = new Set(byId(ladder[i]!).feature_flags);
+      for (const f of lower) expect(higher.has(f), `${ladder[i]} missing ${f}`).toBe(true);
+    }
+  });
+});
+
+describe("PRC-FUND / PRC-API — Fund + Index API rows (Pricing v4)", () => {
+  const byId = (id: string) => {
+    const plan = GENERATED_PLANS.find((p) => p.id === id);
+    if (!plan) throw new Error(`generated plan missing: ${id}`);
+    return plan;
+  };
+
+  it("Fund — A$999/mo, 7-day trial, Program flags + custom_benchmark / multi_fund / weekly_delta, unlimited reports", () => {
+    const fund = byId("investor_fund");
+    const program = byId("investor_vc_small");
+    expect(fund.segment).toBe("investor_vc");
+    expect(fund.price_aud_cents).toBe(99900);
+    expect(fund.annual_price_aud_cents).toBe(999000);
+    expect(fund.trial_days).toBe(7);
+    expect(fund.usage_limits).toEqual({ profiles: 500, portfolio_size: 500, reports_per_month: -1, seats: 10 });
+    expect(fund.feature_flags).toEqual(
+      expect.arrayContaining([...program.feature_flags, "custom_benchmark", "multi_fund", "weekly_delta", "api", "api.access"]),
+    );
+    expect(fund.feature_flags).not.toContain("sso");
+    expect(fund.stripe_env_var).toBe("STRIPE_PRICE_INVESTOR_FUND");
+    expect(fund.sort_order).toBe(85);
+    // VC Enterprise stays a superset of Fund.
+    const ent = new Set(byId("investor_vc_ent").feature_flags);
+    for (const f of fund.feature_flags) expect(ent.has(f), f).toBe(true);
+  });
+
+  it("Index API — A$299/mo, no trial, api + svi.feed only, no workspace or reports", () => {
+    const api = byId("index_api");
+    expect(api.segment).toBe("investor_vc");
+    expect(api.price_aud_cents).toBe(29900);
+    expect(api.annual_price_aud_cents).toBe(299000);
+    expect(api.trial_days).toBe(0);
+    expect(api.feature_flags).toEqual(["api", "api.access", "svi.feed"]);
+    expect(api.usage_limits).toEqual({ profiles: 0, reports_per_month: 0, seats: 2, api_daily_calls: 1000 });
+    expect(api.stripe_env_var).toBe("STRIPE_PRICE_INDEX_API");
+    expect(api.sort_order).toBe(130);
+  });
+
+  it("every evaluator row that sells reports carries reports_per_month (report-quota.ts reads nothing else)", () => {
+    for (const id of [
+      "investor_angel",
+      "investor_advisor",
+      "investor_vc_small",
+      "investor_fund",
+      "investor_vc_ent",
+      "accelerator_intake",
+      "accelerator_starter",
+      "accelerator_growth",
+      "accelerator_enterprise",
+    ]) {
+      expect(typeof byId(id).usage_limits.reports_per_month, id).toBe("number");
+    }
   });
 });
 

@@ -122,8 +122,9 @@ describe("solutions.* approved wording", () => {
   });
 
   it("carries the three approved segment lines verbatim (EN and VI)", () => {
+    // G14 §2.4 (2026-09-16): evaluator-first deck v3 — "pass with reasons".
     expect(EN["solutions.investor.headline"]).toBe(
-      "One score across 8 investor dimensions, backed by the startup's own evidence — screen a deal in minutes and watch it move every week.",
+      "Screen a deal in minutes on one rubric — then send every founder you pass on the reasons why.",
     );
     expect(EN["solutions.accelerator.headline"]).toBe(
       "Score the whole cohort on one rubric, then show sponsors the progress — automatically.",
@@ -132,7 +133,7 @@ describe("solutions.* approved wording", () => {
       "A C-suite review of every client, in AUD, with ESIC and R&D Tax checks — white-labelled, A$3 a report.",
     );
     expect(VI["solutions.investor.headline"]).toBe(
-      "Một điểm số trên 8 tiêu chí nhà đầu tư, dựa trên chính dữ liệu của startup — sàng lọc deal trong vài phút và theo dõi biến động mỗi tuần.",
+      "Sàng lọc deal trong vài phút trên một bộ tiêu chí — rồi gửi cho mọi founder bạn từ chối lý do vì sao.",
     );
     expect(VI["solutions.accelerator.headline"]).toBe(
       "Chấm cả cohort trên một bộ tiêu chí, rồi báo cáo tiến độ cho nhà tài trợ — tự động.",

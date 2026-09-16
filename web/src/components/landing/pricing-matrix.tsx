@@ -3,14 +3,18 @@
 /**
  * PricingMatrix — Homepage v2 pricing block. Renders the public SKU cards
  * for one segment from `plans-v2.ts`: the Founder ladder (Free / Starter
- * A$29 / Growth A$69) or, since G12 (2026-09-10, T0268), the Evaluator
- * ladder (Scout A$79 / Firm A$149 / Program A$349) when `segment` is
- * "investor". <PricingSegmentSwitch /> on /pricing owns the tab state and
- * passes the segment down as a prop; the legacy <SegmentTabs> context is
- * still honoured for any older embed.
+ * A$29 / Growth A$69), the Evaluator ladder (Scout A$79 / Firm A$149 /
+ * Program A$349 / Fund A$999 — four cards since Pricing v4, 2026-09-16)
+ * when `segment` is "investor", or the Programs ladder (Intake link A$249 /
+ * Cohort 25 A$500 / Cohort 100 A$1,500, annual-first, 14-day trial) when
+ * `segment` is "accelerator". <PricingSegmentSwitch /> on /pricing owns the
+ * tab state and passes the segment down as a prop; the legacy
+ * <SegmentTabs> context is still honoured for any older embed.
  *
  * Includes a monthly ↔ annual toggle (annual saves ~17% vs 12× monthly).
- * "Most Popular" ribbon is driven by `plan.most_popular` from the catalogue.
+ * The toggle starts on Annual when every public card of the segment carries
+ * `billing_default: "annual"` (the Programs ladder). "Most Popular" ribbon
+ * is driven by `plan.most_popular` from the catalogue.
  */
 
 import Link from "next/link";
@@ -56,8 +60,8 @@ const SEGMENT_INTRO: Record<Segment, { headline: string; sub: string; roleFit: s
   },
   investor: {
     headline: "Pricing for evaluators",
-    sub: "Scout A$79 · Firm A$149 · Program A$349. 7-day free trial · card required · cancel anytime.",
-    roleFit: "How this fits your role: add the startups you are evaluating, score every one of them on the same rubric, and watch their progress week to week — as an angel, an advisory firm, a VC team or a program.",
+    sub: "Scout A$79 · Firm A$149 · Program A$349 · Fund A$999. 7-day free trial · card required · cancel anytime.",
+    roleFit: "How this fits your role: add the startups you are evaluating, score every one of them on the same rubric, and watch their progress week to week — as an angel, an advisory firm, a VC team or a fund.",
   },
   advisor: {
     headline: "Pricing for advisors",
@@ -66,9 +70,10 @@ const SEGMENT_INTRO: Record<Segment, { headline: string; sub: string; roleFit: s
     note: "Firm adds the client roster, white-label PDF reports, founder-approved full mentor access and per-client R&DTI / ESIC / s708 checks.",
   },
   accelerator: {
-    headline: "Pricing for accelerators",
-    sub: "Per-cohort pricing with seats included. White-label available on Scale.",
-    roleFit: "How this fits your role: run a cohort with batched SVI reports, mentor-pool marketplace, Demo Day kit, and LP reporting.",
+    headline: "Pricing for programs",
+    sub: "Intake link A$2,490 · Cohort 25 A$5,000 · Cohort 100 A$15,000 a year, billed annually. 14-day free trial · card required · cancel anytime.",
+    roleFit: "How this fits your role: score an application round or a whole cohort on one rubric, batch-score it overnight, and export the sponsor / LP report — as an accelerator, incubator or university program.",
+    note: "Free cohort scoring for one intake: bring a live application round (up to 60 applicants) and we score it inside the 14-day trial — talk to us for the pilot.",
   },
 };
 
@@ -77,13 +82,15 @@ const SEGMENT_INTRO: Record<Segment, { headline: string; sub: string; roleFit: s
  * the Founder Stripe products). Since G12 (2026-09-10, T0268) the investor
  * / advisor catalogue is the self-serve Evaluator ladder and routes to
  * `/signup?segment=evaluator&plan=<id>` (7-day Stripe trial, card required —
- * the route itself ships under T0269). Only the accelerator cohort SKUs are
- * still contact-sales, and none of them is public anyway.
+ * the route itself ships under T0269). Pricing v4 (2026-09-16) sells the
+ * Programs ladder (accelerator_intake / starter / growth) through the same
+ * evaluator signup with a 14-day trial; only Cohort Enterprise stays
+ * contact-sales, via `cta_kind: "contact"` on its catalogue row.
  */
-const CONTACT_SALES_SEGMENTS: readonly Segment[] = ["accelerator"];
+const CONTACT_SALES_SEGMENTS: readonly Segment[] = [];
 
-/** Segments whose public cards are sold on the Evaluator tab. */
-const EVALUATOR_SEGMENTS: readonly Segment[] = ["investor", "advisor"];
+/** Segments whose public cards are sold through the evaluator signup. */
+const EVALUATOR_SEGMENTS: readonly Segment[] = ["investor", "advisor", "accelerator"];
 
 /**
  * CTA target for an Evaluator rung — built by T0269, link-only here.
@@ -127,13 +134,31 @@ export interface PricingMatrixProps {
 }
 
 
+/**
+ * The cadence the toggle starts on for a segment: Annual only when every
+ * public card says `billing_default: "annual"` (the Programs ladder — a
+ * cohort is a yearly budget line). Pure so the switch is unit-testable.
+ */
+export function defaultIntervalForSegment(segment: Segment): Interval {
+  const plans = publicPlansForSegment(segment);
+  if (plans.length === 0) return "monthly";
+  return plans.every((p) => p.billing_default === "annual") ? "annual" : "monthly";
+}
+
 export function PricingMatrix({ segment: overrideSegment, annualAvailable }: PricingMatrixProps = {}) {
   const ctx = useSegmentSafe();
   const segment: Segment = overrideSegment ?? ctx?.segment ?? "founder";
-  const [interval, setInterval] = useState<Interval>("monthly");
+  const [chosenInterval, setInterval] = useState<{ segment: Segment; interval: Interval } | null>(null);
+  // Honour `billing_default` until the visitor touches the toggle for this
+  // segment; switching tabs re-reads the new ladder's default.
+  const interval: Interval =
+    chosenInterval && chosenInterval.segment === segment
+      ? chosenInterval.interval
+      : defaultIntervalForSegment(segment);
 
   const intro = SEGMENT_INTRO[segment];
   const isEvaluator = EVALUATOR_SEGMENTS.includes(segment);
+  const isPrograms = segment === "accelerator";
   // Round 5.11: consume `publicPlansForSegment()` so the retired `founder_free`
   // tier is stripped from every public pricing render. `plansForSegment()` is
   // still exported for entitlement/back-office code that needs the full list.
@@ -216,7 +241,7 @@ export function PricingMatrix({ segment: overrideSegment, annualAvailable }: Pri
           {intro.sub}
         </p>
 
-        <IntervalToggle value={interval} onChange={setInterval} />
+        <IntervalToggle value={interval} onChange={(v) => setInterval({ segment, interval: v })} />
       </div>
 
       <p className="mx-auto mb-6 max-w-3xl text-center text-sm text-secondary">
@@ -230,8 +255,14 @@ export function PricingMatrix({ segment: overrideSegment, annualAvailable }: Pri
       )}
 
       <div
-        className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[repeat(auto-fit,minmax(260px,1fr))]"
-        data-testid={isEvaluator ? "evaluator-ladder" : "founder-ladder"}
+        className={[
+          "grid grid-cols-1 gap-6 sm:grid-cols-2",
+          // Four cards on the Evaluator tab (Scout / Firm / Program / Fund)
+          // since Pricing v4; three everywhere else.
+          plans.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3",
+          "xl:grid-cols-[repeat(auto-fit,minmax(260px,1fr))]",
+        ].join(" ")}
+        data-testid={isPrograms ? "programs-ladder" : isEvaluator ? "evaluator-ladder" : "founder-ladder"}
       >
         {plans.map((plan) => (
           <PlanCard
@@ -372,6 +403,10 @@ const TIER_ANCHORS: Record<string, string> = {
   investor_angel: "tier-scout",
   investor_advisor: "tier-firm",
   investor_vc_small: "tier-program",
+  investor_fund: "tier-fund",
+  accelerator_intake: "tier-intake",
+  accelerator_starter: "tier-cohort-25",
+  accelerator_growth: "tier-cohort-100",
 };
 
 function PlanCard({
@@ -404,7 +439,7 @@ function PlanCard({
   const ctaLabel = isContact
     ? "Contact sales"
     : isEvaluatorPlan
-      ? "Start 7-day free trial"
+      ? `Start ${plan.trial_days}-day free trial`
       : "Start trial";
   const handleCtaClick = () => {
     if (!onSelect) return;

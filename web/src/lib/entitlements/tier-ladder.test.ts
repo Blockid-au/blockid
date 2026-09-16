@@ -69,10 +69,39 @@ describe("tier-ladder — invariant (c) every plans-v2 SKU + reseller_admin mapp
     expect(TIER_LADDER_BY_ID.reseller_admin.hiddenFromPublic).toBe(true);
   });
 
-  it("no *_LADDER array contains reseller_admin (public ladders are marketing-only)", () => {
+  it("no *_LADDER array contains reseller_admin or index_api (data SKU; public ladders are marketing-only)", () => {
     for (const ladder of [FOUNDER_LADDER, INVESTOR_LADDER, ACCELERATOR_LADDER, ADVISOR_LADDER]) {
       expect(ladder.find((e) => e.id === "reseller_admin")).toBeUndefined();
+      expect(ladder.find((e) => e.id === "index_api")).toBeUndefined();
     }
+    expect(TIER_LADDER_BY_ID.index_api.hiddenFromPublic).toBe(true);
+    expect(ALL_LADDER_ENTRIES.find((e) => e.id === "index_api")).toBeDefined();
+  });
+
+  // Pricing v4 (2026-09-16, plan §3.2).
+  it("Fund sits between Program and VC Enterprise (rank 35); Intake link opens the Programs ladder (rank 5)", () => {
+    expect(INVESTOR_LADDER.map((e) => [e.id, e.rank])).toEqual([
+      ["investor_angel", 10],
+      ["investor_advisor", 20],
+      ["investor_vc_small", 30],
+      ["investor_fund", 35],
+      ["investor_vc_ent", 40],
+    ]);
+    expect(ACCELERATOR_LADDER.map((e) => [e.id, e.label, e.rank])).toEqual([
+      ["accelerator_intake", "Intake link", 5],
+      ["accelerator_starter", "Cohort 25", 10],
+      ["accelerator_growth", "Cohort 100", 20],
+      ["accelerator_enterprise", "Cohort Enterprise", 30],
+    ]);
+    const fund = TIER_LADDER_BY_ID.investor_fund.supportingUnlocks;
+    for (const f of ["custom_benchmark", "multi_fund", "weekly_delta", "api.access", "lp_report"] as const) {
+      expect(fund).toContain(f);
+    }
+    expect(fund).not.toContain("sso");
+    // Intake carries what batch scoring + the sponsor / LP export gate on.
+    const intake = TIER_LADDER_BY_ID.accelerator_intake.supportingUnlocks;
+    expect(intake).toContain("accelerator.cohort");
+    expect(intake).toContain("lp_report");
   });
 
   it("ids are unique across the ladder (no accidental duplicates)", () => {
@@ -120,8 +149,18 @@ describe("tier-ladder — Money Finder flags (G11 T0242)", () => {
     }
   });
 
-  it("every evaluator rung carries both flags (Scout → VC Enterprise)", () => {
-    for (const id of ["investor_angel", "investor_advisor", "investor_vc_small", "investor_vc_ent"] as const) {
+  it("every evaluator rung carries both flags (Scout → Fund → VC Enterprise, Intake → Cohort Enterprise)", () => {
+    for (const id of [
+      "investor_angel",
+      "investor_advisor",
+      "investor_vc_small",
+      "investor_fund",
+      "investor_vc_ent",
+      "accelerator_intake",
+      "accelerator_starter",
+      "accelerator_growth",
+      "accelerator_enterprise",
+    ] as const) {
       expect(TIER_LADDER_BY_ID[id].supportingUnlocks, id).toContain("grant_finder");
       expect(TIER_LADDER_BY_ID[id].supportingUnlocks, id).toContain("money_radar");
     }

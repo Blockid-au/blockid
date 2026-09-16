@@ -78,6 +78,24 @@ export const STRIPE_PRICE_MAP: Record<string, string | undefined> = {
   // annual price id is null.
   addon_share_mgmt_monthly: process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY,
   addon_share_mgmt_annual: process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_ANNUAL,
+  // Pricing v4 (2026-09-16, plan §3.2) — the three new plans.csv rows. The
+  // plan rows themselves are billed through `plans.stripe_price_id`
+  // (seed-stripe.mjs writes it); these keys exist so route-level checkouts
+  // and the env audit can resolve the ids without a DB read. Mint with
+  // `node scripts/seed-stripe.mjs --skus=investor_fund,accelerator_intake,index_api`.
+  investor_fund: process.env.STRIPE_PRICE_INVESTOR_FUND,
+  investor_fund_annual: process.env.STRIPE_PRICE_INVESTOR_FUND_ANNUAL,
+  accelerator_intake: process.env.STRIPE_PRICE_ACCEL_INTAKE,
+  accelerator_intake_annual: process.env.STRIPE_PRICE_ACCEL_INTAKE_ANNUAL,
+  index_api: process.env.STRIPE_PRICE_INDEX_API,
+  index_api_annual: process.env.STRIPE_PRICE_INDEX_API_ANNUAL,
+  // SVI data API tiers sold by POST /api/svi-api/checkout (`tier: team |
+  // institutional`). Until 2026-09-16 these two keys did not exist, so the
+  // route always answered 503 "Stripe price for team not configured".
+  // Team = the Index API row (A$299/mo, 1,000 calls/day); Institutional =
+  // the VC Enterprise row (custom, unlimited) — both plans.csv env vars.
+  svi_api_team: process.env.STRIPE_PRICE_INDEX_API,
+  svi_api_institutional: process.env.STRIPE_PRICE_INVESTOR_VC_ENT,
 };
 
 /**

@@ -26,7 +26,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { signedInSignupRedirect } from "@/lib/plans/signed-in-upgrade";
 import { parseBillingInterval } from "@/lib/plans/billing-interval";
 import { getPlansCached } from "@/lib/plans-db";
-import { EVALUATOR_TRIAL_COPY, TRIAL_COPY, formatAud } from "@/lib/plans/trial-copy";
+import { EVALUATOR_TRIAL_COPY, TRIAL_COPY, evaluatorTrialLine, formatAud } from "@/lib/plans/trial-copy";
 import {
   accountTypeOptionsForSegment,
   evaluatorPlanLabel,
@@ -142,7 +142,7 @@ export default async function SignupPage({
               data-testid="evaluator-trial-line"
               style={{ margin: "10px 0 0 0", color: "#CBD5E1", fontSize: 13, fontWeight: 500 }}
             >
-              {EVALUATOR_TRIAL_COPY.trial_line}
+              {evaluatorTrialLine(trialPlans.find((p) => p.id === preferredPlan)?.trialDays)}
             </p>
           ) : null}
         </div>
