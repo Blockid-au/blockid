@@ -36,7 +36,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI } from "@/lib/ai-client";
 import { newSlug } from "@/lib/slug";
 import { assertReportUsable, orchestrateReport, type AICallerResult, type PipelineEventHandler } from "@/lib/report-pipeline/orchestrator";
-import type { ReportTierV2 } from "@/lib/report-v2/schema";
+import type { ReportTierV2, ReportV2 } from "@/lib/report-v2/schema";
 import type { AssembledReport, ReportTier, CriterionData, ReportSection } from "@/lib/report-pipeline/types";
 import { CRITERIA, CRITERION_KEYS, type CriterionKey } from "@/lib/evaluation-criteria";
 import {
@@ -114,6 +114,8 @@ export interface TrustReportRunResult {
   reportId: string;
   snapshotId: string | null;
   shareToken: string | null;
+  /** S-R4: the ReportV2 persisted for this run (null when no snapshot row could be written). */
+  reportV2: ReportV2 | null;
   svi: number;
   stage: number;
   wordCount: number;
@@ -761,32 +763,30 @@ export async function runTrustReportForProject(args: {
   // G13-W1-R1: persist the ReportV2 document the /tbr page renders
   // (svi_snapshots.report_v2, migration 0395). Best effort — readers fall
   // back to the adapter when the column is absent or the write fails.
+  let reportV2: ReportV2 | null = null;
   if (snapshotId) {
     const db = getSupabaseAdmin();
     if (db) {
       // W2 review P1: the evaluator TBR / dossier read `svi_snapshots.report_v2`
       // — persist the pipeline's own document (with the W4 chapters) when the
       // orchestrator produced one; the adapter projection is the fallback.
-      await writeSnapshotReportV2(
-        db,
-        snapshotId,
-        report.reportV2
-          ? { ...report.reportV2, snapshotId, projectId: project.id }
-          : fromAssembledReport(report, {
-          snapshotId,
-          projectId: project.id,
-          accountId: ctx.account.id,
-          startupName: project.name ?? ctx.account.startup_name,
-          industry: project.industry ?? null,
-          stageLabel: ctx.sviAnalysis.stageLabel,
-          stage: ctx.sviAnalysis.stage,
-          sviTotal,
-          dimensionScores: ctx.sviAnalysis.dimensionScores ?? null,
-          subs: ctx.sviAnalysis.subs,
-          tier,
-          locale,
-        }),
-      );
+      reportV2 = report.reportV2
+        ? { ...report.reportV2, snapshotId, projectId: project.id }
+        : fromAssembledReport(report, {
+            snapshotId,
+            projectId: project.id,
+            accountId: ctx.account.id,
+            startupName: project.name ?? ctx.account.startup_name,
+            industry: project.industry ?? null,
+            stageLabel: ctx.sviAnalysis.stageLabel,
+            stage: ctx.sviAnalysis.stage,
+            sviTotal,
+            dimensionScores: ctx.sviAnalysis.dimensionScores ?? null,
+            subs: ctx.sviAnalysis.subs,
+            tier,
+            locale,
+          });
+      await writeSnapshotReportV2(db, snapshotId, reportV2);
     }
   }
 
@@ -795,6 +795,7 @@ export async function runTrustReportForProject(args: {
     reportId: report.id,
     snapshotId,
     shareToken,
+    reportV2,
     svi: sviTotal,
     stage: ctx.sviAnalysis.stage,
     wordCount: report.totalWords,

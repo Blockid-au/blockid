@@ -21,7 +21,7 @@ let warnedMissingColumn = false;
 function noteMissingColumn(table: string, column: string, message: string): void {
   if (warnedMissingColumn) return;
   warnedMissingColumn = true;
-  console.warn(`[report-v2] ${table}.${column} unavailable (${message}) — apply web/supabase/migrations/0395_report_v2_columns.sql; falling back to the read-time adapter until then.`);
+  console.warn(`[report-v2] ${table}.${column} unavailable (${message}) — apply web/supabase/migrations/0395_report_v2_columns.sql (svi_snapshots / assembled_reports) or 0400_evaluation_reports_report_v2.sql (evaluation_reports); falling back to the read-time adapter until then.`);
 }
 
 function isMissingColumn(message: string | undefined): boolean {
@@ -89,6 +89,37 @@ export async function readAssembledReportJson(db: Db, reportId: string): Promise
       return null;
     }
     const stored = (data as { report_json?: unknown } | null)?.report_json;
+    return stored && isReportV2(stored) ? stored : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Best-effort write of `evaluation_reports.report_v2` (migration 0400, S-R4); returns true when stored. */
+export async function writeEvaluationReportV2(db: Db, evaluationReportId: string, report: ReportV2): Promise<boolean> {
+  try {
+    const { error } = await db.from("evaluation_reports").update({ report_v2: report }).eq("id", evaluationReportId);
+    if (error) {
+      if (isMissingColumn(error.message)) noteMissingColumn("evaluation_reports", "report_v2", error.message);
+      else console.warn("[report-v2] evaluation_reports.report_v2 write failed:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn("[report-v2] evaluation_reports.report_v2 write threw:", err instanceof Error ? err.message : String(err));
+    return false;
+  }
+}
+
+/** Stored `evaluation_reports.report_v2` when present and valid, else null. */
+export async function readEvaluationReportV2(db: Db, evaluationReportId: string): Promise<ReportV2 | null> {
+  try {
+    const { data, error } = await db.from("evaluation_reports").select("report_v2").eq("id", evaluationReportId).maybeSingle();
+    if (error) {
+      if (isMissingColumn(error.message)) noteMissingColumn("evaluation_reports", "report_v2", error.message);
+      return null;
+    }
+    const stored = (data as { report_v2?: unknown } | null)?.report_v2;
     return stored && isReportV2(stored) ? stored : null;
   } catch {
     return null;

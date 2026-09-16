@@ -55,6 +55,11 @@ vi.mock("@/lib/report-pipeline/run-for-project", () => ({
   runRescoreForProject: (a: unknown) => runRescoreMock(a),
 }));
 
+// S-R4 — the run's ReportV2 is stored on the evaluation_reports row (0400).
+const writeReportV2Mock = vi.fn(async () => true);
+vi.mock("@/lib/report-v2/storage", () => ({ writeEvaluationReportV2: (...a: unknown[]) => writeReportV2Mock(...(a as [])) }));
+vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => ({ from: () => ({}) }) }));
+
 // S20-B — outbound webhook emitter (enqueue only).
 const enqueueMock = vi.fn(async () => ({ queued: 1, endpoints: ["ep"], envelopeId: "evt" }));
 vi.mock("@/lib/webhooks/registry", () => ({ enqueueWebhook: (...a: unknown[]) => enqueueMock(...(a as [])) }));
@@ -104,7 +109,8 @@ beforeEach(() => {
   findRecentMock.mockResolvedValue(null);
   spendCreditsMock.mockResolvedValue({ ok: true, balance: 2 });
   grantCreditsMock.mockResolvedValue({ ok: true, balance: 5 });
-  runFullMock.mockResolvedValue({ kind: "full", reportId: "rpt-1", snapshotId: "snap-1", shareToken: "tok123", svi: 72, stage: 3 });
+  writeReportV2Mock.mockClear();
+  runFullMock.mockResolvedValue({ kind: "full", reportId: "rpt-1", snapshotId: "snap-1", shareToken: "tok123", svi: 72, stage: 3, reportV2: { schemaVersion: "2.0", reportId: "rv2-1" } });
   runRescoreMock.mockResolvedValue({ kind: "rescore", snapshotId: "snap-2", shareToken: "tok456", analysisId: "a-2", svi: 74, delta: 2, stage: 3 });
 });
 
@@ -164,6 +170,8 @@ describe("POST /api/evaluations/[id]/report", () => {
     json = await (await POST(post({ kind: "full", confirm: true }), ctx())).json();
     expect(json).toMatchObject({ ok: true, via: "quota", credits_spent: 0, remaining_quota: 0, trial: { active: true, allowance: 1 } });
     expect(recordMock).toHaveBeenCalledWith(expect.objectContaining({ paidVia: "quota", creditsCost: 0 }));
+    // S-R4: the run's ReportV2 lands on the billed row (0400), keyed on its id.
+    expect(writeReportV2Mock).toHaveBeenCalledWith(expect.anything(), "r-1", expect.objectContaining({ reportId: "rv2-1" }));
 
     previewMock.mockResolvedValue(creditsCost(5));
     json = await (await POST(post({ kind: "full" }), ctx())).json();

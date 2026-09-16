@@ -52,6 +52,9 @@ import {
   type EvaluationReportRow,
 } from "@/lib/evaluations/report-quota";
 import { runRescoreForProject, runTrustReportForProject } from "@/lib/report-pipeline/run-for-project";
+import { writeEvaluationReportV2 } from "@/lib/report-v2/storage";
+import type { ReportV2 } from "@/lib/report-v2/schema";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute } from "@/lib/audit/api-route";
 import { enqueueWebhook } from "@/lib/webhooks/registry";
 
@@ -230,6 +233,8 @@ async function POST_handler(request: Request, { params }: Ctx) {
   let reportRef: string;
   let shareToken: string | null;
   let svi: number;
+  // S-R4: the ReportV2 the run produced, stored on the evaluation_reports row (0400).
+  let reportV2: ReportV2 | null = null;
   try {
     if (kind === "full") {
       const run = await runTrustReportForProject({
@@ -241,6 +246,7 @@ async function POST_handler(request: Request, { params }: Ctx) {
       reportRef = run.reportId;
       shareToken = run.shareToken;
       svi = run.svi;
+      reportV2 = run.reportV2 ?? null;
     } else {
       const run = await runRescoreForProject({ projectId: evaluation.projectId, requestedByUserId: user.id });
       reportRef = run.snapshotId;
@@ -293,6 +299,12 @@ async function POST_handler(request: Request, { params }: Ctx) {
   });
   if (!row) {
     console.error("[blockid:evaluations:report] evaluation_reports row missing — run not billed", { evaluationId: evaluation.id, reportRef });
+  } else if (reportV2) {
+    // Best effort: the dossier / evaluator exports render exactly this
+    // document even after the founder re-scores. A missing 0400 column
+    // logs once and the readers fall back to the snapshot / adapter.
+    const db = getSupabaseAdmin();
+    if (db) await writeEvaluationReportV2(db, row.id, reportV2);
   }
 
   // S20-B — `evaluation.report_ready` to the EVALUATOR's endpoints (the
