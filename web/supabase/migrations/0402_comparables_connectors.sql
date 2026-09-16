@@ -28,6 +28,9 @@
 --    raw PDF text is stored — parsed fields only (data principle: the
 --    startup owns its data; we keep what the report needs).
 --
+-- 3b. svi_snapshots.report_email_queued_at — the report-email queue stamp
+--    (W4-review follow-up b: the PDF/PNG render leaves the SSE request).
+--
 -- 3. public.ga4_signal_snapshots — dated GA4 pulls (90-day sessions,
 --    conversions, returning share, top channels, engagement) from the last
 --    sync, so TRE/MPC can draw an AARRR funnel + channel mix with real
@@ -343,6 +346,19 @@ create index if not exists ga4_signal_snapshots_scope_taken_idx
 
 comment on table public.ga4_signal_snapshots is
   'G13 S-R5 (0402): dated GA4 pulls (90-day window) — sessions, conversions, returning share, top channels, engagement — written on every GA4 sync; TRE/MPC read the latest row for the AARRR funnel + channel mix. user_id has no FK on purpose (erasure map pins app_users FKs); project_id cascades.';
+
+-- ─── 3b. svi_snapshots.report_email_queued_at (W4-review follow-up b) ───────
+-- The report email's PDF + PNG render moves out of the SSE request: the
+-- pipeline stamps this column, /api/cron/report-email-sweep renders + sends
+-- (lib/svi/email-queue.ts). report_email_sent_at (existing) stays the
+-- idempotency marker. Before this column exists the pipeline sends inline.
+alter table public.svi_snapshots
+  add column if not exists report_email_queued_at timestamptz;
+create index if not exists svi_snapshots_report_email_queue_idx
+  on public.svi_snapshots (report_email_queued_at)
+  where report_email_queued_at is not null and report_email_sent_at is null;
+comment on column public.svi_snapshots.report_email_queued_at is
+  'G13 S-R5 (0402): set by the report pipeline when the founder email is due; cleared / superseded by report_email_sent_at once /api/cron/report-email-sweep has sent it.';
 
 -- ─── 4. RLS ─────────────────────────────────────────────────────────────────
 alter table public.au_comparable_raises enable row level security;
