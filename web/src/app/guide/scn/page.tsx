@@ -12,8 +12,8 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 
 const SITE_URL = "https://blockid.au";
@@ -200,7 +200,7 @@ export default function StartupCompassPrimerPage() {
   return (
     <>
       <PageTracker page="guide-scn" />
-      <Navbar />
+      <NavV2 />
       <main className="mx-auto max-w-3xl px-4 py-12 md:py-16">
         <header className="mb-10">
           <p className="text-sm font-medium uppercase tracking-wide text-emerald-600">

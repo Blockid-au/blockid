@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { EsopChecklistClient } from "./esop-checklist-client";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 
 const TITLE = "ESOP legal checklist for Australian startups 2026";
@@ -36,7 +36,7 @@ export default function EsopChecklistPage() {
   return (
     <>
       <PageTracker page="esop-checklist" />
-      <Navbar />
+      <NavV2 />
       <main className="min-h-screen bg-gradient-to-b from-surface-50 to-white">
         <EsopChecklistClient />
       </main>

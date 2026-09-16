@@ -12,8 +12,8 @@ import type { Metadata } from "next";
 import { brandedOrAbsolute, fitDescription, pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { ChapterProgressRibbon } from "@/components/guide/chapter-progress-ribbon";
 import { AbnLookupPanel } from "@/components/guide/abn-lookup-panel";
@@ -251,7 +251,7 @@ export default async function GuideChapterPage({
   return (
     <>
       <PageTracker page="guide-chapter" chapter={c.phase} locale={locale} />
-      <Navbar />
+      <NavV2 />
       <main className="mx-auto max-w-3xl px-4 py-12 md:py-16">
         <ChapterProgressRibbon phase={c.phase} locale={locale} variant="marketing" />
         <header className="mb-10">

@@ -687,7 +687,7 @@ function UserMenu({ user }: { user: AuthUser }) {
                     role="menuitem"
                     data-user-menu-item={key}
                     onClick={() => {
-                      trackEvent("nav_click", { group: "user-menu", item: label, href });
+                      trackEvent("nav_click", { group: "user-menu", item: label, href, persona: user.persona ?? "founder", phase: 0 });
                       setOpen(false);
                     }}
                     className={`flex items-center gap-2.5 px-4 py-2.5 text-sm focus:outline-none ${t.item}`}

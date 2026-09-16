@@ -132,7 +132,7 @@ export function OnboardingWizard({ user, initialParams, defaultPersona, nav, foo
     <div data-theme="lux" className="min-h-svh bg-brand-navy bg-lux-radial text-primary" data-onboarding-wizard="v4" data-wizard-flow={flow} data-wizard-step={state.step}>
       {nav}
 
-      <main className="mx-auto max-w-3xl px-6 pb-24 pt-24">
+      <main className="mx-auto max-w-3xl px-6 pb-24 pt-10">
         <WizardRail step={state.step} flow={flow} />
 
         <div className="lux-card rounded-3xl p-8 sm:p-10">

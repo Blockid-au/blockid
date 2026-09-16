@@ -5,8 +5,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { unstable_cache } from "next/cache";
 import { ArrowDownRight, ArrowUpRight, ExternalLink, Minus, Sparkles, TrendingUp } from "lucide-react";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { computeListingDetail } from "@/lib/startup-index-listings";
 import { pageMetadata } from "@/lib/seo/page-meta";
@@ -141,9 +141,9 @@ export default async function TickerDetailPage({ params }: PageProps) {
 
   return (
     <div className="min-h-svh bg-surface-50 text-ink-800">
-      <Navbar />
+      <NavV2 />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-20 pb-16">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 pb-16">
         {/* Breadcrumb */}
         <div className="mb-4 text-xs text-ink-500">
           <Link href="/startup-index" className="hover:text-brand-700">Index</Link>

@@ -18,8 +18,8 @@ import { PERSONAS, resolvePersona } from "@/lib/nav/persona";
 import { loadPersonaRow } from "@/lib/nav/persona-server";
 import { isWizardPersona, type WizardPersona } from "@/lib/onboarding/flow";
 import { signedInSignupRedirect } from "@/lib/plans/signed-in-upgrade";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { OnboardingWizard, type OnboardingInitialParams } from "./onboarding-wizard";
 import { LegacyOnboardingPage } from "./page.legacy";
 
@@ -84,5 +84,5 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   };
   const defaultPersona: WizardPersona | null = isWizardPersona(persona) ? persona : null;
 
-  return <OnboardingWizard user={user} initialParams={initialParams} defaultPersona={defaultPersona} nav={<Navbar />} footer={<Footer />} />;
+  return <OnboardingWizard user={user} initialParams={initialParams} defaultPersona={defaultPersona} nav={<NavV2 />} footer={<Footer />} />;
 }

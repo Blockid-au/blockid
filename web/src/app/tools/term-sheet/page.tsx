@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { TermSheetTool } from "./term-sheet-tool";
 import { ClipboardPaste, Sparkles, FileSearch } from "lucide-react";
@@ -59,8 +59,8 @@ export default function TermSheetPage() {
   return (
     <>
       <PageTracker page="tools/term-sheet" tool="term-sheet" />
-      <Navbar />
-      <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
+      <NavV2 />
+      <main id="main" className="flex-1 pt-10 md:pt-16 pb-24">
         <div className="mx-auto max-w-7xl px-6">
           <header className="max-w-3xl">
             <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">

@@ -14,8 +14,8 @@ vi.mock("next/navigation", () => ({
     throw new Error(`REDIRECT:${url}`);
   },
 }));
-vi.mock("@/components/site/navbar", () => ({ Navbar: () => null }));
-vi.mock("@/components/site/footer", () => ({ Footer: () => null }));
+vi.mock("@/components/landing/nav-v2", () => ({ NavV2: () => null }));
+vi.mock("@/components/marketing/footer", () => ({ Footer: () => null }));
 vi.mock("./onboarding-wizard", () => ({
   OnboardingWizard: (p: { initialParams: Record<string, string | undefined>; defaultPersona: string | null }) => (
     <div data-wizard data-default-persona={p.defaultPersona ?? ""} data-plan={p.initialParams.plan ?? ""} data-interval={p.initialParams.interval ?? ""} data-step={p.initialParams.step ?? ""} data-via={p.initialParams.via ?? ""} />

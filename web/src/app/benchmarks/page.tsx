@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { BenchmarksWall } from "./benchmarks-wall";
 
 const TITLE = "AU startup benchmarks — pre-seed to Series A";
@@ -91,8 +91,8 @@ export default function BenchmarksPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
       />
-      <Navbar />
-      <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
+      <NavV2 />
+      <main id="main" className="flex-1 pt-10 md:pt-16 pb-24">
         <div className="mx-auto max-w-4xl px-6">
           <header className="max-w-3xl mb-12">
             <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">

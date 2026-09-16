@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { NavV2 } from "@/components/landing/nav-v2";
-import { MarketingFooter } from "@/components/marketing/marketing-footer";
+import { Footer } from "@/components/marketing/footer";
 // QA-3 P1-9 (2026-09-12): one contact form (honeypot + ?topic= + support
 // alert wiring) — the inline duplicate that lived here was removed.
 import { ContactForm } from "./contact-form";
@@ -179,7 +179,7 @@ export default function ContactPage() {
           </section>
         </div>
       </main>
-      <MarketingFooter />
+      <Footer />
     </div>
   );
 }

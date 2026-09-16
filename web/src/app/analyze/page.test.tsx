@@ -19,8 +19,8 @@ vi.mock("@/components/landing/nav-v2", () => ({
     </header>
   ),
 }));
-vi.mock("@/components/marketing/marketing-footer", () => ({
-  MarketingFooter: () => (
+vi.mock("@/components/marketing/footer", () => ({
+  Footer: () => (
     <footer data-testid="marketing-footer">
       {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- test stub */}
       <a href="/legal/privacy">Privacy</a>

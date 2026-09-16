@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { JOURNEY_VOCAB_VERSION } from "@/lib/journey-vocabulary";
 import { getPlatformConfig } from "@/lib/platform-config";
 import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
@@ -239,8 +239,8 @@ export default async function DocsPage() {
 
   return (
     <>
-      <Navbar />
-      <main className="pt-28 pb-20">
+      <NavV2 />
+      <main className="pt-8 pb-20">
         <div className="mx-auto max-w-4xl px-6">
           {/* Hero */}
           <div className="text-center mb-14">

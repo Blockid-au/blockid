@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import {
   ArrowRight,
   BarChart3,
@@ -103,8 +103,8 @@ const REVENUE_TIERS = [
 export default function InvestorsPage() {
   return (
     <>
-      <Navbar />
-      <main className="pt-28 pb-20">
+      <NavV2 />
+      <main className="pt-8 pb-20">
         <div className="mx-auto max-w-4xl px-6">
           {/* Hero */}
           <div className="text-center mb-16">
