@@ -61,7 +61,7 @@ export interface ReportPaywallGateProps {
   onRedeemed?(orderId: string): void;
 }
 
-// Trust BizReport re-priced A$5.50 → A$3 in place on 2026-09-10 (founder
+// Trusted Business Report re-priced A$5.50 → A$3 in place on 2026-09-10 (founder
 // decision D3). Read off the SKU so the modal can never drift from what
 // /api/reports/checkout actually books.
 const PATH_A_LABEL = `A$${(TRUST_REPORT_5AUD.unit_amount_incl_gst_cents ?? 300) / 100}`;

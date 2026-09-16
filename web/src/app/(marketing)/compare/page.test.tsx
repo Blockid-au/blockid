@@ -97,7 +97,7 @@ describe("/compare — props", () => {
     expect(price.blockid).toContain(SOLUTION_PRICE_TOKENS.scoutPrice);
     expect(price.chatgpt).toContain("US$20–75 per seat");
     expect(price.valuer).toBe("A$2,985–3,990 + GST per report.");
-    expect(props.cta.report).toBe(`Run a Trust BizReport — ${SOLUTION_PRICE_TOKENS.reportPrice}`);
+    expect(props.cta.report).toBe(`Run a Trusted Business Report — ${SOLUTION_PRICE_TOKENS.reportPrice}`);
     expect(props.cta.trial).toBe("Start evaluating — 7 days free");
     expect(props.cta.plans).toBe("See evaluator plans");
     expect(props.cta.note).toContain(SOLUTION_PRICE_TOKENS.firmPrice);

@@ -32,7 +32,7 @@ export const runtime = "nodejs";
 // 200 uuids + name + weights fit comfortably in 32 KB.
 const BODY_MAX_BYTES = 32 * 1024;
 
-const UPGRADE_HINT = "Batch scoring is included in Program (A$349/mo — 100 Trust BizReports, 200 tracked startups, 5 seats). Upgrade at /pricing?segment=evaluator.";
+const UPGRADE_HINT = "Batch scoring is included in Program (A$349/mo — 100 Trusted Business Reports, 200 tracked startups, 5 seats). Upgrade at /pricing?segment=evaluator.";
 
 async function gate() {
   const user = await getCurrentUser();
@@ -102,7 +102,7 @@ async function POST_handler(request: Request) {
         ok: false,
         error: "quota_not_configured",
         hint: "Contact sales",
-        message: "Your plan has batch scoring but no included Trust BizReport allowance configured yet. Contact sales to enable it.",
+        message: "Your plan has batch scoring but no included Trusted Business Report allowance configured yet. Contact sales to enable it.",
         quota: { limit: quota.limit, used: quota.used, remaining: quota.remaining, unlimited: quota.unlimited, pending },
       },
       { status: 402 },
@@ -117,7 +117,7 @@ async function POST_handler(request: Request) {
       {
         ok: false,
         error: "trial_limit",
-        message: `Your trial includes ${allowance} Trust BizReport${allowance === 1 ? "" : "s"}; this batch needs ${ids.length} and ${available} remain${available === 1 ? "s" : ""}${pending > 0 ? ` (${pending} already queued)` : ""}. Score ${available > 0 ? `${available} now` : "once your trial converts"} or upgrade — ${UPGRADE_HINT}`,
+        message: `Your trial includes ${allowance} Trusted Business Report${allowance === 1 ? "" : "s"}; this batch needs ${ids.length} and ${available} remain${available === 1 ? "s" : ""}${pending > 0 ? ` (${pending} already queued)` : ""}. Score ${available > 0 ? `${available} now` : "once your trial converts"} or upgrade — ${UPGRADE_HINT}`,
         needed: ids.length,
         available,
         trial: quota.trial,
@@ -132,7 +132,7 @@ async function POST_handler(request: Request) {
       {
         ok: false,
         error: "quota_insufficient",
-        message: `This batch needs ${ids.length} included Trust BizReports; ${available} of ${quota.limit} remain this month${pending > 0 ? ` (${pending} already queued)` : ""}. Score fewer startups now or wait for the monthly reset.`,
+        message: `This batch needs ${ids.length} included Trusted Business Reports; ${available} of ${quota.limit} remain this month${pending > 0 ? ` (${pending} already queued)` : ""}. Score fewer startups now or wait for the monthly reset.`,
         needed: ids.length,
         available,
         quota: { limit: quota.limit, used: quota.used, remaining: quota.remaining, unlimited: quota.unlimited, pending },

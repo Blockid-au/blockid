@@ -27,7 +27,7 @@ describe("BatchDialog — S8-B a11y", () => {
     expect(out).toContain('aria-describedby="batch-intro"');
     expect(out).toContain('id="batch-intro"');
     expect(out).toMatch(/data-testid="batch-cost" role="status" aria-live="polite"/);
-    expect(out).toContain("<strong>2</strong> of your included Trust BizReports this month (7 of 10 left)");
+    expect(out).toContain("<strong>2</strong> of your included Trusted Business Reports this month (7 of 10 left)");
     expect(out).toMatch(/<button type="submit"[^>]*aria-busy="false"/);
     expect(out).toContain('aria-expanded="false"');
     expect(out).toContain('aria-controls="batch-weight-sliders"');

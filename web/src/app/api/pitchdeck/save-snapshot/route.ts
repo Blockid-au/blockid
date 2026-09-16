@@ -18,6 +18,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute } from "@/lib/audit/api-route";
+import { fromSnapshot, type SnapshotCriterionState, type SnapshotDimState } from "@/lib/report-v2/adapter";
+import { writeSnapshotReportV2 } from "@/lib/report-v2/storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -162,7 +164,7 @@ async function POST_handler(request: Request): Promise<Response> {
         ? body.dimResultsFull
         : null;
 
-    const { error: insertErr } = await supabase.from("svi_snapshots").insert({
+    const { data: insertedSnap, error: insertErr } = await supabase.from("svi_snapshots").insert({
       account_id: accountId,
       project_id: resolvedProjectId,
       svi_total: totalSVI,
@@ -182,9 +184,45 @@ async function POST_handler(request: Request): Promise<Response> {
       // rehydration + /tbr/<token> public share links + PDF export.
       criterion_results: criterionResults,
       dim_results: dimResultsFull,
-    });
+    }).select("id").maybeSingle();
     if (!insertErr) {
       snapshotInserted = true;
+      // G13-W1-R1: ReportV2 document for /tbr + /workspace/business-report
+      // (svi_snapshots.report_v2, migration 0395). Written AFTER the insert so
+      // a missing column can never break snapshot creation; readers fall back
+      // to the same adapter on null.
+      const snapshotId = (insertedSnap as { id?: string } | null)?.id;
+      if (snapshotId) {
+        const dimStates: Record<string, SnapshotDimState> = {};
+        const full = (dimResultsFull ?? {}) as Record<string, Partial<SnapshotDimState>>;
+        for (const k of DIM_KEYS) {
+          const f = full[k];
+          dimStates[k] = {
+            status: "complete",
+            score: typeof f?.score === "number" ? f.score : dimResults[k]?.score ?? null,
+            markdown: typeof f?.markdown === "string" ? f.markdown : null,
+            insights: Array.isArray(f?.insights) ? f.insights : [],
+            priority: f?.priority ?? dimResults[k]?.priority ?? null,
+            marketBenchmark: typeof f?.marketBenchmark === "string" ? f.marketBenchmark : null,
+          };
+        }
+        await writeSnapshotReportV2(
+          supabase,
+          snapshotId,
+          fromSnapshot({
+            snapshotId,
+            projectId: resolvedProjectId,
+            accountId,
+            industry: body.industry ?? null,
+            stageLabel: body.stage ?? null,
+            sviTotal: totalSVI,
+            deltaVsLast: delta,
+            dimStates,
+            criterionStates: (criterionResults as SnapshotCriterionState[] | null) ?? null,
+            tier: "standard",
+          }),
+        );
+      }
     } else {
       console.warn("[blockid:pitchdeck] snapshot insert failed", insertErr.message);
     }

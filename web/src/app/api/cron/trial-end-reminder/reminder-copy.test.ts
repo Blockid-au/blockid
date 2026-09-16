@@ -63,7 +63,7 @@ describe("renderReminder — card-required wording", () => {
 
 describe("S7-C / S13-A included trial report line", () => {
   const base = { name: "Eva", trialEndFmt: "Friday 18 Sep", planName: "Scout", price: "A$79" };
-  const WAITING = "Your included Trust BizReport is still waiting — run it before Friday 18 Sep.";
+  const WAITING = "Your included Trusted Business Report is still waiting — run it before Friday 18 Sep.";
   const DEEP_LINK = "https://blockid.au/workspace/evaluations?from=trial_reminder";
 
   it("S13-A: report never run (left === 1) → one 'still waiting' line with the deep link that auto-opens the report dialog", () => {
@@ -75,7 +75,7 @@ describe("S7-C / S13-A included trial report line", () => {
     expect(html).toContain("Run it now →");
     expect((html.match(/still waiting/g) ?? []).length).toBe(1);
     // Exactly one report line — the generic count line is replaced, not stacked.
-    expect(html).not.toContain("You have 1 included Trust BizReport left");
+    expect(html).not.toContain("You have 1 included Trusted Business Report left");
     // The charge sentence + cancel footnote are untouched (cadence and copy unchanged).
     expect(html).toContain("Your card will be charged A$79 on Friday 18 Sep unless you cancel before then.");
     expect(html.indexOf("Your card will be charged")).toBeLessThan(html.indexOf("still waiting"));
@@ -87,10 +87,10 @@ describe("S7-C / S13-A included trial report line", () => {
   });
 
   it("the generic count line still covers a (theoretical) allowance ≥ 2", () => {
-    expect(includedReportLine(1)).toBe("You have 1 included Trust BizReport left — run it from Startups I'm evaluating before your trial ends.");
-    expect(includedReportLine(2)).toBe("You have 2 included Trust BizReports left — run it from Startups I'm evaluating before your trial ends.");
+    expect(includedReportLine(1)).toBe("You have 1 included Trusted Business Report left — run it from Startups I'm evaluating before your trial ends.");
+    expect(includedReportLine(2)).toBe("You have 2 included Trusted Business Reports left — run it from Startups I'm evaluating before your trial ends.");
     const html = renderReminder({ ...base, includedReportsLeft: 2 });
-    expect(html).toContain("You have 2 included Trust BizReports left");
+    expect(html).toContain("You have 2 included Trusted Business Reports left");
     expect(html).not.toContain("still waiting");
   });
 
@@ -98,10 +98,10 @@ describe("S7-C / S13-A included trial report line", () => {
     for (const left of [0, null, undefined, -1, NaN]) {
       expect(includedReportLine(left)).toBeNull();
       const html = renderReminder({ ...base, includedReportsLeft: left });
-      expect(html).not.toContain("included Trust BizReport");
+      expect(html).not.toContain("included Trusted Business Report");
       expect(html).not.toContain("from=trial_reminder");
     }
-    expect(renderReminder(base)).not.toContain("included Trust BizReport");
+    expect(renderReminder(base)).not.toContain("included Trusted Business Report");
   });
 });
 

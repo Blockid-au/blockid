@@ -46,11 +46,11 @@ export interface EvaluationsClientProps {
    * or a run without a refresh.
    */
   activation?: ActivationInputs | null;
-  /** `?from=trial_reminder` — open the Trust BizReport dialog on the first evaluation on load (S13-A). */
+  /** `?from=trial_reminder` — open the Trusted Business Report dialog on the first evaluation on load (S13-A). */
   autoOpenReport?: boolean;
   /** Latest evaluation_reports row per evaluation id (T0271). */
   lastReports?: Record<string, LastEvaluationReport>;
-  /** Included Trust BizReports this month from usage_limits.reports_per_month. */
+  /** Included Trusted Business Reports this month from usage_limits.reports_per_month. */
   reportQuota?: ReportQuota | null;
   /** T0273 — Δ / sparkline / deadlines per evaluation + movers for the panel. */
   progress?: EvaluatorProgress | null;
@@ -366,7 +366,7 @@ export function EvaluationsClient({
   const [rows, setRows] = React.useState<EvaluationListRow[]>(initialEvaluations);
   const [used, setUsed] = React.useState(initialUsed);
 
-  // --- Trust BizReport / re-score (T0271) ---
+  // --- Trusted Business Report / re-score (T0271) ---
   const [lastReports, setLastReports] = React.useState<Record<string, LastEvaluationReport>>(initialLastReports);
   const [reportDialog, setReportDialog] = React.useState<{ row: EvaluationListRow; kind: ReportKind } | null>(() =>
     // S13-A: the trial-end reminder deep link lands with the dialog already open on the first startup.
@@ -677,7 +677,7 @@ export function EvaluationsClient({
         </div>
       )}
 
-      {/* Trial strip (S7-C) — 1 included Trust BizReport, then credits */}
+      {/* Trial strip (S7-C) — 1 included Trusted Business Report, then credits */}
       {isEvaluator && trial ? <TrialReportBanner trial={trial} used={trialUsed} /> : null}
 
       {/* Activation checklist (S13-A) — directly under the trial strip; hides itself when complete / dismissed */}
@@ -710,16 +710,16 @@ export function EvaluationsClient({
                 <span className="mx-1.5 text-surface-300">|</span>
                 <span data-testid="report-quota">
                   {reportQuota.unlimited || isUnlimited(reportQuota.limit)
-                    ? "Unlimited Trust BizReports"
+                    ? "Unlimited Trusted Business Reports"
                     : trial
-                      ? `${quotaRemaining ?? reportQuota.remaining} of ${reportQuota.limit} included Trust BizReport${reportQuota.limit === 1 ? "" : "s"} left in your trial, then 3 credits each`
-                      : `${quotaRemaining ?? reportQuota.remaining} of ${reportQuota.limit} included Trust BizReports left this month`}
+                      ? `${quotaRemaining ?? reportQuota.remaining} of ${reportQuota.limit} included Trusted Business Report${reportQuota.limit === 1 ? "" : "s"} left in your trial, then 3 credits each`
+                      : `${quotaRemaining ?? reportQuota.remaining} of ${reportQuota.limit} included Trusted Business Reports left this month`}
                 </span>
               </>
             ) : reportQuota ? (
               <>
                 <span className="mx-1.5 text-surface-300">|</span>
-                <span data-testid="report-quota">Trust BizReport A$3 · re-score A$1</span>
+                <span data-testid="report-quota">Trusted Business Report A$3 · re-score A$1</span>
               </>
             ) : null}
           </span>
@@ -909,11 +909,11 @@ export function EvaluationsClient({
                         <button
                           type="button"
                           onClick={() => setReportDialog({ row, kind: "full" })}
-                          aria-label={`Run Trust BizReport for ${row.projectName}`}
+                          aria-label={`Run Trusted Business Report for ${row.projectName}`}
                           className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 cursor-pointer"
                         >
                           <FileText strokeWidth={1.75} className="h-3.5 w-3.5" aria-hidden="true" />
-                          Run Trust BizReport
+                          Run Trusted Business Report
                         </button>
                         {lastReports[row.id] ? (
                           <button
@@ -962,7 +962,7 @@ export function EvaluationsClient({
         </div>
       ) : null}
 
-      {/* Trust BizReport / re-score confirm dialog (T0271) */}
+      {/* Trusted Business Report / re-score confirm dialog (T0271) */}
       {reportDialog && (
         <ReportDialog
           key={`${reportDialog.row.id}:${reportDialog.kind}`}

@@ -250,7 +250,7 @@ function PayAsYouGoNote() {
       data-testid="evaluator-payg"
       className="mx-auto mt-8 max-w-3xl rounded-lg border border-action/20 bg-action/5 px-4 py-3 text-center text-sm text-secondary"
     >
-      No subscription? Every full Trust BizReport is{" "}
+      No subscription? Every full Trusted Business Report is{" "}
       <strong className="text-primary">{reportPrice} per startup</strong>,
       pay-as-you-go — the same report founders buy. Credit packs run from{" "}
       {smallest ? `A$${smallest.price} (${smallest.credits} credits)` : "A$5"} to{" "}

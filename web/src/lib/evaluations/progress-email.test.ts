@@ -113,8 +113,8 @@ describe("renderEvaluatorProgressEmail", () => {
     });
     expect(html).toContain('href="https://blockid.au/workspace/evaluations"');
     expect(html).toContain("Run a re-score (A$1)");
-    expect(html).toContain("Run Trust BizReport");
-    expect(html).toContain("A full Trust BizReport is A$3");
+    expect(html).toContain("Run Trusted Business Report");
+    expect(html).toContain("A full Trusted Business Report is A$3");
     const disclaimer = DISCLAIMER_SURFACES.evaluator_report.body_md.replace(/\*\*/g, "");
     expect(html).toContain("General information only — not financial, investment, or legal advice.");
     expect(html).toContain("does not hold an Australian Financial Services Licence (AFSL)");

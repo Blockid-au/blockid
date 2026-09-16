@@ -134,7 +134,7 @@ const FOUNDER: Plan[] = [
       // G11 (2026-09-10, T0247): the Money Finder ladder starts here — the
       // free preview (counts + top-3 names) and the A$3 one-off report.
       "Money Finder preview — how many grants and programs you match, top 3 named",
-      "Trust BizReport A$3 pay-as-you-go",
+      "Trusted Business Report A$3 pay-as-you-go",
       "No card, no expiry",
     ],
   },
@@ -301,7 +301,7 @@ const INVESTOR: Plan[] = [
     tagline: "Angels, syndicate members, mentors",
     public: true,
     features: [
-      "10 Trust BizReports a month included (A$30 value)",
+      "10 Trusted Business Reports a month included (A$30 value)",
       "25 tracked startups, 1 seat",
       "Weekly Progress Radar — score deltas, stage changes, new evidence",
       "Deal-flow feed + watchlist",
@@ -321,7 +321,7 @@ const INVESTOR: Plan[] = [
     public: true,
     features: [
       "Everything in Scout",
-      "30 Trust BizReports a month included",
+      "30 Trusted Business Reports a month included",
       "50 tracked startups, 3 seats",
       "White-label PDF reports + client roster",
       "Full mentor access to each client's workspace (founder-approved)",
@@ -341,7 +341,7 @@ const INVESTOR: Plan[] = [
     public: true,
     features: [
       "Everything in Firm",
-      "100 Trust BizReports a month included",
+      "100 Trusted Business Reports a month included",
       "200 tracked startups, 5 seats",
       "Batch scoring — one rubric across a whole application round",
       "Cohort dashboard + quarterly LP / sponsor report export",

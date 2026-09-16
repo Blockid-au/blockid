@@ -160,7 +160,7 @@ export interface ReportDialogProps {
 
 export const KIND_COPY: Record<ReportKind, { title: string; what: string; button: string }> = {
   full: {
-    title: "Run Trust BizReport",
+    title: "Run Trusted Business Report",
     what: "8 dimensions, 13 criteria, AUD valuation range, ≈2,500 words — the same report a founder buys for A$3.",
     button: "Run report",
   },
@@ -184,7 +184,7 @@ export function describeCost(kind: ReportKind, cost: ReportCostPreview): string 
   const unit = cost.list_credits === 1 ? "credit" : "credits";
   const trial = cost.trial?.active ? cost.trial : null;
   if (cost.via === "quota" && trial) {
-    return `Included in your trial — ${trial.allowance} full Trust BizReport${trial.allowance === 1 ? "" : "s"} free, ${cost.remaining_quota} left after this. No credits will be charged.`;
+    return `Included in your trial — ${trial.allowance} full Trusted Business Report${trial.allowance === 1 ? "" : "s"} free, ${cost.remaining_quota} left after this. No credits will be charged.`;
   }
   if (cost.via === "quota") {
     if (cost.quota.unlimited || bigNumber(cost.quota.limit)) {

@@ -204,12 +204,12 @@ describe("PLANS_V2 catalogue", () => {
   it("evaluator feature copy matches plans.csv usage_limits (reports 10/30/100, startups 25/50/200, seats 1/3/5)", () => {
     const byId = new Map(PLANS_V2.map((p) => [p.id, p]));
     const bullets = (id: string) => byId.get(id)!.features.join(" ");
-    expect(bullets("investor_angel")).toMatch(/10 Trust BizReports a month/);
+    expect(bullets("investor_angel")).toMatch(/10 Trusted Business Reports a month/);
     expect(bullets("investor_angel")).toMatch(/25 tracked startups, 1 seat\b/);
-    expect(bullets("investor_advisor")).toMatch(/30 Trust BizReports a month/);
+    expect(bullets("investor_advisor")).toMatch(/30 Trusted Business Reports a month/);
     expect(bullets("investor_advisor")).toMatch(/50 tracked startups, 3 seats/);
     expect(bullets("investor_advisor").toLowerCase()).toContain("white-label");
-    expect(bullets("investor_vc_small")).toMatch(/100 Trust BizReports a month/);
+    expect(bullets("investor_vc_small")).toMatch(/100 Trusted Business Reports a month/);
     expect(bullets("investor_vc_small")).toMatch(/200 tracked startups, 5 seats/);
     const program = bullets("investor_vc_small").toLowerCase();
     expect(program).toContain("batch scoring");
@@ -231,11 +231,11 @@ describe("PLANS_V2 catalogue", () => {
     expect(PLANS_V2.filter((p) => p.badge).map((p) => p.id)).toEqual(["founder_starter"]);
   });
 
-  it("Free names the Money Finder preview and the A$3 Trust BizReport; Growth lists the live Radar extras (T0251)", () => {
+  it("Free names the Money Finder preview and the A$3 Trusted Business Report; Growth lists the live Radar extras (T0251)", () => {
     const byId = new Map(PLANS_V2.map((p) => [p.id, p]));
     const free = byId.get("founder_free")!.features.join(" ");
     expect(free).toContain("Money Finder preview");
-    expect(free).toContain("Trust BizReport A$3 pay-as-you-go");
+    expect(free).toContain("Trusted Business Report A$3 pay-as-you-go");
     const growth = byId.get("founder_growth")!.features.join(" ");
     expect(growth).toContain("+ investor matching, unlimited application drafts, quarterly expert update");
     expect(growth).not.toContain("(coming)");

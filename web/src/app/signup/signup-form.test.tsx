@@ -1,7 +1,7 @@
 // Render test for the /signup trial step — release QA-2 F10 (S7-C copy).
 //
 // The evaluator variant must state what the trial actually includes ("1
-// full Trust BizReport included during the trial, then 10/month on Scout")
+// full Trusted Business Report included during the trial, then 10/month on Scout")
 // next to the 7-day card-required line; the founder variant must not.
 
 import { describe, expect, it, vi } from "vitest";
@@ -43,7 +43,7 @@ describe("SignupForm — evaluator trial step copy", () => {
       <SignupForm segment="evaluator" trialPlans={[SCOUT]} defaultPlanId="investor_angel" stripePublishableKey="pk_test_x" />,
     );
     expect(out).toContain('data-testid="evaluator-trial-included"');
-    expect(out).toContain("1 full Trust BizReport included during the trial, then 10/month on Scout");
+    expect(out).toContain("1 full Trusted Business Report included during the trial, then 10/month on Scout");
     expect(out).toContain("7-day free trial · card required · cancel anytime · charged on day 8");
     expect(out).toContain("Start 7-day evaluator trial");
   });

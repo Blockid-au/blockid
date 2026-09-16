@@ -50,7 +50,7 @@ interface TrialRow {
 }
 
 /**
- * Evaluator trials include TRIAL_REPORT_ALLOWANCE Trust BizReports (S7-C).
+ * Evaluator trials include TRIAL_REPORT_ALLOWANCE Trusted Business Reports (S7-C).
  * Returns how many are still unused, or null for founder plans / non-trialing
  * rows / lookup failures (→ the line is omitted).
  */

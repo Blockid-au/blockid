@@ -457,6 +457,10 @@ function adaptPayload(
     nextSteps: payload.finding.actions.map(
       a => `[${a.window}] ${a.title} (owner: ${a.owner}, effort: ${a.effort})`,
     ),
+    // TODO(S-R2, G13-W1-R2): criterion-level visuals are computed by the W4
+    // dimension-chapter wave (generateChartsV2 → report-visuals). Until then the
+    // ReportV2 adapter (lib/report-v2/adapter.ts) derives every chapter's
+    // primary + secondary VisualSpecV2 from scores + benchmarks at read time.
     visuals: [],
     confidence: Math.round(confidence * 100) / 100,
     wordCount: content.split(/\s+/).filter(Boolean).length,
@@ -527,6 +531,7 @@ async function legacyProseDispatch(
       dataPoints: extractDataPoints(response),
       risks,
       nextSteps: extractNextSteps(response),
+      // TODO(S-R2): see note above — visuals come from the adapter until W4 lands.
       visuals: [],
       confidence: flags.degraded
         ? Math.round(computeConfidence(context.criteriaData[task.criterion]) * 50) / 100
@@ -550,6 +555,7 @@ async function legacyProseDispatch(
       dataPoints: {},
       risks: [`Analysis failed for ${task.criterion}`],
       nextSteps: [],
+      // TODO(S-R2): see note above — visuals come from the adapter until W4 lands.
       visuals: [],
       confidence: 0,
       wordCount: 0,

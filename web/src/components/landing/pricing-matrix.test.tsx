@@ -5,7 +5,7 @@
 // Pins:
 //   1. Starter keeps its label, gains the "Founder Radar" chip and the
 //      approved Radar feature line; no other founder card carries the chip.
-//   2. Free names the Money Finder preview + the A$3 Trust BizReport.
+//   2. Free names the Money Finder preview + the A$3 Trusted Business Report.
 //   3. Growth's Radar extras are live (T0251) — no "(coming)" left.
 //   4. Every Evaluator card says "Money Finder & Progress Radar included".
 
@@ -48,9 +48,9 @@ describe("<PricingMatrix segment='founder' /> — Founder Radar in Starter (T024
     expect(line).toBeLessThan(growth);
   });
 
-  it("Free row says Money Finder preview + Trust BizReport A$3 pay-as-you-go", () => {
+  it("Free row says Money Finder preview + Trusted Business Report A$3 pay-as-you-go", () => {
     expect(out).toContain("Money Finder preview");
-    expect(out).toContain("Trust BizReport A$3 pay-as-you-go");
+    expect(out).toContain("Trusted Business Report A$3 pay-as-you-go");
   });
 
   it("Growth lists investor matching / unlimited drafts / quarterly expert update (live since T0251)", () => {

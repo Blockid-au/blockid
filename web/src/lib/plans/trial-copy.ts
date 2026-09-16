@@ -101,7 +101,7 @@ export const EVALUATOR_TRIAL_COPY = {
 
 /**
  * Release QA-2 F10 (matches S7-C, docs/plans/evaluator-traction §3b): the
- * evaluator trial includes ONE full Trust BizReport for the whole 7 days —
+ * evaluator trial includes ONE full Trusted Business Report for the whole 7 days —
  * not the plan's monthly quota, which starts on day 8. Both the pricing
  * card and the signup trial step must say so, in the same words. The
  * numbers mirror plans.csv `usage_limits.reports_per_month` (Scout 10 /
@@ -116,11 +116,11 @@ export const EVALUATOR_MONTHLY_REPORTS: Readonly<Record<string, number>> = {
   investor_vc_small: 100,
 };
 
-/** "1 full Trust BizReport included during the trial, then 10/month on Scout". */
+/** "1 full Trusted Business Report included during the trial, then 10/month on Scout". */
 export function evaluatorTrialIncludedLine(planId: string, planName: string): string {
   const monthly = EVALUATOR_MONTHLY_REPORTS[planId];
   const n = EVALUATOR_TRIAL_REPORT_ALLOWANCE;
-  const head = `${n} full Trust BizReport${n === 1 ? "" : "s"} included during the trial`;
+  const head = `${n} full Trusted Business Report${n === 1 ? "" : "s"} included during the trial`;
   return monthly ? `${head}, then ${monthly}/month on ${planName}` : head;
 }
 

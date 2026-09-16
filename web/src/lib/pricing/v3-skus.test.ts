@@ -2,7 +2,7 @@
  * Colocated tests for v3-skus canonical catalogue.
  *
  * Pins the four load-bearing invariants of the Master Upgrade Plan §8.5:
- *   1. Trust BizReport is exactly A$3.00 GST-inclusive (§14bis D1, re-priced
+ *   1. Trusted Business Report is exactly A$3.00 GST-inclusive (§14bis D1, re-priced
  *      in place 2026-09-10 per founder decision D3 — id frozen).
  *   2. Every SKU id is unique and comes from the SkuId union.
  *   3. Stripe-managed SKUs all carry a concrete unit_amount and cadence.
@@ -29,11 +29,11 @@ import {
 } from "./v3-skus";
 
 describe("V3 SKU catalogue", () => {
-  it("Trust BizReport is A$3.00 GST-inclusive one-off (D1 → D3 re-price, id frozen)", () => {
+  it("Trusted Business Report is A$3.00 GST-inclusive one-off (D1 → D3 re-price, id frozen)", () => {
     // The id is a historical identifier shared with revenue_events.kind and
     // the report_orders.product_sku CHECK — the re-price must never touch it.
     expect(TRUST_REPORT_5AUD.id).toBe("sku_trust_report_5aud");
-    expect(TRUST_REPORT_5AUD.name).toBe("Trust BizReport");
+    expect(TRUST_REPORT_5AUD.name).toBe("Trusted Business Report");
     expect(TRUST_REPORT_5AUD.unit_amount_incl_gst_cents).toBe(300);
     expect(TRUST_REPORT_5AUD.cadence).toBe("one_off");
     expect(TRUST_REPORT_5AUD.credits_per_cycle).toBe(0);

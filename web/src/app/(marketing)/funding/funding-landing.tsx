@@ -111,7 +111,7 @@ export async function FundingLanding({ messages = null }: FundingLandingProps) {
           />
           <PathCard
             title="Investors: get investor-ready first"
-            body="Your Startup Value Index across 8 dimensions, an AUD valuation range and the next three moves — the free score, then the full Trust BizReport for A$3."
+            body="Your Startup Value Index across 8 dimensions, an AUD valuation range and the next three moves — the free score, then the full Trusted Business Report for A$3."
             href="/analyze"
             cta="Get my score — free"
           />

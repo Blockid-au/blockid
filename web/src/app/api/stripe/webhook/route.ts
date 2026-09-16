@@ -980,7 +980,7 @@ export async function POST(request: Request) {
   // Stage 3 Batch A sub-task A1 · Master Upgrade Plan §8.4.
   //
   // Fires when /api/reports/checkout has minted a Stripe Checkout Session
-  // for the A$3 inc-GST Trust BizReport SKU (`sku_trust_report_5aud` — the
+  // for the A$3 inc-GST Trusted Business Report SKU (`sku_trust_report_5aud` — the
   // id is historical; re-priced A$5.50 → A$3 in place 2026-09-10, D3). Two
   // happy paths:
   //

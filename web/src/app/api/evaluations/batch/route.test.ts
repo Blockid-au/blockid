@@ -141,7 +141,7 @@ describe("/api/evaluations/batch", () => {
     const json = await res.json();
     expect(json.error).toBe("trial_limit");
     expect(json).toMatchObject({ needed: 2, available: 1, upgrade_url: "/pricing?segment=evaluator", trial: { active: true, allowance: 1 } });
-    expect(json.message).toMatch(/Your trial includes 1 Trust BizReport; this batch needs 2 and 1 remains\. Score 1 now or upgrade — Batch scoring is included in Program/);
+    expect(json.message).toMatch(/Your trial includes 1 Trusted Business Report; this batch needs 2 and 1 remains\. Score 1 now or upgrade — Batch scoring is included in Program/);
     expect(createBatchMock).not.toHaveBeenCalled();
 
     // Exactly the included one → queued, nothing left.

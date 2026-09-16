@@ -15,6 +15,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/business-report/business-report-client";
 import { TbrViewBeacon } from "@/components/tbr/tbr-view-beacon";
 import { TbrLeadModal } from "@/components/tbr/tbr-lead-modal";
+import { readSnapshotReportV2 } from "@/lib/report-v2/storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -59,6 +60,7 @@ interface PersistedState {
   done: boolean;
   industry: string | null;
   stage?: string | null;
+  snapshotId?: string | null;
 }
 
 interface SnapshotRow {
@@ -145,8 +147,16 @@ async function fetchByToken(token: string): Promise<{ row: SnapshotRow; persiste
     done: true,
     industry: meta.industry ?? null,
     stage: meta.stageLabel ?? null,
+    snapshotId: row.id,
   };
   return { row, persisted };
+}
+
+/** G13-W1-R1: stored ReportV2 for the row (null until migration 0395 + a pipeline write). */
+async function fetchStoredReportV2(snapshotId: string) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+  return readSnapshotReportV2(supabase, snapshotId);
 }
 
 export default async function TbrSharePage({
@@ -160,6 +170,7 @@ export default async function TbrSharePage({
   const { pdf } = await searchParams;
   const result = await fetchByToken(token);
   if (!result) notFound();
+  const initialReportV2 = await fetchStoredReportV2(result.row.id);
 
   const pdfMode = pdf === "1";
   return (
@@ -167,6 +178,7 @@ export default async function TbrSharePage({
       <BusinessReportClient
         projectId={result.row.project_id ?? "shared"}
         initialData={result.persisted}
+        initialReportV2={initialReportV2}
         shareToken={token}
         pdfMode={pdfMode}
       />

@@ -18,7 +18,7 @@
  * component only renders it.
  *
  * Server component: no state, no hooks, no data fetch. Mounted by the
- * evaluator report routes (T0271 Trust BizReport, T0272 batch/cohort view,
+ * evaluator report routes (T0271 Trusted Business Report, T0272 batch/cohort view,
  * T0273 Progress Radar digest) — it is exported here ahead of those tasks so
  * each can import one thing.
  */

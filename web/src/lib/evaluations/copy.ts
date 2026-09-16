@@ -10,7 +10,7 @@
 // Rules pinned by copy.test.ts (same as the G11 pack):
 //   • every string ≤ 2 sentences (speakability), non-empty;
 //   • no "PhD"; the only price allowed is the public ladder (Scout A$79,
-//     Firm A$149, Program A$349, Trust BizReport A$3) — no retired A$5.50 / A$99;
+//     Firm A$149, Program A$349, Trusted Business Report A$3) — no retired A$5.50 / A$99;
 //   • `{tokens}` are filled with `fill()` (reused from the funding pack) —
 //     an unknown token stays visible as `{token}` rather than vanishing.
 //
@@ -36,7 +36,7 @@ export const EVALUATIONS_COPY = {
   "checklist.step1.body": "Every startup you add is scored on the same 8-dimension rubric, so you compare on evidence rather than pitch polish.",
   "checklist.step1.cta": "Add a startup",
 
-  "checklist.step2.title": "Run your included Trust BizReport",
+  "checklist.step2.title": "Run your included Trusted Business Report",
   "checklist.step2.body": "One full report is included: 13 criteria, an AUD valuation range and a next-step plan, ready in a few minutes.",
   "checklist.step2.cta": "Run the report",
 
@@ -49,7 +49,7 @@ export const EVALUATIONS_COPY = {
   "checklist.step4.cta": "Add another startup",
 
   // ── Trial-end reminder (T-3d email) ───────────────────────────────────
-  "reminder.reportWaiting": "Your included Trust BizReport is still waiting — run it before {trial_end}.",
+  "reminder.reportWaiting": "Your included Trusted Business Report is still waiting — run it before {trial_end}.",
   "reminder.reportWaitingCta": "Run it now",
 } as const;
 
