@@ -110,6 +110,9 @@ const canMock = vi.fn<(u: unknown, f: string) => Promise<boolean>>(async () => f
 vi.mock("@/lib/entitlements", () => ({
   can: (u: unknown, f: string) => canMock(u, f),
 }));
+// S-D3: the org-seat fallback (lazy import) — false unless a test says otherwise.
+const orgSeatMock = vi.fn<(uid: string) => Promise<boolean>>(async () => false);
+vi.mock("@/lib/investor/organisations", () => ({ isOrgSeat: (uid: string) => orgSeatMock(uid) }));
 
 vi.mock("nanoid", () => ({ nanoid: (n: number) => "t".repeat(n) }));
 
@@ -475,6 +478,17 @@ describe("isEvaluatorUser", () => {
 
     state.queue.push({ table: "app_users", data: { account_type: "founder" } });
     canMock.mockResolvedValue(false);
+    expect(await isEvaluatorUser({ id: "u-1", plan: "founder_free" })).toBe(false);
+  });
+
+  it("S-D3: an invited seat of another evaluator's organisation passes without a persona or plan (isOrgSeat fallback)", async () => {
+    state.queue.push({ table: "app_users", data: { account_type: "founder" } });
+    canMock.mockResolvedValue(false);
+    orgSeatMock.mockResolvedValueOnce(true);
+    expect(await isEvaluatorUser({ id: "u-1", plan: "founder_free" })).toBe(true);
+    expect(orgSeatMock).toHaveBeenCalledWith("u-1");
+    state.queue.push({ table: "app_users", data: { account_type: "founder" } });
+    orgSeatMock.mockRejectedValueOnce(new Error("0393 pending"));
     expect(await isEvaluatorUser({ id: "u-1", plan: "founder_free" })).toBe(false);
   });
 });

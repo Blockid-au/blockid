@@ -88,6 +88,8 @@ export const KIND_META: Record<string, { icon: typeof Bell; color: string; label
   investor_viewed: { icon: Eye, color: "text-emerald-600", label: "Investor viewed your data room" },
   chain_drift: { icon: Link2, color: "text-amber-600", label: "On-chain register drift" },
   ai_capacity: { icon: Bell, color: "text-red-600", label: "AI capacity" },
+  intro_requested: { icon: Users, color: "text-emerald-600", label: "Intro requested" },
+  access_requested: { icon: Eye, color: "text-amber-600", label: "Access requested" },
 };
 
 function timeAgo(iso: string): string {

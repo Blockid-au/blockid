@@ -203,8 +203,8 @@
 Supersedes `report-v2-compelling.md` and `sub-agent-report-pipeline.md` (their intent lands as the `ReportV2` contract + dimension-owner agents) and amends the G7 sidebar catalogue + G8 phase scale (canonical = 12 growth phases).
 
 ### Investor (IR + CDO)
-- [ ] Investor Dossier per startup (radar · weighted 8-dim table · 13 criteria · 5-method valuation vs ask · evidence by consent tier · structured evaluator assessment · progress Δ · IC memo)
-- [ ] Canonical startup taxonomy (`startup_taxonomy`) + investor mandate (`investor_mandates`) + FIT_WEIGHTS_V2 both directions + nightly fit refresh
+- [x] Investor Dossier per startup (radar · weighted 8-dim table · 13 criteria · 5-method valuation vs ask · evidence by consent tier · structured evaluator assessment · progress Δ · IC memo) — S-D1/S-D2/S-R4/S-D3; S-D3 (2026-09-16) closes it: Firm/Program seats + consensus, IC memo / one-pager via `ic_reports` (0403), cohort decisions + LP pipeline counts, block 3/6 actions, founder intro → CRM; close-out `docs/plans/investor-dossier-taxonomy-2026-09-15.md`
+- [x] Canonical startup taxonomy (`startup_taxonomy`) + investor mandate (`investor_mandates`) + FIT_WEIGHTS_V2 both directions + nightly fit refresh — S-T1/S-T2
 - [ ] Persona-aware landing `/workspace/investor|advisor|accelerator` (4 blocks) + single onboarding wizard
 ### Navigation (CPO)
 - [ ] Nav v4: founder Home · Prove · Money · Company (≤ 10 leaves at phase 0), evaluator Home · Deal flow · Reports; 17 hubs with tabs; ~95 redirects; dead nav systems deleted; one header/footer

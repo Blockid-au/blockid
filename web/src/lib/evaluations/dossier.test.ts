@@ -92,6 +92,17 @@ vi.mock("@/lib/evaluations/progress-radar", () => ({
   createSupabaseProgressStore: () => ({ listEvaluations: async () => [{ id: "e-1", projectId: "p-1" }, { id: "e-9", projectId: "p-9" }] }),
 }));
 
+// S-D3 collaborators: seats consensus (lib/investor/organisations) — mocked so
+// the round shape stays observable; `shareOrg` drives the org-seat access path.
+const EMPTY_CONSENSUS = { available: false, orgId: null, orgName: null, seats: [], seatCount: 0, submittedCount: 0, medianRating: {}, disagreement: [], tally: { pass: 0, track: 0, proceed: 0 }, aggregate: null, meanConviction: null, label: "" };
+const readConsensusMock = vi.fn(async () => EMPTY_CONSENSUS);
+const shareOrgMock = vi.fn(async (): Promise<string | null> => null);
+vi.mock("@/lib/investor/organisations", () => ({
+  emptyConsensus: () => EMPTY_CONSENSUS,
+  readConsensus: (input: unknown) => readConsensusMock(input as never),
+  shareOrg: (a: string, b: string) => shareOrgMock(a as never, b as never),
+}));
+
 import { __resetDossierCaches, buildCriterionRows, findEvaluationIdForProject, loadDossier, projectEvidenceByTier, resolveDossierAccess } from "./dossier";
 import { DIMENSION_OWNERS, DIM_ORDER } from "@/lib/report-pipeline/dimension-owners";
 import { fromSnapshot } from "@/lib/report-v2/adapter";
@@ -154,6 +165,8 @@ beforeEach(() => {
   );
   percentileMock.mockReset();
   percentileMock.mockResolvedValue({ percentile: 61.4, source: "real_cohort", cohortSize: 120, stageMatched: 3 });
+  readConsensusMock.mockReset().mockResolvedValue(EMPTY_CONSENSUS);
+  shareOrgMock.mockReset().mockResolvedValue(null);
   __resetDossierCaches();
 });
 
@@ -172,6 +185,21 @@ describe("resolveDossierAccess", () => {
     expect(await resolveDossierAccess("e-1", "u-founder")).toBeNull();
     expect(await resolveDossierAccess("e-1", "u-stranger")).toBeNull();
     expect(await resolveDossierAccess("nope", "u-eval")).toBeNull();
+    expect(shareOrgMock).toHaveBeenCalledWith("u-stranger", "u-eval");
+  });
+
+  it("S-D3 F1: a same-org seat opens the evaluator's dossier as an assessor (viaOrgId set); strangers still null", async () => {
+    shareOrgMock.mockImplementation(async (a: string, b: string) => (a === "u-seat" && b === "u-eval" ? "org-1" : null));
+    const seat = await resolveDossierAccess("e-1", "u-seat");
+    expect(seat?.role).toBe("assessor");
+    expect(seat?.viaOrgId).toBe("org-1");
+    expect(seat?.project.slug).toBe("acme-robotics");
+    const direct = await resolveDossierAccess("e-1", "u-eval");
+    expect(direct?.viaOrgId).toBeNull();
+    expect(await resolveDossierAccess("e-1", "u-other")).toBeNull();
+    const d = await loadDossier("e-1", "u-seat");
+    expect(d?.viewer.role).toBe("assessor");
+    expect(d?.header.viaOrgSeat).toBe(true);
   });
 });
 
@@ -251,9 +279,12 @@ describe("loadDossier — evaluator", () => {
     const tables = state.calls.map((c) => c.table);
     expect(tables[0]).toBe("evaluations");
     // Round 1 (7 S-D1 reads + the previous-view audit row) then round 2
-    // (mandate fit row · progress send · the assessed snapshot).
+    // (mandate fit row · progress send · the assessed snapshot · S-D3 the
+    // viewer's audit trail; the consensus reader is mocked).
     expect(tables.slice(1, 7).sort()).toEqual(["audit_events", "connector_snapshots", "evaluation_reports", "svi_dimension_evidence", "svi_snapshots", "svi_snapshots"]);
-    expect(tables.slice(7).sort()).toEqual(["evaluator_progress_sends", "mandate_fit_scores", "svi_snapshots"]);
+    expect(tables.slice(7).sort()).toEqual(["audit_events", "evaluator_progress_sends", "mandate_fit_scores", "svi_snapshots"]);
+    expect(readConsensusMock).toHaveBeenCalledTimes(1);
+    expect(readConsensusMock).toHaveBeenCalledWith(expect.objectContaining({ evaluationId: "e-1", viewerUserId: "u-eval" }));
     expect(percentileMock).toHaveBeenCalledTimes(1);
     await loadDossier("e-1", "u-eval");
     expect(percentileMock).toHaveBeenCalledTimes(1);

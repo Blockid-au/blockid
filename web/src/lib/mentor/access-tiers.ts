@@ -139,6 +139,69 @@ export function tierDisclosure(t: MentorAccessTier): string {
   }
 }
 
+// ─── Investor Dossier field allow-lists (G13 S-D3, BA spec §A.3 block 3) ──
+//
+// What the dossier's evidence block may SHOW at each consent tier. The
+// loader (lib/evaluations/dossier.ts `projectEvidenceByTier`) masks
+// server-side; this table is the single statement of the rule the block
+// renders as "what you see / what needs the founder's next grant".
+
+export const DOSSIER_FIELDS = [
+  "phase",
+  "kpi_bands",
+  "evidence_counts",
+  "full_report",
+  "evidence_items",
+  "evidence_source_kind",
+  "evidence_freshness",
+  "connector_freshness",
+  "public_urls",
+  "document_links",
+  "dataroom_index",
+  "cap_table_summary",
+  "exit_readiness",
+  "founder_notes",
+] as const;
+export type DossierField = (typeof DOSSIER_FIELDS)[number];
+
+export const DOSSIER_FIELD_LABELS: Record<DossierField, string> = {
+  phase: "Growth phase",
+  kpi_bands: "KPI bands (not values)",
+  evidence_counts: "Evidence counts per dimension",
+  full_report: "Full Trusted Business Report",
+  evidence_items: "Evidence items (type, label)",
+  evidence_source_kind: "Source kind per item (self-declared → connected)",
+  evidence_freshness: "Evidence date / freshness",
+  connector_freshness: "Connector freshness (Stripe / Xero / GA4 / GitHub)",
+  public_urls: "Public URLs cited",
+  document_links: "Uploaded document links",
+  dataroom_index: "Data-room index",
+  cap_table_summary: "Cap-table summary",
+  exit_readiness: "Exit-readiness lenses",
+  founder_notes: "Founder notes",
+};
+
+/** Exactly the §A.3 block-3 table, as allow-lists. */
+export const DOSSIER_FIELD_ALLOW_LIST: Record<MentorAccessTier, readonly DossierField[]> = {
+  attributed_only: ["phase", "kpi_bands", "evidence_counts"],
+  reports_shared: ["phase", "kpi_bands", "evidence_counts", "full_report", "evidence_items", "evidence_source_kind", "evidence_freshness", "connector_freshness", "public_urls"],
+  full_mentor: [...DOSSIER_FIELDS],
+};
+
+export function canShowDossierField(tier: MentorAccessTier | null | undefined, field: DossierField): boolean {
+  if (!tier) return false;
+  return DOSSIER_FIELD_ALLOW_LIST[tier].includes(field);
+}
+
+/** Fields the NEXT tier unlocks (the request-upgrade CTA copy); empty at full_mentor. */
+export function dossierFieldsUnlockedBy(tier: MentorAccessTier): { next: MentorAccessTier | null; fields: DossierField[] } {
+  const idx = MENTOR_ACCESS_TIERS.indexOf(tier);
+  const next = idx >= 0 && idx < MENTOR_ACCESS_TIERS.length - 1 ? MENTOR_ACCESS_TIERS[idx + 1] : null;
+  if (!next) return { next: null, fields: [] };
+  const have = new Set(DOSSIER_FIELD_ALLOW_LIST[tier]);
+  return { next, fields: DOSSIER_FIELD_ALLOW_LIST[next].filter((f) => !have.has(f)) };
+}
+
 // ─── Grant-scoped predicates ───────────────────────────────────────────
 
 /**

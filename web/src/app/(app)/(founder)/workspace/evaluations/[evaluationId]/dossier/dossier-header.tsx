@@ -5,11 +5,14 @@
 // evidence count (n items · m connected) · decision chip (assessor only —
 // the founder preview shows "Private to the evaluator" instead, §C.1) ·
 // S-R4: mandate fit (assessor only, primary mandate × this startup) and
-// "Δ since last view" (this viewer's previous dossier.viewed row).
+// "Δ since last view" (this viewer's previous dossier.viewed row) ·
+// S-D3: "Firm consensus (n/m)" next to the decision chip, the "opened as
+// a seat" note and the "Export IC" header action (client button).
 
 import Link from "next/link";
 import { tierLabel } from "@/lib/mentor/access-tiers";
 import type { DossierHeader as HeaderModel, DossierViewerRole } from "@/lib/evaluations/dossier";
+import { ExportIcButton } from "./export-ic-button";
 
 export function fmtDate(iso: string | null): string {
   if (!iso) return "—";
@@ -42,7 +45,7 @@ function Delta({ value }: { value: number | null }) {
   );
 }
 
-export function DossierHeader({ header, role }: { header: HeaderModel; role: DossierViewerRole }) {
+export function DossierHeader({ header, role, icKind }: { header: HeaderModel; role: DossierViewerRole; icKind?: "memo" | "one_page" }) {
   const site = header.website?.replace(/^https?:\/\//, "").replace(/\/$/, "") ?? null;
   return (
     <header className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6" data-testid="dossier-header">
@@ -192,10 +195,25 @@ export function DossierHeader({ header, role }: { header: HeaderModel; role: Dos
                   No decision yet
                 </span>
               )}
+              {role === "assessor" && header.consensus ? (
+                <span className="ml-2 text-xs text-ink-600" data-testid="consensus-chip" title={header.consensus.aggregate ? `Aggregate: ${header.consensus.aggregate}` : "No submitted seat view yet"}>
+                  {header.consensus.label}
+                  {header.consensus.aggregate ? <span className="ml-1 font-semibold uppercase">{header.consensus.aggregate}</span> : null}
+                </span>
+              ) : null}
             </dd>
           </div>
         </dl>
       </div>
+      {role === "assessor" ? (
+        <div className="mt-4 flex flex-wrap items-center gap-2" data-testid="header-actions">
+          {header.viaOrgSeat ? <span className="rounded-full border border-surface-200 bg-surface-50 px-2.5 py-0.5 text-xs text-ink-600">Opened as a seat of your organisation</span> : null}
+          <ExportIcButton evaluationId={header.evaluationId} kind={icKind ?? "one_page"} />
+          <a href="#dossier-block-6" className="text-xs text-brand-700 hover:underline">
+            More actions ↓
+          </a>
+        </div>
+      ) : null}
 
       {role === "founder" ? (
         <p className="mt-4 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-900" data-testid="founder-preview-note">

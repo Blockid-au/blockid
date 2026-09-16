@@ -6,8 +6,10 @@
 export const QA_EMAIL_RE = /^qa-live-\d{8}-\d{4}@blockid\.au$/;
 /** The run's second (member-lane) account — same stamp, `member-` infix. */
 export const QA_MEMBER_EMAIL_RE = /^qa-live-member-\d{8}-\d{4}@blockid\.au$/;
-/** Either live-QA address — the only addresses any DB / erase step may touch. */
-export const QA_ANY_EMAIL_RE = /^qa-live-(member-)?\d{8}-\d{4}@blockid\.au$/;
+/** The run's third account — the evaluator seat of the dossier lane (28), same stamp, `evaluator-` infix (G13 S-D3). */
+export const QA_EVALUATOR_EMAIL_RE = /^qa-live-evaluator-\d{8}-\d{4}@blockid\.au$/;
+/** Any live-QA address — the only addresses any DB / erase step may touch. */
+export const QA_ANY_EMAIL_RE = /^qa-live-(member-|evaluator-)?\d{8}-\d{4}@blockid\.au$/;
 
 function on(name: string): boolean {
   const v = (process.env[name] ?? "").trim().toLowerCase();
@@ -40,4 +42,11 @@ export function memberEmailFor(founderEmail: string): string {
   const m = /^qa-live-(\d{8}-\d{4})@blockid\.au$/.exec(founderEmail);
   if (!m) throw new Error(`not a live-QA founder address: ${founderEmail}`);
   return `qa-live-member-${m[1]}@blockid.au`;
+}
+
+/** `qa-live-evaluator-<stamp>@blockid.au` for the founder address of the same run (dossier lane 28). */
+export function evaluatorEmailFor(founderEmail: string): string {
+  const m = /^qa-live-(\d{8}-\d{4})@blockid\.au$/.exec(founderEmail);
+  if (!m) throw new Error(`not a live-QA founder address: ${founderEmail}`);
+  return `qa-live-evaluator-${m[1]}@blockid.au`;
 }

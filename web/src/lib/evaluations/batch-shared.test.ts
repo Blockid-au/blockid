@@ -138,6 +138,7 @@ function row(over: Partial<CohortRow> = {}): CohortRow {
     itemId: 1, evaluationId: "e-1", projectId: "p-1", projectSlug: "acme", startup: "Acme", label: null, industry: null, state: "NSW",
     status: "done", svi: 71, weighted: 62.5, stage: 3, delta: 4, topStrength: "Founder & Team", topGap: "Traction & Revenue",
     dimensionScores: SCORES, reportUrl: "/tbr/tok", pdfUrl: "/api/svi/report/pdf?token=tok", error: null, scoredAt: "2026-09-11T00:00:00Z",
+    decision: null, conviction: null, thesisFitPct: null, assessmentStatus: null,
     ...over,
   };
 }
@@ -149,7 +150,13 @@ describe("cohortCsv", () => {
     expect(CSV_BOM.charCodeAt(0)).toBe(0xfeff);
     const lines = csv.slice(1).split("\r\n");
     expect(lines[0]).toBe(COHORT_CSV_HEADERS.join(","));
-    expect(lines[1]).toContain("Acme,,,NSW,done,71,62.5,MVP,4,Founder & Team,Traction & Revenue,80,60,70,40,50,55,65,75,https://blockid.au/tbr/tok,2026-09-11T00:00:00Z,");
+    expect(lines[1]).toContain("Acme,,,NSW,done,71,62.5,MVP,4,Founder & Team,Traction & Revenue,,,,,80,60,70,40,50,55,65,75,https://blockid.au/tbr/tok,2026-09-11T00:00:00Z,");
+  });
+
+  it("S-D3 (P1): carries the owner's decision, conviction, thesis fit and assessment status after Top gap", () => {
+    expect(COHORT_CSV_HEADERS.slice(11, 15)).toEqual(["Decision", "Conviction", "Thesis fit %", "Assessment status"]);
+    const csv = cohortCsv([row({ decision: "proceed", conviction: 4, thesisFitPct: 77, assessmentStatus: "submitted" })], "https://blockid.au");
+    expect(csv.slice(1).split("\r\n")[1]).toContain("Traction & Revenue,proceed,4,77,submitted,80,");
     expect(csv.endsWith("\r\n")).toBe(true);
   });
 

@@ -55,6 +55,14 @@ export const NOTIFICATION_KINDS = [
   // floor. Written to the platform founder only, once per UTC day
   // (lib/ai/spend-guard.ts).
   "ai_capacity",
+  // G13 S-D3 intro → CRM (BA spec E2.6 / block 6): a founder asked a matched
+  // investor for an intro (written to the INVESTOR, direction to_investor) or
+  // an evaluator asked the claimed founder (direction to_founder). One per
+  // (project|evaluation, counterpart) per 24 h (lib/investor/actions.ts).
+  "intro_requested",
+  // G13 S-D3 block 3: an evaluator asked the claimed founder for the next
+  // consent tier (reports_shared → full_mentor). One per tier per 24 h.
+  "access_requested",
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -115,6 +123,8 @@ export const KIND_LABELS: Record<NotificationKind, string> = {
   investor_viewed: "Investor viewed your data room",
   chain_drift: "On-chain register drift",
   ai_capacity: "AI capacity",
+  intro_requested: "Intro requested",
+  access_requested: "Access requested",
 };
 
 function s(v: unknown): string | null {
@@ -311,6 +321,22 @@ export function describeNotification(row: FounderNotificationRow): string {
       if (changes !== null && changes > 0) return fill(FUNDING_COPY.notification.analysis_refresh, { n: changes });
       return s(p.title) ?? FUNDING_COPY.notification.analysis_refresh_noCount;
     }
+    case "intro_requested": {
+      // G13 S-D3: { direction: "to_investor" | "to_founder", founder|investor, startup, org }.
+      const startup = s(p.startup) ?? "a startup";
+      if (s(p.direction) === "to_founder") {
+        const who = [s(p.investor), s(p.org)].filter(Boolean).join(", ") || "An investor";
+        return `${who} asked for an intro to ${startup} from your Investor Dossier — they are in your CRM`;
+      }
+      const founder = s(p.founder) ?? "A founder";
+      return `${founder} (${startup}) asked you for an intro — they matched your mandate`;
+    }
+    case "access_requested": {
+      // G13 S-D3: { investor, requested: "reports_shared" | "full_mentor", startup }.
+      const who = s(p.investor) ?? "An evaluator";
+      const requested = s(p.requested) === "full_mentor" ? "full-mentor (data-room) access" : "your reports";
+      return `${who} asked to see ${requested} on ${s(p.startup) ?? "your startup"}`;
+    }
     default:
       return row.kind;
   }
@@ -363,6 +389,12 @@ export function notificationAction(row: FounderNotificationRow): { href: string;
       return { href: "/workspace/equity/cap-table#on-chain", label: "Review drift" };
     case "ai_capacity":
       return { href: "/admin/ai-keys", label: "Review AI spend" };
+    case "intro_requested":
+      return s(p.direction) === "to_founder"
+        ? { href: "/workspace/investors/pipeline", label: "Open your CRM" }
+        : { href: s(p.project_id) ? `/workspace/investor/startup/${s(p.project_id)}` : "/workspace/investor/dealflow", label: "Open the startup" };
+    case "access_requested":
+      return { href: "/workspace/investors/access", label: "Review access" };
     default:
       return null;
   }
