@@ -214,7 +214,9 @@ describe("shareAssessment / revokeAssessmentShare — masking after share and re
     expect(r.founderPreview.dimensionRatings?.MPC?.note).toBe("TAM overstated");
     expect("questionsForFounder" in r.founderPreview).toBe(false);
     for (const f of forbidden) expect(f in r.founderPreview, `${f} leaked`).toBe(false);
-    const json = JSON.stringify(r.founderPreview);
+    // Serialise WITHOUT the timestamp: a wall-clock like "…33.889Z" once
+    // matched the "88" needle (thesis-fit) and failed a deploy gate.
+    const json = JSON.stringify({ ...r.founderPreview, sharedWithFounderAt: undefined });
     for (const needle of ["do not share", "proceed", "88", "3000000", "Runway?"]) expect(json).not.toContain(needle);
     // and the founder read path agrees
     const founder = await getAssessment("e-1", { userId: "u-founder", role: "founder" });
