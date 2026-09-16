@@ -1,22 +1,39 @@
-// Wave 25 Phase B — auto-email the Trusted Business Report to the founder.
+// Wave 25 Phase B → S-R4 — auto-email the Trusted Business Report to the
+// founder, rendered from `ReportV2` (spec §A: every surface renders from
+// the one document; §F S-R4: "cover + 3 questions + weakest chapter + CTA").
 //
-// Called fire-and-forget from `/api/svi/dimensions/stream` after the
-// criteria-synthesis step succeeds. Sends an HTML email with:
-//   - Executive summary + SVI band
-//   - Top-3 strengths + top-3 gaps (from criterion synthesis)
-//   - Link to /workspace/reports/business + public /tbr/<token> share URL
-//   - PDF attachment (fetched internally from /api/svi/report/pdf?token=<t>)
+// Called fire-and-forget from the report pipeline after a full run. Sends
+// an HTML email with:
+//   - cover numbers: SVI, band, Δ vs last snapshot, percentile, stage/phase
+//   - the three questions strip (Where / Worth / Next)
+//   - the weakest chapter: score, verdict, one gap, next action + its
+//     primary visual
+//   - CTA to /workspace/reports/business + the public /tbr/<token> link
+//   - visuals inlined as CID attachments (PNG from `report-visuals/png.ts`;
+//     skipped when the rasteriser is unavailable — the numbers are in the
+//     text either way)
+//   - the PDF attached, rendered in-process by `lib/pdf/tbr-pdf.tsx`
+//     (falls back to fetching /api/svi/report/pdf)
 //
 // Idempotent on the underlying snapshot row via
-// `svi_snapshots.report_email_sent_at` (migration 20260904).
+// `svi_snapshots.report_email_sent_at` (migration 20260904). Subject line
+// and unsubscribe plumbing are unchanged (`@/lib/email` complianceFooter).
 //
-// Reuses the SMTP relay in `@/lib/email` (Nodemailer Gmail → Resend fallback)
-// — no new provider or npm package is wired here.
+// Source precedence for the document: `args.reportV2` (the pipeline's own)
+// → `svi_snapshots.report_v2` for `args.snapshotId` → the latest snapshot
+// for the account → the adapter over the legacy `dimResults` /
+// `criterionResults` the caller still passes.
 
 import { nanoid } from "nanoid";
 import { sendEmail, complianceFooter } from "@/lib/email";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import type { CriterionResult } from "@/lib/report-pipeline/run-report-pipeline";
+import { fromSnapshot, type SnapshotCriterionState, type SnapshotDimState } from "@/lib/report-v2/adapter";
+import { loadLatestReportV2ForAccount, loadReportV2BySnapshotId } from "@/lib/report-v2/load";
+import { isReportV2, type DimensionChapter, type ReportV2 } from "@/lib/report-v2/schema";
+import { visualToPng } from "@/lib/report-visuals/png";
+import type { Band, VisualSpecV2 } from "@/lib/report-visuals/types";
+import { GROWTH_PHASE_LABELS } from "@/lib/growth/phase-taxonomy";
 
 interface DimEmailInput {
   score: number;
@@ -34,6 +51,10 @@ export interface SendReportEmailArgs {
   stage: string | null;
   /** Explicit base URL for links (falls back to env / blockid.au). */
   baseUrl?: string;
+  /** S-R4: the pipeline's own document when it produced one. */
+  reportV2?: ReportV2 | null;
+  /** S-R4: the snapshot the run persisted (stored report_v2 is read from it). */
+  snapshotId?: string | null;
 }
 
 function baseUrl(explicit?: string): string {
@@ -43,131 +64,116 @@ function baseUrl(explicit?: string): string {
   return "https://blockid.au";
 }
 
-const DIM_LABELS: Record<string, string> = {
-  ftv: "Founder & Team",
-  mpc: "Market & Problem",
-  ptd: "Product & Tech",
-  tre: "Traction & Revenue",
-  cgh: "Cap Table & Governance",
-  iri: "Investor Readiness",
-  lco: "Legal & Compliance",
-  svm: "Strategic Vision & Moat",
-};
+// ── Band vocabulary (unchanged subject-line labels) ─────────────────────────
 
-const DIM_WEIGHTS: Record<string, number> = {
-  ftv: 15, mpc: 18, ptd: 12, tre: 20, cgh: 12, iri: 10, lco: 8, svm: 5,
-};
-
-function computeSvi(dims: Record<string, DimEmailInput>): number {
-  let numer = 0;
-  let denom = 0;
-  for (const [k, v] of Object.entries(dims)) {
-    const w = DIM_WEIGHTS[k] ?? 0;
-    if (!w || typeof v?.score !== "number") continue;
-    numer += v.score * w;
-    denom += w;
-  }
-  return denom > 0 ? Math.round(numer / denom) : 0;
+export function bandLabelForEmail(band: Band): { label: string; color: string } {
+  if (band === "strong") return { label: "Investor-Ready", color: "#047857" };
+  if (band === "developing") return { label: "Developing", color: "#b45309" };
+  if (band === "early") return { label: "Early-Stage", color: "#b91c1c" };
+  return { label: "Not scored yet", color: "#64748b" };
 }
 
-function band(svi: number): { label: string; color: string } {
-  if (svi >= 70) return { label: "Investor-Ready", color: "#047857" };
-  if (svi >= 40) return { label: "Developing", color: "#b45309" };
-  return { label: "Early-Stage", color: "#b91c1c" };
+/** The lowest-scoring scored chapter (ties → heavier weight first, i.e. DIM_ORDER). */
+export function weakestChapter(report: ReportV2): DimensionChapter | null {
+  const scored = report.dimensions.filter((d) => d.band !== "pending");
+  if (!scored.length) return null;
+  return scored.reduce((min, d) => (d.score < min.score ? d : min), scored[0]);
 }
 
-function pickTopStrengths(criteria: CriterionResult[], n: number): string[] {
-  const sorted = [...criteria].sort((a, b) => b.score - a.score);
-  const out: string[] = [];
-  for (const c of sorted) {
-    if (out.length >= n) break;
-    const first = (c.strengths ?? [])[0];
-    if (first) out.push(`${c.title}: ${first}`);
-  }
-  return out;
+// ── HTML ────────────────────────────────────────────────────────────────────
+
+export interface ReportEmailImages {
+  /** `cid:` references (without the prefix) for the inlined PNGs; null = not inlined. */
+  ring: string | null;
+  radar: string | null;
+  weakest: string | null;
 }
 
-function pickTopGaps(criteria: CriterionResult[], n: number): string[] {
-  const sorted = [...criteria].sort((a, b) => a.score - b.score);
-  const out: string[] = [];
-  for (const c of sorted) {
-    if (out.length >= n) break;
-    const first = (c.gaps ?? [])[0];
-    if (first) out.push(`${c.title}: ${first}`);
-  }
-  return out;
-}
-
-function renderHtml(args: {
-  startupName: string;
-  totalSvi: number;
-  bandLabel: string;
-  bandColor: string;
-  strengths: string[];
-  gaps: string[];
+export interface RenderReportEmailInput {
+  report: ReportV2;
   dashboardUrl: string;
   shareUrl: string | null;
-  industry: string | null;
-  stage: string | null;
+  images?: Partial<ReportEmailImages>;
   /** Spam Act footer (identity + unsubscribe) — see lib/email complianceFooter. */
   footerHtml?: string;
-}): string {
-  const listItems = (items: string[], color: string) =>
-    items
-      .map(
-        (t) =>
-          `<li style="margin:6px 0;padding-left:8px;border-left:3px solid ${color};color:#334155;font-size:13px;line-height:1.5;">${escapeHtml(t)}</li>`,
-      )
-      .join("");
-  const shareBlock = args.shareUrl
-    ? `<p style="margin:12px 0 4px 0;font-size:13px;color:#334155;">Public share link (send this to an investor — no login required):</p>
-       <p style="margin:0 0 20px 0;"><a href="${args.shareUrl}" style="color:#0284c7;font-size:13px;">${args.shareUrl}</a></p>`
+  pdfAttached?: boolean;
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+const img = (cid: string | null | undefined, alt: string, width: number) =>
+  cid ? `<img src="cid:${cid}" alt="${escapeHtml(alt)}" width="${width}" style="display:block;max-width:100%;height:auto;border:0;" />` : "";
+
+/** Pure: the email body for a ReportV2 (tested without SMTP). */
+export function renderReportEmailHtml(input: RenderReportEmailInput): string {
+  const { report, dashboardUrl, shareUrl, images = {}, footerHtml, pdfAttached = true } = input;
+  const c = report.cover;
+  const band = bandLabelForEmail(c.svi.band);
+  const weakest = weakestChapter(report);
+  const phase = GROWTH_PHASE_LABELS[c.phaseId]?.[report.locale] ?? c.phaseId;
+  const delta = c.svi.deltaVsLast !== null ? `${c.svi.deltaVsLast >= 0 ? "+" : ""}${c.svi.deltaVsLast} vs last snapshot` : null;
+  const pct = c.svi.cohortPercentile !== null ? `${c.svi.cohortPercentile}th percentile${c.svi.cohortN ? ` (n=${c.svi.cohortN})` : ""}` : null;
+  const meta = [c.sector, c.stageLabel, `Phase: ${phase}`].filter(Boolean).join(" · ");
+
+  const q = (label: string, text: string, color: string) =>
+    `<td style="vertical-align:top;padding:10px;border-left:3px solid ${color};background:#f8fafc;border-radius:6px;" width="33%">
+      <p style="margin:0 0 4px 0;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#64748b;font-weight:700;">${label}</p>
+      <p style="margin:0;font-size:12px;line-height:1.45;color:#0f172a;">${escapeHtml(text)}</p>
+    </td>`;
+
+  const weakestBlock = weakest
+    ? `<p style="margin:22px 0 6px 0;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:#b45309;font-weight:700;">Weakest chapter — ${escapeHtml(weakest.title)}</p>
+       <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border:1px solid #e5e7eb;border-radius:8px;">
+         <tr>
+           <td style="padding:12px;vertical-align:top;">
+             <p style="margin:0;font-size:28px;font-weight:800;color:${bandLabelForEmail(weakest.band).color};line-height:1;">${weakest.score}<span style="font-size:12px;color:#64748b;font-weight:400;">/100 · ${escapeHtml(bandLabelForEmail(weakest.band).label)} · weight ${weakest.weight}</span></p>
+             <p style="margin:8px 0 0 0;font-size:13px;line-height:1.5;color:#334155;">${escapeHtml(weakest.verdict)}</p>
+             ${weakest.gaps[0] ? `<p style="margin:8px 0 0 0;font-size:12px;color:#b91c1c;">Gap: ${escapeHtml(weakest.gaps[0])}</p>` : ""}
+             <p style="margin:8px 0 0 0;font-size:12px;color:#0f172a;"><strong>Next action:</strong> ${escapeHtml(weakest.nextAction.title)} — expected lift +${weakest.nextAction.expectedLift} SVI</p>
+             ${img(images.weakest, weakest.primaryVisual.a11y.title, 480)}
+           </td>
+         </tr>
+       </table>`
     : "";
+
   return `<!doctype html>
 <html><body style="margin:0;padding:20px;background:#f8fafc;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;">
   <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;padding:24px;">
     <p style="margin:0 0 8px 0;font-size:11px;color:#64748b;letter-spacing:.14em;text-transform:uppercase;font-weight:600;">Your Trusted Business Report is ready</p>
-    <h1 style="margin:0 0 4px 0;font-size:16px;color:#0f172a;font-weight:700;">${escapeHtml(args.startupName)}</h1>
-    ${args.industry || args.stage ? `<p style="margin:0 0 12px 0;font-size:12px;color:#64748b;">${escapeHtml([args.industry, args.stage].filter(Boolean).join(" · "))}</p>` : ""}
-    <div style="margin:16px 0 24px 0;">
-      <div style="font-size:48px;font-weight:800;line-height:1;color:${args.bandColor};font-variant-numeric:tabular-nums;">${args.totalSvi}<span style="font-size:20px;color:#64748b;font-weight:400;">/100</span></div>
-      <div style="margin-top:6px;font-size:13px;color:${args.bandColor};font-weight:700;">${escapeHtml(args.bandLabel)}</div>
-    </div>
-    ${args.strengths.length ? `<p style="margin:16px 0 6px 0;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:#047857;font-weight:700;">Top strengths</p><ul style="margin:0;padding:0;list-style:none;">${listItems(args.strengths, "#10b981")}</ul>` : ""}
-    ${args.gaps.length ? `<p style="margin:20px 0 6px 0;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:#b91c1c;font-weight:700;">Top gaps to close</p><ul style="margin:0;padding:0;list-style:none;">${listItems(args.gaps, "#ef4444")}</ul>` : ""}
-    <p style="margin:24px 0 4px 0;font-size:13px;color:#334155;">Open the full 10-page interactive report in your workspace:</p>
-    <p style="margin:0 0 20px 0;"><a href="${args.dashboardUrl}" style="display:inline-block;padding:10px 18px;background:#0284c7;color:#ffffff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">Open Business Report</a></p>
-    ${shareBlock}
-    <p style="margin:20px 0 0 0;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#94a3b8;">The 10-page PDF is attached to this email. Directional analysis only — not a formal valuation.</p>
+    <h1 style="margin:0 0 4px 0;font-size:16px;color:#0f172a;font-weight:700;">${escapeHtml(c.startupName)}</h1>
+    <p style="margin:0 0 12px 0;font-size:12px;color:#64748b;">${escapeHtml(meta)}</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:16px 0 20px 0;">
+      <tr>
+        <td style="vertical-align:middle;width:130px;">${img(images.ring, `SVI ${c.svi.total}`, 120)}</td>
+        <td style="vertical-align:middle;padding-left:12px;">
+          <div style="font-size:44px;font-weight:800;line-height:1;color:${band.color};font-variant-numeric:tabular-nums;">${Math.round(c.svi.total)}<span style="font-size:18px;color:#64748b;font-weight:400;">/100</span></div>
+          <div style="margin-top:6px;font-size:13px;color:${band.color};font-weight:700;">${escapeHtml(band.label)}</div>
+          ${delta ? `<div style="margin-top:4px;font-size:12px;color:#64748b;">${escapeHtml(delta)}</div>` : ""}
+          ${pct ? `<div style="margin-top:2px;font-size:12px;color:#64748b;">${escapeHtml(pct)}</div>` : ""}
+        </td>
+        <td style="vertical-align:middle;width:170px;text-align:right;">${img(images.radar, "8 dimensions vs stage median", 160)}</td>
+      </tr>
+    </table>
+    <table role="presentation" cellpadding="0" cellspacing="6" style="width:100%;border-collapse:separate;">
+      <tr>
+        ${q("Where are we?", c.threeQuestions.where, "#0072B2")}
+        ${q("What are we worth?", c.threeQuestions.worth, "#E69F00")}
+        ${q("What next?", c.threeQuestions.next, "#009E73")}
+      </tr>
+    </table>
+    ${weakestBlock}
+    <p style="margin:24px 0 4px 0;font-size:13px;color:#334155;">Open the full interactive report in your workspace — 8 chapters, valuation range, phase gates and the 90-day plan:</p>
+    <p style="margin:0 0 20px 0;"><a href="${dashboardUrl}" style="display:inline-block;padding:10px 18px;background:#0284c7;color:#ffffff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">Open Business Report</a></p>
+    ${shareUrl ? `<p style="margin:12px 0 4px 0;font-size:13px;color:#334155;">Public share link (send this to an investor — no login required):</p><p style="margin:0 0 20px 0;"><a href="${shareUrl}" style="color:#0284c7;font-size:13px;">${shareUrl}</a></p>` : ""}
+    <p style="margin:20px 0 0 0;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#94a3b8;">${pdfAttached ? "The PDF is attached to this email. " : ""}Directional analysis only — not a formal valuation.</p>
   </div>
-  ${args.footerHtml ?? ""}
+  ${footerHtml ?? ""}
 </body></html>`;
 }
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-/** Best-effort fetch of the rendered PDF. Returns null on any failure so the
- *  email still ships with a link-only fallback. */
-async function fetchPdfBuffer(base: string, token: string): Promise<Buffer | null> {
-  try {
-    const res = await fetch(`${base}/api/svi/report/pdf?token=${encodeURIComponent(token)}`, {
-      method: "GET",
-    });
-    if (!res.ok) return null;
-    const ab = await res.arrayBuffer();
-    return Buffer.from(ab);
-  } catch (err) {
-    console.warn("[wave25b:email-report] pdf fetch failed", err);
-    return null;
-  }
-}
+// ── Sending ─────────────────────────────────────────────────────────────────
 
 export interface SendReportEmailResult {
   ok: boolean;
@@ -175,59 +181,121 @@ export interface SendReportEmailResult {
   sentTo?: string;
   shareToken?: string;
   pdfAttached?: boolean;
+  /** S-R4: how the document was obtained. */
+  reportSource?: "pipeline" | "stored" | "adapter" | "legacy";
+  inlineImages?: number;
 }
 
-export async function sendReportEmail(
-  args: SendReportEmailArgs,
-): Promise<SendReportEmailResult> {
+/** Legacy inputs → adapter document (the last resort). */
+export function reportFromLegacyArgs(args: SendReportEmailArgs, ctx: { startupName: string; snapshotId: string | null }): ReportV2 {
+  const dimStates: Record<string, SnapshotDimState> = {};
+  for (const [k, v] of Object.entries(args.dimResults ?? {})) {
+    dimStates[k] = { status: "complete", score: typeof v?.score === "number" ? v.score : null, insights: v?.insights ?? [], priority: v?.priority ?? null, markdown: null, marketBenchmark: null };
+  }
+  const criterionStates: SnapshotCriterionState[] = (args.criterionResults ?? []).map((c) => ({
+    key: c.key,
+    title: c.title,
+    primary_dimension: c.primary_dimension,
+    weight: c.weight,
+    score: c.score,
+    verdict: c.verdict,
+    strengths: c.strengths ?? [],
+    gaps: c.gaps ?? [],
+    next_action: c.next_action ?? "",
+  }));
+  return fromSnapshot({
+    snapshotId: ctx.snapshotId,
+    projectId: args.projectId,
+    startupName: ctx.startupName,
+    industry: args.industry,
+    stageLabel: args.stage,
+    dimStates,
+    criterionStates,
+    tier: "standard",
+    source: "adapter",
+  });
+}
+
+async function resolveReport(args: SendReportEmailArgs, ctx: { accountId: string | null; snapshotId: string | null; startupName: string }): Promise<{ report: ReportV2; source: NonNullable<SendReportEmailResult["reportSource"]> }> {
+  if (args.reportV2 && isReportV2(args.reportV2)) return { report: args.reportV2, source: "pipeline" };
+  const snapId = args.snapshotId ?? ctx.snapshotId;
+  if (snapId) {
+    const loaded = await loadReportV2BySnapshotId(snapId, { startupName: ctx.startupName }).catch(() => null);
+    if (loaded) return { report: loaded.report, source: loaded.path };
+  }
+  if (ctx.accountId) {
+    const loaded = await loadLatestReportV2ForAccount(ctx.accountId, args.projectId, { startupName: ctx.startupName }).catch(() => null);
+    if (loaded) return { report: loaded.report, source: loaded.path };
+  }
+  return { report: reportFromLegacyArgs(args, { startupName: ctx.startupName, snapshotId: ctx.snapshotId }), source: "legacy" };
+}
+
+/** Best-effort PNGs for the three inlined visuals (null entries when the rasteriser is missing). */
+export async function inlineVisuals(report: ReportV2): Promise<{ images: ReportEmailImages; attachments: Array<{ filename: string; content: Buffer; contentType: string; cid: string }> }> {
+  const ring = report.cover.visuals.find((v) => v.kind === "score_ring") ?? null;
+  const radar = report.cover.visuals.find((v) => v.kind === "radar") ?? null;
+  const weakest = weakestChapter(report)?.primaryVisual ?? null;
+  const attachments: Array<{ filename: string; content: Buffer; contentType: string; cid: string }> = [];
+  const images: ReportEmailImages = { ring: null, radar: null, weakest: null };
+  const one = async (spec: VisualSpecV2 | null, key: keyof ReportEmailImages, width: number) => {
+    if (!spec) return;
+    const r = await visualToPng(spec, { width, hideBadge: key !== "weakest" }).catch(() => null);
+    if (!r?.png) return;
+    const cid = `tbr-${key}-${spec.id.replace(/[^a-zA-Z0-9_-]/g, "-")}@blockid.au`;
+    images[key] = cid;
+    attachments.push({ filename: `${key}.png`, content: r.png, contentType: "image/png", cid });
+  };
+  await Promise.all([one(ring, "ring", 240), one(radar, "radar", 320), one(weakest, "weakest", 960)]);
+  return { images, attachments };
+}
+
+/** The PDF: rendered in-process; falls back to the route when react-pdf throws. */
+async function buildPdf(report: ReportV2, base: string, token: string | null): Promise<Buffer | null> {
+  try {
+    const { renderTbrPdf } = await import("@/lib/pdf/tbr-pdf");
+    return (await renderTbrPdf(report)).buffer;
+  } catch (err) {
+    console.warn("[email-report] in-process PDF failed, trying the route", err instanceof Error ? err.message : err);
+  }
+  if (!token) return null;
+  try {
+    const res = await fetch(`${base}/api/svi/report/pdf?token=${encodeURIComponent(token)}`, { method: "GET" });
+    if (!res.ok) return null;
+    return Buffer.from(await res.arrayBuffer());
+  } catch (err) {
+    console.warn("[wave25b:email-report] pdf fetch failed", err);
+    return null;
+  }
+}
+
+export async function sendReportEmail(args: SendReportEmailArgs): Promise<SendReportEmailResult> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { ok: false, reason: "supabase_unavailable" };
 
   // Resolve recipient email + a startup label from app_users / svi_accounts.
-  const { data: appUser } = await supabase
-    .from("app_users")
-    .select("email, startup_name")
-    .eq("id", args.userId)
-    .maybeSingle();
+  const { data: appUser } = await supabase.from("app_users").select("email, startup_name").eq("id", args.userId).maybeSingle();
   const email = (appUser?.email as string | undefined)?.trim();
   if (!email) return { ok: false, reason: "no_email" };
 
   let startupName = (appUser?.startup_name as string | undefined) ?? "";
   if (!startupName) {
-    const { data: acc } = await supabase
-      .from("svi_accounts")
-      .select("startup_name")
-      .eq("user_id", args.userId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { data: acc } = await supabase.from("svi_accounts").select("startup_name").eq("user_id", args.userId).order("created_at", { ascending: false }).limit(1).maybeSingle();
     startupName = (acc?.startup_name as string | undefined) ?? "Your Startup";
   }
 
   // Resolve svi_account_id for scoping the snapshot lookup.
-  const { data: account } = await supabase
-    .from("svi_accounts")
-    .select("id")
-    .eq("user_id", args.userId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const { data: account } = await supabase.from("svi_accounts").select("id").eq("user_id", args.userId).order("created_at", { ascending: false }).limit(1).maybeSingle();
   const accountId = (account?.id as string | undefined) ?? null;
 
-  // Locate the most-recent snapshot (this is what save-snapshot writes and
-  // what /tbr/[token] renders from). We mint a share token here if one is
-  // not yet set so the email can include a shareable URL + PDF.
+  // Locate the most-recent snapshot (what /tbr/[token] renders from). Mint a
+  // share token if one is not yet set so the email can carry a URL + PDF.
   let shareToken: string | null = null;
-  let snapshotId: string | null = null;
+  let snapshotId: string | null = args.snapshotId ?? null;
   let alreadySent = false;
   if (accountId) {
-    let q = supabase
-      .from("svi_snapshots")
-      .select("id, report_share_token, report_email_sent_at")
-      .eq("account_id", accountId)
-      .order("created_at", { ascending: false })
-      .limit(1);
-    if (args.projectId) q = q.eq("project_id", args.projectId);
+    let q = supabase.from("svi_snapshots").select("id, report_share_token, report_email_sent_at").eq("account_id", accountId).order("created_at", { ascending: false }).limit(1);
+    if (snapshotId) q = q.eq("id", snapshotId);
+    else if (args.projectId) q = q.eq("project_id", args.projectId);
     const { data: snap } = await q.maybeSingle();
     if (snap) {
       snapshotId = (snap as { id: string }).id;
@@ -237,73 +305,42 @@ export async function sendReportEmail(
   }
   if (alreadySent) return { ok: true, reason: "already_sent", sentTo: email };
 
-  // Mint a share token if the snapshot exists but has none yet.
   if (snapshotId && !shareToken) {
     const token = nanoid(24);
-    const { error: upErr } = await supabase
-      .from("svi_snapshots")
-      .update({ report_share_token: token })
-      .eq("id", snapshotId);
+    const { error: upErr } = await supabase.from("svi_snapshots").update({ report_share_token: token }).eq("id", snapshotId);
     if (!upErr) shareToken = token;
   }
 
   const base = baseUrl(args.baseUrl);
   const dashboardUrl = `${base}/workspace/reports/business${args.projectId ? `?pid=${encodeURIComponent(args.projectId)}` : ""}`;
   const shareUrl = shareToken ? `${base}/tbr/${shareToken}` : null;
-  const totalSvi = computeSvi(args.dimResults);
-  const bnd = band(totalSvi);
 
-  const strengths = pickTopStrengths(args.criterionResults ?? [], 3);
-  const gaps = pickTopGaps(args.criterionResults ?? [], 3);
+  const { report, source } = await resolveReport(args, { accountId, snapshotId, startupName });
+  const totalSvi = Math.round(report.cover.svi.total);
+  const bnd = bandLabelForEmail(report.cover.svi.band);
+
+  const { images, attachments } = await inlineVisuals(report);
+  const pdf = await buildPdf(report, base, shareToken);
+  const pdfAttached = !!pdf;
+  const allAttachments = [
+    ...attachments,
+    ...(pdf ? [{ filename: "BlockID-Business-Report.pdf", content: pdf, contentType: "application/pdf" }] : []),
+  ];
 
   const { unsubscribeUrl, footerHtml } = await complianceFooter(email);
-  const html = renderHtml({
-    footerHtml,
-    startupName,
-    totalSvi,
-    bandLabel: bnd.label,
-    bandColor: bnd.color,
-    strengths,
-    gaps,
-    dashboardUrl,
-    shareUrl,
-    industry: args.industry,
-    stage: args.stage,
-  });
-
-  // Attempt PDF attachment (best-effort — requires a share token).
-  let attachments:
-    | { filename: string; content: Buffer; contentType: string }[]
-    | undefined;
-  let pdfAttached = false;
-  if (shareToken) {
-    const pdf = await fetchPdfBuffer(base, shareToken);
-    if (pdf) {
-      attachments = [
-        {
-          filename: "BlockID-Business-Report.pdf",
-          content: pdf,
-          contentType: "application/pdf",
-        },
-      ];
-      pdfAttached = true;
-    }
-  }
+  const html = renderReportEmailHtml({ report, dashboardUrl, shareUrl, images, footerHtml, pdfAttached });
 
   const result = await sendEmail({
     to: email,
     subject: `Your Business Report is ready — SVI ${totalSvi}/100 (${bnd.label})`,
     html,
-    attachments,
+    attachments: allAttachments.length ? allAttachments : undefined,
     unsubscribeUrl,
   });
 
   if (result.ok && snapshotId) {
-    // Stamp idempotency marker so a retriggered SSE run doesn't re-send.
-    await supabase
-      .from("svi_snapshots")
-      .update({ report_email_sent_at: new Date().toISOString() })
-      .eq("id", snapshotId);
+    // Stamp idempotency marker so a retriggered run doesn't re-send.
+    await supabase.from("svi_snapshots").update({ report_email_sent_at: new Date().toISOString() }).eq("id", snapshotId);
   }
 
   return {
@@ -312,5 +349,7 @@ export async function sendReportEmail(
     sentTo: email,
     shareToken: shareToken ?? undefined,
     pdfAttached,
+    reportSource: source,
+    inlineImages: attachments.length,
   };
 }

@@ -1,0 +1,500 @@
+// Trusted Business Report v2 — the DOCX surface (S-R4).
+//
+// Same document, same chapter order as the web and the PDF (spec §A.1):
+// cover → executive → 8 dimension chapters → valuation → phase gates →
+// money → action plan → appendix. Every visual is the shared renderer's
+// SVG rasterised to PNG once per process (`report-visuals/png.ts`, cached)
+// and embedded with `ImageRun`; when the rasteriser is unavailable the SVG
+// itself is embedded (`type: "svg"`, Word ≥ 2016) with a 1×1 PNG fallback
+// so the file always opens. The a11y table travels with every primary
+// visual on the free-tier card chapters (§D.2), exactly as in the PDF.
+//
+// Free tier uses the same projection as the PDF (`report-v2/free-tier.ts`)
+// so the two exports carry identical content; DOCX has no page count to
+// gate, so level 0 is used.
+//
+// `svi-report-docx.ts` (AssembledReport → DOCX) stays for reports that
+// have no ReportV2 at all (markdown-only fallback in /api/svi/docx).
+
+import "server-only";
+import {
+  AlignmentType,
+  BorderStyle,
+  Document,
+  Footer,
+  Header,
+  HeadingLevel,
+  ImageRun,
+  Packer,
+  PageBreak,
+  PageNumber,
+  Paragraph,
+  ShadingType,
+  Table,
+  TableCell,
+  TableRow,
+  TextRun,
+  WidthType,
+} from "docx";
+import { GROWTH_PHASE_LABELS } from "@/lib/growth/phase-taxonomy";
+import { topBlockers } from "@/lib/growth/phase-gate";
+import { DIMENSION_OWNERS } from "@/lib/report-pipeline/dimension-owners";
+import { aud, BAND_COLOUR } from "@/lib/report-visuals";
+import { visualToPng, type PngResult } from "@/lib/report-visuals/png";
+import type { Band, DataState, VisualSpecV2 } from "@/lib/report-visuals/types";
+import { projectForTier, type FreeTierProjection, type TrimLevel } from "@/lib/report-v2/free-tier";
+import { DIM_ORDER, type DimensionChapter, type ReportV2 } from "@/lib/report-v2/schema";
+import { PDF_ENTITY_LINE, PDF_FINANCIAL_PROJECTION_DISCLAIMER, PDF_GENERAL_ADVICE_DISCLAIMER } from "@/lib/pdf/advice-disclaimer";
+import { defaultPreparedWith } from "@/lib/report-v2/prepared-with";
+
+// ── Brand ───────────────────────────────────────────────────────────────────
+
+const BRAND = "0072B2";
+const INK = "1F2937";
+const MUTED = "6B7280";
+const FAINT = "9CA3AF";
+const GRID = "E5E7EB";
+const SURFACE = "F8FAFC";
+const FONT = "Calibri";
+
+/** Usable width at A4 with 1-inch margins ≈ 6.27 in ≈ 602 px (docx uses px at 96 dpi). */
+const CONTENT_PX = 600;
+
+// 1×1 transparent PNG — the mandatory fallback when an SVG is embedded directly.
+const BLANK_PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
+
+const bandLabel = (b: Band): string => (b === "strong" ? "Strong" : b === "developing" ? "Developing" : b === "early" ? "Early" : "Pending");
+const stateLabel = (d: DataState): string => (d === "real" ? "real data" : d === "partial" ? "partial data" : d === "benchmark_only" ? "benchmark only" : "target, not actual");
+const bandHex = (b: Band): string => BAND_COLOUR[b].replace("#", "");
+const bandOf = (score: number): Band => (score >= 70 ? "strong" : score >= 40 ? "developing" : "early");
+const WINDOW_LABEL = { this_week: "this week", "30d": "next 30 days", "90d": "next 90 days" } as const;
+const METHOD_LABEL: Record<string, string> = {
+  revenue_multiple: "Revenue multiple",
+  berkus: "Berkus",
+  dcf_proxy: "DCF proxy",
+  comparables: "AU comparables",
+  risk_factor_summation: "Risk-factor summation",
+  scorecard: "Scorecard (reference)",
+};
+
+function fmtDate(iso: string, locale: "en" | "vi"): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(locale === "vi" ? "vi-VN" : "en-AU", { day: "numeric", month: "long", year: "numeric" });
+}
+
+// ── Paragraph helpers ───────────────────────────────────────────────────────
+
+type Block = Paragraph | Table;
+
+function h1(text: string, no?: string): Paragraph {
+  return new Paragraph({
+    heading: HeadingLevel.HEADING_1,
+    spacing: { before: 240, after: 120 },
+    children: [
+      ...(no !== undefined ? [new TextRun({ text: `${no}  `, font: FONT, size: 18, color: FAINT })] : []),
+      new TextRun({ text, font: FONT, size: 30, bold: true, color: INK }),
+    ],
+  });
+}
+
+function h2(text: string): Paragraph {
+  return new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { before: 160, after: 60 }, children: [new TextRun({ text, font: FONT, size: 22, bold: true, color: INK })] });
+}
+
+function p(text: string, opts: { size?: number; color?: string; bold?: boolean; italics?: boolean; after?: number; align?: (typeof AlignmentType)[keyof typeof AlignmentType] } = {}): Paragraph {
+  return new Paragraph({
+    spacing: { after: opts.after ?? 80 },
+    alignment: opts.align,
+    children: [new TextRun({ text, font: FONT, size: opts.size ?? 20, color: opts.color ?? INK, bold: opts.bold, italics: opts.italics })],
+  });
+}
+
+function small(text: string, color = MUTED): Paragraph {
+  return p(text, { size: 16, color, after: 60 });
+}
+
+function kicker(text: string): Paragraph {
+  return p(text.toUpperCase(), { size: 14, color: BRAND, bold: true, after: 40 });
+}
+
+function bullets(title: string, items: string[], mark: string): Paragraph[] {
+  if (!items.length) return [];
+  return [kicker(title), ...items.map((it) => new Paragraph({ spacing: { after: 40 }, indent: { left: 240 }, children: [new TextRun({ text: `${mark} ${it}`, font: FONT, size: 18, color: INK })] }))];
+}
+
+function pageBreak(): Paragraph {
+  return new Paragraph({ children: [new PageBreak()] });
+}
+
+const thinBorder = { style: BorderStyle.SINGLE, size: 4, color: GRID };
+const cellBorders = { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder };
+
+function table(header: string[], rows: string[][], widths?: number[]): Table {
+  const cols = header.length;
+  const w = widths ?? header.map(() => Math.floor(100 / cols));
+  const mk = (cells: string[], isHead: boolean) =>
+    new TableRow({
+      tableHeader: isHead,
+      children: cells.map(
+        (text, i) =>
+          new TableCell({
+            borders: cellBorders,
+            width: { size: w[i], type: WidthType.PERCENTAGE },
+            shading: isHead ? { type: ShadingType.CLEAR, fill: SURFACE, color: "auto" } : undefined,
+            margins: { top: 40, bottom: 40, left: 80, right: 80 },
+            children: [new Paragraph({ children: [new TextRun({ text, font: FONT, size: isHead ? 14 : 16, bold: isHead, color: isHead ? MUTED : INK })] })],
+          }),
+      ),
+    });
+  return new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [mk(header, true), ...rows.map((r) => mk(r, false))] });
+}
+
+// ── Visuals ─────────────────────────────────────────────────────────────────
+
+export interface TbrDocxImages {
+  /** Every visual id → rasterised result (png may be null → SVG embed). */
+  byId: Map<string, PngResult>;
+  pngCount: number;
+  svgCount: number;
+}
+
+function allVisuals(report: ReportV2): VisualSpecV2[] {
+  return [
+    ...report.cover.visuals,
+    ...report.executive.visuals,
+    ...report.dimensions.flatMap((d) => [d.primaryVisual, ...d.secondaryVisuals]),
+    ...report.valuation.visuals,
+    ...report.phaseGates.visuals,
+    ...report.moneyOnTable.visuals,
+    ...report.actionPlan.visuals,
+  ];
+}
+
+/** Rasterise every visual of the (projected) report once, through the shared cache. */
+export async function rasteriseReportVisuals(report: ReportV2, widthPx = CONTENT_PX * 2): Promise<TbrDocxImages> {
+  const byId = new Map<string, PngResult>();
+  let pngCount = 0;
+  let svgCount = 0;
+  const specs = allVisuals(report);
+  // Bounded parallelism keeps a 30-visual report off the event loop's back.
+  let next = 0;
+  const worker = async () => {
+    while (next < specs.length) {
+      const spec = specs[next++];
+      if (byId.has(spec.id)) continue;
+      const r = await visualToPng(spec, { width: widthPx });
+      byId.set(spec.id, r);
+      if (r.png) pngCount += 1;
+      else svgCount += 1;
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(4, Math.max(1, specs.length)) }, worker));
+  return { byId, pngCount, svgCount };
+}
+
+function figure(spec: VisualSpecV2, images: TbrDocxImages, widthPx: number, caption: string | null): Block[] {
+  const img = images.byId.get(spec.id);
+  if (!img) return [small(`[chart ${spec.title} — not rendered]`)];
+  const width = Math.min(widthPx, CONTENT_PX);
+  const height = Math.max(24, Math.round((width * img.height) / img.width));
+  const run = img.png
+    ? new ImageRun({ type: "png", data: img.png, transformation: { width, height }, altText: { title: spec.a11y.title, description: spec.a11y.description, name: spec.id } })
+    : new ImageRun({
+        type: "svg",
+        data: Buffer.from(img.svg, "utf8"),
+        transformation: { width, height },
+        fallback: { type: "png", data: BLANK_PNG },
+        altText: { title: spec.a11y.title, description: spec.a11y.description, name: spec.id },
+      });
+  const out: Block[] = [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 120, after: 40 }, keepNext: caption !== null, children: [run] })];
+  if (caption !== null) out.push(p(caption, { size: 15, color: MUTED, align: AlignmentType.CENTER, after: 120 }));
+  return out;
+}
+
+function a11yTable(spec: VisualSpecV2, max = 12): Block[] {
+  const rows = (spec.a11y?.tableFallback ?? []).slice(0, max);
+  if (!rows.length) return [];
+  const cols = Object.keys(rows[0]);
+  return [table(cols, rows.map((r) => cols.map((c) => String(r[c] ?? ""))))];
+}
+
+// ── Sections ────────────────────────────────────────────────────────────────
+
+function cover(report: ReportV2, images: TbrDocxImages, locale: "en" | "vi", preparedWith: string): Block[] {
+  const c = report.cover;
+  const ring = c.visuals.find((v) => v.kind === "score_ring");
+  const radar = c.visuals.find((v) => v.kind === "radar");
+  const strip = c.visuals.find((v) => v.kind === "three_questions_strip");
+  const out: Block[] = [
+    kicker("Trusted Business Report · BlockID Startup Value Index"),
+    new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: c.startupName, font: FONT, size: 44, bold: true, color: INK })] }),
+    small(`${c.sector} · ${c.stageLabel} · Phase: ${GROWTH_PHASE_LABELS[c.phaseId][locale]} · ${fmtDate(report.generatedAt, locale)}${report.source !== "pipeline" ? (report.source === "fixture" ? " · demo data" : " · built from stored snapshot") : ""}`),
+    h1("Cover — Where / Worth / Next", "0"),
+  ];
+  if (ring) out.push(...figure(ring, images, 200, null));
+  out.push(p(`SVI ${c.svi.total} · ${bandLabel(c.svi.band)}${c.svi.deltaVsLast !== null ? ` · ${c.svi.deltaVsLast >= 0 ? "+" : ""}${c.svi.deltaVsLast} vs last snapshot` : ""}${c.svi.cohortPercentile !== null ? ` · ${c.svi.cohortPercentile}th percentile` : ""}`, { bold: true, color: bandHex(c.svi.band), align: AlignmentType.CENTER }));
+  out.push(
+    table(
+      ["Dimension", "Owner", "W", "Score", "p50", "Pctl"],
+      DIM_ORDER.map((d) => {
+        const row = c.dims[d];
+        return [`${d.toUpperCase()} ${DIMENSION_OWNERS[d].title}`, DIMENSION_OWNERS[d].primary.toUpperCase(), String(row.weight), row.band === "pending" ? "—" : String(row.score), String(row.p50), row.percentile === null ? "—" : String(row.percentile)];
+      }),
+      [40, 12, 10, 14, 12, 12],
+    ),
+  );
+  if (strip) out.push(...figure(strip, images, CONTENT_PX, null));
+  if (radar) out.push(...figure(radar, images, 340, radar.subtitle ?? null));
+  out.push(kicker("Where · Worth · Next"), p(`Where: ${c.threeQuestions.where}`), p(`Worth: ${c.threeQuestions.worth}`), p(`Next: ${c.threeQuestions.next}`), small(preparedWith, FAINT));
+  return out;
+}
+
+function executive(report: ReportV2, images: TbrDocxImages, locale: "en" | "vi"): Block[] {
+  const e = report.executive;
+  const ph = e.phaseNow;
+  const blockers = topBlockers(ph, 3);
+  return [
+    pageBreak(),
+    h1("Executive Summary", "1"),
+    small(`CEO · confidence ${Math.round(e.confidence * 100)}%`),
+    p(e.thesis),
+    ...bullets("Top strengths", e.strengths, "+"),
+    ...bullets("Top gaps", e.gaps, "^"),
+    p(`Phase now: ${GROWTH_PHASE_LABELS[ph.currentPhase][locale]} → next gate: ${ph.nextPhase ? GROWTH_PHASE_LABELS[ph.nextPhase][locale] : "final phase"} · ${ph.completionPct}% cleared`),
+    ...(blockers.length ? blockers.map((b) => small(`▲ ${b.detail}`)) : [small("No blockers on the current gate.")]),
+    p(`Verdict: ${e.verdict}`, { bold: true }),
+    ...e.visuals.flatMap((v) => figure(v, images, CONTENT_PX, null)),
+    auditLine(e.audit.grounded, e.audit.uncited, e.audit.revised),
+  ];
+}
+
+function auditLine(grounded: boolean, uncited: number, revised: boolean, frameworks?: string[]): Paragraph {
+  return small(`Auditor: ${grounded ? "grounded" : "not yet audited"}${uncited > 0 ? ` · ${uncited} uncited` : ""}${revised ? " · revised" : ""}${frameworks && frameworks.length ? ` · Frameworks: ${frameworks.slice(0, 4).join("; ")}` : ""}`, FAINT);
+}
+
+function chapterHeader(ch: DimensionChapter): Block[] {
+  return [
+    new Paragraph({
+      spacing: { after: 40 },
+      children: [
+        new TextRun({ text: ch.band === "pending" ? "—" : String(ch.score), font: FONT, size: 48, bold: true, color: bandHex(ch.band) }),
+        new TextRun({ text: `/100   ${bandLabel(ch.band)} · weight ${ch.weight} · owner ${ch.ownerAgent.toUpperCase()}${ch.supportingAgents.length ? ` (with ${ch.supportingAgents.slice(0, 3).map((r) => r.toUpperCase()).join(", ")})` : ""}`, font: FONT, size: 18, color: MUTED }),
+      ],
+    }),
+    small(`Stage p25 ${ch.benchmark.p25} · p50 ${ch.benchmark.p50} · p75 ${ch.benchmark.p75}${ch.benchmark.percentile !== null ? ` · you: ${ch.benchmark.percentile}th percentile` : ""}${ch.degraded ? ` · deterministic card — ${ch.degradeReason ?? "owner call unavailable"}` : ""}`),
+  ];
+}
+
+function chapter(ch: DimensionChapter, index: number, images: TbrDocxImages, locale: "en" | "vi", projection: FreeTierProjection): Block[] {
+  const title = locale === "vi" ? ch.titleVi : ch.title;
+  const out: Block[] = [...(projection.free ? [] : [pageBreak()]), h1(title, String(index)), ...chapterHeader(ch)];
+  if (projection.free && ch.renderAs === "card") {
+    out.push(p(ch.verdict));
+    if (ch.gaps[0]) out.push(small(`▲ ${ch.gaps[0]}`));
+    out.push(...figure(ch.primaryVisual, images, 360, `${ch.primaryVisual.title} · ${stateLabel(ch.primaryVisual.dataState)}`));
+    out.push(...a11yTable(ch.primaryVisual, 8));
+    out.push(p(`Unlock the full ${ch.title} chapter — upgrade at blockid.au/pricing`, { size: 16, color: BRAND }));
+    return out;
+  }
+  out.push(...figure(ch.primaryVisual, images, CONTENT_PX, `${ch.primaryVisual.title} · ${stateLabel(ch.primaryVisual.dataState)}${ch.primaryVisual.subtitle ? ` — ${ch.primaryVisual.subtitle}` : ""}`));
+  out.push(p(ch.verdict));
+  if (projection.show.evidenceTables) {
+    out.push(kicker("Evidence"));
+    out.push(
+      ch.evidence.length
+        ? table(["Id", "Label", "Source", "Status", "Observed"], ch.evidence.slice(0, 12).map((e) => [e.evidence_id, e.label, e.source, e.status, e.observedAt ?? ""]), [14, 44, 14, 14, 14])
+        : small("No evidence rows in this snapshot — connect a data source or upload documents to make this chapter evidenced."),
+    );
+  }
+  for (const c of ch.criteria) {
+    out.push(new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { before: 160, after: 60 }, children: [new TextRun({ text: `${c.title} — `, font: FONT, size: 22, bold: true, color: INK }), new TextRun({ text: String(c.score), font: FONT, size: 22, bold: true, color: bandHex(bandOf(c.score)) })] }));
+    out.push(small(c.verdict, INK));
+    if (projection.show.criterionDetail) {
+      out.push(...bullets("Strengths", c.strengths.slice(0, 3), "+"), ...bullets("Gaps", c.gaps.slice(0, 3), "^"));
+      if (c.nextAction) out.push(small(`Next: ${c.nextAction}`, BRAND));
+    }
+    out.push(small(`${c.quality} · ${c.agent.toUpperCase()} · ${c.grounded ? "grounded" : "uncited"}`, FAINT));
+  }
+  out.push(...bullets("Strengths", ch.strengths, "+"), ...bullets("Gaps", ch.gaps, "^"));
+  out.push(kicker(`Next action (${WINDOW_LABEL[ch.nextAction.window]})`), p(`${ch.nextAction.title} — expected lift +${ch.nextAction.expectedLift} SVI${ch.nextAction.evidenceToAdd ? ` · evidence: ${ch.nextAction.evidenceToAdd}` : ""}`));
+  if (projection.show.phaseLens && ch.phaseLens.whatMattersNow) out.push(small(`${GROWTH_PHASE_LABELS[ch.phaseLens.phaseId][locale]}: ${ch.phaseLens.whatMattersNow}`));
+  for (const v of ch.secondaryVisuals) out.push(...figure(v, images, 360, `${v.title} · ${stateLabel(v.dataState)}`));
+  out.push(auditLine(ch.audit.grounded, ch.audit.uncited, ch.audit.revised, ch.frameworks));
+  return out;
+}
+
+function valuation(report: ReportV2, images: TbrDocxImages, projection: FreeTierProjection): Block[] {
+  const v = report.valuation;
+  const out: Block[] = [pageBreak(), h1("Valuation", "10")];
+  if (report.cover.svi.band === "pending") {
+    out.push(p("The indicative valuation is computed from the 8 scored dimensions. Run the analysis first — the range, five methods and comparables appear here once at least one dimension is scored."));
+    return out;
+  }
+  const rangeBars = v.visuals.find((x) => x.kind === "range_bars");
+  const others = v.visuals.filter((x) => x !== rangeBars);
+  out.push(small(`CFO · consensus confidence ${Math.round(v.consensus.confidence * 100)}%`));
+  out.push(p(`Consensus range: ${aud(v.consensus.lowAud)} – ${aud(v.consensus.midAud)} – ${aud(v.consensus.highAud)} (low / mid / high)`, { bold: true }));
+  if (rangeBars) out.push(...figure(rangeBars, images, CONTENT_PX, `${rangeBars.title} · ${stateLabel(rangeBars.dataState)}`));
+  if (!projection.free) {
+    out.push(
+      table(
+        ["Method", "Weight", "Low", "Mid", "High", "Rationale"],
+        v.methods.map((m) => [METHOD_LABEL[m.method] ?? m.method, `${Math.round(m.weight * 100)}%`, aud(m.lowAud), aud(m.midAud), aud(m.highAud), m.applicable ? m.rationale : `not applicable — ${m.rationale}`]),
+        [20, 10, 12, 12, 12, 34],
+      ),
+    );
+    out.push(small(`Scenarios: bear ${aud(v.scenarios.bear)} · base ${aud(v.scenarios.base)} · bull ${aud(v.scenarios.bull)}`));
+    if (v.ask) out.push(small(`Ask: ${aud(v.ask.preMoneyAud)} pre-money, raising ${aud(v.ask.raiseAud)} — ${v.ask.verdict.replace(/_/g, " ")} (${v.ask.gapPct > 0 ? "+" : ""}${v.ask.gapPct}%)`));
+    out.push(small(`Sector multiples (${v.sectorMultiples.sector}): ${v.sectorMultiples.low}× / ${v.sectorMultiples.median}× / ${v.sectorMultiples.high}× ARR — ${v.sectorMultiples.sourceLabel} (${v.sectorMultiples.sourceDate})`));
+    out.push(small(`AU comparables: ${v.comparables.n} raises tracked, ${v.comparables.withMultiplesN} with disclosed multiples.`));
+    if (v.narrative) out.push(p(v.narrative));
+    for (const x of others) out.push(...figure(x, images, 420, `${x.title} · ${stateLabel(x.dataState)}`));
+  }
+  out.push(auditLine(v.audit.grounded, v.audit.uncited, v.audit.revised));
+  return out;
+}
+
+function phaseGates(report: ReportV2, images: TbrDocxImages, locale: "en" | "vi", projection: FreeTierProjection): Block[] {
+  const g = report.phaseGates;
+  const currentRows = g.matrix.filter((m) => m.phase === g.current && m.required);
+  const heat = g.visuals.find((v) => v.kind === "heat_map");
+  const route = g.visuals.find((v) => v.kind === "route_map");
+  const out: Block[] = [...(projection.free ? [] : [pageBreak()]), h1("Phase Gates — 13 Criteria × 12 Phases", "11"), small(`COO · Current phase: ${GROWTH_PHASE_LABELS[g.current][locale]}`)];
+  if (route) out.push(...figure(route, images, CONTENT_PX, null));
+  out.push(currentRows.length ? table(["Criterion (current phase)", "Quality", "Met"], currentRows.map((m) => [m.criterion.replace(/_/g, " "), m.quality, m.met ? "yes" : "no"]), [60, 20, 20]) : small("No required criteria on this phase."));
+  if (!projection.free && heat) out.push(...figure(heat, images, CONTENT_PX, heat.subtitle ?? heat.title));
+  for (const b of g.blockers.slice(0, 6)) out.push(small(`▲ ${b.detail}`));
+  return out;
+}
+
+function money(report: ReportV2, images: TbrDocxImages, projection: FreeTierProjection): Block[] {
+  const m = report.moneyOnTable;
+  const rows = [...m.grants.map((g) => ({ ...g, kind: "grant" })), ...m.programs.map((pr) => ({ ...pr, kind: "program" }))].sort((a, b) => b.fit - a.fit).slice(0, projection.moneyLimit);
+  const out: Block[] = [...(projection.free ? [] : [pageBreak()]), h1("Money on the Table — Grants & Programs", "12"), small(`CFO + CMO · ${m.grants.length + m.programs.length} matched · total ${aud(m.totalAud)}`)];
+  out.push(
+    rows.length
+      ? table(["Grant / program", "Kind", "A$", "Deadline", "Fit"], rows.map((r) => [r.name, r.kind, r.amountAud === null ? "—" : aud(r.amountAud), r.deadline ?? "rolling", `${Math.round(r.fit)}%`]), [44, 12, 14, 18, 12])
+      : small("0 matched — the nearest-fit programs appear once the profile carries a sector and stage."),
+  );
+  for (const v of m.visuals) out.push(...figure(v, images, CONTENT_PX, `${v.title} · ${stateLabel(v.dataState)}`));
+  return out;
+}
+
+function actionPlan(report: ReportV2, images: TbrDocxImages, projection: FreeTierProjection): Block[] {
+  const a = report.actionPlan;
+  const out: Block[] = [...(projection.free ? [] : [pageBreak()]), h1("90-Day Action Plan", "13"), small(`COO · ${a.steps.length} steps · ${a.horizonDays} days`)];
+  out.push(
+    a.steps.length
+      ? table(["Day", "Step", "Owner", "Dimension", "Lift"], a.steps.map((st) => [String(st.day), st.title, st.ownerAgent.toUpperCase(), DIMENSION_OWNERS[st.dimension].shortLabel, `+${st.expectedLift} SVI${st.evidenceToAdd ? ` · ${st.evidenceToAdd}` : ""}`]), [8, 48, 10, 18, 16])
+      : small("No steps yet — the plan is derived from the weakest chapters once they are scored."),
+  );
+  for (const v of a.visuals) out.push(...figure(v, images, CONTENT_PX, null));
+  return out;
+}
+
+function appendix(report: ReportV2, projection: FreeTierProjection, preparedWith: string): Block[] {
+  const a = report.appendix;
+  const grounded = a.auditLog.filter((l) => l.grounded).length;
+  const out: Block[] = [pageBreak(), h1("Appendix — Method, Evidence & Auditor Log", "14"), h2("Method"), small(a.method, INK), h2("Data principle"), small(a.dataPrinciple, INK), h2("Evidence register")];
+  out.push(
+    a.evidenceRegister.length
+      ? table(["Id", "Label", "Source", "Status", "Dims"], a.evidenceRegister.map((e) => [e.evidence_id, e.label, e.source, e.status, e.dims.map((d) => d.toUpperCase()).join(" ")]), [14, 44, 14, 14, 14])
+      : small(projection.free && projection.level >= 3 ? "The evidence register is included in the paid report." : "No evidence rows were attached to this snapshot."),
+  );
+  out.push(h2("Auditor log"), small(`${a.auditLog.length} sections audited · ${grounded} grounded · ${a.auditLog.filter((l) => l.revised).length} revised · report quality ${Math.round(report.quality.score)} · grounded share ${Math.round(report.quality.groundedShare * 100)}%`, INK));
+  if (report.quality.degradedSections.length) out.push(small(`Degraded sections: ${report.quality.degradedSections.join(", ")}`));
+  out.push(h2("Sources"), small(`AU comparables: ${a.comparablesN} raises, ${a.comparablesWithMultiplesN} with multiples.${a.sourcesDated.length ? " " + a.sourcesDated.map((x) => `${x.label} (${x.date})`).join(" · ") : ""}`, INK));
+  if (projection.free) out.push(small(`Free tier (${report.pageBudget.free}-page budget) omits: ${projection.dropped.join(", ")}.`));
+  out.push(small(preparedWith, FAINT), small(a.disclaimer), small(`${PDF_FINANCIAL_PROJECTION_DISCLAIMER} ${PDF_GENERAL_ADVICE_DISCLAIMER}`), small(PDF_ENTITY_LINE, FAINT));
+  return out;
+}
+
+// ── Document ────────────────────────────────────────────────────────────────
+
+export interface TbrDocxOptions {
+  preparedWith?: string | null;
+  locale?: "en" | "vi";
+  /** Free-tier trim level (mirrors the PDF's; DOCX has no page gate so 0 is the default). */
+  level?: TrimLevel;
+  /** Pre-rasterised images (tests / a caller that already built them for the email). */
+  images?: TbrDocxImages;
+}
+
+export interface TbrDocxResult {
+  buffer: Buffer;
+  /** How the visuals were embedded. */
+  images: { png: number; svg: number };
+  sections: number;
+}
+
+/** Build the DOCX; `generateTbrDocx` is the Buffer-only convenience the route uses. */
+export async function buildTbrDocx(report: ReportV2, opts: TbrDocxOptions = {}): Promise<TbrDocxResult> {
+  const locale = opts.locale ?? report.locale ?? "en";
+  const projection = projectForTier(report, opts.level ?? 0);
+  const r = projection.report;
+  const images = opts.images ?? (await rasteriseReportVisuals(r));
+  const prepared = opts.preparedWith?.trim() || defaultPreparedWith(report);
+
+  const children: Block[] = [
+    ...cover(r, images, locale, prepared),
+    ...executive(r, images, locale),
+    ...r.dimensions.flatMap((ch, i) => chapter(ch, i + 2, images, locale, projection)),
+    ...valuation(r, images, projection),
+    ...phaseGates(r, images, locale, projection),
+    ...money(r, images, projection),
+    ...actionPlan(r, images, projection),
+    ...appendix(r, projection, prepared),
+  ];
+
+  const doc = new Document({
+    creator: "BlockID.au",
+    title: `Trusted Business Report — ${r.cover.startupName}`,
+    description: "Trusted Business Report v2 (BlockID Startup Value Index)",
+    styles: {
+      paragraphStyles: [
+        { id: "Normal", name: "Normal", run: { font: FONT, size: 20, color: INK }, paragraph: { spacing: { after: 80, line: 264 } } },
+        { id: "Heading1", name: "heading 1", basedOn: "Normal", next: "Normal", run: { font: FONT, size: 30, bold: true, color: INK }, paragraph: { spacing: { before: 240, after: 120 } } },
+        { id: "Heading2", name: "heading 2", basedOn: "Normal", next: "Normal", run: { font: FONT, size: 22, bold: true, color: INK }, paragraph: { spacing: { before: 160, after: 60 } } },
+      ],
+    },
+    sections: [
+      {
+        properties: { page: { margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 } } },
+        headers: {
+          default: new Header({
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                children: [new TextRun({ text: "BlockID.au", font: FONT, size: 16, color: BRAND, bold: true }), new TextRun({ text: `  |  Trusted Business Report · ${r.cover.startupName}`, font: FONT, size: 16, color: MUTED })],
+              }),
+            ],
+          }),
+        },
+        footers: {
+          default: new Footer({
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [
+                  new TextRun({ text: `Trusted Business Report · ${r.cover.startupName} · ${fmtDate(r.generatedAt, locale)} · page `, font: FONT, size: 16, color: MUTED }),
+                  new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: 16, color: MUTED }),
+                  new TextRun({ text: "/", font: FONT, size: 16, color: MUTED }),
+                  new TextRun({ children: [PageNumber.TOTAL_PAGES], font: FONT, size: 16, color: MUTED }),
+                ],
+              }),
+            ],
+          }),
+        },
+        children,
+      },
+    ],
+  });
+
+  const buffer = Buffer.from(await Packer.toBuffer(doc));
+  return { buffer, images: { png: images.pngCount, svg: images.svgCount }, sections: 15 };
+}
+
+export async function generateTbrDocx(report: ReportV2, opts: TbrDocxOptions = {}): Promise<Buffer> {
+  return (await buildTbrDocx(report, opts)).buffer;
+}

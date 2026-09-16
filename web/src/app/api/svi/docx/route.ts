@@ -3,8 +3,19 @@
 // Generate and download a DOCX file from an existing assembled report
 // or from the latest analysis.
 //
-// Body: { reportId: string } OR { analysisId: string }
+// Body: { reportId: string } OR { analysisId: string } (+ optional
+//       `legacy: true` to force the AssembledReport → DOCX builder for one
+//       release, spec §F S-R4 rollback)
 // Returns: DOCX binary with proper Content-Type header
+//
+// S-R4 (G13-W4-R4): the document is the Trusted Business Report v2 —
+// `lib/docx/tbr-docx.ts` renders `ReportV2` (same chapters and order as
+// the web / PDF, visuals as PNG). Source precedence, reported in the
+// `X-TBR-Source` header:
+//   stored   assembled_reports.report_json (migration 0395) validates
+//   adapter  built on read from the AssembledReport (fromAssembledReport)
+//   legacy   markdown-only saved report (no AssembledReport at all) or
+//            `legacy: true` → svi-report-docx.ts
 
 import "server-only";
 import { NextResponse } from "next/server";
@@ -13,6 +24,10 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { canAfford, spendCredits } from "@/lib/credits";
 import { generateSVIDocx } from "@/lib/docx/svi-report-docx";
+import { generateTbrDocx } from "@/lib/docx/tbr-docx";
+import { fromAssembledReport } from "@/lib/report-v2/adapter";
+import { readAssembledReportJson } from "@/lib/report-v2/storage";
+import type { ReportV2 } from "@/lib/report-v2/schema";
 // Row → AssembledReport reconstruction is shared with the order-scoped
 // delivery route (/api/reports/[orderId]) so both surfaces rebuild a
 // stored report identically. Lifted verbatim out of this file.
@@ -40,7 +55,7 @@ async function POST_handler(request: Request) {
   if (limited) return limited;
 
   // ── Parse body ──────────────────────────────────────────────────────────
-  let body: { reportId?: string; analysisId?: string };
+  let body: { reportId?: string; analysisId?: string; legacy?: boolean };
   try {
     body = await request.json();
   } catch {
@@ -82,6 +97,11 @@ async function POST_handler(request: Request) {
   /* eslint-disable @typescript-eslint/no-explicit-any */
   let report: AssembledReport;
   let startupName = "Unknown Startup";
+  // S-R4: which ReportV2 path produced the document (null = markdown-only legacy).
+  let reportV2: ReportV2 | null = null;
+  let tbrSource: "stored" | "adapter" | "legacy" = "legacy";
+  let assembledRowId: string | null = null;
+  let adapterCtx: { industry?: string | null; stageLabel?: string | null; stage?: number | null; sviTotal?: number | null } = {};
 
   // ── 3. Load report data ─────────────────────────────────────────────────
   if (body.reportId) {
@@ -113,6 +133,8 @@ async function POST_handler(request: Request) {
 
     // Reconstruct AssembledReport from stored data
     report = reconstructAssembledReport(reportRow);
+    assembledRowId = String(reportRow.id ?? body.reportId);
+    tbrSource = "adapter";
   } else {
     // Load from latest analysis + existing report sections.
     // S18-A — member-aware: an export is a READ of the shared startup
@@ -138,6 +160,10 @@ async function POST_handler(request: Request) {
     }
 
     startupName = String(account.startup_name ?? "Unknown Startup");
+    adapterCtx = {
+      sviTotal: typeof account.current_svi === "number" ? account.current_svi : null,
+      stage: typeof account.current_stage === "number" ? account.current_stage : null,
+    };
 
     // Try to find the most recent assembled report for this account
     const { data: latestReportRaw } = await supabase
@@ -152,6 +178,8 @@ async function POST_handler(request: Request) {
 
     if (latestReportRaw) {
       report = reconstructAssembledReport(latestReportRaw as any);
+      assembledRowId = String((latestReportRaw as any).id ?? "");
+      tbrSource = "adapter";
     } else {
       // Fallback: build a minimal report from the latest full_report content
       const latestAnalysis = await findLatestAnalysisWithFallback(
@@ -216,7 +244,23 @@ async function POST_handler(request: Request) {
 
   // ── 5. Generate DOCX ───────────────────────────────────────────────────
   try {
-    const docxBuffer = await generateSVIDocx(report);
+    if (body.legacy === true) tbrSource = "legacy";
+    if (tbrSource !== "legacy") {
+      const stored = assembledRowId ? await readAssembledReportJson(supabase, assembledRowId) : null;
+      if (stored) {
+        reportV2 = stored;
+        tbrSource = "stored";
+      } else {
+        reportV2 = fromAssembledReport(report, {
+          startupName,
+          industry: adapterCtx.industry ?? null,
+          stageLabel: adapterCtx.stageLabel ?? null,
+          stage: adapterCtx.stage ?? null,
+          sviTotal: adapterCtx.sviTotal ?? null,
+        });
+      }
+    }
+    const docxBuffer = reportV2 ? await generateTbrDocx(reportV2) : await generateSVIDocx(report);
 
     // Sanitise filename
     const safeName = startupName
@@ -233,6 +277,7 @@ async function POST_handler(request: Request) {
         "Content-Disposition": `attachment; filename="${filename}"`,
         "Content-Length": String(docxBuffer.length),
         "Cache-Control": "no-store",
+        "X-TBR-Source": tbrSource,
       },
     });
   } catch (err) {

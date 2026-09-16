@@ -1,0 +1,125 @@
+// Trusted Business Report v2 DOCX (S-R4) — colocated suite.
+//
+//   - the demo report packs to a valid DOCX with one PNG per visual
+//     (word/media/*.png count = distinct visuals) when sharp is present;
+//   - every section heading appears in document.xml in the web's chapter
+//     order (same parity check as the PDF);
+//   - the free tier embeds the a11y table for card chapters, the upgrade
+//     line and no valuation method table;
+//   - a rasteriser outage falls back to SVG embeds (word/media/*.svg) and
+//     the document still opens.
+
+import JSZip from "jszip";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { tbrV2Toc } from "@/components/tbr/v2/report";
+import { demoReportV2, freeFixtureReportV2 } from "@/lib/report-v2/fixtures";
+import { __resetPngCache, __resetSharpLoader } from "@/lib/report-visuals/png";
+
+vi.mock("server-only", () => ({}));
+
+import { buildTbrDocx, generateTbrDocx, rasteriseReportVisuals } from "./tbr-docx";
+
+async function unzip(buffer: Buffer): Promise<{ doc: string; media: string[]; header: string; footer: string }> {
+  const zip = await JSZip.loadAsync(buffer);
+  const doc = await zip.file("word/document.xml")!.async("string");
+  const media = Object.keys(zip.files).filter((f) => f.startsWith("word/media/"));
+  const header = (await Promise.all(Object.keys(zip.files).filter((f) => /word\/header\d*\.xml/.test(f)).map((f) => zip.file(f)!.async("string")))).join("\n");
+  const footer = (await Promise.all(Object.keys(zip.files).filter((f) => /word\/footer\d*\.xml/.test(f)).map((f) => zip.file(f)!.async("string")))).join("\n");
+  return { doc, media, header, footer };
+}
+
+const xmlText = (xml: string) => xml.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/\s+/g, " ");
+
+function assertOrdered(text: string, labels: string[]): void {
+  let last = -1;
+  for (const label of labels) {
+    const idx = text.indexOf(label, last + 1);
+    expect(idx, `"${label}" missing or out of order`).toBeGreaterThan(last);
+    last = idx;
+  }
+}
+
+beforeEach(() => {
+  __resetPngCache();
+  __resetSharpLoader();
+});
+afterEach(() => {
+  vi.doUnmock("sharp");
+  __resetSharpLoader();
+});
+
+describe("buildTbrDocx", () => {
+  it("standard demo: one PNG per distinct visual, sections in the web order, paid detail present", async () => {
+    const report = demoReportV2();
+    const rasterised = await rasteriseReportVisuals(report);
+    const { buffer, images } = await buildTbrDocx(report, { images: rasterised });
+    expect(buffer.subarray(0, 2).toString("latin1")).toBe("PK");
+    const { doc, media, header, footer } = await unzip(buffer);
+    const distinct = new Set([
+      ...report.cover.visuals,
+      ...report.executive.visuals,
+      ...report.dimensions.flatMap((d) => [d.primaryVisual, ...d.secondaryVisuals]),
+      ...report.valuation.visuals,
+      ...report.phaseGates.visuals,
+      ...report.moneyOnTable.visuals,
+      ...report.actionPlan.visuals,
+    ].map((v) => v.id)).size;
+    expect(images.png).toBe(distinct);
+    expect(images.svg).toBe(0);
+    // docx de-duplicates byte-identical media (two route maps drawn from the
+    // same phase data), so count unique PNG payloads rather than specs.
+    const uniquePng = new Set([...rasterised.byId.values()].map((r) => r.png!.toString("base64"))).size;
+    expect(media.filter((m) => m.endsWith(".png"))).toHaveLength(uniquePng);
+    expect(uniquePng).toBeGreaterThanOrEqual(distinct - 2);
+    expect(distinct).toBeGreaterThanOrEqual(15);
+
+    const text = xmlText(doc);
+    expect(text).toContain("Sample SME Compliance SaaS (demo)");
+    assertOrdered(text, tbrV2Toc(report).map((e) => e.label));
+    expect(text).toContain("Revenue multiple");
+    expect(text).toContain("Risk-factor summation");
+    expect(text).not.toContain("Unlock the full");
+    expect(header).toContain("BlockID.au");
+    expect(xmlText(footer)).toContain("Trusted Business Report · Sample SME Compliance SaaS (demo)");
+    expect(text).toContain("Auschain PTY LTD");
+  }, 60_000);
+
+  it("free fixture: card chapters carry the a11y table + upgrade line, no valuation method table, same order", async () => {
+    const report = freeFixtureReportV2();
+    const { buffer, images } = await buildTbrDocx(report);
+    const { doc, media } = await unzip(buffer);
+    const text = xmlText(doc);
+    assertOrdered(text, tbrV2Toc(report).map((e) => e.label));
+    for (const c of report.dimensions.filter((d) => d.renderAs === "card")) expect(text).toContain(`Unlock the full ${c.title} chapter`);
+    expect(text).not.toContain("Risk-factor summation");
+    expect(text).toContain("Free tier (10-page budget) omits");
+    // No secondary visuals on the free tier → fewer images than the standard export.
+    expect(images.png).toBeGreaterThanOrEqual(media.length);
+    expect(media.length).toBeGreaterThanOrEqual(12);
+    expect(images.png).toBeLessThan(25);
+  }, 60_000);
+
+  it("falls back to SVG embeds (with PNG fallback) when sharp cannot load", async () => {
+    vi.doMock("sharp", () => {
+      throw new Error("Cannot find module 'sharp'");
+    });
+    __resetSharpLoader();
+    const report = freeFixtureReportV2();
+    const { buffer, images } = await buildTbrDocx(report);
+    expect(images.png).toBe(0);
+    expect(images.svg).toBeGreaterThan(10);
+    const { media, doc } = await unzip(buffer);
+    expect(media.some((m) => m.endsWith(".svg"))).toBe(true);
+    expect(doc).toContain("Cover");
+  }, 60_000);
+
+  it("accepts pre-rasterised images and a verbatim prepared-with line; generateTbrDocx returns the buffer", async () => {
+    const report = demoReportV2();
+    const images = await rasteriseReportVisuals(report, 400);
+    const { buffer } = await buildTbrDocx(report, { images, preparedWith: "Prepared with DeepSeek-V4-Flash via DeepInfra." });
+    const { doc } = await unzip(buffer);
+    expect(xmlText(doc)).toContain("Prepared with DeepSeek-V4-Flash via DeepInfra.");
+    const plain = await generateTbrDocx(report, { images });
+    expect(plain.subarray(0, 2).toString("latin1")).toBe("PK");
+  }, 60_000);
+});

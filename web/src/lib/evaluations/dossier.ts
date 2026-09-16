@@ -26,6 +26,15 @@
 // project with no snapshot, or a taxonomy row that does not exist all
 // render as explicit states ("Not scored yet", "Unclassified",
 // "Assessment not available yet") — never a thrown page.
+//
+// G13-W4-R4 (S-R4) adds, from the same ReportV2 + persisted rows:
+//   block 2  Valuation (ReportV2.valuation + the assessor's own view)
+//   block 5  Progress radar scoped to this evaluation + "since my last
+//            assessment"
+//   header   mandate fit (primary mandate × this startup; persisted row or
+//            scoreFit on read) and "Δ since last view" (previous
+//            `dossier.viewed` audit row of this viewer)
+// Builders live in dossier-blocks.ts; the round shape stays ONE Promise.all.
 
 import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -50,6 +59,19 @@ import {
   type EvaluationAssessment,
   type FounderVisibleAssessment,
 } from "@/lib/evaluations/assessments";
+import {
+  buildValuationBlock,
+  emptyProgressBlock,
+  readMandateFit,
+  readProgressBlock,
+  readSinceLastView,
+  type DossierMandateFit,
+  type DossierProgressBlock,
+  type DossierSinceLastView,
+  type DossierValuationBlock,
+} from "./dossier-blocks";
+
+export type { DossierMandateFit, DossierProgressBlock, DossierSinceLastView, DossierValuationBlock };
 
 // ─── Public types ───────────────────────────────────────────────────────────
 
@@ -86,6 +108,10 @@ export interface DossierHeader {
   evidence: { items: number; connected: number; providers: string[] };
   /** assessor only — the founder never receives a decision (§C.1). */
   decision: { value: EvaluationAssessment["decision"]; status: EvaluationAssessment["status"]; version: number } | null;
+  /** S-R4, assessor only: fit of the viewer's primary mandate to this startup; null = no mandate / founder. */
+  mandateFit: DossierMandateFit | null;
+  /** S-R4: this viewer's previous dossier view of this evaluation and the SVI movement since; null on the first view. */
+  sinceLastView: DossierSinceLastView | null;
 }
 
 export interface DossierDimRow {
@@ -157,10 +183,14 @@ export interface DossierView {
   viewer: { role: DossierViewerRole; userId: string };
   header: DossierHeader;
   report: DossierReportBlock;
+  /** block 2 — S-R4 */
+  valuation: DossierValuationBlock;
   evidence: DossierEvidenceBlock;
   assessment: DossierAssessmentBlock;
-  /** blocks 2, 5, 6 — placeholders in S-D1 */
-  placeholders: { valuation: "S-R3"; progress: "S-D3"; actions: "S-D3" };
+  /** block 5 — S-R4 */
+  progress: DossierProgressBlock;
+  /** block 6 — placeholder until S-D3 */
+  placeholders: { actions: "S-D3" };
   generatedAt: string;
 }
 
@@ -549,7 +579,7 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
   const { evaluation, project, role } = access;
 
   // Round 1 — everything in parallel; each reader degrades to null/[] on its own.
-  const [latest, olderCandidates, taxonomy, assessment, evidenceRows, providers, lastReport] = await Promise.all([
+  const [latest, olderCandidates, taxonomy, assessment, evidenceRows, providers, lastReport, lastView] = await Promise.all([
     readLatestSnapshot(project.id),
     readSnapshot30dAgo(project.id),
     getTaxonomy(project.id).catch(() => null),
@@ -557,6 +587,8 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
     readEvidenceRows(project.id),
     readConnectedProviders(project.id),
     readLatestReport(evaluation.id),
+    // S-R4: the viewer's previous `dossier.viewed` row (its SVI feeds "Δ since last view").
+    readSinceLastView(userId, evaluation.id, null).catch(() => null),
   ]);
 
   // Δ30d baseline = the newest row ≥ 30 days old that is NOT the latest row.
@@ -599,8 +631,23 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
   }
   const connected = evidenceRows.filter((r) => ladderRank(r.confidence_level) >= ladderRank("connected_source")).length;
 
-  // Round 2 — only on a cache miss (10-minute in-process cache).
-  const percentile = svi != null && latest ? await cachedPercentile(svi, latest.stage ?? project.stage ?? 0) : null;
+  // Round 2 — the percentile (10-minute in-process cache) plus the S-R4
+  // readers that depend on round-1 ids: mandate fit (assessor only — needs
+  // the taxonomy row + SVI), block 5 progress (needs the assessment's
+  // snapshot id). All in parallel; each degrades on its own.
+  const mine = role === "assessor" ? assessment.mine : null;
+  const [percentile, mandateFit, progress] = await Promise.all([
+    svi != null && latest ? cachedPercentile(svi, latest.stage ?? project.stage ?? 0) : Promise.resolve(null),
+    role === "assessor"
+      ? readMandateFit({ viewerUserId: userId, projectId: project.id, taxonomy, svi, stage: latest?.stage ?? project.stage ?? null, state: evaluation.state }).catch(() => null)
+      : Promise.resolve(null),
+    readProgressBlock({
+      evaluationId: evaluation.id,
+      evaluatorUserId: evaluation.evaluatorUserId,
+      latestSvi: svi,
+      mine: mine ? { version: mine.version, snapshotId: mine.snapshotId, updatedAt: mine.updatedAt, submittedAt: mine.submittedAt } : null,
+    }).catch(() => emptyProgressBlock()),
+  ]);
 
   const header: DossierHeader = {
     evaluationId: evaluation.id,
@@ -627,6 +674,8 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
       role === "assessor" && assessment.mine
         ? { value: assessment.mine.decision, status: assessment.mine.status, version: assessment.mine.version }
         : null,
+    mandateFit,
+    sinceLastView: lastView ? { ...lastView, sviNow: svi, delta: lastView.sviThen !== null && svi !== null ? Math.round((svi - lastView.sviThen) * 10) / 10 : null } : null,
   };
 
   const reportBlock: DossierReportBlock = {
@@ -647,6 +696,7 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
     viewer: { role, userId },
     header,
     report: reportBlock,
+    valuation: buildValuationBlock(report, mine),
     evidence,
     assessment: {
       available: assessment.available,
@@ -654,7 +704,8 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
       history: role === "assessor" ? assessment.history : [],
       sharedWithFounder: role === "founder" ? assessment.sharedWithFounder : null,
     },
-    placeholders: { valuation: "S-R3", progress: "S-D3", actions: "S-D3" },
+    progress,
+    placeholders: { actions: "S-D3" },
     generatedAt: new Date().toISOString(),
   };
 }

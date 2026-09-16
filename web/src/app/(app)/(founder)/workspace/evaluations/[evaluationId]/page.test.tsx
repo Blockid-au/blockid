@@ -16,8 +16,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 //     100 (F3), 13 criterion rows with "0 evidence — self-declared";
 //   * the founder preview never carries an assessment field (no decision
 //     chip, no private notes, no invite token) while the evaluator sees
-//     their decision; blocks 2–6 render as placeholders;
-//   * the audit hook fires with role + ids.
+//     their decision; blocks 3, 4, 6 render as placeholders;
+//   * S-R4: block 2 renders the valuation from ReportV2 (consensus band,
+//     six methods, range bars svg), block 5 the progress radar scoped to
+//     this evaluation, the header carries mandate fit (assessor) and
+//     "Since last view"; the audit hook fires with role + ids + the SVI.
 
 vi.mock("@/components/workspace/workspace-layout", () => ({
   WorkspaceLayout: ({ children }: { children: React.ReactNode }) => <div data-shell>{children}</div>,
@@ -115,15 +118,23 @@ function seed() {
     ],
     startup_taxonomy: [{ project_id: "p-1", industry: "advanced_manufacturing", business_model: "unclassified", stage_key: "seed", customer_types: [], tags: [], sources: { industry: "auto" }, confidence: {}, hq_country: "AU", taxonomy_version: "1.0.0" }],
     evaluation_assessments: [
-      { id: "a-1", evaluation_id: "e-1", project_id: "p-1", assessor_user_id: "u-eval", version: 1, status: "submitted", decision: "track", conviction: 3, private_notes: "SECRET-NOTE", shared_notes: null, shared_fields: [], shared_with_founder_at: null, submitted_at: "2026-09-12T00:00:00Z", created_at: "2026-09-11T00:00:00Z", updated_at: "2026-09-12T00:00:00Z" },
+      { id: "a-1", evaluation_id: "e-1", project_id: "p-1", assessor_user_id: "u-eval", snapshot_id: "s-1", version: 1, status: "submitted", decision: "track", conviction: 3, private_notes: "SECRET-NOTE", shared_notes: null, shared_fields: [], shared_with_founder_at: null, submitted_at: "2026-09-12T00:00:00Z", created_at: "2026-09-11T00:00:00Z", updated_at: "2026-09-12T00:00:00Z" },
     ],
     svi_dimension_evidence: [
       { project_id: "p-1", dimension: "mpc", evidence_type: "landing", evidence_label: "Landing page", confidence_level: "public_url", evidence_value_or_url: "https://acme.io", created_at: "2026-09-04T00:00:00Z" },
     ],
     connector_snapshots: [{ project_id: "p-1", provider: "stripe" }],
     evaluation_reports: [{ evaluation_id: "e-1", share_token: "tok-abc", created_at: "2026-09-12T00:00:00Z", kind: "full" }],
+    // S-R4 header / block 5 sources.
+    audit_events: [{ id: 7, user_id: "u-eval", action: "dossier.viewed", resource_id: "e-1", ts: "2026-09-10T00:00:00Z", detail: { svi_total: 60 } }],
+    mandate_fit_scores: [{ mandate_id: "m-1", project_id: "p-1", score: 77, reasons: ["Industry match"], gaps: [], blockers: [], computed_at: "2026-09-15T00:00:00Z" }],
+    evaluator_progress_sends: [],
   };
 }
+
+// S-T2 mandates: one default mandate for the evaluator seat.
+const MANDATE = { id: "m-1", label: "Seed deep-tech AU", sectors_include: ["advanced_manufacturing"], sectors_exclude: [], business_models: [], customer_types: [], stages: ["seed"], cheque_min_aud: null, cheque_max_aud: null, lead_or_follow: null, geographies: [], revenue_min_aud: null, growth_min_pct: null, min_svi: null, tags_include: [], tags_exclude: [], weights: null, is_default: true };
+vi.mock("@/lib/investors/mandates", () => ({ listMandates: async () => ({ migrated: true, mandates: [MANDATE], primary: MANDATE }) }));
 
 async function html(evaluationId = "e-1"): Promise<string> {
   const { default: Page } = await import("./page");
@@ -207,7 +218,7 @@ describe("/workspace/evaluations/[evaluationId]", () => {
     expect(block).toContain("Open full Trusted Business Report");
   });
 
-  it("blocks 2, 3, 5 render as labelled placeholders; block 4 is the assessor's AI-vs-me form on their submitted v1; block 6 lists the audit actions", async () => {
+  it("blocks 2–6 render (3 as a labelled placeholder); block 4 is the assessor's AI-vs-me form on their submitted v1; block 6 lists the audit actions", async () => {
     const out = await html();
     for (const n of [2, 3, 4, 5, 6]) expect(out).toContain(`data-testid="dossier-block-${n}"`);
     // S-D2 block 4: the form is seeded from the assessor's own row (v1 submitted → next save is v2).
@@ -228,7 +239,28 @@ describe("/workspace/evaluations/[evaluationId]", () => {
     expect(out).not.toContain("Items are masked at this tier");
     expect(out).toContain("1 item visible at this tier");
     expect(appendAuditMock).toHaveBeenCalledTimes(1);
-    expect(appendAuditMock.mock.calls[0][0]).toMatchObject({ action: "dossier.viewed", resource_id: "e-1", user_id: "u-eval", detail: { role: "assessor", surface: "page" } });
+    expect(appendAuditMock.mock.calls[0][0]).toMatchObject({ action: "dossier.viewed", resource_id: "e-1", user_id: "u-eval", detail: { role: "assessor", surface: "page", svi_total: 62, snapshot_id: "s-2" } });
+  });
+
+  it("S-R4: block 2 valuation from ReportV2, block 5 progress radar, header mandate fit + since last view (assessor)", async () => {
+    const out = await html();
+    const b2 = out.slice(out.indexOf('data-testid="dossier-block-2"'), out.indexOf('data-testid="dossier-block-3"'));
+    expect(b2).toContain('data-testid="valuation-consensus"');
+    expect(b2).toContain('data-testid="valuation-range-bars"');
+    expect(b2).toContain('data-visual-kind="range_bars"');
+    expect((b2.match(/<svg[^>]*role="img"/g) ?? []).length).toBe(1);
+    expect(b2).toContain('data-testid="valuation-methods"');
+    for (const m of ["Revenue multiple", "Berkus", "DCF proxy", "AU comparables", "Risk-factor summation", "Scorecard"]) expect(b2).toContain(m);
+    expect(b2).toContain("lifted from the stored snapshot");
+    expect(b2).toContain('href="/tbr/tok-abc"');
+    const b5 = out.slice(out.indexOf('data-testid="dossier-block-5"'), out.indexOf('data-testid="dossier-block-6"'));
+    expect(b5).toContain('data-testid="progress-svi"');
+    expect(b5).toContain('data-testid="progress-sparkline"');
+    expect(b5).toContain('data-visual-kind="sparkline"');
+    expect(b5).toContain('data-testid="progress-since-assessment"');
+    expect(out).toMatch(/data-testid="mandate-fit"[\s\S]*?77%/);
+    expect(out).toContain("Seed deep-tech AU");
+    expect(out).toMatch(/data-testid="since-last-view"[\s\S]*?▲ \+<!-- -->2<!-- --> SVI|data-testid="since-last-view"[\s\S]*?\+2 SVI/);
   });
 
   it("founder preview: same block 1, NO assessment field anywhere, no evaluator entitlement needed", async () => {
@@ -244,8 +276,14 @@ describe("/workspace/evaluations/[evaluationId]", () => {
     expect(out).not.toContain("SECRET-NOTE");
     expect(out).not.toContain("tok-secret");
     expect(out).not.toContain(">track<");
-    expect((out.match(/<svg[^>]*role="img"/g) ?? []).length).toBe(1);
+    const block1 = out.slice(out.indexOf('data-testid="dossier-block-1"'), out.indexOf('data-testid="dossier-block-2"'));
+    expect((block1.match(/<svg[^>]*role="img"/g) ?? []).length).toBe(1);
     expect((out.match(/data-testid="weight-cell"/g) ?? []).length).toBe(8);
+    // S-R4 founder preview: no mandate fit, no "since my assessment", no assessor overlay.
+    expect(out).not.toContain('data-testid="mandate-fit"');
+    expect(out).not.toContain('data-testid="progress-since-assessment"');
+    expect(out).not.toContain("Seed deep-tech AU");
+    expect(out).toContain('data-testid="since-last-view"');
     expect(appendAuditMock.mock.calls[0][0]).toMatchObject({ user_id: "u-founder", detail: { role: "founder" } });
   });
 

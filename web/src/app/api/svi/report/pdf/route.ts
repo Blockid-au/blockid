@@ -1,20 +1,33 @@
-// GET /api/svi/report/pdf?token=<shareToken>
+// GET /api/svi/report/pdf?token=<shareToken>[&v=1]
 //
-// Wave 25A — server-side PDF export of the Trusted Business Report.
-// Launches an in-process Chromium via Playwright, navigates to the public
-// /tbr/<token> page with `?pdf=1` (which hides interactive chrome), and
-// returns application/pdf.
+// The Trusted Business Report PDF surface.
 //
-// MVP scope: only supports `?token=` (public share link). Founder self-
-// download without a public token is not exposed yet — mint a share token
-// first, or open the print dialog.
+// S-R4 (G13-W4-R4): the default path renders `ReportV2` through
+// `lib/pdf/tbr-pdf.tsx` — react-pdf, the same chapter order as the web,
+// visuals drawn by the react-pdf twins, the free tier gated to 10 pages
+// by the real page count. No Chromium, no HTTP round-trip to /tbr; the
+// stored `svi_snapshots.report_v2` is used when it validates, otherwise the
+// read-time adapter builds the document (response header `X-TBR-Source`).
+//
+// `?v=1` keeps the Wave 25A path for one release (spec §F S-R4 rollback):
+// in-process Chromium via Playwright prints /tbr/<token>?pdf=1.
+//
+// Scope: `?token=` (public share link) only — the founder mints a token
+// from the report page; the dossier links the evaluator's own token.
 
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { loadReportV2ByShareToken } from "@/lib/report-v2/load";
+import { renderTbrPdf } from "@/lib/pdf/tbr-pdf";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 120; // Chromium cold-start + full-render can hit 60s.
+export const maxDuration = 120; // Chromium cold-start + full-render can hit 60s (legacy path).
+
+function safeFilename(name: string): string {
+  const base = name.replace(/[^a-zA-Z0-9_\- ]/g, "").trim().replace(/\s+/g, "-").slice(0, 60);
+  return `BlockID-Business-Report${base ? `-${base}` : ""}.pdf`;
+}
 
 function baseUrl(request: Request): string {
   const envUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL;
@@ -35,11 +48,38 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "missing_token" }, { status: 400 });
   }
 
-  // Validate token exists (fail fast — avoids spinning up chromium for a 404).
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json({ ok: false, error: "supabase_unavailable" }, { status: 503 });
   }
+
+  if (url.searchParams.get("v") !== "1") {
+    const loaded = await loadReportV2ByShareToken(token, {}, supabase);
+    if (!loaded) {
+      return NextResponse.json({ ok: false, error: "unknown_token" }, { status: 404 });
+    }
+    try {
+      const { buffer, pages, level } = await renderTbrPdf(loaded.report);
+      return new NextResponse(new Uint8Array(buffer), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${safeFilename(loaded.report.cover.startupName)}"`,
+          "Cache-Control": "no-store",
+          "X-TBR-Source": loaded.path,
+          "X-TBR-Pages": String(pages),
+          "X-TBR-Trim-Level": String(level),
+        },
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[tbr-pdf] render failed", msg);
+      return NextResponse.json({ ok: false, error: "pdf_render_failed", detail: msg }, { status: 500 });
+    }
+  }
+
+  // ── Legacy (?v=1): Chromium print of the public page ─────────────────────
+  // Validate token exists (fail fast — avoids spinning up chromium for a 404).
   const { data, error } = await supabase
     .from("svi_snapshots")
     .select("id")

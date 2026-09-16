@@ -3,7 +3,9 @@
 // Name · website · state · taxonomy badges (honest "Unclassified") · SVI +
 // Δ30d + stage-cohort percentile · consent tier chip · last snapshot date ·
 // evidence count (n items · m connected) · decision chip (assessor only —
-// the founder preview shows "Private to the evaluator" instead, §C.1).
+// the founder preview shows "Private to the evaluator" instead, §C.1) ·
+// S-R4: mandate fit (assessor only, primary mandate × this startup) and
+// "Δ since last view" (this viewer's previous dossier.viewed row).
 
 import Link from "next/link";
 import { tierLabel } from "@/lib/mentor/access-tiers";
@@ -132,6 +134,47 @@ export function DossierHeader({ header, role }: { header: HeaderModel; role: Dos
               {header.evidence.providers.length ? <span className="text-xs text-ink-500"> ({header.evidence.providers.join(", ")})</span> : null}
             </dd>
           </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-ink-500">Since last view</dt>
+            <dd className="mt-0.5 text-ink-800" data-testid="since-last-view">
+              {header.sinceLastView ? (
+                <>
+                  <span className="text-xs text-ink-500">{fmtDate(header.sinceLastView.viewedAt)}</span>
+                  {header.sinceLastView.delta != null ? (
+                    <span className={`ml-2 text-xs font-semibold ${header.sinceLastView.delta > 0 ? "text-emerald-700" : header.sinceLastView.delta < 0 ? "text-red-700" : "text-ink-500"}`}>
+                      {header.sinceLastView.delta > 0 ? "▲ +" : header.sinceLastView.delta < 0 ? "▼ " : "• "}
+                      {header.sinceLastView.delta} SVI
+                    </span>
+                  ) : (
+                    <span className="ml-2 text-xs text-ink-400">no score then</span>
+                  )}
+                </>
+              ) : (
+                <span className="text-xs text-ink-500">First view</span>
+              )}
+            </dd>
+          </div>
+          {role === "assessor" ? (
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-ink-500">Mandate fit</dt>
+              <dd className="mt-0.5" data-testid="mandate-fit">
+                {header.mandateFit ? (
+                  <>
+                    <strong className={header.mandateFit.passesFloor ? "text-ink-900" : "text-ink-500"}>{header.mandateFit.score}%</strong>
+                    <span className="ml-1 text-xs text-ink-500" title={[...header.mandateFit.reasons, ...header.mandateFit.gaps].join(" · ")}>
+                      {header.mandateFit.mandateLabel}
+                      {header.mandateFit.blockers.length ? ` · ${header.mandateFit.blockers[0]}` : ""}
+                      {header.mandateFit.source === "computed" ? " · live" : ""}
+                    </span>
+                  </>
+                ) : (
+                  <Link href="/workspace/investor/mandate" className="text-xs text-brand-700 hover:underline">
+                    Set your mandate
+                  </Link>
+                )}
+              </dd>
+            </div>
+          ) : null}
           <div>
             <dt className="text-xs uppercase tracking-wide text-ink-500">Decision</dt>
             <dd className="mt-0.5">

@@ -45,6 +45,8 @@ export async function GET(_request: Request, { params }: Ctx) {
     role: dossier.viewer.role,
     consentTier: dossier.header.consentTier,
     surface: "api",
+    sviTotal: dossier.header.svi,
+    snapshotId: dossier.header.snapshotId,
   });
 
   return NextResponse.json(

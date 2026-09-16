@@ -88,7 +88,7 @@ async function sendViaResend(args: {
   subject: string;
   html: string;
   fromName?: string | null;
-  attachments?: { filename: string; content: Buffer | Uint8Array | string; contentType?: string }[];
+  attachments?: { filename: string; content: Buffer | Uint8Array | string; contentType?: string; cid?: string }[];
 }): Promise<SendResult> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return { ok: false, reason: "not_configured" };
@@ -112,6 +112,8 @@ async function sendViaResend(args: {
       filename: a.filename,
       content: contentB64,
       ...(a.contentType && { content_type: a.contentType }),
+      // S-R4: inline image referenced as <img src="cid:…"> in the HTML.
+      ...(a.cid && { content_id: a.cid }),
     };
   });
 
@@ -152,7 +154,8 @@ export async function sendEmail(args: {
   unsubscribeUrl?: string;
   /** S26-A — display name on the platform sender ("<name> via BlockID.au"); the address never changes. */
   fromName?: string | null;
-  attachments?: { filename: string; content: Buffer | Uint8Array; contentType?: string }[];
+  /** `cid` marks an inline image (referenced as `<img src="cid:<cid>">`) — S-R4 report visuals. */
+  attachments?: { filename: string; content: Buffer | Uint8Array; contentType?: string; cid?: string }[];
 }): Promise<SendResult> {
   // Priority 1: SMTP (Nodemailer)
   const transporter = getTransporter();
@@ -175,6 +178,7 @@ export async function sendEmail(args: {
             filename: a.filename,
             content: Buffer.from(a.content),
             contentType: a.contentType ?? "application/pdf",
+            ...(a.cid && { cid: a.cid, contentDisposition: "inline" as const }),
           })),
         }),
       });
