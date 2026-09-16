@@ -13,6 +13,7 @@
 // more. Revoke → DELETE …/share clears every version.
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { userErrorMessage } from "@/lib/ui/user-error";
 import type { EvaluationAssessment, FounderShareField, FounderVisibleAssessment } from "@/lib/evaluations/assessments";
 import { NEVER_SHARED_LABELS, SHARE_PREVIEW_HEADING, SHARE_SECTIONS, sectionPreviewLines, type AssessmentFormValues } from "./assessment-shared";
 
@@ -69,7 +70,7 @@ export function ShareDialog({ evaluationId, values, initialFields, shared, onClo
       if (j.assessment) onShared(j.assessment, ticked.length);
       setPhase({ kind: "done", preview: json.founder_preview, at: json.shared_with_founder_at ?? new Date().toISOString() });
     } catch (err) {
-      setPhase({ kind: "error", message: err instanceof Error ? err.message : "Network error" });
+      setPhase({ kind: "error", message: userErrorMessage(err, "Could not update sharing. Please try again.") });
     }
   };
 
@@ -85,7 +86,7 @@ export function ShareDialog({ evaluationId, values, initialFields, shared, onClo
       onRevoked();
       onClose();
     } catch (err) {
-      setPhase({ kind: "error", message: err instanceof Error ? err.message : "Network error" });
+      setPhase({ kind: "error", message: userErrorMessage(err, "Could not update sharing. Please try again.") });
     }
   };
 

@@ -21,6 +21,7 @@
 // import) so this stays a small client component.
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { userErrorMessage } from "@/lib/ui/user-error";
 import { trackEvent } from "@/lib/analytics";
 import { CANONICAL_STAGES, CANONICAL_STAGE_LABELS, type StageKey } from "@/lib/journey-vocabulary";
 import {
@@ -184,7 +185,7 @@ export function TaxonomyConfirmCard({ projectId, projectName, taxonomy, actor = 
       if (json.dropped_protected_tags?.length) setNotice(`Protected tags can only be declared by the founder: ${json.dropped_protected_tags.join(", ")} were not saved.`);
       else setNotice(confirm ? "Classification confirmed. Automatic re-analysis will never overwrite it." : "Saved.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
+      setError(userErrorMessage(err, "Could not save your classification. Please try again."));
     } finally {
       setBusy(false);
     }

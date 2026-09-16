@@ -26,6 +26,7 @@
 // from the server-masked projection instead (§C.1).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { userErrorMessage } from "@/lib/ui/user-error";
 import { trackEvent } from "@/lib/analytics";
 import type { AssessmentDecision, AssessmentDimKey, AssessmentHistoryEntry, EvaluationAssessment, FounderShareField, RiskItem } from "@/lib/evaluations/assessments";
 import type { AssessmentPrefill } from "@/lib/evaluations/assessment-prefill";
@@ -119,7 +120,7 @@ export function AssessmentForm({ evaluationId, initial, history, prefill, snapsh
         trackEvent("investor_decision_saved", { evaluation_id: evaluationId, decision: json.assessment.decision ?? "none", status: json.assessment.status, version: json.assessment.version });
         return true;
       } catch (err) {
-        setSave({ kind: "error", message: err instanceof Error ? err.message : "Network error" });
+        setSave({ kind: "error", message: userErrorMessage(err, "Could not save your assessment. Please try again.") });
         return false;
       } finally {
         inFlight.current = false;
