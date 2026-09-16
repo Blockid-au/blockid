@@ -16,6 +16,7 @@ import type { Project } from "@/lib/projects";
 import type { FounderStage } from "@/lib/agents/grant-advisor";
 import type { FundingIntakePrefill } from "@/components/funding/funding-intake";
 import { INDUSTRY_OPTIONS, INTAKE_STATES, type IntakeState } from "./intake";
+import { INDUSTRY_TO_INTAKE_OPTION, crosswalkIndustry } from "@/lib/taxonomy/startup-taxonomy";
 import { listPrograms, type AuProgram } from "./data";
 import type { FundingReportRow } from "./reports";
 
@@ -90,7 +91,15 @@ const INDUSTRY_KEYWORDS: ReadonlyArray<[RegExp, string]> = [
   [/social enterprise|impact|non.?profit/i, "social_enterprise"],
 ];
 
-/** Free-text industry ("AgTech / Food") → §5d tags, max 3. */
+/**
+ * Free-text industry ("AgTech / Food") → §5d tags, max 3.
+ *
+ * G13 E1.5: the keyword chain runs exactly as before (its outputs are
+ * pinned), then the canonical crosswalk (`crosswalkIndustry` →
+ * `INDUSTRY_TO_INTAKE_OPTION`) guarantees the intake option the startup
+ * taxonomy maps to is present — appended when the keywords missed it, so
+ * the intake never disagrees with the taxonomy badge.
+ */
 export function industryTagsFor(industry: string | null | undefined): string[] {
   const text = (industry ?? "").trim();
   if (!text) return [];
@@ -100,6 +109,12 @@ export function industryTagsFor(industry: string | null | undefined): string[] {
   for (const [re, tag] of INDUSTRY_KEYWORDS) {
     if (re.test(text) && !out.includes(tag)) out.push(tag);
     if (out.length >= 3) break;
+  }
+  const canonical = crosswalkIndustry(text);
+  const canonicalOption = canonical === "unclassified" ? null : INDUSTRY_TO_INTAKE_OPTION[canonical];
+  if (canonicalOption && !out.includes(canonicalOption) && INDUSTRY_OPTIONS.some((o) => o.value === canonicalOption)) {
+    if (out.length >= 3) out.pop();
+    out.push(canonicalOption);
   }
   return out;
 }

@@ -531,6 +531,55 @@ export function multiplesKeyFor(t: Pick<StartupTaxonomyRow, "industry" | "busine
   return INDUSTRY_TO_MULTIPLES_KEY[t.industry] ?? "default";
 }
 
+// ─── E1.5 — legacy writers through the crosswalk ─────────────────────────────
+//
+// The legacy `sector` columns (`svi_index_snapshots.sector`,
+// `startup_listings.sector`, `analysis.sector`) carry the detectSector slug
+// vocabulary plus the listing keys. Writers now normalise through here so a
+// free-text value ("B2B SaaS platform", "Climate tech / hardware") lands as
+// the canonical slug and an unknown value lands as NULL — never as a guess
+// (DQ-1). A slug that is already canonical is returned byte-identical so
+// tickers / filters keyed on it stay stable.
+
+/** Listing `SECTOR_LABEL` keys (startup-index-listings.ts) — kept verbatim. */
+export const LISTING_SECTOR_KEYS = ["saas", "fintech", "ai", "healthtech", "marketplace", "deeptech", "ecommerce", "default"] as const;
+
+/** Any legacy / free-text sector → the canonical legacy slug, or null when unclassified. */
+export function canonicalSectorSlug(raw: string | null | undefined): string | null {
+  if (typeof raw !== "string") return null;
+  const s = raw.trim().toLowerCase();
+  if (!s) return null;
+  if (isDetectSectorSlug(s) || (LISTING_SECTOR_KEYS as readonly string[]).includes(s)) return s;
+  const x = crosswalkIndustryDetailed(s);
+  if (x.industry === "unclassified") return null;
+  if (x.sub_industry) return x.sub_industry;
+  const key = INDUSTRY_TO_MULTIPLES_KEY[x.industry];
+  return key === "default" ? null : key;
+}
+
+/** True when a human (founder / evaluator) owns the industry axis or confirmed the row — the T7 "confirmed taxonomy" condition. */
+export function isTaxonomyHumanOwned(t: Pick<StartupTaxonomyRow, "sources" | "confirmed_at"> | null | undefined): boolean {
+  if (!t) return false;
+  if (t.confirmed_at) return true;
+  const src = t.sources?.industry;
+  return src === "founder" || src === "evaluator";
+}
+
+/** The legacy `sector` slug a taxonomy row crosswalks to (T7); null for an unclassified industry without a marketplace model. */
+export function legacySectorSlugFor(t: Pick<StartupTaxonomyRow, "industry" | "business_model"> & { sub_industry?: string | null }): string | null {
+  if (t.business_model === "marketplace_platform") return "marketplace";
+  if (t.industry === "unclassified") return null;
+  const key = multiplesKeyFor(t);
+  return key === "default" ? null : key;
+}
+
+/** Human label for a legacy listing sector slug: SECTOR_LABEL keys keep their label; anything else is the canonical industry label, or "Unclassified" (T1 — never "Other"). */
+export function legacySectorLabel(sector: string | null | undefined, legacyLabels: Readonly<Record<string, string>>, locale: TaxonomyLocale = "en"): string {
+  const s = (sector ?? "").trim().toLowerCase();
+  if (s && s !== "default" && legacyLabels[s]) return legacyLabels[s];
+  return industryLabel(crosswalkIndustry(s), locale);
+}
+
 // ─── Free-text industry patterns (§B.2 "NEW regex" rows + the rest) ──────────
 //
 // Ordered most-specific first. Each pattern is tried against the whole text;

@@ -6,7 +6,12 @@
 
 import { createHash } from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { legacySectorLabel } from "@/lib/taxonomy/startup-taxonomy";
 
+// G13 E1.5: the `sector` slug (and therefore the ticker prefix) is kept
+// byte-identical; only the LABEL goes through the taxonomy crosswalk —
+// a slug outside this map renders its canonical industry label and an
+// unknown / `default` slug renders "Unclassified" (never "Other", T1).
 const SECTOR_LABEL: Record<string, string> = {
   saas: "SaaS",
   fintech: "Fintech",
@@ -15,7 +20,7 @@ const SECTOR_LABEL: Record<string, string> = {
   marketplace: "Marketplace",
   deeptech: "Deep Tech",
   ecommerce: "eCommerce",
-  default: "Other",
+  default: "Unclassified",
 };
 
 const STAGE_LABEL = ["Concept", "Validated", "MVP", "Traction", "Revenue", "Growth", "Scale", "Mature"];
@@ -230,7 +235,7 @@ export async function computeListings(args: {
       slug: latest.id,
       identityHash,
       sector,
-      sectorLabel: SECTOR_LABEL[sector] ?? SECTOR_LABEL["default"],
+      sectorLabel: legacySectorLabel(sector, SECTOR_LABEL),
       stage,
       stageLabel: STAGE_LABEL[stage] ?? `Stage ${stage}`,
       svi: latest.total_svi,
@@ -424,7 +429,7 @@ async function buildDetailFromRow(
     publicName,
     publicVisible,
     sector,
-    sectorLabel: SECTOR_LABEL[sector] ?? SECTOR_LABEL["default"],
+    sectorLabel: legacySectorLabel(sector, SECTOR_LABEL),
     stage,
     stageLabel: STAGE_LABEL[stage] ?? `Stage ${stage}`,
     svi: latest.total_svi ?? 0,

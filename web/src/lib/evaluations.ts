@@ -38,6 +38,7 @@ import { sendEmail, complianceFooter } from "./email";
 import { can } from "./entitlements";
 import type { AppUser } from "./auth";
 import { MENTOR_ACCESS_TIERS, type MentorAccessTier } from "./mentor/access-tiers";
+import { crosswalkIndustry } from "./taxonomy/startup-taxonomy";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -545,9 +546,11 @@ export async function createEvaluation(
   }
 
   // 2b. G13-W1-T1: silent taxonomy fill from the evaluator's intake (name /
-  // description / free-text industry / state). Auto-sourced for now — the
-  // evaluator-sourced mapping through INDUSTRY_OPTIONS is E1.5. Never fails
-  // the create (try/catch + dynamic import).
+  // description / free-text industry / state), then — G13 E1.5 / T2 — the
+  // evaluator's explicit `industry` goes through the crosswalk and is
+  // recorded with sources.industry = 'evaluator' (it is their declaration,
+  // not a guess). An unknown string stays `unclassified` AND auto-owned so
+  // a later analysis may still fill it. Never fails the create.
   try {
     const { silentFillTaxonomy } = await import("@/lib/taxonomy/silent-fill");
     await silentFillTaxonomy(
@@ -555,6 +558,11 @@ export async function createEvaluation(
       { name: input.name, description: input.description, industry: input.industry, state: input.state },
       { reason: "evaluation_create" },
     );
+    const declared = crosswalkIndustry(input.industry);
+    if (declared !== "unclassified") {
+      const { confirmTaxonomy } = await import("@/lib/taxonomy/store");
+      await confirmTaxonomy(projectId, { industry: declared, confirm: false }, { userId: evaluator.id, source: "evaluator" });
+    }
   } catch (taxErr) {
     console.warn("[blockid:evaluations] taxonomy silent fill threw", taxErr);
   }
