@@ -34,6 +34,11 @@
 //   header   mandate fit (primary mandate × this startup; persisted row or
 //            scoreFit on read) and "Δ since last view" (previous
 //            `dossier.viewed` audit row of this viewer)
+// G13-W5-D3 (S-D3) adds, in the same second round: the seats consensus
+// (lib/investor/organisations.ts — every same-org seat's current
+// assessment, Appendix-2 medians / tally / disagreement) and the viewer's
+// audit trail on this evaluation (block 6). `resolveDossierAccess` also
+// admits a same-org seat as an assessor of their own seat (F1).
 // Builders live in dossier-blocks.ts; the round shape stays ONE Promise.all.
 
 import "server-only";
@@ -70,8 +75,10 @@ import {
   type DossierSinceLastView,
   type DossierValuationBlock,
 } from "./dossier-blocks";
+import { emptyConsensus, readConsensus, shareOrg, type DossierConsensus } from "@/lib/investor/organisations";
+import { readAuditTrail, type DossierAuditEntry } from "./dossier-audit";
 
-export type { DossierMandateFit, DossierProgressBlock, DossierSinceLastView, DossierValuationBlock };
+export type { DossierMandateFit, DossierProgressBlock, DossierSinceLastView, DossierValuationBlock, DossierConsensus, DossierAuditEntry };
 
 // ─── Public types ───────────────────────────────────────────────────────────
 
@@ -112,6 +119,10 @@ export interface DossierHeader {
   mandateFit: DossierMandateFit | null;
   /** S-R4: this viewer's previous dossier view of this evaluation and the SVI movement since; null on the first view. */
   sinceLastView: DossierSinceLastView | null;
+  /** S-D3, assessor only: "Firm consensus (submitted/seats)" + the aggregate decision; null for a founder or a single personal seat. */
+  consensus: { label: string; submitted: number; seats: number; aggregate: DossierConsensus["aggregate"] } | null;
+  /** S-D3: true when the viewer opened this dossier as a same-org seat (not the evaluator who added it). */
+  viaOrgSeat: boolean;
 }
 
 export interface DossierDimRow {
@@ -189,8 +200,10 @@ export interface DossierView {
   assessment: DossierAssessmentBlock;
   /** block 5 — S-R4 */
   progress: DossierProgressBlock;
-  /** block 6 — placeholder until S-D3 */
-  placeholders: { actions: "S-D3" };
+  /** block 4 seats table — S-D3 (assessor only; null for the founder — no seat field ever reaches the preview, §C.1). */
+  consensus: DossierConsensus | null;
+  /** block 6 — S-D3: the viewer's audit rows on this evaluation (ids + actions, never note bodies). */
+  auditTrail: DossierAuditEntry[];
   generatedAt: string;
 }
 
@@ -434,6 +447,8 @@ interface EvaluationWithProject {
   evaluation: Evaluation;
   project: { id: string; name: string; slug: string; industry: string | null; stage: number | null; description: string | null; phaseId: string | null };
   role: DossierViewerRole;
+  /** S-D3: set when the viewer is a same-org seat of the evaluator (F1) — the org both belong to. */
+  viaOrgId: string | null;
 }
 
 const EVALUATION_COLUMNS =
@@ -446,25 +461,34 @@ const EVALUATION_COLUMNS =
 export async function resolveDossierAccess(evaluationId: string, userId: string): Promise<EvaluationWithProject | null> {
   const supabase = getSupabaseAdmin();
   if (!supabase || !evaluationId || !userId) return null;
+  // One lookup by id; the role is decided in code (evaluator → assessor,
+  // claimed founder → founder, S-D3: same-org seat → assessor via ONE extra
+  // membership read; anyone else → null → 404).
   const { data, error } = await supabase
     .from("evaluations")
     .select(`${EVALUATION_COLUMNS}, projects:project_id (id, name, slug, industry, stage, description, growth_phase_current)`)
     .eq("id", evaluationId)
-    .or(`evaluator_user_id.eq.${userId},founder_user_id.eq.${userId}`)
     .maybeSingle();
   if (error || !data) return null;
   const row = data as Row & { projects?: Row | Row[] | null };
   const evaluation = mapEvaluationRow(row);
   let role: DossierViewerRole;
+  let viaOrgId: string | null = null;
   if (evaluation.evaluatorUserId === userId) role = "assessor";
   else if (evaluation.founderUserId === userId && evaluation.ownerKind === "founder_claimed" && evaluation.claimedAt) role = "founder";
-  else return null;
+  else {
+    // S-D3 (F1): a same-org seat opens the dossier the evaluator added.
+    viaOrgId = evaluation.evaluatorUserId ? await shareOrg(userId, evaluation.evaluatorUserId) : null;
+    if (!viaOrgId) return null;
+    role = "assessor";
+  }
   const p = (Array.isArray(row.projects) ? row.projects[0] : row.projects) ?? {};
   // A founder must never receive the invite token (Evaluation doc comment).
   if (role === "founder") evaluation.inviteToken = null;
   return {
     evaluation,
     role,
+    viaOrgId,
     project: {
       id: String(p.id ?? evaluation.projectId),
       name: String(p.name ?? "Untitled startup"),
@@ -636,7 +660,7 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
   // the taxonomy row + SVI), block 5 progress (needs the assessment's
   // snapshot id). All in parallel; each degrades on its own.
   const mine = role === "assessor" ? assessment.mine : null;
-  const [percentile, mandateFit, progress] = await Promise.all([
+  const [percentile, mandateFit, progress, consensus, auditTrail] = await Promise.all([
     svi != null && latest ? cachedPercentile(svi, latest.stage ?? project.stage ?? 0) : Promise.resolve(null),
     role === "assessor"
       ? readMandateFit({ viewerUserId: userId, projectId: project.id, taxonomy, svi, stage: latest?.stage ?? project.stage ?? null, state: evaluation.state }).catch(() => null)
@@ -647,6 +671,11 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
       latestSvi: svi,
       mine: mine ? { version: mine.version, snapshotId: mine.snapshotId, updatedAt: mine.updatedAt, submittedAt: mine.submittedAt } : null,
     }).catch(() => emptyProgressBlock()),
+    // S-D3: every seat's current assessment (assessor only; the founder never receives other seats' rows).
+    role === "assessor" && assessment.available
+      ? readConsensus({ evaluationId: evaluation.id, viewerUserId: userId, viewerAssessment: mine }).catch(() => emptyConsensus(false))
+      : Promise.resolve(emptyConsensus(false)),
+    readAuditTrail(userId, evaluation.id).catch(() => [] as DossierAuditEntry[]),
   ]);
 
   const header: DossierHeader = {
@@ -676,6 +705,11 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
         : null,
     mandateFit,
     sinceLastView: lastView ? { ...lastView, sviNow: svi, delta: lastView.sviThen !== null && svi !== null ? Math.round((svi - lastView.sviThen) * 10) / 10 : null } : null,
+    consensus:
+      role === "assessor" && consensus.available && consensus.seatCount > 1
+        ? { label: consensus.label, submitted: consensus.submittedCount, seats: consensus.seatCount, aggregate: consensus.aggregate }
+        : null,
+    viaOrgSeat: !!access.viaOrgId,
   };
 
   const reportBlock: DossierReportBlock = {
@@ -705,7 +739,8 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
       sharedWithFounder: role === "founder" ? assessment.sharedWithFounder : null,
     },
     progress,
-    placeholders: { actions: "S-D3" },
+    consensus: role === "assessor" ? consensus : null,
+    auditTrail,
     generatedAt: new Date().toISOString(),
   };
 }

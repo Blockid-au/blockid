@@ -25,6 +25,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { pdfUrlForToken, reportUrlForToken } from "@/lib/evaluations/report-quota";
 export { countPendingBatchItems } from "@/lib/evaluations/report-quota";
 import {
+  EMPTY_DECISION,
   mapBatchItemRow,
   mapBatchRow,
   normaliseWeights,
@@ -32,10 +33,12 @@ import {
   weightedScore,
   type BatchStatus,
   type CohortRow,
+  type CohortRowDecision,
   type EvaluationBatch,
   type EvaluationBatchItem,
   type RubricWeights,
 } from "./batch-shared";
+import { loadCohortDecisions } from "./cohort-decisions";
 
 export { BATCH_FEATURES, LP_REPORT_FEATURES, canBatchScore, canExportLpReport } from "./batch-shared";
 
@@ -207,16 +210,17 @@ async function previousSviByProject(
   return out;
 }
 
-/** The cohort table rows for a batch: items × evaluation/project × Δ. */
+/** The cohort table rows for a batch: items × evaluation/project × Δ × (S-D3) the owner's decision. */
 export async function loadCohortRows(batch: EvaluationBatch): Promise<CohortRow[]> {
   const items = await listBatchItems(batch.id);
-  const joins = await loadEvaluationJoins(items.map((i) => i.evaluationId));
+  const evaluationIds = items.map((i) => i.evaluationId);
+  const [joins, decisions] = await Promise.all([loadEvaluationJoins(evaluationIds), loadCohortDecisions(evaluationIds, batch.userId).catch(() => new Map<string, CohortRowDecision>())]);
   const prev = await previousSviByProject(
     items
       .filter((i) => i.status === "done")
       .map((i) => ({ projectId: joins.get(i.evaluationId)?.projectId ?? "", snapshotId: i.snapshotId, scoredAt: i.scoredAt })),
   );
-  return items.map((i) => buildCohortRow(i, joins.get(i.evaluationId) ?? null, batch.rubricWeights, prev));
+  return items.map((i) => buildCohortRow(i, joins.get(i.evaluationId) ?? null, batch.rubricWeights, prev, decisions.get(i.evaluationId) ?? null));
 }
 
 export function buildCohortRow(
@@ -224,6 +228,7 @@ export function buildCohortRow(
   join: EvaluationJoin | null,
   weights: RubricWeights,
   prev: Map<string, number>,
+  decision: CohortRowDecision | null = null,
 ): CohortRow {
   const projectId = join?.projectId ?? "";
   const before = projectId ? prev.get(projectId) : undefined;
@@ -249,6 +254,7 @@ export function buildCohortRow(
     pdfUrl: pdfUrlForToken(item.shareToken),
     error: item.error,
     scoredAt: item.scoredAt,
+    ...(decision ?? EMPTY_DECISION),
   };
 }
 

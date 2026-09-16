@@ -50,6 +50,8 @@ export interface EvaluationsClientProps {
   autoOpenReport?: boolean;
   /** `?add=1` — open the "Add a startup" dialog on load (S-IA4 landing / wizard step 3). */
   autoOpenAdd?: boolean;
+  /** `?batch=<evaluationId>` — S-D3 dossier "Add to batch": preselect that row and open the batch dialog (Program only). */
+  preselectBatchId?: string | null;
   /** Latest evaluation_reports row per evaluation id (T0271). */
   lastReports?: Record<string, LastEvaluationReport>;
   /** Included Trusted Business Reports this month from usage_limits.reports_per_month. */
@@ -359,6 +361,7 @@ export function EvaluationsClient({
   activation = null,
   autoOpenReport = false,
   autoOpenAdd = false,
+  preselectBatchId = null,
 }: EvaluationsClientProps) {
   const progressByEval = React.useMemo(() => {
     const m = new Map<string, EvaluatorProgressItem>();
@@ -400,8 +403,10 @@ export function EvaluationsClient({
 
   // --- Batch score (T0272) ---
   const [batches, setBatches] = React.useState<EvaluationBatch[]>(initialBatches);
-  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(() => new Set());
-  const [showBatch, setShowBatch] = React.useState(false);
+  // S-D3: arriving from a dossier's "Add to batch" preselects that row and opens the dialog.
+  const preselect = preselectBatchId && canBatch && initialEvaluations.some((e) => e.id === preselectBatchId) ? preselectBatchId : null;
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(() => new Set(preselect ? [preselect] : []));
+  const [showBatch, setShowBatch] = React.useState(!!preselect);
   const selectedRows = React.useMemo(() => rows.filter((r) => selectedIds.has(r.id)), [rows, selectedIds]);
   const allSelected = rows.length > 0 && selectedRows.length === rows.length;
 

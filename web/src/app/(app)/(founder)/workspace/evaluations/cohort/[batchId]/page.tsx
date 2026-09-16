@@ -124,7 +124,7 @@ export default async function CohortPage({ params }: PageProps) {
             No startups in this batch.
           </div>
         ) : (
-          <CohortTable rows={rows} />
+          <CohortTable rows={rows} batchId={batch.id} />
         )}
 
         <EvaluatorReportDisclaimer variant="compact" />

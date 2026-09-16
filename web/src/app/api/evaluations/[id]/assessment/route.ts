@@ -23,6 +23,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { ASSESSMENT_BODY_MAX_BYTES, ASSESSMENT_WRITES_PER_MINUTE, resolveAssessmentAccess } from "@/lib/evaluations/assessment-access";
 import { assessmentDraftSchema, getAssessment, upsertAssessment } from "@/lib/evaluations/assessments";
 import { prefillFromFit } from "@/lib/evaluations/assessment-prefill";
+import { resolveActingOrg } from "@/lib/investor/organisations";
 import { PRIVATE_JSON_HEADERS, readJsonBody } from "@/lib/security/request-guards";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { apiRoute } from "@/lib/audit/api-route";
@@ -74,8 +75,11 @@ async function PUT_handler(request: Request, { params }: Ctx) {
     );
   }
 
+  // S-D3: stamp the seat's acting org so same-org seats' consensus reads
+  // find the row (0393 org_seat_select); a Scout's personal org is fine.
+  const org = access.viaOrgId ? { id: access.viaOrgId } : await resolveActingOrg(user.id).catch(() => null);
   const result = await upsertAssessment(
-    { evaluationId: access.evaluation.id, projectId: access.project.id, assessorUserId: user.id },
+    { evaluationId: access.evaluation.id, projectId: access.project.id, assessorUserId: user.id, orgId: org?.id ?? null },
     parsed.data,
   );
   if (!result.ok) {

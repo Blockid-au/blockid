@@ -290,7 +290,8 @@ export function buildFounderInviteEmail(args: {
 
 /**
  * True when the user may use the evaluations surface: plan grants
- * `investor.dealflow` OR `app_users.account_type` is an evaluator persona.
+ * `investor.dealflow` OR `app_users.account_type` is an evaluator persona
+ * OR (S-D3) the user is an invited seat of another evaluator's organisation.
  * Reads account_type from the DB because `AppUser` does not carry it.
  */
 export async function isEvaluatorUser(
@@ -309,10 +310,16 @@ export async function isEvaluatorUser(
     }
   }
   if (accountType && EVALUATOR_ACCOUNT_TYPES.has(accountType)) return true;
-  return can(
-    { id: user.id, plan: user.plan ?? "", segment: "investor" },
-    "investor.dealflow",
-  );
+  if (await can({ id: user.id, plan: user.plan ?? "", segment: "investor" }, "investor.dealflow")) return true;
+  // G13 S-D3 (E4.5): an invited seat of a Firm / Program organisation acts
+  // for the firm — the owner's plan carries the entitlement. Lazy import so
+  // the org module (email, plans) is not on this file's static graph.
+  try {
+    const { isOrgSeat } = await import("@/lib/investor/organisations");
+    return await isOrgSeat(user.id);
+  } catch {
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------

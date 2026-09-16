@@ -20,8 +20,11 @@
 // allow-list, history, founder preview — ./dossier/assessment/*) and block 6
 // (actions & audit trail); S-R4 (G13-W4-R4) fills block 2 (Valuation from
 // ReportV2), block 5 (Progress radar scoped to this evaluation) and the
-// header's mandate fit + "Δ since last view"; block 3 stays a labelled
-// placeholder until S-D3.
+// header's mandate fit + "Δ since last view"; S-D3 (G13-W5-D3) completes
+// block 3 (evidence list by consent tier + request-upgrade CTA), the seats
+// consensus table under block 4, block 6 actions (watchlist · portfolio ·
+// intro · batch · IC memo) + the audit trail, and the header's "Firm
+// consensus (n/m)" + "Export IC".
 
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
@@ -34,7 +37,10 @@ import { auditDossierView } from "@/lib/evaluations/dossier-audit";
 import { EvaluatorReportDisclaimer } from "@/components/legal/evaluator-report-disclaimer";
 import { DossierHeader } from "./dossier/dossier-header";
 import { ReportSummary } from "./dossier/report-summary";
-import { EvidenceBlock } from "./dossier/placeholder-blocks";
+import { EvidenceBlock } from "./dossier/evidence-block";
+import { getEntitlements } from "@/lib/entitlements";
+import { canBatchScore } from "@/lib/evaluations/batch-shared";
+import { clampIcKind } from "@/lib/evaluations/ic-reports";
 import { ValuationBlock } from "./dossier/valuation-block";
 import { ProgressBlock } from "./dossier/progress-block";
 import { AssessmentBlock } from "./dossier/assessment/assessment-block";
@@ -61,10 +67,11 @@ export default async function InvestorDossierPage({ params }: PageProps) {
   if (!user) redirect(`/auth/login?next=/workspace/evaluations/${encodeURIComponent(evaluationId)}`);
   if (!ID_RE.test(evaluationId)) notFound();
 
-  const [dossier, isSandbox, isEvaluator] = await Promise.all([
+  const [dossier, isSandbox, isEvaluator, flags] = await Promise.all([
     loadDossier(evaluationId, user.id),
     getCurrentProjectIsSandbox(),
     isEvaluatorUser(user),
+    getEntitlements(user.plan ?? "", user.id).catch(() => [] as string[]),
   ]);
   if (!dossier) notFound();
   // The evaluator seat must still be an evaluator; the claimed founder needs
@@ -86,13 +93,13 @@ export default async function InvestorDossierPage({ params }: PageProps) {
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <DossierViewTracker evaluationId={dossier.header.evaluationId} consentTier={dossier.header.consentTier} plan={user.plan ?? "free"} role={dossier.viewer.role} />
       <div className="mx-auto max-w-6xl space-y-6 p-6" data-testid="investor-dossier" data-viewer-role={dossier.viewer.role}>
-        <DossierHeader header={dossier.header} role={dossier.viewer.role} />
+        <DossierHeader header={dossier.header} role={dossier.viewer.role} icKind={clampIcKind(user.plan, undefined)} />
         <ReportSummary report={dossier.report} />
         <ValuationBlock block={dossier.valuation} fullReportHref={dossier.report.links.fullReport} />
         <EvidenceBlock view={dossier} />
         <AssessmentBlock view={dossier} />
         <ProgressBlock block={dossier.progress} role={dossier.viewer.role} />
-        <ActionsBlock view={dossier} />
+        <ActionsBlock view={dossier} plan={user.plan} batchAllowed={canBatchScore(flags)} />
         <EvaluatorReportDisclaimer variant="compact" />
       </div>
     </WorkspaceLayout>

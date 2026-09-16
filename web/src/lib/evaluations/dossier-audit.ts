@@ -103,3 +103,75 @@ export async function readLastDossierView(userId: string, evaluationId: string):
     return null;
   }
 }
+
+// ─── Block 6 audit trail (S-D3, §A.3 block 6 / §C.2) ────────────────────────
+
+export interface DossierAuditEntry {
+  id: string;
+  action: string;
+  ts: string;
+  resourceType: string;
+  /** Short, id-only summary rendered next to the action (never note bodies). */
+  summary: string;
+}
+
+/** Actions block 6 lists for this evaluation — everything the viewer did on it. */
+export const DOSSIER_TRAIL_ACTIONS = [
+  DOSSIER_VIEW_ACTION,
+  "assessment.saved",
+  "assessment.submitted",
+  "assessment.shared",
+  "assessment.share_revoked",
+  "assessment.bulk_set",
+  "ic_report.exported",
+  "dossier.watchlisted",
+  "portfolio.marked_invested",
+  "intro.requested",
+  "consent.requested",
+] as const;
+
+const DETAIL_KEYS = ["version", "decision", "conviction", "fields", "kind", "pages", "tier", "channel", "ticker", "status"] as const;
+
+/** Pure: the one-line summary from an audit `detail` (ids / enums only). */
+export function summariseAuditDetail(detail: Record<string, unknown> | null | undefined): string {
+  if (!detail || typeof detail !== "object") return "";
+  const bits: string[] = [];
+  for (const k of DETAIL_KEYS) {
+    const v = detail[k];
+    if (v == null || v === "") continue;
+    if (Array.isArray(v)) {
+      if (v.length) bits.push(`${k} ${v.map(String).join(", ")}`);
+    } else if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") bits.push(`${k} ${String(v)}`);
+  }
+  return bits.join(" · ");
+}
+
+/**
+ * The viewer's newest audit rows on one evaluation (resource_id = the
+ * evaluation, or detail.evaluation_id = it for assessment / IC-report rows).
+ * Empty when the table is unavailable. Never returns other users' rows.
+ */
+export async function readAuditTrail(userId: string, evaluationId: string, limit = 25): Promise<DossierAuditEntry[]> {
+  const db = getSupabaseAdmin();
+  if (!db || !userId || !evaluationId) return [];
+  try {
+    const { data, error } = await db
+      .from("audit_events")
+      .select("id, action, ts, resource_type, resource_id, detail")
+      .eq("user_id", userId)
+      .in("action", [...DOSSIER_TRAIL_ACTIONS])
+      .or(`resource_id.eq.${evaluationId},detail.cs.${JSON.stringify({ evaluation_id: evaluationId })}`)
+      .order("id", { ascending: false })
+      .limit(limit);
+    if (error || !data) return [];
+    return (data as Array<Record<string, unknown>>).map((r) => ({
+      id: String(r.id),
+      action: String(r.action ?? ""),
+      ts: typeof r.ts === "string" ? r.ts : "",
+      resourceType: String(r.resource_type ?? ""),
+      summary: summariseAuditDetail(r.detail as Record<string, unknown> | null),
+    }));
+  } catch {
+    return [];
+  }
+}
