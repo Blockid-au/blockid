@@ -17,6 +17,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { fromSnapshot, resolveReportV2, type SnapshotCriterionState, type SnapshotDimState, type SnapshotInput } from "./adapter";
 import { isReportV2, type ReportTierV2, type ReportV2 } from "./schema";
 import { readSnapshotReportV2 } from "./storage";
+import { primeComparables } from "@/lib/valuation/comparables-repo";
 
 type Row = Record<string, unknown>;
 
@@ -116,7 +117,8 @@ export interface LoadedReportV2 {
 }
 
 async function finish(db: SupabaseClient, row: SnapshotRowLike, ctx: SnapshotReportContext): Promise<LoadedReportV2> {
-  const stored = await readSnapshotReportV2(db, row.id);
+  // S-R5: the adapter path cites the live comparables count — warm the cache first (no-op when fresh).
+  const [stored] = await Promise.all([readSnapshotReportV2(db, row.id), primeComparables().catch(() => undefined)]);
   const report = reportV2FromSnapshotRow({ ...row, report_v2: stored }, ctx);
   return {
     report,

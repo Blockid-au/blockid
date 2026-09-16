@@ -45,6 +45,21 @@ const BANK: XeroReport = {
 
 afterEach(() => vi.restoreAllMocks());
 
+describe("parsers — S-R5 gross margin + opex", () => {
+  it("a P&L with a Cost of Sales section yields gross margin, opex and expenses = COGS + opex", () => {
+    const withCogs: XeroReport = {
+      ReportName: "Profit and Loss",
+      Rows: [
+        { RowType: "Section", Title: "Income", Rows: [{ RowType: "SummaryRow", Cells: [{ Value: "Total Income" }, { Value: "100,000.00" }] }] },
+        { RowType: "Section", Title: "Less Cost of Sales", Rows: [{ RowType: "SummaryRow", Cells: [{ Value: "Total Cost of Sales" }, { Value: "26,000.00" }] }] },
+        { RowType: "Section", Title: "Less Operating Expenses", Rows: [{ RowType: "SummaryRow", Cells: [{ Value: "Total Operating Expenses" }, { Value: "52,000.00" }] }] },
+        { RowType: "Row", Cells: [{ Value: "Net Profit" }, { Value: "22,000.00" }] },
+      ],
+    };
+    expect(extractPLValues(withCogs)).toEqual({ totalIncomeAud: 100000, totalExpensesAud: 78000, netProfitAud: 22000, costOfSalesAud: 26000, operatingExpensesAud: 52000, grossMarginPct: 74 });
+  });
+});
+
 describe("parsers", () => {
   it("parseXeroAmount handles commas, currency symbols, blanks and (negatives)", () => {
     expect(parseXeroAmount("27,000.00")).toBe(27000);
@@ -55,10 +70,10 @@ describe("parsers", () => {
   });
 
   it("extractPLValues reads section summaries and the net row; falls back to income − expenses", () => {
-    expect(extractPLValues(PL)).toEqual({ totalIncomeAud: 27000, totalExpensesAud: 19500, netProfitAud: 7500 });
+    expect(extractPLValues(PL)).toEqual({ totalIncomeAud: 27000, totalExpensesAud: 19500, netProfitAud: 7500, costOfSalesAud: null, operatingExpensesAud: 19500, grossMarginPct: null });
     const noNet: XeroReport = { Rows: PL.Rows!.filter((r) => r.RowType !== "Row") };
     expect(extractPLValues(noNet).netProfitAud).toBe(7500);
-    expect(extractPLValues({})).toEqual({ totalIncomeAud: 0, totalExpensesAud: 0, netProfitAud: 0 });
+    expect(extractPLValues({})).toEqual({ totalIncomeAud: 0, totalExpensesAud: 0, netProfitAud: 0, costOfSalesAud: null, operatingExpensesAud: null, grossMarginPct: null });
   });
 
   it("extractBankBalance prefers the section SummaryRow closing balance, sums rows otherwise, null when empty", () => {
@@ -74,6 +89,9 @@ describe("parsers", () => {
       totalIncomeAud: 27000,
       totalExpensesAud: 19500,
       netProfitAud: 7500,
+      costOfSalesAud: null,
+      operatingExpensesAud: 19500,
+      grossMarginPct: null,
       bankBalanceAud: 42100.5,
       windowMonths: XERO_PL_WINDOW_MONTHS,
       tenantName: "Acme Pty Ltd",

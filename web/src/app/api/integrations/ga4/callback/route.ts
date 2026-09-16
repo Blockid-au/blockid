@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { projectScopeOrRedirect } from "@/lib/project-members/http";
 import { saveConnection, writeSignals, markSynced } from "@/lib/oauth-connectors";
-import { fetchGa4Signals, listGa4Properties } from "@/lib/oauth-ga4-signals";
+import { fetchGa4RichSignals, fetchGa4Signals, ga4SnapshotRow, listGa4Properties, writeGa4Snapshot, type Ga4SnapshotDb } from "@/lib/oauth-ga4-signals";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -130,6 +131,14 @@ export async function GET(request: Request) {
           },
         ]);
         if (conn) await markSynced(conn.id);
+        // S-R5: first 90-day snapshot for the AARRR funnel (best-effort).
+        try {
+          const rich = await fetchGa4RichSignals(tokenJson.access_token, chosen.propertyId);
+          const db = getSupabaseAdmin();
+          if (db) await writeGa4Snapshot(db as unknown as Ga4SnapshotDb, ga4SnapshotRow({ userId: signalsUserId, projectId, propertyId: chosen.propertyId, signals: rich, source: "callback" }));
+        } catch (err) {
+          console.warn("[integrations:ga4:callback] rich pull skipped:", err instanceof Error ? err.message : String(err));
+        }
       } catch (err) {
         if (conn) await markSynced(conn.id, (err as Error).message);
       }

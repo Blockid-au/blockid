@@ -100,6 +100,7 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { href: "/admin/listings", label: "Listings", icon: ExternalLink },
       { href: "/admin/funding", label: "AU Funding", icon: Landmark },
+      { href: "/admin/comparables", label: "AU Comparables", icon: BarChart3 },
       { href: "/admin/ai-health", label: "AI Health", icon: Activity },
       { href: "/admin/drip-stats", label: "Drip Stats", icon: Mail },
     ],

@@ -18,22 +18,16 @@
 //                    consensus with `crossCheckStatedCap` (reported, never applied).
 //   sectorMultiples  the resolved ARR band with `sourceLabel` + `sourceDate`
 //                    (`vcBenchmark()` — approved override or the static table).
-//   comparables      N (+ with-multiples N) from lib/data/au-comparables (33 today, F5).
+//   comparables      N (+ with-multiples N) from lib/valuation/comparables-repo
+//                    (S-R5: verified `au_comparable_raises` rows, static 32 fallback).
 //   scenarios        bear / base / bull — the three-case model of the chapter.
 //
 // cfo-advisor guardrail: always a range + method transparency; US multiples
 // are discounted 20–40 % in the AU tables (`AU_MARKET_DATA`), which the
 // narrative says out loud.
 
-import {
-  AU_COMPARABLES_COUNT,
-  AU_COMPARABLES_SOURCE_WINDOW,
-  AU_COMPARABLES_WITH_MULTIPLES_COUNT,
-  getMultiplesBenchmark,
-  getTopComparables,
-  mapSectorToAUIndustry,
-  mapStageToAUStage,
-} from "@/lib/data/au-comparables";
+import { getMultiplesBenchmark, mapSectorToAUIndustry, mapStageToAUStage } from "@/lib/data/au-comparables";
+import { comparablesCounts, topComparables } from "@/lib/valuation/comparables-repo";
 import { VALUATION_METHOD_KEYS, type ValuationChapter, type ValuationMethodKey } from "@/lib/report-v2/schema";
 import { makeVisual } from "@/lib/report-visuals";
 import { crossCheckStatedCap, type CapCrossCheck } from "@/lib/valuation";
@@ -193,15 +187,17 @@ export function buildValuationChapter(input: ValuationChapterInput): ValuationCh
   const auIndustry = mapSectorToAUIndustry(input.industry ?? vc.inputs?.sector ?? undefined);
   const auStage = mapStageToAUStage(input.stageLabel || input.stage);
   const staticMult = getMultiplesBenchmark(auIndustry, auStage);
+  // S-R5: live pool (verified table rows, static fallback) — counts + window + rows.
+  const live = comparablesCounts();
   const sectorMultiples = vc.sectorMultiples
-    ? { ...vc.sectorMultiples, sourceDate: vc.sectorMultiples.sourceDate || sourceDateFromLabel(vc.sectorMultiples.sourceLabel, AU_COMPARABLES_SOURCE_WINDOW) }
-    : { sector: auIndustry, low: staticMult.low, median: staticMult.median, high: staticMult.high, sourceLabel: "BlockID AU comparables (code table)", sourceDate: AU_COMPARABLES_SOURCE_WINDOW };
+    ? { ...vc.sectorMultiples, sourceDate: vc.sectorMultiples.sourceDate || sourceDateFromLabel(vc.sectorMultiples.sourceLabel, live.sourceWindow) }
+    : { sector: auIndustry, low: staticMult.low, median: staticMult.median, high: staticMult.high, sourceLabel: live.source === "table" ? "BlockID AU comparables (verified table)" : "BlockID AU comparables (code table)", sourceDate: live.sourceWindow };
 
-  const comps = getTopComparables(auIndustry, auStage, 5);
+  const comps = topComparables(auIndustry, auStage, 5);
   const comparables: ValuationChapter["comparables"] = {
-    n: AU_COMPARABLES_COUNT,
-    withMultiplesN: AU_COMPARABLES_WITH_MULTIPLES_COUNT,
-    rows: comps.map((cp) => ({ name: "anonymised", stage: cp.stage, industry: cp.industry, year: cp.founded_year, arrMultiple: cp.arr_multiple, source: "au-comparables.ts" })),
+    n: live.n,
+    withMultiplesN: live.withMultiplesN,
+    rows: comps.map((cp) => ({ name: "anonymised", stage: cp.stage, industry: cp.industry, year: cp.founded_year, arrMultiple: cp.arr_multiple, source: live.sourceLabel })),
   };
 
   const scenarios = { bear: round0(vc.scenarios.bear), base: round0(vc.scenarios.base), bull: round0(vc.scenarios.bull) };
@@ -226,7 +222,7 @@ export function buildValuationChapter(input: ValuationChapterInput): ValuationCh
     kind: "scatter",
     agentId: "cfo",
     title: `AU comparables — ${comps.length} nearest by sector / stage (ARR multiple)`,
-    subtitle: `${AU_COMPARABLES_COUNT} raises tracked, ${AU_COMPARABLES_WITH_MULTIPLES_COUNT} with disclosed multiples (sources dated ${AU_COMPARABLES_SOURCE_WINDOW})`,
+    subtitle: `${live.n} raises tracked, ${live.withMultiplesN} with disclosed multiples (sources dated ${live.sourceWindow})`,
     dataState: "partial",
     data: { xLabel: "Founded year", yLabel: "ARR multiple (×)", points: comps.map((cp) => ({ label: cp.industry, x: cp.founded_year - 2000, y: cp.arr_multiple })) },
     a11y: { tableFallback: comps.map((cp) => ({ industry: cp.industry, stage: cp.stage, year: cp.founded_year, arr_multiple: cp.arr_multiple })) },

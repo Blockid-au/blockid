@@ -45,6 +45,7 @@ import { modelForAgent } from "./agent-model-tiers";
 import { generateChartsV2, generateCriterionVisual, type LlmVisualProposal } from "./chart-generator";
 import { benchmarkFor, benchmarkStageForSvi, criteriaForDimension, DIM_ORDER, DIMENSION_OWNERS, type DimKey, type EvidenceSource } from "./dimension-owners";
 import { loadAgentKnowledgeRows, type AgentKnowledgeRow, type KnowledgeDb } from "./knowledge-loader";
+import { evidenceHashFor } from "./chapter-cache";
 import { precomputeModulesForDim, type ModuleOutput } from "./module-precompute";
 import { REPORT_TIER_CONFIG } from "./types";
 import {
@@ -316,6 +317,14 @@ export interface DispatchOptions {
   budgetOk?: () => boolean;
   /** Streams each finished chapter (SSE `dimension_complete`). */
   onChapter?: (dim: DimKey, chapter: DimensionChapter) => void;
+
+  // ── G13-W5-R5 (§C.8 chapter-level cache) ─────────────────────────────
+  /** Chapter cache keyed (projectId, dim, evidenceHash, pipelineVersion); absent → no caching. */
+  chapterCache?: import("./chapter-cache").ChapterCache;
+  /** Cache key ingredients; the cache is skipped without a projectId. */
+  chapterCacheScope?: { projectId: string | null; pipelineVersion: string };
+  /** Per-dimension re-runs set this so the founder always gets a fresh chapter. */
+  chapterCacheBypass?: boolean;
   /** `agent_knowledge_base` reader; defaults to the admin client, `null` disables. */
   knowledgeDb?: KnowledgeDb | null;
   /** Resolve the slotted prompt template for a role (prompt_versions). Defaults to the prod row. */
@@ -1363,6 +1372,33 @@ async function dispatchChapter(
   }
 
   const evidence = evidenceRowsForDim(context, dim);
+  const input = chapterInput(context, dim, shared.tierV2, renderAs, modules);
+
+  // §C.8 chapter cache: same evidence + modules + criteria + prompt → the
+  // chapter written last time, no owner call. Skipped for re-runs / no project.
+  const cacheKey =
+    opts.chapterCache && opts.chapterCacheScope?.projectId && !opts.chapterCacheBypass
+      ? {
+          projectId: opts.chapterCacheScope.projectId,
+          dim,
+          pipelineVersion: opts.chapterCacheScope.pipelineVersion,
+          // observedAt is dropped: criterion-minted rows are stamped "now" on every
+          // run, and a re-synced connector with the same numbers is the same fact.
+          evidenceHash: evidenceHashFor({
+            input: { ...input, evidenceRows: input.evidenceRows.map((e) => ({ id: e.id, source: e.source, status: e.status, value: e.value ?? null, label: e.label })) },
+            renderAs,
+            tier: shared.tierV2,
+            promptVersionId,
+            template,
+            knowledge: knowledgeRows.map((r) => ({ agent: r.agent, topic: r.topic, created_at: r.created_at })),
+          }),
+        }
+      : null;
+  if (cacheKey) {
+    const hit = await opts.chapterCache!.get(cacheKey).catch(() => null);
+    if (hit && hit.dim === dim) return hit;
+  }
+
   const systemPrompt = buildAgentPrompt(role, context, {
     dim,
     phaseId: context.phaseGate?.currentPhase,
@@ -1373,8 +1409,6 @@ async function dispatchChapter(
     evidenceSummary: evidence.map((e) => `- ${e.label} (${e.source}, ${e.status})`).join("\n"),
     outputSchema: w4OutputContract(dim, renderAs),
   });
-
-  const input = chapterInput(context, dim, shared.tierV2, renderAs, modules);
   const taskClass = taskClassForChapter(role, shared.tierV2);
   const transport = opts.modelCaller ?? callAIToModelCallerWithClass(callAI, W4_MAX_TOKENS[renderAs], taskClass);
   const outputSchema = renderAs === "card" ? DimensionCardPayload : DimensionChapterPayload;
@@ -1403,6 +1437,7 @@ async function dispatchChapter(
   if (structured.ok) {
     const chapter = buildDimensionChapter(context, dim, shared.tierV2, structured.data as DimensionChapterPayload | DimensionCardPayload, { runIds, degraded: false });
     chapter.modules = [...chapter.modules, { id: "report-pipeline/agent-dispatcher.ts:dispatchChapter", output: { durationMs: Date.now() - started, renderAs, taskClass: taskClass ?? "free-chain" } }];
+    if (cacheKey) await opts.chapterCache!.set(cacheKey, chapter).catch(() => undefined);
     return chapter;
   }
   return buildDimensionChapter(context, dim, shared.tierV2, null, { runIds, degraded: true, degradeReason: `schema/model: ${structured.reason}` });

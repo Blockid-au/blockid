@@ -6,6 +6,8 @@ import {
   SVI_STAGE_LABELS,
   SVI_BENCHMARKS,
   EVIDENCE_CONFIDENCE,
+  applyCapTableInput,
+  type CapTableInput,
   type SVIExtractedSignals,
 } from "./svi-analysis";
 
@@ -348,6 +350,47 @@ describe("detectStage", () => {
 // ===========================================================================
 // computeSVI
 // ===========================================================================
+describe("computeSVI — capTableInput (S-R5 §C.7 cap table → CGH)", () => {
+  const cgh = (r: ReturnType<typeof computeSVI>) => r.subs.find((d) => d.key === "cgh")!;
+  const withRegister = (signals: SVIExtractedSignals, register: CapTableInput | null) => computeSVI(signals, undefined, undefined, undefined, undefined, undefined, undefined, register);
+
+  it("a register lifts CGH: cap table + ESOP + vesting + SHA facts beat the keyword flags, plus the AU-norm and founder-majority bonuses", () => {
+    const signals = makeSignals({ hasABN: true });
+    const without = withRegister(signals, null);
+    const withReg = withRegister(signals, { founderPct: 72, esopPct: 12, investorPct: 16, vestingFlag: true, shaFlag: true, holders: 4 });
+    // keyword score 40 → +20 cap table +15 vesting +15 SHA +10 ESOP +5 norm +5 majority = 110 → clamp 100
+    expect(cgh(without).value).toBe(40);
+    expect(cgh(withReg).value).toBe(100);
+    expect(cgh(withReg).value - cgh(without).value).toBe(60);
+    expect(cgh(withReg).adjustment).toBeGreaterThan(cgh(without).adjustment);
+    expect(withReg.totalSVI).toBeGreaterThan(without.totalSVI);
+    expect(cgh(withReg).evidence).toEqual(expect.arrayContaining([expect.stringMatching(/Equity register on file \(4 holders; founders 72 %, ESOP 12 %, investors 16 %\)/), "Vesting schedule recorded in the register", "Shareholders agreement on file", "ESOP pool 12 % in the register", "ESOP pool within the AU seed norm (8–20 %)", "Founders hold 72 % — a fundable majority"]));
+    expect(cgh(withReg).gaps).not.toContain("Create a cap table with founder equity split");
+    expect(withReg.signals.hasCapTable).toBe(true);
+  });
+
+  it("the delta tracks the register: no ESOP / no vesting / no SHA scores less; an oversized pool and a minority founder add gaps, not points", () => {
+    const signals = makeSignals();
+    const bare = withRegister(signals, { founderPct: 100, esopPct: 0, investorPct: 0, vestingFlag: false, shaFlag: false, holders: 1 });
+    expect(cgh(bare).value).toBe(60); // +20 register only (100 % founders is above the majority band)
+    expect(cgh(bare).gaps).toEqual(expect.arrayContaining(["Add founder vesting (standard: 4 years, 1 year cliff)", "Create a shareholders agreement (SHA)", "Allocate ESOP pool (8–15% is standard AU seed)"]));
+    const skewed = withRegister(signals, { founderPct: 35, esopPct: 30, investorPct: 35, vestingFlag: true, shaFlag: false, holders: 6 });
+    expect(cgh(skewed).value).toBe(85); // +20 +15 vesting +10 ESOP (30 % → no norm bonus) +0 majority
+    expect(cgh(skewed).gaps).toEqual(expect.arrayContaining([expect.stringMatching(/ESOP pool 30 % is above the AU norm/), expect.stringMatching(/Founders hold 35 % — below 50 %/)]));
+    const healthy = withRegister(signals, { founderPct: 60, esopPct: 10, investorPct: 30, vestingFlag: true, shaFlag: false, holders: 6 });
+    expect(cgh(healthy).value).toBe(95);
+    expect(cgh(healthy).value - cgh(skewed).value).toBe(10);
+  });
+
+  it("fail-soft: undefined / null register leaves every dimension exactly as before; applyCapTableInput never lowers a keyword flag", () => {
+    const signals = makeSignals({ hasCapTable: true, hasVesting: true, esopAllocated: true, hasShareholdersAgreement: true });
+    expect(withRegister(signals, null)).toEqual(computeSVI(signals));
+    const folded = applyCapTableInput(signals, { founderPct: 80, esopPct: 0, investorPct: 20, vestingFlag: false, shaFlag: false });
+    expect(folded).toMatchObject({ hasCapTable: true, hasVesting: true, esopAllocated: true, hasShareholdersAgreement: true });
+    expect(applyCapTableInput(signals, null)).toBe(signals);
+  });
+});
+
 describe("computeSVI", () => {
   it("returns baseline ~100 for empty concept (minus penalties)", () => {
     const result = computeSVI(makeSignals());

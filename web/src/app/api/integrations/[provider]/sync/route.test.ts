@@ -35,7 +35,17 @@ vi.mock("@/lib/oauth-github-signals", () => ({
   fetchGithubSignals: async () => ({ recentCommits30d: 5, publicRepos: 2, topLanguage: "ts", primaryRepoName: "app", primaryRepoStars: 1 }),
 }));
 vi.mock("@/lib/oauth-stripe-signals", () => ({ fetchStripeSignals: async () => ({}) }));
-vi.mock("@/lib/oauth-ga4-signals", () => ({ fetchGa4Signals: async () => ({}) }));
+const ga4 = vi.hoisted(() => ({ rich: vi.fn(async () => ({ windowDays: 90, sessions: 1, topChannels: [], funnel: {} })), snapshots: [] as unknown[] }));
+vi.mock("@/lib/oauth-ga4-signals", () => ({
+  fetchGa4Signals: async () => ({}),
+  fetchGa4RichSignals: () => ga4.rich(),
+  ga4SnapshotRow: (a: { userId: string; projectId: string | null; signals: unknown; source: string }) => ({ user_id: a.userId, project_id: a.projectId, source: a.source }),
+  writeGa4Snapshot: async (_db: unknown, row: unknown) => {
+    ga4.snapshots.push(row);
+    return true;
+  },
+}));
+vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => ({ from: () => ({}) }) }));
 
 import { POST } from "./route";
 
@@ -82,5 +92,34 @@ describe("POST /api/integrations/[provider]/sync — keys", () => {
     const res = await run();
     expect(res.status).toBe(403);
     expect(conn.getConnection).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/integrations/ga4/sync — S-R5 rich snapshot", () => {
+  function runGa4() {
+    return POST(new Request("http://x/api/integrations/ga4/sync", { method: "POST" }), { params: Promise.resolve({ provider: "ga4" }) });
+  }
+
+  it("writes the flat svi_signals keys AND a ga4_signal_snapshots row under the owner + project", async () => {
+    ga4.snapshots.length = 0;
+    ga4.rich.mockClear();
+    conn.getConnection.mockResolvedValue({ id: "conn-1", status: "active", accessToken: "t", lastSyncAt: null, providerAccountId: "12345", metadata: {} });
+    scopeState.role = "editor";
+    const res = await runGa4();
+    expect(res.status).toBe(200);
+    expect(conn.writeSignals).toHaveBeenCalledWith("user-owner", "proj-1", "ga4", expect.any(Array));
+    expect(ga4.rich).toHaveBeenCalledTimes(1);
+    expect(ga4.snapshots).toEqual([{ user_id: "user-owner", project_id: "proj-1", source: "sync" }]);
+    expect(conn.markSynced).toHaveBeenCalledWith("conn-1");
+  });
+
+  it("a failed rich pull never fails the sync", async () => {
+    ga4.snapshots.length = 0;
+    ga4.rich.mockRejectedValueOnce(new Error("quota"));
+    conn.getConnection.mockResolvedValue({ id: "conn-1", status: "active", accessToken: "t", lastSyncAt: null, providerAccountId: "12345", metadata: {} });
+    const res = await runGa4();
+    expect(res.status).toBe(200);
+    expect(ga4.snapshots).toEqual([]);
+    expect(conn.markSynced).toHaveBeenCalledWith("conn-1");
   });
 });

@@ -124,8 +124,15 @@ export function snapshotToRevenueSignal(
     priorMrrAud: priorMrr,
     priorCapturedAt: prior?.taken_at ?? null,
     churnRate90dPct: snapshotChurnPct(latest),
+    // S-R5: Xero P&L gross margin / opex ride along when the snapshot has them (keys absent otherwise).
+    ...(numOrNull((latest.metrics as Record<string, unknown>)?.grossMarginPct) !== null ? { grossMarginPct: numOrNull((latest.metrics as Record<string, unknown>)?.grossMarginPct) } : {}),
+    ...(numOrNull((latest.metrics as Record<string, unknown>)?.operatingExpensesAud) !== null ? { operatingExpensesAud: numOrNull((latest.metrics as Record<string, unknown>)?.operatingExpensesAud) } : {}),
     origin: "connector_snapshot",
   };
+}
+
+function numOrNull(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
 // ── Supabase ───────────────────────────────────────────────────────────────

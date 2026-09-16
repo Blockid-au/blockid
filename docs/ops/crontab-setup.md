@@ -189,6 +189,75 @@ Expected shape: `{ ok, dry, persisted, duration_ms, snapshot }` where
 `webhooks_active`, `mrr_aud_cents`, `funnel_7d`, `generated_at`, `git_sha`,
 `warnings`).
 
+## AU comparables ingest — `/api/cron/comparables-ingest`
+
+G13 S-R5 (2026-09-16). Weekly pull of the three allow-listed public
+sources (`INGEST_SOURCES` in `web/src/lib/valuation/comparables-ingest.ts`:
+Cut Through Venture monthly deal roundups, the Startup Daily "Funding" RSS
+feed, ASX announcements) → regex extraction (no LLM, no spend) → dedupe on
+`(name_key, round_date)` → rows inserted into `au_comparable_raises` as
+`status='pending'` (≤ 50 per run). Nothing reaches a report until an admin
+flips the row to `verified` on `/admin/comparables`; the valuation chapter
+and the landing copy read `v_au_comparable_raises_verified` (static 32-row
+fallback while it is empty). Requires migration `0402` applied first —
+before it the route answers 500 (`relation … does not exist`) and the
+repo keeps citing the static rows.
+
+### Line to install
+
+```
+40 17 * * 0 bash $RUN comparables-ingest --timeout 120
+```
+
+- Runs weekly, Sunday 17:40 UTC (Monday 03:40 AEST) — after the week's
+  Friday roundups and the Sunday newsletter posts, before the Monday
+  review. Readers: `/admin/comparables` (review queue), `/admin` KPI tile
+  (`comparables N`), `ValuationChapter.comparables.n` (via the repo cache,
+  10-minute TTL — approve/reject invalidates it).
+- Dry-run (fetches + extracts, writes nothing):
+
+```bash
+curl -sS -H "Authorization: Bearer $CRON_SECRET" \
+  "https://blockid.au/api/cron/comparables-ingest?dry=1" | jq '{sources, candidates, duplicates, rows: (.rows | length)}'
+```
+
+Expected shape: `{ ok, dryRun, ranAt, sources[{id,status,pages,candidates}],
+candidates, duplicates, inserted, rows[{name,round_date,stage,sector,amount_aud,source_name,confidence}],
+duration_ms }`. The same run is available from a shell without the server:
+`node scripts/comparables/ingest-public-roundups.mjs [--write] [--only=<source>] [--json]`.
+
+## Report email sweep — `/api/cron/report-email-sweep`
+
+G13 S-R5 (2026-09-16, W4-review follow-up b). The founder's "Your Business
+Report is ready" email carries the full PDF plus three inlined PNGs — 5–8 s
+of react-pdf + sharp CPU that used to run inside the SSE stream request's
+fire-and-forget. The pipeline now stamps `svi_snapshots.report_email_queued_at`
+(migration `0402`) and this sweep (`web/src/lib/svi/email-queue.ts`) renders
+and sends off the request path: ≤ 5 snapshots per tick, oldest first,
+owner resolved from `projects.user_id`, `report_email_sent_at` stays the
+idempotency marker, rows older than 48 h or without an owner / email are
+dropped from the queue, transient send failures retry next tick. Before
+`0402` is applied the column is missing, the route answers
+`{ ok:true, error:"not_migrated" }` and the pipeline sends inline as before.
+
+### Line to install
+
+```
+*/5 * * * * bash $RUN report-email-sweep --timeout 120
+```
+
+- Runs every 5 minutes (a founder waits ≤ 5 min for the email after the
+  stream finishes; the on-screen report is unaffected).
+- Dry-run (lists the queue, sends nothing):
+
+```bash
+curl -sS -H "Authorization: Bearer $CRON_SECRET" \
+  "https://blockid.au/api/cron/report-email-sweep?dry=1" | jq '{candidates, skipped}'
+```
+
+Expected shape: `{ ok, dryRun, candidates, sent[], skipped[{id,reason}],
+failed[{id,reason}], duration_ms }`.
+
 ## Autonomous goal loops
 
 > **Removed 2026-08-13** (`fd7bb0b03`): the three loops below and their crontab lines no longer exist; this section is kept for history. Autonomous implementation now = orchestrator (`agent-orchestrator`, 12/14/16/18 UTC) + `self-upgrade-agent.sh` (18:30 UTC) reading `web/content/reports/project-state.json`. Larger goals ship via founder-driven sessions (see `docs/plans/money-finder-2026-09-10.md` §8).

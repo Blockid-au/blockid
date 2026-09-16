@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { planBadgeClass } from "@/lib/plan-badges";
+import type { ReportKpis } from "@/lib/admin/report-kpis";
 
 interface SviAccount {
   email: string;
@@ -31,6 +32,46 @@ interface AdminDashboardClientProps {
   stats: { users: number; analyses: number; accounts: number; notifications: number };
   sviAccounts: SviAccount[];
   recentAnalyses: RecentAnalysis[];
+  /** S-R5 §E.5: report KPIs (reports/day, COGS median, grounded share, comparables N). */
+  reportKpis?: ReportKpis | null;
+}
+
+function pct(v: number | null): string {
+  return v == null ? "n/a" : `${Math.round(v * 100)} %`;
+}
+
+function aud(v: number | null): string {
+  return v == null ? "n/a" : `A$${v.toFixed(2)}`;
+}
+
+/** S-R5 §E.5 — the four report KPIs the spec asks for on the admin dashboard. */
+function ReportKpiTile({ k }: { k: ReportKpis }) {
+  const cells = [
+    { label: "Reports / day", value: String(k.reportsPerDay), sub: `${k.reportsTotal} in ${k.windowDays} d · ${k.reportsToday} today` },
+    { label: "COGS median", value: aud(k.cogsMedianAud), sub: k.cogsByTier.length ? k.cogsByTier.map((t) => `${t.tier} ${aud(t.avgAud)} ×${t.count}`).join(" · ") : "no report spend today" },
+    { label: "Grounded share", value: pct(k.groundedMedian), sub: k.groundedSampled ? `${pct(k.groundedAtGateShare)} at the 80 % gate · n=${k.groundedSampled}` : "no v2 reports in window" },
+    { label: "AU comparables", value: String(k.comparablesN), sub: `${k.comparablesWithMultiplesN} with multiples · ${k.comparablesSource === "table" ? "verified table" : "static fallback"}` },
+  ];
+  return (
+    <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm" data-testid="report-kpis">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-ink-800">Report KPIs (7 days)</h2>
+        <Link href="/admin/comparables" className="text-xs text-brand-600 hover:underline">
+          Review comparables
+        </Link>
+      </div>
+      <div className="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {cells.map((c) => (
+          <div key={c.label}>
+            <p className="text-xs text-ink-700">{c.label}</p>
+            <p className="text-2xl font-bold font-mono text-ink-800">{c.value}</p>
+            <p className="text-xs text-ink-600 mt-0.5">{c.sub}</p>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-xs text-ink-600">{k.comparablesCopy}. Targets: COGS ≤ A$0.60 standard, grounded median ≥ 0.85.</p>
+    </div>
+  );
 }
 
 export function AdminDashboardClient({
@@ -38,6 +79,7 @@ export function AdminDashboardClient({
   stats,
   sviAccounts,
   recentAnalyses,
+  reportKpis = null,
 }: AdminDashboardClientProps) {
   return (
     <AdminLayout user={user}>
@@ -93,6 +135,8 @@ export function AdminDashboardClient({
             </div>
           ))}
         </div>
+
+        {reportKpis ? <ReportKpiTile k={reportKpis} /> : null}
 
         {/* SVI Accounts Table */}
         <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden shadow-sm">
@@ -235,6 +279,11 @@ export function AdminDashboardClient({
               label: "Sales Pipeline",
               desc: "CRO lead tracking — view, update status, and export CSV",
               highlight: true,
+            },
+            {
+              href: "/admin/comparables",
+              label: "AU Comparables",
+              desc: "Review the weekly ingest — verified rows are what reports cite",
             },
             {
               href: "/admin/rnd",

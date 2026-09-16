@@ -50,6 +50,7 @@ import { BUSINESS_MODEL_LABELS, INDUSTRY_LABELS, type StartupTaxonomyRow } from 
 import { CANONICAL_STAGE_LABELS, sviStageToCanonical } from "@/lib/journey-vocabulary";
 import { resolveReportV2, type SnapshotDimState, type SnapshotCriterionState } from "@/lib/report-v2/adapter";
 import { isReportV2, type ReportV2 } from "@/lib/report-v2/schema";
+import { readEvaluationReportV2 } from "@/lib/report-v2/storage";
 import { DIMENSION_OWNERS, DIM_ORDER, type DimKey } from "@/lib/report-pipeline/dimension-owners";
 import { CRITERIA, CRITERION_KEYS, type CriterionKey } from "@/lib/evaluation-criteria";
 import { bandFor } from "@/lib/report-visuals/palette";
@@ -576,20 +577,30 @@ async function readConnectedProviders(projectId: string): Promise<string[]> {
   }
 }
 
-async function readLatestReport(evaluationId: string): Promise<{ shareToken: string | null; createdAt: string; kind: string } | null> {
+/**
+ * The evaluator's own latest report row. S-R5 (W4 review d): its stored
+ * `report_v2` (0401, written by POST /api/evaluations/[id]/report) is read
+ * through `readEvaluationReportV2` and preferred over the founder's latest
+ * snapshot — the dossier shows exactly the document the evaluator ran, even
+ * after the founder re-scores. Falls back to the snapshot when the row has
+ * no v2 document (pre-S-R4 rows, failed write, 0401 not applied).
+ */
+async function readLatestReport(evaluationId: string): Promise<{ id: string | null; shareToken: string | null; createdAt: string; kind: string; reportV2: ReportV2 | null } | null> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
   try {
     const { data, error } = await supabase
       .from("evaluation_reports")
-      .select("share_token, created_at, kind")
+      .select("id, share_token, created_at, kind")
       .eq("evaluation_id", evaluationId)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (error || !data) return null;
     const r = data as Row;
-    return { shareToken: str(r.share_token), createdAt: String(r.created_at ?? ""), kind: String(r.kind ?? "full") };
+    const id = str(r.id);
+    const reportV2 = id && String(r.kind ?? "full") === "full" ? await readEvaluationReportV2(supabase, id) : null;
+    return { id, shareToken: str(r.share_token), createdAt: String(r.created_at ?? ""), kind: String(r.kind ?? "full"), reportV2 };
   } catch {
     return null;
   }
@@ -618,9 +629,10 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
   // Δ30d baseline = the newest row ≥ 30 days old that is NOT the latest row.
   const older = olderCandidates.find((r) => !latest || r.created_at < latest.created_at) ?? null;
 
-  // ReportV2: stored column when valid, else the read-time adapter.
-  let report: ReportV2 | null = null;
-  if (latest) {
+  // ReportV2: the evaluator's own evaluation_reports.report_v2 first (S-R5),
+  // else the snapshot's stored column when valid, else the read-time adapter.
+  let report: ReportV2 | null = lastReport?.reportV2 ?? null;
+  if (!report && latest) {
     const meta = (latest.analysis_json && typeof latest.analysis_json === "object" ? (latest.analysis_json as Record<string, unknown>) : {}) as { industry?: string | null; stageLabel?: string | null };
     const criterionStates = Array.isArray(latest.criterion_results) ? (latest.criterion_results as SnapshotCriterionState[]) : null;
     report = resolveReportV2(

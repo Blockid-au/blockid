@@ -165,7 +165,8 @@
         "must_cite": 1,
         "primary_visual": {
           "kind": "heat_map"
-        }
+        },
+        "grounded_share_min": 0.8
       }
     },
     {
@@ -266,7 +267,8 @@
         "must_cite": 1,
         "primary_visual": {
           "kind": "heat_map"
-        }
+        },
+        "grounded_share_min": 0.8
       }
     }
   ]

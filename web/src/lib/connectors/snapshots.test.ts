@@ -77,6 +77,13 @@ describe("snapshotToRevenueSignal", () => {
     });
     expect(snapshotToRevenueSignal(row("stripe", "t", {}), null)).toBeNull();
   });
+
+  it("S-R5: a Xero snapshot with a cost-of-sales section carries gross margin + opex (absent otherwise)", () => {
+    const xero = row("xero", "2026-09-14T00:00:00Z", { totalIncomeAud: 300_000, totalExpensesAud: 234_000, netProfitAud: 66_000, windowMonths: 3, grossMarginPct: 74, operatingExpensesAud: 156_000 });
+    expect(snapshotToRevenueSignal(xero, null)).toMatchObject({ provider: "xero", mrrAud: 100_000, grossMarginPct: 74, operatingExpensesAud: 156_000 });
+    const plain = row("xero", "2026-09-14T00:00:00Z", { totalIncomeAud: 300_000, windowMonths: 3 });
+    expect(snapshotToRevenueSignal(plain, null)).not.toHaveProperty("grossMarginPct");
+  });
 });
 
 describe("insertConnectorSnapshot / loadSnapshotHistory", () => {

@@ -188,15 +188,38 @@ function deterministicVisuals(d: ChapterVisualDraft): { primary: VisualSpecV2; s
       data: { points: [], ghost: true, ghostLabel: "Connect Stripe / Xero to plot revenue", band: { low: p25, high: p75, label: bandLabel }, marker: { label: "TRE", value: score } },
       a11y: { tableFallback: [{ metric: "TRE score", value: score }, { metric: "Cohort p25", value: p25 }, { metric: "Cohort p50", value: p50 }, { metric: "Cohort p75", value: p75 }, ...(mrr !== null ? [{ metric: "Stated MRR (A$)", value: Math.round(mrr) }] : [])] },
     });
-    const funnel = makeVisual({
-      ...base,
-      id: "dim-tre-funnel",
-      kind: "funnel",
-      title: "AARRR funnel — criterion scores",
-      subtitle: "Market pull → customers → revenue evidence, from the criterion scores",
-      dataState: "partial",
-      data: { stages: [{ label: "Market", value: cs("market") ?? score }, { label: "Go-to-market", value: cs("gtm_strategy") ?? score }, { label: "Customers", value: cs("customer_size") ?? score }, { label: "Revenue", value: cs("revenue") ?? score }], unit: "/100" },
-    });
+    // S-R5: a GA4 snapshot turns the funnel into real AARRR counts (sessions →
+    // engaged → returning → conversions); without one it stays the criterion-score funnel.
+    const ga4Sessions = moduleValue(d.moduleOutputs, "aarrrFunnel", "sessions");
+    const funnel =
+      ga4Sessions !== null
+        ? makeVisual({
+            ...base,
+            id: "dim-tre-funnel",
+            kind: "funnel",
+            title: `AARRR funnel — GA4, last ${moduleValue(d.moduleOutputs, "aarrrFunnel", "windowDays") ?? 90} days`,
+            subtitle: `Sessions → engaged sessions → returning users → conversions (engagement ${moduleValue(d.moduleOutputs, "aarrrFunnel", "engagementRatePct") ?? 0} %, returning ${moduleValue(d.moduleOutputs, "aarrrFunnel", "returningSharePct") ?? 0} %)`,
+            dataState: "real",
+            data: {
+              stages: [
+                { label: "Acquisition (sessions)", value: ga4Sessions },
+                { label: "Activation (engaged)", value: moduleValue(d.moduleOutputs, "aarrrFunnel", "engagedSessions") ?? 0 },
+                { label: "Retention (returning users)", value: moduleValue(d.moduleOutputs, "aarrrFunnel", "returningUsers") ?? 0 },
+                { label: "Revenue (conversions)", value: moduleValue(d.moduleOutputs, "aarrrFunnel", "conversions") ?? 0 },
+              ],
+              unit: "",
+            },
+            a11y: { tableFallback: [{ stage: "sessions", value: ga4Sessions }, { stage: "engaged_sessions", value: moduleValue(d.moduleOutputs, "aarrrFunnel", "engagedSessions") ?? 0 }, { stage: "returning_users", value: moduleValue(d.moduleOutputs, "aarrrFunnel", "returningUsers") ?? 0 }, { stage: "conversions", value: moduleValue(d.moduleOutputs, "aarrrFunnel", "conversions") ?? 0 }] },
+          })
+        : makeVisual({
+            ...base,
+            id: "dim-tre-funnel",
+            kind: "funnel",
+            title: "AARRR funnel — criterion scores",
+            subtitle: "Market pull → customers → revenue evidence, from the criterion scores; connect GA4 for real session counts",
+            dataState: "partial",
+            data: { stages: [{ label: "Market", value: cs("market") ?? score }, { label: "Go-to-market", value: cs("gtm_strategy") ?? score }, { label: "Customers", value: cs("customer_size") ?? score }, { label: "Revenue", value: cs("revenue") ?? score }], unit: "/100" },
+          });
     return { primary, secondary: [funnel] };
   }
 
@@ -219,7 +242,27 @@ function deterministicVisuals(d: ChapterVisualDraft): { primary: VisualSpecV2; s
       dataState: "benchmark_only",
       data: { xLabel: "Market pull (MPC score)", yLabel: "Score vs stage p50", points: [{ label: "You", x: score, y: score, self: true }, { label: "Stage p50", x: p50, y: p50 }], quadrants: ["Ahead on evidence", "Category leader", "Early", "Strong score, thin evidence"] },
     });
-    return { primary, secondary: [twoByTwo] };
+    // S-R5: GA4 channel mix (top-3 default channel groups) when a snapshot exists.
+    const ch1 = moduleField(d.moduleOutputs, "channelMix", "channel1");
+    const secondary: VisualSpecV2[] = [twoByTwo];
+    if (typeof ch1 === "string") {
+      const bars = [1, 2, 3]
+        .map((i) => ({ label: String(moduleField(d.moduleOutputs, "channelMix", `channel${i}`) ?? ""), value: moduleValue(d.moduleOutputs, "channelMix", `channel${i}SharePct`) ?? 0 }))
+        .filter((b) => b.label);
+      secondary.push(
+        makeVisual({
+          ...base,
+          id: "dim-mpc-channels",
+          kind: "bar",
+          title: "Channel mix — GA4 sessions by default channel group",
+          subtitle: `Top ${bars.length} channels, share of ${moduleValue(d.moduleOutputs, "channelMix", "sessions") ?? 0} sessions (last 90 days)`,
+          dataState: "real",
+          data: { bars, max: 100, unit: "%" },
+          a11y: { tableFallback: bars.map((b) => ({ channel: b.label, share_pct: b.value })) },
+        }),
+      );
+    }
+    return { primary, secondary };
   }
 
   if (d.dim === "ftv") {
@@ -274,6 +317,41 @@ function deterministicVisuals(d: ChapterVisualDraft): { primary: VisualSpecV2; s
 
   if (d.dim === "cgh") {
     const esopDeclared = moduleField(d.moduleOutputs, "governance", "esopAllocated") === true;
+    // S-R5: a real equity register (gather.ts capTable → module) draws the actual split.
+    const regFounder = moduleValue(d.moduleOutputs, "gather.ts:capTable", "founderPct");
+    const regEsop = moduleValue(d.moduleOutputs, "gather.ts:capTable", "esopPct");
+    const regInvestor = moduleValue(d.moduleOutputs, "gather.ts:capTable", "investorPct");
+    if (regFounder !== null && regFounder + (regEsop ?? 0) + (regInvestor ?? 0) > 0) {
+      const founders = Math.round(regFounder);
+      const esop = Math.round(regEsop ?? 0);
+      const investors = Math.round(regInvestor ?? 0);
+      const other = Math.max(0, 100 - founders - esop - investors);
+      const slices = [
+        { label: "Founders", value: founders },
+        { label: "ESOP pool", value: esop },
+        { label: "Investors", value: investors },
+        ...(other > 0 ? [{ label: "Other", value: other }] : []),
+      ];
+      const primary = makeVisual({
+        ...base,
+        id: "dim-cgh-primary",
+        kind: "donut",
+        title: "Cap-table structure (equity register)",
+        subtitle: `From the register: founders ${founders} %, ESOP ${esop} %, investors ${investors} % (${moduleValue(d.moduleOutputs, "gather.ts:capTable", "holders") ?? 0} holders)${moduleField(d.moduleOutputs, "gather.ts:capTable", "vestingFlag") === true ? "; vesting on file" : "; no vesting recorded"}`,
+        dataState: "real",
+        data: { slices, centreValue: `${founders} %`, centreLabel: "founders" },
+        a11y: { tableFallback: slices.map((s) => ({ holder: s.label, pct: s.value })) },
+      });
+      const dilution = makeVisual({
+        ...base,
+        id: "dim-cgh-dilution",
+        kind: "line",
+        title: "Dilution path from the register (2 rounds, 20 % each) — projection",
+        dataState: "partial",
+        data: { series: [{ label: "Founders %", points: [founders, Math.round(founders * 0.8), Math.round(founders * 0.64)] }, { label: "ESOP %", points: [esop, Math.round(esop * 0.8), Math.round(esop * 0.64)] }], xLabels: ["Now", "Next round", "Round after"], unit: "%" },
+      });
+      return { primary, secondary: [dilution] };
+    }
     const primary = makeVisual({
       ...base,
       id: "dim-cgh-primary",

@@ -28,7 +28,9 @@ import { topBlockers } from "@/lib/growth/phase-gate";
 import { DIMENSION_OWNERS } from "@/lib/report-pipeline/dimension-owners";
 import { aud, BAND_COLOUR, INK } from "@/lib/report-visuals";
 import { VisualPdf } from "@/lib/report-visuals/pdf";
-import { pdfSafeText as t } from "@/lib/report-visuals/pdf-text";
+import { pdfSafeText } from "@/lib/report-visuals/pdf-text";
+import { setVisualPdfFont } from "@/lib/report-visuals/pdf";
+import { HELVETICA, pdfFontsForLocale, type PdfFontSet } from "@/lib/pdf/fonts";
 import type { Band, DataState, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { levelForEstimate, MAX_TRIM_LEVEL, projectForTier, type FreeTierProjection, type TrimLevel } from "@/lib/report-v2/free-tier";
 import { defaultPreparedWith } from "@/lib/report-v2/prepared-with";
@@ -51,22 +53,31 @@ const C = {
 const MM = 72 / 25.4;
 const MARGIN = 18 * MM;
 
-const s = StyleSheet.create({
+/**
+ * Styles are built per font set (S-R5): Helvetica / Helvetica-Bold for
+ * English, the registered Noto Sans (+ fontWeight 700) for Vietnamese.
+ * `TbrReportPdf` swaps the module-level `s` / `t` before its children
+ * evaluate — react-pdf renders the tree synchronously inside one
+ * renderToBuffer call, so two documents never interleave.
+ */
+function makeStyles(f: PdfFontSet) {
+  const bold = f.boldWeight === undefined ? { fontFamily: f.bold } : { fontFamily: f.bold, fontWeight: f.boldWeight };
+  return StyleSheet.create({
   // No page-level lineHeight: react-pdf inherits it into SVG <Text> and the
   // twins then translate by a garbage offset ("unsupported number") — line
   // height lives on the text styles below instead.
-  page: { paddingTop: MARGIN, paddingBottom: MARGIN + 14, paddingHorizontal: MARGIN, fontFamily: "Helvetica", fontSize: 9.5, color: C.ink },
+  page: { paddingTop: MARGIN, paddingBottom: MARGIN + 14, paddingHorizontal: MARGIN, fontFamily: f.regular, fontSize: 9.5, color: C.ink },
   footer: { position: "absolute", left: MARGIN, right: MARGIN, bottom: 22, flexDirection: "row", justifyContent: "space-between", fontSize: 7.5, color: C.faint },
-  kicker: { fontSize: 7.5, letterSpacing: 1.2, textTransform: "uppercase", color: C.brand, fontFamily: "Helvetica-Bold" },
-  h1: { fontSize: 20, fontFamily: "Helvetica-Bold", color: C.ink, marginTop: 2 },
-  h2: { fontSize: 14, fontFamily: "Helvetica-Bold", color: C.ink, marginBottom: 6, marginTop: 2 },
-  h3: { fontSize: 10, fontFamily: "Helvetica-Bold", color: C.ink, marginTop: 8, marginBottom: 3 },
+  kicker: { fontSize: 7.5, letterSpacing: 1.2, textTransform: "uppercase", color: C.brand, ...bold },
+  h1: { fontSize: 20, ...bold, color: C.ink, marginTop: 2 },
+  h2: { fontSize: 14, ...bold, color: C.ink, marginBottom: 6, marginTop: 2 },
+  h3: { fontSize: 10, ...bold, color: C.ink, marginTop: 8, marginBottom: 3 },
   sectionHead: { flexDirection: "row", alignItems: "baseline", borderBottomWidth: 1, borderBottomColor: C.grid, paddingBottom: 4, marginBottom: 8 },
-  sectionNo: { fontSize: 8, color: C.faint, fontFamily: "Helvetica-Bold", width: 22 },
+  sectionNo: { fontSize: 8, color: C.faint, ...bold, width: 22 },
   body: { fontSize: 9.5, lineHeight: 1.45 },
   small: { fontSize: 8, color: C.muted, lineHeight: 1.4 },
   tiny: { fontSize: 7.5, color: C.faint },
-  bold: { fontFamily: "Helvetica-Bold" },
+  bold: { ...bold },
   row: { flexDirection: "row" },
   box: { borderWidth: 1, borderColor: C.grid, borderRadius: 4, padding: 8, marginBottom: 8 },
   softBox: { backgroundColor: C.surface, borderRadius: 4, padding: 8, marginBottom: 8 },
@@ -74,7 +85,7 @@ const s = StyleSheet.create({
   caption: { fontSize: 7.5, color: C.muted, marginTop: 2, textAlign: "center" },
   table: { borderWidth: 1, borderColor: C.grid, borderRadius: 3, marginBottom: 8 },
   tr: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: C.grid, paddingVertical: 2.5, paddingHorizontal: 5 },
-  th: { fontSize: 7, color: C.muted, textTransform: "uppercase", letterSpacing: 0.6, fontFamily: "Helvetica-Bold" },
+  th: { fontSize: 7, color: C.muted, textTransform: "uppercase", letterSpacing: 0.6, ...bold },
   td: { fontSize: 8.5 },
   cell1: { flex: 1 },
   cell2: { flex: 2 },
@@ -83,9 +94,29 @@ const s = StyleSheet.create({
   bullet: { flexDirection: "row", marginBottom: 1.5 },
   bulletMark: { width: 10, fontSize: 8.5 },
   bulletText: { flex: 1, fontSize: 8.5, lineHeight: 1.4 },
-  pill: { fontSize: 7, fontFamily: "Helvetica-Bold", color: C.brand, backgroundColor: C.brandSoft, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 3, marginRight: 4 },
-  score: { fontSize: 26, fontFamily: "Helvetica-Bold" },
-});
+  pill: { fontSize: 7, ...bold, color: C.brand, backgroundColor: C.brandSoft, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 3, marginRight: 4 },
+  score: { fontSize: 26, ...bold },
+  });
+}
+
+const STYLES = { en: makeStyles(HELVETICA), vi: null as ReturnType<typeof makeStyles> | null };
+let s = STYLES.en;
+let tUnicode = false;
+const t = (value: unknown): string => pdfSafeText(value, { unicode: tUnicode });
+
+/** Point the module-level styles / text shim at the locale's font set (see makeStyles). */
+function useFontSet(locale: "en" | "vi"): PdfFontSet {
+  const fonts = pdfFontsForLocale(locale);
+  if (fonts.unicode) {
+    STYLES.vi ??= makeStyles(fonts);
+    s = STYLES.vi;
+  } else {
+    s = STYLES.en;
+  }
+  tUnicode = fonts.unicode;
+  setVisualPdfFont({ family: fonts.regular, unicode: fonts.unicode });
+  return fonts;
+}
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -679,6 +710,7 @@ export interface TbrPdfProps {
 
 export function TbrReportPdf({ report, level = 0, preparedWith, locale }: TbrPdfProps) {
   const loc = locale ?? report.locale ?? "en";
+  useFontSet(loc);
   const projection = projectForTier(report, level);
   const r = projection.report;
   const prepared = preparedWith?.trim() || defaultPreparedWith(report);

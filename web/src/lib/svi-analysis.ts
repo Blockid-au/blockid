@@ -893,9 +893,53 @@ function calcPercentileRank(
   return 10;
 }
 
+// ─── S-R5 §C.7: cap table → CGH ──────────────────────────────────────────────
+//
+// The equity register (shareholders + esop_pool, read by
+// lib/svi/cap-table-input.ts) is a fact the keyword extractor cannot see.
+// When it is passed, the register overrides the "cap table referenced" /
+// "vesting" / "ESOP" / "SHA" keyword flags (a register beats a mention) and
+// adds two register-only signals: an ESOP pool inside the AU seed norm
+// (8–20 %) and a founder majority (50–90 %). Fail-soft: omitted → CGH is the
+// keyword score it always was.
+export interface CapTableInput {
+  /** Founders' share of fully-diluted equity, 0–100. */
+  founderPct: number | null;
+  /** ESOP pool share, 0–100. */
+  esopPct: number | null;
+  /** Investors' share, 0–100. */
+  investorPct: number | null;
+  /** Any holder carries a vesting schedule. */
+  vestingFlag: boolean;
+  /** A shareholders agreement is on file (onchain_documents / data room). */
+  shaFlag: boolean;
+  holders?: number;
+}
+
+/** AU seed norm for the ESOP pool (cfo-esop-scoring: +10 inside 10–20 %; the register test uses 8–20). */
+export const CAP_TABLE_ESOP_NORM = { min: 8, max: 20 } as const;
+export const CAP_TABLE_FOUNDER_MAJORITY = { min: 50, max: 90 } as const;
+
+function pct(v: number | null | undefined): number | null {
+  return typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null;
+}
+
+/** Signals with the register facts folded in (exported for the CGH delta test). */
+export function applyCapTableInput(signals: SVIExtractedSignals, capTable: CapTableInput | undefined | null): SVIExtractedSignals {
+  if (!capTable) return signals;
+  const esop = pct(capTable.esopPct);
+  return {
+    ...signals,
+    hasCapTable: true,
+    hasVesting: signals.hasVesting || capTable.vestingFlag === true,
+    hasShareholdersAgreement: signals.hasShareholdersAgreement || capTable.shaFlag === true,
+    esopAllocated: signals.esopAllocated || (esop !== null && esop > 0),
+  };
+}
+
 // ─── SVI v2.2 computation ────────────────────────────────────────────────────
 export function computeSVI(
-  signals: SVIExtractedSignals,
+  inputSignals: SVIExtractedSignals,
   weeklyDelta?: number,
   techAuditBoosts?: { ptdBoost: number; svmBoost: number; treBoost: number; lcoBoost: number },
   repoAuditBoosts?: { ptdBoost: number; svmBoost: number; ftvBoost: number; treBoost: number },
@@ -909,7 +953,14 @@ export function computeSVI(
    * Fail-soft: if omitted, LCO is unchanged.
    */
   evidenceBoosts?: { lco_pct: number; overall_pct: number },
+  /**
+   * S-R5: the equity register (founder / ESOP / investor %, vesting, SHA)
+   * from lib/svi/cap-table-input.ts. Overrides the CGH keyword flags and
+   * adds the register-only bonuses. Fail-soft: omitted → unchanged.
+   */
+  capTableInput?: CapTableInput | null,
 ): SVIAnalysis {
+  const signals = applyCapTableInput(inputSignals, capTableInput);
   const confidence = EVIDENCE_CONFIDENCE[signals.evidenceLevel] ?? 0.20;
 
   // ── Dimension 1: FTV — Founder & Team Value (15%) ──────────────────────────
@@ -1050,17 +1101,29 @@ export function computeSVI(
   const cghEvidence: string[] = [];
   const cghGaps: string[] = [];
 
-  if (signals.hasCapTable) { cghRaw += 20; cghEvidence.push("Cap table referenced"); }
+  const register = capTableInput ?? null;
+  const regFounder = register ? pct(register.founderPct) : null;
+  const regEsop = register ? pct(register.esopPct) : null;
+
+  if (signals.hasCapTable) { cghRaw += 20; cghEvidence.push(register ? `Equity register on file (${register.holders ?? "?"} holders; founders ${regFounder ?? "?"} %, ESOP ${regEsop ?? 0} %, investors ${pct(register.investorPct) ?? 0} %)` : "Cap table referenced"); }
   else { cghGaps.push("Create a cap table with founder equity split"); }
 
-  if (signals.hasVesting) { cghRaw += 15; cghEvidence.push("Vesting schedule in place"); }
+  if (signals.hasVesting) { cghRaw += 15; cghEvidence.push(register?.vestingFlag ? "Vesting schedule recorded in the register" : "Vesting schedule in place"); }
   else { cghGaps.push("Add founder vesting (standard: 4 years, 1 year cliff)"); }
 
-  if (signals.hasShareholdersAgreement) { cghRaw += 15; cghEvidence.push("Shareholders agreement referenced"); }
+  if (signals.hasShareholdersAgreement) { cghRaw += 15; cghEvidence.push(register?.shaFlag ? "Shareholders agreement on file" : "Shareholders agreement referenced"); }
   else { cghGaps.push("Create a shareholders agreement (SHA)"); }
 
-  if (signals.esopAllocated) { cghRaw += 10; cghEvidence.push("ESOP/option pool allocated"); }
+  if (signals.esopAllocated) { cghRaw += 10; cghEvidence.push(regEsop !== null && regEsop > 0 ? `ESOP pool ${regEsop} % in the register` : "ESOP/option pool allocated"); }
   else { cghGaps.push("Allocate ESOP pool (8–15% is standard AU seed)"); }
+
+  // Register-only signals (S-R5): pool inside the AU norm, founder majority.
+  if (register) {
+    if (regEsop !== null && regEsop >= CAP_TABLE_ESOP_NORM.min && regEsop <= CAP_TABLE_ESOP_NORM.max) { cghRaw += 5; cghEvidence.push(`ESOP pool within the AU seed norm (${CAP_TABLE_ESOP_NORM.min}–${CAP_TABLE_ESOP_NORM.max} %)`); }
+    else if (regEsop !== null && regEsop > CAP_TABLE_ESOP_NORM.max) { cghGaps.push(`ESOP pool ${regEsop} % is above the AU norm — investors will ask why`); }
+    if (regFounder !== null && regFounder >= CAP_TABLE_FOUNDER_MAJORITY.min && regFounder <= CAP_TABLE_FOUNDER_MAJORITY.max) { cghRaw += 5; cghEvidence.push(`Founders hold ${regFounder} % — a fundable majority`); }
+    else if (regFounder !== null && regFounder < CAP_TABLE_FOUNDER_MAJORITY.min) { cghGaps.push(`Founders hold ${regFounder} % — below 50 % before a priced round is a dilution flag`); }
+  }
 
   if (signals.hasBoardCadence) { cghRaw += 10; cghEvidence.push("Regular board cadence established"); }
   else { cghGaps.push("Establish quarterly board meetings with minutes"); }

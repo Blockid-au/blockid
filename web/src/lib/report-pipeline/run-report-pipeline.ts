@@ -401,7 +401,24 @@ async function defaultNotify(args: { userId: string; projectId: string | null; k
   return insertNotification(args);
 }
 
+/**
+ * S-R5 (W4 review b): the email's PDF + PNG render no longer runs inside
+ * the stream request. The snapshot is stamped `report_email_queued_at` and
+ * /api/cron/report-email-sweep renders + sends off the request path. Before
+ * migration 0402 (column missing) — or without a snapshot id — the
+ * in-process send stays as the fallback.
+ */
 async function defaultSendEmail(args: EmailArgs): Promise<unknown> {
+  if (args.snapshotId) {
+    const [{ queueReportEmail }, { getSupabaseAdmin }] = await Promise.all([import("@/lib/svi/email-queue"), import("@/lib/supabase")]);
+    const db = getSupabaseAdmin();
+    if (db) {
+      const q = await queueReportEmail(db as unknown as Parameters<typeof queueReportEmail>[0], args.snapshotId);
+      if (q.queued) return { ok: true, queued: true };
+      if (q.reason === "already_sent") return { ok: true, reason: "already_sent" };
+      if (q.reason !== "not_migrated") console.warn("[run-report-pipeline:email] queue failed, sending inline:", q.reason, q.error ?? "");
+    }
+  }
   const { sendReportEmail } = await import("@/lib/svi/email-report");
   return sendReportEmail(args);
 }

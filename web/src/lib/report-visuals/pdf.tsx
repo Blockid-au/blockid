@@ -28,7 +28,20 @@ import type { VisualSpecV2 } from "./types";
 /** 170 mm in PDF points — the print rule's maximum chart width. */
 export const PDF_CHART_MAX_WIDTH_PT = 482;
 
-const PDF_FONT = "Helvetica";
+/**
+ * Font the SVG twins draw text with. Helvetica by default; the TBR document
+ * switches it to the registered Unicode family for `locale: "vi"` (S-R5,
+ * lib/pdf/fonts.ts) via `setVisualPdfFont` before rendering its tree.
+ */
+let activeFont: { family: string; unicode: boolean } = { family: "Helvetica", unicode: false };
+
+export function setVisualPdfFont(font: { family: string; unicode: boolean }): void {
+  activeFont = font;
+}
+
+export function getVisualPdfFont(): { family: string; unicode: boolean } {
+  return activeFont;
+}
 
 type Attrs = Record<string, string | number | undefined>;
 
@@ -73,11 +86,11 @@ function toElement(node: SvgNode, key: string): ReactElement | null {
       const size = attrNum(a, "font-size", 10);
       const weight = a["font-weight"] !== undefined ? attrNum(a, "font-weight", 400) : undefined;
       const anchor = a["text-anchor"] === "middle" || a["text-anchor"] === "end" ? a["text-anchor"] : "start";
-      const content = pdfSafeText(node.text);
+      const content = pdfSafeText(node.text, { unicode: activeFont.unicode });
       if (!content) return null;
       // react-pdf's SVG <Text> reads font props from `props` (not `style`)
       // and inherits fill; `fontFamily` must be a registered family.
-      const textProps = { ...p, fontFamily: PDF_FONT, fontSize: size, fontWeight: weight, textAnchor: anchor } as unknown as Record<string, never>;
+      const textProps = { ...p, fontFamily: activeFont.family, fontSize: size, fontWeight: weight, textAnchor: anchor } as unknown as Record<string, never>;
       return (
         <Text key={key} x={attrNum(a, "x")} y={attrNum(a, "y")} {...textProps}>
           {content}

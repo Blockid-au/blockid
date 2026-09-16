@@ -45,6 +45,9 @@ export interface ConnectedRevenueSignal {
   priorCapturedAt?: string | null;
   /** Stripe 90-day subscription churn in percent; null/undefined when unknown. */
   churnRate90dPct?: number | null;
+  /** S-R5: Xero P&L gross margin (0–100) and operating expenses for the window, when the P&L has a cost-of-sales section. */
+  grossMarginPct?: number | null;
+  operatingExpensesAud?: number | null;
   /** Which store the signal came from (diagnostics only). */
   origin?: "connector_snapshot" | "svi_signals" | "svi_evidence";
 }

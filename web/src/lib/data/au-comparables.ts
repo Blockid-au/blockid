@@ -474,9 +474,11 @@ export function getTopComparables(
   industry: AUIndustry,
   stage: AUStage,
   limit = 3,
+  /** S-R5: the pool to select from — the table-backed repo passes its live rows; default = the static set. */
+  pool: AUComparableCompany[] = AU_COMPARABLES,
 ): AUComparableCompany[] {
   // 1. Exact match: same industry + same stage
-  const exact = AU_COMPARABLES.filter(
+  const exact = pool.filter(
     (c) => c.industry === industry && c.stage === stage,
   );
   if (exact.length >= limit) {
@@ -488,7 +490,7 @@ export function getTopComparables(
   const stageOrder: AUStage[] = ["pre-seed", "seed", "series-a", "series-b", "series-c", "growth", "unicorn"];
   const stageIdx = stageOrder.indexOf(stage);
 
-  const sameIndustry = AU_COMPARABLES.filter((c) => c.industry === industry)
+  const sameIndustry = pool.filter((c) => c.industry === industry)
     .sort((a, b) => {
       const da = Math.abs(stageOrder.indexOf(a.stage) - stageIdx);
       const db = Math.abs(stageOrder.indexOf(b.stage) - stageIdx);
@@ -504,7 +506,7 @@ export function getTopComparables(
   if (combined.length >= limit) return combined;
 
   // 3. Fill remaining slots with notable companies from any industry at nearest stage
-  const notable = AU_COMPARABLES.filter(
+  const notable = pool.filter(
     (c) => c.notable && !combined.find((x) => x.name === c.name),
   ).sort((a, b) => {
     const da = Math.abs(stageOrder.indexOf(a.stage) - stageIdx);
@@ -537,15 +539,17 @@ export function getMultiplesBenchmark(
   };
 }
 
-// ─── Live counts (G13-W1-R1, founder decision F5) ────────────────────────────
+// ─── Static counts (G13-W1-R1, founder decision F5; S-R5 table-backed) ──────
 //
 // Marketing copy ("500+ AU comparables") must state the live count until a
-// comparables table reaches 500 (spec §C.7 copy rule). These two constants
-// are that count today; `lib/valuation/comparables-repo.ts` (S-R5) replaces
-// them with the table-backed numbers and the copy keeps reading the same
-// names.
+// comparables table reaches 500 (spec §C.7 copy rule). The constants below
+// are the STATIC code-table counts; since S-R5 every consumer (valuation
+// chapter, adapter, landing copy) reads the live numbers from
+// `lib/valuation/comparables-repo.ts` (`comparablesCounts()` /
+// `comparablesCopyLine()`), which falls back to these when the
+// `au_comparable_raises` table is empty or unreachable.
 
-/** Number of AU comparable raises tracked in code today. */
+/** Number of AU comparable raises in the static code table (fallback). */
 export const AU_COMPARABLES_COUNT: number = AU_COMPARABLES.length;
 
 /** How many of those carry a disclosed ARR multiple. */
@@ -556,7 +560,11 @@ export const AU_COMPARABLES_WITH_MULTIPLES_COUNT: number = AU_COMPARABLES.filter
 /** Earliest / latest founded_year in the set — the "sources dated" hint. */
 export const AU_COMPARABLES_SOURCE_WINDOW = "2021–2025";
 
-/** One sentence for landing copy: "AU comparables: 33 raises tracked, 33 with disclosed multiples (sources dated 2021–2025)". */
+/**
+ * One sentence for landing copy from the STATIC counts:
+ * "AU comparables: 32 raises tracked, 32 with disclosed multiples (sources dated 2021–2025)".
+ * Landing / report surfaces use the live twin in `lib/valuation/comparables-repo.ts`.
+ */
 export function comparablesCopyLine(): string {
   return `AU comparables: ${AU_COMPARABLES_COUNT} raises tracked, ${AU_COMPARABLES_WITH_MULTIPLES_COUNT} with disclosed multiples (sources dated ${AU_COMPARABLES_SOURCE_WINDOW})`;
 }

@@ -61,6 +61,18 @@ role of each agent in the pipeline.
 | AIR-009  | Grant eligibility           | R&D TI · ESIC · EMDG                              |
 | AIR-010  | Report composer             | exec summary · citation coverage · tone           |
 
+Plus the eight Trusted Business Report chapter fixtures (G13 S-R2/S-R5):
+`TBR-<dim>-v2.0.0.json` for `tre mpc ftv ptd cgh iri lco svm`, three cases
+each (idea · seed · series A) = **24 cases**. Each case carries the W4
+dimension-chapter input (§C.11) and expects `proposed_score` inside the
+ANCHORS p25–p75 band, `must_have_gaps`, `must_not_hallucinate`,
+`must_cite`, `primary_visual.kind` and — for the 16 cases with evidence
+rows — `grounded_share_min: 0.8` (§C.9 citation gate: strengths, gaps,
+verdict and criterion-card verdicts must carry an `[ev:<id>]` marker or a
+citation). `eval-runner.test.ts` runs a deterministic in-band runner over
+all 24 nightly-style (no LLM) so a fixture edit that cannot pass is caught
+in CI.
+
 ## Promotion rule
 
 `web/src/lib/ai/eval-runner.ts::shouldPromote(result)` returns `true`
@@ -68,8 +80,14 @@ iff:
 
 - accuracy ≥ 0.80
 - hallucination ≤ 0.02
+- grounded share ≥ 0.80 over the cases that had evidence to cite (S-R5;
+  cases without evidence rows never block)
 - no case triggered a hard-fail signal
 
 When a canary passes, the nightly cron calls `promoteCanaryToProd()`
-from the prompt registry. When it fails, the canary stays canary and the
-`evaluation_result` JSON on `prompt_versions` records what missed.
+from the prompt registry. When it misses narrowly, the canary stays canary
+and the `evaluation_result` JSON on `prompt_versions` records what missed.
+When it fails outright — `shouldDemote()`: a hard-fail, hallucination
+> 5 %, accuracy < 50 % or grounded share < 60 % — the cron calls
+`demoteCanary()` (status → `rolled_back`, `demoted_reason` stored) and posts
+a Telegram ops note; prod is never touched (S-R5, spec §C.10).

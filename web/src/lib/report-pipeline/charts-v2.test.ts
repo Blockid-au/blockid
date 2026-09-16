@@ -166,4 +166,34 @@ describe("generateChartsV2", () => {
     const iri = generateChartsV2(draft("iri", { moduleOutputs: [{ id: "agents/cro-funding-readiness.ts:scoreFundingReadiness", output: { overall: 47 } }] }));
     expect((iri.secondary[0].data as { value: number }).value).toBe(47);
   });
+
+  it("S-R5: a GA4 snapshot module turns the TRE funnel into real AARRR counts and adds the MPC channel-mix bars", () => {
+    const funnelModule = { id: "oauth-ga4-signals.ts:aarrrFunnel", output: { windowDays: 90, sessions: 2000, engagedSessions: 1300, returningUsers: 300, conversions: 90, engagementRatePct: 65, returningSharePct: 23 } };
+    const tre = generateChartsV2(draft("tre", { moduleOutputs: [funnelModule], evidence: [{ evidence_id: "ga4", source: "ga4", label: "GA4 90-day snapshot", status: "evidenced", value: "sessions = 2000; engaged_sessions = 1300", dims: ["tre", "mpc"] }] }));
+    const funnel = tre.secondary.find((v) => v.id === "dim-tre-funnel")!;
+    expect(funnel.dataState).toBe("real");
+    expect(funnel.title).toBe("AARRR funnel — GA4, last 90 days");
+    expect((funnel.data as { stages: Array<{ label: string; value: number }> }).stages.map((s) => s.value)).toEqual([2000, 1300, 300, 90]);
+    expect(funnel.svg).toContain("<svg");
+    // Without a snapshot the criterion-score funnel stays (partial).
+    expect(generateChartsV2(draft("tre")).secondary.find((v) => v.id === "dim-tre-funnel")?.dataState).toBe("partial");
+
+    const mixModule = { id: "oauth-ga4-signals.ts:channelMix", output: { sessions: 2000, channels: 3, channel1: "Organic Search", channel1Sessions: 900, channel1SharePct: 45, channel2: "Direct", channel2Sessions: 600, channel2SharePct: 30, channel3: "Paid Social", channel3Sessions: 300, channel3SharePct: 15 } };
+    const mpc = generateChartsV2(draft("mpc", { moduleOutputs: [mixModule] }));
+    const bars = mpc.secondary.find((v) => v.id === "dim-mpc-channels")!;
+    expect(bars.kind).toBe("bar");
+    expect((bars.data as { bars: Array<{ label: string; value: number }> }).bars).toEqual([{ label: "Organic Search", value: 45 }, { label: "Direct", value: 30 }, { label: "Paid Social", value: 15 }]);
+    expect(generateChartsV2(draft("mpc")).secondary.some((v) => v.id === "dim-mpc-channels")).toBe(false);
+  });
+
+  it("S-R5: the equity register module draws the real CGH donut (dataState real) instead of the AU-norm target", () => {
+    const withRegister = generateChartsV2(draft("cgh", { moduleOutputs: [{ id: "report-pipeline/gather.ts:capTable", output: { holders: 4, founderPct: 72, esopPct: 10, investorPct: 18, vestingFlag: true } }] }));
+    expect(withRegister.primary.dataState).toBe("real");
+    expect(withRegister.primary.title).toBe("Cap-table structure (equity register)");
+    expect((withRegister.primary.data as { slices: Array<{ label: string; value: number }> }).slices).toEqual([{ label: "Founders", value: 72 }, { label: "ESOP pool", value: 10 }, { label: "Investors", value: 18 }]);
+    expect(withRegister.primary.subtitle).toContain("vesting on file");
+    expect(withRegister.secondary[0].title).toContain("from the register");
+    const target = generateChartsV2(draft("cgh", { moduleOutputs: [] }));
+    expect(target.primary.dataState).toBe("target");
+  });
 });

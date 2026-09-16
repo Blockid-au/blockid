@@ -19,6 +19,7 @@ import { levelForEstimate, projectForTier } from "@/lib/report-v2/free-tier";
 import { FREE_PAGE_BUDGET } from "@/lib/report-v2/schema";
 import { pdfPageCount, pdfPageCountsAgree } from "./page-count";
 import { defaultPreparedWith, renderTbrPdf, tbrPdfOutline } from "./tbr-pdf";
+import { pdfFontFiles, pdfFontsForLocale } from "./fonts";
 
 async function fullText(buffer: Buffer): Promise<string> {
   expect(buffer.subarray(0, 4).toString("latin1")).toBe("%PDF");
@@ -75,6 +76,24 @@ describe("renderTbrPdf — standard tier", () => {
     const text = await fullText(buffer);
     expect(text).toContain("Prepared with DeepSeek-V4-Flash via DeepInfra.");
   }, 60_000);
+});
+
+describe("renderTbrPdf — locale vi uses the bundled Noto Sans (S-R5, W4 review c)", () => {
+  it("Vietnamese diacritics survive in the rendered text; English still renders with Helvetica (stripped)", async () => {
+    expect(pdfFontFiles()).not.toBeNull();
+    const report = { ...demoReportV2(), locale: "vi" as const };
+    report.cover.startupName = "Định giá khởi nghiệp Việt";
+    const vi = await renderTbrPdf(report, { locale: "vi" });
+    const viText = await fullText(vi.buffer);
+    expect(viText).toContain("Định giá khởi nghiệp Việt");
+    expect(vi.buffer.toString("latin1")).toContain("NotoSans");
+
+    const en = await renderTbrPdf({ ...demoReportV2(), locale: "en" }, { locale: "en" });
+    expect(en.buffer.toString("latin1")).not.toContain("NotoSans");
+    expect(en.buffer.toString("latin1")).toContain("Helvetica");
+    expect(pdfFontsForLocale("en").unicode).toBe(false);
+    expect(pdfFontsForLocale("vi")).toMatchObject({ regular: "Noto Sans", unicode: true });
+  }, 120_000);
 });
 
 describe("renderTbrPdf — free tier page-count gate", () => {

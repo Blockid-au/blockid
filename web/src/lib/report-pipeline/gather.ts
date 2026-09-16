@@ -72,6 +72,42 @@ export interface ConnectedRevenueLike {
   priorMrrAud?: number | null;
   priorCapturedAt?: string | null;
   churnRate90dPct?: number | null;
+  /** S-R5: Xero P&L gross margin (0–100) / opex for the window (unit economics, CGH / IRI). */
+  grossMarginPct?: number | null;
+  operatingExpensesAud?: number | null;
+}
+
+/** Parsed founder signals as the report needs them (connectors/linkedin-upload.ts FounderSignals). */
+export interface FounderSignalsLike {
+  source: string;
+  profileUrl: string | null;
+  founderName: string | null;
+  headline: string | null;
+  currentRole: string | null;
+  yearsExperience: number | null;
+  yearsInDomain: number | null;
+  priorCompanies: string[];
+  exits: number;
+  teamSizeOnPage: number | null;
+  confidence: number;
+  parsedAt: string;
+}
+
+/** Latest GA4 snapshot as the report needs it (oauth-ga4-signals.ts Ga4RichSignals + takenAt). */
+export interface Ga4SnapshotLike {
+  windowDays: number;
+  sessions: number;
+  newUsers: number;
+  returningUsers: number;
+  returningShare: number;
+  conversions: number;
+  conversionRate: number;
+  engagedSessions: number;
+  engagementRate: number;
+  avgSessionDurationSec: number;
+  topChannels: Array<{ channel: string; sessions: number; share: number }>;
+  funnel: { acquisition: number; activation: number; retention: number; revenue: number; referral: number | null };
+  takenAt: string | null;
 }
 
 export interface CapTableSummary {
@@ -103,6 +139,10 @@ export interface GatherDeps {
   loadConnectorSignals?: (db: GatherDb, ownerUserId: string, projectId: string | null) => Promise<ConnectorSignalRow[]>;
   loadConnectedRevenue?: (db: GatherDb, args: { userId: string; projectId: string | null; accountId: string | null }) => Promise<ConnectedRevenueLike[]>;
   loadCapTable?: (db: GatherDb, ownerUserId: string, projectId: string) => Promise<CapTableSummary | null>;
+  /** S-R5: latest founder_signals row for the project (LinkedIn upload / URL) — FTV. */
+  loadFounderSignals?: (db: GatherDb, projectId: string) => Promise<FounderSignalsLike | null>;
+  /** S-R5: latest ga4_signal_snapshots row for (owner, project) — TRE / MPC funnel + channel mix. */
+  loadGa4Snapshot?: (db: GatherDb, ownerUserId: string, projectId: string | null) => Promise<Ga4SnapshotLike | null>;
   loadGrants?: (db: GatherDb, projectId: string, stage: number, industry: string | null) => Promise<GrantsMatch | null>;
   buildValuation?: (input: Row) => VcValuationLike;
   now?: () => number;
@@ -267,7 +307,18 @@ async function defaultLoadConnectedRevenue(db: GatherDb, args: { userId: string;
   return loadConnectedRevenueSignals(db as any, args);
 }
 
-async function defaultLoadCapTable(db: GatherDb, ownerUserId: string, projectId: string): Promise<CapTableSummary | null> {
+async function defaultLoadFounderSignals(db: GatherDb, projectId: string): Promise<FounderSignalsLike | null> {
+  const { loadLatestFounderSignals } = await import("@/lib/connectors/linkedin-upload");
+  return loadLatestFounderSignals(db as unknown as Parameters<typeof loadLatestFounderSignals>[0], projectId);
+}
+
+async function defaultLoadGa4Snapshot(db: GatherDb, ownerUserId: string, projectId: string | null): Promise<Ga4SnapshotLike | null> {
+  const { loadLatestGa4Snapshot } = await import("@/lib/oauth-ga4-signals");
+  return loadLatestGa4Snapshot(db as unknown as Parameters<typeof loadLatestGa4Snapshot>[0], ownerUserId, projectId);
+}
+
+/** Equity register summary — shareholders + esop_pool for (owner, project). Exported for lib/svi/cap-table-input.ts (S-R5). */
+export async function loadCapTableSummary(db: GatherDb, ownerUserId: string, projectId: string): Promise<CapTableSummary | null> {
   const [{ data: holders }, { data: pool }] = await Promise.all([
     db.from("shareholders").select("id, name, role, shares_held, vesting_months").eq("account_id", ownerUserId).eq("project_id", projectId),
     db.from("esop_pool").select("total_pool_shares, pool_pct").eq("account_id", ownerUserId).eq("project_id", projectId).maybeSingle(),
@@ -480,9 +531,9 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
           rows.push(row("connector", prov, src, `${prov.toUpperCase()} signals (last sync)`, "evidenced", dimsFor[prov] ?? ["tre"], capturedAt, value));
         });
         revenue.forEach((r) => {
-          rows.push(row("connected_revenue", r.provider, r.provider, `${r.provider === "stripe" ? "Stripe" : "Xero"} revenue (last sync)`, "evidenced", ["tre", "iri", "cgh"], r.capturedAt, `mrr_aud = ${Math.round(r.mrrAud)}${typeof r.priorMrrAud === "number" ? `; prior_mrr_aud = ${Math.round(r.priorMrrAud)}` : ""}${typeof r.churnRate90dPct === "number" ? `; churn_90d_pct = ${r.churnRate90dPct}` : ""}`));
+          rows.push(row("connected_revenue", r.provider, r.provider, `${r.provider === "stripe" ? "Stripe" : "Xero"} revenue (last sync)`, "evidenced", ["tre", "iri", "cgh"], r.capturedAt, `mrr_aud = ${Math.round(r.mrrAud)}${typeof r.priorMrrAud === "number" ? `; prior_mrr_aud = ${Math.round(r.priorMrrAud)}` : ""}${typeof r.churnRate90dPct === "number" ? `; churn_90d_pct = ${r.churnRate90dPct}` : ""}${typeof r.grossMarginPct === "number" ? `; gross_margin_pct = ${r.grossMarginPct}` : ""}${typeof r.operatingExpensesAud === "number" ? `; opex_aud = ${Math.round(r.operatingExpensesAud)}` : ""}`));
         });
-        results.connectorSignals = { providers: Object.keys(byProvider), signals: byProvider, revenue: revenue.map((r) => ({ provider: r.provider, mrrAud: Math.round(r.mrrAud), capturedAt: r.capturedAt, priorMrrAud: r.priorMrrAud ?? null, churnRate90dPct: r.churnRate90dPct ?? null })) };
+        results.connectorSignals = { providers: Object.keys(byProvider), signals: byProvider, revenue: revenue.map((r) => ({ provider: r.provider, mrrAud: Math.round(r.mrrAud), capturedAt: r.capturedAt, priorMrrAud: r.priorMrrAud ?? null, churnRate90dPct: r.churnRate90dPct ?? null, grossMarginPct: r.grossMarginPct ?? null, operatingExpensesAud: r.operatingExpensesAud ?? null })) };
         diag("connectors", "ok", t0);
       })
     : Promise.resolve(void diag("connectors", "skipped", now(), "no db"));
@@ -492,7 +543,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
     db && projectId
       ? run("capTable", async () => {
           const t0 = now();
-          const summary = await (deps.loadCapTable ?? defaultLoadCapTable)(db, ownerUserId, projectId);
+          const summary = await (deps.loadCapTable ?? loadCapTableSummary)(db, ownerUserId, projectId);
           if (summary) {
             results.capTable = { ...summary };
             rows.push(row("cap_table", projectId, "upload", "Cap-table register (shareholders + ESOP pool)", "evidenced", ["cgh", "iri", "lco"], observed, `holders = ${summary.holders}; founders_pct = ${summary.founderPct ?? "?"}; esop_pct = ${summary.esopPct ?? "?"}; investors_pct = ${summary.investorPct ?? "?"}; vesting = ${summary.vestingFlag}`));
@@ -502,6 +553,69 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
           diag("capTable", "ok", t0);
         })
       : Promise.resolve(void diag("capTable", "skipped", now(), "no db / project"));
+
+  // ── 5b. Founder signals (LinkedIn upload / URL → founder_signals) — S-R5
+  const founder =
+    db && projectId
+      ? run("founderSignals", async () => {
+          const t0 = now();
+          const fs = await (deps.loadFounderSignals ?? defaultLoadFounderSignals)(db, projectId);
+          if (fs) {
+            results.founderSignals = {
+              source: fs.source,
+              profileUrl: fs.profileUrl,
+              founderName: fs.founderName,
+              headline: fs.headline,
+              currentRole: fs.currentRole,
+              yearsExperience: fs.yearsExperience,
+              yearsInDomain: fs.yearsInDomain,
+              priorCompanies: fs.priorCompanies.length,
+              priorCompanyNames: fs.priorCompanies.slice(0, 6),
+              exits: fs.exits,
+              teamSizeOnPage: fs.teamSizeOnPage,
+              confidence: fs.confidence,
+              parsedAt: fs.parsedAt,
+            };
+            const urlOnly = fs.source === "linkedin_url";
+            const label = urlOnly ? "LinkedIn profile URL (founder-supplied, not fetched)" : `LinkedIn ${fs.source === "linkedin_pdf" ? "PDF export" : "profile text"} — parsed founder signals`;
+            const value = urlOnly
+              ? `profile_url = ${fs.profileUrl ?? "?"}`
+              : `years_experience = ${fs.yearsExperience ?? "?"}; years_in_domain = ${fs.yearsInDomain ?? "?"}; prior_companies = ${fs.priorCompanies.length}; exits = ${fs.exits}; team_size_on_page = ${fs.teamSizeOnPage ?? "?"}`;
+            rows.push(row("founder_signals", projectId, "linkedin", label, urlOnly ? "partial" : "evidenced", ["ftv", "cgh"], fs.parsedAt, value));
+          } else {
+            rows.push(row("founder_signals", projectId, "linkedin", "Founder profile (LinkedIn export / URL)", "missing", ["ftv"], observed, "No founder profile yet — upload the LinkedIn PDF export or paste the profile URL in /workspace/evidence/founder"));
+          }
+          diag("founderSignals", "ok", t0);
+        })
+      : Promise.resolve(void diag("founderSignals", "skipped", now(), "no db / project"));
+
+  // ── 5c. GA4 90-day snapshot (AARRR funnel + channel mix) — S-R5 ──────
+  const ga4 = db
+    ? run("ga4", async () => {
+        const t0 = now();
+        const snap = await (deps.loadGa4Snapshot ?? defaultLoadGa4Snapshot)(db, ownerUserId, projectId);
+        if (snap) {
+          results.ga4 = {
+            windowDays: snap.windowDays,
+            sessions: snap.sessions,
+            newUsers: snap.newUsers,
+            returningUsers: snap.returningUsers,
+            returningShare: snap.returningShare,
+            conversions: snap.conversions,
+            conversionRate: snap.conversionRate,
+            engagedSessions: snap.engagedSessions,
+            engagementRate: snap.engagementRate,
+            avgSessionDurationSec: snap.avgSessionDurationSec,
+            topChannels: snap.topChannels,
+            funnel: snap.funnel,
+            takenAt: snap.takenAt,
+          };
+          const channels = snap.topChannels.map((c) => `${c.channel} ${Math.round(c.share * 100)} %`).join(", ");
+          rows.push(row("ga4_snapshot", projectId ?? ownerUserId, "ga4", `GA4 ${snap.windowDays}-day snapshot (AARRR funnel + channel mix)`, "evidenced", ["tre", "mpc"], snap.takenAt ?? observed, `sessions = ${snap.sessions}; engaged_sessions = ${snap.engagedSessions}; returning_users = ${snap.returningUsers}; conversions = ${snap.conversions}; returning_share = ${snap.returningShare}; engagement_rate = ${snap.engagementRate}${channels ? `; channels = ${channels}` : ""}`));
+        }
+        diag("ga4", snap ? "ok" : "skipped", t0, snap ? undefined : "no snapshot");
+      })
+    : Promise.resolve(void diag("ga4", "skipped", now(), "no db"));
 
   // ── 6. Grants / programs match ────────────────────────────────────────
   let grantsMatch: GrantsMatch | null = null;
@@ -529,7 +643,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
     totalCriteria: CRITERION_KEYS.length,
   };
 
-  await Promise.allSettled([research, tech, repo, connectors, capTable, grants]);
+  await Promise.allSettled([research, tech, repo, connectors, capTable, founder, ga4, grants]);
 
   // ── 8. Valuation inputs + CFO 5-method model (deterministic, after connectors)
   const signals = (context.sviAnalysis.signals ?? {}) as Partial<{ mrrAud: number; arrAud: number; raiseAskAud: number; statedCapAud: number; statedCapKind: ValuationAskInput["statedCapKind"]; hasVesting: boolean; hasShareholdersAgreement: boolean; esopAllocated: boolean; hasDataRoom: boolean; customerCount: number }>;

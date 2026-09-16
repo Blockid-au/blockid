@@ -21,6 +21,7 @@ vi.mock("playwright", () => {
 });
 
 import { GET } from "./route";
+import { tbrPdfCache, tbrPdfSemaphore } from "@/lib/pdf/render-gate";
 
 const DIMS = { tre: 61, mpc: 70, ftv: 55, ptd: 66, cgh: 48, iri: 52, lco: 40, svm: 58 };
 const SNAPSHOT = {
@@ -43,6 +44,7 @@ function req(qs: string) {
 }
 
 beforeEach(() => {
+  tbrPdfCache.clear();
   db.sb = fakeSupabase({
     svi_snapshots: [{ ...SNAPSHOT }],
     svi_accounts: [{ id: "acct-1", startup_name: "Acme Robotics" }],
@@ -82,6 +84,37 @@ describe("GET /api/svi/report/pdf", () => {
     expect(res.headers.get("x-tbr-source")).toBe("stored");
     expect(res.headers.get("content-disposition")).toContain("Sample-SME-Compliance-SaaS-demo.pdf");
   }, 60_000);
+
+  it("S-R5 render gate: the second request for the same snapshot is a cache hit (private, max-age=300), a changed document misses", async () => {
+    const first = await GET(req("?token=tok-abc"));
+    expect(first.status).toBe(200);
+    expect(first.headers.get("x-tbr-cache")).toBe("miss");
+    expect(first.headers.get("cache-control")).toBe("private, max-age=300");
+    const second = await GET(req("?token=tok-abc"));
+    expect(second.status).toBe(200);
+    expect(second.headers.get("x-tbr-cache")).toBe("hit");
+    expect(Buffer.from(await second.arrayBuffer()).equals(Buffer.from(await first.arrayBuffer()))).toBe(true);
+    expect(tbrPdfCache.size).toBe(1);
+    // a different document under the same snapshot id → new key → miss
+    db.sb = fakeSupabase({ svi_snapshots: [{ ...SNAPSHOT, report_v2: { ...demoReportV2(), source: "pipeline" as const } }], svi_accounts: [{ id: "acct-1", startup_name: "Acme Robotics" }] });
+    expect((await GET(req("?token=tok-abc"))).headers.get("x-tbr-cache")).toBe("miss");
+    expect(tbrPdfCache.size).toBe(2);
+  }, 120_000);
+
+  it("S-R5 render gate: a saturated semaphore answers 503 + Retry-After without rendering", async () => {
+    const r1 = tbrPdfSemaphore.tryAcquire()!;
+    const r2 = tbrPdfSemaphore.tryAcquire()!;
+    try {
+      const res = await GET(req("?token=tok-abc"));
+      expect(res.status).toBe(503);
+      expect(res.headers.get("retry-after")).toBe("5");
+      expect(await res.json()).toMatchObject({ ok: false, error: "render_busy" });
+      expect(tbrPdfCache.size).toBe(0);
+    } finally {
+      r1();
+      r2();
+    }
+  });
 
   it("?v=1 keeps the legacy Chromium path (503 when playwright is not installed)", async () => {
     const res = await GET(req("?token=tok-abc&v=1"));

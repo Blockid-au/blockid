@@ -62,6 +62,14 @@ export const ExpectedConstraints = z
     must_cite: z.number().int().min(0).optional(),
     /** Expected owner-proposed chart kind (`primary_visual.kind`). Match → +1, else 0. */
     primary_visual: z.object({ kind: z.string().min(1) }).optional(),
+    /**
+     * S-R5 (§C.9 citation gate, §C.10 nightly eval): minimum grounded share
+     * for this case — material claims (strengths, gaps, criterion-card
+     * verdicts) carrying an `[ev:<id>]` marker or a citation ÷ all material
+     * claims. Met → +1, missed → -1. Only meaningful when the case input has
+     * evidence rows; an idea-stage case with none is skipped (null share).
+     */
+    grounded_share_min: z.number().min(0).max(1).optional(),
   })
   .default({ must_have_gaps: [], must_not_hallucinate: [] });
 export type ExpectedConstraints = z.infer<typeof ExpectedConstraints>;
@@ -122,6 +130,8 @@ export const CaseEvalResult = z.object({
   forbiddenChecks: z.number(),
   forbiddenHits: z.number(),
   confidence: z.number().nullable(),
+  /** S-R5: grounded share of material claims (null when the case has no evidence rows to cite). */
+  groundedShare: z.number().min(0).max(1).nullable().optional(),
   latencyMs: z.number(),
   costUsd: z.number(),
   runId: z.string(),
@@ -138,9 +148,18 @@ export const EvalResult = z.object({
   latency_p50_ms: z.number(),
   cost_usd_total: z.number(),
   hard_fail: z.boolean(),
+  /** S-R5: mean grounded share over the cases that had evidence to cite; null when none did. */
+  grounded_share: z.number().min(0).max(1).nullable().optional(),
+  /** S-R5: how many cases the grounded share was measured on. */
+  grounded_cases: z.number().int().nonnegative().optional(),
   per_case: z.array(CaseEvalResult),
 });
 export type EvalResult = z.infer<typeof EvalResult>;
+
+/** §C.9: a report (here, a fixture run) needs ≥ 80 % of material claims grounded. */
+export const GROUNDED_SHARE_THRESHOLD = 0.8;
+/** Below this a canary is not just "not promoted" but demoted (rolled_back). */
+export const GROUNDED_SHARE_DEMOTE_BELOW = 0.6;
 
 // ── Options ──────────────────────────────────────────────────────────
 
@@ -184,6 +203,7 @@ function scoreCase(
       forbiddenChecks,
       forbiddenHits: 0,
       confidence: null,
+      groundedShare: null,
       latencyMs: run.latencyMs,
       costUsd: run.costUsd,
       runId: run.runId,
@@ -191,6 +211,14 @@ function scoreCase(
   }
 
   const data = run.data;
+  const groundedShare = groundedShareOf(fx, data);
+
+  // grounded_share_min → met +1, missed -1 (skipped when the case has nothing to cite)
+  if (typeof expected.grounded_share_min === "number" && groundedShare !== null) {
+    possible += 1;
+    if (groundedShare >= expected.grounded_share_min) positive += 1;
+    else positive -= 1;
+  }
 
   // proposed_score in range → +1
   if (expected.proposed_score) {
@@ -275,10 +303,38 @@ function scoreCase(
     forbiddenChecks,
     forbiddenHits,
     confidence,
+    groundedShare,
     latencyMs: run.latencyMs,
     costUsd: run.costUsd,
     runId: run.runId,
   };
+}
+
+/**
+ * S-R5: grounded share of a chapter payload — material claims = strengths +
+ * gaps + criterion-card verdicts (+ the chapter verdict); a claim is
+ * grounded when it carries an `[ev:<id>]` marker, a criterion card also
+ * when it has ≥ 1 citation. Null when the fixture input has no evidence
+ * rows (nothing could have been cited).
+ */
+export function groundedShareOf(fixtureCase: FixtureCase, data: Record<string, unknown>): number | null {
+  const evidenceRows = fixtureCase.input["evidenceRows"];
+  if (!Array.isArray(evidenceRows) || evidenceRows.length === 0) return null;
+  const marker = /\[ev:[^\]]+\]/;
+  const strs = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
+  const claims: Array<{ text: string; cited: boolean }> = [];
+  if (typeof data["verdict"] === "string") claims.push({ text: data["verdict"], cited: false });
+  for (const t of strs(data["strengths"])) claims.push({ text: t, cited: false });
+  for (const t of strs(data["gaps"])) claims.push({ text: t, cited: false });
+  const cards = Array.isArray(data["criterion_cards"]) ? (data["criterion_cards"] as Array<Record<string, unknown>>) : [];
+  for (const c of cards) {
+    if (!c || typeof c !== "object") continue;
+    const cites = Array.isArray(c["citations"]) ? c["citations"].length : 0;
+    claims.push({ text: typeof c["verdict"] === "string" ? c["verdict"] : "", cited: cites > 0 });
+  }
+  if (!claims.length) return 0;
+  const grounded = claims.filter((c) => c.cited || marker.test(c.text)).length;
+  return Math.round((grounded / claims.length) * 1000) / 1000;
 }
 
 function median(nums: number[]): number {
@@ -324,6 +380,8 @@ export async function runEval(
   const latency_p50_ms = median(perCase.map(c => c.latencyMs));
   const cost_usd_total = perCase.reduce((s, c) => s + c.costUsd, 0);
   const hard_fail = perCase.some(c => c.hardFail);
+  const groundedShares = perCase.map((c) => c.groundedShare).filter((g): g is number => typeof g === "number");
+  const grounded_share = groundedShares.length ? Math.round((groundedShares.reduce((s, g) => s + g, 0) / groundedShares.length) * 1000) / 1000 : null;
 
   return {
     agent: parsed.agent,
@@ -335,6 +393,8 @@ export async function runEval(
     latency_p50_ms,
     cost_usd_total,
     hard_fail,
+    grounded_share,
+    grounded_cases: groundedShares.length,
     per_case: perCase,
   };
 }
@@ -350,10 +410,34 @@ export async function runEval(
  * canary so the next night gets another go.
  */
 export function shouldPromote(result: EvalResult): boolean {
+  const groundedCases = result.grounded_cases ?? 0;
+  const groundedShare = result.grounded_share ?? null;
+  const groundedOk = groundedCases === 0 || groundedShare === null || groundedShare >= GROUNDED_SHARE_THRESHOLD;
   return (
     result.accuracy_pct >= 0.8 &&
     result.hallucination_pct <= 0.02 &&
     !result.hard_fail &&
+    groundedOk &&
     result.cases > 0
   );
+}
+
+/**
+ * S-R5 (§C.10 "Fail → canary demoted"): a canary is demoted — not merely
+ * held — when the run shows a real regression: a hallucination hard-fail,
+ * a hallucination rate above 5 %, accuracy under 50 %, or a grounded share
+ * under 60 % (the report-level gate is 80 %; this is the floor below which
+ * another night cannot be expected to fix it). A near miss keeps its
+ * canary status for another run.
+ */
+export function shouldDemote(result: EvalResult): { demote: boolean; reason: string | null } {
+  if (result.cases === 0) return { demote: false, reason: null };
+  if (result.hard_fail) return { demote: true, reason: "hard_fail" };
+  if (result.hallucination_pct > 0.05) return { demote: true, reason: `hallucination ${Math.round(result.hallucination_pct * 100)} %` };
+  if (result.accuracy_pct < 0.5) return { demote: true, reason: `accuracy ${Math.round(result.accuracy_pct * 100)} %` };
+  const groundedShare = result.grounded_share ?? null;
+  if ((result.grounded_cases ?? 0) > 0 && groundedShare !== null && groundedShare < GROUNDED_SHARE_DEMOTE_BELOW) {
+    return { demote: true, reason: `grounded share ${Math.round(groundedShare * 100)} %` };
+  }
+  return { demote: false, reason: null };
 }

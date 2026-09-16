@@ -260,6 +260,29 @@ describe("loadDossier — evaluator", () => {
     expect(d!.report.source).toBe("pipeline");
   });
 
+  it("S-R5 (W4 review d): the evaluator's own evaluation_reports.report_v2 wins over the founder's snapshot; a row without one falls back", async () => {
+    const mine = fromSnapshot({ snapshotId: "s-eval", projectId: "p-1", startupName: "Evaluator Saw This", stage: 3, sviTotal: 66, dimStates: { tre: { score: 70 } }, tier: "standard" });
+    state.tables.evaluation_reports = [
+      { id: "er-2", evaluation_id: "e-1", share_token: "tok-new", created_at: "2026-09-15T00:00:00Z", kind: "full", report_v2: { ...mine, source: "pipeline" } },
+      { id: "er-1", evaluation_id: "e-1", share_token: "tok-old", created_at: "2026-09-12T00:00:00Z", kind: "full", report_v2: null },
+    ];
+    const d = await loadDossier("e-1", "u-eval");
+    expect(d!.report.source).toBe("pipeline");
+    expect(d!.report.dims.find((r) => r.dim === "tre")?.score).toBe(70);
+    expect(d!.report.links.fullReport).toContain("tok-new");
+    const reads = state.calls.filter((c) => c.table === "evaluation_reports");
+    expect(reads).toHaveLength(2);
+    expect(reads[1].select).toBe("report_v2");
+    expect(reads[1].filters).toEqual([["id", "er-2"]]);
+
+    __resetDossierCaches();
+    state.calls.length = 0;
+    state.tables.evaluation_reports = [{ id: "er-3", evaluation_id: "e-1", share_token: "tok-3", created_at: "2026-09-16T00:00:00Z", kind: "full", report_v2: null }];
+    const fallback = await loadDossier("e-1", "u-eval");
+    expect(fallback!.report.source).not.toBe("pipeline");
+    expect(fallback!.report.dims.find((r) => r.dim === "tre")?.score).toBe(61);
+  });
+
   it("no snapshot → report unavailable but 13 honest criteria rows and null score", async () => {
     state.tables.svi_snapshots = [];
     const d = await loadDossier("e-1", "u-eval");

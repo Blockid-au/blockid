@@ -59,6 +59,32 @@ describe("precomputeModules", () => {
     expect(moduleNumbers(undefined)).toEqual([]);
   });
 
+  it("S-R5: gather results add the GA4 funnel (tre) / channel mix (mpc) / founder signals (ftv) / register (cgh) modules, and the register replaces the 12 % ESOP assumption", () => {
+    const c = ctx();
+    c.gatherResults = {
+      ga4: { windowDays: 90, sessions: 2000, newUsers: 1000, returningUsers: 300, returningShare: 0.231, conversions: 90, conversionRate: 0.045, engagedSessions: 1300, engagementRate: 0.65, avgSessionDurationSec: 84, topChannels: [{ channel: "Organic Search", sessions: 900, share: 0.45 }, { channel: "Direct", sessions: 600, share: 0.3 }], funnel: { acquisition: 2000, activation: 1300, retention: 300, revenue: 90, referral: null }, takenAt: "2026-09-15T00:00:00.000Z" },
+      founderSignals: { source: "linkedin_pdf", yearsExperience: 13.6, yearsInDomain: 8.7, priorCompanies: 2, exits: 1, teamSizeOnPage: 14, confidence: 1, currentRole: "Co-founder & CEO at Acme Health" },
+      capTable: { holders: 4, founderPct: 72, esopPct: 10, investorPct: 18, vestingFlag: true, fullyDilutedShares: 1_000_000 },
+    };
+    const m = precomputeModules(c);
+    const tre = m.tre!.find((r) => r.id === "oauth-ga4-signals.ts:aarrrFunnel")!;
+    expect(tre.output).toMatchObject({ windowDays: 90, sessions: 2000, engagedSessions: 1300, returningUsers: 300, conversions: 90, returningSharePct: 23, engagementRatePct: 65, conversionRatePct: 4.5 });
+    const mpc = m.mpc!.find((r) => r.id === "oauth-ga4-signals.ts:channelMix")!;
+    expect(mpc.output).toMatchObject({ sessions: 2000, channels: 2, channel1: "Organic Search", channel1SharePct: 45, channel2: "Direct", channel2SharePct: 30 });
+    const ftv = m.ftv!.find((r) => r.id === "connectors/linkedin-upload.ts:founderSignals")!;
+    expect(ftv.output).toMatchObject({ yearsExperience: 13.6, yearsInDomain: 8.7, priorCompanies: 2, exits: 1, teamSizeOnPage: 14, source: "linkedin_pdf" });
+    const reg = m.cgh!.find((r) => r.id === "report-pipeline/gather.ts:capTable")!;
+    expect(reg.output).toMatchObject({ holders: 4, founderPct: 72, esopPct: 10, investorPct: 18, vestingFlag: true });
+    const esop = m.cgh!.find((r) => r.id === "agents/cfo-esop-scoring.ts:scoreEsop")!;
+    expect(esop.output.esopAssumed).toBe("register: ESOP 10 %");
+    // No gather results → none of the four modules, the 12 % assumption returns.
+    const plain = precomputeModules(ctx());
+    expect(plain.tre!.some((r) => r.id.includes("aarrrFunnel"))).toBe(false);
+    expect(plain.mpc!.some((r) => r.id.includes("channelMix"))).toBe(false);
+    expect(plain.ftv!.some((r) => r.id.includes("founderSignals"))).toBe(false);
+    expect(plain.cgh!.find((r) => r.id.includes("scoreEsop"))!.output.esopAssumed).toMatch(/12 % AU norm/);
+  });
+
   it("degrades to the benchmark row alone when signals are absent", () => {
     const c = ctx();
     (c.sviAnalysis as { signals?: unknown }).signals = undefined;
