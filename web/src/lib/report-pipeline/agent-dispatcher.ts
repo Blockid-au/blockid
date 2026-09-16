@@ -31,9 +31,21 @@ import type {
   EvidenceCatalogueEntry,
 } from "./types";
 import type { CriterionKey } from "@/lib/evaluation-criteria";
-import { buildAgentPrompt } from "./agent-prompts";
+import { CRITERIA } from "@/lib/evaluation-criteria";
+import { PHASE_EXIT_RULES } from "@/lib/growth/phase-gate";
+import { GROWTH_PHASE_LABELS } from "@/lib/growth/phase-taxonomy";
+import type { CriterionCard, DimensionChapter, EvidenceRow, EvidenceStatus, ReportTierV2 } from "@/lib/report-v2/schema";
+import { percentileFor, qualityFromScore } from "@/lib/report-v2/adapter";
+import { bandFor } from "@/lib/report-visuals";
+import { getSupabaseAdmin } from "@/lib/supabase";
+import { DIMENSION_ACTIONS } from "@/lib/svi-actions";
+import { benchmarkStageForSvi, buildAgentPrompt, promptTemplateFromRow, resolvePhaseId } from "./agent-prompts";
 import { buildAuMarketAnchorBlock } from "./au-market-anchor";
 import { modelForAgent } from "./agent-model-tiers";
+import { generateChartsV2, generateCriterionVisual, type LlmVisualProposal } from "./chart-generator";
+import { benchmarkFor, criteriaForDimension, DIM_ORDER, DIMENSION_OWNERS, type DimKey, type EvidenceSource } from "./dimension-owners";
+import { loadAgentKnowledgeRows, type AgentKnowledgeRow, type KnowledgeDb } from "./knowledge-loader";
+import { precomputeModulesForDim, type ModuleOutput } from "./module-precompute";
 import { REPORT_TIER_CONFIG } from "./types";
 import {
   callStructured,
@@ -48,10 +60,14 @@ import {
 } from "@/lib/ai/schemas";
 import { readCurrentPrompt } from "@/lib/ai/prompt-registry";
 
+/** S31-A task class hint — CEO/CFO chapters pass "report" when F4 is on (see MODEL_AGENT_*). */
+export type AITaskClassHint = "classify" | "report" | "synthesis";
+
 type AICaller = (
   systemPrompt: string,
   userPrompt: string,
   maxTokens: number,
+  taskClass?: AITaskClassHint,
 ) => Promise<string>;
 
 /** Placeholder used when no prod prompt_versions row exists for an agent. */
@@ -62,6 +78,8 @@ export const NIL_PROMPT_VERSION_ID = "00000000-0000-0000-0000-000000000000";
 interface WaveTask {
   agentRole: AgentRole;
   criterion: CriterionKey;
+  /** agent-selector: phase-required criteria get the full token budget. */
+  budget?: "standard" | "large";
 }
 
 /** Wave 1: Independent analyses — no dependencies */
@@ -296,6 +314,51 @@ export interface DispatchOptions {
   modelCaller?: StructuredModelCaller;
   /** Kill switch: false skips validation and uses the legacy prose path. */
   structured?: boolean;
+
+  // ── G13-W2-R2 ──────────────────────────────────────────────────────────
+  /** Report tier v2 ("free" turns chapters 6–9 into cards). Defaults from `tier`. */
+  tierV2?: ReportTierV2;
+  /** Per-report call counter; `tryAcquire()` false → no more LLM calls this report. */
+  callBudget?: CallBudget;
+  /** Monthly-budget predicate (ai-client). False → deterministic cards, never a failed report. */
+  budgetOk?: () => boolean;
+  /** Streams each finished chapter (SSE `dimension_complete`). */
+  onChapter?: (dim: DimKey, chapter: DimensionChapter) => void;
+  /** `agent_knowledge_base` reader; defaults to the admin client, `null` disables. */
+  knowledgeDb?: KnowledgeDb | null;
+  /** Resolve the slotted prompt template for a role (prompt_versions). Defaults to the prod row. */
+  resolvePromptTemplate?: (agentRole: AgentRole) => Promise<string | null>;
+}
+
+/** Minimal call-counter contract the orchestrator implements (hard stop at tier max). */
+export interface CallBudget {
+  tryAcquire(): boolean;
+  readonly used: number;
+  readonly max: number;
+}
+
+/** Adapter: pipeline callAI → structured transport with a task-class hint (F4: CEO/CFO on Sonnet-class). */
+export function callAIToModelCallerWithClass(
+  callAI: AICaller,
+  maxTokens: number,
+  taskClass: AITaskClassHint | undefined,
+): StructuredModelCaller {
+  const base = callAIToModelCaller((sys, user, max) => callAI(sys, user, max, taskClass), maxTokens);
+  return base;
+}
+
+/**
+ * F4 (founder decision, default yes): the CEO + CFO chapters may run on a
+ * Sonnet-class model inside the A$3 COGS envelope when `MODEL_AGENT_CEO` /
+ * `MODEL_AGENT_CFO` is set — routed through the existing callAI task classes
+ * ("report" → Sonnet 5 on the quality tier). Never a new provider path.
+ */
+export function taskClassForChapter(role: AgentRole, tier: ReportTierV2): AITaskClassHint | undefined {
+  if (role !== "ceo" && role !== "cfo") return undefined;
+  const env = process.env[`MODEL_AGENT_${role.toUpperCase()}`];
+  if (!env || env.length === 0) return undefined;
+  if (tier === "free") return undefined;
+  return "report";
 }
 
 /** Adapter: pipeline callAI (single-turn string) → structured transport. */
@@ -332,19 +395,28 @@ export function callAIToModelCaller(
   };
 }
 
-const promptVersionCache = new Map<string, string>();
+const promptVersionCache = new Map<string, { id: string; template: string | null }>();
 
-async function defaultPromptVersionId(agentRole: AgentRole): Promise<string> {
+async function defaultPromptRow(agentRole: AgentRole): Promise<{ id: string; template: string | null }> {
   const cached = promptVersionCache.get(agentRole);
   if (cached) return cached;
   try {
     const row = await readCurrentPrompt(`report-${agentRole}`);
-    const id = row?.id ?? NIL_PROMPT_VERSION_ID;
-    promptVersionCache.set(agentRole, id);
-    return id;
+    const entry = { id: row?.id ?? NIL_PROMPT_VERSION_ID, template: promptTemplateFromRow(row) };
+    promptVersionCache.set(agentRole, entry);
+    return entry;
   } catch {
-    return NIL_PROMPT_VERSION_ID;
+    return { id: NIL_PROMPT_VERSION_ID, template: null };
   }
+}
+
+async function defaultPromptVersionId(agentRole: AgentRole): Promise<string> {
+  return (await defaultPromptRow(agentRole)).id;
+}
+
+/** Slotted template from the prod prompt_versions row (null → code default). */
+async function defaultPromptTemplate(agentRole: AgentRole): Promise<string | null> {
+  return (await defaultPromptRow(agentRole)).template;
 }
 
 /** Test seam — drops the memoised prompt_versions lookups. */
@@ -363,8 +435,15 @@ async function dispatchAgent(
 ): Promise<AgentAnalysisResult> {
   const startTime = Date.now();
   const tierConfig = REPORT_TIER_CONFIG[tier];
+  const maxTokens = task.budget === "large" ? tierConfig.maxTokensPerAgent : Math.round(tierConfig.maxTokensPerAgent * 0.85);
 
-  const systemPrompt = buildAgentPrompt(task.agentRole, context, task.criterion);
+  const template = await (opts.resolvePromptTemplate ?? defaultPromptTemplate)(task.agentRole);
+  const systemPrompt = buildAgentPrompt(task.agentRole, context, {
+    criterion: task.criterion,
+    phaseId: context.phaseGate?.currentPhase,
+    tier: opts.tierV2 ?? tier,
+    template,
+  });
   const userPrompt = buildUserPrompt(task.criterion, context);
 
   if (opts.structured === false) {
@@ -399,7 +478,7 @@ async function dispatchAgent(
     purpose: opts.purpose ?? "customer_report",
     evidenceIds: [...allowedIds],
     modelCaller:
-      opts.modelCaller ?? callAIToModelCaller(callAI, tierConfig.maxTokensPerAgent),
+      opts.modelCaller ?? callAIToModelCaller(callAI, maxTokens),
   });
 
   if (structured.ok) {
@@ -457,11 +536,7 @@ function adaptPayload(
     nextSteps: payload.finding.actions.map(
       a => `[${a.window}] ${a.title} (owner: ${a.owner}, effort: ${a.effort})`,
     ),
-    // TODO(S-R2, G13-W1-R2): criterion-level visuals are computed by the W4
-    // dimension-chapter wave (generateChartsV2 → report-visuals). Until then the
-    // ReportV2 adapter (lib/report-v2/adapter.ts) derives every chapter's
-    // primary + secondary VisualSpecV2 from scores + benchmarks at read time.
-    visuals: [],
+    visuals: [generateCriterionVisual(context, { criterion: task.criterion, agentRole: task.agentRole, score: payload.finding.proposed_score, degraded: false })],
     confidence: Math.round(confidence * 100) / 100,
     wordCount: content.split(/\s+/).filter(Boolean).length,
     durationMs: meta.durationMs,
@@ -531,8 +606,7 @@ async function legacyProseDispatch(
       dataPoints: extractDataPoints(response),
       risks,
       nextSteps: extractNextSteps(response),
-      // TODO(S-R2): see note above — visuals come from the adapter until W4 lands.
-      visuals: [],
+      visuals: [generateCriterionVisual(context, { criterion: task.criterion, agentRole: task.agentRole, score: extractScore(response), degraded: flags.degraded })],
       confidence: flags.degraded
         ? Math.round(computeConfidence(context.criteriaData[task.criterion]) * 50) / 100
         : computeConfidence(context.criteriaData[task.criterion]),
@@ -555,8 +629,7 @@ async function legacyProseDispatch(
       dataPoints: {},
       risks: [`Analysis failed for ${task.criterion}`],
       nextSteps: [],
-      // TODO(S-R2): see note above — visuals come from the adapter until W4 lands.
-      visuals: [],
+      visuals: [generateCriterionVisual(context, { criterion: task.criterion, agentRole: task.agentRole, score: 0, degraded: true })],
       confidence: 0,
       wordCount: 0,
       durationMs: Date.now() - startTime,
@@ -763,4 +836,579 @@ function computeConfidence(criterionData?: CriterionData): number {
   if (hasFiles && hasLinks && hasText) confidence = Math.max(confidence, 0.65);
 
   return confidence;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// W4 — dimension chapters (G13-W2-R2, spec §C.1 wave design + §C.11 payload)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Eight owner calls in parallel, one per SVI dimension in DIM_ORDER. Input =
+// the mapped W1–W3 criterion results + evidence rows + deterministic module
+// outputs + phase lens (never the raw uploads again — ≈ 2.5k in / 700 out).
+// Output = `DimensionChapterPayload` (Zod). callStructured gives ONE repair
+// pass; a second failure, a budget stop or a provider error yields a
+// deterministic card marked `degraded` — a report never fails on W4.
+// Visuals are never taken from prose: `generateChartsV2` builds them from
+// module outputs / evidence numbers and only accepts an owner-proposed
+// series when its numbers pass the provenance pass.
+
+const dimKeyEnum = z.enum(["tre", "mpc", "ftv", "ptd", "cgh", "iri", "lco", "svm"]);
+const evidenceSourceEnum = z.enum(["stripe", "ga4", "github", "xero", "linkedin", "upload", "url", "self_declared", "connector_other"]);
+const wordCount = (t: string) => t.trim().split(/\s+/).filter(Boolean).length;
+
+const VisualProposal = z.object({
+  kind: z.string().min(1),
+  data_state: z.string().optional(),
+  title: z.string().optional(),
+  series: z
+    .array(z.object({ label: z.string(), value: z.number().optional(), points: z.array(z.number()).optional() }))
+    .max(12)
+    .default([]),
+});
+
+const CriterionCardPayload = z.object({
+  key: z.enum(CRITERIA.map((c) => c.key) as [CriterionKey, ...CriterionKey[]]),
+  lens: dimKeyEnum.optional(),
+  verdict: z.string().min(1).refine((t) => wordCount(t) <= 80, "criterion verdict must be ≤ 80 words"),
+  strengths: z.array(z.string().min(1)).max(4).default([]),
+  gaps: z.array(z.string().min(1)).max(4).default([]),
+  next_action: z.string().default(""),
+  citations: z.array(z.object({ evidence_id: z.string(), quote: z.string() })).max(6).default([]),
+});
+
+/** §C.11 owner payload — the full chapter (standard+). */
+export const DimensionChapterPayload = z.object({
+  dim: dimKeyEnum,
+  verdict: z.string().min(1).refine((t) => wordCount(t) <= 80, "verdict must be ≤ 80 words"),
+  score_adjustment: z.object({
+    proposed: z.number().min(0).max(100),
+    deterministic: z.number().min(0).max(100).optional(),
+    reason: z.string().default(""),
+  }),
+  strengths: z.array(z.string().min(1).refine((t) => wordCount(t) <= 30, "≤ 30 words")).min(1).max(4),
+  gaps: z.array(z.string().min(1).refine((t) => wordCount(t) <= 30, "≤ 30 words")).min(1).max(4),
+  next_action: z.object({
+    title: z.string().min(1),
+    window: z.enum(["this_week", "30d", "90d"]).default("30d"),
+    expected_lift: z.number().min(0).max(40).default(3),
+    evidence_to_add: evidenceSourceEnum.optional(),
+  }),
+  criterion_cards: z.array(CriterionCardPayload).max(6).default([]),
+  primary_visual: VisualProposal.optional(),
+  secondary_visuals: z.array(VisualProposal).max(2).default([]),
+  phase_lens: z
+    .object({ phase_id: z.string().optional(), what_matters_now: z.string().default(""), floor: z.number().optional(), floor_met: z.boolean().optional() })
+    .optional(),
+  frameworks_used: z.array(z.string()).max(8).default([]),
+  confidence: z.number().min(0).max(1),
+  hallucination_risk: z.enum(["low", "medium", "high"]).default("medium"),
+});
+export type DimensionChapterPayload = z.infer<typeof DimensionChapterPayload>;
+
+/** Free-tier card payload for chapters 6–9 (≤ 60 words, no cards / visuals). */
+export const DimensionCardPayload = z.object({
+  dim: dimKeyEnum,
+  verdict: z.string().min(1).refine((t) => wordCount(t) <= 60, "card verdict must be ≤ 60 words"),
+  score_adjustment: z.object({ proposed: z.number().min(0).max(100), deterministic: z.number().optional(), reason: z.string().default("") }),
+  strengths: z.array(z.string().min(1)).min(1).max(2),
+  gaps: z.array(z.string().min(1)).min(1).max(2),
+  next_action: z.object({ title: z.string().min(1), window: z.enum(["this_week", "30d", "90d"]).default("30d"), expected_lift: z.number().min(0).max(40).default(3), evidence_to_add: evidenceSourceEnum.optional() }),
+  confidence: z.number().min(0).max(1),
+  hallucination_risk: z.enum(["low", "medium", "high"]).default("medium"),
+});
+export type DimensionCardPayload = z.infer<typeof DimensionCardPayload>;
+
+/** Zod shape of the W4 user turn (§C.11 slots) — validated by callStructured. */
+const DimensionChapterInput = z.object({
+  dim: dimKeyEnum,
+  weight: z.number(),
+  stage: z.number(),
+  stageLabel: z.string(),
+  phaseId: z.string(),
+  benchmark: z.object({ p25: z.number(), p50: z.number(), p75: z.number(), source: z.string() }),
+  deterministicScore: z.number().nullable(),
+  criterionResults: z.array(
+    z.object({
+      key: z.string(),
+      score: z.number(),
+      verdict: z.string(),
+      citations: z.array(z.object({ evidence_id: z.string(), quote: z.string() })),
+      grounded: z.boolean(),
+    }),
+  ),
+  evidenceRows: z.array(z.object({ id: z.string(), source: z.string(), status: z.string(), observedAt: z.string().optional(), value: z.string().optional(), label: z.string() })),
+  moduleOutputs: z.array(z.object({ id: z.string(), output: z.record(z.string(), z.unknown()) })),
+  phaseLens: z.object({ floor: z.number().nullable(), nextRequired: z.array(z.string()), whatMattersNow: z.string() }),
+  tier: z.string(),
+  renderAs: z.enum(["full", "card"]),
+});
+type DimensionChapterInput = z.infer<typeof DimensionChapterInput>;
+
+// ── W4 output contracts (the OUTPUT_SCHEMA prompt slot) ─────────────────────
+
+export function w4OutputContract(dim: DimKey, renderAs: "full" | "card"): string {
+  const owner = DIMENSION_OWNERS[dim];
+  if (renderAs === "card") {
+    return `## MACHINE-READABLE OUTPUT CONTRACT (mandatory) — chapter CARD
+Return ONLY one JSON object, no prose outside it, no markdown fences:
+{
+  "dim": "${dim}",
+  "verdict": "<≤ 60 words, cite evidence ids as [ev:<id>]>",
+  "score_adjustment": { "proposed": <0-100 within ±10 of the deterministic score>, "reason": "<one line>" },
+  "strengths": ["<≤ 20 words, end with [ev:<id>] or [unevidenced]>"],
+  "gaps": ["<same rule>"],
+  "next_action": { "title": "<action>", "window": "this_week or 30d or 90d", "expected_lift": <points>, "evidence_to_add": "one of stripe, ga4, github, xero, linkedin, upload, url" },
+  "confidence": <0 to 1>,
+  "hallucination_risk": "one of low, medium, high"
+}
+RULES: 1-2 strengths, 1-2 gaps. Never state a number that is not in the evidence rows or module outputs.`;
+  }
+  return `## MACHINE-READABLE OUTPUT CONTRACT (mandatory) — dimension chapter
+Return ONLY one JSON object, no prose outside it, no markdown fences. Angle-quoted «…» parts are placeholders:
+{
+  "dim": "${dim}",
+  "verdict": "«at most 80 words; every material claim carries [ev:«evidence_id»] or [unevidenced]»",
+  "score_adjustment": { "proposed": «0-100», "deterministic": «the deterministic score you were given», "reason": "«one line»" },
+  "strengths": ["«2-4 items, at most 20 words, each ending with [ev:«id»] or [unevidenced]»"],
+  "gaps": ["«2-4 items, same rule»"],
+  "next_action": { "title": "«one action»", "window": "this_week or 30d or 90d", "expected_lift": «SVI points», "evidence_to_add": "one of stripe, ga4, github, xero, linkedin, upload, url" },
+  "criterion_cards": [{ "key": "«mapped criterion key»", "lens": "${dim}", "verdict": "«at most 60 words»", "strengths": ["…"], "gaps": ["…"], "next_action": "…", "citations": [{ "evidence_id": "«id from evidenceRows»", "quote": "«verbatim»" }] }],
+  "primary_visual": { "kind": "${owner.primaryVisual}", "data_state": "one of real, partial, benchmark_only, target", "title": "«title»", "series": [{ "label": "«label»", "value": «number» }] },
+  "secondary_visuals": [],
+  "phase_lens": { "phase_id": "«phase»", "what_matters_now": "«one sentence»", "floor": «number or omit», "floor_met": «boolean or omit» },
+  "frameworks_used": ["«from the Frameworks list»"],
+  "confidence": «0 to 1»,
+  "hallucination_risk": "one of low, medium, high"
+}
+RULES:
+- "proposed" must stay within ±10 of the deterministic score; explain any move in "reason".
+- primary_visual.kind must be one of: ${owner.allowedVisuals.join(", ")}. Every number in "series" MUST appear in moduleOutputs or evidenceRows (± rounding) — otherwise omit primary_visual and the deterministic chart is used.
+- Never invent evidence ids; cite only ids from evidenceRows. Unsupported claims end with [unevidenced].
+- Follow the chapter template: ${owner.outputTemplate}`;
+}
+
+// ── Evidence rows (shared by W4 + the report appendix) ──────────────────────
+
+const KIND_SOURCE: Record<string, EvidenceSource> = {
+  description: "self_declared",
+  criterion_text: "self_declared",
+  file: "upload",
+  link: "url",
+  repo_audit: "github",
+  tech_audit: "url",
+  competitive: "connector_other",
+  scraped: "url",
+  svi_scores: "self_declared",
+};
+
+function dimsForCriterion(key: CriterionKey): DimKey[] {
+  return DIM_ORDER.filter((d) => criteriaForDimension(d).includes(key));
+}
+
+/**
+ * Evidence rows for the whole report. Ids are the SAME deterministic uuids
+ * `buildEvidenceCatalogue` mints for W1–W3, so criterion citations resolve
+ * against the chapter evidence tables and the appendix register.
+ */
+export function buildEvidenceRows(context: ReportContext): EvidenceRow[] {
+  if (context.evidenceRows) return context.evidenceRows;
+  const rows = new Map<string, EvidenceRow>();
+  const at = new Date().toISOString();
+  const add = (criterion: CriterionKey, kind: string, label: string, value: string | undefined, status: EvidenceStatus) => {
+    const id = evidenceIdFor(`${criterion}|${kind}|${label}`);
+    const dims = dimsForCriterion(criterion);
+    const existing = rows.get(id);
+    if (existing) {
+      dims.forEach((d) => {
+        if (!existing.dims.includes(d)) existing.dims.push(d);
+      });
+      return;
+    }
+    rows.set(id, { evidence_id: id, source: KIND_SOURCE[kind] ?? "self_declared", label, status, observedAt: at, value, dims });
+  };
+  CRITERIA.forEach((def) => {
+    const key = def.key;
+    const data = context.criteriaData[key];
+    if (context.rawText.trim()) add(key, "description", "Startup description", undefined, "partial");
+    if (data?.textInput?.trim()) add(key, "criterion_text", `Founder evidence: ${key}`, data.textInput.slice(0, 160), "partial");
+    (data?.files ?? []).forEach((f) => add(key, "file", `Uploaded file: ${f.name}`, `${f.name} (${f.type}, ${f.size} bytes)`, "evidenced"));
+    (data?.links ?? []).forEach((l) => add(key, "link", `Link: ${l.label}`, l.url, "evidenced"));
+    const gr = context.gatherResults;
+    if (key === "code_git" && gr.repoAudit) add(key, "repo_audit", "GitHub repository audit", JSON.stringify(gr.repoAudit).slice(0, 160), "evidenced");
+    if (key === "website" && gr.techAudit) add(key, "tech_audit", "Technical audit", JSON.stringify(gr.techAudit).slice(0, 160), "evidenced");
+    if (key === "market" && gr.competitiveResearch) add(key, "competitive", "Competitive research", undefined, "partial");
+    if (gr.scrapedData && (key === "website" || key === "idea")) add(key, "scraped", "Scraped website data", undefined, "partial");
+  });
+  const out = Array.from(rows.values());
+  context.evidenceRows = out;
+  return out;
+}
+
+export function evidenceRowsForDim(context: ReportContext, dim: DimKey): EvidenceRow[] {
+  return buildEvidenceRows(context).filter((r) => r.dims.includes(dim));
+}
+
+// ── Chapter assembly (payload | null → DimensionChapter) ────────────────────
+
+export interface ChapterMeta {
+  runIds: string[];
+  degraded: boolean;
+  degradeReason?: string;
+}
+
+function dimScoreOf(context: ReportContext, dim: DimKey): number | null {
+  const fromMap = context.sviAnalysis.dimensionScores?.[dim];
+  if (typeof fromMap === "number" && Number.isFinite(fromMap)) return Math.round(fromMap);
+  const sub = context.sviAnalysis.subs?.find((s) => s.key === dim);
+  return sub && Number.isFinite(sub.value) ? Math.round(sub.value) : null;
+}
+
+/** Items must end with a citation or an explicit [unevidenced] marker (§C.11). */
+export function ensureCitationSuffix(items: string[], allowedIds: Set<string>): string[] {
+  return items.map((raw) => {
+    const t = raw.trim();
+    const ids = Array.from(t.matchAll(/\[ev:([^\]]+)\]/g)).map((m) => m[1].trim());
+    const cited = ids.some((id) => allowedIds.has(id));
+    if (cited) return t;
+    const stripped = t.replace(/\s*\[ev:[^\]]*\]/g, "").replace(/\s*\[unevidenced\]\s*$/i, "").trim();
+    return `${stripped} [unevidenced]`;
+  });
+}
+
+function firstLine(text: string | undefined): string {
+  if (!text) return "";
+  const line = text.split("\n").map((l) => l.replace(/^#+\s*/, "").replace(/[*_`>]/g, "").trim()).find((l) => l.length > 15);
+  return line ?? "";
+}
+
+function criterionCardsFor(context: ReportContext, dim: DimKey, cards: DimensionChapterPayload["criterion_cards"] | undefined, allowedIds: Set<string>, fallbackScore: number): CriterionCard[] {
+  const owner = DIMENSION_OWNERS[dim];
+  const keys = criteriaForDimension(dim);
+  const byKey = new Map((cards ?? []).map((c) => [c.key, c]));
+  const out: CriterionCard[] = [];
+  keys.forEach((key) => {
+    const def = CRITERIA.find((c) => c.key === key);
+    const r = context.criterionResults.get(key);
+    const pc = byKey.get(key);
+    if (!def || (!r && !pc)) return;
+    const score = r ? Math.max(0, Math.min(100, Math.round(r.score))) : fallbackScore;
+    const citations = (pc?.citations ?? r?.citations ?? []).filter((c) => allowedIds.has(c.evidence_id));
+    out.push({
+      key,
+      title: def.title,
+      score,
+      quality: qualityFromScore(score),
+      verdict: pc?.verdict || r?.highlights[0] || firstLine(r?.content) || `${def.title} scored ${score}/100.`,
+      strengths: (pc?.strengths?.length ? pc.strengths : (r?.highlights ?? []).slice(0, 3)).slice(0, 4),
+      gaps: (pc?.gaps?.length ? pc.gaps : (r?.risks ?? []).slice(0, 3)).slice(0, 4),
+      nextAction: pc?.next_action || r?.nextSteps[0] || "",
+      citations,
+      grounded: citations.length > 0 || Boolean(r?.grounded),
+      agent: r?.agentRole ?? owner.primary,
+    });
+  });
+  if (out.length === 0) {
+    const key = keys[0] ?? "idea";
+    const def = CRITERIA.find((c) => c.key === key);
+    out.push({ key, title: def?.title ?? key, score: fallbackScore, quality: qualityFromScore(fallbackScore), verdict: `Derived from the ${owner.title} dimension score — no criterion analysis in this run.`, strengths: [], gaps: [], nextAction: "", citations: [], grounded: false, agent: owner.primary });
+  }
+  return out;
+}
+
+/**
+ * Assemble a `DimensionChapter` from the (validated) owner payload — or a
+ * deterministic card when `payload` is null. Visuals always come from
+ * `generateChartsV2` (module outputs / evidence numbers); the owner-proposed
+ * series is accepted only when its numbers pass the provenance pass.
+ */
+export function buildDimensionChapter(
+  context: ReportContext,
+  dim: DimKey,
+  tierV2: ReportTierV2,
+  payload: DimensionChapterPayload | DimensionCardPayload | null,
+  meta: ChapterMeta,
+): DimensionChapter {
+  const owner = DIMENSION_OWNERS[dim];
+  const stage = benchmarkStageForSvi(context.stage);
+  const bench = benchmarkFor(dim, stage);
+  const det = dimScoreOf(context, dim);
+  const evidence = evidenceRowsForDim(context, dim);
+  const allowedIds = new Set(evidence.map((e) => e.evidence_id));
+  const modules = context.moduleOutputs?.[dim] ?? precomputeModulesForDim(context, dim);
+  const at = new Date().toISOString();
+
+  // Score: owner proposal clamped to ±10 of the deterministic score (§C.11).
+  let score = det ?? 0;
+  let scoreNote: string | undefined;
+  let proposedScore: number | undefined;
+  if (payload) {
+    proposedScore = Math.round(payload.score_adjustment.proposed);
+    if (det === null) score = proposedScore;
+    else {
+      const clamped = Math.max(det - 10, Math.min(det + 10, proposedScore));
+      if (clamped !== proposedScore) scoreNote = `Owner proposed ${proposedScore}; reconciled to ${clamped} (±10 of the deterministic ${det}).`;
+      score = clamped;
+    }
+  }
+  score = Math.max(0, Math.min(100, Math.round(score)));
+  const scored = det !== null || payload !== null;
+  const band = scored ? bandFor(score) : "pending";
+
+  const full = payload && "criterion_cards" in payload ? (payload as DimensionChapterPayload) : null;
+  const criteria = criterionCardsFor(context, dim, full?.criterion_cards, allowedIds, score);
+  const cardStrengths = criteria.flatMap((c) => c.strengths).filter(Boolean);
+  const cardGaps = criteria.flatMap((c) => c.gaps).filter(Boolean);
+  const strengths = ensureCitationSuffix((payload?.strengths?.length ? payload.strengths : cardStrengths).slice(0, 4), allowedIds);
+  const gaps = ensureCitationSuffix(
+    (payload?.gaps?.length ? payload.gaps : cardGaps.length ? cardGaps : score < 70 ? [`${owner.title} is ${Math.max(0, 70 - score)} points below the strong band (70).`] : []).slice(0, 4),
+    allowedIds,
+  );
+
+  const phaseId = context.phaseGate?.currentPhase ?? resolvePhaseId(context);
+  const rule = PHASE_EXIT_RULES[phaseId];
+  const floor = rule.dimensionFloors[dim as keyof typeof rule.dimensionFloors];
+  const phaseLabel = GROWTH_PHASE_LABELS[phaseId].en;
+  const whatMattersNow =
+    full?.phase_lens?.what_matters_now?.trim() ||
+    (owner.phaseBehaviour[phaseId] ? `${phaseLabel}: ${owner.phaseBehaviour[phaseId]}` : "") ||
+    (typeof floor === "number" ? `${phaseLabel}: ${owner.shortLabel} floor ${floor} — ${score >= floor ? "met" : "not met"} at ${score}.` : `${phaseLabel}: no ${owner.shortLabel} floor at this phase.`);
+
+  const action = DIMENSION_ACTIONS[dim]?.[0];
+  const lift = Math.max(1, Math.round((owner.weight * Math.max(0, 70 - score)) / 100));
+  const nextAction = payload
+    ? { title: payload.next_action.title, window: payload.next_action.window, expectedLift: Math.round(payload.next_action.expected_lift), evidenceToAdd: payload.next_action.evidence_to_add }
+    : { title: action?.label ?? `Add evidence for ${owner.shortLabel}`, window: "30d" as const, expectedLift: lift, evidenceToAdd: owner.connectors[0] };
+
+  const charts = generateChartsV2({
+    dim,
+    ownerAgent: owner.primary,
+    score: scored ? score : null,
+    benchmark: bench,
+    stageLabel: context.sviAnalysis.stageLabel,
+    criterionScore: (key) => {
+      const c = criteria.find((x) => x.key === key);
+      return c ? c.score : null;
+    },
+    moduleOutputs: modules,
+    evidence,
+    proposedPrimary: (full?.primary_visual as LlmVisualProposal | undefined) ?? null,
+  });
+
+  const verdictSrc = payload?.verdict?.trim();
+  const verdict = verdictSrc || (scored ? `${owner.title} scores ${score}/100 (${band}) against a ${context.sviAnalysis.stageLabel} median of ${bench.p50}.` : `${owner.title} was not scored in this run.`);
+  const citedInVerdict = Array.from(verdict.matchAll(/\[ev:([^\]]+)\]/g)).some((m) => allowedIds.has(m[1].trim()));
+  const uncited = [...strengths, ...gaps].filter((t) => /\[unevidenced\]$/i.test(t)).length;
+  const frameworks = full?.frameworks_used?.length ? full.frameworks_used.slice(0, 8) : owner.frameworks;
+
+  return {
+    dim,
+    title: owner.title,
+    titleVi: owner.titleVi,
+    weight: owner.weight,
+    ownerAgent: owner.primary,
+    supportingAgents: owner.supporting,
+    score,
+    band,
+    benchmark: { p25: bench.p25, p50: bench.p50, p75: bench.p75, percentile: scored ? percentileFor(score, bench.p25, bench.p50, bench.p75) : null, stage },
+    verdict,
+    primaryVisual: charts.primary,
+    secondaryVisuals: charts.secondary,
+    evidence,
+    criteria,
+    strengths,
+    gaps,
+    nextAction,
+    phaseLens: { phaseId, whatMattersNow, floor: typeof floor === "number" ? floor : undefined, floorMet: typeof floor === "number" ? score >= floor : undefined },
+    frameworks,
+    modules,
+    audit: { grounded: citedInVerdict || criteria.some((c) => c.grounded), uncited, revised: false, auditor: "llm-auditor", at },
+    runIds: meta.runIds,
+    renderAs: tierV2 === "free" ? owner.freeTier : "full",
+    degraded: meta.degraded || undefined,
+    degradeReason: meta.degraded ? meta.degradeReason ?? "owner call failed" : undefined,
+    proposedScore,
+    scoreNote: scoreNote ?? (charts.provenance.downgraded ? "Owner-proposed chart series failed number provenance — deterministic chart shown." : undefined),
+  };
+}
+
+// ── W4 dispatch ─────────────────────────────────────────────────────────────
+
+const W4_MAX_TOKENS = { full: 900, card: 350 } as const;
+
+function renderChapterUser(input: DimensionChapterInput): string {
+  const rows = input.evidenceRows
+    .map((e) => `- ${e.id} · ${e.source} · ${e.status}${e.observedAt ? ` · ${e.observedAt.slice(0, 10)}` : ""} · ${e.label}${e.value ? ` — ${e.value}` : ""}`)
+    .join("\n");
+  const { evidenceRows: _rows, ...rest } = input;
+  return [
+    `## Chapter inputs (JSON — the ONLY facts you may use)`,
+    JSON.stringify(rest, null, 1),
+    `## evidenceRows (the only citable ids)`,
+    rows || "(no evidence rows — every claim must end with [unevidenced])",
+    `Write the "${input.dim}" chapter as ${input.renderAs === "card" ? "a card" : "a full chapter"} for the ${input.tier} tier, following the output contract in your instructions.`,
+  ].join("\n\n");
+}
+
+function chapterInput(context: ReportContext, dim: DimKey, tierV2: ReportTierV2, renderAs: "full" | "card", modules: ModuleOutput[]): DimensionChapterInput {
+  const owner = DIMENSION_OWNERS[dim];
+  const stage = benchmarkStageForSvi(context.stage);
+  const bench = benchmarkFor(dim, stage);
+  const phaseId = context.phaseGate?.currentPhase ?? resolvePhaseId(context);
+  const rule = PHASE_EXIT_RULES[phaseId];
+  const floor = rule.dimensionFloors[dim as keyof typeof rule.dimensionFloors];
+  const nextPhase = context.phaseGate?.nextPhase ?? null;
+  return {
+    dim,
+    weight: owner.weight,
+    stage,
+    stageLabel: context.sviAnalysis.stageLabel,
+    phaseId,
+    benchmark: { ...bench, source: "svi-dimension-benchmarks ANCHORS (static; cohort overrides when N ≥ 30)" },
+    deterministicScore: dimScoreOf(context, dim),
+    criterionResults: criteriaForDimension(dim)
+      .map((key) => context.criterionResults.get(key))
+      .filter((r): r is AgentAnalysisResult => Boolean(r))
+      .map((r) => ({ key: r.criterion, score: Math.round(r.score), verdict: r.highlights.slice(0, 2).join("; ") || firstLine(r.content), citations: (r.citations ?? []).slice(0, 4), grounded: Boolean(r.grounded) })),
+    evidenceRows: evidenceRowsForDim(context, dim).map((e) => ({ id: e.evidence_id, source: e.source, status: e.status, observedAt: e.observedAt, value: e.value, label: e.label })),
+    moduleOutputs: modules.map((m) => ({ id: m.id, output: m.output })),
+    phaseLens: {
+      floor: typeof floor === "number" ? floor : null,
+      nextRequired: nextPhase ? [...PHASE_EXIT_RULES[nextPhase].requiredCriteria] : [],
+      whatMattersNow: owner.phaseBehaviour[phaseId] ?? "",
+    },
+    tier: tierV2,
+    renderAs,
+  };
+}
+
+/** Wrap a transport so every model call (first + repair) draws from the per-report budget. */
+function meteredCaller(inner: StructuredModelCaller, budget: CallBudget | undefined, budgetOk: (() => boolean) | undefined): StructuredModelCaller {
+  return async (req) => {
+    if (budgetOk && !budgetOk()) return { ok: false, status: "model_error", reason: "monthly AI budget exhausted" };
+    if (budget && !budget.tryAcquire()) return { ok: false, status: "model_error", reason: `report call budget exhausted (${budget.max})` };
+    return inner(req);
+  };
+}
+
+async function dispatchChapter(
+  dim: DimKey,
+  context: ReportContext,
+  tier: ReportTier,
+  callAI: AICaller,
+  opts: DispatchOptions,
+  shared: { tierV2: ReportTierV2; knowledgeDb: KnowledgeDb | null },
+): Promise<DimensionChapter> {
+  const owner = DIMENSION_OWNERS[dim];
+  const role = owner.primary;
+  const renderAs: "full" | "card" = shared.tierV2 === "free" ? owner.freeTier : "full";
+  const modules = context.moduleOutputs?.[dim] ?? precomputeModulesForDim(context, dim);
+  const started = Date.now();
+
+  // Budget gate BEFORE building the prompt: degrade to a deterministic card.
+  if (opts.budgetOk && !opts.budgetOk()) {
+    return buildDimensionChapter(context, dim, shared.tierV2, null, { runIds: [], degraded: true, degradeReason: "budget: monthly AI cap reached — deterministic card" });
+  }
+  if (opts.callBudget && opts.callBudget.used >= opts.callBudget.max) {
+    return buildDimensionChapter(context, dim, shared.tierV2, null, { runIds: [], degraded: true, degradeReason: `budget: report call cap (${opts.callBudget.max}) reached — deterministic card` });
+  }
+
+  let knowledgeRows: AgentKnowledgeRow[] = [];
+  let template: string | null = null;
+  let promptVersionId = NIL_PROMPT_VERSION_ID;
+  try {
+    [knowledgeRows, template, promptVersionId] = await Promise.all([
+      loadAgentKnowledgeRows(role, shared.knowledgeDb),
+      (opts.resolvePromptTemplate ?? defaultPromptTemplate)(role),
+      (opts.resolvePromptVersionId ?? defaultPromptVersionId)(role),
+    ]);
+  } catch {
+    // Knowledge / template failures degrade the prompt, never the chapter.
+  }
+
+  const evidence = evidenceRowsForDim(context, dim);
+  const systemPrompt = buildAgentPrompt(role, context, {
+    dim,
+    phaseId: context.phaseGate?.currentPhase,
+    tier: shared.tierV2,
+    template,
+    knowledgeRows,
+    moduleOutputs: modules,
+    evidenceSummary: evidence.map((e) => `- ${e.label} (${e.source}, ${e.status})`).join("\n"),
+    outputSchema: w4OutputContract(dim, renderAs),
+  });
+
+  const input = chapterInput(context, dim, shared.tierV2, renderAs, modules);
+  const taskClass = taskClassForChapter(role, shared.tierV2);
+  const transport = opts.modelCaller ?? callAIToModelCallerWithClass(callAI, W4_MAX_TOKENS[renderAs], taskClass);
+  const outputSchema = renderAs === "card" ? DimensionCardPayload : DimensionChapterPayload;
+
+  const structured = await callStructured({
+    promptVersionId,
+    agent: `report-${role}`,
+    model: taskClass ? `${modelForAgent(role)}#report-class` : modelForAgent(role),
+    inputSchema: DimensionChapterInput,
+    outputSchema,
+    input,
+    systemPrompt,
+    renderUser: renderChapterUser,
+    businessId: opts.businessId ?? null,
+    userId: opts.userId ?? null,
+    purpose: opts.purpose ?? "customer_report",
+    evidenceIds: evidence.map((e) => e.evidence_id),
+    modelCaller: meteredCaller(transport, opts.callBudget, opts.budgetOk),
+  });
+
+  const runIds = structured.runId ? [structured.runId] : [];
+  if (structured.ok) {
+    const chapter = buildDimensionChapter(context, dim, shared.tierV2, structured.data as DimensionChapterPayload | DimensionCardPayload, { runIds, degraded: false });
+    chapter.modules = [...chapter.modules, { id: "report-pipeline/agent-dispatcher.ts:dispatchChapter", output: { durationMs: Date.now() - started, renderAs, taskClass: taskClass ?? "free-chain" } }];
+    return chapter;
+  }
+  return buildDimensionChapter(context, dim, shared.tierV2, null, { runIds, degraded: true, degradeReason: `schema/model: ${structured.reason}` });
+}
+
+/**
+ * W4 — the 8 owner calls in parallel (§C.1). Every chapter lands in
+ * `context.dimensionChapters` and is streamed through `opts.onChapter`
+ * (SSE `dimension_complete`). Never throws: a failed owner call becomes a
+ * deterministic `degraded` card.
+ */
+export async function dispatchDimensionChapters(
+  context: ReportContext,
+  tier: ReportTier,
+  callAI: AICaller,
+  opts: DispatchOptions = {},
+): Promise<Map<DimKey, DimensionChapter>> {
+  const tierV2: ReportTierV2 = opts.tierV2 ?? tier;
+  const knowledgeDb = opts.knowledgeDb === undefined ? (getSupabaseAdmin() as unknown as KnowledgeDb | null) : opts.knowledgeDb;
+  buildEvidenceRows(context);
+  const chapters = context.dimensionChapters ?? new Map<DimKey, DimensionChapter>();
+  context.dimensionChapters = chapters;
+
+  await Promise.all(
+    DIM_ORDER.map(async (dim) => {
+      let chapter: DimensionChapter;
+      try {
+        chapter = await dispatchChapter(dim, context, tier, callAI, opts, { tierV2, knowledgeDb });
+      } catch (err) {
+        chapter = buildDimensionChapter(context, dim, tierV2, null, { runIds: [], degraded: true, degradeReason: `error: ${err instanceof Error ? err.message : String(err)}` });
+      }
+      chapters.set(dim, chapter);
+      try {
+        opts.onChapter?.(dim, chapter);
+      } catch {
+        // A listener failure never breaks the wave.
+      }
+    }),
+  );
+  return chapters;
+}
+
+/** Deterministic chapters for every dimension (W4 off / budget degrade path) — zero LLM calls. */
+export function deterministicDimensionChapters(context: ReportContext, tierV2: ReportTierV2, reason: string): Map<DimKey, DimensionChapter> {
+  buildEvidenceRows(context);
+  const chapters = new Map<DimKey, DimensionChapter>();
+  DIM_ORDER.forEach((dim) => chapters.set(dim, buildDimensionChapter(context, dim, tierV2, null, { runIds: [], degraded: true, degradeReason: reason })));
+  context.dimensionChapters = chapters;
+  return chapters;
 }

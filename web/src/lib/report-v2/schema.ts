@@ -101,6 +101,12 @@ export interface DimensionChapter {
   runIds: string[];
   /** Free tier: chapters 6–9 render as one-card summaries. */
   renderAs: "full" | "card";
+  /** G13-W2-R2: true when the owner call failed twice / was budget-stopped and this is a deterministic card. */
+  degraded?: boolean;
+  degradeReason?: string;
+  /** Owner-proposed score before the ±10 clamp (§C.11); `scoreNote` explains a reconciliation. */
+  proposedScore?: number;
+  scoreNote?: string;
 }
 
 export type ValuationMethodKey =
@@ -335,6 +341,10 @@ const dimensionChapter = z
     audit: auditStamp,
     runIds: z.array(z.string()),
     renderAs: z.enum(["full", "card"]),
+    degraded: z.boolean().optional(),
+    degradeReason: z.string().optional(),
+    proposedScore: z.number().optional(),
+    scoreNote: z.string().optional(),
   })
   .refine((c) => c.evidence.length > 0 || c.primaryVisual.dataState !== "real", {
     message: "a chapter with no evidence rows cannot claim a `real` primary visual",

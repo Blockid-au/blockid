@@ -136,7 +136,7 @@ export function benchmarkStageFrom(stageLabel: string | null | undefined, stage:
   return 2;
 }
 
-function qualityFromScore(score: number): QualityLevel {
+export function qualityFromScore(score: number): QualityLevel {
   if (score >= 85) return "exceptional";
   if (score >= 70) return "strong";
   if (score >= 50) return "good";
@@ -165,7 +165,7 @@ function firstParagraph(md: string | null | undefined): string {
   return cleaned ?? "";
 }
 
-function percentileFor(score: number, p25: number, p50: number, p75: number): number {
+export function percentileFor(score: number, p25: number, p50: number, p75: number): number {
   if (score <= p25) return Math.max(1, Math.round((score / Math.max(1, p25)) * 25));
   if (score <= p50) return Math.round(25 + ((score - p25) / Math.max(1, p50 - p25)) * 25);
   if (score <= p75) return Math.round(50 + ((score - p50) / Math.max(1, p75 - p50)) * 25);

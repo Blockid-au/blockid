@@ -1,0 +1,357 @@
+// module-precompute — deterministic module outputs per dimension, computed
+// once per report from the SVI signals / criterion scores / gather results
+// and handed to (a) the W4 owner prompt as the compact MODULES block and
+// (b) `generateChartsV2`, whose number-provenance pass only accepts series
+// values that appear here or in the evidence rows (spec §C.2 / §C.4 / §C.11).
+//
+// Every entry is `{ id, output }` where `id` names the module (file:function)
+// so the chapter appendix and the prompt can cite it as [module:<id>].
+// Pure: no I/O, no LLM. Modules that need inputs the context does not carry
+// (Stripe MRR series, cap-table register, tech audit numbers) are simply
+// absent — the visuals then fall back to benchmark_only / target states.
+//
+// Nothing here imports ai-client: `cfo-valuation.ts` does, so its pure
+// Rule-of-40 formula is re-stated inline with the same module id for
+// provenance.
+
+import { auMarketProfile } from "@/lib/agents/cfo-tam-sam-som";
+import { scoreEsop, type GovernanceHealth } from "@/lib/agents/cfo-esop-scoring";
+import { calculateComplianceScore } from "@/lib/agents/clo-compliance";
+import { evaluateAntlerSignals } from "@/lib/agents/antler-signals";
+import { scoreFundingReadiness, type FundingStage } from "@/lib/agents/cro-funding-readiness";
+import type { CriterionKey } from "@/lib/evaluation-criteria";
+import type { SVIExtractedSignals } from "@/lib/svi-analysis";
+import { benchmarkFor, DIM_ORDER, type DimKey } from "./dimension-owners";
+import { benchmarkStageForSvi } from "./agent-prompts";
+import type { ReportContext } from "./types";
+
+export interface ModuleOutput {
+  id: string;
+  output: Record<string, unknown>;
+}
+
+export type ModuleOutputsByDim = Partial<Record<DimKey, ModuleOutput[]>>;
+
+function dimScore(ctx: ReportContext, dim: DimKey): number | null {
+  const fromMap = ctx.sviAnalysis.dimensionScores?.[dim];
+  if (typeof fromMap === "number" && Number.isFinite(fromMap)) return Math.round(fromMap);
+  const sub = ctx.sviAnalysis.subs?.find((s) => s.key === dim);
+  return sub && Number.isFinite(sub.value) ? Math.round(sub.value) : null;
+}
+
+function criterionScore(ctx: ReportContext, key: CriterionKey): number | null {
+  const r = ctx.criterionResults.get(key);
+  if (r && Number.isFinite(r.score)) return Math.round(r.score);
+  const ai = ctx.criteriaData[key]?.aiScore;
+  return typeof ai === "number" && Number.isFinite(ai) ? Math.round(ai) : null;
+}
+
+function fundingStage(stage: number): FundingStage {
+  if (stage >= 6) return "series-b";
+  if (stage >= 5) return "series-a";
+  if (stage >= 2) return "seed";
+  return "pre-seed";
+}
+
+function signalsOf(ctx: ReportContext): SVIExtractedSignals | null {
+  const s = ctx.sviAnalysis.signals;
+  return s && typeof s === "object" ? s : null;
+}
+
+/** Benchmark + deterministic score row every chapter carries. */
+function benchmarkModule(ctx: ReportContext, dim: DimKey): ModuleOutput {
+  const stage = benchmarkStageForSvi(ctx.stage);
+  const b = benchmarkFor(dim, stage);
+  return {
+    id: "report-pipeline/dimension-owners.ts:benchmarkFor",
+    output: { dim, benchmarkStage: stage, p25: b.p25, p50: b.p50, p75: b.p75, deterministicScore: dimScore(ctx, dim) },
+  };
+}
+
+function criterionModule(ctx: ReportContext, keys: CriterionKey[]): ModuleOutput | null {
+  const output: Record<string, unknown> = {};
+  keys.forEach((k) => {
+    const v = criterionScore(ctx, k);
+    if (v !== null) output[k] = v;
+  });
+  return Object.keys(output).length ? { id: "svi-analysis.ts:criterionScores", output } : null;
+}
+
+// ── Per-dimension builders ──────────────────────────────────────────────────
+
+function treModules(ctx: ReportContext): ModuleOutput[] {
+  const out: ModuleOutput[] = [];
+  const s = signalsOf(ctx);
+  if (s) {
+    const output: Record<string, unknown> = {
+      hasRevenue: s.hasRevenue,
+      revenueBand: s.revenueBand,
+      hasCustomers: s.hasCustomers,
+      hasAnalytics: s.hasAnalytics,
+    };
+    if (typeof s.mrrAud === "number") output.mrrAud = Math.round(s.mrrAud);
+    if (typeof s.arrAud === "number") output.arrAud = Math.round(s.arrAud);
+    if (typeof s.revenueMonths === "number") output.revenueMonths = s.revenueMonths;
+    if (typeof s.pilotCount === "number") output.pilotCount = s.pilotCount;
+    if (typeof s.pilotRevenueAud === "number") output.pilotRevenueAud = Math.round(s.pilotRevenueAud);
+    out.push({ id: "svi-analysis.ts:extractSignals(traction)", output });
+    // Rule of 40 needs growth + margin — only when both are stated (never inferred).
+    const growth = (ctx.sviAnalysis as { growthRatePct?: number }).growthRatePct;
+    const margin = (ctx.sviAnalysis as { profitMarginPct?: number }).profitMarginPct;
+    if (typeof growth === "number" && typeof margin === "number") {
+      out.push({ id: "agents/cfo-valuation.ts:calculateRuleOf40", output: { growthRatePct: growth, profitMarginPct: margin, ruleOf40: growth + margin } });
+    }
+  }
+  const c = criterionModule(ctx, ["customer_size", "revenue", "market", "gtm_strategy"]);
+  if (c) out.push(c);
+  return out;
+}
+
+function mpcModules(ctx: ReportContext): ModuleOutput[] {
+  const out: ModuleOutput[] = [];
+  const sector = ctx.sviAnalysis.sector ?? signalsOf(ctx)?.sector;
+  const profile = auMarketProfile(sector);
+  out.push({
+    id: "agents/cfo-tam-sam-som.ts:auMarketProfile",
+    output: {
+      sector: sector ?? "default",
+      reachableUnits: profile.reachableUnits,
+      unitLabel: profile.unitLabel,
+      cagrPct: profile.cagrPct,
+      captureRatePct: profile.captureRatePct,
+      expansionMultiplier: profile.expansionMultiplier,
+      sourceCount: profile.sources.length,
+    },
+  });
+  const s = signalsOf(ctx);
+  if (s) {
+    out.push({
+      id: "svi-analysis.ts:extractSignals(market)",
+      output: { marketSize: s.marketSize, problemClarity: s.problemClarity, hasCustomerInterviews: s.hasCustomerInterviews },
+    });
+  }
+  const c = criterionModule(ctx, ["market", "gtm_strategy", "idea", "website"]);
+  if (c) out.push(c);
+  return out;
+}
+
+function ftvModules(ctx: ReportContext): ModuleOutput[] {
+  const out: ModuleOutput[] = [];
+  const s = signalsOf(ctx);
+  if (s) {
+    try {
+      const antler = evaluateAntlerSignals({ analysis: ctx.sviAnalysis, signals: s, rawText: ctx.rawText, ci: ctx.sviAnalysis.competitiveIntelligence ?? null });
+      const output: Record<string, unknown> = { progressionScore: Math.round(antler.progressionScore) };
+      antler.signals.forEach((sig) => {
+        output[sig.key] = Math.round(sig.score);
+      });
+      if (antler.standout) output.standout = antler.standout.label;
+      if (antler.weakestLink) output.weakestLink = antler.weakestLink.label;
+      out.push({ id: "agents/antler-signals.ts:evaluateAntlerSignals", output });
+    } catch {
+      // Antler evaluation is best-effort; the chapter still has criterion scores.
+    }
+    out.push({
+      id: "svi-analysis.ts:extractSignals(founder)",
+      output: { hasCoFounder: s.hasCoFounder, founderExperience: s.founderExperience, founderSectorFit: s.founderSectorFit, hasAdvisors: s.hasAdvisors },
+    });
+  }
+  const c = criterionModule(ctx, ["founder_profile", "team", "team_structure"]);
+  if (c) out.push(c);
+  return out;
+}
+
+function ptdModules(ctx: ReportContext): ModuleOutput[] {
+  const out: ModuleOutput[] = [];
+  const s = signalsOf(ctx);
+  if (s) {
+    out.push({
+      id: "svi-analysis.ts:extractSignals(product)",
+      output: { hasProduct: s.hasProduct, hasDemo: s.hasDemo, hasSourceCode: s.hasSourceCode, hasWebsite: s.hasWebsite, hasApp: s.hasApp, isAIWrapper: s.isAIWrapper },
+    });
+  }
+  const gr = ctx.gatherResults;
+  if (gr.techAudit) out.push({ id: "report-pipeline/orchestrator.ts:gather(techAudit)", output: flatNumbers(gr.techAudit) });
+  if (gr.repoAudit) out.push({ id: "report-pipeline/orchestrator.ts:gather(repoAudit)", output: flatNumbers(gr.repoAudit) });
+  const c = criterionModule(ctx, ["code_git", "website", "roadmap"]);
+  if (c) out.push(c);
+  return out;
+}
+
+function cghModules(ctx: ReportContext): ModuleOutput[] {
+  const out: ModuleOutput[] = [];
+  const s = signalsOf(ctx);
+  if (s) {
+    const governance: GovernanceHealth = {
+      esop: s.esopAllocated
+        ? { poolCreated: true, poolPct: 12, grantsIssued: false, grantCount: 0, founderVestingInPlace: s.hasVesting, legalDeedSigned: false, strikePrice: 0, vestingMonths: 48, cliffMonths: 12 }
+        : null,
+      hasShareholdersAgreement: s.hasShareholdersAgreement,
+      hasFounderVesting: s.hasVesting,
+      boardMeetingsPerYear: s.hasBoardCadence ? 12 : 0,
+      hasDataRoom: s.hasDataRoom,
+      dataRoomPct: s.hasDataRoom ? 60 : 0,
+      hasInvestorNDA: false,
+      hasIpAssignment: s.hasIPProtection,
+    };
+    const esop = scoreEsop(governance);
+    out.push({
+      id: "agents/cfo-esop-scoring.ts:scoreEsop",
+      output: {
+        esopScore: Math.round(esop.score),
+        sviContribution: esop.sviContribution,
+        valuationMultiplier: esop.valuationMultiplier,
+        issues: esop.issues.length,
+        criticalIssues: esop.issues.filter((i) => i.severity === "critical").length,
+        topAction: esop.actions[0]?.action ?? null,
+        esopAssumed: s.esopAllocated ? "pool declared; 12 % AU norm assumed, no register" : "no pool declared",
+      },
+    });
+    out.push({
+      id: "svi-analysis.ts:extractSignals(governance)",
+      output: { hasCapTable: s.hasCapTable, hasVesting: s.hasVesting, hasShareholdersAgreement: s.hasShareholdersAgreement, hasBoardCadence: s.hasBoardCadence, esopAllocated: s.esopAllocated },
+    });
+  }
+  const c = criterionModule(ctx, ["team", "dataroom", "team_structure"]);
+  if (c) out.push(c);
+  return out;
+}
+
+function iriModules(ctx: ReportContext): ModuleOutput[] {
+  const out: ModuleOutput[] = [];
+  const s = signalsOf(ctx);
+  if (s) {
+    const fr = scoreFundingReadiness({
+      stage: fundingStage(ctx.stage),
+      mrrAud: typeof s.mrrAud === "number" ? s.mrrAud : 0,
+      hasTechnicalFounder: s.hasSourceCode || s.hasProduct,
+      hasFounderVesting: s.hasVesting,
+      hasShareholdersAgreement: s.hasShareholdersAgreement,
+      esopPoolPct: s.esopAllocated ? 12 : 0,
+      dataRoomPct: s.hasDataRoom ? 60 : 0,
+      hasPitchDeck: s.hasPitchDeck,
+      hasFinancialModel: s.hasFinancialModel,
+      hasUseOfFunds: s.targetRaiseMentioned,
+    });
+    const output: Record<string, unknown> = { overall: Math.round(fr.overall), verdict: fr.verdict };
+    fr.pillars.forEach((p) => {
+      output[p.key] = Math.round(p.score);
+    });
+    out.push({ id: "agents/cro-funding-readiness.ts:scoreFundingReadiness", output });
+    out.push({
+      id: "svi-analysis.ts:extractSignals(investor)",
+      output: { hasPitchDeck: s.hasPitchDeck, hasFinancialModel: s.hasFinancialModel, hasDataRoom: s.hasDataRoom, raiseMentioned: s.raiseMentioned },
+    });
+  }
+  const c = criterionModule(ctx, ["documents", "dataroom", "revenue"]);
+  if (c) out.push(c);
+  return out;
+}
+
+function lcoModules(ctx: ReportContext): ModuleOutput[] {
+  const out: ModuleOutput[] = [];
+  const s = signalsOf(ctx);
+  if (s) {
+    const completed: string[] = [];
+    if (s.hasABN) completed.push("abn", "acn");
+    if (s.hasIPProtection) completed.push("ip_assignment", "trademark");
+    if (s.hasShareholdersAgreement) completed.push("sha");
+    if (s.hasVesting) completed.push("vesting");
+    if (s.esopAllocated) completed.push("esop");
+    if (s.hasLegalDocs) completed.push("constitution", "terms", "privacy_policy");
+    if (s.hasCapTable) completed.push("cap_table");
+    if (s.hasDataRoom) completed.push("data_room");
+    const ca = calculateComplianceScore(Math.max(0, Math.min(4, ctx.stage)), completed);
+    out.push({
+      id: "agents/clo-compliance.ts:calculateComplianceScore",
+      output: {
+        complianceScore: ca.score,
+        itemsRelevant: ca.items.length,
+        itemsCompleted: ca.completed.length,
+        missingCritical: ca.missingCritical.map((i) => i.id).slice(0, 6),
+        nextStep: ca.nextSteps[0] ?? null,
+        completedIds: completed,
+      },
+    });
+    out.push({
+      id: "svi-analysis.ts:extractSignals(legal)",
+      output: { hasABN: s.hasABN, hasIPProtection: s.hasIPProtection, hasContracts: s.hasContracts, hasLegalDocs: s.hasLegalDocs },
+    });
+  }
+  const c = criterionModule(ctx, ["documents"]);
+  if (c) out.push(c);
+  return out;
+}
+
+function svmModules(ctx: ReportContext): ModuleOutput[] {
+  const out: ModuleOutput[] = [];
+  const s = signalsOf(ctx);
+  if (s) {
+    // 5-factor moat, deterministic from the extracted signals (0 / 50 / 100 per factor).
+    const factors = {
+      networkEffects: s.hasNetworkEffect ? 100 : 0,
+      switchingCosts: s.hasSwitchingCosts ? 100 : 0,
+      brand: s.hasSocialProof ? 60 : 20,
+      proprietaryData: s.hasDataAdvantage ? 100 : 0,
+      economiesOfScale: s.hasProduct && s.hasCustomers ? 50 : 20,
+    };
+    const moatScore = Math.round(Object.values(factors).reduce((a, b) => a + b, 0) / 5);
+    out.push({ id: "report-pipeline/module-precompute.ts:fiveFactorMoat", output: { ...factors, moatScore, hasMoat: s.hasMoat, isAIWrapper: s.isAIWrapper } });
+  }
+  const c = criterionModule(ctx, ["roadmap", "idea"]);
+  if (c) out.push(c);
+  return out;
+}
+
+/** Numeric / boolean / short-string leaves of a gather result, one level deep. */
+function flatNumbers(obj: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  Object.entries(obj).forEach(([k, v]) => {
+    if (typeof v === "number" || typeof v === "boolean") out[k] = v;
+    else if (typeof v === "string" && v.length <= 60) out[k] = v;
+  });
+  return out;
+}
+
+const BUILDERS: Record<DimKey, (ctx: ReportContext) => ModuleOutput[]> = {
+  tre: treModules,
+  mpc: mpcModules,
+  ftv: ftvModules,
+  ptd: ptdModules,
+  cgh: cghModules,
+  iri: iriModules,
+  lco: lcoModules,
+  svm: svmModules,
+};
+
+/** All module outputs for one dimension (benchmark row first). */
+export function precomputeModulesForDim(ctx: ReportContext, dim: DimKey): ModuleOutput[] {
+  let extra: ModuleOutput[] = [];
+  try {
+    extra = BUILDERS[dim](ctx);
+  } catch {
+    extra = [];
+  }
+  return [benchmarkModule(ctx, dim), ...extra];
+}
+
+/** All module outputs for all eight dimensions (GATHER-time precompute). */
+export function precomputeModules(ctx: ReportContext): ModuleOutputsByDim {
+  const out: ModuleOutputsByDim = {};
+  DIM_ORDER.forEach((dim) => {
+    out[dim] = precomputeModulesForDim(ctx, dim);
+  });
+  return out;
+}
+
+/** Every finite number reachable in a set of module outputs (provenance universe). */
+export function moduleNumbers(outputs: ModuleOutput[] | undefined): number[] {
+  const nums: number[] = [];
+  const walk = (v: unknown): void => {
+    if (typeof v === "number" && Number.isFinite(v)) nums.push(v);
+    else if (Array.isArray(v)) v.forEach(walk);
+    else if (v && typeof v === "object") Object.values(v as Record<string, unknown>).forEach(walk);
+  };
+  (outputs ?? []).forEach((m) => walk(m.output));
+  return nums;
+}
