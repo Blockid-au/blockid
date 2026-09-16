@@ -32,19 +32,22 @@ export interface LandingContext {
   persona: string;
 }
 
+/** Pure payload builders — pinned by landing-grid.test.tsx (no DOM in vitest). */
+export function landingViewedPayload(ctx: LandingContext, blocks: readonly string[], emptyBlocks: readonly string[]) {
+  return { phase: ctx.phase, plan: ctx.plan, persona: ctx.persona, blocks: blocks.join(","), empty_blocks: emptyBlocks.join(",") };
+}
+
+export function landingClickPayload(block: LandingBlockName, href: string, ctx: LandingContext, action?: string) {
+  return { block, href, phase: ctx.phase, action: action ?? href, persona: ctx.persona };
+}
+
 export function LandingViewedTracker({ ctx, blocks, emptyBlocks }: { ctx: LandingContext; blocks: readonly string[]; emptyBlocks: readonly string[] }) {
   const fired = React.useRef(false);
   React.useEffect(() => {
     if (fired.current) return;
     fired.current = true;
-    trackEvent("landing_viewed", {
-      phase: ctx.phase,
-      plan: ctx.plan,
-      persona: ctx.persona,
-      blocks: blocks.join(","),
-      empty_blocks: emptyBlocks.join(","),
-    });
-  }, [ctx.phase, ctx.plan, ctx.persona, blocks, emptyBlocks]);
+    trackEvent("landing_viewed", landingViewedPayload(ctx, blocks, emptyBlocks));
+  }, [ctx, blocks, emptyBlocks]);
   return null;
 }
 
@@ -70,8 +73,8 @@ const VARIANT: Record<NonNullable<LandingCtaProps["variant"]>, string> = {
 
 export function LandingCta({ block, href, ctx, action, variant = "primary", className, children, testId }: LandingCtaProps) {
   const onClick = React.useCallback(() => {
-    trackEvent("landing_block_click", { block, href, phase: ctx.phase, action: action ?? href, persona: ctx.persona });
-  }, [block, href, ctx.phase, ctx.persona, action]);
+    trackEvent("landing_block_click", landingClickPayload(block, href, ctx, action));
+  }, [block, href, ctx, action]);
   return (
     <Link href={href} onClick={onClick} data-landing-cta={block} data-testid={testId} className={cn(VARIANT[variant], className)}>
       {children}
