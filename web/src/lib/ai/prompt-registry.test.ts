@@ -136,6 +136,7 @@ vi.mock("@/lib/supabase", () => ({
 }));
 
 import {
+  demoteCanary,
   promoteCanaryToProd,
   readCurrentPrompt,
 } from "./prompt-registry";
@@ -235,5 +236,36 @@ describe("promoteCanaryToProd", () => {
       throw new Error("expected failure, got ok");
     }
     expect(res.reason).toBe("db_error");
+  });
+});
+
+// ── S-R5 §C.10: demoteCanary ─────────────────────────────────────────
+
+describe("demoteCanary (S-R5)", () => {
+  const PROD = "cccccccc-0000-4000-8000-000000000001";
+  const CANARY = "dddddddd-0000-4000-8000-000000000002";
+
+  it("flips the canary to rolled_back with the reason in evaluation_result; prod is untouched", async () => {
+    table = [
+      makeRow({ id: PROD, agent: "TBR-tre", status: "prod", version: "2.0.0" }),
+      makeRow({ id: CANARY, agent: "TBR-tre", status: "canary", version: "2.1.0", evaluation_result: { accuracy_pct: 0.3 } }),
+    ];
+    const res = await demoteCanary("TBR-tre", CANARY, "accuracy 30 %");
+    expect(res).toEqual({ ok: true });
+    const rows = Object.fromEntries(table.map((r) => [r.id, r]));
+    expect(rows[CANARY].status).toBe("rolled_back");
+    expect(rows[CANARY].evaluation_result).toMatchObject({ accuracy_pct: 0.3, demoted_reason: "accuracy 30 %" });
+    expect(typeof (rows[CANARY].evaluation_result as { demoted_at?: string }).demoted_at).toBe("string");
+    expect(rows[PROD].status).toBe("prod");
+  });
+
+  it("refuses a non-canary row, a different agent's row, and reports db errors", async () => {
+    table = [makeRow({ id: CANARY, agent: "TBR-tre", status: "prod" })];
+    expect(await demoteCanary("TBR-tre", CANARY, "x")).toEqual({ ok: false, reason: "no_canary" });
+    table = [makeRow({ id: CANARY, agent: "TBR-mpc", status: "canary" })];
+    expect(await demoteCanary("TBR-tre", CANARY, "x")).toEqual({ ok: false, reason: "no_canary" });
+    table = [makeRow({ id: CANARY, agent: "TBR-tre", status: "canary" })];
+    updateError = "connection reset";
+    expect(await demoteCanary("TBR-tre", CANARY, "x")).toEqual({ ok: false, reason: "db_error", error: "connection reset" });
   });
 });

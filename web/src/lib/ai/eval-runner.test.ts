@@ -1,8 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
 import {
+  GROUNDED_SHARE_THRESHOLD,
   PromptEvalFixture,
+  groundedShareOf,
   runEval,
+  shouldDemote,
   shouldPromote,
   type CaseRunner,
   type EvalResult,
@@ -389,5 +394,99 @@ describe("must_cite / primary_visual (TBR-<dim>-v2.0.0 fixtures)", () => {
     const runner = mockRunner([{ proposed_score: 52, confidence: 0.7, gaps: ["cohort"], primary_visual: { kind: "sparkline" } }]);
     const res = await runEval(fx, promptVersion, { runCase: runner });
     expect(res.per_case[0].positivePoints).toBe(6);
+  });
+});
+
+// ── S-R5: grounded share, demotion gate, nightly dry-run over the 24 TBR fixtures ──
+
+describe("grounded share (S-R5 §C.9 gate in the eval)", () => {
+  const withEvidence = { input: { dim: "tre", evidenceRows: [{ evidence_id: "ev-rev-01", source: "stripe", label: "Stripe", status: "evidenced", dims: ["tre"] }] } };
+
+  it("groundedShareOf counts [ev:] markers on strengths / gaps / verdict and citations on criterion cards; null without evidence rows", () => {
+    const fx = fixture([withEvidence]).cases[0];
+    expect(groundedShareOf(fx, { verdict: "Early [ev:ev-rev-01]", strengths: ["MRR grows [ev:ev-rev-01]"], gaps: ["No cohort"], criterion_cards: [{ verdict: "x", citations: [{ evidence_id: "ev-rev-01", quote: "q" }] }, { verdict: "y", citations: [] }] })).toBe(0.6);
+    expect(groundedShareOf(fixture([{}]).cases[0], { verdict: "anything" })).toBeNull();
+    expect(groundedShareOf(fx, {})).toBe(0);
+  });
+
+  it("grounded_share_min scores ±1, the run reports grounded_share / grounded_cases, and shouldPromote enforces the 80 % threshold", async () => {
+    const expected = { proposed_score: { min: 40, max: 80 }, confidence: { min: 0.5 }, must_have_gaps: [], must_not_hallucinate: [], grounded_share_min: GROUNDED_SHARE_THRESHOLD };
+    const good = await runEval(fixture([{ ...withEvidence, expected }]), promptVersion, { runCase: mockRunner([{ proposed_score: 60, confidence: 0.7, verdict: "ok [ev:ev-rev-01]", strengths: ["a [ev:ev-rev-01]"], gaps: [] }]) });
+    expect(good.per_case[0].groundedShare).toBe(1);
+    expect(good.grounded_share).toBe(1);
+    expect(good.grounded_cases).toBe(1);
+    expect(good.accuracy_pct).toBe(1);
+    expect(shouldPromote(good)).toBe(true);
+
+    const weak = await runEval(fixture([{ ...withEvidence, expected }]), promptVersion, { runCase: mockRunner([{ proposed_score: 60, confidence: 0.7, verdict: "ok [ev:ev-rev-01]", strengths: ["a", "b", "c"], gaps: [] }]) });
+    expect(weak.per_case[0].groundedShare).toBe(0.25);
+    expect(weak.per_case[0].positivePoints).toBe(1); // score + confidence - grounded
+    expect(shouldPromote(weak)).toBe(false);
+    // accuracy alone would pass — the grounded gate is what blocks it
+    expect(shouldPromote({ ...weak, accuracy_pct: 0.95 })).toBe(false);
+    expect(shouldPromote({ ...weak, accuracy_pct: 0.95, grounded_share: 0.8 })).toBe(true);
+    // cases without evidence never block promotion
+    expect(shouldPromote({ ...weak, accuracy_pct: 0.95, grounded_cases: 0, grounded_share: null })).toBe(true);
+  });
+});
+
+describe("shouldDemote (S-R5 §C.10 'fail → canary demoted')", () => {
+  const base: EvalResult = { agent: "TBR-tre", version: "2.0.0", cases: 3, accuracy_pct: 0.9, hallucination_pct: 0, avg_confidence: 0.7, latency_p50_ms: 100, cost_usd_total: 0.01, hard_fail: false, grounded_share: 0.9, grounded_cases: 2, per_case: [] };
+  it("demotes on hard fail, > 5 % hallucination, < 50 % accuracy, < 60 % grounded; holds a near miss", () => {
+    expect(shouldDemote(base)).toEqual({ demote: false, reason: null });
+    expect(shouldDemote({ ...base, hard_fail: true })).toEqual({ demote: true, reason: "hard_fail" });
+    expect(shouldDemote({ ...base, hallucination_pct: 0.1 }).reason).toBe("hallucination 10 %");
+    expect(shouldDemote({ ...base, accuracy_pct: 0.4 }).reason).toBe("accuracy 40 %");
+    expect(shouldDemote({ ...base, grounded_share: 0.5 }).reason).toBe("grounded share 50 %");
+    expect(shouldDemote({ ...base, accuracy_pct: 0.7 })).toEqual({ demote: false, reason: null });
+    expect(shouldDemote({ ...base, grounded_share: 0.7 })).toEqual({ demote: false, reason: null });
+    expect(shouldDemote({ ...base, cases: 0, hard_fail: true }).demote).toBe(false);
+  });
+});
+
+describe("nightly dry-run — the 24 TBR fixture cases (3 stages × 8 dims), no LLM", () => {
+  const dir = path.join(process.cwd(), "test-fixtures", "prompt-eval");
+  const files = readdirSync(dir).filter((f) => /^TBR-[a-z]{3}-v2\.0\.0\.json$/.test(f)).sort();
+
+  it("8 fixtures × 3 cases parse, and a deterministic in-band runner passes every gate (promote, no demotion)", async () => {
+    expect(files).toHaveLength(8);
+    let cases = 0;
+    for (const f of files) {
+      const fx = PromptEvalFixture.parse(JSON.parse(readFileSync(path.join(dir, f), "utf8")));
+      expect(fx.cases).toHaveLength(3);
+      cases += fx.cases.length;
+      // Synthetic owner output built FROM the fixture: in-band score, the required gaps, one citation per evidence row, the expected visual.
+      const runner: CaseRunner = async (c) => {
+        const ev = Array.isArray(c.input.evidenceRows) ? (c.input.evidenceRows as Array<{ evidence_id: string }>) : [];
+        const cite = ev.length ? ` [ev:${ev[0].evidence_id}]` : "";
+        const mid = ((c.expected.proposed_score?.min ?? 40) + (c.expected.proposed_score?.max ?? 60)) / 2;
+        return {
+          ok: true,
+          data: { dim: c.input.dim, proposed_score: mid, confidence: 0.75, verdict: `Deterministic dry-run verdict.${cite}`, strengths: [`Strength${cite}`], gaps: c.expected.must_have_gaps.map((g) => `${g}${cite}`), citations: ev.slice(0, 1).map((e) => ({ evidence_id: e.evidence_id, quote: "q" })), primary_visual: { kind: c.expected.primary_visual?.kind ?? "bar", series: [] } },
+          latencyMs: 1,
+          costUsd: 0,
+          runId: `dry-${c.id}`,
+        };
+      };
+      const res = await runEval(fx, promptVersion, { runCase: runner });
+      expect(res.cases).toBe(3);
+      expect(res.hard_fail).toBe(false);
+      expect(res.hallucination_pct).toBe(0);
+      expect(res.accuracy_pct).toBeGreaterThanOrEqual(0.8);
+      if ((res.grounded_cases ?? 0) > 0) expect(res.grounded_share).toBeGreaterThanOrEqual(GROUNDED_SHARE_THRESHOLD);
+      expect(shouldPromote(res), `${f}: ${JSON.stringify(res.per_case.map((c) => [c.caseId, c.positivePoints, c.possiblePoints]))}`).toBe(true);
+      expect(shouldDemote(res).demote).toBe(false);
+    }
+    expect(cases).toBe(24);
+  });
+
+  it("a hallucinating runner fails every fixture's gate and would be demoted", async () => {
+    const fx = PromptEvalFixture.parse(JSON.parse(readFileSync(path.join(dir, files[0]), "utf8")));
+    const forbidden = fx.cases[0].expected.must_not_hallucinate[0] ?? "Sequoia";
+    const runner: CaseRunner = async (c) => ({ ok: true, data: { proposed_score: 50, confidence: 0.7, verdict: `Claims ${forbidden}.`, gaps: c.expected.must_have_gaps }, latencyMs: 1, costUsd: 0, runId: "x" });
+    const res = await runEval(fx, promptVersion, { runCase: runner });
+    expect(res.hard_fail).toBe(true);
+    expect(shouldPromote(res)).toBe(false);
+    expect(shouldDemote(res)).toEqual({ demote: true, reason: "hard_fail" });
   });
 });

@@ -134,8 +134,9 @@ vi.mock("@/lib/ai/call-structured", () => ({
   callStructured: vi.fn(),
 }));
 
-// ── prompt-registry: mock only promoteCanaryToProd, keep PromptVersion Zod
+// ── prompt-registry: mock promoteCanaryToProd + demoteCanary, keep PromptVersion Zod
 const promoteMock = vi.fn();
+const demoteMock = vi.fn(async () => ({ ok: true }));
 vi.mock("@/lib/ai/prompt-registry", async () => {
   const actual = await vi.importActual<typeof import("@/lib/ai/prompt-registry")>(
     "@/lib/ai/prompt-registry",
@@ -144,8 +145,11 @@ vi.mock("@/lib/ai/prompt-registry", async () => {
     ...actual,
     promoteCanaryToProd: (...args: Parameters<typeof actual.promoteCanaryToProd>) =>
       promoteMock(...args),
+    demoteCanary: (...args: Parameters<typeof actual.demoteCanary>) => demoteMock(...(args as [])),
   };
 });
+const telegramMock = vi.fn(async () => true);
+vi.mock("@/lib/telegram", () => ({ sendTelegram: (text: string) => telegramMock(text as never) }));
 
 // ── Fixture-file helpers ─────────────────────────────────────────────
 
@@ -298,7 +302,7 @@ describe("prompt-eval-nightly — fail-keeps-canary", () => {
     __testHooks.runCaseFactory = () => failingRunCase();
 
     const res = await GET(req({ authorization: `Bearer ${SECRET}` }));
-    const body = (await res.json()) as { evaluated: number; promoted: number };
+    const body = (await res.json()) as { evaluated: number; promoted: number; demoted: number; demotions: Array<{ agent: string; reason: string }> };
     expect(body.evaluated).toBe(1);
     expect(body.promoted).toBe(0);
     expect(promoteMock).not.toHaveBeenCalled();
@@ -308,6 +312,37 @@ describe("prompt-eval-nightly — fail-keeps-canary", () => {
       accuracy_pct: number;
     };
     expect(persisted.hard_fail).toBe(true);
+    // S-R5 §C.10: a hard-fail is a real regression → the canary is demoted and ops is told.
+    expect(body.demoted).toBe(1);
+    expect(body.demotions).toEqual([{ agent, version, reason: "hard_fail" }]);
+    expect(demoteMock).toHaveBeenCalledWith(agent, rowId, "hard_fail");
+    expect(telegramMock).toHaveBeenCalledTimes(1);
+    expect(String(telegramMock.mock.calls[0][0])).toContain("AIR-TEST-FAIL v9.9.9: hard_fail");
+  });
+
+  it("S-R5: a near miss (accuracy under the bar, no hallucination) keeps the canary — neither promoted nor demoted", async () => {
+    const agent = "AIR-TEST-NEAR";
+    const version = "9.9.9";
+    const rowId = "33333333-3333-4333-8333-333333330002";
+    table = [makeRow({ id: rowId, agent, version, status: "canary" })];
+    await writeFixture(agent, version, {
+      agent,
+      version,
+      purpose: "test",
+      cases: [
+        { id: "c1", name: "c1", input: { businessId: "b1" }, expected: { proposed_score: { min: 60, max: 80 }, confidence: { min: 0.6 }, must_have_gaps: ["a", "b"], must_not_hallucinate: [] } },
+      ],
+    });
+    // score + confidence in range, one gap present, one missing → +1 +1 +1 -1 = 2 of 4 points = 50 % accuracy: below 80, not below 50.
+    __testHooks.runCaseFactory = () => async () => ({ ok: true as const, data: { proposed_score: 70, confidence: 0.7, gaps: ["a"] }, latencyMs: 5, costUsd: 0, runId: "r" });
+    demoteMock.mockClear();
+    promoteMock.mockClear();
+    const res = await GET(req({ authorization: `Bearer ${SECRET}` }));
+    const body = (await res.json()) as { promoted: number; demoted: number };
+    expect(body.promoted).toBe(0);
+    expect(body.demoted).toBe(0);
+    expect(demoteMock).not.toHaveBeenCalled();
+    expect(promoteMock).not.toHaveBeenCalled();
   });
 });
 

@@ -114,6 +114,29 @@ export async function readCurrentPrompt(
  * @param rolloutBy currently used only for callsite tracing (logged);
  * reserved so a future audit table can record who promoted what.
  */
+/**
+ * S-R5 (§C.10): demote a failing canary to `rolled_back` (prod is untouched
+ * — the previous prod row keeps serving). Refuses anything that is not a
+ * canary of `agent`. `reason` is recorded in the row's evaluation_result
+ * JSON alongside the nightly numbers the caller already wrote.
+ */
+export async function demoteCanary(
+  agent: string,
+  canaryVersionId: string,
+  reason: string,
+): Promise<{ ok: true } | { ok: false; reason: "no_canary" | "db_error" | "supabase_unavailable"; error?: string }> {
+  const sb = getSupabaseAdmin();
+  if (!sb) return { ok: false, reason: "supabase_unavailable" };
+  const lookup = await sb.from("prompt_versions").select("id, agent, status, evaluation_result").eq("id", canaryVersionId).maybeSingle();
+  if (lookup.error) return { ok: false, reason: "db_error", error: lookup.error.message };
+  const row = lookup.data as { id: string; agent: string; status: string; evaluation_result?: Record<string, unknown> | null } | null;
+  if (!row || row.agent !== agent || row.status !== "canary") return { ok: false, reason: "no_canary" };
+  const evaluation_result = { ...(row.evaluation_result ?? {}), demoted_at: new Date().toISOString(), demoted_reason: reason };
+  const upd = await sb.from("prompt_versions").update({ status: "rolled_back", evaluation_result }).eq("id", canaryVersionId).eq("status", "canary");
+  if (upd.error) return { ok: false, reason: "db_error", error: upd.error.message };
+  return { ok: true };
+}
+
 export async function promoteCanaryToProd(
   agent: string,
   canaryVersionId: string,

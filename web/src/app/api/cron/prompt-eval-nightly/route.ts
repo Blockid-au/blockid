@@ -28,12 +28,14 @@ import { callStructured } from "@/lib/ai/call-structured";
 import {
   PromptEvalFixture,
   runEval,
+  shouldDemote,
   shouldPromote,
   type CaseRunner,
   type FixtureCase,
 } from "@/lib/ai/eval-runner";
 import {
   PromptVersion,
+  demoteCanary,
   promoteCanaryToProd,
   type PromptVersion as PromptVersionT,
 } from "@/lib/ai/prompt-registry";
@@ -186,6 +188,9 @@ async function handle(request: Request): Promise<Response> {
   let evaluated = 0;
   let promoted = 0;
   let failed_promotion = 0;
+  // S-R5 (§C.10): canaries whose run shows a real regression are demoted + noted.
+  let demoted = 0;
+  const demotions: Array<{ agent: string; version: string; reason: string }> = [];
   const missingFixtures: string[] = [];
 
   for (const cand of candidates) {
@@ -223,6 +228,26 @@ async function handle(request: Request): Promise<Response> {
       const p = await promoteCanaryToProd(pv.agent, pv.id, "nightly_eval");
       if (p.ok) promoted += 1;
       else failed_promotion += 1;
+    } else if (cand.status === "canary") {
+      const verdict = shouldDemote(result);
+      if (verdict.demote) {
+        const d = await demoteCanary(pv.agent, pv.id, verdict.reason ?? "eval_failed");
+        if (d.ok) {
+          demoted += 1;
+          demotions.push({ agent: pv.agent, version: pv.version, reason: verdict.reason ?? "eval_failed" });
+        }
+      }
+    }
+  }
+
+  if (demotions.length) {
+    const note = demotions.map((d) => `${d.agent} v${d.version}: ${d.reason}`).join("; ");
+    console.warn(`[prompt-eval-nightly] canary demoted — ${note}`);
+    try {
+      const { sendTelegram } = await import("@/lib/telegram");
+      await sendTelegram(`⚠️ prompt-eval-nightly demoted ${demotions.length} canary prompt(s): ${note}`);
+    } catch {
+      /* ops note is best-effort */
     }
   }
 
@@ -232,6 +257,8 @@ async function handle(request: Request): Promise<Response> {
     evaluated,
     promoted,
     failed_promotion,
+    demoted,
+    demotions,
     missingFixtures,
     cap: MAX_PER_INVOCATION,
   });
