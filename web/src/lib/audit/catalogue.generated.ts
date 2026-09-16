@@ -147,6 +147,7 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/evidence/connect-url/route.ts", family: "evidence.connect-url", methods: ["POST"] },
   { route: "api/evidence/dim/[id]/route.ts", family: "evidence.dim", methods: ["DELETE"] },
   { route: "api/evidence/disconnect/route.ts", family: "evidence.disconnect", methods: ["DELETE"] },
+  { route: "api/evidence/founder-signals/route.ts", family: "evidence.founder-signals", methods: ["POST"] },
   { route: "api/evidence/rescore/route.ts", family: "evidence.rescore", methods: ["POST"] },
   { route: "api/evidence/route.ts", family: "evidence", methods: ["POST"] },
   { route: "api/evidence/upload/route.ts", family: "evidence.upload", methods: ["POST"] },
