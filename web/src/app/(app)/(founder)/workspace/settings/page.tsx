@@ -62,7 +62,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           <h1 className="text-xl font-bold text-ink-800">Account settings</h1>
           <p className="text-sm text-ink-700 mt-1">
             Profile, password and notifications live on <Link href="/workspace/settings/profile" className="underline">My Profile</Link>. Export a copy of your data from the{" "}
-            <Link href="/workspace/settings/audit" className="underline">audit log</Link>. This page handles your account itself.
+            <Link href="/workspace/settings/audit" className="underline">audit log</Link>. Your startup&apos;s classification (industry, stage, tags) is on{" "}
+            <Link href="/workspace/settings/project" className="underline">Project</Link>. This page handles your account itself.
           </p>
         </div>
 

@@ -255,6 +255,7 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/projects/[id]/members/[memberId]/route.ts", family: "projects.members", methods: ["PATCH"] },
   { route: "api/projects/[id]/members/route.ts", family: "projects.members", methods: ["POST","DELETE"] },
   { route: "api/projects/[id]/route.ts", family: "projects", methods: ["PATCH","DELETE"] },
+  { route: "api/projects/[id]/taxonomy/route.ts", family: "projects.taxonomy", methods: ["PATCH"] },
   { route: "api/projects/members/accept/route.ts", family: "projects.members.accept", methods: ["POST"] },
   { route: "api/projects/route.ts", family: "projects", methods: ["POST"] },
   { route: "api/proofs/score/route.ts", family: "proofs.score", methods: ["POST"] },
