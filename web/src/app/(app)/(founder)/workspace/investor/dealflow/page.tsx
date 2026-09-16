@@ -21,6 +21,7 @@ import {
   type ChequeBand,
 } from "@/lib/investor-portal";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import { DOSSIER_ALIAS_PATH, resolveDealflowProjectIds } from "@/lib/evaluations/dossier";
 
 export const metadata: Metadata = {
   title: "Deal Flow | Investor Workspace | BlockID",
@@ -120,6 +121,10 @@ export default async function InvestorDealFlowPage({
     getDealFlow(user.id, filters),
     getInvestorPreferences(user.id),
   ]);
+  // G13 S-D1: deep-link each row to the Investor Dossier (via the project
+  // alias) where the score resolves to a project; best effort until S-T2
+  // keys deal-flow on project_id.
+  const projectIds = await resolveDealflowProjectIds(rows.map((r) => r.score_id));
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
@@ -169,6 +174,7 @@ export default async function InvestorDealFlowPage({
           ) : (
             <DealFlowTable
               rows={rows}
+              projectIds={projectIds}
               chequeBand={chequeBand ?? prefs.cheque_band}
               prefSectors={prefs.sectors}
               prefStages={prefs.stages}
@@ -326,11 +332,13 @@ function qs(input: {
 
 function DealFlowTable({
   rows,
+  projectIds,
   chequeBand,
   prefSectors,
   prefStages,
 }: {
   rows: Awaited<ReturnType<typeof getDealFlow>>;
+  projectIds: Map<string, string>;
   chequeBand: ChequeBand;
   prefSectors: string[];
   prefStages: StageBand[];
@@ -348,6 +356,7 @@ function DealFlowTable({
             <Th>Cheque band</Th>
             <Th className="text-right">Match</Th>
             <Th>Updated</Th>
+            <Th className="text-right">Dossier</Th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -385,6 +394,19 @@ function DealFlowTable({
                 </Td>
                 <Td className="text-slate-500 dark:text-slate-400">
                   {formatRelative(r.updated_at)}
+                </Td>
+                <Td className="text-right">
+                  {projectIds.get(r.score_id) ? (
+                    <Link
+                      href={DOSSIER_ALIAS_PATH(projectIds.get(r.score_id) as string)}
+                      className="text-xs font-medium text-brand-700 dark:text-brand-300 hover:underline"
+                      aria-label={`Open the Investor Dossier for ${ticker}`}
+                    >
+                      Dossier
+                    </Link>
+                  ) : (
+                    <span className="text-xs text-slate-400" title="Not linked to a workspace project yet">—</span>
+                  )}
                 </Td>
               </tr>
             );

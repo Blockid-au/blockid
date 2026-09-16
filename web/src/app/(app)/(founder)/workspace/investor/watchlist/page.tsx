@@ -19,6 +19,7 @@ import {
 } from "@/lib/investor-portal";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import { DOSSIER_ALIAS_PATH, resolveWatchlistProjectIds } from "@/lib/evaluations/dossier";
 
 export const metadata: Metadata = {
   title: "Watchlist | Investor Workspace | BlockID",
@@ -80,7 +81,12 @@ export default async function InvestorWatchlistPage() {
   const isSandbox = await getCurrentProjectIsSandbox();
 
   const rows = await getWatchlist(user.id);
-  const scores = await fetchTickerScores(rows.map((r) => r.ticker));
+  // G13 S-D1: `watchlist.project_id` (migration 0392) → Investor Dossier
+  // deep-link; an empty map until the column exists / is backfilled.
+  const [scores, projectIds] = await Promise.all([
+    fetchTickerScores(rows.map((r) => r.ticker)),
+    resolveWatchlistProjectIds(user.id),
+  ]);
 
   const followingCount = rows.filter(
     (r) => readWatchlistTag(r.notes) === "following",
@@ -190,6 +196,15 @@ export default async function InvestorWatchlistPage() {
                               <DeltaBadge value={delta} />
                             </Td>
                             <Td className="text-right">
+                              {projectIds.get(r.ticker) ? (
+                                <Link
+                                  href={DOSSIER_ALIAS_PATH(projectIds.get(r.ticker) as string)}
+                                  className="mr-3 text-xs font-medium text-brand-700 dark:text-brand-300 hover:underline"
+                                  aria-label={`Open the Investor Dossier for ${r.ticker}`}
+                                >
+                                  Dossier
+                                </Link>
+                              ) : null}
                               <Link
                                 href={`/listings/${encodeURIComponent(r.ticker)}`}
                                 className="text-xs font-medium text-brand-700 dark:text-brand-300 hover:underline"
