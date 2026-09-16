@@ -30,7 +30,21 @@ function knowledgeRoots(): string[] {
   const cwd = process.cwd();
   const env = process.env.KNOWLEDGE_BASE_DIR;
   const up = (n: number) => path.resolve(cwd, ...Array<string>(n).fill(".."), ".claude", "knowledge-base");
-  return [...(env ? [env] : []), up(0), up(1), up(2)];
+  // up(0) = repo root cwd, up(1) = web/, up(2..4) = .next/standalone/** layouts.
+  // The live server runs from releases/<BUILD_ID> (a /data symlink, so the
+  // lexical parents never reach the checkout) — REPO_CHECKOUT_DIR / the
+  // production checkout path close that gap; KNOWLEDGE_BASE_DIR overrides all.
+  const checkout = process.env.REPO_CHECKOUT_DIR;
+  return [
+    ...(env ? [env] : []),
+    up(0),
+    up(1),
+    up(2),
+    up(3),
+    up(4),
+    ...(checkout ? [path.join(checkout, ".claude", "knowledge-base")] : []),
+    path.join("/home/dovanlong/blockid.au", ".claude", "knowledge-base"),
+  ];
 }
 
 const fileCache = new Map<KnowledgeKey, string>();
