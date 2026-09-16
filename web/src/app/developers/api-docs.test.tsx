@@ -45,10 +45,12 @@ describe("/developers — API pricing truth", () => {
     expect(out).toContain("A$349/mo inc. GST");
   });
 
-  it("matches plans.csv: api.access lives on Program and the Enterprise tiers only", () => {
+  it("matches plans.csv: api.access lives on Program, Fund, Index API and the Enterprise tiers only (pricing v4)", () => {
     const names = plansWithApiAccess();
     expect(names).toContain("Program");
-    expect(names.every((n) => n === "Program" || /Enterprise/.test(n))).toBe(true);
+    expect(names).toContain("Fund");
+    expect(names).toContain("Index API");
+    expect(names.every((n) => n === "Program" || n === "Fund" || n === "Index API" || /Enterprise/.test(n))).toBe(true);
     expect(names).not.toContain("Growth");
   });
 

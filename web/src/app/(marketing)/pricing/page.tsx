@@ -51,7 +51,7 @@ export const revalidate = 300;
 // <PricingMatrix />.
 export const metadata: Metadata = pageMetadata({
   title: "Pricing — founder, evaluator and program plans",
-  description: "Founder plans from free (Starter A$29, Growth A$69). Evaluator plans for investors and advisors (Scout A$79, Firm A$149, Program A$349, Fund A$999). Program plans for accelerators (Intake link, Cohort 25, Cohort 100). Free trial.",
+  description: "Founder plans from free (Starter A$29, Growth A$69). Evaluators: Scout A$79, Firm A$149, Program A$349, Fund A$999. Accelerators from an Intake link. Free trial.",
   path: "/pricing",
   viPath: "/vi/pricing",
 });
