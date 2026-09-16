@@ -335,7 +335,7 @@ export interface FounderSignalsRow {
   profile_url: string | null;
   founder_name: string | null;
   headline: string | null;
-  current_role: string | null;
+  current_title: string | null;
   years_experience: number | null;
   years_in_domain: number | null;
   prior_companies: string[];
@@ -354,7 +354,7 @@ export function toFounderSignalsRow(projectId: string, s: FounderSignals): Found
     profile_url: s.profileUrl,
     founder_name: s.founderName,
     headline: s.headline,
-    current_role: s.currentRole,
+    current_title: s.currentRole,
     years_experience: s.yearsExperience,
     years_in_domain: s.yearsInDomain,
     prior_companies: s.priorCompanies,
@@ -373,7 +373,7 @@ export function fromFounderSignalsRow(r: FounderSignalsRow): FounderSignals {
     profileUrl: r.profile_url,
     founderName: r.founder_name,
     headline: r.headline,
-    currentRole: r.current_role,
+    currentRole: r.current_title,
     yearsExperience: r.years_experience == null ? null : Number(r.years_experience),
     yearsInDomain: r.years_in_domain == null ? null : Number(r.years_in_domain),
     priorCompanies: Array.isArray(r.prior_companies) ? r.prior_companies : [],
