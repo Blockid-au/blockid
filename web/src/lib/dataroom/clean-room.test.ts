@@ -38,7 +38,7 @@ describe("catalogue", () => {
     for (const t of CLEAN_ROOM_TASKS) {
       expect(stageIds.has(t.stage)).toBe(true);
       expect(t.detail.length).toBeGreaterThan(40);
-      if (t.source !== "founder") expect(t.link?.href).toMatch(/^\/workspace\/data-room/);
+      if (t.source !== "founder") expect(t.link?.href).toMatch(/^\/workspace\/documents\/data-room/);
     }
     expect(new Set(CLEAN_ROOM_TASKS.map((t) => t.id)).size).toBe(16);
     expect(CLEAN_ROOM_TASKS.filter((t) => t.source === "computed").map((t) => t.id)).toEqual(["classify-sections", "access-links", "access-restricted", "nda-gate", "nda-watermark", "log-engagement"]);

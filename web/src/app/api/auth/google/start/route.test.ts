@@ -45,7 +45,7 @@ function run(qs = "") {
 
 describe("GET /api/auth/google/start", () => {
   it("302 → accounts.google.com with PKCE S256 + state, and seals both in an HttpOnly cookie", async () => {
-    const res = await run("?next=%2Fworkspace%2Fanalyses");
+    const res = await run("?next=%2Fworkspace%2Fscore%2Fhistory");
     expect(res.status).toBe(302);
     expect(res.headers.get("cache-control")).toBe("no-store");
     const url = new URL(res.headers.get("location")!);

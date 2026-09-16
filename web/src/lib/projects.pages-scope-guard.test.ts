@@ -52,7 +52,7 @@ const LEGACY_PROJECT_ID_ALLOW: Record<string, string> = {
 const CALLER_EMAIL_ALLOW: Record<string, string> = {
   "dashboard/page.tsx":
     "svi_analyses count for the onboarding redirect is per caller (has this user ever run an analysis) and only runs for a non-member; scores + user_actions are the caller's own share links / completed actions. Project record reads use dataEmail; report_sections are keyed on the owner's analysis only (never on the caller — S18-B review P1).",
-  "dashboard/svi/page.tsx":
+  "workspace/score/page.tsx":
     "scores + user_actions are the caller's own share links / completed actions. Project record reads use dataEmail; report_sections are keyed on the owner's analysis only (never on the caller — S18-B review P1).",
 };
 
@@ -156,7 +156,7 @@ describe("S18-B pages scope guard — src/app/(app)/(founder)/**/page.tsx", () =
   it("F. report_sections are read per analysis, never filtered by the caller's user_id (review P1)", () => {
     const readers = pages.filter((p) => REPORT_SECTIONS_READ.test(p.src)).map((p) => p.path);
     expect(readers, "the three section readers still exist").toEqual(
-      expect.arrayContaining(["dashboard/page.tsx", "dashboard/svi/page.tsx", "workspace/reports/[id]/page.tsx"]),
+      expect.arrayContaining(["dashboard/page.tsx", "workspace/score/page.tsx", "workspace/reports/[id]/page.tsx"]),
     );
     const offenders = pages
       .filter((p) => REPORT_SECTIONS_USER_FILTER.test(p.src))

@@ -59,7 +59,7 @@ describe("buildUnlockCards()", () => {
 describe("unlockHref()", () => {
   it("routes through login with the workspace page as `next`", () => {
     expect(unlockHref("/workspace/documents/data-room")).toBe(
-      "/auth/login?next=%2Fworkspace%2Fdata-room",
+      "/auth/login?next=%2Fworkspace%2Fdocuments%2Fdata-room",
     );
   });
 });
