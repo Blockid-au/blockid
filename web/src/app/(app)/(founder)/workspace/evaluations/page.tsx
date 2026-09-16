@@ -48,7 +48,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ claim?: string | string[]; from?: string | string[] }>;
+  searchParams: Promise<{ claim?: string | string[]; from?: string | string[]; add?: string | string[] }>;
 }
 
 const first = (v: string | string[] | undefined): string | null => (Array.isArray(v) ? v[0] : v) ?? null;
@@ -60,6 +60,7 @@ export default async function EvaluationsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const claimToken = first(params?.claim);
   const fromTrialReminder = first(params?.from) === TRIAL_REMINDER_FROM;
+  const autoOpenAdd = first(params?.add) === "1";
 
   const [isSandbox, isEvaluator] = await Promise.all([
     getCurrentProjectIsSandbox(),
@@ -108,6 +109,7 @@ export default async function EvaluationsPage({ searchParams }: PageProps) {
         batches={batches}
         activation={activation}
         autoOpenReport={fromTrialReminder}
+        autoOpenAdd={autoOpenAdd}
       />
     </WorkspaceLayout>
   );

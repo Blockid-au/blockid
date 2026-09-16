@@ -1,4 +1,8 @@
-import type { Metadata } from "next";
+// LEGACY 6-step wizard (segment → goal → tier → trial → payment → first
+// startup) — kept for ONE deploy behind `ONBOARDING_V4=off` (G13-W4-IA4
+// rollback, spec §E). `page.tsx` mounts this when the flag is off; delete
+// both legacy files once the 3-step wizard has shipped clean.
+
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { signedInSignupRedirect } from "@/lib/plans/signed-in-upgrade";
@@ -8,15 +12,7 @@ import { Footer } from "@/components/site/footer";
 import {
   OnboardingWizard,
   type OnboardingInitialParams,
-} from "./onboarding-wizard";
-
-export const dynamic = "force-dynamic";
-
-export const metadata: Metadata = {
-  title: "Start your 7-day trial — BlockID.au",
-  description:
-    "Segment, goal, plan, trial and payment — set up your BlockID.au workspace in under two minutes.",
-};
+} from "./onboarding-wizard.legacy";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -34,7 +30,7 @@ function toQueryString(sp: SearchParams): string {
   return qs ? `?${qs}` : "";
 }
 
-export default async function OnboardingPage({
+export async function LegacyOnboardingPage({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;

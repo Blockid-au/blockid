@@ -23,8 +23,8 @@ import {
   type GoogleProfile,
 } from "@/lib/auth";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
-import { getSupabaseAdmin } from "@/lib/supabase";
 import { claimForCurrentBrowser } from "@/lib/analyses/claim";
+import { postLoginHref } from "./post-login";
 import { classifyGoogleExchangeError } from "./google-oauth";
 
 export type GoogleFlow = "gis" | "redirect";
@@ -112,16 +112,10 @@ export async function completeGoogleLogin(
   const email = normaliseEmail(result.user.email);
   const isAdmin = email === "admin@blockid.au";
 
-  let redirect = "/dashboard";
-  const supabase = getSupabaseAdmin();
-  if (supabase) {
-    const { data: appUser } = await supabase
-      .from("app_users")
-      .select("onboarding_completed")
-      .eq("email", email)
-      .single();
-    if (!appUser?.onboarding_completed) redirect = "/onboarding";
-  }
+  // S-IA4: the post-login target is resolved through PERSONAS — wizard when
+  // the persona's flow is not done, else the persona landing (founder
+  // /dashboard, evaluator /workspace/{investor,advisor,accelerator}).
+  const redirect = await postLoginHref({ id: result.user.id, role: result.user.role });
 
   console.info(`[auth:google] login ok`, JSON.stringify({ flow, user: result.user.id, redirect }));
   return { ok: true, user: result.user, redirect, isAdmin };

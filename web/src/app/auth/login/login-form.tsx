@@ -612,11 +612,15 @@ function EmailPasswordForm({
       // S31-B: this used to land on /workspace/evidence?onboarding=true — a
       // page the free rung's sidebar hides (minTier starter) and a param
       // nothing read.
+      // S-IA4: the server resolves the landing through PERSONAS
+      // (`data.redirect` — wizard until the persona's flow is done, else the
+      // persona hub); an explicit ?next= still wins, "/" stays the last resort.
+      const serverRedirect = typeof data.redirect === "string" && data.redirect.startsWith("/") && !data.redirect.startsWith("//") ? data.redirect : null;
       const target = mode === "register" && !nextUrl
         ? (claimedCount > 0
             ? "/workspace/score/history"
-            : "/dashboard")
-        : nextUrl ?? "/";
+            : serverRedirect ?? "/dashboard")
+        : nextUrl ?? serverRedirect ?? "/";
       const sep = target.includes("?") ? "&" : "?";
       const withLogged = mode === "register" && !nextUrl
         ? target
@@ -759,7 +763,10 @@ export function LoginForm() {
       .then((r) => r.json())
       .then((data) => {
         if (data.ok && data.user) {
-          window.location.href = nextUrl ?? "/dashboard";
+          // Already signed in: ?next= wins, else the persona landing the
+          // session endpoint resolves (S-IA4), else /dashboard.
+          const serverRedirect = typeof data.redirect === "string" && data.redirect.startsWith("/") && !data.redirect.startsWith("//") ? data.redirect : null;
+          window.location.href = nextUrl ?? serverRedirect ?? "/dashboard";
         }
       })
       .catch(() => {/* ignore — show login form */});

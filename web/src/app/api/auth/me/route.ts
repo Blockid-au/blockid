@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { resolvePostLoginHref } from "@/lib/auth/post-login";
+import { resolvePersona } from "@/lib/nav/persona";
 
 // GET /api/auth/me
 // Returns the current authenticated user (id, email, plan, role) or
 // { ok: false } when not logged in.  Used by client components that need
 // to adapt UI based on auth / plan status without a full page reload.
-// Also includes Drive folder + source folder references for session context.
+// Also includes Drive folder + source folder references for session context,
+// and (S-IA4) the top-level `redirect` — where this persona lands after
+// login (resolved through PERSONAS; the login page's already-signed-in
+// bounce uses it instead of a literal /dashboard).
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -25,6 +30,9 @@ export async function GET() {
   let trialEndAt: string | null = null;
   let trialConvertedAt: string | null = null;
   let paymentFailedAt: string | null = null;
+  let accountType: string | null = null;
+  let segment: string | null = null;
+  let onboardingCompleted = true; // unreadable → never bounce into the wizard on a guess
 
   const supabase = getSupabaseAdmin();
   if (supabase) {
@@ -34,7 +42,7 @@ export async function GET() {
       supabase.from("user_source_folders").select("id", { count: "exact", head: true })
         .eq("user_id", user.id).eq("is_active", true),
       supabase.from("app_users")
-        .select("trial_started_at, trial_end_at, trial_converted_at, payment_failed_at")
+        .select("trial_started_at, trial_end_at, trial_converted_at, payment_failed_at, account_type, segment, onboarding_completed")
         .eq("id", user.id).maybeSingle(),
     ]);
     driveFolderId = accountRes.data?.drive_folder_id ?? null;
@@ -45,10 +53,16 @@ export async function GET() {
     trialEndAt = trialRes.data?.trial_end_at ?? null;
     trialConvertedAt = trialRes.data?.trial_converted_at ?? null;
     paymentFailedAt = trialRes.data?.payment_failed_at ?? null;
+    accountType = trialRes.data?.account_type ?? null;
+    segment = trialRes.data?.segment ?? null;
+    if (trialRes.data) onboardingCompleted = trialRes.data.onboarding_completed === true;
   }
+
+  const redirect = resolvePostLoginHref({ persona: resolvePersona({ role: user.role, accountType, segment }), onboardingCompleted });
 
   return NextResponse.json({
     ok: true,
+    redirect,
     user: {
       id: user.id,
       email: user.email,

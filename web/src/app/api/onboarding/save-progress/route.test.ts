@@ -30,7 +30,7 @@ vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: vi.fn(),
 }));
 
-import { POST, isWizardFinished } from "./route";
+import { POST, isWizardFinished, personaWriteAllowed } from "./route";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
@@ -45,6 +45,8 @@ type UpdatePayload = {
   };
   onboarding_completed?: boolean;
   onboarding_completed_at?: string;
+  account_type?: string;
+  segment?: string;
 };
 
 type EqReply = { data: null; error: null | { code?: string; message?: string } };
@@ -56,10 +58,17 @@ interface FakeSupabaseState {
   updateCalls: number;
   eqReply: EqReply;
   eqThrows: unknown | null;
+  /** `app_users.account_type` the persona read returns (S-IA4). */
+  currentAccountType: string | null;
+  selectCalls: number;
 }
 
 function makeFakeSupabase(state: FakeSupabaseState) {
   const chain = {
+    select: vi.fn(() => {
+      state.selectCalls += 1;
+      return { eq: () => ({ maybeSingle: async () => ({ data: { account_type: state.currentAccountType }, error: null }) }) };
+    }),
     update: vi.fn((payload: UpdatePayload) => {
       state.updateCalls += 1;
       state.lastPayload = payload;
@@ -87,6 +96,8 @@ function makeState(overrides: Partial<FakeSupabaseState> = {}): FakeSupabaseStat
     updateCalls: 0,
     eqReply: { data: null, error: null },
     eqThrows: null,
+    currentAccountType: "founder",
+    selectCalls: 0,
     ...overrides,
   };
 }
@@ -468,5 +479,89 @@ describe("POST /api/onboarding/save-progress", () => {
     const body = (await res.json()) as { ok: boolean; skipped?: boolean };
     expect(body).toEqual({ ok: true, skipped: true });
     errorSpy.mockRestore();
+  });
+});
+
+// G13-W4-IA4 — wizard step 1 writes the persona (account_type + segment)
+// through this route; only ever between the five wizard personas.
+describe("POST /api/onboarding/save-progress — persona (S-IA4)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("persona=investor_vc on a founder row → account_type + segment written alongside onboarding_state", async () => {
+    getCurrentUserMock.mockResolvedValue(makeUser());
+    const state = makeState({ currentAccountType: "founder" });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase(state) as any);
+    const res = await POST(makeRequest({ step: 1, state: { persona: "investor_vc" }, persona: "investor_vc" }));
+    expect(res.status).toBe(200);
+    expect(state.selectCalls).toBe(1);
+    expect(state.lastPayload?.account_type).toBe("investor_vc");
+    expect(state.lastPayload?.segment).toBe("investor_vc");
+    expect(state.lastPayload?.onboarding_completed).toBeUndefined();
+    expect(state.updateCalls).toBe(1);
+  });
+
+  it("a legacy `investor` row may be re-typed to the finer rung", async () => {
+    getCurrentUserMock.mockResolvedValue(makeUser());
+    const state = makeState({ currentAccountType: "investor" });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase(state) as any);
+    await POST(makeRequest({ step: 1, state: {}, persona: "investor_angel" }));
+    expect(state.lastPayload?.account_type).toBe("investor_angel");
+  });
+
+  it("a console persona (reseller / affiliate / journalist) is never re-typed", async () => {
+    for (const at of ["reseller", "affiliate", "journalist"]) {
+      getCurrentUserMock.mockResolvedValue(makeUser());
+      const state = makeState({ currentAccountType: at });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      getSupabaseAdminMock.mockReturnValue(makeFakeSupabase(state) as any);
+      await POST(makeRequest({ step: 1, state: {}, persona: "founder" }));
+      expect(state.lastPayload?.account_type, at).toBeUndefined();
+      expect(Object.keys(state.lastPayload ?? {})).toEqual(["onboarding_state"]);
+    }
+  });
+
+  it("an unknown persona value is ignored (no select, no account_type)", async () => {
+    getCurrentUserMock.mockResolvedValue(makeUser());
+    const state = makeState();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase(state) as any);
+    await POST(makeRequest({ step: 1, state: {}, persona: "admin" }));
+    expect(state.selectCalls).toBe(0);
+    expect(state.lastPayload?.account_type).toBeUndefined();
+  });
+
+  it("no persona in the body → no select", async () => {
+    getCurrentUserMock.mockResolvedValue(makeUser());
+    const state = makeState();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase(state) as any);
+    await POST(makeRequest({ step: 2, state: {} }));
+    expect(state.selectCalls).toBe(0);
+  });
+
+  it("completed:true from the v4 wizard's terminal action stamps onboarding_completed (3 steps, never step ≥ 6)", async () => {
+    getCurrentUserMock.mockResolvedValue(makeUser());
+    const state = makeState();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase(state) as any);
+    await POST(makeRequest({ step: 3, state: { completedAt: "2026-09-16T00:00:00Z" }, persona: "advisor", completed: true }));
+    expect(state.lastPayload?.onboarding_completed).toBe(true);
+    expect(state.lastPayload?.account_type).toBe("advisor");
+  });
+
+  it("personaWriteAllowed — pure table", () => {
+    expect(personaWriteAllowed(null, "founder")).toBe(true);
+    expect(personaWriteAllowed("investor", "investor_vc")).toBe(true);
+    expect(personaWriteAllowed("founder", "accelerator")).toBe(true);
+    expect(personaWriteAllowed("advisor", "founder")).toBe(true);
+    expect(personaWriteAllowed("reseller", "founder")).toBe(false);
+    expect(personaWriteAllowed("incubator", "accelerator")).toBe(true);
+    expect(personaWriteAllowed("service_provider", "advisor")).toBe(true);
+    expect(personaWriteAllowed("journalist", "founder")).toBe(false);
+    expect(personaWriteAllowed("founder", "reseller")).toBe(false);
   });
 });

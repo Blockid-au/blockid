@@ -55,7 +55,7 @@ vi.mock("@/lib/auth", () => ({
 const claim = vi.hoisted(() => ({ fn: vi.fn(async () => ({ analyses: 0, guestAnalyses: 0 })) }));
 vi.mock("@/lib/analyses/claim", () => ({ claimForCurrentBrowser: (p: unknown) => claim.fn(p as never) }));
 
-const db = vi.hoisted(() => ({ onboarding: false as boolean | null }));
+const db = vi.hoisted(() => ({ onboarding: false as boolean | null, accountType: "founder" as string | null }));
 vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () =>
     db.onboarding === null
@@ -63,7 +63,11 @@ vi.mock("@/lib/supabase", () => ({
       : {
           from: () => ({
             select: () => ({
-              eq: () => ({ single: async () => ({ data: { onboarding_completed: db.onboarding } }) }),
+              eq: () => ({
+                single: async () => ({ data: { onboarding_completed: db.onboarding } }),
+                // S-IA4: post-login.ts reads persona + flag in one row.
+                maybeSingle: async () => ({ data: { onboarding_completed: db.onboarding, account_type: db.accountType, segment: null } }),
+              }),
             }),
           }),
         },
@@ -97,6 +101,7 @@ beforeEach(() => {
   auth.setSessionCookie.mockReset().mockResolvedValue(undefined);
   claim.fn.mockClear();
   db.onboarding = true;
+  db.accountType = "founder";
   errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "info").mockImplementation(() => {});
 });
@@ -293,6 +298,19 @@ describe("GET /api/auth/google/callback — happy path", () => {
     nonce = armState(null);
     res = await run(`?code=c&state=${nonce}`);
     expect(loc(res).toString()).toBe("https://blockid.au/dashboard?logged_in=true");
+  });
+
+  it("S-IA4: without `next`, an evaluator persona lands on its own hub (account_type → PERSONAS.landingHref)", async () => {
+    db.accountType = "investor";
+    let res = await run(`?code=c&state=${armState(null)}`);
+    expect(loc(res).toString()).toBe("https://blockid.au/workspace/investor?logged_in=true");
+    db.accountType = "advisor";
+    res = await run(`?code=c&state=${armState(null)}`);
+    expect(loc(res).pathname).toBe("/workspace/advisor");
+    // not onboarded → the single wizard, whatever the persona
+    db.onboarding = false;
+    res = await run(`?code=c&state=${armState(null)}`);
+    expect(loc(res).pathname).toBe("/onboarding");
   });
 
   it("carries referral + reseller cookies into loginWithGoogle", async () => {

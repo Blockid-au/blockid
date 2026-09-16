@@ -145,7 +145,6 @@ const ALLOWLIST: Record<string, string> = {
   // ── Dashboard sub-pages ──────────────────────────────────────────────────
   // These dashboard sub-pages were shipped without WorkspaceLayout in P6.
   "dashboard/admin/investor-verifications": "G8-P6 skip: bare admin table under dashboard, WorkspaceLayout backfill deferred",
-  "dashboard/onboarding": "G8-P6 skip: bare WelcomeWizard without outer chrome",
 };
 
 // ---------------------------------------------------------------------------

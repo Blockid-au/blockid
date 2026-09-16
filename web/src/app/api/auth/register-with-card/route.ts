@@ -62,6 +62,8 @@ import {
 import { initializeCredits } from "@/lib/credits";
 import { sendPaymentConfirmation } from "@/lib/email";
 import { apiRoute } from "@/lib/audit/api-route";
+import { resolvePostLoginHref } from "@/lib/auth/post-login";
+import { resolvePersona } from "@/lib/nav/persona";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -371,8 +373,14 @@ async function POST_handler(request: Request) {
     console.error("[register-with-card] welcome email failed", err),
   );
 
+  // S-IA4: a fresh account always starts in the single /onboarding wizard
+  // (its step 1 is preselected from account_type); resolved through the
+  // persona table so the client never hard-codes a landing.
+  const redirect = resolvePostLoginHref({ persona: resolvePersona({ role, accountType: body.account_type, segment }), onboardingCompleted: false });
+
   return NextResponse.json({
     ok: true,
+    redirect,
     user: {
       id: userId,
       email,

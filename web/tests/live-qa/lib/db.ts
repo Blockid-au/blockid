@@ -82,6 +82,20 @@ export function setMemberRole(founderEmail: string, memberEmail: string, project
   return out;
 }
 
+/**
+ * app_users.account_type (+ segment) for the QA account — S-IA4 evaluator
+ * landing lane. Restore to 'founder' in a `finally`: every other lane runs
+ * as a founder. Only the five wizard personas + 'founder' are accepted.
+ */
+export function setAccountType(email: string, accountType: "founder" | "investor_angel" | "investor_vc" | "advisor" | "accelerator"): string {
+  assertQaEmail(email);
+  const out = firstLine(psql(
+    `update public.app_users set account_type = ${q(accountType)}, segment = ${q(accountType)} where email = ${q(email)} and email ~ '^qa-live-[0-9]{8}-[0-9]{4}@blockid\\.au$' returning account_type;`,
+  ));
+  if (out !== accountType) throw new Error(`setAccountType: expected '${accountType}' back, got '${out || "<no row>"}'`);
+  return out;
+}
+
 /** Rows left for the QA email after erasure — must be 0 (tombstones carry a different address). */
 export function countAppUsersByEmail(email: string): number {
   assertQaEmail(email);
