@@ -16,7 +16,6 @@ vi.mock("next/navigation", () => ({
   },
 }));
 vi.mock("@/components/analytics/page-tracker", () => ({ PageTracker: (p: { page: string }) => <div data-page={p.page} /> }));
-vi.mock("@/components/workspace/workspace-layout", () => ({ WorkspaceLayout: ({ children }: { children: React.ReactNode }) => <div data-shell>{children}</div> }));
 vi.mock("@/components/access/FeatureGate", () => ({ FeatureGate: ({ children, feature }: { children: React.ReactNode; feature: string }) => <div data-gate={feature}>{children}</div> }));
 const loadMock = vi.fn();
 vi.mock("@/lib/investors/landing-data", async () => {
@@ -27,13 +26,14 @@ vi.mock("./investor-landing", () => ({ InvestorLanding: (p: { data: { persona: s
 
 import { fakeSupabase, type FakeSupabase } from "@/test/fake-supabase";
 import { renderPage } from "@/test/founder-page-harness";
-import { EvaluatorHubPage } from "./evaluator-hub-page";
+import { loadEvaluatorHub } from "./evaluator-hub-page";
 
 let sb: FakeSupabase;
 const USER = { id: "u-1", email: "e@x.test", role: "user", plan: "investor_angel", displayName: "E", onboardingCompleted: true };
 
 async function html(route: "investor" | "advisor" | "accelerator", sp: Record<string, string> = {}) {
-  return renderPage(EvaluatorHubPage({ route, searchParams: Promise.resolve(sp) }));
+  const hub = await loadEvaluatorHub({ route, searchParams: Promise.resolve(sp) });
+  return renderPage(<div data-shell data-shell-user={hub.user.id} data-shell-sandbox={String(hub.isSandbox)}>{hub.content}</div>);
 }
 
 beforeEach(() => {
@@ -55,6 +55,8 @@ describe("EvaluatorHubPage", () => {
     expect(sb.hasEq("app_users", "id", "u-1")).toBe(true);
     expect(out).toContain('data-landing="investor_angel"');
     expect(out).toContain('data-page="workspace-investor"');
+    expect(out).toContain('data-shell-user="u-1"');
+    expect(out).toContain('data-shell-sandbox="false"');
     expect(out).not.toContain("data-gate");
     expect(loadMock).toHaveBeenCalledWith(expect.objectContaining({ id: "u-1" }), "investor_angel");
   });

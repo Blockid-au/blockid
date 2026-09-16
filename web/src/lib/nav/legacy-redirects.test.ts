@@ -211,7 +211,8 @@ describe("DEFERRED_REDIRECTS — spec §A.5 rows waiting on later sprints", () =
       if (routeExists(r.destination)) ripe.push(`${r.source} → ${r.destination} (${r.pendingSprint})`);
     }
     expect(ripe, "deferred destinations that now exist — promote them").toEqual([]);
-    expect(DEFERRED_REDIRECTS.filter((r) => r.held).map((r) => r.source)).toEqual(["/dashboard/onboarding"]);
+    // S-IA4 promoted the last held row (/dashboard/onboarding → /onboarding).
+    expect(DEFERRED_REDIRECTS.filter((r) => r.held).map((r) => r.source)).toEqual([]);
   });
 
   it("every deferred source still has a page today (nothing silently 404s)", () => {
@@ -220,8 +221,10 @@ describe("DEFERRED_REDIRECTS — spec §A.5 rows waiting on later sprints", () =
     }
   });
 
-  it("only /dashboard/onboarding is temporary (307)", () => {
+  it("no deferred row is temporary any more (S-IA4 made /dashboard/onboarding a permanent live row)", () => {
     const temp = DEFERRED_REDIRECTS.filter((r) => !r.permanent).map((r) => r.source);
-    expect(temp).toEqual(["/dashboard/onboarding"]);
+    expect(temp).toEqual([]);
+    const live = LEGACY_REDIRECTS.find((r) => r.source === "/dashboard/onboarding");
+    expect(live).toMatchObject({ destination: "/onboarding", permanent: true });
   });
 });

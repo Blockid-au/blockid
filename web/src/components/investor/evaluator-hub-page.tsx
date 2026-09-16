@@ -1,23 +1,23 @@
 // Shared server page for the three evaluator hub roots — G13-W4-IA4.
 //
-// /workspace/investor, /workspace/advisor and /workspace/accelerator are
-// thin wrappers around `EvaluatorHubPage`: auth → persona → onboarding
-// gate (`needsOnboarding`, the same helper /dashboard uses) → the four
-// landing loaders in one round → `<InvestorLanding>` inside the workspace
-// shell. Hub tabs stay off for evaluators (workspace-layout gates them on
-// persona, §A.2).
+// /workspace/investor, /workspace/advisor and /workspace/accelerator call
+// `loadEvaluatorHub()`: auth → persona → onboarding gate (`needsOnboarding`,
+// the same helper /dashboard uses) → the four landing loaders in one round
+// → the landing element. Each page mounts `WorkspaceLayout` itself (the
+// shell-coverage guard wants the import on the page). Hub tabs stay off for
+// evaluators (workspace-layout gates them on persona, §A.2).
 //
 // A non-evaluator who types the URL (a founder on a plan without
 // `investor.dealflow`) keeps the pre-S-IA4 behaviour: the FeatureGate
 // upgrade CTA. Evaluators always see their landing — the quota block is
 // where a lapsed plan is explained.
 
+import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { FeatureGate } from "@/components/access/FeatureGate";
-import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, type AppUser } from "@/lib/auth";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { isEvaluatorPersona, PERSONAS, resolvePersona, type PersonaKey } from "@/lib/nav/persona";
@@ -45,7 +45,14 @@ export interface EvaluatorHubSearchParams {
   onboarding?: string | string[];
 }
 
-export async function EvaluatorHubPage({ route, searchParams }: { route: EvaluatorHubRoute; searchParams?: Promise<EvaluatorHubSearchParams> }) {
+export interface EvaluatorHub {
+  user: AppUser;
+  isSandbox: boolean;
+  /** Tracker + banner + landing — render inside the page's WorkspaceLayout. */
+  content: ReactNode;
+}
+
+export async function loadEvaluatorHub({ route, searchParams }: { route: EvaluatorHubRoute; searchParams?: Promise<EvaluatorHubSearchParams> }): Promise<EvaluatorHub> {
   const user = await getCurrentUser();
   if (!user) redirect(`/auth/login?next=/workspace/${route}`);
   const sp = (await searchParams) ?? {};
@@ -79,10 +86,11 @@ export async function EvaluatorHubPage({ route, searchParams }: { route: Evaluat
     </>
   );
 
-  return (
-    <WorkspaceLayout user={user} isSandbox={isSandbox}>
+  const content = (
+    <>
       <PageTracker page={PAGE_NAME[route]} />
       {evaluator ? landing : <FeatureGate feature="investor.dealflow" label="Evaluator workspace">{landing}</FeatureGate>}
-    </WorkspaceLayout>
+    </>
   );
+  return { user, isSandbox, content };
 }

@@ -168,7 +168,7 @@ test.describe("Founder landing — five blocks (G13-W3-IA3)", () => {
   test("/dashboard renders the five blocks in order, each with a CTA; block 2's CTA navigates", async ({ page, visit }, testInfo) => {
     await visit("/dashboard");
     // A fresh owner with nothing scored is sent to the wizard — not a landing bug.
-    test.skip(/\/dashboard\/onboarding/.test(page.url()), "fresh account bounced to /dashboard/onboarding (no analysis yet)");
+    test.skip(/\/onboarding/.test(page.url()), "fresh account bounced to /onboarding (no analysis yet)");
     const grid = page.locator("[data-landing-grid]");
     await expect(grid).toBeVisible({ timeout: 30_000 });
     const names = await grid.locator("[data-landing-block]").evaluateAll((els) => els.map((el) => el.getAttribute("data-landing-block")));

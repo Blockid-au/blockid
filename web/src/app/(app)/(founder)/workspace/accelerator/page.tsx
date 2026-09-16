@@ -1,10 +1,11 @@
 // /workspace/accelerator — evaluator hub root, rebuilt as the persona landing
-// (G13-W4-IA4, spec §C.1). Four blocks via <InvestorLanding>; the page is
-// a thin wrapper around the shared EvaluatorHubPage (auth → persona →
-// onboarding gate → loaders → shell).
+// (G13-W4-IA4, spec §C.1). Four blocks via <InvestorLanding>; the shared
+// loadEvaluatorHub() does auth → persona → onboarding gate → loaders, and
+// this page mounts the workspace shell around it.
 
 import type { Metadata } from "next";
-import { EvaluatorHubPage, type EvaluatorHubSearchParams } from "@/components/investor/evaluator-hub-page";
+import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
+import { loadEvaluatorHub, type EvaluatorHubSearchParams } from "@/components/investor/evaluator-hub-page";
 
 export const metadata: Metadata = {
   title: "Accelerator desk · BlockID",
@@ -15,5 +16,10 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<EvaluatorHubSearchParams> }) {
-  return <EvaluatorHubPage route="accelerator" searchParams={searchParams} />;
+  const hub = await loadEvaluatorHub({ route: "accelerator", searchParams });
+  return (
+    <WorkspaceLayout user={hub.user} isSandbox={hub.isSandbox}>
+      {hub.content}
+    </WorkspaceLayout>
+  );
 }

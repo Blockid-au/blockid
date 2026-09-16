@@ -2,7 +2,7 @@
 //
 // Root cause of React #418 ("server HTML didn't match the client", text)
 // on every page that renders an email address (/auth/login, /pricing,
-// /funding/report/demo, /invites/[token], /dashboard/onboarding …):
+// /funding/report/demo, /invites/[token], /onboarding …):
 // Cloudflare's Scrape Shield rewrites `support@blockid.au` in the streamed
 // HTML to
 //   <a href="/cdn-cgi/l/email-protection#…"><span class="__cf_email__"
