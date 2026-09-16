@@ -16,6 +16,10 @@
 //                              project_id, startup_name, status, svi_total,
 //                              coverage_summary }   (G14 S35 — recipient =
 //                              the intake owner; no founder email)
+//   feedback_letter.sent     { letter_id, project_id, k, org_count, weakest_dim,
+//                              window_end, dashboard_url }   (G14-S34 — the
+//                              founder's anonymised "What investors said"
+//                              letter; never an evaluator id, decision or note)
 //   ping                     { endpoint_id, sent_at }   (test button only)
 //
 // Envelope on the wire (also what `webhook_deliveries.payload` stores):
@@ -44,7 +48,7 @@ import { planIdToTier, type PlanTier } from "@/lib/segments";
 import { planHasGrowthExtras } from "@/lib/funding/growth-extras";
 import { supabaseWebhookStore, type WebhookStore } from "./store";
 
-export const WEBHOOK_EVENTS = ["svi.rescored", "evidence.uploaded", "funding.report_ready", "evaluation.report_ready", "intake.submission_received"] as const;
+export const WEBHOOK_EVENTS = ["svi.rescored", "evidence.uploaded", "funding.report_ready", "evaluation.report_ready", "intake.submission_received", "feedback_letter.sent"] as const;
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number];
 /** `ping` is sent by the test button only — never subscribable. */
 export type WebhookWireEvent = WebhookEvent | "ping";
@@ -57,6 +61,7 @@ export const WEBHOOK_EVENT_LABELS: Record<WebhookEvent, { label: string; descrip
   "funding.report_ready": { label: "Money Finder report ready", description: "A paid Money Finder report finished generating." },
   "evaluation.report_ready": { label: "Evaluation report ready", description: "A Trusted Business Report / rescore you ran on a startup you evaluate is ready." },
   "intake.submission_received": { label: "Intake submission received", description: "A founder applied through one of your program intake links (/apply/<slug>)." },
+  "feedback_letter.sent": { label: "Feedback letter sent", description: "Your anonymised \"What investors said\" letter is ready — ≥ 3 evaluators from ≥ 2 organisations rated your startup (ratings, risk themes, questions; never who)." },
 };
 
 export function isWebhookEvent(v: unknown): v is WebhookEvent {
@@ -108,6 +113,16 @@ export interface IntakeSubmissionReceivedPayload {
   svi_total: number | null;
   coverage_summary: { strong: number; partial: number; missing: number } | null;
 }
+/** G14-S34 — ids + counts only; the letter body stays behind the founder's login. */
+export interface FeedbackLetterSentPayload {
+  letter_id: string;
+  project_id: string;
+  k: number;
+  org_count: number;
+  weakest_dim: string | null;
+  window_end: string;
+  dashboard_url: string;
+}
 export interface PingPayload {
   endpoint_id: string;
   sent_at: string;
@@ -119,6 +134,7 @@ export interface WebhookPayloads {
   "funding.report_ready": FundingReportReadyPayload;
   "evaluation.report_ready": EvaluationReportReadyPayload;
   "intake.submission_received": IntakeSubmissionReceivedPayload;
+  "feedback_letter.sent": FeedbackLetterSentPayload;
   ping: PingPayload;
 }
 
