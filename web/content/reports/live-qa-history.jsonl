@@ -28,3 +28,8 @@
 {"ts":"2026-09-16T07:53:23.240Z","passed":148,"failed":4,"skipped":10,"expectedFailures":0,"exitCode":1,"erasureOk":true,"elevated":true}
 {"ts":"2026-09-16T07:54:35.575Z","passed":15,"failed":0,"skipped":0,"expectedFailures":0,"exitCode":0,"erasureOk":true,"elevated":true}
 {"ts":"2026-09-16T13:32:30.356Z","passed":155,"failed":0,"skipped":10,"expectedFailures":0,"exitCode":0,"erasureOk":true,"elevated":true}
+{"ts":"2026-09-16T16:35:09.172Z","passed":143,"failed":3,"skipped":23,"expectedFailures":0,"exitCode":1,"erasureOk":true,"elevated":false}
+{"ts":"2026-09-16T16:36:27.863Z","passed":8,"failed":1,"skipped":0,"expectedFailures":0,"exitCode":1,"erasureOk":false,"elevated":false}
+{"ts":"2026-09-16T16:37:12.545Z","passed":99,"failed":6,"skipped":64,"expectedFailures":0,"exitCode":1,"erasureOk":true,"elevated":false}
+{"ts":"2026-09-16T16:37:53.649Z","passed":0,"failed":0,"skipped":1,"expectedFailures":0,"exitCode":0,"erasureOk":false,"elevated":false}
+{"ts":"2026-09-16T16:41:12.587Z","passed":104,"failed":1,"skipped":64,"expectedFailures":0,"exitCode":1,"erasureOk":true,"elevated":false}

@@ -1,24 +1,31 @@
 {
-  "ts": "2026-09-16T13:32:30.356Z",
-  "startedAt": "2026-09-16T13:27:01Z",
+  "ts": "2026-09-16T16:41:12.587Z",
+  "startedAt": "2026-09-16T16:38:02Z",
   "baseURL": "https://blockid.au",
-  "exitCode": 0,
-  "passed": 155,
-  "failed": 0,
-  "skipped": 10,
+  "exitCode": 1,
+  "passed": 104,
+  "failed": 1,
+  "skipped": 64,
   "flaky": 0,
   "expectedFailures": 0,
-  "durationMs": 327767.927,
+  "durationMs": 189023.869,
   "account": {
-    "email": "qa-live-20260916-1327@blockid.au",
-    "userId": "5d3095fb-6d6d-4f5e-88d9-fa691abed815",
-    "projectId": "4d99c01a-ec07-4603-a3e3-4f6c9f763de5",
-    "plan": "growth",
-    "elevated": true
+    "email": "qa-live-20260916-1638@blockid.au",
+    "userId": "00cf2e9f-51bb-4393-980f-41b21412d16e",
+    "projectId": "3b76fe0a-dc88-48a3-8668-c64979e43475",
+    "plan": "free",
+    "elevated": false
   },
   "erasure": {
     "ok": true,
-    "detail": "erased 5d3095fb-6d6d-4f5e-88d9-fa691abed815; verify dry-run exit 2 (no app_users row for the QA founder email)"
+    "detail": "erased 00cf2e9f-51bb-4393-980f-41b21412d16e; verify dry-run exit 2 (no app_users row for the QA founder email)"
   },
-  "findings": []
+  "findings": [
+    {
+      "spec": "24-webhooks.spec.ts",
+      "project": "live-qa",
+      "title": "plan gate: Free → 402 plan_required + gate copy; Growth → access.allowed with the event catalogue",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 402\nReceived: 200"
+    }
+  ]
 }
