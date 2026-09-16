@@ -33,7 +33,8 @@ export function renderHeatMap(data: HeatMapData, opts: RenderOpts): string {
       const v = raw === null || raw === undefined ? null : fin(raw, 0);
       const x = labelW + j * cellW;
       body += `<rect x="${num(x, 2)}" y="${y}" width="${num(cellW - 2, 2)}" height="${cellH - 2}" rx="3" fill="${heatColour(v, max)}" stroke="${INK.grid}" stroke-width="0.5"/>`;
-      const label = v === null ? "?" : num(v, 0);
+      const override = data.cellLabels?.[i]?.[j];
+      const label = typeof override === "string" ? truncate(override, 4) : v === null ? "?" : num(v, 0);
       body += text(x + (cellW - 2) / 2, y + cellH / 2 + 3, label, { size: 8, anchor: "middle", fill: heatInk(v, max) });
     });
   });

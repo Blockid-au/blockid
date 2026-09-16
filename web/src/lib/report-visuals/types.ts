@@ -82,6 +82,8 @@ export type HeatMapData = {
   cols: string[];
   /** rows × cols; `null` renders as an "unknown" cell (hatched, "?"). */
   cells: Array<Array<number | null>>;
+  /** Optional per-cell text overriding the numeric label ("✓", "–", "?"). */
+  cellLabels?: Array<Array<string>>;
   max?: number;
   legend?: string;
 };

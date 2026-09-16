@@ -537,6 +537,30 @@ export function getMultiplesBenchmark(
   };
 }
 
+// ─── Live counts (G13-W1-R1, founder decision F5) ────────────────────────────
+//
+// Marketing copy ("500+ AU comparables") must state the live count until a
+// comparables table reaches 500 (spec §C.7 copy rule). These two constants
+// are that count today; `lib/valuation/comparables-repo.ts` (S-R5) replaces
+// them with the table-backed numbers and the copy keeps reading the same
+// names.
+
+/** Number of AU comparable raises tracked in code today. */
+export const AU_COMPARABLES_COUNT: number = AU_COMPARABLES.length;
+
+/** How many of those carry a disclosed ARR multiple. */
+export const AU_COMPARABLES_WITH_MULTIPLES_COUNT: number = AU_COMPARABLES.filter(
+  (c) => typeof c.arr_multiple === "number" && Number.isFinite(c.arr_multiple) && c.arr_multiple > 0,
+).length;
+
+/** Earliest / latest founded_year in the set — the "sources dated" hint. */
+export const AU_COMPARABLES_SOURCE_WINDOW = "2021–2025";
+
+/** One sentence for landing copy: "AU comparables: 33 raises tracked, 33 with disclosed multiples (sources dated 2021–2025)". */
+export function comparablesCopyLine(): string {
+  return `AU comparables: ${AU_COMPARABLES_COUNT} raises tracked, ${AU_COMPARABLES_WITH_MULTIPLES_COUNT} with disclosed multiples (sources dated ${AU_COMPARABLES_SOURCE_WINDOW})`;
+}
+
 // ─── Comparables benchmark output type ───────────────────────────────────────
 
 export interface ComparablesBenchmark {
