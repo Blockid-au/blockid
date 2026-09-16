@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-09-16T20:30:07.699Z",
+  "updated_at": "2026-09-16T21:00:03.725Z",
   "total": 29,
   "healthy": 13,
-  "quota_exceeded": 0,
+  "quota_exceeded": 1,
   "results": [
     {
       "provider": "groq",
@@ -10,9 +10,9 @@
       "status": "healthy",
       "healthy": true,
       "quota_exceeded": false,
-      "latency_ms": 805,
+      "latency_ms": 731,
       "http_status": 200,
-      "checked_at": "2026-09-16T20:30:01.851Z"
+      "checked_at": "2026-09-16T21:00:00.306Z"
     },
     {
       "provider": "groq",
@@ -20,9 +20,9 @@
       "status": "healthy",
       "healthy": true,
       "quota_exceeded": false,
-      "latency_ms": 858,
+      "latency_ms": 1045,
       "http_status": 200,
-      "checked_at": "2026-09-16T20:30:01.852Z"
+      "checked_at": "2026-09-16T21:00:00.307Z"
     },
     {
       "provider": "groq",
@@ -30,9 +30,9 @@
       "status": "healthy",
       "healthy": true,
       "quota_exceeded": false,
-      "latency_ms": 984,
+      "latency_ms": 745,
       "http_status": 200,
-      "checked_at": "2026-09-16T20:30:01.853Z"
+      "checked_at": "2026-09-16T21:00:00.307Z"
     },
     {
       "provider": "groq",
@@ -40,9 +40,9 @@
       "status": "healthy",
       "healthy": true,
       "quota_exceeded": false,
-      "latency_ms": 2449,
+      "latency_ms": 1780,
       "http_status": 200,
-      "checked_at": "2026-09-16T20:30:01.853Z"
+      "checked_at": "2026-09-16T21:00:00.309Z"
     },
     {
       "provider": "groq",
@@ -50,9 +50,9 @@
       "status": "healthy",
       "healthy": true,
       "quota_exceeded": false,
-      "latency_ms": 1037,
+      "latency_ms": 746,
       "http_status": 200,
-      "checked_at": "2026-09-16T20:30:01.854Z"
+      "checked_at": "2026-09-16T21:00:00.310Z"
     },
     {
       "provider": "groq",
@@ -60,20 +60,20 @@
       "status": "healthy",
       "healthy": true,
       "quota_exceeded": false,
-      "latency_ms": 1284,
+      "latency_ms": 955,
       "http_status": 200,
-      "checked_at": "2026-09-16T20:30:01.855Z"
+      "checked_at": "2026-09-16T21:00:00.310Z"
     },
     {
       "provider": "openrouter",
       "model": "stealth/union-alpha",
-      "status": "timeout",
+      "status": "quota_exceeded",
       "healthy": false,
-      "quota_exceeded": false,
-      "latency_ms": 5003,
-      "http_status": 0,
-      "error": "timeout after 5000ms",
-      "checked_at": "2026-09-16T20:30:02.696Z"
+      "quota_exceeded": true,
+      "latency_ms": 161,
+      "http_status": 429,
+      "error": "{\"error\":{\"message\":\"Provider returned error\",\"code\":429,\"metadata\":{\"raw\":\"stealth/union-alpha is temporarily rate-limited upstream. Please retry shortly.\",\"pr",
+      "checked_at": "2026-09-16T21:00:01.098Z"
     },
     {
       "provider": "openrouter",
@@ -81,9 +81,9 @@
       "status": "healthy",
       "healthy": true,
       "quota_exceeded": false,
-      "latency_ms": 338,
+      "latency_ms": 408,
       "http_status": 200,
-      "checked_at": "2026-09-16T20:30:02.718Z"
+      "checked_at": "2026-09-16T21:00:01.103Z"
     },
     {
       "provider": "openrouter",
@@ -91,9 +91,9 @@
       "status": "healthy",
       "healthy": true,
       "quota_exceeded": false,
-      "latency_ms": 321,
+      "latency_ms": 368,
       "http_status": 200,
-      "checked_at": "2026-09-16T20:30:02.839Z"
+      "checked_at": "2026-09-16T21:00:01.123Z"
     },
     {
       "provider": "openrouter",
@@ -101,9 +101,9 @@
       "status": "healthy",
       "healthy": true,
       "quota_exceeded": false,
-      "latency_ms": 580,
+      "latency_ms": 689,
       "http_status": 200,
-      "checked_at": "2026-09-16T20:30:02.893Z"
+      "checked_at": "2026-09-16T21:00:01.260Z"
     },
     {
       "provider": "openrouter",
@@ -111,9 +111,9 @@
       "status": "healthy",
       "healthy": true,
       "quota_exceeded": false,
-      "latency_ms": 658,
+      "latency_ms": 564,
       "http_status": 200,
-      "checked_at": "2026-09-16T20:30:03.123Z"
+      "checked_at": "2026-09-16T21:00:01.270Z"
     },
     {
       "provider": "openrouter",
@@ -121,9 +121,9 @@
       "status": "healthy",
       "healthy": true,
       "quota_exceeded": false,
-      "latency_ms": 671,
+      "latency_ms": 668,
       "http_status": 200,
-      "checked_at": "2026-09-16T20:30:03.140Z"
+      "checked_at": "2026-09-16T21:00:01.353Z"
     },
     {
       "provider": "openrouter",
@@ -131,9 +131,9 @@
       "status": "healthy",
       "healthy": true,
       "quota_exceeded": false,
-      "latency_ms": 692,
+      "latency_ms": 501,
       "http_status": 200,
-      "checked_at": "2026-09-16T20:30:03.168Z"
+      "checked_at": "2026-09-16T21:00:01.853Z"
     },
     {
       "provider": "openrouter",
@@ -141,9 +141,9 @@
       "status": "healthy",
       "healthy": true,
       "quota_exceeded": false,
-      "latency_ms": 208,
+      "latency_ms": 140,
       "http_status": 200,
-      "checked_at": "2026-09-16T20:30:03.751Z"
+      "checked_at": "2026-09-16T21:00:02.035Z"
     },
     {
       "provider": "groq",
@@ -151,10 +151,10 @@
       "status": "not_found",
       "healthy": false,
       "quota_exceeded": false,
-      "latency_ms": 95,
+      "latency_ms": 53,
       "http_status": 404,
       "error": "{\"error\":{\"message\":\"The model `llama-3.3-70b-versatile` does not exist or you do not have access to it.\",\"type\":\"invalid_request_error\",\"code\":\"model_not_found",
-      "checked_at": "2026-09-16T20:30:03.824Z"
+      "checked_at": "2026-09-16T21:00:02.042Z"
     },
     {
       "provider": "groq",
@@ -162,10 +162,10 @@
       "status": "not_found",
       "healthy": false,
       "quota_exceeded": false,
-      "latency_ms": 283,
+      "latency_ms": 93,
       "http_status": 404,
       "error": "{\"error\":{\"message\":\"The model `llama-3.1-8b-instant` does not exist or you do not have access to it.\",\"type\":\"invalid_request_error\",\"code\":\"model_not_found\"}}",
-      "checked_at": "2026-09-16T20:30:03.828Z"
+      "checked_at": "2026-09-16T21:00:02.090Z"
     },
     {
       "provider": "groq",
@@ -173,10 +173,10 @@
       "status": "error",
       "healthy": false,
       "quota_exceeded": false,
-      "latency_ms": 82,
+      "latency_ms": 75,
       "http_status": 400,
       "error": "{\"error\":{\"message\":\"The model `mixtral-8x7b-32768` has been decommissioned and is no longer supported. Please refer to https://console.groq.com/docs/deprecatio",
-      "checked_at": "2026-09-16T20:30:03.894Z"
+      "checked_at": "2026-09-16T21:00:02.096Z"
     },
     {
       "provider": "groq",
@@ -184,10 +184,10 @@
       "status": "error",
       "healthy": false,
       "quota_exceeded": false,
-      "latency_ms": 87,
+      "latency_ms": 92,
       "http_status": 400,
       "error": "{\"error\":{\"message\":\"The model `gemma2-9b-it` has been decommissioned and is no longer supported. Please refer to https://console.groq.com/docs/deprecations for",
-      "checked_at": "2026-09-16T20:30:03.920Z"
+      "checked_at": "2026-09-16T21:00:02.171Z"
     },
     {
       "provider": "sambanova",
@@ -195,10 +195,10 @@
       "status": "error",
       "healthy": false,
       "quota_exceeded": false,
-      "latency_ms": 86,
+      "latency_ms": 88,
       "http_status": 402,
       "error": "{\"error\":{\"balance_units\":0,\"billing_portal_url\":\"https://cloud.sambanova.ai/plans/billing\",\"code\":\"PAYMENT_METHOD_REQUIRED\",\"message\":\"A payment method is requ",
-      "checked_at": "2026-09-16T20:30:03.977Z"
+      "checked_at": "2026-09-16T21:00:02.183Z"
     },
     {
       "provider": "sambanova",
@@ -206,10 +206,10 @@
       "status": "not_found",
       "healthy": false,
       "quota_exceeded": false,
-      "latency_ms": 150,
+      "latency_ms": 93,
       "http_status": 404,
       "error": "{\"error\":{\"code\":\"model_not_found\",\"message\":\"The model `Meta-Llama-3.1-405B-Instruct` does not exist or you do not have access to it.\",\"param\":\"model\",\"type\":\"",
-      "checked_at": "2026-09-16T20:30:03.979Z"
+      "checked_at": "2026-09-16T21:00:02.207Z"
     },
     {
       "provider": "sambanova",
@@ -217,10 +217,10 @@
       "status": "not_found",
       "healthy": false,
       "quota_exceeded": false,
-      "latency_ms": 151,
+      "latency_ms": 90,
       "http_status": 404,
       "error": "{\"error\":{\"code\":\"model_not_found\",\"message\":\"The model `DeepSeek-R1` does not exist or you do not have access to it.\",\"param\":\"model\",\"type\":\"invalid_request_e",
-      "checked_at": "2026-09-16T20:30:04.007Z"
+      "checked_at": "2026-09-16T21:00:02.263Z"
     },
     {
       "provider": "cerebras",
@@ -228,10 +228,10 @@
       "status": "not_found",
       "healthy": false,
       "quota_exceeded": false,
-      "latency_ms": 63,
+      "latency_ms": 52,
       "http_status": 404,
       "error": "{\"message\":\"Model does not exist or you do not have access to it.\",\"type\":\"not_found_error\",\"param\":\"model\",\"code\":\"model_not_found\"}",
-      "checked_at": "2026-09-16T20:30:04.073Z"
+      "checked_at": "2026-09-16T21:00:02.280Z"
     },
     {
       "provider": "cerebras",
@@ -239,10 +239,10 @@
       "status": "not_found",
       "healthy": false,
       "quota_exceeded": false,
-      "latency_ms": 170,
+      "latency_ms": 156,
       "http_status": 404,
       "error": "{\"message\":\"Model does not exist or you do not have access to it.\",\"type\":\"not_found_error\",\"param\":\"model\",\"code\":\"model_not_found\"}",
-      "checked_at": "2026-09-16T20:30:04.112Z"
+      "checked_at": "2026-09-16T21:00:02.310Z"
     },
     {
       "provider": "cerebras",
@@ -250,10 +250,10 @@
       "status": "not_found",
       "healthy": false,
       "quota_exceeded": false,
-      "latency_ms": 69,
+      "latency_ms": 60,
       "http_status": 404,
       "error": "{\"message\":\"Model does not exist or you do not have access to it.\",\"type\":\"not_found_error\",\"param\":\"model\",\"code\":\"model_not_found\"}",
-      "checked_at": "2026-09-16T20:30:04.137Z"
+      "checked_at": "2026-09-16T21:00:02.333Z"
     },
     {
       "provider": "openrouter",
@@ -261,10 +261,10 @@
       "status": "not_found",
       "healthy": false,
       "quota_exceeded": false,
-      "latency_ms": 45,
+      "latency_ms": 37,
       "http_status": 404,
       "error": "{\"error\":{\"message\":\"This model is unavailable for free. The paid version is available now - use this slug instead: meta-llama/llama-3.3-70b-instruct\",\"code\":40",
-      "checked_at": "2026-09-16T20:30:04.139Z"
+      "checked_at": "2026-09-16T21:00:02.341Z"
     },
     {
       "provider": "openrouter",
@@ -272,10 +272,10 @@
       "status": "not_found",
       "healthy": false,
       "quota_exceeded": false,
-      "latency_ms": 45,
+      "latency_ms": 95,
       "http_status": 404,
       "error": "{\"error\":{\"message\":\"This model is unavailable for free. The paid version is available now - use this slug instead: deepseek/deepseek-r1\",\"code\":404},\"user_id\":",
-      "checked_at": "2026-09-16T20:30:04.168Z"
+      "checked_at": "2026-09-16T21:00:02.363Z"
     },
     {
       "provider": "openrouter",
@@ -283,10 +283,10 @@
       "status": "not_found",
       "healthy": false,
       "quota_exceeded": false,
-      "latency_ms": 44,
+      "latency_ms": 33,
       "http_status": 404,
       "error": "{\"error\":{\"message\":\"This model is unavailable for free. The paid version is available now - use this slug instead: qwen/qwen-2.5-72b-instruct\",\"code\":404},\"use",
-      "checked_at": "2026-09-16T20:30:04.185Z"
+      "checked_at": "2026-09-16T21:00:02.379Z"
     },
     {
       "provider": "openrouter",
@@ -294,10 +294,10 @@
       "status": "not_found",
       "healthy": false,
       "quota_exceeded": false,
-      "latency_ms": 76,
+      "latency_ms": 44,
       "http_status": 404,
       "error": "{\"error\":{\"message\":\"No endpoints found for google/gemma-2-9b-it:free.\",\"code\":404},\"user_id\":\"user_3Ah3bHtM4oVipun7LAei12V0dn9\"}",
-      "checked_at": "2026-09-16T20:30:04.207Z"
+      "checked_at": "2026-09-16T21:00:02.394Z"
     },
     {
       "provider": "openrouter",
@@ -305,10 +305,10 @@
       "status": "not_found",
       "healthy": false,
       "quota_exceeded": false,
-      "latency_ms": 44,
+      "latency_ms": 33,
       "http_status": 404,
       "error": "{\"error\":{\"message\":\"No endpoints found for mistralai/mistral-7b-instruct:free.\",\"code\":404},\"user_id\":\"user_3Ah3bHtM4oVipun7LAei12V0dn9\"}",
-      "checked_at": "2026-09-16T20:30:04.214Z"
+      "checked_at": "2026-09-16T21:00:02.413Z"
     }
   ]
 }
