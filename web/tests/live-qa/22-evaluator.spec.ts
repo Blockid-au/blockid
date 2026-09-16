@@ -47,7 +47,7 @@ test.describe("Pricing — evaluator segment", () => {
       expect(href ?? "", `${tier.name} CTA segment`).toContain("segment=evaluator");
     }
     await evidence(testInfo, "evaluator ladder", rows);
-    await expect(page.getByTestId("evaluator-trial-included").first()).toContainText(/Trust BizReport/);
+    await expect(page.getByTestId("evaluator-trial-included").first()).toContainText(/Trusted Business Report/);
 
     // ?segment=evaluator lands on the evaluator tab directly (E1).
     await visit("/pricing?segment=evaluator");

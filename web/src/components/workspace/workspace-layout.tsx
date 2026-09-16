@@ -93,6 +93,14 @@ interface GateContext {
   segment: Segment | null;
   currentPhase: number;
   hasFeature: (name: string) => boolean;
+  /**
+   * True until `/api/me` has answered on the client. While the plan is
+   * unknown the sidebar must not lock anything: the server render has no
+   * entitlement, and locking every `minPlan` leaf (href → /workspace/billing)
+   * for the first paint showed paying founders a fully padlocked menu and
+   * pointed crawlers / no-JS agents at billing instead of the real pages.
+   */
+  planUnknown?: boolean;
 }
 
 /**
@@ -115,9 +123,9 @@ export function resolveNavGroup(group: NavGroup, ctx: GateContext, opts: { previ
     if (item.feature && !ctx.hasFeature(item.feature)) continue;
     if (!opts.preview && item.minPhase != null && item.minPhase > ctx.currentPhase) continue;
 
-    const meetsPlan = item.minPlan ? meetsMinPlan(ctx.planId, item.minPlan) : true;
+    const meetsPlan = item.minPlan ? ctx.planUnknown === true || meetsMinPlan(ctx.planId, item.minPlan) : true;
     if (!meetsPlan && item.hideWhenLocked === true) continue;
-    const missingAddOn = Boolean(item.lockedWithoutFeature && !ctx.hasFeature(item.lockedWithoutFeature));
+    const missingAddOn = Boolean(item.lockedWithoutFeature && ctx.planUnknown !== true && !ctx.hasFeature(item.lockedWithoutFeature));
     const locked = !meetsPlan || missingAddOn;
     resolved.push({
       item,
@@ -300,9 +308,10 @@ export function WorkspaceLayout({ children, user, currentPhase: currentPhaseProp
     return navGroupsForIds(persona.navGroups);
   }, [navPreset, persona, isAdmin, entitlement]);
 
+  const planUnknown = entitlement.isLoading && !entitlement.user;
   const gate = React.useMemo<GateContext>(
-    () => ({ planId, segment, currentPhase, hasFeature: entitlement.can }),
-    [planId, segment, currentPhase, entitlement],
+    () => ({ planId, segment, currentPhase, hasFeature: entitlement.can, planUnknown }),
+    [planId, segment, currentPhase, entitlement, planUnknown],
   );
 
   // Groups whose band is above the founder's fold under ONE "Later phases"

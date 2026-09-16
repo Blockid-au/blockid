@@ -213,7 +213,7 @@ const MONEY: NavGroup = {
       href: "/dashboard/valuation",
       v4Href: "/workspace/valuation",
       label: { en: "Valuation", vi: "Định giá" },
-      tooltip: { en: "Five methods in AUD, 500+ AU comparables", vi: "Năm phương pháp bằng AUD, hơn 500 công ty so sánh tại Úc" },
+      tooltip: { en: "Five methods in AUD, benchmarked on AU comparables", vi: "Năm phương pháp bằng AUD, đối chiếu với các công ty so sánh tại Úc" },
       icon: Target,
       minPhase: 2,
       minPlan: "starter",
