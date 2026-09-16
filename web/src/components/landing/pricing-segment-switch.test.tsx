@@ -26,9 +26,12 @@ describe("resolvePricingTab()", () => {
     expect(resolvePricingTab("banana")).toBe("founder");
   });
 
-  it("lands every evaluator-shaped value on the Evaluator tab", () => {
-    for (const v of ["evaluator", "Evaluator", "investor", "advisor", "accelerator", "program"]) {
-      expect(resolvePricingTab(v)).toBe("evaluator");
+  it("lands every investor-shaped value on the Evaluator tab and every program-shaped value on Programs", () => {
+    for (const v of ["evaluator", "Evaluator", "investor", "advisor", "fund", "vc"]) {
+      expect(resolvePricingTab(v), v).toBe("evaluator");
+    }
+    for (const v of ["accelerator", "program", "programs", "incubator", "university"]) {
+      expect(resolvePricingTab(v), v).toBe("programs");
     }
   });
 
@@ -37,9 +40,10 @@ describe("resolvePricingTab()", () => {
     expect(resolvePricingTab(["founder", "evaluator"])).toBe("founder");
   });
 
-  it("maps the two tabs onto the plans-v2 segments", () => {
+  it("maps the three tabs onto the plans-v2 segments", () => {
     expect(TAB_TO_SEGMENT.founder).toBe("founder");
     expect(TAB_TO_SEGMENT.evaluator).toBe("investor");
+    expect(TAB_TO_SEGMENT.programs).toBe("accelerator");
   });
 });
 
@@ -62,9 +66,11 @@ describe("tabFromLocation() — deep-link params", () => {
   it("accepts `?persona=` as an alias of `?segment=` (deck v3 links, G14 §2.4)", () => {
     expect(withSearch("?persona=investor")).toBe("evaluator");
     expect(withSearch("?persona=founder")).toBe("founder");
+    expect(withSearch("?persona=accelerator")).toBe("programs");
     expect(withSearch("?segment=evaluator")).toBe("evaluator");
+    expect(withSearch("?segment=programs")).toBe("programs");
     expect(withSearch("?tab=investor")).toBe("evaluator");
-    expect(withSearch("?tier=accelerator")).toBe("evaluator");
+    expect(withSearch("?tier=accelerator")).toBe("programs");
   });
 
   it("prefers segment over persona over tab over tier", () => {
@@ -76,12 +82,14 @@ describe("tabFromLocation() — deep-link params", () => {
 describe("<PricingSegmentSwitch /> — Founder tab", () => {
   const out = html(<PricingSegmentSwitch />);
 
-  it("renders exactly two tabs, Founder selected", () => {
-    expect(out.match(/role="tab"/g)).toHaveLength(2);
+  it("renders exactly three tabs (Founder / Evaluator / Programs), Founder selected", () => {
+    expect(out.match(/role="tab"/g)).toHaveLength(3);
     expect(out).toContain('id="pricing-tab-founder"');
     expect(out).toContain('id="pricing-tab-evaluator"');
+    expect(out).toContain('id="pricing-tab-programs"');
     expect(out).toMatch(/id="pricing-tab-founder"[^>]*aria-selected="true"/);
     expect(out).toMatch(/id="pricing-tab-evaluator"[^>]*aria-selected="false"/);
+    expect(out).toMatch(/id="pricing-tab-programs"[^>]*aria-selected="false"/);
     expect(out).toContain('data-active-tab="founder"');
   });
 
@@ -105,18 +113,22 @@ describe("<PricingSegmentSwitch /> — Evaluator tab (deep link)", () => {
     expect(out).toContain('data-active-tab="evaluator"');
   });
 
-  it("renders Scout A$79 · Firm A$149 · Program A$349 and nothing else", () => {
+  it("renders Scout A$79 · Firm A$149 · Program A$349 · Fund A$999 and nothing else", () => {
     expect(out).toContain('data-testid="evaluator-ladder"');
     expect(out).toContain('id="tier-scout"');
     expect(out).toContain('id="tier-firm"');
     expect(out).toContain('id="tier-program"');
+    expect(out).toContain('id="tier-fund"');
     expect(out).toContain('aria-label="Scout plan"');
     expect(out).toContain('aria-label="Firm plan"');
     expect(out).toContain('aria-label="Program plan"');
+    expect(out).toContain('aria-label="Fund plan"');
     expect(out).toContain("A$79");
     expect(out).toContain("A$149");
     expect(out).toContain("A$349");
+    expect(out).toContain("A$999");
     expect(out).not.toContain('aria-label="VC Enterprise plan"');
+    expect(out).not.toContain('aria-label="Index API plan"');
     expect(out).not.toContain('id="tier-free"');
     expect(out).not.toContain('id="tier-growth"');
     // The retired labels must never resurface.
@@ -125,7 +137,7 @@ describe("<PricingSegmentSwitch /> — Evaluator tab (deep link)", () => {
   });
 
   it("routes every rung to /signup?segment=evaluator&plan=<id>&trial=1 as a 7-day card-required trial", () => {
-    for (const id of ["investor_angel", "investor_advisor", "investor_vc_small"]) {
+    for (const id of ["investor_angel", "investor_advisor", "investor_vc_small", "investor_fund"]) {
       expect(evaluatorSignupHref(id)).toBe(`/signup?segment=evaluator&plan=${id}&trial=1`);
       expect(out).toContain(evaluatorSignupHref(id).replace(/&/g, "&amp;"));
     }
@@ -138,7 +150,8 @@ describe("<PricingSegmentSwitch /> — Evaluator tab (deep link)", () => {
     expect(out).toContain("1 full Trusted Business Report included during the trial, then 10/month on Scout");
     expect(out).toContain("1 full Trusted Business Report included during the trial, then 30/month on Firm");
     expect(out).toContain("1 full Trusted Business Report included during the trial, then 100/month on Program");
-    expect(out.match(/data-testid="evaluator-trial-included"/g)?.length).toBe(3);
+    expect(out).toContain("1 full Trusted Business Report included during the trial, then unlimited on Fund");
+    expect(out.match(/data-testid="evaluator-trial-included"/g)?.length).toBe(4);
   });
 
   it("shows the A$3 pay-as-you-go Trusted Business Report line", () => {
@@ -149,6 +162,27 @@ describe("<PricingSegmentSwitch /> — Evaluator tab (deep link)", () => {
 
   it("does not carry the retired 'Beta pricing' badge", () => {
     expect(out).not.toContain("Beta pricing");
+  });
+});
+
+// Pricing v4 (2026-09-16): third tab — the annual-first Programs ladder.
+describe("<PricingSegmentSwitch /> — Programs tab (deep link)", () => {
+  const out = html(<PricingSegmentSwitch initialSegment="programs" />);
+
+  it("selects the Programs tab and renders Intake link / Cohort 25 / Cohort 100, annual by default, 14-day trial", () => {
+    expect(out).toMatch(/id="pricing-tab-programs"[^>]*aria-selected="true"/);
+    expect(out).toContain('data-active-tab="programs"');
+    expect(out).toContain('data-testid="programs-ladder"');
+    expect(out).toContain('aria-label="Intake link plan"');
+    expect(out).toContain('aria-label="Cohort 25 plan"');
+    expect(out).toContain('aria-label="Cohort 100 plan"');
+    expect(out).toContain("A$2,490");
+    expect(out).toContain("A$15,000");
+    expect(out).toContain("Start 14-day free trial");
+    expect(out).toContain("/signup?segment=evaluator&amp;plan=accelerator_starter&amp;trial=1&amp;interval=annual");
+    expect(out).not.toContain('id="tier-scout"');
+    expect(out).not.toContain('id="tier-free"');
+    expect(out).not.toContain('aria-label="Cohort Enterprise plan"');
   });
 });
 

@@ -19,7 +19,7 @@ import {
 } from "@stripe/react-stripe-js";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import type { BillingInterval } from "@/lib/plans/billing-interval";
-import { EVALUATOR_TRIAL_COPY, TRIAL_COPY, TRIAL_DAYS, evaluatorTrialIncludedLine } from "@/lib/plans/trial-copy";
+import { EVALUATOR_TRIAL_COPY, TRIAL_COPY, TRIAL_DAYS, evaluatorTrialIncludedLine, evaluatorTrialLine } from "@/lib/plans/trial-copy";
 import {
   FOUNDER_ACCOUNT_TYPE_OPTIONS,
   type AccountTypeOption,
@@ -483,7 +483,7 @@ function InnerForm(props: SignupFormProps) {
       </button>
 
       <p className="mt-3 text-xs text-slate-500 leading-relaxed">
-        {isEvaluator ? EVALUATOR_TRIAL_COPY.trial_line + " " : ""}
+        {isEvaluator ? evaluatorTrialLine(selectedPlan?.trialDays) + " " : ""}
         {TRIAL_COPY.fine_print}
         {selectedPlan ? " " + priceLine : ""}
       </p>

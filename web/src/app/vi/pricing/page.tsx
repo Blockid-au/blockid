@@ -59,7 +59,12 @@ const FAQ_JSONLD_VI = [
   {
     question: "Sau 7 ngày dùng thử miễn phí thì sao?",
     answer:
-      "Gói của bạn sẽ tự động tính phí khi hết 7 ngày dùng thử, trừ khi bạn huỷ trước khi hết hạn dùng thử (gói Cohort cho vườn ươm và chương trình có 14 ngày dùng thử). Chúng tôi gửi email nhắc vào T-3, T-1 và T-0 để bạn luôn nắm được lịch.",
+      "Gói của bạn sẽ tự động tính phí khi hết 7 ngày dùng thử, trừ khi bạn huỷ trước khi hết hạn dùng thử (gói Intake link, Cohort 25 và Cohort 100 cho vườn ươm và chương trình có 14 ngày dùng thử). Chúng tôi gửi email nhắc vào T-3, T-1 và T-0 để bạn luôn nắm được lịch.",
+  },
+  {
+    question: "Nhà sáng lập, Nhà đánh giá hay Chương trình — tôi thấy gói nào?",
+    answer:
+      "Dùng nút chuyển phía trên bảng giá. Nhà sáng lập: Free, Starter A$29, Growth A$69. Nhà đánh giá: Scout A$79, Firm A$149, Program A$349, Fund A$999 (dùng thử 7 ngày, cần thẻ). Chương trình: Intake link A$2,490/năm, Cohort 25 A$5,000/năm, Cohort 100 A$15,000/năm, thanh toán theo năm, dùng thử 14 ngày. Không có gói thì mỗi Trusted Business Report là A$3 cho một startup.",
   },
   {
     question: "Có cần thẻ tín dụng để bắt đầu dùng thử không?",
@@ -81,6 +86,7 @@ const FAQ_JSONLD_VI = [
 interface ViPricingPageProps {
   searchParams: Promise<{
     segment?: string | string[];
+    persona?: string | string[];
     tab?: string | string[];
     tier?: string | string[];
   }>;
@@ -90,7 +96,9 @@ export default async function ViPricingPage({ searchParams }: ViPricingPageProps
   const annualAvailable = await annualAvailablePlanIds();
   const m = await getMessages("vi");
   const sp = await searchParams;
-  const initialTab = resolvePricingTab(sp?.segment ?? sp?.tab ?? sp?.tier);
+  // Same precedence as tabFromLocation() on /pricing: segment > persona
+  // (deck v3 alias, G14 §2.4) > tab > legacy tier.
+  const initialTab = resolvePricingTab(sp?.segment ?? sp?.persona ?? sp?.tab ?? sp?.tier);
 
   return (
     <MarketingShell>
@@ -123,9 +131,10 @@ export default async function ViPricingPage({ searchParams }: ViPricingPageProps
         </div>
       </section>
 
-      {/* Founder | Evaluator switch (G12, T0268) — same two ladders as
-          /pricing. SKU names/prices are proper nouns (AUD), so we do NOT
-          localise them; only the two tab labels are Vietnamese. */}
+      {/* Founder | Evaluator | Programs switch (G12 T0268 + Pricing v4) —
+          same three ladders as /pricing. SKU names/prices are proper nouns
+          (AUD), so we do NOT localise them; only the tab labels are
+          Vietnamese. */}
       <section
         id="pricing-matrix"
         aria-label="Bảng giá theo phân khúc"
@@ -136,7 +145,8 @@ export default async function ViPricingPage({ searchParams }: ViPricingPageProps
           annualAvailable={annualAvailable}
           labels={{
             founder: { label: "Nhà sáng lập", sub: "Xây dựng, định giá, gọi vốn" },
-            evaluator: { label: "Nhà đánh giá", sub: "Nhà đầu tư · cố vấn · chương trình" },
+            evaluator: { label: "Nhà đánh giá", sub: "Angel · công ty tư vấn · quỹ VC" },
+            programs: { label: "Chương trình", sub: "Vườn ươm · accelerator · đại học" },
           }}
         />
       </section>
