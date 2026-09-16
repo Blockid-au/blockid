@@ -58,6 +58,7 @@ import {
   findLatestAnalysisWithFallback,
 } from "@/lib/projects";
 import type { GenerateInput, GenerateResult } from "./report-order-worker";
+import { writeAssembledReportJson } from "@/lib/report-v2/storage";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Narrow Supabase surface
@@ -409,6 +410,12 @@ export async function generateTrustReportForOrder(
       true,
       `assembled_reports_insert_failed: ${errMessage(insertErr)}`,
     );
+  }
+
+  // G13-W2-R2: ReportV2 projection with the W4 chapters (migration 0395
+  // column; best effort — a missing column logs once, never fails the order).
+  if (report.reportV2) {
+    await writeAssembledReportJson(supabase as unknown as SupabaseClient, storedReportId, report.reportV2);
   }
 
   // Per-agent rows are analytics only — never fail the order on them.
