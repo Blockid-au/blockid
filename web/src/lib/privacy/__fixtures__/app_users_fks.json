@@ -1,6 +1,6 @@
 {
   "dumped_at": "2026-09-16",
-  "source": "pg_constraint (contype=f) on production supabase-db, confrelid = public.app_users; regenerate with `node scripts/db/app-users-fk-inventory.mjs --json --fixture` — 2026-09-16: three rows (investor_organisations.owner_user_id, investor_organisation_members.user_id, investor_mandates.owner_user_id) added by hand from web/supabase/migrations/0393_investor_mandates_v2.sql ahead of its apply; re-run --fixture after 0393 lands and the output must be byte-identical.",
+  "source": "pg_constraint (contype=f) on production supabase-db, confrelid = public.app_users; regenerate with `node scripts/db/app-users-fk-inventory.mjs --json --fixture`",
   "referenced": "public.app_users(id)",
   "count": 132,
   "fks": [

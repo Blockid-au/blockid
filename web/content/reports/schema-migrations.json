@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-16T11:20:04.240Z",
+  "generated_at": "2026-09-16T12:58:03.529Z",
   "ledger_present": true,
-  "total_files": 276,
+  "total_files": 278,
   "files": [
     "0001_init.sql",
     "0002_score_v2.sql",
@@ -246,10 +246,12 @@
     "0390_analyses_first_analysis_full_report.sql",
     "0391_analyses_full_report_done_partial.sql",
     "0392_evaluation_assessments.sql",
+    "0393_investor_mandates_v2.sql",
     "0394_startup_taxonomy.sql",
     "0395_report_v2_columns.sql",
     "0396_agent_knowledge_base_status.sql",
     "0397_svi_snapshots_project_id_backfill.sql",
+    "0398_svi_deck_cache_pipeline_version.sql",
     "20260814_tech_analyses.sql",
     "20260815120000_analyzer_runs.sql",
     "20260816_clevel_reports_v2.sql",
