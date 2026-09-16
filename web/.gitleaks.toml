@@ -101,7 +101,7 @@ regexes = [
 # ---------------------------------------------------------------------------
 [[allowlists]]
 description = "report-pipeline module ids (path:export)"
-regexTarget = "match"
+regexTarget = "line"
 regexes = [
   '''connectors/linkedin-upload\.ts:[A-Za-z]+''',
 ]
