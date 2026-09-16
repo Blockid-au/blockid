@@ -50,6 +50,7 @@ import { findLatestAnalysisWithFallback, findSVIAccountWithFallback, getProjectB
 import { fromAssembledReport, fromSnapshot, type SnapshotDimState } from "@/lib/report-v2/adapter";
 import { writeAssembledReportJson, writeSnapshotReportV2 } from "@/lib/report-v2/storage";
 import { loadCapTableInput } from "@/lib/svi/cap-table-input";
+import { effectiveConfidenceLevel } from "@/lib/svi/rescore-from-evidence";
 import type { GatherDb } from "@/lib/report-pipeline/gather";
 
 // ---------------------------------------------------------------------------
@@ -733,7 +734,8 @@ export async function runTrustReportForProject(args: {
     });
     // S-R5 §C.7: the equity register feeds CGH (fail-soft: null → keyword score).
     const capTableInput = await loadCapTableInput(getSupabaseAdmin() as unknown as GatherDb | null, project.userId, project.id);
-    const analysis = computeSVI(extractSignals({ rawText: rawInput }, undefined, loadEvidenceItems(await loadEvidence(account.id))), undefined, undefined, undefined, undefined, undefined, undefined, capTableInput);
+    // G14-S36 (F-6): the project's verification level scales the confidence (null → unchanged).
+    const analysis = computeSVI(extractSignals({ rawText: rawInput }, undefined, loadEvidenceItems(await loadEvidence(account.id))), undefined, undefined, undefined, undefined, undefined, undefined, capTableInput, project.verificationLevel ?? null);
     const analysisId = await insertAnalysisRow({ email: ownerEmail, projectId: project.id, rawInput, analysis });
     if (!analysisId) throw new Error("analysis_insert_failed");
     synthesisedAnalysis = true;
@@ -822,7 +824,12 @@ export async function runTrustReportForProject(args: {
 function loadEvidenceItems(rows: Row[]): EvidenceItem[] {
   return rows.map((e) => ({
     evidence_type: String(e.evidence_type ?? ""),
-    confidence_level: String(e.confidence_level ?? ""),
+    // S36 D4: the extractor sees each row at its origin-capped level.
+    confidence_level: effectiveConfidenceLevel({
+      evidence_type: String(e.evidence_type ?? ""),
+      confidence_level: e.confidence_level == null ? null : String(e.confidence_level),
+      verified_at: e.verified_at == null ? null : String(e.verified_at),
+    }),
     dimension: String(e.dimension ?? ""),
     label: String(e.label ?? ""),
   }));
@@ -866,7 +873,8 @@ export async function runRescoreForProject(args: {
   const evidenceRows = await loadEvidence(account.id);
   // S-R5 §C.7: the equity register feeds CGH (fail-soft: null → keyword score).
   const capTableInput = await loadCapTableInput(getSupabaseAdmin() as unknown as GatherDb | null, project.userId, project.id);
-  const analysis = computeSVI(extractSignals({ rawText: rawInput }, undefined, loadEvidenceItems(evidenceRows)), undefined, undefined, undefined, undefined, undefined, undefined, capTableInput);
+  // G14-S36 (F-6): the project's verification level scales the confidence (null → unchanged).
+  const analysis = computeSVI(extractSignals({ rawText: rawInput }, undefined, loadEvidenceItems(evidenceRows)), undefined, undefined, undefined, undefined, undefined, undefined, capTableInput, project.verificationLevel ?? null);
   const analysisId = await insertAnalysisRow({ email: ownerEmail, projectId: project.id, rawInput, analysis });
   if (!analysisId) throw new Error("analysis_insert_failed");
 

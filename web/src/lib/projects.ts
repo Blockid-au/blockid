@@ -29,6 +29,8 @@ export interface Project {
   updatedAt: string;
   growth_phase_current: string | null;
   githubUrl?: string | null;
+  /** G14-S36 — `projects.verification_level` 0–5 (ABR ladder, level-engine.ts); null when never verified. */
+  verificationLevel?: number | null;
   /**
    * S17-A — the caller's role on this project. `"owner"` for
    * `projects.user_id === callerId`; otherwise the accepted
@@ -201,6 +203,7 @@ function mapProject(row: any, role?: ProjectRole): Project {
     updatedAt: row.updated_at,
     growth_phase_current: row.growth_phase_current ?? null,
     githubUrl: row.github_url ?? null,
+    verificationLevel: typeof row.verification_level === "number" ? row.verification_level : null,
   };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { extractSignals, computeSVI, computeFundingReadiness, type SVITextInput } from "@/lib/svi-analysis";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { loadVerificationLevel } from "@/lib/verification/load-level";
 import { newSlug } from "@/lib/slug";
 import { sendSVIReport, sendWelcomeWithReport } from "@/lib/email";
 import { enqueueOnboardingDrip } from "@/lib/email-drip";
@@ -226,7 +227,11 @@ async function POST_handler(request: Request) {
     ebitdaMetrics: competitiveIntelligence.ebitdaMetrics,
   } : undefined;
 
-  let analysis = computeSVI(signals, undefined, undefined, undefined, undefined, ciBoosts);
+  // G14-S36 (F-6): the project's business-verification level scales the
+  // evidence confidence 0.85–1.10 (read-only; null when no project / no row).
+  const verificationLevel = projectId ? await loadVerificationLevel(getSupabaseAdmin(), projectId) : null;
+
+  let analysis = computeSVI(signals, undefined, undefined, undefined, undefined, ciBoosts, undefined, undefined, verificationLevel);
 
   // Attach competitive intelligence and website URL to the analysis result
   if (competitiveIntelligence) {

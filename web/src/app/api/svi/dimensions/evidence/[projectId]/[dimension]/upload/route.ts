@@ -15,6 +15,7 @@ import {
 } from "../../../../_helpers";
 import { EVIDENCE_CATALOG } from "@/lib/svi-completeness";
 import { apiRoute } from "@/lib/audit/api-route";
+import { capConfidence } from "@/lib/evidence/confidence-cap";
 
 export const dynamic = "force-dynamic";
 
@@ -107,13 +108,20 @@ async function POST_handler(
     );
   }
 
-  const confidenceLevel = body.confidenceLevel ?? catalogEntry.confidenceLevel;
-  if (!VALID_CONFIDENCE.has(confidenceLevel)) {
+  const requestedConfidence = body.confidenceLevel ?? catalogEntry.confidenceLevel;
+  if (!VALID_CONFIDENCE.has(requestedConfidence)) {
     return NextResponse.json(
-      { ok: false, error: `Invalid confidenceLevel: ${confidenceLevel}` },
+      { ok: false, error: `Invalid confidenceLevel: ${requestedConfidence}` },
       { status: 400 },
     );
   }
+  // G14-S36 / D4: everything through this route is founder-supplied, so the
+  // stored level is capped at document_uploaded whatever the body (or the
+  // catalog default) asked for. connected_source / transaction_data come
+  // only from connector callbacks; third_party_verified only from a reviewer
+  // approval (PATCH /api/admin/evidence/[id]/review).
+  const cap = capConfidence({ requested: requestedConfidence, origin: "founder_upload" });
+  const confidenceLevel = cap.level;
 
   const supabase = auth.ctx.supabase;
 
@@ -149,6 +157,14 @@ async function POST_handler(
         confidence_level: confidenceLevel,
         evidence_value_or_url: body.evidenceValueOrUrl ?? null,
         estimated_svi_impact: catalogEntry.estimatedSviImpact,
+        // A re-upload replaces the value a reviewer may have signed off on,
+        // so the verification is withdrawn (S36). The founder re-requests
+        // review from the evidence row. (review_status is left to 0406's
+        // default / the request-review route so this hot path never depends
+        // on the migration being applied.)
+        is_verified: false,
+        verified_at: null,
+        verified_by_user_id: null,
         updated_at: nowIso,
       },
       { onConflict: "project_id,dimension,evidence_type" },
@@ -189,6 +205,9 @@ async function POST_handler(
     {
       ok: true,
       id: upserted.id as string,
+      confidenceLevel,
+      requestedConfidenceLevel: cap.requested,
+      confidenceCapped: cap.capped,
       updatedCompleteness,
       updatedRoadmap: grouped,
     },

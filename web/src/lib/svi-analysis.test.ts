@@ -6,6 +6,8 @@ import {
   SVI_STAGE_LABELS,
   SVI_BENCHMARKS,
   EVIDENCE_CONFIDENCE,
+  SVI_VERSION,
+  nextRungConfidence,
   applyCapTableInput,
   type CapTableInput,
   type SVIExtractedSignals,
@@ -213,14 +215,43 @@ describe("extractSignals", () => {
     expect(s.evidenceLevel).toBe("document_uploaded");
   });
 
-  it("upgrades evidence level for connected sources", () => {
+  // G14-S36 / D4 — the keyword ladder is gone: prose never grades itself.
+  it("founder prose naming connectors stays self_declared (no keyword ladder)", () => {
     const s = extractSignals({ rawText: "Connected stripe and github for verification" });
-    expect(s.evidenceLevel).toBe("connected_source");
+    expect(s.evidenceLevel).toBe("self_declared");
   });
 
-  it("detects transaction data evidence", () => {
+  it("founder prose about invoices / signed contracts stays self_declared", () => {
     const s = extractSignals({ rawText: "We have signed customer contract and revenue proof" });
-    expect(s.evidenceLevel).toBe("transaction_data");
+    expect(s.evidenceLevel).toBe("self_declared");
+  });
+
+  it("text containing 'ASIC audit' stays self_declared", () => {
+    const s = extractSignals({ rawText: "Accounts audited by a third party accountant report, ASIC registered, board signed the ASIC audit." });
+    expect(s.evidenceLevel).toBe("self_declared");
+    const withFile = extractSignals({ rawText: "ASIC audit attached, third party verified", fileName: "asic-audit.pdf" });
+    expect(withFile.evidenceLevel).toBe("document_uploaded");
+  });
+
+  it("a URL in founder text earns public_url, never more", () => {
+    const s = extractSignals({ rawText: "See our audited accounts at https://example.com/audit — ASIC verified" });
+    expect(s.evidenceLevel).toBe("public_url");
+  });
+
+  it("a connector evidence row lifts to connected_source / transaction_data; a legacy third_party_verified row does not", () => {
+    const connected = extractSignals({ rawText: "idea" }, undefined, [
+      { evidence_type: "github", confidence_level: "connected_source", dimension: "ptd" },
+    ] as never[]);
+    expect(connected.evidenceLevel).toBe("connected_source");
+    const txn = extractSignals({ rawText: "idea" }, undefined, [
+      { evidence_type: "stripe", confidence_level: "transaction_data", dimension: "tre" },
+      { evidence_type: "github", confidence_level: "connected_source", dimension: "ptd" },
+    ] as never[]);
+    expect(txn.evidenceLevel).toBe("transaction_data");
+    const tpv = extractSignals({ rawText: "idea" }, undefined, [
+      { evidence_type: "document", confidence_level: "third_party_verified", dimension: "lco" },
+    ] as never[]);
+    expect(tpv.evidenceLevel).toBe("self_declared");
   });
 
   it("detects cap table signals", () => {
@@ -398,7 +429,7 @@ describe("computeSVI", () => {
     expect(result.totalSVI).toBeLessThan(100);
     expect(result.totalSVI).toBeGreaterThanOrEqual(30); // min clamp
     expect(result.baselineSVI).toBe(100);
-    expect(result.version).toBe("2.1.0");
+    expect(result.version).toBe(SVI_VERSION);
     expect(result.stage).toBe(0);
     expect(result.stageLabel).toBe("Concept");
   });
@@ -584,5 +615,53 @@ describe("extractSignals — revenue negation", () => {
     expect(signals.revenueBand).not.toBe("pre-revenue");
     expect(signals.hasRevenue).toBe(true);
     expect(detectStage(signals)).toBeGreaterThanOrEqual(4);
+  });
+});
+
+// ── G14-S36 (F-6): business-verification multiplier ─────────────────────────
+
+describe("computeSVI — verificationLevel multiplier", () => {
+  const base = (over: Partial<SVIExtractedSignals> = {}) =>
+    makeSignals({ hasCoFounder: true, founderExperience: "serial", hasProduct: true, hasDemo: true, ...over });
+  const withLevel = (level: number | null, over: Partial<SVIExtractedSignals> = {}) =>
+    computeSVI(base(over), undefined, undefined, undefined, undefined, undefined, undefined, undefined, level);
+
+  it("is fail-soft: omitted / null leaves confidenceMultiplier at the ladder value and no meta", () => {
+    const a = computeSVI(base());
+    const b = withLevel(null);
+    expect(a.confidenceMultiplier).toBe(EVIDENCE_CONFIDENCE.self_declared);
+    expect(b.confidenceMultiplier).toBe(EVIDENCE_CONFIDENCE.self_declared);
+    expect(a.meta).toBeUndefined();
+    expect(b.meta).toBeUndefined();
+  });
+
+  it("records meta.verification (level, multiplier, abnVerified, label) and scales the ladder confidence", () => {
+    const l0 = withLevel(0);
+    expect(l0.meta?.verification).toMatchObject({ level: 0, multiplier: 0.85, abnVerified: false, ladderConfidence: 0.2, label: "Unverified" });
+    expect(l0.confidenceMultiplier).toBeCloseTo(0.17, 3);
+
+    const l2 = withLevel(2);
+    expect(l2.meta?.verification).toMatchObject({ level: 2, multiplier: 1, abnVerified: true });
+    expect(l2.confidenceMultiplier).toBe(0.2);
+    expect(l2.totalSVI).toBeGreaterThanOrEqual(l0.totalSVI);
+  });
+
+  it("never lifts a self_declared analysis above the document_uploaded rung, even at L5", () => {
+    const l5 = withLevel(5);
+    expect(l5.confidenceMultiplier).toBeLessThanOrEqual(EVIDENCE_CONFIDENCE.document_uploaded);
+    expect(l5.confidenceMultiplier).toBeCloseTo(0.22, 3);
+    expect(l5.meta?.verification?.multiplier).toBe(1.1);
+  });
+
+  it("caps at 1.0 for a third_party_verified analysis and clamps out-of-range levels", () => {
+    expect(withLevel(5, { evidenceLevel: "third_party_verified" }).confidenceMultiplier).toBe(1);
+    expect(withLevel(9).meta?.verification?.level).toBe(5);
+    expect(withLevel(Number.NaN).meta?.verification?.level).toBe(0);
+  });
+
+  it("nextRungConfidence walks the ladder and pins at the top", () => {
+    expect(nextRungConfidence("self_declared")).toBe(EVIDENCE_CONFIDENCE.public_url);
+    expect(nextRungConfidence("transaction_data")).toBe(EVIDENCE_CONFIDENCE.third_party_verified);
+    expect(nextRungConfidence("third_party_verified")).toBe(1);
   });
 });

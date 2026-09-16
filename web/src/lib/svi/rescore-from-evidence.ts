@@ -28,20 +28,48 @@ import {
   scoreConnectedRevenue,
   type ConnectedRevenueScore,
 } from "@/lib/svi/connected-revenue-score";
+import { cappedLevel, type ConfidenceLevel, type EvidenceOrigin } from "@/lib/evidence/confidence-cap";
+import { loadVerificationLevel } from "@/lib/verification/load-level";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Db = SupabaseClient<any, any, any>;
 
-/** Evidence bonus points per confidence level (non-revenue rows). */
+/**
+ * Evidence bonus points per confidence level (non-revenue rows).
+ * S36: transaction_data / third_party_verified used to fall through to the
+ * self_declared 3 — a reviewer-approved row scored like a founder claim.
+ */
 export const EVIDENCE_BONUS: Record<string, number> = {
   self_declared: 3,
   public_url: 6,
   document_uploaded: 10,
   connected_source: 15,
+  transaction_data: 15,
+  third_party_verified: 18,
 };
 
 /** Evidence types whose points come from the magnitude table instead of the flat bonus. */
 export const REVENUE_CONNECTOR_EVIDENCE_TYPES = new Set(["stripe", "xero_revenue"]);
+
+/** Evidence types only a connector callback / resync writes (OAuth-read, machine origin). */
+export const CONNECTOR_EVIDENCE_TYPES = new Set(["stripe", "xero_revenue", "xero_pl", "xero", "github", "analytics", "ga4", "linkedin"]);
+
+/**
+ * G14-S36 / D4: which party produced a `svi_evidence` row. A row a human
+ * reviewer signed (`verified_at`) is reviewer origin; a connector type is
+ * connector origin; everything else the founder entered and is capped at
+ * document_uploaded whatever `confidence_level` the row carries.
+ */
+export function evidenceRowOrigin(ev: Pick<EvidenceRowLite, "evidence_type" | "verified_at">): EvidenceOrigin {
+  if (ev.verified_at) return "reviewer";
+  if (CONNECTOR_EVIDENCE_TYPES.has(ev.evidence_type ?? "")) return "connector";
+  return "founder_upload";
+}
+
+/** The confidence level the bonus table is allowed to read for this row. */
+export function effectiveConfidenceLevel(ev: Pick<EvidenceRowLite, "evidence_type" | "confidence_level" | "verified_at">): ConfidenceLevel {
+  return cappedLevel({ requested: ev.confidence_level, origin: evidenceRowOrigin(ev) });
+}
 
 /**
  * Is this the revenue row the magnitude table replaces? Keyed on evidence
@@ -71,11 +99,14 @@ export interface EvidenceRowLite {
   confidence_level: string | null;
   dimension: string | null;
   label?: string | null;
+  /** Set by a human reviewer — the only way a row keeps third_party_verified (S36). */
+  verified_at?: string | null;
 }
 
 /**
  * Pure: per-dimension flat bonuses from the evidence vault, with the
- * revenue-connector rows carved out (they are priced by magnitude).
+ * revenue-connector rows carved out (they are priced by magnitude) and every
+ * row's confidence capped by its origin (S36 D4).
  */
 export function flatEvidenceBonuses(evidence: EvidenceRowLite[]): Record<string, number> {
   const out: Record<string, number> = {};
@@ -83,7 +114,7 @@ export function flatEvidenceBonuses(evidence: EvidenceRowLite[]): Record<string,
     const dim = ev.dimension ?? "";
     if (!VALID_DIMENSIONS.has(dim)) continue;
     if (isRevenueConnectorRow(ev)) continue;
-    const bonus = EVIDENCE_BONUS[ev.confidence_level ?? ""] ?? EVIDENCE_BONUS.self_declared;
+    const bonus = EVIDENCE_BONUS[effectiveConfidenceLevel(ev)] ?? EVIDENCE_BONUS.self_declared;
     out[dim] = (out[dim] ?? 0) + bonus;
   }
   return out;
@@ -143,13 +174,17 @@ export async function rescoreAccountFromEvidence(supabase: Db, args: RescoreArgs
   // 2. Evidence items.
   const { data: evidenceRaw } = await supabase
     .from("svi_evidence")
-    .select("evidence_type, confidence_level, dimension, label")
+    .select("evidence_type, confidence_level, dimension, label, verified_at")
     .eq("account_id", accountId);
   const evidence = (evidenceRaw ?? []) as EvidenceRowLite[];
 
-  // 3. Re-extract + recompute (deterministic — no AI).
-  const signals = extractSignals({ rawText: rawInput }, undefined, evidence as never[]);
-  const newAnalysis = computeSVI(signals);
+  // 3. Re-extract + recompute (deterministic — no AI). The extractor sees
+  // each row at its origin-capped level (S36) and, when the project is
+  // known, the business-verification level (F-6).
+  const cappedEvidence = evidence.map((ev) => ({ ...ev, confidence_level: effectiveConfidenceLevel(ev) }));
+  const signals = extractSignals({ rawText: rawInput }, undefined, cappedEvidence as never[]);
+  const verificationLevel = projectId ? await loadVerificationLevel(supabase, projectId) : null;
+  const newAnalysis = computeSVI(signals, undefined, undefined, undefined, undefined, undefined, undefined, undefined, verificationLevel);
 
   // 4. Flat bonuses (revenue connectors carved out) + the magnitude contribution.
   const dimensionBonuses = flatEvidenceBonuses(evidence);

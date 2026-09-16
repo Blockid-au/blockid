@@ -9,6 +9,7 @@ import {
   EVIDENCE_CATALOG,
 } from "@/lib/svi-completeness";
 import { apiRoute } from "@/lib/audit/api-route";
+import { capConfidence } from "@/lib/evidence/confidence-cap";
 
 export const dynamic = "force-dynamic";
 
@@ -58,14 +59,15 @@ export async function GET() {
     if (snapshot?.overall_score) currentSvi = snapshot.overall_score as number;
   }
 
-  // Load all evidence rows for this project
-  let evidenceRows: { dimension: string; evidence_type: string }[] = [];
+  // Load all evidence rows for this project. `*` (not a column list) so the
+  // read never depends on 0406's review columns being applied yet.
+  let evidenceRows: EvidenceRowOut[] = [];
   if (projectId) {
     const { data } = await supabase
       .from("svi_dimension_evidence")
-      .select("dimension, evidence_type")
+      .select("*")
       .eq("project_id", projectId);
-    if (data) evidenceRows = data as { dimension: string; evidence_type: string }[];
+    if (data) evidenceRows = (data as Record<string, unknown>[]).map(toEvidenceRowOut);
   }
 
   // Group evidence types by dimension
@@ -82,7 +84,35 @@ export async function GET() {
   const roadmap = generateFixRoadmap(dimensions);
   const forecast = forecastRoadmapImpact(roadmap, currentSvi);
 
-  return NextResponse.json({ ok: true, dimensions, roadmap, forecast, currentSvi });
+  return NextResponse.json({ ok: true, dimensions, roadmap, forecast, currentSvi, projectId, rows: evidenceRows });
+}
+
+/** The per-row verification state the founder page renders (S36 "Request verification"). */
+export interface EvidenceRowOut {
+  id: string;
+  projectId: string;
+  dimension: string;
+  evidence_type: string;
+  confidence_level: string;
+  is_verified: boolean;
+  verified_at: string | null;
+  review_status: "none" | "pending" | "approved" | "rejected";
+  review_note: string | null;
+}
+
+function toEvidenceRowOut(r: Record<string, unknown>): EvidenceRowOut {
+  const status = r.review_status;
+  return {
+    id: String(r.id ?? ""),
+    projectId: String(r.project_id ?? ""),
+    dimension: String(r.dimension ?? ""),
+    evidence_type: String(r.evidence_type ?? ""),
+    confidence_level: String(r.confidence_level ?? "self_declared"),
+    is_verified: r.is_verified === true,
+    verified_at: typeof r.verified_at === "string" ? r.verified_at : null,
+    review_status: status === "pending" || status === "approved" || status === "rejected" ? status : "none",
+    review_note: typeof r.review_note === "string" ? r.review_note : null,
+  };
 }
 
 async function POST_handler(request: NextRequest) {
@@ -121,6 +151,11 @@ async function POST_handler(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "dimension and evidenceType are required" }, { status: 400 });
   }
 
+  // G14-S36 / D4: founder-supplied, so the stored level is capped at
+  // document_uploaded whatever the body asked for (third_party_verified is a
+  // reviewer-only write — PATCH /api/admin/evidence/[id]/review).
+  const cap = capConfidence({ requested: confidenceLevel, origin: "founder_upload" });
+
   const { error } = await supabase
     .from("svi_dimension_evidence")
     .upsert(
@@ -129,8 +164,12 @@ async function POST_handler(request: NextRequest) {
         dimension,
         evidence_type: evidenceType,
         evidence_label: evidenceLabel ?? evidenceType,
-        confidence_level: confidenceLevel,
+        confidence_level: cap.level,
         evidence_value_or_url: evidenceValueOrUrl ?? null,
+        // A re-submission replaces what a reviewer may have signed off on.
+        is_verified: false,
+        verified_at: null,
+        verified_by_user_id: null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "project_id,dimension,evidence_type" }
@@ -141,7 +180,7 @@ async function POST_handler(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Failed to save evidence" }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, confidenceLevel: cap.level, requestedConfidenceLevel: cap.requested, confidenceCapped: cap.capped });
 }
 
 async function DELETE_handler(request: NextRequest) {

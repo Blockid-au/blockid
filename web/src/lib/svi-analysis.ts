@@ -7,8 +7,10 @@ import type { TechAuditResult } from "./rnd-input";
 import type { GitHubRepoAudit } from "./github-repo-audit";
 import type { WebsiteCompetitiveIntelligence, MarketEbitdaMetrics } from "./competitive-intelligence";
 import { parseFinancialFigures } from "./intake/financial-figures";
+import { cappedLevel, textHasUrl } from "./evidence/confidence-cap";
+import { verificationMeta, boundedVerificationConfidence, type VerificationMeta } from "./verification/confidence-multiplier";
 
-export const SVI_VERSION = "2.1.0";
+export const SVI_VERSION = "2.2.0";
 
 // ─── Stage labels ─────────────────────────────────────────────────────────────
 // DEPRECATED: This 8-stage vocabulary predates the canonical journey
@@ -259,6 +261,10 @@ export interface CIBoosts {
   ebitdaMetrics?: MarketEbitdaMetrics;
 }
 
+export interface SVIAnalysisMeta {
+  verification?: VerificationMeta & { ladderConfidence: number; effectiveConfidence: number };
+}
+
 export interface SVIAnalysis {
   version: string;
   totalSVI: number;             // 0+ open-ended index (base 100 ± adjustments) — unbounded per startup
@@ -287,6 +293,11 @@ export interface SVIAnalysis {
   // v2.2: CI-derived SVI boosts and market EBITDA metrics
   ciBoost?: number;         // Total SVI points added from competitive intelligence
   marketEbitdaMetrics?: MarketEbitdaMetrics; // Market-level EBITDA benchmarks for this sector
+  // G14-S36: business-verification multiplier (F-6). Present only when the
+  // caller passed `projects.verification_level`; `ladderConfidence` is what
+  // the evidence ladder alone earned, `confidenceMultiplier` above is the
+  // bounded product that every dimension adjustment used.
+  meta?: SVIAnalysisMeta;
   // v2.3: enriched input + multi-perspective valuation (T0214)
   inputSummary?: {
     projectName: string;
@@ -581,22 +592,18 @@ export function extractSignals(
           : "early"
       : keywordBand;
 
-  // Evidence quality: check file types and keywords
-  let evidenceLevel: keyof typeof EVIDENCE_CONFIDENCE = "self_declared";
-  if (input.fileName) {
-    if (input.fileName.match(/\.(pdf|doc|docx|xlsx|csv)$/i)) {
-      evidenceLevel = "document_uploaded";
-    }
-  }
-  if (has("stripe", "xero", "quickbooks", "github", "google analytics", "app store", "play store")) {
-    evidenceLevel = "connected_source";
-  }
-  if (has("invoice", "revenue proof", "customer contract", "signed", "transaction")) {
-    evidenceLevel = "transaction_data";
-  }
-  if (has("audit", "accountant report", "asic", "board signed", "third party")) {
-    evidenceLevel = "third_party_verified";
-  }
+  // Evidence quality — G14-S36 / D4: bounded by the ORIGIN of the input, never
+  // by its words. The pre-S36 ladder read "stripe" / "invoice" / "asic audit"
+  // in the founder's prose as connected_source / transaction_data /
+  // third_party_verified — the party making the claim was grading it.
+  // Founder text is self_declared (public_url when it links somewhere we can
+  // open); a founder-uploaded document is document_uploaded; anything higher
+  // has to come from a connector row, the tech / repo audit overlays below,
+  // or a human reviewer (lib/evidence/confidence-cap.ts).
+  const isDocumentUpload = Boolean(input.fileName && /\.(pdf|doc|docx|xlsx|csv)$/i.test(input.fileName));
+  const evidenceLevel: keyof typeof EVIDENCE_CONFIDENCE = isDocumentUpload
+    ? cappedLevel({ requested: "document_uploaded", origin: "founder_upload" })
+    : cappedLevel({ requested: "public_url", origin: "founder_text", hasUrl: textHasUrl(input.rawText) });
 
   // Same negation trap as revenue, one field over: "Bootstrapped, no external
   // funding" contains "funding", so the old flat list read a company that had
@@ -729,9 +736,13 @@ export function extractSignals(
           }
           break;
       }
-      // Boost confidence based on evidence level
+      // Boost confidence from a connector row. The stored level is re-capped
+      // as connector origin (S36) so a row can never carry the whole analysis
+      // to third_party_verified; only a reviewer approval does that and it
+      // lives on the row's is_verified flag, not here. Never lowers.
       if (ev.confidence_level === "connected_source" || ev.confidence_level === "transaction_data") {
-        signals.evidenceLevel = ev.confidence_level;
+        const lvl = cappedLevel({ requested: ev.confidence_level, origin: "connector" });
+        if (EVIDENCE_CONFIDENCE[lvl] > EVIDENCE_CONFIDENCE[signals.evidenceLevel]) signals.evidenceLevel = lvl;
       }
     }
   }
@@ -959,9 +970,20 @@ export function computeSVI(
    * adds the register-only bonuses. Fail-soft: omitted → unchanged.
    */
   capTableInput?: CapTableInput | null,
+  /**
+   * G14-S36 (F-6): `projects.verification_level` 0–5 when the caller has the
+   * project. Scales the ladder confidence by 0.85–1.10, bounded so a
+   * self_declared analysis never reads above document_uploaded. Fail-soft:
+   * omitted / null → the ladder confidence, exactly as before.
+   */
+  verificationLevel?: number | null,
 ): SVIAnalysis {
   const signals = applyCapTableInput(inputSignals, capTableInput);
-  const confidence = EVIDENCE_CONFIDENCE[signals.evidenceLevel] ?? 0.20;
+  const ladderConfidence = EVIDENCE_CONFIDENCE[signals.evidenceLevel] ?? 0.20;
+  const verification = verificationLevel == null ? null : verificationMeta(verificationLevel);
+  const confidence = verification
+    ? boundedVerificationConfidence(ladderConfidence, verification.level, nextRungConfidence(signals.evidenceLevel))
+    : ladderConfidence;
 
   // ── Dimension 1: FTV — Founder & Team Value (15%) ──────────────────────────
   let ftvRaw = 50;
@@ -1709,7 +1731,16 @@ export function computeSVI(
     dimensionScores,
     ciBoost: effectiveCIBoost !== 0 ? effectiveCIBoost : undefined,
     marketEbitdaMetrics: ciBoosts?.ebitdaMetrics,
+    meta: verification ? { verification: { ...verification, ladderConfidence, effectiveConfidence: confidence } } : undefined,
   };
+}
+
+/** Confidence one rung above `level` on the evidence ladder (1.0 at the top). */
+export function nextRungConfidence(level: keyof typeof EVIDENCE_CONFIDENCE): number {
+  const keys = Object.keys(EVIDENCE_CONFIDENCE);
+  const i = keys.indexOf(level);
+  const next = i >= 0 && i + 1 < keys.length ? keys[i + 1] : keys[keys.length - 1];
+  return EVIDENCE_CONFIDENCE[next] ?? 1;
 }
 
 // ─── v2.1: Funding Readiness ──────────────────────────────────────────────────
