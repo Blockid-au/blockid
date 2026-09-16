@@ -134,6 +134,8 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/evaluation/[criterionKey]/ai-score/route.ts", family: "evaluation.ai-score", methods: ["POST"] },
   { route: "api/evaluation/[criterionKey]/ai-suggest/route.ts", family: "evaluation.ai-suggest", methods: ["POST"] },
   { route: "api/evaluation/route.ts", family: "evaluation", methods: ["POST"] },
+  { route: "api/evaluations/[id]/assessment/route.ts", family: "evaluations.assessment", methods: ["PUT"] },
+  { route: "api/evaluations/[id]/assessment/share/route.ts", family: "evaluations.assessment.share", methods: ["POST","DELETE"] },
   { route: "api/evaluations/[id]/report/route.ts", family: "evaluations.report", methods: ["POST"] },
   { route: "api/evaluations/[id]/route.ts", family: "evaluations", methods: ["PATCH","DELETE"] },
   { route: "api/evaluations/batch/route.ts", family: "evaluations.batch", methods: ["POST"] },
