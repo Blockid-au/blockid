@@ -323,7 +323,7 @@ describe("startup-index-listings — row shape", () => {
     const result = await computeListings({});
     expect(result.rows[0].ticker).toBe("DEFA-XYZ");
     expect(result.rows[0].sector).toBe("default");
-    expect(result.rows[0].sectorLabel).toBe("Other");
+    expect(result.rows[0].sectorLabel).toBe("Unclassified"); // G13 E1.5 / T1: honest, never "Other"
   });
 
   it("known sector maps to its human label (saas → SaaS)", async () => {
@@ -337,7 +337,7 @@ describe("startup-index-listings — row shape", () => {
     expect(result.rows[0].sectorLabel).toBe("SaaS");
   });
 
-  it("unknown sector falls through to the 'default' label 'Other'", async () => {
+  it("a sector slug outside SECTOR_LABEL keeps its slug (ticker-stable) but labels through the taxonomy crosswalk (G13 E1.5)", async () => {
     const { computeListings } = await import("./startup-index-listings");
     state.queue = [
       { data: [analysis({ email: "a@x", id: "an_1", sector: "quantum" })] },
@@ -345,7 +345,7 @@ describe("startup-index-listings — row shape", () => {
       { data: [] },
     ];
     const result = await computeListings({});
-    expect(result.rows[0].sectorLabel).toBe("Other");
+    expect(result.rows[0].sectorLabel).toBe("Deeptech / quantum");
     expect(result.rows[0].sector).toBe("quantum");
   });
 

@@ -127,6 +127,17 @@ vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => makeSupabase(),
 }));
 
+// G14-S33: evaluator_trial_started is emitted server-side; observe only.
+const emitCalls: Array<{ name: string; params: Record<string, unknown>; userId?: string | null }> = [];
+vi.mock("@/lib/analytics/server", () => ({
+  emitEventSafe: (input: { name: string; params: Record<string, unknown>; userId?: string | null }) => {
+    emitCalls.push(input);
+  },
+  emitEvent: async (input: { name: string; params: Record<string, unknown>; userId?: string | null }) => {
+    emitCalls.push(input);
+  },
+}));
+
 vi.mock("@/lib/stripe", () => ({
   isStripeConfigured: () => true,
   getStripe: () => ({
@@ -210,6 +221,7 @@ async function json(res: Response): Promise<Record<string, unknown>> {
 }
 
 beforeEach(() => {
+  emitCalls.length = 0;
   mocks.inserted.length = 0;
   mocks.trialStateUpserts.length = 0;
   mocks.subscriptionCreates.length = 0;
@@ -320,7 +332,8 @@ describe("plan allow-list", () => {
     expect(mocks.subscriptionCreates).toHaveLength(0);
   });
 
-  it.each(["founder_scale", "investor_vc_ent", "accelerator_starter", "founder_free", "bogus"])(
+  // Pricing v4 (2026-09-16): accelerator_starter (Cohort 25) is self-serve now; accelerator_enterprise + index_api stay out.
+  it.each(["founder_scale", "investor_vc_ent", "accelerator_enterprise", "index_api", "founder_free", "bogus"])(
     "rejects %s with 400 unsupported_plan before touching the DB",
     async (planId) => {
       const res = await POST(req(body({ plan_id: planId })));
@@ -367,6 +380,17 @@ describe("account_type enum", () => {
     expect(mocks.inserted[0]?.account_type).toBe("founder");
     expect(mocks.inserted[0]?.segment).toBe("founder");
   });
+});
+
+describe("S-IA4: `redirect` in the response is the single /onboarding wizard for every fresh account", () => {
+  it.each([["founder", "founder_starter"], ["investor", "investor_angel"], ["advisor", "investor_advisor"], ["accelerator", "investor_vc_small"]])(
+    "%s on %s → /onboarding",
+    async (accountType, planId) => {
+      const res = await POST(req(body({ account_type: accountType, plan_id: planId })));
+      expect(res.status).toBe(200);
+      expect((await json(res)).redirect).toBe("/onboarding");
+    },
+  );
 });
 
 describe("app_users.segment written from account_type", () => {
@@ -419,6 +443,26 @@ describe("trial length comes from the plan row", () => {
     const res = await POST(req(body({ plan_id: "investor_angel" })));
     expect((await json(res)).trial).toMatchObject({ days: 7, price_display: "A$79" });
     expect(mocks.subscriptionCreates[0]?.trial_period_days).toBe(7);
+  });
+});
+
+// G14-S33 — the evaluator trial starts here (Stripe subscription minted in
+// trial mode), so the money event is server truth: one emit per evaluator
+// signup, none for a founder rung.
+describe("evaluator_trial_started (G14-S33)", () => {
+  it("emits once for an evaluator plan with plan / trial_days / account_type / user_id", async () => {
+    const res = await POST(req(body({ plan_id: "investor_vc_small", account_type: "accelerator" })));
+    expect(res.status).toBe(200);
+    const ev = emitCalls.filter((c) => c.name === "evaluator_trial_started");
+    expect(ev).toHaveLength(1);
+    expect(ev[0].params).toEqual({ plan: "investor_vc_small", trial_days: 14, account_type: "accelerator", user_id: "u_new" });
+    expect(ev[0].userId).toBe("u_new");
+  });
+
+  it("does not emit for a founder rung", async () => {
+    const res = await POST(req(body({ plan_id: "founder_starter", account_type: "founder" })));
+    expect(res.status).toBe(200);
+    expect(emitCalls.find((c) => c.name === "evaluator_trial_started")).toBeUndefined();
   });
 });
 

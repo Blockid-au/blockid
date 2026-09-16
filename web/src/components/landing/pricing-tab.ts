@@ -1,4 +1,4 @@
-// Server-safe helpers for the /pricing Founder | Evaluator switch.
+// Server-safe helpers for the /pricing Founder | Evaluator | Programs switch.
 //
 // Why a separate file: `pricing-segment-switch.tsx` is a "use client" module.
 // Next.js turns every export of a client module into a client reference, so
@@ -10,18 +10,25 @@
 // for its tests.
 import type { Segment } from "@/lib/plans-v2";
 
-export type PricingTab = "founder" | "evaluator";
+// Pricing v4 (2026-09-16, plan §3.2): a third tab, Programs, sells the
+// annual-first cohort ladder (Intake link / Cohort 25 / Cohort 100).
+export type PricingTab = "founder" | "evaluator" | "programs";
 
-/** Map the two public tabs onto the plans-v2 catalogue segments. */
+export const PRICING_TABS: readonly PricingTab[] = ["founder", "evaluator", "programs"];
+
+/** Map the three public tabs onto the plans-v2 catalogue segments. */
 export const TAB_TO_SEGMENT: Record<PricingTab, Segment> = {
   founder: "founder",
   evaluator: "investor",
+  programs: "accelerator",
 };
 
 /**
- * Resolve a `?segment=` / `?tab=` / legacy `?tier=` query value to a tab.
- * Anything evaluator-shaped (investor, advisor, accelerator, evaluator)
- * lands on Evaluator; everything else — including nothing — is Founder.
+ * Resolve a `?segment=` / `?persona=` / `?tab=` / legacy `?tier=` query
+ * value to a tab. Investor-shaped values (investor, advisor, fund, vc,
+ * evaluator) land on Evaluator; program-shaped values (accelerator,
+ * program, incubator, university) land on Programs; everything else —
+ * including nothing — is Founder.
  */
 export function resolvePricingTab(
   raw: string | string[] | null | undefined,
@@ -34,10 +41,22 @@ export function resolvePricingTab(
     case "investors":
     case "advisor":
     case "advisors":
+    case "fund":
+    case "funds":
+    case "vc":
+      return "evaluator";
+    case "programs":
+    case "program":
+    case "programme":
+    case "programmes":
     case "accelerator":
     case "accelerators":
-    case "program":
-      return "evaluator";
+    case "incubator":
+    case "incubators":
+    case "university":
+    case "universities":
+    case "cohort":
+      return "programs";
     default:
       return "founder";
   }

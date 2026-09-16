@@ -53,7 +53,14 @@ export type AnalyticsEvent =
   | { name: "svi_score_computed"; params: { project_id: string; score: number; slug: string; user_id?: string } }
   | { name: "investor_pack_generated"; params: { project_id: string; user_id: string; pages?: number } }
   | { name: "trial_activated"; params: { plan: PlanCode; user_id: string; trial_end_at?: string } }
-  | { name: "checkout_completed"; params: { plan: PlanCode; user_id: string; session_id: string; gross_aud_cents?: number } };
+  | { name: "checkout_completed"; params: { plan: PlanCode; user_id: string; session_id: string; gross_aud_cents?: number } }
+  // ── G14-S33 money events (server-side; see lib/analytics.ts for the client-map twin) ──
+  | { name: "trust_report_purchased"; params: { sku: string; gross_aud_cents: number; reconciled: boolean; user_id: string; session_id: string } }
+  | { name: "funding_report_paid"; params: { paid_via: "one_off" | "credits" | "plan"; report_id: string; gross_aud_cents?: number } }
+  | { name: "evaluator_trial_started"; params: { plan: string; trial_days: number; account_type: string; user_id: string } }
+  | { name: "subscription_created"; params: { plan: string; status: string; trialing: boolean; interval: string; user_id?: string } }
+  | { name: "tbr_share_created"; params: { project_scope: "default" | "project"; user_id: string } }
+  | { name: "dossier_view"; params: { evaluation_id: string; consent_tier: string; role: "assessor" | "founder"; surface: "page" | "api"; user_id: string } };
 
 export type AnalyticsEventName = AnalyticsEvent["name"];
 

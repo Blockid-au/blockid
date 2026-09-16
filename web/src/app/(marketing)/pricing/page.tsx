@@ -26,23 +26,32 @@ import { PricingFeatureNotice } from "@/components/landing/pricing-feature-notic
 export const revalidate = 300;
 
 // 2026-09-07 (Workstream B5) retired the four persona tabs (Founder /
-// Investor / Advisor / Accelerator). 2026-09-10 (G12, T0268) brings back a
-// deliberately smaller switch — two tabs, one per self-serve ladder:
+// Investor / Advisor / Accelerator). 2026-09-10 (G12, T0268) brought back a
+// deliberately smaller switch; Pricing v4 (2026-09-16, plan §3.2) makes it
+// three tabs, one per self-serve ladder:
 //
 //   Founder    Free / Starter A$29 / Growth A$69
-//   Evaluator  Scout A$79 / Firm A$149 / Program A$349
-//              (investor_angel / investor_advisor / investor_vc_small)
+//   Evaluator  Scout A$79 / Firm A$149 / Program A$349 / Fund A$999
+//              (investor_angel / investor_advisor / investor_vc_small /
+//              investor_fund)
+//   Programs   Intake link A$249 / Cohort 25 A$500 / Cohort 100 A$1,500
+//              (accelerator_intake / accelerator_starter /
+//              accelerator_growth — annual-first, 14-day trial)
 //
-// The contact-sales row below the switch stays visible under both tabs.
-// Deep links: `?segment=evaluator` (canonical), plus the legacy `?tab=` and
-// `?tier=` params still linked from older campaigns — any evaluator-shaped
-// value (investor / advisor / accelerator) lands on the Evaluator tab, so
-// none of those links 404 or silently show the wrong ladder. Persona pages
-// keep deep-linking to a card via `#tier-growth` / `#tier-scout` fragments
-// defined on <PricingMatrix />.
+// The contact-sales row below the switch (VC Enterprise / Cohort
+// Enterprise / Index API) stays visible under every tab.
+// Deep links: `?segment=evaluator|programs` (canonical),
+// `?persona=investor|accelerator` (the deck v3 / G14 alias, 2026-09-16),
+// plus the legacy `?tab=` and `?tier=` params still linked from older
+// campaigns — investor-shaped values (investor / advisor / fund / vc) land
+// on Evaluator, program-shaped values (accelerator / program / incubator /
+// university) on Programs, so none of those links 404 or silently show the
+// wrong ladder. Persona pages keep deep-linking to a card via `#tier-growth`
+// / `#tier-scout` / `#tier-fund` / `#tier-cohort-25` fragments defined on
+// <PricingMatrix />.
 export const metadata: Metadata = pageMetadata({
-  title: "Pricing — founder and evaluator plans",
-  description: "Founder plans from free (Starter A$29, Growth A$69). Evaluator plans for investors, advisors and programs (Scout A$79, Firm A$149, Program A$349). 7-day free trial.",
+  title: "Pricing — founder, evaluator and program plans",
+  description: "Founder plans from free (Starter A$29, Growth A$69). Evaluators: Scout A$79, Firm A$149, Program A$349, Fund A$999. Accelerators from an Intake link. Free trial.",
   path: "/pricing",
   viPath: "/vi/pricing",
 });
@@ -65,9 +74,14 @@ const FAQ_JSONLD = [
       "Yes. Upgrade or downgrade any time from Billing settings; prorated changes apply immediately.",
   },
   {
-    question: "Founder or Evaluator — which plans do I see?",
+    question: "Founder, Evaluator or Programs — which plans do I see?",
     answer:
-      "Use the Founder / Evaluator switch above the plans. Founder shows Free, Starter A$29 and Growth A$69. Evaluator shows Scout A$79, Firm A$149 and Program A$349 for investors, advisors, accelerators and programs — each with a 7-day free trial, card required, cancel anytime (Cohort plans: 14-day trial). Without a subscription, every full Trusted Business Report is A$3 per startup.",
+      "Use the Founder / Evaluator / Programs switch above the plans. Founder shows Free, Starter A$29 and Growth A$69. Evaluator shows Scout A$79, Firm A$149, Program A$349 and Fund A$999 for angels, advisory firms, VC teams and funds — each with a 7-day free trial, card required, cancel anytime. Programs shows the Intake link (A$2,490 a year), Cohort 25 (A$5,000 a year) and Cohort 100 (A$15,000 a year) for accelerators, incubators and university programs, billed annually with a 14-day free trial. Without a subscription, every full Trusted Business Report is A$3 per startup.",
+  },
+  {
+    question: "What does Fund add over Program, and what is the Intake link?",
+    answer:
+      "Fund (A$999 a month) takes Program to 10 seats, 500 tracked startups and unlimited Trusted Business Reports, with your own rubric weights on every batch and the quarterly LP / sponsor export. The Intake link (A$249 a month, billed annually) is the smallest Programs rung: score one application round on one rubric — 40 reports a month, 60 startups, 3 seats. Cohort 25 and Cohort 100 add the cohort dashboard, monthly AI credits and, on Cohort 100, cohort management for multi-cohort programs.",
   },
   {
     question: "What's the refund policy?",
@@ -120,9 +134,9 @@ export default async function PricingPage() {
           CRO §06. Height reserved with min-h to keep CLS < 0.02 across the
           hydration boundary. */}
       <MarketingHero
-        eyebrow="Pricing v2.0"
+        eyebrow="Pricing v4"
         title="Get fundable in 7 days. Then choose your plan."
-        subtitle="7-day free trial on every self-serve plan — Founder (Starter, Growth) or Evaluator (Scout, Firm, Program). Card required at signup, charged only on Day 8. Cancel anytime before with no charge. Cohort / Enterprise pilots on request (14-day)."
+        subtitle="Free trial on every self-serve plan — Founder (Starter, Growth), Evaluator (Scout, Firm, Program, Fund) or Programs (Intake link, Cohort 25, Cohort 100). Card required at signup, charged only when the trial ends (7 days; 14 days on Programs). Cancel anytime before with no charge. Enterprise on request."
         primaryCta={{
           href: "/signup?plan=founder_growth&trial=1",
           label: "Start 7-day free trial",
@@ -278,13 +292,13 @@ export default async function PricingPage() {
 // Contact-sales row
 // ---------------------------------------------------------------------------
 //
-// Each public ladder is deliberately three rungs — every tier that needs a
-// conversation (cohort seats, funds beyond five seats, multi-entity
-// enterprise) surfaces below the grid in this row, under both tabs. Each
-// tile links to /contact with `?plan=<slug>` + `?contact_reason=<slug>`
-// prefill so the sales team knows which SKU prompted the enquiry without
-// asking again. "Investor VC from A$349" moved onto the Evaluator tab as
-// Program (self-serve) on 2026-09-10; the fund-grade tier here is custom.
+// Every tier that needs a conversation (funds beyond ten seats with SSO,
+// unlimited cohorts, the data-only Index API) surfaces below the grid in
+// this row, under every tab. Each tile links to /contact with
+// `?plan=<slug>` + `?contact_reason=<slug>` prefill so the sales team knows
+// which SKU prompted the enquiry without asking again. Pricing v4
+// (2026-09-16): the accelerator tile became the self-serve Programs tab and
+// the row now carries VC Enterprise / Cohort Enterprise / Index API.
 interface ContactSalesTier {
   slug: string;
   label: string;
@@ -294,22 +308,22 @@ interface ContactSalesTier {
 
 const CONTACT_SALES_TIERS: ReadonlyArray<ContactSalesTier> = [
   {
-    slug: "accelerator",
-    label: "Accelerator",
-    price: "from A$500/mo",
-    blurb: "Cohort seats, batched SVI reports, mentor pool, alumni tracking.",
-  },
-  {
-    slug: "investor_vc",
+    slug: "investor_vc_ent",
     label: "VC Enterprise",
     price: "custom",
-    blurb: "Funds beyond 5 seats: multi-fund, custom benchmarks, SSO/SAML, LP reporting suite.",
+    blurb: "Funds beyond Fund's 10 seats: unlimited seats and reports, SSO / SAML, dedicated success manager.",
   },
   {
-    slug: "enterprise",
-    label: "Enterprise",
-    price: "custom",
-    blurb: "Multi-entity groups, SSO/SAML, dedicated CSM, custom SLA.",
+    slug: "accelerator_enterprise",
+    label: "Cohort Enterprise",
+    price: "from A$35,000/yr",
+    blurb: "Unlimited startups, seats and reports; white-label reports, read-only API, SSO / SAML, a dedicated program manager.",
+  },
+  {
+    slug: "index_api",
+    label: "Index API",
+    price: "A$299/mo",
+    blurb: "Read-only Startup Value Index feed — 1,000 calls a day, 2 keys. Data access only, no workspace.",
   },
 ];
 
@@ -322,15 +336,16 @@ function ContactSalesRow() {
     >
       <div className="mb-6 text-center">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-action">
-          Cohorts, funds, and multi-entity groups
+          Funds, enterprise programs and data access
         </p>
         <h2 className="mt-2 font-display text-2xl font-semibold text-primary">
           Talk to sales for a bespoke fit
         </h2>
         <p className="mt-2 text-sm text-secondary">
-          Program A$349 covers most VC teams and accelerators self-serve.
-          Need more seats, cohorts or SSO? 14-day pilot on request — every
-          tier below includes a demo call with our founder team.
+          Program A$349 and Fund A$999 cover most VC teams self-serve; Cohort
+          25 and Cohort 100 cover most programs. Need SSO, unlimited seats or
+          the raw index feed? Every tier below includes a demo call with our
+          founder team.
         </p>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

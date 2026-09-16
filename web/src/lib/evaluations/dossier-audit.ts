@@ -7,9 +7,15 @@
 // bodies. The SVI is what the next view's "Δ since last view" header field
 // (S-R4) compares against, so the previous view never needs a snapshot
 // lookup.
+//
+// G14-S33: the same call also emits the `dossier_view` analytics event
+// server-side (analytics_events + GA4 MP) so the weekly GA4 audit sees
+// evaluator engagement from BOTH surfaces (page + API) even when the
+// browser tag is blocked. Same fire-and-forget contract.
 
 import "server-only";
 import { appendAudit } from "@/lib/audit";
+import { emitEventSafe } from "@/lib/analytics/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const DOSSIER_VIEW_ACTION = "dossier.viewed";
@@ -27,6 +33,19 @@ export interface DossierViewAudit {
 }
 
 export function auditDossierView(input: DossierViewAudit): void {
+  emitEventSafe({
+    name: "dossier_view",
+    params: {
+      evaluation_id: input.evaluationId,
+      consent_tier: input.consentTier,
+      role: input.role,
+      surface: input.surface,
+      user_id: input.userId,
+    },
+    userId: input.userId,
+    source: "server",
+    consentGranted: true,
+  });
   void appendAudit({
     user_id: input.userId,
     actor: "user",

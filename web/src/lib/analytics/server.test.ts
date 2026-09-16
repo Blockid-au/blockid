@@ -533,3 +533,28 @@ describe("both sinks — no cross-sink failure propagation", () => {
     expect(state.fetchCalls).toHaveLength(1);
   });
 });
+
+// ─── G14-S33 emitEventSafe — fire-and-forget for request handlers ─────────
+
+describe("emitEventSafe — never throws, still queues", () => {
+  it("returns synchronously and the event reaches both sinks on flush", async () => {
+    const mod = await loadModule();
+    expect(mod.emitEventSafe({ name: "trust_report_purchased", params: { sku: "sku_trust_report_5aud", gross_aud_cents: 550, reconciled: false }, userId: "u1", source: "webhook:stripe", consentGranted: true })).toBeUndefined();
+    await mod.flush();
+    expect(state.upserts).toHaveLength(1);
+    expect(state.upserts[0].rows[0]).toMatchObject({ event_name: "trust_report_purchased", user_id: "u1", source: "webhook:stripe", consent_granted: true });
+    expect(state.fetchCalls).toHaveLength(1);
+  });
+
+  it("swallows a sink that throws synchronously (supabase from() throws) — caller is unaffected", async () => {
+    state.admin = "throw";
+    const mod = await loadModule();
+    // Fill the batch so emitEvent flushes eagerly on the 20th call — the
+    // throwing client is hit inside emitEventSafe's own call frame.
+    for (let i = 0; i < 20; i += 1) {
+      expect(() => mod.emitEventSafe({ name: "subscription_created", params: { plan: "investor_angel", status: "trialing", trialing: true, interval: "monthly" }, consentGranted: true })).not.toThrow();
+    }
+    await mod.flush();
+    expect(state.fetchCalls.length).toBeGreaterThan(0);
+  });
+});

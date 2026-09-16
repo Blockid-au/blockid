@@ -309,6 +309,17 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # pending for the next tick. `?dry=1` previews the per-table counts.
 20 3 * * * bash $RUN account-erasure --timeout 300
 
+# G14-S33 (2026-09-16) — daily traction snapshot. Counts users (qa-* /
+# qa-live-* / erased tombstones excluded), analyses, Trust Business Reports,
+# evaluators by plan, assessments, share links, API keys, webhooks, MRR from
+# subscriptions AND revenue_events (+ Stripe head-count reconcile) and the
+# 7-day server-event funnel → content/reports/traction-snapshot.json +
+# traction-history.jsonl. Read by /api/status `traction: ok|stale|missing`
+# (stale > 26 h), /api/platform-stats (when fresh), /admin/traction and
+# `npm run investor:update`. A missing table is a warnings[] line, never a
+# failure. `?dry=1` builds without writing.
+20 3 * * * bash $RUN traction-snapshot --timeout 120
+
 # S20-A (2026-09-12) — nightly integrity check of the hash-chained
 # audit_events log (every mutating /api/** route writes one row via the
 # apiRoute wrapper). Pages through the audit_events_verify_chain RPC

@@ -1,10 +1,11 @@
 // Colocated test for /solutions/accelerator and its /vi mirror — the
-// "Run a 14-day pilot on your next intake" CTA (G12 traction T2, S6-C).
+// "Run a free pilot on your next intake" CTA (G12 traction T2, S6-C;
+// Pricing v4 2026-09-16 moved it onto the Intake link SKU).
 //
 // The contact form does not read `?intent=` / `?plan=`, so the pilot button
-// must land on the evaluator signup with Program pre-selected. This suite
-// pins the href, the label in both languages, and that the card renders
-// on the accelerator page only (investor / advisor never show it).
+// must land on the evaluator signup with the Intake link pre-selected. This
+// suite pins the href, the label in both languages, and that the card
+// renders on the accelerator page only (investor / advisor never show it).
 //
 // The marketing shell mounts NavV2 → useRouter(), which throws outside an
 // app-router context, so it is mocked to a pass-through (same pattern as
@@ -34,8 +35,8 @@ import ViSolutionsAcceleratorPage from "../../../vi/solutions/accelerator/page";
 const EN = en as unknown as Messages;
 const VI = vi_ as unknown as Messages;
 
-const PILOT_LABEL_EN = "Run a 14-day pilot on your next intake";
-const PILOT_LABEL_VI = "Chạy thí điểm 14 ngày trên đợt tuyển sinh tiếp theo";
+const PILOT_LABEL_EN = "Run a free pilot on your next intake";
+const PILOT_LABEL_VI = "Chạy thí điểm miễn phí trên đợt tuyển sinh tiếp theo";
 
 /** React escapes `&` as `&amp;` in attributes. */
 const attr = (href: string) => `href="${href.replace(/&/g, "&amp;")}"`;
@@ -47,10 +48,10 @@ async function html(el: React.ReactElement): Promise<string> {
 }
 
 describe("/solutions/accelerator — pilot CTA props", () => {
-  it("lands on the evaluator signup with Program pre-selected and a pilot referrer", () => {
+  it("lands on the evaluator signup with the Intake link pre-selected and a pilot referrer", () => {
     const url = new URL(ACCELERATOR_PILOT_HREF, "https://blockid.au");
     expect(url.pathname).toBe("/signup");
-    expect(url.searchParams.get("plan")).toBe("investor_vc_small");
+    expect(url.searchParams.get("plan")).toBe("accelerator_intake");
     expect(url.searchParams.get("trial")).toBe("1");
     expect(url.searchParams.get("from")).toBe("pilot");
     // `plan=` alone must resolve the evaluator segment on /signup.
@@ -65,13 +66,20 @@ describe("/solutions/accelerator — pilot CTA props", () => {
     expect(enProps.pilotCta).toBeDefined();
     expect(enProps.pilotCta?.ctaHref).toBe(ACCELERATOR_PILOT_HREF);
     expect(enProps.pilotCta?.ctaLabel).toBe(PILOT_LABEL_EN);
-    expect(enProps.pilotCta?.body).toContain("{programPrice}");
-    expect(enProps.pilotCta?.body).toContain("card required");
+    // Pricing v4 / plan §4 pilot offer: free scoring for one intake (≤ 60
+    // applicants, 30 days) in exchange for an LOI on Cohort 25 — the copy
+    // names the yearly Cohort 25 figure and the Intake link price as tokens.
+    expect(enProps.pilotCta?.body).toContain("{cohortAnnualPrice}");
+    expect(enProps.pilotCta?.body).toContain("{intakePrice}");
+    expect(enProps.pilotCta?.body).toMatch(/letter of intent/i);
+    expect(enProps.pilotCta?.body).toMatch(/60 applicants/);
+    expect(enProps.pilotCta?.body).not.toContain("{programPrice}");
 
     const viProps = buildAcceleratorProps(VI, "vi");
     expect(viProps.pilotCta?.ctaHref).toBe(ACCELERATOR_PILOT_HREF);
     expect(viProps.pilotCta?.ctaLabel).toBe(PILOT_LABEL_VI);
-    expect(viProps.pilotCta?.body).toContain("{programPrice}");
+    expect(viProps.pilotCta?.body).toContain("{cohortAnnualPrice}");
+    expect(viProps.pilotCta?.body).toContain("{intakePrice}");
   });
 
   it("investor and advisor personas do not show a pilot card", () => {
@@ -83,8 +91,8 @@ describe("/solutions/accelerator — pilot CTA props", () => {
     const p = buildAcceleratorProps(EN).pilotCta!;
     const text = [p.eyebrow, p.title, p.body, p.ctaLabel].join("\n");
     expect(text).not.toMatch(/PhD/);
-    // Any literal amount would be drift; amounts arrive as `{programPrice}`.
-    expect(text.replace(/\{programPrice\}/g, "")).not.toMatch(/A\$\s?\d/);
+    // Any literal amount would be drift; amounts arrive as `{…Price}` tokens.
+    expect(text.replace(/\{[a-zA-Z]+\}/g, "")).not.toMatch(/A\$\s?\d/);
   });
 });
 
@@ -94,8 +102,9 @@ describe("/solutions/accelerator — rendered pilot CTA", () => {
     expect(out).toContain('data-testid="pilot-cta"');
     expect(out).toContain(attr(ACCELERATOR_PILOT_HREF));
     expect(out).toContain(PILOT_LABEL_EN);
-    expect(out).toContain("A$349");
-    expect(out).not.toContain("{programPrice}");
+    expect(out).toContain("A$5,000");
+    expect(out).toContain("A$249");
+    expect(out).not.toMatch(/\{[a-zA-Z]+Price\}/);
   });
 
   it("renders the Vietnamese mirror with the same href", async () => {
@@ -103,7 +112,7 @@ describe("/solutions/accelerator — rendered pilot CTA", () => {
     expect(out).toContain('data-testid="pilot-cta"');
     expect(out).toContain(attr(ACCELERATOR_PILOT_HREF));
     expect(out).toContain(PILOT_LABEL_VI);
-    expect(out).toContain("A$349");
+    expect(out).toContain("A$5,000");
   });
 });
 

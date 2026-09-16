@@ -128,8 +128,15 @@ export const PLAN_ID_TO_TIER: Record<string, PlanTier> = {
   investor_angel: "angel",
   investor_advisor: "advisor",
   investor_vc_small: "vc_small",
+  // Pricing v4 (2026-09-16): Fund carries every VC Enterprise flag except
+  // SSO, so it resolves to the fund-grade nav tier; Index API is a data-only
+  // SKU with no workspace — lowest tier on purpose (feature gates, not the
+  // tier, grant its API access).
+  investor_fund: "vc_ent",
+  index_api: "free",
   investor_vc_ent: "vc_ent",
   // Accelerator v2 — canonical SKU ids (post accel_* → accelerator_* reconciliation)
+  accelerator_intake: "accel_starter",
   accelerator_starter: "accel_starter",
   accelerator_growth: "accel_growth",
   accelerator_enterprise: "accel_ent",

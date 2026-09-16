@@ -99,6 +99,20 @@ vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => getSupabaseAdminMock(),
 }));
 
+// G14-S33: the route reads the daily traction snapshot first. Default = no
+// snapshot on disk (every existing case below is the pure live path).
+const snapshotState: { raw: Record<string, unknown> | null; throwErr: boolean } = { raw: null, throwErr: false };
+vi.mock("@/lib/traction/status", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/traction/status")>();
+  return {
+    ...actual,
+    readTractionSnapshotRaw: vi.fn(async () => {
+      if (snapshotState.throwErr) throw new Error("fs down");
+      return snapshotState.raw;
+    }),
+  };
+});
+
 import { GET } from "./route";
 
 function resetState() {
@@ -125,6 +139,8 @@ function stubData(
 beforeEach(() => {
   resetState();
   getSupabaseAdminMock.mockReset();
+  snapshotState.raw = null;
+  snapshotState.throwErr = false;
 });
 
 afterEach(() => {
@@ -331,6 +347,69 @@ describe("GET /api/platform-stats — supabase happy path", () => {
     expect(body.metrics.evidenceItems).toBe(500);
     expect(body.metrics.connectedSources).toBe(120);
     expect(body.metrics.paidCustomers).toBe(12);
+  });
+
+  // ── G14-S33: snapshot-first counters ──────────────────────────────────
+
+  it("serves founders / analyses / paidCustomers from a FRESH traction snapshot (QA excluded) instead of the live proxies", async () => {
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
+    stubHappyPath({ founders: 42, analyses: 108, paid: 12, sviRows: [{ current_svi: 50 }] });
+    snapshotState.raw = {
+      generated_at: new Date().toISOString(),
+      users: { total: 40, founders: 37, excluded_count: 5 },
+      analyses: { svi_analyses: 99 },
+      evaluators: { paying_by_plan: { investor_angel: 2, investor_vc_small: 1 } },
+    };
+    const body = await (await GET()).json();
+    expect(body.metrics.founders).toBe(37);
+    expect(body.metrics.analyses).toBe(99);
+    expect(body.metrics.paidCustomers).toBe(3);
+    // Live-only counters are untouched.
+    expect(body.metrics.averageSVI).toBe(50);
+    expect(body.source).toBe("snapshot+live");
+  });
+
+  it("a STALE snapshot (> 26 h) is ignored — every counter comes from the live queries", async () => {
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
+    stubHappyPath({ founders: 42, analyses: 108, paid: 12 });
+    snapshotState.raw = {
+      generated_at: new Date(Date.now() - 30 * 3600e3).toISOString(),
+      users: { founders: 1 },
+      analyses: { svi_analyses: 1 },
+      evaluators: { paying_by_plan: { investor_angel: 1 } },
+    };
+    const body = await (await GET()).json();
+    expect(body.metrics.founders).toBe(42);
+    expect(body.metrics.analyses).toBe(108);
+    expect(body.metrics.paidCustomers).toBe(12);
+    expect(body.source).toBe("live");
+  });
+
+  it("a null figure inside a fresh snapshot falls back to the live query for that counter only", async () => {
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
+    stubHappyPath({ founders: 42, analyses: 108, paid: 12 });
+    snapshotState.raw = {
+      generated_at: new Date().toISOString(),
+      users: { founders: null },
+      analyses: { svi_analyses: 99 },
+      evaluators: { paying_by_plan: {} },
+      warnings: ["app_users:users: 42501 permission denied"],
+    };
+    const body = await (await GET()).json();
+    expect(body.metrics.founders).toBe(42); // live
+    expect(body.metrics.analyses).toBe(99); // snapshot
+    expect(body.metrics.paidCustomers).toBe(0); // snapshot measured zero paying evaluators
+  });
+
+  it("a snapshot read failure never breaks the route (live path, no _fallback)", async () => {
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
+    stubHappyPath({ founders: 42, analyses: 108, paid: 12 });
+    snapshotState.throwErr = true;
+    const res = await GET();
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.metrics.founders).toBe(42);
+    expect(body._fallback).toBeUndefined();
   });
 
   it("computes averageSVI as the integer mean across current_svi rows", async () => {

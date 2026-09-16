@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { resolvePricingTab, TAB_TO_SEGMENT } from "./pricing-tab";
+import { PRICING_TABS, resolvePricingTab, TAB_TO_SEGMENT } from "./pricing-tab";
 
 describe("pricing-tab (server-safe helpers)", () => {
   it("is not a client module", () => {
@@ -26,10 +26,16 @@ describe("pricing-tab (server-safe helpers)", () => {
     expect(en).not.toMatch(/searchParams\s*[:}]/); // no searchParams prop — the page is static
   });
 
-  it("maps query values to tabs", () => {
+  it("maps query values to tabs (Pricing v4: third Programs tab)", () => {
     expect(resolvePricingTab(undefined)).toBe("founder");
     expect(resolvePricingTab("investor")).toBe("evaluator");
-    expect(resolvePricingTab(["accelerators"])).toBe("evaluator");
+    for (const v of ["fund", "vc", "advisor", "evaluator"]) expect(resolvePricingTab(v), v).toBe("evaluator");
+    for (const v of ["accelerator", "accelerators", "program", "programs", "incubator", "university"]) {
+      expect(resolvePricingTab(v), v).toBe("programs");
+    }
+    expect(resolvePricingTab(["accelerators"])).toBe("programs");
+    expect(PRICING_TABS).toEqual(["founder", "evaluator", "programs"]);
     expect(TAB_TO_SEGMENT.evaluator).toBe("investor");
+    expect(TAB_TO_SEGMENT.programs).toBe("accelerator");
   });
 });

@@ -55,13 +55,17 @@ import { resolveIntervalPrice } from "@/lib/plans/billing-interval";
 import {
   SIGNUP_ACCOUNT_TYPES,
   SIGNUP_ALLOWED_PLAN_IDS,
+  isEvaluatorPlanId,
   isSelfServePlan,
   resolveTrialDays,
   segmentForAccountType,
 } from "@/lib/plans/signup-plans";
+import { emitEventSafe } from "@/lib/analytics/server";
 import { initializeCredits } from "@/lib/credits";
 import { sendPaymentConfirmation } from "@/lib/email";
 import { apiRoute } from "@/lib/audit/api-route";
+import { resolvePostLoginHref } from "@/lib/auth/post-login";
+import { resolvePersona } from "@/lib/nav/persona";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -325,6 +329,20 @@ async function POST_handler(request: Request) {
     if (error) console.error("[register-with-card] subscription_trial_state upsert failed", error);
   });
 
+  // 5a. G14-S33: evaluator_trial_started → analytics_events + GA4 MP. The
+  //     card-required trial is minted here (not by Checkout), so no browser
+  //     tag fires at the moment the Scout / Firm / Program trial starts.
+  //     Fire-and-forget; never affects the response.
+  if (isEvaluatorPlanId(plan.id)) {
+    emitEventSafe({
+      name: "evaluator_trial_started",
+      params: { plan: plan.id, trial_days: trialDays, account_type: body.account_type, user_id: userId },
+      userId,
+      source: "server",
+      consentGranted: true,
+    });
+  }
+
   // 6. Grant welcome credits (best-effort — mirrors magic-link flow).
   await initializeCredits(userId).catch((err) =>
     console.error("[register-with-card] initializeCredits failed", err),
@@ -371,8 +389,14 @@ async function POST_handler(request: Request) {
     console.error("[register-with-card] welcome email failed", err),
   );
 
+  // S-IA4: a fresh account always starts in the single /onboarding wizard
+  // (its step 1 is preselected from account_type); resolved through the
+  // persona table so the client never hard-codes a landing.
+  const redirect = resolvePostLoginHref({ persona: resolvePersona({ role, accountType: body.account_type, segment }), onboardingCompleted: false });
+
   return NextResponse.json({
     ok: true,
+    redirect,
     user: {
       id: userId,
       email,

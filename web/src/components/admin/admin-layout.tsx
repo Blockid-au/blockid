@@ -59,6 +59,8 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/users", label: "Users", icon: Users },
       { href: "/admin/credits", label: "Credits", icon: Coins },
       { href: "/admin/revenue-spend", label: "Revenue & Spend", icon: DollarSign },
+      { href: "/admin/pricing-metrics", label: "Pricing Metrics", icon: PieChart },
+      { href: "/admin/traction", label: "Traction", icon: BarChart3 },
       { href: "/admin/feedback", label: "Feedback", icon: MessageSquare },
       { href: "/admin/team", label: "Team", icon: Bot },
       { href: "/admin/affiliate", label: "Affiliate view", icon: Network },

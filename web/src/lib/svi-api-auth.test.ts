@@ -171,7 +171,8 @@ describe("SVI_API_TIERS", () => {
   it("exposes exactly three canonical tiers with the shipped daily-limit + price ladder", () => {
     expect(Object.keys(SVI_API_TIERS).sort()).toEqual(["free", "institutional", "team"]);
     expect(SVI_API_TIERS.free).toEqual({ dailyLimit: 10, priceAud: 0, label: "Free" });
-    expect(SVI_API_TIERS.team).toEqual({ dailyLimit: 1000, priceAud: 199, label: "Team" });
+    // Pricing v4: Team mirrors the index_api plans.csv row (A$299/mo).
+    expect(SVI_API_TIERS.team).toEqual({ dailyLimit: 1000, priceAud: 299, label: "Team" });
     expect(SVI_API_TIERS.institutional).toEqual({
       dailyLimit: 9_999_999,
       priceAud: 2000,

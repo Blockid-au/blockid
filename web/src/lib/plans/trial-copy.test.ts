@@ -17,6 +17,7 @@ import {
   TRIAL_DAYS,
   TRIAL_WARNING_HOURS_BEFORE,
   evaluatorTrialIncludedLine,
+  evaluatorTrialLine,
   formatAud,
 } from "./trial-copy";
 
@@ -33,8 +34,22 @@ describe("evaluatorTrialIncludedLine (release QA-2 F10 / S7-C)", () => {
       "1 full Trusted Business Report included during the trial, then 100/month on Program",
     );
   });
-  it("mirrors plans.csv reports_per_month (Scout 10 / Firm 30 / Program 100)", () => {
-    expect(EVALUATOR_MONTHLY_REPORTS).toEqual({ investor_angel: 10, investor_advisor: 30, investor_vc_small: 100 });
+  it("mirrors plans.csv reports_per_month (Scout 10 / Firm 30 / Program 100 / Fund unlimited / Intake 40 / Cohort 25 50 / Cohort 100 200)", () => {
+    expect(EVALUATOR_MONTHLY_REPORTS).toEqual({
+      investor_angel: 10,
+      investor_advisor: 30,
+      investor_vc_small: 100,
+      investor_fund: -1,
+      accelerator_intake: 40,
+      accelerator_starter: 50,
+      accelerator_growth: 200,
+    });
+    expect(evaluatorTrialIncludedLine("investor_fund", "Fund")).toBe(
+      "1 full Trusted Business Report included during the trial, then unlimited on Fund",
+    );
+    expect(evaluatorTrialIncludedLine("accelerator_intake", "Intake link")).toBe(
+      "1 full Trusted Business Report included during the trial, then 40/month on Intake link",
+    );
   });
   it("degrades to the allowance alone for an unknown plan", () => {
     expect(evaluatorTrialIncludedLine("investor_vc_ent", "Enterprise")).toBe(
@@ -350,5 +365,10 @@ describe("EVALUATOR_TRIAL_COPY (T0269 /signup?segment=evaluator)", () => {
     );
     expect(EVALUATOR_TRIAL_COPY.cta).toMatch(/7-day/);
     expect(EVALUATOR_TRIAL_COPY.trial_line).toContain(`${TRIAL_DAYS}-day`);
+    // Pricing v4: per-plan variant for the 14-day Programs trial.
+    expect(evaluatorTrialLine()).toBe(EVALUATOR_TRIAL_COPY.trial_line);
+    expect(evaluatorTrialLine(7)).toBe(EVALUATOR_TRIAL_COPY.trial_line);
+    expect(evaluatorTrialLine(14)).toBe("14-day free trial · card required · cancel anytime · charged on day 15");
+    expect(evaluatorTrialLine(0)).toBe(EVALUATOR_TRIAL_COPY.trial_line);
   });
 });

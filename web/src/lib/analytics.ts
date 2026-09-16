@@ -73,16 +73,30 @@ export interface AnalyticsEventMap {
 
   // ── Pricing & Checkout ──
   pricing_viewed: Record<string, never>;
-  /** G12 (T0268): the Evaluator tab (Scout / Firm / Program) was shown on /pricing. */
-  evaluator_pricing_viewed: { via: "tab" | "deep_link" };
+  /**
+   * G12 (T0268): the Evaluator tab (Scout / Firm / Program / Fund) was shown
+   * on /pricing. Pricing v4 (2026-09-16): the Programs tab fires the same
+   * event with `tab: "programs"` so the two B2B ladders stay one funnel.
+   */
+  evaluator_pricing_viewed: { via: "tab" | "deep_link"; tab?: "evaluator" | "programs" };
   /** G12 (S13-A): the 4-step activation checklist under the trial banner was shown; `completed` = steps already done (0–4). */
   evaluator_checklist_viewed: { completed: number };
   /** G12 (S13-A): a checklist step CTA was clicked (1 add startup · 2 run report · 3 set thesis · 4 second startup). */
   evaluator_checklist_step: { step: 1 | 2 | 3 | 4 };
   /** G13 (S-D1): the Investor Dossier (/workspace/evaluations/[id]) was opened — once per page view; `role` = assessor (evaluator) or founder (read-only preview). */
   dossier_view: { evaluation_id: string; consent_tier: string; plan: string; role: "assessor" | "founder" };
-  /** G13 (S-R4 map entry, fired by the S-D2 assessment form): the evaluator saved / submitted a decision on the dossier. */
-  investor_decision_saved: { evaluation_id: string; decision: "pass" | "track" | "proceed"; status?: "draft" | "submitted"; version?: number };
+  /** G13 (S-D2, §C.5): the evaluator saved a draft or submitted their assessment on the dossier; `decision` = pass | track | proceed | none. */
+  investor_decision_saved: { evaluation_id: string; decision: "pass" | "track" | "proceed" | "none"; status: "draft" | "submitted"; version: number };
+  /** G13 (S-D2, §C.5): the assessment was shared with the claimed founder; `fields_count` = ticked allow-listed sections (1–4). */
+  assessment_shared: { evaluation_id: string; fields_count: number };
+  /** G13 (S-D2, §C.5): the assessment history timeline was expanded; `versions` = rows shown. */
+  assessment_history_viewed: { evaluation_id: string; versions: number };
+  /** G13 (S-D2 E1.4, §C.5): the founder taxonomy confirmation card rendered (unconfirmed row). */
+  taxonomy_card_viewed: { project_id: string; unclassified_count: number };
+  /** G13 (S-D2 E1.4, §C.5): the founder confirmed the classification; `changed_fields` = axes edited before confirming. */
+  taxonomy_confirmed: { project_id: string; changed_fields: number; unclassified_count: number };
+  /** G13 (S-D2 E1.4, §C.5): one axis was edited on the confirmation card. */
+  taxonomy_edited: { project_id: string; field: "industry" | "business_model" | "stage_key" | "customer_types" | "geo_scope" | "hq_state" | "tags" };
   /** G13 (S-T2, §C.5): the 7-section mandate form was saved; `sections_filled` = sections carrying a value (0–7). */
   mandate_saved: { sections_filled: number; created: boolean };
   /** G13 (S-T2, §C.5): a deal-flow filter changed; `axis` = which control. */
@@ -178,6 +192,15 @@ export interface AnalyticsEventMap {
    */
   landing_viewed: { phase: string; plan: string; blocks: string; empty_blocks: string; persona: string };
   landing_block_click: { block: string; href: string; phase: string; action: string; persona: string };
+  /**
+   * G13-W4-IA4 — single /onboarding wizard (3 steps × founder / evaluator
+   * flow). `onboarding_step` fires on every step transition (`action` =
+   * what advanced it: `persona_pick`, `startup_created`, `mandate_saved`,
+   * `skip`, `back` …); `onboarding_completed` once, on the terminal action.
+   * Completion rate by persona = completed / step-1 views.
+   */
+  onboarding_step: { persona: string; step: number; action: string };
+  onboarding_completed: { persona: string };
   mobile_menu_opened: Record<string, never>;
 
   // ── Session ──
@@ -288,6 +311,19 @@ export interface AnalyticsEventMap {
 
   // ── Wave 25C — TBR onboarding tour ───────────────────────────────────────
   tbr_onboard_step_clicked: { step: number };
+
+  // ── G14-S33 — money events emitted SERVER-side (lib/analytics/server.ts
+  //   emitEvent, GA4 Measurement Protocol) so the weekly GA4 audit sees the
+  //   revenue funnel even when no browser tag fired. Typed here so the audit
+  //   list (GA4_AUDIT_EVENTS) and the param-name limits are checked once.
+  //   trust_report_purchased  — Stripe webhook: report_order checkout paid (A$5 TBR)
+  //   evaluator_trial_started — register-with-card on an evaluator plan (Scout/Firm/Program)
+  //   subscription_created    — Stripe webhook customer.subscription.created
+  //   tbr_share_created       — POST /api/svi/report/share minted a /tbr/<token> link
+  trust_report_purchased: { sku: string; gross_aud_cents: number; reconciled: boolean };
+  evaluator_trial_started: { plan: string; trial_days: number; account_type: string };
+  subscription_created: { plan: string; status: string; trialing: boolean; interval: string };
+  tbr_share_created: { project_scope: "default" | "project" };
 
   // ── Global error boundary + 404 ──────────────────────────────────────────
   //   Fired by src/app/error.tsx when the App Router error boundary catches

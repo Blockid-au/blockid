@@ -16,10 +16,12 @@
 // and any unknown id, gets notFound() — never a 403.
 //
 // S-D1 shipped the header + block 1 (radar · weighted table with the weight
-// column, F3 · 13-criteria strip); S-R4 (G13-W4-R4) fills block 2
-// (Valuation from ReportV2), block 5 (Progress radar scoped to this
-// evaluation) and the header's mandate fit + "Δ since last view"; blocks 3,
-// 4 and 6 stay labelled placeholders until S-D2 / S-D3.
+// column, F3 · 13-criteria strip); S-D2 ships block 4 (AI-vs-me form, share
+// allow-list, history, founder preview — ./dossier/assessment/*) and block 6
+// (actions & audit trail); S-R4 (G13-W4-R4) fills block 2 (Valuation from
+// ReportV2), block 5 (Progress radar scoped to this evaluation) and the
+// header's mandate fit + "Δ since last view"; block 3 stays a labelled
+// placeholder until S-D3.
 
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
@@ -32,9 +34,11 @@ import { auditDossierView } from "@/lib/evaluations/dossier-audit";
 import { EvaluatorReportDisclaimer } from "@/components/legal/evaluator-report-disclaimer";
 import { DossierHeader } from "./dossier/dossier-header";
 import { ReportSummary } from "./dossier/report-summary";
-import { ActionsBlock, AssessmentBlock, EvidenceBlock } from "./dossier/placeholder-blocks";
+import { EvidenceBlock } from "./dossier/placeholder-blocks";
 import { ValuationBlock } from "./dossier/valuation-block";
 import { ProgressBlock } from "./dossier/progress-block";
+import { AssessmentBlock } from "./dossier/assessment/assessment-block";
+import { ActionsBlock } from "./dossier/assessment/actions-block";
 import { DossierViewTracker } from "./dossier/dossier-view-tracker";
 
 export const metadata: Metadata = {

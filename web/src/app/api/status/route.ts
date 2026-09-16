@@ -20,6 +20,7 @@ import { readBackupHealth, type BackupStatus } from "@/lib/ops/backup-health";
 import { readSchemaMigrationsStatus, type SchemaMigrationsStatus } from "@/lib/ops/schema-migrations";
 import { readAiProvidersSummary, type AiProvidersSummary } from "@/lib/ai/provider-status";
 import { readLastReportProvider, type LastReportProvider } from "@/lib/ai/last-report";
+import { readTractionStatus, type TractionStatus } from "@/lib/traction/status";
 import { getAIQueueDepth } from "@/lib/ai-client";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -69,6 +70,13 @@ type PublicStatusResponse = {
   services: Array<Pick<ServiceRow, "name" | "status">>;
   slo: { uptime_pct_24h?: number };
   last_deploy: Pick<DeployRow, "ts" | "gates_passed" | "gates_expected">;
+  /**
+   * G14-S33 — freshness of content/reports/traction-snapshot.json (daily
+   * 03:20 UTC cron): `ok` (< 26 h) | `stale` | `missing`. One word, no
+   * figure, no path — safe on the anonymous payload (the live-QA lane
+   * asserts the key without a bearer).
+   */
+  traction: TractionStatus;
 };
 
 /** Full payload — Bearer STATUS_FULL_TOKEN (or CRON_SECRET) only. */
@@ -143,6 +151,8 @@ type StatusResponse = {
    * breakdown; `null` until a report has finished. Trusted callers only.
    */
   ai_last_report_provider: LastReportProvider | null;
+  /** G14-S33 — see PublicStatusResponse.traction. */
+  traction: TractionStatus;
 };
 
 // Whether the caller is trusted enough to see the full internal telemetry
@@ -439,7 +449,7 @@ function safeQueueDepth(): ReturnType<typeof getAIQueueDepth> {
 // ---------- Handler ----------
 
 export async function GET(): Promise<Response> {
-  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens, ga4Events, backups, schemaMigrations, aiProviders, aiLastReport] = await Promise.all([
+  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens, ga4Events, backups, schemaMigrations, aiProviders, aiLastReport, traction] = await Promise.all([
     fetchHealthz(2000),
     summariseCrons().catch(() => [] as CronRow[]),
     readGitShaFallback(),
@@ -452,6 +462,7 @@ export async function GET(): Promise<Response> {
     readSchemaMigrationsStatus(REPO_ROOT).catch(() => "unknown" as const),
     readAiProvidersSummary(REPO_ROOT).catch(() => ({ updated_at: "", providers: {}, usable: 0, quality_tier_ready: false } as AiProvidersSummary)),
     readLastReportProvider(REPO_ROOT).catch(() => null),
+    readTractionStatus(REPO_ROOT).catch(() => "missing" as const),
   ]);
 
   const last_deploy = await readLastDeploy(fallbackSha).catch(() => ({
@@ -493,6 +504,7 @@ export async function GET(): Promise<Response> {
       gates_passed: last_deploy.gates_passed,
       gates_expected: last_deploy.gates_expected,
     },
+    traction,
   };
 
   const fullBody: StatusResponse = {
@@ -511,6 +523,7 @@ export async function GET(): Promise<Response> {
     ai_providers: aiProviders,
     ai_queue_depth: safeQueueDepth(),
     ai_last_report_provider: aiLastReport,
+    traction,
   };
 
   return NextResponse.json(trusted ? fullBody : publicBody, {

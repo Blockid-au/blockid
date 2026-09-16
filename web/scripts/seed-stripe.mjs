@@ -98,11 +98,16 @@ async function ensurePrice(stripe, product, plan, interval, amount) {
     console.log(`  [dry] create price ${plan.plan_id} ${interval}=${amount}c`);
     return { id: `price_dry_${plan.plan_id}_${interval}` };
   }
+  // Every list price is GST-INCLUSIVE (Australian Consumer Law display rule;
+  // plans-v2.ts + v3-skus.ts document the same). `tax_behavior:"inclusive"`
+  // lets Stripe Tax split A$x into net + GST on the invoice instead of
+  // adding 10% on top of the advertised figure (Pricing v4, 2026-09-16).
   const priceObj = await stripe.prices.create({
     product: product.id,
     unit_amount: amount,
     currency: plan.currency,
     recurring: interval === "monthly" || interval === "annual" ? { interval: interval === "annual" ? "year" : "month" } : undefined,
+    tax_behavior: "inclusive",
     metadata: { plan_id: plan.plan_id, interval },
   });
   console.log(`  + price created ${plan.plan_id} ${interval}=${amount}c → ${priceObj.id}`);

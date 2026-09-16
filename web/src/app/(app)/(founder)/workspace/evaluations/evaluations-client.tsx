@@ -48,6 +48,8 @@ export interface EvaluationsClientProps {
   activation?: ActivationInputs | null;
   /** `?from=trial_reminder` — open the Trusted Business Report dialog on the first evaluation on load (S13-A). */
   autoOpenReport?: boolean;
+  /** `?add=1` — open the "Add a startup" dialog on load (S-IA4 landing / wizard step 3). */
+  autoOpenAdd?: boolean;
   /** Latest evaluation_reports row per evaluation id (T0271). */
   lastReports?: Record<string, LastEvaluationReport>;
   /** Included Trusted Business Reports this month from usage_limits.reports_per_month. */
@@ -356,6 +358,7 @@ export function EvaluationsClient({
   batches: initialBatches = [],
   activation = null,
   autoOpenReport = false,
+  autoOpenAdd = false,
 }: EvaluationsClientProps) {
   const progressByEval = React.useMemo(() => {
     const m = new Map<string, EvaluatorProgressItem>();
@@ -423,7 +426,7 @@ export function EvaluationsClient({
   }
 
   // --- Add dialog state ---
-  const [showAdd, setShowAdd] = React.useState(false);
+  const [showAdd, setShowAdd] = React.useState(autoOpenAdd && isEvaluator);
   const [name, setName] = React.useState("");
   const [website, setWebsite] = React.useState("");
   const [description, setDescription] = React.useState("");

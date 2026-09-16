@@ -13,6 +13,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { insertNotification } from "@/lib/notifications";
 import { apiRoute } from "@/lib/audit/api-route";
+import { emitEventSafe } from "@/lib/analytics/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -105,6 +106,16 @@ async function POST_handler(request: Request) {
       { status: 500 },
     );
   }
+
+  // G14-S33: tbr_share_created (first mint only — the idempotent branch
+  // above returns before this point) → analytics_events + GA4 MP.
+  emitEventSafe({
+    name: "tbr_share_created",
+    params: { project_scope: projectId !== "default" ? "project" : "default", user_id: user.id },
+    userId: user.id,
+    source: "server",
+    consentGranted: true,
+  });
 
   // Wave 27C — record first-mint in the founder notification hub.
   void insertNotification({

@@ -1,8 +1,14 @@
-// startup_taxonomy store (server-only) — G13-W1-T1.
+// startup_taxonomy store (server-only) — G13-W1-T1 (+ E1.4 in G13-W4-D2).
 //
-// Two operations for this sprint:
+// Operations:
 //   getTaxonomy(projectId)                       → the row or null
 //   upsertSuggestedTaxonomy(projectId, suggestion) → the pipeline's silent fill
+//   confirmTaxonomy(projectId, input, actor)     → the human write (founder
+//        confirmation card / project settings form, evaluator intake):
+//        live columns + sources.<field> = founder|evaluator, confirmed_at /
+//        confirmed_by on confirm, "Not sure" → unclassified (DQ-1), protected
+//        tags accepted from a founder only (DQ-4), founder-owned fields
+//        never overwritten by an evaluator (founder supersedes, §B.6 step 3).
 //
 // DQ rules enforced here (spec §B.9):
 //   DQ-1  a suggestion below AUTO_FILL_MIN_CONFIDENCE never lands in a live
@@ -22,11 +28,24 @@
 import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { appendAudit } from "@/lib/audit";
 import {
   INDUSTRY_ANZSIC,
   TAXONOMY_VERSION,
+  isBusinessModel,
+  isCustomerType,
+  isGeoScope,
+  isHqState,
+  isIndustry,
   isProtectedTag,
+  isStageKey,
   isTag,
+  type BusinessModel,
+  type CustomerType,
+  type GeoScope,
+  type HqState,
+  type Industry,
+  type StageKey,
   type StartupTaxonomyRow,
   type Tag,
   type TaxonomyField,
@@ -270,4 +289,243 @@ export async function upsertSuggestedTaxonomy(projectId: string, suggestion: Tax
   const dedupDiffers = [...new Set(differs)];
   if (applied.length) return { ok: true, mode: "updated", applied, differs: dedupDiffers };
   return { ok: true, mode: dedupDiffers.length || existing.confirmed_at ? "suggested_only" : "unchanged", applied: [], differs: dedupDiffers };
+}
+
+// ─── E1.4 — the human write (founder confirmation / evaluator intake) ────────
+
+/** Axes a human may set from the card / form. `not_sure` resets an axis to its honest unclassified value (DQ-1). */
+export const CONFIRMABLE_FIELDS = ["industry", "business_model", "stage_key", "customer_types", "geo_scope", "hq_state", "tags"] as const;
+export type ConfirmableField = (typeof CONFIRMABLE_FIELDS)[number];
+
+export interface ConfirmTaxonomyInput {
+  industry?: Industry;
+  business_model?: BusinessModel;
+  stage_key?: StageKey;
+  customer_types?: CustomerType[];
+  geo_scope?: GeoScope | null;
+  hq_state?: HqState | null;
+  tags?: Tag[];
+  /** Axes the human explicitly marked "Not sure" → unclassified / null. */
+  not_sure?: ConfirmableField[];
+  /** true = "Confirm" (stamps confirmed_at / confirmed_by); false = "Edit" only. */
+  confirm: boolean;
+}
+
+export interface ConfirmTaxonomyActor {
+  userId: string;
+  source: Extract<TaxonomySource, "founder" | "evaluator">;
+}
+
+export type ConfirmTaxonomyResult =
+  | { ok: true; row: StartupTaxonomyRow; changed: TaxonomyField[]; droppedProtectedTags: Tag[]; lockedByFounder: TaxonomyField[]; unclassifiedCount: number }
+  | { ok: false; error: "unavailable" | "invalid" | "db_error"; message: string };
+
+const UNCLASSIFIED_VALUE: Record<ConfirmableField, unknown> = {
+  industry: "unclassified",
+  business_model: "unclassified",
+  stage_key: undefined, // no honest "unknown" stage — left as is
+  customer_types: ["unclassified"],
+  geo_scope: null,
+  hq_state: null,
+  tags: [],
+};
+
+/** Zero-trust re-validation (the route already ran Zod; the store is callable from scripts too). */
+function validateConfirmInput(input: ConfirmTaxonomyInput): string | null {
+  if (input.industry !== undefined && !isIndustry(input.industry)) return "industry";
+  if (input.business_model !== undefined && !isBusinessModel(input.business_model)) return "business_model";
+  if (input.stage_key !== undefined && !isStageKey(input.stage_key)) return "stage_key";
+  if (input.customer_types !== undefined && !(Array.isArray(input.customer_types) && input.customer_types.every(isCustomerType))) return "customer_types";
+  if (input.geo_scope != null && !isGeoScope(input.geo_scope)) return "geo_scope";
+  if (input.hq_state != null && !isHqState(input.hq_state)) return "hq_state";
+  if (input.tags !== undefined && !(Array.isArray(input.tags) && input.tags.every(isTag))) return "tags";
+  if (input.not_sure !== undefined && !input.not_sure.every((f) => (CONFIRMABLE_FIELDS as readonly string[]).includes(f))) return "not_sure";
+  return null;
+}
+
+export function countUnclassified(row: Pick<StartupTaxonomyRow, "industry" | "business_model" | "customer_types">): number {
+  let n = 0;
+  if (row.industry === "unclassified") n += 1;
+  if (row.business_model === "unclassified") n += 1;
+  if (!row.customer_types.length || row.customer_types.every((c) => c === "unclassified")) n += 1;
+  return n;
+}
+
+const HUMAN_SCALAR_FIELDS = ["industry", "business_model", "stage_key", "customer_types", "geo_scope", "hq_state"] as const;
+
+/**
+ * Human write. Evaluator source never overwrites a founder-sourced field
+ * (founder confirmation supersedes); founder source may overwrite anything.
+ * Inserts the row when the pipeline has not created it yet.
+ */
+export async function confirmTaxonomy(projectId: string, input: ConfirmTaxonomyInput, actor: ConfirmTaxonomyActor): Promise<ConfirmTaxonomyResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { ok: false, error: "unavailable", message: "Service unavailable" };
+  if (!projectId) return { ok: false, error: "invalid", message: "projectId required" };
+  const bad = validateConfirmInput(input);
+  if (bad) return { ok: false, error: "invalid", message: `Invalid value for ${bad}` };
+
+  const { data: existingRaw, error: readError } = await supabase.from("startup_taxonomy").select(STARTUP_TAXONOMY_COLUMNS).eq("project_id", projectId).maybeSingle();
+  if (readError) {
+    console.error("[blockid:taxonomy] confirmTaxonomy read failed", readError);
+    return { ok: false, error: "db_error", message: readError.message ?? "read failed" };
+  }
+  const existing = asRow(existingRaw);
+  const base: StartupTaxonomyRow = existing ?? {
+    project_id: projectId,
+    taxonomy_version: TAXONOMY_VERSION,
+    industry: "unclassified",
+    sub_industry: null,
+    industry_secondary: null,
+    business_model: "unclassified",
+    customer_types: [],
+    stage_key: "idea",
+    hq_state: null,
+    hq_country: "AU",
+    geo_scope: null,
+    tags: [],
+    anzsic_division: null,
+    anzsic_class: null,
+    sources: {},
+    confidence: {},
+    suggested: null,
+    confirmed_by: null,
+    confirmed_at: null,
+    created_at: "",
+    updated_at: "",
+  };
+
+  const patch: Row = {};
+  const sources: TaxonomySources = { ...base.sources, tags: { ...(base.sources.tags ?? {}) } };
+  const changed: TaxonomyField[] = [];
+  const lockedByFounder: TaxonomyField[] = [];
+  const notSure = new Set(input.not_sure ?? []);
+
+  const scalar = (field: (typeof HUMAN_SCALAR_FIELDS)[number], provided: unknown) => {
+    const wanted = notSure.has(field) ? UNCLASSIFIED_VALUE[field] : provided;
+    if (wanted === undefined) return;
+    if (actor.source === "evaluator" && base.sources[field] === "founder") {
+      lockedByFounder.push(field);
+      return;
+    }
+    if (!sameValue(base[field], wanted)) {
+      patch[field] = wanted;
+      changed.push(field);
+    }
+    sources[field] = actor.source;
+  };
+  scalar("industry", input.industry);
+  scalar("business_model", input.business_model);
+  scalar("stage_key", input.stage_key);
+  scalar("customer_types", input.customer_types);
+  scalar("geo_scope", input.geo_scope);
+  scalar("hq_state", input.hq_state);
+
+  // Tags: a founder replaces the whole set (protected included — DQ-4 says
+  // founder-declared ONLY, so the founder is exactly who may set them). An
+  // evaluator replaces the non-protected set and never touches protected or
+  // founder-set tags.
+  const droppedProtectedTags: Tag[] = [];
+  const wantedTags = notSure.has("tags") ? [] : input.tags;
+  if (wantedTags !== undefined) {
+    const next = new Set<Tag>();
+    const tagSources: NonNullable<TaxonomySources["tags"]> = {};
+    if (actor.source === "founder") {
+      for (const t of wantedTags) {
+        next.add(t);
+        tagSources[t] = "founder";
+      }
+    } else {
+      for (const t of base.tags) {
+        const src = base.sources.tags?.[t];
+        if (isProtectedTag(t) || src === "founder") {
+          next.add(t);
+          tagSources[t] = src ?? "founder";
+        }
+      }
+      for (const t of wantedTags) {
+        if (isProtectedTag(t)) {
+          if (!next.has(t)) droppedProtectedTags.push(t);
+          continue;
+        }
+        if (!next.has(t)) {
+          next.add(t);
+          tagSources[t] = "evaluator";
+        }
+      }
+    }
+    const nextTags = [...next].sort();
+    if (!sameValue([...base.tags].sort(), nextTags)) {
+      patch.tags = nextTags;
+      changed.push("tags");
+    }
+    sources.tags = tagSources;
+  }
+  if (sources.tags && Object.keys(sources.tags).length === 0) delete sources.tags;
+
+  const now = new Date().toISOString();
+  if (input.confirm) {
+    // §B.6 / T1: on confirm every live axis becomes human-sourced (the human
+    // vouched for the values as shown), not only the edited ones.
+    for (const field of HUMAN_SCALAR_FIELDS) {
+      if (actor.source === "evaluator" && base.sources[field] === "founder") continue;
+      sources[field] = actor.source;
+    }
+    // An evaluator cannot re-stamp a founder's confirmation (founder supersedes).
+    const founderConfirmed = base.confirmed_at && Object.values(base.sources).includes("founder");
+    if (!(actor.source === "evaluator" && founderConfirmed)) {
+      patch.confirmed_at = now;
+      patch.confirmed_by = actor.userId;
+    }
+  }
+  patch.sources = sources;
+  if (patch.industry !== undefined) patch.anzsic_division = INDUSTRY_ANZSIC[patch.industry as Industry]?.division ?? null;
+  if (!base.taxonomy_version) patch.taxonomy_version = TAXONOMY_VERSION;
+
+  let saved: unknown;
+  if (existing) {
+    const { data, error } = await supabase.from("startup_taxonomy").update(patch).eq("project_id", projectId).select(STARTUP_TAXONOMY_COLUMNS).maybeSingle();
+    if (error) {
+      console.error("[blockid:taxonomy] confirmTaxonomy update failed", error);
+      return { ok: false, error: "db_error", message: error.message ?? "update failed" };
+    }
+    saved = data;
+  } else {
+    const insert: Row = {
+      project_id: projectId,
+      taxonomy_version: TAXONOMY_VERSION,
+      hq_country: "AU",
+      industry: base.industry,
+      business_model: base.business_model,
+      customer_types: base.customer_types,
+      stage_key: base.stage_key,
+      geo_scope: base.geo_scope,
+      hq_state: base.hq_state,
+      tags: base.tags,
+      confidence: {},
+      ...patch,
+    };
+    const { data, error } = await supabase.from("startup_taxonomy").insert(insert).select(STARTUP_TAXONOMY_COLUMNS).maybeSingle();
+    if (error) {
+      console.error("[blockid:taxonomy] confirmTaxonomy insert failed", error);
+      return { ok: false, error: "db_error", message: error.message ?? "insert failed" };
+    }
+    saved = data;
+  }
+  // A RETURNING-less client may hand back nothing — rebuild from what we wrote.
+  const row = asRow(saved) ?? asRow({ ...base, ...patch, created_at: base.created_at || now, updated_at: now })!;
+  const unclassifiedCount = countUnclassified(row);
+
+  void appendAudit({
+    user_id: actor.userId,
+    actor: "user",
+    action: input.confirm ? "taxonomy.confirmed" : "taxonomy.edited",
+    resource_type: "startup_taxonomy",
+    resource_id: projectId,
+    detail: { source: actor.source, changed, not_sure: [...notSure], unclassified_count: unclassifiedCount, dropped_protected_tags: droppedProtectedTags, locked_by_founder: lockedByFounder },
+  }).catch((err: unknown) => {
+    if (process.env.NODE_ENV !== "test") console.warn("[blockid:taxonomy] audit write skipped:", err instanceof Error ? err.message : err);
+  });
+
+  return { ok: true, row, changed, droppedProtectedTags, lockedByFounder, unclassifiedCount };
 }

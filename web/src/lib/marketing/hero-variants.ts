@@ -186,9 +186,9 @@ export const INVESTOR_LINES: readonly HeroLine[] = [
   ),
   line(
     "I2",
-    "investor — shipped artefacts (Trust Report link, per-investor links)",
-    "See if a founder is investor-ready before the first coffee: one score, one trust report, one link.",
-    "Biết founder đã sẵn sàng gọi vốn hay chưa trước cả buổi cà phê đầu tiên: một điểm số, một báo cáo tin cậy, một đường link.",
+    "investor — screen fast, pass with reasons (deck v3 key message 2, G14)",
+    "Screen the deal in minutes — and every founder you pass on gets the reasons, not silence.",
+    "Sàng lọc deal trong vài phút — và mọi founder bạn từ chối đều nhận được lý do, không phải im lặng.",
   ),
   line(
     "I3",

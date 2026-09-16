@@ -40,7 +40,7 @@
 - [ ] ProductHunt launch campaign (partial — launch kit `docs/marketing/traction-kit-2026-09/producthunt-launch-kit.md` written; launch not executed)
 - [x] Referral v2: referrer gets 2 cr, referee gets 1 bonus cr (2-sided) (2-sided: referrer + referee get credits)
 - [x] Content hub with founder guides (shipped — `/guide`, `/guide/[chapter]`, `/guides/*`, `lib/guide/startup-journey.ts`, `c28385d65`)
-- [ ] Community (Discord/Slack with SVI leaderboard) (partial — SVI leaderboard `/startup-index/listings` live; no Discord/Slack community)
+- [ ] Community (Discord/Slack with SVI leaderboard) (partial — SVI leaderboard `/startup-index/listings` live; no Discord/Slack community; **Slack as a webhook destination for evaluators is tracked by G14 S38**, the community itself stays founder-gated)
 - [x] Partner API: POST /api/v1/analyze (API key auth, credit deduction, clean JSON) (programmatic SVI)
 
 ---
@@ -214,6 +214,27 @@ Supersedes `report-v2-compelling.md` and `sub-agent-report-pipeline.md` (their i
 - [ ] Dimension owners TRE→CRO, MPC→CMO, FTV→CHRO, PTD→CTO, CGH→CFO, IRI→CLO, LCO→CLO, SVM→CEO; CDO evidence officer; knowledge injection; phase-aware 13×12 selection; GATHER un-stub; valuation in body
 - [ ] Comparables table (live count), LinkedIn / GA4 / cap-table connectors, prompt-eval fixtures ×24, COGS guard A$0.60
 
+## 2026 Q4 — G14 Investor Feedback (opened 2026-09-16; SOT § G14; goal doc `docs/plans/g14-investor-feedback-2026-09-16.md`)
+
+Answers the 19 investor/judge comments from the 2026-09-16 pitch. Extends G13 (S-D2 assessments → feedback letter; S-R4 → badge parity; S-R5 → backtest + signals ingest); supersedes the v1/v2 pitch decks and the 5-bucket pre-seed use of funds in `unicorn-masterplan.md`. Wave A running; Waves B–D gated on G13 W4/W5.
+
+### Trust (CISO + CDO + svi-scoring)
+- [ ] S36 Confidence capped by origin — replaces the `extractSignals` keyword ladder and the founder-chosen `confidenceLevel` on upload; L0–L5 multiplier 0.85–1.10; reviewer queue; public `/methodology`; "Verified ABN" badge (0403)
+- [ ] S39 Backtest v0 — Spearman ρ of SVI rank vs later round / valuation on 72 AU comparables, bootstrap CI, published at `/methodology/calibration` + `/api/status.svi_backtest` (rank calibration only, survivorship stated)
+### Founder loop (Customer Success + CPO + CHRO)
+- [ ] S34 Feedback letter "What investors said" — k ≥ 3 assessors from ≥ 2 orgs, ratings / risk buckets / questions only, Sunday cron + email + landing block + opt-out (0401)
+- [ ] S35 Program intake link `/apply/[slug]` → scored evaluator inbox, `intake.manage` flag, `intake.submission_received` webhook (0402)
+- [ ] S37 Founder execution profile — `founder_profiles` rubric (exits / raises / years / roles / full-time / together / GitHub) overrides regex FTV; LinkedIn PDF import; FTV chapter card (0404)
+### Integrations (Dev Relations + API designer)
+- [ ] S38 Evaluator API v1 (`/api/v1/evaluations`, `/[id]/dossier`, `/[id]/assessment`; scopes; `api.access` Fund + Program) + OpenAPI `/developers/api` + webhook destinations **Slack / Affinity / Airtable** (Zapier generic; HubSpot / Notion follow-up) (0405)
+### Data (CDO + COO + CFO)
+- [ ] S33 Traction snapshot (`traction-snapshot.json` + history), `/api/status.traction`, admin tile, `investor-update.mjs`, 8 server-side money events so the GA4 audit stops reporting them `missing`
+- [ ] S40 Open AU external signals — ABR bulk, business.gov.au grants, R&DTI transparency → `external_signals` (licence-gated) → LCO/IRI/TRE evidence rows + real cohort for percentiles (0406)
+### Commercial (IR + CFO + CMO)
+- [ ] Deck v3 "Startup Value Index" — 12 slides + 3-minute cut, ask A$500K, pre-money A$2.5–4.0M (SAFE cap A$3.5M), use of funds 50/28/22; v1/v2 decks banner-superseded
+- [ ] Pricing v4 — Fund A$999 · Intake link A$249 · Index API A$299 · Cohort 25/100 public (0400 + 6 Stripe mints, founder-gated); `docs/pricing-upgrade-plan-2026-07-16.md` § v4
+- [ ] Evaluator GTM 90 days — 10 interviews (`docs/research/evaluator-interviews-2026-09.md`), pilot offer v2 (free cohort scoring, admin credit grant, cap 5), intake wedge; D30/D60/D90 in `g14-investor-feedback-2026-09-16/01-gtm-evaluators-90d.md`
+
 ## Reconciliation 2026-09-11
 
 Every unchecked item above was checked against `web/src/app/**`, `web/src/lib/**`, `web/supabase/migrations/**`, `chain/`, `docs/` and `git log` (history was rewritten 2026-09-10, so SHAs are first-commit-in-current-history; `e18a91205`/`fa3744bbf`/`feac5fde8` are bulk autonomous-tick commits). Strict rule: stub / coming-soon page or DB column without behaviour = partial.
@@ -227,7 +248,7 @@ Every unchecked item above was checked against `web/src/app/**`, `web/src/lib/**
 
 1. **Project-level permissions enforced everywhere** — `lib/project-members/scope.ts` has the role model but `lib/projects.ts` has zero `project_members` references; accepted co-founders cannot see shared projects in workspace/evidence/SVI APIs. Evidence: `web/src/lib/projects.ts`, `web/src/app/api/projects/[id]/members/route.ts`.
 2. ~~**Audit log → all mutating routes**~~ — **built S20-A 2026-09-12 (deploy + migration 0335 pending)**: `apiRoute()` wrapper + codemod wrapped 298 route files / 336 handlers (evidence, SVI, data-room, settings, login/register/logout included); 94 files allow-listed with reasons (`web/src/lib/audit/allowlist.json` — crons, webhooks, telemetry, health); rows hash-chained in `audit_events`; nightly `audit-chain-verify` → `audit_chain` on `/api/status`; `/workspace/audit-log` project/actor/action filters + owner CSV; static coverage guard `web/src/lib/audit/coverage.test.ts`. Evidence: `web/src/lib/audit/api-route.ts`, `web/src/lib/audit/catalogue.generated.ts`, `web/supabase/migrations/0335_audit_coverage.sql`.
-3. **Outbound webhooks (SVI change, evidence uploaded)** — only a platform-wide Zapier push exists; add `webhook_endpoints`/`webhook_deliveries` migration + dispatch hooks in `api/revenue` rescore and evidence upload. Evidence: `web/src/app/api/founder/crm-push/route.ts`, `web/src/lib/platform-config.ts:92`.
+3. ~~**Outbound webhooks (SVI change, evidence uploaded)**~~ — **shipped S20-B 2026-09-12** (`webhook_endpoints`/`webhook_deliveries` 0336, HMAC, retry ladder). Typed destinations (Slack Block Kit, Affinity notes, Airtable rows) and evaluator events (`assessment.submitted`, `feedback_letter.sent`, `intake.submission_received`) are **tracked by G14 S38**; HubSpot / Notion / Zapier app remain wish-list behind it. Evidence: `web/src/app/api/founder/crm-push/route.ts`, `web/src/lib/platform-config.ts:92`.
 4. ~~**Historical valuation graph (AUD)**~~ — **shipped S17-B** (`components/dashboard/valuation-trend-chart.tsx` on `/dashboard/history` + `/workspace/svi-trend`; band lives on `startup_score_history` rows, `svi_snapshots` only carries a point estimate).
 5. ~~**Stripe MRR → valuation bridge**~~ — **shipped S17-B** (`lib/valuation-mrr-bridge.ts` + `lib/connected-revenue.ts`; `api/valuation`, `api/valuation/vc`, `api/score` read Stripe/Xero MRR, cross-check vs `SECTOR_MULTIPLES` ARR range, persist `valuation_method` — migration `0330_score_history_valuation_method.sql` must be applied by hand).
 6. **NDA click-wrap gate** — `nda_required`/`nda_signed_at`/`nda_signed_ip` columns and access API exist; add the accept step on the investor token page. Evidence: `web/src/app/api/data-room/access/route.ts:32-101`, `web/supabase/migrations/0062_data_room_professional.sql:81-83`.

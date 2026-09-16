@@ -19,7 +19,7 @@ import {
 } from "@stripe/react-stripe-js";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import type { BillingInterval } from "@/lib/plans/billing-interval";
-import { EVALUATOR_TRIAL_COPY, TRIAL_COPY, TRIAL_DAYS, evaluatorTrialIncludedLine } from "@/lib/plans/trial-copy";
+import { EVALUATOR_TRIAL_COPY, TRIAL_COPY, TRIAL_DAYS, evaluatorTrialIncludedLine, evaluatorTrialLine } from "@/lib/plans/trial-copy";
 import {
   FOUNDER_ACCOUNT_TYPE_OPTIONS,
   type AccountTypeOption,
@@ -306,7 +306,7 @@ function InnerForm(props: SignupFormProps) {
         }),
       });
       const json = (await res.json().catch(() => null)) as
-        | { ok?: boolean; error?: string }
+        | { ok?: boolean; error?: string; redirect?: string }
         | null;
       if (!res.ok || !json?.ok) {
         const code = json?.error ?? `signup_failed_${res.status}`;
@@ -314,7 +314,10 @@ function InnerForm(props: SignupFormProps) {
         setSubmitting(false);
         return;
       }
-      router.push("/dashboard?welcome=1");
+      // S-IA4: the server resolves the landing through PERSONAS (the single
+      // /onboarding wizard for a fresh account); /dashboard stays the fallback.
+      const target = json.redirect && json.redirect.startsWith("/") && !json.redirect.startsWith("//") ? json.redirect : "/dashboard";
+      router.push(`${target}${target.includes("?") ? "&" : "?"}welcome=1`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed.");
       setSubmitting(false);
@@ -483,7 +486,7 @@ function InnerForm(props: SignupFormProps) {
       </button>
 
       <p className="mt-3 text-xs text-slate-500 leading-relaxed">
-        {isEvaluator ? EVALUATOR_TRIAL_COPY.trial_line + " " : ""}
+        {isEvaluator ? evaluatorTrialLine(selectedPlan?.trialDays) + " " : ""}
         {TRIAL_COPY.fine_print}
         {selectedPlan ? " " + priceLine : ""}
       </p>

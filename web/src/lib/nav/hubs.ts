@@ -178,6 +178,7 @@ export const HUBS: Readonly<Record<HubId, HubDef>> = Object.freeze({
     { segment: "", label: { en: "Account", vi: "Tài khoản" } },
     { segment: "profile", label: { en: "Profile", vi: "Hồ sơ" } },
     { segment: "founder", label: { en: "Founder profile", vi: "Hồ sơ founder" } },
+    { segment: "project", label: { en: "Project", vi: "Dự án" } },
     { segment: "notifications", label: { en: "Notifications", vi: "Thông báo" } },
     { segment: "billing", label: { en: "Billing", vi: "Thanh toán" }, href: "/workspace/billing" },
     { segment: "referrals", label: { en: "Referrals", vi: "Giới thiệu" } },

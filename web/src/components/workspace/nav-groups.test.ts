@@ -447,7 +447,6 @@ describe("NAV_GROUPS — no founder page is URL-only (every page has an inbound 
     // links, Stripe return URLs, admin consoles) — each with the reason.
     const OUT_OF_BAND: Record<string, string> = {
       "/checkout/success": "Stripe success_url (D6)",
-      "/dashboard/onboarding": "S-IA4 merges it into /onboarding (deferred redirect)",
       "/workspace": "redirect-only root — the founder landing is /dashboard",
       "/onboarding": "post-signup wizard, entered from the auth flow",
     };

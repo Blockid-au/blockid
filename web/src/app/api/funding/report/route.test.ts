@@ -96,6 +96,14 @@ vi.mock("@/lib/funding/reports", () => ({
   reportColumns: (r: { grants: unknown[] }) => ({ grant_matches: r.grants, status: "ready" }),
 }));
 
+// G14-S33: funding_report_paid is emitted server-side on the paid rails; observe only.
+const emitCalls: Array<{ name: string; params: Record<string, unknown>; userId?: string | null }> = [];
+vi.mock("@/lib/analytics/server", () => ({
+  emitEventSafe: (input: { name: string; params: Record<string, unknown>; userId?: string | null }) => {
+    emitCalls.push(input);
+  },
+}));
+
 import { GET, POST } from "./route";
 
 const USER = { id: "user-1", plan: "free", email: "f@example.com" };
@@ -110,6 +118,7 @@ function req(body: unknown): Request {
 }
 
 beforeEach(() => {
+  emitCalls.length = 0;
   calls.length = 0;
   getCurrentUserMock.mockReset().mockResolvedValue(USER);
   enforceRateLimitMock.mockReset().mockReturnValue(null);
@@ -210,6 +219,10 @@ describe("POST /api/funding/report — rails", () => {
     const readyIdx = calls.findIndex((c) => c.table === "funding_reports" && c.op === "update" && (c.row as { status: string }).status === "ready");
     expect(readyIdx).toBeGreaterThan(calls.findIndex((c) => c.table === "funding_reports" && c.op === "insert"));
     expect(calls[readyIdx].row).toMatchObject({ status: "ready", __eq_id: "rep-1", __eq_status: "generating" });
+
+    // G14-S33: server-side funding_report_paid for the credits rail.
+    expect(emitCalls.filter((c) => c.name === "funding_report_paid")).toHaveLength(1);
+    expect(emitCalls[0]).toMatchObject({ params: { paid_via: "credits", report_id: "rep-1" }, userId: "user-1" });
   });
 
   it("plan rail: grant_finder entitlement bypasses canAfford + spendCredits; row is paid_via=plan", async () => {
@@ -223,6 +236,7 @@ describe("POST /api/funding/report — rails", () => {
     const inserted = calls.find((c) => c.table === "funding_reports" && c.op === "insert")!.row as Record<string, unknown>;
     expect(inserted).toMatchObject({ paid_via: "plan", credits_cost: 0, status: "ready" });
     expect(calls.filter((c) => c.table === "funding_reports" && c.op === "update")).toHaveLength(0);
+    expect(emitCalls.find((c) => c.name === "funding_report_paid")?.params).toEqual({ paid_via: "plan", report_id: "rep-1" });
   });
 
   it("spend failure after generation → 402 with credits_needed; the row goes spend_failed and is NEVER flipped to ready", async () => {
@@ -234,6 +248,8 @@ describe("POST /api/funding/report — rails", () => {
     expect(updates).toEqual(["spend_failed"]);
     const inserted = calls.find((c) => c.table === "funding_reports" && c.op === "insert")!.row as Record<string, unknown>;
     expect(inserted.status).not.toBe("ready");
+    // Nothing was paid → no paid event.
+    expect(emitCalls.find((c) => c.name === "funding_report_paid")).toBeUndefined();
   });
 
   it("with an owned project_id the intake is persisted to project_grant_profiles", async () => {

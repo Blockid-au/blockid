@@ -45,15 +45,18 @@ type Lang = "en" | "vi";
 export const COMPARE_CHATGPT_HREF = "/compare/chatgpt";
 
 /**
- * Where the accelerator page's "Run a 14-day pilot on your next intake"
- * button lands (G12 traction T2). The contact form does not read
- * `?intent=` / `?plan=` (it posts name/email/message only), so the pilot
- * goes straight to the evaluator signup with Program pre-selected: `plan=`
- * alone resolves the evaluator segment (`resolveSignupSegment`), and
- * `from=pilot` tags the referrer for GA4 / the traction tracking sheet.
+ * Where the accelerator page's "Run a free pilot on your next intake"
+ * button lands (G12 traction T2; Pricing v4 2026-09-16). The contact form
+ * does not read `?intent=` / `?plan=` (it posts name/email/message only), so
+ * the pilot goes straight to the evaluator signup with the Intake link
+ * pre-selected (`accelerator_intake`, 14-day trial — the SKU built for one
+ * application round): `plan=` alone resolves the evaluator segment
+ * (`resolveSignupSegment`), and `from=pilot` tags the referrer for GA4 /
+ * the traction tracking sheet. The free 30-day scoring itself is an admin
+ * credit grant on that account, not a Stripe coupon (plan §4).
  */
 export const ACCELERATOR_PILOT_HREF =
-  "/signup?plan=investor_vc_small&trial=1&from=pilot";
+  "/signup?plan=accelerator_intake&trial=1&from=pilot";
 
 /**
  * Regulatory facts about Auschain PTY LTD that we can point at, not
@@ -141,7 +144,8 @@ export function buildInvestorProps(m: Messages, lang: Lang = "en"): SolutionPage
     secondaryCtaLabel: t(m, "solutions.cta.secondary.evaluatorPricing"),
     secondaryCtaHref: EVALUATOR_PRICING_HREF,
     benefits: benefits(m, "investor", 6),
-    faqs: faqs(m, "investor", 3),
+    // Pricing v4 (2026-09-16): q4/a4 = "What does Fund add?"
+    faqs: faqs(m, "investor", 4),
     trustBadges: TRUST_BADGES,
   };
 }

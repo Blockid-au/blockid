@@ -905,7 +905,7 @@ describe("public payload redaction", () => {
     expect(raw).not.toHaveProperty("ai_providers");
     expect(raw).not.toHaveProperty("ai_queue_depth");
     expect(Object.keys(raw).sort()).toEqual(
-      ["last_deploy", "ok", "services", "slo", "updated_at", "version"],
+      ["last_deploy", "ok", "services", "slo", "traction", "updated_at", "version"],
     );
     expect(typeof raw.ok).toBe("boolean");
     expect(typeof raw.version).toBe("string");
@@ -1196,5 +1196,42 @@ describe("ai_last_report_provider (S32-C)", () => {
     lastReportState.throwErr = false;
     expect(status).toBe(200);
     expect(body).toHaveProperty("ai_last_report_provider", null);
+  });
+});
+
+// ─── G14-S33 traction (daily traction snapshot freshness) ──────────────
+
+describe("traction (G14-S33) — read from content/reports/traction-snapshot.json", () => {
+  const SNAPSHOT_FILE = path.join(REPO_ROOT, "content", "reports", "traction-snapshot.json");
+  const read = (body: unknown) => (body as { traction?: string }).traction;
+
+  it("missing when the cron has never written the snapshot (or it is unparsable)", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    expect(read((await callGet()).body)).toBe("missing");
+    fsState.files.set(SNAPSHOT_FILE, "{nope");
+    expect(read((await callGet()).body)).toBe("missing");
+  });
+
+  it("ok under 26 h, stale after", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    fsState.files.set(SNAPSHOT_FILE, JSON.stringify({ generated_at: new Date(Date.now() - 3600e3).toISOString(), users: { total: 12 } }));
+    expect(read((await callGet()).body)).toBe("ok");
+    fsState.files.set(SNAPSHOT_FILE, JSON.stringify({ generated_at: new Date(Date.now() - 30 * 3600e3).toISOString() }));
+    expect(read((await callGet()).body)).toBe("stale");
+  });
+
+  it("is PRESENT on the public payload as a bare word (the live-QA lane asserts it without a bearer) and carries no figure", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    fsState.files.set(SNAPSHOT_FILE, JSON.stringify({ generated_at: new Date().toISOString(), users: { total: 12 }, mrr_aud_cents: { from_subscriptions: 7900 } }));
+    process.env.STATUS_FULL_TOKEN = "";
+    process.env.CRON_SECRET = "";
+    try {
+      const { body } = await callGet();
+      expect(["ok", "stale", "missing"]).toContain(read(body));
+      expect(JSON.stringify(body)).not.toContain("7900");
+      expect(JSON.stringify(body)).not.toContain("traction-snapshot");
+    } finally {
+      process.env.STATUS_FULL_TOKEN = "test-trusted-token";
+    }
   });
 });

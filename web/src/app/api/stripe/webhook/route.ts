@@ -17,7 +17,7 @@ import {
   markWebhookEventProcessed,
 } from "@/lib/stripe/verify";
 import { FOUNDING_PROMO_END } from "@/lib/founding-promo";
-import { emitEvent } from "@/lib/analytics/server";
+import { emitEvent, emitEventSafe } from "@/lib/analytics/server";
 import {
   reconcileSubscriptionAddon,
   revokeAddonForCustomer,
@@ -67,6 +67,10 @@ export async function POST(request: Request) {
     switch (event.type) {
       case "checkout.session.completed":
         await handleCheckoutSessionCompleted(event);
+        break;
+
+      case "customer.subscription.created":
+        await handleSubscriptionCreated(event);
         break;
 
       case "customer.subscription.deleted":
@@ -608,6 +612,55 @@ export async function POST(request: Request) {
         console.error("[blockid:stripe] payment confirmation email failed", err);
       });
     }
+  }
+
+  /**
+   * G14-S33 — `customer.subscription.created` → `subscription_created`
+   * analytics event (server truth for the weekly GA4 audit: MRR-relevant
+   * subscriptions are created by register-with-card and by Checkout, and
+   * neither path has a browser tag at the moment Stripe mints the
+   * subscription). Read-only: no DB mutation — the trial state is mirrored
+   * by the checkout / register-with-card paths and reconciled by
+   * customer.subscription.updated. Never throws.
+   */
+  async function handleSubscriptionCreated(e: Stripe.Event): Promise<void> {
+    const sub = e.data.object as Stripe.Subscription;
+    const customerId = typeof sub.customer === "string" ? sub.customer : null;
+    const item = sub.items?.data?.[0];
+    const priceId = item?.price?.id ?? null;
+    const planId =
+      (sub.metadata?.blockid_plan as string | undefined) ??
+      (priceId ? planIdFromPrice(priceId) : null) ??
+      (priceId ? `price:${priceId}` : "unknown");
+    const interval = item?.price?.recurring?.interval ?? "unknown";
+
+    let userId: string | null = (sub.metadata?.blockid_user_id as string | undefined) ?? null;
+    if (!userId && customerId) {
+      try {
+        const { data: userRow } = await supabase
+          .from("app_users")
+          .select("id")
+          .eq("stripe_customer_id", customerId)
+          .maybeSingle();
+        userId = (userRow?.id as string | undefined) ?? null;
+      } catch (err) {
+        console.warn("[blockid:stripe] subscription.created user lookup failed", err instanceof Error ? err.message : String(err));
+      }
+    }
+
+    emitEventSafe({
+      name: "subscription_created",
+      params: {
+        plan: planId,
+        status: sub.status,
+        trialing: sub.status === "trialing",
+        interval,
+        ...(userId ? { user_id: userId } : {}),
+      },
+      userId,
+      source: "webhook:stripe",
+      consentGranted: true,
+    });
   }
 
   async function handleSubscriptionDeleted(e: Stripe.Event): Promise<void> {
@@ -1155,6 +1208,23 @@ export async function POST(request: Request) {
       },
     });
 
+    // G14-S33: trust_report_purchased → analytics_events + GA4 MP (server
+    // truth for the weekly GA4 audit). `reconciled` = the report_orders row
+    // was missing and re-created from session metadata.
+    emitEventSafe({
+      name: "trust_report_purchased",
+      params: {
+        sku,
+        gross_aud_cents: session.amount_total ?? 0,
+        reconciled: !existing,
+        user_id: userId,
+        session_id: session.id,
+      },
+      userId,
+      source: "webhook:stripe",
+      consentGranted: true,
+    });
+
     // ── Task M3 · reseller_attributions reconciliation ─────────────────
     // /api/reports/checkout writes reseller_attributions synchronously when
     // resolvedPromo is truthy — but that write is best-effort (wrapped in
@@ -1327,6 +1397,21 @@ export async function POST(request: Request) {
         sku: session.metadata?.sku ?? "sku_funding_report_3aud",
         email: session.metadata?.email ?? session.customer_email ?? null,
       },
+    });
+
+    // G14-S33: the guest A$3 rail has no browser tag after Stripe returns
+    // (the tracker on /funding/report/[id] only fires when the buyer opens
+    // the link), so the paid event is emitted here as server truth. The
+    // credits / plan rails emit from POST /api/funding/report.
+    emitEventSafe({
+      name: "funding_report_paid",
+      params: {
+        paid_via: "one_off",
+        report_id: result.reportId ?? "",
+        gross_aud_cents: session.amount_total ?? 0,
+      },
+      source: "webhook:stripe",
+      consentGranted: true,
     });
   }
 

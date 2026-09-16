@@ -7,13 +7,17 @@
 // schema, migration not applied yet) it returns { ok: true, skipped: true }
 // so the client can continue without seeing an error.
 //
-// Body: { step: number, state: object }
+// Body: { step: number, state: object, persona?: WizardPersona, completed?: boolean }
 // The `state` blob is opaque to the server — clients own its shape.
+// `persona` (G13-W4-IA4 wizard step 1) writes `app_users.account_type` +
+// the derived `segment` — only ever between the five wizard personas (a
+// reseller / affiliate / journalist / admin row is never re-typed here).
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute } from "@/lib/audit/api-route";
+import { isWizardPersona, WIZARD_PERSONAS } from "@/lib/onboarding/flow";
 
 export const dynamic = "force-dynamic";
 
@@ -36,11 +40,13 @@ async function POST_handler(request: Request) {
     );
   }
 
-  const { step, state, completed } = (body as {
+  const { step, state, completed, persona } = (body as {
     step?: number;
     state?: Record<string, unknown>;
     /** S31-B: the wizard's terminal actions set this (or firstStartupCreatedAt). */
     completed?: boolean;
+    /** S-IA4 step 1 — one of the five wizard personas. */
+    persona?: unknown;
   }) ?? {};
 
   if (typeof step !== "number" || Number.isNaN(step)) {
@@ -70,7 +76,7 @@ async function POST_handler(request: Request) {
   // terminal actions (step 6 create/skip → firstStartupCreatedAt; step 4
   // "continue without card" → completed:true) now stamp the flag.
   const finished = isWizardFinished(step, state, completed);
-  const payload = {
+  const payload: Record<string, unknown> = {
     onboarding_state: {
       step,
       state,
@@ -82,6 +88,16 @@ async function POST_handler(request: Request) {
   };
 
   try {
+    if (isWizardPersona(persona)) {
+      const { data: current } = await admin.from("app_users").select("account_type").eq("id", user.id).maybeSingle();
+      const at = (current as { account_type?: string | null } | null)?.account_type ?? null;
+      if (personaWriteAllowed(at, persona)) {
+        // The five wizard personas are 1:1 with the 0073 `segment` enum.
+        payload.account_type = persona;
+        payload.segment = persona;
+      }
+    }
+
     const { error } = await admin
       .from("app_users")
       .update(payload)
@@ -116,6 +132,21 @@ async function POST_handler(request: Request) {
     console.error("[blockid:onboarding] save-progress threw", err);
     return NextResponse.json({ ok: true, skipped: true });
   }
+}
+
+/** Legacy evaluator account types (0310) the wizard may refine into a persona. */
+const LEGACY_RETYPABLE = new Set(["investor", "incubator", "service_provider"]);
+
+/**
+ * The wizard may (re)type an account only between the five wizard personas
+ * (plus the legacy evaluator types / null default). Console personas
+ * (reseller / affiliate / journalist) keep theirs. Exported for the
+ * colocated test. Pure.
+ */
+export function personaWriteAllowed(currentAccountType: string | null, persona: string): boolean {
+  if (!isWizardPersona(persona)) return false;
+  if (currentAccountType === null || LEGACY_RETYPABLE.has(currentAccountType)) return true;
+  return (WIZARD_PERSONAS as readonly string[]).includes(currentAccountType);
 }
 
 // S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.

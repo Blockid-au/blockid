@@ -1,34 +1,31 @@
 /**
- * Colocated tests for v3-skus canonical catalogue.
+ * Colocated tests for the report SKU catalogue (v3-skus).
  *
- * Pins the four load-bearing invariants of the Master Upgrade Plan §8.5:
- *   1. Trusted Business Report is exactly A$3.00 GST-inclusive (§14bis D1, re-priced
- *      in place 2026-09-10 per founder decision D3 — id frozen).
+ * Pins the load-bearing invariants:
+ *   1. Trusted Business Report is exactly A$3.00 GST-inclusive (§14bis D1,
+ *      re-priced in place 2026-09-10 per founder decision D3 — id frozen).
  *   2. Every SKU id is unique and comes from the SkuId union.
- *   3. Stripe-managed SKUs all carry a concrete unit_amount and cadence.
- *   4. The Professional monthly SKU stays anchored on the legacy A$149
- *      price point (§14bis D2 auto-migration target) so grandfathered
- *      customers land at the correct A$163.90 inc-GST tier.
+ *   3. Every SKU is Stripe-managed with a concrete unit_amount and a one-off
+ *      cadence.
+ *   4. Pricing v4 (2026-09-16): the dead §8.5 subscription ladder and its
+ *      "1 credit ≈ A$0.025" rule are gone — the module exports the three
+ *      A$3 report SKUs and nothing else.
  */
 
 import { describe, expect, it } from "vitest";
 import {
-  ENTERPRISE_CUSTOM,
   FUNDING_REPORT_3AUD,
-  GROWTH_ANNUAL,
-  GROWTH_MONTHLY,
-  PROFESSIONAL_ANNUAL,
-  PROFESSIONAL_MONTHLY,
-  PROGRAMME_ANNUAL,
+  ONE_CLICK_REPORT_3AUD,
+  REPORT_SKUS,
   skuById,
-  STARTER,
-  STRIPE_MANAGED_SKUS,
   TRUST_REPORT_5AUD,
-  V3_SKUS,
   type V3Sku,
 } from "./v3-skus";
+import * as mod from "./v3-skus";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
-describe("V3 SKU catalogue", () => {
+describe("report SKU catalogue", () => {
   it("Trusted Business Report is A$3.00 GST-inclusive one-off (D1 → D3 re-price, id frozen)", () => {
     // The id is a historical identifier shared with revenue_events.kind and
     // the report_orders.product_sku CHECK — the re-price must never touch it.
@@ -44,6 +41,14 @@ describe("V3 SKU catalogue", () => {
     expect(TRUST_REPORT_5AUD.description).toMatch(/valid 90 days/);
   });
 
+  it("One-Click Investor Analysis is A$3.00 GST-inclusive, guest, its own tier", () => {
+    expect(ONE_CLICK_REPORT_3AUD.id).toBe("sku_one_click_report_3aud");
+    expect(ONE_CLICK_REPORT_3AUD.tier).toBe("one_click_report");
+    expect(ONE_CLICK_REPORT_3AUD.unit_amount_incl_gst_cents).toBe(300);
+    expect(ONE_CLICK_REPORT_3AUD.cadence).toBe("one_off");
+    expect(ONE_CLICK_REPORT_3AUD.display_price_label).toBe("A$3.00 inc-GST");
+  });
+
   it("Money Finder report is a A$3.00 GST-inclusive one-off, Stripe-managed, its own tier (T0242)", () => {
     expect(FUNDING_REPORT_3AUD.id).toBe("sku_funding_report_3aud");
     expect(FUNDING_REPORT_3AUD.tier).toBe("funding_report");
@@ -56,74 +61,59 @@ describe("V3 SKU catalogue", () => {
     expect(FUNDING_REPORT_3AUD.description).toMatch(/eligibility checklist/i);
     expect(FUNDING_REPORT_3AUD.description).toMatch(/12-month timeline/i);
     expect(skuById("sku_funding_report_3aud")).toBe(FUNDING_REPORT_3AUD);
-    expect(STRIPE_MANAGED_SKUS.map((s) => s.id)).toContain("sku_funding_report_3aud");
   });
 
-  it("Professional monthly stays anchored on A$149 net (D2 auto-migrate target)", () => {
-    // A$149 net + 10% GST = A$163.90 → 16390 cents.
-    expect(PROFESSIONAL_MONTHLY.unit_amount_incl_gst_cents).toBe(16390);
-    expect(PROFESSIONAL_MONTHLY.tier).toBe("professional");
-    expect(PROFESSIONAL_MONTHLY.credits_per_cycle).toBe(1500);
-  });
-
-  it("Starter stays free and Stripe-unmanaged (paywall applies later)", () => {
-    expect(STARTER.unit_amount_incl_gst_cents).toBe(0);
-    expect(STARTER.cadence).toBe("free");
-    expect(STARTER.stripe_managed).toBe(false);
-    expect(STARTER.credits_per_cycle).toBeGreaterThanOrEqual(2);
-  });
-
-  it("Enterprise is invoice-only, no Stripe price", () => {
-    expect(ENTERPRISE_CUSTOM.unit_amount_incl_gst_cents).toBeNull();
-    expect(ENTERPRISE_CUSTOM.stripe_managed).toBe(false);
-  });
-
-  it("SKU ids are unique", () => {
-    const ids = V3_SKUS.map((s) => s.id);
+  it("lists exactly the three A$3 report SKUs, ids unique", () => {
+    expect(REPORT_SKUS.map((s) => s.id)).toEqual([
+      "sku_trust_report_5aud",
+      "sku_one_click_report_3aud",
+      "sku_funding_report_3aud",
+    ]);
+    const ids = REPORT_SKUS.map((s) => s.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
   it("skuById returns each SKU and throws on unknown id", () => {
-    for (const s of V3_SKUS) {
+    for (const s of REPORT_SKUS) {
       expect(skuById(s.id)).toBe(s);
     }
     expect(() => skuById("sku_bogus" as V3Sku["id"])).toThrow();
+    expect(() => skuById("sku_growth_monthly" as V3Sku["id"])).toThrow();
   });
 
-  it("STRIPE_MANAGED_SKUS excludes Starter (free) and Enterprise (invoice)", () => {
-    const ids = STRIPE_MANAGED_SKUS.map((s) => s.id);
-    expect(ids).not.toContain("sku_starter");
-    expect(ids).not.toContain("sku_enterprise_custom");
-    expect(ids).toContain("sku_trust_report_5aud");
-    expect(ids).toContain("sku_growth_monthly");
-    expect(ids).toContain("sku_growth_annual");
-    expect(ids).toContain("sku_professional_monthly");
-    expect(ids).toContain("sku_professional_annual");
-    expect(ids).toContain("sku_programme_annual");
-  });
-
-  it("Every Stripe-managed SKU carries a concrete unit_amount and non-free cadence", () => {
-    for (const s of STRIPE_MANAGED_SKUS) {
-      expect(s.unit_amount_incl_gst_cents).not.toBeNull();
-      expect(s.unit_amount_incl_gst_cents).toBeGreaterThan(0);
-      expect(s.cadence).not.toBe("free");
+  it("every SKU is Stripe-managed with a concrete unit_amount, one-off cadence, no credit grant", () => {
+    for (const s of REPORT_SKUS) {
+      expect(s.stripe_managed).toBe(true);
+      expect(s.unit_amount_incl_gst_cents).toBe(300);
+      expect(s.cadence).toBe("one_off");
+      expect(s.credits_per_cycle).toBe(0);
+      expect(s.display_price_label).toMatch(/inc-GST$/);
     }
   });
 
-  it("Annual variants save at least the equivalent of ~2 months vs monthly", () => {
-    const growthMonthlyYear = (GROWTH_MONTHLY.unit_amount_incl_gst_cents ?? 0) * 12;
-    const professionalMonthlyYear =
-      (PROFESSIONAL_MONTHLY.unit_amount_incl_gst_cents ?? 0) * 12;
-    expect(GROWTH_ANNUAL.unit_amount_incl_gst_cents).toBeLessThan(growthMonthlyYear);
-    expect(PROFESSIONAL_ANNUAL.unit_amount_incl_gst_cents).toBeLessThan(
-      professionalMonthlyYear,
+  // Pricing v4 (2026-09-16, plan §3.1): the §8.5 subscription ladder in this
+  // file was never wired to Stripe or imported anywhere, and its credit
+  // rule (A$0.025) contradicted lib/credits.ts (A$1 list). Gone for good.
+  it("no longer exports the dead §8.5 subscription ladder or the A$0.025 credit rule", () => {
+    const exported = Object.keys(mod).sort();
+    expect(exported).toEqual(
+      ["FUNDING_REPORT_3AUD", "ONE_CLICK_REPORT_3AUD", "REPORT_SKUS", "TRUST_REPORT_5AUD", "skuById"].sort(),
     );
-  });
-
-  it("Programme is annual-only and priced above Professional annual", () => {
-    expect(PROGRAMME_ANNUAL.cadence).toBe("year");
-    expect(PROGRAMME_ANNUAL.unit_amount_incl_gst_cents).toBeGreaterThan(
-      PROFESSIONAL_ANNUAL.unit_amount_incl_gst_cents ?? 0,
-    );
+    for (const dead of [
+      "STARTER",
+      "GROWTH_MONTHLY",
+      "GROWTH_ANNUAL",
+      "PROFESSIONAL_MONTHLY",
+      "PROFESSIONAL_ANNUAL",
+      "PROGRAMME_ANNUAL",
+      "ENTERPRISE_CUSTOM",
+      "V3_SKUS",
+      "STRIPE_MANAGED_SKUS",
+    ]) {
+      expect((mod as Record<string, unknown>)[dead], dead).toBeUndefined();
+    }
+    const src = readFileSync(resolve(__dirname, "v3-skus.ts"), "utf8");
+    expect(src).not.toMatch(/0\.025/);
+    expect(src).not.toMatch(/53\.90|163\.90|5,389|sku_professional|sku_programme|sku_enterprise/);
   });
 });

@@ -1,10 +1,24 @@
 /**
- * Placeholder pricing catalogue for Homepage v2.
+ * Marketing pricing catalogue for Homepage v2 / /pricing.
  *
- * Source of truth: `knowledge-base/upgrade-plan-2026-07-16/cfo-spec.md` §3.2
- * (12-SKU canonical matrix). This literal file will be replaced by the
- * codegen output of `web/scripts/build-plans.ts` → `plans.generated.ts`
- * once the W1 CFO/CTO track lands (see `plans.csv`).
+ * Source of truth for prices and limits: `web/src/config/pricing/plans.csv`
+ * (→ `plans.generated.ts` via `scripts/build-plans.ts`). This file carries
+ * the public copy for each SKU — bullets, taglines, ribbon, visibility —
+ * and its colocated test pins every number back to the csv.
+ *
+ * Pricing v4 (evaluator-first, 2026-09-16, plan §3.2 — 15 tier SKUs +
+ * Startup Package):
+ *   Founder    founder_free / founder_starter A$29 / founder_growth A$69
+ *              (+ retired founder_scale, contact-sales founder_enterprise)
+ *   Evaluator  investor_angel "Scout" A$79 / investor_advisor "Firm" A$149 /
+ *              investor_vc_small "Program" A$349 / investor_fund "Fund"
+ *              A$999 (+ contact-sales investor_vc_ent, hidden index_api
+ *              A$299 sold from /startup-index, /developers and the
+ *              contact-sales row)
+ *   Programs   accelerator_intake "Intake link" A$249 / accelerator_starter
+ *              "Cohort 25" A$500 / accelerator_growth "Cohort 100" A$1,500
+ *              (annual-first, 14-day trial; + contact-sales
+ *              accelerator_enterprise "Cohort Enterprise")
  *
  * DO NOT wire this to Stripe. This is purely a marketing-surface catalogue
  * consumed by `<PricingMatrix />`. Real entitlements + prices flow through
@@ -51,6 +65,13 @@ export interface Plan {
    * (`reports_per_month` 10/30/100, `profiles` 25/50/200, `seats` 1/3/5).
    */
   public?: boolean;
+  /**
+   * Which cadence the card should pre-select / link when the page toggle
+   * is untouched. Defaults to `"monthly"`. The three Programs rungs are
+   * sold annual-first (plan §3.2, 2026-09-16) — a cohort is a yearly
+   * budget line, not a monthly one.
+   */
+  billing_default?: "monthly" | "annual";
 }
 
 /**
@@ -350,6 +371,37 @@ const INVESTOR: Plan[] = [
     ],
   },
   {
+    id: "investor_fund",
+    segment: "investor",
+    name: "Fund",
+    monthly_aud: 999,
+    annual_aud: 9990,
+    trial_days: 7,
+    cta_kind: "trial",
+    tagline: "VC funds and family offices",
+    public: true,
+    // Pricing v4 (2026-09-16, plan §3.2). Every bullet is a shipped
+    // surface: usage_limits from plans.csv (seats 10, reports -1 =
+    // unlimited, profiles 500), the quarterly LP / sponsor report
+    // (api/reports/quarterly, `lp_report`), the weekly Progress Radar,
+    // the read-only API (`api.access`) and the rubric weights every batch
+    // accepts (api/evaluations/batch `rubric_weights`). The csv row also
+    // carries `custom_benchmark` / `multi_fund` / `weekly_delta` but no page
+    // gates on them yet, so the copy sells the weights, not a "benchmark
+    // set". Slack / Affinity / Airtable destinations are NOT listed — they
+    // ship with G14 S38 and must not be sold before.
+    features: [
+      "Everything in Program",
+      "Unlimited Trusted Business Reports a month",
+      "500 tracked startups, 10 seats",
+      "Your own rubric weights across the 8 dimensions on every batch and cohort table",
+      "Weekly Progress Radar across the whole portfolio",
+      "Quarterly LP / sponsor report export",
+      "Read-only API access",
+      EVALUATOR_RADAR_LINE,
+    ],
+  },
+  {
     id: "investor_vc_ent",
     segment: "investor",
     name: "VC Enterprise",
@@ -368,45 +420,97 @@ const INVESTOR: Plan[] = [
       "Custom seat count",
     ],
   },
+  {
+    id: "index_api",
+    segment: "investor",
+    name: "Index API",
+    monthly_aud: 299,
+    annual_aud: 2990,
+    trial_days: 0,
+    cta_kind: "contact",
+    tagline: "Programmatic access to the Startup Value Index",
+    // Pricing v4 (2026-09-16). Data-only SKU: no workspace, no reports
+    // (`usage_limits.profiles` 0, `reports_per_month` 0, `seats` 2,
+    // `api_daily_calls` 1000). Sold from /startup-index, /developers and the
+    // contact-sales row on /pricing — never as a ladder card, hence hidden.
+    public: false,
+    features: [
+      "Read-only Startup Value Index feed — GET /api/v1/svi, svi_live_ keys",
+      "1,000 API calls a day, 2 keys",
+      "Listings by sector, sorted by score, plus single-ticker detail",
+      "No workspace or reports — data access only",
+    ],
+  },
 ];
 
-// ─── Accelerator ──────────────────────────────────────────────────────────
+// ─── Accelerator / Programs ──────────────────────────────────────────────
+//
+// Pricing v4 (2026-09-16, plan §3.2): the cohort SKUs are public again and
+// sold annual-first on the Programs tab of /pricing — Intake link A$249 /
+// Cohort 25 A$500 / Cohort 100 A$1,500 (14-day card-required trial) with
+// Cohort Enterprise on the contact-sales row. Numbers below are plans.csv
+// `usage_limits` (profiles / reports_per_month / seats / monthly_credits);
+// plans-v2.test.ts pins them.
 const ACCELERATOR: Plan[] = [
+  {
+    id: "accelerator_intake",
+    segment: "accelerator",
+    name: "Intake link",
+    monthly_aud: 249,
+    annual_aud: 2490,
+    trial_days: 14,
+    cta_kind: "trial",
+    tagline: "One application round, scored on intake",
+    public: true,
+    billing_default: "annual",
+    features: [
+      "40 Trusted Business Reports a month included",
+      "60 tracked startups, 3 seats",
+      "Batch scoring — one rubric across a whole application round",
+      "Cohort table with CSV export + quarterly sponsor / LP report",
+      "Deal-flow feed + watchlist",
+      EVALUATOR_RADAR_LINE,
+    ],
+  },
   {
     id: "accelerator_starter",
     segment: "accelerator",
-    name: "Cohort Starter",
+    name: "Cohort 25",
     monthly_aud: 500,
     annual_aud: 5000,
-    trial_days: 7,
+    trial_days: 14,
     cta_kind: "trial",
-    tagline: "Up to 10 seats",
-    public: false,
+    tagline: "One cohort of up to 25 startups",
+    public: true,
+    billing_default: "annual",
     features: [
-      "10 founder seats included",
-      "Cohort dashboard + rankings",
-      "5,000 AI credits / month",
-      "Batched SVI reports",
-      "Program brand kit",
+      "Everything in Intake link",
+      "50 Trusted Business Reports a month included",
+      "25 tracked startups, 5 seats",
+      "200 AI credits / month for re-scores and drafts",
+      "Cohort dashboard + weekly re-score of every startup",
+      EVALUATOR_RADAR_LINE,
     ],
   },
   {
     id: "accelerator_growth",
     segment: "accelerator",
-    name: "Cohort Growth",
+    name: "Cohort 100",
     monthly_aud: 1500,
     annual_aud: 15000,
-    trial_days: 7,
+    trial_days: 14,
     cta_kind: "trial",
     most_popular: true,
-    tagline: "Up to 30 seats",
-    public: false,
+    tagline: "Multi-cohort programs and universities",
+    public: true,
+    billing_default: "annual",
     features: [
-      "Everything in Cohort Starter",
-      "30 founder seats included",
-      "Demo Day kit (pitch, deck, video)",
-      "Mentor pool marketplace",
-      "20,000 AI credits / month",
+      "Everything in Cohort 25",
+      "200 Trusted Business Reports a month included",
+      "100 tracked startups, 15 seats",
+      "800 AI credits / month",
+      "Cohort management — mentors, check-ins and notes beside every score",
+      EVALUATOR_RADAR_LINE,
     ],
   },
   {
@@ -415,16 +519,15 @@ const ACCELERATOR: Plan[] = [
     name: "Cohort Enterprise",
     monthly_aud: 3500,
     annual_aud: 35000,
-    trial_days: 7,
+    trial_days: 14,
     cta_kind: "contact",
-    tagline: "100+ seats, white-label",
+    tagline: "Unlimited startups, white-label",
     public: false,
     features: [
-      "Everything in Cohort Growth",
-      "100 founder seats included",
-      "White-label domain + branding",
-      "Read + write API access",
-      "80,000 AI credits / month",
+      "Everything in Cohort 100",
+      "Unlimited startups, seats and reports",
+      "White-label reports + program branding",
+      "Read-only API access + SSO / SAML",
       "Dedicated program manager",
     ],
   },
@@ -457,13 +560,15 @@ export function plansForSegment(segment: Segment): Plan[] {
  * Derived from `plan.public === false` on the catalogue itself so a new
  * hidden SKU is a one-line change in the plan definition.
  *
- * Post-2026-09-10 ladder (G12): two public ladders, one per /pricing tab.
+ * Pricing v4 ladder (2026-09-16): three public ladders, one per /pricing tab.
  *   Founder   — founder_free (Free) + founder_starter (Founder A$29) +
  *               founder_growth (Growth A$69), A$59/mo Equity add-on on top.
  *   Evaluator — investor_angel (Scout A$79) + investor_advisor (Firm A$149)
- *               + investor_vc_small (Program A$349).
- * Everything else (retired Pro, founder_enterprise, investor_vc_ent, the
- * accelerator_* cohort SKUs) is contact-sales / legacy-renewal only.
+ *               + investor_vc_small (Program A$349) + investor_fund (Fund A$999).
+ *   Programs  — accelerator_intake (Intake link A$249) + accelerator_starter
+ *               (Cohort 25 A$500) + accelerator_growth (Cohort 100 A$1,500).
+ * Everything else (retired Pro, founder_enterprise, investor_vc_ent,
+ * index_api, accelerator_enterprise) is contact-sales / legacy-renewal only.
  */
 export const PUBLIC_HIDDEN_PLAN_IDS: readonly string[] = PLANS_V2
   .filter((p) => p.public === false)

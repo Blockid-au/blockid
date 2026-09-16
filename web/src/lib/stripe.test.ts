@@ -59,6 +59,13 @@ const ENV_KEYS = [
   "STRIPE_PRICE_STARTUP_PACKAGE",
   "STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY",
   "STRIPE_PRICE_ADDON_SHARE_MGMT_ANNUAL",
+  "STRIPE_PRICE_INVESTOR_FUND",
+  "STRIPE_PRICE_INVESTOR_FUND_ANNUAL",
+  "STRIPE_PRICE_ACCEL_INTAKE",
+  "STRIPE_PRICE_ACCEL_INTAKE_ANNUAL",
+  "STRIPE_PRICE_INDEX_API",
+  "STRIPE_PRICE_INDEX_API_ANNUAL",
+  "STRIPE_PRICE_INVESTOR_VC_ENT",
 ] as const;
 
 const savedEnv: Record<string, string | undefined> = {};
@@ -189,6 +196,16 @@ describe("STRIPE_PRICE_MAP", () => {
       "one_click_report",
       // Money Finder A$3 report (G11 T0242) — POST /api/funding/checkout.
       "funding_report",
+      // Pricing v4 (2026-09-16): Fund / Intake link / Index API rows + the
+      // two SVI data-API tiers POST /api/svi-api/checkout resolves.
+      "investor_fund",
+      "investor_fund_annual",
+      "accelerator_intake",
+      "accelerator_intake_annual",
+      "index_api",
+      "index_api_annual",
+      "svi_api_team",
+      "svi_api_institutional",
     ] as const;
     const actualKeys = Object.keys(mod.STRIPE_PRICE_MAP).sort();
     expect(actualKeys).toEqual([...expectedKeys].sort());
@@ -230,6 +247,25 @@ describe("STRIPE_PRICE_MAP", () => {
     expect(mod.STRIPE_PRICE_MAP.founder_package).toBe("price_startup_pkg");
     expect(mod.STRIPE_PRICE_MAP.addon_share_mgmt_monthly).toBe("price_share_m");
     expect(mod.STRIPE_PRICE_MAP.addon_share_mgmt_annual).toBe("price_share_y");
+  });
+
+  it("Pricing v4: svi_api_team is the Index API price and svi_api_institutional the VC Enterprise price (fixes the checkout 503)", async () => {
+    process.env.STRIPE_PRICE_INVESTOR_FUND = "price_fund_m";
+    process.env.STRIPE_PRICE_INVESTOR_FUND_ANNUAL = "price_fund_y";
+    process.env.STRIPE_PRICE_ACCEL_INTAKE = "price_intake_m";
+    process.env.STRIPE_PRICE_ACCEL_INTAKE_ANNUAL = "price_intake_y";
+    process.env.STRIPE_PRICE_INDEX_API = "price_api_m";
+    process.env.STRIPE_PRICE_INDEX_API_ANNUAL = "price_api_y";
+    process.env.STRIPE_PRICE_INVESTOR_VC_ENT = "price_vc_ent";
+    const mod = await loadStripeMod();
+    expect(mod.STRIPE_PRICE_MAP.investor_fund).toBe("price_fund_m");
+    expect(mod.STRIPE_PRICE_MAP.investor_fund_annual).toBe("price_fund_y");
+    expect(mod.STRIPE_PRICE_MAP.accelerator_intake).toBe("price_intake_m");
+    expect(mod.STRIPE_PRICE_MAP.accelerator_intake_annual).toBe("price_intake_y");
+    expect(mod.STRIPE_PRICE_MAP.index_api).toBe("price_api_m");
+    expect(mod.STRIPE_PRICE_MAP.index_api_annual).toBe("price_api_y");
+    expect(mod.STRIPE_PRICE_MAP.svi_api_team).toBe("price_api_m");
+    expect(mod.STRIPE_PRICE_MAP.svi_api_institutional).toBe("price_vc_ent");
   });
 
   it("leaves each entry as undefined when its env var is not set", async () => {

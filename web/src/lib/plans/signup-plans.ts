@@ -10,7 +10,11 @@
 //   founder   → founder_starter / founder_growth / founder_enterprise
 //   evaluator → investor_angel (Scout) / investor_advisor (Firm) /
 //               investor_vc_small (Program) — re-used SKU ids per D2
-//               (docs/plans/evaluator-traction-2026-09-10.md §3b).
+//               (docs/plans/evaluator-traction-2026-09-10.md §3b) — plus,
+//               since Pricing v4 (2026-09-16, plan §3.2), investor_fund
+//               (Fund) and the self-serve Programs rungs accelerator_intake
+//               (Intake link) / accelerator_starter (Cohort 25) /
+//               accelerator_growth (Cohort 100), 14-day trial.
 //
 // Every plan on either list is a card-required Stripe trial
 // (`payment_method_collection:"always"`, `trial_period_days` from the plan
@@ -32,6 +36,10 @@ export const EVALUATOR_TRIAL_PLAN_IDS = [
   "investor_angel",
   "investor_advisor",
   "investor_vc_small",
+  "investor_fund",
+  "accelerator_intake",
+  "accelerator_starter",
+  "accelerator_growth",
 ] as const;
 
 export type FounderTrialPlanId = (typeof FOUNDER_TRIAL_PLAN_IDS)[number];
@@ -203,9 +211,15 @@ export function segmentForAccountType(
   accountType: string | null | undefined,
   planId?: string | null,
 ): Segment {
+  // Pricing v4: a Programs rung (accelerator_*) is an accelerator segment
+  // whatever the account type says — the plan row is the stronger signal.
+  if (typeof planId === "string" && planId.startsWith("accelerator_")) return "accelerator";
   switch (accountType) {
     case "investor":
-      return planId === "investor_vc_small" || planId === "investor_vc_ent"
+      return planId === "investor_vc_small" ||
+        planId === "investor_vc_ent" ||
+        planId === "investor_fund" ||
+        planId === "index_api"
         ? "investor_vc"
         : "investor_angel";
     case "advisor":
@@ -248,6 +262,10 @@ export const EVALUATOR_PLAN_LABELS: Record<EvaluatorTrialPlanId, string> = {
   investor_angel: "Scout",
   investor_advisor: "Firm",
   investor_vc_small: "Program",
+  investor_fund: "Fund",
+  accelerator_intake: "Intake link",
+  accelerator_starter: "Cohort 25",
+  accelerator_growth: "Cohort 100",
 };
 
 export function evaluatorPlanLabel(planId: string | null | undefined): string | null {

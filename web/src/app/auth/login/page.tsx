@@ -6,6 +6,7 @@ import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { LoginForm } from "./login-form";
 import { getCurrentUser } from "@/lib/auth";
+import { postLoginHref } from "@/lib/auth/post-login";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 
 export const metadata: Metadata = {
@@ -24,7 +25,9 @@ export default async function LoginPage({
 }) {
   const user = await getCurrentUser();
   const sp = await searchParams;
-  const nextUrl = sp.next ?? "/dashboard";
+  // S-IA4: a signed-in visitor's "Continue" goes to ?next= or the persona
+  // landing (PERSONAS via postLoginHref) — never a literal /dashboard.
+  const nextUrl = sp.next ?? (user ? await postLoginHref({ id: user.id, role: user.role }) : "/dashboard");
 
   return (
     <>
@@ -72,7 +75,7 @@ export default async function LoginPage({
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
               >
                 <LayoutDashboard className="h-4 w-4" />
-                Continue to Dashboard
+                Continue to your desk
               </Link>
 
               {/* Divider */}

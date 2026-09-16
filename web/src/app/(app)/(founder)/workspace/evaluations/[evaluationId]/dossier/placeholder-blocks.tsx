@@ -1,24 +1,16 @@
-// Investor Dossier — blocks 3, 4 and 6 (S-D1 scope: BA spec §A.2 says each
-// block is a server component; S-D1 ships block 1 in full and the rest as
-// honest placeholders that link to the existing surface where one exists).
-// Blocks 2 (valuation-block.tsx) and 5 (progress-block.tsx) are real since
-// S-R4. Server components, no client JS.
+// Investor Dossier — block 3 as a labelled placeholder (S-D1 scope: BA spec
+// §A.2 says each block is a server component; S-D1 shipped block 1 in full
+// and the rest as honest placeholders). Blocks 2 (valuation-block.tsx) and 5
+// (progress-block.tsx) are real since S-R4; blocks 4 and 6 live in
+// ./assessment/* since S-D2. Server component, no client JS.
 //
 //   3 Evidence & access   → counts by dimension (every tier) + the tier
 //                           note; the item list + request-access CTA is S-D3.
-//   4 Evaluator assessment→ decision / version / history summary for the
-//                           assessor; "private" for the founder; the form is
-//                           S-D2. Never renders an assessment field to the
-//                           founder (§C.1).
-//   6 Actions & audit     → S-D3; re-score / full report already live on the
-//                           evaluations list.
 
-import Link from "next/link";
 import { DIM_ORDER, DIMENSION_OWNERS } from "@/lib/report-pipeline/dimension-owners";
 import { tierLabel } from "@/lib/mentor/access-tiers";
 import { DATA_PRINCIPLE_SENTENCE } from "@/lib/valuation-certificate/types";
 import type { DossierView } from "@/lib/evaluations/dossier";
-import { fmtDate } from "./dossier-header";
 import { DossierBlock as Block } from "./block";
 
 export function EvidenceBlock({ view }: { view: DossierView }) {
@@ -52,51 +44,6 @@ export function EvidenceBlock({ view }: { view: DossierView }) {
         </p>
       )}
       <p className="mt-3 rounded-lg bg-surface-50 px-3 py-2 text-xs text-ink-600">{DATA_PRINCIPLE_SENTENCE}</p>
-    </Block>
-  );
-}
-
-export function AssessmentBlock({ view }: { view: DossierView }) {
-  const a = view.assessment;
-  const founder = view.viewer.role === "founder";
-  return (
-    <Block n={4} title="Evaluator assessment" testId="dossier-block-4">
-      {founder ? (
-        <p data-testid="assessment-private">
-          Your evaluator&apos;s assessment is private. If they choose to share it, only the sections they tick (dimension ratings, risks, questions for you, shared notes) appear here.
-          {a.sharedWithFounder ? ` Shared on ${fmtDate(a.sharedWithFounder.sharedWithFounderAt)} — ${a.sharedWithFounder.sharedFields.length} section(s).` : ""}
-        </p>
-      ) : !a.available ? (
-        <p data-testid="assessment-unavailable">Assessment not available yet — the assessments table (migration 0392) has not been applied on this environment.</p>
-      ) : a.mine ? (
-        <div data-testid="assessment-mine">
-          <p>
-            Your current view: <strong className="uppercase">{a.mine.decision ?? "no decision"}</strong> · conviction {a.mine.conviction ?? "—"}/5 · v{a.mine.version} ({a.mine.status})
-            {a.mine.submittedAt ? ` · submitted ${fmtDate(a.mine.submittedAt)}` : ""}
-          </p>
-          {a.history.length > 1 ? <p className="mt-1 text-xs text-ink-500">{a.history.length} versions — the diff timeline lands in S-D2.</p> : null}
-        </div>
-      ) : (
-        <p data-testid="assessment-empty">No assessment yet. The AI-vs-me form (per-dimension rating, risks, questions, PASS / TRACK / PROCEED) lands in S-D2.</p>
-      )}
-    </Block>
-  );
-}
-
-export function ActionsBlock({ view }: { view: DossierView }) {
-  return (
-    <Block n={6} title="Actions & audit trail" testId="dossier-block-6">
-      <ul className="list-disc space-y-1 pl-5">
-        <li>
-          Re-score (A$1) and the full Trusted Business Report (A$3) — from the row on{" "}
-          <Link href="/workspace/evaluations" className="text-brand-700 hover:underline">
-            Startups I&apos;m evaluating
-          </Link>
-          .
-        </li>
-        <li>Add to watchlist · request intro · add to batch · export IC memo — S-D3.</li>
-        <li className="text-xs text-ink-500">Every dossier view is written to the audit trail ({view.viewer.role}).</li>
-      </ul>
     </Block>
   );
 }

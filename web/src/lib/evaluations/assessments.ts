@@ -1,10 +1,12 @@
-// Evaluator Assessment — read side + viewer masking (G13-W2-D1, S-D1).
+// Evaluator Assessment — shapes, masking, reads AND writes (G13-W2-D1 S-D1
+// read side · G13-W4-D2 S-D2 write side).
 //
 // One `evaluation_assessments` row (migration 0392) is one evaluator seat's
-// structured verdict on one evaluation, versioned (latest = current). The
-// write side (form, PUT / submit / share routes) is S-D2; this module owns
-// the shapes (Appendix 2 of the BA spec, as Zod), the row mapper and the
-// ONLY code path that decides what each viewer may see (§C.1):
+// structured verdict on one evaluation, versioned (latest = current). This
+// module owns the shapes (Appendix 2 of the BA spec, as Zod), the row
+// mapper, the write side (`upsertAssessment` · `shareAssessment` ·
+// `revokeAssessmentShare`, each writing its §C.2 audit row) and the ONLY
+// code path that decides what each viewer may see (§C.1):
 //
 //   assessor    the seat who wrote it → every field.
 //   org_member  another seat of the same Firm/Program org → every field
@@ -24,6 +26,7 @@
 import "server-only";
 import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { appendAudit } from "@/lib/audit";
 
 // ─── Appendix 2 shapes ──────────────────────────────────────────────────────
 
@@ -353,4 +356,301 @@ export async function listAssessmentHistory(evaluationId: string, viewer: Assess
   if (viewer.role === "founder") return [];
   const r = await getAssessment(evaluationId, viewer);
   return r.history;
+}
+
+// ─── Writes (S-D2) ──────────────────────────────────────────────────────────
+//
+// Versioning (Appendix 1, S3/S5):
+//   * no row yet                → insert v1
+//   * current row is a draft    → update that row in place (autosave)
+//   * current row is submitted  → insert v(n+1) pre-filled from v(n) merged
+//                                 with the patch ("Update my assessment")
+//   * submit                    → same rules, plus decision + conviction are
+//                                 required and submitted_at is stamped
+// A new version never inherits the previous version's share: what the
+// founder was shown stays attached to the row it was shared from, and
+// `revokeAssessmentShare` clears EVERY row of the seat so a revoke is total.
+
+/** ≤ 20 kB per note (0392 CHECK, §C.6). */
+export const NOTE_MAX_CHARS = 20_000;
+export const MAX_RISKS = 30;
+export const MAX_QUESTIONS = 30;
+
+const criterionRatingsSchema = z.record(z.string().min(1).max(40), criterionRatingSchema);
+
+/** PUT body — everything optional (Appendix 1 `AssessmentDraft`); `status` picks draft vs submit. */
+export const assessmentDraftSchema = z
+  .object({
+    status: z.enum(ASSESSMENT_STATUSES).optional(),
+    snapshot_id: z.string().uuid().nullable().optional(),
+    decision: z.enum(ASSESSMENT_DECISIONS).nullable().optional(),
+    conviction: z.number().int().min(1).max(5).nullable().optional(),
+    thesis_fit_pct: z.number().int().min(0).max(100).nullable().optional(),
+    dimension_ratings: dimensionRatingsSchema.optional(),
+    criterion_ratings: criterionRatingsSchema.optional(),
+    valuation_view: valuationViewSchema.nullable().optional(),
+    risks: z.array(riskItemSchema).max(MAX_RISKS).optional(),
+    questions_for_founder: z.array(founderQuestionSchema).max(MAX_QUESTIONS).optional(),
+    private_notes: z.string().max(NOTE_MAX_CHARS).nullable().optional(),
+    shared_notes: z.string().max(NOTE_MAX_CHARS).nullable().optional(),
+  })
+  .strict();
+export type AssessmentDraftInput = z.infer<typeof assessmentDraftSchema>;
+
+/** POST …/share body. */
+export const assessmentShareSchema = z
+  .object({
+    fields: z.array(z.enum(FOUNDER_SHARE_ALLOW_LIST)).min(1).max(FOUNDER_SHARE_ALLOW_LIST.length),
+  })
+  .strict();
+
+export interface AssessmentWriteContext {
+  evaluationId: string;
+  projectId: string;
+  assessorUserId: string;
+  orgId?: string | null;
+}
+
+export type AssessmentWriteError = "unavailable" | "missing_decision" | "missing_conviction" | "db_error" | "not_found";
+
+export type UpsertAssessmentResult =
+  | { ok: true; assessment: EvaluationAssessment; created: boolean; version: number; history: AssessmentHistoryEntry[] }
+  | { ok: false; error: AssessmentWriteError; message: string };
+
+/** Column patch built from a validated draft — only keys present in the input. */
+export function draftToColumns(input: AssessmentDraftInput): Row {
+  const out: Row = {};
+  if (input.snapshot_id !== undefined) out.snapshot_id = input.snapshot_id;
+  if (input.decision !== undefined) out.decision = input.decision;
+  if (input.conviction !== undefined) out.conviction = input.conviction;
+  if (input.thesis_fit_pct !== undefined) out.thesis_fit_pct = input.thesis_fit_pct;
+  if (input.dimension_ratings !== undefined) out.dimension_ratings = input.dimension_ratings;
+  if (input.criterion_ratings !== undefined) out.criterion_ratings = input.criterion_ratings;
+  if (input.valuation_view !== undefined) out.valuation_view = input.valuation_view;
+  if (input.risks !== undefined) out.risks = input.risks;
+  if (input.questions_for_founder !== undefined) out.questions_for_founder = input.questions_for_founder;
+  if (input.private_notes !== undefined) out.private_notes = input.private_notes;
+  if (input.shared_notes !== undefined) out.shared_notes = input.shared_notes;
+  return out;
+}
+
+/** The previous version's content as an insert base (never its share state, id or timestamps). */
+export function carryForwardColumns(prev: EvaluationAssessment): Row {
+  return {
+    snapshot_id: prev.snapshotId,
+    decision: prev.decision,
+    conviction: prev.conviction,
+    thesis_fit_pct: prev.thesisFitPct,
+    dimension_ratings: prev.dimensionRatings,
+    criterion_ratings: prev.criterionRatings,
+    valuation_view: prev.valuationView,
+    risks: prev.risks,
+    questions_for_founder: prev.questionsForFounder,
+    private_notes: prev.privateNotes,
+    shared_notes: prev.sharedNotes,
+  };
+}
+
+/** Field-level delta for the audit `detail` — names and counts only, never note bodies (§C.2). */
+export function assessmentDelta(prev: EvaluationAssessment | null, next: EvaluationAssessment): Record<string, unknown> {
+  const changed: string[] = [];
+  const cmp = (key: string, a: unknown, b: unknown) => {
+    if (JSON.stringify(a ?? null) !== JSON.stringify(b ?? null)) changed.push(key);
+  };
+  cmp("decision", prev?.decision, next.decision);
+  cmp("conviction", prev?.conviction, next.conviction);
+  cmp("thesis_fit_pct", prev?.thesisFitPct, next.thesisFitPct);
+  cmp("dimension_ratings", prev?.dimensionRatings, next.dimensionRatings);
+  cmp("criterion_ratings", prev?.criterionRatings, next.criterionRatings);
+  cmp("valuation_view", prev?.valuationView, next.valuationView);
+  cmp("risks", prev?.risks?.length ?? 0, next.risks.length);
+  cmp("questions_for_founder", prev?.questionsForFounder?.length ?? 0, next.questionsForFounder.length);
+  cmp("private_notes", (prev?.privateNotes ?? "").length, (next.privateNotes ?? "").length);
+  cmp("shared_notes", (prev?.sharedNotes ?? "").length, (next.sharedNotes ?? "").length);
+  return {
+    changed,
+    decision: next.decision,
+    conviction: next.conviction,
+    risks: next.risks.length,
+    questions: next.questionsForFounder.length,
+    dimensions_rated: Object.keys(next.dimensionRatings).length,
+  };
+}
+
+function audit(input: {
+  userId: string;
+  action: string;
+  assessment: Pick<EvaluationAssessment, "id" | "evaluationId" | "projectId" | "version">;
+  detail: Record<string, unknown>;
+}): void {
+  void appendAudit({
+    user_id: input.userId,
+    actor: "user",
+    action: input.action,
+    resource_type: "evaluation_assessment",
+    resource_id: input.assessment.id,
+    detail: { evaluation_id: input.assessment.evaluationId, project_id: input.assessment.projectId, version: input.assessment.version, ...input.detail },
+  }).catch((err: unknown) => {
+    if (process.env.NODE_ENV !== "test") console.warn("[blockid:assessments] audit write skipped:", err instanceof Error ? err.message : err);
+  });
+}
+
+async function readSeatRows(evaluationId: string, assessorUserId: string): Promise<{ rows: EvaluationAssessment[]; available: boolean }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { rows: [], available: false };
+  const { data, error } = await supabase
+    .from("evaluation_assessments")
+    .select(ASSESSMENT_COLUMNS)
+    .eq("evaluation_id", evaluationId)
+    .eq("assessor_user_id", assessorUserId)
+    .order("version", { ascending: false })
+    .limit(50);
+  if (error) {
+    if (!isMissingTable(error)) console.error("[blockid:assessments] seat read failed", error);
+    return { rows: [], available: false };
+  }
+  return { rows: ((data ?? []) as Row[]).map(mapAssessmentRow), available: true };
+}
+
+/**
+ * Save a draft or submit. `input.status === "submitted"` is the submit
+ * path (S3): decision + conviction required, `submitted_at` stamped, audit
+ * `assessment.submitted`; anything else is a draft save (`assessment.saved`).
+ */
+export async function upsertAssessment(ctx: AssessmentWriteContext, input: AssessmentDraftInput): Promise<UpsertAssessmentResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { ok: false, error: "unavailable", message: "Service unavailable" };
+  const { rows, available } = await readSeatRows(ctx.evaluationId, ctx.assessorUserId);
+  if (!available) return { ok: false, error: "unavailable", message: "Assessments are not available on this environment yet" };
+  const current = rows[0] ?? null;
+  const submitting = input.status === "submitted";
+  const patch = draftToColumns(input);
+
+  // Effective values after the merge decide whether a submit is complete.
+  const effDecision = patch.decision !== undefined ? patch.decision : (current?.decision ?? null);
+  const effConviction = patch.conviction !== undefined ? patch.conviction : (current?.conviction ?? null);
+  if (submitting && !effDecision) return { ok: false, error: "missing_decision", message: "Choose pass / track / proceed" };
+  if (submitting && !effConviction) return { ok: false, error: "missing_conviction", message: "Rate your conviction 1–5" };
+
+  const now = new Date().toISOString();
+  const lifecycle: Row = submitting ? { status: "submitted", submitted_at: now } : {};
+
+  let saved: Row | null = null;
+  let created = false;
+  if (current && current.status === "draft") {
+    const { data, error } = await supabase
+      .from("evaluation_assessments")
+      .update({ ...patch, ...lifecycle })
+      .eq("id", current.id)
+      .eq("assessor_user_id", ctx.assessorUserId)
+      .select(ASSESSMENT_COLUMNS)
+      .maybeSingle();
+    if (error || !data) {
+      console.error("[blockid:assessments] update failed", error);
+      return { ok: false, error: "db_error", message: error?.message ?? "Save failed" };
+    }
+    saved = data as Row;
+  } else {
+    const base = current ? carryForwardColumns(current) : {};
+    const insert: Row = {
+      evaluation_id: ctx.evaluationId,
+      project_id: ctx.projectId,
+      assessor_user_id: ctx.assessorUserId,
+      org_id: ctx.orgId ?? null,
+      version: current ? current.version + 1 : 1,
+      status: "draft",
+      ...base,
+      ...patch,
+      ...lifecycle,
+    };
+    const { data, error } = await supabase.from("evaluation_assessments").insert(insert).select(ASSESSMENT_COLUMNS).maybeSingle();
+    if (error || !data) {
+      console.error("[blockid:assessments] insert failed", error);
+      return { ok: false, error: "db_error", message: error?.message ?? "Save failed" };
+    }
+    saved = data as Row;
+    created = true;
+  }
+
+  const assessment = mapAssessmentRow(saved);
+  audit({
+    userId: ctx.assessorUserId,
+    action: submitting ? "assessment.submitted" : "assessment.saved",
+    assessment,
+    detail: { ...assessmentDelta(current, assessment), created, status: assessment.status, snapshot_id: assessment.snapshotId },
+  });
+  const history = [toHistoryEntry(assessment), ...rows.filter((r) => r.id !== assessment.id).map(toHistoryEntry)];
+  return { ok: true, assessment, created, version: assessment.version, history };
+}
+
+export type ShareAssessmentResult =
+  | { ok: true; assessment: EvaluationAssessment; founderPreview: FounderVisibleAssessment }
+  | { ok: false; error: AssessmentWriteError; message: string };
+
+/**
+ * Share the seat's CURRENT (highest-version) row with the claimed founder:
+ * only the ticked allow-listed sections (§C.1). Re-sharing replaces the
+ * ticked set. The founder projection returned is exactly what the founder
+ * will read next time (`toFounderVisible`).
+ */
+export async function shareAssessment(ctx: AssessmentWriteContext, fields: readonly FounderShareField[]): Promise<ShareAssessmentResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { ok: false, error: "unavailable", message: "Service unavailable" };
+  const ticked = [...new Set(fields)].filter((f) => (FOUNDER_SHARE_ALLOW_LIST as readonly string[]).includes(f));
+  if (!ticked.length) return { ok: false, error: "not_found", message: "Tick at least one section" };
+  const { rows, available } = await readSeatRows(ctx.evaluationId, ctx.assessorUserId);
+  if (!available) return { ok: false, error: "unavailable", message: "Assessments are not available on this environment yet" };
+  const current = rows[0];
+  if (!current) return { ok: false, error: "not_found", message: "Save an assessment before sharing it" };
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("evaluation_assessments")
+    .update({ shared_fields: ticked, shared_with_founder_at: now })
+    .eq("id", current.id)
+    .eq("assessor_user_id", ctx.assessorUserId)
+    .select(ASSESSMENT_COLUMNS)
+    .maybeSingle();
+  if (error || !data) {
+    console.error("[blockid:assessments] share failed", error);
+    return { ok: false, error: "db_error", message: error?.message ?? "Share failed" };
+  }
+  const assessment = mapAssessmentRow(data as Row);
+  const founderPreview = toFounderVisible(assessment);
+  if (!founderPreview) return { ok: false, error: "db_error", message: "Share was not recorded" };
+  audit({
+    userId: ctx.assessorUserId,
+    action: "assessment.shared",
+    assessment,
+    detail: { fields: ticked, fields_count: ticked.length, reshared: Boolean(current.sharedWithFounderAt) },
+  });
+  return { ok: true, assessment, founderPreview };
+}
+
+export type RevokeShareResult = { ok: true; revoked: number } | { ok: false; error: AssessmentWriteError; message: string };
+
+/** Revoke: EVERY version of the seat stops being visible to the founder (a revoke is total). */
+export async function revokeAssessmentShare(ctx: AssessmentWriteContext): Promise<RevokeShareResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { ok: false, error: "unavailable", message: "Service unavailable" };
+  const { rows, available } = await readSeatRows(ctx.evaluationId, ctx.assessorUserId);
+  if (!available) return { ok: false, error: "unavailable", message: "Assessments are not available on this environment yet" };
+  const shared = rows.filter((r) => r.sharedWithFounderAt);
+  if (!shared.length) return { ok: true, revoked: 0 };
+  const { error } = await supabase
+    .from("evaluation_assessments")
+    .update({ shared_fields: [], shared_with_founder_at: null })
+    .eq("evaluation_id", ctx.evaluationId)
+    .eq("assessor_user_id", ctx.assessorUserId)
+    .not("shared_with_founder_at", "is", null);
+  if (error) {
+    console.error("[blockid:assessments] revoke failed", error);
+    return { ok: false, error: "db_error", message: error.message ?? "Revoke failed" };
+  }
+  audit({
+    userId: ctx.assessorUserId,
+    action: "assessment.share_revoked",
+    assessment: shared[0],
+    detail: { versions: shared.map((r) => r.version), previously_shared_fields: shared[0].sharedFields },
+  });
+  return { ok: true, revoked: shared.length };
 }

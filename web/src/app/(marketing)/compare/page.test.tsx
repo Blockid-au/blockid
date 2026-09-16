@@ -59,15 +59,16 @@ async function html(el: React.ReactElement): Promise<string> {
 describe("/compare — props", () => {
   const props = buildCompareProps(EN, "all", "en");
 
-  it("carries the H1 verbatim and the nine table rows in the brief's order", () => {
+  it("carries the H1 verbatim and the ten table rows in the brief's order", () => {
     expect(props.headline).toBe(H1);
     expect(props.table.rows.map((r) => r.key)).toEqual([...COMPARE_ROW_KEYS]);
-    expect(props.table.rows).toHaveLength(9);
+    expect(props.table.rows).toHaveLength(10);
     const labels = props.table.rows.map((r) => r.label);
     expect(labels).toEqual([
       "Rubric consistency",
       "Who reviews",
       "Evidence source",
+      "Historical deal data (Crunchbase, PitchBook)",
       "Updates",
       "Australian context",
       "Confidentiality",
@@ -192,7 +193,7 @@ describe("/compare — approved wording rules (EN and VI)", () => {
 });
 
 describe("/compare — rendered pages", () => {
-  it("EN page renders the H1, all nine rows, the three CTAs, the pull-quote and the compact disclaimer", async () => {
+  it("EN page renders the H1, all ten rows, the three CTAs, the pull-quote and the compact disclaimer", async () => {
     const out = await html(await CompareAllPage());
     expect(out).toContain(esc(H1));
     for (const key of COMPARE_ROW_KEYS) expect(out).toContain(`data-row="${key}"`);

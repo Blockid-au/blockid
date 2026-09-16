@@ -61,6 +61,9 @@ interface FakeState {
     trial_end_at?: string | null;
     trial_converted_at?: string | null;
     payment_failed_at?: string | null;
+    account_type?: string | null;
+    segment?: string | null;
+    onboarding_completed?: boolean | null;
   } | null;
   fromCalls: string[];
   selectCalls: Array<[string, Record<string, unknown> | undefined]>;
@@ -366,14 +369,24 @@ describe("GET /api/auth/me — DB query shape", () => {
     expect(state.fromCalls).toContain("app_users");
   });
 
-  it("app_users select pulls only the four trial columns (not the whole row)", async () => {
+  it("app_users select pulls the four trial columns + the three persona columns (not the whole row)", async () => {
     await GET();
     const trialSelect = state.selectCalls.find(([cols]) =>
       cols.includes("trial_started_at"),
     );
     expect(trialSelect?.[0]).toBe(
-      "trial_started_at, trial_end_at, trial_converted_at, payment_failed_at",
+      "trial_started_at, trial_end_at, trial_converted_at, payment_failed_at, account_type, segment, onboarding_completed",
     );
+  });
+
+  // S-IA4: the login page's already-signed-in bounce reads `redirect`.
+  it("redirect: persona landing when onboarded, /onboarding when not, /dashboard when the row is unreadable", async () => {
+    state.trialRow = { account_type: "investor_vc", segment: null, onboarding_completed: true };
+    expect((await json(await GET())).redirect).toBe("/workspace/investor");
+    state.trialRow = { account_type: "founder", segment: "founder", onboarding_completed: false };
+    expect((await json(await GET())).redirect).toBe("/onboarding");
+    state.trialRow = null;
+    expect((await json(await GET())).redirect).toBe("/dashboard");
   });
 });
 

@@ -21,8 +21,9 @@ describe("primaryCtaHrefForSlug", () => {
     expect(primaryCtaHrefForSlug("advisor")).toBe(
       "/signup?segment=evaluator&plan=investor_advisor&trial=1",
     );
+    // Pricing v4 (2026-09-16): programs land on the Intake link SKU.
     expect(primaryCtaHrefForSlug("accelerator")).toBe(
-      "/signup?segment=evaluator&plan=investor_vc_small&trial=1",
+      "/signup?segment=evaluator&plan=accelerator_intake&trial=1",
     );
   });
 

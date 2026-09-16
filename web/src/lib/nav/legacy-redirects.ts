@@ -30,7 +30,7 @@ export interface LegacyRedirect {
   source: string;
   /** Next.js `destination`. */
   destination: string;
-  /** `true` → 308. Only `/dashboard/onboarding` is temporary (307) per §A.5. */
+  /** `true` → 308. Every live row is permanent (S-IA4 made `/dashboard/onboarding` permanent once the wizards merged). */
   permanent: boolean;
   /** Why the old route moved — surfaces in the redirect test output. */
   note?: string;
@@ -160,6 +160,7 @@ export const LEGACY_REDIRECTS: readonly LegacyRedirect[] = Object.freeze([
   { source: "/workspace/audit-log", destination: "/workspace/settings/audit", permanent: true },
   { source: "/workspace/applications", destination: "/workspace/accelerator/applications", permanent: true },
   { source: "/dashboard/reports", destination: "/workspace/reports", permanent: true, note: "index page deleted — /workspace/reports is the All reports list (order moved to /workspace/reports/order; LP quarterly stays at /dashboard/reports/lp-quarterly)" },
+  { source: "/dashboard/onboarding", destination: "/onboarding", permanent: true, note: "S-IA4: the WelcomeWizard merged into the single 3-step /onboarding wizard (spec §B.3); page deleted" },
   // Nested routes under moved directories (one hop, never a chain).
   { source: "/dashboard/history/:startupId", destination: "/workspace/score/history/:startupId", permanent: true, note: "per-startup score history" },
   { source: "/dashboard/reports/order", destination: "/workspace/reports/order", permanent: true, note: "TBR order landing (Stripe success_url + credits path; query passes through)" },
@@ -186,7 +187,6 @@ export const DEFERRED_REDIRECTS: readonly DeferredRedirect[] = Object.freeze([
   { source: "/workspace/lp-report", destination: "/workspace/reports/lp", permanent: true, pendingSprint: "S-IA2", note: "founder; evaluator handled by alias page" },
   { source: "/workspace/weekly-digest", destination: "/workspace/investor/reports/digest", permanent: true, pendingSprint: "S-IA2" },
   { source: "/workspace/investor/digest", destination: "/workspace/investor/reports/digest", permanent: true, pendingSprint: "S-IA2" },
-  { source: "/dashboard/onboarding", destination: "/onboarding", permanent: false, pendingSprint: "S-IA4", held: true, note: "held until the WelcomeWizard merges into the single /onboarding wizard (temp 307 then)" },
   { source: "/investors", destination: "/about/invest", permanent: true, pendingSprint: "S-IA5", note: "public 301; sitemap + JSON-LD + footer link" },
 ]);
 

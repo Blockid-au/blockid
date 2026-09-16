@@ -50,8 +50,8 @@ const LEGACY_PROJECT_ID_ALLOW: Record<string, string> = {
  * email on purpose (per-user, not per-project data) — path → reason.
  */
 const CALLER_EMAIL_ALLOW: Record<string, string> = {
-  "dashboard/page.tsx":
-    "svi_analyses count for the onboarding redirect is per caller (has this user ever run an analysis) and only runs for a non-member; scores + user_actions are the caller's own share links / completed actions. Project record reads use dataEmail; report_sections are keyed on the owner's analysis only (never on the caller — S18-B review P1).",
+  // G13-W4-IA4: dashboard/page.tsx no longer keys anything on the caller's
+  // email — the onboarding gate moved to lib/onboarding/needs-onboarding.ts.
   "workspace/score/page.tsx":
     "scores + user_actions are the caller's own share links / completed actions. Project record reads use dataEmail; report_sections are keyed on the owner's analysis only (never on the caller — S18-B review P1).",
 };
