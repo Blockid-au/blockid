@@ -55,10 +55,12 @@ import { resolveIntervalPrice } from "@/lib/plans/billing-interval";
 import {
   SIGNUP_ACCOUNT_TYPES,
   SIGNUP_ALLOWED_PLAN_IDS,
+  isEvaluatorPlanId,
   isSelfServePlan,
   resolveTrialDays,
   segmentForAccountType,
 } from "@/lib/plans/signup-plans";
+import { emitEventSafe } from "@/lib/analytics/server";
 import { initializeCredits } from "@/lib/credits";
 import { sendPaymentConfirmation } from "@/lib/email";
 import { apiRoute } from "@/lib/audit/api-route";
@@ -326,6 +328,20 @@ async function POST_handler(request: Request) {
   ).then(({ error }) => {
     if (error) console.error("[register-with-card] subscription_trial_state upsert failed", error);
   });
+
+  // 5a. G14-S33: evaluator_trial_started → analytics_events + GA4 MP. The
+  //     card-required trial is minted here (not by Checkout), so no browser
+  //     tag fires at the moment the Scout / Firm / Program trial starts.
+  //     Fire-and-forget; never affects the response.
+  if (isEvaluatorPlanId(plan.id)) {
+    emitEventSafe({
+      name: "evaluator_trial_started",
+      params: { plan: plan.id, trial_days: trialDays, account_type: body.account_type, user_id: userId },
+      userId,
+      source: "server",
+      consentGranted: true,
+    });
+  }
 
   // 6. Grant welcome credits (best-effort — mirrors magic-link flow).
   await initializeCredits(userId).catch((err) =>

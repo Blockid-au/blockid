@@ -26,7 +26,9 @@
     "tour:capture": "node ../scripts/tour-capture.mjs",
     "tour:verify": "node ../scripts/tour-verify.mjs",
     "video:preview": "remotion studio ../remotion/index.tsx",
-    "video:render": "remotion render ../remotion/index.tsx HowItWorks public/media/how-it-works.mp4 --overwrite --crf 28 --props {}"
+    "video:render": "remotion render ../remotion/index.tsx HowItWorks public/media/how-it-works.mp4 --overwrite --crf 28 --props {}",
+    "investor:update": "node scripts/investor-update.mjs",
+    "traction:snapshot": "curl -sS -H \"Authorization: Bearer $CRON_SECRET\" -X POST \"${TRACTION_BASE_URL:-http://127.0.0.1:4001}/api/cron/traction-snapshot?dry=1\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",

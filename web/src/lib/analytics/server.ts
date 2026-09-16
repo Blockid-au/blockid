@@ -77,6 +77,23 @@ export async function emitEvent(input: EmitEventInput): Promise<void> {
   }
 }
 
+/**
+ * Fire-and-forget wrapper for request handlers (G14-S33 money events).
+ * `emitEvent` itself never rejects, but a full batch flushes eagerly and a
+ * synchronous throw inside the queue path (or a caller mistake in `params`)
+ * must never fail a Stripe webhook, a share mint or a dossier read. This
+ * swallows everything and returns immediately; the sinks still log.
+ */
+export function emitEventSafe(input: EmitEventInput): void {
+  try {
+    void emitEvent(input).catch((err: unknown) => {
+      console.warn("[analytics.server] emit failed:", err instanceof Error ? err.message : String(err));
+    });
+  } catch (err) {
+    console.warn("[analytics.server] emit threw:", err instanceof Error ? err.message : String(err));
+  }
+}
+
 /** Force-drain the queue. Callers who need synchronous delivery (tests,
  * shutdown hooks, single-shot cron jobs) can await this. */
 export async function flush(): Promise<void> {

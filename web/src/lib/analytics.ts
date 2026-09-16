@@ -300,6 +300,19 @@ export interface AnalyticsEventMap {
   // ── Wave 25C — TBR onboarding tour ───────────────────────────────────────
   tbr_onboard_step_clicked: { step: number };
 
+  // ── G14-S33 — money events emitted SERVER-side (lib/analytics/server.ts
+  //   emitEvent, GA4 Measurement Protocol) so the weekly GA4 audit sees the
+  //   revenue funnel even when no browser tag fired. Typed here so the audit
+  //   list (GA4_AUDIT_EVENTS) and the param-name limits are checked once.
+  //   trust_report_purchased  — Stripe webhook: report_order checkout paid (A$5 TBR)
+  //   evaluator_trial_started — register-with-card on an evaluator plan (Scout/Firm/Program)
+  //   subscription_created    — Stripe webhook customer.subscription.created
+  //   tbr_share_created       — POST /api/svi/report/share minted a /tbr/<token> link
+  trust_report_purchased: { sku: string; gross_aud_cents: number; reconciled: boolean };
+  evaluator_trial_started: { plan: string; trial_days: number; account_type: string };
+  subscription_created: { plan: string; status: string; trialing: boolean; interval: string };
+  tbr_share_created: { project_scope: "default" | "project" };
+
   // ── Global error boundary + 404 ──────────────────────────────────────────
   //   Fired by src/app/error.tsx when the App Router error boundary catches
   //   an uncaught render/data error. `message` is truncated to 200 chars to

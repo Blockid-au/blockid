@@ -7,7 +7,7 @@
  */
 import { request, type Locator, type Page } from "@playwright/test";
 import { test, expect, WORKSPACE_PAGES, GROWTH_GATED_PAGES, SWEEP_PAGES } from "./fixtures";
-import { evidence } from "./lib/api";
+import { anonRequest, evidence, get } from "./lib/api";
 import { env } from "./lib/env";
 
 
@@ -198,5 +198,27 @@ test.describe("Founder landing — five blocks (G13-W3-IA3)", () => {
     await expect(page.locator('[data-testid="journey-step-node-1"]').first()).toBeVisible();
     await expect(page.locator('[data-testid="journey-step-node-12"]').first()).toBeVisible();
     await evidence(testInfo, "plan ladder", { url: page.url() });
+  });
+});
+
+// G14-S33 — the daily traction snapshot is surfaced on the PUBLIC status
+// payload as one word so a skipped 03:20 UTC run is visible the same day.
+// Any of the three values passes here (a fresh deploy may not have run the
+// cron yet); the value is recorded as evidence for the ops review.
+test.describe("Traction snapshot status (G14-S33)", () => {
+  test("/api/status JSON carries `traction` ∈ {ok, stale, missing} without a bearer", async ({}, testInfo) => {
+    const anon = await anonRequest(env.baseURL);
+    try {
+      const r = await get<{ ok?: boolean; traction?: string }>(anon, "/api/status");
+      await evidence(testInfo, "status traction", { status: r.status, traction: r.body.traction ?? null, ok: r.body.ok ?? null });
+      expect(r.status, "/api/status HTTP status").toBe(200);
+      expect(r.body, "public payload has the traction key").toHaveProperty("traction");
+      expect(["ok", "stale", "missing"], `traction=${String(r.body.traction)}`).toContain(r.body.traction);
+      if (r.body.traction !== "ok") {
+        testInfo.annotations.push({ type: "known-issue", description: `traction=${r.body.traction} — /api/cron/traction-snapshot has not written a fresh content/reports/traction-snapshot.json in the last 26 h` });
+      }
+    } finally {
+      await anon.dispose();
+    }
   });
 });

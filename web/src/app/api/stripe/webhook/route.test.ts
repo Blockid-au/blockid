@@ -198,6 +198,18 @@ vi.mock("@/lib/funding/reports", () => ({
 // (dynamic import). Provide a stub so the cutover test can pin that the alert
 // fires without a real network call.
 const sendTelegramMock = vi.fn<(msg: string) => Promise<void>>();
+// G14-S33: server-side money events. Observe calls; never touch the sinks.
+const emitCalls: Array<{ name: string; params: Record<string, unknown>; userId?: string | null; source?: string }> = [];
+vi.mock("@/lib/analytics/server", () => ({
+  emitEvent: (input: { name: string; params: Record<string, unknown>; userId?: string | null; source?: string }) => {
+    emitCalls.push(input);
+    return Promise.resolve();
+  },
+  emitEventSafe: (input: { name: string; params: Record<string, unknown>; userId?: string | null; source?: string }) => {
+    emitCalls.push(input);
+  },
+}));
+
 vi.mock("@/lib/telegram", () => ({
   sendTelegram: (msg: string) => sendTelegramMock(msg),
 }));
@@ -251,6 +263,7 @@ async function invoke(): Promise<Response> {
 // ---------- Suite ------------------------------------------------------------
 
 beforeEach(() => {
+  emitCalls.length = 0;
   fromCalls.length = 0;
   insertCalls.length = 0;
   updateCalls.length = 0;
@@ -476,6 +489,14 @@ describe("POST /api/stripe/webhook — checkout.session.completed routing", () =
 
     // No plan grant, no credit pack for this SKU.
     expect(grantCreditsMock).not.toHaveBeenCalled();
+
+    // G14-S33: server-side GA4 truth — trust_report_purchased (reconciled: the
+    // row was re-created from session metadata in this fixture).
+    const purchased = emitCalls.find((c) => c.name === "trust_report_purchased");
+    expect(purchased).toBeTruthy();
+    expect(purchased!.params).toMatchObject({ sku: "sku_trust_report_5aud", gross_aud_cents: 300, reconciled: true, user_id: "user-1" });
+    expect(purchased!.userId).toBe("user-1");
+    expect(purchased!.source).toBe("webhook:stripe");
   });
 
   it("svi_analysis: inserts svi_accounts + svi_analysis_usage rows for a new email", async () => {
@@ -538,6 +559,12 @@ describe("POST /api/stripe/webhook — checkout.session.completed routing", () =
     // Guest paywall: no plan grant, no credit pack, no app_users write.
     expect(grantCreditsMock).not.toHaveBeenCalled();
     expect(updateCalls.find((c) => c.table === "app_users")).toBeUndefined();
+
+    // G14-S33: funding_report_paid emitted server-side for the guest rail.
+    const paid = emitCalls.find((c) => c.name === "funding_report_paid");
+    expect(paid).toBeTruthy();
+    expect(paid!.params).toMatchObject({ paid_via: "one_off", report_id: "fr-1", gross_aud_cents: 300 });
+    expect(paid!.source).toBe("webhook:stripe");
   });
 
   it("funding_report replay: an already-processed row records no second revenue event", async () => {
@@ -552,6 +579,63 @@ describe("POST /api/stripe/webhook — checkout.session.completed routing", () =
     const res = await invoke();
     expect(res.status).toBe(200);
     expect(insertCalls.find((c) => c.table === "revenue_events")).toBeUndefined();
+    expect(emitCalls.find((c) => c.name === "funding_report_paid")).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// G14-S33 — customer.subscription.created → subscription_created (GA4 truth)
+// ---------------------------------------------------------------------------
+
+describe("POST /api/stripe/webhook — customer.subscription.created (G14-S33)", () => {
+  function buildCreatedEvent(overrides: Record<string, unknown> = {}): Stripe.Event {
+    return {
+      id: "evt_sub_created_1",
+      type: "customer.subscription.created",
+      data: {
+        object: {
+          id: "sub_new_1",
+          object: "subscription",
+          customer: "cus_new_1",
+          status: "trialing",
+          trial_start: 1_789_000_000,
+          trial_end: 1_789_604_800,
+          cancel_at_period_end: false,
+          metadata: {},
+          items: { data: [{ price: { id: "price_founding50_TEST", recurring: { interval: "month" } } }] },
+          ...overrides,
+        },
+      },
+    } as unknown as Stripe.Event;
+  }
+
+  it("emits subscription_created with the plan resolved from the price map, trialing flag, interval and the user found by stripe_customer_id — no DB writes", async () => {
+    selectResponses.set("app_users:select", { data: { id: "user-new-1" }, error: null });
+    verifyWebhookSignature.mockReturnValue(buildCreatedEvent());
+
+    const res = await invoke();
+    expect(res.status).toBe(200);
+
+    const ev = emitCalls.find((c) => c.name === "subscription_created");
+    expect(ev).toBeTruthy();
+    expect(ev!.params).toMatchObject({ plan: "founding50", status: "trialing", trialing: true, interval: "month", user_id: "user-new-1" });
+    expect(ev!.userId).toBe("user-new-1");
+    expect(ev!.source).toBe("webhook:stripe");
+    expect(insertCalls).toHaveLength(0);
+    expect(updateCalls).toHaveLength(0);
+    expect(upsertCalls).toHaveLength(0);
+    expect(markWebhookEventProcessed).toHaveBeenCalledWith("evt_sub_created_1", undefined);
+  });
+
+  it("prefers metadata.blockid_plan / blockid_user_id, and an unknown price without a user is still emitted (no throw, no lookup failure)", async () => {
+    verifyWebhookSignature.mockReturnValue(
+      buildCreatedEvent({ status: "active", metadata: { blockid_plan: "investor_angel", blockid_user_id: "user-meta" }, items: { data: [{ price: { id: "price_unmapped", recurring: { interval: "year" } } }] } }),
+    );
+    const res = await invoke();
+    expect(res.status).toBe(200);
+    const ev = emitCalls.find((c) => c.name === "subscription_created");
+    expect(ev!.params).toMatchObject({ plan: "investor_angel", status: "active", trialing: false, interval: "year", user_id: "user-meta" });
+    expect(fromCalls).not.toContain("app_users");
   });
 });
 

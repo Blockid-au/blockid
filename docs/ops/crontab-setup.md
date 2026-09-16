@@ -147,6 +147,48 @@ curl -sS -H "Authorization: Bearer $CRON_SECRET" \
 Expected shape: `{ ok, dryRun, migrated, mandates, projects, pairs, upserts,
 deleted_inactive, batches, errors, ms }`.
 
+## Traction snapshot — `/api/cron/traction-snapshot`
+
+G14 S33 (2026-09-16). Daily count of everything an investor update or the
+deck provenance table quotes, written by `buildTractionSnapshot()`
+(`web/src/lib/traction/snapshot.ts`) to
+`web/content/reports/traction-snapshot.json` (latest) and appended to
+`traction-history.jsonl` (one line per run). QA / seeded / erased accounts
+(`qa-*@blockid.au`, `qa-live-*`, `deleted+*@erased.blockid.au` — the
+`QA_ACCOUNT_EMAIL_PATTERNS` constant) are excluded from every per-user
+figure and reported as `users.excluded_count`. MRR is given two ways
+(`mrr_aud_cents.from_subscriptions` = active `subscription_trial_state` ×
+plan monthly price; `from_revenue_events` = trailing-30-day subscribe +
+renewal cash) plus `stripe_reconciled` (Stripe active-subscription
+head-count agrees with the DB, `null` when Stripe is not configured). A
+missing table (for example `evaluation_assessments` before G13 S-D2) is one
+`warnings[]` line and a `null` figure — never a failure and never a `0`.
+
+### Line to install
+
+```
+20 3 * * * bash $RUN traction-snapshot --timeout 120
+```
+
+- Runs daily 03:20 UTC (13:20 AEST). Readers: `/api/status` →
+  `traction: ok | stale | missing` (stale once the file is > 26 h old, so a
+  skipped run is visible the same day), `/api/platform-stats` (serves
+  `founders` / `analyses` / `paidCustomers` from the file while fresh, live
+  query otherwise), `/admin/traction` (KPI tiles + MRR diff + warnings) and
+  `cd web && npm run investor:update` (the monthly investor-update draft).
+- Dry-run (builds, writes nothing):
+
+```bash
+curl -sS -H "Authorization: Bearer $CRON_SECRET" \
+  "https://blockid.au/api/cron/traction-snapshot?dry=1" | jq '.snapshot | {users, mrr_aud_cents, warnings}'
+```
+
+Expected shape: `{ ok, dry, persisted, duration_ms, snapshot }` where
+`snapshot` validates against `tractionSnapshotSchema` (`users`, `analyses`,
+`tbr`, `evaluators`, `assessments`, `share_links`, `api_keys_active`,
+`webhooks_active`, `mrr_aud_cents`, `funnel_7d`, `generated_at`, `git_sha`,
+`warnings`).
+
 ## Autonomous goal loops
 
 > **Removed 2026-08-13** (`fd7bb0b03`): the three loops below and their crontab lines no longer exist; this section is kept for history. Autonomous implementation now = orchestrator (`agent-orchestrator`, 12/14/16/18 UTC) + `self-upgrade-agent.sh` (18:30 UTC) reading `web/content/reports/project-state.json`. Larger goals ship via founder-driven sessions (see `docs/plans/money-finder-2026-09-10.md` §8).

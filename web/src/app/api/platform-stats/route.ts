@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { readTractionSnapshotRaw } from "@/lib/traction/status";
+import { countersFromSnapshot } from "@/lib/traction/platform-counters";
 import { readdirSync } from "fs";
 import { join } from "path";
 
 export const dynamic = "force-dynamic";
+
+// G14-S33: the daily traction snapshot (content/reports/traction-snapshot.json)
+// already excludes QA / seeded / erased accounts and counts paying evaluators
+// from subscription_trial_state, so while it is fresh (< 26 h) `founders`,
+// `analyses` and `paidCustomers` come from the file (see
+// lib/traction/platform-counters.ts); a null figure falls back to the live
+// query for that counter only.
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -77,6 +86,10 @@ export async function GET() {
       );
     }
 
+    // G14-S33: serve founders / analyses / paidCustomers from the daily
+    // snapshot while it is fresh; each null figure falls back to live below.
+    const snap = countersFromSnapshot(await readTractionSnapshotRaw(process.cwd()).catch(() => null));
+
     // Run all queries in parallel for speed
     const [
       foundersRes,
@@ -118,10 +131,10 @@ export async function GET() {
     ]);
 
     // Compute founders count
-    const founders = foundersRes.count ?? 0;
+    const founders = snap?.founders ?? foundersRes.count ?? 0;
 
     // Compute analyses count
-    const analyses = analysesRes.count ?? 0;
+    const analyses = snap?.analyses ?? analysesRes.count ?? 0;
 
     // Compute valuations tracked + average SVI from the same query
     const sviRows = sviAccountsRes.data as { current_svi: number }[] | null;
@@ -140,8 +153,9 @@ export async function GET() {
     // Connected sources
     const connectedSources = connectedRes.count ?? 0;
 
-    // Paid customers
-    const paidCustomers = paidRes.count ?? 0;
+    // Paid customers — snapshot (paying evaluators, QA excluded) when fresh,
+    // else the live `plan != 'free'` proxy.
+    const paidCustomers = snap?.paidCustomers ?? paidRes.count ?? 0;
 
     const metrics = {
       founders,
@@ -162,6 +176,7 @@ export async function GET() {
         metrics,
         company: companyInfo(),
         updatedAt: new Date().toISOString(),
+        source: snap ? "snapshot+live" : "live",
       },
       { headers },
     );
