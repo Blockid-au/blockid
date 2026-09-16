@@ -201,7 +201,8 @@ function planWrite(projectId, suggestion, existing) {
   if (!existing) {
     const sources = {};
     for (const f of FIELDS) if (suggestion.sources[f] === "auto") sources[f] = "auto";
-    if (suggestion.tags.length) sources.tags = Object.fromEntries(suggestion.tags.map((t) => [t, "auto"]));
+    const autoTags = suggestion.tags.filter((t) => !PROTECTED_TAGS.includes(t));
+    if (autoTags.length) sources.tags = Object.fromEntries(autoTags.map((t) => [t, "auto"]));
     const row = {
       project_id: projectId,
       taxonomy_version: TAXONOMY_VERSION,
@@ -209,28 +210,37 @@ function planWrite(projectId, suggestion, existing) {
       suggested: suggestion,
       confidence: suggestion.confidence,
       sources,
-      tags: suggestion.tags.filter((t) => !PROTECTED_TAGS.includes(t)),
+      tags: autoTags,
       anzsic_division: INDUSTRY_ANZSIC[suggestion.industry]?.division ?? null,
     };
     for (const f of FIELDS) row[f] = suggestion[f];
     return { op: "insert", row };
   }
-  const patch = { suggested: suggestion, confidence: { ...(existing.confidence ?? {}), ...suggestion.confidence } };
+  // Mirrors lib/taxonomy/store.ts: merge only confidences with evidence, and
+  // never let a source-less suggestion ("no opinion") erase a stored value.
+  const positiveConfidence = Object.fromEntries(Object.entries(suggestion.confidence ?? {}).filter(([, v]) => typeof v === "number" && v > 0));
+  const patch = { suggested: suggestion, confidence: { ...(existing.confidence ?? {}), ...positiveConfidence } };
   const sources = { ...(existing.sources ?? {}), tags: { ...(existing.sources?.tags ?? {}) } };
   let changed = false;
   for (const f of FIELDS) {
     if (fieldLocked(existing, f)) continue;
     if (same(existing[f], suggestion[f])) continue;
+    if (suggestion.sources[f] !== "auto") continue;
     patch[f] = suggestion[f];
-    if (suggestion.sources[f] === "auto") sources[f] = "auto";
-    else delete sources[f];
+    sources[f] = "auto";
     changed = true;
   }
   const curTags = Array.isArray(existing.tags) ? existing.tags : [];
   const locked = curTags.filter((t) => tagLocked(existing, t));
   const next = [...locked];
   const tagSources = {};
-  for (const t of locked) tagSources[t] = existing.sources?.tags?.[t] ?? (existing.confirmed_at ? "founder" : "auto");
+  for (const t of locked) {
+    // A locked tag without a recorded source is founder-declared by definition
+    // (protected tags are never auto) — never label it "auto".
+    const recorded = existing.sources?.tags?.[t];
+    if (recorded) tagSources[t] = recorded;
+    else if (PROTECTED_TAGS.includes(t) || existing.confirmed_at) tagSources[t] = "founder";
+  }
   for (const t of suggestion.tags) {
     if (PROTECTED_TAGS.includes(t) || next.includes(t) || tagLocked(existing, t)) continue;
     next.push(t);
@@ -246,7 +256,10 @@ function planWrite(projectId, suggestion, existing) {
     patch.sources = sources;
     if (patch.industry !== undefined) patch.anzsic_division = INDUSTRY_ANZSIC[suggestion.industry]?.division ?? null;
   }
-  return { op: existing.confirmed_at ? "suggested_only" : changed ? "update" : "unchanged", patch };
+  // Confirmed rows: locked fields already skipped above; unlocked auto fields
+  // still refresh (same as store.ts). Report "suggested_only" only when the
+  // patch really carries nothing but the refreshed suggestion.
+  return { op: changed ? "update" : existing.confirmed_at ? "suggested_only" : "unchanged", patch };
 }
 
 // ─── report ──────────────────────────────────────────────────────────────────

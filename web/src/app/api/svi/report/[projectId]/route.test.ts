@@ -87,7 +87,8 @@ const ROWS: Row[] = [
     created_at: "2026-09-01T00:00:00Z",
     criterion_results: [],
     dim_results: null,
-    dimension_scores: { ftv: { score: 60 } },
+    // Real stored shape: a bare number per dimension (3,289 of 3,302 live rows).
+    dimension_scores: { ftv: 60, tre: 42 },
     analysis_json: { industry: "saas-a" },
   },
   {
@@ -191,9 +192,16 @@ describe("GET /api/svi/report/[projectId] — tenancy", () => {
 
     const res = await call("default");
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { snapshotId: string; persisted: { industry: string } };
+    const body = (await res.json()) as { snapshotId: string; persisted: { industry: string; sviTotal: number | null; completed: number; dimStates: Record<string, { score: number | null; status: string }> } };
     expect(body.snapshotId).toBe("snap-a");
     expect(body.persisted.industry).toBe("saas-a");
+    // W1 review P1: bare-number `dimension_scores` must score (not render every
+    // dimension as unscored) and the stored headline total must reach the client.
+    expect(body.persisted.dimStates.ftv).toMatchObject({ score: 60, status: "complete" });
+    expect(body.persisted.dimStates.tre).toMatchObject({ score: 42, status: "complete" });
+    expect(body.persisted.dimStates.mpc).toMatchObject({ score: null, status: "idle" });
+    expect(body.persisted.completed).toBe(2);
+    expect(body.persisted.sviTotal).toBe(61);
 
     expect(getProjectScopeMock).toHaveBeenCalledWith("viewer");
     expect(findSVIAccountMock).toHaveBeenCalledWith(USER_A.email, P_A, "id, project_id", {

@@ -14,6 +14,8 @@ export interface EntitlementUser {
   id: string;
   plan: string;
   segment: string;
+  /** `app_users.account_type` — drives persona resolution (reseller / affiliate / journalist …). */
+  accountType?: string | null;
   jurisdiction?: string | null;
   legal_review_passed?: boolean;
 }
@@ -46,6 +48,7 @@ async function fetchSnapshot(): Promise<EntitlementSnapshot> {
     user_id?: string;
     plan?: string;
     segment?: string;
+    account_type?: string | null;
     jurisdiction?: string | null;
   };
 
@@ -59,6 +62,7 @@ async function fetchSnapshot(): Promise<EntitlementSnapshot> {
           id: json.user_id,
           plan: json.plan ?? "free",
           segment: json.segment ?? "founder",
+          accountType: json.account_type ?? null,
           jurisdiction: json.jurisdiction ?? null,
         }
       : null;

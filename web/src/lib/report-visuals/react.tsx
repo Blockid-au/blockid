@@ -19,7 +19,11 @@ export interface VisualFigureProps {
 }
 
 export function VisualFigure({ spec, caption, className, hideTable }: VisualFigureProps) {
-  const svg = spec.svg && spec.svg.includes('role="img"') ? spec.svg : renderVisual(spec);
+  // Renderers are deterministic and cheap, so the web never trusts a stored
+  // `spec.svg` string (kept for PDF/DOCX twins) — it re-renders from data,
+  // which keeps `dangerouslySetInnerHTML` fed only by our own escaped output
+  // even if a report_v2 column is ever writable with user JSON (W1 review).
+  const svg = renderVisual(spec);
   const rows = spec.a11y?.tableFallback ?? [];
   const cols = rows.length > 0 ? Object.keys(rows[0]) : [];
   return (

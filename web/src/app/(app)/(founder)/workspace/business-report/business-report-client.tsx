@@ -47,6 +47,8 @@ export interface PersistedState {
   /** Set by the API / share page when the DB row is known. */
   snapshotId?: string | null;
   startupName?: string | null;
+  /** `svi_snapshots.svi_total` — the stored headline score (the adapter otherwise re-derives it from the dims). */
+  sviTotal?: number | null;
 }
 
 const STORAGE_PREFIX = "svi-stream:";
@@ -407,6 +409,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
       startupName: data.startupName ?? null,
       industry: data.industry,
       stageLabel: data.stage ?? null,
+      sviTotal: data.sviTotal ?? null,
       dimStates: data.dimStates,
       criterionStates: data.criterionStates ?? null,
       cohort: benchmark,

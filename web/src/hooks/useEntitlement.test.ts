@@ -244,6 +244,7 @@ describe("useEntitlement — response reader (flat shape)", () => {
         user_id: "u-42",
         plan: "growth",
         segment: "reseller",
+        account_type: "reseller",
         jurisdiction: "AU",
         entitlements: ["a", "b"],
         trial: null,
@@ -257,6 +258,7 @@ describe("useEntitlement — response reader (flat shape)", () => {
       id: "u-42",
       plan: "growth",
       segment: "reseller",
+      accountType: "reseller",
       jurisdiction: "AU",
     });
     expect(r.entitlements).toEqual(["a", "b"]);

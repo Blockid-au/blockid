@@ -196,9 +196,14 @@ export async function upsertSuggestedTaxonomy(projectId: string, suggestion: Tax
   }
 
   // ── update: respect locks ──
+  // W1 review P2: a thinner re-run (no rawText / no state) must not erase a
+  // confident earlier value — only merge confidences that carry evidence.
+  const positiveConfidence = Object.fromEntries(
+    Object.entries(suggestion.confidence ?? {}).filter(([, v]) => typeof v === "number" && v > 0),
+  ) as typeof suggestion.confidence;
   const patch: Row = {
     suggested: suggestionPayload(suggestion),
-    confidence: { ...existing.confidence, ...suggestion.confidence },
+    confidence: { ...existing.confidence, ...positiveConfidence },
   };
   const sources: TaxonomySources = { ...existing.sources, tags: { ...(existing.sources.tags ?? {}) } };
   const applied: TaxonomyField[] = [];
@@ -212,9 +217,11 @@ export async function upsertSuggestedTaxonomy(projectId: string, suggestion: Tax
       continue;
     }
     if (sameValue(cur, next)) continue;
+    // "No opinion" (no source — below the confidence floor or no input for
+    // this axis) is not "unknown": keep the stored auto value.
+    if (suggestion.sources[field] !== "auto") continue;
     patch[field] = next;
-    if (suggestion.sources[field] === "auto") sources[field] = "auto";
-    else delete sources[field];
+    sources[field] = "auto";
     applied.push(field);
   }
 
