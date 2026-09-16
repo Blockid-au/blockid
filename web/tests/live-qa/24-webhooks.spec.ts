@@ -43,8 +43,16 @@ test.describe("Webhooks", () => {
     await expect(section.getByRole("heading", { name: "Webhooks" })).toBeVisible();
     await evidence(testInfo, "GET /api/webhooks", { status: list.status, body: { ...list.body, endpoints: list.body.endpoints?.length } });
     if (!qa.elevated) {
-      expect(list.status).toBe(402);
-      expect(list.body.error).toBe("plan_required");
+      // GET is never plan-gated (route header): it lists the caller's
+      // endpoints and reports `access` so the UI can render the gate copy.
+      // Only POST answers 402 plan_required. Verified un-elevated 2026-09-16
+      // (G14 Wave A post-deploy review) — the old 402 expectation had only
+      // ever run behind LIVE_QA_ELEVATE=1.
+      expect(list.status).toBe(200);
+      expect(list.body.access?.allowed).toBe(false);
+      const create = await post(api, "/api/webhooks", { url: "https://example.com/hook", events: ["svi.rescored"] });
+      expect(create.status).toBe(402);
+      expect(create.body.error).toBe("plan_required");
       await expect(section.locator("[data-webhooks-gate]")).toContainText(/included with Growth/);
       expect(await section.locator("[data-webhooks-add]").count()).toBe(0);
       return;
