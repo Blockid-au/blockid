@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Gauge } from "lucide-react";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import {
   API_ENDPOINTS,
   getEndpointBySlug,
@@ -178,8 +178,8 @@ export default async function ApiEndpointDetailPage({
 
   return (
     <>
-      <Navbar />
-      <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
+      <NavV2 />
+      <main id="main" className="flex-1 pt-10 md:pt-16 pb-24">
         <div className="mx-auto max-w-4xl px-6">
           <div className="mb-6">
             <Link

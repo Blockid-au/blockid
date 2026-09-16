@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { LayoutDashboard, LogOut, CheckCircle2 } from "lucide-react";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { LoginForm } from "./login-form";
 import { getCurrentUser } from "@/lib/auth";
 import { postLoginHref } from "@/lib/auth/post-login";
@@ -33,8 +33,8 @@ export default async function LoginPage({
 
   return (
     <>
-      <Navbar />
-      <main className="min-h-screen bg-surface-100 text-ink-800 flex items-center justify-center px-6 pt-28 pb-16">
+      <NavV2 variant="light" />
+      <main className="min-h-screen bg-surface-100 text-ink-800 flex items-center justify-center px-6 pt-8 pb-16">
         <div className="max-w-md w-full bg-white border border-surface-200 rounded-2xl p-8 shadow-sm">
           <p className="text-[11px] tracking-[0.2em] uppercase text-brand-600 font-medium mb-4">
             BlockID<span className="text-gold-600">.au</span>

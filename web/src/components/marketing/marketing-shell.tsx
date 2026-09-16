@@ -8,8 +8,8 @@
  *   - Persistent `NavV2` header (client component, self-scoped dark).
  *   - `<main id="main-content">` on the light-first `bg-surface` ground
  *     with `text-primary` as the base ink colour.
- *   - `MarketingFooter` — shared 4-column public footer, an intentional
- *     dark punctuation band scoped with `data-theme="dark"`.
+ *   - `Footer` — the one public footer (S-IA5), an intentional dark
+ *     punctuation band scoped with `data-theme="dark"`.
  *
  * 2026-09-08 (rev.4 rollout): the wrapper used to carry `data-theme="lux"`,
  * which pulled the whole `--ds-*` ramp to the deep-navy dark palette. That
@@ -28,7 +28,7 @@
 
 import type { ReactNode } from "react";
 import { NavV2 } from "@/components/landing/nav-v2";
-import { MarketingFooter } from "./marketing-footer";
+import { Footer } from "./footer";
 
 interface MarketingShellProps {
   children: ReactNode;
@@ -54,7 +54,7 @@ export function MarketingShell({ children }: MarketingShellProps) {
         {children}
       </main>
 
-      <MarketingFooter />
+      <Footer />
     </div>
   );
 }

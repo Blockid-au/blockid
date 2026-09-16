@@ -20,7 +20,7 @@ const PAGES = [
   { name: "pricing", url: "/pricing", wait: 1500 },
   { name: "founding-50", url: "/founding-50", wait: 1500 },
   { name: "about", url: "/about", wait: 1500 },
-  { name: "investors", url: "/investors", wait: 1500 },
+  { name: "investors", url: "/about/invest", wait: 1500 },
   { name: "developers", url: "/developers", wait: 1500 },
   { name: "login", url: "/auth/login", wait: 1500 },
   // Tools

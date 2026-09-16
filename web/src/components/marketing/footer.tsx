@@ -1,5 +1,16 @@
 /**
- * MarketingFooter — compact 4-column footer for public marketing pages.
+ * Footer — the ONE public footer (G13-W5-IA5, spec §E S-IA5).
+ *
+ * Until this sprint two footers closed the public site: `MarketingFooter`
+ * (this file, the compact column band under every MarketingShell page)
+ * and `site/footer.tsx` (the legacy dark band under ~50 app / docs / tools
+ * / auth pages, with a brand block, a Company column, a hard-coded
+ * `v3.10.0` chip and the "Not financial advice" line). They drifted: the
+ * legacy copy still linked a protected data-room route for a while, and the
+ * version chip was two releases stale. `site/footer.tsx` is deleted; the
+ * richer content it carried lives here once — brand block, Company column
+ * (via `footer-columns.ts`), disclaimer line — on top of the live version
+ * stamp this component always had.
  *
  * Server component. Reads `web/content/reports/version.json` at request time
  * to stamp the live build version in the bottom row. If the file is missing
@@ -7,7 +18,7 @@
  * footer keeps rendering. No client JS, no external deps.
  *
  * The footer is an intentional DARK punctuation band that closes every
- * marketing page — the same footer edge the light-first homepage uses. It
+ * public page — the same footer edge the light-first homepage uses. It
  * self-scopes with `data-theme="dark"` (the ProShell pattern) so the
  * semantic tokens inside resolve against the dark `--ds-*` ramp without
  * leaking that palette into the light page above it.
@@ -15,9 +26,15 @@
  * Only semantic tokens are used inside the scope. Never reach for the
  * `ink-*` / `surface-*` numeric ramps here: those INVERT inside a dark
  * scope, so `bg-ink-950` would paint near-white.
+ *
+ * Entity lines (business-entity memory): marketing = PPL Food PTY LTD (this
+ * footer); billing / legal / invoices / JSON-LD = Auschain PTY LTD. Do not
+ * "fix" one into the other.
  */
 
 import Link from "next/link";
+import { MapPin, ShieldCheck } from "lucide-react";
+import { Logo } from "@/components/brand/logo";
 import { PartnerFooterRow } from "@/components/marketing/partner-footer-row";
 import { FOOTER_COLUMNS } from "@/components/marketing/footer-columns";
 import versionData from "../../../content/reports/version.json";
@@ -27,12 +44,19 @@ function readVersionString(): string | null {
   return typeof v === "string" && v.length > 0 ? v : null;
 }
 
-// Columns live in footer-columns.ts (shared with site/footer.tsx). Since
-// T0238 the Funding column leads and Product / For / Docs / Startup Index
-// have their only public surface here.
+/** Marketing entity — see `docs`/memory: the legal entity on invoices is Auschain PTY LTD. */
+export const FOOTER_ENTITY = "PPL Food PTY LTD";
+
+/** The one disclaimer line every public page closes with (moved from site/footer.tsx, unchanged). */
+export const FOOTER_DISCLAIMER =
+  "Not financial advice. BlockID is a software platform — engage a licensed adviser for your raise.";
+
+// Columns live in footer-columns.ts. Since T0238 the Funding column leads
+// and Product / For / Docs / Startup Index have their only public surface
+// here; S-IA5 added the Company column the legacy footer used to carry.
 const COLUMNS = FOOTER_COLUMNS;
 
-export function MarketingFooter() {
+export function Footer() {
   const version = readVersionString();
   const year = new Date().getUTCFullYear();
   return (
@@ -44,7 +68,28 @@ export function MarketingFooter() {
       <h2 id="marketing-footer-heading" className="sr-only">
         Site footer
       </h2>
-      <div className="mx-auto grid max-w-7xl gap-8 px-6 py-16 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="mx-auto grid max-w-7xl gap-8 px-6 py-16 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-9">
+        {/* Brand block (from site/footer.tsx) — logo, one-line pitch, entity + residency. */}
+        <div className="sm:col-span-2 lg:col-span-3 xl:col-span-2">
+          <Logo variant="dark" />
+          <p className="mt-4 max-w-xs text-sm leading-relaxed text-secondary">
+            The all-in-one ownership and fundraising platform for Australian
+            startups and SMEs.
+          </p>
+          <div className="mt-6 space-y-2 text-xs text-secondary">
+            <p className="flex items-center gap-2">
+              <ShieldCheck strokeWidth={1.75} className="h-4 w-4 text-action" aria-hidden="true" />
+              <span>{FOOTER_ENTITY}</span>
+            </p>
+            <p className="flex items-center gap-2">
+              <MapPin strokeWidth={1.75} className="h-4 w-4 text-action" aria-hidden="true" />
+              {/* T0238 — dropped "SOC2 Type II in progress": SOT lists
+                  SOC2-lite as an open backlog item, not an audit under
+                  way. Keep footer claims to what is true today. */}
+              <span>AU data residency. AU Privacy Act 1988 compliant.</span>
+            </p>
+          </div>
+        </div>
         {COLUMNS.map((col) => (
           <div key={col.title}>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-action">
@@ -96,21 +141,23 @@ export function MarketingFooter() {
       </div>
       <div className="border-t border-line-subtle">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-6 text-xs sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-secondary">
-            PPL Food PTY LTD
-          </p>
           <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-secondary">
-            <span>&copy; {year} PPL Food PTY LTD</span>
+            <span>&copy; {year} {FOOTER_ENTITY}</span>
             {version ? (
-              <span className="font-mono text-secondary">
+              <Link
+                href="/changelog"
+                className="rounded-full border border-line-subtle px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-action hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                aria-label={`View changelog for release ${version}`}
+              >
                 {version}
-              </span>
+              </Link>
             ) : null}
           </p>
+          <p className="text-secondary">{FOOTER_DISCLAIMER}</p>
         </div>
       </div>
     </footer>
   );
 }
 
-export default MarketingFooter;
+export default Footer;

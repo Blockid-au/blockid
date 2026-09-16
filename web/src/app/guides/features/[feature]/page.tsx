@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { TourIcon, TourMedia } from "@/components/product-tour/tour-media";
 import {
@@ -57,8 +57,8 @@ export default async function FeatureGuidePage({
   return (
     <>
       <PageTracker page={"guides/features/" + tour.slug} />
-      <Navbar />
-      <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
+      <NavV2 />
+      <main id="main" className="flex-1 pt-10 md:pt-16 pb-24">
         <div className="mx-auto max-w-4xl px-6">
           <nav aria-label="Breadcrumb" className="text-xs text-ink-500">
             <Link href="/guides/features" className="hover:text-ink-700">

@@ -4,6 +4,12 @@
 // both flows: a radiogroup over the five wizard personas and one Continue.
 // The pick writes `app_users.account_type` (+ derived segment) through
 // /api/onboarding/save-progress and decides which flow steps 2–3 run.
+//
+// G13-W5-IA5 (W4 review P3-a): `options` narrows the cards. The page passes
+// `personaOptionsFor(current, { onboardingCompleted, ownsProject })`, so a
+// founder who already owns a project or finished onboarding sees only the
+// founder card — the evaluator choices are hidden, and the API refuses them
+// with 400 persona_locked anyway.
 
 import * as React from "react";
 import { ArrowRight, Rocket, TrendingUp, Building, Users, Layers } from "lucide-react";
@@ -38,16 +44,37 @@ const PERSONA_CARDS: Record<WizardPersona, { label: { en: string; vi: string }; 
   },
 };
 
-const COPY: Record<Locale, { title: string; subtitle: string; continue: string; pick: string }> = {
-  en: { title: "Who are you?", subtitle: "We set up the right desk, steps and reports for you. You can change this later in Settings.", continue: "Continue", pick: "Pick one to continue." },
-  vi: { title: "Bạn là ai?", subtitle: "Chúng tôi sẽ thiết lập bàn làm việc, các bước và báo cáo phù hợp. Bạn có thể đổi sau trong Cài đặt.", continue: "Tiếp tục", pick: "Chọn một vai trò để tiếp tục." },
+const COPY: Record<Locale, { title: string; subtitle: string; lockedSubtitle: string; continue: string; pick: string }> = {
+  en: {
+    title: "Who are you?",
+    subtitle: "We set up the right desk, steps and reports for you. You can change this later in Settings.",
+    lockedSubtitle: "Your desk is already set up for this role. Contact support to change it.",
+    continue: "Continue",
+    pick: "Pick one to continue.",
+  },
+  vi: {
+    title: "Bạn là ai?",
+    subtitle: "Chúng tôi sẽ thiết lập bàn làm việc, các bước và báo cáo phù hợp. Bạn có thể đổi sau trong Cài đặt.",
+    lockedSubtitle: "Bàn làm việc của bạn đã được thiết lập cho vai trò này. Liên hệ hỗ trợ để thay đổi.",
+    continue: "Tiếp tục",
+    pick: "Chọn một vai trò để tiếp tục.",
+  },
 };
 
-export function StepPersona({ value, onChange, onContinue }: { value: WizardPersona | undefined; onChange: (p: WizardPersona) => void; onContinue: () => void }) {
+export interface StepPersonaProps {
+  value: WizardPersona | undefined;
+  onChange: (p: WizardPersona) => void;
+  onContinue: () => void;
+  /** Cards to offer — defaults to all five; the page narrows it when the persona is locked (S-IA5). */
+  options?: readonly WizardPersona[];
+}
+
+export function StepPersona({ value, onChange, onContinue, options = WIZARD_PERSONAS }: StepPersonaProps) {
   const [locale] = useLocale();
   const copy = COPY[locale];
   const [touched, setTouched] = React.useState(false);
   const groupId = React.useId();
+  const locked = options.length < WIZARD_PERSONAS.length;
 
   function submit(ev: React.FormEvent) {
     ev.preventDefault();
@@ -56,15 +83,15 @@ export function StepPersona({ value, onChange, onContinue }: { value: WizardPers
   }
 
   return (
-    <form onSubmit={submit} data-wizard-step="persona">
+    <form onSubmit={submit} data-wizard-step="persona" data-persona-locked={locked ? "1" : "0"}>
       <h1 className="text-2xl font-bold text-brand-ink sm:text-3xl">{copy.title}</h1>
-      <p className="mt-2 text-brand-ink-muted">{copy.subtitle}</p>
+      <p className="mt-2 text-brand-ink-muted">{locked ? copy.lockedSubtitle : copy.subtitle}</p>
 
       <fieldset className="mt-8">
         <legend className="sr-only">{copy.title}</legend>
         <div role="radiogroup" aria-labelledby={`${groupId}-legend`} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <span id={`${groupId}-legend`} className="sr-only">{copy.title}</span>
-          {WIZARD_PERSONAS.map((id) => {
+          {options.map((id) => {
             const card = PERSONA_CARDS[id];
             const Icon = card.icon;
             const on = value === id;

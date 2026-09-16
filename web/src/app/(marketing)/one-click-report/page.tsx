@@ -12,8 +12,8 @@
  */
 import type { Metadata } from "next";
 import React, { Suspense } from "react";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { ObfuscatedEmail } from "@/components/marketing/obfuscated-email";
 import { OneClickForm } from "./one-click-form";
@@ -64,8 +64,8 @@ export default async function OneClickReportPage({ searchParams }: PageProps) {
   return (
     <>
       <PageTracker page="one_click_report" tool="one_click_report" />
-      <Navbar />
-      <main id="main" className="flex-1 pt-28 md:pt-36 pb-24 bg-surface-50">
+      <NavV2 />
+      <main id="main" className="flex-1 pt-8 md:pt-14 pb-24 bg-surface-50">
         {/* Cancel banner — visitor returned from Stripe without completing checkout. */}
         {canceled ? (
           <div

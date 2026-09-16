@@ -130,6 +130,20 @@ describe("LEGACY_REDIRECTS — live table", () => {
     }
   });
 
+  // S-IA5 (G13-W5) — spec §A.4 / §C.2, founder decision F2: the public
+  // invest-in-BlockID pitch moved off /investors (which collided with the
+  // /investor persona landing). Permanent, page deleted, /investor untouched.
+  it("S-IA5 — /investors → /about/invest is live + permanent; /investor (For investors) is never a source", () => {
+    const row = LEGACY_REDIRECTS.find((r) => r.source === "/investors");
+    expect(row).toMatchObject({ destination: "/about/invest", permanent: true });
+    expect(resolveLegacyRedirect("/investors")).toBe("/about/invest");
+    expect(routeExists("/about/invest")).toBe(true);
+    expect(routeExists("/investors")).toBe(false);
+    expect(routeExists("/investor")).toBe(true);
+    expect(resolveLegacyRedirect("/investor")).toBeNull();
+    expect(DEFERRED_REDIRECTS.some((r) => r.source === "/investors")).toBe(false);
+  });
+
   it("every destination page exists and no source still has a page", () => {
     for (const r of LEGACY_REDIRECTS) {
       expect(destinationServed(r.destination), `${r.source} → ${r.destination} (missing page)`).toBe(true);

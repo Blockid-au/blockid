@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { getPlan } from "@/lib/plans";
+import { getPlansCached } from "@/lib/plans-db";
 import {
   sendPaymentConfirmation,
   sendPaymentFailed,
@@ -628,13 +629,19 @@ export async function POST(request: Request) {
     const customerId = typeof sub.customer === "string" ? sub.customer : null;
     const item = sub.items?.data?.[0];
     const priceId = item?.price?.id ?? null;
+    // W4 review P3-c: checkout + register-with-card stamp `plan_id` (and
+    // `user_id`) on subscription_data.metadata; `blockid_plan` is the older
+    // session-metadata key. Read both, then the price map, then the raw price.
+    const meta = (sub.metadata ?? {}) as Record<string, string | undefined>;
     const planId =
-      (sub.metadata?.blockid_plan as string | undefined) ??
+      nonEmpty(meta.plan_id) ??
+      nonEmpty(meta.blockid_plan) ??
       (priceId ? planIdFromPrice(priceId) : null) ??
       (priceId ? `price:${priceId}` : "unknown");
+    const planLabel = await resolvePlanLabel(planId);
     const interval = item?.price?.recurring?.interval ?? "unknown";
 
-    let userId: string | null = (sub.metadata?.blockid_user_id as string | undefined) ?? null;
+    let userId: string | null = nonEmpty(meta.blockid_user_id) ?? nonEmpty(meta.user_id) ?? null;
     if (!userId && customerId) {
       try {
         const { data: userRow } = await supabase
@@ -652,6 +659,7 @@ export async function POST(request: Request) {
       name: "subscription_created",
       params: {
         plan: planId,
+        plan_label: planLabel,
         status: sub.status,
         trialing: sub.status === "trialing",
         interval,
@@ -661,6 +669,20 @@ export async function POST(request: Request) {
       source: "webhook:stripe",
       consentGranted: true,
     });
+  }
+
+  function nonEmpty(v: string | undefined): string | null {
+    return typeof v === "string" && v.trim().length > 0 ? v.trim() : null;
+  }
+
+  /** Human label from the plans catalogue (DB → CSV fallback); the id when unknown. Never throws. */
+  async function resolvePlanLabel(planId: string): Promise<string> {
+    try {
+      const plans = await getPlansCached();
+      return plans.find((p) => p.id === planId)?.name ?? planId;
+    } catch {
+      return planId;
+    }
   }
 
   async function handleSubscriptionDeleted(e: Stripe.Event): Promise<void> {

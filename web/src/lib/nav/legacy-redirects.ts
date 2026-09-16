@@ -10,8 +10,8 @@
 // Two lists:
 //   • LEGACY_REDIRECTS — live now: the destination page exists on disk.
 //   • DEFERRED_REDIRECTS — the rest of spec §A.5. S-IA2 (G13-W2) flipped
-//     the founder hub rows live; what remains waits on the evaluator
-//     Reports hub, S-IA4 (onboarding merge) or S-IA5 (public rename).
+//     the founder hub rows live, S-IA5 the public rename; what remains
+//     waits on the evaluator Reports hub.
 //     Until then the old page stays where it is and the sidebar leaf keeps
 //     pointing at it. When a later sprint creates the destination page,
 //     the colocated test fails ("deferred destination now exists — move
@@ -172,6 +172,12 @@ export const LEGACY_REDIRECTS: readonly LegacyRedirect[] = Object.freeze([
   { source: "/workspace/equity-offer/request", destination: "/workspace/esop/offers/request", permanent: true },
   { source: "/workspace/exit-strategy/:path*", destination: "/workspace/exit/strategy/:path*", permanent: true, note: "new + [scenarioId]" },
   { source: "/workspace/notifications/preferences", destination: "/workspace/settings/notifications/preferences", permanent: true },
+  // Public rename (spec §A.4 / §C.2, founder decision F2) — S-IA5 (G13-W5).
+  // /investors was the invest-IN-BlockID pitch and collided with /investor
+  // (the public landing FOR investors). Page moved to (marketing)/about/invest
+  // with its own canonical; sitemap, footer Company column and internal
+  // links rewritten so nothing double-hops.
+  { source: "/investors", destination: "/about/invest", permanent: true, note: "S-IA5: invest-in-BlockID pitch; /investor (For investors) untouched" },
 ]);
 
 /**
@@ -187,7 +193,6 @@ export const DEFERRED_REDIRECTS: readonly DeferredRedirect[] = Object.freeze([
   { source: "/workspace/lp-report", destination: "/workspace/reports/lp", permanent: true, pendingSprint: "S-IA2", note: "founder; evaluator handled by alias page" },
   { source: "/workspace/weekly-digest", destination: "/workspace/investor/reports/digest", permanent: true, pendingSprint: "S-IA2" },
   { source: "/workspace/investor/digest", destination: "/workspace/investor/reports/digest", permanent: true, pendingSprint: "S-IA2" },
-  { source: "/investors", destination: "/about/invest", permanent: true, pendingSprint: "S-IA5", note: "public 301; sitemap + JSON-LD + footer link" },
 ]);
 
 /** Next.js `redirects()` rows for the live table. */

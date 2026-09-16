@@ -1,6 +1,8 @@
 /**
- * Footer link columns shared by `marketing/marketing-footer.tsx` and the
- * legacy `site/footer.tsx` so the two footers cannot drift.
+ * Footer link columns for the one public footer (`marketing/footer.tsx`).
+ * Until G13-W5-IA5 this list was shared by two footers (marketing +
+ * `site/footer.tsx`) so they could not drift; the legacy footer is gone and
+ * its Company column now lives here.
  *
  * Since T0238 (G11 §3a/§3d) the top nav carries only five entries, so
  * Product / For / Docs / Startup Index live here — this is their only
@@ -76,6 +78,19 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
       { href: "/compare", label: "Compare" },
       { href: "/status", label: "Status" },
       { href: "/security-audit", label: "Security audit" },
+    ],
+  },
+  // S-IA5 — the Company column the legacy site/footer.tsx carried for the
+  // ~50 pages only it reached; every public page sees it now. "Invest in
+  // BlockID" is the renamed /investors pitch (spec §A.4, F2).
+  {
+    title: "Company",
+    items: [
+      { href: "/about", label: "About" },
+      { href: "/about/invest", label: "Invest in BlockID" },
+      { href: "/benchmarks", label: "AU Benchmarks" },
+      { href: "/insights", label: "Insights" },
+      { href: "/contact", label: "Contact" },
     ],
   },
   {

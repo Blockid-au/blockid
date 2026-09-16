@@ -1,13 +1,16 @@
 // Colocated guard for the public menu (G11 T0238, money-finder plan §3a).
 //
-// `MENU` is the single source of the primary navigation — site/navbar.tsx
-// derives its items from it — so its shape is a contract with the E2E spec
-// (tests/e2e/nav/menu-structure.spec.ts pins "<= 7 top-level entries" and a
-// Demo dropdown BUTTON whose first item is the Atlassian journey) and with
-// the footers, which now carry everything that left the bar.
+// `MENU` is the single source of the primary navigation — since G13-W5-IA5
+// NavV2 is the ONLY public header (site/navbar.tsx deleted) — so its shape
+// is a contract with the E2E spec (tests/e2e/nav/menu-structure.spec.ts
+// pins "<= 7 top-level entries" and a Demo dropdown BUTTON whose first item
+// is the Atlassian journey) and with the footer, which carries everything
+// that left the bar.
 
 import { describe, expect, it } from "vitest";
-import { MENU, NEED_MONEY_CTA, WORKSPACE_LINK, type MenuGroup } from "./nav-v2";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import { MENU, NAV_VARIANT_CLASSES, NEED_MONEY_CTA, WORKSPACE_LINK, type MenuGroup } from "./nav-v2";
 
 function group(key: string): MenuGroup {
   const entry = MENU.find((e) => e.key === key);
@@ -113,10 +116,10 @@ describe("nav CTAs", () => {
 });
 
 // G7 Q2 (S19-A, decision adopted 2026-09-11): Demo is a top-nav entry on
-// every page — never a floating CTA. `MENU` is rendered by NavV2 (public
-// MarketingShell) and site/navbar (app + docs), and the workspace topbar
-// carries its own Demo link (pinned by tests/e2e/nav/menu-structure.spec.ts),
-// so pinning the entry here covers the whole site.
+// every page — never a floating CTA. `MENU` is rendered by NavV2 on every
+// public page (S-IA5: the one header), and the workspace topbar carries its
+// own Demo link (pinned by tests/e2e/nav/menu-structure.spec.ts), so
+// pinning the entry here covers the whole site.
 describe("G7 Q2 — Demo placement", () => {
   it("Demo is a top-nav entry linking to the Atlassian walkthrough", () => {
     const demo = MENU.find((e) => e.key === "demo");
@@ -131,5 +134,26 @@ describe("G7 Q2 — Demo placement", () => {
     expect(NEED_MONEY_CTA.label).not.toMatch(/demo/i);
     expect(WORKSPACE_LINK.label).not.toMatch(/demo/i);
     expect(MENU.filter((e) => e.label === "Demo")).toHaveLength(1);
+  });
+});
+
+// G13-W5-IA5 — one header. `variant="light"` is a second SKIN of the same
+// component (auth pages), never a second component; the legacy bar is gone.
+describe("S-IA5 — one header, two skins", () => {
+  it("site/navbar.tsx no longer exists and nothing imports it", () => {
+    expect(existsSync(resolve(__dirname, "../site/navbar.tsx"))).toBe(false);
+  });
+
+  it("dark and light skins define the same class slots; light uses semantic tokens only, dark keeps the navy island", () => {
+    const dark = NAV_VARIANT_CLASSES.dark;
+    const light = NAV_VARIANT_CLASSES.light;
+    expect(Object.keys(light).sort()).toEqual(Object.keys(dark).sort());
+    for (const [slot, classes] of Object.entries(light)) {
+      expect(classes, `light.${slot}`).not.toMatch(/brand-(navy|ink|cyan)|white\//);
+      expect(classes, `light.${slot}`).not.toMatch(/\b(ink|surface)-\d{2,3}\b/);
+    }
+    expect(dark.header).toContain("bg-brand-navy/85");
+    expect(light.header).toContain("bg-surface/90");
+    expect(light.cta).toContain("bg-action");
   });
 });

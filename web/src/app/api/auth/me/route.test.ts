@@ -388,6 +388,17 @@ describe("GET /api/auth/me — DB query shape", () => {
     state.trialRow = null;
     expect((await json(await GET())).redirect).toBe("/dashboard");
   });
+
+  // S-IA5: the shared user menu (lib/nav/user-menu.ts) reads `user.persona`
+  // for its Dashboard row — the persona landing, resolved server-side once.
+  it("user.persona is the resolved persona (account_type → segment → founder)", async () => {
+    state.trialRow = { account_type: "investor_vc", segment: null, onboarding_completed: true };
+    expect((await json(await GET())).user.persona).toBe("investor_vc");
+    state.trialRow = { account_type: "investor", segment: "investor_angel", onboarding_completed: true };
+    expect((await json(await GET())).user.persona).toBe("investor_angel");
+    state.trialRow = null;
+    expect((await json(await GET())).user.persona).toBe("founder");
+  });
 });
 
 // -----------------------------------------------------------------------------
@@ -395,7 +406,7 @@ describe("GET /api/auth/me — DB query shape", () => {
 // -----------------------------------------------------------------------------
 
 describe("GET /api/auth/me — response shape pins", () => {
-  it("response body shape stays: {ok, user:{id,email,plan,role,displayName,driveFolderId,driveFolderUrl,sourceFoldersEnabled,sourceFolderCount,trial}}", async () => {
+  it("response body shape stays: {ok, user:{id,email,plan,role,displayName,persona,driveFolderId,driveFolderUrl,sourceFoldersEnabled,sourceFolderCount,trial}}", async () => {
     const res = await GET();
     const body = await json(res);
     expect(body.ok).toBe(true);
@@ -407,6 +418,7 @@ describe("GET /api/auth/me — response shape pins", () => {
         "driveFolderUrl",
         "email",
         "id",
+        "persona",
         "plan",
         "role",
         "sourceFolderCount",

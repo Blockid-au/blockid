@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 
 const TITLE = "Free startup tools — valuation, cap table and more";
 const DESCRIPTION = "16 free tools for Australian startup founders: idea clarifier, idea lab, equity split, dilution, cap table, SAFE calculator, ESIC checker, R&D tax and more.";
@@ -239,10 +239,10 @@ export default function ToolsPage() {
   const totalTools = ALL_TOOLS.length;
   return (
     <>
-      <Navbar />
+      <NavV2 />
       <main id="main" className="flex-1 min-h-screen bg-surface-50">
         {/* ── Hero ── */}
-        <section className="bg-ink-950 text-white pt-32 pb-16">
+        <section className="bg-ink-950 text-white pt-16 pb-16">
           <div className="mx-auto max-w-6xl px-6 text-center">
             <p className="text-xs uppercase tracking-[0.2em] text-brand-400 font-medium mb-3">
               Free Tools for Founders
