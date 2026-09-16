@@ -253,7 +253,7 @@ export interface TractionQueryResult<T = unknown> {
   count?: number | null;
   error: { code?: string; message?: string } | null;
 }
-export interface TractionQuery extends PromiseLike<TractionQueryResult> {
+export interface TractionQuery extends PromiseLike<TractionQueryResult<unknown>> {
   select: (columns: string, opts?: { count?: "exact"; head?: boolean }) => TractionQuery;
   eq: (col: string, v: unknown) => TractionQuery;
   in: (col: string, v: readonly unknown[]) => TractionQuery;
@@ -264,6 +264,16 @@ export interface TractionQuery extends PromiseLike<TractionQueryResult> {
 }
 export interface TractionClient {
   from: (table: string) => TractionQuery;
+}
+
+/**
+ * Narrow a supabase-js service-role client to the seam. supabase-js's
+ * PostgrestQueryBuilder is structurally a superset of TractionQuery (every
+ * method used here exists with the same call shape) but its generics do not
+ * unify with the plain interface, hence the explicit cast in one place.
+ */
+export function asTractionClient(client: unknown): TractionClient | null {
+  return client && typeof client === "object" && typeof (client as { from?: unknown }).from === "function" ? (client as TractionClient) : null;
 }
 
 /** Stripe subset for the head-count reconciliation. */
@@ -308,9 +318,9 @@ export async function buildTractionSnapshot(opts: BuildTractionSnapshotOptions):
   }
 
   /** Run one query; on any failure record a warning and return null. */
-  async function safe<T>(label: string, run: () => PromiseLike<TractionQueryResult<T>>): Promise<TractionQueryResult<T> | null> {
+  async function safe<T>(label: string, run: () => PromiseLike<TractionQueryResult<unknown>>): Promise<TractionQueryResult<T> | null> {
     try {
-      const res = await run();
+      const res = (await run()) as TractionQueryResult<T>;
       if (res.error) {
         warnings.push(`${label}: ${errMessage(res.error)}`);
         return null;

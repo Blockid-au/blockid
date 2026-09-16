@@ -25,7 +25,7 @@ import path from "node:path";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getStripe } from "@/lib/stripe";
-import { buildTractionSnapshot, type TractionStripe } from "@/lib/traction/snapshot";
+import { asTractionClient, buildTractionSnapshot, type TractionStripe } from "@/lib/traction/snapshot";
 import { persistTractionSnapshot } from "@/lib/traction/persist";
 
 export const runtime = "nodejs";
@@ -64,7 +64,7 @@ export async function GET(request: Request) {
   try {
     const stripe = getStripe();
     const snapshot = await buildTractionSnapshot({
-      supabase: getSupabaseAdmin(),
+      supabase: asTractionClient(getSupabaseAdmin()),
       stripe: stripe ? (stripe as unknown as TractionStripe) : null,
       gitSha: await readGitSha(root),
     });
