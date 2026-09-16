@@ -54,13 +54,20 @@ vi.mock("@/components/dashboard/living-svi-dashboard", () => ({
 const NULL = () => null;
 vi.mock("@/components/svi/score-history-chart", () => ({ ScoreHistoryChart: NULL }));
 vi.mock("@/components/svi/svi-score-ring", () => ({ SviScoreRing: NULL }));
-vi.mock("@/components/dashboard/next-best-action-widget", () => ({ NextBestActionWidget: NULL }));
-vi.mock("@/components/dashboard/next-step-tile", () => ({ NextStepTile: NULL }));
 vi.mock("@/components/dashboard/investor-readiness-tile", () => ({ InvestorReadinessTile: NULL }));
 vi.mock("@/components/dashboard/cohort-retention-tile", () => ({ CohortRetentionTile: NULL }));
 vi.mock("@/components/dashboard/deep-valuation-card", () => ({ DeepValuationCard: NULL }));
-vi.mock("@/components/dashboard/scn-action-plan-card", () => ({ ScnActionPlanCard: NULL }));
 vi.mock("@/components/dashboard/svi-explainer-card", () => ({ SviExplainerCard: NULL }));
+vi.mock("@/components/dashboard/value-impact-banner", () => ({ ValueImpactBanner: NULL }));
+// G13-W3-IA3 — the widget grid moved here from the landing; pin the ids it
+// receives so the S18-B member facts extend to the grid's reads.
+vi.mock("@/components/dashboard/score-widget-grid", () => ({
+  ScoreWidgetGrid: (p: { projectId: string | null; sviScore: number; phase: number; shareholders: unknown[]; githubEvidence: unknown }) => (
+    <div data-widgets data-widgets-project={p.projectId ?? ""} data-widgets-svi={p.sviScore} data-widgets-phase={p.phase} data-widgets-shareholders={p.shareholders.length} data-widgets-github={p.githubEvidence ? "1" : "0"} />
+  ),
+}));
+vi.mock("@/lib/analysis/aggregate-startup-summary", () => ({ getAllStartupSummaries: async () => [] }));
+vi.mock("@/lib/github", () => ({ fetchRepoStats: async () => null, parseRepoInput: () => null }));
 vi.mock("@/components/dashboard/antler-signals-card", () => ({ AntlerSignalsCard: NULL }));
 vi.mock("@/components/dashboard/accelerator-readiness-card", () => ({ AcceleratorReadinessCard: NULL }));
 vi.mock("@/components/founder/tech-intelligence-row", () => ({ TechIntelligenceRow: NULL }));
@@ -98,6 +105,7 @@ beforeEach(() => {
     score_views: [{ id: "v1" }, { id: "v2" }],
     user_actions: [],
     tech_analyses: [],
+    shareholders: [{ name: "Ava", role: "founder", shares_held: 600 }, { name: "Seed Co", role: "investor", shares_held: 400 }],
   });
   sbState.sb = sb;
 });
@@ -129,6 +137,10 @@ describe("/workspace/score (S18-B)", () => {
     });
     expect(sb.hasEq("svi_snapshots", "account_id", "acct-1")).toBe(true);
     expect(sb.hasEq("svi_evidence", "account_id", "acct-1")).toBe(true);
+    // widget-grid reads (IA3) — cap table + GitHub evidence on the OWNER's account
+    expect(sb.hasEq("shareholders", "account_id", "acct-1")).toBe(true);
+    expect(dataAttr(out, "widgets-shareholders")).toBe("2");
+    expect(dataAttr(out, "widgets-project")).toBe("proj-1");
     // per-caller
     expect(getBalanceMock).toHaveBeenCalledWith(state.callerId);
     expect(sb.hasEq("scores", "email", state.callerEmail)).toBe(true);

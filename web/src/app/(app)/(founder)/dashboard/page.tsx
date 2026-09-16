@@ -1,66 +1,46 @@
+// Founder landing — G13-W3-IA3 (spec §B.1): one landing, five blocks
+// ordered by benefit — Where you stand · Next best action · Money on the
+// table · Evidence to add · Your reports. Thin server page: scope + phase +
+// the block loaders in ONE Promise.all, then five server components.
+//
+// Phase scale (goal doc D4, §B.5): the canonical 12 `GrowthPhaseId`s drive
+// block 1's pill and block 2's recommender; the 0..5 nav band is derived
+// here only to collapse the sidebar (`resolveFounderNavPhase`).
+//
+// Member-aware (S18-B): the startup record is read under the OWNER's key
+// (`pageScopeKeys`); credits / entitlement stay the caller's. Blocks 1, 4,
+// 5 are read-only for a member, block 2 shows the owner's next action with
+// "ask {owner}" copy, block 3 is hidden (§B.4).
+//
+// Rollback: `NAV_IA_V4=off` mounts `page.legacy.tsx` for one deploy.
+
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  ArrowRight,
-  ChevronRight,
-  FileText,
-  Lightbulb,
-  ShieldCheck,
-  Sparkles,
-  Target,
-  TrendingUp,
-  Zap,
-  PieChart,
-  BarChart3,
-  Upload,
-  type LucideIcon,
-} from "lucide-react";
+import { ShieldCheck, Sparkles } from "lucide-react";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { getCurrentUser } from "@/lib/auth";
-import { getBalance } from "@/lib/credits";
-import { getProjectScope, getCurrentProjectIsSandbox, creditChargeNote } from "@/lib/projects";
+import { getProjectScope, getCurrentProjectIsSandbox } from "@/lib/projects";
 import { pageScopeKeys, resolveSVIAccountIdForPage } from "@/lib/project-members/page-scope";
 import { ViewOnlyNote } from "@/components/workspace/view-only-note";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { OnboardingWelcomeModal } from "@/components/dashboard/onboarding-welcome-modal";
 import { RoleLandingIntro } from "@/components/role/role-landing-intro";
-import { JourneyBar } from "@/components/dashboard/journey-bar";
-import { JourneyStepLadder } from "@/components/dashboard/journey-step-ladder";
-import { LivingSVIDashboard } from "@/components/dashboard/living-svi-dashboard";
-import { GrowthRoadmap } from "@/components/dashboard/growth-roadmap";
-import { GrowthProgressDashboard } from "@/components/dashboard/growth-progress-dashboard";
-import { CapTableMini } from "@/components/dashboard/cap-table-mini";
-import { ActivityFeed } from "@/components/dashboard/activity-feed";
-import { StatusCards } from "@/components/dashboard/status-cards";
-import { ScnPositionHero } from "@/components/dashboard/scn-position-hero";
-import { MoneyRadarTile } from "@/components/dashboard/money-radar-tile";
+import { LandingGrid, LandingViewedTracker, LANDING_BLOCKS, type LandingContext } from "@/components/dashboard/landing/landing-grid";
+import { WhereYouStand } from "@/components/dashboard/landing/where-you-stand";
+import { NextBestAction } from "@/components/dashboard/landing/next-best-action";
+import { MoneyOnTheTable } from "@/components/dashboard/landing/money-on-the-table";
+import { EvidenceToAdd } from "@/components/dashboard/landing/evidence-to-add";
+import { YourReports } from "@/components/dashboard/landing/your-reports";
 import { getMoneyRadarTileData } from "@/lib/funding/tile-data";
-import { ScnDirectionNavigator, type DirectionStep } from "@/components/dashboard/scn-direction-navigator";
-import { AIConfidenceActionPlan } from "@/components/dashboard/ai-confidence-action-plan";
-import { GitHubEvidenceCard } from "@/components/dashboard/github-evidence-card";
-import { ScoreHistoryChart } from "@/components/svi/score-history-chart";
-import { AIEvaluationSummary } from "@/components/dashboard/ai-evaluation-summary";
-import { getAllStartupSummaries } from "@/lib/analysis/aggregate-startup-summary";
-import { ValueImpactBanner } from "@/components/dashboard/value-impact-banner";
-import { SviDimensionChart } from "@/components/dashboard/svi-dimension-chart";
-import { DataRoomReadinessCard } from "@/components/dashboard/data-room-readiness-card";
-import { NEXT_UNLOCK_START_HERE, NextUnlockCard } from "@/components/dashboard/next-unlock-card";
-import { EmptyDashboardState } from "@/components/dashboard/empty-dashboard-state";
-import { WidgetGrid } from "@/components/dashboard/widget-grid";
-import { RevenueTrackerTile } from "@/components/founder/revenue-tracker-tile";
-import { HealthScoreWidget } from "@/components/founder/health-score-widget";
-import { fetchRepoStats, parseRepoInput } from "@/lib/github";
-import type { SVIAnalysis, SVISubScore } from "@/lib/svi-analysis";
-import { getSVIPercentile } from "@/lib/benchmarks";
-import { computePhaseGate, topBlockers, type SviDimension } from "@/lib/growth/phase-gate";
+import { loadEvidenceReads, loadRecentReports, loadStanding, type LandingKeys } from "@/lib/dashboard/landing-data";
+import { deriveEvidenceGaps } from "@/lib/dashboard/evidence-gaps";
+import { recommendNextStep } from "@/lib/nav/next-step-recommender";
+import { growthPhaseFromNavPhase, navPhaseFromSvi, resolveFounderNavPhase } from "@/lib/nav/founder-phase";
 import { isGrowthPhaseId } from "@/lib/growth/phase-taxonomy";
-import { NAV_PHASE_NAMES, resolveFounderNavPhase } from "@/lib/nav/founder-phase";
-import {
-  countIntakeAnalysesForUser,
-  latestIntakeAnalysisForUser,
-} from "@/lib/analyses/dashboard-bridge";
+import { getSVIPercentile } from "@/lib/benchmarks";
+import { countIntakeAnalysesForUser } from "@/lib/analyses/dashboard-bridge";
+import { LegacyDashboardPage } from "./page.legacy";
 
 export const dynamic = "force-dynamic";
 
@@ -69,1175 +49,129 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/* ─── Inline MetricCard ─────────────────────────────────────────────────────── */
+type SearchParams = Promise<{ welcome?: string; checkout?: string; plan?: string; onboarding?: string }>;
 
-function MetricCard({
-  title,
-  value,
-  subtitle,
-  trend,
-  icon: Icon,
-}: {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  trend?: number;
-  icon: LucideIcon;
-}) {
-  return (
-    <div className="bg-surface-sunken border border-line-subtle backdrop-blur-sm rounded-2xl p-4 hover:border-action/25 transition-all duration-300">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs text-muted uppercase tracking-wider font-medium">{title}</p>
-        <Icon className="h-4 w-4 text-muted" />
-      </div>
-      <p className="text-2xl font-bold text-ink-100">{value}</p>
-      {subtitle && <p className="text-xs text-muted mt-0.5">{subtitle}</p>}
-      {trend != null && trend !== 0 && (
-        <span className={`text-xs font-semibold ${trend > 0 ? "text-emerald-400" : "text-red-400"}`}>
-          {trend > 0 ? "+" : ""}
-          {trend}
-        </span>
-      )}
-    </div>
-  );
-}
+export default async function DashboardPage({ searchParams }: { searchParams: SearchParams }) {
+  if (process.env.NAV_IA_V4 === "off") return <LegacyDashboardPage searchParams={searchParams} />;
 
-/* ─── Next Action Logic ─────────────────────────────────────────────────────── */
-
-/**
- * Phase-aware next action — follows the actual startup development roadmap.
- * Early-stage startups (Idea/Validation) get guidance on problem validation,
- * team building, and market research — NOT revenue evidence or fundraising.
- */
-function computeNextAction(sviScore: number | null): {
-  text: string;
-  label: string;
-  url: string;
-  phase: string;
-} {
-  if (sviScore == null) {
-    return {
-      text: "Describe your startup idea to get your free SVI score. It takes less than 60 seconds and helps you understand where you stand.",
-      label: "Get My SVI Score",
-      url: "/analyze",
-      phase: "start",
-    };
-  }
-  // Phase 0: Idea (SVI 0-30) — focus on idea validation, not revenue
-  if (sviScore < 30) {
-    return {
-      text: "Your idea needs validation. Refine your problem statement, define your target customer, and research your market size. Run a deeper analysis with more detail to boost your score.",
-      label: "Refine Your Idea",
-      url: "/analyze",
-      phase: "idea",
-    };
-  }
-  // Phase 1: Validation (SVI 30-50) — focus on market fit, team, early evidence
-  if (sviScore <= 50) {
-    return {
-      text: "Your idea has potential! Now validate it — describe your team background, connect your LinkedIn profile, or upload a competitor analysis to strengthen your founder credibility.",
-      label: "Strengthen Your Profile",
-      url: "/workspace/evidence",
-      phase: "validation",
-    };
-  }
-  // Phase 2: Build (SVI 50-70) — focus on valuation, equity structure
-  if (sviScore <= 70) {
-    return {
-      text: "You're building something real. Set up your equity structure — define co-founder splits, share classes, and vesting schedules before you bring on investors.",
-      label: "Set Up Equity",
-      url: "/workspace/equity/setup",
-      phase: "build",
-    };
-  }
-  // Phase 3: Pre-fundraise (SVI 70-85) — focus on investor readiness
-  if (sviScore <= 85) {
-    return {
-      text: "You're nearly investor-ready! Build your data room with key documents, a pitch deck, and financial projections. This is what investors expect to see.",
-      label: "Build Data Room",
-      url: "/workspace/documents/data-room",
-      phase: "pre-fundraise",
-    };
-  }
-  // Phase 4+: Fundraise & Growth (SVI 85+)
-  return {
-    text: "Your startup is investor-ready! Share your data room with potential investors and start your fundraising conversations.",
-    label: "Start Fundraising",
-    url: "/workspace/raise/round",
-    phase: "fundraise",
-  };
-}
-
-/* ─── SCN DIRECTION — Google-Maps-style next-best-action route ───────────────── */
-
-/**
- * Map an analysis-generated next-action title to the best workspace route.
- * Keyword-based — keeps the dashboard a self-contained surface.
- */
-function actionToUrl(title: string): string {
-  const t = title.toLowerCase();
-  if (t.includes("cap table")) return "/workspace/equity/cap-table";
-  if (t.includes("vesting")) return "/workspace/esop/vesting";
-  if (t.includes("esop")) return "/workspace/esop";
-  if (t.includes("pitch deck") || t.includes("data room")) return "/workspace/documents/data-room";
-  if (t.includes("financial model") || t.includes("projection")) return "/workspace/evidence/metrics";
-  if (t.includes("revenue") || t.includes("paying customer") || t.includes("first customer")) return "/workspace/finance/revenue";
-  if (t.includes("analytics")) return "/workspace/evidence/metrics";
-  if (t.includes("demo") || t.includes("prototype") || t.includes("product")) return "/workspace/projects";
-  if (t.includes("asic") || t.includes("abn") || t.includes("register")) return "/workspace/settings/profile";
-  if (t.includes("ip") || t.includes("patent") || t.includes("trademark") || t.includes("legal")) return "/workspace/documents";
-  if (t.includes("advisor") || t.includes("team") || t.includes("co-founder")) return "/workspace/equity/shareholders";
-  if (t.includes("market") || t.includes("tam") || t.includes("sam")) return "/workspace/score/criteria";
-  if (t.includes("moat") || t.includes("evidence")) return "/workspace/evidence";
-  if (t.includes("fundraise") || t.includes("raise")) return "/workspace/raise/round";
-  return "/workspace/evidence";
-}
-
-/** Stage-driven fallback route used when no analysis is available yet. */
-function fallbackDirectionSteps(stage: number): DirectionStep[] {
-  if (stage <= 0) {
-    return [
-      { label: "Describe your idea in detail", detail: "Add target customer, problem, and market — the SVI engine needs this to score Validation.", impact: "+12 SVI", url: "/analyze", priority: "P0" },
-      { label: "Capture validation evidence", detail: "Upload customer interviews, waitlist signups, or survey results to the Evidence Vault.", impact: "+10 SVI", url: "/workspace/evidence", priority: "P1" },
-      { label: "Map your market (TAM / SAM / SOM)", detail: "Quantify the opportunity so investors can size the prize.", impact: "+8 SVI", url: "/workspace/score/criteria", priority: "P2" },
-    ];
-  }
-  if (stage <= 1) {
-    return [
-      { label: "Lock in problem validation", detail: "Add interviews, surveys, or waitlist data to the Evidence Vault — move from self-declared to verified.", impact: "+12 SVI", url: "/workspace/evidence", priority: "P0" },
-      { label: "Set up your cap table", detail: "Define founder splits, share classes, and vesting before bringing on capital.", impact: "+10 SVI", url: "/workspace/equity/cap-table", priority: "P1" },
-      { label: "Ship a working demo", detail: "A live prototype is the highest-signal evidence you can show investors.", impact: "+8 SVI", url: "/workspace/projects", priority: "P2" },
-    ];
-  }
-  if (stage <= 3) {
-    return [
-      { label: "Acquire 20 paying customers", detail: "Revenue is the strongest validation signal — even small ARR unlocks the Traction layer.", impact: "+18 SVI", url: "/workspace/finance/revenue", priority: "P0" },
-      { label: "Finalise your cap table", detail: "Confirm founder/ESOP split, vesting schedules, and shareholders before raise conversations.", impact: "+10 SVI", url: "/workspace/equity/cap-table", priority: "P1" },
-      { label: "Draft your pitch deck", detail: "Structure the narrative — problem, solution, traction, team, ask — and store it in your data room.", impact: "+8 SVI", url: "/workspace/documents/data-room", priority: "P2" },
-    ];
-  }
-  if (stage <= 5) {
-    return [
-      { label: "Build your data room", detail: "Pitch deck, financial model, cap table, contracts — everything investors expect.", impact: "+12 SVI", url: "/workspace/documents/data-room", priority: "P0" },
-      { label: "Lock in financial model", detail: "Three-year P&L forecast with unit economics — investors will model your business themselves.", impact: "+10 SVI", url: "/workspace/evidence/metrics", priority: "P1" },
-      { label: "Open fundraise pipeline", detail: "Shortlist target investors, plan intros, and start tracking conversations.", impact: "+8 SVI", url: "/workspace/raise/round", priority: "P2" },
-    ];
-  }
-  return [
-    { label: "Run your raise process", detail: "Open conversations, share the data room, and track investor signals.", impact: "+10 SVI", url: "/workspace/raise/round", priority: "P0" },
-    { label: "Tighten unit economics", detail: "Confirm LTV / CAC, churn, and gross margin — Series-A grade investors will probe these.", impact: "+8 SVI", url: "/workspace/evidence/metrics", priority: "P1" },
-    { label: "Plan exit scenarios", detail: "Model acquisition, IPO, or secondary paths so the cap table is exit-ready.", impact: "+6 SVI", url: "/workspace/exit", priority: "P2" },
-  ];
-}
-
-/** Identify the weakest SVI sub-layer so the navigator can name it as "you are here". */
-function weakestLayerLabel(subs: SVISubScore[] | undefined): string | null {
-  if (!subs || subs.length === 0) return null;
-  const sorted = [...subs].sort((a, b) => a.value - b.value);
-  return sorted[0]?.label ?? null;
-}
-
-/**
- * Combine analysis-generated next actions with the stage-driven fallback so we
- * always present 3 steps. Analysis actions take precedence (they reflect real
- * gaps in the founder's data) and routes are inferred from action titles.
- */
-function computeDirectionSteps(analysis: SVIAnalysis | null, stage: number): DirectionStep[] {
-  const fromAnalysis: DirectionStep[] = (analysis?.nextActions ?? []).map((a) => ({
-    label: a.title,
-    detail: a.detail,
-    impact: a.impact,
-    priority: a.priority,
-    url: actionToUrl(a.title),
-  }));
-  if (fromAnalysis.length >= 3) return fromAnalysis.slice(0, 3);
-  const fallback = fallbackDirectionSteps(stage);
-  const seen = new Set(fromAnalysis.map((s) => s.label.toLowerCase()));
-  const merged = [...fromAnalysis];
-  for (const step of fallback) {
-    if (merged.length >= 3) break;
-    if (seen.has(step.label.toLowerCase())) continue;
-    merged.push(step);
-  }
-  return merged.slice(0, 3);
-}
-
-/* ─── Phase mapping ─────────────────────────────────────────────────────────── */
-// S7-A: the SVI band table that used to live here (`computePhase()`) is now
-// `navPhaseFromSvi()` in `@/lib/nav/founder-phase`, and the sidebar phase is
-// `resolveFounderNavPhase()` = max(SVI band, growth phase) — the same number
-// the `(founder)` layout publishes to every other workspace page.
-
-/* ─── Estimated Valuation from SVI ──────────────────────────────────────────── */
-
-function estimateValuation(sviScore: number | null): { value: string; raw: number } {
-  if (sviScore == null || sviScore < 10) return { value: "—", raw: 0 };
-  // SVI-to-valuation mapping based on stage + market comparables
-  // Idea (0-30): $10K-$100K | Validation (30-50): $50K-$500K
-  // Build (50-70): $200K-$2M | Pre-fundraise (70-85): $500K-$5M
-  // Traction (85-120): $1M-$10M | Growth (120+): $5M+
-  let raw: number;
-  if (sviScore < 30) raw = Math.round(sviScore * 3000);
-  else if (sviScore <= 50) raw = Math.round(50_000 + (sviScore - 30) * 22_500);
-  else if (sviScore <= 70) raw = Math.round(500_000 + (sviScore - 50) * 75_000);
-  else if (sviScore <= 85) raw = Math.round(2_000_000 + (sviScore - 70) * 200_000);
-  else if (sviScore <= 120) raw = Math.round(5_000_000 + (sviScore - 85) * 142_857);
-  else raw = Math.round(10_000_000 + (sviScore - 120) * 250_000);
-
-  if (raw >= 1_000_000) return { value: `A$${(raw / 1_000_000).toFixed(1)}M`, raw };
-  if (raw >= 1_000) return { value: `A$${(raw / 1_000).toFixed(0)}K`, raw };
-  return { value: `A$${raw.toLocaleString()}`, raw };
-}
-
-/* ─── Quick Actions ─────────────────────────────────────────────────────────── */
-
-/**
- * Phase-aware quick actions — shows relevant actions for the startup's
- * current stage. Later-phase actions appear at bottom with "Coming next" label.
- */
-function QuickActionsList({ hasAnalysis, phase }: { hasAnalysis: boolean; phase: number }) {
-  // All actions ordered by startup development roadmap
-  const allActions: { href: string; icon: LucideIcon; label: string; desc: string; minPhase: number; badge?: string }[] = [
-    // Phase 0: Idea — always available
-    { href: "/analyze", icon: Sparkles, label: hasAnalysis ? "Re-analyze Idea" : "Get SVI Score", desc: hasAnalysis ? "Re-score with more detail" : "Free AI analysis in 60s", minPhase: 0 },
-    { href: "/workspace/reports", icon: FileText, label: "View Reports", desc: "Your analysis history", minPhase: 0 },
-    // Phase 1: Validation
-    { href: "/workspace/evidence", icon: Upload, label: "Add Evidence", desc: "LinkedIn, team bios, market research", minPhase: 0, badge: phase < 2 ? "Boost Score" : undefined },
-    { href: "/tools/idea-valuation", icon: BarChart3, label: "Idea Valuation", desc: "Pre-revenue valuation range", minPhase: 1 },
-    // Phase 2: Build
-    { href: "/workspace/equity/setup", icon: PieChart, label: "Equity Structure", desc: "Co-founder splits & vesting", minPhase: 2 },
-    { href: "/workspace/equity/cap-table", icon: PieChart, label: "Cap Table", desc: "Share classes & shareholders", minPhase: 2 },
-    // Phase 3: Pre-fundraise
-    { href: "/workspace/documents/data-room", icon: Target, label: "Data Room", desc: "Investor documents & pitch", minPhase: 3 },
-    // Phase 4+: Fundraise & Growth
-    { href: "/workspace/raise/round", icon: TrendingUp, label: "Fundraise", desc: "Raise capital", minPhase: 3 },
-    { href: "/workspace/finance/revenue", icon: BarChart3, label: "Revenue Tracking", desc: "Track MRR, ARR, metrics", minPhase: 4 },
-    { href: "/workspace/exit", icon: ShieldCheck, label: "Exit Modeling", desc: "Scenario planning", minPhase: 5 },
-  ];
-
-  // Split into current-phase actions and upcoming actions
-  const currentActions = allActions.filter(a => a.minPhase <= phase).slice(0, 5);
-  const upcomingActions = allActions.filter(a => a.minPhase > phase).slice(0, 3);
-
-  return (
-    <div className="space-y-1">
-      {currentActions.map((a) => (
-        <Link
-          key={a.href}
-          href={a.href}
-          className="flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-surface-hover group"
-        >
-          <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-surface-hover text-muted group-hover:bg-action/10 group-hover:text-action transition-colors shrink-0">
-            <a.icon strokeWidth={1.75} className="h-4 w-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-medium text-ink-100 truncate">{a.label}</p>
-              {a.badge && <span className="shrink-0 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">{a.badge}</span>}
-            </div>
-            <p className="text-xs text-muted truncate">{a.desc}</p>
-          </div>
-          <ChevronRight className="h-4 w-4 text-muted group-hover:text-muted" />
-        </Link>
-      ))}
-
-      {/* Upcoming actions — greyed out with roadmap context */}
-      {upcomingActions.length > 0 && (
-        <>
-          <div className="pt-3 pb-1 px-3">
-            <p className="text-[10px] uppercase tracking-widest text-muted font-medium">Coming next in your journey</p>
-          </div>
-          {upcomingActions.map((a) => (
-            <div
-              key={a.href}
-              className="flex items-center gap-3 rounded-xl px-3 py-3 opacity-40"
-            >
-              <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-surface-sunken text-muted shrink-0">
-                <a.icon strokeWidth={1.75} className="h-4 w-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-muted truncate">{a.label}</p>
-                <p className="text-xs text-muted/60 truncate">{a.desc}</p>
-              </div>
-            </div>
-          ))}
-        </>
-      )}
-    </div>
-  );
-}
-
-/* ─── SVI dimension extractor (mirrors growth-gate-eval cron) ────────────── */
-
-const VALID_SVI_DIMS = new Set<string>(["ftv", "mpc", "ptd", "tre", "cgh", "iri", "lco"]);
-
-function extractSviDimensions(
-  analysisJson: unknown,
-): Partial<Record<SviDimension, number>> {
-  try {
-    const parsed = analysisJson as { subs?: Array<{ key: string; value: unknown }> };
-    if (!parsed?.subs || !Array.isArray(parsed.subs)) return {};
-    const out: Partial<Record<SviDimension, number>> = {};
-    for (const sub of parsed.subs) {
-      if (sub?.key && VALID_SVI_DIMS.has(sub.key) && typeof sub.value === "number") {
-        out[sub.key as SviDimension] = sub.value;
-      }
-    }
-    return out;
-  } catch {
-    return {};
-  }
-}
-
-/* ─── Main Dashboard Page ───────────────────────────────────────────────────── */
-
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ welcome?: string; checkout?: string; plan?: string; onboarding?: string }>;
-}) {
   const user = await getCurrentUser();
-  if (!user) {
-    redirect("/auth/login?next=/dashboard");
-  }
-
+  if (!user) redirect("/auth/login?next=/dashboard");
   const sp = await searchParams;
   const supabase = getSupabaseAdmin();
 
-  // ── Resolve the project scope first ──────────────────────────────────────
-  // S18-B — member-aware: the startup record (analyses, account, snapshots,
-  // evidence, cap table, criteria) is read under the OWNER's email + project
-  // and a member never creates a split svi_accounts row. Credits, share
-  // views and actions stay per caller; saved report sections are per
-  // analysis (shared by everyone on the project).
+  // ── Scope (owner vs member) ───────────────────────────────────────────────
   const scope = await getProjectScope("viewer");
   const { projectId, dataEmail, ownerUserId, role, canEdit, isMember } = pageScopeKeys(scope, user);
   const activeProject = scope?.project ?? null;
 
-  // First-time user: redirect to onboarding wizard before showing the dashboard.
-  // S18-B review P2-6 — never for an invited MEMBER: the wizard creates the
-  // caller's own startup, and a member landing on the owner's project has
-  // nothing of their own to set up (they were bounced on every visit).
+  // First-time OWNER with nothing scored → onboarding wizard (never a member:
+  // S18-B P2-6). `/analyze` runs land in `analyses` (S31-B) and count too.
   if (supabase && !user.onboardingCompleted && !isMember) {
-    const { count: priorSviCount } = await supabase
-      .from("svi_analyses")
-      .select("id", { count: "exact", head: true })
-      .eq("email", user.email);
-    // S31-B: a run made through /analyze (the dashboard's own CTA) lands in
-    // `analyses`, not `svi_analyses`; count it too, or the founder who just
-    // scored their startup is bounced back into the welcome wizard.
-    const priorIntakeCount =
-      !priorSviCount || priorSviCount === 0
-        ? await countIntakeAnalysesForUser(supabase, user.id)
-        : 0;
-    if ((!priorSviCount || priorSviCount === 0) && priorIntakeCount === 0) {
-      redirect("/dashboard/onboarding");
-    }
+    const { count } = await supabase.from("svi_analyses").select("id", { count: "exact", head: true }).eq("email", user.email);
+    if (!count && (await countIntakeAnalysesForUser(supabase, user.id)) === 0) redirect("/dashboard/onboarding");
   }
 
-  // ── Fetch data in parallel where possible ────────────────────────────────
-  const creditBalance = await getBalance(user.id);
+  // ── Five loaders, one round ───────────────────────────────────────────────
+  const accountId = await resolveSVIAccountIdForPage(scope, user);
+  const keys: LandingKeys = { dataEmail, projectId, ownerUserId, callerId: user.id, accountId };
+  const [standing, moneyRadar, evidenceReads, reports, isSandbox] = await Promise.all([
+    loadStanding(supabase, keys),
+    isMember
+      ? Promise.resolve(null)
+      : getMoneyRadarTileData(user, activeProject, {}, { ownerUserId, dataEmail }).catch((err: unknown) => {
+          console.warn("[dashboard] money radar", err instanceof Error ? err.message : String(err));
+          return null;
+        }),
+    loadEvidenceReads(supabase, keys),
+    loadRecentReports(supabase, keys, 3),
+    getCurrentProjectIsSandbox(),
+  ]);
 
-  // ── Load latest SVI analysis ─────────────────────────────────────────────
-  let analysis: SVIAnalysis | null = null;
-  let latestAnalysisId: string | undefined;
-  let rawInput: string | undefined;
-  let previousSVI: number | undefined;
-  let startupName: string | undefined;
-  let evidenceCount = 0;
-  let sviHistory: Array<{ total_svi: number; created_at: string }> = [];
-  let recentReports: Array<{
-    id: string;
-    total_svi: number;
-    created_at: string;
-    input_type: string | null;
-    raw_input?: string;
-  }> = [];
-  let snapshotHistory: Array<{ date: string; svi: number; delta: number | null }> = [];
-  let savedSections: Array<{
-    section_id: string;
-    depth: string;
-    content: string;
-    word_count: number;
-    credits_cost: number;
-  }> = [];
-  let shareViews = 0;
-  let latestScoreId: string | undefined;
-  let userActions: Array<{
-    id: string;
-    action_type: string;
-    action_label: string;
-    dimension: string | null;
-    svi_impact_estimate: number;
-    completed_at: string;
-  }> = [];
-  let weeklyDelta: number | undefined;
-  let shareholders: Array<{ name: string; percentage: number; color: string }> = [];
-  let totalShareCount = 1_000_000;
-  let githubEvidence: {
-    label: string;
-    url: string;
-    commitsLast90: number | null;
-    stars: number | null;
-    pushedAt: string | null;
-  } | null = null;
-  // G8-P4: evaluation criteria for phase gate card.
-  let phaseGateCriteria: Array<{ criterion_key: string; quality_level: string | null }> = [];
-
-  if (supabase) {
-    // Latest analysis
-    const analysisQuery = supabase
-      .from("svi_analyses")
-      .select("id, analysis_json, total_svi, created_at, raw_input")
-      .eq("email", dataEmail);
-    if (projectId) analysisQuery.eq("project_id", projectId);
-    else analysisQuery.is("project_id", null);
-
-    const { data: latestAnalysis } = await analysisQuery
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
-
-    if (latestAnalysis?.analysis_json) {
-      analysis = latestAnalysis.analysis_json as SVIAnalysis;
-      latestAnalysisId = latestAnalysis.id as string;
-      rawInput = (latestAnalysis.raw_input as string | null) ?? undefined;
-    } else {
-      // S31-B read-side bridge — the latest /analyze run (`analyses` table)
-      // for the startup's owner, rebuilt with the same computeSVI the screen
-      // used. `latestAnalysisId` stays unset: it keys report_sections on
-      // svi_analyses ids, a different id space.
-      const bridged = await latestIntakeAnalysisForUser(supabase, ownerUserId ?? user.id);
-      if (bridged) {
-        analysis = bridged.analysis;
-        rawInput = bridged.rawInput;
-        sviHistory = [{ total_svi: bridged.totalSVI, created_at: bridged.createdAt }];
-      }
-    }
-
-    // SVI score history
-    const historyQuery = supabase
-      .from("svi_analyses")
-      .select("total_svi, created_at")
-      .eq("email", dataEmail);
-    if (projectId) historyQuery.eq("project_id", projectId);
-    else historyQuery.is("project_id", null);
-
-    const { data: historyData } = await historyQuery
-      .order("created_at", { ascending: true })
-      .limit(50);
-
-    if (historyData && historyData.length > 0) {
-      // svi_analyses history wins; the bridged single point above is only
-      // kept when there is none.
-      sviHistory = historyData.map((h) => ({
-        total_svi: h.total_svi as number,
-        created_at: h.created_at as string,
-      }));
-      if (historyData.length >= 2) {
-        previousSVI = historyData[historyData.length - 2].total_svi as number;
-      }
-    }
-
-    // Recent reports (last 5 for the dashboard card)
-    const reportsQuery = supabase
-      .from("svi_analyses")
-      .select("id, total_svi, created_at, input_type, raw_input")
-      .eq("email", dataEmail);
-    if (projectId) reportsQuery.eq("project_id", projectId);
-    else reportsQuery.is("project_id", null);
-
-    const { data: reportsData } = await reportsQuery
-      .order("created_at", { ascending: false })
-      .limit(20);
-
-    if (reportsData) {
-      recentReports = reportsData.map((r) => ({
-        id: r.id as string,
-        total_svi: r.total_svi as number,
-        created_at: r.created_at as string,
-        input_type: r.input_type as string | null,
-        raw_input: (r.raw_input as string | null) ?? undefined,
-      }));
-    }
-
-    // SVI account data (owner: find-or-create; member: read-only)
-    const accountId = await resolveSVIAccountIdForPage(scope, user);
-    if (accountId) {
-      const { data: account } = await supabase
-        .from("svi_accounts")
-        .select("id, startup_name, current_svi, current_stage")
-        .eq("id", accountId)
-        .single();
-
-      if (account) {
-        startupName = (account.startup_name as string | null) ?? undefined;
-
-        // Snapshot history
-        const { data: snapshots } = await supabase
-          .from("svi_snapshots")
-          .select("snapshot_date, svi_total, delta")
-          .eq("account_id", account.id as string)
-          .order("snapshot_date", { ascending: false })
-          .limit(12);
-
-        if (snapshots && snapshots.length > 0) {
-          snapshotHistory = snapshots.map((s) => ({
-            date: s.snapshot_date as string,
-            svi: s.svi_total as number,
-            delta: s.delta as number | null,
-          }));
-          weeklyDelta = (snapshots[0].delta as number | null) ?? undefined;
-        }
-
-        // Evidence count
-        const { count: evCount } = await supabase
-          .from("svi_evidence")
-          .select("id", { count: "exact", head: true })
-          .eq("account_id", account.id as string);
-        evidenceCount = evCount ?? 0;
-      }
-    }
-
-    // Saved report sections — keyed on the ANALYSIS only (S18-B review P1).
-    // report_sections is unique per (analysis_id, section_id, depth) and the
-    // analysis is already the owner's (dataEmail), so a section unlocked by
-    // the owner or by any editor is unlocked for everyone on the project —
-    // filtering by the caller's user_id made a member re-buy it and the
-    // upsert then hid it from the owner.
-    if (latestAnalysisId) {
-      const { data: sectionsData } = await supabase
-        .from("report_sections")
-        .select("section_id, depth, content, word_count, credits_cost")
-        .eq("analysis_id", latestAnalysisId)
-        .order("created_at", { ascending: true });
-
-      if (sectionsData) {
-        savedSections = sectionsData.map((s) => ({
-          section_id: s.section_id as string,
-          depth: s.depth as string,
-          content: s.content as string,
-          word_count: (s.word_count as number) ?? 0,
-          credits_cost: (s.credits_cost as number) ?? 0,
-        }));
-      }
-    }
-
-    // Share link views
-    const { data: userScores } = await supabase
-      .from("scores")
-      .select("id, created_at")
-      .eq("email", user.email)
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    if (userScores && userScores.length > 0) {
-      latestScoreId = userScores[0].id as string;
-      const scoreIds = userScores.map((s) => s.id as string);
-      const { count: viewCount } = await supabase
-        .from("score_views")
-        .select("id", { count: "exact", head: true })
-        .in("score_id", scoreIds);
-      shareViews = viewCount ?? 0;
-    }
-
-    // User actions
-    const { data: actionsData } = await supabase
-      .from("user_actions")
-      .select("id, action_type, action_label, dimension, svi_impact_estimate, completed_at")
-      .eq("email", user.email)
-      .order("completed_at", { ascending: false })
-      .limit(10);
-
-    if (actionsData) {
-      userActions = actionsData.map((a) => ({
-        id: a.id as string,
-        action_type: a.action_type as string,
-        action_label: a.action_label as string,
-        dimension: a.dimension as string | null,
-        svi_impact_estimate: (a.svi_impact_estimate as number) ?? 0,
-        completed_at: a.completed_at as string,
-      }));
-    }
-    // GitHub evidence (Product Activity)
-    if (accountId) {
-      const { data: ghEv } = await supabase
-        .from("svi_evidence")
-        .select("label, value_or_url, verified_at")
-        .eq("account_id", accountId)
-        .eq("evidence_type", "github_repo")
-        .order("verified_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (ghEv?.value_or_url) {
-        const parsed = parseRepoInput(ghEv.value_or_url as string);
-        if (parsed) {
-          try {
-            const stats = await fetchRepoStats(parsed.owner, parsed.repo);
-            if (stats) {
-              githubEvidence = {
-                label: ghEv.label as string,
-                url: stats.url,
-                commitsLast90: stats.commitsLast90,
-                stars: stats.stars,
-                pushedAt: stats.pushedAt,
-              };
-            } else {
-              githubEvidence = {
-                label: ghEv.label as string,
-                url: ghEv.value_or_url as string,
-                commitsLast90: null,
-                stars: null,
-                pushedAt: null,
-              };
-            }
-          } catch {
-            githubEvidence = {
-              label: ghEv.label as string,
-              url: ghEv.value_or_url as string,
-              commitsLast90: null,
-              stars: null,
-              pushedAt: null,
-            };
-          }
-        }
-      }
-    }
-
-    // Shareholders for cap table mini chart
-    if (accountId) {
-      const { data: shData } = await supabase
-        .from("shareholders")
-        .select("name, role, shares_held")
-        .eq("account_id", accountId);
-      if (shData && shData.length > 0) {
-        const totalShares = shData.reduce((sum, s) => sum + Number(s.shares_held ?? 0), 0);
-        shareholders = shData.map((s) => ({
-          name: (s.name as string) ?? "Unknown",
-          percentage: totalShares > 0 ? (Number(s.shares_held ?? 0) / totalShares) * 100 : 0,
-          color: (s.role as string) === "founder" ? "#2563EB" : (s.role as string) === "investor" ? "#F59E0B" : "#10B981",
-        }));
-        totalShareCount = totalShares;
-      }
-    }
-
-    // G8-P4: evaluation_criteria for phase gate computation.
-    if (accountId) {
-      let criteriaQ = supabase
-        .from("evaluation_criteria")
-        .select("criterion_key, quality_level")
-        .eq("account_id", accountId);
-      if (projectId) criteriaQ = criteriaQ.eq("project_id", projectId);
-      const { data: criteriaData } = await criteriaQ;
-      if (criteriaData) {
-        phaseGateCriteria = criteriaData.map((c) => ({
-          criterion_key: c.criterion_key as string,
-          quality_level: c.quality_level as string | null,
-        }));
-      }
-    }
-  }
-
-  // ── Derived values ───────────────────────────────────────────────────────
-  const sviScore = analysis?.totalSVI ?? null;
-  const delta = previousSVI != null && sviScore != null ? sviScore - previousSVI : weeklyDelta ?? null;
-  // S7-A: one phase notion — max(SVI band, projects.growth_phase_current).
-  const rawCurrentPhase = activeProject?.growth_phase_current ?? null;
-  const phase = resolveFounderNavPhase({ svi: sviScore, growthPhaseId: rawCurrentPhase });
-  const phaseName = NAV_PHASE_NAMES[phase] ?? NAV_PHASE_NAMES[0];
-
-  // G8-P4: compute phase gate result for the NextUnlockCard.
-  const phaseGateCurrentPhase = isGrowthPhaseId(rawCurrentPhase) ? rawCurrentPhase : null;
-  const phaseGateDimensions = extractSviDimensions(
-    analysis ? (analysis as unknown as { subs?: unknown }) : null,
-  );
-  const phaseGateResult = phaseGateCurrentPhase
-    ? computePhaseGate({
-        currentPhase: phaseGateCurrentPhase,
-        criteria: phaseGateCriteria,
-        dimensions: phaseGateDimensions,
-      })
-    : null;
-  const phaseGateTopBlockers = phaseGateResult ? topBlockers(phaseGateResult, 3) : [];
-  // Next action text: prefer the phase gate detail when blockers exist,
-  // else fall back to the nudge engine's "advance phase" message.
-  const phaseGateNextAction: string | null =
-    phaseGateTopBlockers.length > 0
-      ? phaseGateTopBlockers[0].detail
-      : phaseGateResult
-        ? `All exit conditions for "${phaseGateResult.currentPhaseLabel}" are met — you're ready to advance.`
-        : null;
-  const readiness = sviScore != null ? Math.min(100, Math.round(sviScore * 0.8 + evidenceCount * 2)) : 0;
-  const valuation = estimateValuation(sviScore);
-  const nextAction = computeNextAction(sviScore);
-  // SCN POSITION: rank the founder's SVI against the AU cohort distribution for their stage.
-  const scnStage = analysis?.stage ?? phase;
-  const scnPercentile =
-    sviScore != null ? Math.round(getSVIPercentile(sviScore, scnStage)) : null;
-  // SCN DIRECTION: sequenced 3-step route driven by weakest layer + stage.
-  const directionSteps = computeDirectionSteps(analysis, scnStage);
-  const weakestLayer = weakestLayerLabel(analysis?.subs);
-  const directionStageLabel = analysis?.stageLabel ?? phaseName;
-  const projectName = activeProject?.name ?? startupName ?? user.startupName ?? null;
-
-  // AI evaluation summary — aggregate every score run + deep-dive from every
-  // AI analysis the user has run. Nullable because a brand-new user has no
-  // startup_score_history rows yet.
-  const aiSummaries = await getAllStartupSummaries(user.id).catch(() => []);
-  const primaryAiSummary = aiSummaries[0] ?? null;
-  const ideaSummary = rawInput ? rawInput.slice(0, 200) : analysis?.summary?.slice(0, 200) ?? null;
-
-  // Money Radar tile (T0248) — never lets a funding read break the dashboard.
-  // S18-B review P2-7: the OWNER's project data (report, matches, data room),
-  // the CALLER's entitlement + credits (creditNote on the tile for a member).
-  const moneyRadar = await getMoneyRadarTileData(user, activeProject ?? null, {}, { ownerUserId, dataEmail }).catch((err) => {
-    console.warn("[dashboard] money radar tile", err instanceof Error ? err.message : String(err));
-    return null;
+  // ── Phase + derived values ────────────────────────────────────────────────
+  const { analysis, sviScore, delta } = standing;
+  // Declared 12-phase id wins; a scored founder with none declared gets the
+  // earliest phase of their SVI band; nothing scored → phase 0 (start here).
+  const declared = activeProject?.growth_phase_current ?? null;
+  const growthPhaseId = isGrowthPhaseId(declared) ? declared : null;
+  const effectivePhase = growthPhaseId ?? (sviScore != null ? growthPhaseFromNavPhase(navPhaseFromSvi(sviScore)) : null);
+  const navPhase = resolveFounderNavPhase({ svi: sviScore, growthPhaseId });
+  const evidence = deriveEvidenceGaps({
+    evidenceRows: evidenceReads.evidenceRows,
+    growthPhaseId,
+    criteria: evidenceReads.criteria,
+    subs: analysis?.subs ?? null,
   });
-  const moneyRadarCreditNote = isMember ? creditChargeNote(scope) : null;
-
-  // For the LivingSVIDashboard
-  const computedDelta = previousSVI != null && analysis ? analysis.totalSVI - previousSVI : undefined;
-  const analysisWithDelta: SVIAnalysis | null = analysis
-    ? {
-        ...analysis,
-        weeklyDelta: weeklyDelta ?? computedDelta ?? analysis.weeklyDelta,
-      }
-    : null;
-
-  // Recent 5 reports for the summary card
-  const displayReports = recentReports.slice(0, 5);
-
-  // Reseller sandbox flag — controls the persistent AUP banner (CLO D4-CLO-06).
-  const isSandbox = await getCurrentProjectIsSandbox();
+  const topMoney = moneyRadar?.top3[0] ?? null;
+  const step = recommendNextStep({
+    currentPhase: effectivePhase ? 1 : 0,
+    growthPhaseId: effectivePhase,
+    planId: user.plan,
+    signals: {
+      topEvidenceGapPts: evidence.gaps[0]?.pts ?? null,
+      topMoney: topMoney ? { label: topMoney.name, amountAud: topMoney.amount_max_aud, closesAt: topMoney.closes_at } : null,
+    },
+  });
+  const percentile = sviScore != null ? Math.round(getSVIPercentile(sviScore, analysis?.stage ?? navPhase)) : null;
+  const startupName = activeProject?.name ?? standing.startupName ?? user.startupName ?? null;
+  const ctx: LandingContext = { phase: effectivePhase ?? "none", plan: user.plan ?? "free", persona: "founder" };
+  const blocks = isMember ? LANDING_BLOCKS.filter((b) => b !== "money-on-the-table") : LANDING_BLOCKS;
+  const emptyBlocks = [
+    sviScore == null && "where-you-stand",
+    step.href === "/analyze" && "next-best-action",
+    !isMember && (!moneyRadar || moneyRadar.state === "no_profile") && "money-on-the-table",
+    evidence.presentCount === 0 && "evidence-to-add",
+    reports.length === 0 && "your-reports",
+  ].filter((b): b is string => typeof b === "string");
+  const ownerLabel = isMember ? dataEmail.split("@")[0] : null;
 
   return (
-    <WorkspaceLayout user={user} startupName={startupName} currentPhase={phase} isSandbox={isSandbox}>
+    <WorkspaceLayout user={user} startupName={startupName ?? undefined} currentPhase={navPhase} isSandbox={isSandbox}>
       <PageTracker page="dashboard" />
+      <LandingViewedTracker ctx={ctx} blocks={blocks} emptyBlocks={emptyBlocks} />
       {sp.onboarding === "complete" && <OnboardingWelcomeModal />}
 
-      <div className="max-w-5xl mx-auto px-6 pb-24 pt-6 space-y-6">
-        {/* ── Role hero + guided tour launcher (role-based-2026-07-25) ──── */}
+      <div className="mx-auto max-w-6xl space-y-6 px-6 pb-24 pt-6" data-founder-landing data-landing-phase={ctx.phase}>
         <RoleLandingIntro role="founder" variant="compact" hasGlobalSpotlight />
 
-        {isMember && !canEdit && (
-          <ViewOnlyNote role={role} action="run analyses, upload evidence or unlock report sections" />
-        )}
+        {isMember && !canEdit && <ViewOnlyNote role={role} action="run analyses, upload evidence or unlock report sections" />}
 
-        {/* ── Banners ───────────────────────────────────────────────────────── */}
-        {sp.checkout === "success" && (
-          <div className="flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
+        {/* ONE banner slot — highest-priority system message, never stacked (§B.1). */}
+        {sp.checkout === "success" ? (
+          <div className="flex items-start gap-3 rounded-xl border border-bull/30 bg-bull/10 p-4" data-landing-banner="checkout">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-bull" aria-hidden="true" />
             <div>
-              <p className="font-semibold text-emerald-300">
-                Your {sp.plan ?? "new"} plan is now active!
-              </p>
-              <p className="mt-1 text-sm text-muted">
-                Payment confirmed. All plan features are unlocked and ready to use.
-              </p>
+              <p className="font-semibold text-primary">Your {sp.plan ?? "new"} plan is now active.</p>
+              <p className="mt-1 text-sm text-secondary">Payment confirmed. All plan features are unlocked and ready to use.</p>
             </div>
           </div>
-        )}
-        {sp.welcome === "1" && (
-          <div className="flex items-start gap-3 rounded-xl border border-action/25 bg-action/5 p-4">
-            <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-action" />
+        ) : sp.welcome === "1" ? (
+          <div className="flex items-start gap-3 rounded-xl border border-action/25 bg-action/5 p-4" data-landing-banner="welcome">
+            <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-action" aria-hidden="true" />
             <div>
-              <p className="font-semibold text-ink-100">
-                Welcome to BlockID. Your account is live.
-              </p>
-              <p className="mt-1 text-sm text-muted">
-                Run your first SVI analysis to unlock personalised startup guidance.
-              </p>
+              <p className="font-semibold text-primary">Welcome to BlockID. Your account is live.</p>
+              <p className="mt-1 text-sm text-secondary">Run your first SVI analysis to unlock personalised startup guidance.</p>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {/* ── First-run: no SVI history yet — swap the wall of "—" for a
-              friendly onboarding panel + three quick-start cards. All other
-              dashboard widgets still render below, but a founder landing
-              here fresh sees a single clear next step first. ────────────── */}
-        {sviScore == null && (
-          <EmptyDashboardState
-            variant="dark"
-            eyebrow="Welcome to BlockID"
-            title="Run your first SVI score"
-            body="You have not run a Startup Value Index analysis yet. It takes under 60 seconds and unlocks a personalised advisor tuned to your stage — free."
-            primaryCta={{ href: "/analyze", label: "Score my startup" }}
-            cards={[
-              {
-                href: "/how-it-works",
-                icon: Lightbulb,
-                title: "What is the SVI?",
-                body: "How the 8-dimension index is calibrated to Australian pre-seed and seed cohorts.",
-              },
-              {
-                href: "/guides/valuation-methods",
-                icon: Target,
-                title: "How the valuation works",
-                body: "The four methods behind the dollar range that comes with every score.",
-              },
-              {
-                href: "/demo",
-                icon: Sparkles,
-                title: "Book a walkthrough",
-                body: "See how a founder like you turns an SVI score into an investor-ready data room.",
-              },
-            ]}
-          />
-        )}
-
-        {/* ── Journey Progress Bar ──────────────────────────────────────────── */}
-        <JourneyBar currentPhase={phase} sviScore={sviScore ?? 0} />
-
-        {/* ── ux-ia-startup-flow-v1 §C.4 — full 12-phase step ladder ────────── */}
-        <JourneyStepLadder currentPhase={phase} mode="coarse" />
-
-        {/* ── SCN POSITION hero — "Where am I?" — next to the Money Radar tile
-              (G11 §4i D-2 / SOT G9 #5: a live founder-relevant metric above
-              the fold). Stacks on mobile, 3:2 from lg. ─────────────────── */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5" data-dashboard-first-row>
-          <div className="lg:col-span-3">
-            <ScnPositionHero
-              sviScore={sviScore}
-              stageLabel={phaseName}
-              percentile={scnPercentile}
-              valuationLabel={valuation.value}
-              phase6={phase}
-            />
-          </div>
-          {moneyRadar && (
-            <div className="lg:col-span-2">
-              <MoneyRadarTile data={moneyRadar} creditNote={moneyRadarCreditNote} />
-            </div>
-          )}
-        </div>
-
-        {/* ── Value Impact Banner — BlockID value delivered to this founder ── */}
-        {sviScore != null && (
-          <ValueImpactBanner
-            sviFirst={sviHistory.length > 0 ? sviHistory[0].total_svi : null}
-            sviCurrent={sviScore}
-            readinessPct={readiness}
-            evidenceCount={evidenceCount}
-            actionsCompleted={userActions.filter(a => a.completed_at).length}
-            startupName={projectName}
-          />
-        )}
-
-        {/* ── SVI Dimension Bar Chart — visual 8-dimension breakdown ─────────── */}
-        {analysis?.dimensionScores && Object.keys(analysis.dimensionScores).length > 0 && (
-          <SviDimensionChart dimensionScores={analysis.dimensionScores as Record<string, number>} />
-        )}
-
-        {/* ── G8-P4: Next Unlock card — phase gate progress + top blockers.
-              Release QA-2 F8: a founder with no project / phase yet gets the
-              "start here" state (Phase 1 · 0 % → /analyze) instead of nothing. */}
-        {phaseGateResult ? (
-          <NextUnlockCard
-            currentPhase={phaseGateResult.currentPhase}
-            completionPct={phaseGateResult.completionPct}
-            topBlockers={phaseGateTopBlockers}
-            nextAction={phaseGateNextAction}
-          />
-        ) : (
-          <NextUnlockCard {...NEXT_UNLOCK_START_HERE} />
-        )}
-
-        {/* ── Row 2: Project Context Card (sticky header, not personalizable) ─ */}
-        {(analysis || projectName) && (
-          <div className="bg-surface-sunken border border-line-subtle backdrop-blur-sm rounded-2xl p-6 hover:border-action/25 transition-all duration-300">
-            <div className="flex items-start justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs uppercase tracking-wider text-action font-medium">
-                  Current Project
-                </p>
-                <h2 className="text-xl font-bold text-ink-100 mt-1">
-                  {projectName || "My Startup"}
-                </h2>
-                {ideaSummary && (
-                  <p className="text-sm text-muted mt-2 line-clamp-2">{ideaSummary}</p>
-                )}
-              </div>
-              {sviScore != null && (
-                <div className="text-right shrink-0 ml-4">
-                  <div className="text-3xl font-bold text-action">{sviScore}</div>
-                  <p className="text-xs text-muted">SVI Score</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ── Personalizable widget grid (iteration-12 T2; G4 #4 server sync) ──
-            Each child MUST carry a stable `data-widget-id` that is ALSO listed
-            in lib/dashboard/widget-ids.ts (widget-ids.test.ts fails on drift);
-            WidgetGrid persists per-founder pin + reorder + hide to localStorage
-            (instant) and app_users.dashboard_layout via /api/dashboard/layout
-            (cross-device). Wrapping conditionals inline so absent widgets
-            disappear from the grid entirely (sanitizeStoredIds self-heals
-            older saved orders). */}
-        <WidgetGrid>
-          {/* Health Score composite widget — first, full-width. */}
-          {activeProject?.id && (
-            <div data-widget-id="health-score" className="col-span-full">
-              <HealthScoreWidget startupId={activeProject.id} />
-            </div>
-          )}
-
-          {/* Row 1 metric cards — pinned by many founders for quick vitals. */}
-          <div
-            data-widget-id="metrics"
-            className="grid grid-cols-2 lg:grid-cols-5 gap-4"
-          >
-            <MetricCard
-              title="Company Value"
-              value={valuation.value}
-              trend={delta && sviScore ? Math.round(delta * (valuation.raw / (sviScore || 1)) / 1000) : undefined}
-              icon={BarChart3}
-            />
-            <MetricCard
-              title="SVI Score"
-              value={sviScore ?? "--"}
-              trend={delta ?? undefined}
-              icon={TrendingUp}
-            />
-            <MetricCard
-              title="Current Phase"
-              value={phaseName}
-              subtitle={`Phase ${phase + 1} of 6`}
-              icon={Target}
-            />
-            <MetricCard
-              title="Credits"
-              value={creditBalance % 1 === 0 ? creditBalance : creditBalance.toFixed(2)}
-              subtitle="remaining"
-              icon={Zap}
-            />
-            <MetricCard
-              title="Investor Ready"
-              value={`${readiness}%`}
-              icon={ShieldCheck}
-            />
-          </div>
-
-          {/* SVI radar / sub-score confidence (T0076). */}
-          {analysis?.subs && analysis.subs.length > 0 && (
-            <div data-widget-id="svi-radar">
-              <AIConfidenceActionPlan subs={analysis.subs} />
-            </div>
-          )}
-
-          {/* GitHub product-activity evidence (T0079). */}
-          {githubEvidence && (
-            <div data-widget-id="github-evidence">
-              <GitHubEvidenceCard
-                repoLabel={githubEvidence.label}
-                repoUrl={githubEvidence.url}
-                commitsLast90={githubEvidence.commitsLast90}
-                stars={githubEvidence.stars}
-                pushedAt={githubEvidence.pushedAt}
-              />
-            </div>
-          )}
-
-          {/* Guide-next — SCN direction navigator (or first-run CTA). */}
-          <div data-widget-id="guide-next">
-            {sviScore == null ? (
-              <div className="bg-surface-sunken border border-action/25 backdrop-blur-sm rounded-2xl p-6">
-                <div className="flex items-start gap-4">
-                  <Lightbulb className="h-8 w-8 text-action shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-bold text-ink-100">Recommended Next Step</p>
-                    <p className="text-sm text-muted mt-1">{nextAction.text}</p>
-                    <Link
-                      href={nextAction.url}
-                      className="mt-3 inline-flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-ink-950 hover:opacity-90 transition-opacity"
-                    >
-                      {nextAction.label}
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <ScnDirectionNavigator
-                stageLabel={directionStageLabel}
-                weakestLayer={weakestLayer}
-                steps={directionSteps}
-              />
-            )}
-          </div>
-
-          {/* Recent Reports + Quick Actions (kept together — same visual row). */}
-          <div
-            data-widget-id="reports-actions"
-            className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-          >
-            <div className="bg-surface-sunken border border-line-subtle backdrop-blur-sm rounded-2xl p-6 hover:border-action/25 transition-all duration-300">
-              <h3 className="text-sm font-bold text-ink-100 mb-4">Recent Reports</h3>
-              {displayReports.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-line-subtle px-4 py-8 text-center">
-                  <FileText className="h-6 w-6 mx-auto text-muted/40 mb-2" />
-                  <p className="text-sm text-muted">No reports yet.</p>
-                  <p className="text-xs text-muted/60 mt-1">
-                    Run an SVI analysis to generate your first report.
-                  </p>
-                  <Link
-                    href={sviScore == null ? "/analyze" : "/workspace/score/history"}
-                    className="mt-3 inline-flex items-center gap-1 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-white hover:bg-action/90"
-                  >
-                    {sviScore == null ? "Score my startup" : "Open my analyses"}
-                  </Link>
-                </div>
-              ) : (
-                <div className="space-y-0">
-                  {displayReports.map((r) => (
-                    <Link key={r.id} href={`/workspace/reports/${r.id}`}>
-                      <div className="flex items-center gap-3 py-3 border-b border-line-subtle last:border-0 hover:bg-surface-sunken -mx-2 px-2 rounded-lg transition-colors">
-                        <FileText className="h-4 w-4 text-muted shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-ink-100 truncate">
-                            {r.raw_input
-                              ? r.raw_input.slice(0, 60) + (r.raw_input.length > 60 ? "..." : "")
-                              : `Analysis ${new Date(r.created_at).toLocaleDateString("en-AU")}`}
-                          </p>
-                          <p className="text-xs text-muted">
-                            {new Date(r.created_at).toLocaleDateString("en-AU")} · SVI {r.total_svi}
-                          </p>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-muted/40 shrink-0" />
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-              {recentReports.length > 5 && (
-                <Link
-                  href="/workspace/reports"
-                  className="mt-3 block text-center text-xs font-medium text-action hover:text-action-hover"
-                >
-                  View all reports
-                </Link>
-              )}
-            </div>
-
-            <div className="bg-surface-sunken border border-line-subtle backdrop-blur-sm rounded-2xl p-6 hover:border-action/25 transition-all duration-300">
-              <h3 className="text-sm font-bold text-ink-100 mb-4">Quick Actions</h3>
-              <QuickActionsList hasAnalysis={!!analysis} phase={phase} />
-            </div>
-          </div>
-
-          {/* 90-day revenue tracker — Phase 3.1 (Stripe + GA4). */}
-          <div data-widget-id="revenue-90d">
-            <RevenueTrackerTile />
-          </div>
-
-          {/* Status cards row. */}
-          <div data-widget-id="status-cards">
-            <StatusCards
-              sviScore={sviScore}
-              evidenceCount={evidenceCount}
-              phase={phase}
-              phaseName={phaseName}
-              hasCapTable={shareholders.length > 0}
-              hasEquity={shareholders.length > 1}
-            />
-          </div>
-
-          {/* Data-room readiness (T0110) — evidence family. */}
-          <div data-widget-id="data-room">
-            <DataRoomReadinessCard />
-          </div>
-
-          {/* AI evaluation summary — every score run + deep-dive aggregated. */}
-          {primaryAiSummary && (
-            <div data-widget-id="ai-eval-summary">
-              <AIEvaluationSummary summary={primaryAiSummary} />
-            </div>
-          )}
-
-          {/* SVI trend-line history (T0081). */}
-          {sviHistory.length > 0 && (
-            <div data-widget-id="svi-trend">
-              <ScoreHistoryChart
-                history={sviHistory}
-                startupName={projectName ?? undefined}
-              />
-            </div>
-          )}
-
-          {/* Cohort benchmark CTA (T0090). */}
-          <div data-widget-id="cohort-benchmark">
-            <Link
-              href="/workspace/score/benchmark"
-              className="bg-surface-sunken border border-line-subtle backdrop-blur-sm flex items-center justify-between gap-4 rounded-2xl p-5 hover:border-action/25 transition-all duration-300"
-            >
-              <div className="flex items-center gap-3">
-                <BarChart3 className="h-5 w-5 text-action" />
-                <div>
-                  <p className="text-sm font-semibold text-ink-100">
-                    See your cohort percentile
-                  </p>
-                  <p className="text-xs text-muted">
-                    Compare your SVI against anonymised AU pre-seed/seed startups.
-                  </p>
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted/50" />
-            </Link>
-          </div>
-
-          {/* Cap Table + Activity Feed row. */}
-          <div
-            data-widget-id="cap-activity"
-            className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-          >
-            <CapTableMini shareholders={shareholders} totalShares={totalShareCount} />
-            <ActivityFeed rawActions={
-              userActions.map(a => ({ action_type: a.action_type, description: a.action_label, created_at: a.completed_at }))
-            } />
-          </div>
-
-          {/* Growth roadmap. */}
-          <div data-widget-id="growth-roadmap">
-            <GrowthRoadmap currentPhase={phase} />
-          </div>
-
-          {/* Growth phase progress dashboard. */}
-          <div data-widget-id="growth-progress">
-            <GrowthProgressDashboard />
-          </div>
-        </WidgetGrid>
-
-        {/* ── Row 8: Living SVI Dashboard ───────────────────────────────────── */}
-        {analysisWithDelta && (
-          <LivingSVIDashboard
-            analysis={analysisWithDelta}
-            sviHistory={sviHistory}
-            recentReports={recentReports}
-            savedSections={savedSections}
-            snapshotHistory={snapshotHistory}
+        <LandingGrid>
+          <WhereYouStand
+            ctx={ctx}
+            sviScore={sviScore}
+            delta={delta}
+            percentile={percentile}
+            growthPhaseId={growthPhaseId}
+            stageLabel={analysis?.stageLabel ?? null}
+            subs={analysis?.subs ?? null}
             startupName={startupName}
-            userEmail={user.email}
+            scoredAt={standing.scoredAt}
             readOnly={!canEdit}
-            creditBalance={creditBalance}
-            evidenceCount={evidenceCount}
-            shareViews={shareViews}
-            analysisId={latestScoreId}
-            lastAnalysisDate={
-              recentReports.length > 0 ? recentReports[0].created_at : undefined
-            }
-            previousSVI={previousSVI}
-            userActions={userActions}
-            userProfile={{
-              displayName: user.displayName,
-              startupName: user.startupName,
-              startupStage: user.startupStage,
-              industry: user.industry,
-              startupGoals: user.startupGoals,
-            }}
           />
-        )}
+          <NextBestAction ctx={ctx} step={step} growthPhaseId={effectivePhase} ownerLabel={ownerLabel} canEdit={canEdit} />
+          {!isMember && <MoneyOnTheTable ctx={ctx} data={moneyRadar} />}
+          <EvidenceToAdd ctx={ctx} result={evidence} canEdit={canEdit} />
+          <YourReports ctx={ctx} reports={reports} />
+        </LandingGrid>
       </div>
     </WorkspaceLayout>
   );

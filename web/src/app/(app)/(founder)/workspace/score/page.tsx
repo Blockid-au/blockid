@@ -10,15 +10,16 @@ import { Lightbulb, Target, Sparkles } from "lucide-react";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { EmptyDashboardState } from "@/components/dashboard/empty-dashboard-state";
 import { LivingSVIDashboard } from "@/components/dashboard/living-svi-dashboard";
-import { ScoreHistoryChart } from "@/components/svi/score-history-chart";
 import { SviScoreRing } from "@/components/svi/svi-score-ring";
-import { NextBestActionWidget } from "@/components/dashboard/next-best-action-widget";
-import { NextStepTile } from "@/components/dashboard/next-step-tile";
 import { InvestorReadinessTile } from "@/components/dashboard/investor-readiness-tile";
 import { CohortRetentionTile } from "@/components/dashboard/cohort-retention-tile";
 import { DeepValuationCard } from "@/components/dashboard/deep-valuation-card";
-import { ScnActionPlanCard } from "@/components/dashboard/scn-action-plan-card";
 import { SviExplainerCard } from "@/components/dashboard/svi-explainer-card";
+import { ValueImpactBanner } from "@/components/dashboard/value-impact-banner";
+import { ScoreWidgetGrid } from "@/components/dashboard/score-widget-grid";
+import { getAllStartupSummaries } from "@/lib/analysis/aggregate-startup-summary";
+import { fetchRepoStats, parseRepoInput } from "@/lib/github";
+import { resolveFounderNavPhase } from "@/lib/nav/founder-phase";
 import { AntlerSignalsCard } from "@/components/dashboard/antler-signals-card";
 import { AcceleratorReadinessCard } from "@/components/dashboard/accelerator-readiness-card";
 import { TechIntelligenceRow } from "@/components/founder/tech-intelligence-row";
@@ -95,6 +96,10 @@ export default async function SVIDashboardPage() {
     svi_contribution: number;
     valuation_multiplier_boost: number;
   } | null = null;
+  // G13-W3-IA3 — widget-grid reads moved here from the founder landing.
+  let githubEvidence: { label: string; url: string; commitsLast90: number | null; stars: number | null; pushedAt: string | null } | null = null;
+  let shareholders: Array<{ name: string; percentage: number; color: string }> = [];
+  let totalShareCount = 1_000_000;
 
   // S18-B — member-aware: the startup record (analyses, account, snapshots,
   // evidence) is read under the OWNER's email + project; a member never
@@ -213,6 +218,35 @@ export default async function SVIDashboardPage() {
         .select("id", { count: "exact", head: true })
         .eq("account_id", account.id);
       evidenceCount = evCount ?? 0;
+    }
+
+    // ── GitHub product-activity evidence + cap-table slices (widget grid) ──
+    if (accountId) {
+      const { data: ghEv } = await supabase
+        .from("svi_evidence")
+        .select("label, value_or_url, verified_at")
+        .eq("account_id", accountId)
+        .eq("evidence_type", "github_repo")
+        .order("verified_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const parsed = ghEv?.value_or_url ? parseRepoInput(ghEv.value_or_url as string) : null;
+      if (ghEv?.value_or_url && parsed) {
+        const stats = await fetchRepoStats(parsed.owner, parsed.repo).catch(() => null);
+        githubEvidence = stats
+          ? { label: ghEv.label as string, url: stats.url, commitsLast90: stats.commitsLast90, stars: stats.stars, pushedAt: stats.pushedAt }
+          : { label: ghEv.label as string, url: ghEv.value_or_url as string, commitsLast90: null, stars: null, pushedAt: null };
+      }
+      const { data: shData } = await supabase.from("shareholders").select("name, role, shares_held").eq("account_id", accountId);
+      if (shData && shData.length > 0) {
+        const total = shData.reduce((sum, r) => sum + Number(r.shares_held ?? 0), 0);
+        shareholders = shData.map((r) => ({
+          name: (r.name as string) ?? "Unknown",
+          percentage: total > 0 ? (Number(r.shares_held ?? 0) / total) * 100 : 0,
+          color: (r.role as string) === "founder" ? "#2563EB" : (r.role as string) === "investor" ? "#F59E0B" : "#10B981",
+        }));
+        totalShareCount = total;
+      }
     }
 
     // ── Saved report sections (for latest analysis) ──────────────────────
@@ -338,9 +372,15 @@ export default async function SVIDashboardPage() {
     weeklyDelta: weeklyDelta ?? computedDelta ?? analysis.weeklyDelta,
   };
 
+  // S7-A: one phase notion — max(SVI band, projects.growth_phase_current).
+  const navPhase = resolveFounderNavPhase({ svi: analysisWithDelta.totalSVI, growthPhaseId: scope?.project.growth_phase_current ?? null });
+  const delta = previousSVI != null ? analysisWithDelta.totalSVI - previousSVI : (weeklyDelta ?? null);
+  const aiSummary = (await getAllStartupSummaries(user.id).catch(() => []))[0] ?? null;
+  const projectName = scope?.project.name ?? startupName ?? null;
+
   // ── Render the living dashboard ──────────────────────────────────────────
   return (
-    <WorkspaceLayout user={user} startupName={startupName} isSandbox={isSandbox}>
+    <WorkspaceLayout user={user} startupName={startupName} isSandbox={isSandbox} currentPhase={navPhase}>
       <div className="max-w-5xl mx-auto px-6 pb-24 pt-6 space-y-6">
         {isMember && !canEdit && (
           <ViewOnlyNote role={role} action="run analyses or unlock report sections" />
@@ -354,9 +394,15 @@ export default async function SVIDashboardPage() {
           />
         </div>
 
-        {/* ── Next-Step nudge tile (round 5.1) — phase pill, next action,
-            missing list, readiness donut. Fetches /api/nudge/next-steps. ── */}
-        <NextStepTile />
+        {/* ── Value delivered so far (moved here from the landing, §B.1) ── */}
+        <ValueImpactBanner
+          sviFirst={sviHistory.length > 0 ? sviHistory[0].total_svi : null}
+          sviCurrent={analysisWithDelta.totalSVI}
+          readinessPct={Math.min(100, Math.round(analysisWithDelta.totalSVI * 0.8 + evidenceCount * 2))}
+          evidenceCount={evidenceCount}
+          actionsCompleted={userActions.filter((a) => a.completed_at).length}
+          startupName={projectName}
+        />
 
         {/* ── Investor readiness tile (P5b) — per-phase score + 12-phase
             mini-series + top-3 missing. Reuses the /api/nudge/next-steps
@@ -385,13 +431,23 @@ export default async function SVIDashboardPage() {
             ingest lives on the R&D roadmap (P5-cohort-ingest). ── */}
         <CohortRetentionTile />
 
-        {/* ── SVI Score History Trend Chart (T0081) ──────────────────────── */}
-        {sviHistory.length > 0 && (
-          <ScoreHistoryChart
-            history={sviHistory}
-            startupName={startupName}
-          />
-        )}
+        {/* ── Personalisable widget grid (moved here from the landing) ──── */}
+        <ScoreWidgetGrid
+          projectId={projectId}
+          analysis={analysisWithDelta}
+          sviScore={analysisWithDelta.totalSVI}
+          delta={delta}
+          phase={navPhase}
+          creditBalance={creditBalance}
+          evidenceCount={evidenceCount}
+          sviHistory={sviHistory}
+          projectName={projectName}
+          githubEvidence={githubEvidence}
+          shareholders={shareholders}
+          totalShares={totalShareCount}
+          userActions={userActions}
+          aiSummary={aiSummary}
+        />
 
         <LivingSVIDashboard
           analysis={analysisWithDelta}
@@ -417,9 +473,6 @@ export default async function SVIDashboardPage() {
           }}
         />
 
-        {/* ── v2.4: SCN action plan — Your Number → What to do ─────── */}
-        <ScnActionPlanCard analysis={analysisWithDelta} />
-
         {/* ── v2.6: Why your SVI is what it is — radar + click-through ── */}
         <SviExplainerCard analysis={analysisWithDelta} />
 
@@ -434,13 +487,6 @@ export default async function SVIDashboardPage() {
 
         {/* ── Tech Intelligence row — shows if tech analysis exists ──── */}
         <TechIntelligenceRow techAnalysis={techAnalysis} />
-
-        {/* ── Next-Best-Action widget (T0103) ─────────────────────────── */}
-        {latestAnalysisId && (
-          <div className="rounded-2xl border border-border bg-card p-6">
-            <NextBestActionWidget startupId={latestAnalysisId} />
-          </div>
-        )}
       </div>
     </WorkspaceLayout>
   );
