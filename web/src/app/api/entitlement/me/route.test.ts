@@ -385,6 +385,16 @@ describe("GET /api/entitlement/me — resolveSegment", () => {
     expect(ts.maybeSingleCalls).toBeGreaterThanOrEqual(2);
   });
 
+  it("body.account_type mirrors app_users.account_type (persona resolution needs it — W1 review P2); null when absent", async () => {
+    tableState("app_users").data = { segment: "founder", account_type: "reseller", jurisdiction: null };
+    const body = (await (await GET()).json()) as { account_type: string | null; segment: string };
+    expect(body.account_type).toBe("reseller");
+    expect(body.segment).toBe("founder");
+    tableState("app_users").data = { segment: "founder", jurisdiction: null };
+    const body2 = (await (await GET()).json()) as { account_type: string | null };
+    expect(body2.account_type).toBeNull();
+  });
+
   it("uses maybeSingle() (not .single()) so a missing row does not throw", async () => {
     tableState("app_users").data = null;
     const res = await GET();
@@ -563,11 +573,12 @@ describe("GET /api/entitlement/me — response envelope", () => {
     expect(res.headers.get("Content-Type")?.toLowerCase()).toContain("application/json");
   });
 
-  it("carries exactly the 7 top-level keys the useEntitlement hook consumes: user_id, plan, segment, jurisdiction, legal_review_passed, entitlements, trial (no extras leaked, no keys renamed)", async () => {
+  it("carries exactly the 8 top-level keys the useEntitlement hook consumes: user_id, plan, segment, account_type, jurisdiction, legal_review_passed, entitlements, trial (no extras leaked, no keys renamed)", async () => {
     tableState("app_users").data = { segment: "growth", jurisdiction: "AU" };
     const body = await (await GET()).json();
     expect(Object.keys(body).sort()).toEqual(
       [
+        "account_type",
         "entitlements",
         "jurisdiction",
         "legal_review_passed",

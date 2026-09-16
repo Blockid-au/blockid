@@ -23,6 +23,7 @@ interface EntitlementMeResponse {
   user_id: string | null;
   plan: string;
   segment: string;
+  account_type: string | null;
   jurisdiction: string | null;
   legal_review_passed: boolean;
   entitlements: string[];
@@ -40,6 +41,7 @@ export async function GET(): Promise<NextResponse> {
       user_id: null,
       plan: "free",
       segment: "founder",
+      account_type: null,
       jurisdiction: null,
       legal_review_passed: false,
       entitlements,
@@ -51,7 +53,7 @@ export async function GET(): Promise<NextResponse> {
   }
 
   const plan = user.plan ?? "free";
-  const segment = await resolveSegment(user.id);
+  const { segment, accountType } = await resolveSegmentAndAccountType(user.id);
   const jurisdiction = await resolveJurisdiction(user.id);
 
   const uwp: UserWithPlan = {
@@ -90,6 +92,7 @@ export async function GET(): Promise<NextResponse> {
     user_id: user.id,
     plan,
     segment,
+    account_type: accountType,
     jurisdiction,
     legal_review_passed: false,
     entitlements: mergedEntitlements,
@@ -107,19 +110,30 @@ export async function GET(): Promise<NextResponse> {
 // value is out of range.
 // ---------------------------------------------------------------------------
 
-async function resolveSegment(userId: string): Promise<string> {
+/**
+ * `segment` + `account_type` in one read. `account_type` (reseller /
+ * affiliate / journalist / investor / …) is what `resolvePersona()` needs to
+ * pick the console bridge; without it every reseller rendered the founder
+ * sidebar (W1 review P2).
+ */
+async function resolveSegmentAndAccountType(userId: string): Promise<{ segment: string; accountType: string | null }> {
   const supabase = getSupabaseAdmin();
-  if (!supabase) return "founder";
+  if (!supabase) return { segment: "founder", accountType: null };
   try {
     const { data } = await supabase
       .from("app_users")
-      .select("segment")
+      .select("segment, account_type")
       .eq("id", userId)
       .maybeSingle();
-    const seg = (data as { segment?: string } | null)?.segment;
-    return typeof seg === "string" && seg.length > 0 ? seg : "founder";
+    const row = data as { segment?: string | null; account_type?: string | null } | null;
+    const seg = row?.segment;
+    const at = row?.account_type;
+    return {
+      segment: typeof seg === "string" && seg.length > 0 ? seg : "founder",
+      accountType: typeof at === "string" && at.length > 0 ? at : null,
+    };
   } catch {
-    return "founder";
+    return { segment: "founder", accountType: null };
   }
 }
 

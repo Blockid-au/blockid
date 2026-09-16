@@ -63,6 +63,7 @@ interface PersistedState {
   done: boolean;
   industry: string | null;
   stage?: string | null;
+  sviTotal?: number | null;
 }
 
 interface SnapshotRow {
@@ -107,11 +108,14 @@ function toDimStates(raw: unknown): Record<string, DimState> {
  * the report at least shows the score table + rings, even without markdown. */
 function fallbackDimStatesFromScores(raw: unknown): Record<string, DimState> {
   const out: Record<string, DimState> = {};
-  const map = raw && typeof raw === "object" ? (raw as Record<string, { score?: number; priority?: string }>) : {};
+  // `dimension_scores` is `{ftv: 71, …}` (a bare number per dim) on every
+  // stored row today; the `{score, priority}` object shape is accepted too.
+  const map = raw && typeof raw === "object" ? (raw as Record<string, number | { score?: number; priority?: string } | null>) : {};
   for (const k of DIM_KEYS) {
-    const v = map[k];
+    const rawV = map[k];
+    const v = typeof rawV === "number" ? { score: rawV, priority: undefined } : rawV && typeof rawV === "object" ? rawV : null;
     out[k] = {
-      status: v ? "complete" : "idle",
+      status: v && typeof v.score === "number" ? "complete" : "idle",
       score: typeof v?.score === "number" ? v.score : null,
       markdown: null,
       insights: [],
@@ -230,6 +234,7 @@ export async function GET(
     done: true,
     industry: meta.industry ?? null,
     stage: meta.stageLabel ?? null,
+    sviTotal: typeof row.svi_total === "number" && Number.isFinite(row.svi_total) ? row.svi_total : null,
   };
 
   // G13-W1-R1: hand the client a stored ReportV2 when migration 0395 has

@@ -195,6 +195,30 @@ describe("upsertSuggestedTaxonomy — update (DQ-5 locks)", () => {
     expect((upd.payload!.confidence as Row).industry).toBeGreaterThanOrEqual(0.5);
   });
 
+  it("a thinner re-run with no opinion (no source, zero confidence) never downgrades a stored auto value (W1 review P2)", async () => {
+    state.queue.push({
+      table: "startup_taxonomy",
+      data: existingRow({
+        industry: "fintech", business_model: "transactional_fintech", hq_state: "NSW", stage_key: "seed",
+        sources: { industry: "auto", business_model: "auto", hq_state: "auto", stage_key: "auto" },
+        confidence: { industry: 0.85, business_model: 0.7, hq_state: 0.9, stage_key: 0.6 },
+      }),
+    });
+    const thin = suggestTaxonomy({ description: "We help businesses." }, NOW);
+    expect(thin.industry).toBe("unclassified");
+    expect(thin.sources.industry).toBeUndefined();
+    const res = await upsertSuggestedTaxonomy("p-1", thin);
+    expect(res.ok).toBe(true);
+    const upd = calls("startup_taxonomy").find((c) => c.op === "update")!;
+    // Only `suggested` (and non-zero confidences) refresh — no live column moves.
+    expect(upd.payload).not.toHaveProperty("industry");
+    expect(upd.payload).not.toHaveProperty("business_model");
+    expect(upd.payload).not.toHaveProperty("hq_state");
+    expect(upd.payload).not.toHaveProperty("stage_key");
+    expect((upd.payload!.confidence as Row).industry).toBe(0.85);
+    expect((upd.payload!.confidence as Row).hq_state).toBe(0.9);
+  });
+
   it("never overwrites a founder-sourced field; reports it in `differs`; still stores `suggested`", async () => {
     state.queue.push({
       table: "startup_taxonomy",

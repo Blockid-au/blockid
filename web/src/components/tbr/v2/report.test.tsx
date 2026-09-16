@@ -3,6 +3,8 @@
 // renderToStaticMarkup because this workspace does not install
 // @testing-library/react (see components/analyze/stage-banner.test.tsx).
 
+import { assertReportV2 } from "@/lib/report-v2/schema";
+import { fromSnapshot } from "@/lib/report-v2/adapter";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { demoReportV2, freeFixtureReportV2 } from "@/lib/report-v2/fixtures";
@@ -61,6 +63,14 @@ describe("<TbrReportV2>", () => {
       "tbr-action-plan",
       "tbr-appendix",
     ]);
+  });
+
+  it("a report with no scored dimension shows the valuation as pending instead of the SVI-0 three-case range", () => {
+    const empty = assertReportV2(fromSnapshot({ dimStates: {} }));
+    expect(empty.cover.svi.band).toBe("pending");
+    const html = renderToStaticMarkup(<TbrReportV2 report={empty} />);
+    expect(html).toContain("data-valuation-pending");
+    expect(html).not.toMatch(/A\$\s?0\.[6-9]M/);
   });
 
   it("Vietnamese locale uses titleVi for chapters", () => {

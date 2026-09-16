@@ -26,7 +26,11 @@ function noteMissingColumn(table: string, column: string, message: string): void
 
 function isMissingColumn(message: string | undefined): boolean {
   const m = (message ?? "").toLowerCase();
-  return m.includes("does not exist") || m.includes("could not find") || m.includes("schema cache") || m.includes("column");
+  // PostgREST: "column svi_snapshots.report_v2 does not exist" / "Could not
+  // find the 'report_v2' column of 'svi_snapshots' in the schema cache".
+  // A bare "column" match swallowed every other failure (size, format) as
+  // "apply 0395" — require the missing-column phrasing.
+  return m.includes("does not exist") || m.includes("could not find") || m.includes("schema cache");
 }
 
 /** Stored `svi_snapshots.report_v2` when present and valid, else null. */

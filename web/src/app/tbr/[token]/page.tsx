@@ -61,11 +61,13 @@ interface PersistedState {
   industry: string | null;
   stage?: string | null;
   snapshotId?: string | null;
+  sviTotal?: number | null;
 }
 
 interface SnapshotRow {
   id: string;
   project_id: string | null;
+  svi_total: number | null;
   created_at: string;
   criterion_results: unknown;
   dim_results: unknown;
@@ -98,11 +100,14 @@ function toDimStates(raw: unknown): Record<string, DimState> {
 
 function fallbackFromScores(raw: unknown): Record<string, DimState> {
   const out: Record<string, DimState> = {};
-  const map = raw && typeof raw === "object" ? (raw as Record<string, { score?: number; priority?: string }>) : {};
+  // `dimension_scores` is `{ftv: 71, …}` (a bare number per dim) on every
+  // stored row today; the `{score, priority}` object shape is accepted too.
+  const map = raw && typeof raw === "object" ? (raw as Record<string, number | { score?: number; priority?: string } | null>) : {};
   for (const k of DIM_KEYS) {
-    const v = map[k];
+    const rawV = map[k];
+    const v = typeof rawV === "number" ? { score: rawV, priority: undefined } : rawV && typeof rawV === "object" ? rawV : null;
     out[k] = {
-      status: v ? "complete" : "idle",
+      status: v && typeof v.score === "number" ? "complete" : "idle",
       score: typeof v?.score === "number" ? v.score : null,
       markdown: null,
       insights: [],
@@ -122,7 +127,7 @@ async function fetchByToken(token: string): Promise<{ row: SnapshotRow; persiste
   const { data, error } = await supabase
     .from("svi_snapshots")
     .select(
-      "id, project_id, created_at, criterion_results, dim_results, dimension_scores, analysis_json",
+      "id, project_id, svi_total, created_at, criterion_results, dim_results, dimension_scores, analysis_json",
     )
     .eq("report_share_token", token)
     .maybeSingle();
@@ -147,6 +152,7 @@ async function fetchByToken(token: string): Promise<{ row: SnapshotRow; persiste
     done: true,
     industry: meta.industry ?? null,
     stage: meta.stageLabel ?? null,
+    sviTotal: typeof row.svi_total === "number" && Number.isFinite(row.svi_total) ? row.svi_total : null,
     snapshotId: row.id,
   };
   return { row, persisted };

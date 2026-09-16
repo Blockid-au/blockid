@@ -21,6 +21,20 @@ export function TbrValuation({ report, title }: { report: ReportV2; title: strin
   const free = report.tier === "free";
   const rangeBars = v.visuals.find((x) => x.kind === "range_bars");
   const others = v.visuals.filter((x) => x !== rangeBars);
+  // No scored dimension yet → the consensus would be the three-case model of
+  // SVI 0 (≈ A$0.6–0.9M), which reads as a real valuation. Say so instead.
+  if (report.cover.svi.band === "pending") {
+    return (
+      <TbrSection id={TBR_V2_SECTION_IDS.valuation} kicker="10" title={title}>
+        <div className="flex items-center gap-2">
+          <AgentBadge role="cfo" />
+        </div>
+        <p className="rounded-xl border border-dashed border-ink-300 p-4 text-sm text-ink-600 dark:border-ink-700 dark:text-ink-400" data-valuation-pending>
+          The indicative valuation is computed from the 8 scored dimensions. Run the analysis first — the range, five methods and comparables appear here once at least one dimension is scored.
+        </p>
+      </TbrSection>
+    );
+  }
   return (
     <TbrSection id={TBR_V2_SECTION_IDS.valuation} kicker="10" title={title}>
       <div className="flex items-center gap-2">
