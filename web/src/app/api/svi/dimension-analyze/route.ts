@@ -1,29 +1,52 @@
-// POST /api/svi/dimension-analyze
-//
-// Dimension-specific deep dive analysis. Aggregates all evidence for a given
-// SVI dimension and produces a detailed assessment.
+// POST /api/svi/dimension-analyze — per-dimension deep dive as a thin
+// re-run of the ONE report generator (S-R3, spec §C.1 / §C.12: "POST
+// {dims:['cgh']} re-runs only W4 for that dim; W1–W3 results reused from
+// the snapshot").
 //
 // Body: { dimension: 'ftv'|'mpc'|'ptd'|'tre'|'cgh'|'iri'|'lco'|'svm' }
-// Returns: { ok, analysis (markdown + JSON), dimension, balance, creditsUsed }
+// Returns: { ok, dimension, dimensionLabel, analysis (legacy JSON the panel
+//            renders: report / score / strengths / gaps / recommendations /
+//            benchmarkComparison / nextMilestone), chapter (DimensionChapter),
+//            balance, creditsUsed, creditNote }
+//
+// Credits: `dim_<dim>_analysis`, checked before and spent AFTER a usable
+// chapter is produced (transparent-pricing rule). The result is stored as an
+// evidence_analyses row exactly as before, so /admin/analyses/deep-dives
+// keeps reading the same shape.
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { callAI, isAIConfigured } from "@/lib/ai-client";
+import { isAIConfigured } from "@/lib/ai-client";
 import { aiCapacityResponse, isAICapacityError } from "@/lib/ai/capacity";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { findSVIAccountWithFallback, findLatestAnalysisWithFallback, creditChargeNote } from "@/lib/projects";
+import { creditChargeNote } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { apiRoute } from "@/lib/audit/api-route";
-import { legacyAnalyzeDimInfo } from "@/lib/report-pipeline/dimension-owners";
+import { DIM_ORDER, DIMENSION_OWNERS, type DimKey } from "@/lib/report-pipeline/dimension-owners";
+import { chapterToMarkdown, runReportPipeline } from "@/lib/report-pipeline/run-report-pipeline";
+import type { DimensionChapter } from "@/lib/report-v2/schema";
 
 export const dynamic = "force-dynamic";
 
-// G13-W1-R1: label / weight / focus come from the single ownership table
-// (report-pipeline/dimension-owners.ts, decision D8); `legacyAnalyzeDimInfo()`
-// is byte-identical to the map this route hardcoded, so the prompt is unchanged.
-const DIMENSION_INFO: Record<string, { label: string; weight: number; focus: string }> =
-  legacyAnalyzeDimInfo();
+/** The legacy deep-dive JSON the results panel renders, derived from the chapter. */
+function chapterToLegacyAnalysis(chapter: DimensionChapter): Record<string, unknown> {
+  const b = chapter.benchmark;
+  return {
+    report: chapterToMarkdown(chapter),
+    score: chapter.score,
+    strengths: chapter.strengths,
+    gaps: chapter.gaps,
+    recommendations: [
+      { action: chapter.nextAction.title, impact: chapter.nextAction.expectedLift >= 5 ? "high" : chapter.nextAction.expectedLift >= 2 ? "medium" : "low", effort: chapter.nextAction.window === "this_week" ? "low" : chapter.nextAction.window === "30d" ? "medium" : "high", timeline: chapter.nextAction.window.replace(/_/g, " ") },
+      ...chapter.criteria.filter((c) => c.nextAction).slice(0, 3).map((c) => ({ action: c.nextAction, impact: "medium", effort: "medium", timeline: "30d" })),
+    ],
+    benchmarkComparison: `${chapter.dim.toUpperCase()} ${chapter.score}/100 vs stage ${b.stage} cohort p25 ${b.p25} · p50 ${b.p50} · p75 ${b.p75}${typeof b.percentile === "number" ? ` (percentile ${b.percentile})` : ""}.`,
+    nextMilestone: chapter.nextAction.title,
+    phaseLens: chapter.phaseLens,
+    degraded: chapter.degraded ?? false,
+  };
+}
 
 async function POST_handler(request: Request) {
   const user = await getCurrentUser();
@@ -43,22 +66,16 @@ async function POST_handler(request: Request) {
   }
 
   const dim = body.dimension?.toLowerCase();
-  if (!dim || !DIMENSION_INFO[dim]) {
-    return NextResponse.json({
-      ok: false,
-      error: `Invalid dimension. Use: ${Object.keys(DIMENSION_INFO).join(", ")}`,
-    }, { status: 400 });
+  if (!dim || !(DIM_ORDER as readonly string[]).includes(dim)) {
+    return NextResponse.json({ ok: false, error: `Invalid dimension. Use: ${DIM_ORDER.join(", ")}` }, { status: 400 });
   }
+  const dimKey = dim as DimKey;
+  const label = DIMENSION_OWNERS[dimKey].promptCopy.analyzeLabel;
 
   const featureKey = `dim_${dim}_analysis`;
   const affordCheck = await canAfford(user.id, featureKey);
   if (!affordCheck.allowed) {
-    return NextResponse.json({
-      ok: false,
-      error: "Insufficient credits",
-      balance: affordCheck.balance,
-      cost: affordCheck.cost,
-    }, { status: 402 });
+    return NextResponse.json({ ok: false, error: "Insufficient credits", balance: affordCheck.balance, cost: affordCheck.cost }, { status: 402 });
   }
 
   const supabase = getSupabaseAdmin();
@@ -66,126 +83,59 @@ async function POST_handler(request: Request) {
     return NextResponse.json({ ok: false, error: "Database unavailable" }, { status: 503 });
   }
 
-  // S18-A — member-aware: the analysis is stored as an evidence_analyses
-  // row on the project's account → editor+ (viewer → 403 before any AI
-  // spend). Data under the OWNER's email; the caller's wallet pays.
+  // S18-A — member-aware: editor+ (viewer → 403 before any AI spend). Data
+  // under the OWNER's email; the caller's wallet pays.
   const { scope, denied } = await projectScopeOrDeny("editor");
   if (denied) return denied;
   const projectId = scope?.projectId ?? null;
   const dataEmail = scope?.dataEmail ?? user.email;
 
-  // Gather data — with fallback for legacy records (project_id NULL)
-  const account = await findSVIAccountWithFallback(dataEmail, projectId, undefined, {
-    callerEmail: user.email,
-  });
-
-  if (!account) {
-    return NextResponse.json({ ok: false, error: "No SVI account found" }, { status: 404 });
-  }
-
-  const latestAnalysis = await findLatestAnalysisWithFallback(
-    dataEmail,
-    projectId,
-    "raw_input, analysis_json",
-    { callerEmail: user.email },
-  );
-
-  // Evidence items for this dimension
-  const { data: dimEvidence } = await supabase
-    .from("svi_evidence")
-    .select("*")
-    .eq("account_id", account.id)
-    .eq("dimension", dim);
-
-  // All evidence (for cross-reference)
-  const { data: allEvidence } = await supabase
-    .from("svi_evidence")
-    .select("evidence_type, label, dimension, svi_impact, confidence_level")
-    .eq("account_id", account.id);
-
-  const analysis = latestAnalysis?.analysis_json as Record<string, unknown> | null;
-  const dims = analysis?.dimensionScores as Record<string, Record<string, unknown>> | undefined;
-  const dimScore = dims?.[dim];
-  const info = DIMENSION_INFO[dim];
-
-  const evidenceList = (dimEvidence ?? []).map((e: Record<string, unknown>) =>
-    `- [${e.evidence_type}/${e.confidence_level}] ${e.label} (+${e.svi_impact} SVI)`
-  ).join("\n");
-
   try {
-    const systemPrompt = `You are a senior startup analyst specializing in ${info.label} assessment.
-Write in a friendly, supportive mentor tone with Australian startup context.
-
-Return your analysis as ONLY valid JSON:
-{
-  "report": "detailed markdown report (500+ words covering all aspects of ${info.label})",
-  "score": 0-100,
-  "strengths": ["strength 1", "strength 2", "strength 3"],
-  "gaps": ["gap 1", "gap 2"],
-  "recommendations": [
-    { "action": "specific action", "impact": "high/medium/low", "effort": "low/medium/high", "timeline": "timeframe" }
-  ],
-  "benchmarkComparison": "How this startup compares to typical startups at this stage for ${info.label}",
-  "nextMilestone": "The single most impactful thing to do next for this dimension"
-}`;
-
-    const userMessage = `Analyze the ${info.label} dimension (${info.weight}% SVI weight) for this startup:
-
-**Startup:** ${account.startup_name ?? "Unknown"}
-**Current SVI:** ${account.current_svi ?? 100}
-**Stage:** ${account.current_stage ?? 0}/7
-**Current ${dim.toUpperCase()} Score:** ${dimScore?.score ?? "Not scored"}/100 (adjustment: ${dimScore?.adjustment ?? 0})
-
-**Analysis Focus:**
-${info.focus}
-
-**Evidence for this dimension (${(dimEvidence ?? []).length} items):**
-${evidenceList || "No evidence for this dimension yet"}
-
-**All Evidence (${(allEvidence ?? []).length} items across all dimensions):**
-${(allEvidence ?? []).map((e: Record<string, unknown>) => `- [${e.dimension}] ${e.label}`).join("\n") || "None"}
-
-**Startup Description:**
-${(String(latestAnalysis?.raw_input ?? "")).slice(0, 3000) || "No description available"}
-
-${dimScore?.evidence ? `**Known Evidence:** ${JSON.stringify(dimScore.evidence).slice(0, 500)}` : ""}
-${dimScore?.gaps ? `**Known Gaps:** ${JSON.stringify(dimScore.gaps).slice(0, 500)}` : ""}
-
-Provide a thorough ${info.label} assessment.`;
-
-    const { text } = await callAI({ userId: user.id,
-      system: systemPrompt,
-      user: userMessage,
-      maxTokens: 3072,
-      timeoutMs: 120_000,
-      interactive: true, // S32-F: synchronous founder wait
+    let chapter: DimensionChapter | null = null;
+    const result = await runReportPipeline({
+      userId: user.id,
+      ownerEmail: dataEmail,
+      ownerUserId: scope?.ownerUserId ?? user.id,
+      projectId,
+      tier: "standard",
+      dims: [dimKey],
+      persist: false,
+      onEvent: (e) => {
+        if (e.type === "dimension_complete" && e.dim === dimKey && e.chapter) chapter = e.chapter;
+      },
     });
-
-    let analysisData: Record<string, unknown>;
-    try {
-      analysisData = JSON.parse(text);
-    } catch {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        analysisData = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error("Could not parse AI response");
-      }
+    if (!result.ok) {
+      const status = result.error === "no_account" || result.error === "no_analysis" ? 404 : result.error === "db_unavailable" ? 503 : 500;
+      return NextResponse.json({ ok: false, error: result.message, retryable: status >= 500 }, { status });
+    }
+    const produced: DimensionChapter | null = chapter ?? result.chapters.find((c) => c.dim === dimKey) ?? null;
+    if (!produced) {
+      return NextResponse.json({ ok: false, error: "Dimension analysis failed. Please try again — no credits were charged.", retryable: true }, { status: 500 });
+    }
+    if (produced.degraded) {
+      // A deterministic card is not a paid deep dive — never charge for it.
+      return NextResponse.json({ ok: false, error: "Our AI service is busy. Please try again in 1-2 minutes — no credits charged.", retryable: true, degradeReason: produced.degradeReason }, { status: 429 });
     }
 
-    // Spend credits
-    const spend = await spendCredits(user.id, featureKey, { dimension: dim });
+    const analysisData = chapterToLegacyAnalysis(produced);
 
-    // Store as evidence analysis
+    // Spend credits (after success)
+    const spend = await spendCredits(user.id, featureKey, { dimension: dim, reportId: result.reportId });
+
+    // Store as evidence analysis (same shape as before — admin deep-dives page)
+    const { data: dimEvidence } = result.accountId
+      ? await supabase.from("svi_evidence").select("id").eq("account_id", result.accountId).eq("dimension", dim).limit(1)
+      : { data: null };
+    const first = (dimEvidence?.[0] ?? null) as { id?: string } | null;
     await supabase
       .from("evidence_analyses")
       .insert({
-        evidence_id: (dimEvidence?.[0] as Record<string, unknown>)?.id ?? null,
-        account_id: account.id,
+        evidence_id: first?.id ?? null,
+        account_id: result.accountId,
         tier: "standard",
         dimension: dim,
         feature_key: featureKey,
-        analysis_json: analysisData,
+        analysis_json: { ...analysisData, chapter: produced, pipeline_report_id: result.reportId },
         signals_extracted: {},
         svi_delta_applied: 0,
         credits_charged: FEATURE_COSTS[featureKey],
@@ -197,8 +147,10 @@ Provide a thorough ${info.label} assessment.`;
     return NextResponse.json({
       ok: true,
       dimension: dim,
-      dimensionLabel: info.label,
+      dimensionLabel: label,
       analysis: analysisData,
+      chapter: produced,
+      reportId: result.reportId,
       balance: spend.balance,
       creditsUsed: FEATURE_COSTS[featureKey],
       creditNote: creditChargeNote(scope),
@@ -206,7 +158,7 @@ Provide a thorough ${info.label} assessment.`;
   } catch (err) {
     if (isAICapacityError(err)) return aiCapacityResponse(err); // S31-A: 503 + Retry-After, never a 500
     const msg = err instanceof Error ? err.message : String(err);
-    const isTimeout = msg.includes("timeout") || msg.includes("Timeout");
+    const isTimeout = msg.includes("timeout") || msg.includes("Timeout") || msg.includes("deadline");
     const isRateLimit = msg.includes("429") || msg.includes("rate");
     console.error("[blockid:dimension-analyze]", msg);
     return NextResponse.json({

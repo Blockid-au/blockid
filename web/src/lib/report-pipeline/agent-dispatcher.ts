@@ -18,7 +18,7 @@
 // agents mis-formatted, and a mis-formatted answer is never presented as
 // if it had been validated.
 
-import { createHash } from "node:crypto";
+import { evidenceIdFor } from "./evidence-ids";
 
 import { z } from "zod";
 
@@ -143,19 +143,9 @@ export function areaForCriterion(criterion: CriterionKey): Area {
 // item's identity, shaped as an RFC-4122 v4 uuid. Deterministic means the
 // same evidence yields the same id on a re-run, so citations stay stable.
 
-export function evidenceIdFor(seed: string): string {
-  const h = createHash("sha256").update(seed).digest("hex");
-  const timeHiAndVersion = `4${h.slice(13, 16)}`;
-  const clockSeq =
-    ((parseInt(h[16], 16) & 0x3) | 0x8).toString(16) + h.slice(17, 20);
-  return [
-    h.slice(0, 8),
-    h.slice(8, 12),
-    timeHiAndVersion,
-    clockSeq,
-    h.slice(20, 32),
-  ].join("-");
-}
+// S-R3: the minting lives in ./evidence-ids.ts so GATHER can share it
+// without importing the dispatcher; re-exported here for existing callers.
+export { evidenceIdFor };
 
 export function buildEvidenceCatalogue(
   criterion: CriterionKey,
@@ -328,6 +318,8 @@ export interface DispatchOptions {
   knowledgeDb?: KnowledgeDb | null;
   /** Resolve the slotted prompt template for a role (prompt_versions). Defaults to the prod row. */
   resolvePromptTemplate?: (agentRole: AgentRole) => Promise<string | null>;
+  /** S-R3 partial re-run: only these dimensions get an owner call (others keep whatever the map holds). */
+  dims?: DimKey[];
 }
 
 /** Minimal call-counter contract the orchestrator implements (hard stop at tier max). */
@@ -1428,8 +1420,9 @@ export async function dispatchDimensionChapters(
   const chapters = context.dimensionChapters ?? new Map<DimKey, DimensionChapter>();
   context.dimensionChapters = chapters;
 
+  const dims = opts.dims?.length ? DIM_ORDER.filter((d) => opts.dims!.includes(d)) : DIM_ORDER;
   await Promise.all(
-    DIM_ORDER.map(async (dim) => {
+    dims.map(async (dim) => {
       let chapter: DimensionChapter;
       try {
         chapter = await dispatchChapter(dim, context, tier, callAI, opts, { tierV2, knowledgeDb });

@@ -35,7 +35,7 @@ import { nanoid } from "nanoid";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI } from "@/lib/ai-client";
 import { newSlug } from "@/lib/slug";
-import { assertReportUsable, orchestrateReport, type PipelineEventHandler } from "@/lib/report-pipeline/orchestrator";
+import { assertReportUsable, orchestrateReport, type AICallerResult, type PipelineEventHandler } from "@/lib/report-pipeline/orchestrator";
 import type { ReportTierV2 } from "@/lib/report-v2/schema";
 import type { AssembledReport, ReportTier, CriterionData, ReportSection } from "@/lib/report-pipeline/types";
 import { CRITERIA, CRITERION_KEYS, type CriterionKey } from "@/lib/evaluation-criteria";
@@ -71,6 +71,8 @@ export interface ProjectReportAccount {
   startup_name: string | null;
   current_svi: number | null;
   current_stage: number | null;
+  /** app_users.id of the owner (S-R3: connector signals / cap-table key). Absent on legacy rows. */
+  user_id?: string | null;
 }
 
 export interface ProjectReportAnalysis {
@@ -294,7 +296,7 @@ export async function loadProjectReportContext(args: {
   const account = (await findSVIAccountWithFallback(
     args.ownerEmail,
     args.projectId,
-    "id, email, startup_name, current_svi, current_stage",
+    "id, email, startup_name, current_svi, current_stage, user_id",
   )) as ProjectReportAccount | null;
   if (!account) return { ok: false, error: "no_account" };
 
@@ -347,12 +349,14 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
   // per-agent semaphore slot (see agent-dispatcher) so concurrent reports
   // run in parallel instead of serialising through one shared bucket.
   const svAgentId = `svi:${ctx.account.id}${ctx.projectId ? `:${ctx.projectId}` : ""}`;
+  // S-R3 (W2 review b): hand the REAL cost / provider back so the
+  // orchestrator's `done` event and ai-spend-daily.json carry it.
   const aiCaller = async (
     systemPrompt: string,
     userPrompt: string,
     maxTokens: number,
     taskClass?: "classify" | "report" | "synthesis",
-  ): Promise<string> => {
+  ): Promise<AICallerResult> => {
     const result = await callAI({
       system: systemPrompt,
       user: userPrompt,
@@ -362,13 +366,14 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
       userId,
       taskClass,
     });
-    return result.text;
+    return { text: result.text, costUsd: result.cost_usd, provider: result.via ?? result.provider, model: result.model };
   };
 
   try {
     const report = await orchestrateReport({
       accountId: ctx.account.id,
       userId,
+      ownerUserId: ctx.account.user_id ?? undefined,
       projectId: ctx.projectId ?? undefined,
       startupName: String(ctx.account.startup_name ?? "Unknown Startup"),
       rawText: String(ctx.latestAnalysis.raw_input ?? ""),
@@ -583,7 +588,7 @@ async function insertAnalysisRow(args: {
  * carries a share token. Returns the row id + token, or nulls on failure —
  * the report itself is already persisted, so callers degrade to "no link".
  */
-async function upsertSnapshotWithToken(args: {
+export async function upsertSnapshotWithToken(args: {
   accountId: string;
   projectId: string;
   sviTotal: number;

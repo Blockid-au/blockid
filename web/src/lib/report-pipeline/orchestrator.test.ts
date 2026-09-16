@@ -88,8 +88,23 @@ const H = vi.hoisted(() => {
     w4Calls: [] as Array<{ tier: string; opts: Record<string, unknown> }>,
     deterministicCalls: [] as string[],
     chapterFactory: null as null | ((dim: string) => unknown),
+    techAuditSpy: vi.fn(async (url: string) => ({ url, auditedAt: "2026-09-16T00:00:00.000Z", overallGrade: "B", evidenceLabels: [] })),
+    repoAuditSpy: vi.fn(async (name: string) => ({ repoFullName: name, auditedAt: "2026-09-16T00:00:00.000Z", overallGrade: "A", evidenceLabels: [] })),
   };
 });
+
+/** §C.9 gate issues the orchestrator appends deterministically — filtered where a test pins the CDO output. */
+const GATE_RE = /reconciled to the deterministic|stage \d+ band|\[unevidenced\] marker|phase blocker/i;
+const nonGate = (issues: string[] | undefined) => (issues ?? []).filter((d) => !GATE_RE.test(d));
+/** The summary before the deterministic "Phase blockers" block the gate appends. */
+const beforeBlockers = (summary: string | undefined) => (summary ?? "").split("\n\n**Phase blockers")[0];
+/** In-band CFO valuation stub for the Growth-stage fixture (stage 5 band A$25M–A$400M). */
+const IN_BAND_VC = {
+  blended: { lowAud: 60_000_000, midAud: 100_000_000, highAud: 160_000_000, confidence: 60 },
+  methods: [],
+  scenarios: { bear: 40_000_000, base: 100_000_000, bull: 200_000_000 },
+  inputs: { mrrAud: 0, arrAud: 0 },
+};
 
 const DIMS = ["tre", "mpc", "ftv", "ptd", "cgh", "iri", "lco", "svm"] as const;
 function stubChapter(dim: string, extra: Record<string, unknown> = {}) {
@@ -211,6 +226,12 @@ vi.mock("@/lib/adk/agents", () => ({
   researchMarket: (input: unknown, cb: unknown) => H.researchMarketSpy(input, cb),
 }));
 
+// S-R3: GATHER is real now — its I/O is injected through `gatherDeps` in
+// baseInput (no db, deterministic in-band valuation) and the audit modules
+// are mocked so a test can never reach the network.
+vi.mock("@/lib/rnd-input", () => ({ deepTechAudit: (url: string) => H.techAuditSpy(url) }));
+vi.mock("@/lib/github-repo-audit", () => ({ auditGitHubRepo: (name: string, token: string) => H.repoAuditSpy(name, token) }));
+
 vi.mock("@/lib/ai-client", () => ({
   getAIBudgetStatus: () => ({
     month: "2026-08",
@@ -222,7 +243,7 @@ vi.mock("@/lib/ai-client", () => ({
 }));
 
 // SUT
-import { orchestrateReport, assertReportUsable } from "./orchestrator";
+import { orchestrateReport, assertReportUsable, PIPELINE_VERSION } from "./orchestrator";
 
 // Convenience aliases into the hoisted state bag — kept out of the vi.mock
 // hoist zone so we don't recreate the TDZ problem.
@@ -300,6 +321,8 @@ function baseInput(overrides: Partial<Parameters<typeof orchestrateReport>[0]> =
     criteriaData: makeCriteriaData(),
     tier: "standard" as ReportTier,
     callAI,
+    recordSpend: false,
+    gatherDeps: { db: null, buildValuation: () => IN_BAND_VC, githubToken: async () => "gh-token" },
     ...overrides,
   } satisfies Parameters<typeof orchestrateReport>[0];
 }
@@ -509,7 +532,10 @@ describe("orchestrateReport() — gather phase", () => {
       }),
     );
     const ctx = assembleSpy.mock.calls[0][0] as ReportContext;
-    expect(ctx.gatherResults.techAudit).toEqual({ url: "https://x.io", status: "gathered" });
+    expect(H.techAuditSpy).toHaveBeenCalledWith("https://x.io");
+    expect(ctx.gatherResults.techAudit).toMatchObject({ url: "https://x.io", status: "audited", overallGrade: "B" });
+    // (buildEvidenceRows is mocked here; the real one merges gatherEvidenceRows — see agent-dispatcher.test.)
+    expect(ctx.gatherEvidenceRows?.some((r) => r.label === "Technical audit: https://x.io" && r.source === "url")).toBe(true);
   });
 
   it("records repoAudit when the code_git criterion has a link", async () => {
@@ -522,10 +548,9 @@ describe("orchestrateReport() — gather phase", () => {
       }),
     );
     const ctx = assembleSpy.mock.calls[0][0] as ReportContext;
-    expect(ctx.gatherResults.repoAudit).toEqual({
-      url: "https://github.com/a/b",
-      status: "gathered",
-    });
+    expect(H.repoAuditSpy).toHaveBeenCalledWith("a/b", "gh-token");
+    expect(ctx.gatherResults.repoAudit).toMatchObject({ url: "https://github.com/a/b", repoFullName: "a/b", status: "audited" });
+    expect(ctx.gatherEvidenceRows?.some((r) => r.label === "GitHub repository audit: a/b" && r.source === "github")).toBe(true);
   });
 
   it("skips techAudit / repoAudit slots when the criterion has no links", async () => {
@@ -577,7 +602,7 @@ describe("orchestrateReport() — CDO cross-validate (one LLM call at premium+; 
     // only exec-summary should fire, so exactly one callAI call.
     expect(input.callAI).toHaveBeenCalledTimes(1);
     const ctx = assembleSpy.mock.calls[0][0] as ReportContext;
-    expect(ctx.consistencyIssues).toEqual([]);
+    expect(nonGate(ctx.consistencyIssues)).toEqual([]);
   });
 
   it("parses bullet lines into consistency issues and drops sub-10-char noise", async () => {
@@ -594,7 +619,7 @@ describe("orchestrateReport() — CDO cross-validate (one LLM call at premium+; 
     );
     await orchestrateReport(baseInput({ callAI, tier: "premium" }));
     const ctx = assembleSpy.mock.calls[0][0] as ReportContext;
-    expect(ctx.consistencyIssues).toEqual([
+    expect(nonGate(ctx.consistencyIssues)).toEqual([
       "Market and customer scores diverge sharply",
       "Revenue trails documented traction",
     ]);
@@ -612,7 +637,7 @@ describe("orchestrateReport() — CDO cross-validate (one LLM call at premium+; 
     const callAI = vi.fn(async () => "No consistency issues detected across the 13 criteria.");
     await orchestrateReport(baseInput({ callAI, tier: "premium" }));
     const ctx = assembleSpy.mock.calls[0][0] as ReportContext;
-    expect(ctx.consistencyIssues).toEqual([]);
+    expect(nonGate(ctx.consistencyIssues)).toEqual([]);
   });
 
   it("caps consistency issues at 5", async () => {
@@ -628,7 +653,7 @@ describe("orchestrateReport() — CDO cross-validate (one LLM call at premium+; 
     const callAI = vi.fn(async () => bullets);
     await orchestrateReport(baseInput({ callAI, tier: "premium" }));
     const ctx = assembleSpy.mock.calls[0][0] as ReportContext;
-    expect(ctx.consistencyIssues).toHaveLength(5);
+    expect(nonGate(ctx.consistencyIssues)).toHaveLength(5);
   });
 
   it("swallows CDO callAI errors and reports [] issues", async () => {
@@ -651,8 +676,8 @@ describe("orchestrateReport() — CDO cross-validate (one LLM call at premium+; 
     await orchestrateReport(baseInput({ callAI, tier: "premium" }));
     expect(cdoCallReached).toBe(true);
     const ctx = assembleSpy.mock.calls[0][0] as ReportContext;
-    expect(ctx.consistencyIssues).toEqual([]);
-    expect(ctx.executiveSummary).toBe("exec-body");
+    expect(nonGate(ctx.consistencyIssues)).toEqual([]);
+    expect(beforeBlockers(ctx.executiveSummary)).toBe("exec-body");
   });
 });
 
@@ -668,7 +693,9 @@ describe("orchestrateReport() — CEO executive summary", () => {
     const callAI = vi.fn(async () => "The startup demonstrates strong traction...");
     await orchestrateReport(baseInput({ callAI }));
     const ctx = assembleSpy.mock.calls[0][0] as ReportContext;
-    expect(ctx.executiveSummary).toBe("The startup demonstrates strong traction...");
+    expect(beforeBlockers(ctx.executiveSummary)).toBe("The startup demonstrates strong traction...");
+    // §C.9 gate 4: the phase blockers the summary omitted are appended deterministically.
+    expect(ctx.executiveSummary).toMatch(/\*\*Phase blockers — /);
   });
 
   it("falls back to the deterministic '## Executive Summary ...' shell when callAI throws", async () => {
@@ -874,7 +901,7 @@ describe("orchestrateReport() — llm-auditor grounding sweep", () => {
     ];
     await orchestrateReport(baseInput({ callAI }));
     const ctx = assembleSpy.mock.calls[0][0] as ReportContext;
-    expect(ctx.executiveSummary).toBe("revised-exec");
+    expect(beforeBlockers(ctx.executiveSummary)).toBe("revised-exec");
   });
 
   it("does NOT downgrade a grounded section (confidence + risks unchanged)", async () => {
@@ -1094,7 +1121,10 @@ describe("orchestrateReport() — final quality score", () => {
     const ctx = assembleSpy.mock.calls[0][0] as ReportContext;
     const evidenceComplete = 3 / CRITERION_KEYS.length; // 13
     const sectionComplete = 3 / 13;
-    const expected = Math.round(1 * 30 + evidenceComplete * 25 + sectionComplete * 25 + 1 * 20);
+    // The §C.9 gate appends the phase-blockers issue here (incomplete criteria), so consistency = 0.7.
+    const consistency = (ctx.consistencyIssues?.length ?? 0) === 0 ? 1 : 0.7;
+    expect(nonGate(ctx.consistencyIssues)).toEqual([]);
+    const expected = Math.round(1 * 30 + evidenceComplete * 25 + sectionComplete * 25 + consistency * 20);
     expect(ctx.qualityScore).toBe(expected);
   });
 
@@ -1257,7 +1287,7 @@ describe("orchestrateReport() — W4 dimension chapters", () => {
     const report = await orchestrateReport(baseInput());
     expect(report.reportV2).toBeTruthy();
     expect(report.reportV2?.source).toBe("pipeline");
-    expect(report.reportV2?.pipelineVersion).toBe("pipeline-v2.0-w4");
+    expect(report.reportV2?.pipelineVersion).toBe(PIPELINE_VERSION);
     expect(report.reportV2?.dimensions.map((d) => d.dim)).toEqual([...DIMS]);
     expect(report.reportV2?.quality.degradedSections).toEqual([]);
     expect(typeof report.llmCalls).toBe("number");

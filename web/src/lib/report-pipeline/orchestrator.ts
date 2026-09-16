@@ -1,23 +1,45 @@
-// Report Orchestrator — Main pipeline controller for multi-agent report generation.
+// Report Orchestrator — the ONE generator every Trusted Business Report ships
+// through (spec 12-product-ai-tbr-v2.md §C.1, S-R3: the stream route, the
+// paid A$3 report, the evaluator report and the per-dimension re-run all
+// call `orchestrateReport` / `runReportPipeline`).
 //
-// Waves (G13-W2-R2, spec 12-product-ai-tbr-v2.md §C.1):
-//   GATHER  — parallel data collection + deterministic precompute (phase gate,
-//             module outputs, evidence rows); no LLM except market research
+// Waves:
+//   GATHER  — parallel data collection (report-pipeline/gather.ts §C.3):
+//             market research (2 metered LLM calls), tech + repo audits
+//             (20 s timeout, 24 h cache), connector snapshots from the last
+//             sync, cap-table register, grants match, CFO valuation inputs;
+//             every result is an EvidenceRow. Deterministic precompute
+//             (phase gate, module outputs, valuation chapter) follows.
 //   W1/W2/W3 — criterion calls (13 max; W3 skipped on free / thin evidence
 //             unless the criterion is phase-required)
 //   W4      — 8 dimension-owner chapter calls in parallel (DimensionChapter
 //             Zod payload, one repair, then a deterministic `degraded` card)
 //   SYNTH   — CEO executive summary (1 call); CDO cross-validate is one LLM
 //             call at premium+, deterministic consistency checks otherwise
-//   AUDIT   — llm-auditor over executive + chapters + criteria, tier cap
-//   ASSEMBLE — AssembledReport (legacy sections) + ReportV2 projection with
-//             the W4 chapters (persisted by run-for-project via report-v2/storage)
+//   AUDIT   — llm-auditor over executive + chapters + criteria, tier cap,
+//             critic passes in parallel
+//   GATES   — §C.9 deterministic consistency checks (consistency-gates.ts)
+//   ASSEMBLE — AssembledReport (legacy sections) + ReportV2 with the W4
+//             chapters + the 6-method valuation chapter (§C.5)
 //
 // Cost guardrails (goal doc §3 D7/D8/D9): a per-report call counter hard-stops
 // at the tier max (free 16 / standard 30 / premium 40 / investor_memo 48);
 // past the stop every remaining stage degrades to deterministic output —
 // a report never fails on budget. `REPORT_PIPELINE_W4=off` rolls back to the
 // 13-criteria assembly (the S-R1 adapter still renders a ReportV2 on read).
+//
+// Wall-clock deadline (W2 review (a)): the orchestration is raced against a
+// per-tier deadline (free 90 s / standard 120 s / premium 240 s /
+// investor_memo 240 s, `REPORT_DEADLINE_MS_<TIER>` overrides). Past it every
+// remaining stage degrades deterministically and in-flight LLM calls are
+// dropped, so the `done` event always fires before deadline + grace — nginx
+// caps `/api/` at 300 s and the client must never wait longer. The only
+// failure a caller ever sees is a FULLY degraded report (`isFullyDegraded`).
+//
+// Cost telemetry (W2 review (b)): `callAI` may return `{ text, costUsd,
+// provider, model }`; the meter sums the REAL cost the provider chain
+// reported and the `done` event carries it (`costAud`), written to
+// ai-spend-daily.json per tier by spend-guard.recordReportSpend.
 //
 // `onEvent` emits the SSE vocabulary the TBR client consumes (§C.12):
 // context · gather_complete · dimension_start · dimension_complete ·
@@ -32,10 +54,10 @@ import type {
   AssembledReport,
   PipelineStatus,
   PipelinePhase,
-  GatherResults,
   CriterionData,
   AgentRole,
   SectionAuditRecord,
+  AgentAnalysisResult,
 } from "./types";
 import type { CriterionKey, QualityLevel } from "@/lib/evaluation-criteria";
 import { CRITERIA, CRITERION_KEYS, QUALITY_LEVELS } from "@/lib/evaluation-criteria";
@@ -56,17 +78,34 @@ import type { IntakeContext } from "@/lib/intake/detect-context";
 import { assembleReport } from "./section-assembler";
 import { buildAgentPrompt } from "./agent-prompts";
 import { AUDITOR_CAP_BY_TIER, auditSections, type AuditableSection } from "./llm-auditor";
-import { researchMarket } from "@/lib/adk/agents";
 import { getAIBudgetStatus } from "@/lib/ai-client";
 import { DIM_ORDER, DIMENSION_OWNERS, criteriaForDimension, type DimKey } from "./dimension-owners";
 import { precomputeModules } from "./module-precompute";
+import { GATHER_RESEARCH_CALLS, gatherData, type GatherDeps, type GatherOutput } from "./gather";
+import { buildValuationChapter, type ValuationAskInput, type VcValuationLike } from "./valuation-chapter";
+import { applyConsistencyGates } from "./consistency-gates";
 import { fromAssembledReport, inferPhase } from "@/lib/report-v2/adapter";
 import { isReportV2, type CriterionCard, type DimensionChapter, type ReportTierV2, type ReportV2 } from "@/lib/report-v2/schema";
 
-// S31-A: the optional 4th argument is the Anthropic task class (lib/ai/anthropic-tier.ts).
-// Only the CEO final synthesis passes "synthesis" (→ Opus 5); everything else
-// is a "report" (→ Sonnet 5) on the quality tier.
-type AICaller = (systemPrompt: string, userPrompt: string, maxTokens: number, taskClass?: "classify" | "report" | "synthesis") => Promise<string>;
+// ── AI caller contract ──────────────────────────────────────────────────────
+
+/** Rich result a caller MAY return from `callAI` so the pipeline can meter real cost (W2 review (b)). */
+export interface AICallerResult {
+  text: string;
+  /** USD the provider chain reported (0 for free tiers). */
+  costUsd?: number;
+  /** Dispatcher provider that served the call (`deepinfra`, `claude-apikey`, …). */
+  provider?: string;
+  model?: string;
+}
+
+export type AITaskClass = "classify" | "report" | "synthesis";
+
+/** What callers inject: a plain string or the rich result. */
+export type AICallerInput = (systemPrompt: string, userPrompt: string, maxTokens: number, taskClass?: AITaskClass) => Promise<string | AICallerResult>;
+
+// Internal: every stage sees a string transport (metered, deadline-aware).
+type AICaller = (systemPrompt: string, userPrompt: string, maxTokens: number, taskClass?: AITaskClass) => Promise<string>;
 
 // ── Call budget (D7/D8/D9) ──────────────────────────────────────────────────
 
@@ -126,19 +165,95 @@ export function isFullyDegraded(report: { executiveSummary?: string | null }, ch
   return typeof report.executiveSummary === "string" && report.executiveSummary.includes(SUMMARY_PLACEHOLDER);
 }
 
-/** Wrap a callAI so every call draws from the budget; throws once exhausted. */
-export function meterCallAI(callAI: AICaller, budget: ReportCallBudget): AICaller {
+// ── Cost meter (W2 review (b)) ──────────────────────────────────────────────
+
+/** Sums the real per-call cost the transport reported; `reported` = calls that carried a cost. */
+export class CostMeter {
+  totalUsd = 0;
+  reported = 0;
+  readonly byProvider: Record<string, number> = {};
+  record(r: AICallerResult): void {
+    if (typeof r.costUsd !== "number" || !Number.isFinite(r.costUsd)) return;
+    this.reported += 1;
+    this.totalUsd += Math.max(0, r.costUsd);
+    const p = r.provider ?? "unknown";
+    this.byProvider[p] = (this.byProvider[p] ?? 0) + Math.max(0, r.costUsd);
+  }
+}
+
+/** Rough per-call AUD used ONLY for calls whose transport reported no cost (free chain ≈ US$0.0006; Sonnet-class ≈ US$0.03). */
+const COST_AUD_PER_CALL = { free_chain: 0.001, sonnet_class: 0.045 } as const;
+
+// ── Wall-clock deadline (W2 review (a)) ─────────────────────────────────────
+
+/** Per-tier deadline in ms (§C.8 latency targets); env `REPORT_DEADLINE_MS_<TIER>` overrides. */
+export const TIER_DEADLINE_MS: Record<ReportTierV2, number> = { free: 90_000, standard: 120_000, premium: 240_000, investor_memo: 240_000 };
+/** Deterministic tail budget after the deadline (assemble + persist) — `done` fires within deadline + grace. */
+export const DEADLINE_GRACE_MS = 5_000;
+
+export function deadlineMsForTier(tier: ReportTierV2): number {
+  const env = process.env[`REPORT_DEADLINE_MS_${tier.toUpperCase()}`];
+  const n = env ? Number(env) : Number.NaN;
+  return Number.isFinite(n) && n > 0 ? n : TIER_DEADLINE_MS[tier];
+}
+
+export class ReportDeadlineExceededError extends Error {
+  constructor(readonly ms: number) {
+    super(`Report wall-clock deadline exceeded (${ms} ms) — remaining stages degraded`);
+    this.name = "ReportDeadlineExceededError";
+  }
+}
+
+/** A single timer the stages race against; `expired()` flips once and stays. */
+export class ReportDeadline {
+  private hit = false;
+  private timer: ReturnType<typeof setTimeout> | null = null;
+  readonly promise: Promise<"deadline">;
+  constructor(readonly ms: number, private readonly startedAt: number = Date.now()) {
+    this.promise = new Promise((resolve) => {
+      this.timer = setTimeout(() => {
+        this.hit = true;
+        resolve("deadline");
+      }, ms);
+    });
+  }
+  expired(): boolean {
+    return this.hit;
+  }
+  remainingMs(now: number = Date.now()): number {
+    return Math.max(0, this.startedAt + this.ms - now);
+  }
+  /** Resolve `work` or the deadline, whichever first; the loser keeps running but its result is dropped. */
+  race<T>(work: Promise<T>): Promise<T | "deadline"> {
+    return Promise.race([work, this.promise]);
+  }
+  dispose(): void {
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = null;
+  }
+}
+
+/**
+ * Wrap a callAI so every call draws from the budget, records real cost and
+ * refuses to start once the deadline has passed. Throws once exhausted /
+ * expired — the dispatchers turn the throw into a deterministic card.
+ */
+export function meterCallAI(callAI: AICallerInput, budget: ReportCallBudget, opts: { meter?: CostMeter; deadline?: ReportDeadline } = {}): AICaller {
   return async (system, user, maxTokens, taskClass) => {
+    if (opts.deadline?.expired()) throw new ReportDeadlineExceededError(opts.deadline.ms);
     if (!budget.tryAcquire()) throw new CallBudgetExceededError(budget.max);
-    return callAI(system, user, maxTokens, taskClass);
+    const out = await callAI(system, user, maxTokens, taskClass);
+    if (typeof out === "string") return out;
+    opts.meter?.record(out);
+    return out.text;
   };
 }
 
 // ── Events (§C.12 SSE vocabulary) ───────────────────────────────────────────
 
 export type PipelineEvent =
-  | { type: "context"; industry: string; stage: number; stageLabel: string; phaseId: string; tier: ReportTierV2; estimatedCalls: number; estimatedSeconds: number }
-  | { type: "gather_complete"; evidenceRows: number; connectors: string[] }
+  | { type: "context"; industry: string; stage: number; stageLabel: string; phaseId: string; tier: ReportTierV2; estimatedCalls: number; estimatedSeconds: number; dims: DimKey[] }
+  | { type: "gather_complete"; evidenceRows: number; connectors: string[]; diagnostics?: Record<string, { ms: number; status: string; note?: string }> }
   | { type: "dimension_start"; dim: DimKey; ownerAgent: AgentRole }
   | { type: "dimension_complete"; dim: DimKey; chapter: DimensionChapter }
   | { type: "valuation_complete"; chapter: ReportV2["valuation"] }
@@ -146,7 +261,7 @@ export type PipelineEvent =
   | { type: "executive_complete"; summary: string }
   | { type: "audit_complete"; groundedShare: number; revised: number }
   | { type: "progress"; completed: number; total: number; phase: PipelinePhase }
-  | { type: "done"; reportId: string; totalMs: number; calls: number; costAud: number; degradedSections: string[] }
+  | { type: "done"; reportId: string; totalMs: number; calls: number; costAud: number; costUsd: number; costReportedCalls: number; degradedSections: string[]; deadlineHit: boolean }
   | { type: "error"; dim?: DimKey; message: string; degraded: true };
 
 export type PipelineEventHandler = (event: PipelineEvent) => void;
@@ -157,6 +272,8 @@ export interface OrchestratorInput {
   accountId: string;
   userId: string;
   projectId?: string;
+  /** app_users.id of the project OWNER (connector signals / cap table key). Defaults to `userId`. */
+  ownerUserId?: string | null;
   startupName: string;
   rawText: string;
   sviAnalysis: import("@/lib/svi-analysis").SVIAnalysis;
@@ -166,7 +283,7 @@ export interface OrchestratorInput {
   /** ReportV2 tier; "free" turns W3 off, chapters 6–9 into cards and caps calls at 16. Defaults to `tier`. */
   tierV2?: ReportTierV2;
   locale?: "en" | "vi";
-  callAI: (systemPrompt: string, userPrompt: string, maxTokens: number, taskClass?: "classify" | "report" | "synthesis") => Promise<string>;
+  callAI: AICallerInput;
   onPhaseChange?: (status: PipelineStatus) => void;
   /** §C.12 event hook — the SSE route forwards every event verbatim. */
   onEvent?: PipelineEventHandler;
@@ -181,6 +298,8 @@ export interface OrchestratorInput {
   auditBudgetOk?: () => boolean;
   /** Override the per-report hard stop (tests). Defaults to TIER_CALL_MAX[tierV2]. */
   maxCalls?: number;
+  /** Override the wall-clock deadline in ms (tests). Defaults to deadlineMsForTier(tierV2). */
+  deadlineMs?: number;
   /** Explicit growth phase (projects.growth_phase_current); inferred from criteria + dims otherwise. */
   phaseId?: string | null;
   /**
@@ -190,13 +309,28 @@ export interface OrchestratorInput {
    * the legacy behaviour without a code change.
    */
   context?: IntakeContext;
+  /**
+   * S-R3 per-dimension re-run: only these W4 chapters are generated; W1–W3
+   * are reused from `seedCriteria` (the stored criterion cards) instead of
+   * being re-run, and the CEO / auditor stages are skipped.
+   */
+  dims?: DimKey[];
+  /** Stored criterion cards (svi_snapshots.criterion_results) seeded as W1–W3 results for a partial run. */
+  seedCriteria?: CriterionCard[] | null;
+  /** GATHER I/O overrides (tests, evaluator batch). */
+  gatherDeps?: GatherDeps;
+  /** Skip the spend-guard ledger write (tests). */
+  recordSpend?: boolean;
 }
-
-/** Rough per-call cost in AUD for the `done` event (free chain ≈ US$0.0006; Sonnet-class ≈ US$0.03). */
-const COST_AUD_PER_CALL = { free_chain: 0.001, sonnet_class: 0.045 } as const;
 
 function w4Enabled(): boolean {
   return (process.env.REPORT_PIPELINE_W4 ?? "on").toLowerCase() !== "off";
+}
+
+/** Expected LLM calls for a run — the `context.estimatedCalls` figure (includes the GATHER research calls). */
+export function estimateCalls(args: { waves: number; w4Chapters: number; tierV2: ReportTierV2; partial: boolean }): number {
+  if (args.partial) return args.w4Chapters;
+  return GATHER_RESEARCH_CALLS + args.waves + args.w4Chapters + 1 + (args.tierV2 === "premium" || args.tierV2 === "investor_memo" ? 1 : 0);
 }
 
 // ── Orchestrate ─────────────────────────────────────────────────────────────
@@ -207,7 +341,10 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
   const t0 = Date.now();
   const tierV2: ReportTierV2 = input.tierV2 ?? input.tier;
   const budget = new ReportCallBudget(input.maxCalls ?? TIER_CALL_MAX[tierV2]);
-  const callAI = meterCallAI(input.callAI, budget);
+  const meter = new CostMeter();
+  const deadline = new ReportDeadline(input.deadlineMs ?? deadlineMsForTier(tierV2), t0);
+  const callAI = meterCallAI(input.callAI, budget, { meter, deadline });
+  const partialDims = input.dims && input.dims.length ? DIM_ORDER.filter((d) => input.dims!.includes(d)) : null;
   const emit: PipelineEventHandler = (e) => {
     try {
       input.onEvent?.(e);
@@ -236,7 +373,9 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
     locale: input.locale ?? "en",
     gatherResults: {},
     criterionResults: new Map(),
+    dimsFilter: partialDims ?? undefined,
   };
+  if (partialDims && input.seedCriteria?.length) seedCriterionResults(context, input.seedCriteria);
 
   const notify = (phase: PipelinePhase, progress: number, currentAgent?: AgentRole) => {
     input.onPhaseChange?.({
@@ -261,211 +400,313 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
   const wave2 = tierV2 === "free" && !input.context ? [] : wave2Raw;
   const wave3 = tierV2 === "free" ? [] : wave3Raw;
   const w4On = w4Enabled();
-  const estimatedCalls = wave1.length + wave2.length + wave3.length + (w4On ? 8 : 0) + 1 + (tierV2 === "premium" || tierV2 === "investor_memo" ? 1 : 0);
+  const w4Dims: DimKey[] = partialDims ?? [...DIM_ORDER];
+  const estimatedCalls = estimateCalls({ waves: wave1.length + wave2.length + wave3.length, w4Chapters: w4On ? w4Dims.length : 0, tierV2, partial: Boolean(partialDims) });
 
-  // ── Phase 1: GATHER ─────────────────────────────────────────────────
-  notify("gathering", 5);
-  context.gatherResults = await gatherData(context, callAI);
-  // Deterministic precompute: phase gate, evidence rows, module outputs.
-  context.phaseGate = inferPhase(
-    input.phaseId ?? null,
-    CRITERIA.map((c) => ({ criterion_key: c.key, quality_level: qualityOf(context.criteriaData[c.key]) })),
-    dimScoresOf(context),
-  );
-  buildEvidenceRows(context);
-  context.moduleOutputs = precomputeModules(context);
-  emit({
-    type: "context",
-    industry: input.sviAnalysis.sectorLabel ?? input.sviAnalysis.sector ?? "Unclassified",
-    stage: context.stage,
-    stageLabel: input.sviAnalysis.stageLabel,
-    phaseId: context.phaseGate.currentPhase,
-    tier: tierV2,
-    estimatedCalls: Math.min(estimatedCalls, budget.max),
-    estimatedSeconds: tierV2 === "free" ? 90 : tierV2 === "standard" ? 120 : 180,
-  });
-  emit({ type: "gather_complete", evidenceRows: context.evidenceRows?.length ?? 0, connectors: Object.keys(context.gatherResults) });
+  try {
+    // ── Phase 1: GATHER ─────────────────────────────────────────────────
+    // The phase gate is deterministic on the stored criteria + dims, so the
+    // `context` event goes out BEFORE the (slow) gather so the client can
+    // render the header / estimate immediately.
+    context.phaseGate = inferPhase(
+      input.phaseId ?? null,
+      CRITERIA.map((c) => ({ criterion_key: c.key, quality_level: qualityOf(context.criteriaData[c.key]) })),
+      dimScoresOf(context),
+    );
+    emit({
+      type: "context",
+      industry: input.sviAnalysis.sectorLabel ?? input.sviAnalysis.sector ?? "Unclassified",
+      stage: context.stage,
+      stageLabel: input.sviAnalysis.stageLabel,
+      phaseId: context.phaseGate.currentPhase,
+      tier: tierV2,
+      estimatedCalls: Math.min(estimatedCalls, budget.max),
+      estimatedSeconds: Math.round(deadline.ms / 1000),
+      dims: w4Dims,
+    });
+    notify("gathering", 5);
+    const gathered = await deadline.race(
+      gatherData(context, callAI, {
+        ownerUserId: input.ownerUserId ?? input.userId,
+        projectId: input.projectId ?? null,
+        skipResearch: Boolean(partialDims),
+        deadline,
+        deps: input.gatherDeps,
+      }),
+    );
+    const gather: GatherOutput = gathered === "deadline" ? { results: { diagnostics: { gather: { ms: deadline.ms, status: "timeout", note: "deadline" } } }, evidenceRows: [], valuation: { vc: null, ask: null, revenueEvidenceIds: [] } } : gathered;
+    context.gatherResults = gather.results;
+    context.gatherEvidenceRows = gather.evidenceRows;
+    // Deterministic precompute: evidence rows, module outputs, valuation chapter.
+    buildEvidenceRows(context);
+    context.moduleOutputs = precomputeModules(context);
+    context.valuationChapter = valuationChapterFor(gather.valuation, input, context) ?? undefined;
+    emit({ type: "gather_complete", evidenceRows: context.evidenceRows?.length ?? 0, connectors: Object.keys(context.gatherResults).filter((k) => k !== "diagnostics"), diagnostics: context.gatherResults.diagnostics });
 
-  // ── Phase 2: ANALYZE ────────────────────────────────────────────────
-  // Every agent call is schema-validated and audit-logged to ai_runs.
-  const dispatchOpts: DispatchOptions = {
-    purpose: "customer_report",
-    businessId: input.projectId ?? null,
-    userId: input.userId,
-    tierV2,
-    callBudget: budget,
-    budgetOk: monthlyOk,
-    ...(input.dispatchOptions ?? {}),
-  };
+    // ── Phase 2: ANALYZE ────────────────────────────────────────────────
+    // Every agent call is schema-validated and audit-logged to ai_runs.
+    const dispatchOpts: DispatchOptions = {
+      purpose: "customer_report",
+      businessId: input.projectId ?? null,
+      userId: input.userId,
+      tierV2,
+      callBudget: budget,
+      budgetOk: monthlyOk,
+      ...(input.dispatchOptions ?? {}),
+    };
 
-  // Wave 1: Independent analyses
-  notify("wave1", 15);
-  await dispatchWave(wave1, context, input.tier, callAI, dispatchOpts);
+    if (!partialDims) {
+      // Wave 1: Independent analyses
+      notify("wave1", 15);
+      if (!deadline.expired()) await deadline.race(dispatchWave(wave1, context, input.tier, callAI, dispatchOpts));
 
-  // Wave 2: Depends on Wave 1
-  if (wave2.length > 0) {
-    notify("wave2", 45);
-    await dispatchWave(wave2, context, input.tier, callAI, dispatchOpts);
-  }
+      // Wave 2: Depends on Wave 1
+      if (wave2.length > 0 && !deadline.expired()) {
+        notify("wave2", 45);
+        await deadline.race(dispatchWave(wave2, context, input.tier, callAI, dispatchOpts));
+      }
 
-  // Wave 3: Depends on Wave 1 + 2 (may be empty when evidenceCompleteness < 0.5)
-  if (wave3.length > 0) {
-    notify("wave3", 75);
-    await dispatchWave(wave3, context, input.tier, callAI, dispatchOpts);
-  }
-
-  // ── Wave 4: dimension chapters (8 owners in parallel) ───────────────
-  if (w4On) {
-    notify("wave4", 80);
-    DIM_ORDER.forEach((dim) => emit({ type: "dimension_start", dim, ownerAgent: DIMENSION_OWNERS[dim].primary }));
-    if (!monthlyOk() || budget.remaining === 0) {
-      deterministicDimensionChapters(context, tierV2, budget.remaining === 0 ? `budget: report call cap (${budget.max}) reached before W4` : "budget: monthly AI cap reached before W4");
-      context.dimensionChapters?.forEach((chapter, dim) => {
-        emit({ type: "error", dim, message: chapter.degradeReason ?? "degraded", degraded: true });
-        emit({ type: "dimension_complete", dim, chapter });
-      });
-    } else {
-      await dispatchDimensionChapters(context, input.tier, callAI, {
-        ...dispatchOpts,
-        onChapter: (dim, chapter) => {
-          if (chapter.degraded) emit({ type: "error", dim, message: chapter.degradeReason ?? "degraded", degraded: true });
-          emit({ type: "dimension_complete", dim, chapter });
-        },
-      });
+      // Wave 3: Depends on Wave 1 + 2 (may be empty when evidenceCompleteness < 0.5)
+      if (wave3.length > 0 && !deadline.expired()) {
+        notify("wave3", 75);
+        await deadline.race(dispatchWave(wave3, context, input.tier, callAI, dispatchOpts));
+      }
     }
-    emit({ type: "criteria_synthesis", criteria: criterionCardsFromChapters(context) });
+
+    // ── Wave 4: dimension chapters (8 owners in parallel) ───────────────
+    if (w4On) {
+      notify("wave4", 80);
+      w4Dims.forEach((dim) => emit({ type: "dimension_start", dim, ownerAgent: DIMENSION_OWNERS[dim].primary }));
+      const degradeAll = (reason: string) => {
+        const all = deterministicDimensionChapters(context, tierV2, reason);
+        all.forEach((chapter, dim) => {
+          if (!w4Dims.includes(dim)) return;
+          emit({ type: "error", dim, message: chapter.degradeReason ?? "degraded", degraded: true });
+          emit({ type: "dimension_complete", dim, chapter });
+        });
+      };
+      if (deadline.expired()) {
+        degradeAll(`deadline: wall-clock budget (${Math.round(deadline.ms / 1000)} s) reached before W4`);
+      } else if (!monthlyOk() || budget.remaining === 0) {
+        degradeAll(budget.remaining === 0 ? `budget: report call cap (${budget.max}) reached before W4` : "budget: monthly AI cap reached before W4");
+      } else {
+        const emitted = new Set<DimKey>();
+        const live = new Map<DimKey, DimensionChapter>();
+        context.dimensionChapters = live;
+        const w4 = deadline.race(
+          dispatchDimensionChapters(context, input.tier, callAI, {
+            ...dispatchOpts,
+            dims: w4Dims,
+            onChapter: (dim, chapter) => {
+              if (deadline.expired() || emitted.has(dim)) return;
+              emitted.add(dim);
+              if (chapter.degraded) emit({ type: "error", dim, message: chapter.degradeReason ?? "degraded", degraded: true });
+              emit({ type: "dimension_complete", dim, chapter });
+            },
+          }),
+        );
+        if ((await w4) === "deadline") {
+          // Seal: late chapters keep writing to `live`; the report reads a copy
+          // with the missing dims filled deterministically.
+          const sealed = new Map<DimKey, DimensionChapter>(live);
+          const fallback = deterministicDimensionChapters({ ...context, dimensionChapters: undefined }, tierV2, `deadline: wall-clock budget (${Math.round(deadline.ms / 1000)} s) reached during W4`);
+          w4Dims.forEach((dim) => {
+            if (sealed.has(dim)) return;
+            const chapter = fallback.get(dim)!;
+            sealed.set(dim, chapter);
+            if (!emitted.has(dim)) {
+              emitted.add(dim);
+              emit({ type: "error", dim, message: chapter.degradeReason ?? "degraded", degraded: true });
+              emit({ type: "dimension_complete", dim, chapter });
+            }
+          });
+          context.dimensionChapters = sealed;
+        }
+      }
+      if (context.valuationChapter) emit({ type: "valuation_complete", chapter: context.valuationChapter });
+      emit({ type: "criteria_synthesis", criteria: criterionCardsFromChapters(context) });
+    }
+
+    // ── Phase 3: SYNTHESIZE ─────────────────────────────────────────────
+    notify("synthesizing", 85);
+
+    // CDO cross-validation: one LLM call at premium+ (§B.9); deterministic elsewhere.
+    context.consistencyIssues =
+      (tierV2 === "premium" || tierV2 === "investor_memo") && !partialDims && !deadline.expired()
+        ? await crossValidate(context, callAI)
+        : deterministicConsistencyIssues(context);
+
+    // CEO executive summary — deterministic after the deadline / on a partial run.
+    context.executiveSummary =
+      partialDims || deadline.expired()
+        ? deterministicExecutiveSummary(context, partialDims ? "partial re-run" : "deadline")
+        : await generateExecutiveSummary(context, callAI);
+    emit({ type: "executive_complete", summary: context.executiveSummary });
+
+    // LLM Auditor (ported from Google Agent Garden llm-auditor sample) —
+    // §5.4 grounding sweep over EVERY section (executive summary + chapters +
+    // criterion sections). Fully fail-safe and metered; the critic passes run
+    // in parallel under the tier cap. After the deadline only the free
+    // deterministic citation gate runs.
+    const audit = await auditAllSections(context, tierV2, callAI, {
+      budgetOk: () => !deadline.expired() && !partialDims && monthlyOk() && budget.remaining >= 2,
+    });
+    context.executiveSummary = audit.executiveSummary;
+    context.auditFindings = audit.findings;
+    context.sectionAudits = audit.records;
+    emit({ type: "audit_complete", groundedShare: audit.groundedShare, revised: audit.records.filter((r) => r.revised).length });
+
+    // ── §C.9 gate 3: deterministic consistency checks ───────────────────
+    const gates = applyConsistencyGates({
+      chapters: context.dimensionChapters,
+      dimScores: dimScoresOf(context),
+      valuation: context.valuationChapter ?? null,
+      stage: context.stage,
+      evidenceRows: context.evidenceRows ?? [],
+      phaseGate: context.phaseGate,
+      executiveSummary: context.executiveSummary,
+    });
+    context.executiveSummary = gates.executiveSummary;
+    context.consistencyIssues = [...(context.consistencyIssues ?? []), ...gates.issues.map((i) => i.description)].slice(0, 12);
+
+    context.qualityScore = computeFinalQuality(context);
+    context.callsUsed = budget.used;
+
+    // ── Assemble ────────────────────────────────────────────────────────
+    notify("rendering", 95);
+    const report = assembleReport(context, input.tier, reportId);
+    report.llmCalls = budget.used;
+    // Gate issues keep their real type / severity on the assembled report.
+    const gateDescriptions = new Set(gates.issues.map((i) => i.description));
+    report.consistencyIssues = [...report.consistencyIssues.filter((i) => !gateDescriptions.has(i.description)), ...gates.issues];
+    const reportV2 = buildReportV2(report, context, input, tierV2, audit.groundedShare, gather.valuation);
+    if (reportV2) report.reportV2 = reportV2;
+
+    // W2 review P1: a report whose 8 chapters ALL degraded to deterministic
+    // cards and whose summary is the error placeholder is not a product. D9
+    // says the orchestrator itself never fails on budget, so it only FLAGS the
+    // report; the persisting callers (paywall generator, run-for-project) turn
+    // the flag into their failure path (retry tick / refund) instead of storing
+    // `complete` and charging A$3.
+    report.fullyDegraded = isFullyDegraded(report, context.dimensionChapters);
+
+    notify("complete", 100);
+    const cost = realCostAud(meter, budget.used, w4On, tierV2);
+    if (input.recordSpend !== false) {
+      void recordSpendBestEffort(tierV2, cost.usd, budget.used);
+    }
+    emit({
+      type: "done",
+      reportId,
+      totalMs: Date.now() - t0,
+      calls: budget.used,
+      costAud: cost.aud,
+      costUsd: cost.usd,
+      costReportedCalls: meter.reported,
+      degradedSections: reportV2?.quality.degradedSections ?? [],
+      deadlineHit: deadline.expired(),
+    });
+    return report;
+  } finally {
+    deadline.dispose();
   }
-
-  // ── Phase 3: SYNTHESIZE ─────────────────────────────────────────────
-  notify("synthesizing", 85);
-
-  // CDO cross-validation: one LLM call at premium+ (§B.9); deterministic elsewhere.
-  context.consistencyIssues =
-    tierV2 === "premium" || tierV2 === "investor_memo"
-      ? await crossValidate(context, callAI)
-      : deterministicConsistencyIssues(context);
-
-  // CEO executive summary
-  context.executiveSummary = await generateExecutiveSummary(context, callAI);
-  emit({ type: "executive_complete", summary: context.executiveSummary });
-
-  // LLM Auditor (ported from Google Agent Garden llm-auditor sample) —
-  // §5.4 grounding sweep over EVERY section (executive summary + chapters +
-  // criterion sections). Fully fail-safe and metered.
-  const audit = await auditAllSections(context, tierV2, callAI, {
-    budgetOk: () => monthlyOk() && budget.remaining >= 2,
-  });
-  context.executiveSummary = audit.executiveSummary;
-  context.auditFindings = audit.findings;
-  context.sectionAudits = audit.records;
-  emit({ type: "audit_complete", groundedShare: audit.groundedShare, revised: audit.records.filter((r) => r.revised).length });
-
-  context.qualityScore = computeFinalQuality(context);
-  context.callsUsed = budget.used;
-
-  // ── Assemble ────────────────────────────────────────────────────────
-  notify("rendering", 95);
-  const report = assembleReport(context, input.tier, reportId);
-  report.llmCalls = budget.used;
-  const reportV2 = buildReportV2(report, context, input, tierV2, audit.groundedShare);
-  if (reportV2) {
-    report.reportV2 = reportV2;
-    emit({ type: "valuation_complete", chapter: reportV2.valuation });
-  }
-
-  // W2 review P1: a report whose 8 chapters ALL degraded to deterministic
-  // cards and whose summary is the error placeholder is not a product. D9
-  // says the orchestrator itself never fails on budget, so it only FLAGS the
-  // report; the persisting callers (paywall generator, run-for-project) turn
-  // the flag into their failure path (retry tick / refund) instead of storing
-  // `complete` and charging A$3.
-  report.fullyDegraded = isFullyDegraded(report, context.dimensionChapters);
-
-  notify("complete", 100);
-  const sonnetCalls = w4On && (process.env.MODEL_AGENT_CEO || process.env.MODEL_AGENT_CFO) && tierV2 !== "free" ? 2 : 0;
-  emit({
-    type: "done",
-    reportId,
-    totalMs: Date.now() - t0,
-    calls: budget.used,
-    costAud: Math.round(((budget.used - sonnetCalls) * COST_AUD_PER_CALL.free_chain + sonnetCalls * COST_AUD_PER_CALL.sonnet_class) * 1000) / 1000,
-    degradedSections: reportV2?.quality.degradedSections ?? [],
-  });
-  return report;
 }
 
-// ── Phase 1: Data Gathering ─────────────────────────────────────────────────
+// ── Cost telemetry ──────────────────────────────────────────────────────────
 
-async function gatherData(context: ReportContext, callAI: AICaller): Promise<GatherResults> {
-  const results: GatherResults = {};
+/** USD → AUD at the spend-guard FX (AI_USD_AUD_RATE, default 1.55). */
+function usdAudRate(): number {
+  const raw = process.env.AI_USD_AUD_RATE;
+  const n = raw ? Number(raw) : Number.NaN;
+  return Number.isFinite(n) && n > 0 ? n : 1.55;
+}
 
-  // Gather runs are fire-and-forget — failures don't block the pipeline
+/**
+ * Real cost when the transport reported it (every metered call carried
+ * `costUsd`); the free-chain / Sonnet estimate covers only the calls that
+ * did not — a plain-string caller still gets the old estimate.
+ */
+export function realCostAud(meter: CostMeter, calls: number, w4On: boolean, tierV2: ReportTierV2): { usd: number; aud: number } {
+  const unreported = Math.max(0, calls - meter.reported);
+  const sonnetCalls = w4On && (process.env.MODEL_AGENT_CEO || process.env.MODEL_AGENT_CFO) && tierV2 !== "free" ? Math.min(2, unreported) : 0;
+  const estimatedAud = (unreported - sonnetCalls) * COST_AUD_PER_CALL.free_chain + sonnetCalls * COST_AUD_PER_CALL.sonnet_class;
+  const rate = usdAudRate();
+  const aud = meter.totalUsd * rate + estimatedAud;
+  return { usd: Math.round((meter.totalUsd + estimatedAud / rate) * 10_000) / 10_000, aud: Math.round(aud * 1000) / 1000 };
+}
+
+async function recordSpendBestEffort(tier: ReportTierV2, usd: number, calls: number): Promise<void> {
   try {
-    const gatherPromises: Promise<void>[] = [];
-
-    // Market & competitive research (Agent Garden port) — populates the
-    // `competitiveResearch` slot the CMO's market prompt already consumes.
-    gatherPromises.push(
-      (async () => {
-        const research = await researchMarket(
-          {
-            startupName: context.startupName,
-            description: context.rawText,
-            sector: context.criteriaData.market?.textInput || undefined,
-          },
-          callAI,
-        );
-        if (research) {
-          results.competitiveResearch = research as unknown as Record<string, unknown>;
-        }
-      })(),
-    );
-
-    // Extract any URLs from criteria data for tech audit
-    const websiteData = context.criteriaData.website;
-    const codeData = context.criteriaData.code_git;
-
-    if (websiteData?.links?.length) {
-      gatherPromises.push(
-        (async () => {
-          // Tech audit would run here via existing deepTechAudit()
-          results.techAudit = { url: websiteData.links[0]?.url, status: "gathered" };
-        })(),
-      );
-    }
-
-    if (codeData?.links?.length) {
-      gatherPromises.push(
-        (async () => {
-          // Repo audit would run here via existing auditGitHubRepo()
-          results.repoAudit = { url: codeData.links[0]?.url, status: "gathered" };
-        })(),
-      );
-    }
-
-    // Evidence quality check
-    gatherPromises.push(
-      (async () => {
-        const totalEvidence = Object.values(context.criteriaData).reduce(
-          (sum, d) => sum + d.files.length + d.links.length + (d.textInput ? 1 : 0),
-          0,
-        );
-        results.evidenceQuality = {
-          totalItems: totalEvidence,
-          completedCriteria: Object.values(context.criteriaData).filter(
-            (d) => d.textInput.length > 0 || d.files.length > 0 || d.links.length > 0,
-          ).length,
-          totalCriteria: CRITERION_KEYS.length,
-        };
-      })(),
-    );
-
-    await Promise.allSettled(gatherPromises);
+    const { recordReportSpend } = await import("@/lib/ai/spend-guard");
+    recordReportSpend(tier, usd, calls);
   } catch {
-    // Non-blocking: gather phase failures don't stop the pipeline
+    // Telemetry must never fail a report.
   }
+}
 
-  return results;
+// ── Partial run seed + deterministic summary ────────────────────────────────
+
+/** Seed W1–W3 results from stored criterion cards so a per-dimension W4 re-run has its inputs. */
+export function seedCriterionResults(context: ReportContext, cards: CriterionCard[]): void {
+  cards.forEach((card) => {
+    if (!CRITERION_KEYS.includes(card.key)) return;
+    const def = CRITERIA.find((c) => c.key === card.key);
+    const result: AgentAnalysisResult = {
+      criterion: card.key,
+      agentRole: (card as { ownerAgent?: AgentRole }).ownerAgent ?? DIMENSION_OWNERS[(def?.primaryDimension ?? "tre") as DimKey]?.primary ?? "ceo",
+      score: Math.round(card.score),
+      content: [card.verdict, ...card.strengths.map((s) => `- ${s}`), ...card.gaps.map((g) => `- ${g}`)].filter(Boolean).join("\n"),
+      highlights: card.strengths.slice(0, 3),
+      dataPoints: {},
+      risks: card.gaps.slice(0, 3),
+      nextSteps: card.nextAction ? [card.nextAction] : [],
+      visuals: [],
+      confidence: 0.6,
+      wordCount: card.verdict.split(/\s+/).filter(Boolean).length,
+      durationMs: 0,
+      schemaValidated: true,
+      grounded: (card.citations ?? []).length > 0,
+      citations: card.citations ?? [],
+    };
+    context.criterionResults.set(card.key, result);
+  });
+}
+
+/** Executive summary without an LLM (deadline / partial run) — chapter verdicts + phase now, never the error placeholder. */
+export function deterministicExecutiveSummary(context: ReportContext, reason: string): string {
+  const chapters = context.dimensionChapters ? DIM_ORDER.map((d) => context.dimensionChapters!.get(d)).filter((c): c is DimensionChapter => Boolean(c)) : [];
+  const gate = context.phaseGate;
+  const lines = [
+    `## Executive Summary`,
+    ``,
+    `**${context.startupName}** — SVI ${context.sviAnalysis.totalSVI} (${context.sviAnalysis.stageLabel}). Deterministic summary (${reason}); the chapter verdicts below are the owner agents' own words.`,
+    ``,
+    ...chapters.map((c) => `- **${c.dim.toUpperCase()}** ${c.score}/100 (${c.band}): ${c.verdict}`),
+  ];
+  if (gate) {
+    lines.push(``, `**Phase now:** ${gate.currentPhaseLabel} — ${gate.completionPct}% of the exit gate cleared${gate.nextPhase ? `; next phase ${gate.nextPhase}` : ""}.`);
+    if (gate.blockers.length) lines.push(...gate.blockers.map((b) => `- ${b.detail}`));
+  }
+  return lines.join("\n");
+}
+
+/** The valuation chapter from the GATHER outputs (§C.5); null when the CFO model did not run. */
+function valuationChapterFor(v: GatherOutput["valuation"], input: OrchestratorInput, context: ReportContext): ReportV2["valuation"] | null {
+  if (!v.vc) return null;
+  try {
+    return buildValuationChapter({
+      vc: v.vc,
+      stage: context.stage,
+      stageLabel: input.sviAnalysis.stageLabel,
+      industry: input.sviAnalysis.sectorLabel ?? input.sviAnalysis.sector ?? null,
+      ask: v.ask,
+      revenueEvidenceIds: v.revenueEvidenceIds,
+      at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn("[report-pipeline] valuation chapter failed:", err instanceof Error ? err.message : String(err));
+    return null;
+  }
 }
 
 // ── CDO Cross-Validation ────────────────────────────────────────────────────
@@ -717,7 +958,17 @@ export function criterionCardsFromChapters(context: ReportContext): CriterionCar
  * invalid projection logs and returns null (the caller keeps the adapter
  * path) — never a failed report.
  */
-export function buildReportV2(report: AssembledReport, context: ReportContext, input: OrchestratorInput, tierV2: ReportTierV2, groundedShare: number): ReportV2 | null {
+/** Bumped whenever the generator's output shape / prompts change — the `svi_deck_cache` key is `deck_hash + pipeline_version`. */
+export const PIPELINE_VERSION = "pipeline-v2.1-s-r3";
+
+export function buildReportV2(
+  report: AssembledReport,
+  context: ReportContext,
+  input: OrchestratorInput,
+  tierV2: ReportTierV2,
+  groundedShare: number,
+  valuation?: { vc: VcValuationLike | null; ask: ValuationAskInput | null; revenueEvidenceIds: string[] },
+): ReportV2 | null {
   try {
     const base = fromAssembledReport(report, {
       projectId: input.projectId,
@@ -732,20 +983,25 @@ export function buildReportV2(report: AssembledReport, context: ReportContext, i
       phaseId: context.phaseGate?.currentPhase ?? null,
       tier: tierV2,
       locale: context.locale,
+      vc: valuation?.vc ?? null,
+      valuationAsk: valuation?.ask ?? null,
+      revenueEvidenceIds: valuation?.revenueEvidenceIds ?? null,
     });
+    // §C.5: the gated valuation chapter (consistency-gates may have annotated it).
+    const withValuation: ReportV2 = context.valuationChapter ? { ...base, valuation: context.valuationChapter } : base;
     const chapters = context.dimensionChapters;
-    if (!chapters || chapters.size !== 8) return base;
+    if (!chapters || chapters.size !== 8) return withValuation;
     const dimensions = DIM_ORDER.map((dim) => chapters.get(dim)!);
     const degraded = dimensions.filter((d) => d.degraded).map((d) => d.dim);
     const v2: ReportV2 = {
-      ...base,
+      ...withValuation,
       source: "pipeline",
-      pipelineVersion: "pipeline-v2.0-w4",
+      pipelineVersion: PIPELINE_VERSION,
       promptVersionIds: {},
       dimensions,
       executive: { ...base.executive, phaseNow: context.phaseGate ?? base.executive.phaseNow, thesis: context.executiveSummary?.trim() || base.executive.thesis, audit: { ...base.executive.audit, grounded: (context.sectionAudits ?? []).some((r) => r.sectionId === "executive" && r.grounded) } },
       appendix: { ...base.appendix, evidenceRegister: context.evidenceRows ?? [], auditLog: context.sectionAudits ?? [] },
-      quality: { ...base.quality, score: context.qualityScore ?? base.quality.score, groundedShare, degradedSections: degraded },
+      quality: { ...base.quality, score: context.qualityScore ?? base.quality.score, groundedShare, degradedSections: degraded, consistencyIssues: report.consistencyIssues },
     };
     if (isReportV2(v2)) return v2;
     console.warn("[report-pipeline] ReportV2 projection failed validation — keeping the adapter projection");

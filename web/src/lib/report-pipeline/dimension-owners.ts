@@ -8,9 +8,10 @@
 //
 // This table replaces the three rubric copies the plan found (§0 row 7 /
 // §B.11): `DIM_META` in api/svi/dimensions/stream, `DIMENSION_INFO` in
-// api/svi/dimension-analyze and the CDO stage medians in agent-prompts. The
-// first two still derive from `promptCopy` below until S-R3 rewrites the
-// routes; the CDO stage-medians block in agent-prompts was deleted in S-R2 —
+// api/svi/dimension-analyze and the CDO stage medians in agent-prompts.
+// S-R3: `DIMENSION_INFO` is gone (dimension-analyze reads promptCopy directly);
+// `legacyStreamDimMeta` (DIM_META) stays one release for route.legacy.ts. The
+// CDO stage-medians block in agent-prompts was deleted in S-R2 —
 // every rubric number now comes from `benchmarkFor()` (svi-dimension-benchmarks
 // ANCHORS) and every qualitative anchor from `rubric` below.
 //
@@ -562,12 +563,3 @@ export function legacyStreamDimMeta(): Record<string, { label: string; weight: n
   );
 }
 
-/** Legacy `DIMENSION_INFO` shape for api/svi/dimension-analyze (byte-identical text). */
-export function legacyAnalyzeDimInfo(): Record<string, { label: string; weight: number; focus: string }> {
-  return Object.fromEntries(
-    DIM_LEGACY_ORDER.map((k) => {
-      const o = DIMENSION_OWNERS[k];
-      return [k, { label: o.promptCopy.analyzeLabel, weight: o.weight, focus: o.promptCopy.analyzeFocus }];
-    }),
-  );
-}

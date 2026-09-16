@@ -16,7 +16,6 @@ import {
   DIMENSION_OWNERS,
   criteriaForDimension,
   isDimKey,
-  legacyAnalyzeDimInfo,
   legacyStreamDimMeta,
 } from "./dimension-owners";
 import { AGENT_ROLES } from "./types";
@@ -92,7 +91,10 @@ describe("DIMENSION_OWNERS — decision D8 matrix", () => {
     expect(DIM_ORDER.slice(4).map((k) => DIMENSION_OWNERS[k].freeTier)).toEqual(["card", "card", "card", "card"]);
   });
 
-  it("legacy prompt copies keep the byte-identical strings the routes used", () => {
+  // S-R3: `legacyAnalyzeDimInfo` (DIMENSION_INFO) is deleted — dimension-analyze
+  // reads DIMENSION_OWNERS[dim].promptCopy directly. `legacyStreamDimMeta`
+  // (DIM_META) stays one release for route.legacy.ts + the wire labels.
+  it("legacy stream prompt copy keeps the byte-identical strings the route used", () => {
     const stream = legacyStreamDimMeta();
     expect(Object.keys(stream)).toEqual(["ftv", "mpc", "ptd", "tre", "cgh", "iri", "lco", "svm"]);
     expect(stream.mpc).toEqual({
@@ -100,12 +102,10 @@ describe("DIMENSION_OWNERS — decision D8 matrix", () => {
       weight: 18,
       description: "Market size (TAM/SAM/SOM), problem severity, customer segment definition, and timing",
     });
-    const analyze = legacyAnalyzeDimInfo();
-    expect(analyze.cgh.label).toBe("Cap Table & Governance Health");
-    expect(analyze.ptd.focus).toContain("Tech stack maturity");
+    expect(DIMENSION_OWNERS.cgh.promptCopy.analyzeLabel).toBe("Cap Table & Governance Health");
+    expect(DIMENSION_OWNERS.ptd.promptCopy.analyzeFocus).toContain("Tech stack maturity");
     for (const k of DIM_ORDER) {
       expect(stream[k].weight).toBe(DIMENSION_OWNERS[k].weight);
-      expect(analyze[k].weight).toBe(DIMENSION_OWNERS[k].weight);
     }
   });
 
