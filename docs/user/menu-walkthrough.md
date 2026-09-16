@@ -24,7 +24,7 @@ How to read a cell:
 - **Later phases: Company** — the group is folded under a "Later phases" expander with a *Locked* pill so you can preview it. Company unlocks at the Equity band (`revenue_model` onwards).
 - A group that is missing from the cell belongs to a different audience — the persona table (`lib/nav/persona.ts`) decides which groups each account sees. Rows inside an open group appear as your band advances (Valuation at Equity, Raise and Accelerators at Fundraise, Finance at Traction, Exit at Growth).
 
-Three groups are **always present** for founders: **Home**, **Prove**, **Money**. **Account is not a group** — Profile, Billing, Settings and Guides live in the avatar menu, and a single **Settings** link sits under the sidebar.
+Three groups are **always present** for founders: **Home**, **Prove**, **Money**. **Account is not a group** — the avatar menu (the same one on every public page since 2026-09-16, G13-W5-IA5) holds New analysis · My score · My reports · Dashboard · Settings · Sign out plus a "View billing" row, and a single **Settings** link sits under the sidebar.
 
 <!-- BEGIN GENERATED: unlock-matrix (node web/scripts/docs/render-unlock-matrix.mjs) -->
 | # | Phase | Free | Starter | Growth | Package | Evaluator Scout | Evaluator Firm | Evaluator Program |

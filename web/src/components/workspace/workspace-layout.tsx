@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  ChevronDown, ChevronLeft, ChevronRight, Home, LayoutDashboard, Lock, PlayCircle, Settings2,
+  BookOpen, ChevronDown, ChevronLeft, ChevronRight, Home, LayoutDashboard, Lock, PlayCircle, Settings2,
 } from "lucide-react";
 import { useNavCollapse } from "@/lib/nav/nav-collapse-store";
 import { useResolvedNavPhase } from "@/components/workspace/founder-nav-context";
@@ -460,9 +460,24 @@ export function WorkspaceLayout({ children, user, currentPhase: currentPhaseProp
           })()}
         </nav>
 
-        {/* Bottom: credit badge · Settings (the one account link, §A.1 footer) · marketing home */}
+        {/* Bottom: credit badge · Settings (the one account link, §A.1 footer) · Guides · marketing home.
+            S-IA5: Guides moved here from the avatar menu (which now shares the marketing header's rows). */}
         <div className="px-2 pb-3 border-t border-line-subtle pt-3 space-y-1" data-testid="sidebar-footer">
           {sidebarOpen && <div className="px-1 pb-1"><CreditBadge /></div>}
+          <Link
+            href="/workspace/knowledge-base"
+            onClick={() => { setMobileOpen(false); trackMenu("footer", { href: "/workspace/knowledge-base", label: "Guides" }); }}
+            title={locale === "vi" ? "Hướng dẫn và tài liệu" : "Guides and how-tos"}
+            className={cn(
+              "flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm transition-colors",
+              pathname.startsWith("/workspace/knowledge-base")
+                ? "bg-action/10 text-action font-semibold"
+                : "text-muted hover:text-primary hover:bg-surface-hover",
+            )}
+          >
+            <BookOpen strokeWidth={1.75} className="h-4 w-4 shrink-0" />
+            {sidebarOpen && <span>{locale === "vi" ? "Hướng dẫn" : "Guides"}</span>}
+          </Link>
           <Link
             href="/workspace/settings"
             onClick={() => { setMobileOpen(false); trackMenu("footer", { href: "/workspace/settings", label: "Settings" }); }}

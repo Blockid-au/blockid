@@ -259,6 +259,9 @@ describe("WorkspaceLayout — nav v4 size + persona contract", () => {
     const footerStart = html.indexOf('data-testid="sidebar-footer"');
     expect(footerStart).toBeGreaterThan(-1);
     expect(html.slice(footerStart)).toContain('href="/workspace/settings"');
+    // S-IA5: Guides left the avatar menu (shared rows) and sits next to Settings.
+    expect(html.slice(footerStart)).toContain('href="/workspace/knowledge-base"');
+    expect(navLinks(html)).not.toContain("/workspace/knowledge-base");
     for (const leak of ["/workspace/investor/dealflow", "/workspace/evaluations", "/startup-index", "/workspace/investor/mandate"]) {
       expect(navLinks(html), leak).not.toContain(leak);
     }
