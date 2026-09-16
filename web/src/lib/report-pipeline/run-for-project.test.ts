@@ -57,7 +57,12 @@ vi.mock("@/lib/slug", () => ({ newSlug: () => "slug12345678" }));
 vi.mock("nanoid", () => ({ nanoid: (n: number) => "k".repeat(n) }));
 
 const orchestrateMock = vi.fn();
-vi.mock("@/lib/report-pipeline/orchestrator", () => ({ orchestrateReport: (i: unknown) => orchestrateMock(i) }));
+vi.mock("@/lib/report-pipeline/orchestrator", () => ({
+  orchestrateReport: (i: unknown) => orchestrateMock(i),
+  assertReportUsable: (r: { fullyDegraded?: boolean }) => {
+    if (r.fullyDegraded) throw new Error("report fully degraded");
+  },
+}));
 
 const findAccountMock = vi.fn();
 const findAnalysisMock = vi.fn();

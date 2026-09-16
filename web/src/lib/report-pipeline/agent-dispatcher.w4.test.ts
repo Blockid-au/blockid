@@ -215,10 +215,27 @@ describe("dispatchDimensionChapters — budget guards", () => {
     const budget: CallBudget = { max: 3, get used() { return used; }, tryAcquire: () => (used < 3 ? (used += 1, true) : false) };
     const s = scripted((dim) => validChapter(dim, context));
     const chapters = await dispatchDimensionChapters(context, "standard", async () => "unused", { ...baseOpts, modelCaller: s.caller, callBudget: budget });
-    expect(s.calls).toBe(3);
+    // One unit is always held back for the CEO summary → 2 chapter calls on a cap of 3.
+    expect(s.calls).toBe(2);
     const degraded = DIM_ORDER.filter((d) => chapters.get(d)!.degraded);
-    expect(degraded).toHaveLength(5);
+    expect(degraded).toHaveLength(6);
     expect(chapters.get(degraded[0])!.degradeReason).toMatch(/budget/);
+  });
+
+  it("orchestrator path: an already-metered callAI is NOT metered a second time — 8 chapters cost exactly 8 budget units (W2 review P0)", async () => {
+    const context = makeContext();
+    const { ReportCallBudget, meterCallAI } = await import("./orchestrator");
+    const budget = new ReportCallBudget(30);
+    let raw = 0;
+    const callAI = meterCallAI(async (_system: string, user: string) => {
+      raw += 1;
+      const m = user.match(/"dim": "(\w+)"/);
+      return validChapter((m?.[1] ?? "tre") as DimKey, context);
+    }, budget);
+    const chapters = await dispatchDimensionChapters(context, "standard", callAI, { ...baseOpts, callBudget: budget });
+    expect(raw).toBe(8);
+    expect(budget.used).toBe(8);
+    expect(DIM_ORDER.filter((d) => chapters.get(d)!.degraded)).toHaveLength(0);
   });
 
   it("budgetOk=false: no owner call at all, 8 deterministic cards", async () => {

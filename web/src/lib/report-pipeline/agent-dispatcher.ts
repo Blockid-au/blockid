@@ -1283,10 +1283,20 @@ function chapterInput(context: ReportContext, dim: DimKey, tierV2: ReportTierV2,
 }
 
 /** Wrap a transport so every model call (first + repair) draws from the per-report budget. */
-function meteredCaller(inner: StructuredModelCaller, budget: CallBudget | undefined, budgetOk: (() => boolean) | undefined): StructuredModelCaller {
+/** Calls held back from W4 so the CEO summary always gets one. */
+const W4_RESERVE_FOR_SUMMARY = 1;
+
+/**
+ * `acquire: false` = the transport is the orchestrator's already-metered
+ * `callAI` (meterCallAI), so only the summary reserve is checked here; the
+ * unit itself is drawn inside callAI. `acquire: true` = an injected
+ * modelCaller (tests / direct callers) — draw the unit here.
+ */
+function meteredCaller(inner: StructuredModelCaller, budget: CallBudget | undefined, budgetOk: (() => boolean) | undefined, opts: { acquire: boolean }): StructuredModelCaller {
   return async (req) => {
     if (budgetOk && !budgetOk()) return { ok: false, status: "model_error", reason: "monthly AI budget exhausted" };
-    if (budget && !budget.tryAcquire()) return { ok: false, status: "model_error", reason: `report call budget exhausted (${budget.max})` };
+    if (budget && budget.used + W4_RESERVE_FOR_SUMMARY >= budget.max) return { ok: false, status: "model_error", reason: `report call budget exhausted (${budget.max}, 1 reserved for the summary)` };
+    if (budget && opts.acquire && !budget.tryAcquire()) return { ok: false, status: "model_error", reason: `report call budget exhausted (${budget.max})` };
     return inner(req);
   };
 }
@@ -1309,7 +1319,9 @@ async function dispatchChapter(
   if (opts.budgetOk && !opts.budgetOk()) {
     return buildDimensionChapter(context, dim, shared.tierV2, null, { runIds: [], degraded: true, degradeReason: "budget: monthly AI cap reached — deterministic card" });
   }
-  if (opts.callBudget && opts.callBudget.used >= opts.callBudget.max) {
+  // Keep one call in reserve for the CEO executive summary (§C.9: a report
+  // never ships with a placeholder summary because W4 spent the last unit).
+  if (opts.callBudget && opts.callBudget.used + W4_RESERVE_FOR_SUMMARY >= opts.callBudget.max) {
     return buildDimensionChapter(context, dim, shared.tierV2, null, { runIds: [], degraded: true, degradeReason: `budget: report call cap (${opts.callBudget.max}) reached — deterministic card` });
   }
 
@@ -1356,7 +1368,11 @@ async function dispatchChapter(
     userId: opts.userId ?? null,
     purpose: opts.purpose ?? "customer_report",
     evidenceIds: evidence.map((e) => e.evidence_id),
-    modelCaller: meteredCaller(transport, opts.callBudget, opts.budgetOk),
+    // The orchestrator hands us an already-metered `callAI` (meterCallAI), so
+    // only an injected `modelCaller` (tests / callers bypassing callAI) needs
+    // the budget wrapper here — wrapping both double-charged every chapter
+    // (8 W4 calls = 16 budget units) and starved the executive summary.
+    modelCaller: meteredCaller(transport, opts.callBudget, opts.budgetOk, { acquire: Boolean(opts.modelCaller) }),
   });
 
   const runIds = structured.runId ? [structured.runId] : [];

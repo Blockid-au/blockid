@@ -35,7 +35,7 @@ import { nanoid } from "nanoid";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI } from "@/lib/ai-client";
 import { newSlug } from "@/lib/slug";
-import { orchestrateReport, type PipelineEventHandler } from "@/lib/report-pipeline/orchestrator";
+import { assertReportUsable, orchestrateReport, type PipelineEventHandler } from "@/lib/report-pipeline/orchestrator";
 import type { ReportTierV2 } from "@/lib/report-v2/schema";
 import type { AssembledReport, ReportTier, CriterionData, ReportSection } from "@/lib/report-pipeline/types";
 import { CRITERIA, CRITERION_KEYS, type CriterionKey } from "@/lib/evaluation-criteria";
@@ -381,6 +381,9 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
       callAI: aiCaller,
       onEvent,
     });
+    // Throws into the catch below → failed-status row, and the evaluator
+    // route's refund path (a throw after a credit spend refunds it).
+    assertReportUsable(report);
 
     if (supabase) {
       const { error: reportInsertErr } = await supabase.from("assembled_reports").insert({
@@ -751,10 +754,15 @@ export async function runTrustReportForProject(args: {
   if (snapshotId) {
     const db = getSupabaseAdmin();
     if (db) {
+      // W2 review P1: the evaluator TBR / dossier read `svi_snapshots.report_v2`
+      // — persist the pipeline's own document (with the W4 chapters) when the
+      // orchestrator produced one; the adapter projection is the fallback.
       await writeSnapshotReportV2(
         db,
         snapshotId,
-        fromAssembledReport(report, {
+        report.reportV2
+          ? { ...report.reportV2, snapshotId, projectId: project.id }
+          : fromAssembledReport(report, {
           snapshotId,
           projectId: project.id,
           accountId: ctx.account.id,

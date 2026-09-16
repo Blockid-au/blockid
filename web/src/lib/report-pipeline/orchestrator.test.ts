@@ -222,7 +222,7 @@ vi.mock("@/lib/ai-client", () => ({
 }));
 
 // SUT
-import { orchestrateReport } from "./orchestrator";
+import { orchestrateReport, assertReportUsable } from "./orchestrator";
 
 // Convenience aliases into the hoisted state bag — kept out of the vi.mock
 // hoist zone so we don't recreate the TDZ problem.
@@ -1300,6 +1300,26 @@ describe("orchestrateReport() — per-report call counter (D7/D8/D9)", () => {
     expect(callAI).not.toHaveBeenCalled();
     expect(report.executiveSummary).toContain("Executive summary generation encountered an error");
     expect(report.llmCalls).toBe(0);
+  });
+
+  it("W2 review P1: all 8 chapters degraded + placeholder summary → report.fullyDegraded (D9: the orchestrator still returns; assertReportUsable throws for the persisting callers)", async () => {
+    H.chapterFactory = (d) => stubChapter(d, { degraded: true, degradeReason: "budget: cap" });
+    const callAI = vi.fn(async () => "exec ok");
+    const report = await orchestrateReport(baseInput({ callAI, maxCalls: 0 }));
+    H.chapterFactory = null;
+    expect(report.fullyDegraded).toBe(true);
+    expect(() => assertReportUsable(report)).toThrow(/fully degraded/);
+  });
+
+  it("a placeholder summary alone (chapters fine) is still a usable report", async () => {
+    // Chapters come from the mocked W4 (not degraded); only the CEO call fails.
+    const callAI = vi.fn(async () => {
+      throw new Error("model outage");
+    });
+    const report = await orchestrateReport(baseInput({ callAI }));
+    expect(report.executiveSummary).toContain("encountered an error");
+    expect(report.fullyDegraded).toBe(false);
+    expect(() => assertReportUsable(report)).not.toThrow();
   });
 
   it("reports llmCalls = number of metered calls (CEO only on a clean standard run)", async () => {

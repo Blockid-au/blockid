@@ -97,6 +97,35 @@ export class ReportCallBudget implements CallBudget {
   }
 }
 
+export class ReportFullyDegradedError extends Error {
+  constructor(readonly degradedSections: number, readonly calls: number) {
+    super(`report fully degraded: ${degradedSections} deterministic chapters and a placeholder summary after ${calls} calls`);
+    this.name = "ReportFullyDegradedError";
+  }
+}
+
+/** Callers that persist + charge call this right after `orchestrateReport()`. */
+export function assertReportUsable(report: { fullyDegraded?: boolean; llmCalls?: number; reportV2?: ReportV2 }): void {
+  if (report.fullyDegraded) {
+    throw new ReportFullyDegradedError(report.reportV2?.quality.degradedSections.length ?? 0, report.llmCalls ?? 0);
+  }
+}
+
+const SUMMARY_PLACEHOLDER = "Executive summary generation encountered an error";
+
+/**
+ * True when nothing an LLM wrote survived: every W4 chapter degraded to a
+ * deterministic card AND the summary is the placeholder. Reads the chapters
+ * themselves (not `reportV2.quality.degradedSections`, which the adapter
+ * fallback also fills for merely unscored dims).
+ */
+export function isFullyDegraded(report: { executiveSummary?: string | null }, chapters: ReadonlyMap<DimKey, { degraded?: boolean }> | undefined): boolean {
+  if (process.env.REPORT_FAIL_WHEN_FULLY_DEGRADED === "off") return false;
+  if (!chapters || chapters.size < DIM_ORDER.length) return false;
+  if (!DIM_ORDER.every((dim) => chapters.get(dim)?.degraded === true)) return false;
+  return typeof report.executiveSummary === "string" && report.executiveSummary.includes(SUMMARY_PLACEHOLDER);
+}
+
 /** Wrap a callAI so every call draws from the budget; throws once exhausted. */
 export function meterCallAI(callAI: AICaller, budget: ReportCallBudget): AICaller {
   return async (system, user, maxTokens, taskClass) => {
@@ -343,6 +372,14 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
     report.reportV2 = reportV2;
     emit({ type: "valuation_complete", chapter: reportV2.valuation });
   }
+
+  // W2 review P1: a report whose 8 chapters ALL degraded to deterministic
+  // cards and whose summary is the error placeholder is not a product. D9
+  // says the orchestrator itself never fails on budget, so it only FLAGS the
+  // report; the persisting callers (paywall generator, run-for-project) turn
+  // the flag into their failure path (retry tick / refund) instead of storing
+  // `complete` and charging A$3.
+  report.fullyDegraded = isFullyDegraded(report, context.dimensionChapters);
 
   notify("complete", 100);
   const sonnetCalls = w4On && (process.env.MODEL_AGENT_CEO || process.env.MODEL_AGENT_CFO) && tierV2 !== "free" ? 2 : 0;

@@ -330,7 +330,7 @@ const MATERIAL_PATTERNS: RegExp[] = [
 // An explicit admission that a claim is not evidenced satisfies §5.4 just as
 // a citation does — the rule is "cite it or say you cannot".
 const UNEVIDENCED_MARKERS =
-  /\((?:unevidenced|uncited|no evidence|estimate|estimated|illustrative|assumption)\)|\b(?:not disclosed|not provided|no evidence (?:was )?(?:supplied|provided)|unverified|self-reported|founder-reported|indicative only)\b/i;
+  /[([](?:unevidenced|uncited|no evidence|estimate|estimated|illustrative|assumption)[)\]]|\b(?:not disclosed|not provided|no evidence (?:was )?(?:supplied|provided)|unverified|self-reported|founder-reported|indicative only)\b/i;
 
 const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 

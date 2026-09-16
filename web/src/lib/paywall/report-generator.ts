@@ -364,6 +364,11 @@ export async function generateTrustReportForOrder(
     // AI provider / network failure — worth another drain tick.
     return fail(true, `orchestration_failed: ${errMessage(err)}`);
   }
+  if (report.fullyDegraded) {
+    // Nothing an LLM wrote survived (budget / provider outage) — do not mark
+    // the order READY on deterministic cards; the drain retries later.
+    return fail(true, "orchestration_failed: report fully degraded");
+  }
 
   // ── 5. Persist ───────────────────────────────────────────────────────
   // The stored row's primary key IS the value we hand back as

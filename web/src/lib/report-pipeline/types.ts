@@ -234,6 +234,8 @@ export interface AssembledReport {
   createdAt: string;
   /** G13-W2-R2: the ReportV2 projection with W4 chapters (persisted via report-v2/storage). */
   reportV2?: ReportV2;
+  /** W2 review P1: every chapter degraded AND the summary is the placeholder — persisting callers must not charge for it. */
+  fullyDegraded?: boolean;
   /** LLM calls consumed (hard-stopped at the tier max). */
   llmCalls?: number;
 }
