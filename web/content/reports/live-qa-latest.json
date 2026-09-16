@@ -1,24 +1,24 @@
 {
-  "ts": "2026-09-16T20:47:35.636Z",
-  "startedAt": "2026-09-16T20:47:14Z",
+  "ts": "2026-09-16T23:00:17.208Z",
+  "startedAt": "2026-09-16T22:54:57Z",
   "baseURL": "https://blockid.au",
   "exitCode": 0,
-  "passed": 6,
+  "passed": 164,
   "failed": 0,
-  "skipped": 0,
+  "skipped": 10,
   "flaky": 0,
   "expectedFailures": 0,
-  "durationMs": 20105.589,
+  "durationMs": 317829.62100000004,
   "account": {
-    "email": "qa-live-20260916-2047@blockid.au",
-    "userId": "f1e7b0da-8e9d-421c-aeb0-20eff3aba619",
-    "projectId": "48202ae4-c0d0-4ba9-a98e-5001173b3718",
+    "email": "qa-live-20260916-2254@blockid.au",
+    "userId": "2bdf06f7-028c-460b-82a6-e981a4432a8a",
+    "projectId": "e67a72e5-03ca-4763-b6d5-6af5c5a1fe3c",
     "plan": "growth",
     "elevated": true
   },
   "erasure": {
     "ok": true,
-    "detail": "erased f1e7b0da-8e9d-421c-aeb0-20eff3aba619; verify dry-run exit 2 (no app_users row for the QA founder email)"
+    "detail": "erased 2bdf06f7-028c-460b-82a6-e981a4432a8a; verify dry-run exit 2 (no app_users row for the QA founder email)"
   },
   "findings": []
 }

@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-15",
+  "date": "2026-09-16",
   "overall": 68,
   "status": "YELLOW",
   "dimensions": [
@@ -7,23 +7,23 @@
       "key": "auth_coverage",
       "label": "Auth coverage on /api/* routes",
       "score": 8,
-      "detail": "486/609 guarded (Bearer / user-auth / public-tagged)",
+      "detail": "504/629 guarded (Bearer / user-auth / public-tagged)",
       "findings": [
         "Ungated: api/ab/pricing-expose/route.ts",
         "Ungated: api/abr/lookup/route.ts",
         "Ungated: api/abs/lookup/route.ts",
         "Ungated: api/account/delete/cancel/route.ts",
         "Ungated: api/actions/route.ts",
-        "Ungated: api/admin/sector-multiples/[id]/approve/route.ts",
-        "Ungated: api/admin/sector-multiples/[id]/reject/route.ts",
-        "Ungated: api/admin/sector-multiples/route.ts"
+        "Ungated: api/admin/comparables/[id]/route.ts",
+        "Ungated: api/admin/comparables/route.ts",
+        "Ungated: api/admin/sector-multiples/[id]/approve/route.ts"
       ]
     },
     {
       "key": "rate_limit",
       "label": "Rate-limit coverage on /api/* routes",
       "score": 0,
-      "detail": "23/609 call checkRateLimit (or @rate-limit-exempt)",
+      "detail": "23/629 call checkRateLimit (or @rate-limit-exempt)",
       "findings": [
         "No rate-limit: api/ab/pricing-expose/route.ts",
         "No rate-limit: api/abr/lookup/route.ts",
@@ -68,7 +68,7 @@
       "key": "supabase_rls",
       "label": "Supabase RLS enabled across tables",
       "score": 8,
-      "detail": "239/305 tables have RLS enabled in migrations",
+      "detail": "252/313 tables have RLS enabled in migrations",
       "findings": [
         "No RLS migration found for table: user_actions",
         "No RLS migration found for table: svi_analysis_usage",

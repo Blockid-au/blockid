@@ -54,9 +54,9 @@
     "pruned_at": "2026-09-14T02:00:10.419Z"
   },
   "sambanova::Meta-Llama-3.3-70B-Instruct": {
-    "strikes": 144,
+    "strikes": 149,
     "last_status": "error",
-    "last_at": "2026-09-16T21:00:03.726Z",
+    "last_at": "2026-09-16T23:00:04.960Z",
     "pruned_at": "2026-09-14T02:00:10.419Z"
   },
   "sambanova::gemma-4-31B-it": {
@@ -120,74 +120,74 @@
     "pruned_at": "2026-09-14T02:00:10.419Z"
   },
   "groq::llama-3.3-70b-versatile": {
-    "strikes": 144,
+    "strikes": 149,
     "last_status": "not_found",
-    "last_at": "2026-09-16T21:00:03.726Z"
+    "last_at": "2026-09-16T23:00:04.960Z"
   },
   "groq::llama-3.1-8b-instant": {
-    "strikes": 144,
+    "strikes": 149,
     "last_status": "not_found",
-    "last_at": "2026-09-16T21:00:03.726Z"
+    "last_at": "2026-09-16T23:00:04.960Z"
   },
   "groq::mixtral-8x7b-32768": {
-    "strikes": 144,
+    "strikes": 149,
     "last_status": "error",
-    "last_at": "2026-09-16T21:00:03.726Z"
+    "last_at": "2026-09-16T23:00:04.960Z"
   },
   "groq::gemma2-9b-it": {
-    "strikes": 144,
+    "strikes": 149,
     "last_status": "error",
-    "last_at": "2026-09-16T21:00:03.726Z"
+    "last_at": "2026-09-16T23:00:04.960Z"
   },
   "sambanova::Meta-Llama-3.1-405B-Instruct": {
-    "strikes": 144,
+    "strikes": 149,
     "last_status": "not_found",
-    "last_at": "2026-09-16T21:00:03.726Z"
+    "last_at": "2026-09-16T23:00:04.960Z"
   },
   "sambanova::DeepSeek-R1": {
-    "strikes": 144,
+    "strikes": 149,
     "last_status": "not_found",
-    "last_at": "2026-09-16T21:00:03.726Z"
+    "last_at": "2026-09-16T23:00:04.960Z"
   },
   "cerebras::llama-3.3-70b": {
-    "strikes": 144,
+    "strikes": 149,
     "last_status": "not_found",
-    "last_at": "2026-09-16T21:00:03.726Z"
+    "last_at": "2026-09-16T23:00:04.960Z"
   },
   "cerebras::llama3.1-8b": {
-    "strikes": 144,
+    "strikes": 149,
     "last_status": "not_found",
-    "last_at": "2026-09-16T21:00:03.726Z"
+    "last_at": "2026-09-16T23:00:04.960Z"
   },
   "cerebras::qwen-3-32b": {
-    "strikes": 144,
+    "strikes": 149,
     "last_status": "not_found",
-    "last_at": "2026-09-16T21:00:03.726Z"
+    "last_at": "2026-09-16T23:00:04.960Z"
   },
   "openrouter::meta-llama/llama-3.3-70b-instruct:free": {
-    "strikes": 144,
+    "strikes": 149,
     "last_status": "not_found",
-    "last_at": "2026-09-16T21:00:03.726Z"
+    "last_at": "2026-09-16T23:00:04.960Z"
   },
   "openrouter::deepseek/deepseek-r1:free": {
-    "strikes": 144,
+    "strikes": 149,
     "last_status": "not_found",
-    "last_at": "2026-09-16T21:00:03.726Z"
+    "last_at": "2026-09-16T23:00:04.960Z"
   },
   "openrouter::qwen/qwen-2.5-72b-instruct:free": {
-    "strikes": 144,
+    "strikes": 149,
     "last_status": "not_found",
-    "last_at": "2026-09-16T21:00:03.726Z"
+    "last_at": "2026-09-16T23:00:04.960Z"
   },
   "openrouter::google/gemma-2-9b-it:free": {
-    "strikes": 144,
+    "strikes": 149,
     "last_status": "not_found",
-    "last_at": "2026-09-16T21:00:03.726Z"
+    "last_at": "2026-09-16T23:00:04.960Z"
   },
   "openrouter::mistralai/mistral-7b-instruct:free": {
-    "strikes": 144,
+    "strikes": 149,
     "last_status": "not_found",
-    "last_at": "2026-09-16T21:00:03.726Z"
+    "last_at": "2026-09-16T23:00:04.960Z"
   },
   "openrouter::poolside/laguna-xs-2.1:free": {
     "strikes": 3,
@@ -232,8 +232,9 @@
     "pruned_at": "2026-09-15T15:00:11.725Z"
   },
   "openrouter::stealth/union-alpha": {
-    "strikes": 2,
-    "last_status": "quota_exceeded",
-    "last_at": "2026-09-16T21:00:03.726Z"
+    "strikes": 3,
+    "last_status": "timeout",
+    "last_at": "2026-09-16T21:30:08.364Z",
+    "pruned_at": "2026-09-16T21:30:08.364Z"
   }
 }
