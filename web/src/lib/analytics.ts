@@ -322,7 +322,7 @@ export interface AnalyticsEventMap {
   //   tbr_share_created       — POST /api/svi/report/share minted a /tbr/<token> link
   trust_report_purchased: { sku: string; gross_aud_cents: number; reconciled: boolean };
   evaluator_trial_started: { plan: string; trial_days: number; account_type: string };
-  subscription_created: { plan: string; status: string; trialing: boolean; interval: string };
+  subscription_created: { plan: string; plan_label?: string; status: string; trialing: boolean; interval: string };
   tbr_share_created: { project_scope: "default" | "project" };
 
   // ── Global error boundary + 404 ──────────────────────────────────────────

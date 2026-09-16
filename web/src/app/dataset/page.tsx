@@ -8,8 +8,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Database, Download, Info, ShieldCheck } from "lucide-react";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import {
   getOverallAggregates,
   getSectorAggregates,
@@ -97,7 +97,7 @@ export default async function DatasetPage() {
 
   return (
     <div className="min-h-screen bg-white text-ink-900">
-      <Navbar />
+      <NavV2 />
 
       <main>
         <Hero overall={overall} />

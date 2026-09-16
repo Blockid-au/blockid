@@ -363,12 +363,25 @@ describe("EVALUATOR_TRIAL_COPY (T0269 /signup?segment=evaluator)", () => {
     expect(EVALUATOR_TRIAL_COPY.trial_line).toBe(
       "7-day free trial · card required · cancel anytime · charged on day 8",
     );
-    expect(EVALUATOR_TRIAL_COPY.cta).toMatch(/7-day/);
+    expect(EVALUATOR_TRIAL_COPY.cta()).toBe("Start 7-day evaluator trial");
     expect(EVALUATOR_TRIAL_COPY.trial_line).toContain(`${TRIAL_DAYS}-day`);
     // Pricing v4: per-plan variant for the 14-day Programs trial.
     expect(evaluatorTrialLine()).toBe(EVALUATOR_TRIAL_COPY.trial_line);
     expect(evaluatorTrialLine(7)).toBe(EVALUATOR_TRIAL_COPY.trial_line);
     expect(evaluatorTrialLine(14)).toBe("14-day free trial · card required · cancel anytime · charged on day 15");
     expect(evaluatorTrialLine(0)).toBe(EVALUATOR_TRIAL_COPY.trial_line);
+  });
+
+  // W4 review P3-b (S-IA5): the CTA follows the selected plan's trial length
+  // — Cohort 25 / 100 run 14 days, so the button must not promise 7.
+  it("cta is a function of trialDays and agrees with the trial line", () => {
+    expect(EVALUATOR_TRIAL_COPY.cta(7)).toBe("Start 7-day evaluator trial");
+    expect(EVALUATOR_TRIAL_COPY.cta(14)).toBe("Start 14-day evaluator trial");
+    expect(EVALUATOR_TRIAL_COPY.cta(0)).toBe("Start 7-day evaluator trial");
+    expect(EVALUATOR_TRIAL_COPY.cta(Number.NaN)).toBe("Start 7-day evaluator trial");
+    for (const days of [7, 14, 30]) {
+      const n = EVALUATOR_TRIAL_COPY.cta(days).match(/(\d+)-day/)![1];
+      expect(evaluatorTrialLine(days)).toContain(`${n}-day`);
+    }
   });
 });

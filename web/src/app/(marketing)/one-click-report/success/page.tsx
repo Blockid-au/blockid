@@ -12,8 +12,8 @@
  */
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { ObfuscatedEmail } from "@/components/marketing/obfuscated-email";
 import { Button } from "@/components/ui/button";
@@ -30,10 +30,10 @@ export default function OneClickSuccessPage() {
   return (
     <>
       <PageTracker page="one_click_report_success" tool="one_click_report" />
-      <Navbar />
+      <NavV2 />
       <main
         id="main"
-        className="flex-1 pt-32 md:pt-40 pb-24 bg-surface-50"
+        className="flex-1 pt-10 md:pt-16 pb-24 bg-surface-50"
       >
         <section className="mx-auto max-w-2xl px-6">
           <div className="rounded-3xl border border-surface-200 bg-white p-8 md:p-10 text-center shadow-sm">

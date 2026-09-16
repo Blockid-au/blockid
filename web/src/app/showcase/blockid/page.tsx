@@ -18,8 +18,8 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { WebPageJsonLd } from "@/components/seo/json-ld";
 import {
@@ -176,7 +176,7 @@ export default async function ShowcaseBlockidPage() {
           { name: "Showcase", url: CANONICAL },
         ]}
       />
-      <Navbar />
+      <NavV2 />
       <main className="mx-auto max-w-6xl px-4 py-12 md:py-16">
         <header className="mb-10">
           <p className="text-sm font-medium uppercase tracking-wide text-emerald-600">

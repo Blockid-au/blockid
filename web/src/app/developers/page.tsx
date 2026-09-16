@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { ApiDocs } from "./api-docs";
 
 const TITLE = "API Docs — BlockID Developer Platform";
@@ -39,8 +39,8 @@ export const metadata: Metadata = {
 export default function DevelopersPage() {
   return (
     <>
-      <Navbar />
-      <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
+      <NavV2 />
+      <main id="main" className="flex-1 pt-10 md:pt-16 pb-24">
         <ApiDocs />
       </main>
       <Footer />

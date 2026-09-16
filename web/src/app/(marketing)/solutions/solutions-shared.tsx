@@ -494,7 +494,7 @@ export function SolutionsPageShell(props: SolutionPageProps) {
           </dl>
         </section>
 
-        {/* Disclaimer footer band (page-level, above MarketingFooter) */}
+        {/* Disclaimer footer band (page-level, above the Footer) */}
         <section
           aria-label="Regulatory disclaimer"
           className="mx-auto max-w-4xl px-6 pb-16"

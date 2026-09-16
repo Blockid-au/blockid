@@ -12,12 +12,19 @@
 // `persona` (G13-W4-IA4 wizard step 1) writes `app_users.account_type` +
 // the derived `segment` — only ever between the five wizard personas (a
 // reseller / affiliate / journalist / admin row is never re-typed here).
+//
+// G13-W5-IA5 (W4 review P3-a) — persona lock: a persona may be written only
+// while onboarding is incomplete AND the user owns no project. Otherwise a
+// change is refused with 400 `persona_locked` (a resave of the SAME persona
+// is a no-op, never an error — the wizard resends it on every step). The
+// rule lives in `lib/onboarding/flow.ts#personaLockDecision`, shared with
+// the wizard page that hides the evaluator cards.
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute } from "@/lib/audit/api-route";
-import { isWizardPersona, WIZARD_PERSONAS } from "@/lib/onboarding/flow";
+import { isWizardPersona, personaLockDecision, WIZARD_PERSONAS } from "@/lib/onboarding/flow";
 
 export const dynamic = "force-dynamic";
 
@@ -89,9 +96,17 @@ async function POST_handler(request: Request) {
 
   try {
     if (isWizardPersona(persona)) {
-      const { data: current } = await admin.from("app_users").select("account_type").eq("id", user.id).maybeSingle();
-      const at = (current as { account_type?: string | null } | null)?.account_type ?? null;
-      if (personaWriteAllowed(at, persona)) {
+      const [{ data: current }, ownsProject] = await Promise.all([
+        admin.from("app_users").select("account_type, onboarding_completed").eq("id", user.id).maybeSingle(),
+        countOwnedProjects(admin, user.id).then((n) => n > 0),
+      ]);
+      const row = current as { account_type?: string | null; onboarding_completed?: boolean | null } | null;
+      const at = row?.account_type ?? null;
+      const decision = personaLockDecision(at, persona, { onboardingCompleted: row?.onboarding_completed === true, ownsProject });
+      if (decision === "locked") {
+        return NextResponse.json({ ok: false, reason: "persona_locked" }, { status: 400 });
+      }
+      if (decision === "write" && personaWriteAllowed(at, persona)) {
         // The five wizard personas are 1:1 with the 0073 `segment` enum.
         payload.account_type = persona;
         payload.segment = persona;
@@ -136,6 +151,16 @@ async function POST_handler(request: Request) {
 
 /** Legacy evaluator account types (0310) the wizard may refine into a persona. */
 const LEGACY_RETYPABLE = new Set(["investor", "incubator", "service_provider"]);
+
+/** `projects.user_id = userId` head count; an unreadable table counts as 0 (never locks on a guess). */
+async function countOwnedProjects(admin: NonNullable<ReturnType<typeof getSupabaseAdmin>>, userId: string): Promise<number> {
+  try {
+    const { count } = await admin.from("projects").select("id", { count: "exact", head: true }).eq("user_id", userId);
+    return typeof count === "number" ? count : 0;
+  } catch {
+    return 0;
+  }
+}
 
 /**
  * The wizard may (re)type an account only between the five wizard personas

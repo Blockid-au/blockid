@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Code2, Gauge, Terminal } from "lucide-react";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { API_ENDPOINTS, type ApiEndpointDoc } from "@/lib/api-docs-registry";
 import { cn } from "@/lib/utils";
 
@@ -59,8 +59,8 @@ export default function ApiIndexPage() {
 
   return (
     <>
-      <Navbar />
-      <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
+      <NavV2 />
+      <main id="main" className="flex-1 pt-10 md:pt-16 pb-24">
         <div className="mx-auto max-w-4xl px-6">
           <header className="text-center max-w-2xl mx-auto">
             <div className="inline-flex items-center gap-2 rounded-full bg-brand-50 border border-brand-200 px-4 py-1.5 mb-6">

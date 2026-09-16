@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CheckCircle } from "lucide-react";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
 import { getPlan } from "@/lib/plans";
@@ -54,8 +54,8 @@ export default async function CheckoutSuccessPage({
   return (
     <>
       <CheckoutTracker plan={planId} />
-      <Navbar />
-      <main className="min-h-screen bg-surface-100 pt-28 pb-20">
+      <NavV2 />
+      <main className="min-h-screen bg-surface-100 pt-8 pb-20">
         <div className="mx-auto max-w-2xl px-6 text-center">
         {/* Checkmark */}
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">

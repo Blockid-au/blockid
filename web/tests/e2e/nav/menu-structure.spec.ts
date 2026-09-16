@@ -2,12 +2,12 @@
  * E2E — menu structure per role (ux-ia-startup-flow-v1 §P9).
  *
  * Pins the top-nav IA contracts stated in the goal doc:
- *   - Anonymous visitors on /pricing (MarketingShell → NavV2) see <=7 nav
- *     items (five since G11 T0238: Get my score · Get funding · Free tools
- *     · Pricing · Demo), a "Get funding" dropdown, the "Do you need money?"
- *     CTA, AND a Demo link that points at /showcase/atlassian?step=1.
- *   - Anonymous visitors on /docs (legacy site/navbar) see a Demo dropdown
- *     containing an Atlassian journey link.
+ *   - Anonymous visitors on every public page (S-IA5: ONE header — NavV2 on
+ *     /pricing, /docs, /auth/login, /tools/esic, /about/invest alike) see
+ *     <=7 nav items (five since G11 T0238: Get my score · Get funding ·
+ *     Free tools · Pricing · Demo), a "Get funding" dropdown, the "Do you
+ *     need money?" CTA, AND a Demo link that points at
+ *     /showcase/atlassian?step=1. The legacy site/navbar is deleted.
  *   - Logged-in founders on /workspace/plan get the JourneyStepLadder rendered
  *     (moved off /dashboard in G13-W3-IA3; /dashboard is the five-block landing).
  *   - Logged-in founders see the Demo link in the workspace top-bar.
@@ -29,54 +29,84 @@ const ANGEL_EMAIL = process.env.QA_INVESTOR_ANGEL_EMAIL ?? "qa+investor_angel@bl
 
 const WORKSPACE_NAV = 'nav[aria-label="Workspace navigation"]';
 
-test.describe("Menu structure — anonymous visitor (MarketingShell / NavV2)", () => {
+/**
+ * S-IA5 (G13-W5): the same assertions on every kind of public page —
+ * marketing shell, docs, a free tool, the auth page (light skin) and the
+ * renamed invest pitch. One header means one contract; the loop keeps the
+ * per-page assertions identical (≤ 7 top items, Demo reachable, funding
+ * dropdown, money CTA).
+ */
+const PUBLIC_HEADER_PAGES: ReadonlyArray<{ path: string; variant: "dark" | "light" }> = [
+  { path: "/pricing", variant: "dark" },
+  { path: "/docs", variant: "dark" },
+  { path: "/tools/esic", variant: "dark" },
+  { path: "/about/invest", variant: "dark" },
+  { path: "/auth/login", variant: "light" },
+];
+
+test.describe("Menu structure — anonymous visitor (NavV2, the one header)", () => {
   test.setTimeout(30_000);
 
-  test("pricing page top-nav has a Demo entry that reaches /showcase/atlassian", async ({
-    page,
+  for (const { path, variant } of PUBLIC_HEADER_PAGES) {
+    test(`${path} top-nav: ≤ 7 items, Demo + Get funding dropdowns, money CTA (${variant} skin)`, async ({
+      page,
+    }) => {
+      await page.goto(path);
+
+      // Exactly one header on the page (S-IA5) and the primary nav is
+      // aria-labelled "Primary".
+      await expect(page.locator("header")).toHaveCount(1, { timeout: 15_000 });
+      await expect(page.locator("header")).toHaveAttribute("data-nav-variant", variant);
+      const primary = page.locator('nav[aria-label="Primary"]').first();
+      await expect(primary).toBeVisible({ timeout: 15_000 });
+
+      // Count top-level items — expect <=7. NavV2 uses <ul><li>* structure.
+      const topLevel = primary.locator(":scope > ul > li");
+      const count = await topLevel.count();
+      expect(count).toBeGreaterThan(0);
+      expect(count).toBeLessThanOrEqual(7);
+
+      // A Demo trigger exists (as a dropdown BUTTON). We look for its
+      // visible label rather than the sublink, because dropdowns collapse.
+      const demoTrigger = primary.getByRole("button", { name: /^demo$/i });
+      await expect(demoTrigger).toBeVisible();
+
+      // G11 T0238 — the money rail is a dropdown button too, and the
+      // primary CTA is "Do you need money?" → /funding?intent=money (the
+      // old "Start free" bounced anonymous visitors to login). The CTA lives
+      // in the desktop CTA row, so it is scoped to the nav, not the <ul>.
+      const fundingTrigger = primary.getByRole("button", { name: /^get funding$/i });
+      await expect(fundingTrigger).toBeVisible();
+      const moneyCta = primary.getByRole("link", { name: /^do you need money\?$/i });
+      await expect(moneyCta).toBeVisible({ timeout: 15_000 });
+      expect(await moneyCta.getAttribute("href")).toBe("/funding?intent=money");
+      await expect(primary.getByRole("link", { name: /^start free$/i })).toHaveCount(0);
+    });
+
+    test(`${path}: Get funding dropdown lists the grant and program directories`, async ({
+      page,
+    }) => {
+      await page.goto(path);
+      const primary = page.locator('nav[aria-label="Primary"]').first();
+      const fundingTrigger = primary.getByRole("button", { name: /^get funding$/i });
+      await expect(fundingTrigger).toBeVisible({ timeout: 15_000 });
+      await fundingTrigger.click();
+      const grants = primary.getByRole("menuitem", { name: /grants for my startup/i });
+      await expect(grants).toBeVisible({ timeout: 5_000 });
+      expect(await grants.getAttribute("href")).toBe("/funding/grants");
+      const programs = primary.getByRole("menuitem", { name: /startup programs by city/i });
+      expect(await programs.getAttribute("href")).toBe("/funding/programs");
+    });
+  }
+
+  test("/investors is a permanent redirect to /about/invest (F2); /investor stays the persona landing", async ({
+    request,
   }) => {
-    await page.goto("/pricing");
-
-    // The primary nav is aria-labelled "Primary" (NavV2 line 421).
-    const primary = page.locator('nav[aria-label="Primary"]').first();
-    await expect(primary).toBeVisible({ timeout: 15_000 });
-
-    // Count top-level items — expect <=7. NavV2 uses <ul><li>* structure.
-    const topLevel = primary.locator(":scope > ul > li");
-    const count = await topLevel.count();
-    expect(count).toBeGreaterThan(0);
-    expect(count).toBeLessThanOrEqual(7);
-
-    // A Demo trigger exists (as a dropdown BUTTON). We look for its
-    // visible label rather than the sublink, because dropdowns collapse.
-    const demoTrigger = primary.getByRole("button", { name: /^demo$/i });
-    await expect(demoTrigger).toBeVisible();
-
-    // G11 T0238 — the money rail is a dropdown button too, and the
-    // primary CTA is "Do you need money?" → /funding?intent=money (the
-    // old "Start free" bounced anonymous visitors to login). The CTA lives
-    // in the desktop CTA row, so it is scoped to the nav, not the <ul>.
-    const fundingTrigger = primary.getByRole("button", { name: /^get funding$/i });
-    await expect(fundingTrigger).toBeVisible();
-    const moneyCta = primary.getByRole("link", { name: /^do you need money\?$/i });
-    await expect(moneyCta).toBeVisible({ timeout: 15_000 });
-    expect(await moneyCta.getAttribute("href")).toBe("/funding?intent=money");
-    await expect(primary.getByRole("link", { name: /^start free$/i })).toHaveCount(0);
-  });
-
-  test("Get funding dropdown lists the grant and program directories", async ({
-    page,
-  }) => {
-    await page.goto("/pricing");
-    const primary = page.locator('nav[aria-label="Primary"]').first();
-    const fundingTrigger = primary.getByRole("button", { name: /^get funding$/i });
-    await expect(fundingTrigger).toBeVisible({ timeout: 15_000 });
-    await fundingTrigger.click();
-    const grants = primary.getByRole("menuitem", { name: /grants for my startup/i });
-    await expect(grants).toBeVisible({ timeout: 5_000 });
-    expect(await grants.getAttribute("href")).toBe("/funding/grants");
-    const programs = primary.getByRole("menuitem", { name: /startup programs by city/i });
-    expect(await programs.getAttribute("href")).toBe("/funding/programs");
+    const res = await request.get("/investors", { maxRedirects: 0 });
+    expect([301, 308]).toContain(res.status());
+    expect(res.headers().location).toMatch(/\/about\/invest$/);
+    const forInvestors = await request.get("/investor", { maxRedirects: 0 });
+    expect(forInvestors.status()).toBe(200);
   });
 
   test("Atlassian walkthrough URL is reachable (Demo target 200s)", async ({
@@ -92,29 +122,29 @@ test.describe("Menu structure — anonymous visitor (MarketingShell / NavV2)", (
   });
 });
 
-test.describe("Menu structure — anonymous visitor (legacy site/navbar)", () => {
+test.describe("Menu structure — Demo reachable from docs + login (S-IA5: same NavV2)", () => {
   test.setTimeout(30_000);
 
-  test("docs page navbar exposes Demo dropdown", async ({ page }) => {
-    // /docs uses the legacy Navbar (site/navbar.tsx).
-    await page.goto("/docs");
-    // Look for the "Demo" button trigger — dropdowns are rendered as
-    // <button> so we anchor on that.
-    const demo = page.getByRole("button", { name: /^demo$/i }).first();
-    await expect(demo).toBeVisible({ timeout: 15_000 });
-    // Open the dropdown; assert the Atlassian sub-link appears.
-    await demo.click();
-    // Dropdown entries carry role="menuitem" (G7-P7 a11y contract:
-    // aria-haspopup="menu" trigger + menuitem children), so query by that
-    // role rather than "link". Since 1c359f000 the legacy navbar derives its
-    // items from NavV2's MENU, so this is the same markup as the homepage.
-    const atlassianLink = page.getByRole("menuitem", {
-      name: /atlassian journey/i,
+  for (const path of ["/docs", "/auth/login"]) {
+    test(`${path} header exposes the Demo dropdown with the Atlassian journey`, async ({ page }) => {
+      await page.goto(path);
+      // Look for the "Demo" button trigger — dropdowns are rendered as
+      // <button> so we anchor on that.
+      const demo = page.getByRole("button", { name: /^demo$/i }).first();
+      await expect(demo).toBeVisible({ timeout: 15_000 });
+      // Open the dropdown; assert the Atlassian sub-link appears.
+      await demo.click();
+      // Dropdown entries carry role="menuitem" (G7-P7 a11y contract:
+      // aria-haspopup="menu" trigger + menuitem children), so query by that
+      // role rather than "link". Same NavV2 markup as the homepage.
+      const atlassianLink = page.getByRole("menuitem", {
+        name: /atlassian journey/i,
+      });
+      await expect(atlassianLink.first()).toBeVisible({ timeout: 5_000 });
+      const href = await atlassianLink.first().getAttribute("href");
+      expect(href).toContain("/showcase/atlassian");
     });
-    await expect(atlassianLink.first()).toBeVisible({ timeout: 5_000 });
-    const href = await atlassianLink.first().getAttribute("href");
-    expect(href).toContain("/showcase/atlassian");
-  });
+  }
 });
 
 test.describe("Menu structure — founder logged-in dashboard", () => {

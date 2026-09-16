@@ -7,8 +7,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight, BarChart3, Filter, Minus, Sparkles } from "lucide-react";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import type { ListingSort, ListingsResult } from "@/lib/startup-index-listings";
 import { cachedListings } from "@/lib/startup-index-cache";
 import { pageMetadata } from "@/lib/seo/page-meta";
@@ -133,9 +133,9 @@ export default async function ListingsPage({ searchParams }: PageProps) {
 
   return (
     <div className="min-h-svh bg-surface-50 text-ink-800">
-      <Navbar />
+      <NavV2 />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-20 pb-16">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-16">
         {/* Header */}
         <div className="mb-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 mb-3">

@@ -4,8 +4,8 @@
  * useAuthUser — client-side "who is signed in?" for chrome that must stay
  * statically renderable.
  *
- * Both public headers (`landing/nav-v2.tsx` and `site/navbar.tsx`) are
- * mounted by server shells on statically generated pages (insights ISR,
+ * The public header (`landing/nav-v2.tsx` — the only one since G13-W5-IA5)
+ * is mounted by server shells on statically generated pages (insights ISR,
  * legal/[doc], solutions/*, team/[agent], startup/[slug] …). Reading cookies
  * in those shells would force every one of them dynamic, so the header asks
  * `/api/auth/me` after hydration instead. That route handles both the
@@ -18,12 +18,15 @@
  */
 
 import { useEffect, useState } from "react";
+import type { PersonaKey } from "@/lib/nav/persona";
 
 export interface AuthUser {
   id: string;
   email: string;
   displayName?: string | null;
   plan?: string;
+  /** Resolved persona (S-IA5) — drives the Dashboard row of the shared user menu. */
+  persona?: PersonaKey | null;
 }
 
 export function useAuthUser(): AuthUser | null | undefined {

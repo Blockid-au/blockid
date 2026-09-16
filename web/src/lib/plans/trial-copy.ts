@@ -95,9 +95,20 @@ export const EVALUATOR_TRIAL_COPY = {
   subheadline:
     "One rubric, a whole C-suite, the startup's own evidence — Australian context, from A$3 a report.",
   trial_line: "7-day free trial · card required · cancel anytime · charged on day 8",
-  cta: "Start 7-day evaluator trial",
+  /**
+   * Submit CTA for the selected plan's trial length. W4 review P3-b: the
+   * Cohort 25 / 100 rungs run a 14-day trial and the button still said
+   * "Start 7-day evaluator trial" — the CTA is a function of `trialDays`
+   * now, like `evaluatorTrialLine`.
+   */
+  cta: (trialDays: number = TRIAL_DAYS): string => `Start ${normaliseTrialDays(trialDays)}-day evaluator trial`,
   account_type_label: "I evaluate startups as",
 } as const;
+
+/** A positive integer trial length, else the default. */
+function normaliseTrialDays(trialDays: number | null | undefined): number {
+  return typeof trialDays === "number" && Number.isInteger(trialDays) && trialDays > 0 ? trialDays : TRIAL_DAYS;
+}
 
 /**
  * The evaluator trial line for a specific plan's trial length — the Programs
@@ -106,7 +117,7 @@ export const EVALUATOR_TRIAL_COPY = {
  * charged on day 8" while the picker says 14. Same wording otherwise.
  */
 export function evaluatorTrialLine(trialDays: number = TRIAL_DAYS): string {
-  const days = Number.isInteger(trialDays) && trialDays > 0 ? trialDays : TRIAL_DAYS;
+  const days = normaliseTrialDays(trialDays);
   return `${days}-day free trial · card required · cancel anytime · charged on day ${days + 1}`;
 }
 

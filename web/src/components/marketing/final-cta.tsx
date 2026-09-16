@@ -66,7 +66,7 @@ export function FinalCTA({ className }: { className?: string }) {
                 <ArrowRight size={14} aria-hidden />
               </Link>
               <Link
-                href="/investors"
+                href="/about/invest"
                 className="inline-flex items-center gap-1.5 text-sm text-secondary transition-colors duration-200 hover:text-action focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
               >
                 For investors

@@ -10,8 +10,8 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { listChapters } from "@/lib/guide/startup-journey";
 
 const SITE_URL = "https://blockid.au";
@@ -52,9 +52,9 @@ export default function GuideIndexPage() {
 
   return (
     <div className="min-h-svh bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <Navbar />
+      <NavV2 />
 
-      <main className="mx-auto max-w-5xl px-6 pt-24 pb-16">
+      <main className="mx-auto max-w-5xl px-6 pt-8 pb-16">
         <header className="mb-10 text-center">
           <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.28em] text-brand-700">
             The BlockID Guide
