@@ -107,6 +107,14 @@ export interface EvaluationAssessment {
   submittedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /**
+   * G14-S34 (0404) — only present when the caller selected the column
+   * (feedback-letter-store.ts); the dossier read never does, so the
+   * dossier keeps working before 0404 is applied.
+   */
+  feedbackOptOut?: boolean;
+  /** G14-S34 (0404) — the letter that consumed this row, when selected. */
+  feedbackLetterId?: string | null;
 }
 
 /** What another seat of the same org receives: everything but private_notes. */
@@ -209,7 +217,11 @@ export function mapAssessmentRow(row: Row): EvaluationAssessment {
   const sharedFields = arr(row.shared_fields)
     .map(String)
     .filter((f): f is FounderShareField => (FOUNDER_SHARE_ALLOW_LIST as readonly string[]).includes(f));
+  const feedback: Pick<EvaluationAssessment, "feedbackOptOut" | "feedbackLetterId"> = {};
+  if ("feedback_opt_out" in row) feedback.feedbackOptOut = row.feedback_opt_out === true;
+  if ("feedback_letter_id" in row) feedback.feedbackLetterId = str(row.feedback_letter_id);
   return {
+    ...feedback,
     id: String(row.id),
     evaluationId: String(row.evaluation_id),
     projectId: String(row.project_id),

@@ -41,6 +41,12 @@ export interface NextStepImpact {
   moneyClosesAt?: string | null;
   /** Grant / program name behind `moneyAud`. */
   moneyLabel?: string | null;
+  /**
+   * G14-S34: the dimension ≥ 3 evaluators rated lowest in the founder's
+   * "What investors said" letter (FTV … SVM) — the block can say "investors
+   * rated <dim> lowest" next to the CTA.
+   */
+  feedbackWeakestDim?: string | null;
 }
 
 export interface RecommendedNextStep {
@@ -79,6 +85,12 @@ export interface NextStepSignals {
   topEvidenceGapPts?: number | null;
   /** Best open grant / program from the Money Radar (null = none matched). */
   topMoney?: { label: string; amountAud: number | null; closesAt: string | null } | null;
+  /**
+   * G14-S34 feedback letter: the weakest evaluator-rated dimension key
+   * (FTV · MPC · PTD · TRE · CGH · IRI · LCO · SVM), or null when no letter
+   * exists / nothing was rated. Surfaces as `impact.feedbackWeakestDim`.
+   */
+  feedbackWeakestDim?: string | null;
 }
 
 export interface RecommendNextStepInput {
@@ -274,6 +286,10 @@ function withImpact(step: RecommendedNextStep, signals: NextStepSignals | null |
     impact.moneyAud = money.amountAud;
     impact.moneyClosesAt = money.closesAt ?? null;
     impact.moneyLabel = money.label;
+  }
+  const weakest = signals.feedbackWeakestDim;
+  if (typeof weakest === "string" && /^(FTV|MPC|PTD|TRE|CGH|IRI|LCO|SVM)$/.test(weakest)) {
+    impact.feedbackWeakestDim = weakest;
   }
   return Object.keys(impact).length > 0 ? { ...step, impact } : step;
 }
