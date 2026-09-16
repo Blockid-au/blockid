@@ -21,6 +21,7 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/admin/affiliate/provision/route.ts", family: "admin.affiliate.provision", methods: ["POST"] },
   { route: "api/admin/ai-health/trigger/route.ts", family: "admin.ai-health.trigger", methods: ["POST"] },
   { route: "api/admin/ai-keys/route.ts", family: "admin.ai-keys", methods: ["POST","DELETE"] },
+  { route: "api/admin/comparables/[id]/route.ts", family: "admin.comparables", methods: ["POST"] },
   { route: "api/admin/credits/route.ts", family: "admin.credits", methods: ["POST"] },
   { route: "api/admin/drive/upload/route.ts", family: "admin.drive.upload", methods: ["POST"] },
   { route: "api/admin/funding/[kind]/[id]/route.ts", family: "admin.funding", methods: ["PATCH"] },

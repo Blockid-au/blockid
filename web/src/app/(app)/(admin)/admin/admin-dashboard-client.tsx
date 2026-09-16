@@ -237,6 +237,11 @@ export function AdminDashboardClient({
               highlight: true,
             },
             {
+              href: "/admin/comparables",
+              label: "AU Comparables",
+              desc: "Review the weekly ingest — verified rows are what reports cite",
+            },
+            {
               href: "/admin/rnd",
               label: "AI R&D Agent",
               desc: "AI-powered market research, feature proposals & CTA optimization",
