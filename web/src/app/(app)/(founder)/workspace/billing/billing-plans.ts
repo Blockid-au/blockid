@@ -81,10 +81,47 @@ export function toBillingPlan(p: CataloguePlan): LegacyPlan {
  * (contact-sales) rungs are excluded: the grid's button posts straight to
  * /api/stripe/checkout, which has no Stripe price for them.
  */
-export function billingPlansFor(currentPlanId: string | null | undefined): LegacyPlan[] {
-  return publicPlansForSegment(billingSegmentForPlan(currentPlanId))
+export function billingPlansFor(
+  currentPlanId: string | null | undefined,
+  requestedPlanId?: string | null,
+): LegacyPlan[] {
+  // 2026-09-16: `/workspace/billing?plan=investor_angel` (a signed-in
+  // founder who clicked "Start 7-day free trial" on the Evaluator tab, or
+  // the /solutions/investor / /compare CTAs) used to render the FOUNDER
+  // ladder — the requested Scout / Firm / Program row was not in the grid,
+  // so the deep-link checkout silently did nothing and the click was a
+  // dead end. When the requested plan is a priced public SKU on another
+  // ladder, show THAT ladder so the auto-checkout finds its row.
+  const segment = isCrossLadderRequest(currentPlanId, requestedPlanId)
+    ? billingSegmentForPlan(requestedPlanId)
+    : billingSegmentForPlan(currentPlanId);
+  return publicPlansForSegment(segment)
     .filter((p) => p.monthly_aud !== null)
     .map(toBillingPlan);
+}
+
+/**
+ * True when `requestedPlanId` is a priced public SKU that lives on a
+ * different ladder from the plan the user currently holds (founder → Scout,
+ * Scout → Firm is same-ladder). BILLING_TIER_RANK is only comparable within
+ * one ladder, so callers skip the upgrade/downgrade rank check for these.
+ */
+export function isCrossLadderRequest(
+  currentPlanId: string | null | undefined,
+  requestedPlanId: string | null | undefined,
+): boolean {
+  if (!requestedPlanId) return false;
+  const wanted = publicPlansForSegment(billingSegmentForPlan(requestedPlanId)).find(
+    (p) => p.id === requestedPlanId && p.monthly_aud !== null && p.monthly_aud > 0,
+  );
+  if (!wanted) return false;
+  return ladderOf(requestedPlanId) !== ladderOf(currentPlanId);
+}
+
+/** `advisor` shares the INVESTOR catalogue (Scout / Firm / Program) — one ladder. */
+function ladderOf(planId: string | null | undefined): CatalogueSegment {
+  const seg = billingSegmentForPlan(planId);
+  return seg === "advisor" ? "investor" : seg;
 }
 
 /**

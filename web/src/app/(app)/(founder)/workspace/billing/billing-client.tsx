@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import type { LegacyPlan as Plan } from "@/lib/plans";
 import {
   BILLING_TIER_RANK,
+  isCrossLadderRequest,
   normaliseBillingPlanId,
   resolveActivePlan,
 } from "./billing-plans";
@@ -139,7 +140,15 @@ export function BillingClient({
       deepLinkFired.current = true;
       const target = plans.find((p) => p.id === wanted);
       const rank = BILLING_TIER_RANK[wanted] ?? 0;
-      if (target && target.cadence !== "free" && rank > currentRank && wanted !== effectivePlanId) {
+      // Ranks only compare within one ladder: a founder on Growth (3) asking
+      // for Scout (2) is a NEW evaluator subscription, not a downgrade.
+      const crossLadder = isCrossLadderRequest(currentPlanId, wanted);
+      if (
+        target &&
+        target.cadence !== "free" &&
+        (crossLadder || rank > currentRank) &&
+        wanted !== effectivePlanId
+      ) {
         void handleCheckout(wanted);
       }
     }

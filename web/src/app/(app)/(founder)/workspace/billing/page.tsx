@@ -21,9 +21,15 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function BillingPage() {
+export default async function BillingPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/billing");
+  const sp = await searchParams;
+  const requestedPlan = typeof sp.plan === "string" ? sp.plan : null;
 
   const isSandbox = await getCurrentProjectIsSandbox();
 
@@ -45,7 +51,10 @@ export default async function BillingPage() {
   // Growth A$69) from plans-v2. The legacy catalogue is passed only so a
   // grandfathered `growth` / `founding50` subscriber's Current Plan card can
   // still name the plan they are on.
-  const plans = billingPlansFor(user.plan);
+  // `?plan=` (signed-in bounce from /signup, /pricing, /onboarding) may ask
+  // for a rung on another ladder — a founder starting an evaluator trial.
+  // The grid then shows that ladder so the client's auto-checkout has a row.
+  const plans = billingPlansFor(user.plan, requestedPlan);
   const grandfatheredPlans = buildPlansFromConfig(cfg);
 
   if (sb) {

@@ -6,6 +6,7 @@ import {
   BILLING_TIER_RANK,
   billingPlansFor,
   billingSegmentForPlan,
+  isCrossLadderRequest,
   normaliseBillingPlanId,
   resolveActivePlan,
   toBillingPlan,
@@ -93,5 +94,48 @@ describe("resolveActivePlan", () => {
   it("a grandfathered growth / founding50 subscriber still sees their own plan", () => {
     expect(resolveActivePlan("growth", grid, LEGACY_PLANS)?.id).toBe("growth");
     expect(resolveActivePlan("founding50", grid, LEGACY_PLANS)?.id).toBe("founding50");
+  });
+});
+
+// 2026-09-16: "Start 7-day free trial" on the Evaluator tab, clicked by a
+// signed-in founder, bounces to /workspace/billing?plan=investor_angel. The
+// grid rendered the founder ladder, the Scout row was absent, and the
+// auto-checkout silently did nothing — the trial link never reached Stripe.
+describe("billingPlansFor — ?plan= on another ladder switches the grid", () => {
+  it("a free founder asking for Scout gets the evaluator ladder with the Scout row", () => {
+    const ids = billingPlansFor("free", "investor_angel").map((p) => p.id);
+    expect(ids).toContain("investor_angel");
+    expect(ids).toContain("investor_advisor");
+    expect(ids).toContain("investor_vc_small");
+    expect(ids).not.toContain("founder_starter");
+  });
+
+  it("a founder on Growth asking for Program still gets the evaluator ladder", () => {
+    const ids = billingPlansFor("founder_growth", "investor_vc_small").map((p) => p.id);
+    expect(ids).toContain("investor_vc_small");
+    expect(ids).not.toContain("founder_growth");
+  });
+
+  it("same-ladder, unknown, free or custom-priced requests keep the user's own ladder", () => {
+    expect(billingPlansFor("free", "founder_growth").map((p) => p.id)).toEqual(
+      billingPlansFor("free").map((p) => p.id),
+    );
+    expect(billingPlansFor("free", "nope").map((p) => p.id)).toEqual(billingPlansFor("free").map((p) => p.id));
+    expect(billingPlansFor("free", "investor_vc_ent").map((p) => p.id)).toEqual(
+      billingPlansFor("free").map((p) => p.id),
+    );
+    expect(billingPlansFor("investor_angel", "investor_advisor").map((p) => p.id)).toEqual(
+      billingPlansFor("investor_angel").map((p) => p.id),
+    );
+  });
+
+  it("isCrossLadderRequest — true only for a priced SKU on a different ladder", () => {
+    expect(isCrossLadderRequest("free", "investor_angel")).toBe(true);
+    expect(isCrossLadderRequest("founder_growth", "investor_angel")).toBe(true);
+    expect(isCrossLadderRequest("investor_angel", "founder_growth")).toBe(true);
+    expect(isCrossLadderRequest("investor_angel", "investor_advisor")).toBe(false);
+    expect(isCrossLadderRequest("free", "founder_starter")).toBe(false);
+    expect(isCrossLadderRequest("free", "investor_vc_ent")).toBe(false);
+    expect(isCrossLadderRequest("free", null)).toBe(false);
   });
 });

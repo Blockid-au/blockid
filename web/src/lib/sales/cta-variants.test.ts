@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { isSignupPlanAllowed } from "@/lib/plans/signup-plans";
 
 import {
   CTA_SURFACES,
@@ -170,11 +171,28 @@ describe("getCtaVariant — anchor rows", () => {
     );
   });
 
-  it("fundraising trial URLs all opt into plan=investor-pro with trial=1", () => {
+  // 2026-09-16: `investor-pro` / `founder-pro` / `founder-starter` were never
+  // plan ids — /signup resolved them to the FOUNDER default picker, so the
+  // "Investor trial" CTA never reached an evaluator checkout. Every trial
+  // href must now carry a real signup-plans.ts id (evaluator ones with the
+  // segment flag so the picker shows Scout / Firm / Program).
+  it("fundraising trial URLs open the evaluator signup on a real SKU with trial=1", () => {
     for (const surface of ["pricing", "landing"] as const) {
       const v = getCtaVariant("fundraising", surface);
-      expect(v.href).toContain("plan=investor-pro");
+      expect(v.href).toContain("segment=evaluator");
+      expect(v.href).toContain("plan=investor_angel");
       expect(v.href).toContain("trial=1");
+    }
+  });
+
+  it("every trial href uses a plan id the signup allow-list accepts", () => {
+    for (const phase of ["validation", "traction", "fundraising"] as const) {
+      for (const surface of ["pricing", "landing"] as const) {
+        const href = getCtaVariant(phase, surface).href;
+        const plan = new URL(href, "https://blockid.au").searchParams.get("plan");
+        expect(plan, href).toBeTruthy();
+        expect(isSignupPlanAllowed(plan), href).toBe(true);
+      }
     }
   });
 

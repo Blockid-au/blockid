@@ -71,7 +71,7 @@ const VARIANTS: Record<`${SviPhase}:${CtaSurface}`, CtaVariant> = {
   // ── Validation ────────────────────────────────────────────────────────
   "validation:pricing": {
     label: "Start 7-day free trial",
-    href: "/signup?plan=founder-starter&trial=1",
+    href: "/signup?plan=founder_starter&trial=1",
     tone: "accent",
     subtext: "Card required. Charged on Day 8.",
   },
@@ -83,7 +83,7 @@ const VARIANTS: Record<`${SviPhase}:${CtaSurface}`, CtaVariant> = {
   },
   "validation:landing": {
     label: "Start 7-day free trial",
-    href: "/signup?plan=founder-starter&trial=1",
+    href: "/signup?plan=founder_starter&trial=1",
     tone: "accent",
     subtext: "Cancel any time before Day 8.",
   },
@@ -91,7 +91,7 @@ const VARIANTS: Record<`${SviPhase}:${CtaSurface}`, CtaVariant> = {
   // ── Traction (early revenue / users) ─────────────────────────────────
   "traction:pricing": {
     label: "Start 7-day trial — Founder Pro",
-    href: "/signup?plan=founder-pro&trial=1",
+    href: "/signup?plan=founder_growth&trial=1",
     tone: "accent",
     subtext: "Full workspace + investor exports.",
   },
@@ -103,7 +103,7 @@ const VARIANTS: Record<`${SviPhase}:${CtaSurface}`, CtaVariant> = {
   },
   "traction:landing": {
     label: "Start 7-day Pro trial",
-    href: "/signup?plan=founder-pro&trial=1",
+    href: "/signup?plan=founder_growth&trial=1",
     tone: "accent",
     subtext: "Everything you need to raise.",
   },
@@ -131,7 +131,7 @@ const VARIANTS: Record<`${SviPhase}:${CtaSurface}`, CtaVariant> = {
   // ── Fundraising ───────────────────────────────────────────────────────
   "fundraising:pricing": {
     label: "Start 7-day Investor trial",
-    href: "/signup?plan=investor-pro&trial=1",
+    href: "/signup?segment=evaluator&plan=investor_angel&trial=1",
     tone: "accent",
     subtext: "Deal-room + LP exports.",
   },
@@ -143,7 +143,7 @@ const VARIANTS: Record<`${SviPhase}:${CtaSurface}`, CtaVariant> = {
   },
   "fundraising:landing": {
     label: "Open a fundraise deal-room",
-    href: "/signup?plan=investor-pro&trial=1",
+    href: "/signup?segment=evaluator&plan=investor_angel&trial=1",
     tone: "accent",
     subtext: "7-day trial. Card on Day 8.",
   },
