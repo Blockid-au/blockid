@@ -676,7 +676,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.5,
     },
     {
-      url: `${SITE_URL}/investors`,
+      // S-IA5: /investors → /about/invest (301); the old URL is not listed.
+      url: `${SITE_URL}/about/invest`,
       lastModified,
       changeFrequency: "monthly",
       priority: 0.6,

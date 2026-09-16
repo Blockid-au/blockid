@@ -107,7 +107,7 @@ const ROADMAP_STEPS = [
   { num: 7, icon: FolderOpen, title: "Build Data Room", desc: "Organize documents, financials, legal & investor materials.", href: "/tools/data-room" },
   { num: 8, icon: FileText, title: "Prepare for Pre-Seed", desc: "Investor deck, metrics, traction, valuation & fundraising strategy.", href: "/" },
   { num: 9, icon: Rocket, title: "Go-to-Market", desc: "Define ICP, channels, messaging and growth strategy.", href: "/" },
-  { num: 10, icon: Target, title: "Attract Investors", desc: "Pitch, negotiate, close and grow together.", href: "/investors" },
+  { num: 10, icon: Target, title: "Attract Investors", desc: "Pitch, negotiate, close and grow together.", href: "/about/invest" },
 ];
 
 // Catalogue reads for the pricing section and paywall — one lookup at module load, no literals.
@@ -2192,7 +2192,7 @@ function BottomFooter() {
             <Link href="/legal/terms" className="hover:text-primary transition-colors">Terms</Link>
             <Link href="/contact" className="hover:text-primary transition-colors">Contact</Link>
             <Link href="/insights" className="hover:text-primary transition-colors">Insights</Link>
-            <Link href="/investors" className="hover:text-primary transition-colors">Investors</Link>
+            <Link href="/about/invest" className="hover:text-primary transition-colors">Investors</Link>
           </div>
           <p className="text-xs text-muted">&copy; {new Date().getFullYear()} Auschain Pty Ltd. Not financial advice.</p>
         </div>

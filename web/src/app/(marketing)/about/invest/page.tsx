@@ -1,7 +1,16 @@
+// /about/invest — the "Invest in BlockID" pitch (G13-W5-IA5, spec §A.4 /
+// §C.2, founder decision F2). Lived at /investors until S-IA5, where it
+// collided with /investor (the public landing FOR investors); /investors
+// is now a permanent redirect here (lib/nav/legacy-redirects.ts) and this
+// page carries its own canonical. Entity on the JSON-LD is the legal one
+// (Auschain PTY LTD — the OrganizationJsonLd in the root layout); the
+// footer keeps the marketing entity.
+
 import type { Metadata } from "next";
 import Link from "next/link";
-import { NavV2 } from "@/components/landing/nav-v2";
-import { Footer } from "@/components/marketing/footer";
+import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { WebPageJsonLd } from "@/components/seo/json-ld";
+import { pageMetadata, SITE_URL } from "@/lib/seo/page-meta";
 import {
   ArrowRight,
   BarChart3,
@@ -19,14 +28,16 @@ import {
   Zap,
 } from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "For investors — the BlockID opportunity",
-  description:
-    "Why BlockID: 600K AU companies, evidence-backed SVI engine, SaaS + credit hybrid model, 88-99.9% gross margins. Explore the investment opportunity.",
-  alternates: {
-    canonical: "https://blockid.au/investors",
-  },
-};
+export const INVEST_PATH = "/about/invest";
+const TITLE = "Invest in BlockID — the investment opportunity";
+const DESCRIPTION =
+  "Why BlockID: 600K AU companies, evidence-backed SVI engine, SaaS + credit hybrid model, 88-99.9% gross margins. Explore the investment opportunity.";
+
+export const metadata: Metadata = pageMetadata({
+  title: TITLE,
+  description: DESCRIPTION,
+  path: INVEST_PATH,
+});
 
 const SVI_DIMENSIONS = [
   "Team & Founders",
@@ -100,11 +111,19 @@ const REVENUE_TIERS = [
   },
 ];
 
-export default function InvestorsPage() {
+export default function InvestInBlockIdPage() {
   return (
-    <>
-      <NavV2 />
-      <main className="pt-8 pb-20">
+    <MarketingShell>
+      <WebPageJsonLd
+        url={`${SITE_URL}${INVEST_PATH}`}
+        name={TITLE}
+        description={DESCRIPTION}
+        breadcrumbs={[
+          { name: "About", url: `${SITE_URL}/about` },
+          { name: "Invest in BlockID", url: `${SITE_URL}${INVEST_PATH}` },
+        ]}
+      />
+      <div className="pt-8 pb-20">
         <div className="mx-auto max-w-4xl px-6">
           {/* Hero */}
           <div className="text-center mb-16">
@@ -454,8 +473,7 @@ export default function InvestorsPage() {
             </p>
           </section>
         </div>
-      </main>
-      <Footer />
-    </>
+      </div>
+    </MarketingShell>
   );
 }

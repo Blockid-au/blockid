@@ -336,6 +336,25 @@ describe("site-wide metadata sweep (S12-A)", { timeout: 120_000 }, () => {
     }
   });
 
+  // S-IA5 (G13-W5) — spec §A.4 / F2: the invest-in-BlockID pitch moved
+  // from /investors to /about/invest with its own canonical; /investors is
+  // a 301 (legacy-redirects.ts) and must not exist as a page any more.
+  it("/about/invest is indexable with its own canonical, title ≤ 65, description 70–165; /investors is gone", async () => {
+    const pages = await RESOLVED;
+    const invest = pages.find((p) => p.route === "/about/invest");
+    expect(invest?.kind).toBe("indexable");
+    expect(invest!.title.length).toBeLessThanOrEqual(TITLE_MAX_SWEEP);
+    expect(invest!.title).toMatch(/^Invest in BlockID/);
+    expect(invest!.description.length).toBeGreaterThanOrEqual(DESC_MIN_SWEEP);
+    expect(invest!.description.length).toBeLessThanOrEqual(DESC_MAX_SWEEP);
+    const c = invest!.metadata!.alternates!.canonical;
+    expect(typeof c === "string" ? c : String((c as { url: string }).url)).toBe("https://blockid.au/about/invest");
+    expect(pages.find((p) => p.route === "/investors")).toBeUndefined();
+    // /investor (For investors) is a different page and keeps its own canonical.
+    const forInvestors = pages.find((p) => p.route === "/investor");
+    expect(forInvestors).toBeDefined();
+  });
+
   it("the root template is what the sweep assumes (%s | BlockID.au)", () => {
     // The root layout loads next/font at module scope, so read the source
     // rather than importing it.
