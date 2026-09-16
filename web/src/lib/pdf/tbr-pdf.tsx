@@ -31,6 +31,7 @@ import { VisualPdf } from "@/lib/report-visuals/pdf";
 import { pdfSafeText as t } from "@/lib/report-visuals/pdf-text";
 import type { Band, DataState, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { levelForEstimate, MAX_TRIM_LEVEL, projectForTier, type FreeTierProjection, type TrimLevel } from "@/lib/report-v2/free-tier";
+import { defaultPreparedWith } from "@/lib/report-v2/prepared-with";
 import { DIM_ORDER, type DimensionChapter, type ReportV2 } from "@/lib/report-v2/schema";
 import { AdviceDisclaimer, PDF_ENTITY_LINE } from "./advice-disclaimer";
 import { pdfPageCount } from "./page-count";
@@ -133,12 +134,7 @@ export function tbrPdfOutline(report: ReportV2, locale: "en" | "vi" = "en"): Arr
   ];
 }
 
-/** Default "Prepared with" line when the caller has no model/provider record for the run. */
-export function defaultPreparedWith(report: ReportV2): string {
-  const grounded = Math.round((report.quality.groundedShare ?? 0) * 100);
-  const src = report.source === "pipeline" ? "the BlockID C-level agent pipeline" : report.source === "fixture" ? "demo data" : "the stored snapshot (adapter)";
-  return `Prepared with ${src} · ${report.pipelineVersion} · llm-auditor grounded ${grounded}%.`;
-}
+export { defaultPreparedWith };
 
 // ── Small components ────────────────────────────────────────────────────────
 

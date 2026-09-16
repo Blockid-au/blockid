@@ -36,14 +36,33 @@ vi.mock("@/lib/credits", () => ({
   spendCredits: (...a: unknown[]) => credits.spendCredits(...a),
 }));
 
+const docxGen = vi.hoisted(() => ({ legacy: vi.fn(), tbr: vi.fn() }));
 vi.mock("@/lib/docx/svi-report-docx", () => ({
-  generateSVIDocx: async () => new Uint8Array([1, 2, 3]),
+  generateSVIDocx: async (...a: unknown[]) => {
+    docxGen.legacy(...a);
+    return new Uint8Array([1, 2, 3]);
+  },
+}));
+vi.mock("@/lib/docx/tbr-docx", () => ({
+  generateTbrDocx: async (...a: unknown[]) => {
+    docxGen.tbr(...a);
+    return new Uint8Array([4, 5, 6, 7]);
+  },
 }));
 vi.mock("@/lib/paywall/report-delivery", () => ({
   reconstructAssembledReport: (row: Record<string, unknown>) => ({
+    id: row.id,
     title: row.title,
+    tier: "standard",
     sections: [],
+    charts: [],
+    executiveSummary: "Exec summary.",
+    qualityScore: 80,
     totalWords: 10,
+    consistencyIssues: [],
+    agentContributions: {},
+    markdown: "",
+    createdAt: "2026-09-12T00:00:00.000Z",
   }),
 }));
 
@@ -52,11 +71,11 @@ vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => db.sb }));
 
 import { POST } from "./route";
 
-function req() {
+function req(body: Record<string, unknown> = { analysisId: "latest" }) {
   return new Request("http://x/api/svi/docx", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ analysisId: "latest" }),
+    body: JSON.stringify(body),
   });
 }
 
@@ -67,6 +86,8 @@ function reset() {
   auth.user = { id: "user-caller", email: "caller@x.test" };
   credits.canAfford.mockReset().mockResolvedValue({ allowed: true, balance: 10, cost: 1 });
   credits.spendCredits.mockReset().mockResolvedValue({ ok: true, balance: 9 });
+  docxGen.legacy.mockReset();
+  docxGen.tbr.mockReset();
   db.sb = fakeSupabase({
     assembled_reports: [{ id: "rep-1", title: "SVI Enhanced Report: Acme", status: "complete", user_id: "user-owner" }],
   });
@@ -99,5 +120,43 @@ describe("POST /api/svi/docx — shared report lookup + wallet", () => {
     expect(res.status).toBe(200);
     const inCall = db.sb!.find("assembled_reports", "in")[0];
     expect(inCall.args[1]).toEqual(["user-caller"]);
+  });
+});
+
+describe("POST /api/svi/docx — S-R4 ReportV2 source precedence", () => {
+  it("adapter: an AssembledReport without report_json is lifted to ReportV2 and rendered by tbr-docx", async () => {
+    const res = await POST(req());
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-tbr-source")).toBe("adapter");
+    expect(res.headers.get("content-type")).toContain("wordprocessingml");
+    expect(docxGen.tbr).toHaveBeenCalledTimes(1);
+    expect(docxGen.legacy).not.toHaveBeenCalled();
+    const report = docxGen.tbr.mock.calls[0][0] as { schemaVersion: string; source: string; cover: { startupName: string }; dimensions: unknown[] };
+    expect(report.schemaVersion).toBe("2.0");
+    expect(report.source).toBe("adapter");
+    expect(report.cover.startupName).toBe("Acme");
+    expect(report.dimensions).toHaveLength(8);
+  });
+
+  it("stored: a valid assembled_reports.report_json is rendered as-is", async () => {
+    const { demoReportV2 } = await import("@/lib/report-v2/fixtures");
+    const stored = { ...demoReportV2(), source: "pipeline" as const };
+    db.sb = fakeSupabase({
+      assembled_reports: [{ id: "rep-1", title: "SVI Enhanced Report: Acme", status: "complete", user_id: "user-owner", report_json: stored }],
+    });
+    const res = await POST(req({ reportId: "rep-1" }));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-tbr-source")).toBe("stored");
+    const report = docxGen.tbr.mock.calls[0][0] as { reportId: string; source: string };
+    expect(report.reportId).toBe(stored.reportId);
+    expect(report.source).toBe("pipeline");
+  });
+
+  it("legacy: `legacy: true` keeps the AssembledReport → DOCX builder for one release", async () => {
+    const res = await POST(req({ analysisId: "latest", legacy: true }));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-tbr-source")).toBe("legacy");
+    expect(docxGen.legacy).toHaveBeenCalledTimes(1);
+    expect(docxGen.tbr).not.toHaveBeenCalled();
   });
 });
