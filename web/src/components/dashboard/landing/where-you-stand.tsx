@@ -27,7 +27,6 @@ export interface WhereYouStandProps {
   subs?: ReadonlyArray<Pick<SVISubScore, "key" | "label" | "value">> | null;
   startupName?: string | null;
   scoredAt?: string | null;
-  readOnly?: boolean;
 }
 
 export const WHERE_YOU_STAND_EMPTY = "No score yet. A free analysis takes 3 minutes and gives you a baseline on 8 dimensions.";

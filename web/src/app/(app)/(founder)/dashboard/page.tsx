@@ -165,7 +165,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
             subs={analysis?.subs ?? null}
             startupName={startupName}
             scoredAt={standing.scoredAt}
-            readOnly={!canEdit}
           />
           <NextBestAction ctx={ctx} step={step} growthPhaseId={effectivePhase} ownerLabel={ownerLabel} canEdit={canEdit} />
           {!isMember && <MoneyOnTheTable ctx={ctx} data={moneyRadar} />}
