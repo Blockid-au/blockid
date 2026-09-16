@@ -48,6 +48,18 @@ describe("SignupForm — evaluator trial step copy", () => {
     expect(out).toContain("Start 7-day evaluator trial");
   });
 
+  // W4 review P3-b: the CTA follows the plan's trial length (Cohort 25/100 = 14 days).
+  it("evaluator on a 14-day rung: CTA and trial line both say 14 days, never 7", () => {
+    const COHORT: SignupPlanChoice = { id: "accelerator_starter", name: "Cohort 25", priceCents: 34900, priceDisplay: "A$349", trialDays: 14, hasStripePrice: true };
+    const out = renderToStaticMarkup(
+      <SignupForm segment="evaluator" trialPlans={[COHORT]} defaultPlanId="accelerator_starter" stripePublishableKey="pk_test_x" />,
+    );
+    expect(out).toContain("Start 14-day evaluator trial");
+    expect(out).toContain("14-day free trial · card required · cancel anytime · charged on day 15");
+    expect(out).not.toContain("Start 7-day evaluator trial");
+    expect(out).not.toContain("7-day free trial");
+  });
+
   it("founder: no evaluator allowance line", () => {
     const out = renderToStaticMarkup(
       <SignupForm segment="founder" trialPlans={[FOUNDER]} defaultPlanId="founder_starter" stripePublishableKey="pk_test_x" />,

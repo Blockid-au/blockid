@@ -77,11 +77,13 @@ export interface OnboardingWizardProps {
   initialParams: OnboardingInitialParams;
   /** Persona already on the account (signup form / Google) — preselects step 1. */
   defaultPersona?: WizardPersona | null;
+  /** Step-1 cards the page allows (S-IA5 persona lock: `personaOptionsFor`). Defaults to all five. */
+  personaOptions?: readonly WizardPersona[];
   nav: React.ReactNode;
   footer: React.ReactNode;
 }
 
-export function OnboardingWizard({ user, initialParams, defaultPersona, nav, footer }: OnboardingWizardProps) {
+export function OnboardingWizard({ user, initialParams, defaultPersona, personaOptions, nav, footer }: OnboardingWizardProps) {
   const [state, dispatch] = React.useReducer(wizardV4Reducer, initialParams, (p) =>
     initialWizardV4State({ ...p, via: p.via ?? readCachedVia() }, readSaved(), defaultPersona ?? null),
   );
@@ -138,6 +140,7 @@ export function OnboardingWizard({ user, initialParams, defaultPersona, nav, foo
         <div className="lux-card rounded-3xl p-8 sm:p-10">
           {state.step === 1 && (
             <StepPersona
+              options={personaOptions}
               value={state.persona}
               onChange={(p) => dispatch({ type: "SET_PERSONA", persona: p })}
               onContinue={() => go("NEXT", "persona_pick")}

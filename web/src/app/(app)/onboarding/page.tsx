@@ -16,7 +16,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { landingHrefFor } from "@/lib/auth/post-login";
 import { PERSONAS, resolvePersona } from "@/lib/nav/persona";
 import { loadPersonaRow } from "@/lib/nav/persona-server";
-import { isWizardPersona, type WizardPersona } from "@/lib/onboarding/flow";
+import { isWizardPersona, personaOptionsFor, type WizardPersona } from "@/lib/onboarding/flow";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { signedInSignupRedirect } from "@/lib/plans/signed-in-upgrade";
 import { NavV2 } from "@/components/landing/nav-v2";
 import { Footer } from "@/components/marketing/footer";
@@ -84,5 +85,25 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   };
   const defaultPersona: WizardPersona | null = isWizardPersona(persona) ? persona : null;
 
-  return <OnboardingWizard user={user} initialParams={initialParams} defaultPersona={defaultPersona} nav={<NavV2 />} footer={<Footer />} />;
+  // S-IA5 (W4 review P3-a): once a founder owns a project or has completed
+  // onboarding, step 1 offers only their current card — the evaluator
+  // choices are hidden (the API refuses them with persona_locked too).
+  const personaOptions = personaOptionsFor(row.accountType, {
+    onboardingCompleted: row.loaded && row.onboardingCompleted,
+    ownsProject: await ownsAnyProject(user.id),
+  });
+
+  return <OnboardingWizard user={user} initialParams={initialParams} defaultPersona={defaultPersona} personaOptions={personaOptions} nav={<NavV2 />} footer={<Footer />} />;
+}
+
+/** `projects.user_id = userId` — unreadable counts as "no" (never hides cards on a guess). */
+async function ownsAnyProject(userId: string): Promise<boolean> {
+  const sb = getSupabaseAdmin();
+  if (!sb) return false;
+  try {
+    const { count } = await sb.from("projects").select("id", { count: "exact", head: true }).eq("user_id", userId);
+    return typeof count === "number" && count > 0;
+  } catch {
+    return false;
+  }
 }

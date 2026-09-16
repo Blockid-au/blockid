@@ -60,14 +60,28 @@ interface FakeSupabaseState {
   eqThrows: unknown | null;
   /** `app_users.account_type` the persona read returns (S-IA4). */
   currentAccountType: string | null;
+  /** `app_users.onboarding_completed` the persona read returns (S-IA5 lock). */
+  currentOnboardingCompleted: boolean;
+  /** `projects.user_id = user.id` head count (S-IA5 lock). */
+  ownedProjects: number;
   selectCalls: number;
 }
 
 function makeFakeSupabase(state: FakeSupabaseState) {
+  const projects = {
+    select: vi.fn(() => ({ eq: async () => ({ count: state.ownedProjects, error: null }) })),
+  };
   const chain = {
     select: vi.fn(() => {
       state.selectCalls += 1;
-      return { eq: () => ({ maybeSingle: async () => ({ data: { account_type: state.currentAccountType }, error: null }) }) };
+      return {
+        eq: () => ({
+          maybeSingle: async () => ({
+            data: { account_type: state.currentAccountType, onboarding_completed: state.currentOnboardingCompleted },
+            error: null,
+          }),
+        }),
+      };
     }),
     update: vi.fn((payload: UpdatePayload) => {
       state.updateCalls += 1;
@@ -82,6 +96,7 @@ function makeFakeSupabase(state: FakeSupabaseState) {
   };
   return {
     from: vi.fn((table: string) => {
+      if (table === "projects") return projects;
       state.lastTable = table;
       return chain;
     }),
@@ -97,6 +112,8 @@ function makeState(overrides: Partial<FakeSupabaseState> = {}): FakeSupabaseStat
     eqReply: { data: null, error: null },
     eqThrows: null,
     currentAccountType: "founder",
+    currentOnboardingCompleted: false,
+    ownedProjects: 0,
     selectCalls: 0,
     ...overrides,
   };
@@ -551,6 +568,63 @@ describe("POST /api/onboarding/save-progress — persona (S-IA4)", () => {
     await POST(makeRequest({ step: 3, state: { completedAt: "2026-09-16T00:00:00Z" }, persona: "advisor", completed: true }));
     expect(state.lastPayload?.onboarding_completed).toBe(true);
     expect(state.lastPayload?.account_type).toBe("advisor");
+  });
+
+  // G13-W5-IA5 (W4 review P3-a) — persona lock.
+  it("S-IA5 lock: a founder who OWNS a project cannot switch to an evaluator persona → 400 persona_locked, no UPDATE", async () => {
+    getCurrentUserMock.mockResolvedValue(makeUser());
+    const state = makeState({ currentAccountType: "founder", ownedProjects: 1 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase(state) as any);
+    const res = await POST(makeRequest({ step: 1, state: {}, persona: "investor_vc" }));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ ok: false, reason: "persona_locked" });
+    expect(state.updateCalls).toBe(0);
+  });
+
+  it("S-IA5 lock: once onboarding_completed=true the persona is frozen → 400 persona_locked", async () => {
+    getCurrentUserMock.mockResolvedValue(makeUser());
+    const state = makeState({ currentAccountType: "founder", currentOnboardingCompleted: true });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase(state) as any);
+    const res = await POST(makeRequest({ step: 2, state: {}, persona: "advisor" }));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ ok: false, reason: "persona_locked" });
+    expect(state.updateCalls).toBe(0);
+  });
+
+  it("S-IA5 lock: resaving the SAME persona while locked is a no-op save (200, no account_type in the payload)", async () => {
+    getCurrentUserMock.mockResolvedValue(makeUser());
+    const state = makeState({ currentAccountType: "founder", ownedProjects: 2, currentOnboardingCompleted: true });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase(state) as any);
+    const res = await POST(makeRequest({ step: 3, state: {}, persona: "founder", completed: true }));
+    expect(res.status).toBe(200);
+    expect(state.updateCalls).toBe(1);
+    expect(state.lastPayload?.account_type).toBeUndefined();
+    expect(state.lastPayload?.onboarding_completed).toBe(true);
+  });
+
+  it("S-IA5 lock: an untyped account that owns a project may still become a founder (the wizard stays finishable)", async () => {
+    getCurrentUserMock.mockResolvedValue(makeUser());
+    const state = makeState({ currentAccountType: null, ownedProjects: 1 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase(state) as any);
+    const res = await POST(makeRequest({ step: 1, state: {}, persona: "founder" }));
+    expect(res.status).toBe(200);
+    expect(state.lastPayload?.account_type).toBe("founder");
+    const evaluator = await POST(makeRequest({ step: 1, state: {}, persona: "investor_angel" }));
+    expect(evaluator.status).toBe(400);
+  });
+
+  it("S-IA5 lock: unlocked (incomplete, no project) keeps writing — the S-IA4 contract is unchanged", async () => {
+    getCurrentUserMock.mockResolvedValue(makeUser());
+    const state = makeState({ currentAccountType: "founder", ownedProjects: 0, currentOnboardingCompleted: false });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase(state) as any);
+    const res = await POST(makeRequest({ step: 1, state: {}, persona: "investor_vc" }));
+    expect(res.status).toBe(200);
+    expect(state.lastPayload?.account_type).toBe("investor_vc");
   });
 
   it("personaWriteAllowed — pure table", () => {

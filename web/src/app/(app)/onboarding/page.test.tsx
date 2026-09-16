@@ -17,8 +17,8 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/components/landing/nav-v2", () => ({ NavV2: () => null }));
 vi.mock("@/components/marketing/footer", () => ({ Footer: () => null }));
 vi.mock("./onboarding-wizard", () => ({
-  OnboardingWizard: (p: { initialParams: Record<string, string | undefined>; defaultPersona: string | null }) => (
-    <div data-wizard data-default-persona={p.defaultPersona ?? ""} data-plan={p.initialParams.plan ?? ""} data-interval={p.initialParams.interval ?? ""} data-step={p.initialParams.step ?? ""} data-via={p.initialParams.via ?? ""} />
+  OnboardingWizard: (p: { initialParams: Record<string, string | undefined>; defaultPersona: string | null; personaOptions?: readonly string[] }) => (
+    <div data-wizard data-default-persona={p.defaultPersona ?? ""} data-persona-options={(p.personaOptions ?? []).join(",")} data-plan={p.initialParams.plan ?? ""} data-interval={p.initialParams.interval ?? ""} data-step={p.initialParams.step ?? ""} data-via={p.initialParams.via ?? ""} />
   ),
 }));
 vi.mock("./page.legacy", () => ({ LegacyOnboardingPage: () => <div data-legacy-wizard /> }));
@@ -95,6 +95,24 @@ describe("/onboarding page", () => {
     userState.user = null; // the legacy page does its own auth — must not be reached here
     const out = await html();
     expect(out).toContain("data-legacy-wizard");
+  });
+
+  // G13-W5-IA5 (W4 review P3-a) — persona lock: the evaluator cards vanish
+  // once a founder owns a project or has completed onboarding.
+  it("S-IA5 persona lock: fresh founder sees all five cards", async () => {
+    expect(dataAttr(await html(), "persona-options")).toBe("founder,investor_angel,investor_vc,advisor,accelerator");
+  });
+
+  it("S-IA5 persona lock: a founder who owns a project sees only the founder card", async () => {
+    sb.rows.projects = [{ id: "p-1", user_id: "u-1" }];
+    expect(dataAttr(await html(), "persona-options")).toBe("founder");
+  });
+
+  it("S-IA5 persona lock: an onboarded founder let back in via ?step=2 sees only the founder card; an onboarded advisor keeps theirs", async () => {
+    sb.rows.app_users = [{ account_type: "founder", segment: "founder", onboarding_completed: true }];
+    expect(dataAttr(await html({ step: "2" }), "persona-options")).toBe("founder");
+    sb.rows.app_users = [{ account_type: "advisor", segment: "advisor", onboarding_completed: true }];
+    expect(dataAttr(await html({ step: "2" }), "persona-options")).toBe("advisor");
   });
 
   it("onboardedRedirect — pure", () => {
