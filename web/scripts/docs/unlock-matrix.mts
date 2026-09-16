@@ -2,21 +2,20 @@
 // from code so the founder docs cannot drift from what the sidebar does.
 //
 // Sources (all read live, nothing is hand-copied here):
-//   • components/workspace/nav-groups.ts   — NAV_GROUPS catalogue + gates
-//   • lib/nav/hide-when-locked.ts          — decideVisibility() (D2 hybrid)
-//   • lib/nav/role-menu-overlay.ts         — per-segment hidden groups
+//   • components/workspace/nav-groups.ts   — NAV_GROUPS catalogue + gates (v4)
+//   • lib/nav/persona.ts                   — persona → sidebar group ids
+//   • lib/nav/founder-phase-shared.ts      — 12 growth phases → 0..5 nav band
 //   • lib/segments.ts                      — plan → tier rank, meetsMinPlan()
 //   • lib/growth/phase-gate.ts             — PHASE_EXIT_RULES
 //   • lib/growth/phase-taxonomy.ts         — 12 growth phases + labels
 //   • lib/evaluation-criteria.ts           — criterion titles (EN + VI)
 //   • config/pricing/plans.generated.ts    — plan ids, segments, features
 //
-// The visibility pipeline mirrors `decideGroupVisibility()`, `resolveGroup()`
-// and the near/later split in components/workspace/workspace-layout.tsx —
-// those helpers are module-private to a "use client" file, so the rule
-// order is re-stated here in the same sequence and pinned by
-// unlock-matrix.test.ts. If workspace-layout.tsx changes its rules, update
-// this file in the same commit.
+// The visibility pipeline mirrors `resolveNavGroup()` and the near/later
+// split in components/workspace/workspace-layout.tsx — the rule order is
+// re-stated here in the same sequence and pinned by unlock-matrix.test.ts.
+// If workspace-layout.tsx changes its rules, update this file in the same
+// commit.
 //
 // Consumers:
 //   • scripts/docs/render-unlock-matrix.mjs → docs/user/menu-walkthrough.md
@@ -26,10 +25,8 @@
 // Pure module: no I/O.
 
 import { NAV_GROUPS, type NavGroup, type NavItem } from "@/components/workspace/nav-groups";
-import { decideVisibility, type LockedDecision } from "@/lib/nav/hide-when-locked";
-import { getMenuOverlayForRole } from "@/lib/nav/role-menu-overlay";
-import type { WorkflowStep } from "@/lib/nav/workflow-steps";
-import { GROWTH_PHASE_TO_WORKFLOW_STEP, navPhaseFromGrowthPhase } from "@/lib/nav/founder-phase-shared";
+import { PERSONAS, resolvePersona } from "@/lib/nav/persona";
+import { GROWTH_PHASE_TO_NAV_PHASE, NAV_PHASE_NAMES, navPhaseFromGrowthPhase } from "@/lib/nav/founder-phase-shared";
 import { meetsMinPlan, planIdToTier, type PlanTier, type Segment } from "@/lib/segments";
 import { PHASE_EXIT_RULES, REQUIRED_QUALITY, type SviDimension } from "@/lib/growth/phase-gate";
 import {
@@ -101,17 +98,16 @@ export function buildColumns(): MatrixColumn[] {
 // ─── 12 growth phases → sidebar phase (0..5) ─────────────────────────────────
 
 /**
- * The sidebar gates groups on a coarse 0..5 `currentPhase` (the workflow-step
- * index in lib/nav/workflow-steps.ts), not on the 12 growth phases directly.
+ * The sidebar gates groups on a coarse 0..5 nav band (`NavPhase` in
+ * lib/nav/founder-phase-shared.ts), not on the 12 growth phases directly.
  * Since S7-A the bridge is real code, not a docs-only table: the founder
  * route-group layout resolves `max(navPhaseFromSvi, navPhaseFromGrowthPhase)`
  * (`lib/nav/founder-phase.ts`) and the sidebar gates on that. This matrix
- * reads the same `GROWTH_PHASE_TO_WORKFLOW_STEP` table, so Table 1 is
- * derived from what the sidebar really does for a founder whose SVI band
- * does not out-rank their declared growth phase. unlock-matrix.test.ts still
- * pins the table against `currentPhaseToStep()` for 6..12.
+ * reads the same `GROWTH_PHASE_TO_NAV_PHASE` table, so Table 1 is derived
+ * from what the sidebar really does for a founder whose SVI band does not
+ * out-rank their declared growth phase.
  */
-export { GROWTH_PHASE_TO_WORKFLOW_STEP };
+export { GROWTH_PHASE_TO_NAV_PHASE };
 
 export function sidebarPhaseFor(id: GrowthPhaseId): number {
   return navPhaseFromGrowthPhase(id);
@@ -119,16 +115,24 @@ export function sidebarPhaseFor(id: GrowthPhaseId): number {
 
 // ─── Visibility pipeline (mirrors workspace-layout.tsx) ──────────────────────
 
+/**
+ *   visible        — rendered in place
+ *   hidden_segment — not in the viewer's persona (`PERSONAS[key].navGroups`)
+ *   later_preview  — group.minPhase above the band → folded under "Later phases"
+ *   empty          — in the persona but every leaf failed a segment / feature gate
+ *   hidden_phase   — kept for JSON-shape compatibility; v4 never emits it
+ *                    (phase-gated groups fold, they do not hide)
+ */
 export type GroupState = "visible" | "hidden_phase" | "hidden_segment" | "later_preview" | "empty";
 
 export interface GroupCell {
-  /** NavGroup.id (home, validate, build, fundraise, scale-exit, roles, account). */
+  /** NavGroup.id (home, prove, money, company, evaluator-home, dealflow, reports). */
   id: string;
   label: string;
   state: GroupState;
-  /** Rows the viewer sees inside the group (after segment + feature filters). */
+  /** Rows the viewer sees inside the group (after segment + feature + phase filters). */
   visibleItems: number;
-  /** Of those, rows rendered dimmed with a lock / Upgrade chip (plan too low). */
+  /** Of those, rows rendered dimmed with a lock (plan too low). */
   upgradeItems: number;
   /** Of those, rows rendered dimmed with an "Add-on" pill (purchasable feature). */
   addOnItems: number;
@@ -151,33 +155,19 @@ interface ViewerContext {
   features: ReadonlySet<string>;
 }
 
-/** `decideGroupVisibility()` in workspace-layout.tsx, rule for rule. */
-const CORE_GROUP_IDS = new Set(["home", "validate", "account"]);
-
-function decideGroupVisibility(group: NavGroup, ctx: ViewerContext): LockedDecision {
-  if (group.id && CORE_GROUP_IDS.has(group.id)) return "show";
-  if (group.segments && group.segments.length > 0) {
-    if (!group.segments.includes(ctx.segment)) return "hide";
-  }
-  if (group.minPhase != null && group.minPhase > ctx.currentPhase) return "hide";
-  const minTier = group.minTier ?? group.minPlan;
-  if (minTier) {
-    const tierOk = meetsMinPlan(ctx.planId, minTier);
-    return decideVisibility({ scopeOk: true, tierOk, flagOk: true, hideWhenLocked: true });
-  }
-  return "show";
-}
-
-/** `resolveGroup()` in workspace-layout.tsx — item-level filter + lock flag. */
-function resolveGroup(group: NavGroup, ctx: ViewerContext): Array<{ item: NavItem; locked: boolean; addOn: boolean }> {
-  if (group.segments && group.segments.length > 0) {
-    if (!group.segments.includes(ctx.segment)) return [];
-  }
+/** `resolveNavGroup()` in workspace-layout.tsx — item-level filter + lock flag, rule for rule. */
+function resolveGroup(
+  group: NavGroup,
+  ctx: ViewerContext,
+  opts: { preview?: boolean } = {},
+): Array<{ item: NavItem; locked: boolean; addOn: boolean }> {
   const out: Array<{ item: NavItem; locked: boolean; addOn: boolean }> = [];
   for (const item of group.items) {
     if (item.segments && item.segments.length > 0 && !item.segments.includes(ctx.segment)) continue;
     if (item.feature && !ctx.features.has(item.feature)) continue;
+    if (!opts.preview && item.minPhase != null && item.minPhase > ctx.currentPhase) continue;
     const meetsPlan = item.minPlan ? meetsMinPlan(ctx.planId, item.minPlan) : true;
+    if (!meetsPlan && item.hideWhenLocked === true) continue;
     const missingAddOn = Boolean(item.lockedWithoutFeature && !ctx.features.has(item.lockedWithoutFeature));
     const locked = !meetsPlan || missingAddOn;
     out.push({ item, locked, addOn: locked && Boolean(item.addOnKey) });
@@ -185,21 +175,25 @@ function resolveGroup(group: NavGroup, ctx: ViewerContext): Array<{ item: NavIte
   return out;
 }
 
+/** Group ids the viewer's persona renders, in sidebar order. */
+function personaGroupIds(segment: Segment): string[] {
+  return PERSONAS[resolvePersona({ segment })].navGroups;
+}
+
 /**
- * One sidebar render for a (plan, segment, currentPhase) triple — every
- * catalogue group in overlay order with its resolved state.
+ * Every dimmed row a plan sees once all phase groups are open — the persona's
+ * groups at band 5.
  */
 export function lockedRowsFor(ctx: Omit<ViewerContext, "currentPhase">): LockedRow[] {
-  const overlay = getMenuOverlayForRole({ role: null, segment: ctx.segment, accountType: null });
-  const hidden = new Set(overlay.hiddenGroups);
+  const ids = new Set(personaGroupIds(ctx.segment));
   const out: LockedRow[] = [];
   for (const group of NAV_GROUPS) {
-    if (hidden.has(group.label)) continue;
+    if (!ids.has(group.id)) continue;
     for (const r of resolveGroup(group, { ...ctx, currentPhase: 5 })) {
       if (!r.locked) continue;
       out.push({
-        group: group.label,
-        label: r.item.label,
+        group: group.label.en,
+        label: r.item.label.en,
         reason: r.addOn ? "add-on" : "upgrade",
         ...(r.item.minPlan && !meetsMinPlan(ctx.planId, r.item.minPlan) ? { minPlan: r.item.minPlan } : {}),
       });
@@ -208,37 +202,30 @@ export function lockedRowsFor(ctx: Omit<ViewerContext, "currentPhase">): LockedR
   return out;
 }
 
+/**
+ * One sidebar render for a (plan, segment, currentPhase) triple — every
+ * catalogue group in persona order with its resolved state.
+ */
 export function renderSidebar(ctx: ViewerContext): GroupCell[] {
-  const overlay = getMenuOverlayForRole({ role: null, segment: ctx.segment, accountType: null });
-  const hidden = new Set(overlay.hiddenGroups);
-  const rank = new Map<string, number>();
-  overlay.sidebarOrder.forEach((label, i) => rank.set(label, i));
-  const laterThreshold = ctx.currentPhase + 3;
+  const order = personaGroupIds(ctx.segment);
+  const rank = new Map<string, number>(order.map((id, i) => [id, i]));
 
   const cells: GroupCell[] = [];
   for (const group of NAV_GROUPS) {
     const base: GroupCell = {
-      id: group.id ?? group.label,
-      label: group.label,
+      id: group.id,
+      label: group.label.en,
       state: "visible",
       visibleItems: 0,
       upgradeItems: 0,
       addOnItems: 0,
     };
-    if (hidden.has(group.label)) {
+    if (!rank.has(group.id)) {
       cells.push({ ...base, state: "hidden_segment" });
       continue;
     }
-    const isLater = group.minPhase != null && group.minPhase > laterThreshold;
-    if (!isLater) {
-      const vis = decideGroupVisibility(group, ctx);
-      if (vis === "hide") {
-        const bySegment = group.segments && group.segments.length > 0 && !group.segments.includes(ctx.segment);
-        cells.push({ ...base, state: bySegment ? "hidden_segment" : "hidden_phase" });
-        continue;
-      }
-    }
-    const resolved = resolveGroup(group, ctx);
+    const isLater = group.minPhase != null && group.minPhase > ctx.currentPhase;
+    const resolved = resolveGroup(group, ctx, { preview: isLater });
     if (resolved.length === 0) {
       cells.push({ ...base, state: "empty" });
       continue;
@@ -251,10 +238,10 @@ export function renderSidebar(ctx: ViewerContext): GroupCell[] {
       addOnItems: resolved.filter((r) => r.addOn).length,
     });
   }
-  // Overlay ordering (groups without a rank keep catalogue order at the end).
+  // Persona ordering (groups outside the persona keep catalogue order at the end).
   return cells.sort((a, b) => {
-    const ra = rank.has(a.label) ? rank.get(a.label)! : Number.POSITIVE_INFINITY;
-    const rb = rank.has(b.label) ? rank.get(b.label)! : Number.POSITIVE_INFINITY;
+    const ra = rank.has(a.id) ? rank.get(a.id)! : Number.POSITIVE_INFINITY;
+    const rb = rank.has(b.id) ? rank.get(b.id)! : Number.POSITIVE_INFINITY;
     return ra - rb;
   });
 }
@@ -266,9 +253,10 @@ export interface MatrixPhaseRow {
   order: number;
   labelEn: string;
   labelVi: string;
-  workflowStep: WorkflowStep;
-  /** Index into `UnlockMatrix.steps` — phases in the same step render identically. */
+  /** Index into `UnlockMatrix.steps` — phases in the same band render identically. */
   sidebarPhase: number;
+  /** Display name of the band (`NAV_PHASE_NAMES`), never shown as a number. */
+  navPhaseName: string;
 }
 
 /** column id → cells (every catalogue group, in sidebar order). */
@@ -293,7 +281,7 @@ export interface UnlockMatrix {
   sources: string[];
   columns: MatrixColumn[];
   phases: MatrixPhaseRow[];
-  /** Sidebar render per workflow step (0..5) — keyed by sidebarPhase, then column. */
+  /** Sidebar render per nav band (0..5) — keyed by sidebarPhase, then column. */
   steps: Record<string, StepCells>;
   rules: UnlockRule[];
 }
@@ -321,8 +309,8 @@ export function buildUnlockMatrix(): UnlockMatrix {
     lockedRows: lockedRowsFor({ planId: col.id, segment: col.segment, features: new Set(col.features) }),
   }));
 
-  // Step 0 is the pre-SVI state (no phase yet); 1..5 are the workflow steps
-  // the 12 growth phases bucket into.
+  // Band 0 is the pre-SVI state (no phase yet); 1..5 are the nav bands the
+  // 12 growth phases bucket into.
   const steps: Record<string, StepCells> = {};
   for (let sidebarPhase = 0; sidebarPhase <= 5; sidebarPhase++) {
     const cells = {} as StepCells;
@@ -342,8 +330,8 @@ export function buildUnlockMatrix(): UnlockMatrix {
     order: GROWTH_PHASE_ORDER[id],
     labelEn: GROWTH_PHASE_LABELS[id].en,
     labelVi: GROWTH_PHASE_LABELS[id].vi,
-    workflowStep: GROWTH_PHASE_TO_WORKFLOW_STEP[id],
     sidebarPhase: sidebarPhaseFor(id),
+    navPhaseName: NAV_PHASE_NAMES[sidebarPhaseFor(id)],
   }));
 
   const founderCol = columns[0];
@@ -382,9 +370,8 @@ export function buildUnlockMatrix(): UnlockMatrix {
     sources: [
       "web/src/components/workspace/nav-groups.ts",
       "web/src/components/workspace/workspace-layout.tsx",
-      "web/src/lib/nav/hide-when-locked.ts",
-      "web/src/lib/nav/role-menu-overlay.ts",
-      "web/src/lib/nav/workflow-steps.ts",
+      "web/src/lib/nav/persona.ts",
+      "web/src/lib/nav/founder-phase-shared.ts",
       "web/src/lib/segments.ts",
       "web/src/lib/growth/phase-gate.ts",
       "web/src/lib/growth/phase-taxonomy.ts",

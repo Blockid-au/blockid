@@ -20,6 +20,7 @@
  */
 
 import { test, expect } from "@playwright/test";
+import { LEGACY_REDIRECTS } from "../../../src/lib/nav/legacy-redirects";
 
 // Give each hydrated page a hard ceiling so a stuck deploy doesn't hang CI.
 const PAGE_TIMEOUT = 15_000;
@@ -343,5 +344,29 @@ test.describe("Post-deploy hydrated smoke", () => {
     const link = page.getByTestId("pilot-cta-link");
     await expect(link).toBeVisible({ timeout: PAGE_TIMEOUT });
     await expect(link).toHaveAttribute("href", /\/signup\?plan=investor_vc_small&trial=1&from=pilot/);
+  });
+
+  // ── G13-W1-IA1 (D6) — legacy route redirects ─────────────────────────
+  // Table-driven: every source in `LEGACY_REDIRECTS` must answer with a
+  // 308 whose Location is the mapped destination (next.config.ts spreads
+  // the same table). `maxRedirects: 0` so we assert the first hop, not the
+  // auth-gate that follows it. A 200 here means the redirect was dropped
+  // from the config; a 404 means the old page was deleted without it.
+  for (const r of LEGACY_REDIRECTS) {
+    test(`${r.source} → ${r.destination} (308)`, async ({ request }) => {
+      test.setTimeout(15_000);
+      const resp = await request.get(r.source, { maxRedirects: 0 });
+      expect(resp.status(), `${r.source}: expected 308, got ${resp.status()}`).toBe(308);
+      const location = resp.headers()["location"] ?? "";
+      const path = location.replace(/^https?:\/\/[^/]+/, "").split("?")[0];
+      expect(path, `${r.source}: Location ${location}`).toBe(r.destination);
+    });
+  }
+
+  test("/workspace/reports/upgrade keeps its query string through the redirect", async ({ request }) => {
+    test.setTimeout(15_000);
+    const resp = await request.get("/workspace/reports/upgrade?tab=evaluator", { maxRedirects: 0 });
+    expect(resp.status()).toBe(308);
+    expect(resp.headers()["location"] ?? "").toMatch(/\/pricing\?tab=evaluator/);
   });
 });

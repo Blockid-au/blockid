@@ -14,8 +14,7 @@ import Link from "next/link";
 import { ArrowRight, Compass } from "lucide-react";
 
 import { useLocale } from "@/lib/use-locale";
-import { ROLE_GUIDING_COPY } from "@/lib/roles/role-guiding-copy";
-import type { Role } from "@/lib/roles/role-taxonomy";
+import { ROLE_GUIDING_COPY, type Role } from "@/lib/roles/role-guiding-copy";
 
 interface Props {
   role: Role;

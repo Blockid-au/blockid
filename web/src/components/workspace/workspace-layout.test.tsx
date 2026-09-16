@@ -39,7 +39,6 @@ const { Stub, PassThrough } = vi.hoisted(() => ({
   Stub: () => null,
   PassThrough: ({ children }: { children?: React.ReactNode }) => children ?? null,
 }));
-vi.mock("@/components/workspace/recommended-next-step-tile", () => ({ RecommendedNextStepTile: Stub }));
 vi.mock("@/components/ui/credit-balance", () => ({ CreditBalance: Stub }));
 vi.mock("@/components/workspace/credit-badge", () => ({ CreditBadge: Stub }));
 vi.mock("@/components/ui/project-switcher", () => ({ ProjectSwitcher: Stub }));
@@ -59,21 +58,30 @@ vi.mock("@/components/upsell/upgrade-banner", () => ({ UpgradeBanner: Stub }));
 vi.mock("@/components/sales/paywall-nudge", () => ({ PaywallProvider: PassThrough }));
 vi.mock("@/components/sales/trial-countdown-banner", () => ({ TrialCountdownBanner: Stub }));
 vi.mock("@/components/auth/LogoutButton", () => ({ LogoutButton: Stub }));
-vi.mock("@/components/workspace/onboarding-progress-bar", () => ({ OnboardingProgressBar: Stub }));
 vi.mock("@/components/brand/logo", () => ({ Logo: Stub }));
 
-import { WorkspaceLayout } from "./workspace-layout";
+import { WorkspaceLayout, resolveNavGroup } from "./workspace-layout";
+import { NAV_GROUPS_BY_ID } from "./nav-groups";
 import { FounderNavContextProvider } from "./founder-nav-context";
 import { resolveFounderNavPhase, type FounderNavContextValue } from "@/lib/nav/founder-phase";
+import { PERSONAS } from "@/lib/nav/persona";
 
 const USER = { email: "founder@example.com", displayName: "Founder", role: "user" };
 
-/** Group labels rendered inside the workspace nav landmark, in order. */
+/** Group labels rendered inside the workspace nav landmark, in order (near groups only — the Later-phases panel is closed on first paint). */
 function visibleGroups(html: string): string[] {
   const start = html.indexOf('aria-label="Workspace navigation"');
   const end = html.indexOf("</nav>", start);
   const nav = html.slice(start, end);
   return [...nav.matchAll(/data-group-label="([^"]+)"/g)].map((m) => m[1]);
+}
+
+/** Sidebar links inside the nav landmark (footer Settings / Back to Home sit outside it). */
+function navLinks(html: string): string[] {
+  const start = html.indexOf('aria-label="Workspace navigation"');
+  const end = html.indexOf("</nav>", start);
+  const nav = html.slice(start, end);
+  return [...nav.matchAll(/<a [^>]*href="([^"]+)"/g)].map((m) => m[1]);
 }
 
 function renderDashboardStyle(phase: number): string[] {
@@ -115,16 +123,14 @@ describe("WorkspaceLayout — one founder phase for every page (S7-A)", () => {
     const dashboard = renderDashboardStyle(3);
     const equityPage = renderWorkspacePageStyle(PHASE_3);
     expect(equityPage).toEqual(dashboard);
-    // Phase 3 opens Validate (0) / Build (2) / Fundraise (3); Scale & Exit
-    // (minPhase 4) is still hidden by decideGroupVisibility rule 2.
-    expect(dashboard).toEqual(["Home", "Validate", "Build", "Fundraise", "Roles", "Account"]);
+    // Nav v4: phase 3 opens Home · Prove · Money · Company (Company unlocks at band 2).
+    expect(dashboard).toEqual(["Home", "Prove", "Money", "Company"]);
   });
 
-  it("before S7-A the same page rendered the phase-0 menu (Build / Fundraise hidden)", () => {
+  it("before S7-A the same page rendered the phase-0 menu (Company folded under Later phases)", () => {
     const legacy = renderWorkspacePageStyle(null);
-    expect(legacy).not.toContain("Build");
-    expect(legacy).not.toContain("Fundraise");
-    expect(legacy).toContain("Validate");
+    expect(legacy).not.toContain("Company");
+    expect(legacy).toEqual(["Home", "Prove", "Money"]);
     expect(legacy).toEqual(renderDashboardStyle(0));
     expect(legacy).not.toEqual(renderWorkspacePageStyle(PHASE_3));
   });
@@ -150,13 +156,6 @@ describe("WorkspaceLayout — one founder phase for every page (S7-A)", () => {
   });
 });
 
-// G7 Q1 (S19-A, decision adopted 2026-09-11): keep at most 5 phase-clusters
-// visible at once. The sidebar catalogue carries 4 phase-gated clusters
-// (Validate / Build / Fundraise / Scale & Exit) plus Home, Roles, Account —
-// a phase-0 founder sees Home + Validate (+ Roles only when the reseller
-// feature is on, as in this mock) + Account, with Build / Fundraise hidden
-// by decideGroupVisibility and Scale & Exit folded under "Later phases".
-// This pins the count so a future catalogue edit cannot creep past 5.
 describe("WorkspaceLayout — topbar fits 390 px (live QA lane 1 F4)", () => {
   const html = () =>
     renderToStaticMarkup(
@@ -186,17 +185,16 @@ describe("WorkspaceLayout — topbar fits 390 px (live QA lane 1 F4)", () => {
     expect(classesOf(h, "header-actions")).toMatch(/\bshrink-0\b/);
   });
 
-  it("below sm the inline wallet / credits / theme and avatar / Sign out clusters are hidden and the account menu shows; from sm the reverse", () => {
+  it("below sm the inline wallet / credits / theme cluster is hidden; the avatar account menu renders at every width (D5)", () => {
     const h = header();
     const desktopActions = classesOf(h, "header-actions-desktop");
     expect(desktopActions).toMatch(/\bhidden\b/);
     expect(desktopActions).toMatch(/\bsm:flex\b/);
-    const desktopAccount = classesOf(h, "header-account-desktop");
-    expect(desktopAccount).toMatch(/\bhidden\b/);
-    expect(desktopAccount).toMatch(/\bsm:flex\b/);
-    expect(classesOf(h, "header-account-menu")).toMatch(/\bsm:hidden\b/);
-    // The desktop "Sign out" is inside the sm+ cluster only; the mobile one lives in the menu.
+    // The old sm+ "name · Sign out" cluster is gone — the avatar menu is the one account surface.
+    expect(h).not.toContain('data-testid="header-account-desktop"');
+    expect(classesOf(h, "header-account-menu")).not.toMatch(/\bsm:hidden\b/);
     expect(h).toContain('aria-label="Account menu"');
+    expect((h.match(/aria-label="Account menu"/g) ?? []).length).toBe(1);
   });
 
   it("every workspace page shares this header (the shell is the single source), so the fix applies to /workspace/* and /dashboard/*", () => {
@@ -205,24 +203,86 @@ describe("WorkspaceLayout — topbar fits 390 px (live QA lane 1 F4)", () => {
   });
 });
 
-describe("WorkspaceLayout — G7 Q1: <= 5 phase-clusters visible at once", () => {
-  // Labels as they appear in the static markup (`&` is entity-escaped).
-  const PHASE_CLUSTERS = ["Validate", "Build", "Fundraise", "Scale &amp; Exit"];
+// G13-W1-IA1 (D5) — nav v4 size contract (spec §A.1 / §A.2): a phase-0
+// founder sees 3 groups / 10 links, a phase-5 founder 4 groups / 20 links,
+// Company folds under "Later phases" below band 2, Account is not a group
+// (Settings is a footer link outside the nav landmark) and nothing from the
+// evaluator catalogue leaks into the founder sidebar.
+describe("WorkspaceLayout — nav v4 size + persona contract", () => {
+  const render = (phase: number) =>
+    renderToStaticMarkup(
+      <WorkspaceLayout user={USER} currentPhase={phase}>
+        <div />
+      </WorkspaceLayout>,
+    );
 
-  it("a phase-0 founder sees at most 5 groups and exactly 1 phase-cluster", () => {
-    const groups = renderDashboardStyle(0);
-    expect(groups.length).toBeLessThanOrEqual(5);
-    expect(groups.filter((g) => PHASE_CLUSTERS.includes(g))).toEqual(["Validate"]);
-    expect(groups[0]).toBe("Home");
+  it("a phase-0 founder sees exactly Home · Prove · Money and ≤ 10 links (was 20+)", () => {
+    const html = render(0);
+    expect(visibleGroups(html)).toEqual(["Home", "Prove", "Money"]);
+    const links = navLinks(html);
+    expect(links.length).toBeLessThanOrEqual(10);
+    expect(links).toEqual([
+      "/dashboard", "/workspace/projects", "/analyze", "/workspace/reports",
+      "/dashboard/svi", "/workspace/evidence", "/workspace/roadmap", "/startup-package",
+      "/workspace/funding", "/workspace/investors",
+    ]);
+    // Company is previewed under the Later-phases disclosure, not rendered in place.
+    expect(html).toMatch(/Later phases \(\d+\)/);
+    expect(html).toContain('aria-controls="later-phases-panel"');
+    expect(html).toContain('data-persona="founder"');
   });
 
-  it("no phase 0..5 ever shows more than 5 phase-clusters (Miller 7±2 guard)", () => {
+  it("a phase-5 founder sees 4 groups / 20 links and no Later-phases disclosure", () => {
+    const html = render(5);
+    expect(visibleGroups(html)).toEqual(["Home", "Prove", "Money", "Company"]);
+    expect(navLinks(html)).toHaveLength(20);
+    expect(html).not.toContain("Later phases (");
+  });
+
+  it("groups unlock in catalogue order and never exceed 4 (Miller 7±2 guard)", () => {
+    const order = PERSONAS.founder.navGroups;
     for (let phase = 0; phase <= 5; phase += 1) {
-      const clusters = renderDashboardStyle(phase).filter((g) => PHASE_CLUSTERS.includes(g));
-      expect(clusters.length, `phase ${phase}`).toBeLessThanOrEqual(5);
-      // Clusters unlock in catalogue order and are never re-ordered.
-      expect(clusters).toEqual(PHASE_CLUSTERS.filter((c) => clusters.includes(c)));
+      const groups = visibleGroups(render(phase));
+      expect(groups.length, `phase ${phase}`).toBeLessThanOrEqual(4);
+      expect(groups[0]).toBe("Home");
+      const ids = groups.map((g) => g.toLowerCase());
+      expect(ids).toEqual(order.filter((id) => ids.includes(id)));
     }
-    expect(renderDashboardStyle(5).filter((g) => PHASE_CLUSTERS.includes(g))).toEqual(PHASE_CLUSTERS);
+  });
+
+  it("Account is not a sidebar group: Settings is a footer link outside the nav landmark; no evaluator leaf leaks in", () => {
+    const html = render(5);
+    expect(visibleGroups(html)).not.toContain("Account");
+    expect(navLinks(html)).not.toContain("/workspace/settings");
+    const footerStart = html.indexOf('data-testid="sidebar-footer"');
+    expect(footerStart).toBeGreaterThan(-1);
+    expect(html.slice(footerStart)).toContain('href="/workspace/settings"');
+    for (const leak of ["/workspace/investor/dealflow", "/workspace/evaluations", "/startup-index", "/workspace/investor/mandate"]) {
+      expect(navLinks(html), leak).not.toContain(leak);
+    }
+  });
+
+  it("resolveNavGroup: plan-locked rows name the plan (§D.1 rule 6), add-on rows lock instead of hiding, phase-gated leaves hide", () => {
+    const free = { planId: "founder_free", segment: "founder" as const, currentPhase: 5, hasFeature: () => false };
+    const company = resolveNavGroup(NAV_GROUPS_BY_ID.company, free);
+    const esop = company.find((r) => r.item.href === "/workspace/esop")!;
+    expect(esop.locked).toBe(true);
+    expect(esop.addOn).toBe(true);
+    expect(esop.lockTier).toBe("Starter");
+    const exit = company.find((r) => r.item.href === "/workspace/exit")!;
+    expect(exit.locked).toBe(true);
+    expect(exit.lockTier).toBe("Growth");
+    // Growth plan with the add-on flag: nothing in Company is locked.
+    const growth = { planId: "founder_growth", segment: "founder" as const, currentPhase: 5, hasFeature: () => true };
+    expect(resolveNavGroup(NAV_GROUPS_BY_ID.company, growth).every((r) => !r.locked)).toBe(true);
+    // Phase gate: at band 0 Money shows 2 leaves, at band 4 all 6; preview shows all 6 regardless.
+    expect(resolveNavGroup(NAV_GROUPS_BY_ID.money, { ...growth, currentPhase: 0 })).toHaveLength(2);
+    expect(resolveNavGroup(NAV_GROUPS_BY_ID.money, { ...growth, currentPhase: 4 })).toHaveLength(6);
+    expect(resolveNavGroup(NAV_GROUPS_BY_ID.money, { ...growth, currentPhase: 0 }, { preview: true })).toHaveLength(6);
+    // Segment gate: a founder never resolves an evaluator leaf; an angel resolves 3 in Home.
+    expect(resolveNavGroup(NAV_GROUPS_BY_ID["evaluator-home"], growth)).toHaveLength(0);
+    expect(resolveNavGroup(NAV_GROUPS_BY_ID["evaluator-home"], { ...growth, segment: "investor_angel" })).toHaveLength(3);
+    // The rendered free-tier markup names the plan, never a generic "Upgrade required".
+    expect(render(5)).not.toContain("Upgrade required");
   });
 });

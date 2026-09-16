@@ -2,9 +2,9 @@
 // sidebar.
 //
 // The sidebar (`components/workspace/workspace-layout.tsx`) gates nav groups
-// on a coarse 0..5 `currentPhase` — the workflow-step index in
-// `lib/nav/workflow-steps.ts` (ideate · validate · build · fundraise · grow ·
-// exit). Before this module two pages computed that number two different
+// on a coarse 0..5 `currentPhase` — the `NavPhase` band in
+// `./founder-phase-shared.ts` (Idea · Validation · Equity · Fundraise ·
+// Traction · Growth). Before this module two pages computed that number two different
 // ways and the other ~130 workspace pages passed nothing (→ 0), so the menu
 // changed shape from page to page:
 //

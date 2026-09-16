@@ -23,7 +23,7 @@ describe("RecommendedNextStepTile (fallback path)", () => {
     expect(p7).toContain("Analyse your growth metrics");
     expect(p7).not.toContain("rec-next-step-secondary");
     const collapsed = renderToStaticMarkup(<RecommendedNextStepTile currentPhase={1} sidebarOpen={false} />);
-    expect(collapsed).toContain('href="/workspace/evaluation"');
+    expect(collapsed).toContain('href="/workspace/score/criteria"');
     expect(collapsed).not.toContain("rec-next-step-secondary");
   });
 });

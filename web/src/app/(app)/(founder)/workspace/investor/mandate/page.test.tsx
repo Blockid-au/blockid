@@ -2,7 +2,7 @@ import type React from "react";
 import { renderToReadableStream } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Render test for /workspace/investor/preferences (T0251 follow-up): the
+// Render test for /workspace/investor/mandate (T0251 follow-up): the
 // "Let matching founders see me" opt-in switch (investor_discoverable) is
 // rendered ONLY for evaluator personas, off by default, with the exact
 // consent copy; founders never see it. Firm / thesis prefill from
@@ -20,7 +20,7 @@ const redirectMock = vi.fn((url: string) => {
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => redirectMock(url),
   useRouter: () => ({ refresh: () => undefined, push: () => undefined }),
-  usePathname: () => "/workspace/investor/preferences",
+  usePathname: () => "/workspace/investor/mandate",
 }));
 
 const getCurrentUserMock = vi.fn();
@@ -60,10 +60,10 @@ beforeEach(() => {
   redirectMock.mockClear();
 });
 
-describe("/workspace/investor/preferences — investor_discoverable opt-in", () => {
+describe("/workspace/investor/mandate — investor_discoverable opt-in", () => {
   it("redirects signed-out visitors to login with next=", async () => {
     getCurrentUserMock.mockResolvedValueOnce(null);
-    await expect(html()).rejects.toThrow("REDIRECT:/auth/login?next=/workspace/investor/preferences");
+    await expect(html()).rejects.toThrow("REDIRECT:/auth/login?next=/workspace/investor/mandate");
   });
 
   it("evaluator persona: renders the switch OFF by default with the consent copy and the never-share-email line", async () => {
@@ -98,7 +98,7 @@ describe("/workspace/investor/preferences — investor_discoverable opt-in", () 
     expect(out).not.toContain("Let matching founders see me");
     expect(out).not.toContain('role="switch"');
     expect(prefsMock).not.toHaveBeenCalled();
-    expect(out).toContain("Investment preferences");
+    expect(out).toContain("Your mandate");
     expect(out).toContain("Fields covered");
   });
 

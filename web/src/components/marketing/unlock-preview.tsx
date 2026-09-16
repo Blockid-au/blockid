@@ -7,10 +7,10 @@
  * and a link into login that lands on the right workspace route afterwards.
  *
  * Labels are read from the workspace sidebar catalogue (`NAV_GROUPS`) where
- * the route exists there, so the strip cannot drift from what a signed-in
- * founder actually sees. Routes not yet in the catalogue (investor pack,
- * the Money Finder workspace page shipping under T0244) fall back to the
- * label given here.
+ * the route is a sidebar leaf, so the strip cannot drift from what a
+ * signed-in founder actually sees. Since nav v4 (G13-W1-IA1) most of these
+ * routes are hub tabs rather than leaves, so the fallback label given here
+ * is what usually renders.
  *
  * Server component — no client JS. Semantic tokens only, so it renders
  * correctly on the light homepage and inside MarketingShell.
@@ -58,7 +58,7 @@ const SEEDS: UnlockSeed[] = [
   },
   {
     href: "/workspace/funding",
-    fallbackLabel: "Grant & Program Finder",
+    fallbackLabel: "Grants & programs",
     outcome: "The grants and programs you actually qualify for, with the next closing date.",
   },
   {
@@ -78,17 +78,12 @@ const SEEDS: UnlockSeed[] = [
   },
 ];
 
-/** Flat lookup of every sidebar leaf by href (groups + subgroups). */
+/** Flat lookup of every sidebar leaf by href. */
 function catalogueByHref(): Map<string, NavItem> {
   const map = new Map<string, NavItem>();
   for (const group of NAV_GROUPS) {
-    for (const item of group.items ?? []) {
+    for (const item of group.items) {
       if (!map.has(item.href)) map.set(item.href, item);
-    }
-    for (const sub of group.subgroups ?? []) {
-      for (const item of sub.items) {
-        if (!map.has(item.href)) map.set(item.href, item);
-      }
     }
   }
   return map;
@@ -104,7 +99,7 @@ export function buildUnlockCards(): UnlockCard[] {
   const catalogue = catalogueByHref();
   return SEEDS.map((seed) => ({
     href: seed.href,
-    label: catalogue.get(seed.href)?.label ?? seed.fallbackLabel,
+    label: catalogue.get(seed.href)?.label.en ?? seed.fallbackLabel,
     outcome: seed.outcome,
   }));
 }

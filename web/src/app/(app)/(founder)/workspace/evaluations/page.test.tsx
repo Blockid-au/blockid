@@ -433,7 +433,7 @@ describe("/workspace/evaluations", () => {
     expect(out).toContain("Run your included Trust BizReport");
     expect(out).toContain("Set your thesis so matching founders can find you");
     expect(out).toContain("Add a startup to your watchlist / cohort");
-    expect(out).toContain('href="/workspace/investor/preferences"');
+    expect(out).toContain('href="/workspace/investor/mandate"');
     // Placement: banner first, checklist next, then the plan-limit banner. The banner is not duplicated.
     const banner = out.indexOf('data-testid="trial-report-banner"');
     const checklist = out.indexOf('data-testid="evaluator-activation-checklist"');

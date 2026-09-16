@@ -11,6 +11,9 @@
  *   - Logged-in founders on /dashboard get the JourneyStepLadder rendered.
  *   - Logged-in founders see the Demo link in the workspace top-bar.
  *   - /showcase/atlassian?step=1 resolves 200 (Demo target is real).
+ *   - Nav v4 (G13-W1-IA1): the founder sidebar leads with Home, a phase-0
+ *     founder sees ≤ 10 links, and an evaluator sees ≤ 3 groups with no
+ *     Fundraise / Money / Company group.
  *
  * The tests skip role-scoped assertions when the QA seed accounts are not
  * present on the dev box (matches founder-one-startup-limit.spec.ts pattern).
@@ -20,6 +23,10 @@ import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
 
 const FOUNDER_EMAIL = process.env.QA_FOUNDER_LIMIT_EMAIL ?? "qa+founder@blockid.au";
+const FOUNDER_P0_EMAIL = process.env.QA_FOUNDER_P0_EMAIL ?? "qa+founder@blockid.au";
+const ANGEL_EMAIL = process.env.QA_INVESTOR_ANGEL_EMAIL ?? "qa+investor_angel@blockid.au";
+
+const WORKSPACE_NAV = 'nav[aria-label="Workspace navigation"]';
 
 test.describe("Menu structure — anonymous visitor (MarketingShell / NavV2)", () => {
   test.setTimeout(30_000);
@@ -147,12 +154,10 @@ test.describe("Menu structure — founder logged-in dashboard", () => {
     expect(href).toContain("/showcase/atlassian");
   });
 
-  // ux-ia-startup-flow-v1 §C.6 (P6 role-menu-overlay).
-  //
-  // Founder view uses the default overlay: Overview first. The assertion
-  // pins ordering rather than exact copy so a per-item nav edit does not
-  // break this test.
-  test("founder sidebar leads with the Overview group (default role overlay)", async ({
+  // G13-W1-IA1 nav v4 (spec §A.1): the founder sidebar leads with Home.
+  // (The pre-v4 assertion looked for /overview/i, which already mismatched
+  // the live "Home" label.)
+  test("founder sidebar leads with the Home group (persona.ts founder groups)", async ({
     page,
   }) => {
     let loginOk = false;
@@ -168,10 +173,68 @@ test.describe("Menu structure — founder logged-in dashboard", () => {
     );
 
     await page.goto("/dashboard");
-    const nav = page.locator('nav[aria-label="Workspace navigation"]');
+    const nav = page.locator(WORKSPACE_NAV);
     await expect(nav).toBeVisible({ timeout: 15_000 });
     const firstGroupHeader = nav.locator("span.uppercase").first();
-    await expect(firstGroupHeader).toHaveText(/overview/i);
+    await expect(firstGroupHeader).toHaveText(/home/i);
+    // Account is no longer a group — Settings is a single footer link.
+    await expect(nav.locator("[data-group-label='Account']")).toHaveCount(0);
+    await expect(page.locator('[data-testid="sidebar-footer"] a[href="/workspace/settings"]')).toBeVisible();
+  });
+
+  // Spec §E S-IA1: "founder phase-0 sidebar has ≤ 10 links".
+  test("phase-0 founder sidebar has ≤ 10 links across Home · Prove · Money", async ({ page }) => {
+    let loginOk = false;
+    try {
+      await loginAs(page, FOUNDER_P0_EMAIL);
+      loginOk = true;
+    } catch {
+      /* fixture missing on this box */
+    }
+    test.skip(!loginOk, `QA founder ${FOUNDER_P0_EMAIL} not seeded — run scripts/seed-test-users.mjs`);
+
+    await page.goto("/dashboard");
+    const nav = page.locator(WORKSPACE_NAV);
+    await expect(nav).toBeVisible({ timeout: 15_000 });
+    const phase = Number((await nav.getAttribute("data-nav-phase")) ?? "0");
+    test.skip(phase > 0, `fixture founder is at nav phase ${phase}, not 0`);
+    const links = nav.locator("a[href]");
+    expect(await links.count()).toBeLessThanOrEqual(10);
+    const groups = await nav.locator("[data-group-label]").evaluateAll((els) => els.map((el) => el.getAttribute("data-group-label")));
+    expect(groups).toEqual(["Home", "Prove", "Money"]);
+    // Company folds under the Later-phases disclosure below band 2.
+    await expect(nav.getByRole("button", { name: /later phases/i })).toBeVisible();
+  });
+});
+
+// G13-W1-IA1 (spec §A.2): evaluators get their own 3-group sidebar and the
+// founder Fundraise leak stops.
+test.describe("Menu structure — evaluator sidebar (persona.ts)", () => {
+  test.setTimeout(45_000);
+
+  test("investor_angel sees ≤ 3 groups (Home · Deal flow · Reports) and no Fundraise / Money / Company", async ({ page }) => {
+    let loginOk = false;
+    try {
+      await loginAs(page, ANGEL_EMAIL);
+      loginOk = true;
+    } catch {
+      /* fixture missing on this box */
+    }
+    test.skip(!loginOk, `QA angel ${ANGEL_EMAIL} not seeded — run scripts/seed-test-users.mjs`);
+
+    await page.goto("/workspace/investor");
+    const nav = page.locator(WORKSPACE_NAV);
+    await expect(nav).toBeVisible({ timeout: 15_000 });
+    await expect(nav).toHaveAttribute("data-persona", /investor_(angel|vc)/);
+    const groups = await nav.locator("[data-group-label]").evaluateAll((els) => els.map((el) => el.getAttribute("data-group-label")));
+    expect(groups.length).toBeLessThanOrEqual(3);
+    expect(groups).toEqual(["Home", "Deal flow", "Reports"]);
+    for (const leak of [/fundraise/i, /^money$/i, /^company$/i, /^prove$/i, /^raise$/i]) {
+      await expect(nav.locator("[data-group-label]").filter({ hasText: leak })).toHaveCount(0);
+    }
+    await expect(nav.locator('a[href="/workspace/evaluations"]')).toBeVisible();
+    await expect(nav.locator('a[href="/workspace/investor/mandate"]')).toBeVisible();
+    await expect(nav.locator('a[href="/dashboard/fundraise"]')).toHaveCount(0);
   });
 });
 

@@ -13,7 +13,7 @@ import {
 import { InvestorVisibilityForm } from "./investor-visibility-form";
 
 export const metadata: Metadata = {
-  title: "Investor Preferences — Workspace — BlockID",
+  title: "Mandate — Workspace — BlockID",
   description:
     "Set your investment mandate — stage, sector, geography, cheque size — so BlockID surfaces the right dealflow and digests for your fund.",
   robots: { index: false, follow: false },
@@ -21,9 +21,9 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function InvestorPreferencesPage() {
+export default async function InvestorMandatePage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/workspace/investor/preferences");
+  if (!user) redirect("/auth/login?next=/workspace/investor/mandate");
 
   // The opt-in switch is evaluator-only (account_type / segment); founders
   // never see it. Prefs feed the firm / thesis card fields it edits.
@@ -40,15 +40,15 @@ export default async function InvestorPreferencesPage() {
           <Link href="/workspace/investor" className="hover:text-brand-600">
             Investor
           </Link>{" "}
-          / <span className="text-ink-700">Preferences</span>
+          / <span className="text-ink-700">Mandate</span>
         </nav>
 
         <header>
           <h1 className="text-2xl font-bold tracking-tight text-ink-900">
-            Investment preferences
+            Your mandate
           </h1>
           <p className="mt-2 text-sm text-ink-600 leading-relaxed">
-            Your preferences tell BlockID what to surface. Set your stage focus,
+            Your mandate tells BlockID what to surface. Set your stage focus,
             preferred sectors, geographic mandate, cheque size range and
             follow-on strategy — and the dealflow view, the weekly digest email
             and the AI shortlist will all rank against those filters instead of

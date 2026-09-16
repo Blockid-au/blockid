@@ -33,8 +33,8 @@ export default async function WeeklyDigestPage() {
         userEmail={user.email}
         reason="A single Monday roll-up of every client's SVI move, new evidence and cap-table changes is not built yet. Each client's changes are visible on their roster row and in your notes, and your own Monday email digest (as a founder or investor) can be switched on under Notifications."
         alternatives={[
-          { href: "/workspace/client-roster", label: "Client Roster — per-client SVI and engagement" },
-          { href: "/workspace/advisor-notes", label: "Engagement notes" },
+          { href: "/workspace/advisor/roster", label: "Client Roster — per-client SVI and engagement" },
+          { href: "/workspace/advisor/notes", label: "Engagement notes" },
           { href: "/workspace/notifications", label: "Email digest preferences" },
         ]}
       />

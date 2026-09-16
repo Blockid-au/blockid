@@ -14,7 +14,7 @@
 // State comes from lib/evaluations/activation-checklist.ts (pure); the copy
 // from lib/evaluations/copy.ts. The CTAs reuse the page's existing dialogs
 // (add / report) via callbacks and the thesis step links to
-// /workspace/investor/preferences. Never rendered for founder personas —
+// /workspace/investor/mandate. Never rendered for founder personas —
 // the page only passes `input` for evaluators. Hidden once all 4 are done
 // or after the evaluator dismisses it (localStorage, try/catch — SSR and
 // blocked storage read as "not dismissed"). Days-left reuses the banner's

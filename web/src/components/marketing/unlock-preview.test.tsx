@@ -34,16 +34,18 @@ describe("buildUnlockCards()", () => {
   it("takes labels from NAV_GROUPS wherever the route is catalogued", () => {
     const catalogue = new Map<string, string>();
     for (const g of NAV_GROUPS) {
-      for (const i of g.items) catalogue.set(i.href, i.label);
+      for (const i of g.items) catalogue.set(i.href, i.label.en);
     }
     for (const card of UNLOCK_CARDS) {
       const sidebarLabel = catalogue.get(card.href);
       if (sidebarLabel) expect(card.label).toBe(sidebarLabel);
     }
-    // These routes are in the sidebar today; the strip must not drift from it.
-    expect(catalogue.has("/workspace/cap-table")).toBe(true);
-    expect(catalogue.has("/workspace/data-room")).toBe(true);
-    expect(catalogue.has("/compliance/calendar")).toBe(true);
+    // Nav v4 (G13-W1-IA1): these routes are sidebar leaves today; the strip
+    // must not drift from them. Cap table / data room / calendar became hub
+    // tabs (S-IA2) and use the fallback labels.
+    expect(catalogue.has("/workspace/funding")).toBe(true);
+    expect(catalogue.has("/workspace/exit")).toBe(true);
+    expect(catalogue.get("/workspace/funding")).toBe("Grants & programs");
   });
 
   it("every card has a one-line outcome", () => {

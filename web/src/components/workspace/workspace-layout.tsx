@@ -4,19 +4,10 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  ChevronDown, ChevronLeft, ChevronRight, Home, LayoutDashboard, Lock, PlayCircle, Sparkles, X,
+  ChevronDown, ChevronLeft, ChevronRight, Home, LayoutDashboard, Lock, PlayCircle, Settings2,
 } from "lucide-react";
-// PHASE_LABELS backs tooltip copy on dimmed sidebar rows — the user sees
-// exactly which canonical phase must be reached before a group unlocks
-// (see ux-ia-startup-flow-goal.md §C.5 — P5 progressive-disclosure).
-import { PHASE_LABELS } from "@/lib/showcase/gallery";
-// Role → menu overlay (hidden groups + injected groups + extra top-nav
-// CTAs). Extracted to a helper so other surfaces can reuse the same source
-// of truth. See ux-ia-startup-flow-goal.md §C.6 — P6.
-import { getMenuOverlayForRole, resolveInitialCollapse } from "@/lib/nav/role-menu-overlay";
 import { useNavCollapse } from "@/lib/nav/nav-collapse-store";
 import { useResolvedNavPhase } from "@/components/workspace/founder-nav-context";
-import { RecommendedNextStepTile } from "@/components/workspace/recommended-next-step-tile";
 import { Logo } from "@/components/brand/logo";
 import { CreditBalance } from "@/components/ui/credit-balance";
 import { CreditBadge } from "@/components/workspace/credit-badge";
@@ -30,29 +21,32 @@ import { TrialBanner } from "@/components/workspace/trial-banner";
 import { ProductTour } from "@/components/workspace/product-tour";
 import { FeatureSpotlight } from "@/components/product-tour/feature-spotlight";
 import { ResellerPill } from "@/components/workspace/reseller-pill";
-import { HeaderAccountMenu, HeaderAvatar } from "@/components/workspace/header-account-menu";
+import { HeaderAccountMenu } from "@/components/workspace/header-account-menu";
 import { SandboxBanner } from "@/components/workspace/sandbox-banner";
 import { TrialDayWatcher } from "@/components/upsell/trial-day-watcher";
 import { UpgradeModal } from "@/components/upsell/upgrade-modal";
 import { UpgradeBanner } from "@/components/upsell/upgrade-banner";
-import { NAV_GROUPS, ADMIN_NAV_GROUP, type NavGroup, type NavItem } from "@/components/workspace/nav-groups";
-// Hide-not-lock migration path (see docs/plans/tier-menu-2026-07-24/04-cto-hide-engine.md):
-// When this layout is converted to a Server Component in the menu-regroup
-// branch, replace `NAV_GROUPS` here with a server-side
-//   const filtered = filterNavForUser(NAV_GROUPS_V2, await getUserNavContext())
-// call and pass `filtered` down to <NestedSidebar />. filterNavForUser is
-// marked `import "server-only"` so it will fail the build if imported from a
-// client boundary — see `web/src/lib/nav/filter-nav-for-user.ts`.
-// The V2 shape lives in `web/src/lib/nav/nav-schema.ts`.
+// G13-W1-IA1 (D5) — ONE nav catalogue + ONE persona table. The persona
+// decides which group ids render; leaf gates (segments / feature / minPhase /
+// minPlan / lockedWithoutFeature) decide what renders inside each group.
+// See nav-groups.ts (catalogue) and lib/nav/persona.ts (persona → groups).
+import {
+  ADMIN_NAV_GROUP,
+  RESELLER_NAV_GROUPS,
+  navGroupsForIds,
+  navText,
+  type NavGroup,
+  type NavLeaf,
+} from "@/components/workspace/nav-groups";
+import { PERSONAS, resolvePersona, type PersonaKey } from "@/lib/nav/persona";
+import { NAV_PHASE_NAMES } from "@/lib/nav/founder-phase-shared";
 import { PaywallProvider } from "@/components/sales/paywall-nudge";
 import { TrialCountdownBanner } from "@/components/sales/trial-countdown-banner";
 import { useEntitlement } from "@/hooks/useEntitlement";
-import { meetsMinPlan, type Segment } from "@/lib/segments";
-import { decideVisibility, type LockedDecision } from "@/lib/nav/hide-when-locked";
-import { UpgradeChip } from "@/components/nav/upgrade-chip";
+import { meetsMinPlan, planLabel, type Segment } from "@/lib/segments";
+import { useLocale, type Locale } from "@/lib/use-locale";
+import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
-import { LogoutButton } from "@/components/auth/LogoutButton";
-import { OnboardingProgressBar } from "@/components/workspace/onboarding-progress-bar";
 
 interface WorkspaceLayoutProps {
   children: React.ReactNode;
@@ -62,14 +56,15 @@ interface WorkspaceLayoutProps {
     avatarUrl?: string | null;
     role?: string;
   };
+  /** Accepted for API compatibility — the topbar ProjectSwitcher renders the active startup. */
   startupName?: string;
   notificationCount?: number;
   /**
-   * Current startup phase (0-5). Controls which sidebar groups are hidden /
-   * dimmed / auto-expanded. Optional: when omitted the layout reads the
-   * founder route-group context (`FounderNavContextProvider`), so a page
-   * only needs to pass this when it has a more specific number in hand.
-   * Resolve it with `resolveFounderNavPhase()` from `@/lib/nav/founder-phase`.
+   * Current nav phase (0..5 band). Controls which sidebar groups fold under
+   * "Later phases" and which leaves are visible. Optional: when omitted the
+   * layout reads the founder route-group context (`FounderNavContextProvider`),
+   * so a page only needs to pass this when it has a more specific number in
+   * hand. Resolve it with `resolveFounderNavPhase()` from `@/lib/nav/founder-phase`.
    */
   currentPhase?: number;
   /**
@@ -79,240 +74,111 @@ interface WorkspaceLayoutProps {
    */
   isSandbox?: boolean;
   /**
-   * T_ONBOARD_0001 — Step IDs the founder has already completed.
-   * When provided, the `OnboardingProgressBar` renders between the
-   * topbar and page content. Omit (or pass an empty array) on pages
-   * that don't fetch onboarding signals — the bar simply won't show.
+   * Sidebar preset. `"reseller"` — the reseller console layout supplies the
+   * Reseller + Mentor console groups (§A.3 Roles: "reseller layout owns its
+   * groups"); the Mentor group renders only with the `reseller.console`
+   * entitlement. Default: the resolved persona's groups.
    */
-  completedOnboardingSteps?: string[];
+  navPreset?: "persona" | "reseller";
+}
+
+// Result of running a NavLeaf through the visibility + gating pipeline.
+//   hidden         → dropped (wrong audience, feature flag missing, phase not reached)
+//   locked=true    → rendered dimmed with a lock; tooltip names the plan
+//   addOn=true     → locked because a purchasable capability is missing
+type ResolvedItem = { item: NavLeaf; locked: boolean; addOn: boolean; lockTier: string | null };
+
+interface GateContext {
+  planId: string;
+  segment: Segment | null;
+  currentPhase: number;
+  hasFeature: (name: string) => boolean;
 }
 
 /**
- * Feature lifecycle — controls the chip shown beside the nav label.
+ * Leaf pipeline — mirrored rule-for-rule by `scripts/docs/unlock-matrix.mts`
+ * (`resolveGroup`). If the order changes here, change it there.
  *
- *   beta   — actively iterating, may break. Default for anything shipped <2 weeks ago.
- *   live   — running stably for 2+ weeks, no open critical issues.
- *   stable — battle-tested over 30+ days, no chip shown (default state).
- *
- * Nav-item + nav-group types now live in `./nav-groups.ts` so other surfaces
- * (mobile nav, command palette) can import from a single source of truth.
+ *   1. segments   — wrong audience ⇒ hidden
+ *   2. feature    — entitlement missing ⇒ hidden
+ *   3. minPhase   — leaf above the band ⇒ hidden (unless the whole group is a
+ *                   later-phase preview, where every leaf shows dimmed)
+ *   4. minPlan    — under-plan ⇒ locked (dimmed + lock), unless hideWhenLocked
+ *   5. lockedWithoutFeature — purchasable capability missing ⇒ locked + add-on pill
  */
-const LIFECYCLE_CHIP: Record<"beta" | "live", string> = {
-  beta: "bg-amber-100 text-amber-700 ring-1 ring-amber-200",
-  live: "bg-blue-100 text-blue-700 ring-1 ring-blue-200",
-};
-
-// Result of running a NavItem through the visibility + gating pipeline.
-//   visible=false  → drop entirely (wrong audience, or feature flag missing).
-//   locked=true    → render but grayed-out with a lock icon + Upgrade tooltip.
-type ResolvedItem = { item: NavItem; locked: boolean };
-
-/**
- * G8-P3 — Hybrid group-level visibility (Decision D2).
- *
- * Rules applied in order:
- *   1. Segment mismatch → hide (wrong audience).
- *   2. growthPhase / minPhase unmet → hide entirely.
- *   3. minPlan / minTier unmet →
- *        hideWhenLocked === false ⇒ show_dimmed  (add-on / teaser rows)
- *        hideWhenLocked !== false ⇒ hide         (default v3 rule)
- *      Because NavGroup doesn't have a hideWhenLocked field (only NavItem
- *      does), group-level tier failures always produce "hide" under v3 rules.
- *      Items within the group that have hideWhenLocked=false retain their own
- *      per-item dim behaviour inside resolveGroup().
- *   4. All gates pass → show.
- *
- * The 3 core groups (id: "home", "validate", "account") are exempt from the
- * hide rule so the nav never collapses to zero (plan § "Never shrink below
- * the 3 core groups").
- */
-const CORE_GROUP_IDS = new Set(["home", "validate", "account"]);
-
-function decideGroupVisibility(
-  group: NavGroup,
-  ctx: {
-    planId: string;
-    segment: Segment | null;
-    currentPhase: number;
-    hasFeature: (name: string) => boolean;
-  },
-): LockedDecision {
-  // Core groups always show — never shrink below 3.
-  if (group.id && CORE_GROUP_IDS.has(group.id)) return "show";
-
-  // 1. Segment mismatch → hide.
-  if (group.segments && group.segments.length > 0) {
-    if (!ctx.segment || !group.segments.includes(ctx.segment)) return "hide";
-  }
-
-  // 2. Phase / growth phase gating → hide when unmet.
-  if (group.minPhase != null && group.minPhase > ctx.currentPhase) {
-    return "hide";
-  }
-
-  // 3. Plan / tier gating → use decideVisibility (v3 hide-when-locked).
-  //    NavGroup has no hideWhenLocked field, so group-level tier locks always
-  //    default to "hide" (v3 teaser-free rule). Individual items with
-  //    hideWhenLocked=false still get their own dim treatment inside
-  //    resolveGroup().
-  const minTier = group.minTier ?? group.minPlan;
-  if (minTier) {
-    const tierOk = meetsMinPlan(ctx.planId, minTier);
-    return decideVisibility({ scopeOk: true, tierOk, flagOk: true, hideWhenLocked: true });
-  }
-
-  return "show";
-}
-
-const UNLOCK_PULSE_KEY = "blockid_unlock_pulse_dismissed";
-
-/**
- * One-time dismissible pulse shown to free-tier workspace users the first time
- * they land here. Persists dismissal in localStorage so it never comes back.
- * Uses `useSyncExternalStore` so SSR and CSR agree on initial state without a
- * useEffect+setState flip.
- */
-function UnlockPulseCard({ planId }: { planId: string }) {
-  const dismissed = React.useSyncExternalStore(
-    () => () => {},
-    () => (typeof window !== "undefined" ? localStorage.getItem(UNLOCK_PULSE_KEY) === "true" : true),
-    () => true,
-  );
-  const [hidden, setHidden] = React.useState(false);
-  if (planId !== "free" && planId !== "founder_free") return null;
-  if (dismissed || hidden) return null;
-
-  const dismiss = () => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(UNLOCK_PULSE_KEY, "true");
-    }
-    setHidden(true);
-  };
-
-  return (
-    <div className="mx-4 mt-3 flex items-center gap-3 rounded-xl border border-action/25 bg-action/5 px-4 py-2.5 text-sm text-primary">
-      <Sparkles strokeWidth={1.75} className="h-4 w-4 shrink-0 text-action" />
-      <p className="flex-1 leading-snug text-muted text-xs">
-        You are on the Free plan. Upgrade to Founder to unlock 6 more tools —
-        Cap Table, ESOP Setup, Data Room, Fundraise Readiness, and more.
-      </p>
-      <Link
-        href="/pricing"
-        className="shrink-0 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:opacity-90 transition-opacity"
-      >
-        See plans
-      </Link>
-      <button
-        type="button"
-        onClick={dismiss}
-        aria-label="Dismiss unlock pulse"
-        className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full text-muted hover:bg-surface-hover hover:text-primary transition-colors cursor-pointer"
-      >
-        <X strokeWidth={1.75} className="h-3.5 w-3.5" />
-      </button>
-    </div>
-  );
-}
-
-function resolveGroup(
-  group: NavGroup,
-  ctx: {
-    planId: string;
-    segment: Segment | null;
-    hasFeature: (name: string) => boolean;
-  },
-): ResolvedItem[] {
-  // Group-level segment filter — hide the whole group for wrong audiences.
-  if (group.segments && group.segments.length > 0) {
-    if (!ctx.segment || !group.segments.includes(ctx.segment)) return [];
-  }
-
+export function resolveNavGroup(group: NavGroup, ctx: GateContext, opts: { preview?: boolean } = {}): ResolvedItem[] {
   const resolved: ResolvedItem[] = [];
   for (const item of group.items) {
-    // (c) segments — wrong-audience items are FULLY hidden.
     if (item.segments && item.segments.length > 0) {
       if (!ctx.segment || !item.segments.includes(ctx.segment)) continue;
     }
-    // (d) feature flag — treat as hidden when the entitlement is missing.
     if (item.feature && !ctx.hasFeature(item.feature)) continue;
+    if (!opts.preview && item.minPhase != null && item.minPhase > ctx.currentPhase) continue;
 
-    // (b) minPlan — under-plan renders locked (upgrade opportunity).
     const meetsPlan = item.minPlan ? meetsMinPlan(ctx.planId, item.minPlan) : true;
-
-    // (e) lockedWithoutFeature — a capability the viewer CAN buy. Locked, not
-    // hidden, so the add-on pill and its billing-drawer link stay reachable.
-    // `hasFeature` reads /api/entitlement/me, which unions the user's add-on
-    // grants onto their plan, so this flips when the purchase lands rather
-    // than waiting on a plan change.
-    const missingAddOn = Boolean(
-      item.lockedWithoutFeature && !ctx.hasFeature(item.lockedWithoutFeature),
-    );
-
-    resolved.push({ item, locked: !meetsPlan || missingAddOn });
+    if (!meetsPlan && item.hideWhenLocked === true) continue;
+    const missingAddOn = Boolean(item.lockedWithoutFeature && !ctx.hasFeature(item.lockedWithoutFeature));
+    const locked = !meetsPlan || missingAddOn;
+    resolved.push({
+      item,
+      locked,
+      addOn: locked && Boolean(item.addOnKey),
+      lockTier: !meetsPlan && item.minPlan ? planLabel(item.minPlan) : null,
+    });
   }
   return resolved;
 }
 
+/** Human copy for a group / leaf that unlocks at a later nav band — never a number (§B.5). */
+function unlocksAtCopy(minPhase: number, locale: Locale): string {
+  const name = NAV_PHASE_NAMES[minPhase] ?? "a later";
+  return locale === "vi" ? `Mở khoá ở giai đoạn ${name}` : `Unlocks at the ${name} phase`;
+}
+
+function panelId(group: NavGroup): string {
+  return `nav-group-panel-${group.id}`;
+}
+
 /**
- * Render a single NAV_GROUPS entry. Extracted so both the near-phase list
- * and the "Later phases" expander can render groups identically. When a
- * group is a future-phase, every item shows a lock glyph and its `title`
- * attribute tells the user which canonical phase unlocks it (§C.5 P5).
+ * Render one NavGroup. Shared by the near-phase list and the "Later phases"
+ * expander (`preview` = every row dimmed with a lock and an "unlocks at"
+ * tooltip).
  */
 function renderNavGroup(args: {
   group: NavGroup;
+  resolvedItems: ResolvedItem[];
   currentPhase: number;
   sidebarOpen: boolean;
-  planId: string;
-  segment: Segment | null;
-  entitlement: ReturnType<typeof useEntitlement>;
   pathname: string;
+  locale: Locale;
+  persona: PersonaKey;
   setMobileOpen: (v: boolean) => void;
-  /**
-   * Pillar collapse state — when true, the group's items are hidden and
-   * the header renders as a clickable disclosure. When undefined the
-   * legacy always-open behaviour is used (used by the P5 later-phases
-   * expander which handles its own disclosure).
-   */
   collapsed?: boolean;
-  onToggle?: (label: string) => void;
-  /**
-   * G8-P3 — when true the group renders dimmed with an UpgradeChip.
-   * Set by the caller after decideGroupVisibility() returns "show_dimmed".
-   */
-  dimmed?: boolean;
+  onToggle?: (id: string) => void;
+  preview?: boolean;
 }): React.ReactNode {
-  const { group, currentPhase, sidebarOpen, planId, segment, entitlement, pathname, setMobileOpen, collapsed, onToggle, dimmed } = args;
-  const isFuturePhase = group.minPhase != null && group.minPhase > currentPhase;
-  const resolvedItems = resolveGroup(group, { planId, segment, hasFeature: entitlement.can });
+  const { group, resolvedItems, currentPhase, sidebarOpen, pathname, locale, persona, setMobileOpen, collapsed, onToggle, preview } = args;
   if (resolvedItems.length === 0) return null;
 
-  // Human-readable "unlocks at" copy for tooltips on dimmed rows. When
-  // `minPhase` maps into PHASE_LABELS (1..12) we pull the canonical name,
-  // otherwise we fall back to the group's own stage/label.
-  const unlockPhase = group.minPhase ?? null;
-  const unlockLabel = unlockPhase != null && PHASE_LABELS[unlockPhase]
-    ? PHASE_LABELS[unlockPhase].en
-    : (group.stage ?? group.label);
-  const futureTitle = isFuturePhase && unlockPhase != null
-    ? `Unlocks after Phase ${unlockPhase}: ${unlockLabel}`
-    : undefined;
+  const isFuturePhase = preview === true;
+  const groupLabel = navText(group.label, locale);
+  const groupTitle = isFuturePhase && group.minPhase != null
+    ? unlocksAtCopy(group.minPhase, locale)
+    : group.tooltip ? navText(group.tooltip, locale) : undefined;
 
   const isCollapsible = typeof collapsed === "boolean" && typeof onToggle === "function";
   const isCollapsed = isCollapsible && collapsed === true;
 
   return (
-    <div key={group.label} className={cn("mb-1", dimmed && "opacity-60 pointer-events-none")} data-pillar={group.pillar} data-group-label={group.label}>
-      {/* Group header — clickable disclosure when the caller passes
-          collapse state, otherwise a plain label. */}
+    <div key={group.id} className="mb-1" data-group-id={group.id} data-group-label={group.label.en}>
       {sidebarOpen && (
         isCollapsible ? (
           <button
             type="button"
-            onClick={() => onToggle?.(group.label)}
+            onClick={() => onToggle?.(group.id)}
             aria-expanded={!isCollapsed}
-            aria-controls={`nav-group-panel-${group.label.replace(/[^a-z0-9]/gi, "-").toLowerCase()}`}
-            title={futureTitle}
+            aria-controls={panelId(group)}
+            title={groupTitle}
             className="w-full px-3 pt-4 pb-1.5 flex items-center justify-between text-left hover:bg-surface-sunken rounded-md transition-colors"
           >
             <span className={cn(
@@ -324,224 +190,138 @@ function renderNavGroup(args: {
                 className={cn("h-3 w-3 transition-transform duration-150", isCollapsed ? "-rotate-90" : "")}
                 aria-hidden
               />
-              {group.label}
+              {groupLabel}
             </span>
-            {group.stage && (
-              <span className={cn(
-                "text-xs",
-                isFuturePhase
-                  ? "px-1.5 py-0.5 rounded font-semibold bg-gold-50 text-warn ring-1 ring-warn/25"
-                  : "text-tertiary",
-              )}>
-                {isFuturePhase ? "Locked" : group.stage}
-              </span>
-            )}
           </button>
         ) : (
-          <div
-            className="px-3 pt-4 pb-1.5 flex items-center justify-between"
-            title={futureTitle}
-          >
-            <span className={cn("text-xs font-semibold uppercase tracking-[0.12em]", isFuturePhase ? "text-tertiary" : "text-muted")}>{group.label}</span>
-            {group.stage && (
-              <span className={cn(
-                "text-xs",
-                isFuturePhase
-                  ? "px-1.5 py-0.5 rounded font-semibold bg-gold-50 text-warn ring-1 ring-warn/25"
-                  : "text-tertiary",
-              )}>
-                {isFuturePhase ? "Locked" : group.stage}
+          <div className="px-3 pt-4 pb-1.5 flex items-center justify-between" title={groupTitle}>
+            <span className={cn("text-xs font-semibold uppercase tracking-[0.12em]", isFuturePhase ? "text-tertiary" : "text-muted")}>{groupLabel}</span>
+            {isFuturePhase && (
+              <span className="text-xs px-1.5 py-0.5 rounded font-semibold bg-gold-50 text-warn ring-1 ring-warn/25">
+                {locale === "vi" ? "Đã khoá" : "Locked"}
               </span>
             )}
           </div>
         )
       )}
-      {/* G8-P3 — show_dimmed: UpgradeChip when group is tier-locked but kept
-          visible (hideWhenLocked=false pattern at group level). Only renders
-          when the sidebar is open (icon-only mode has no space for a chip). */}
-      {dimmed && sidebarOpen && (group.minTier ?? group.minPlan) && (
-        <div className="px-3 pb-1 pointer-events-auto">
-          <UpgradeChip
-            tier={(group.minTier ?? group.minPlan)!}
-            className="text-[10px] px-2 py-0.5"
-          />
-        </div>
-      )}
-      {/* Group items — hidden entirely when the pillar is collapsed. Kept
-          in the DOM otherwise so per-item state (active link) is preserved
-          across toggles. */}
       {isCollapsed ? null : (
-      <div id={`nav-group-panel-${group.label.replace(/[^a-z0-9]/gi, "-").toLowerCase()}`}>
-      {resolvedItems.map(({ item, locked }) => {
-        const { href, label, icon: Icon, lifecycle, addOnKey } = item;
-        const active = pathname === href || pathname.startsWith(href + "/");
-        const chipKind = lifecycle === "stable" ? undefined : lifecycle;
-        const lockedHref = addOnKey
-          ? `/workspace/billing?openAddon=${addOnKey}`
-          : "/workspace/billing";
-        const showAddOnPill = locked && Boolean(addOnKey) && sidebarOpen;
-        // Row-level tooltip: locked (plan) > future-phase > add-on.
-        const rowTitle = locked
-          ? (addOnKey ? "Add-on — click to purchase" : "Upgrade required — click to view plans")
-          : futureTitle;
-        return (
-          <Link
-            key={href}
-            href={locked ? lockedHref : href}
-            onClick={() => setMobileOpen(false)}
-            aria-disabled={locked || undefined}
-            title={rowTitle}
-            className={cn(
-              "flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm transition-all duration-150 mx-1",
-              active
-                ? "bg-action/10 text-action font-semibold border-l-2 border-action shadow-sm"
-                : locked
-                  ? "text-tertiary hover:text-muted hover:bg-surface-hover"
-                  : isFuturePhase
-                    ? "text-tertiary hover:text-muted hover:bg-surface-hover"
-                    : "text-muted hover:text-primary hover:bg-surface-hover",
-            )}
-          >
-            <Icon strokeWidth={1.75} className={cn("h-4 w-4 shrink-0", active ? "text-action" : (locked || isFuturePhase) ? "text-tertiary" : "")} />
-            {sidebarOpen && (
-              <>
-                <span className="truncate flex-1">{label}</span>
-                {showAddOnPill && (
-                  <span className="text-[8.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 bg-amber-100 text-amber-700 ring-1 ring-amber-200">
-                    Add-on
-                  </span>
+        <div id={panelId(group)}>
+          {resolvedItems.map(({ item, locked, addOn, lockTier }) => {
+            const { href, icon: Icon, addOnKey } = item;
+            const label = navText(item.label, locale);
+            const active = pathname === href || pathname.startsWith(href + "/");
+            const lockedHref = addOnKey ? `/workspace/billing?openAddon=${addOnKey}` : "/workspace/billing";
+            const showAddOnPill = locked && addOn && sidebarOpen;
+            const leafFuture = isFuturePhase || (item.minPhase != null && item.minPhase > currentPhase);
+            // Row tooltip: plan lock (names the plan, §D.1 rule 6) > add-on >
+            // future phase > the benefit line.
+            const rowTitle = locked
+              ? addOn
+                ? (locale === "vi" ? "Tiện ích bổ sung — nhấn để mua" : "Add-on — click to purchase")
+                : (locale === "vi" ? `Gói ${lockTier ?? ""} mở khoá mục này`.replace("  ", " ") : `${lockTier ?? "A paid"} plan unlocks this`)
+              : leafFuture && item.minPhase != null
+                ? unlocksAtCopy(item.minPhase, locale)
+                : navText(item.tooltip, locale);
+            return (
+              <Link
+                key={href}
+                href={locked ? lockedHref : href}
+                onClick={() => {
+                  setMobileOpen(false);
+                  trackEvent("nav_click", { group: group.id, item: item.label.en, href, persona, phase: currentPhase });
+                }}
+                aria-disabled={locked || undefined}
+                aria-description={rowTitle}
+                title={rowTitle}
+                className={cn(
+                  "flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm transition-all duration-150 mx-1",
+                  active
+                    ? "bg-action/10 text-action font-semibold border-l-2 border-action shadow-sm"
+                    : locked || leafFuture
+                      ? "text-tertiary hover:text-muted hover:bg-surface-hover"
+                      : "text-muted hover:text-primary hover:bg-surface-hover",
                 )}
-                {locked && !showAddOnPill && (
-                  <Lock strokeWidth={1.75} className="h-3 w-3 shrink-0 text-muted" aria-label="Upgrade required" />
+              >
+                <Icon strokeWidth={1.75} className={cn("h-4 w-4 shrink-0", active ? "text-action" : (locked || leafFuture) ? "text-tertiary" : "")} />
+                {sidebarOpen && (
+                  <>
+                    <span className="truncate flex-1">{label}</span>
+                    {showAddOnPill && (
+                      <span className="text-[8.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 bg-amber-100 text-amber-700 ring-1 ring-amber-200">
+                        Add-on
+                      </span>
+                    )}
+                    {locked && !showAddOnPill && (
+                      <Lock strokeWidth={1.75} className="h-3 w-3 shrink-0 text-muted" aria-label={rowTitle} />
+                    )}
+                    {!locked && leafFuture && (
+                      <Lock strokeWidth={1.75} className="h-3 w-3 shrink-0 text-muted" aria-hidden />
+                    )}
+                  </>
                 )}
-                {/* Future-phase lock glyph — visually mirrors the plan-lock
-                    icon so users learn one iconography for "not available
-                    yet". Kept aria-hidden because the row's `title` already
-                    announces "Unlocks after Phase N …" to AT users. */}
-                {!locked && isFuturePhase && (
-                  <Lock strokeWidth={1.75} className="h-3 w-3 shrink-0 text-muted" aria-hidden />
-                )}
-                {chipKind && (
-                  <span className={cn(
-                    "text-[8.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0",
-                    LIFECYCLE_CHIP[chipKind],
-                  )}>
-                    {chipKind}
-                  </span>
-                )}
-              </>
-            )}
-          </Link>
-        );
-      })}
-      </div>
+              </Link>
+            );
+          })}
+        </div>
       )}
     </div>
   );
 }
 
-export function WorkspaceLayout({ children, user, startupName, currentPhase: currentPhaseProp, isSandbox = false, completedOnboardingSteps }: Omit<WorkspaceLayoutProps, "notificationCount">) {
+export function WorkspaceLayout({ children, user, currentPhase: currentPhaseProp, isSandbox = false, navPreset = "persona" }: Omit<WorkspaceLayoutProps, "notificationCount">) {
   const pathname = usePathname();
   // S7-A — one phase for every founder page: explicit prop > the founder
   // route-group context (`(app)/(founder)/layout.tsx` resolves
   // max(SVI band, growth phase) once per request) > 0. Pages outside the
-  // founder group (reseller / compliance shells) have no context → 0, as
-  // before.
+  // founder group (reseller / compliance shells) have no context → 0.
   const currentPhase = useResolvedNavPhase(currentPhaseProp);
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [locale] = useLocale();
   const isAdmin = user.role === "admin";
 
   const entitlement = useEntitlement();
   const planId = entitlement.user?.plan ?? "free";
   const segment = (entitlement.user?.segment as Segment | undefined) ?? null;
-
-  // Base catalogue (+ admin group when the account is admin), then apply
-  // the role overlay so hidden groups drop and ordering respects the role's
-  // priority list. Segment gating inside `resolveGroup()` still runs.
-  const baseGroups = React.useMemo(
-    () => (isAdmin ? [...NAV_GROUPS, ADMIN_NAV_GROUP] : NAV_GROUPS),
-    [isAdmin],
-  );
   const accountType = (entitlement.user as { accountType?: string } | null | undefined)?.accountType ?? null;
-  const overlay = React.useMemo(
-    () => getMenuOverlayForRole({
-      role: user.role ?? null,
-      segment: segment ?? null,
-      accountType,
-    }),
-    [user.role, segment, accountType],
+
+  // Persona → sidebar groups (D5). `navGroupsForIds` keeps the persona's
+  // declared order; the reseller preset swaps in the console groups.
+  const personaKey = React.useMemo(
+    () => resolvePersona({ role: user.role ?? null, accountType, segment }),
+    [user.role, accountType, segment],
   );
-  const orderedGroups = React.useMemo(() => {
-    const hidden = new Set(overlay.hiddenGroups);
-    const kept = baseGroups.filter((g) => !hidden.has(g.label));
-    if (overlay.sidebarOrder.length === 0) return kept;
-    const rank = new Map<string, number>();
-    overlay.sidebarOrder.forEach((label, i) => rank.set(label, i));
-    return [...kept].sort((a, b) => {
-      const ra = rank.has(a.label) ? rank.get(a.label)! : Number.POSITIVE_INFINITY;
-      const rb = rank.has(b.label) ? rank.get(b.label)! : Number.POSITIVE_INFINITY;
-      return ra - rb;
-    });
-  }, [baseGroups, overlay]);
-  // Split "way-in-the-future" groups (minPhase > currentPhase + 3) out of
-  // the main render pass — the sidebar collapses them under a single
-  // "Later phases" expander so a phase-0 founder doesn't scroll past 4
-  // greyed-out clusters. See §C.5 P5.
-  const laterPhaseThreshold = currentPhase + 3;
-  const nearGroups = orderedGroups.filter(
-    (g) => g.minPhase == null || g.minPhase <= laterPhaseThreshold,
+  const persona = PERSONAS[personaKey];
+  const groups = React.useMemo<NavGroup[]>(() => {
+    if (navPreset === "reseller") {
+      const consoleGroups = RESELLER_NAV_GROUPS.filter((g) => g.id !== "mentor-console" || entitlement.can("reseller.console"));
+      return isAdmin ? [...consoleGroups, ADMIN_NAV_GROUP] : consoleGroups;
+    }
+    return navGroupsForIds(persona.navGroups);
+  }, [navPreset, persona, isAdmin, entitlement]);
+
+  const gate = React.useMemo<GateContext>(
+    () => ({ planId, segment, currentPhase, hasFeature: entitlement.can }),
+    [planId, segment, currentPhase, entitlement],
   );
-  const laterGroups = orderedGroups.filter(
-    (g) => g.minPhase != null && g.minPhase > laterPhaseThreshold,
-  );
+
+  // Groups whose band is above the founder's fold under ONE "Later phases"
+  // expander (§A.1 G4) so a phase-0 founder never scrolls past greyed-out
+  // clusters. Everything else renders in place.
+  const nearGroups = groups.filter((g) => g.minPhase == null || g.minPhase <= currentPhase);
+  const laterGroups = groups.filter((g) => g.minPhase != null && g.minPhase > currentPhase);
   const [laterOpen, setLaterOpen] = React.useState(false);
 
-  // Pillar-aware collapse state — merges role overlay defaults, catalogue
-  // `defaultCollapsed`, and per-user localStorage. `useNavCollapse` is a
-  // useSyncExternalStore wrapper so SSR renders the overlay defaults and
-  // CSR hydrates without a flip.
-  //
-  // Special case: for Now-pillar groups (Build & Validate / Ownership &
-  // Equity / Fundraise / Grow & Scale), the layout auto-expands the ONE
-  // group whose `minPhase` brackets the founder's `currentPhase`. This
-  // beats the overlay default so a phase-3 founder lands with Fundraise
-  // open even though the founder overlay marks it collapsed.
-  const nowGroups = React.useMemo(
-    () => nearGroups.filter((g) => g.pillar === "now"),
-    [nearGroups],
-  );
-  const activeNowLabel = React.useMemo(() => {
-    // Sort by minPhase asc, pick the last group whose minPhase <= currentPhase.
-    const withPhase = nowGroups
-      .filter((g) => g.minPhase != null)
-      .sort((a, b) => (a.minPhase! - b.minPhase!));
-    let active: string | null = null;
-    for (const g of withPhase) {
-      if ((g.minPhase ?? 0) <= currentPhase) active = g.label;
-    }
-    // Fresh (phase-0) founder → start with the earliest Now group open.
-    if (!active && withPhase.length > 0) active = withPhase[0].label;
-    return active;
-  }, [nowGroups, currentPhase]);
-
-  const overlayDefaults = React.useMemo(
-    () => resolveInitialCollapse(orderedGroups, overlay),
-    [orderedGroups, overlay],
-  );
-  // Force the auto-expanded Now group open in the default state.
+  // Collapse state keyed by group id — catalogue `defaultCollapsed` + the
+  // user's localStorage. The first group (Home) is never collapsed.
   const initialCollapse = React.useMemo(() => {
-    const next = { ...overlayDefaults };
-    if (activeNowLabel) next[activeNowLabel] = false;
+    const next: Record<string, boolean> = {};
+    groups.forEach((g, i) => { next[g.id] = i === 0 ? false : Boolean(g.defaultCollapsed); });
     return next;
-  }, [overlayDefaults, activeNowLabel]);
-
+  }, [groups]);
   const [collapseState, toggleCollapse] = useNavCollapse(initialCollapse);
 
-  // Mobile: force all pillars closed except Overview — screens are tighter.
-  // We derive a per-render override rather than mutating the store so
-  // toggling on mobile still writes-through to localStorage for the next
-  // desktop session.
+  // Mobile: force every group but the first closed — screens are tighter.
   const [isMobile, setIsMobile] = React.useState(false);
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -554,13 +334,18 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase: cur
   const effectiveCollapse = React.useMemo(() => {
     if (!isMobile) return collapseState;
     const forced: Record<string, boolean> = {};
-    for (const g of orderedGroups) {
-      forced[g.label] = g.pillar !== "overview" ? true : false;
-    }
-    // Preserve any user toggles that keep a group open on mobile
-    // (only if the label doesn't fall back to the mobile default).
-    return { ...forced };
-  }, [isMobile, collapseState, orderedGroups]);
+    groups.forEach((g, i) => { forced[g.id] = i !== 0; });
+    return forced;
+  }, [isMobile, collapseState, groups]);
+
+  const consoleLink = persona.console
+    ?? (entitlement.can("reseller.console") && navPreset !== "reseller" ? PERSONAS.reseller.console : undefined);
+
+  const trackMenu = React.useCallback(
+    (group: string, item: { href: string; label: string }) =>
+      trackEvent("nav_click", { group, item: item.label, href: item.href, persona: personaKey, phase: currentPhase }),
+    [personaKey, currentPhase],
+  );
 
   return (
     <PaywallProvider>
@@ -586,72 +371,42 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase: cur
           <button
             type="button"
             onClick={() => { setSidebarOpen(v => !v); setMobileOpen(false); }}
+            aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
             className="h-7 w-7 flex items-center justify-center rounded-lg text-muted hover:text-primary hover:bg-surface-hover transition-colors cursor-pointer shrink-0"
           >
             {sidebarOpen ? <ChevronLeft strokeWidth={1.75} className="h-4 w-4" /> : <ChevronRight strokeWidth={1.75} className="h-4 w-4" />}
           </button>
         </div>
 
-        {/* Pinned tile — one-tap recommended next action; sits ABOVE
-            the nav so it clears the pillar headers on 13" laptops. */}
-        <RecommendedNextStepTile
-          currentPhase={currentPhase}
-          planId={planId}
-          segment={segment}
-          sidebarOpen={sidebarOpen}
-        />
-
-        {/* Free-tier upgrade nudge — hoisted up next to the recommendation
-            tile so both live above the fold instead of below <main>. */}
-        <UnlockPulseCard planId={planId} />
-
-        {/* Nav items */}
-        <nav className="flex-1 py-1 px-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-line" aria-label="Workspace navigation">
-          {nearGroups.map((group) => {
-            // G8-P3: hybrid visibility — hide phase-locked, dim tier-locked.
-            const vis = decideGroupVisibility(group, {
-              planId,
-              segment,
-              currentPhase,
-              hasFeature: entitlement.can,
-            });
-            if (vis === "hide") return null;
-            return renderNavGroup({
+        {/* Nav groups — persona-filtered, phase-folded, plan-locked. */}
+        <nav
+          className="flex-1 py-1 px-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-line"
+          aria-label="Workspace navigation"
+          data-persona={personaKey}
+          data-nav-phase={currentPhase}
+        >
+          {nearGroups.map((group) =>
+            renderNavGroup({
               group,
+              resolvedItems: resolveNavGroup(group, gate),
               currentPhase,
               sidebarOpen,
-              planId,
-              segment,
-              entitlement,
               pathname,
+              locale,
+              persona: personaKey,
               setMobileOpen,
-              // Overview + phase-matching Now group + role group always
-              // start expanded; everything else honors the resolved
-              // collapse state (overlay defaults + user localStorage).
-              collapsed: effectiveCollapse[group.label] ?? false,
+              collapsed: effectiveCollapse[group.id] ?? false,
               onToggle: toggleCollapse,
-              dimmed: vis === "show_dimmed",
-            });
-          })}
+            }),
+          )}
           {sidebarOpen && laterGroups.length > 0 && (() => {
-            // Count *visible* items after resolve() so the count reflects
-            // what the user would actually see — hidden segment items
-            // shouldn't inflate the "unlocks 12 more" copy.
-            const resolvedLater = laterGroups.map((g) => ({
-              group: g,
-              items: resolveGroup(g, { planId, segment, hasFeature: entitlement.can }),
-            })).filter((r) => r.items.length > 0);
+            const resolvedLater = laterGroups
+              .map((g) => ({ group: g, items: resolveNavGroup(g, gate, { preview: true }) }))
+              .filter((r) => r.items.length > 0);
             const itemCount = resolvedLater.reduce((n, r) => n + r.items.length, 0);
             if (resolvedLater.length === 0) return null;
-            // Build a tooltip listing which phases collapse under the
-            // expander, so the user can preview what unlocks without
-            // needing to open it (hover-only hint).
             const phaseHint = resolvedLater
-              .map((r) => {
-                const p = r.group.minPhase!;
-                const label = PHASE_LABELS[p];
-                return `Phase ${p}: ${label?.en ?? r.group.label}`;
-              })
+              .map((r) => `${navText(r.group.label, locale)} — ${unlocksAtCopy(r.group.minPhase!, locale)}`)
               .join("\n");
             return (
               <div className="mb-1 mt-3 border-t border-line-subtle pt-2">
@@ -660,12 +415,12 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase: cur
                   onClick={() => setLaterOpen((v) => !v)}
                   aria-expanded={laterOpen}
                   aria-controls="later-phases-panel"
-                  title={`Unlocks after your current phase:\n${phaseHint}`}
+                  title={phaseHint}
                   className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted hover:text-primary hover:bg-surface-hover transition-colors"
                 >
                   <span className="flex items-center gap-2">
                     <Lock strokeWidth={1.75} className="h-3 w-3 text-muted" aria-hidden />
-                    Later phases ({itemCount})
+                    {locale === "vi" ? `Giai đoạn sau (${itemCount})` : `Later phases (${itemCount})`}
                   </span>
                   <ChevronDown
                     strokeWidth={1.75}
@@ -678,13 +433,14 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase: cur
                     {resolvedLater.map((r) =>
                       renderNavGroup({
                         group: r.group,
+                        resolvedItems: r.items,
                         currentPhase,
                         sidebarOpen,
-                        planId,
-                        segment,
-                        entitlement,
                         pathname,
+                        locale,
+                        persona: personaKey,
                         setMobileOpen,
+                        preview: true,
                       }),
                     )}
                   </div>
@@ -694,12 +450,26 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase: cur
           })()}
         </nav>
 
-        {/* Bottom: credit badge + home link */}
-        <div className="px-2 pb-3 border-t border-line-subtle pt-3 space-y-2">
-          {sidebarOpen && <div className="px-1"><CreditBadge /></div>}
+        {/* Bottom: credit badge · Settings (the one account link, §A.1 footer) · marketing home */}
+        <div className="px-2 pb-3 border-t border-line-subtle pt-3 space-y-1" data-testid="sidebar-footer">
+          {sidebarOpen && <div className="px-1 pb-1"><CreditBadge /></div>}
+          <Link
+            href="/workspace/settings"
+            onClick={() => { setMobileOpen(false); trackMenu("footer", { href: "/workspace/settings", label: "Settings" }); }}
+            title={locale === "vi" ? "Tài khoản, hồ sơ, thông báo, thanh toán" : "Account, profile, notifications, billing"}
+            className={cn(
+              "flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm transition-colors",
+              pathname.startsWith("/workspace/settings")
+                ? "bg-action/10 text-action font-semibold"
+                : "text-muted hover:text-primary hover:bg-surface-hover",
+            )}
+          >
+            <Settings2 strokeWidth={1.75} className="h-4 w-4 shrink-0" />
+            {sidebarOpen && <span>{locale === "vi" ? "Cài đặt" : "Settings"}</span>}
+          </Link>
           <Link href="/" className="flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm text-muted hover:text-primary hover:bg-surface-hover transition-colors">
             <Home strokeWidth={1.75} className="h-4 w-4 shrink-0" />
-            {sidebarOpen && <span>Back to Home</span>}
+            {sidebarOpen && <span>{locale === "vi" ? "Về trang chủ" : "Back to Home"}</span>}
           </Link>
         </div>
       </aside>
@@ -709,16 +479,18 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase: cur
         {/* Topbar */}
         {/* Live QA lane 1 F4 (2026-09-13): at 390 px the right-hand cluster
             measured 574 px and clipped the theme toggle, the bell and Sign
-            out. Below `sm` the cluster is now bell + avatar menu (wallet,
-            credits, theme, sign-out live inside `HeaderAccountMenu`); from
-            `sm` up the inline cluster renders as before. `min-w-0` on the
-            left and `shrink-0` on the right keep the row inside the viewport. */}
+            out. Below `sm` the cluster is bell + avatar menu (wallet,
+            credits, theme live inside `HeaderAccountMenu` there); from `sm`
+            up the inline widgets render and the avatar menu carries the
+            account rows (D5). `min-w-0` on the left and `shrink-0` on the
+            right keep the row inside the viewport. */}
         <header className="h-16 border-b border-line-subtle bg-surface/90 backdrop-blur-sm px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0 sticky top-0 z-30" data-testid="workspace-header">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             {/* Mobile menu toggle */}
             <button
               type="button"
               onClick={() => setMobileOpen(v => !v)}
+              aria-label="Open navigation"
               className="lg:hidden h-10 w-10 flex items-center justify-center rounded-lg text-muted hover:text-primary hover:bg-surface-hover cursor-pointer"
             >
               <LayoutDashboard strokeWidth={1.75} className="h-4 w-4" />
@@ -742,56 +514,39 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase: cur
               </span>
             </Link>
 
-            {/* Role-scoped extras — surfaces the console / admin link for
-                reseller + admin without duplicating the sidebar Reseller
-                group. See role-menu-overlay.ts. */}
-            {overlay.topNavExtras.map((extra) => (
+            {/* Persona console bridge — reseller / mentor / innovator / admin
+                get a 1-click link back to their console from any page. */}
+            {consoleLink && (
               <Link
-                key={extra.href}
-                href={extra.href}
-                aria-label={extra.ariaLabel ?? extra.label}
+                href={consoleLink.href}
+                aria-label={consoleLink.ariaLabel ?? consoleLink.label}
+                onClick={() => trackMenu("console", { href: consoleLink.href, label: consoleLink.label })}
                 className="hidden sm:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium text-muted hover:text-primary hover:bg-surface-hover transition-colors"
               >
-                <span>{extra.label}</span>
-                {extra.badge && (
+                <span>{consoleLink.label}</span>
+                {consoleLink.badge && (
                   <span className="hidden md:inline-block text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-brand-50 text-brand-700 ring-1 ring-brand-100">
-                    {extra.badge}
+                    {consoleLink.badge}
                   </span>
                 )}
               </Link>
-            ))}
+            )}
 
             {/* Reseller co-branding pill (renders null when no attribution) */}
             <ResellerPill />
 
             {/* sm+ only: wallet · credits · theme (below sm they sit in the account menu) */}
             <div className="hidden sm:flex items-center gap-2" data-testid="header-actions-desktop">
-              {/* Wallet connect (auto-adds/switches to the BlockID chain) */}
               <ConnectWalletButton compact />
-
-              {/* Credit balance */}
               <CreditBalance />
-
-              {/* Dark mode toggle */}
               <ThemeToggle />
             </div>
 
             {/* Notifications — every width */}
             <NotificationBell />
 
-            {/* sm+ only: avatar + name · Sign out */}
-            <div className="hidden sm:flex items-center gap-2" data-testid="header-account-desktop">
-              <div className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-surface-hover transition-colors cursor-pointer">
-                <HeaderAvatar user={user} />
-                <span className="text-sm text-muted max-w-[140px] truncate">{user.displayName ?? user.email}</span>
-              </div>
-              <LogoutButton className="h-8 px-3 rounded-lg text-xs font-medium text-muted hover:text-primary hover:bg-surface-hover transition-colors cursor-pointer">
-                Sign out
-              </LogoutButton>
-            </div>
-
-            {/* below sm: avatar → account menu (name · credits · wallet · theme · sign out) */}
-            <HeaderAccountMenu user={user} />
+            {/* Avatar → account menu (Profile · Billing · Settings · Guides · Sign out) — every width */}
+            <HeaderAccountMenu user={user} onNavigate={(item) => trackMenu("user-menu", item)} />
           </div>
         </header>
 
@@ -820,24 +575,10 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase: cur
         {/* Founding 50 upgrade nudge — shown when user has 1 free credit left */}
         <UpgradePrompt />
 
-        {/* First-visit unlock pulse now renders inside the sidebar tile stack
-            (above the nav), keeping upgrade nudges next to the recommendation
-            tile rather than below the fold. */}
-
         {/* CRO trial countdown — self-hides when >3 days remain or user
             dismisses. Rendered immediately above <main> so the paywall
             provider (see wrapper) can trigger contextual nudges below. */}
         <TrialCountdownBanner />
-
-        {/* T_ONBOARD_0001 — 12-step investor-readiness progress bar.
-            Renders only when the parent page passes `completedOnboardingSteps`.
-            Self-hides once all 12 steps are done or the founder dismisses it. */}
-        {completedOnboardingSteps && (
-          <OnboardingProgressBar
-            completedSteps={completedOnboardingSteps}
-            currentPath={pathname}
-          />
-        )}
 
         {/* Page content */}
         <main className="flex-1 overflow-auto">
