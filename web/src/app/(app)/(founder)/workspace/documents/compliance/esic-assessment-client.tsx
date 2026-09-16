@@ -174,9 +174,9 @@ export function EsicAssessmentClient(props: Props) {
           <ShieldCheck strokeWidth={1.75} className="h-4 w-4" />
           Div 360 ITAA97 · self-assessment worksheet
         </div>
-        <h1 className="mt-2 text-3xl font-semibold text-ink-800">
+        <h2 id="esic" className="mt-2 scroll-mt-24 text-3xl font-semibold text-ink-800">
           ESIC Eligibility Self-Assessment
-        </h1>
+        </h2>
         <p className="mt-3 max-w-2xl text-sm text-ink-600 leading-relaxed">
           Walk the two limbs of the Early Stage Innovation Company test: the
           early-stage size caps (limb 1) and the innovation gate (limb 2 —

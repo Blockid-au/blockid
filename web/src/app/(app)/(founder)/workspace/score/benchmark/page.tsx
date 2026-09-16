@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { CohortBenchmarkChart } from "@/components/dashboard/cohort-benchmark-chart";
+import { DimensionBenchmarkWidget } from "@/components/svi/dimension-benchmark-widget";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
@@ -176,6 +177,25 @@ export default async function BenchmarkPage() {
             </p>
           )}
         </div>
+
+        {/* S-IA2 — ex /workspace/svi-benchmarks: per-dimension peer comparison. */}
+        <section
+          aria-labelledby="dimension-benchmarks-heading"
+          className="pt-6 border-t border-surface-200"
+        >
+          <div className="mb-6">
+            <h2
+              id="dimension-benchmarks-heading"
+              className="text-xl font-semibold text-ink-800 dark:text-ink-100"
+            >
+              Dimension benchmarks
+            </h2>
+            <p className="text-sm text-ink-500 dark:text-ink-400 mt-1">
+              Per-dimension peer comparison against AU startups at the same stage.
+            </p>
+          </div>
+          <DimensionBenchmarkWidget projectId="" />
+        </section>
       </div>
     </WorkspaceLayout>
   );

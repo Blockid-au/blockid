@@ -14,7 +14,8 @@ const sbState = vi.hoisted(() => ({ sb: null as unknown }));
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => sbState.sb }));
 vi.mock("@/lib/projects", async () => {
   const { projectsMock } = await import("@/test/project-scope-mock");
-  return projectsMock(await scopeState);
+  // S-IA2 — the composed "Code & web analyzer" section lists the caller's projects.
+  return { ...projectsMock(await scopeState), getUserProjects: async () => [] };
 });
 vi.mock("@/lib/auth", async () => {
   const { founderUser } = await import("@/test/founder-page-harness");
@@ -69,6 +70,8 @@ describe("/workspace/strategy/tech (S18-B P2-1)", () => {
     expect(dataAttr(out, "website")).toBe("https://acme.test");
     expect(dataAttr(out, "readonly")).toBe("false");
     expect(out).not.toContain("viewer-readonly-note");
+    // S-IA2 — the ex-/dashboard/analyzer section is composed below the panel.
+    expect(out).toContain("Code &amp; web analyzer");
   });
 
   it("member (editor): project URLs under the OWNER's id, panel editable", async () => {

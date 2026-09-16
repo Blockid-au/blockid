@@ -9,6 +9,7 @@ import { ViewOnlyNote } from "@/components/workspace/view-only-note";
 import { getPlatformConfig } from "@/lib/platform-config";
 import { listCompetitors, founderFeatureScope } from "@/lib/founder-features";
 import { CompetitorsClient } from "./competitors-client";
+import { CompetitivePositioningClient } from "./competitive-positioning-client";
 
 export const metadata: Metadata = {
   title: "Competitor Review | Workspace | BlockID",
@@ -54,6 +55,15 @@ export default async function Page() {
 
         <CompetitorsClient initial={items} disabled={!projectId || !canEdit} />
       </div>
+
+      {/* S-IA2 — ex /workspace/competitive-positioning: matrix + AI positioning
+          statement. The client renders its own "Competitive Positioning" heading. */}
+      <section
+        aria-labelledby="competitive-positioning-heading"
+        className="border-t border-line-subtle"
+      >
+        <CompetitivePositioningClient />
+      </section>
     </WorkspaceLayout>
   );
 }

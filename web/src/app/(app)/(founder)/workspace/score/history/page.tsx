@@ -10,6 +10,8 @@ import {
   ValuationTrendChart,
   type ValuationTrendRow,
 } from "@/components/dashboard/valuation-trend-chart";
+import { parseClaimedParam } from "@/lib/analyses/summary";
+import { AnalysesClient } from "./analyses-client";
 
 export const dynamic = "force-dynamic";
 
@@ -97,12 +99,22 @@ interface StartupGroup {
 
 // ── Server Component ──────────────────────────────────────────────────────────
 
-export default async function ScoreHistoryPage() {
+export default async function ScoreHistoryPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ claimed?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/score/history");
 
   const isSandbox = await getCurrentProjectIsSandbox();
   const supabase = getSupabaseAdmin();
+  const sp = (await searchParams) ?? {};
+  // S-IA2 — the former /workspace/analyses list ("Your analyses") now lives
+  // here as a second section under the per-startup score history.
+  const analysesSection = (
+    <AnalysesSection claimed={parseClaimedParam(sp.claimed)} />
+  );
 
   // ── DB not configured ────────────────────────────────────────────────────
   if (!supabase) {
@@ -113,6 +125,7 @@ export default async function ScoreHistoryPage() {
             Database is not configured. Score history is unavailable.
           </p>
         </div>
+        {analysesSection}
       </WorkspaceLayout>
     );
   }
@@ -165,6 +178,7 @@ export default async function ScoreHistoryPage() {
             </Link>
           </div>
         </div>
+        {analysesSection}
       </WorkspaceLayout>
     );
   }
@@ -345,11 +359,25 @@ export default async function ScoreHistoryPage() {
           );
         })}
       </div>
+      {analysesSection}
     </WorkspaceLayout>
   );
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
+
+// "Your analyses" (ex /workspace/analyses) — the client renders its own
+// heading, so this wrapper only supplies the section landmark + divider.
+function AnalysesSection({ claimed }: { claimed?: number }) {
+  return (
+    <section
+      aria-labelledby="your-analyses-heading"
+      className="max-w-4xl mx-auto px-6 pb-24 border-t border-line-subtle"
+    >
+      <AnalysesClient claimed={claimed} />
+    </section>
+  );
+}
 
 function PageHeader({ count }: { count?: number }) {
   return (

@@ -98,9 +98,9 @@ export function CalendarViewClient(props: Props) {
         <p className="text-xs uppercase tracking-wide text-muted-foreground">
           AU compliance
         </p>
-        <h1 className="text-2xl font-semibold text-foreground">
+        <h2 id="calendar" className="scroll-mt-24 text-2xl font-semibold text-foreground">
           Compliance calendar
-        </h1>
+        </h2>
         <p className="text-sm text-muted-foreground">
           BAS, ASIC annual review, R&amp;D Tax Incentive, WGEA and Modern
           Slavery deadlines in one feed. Download the <code>.ics</code> or

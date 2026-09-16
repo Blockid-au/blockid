@@ -52,7 +52,7 @@ describe("requireTierForPage", () => {
         fromPath: "/workspace/equity/cap-table",
       }),
     );
-    expect(url).toBe("/auth/login?next=%2Fworkspace%2Fcap-table");
+    expect(url).toBe("/auth/login?next=%2Fworkspace%2Fequity%2Fcap-table");
   });
 
   it("redirects to /pricing?feature=&from= when feature is missing", async () => {
@@ -65,7 +65,7 @@ describe("requireTierForPage", () => {
       }),
     );
     expect(url).toBe(
-      "/pricing?feature=cap_table.write&from=%2Fworkspace%2Fcap-table",
+      "/pricing?feature=cap_table.write&from=%2Fworkspace%2Fequity%2Fcap-table",
     );
     expect(recordGateHitMock).toHaveBeenCalledWith(
       expect.objectContaining({ id: "u1", plan: "founder_free" }),
@@ -82,7 +82,7 @@ describe("requireTierForPage", () => {
         fromPath: "/workspace/esop/vesting",
       }),
     );
-    expect(url).toBe("/pricing?from=%2Fworkspace%2Fvesting");
+    expect(url).toBe("/pricing?from=%2Fworkspace%2Fesop%2Fvesting");
     expect(canMock).not.toHaveBeenCalled();
   });
 

@@ -137,12 +137,9 @@ const ALLOWLIST: Record<string, string> = {
   // Stubs will be replaced by full WorkspaceLayout pages; redirects
   // need no chrome because they immediately bounce the user elsewhere.
   "workspace": "G8-P6 skip: redirect-only page (bounces to /dashboard)",
-  "workspace/applications": "G8-P6 skip: coming-soon stub, WorkspaceLayout backfill deferred",
-  "workspace/sso": "G8-P6 skip: coming-soon stub, WorkspaceLayout backfill deferred",
+  "workspace/accelerator/applications": "G8-P6 skip: coming-soon stub, WorkspaceLayout backfill deferred (moved from workspace/applications in S-IA2)",
   "workspace/team": "G8-P6 skip: coming-soon stub, WorkspaceLayout backfill deferred",
-  "workspace/svi-api": "G8-P6 skip: bare client component, WorkspaceLayout backfill deferred",
-  "workspace/equity-offer/request": "G8-P6 skip: bare client form, WorkspaceLayout backfill deferred",
-  "workspace/white-label": "G8-P6 skip: coming-soon stub, WorkspaceLayout backfill deferred",
+  "workspace/esop/offers/request": "G8-P6 skip: bare client form, WorkspaceLayout backfill deferred (moved from workspace/equity-offer/request in S-IA2)",
   "workspace/weekly-digest": "G8-P6 skip: coming-soon stub, WorkspaceLayout backfill deferred",
 
   // ── Dashboard sub-pages ──────────────────────────────────────────────────

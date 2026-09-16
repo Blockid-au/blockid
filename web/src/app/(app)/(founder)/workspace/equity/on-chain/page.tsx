@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { ADMIN_EMAIL, getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { WalletClient } from "./wallet-client";
+import { EquityDashboardClient } from "./equity-dashboard-client";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
@@ -24,6 +25,23 @@ export default async function WalletPage() {
       <div className="p-6 max-w-5xl mx-auto">
         <WalletClient />
       </div>
+
+      {/* S-IA2 — ex /workspace/equity-dashboard: ownership, token info,
+          quick actions and on-chain activity for the synced share token. */}
+      <section
+        aria-labelledby="blockchain-sync-heading"
+        className="p-6 max-w-6xl mx-auto border-t border-line-subtle"
+      >
+        <h2
+          id="blockchain-sync-heading"
+          className="text-sm font-semibold uppercase tracking-wider text-muted mb-4"
+        >
+          Blockchain sync
+        </h2>
+        <EquityDashboardClient
+          isAdmin={user.email === ADMIN_EMAIL || user.role === "admin"}
+        />
+      </section>
     </WorkspaceLayout>
   );
 }

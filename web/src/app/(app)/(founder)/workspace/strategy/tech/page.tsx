@@ -7,6 +7,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { TechIntelligencePanel } from "@/components/founder/tech-intelligence-panel";
 import { ViewOnlyNote } from "@/components/workspace/view-only-note";
+import { AnalyzerSection } from "./analyzer-section";
 
 export const metadata: Metadata = {
   title: "Tech Analysis | BlockID",
@@ -56,6 +57,9 @@ export default async function TechAnalysisPage() {
           initialGithubUrl={githubUrl}
           readOnly={!canEdit}
         />
+
+        {/* S-IA2 — ex /dashboard/analyzer: standalone repo / website scorer. */}
+        <AnalyzerSection userId={user.id} />
       </div>
     </WorkspaceLayout>
   );

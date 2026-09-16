@@ -61,6 +61,20 @@ function collectRoutes(dir: string, prefix: string, out: Set<string>): void {
 const ROUTES = new Set<string>();
 collectRoutes(resolve(__dirname, "../../app"), "", ROUTES);
 
+/** A route exists when its page or a dynamic-segment page covers it. */
+function routeExists(route: string): boolean {
+  if (ROUTES.has(route)) return true;
+  for (const known of ROUTES) {
+    if (!known.includes("[")) continue;
+    const re = new RegExp("^" + known.replace(/\/\[[^\]]+\]/g, "/[^/]+") + "$");
+    if (re.test(route)) return true;
+  }
+  return false;
+}
+
+/** Flags the sidebar catalogue also accepts (nav-groups.test.ts) — add-on grants without a VISIBILITY row. */
+const KNOWN_FLAGS = new Set([...Object.keys(VISIBILITY), "cap_table.write", "vesting.read", "esop.manage"]);
+
 function tabs(html: string): Array<Record<string, string>> {
   return [...html.matchAll(/<a ([^>]*role="tab"[^>]*)>/g)].map((m) => {
     const attrs: Record<string, string> = {};
@@ -86,7 +100,7 @@ describe("HUBS — catalogue shape", () => {
       for (const t of h.tabs) {
         expect(t.label.en.trim(), `${id}/${t.segment}`).not.toBe("");
         expect(t.label.vi.trim(), `${id}/${t.segment}`).not.toBe("");
-        if (t.lockedWithoutFeature) expect(VISIBILITY, `${id}/${t.segment} flag`).toHaveProperty(t.lockedWithoutFeature);
+        if (t.lockedWithoutFeature) expect(KNOWN_FLAGS.has(t.lockedWithoutFeature), `${id}/${t.segment} flag ${t.lockedWithoutFeature}`).toBe(true);
         if (t.href) expect(t.href.startsWith("/")).toBe(true);
       }
     }
@@ -101,7 +115,8 @@ describe("HUBS — catalogue shape", () => {
     for (const id of HUB_IDS) {
       for (const t of HUBS[id].tabs) {
         const href = hubTabHref(HUBS[id], t);
-        expect(ROUTES.has(href), `${href} has no page.tsx`).toBe(true);
+        expect(routeExists(href), `${href} has no page.tsx`).toBe(true);
+        if (t.activePrefix) expect(href.startsWith(t.activePrefix), `${href} outside its activePrefix`).toBe(true);
       }
       // The hub root is always a real page (never a redirect-only stub).
       expect(ROUTES.has(HUBS[id].root), `${HUBS[id].root} root page`).toBe(true);
@@ -123,6 +138,9 @@ describe("activeHubTab / hubForPathname — longest-prefix match", () => {
     expect(activeHubTab(HUBS.reports, "/workspace/reports/9f1c")?.segment).toBe("");
     expect(activeHubTab(HUBS.reports, "/workspace/reports/investor-pack/generate")?.segment).toBe("investor-pack");
     expect(activeHubTab(HUBS.settings, "/workspace/billing")?.segment).toBe("billing");
+    // Guide: links to chapter 1, owns every chapter.
+    expect(hubTabHref(HUBS.plan, HUBS.plan.tabs[1])).toBe("/workspace/plan/guide/01-vision");
+    expect(activeHubTab(HUBS.plan, "/workspace/plan/guide/07-traction")?.segment).toBe("guide");
     expect(activeHubTab(HUBS.score, "/workspace/evidence")).toBeNull();
     expect(activeHubTab(HUBS.score, "/workspace/score/history?x=1")?.segment).toBe("history");
   });

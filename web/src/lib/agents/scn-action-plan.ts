@@ -227,7 +227,7 @@ function actionsForPosition(ctx: ActionContext): ScnAction[] {
       effort: "low",
       impact: "Discovery boost",
       tactic: "Make your SVI score share-page public → list on /index leaderboard → backlink from your landing page footer. Free SEO + investor discovery loop.",
-      resources: ["/dashboard/svi/share", "blockid.au/startup-index"],
+      resources: ["/workspace/score", "blockid.au/startup-index"],
       timeline: "this_week",
     },
   ];
@@ -328,7 +328,7 @@ function actionsForCapital(ctx: ActionContext): ScnAction[] {
       effort: "medium",
       impact: "Term sheet velocity",
       tactic: "Slides: Cover · Problem · Solution · Why now · Market · Product · Traction · Business model · Team · The ask. Use BlockID's pitch deck generator to start, then customise.",
-      resources: ["/workspace/data-room/pitch-deck"],
+      resources: ["/workspace/documents/data-room"],
       timeline: "60_day",
     });
   } else {

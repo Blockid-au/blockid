@@ -21,6 +21,10 @@
 
 import { test, expect } from "@playwright/test";
 import { LEGACY_REDIRECTS } from "../../../src/lib/nav/legacy-redirects";
+import { HUBS, HUB_IDS } from "../../../src/lib/nav/hubs";
+import { loginAs } from "../fixtures/accounts";
+
+const FOUNDER_EMAIL = process.env.QA_FOUNDER_LIMIT_EMAIL ?? "qa+founder@blockid.au";
 
 // Give each hydrated page a hard ceiling so a stuck deploy doesn't hang CI.
 const PAGE_TIMEOUT = 15_000;
@@ -352,16 +356,61 @@ test.describe("Post-deploy hydrated smoke", () => {
   // the same table). `maxRedirects: 0` so we assert the first hop, not the
   // auth-gate that follows it. A 200 here means the redirect was dropped
   // from the config; a 404 means the old page was deleted without it.
+  // S-IA2 (G13-W2) added `:param` sources (`/workspace/guide/:path*`,
+  // `/dashboard/history/:startupId`); every param is substituted with the
+  // same sample on both sides so the Location assertion stays exact.
+  const fillParams = (p: string) => p.replace(/:[A-Za-z]+\*?/g, "sample");
   for (const r of LEGACY_REDIRECTS) {
     test(`${r.source} → ${r.destination} (308)`, async ({ request }) => {
       test.setTimeout(15_000);
-      const resp = await request.get(r.source, { maxRedirects: 0 });
+      const resp = await request.get(fillParams(r.source), { maxRedirects: 0 });
       expect(resp.status(), `${r.source}: expected 308, got ${resp.status()}`).toBe(308);
       const location = resp.headers()["location"] ?? "";
       const path = location.replace(/^https?:\/\/[^/]+/, "").split("?")[0];
-      expect(path, `${r.source}: Location ${location}`).toBe(r.destination);
+      expect(path, `${r.source}: Location ${location}`).toBe(fillParams(r.destination));
     });
   }
+
+  // ── G13-W2-IA2 — hub roots render their tablist (hydrated) ───────────
+  // One assertion per founder hub: signed in as the QA founder, the hub
+  // root shows `role="tablist"` with its first tab selected. Skips (never
+  // false-greens) when the seed account is missing on the box.
+  test.describe("hub tablists", () => {
+    test.setTimeout(120_000);
+    test("every /workspace/<hub> root renders a tablist with the first tab selected", async ({ page }) => {
+      let loginOk = false;
+      try {
+        await loginAs(page, FOUNDER_EMAIL);
+        loginOk = true;
+      } catch {
+        /* fixture missing on this box */
+      }
+      test.skip(!loginOk, `QA founder ${FOUNDER_EMAIL} not seeded — run scripts/seed-test-users.mjs`);
+      const gated: string[] = [];
+      for (const id of HUB_IDS) {
+        const hub = HUBS[id];
+        await test.step(hub.root, async () => {
+          const resp = await page.goto(hub.root, { waitUntil: "domcontentloaded" });
+          expect(resp?.status(), `${hub.root} status`).toBeLessThan(400);
+          // A hub root the seed plan cannot open (e.g. /workspace/esop needs
+          // the Equity add-on) bounces to /pricing via requireTierForPage —
+          // that is the gate working, not a broken hub. Anything else must
+          // show the tablist.
+          if (/\/pricing(\?|$)/.test(page.url())) {
+            gated.push(hub.root);
+            return;
+          }
+          const tablist = page.locator(`nav[data-hub="${id}"] [role="tablist"]`);
+          await expect(tablist, `${hub.root} tablist`).toBeVisible({ timeout: PAGE_TIMEOUT });
+          const tabs = tablist.getByRole("tab");
+          expect(await tabs.count(), `${hub.root} tab count`).toBe(hub.tabs.length);
+          await expect(tabs.first(), `${hub.root} first tab selected`).toHaveAttribute("aria-selected", "true");
+          await expect(tabs.first()).toHaveAttribute("aria-current", "page");
+        });
+      }
+      expect(gated.length, `plan-gated hub roots: ${gated.join(", ")}`).toBeLessThanOrEqual(2);
+    });
+  });
 
   test("/workspace/reports/upgrade keeps its query string through the redirect", async ({ request }) => {
     test.setTimeout(15_000);

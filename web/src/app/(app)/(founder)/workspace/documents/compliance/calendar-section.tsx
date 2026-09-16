@@ -1,6 +1,10 @@
-import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+// S-IA2 — ex /compliance/calendar ("AU compliance calendar"), now the
+// "Compliance calendar" section of /workspace/documents/compliance. Async
+// server component: keeps the five Supabase reads (GST, R&D registrations,
+// equity plan incorporation date, WGEA, Modern Slavery) and the calendar
+// build; the composed page authenticates once and passes `user` down.
+
+import type { AppUser } from "@/lib/auth";
 import { getActiveProject } from "@/lib/projects";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import {
@@ -15,15 +19,6 @@ import type { WGEAResult } from "@/lib/compliance/wgea-threshold";
 import type { ModernSlaveryResult } from "@/lib/compliance/modern-slavery-threshold";
 import { CalendarViewClient } from "./calendar-view-client";
 import { buildSubscribeUrl } from "./calendar-view.helpers";
-
-export const metadata: Metadata = {
-  title: "AU compliance calendar | BlockID",
-  description:
-    "BAS, ASIC annual review, R&D Tax Incentive, WGEA and Modern Slavery deadlines in one subscribable feed.",
-  robots: { index: false, follow: false },
-};
-
-export const dynamic = "force-dynamic";
 
 interface GstRow {
   registered_for_gst: boolean | null;
@@ -101,10 +96,7 @@ async function loadInputs(userId: string, projectId: string | null) {
   };
 }
 
-export default async function ComplianceCalendarPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/workspace/documents/compliance");
-
+export async function ComplianceCalendarSection({ user }: { user: AppUser }) {
   const project = await getActiveProject(user.id);
   const inputs = await loadInputs(user.id, project?.id ?? null);
 
@@ -136,16 +128,13 @@ export default async function ComplianceCalendarPage() {
 
   const subscribe = buildSubscribeUrl(process.env.NEXT_PUBLIC_SITE_URL ?? "");
 
+  // <CalendarViewClient> renders its own <section> with the `#calendar` h2 anchor.
   return (
-    <div className="min-h-screen bg-surface-50">
-      <div className="mx-auto max-w-4xl p-6">
-        <CalendarViewClient
-          events={events}
-          subscribeWebcal={subscribe.webcal}
-          subscribeHttps={subscribe.https}
-          disclaimer={CALENDAR_DISCLAIMER}
-        />
-      </div>
-    </div>
+    <CalendarViewClient
+      events={events}
+      subscribeWebcal={subscribe.webcal}
+      subscribeHttps={subscribe.https}
+      disclaimer={CALENDAR_DISCLAIMER}
+    />
   );
 }

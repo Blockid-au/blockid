@@ -416,7 +416,7 @@ export function EquityDashboardClient({ isAdmin }: { isAdmin: boolean }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-ink-800">Equity Dashboard</h1>
+          <h2 className="text-xl font-bold text-ink-800">Equity Dashboard</h2>
           <p className="text-sm text-ink-500 mt-0.5">
             Blockchain equity co-ownership overview for Auschain Pty Ltd
           </p>

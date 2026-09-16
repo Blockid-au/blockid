@@ -5,22 +5,27 @@ import { getCurrentUser } from "@/lib/auth";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { CompliancePanel } from "@/components/dashboard/compliance-panel";
+import { ComplianceCalendarSection } from "./calendar-section";
+import { EsicAssessmentSection } from "./esic-assessment-section";
 
-// P5-tax-invoice-checker-panel-mount — /workspace/documents/compliance host route.
+// S-IA2 (spec §A.1) — /workspace/documents/compliance composes, in order:
+//   #panel     Compliance panel      (ex /dashboard/compliance, this file)
+//   #calendar  Compliance calendar   (ex /compliance/calendar → calendar-section.tsx)
+//   #esic      ESIC self-assessment  (ex /workspace/esic-assessment → esic-assessment-section.tsx)
 //
-// Server-only shell that mounts <CompliancePanel />, which itself carries
-// the 7 tiles (ESIC, s708, GST, R&D, WGEA, Modern Slavery, Tax Invoice
-// history). The panel is a client component that fetches its endpoints
-// on mount, so this page only supplies the auth gate + shell chrome.
+// The page authenticates once and passes `user` to each async section; every
+// section keeps its own loaders + try/catch degradation. <CompliancePanel />
+// is a client component that fetches its 7 tiles (ESIC, s708, GST, R&D, WGEA,
+// Modern Slavery, Tax Invoice history) on mount.
 //
 // Unblocks the P5-tax-invoice-checker-tile-e2e Playwright spec — its
 // HOST_ROUTES list checks /workspace/documents/compliance first, so the tile is
-// now reachable end-to-end.
+// reachable end-to-end.
 
 export const metadata: Metadata = {
   title: "AU Compliance | BlockID",
   description:
-    "Raise-blocker compliance checks — ESIC, s708(8) wholesale certs, GST, R&D Tax Incentive, WGEA, Modern Slavery, ATO tax invoices — all in one panel.",
+    "AU compliance panel, deadline calendar and ESIC self-assessment — ESIC, s708(8), GST, R&D Tax Incentive, WGEA, Modern Slavery, ATO tax invoices.",
   robots: { index: false, follow: false },
 };
 
@@ -51,19 +56,37 @@ export default async function ComplianceDashboardPage() {
             Click any tile to open the underlying workflow. Not tax or legal
             advice; confirm with your registered agent before lodging.
           </p>
+          <nav aria-label="On this page" className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+            <a href="#panel" className="text-brand-600 hover:underline">Compliance panel</a>
+            <a href="#calendar" className="text-brand-600 hover:underline">Compliance calendar</a>
+            <a href="#esic" className="text-brand-600 hover:underline">ESIC self-assessment</a>
+          </nav>
         </header>
-        <CompliancePanel />
-        <p className="text-xs text-muted-foreground">
-          Want more detail on a specific check?{" "}
-          <Link
-            href="/workspace/documents/compliance"
-            className="text-brand-600 hover:underline"
-          >
-            Subscribe to the compliance calendar
-          </Link>{" "}
-          to get every deadline (BAS, ASIC annual review, R&amp;D, WGEA,
-          Modern Slavery) in your own calendar app.
-        </p>
+
+        {/* ── (a) Compliance panel ─────────────────────────────────────── */}
+        <section aria-labelledby="panel" className="space-y-4">
+          <h2 id="panel" className="scroll-mt-24 text-xl font-semibold text-ink-800">
+            Compliance panel
+          </h2>
+          <CompliancePanel />
+          <p className="text-xs text-muted-foreground">
+            Want more detail on a specific check?{" "}
+            <Link
+              href="#calendar"
+              className="text-brand-600 hover:underline"
+            >
+              Subscribe to the compliance calendar
+            </Link>{" "}
+            to get every deadline (BAS, ASIC annual review, R&amp;D, WGEA,
+            Modern Slavery) in your own calendar app.
+          </p>
+        </section>
+
+        {/* ── (b) Compliance calendar (S-IA2, ex /compliance/calendar) ─── */}
+        <ComplianceCalendarSection user={user} />
+
+        {/* ── (c) ESIC self-assessment (S-IA2, ex /workspace/esic-assessment) */}
+        <EsicAssessmentSection user={user} />
       </div>
     </WorkspaceLayout>
   );

@@ -52,7 +52,7 @@ describe("feature-tours registry", () => {
     // is registered for svi — the deeper one must win.
     expect(tourForRoute("/workspace/score")?.slug).toBe("svi");
     expect(tourForRoute("/dashboard")?.slug).toBe("dashboard-nav");
-    expect(tourForRoute("/dashboard/svi/subpath")?.slug).toBe("svi");
+    expect(tourForRoute("/workspace/score/history")?.slug).toBe("svi");
     expect(tourForRoute("/somewhere-else")).toBeUndefined();
     expect(tourForRoute("")).toBeUndefined();
   });

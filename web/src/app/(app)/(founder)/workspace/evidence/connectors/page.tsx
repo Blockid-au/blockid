@@ -17,6 +17,10 @@ import { WebhooksSection } from "@/components/workspace/webhooks-section";
 import { canUseWebhooks, WEBHOOK_EVENT_LABELS, WEBHOOK_EVENTS } from "@/lib/webhooks/registry";
 import { supabaseWebhookStore } from "@/lib/webhooks/store";
 import { publicEndpoint, type PublicEndpoint } from "@/lib/webhooks/http";
+import {
+  DashboardIntegrationsSection,
+  SECTION_CONNECTED_VALUES,
+} from "./dashboard-integrations-section";
 
 export const metadata: Metadata = {
   title: "Integrations",
@@ -118,7 +122,8 @@ export default async function IntegrationsPage({
             Connection failed: {sp.error.replaceAll("_", " ")}
           </div>
         ) : null}
-        {sp.connected ? (
+        {sp.connected &&
+        !(SECTION_CONNECTED_VALUES as readonly string[]).includes(sp.connected) ? (
           <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
             {sp.connected.toUpperCase()} connected. First sync completed.
           </div>
@@ -129,6 +134,9 @@ export default async function IntegrationsPage({
             <IntegrationRowCard key={row.provider} row={row} />
           ))}
         </div>
+
+        {/* ── Evidence sources (S-IA2, ex /dashboard/integrations) ──── */}
+        <DashboardIntegrationsSection user={user} connected={sp.connected} />
 
         {/* ── CRM Push via Zapier ───────────────────────────────────── */}
         <section className="bg-surface-sunken border border-line-subtle backdrop-blur-sm rounded-2xl p-4 space-y-2">

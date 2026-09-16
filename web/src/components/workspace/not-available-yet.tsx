@@ -37,6 +37,13 @@ export interface NotAvailableYetProps {
   /** Where the "Back" link goes. Defaults to /workspace. */
   backHref?: string;
   backLabel?: string;
+  /**
+   * S-IA2: heading element for the title. A standalone page keeps the
+   * default `h1`; a card composed into a hub tab passes `h2` (+ `headingId`
+   * as the section anchor) so the page keeps a single h1.
+   */
+  headingLevel?: "h1" | "h2";
+  headingId?: string;
 }
 
 type InterestState = "idle" | "sending" | "sent" | "failed";
@@ -50,6 +57,8 @@ export function NotAvailableYet({
   alternatives = [],
   backHref = "/workspace",
   backLabel = "Back to Workspace",
+  headingLevel: Heading = "h1",
+  headingId,
 }: NotAvailableYetProps) {
   const [state, setState] = React.useState<InterestState>("idle");
 
@@ -84,7 +93,7 @@ export function NotAvailableYet({
             <Icon className="w-7 h-7 text-brand-600" aria-hidden="true" />
           </div>
         )}
-        <h1 className="text-2xl font-bold text-ink-900">{title}</h1>
+        <Heading id={headingId} className="scroll-mt-24 text-2xl font-bold text-ink-900">{title}</Heading>
       </div>
 
       <div className="rounded-lg border border-ink-200 bg-white p-6 shadow-sm">

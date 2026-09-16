@@ -39,10 +39,12 @@ describe("<NotAvailableYet>", () => {
 });
 
 const WORKSPACE = join(__dirname, "..", "..", "app", "(app)", "(founder)", "workspace");
+// S-IA2: SSO and White-label are sections of /workspace/settings/enterprise;
+// Applications moved under the accelerator hub.
 const STUB_PAGES = [
-  "sso/page.tsx",
-  "white-label/page.tsx",
-  "applications/page.tsx",
+  "settings/enterprise/sso-section.tsx",
+  "settings/enterprise/white-label-section.tsx",
+  "accelerator/applications/page.tsx",
   "weekly-digest/page.tsx",
   "listings/new/page.tsx",
 ];

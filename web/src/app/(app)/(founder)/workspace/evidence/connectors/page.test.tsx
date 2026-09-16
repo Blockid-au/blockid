@@ -78,6 +78,9 @@ describe("/workspace/evidence/connectors — Webhooks section", () => {
     expect(out).not.toContain("SEALEDVALUE");
     expect(out).not.toContain("data-webhooks-gate");
     expect(out).toContain('href="/docs#webhooks"');
+    // S-IA2 — the ex-/dashboard/integrations "Evidence sources" section is composed in.
+    expect(out).toContain("Evidence sources");
+    expect(out).toContain("GitHub — Product Activity Evidence");
   });
 
   it("Free founder: plan gate shown, no add button, empty state", async () => {

@@ -69,13 +69,16 @@ export function resolveHubTabs(hubDef: HubDef, ctx: GateContext): ResolvedHubTab
     const meetsPlan = tab.minPlan ? meetsMinPlan(ctx.planId, tab.minPlan) : true;
     const missingFeature = Boolean(tab.lockedWithoutFeature && !ctx.hasFeature(tab.lockedWithoutFeature));
     const locked = !meetsPlan || missingFeature;
+    // Plan that grants a missing flag: the flag's own visibility row, else
+    // the add-on's row (cap_table.write / vesting.read are granted by the
+    // Equity add-on and have no row of their own).
+    const flagRow = missingFeature
+      ? (VISIBILITY[tab.lockedWithoutFeature as FeatureSlug] ?? (tab.addOnKey ? VISIBILITY[tab.addOnKey] : undefined))
+      : undefined;
     let lockTier: string | null = null;
     if (!meetsPlan && tab.minPlan) lockTier = planLabel(tab.minPlan);
-    else if (missingFeature) {
-      const row = VISIBILITY[tab.lockedWithoutFeature as FeatureSlug];
-      lockTier = row ? planLabel(row.minTier as PlanTier) : null;
-    }
-    const addOnKey = tab.addOnKey ?? (missingFeature ? VISIBILITY[tab.lockedWithoutFeature as FeatureSlug]?.addOnKey : undefined);
+    else if (flagRow) lockTier = planLabel(flagRow.minTier as PlanTier);
+    const addOnKey = tab.addOnKey ?? flagRow?.addOnKey;
     return {
       tab,
       href: hubTabHref(hubDef, tab),

@@ -1,10 +1,11 @@
-import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// S18-B render test for /workspace/evidence/connectors. Pins: a member reads the
-// OWNER's integration evidence (read-only account lookup, no insert); OAuth
-// linking (callbacks are admin+) renders for owner + admin only; the manual
-// GitHub form (editor+) also renders for editors; viewers see status only.
+// S18-B render test for the "Evidence sources" section of
+// /workspace/evidence/connectors (ex /dashboard/integrations). Pins: a member
+// reads the OWNER's integration evidence (read-only account lookup, no
+// insert); OAuth linking (callbacks are admin+) renders for owner + admin
+// only; the manual GitHub form (editor+) also renders for editors; viewers
+// see status only.
 
 const scopeState = vi.hoisted(async () => {
   const { makeScopeState } = await import("@/test/project-scope-mock");
@@ -16,18 +17,6 @@ vi.mock("@/lib/projects", async () => {
   const { projectsMock } = await import("@/test/project-scope-mock");
   return projectsMock(await scopeState);
 });
-vi.mock("@/lib/auth", async () => {
-  const { founderUser } = await import("@/test/founder-page-harness");
-  return { getCurrentUser: async () => founderUser(await scopeState) };
-});
-vi.mock("@/components/workspace/workspace-layout", () => ({
-  WorkspaceLayout: ({ children }: { children: React.ReactNode }) => <div data-shell>{children}</div>,
-}));
-vi.mock("next/navigation", () => ({
-  redirect: (url: string) => {
-    throw new Error(`REDIRECT:${url}`);
-  },
-}));
 vi.mock("@/lib/github", () => ({ isGitHubOAuthConfigured: () => true }));
 vi.mock("@/lib/google-analytics-oauth", () => ({ isGoogleAnalyticsOAuthConfigured: () => true }));
 vi.mock("@/components/dashboard/github-connect-form", () => ({
@@ -38,11 +27,12 @@ vi.mock("@/components/dashboard/github-connect-form", () => ({
 
 import { fakeSupabase, type FakeSupabase } from "@/test/fake-supabase";
 import { keyCalls } from "@/test/project-scope-mock";
-import { renderPage, dataAttr } from "@/test/founder-page-harness";
+import { founderUser, renderPage, dataAttr } from "@/test/founder-page-harness";
+import type { AppUser } from "@/lib/auth";
 
 async function html(): Promise<string> {
-  const { default: Page } = await import("./page");
-  return renderPage(Page({ searchParams: Promise.resolve({}) }));
+  const { DashboardIntegrationsSection } = await import("./dashboard-integrations-section");
+  return renderPage(DashboardIntegrationsSection({ user: founderUser(state) as AppUser }));
 }
 
 const state = await scopeState;
@@ -57,7 +47,7 @@ beforeEach(() => {
   sbState.sb = sb;
 });
 
-describe("/workspace/evidence/connectors (S18-B)", () => {
+describe("/workspace/evidence/connectors — Evidence sources section (S18-B)", () => {
   it("owner: own account, GitHub form (OAuth on) + GA connect rendered", async () => {
     const out = await html();
     expect(keyCalls(state, "findOrCreateSVIAccount")).toHaveLength(1);

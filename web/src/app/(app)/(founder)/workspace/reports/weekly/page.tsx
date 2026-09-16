@@ -9,7 +9,6 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { BarChart3 } from "lucide-react";
 import { ReportsClient, type SnapshotRow } from "./reports-client";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
-import { ReportArchive, type InvestorPackRow, type AssembledReportRow } from "@/components/workspace/report-archive";
 
 export const metadata: Metadata = {
   title: "Weekly Reports",
@@ -19,76 +18,9 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-async function loadArchive(userId: string): Promise<{
-  investorPacks: InvestorPackRow[];
-  assembledReports: AssembledReportRow[];
-}> {
-  const admin = getSupabaseAdmin();
-  const now = new Date();
-  const investorPacks: InvestorPackRow[] = [];
-  const assembledReports: AssembledReportRow[] = [];
-
-  if (!admin) return { investorPacks, assembledReports };
-
-  try {
-    const { data: packs } = await admin
-      .from("investor_pack_shares")
-      .select("id, share_id, created_at, expires_at")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(20);
-    if (packs) {
-      for (const row of packs as any[]) {
-        investorPacks.push({
-          id: row.id,
-          share_id: row.share_id,
-          created_at: row.created_at,
-          expires_at: row.expires_at,
-          is_expired: new Date(row.expires_at).getTime() < now.getTime(),
-          download_url: `/api/investor-pack/download/${row.share_id}`,
-        });
-      }
-    }
-  } catch { /* investor_pack_shares not yet migrated */ }
-
-  try {
-    const { data: reports } = await admin
-      .from("assembled_reports")
-      .select("id, project_id, tier, created_at, total_words, title")
-      .eq("user_id", userId)
-      .eq("status", "complete")
-      .order("created_at", { ascending: false })
-      .limit(20);
-    if (reports && (reports as any[]).length > 0) {
-      const projectIds = [...new Set((reports as any[]).map((r: any) => r.project_id).filter(Boolean))];
-      const nameMap = new Map<string, string>();
-      if (projectIds.length > 0) {
-        try {
-          const { data: projects } = await admin.from("projects").select("id, name").in("id", projectIds);
-          if (projects) for (const p of projects as any[]) { if (p.name) nameMap.set(p.id, p.name); }
-        } catch { /* ignore */ }
-      }
-      for (const row of reports as any[]) {
-        assembledReports.push({
-          id: row.id,
-          order_id: row.id,
-          tier: typeof row.tier === "string" ? row.tier : "standard",
-          created_at: row.created_at,
-          word_count: typeof row.total_words === "number" ? row.total_words : 0,
-          startup_name: (row.project_id && nameMap.get(row.project_id)) || (typeof row.title === "string" && row.title) || "Startup",
-        });
-      }
-    }
-  } catch { /* assembled_reports may not exist yet */ }
-
-  return { investorPacks, assembledReports };
-}
-/* eslint-enable @typescript-eslint/no-explicit-any */
-
 export default async function ReportsPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/workspace/reports");
+  if (!user) redirect("/auth/login?next=/workspace/reports/weekly");
 
   const isSandbox = await getCurrentProjectIsSandbox();
 
@@ -103,7 +35,8 @@ export default async function ReportsPage() {
   let latestAISummary: string | null = null;
 
   // S18-B — member-aware: snapshots + analyses are read off the OWNER's
-  // record; the archive (investor packs a caller minted) stays per caller.
+  // record. The archive (investor packs, assembled reports) now lives on
+  // /workspace/reports (All reports) via ./load-reports.ts.
   const scope = await getProjectScope("viewer");
   const { projectId, dataEmail } = pageScopeKeys(scope, user);
 
@@ -174,13 +107,11 @@ export default async function ReportsPage() {
     }
   }
 
-  const { investorPacks, assembledReports } = await loadArchive(user.id);
-
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-3xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-xl font-bold text-ink-800">Weekly Reports</h1>
+          <h1 className="text-xl font-bold text-ink-800">Weekly reports</h1>
           <p className="text-sm text-ink-700 mt-1">
             Track your SVI progress week by week.
           </p>
@@ -217,12 +148,6 @@ export default async function ReportsPage() {
             </Link>
           </div>
         )}
-
-        {/* Report archive — investor packs + assembled reports */}
-        <ReportArchive
-          investorPacks={investorPacks}
-          assembledReports={assembledReports}
-        />
       </div>
     </WorkspaceLayout>
   );

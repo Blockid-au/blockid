@@ -33,6 +33,11 @@ export interface HubTab {
   label: HubLabel;
   /** Absolute href override for alias tabs outside the hub prefix. */
   href?: string;
+  /**
+   * Pathname prefix that selects this tab when it differs from `href` — the
+   * Guide tab links to the first chapter but owns every `/guide/<slug>`.
+   */
+  activePrefix?: string;
   /** Required plan tier. Fails ⇒ locked + "<Plan> plan unlocks this". */
   minPlan?: PlanTier;
   /** Entitlement flag; missing ⇒ locked (purchasable capability). */
@@ -87,7 +92,9 @@ export const HUBS: Readonly<Record<HubId, HubDef>> = Object.freeze({
   ]),
   plan: hub("plan", { en: "Action plan", vi: "Kế hoạch hành động" }, [
     { segment: "", label: { en: "Action plan", vi: "Kế hoạch" } },
-    { segment: "guide", label: { en: "Guide", vi: "Hướng dẫn" } },
+    // The guide is 12 chapters under `/guide/[chapter]` with no index page:
+    // the tab lands on chapter 1 and owns the whole `/guide/*` subtree.
+    { segment: "guide", label: { en: "Guide", vi: "Hướng dẫn" }, href: "/workspace/plan/guide/01-vision", activePrefix: "/workspace/plan/guide" },
     { segment: "journal", label: { en: "Journal", vi: "Nhật ký" } },
   ]),
   reports: hub("reports", { en: "Reports", vi: "Báo cáo" }, [
@@ -204,7 +211,7 @@ export function activeHubTab(hubDef: HubDef, pathname: string): HubTab | null {
   let best: HubTab | null = null;
   let bestLen = -1;
   for (const tab of hubDef.tabs) {
-    const href = hubTabHref(hubDef, tab);
+    const href = tab.activePrefix ?? hubTabHref(hubDef, tab);
     const hit = path === href || path.startsWith(`${href}/`);
     if (hit && href.length > bestLen) {
       best = tab;

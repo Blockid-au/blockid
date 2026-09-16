@@ -129,7 +129,7 @@ test.describe("Console + network hygiene per page", () => {
 test.describe("Keyboard reachability", () => {
   const TARGETS: Array<{ path: string; growth: boolean; name: string; find: (page: Page) => Locator }> = [
     { path: "/workspace/raise/round", growth: false, name: "Calculate Share Price", find: (p) => p.getByRole("button", { name: /Calculate Share Price/ }) },
-    { path: "/workspace/investors", growth: false, name: "Add contact", find: (p) => p.getByTestId("crm-add") },
+    { path: "/workspace/investors/pipeline", growth: false, name: "Add contact", find: (p) => p.getByTestId("crm-add") },
     { path: "/workspace/finance/dividends", growth: true, name: "DRIP add election", find: (p) => p.getByTestId("drip-add") },
     { path: "/workspace/exit", growth: true, name: "Calculate Exit", find: (p) => p.getByRole("button", { name: /Calculate Exit/ }) },
     { path: "/workspace/equity/cap-table", growth: true, name: "Add Shareholder", find: (p) => p.getByRole("button", { name: /Add Shareholder/ }).first() },

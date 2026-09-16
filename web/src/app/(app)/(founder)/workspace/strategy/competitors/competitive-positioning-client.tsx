@@ -97,10 +97,13 @@ export function CompetitivePositioningClient() {
       {/* Header */}
       <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-primary font-bold text-xl flex items-center gap-2">
+          <h2
+            id="competitive-positioning-heading"
+            className="text-primary font-bold text-xl flex items-center gap-2"
+          >
             <Target className="h-5 w-5 text-action" />
             Competitive Positioning
-          </h1>
+          </h2>
           <p className="text-sm text-muted mt-1">
             Build your competitive matrix and generate an AI-powered positioning statement.
           </p>

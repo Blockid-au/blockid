@@ -154,7 +154,7 @@ test.describe("Member lane — editor", () => {
     requireMember();
     const { ctx, page } = await memberBrowser(browser);
     try {
-      for (const path of ["/workspace/finance/revenue", "/workspace/investors"]) {
+      for (const path of ["/workspace/finance/revenue", "/workspace/investors/pipeline"]) {
         const res = await page.goto(`${qa.baseURL}${path}`, { waitUntil: "domcontentloaded" });
         expect(res?.status(), `${path} status`).toBeLessThan(400);
         expect(new URL(page.url()).pathname, `${path} stays (no owner-only redirect)`).toBe(path);
@@ -162,7 +162,7 @@ test.describe("Member lane — editor", () => {
         const chip = page.getByTestId("shared-role-chip").first();
         await expect(chip).toBeVisible({ timeout: 30_000 });
         await expect(chip).toContainText(/Shared · Editor/);
-        if (path === "/workspace/investors") await expect(page.getByTestId("investor-crm")).toBeVisible({ timeout: 30_000 });
+        if (path === "/workspace/investors/pipeline") await expect(page.getByTestId("investor-crm")).toBeVisible({ timeout: 30_000 });
       }
       await evidence(testInfo, "editor pages", { chip: await page.getByTestId("shared-role-chip").first().innerText() });
     } finally {

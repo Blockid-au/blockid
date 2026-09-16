@@ -1,5 +1,8 @@
 "use client";
-// /workspace/settings/enterprise — manage SVI institutional API keys (T_SVI_EXC_0014)
+// S-IA2 — ex /workspace/svi-api, now the "SVI API" section of
+// /workspace/settings/enterprise: manage SVI institutional API keys
+// (T_SVI_EXC_0014) — tier cards + Stripe checkout, key create / revoke,
+// quick-start. Client component: fetches /api/svi-api/keys on mount.
 
 import { useEffect, useState } from "react";
 import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
@@ -19,7 +22,7 @@ interface SviKey {
 const TIER_LABELS = { free: "Free", team: "Team", institutional: "Institutional" };
 const DAILY_LIMITS = { free: 10, team: 1000, institutional: "Unlimited" };
 
-export default function SviApiPage() {
+export function SviApiSection() {
   const [keys, setKeys] = useState<SviKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [newKey, setNewKey] = useState<string | null>(null);
@@ -96,9 +99,9 @@ export default function SviApiPage() {
   const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-8">
+    <section aria-labelledby="svi-api" data-testid="svi-api-section" className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">SVI Data API</h1>
+        <h2 id="svi-api" className="scroll-mt-24 text-2xl font-bold text-slate-900">SVI Data API</h2>
         <p className="text-sm text-slate-500 mt-1">
           Programmatic access to Startup Value Index™ data for institutional investors and analysts.
         </p>
@@ -211,6 +214,6 @@ export default function SviApiPage() {
 curl -H "Authorization: Bearer svi_live_..." \\
   "https://blockid.au/api/v1/svi?ticker=ACME-AU"`}</pre>
       </div>
-    </div>
+    </section>
   );
 }
