@@ -71,6 +71,28 @@ const PLANS = [
   // audit below also compares Stripe `type` / `recurring.interval` against
   // `cadence` (see plans.csv founder_package: 14900, once, inclusive).
   { planId: "founder_package", label: "Startup Package (one-off)", configCents: 14900, cadence: "one-off", envVar: "STRIPE_PRICE_STARTUP_PACKAGE", taxBehavior: "inclusive" },
+  // Evaluator + Programs ladders (Pricing v4, 2026-09-16 — plan §3.2). Cents
+  // MUST equal plans.csv `price_aud_cents` / `annual_price_aud_cents`
+  // (annual = 10× monthly); every row is GST-inclusive. The `_ANNUAL` env
+  // var is the convention plans-db.ts reads for `stripe_price_id_annual`.
+  // seed-stripe.mjs mints these from stripe-seed.json; this list lets the
+  // audit catch drift / a missing id afterwards.
+  { planId: "investor_angel",           label: "Scout — monthly",        configCents: 7900,    cadence: "monthly", envVar: "STRIPE_PRICE_INVESTOR_ANGEL",           taxBehavior: "inclusive" },
+  { planId: "investor_angel_annual",    label: "Scout — annual",         configCents: 79000,   cadence: "yearly",  envVar: "STRIPE_PRICE_INVESTOR_ANGEL_ANNUAL",    taxBehavior: "inclusive" },
+  { planId: "investor_advisor",         label: "Firm — monthly",         configCents: 14900,   cadence: "monthly", envVar: "STRIPE_PRICE_INVESTOR_ADVISOR",         taxBehavior: "inclusive" },
+  { planId: "investor_advisor_annual",  label: "Firm — annual",          configCents: 149000,  cadence: "yearly",  envVar: "STRIPE_PRICE_INVESTOR_ADVISOR_ANNUAL",  taxBehavior: "inclusive" },
+  { planId: "investor_vc_small",        label: "Program — monthly",      configCents: 34900,   cadence: "monthly", envVar: "STRIPE_PRICE_INVESTOR_VC_SMALL",        taxBehavior: "inclusive" },
+  { planId: "investor_vc_small_annual", label: "Program — annual",       configCents: 349000,  cadence: "yearly",  envVar: "STRIPE_PRICE_INVESTOR_VC_SMALL_ANNUAL", taxBehavior: "inclusive" },
+  { planId: "investor_fund",            label: "Fund — monthly",         configCents: 99900,   cadence: "monthly", envVar: "STRIPE_PRICE_INVESTOR_FUND",            taxBehavior: "inclusive" },
+  { planId: "investor_fund_annual",     label: "Fund — annual",          configCents: 999000,  cadence: "yearly",  envVar: "STRIPE_PRICE_INVESTOR_FUND_ANNUAL",     taxBehavior: "inclusive" },
+  { planId: "accelerator_intake",       label: "Intake link — monthly",  configCents: 24900,   cadence: "monthly", envVar: "STRIPE_PRICE_ACCEL_INTAKE",             taxBehavior: "inclusive" },
+  { planId: "accelerator_intake_annual", label: "Intake link — annual",  configCents: 249000,  cadence: "yearly",  envVar: "STRIPE_PRICE_ACCEL_INTAKE_ANNUAL",      taxBehavior: "inclusive" },
+  { planId: "accelerator_starter",      label: "Cohort 25 — monthly",    configCents: 50000,   cadence: "monthly", envVar: "STRIPE_PRICE_ACCEL_STARTER",            taxBehavior: "inclusive" },
+  { planId: "accelerator_starter_annual", label: "Cohort 25 — annual",   configCents: 500000,  cadence: "yearly",  envVar: "STRIPE_PRICE_ACCEL_STARTER_ANNUAL",     taxBehavior: "inclusive" },
+  { planId: "accelerator_growth",       label: "Cohort 100 — monthly",   configCents: 150000,  cadence: "monthly", envVar: "STRIPE_PRICE_ACCEL_GROWTH",             taxBehavior: "inclusive" },
+  { planId: "accelerator_growth_annual", label: "Cohort 100 — annual",   configCents: 1500000, cadence: "yearly",  envVar: "STRIPE_PRICE_ACCEL_GROWTH_ANNUAL",      taxBehavior: "inclusive" },
+  { planId: "index_api",                label: "Index API — monthly",    configCents: 29900,   cadence: "monthly", envVar: "STRIPE_PRICE_INDEX_API",                taxBehavior: "inclusive" },
+  { planId: "index_api_annual",         label: "Index API — annual",     configCents: 299000,  cadence: "yearly",  envVar: "STRIPE_PRICE_INDEX_API_ANNUAL",         taxBehavior: "inclusive" },
 ];
 
 // Stripe cadence for a plan row: one-off → "one_time"; monthly / yearly →

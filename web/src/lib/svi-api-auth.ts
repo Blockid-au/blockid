@@ -18,9 +18,12 @@ export function hashSviApiKey(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");
 }
 
+// Pricing v4 (2026-09-16): Team = the `index_api` plans.csv row (A$299/mo,
+// 1,000 calls/day, STRIPE_PRICE_INDEX_API); Institutional = VC Enterprise
+// (custom). Keep `priceAud` in step with plans.csv.
 export const SVI_API_TIERS = {
   free: { dailyLimit: 10, priceAud: 0, label: "Free" },
-  team: { dailyLimit: 1000, priceAud: 199, label: "Team" },
+  team: { dailyLimit: 1000, priceAud: 299, label: "Team" },
   institutional: { dailyLimit: 9_999_999, priceAud: 2000, label: "Institutional" },
 } as const;
 
