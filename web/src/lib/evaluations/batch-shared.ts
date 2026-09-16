@@ -104,6 +104,44 @@ export interface CohortRow {
   pdfUrl: string | null;
   error: string | null;
   scoredAt: string | null;
+  /** G13 S-D3 (P1): the batch owner's latest evaluation_assessments row — decision / conviction / thesis fit / status. */
+  decision: CohortDecision | null;
+  conviction: number | null;
+  thesisFitPct: number | null;
+  assessmentStatus: "draft" | "submitted" | null;
+}
+
+/** pass / track / proceed (evaluation_assessments.decision). */
+export const COHORT_DECISIONS = ["pass", "track", "proceed"] as const;
+export type CohortDecision = (typeof COHORT_DECISIONS)[number];
+
+export const COHORT_DECISION_LABELS: Record<CohortDecision, string> = { pass: "Pass", track: "Track", proceed: "Proceed" };
+
+/** The decision fields of one cohort row (attached by lib/evaluations/cohort-decisions.ts). */
+export interface CohortRowDecision {
+  decision: CohortDecision | null;
+  conviction: number | null;
+  thesisFitPct: number | null;
+  assessmentStatus: "draft" | "submitted" | null;
+}
+
+export const EMPTY_DECISION: CohortRowDecision = Object.freeze({ decision: null, conviction: null, thesisFitPct: null, assessmentStatus: null });
+
+/** P4: pipeline counts for the LP report — SUBMITTED decisions only; drafts and un-assessed rows are "undecided". */
+export interface PipelineCounts {
+  pass: number;
+  track: number;
+  proceed: number;
+  undecided: number;
+}
+
+export function pipelineCounts(rows: ReadonlyArray<Pick<CohortRowDecision, "decision" | "assessmentStatus">>): PipelineCounts {
+  const out: PipelineCounts = { pass: 0, track: 0, proceed: 0, undecided: 0 };
+  for (const r of rows) {
+    if (r.assessmentStatus === "submitted" && r.decision) out[r.decision] += 1;
+    else out.undecided += 1;
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -315,6 +353,11 @@ export const COHORT_CSV_HEADERS = [
   "Delta since last",
   "Top strength",
   "Top gap",
+  // G13 S-D3 (P1): the owner's latest assessment on each evaluation.
+  "Decision",
+  "Conviction",
+  "Thesis fit %",
+  "Assessment status",
   ...DIMENSION_KEYS.map((k) => DIMENSION_LABELS[k]),
   "Report link",
   "Scored at",
@@ -337,6 +380,10 @@ export function cohortCsv(rows: CohortRow[], base = "https://blockid.au"): strin
         r.delta,
         r.topStrength,
         r.topGap,
+        r.decision ?? "",
+        r.conviction,
+        r.thesisFitPct,
+        r.assessmentStatus ?? "",
         ...DIMENSION_KEYS.map((k) => r.dimensionScores?.[k] ?? ""),
         r.reportUrl ? `${base}${r.reportUrl}` : "",
         r.scoredAt,

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { getPreferencesByToken } from "@/lib/email-preferences";
 import { UnsubscribeClient } from "./unsubscribe-client";
 
@@ -35,8 +35,8 @@ export default async function UnsubscribePage({
   if (!token) {
     return (
       <>
-        <Navbar />
-        <main className="min-h-svh bg-surface-100 flex items-center justify-center px-4 pt-28 pb-16">
+        <NavV2 />
+        <main className="min-h-svh bg-surface-100 flex items-center justify-center px-4 pt-8 pb-16">
           <div className="max-w-md w-full bg-white border border-surface-200 rounded-2xl p-8 text-center shadow-sm">
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-ink-900 mb-3">
               Invalid Link
@@ -57,8 +57,8 @@ export default async function UnsubscribePage({
   if (!prefs) {
     return (
       <>
-        <Navbar />
-        <main className="min-h-svh bg-surface-100 flex items-center justify-center px-4 pt-28 pb-16">
+        <NavV2 />
+        <main className="min-h-svh bg-surface-100 flex items-center justify-center px-4 pt-8 pb-16">
           <div className="max-w-md w-full bg-white border border-surface-200 rounded-2xl p-8 text-center shadow-sm">
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-ink-900 mb-3">
               Token Not Found
@@ -76,8 +76,8 @@ export default async function UnsubscribePage({
 
   return (
     <>
-    <Navbar />
-    <main className="min-h-svh bg-surface-100 pt-28 pb-16">
+    <NavV2 />
+    <main className="min-h-svh bg-surface-100 pt-8 pb-16">
     <UnsubscribeClient
       token={token}
       maskedEmail={maskEmail(prefs.email)}

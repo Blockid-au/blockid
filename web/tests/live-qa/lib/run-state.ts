@@ -34,9 +34,12 @@ export interface RunState {
   scratch: Record<string, string | number | boolean | null>;
   /** Second account of the member lane (26) — registered by the spec, erased by the teardown. */
   member?: { email: string; userId: string | null; memberId?: string | null };
+  /** Third account: the evaluator seat of the dossier lane (28, G13 S-D3) — registered by the spec, typed investor_angel by a DB step, erased by the teardown. */
+  evaluator?: { email: string; userId: string | null; evaluationId?: string | null; projectId?: string | null };
   /** Filled in by the teardown. */
   erasure?: { ok: boolean; detail: string };
   memberErasure?: { ok: boolean; detail: string };
+  evaluatorErasure?: { ok: boolean; detail: string };
 }
 
 export function readRunState(): RunState {

@@ -7,8 +7,8 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { signedInSignupRedirect } from "@/lib/plans/signed-in-upgrade";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import {
   OnboardingWizard,
   type OnboardingInitialParams,
@@ -72,7 +72,7 @@ export async function LegacyOnboardingPage({
     <OnboardingWizard
       user={user}
       initialParams={initialParams}
-      nav={<Navbar />}
+      nav={<NavV2 />}
       footer={<Footer />}
     />
   );

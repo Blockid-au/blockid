@@ -1,0 +1,141 @@
+// /api/evaluations/[id]/ic-report — IC memo / one-pager export (G13-W5-D3,
+// S-D3; BA spec Appendix 1, §A.3 block 4 "IC memo export", §A.5 S6 / F3).
+//
+//   POST { kind?: "memo" | "one_page" }
+//        → 201 { ok, ic_report_id, kind, pages, weights_shown, pdf_url }
+//        Builds the decision record from the dossier loader (persisted rows
+//        only), stores it as an `ic_reports` row (sections jsonb), renders
+//        the PDF once to record the page count. Scout is clamped to
+//        one_page; raw weights print only for Program+ (F3).
+//   GET  ?report=<ic_report_id>  → 200 application/pdf (re-rendered from the
+//        persisted sections + the current snapshot visuals; attachment).
+//   GET  (no id)                 → 200 { ok, available, reports:[…] } — the
+//        caller's and same-org seats' exports on this evaluation.
+//
+//   401 auth_required · 404 not_found for an unknown id, a founder caller, a
+//   lapsed seat or an unknown report id (never 403) · 400 invalid body ·
+//   503 while migration 0403 is not applied.
+
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
+import { resolveAssessmentAccess } from "@/lib/evaluations/assessment-access";
+import { loadDossier } from "@/lib/evaluations/dossier";
+import { clampIcKind, createIcReport, getIcReport, icMemoWeightsAllowed, icReportRequestSchema, listIcReports, setIcReportPages } from "@/lib/evaluations/ic-reports";
+import { renderIcMemoPdf } from "@/lib/pdf/ic-memo-pdf";
+import { listSeatUserIds, resolveActingOrg } from "@/lib/investor/organisations";
+import { PRIVATE_JSON_HEADERS, readJsonBody } from "@/lib/security/request-guards";
+import { enforceRateLimit } from "@/lib/rate-limit";
+import { apiRoute } from "@/lib/audit/api-route";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+type Ctx = { params: Promise<{ id: string }> };
+
+const notFound = () => NextResponse.json({ ok: false, error: "not_found" }, { status: 404, headers: PRIVATE_JSON_HEADERS });
+const ID_RE = /^[0-9a-f-]{36}$/i;
+
+export const IC_EXPORTS_PER_MINUTE = 10;
+
+export function icReportPdfUrl(evaluationId: string, reportId: string): string {
+  return `/api/evaluations/${encodeURIComponent(evaluationId)}/ic-report?report=${encodeURIComponent(reportId)}`;
+}
+
+async function visibleUserIds(userId: string): Promise<string[]> {
+  const org = await resolveActingOrg(userId).catch(() => null);
+  const seats = org ? await listSeatUserIds(org.id).catch(() => []) : [];
+  return seats.includes(userId) ? seats : [userId, ...seats];
+}
+
+export async function GET(request: Request, { params }: Ctx) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
+  const { id } = await params;
+  const access = await resolveAssessmentAccess(id, user);
+  if (!access || access.role !== "assessor") return notFound();
+
+  const reportId = new URL(request.url).searchParams.get("report");
+  const userIds = await visibleUserIds(user.id);
+  if (!reportId) {
+    const list = await listIcReports(access.evaluation.id, userIds);
+    return NextResponse.json(
+      { ok: true, available: list.available, reports: list.reports.map((r) => ({ id: r.id, kind: r.kind, pages: r.pages, weights_shown: r.weightsShown, generated_by: r.generatedBy, created_at: r.createdAt, pdf_url: icReportPdfUrl(access.evaluation.id, r.id) })) },
+      { headers: PRIVATE_JSON_HEADERS },
+    );
+  }
+  if (!ID_RE.test(reportId)) return notFound();
+  const report = await getIcReport(reportId, access.evaluation.id, userIds);
+  if (!report) return notFound();
+  const view = await loadDossier(access.evaluation.id, user.id);
+  if (!view) return notFound();
+  const generatedBy = user.displayName?.trim() || user.email;
+  const { buffer } = await renderIcMemoPdf({
+    kind: report.kind,
+    sections: report.sections,
+    radar: view.report.radar,
+    rangeBars: view.valuation.rangeBars,
+    weightsShown: report.weightsShown,
+    generatedAt: report.createdAt,
+    generatedBy,
+  });
+  const slug = view.header.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "startup";
+  return new NextResponse(new Uint8Array(buffer), {
+    status: 200,
+    headers: {
+      "content-type": "application/pdf",
+      "content-disposition": `attachment; filename="${report.kind === "memo" ? "ic-memo" : "one-pager"}-${slug}-${report.createdAt.slice(0, 10)}.pdf"`,
+      "cache-control": "private, no-store",
+      "x-robots-tag": "noindex, nofollow",
+    },
+  });
+}
+
+async function POST_handler(request: Request, { params }: Ctx) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
+  const { id } = await params;
+  const access = await resolveAssessmentAccess(id, user);
+  if (!access || access.role !== "assessor") return notFound();
+
+  const limited = enforceRateLimit("ic-report-export", user.id, request, IC_EXPORTS_PER_MINUTE, 60 * 1000);
+  if (limited) return limited;
+
+  const body = await readJsonBody(request, 4 * 1024);
+  if (!body.ok) return body.response;
+  const parsed = icReportRequestSchema.safeParse(body.body ?? {});
+  if (!parsed.success) {
+    return NextResponse.json({ ok: false, error: "invalid_body", issues: parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })) }, { status: 400, headers: PRIVATE_JSON_HEADERS });
+  }
+  const kind = clampIcKind(user.plan, parsed.data.kind);
+  const weightsShown = icMemoWeightsAllowed(user.plan);
+
+  const view = await loadDossier(access.evaluation.id, user.id);
+  if (!view) return notFound();
+  const created = await createIcReport({ view, userId: user.id, kind, weightsShown });
+  if (!created.ok) {
+    return NextResponse.json({ ok: false, error: created.error, message: created.message }, { status: created.error === "unavailable" ? 503 : 500, headers: PRIVATE_JSON_HEADERS });
+  }
+  // Render once now so the row carries the real page count (S6 / F3 "2–4 pages").
+  let pages: number | null = null;
+  try {
+    const rendered = await renderIcMemoPdf({
+      kind,
+      sections: created.report.sections,
+      radar: view.report.radar,
+      rangeBars: view.valuation.rangeBars,
+      weightsShown,
+      generatedAt: created.report.createdAt,
+      generatedBy: user.displayName?.trim() || user.email,
+    });
+    pages = rendered.pages;
+    void setIcReportPages(created.report.id, pages).catch(() => {});
+  } catch (err) {
+    console.error("[blockid:ic-report] render failed", err);
+  }
+  return NextResponse.json(
+    { ok: true, ic_report_id: created.report.id, kind, pages, weights_shown: weightsShown, pdf_url: icReportPdfUrl(access.evaluation.id, created.report.id) },
+    { status: 201, headers: PRIVATE_JSON_HEADERS },
+  );
+}
+
+export const POST = apiRoute({ route: "api/evaluations/[id]/ic-report/route.ts", method: "POST" }, POST_handler);

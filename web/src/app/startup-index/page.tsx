@@ -9,8 +9,8 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, Clock, Minus, Sparkles, Zap } from "lucide-react";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { SampleSviCard } from "@/components/svi/sample-svi-card";
@@ -94,9 +94,9 @@ export default async function IndexExchangePage() {
   return (
     <div className="min-h-svh bg-surface-50 text-ink-800">
       <PageViewTracker event="index_viewed" params={{}} />
-      <Navbar />
+      <NavV2 />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-20 pb-16">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-16">
         {/* ── HERO — BSI-AU index banner ─────────────────────────────── */}
         <section className="rounded-2xl border border-brand-200 bg-gradient-to-br from-white via-brand-50/40 to-amber-50/40 p-6 sm:p-8 mb-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-6">

@@ -7,6 +7,8 @@
 //               gathered here (one mandate_fit_scores + one snapshot read,
 //               only on the empty state so the loader's round stays flat).
 //   0392 missing → the honest "not available yet" line.
+//   S-D3: the seats & consensus table (../seats-consensus.tsx) renders under
+//   the form for the assessor — every same-org seat's current view.
 //
 // Supersedes the S-D1 placeholder `AssessmentBlock` in placeholder-blocks.tsx.
 
@@ -14,6 +16,7 @@ import type { DossierView } from "@/lib/evaluations/dossier";
 import { prefillFromFit } from "@/lib/evaluations/assessment-prefill";
 import { AssessmentForm } from "./assessment-form";
 import { FounderPreview } from "./founder-preview";
+import { SeatsConsensus } from "../seats-consensus";
 
 export async function AssessmentBlock({ view }: { view: DossierView }) {
   const a = view.assessment;
@@ -44,6 +47,7 @@ export async function AssessmentBlock({ view }: { view: DossierView }) {
         4 · Evaluator assessment
       </h2>
       <div className="mt-3 text-sm text-ink-600">{body}</div>
+      {!founder && a.available && view.consensus ? <SeatsConsensus consensus={view.consensus} evaluationId={view.header.evaluationId} /> : null}
     </section>
   );
 }

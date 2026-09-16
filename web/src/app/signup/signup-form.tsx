@@ -486,7 +486,7 @@ function InnerForm(props: SignupFormProps) {
         {submitting
           ? "Starting trial…"
           : isEvaluator
-            ? EVALUATOR_TRIAL_COPY.cta
+            ? EVALUATOR_TRIAL_COPY.cta(selectedPlan?.trialDays)
             : TRIAL_COPY.cta}
       </button>
 

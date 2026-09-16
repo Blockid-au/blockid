@@ -91,6 +91,12 @@ export interface AnalyticsEventMap {
   assessment_shared: { evaluation_id: string; fields_count: number };
   /** G13 (S-D2, §C.5): the assessment history timeline was expanded; `versions` = rows shown. */
   assessment_history_viewed: { evaluation_id: string; versions: number };
+  /** G13 (S-D3, §C.5): an IC memo / one-pager was exported from the dossier header. */
+  ic_memo_exported: { evaluation_id: string; kind: "memo" | "one_page" };
+  /** G13 (S-D3, §C.5): the seats consensus table rendered with ≥ 2 seats. */
+  consensus_viewed: { evaluation_id: string; seats: number };
+  /** G13 (S-D3, §C.5): an intro was requested — `channel` mailto (Scout) or crm (Firm/Program → investor_contacts; founder side → investor notified). */
+  intro_requested: { channel: "mailto" | "crm"; side: "evaluator" | "founder" };
   /** G13 (S-D2 E1.4, §C.5): the founder taxonomy confirmation card rendered (unconfirmed row). */
   taxonomy_card_viewed: { project_id: string; unclassified_count: number };
   /** G13 (S-D2 E1.4, §C.5): the founder confirmed the classification; `changed_fields` = axes edited before confirming. */
@@ -322,7 +328,7 @@ export interface AnalyticsEventMap {
   //   tbr_share_created       — POST /api/svi/report/share minted a /tbr/<token> link
   trust_report_purchased: { sku: string; gross_aud_cents: number; reconciled: boolean };
   evaluator_trial_started: { plan: string; trial_days: number; account_type: string };
-  subscription_created: { plan: string; status: string; trialing: boolean; interval: string };
+  subscription_created: { plan: string; plan_label?: string; status: string; trialing: boolean; interval: string };
   tbr_share_created: { project_scope: "default" | "project" };
 
   // ── Global error boundary + 404 ──────────────────────────────────────────

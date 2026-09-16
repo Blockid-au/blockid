@@ -15,6 +15,11 @@ import {
   isExpiringSoon,
   isExpired,
   isEffective,
+  DOSSIER_FIELDS,
+  DOSSIER_FIELD_ALLOW_LIST,
+  DOSSIER_FIELD_LABELS,
+  canShowDossierField,
+  dossierFieldsUnlockedBy,
   type MentorAccessGrant,
   type MentorAccessTier,
 } from "./access-tiers";
@@ -334,5 +339,35 @@ describe("tier ladder invariants across helpers", () => {
         expect(grant.tier).toBe<MentorAccessTier>("full_mentor");
       }
     }
+  });
+});
+
+// ─── G13 S-D3 — Investor Dossier field allow-lists (BA spec §A.3 block 3) ──
+
+describe("DOSSIER_FIELD_ALLOW_LIST", () => {
+  it("is the §A.3 block-3 table: counts only at attributed_only, items + source + freshness + connectors + public URLs at reports_shared, everything at full_mentor", () => {
+    expect(DOSSIER_FIELD_ALLOW_LIST.attributed_only).toEqual(["phase", "kpi_bands", "evidence_counts"]);
+    expect(DOSSIER_FIELD_ALLOW_LIST.reports_shared).toContain("evidence_items");
+    expect(DOSSIER_FIELD_ALLOW_LIST.reports_shared).toContain("evidence_source_kind");
+    expect(DOSSIER_FIELD_ALLOW_LIST.reports_shared).toContain("connector_freshness");
+    expect(DOSSIER_FIELD_ALLOW_LIST.reports_shared).not.toContain("document_links");
+    expect(DOSSIER_FIELD_ALLOW_LIST.reports_shared).not.toContain("dataroom_index");
+    expect(DOSSIER_FIELD_ALLOW_LIST.full_mentor).toEqual([...DOSSIER_FIELDS]);
+    // Monotonic: each tier is a superset of the one below.
+    for (let i = 1; i < MENTOR_ACCESS_TIERS.length; i++) {
+      const lower = new Set(DOSSIER_FIELD_ALLOW_LIST[MENTOR_ACCESS_TIERS[i - 1]]);
+      for (const f of lower) expect(DOSSIER_FIELD_ALLOW_LIST[MENTOR_ACCESS_TIERS[i]]).toContain(f);
+    }
+    for (const f of DOSSIER_FIELDS) expect(DOSSIER_FIELD_LABELS[f]).toBeTruthy();
+  });
+
+  it("canShowDossierField + dossierFieldsUnlockedBy (the request-upgrade CTA copy)", () => {
+    expect(canShowDossierField("attributed_only", "evidence_items")).toBe(false);
+    expect(canShowDossierField("reports_shared", "evidence_items")).toBe(true);
+    expect(canShowDossierField("reports_shared", "cap_table_summary")).toBe(false);
+    expect(canShowDossierField(null, "phase")).toBe(false);
+    expect(dossierFieldsUnlockedBy("attributed_only")).toEqual({ next: "reports_shared", fields: ["full_report", "evidence_items", "evidence_source_kind", "evidence_freshness", "connector_freshness", "public_urls"] });
+    expect(dossierFieldsUnlockedBy("reports_shared")).toEqual({ next: "full_mentor", fields: ["document_links", "dataroom_index", "cap_table_summary", "exit_readiness", "founder_notes"] });
+    expect(dossierFieldsUnlockedBy("full_mentor")).toEqual({ next: null, fields: [] });
   });
 });

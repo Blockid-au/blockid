@@ -48,7 +48,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ claim?: string | string[]; from?: string | string[]; add?: string | string[] }>;
+  searchParams: Promise<{ claim?: string | string[]; from?: string | string[]; add?: string | string[]; batch?: string | string[] }>;
 }
 
 const first = (v: string | string[] | undefined): string | null => (Array.isArray(v) ? v[0] : v) ?? null;
@@ -61,6 +61,8 @@ export default async function EvaluationsPage({ searchParams }: PageProps) {
   const claimToken = first(params?.claim);
   const fromTrialReminder = first(params?.from) === TRIAL_REMINDER_FROM;
   const autoOpenAdd = first(params?.add) === "1";
+  const batchParam = first(params?.batch);
+  const preselectBatchId = batchParam && /^[A-Za-z0-9_-]{1,64}$/.test(batchParam) ? batchParam : null;
 
   const [isSandbox, isEvaluator] = await Promise.all([
     getCurrentProjectIsSandbox(),
@@ -110,6 +112,7 @@ export default async function EvaluationsPage({ searchParams }: PageProps) {
         activation={activation}
         autoOpenReport={fromTrialReminder}
         autoOpenAdd={autoOpenAdd}
+        preselectBatchId={preselectBatchId}
       />
     </WorkspaceLayout>
   );

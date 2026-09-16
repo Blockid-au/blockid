@@ -73,3 +73,19 @@ describe("FOOTER_COLUMNS — Legal column (QA-3, 2026-09-12)", () => {
     expect(column("Legal").items.find((i) => i.href === "/legal/terms#refunds")?.label).toBe("Refunds");
   });
 });
+
+// G13-W5-IA5 — the Company column the legacy site/footer.tsx carried is now
+// in the shared list (one footer), and it links the renamed invest pitch.
+describe("FOOTER_COLUMNS — Company column (S-IA5)", () => {
+  it("carries About · Invest in BlockID (/about/invest, never /investors) · AU Benchmarks · Insights · Contact", () => {
+    expect(column("Company").items.map((i) => [i.label, i.href])).toEqual([
+      ["About", "/about"],
+      ["Invest in BlockID", "/about/invest"],
+      ["AU Benchmarks", "/benchmarks"],
+      ["Insights", "/insights"],
+      ["Contact", "/contact"],
+    ]);
+    const all = FOOTER_COLUMNS.flatMap((c) => c.items.map((i) => i.href));
+    expect(all).not.toContain("/investors");
+  });
+});

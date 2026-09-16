@@ -31,8 +31,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { SVIResultsPanel } from "@/components/svi/svi-results-panel";
 import { RndResultsPanel } from "@/components/svi/rnd-results-panel";
 import { RndStatusBar, type StatusEntry } from "@/components/svi/rnd-status-bar";
@@ -107,7 +107,7 @@ const ROADMAP_STEPS = [
   { num: 7, icon: FolderOpen, title: "Build Data Room", desc: "Organize documents, financials, legal & investor materials.", href: "/tools/data-room" },
   { num: 8, icon: FileText, title: "Prepare for Pre-Seed", desc: "Investor deck, metrics, traction, valuation & fundraising strategy.", href: "/" },
   { num: 9, icon: Rocket, title: "Go-to-Market", desc: "Define ICP, channels, messaging and growth strategy.", href: "/" },
-  { num: 10, icon: Target, title: "Attract Investors", desc: "Pitch, negotiate, close and grow together.", href: "/investors" },
+  { num: 10, icon: Target, title: "Attract Investors", desc: "Pitch, negotiate, close and grow together.", href: "/about/invest" },
 ];
 
 // Catalogue reads for the pricing section and paywall — one lookup at module load, no literals.
@@ -920,8 +920,8 @@ export function SVIEntrance() {
     };
     return (
       <div id="svi-results" className="min-h-svh bg-surface-100 flex flex-col">
-        <Navbar />
-        <div className="px-6 pt-20 pb-2 flex items-center justify-end max-w-2xl mx-auto w-full">
+        <NavV2 />
+        <div className="px-6 pt-6 pb-2 flex items-center justify-end max-w-2xl mx-auto w-full">
           <button type="button" onClick={() => { handleReset(); setModularReport(null); }} className="text-xs text-ink-600 hover:text-ink-800 cursor-pointer transition-colors flex items-center gap-1.5">
             <X strokeWidth={1.75} className="h-3.5 w-3.5" /> New analysis
           </button>
@@ -955,8 +955,8 @@ export function SVIEntrance() {
   if (state === "done" && result) {
     return (
       <div id="svi-results" className="min-h-svh bg-surface-100 flex flex-col">
-        <Navbar />
-        <main className="flex-1 px-4 pt-24 pb-12">
+        <NavV2 />
+        <main className="flex-1 px-4 pt-8 pb-12">
           {rndReport ? (
             <>
               {/* First-time report congratulations banner */}
@@ -2192,7 +2192,7 @@ function BottomFooter() {
             <Link href="/legal/terms" className="hover:text-primary transition-colors">Terms</Link>
             <Link href="/contact" className="hover:text-primary transition-colors">Contact</Link>
             <Link href="/insights" className="hover:text-primary transition-colors">Insights</Link>
-            <Link href="/investors" className="hover:text-primary transition-colors">Investors</Link>
+            <Link href="/about/invest" className="hover:text-primary transition-colors">Investors</Link>
           </div>
           <p className="text-xs text-muted">&copy; {new Date().getFullYear()} Auschain Pty Ltd. Not financial advice.</p>
         </div>

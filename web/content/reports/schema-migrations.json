@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-16T15:39:30.853Z",
+  "generated_at": "2026-09-16T19:18:53.411Z",
   "ledger_present": true,
-  "total_files": 281,
+  "total_files": 282,
   "files": [
     "0001_init.sql",
     "0002_score_v2.sql",
@@ -255,6 +255,7 @@
     "0399_mandates_v2_hardening.sql",
     "0400_sync_plan_rows_v4.sql",
     "0401_evaluation_reports_report_v2.sql",
+    "0403_ic_reports.sql",
     "20260814_tech_analyses.sql",
     "20260815120000_analyzer_runs.sql",
     "20260816_clevel_reports_v2.sql",

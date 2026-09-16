@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { NpsClient } from "./nps-client";
 
@@ -32,8 +32,8 @@ async function lookupToken(token: string): Promise<NpsRow | null> {
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <Navbar />
-      <main className="min-h-svh bg-surface-100 flex items-center justify-center px-4 pt-28 pb-16">
+      <NavV2 />
+      <main className="min-h-svh bg-surface-100 flex items-center justify-center px-4 pt-8 pb-16">
         <div className="max-w-md w-full bg-white border border-surface-200 rounded-2xl p-8 shadow-sm">
           {children}
         </div>

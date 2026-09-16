@@ -11,20 +11,28 @@
 // `sm` up those three render inline in the header and are hidden here.
 //
 // G13-W1-IA1 (D5): Account left the sidebar. This menu now renders at EVERY
-// width and is the single home for Profile · Billing · Settings · Guides ·
-// Sign out (spec §A.1 footer row + §E S-IA1). Sidebar footer keeps one
+// width (spec §A.1 footer row + §E S-IA1). Sidebar footer keeps one
 // "Settings" link.
+//
+// G13-W5-IA5: the rows come from `lib/nav/user-menu.ts` — the SAME list the
+// marketing header's avatar menu renders (New analysis · My score · My
+// reports · Dashboard · Settings · Sign out), so a founder meets one account
+// menu everywhere. Billing stays one click away through the "View billing"
+// row under the credit balance; Profile / Guides live under Settings and
+// the sidebar Help leaf.
 //
 // The menu's children mount only while it is open, so at rest every topbar
 // widget (each of which fetches or listens) exists exactly once.
 
 import * as React from "react";
 import Link from "next/link";
-import { BookOpen, ChevronDown, CreditCard, LogOut, Moon, Settings2, User } from "lucide-react";
+import { BarChart3, ChevronDown, FileText, LayoutDashboard, LogOut, Moon, Settings2, TrendingUp } from "lucide-react";
 import { CreditBalance } from "@/components/ui/credit-balance";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { LogoutButton } from "@/components/auth/LogoutButton";
+import type { PersonaKey } from "@/lib/nav/persona";
+import { USER_MENU_SIGN_OUT_LABEL, userMenuItems, type UserMenuIcon, type UserMenuItem } from "@/lib/nav/user-menu";
 
 export interface HeaderUser {
   email: string;
@@ -32,13 +40,21 @@ export interface HeaderUser {
   avatarUrl?: string | null;
 }
 
-/** Avatar-menu rows (spec §A.1: Profile, Billing, Settings, Help › Guides, Sign out). */
-export const USER_MENU_ITEMS: ReadonlyArray<{ href: string; label: string; icon: typeof User }> = Object.freeze([
-  { href: "/workspace/settings/profile", label: "Profile", icon: User },
-  { href: "/workspace/billing", label: "Billing", icon: CreditCard },
-  { href: "/workspace/settings", label: "Settings", icon: Settings2 },
-  { href: "/workspace/knowledge-base", label: "Guides", icon: BookOpen },
-]);
+const USER_MENU_ICONS: Readonly<Record<UserMenuIcon, typeof BarChart3>> = {
+  "new-analysis": BarChart3,
+  score: TrendingUp,
+  reports: FileText,
+  dashboard: LayoutDashboard,
+  settings: Settings2,
+};
+
+/** Avatar-menu rows for a persona — the shared list (S-IA5). Founder default. */
+export function headerMenuItems(persona?: PersonaKey | null): UserMenuItem[] {
+  return userMenuItems(persona);
+}
+
+/** Founder rows — kept as a frozen constant for the tests that pin the list. */
+export const USER_MENU_ITEMS: readonly UserMenuItem[] = Object.freeze(userMenuItems("founder"));
 
 /** The 28 px avatar used as the menu trigger. */
 export function HeaderAvatar({ user }: { user: HeaderUser }) {
@@ -54,15 +70,18 @@ export function HeaderAvatar({ user }: { user: HeaderUser }) {
 
 export interface HeaderAccountMenuProps {
   user: HeaderUser;
+  /** Resolved persona — the Dashboard row is its landing (founder when absent). */
+  persona?: PersonaKey | null;
   /** Test seam — renderToStaticMarkup cannot click; the layout never passes this. */
   initialOpen?: boolean;
   /** Fired with the row's href when a menu link is clicked (GA4 `nav_click`). */
   onNavigate?: (item: { href: string; label: string }) => void;
 }
 
-export function HeaderAccountMenu({ user, initialOpen = false, onNavigate }: HeaderAccountMenuProps) {
+export function HeaderAccountMenu({ user, persona, initialOpen = false, onNavigate }: HeaderAccountMenuProps) {
   const [open, setOpen] = React.useState(initialOpen);
   const ref = React.useRef<HTMLDivElement>(null);
+  const items = headerMenuItems(persona);
 
   React.useEffect(() => {
     if (!open) return;
@@ -131,27 +150,49 @@ export function HeaderAccountMenu({ user, initialOpen = false, onNavigate }: Hea
             <div className="my-1 border-t border-line-subtle" role="none" />
           </div>
 
-          {/* Account rows — every width */}
-          {USER_MENU_ITEMS.map(({ href, label, icon: Icon }) => (
+          {/* Billing — one click from the balance, every width (D5 kept Billing here). */}
+          <div className="flex items-center justify-between px-2 py-1.5 text-xs text-muted" role="none">
+            <span>Credits</span>
             <Link
-              key={href}
-              href={href}
+              href="/workspace/billing"
               role="menuitem"
+              data-user-menu-item="billing"
               onClick={() => {
-                onNavigate?.({ href, label });
+                onNavigate?.({ href: "/workspace/billing", label: "Billing" });
                 setOpen(false);
               }}
-              className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-muted hover:text-primary hover:bg-surface-hover transition-colors"
+              className="font-semibold text-action hover:underline"
             >
-              <Icon strokeWidth={1.75} className="h-4 w-4" />
-              {label}
+              View billing →
             </Link>
-          ))}
+          </div>
+          <div className="my-1 border-t border-line-subtle" role="none" />
+
+          {/* Account rows — the shared list (lib/nav/user-menu.ts), every width */}
+          {items.map(({ key, href, label, icon }) => {
+            const Icon = USER_MENU_ICONS[icon];
+            return (
+              <Link
+                key={key}
+                href={href}
+                role="menuitem"
+                data-user-menu-item={key}
+                onClick={() => {
+                  onNavigate?.({ href, label });
+                  setOpen(false);
+                }}
+                className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-muted hover:text-primary hover:bg-surface-hover transition-colors"
+              >
+                <Icon strokeWidth={1.75} className="h-4 w-4" />
+                {label}
+              </Link>
+            );
+          })}
 
           {/* Sign out */}
           <LogoutButton className="mt-1 w-full flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-muted hover:text-primary hover:bg-surface-hover transition-colors cursor-pointer">
             <LogOut strokeWidth={1.75} className="h-4 w-4" />
-            Sign out
+            {USER_MENU_SIGN_OUT_LABEL}
           </LogoutButton>
         </div>
       )}

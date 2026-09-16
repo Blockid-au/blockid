@@ -95,6 +95,18 @@ regexes = [
 ]
 
 # ---------------------------------------------------------------------------
+# Module-output ids of the shape "<path>.ts:<export>" — the LinkedIn upload
+# parser's id `connectors/linkedin-upload.ts:founderSignals` matched the
+# linkedin-client-id rule (G13-W5-R5). Literal, not the file.
+# ---------------------------------------------------------------------------
+[[allowlists]]
+description = "report-pipeline module ids (path:export)"
+regexTarget = "line"
+regexes = [
+  '''connectors/linkedin-upload\.ts:[A-Za-z]+''',
+]
+
+# ---------------------------------------------------------------------------
 # Telegram bot token by SHAPE, no keyword gate.
 #
 # The default telegram-bot-api-token rule only runs on files containing the

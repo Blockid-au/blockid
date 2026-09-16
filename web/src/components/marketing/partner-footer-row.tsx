@@ -1,8 +1,8 @@
-// PartnerFooterRow — small monochrome logo strip for both footers.
+// PartnerFooterRow — small monochrome logo strip for the footer.
 //
 // Renders NOTHING when the curator config is missing or the resolved group is
-// empty. Uses currentColor SVGs so it inherits ink from whichever surface it
-// lands on (site/footer.tsx dark ink, marketing-footer.tsx lux ink).
+// empty. Uses currentColor SVGs so it inherits ink from the surface it lands
+// on (marketing/footer.tsx dark ink).
 
 import {
   loadPartnersConfig,

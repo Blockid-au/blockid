@@ -28,6 +28,9 @@ const prefillMock = vi.fn(async () => ({ seeded: true, thesisFitPct: 70 }));
 vi.mock("@/lib/evaluations/assessment-prefill", () => ({ prefillFromFit: (...a: unknown[]) => prefillMock(...(a as [])) }));
 vi.mock("@/lib/rate-limit", () => ({ enforceRateLimit: () => null }));
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => null }));
+// S-D3: the write stamps the seat's acting org (null here — no org tables in the test).
+const actingOrgMock = vi.fn(async (): Promise<{ id: string } | null> => null);
+vi.mock("@/lib/investor/organisations", () => ({ resolveActingOrg: () => actingOrgMock() }));
 
 import { isAuditedHandler } from "@/lib/audit/api-route";
 import { GET, PUT } from "./route";
@@ -118,7 +121,7 @@ describe("PUT", () => {
     const res = await PUT(put({ status: "draft", conviction: 3, dimension_ratings: { TRE: { rating: 4, stance: "agree" } } }), ctx());
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true, assessment: ROW, created: true, version: 1, history: [ROW] });
-    expect(upsertMock).toHaveBeenCalledWith({ evaluationId: "e-1", projectId: "p-1", assessorUserId: "u-eval" }, { status: "draft", conviction: 3, dimension_ratings: { TRE: { rating: 4, stance: "agree" } } });
+    expect(upsertMock).toHaveBeenCalledWith({ evaluationId: "e-1", projectId: "p-1", assessorUserId: "u-eval", orgId: null }, { status: "draft", conviction: 3, dimension_ratings: { TRE: { rating: 4, stance: "agree" } } });
   });
 
   it("422 missing_decision / missing_conviction on submit; 503 while 0392 is missing; 500 db_error", async () => {

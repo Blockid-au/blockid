@@ -61,7 +61,7 @@ Spec: [`docs/plans/investor-clarity-2026-09-15.md`](plans/investor-clarity-2026-
 - [ ] W4 S-D2 — Evaluator assessment form + share-with-founder allow-list + history; founder taxonomy confirmation
 - [ ] W5 S-IA5 — One header, one footer, shared user menu; `/investors` → `/about/invest` (F2)
 - [ ] W5 S-R5 — AU comparables table + ingest (live count in copy), LinkedIn / GA4 / cap-table connectors, KPI tile, nightly eval
-- [ ] W5 S-D3 — Seats & consensus, IC memo PDF, cohort decisions + LP counts, portfolio write, intro → CRM, `qa:live` dossier lane, docs close-out
+- [x] W5 S-D3 — Seats & consensus (org invite within plan seats Scout 1 / Firm 3 / Program 5, same-org dossier access, Appendix-2 consensus), IC memo / one-pager PDF via `ic_reports` (0403; weights only Program — F3), cohort decision columns + bulk draft set + CSV + LP pipeline counts, block 3 evidence & consent allow-lists, block 6 actions (watchlist `project_id`, portfolio write, intro → founder `investor_contacts`, batch) + audit trail, founder "Investors who match" → intro → CRM, `qa:live` lane 28 (evaluator seat seeded + erased), close-out [`docs/plans/investor-dossier-taxonomy-2026-09-15.md`](plans/investor-dossier-taxonomy-2026-09-15.md) — built 2026-09-16, apply 0403 before deploy
 
 ---
 

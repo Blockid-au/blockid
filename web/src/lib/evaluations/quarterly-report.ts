@@ -20,10 +20,14 @@ import { DISCLAIMER_SURFACES } from "@/lib/legal/surfaces";
 import {
   DIMENSION_KEYS,
   DIMENSION_LABELS,
+  COHORT_DECISION_LABELS,
   isEqualWeights,
   median,
+  pipelineCounts,
   stageName,
+  type CohortDecision,
   type CohortRow,
+  type PipelineCounts,
   type RubricWeights,
 } from "./batch-shared";
 
@@ -46,6 +50,10 @@ export interface QuarterlyReportStartup {
   topGap: string | null;
   reportUrl: string | null;
   status: "done" | "failed" | "queued" | "running";
+  /** G13 S-D3 (P4): the program owner's decision on the startup — SUBMITTED assessments count in the pipeline; drafts show as "(draft)". */
+  decision?: CohortDecision | null;
+  conviction?: number | null;
+  assessmentStatus?: "draft" | "submitted" | null;
 }
 
 export interface QuarterlyReportData {
@@ -69,6 +77,8 @@ export interface QuarterlySummary {
   moversUp: QuarterlyReportStartup[];
   moversDown: QuarterlyReportStartup[];
   stageMix: Array<{ stage: string; count: number }>;
+  /** P4: pass / track / proceed counts from submitted assessments (+ undecided). */
+  pipeline: PipelineCounts;
 }
 
 export function quarterLabelFor(d: Date): string {
@@ -91,6 +101,7 @@ export function summariseQuarterly(startups: QuarterlyReportStartup[]): Quarterl
     moversUp,
     moversDown,
     stageMix: Array.from(mix.entries()).map(([stage, count]) => ({ stage, count })).sort((a, b) => b.count - a.count),
+    pipeline: pipelineCounts(startups.map((s) => ({ decision: s.decision ?? null, assessmentStatus: s.assessmentStatus ?? null }))),
   };
 }
 
@@ -105,6 +116,9 @@ export function cohortRowsToReportStartups(rows: CohortRow[]): QuarterlyReportSt
     topGap: r.topGap,
     reportUrl: r.reportUrl,
     status: r.status,
+    decision: r.decision,
+    conviction: r.conviction,
+    assessmentStatus: r.assessmentStatus,
   }));
 }
 
@@ -131,6 +145,7 @@ function oneLiner(s: QuarterlyReportStartup): string {
   if (s.weighted != null && s.weighted !== s.svi) parts.push(`weighted ${s.weighted}`);
   parts.push(stageName(s.stage));
   parts.push(fmtDelta(s.delta));
+  if (s.decision) parts.push(`${COHORT_DECISION_LABELS[s.decision]}${s.assessmentStatus === "submitted" ? "" : " (draft)"}${s.conviction != null ? ` ${s.conviction}/5` : ""}`);
   const tail: string[] = [];
   if (s.topStrength) tail.push(`strongest on ${s.topStrength}`);
   if (s.topGap) tail.push(`biggest gap ${s.topGap}`);
@@ -218,6 +233,17 @@ ${nonce ? `<script nonce="${esc(nonce)}">document.getElementById("print-btn").ad
     <div><h3>Moved down</h3>${movers(sum.moversDown, "No startup lost SVI since its previous score.")}</div>
   </div>
   ${sum.stageMix.length ? `<p class="muted">Stage mix: ${sum.stageMix.map((m) => `${esc(m.stage)} ${m.count}`).join(" · ")}</p>` : ""}
+</section>
+
+<section aria-label="Pipeline" data-pipeline>
+  <h2>Pipeline</h2>
+  <div class="tiles">
+    <div class="tile"><div class="v" data-pipeline-proceed>${sum.pipeline.proceed}</div><div class="l">Proceed</div></div>
+    <div class="tile"><div class="v" data-pipeline-track>${sum.pipeline.track}</div><div class="l">Track</div></div>
+    <div class="tile"><div class="v" data-pipeline-pass>${sum.pipeline.pass}</div><div class="l">Pass</div></div>
+    <div class="tile"><div class="v" data-pipeline-undecided>${sum.pipeline.undecided}</div><div class="l">No submitted decision</div></div>
+  </div>
+  <p class="muted">Decisions are the program's submitted evaluator assessments on each startup (draft verdicts are not counted); the SVI is scored independently of them.</p>
 </section>
 
 <section aria-label="Startups">

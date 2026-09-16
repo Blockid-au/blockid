@@ -13,7 +13,6 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { Footer } from "@/components/site/footer";
 import { Button } from "@/components/ui/button";
 import { ShareButtons } from "@/components/share/share-buttons";
 import { ViewTracker } from "@/components/tracking/view-tracker";

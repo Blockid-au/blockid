@@ -12,8 +12,8 @@ import {
   Sparkles,
   TrendingUp,
 } from "lucide-react";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { Button } from "@/components/ui/button";
 import {
   hydrateFounderPackBySlug,
@@ -84,8 +84,8 @@ export default async function FounderPackSharePage({
 
   return (
     <>
-      <Navbar />
-      <main className="min-h-screen bg-white pt-28 pb-24 text-ink-700">
+      <NavV2 />
+      <main className="min-h-screen bg-white pt-8 pb-24 text-ink-700">
         <div className="mx-auto max-w-5xl px-6">
           {isWelcome && <WelcomeBanner />}
 

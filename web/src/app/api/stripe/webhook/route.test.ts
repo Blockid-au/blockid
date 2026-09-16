@@ -140,6 +140,14 @@ vi.mock("@/lib/credits", () => ({
 vi.mock("@/lib/plans", () => ({
   getPlan: (id: string) => ({ id, name: id }),
 }));
+// DB-backed catalogue — the subscription_created label lookup (W4 P3-c).
+vi.mock("@/lib/plans-db", () => ({
+  getPlansCached: async () => [
+    { id: "founding50", name: "Founding 50" },
+    { id: "investor_angel", name: "Scout" },
+    { id: "accelerator_starter", name: "Cohort 25" },
+  ],
+}));
 
 // Email side-effects — no-op in tests, but track that they were fired for the
 // right SKUs. Errors are swallowed by the webhook anyway.
@@ -618,7 +626,7 @@ describe("POST /api/stripe/webhook — customer.subscription.created (G14-S33)",
 
     const ev = emitCalls.find((c) => c.name === "subscription_created");
     expect(ev).toBeTruthy();
-    expect(ev!.params).toMatchObject({ plan: "founding50", status: "trialing", trialing: true, interval: "month", user_id: "user-new-1" });
+    expect(ev!.params).toMatchObject({ plan: "founding50", plan_label: "Founding 50", status: "trialing", trialing: true, interval: "month", user_id: "user-new-1" });
     expect(ev!.userId).toBe("user-new-1");
     expect(ev!.source).toBe("webhook:stripe");
     expect(insertCalls).toHaveLength(0);
@@ -634,8 +642,35 @@ describe("POST /api/stripe/webhook — customer.subscription.created (G14-S33)",
     const res = await invoke();
     expect(res.status).toBe(200);
     const ev = emitCalls.find((c) => c.name === "subscription_created");
-    expect(ev!.params).toMatchObject({ plan: "investor_angel", status: "active", trialing: false, interval: "year", user_id: "user-meta" });
+    expect(ev!.params).toMatchObject({ plan: "investor_angel", plan_label: "Scout", status: "active", trialing: false, interval: "year", user_id: "user-meta" });
     expect(fromCalls).not.toContain("app_users");
+  });
+
+  // W4 review P3-c (S-IA5): checkout stamps `plan_id` + `user_id` on
+  // subscription_data.metadata — the handler read only `blockid_plan`, so
+  // every Checkout-minted subscription fell through to the price map.
+  it("reads checkout's `plan_id` (over blockid_plan) + `user_id`, and resolves the label via getPlansCached", async () => {
+    verifyWebhookSignature.mockReturnValue(
+      buildCreatedEvent({
+        status: "trialing",
+        metadata: { plan_id: "accelerator_starter", blockid_plan: "investor_angel", user_id: "user-checkout" },
+        items: { data: [{ price: { id: "price_unmapped", recurring: { interval: "month" } } }] },
+      }),
+    );
+    const res = await invoke();
+    expect(res.status).toBe(200);
+    const ev = emitCalls.find((c) => c.name === "subscription_created");
+    expect(ev!.params).toMatchObject({ plan: "accelerator_starter", plan_label: "Cohort 25", user_id: "user-checkout" });
+    expect(fromCalls).not.toContain("app_users");
+  });
+
+  it("an unknown plan id keeps the id as its label (no throw)", async () => {
+    verifyWebhookSignature.mockReturnValue(
+      buildCreatedEvent({ metadata: { plan_id: "mystery_plan" }, items: { data: [{ price: { id: "price_unmapped", recurring: { interval: "month" } } }] } }),
+    );
+    await invoke();
+    const ev = emitCalls.find((c) => c.name === "subscription_created");
+    expect(ev!.params).toMatchObject({ plan: "mystery_plan", plan_label: "mystery_plan" });
   });
 });
 

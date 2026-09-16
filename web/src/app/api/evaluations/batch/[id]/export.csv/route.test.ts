@@ -21,8 +21,8 @@ import { GET, dynamic } from "./route";
 const USER = { id: "u-1", email: "prog@accel.au", plan: "investor_vc_small" };
 const BATCH = { id: "b-1", userId: "u-1", name: "Cohort 4", rubricWeights: {}, status: "done", total: 2, doneCount: 2, failedCount: 0, createdAt: "2026-09-10T00:00:00Z", startedAt: null, finishedAt: null };
 const ROWS = [
-  { itemId: 1, evaluationId: "e-1", projectId: "p-1", projectSlug: "acme", startup: "Acme, Inc", label: "=cmd", industry: "DeepTech", state: "NSW", status: "done", svi: 71, weighted: 64.5, stage: 3, delta: 4, topStrength: "Founder & Team", topGap: "Traction & Revenue", dimensionScores: { ftv: 80, tre: 40 }, reportUrl: "/tbr/tok", pdfUrl: "/api/svi/report/pdf?token=tok", error: null, scoredAt: "2026-09-11T00:00:00Z" },
-  { itemId: 2, evaluationId: "e-2", projectId: "p-2", projectSlug: "beta", startup: "Beta", label: null, industry: null, state: null, status: "failed", svi: null, weighted: null, stage: 1, delta: null, topStrength: null, topGap: null, dimensionScores: null, reportUrl: null, pdfUrl: null, error: "owner_not_found", scoredAt: "2026-09-11T00:00:00Z" },
+  { itemId: 1, evaluationId: "e-1", projectId: "p-1", projectSlug: "acme", startup: "Acme, Inc", label: "=cmd", industry: "DeepTech", state: "NSW", status: "done", svi: 71, weighted: 64.5, stage: 3, delta: 4, topStrength: "Founder & Team", topGap: "Traction & Revenue", dimensionScores: { ftv: 80, tre: 40 }, reportUrl: "/tbr/tok", pdfUrl: "/api/svi/report/pdf?token=tok", error: null, scoredAt: "2026-09-11T00:00:00Z", decision: "proceed", conviction: 4, thesisFitPct: 71, assessmentStatus: "submitted" },
+  { itemId: 2, evaluationId: "e-2", projectId: "p-2", projectSlug: "beta", startup: "Beta", label: null, industry: null, state: null, status: "failed", svi: null, weighted: null, stage: 1, delta: null, topStrength: null, topGap: null, dimensionScores: null, reportUrl: null, pdfUrl: null, error: "owner_not_found", scoredAt: "2026-09-11T00:00:00Z", decision: null, conviction: null, thesisFitPct: null, assessmentStatus: null },
 ];
 
 function req(id = "b-1"): [Request, { params: Promise<{ id: string }> }] {
@@ -70,9 +70,10 @@ describe("GET /api/evaluations/batch/[id]/export.csv", () => {
     const text = new TextDecoder("utf-8", { ignoreBOM: true }).decode(bytes);
     expect(text.charCodeAt(0)).toBe(0xfeff);
     const lines = text.slice(1).split("\r\n");
-    expect(lines[0].startsWith("Startup,Label,Industry,State,Status,SVI,Weighted score,Stage,Delta since last,Top strength,Top gap,Founder & Team,")).toBe(true);
-    expect(lines[1]).toBe('"Acme, Inc",\'=cmd,DeepTech,NSW,done,71,64.5,MVP,4,Founder & Team,Traction & Revenue,80,,,40,,,,,http://localhost/tbr/tok,2026-09-11T00:00:00Z,');
-    expect(lines[2]).toBe("Beta,,,,failed,,,Idea,,,,,,,,,,,,,2026-09-11T00:00:00Z,owner_not_found");
+    // S-D3 (P1): Decision · Conviction · Thesis fit % · Assessment status sit between Top gap and the 8 dimensions.
+    expect(lines[0].startsWith("Startup,Label,Industry,State,Status,SVI,Weighted score,Stage,Delta since last,Top strength,Top gap,Decision,Conviction,Thesis fit %,Assessment status,Founder & Team,")).toBe(true);
+    expect(lines[1]).toBe('"Acme, Inc",\'=cmd,DeepTech,NSW,done,71,64.5,MVP,4,Founder & Team,Traction & Revenue,proceed,4,71,submitted,80,,,40,,,,,http://localhost/tbr/tok,2026-09-11T00:00:00Z,');
+    expect(lines[2]).toBe("Beta,,,,failed,,,Idea,,,,,,,,,,,,,,,,,2026-09-11T00:00:00Z,owner_not_found");
     expect(lines[3]).toBe("");
     expect(loadRowsMock).toHaveBeenCalledWith(BATCH);
   });

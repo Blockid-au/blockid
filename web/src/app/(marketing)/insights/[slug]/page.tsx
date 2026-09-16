@@ -5,8 +5,8 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, Calendar, Clock, User } from "lucide-react";
 import { getAllArticles, getArticleBySlug, getArticleContent, getArticlesByCategory } from "@/lib/insights";
 import { InsightBody } from "./insight-body";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { ArticleJsonLd } from "@/components/seo/json-ld";
 import { InsightTracker } from "@/components/analytics/insight-tracker";
 
@@ -96,10 +96,10 @@ export default async function InsightPage({
         readingTime={article.readingTime}
         title={article.title}
       />
-      <Navbar />
+      <NavV2 />
 
       {/* Article header */}
-      <header className="relative bg-gradient-to-br from-surface-50 via-white to-brand-50/30 pt-32 pb-12 md:pt-40 md:pb-16 border-b border-surface-200">
+      <header className="relative bg-gradient-to-br from-surface-50 via-white to-brand-50/30 pt-10 pb-12 md:pt-16 md:pb-16 border-b border-surface-200">
         <div className="mx-auto max-w-3xl px-6">
           {/* Breadcrumb */}
           <Link

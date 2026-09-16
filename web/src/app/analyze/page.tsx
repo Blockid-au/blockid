@@ -10,7 +10,7 @@
 // off here, /score 301s here) yet it shipped with no header, nav or footer —
 // a trial user had no path to Sign in / Pricing / Home / Privacy. It now
 // renders inside `MarketingShell` (skip link + NavV2 + `<main
-// id="main-content">` + MarketingFooter) like /pricing. The shell is a server
+// id="main-content">` + Footer) like /pricing. The shell is a server
 // component with no `headers()`/`cookies()`; the page itself stays dynamic
 // (`getCurrentUser()` reads the session cookie) and is not on the S31-D
 // public-cacheable allow-list, so nothing about caching or CSP mode changes.

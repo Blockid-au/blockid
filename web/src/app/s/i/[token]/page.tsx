@@ -3,8 +3,8 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { Download, Sparkles, ShieldCheck, BadgeCheck } from "lucide-react";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { Button } from "@/components/ui/button";
 import { ScoreCard } from "@/components/score/score-card";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
@@ -177,8 +177,8 @@ export default async function InvestorViewLinkPage({
 
   return (
     <>
-      <Navbar />
-      <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
+      <NavV2 />
+      <main id="main" className="flex-1 pt-10 md:pt-16 pb-24">
         <div className="mx-auto max-w-5xl px-6">
           {!active && (
             <div className="mb-8 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">

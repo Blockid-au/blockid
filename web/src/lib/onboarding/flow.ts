@@ -75,3 +75,53 @@ export function clampWizardStep(n: number): WizardStep {
   if (!Number.isFinite(n)) return 1;
   return Math.min(3, Math.max(1, Math.round(n))) as WizardStep;
 }
+
+// ---------------------------------------------------------------------------
+// Persona lock — G13-W5-IA5 (W4 review P3-a)
+// ---------------------------------------------------------------------------
+//
+// A founder must not self-select an evaluator persona after they own a
+// project or once `onboarding_completed = true`: the evaluator sidebar,
+// landing and trial would then hide their startup. Persona WRITES are
+// allowed only while onboarding is incomplete AND the user owns no project.
+// Otherwise the wizard hides the evaluator choices (`personaOptionsFor`) and
+// the API answers 400 `persona_locked` (`personaLockDecision`). Both sides
+// share these two pure helpers.
+
+export interface PersonaLockFacts {
+  /** `app_users.onboarding_completed` */
+  onboardingCompleted: boolean;
+  /** `projects.user_id = user.id` count > 0 */
+  ownsProject: boolean;
+}
+
+export function isPersonaLocked(f: PersonaLockFacts): boolean {
+  return f.onboardingCompleted || f.ownsProject;
+}
+
+/**
+ * Step-1 cards the wizard may show. Unlocked → all five. Locked → only the
+ * account's current wizard persona (founder when the account is untyped or
+ * a legacy type), so the evaluator choices disappear for a founder while an
+ * onboarded advisor returning through `?step=2` still sees their own card.
+ */
+export function personaOptionsFor(current: string | null | undefined, facts: PersonaLockFacts): readonly WizardPersona[] {
+  if (!isPersonaLocked(facts)) return WIZARD_PERSONAS;
+  return [isWizardPersona(current) ? current : "founder"];
+}
+
+export type PersonaLockDecision = "write" | "noop" | "locked";
+
+/**
+ * What the API does with a `persona` in the body:
+ *   • unlocked                                   → "write" (subject to the existing account-type rules)
+ *   • locked, same as the current account type   → "noop" (idempotent resave — never an error)
+ *   • locked, untyped account picking founder    → "write" (nothing to protect; keeps a resumed wizard finishable)
+ *   • locked, anything else                      → "locked" → 400 persona_locked
+ */
+export function personaLockDecision(current: string | null | undefined, persona: WizardPersona, facts: PersonaLockFacts): PersonaLockDecision {
+  if (!isPersonaLocked(facts)) return "write";
+  if (persona === current) return "noop";
+  if ((current === null || current === undefined) && persona === "founder") return "write";
+  return "locked";
+}

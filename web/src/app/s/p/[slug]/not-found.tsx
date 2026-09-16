@@ -1,13 +1,13 @@
 import Link from "next/link";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { Button } from "@/components/ui/button";
 
 export default function FounderPackNotFound() {
   return (
     <>
-      <Navbar />
-      <main className="min-h-screen bg-white pt-32 pb-24 text-ink-700">
+      <NavV2 />
+      <main className="min-h-screen bg-white pt-10 pb-24 text-ink-700">
         <div className="mx-auto max-w-2xl px-6 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600">
             404 · Founder Pack

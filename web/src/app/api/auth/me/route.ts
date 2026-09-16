@@ -58,7 +58,8 @@ export async function GET() {
     if (trialRes.data) onboardingCompleted = trialRes.data.onboarding_completed === true;
   }
 
-  const redirect = resolvePostLoginHref({ persona: resolvePersona({ role: user.role, accountType, segment }), onboardingCompleted });
+  const persona = resolvePersona({ role: user.role, accountType, segment });
+  const redirect = resolvePostLoginHref({ persona, onboardingCompleted });
 
   return NextResponse.json({
     ok: true,
@@ -69,6 +70,8 @@ export async function GET() {
       plan: user.plan,
       role: user.role,
       displayName: user.displayName,
+      // S-IA5: the shared user menu's Dashboard row is the persona landing.
+      persona,
       driveFolderId,
       driveFolderUrl,
       sourceFoldersEnabled,

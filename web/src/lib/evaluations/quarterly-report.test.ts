@@ -49,6 +49,25 @@ describe("summariseQuarterly", () => {
     expect(s.moversUp.map((m) => m.name)).toEqual(["Acme <Robotics>"]);
     expect(s.moversDown.map((m) => m.name)).toEqual(["Beta Health"]);
     expect(s.stageMix).toEqual([{ stage: "MVP", count: 2 }, { stage: "Validation", count: 1 }]);
+    // S-D3 (P4): no decisions in the fixture → every startup undecided.
+    expect(s.pipeline).toEqual({ pass: 0, track: 0, proceed: 0, undecided: 4 });
+  });
+
+  it("S-D3 (P4): pipeline counts submitted decisions only — drafts and unassessed rows are undecided", () => {
+    const withDecisions: QuarterlyReportStartup[] = [
+      { ...STARTUPS[0], decision: "proceed", conviction: 4, assessmentStatus: "submitted" },
+      { ...STARTUPS[1], decision: "pass", conviction: 2, assessmentStatus: "submitted" },
+      { ...STARTUPS[2], decision: "track", conviction: 3, assessmentStatus: "draft" },
+      STARTUPS[3],
+    ];
+    expect(summariseQuarterly(withDecisions).pipeline).toEqual({ pass: 1, track: 0, proceed: 1, undecided: 2 });
+    const html = renderQuarterlyReportHtml(data({ startups: withDecisions }));
+    expect(html).toContain('<section aria-label="Pipeline" data-pipeline>');
+    expect(html).toContain('<div class="v" data-pipeline-proceed>1</div>');
+    expect(html).toContain('<div class="v" data-pipeline-pass>1</div>');
+    expect(html).toContain('<div class="v" data-pipeline-undecided>2</div>');
+    expect(html).toContain("SVI 71 · weighted 64.5 · MVP · ▲ 9 · Proceed 4/5 —");
+    expect(html).toContain("SVI 63 · weighted 60 · MVP · new · Track (draft) 3/5");
   });
 
   it("quarterLabelFor uses UTC quarters", () => {
