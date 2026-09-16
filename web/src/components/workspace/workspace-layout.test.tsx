@@ -292,7 +292,7 @@ describe("WorkspaceLayout — nav v4 size + persona contract", () => {
     expect(company.length).toBeGreaterThan(0);
     expect(company.every((r) => !r.locked && !r.addOn && r.lockTier === null)).toBe(true);
     const money = resolveNavGroup(NAV_GROUPS_BY_ID.money, pending);
-    expect(money.find((r) => r.item.href === "/dashboard/valuation")?.locked).toBe(false);
+    expect(money.find((r) => r.item.href === "/workspace/valuation")?.locked).toBe(false);
     // Phase and segment gates still apply — only the plan is deferred.
     expect(resolveNavGroup(NAV_GROUPS_BY_ID.money, { ...pending, currentPhase: 0 })).toHaveLength(2);
     expect(resolveNavGroup(NAV_GROUPS_BY_ID["evaluator-home"], pending)).toHaveLength(0);

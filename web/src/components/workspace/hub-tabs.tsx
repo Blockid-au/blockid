@@ -57,6 +57,12 @@ export interface ResolvedHubTab {
 interface GateContext {
   planId: string;
   hasFeature: (name: string) => boolean;
+  /**
+   * True while the entitlement snapshot is still loading (no user yet) —
+   * nothing locks until the plan is known, same as the sidebar
+   * (`resolveNavGroup`), so a paying founder never sees a flash of locks.
+   */
+  planUnknown?: boolean;
 }
 
 /**
@@ -66,8 +72,8 @@ interface GateContext {
  */
 export function resolveHubTabs(hubDef: HubDef, ctx: GateContext): ResolvedHubTab[] {
   return hubDef.tabs.map((tab) => {
-    const meetsPlan = tab.minPlan ? meetsMinPlan(ctx.planId, tab.minPlan) : true;
-    const missingFeature = Boolean(tab.lockedWithoutFeature && !ctx.hasFeature(tab.lockedWithoutFeature));
+    const meetsPlan = tab.minPlan ? ctx.planUnknown === true || meetsMinPlan(ctx.planId, tab.minPlan) : true;
+    const missingFeature = Boolean(tab.lockedWithoutFeature && ctx.planUnknown !== true && !ctx.hasFeature(tab.lockedWithoutFeature));
     const locked = !meetsPlan || missingFeature;
     // Plan that grants a missing flag: the flag's own visibility row, else
     // the add-on's row (cap_table.write / vesting.read are granted by the
@@ -131,11 +137,12 @@ export function HubTabs({ hub, className }: HubTabsProps) {
   const entitlement = useEntitlement();
   const planId = entitlement.user?.plan ?? "free";
   const can = entitlement.can;
+  const planUnknown = entitlement.isLoading && !entitlement.user;
   const listRef = React.useRef<HTMLDivElement>(null);
 
   const resolved = React.useMemo(
-    () => (hubDef ? resolveHubTabs(hubDef, { planId, hasFeature: can }) : []),
-    [hubDef, planId, can],
+    () => (hubDef ? resolveHubTabs(hubDef, { planId, hasFeature: can, planUnknown }) : []),
+    [hubDef, planId, can, planUnknown],
   );
 
   if (!hubDef) return null;

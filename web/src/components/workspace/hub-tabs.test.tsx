@@ -35,6 +35,7 @@ vi.mock("@/hooks/useEntitlement", () => ({
     entitlements: [],
     trial: null,
     loading: false,
+    isLoading: false,
     can: (flag: string) => entitlementMock.can(flag),
     refresh: () => undefined,
   }),
@@ -177,6 +178,15 @@ describe("resolveHubTabs — plan + add-on gates", () => {
     expect(cap.locked).toBe(true);
     expect(cap.lockedHref).toBe("/workspace/billing?openAddon=share_management");
     expect(cap.lockTier).toBe("Growth");
+  });
+});
+
+describe("resolveHubTabs — planUnknown (entitlement still loading) never locks", () => {
+  it("mirrors resolveNavGroup: no lock until the plan is known", () => {
+    const rows = resolveHubTabs(HUBS.exit, { planId: "free", hasFeature: () => false, planUnknown: true });
+    expect(rows.every((r) => !r.locked)).toBe(true);
+    const known = resolveHubTabs(HUBS.exit, { planId: "free", hasFeature: () => false });
+    expect(known.filter((r) => r.locked).map((r) => r.tab.segment)).toEqual(["benchmark", "listing", "clean-room"]);
   });
 });
 
