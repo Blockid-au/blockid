@@ -1,8 +1,8 @@
 {
-  "dumped_at": "2026-09-13",
-  "source": "pg_constraint (contype=f) on production supabase-db, confrelid = public.app_users; regenerate with `node scripts/db/app-users-fk-inventory.mjs --json --fixture`",
+  "dumped_at": "2026-09-16",
+  "source": "pg_constraint (contype=f) on production supabase-db, confrelid = public.app_users; regenerate with `node scripts/db/app-users-fk-inventory.mjs --json --fixture` — 2026-09-16: three rows (investor_organisations.owner_user_id, investor_organisation_members.user_id, investor_mandates.owner_user_id) added by hand from web/supabase/migrations/0393_investor_mandates_v2.sql ahead of its apply; re-run --fixture after 0393 lands and the output must be byte-identical.",
   "referenced": "public.app_users(id)",
-  "count": 129,
+  "count": 132,
   "fks": [
     {
       "constraint": "ab_assignments_user_id_fkey",
@@ -457,6 +457,27 @@
       "table": "investor_links",
       "column": "founder_user_id",
       "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "investor_mandates_owner_user_id_fkey",
+      "table": "investor_mandates",
+      "column": "owner_user_id",
+      "on_delete": "CASCADE",
+      "not_null": false
+    },
+    {
+      "constraint": "investor_organisation_members_user_id_fkey",
+      "table": "investor_organisation_members",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "investor_organisations_owner_user_id_fkey",
+      "table": "investor_organisations",
+      "column": "owner_user_id",
+      "on_delete": "CASCADE",
       "not_null": false
     },
     {

@@ -45,12 +45,12 @@ const fks = fixture.fks as Fk[];
 const fkByKey = new Map(fks.map((f) => [`${f.table}.${f.column}`, f]));
 
 describe("erasure map ↔ live-schema fixture", () => {
-  it("fixture is the 129-FK production dump", () => {
+  it("fixture is the 132-FK production dump (129 live + the three 0393 investor FKs added by hand until it is applied)", () => {
     expect(fixture.referenced).toBe("public.app_users(id)");
-    expect(fks.length).toBe(129);
+    expect(fks.length).toBe(132);
     expect(fixture.count).toBe(fks.length);
     const by = fks.reduce<Record<string, number>>((acc, f) => ({ ...acc, [f.on_delete]: (acc[f.on_delete] ?? 0) + 1 }), {});
-    expect(by).toEqual({ CASCADE: 84, "NO ACTION": 14, "SET NULL": 25, RESTRICT: 6 });
+    expect(by).toEqual({ CASCADE: 87, "NO ACTION": 14, "SET NULL": 25, RESTRICT: 6 });
   });
 
   it("every FK is mapped exactly once and nothing stale is mapped", () => {
@@ -146,9 +146,9 @@ describe("erasure map ↔ live-schema fixture", () => {
 
   it("summary matches the classification", () => {
     const s = summariseErasureMap();
-    expect(s.entries).toBe(129);
-    expect(s.delete + s.anonymise + s.detach).toBe(129);
-    expect(s).toMatchObject({ delete: 79, anonymise: 34, detach: 16, immutable: 3, tables: 115 });
+    expect(s.entries).toBe(132);
+    expect(s.delete + s.anonymise + s.detach).toBe(132);
+    expect(s).toMatchObject({ delete: 82, anonymise: 34, detach: 16, immutable: 3, tables: 118 });
     expect(s.project_detaches).toBe(PROJECT_DETACHES.length);
     expect(s.non_fk_extras).toBe(NON_FK_EXTRAS.length);
   });
@@ -179,9 +179,9 @@ describe("erasure migration ↔ map parity", () => {
     expect(extractBlock(sql, EXTRAS_BEGIN, EXTRAS_END)).toBe(renderExtrasBlock());
   });
 
-  it("the SQL block parses back to the same 129 entries", () => {
+  it("the SQL block parses back to the same 132 entries", () => {
     const parsed = parseMapBlock(extractBlock(sql, MAP_BEGIN, MAP_END)!);
-    expect(parsed.length).toBe(129);
+    expect(parsed.length).toBe(132);
     const ord = orderedEntries();
     parsed.forEach((p, i) => {
       const e = ord[i];
