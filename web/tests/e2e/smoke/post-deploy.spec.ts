@@ -412,6 +412,38 @@ test.describe("Post-deploy hydrated smoke", () => {
     });
   });
 
+  // ── G13-W3-IA3 — founder landing block 2 CTA is hydrated + clickable ──
+  // The landing is five server blocks; the only client code is the CTA
+  // tracker. Signed in as the QA founder, block 2 ("Next best action")
+  // must render its ONE CTA and a click must navigate to the recommended
+  // hub page. Skips (never false-greens) when the seed account is missing.
+  test.describe("founder landing", () => {
+    test.setTimeout(60_000);
+    test("/dashboard block 2 CTA is visible and clickable", async ({ page }) => {
+      let loginOk = false;
+      try {
+        await loginAs(page, FOUNDER_EMAIL);
+        loginOk = true;
+      } catch {
+        /* fixture missing on this box */
+      }
+      test.skip(!loginOk, `QA founder ${FOUNDER_EMAIL} not seeded — run scripts/seed-test-users.mjs`);
+      const resp = await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
+      expect(resp?.status(), "/dashboard status").toBeLessThan(400);
+      test.skip(/\/dashboard\/onboarding/.test(page.url()), "seed founder has no analysis yet — bounced to the wizard");
+      const grid = page.locator("[data-landing-grid]");
+      await expect(grid, "five-block landing grid").toBeVisible({ timeout: PAGE_TIMEOUT });
+      expect(await grid.locator("[data-landing-block]").count()).toBe(5);
+      const cta = page.getByTestId("landing-next-best-action-cta");
+      await expect(cta, "block 2 CTA").toBeVisible({ timeout: PAGE_TIMEOUT });
+      const href = (await cta.getAttribute("href")) ?? "";
+      expect(href).toMatch(/^\/(workspace|analyze)/);
+      await cta.click();
+      const target = href.split("?")[0];
+      await page.waitForURL((u) => u.pathname.startsWith(target), { timeout: PAGE_TIMEOUT });
+    });
+  });
+
   test("/workspace/reports/upgrade keeps its query string through the redirect", async ({ request }) => {
     test.setTimeout(15_000);
     const resp = await request.get("/workspace/reports/upgrade?tab=evaluator", { maxRedirects: 0 });

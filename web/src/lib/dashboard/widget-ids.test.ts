@@ -1,16 +1,18 @@
-// Allow-list drift guard — every data-widget-id rendered on the founder
-// dashboard page must be in DASHBOARD_WIDGET_IDS (and vice versa), or the
-// layout route silently drops the widget from every saved layout.
+// Allow-list drift guard — every data-widget-id rendered by the score
+// widget grid (components/dashboard/score-widget-grid.tsx, mounted on
+// /workspace/score since G13-W3-IA3) must be in DASHBOARD_WIDGET_IDS (and
+// vice versa), or the layout route silently drops the widget from every
+// saved layout.
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DASHBOARD_WIDGET_IDS, isDashboardWidgetId } from "./widget-ids";
 
-const PAGE = resolve(__dirname, "../../app/(app)/(founder)/dashboard/page.tsx");
+const PAGE = resolve(__dirname, "../../components/dashboard/score-widget-grid.tsx");
 
 describe("DASHBOARD_WIDGET_IDS", () => {
-  it("matches every data-widget-id declared on dashboard/page.tsx", () => {
+  it("matches every data-widget-id declared in score-widget-grid.tsx", () => {
     const src = readFileSync(PAGE, "utf8");
     const onPage = new Set<string>();
     for (const m of src.matchAll(/data-widget-id="([^"]+)"/g)) onPage.add(m[1]);

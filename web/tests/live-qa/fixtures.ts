@@ -121,6 +121,9 @@ export const SWEEP_EXTRA_PAGES = [
   "/workspace/documents/data-room",
   "/workspace/settings/audit",
   "/workspace/settings",
+  // G13-W3-IA3 — the Action plan hub root now mounts the ladder / direction /
+  // growth widgets that used to render on /dashboard.
+  "/workspace/plan",
 ] as const;
 
 /** Everything the console/network sweep visits. */
