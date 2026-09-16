@@ -1,9 +1,49 @@
-// Agent Prompts — Per-agent system prompts for multi-agent report generation.
+// Agent Prompts — per-agent system prompts for multi-agent report generation.
 //
-// Each C-Level agent gets a specialized system prompt that defines their
-// evaluation criteria, expertise, and output format. These are used by
-// the dispatcher to generate criterion-specific analyses.
+// v2 (G13-W2-R2, spec docs/plans/investor-clarity-2026-09-15/12-product-ai-tbr-v2.md
+// §C.2 / §C.10): `buildAgentPrompt(role, ctx, { criterion?, dim?, phaseId, tier })`
+// composes, in order and with per-block token caps (prompt-tokens.ts):
+//
+//   {{AU_CONTEXT}}    the mentoring-tone AU disclaimer (fixed prose)
+//   {{ROLE_CARD}}     role + expertise + startup context + stage guidance +
+//                     either the legacy task guidance (criterion calls) or the
+//                     dimension chapter brief from DIMENSION_OWNERS
+//                     (frameworks, rubric anchors p25/p50/p75, output template)
+//   {{PHASE_LENS}}    GROWTH_PHASES[phase] title + steps, PHASE_EXIT_RULES
+//                     floors + next phase's required criteria (≤ 250 tokens)
+//   {{SKILL_ADDON}}   SKILL_MAP[role][bucket].promptAddon (≤ 150)
+//   {{KNOWLEDGE}}     ≤ 2 knowledge-base files (≤ 600 each) + ≤ 3 approved
+//                     agent_knowledge_base rows (≤ 120 each)
+//   {{MODULES}}       deterministic module outputs, compact table (≤ 400)
+//   {{EVIDENCE}}      evidence catalogue summary (≤ 400; ids live in the user turn)
+//   {{OUTPUT_SCHEMA}} the output contract (legacy markdown or the W4 JSON)
+//
+// The template comes from `prompt_versions` (`readCurrentPrompt("report-<role>")`
+// text with the slots above) when the row carries slots; otherwise the code
+// default. Everything here is synchronous and pure given its inputs — the
+// dispatcher pre-fetches the template + knowledge rows via
+// `prepareAgentPromptInputs()` and hands them in.
+//
+// The third CDO "stage medians" rubric copy the plan retired (§B.11) is gone:
+// every benchmark number now comes from `benchmarkFor()` (dimension-owners →
+// svi-dimension-benchmarks ANCHORS) and is injected into the CDO role card.
 
+import type { CriterionKey } from "@/lib/evaluation-criteria";
+import { PHASE_EXIT_RULES } from "@/lib/growth/phase-gate";
+import { GROWTH_PHASE_LABELS, isGrowthPhaseId, nextGrowthPhase, type GrowthPhaseId } from "@/lib/growth/phase-taxonomy";
+import { GROWTH_PHASES, getCurrentPhase } from "@/lib/startup-growth-phases";
+import type { ReportTierV2 } from "@/lib/report-v2/schema";
+import { benchmarkFor, DIM_ORDER, DIMENSION_OWNERS, type DimKey } from "./dimension-owners";
+import { selectSkillsForAgent } from "./agent-skill-map";
+import { bucketForStage, type PhaseBucket } from "./agent-selector";
+import {
+  knowledgeBlocksForDim,
+  renderKnowledgeFiles,
+  renderKnowledgeRows,
+  type AgentKnowledgeRow,
+  type KnowledgeFileBlock,
+} from "./knowledge-loader";
+import { PROMPT_BLOCK_CAPS, capTokens, estimateTokens } from "./prompt-tokens";
 import type { AgentRole, ReportContext } from "./types";
 
 // ── Shared AU Context ───────────────────────────────────────────────────────
@@ -20,8 +60,6 @@ Writing guidelines:
 - End each section with SPECIFIC, ACTIONABLE next steps
 - Use flowing narrative prose with ### sub-headings
 - Format: Clean Markdown with ### sub-headings, **bold** key insights`;
-
-// ── Agent System Prompts ────────────────────────────────────────────────────
 
 const AGENT_PROMPTS: Record<AgentRole, {
   role: string;
@@ -280,11 +318,9 @@ Cover:
 - Privacy and data handling compliance`,
   },
 
-  // TODO(S-R2, G13-W1-R2): the "stage medians" block below is the third
-  // rubric copy decision D8 retires — it must come from
-  // svi-dimension-benchmarks.ts (p25/p50/p75 per stage) via
-  // report-pipeline/dimension-owners.ts. Left verbatim in S-R1 because
-  // swapping the numbers changes the prompt (prompt v2 = S-R2).
+  // The CDO cohort table is filled from the injected "Stage Benchmarks"
+  // block (dimension-owners.ts benchmarkFor → svi-dimension-benchmarks
+  // ANCHORS) — the hard-coded "stage medians" copy was deleted in S-R2.
   cdo: {
     role: "Chief Data Officer",
     expertise: "Data strategy, analytics quality, AI governance, data moat assessment",
@@ -318,11 +354,7 @@ For each of the 8 SVI dimensions, include a comparison table:
 
 Interpret: "You outperform 75% of [sector] startups at [stage] on TRE, but trail the median on CGH — your cap table and governance score (X) is below the 40th percentile, which may concern institutional investors."
 
-Use these stage medians (approximate benchmarks):
-- Concept: FTV:30, MPC:25, PTD:20, TRE:10, CGH:25, IRI:15, LCO:30, SVM:20
-- Validated: FTV:45, MPC:40, PTD:35, TRE:25, CGH:35, IRI:30, LCO:40, SVM:30
-- Early Traction: FTV:55, MPC:55, PTD:50, TRE:45, CGH:50, IRI:45, LCO:55, SVM:40
-- Growth: FTV:65, MPC:65, PTD:60, TRE:65, CGH:60, IRI:60, LCO:65, SVM:55`,
+Use ONLY the p25 / p50 / p75 values in the "Stage Benchmarks" block of this prompt for the Stage Median and Stage P75 columns — never invent benchmark numbers.`,
   },
 
   coo: {
@@ -346,46 +378,299 @@ Cover:
   },
 };
 
-// ── Build Agent Prompt ──────────────────────────────────────────────────────
 
-export function buildAgentPrompt(
-  agentRole: AgentRole,
-  context: ReportContext,
-  criterionKey?: string,
-  skillAddon?: string,
-): string {
-  const agent = AGENT_PROMPTS[agentRole];
-  const stageContext = getStageContext(context.stage);
-  const addonBlock = skillAddon && skillAddon.trim().length > 0
-    ? `\n\n## Phase-Tuned Skill Guidance\n${skillAddon.trim()}`
-    : "";
-  void criterionKey; // criterion is threaded into the user prompt, not the system prompt
+// ── Slots + template ────────────────────────────────────────────────────────
 
-  return `${AU_CONTEXT}
+export const PROMPT_SLOTS = [
+  "AU_CONTEXT",
+  "ROLE_CARD",
+  "PHASE_LENS",
+  "SKILL_ADDON",
+  "KNOWLEDGE",
+  "MODULES",
+  "EVIDENCE",
+  "OUTPUT_SCHEMA",
+] as const;
+export type PromptSlot = (typeof PROMPT_SLOTS)[number];
 
-## Your Role: ${agent.role}
-${agent.expertise}
+/** Code default when `prompt_versions` has no row / no template for the role. */
+export const DEFAULT_PROMPT_TEMPLATE = PROMPT_SLOTS.map((s) => `{{${s}}}`).join("\n\n");
 
-## Startup Context
+/** True when a template carries at least the two mandatory slots. */
+export function templateHasSlots(text: string | null | undefined): boolean {
+  return typeof text === "string" && text.includes("{{ROLE_CARD}}") && text.includes("{{OUTPUT_SCHEMA}}");
+}
+
+/**
+ * Template from a `prompt_versions` row. The table (migration 0230) has no
+ * `text` column, so the slotted template is carried in `variables.template`
+ * (jsonb — no migration needed); a top-level `template` / `text` field is
+ * honoured too for a future column. Returns null when the row has none.
+ */
+export function promptTemplateFromRow(row: unknown): string | null {
+  if (!row || typeof row !== "object") return null;
+  const r = row as { template?: unknown; text?: unknown; variables?: unknown };
+  const direct = typeof r.template === "string" ? r.template : typeof r.text === "string" ? r.text : null;
+  if (templateHasSlots(direct)) return direct;
+  const vars = r.variables && typeof r.variables === "object" ? (r.variables as { template?: unknown }) : null;
+  const nested = vars && typeof vars.template === "string" ? vars.template : null;
+  return templateHasSlots(nested) ? nested : null;
+}
+
+/** Fill `{{SLOT}}` placeholders; empty blocks collapse so no dangling headings remain. */
+export function renderPromptTemplate(template: string, blocks: Record<PromptSlot, string>): string {
+  let out = template;
+  PROMPT_SLOTS.forEach((slot) => {
+    out = out.split(`{{${slot}}}`).join(blocks[slot] ?? "");
+  });
+  return out.replace(/\n{3,}/g, "\n\n").trim();
+}
+
+// ── Options ─────────────────────────────────────────────────────────────────
+
+export interface ModuleOutputSummary {
+  id: string;
+  output: Record<string, unknown>;
+}
+
+export interface BuildPromptOptions {
+  /** Criterion the call scores (W1–W3). Informational — the user turn carries the evidence. */
+  criterion?: CriterionKey | string;
+  /** Dimension the call owns (W4). Switches the role card to the chapter brief. */
+  dim?: DimKey;
+  /** Growth phase for the lens; defaults to `context.phaseGate` or the SVI stage. */
+  phaseId?: GrowthPhaseId | string | null;
+  /** Controls word caps in the output contract. */
+  tier?: ReportTierV2;
+  /** Slotted template (prompt_versions); falls back to DEFAULT_PROMPT_TEMPLATE. */
+  template?: string | null;
+  /** Pre-fetched `agent_knowledge_base` rows (dispatcher) — the builder is sync. */
+  knowledgeRows?: AgentKnowledgeRow[];
+  /** Override the knowledge files (tests / no-disk deploys). */
+  knowledgeFiles?: KnowledgeFileBlock[];
+  /** Deterministic module outputs for the MODULES slot. */
+  moduleOutputs?: ModuleOutputSummary[];
+  /** Short evidence summary for the EVIDENCE slot (labels + status). */
+  evidenceSummary?: string;
+  /** Output contract override (the dispatcher passes the W4 JSON contract). */
+  outputSchema?: string;
+  /** Skill addon override; default = SKILL_MAP[role][bucket]. */
+  skillAddon?: string;
+}
+
+export interface PromptBlocks {
+  blocks: Record<PromptSlot, string>;
+  tokens: Record<PromptSlot, number>;
+  totalTokens: number;
+  phaseId: GrowthPhaseId;
+  bucket: PhaseBucket;
+  template: string;
+}
+
+// ── Phase helpers ───────────────────────────────────────────────────────────
+
+/** Explicit phase → context phase gate → SVI stage mapping (GROWTH_PHASES ranges). */
+export function resolvePhaseId(context: Pick<ReportContext, "stage" | "phaseGate">, explicit?: string | null): GrowthPhaseId {
+  if (isGrowthPhaseId(explicit)) return explicit;
+  const fromGate = context.phaseGate?.currentPhase;
+  if (isGrowthPhaseId(fromGate)) return fromGate;
+  const phase = getCurrentPhase(Number.isFinite(context.stage) ? context.stage : 0);
+  return isGrowthPhaseId(phase.id) ? phase.id : "vision";
+}
+
+const TIER_WORDS: Record<ReportTierV2, string> = {
+  free: "150-400 words",
+  standard: "500-1500 words",
+  premium: "900-2000 words",
+  investor_memo: "1200-2500 words",
+};
+
+// ── Block builders ──────────────────────────────────────────────────────────
+
+function startupContextBlock(context: ReportContext): string {
+  return `## Startup Context
 - Name: ${context.startupName}
 - Stage: ${context.sviAnalysis.stageLabel} (Stage ${context.stage})
 - Current SVI Score: ${context.sviAnalysis.totalSVI}
-- Language: ${context.locale === "vi" ? "Vietnamese (Tieng Viet)" : "English"}
+- Language: ${context.locale === "vi" ? "Vietnamese (Tieng Viet)" : "English"}`;
+}
 
-${stageContext}
+function benchmarkTable(stage: number): string {
+  const rows = DIM_ORDER.map((d) => {
+    const b = benchmarkFor(d, stage);
+    return `| ${d.toUpperCase()} | ${b.p25} | ${b.p50} | ${b.p75} |`;
+  });
+  return `## Stage Benchmarks (p25 / p50 / p75 at benchmark stage ${stage})
+| Dim | p25 | p50 | p75 |
+|---|---|---|---|
+${rows.join("\n")}`;
+}
 
-## Your Task
-${agent.outputGuidance}
+/** SVI-analysis stage (0 Concept … 7) → benchmark stage (0 idea … 7 late). */
+const SVI_STAGE_TO_BENCH = [0, 1, 2, 3, 3, 4, 5, 7] as const;
+export function benchmarkStageForSvi(stage: number): number {
+  const i = Math.max(0, Math.min(7, Math.round(Number.isFinite(stage) ? stage : 2)));
+  return SVI_STAGE_TO_BENCH[i];
+}
 
-## Output Format
+function legacyRoleCard(role: AgentRole, context: ReportContext): string {
+  const agent = AGENT_PROMPTS[role];
+  const parts = [
+    `## Your Role: ${agent.role}`,
+    agent.expertise,
+    "",
+    startupContextBlock(context),
+    "",
+    getStageContext(context.stage),
+    "",
+    `## Your Task`,
+    agent.outputGuidance,
+  ];
+  if (role === "cdo") parts.push("", benchmarkTable(benchmarkStageForSvi(context.stage)));
+  return parts.join("\n");
+}
+
+function dimensionRoleCard(role: AgentRole, dim: DimKey, context: ReportContext): string {
+  const owner = DIMENSION_OWNERS[dim];
+  const agent = AGENT_PROMPTS[role];
+  const bench = benchmarkFor(dim, benchmarkStageForSvi(context.stage));
+  const dimScore = context.sviAnalysis.dimensionScores?.[dim] ?? context.sviAnalysis.subs?.find((s) => s.key === dim)?.value;
+  const lens = role === owner.primary ? "owner" : "supporting analyst";
+  return [
+    `## Your Role: ${agent.role} — ${lens} of the "${owner.title}" chapter (weight ${owner.weight}%)`,
+    agent.expertise,
+    `Supporting agents: ${owner.supporting.map((s) => s.toUpperCase()).join(", ")}. CDO stamps percentile + evidence heat; CISO / COO cards are deterministic.`,
+    "",
+    startupContextBlock(context),
+    `- Deterministic ${dim.toUpperCase()} score: ${typeof dimScore === "number" ? `${Math.round(dimScore)}/100` : "not scored"}`,
+    `- Stage benchmark ${dim.toUpperCase()}: p25 ${bench.p25} · p50 ${bench.p50} · p75 ${bench.p75}`,
+    "",
+    `## Frameworks to apply`,
+    owner.frameworks.map((f) => `- ${f}`).join("\n"),
+    "",
+    `## Rubric anchors (use when evidence is thin)`,
+    `- p25 looks like: ${owner.rubric.p25}`,
+    `- p50 looks like: ${owner.rubric.p50}`,
+    `- p75 looks like: ${owner.rubric.p75}`,
+    "",
+    `## Chapter template`,
+    owner.outputTemplate,
+    `Mapped criteria: ${[...owner.primaryCriteria, ...owner.secondaryCriteria].join(", ") || "none (scored through lenses)"}.`,
+  ].join("\n");
+}
+
+function phaseLensBlock(phaseId: GrowthPhaseId, dim: DimKey | undefined): string {
+  const phase = GROWTH_PHASES.find((p) => p.id === phaseId);
+  const rule = PHASE_EXIT_RULES[phaseId];
+  const next = nextGrowthPhase(phaseId);
+  const nextRule = next ? PHASE_EXIT_RULES[next] : null;
+  const floors = Object.entries(rule.dimensionFloors)
+    .map(([k, v]) => `${k.toUpperCase()} ≥ ${v}`)
+    .join(", ");
+  const lines = [
+    `## Phase lens: ${phase?.title ?? GROWTH_PHASE_LABELS[phaseId].en} (${phaseId})`,
+    phase?.subtitle ? phase.subtitle : "",
+    phase ? `Lead agent ${phase.leadAgent.toUpperCase()}; support ${phase.supportAgents.map((s) => s.toUpperCase()).join(", ")}.` : "",
+    phase ? `Steps: ${phase.steps.slice(0, 4).map((s) => s.title).join("; ")}.` : "",
+    `Exit gate: criteria ${rule.requiredCriteria.join(", ")} at ≥ good${floors ? `; floors ${floors}` : ""}.`,
+    next && nextRule ? `Next phase ${GROWTH_PHASE_LABELS[next].en} (${next}) requires: ${nextRule.requiredCriteria.join(", ")}.` : "This is the final phase.",
+  ];
+  if (dim) {
+    const behaviour = DIMENSION_OWNERS[dim].phaseBehaviour[phaseId];
+    if (behaviour) lines.push(`What matters now for ${dim.toUpperCase()}: ${behaviour}.`);
+    const floor = rule.dimensionFloors[dim as keyof typeof rule.dimensionFloors];
+    if (typeof floor === "number") lines.push(`${dim.toUpperCase()} floor at this phase: ${floor}.`);
+  }
+  return lines.filter(Boolean).join("\n");
+}
+
+function modulesBlock(outputs: ModuleOutputSummary[] | undefined): string {
+  if (!outputs || outputs.length === 0) return "";
+  const rows = outputs.map((m) => {
+    const cells = Object.entries(m.output)
+      .slice(0, 12)
+      .map(([k, v]) => `${k}=${compactValue(v)}`)
+      .join(", ");
+    return `| ${m.id} | ${cells} |`;
+  });
+  return `## Module outputs (deterministic — cite as [module:<id>])
+| module | key values |
+|---|---|
+${rows.join("\n")}`;
+}
+
+function compactValue(v: unknown): string {
+  if (v == null) return "–";
+  if (typeof v === "number") return Number.isInteger(v) ? String(v) : v.toFixed(2);
+  if (typeof v === "string") return v.length > 60 ? `${v.slice(0, 57)}…` : v;
+  if (typeof v === "boolean") return v ? "yes" : "no";
+  if (Array.isArray(v)) return v.slice(0, 5).map(compactValue).join("/");
+  if (typeof v === "object") {
+    return Object.entries(v as Record<string, unknown>)
+      .slice(0, 4)
+      .map(([k, x]) => `${k}:${compactValue(x)}`)
+      .join(" ");
+  }
+  return String(v);
+}
+
+const LEGACY_OUTPUT_FORMAT = `## Output Format
 - Start with an ATTRACTIVE SECTION TITLE on line 1 (e.g., "Market Opportunity — A$2.4B Addressable Market with Strong Tailwinds")
 - Line 2: VALUE PROPOSITION — 1-2 sentence summary of the key finding
 - Line 3: KEY INSIGHT — One powerful insight in a callout: > **Key Insight:** ...
 - Then structured content with ### sub-headings
 - End with ### Recommended Actions (numbered 1-5)
 - Final line: <!-- SCORE: XX -->
-- Be specific, data-driven, and actionable
-- Total output: 500-1500 words depending on available evidence${addonBlock}`;
+- Be specific, data-driven, and actionable`;
+
+function legacyOutputSchema(tier: ReportTierV2 | undefined): string {
+  return `${LEGACY_OUTPUT_FORMAT}\n- Total output: ${TIER_WORDS[tier ?? "standard"]} depending on available evidence`;
+}
+
+// ── Build blocks ────────────────────────────────────────────────────────────
+
+export function buildPromptBlocks(role: AgentRole, context: ReportContext, opts: BuildPromptOptions = {}): PromptBlocks {
+  const phaseId = resolvePhaseId(context, opts.phaseId);
+  const bucket = bucketForStage(context.stage);
+  const template = templateHasSlots(opts.template) ? (opts.template as string) : DEFAULT_PROMPT_TEMPLATE;
+
+  const roleCardRaw = opts.dim ? dimensionRoleCard(role, opts.dim, context) : legacyRoleCard(role, context);
+  const addonRaw = (opts.skillAddon ?? selectSkillsForAgent(role, bucket).promptAddon ?? "").trim();
+  const files = opts.knowledgeFiles ?? (opts.dim ? knowledgeBlocksForDim(opts.dim) : []);
+  const knowledgeRaw = [renderKnowledgeFiles(files), renderKnowledgeRows(opts.knowledgeRows ?? [])].filter(Boolean).join("\n\n");
+
+  const blocks: Record<PromptSlot, string> = {
+    AU_CONTEXT: AU_CONTEXT,
+    ROLE_CARD: capTokens(roleCardRaw, PROMPT_BLOCK_CAPS.ROLE_CARD),
+    PHASE_LENS: capTokens(phaseLensBlock(phaseId, opts.dim), PROMPT_BLOCK_CAPS.PHASE_LENS),
+    SKILL_ADDON: addonRaw ? `## Phase-Tuned Skill Guidance\n${capTokens(addonRaw, PROMPT_BLOCK_CAPS.SKILL_ADDON)}` : "",
+    KNOWLEDGE: knowledgeRaw ? `## Knowledge base\n${knowledgeRaw}` : "",
+    MODULES: capTokens(modulesBlock(opts.moduleOutputs), PROMPT_BLOCK_CAPS.MODULES),
+    EVIDENCE: opts.evidenceSummary ? capTokens(`## Evidence available\n${opts.evidenceSummary}`, PROMPT_BLOCK_CAPS.EVIDENCE) : "",
+    OUTPUT_SCHEMA: capTokens(opts.outputSchema ?? legacyOutputSchema(opts.tier), PROMPT_BLOCK_CAPS.OUTPUT_SCHEMA),
+  };
+  const tokens = Object.fromEntries(PROMPT_SLOTS.map((s) => [s, estimateTokens(blocks[s])])) as Record<PromptSlot, number>;
+  const totalTokens = PROMPT_SLOTS.reduce((a, s) => a + tokens[s], 0);
+  return { blocks, tokens, totalTokens, phaseId, bucket, template };
+}
+
+// ── Build Agent Prompt ──────────────────────────────────────────────────────
+
+/**
+ * v2 builder. The third argument accepts the legacy criterion string (the
+ * startup-package route and older callers) or the options object; the
+ * fourth keeps the legacy `skillAddon` override.
+ */
+export function buildAgentPrompt(
+  agentRole: AgentRole,
+  context: ReportContext,
+  optsOrCriterion: BuildPromptOptions | string = {},
+  legacySkillAddon?: string,
+): string {
+  const opts: BuildPromptOptions = typeof optsOrCriterion === "string" ? { criterion: optsOrCriterion } : { ...optsOrCriterion };
+  if (legacySkillAddon !== undefined && opts.skillAddon === undefined) opts.skillAddon = legacySkillAddon;
+  const built = buildPromptBlocks(agentRole, context, opts);
+  return renderPromptTemplate(built.template, built.blocks);
 }
 
 // ── Stage-Aware Context ─────────────────────────────────────────────────────
@@ -395,7 +680,7 @@ function getStageContext(stage: number): string {
     return `## Stage Guidance (Early Stage)
 Focus on idea validation, customer discovery, finding first 10 customers, MVP scope,
 pitch preparation, and Australian grants. Do NOT focus on unit economics, revenue
-forecasting, or cap table optimization. Be encouraging — they're just starting.`;
+forecasting, or cap table optimization. Be encouraging — they are just starting.`;
   }
   if (stage <= 4) {
     return `## Stage Guidance (Growth Stage)
