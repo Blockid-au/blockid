@@ -18,6 +18,7 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
+import type { BillingInterval } from "@/lib/plans/billing-interval";
 import { EVALUATOR_TRIAL_COPY, TRIAL_COPY, TRIAL_DAYS, evaluatorTrialIncludedLine } from "@/lib/plans/trial-copy";
 import {
   FOUNDER_ACCOUNT_TYPE_OPTIONS,
@@ -32,6 +33,10 @@ export interface SignupPlanChoice {
   priceDisplay: string;
   trialDays: number;
   hasStripePrice: boolean;
+  /** Yearly figures — only offered when `hasAnnualPrice` (plan row has a Stripe annual Price). */
+  annualPriceCents?: number;
+  annualPriceDisplay?: string;
+  hasAnnualPrice?: boolean;
 }
 
 export interface SignupFormProps {
@@ -39,6 +44,8 @@ export interface SignupFormProps {
   segment?: SignupSegment;
   trialPlans: SignupPlanChoice[];
   defaultPlanId: string;
+  /** Requested cadence from `?interval=`; per-plan fallback to monthly when no annual SKU. */
+  interval?: BillingInterval;
   /** Account-type choices; defaults to the founder trio. */
   accountTypeOptions?: readonly AccountTypeOption[];
   stripePublishableKey: string | null;
@@ -238,6 +245,11 @@ function InnerForm(props: SignupFormProps) {
 
   const selectedPlan =
     props.trialPlans.find((p) => p.id === planId) ?? props.trialPlans[0];
+  // The cadence this plan will actually be billed at. Annual only when the
+  // rung has an annual Stripe Price — otherwise monthly, and the copy says so.
+  const effectiveInterval: BillingInterval =
+    props.interval === "annual" && selectedPlan?.hasAnnualPrice ? "annual" : "monthly";
+  const annualFallback = props.interval === "annual" && effectiveInterval === "monthly";
 
   async function handleSubmit(ev: React.FormEvent<HTMLFormElement>) {
     ev.preventDefault();
@@ -285,6 +297,7 @@ function InnerForm(props: SignupFormProps) {
           display_name: displayName.trim() || undefined,
           account_type: accountType,
           plan_id: planId,
+          interval: effectiveInterval,
           payment_method_id: pm.paymentMethod.id,
           terms_accepted: true,
           // Task M2 — pass promo code (validated or raw) so the server
@@ -311,8 +324,11 @@ function InnerForm(props: SignupFormProps) {
   const priceLine = selectedPlan
     ? TRIAL_COPY.after_trial({
         planName: selectedPlan.name,
-        price: selectedPlan.priceDisplay,
-        interval: "month",
+        price:
+          effectiveInterval === "annual"
+            ? (selectedPlan.annualPriceDisplay ?? selectedPlan.priceDisplay)
+            : selectedPlan.priceDisplay,
+        interval: effectiveInterval === "annual" ? "year" : "month",
       })
     : "";
 
@@ -375,7 +391,11 @@ function InnerForm(props: SignupFormProps) {
           >
             {props.trialPlans.map((p) => (
               <option key={p.id} value={p.id} disabled={!p.hasStripePrice}>
-                {p.name} — {p.priceDisplay}/mo{p.hasStripePrice ? "" : " (unavailable)"}
+                {p.name} —{" "}
+                {props.interval === "annual" && p.hasAnnualPrice
+                  ? `${p.annualPriceDisplay}/yr`
+                  : `${p.priceDisplay}/mo`}
+                {p.hasStripePrice ? "" : " (unavailable)"}
               </option>
             ))}
           </select>
@@ -467,6 +487,11 @@ function InnerForm(props: SignupFormProps) {
         {TRIAL_COPY.fine_print}
         {selectedPlan ? " " + priceLine : ""}
       </p>
+      {annualFallback ? (
+        <p className="mt-1.5 text-xs text-amber-300/90 leading-relaxed" data-testid="annual-fallback-note">
+          Annual billing is not available for {selectedPlan?.name ?? "this plan"} yet — you will be billed monthly at {selectedPlan?.priceDisplay}/mo.
+        </p>
+      ) : null}
       {isEvaluator && selectedPlan ? (
         /* Release QA-2 F10 / S7-C — what the trial actually includes. */
         <p className="mt-1.5 text-xs text-slate-400 leading-relaxed" data-testid="evaluator-trial-included">

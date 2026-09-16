@@ -61,6 +61,8 @@ export interface PricingSegmentSwitchProps {
   labels?: Partial<Record<PricingTab, { label: string; sub: string }>>;
   /** Called after every tab change (analytics wiring for callers). */
   onChange?: (tab: PricingTab) => void;
+  /** Plan ids with an annual Stripe Price — forwarded to <PricingMatrix>. */
+  annualAvailable?: readonly string[];
 }
 
 const DEFAULT_LABELS: Record<PricingTab, { label: string; sub: string }> = {
@@ -93,6 +95,7 @@ export function PricingSegmentSwitch({
   readTabFromUrl = true,
   labels,
   onChange,
+  annualAvailable,
 }: PricingSegmentSwitchProps) {
   // The URL is an external store: "no tab" while hydrating (matches the
   // server document), the deep-linked tab on the first client render. A
@@ -211,7 +214,7 @@ export function PricingSegmentSwitch({
         id={`pricing-panel-${tab}`}
         aria-labelledby={`pricing-tab-${tab}`}
       >
-        <PricingMatrix segment={TAB_TO_SEGMENT[tab]} />
+        <PricingMatrix segment={TAB_TO_SEGMENT[tab]} annualAvailable={annualAvailable} />
       </div>
     </div>
   );

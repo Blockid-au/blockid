@@ -6,6 +6,7 @@ import { Building2, Check } from "lucide-react";
 import Link from "next/link";
 import { FAQV2 } from "@/components/landing/faq-v2";
 import { PricingSegmentSwitch } from "@/components/landing/pricing-segment-switch";
+import { annualAvailablePlanIds } from "@/lib/plans/annual-available";
 import { FAQJsonLd } from "@/components/seo/json-ld";
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
@@ -89,7 +90,10 @@ const FAQ_JSONLD = [
 // Page
 // ---------------------------------------------------------------------------
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  // Annual toggle honesty (2026-09-16 audit): only rungs with a yearly
+  // Stripe Price render a per-year figure + carry `interval=annual`.
+  const annualAvailable = await annualAvailablePlanIds();
   // Founding-50 promo sunset 2026-09-01 (Phase 3b) — the urgency banner
   // that used to live here linked to the (now deleted) /founding-50 route
   // and has been removed outright. `getFoundingPromoState()` still exists
@@ -193,7 +197,7 @@ export default function PricingPage() {
         aria-label="Pricing matrix"
         className="mx-auto max-w-7xl px-6 py-8 sm:py-12 scroll-mt-24"
       >
-        <PricingSegmentSwitch />
+        <PricingSegmentSwitch annualAvailable={annualAvailable} />
         {/* G11 §4g anchor line (T0249): prices the Money Finder scan against
             what a grants consultant charges. Sits under the ladder, outside
             <PricingMatrix /> so the matrix component stays untouched. */}

@@ -24,4 +24,15 @@ describe("signedInSignupRedirect (S31-B)", () => {
       "/workspace/billing?plan=founder_growth",
     );
   });
+
+  // 2026-09-16 audit: the pricing card's Annual toggle must survive the
+  // signed-in bounce so Billing bills the cadence the card showed.
+  it("carries interval=annual to Billing; anything else stays monthly (no param)", () => {
+    expect(signedInSignupRedirect("investor_angel", "annual")).toBe(
+      "/workspace/billing?plan=investor_angel&interval=annual",
+    );
+    expect(signedInSignupRedirect("investor_angel", "monthly")).toBe("/workspace/billing?plan=investor_angel");
+    expect(signedInSignupRedirect("investor_angel", undefined)).toBe("/workspace/billing?plan=investor_angel");
+    expect(signedInSignupRedirect("nope", "annual")).toBe("/workspace/billing");
+  });
 });

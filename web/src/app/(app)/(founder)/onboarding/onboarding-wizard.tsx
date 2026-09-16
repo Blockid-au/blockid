@@ -56,6 +56,8 @@ function isValidSegment(v: string): v is Segment {
 export interface OnboardingInitialParams {
   trial?: string;
   plan?: string;
+  /** `annual` from the pricing card's toggle; anything else = monthly. */
+  interval?: string;
   step?: string;
   segment?: string;
   /**
@@ -88,7 +90,11 @@ function loadInitialState(initialParams: OnboardingInitialParams): WizardState {
     }
   }
 
-  if (initialParams.plan) state.planId = initialParams.plan;
+  if (initialParams.plan) {
+    state.planId = initialParams.plan;
+    // The cadence belongs to this click, not to a stale saved wizard.
+    state.interval = initialParams.interval === "annual" ? "annual" : "monthly";
+  }
   if (initialParams.segment && isValidSegment(initialParams.segment)) {
     state.segment = initialParams.segment;
   }

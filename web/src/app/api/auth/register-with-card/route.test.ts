@@ -27,6 +27,8 @@ interface PlanRow {
   stripe_price_id: string | null;
   active: boolean;
   interval?: string;
+  stripe_price_id_annual?: string | null;
+  annual_price_aud_cents?: number;
 }
 
 const mocks = vi.hoisted(() => ({
@@ -160,6 +162,8 @@ const PLANS: Record<string, PlanRow> = {
     price_aud_cents: 7900,
     trial_days: 7,
     stripe_price_id: "price_angel",
+    stripe_price_id_annual: "price_angel_annual",
+    annual_price_aud_cents: 79000,
     active: true,
   },
   investor_vc_small: {
@@ -442,6 +446,37 @@ describe("card stays required", () => {
       status: "trialing",
       payment_method_saved: true,
     });
+  });
+
+  // 2026-09-16 pricing audit: the Annual toggle on /pricing now reaches the
+  // charge. Annual bills `stripe_price_id_annual`; a rung without one falls
+  // back to monthly and says so — never the annual figure at a monthly SKU.
+  it("interval=annual bills the plan's annual Stripe Price and reports it", async () => {
+    const res = await POST(req(body({ interval: "annual" })));
+    const json = (await res.json()) as { ok: boolean; trial: { price_display: string; interval: string } };
+    expect(res.status).toBe(200);
+    expect(mocks.subscriptionCreates[0]).toMatchObject({
+      items: [{ price: "price_angel_annual" }],
+      metadata: { plan_id: "investor_angel", interval: "annual" },
+    });
+    expect(json.trial.interval).toBe("annual");
+    expect(json.trial.price_display).toBe("A$790");
+  });
+
+  it("interval=annual on a rung without an annual Price bills monthly and says so", async () => {
+    const res = await POST(req(body({ plan_id: "founder_starter", account_type: "founder", interval: "annual" })));
+    const json = (await res.json()) as { trial: { price_display: string; interval: string } };
+    expect(mocks.subscriptionCreates[0]).toMatchObject({
+      items: [{ price: "price_starter" }],
+      metadata: { interval: "monthly" },
+    });
+    expect(json.trial.interval).toBe("monthly");
+    expect(json.trial.price_display).toBe("A$29");
+  });
+
+  it("omitting interval keeps the monthly Price (existing callers unchanged)", async () => {
+    await POST(req(body()));
+    expect(mocks.subscriptionCreates[0]).toMatchObject({ items: [{ price: "price_angel" }] });
   });
 
   it("409 email_taken for a duplicate email", async () => {

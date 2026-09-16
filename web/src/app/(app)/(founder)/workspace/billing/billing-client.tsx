@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LegacyPlan as Plan } from "@/lib/plans";
+import { parseBillingInterval, type BillingInterval } from "@/lib/plans/billing-interval";
 import {
   BILLING_TIER_RANK,
   isCrossLadderRequest,
@@ -136,6 +137,8 @@ export function BillingClient({
     // Stripe checkout for that plan straight away (it is the button they
     // pressed); an unknown or non-upgrade id just lands on the grid.
     const wanted = searchParams.get("plan");
+    // `?interval=annual` rides along from the pricing card's Annual toggle.
+    const wantedInterval = parseBillingInterval(searchParams.get("interval"));
     if (wanted) {
       deepLinkFired.current = true;
       const target = plans.find((p) => p.id === wanted);
@@ -149,7 +152,7 @@ export function BillingClient({
         (crossLadder || rank > currentRank) &&
         wanted !== effectivePlanId
       ) {
-        void handleCheckout(wanted);
+        void handleCheckout(wanted, wantedInterval);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot on mount; handleCheckout is stable for the page's life
@@ -215,14 +218,14 @@ export function BillingClient({
     }
   }
 
-  async function handleCheckout(planId: string) {
+  async function handleCheckout(planId: string, interval: BillingInterval = "monthly") {
     setLoadingAction(planId);
     setError(null);
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: planId }),
+        body: JSON.stringify(interval === "annual" ? { plan: planId, interval } : { plan: planId }),
       });
       const json = await res.json();
       if (json.ok && json.url) {
