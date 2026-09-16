@@ -162,7 +162,7 @@ const BUSINESS_MODEL_PATTERNS: ReadonlyArray<{ model: Exclude<BusinessModel, "un
   { model: "ecommerce_d2c", re: /\be-?commerce\b|\bd2c\b|\bdtc\b|\bdirect[-\s]?to[-\s]?consumer\b|\bonline store\b|\bshopify\b|\bdropship|\bskus?\b|\bphysical products?\b|\bgross margin per (?:unit|order)\b|\baverage order value\b|\baov\b/i },
   { model: "saas_subscription", re: /\bsaas\b|\bsoftware[-\s]as[-\s]a[-\s]service\b|\bsubscription\b|\bmrr\b|\barr\b|\bper[-\s]seat\b|\bper user per month\b|\bannual (?:contract|licen[cs]e)\b|\brecurring revenue\b|\bfreemium\b|\bself[-\s]serve\b|\bb2b software\b/i },
   { model: "consumer_app", re: /\bconsumer app\b|\bmobile app\b|\bapp store\b|\bgoogle play\b|\bdau\b|\bmau\b|\bin[-\s]app purchases?\b|\bad[-\s]supported\b|\bdownloads\b|\busers? (?:sign|signed) up\b|\bsocial app\b/i },
-  { model: "agency_consultancy", re: /\bagency\b|\bconsultanc(?:y|ies)\b|\bconsulting\b|\btime and materials\b|\bbillable hours\b|\bday rate\b|\bretainer\b|\bstudio\b|\bprojects? for clients\b/i },
+  { model: "agency_consultancy", re: /\bagency\b|\bconsultanc(?:y|ies)\b|\bconsulting\b|\btime and materials\b|\bbillable hours\b|\bday rates?\b|\bretainer\b|\bstudio\b|\bprojects? for clients\b/i },
   { model: "services_enabled_tech", re: /\btech[-\s]?enabled services?\b|\bmanaged services?\b|\bdone[-\s]for[-\s]you\b|\bservice delivery\b|\bwe (?:deliver|provide) (?:the )?services?\b|\bon[-\s]demand (?:service|staff)\b|\bconcierge\b/i },
 ];
 
@@ -202,7 +202,8 @@ function scoreBusinessModels(input: SuggestTaxonomyInput, text: string, industry
     for (const p of BUSINESS_MODEL_PATTERNS) {
       const n = countMatches(p.re, text);
       if (n === 0) continue;
-      add(p.model, clamp01(0.25 + 0.15 * Math.log2(n + 1)), `${n} keyword hit${n === 1 ? "" : "s"}`);
+      // 1 hit → 0.45 (below the floor), 2 → 0.54, 3 → 0.6.
+      add(p.model, clamp01(0.3 + 0.15 * Math.log2(n + 1)), `${n} keyword hit${n === 1 ? "" : "s"}`);
     }
   }
 
@@ -228,7 +229,8 @@ function scoreCustomerTypes(text: string): Scored<CustomerType>[] {
   for (const p of CUSTOMER_PATTERNS) {
     const n = countMatches(p.re, text);
     if (n === 0) continue;
-    out.push({ value: p.type, score: clamp01(0.3 + 0.15 * Math.log2(n + 1)), why: `${n} hit${n === 1 ? "" : "s"}` });
+    // 1 hit → exactly the floor (0.5), 2 → 0.59, 3 → 0.65.
+    out.push({ value: p.type, score: clamp01(0.35 + 0.15 * Math.log2(n + 1)), why: `${n} hit${n === 1 ? "" : "s"}` });
   }
   return out.sort((a, b) => b.score - a.score);
 }

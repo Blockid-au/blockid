@@ -398,6 +398,17 @@ export const LEGACY_SECTOR_TO_INDUSTRY: Readonly<Record<string, Industry>> = {
 /** detectSector slug → canonical industry (the `sub_industry` column keeps the slug). */
 export const SUB_INDUSTRY_TO_INDUSTRY = LEGACY_SECTOR_TO_INDUSTRY;
 
+/** The 25 slugs `detectSector()` (svi-analysis.ts:122) can return — the `sub_industry` vocabulary. */
+export const DETECT_SECTOR_SLUGS = [
+  "healthtech", "biotech", "fintech", "wealthtech", "insurtech", "edtech", "deeptech", "legaltech", "proptech",
+  "hrtech", "agtech", "cleantech", "spacetech", "constructiontech", "cybertech", "logisticstech", "retailtech",
+  "govtech", "sportstech", "traveltech", "mediatech", "gaming", "marketplace", "ecommerce", "saas",
+] as const;
+export type DetectSectorSlug = (typeof DETECT_SECTOR_SLUGS)[number];
+export function isDetectSectorSlug(v: unknown): v is DetectSectorSlug {
+  return typeof v === "string" && (DETECT_SECTOR_SLUGS as readonly string[]).includes(v);
+}
+
 /** Canonical industry → sector-multiples key (§B.2 column 5; `marketplace` business model overrides — see {@link multiplesKeyFor}). */
 export const INDUSTRY_TO_MULTIPLES_KEY: Record<Industry, string> = {
   software_saas: "saas",
@@ -617,13 +628,12 @@ export function crosswalkIndustryDetailed(raw: string | null | undefined): Indus
   if (!trimmed) return { industry: "unclassified", sub_industry: null, via: "none" };
 
   const snake = snakeKey(trimmed);
-  if (isIndustry(snake)) return { industry: snake, sub_industry: null, via: "canonical" };
+  if (isIndustry(snake)) return { industry: snake, sub_industry: isDetectSectorSlug(snake) ? snake : null, via: "canonical" };
 
   const norm = normaliseKey(trimmed);
   const legacy = LEGACY_SECTOR_TO_INDUSTRY[snake] ?? LEGACY_SECTOR_TO_INDUSTRY[norm];
   if (legacy) {
-    const isSlug = snake in LEGACY_SECTOR_TO_INDUSTRY && /^[a-z]+$/.test(snake) && snake !== "default";
-    return { industry: legacy, sub_industry: isSlug && legacy !== "unclassified" ? snake : null, via: "legacy" };
+    return { industry: legacy, sub_industry: isDetectSectorSlug(snake) && legacy !== "unclassified" ? snake : null, via: "legacy" };
   }
 
   // Free text (projects.industry / startup_listings.sector / svi_index_snapshots.sector).

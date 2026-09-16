@@ -17,6 +17,7 @@ import {
   BUSINESS_MODELS,
   BUSINESS_MODEL_LABELS,
   CUSTOMER_TYPES,
+  DETECT_SECTOR_SLUGS,
   GEO_SCOPES,
   HQ_STATES,
   INDUSTRIES,
@@ -74,12 +75,12 @@ function optionValues(file: string, name: string): string[] {
 
 // ─── Legacy vocabularies (the ≥ 6 sector + ≥ 5 stage lists §B.1 names) ───────
 
-const DETECT_SECTOR_SLUGS = [...readFileSync(resolve(SRC, "lib/svi-analysis.ts"), "utf8").matchAll(/return "([a-z]+)";/g)]
+const DETECT_SECTOR_SLUGS_FROM_SOURCE = [...readFileSync(resolve(SRC, "lib/svi-analysis.ts"), "utf8").matchAll(/return "([a-z]+)";/g)]
   .map((m) => m[1])
   .filter((s, i, arr) => arr.indexOf(s) === i);
 
 const SECTOR_VOCABULARIES: Array<{ name: string; values: string[]; min: number }> = [
-  { name: "detectSector slugs (svi-analysis.ts:122)", values: DETECT_SECTOR_SLUGS.filter((s) => s in SECTOR_LABELS), min: 25 },
+  { name: "detectSector slugs (svi-analysis.ts:122)", values: DETECT_SECTOR_SLUGS_FROM_SOURCE.filter((s) => s in SECTOR_LABELS), min: 25 },
   { name: "SECTOR_LABELS keys (svi-analysis.ts:94)", values: Object.keys(SECTOR_LABELS), min: 25 },
   { name: "Sector multiples keys (valuation/sector-multiples-static.ts:17)", values: [...SECTOR_KEYS], min: 27 },
   { name: "BenchmarkSector (svi/sector-map.ts:9)", values: ["saas", "marketplace", "fintech", "healthtech", "climatetech", "hardware", "consumer", "deeptech", "default"], min: 9 },
@@ -175,8 +176,13 @@ describe("crosswalkIndustry — every legacy sector vocabulary", () => {
     });
   }
 
+  it("DETECT_SECTOR_SLUGS pins the slugs detectSector() actually returns", () => {
+    expect([...DETECT_SECTOR_SLUGS].sort()).toEqual([...DETECT_SECTOR_SLUGS_FROM_SOURCE].sort());
+    for (const slug of DETECT_SECTOR_SLUGS) expect(crosswalkIndustryDetailed(slug).sub_industry).toBe(slug === "marketplace" ? null : slug);
+  });
+
   it("detectSector slugs: only marketplace maps to unclassified (business model), the rest to a real industry", () => {
-    const unclassified = DETECT_SECTOR_SLUGS.filter((s) => crosswalkIndustry(s) === "unclassified");
+    const unclassified = DETECT_SECTOR_SLUGS_FROM_SOURCE.filter((s) => crosswalkIndustry(s) === "unclassified");
     expect(unclassified).toEqual(["marketplace"]);
     expect(crosswalkIndustryDetailed("wealthtech")).toEqual({ industry: "fintech", sub_industry: "wealthtech", via: "legacy" });
     expect(crosswalkIndustryDetailed("marketplace").sub_industry).toBeNull();
