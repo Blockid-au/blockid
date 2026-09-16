@@ -1,24 +1,46 @@
-// Pure phase → NavItem recommender used as the fallback for the sidebar
-// `RecommendedNextStepTile`. Consumed when `/api/nudge/next-steps` is
-// unavailable, returns non-2xx, or does not include a `next_action`.
+// Pure phase → next-step recommender — the ONE engine behind the founder
+// landing's "Next best action" block (G13-W3-IA3, spec §B.2).
 //
-// Zero I/O by design — this is a pure function of (currentPhase, planId,
-// segment). Unit-testable in isolation from React / fetch / Supabase.
+// Zero I/O by design — a pure function of (currentPhase, planId, segment,
+// signals). Unit-testable in isolation from React / fetch / Supabase.
 //
-// The map is keyed against `PHASE_LABELS` (1..12) so any drift in the
-// canonical journey is caught at test-time. Segment overrides (investor,
-// advisor, accelerator, reseller) short-circuit the phase map because a
-// non-founder never needs a founder-phase nudge.
+// Phase scale (goal doc D4, spec §B.5): the map is keyed on the 12 canonical
+// `GrowthPhaseId`s in `lib/growth/phase-taxonomy.ts`; `currentPhase` is the
+// 1-based `GROWTH_PHASE_ORDER` ordinal (0 = nothing scored yet). Copy shows
+// the phase LABEL ("Because you're at Customer Development"), never
+// "Phase 7/12". Segment overrides (investor, advisor, accelerator,
+// reseller) short-circuit the phase map because a non-founder never needs
+// a founder-phase nudge.
 //
-// See ux-ia-startup-flow-v1 §C.5 (progressive disclosure) and the
-// atlassian-standard-mapping-goal §3 (nudge contract).
+// `impact` states the benefit next to the CTA ("+6 SVI pts", "A$45k grant
+// closes 30 Sep"). It is derived from the caller's `signals` — the page
+// already holds the evidence-gap and Money Radar reads — so this module
+// never invents a number.
 
-import { PHASE_LABELS } from "@/lib/showcase/gallery";
+import {
+  GROWTH_PHASE_IDS,
+  GROWTH_PHASE_LABELS,
+  GROWTH_PHASE_ORDER,
+  isGrowthPhaseId,
+  orderToGrowthPhase,
+  type GrowthPhaseId,
+} from "@/lib/growth/phase-taxonomy";
 
 export interface SecondaryNextStep {
   href: string;
   label: string;
   reason: string;
+}
+
+export interface NextStepImpact {
+  /** Estimated SVI points the step is worth (from the evidence-gap model). */
+  sviDelta?: number;
+  /** A$ on the table behind the Money Finder secondary line. */
+  moneyAud?: number;
+  /** ISO day the money closes (for "closes 30 Sep"). */
+  moneyClosesAt?: string | null;
+  /** Grant / program name behind `moneyAud`. */
+  moneyLabel?: string | null;
 }
 
 export interface RecommendedNextStep {
@@ -28,12 +50,14 @@ export interface RecommendedNextStep {
   ctaLabel: string;
   /**
    * Optional second line under the primary CTA (G11 T0244, plan §4f): the
-   * Money Finder nudge for phases 1–3, where non-dilutive money should be
-   * checked before any equity conversation. Rendered small; never replaces
-   * the primary step.
+   * Money Finder nudge for the first three phases, where non-dilutive money
+   * should be checked before any equity conversation. Never replaces the
+   * primary step.
    */
   secondary?: SecondaryNextStep;
-  /** Lucide icon name — resolved to a real component in the client tile. */
+  /** Benefit statement for block 2 (spec §B.2 contract change). */
+  impact?: NextStepImpact;
+  /** Lucide icon name — resolved to a real component in the client CTA. */
   icon:
     | "sparkles"
     | "file-text"
@@ -50,22 +74,34 @@ export interface RecommendedNextStep {
     | "handshake";
 }
 
+export interface NextStepSignals {
+  /** `estimatedSviImpact` of the founder's top evidence gap (null = unknown). */
+  topEvidenceGapPts?: number | null;
+  /** Best open grant / program from the Money Radar (null = none matched). */
+  topMoney?: { label: string; amountAud: number | null; closesAt: string | null } | null;
+}
+
 export interface RecommendNextStepInput {
-  /** Founder's canonical phase (0..12). 0 means "no phase yet — start here". */
+  /** Founder's canonical phase ordinal (0..12). 0 means "no phase yet — start here". */
   currentPhase: number;
+  /** Canonical id — wins over `currentPhase` when both are given. */
+  growthPhaseId?: GrowthPhaseId | string | null;
   /** Legacy plan id (e.g. "free", "founder_free", "growth"). */
   planId?: string | null;
   /** Optional audience bucket — investor/advisor/etc. override phase logic. */
   segment?: string | null;
+  /** Server-side reads that let the step state its benefit. */
+  signals?: NextStepSignals | null;
 }
 
-// Phase 0 fallback — a fresh founder who hasn't started the 13-criteria SVI
-// evaluation yet. Points them at the fastest "win" surface.
+// Phase 0 — a fresh founder with nothing scored. `/analyze` is the only
+// surface that works before a score exists (spec §B.4: not
+// /workspace/score/criteria, which needs a score first).
 const PHASE_0_STEP: RecommendedNextStep = {
-  href: "/workspace/score/criteria",
+  href: "/analyze",
   label: "Run your 8-dimension SVI evaluation",
-  reason: "Baseline your startup before we can recommend next steps",
-  ctaLabel: "Start evaluation",
+  reason: "A free analysis takes 3 minutes and gives you a baseline on 8 dimensions",
+  ctaLabel: "Start",
   icon: "sparkles",
 };
 
@@ -110,120 +146,149 @@ const SEGMENT_STEPS: Record<string, RecommendedNextStep> = {
   },
 };
 
-// Secondary nudge for the idea → validation → discovery phases: grants and
-// programs first, equity later. Sidebar leaf: Validate › Discover.
+// Secondary nudge for the vision → customer development → revenue model
+// phases: grants and programs first, equity later. Sidebar leaf: Money ›
+// Funding.
 export const MONEY_FINDER_SECONDARY: SecondaryNextStep = {
   href: "/workspace/funding",
   label: "Find non-dilutive money first",
   reason: "Grants and programs you already qualify for, before you sell equity",
 };
 
-// Phase 1..12 → step. Mirrors the group order in NAV_GROUPS so a user's
-// next recommended action always points inside a group they can also reach
-// via the sidebar (no dead-end deep-links).
-const PHASE_TO_STEP: Record<number, RecommendedNextStep> = {
-  1: {
+/** Phases that carry the Money Finder secondary line (ordinals 1–3). */
+export const MONEY_FINDER_PHASES: readonly GrowthPhaseId[] = Object.freeze(["vision", "customer_dev", "revenue_model"]);
+
+// Growth phase → step. Every href is a v4 hub root or tab (lib/nav/hubs.ts)
+// so the recommendation always lands inside a surface the sidebar can also
+// reach (no dead-end deep-links).
+const PHASE_TO_STEP: Record<GrowthPhaseId, RecommendedNextStep> = {
+  vision: {
     href: "/workspace/score/criteria",
-    label: "Capture your Day-0 vision",
-    reason: "Frame the problem before building",
+    label: "Capture your vision & mission",
+    reason: "Frame the problem before building — the 13 criteria start here",
     ctaLabel: "Start evaluation",
     icon: "sparkles",
     secondary: MONEY_FINDER_SECONDARY,
   },
-  2: {
+  customer_dev: {
     href: "/workspace/evidence",
-    label: "Log your first evidence",
+    label: "Log your first customer evidence",
     reason: "Validation gets measurable when you upload proof",
     ctaLabel: "Add evidence",
     icon: "file-text",
     secondary: MONEY_FINDER_SECONDARY,
   },
-  3: {
-    href: "/workspace/knowledge-base",
-    label: "Research your target market",
-    reason: "The Knowledge Base builds your market thesis",
-    ctaLabel: "Open Knowledge Base",
-    icon: "map",
+  revenue_model: {
+    href: "/workspace/strategy/pricing",
+    label: "Define your revenue model",
+    reason: "Investors read the business model before the product",
+    ctaLabel: "Open pricing strategy",
+    icon: "banknote",
     secondary: MONEY_FINDER_SECONDARY,
   },
-  4: {
+  pitch: {
+    href: "/workspace/raise/deck",
+    label: "Check your pitch deck",
+    reason: "A scored deck is the fastest investor-ready artefact",
+    ctaLabel: "Run deck check",
+    icon: "target",
+  },
+  mentor_review: {
+    href: "/workspace/reports/business",
+    label: "Get your Business Report reviewed",
+    reason: "The 10-page report is what mentors and evaluators read first",
+    ctaLabel: "Open business report",
+    icon: "file-text",
+  },
+  legal_equity: {
+    href: "/workspace/equity",
+    label: "Set up your equity split",
+    reason: "Cap table and vesting before any capital conversation",
+    ctaLabel: "Open equity",
+    icon: "pie-chart",
+  },
+  go_to_market: {
+    href: "/workspace/strategy/gtm",
+    label: "Plan your go-to-market",
+    reason: "GTM turns validation into repeatable growth",
+    ctaLabel: "Open GTM plan",
+    icon: "map",
+  },
+  product_dev: {
     href: "/workspace/evidence/metrics",
-    label: "Track your MVP metrics",
-    reason: "Discovery data unlocks the next phase",
+    label: "Track your product metrics",
+    reason: "Product velocity is the evidence investors probe",
     ctaLabel: "Add metrics",
     icon: "bar-chart",
   },
-  5: {
-    href: "/workspace/reports",
-    label: "Publish your weekly report",
-    reason: "PMF signals show up in the weekly cadence",
-    ctaLabel: "See weekly reports",
-    icon: "trending-up",
-  },
-  6: {
-    href: "/workspace/finance/revenue",
-    label: "Log your recurring revenue",
-    reason: "Your business model needs a revenue line",
-    ctaLabel: "Update revenue",
-    icon: "banknote",
-  },
-  7: {
-    href: "/workspace/evidence/metrics",
-    label: "Analyse your growth metrics",
-    reason: "Growth-stage founders live in the metrics dashboard",
-    ctaLabel: "Open metrics",
-    icon: "bar-chart",
-  },
-  8: {
-    href: "/workspace/team/salaries",
-    label: "Model your team & salaries",
-    reason: "Team scaling drives your next raise",
-    ctaLabel: "Open team",
-    icon: "users",
-  },
-  9: {
+  investor_review: {
     href: "/workspace/raise",
     label: "Check your fundraise readiness",
     reason: "See the gaps before you pitch investors",
     ctaLabel: "Open readiness",
     icon: "target",
   },
-  10: {
+  team: {
+    href: "/workspace/team",
+    label: "Plan your team & salaries",
+    reason: "Team scaling drives your next raise",
+    ctaLabel: "Open team plan",
+    icon: "users",
+  },
+  growth: {
+    href: "/workspace/finance/revenue",
+    label: "Log your recurring revenue",
+    reason: "Growth is measured in revenue lines, not slides",
+    ctaLabel: "Update revenue",
+    icon: "trending-up",
+  },
+  funding: {
     href: "/workspace/documents/data-room",
     label: "Ready your data room",
     reason: "Term-sheet stage — investors want the room open",
     ctaLabel: "Open data room",
     icon: "file-text",
   },
-  11: {
-    href: "/workspace/equity/cap-table",
-    label: "Update your cap table",
-    reason: "Post-funding rows keep your cap table clean",
-    ctaLabel: "Open cap table",
-    icon: "pie-chart",
-  },
-  12: {
-    href: "/workspace/exit",
-    label: "Model your exit scenarios",
-    reason: "Exit modelling turns diligence into a term sheet",
-    ctaLabel: "Open exit modelling",
-    icon: "door-open",
-  },
 };
+
+/** Steps whose benefit is best stated as SVI points (evidence-shaped hrefs). */
+const SVI_IMPACT_HREF = /^\/(analyze|workspace\/(evidence|score))/;
+
+/** Resolve the canonical phase id from the input, or null for phase 0 / unknown. */
+export function resolveGrowthPhase(input: Pick<RecommendNextStepInput, "currentPhase" | "growthPhaseId">): GrowthPhaseId | null {
+  if (isGrowthPhaseId(input.growthPhaseId)) return input.growthPhaseId;
+  const n = Number(input.currentPhase);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return orderToGrowthPhase(Math.max(1, Math.min(GROWTH_PHASE_IDS.length, Math.round(n))));
+}
+
+function withImpact(step: RecommendedNextStep, signals: NextStepSignals | null | undefined): RecommendedNextStep {
+  if (!signals) return step;
+  const impact: NextStepImpact = {};
+  const pts = signals.topEvidenceGapPts;
+  if (typeof pts === "number" && Number.isFinite(pts) && pts > 0 && SVI_IMPACT_HREF.test(step.href)) {
+    impact.sviDelta = Math.round(pts);
+  }
+  const money = signals.topMoney;
+  if (step.secondary && money && typeof money.amountAud === "number" && money.amountAud > 0) {
+    impact.moneyAud = money.amountAud;
+    impact.moneyClosesAt = money.closesAt ?? null;
+    impact.moneyLabel = money.label;
+  }
+  return Object.keys(impact).length > 0 ? { ...step, impact } : step;
+}
 
 /**
  * Recommend a single next step for a founder / investor / advisor session.
  *
  * Precedence (highest first):
  *   1. Segment override — investor/advisor/etc. use a fixed home surface.
- *   2. Phase-0 → evaluation (never leave a fresh founder without a CTA).
- *   3. PHASE_TO_STEP[currentPhase] — canonical 1..12 map.
- *   4. Final fallback — clamp into the 1..12 range and try again; if we
- *      still have nothing, return the phase-0 step so the tile is never
- *      empty on any state.
+ *   2. Phase-0 → /analyze (never leave a fresh founder without a CTA).
+ *   3. PHASE_TO_STEP[growthPhase] — canonical 12-phase map; out-of-range
+ *      ordinals clamp into 1..12 so the block is never empty on any state.
  */
 export function recommendNextStep(input: RecommendNextStepInput): RecommendedNextStep {
-  const { currentPhase, segment } = input;
+  const { segment, signals } = input;
 
   // (1) Segment override — a non-founder segment never falls through.
   if (segment && SEGMENT_STEPS[segment]) {
@@ -231,30 +296,27 @@ export function recommendNextStep(input: RecommendNextStepInput): RecommendedNex
   }
 
   // (2) Phase-0 shortcut.
-  if (!currentPhase || currentPhase <= 0) {
-    return PHASE_0_STEP;
-  }
+  const phase = resolveGrowthPhase(input);
+  if (!phase) return withImpact(PHASE_0_STEP, signals);
 
-  // (3) Canonical map. Guarded by PHASE_LABELS so we notice drift.
-  if (PHASE_LABELS[currentPhase] && PHASE_TO_STEP[currentPhase]) {
-    return PHASE_TO_STEP[currentPhase];
-  }
-
-  // (4) Out-of-range — clamp to 1..12.
-  const clamped = Math.max(1, Math.min(12, Math.round(currentPhase)));
-  return PHASE_TO_STEP[clamped] ?? PHASE_0_STEP;
+  // (3) Canonical map.
+  return withImpact(PHASE_TO_STEP[phase], signals);
 }
 
 /**
- * Human-readable "Because you're at Phase N: <label>" copy used by the
- * client tile. Kept here so unit tests can assert the string alongside
- * the href map.
+ * "Because you're at <phase label>" copy for block 2. Kept here so unit
+ * tests can assert the string alongside the href map. Shows the LABEL only
+ * (spec §B.5) — never "Phase 7/12".
  */
-export function reasonForPhase(currentPhase: number): string {
-  if (!currentPhase || currentPhase <= 0) {
-    return "Because you haven't started your evaluation yet";
-  }
-  const label = PHASE_LABELS[currentPhase];
-  if (!label) return `Because you're at Phase ${currentPhase}`;
-  return `Because you're at Phase ${currentPhase}: ${label.en}`;
+export function reasonForPhase(currentPhase: number | GrowthPhaseId | null | undefined): string {
+  const phase = isGrowthPhaseId(currentPhase)
+    ? currentPhase
+    : resolveGrowthPhase({ currentPhase: typeof currentPhase === "number" ? currentPhase : 0 });
+  if (!phase) return "Because you haven't started your evaluation yet";
+  return `Because you're at ${GROWTH_PHASE_LABELS[phase].en}`;
+}
+
+/** 1-based ordinal for a canonical id (exported for callers that show a ladder). */
+export function phaseOrdinal(id: GrowthPhaseId): number {
+  return GROWTH_PHASE_ORDER[id];
 }

@@ -26,6 +26,14 @@ export interface Plan {
   interval: "free" | "monthly" | "yearly" | "once" | "custom";
   trial_days: number;
   stripe_price_id: string | null;
+  /**
+   * Yearly Stripe Price for the same rung (`plans.stripe_price_id_annual`;
+   * generated fallback reads `<stripe_env_var>_ANNUAL`). Null = the rung
+   * has no annual SKU yet, so every annual surface must fall back to
+   * monthly rather than promise a price checkout cannot charge (2026-09-16
+   * audit: /pricing advertised A$290/yr while signup always billed A$29/mo).
+   */
+  stripe_price_id_annual: string | null;
   feature_flags: string[];
   usage_limits: Record<string, number>;
   active: boolean;
@@ -38,6 +46,7 @@ let cache: { at: number; plans: Plan[] } | null = null;
 function fromGenerated(g: GeneratedPlan): Plan {
   const envVar = g.stripe_env_var;
   const stripe_price_id = envVar ? (process.env[envVar] ?? null) : null;
+  const stripe_price_id_annual = envVar ? (process.env[`${envVar}_ANNUAL`] ?? null) : null;
   return {
     id: g.id,
     segment: g.segment,
@@ -47,6 +56,7 @@ function fromGenerated(g: GeneratedPlan): Plan {
     interval: g.interval,
     trial_days: g.trial_days,
     stripe_price_id,
+    stripe_price_id_annual,
     feature_flags: [...g.feature_flags],
     usage_limits: { ...g.usage_limits },
     active: g.active,
@@ -84,6 +94,10 @@ function fromRow(row: Record<string, unknown>): Plan {
   const stripe_price_id = typeof stripeFromRow === "string" && stripeFromRow.length > 0
     ? stripeFromRow
     : (envVar ? (process.env[envVar] ?? null) : null);
+  const annualFromRow = row.stripe_price_id_annual;
+  const stripe_price_id_annual = typeof annualFromRow === "string" && annualFromRow.length > 0
+    ? annualFromRow
+    : (envVar ? (process.env[`${envVar}_ANNUAL`] ?? null) : null);
   return {
     id,
     segment: String(row.segment ?? fallback?.segment ?? ""),
@@ -93,6 +107,7 @@ function fromRow(row: Record<string, unknown>): Plan {
     interval: normaliseInterval(row.interval ?? fallback?.interval),
     trial_days: typeof row.trial_days === "number" ? row.trial_days : (fallback?.trial_days ?? 0),
     stripe_price_id,
+    stripe_price_id_annual,
     feature_flags: normaliseArray(row.feature_flags),
     usage_limits: normaliseLimits(row.usage_limits),
     active: row.active !== false,
@@ -111,7 +126,7 @@ export async function getPlansCached(): Promise<Plan[]> {
     try {
       const { data, error } = await supabase
         .from("plans")
-        .select("id,segment,name,price_aud_cents,annual_price_aud_cents,interval,trial_days,stripe_price_id,feature_flags,usage_limits,active,sort_order")
+        .select("id,segment,name,price_aud_cents,annual_price_aud_cents,interval,trial_days,stripe_price_id,stripe_price_id_annual,feature_flags,usage_limits,active,sort_order")
         .eq("active", true)
         .order("sort_order", { ascending: true });
       if (!error && Array.isArray(data) && data.length > 0) {

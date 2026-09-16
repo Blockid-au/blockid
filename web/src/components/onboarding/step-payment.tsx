@@ -53,6 +53,9 @@ export function StepPayment({
   const [localError, setLocalError] = React.useState<string | null>(null);
 
   const plan = PLANS_V2.find((p) => p.id === state.planId);
+  const isAnnual =
+    state.interval === "annual" && typeof plan?.annual_aud === "number" && plan.annual_aud > 0;
+  const chargeAud = plan ? (isAnnual ? plan.annual_aud : plan.monthly_aud) : null;
 
   // Kick off checkout / setup-intent creation once on mount.
   React.useEffect(() => {
@@ -77,6 +80,7 @@ export function StepPayment({
             plan: state.planId,
             mode: "setup_intent",
             origin: "onboarding",
+            ...(state.interval === "annual" ? { interval: "annual" } : {}),
           }),
         });
         const data = await res.json().catch(() => ({ ok: false }));
@@ -106,7 +110,7 @@ export function StepPayment({
     return () => {
       cancelled = true;
     };
-  }, [state.planId]);
+  }, [state.planId, state.interval]);
 
   // Mount the vanilla Stripe.js card element once a client_secret is ready.
   React.useEffect(() => {
@@ -196,15 +200,16 @@ export function StepPayment({
         Add your card to start
       </h1>
       <p className="mt-2 text-brand-ink-muted">
-        {plan ? `${plan.name} · ${formatAud(plan.monthly_aud)}/mo` : "Your plan"}{" "}
+        {plan ? `${plan.name} · ${formatAud(chargeAud)}/${isAnnual ? "yr" : "mo"}` : "Your plan"}{" "}
         — 7-day free trial starts now.
       </p>
-      {plan && typeof plan.monthly_aud === "number" && plan.monthly_aud > 0 ? (
+      {plan && typeof chargeAud === "number" && chargeAud > 0 ? (
         // QA-3 P2: the amount Stripe will charge when the trial ends, GST
         // shown, before the redirect — matches the invoice tax line.
         <p className="mt-1 text-sm text-brand-ink-muted" data-testid="gst-line">
-          After the trial: {formatGstInclusiveAud(Math.round(plan.monthly_aud * 100))} per month,
-          charged in AUD. Cancel any time before the trial ends and nothing is charged.
+          After the trial: {formatGstInclusiveAud(Math.round(chargeAud * 100))} per{" "}
+          {isAnnual ? "year" : "month"}, charged in AUD. Cancel any time before the trial ends
+          and nothing is charged.
         </p>
       ) : null}
 

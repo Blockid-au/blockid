@@ -11,7 +11,7 @@
 
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { PricingMatrix } from "./pricing-matrix";
+import { PricingMatrix, effectiveCardInterval } from "./pricing-matrix";
 import {
   EVALUATOR_RADAR_LINE,
   FOUNDER_RADAR_BADGE,
@@ -74,5 +74,31 @@ describe("<PricingMatrix segment='investor' /> — Evaluator cards (T0247)", () 
 
   it("carries no Founder Radar chip — the bundle is a Starter thing", () => {
     expect(out).not.toContain('data-testid="plan-badge"');
+  });
+});
+
+// 2026-09-16 pricing audit: the Annual toggle showed A$290/yr for Starter
+// while no annual Stripe Price existed and every CTA dropped the interval —
+// signup billed A$29/mo. The card now (a) only shows a yearly figure for
+// rungs on the server's annual-provisioned list and (b) carries
+// `interval=annual` on its CTA so the charge matches the card.
+describe("effectiveCardInterval — Annual toggle honesty gate", () => {
+  it("monthly toggle is always monthly", () => {
+    expect(effectiveCardInterval("monthly", "investor_angel", ["investor_angel"])).toBe("monthly");
+    expect(effectiveCardInterval("monthly", "investor_angel", undefined)).toBe("monthly");
+  });
+  it("annual only for rungs on the provisioned list; no list = legacy 'all'", () => {
+    expect(effectiveCardInterval("annual", "investor_angel", ["investor_angel"])).toBe("annual");
+    expect(effectiveCardInterval("annual", "founder_starter", ["investor_angel"])).toBe("monthly");
+    expect(effectiveCardInterval("annual", "founder_starter", [])).toBe("monthly");
+    expect(effectiveCardInterval("annual", "founder_starter", undefined)).toBe("annual");
+  });
+});
+
+describe("<PricingMatrix /> CTA hrefs under the default (monthly) toggle", () => {
+  it("never carry interval=annual, and evaluator CTAs keep the T0269 shape", () => {
+    const out = renderToStaticMarkup(<PricingMatrix segment="investor" annualAvailable={[]} />);
+    expect(out).not.toContain("interval=annual");
+    expect(out).toContain("/signup?segment=evaluator&amp;plan=investor_angel&amp;trial=1");
   });
 });

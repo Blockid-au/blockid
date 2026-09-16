@@ -56,3 +56,43 @@ describe("SignupForm — evaluator trial step copy", () => {
     expect(out).not.toContain("included during the trial");
   });
 });
+
+// 2026-09-16 pricing audit: `?interval=annual` from the pricing card. A rung
+// with an annual Stripe Price is offered — and billed — per year; one
+// without falls back to monthly and says so instead of promising A$290/yr
+// at a monthly SKU.
+describe("SignupForm — annual interval", () => {
+  const SCOUT_ANNUAL: SignupPlanChoice = {
+    ...SCOUT,
+    annualPriceCents: 79000,
+    annualPriceDisplay: "A$790",
+    hasAnnualPrice: true,
+  };
+
+  it("annual + provisioned rung: picker shows /yr and the after-trial line quotes the yearly price", () => {
+    const out = renderToStaticMarkup(
+      <SignupForm segment="evaluator" trialPlans={[SCOUT_ANNUAL]} defaultPlanId="investor_angel" interval="annual" stripePublishableKey="pk_test_x" />,
+    );
+    expect(out).toContain("Scout — A$790/yr");
+    expect(out).toContain("A$790/year for Scout");
+    expect(out).not.toContain("annual-fallback-note");
+  });
+
+  it("annual + rung without an annual Price: stays monthly and shows the fallback note", () => {
+    const out = renderToStaticMarkup(
+      <SignupForm segment="founder" trialPlans={[FOUNDER]} defaultPlanId="founder_starter" interval="annual" stripePublishableKey="pk_test_x" />,
+    );
+    expect(out).toContain("Starter — A$29/mo");
+    expect(out).toContain("A$29/mo for Starter");
+    expect(out).toContain('data-testid="annual-fallback-note"');
+  });
+
+  it("monthly (default) never mentions annual", () => {
+    const out = renderToStaticMarkup(
+      <SignupForm segment="evaluator" trialPlans={[SCOUT_ANNUAL]} defaultPlanId="investor_angel" stripePublishableKey="pk_test_x" />,
+    );
+    expect(out).toContain("Scout — A$79/mo");
+    expect(out).not.toContain("/yr");
+    expect(out).not.toContain("annual-fallback-note");
+  });
+});

@@ -14,6 +14,7 @@
 // can import it.
 
 import { PLANS_V2 } from "@/lib/plans-v2";
+import { parseBillingInterval, withInterval } from "@/lib/plans/billing-interval";
 
 const CHECKOUTABLE = new Set(
   PLANS_V2.filter((p) => p.monthly_aud !== null && p.monthly_aud > 0).map((p) => p.id),
@@ -29,10 +30,18 @@ function first(v: string | string[] | undefined): string | undefined {
  * (free, custom-priced, unknown or missing). Never a marketing page: the
  * user is already a customer.
  */
-export function signedInSignupRedirect(plan: string | string[] | undefined): string {
+export function signedInSignupRedirect(
+  plan: string | string[] | undefined,
+  interval?: string | string[] | undefined,
+): string {
   const id = first(plan)?.trim();
   if (id && CHECKOUTABLE.has(id)) {
-    return `/workspace/billing?plan=${encodeURIComponent(id)}`;
+    // `?interval=annual` rides along so Billing's auto-checkout bills the
+    // cadence the pricing card showed (2026-09-16 audit).
+    return withInterval(
+      `/workspace/billing?plan=${encodeURIComponent(id)}`,
+      parseBillingInterval(interval),
+    );
   }
   return "/workspace/billing";
 }
