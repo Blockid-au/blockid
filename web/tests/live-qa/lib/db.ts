@@ -49,8 +49,8 @@ export function elevatePlan(email: string, plan = "growth"): string {
 
 /**
  * projects.growth_phase_current → the given phase for the QA account's
- * project, so the phase-gated nav leaves (Investor CRM phase 3, Expenses 4,
- * Listing Readiness / Clean-Room 5) render. Lane 1 (2026-09-13) did the
+ * project, so the phase-gated nav leaves (nav v4: Valuation band 2, Documents 3,
+ * Finance 4, Exit 5) render. Lane 1 (2026-09-13) did the
  * same by hand; there is no founder-facing API for it.
  */
 export function setGrowthPhase(email: string, projectId: string, phase = "funding"): string {

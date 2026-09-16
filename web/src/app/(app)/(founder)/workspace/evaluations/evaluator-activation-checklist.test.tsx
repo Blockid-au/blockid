@@ -30,7 +30,7 @@ function html(input: { evaluations: number; reports: number; sectors: number; di
 }
 
 describe("EvaluatorActivationChecklist", () => {
-  it("fresh trial: 4 steps, 0 of 4, days chip, step 1 primary CTA, step 2 blocked, step 3 links to preferences", () => {
+  it("fresh trial: 4 steps, 0 of 4, days chip, step 1 primary CTA, step 2 blocked, step 3 links to the mandate", () => {
     const out = html({ evaluations: 0, reports: 0, sectors: 0, discoverable: false });
     expect(out).toContain('data-testid="evaluator-activation-checklist"');
     expect(out).toContain('data-completed="0"');
@@ -51,7 +51,7 @@ describe("EvaluatorActivationChecklist", () => {
     expect(out).toMatch(/data-testid="evaluator-checklist-cta-1"[^>]*class="[^"]*bg-brand-600/); // primary = next step
     expect(out).not.toContain('data-testid="evaluator-checklist-cta-2"');
     expect(out).toContain(EVALUATIONS_COPY["checklist.stepBlocked"]);
-    expect(out).toMatch(/<a href="\/workspace\/investor\/preferences"[^>]*data-testid="evaluator-checklist-cta-3"/);
+    expect(out).toMatch(/<a href="\/workspace\/investor\/mandate"[^>]*data-testid="evaluator-checklist-cta-3"/);
     expect(out).toContain('data-testid="evaluator-checklist-cta-4"');
     // Dismiss control is a labelled 44px button
     expect(out).toMatch(/<button[^>]*aria-label="Hide this checklist"[^>]*data-testid="evaluator-checklist-dismiss"/);

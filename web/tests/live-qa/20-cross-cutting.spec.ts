@@ -12,11 +12,15 @@ import { env } from "./lib/env";
 
 
 
+// Nav v4 (G13-W1-IA1): phase-gated leaves live inside Money (band 2 / 4)
+// and the Company group (band 2, folded under "Later phases" below it).
+// Expenses / Listing readiness / Clean room became hub tabs (S-IA2) — the
+// sidebar rows that gate on phase are now Valuation, Finance, Documents, Exit.
 const NAV_LEAVES: Array<{ href: string; label: string; pillar: string; phase: number }> = [
-  { href: "/workspace/investors", label: "Investor CRM", pillar: "Fundraise", phase: 3 },
-  { href: "/workspace/expenses", label: "Expenses", pillar: "Scale & Exit", phase: 4 },
-  { href: "/workspace/listing-readiness", label: "Listing Readiness", pillar: "Scale & Exit", phase: 5 },
-  { href: "/workspace/clean-room", label: "Clean-Room Prep", pillar: "Scale & Exit", phase: 5 },
+  { href: "/dashboard/valuation", label: "Valuation", pillar: "Money", phase: 2 },
+  { href: "/dashboard/finance", label: "Finance", pillar: "Money", phase: 4 },
+  { href: "/workspace/documents", label: "Documents", pillar: "Company", phase: 3 },
+  { href: "/workspace/exit", label: "Exit", pillar: "Company", phase: 5 },
 ];
 
 async function navLink(page: Page, href: string, pillarLabel: string): Promise<Locator> {
@@ -34,7 +38,7 @@ async function navLink(page: Page, href: string, pillarLabel: string): Promise<L
 }
 
 test.describe("Navigation by growth phase", () => {
-  test("Investor CRM / Expenses / Listing Readiness / Clean-Room Prep sit under their pillars once the phase allows", async ({ page, visit, qa }, testInfo) => {
+  test("Valuation / Finance / Documents / Exit sit under Money / Company once the phase allows", async ({ page, visit, qa }, testInfo) => {
     await visit("/workspace/investors");
     await expect(page.getByRole("navigation", { name: "Workspace navigation" })).toBeVisible({ timeout: 30_000 });
     const seen: Record<string, { count: number; pillar: string | null }> = {};

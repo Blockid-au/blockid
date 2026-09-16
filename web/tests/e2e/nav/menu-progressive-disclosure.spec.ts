@@ -1,15 +1,16 @@
 /**
- * E2E — pillar-based progressive disclosure (menu-ia refactor).
+ * E2E — progressive disclosure, nav v4 (G13-W1-IA1, spec §A.1).
  *
- * Pins the acceptance criteria from the workflow design spec:
- *   - Only Overview + the phase-matching Now pillar are expanded on first
- *     paint. Every other pillar starts collapsed.
- *   - The RecommendedNextStepTile is visible above the nav and its CTA
- *     resolves (link href starts with /workspace or /dashboard or /reseller).
- *   - Clicking a collapsed pillar header persists across reload via the
- *     `blockid_nav_collapse_v1` localStorage key.
- *   - Investor overlay: only Overview + Investor render as expandable
- *     pillars above the account group.
+ * Pins:
+ *   - A phase-0 founder lands with Home · Prove · Money expanded and Company
+ *     folded under the "Later phases" disclosure (collapsed by default).
+ *   - Collapsing a group persists across reload via the
+ *     `blockid_nav_collapse_v1` localStorage key (keyed by group id).
+ *   - investor_angel sees Home · Deal flow · Reports only.
+ *   - A later-phase founder sees Company expanded in place.
+ *
+ * The RecommendedNextStepTile / UnlockPulseCard sidebar mounts were removed
+ * in S-IA1 (one recommender lands on the founder landing in S-IA3).
  *
  * The tests skip gracefully when the QA seed accounts are not present on
  * the dev box (matches the pattern used by menu-structure.spec.ts).
@@ -31,30 +32,10 @@ async function tryLogin(page: import("@playwright/test").Page, email: string): P
   }
 }
 
-test.describe("Menu progressive disclosure — RecommendedNextStepTile", () => {
+test.describe("Menu progressive disclosure — group collapse defaults", () => {
   test.setTimeout(45_000);
 
-  test("fresh founder (phase 0) sees the tile above the nav with a valid CTA", async ({ page }) => {
-    const ok = await tryLogin(page, FOUNDER_P0_EMAIL);
-    test.skip(!ok, `QA founder ${FOUNDER_P0_EMAIL} not seeded`);
-
-    await page.goto("/dashboard");
-
-    const tile = page.locator('[data-testid="rec-next-step"]');
-    await expect(tile).toBeVisible({ timeout: 15_000 });
-
-    const cta = page.locator('[data-testid="rec-next-step-cta"]');
-    await expect(cta).toBeVisible();
-    const href = await cta.getAttribute("href");
-    expect(href).toBeTruthy();
-    expect(href!).toMatch(/^\/(workspace|dashboard|reseller)/);
-  });
-});
-
-test.describe("Menu progressive disclosure — pillar collapse defaults", () => {
-  test.setTimeout(45_000);
-
-  test("only Overview + phase-matching Now pillar are expanded on first paint (founder p0)", async ({ page }) => {
+  test("phase-0 founder: every in-place group is expanded, Later phases is a collapsed disclosure", async ({ page }) => {
     const ok = await tryLogin(page, FOUNDER_P0_EMAIL);
     test.skip(!ok, `QA founder ${FOUNDER_P0_EMAIL} not seeded`);
 
@@ -69,20 +50,23 @@ test.describe("Menu progressive disclosure — pillar collapse defaults", () => 
     const nav = page.locator('nav[aria-label="Workspace navigation"]');
     await expect(nav).toBeVisible({ timeout: 15_000 });
 
-    // Expanded pillar headers are the <button> disclosures with
-    // aria-expanded="true". Overview is always expanded (non-collapsible)
-    // so it doesn't render as a button; count it separately.
-    const expandedButtons = nav.locator('button[aria-expanded="true"]');
-    const expandedCount = await expandedButtons.count();
-    // We expect at most ONE expanded Now-pillar button on first paint
-    // (Overview is always-open and renders as a plain header).
-    expect(expandedCount).toBeLessThanOrEqual(2);
-
-    const collapsedButtons = nav.locator('button[aria-expanded="false"]');
-    expect(await collapsedButtons.count()).toBeGreaterThan(0);
+    // Every group header is a disclosure <button>; with ≤ 10 links there is
+    // nothing to hide, so all in-place groups start expanded.
+    const groupButtons = nav.locator('[data-group-label] > button[aria-expanded]');
+    const n = await groupButtons.count();
+    expect(n).toBeGreaterThanOrEqual(1);
+    expect(n).toBeLessThanOrEqual(4);
+    for (let i = 0; i < n; i += 1) {
+      expect(await groupButtons.nth(i).getAttribute("aria-expanded")).toBe("true");
+    }
+    // Later phases (Company below band 2) is collapsed until clicked.
+    const later = nav.getByRole("button", { name: /later phases/i });
+    if ((await later.count()) > 0) {
+      await expect(later.first()).toHaveAttribute("aria-expanded", "false");
+    }
   });
 
-  test("clicking a collapsed pillar persists across reload (localStorage)", async ({ page }) => {
+  test("collapsing a group persists across reload (localStorage)", async ({ page }) => {
     const ok = await tryLogin(page, FOUNDER_P0_EMAIL);
     test.skip(!ok, `QA founder ${FOUNDER_P0_EMAIL} not seeded`);
 
@@ -96,12 +80,12 @@ test.describe("Menu progressive disclosure — pillar collapse defaults", () => 
     const nav = page.locator('nav[aria-label="Workspace navigation"]');
     await expect(nav).toBeVisible({ timeout: 15_000 });
 
-    // Click the first collapsed pillar to expand it.
-    const firstCollapsed = nav.locator('button[aria-expanded="false"]').first();
-    await expect(firstCollapsed).toBeVisible();
-    const pillarLabel = (await firstCollapsed.textContent())?.trim().split("\n")[0]?.trim();
-    await firstCollapsed.click();
-    await expect(firstCollapsed).toHaveAttribute("aria-expanded", "true");
+    // Collapse the second group (Prove) — the first (Home) is never collapsed.
+    const target = nav.locator('[data-group-label] > button[aria-expanded="true"]').nth(1);
+    await expect(target).toBeVisible();
+    const groupLabel = (await target.textContent())?.trim().split("\n")[0]?.trim();
+    await target.click();
+    await expect(target).toHaveAttribute("aria-expanded", "false");
 
     // Verify the localStorage write happened.
     const stored = await page.evaluate(() =>
@@ -109,40 +93,39 @@ test.describe("Menu progressive disclosure — pillar collapse defaults", () => 
     );
     expect(stored, "collapse state should persist").toBeTruthy();
 
-    // Reload and confirm the same pillar remains expanded.
+    // Reload and confirm the same group stays collapsed.
     await page.reload();
     await expect(nav).toBeVisible({ timeout: 15_000 });
-    if (pillarLabel) {
-      const same = nav.locator(`button:has-text("${pillarLabel}")`).first();
-      await expect(same).toHaveAttribute("aria-expanded", "true");
+    if (groupLabel) {
+      const same = nav.locator(`button:has-text("${groupLabel}")`).first();
+      await expect(same).toHaveAttribute("aria-expanded", "false");
     }
   });
 });
 
-test.describe("Menu progressive disclosure — role overlay", () => {
+test.describe("Menu progressive disclosure — evaluator persona", () => {
   test.setTimeout(45_000);
 
-  test("investor_angel sees Overview + Investor + Account only", async ({ page }) => {
+  test("investor_angel sees Home · Deal flow · Reports only", async ({ page }) => {
     const ok = await tryLogin(page, ANGEL_EMAIL);
     test.skip(!ok, `QA angel ${ANGEL_EMAIL} not seeded`);
 
-    await page.goto("/dashboard");
+    await page.goto("/workspace/investor");
     const nav = page.locator('nav[aria-label="Workspace navigation"]');
     await expect(nav).toBeVisible({ timeout: 15_000 });
 
-    // Founder-only pillars must NOT render for angels (hiddenGroups in
-    // role-menu-overlay.ts drops them entirely).
-    await expect(nav).not.toContainText(/build & validate/i);
-    await expect(nav).not.toContainText(/grow & scale/i);
-    // Investor pillar SHOULD render.
-    await expect(nav).toContainText(/investor/i);
+    // Founder groups must NOT render for angels (persona.ts navGroups).
+    const groups = await nav.locator("[data-group-label]").evaluateAll((els) => els.map((el) => el.getAttribute("data-group-label")));
+    expect(groups).toEqual(["Home", "Deal flow", "Reports"]);
+    await expect(nav).not.toContainText(/fundraise/i);
+    await expect(nav.locator('a[href="/workspace/investor/dealflow"]')).toBeVisible();
   });
 });
 
-test.describe("Menu progressive disclosure — founder-p6 auto-expands Fundraise/Grow", () => {
+test.describe("Menu progressive disclosure — later-phase founder sees Company in place", () => {
   test.setTimeout(45_000);
 
-  test("phase-6 founder lands with a Now-pillar group expanded", async ({ page }) => {
+  test("phase-6 founder lands with Company expanded (no Later-phases fold)", async ({ page }) => {
     const ok = await tryLogin(page, FOUNDER_P6_EMAIL);
     test.skip(!ok, `QA founder-p6 ${FOUNDER_P6_EMAIL} not seeded`);
 
@@ -155,8 +138,10 @@ test.describe("Menu progressive disclosure — founder-p6 auto-expands Fundraise
     const nav = page.locator('nav[aria-label="Workspace navigation"]');
     await expect(nav).toBeVisible({ timeout: 15_000 });
 
-    // At least one Now-pillar group must be expanded on first paint.
-    const expanded = nav.locator('button[aria-expanded="true"]');
-    expect(await expanded.count()).toBeGreaterThanOrEqual(1);
+    // Company (band 2) renders in place for a phase-6 (12-scale) founder.
+    const company = nav.locator("[data-group-label='Company'] > button[aria-expanded]");
+    await expect(company).toBeVisible();
+    await expect(company).toHaveAttribute("aria-expanded", "true");
+    await expect(nav.getByRole("button", { name: /later phases/i })).toHaveCount(0);
   });
 });

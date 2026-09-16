@@ -107,18 +107,28 @@ describe("unlock-matrix — visibility pipeline mirrors workspace-layout.tsx (na
     expect(cells.slice(0, 4).map((c) => c.id)).toEqual(PERSONAS.founder.navGroups);
   });
 
-  it("phase-0 founder sees exactly 10 leaves across 3 groups (spec §A.1)", () => {
-    const cells = renderSidebar({ ...founderFree, currentPhase: 0 });
-    const inPlace = cells.filter((c) => c.state === "visible");
-    expect(inPlace.map((c) => c.id)).toEqual(["home", "prove", "money"]);
-    expect(inPlace.reduce((n, c) => n + c.visibleItems, 0)).toBe(10);
-    expect(cells.find((c) => c.id === "company")?.state).toBe("later_preview");
+  // "Get investor-ready" is gated on the `startup_package` feature, which
+  // only the Package plan's feature_flags carry (plans.generated.ts; free
+  // never had it — see LEGACY_FEATURE_FALLBACK), so Free sees 9 rows at
+  // band 0 and Package the full 10 of spec §A.1.
+  const founderPackage = { planId: "founder_package", segment: "founder" as const, features: new Set(["startup_package"]) };
+
+  it("phase-0 founder sees ≤ 10 leaves across 3 groups (spec §A.1): 9 on Free, 10 with the package feature", () => {
+    for (const [ctx, count] of [[founderFree, 9], [founderPackage, 10]] as const) {
+      const cells = renderSidebar({ ...ctx, currentPhase: 0 });
+      const inPlace = cells.filter((c) => c.state === "visible");
+      expect(inPlace.map((c) => c.id)).toEqual(["home", "prove", "money"]);
+      expect(inPlace.reduce((n, c) => n + c.visibleItems, 0)).toBe(count);
+      expect(cells.find((c) => c.id === "company")?.state).toBe("later_preview");
+    }
   });
 
-  it("phase-5 founder sees 4 groups / 20 leaves; Company opens at band 2", () => {
-    const at5 = renderSidebar({ ...founderFree, currentPhase: 5 }).filter((c) => c.state === "visible");
-    expect(at5.map((c) => c.id)).toEqual(["home", "prove", "money", "company"]);
-    expect(at5.reduce((n, c) => n + c.visibleItems, 0)).toBe(20);
+  it("phase-5 founder sees 4 groups / 20 leaves (19 without the package feature); Company opens at band 2", () => {
+    for (const [ctx, count] of [[founderFree, 19], [founderPackage, 20]] as const) {
+      const at5 = renderSidebar({ ...ctx, currentPhase: 5 }).filter((c) => c.state === "visible");
+      expect(at5.map((c) => c.id)).toEqual(["home", "prove", "money", "company"]);
+      expect(at5.reduce((n, c) => n + c.visibleItems, 0)).toBe(count);
+    }
     expect(renderSidebar({ ...founderFree, currentPhase: 2 }).find((c) => c.id === "company")?.state).toBe("visible");
   });
 
