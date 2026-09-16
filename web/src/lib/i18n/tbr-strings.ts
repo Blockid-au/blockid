@@ -54,6 +54,12 @@ export interface TbrStrings {
   secRoadmap: string;
   secCohort: string;
   secMethodology: string;
+  // G13-W1-R1 — ReportV2 chapter titles
+  secCover: string;
+  secPhaseGates: string;
+  secMoney: string;
+  secActionPlan: string;
+  secAppendix: string;
 
   // TOC groupings
   tocOverview: string;
@@ -173,6 +179,11 @@ const en: TbrStrings = {
   secRoadmap: "Improvement Roadmap",
   secCohort: "Cohort Comparison — AU Seed Benchmarks",
   secMethodology: "Methodology & Appendix",
+  secCover: "Cover — Where / Worth / Next",
+  secPhaseGates: "Phase Gates — 13 Criteria × 12 Phases",
+  secMoney: "Money on the Table — Grants & Programs",
+  secActionPlan: "90-Day Action Plan",
+  secAppendix: "Appendix — Method, Evidence & Auditor Log",
 
   tocOverview: "Overview",
   tocDimensions: "8 Dimensions",
@@ -296,6 +307,11 @@ const vi: TbrStrings = {
   secRoadmap: "Lo trinh Cai thien",
   secCohort: "So sanh Nhom — Benchmark AU Seed",
   secMethodology: "Phuong phap & Phu luc",
+  secCover: "Trang bia — O dau / Gia tri / Tiep theo",
+  secPhaseGates: "Cong giai doan — 13 tieu chi × 12 giai doan",
+  secMoney: "Tien tren ban — Tai tro & Chuong trinh",
+  secActionPlan: "Ke hoach hanh dong 90 ngay",
+  secAppendix: "Phu luc — Phuong phap, Bang chung & Nhat ky kiem toan",
 
   tocOverview: "Tong quan",
   tocDimensions: "8 Khia canh",
@@ -424,6 +440,11 @@ const es: TbrStrings = {
   secRoadmap: "Hoja de Ruta de Mejora",
   secCohort: "Comparación de Cohorte — Benchmarks Seed AU",
   secMethodology: "Metodología y Anexo",
+  secCover: "Portada — Dónde / Valor / Siguiente",
+  secPhaseGates: "Puertas de fase — 13 criterios × 12 fases",
+  secMoney: "Dinero sobre la mesa — Subvenciones y programas",
+  secActionPlan: "Plan de acción de 90 días",
+  secAppendix: "Anexo — Método, evidencia y registro del auditor",
 
   tocOverview: "Visión General",
   tocDimensions: "8 Dimensiones",
@@ -552,6 +573,11 @@ const ja: TbrStrings = {
   secRoadmap: "改善ロードマップ",
   secCohort: "コホート比較 — AU シード ベンチマーク",
   secMethodology: "方法論と付録",
+  secCover: "表紙 — 現在地 / 価値 / 次の一手",
+  secPhaseGates: "フェーズゲート — 13基準 × 12フェーズ",
+  secMoney: "獲得可能な資金 — 助成金・プログラム",
+  secActionPlan: "90日アクションプラン",
+  secAppendix: "付録 — 手法・エビデンス・監査ログ",
 
   tocOverview: "概要",
   tocDimensions: "8つの評価項目",
