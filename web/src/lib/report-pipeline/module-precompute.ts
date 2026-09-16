@@ -57,6 +57,88 @@ function signalsOf(ctx: ReportContext): SVIExtractedSignals | null {
   return s && typeof s === "object" ? s : null;
 }
 
+function gatherOf(ctx: ReportContext): NonNullable<ReportContext["gatherResults"]> {
+  return ctx.gatherResults ?? {};
+}
+
+function numOrNull(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
+/** S-R5: latest GA4 90-day snapshot → AARRR funnel numbers (TRE) — only when a snapshot exists. */
+function ga4FunnelModule(ctx: ReportContext): ModuleOutput | null {
+  const g = gatherOf(ctx).ga4;
+  if (!g || typeof g !== "object") return null;
+  const funnel = (g.funnel ?? {}) as Record<string, unknown>;
+  const sessions = numOrNull(g.sessions);
+  if (sessions === null) return null;
+  return {
+    id: "oauth-ga4-signals.ts:aarrrFunnel",
+    output: {
+      windowDays: numOrNull(g.windowDays) ?? 90,
+      sessions,
+      engagedSessions: numOrNull(g.engagedSessions) ?? numOrNull(funnel.activation) ?? 0,
+      returningUsers: numOrNull(g.returningUsers) ?? numOrNull(funnel.retention) ?? 0,
+      conversions: numOrNull(g.conversions) ?? numOrNull(funnel.revenue) ?? 0,
+      newUsers: numOrNull(g.newUsers) ?? 0,
+      returningSharePct: Math.round((numOrNull(g.returningShare) ?? 0) * 100),
+      engagementRatePct: Math.round((numOrNull(g.engagementRate) ?? 0) * 100),
+      conversionRatePct: Math.round((numOrNull(g.conversionRate) ?? 0) * 1000) / 10,
+      avgSessionDurationSec: numOrNull(g.avgSessionDurationSec) ?? 0,
+      takenAt: typeof g.takenAt === "string" ? g.takenAt : null,
+    },
+  };
+}
+
+/** S-R5: latest GA4 snapshot → top-3 channel mix (MPC). */
+function ga4ChannelModule(ctx: ReportContext): ModuleOutput | null {
+  const g = gatherOf(ctx).ga4;
+  if (!g || !Array.isArray(g.topChannels) || g.topChannels.length === 0) return null;
+  const output: Record<string, unknown> = { sessions: numOrNull(g.sessions) ?? 0, channels: g.topChannels.length };
+  (g.topChannels as Array<{ channel?: string; sessions?: number; share?: number }>).slice(0, 3).forEach((c, i) => {
+    output[`channel${i + 1}`] = c.channel ?? "(other)";
+    output[`channel${i + 1}Sessions`] = numOrNull(c.sessions) ?? 0;
+    output[`channel${i + 1}SharePct`] = Math.round((numOrNull(c.share) ?? 0) * 100);
+  });
+  return { id: "oauth-ga4-signals.ts:channelMix", output };
+}
+
+/** S-R5: parsed LinkedIn export / URL → founder signals (FTV). */
+function founderSignalsModule(ctx: ReportContext): ModuleOutput | null {
+  const f = gatherOf(ctx).founderSignals;
+  if (!f || typeof f !== "object") return null;
+  const output: Record<string, unknown> = { source: String(f.source ?? "linkedin_text"), confidence: numOrNull(f.confidence) ?? 0 };
+  if (numOrNull(f.yearsExperience) !== null) output.yearsExperience = f.yearsExperience;
+  if (numOrNull(f.yearsInDomain) !== null) output.yearsInDomain = f.yearsInDomain;
+  if (numOrNull(f.priorCompanies) !== null) output.priorCompanies = f.priorCompanies;
+  if (numOrNull(f.exits) !== null) output.exits = f.exits;
+  if (numOrNull(f.teamSizeOnPage) !== null) output.teamSizeOnPage = f.teamSizeOnPage;
+  if (typeof f.currentRole === "string") output.currentRole = f.currentRole;
+  if (typeof f.profileUrl === "string") output.profileUrl = f.profileUrl;
+  return { id: "connectors/linkedin-upload.ts:founderSignals", output };
+}
+
+/** S-R5: cap-table register (gather.ts capTable) → real split for the CGH donut + the esop bridge. */
+function capTableModule(ctx: ReportContext): ModuleOutput | null {
+  const c = gatherOf(ctx).capTable;
+  if (!c || typeof c !== "object") return null;
+  const founderPct = numOrNull(c.founderPct);
+  const esopPct = numOrNull(c.esopPct);
+  const investorPct = numOrNull(c.investorPct);
+  if (founderPct === null && esopPct === null && investorPct === null) return null;
+  return {
+    id: "report-pipeline/gather.ts:capTable",
+    output: {
+      holders: numOrNull(c.holders) ?? 0,
+      founderPct: founderPct ?? 0,
+      esopPct: esopPct ?? 0,
+      investorPct: investorPct ?? 0,
+      vestingFlag: c.vestingFlag === true,
+      fullyDilutedShares: numOrNull(c.fullyDilutedShares) ?? 0,
+    },
+  };
+}
+
 /** Benchmark + deterministic score row every chapter carries. */
 function benchmarkModule(ctx: ReportContext, dim: DimKey): ModuleOutput {
   const stage = benchmarkStageForSvi(ctx.stage);
@@ -101,6 +183,8 @@ function treModules(ctx: ReportContext): ModuleOutput[] {
       out.push({ id: "agents/cfo-valuation.ts:calculateRuleOf40", output: { growthRatePct: growth, profitMarginPct: margin, ruleOf40: growth + margin } });
     }
   }
+  const ga4 = ga4FunnelModule(ctx);
+  if (ga4) out.push(ga4);
   const c = criterionModule(ctx, ["customer_size", "revenue", "market", "gtm_strategy"]);
   if (c) out.push(c);
   return out;
@@ -129,6 +213,8 @@ function mpcModules(ctx: ReportContext): ModuleOutput[] {
       output: { marketSize: s.marketSize, problemClarity: s.problemClarity, hasCustomerInterviews: s.hasCustomerInterviews },
     });
   }
+  const mix = ga4ChannelModule(ctx);
+  if (mix) out.push(mix);
   const c = criterionModule(ctx, ["market", "gtm_strategy", "idea", "website"]);
   if (c) out.push(c);
   return out;
@@ -155,6 +241,8 @@ function ftvModules(ctx: ReportContext): ModuleOutput[] {
       output: { hasCoFounder: s.hasCoFounder, founderExperience: s.founderExperience, founderSectorFit: s.founderSectorFit, hasAdvisors: s.hasAdvisors },
     });
   }
+  const founder = founderSignalsModule(ctx);
+  if (founder) out.push(founder);
   const c = criterionModule(ctx, ["founder_profile", "team", "team_structure"]);
   if (c) out.push(c);
   return out;
@@ -180,13 +268,21 @@ function ptdModules(ctx: ReportContext): ModuleOutput[] {
 function cghModules(ctx: ReportContext): ModuleOutput[] {
   const out: ModuleOutput[] = [];
   const s = signalsOf(ctx);
+  // S-R5: the equity register (when the founder has one) replaces the
+  // "12 % AU norm" assumption in the esop bridge and gives the donut real slices.
+  const register = capTableModule(ctx);
+  const regOut = register?.output as { esopPct?: number; vestingFlag?: boolean } | undefined;
+  const registerEsopPct = regOut && typeof regOut.esopPct === "number" && regOut.esopPct > 0 ? regOut.esopPct : null;
   if (s) {
     const governance: GovernanceHealth = {
-      esop: s.esopAllocated
-        ? { poolCreated: true, poolPct: 12, grantsIssued: false, grantCount: 0, founderVestingInPlace: s.hasVesting, legalDeedSigned: false, strikePrice: 0, vestingMonths: 48, cliffMonths: 12 }
-        : null,
+      esop:
+        registerEsopPct !== null
+          ? { poolCreated: true, poolPct: registerEsopPct, grantsIssued: false, grantCount: 0, founderVestingInPlace: s.hasVesting || regOut?.vestingFlag === true, legalDeedSigned: false, strikePrice: 0, vestingMonths: 48, cliffMonths: 12 }
+          : s.esopAllocated
+            ? { poolCreated: true, poolPct: 12, grantsIssued: false, grantCount: 0, founderVestingInPlace: s.hasVesting, legalDeedSigned: false, strikePrice: 0, vestingMonths: 48, cliffMonths: 12 }
+            : null,
       hasShareholdersAgreement: s.hasShareholdersAgreement,
-      hasFounderVesting: s.hasVesting,
+      hasFounderVesting: s.hasVesting || regOut?.vestingFlag === true,
       boardMeetingsPerYear: s.hasBoardCadence ? 12 : 0,
       hasDataRoom: s.hasDataRoom,
       dataRoomPct: s.hasDataRoom ? 60 : 0,
@@ -203,9 +299,10 @@ function cghModules(ctx: ReportContext): ModuleOutput[] {
         issues: esop.issues.length,
         criticalIssues: esop.issues.filter((i) => i.severity === "critical").length,
         topAction: esop.actions[0]?.action ?? null,
-        esopAssumed: s.esopAllocated ? "pool declared; 12 % AU norm assumed, no register" : "no pool declared",
+        esopAssumed: registerEsopPct !== null ? `register: ESOP ${registerEsopPct} %` : s.esopAllocated ? "pool declared; 12 % AU norm assumed, no register" : "no pool declared",
       },
     });
+    if (register) out.push(register);
     out.push({
       id: "svi-analysis.ts:extractSignals(governance)",
       output: { hasCapTable: s.hasCapTable, hasVesting: s.hasVesting, hasShareholdersAgreement: s.hasShareholdersAgreement, hasBoardCadence: s.hasBoardCadence, esopAllocated: s.esopAllocated },

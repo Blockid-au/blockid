@@ -88,37 +88,18 @@ function truncateForModel(text: string): string {
     : trimmed;
 }
 
-/** Best-effort PDF text extraction. Uses `pdf-parse` when available;
- *  falls back to a byte-scan on the buffer (better than nothing for the
- *  fail-soft path — the SVI pipeline can still score on tiny corpora).
+/** Best-effort PDF text extraction through the shared extractor
+ *  (lib/pdf/extract-text — speaks pdf-parse v2's `PDFParse` class AND the
+ *  v1 default function; S-R5 fixed the silent v2 fall-through that made
+ *  every real PDF land on the ASCII byte-scan). Still fail-soft: the
+ *  byte-scan keeps a few keywords alive when the parser is unavailable.
  *
  *  Re-exported from `@/lib/intake/deck-sections` for the intake pipeline. */
 export async function extractPdfText(filepath: string): Promise<string> {
   const buffer = await fs.readFile(filepath);
-  try {
-    // Dynamic import so a missing dep doesn't break `tsc --noEmit`
-    // and doesn't force everyone in dev to install a heavy parser.
-    const mod = (await import("pdf-parse")) as {
-      default?: (b: Buffer) => Promise<{ text: string }>;
-    };
-    const parser = mod.default;
-    if (typeof parser === "function") {
-      const parsed = await parser(buffer);
-      if (parsed?.text) return parsed.text;
-    }
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.warn("[blockid:guest-analysis] pdf-parse unavailable/failed", msg);
-  }
-  // Extremely rough fallback: pluck ASCII runs from the raw bytes.
-  // A real PDF will yield garbled output but at least *some* keywords
-  // will survive so the SVI heuristic still fires.
-  const ascii = buffer
-    .toString("binary")
-    .replace(/[^\x20-\x7E\n]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return ascii;
+  const { extractPdfTextFromBuffer } = await import("@/lib/pdf/extract-text");
+  const r = await extractPdfTextFromBuffer(buffer, { byteScanFallback: true });
+  return r.text;
 }
 
 /** Best-effort DOCX text extraction via `mammoth`. Falls back to empty. */

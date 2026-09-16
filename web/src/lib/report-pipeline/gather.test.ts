@@ -287,6 +287,36 @@ describe("gatherData — sources", () => {
     expect(empty.evidenceRows.find((r) => r.label === "Grant profile")).toMatchObject({ status: "missing" });
   });
 
+  it("S-R5: founder signals (LinkedIn) + the GA4 90-day snapshot become evidence rows and gather results; URL-only is partial, nothing is missing-free", async () => {
+    const db = fakeDb({});
+    const founder = { source: "linkedin_pdf", profileUrl: null, founderName: "Jane Doe", headline: "Co-founder & CEO", currentRole: "Co-founder & CEO at Acme Health", yearsExperience: 13.6, yearsInDomain: 8.7, priorCompanies: ["Atlassian", "ClinicFlow"], exits: 1, teamSizeOnPage: 14, confidence: 1, parsedAt: "2026-09-16T00:00:00.000Z" };
+    const ga4 = { windowDays: 90, sessions: 2000, newUsers: 1000, returningUsers: 300, returningShare: 0.231, conversions: 90, conversionRate: 0.045, engagedSessions: 1300, engagementRate: 0.65, avgSessionDurationSec: 84, topChannels: [{ channel: "Organic Search", sessions: 900, share: 0.45 }, { channel: "Direct", sessions: 600, share: 0.3 }], funnel: { acquisition: 2000, activation: 1300, retention: 300, revenue: 90, referral: null }, takenAt: "2026-09-15T00:00:00.000Z" };
+    const out = await gatherData(ctx(), callAI, {
+      ownerUserId: "owner-9",
+      projectId: "proj-1",
+      deps: deps({ db, loadConnectedRevenue: async () => [], loadCapTable: async () => null, loadGrants: async () => null, loadFounderSignals: async () => founder, loadGa4Snapshot: async () => ga4 }),
+    });
+    expect(out.results.founderSignals).toMatchObject({ source: "linkedin_pdf", yearsExperience: 13.6, yearsInDomain: 8.7, priorCompanies: 2, exits: 1, teamSizeOnPage: 14 });
+    const fRow = out.evidenceRows.find((r) => r.label.startsWith("LinkedIn PDF export"))!;
+    expect(fRow).toMatchObject({ source: "linkedin", status: "evidenced", dims: ["ftv", "cgh"], observedAt: "2026-09-16T00:00:00.000Z" });
+    expect(fRow.value).toBe("years_experience = 13.6; years_in_domain = 8.7; prior_companies = 2; exits = 1; team_size_on_page = 14");
+    expect(out.results.ga4).toMatchObject({ sessions: 2000, engagedSessions: 1300, returningUsers: 300, conversions: 90, funnel: { acquisition: 2000 } });
+    const gRow = out.evidenceRows.find((r) => r.label.startsWith("GA4 90-day snapshot"))!;
+    expect(gRow).toMatchObject({ source: "ga4", status: "evidenced", dims: ["tre", "mpc"], observedAt: "2026-09-15T00:00:00.000Z" });
+    expect(gRow.value).toContain("sessions = 2000; engaged_sessions = 1300; returning_users = 300; conversions = 90");
+    expect(gRow.value).toContain("channels = Organic Search 45 %, Direct 30 %");
+    expect(out.results.diagnostics?.founderSignals?.status).toBe("ok");
+    expect(out.results.diagnostics?.ga4?.status).toBe("ok");
+
+    const urlOnly = await gatherData(ctx(), callAI, { projectId: "proj-1", deps: deps({ db, loadConnectedRevenue: async () => [], loadCapTable: async () => null, loadGrants: async () => null, loadFounderSignals: async () => ({ ...founder, source: "linkedin_url", profileUrl: "https://www.linkedin.com/in/jane-doe-au", yearsExperience: null, yearsInDomain: null, priorCompanies: [], exits: 0, teamSizeOnPage: null, confidence: 0.2 }), loadGa4Snapshot: async () => null }) });
+    expect(urlOnly.evidenceRows.find((r) => r.label.startsWith("LinkedIn profile URL"))).toMatchObject({ status: "partial", value: "profile_url = https://www.linkedin.com/in/jane-doe-au" });
+    expect(urlOnly.results.ga4).toBeUndefined();
+    expect(urlOnly.results.diagnostics?.ga4).toMatchObject({ status: "skipped", note: "no snapshot" });
+
+    const none = await gatherData(ctx(), callAI, { projectId: "proj-1", deps: deps({ db, loadConnectedRevenue: async () => [], loadCapTable: async () => null, loadGrants: async () => null, loadFounderSignals: async () => null, loadGa4Snapshot: async () => null }) });
+    expect(none.evidenceRows.find((r) => r.label === "Founder profile (LinkedIn export / URL)")).toMatchObject({ status: "missing", dims: ["ftv"] });
+  });
+
   it("an expired deadline skips every source deterministically", async () => {
     const d = deps({ deepTechAudit: vi.fn() });
     const c = ctx({ criteriaData: criteria({ website: { links: [{ url: "https://acme.com", label: "s" }] } }) });

@@ -159,6 +159,11 @@ export interface GatherResults {
   capTable?: Record<string, unknown>;
   /** Grants / programs match (grant-advisor.ts) for the project's grant profile. */
   grants?: Record<string, unknown>;
+  // ── S-R5 §C.7 evidence connectors ───────────────────────────────────
+  /** Latest parsed LinkedIn export / URL (connectors/linkedin-upload.ts → founder_signals) — FTV. */
+  founderSignals?: Record<string, unknown>;
+  /** Latest 90-day GA4 snapshot (ga4_signal_snapshots: AARRR funnel + channel mix) — TRE / MPC. */
+  ga4?: Record<string, unknown>;
   /** CFO 5-method valuation (agents/cfo-valuation.ts buildVcValuationReport) + the inputs it ran on. */
   valuation?: Record<string, unknown>;
   /** Per-source timing / cache / timeout diagnostics (`done` telemetry, tests). */

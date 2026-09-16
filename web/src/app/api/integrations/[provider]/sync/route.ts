@@ -9,7 +9,8 @@ import {
 } from "@/lib/oauth-connectors";
 import { fetchGithubSignals } from "@/lib/oauth-github-signals";
 import { fetchStripeSignals } from "@/lib/oauth-stripe-signals";
-import { fetchGa4Signals } from "@/lib/oauth-ga4-signals";
+import { fetchGa4RichSignals, fetchGa4Signals, ga4SnapshotRow, writeGa4Snapshot, type Ga4SnapshotDb } from "@/lib/oauth-ga4-signals";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
@@ -89,6 +90,16 @@ async function POST_handler(
         { key: "conversions_30d", numeric: s.conversions30d },
         { key: "avg_session_duration_sec", numeric: s.averageSessionDurationSec },
       ]);
+      // S-R5: richer 90-day pull → ga4_signal_snapshots (AARRR funnel + channel
+      // mix for TRE / MPC). Best-effort: a failed rich pull or a missing table
+      // (0402 not applied) never fails the sync the founder just clicked.
+      try {
+        const rich = await fetchGa4RichSignals(conn.accessToken, propertyId);
+        const db = getSupabaseAdmin();
+        if (db) await writeGa4Snapshot(db as unknown as Ga4SnapshotDb, ga4SnapshotRow({ userId: signalsUserId, projectId, propertyId, signals: rich, source: "sync" }));
+      } catch (err) {
+        console.warn("[integrations:sync] ga4 rich pull skipped:", err instanceof Error ? err.message : String(err));
+      }
     }
     await markSynced(conn.id);
     return NextResponse.json({ ok: true });
