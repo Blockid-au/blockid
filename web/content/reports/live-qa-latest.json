@@ -1,31 +1,24 @@
 {
-  "ts": "2026-09-16T17:12:04.755Z",
-  "startedAt": "2026-09-16T17:06:10Z",
+  "ts": "2026-09-16T19:02:52.894Z",
+  "startedAt": "2026-09-16T18:56:35Z",
   "baseURL": "https://blockid.au",
-  "exitCode": 1,
-  "passed": 158,
-  "failed": 1,
+  "exitCode": 0,
+  "passed": 159,
+  "failed": 0,
   "skipped": 10,
   "flaky": 0,
   "expectedFailures": 0,
-  "durationMs": 352482.99700000003,
+  "durationMs": 375776.921,
   "account": {
-    "email": "qa-live-20260916-1706@blockid.au",
-    "userId": "12db53e8-1d67-4d77-9a38-c2c55f340f40",
-    "projectId": "11d2a79d-b6d8-416b-892a-b725af9f4222",
+    "email": "qa-live-20260916-1856@blockid.au",
+    "userId": "a017119e-6454-4a6a-8ccc-8a15e8b6f0d9",
+    "projectId": "bafd0afe-8144-47e8-9d5c-acba7deb2348",
     "plan": "growth",
     "elevated": true
   },
   "erasure": {
     "ok": true,
-    "detail": "erased 12db53e8-1d67-4d77-9a38-c2c55f340f40; verify dry-run exit 2 (no app_users row for the QA founder email)"
+    "detail": "erased a017119e-6454-4a6a-8ccc-8a15e8b6f0d9; verify dry-run exit 2 (no app_users row for the QA founder email)"
   },
-  "findings": [
-    {
-      "spec": "21-layout.mobile.spec.ts",
-      "project": "live-qa-mobile",
-      "title": "header account menu opens from the avatar and exposes credits, theme and sign out",
-      "error": "Error: expect(locator).toBeVisible() failed\n\nLocator: getByTestId('header-account-menu-panel')\nExpected: visible\nTimeout: 15000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeVisible\" with timeout 15000ms\n  - waiting for getByTestId('header-account-menu-panel')\n"
-    }
-  ]
+  "findings": []
 }
