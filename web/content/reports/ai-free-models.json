@@ -1,6 +1,7 @@
 {
-  "updatedAt": "2026-09-16T13:59:02.371Z",
+  "updatedAt": "2026-09-16T20:00:05.436Z",
   "openrouter": [
+    "stealth/union-alpha",
     "nvidia/nemotron-3-super-120b-a12b:free",
     "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
     "dots-studio/dots-3-note-preview:free",
