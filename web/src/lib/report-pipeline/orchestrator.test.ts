@@ -1533,6 +1533,15 @@ describe("orchestrateReport() — cost telemetry (W2 review b)", () => {
     expect(estimateCalls({ waves: 13, w4Chapters: 8, tierV2: "standard", partial: false })).toBe(2 + 13 + 8 + 1);
     expect(estimateCalls({ waves: 13, w4Chapters: 8, tierV2: "premium", partial: false })).toBe(2 + 13 + 8 + 1 + 1);
     expect(estimateCalls({ waves: 0, w4Chapters: 1, tierV2: "standard", partial: true })).toBe(1);
+    // Free: W1 (6) + W4 (8) + CEO (1) = 15 ≤ 16 — the research agent does not run on the free tier.
+    expect(estimateCalls({ waves: 6, w4Chapters: 8, tierV2: "free", partial: false })).toBe(15);
+  });
+
+  it("the free tier skips the GATHER research agent so the 16-call cap leaves the CEO summary its unit", async () => {
+    await orchestrateReport(baseInput({ tierV2: "free" }));
+    expect(researchMarketSpy).not.toHaveBeenCalled();
+    await orchestrateReport(baseInput({ tierV2: "standard" }));
+    expect(researchMarketSpy).toHaveBeenCalledTimes(1);
   });
 });
 

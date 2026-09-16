@@ -327,10 +327,19 @@ function w4Enabled(): boolean {
   return (process.env.REPORT_PIPELINE_W4 ?? "on").toLowerCase() !== "off";
 }
 
-/** Expected LLM calls for a run — the `context.estimatedCalls` figure (includes the GATHER research calls). */
+/**
+ * The GATHER market-research agent (2 LLM calls) runs on paid tiers and full
+ * runs only: the free tier's 16-call cap is exactly W1 (6) + W4 (8) + CEO (1)
+ * with one unit spare, and a partial re-run reuses the stored criteria.
+ */
+export function researchEnabled(tierV2: ReportTierV2, partial: boolean): boolean {
+  return !partial && tierV2 !== "free";
+}
+
+/** Expected LLM calls for a run — the `context.estimatedCalls` figure (includes the GATHER research calls where they run). */
 export function estimateCalls(args: { waves: number; w4Chapters: number; tierV2: ReportTierV2; partial: boolean }): number {
   if (args.partial) return args.w4Chapters;
-  return GATHER_RESEARCH_CALLS + args.waves + args.w4Chapters + 1 + (args.tierV2 === "premium" || args.tierV2 === "investor_memo" ? 1 : 0);
+  return (researchEnabled(args.tierV2, args.partial) ? GATHER_RESEARCH_CALLS : 0) + args.waves + args.w4Chapters + 1 + (args.tierV2 === "premium" || args.tierV2 === "investor_memo" ? 1 : 0);
 }
 
 // ── Orchestrate ─────────────────────────────────────────────────────────────
@@ -429,7 +438,7 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
       gatherData(context, callAI, {
         ownerUserId: input.ownerUserId ?? input.userId,
         projectId: input.projectId ?? null,
-        skipResearch: Boolean(partialDims),
+        skipResearch: !researchEnabled(tierV2, Boolean(partialDims)),
         deadline,
         deps: input.gatherDeps,
       }),
