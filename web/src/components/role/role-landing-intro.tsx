@@ -4,7 +4,7 @@
  * Per-role landing hero + "1-click start tour" button.
  *
  * Renders the role's `guiding_copy.landing_hero` copy above a button that
- * (re)launches the tour registered in `ROLE_SPECS[role].tourSlug`. Because
+ * (re)launches the tour registered in `PERSONAS[role].tourSlug`. Because
  * FeatureSpotlight persists dismissal in localStorage, "starting" a tour
  * really means clearing that key and mounting a scoped FeatureSpotlight so
  * the overlay reappears immediately — no navigation, no toast, no dep.
@@ -20,9 +20,10 @@ import { Play, Sparkles } from "lucide-react";
 import { useLocale } from "@/lib/use-locale";
 import {
   ROLE_GUIDING_COPY,
+  type Role,
   type RoleGuidingCopy,
 } from "@/lib/roles/role-guiding-copy";
-import { ROLE_SPECS, type Role } from "@/lib/roles/role-taxonomy";
+import { PERSONAS } from "@/lib/nav/persona";
 import {
   dismissKeyFor,
   type FeatureTourSlug,
@@ -56,12 +57,12 @@ export function RoleLandingIntro({
   hasGlobalSpotlight = false,
   children,
 }: Props): React.ReactElement | null {
-  const spec = ROLE_SPECS[role];
+  const spec = PERSONAS[role];
   const copy: RoleGuidingCopy | undefined = ROLE_GUIDING_COPY[role];
   const [locale] = useLocale();
   const [nonce, setNonce] = React.useState(0);
 
-  if (!spec || !copy) return null;
+  if (!spec?.tourSlug || !copy) return null;
 
   const slug = spec.tourSlug as FeatureTourSlug;
   const t = COPY[locale];

@@ -1,584 +1,403 @@
-// Colocated vitest for `nav-groups.ts` — the workspace sidebar catalogue
-// consumed by workspace-layout, mobile nav, command-palette, and the
-// deep-link resolver. A silent id rename, dropped subgroup, reshuffled
-// pillar, or lost `flatten()` invariant would leak into every one of
-// those surfaces at once (the whole point of extracting this file was
-// to share one source of truth), so the catalogue is pinned here.
+// Colocated vitest for `nav-groups.ts` v4 — the ONE workspace sidebar
+// catalogue (G13-W1-IA1, D5). Consumed by workspace-layout, the docs matrix
+// builder, unlock-preview and the persona table, so the catalogue shape and
+// the §D.1 label rules are pinned here.
 //
-// Pure shape spec — no mocks, no I/O. Grouped by concern:
-//   • top-level NAV_GROUPS ordering + pillar/workflow-step bucketing
-//   • every leaf has href/label/icon and href is root-relative
-//   • `flatten()` semantics — nested `items[]` equals concat(subgroups[].items)
-//   • gate aliases (`minTier`/`minPlan`, `requiredFeature`/`feature`) agree
-//     when both are set (the sidebar reads either)
-//   • persona / segments / addOnKey allow-lists (v3 §16 rules)
-//   • ADMIN_NAV_GROUP shape (7 rows, admin persona)
-//   • known duplicate hrefs are documented — the two `/reseller/mentor`
-//     rows (Reseller subgroup entry + Mentor subgroup Roster) are the
-//     expected collisions per the release-plan verbatim-preservation note
+// Grouped by concern:
+//   • persona coverage — every `PERSONAS[].navGroups` id resolves; founder
+//     sees Home · Prove · Money · Company, evaluators Home · Deal flow · Reports
+//   • §D.1 label rules 1–8 over NAV_GROUPS (EN + VI)
+//   • sidebar size — founder phase-0 ≤ 10 leaves / 3 groups, phase-5 = 20;
+//     investor ≤ 3 groups and no Fundraise; no group > 6 leaves
+//   • gates — `feature:` slugs exist in tier-visibility, add-on rows never hide
+//   • every href in the pre-v4 catalogue snapshot still resolves: it is a v4
+//     leaf, a live page on disk, or a `LEGACY_REDIRECTS` source (D6)
+//   • `v4Href` targets are exactly the deferred-redirect destinations, so
+//     S-IA2 has one list to flip
 
+import { readdirSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { describe, it, expect } from "vitest";
 
-import { NAV_GROUPS, ADMIN_NAV_GROUP } from "./nav-groups";
-import type {
-  NavGroup,
-  NavLeaf,
-  NavSubgroup,
-  NavPillar,
-  Persona,
-  JourneyGroup,
-  FeatureLifecycle,
+import {
+  ADMIN_NAV_GROUP,
+  EVALUATOR_NAV_SEGMENTS,
+  NAV_GROUPS,
+  NAV_GROUPS_BY_ID,
+  RESELLER_NAV_GROUPS,
+  allNavLeaves,
+  navGroupsForIds,
+  navText,
+  type NavGroup,
+  type NavLeaf,
 } from "./nav-groups";
-import type { PlanTier, Segment } from "@/lib/segments";
-import { WORKFLOW_STEPS } from "@/lib/nav/workflow-steps";
+import { PERSONAS, PERSONA_KEYS, type PersonaKey } from "@/lib/nav/persona";
+import { DEFERRED_REDIRECTS, LEGACY_REDIRECTS } from "@/lib/nav/legacy-redirects";
+import { VISIBILITY } from "@/lib/entitlements/tier-visibility";
+import { NAV_PHASES } from "@/lib/nav/founder-phase-shared";
+import type { Segment } from "@/lib/segments";
 
-const PILLARS: readonly NavPillar[] = [
-  "overview",
-  "now",
-  "coming_up",
-  "later",
-  "role",
-  "account",
-];
+const APP_DIR = resolve(__dirname, "../../app");
 
-const PERSONAS: readonly Persona[] = [
-  "founder",
-  "investor",
-  "accelerator",
-  "reseller",
-  "enterprise",
-  "admin",
-];
+/** Every page.tsx under src/app as a URL path with `(group)` folders stripped. */
+function collectRoutes(dir: string, prefix: string, out: Set<string>): void {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      const isGroup = entry.name.startsWith("(") && entry.name.endsWith(")");
+      collectRoutes(join(dir, entry.name), isGroup ? prefix : prefix + "/" + entry.name, out);
+    } else if (entry.name === "page.tsx") {
+      out.add(prefix || "/");
+    }
+  }
+}
+const ROUTES = new Set<string>();
+collectRoutes(APP_DIR, "", ROUTES);
 
-const JOURNEY_GROUPS: readonly JourneyGroup[] = [
-  "onboarding",
-  "analysis",
-  "maturity",
-  "reports",
-  "permissions",
-  "hierarchy",
-  "ecosystem",
-  "settings",
-];
-
-const LIFECYCLES: readonly FeatureLifecycle[] = ["beta", "live", "stable"];
-
-// PlanTier is a union — mirror the shipped values for validation
-const PLAN_TIERS: readonly PlanTier[] = [
-  "free",
-  "starter",
-  "growth",
-  "scale",
-  "enterprise",
-  "angel",
-  "advisor",
-  "vc_small",
-  "vc_ent",
-  "accel_starter",
-  "accel_growth",
-  "accel_ent",
-];
-
-// Segment union — mirror the shipped values
-const SEGMENTS: readonly Segment[] = [
-  "founder",
-  "investor_angel",
-  "investor_vc",
-  "advisor",
-  "accelerator",
-  "lp",
-  "admin",
-];
-
-const CANONICAL_GROUP_IDS = [
-  "home",
-  "validate",
-  "build",
-  "fundraise",
-  "scale-exit",
-  "roles",
-  "account",
-] as const;
-
-function walkLeaves(g: NavGroup): NavLeaf[] {
-  // Legacy consumers read `items[]`; the nested renderer reads
-  // `subgroups`. `flatten()` should keep them in sync — this helper
-  // deliberately reads `items[]` so the test can spot a drift between
-  // the two views by comparing to the concat(subgroups).
-  return g.items;
+/** Does a page.tsx exist for `route` under src/app, ignoring `(group)` folders? */
+function pageExists(route: string): boolean {
+  return ROUTES.has(route.split("?")[0]);
 }
 
-describe("NAV_GROUPS — top-level shape", () => {
-  it("ships exactly the 7 canonical top-level groups", () => {
-    expect(NAV_GROUPS).toHaveLength(CANONICAL_GROUP_IDS.length);
+/** Pre-v4 catalogue snapshot (HEAD~ nav-groups.ts, 105 unique hrefs). */
+const OLD_HREFS = [
+  "/admin", "/admin/goals", "/admin/listings", "/analyze", "/compliance/calendar",
+  "/dashboard/accelerator", "/dashboard/accelerator-criteria", "/dashboard/admin/content-pillars",
+  "/dashboard/admin/pricing-test", "/dashboard/admin/sector-multiples", "/dashboard/admin/stripe-sync",
+  "/dashboard/admin/svi-exchange", "/dashboard/advisor", "/dashboard/analyzer", "/dashboard/cfo",
+  "/dashboard/compliance", "/dashboard/esop", "/dashboard/exit-readiness", "/dashboard/finance",
+  "/dashboard/fundraise", "/dashboard/history", "/dashboard/market-size", "/dashboard/portfolio",
+  "/dashboard/svi", "/dashboard/team", "/dashboard/valuation", "/reseller", "/reseller/codes",
+  "/reseller/credits", "/reseller/customers", "/reseller/mentor", "/reseller/mentor/cohort",
+  "/reseller/mentor?filter=overdue", "/reseller/mentor?tab=reports", "/reseller/reports",
+  "/reseller/requests", "/reseller/settings", "/startup-package", "/workspace/advisor-notes",
+  "/workspace/analyses", "/workspace/api-keys", "/workspace/applications", "/workspace/billing",
+  "/workspace/branding", "/workspace/business-report", "/workspace/cap-table", "/workspace/clean-room",
+  "/workspace/client-roster", "/workspace/cohort", "/workspace/competitors", "/workspace/data-room",
+  "/workspace/deal-flow", "/workspace/dividends", "/workspace/documents", "/workspace/equity",
+  "/workspace/equity-dashboard", "/workspace/equity-esop", "/workspace/equity-offer",
+  "/workspace/equity-setup", "/workspace/esic-assessment", "/workspace/esop", "/workspace/evaluation",
+  "/workspace/evaluations", "/workspace/evidence", "/workspace/exit", "/workspace/exit-strategy",
+  "/workspace/expenses", "/workspace/feedback", "/workspace/financial-forecast",
+  "/workspace/founder-profile", "/workspace/funding", "/workspace/fundraise", "/workspace/gtm-strategy",
+  "/workspace/integrations", "/workspace/investor-preferences", "/workspace/investors",
+  "/workspace/journal", "/workspace/knowledge-base", "/workspace/listing-readiness",
+  "/workspace/lp-report", "/workspace/metrics", "/workspace/notifications", "/workspace/portfolio",
+  "/workspace/pricing-tiers", "/workspace/profile", "/workspace/projects", "/workspace/projects/archived",
+  "/workspace/referrals", "/workspace/reports", "/workspace/revenue", "/workspace/roadmap",
+  "/workspace/roadmap-builder", "/workspace/settings", "/workspace/shareholders", "/workspace/sso",
+  "/workspace/svi-evidence", "/workspace/svi-trend", "/workspace/tax-invoice-checker", "/workspace/team",
+  "/workspace/tech-analysis", "/workspace/vesting", "/workspace/wallet", "/workspace/watchlist",
+  "/workspace/weekly-digest", "/workspace/white-label",
+] as const;
+
+const SEGMENTS: readonly Segment[] = ["founder", "investor_angel", "investor_vc", "advisor", "accelerator", "lp", "admin"];
+
+/** Leaves a segment sees inside a group (segment + phase filter only — plan locks stay visible). */
+function leavesFor(group: NavGroup, segment: Segment, phase: number): NavLeaf[] {
+  return group.items.filter(
+    (i) => (!i.segments || i.segments.includes(segment)) && (i.minPhase == null || i.minPhase <= phase),
+  );
+}
+
+function sidebarFor(persona: PersonaKey, segment: Segment, phase: number): Array<{ group: NavGroup; leaves: NavLeaf[] }> {
+  return navGroupsForIds(PERSONAS[persona].navGroups)
+    .filter((g) => g.minPhase == null || g.minPhase <= phase)
+    .map((group) => ({ group, leaves: leavesFor(group, segment, phase) }))
+    .filter((r) => r.leaves.length > 0);
+}
+
+const WORDS = (s: string) => s.trim().split(/\s+/).filter((w) => w !== "&" && w !== "—" && w !== "-");
+
+describe("NAV_GROUPS — shape + persona coverage", () => {
+  it("ships the 4 founder + 3 evaluator groups in catalogue order with unique ids", () => {
+    expect(NAV_GROUPS.map((g) => g.id)).toEqual(["home", "prove", "money", "company", "evaluator-home", "dealflow", "reports"]);
+    const all = [...NAV_GROUPS, ADMIN_NAV_GROUP, ...RESELLER_NAV_GROUPS];
+    expect(new Set(all.map((g) => g.id)).size).toBe(all.length);
+    for (const g of all) expect(NAV_GROUPS_BY_ID[g.id]).toBe(g);
   });
 
-  it("preserves the canonical top-level id order", () => {
-    expect(NAV_GROUPS.map((g) => g.id)).toEqual([...CANONICAL_GROUP_IDS]);
+  it("every persona's navGroups resolve to catalogue groups, in order", () => {
+    for (const key of PERSONA_KEYS) {
+      const ids = PERSONAS[key].navGroups;
+      expect(navGroupsForIds(ids).map((g) => g.id), key).toEqual(ids);
+    }
+    expect(PERSONAS.founder.navGroups).toEqual(["home", "prove", "money", "company"]);
+    for (const key of ["investor_angel", "investor_vc", "advisor", "accelerator"] as const) {
+      expect(PERSONAS[key].navGroups, key).toEqual(["evaluator-home", "dealflow", "reports"]);
+    }
+    expect(PERSONAS.admin.navGroups).toContain("admin");
   });
 
-  it("gives every top-level group a non-empty label", () => {
+  it("every leaf has a root-relative href, an icon, EN + VI label and tooltip, a valid minPhase", () => {
+    for (const g of [...NAV_GROUPS, ADMIN_NAV_GROUP, ...RESELLER_NAV_GROUPS]) {
+      expect(g.items.length, g.id).toBeGreaterThan(0);
+      for (const i of g.items) {
+        expect(i.href.startsWith("/"), i.href).toBe(true);
+        expect(typeof i.icon === "function" || typeof i.icon === "object", i.href).toBe(true);
+        expect(i.label.en.trim().length, i.href).toBeGreaterThan(0);
+        expect(i.label.vi.trim().length, i.href).toBeGreaterThan(0);
+        expect(i.tooltip.en.trim().length, i.href).toBeGreaterThan(0);
+        expect(i.tooltip.vi.trim().length, i.href).toBeGreaterThan(0);
+        if (i.minPhase != null) expect(NAV_PHASES).toContain(i.minPhase);
+        if (i.segments) for (const s of i.segments) expect(SEGMENTS).toContain(s);
+      }
+      if (g.minPhase != null) expect(NAV_PHASES).toContain(g.minPhase);
+    }
+    expect(EVALUATOR_NAV_SEGMENTS).toEqual(["investor_angel", "investor_vc", "advisor", "accelerator"]);
+  });
+
+  it("hrefs are unique across the whole catalogue; every live href or its v4Href has a page", () => {
+    const all = allNavLeaves([...NAV_GROUPS, ADMIN_NAV_GROUP, ...RESELLER_NAV_GROUPS]);
+    const hrefs = all.map((i) => i.href);
+    expect(new Set(hrefs).size).toBe(hrefs.length);
+    for (const i of all) {
+      expect(pageExists(i.href), `${i.href} has no page.tsx`).toBe(true);
+      if (i.v4Href) expect(i.v4Href, `${i.href}: v4Href equals href`).not.toBe(i.href);
+    }
+  });
+
+  it("navText falls back to EN when VI is empty", () => {
+    expect(navText({ en: "Score", vi: "Điểm SVI" }, "vi")).toBe("Điểm SVI");
+    expect(navText({ en: "Score", vi: "" }, "vi")).toBe("Score");
+    expect(navText({ en: "Score", vi: "Điểm SVI" })).toBe("Score");
+  });
+});
+
+describe("NAV_GROUPS — §D.1 label rules", () => {
+  const leaves = allNavLeaves(NAV_GROUPS);
+
+  it("rule 1 — leaf labels ≤ 3 words, sentence case, no parentheses, no bare acronyms the founder did not choose", () => {
+    const ALLOWED_CAPS = new Set(["ESOP", "LP", "SVI", "Index", "Startup", "CFO", "P&L"]);
+    for (const i of leaves) {
+      const en = i.label.en;
+      expect(WORDS(en).length, en).toBeLessThanOrEqual(3);
+      expect(en, en).not.toMatch(/[()]/);
+      expect(en[0], en).toBe(en[0].toUpperCase());
+      // Sentence case: words after the first are lowercase unless allow-listed.
+      for (const w of WORDS(en).slice(1)) {
+        if (ALLOWED_CAPS.has(w)) continue;
+        expect(w, `${en}: "${w}" is not sentence case`).toBe(w.toLowerCase());
+      }
+      expect(en, en).not.toMatch(/\bTBR\b/);
+      // VI mirrors the rule where Vietnamese allows (≤ 4 tokens).
+      expect(WORDS(i.label.vi).length, i.label.vi).toBeLessThanOrEqual(4);
+    }
+  });
+
+  it("rule 2 — group labels are one word (Home · Prove · Money · Company / Home · Deal flow · Reports)", () => {
+    const ALLOWED_TWO_WORD = new Set(["Deal flow"]);
     for (const g of NAV_GROUPS) {
-      expect(typeof g.label).toBe("string");
-      expect(g.label.length).toBeGreaterThan(0);
+      const en = g.label.en;
+      if (ALLOWED_TWO_WORD.has(en)) continue;
+      expect(WORDS(en).length, en).toBe(1);
+    }
+    expect(NAV_GROUPS.map((g) => g.label.en)).toEqual(["Home", "Prove", "Money", "Company", "Home", "Deal flow", "Reports"]);
+  });
+
+  it("rule 3 — no lifecycle chips (beta / new / live) anywhere in the catalogue", () => {
+    for (const i of allNavLeaves([...NAV_GROUPS, ADMIN_NAV_GROUP, ...RESELLER_NAV_GROUPS])) {
+      expect(i, i.href).not.toHaveProperty("lifecycle");
+      expect(i.label.en, i.href).not.toMatch(/\b(beta|new|live)\b/i);
     }
   });
 
-  it("gives every top-level group a non-empty items[]", () => {
+  it("rule 4 — no two leaves share a label within a persona; no leaf label equals its group label", () => {
+    const cases: Array<[PersonaKey, Segment]> = [
+      ["founder", "founder"],
+      ["investor_angel", "investor_angel"],
+      ["investor_vc", "investor_vc"],
+      ["advisor", "advisor"],
+      ["accelerator", "accelerator"],
+    ];
+    for (const [persona, segment] of cases) {
+      const seen = new Map<string, string>();
+      for (const { group, leaves: ls } of sidebarFor(persona, segment, 5)) {
+        for (const i of ls) {
+          const key = i.label.en.toLowerCase();
+          expect(seen.has(key), `${persona}: "${i.label.en}" at ${i.href} duplicates ${seen.get(key)}`).toBe(false);
+          seen.set(key, i.href);
+          expect(key, `${persona}: leaf "${i.label.en}" equals group label`).not.toBe(group.label.en.toLowerCase());
+        }
+      }
+    }
+  });
+
+  it("rule 5 — tooltips are benefit lines ≤ 12 words and differ from the label", () => {
+    for (const i of leaves) {
+      expect(WORDS(i.tooltip.en).length, i.tooltip.en).toBeLessThanOrEqual(12);
+      expect(i.tooltip.en.toLowerCase(), i.href).not.toBe(i.label.en.toLowerCase());
+    }
     for (const g of NAV_GROUPS) {
-      expect(Array.isArray(g.items)).toBe(true);
-      expect(g.items.length).toBeGreaterThan(0);
+      if (g.tooltip) expect(WORDS(g.tooltip.en).length, g.tooltip.en).toBeLessThanOrEqual(12);
     }
   });
 
-  it("assigns every top-level group's `pillar` to the shipped allow-list", () => {
-    for (const g of NAV_GROUPS) {
-      if (g.pillar === undefined) continue;
-      expect(PILLARS).toContain(g.pillar);
+  it("rule 6 — locked rows can always name their plan (minPlan is a real tier, never a bare 'Upgrade')", () => {
+    for (const i of leaves) {
+      if (i.minPlan) expect(i.minPlan, i.href).toMatch(/^[a-z_]+$/);
+      expect(i.tooltip.en, i.href).not.toMatch(/^upgrade$/i);
     }
   });
 
-  it("assigns every top-level group's `workflowStep` to WORKFLOW_STEPS when set", () => {
-    for (const g of NAV_GROUPS) {
-      if (g.workflowStep === undefined) continue;
-      expect(WORKFLOW_STEPS as readonly string[]).toContain(g.workflowStep);
-    }
-  });
-
-  it("leaves Home / Roles / Account without a workflowStep (utility pillars)", () => {
-    const utility = NAV_GROUPS.filter((g) =>
-      ["home", "roles", "account"].includes(g.id ?? ""),
-    );
-    for (const g of utility) {
-      expect(g.workflowStep).toBeUndefined();
-    }
-  });
-
-  it("marks Validate / Build / Fundraise / Scale & Exit with the matching workflowStep", () => {
-    const journey: Record<string, string> = {
-      validate: "validate",
-      build: "build",
-      fundraise: "fundraise",
-      "scale-exit": "grow",
+  it("rule 7 — hub-root leaves under /workspace/* carry the label's slug (documented exceptions only)", () => {
+    // Labels whose canonical route slug differs by design (§A.1): the
+    // catalogue records the reason next to each.
+    const EXCEPTIONS: Record<string, string> = {
+      "/dashboard": "Dashboard — landing keeps its historic path",
+      "/workspace/projects": "My startups — /projects is the data noun",
+      "/analyze": "Run analysis — public entry point, never moves (D6)",
+      "/startup-package": "Get investor-ready — SKU route, never moves (D6)",
+      "/workspace/funding": "Grants & programs — Money Finder route (T0244)",
+      "/workspace/plan": "Action plan — plan is the noun",
+      "/workspace/investor": "Dashboard — persona landing",
+      "/workspace/advisor": "Dashboard — persona landing",
+      "/workspace/accelerator": "Dashboard — persona landing",
+      "/workspace/evaluations": "My evaluations — claim-token route, never moves (D6)",
+      "/workspace/investor/dealflow": "Matches — dealflow page name predates v4",
+      "/startup-index": "Startup Index — public index route",
+      "/workspace/advisor/roster": "Clients — roster is the data noun",
+      "/workspace/investor/digest": "Digest — under the investor hub",
+      "/workspace/weekly-digest": "Digest — advisor stub until the Reports hub (S-IA2)",
+      "/workspace/accelerator/quarterly-report": "Quarterly — report route",
+      "/workspace/lp-report": "LP report — route keeps the hyphen",
     };
-    for (const [id, step] of Object.entries(journey)) {
-      const g = NAV_GROUPS.find((x) => x.id === id);
-      expect(g?.workflowStep).toBe(step);
+    const slug = (s: string) => s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    for (const i of leaves) {
+      const canonical = i.v4Href ?? i.href;
+      if (EXCEPTIONS[canonical]) continue;
+      const last = canonical.split("/").filter(Boolean).pop() ?? "";
+      expect(last, `${i.label.en} ↔ ${canonical}`).toBe(slug(i.label.en));
     }
   });
 
-  it("puts Home in the `overview` pillar with defaultCollapsed=false", () => {
-    const home = NAV_GROUPS.find((g) => g.id === "home");
-    expect(home?.pillar).toBe("overview");
-    expect(home?.defaultCollapsed).toBe(false);
-  });
-
-  it("puts Validate / Build / Fundraise / Scale & Exit in the `now` pillar", () => {
-    for (const id of ["validate", "build", "fundraise", "scale-exit"]) {
-      const g = NAV_GROUPS.find((x) => x.id === id);
-      expect(g?.pillar).toBe("now");
+  it("rule 8 — EN and VI live in the same entry and differ (no copy-paste EN into VI) except proper nouns", () => {
+    const SAME_OK = new Set(["ESOP", "Cohort"]);
+    for (const i of leaves) {
+      if (SAME_OK.has(i.label.en)) continue;
+      expect(i.label.vi, i.href).not.toBe(i.label.en);
+      expect(i.tooltip.vi, i.href).not.toBe(i.tooltip.en);
     }
+    for (const g of NAV_GROUPS) expect(g.label.vi, g.id).not.toBe(g.label.en);
   });
 
-  it("puts Roles in the `role` pillar and Account in the `account` pillar", () => {
-    expect(NAV_GROUPS.find((g) => g.id === "roles")?.pillar).toBe("role");
-    expect(NAV_GROUPS.find((g) => g.id === "account")?.pillar).toBe("account");
-  });
-
-  it("gives every top-level group a stable string `id`", () => {
-    const ids = new Set<string>();
-    for (const g of NAV_GROUPS) {
-      expect(typeof g.id).toBe("string");
-      expect(g.id).toBeTruthy();
-      expect(ids.has(g.id!)).toBe(false);
-      ids.add(g.id!);
-    }
-  });
-
-  it("assigns monotonic `minPhase` across the Now-pillar journey", () => {
-    // Validate < Build < Fundraise < Scale & Exit
-    const nowGroups = ["validate", "build", "fundraise", "scale-exit"].map(
-      (id) => NAV_GROUPS.find((g) => g.id === id)!,
-    );
-    const phases = nowGroups.map((g) => g.minPhase!);
-    for (let i = 1; i < phases.length; i += 1) {
-      expect(phases[i]).toBeGreaterThan(phases[i - 1]);
+  it("aliases carry the pre-v4 labels so the command palette still finds them", () => {
+    const aliases = new Set(leaves.flatMap((i) => i.aliases ?? []));
+    for (const old of ["Investor CRM", "VC Valuation", "Evidence Vault", "Business Report (TBR)", "Grant & Program Finder", "Startups I'm evaluating", "Preferences"]) {
+      expect(aliases.has(old), old).toBe(true);
     }
   });
 });
 
-describe("NAV_GROUPS — subgroup structure", () => {
-  it("gives every subgroup a stable string `id` and non-empty label", () => {
-    const seen = new Set<string>();
-    for (const g of NAV_GROUPS) {
-      if (!g.subgroups) continue;
-      for (const sg of g.subgroups) {
-        expect(typeof sg.id).toBe("string");
-        expect(sg.id.length).toBeGreaterThan(0);
-        expect(typeof sg.label).toBe("string");
-        expect(sg.label.length).toBeGreaterThan(0);
-        // subgroup ids are unique across the whole catalogue — the
-        // collapse-store keys off them, so a collision would silently
-        // yoke two subgroups' open/closed state together.
-        expect(seen.has(sg.id)).toBe(false);
-        seen.add(sg.id);
-      }
+describe("NAV_GROUPS — sidebar size per persona", () => {
+  it("founder phase 0: 3 groups, exactly 10 leaves; Company folds under Later phases", () => {
+    const rows = sidebarFor("founder", "founder", 0);
+    expect(rows.map((r) => r.group.id)).toEqual(["home", "prove", "money"]);
+    expect(rows.reduce((n, r) => n + r.leaves.length, 0)).toBe(10);
+    expect(NAV_GROUPS_BY_ID.company.minPhase).toBe(2);
+  });
+
+  it("founder phase 5: 4 groups, 20 leaves, no group above 6 leaves", () => {
+    const rows = sidebarFor("founder", "founder", 5);
+    expect(rows.map((r) => r.group.id)).toEqual(["home", "prove", "money", "company"]);
+    expect(rows.reduce((n, r) => n + r.leaves.length, 0)).toBe(20);
+    for (const r of rows) expect(r.leaves.length, r.group.id).toBeLessThanOrEqual(6);
+  });
+
+  it("evaluators: ≤ 3 groups, no Fundraise / Money / Company, Dashboard first", () => {
+    const cases: Array<[PersonaKey, Segment, number]> = [
+      ["investor_angel", "investor_angel", 8],
+      ["investor_vc", "investor_vc", 8],
+      ["advisor", "advisor", 6],
+      ["accelerator", "accelerator", 7],
+    ];
+    for (const [persona, segment, count] of cases) {
+      const rows = sidebarFor(persona, segment, 5);
+      expect(rows.length, persona).toBeLessThanOrEqual(3);
+      expect(rows.map((r) => r.group.label.en), persona).toEqual(["Home", "Deal flow", "Reports"]);
+      expect(rows[0].leaves[0].label.en, persona).toBe("Dashboard");
+      expect(rows.reduce((n, r) => n + r.leaves.length, 0), persona).toBe(count);
+      const labels = rows.flatMap((r) => r.leaves.map((l) => l.label.en));
+      expect(labels, persona).not.toContain("Fundraise");
+      expect(labels, persona).not.toContain("Raise");
+      for (const r of rows) expect(r.leaves.length, `${persona}/${r.group.id}`).toBeLessThanOrEqual(6);
     }
   });
 
-  it("gives every subgroup a non-empty items[]", () => {
-    for (const g of NAV_GROUPS) {
-      if (!g.subgroups) continue;
-      for (const sg of g.subgroups) {
-        expect(Array.isArray(sg.items)).toBe(true);
-        expect(sg.items.length).toBeGreaterThan(0);
-      }
-    }
-  });
-
-  it("flattens subgroups into `items[]` — items.length === sum(subgroups[].items.length)", () => {
-    for (const g of NAV_GROUPS) {
-      if (!g.subgroups) continue;
-      const expected = g.subgroups.reduce(
-        (sum: number, sg: NavSubgroup) => sum + sg.items.length,
-        0,
-      );
-      expect(g.items).toHaveLength(expected);
-    }
-  });
-
-  it("preserves subgroup insertion order in the flattened items[]", () => {
-    for (const g of NAV_GROUPS) {
-      if (!g.subgroups) continue;
-      const expected: NavLeaf[] = [];
-      for (const sg of g.subgroups) expected.push(...sg.items);
-      // Reference-identity — flatten() spreads the subgroup arrays into
-      // one, so each item in items[] should be the same object reference
-      // as the source subgroup item (no defensive copy).
-      expect(g.items.length).toBe(expected.length);
-      for (let i = 0; i < expected.length; i += 1) {
-        expect(g.items[i]).toBe(expected[i]);
-      }
-    }
-  });
-
-  it("marks Home + Admin as flat (no subgroups) — the two flat groups", () => {
-    const home = NAV_GROUPS.find((g) => g.id === "home")!;
-    expect(home.subgroups).toBeUndefined();
-    expect(ADMIN_NAV_GROUP.subgroups).toBeUndefined();
+  it("a phase-0 founder never sees an evaluator leaf and an evaluator never sees a founder leaf", () => {
+    const founder = new Set(sidebarFor("founder", "founder", 5).flatMap((r) => r.leaves.map((l) => l.href)));
+    const angel = new Set(sidebarFor("investor_angel", "investor_angel", 5).flatMap((r) => r.leaves.map((l) => l.href)));
+    for (const h of founder) expect(angel.has(h), h).toBe(false);
   });
 });
 
-describe("NAV_GROUPS — per-leaf contract", () => {
-  it("gives every leaf a non-empty href, label, and callable icon", () => {
-    for (const g of NAV_GROUPS) {
-      for (const leaf of walkLeaves(g)) {
-        expect(typeof leaf.href).toBe("string");
-        expect(leaf.href.length).toBeGreaterThan(0);
-        expect(typeof leaf.label).toBe("string");
-        expect(leaf.label.length).toBeGreaterThan(0);
-        // lucide-react icons resolve as either forwardRef objects
-        // (react components) or plain functions depending on bundler
-        // transform — both are truthy and non-primitive, so pin that.
-        expect(leaf.icon).toBeTruthy();
-        expect(["function", "object"]).toContain(typeof leaf.icon);
+describe("NAV_GROUPS — gates", () => {
+  it("every `feature:` / `lockedWithoutFeature:` slug is known to tier-visibility or the reseller console", () => {
+    const known = new Set([...Object.keys(VISIBILITY), "reseller.console", "esop.manage", "vesting.read", "cap_table.write"]);
+    for (const i of allNavLeaves([...NAV_GROUPS, ADMIN_NAV_GROUP, ...RESELLER_NAV_GROUPS])) {
+      if (i.feature) expect(known.has(i.feature), `${i.href} feature ${i.feature}`).toBe(true);
+      if (i.lockedWithoutFeature) expect(known.has(i.lockedWithoutFeature), `${i.href} lockedWithoutFeature`).toBe(true);
+    }
+  });
+
+  it("add-on rows are locked, never hidden, and carry the add-on's own flag", () => {
+    for (const i of allNavLeaves(NAV_GROUPS)) {
+      if (!i.addOnKey) continue;
+      expect(i.hideWhenLocked, i.href).toBe(false);
+      expect(i.lockedWithoutFeature, i.href).toBeTruthy();
+    }
+    expect(NAV_GROUPS_BY_ID.company.items.find((i) => i.href === "/workspace/esop")?.addOnKey).toBe("share_management");
+  });
+
+  it("segment-gated leaves only use evaluator segments outside the founder groups", () => {
+    for (const g of NAV_GROUPS.slice(4)) {
+      for (const i of g.items) {
+        expect(i.segments, `${i.href} must be segment-gated`).toBeTruthy();
+        for (const s of i.segments!) expect(EVALUATOR_NAV_SEGMENTS, `${i.href} ${s}`).toContain(s);
       }
     }
   });
 
-  it("keeps every leaf href root-relative (starts with `/`)", () => {
-    for (const g of NAV_GROUPS) {
-      for (const leaf of walkLeaves(g)) {
-        expect(leaf.href.startsWith("/")).toBe(true);
-      }
-    }
-  });
-
-  it("keeps every gate value inside its declared allow-list", () => {
-    for (const g of NAV_GROUPS) {
-      for (const leaf of walkLeaves(g)) {
-        if (leaf.minPlan) expect(PLAN_TIERS).toContain(leaf.minPlan);
-        if (leaf.minTier) expect(PLAN_TIERS).toContain(leaf.minTier);
-        if (leaf.persona) expect(PERSONAS).toContain(leaf.persona);
-        if (leaf.journeyGroup)
-          expect(JOURNEY_GROUPS).toContain(leaf.journeyGroup);
-        if (leaf.lifecycle) expect(LIFECYCLES).toContain(leaf.lifecycle);
-        if (leaf.segments) {
-          for (const s of leaf.segments) expect(SEGMENTS).toContain(s);
-        }
-      }
-    }
-  });
-
-  it("keeps `minTier` and `minPlan` in sync when both are set (they are aliases)", () => {
-    for (const g of NAV_GROUPS) {
-      for (const leaf of walkLeaves(g)) {
-        if (leaf.minTier !== undefined && leaf.minPlan !== undefined) {
-          expect(leaf.minTier).toBe(leaf.minPlan);
-        }
-      }
-    }
-  });
-
-  it("keeps `feature` and `requiredFeature` in sync when both are set (they are aliases)", () => {
-    for (const g of NAV_GROUPS) {
-      for (const leaf of walkLeaves(g)) {
-        if (leaf.feature !== undefined && leaf.requiredFeature !== undefined) {
-          expect(leaf.feature).toBe(leaf.requiredFeature);
-        }
-      }
-    }
-  });
-
-  it("restricts `addOnKey` to the single documented value `share_management`", () => {
-    for (const g of NAV_GROUPS) {
-      for (const leaf of walkLeaves(g)) {
-        if (leaf.addOnKey !== undefined) {
-          expect(leaf.addOnKey).toBe("share_management");
-        }
-      }
-    }
-  });
-
-  it("keeps every `growthPhase` in the 0..5 domain when set", () => {
-    for (const g of NAV_GROUPS) {
-      for (const leaf of walkLeaves(g)) {
-        if (leaf.growthPhase === undefined) continue;
-        expect(leaf.growthPhase).toBeGreaterThanOrEqual(0);
-        expect(leaf.growthPhase).toBeLessThanOrEqual(5);
-        expect(Number.isInteger(leaf.growthPhase)).toBe(true);
-      }
-    }
-  });
-});
-
-describe("NAV_GROUPS — group-specific pins", () => {
-  it("gives every Home row growthPhase=0 (landing surfaces)", () => {
-    const home = NAV_GROUPS.find((g) => g.id === "home")!;
-    for (const leaf of home.items) {
-      expect(leaf.growthPhase).toBe(0);
-    }
-  });
-
-  it("puts the Startup Package row in Validate → get-investor-ready, founder-gated, free tier", () => {
-    const validate = NAV_GROUPS.find((g) => g.id === "validate")!;
-    const investor = validate.subgroups!.find(
-      (sg) => sg.id === "validate.get-investor-ready",
-    )!;
-    expect(investor.items).toHaveLength(1);
-    const pkg = investor.items[0];
-    expect(pkg.href).toBe("/startup-package");
-    expect(pkg.segments).toEqual(["founder"]);
-    expect(pkg.minPlan).toBe("free");
-    expect(pkg.persona).toBe("founder");
-    expect(pkg.journeyGroup).toBe("onboarding");
-  });
-
-  it("puts the Grant & Program Finder leaf first in Validate → Discover, free tier, phase 0 (G11 T0244)", () => {
-    const validate = NAV_GROUPS.find((g) => g.id === "validate")!;
-    const discover = validate.subgroups!.find((sg) => sg.id === "validate.discover")!;
-    const leaf = discover.items[0];
-    expect(leaf.href).toBe("/workspace/funding");
-    expect(leaf.label).toBe("Grant & Program Finder");
-    expect(leaf.minPlan).toBe("free");
-    expect(leaf.minTier).toBe("free");
-    expect(leaf.growthPhase).toBe(0);
-    expect(leaf.persona).toBe("founder");
-    expect(leaf.journeyGroup).toBe("onboarding");
-    expect(typeof leaf.icon).toBe("object");
-    // Exactly one row across the whole catalogue points at the Money Finder.
-    const hits = NAV_GROUPS.flatMap((g) => Array.from(walkLeaves(g))).filter((l) => l.href === "/workspace/funding");
-    expect(hits).toHaveLength(1);
-  });
-
-  // Changed 2026-09-09 with the A$59 Equity add-on going on sale. This used to
-  // assert the opposite. `addOnKey` makes a locked row link to the add-on
-  // purchase drawer, and the add-on does not grant `cap_table.write` — the cap
-  // table and share register come with the plan. While the drawer was inert
-  // the mislabel was harmless; live, it would have sold a founder an add-on
-  // that does not unlock the row they clicked. Only rows the add-on genuinely
-  // unlocks may carry the key.
-  it("keeps addOnKey off Build → Equity Setup — those rows need a plan, not the add-on", () => {
-    const build = NAV_GROUPS.find((g) => g.id === "build")!;
-    const equity = build.subgroups!.find((sg) => sg.id === "build.equity-setup")!;
-    expect(equity.items.length).toBeGreaterThan(0);
-    for (const leaf of equity.items) {
-      expect(leaf.addOnKey).toBeUndefined();
-    }
-  });
-
-  it("puts addOnKey only on rows the Equity add-on actually unlocks, each naming its flag", () => {
-    const build = NAV_GROUPS.find((g) => g.id === "build")!;
-    const withKey = build.subgroups!
-      .flatMap((sg) => sg.items)
-      .filter((leaf) => leaf.addOnKey !== undefined);
-
-    expect(withKey.map((l) => l.href).sort()).toEqual([
-      "/workspace/esop",
-      "/workspace/vesting",
+  it("reseller console groups are NOT in NAV_GROUPS and keep the verbatim mentor hrefs", () => {
+    expect(NAV_GROUPS.some((g) => g.id === "reseller" || g.id === "mentor-console")).toBe(false);
+    expect(RESELLER_NAV_GROUPS.map((g) => g.id)).toEqual(["reseller", "mentor-console"]);
+    expect(RESELLER_NAV_GROUPS[1].items.map((i) => i.href)).toEqual([
+      "/reseller/mentor",
+      "/reseller/mentor?filter=overdue",
+      "/reseller/mentor?tab=reports",
+      "/reseller/mentor/cohort",
     ]);
-    // A row that offers the add-on must say which flag it is waiting on,
-    // otherwise the sidebar can never un-dim it after the purchase.
-    for (const leaf of withKey) {
-      expect(typeof leaf.lockedWithoutFeature).toBe("string");
-    }
-    expect(
-      withKey.find((l) => l.href === "/workspace/esop")!.lockedWithoutFeature,
-    ).toBe("esop.manage");
-    expect(
-      withKey.find((l) => l.href === "/workspace/vesting")!.lockedWithoutFeature,
-    ).toBe("vesting.read");
-  });
-
-  // 2026-09-09 nav/gate reconciliation. Each row below is visible to a tier
-  // whose plan does not grant what the page behind it enforces. The sidebar
-  // must say so before the click — a lock, or a floor — never an ordinary
-  // link that dead-ends on /pricing.
-  it("marks Cap Table locked on the flag its page enforces, not on tier alone", () => {
-    const build = NAV_GROUPS.find((g) => g.id === "build")!;
-    const capTable = build
-      .subgroups!.flatMap((sg) => sg.items)
-      .find((l) => l.href === "/workspace/cap-table")!;
-    // The page calls requireTierForPage({ feature: "cap_table.write" }).
-    expect(capTable.lockedWithoutFeature).toBe("cap_table.write");
-    // Still visible to a Starter — locked, not hidden — and pointed at a plan
-    // rather than the Equity add-on, which does not grant this flag.
-    expect(capTable.minTier).toBe("starter");
-    expect(capTable.addOnKey).toBeUndefined();
-  });
-
-  it("floors Exit Benchmark at the tier its page enforces", () => {
-    const scaleExit = NAV_GROUPS.find((g) => g.id === "scale-exit")!;
-    const bench = scaleExit
-      .subgroups!.flatMap((sg) => sg.items)
-      .find((l) => l.href === "/dashboard/exit-readiness")!;
-    // The page calls requireTierForPage({ minTier: "growth" }).
-    expect(bench.minTier).toBe("growth");
-    expect(bench.minPlan).toBe("growth");
-  });
-
-  it("gates every Roles subgroup on a segments filter or a required-feature", () => {
-    const roles = NAV_GROUPS.find((g) => g.id === "roles")!;
-    for (const sg of roles.subgroups!) {
-      const hasSegments = Array.isArray(sg.segments) && sg.segments.length > 0;
-      const hasFeature = typeof sg.requiredFeature === "string";
-      expect(hasSegments || hasFeature).toBe(true);
-    }
-  });
-
-  it("gates the Reseller + Mentor subgroups on `reseller.console`", () => {
-    const roles = NAV_GROUPS.find((g) => g.id === "roles")!;
-    for (const id of ["roles.reseller", "roles.mentor"]) {
-      const sg = roles.subgroups!.find((x) => x.id === id)!;
-      expect(sg.requiredFeature).toBe("reseller.console");
-      // Every leaf inside must also carry the feature gate (defense in
-      // depth against a renderer that only reads leaf-level gates).
-      for (const leaf of sg.items) {
-        expect(leaf.feature).toBe("reseller.console");
-        expect(leaf.requiredFeature).toBe("reseller.console");
-      }
-    }
-  });
-
-  // T0273 deliberately loosened this assertion. Before: the subgroup AND every
-  // leaf were pinned to ["investor_angel", "investor_vc"]. The Evaluator
-  // Progress Radar (plan §3b Scout / Firm / Program) makes
-  // `/workspace/evaluations` the surface for advisors (Firm) and accelerators
-  // (Program) too, and filterNavForUser hides a subgroup before it looks at
-  // its leaves — so the subgroup gate had to widen to the evaluator set for
-  // that one leaf to be reachable. The investor-only tools (Deal Flow,
-  // Watchlist, Portfolio, Preferences) keep the narrower pair, which this
-  // test still pins per leaf.
-  it("gates the Investor subgroup on every evaluator segment, with only the evaluations leaf open to advisor / accelerator", () => {
-    const roles = NAV_GROUPS.find((g) => g.id === "roles")!;
-    const investor = roles.subgroups!.find((sg) => sg.id === "roles.investor")!;
-    expect(investor.segments).toEqual(["investor_angel", "investor_vc", "advisor", "accelerator"]);
-    for (const leaf of investor.items) {
-      if (leaf.href === "/workspace/evaluations") {
-        expect(leaf.segments).toEqual(["investor_angel", "investor_vc", "advisor", "accelerator"]);
-      } else {
-        expect(leaf.segments).toEqual(["investor_angel", "investor_vc"]);
-      }
-    }
-  });
-
-  it("keeps Account subgroups (Profile / Billing / Enterprise) in shipped order", () => {
-    const account = NAV_GROUPS.find((g) => g.id === "account")!;
-    expect(account.subgroups!.map((sg) => sg.id)).toEqual([
-      "account.profile",
-      "account.billing",
-      "account.enterprise",
-    ]);
-  });
-
-  it("keeps Roles subgroups in shipped order (Investor → Advisor → Accelerator → Reseller → Mentor)", () => {
-    const roles = NAV_GROUPS.find((g) => g.id === "roles")!;
-    expect(roles.subgroups!.map((sg) => sg.id)).toEqual([
-      "roles.investor",
-      "roles.advisor",
-      "roles.accelerator",
-      "roles.reseller",
-      "roles.mentor",
-    ]);
+    // The duplicate Reseller › Mentor row is gone (§A.3).
+    expect(RESELLER_NAV_GROUPS[0].items.some((i) => i.href === "/reseller/mentor")).toBe(false);
   });
 });
 
-describe("NAV_GROUPS — href uniqueness (documented duplicates only)", () => {
-  it("keeps hrefs unique across the whole catalogue except the two known Reseller/Mentor collisions", () => {
-    const seen = new Map<string, number>();
-    for (const g of NAV_GROUPS) {
-      for (const leaf of walkLeaves(g)) {
-        seen.set(leaf.href, (seen.get(leaf.href) ?? 0) + 1);
-      }
+describe("NAV_GROUPS — every pre-v4 href still resolves (D6)", () => {
+  const liveHrefs = new Set(allNavLeaves([...NAV_GROUPS, ADMIN_NAV_GROUP, ...RESELLER_NAV_GROUPS]).map((i) => i.href));
+  const redirected = new Set(LEGACY_REDIRECTS.map((r) => r.source));
+
+  it("is a v4 leaf, a live page on disk, or a LEGACY_REDIRECTS source", () => {
+    const orphans: string[] = [];
+    for (const href of OLD_HREFS) {
+      const ok = liveHrefs.has(href) || redirected.has(href) || pageExists(href);
+      if (!ok) orphans.push(href);
     }
-    const duplicates = Array.from(seen.entries())
-      .filter(([, count]) => count > 1)
-      .map(([href, count]) => `${href} (${count}x)`)
-      .sort();
-    // `/reseller/mentor` is intentionally listed twice — once as the
-    // Roster row of the Mentor subgroup, once as the Mentor row of the
-    // Reseller subgroup (per release-plan verbatim-preservation note).
-    // Nothing else should be duplicated.
-    expect(duplicates).toEqual(["/reseller/mentor (2x)"]);
-  });
-});
-
-describe("ADMIN_NAV_GROUP — shape", () => {
-  it("ships exactly 8 admin nav rows", () => {
-    expect(ADMIN_NAV_GROUP.items).toHaveLength(8);
+    expect(orphans, "old hrefs with neither a page nor a redirect").toEqual([]);
   });
 
-  it("labels the group 'Admin' with id 'admin'", () => {
-    expect(ADMIN_NAV_GROUP.id).toBe("admin");
-    expect(ADMIN_NAV_GROUP.label).toBe("Admin");
-  });
-
-  it("leads with the /admin panel row", () => {
-    expect(ADMIN_NAV_GROUP.items[0].href).toBe("/admin");
-    expect(ADMIN_NAV_GROUP.items[0].label).toBe("Admin Panel");
-  });
-
-  it("keeps every admin href root-relative and every icon truthy", () => {
-    for (const leaf of ADMIN_NAV_GROUP.items) {
-      expect(leaf.href.startsWith("/")).toBe(true);
-      expect(leaf.icon).toBeTruthy();
-      expect(typeof leaf.label).toBe("string");
-      expect(leaf.label.length).toBeGreaterThan(0);
+  it("a redirected old href is never also a live leaf", () => {
+    for (const href of OLD_HREFS) {
+      if (redirected.has(href)) expect(liveHrefs.has(href), href).toBe(false);
     }
   });
 
-  it("pins the admin href set (source-of-truth for the admin sidebar)", () => {
-    expect(ADMIN_NAV_GROUP.items.map((l) => l.href).sort()).toEqual(
-      [
-        "/admin",
-        "/admin/goals",
-        "/admin/listings",
-        "/dashboard/admin/content-pillars",
-        "/dashboard/admin/pricing-test",
-        "/dashboard/admin/sector-multiples",
-        "/dashboard/admin/stripe-sync",
-        "/dashboard/admin/svi-exchange",
-      ].sort(),
-    );
+  it("every v4Href is a DEFERRED_REDIRECTS hub the leaf's current href moves into (S-IA2 flips both together)", () => {
+    for (const i of allNavLeaves(NAV_GROUPS)) {
+      if (!i.v4Href) continue;
+      const row = DEFERRED_REDIRECTS.find((r) => r.source === i.href);
+      expect(row, `${i.href} has no deferred redirect`).toBeTruthy();
+      // The hub root (`/workspace/strategy`) or one of its tabs (`/workspace/strategy/market`).
+      expect(row!.destination === i.v4Href || row!.destination.startsWith(`${i.v4Href}/`), `${i.href} → ${row!.destination} vs v4Href ${i.v4Href}`).toBe(true);
+      expect(pageExists(i.v4Href), `${i.v4Href} exists — flip href to it and move the redirect live`).toBe(false);
+    }
   });
 });

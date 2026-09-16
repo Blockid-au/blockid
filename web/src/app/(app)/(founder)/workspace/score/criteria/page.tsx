@@ -6,7 +6,7 @@ import { EvaluationClient } from "@/components/evaluation/evaluation-client";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
-  title: "Startup Evaluation | BlockID",
+  title: "Criteria | BlockID",
   description:
     "Evaluate your startup across 13 key criteria to build investor-ready evidence and unlock AI-powered insights.",
   robots: { index: false, follow: false },
@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function EvaluationPage() {
+export default async function ScoreCriteriaPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/workspace/evaluation");
+  if (!user) redirect("/auth/login?next=/workspace/score/criteria");
 
   const isSandbox = await getCurrentProjectIsSandbox();
 

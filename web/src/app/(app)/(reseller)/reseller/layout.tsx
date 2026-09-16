@@ -6,8 +6,11 @@
 // § C.1 "Reuse WorkspaceLayout"). The header copy moved here so the
 // outer shell sits above the WorkspaceLayout main area.
 //
-// Nav group is added conditionally in web/src/components/workspace/nav-groups.ts
-// (P4.2 — deferred until this scaffold is in place).
+// G13-W1-IA1 (§A.3 Roles): the Reseller + Mentor console groups live in
+// `RESELLER_NAV_GROUPS` (nav-groups.ts) and are mounted here through the
+// `navPreset="reseller"` shell prop — they no longer sit in the founder
+// catalogue. The Mentor group renders only with the `reseller.console`
+// entitlement (the shell checks it client-side).
 
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -57,6 +60,7 @@ export default async function ResellerLayout({ children }: Props) {
         avatarUrl: user.avatarUrl ?? null,
         role: user.role ?? undefined,
       }}
+      navPreset="reseller"
     >
       {children}
     </WorkspaceLayout>

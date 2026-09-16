@@ -75,7 +75,7 @@ export default async function NewListingPage() {
             reason="The submission form is not built yet, so a ticker cannot be reserved from this page today. Your SVI grade is what the listing will show, so keeping it current is the useful preparation; Listing Readiness checks the rest."
             alternatives={[
               { href: "/workspace/listing-readiness", label: "Listing Readiness checklist" },
-              { href: "/workspace/evaluation", label: "Refresh my SVI" },
+              { href: "/workspace/score/criteria", label: "Refresh my SVI" },
               { href: "/startup-index", label: "Browse the AU Startup Index" },
             ]}
             backHref="/workspace"

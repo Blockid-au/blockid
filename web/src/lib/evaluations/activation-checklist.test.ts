@@ -79,7 +79,7 @@ describe("deriveActivationChecklist", () => {
   });
 
   it("constants: thesis link, dismiss key, reminder deep link", () => {
-    expect(ACTIVATION_THESIS_HREF).toBe("/workspace/investor/preferences");
+    expect(ACTIVATION_THESIS_HREF).toBe("/workspace/investor/mandate");
     expect(ACTIVATION_DISMISS_KEY).toBe("blockid.evaluator.checklist.dismissed.v1");
     expect(TRIAL_REMINDER_FROM).toBe("trial_reminder");
     expect(TRIAL_REMINDER_PATH).toBe("/workspace/evaluations?from=trial_reminder");

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { legacyRedirectRows } from "./src/lib/nav/legacy-redirects";
 
 const nextConfig: NextConfig = {
   output: "standalone",
@@ -35,6 +36,11 @@ const nextConfig: NextConfig = {
    */
   async redirects() {
     return [
+      // G13-W1-IA1 (D6) — every retired workspace route 308s to its v4 home.
+      // The table lives in src/lib/nav/legacy-redirects.ts (unit-tested:
+      // destinations exist, no chains) and is spread first so it wins over
+      // anything below. Hub-tab redirects land per sprint as the hubs ship.
+      ...legacyRedirectRows(),
       // B1 Task 3 — legacy `/for/*` marketing URLs return HTTP 301 (was 308).
       // Next.js's `permanent: true` emits a 308; `statusCode: 301` is the
       // explicit override for the classic SEO-friendly Moved Permanently.

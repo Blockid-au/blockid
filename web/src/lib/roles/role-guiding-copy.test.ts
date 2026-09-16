@@ -6,8 +6,8 @@
 // dashboard's empty-state slot, so the invariants pinned below are the ones
 // downstream renderers depend on:
 //
-//   • Every ROLES key from role-taxonomy resolves to a ROLE_GUIDING_COPY entry
-//     (and vice versa — no orphan copy for a retired role).
+//   • Every ROLES key resolves to a ROLE_GUIDING_COPY entry (and vice versa —
+//     no orphan copy for a retired role) and to a PERSONAS entry.
 //   • Every LocalisedText has non-empty EN + VI so a bilingual toggle never
 //     shows a blank string.
 //   • EN and VI differ per field (a copy-paste of the EN into VI would leave
@@ -20,18 +20,20 @@
 //     unknown / empty inputs.
 
 import { describe, it, expect } from "vitest";
-import { ROLES } from "@/lib/roles/role-taxonomy";
+import { PERSONAS } from "@/lib/nav/persona";
 import {
+  ROLES,
   ROLE_GUIDING_COPY,
   getRoleGuidingCopy,
 } from "@/lib/roles/role-guiding-copy";
 
 const ALL_ROLES = Object.keys(ROLE_GUIDING_COPY) as Array<keyof typeof ROLE_GUIDING_COPY>;
 
-describe("role-guiding-copy — coverage vs role-taxonomy", () => {
+describe("role-guiding-copy — coverage vs ROLES / PERSONAS", () => {
   it("has a copy entry for every role declared in ROLES", () => {
     for (const role of ROLES) {
       expect(ROLE_GUIDING_COPY[role]).toBeDefined();
+      expect(PERSONAS[role], `${role} is a persona`).toBeDefined();
     }
   });
 
@@ -93,7 +95,7 @@ describe("role-guiding-copy — per-role CTA href anchors", () => {
     expect(ROLE_GUIDING_COPY.founder.next_step_recommender.cta.href).toBe("/dashboard/svi");
   });
   it("advisor CTA points at the client roster", () => {
-    expect(ROLE_GUIDING_COPY.advisor.next_step_recommender.cta.href).toBe("/workspace/client-roster");
+    expect(ROLE_GUIDING_COPY.advisor.next_step_recommender.cta.href).toBe("/workspace/advisor/roster");
   });
   it("mentor CTA points at the reseller mentor cohort roll-up", () => {
     expect(ROLE_GUIDING_COPY.mentor.next_step_recommender.cta.href).toBe("/reseller/mentor/cohort");

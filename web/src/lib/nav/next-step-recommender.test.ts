@@ -5,8 +5,8 @@
 // tests, so we live alongside the module. Assertions match the design
 // contract:
 //   - every phase 1..12 in PHASE_LABELS maps to a valid workspace href;
-//   - a `founder_free` plan at phase 0 recommends /workspace/evaluation;
-//   - the investor_angel segment always resolves to /workspace/deal-flow
+//   - a `founder_free` plan at phase 0 recommends /workspace/score/criteria;
+//   - the investor_angel segment always resolves to /workspace/investor/dealflow
 //     regardless of the founder phase we happen to pass in.
 
 import { describe, it, expect } from "vitest";
@@ -32,34 +32,34 @@ describe("next-step-recommender", () => {
     }
   });
 
-  it("founder_free at phase 0 recommends /workspace/evaluation", () => {
+  it("founder_free at phase 0 recommends /workspace/score/criteria", () => {
     const step = recommendNextStep({
       currentPhase: 0,
       planId: "founder_free",
     });
-    expect(step.href).toBe("/workspace/evaluation");
+    expect(step.href).toBe("/workspace/score/criteria");
     expect(step.icon).toBe("sparkles");
   });
 
-  it("investor_angel segment falls through to /workspace/deal-flow at any phase", () => {
+  it("investor_angel segment falls through to /workspace/investor/dealflow at any phase", () => {
     for (const phase of [0, 1, 3, 7, 12]) {
       const step = recommendNextStep({
         currentPhase: phase,
         segment: "investor_angel",
       });
-      expect(step.href).toBe("/workspace/deal-flow");
+      expect(step.href).toBe("/workspace/investor/dealflow");
     }
   });
 
   it("investor_vc + advisor + accelerator + reseller each get their own home surface", () => {
     expect(recommendNextStep({ currentPhase: 4, segment: "investor_vc" }).href).toBe(
-      "/workspace/deal-flow",
+      "/workspace/investor/dealflow",
     );
     expect(recommendNextStep({ currentPhase: 4, segment: "advisor" }).href).toBe(
-      "/workspace/client-roster",
+      "/workspace/advisor/roster",
     );
     expect(recommendNextStep({ currentPhase: 4, segment: "accelerator" }).href).toBe(
-      "/workspace/cohort",
+      "/workspace/accelerator/cohort",
     );
     expect(recommendNextStep({ currentPhase: 4, segment: "reseller" }).href).toBe(
       "/reseller",
@@ -73,7 +73,7 @@ describe("next-step-recommender", () => {
     );
     // Negative → phase-0 default.
     expect(recommendNextStep({ currentPhase: -5 }).href).toBe(
-      "/workspace/evaluation",
+      "/workspace/score/criteria",
     );
   });
 

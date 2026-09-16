@@ -33,7 +33,7 @@ export default async function ApplicationsPage() {
         userEmail={user.email}
         reason="A public application form with scoring and stage-by-stage review is not built yet. Today you add startups to a cohort yourself and track their SVI, evidence and progress from there; every startup you enter also appears under Startups I'm evaluating with its Progress Radar."
         alternatives={[
-          { href: "/workspace/cohort", label: "Cohort — add and track startups" },
+          { href: "/workspace/accelerator/cohort", label: "Cohort — add and track startups" },
           { href: "/workspace/evaluations", label: "Startups I'm evaluating" },
         ]}
       />

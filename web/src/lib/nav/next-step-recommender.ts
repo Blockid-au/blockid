@@ -62,7 +62,7 @@ export interface RecommendNextStepInput {
 // Phase 0 fallback — a fresh founder who hasn't started the 13-criteria SVI
 // evaluation yet. Points them at the fastest "win" surface.
 const PHASE_0_STEP: RecommendedNextStep = {
-  href: "/workspace/evaluation",
+  href: "/workspace/score/criteria",
   label: "Run your 8-dimension SVI evaluation",
   reason: "Baseline your startup before we can recommend next steps",
   ctaLabel: "Start evaluation",
@@ -74,28 +74,28 @@ const PHASE_0_STEP: RecommendedNextStep = {
 // their day-1 activity.
 const SEGMENT_STEPS: Record<string, RecommendedNextStep> = {
   investor_angel: {
-    href: "/workspace/deal-flow",
+    href: "/workspace/investor/dealflow",
     label: "Review your deal flow",
     reason: "New opportunities are sorted for angels first",
     ctaLabel: "Open deal flow",
     icon: "layers",
   },
   investor_vc: {
-    href: "/workspace/deal-flow",
+    href: "/workspace/investor/dealflow",
     label: "Review your deal flow",
     reason: "New opportunities are sorted for your VC thesis",
     ctaLabel: "Open deal flow",
     icon: "layers",
   },
   advisor: {
-    href: "/workspace/client-roster",
+    href: "/workspace/advisor/roster",
     label: "Check your client roster",
     reason: "Advisors start with the clients they're mentoring",
     ctaLabel: "Open roster",
     icon: "users",
   },
   accelerator: {
-    href: "/workspace/cohort",
+    href: "/workspace/accelerator/cohort",
     label: "Manage your cohort",
     reason: "Cohort founders are your top-of-funnel signal",
     ctaLabel: "Open cohort",
@@ -123,7 +123,7 @@ export const MONEY_FINDER_SECONDARY: SecondaryNextStep = {
 // via the sidebar (no dead-end deep-links).
 const PHASE_TO_STEP: Record<number, RecommendedNextStep> = {
   1: {
-    href: "/workspace/evaluation",
+    href: "/workspace/score/criteria",
     label: "Capture your Day-0 vision",
     reason: "Frame the problem before building",
     ctaLabel: "Start evaluation",

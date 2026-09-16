@@ -73,7 +73,7 @@ function linkFor(s: SVISubScore): { label: string; href: string } {
   if (k.includes("product") || k.includes("technical"))
     return { label: "Add Product Evidence", href: "/workspace/evidence" };
   if (k.includes("market"))
-    return { label: "Add Market Evidence", href: "/workspace/evaluation" };
+    return { label: "Add Market Evidence", href: "/workspace/score/criteria" };
   if (k.includes("founder") || k.includes("team"))
     return { label: "Add Team Evidence", href: "/workspace/shareholders" };
   return { label: "Open Evidence Vault", href: "/workspace/evidence" };

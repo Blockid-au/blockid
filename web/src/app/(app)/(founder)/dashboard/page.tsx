@@ -57,7 +57,6 @@ import { getSVIPercentile } from "@/lib/benchmarks";
 import { computePhaseGate, topBlockers, type SviDimension } from "@/lib/growth/phase-gate";
 import { isGrowthPhaseId } from "@/lib/growth/phase-taxonomy";
 import { NAV_PHASE_NAMES, resolveFounderNavPhase } from "@/lib/nav/founder-phase";
-import { getCompletedOnboardingSteps } from "@/lib/onboarding-steps";
 import {
   countIntakeAnalysesForUser,
   latestIntakeAnalysisForUser,
@@ -188,7 +187,7 @@ function actionToUrl(title: string): string {
   if (t.includes("asic") || t.includes("abn") || t.includes("register")) return "/workspace/profile";
   if (t.includes("ip") || t.includes("patent") || t.includes("trademark") || t.includes("legal")) return "/workspace/documents";
   if (t.includes("advisor") || t.includes("team") || t.includes("co-founder")) return "/workspace/shareholders";
-  if (t.includes("market") || t.includes("tam") || t.includes("sam")) return "/workspace/evaluation";
+  if (t.includes("market") || t.includes("tam") || t.includes("sam")) return "/workspace/score/criteria";
   if (t.includes("moat") || t.includes("evidence")) return "/workspace/evidence";
   if (t.includes("fundraise") || t.includes("raise")) return "/workspace/fundraise";
   return "/workspace/evidence";
@@ -200,7 +199,7 @@ function fallbackDirectionSteps(stage: number): DirectionStep[] {
     return [
       { label: "Describe your idea in detail", detail: "Add target customer, problem, and market — the SVI engine needs this to score Validation.", impact: "+12 SVI", url: "/analyze", priority: "P0" },
       { label: "Capture validation evidence", detail: "Upload customer interviews, waitlist signups, or survey results to the Evidence Vault.", impact: "+10 SVI", url: "/workspace/evidence", priority: "P1" },
-      { label: "Map your market (TAM / SAM / SOM)", detail: "Quantify the opportunity so investors can size the prize.", impact: "+8 SVI", url: "/workspace/evaluation", priority: "P2" },
+      { label: "Map your market (TAM / SAM / SOM)", detail: "Quantify the opportunity so investors can size the prize.", impact: "+8 SVI", url: "/workspace/score/criteria", priority: "P2" },
     ];
   }
   if (stage <= 1) {
@@ -812,11 +811,8 @@ export default async function DashboardPage({
   // Reseller sandbox flag — controls the persistent AUP banner (CLO D4-CLO-06).
   const isSandbox = await getCurrentProjectIsSandbox();
 
-  // T_ONBOARD_0001 — 12-step investor-readiness progress bar signals.
-  const completedOnboardingSteps = await getCompletedOnboardingSteps(user.id);
-
   return (
-    <WorkspaceLayout user={user} startupName={startupName} currentPhase={phase} isSandbox={isSandbox} completedOnboardingSteps={completedOnboardingSteps}>
+    <WorkspaceLayout user={user} startupName={startupName} currentPhase={phase} isSandbox={isSandbox}>
       <PageTracker page="dashboard" />
       {sp.onboarding === "complete" && <OnboardingWelcomeModal />}
 

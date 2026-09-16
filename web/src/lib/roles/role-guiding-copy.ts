@@ -1,9 +1,11 @@
 /**
  * Landing-page copy + "recommended next step" phrases per role.
  *
- * Kept separate from `role-taxonomy.ts` (which is pure structural data used by
- * the workspace shell + tour engine) so downstream consumers can iterate on
- * marketing copy without triggering the taxonomy tests.
+ * Kept separate from `lib/nav/persona.ts` (the persona table — landing href,
+ * sidebar groups, tour slug) so downstream consumers can iterate on marketing
+ * copy without touching the shell. The six guided roles are the personas
+ * that own a landing hero; investor personas land on the S-IA4 investor
+ * landing and carry no hero copy here.
  *
  * Consumers:
  *   - <RoleLandingIntro/> renders `landing_hero` on the role's landing page.
@@ -12,7 +14,11 @@
  *
  * Copy is bilingual EN/VI (matches the platform's localisation contract).
  */
-import type { Role } from "./role-taxonomy";
+import type { PersonaKey } from "@/lib/nav/persona";
+
+/** The personas that carry a landing hero + next-step phrase. */
+export const ROLES = ["founder", "advisor", "mentor", "accelerator", "innovator", "reseller"] as const satisfies readonly PersonaKey[];
+export type Role = (typeof ROLES)[number];
 
 export interface LocalisedText { en: string; vi: string }
 export interface RoleLandingHero {
@@ -49,7 +55,7 @@ export const ROLE_GUIDING_COPY: Record<Role, RoleGuidingCopy> = {
     },
     next_step_recommender: {
       phrase: { en: "Recommended next step — invite your first client so the portfolio SVI chart starts filling in.", vi: "Bước tiếp theo — mời khách hàng đầu tiên để biểu đồ SVI danh mục bắt đầu có dữ liệu." },
-      cta: { href: "/workspace/client-roster", label: { en: "Invite a client", vi: "Mời khách hàng" } },
+      cta: { href: "/workspace/advisor/roster", label: { en: "Invite a client", vi: "Mời khách hàng" } },
     },
   },
   mentor: {

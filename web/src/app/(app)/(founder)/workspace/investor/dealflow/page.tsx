@@ -150,7 +150,7 @@ export default async function InvestorDealFlowPage({
             </p>
           </div>
           <Link
-            href="/workspace/investor/preferences"
+            href="/workspace/investor/mandate"
             className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
           >
             Refine preferences
@@ -407,7 +407,7 @@ function EmptyState() {
       </p>
       <div className="mt-4">
         <Link
-          href="/workspace/investor/preferences"
+          href="/workspace/investor/mandate"
           className="inline-flex items-center rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-3 py-2 text-xs font-semibold"
         >
           Refine preferences

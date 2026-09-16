@@ -10,14 +10,15 @@ import { describe, expect, it } from "vitest";
 import { NAV_GROUPS } from "@/components/workspace/nav-groups";
 import { PHASE_EXIT_RULES } from "@/lib/growth/phase-gate";
 import { GROWTH_PHASE_IDS, growthPhaseOrder } from "@/lib/growth/phase-taxonomy";
-import { currentPhaseToStep } from "@/lib/nav/workflow-steps";
+import { clampNavPhase } from "@/lib/nav/founder-phase-shared";
+import { PERSONAS } from "@/lib/nav/persona";
 import { CRITERION_KEYS } from "@/lib/evaluation-criteria";
 import {
   applyToDoc,
   buildUnlockMatrix,
   cellText,
   COLUMN_PLAN_IDS,
-  GROWTH_PHASE_TO_WORKFLOW_STEP,
+  GROWTH_PHASE_TO_NAV_PHASE,
   MATRIX_BEGIN,
   MATRIX_END,
   renderMatrixMarkdown,
@@ -50,7 +51,7 @@ describe("unlock-matrix — generated docs track the code", () => {
     expect(committed, RERENDER).toEqual(JSON.parse(JSON.stringify(matrix)));
   });
 
-  it("covers all 12 growth phases and the 7 plan columns", () => {
+  it("covers all 12 growth phases and the 7 plan columns (one cell per NAV_GROUPS group)", () => {
     expect(matrix.phases.map((p) => p.id)).toEqual([...GROWTH_PHASE_IDS]);
     expect(matrix.columns.map((c) => c.id)).toEqual([...COLUMN_PLAN_IDS]);
     expect(matrix.rules.map((r) => r.id)).toEqual(Object.keys(PHASE_EXIT_RULES));
@@ -63,13 +64,17 @@ describe("unlock-matrix — generated docs track the code", () => {
   });
 });
 
-describe("unlock-matrix — 12 phases → 6 sidebar steps bridge", () => {
-  it("agrees with workflow-steps.ts currentPhaseToStep() where that function is reachable (ordinals 1, 6..12)", () => {
+describe("unlock-matrix — 12 phases → 6 sidebar bands bridge", () => {
+  it("agrees with clampNavPhase() where the legacy 1..12 ordinal maps directly (ordinals 1, 6..12)", () => {
     for (const id of GROWTH_PHASE_IDS) {
       const ordinal = growthPhaseOrder(id);
       if (ordinal === 1 || ordinal >= 6) {
-        expect(GROWTH_PHASE_TO_WORKFLOW_STEP[id], id).toBe(currentPhaseToStep(ordinal));
+        expect(GROWTH_PHASE_TO_NAV_PHASE[id], id).toBe(clampNavPhase(ordinal));
       }
+    }
+    for (const row of buildUnlockMatrix().phases) {
+      expect(row.navPhaseName.length, row.id).toBeGreaterThan(0);
+      expect(row.navPhaseName).not.toMatch(/\d/);
     }
   });
 
@@ -85,54 +90,72 @@ describe("unlock-matrix — 12 phases → 6 sidebar steps bridge", () => {
   });
 });
 
-describe("unlock-matrix — visibility pipeline mirrors workspace-layout.tsx", () => {
+describe("unlock-matrix — visibility pipeline mirrors workspace-layout.tsx (nav v4)", () => {
   const founderFree = { planId: "founder_free", segment: "founder" as const, features: new Set<string>() };
 
-  it("phase-locked groups are hidden, not dimmed (D2), and the 3 core groups always show", () => {
+  it("a phase-1 founder sees Home · Prove · Money in place, Company folded under Later phases, evaluator groups hidden", () => {
     const cells = renderSidebar({ ...founderFree, currentPhase: 1 });
     const state = Object.fromEntries(cells.map((c) => [c.id, c.state]));
     expect(state.home).toBe("visible");
-    expect(state.validate).toBe("visible");
-    expect(state.account).toBe("visible");
-    expect(state.build).toBe("hidden_phase");
-    expect(state.fundraise).toBe("hidden_phase");
-    expect(state["scale-exit"]).toBe("hidden_phase");
-    // Roles carries only evaluator rows → resolves empty for a founder.
-    expect(state.roles).toBe("empty");
+    expect(state.prove).toBe("visible");
+    expect(state.money).toBe("visible");
+    expect(state.company).toBe("later_preview");
+    expect(state["evaluator-home"]).toBe("hidden_segment");
+    expect(state.dealflow).toBe("hidden_segment");
+    expect(state.reports).toBe("hidden_segment");
+    // Persona order wins: founder groups first, in PERSONAS.founder.navGroups order.
+    expect(cells.slice(0, 4).map((c) => c.id)).toEqual(PERSONAS.founder.navGroups);
   });
 
-  it("groups more than 3 steps ahead fold under the Later-phases preview (pre-SVI step 0)", () => {
+  it("phase-0 founder sees exactly 10 leaves across 3 groups (spec §A.1)", () => {
     const cells = renderSidebar({ ...founderFree, currentPhase: 0 });
-    expect(cells.find((c) => c.id === "scale-exit")?.state).toBe("later_preview");
-    expect(cells.find((c) => c.id === "build")?.state).toBe("hidden_phase");
+    const inPlace = cells.filter((c) => c.state === "visible");
+    expect(inPlace.map((c) => c.id)).toEqual(["home", "prove", "money"]);
+    expect(inPlace.reduce((n, c) => n + c.visibleItems, 0)).toBe(10);
+    expect(cells.find((c) => c.id === "company")?.state).toBe("later_preview");
+  });
+
+  it("phase-5 founder sees 4 groups / 20 leaves; Company opens at band 2", () => {
+    const at5 = renderSidebar({ ...founderFree, currentPhase: 5 }).filter((c) => c.state === "visible");
+    expect(at5.map((c) => c.id)).toEqual(["home", "prove", "money", "company"]);
+    expect(at5.reduce((n, c) => n + c.visibleItems, 0)).toBe(20);
+    expect(renderSidebar({ ...founderFree, currentPhase: 2 }).find((c) => c.id === "company")?.state).toBe("visible");
   });
 
   it("tier-locked rows stay visible and are counted as upgrade / add-on dims", () => {
     const cells = renderSidebar({ ...founderFree, currentPhase: 5 });
-    const build = cells.find((c) => c.id === "build")!;
-    expect(build.state).toBe("visible");
-    expect(build.upgradeItems).toBeGreaterThan(0);
-    // ESOP Setup + Vesting carry addOnKey share_management.
-    expect(build.addOnItems).toBe(2);
-    const growth = renderSidebar({ planId: "founder_growth", segment: "founder", currentPhase: 5, features: new Set(["cap_table.write"]) });
-    expect(growth.find((c) => c.id === "build")!.upgradeItems).toBeLessThan(build.upgradeItems);
+    const company = cells.find((c) => c.id === "company")!;
+    expect(company.state).toBe("visible");
+    expect(company.upgradeItems).toBeGreaterThan(0);
+    // ESOP carries addOnKey share_management.
+    expect(company.addOnItems).toBe(1);
+    const growth = renderSidebar({ planId: "founder_growth", segment: "founder", currentPhase: 5, features: new Set(["esop.manage"]) });
+    expect(growth.find((c) => c.id === "company")!.upgradeItems).toBeLessThan(company.upgradeItems);
+    expect(growth.find((c) => c.id === "company")!.addOnItems).toBe(0);
   });
 
-  it("evaluator overlays drop the founder groups", () => {
+  it("evaluator personas get Home · Deal flow · Reports and never a founder group", () => {
     const scout = renderSidebar({ planId: "investor_angel", segment: "investor_angel", currentPhase: 5, features: new Set() });
     const state = Object.fromEntries(scout.map((c) => [c.id, c.state]));
-    expect(state.validate).toBe("hidden_segment");
-    expect(state.build).toBe("hidden_segment");
-    expect(state["scale-exit"]).toBe("hidden_segment");
-    expect(state.roles).toBe("visible");
-    expect(state.fundraise).toBe("visible");
+    expect(state.home).toBe("hidden_segment");
+    expect(state.prove).toBe("hidden_segment");
+    expect(state.money).toBe("hidden_segment");
+    expect(state.company).toBe("hidden_segment");
+    expect(state["evaluator-home"]).toBe("visible");
+    expect(state.dealflow).toBe("visible");
+    expect(state.reports).toBe("visible");
+    expect(scout.slice(0, 3).map((c) => c.id)).toEqual(PERSONAS.investor_angel.navGroups);
+    // Advisor + accelerator share the groups but see their own leaves.
+    const advisor = renderSidebar({ planId: "investor_advisor", segment: "advisor", currentPhase: 5, features: new Set() });
+    expect(advisor.find((c) => c.id === "evaluator-home")!.visibleItems).toBe(3);
+    expect(advisor.find((c) => c.id === "dealflow")!.visibleItems).toBe(2);
   });
 
   it("cellText omits hidden groups and annotates dims", () => {
     const cells = renderSidebar({ ...founderFree, currentPhase: 1 });
     const text = cellText(cells);
-    expect(text).toMatch(/^Home · Validate \(\d+ upgrade\) · Account \(\d+ upgrade\)$/);
-    expect(text).not.toContain("Build");
+    expect(text).toMatch(/^Home · Prove \(\d+ upgrade\) · Money \(\d+ upgrade\) · Later phases: Company$/);
+    expect(text).not.toContain("Deal flow");
   });
 });
 

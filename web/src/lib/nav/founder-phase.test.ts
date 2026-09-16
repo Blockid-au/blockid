@@ -1,8 +1,8 @@
 // S7-A — pins the one founder nav-phase resolver:
 //   • the SVI band table (moved verbatim from /dashboard's computePhase)
-//   • the 12 → 6 growth-phase bucketing, against currentPhaseToStep() where
-//     that function is reachable (6..12) and against its documented table
-//     for the shadowed low ordinals (1..5)
+//   • the 12 → 6 growth-phase bucketing (G13-W1-IA1 folded the former
+//     workflow-steps.ts into founder-phase-shared.ts: the table is pinned
+//     against GROWTH_PHASE_ORDER and clampNavPhase() directly)
 //   • the max rule (a founder never loses menu either way)
 //   • the sidebar fallback order: prop > context > 0
 //   • the loader's non-fatal paths + read-only SVI query shape
@@ -10,16 +10,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   EMPTY_FOUNDER_NAV_CONTEXT,
-  GROWTH_PHASE_TO_WORKFLOW_STEP,
+  GROWTH_PHASE_TO_NAV_PHASE,
   NAV_PHASE_NAMES,
+  NAV_PHASES,
+  clampNavPhase,
   getFounderNavContext,
+  isNavPhase,
   navPhaseFromGrowthPhase,
   navPhaseFromSvi,
   pickNavPhase,
   resolveFounderNavPhase,
   sviTotalFromRow,
 } from "./founder-phase";
-import { STEP_TO_PHASE, currentPhaseToStep, type WorkflowStep } from "./workflow-steps";
 import { GROWTH_PHASE_IDS, GROWTH_PHASE_ORDER, type GrowthPhaseId } from "@/lib/growth/phase-taxonomy";
 
 // ─── SVI band table ──────────────────────────────────────────────────────────
@@ -54,26 +56,41 @@ describe("navPhaseFromSvi — band table pinned (was /dashboard computePhase)", 
 // ─── 12 → 6 bucketing ────────────────────────────────────────────────────────
 
 describe("navPhaseFromGrowthPhase — 12-phase id → 0..5", () => {
-  it("covers every growth phase id exactly once", () => {
-    expect(Object.keys(GROWTH_PHASE_TO_WORKFLOW_STEP).sort()).toEqual([...GROWTH_PHASE_IDS].sort());
+  it("covers every growth phase id exactly once with a valid 0..5 band", () => {
+    expect(Object.keys(GROWTH_PHASE_TO_NAV_PHASE).sort()).toEqual([...GROWTH_PHASE_IDS].sort());
+    for (const id of GROWTH_PHASE_IDS) expect(isNavPhase(GROWTH_PHASE_TO_NAV_PHASE[id]), id).toBe(true);
+    expect([...NAV_PHASES]).toEqual([0, 1, 2, 3, 4, 5]);
   });
 
-  it("agrees with currentPhaseToStep() for ordinals 6..12 (where the function is reachable)", () => {
+  it("agrees with clampNavPhase() for ordinals 6..12 (the legacy 1..12 domain)", () => {
     for (const id of GROWTH_PHASE_IDS) {
       const ordinal = GROWTH_PHASE_ORDER[id];
       if (ordinal < 6) continue;
-      expect(GROWTH_PHASE_TO_WORKFLOW_STEP[id], id).toBe(currentPhaseToStep(ordinal));
-      expect(navPhaseFromGrowthPhase(id), id).toBe(STEP_TO_PHASE[currentPhaseToStep(ordinal)]);
+      expect(GROWTH_PHASE_TO_NAV_PHASE[id], id).toBe(clampNavPhase(ordinal));
     }
   });
 
-  it("uses the documented 1..2 → validate, 3..5 → build buckets for the ordinals the function shadows", () => {
-    const documented: Record<number, WorkflowStep> = { 1: "validate", 2: "validate", 3: "build", 4: "build", 5: "build" };
+  it("uses the documented 1..2 → 1, 3..5 → 2 buckets for the low ordinals", () => {
+    const documented: Record<number, number> = { 1: 1, 2: 1, 3: 2, 4: 2, 5: 2 };
     for (const id of GROWTH_PHASE_IDS) {
       const ordinal = GROWTH_PHASE_ORDER[id];
       if (ordinal > 5) continue;
-      expect(GROWTH_PHASE_TO_WORKFLOW_STEP[id], id).toBe(documented[ordinal]);
+      expect(GROWTH_PHASE_TO_NAV_PHASE[id], id).toBe(documented[ordinal]);
     }
+  });
+
+  it("clampNavPhase: 0..5 pass through, legacy 6..12 bucket, junk → 0", () => {
+    for (const p of NAV_PHASES) expect(clampNavPhase(p)).toBe(p);
+    expect(clampNavPhase(6)).toBe(3);
+    expect(clampNavPhase(8)).toBe(3);
+    expect(clampNavPhase(9)).toBe(4);
+    expect(clampNavPhase(11)).toBe(4);
+    expect(clampNavPhase(12)).toBe(5);
+    expect(clampNavPhase(99)).toBe(5);
+    expect(clampNavPhase(-3)).toBe(0);
+    expect(clampNavPhase(null)).toBe(0);
+    expect(clampNavPhase(undefined)).toBe(0);
+    expect(clampNavPhase(Number.NaN)).toBe(0);
   });
 
   it("is monotone non-decreasing along the 12-phase order", () => {

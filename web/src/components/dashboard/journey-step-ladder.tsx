@@ -56,7 +56,7 @@ import { cn } from "@/lib/utils";
 // ---------------------------------------------------------------------------
 export const PHASE_ROUTES: Record<PhaseKey, string> = {
   1: "/dashboard",                        // Vision / Day-0 Idea
-  2: "/workspace/evaluation",             // Idea Validation
+  2: "/workspace/score/criteria",             // Idea Validation
   3: "/dashboard/benchmark",              // Market Research
   4: "/workspace/evidence",               // MVP / Product Discovery
   5: "/workspace/metrics",                // PMF / Early Traction

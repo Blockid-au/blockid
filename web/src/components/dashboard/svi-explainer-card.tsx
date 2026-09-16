@@ -42,7 +42,7 @@ const DIMENSION_GUIDES: Record<string, { title: string; whyItMatters: string; qu
       "Publish a Problem-Customer-Solution canvas",
       "Add evidence of demand (waitlist signups, LOIs)",
     ],
-    deepLink: "/workspace/evaluation",
+    deepLink: "/workspace/score/criteria",
   },
   ptd: {
     title: "Product & Technical Depth",

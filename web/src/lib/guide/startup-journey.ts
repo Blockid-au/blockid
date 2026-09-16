@@ -216,9 +216,9 @@ const CHAPTERS: Chapter[] = [
       en: "Open Score → Full SVI in your workspace. Set aside 20 minutes; upload one credible piece of evidence per criterion where you can.",
       vi: "Mở Chấm điểm → SVI đầy đủ trong không gian làm việc. Dành 20 phút; tải lên một bằng chứng đáng tin cho mỗi tiêu chí nếu có thể.",
     },
-    ctaHref: "/workspace/evaluation",
+    ctaHref: "/workspace/score/criteria",
     agentLinks: [
-      { label: "Idea Evaluation", href: "/workspace/evaluation" },
+      { label: "Idea Evaluation", href: "/workspace/score/criteria" },
     ],
   },
   {

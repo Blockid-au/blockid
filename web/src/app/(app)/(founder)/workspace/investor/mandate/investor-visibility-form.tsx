@@ -2,7 +2,7 @@
 
 /**
  * "Let matching founders see me" — the investor_discoverable opt-in
- * (T0251 follow-up). Rendered on /workspace/investor/preferences for
+ * (T0251 follow-up). Rendered on /workspace/investor/mandate for
  * evaluator personas only (the server page decides; this component never
  * checks persona itself). Off by default. Saves through the existing
  * POST /api/investor/preferences, which also carries the two public card

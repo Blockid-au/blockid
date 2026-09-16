@@ -137,19 +137,11 @@ const ALLOWLIST: Record<string, string> = {
   // Stubs will be replaced by full WorkspaceLayout pages; redirects
   // need no chrome because they immediately bounce the user elsewhere.
   "workspace": "G8-P6 skip: redirect-only page (bounces to /dashboard)",
-  "workspace/investor-preferences": "G8-P6 skip: redirect alias to /workspace/investor/preferences",
   "workspace/applications": "G8-P6 skip: coming-soon stub, WorkspaceLayout backfill deferred",
   "workspace/sso": "G8-P6 skip: coming-soon stub, WorkspaceLayout backfill deferred",
-  "workspace/deal-flow": "G8-P6 skip: redirect alias to /workspace/investor/dealflow",
   "workspace/team": "G8-P6 skip: coming-soon stub, WorkspaceLayout backfill deferred",
   "workspace/svi-api": "G8-P6 skip: bare client component, WorkspaceLayout backfill deferred",
-  "workspace/reports/upgrade": "G8-P6 skip: upgrade gate page without full chrome",
-  "workspace/portfolio": "G8-P6 skip: redirect alias to /workspace/investor/portfolio",
-  "workspace/watchlist": "G8-P6 skip: redirect alias to /workspace/investor/watchlist",
   "workspace/equity-offer/request": "G8-P6 skip: bare client form, WorkspaceLayout backfill deferred",
-  "workspace/advisor-notes": "G8-P6 skip: redirect alias to /workspace/advisor/notes",
-  "workspace/client-roster": "G8-P6 skip: redirect alias to /workspace/advisor/roster",
-  "workspace/cohort": "G8-P6 skip: redirect alias to /workspace/accelerator/cohort",
   "workspace/white-label": "G8-P6 skip: coming-soon stub, WorkspaceLayout backfill deferred",
   "workspace/weekly-digest": "G8-P6 skip: coming-soon stub, WorkspaceLayout backfill deferred",
 

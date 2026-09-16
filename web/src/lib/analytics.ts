@@ -151,6 +151,12 @@ export interface AnalyticsEventMap {
   // ── Navigation ──
   cta_clicked: { cta_id: string; location: string };
   nav_tool_selected: { tool: string };
+  /**
+   * G13-W1-IA1 — one sidebar / avatar-menu click. `group` is the
+   * `NAV_GROUPS[].id` (or "user-menu" / "footer"), `item` the EN label,
+   * `persona` the resolved `PersonaKey`, `phase` the 0..5 nav band.
+   */
+  nav_click: { group: string; item: string; href: string; persona: string; phase: number };
   mobile_menu_opened: Record<string, never>;
 
   // ── Session ──

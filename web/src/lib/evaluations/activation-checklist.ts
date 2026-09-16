@@ -54,7 +54,7 @@ export interface ActivationState {
 }
 
 /** Where step 3 sends the evaluator. */
-export const ACTIVATION_THESIS_HREF = "/workspace/investor/preferences";
+export const ACTIVATION_THESIS_HREF = "/workspace/investor/mandate";
 
 /** localStorage flag for a dismissed checklist (per browser; try/catch on every access). */
 export const ACTIVATION_DISMISS_KEY = "blockid.evaluator.checklist.dismissed.v1";

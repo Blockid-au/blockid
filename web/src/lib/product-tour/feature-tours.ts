@@ -22,7 +22,7 @@ export type FeatureTourSlug =
   | "dashboard-nav"
   | "exit-readiness"
   // Per-role first-run tours (role-based-2026-07-25 consolidation).
-  // Each auto-launches on ROLE_SPECS[role].landingHref after signup.
+  // Each auto-launches on PERSONAS[key].landingHref after signup (lib/nav/persona.ts).
   | "founder-first-run"
   | "advisor-first-run"
   | "mentor-first-run"
@@ -449,8 +449,9 @@ const TOURS: FeatureTour[] = [
           en: "Fill in what you know; we auto-fill the rest from public data. Missing evidence is your fastest SVI lift on day one.",
           vi: "Điền những gì bạn biết; phần còn lại chúng tôi tự điền từ dữ liệu công khai. Bổ sung chứng cứ thiếu là cách tăng SVI nhanh nhất trong ngày đầu.",
         },
-        anchor: "a[href=\"/workspace/evaluation\"]",
-        cta: { label: { en: "Open evaluation", vi: "Mở đánh giá" }, href: "/workspace/evaluation" },
+        // v4 sidebar: the Score row (Prove group) is the door to the criteria tab.
+        anchor: "a[href=\"/dashboard/svi\"]",
+        cta: { label: { en: "Open criteria", vi: "Mở tiêu chí" }, href: "/workspace/score/criteria" },
       },
       {
         id: "dataroom",
@@ -459,7 +460,9 @@ const TOURS: FeatureTour[] = [
           en: "Ten investor-standard templates are already in your data room. Complete them once and share a single link with every investor.",
           vi: "Mười mẫu chuẩn nhà đầu tư đã có sẵn. Hoàn thành một lần và chia sẻ một liên kết cho mọi nhà đầu tư.",
         },
-        anchor: "a[href=\"/workspace/data-room\"]",
+        // v4 sidebar: the data room is a Documents tab (Company group, phase 3+);
+        // anchor on the Get investor-ready row, which seeds the data room.
+        anchor: "a[href=\"/startup-package\"]",
         cta: { label: { en: "Open data room", vi: "Mở data room" }, href: "/workspace/data-room" },
       },
       {
@@ -469,7 +472,8 @@ const TOURS: FeatureTour[] = [
           en: "Generate an investor pack and send trackable links. See who opened it, which slides they lingered on, and who is warm.",
           vi: "Tạo bộ tài liệu nhà đầu tư và gửi liên kết có theo dõi. Xem ai đã mở, đọc slide nào lâu, ai là ‘ấm’.",
         },
-        anchor: "a[href=\"/workspace/investor-pack\"]",
+        // v4 sidebar: the investor pack is a Reports tab — anchor on the Reports row.
+        anchor: "a[href=\"/workspace/reports\"]",
         cta: { label: { en: "Open investor pack", vi: "Mở bộ tài liệu" }, href: "/workspace/investor-pack" },
       },
     ],
@@ -512,7 +516,7 @@ const TOURS: FeatureTour[] = [
           vi: "Sắp xếp theo SVI, giai đoạn, hoặc phân tích gần nhất. Nhấp một dòng để mở hồ sơ đầy đủ.",
         },
         anchor: "table",
-        cta: { label: { en: "Open roster", vi: "Mở roster" }, href: "/workspace/client-roster" },
+        cta: { label: { en: "Open roster", vi: "Mở roster" }, href: "/workspace/advisor/roster" },
       },
       {
         id: "notes",
@@ -521,8 +525,8 @@ const TOURS: FeatureTour[] = [
           en: "After every session, drop an engagement note. Quarterly reviews then write themselves.",
           vi: "Sau mỗi phiên, ghi một ghi chú. Đánh giá quý sẽ tự viết ra.",
         },
-        anchor: "a[href^=\"/workspace/advisor-notes\"]",
-        cta: { label: { en: "Open notes", vi: "Mở ghi chú" }, href: "/workspace/advisor-notes" },
+        anchor: "a[href^=\"/workspace/advisor/notes\"]",
+        cta: { label: { en: "Open notes", vi: "Mở ghi chú" }, href: "/workspace/advisor/notes" },
       },
       {
         id: "digest",
