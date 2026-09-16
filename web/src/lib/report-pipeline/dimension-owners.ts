@@ -540,6 +540,13 @@ export function benchmarkFor(dim: DimKey, stage: number): { p25: number; p50: nu
   return DIMENSION_BENCHMARKS_BY_STAGE[dim]?.[s] ?? { p25: 38, p50: 50, p75: 62 };
 }
 
+/** SVI-analysis stage (0 Concept … 7 Corporation) → benchmark stage (0 idea … 7 late). */
+const SVI_STAGE_TO_BENCH = [0, 1, 2, 3, 3, 4, 5, 7] as const;
+export function benchmarkStageForSvi(stage: number): number {
+  const i = Math.max(0, Math.min(7, Math.round(Number.isFinite(stage) ? stage : 2)));
+  return SVI_STAGE_TO_BENCH[i];
+}
+
 /** Weights as a plain record (sums to 100). */
 export const DIM_WEIGHTS: Record<DimKey, number> = Object.fromEntries(
   DIM_ORDER.map((k) => [k, DIMENSION_OWNERS[k].weight]),

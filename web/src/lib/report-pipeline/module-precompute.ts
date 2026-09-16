@@ -21,8 +21,7 @@ import { evaluateAntlerSignals } from "@/lib/agents/antler-signals";
 import { scoreFundingReadiness, type FundingStage } from "@/lib/agents/cro-funding-readiness";
 import type { CriterionKey } from "@/lib/evaluation-criteria";
 import type { SVIExtractedSignals } from "@/lib/svi-analysis";
-import { benchmarkFor, DIM_ORDER, type DimKey } from "./dimension-owners";
-import { benchmarkStageForSvi } from "./agent-prompts";
+import { benchmarkFor, benchmarkStageForSvi, DIM_ORDER, type DimKey } from "./dimension-owners";
 import type { ReportContext } from "./types";
 
 export interface ModuleOutput {

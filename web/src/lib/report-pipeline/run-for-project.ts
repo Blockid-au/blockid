@@ -35,7 +35,8 @@ import { nanoid } from "nanoid";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI } from "@/lib/ai-client";
 import { newSlug } from "@/lib/slug";
-import { orchestrateReport } from "@/lib/report-pipeline/orchestrator";
+import { orchestrateReport, type PipelineEventHandler } from "@/lib/report-pipeline/orchestrator";
+import type { ReportTierV2 } from "@/lib/report-v2/schema";
 import type { AssembledReport, ReportTier, CriterionData, ReportSection } from "@/lib/report-pipeline/types";
 import { CRITERIA, CRITERION_KEYS, type CriterionKey } from "@/lib/evaluation-criteria";
 import {
@@ -100,6 +101,10 @@ export interface GenerateReportInput {
   locale: "en" | "vi";
   /** Written to assembled_reports.credits_cost (both success and failure rows). */
   creditsCost: number;
+  /** G13-W2-R2: ReportV2 tier ("free" → W3 off, chapters 6–9 as cards, ≤ 16 calls). Defaults to `tier`. */
+  tierV2?: ReportTierV2;
+  /** §C.12 SSE hook forwarded to the orchestrator. */
+  onEvent?: PipelineEventHandler;
 }
 
 export interface TrustReportRunResult {
@@ -335,7 +340,7 @@ export async function loadProjectReportContext(args: {
 // ---------------------------------------------------------------------------
 
 export async function generateAndPersistReport(input: GenerateReportInput): Promise<AssembledReport> {
-  const { ctx, userId, tier, locale, creditsCost } = input;
+  const { ctx, userId, tier, locale, creditsCost, tierV2, onEvent } = input;
   const supabase = getSupabaseAdmin();
 
   // agentId scoped to this account+project → each report gets its own
@@ -371,8 +376,10 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
       evidenceItems: ctx.evidenceItems,
       criteriaData: ctx.criteriaData,
       tier,
+      tierV2,
       locale,
       callAI: aiCaller,
+      onEvent,
     });
 
     if (supabase) {
@@ -409,9 +416,13 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
       } else {
         // G13-W1-R1: ReportV2 projection (migration 0395 column; best effort —
         // a missing column logs once and never fails the report).
+        // G13-W2-R2: the orchestrator now attaches the projection WITH the W4
+        // chapters (`report.reportV2`); the adapter is the fallback when W4 is
+        // off (REPORT_PIPELINE_W4=off) or the projection failed validation.
         await writeAssembledReportJson(
           supabase,
           report.id,
+          report.reportV2 ??
           fromAssembledReport(report, {
             projectId: ctx.projectId,
             accountId: ctx.account.id,

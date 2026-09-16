@@ -251,7 +251,7 @@ export interface ReportSection {
 
 // ── Pipeline Status (for polling) ───────────────────────────────────────────
 
-export type PipelinePhase = "gathering" | "wave1" | "wave2" | "wave3" | "synthesizing" | "rendering" | "complete" | "failed";
+export type PipelinePhase = "gathering" | "wave1" | "wave2" | "wave3" | "wave4" | "synthesizing" | "rendering" | "complete" | "failed";
 
 export interface PipelineStatus {
   reportId: string;

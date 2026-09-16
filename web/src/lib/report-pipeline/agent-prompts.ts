@@ -33,7 +33,7 @@ import { PHASE_EXIT_RULES } from "@/lib/growth/phase-gate";
 import { GROWTH_PHASE_LABELS, isGrowthPhaseId, nextGrowthPhase, type GrowthPhaseId } from "@/lib/growth/phase-taxonomy";
 import { GROWTH_PHASES, getCurrentPhase } from "@/lib/startup-growth-phases";
 import type { ReportTierV2 } from "@/lib/report-v2/schema";
-import { benchmarkFor, DIM_ORDER, DIMENSION_OWNERS, type DimKey } from "./dimension-owners";
+import { benchmarkFor, benchmarkStageForSvi, DIM_ORDER, DIMENSION_OWNERS, type DimKey } from "./dimension-owners";
 import { selectSkillsForAgent } from "./agent-skill-map";
 import { bucketForStage, type PhaseBucket } from "./agent-selector";
 import {
@@ -506,12 +506,6 @@ function benchmarkTable(stage: number): string {
 ${rows.join("\n")}`;
 }
 
-/** SVI-analysis stage (0 Concept … 7) → benchmark stage (0 idea … 7 late). */
-const SVI_STAGE_TO_BENCH = [0, 1, 2, 3, 3, 4, 5, 7] as const;
-export function benchmarkStageForSvi(stage: number): number {
-  const i = Math.max(0, Math.min(7, Math.round(Number.isFinite(stage) ? stage : 2)));
-  return SVI_STAGE_TO_BENCH[i];
-}
 
 function legacyRoleCard(role: AgentRole, context: ReportContext): string {
   const agent = AGENT_PROMPTS[role];
@@ -692,4 +686,4 @@ Focus on scaling, governance, compliance, exit planning, board composition,
 and institutional investor readiness. Full financial rigor expected.`;
 }
 
-export { AGENT_PROMPTS, AU_CONTEXT };
+export { AGENT_PROMPTS, AU_CONTEXT, benchmarkStageForSvi };
