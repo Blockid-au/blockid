@@ -112,9 +112,16 @@ function makeSupabase() {
       const eq: Array<[string, unknown]> = [];
       const is: Array<[string, unknown]> = [];
       const or: string[] = [];
-      recorded = { eq, is, or };
       const q = {
-        select: () => q,
+        // G13-W1-R1: the route now issues a second, single-column
+        // `select("report_v2")` read (lib/report-v2/storage.ts) after the
+        // tenancy-scoped snapshot query. Only the main query's filters are
+        // the subject of these tests, so record those and let the
+        // report_v2 probe run untracked.
+        select: (cols?: string) => {
+          if (cols !== "report_v2") recorded = { eq, is, or };
+          return q;
+        },
         order: () => q,
         limit: () => q,
         eq: (c: string, v: unknown) => {
@@ -257,7 +264,10 @@ describe("GET /api/svi/report/[projectId] — tenancy", () => {
 
     const res = await call("default");
     expect(res.status).toBe(200);
-    expect((await res.json()).snapshotId).toBe("snap-legacy-a");
+    const body = await res.json();
+    expect(body.snapshotId).toBe("snap-legacy-a");
+    // G13-W1-R1: no stored ReportV2 on these rows → null, client uses the adapter.
+    expect(body.reportV2).toBeNull();
     expect(recorded.eq).toContainEqual(["account_id", "acct-legacy-a"]);
     expect(recorded.or).toEqual([`project_id.eq.${P_A},project_id.is.null`]);
   });

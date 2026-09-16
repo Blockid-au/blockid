@@ -7,7 +7,7 @@
 //   Get the most from your trial in 4 steps           2 of 4 done · 5 days left   [×]
 //   ▓▓▓▓▓▓▓▓░░░░░░░░
 //   ✓ 1  Add the first startup you're evaluating
-//   ✓ 2  Run your included Trust BizReport
+//   ✓ 2  Run your included Trusted Business Report
 //   ○ 3  Set your thesis so matching founders can find you   [Set my thesis]
 //   ○ 4  Add a startup to your watchlist / cohort             [Add another startup]
 //

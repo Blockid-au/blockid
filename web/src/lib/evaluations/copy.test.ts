@@ -18,14 +18,14 @@ function sentences(s: string): number {
 describe("step titles (verbatim — the checklist contract)", () => {
   it("names the 4 activation steps", () => {
     expect(EVALUATIONS_COPY["checklist.step1.title"]).toBe("Add the first startup you're evaluating");
-    expect(EVALUATIONS_COPY["checklist.step2.title"]).toBe("Run your included Trust BizReport");
+    expect(EVALUATIONS_COPY["checklist.step2.title"]).toBe("Run your included Trusted Business Report");
     expect(EVALUATIONS_COPY["checklist.step3.title"]).toBe("Set your thesis so matching founders can find you");
     expect(EVALUATIONS_COPY["checklist.step4.title"]).toBe("Add a startup to your watchlist / cohort");
   });
 
   it("reminder line names the trial end and carries the deep-link CTA", () => {
     expect(evaluationsCopy("reminder.reportWaiting", { trial_end: "Friday 18 Sep" })).toBe(
-      "Your included Trust BizReport is still waiting — run it before Friday 18 Sep.",
+      "Your included Trusted Business Report is still waiting — run it before Friday 18 Sep.",
     );
     expect(EVALUATIONS_COPY["reminder.reportWaitingCta"]).toBe("Run it now");
   });

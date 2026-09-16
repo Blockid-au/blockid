@@ -61,7 +61,7 @@ export const DISCLAIMER_SURFACES: Record<string, DisclaimerSurface> = {
   /**
    * T0275 (G12, 2026-09-10) — footer for every report an evaluator (investor,
    * accelerator, incubator, advisor, service provider) runs on a startup they
-   * entered themselves: the A$3 Trust BizReport, a Scout/Firm/Program quota
+   * entered themselves: the A$3 Trusted Business Report, a Scout/Firm/Program quota
    * report, a batch/cohort row, or a sponsor/LP export. Mounted by
    * `EvaluatorReportDisclaimer` (components/legal). The text is the source of
    * truth; the component only renders it.

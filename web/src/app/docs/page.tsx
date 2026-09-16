@@ -160,7 +160,7 @@ const SHIPPED_HIGHLIGHTS: RoadmapItem[] = [
   {
     title: "Founding 100 retired (v3.3.2 — 2026-09-01)",
     note:
-      "The A$5 lifetime promo closed on 2026-09-01: checkout 410, page redirect, webhook + reconcile guards; grandfathered buyers keep access on the legacy plan. The public ladder is now Free → A$3 Trust BizReport → Starter A$29 → Growth A$69.",
+      "The A$5 lifetime promo closed on 2026-09-01: checkout 410, page redirect, webhook + reconcile guards; grandfathered buyers keep access on the legacy plan. The public ladder is now Free → A$3 Trusted Business Report → Starter A$29 → Growth A$69.",
   },
 ];
 
@@ -516,7 +516,7 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
             </h2>
             <p className="text-sm text-ink-600 mb-4">
               One report price for everyone — <strong>A$3</strong> buys the full
-              Trust BizReport (8 dimensions, 13 criteria, AUD valuation range,
+              Trusted Business Report (8 dimensions, 13 criteria, AUD valuation range,
               C-suite review, auditor flags, next-step plan) on any startup,
               whether you are its founder or someone evaluating it.
               Subscriptions sell the workspace that keeps the score, not
@@ -528,7 +528,7 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
               </p>
               <ul className="text-sm text-ink-600 space-y-1 list-disc list-inside mb-4">
                 <li>Free — first SVI analysis, no signup</li>
-                <li>A$3 — full Trust BizReport</li>
+                <li>A$3 — full Trusted Business Report</li>
                 <li>{starterMonthly} — Starter: workspace, data room, investor links, Founder Radar</li>
                 <li>{growthMonthly} — Growth: cap table, term sheets, evidence vault, weekly snapshots</li>
               </ul>
@@ -537,7 +537,7 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
                 accelerators, incubators, service providers)
               </p>
               <ul className="text-sm text-ink-600 space-y-1 list-disc list-inside">
-                <li>A$3 per Trust BizReport on any startup you enter, pay as you go</li>
+                <li>A$3 per Trusted Business Report on any startup you enter, pay as you go</li>
                 <li>Scout A$79/mo · Firm A$149/mo · Program A$349/mo — reports included, tracked startups, seats, white-label</li>
                 <li>7-day free trial on every rung, card required; nothing billed if cancelled before day 7</li>
                 <li>Multi-cohort accelerators, VC enterprise and reseller / wholesale: Contact Sales</li>

@@ -51,7 +51,7 @@ export const WEBHOOK_EVENT_LABELS: Record<WebhookEvent, { label: string; descrip
   "svi.rescored": { label: "SVI rescored", description: "The project's SVI changed — manual rescore, the nightly snapshot, or the weekly Stripe/Xero resync." },
   "evidence.uploaded": { label: "Evidence uploaded", description: "A file landed in the Evidence Vault (after the malware scan)." },
   "funding.report_ready": { label: "Money Finder report ready", description: "A paid Money Finder report finished generating." },
-  "evaluation.report_ready": { label: "Evaluation report ready", description: "A Trust BizReport / rescore you ran on a startup you evaluate is ready." },
+  "evaluation.report_ready": { label: "Evaluation report ready", description: "A Trusted Business Report / rescore you ran on a startup you evaluate is ready." },
 };
 
 export function isWebhookEvent(v: unknown): v is WebhookEvent {

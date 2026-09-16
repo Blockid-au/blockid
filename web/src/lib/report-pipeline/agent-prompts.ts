@@ -280,6 +280,11 @@ Cover:
 - Privacy and data handling compliance`,
   },
 
+  // TODO(S-R2, G13-W1-R2): the "stage medians" block below is the third
+  // rubric copy decision D8 retires — it must come from
+  // svi-dimension-benchmarks.ts (p25/p50/p75 per stage) via
+  // report-pipeline/dimension-owners.ts. Left verbatim in S-R1 because
+  // swapping the numbers changes the prompt (prompt v2 = S-R2).
   cdo: {
     role: "Chief Data Officer",
     expertise: "Data strategy, analytics quality, AI governance, data moat assessment",

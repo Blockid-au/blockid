@@ -1,4 +1,4 @@
-// report-quota — who pays for a Trust BizReport run from /workspace/evaluations
+// report-quota — who pays for a Trusted Business Report run from /workspace/evaluations
 // (T0271, G12 sprint S3; docs/plans/evaluator-traction-2026-09-10.md §3b).
 //
 //   full report  → 1 of the plan's `usage_limits.reports_per_month`

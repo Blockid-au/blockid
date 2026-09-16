@@ -5,6 +5,7 @@ import { callAI } from "@/lib/ai-client";
 import { getCriteriaByDimension, CRITERIA } from "@/lib/evaluation-criteria";
 import { insertNotification } from "@/lib/notifications";
 import { apiRoute } from "@/lib/audit/api-route";
+import { legacyStreamDimMeta } from "@/lib/report-pipeline/dimension-owners";
 
 export const dynamic = "force-dynamic";
 
@@ -23,57 +24,13 @@ function hashDeck(deckText: string): string {
 }
 
 // ── Dimension metadata ────────────────────────────────────────────────────────
+// G13-W1-R1: the per-dimension label / weight / description now come from the
+// single ownership table (report-pipeline/dimension-owners.ts, decision D8).
+// `legacyStreamDimMeta()` returns the byte-identical strings this route
+// hardcoded before, so no prompt changes here (prompt v2 is S-R2).
 
-const DIM_META: Record<string, { label: string; weight: number; description: string }> = {
-  ftv: {
-    label: "Founder & Team Value",
-    weight: 15,
-    description:
-      "Founding team credibility, domain expertise, execution track record, and team completeness",
-  },
-  mpc: {
-    label: "Market & Problem Clarity",
-    weight: 18,
-    description:
-      "Market size (TAM/SAM/SOM), problem severity, customer segment definition, and timing",
-  },
-  ptd: {
-    label: "Product & Tech Depth",
-    weight: 12,
-    description:
-      "Product differentiation, technical moat, IP, build stage, and scalability",
-  },
-  tre: {
-    label: "Traction & Revenue Evidence",
-    weight: 20,
-    description:
-      "Revenue, MoM growth, DAU/MAU, retention, paying customers, and pipeline",
-  },
-  cgh: {
-    label: "Cap Table & Governance",
-    weight: 12,
-    description:
-      "Equity structure, vesting schedules, board composition, and investor governance",
-  },
-  iri: {
-    label: "Investor Readiness Index",
-    weight: 10,
-    description:
-      "Data room completeness, pitch deck quality, due diligence readiness, and prior raises",
-  },
-  lco: {
-    label: "Legal & Compliance",
-    weight: 8,
-    description:
-      "Legal incorporation, IP protection, regulatory compliance, and contract hygiene",
-  },
-  svm: {
-    label: "Strategic Vision & Moat",
-    weight: 5,
-    description:
-      "Long-term defensibility, network effects, brand positioning, and exit potential",
-  },
-};
+const DIM_META: Record<string, { label: string; weight: number; description: string }> =
+  legacyStreamDimMeta();
 
 // ── Startup context type ──────────────────────────────────────────────────────
 

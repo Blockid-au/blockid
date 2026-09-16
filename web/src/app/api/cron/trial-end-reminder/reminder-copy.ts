@@ -53,18 +53,18 @@ export function reminderSubject(plan: ReminderPlanDisplay, trialEndFmt: string):
 
 /**
  * One extra line for evaluator trials (G12 §3b, S7-C): the trial includes
- * TRIAL_REPORT_ALLOWANCE Trust BizReports; say how many are still unused.
+ * TRIAL_REPORT_ALLOWANCE Trusted Business Reports; say how many are still unused.
  * Null when none are left (or the trial has no such allowance) — the line
  * is simply omitted, cadence unchanged.
  */
 export function includedReportLine(left: number | null | undefined): string | null {
   if (typeof left !== "number" || !Number.isFinite(left) || left <= 0) return null;
   const n = Math.floor(left);
-  return `You have ${n} included Trust BizReport${n === 1 ? "" : "s"} left — run it from Startups I'm evaluating before your trial ends.`;
+  return `You have ${n} included Trusted Business Report${n === 1 ? "" : "s"} left — run it from Startups I'm evaluating before your trial ends.`;
 }
 
 export interface ReportWaitingLine {
-  /** "Your included Trust BizReport is still waiting — run it before <date>." */
+  /** "Your included Trusted Business Report is still waiting — run it before <date>." */
   text: string;
   /** Deep link: /workspace/evaluations?from=trial_reminder (auto-opens the report dialog on the first startup). */
   href: string;

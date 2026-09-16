@@ -42,7 +42,7 @@ describe("EvaluatorActivationChecklist", () => {
     expect(out).toContain('aria-valuenow="0"');
     // Titles + bodies
     expect(out).toContain("Add the first startup you&#x27;re evaluating");
-    expect(out).toContain("Run your included Trust BizReport");
+    expect(out).toContain("Run your included Trusted Business Report");
     expect(out).toContain("Set your thesis so matching founders can find you");
     expect(out).toContain("Add a startup to your watchlist / cohort");
     expect(out).toContain(EVALUATIONS_COPY["checklist.step1.body"]);

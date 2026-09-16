@@ -144,7 +144,7 @@ const ENDPOINTS: Endpoint[] = [
     path: "/api/evaluations/batch",
     title: "Batch Scoring (Program)",
     description:
-      "Queue up to 200 of your evaluations for scoring in one batch. Nothing runs inline — the off-peak runner scores 5 per tick and records one Trust BizReport per success against your monthly quota (a failed item consumes nothing). Optional rubric_weights re-weight the 8 SVI dimensions. Requires Program (A$349/mo inc. GST) or an Enterprise plan; Scout / Firm receive 403 feature_locked with an upgrade hint. GET the same path to list your batches; GET /api/evaluations/batch/{id}/export.csv downloads the cohort table.",
+      "Queue up to 200 of your evaluations for scoring in one batch. Nothing runs inline — the off-peak runner scores 5 per tick and records one Trusted Business Report per success against your monthly quota (a failed item consumes nothing). Optional rubric_weights re-weight the 8 SVI dimensions. Requires Program (A$349/mo inc. GST) or an Enterprise plan; Scout / Firm receive 403 feature_locked with an upgrade hint. GET the same path to list your batches; GET /api/evaluations/batch/{id}/export.csv downloads the cohort table.",
     credits: 0,
     body: `{
   "evaluation_ids": ["3f9c…", "a81d…"],

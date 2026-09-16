@@ -27,6 +27,7 @@ import {
 } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
 import { isUuid } from "@/lib/security/request-guards";
+import { readSnapshotReportV2 } from "@/lib/report-v2/storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -231,5 +232,11 @@ export async function GET(
     stage: meta.stageLabel ?? null,
   };
 
-  return NextResponse.json({ ok: true, persisted, snapshotId: row.id });
+  // G13-W1-R1: hand the client a stored ReportV2 when migration 0395 has
+  // landed and the pipeline wrote one; null otherwise (the client lifts
+  // `persisted` through src/lib/report-v2/adapter.ts). Separate best-effort
+  // read so a missing column never fails this route.
+  const reportV2 = await readSnapshotReportV2(supabase, row.id);
+
+  return NextResponse.json({ ok: true, persisted, snapshotId: row.id, reportV2 });
 }

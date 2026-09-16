@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   AU_COMPARABLES,
+  AU_COMPARABLES_COUNT,
+  AU_COMPARABLES_WITH_MULTIPLES_COUNT,
   AU_MULTIPLES_BY_INDUSTRY,
+  comparablesCopyLine,
   AU_MULTIPLES_BY_STAGE,
   buildComparablesBenchmark,
   getMultiplesBenchmark,
@@ -428,5 +431,23 @@ describe("buildComparablesBenchmark()", () => {
     expect(b.industry).toBe("eCommerce");
     expect(b.stage).toBe("unicorn");
     expect(b.medianArrMultiple).toBeGreaterThan(0);
+  });
+});
+
+// G13-W1-R1 (F5): landing copy reads the live count, never a "500+" claim,
+// until the comparables table (S-R5) actually holds 500 verified raises.
+describe("live comparables count (F5 copy rule)", () => {
+  it("counts every row and every row with a positive ARR multiple", () => {
+    expect(AU_COMPARABLES_COUNT).toBe(AU_COMPARABLES.length);
+    expect(AU_COMPARABLES_WITH_MULTIPLES_COUNT).toBeLessThanOrEqual(AU_COMPARABLES_COUNT);
+    expect(AU_COMPARABLES_WITH_MULTIPLES_COUNT).toBeGreaterThan(0);
+  });
+
+  it("copy line states the live numbers and never says 500+", () => {
+    const line = comparablesCopyLine();
+    expect(line).toContain(`${AU_COMPARABLES_COUNT} raises tracked`);
+    expect(line).toContain(`${AU_COMPARABLES_WITH_MULTIPLES_COUNT} with disclosed multiples`);
+    expect(line).toContain("sources dated");
+    if (AU_COMPARABLES_COUNT < 500) expect(line).not.toContain("500+");
   });
 });

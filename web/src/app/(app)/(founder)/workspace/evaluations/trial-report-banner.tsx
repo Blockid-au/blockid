@@ -3,7 +3,7 @@
 // TrialReportBanner — /workspace/evaluations header strip for an evaluator
 // whose subscription is still `trialing` (G12 §3b, S7-C):
 //
-//   Trial: 5 days left · 1 full Trust BizReport included (0/1 used) ·
+//   Trial: 5 days left · 1 full Trusted Business Report included (0/1 used) ·
 //   Scout continues at A$79/mo on Thu 17 Sep unless you cancel   [Manage billing]
 //
 // The data is `ReportQuota.trial` from lib/evaluations/report-quota.ts
@@ -62,7 +62,7 @@ export function buildTrialReportBannerCopy(trial: ReportTrial, now: Date = new D
   const planLabel = evaluatorPlanLabel(trial.plan_id) ?? "Your plan";
   const monthlyAud = monthlyPriceFor(trial.plan_id);
   const endDate = formatTrialEndDate(trial.ends_at);
-  const reports = `${trial.allowance} full Trust BizReport${trial.allowance === 1 ? "" : "s"}`;
+  const reports = `${trial.allowance} full Trusted Business Report${trial.allowance === 1 ? "" : "s"}`;
   const segments: [string, string, string] = [
     `Trial: ${daysLeft} day${daysLeft === 1 ? "" : "s"} left`,
     `${reports} included (${used}/${trial.allowance} used)`,

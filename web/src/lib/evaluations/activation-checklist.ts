@@ -6,7 +6,7 @@
 // (plan §6 KPIs: trial→Scout ≥ 15 %, ≥ 4 reports / evaluator / month):
 //
 //   1. add the first startup            — ≥ 1 evaluation
-//   2. run the included Trust BizReport — ≥ 1 evaluation_reports row
+//   2. run the included Trusted Business Report — ≥ 1 evaluation_reports row
 //   3. set the thesis                   — ≥ 1 sector AND investor_discoverable
 //   4. add a second startup             — ≥ 2 evaluations
 //

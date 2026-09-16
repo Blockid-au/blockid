@@ -1,4 +1,4 @@
-// POST /api/evaluations/[id]/report — Trust BizReport for a startup the
+// POST /api/evaluations/[id]/report — Trusted Business Report for a startup the
 // caller evaluates (T0271, G12 sprint S3).
 //
 //   Body    { kind: "full" | "rescore", confirm?: boolean, idempotency_key?: uuid }
@@ -187,7 +187,7 @@ async function POST_handler(request: Request, { params }: Ctx) {
         ok: false,
         error: "insufficient_credits",
         credits_needed: cost.list_credits,
-        message: `This ${kind === "full" ? "Trust BizReport" : "re-score"} costs ${cost.list_credits} credit${cost.list_credits === 1 ? "" : "s"}; your balance is ${cost.balance} and your plan has no included reports left this month.`,
+        message: `This ${kind === "full" ? "Trusted Business Report" : "re-score"} costs ${cost.list_credits} credit${cost.list_credits === 1 ? "" : "s"}; your balance is ${cost.balance} and your plan has no included reports left this month.`,
         cost: costPayload,
       },
       { status: 402 },

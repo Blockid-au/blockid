@@ -26,7 +26,7 @@
 // upgrades beyond `reports_shared` (per-report toggles, full_mentor) are
 // deliberately not wired here — T0271+ own that.
 //
-// T0271 (A$3 Trust BizReport inside the workspace) calls
+// T0271 (A$3 Trusted Business Report inside the workspace) calls
 // `canAccessProjectAsEvaluator(userId, projectId)` before generating a report
 // for a project the caller does not own via `projects.user_id`.
 
@@ -276,7 +276,7 @@ export function buildFounderInviteEmail(args: {
   <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#64748B;">BlockID.au</p>
   <h1 style="margin:0 0 16px 0;font-size:20px;line-height:1.3;">${who} is evaluating ${startup} on BlockID</h1>
   <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;">${who} has added <strong>${startup}</strong> to the startups they are evaluating. Every startup they track is scored on the same 8-dimension rubric.</p>
-  <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;">Claim it to share your evidence: once you claim the profile, any Trust BizReport ${who} runs on ${startup} is shared with you, and you can add the evidence that lifts the score — you stay in control of what is shared.</p>
+  <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;">Claim it to share your evidence: once you claim the profile, any Trusted Business Report ${who} runs on ${startup} is shared with you, and you can add the evidence that lifts the score — you stay in control of what is shared.</p>
   <p style="margin:24px 0;"><a href="${escapeHtml(args.claimUrl)}" style="display:inline-block;background:#4F46E5;color:#FFFFFF;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px;">Claim ${startup} on BlockID</a></p>
   <p style="margin:0;font-size:12px;line-height:1.6;color:#64748B;">If you were not expecting this, ignore it — nothing is shared until you claim. Your data belongs to your startup; BlockID stores it so every report builds on your own evidence.</p>
 </div></body></html>`;

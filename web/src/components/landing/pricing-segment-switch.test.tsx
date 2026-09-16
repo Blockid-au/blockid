@@ -104,16 +104,16 @@ describe("<PricingSegmentSwitch /> — Evaluator tab (deep link)", () => {
   });
 
   it("release QA-2 F10 / S7-C: every evaluator card says the trial includes 1 full report, then the monthly quota", () => {
-    expect(out).toContain("1 full Trust BizReport included during the trial, then 10/month on Scout");
-    expect(out).toContain("1 full Trust BizReport included during the trial, then 30/month on Firm");
-    expect(out).toContain("1 full Trust BizReport included during the trial, then 100/month on Program");
+    expect(out).toContain("1 full Trusted Business Report included during the trial, then 10/month on Scout");
+    expect(out).toContain("1 full Trusted Business Report included during the trial, then 30/month on Firm");
+    expect(out).toContain("1 full Trusted Business Report included during the trial, then 100/month on Program");
     expect(out.match(/data-testid="evaluator-trial-included"/g)?.length).toBe(3);
   });
 
-  it("shows the A$3 pay-as-you-go Trust BizReport line", () => {
+  it("shows the A$3 pay-as-you-go Trusted Business Report line", () => {
     expect(out).toContain('data-testid="evaluator-payg"');
     expect(out).toContain("A$3 per startup");
-    expect(out).toContain("Trust BizReport");
+    expect(out).toContain("Trusted Business Report");
   });
 
   it("does not carry the retired 'Beta pricing' badge", () => {

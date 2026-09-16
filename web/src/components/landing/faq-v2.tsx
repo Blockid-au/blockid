@@ -40,7 +40,7 @@ const FAQS: FAQItem[] = [
     // G12 (2026-09-10, T0268): describes the Founder / Evaluator switch that
     // sits above the plans on /pricing — not the retired four persona tabs.
     q: "Founder or Evaluator — which plans do I see?",
-    a: "Use the Founder / Evaluator switch above the plans. Founder shows Free, Starter A$29 and Growth A$69. Evaluator shows Scout A$79, Firm A$149 and Program A$349 for investors, advisors, accelerators and programs — each with a 7-day free trial, card required, cancel anytime (Cohort plans: 14-day trial). Without a subscription, every full Trust BizReport is A$3 per startup. Need more than Program (5+ seats, multi-cohort, SSO)? Contact sales.",
+    a: "Use the Founder / Evaluator switch above the plans. Founder shows Free, Starter A$29 and Growth A$69. Evaluator shows Scout A$79, Firm A$149 and Program A$349 for investors, advisors, accelerators and programs — each with a 7-day free trial, card required, cancel anytime (Cohort plans: 14-day trial). Without a subscription, every full Trusted Business Report is A$3 per startup. Need more than Program (5+ seats, multi-cohort, SSO)? Contact sales.",
   },
   {
     // G11 (2026-09-10, T0249): Money Finder ladder. Keep in sync with

@@ -285,7 +285,7 @@ export const INVESTOR_LADDER: readonly TierLadderEntry[] = Object.freeze([
     monthlyAudBand: "A$79",
     targetPhaseRange: [0, 3],
     headlineUnlock:
-      "10 Trust BizReports a month, 25 tracked startups and a weekly Progress Radar for angels and mentors",
+      "10 Trusted Business Reports a month, 25 tracked startups and a weekly Progress Radar for angels and mentors",
     supportingUnlocks: ANGEL_FEATURES,
     hiddenFromPublic: false,
   },
@@ -297,7 +297,7 @@ export const INVESTOR_LADDER: readonly TierLadderEntry[] = Object.freeze([
     monthlyAudBand: "A$149",
     targetPhaseRange: [2, 5],
     headlineUnlock:
-      "30 Trust BizReports a month, 50 tracked startups, 3 seats and white-label client reports for advisory firms",
+      "30 Trusted Business Reports a month, 50 tracked startups, 3 seats and white-label client reports for advisory firms",
     supportingUnlocks: ADVISOR_FEATURES,
     hiddenFromPublic: false,
   },
@@ -309,7 +309,7 @@ export const INVESTOR_LADDER: readonly TierLadderEntry[] = Object.freeze([
     monthlyAudBand: "A$349",
     targetPhaseRange: [4, 8],
     headlineUnlock:
-      "100 Trust BizReports a month, batch scoring, LP / sponsor export and read-only API for VC teams and programs",
+      "100 Trusted Business Reports a month, batch scoring, LP / sponsor export and read-only API for VC teams and programs",
     supportingUnlocks: VC_SM_FEATURES,
     hiddenFromPublic: false,
   },

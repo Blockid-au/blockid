@@ -1,4 +1,4 @@
-// run-for-project — the one seam through which a Trust BizReport is produced
+// run-for-project — the one seam through which a Trusted Business Report is produced
 // for a *project id* rather than for "whoever holds the session cookie".
 //
 // Why (T0271, docs/plans/evaluator-traction-2026-09-10.md §3c-6, §9-pre G12-8):
@@ -46,6 +46,8 @@ import {
   type SVISubScore,
 } from "@/lib/svi-analysis";
 import { findLatestAnalysisWithFallback, findSVIAccountWithFallback, getProjectById } from "@/lib/projects";
+import { fromAssembledReport, fromSnapshot, type SnapshotDimState } from "@/lib/report-v2/adapter";
+import { writeAssembledReportJson, writeSnapshotReportV2 } from "@/lib/report-v2/storage";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -404,6 +406,26 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
       });
       if (reportInsertErr) {
         console.error("[blockid:report-pipeline] assembled_reports insert failed", reportInsertErr);
+      } else {
+        // G13-W1-R1: ReportV2 projection (migration 0395 column; best effort —
+        // a missing column logs once and never fails the report).
+        await writeAssembledReportJson(
+          supabase,
+          report.id,
+          fromAssembledReport(report, {
+            projectId: ctx.projectId,
+            accountId: ctx.account.id,
+            startupName: ctx.account.startup_name,
+            stageLabel: ctx.sviAnalysis.stageLabel,
+            stage: ctx.sviAnalysis.stage,
+            sviTotal: ctx.sviAnalysis.totalSVI,
+            dimensionScores: ctx.sviAnalysis.dimensionScores ?? null,
+            subs: ctx.sviAnalysis.subs,
+            industry: ctx.sviAnalysis.sectorLabel ?? ctx.sviAnalysis.sector ?? null,
+            tier,
+            locale,
+          }),
+        );
       }
 
       const agentTasks = report.sections
@@ -635,7 +657,7 @@ async function loadEvaluationIntake(projectId: string): Promise<{ website: strin
 }
 
 /**
- * Full Trust BizReport for `projectId`, run by `requestedByUserId` (the
+ * Full Trusted Business Report for `projectId`, run by `requestedByUserId` (the
  * evaluator). Throws on any failure — the caller charges only on return.
  */
 export async function runTrustReportForProject(args: {
@@ -711,6 +733,33 @@ export async function runTrustReportForProject(args: {
     dimResults: shapes.dimResults,
     criterionResults: shapes.criterionResults,
   });
+
+  // G13-W1-R1: persist the ReportV2 document the /tbr page renders
+  // (svi_snapshots.report_v2, migration 0395). Best effort — readers fall
+  // back to the adapter when the column is absent or the write fails.
+  if (snapshotId) {
+    const db = getSupabaseAdmin();
+    if (db) {
+      await writeSnapshotReportV2(
+        db,
+        snapshotId,
+        fromAssembledReport(report, {
+          snapshotId,
+          projectId: project.id,
+          accountId: ctx.account.id,
+          startupName: project.name ?? ctx.account.startup_name,
+          industry: project.industry ?? null,
+          stageLabel: ctx.sviAnalysis.stageLabel,
+          stage: ctx.sviAnalysis.stage,
+          sviTotal,
+          dimensionScores: ctx.sviAnalysis.dimensionScores ?? null,
+          subs: ctx.sviAnalysis.subs,
+          tier,
+          locale,
+        }),
+      );
+    }
+  }
 
   return {
     kind: "full",
@@ -809,6 +858,32 @@ export async function runRescoreForProject(args: {
     criterionResults: null,
   });
   if (!snapshotId) throw new Error("snapshot_write_failed");
+
+  // G13-W1-R1: ReportV2 from the dimension scores alone (no agents ran).
+  {
+    const db = getSupabaseAdmin();
+    if (db) {
+      const dimStates: Record<string, SnapshotDimState> = {};
+      for (const [k, v] of Object.entries(dimensionScores)) dimStates[k] = { status: "complete", score: v.score, priority: v.priority };
+      await writeSnapshotReportV2(
+        db,
+        snapshotId,
+        fromSnapshot({
+          snapshotId,
+          projectId: project.id,
+          accountId: account.id,
+          startupName: project.name ?? account.startup_name,
+          industry: project.industry ?? null,
+          stageLabel: analysis.stageLabel,
+          stage: analysis.stage,
+          sviTotal,
+          deltaVsLast: delta,
+          dimStates,
+          tier: "standard",
+        }),
+      );
+    }
+  }
 
   return { kind: "rescore", snapshotId, shareToken, analysisId, svi: sviTotal, delta, stage: analysis.stage };
 }

@@ -52,7 +52,7 @@ function priceLine(id: string): string {
   return r.monthly_aud === 0 ? "A$0" : `A$${r.monthly_aud}/mo`;
 }
 const BUSINESS_MODEL_TIERS = [
-  { tier: rung("founder_free")?.name ?? "Free", price: priceLine("founder_free"), features: [creditsLine("founder_free") ?? "SVI score", "Free tools", "A$3 Trust BizReport"], color: C.ink500 },
+  { tier: rung("founder_free")?.name ?? "Free", price: priceLine("founder_free"), features: [creditsLine("founder_free") ?? "SVI score", "Free tools", "A$3 Trusted Business Report"], color: C.ink500 },
   { tier: rung("founder_starter")?.name ?? "Starter", price: priceLine("founder_starter"), features: [creditsLine("founder_starter") ?? "Credits", "Evidence vault", "Founder Radar", "Data room"], color: C.brand },
   { tier: rung("founder_growth")?.name ?? "Growth", price: priceLine("founder_growth"), features: [creditsLine("founder_growth") ?? "Credits", "Cap table + ESOP", "Term Sheet AI", "Investor tools"], color: C.emerald },
   { tier: rung("founder_enterprise")?.name ?? "Enterprise", price: priceLine("founder_enterprise"), features: ["Portfolio dashboard", "API access", "White-label", "Dedicated CSM"], color: C.gold },

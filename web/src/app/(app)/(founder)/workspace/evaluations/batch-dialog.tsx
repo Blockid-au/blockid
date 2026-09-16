@@ -4,7 +4,7 @@
 // (T0272, Program). Name + optional rubric weight sliders for the 8
 // dimensions (kept summing to 100 by normalisation on submit — the preview
 // shows the normalised split) + the cost line BEFORE anything is queued:
-// "{n} of your included Trust BizReports this month ({left} left)". POSTs
+// "{n} of your included Trusted Business Reports this month ({left} left)". POSTs
 // /api/evaluations/batch; nothing runs until the off-peak cron picks it up.
 
 import * as React from "react";
@@ -93,7 +93,7 @@ export function BatchDialog({ selected, quotaRemaining, quotaLimit, trialActive 
         </div>
         <form onSubmit={submit} className="px-6 py-5 space-y-4">
           <p id="batch-intro" className="text-sm text-ink-600">
-            Every selected startup gets a full Trust BizReport on the same rubric, scored off-peak tonight. You&apos;ll get a notification when the cohort table is ready.
+            Every selected startup gets a full Trusted Business Report on the same rubric, scored off-peak tonight. You&apos;ll get a notification when the cohort table is ready.
           </p>
           <div>
             <label htmlFor="batch-name" className="block text-sm font-medium text-ink-700 mb-1">Batch name</label>
@@ -149,7 +149,7 @@ export function BatchDialog({ selected, quotaRemaining, quotaLimit, trialActive 
           </div>
 
           <div data-testid="batch-cost" role="status" aria-live="polite" className={`rounded-xl px-4 py-3 text-sm ${insufficient ? "border border-amber-300 bg-amber-50 text-amber-800" : "border border-surface-200 bg-surface-50 text-ink-700"}`}>
-            <strong>{n}</strong> of your included Trust BizReports {trialActive ? "in your trial" : "this month"}
+            <strong>{n}</strong> of your included Trusted Business Reports {trialActive ? "in your trial" : "this month"}
             {quotaRemaining != null ? <> ({quotaRemaining}{quotaLimit != null ? ` of ${quotaLimit}` : ""} left)</> : null}.
             {insufficient
               ? trialActive

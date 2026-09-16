@@ -87,8 +87,8 @@ const FEATURE_INFO: Record<string, { label: string; description: string; costLab
     costLabel: "Varies",
   },
   trust_report: {
-    label: "Trust BizReport",
-    description: "Trust BizReport — 8 dimensions, 13 criteria, AUD valuation range, ≈2,500 words",
+    label: "Trusted Business Report",
+    description: "Trusted Business Report — 8 dimensions, 13 criteria, AUD valuation range, ≈2,500 words",
     costLabel: "A$3.00",
   },
   trust_report_rescore: {

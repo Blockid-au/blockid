@@ -8,12 +8,12 @@
 //       or  "Your weekly progress radar — no movement this week, {k} deadlines ahead"
 // Sections: Movers (name · SVI now · Δ · stage) · Deadlines & intakes across
 //           your startups (next 5) · New matches · CTAs "Run a re-score (A$1)"
-//           / "Run Trust BizReport" → /workspace/evaluations · the
+//           / "Run Trusted Business Report" → /workspace/evaluations · the
 //           EvaluatorReportDisclaimer text (DISCLAIMER_SURFACES.evaluator_report)
 //           · unsubscribe (money_radar category — the cron gates on
 //           canSendEmail(email, "money_radar") and passes the URL in).
 //
-// Pricing words are the G12 ones only: Trust BizReport A$3, re-score A$1.
+// Pricing words are the G12 ones only: Trusted Business Report A$3, re-score A$1.
 // Never "PhD", never the retired A$5.50 (pinned by the test).
 
 import { DISCLAIMER_SURFACES } from "@/lib/legal/surfaces";
@@ -169,9 +169,9 @@ ${p.deadlines
 
   <p style="margin:28px 0 8px 0;">
     <a href="${escapeHtml(workspace)}" style="display:inline-block;background:#4F46E5;color:#FFFFFF;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px;">Run a re-score (A$1)</a>
-    <a href="${escapeHtml(workspace)}" style="display:inline-block;margin-left:8px;border:1px solid #C7D2FE;color:#4338CA;text-decoration:none;font-weight:600;padding:11px 20px;border-radius:10px;">Run Trust BizReport</a>
+    <a href="${escapeHtml(workspace)}" style="display:inline-block;margin-left:8px;border:1px solid #C7D2FE;color:#4338CA;text-decoration:none;font-weight:600;padding:11px 20px;border-radius:10px;">Run Trusted Business Report</a>
   </p>
-  <p style="margin:0 0 24px 0;font-size:12px;color:#64748B;">A re-score refreshes the SVI over the evidence the startup has now (A$1). A full Trust BizReport is A$3 or one of your included reports.</p>
+  <p style="margin:0 0 24px 0;font-size:12px;color:#64748B;">A re-score refreshes the SVI over the evidence the startup has now (A$1). A full Trusted Business Report is A$3 or one of your included reports.</p>
 
   <p style="margin:0 0 12px 0;font-size:11px;line-height:1.6;color:#64748B;border-top:1px solid #E2E8F0;padding-top:12px;">${escapeHtml(disclaimer)}</p>
   <p style="margin:0;font-size:11px;color:#94A3B8;">You receive this because Progress Radar is part of your evaluator plan.${
@@ -197,7 +197,7 @@ ${p.deadlines
     "NEW MATCHES",
     `- ${p.newMatches} this week`,
     "",
-    `Run a re-score (A$1) or a Trust BizReport: ${workspace}`,
+    `Run a re-score (A$1) or a Trusted Business Report: ${workspace}`,
     "",
     disclaimer,
     ...(unsub ? ["", `Unsubscribe from Progress Radar emails: ${unsub}`] : []),

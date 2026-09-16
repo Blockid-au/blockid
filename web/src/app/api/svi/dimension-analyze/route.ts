@@ -15,51 +15,15 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { findSVIAccountWithFallback, findLatestAnalysisWithFallback, creditChargeNote } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { apiRoute } from "@/lib/audit/api-route";
+import { legacyAnalyzeDimInfo } from "@/lib/report-pipeline/dimension-owners";
 
 export const dynamic = "force-dynamic";
 
-const DIMENSION_INFO: Record<string, { label: string; weight: number; focus: string }> = {
-  ftv: {
-    label: "Founder & Team Value",
-    weight: 15,
-    focus: "Founder backgrounds, team composition, advisory board quality, domain-market fit, team gaps, hiring priorities. Compare founder experience to stage benchmarks. Assess co-founder complementarity and skill overlap.",
-  },
-  mpc: {
-    label: "Market & Problem Clarity",
-    weight: 18,
-    focus: "TAM/SAM/SOM validation, problem-solution fit, customer discovery evidence, competitive landscape positioning, market timing assessment. Evaluate whether the market is ready, too early, or too late.",
-  },
-  ptd: {
-    label: "Product & Technical Depth",
-    weight: 12,
-    focus: "Tech stack maturity, architecture review, code quality (if GitHub connected), product roadmap gaps, scalability assessment, build vs buy analysis. Assess demo/prototype quality for investor readiness.",
-  },
-  tre: {
-    label: "Traction & Revenue Evidence",
-    weight: 20,
-    focus: "Revenue metrics validation (MRR/ARR), growth trajectory analysis, unit economics (ARPU, CAC, LTV), customer acquisition channels, churn signals, revenue milestone mapping for next fundraise stage.",
-  },
-  cgh: {
-    label: "Cap Table & Governance Health",
-    weight: 12,
-    focus: "Cap table health vs AU seed norms (60-80% founder ownership pre-seed), vesting adequacy (4-year cliff), ESOP pool sizing (8-15% AU standard), governance maturity, shareholder agreement completeness, dilution modeling.",
-  },
-  iri: {
-    label: "Investor Readiness Index",
-    weight: 10,
-    focus: "Pitch deck completeness (12-slide standard), financial model sanity, data room readiness, fundraise positioning, investor targeting (angel/VC/accelerator/grant), timeline estimation for fundraise.",
-  },
-  lco: {
-    label: "Legal & Compliance",
-    weight: 8,
-    focus: "ABN/ASIC registration, IP protection gaps (patents, trademarks), contract coverage, regulatory landscape for sector, privacy compliance (Australian Privacy Act, GDPR), R&D Tax Incentive eligibility.",
-  },
-  svm: {
-    label: "Strategic Vision & Moat",
-    weight: 5,
-    focus: "Moat durability scoring, network effect strength, data advantage assessment, switching cost evaluation, AI wrapper risk (if AI-dependent), 5-year defensibility outlook.",
-  },
-};
+// G13-W1-R1: label / weight / focus come from the single ownership table
+// (report-pipeline/dimension-owners.ts, decision D8); `legacyAnalyzeDimInfo()`
+// is byte-identical to the map this route hardcoded, so the prompt is unchanged.
+const DIMENSION_INFO: Record<string, { label: string; weight: number; focus: string }> =
+  legacyAnalyzeDimInfo();
 
 async function POST_handler(request: Request) {
   const user = await getCurrentUser();

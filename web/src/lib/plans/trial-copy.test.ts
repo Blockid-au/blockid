@@ -24,13 +24,13 @@ describe("evaluatorTrialIncludedLine (release QA-2 F10 / S7-C)", () => {
   it("states the 1-report trial allowance then the plan's monthly quota", () => {
     expect(EVALUATOR_TRIAL_REPORT_ALLOWANCE).toBe(1);
     expect(evaluatorTrialIncludedLine("investor_angel", "Scout")).toBe(
-      "1 full Trust BizReport included during the trial, then 10/month on Scout",
+      "1 full Trusted Business Report included during the trial, then 10/month on Scout",
     );
     expect(evaluatorTrialIncludedLine("investor_advisor", "Firm")).toBe(
-      "1 full Trust BizReport included during the trial, then 30/month on Firm",
+      "1 full Trusted Business Report included during the trial, then 30/month on Firm",
     );
     expect(evaluatorTrialIncludedLine("investor_vc_small", "Program")).toBe(
-      "1 full Trust BizReport included during the trial, then 100/month on Program",
+      "1 full Trusted Business Report included during the trial, then 100/month on Program",
     );
   });
   it("mirrors plans.csv reports_per_month (Scout 10 / Firm 30 / Program 100)", () => {
@@ -38,7 +38,7 @@ describe("evaluatorTrialIncludedLine (release QA-2 F10 / S7-C)", () => {
   });
   it("degrades to the allowance alone for an unknown plan", () => {
     expect(evaluatorTrialIncludedLine("investor_vc_ent", "Enterprise")).toBe(
-      "1 full Trust BizReport included during the trial",
+      "1 full Trusted Business Report included during the trial",
     );
   });
 });

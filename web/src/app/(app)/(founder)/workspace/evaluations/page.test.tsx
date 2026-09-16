@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // Pins: the table (name / stage+SVI / consent chip / added date / actions),
 // the "x of N used" plan banner, the empty-state copy, the founder-claim
 // branch for a non-evaluator arriving via ?claim=, and the login redirect.
-// T0271: the "Run Trust BizReport" button per row, "Re-score" only when a
+// T0271: the "Run Trusted Business Report" button per row, "Re-score" only when a
 // report exists, "Last report: <date> · SVI n" + tbr/PDF links, the included
 // reports counter in the banner, and the confirm dialog's cost copy.
 // T0273: the Progress column (Δ with ▲/▼ + inline SVG sparkline, stage change,
@@ -217,10 +217,10 @@ describe("/workspace/evaluations", () => {
     expect(out).toContain("<strong>0 of 25</strong>");
   });
 
-  it("T0271: Run Trust BizReport on every row, Re-score only where a report exists, last-report line + links", async () => {
+  it("T0271: Run Trusted Business Report on every row, Re-score only where a report exists, last-report line + links", async () => {
     const out = await html();
-    expect(out).toContain("Run Trust BizReport for Acme Robotics");
-    expect(out).toContain("Run Trust BizReport for Beta Health");
+    expect(out).toContain("Run Trusted Business Report for Acme Robotics");
+    expect(out).toContain("Run Trusted Business Report for Beta Health");
     expect(out).toContain("Re-score Acme Robotics");
     expect(out).not.toContain("Re-score Beta Health");
     expect((out.match(/data-testid="last-report"/g) ?? []).length).toBe(1);
@@ -233,15 +233,15 @@ describe("/workspace/evaluations", () => {
 
   it("T0271: banner shows the included reports left this month (or pay-as-you-go when the plan has none)", async () => {
     let out = await html();
-    expect(out).toContain("7 of 10 included Trust BizReports left this month");
+    expect(out).toContain("7 of 10 included Trusted Business Reports left this month");
 
     getReportQuotaMock.mockResolvedValue({ limit: 0, used: 0, remaining: 0, unlimited: false });
     out = await html();
-    expect(out).toContain("Trust BizReport A$3 · re-score A$1");
+    expect(out).toContain("Trusted Business Report A$3 · re-score A$1");
 
     getReportQuotaMock.mockResolvedValue({ limit: Number.MAX_SAFE_INTEGER, used: 40, remaining: Number.MAX_SAFE_INTEGER, unlimited: true });
     out = await html();
-    expect(out).toContain("Unlimited Trust BizReports");
+    expect(out).toContain("Unlimited Trusted Business Reports");
   });
 
   it("T0271: the confirm dialog states the cost before anything runs", async () => {
@@ -265,21 +265,21 @@ describe("/workspace/evaluations", () => {
     let out = await html();
     expect(out).toContain('data-testid="trial-report-banner"');
     expect(out).toContain("Trial: 6 days left");
-    expect(out).toContain("1 full Trust BizReport included (0/1 used)");
+    expect(out).toContain("1 full Trusted Business Report included (0/1 used)");
     expect(out).toContain(`Scout continues at A$79/mo on ${endDate} unless you cancel`);
     expect(out).toContain("Manage billing");
-    expect(out).toContain("1 of 1 included Trust BizReport left in your trial, then 3 credits each");
+    expect(out).toContain("1 of 1 included Trusted Business Report left in your trial, then 3 credits each");
     expect(out).not.toContain("left this month");
 
     // Used → 0 left; the pure builder is what the strip renders.
     getReportQuotaMock.mockResolvedValue({ limit: 1, used: 1, remaining: 0, unlimited: false, configured: true, trial: { ...trial, used: 1 } });
     out = await html();
-    expect(out).toContain("1 full Trust BizReport included (1/1 used)");
-    expect(out).toContain("0 of 1 included Trust BizReport left in your trial");
+    expect(out).toContain("1 full Trusted Business Report included (1/1 used)");
+    expect(out).toContain("0 of 1 included Trusted Business Report left in your trial");
     const copy = buildTrialReportBannerCopy({ ...trial, used: 1, ends_at: "2026-09-17T00:00:00.000Z" }, new Date("2026-09-16T12:00:00.000Z"));
     expect(copy.segments).toEqual([
       "Trial: 1 day left",
-      "1 full Trust BizReport included (1/1 used)",
+      "1 full Trusted Business Report included (1/1 used)",
       "Scout continues at A$79/mo on Thu 17 Sep unless you cancel",
     ]);
     expect(copy.text).toBe(copy.segments.join(" · "));
@@ -288,14 +288,14 @@ describe("/workspace/evaluations", () => {
     getReportQuotaMock.mockResolvedValue({ limit: 10, used: 3, remaining: 7, unlimited: false, configured: true, trial: { ...trial, active: false } });
     out = await html();
     expect(out).not.toContain('data-testid="trial-report-banner"');
-    expect(out).toContain("7 of 10 included Trust BizReports left this month");
+    expect(out).toContain("7 of 10 included Trusted Business Reports left this month");
   });
 
   it("S7-C: the confirm dialog says Included in your trial, then charged to credits once the 1 is used", async () => {
     const { describeCost, describeResult } = await import("./report-dialog");
     const trial = { active: true, ends_at: "2026-09-17T00:00:00.000Z", allowance: 1, used: 0 };
     const included = { via: "quota" as const, credits: 0, list_credits: 3, balance: 0, remaining_quota: 0, quota: { limit: 1, used: 0, remaining: 1, unlimited: false }, trial };
-    expect(describeCost("full", included)).toBe("Included in your trial — 1 full Trust BizReport free, 0 left after this. No credits will be charged.");
+    expect(describeCost("full", included)).toBe("Included in your trial — 1 full Trusted Business Report free, 0 left after this. No credits will be charged.");
     const spent = { ...included, via: "credits" as const, credits: 3, balance: 5, quota: { limit: 1, used: 1, remaining: 0, unlimited: false }, trial: { ...trial, used: 1 } };
     expect(describeCost("full", spent)).toBe("Your trial's 1 included report is used, so this run is charged to credits: 3 credits (A$3.00). Balance 5.00 → 2.00 after.");
     expect(describeCost("rescore", { ...spent, list_credits: 1, credits: 1 })).toContain("Re-scores are always pay-as-you-go: 1 credit (A$1.00)");
@@ -430,7 +430,7 @@ describe("/workspace/evaluations", () => {
     expect(out).toContain("6 days left in your trial");
     expect((out.match(/data-testid="evaluator-checklist-step"/g) ?? []).length).toBe(4);
     expect(out).toContain("Add the first startup you&#x27;re evaluating");
-    expect(out).toContain("Run your included Trust BizReport");
+    expect(out).toContain("Run your included Trusted Business Report");
     expect(out).toContain("Set your thesis so matching founders can find you");
     expect(out).toContain("Add a startup to your watchlist / cohort");
     expect(out).toContain('href="/workspace/investor/mandate"');
@@ -480,7 +480,7 @@ describe("/workspace/evaluations", () => {
     expect(getVisibilityMock).not.toHaveBeenCalled();
   });
 
-  it("S13-A: ?from=trial_reminder opens the Trust BizReport dialog on the first evaluation", async () => {
+  it("S13-A: ?from=trial_reminder opens the Trusted Business Report dialog on the first evaluation", async () => {
     const out = await html({ from: "trial_reminder" });
     expect(out).toContain('data-from="trial_reminder"');
     expect(out).toContain('data-testid="report-dialog"');

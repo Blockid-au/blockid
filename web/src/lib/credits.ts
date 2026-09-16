@@ -202,12 +202,12 @@ export const FEATURE_COSTS: Record<string, number> = {
   enhanced_report_premium: 7.00,    // All above + DOCX + investor memo, 8000-15000 words
   enhanced_report_investor: 10.00,  // Maximum depth, all agents, all visuals, board-ready
 
-  // ── Evaluator Trust BizReport (T0271, G12 §3b) ──────────────────────
+  // ── Evaluator Trusted Business Report (T0271, G12 §3b) ──────────────────────
   // Same depth as enhanced_report_standard, run from /workspace/evaluations
   // on a startup the evaluator entered. Plan quota (usage_limits.
   // reports_per_month) is consumed first; these keys bind only when it is
   // exhausted. See lib/evaluations/report-quota.ts.
-  trust_report: 3.00,               // A$3 — full Trust BizReport per startup entered
+  trust_report: 3.00,               // A$3 — full Trusted Business Report per startup entered
   trust_report_rescore: 1.00,       // A$1 — re-score a startup already held (svi_analysis path)
 
   // ── Per-Criterion AI Analysis ───────────────────────────────────────

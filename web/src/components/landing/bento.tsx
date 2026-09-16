@@ -11,6 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { comparablesCopyLine } from "@/lib/data/au-comparables";
 
 interface Tile {
   eyebrow: string;
@@ -63,7 +64,8 @@ const tiles: Tile[] = [
   {
     eyebrow: "Defensible moat",
     title: "Comparable Companies Wall",
-    body: "5 anonymised AU SMEs in your stage and sector. Multiples nobody else has — sourced from 500+ live raises.",
+    // G13-W1-R1 (F5): live count from code, never "500+" until it is true.
+    body: `5 anonymised AU SMEs in your stage and sector. ${comparablesCopyLine()}.`,
     icon: BarChart3,
     span: "md:col-span-6 lg:col-span-4",
     visual: <CompsVisual />,

@@ -65,7 +65,7 @@ const INVESTOR_FEATURES = [
 // 2026-09-10 (T0274): re-synced to the live ladder. The previous list —
 // Per-Analysis A$0.50, Founding 100 A$5, Growth A$99, Enterprise A$499 —
 // described SKUs that were retired or re-priced months ago. Founder ladder
-// per G11/G12: Free → A$3 Trust BizReport → Starter A$29 → Growth A$69.
+// per G11/G12: Free → A$3 Trusted Business Report → Starter A$29 → Growth A$69.
 // Evaluator ladder per G12 D2: Scout A$79 · Firm A$149 · Program A$349.
 const REVENUE_TIERS = [
   {
@@ -74,7 +74,7 @@ const REVENUE_TIERS = [
     detail: "First SVI analysis free, no signup",
   },
   {
-    tier: "Trust BizReport",
+    tier: "Trusted Business Report",
     price: "A$3",
     detail: "Full 8-dimension, 13-criteria report on any startup — founders and evaluators alike",
   },
@@ -321,7 +321,7 @@ export default function InvestorsPage() {
             <ul className="space-y-2.5">
               {[
                 "Platform built and deployed with AI-native development by a solo founder and 11 C-Level agents",
-                "Complete Stripe integration with the A$3 Trust BizReport, credit packs, and subscriptions",
+                "Complete Stripe integration with the A$3 Trusted Business Report, credit packs, and subscriptions",
                 "16 free startup tools driving organic traffic and lead generation",
                 "SVI analysis engine: 8 dimensions, 13 criteria, 12 growth phases, C-suite review with an auditor",
                 "Cap table management, dilution modelling, term sheet generator, data rooms",

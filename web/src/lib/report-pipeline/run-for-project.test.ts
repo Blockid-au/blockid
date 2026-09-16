@@ -87,7 +87,7 @@ const ANALYSIS = {
 };
 const REPORT = {
   id: "rpt-1",
-  title: "Acme — Trust BizReport",
+  title: "Acme — Trusted Business Report",
   tier: "standard",
   sections: [
     { id: "s-idea", title: "Idea & Innovation", agentRole: "cpo", criterion: "idea", content: "Strong idea.", score: 71, visuals: [], wordCount: 300 },
@@ -194,6 +194,13 @@ describe("generateAndPersistReport", () => {
     expect(ar).toMatchObject({ id: "rpt-1", account_id: "acc-1", user_id: "u-1", project_id: "p-1", analysis_id: "an-1", status: "complete", credits_cost: 3, sections_count: 3 });
     const tasks = state.calls.find((c) => c.table === "agent_report_tasks")!.payload as Array<Record<string, unknown>>;
     expect(tasks.map((t) => t.criterion_key)).toEqual(["idea", "team"]);
+    // G13-W1-R1: ReportV2 projection written best-effort to report_json (0395).
+    const rj = state.calls.find((c) => c.table === "assembled_reports" && c.op === "update")!;
+    expect(rj.eqs).toEqual([{ col: "id", val: "rpt-1" }]);
+    const doc = (rj.payload as { report_json: { schemaVersion: string; dimensions: unknown[]; source: string } }).report_json;
+    expect(doc.schemaVersion).toBe("2.0");
+    expect(doc.dimensions).toHaveLength(8);
+    expect(doc.source).toBe("adapter");
   });
 
   it("writes a failed row and re-throws when the orchestrator fails", async () => {
@@ -239,6 +246,14 @@ describe("runTrustReportForProject (evaluator)", () => {
     expect((snapInsert.analysis_json as Record<string, unknown>).report_id).toBe("rpt-1");
     expect(Object.keys(snapInsert.dim_results as Record<string, unknown>)).toHaveLength(8);
     expect(orchestrateMock).toHaveBeenCalledWith(expect.objectContaining({ userId: "u-1", projectId: "p-1" }));
+    // G13-W1-R1: report_v2 written after the snapshot row exists (never inside the insert).
+    expect(snapInsert.report_v2).toBeUndefined();
+    const v2 = state.calls.find((c) => c.table === "svi_snapshots" && c.op === "update" && (c.payload as Record<string, unknown>).report_v2)!;
+    expect(v2.eqs).toEqual([{ col: "id", val: "snap-1" }]);
+    const doc = (v2.payload as { report_v2: { schemaVersion: string; snapshotId: string; reportId: string } }).report_v2;
+    expect(doc.schemaVersion).toBe("2.0");
+    expect(doc.snapshotId).toBe("snap-1");
+    expect(doc.reportId).toBe("rpt-1");
   });
 
   it("same-day re-run updates today's snapshot and keeps its share token", async () => {
@@ -289,5 +304,10 @@ describe("runRescoreForProject", () => {
     expect((snap.analysis_json as Record<string, unknown>).source).toBe("evaluator_rescore");
     expect(snap.dim_results).toBeUndefined();
     expect(Object.keys(snap.dimension_scores as Record<string, unknown>).length).toBeGreaterThan(0);
+    // G13-W1-R1: even a rescore (no agents) gets a ReportV2 from its dimension scores.
+    const v2 = state.calls.find((c) => c.table === "svi_snapshots" && c.op === "update" && (c.payload as Record<string, unknown>).report_v2)!;
+    expect(v2).toBeTruthy();
+    const doc = (v2.payload as { report_v2: { dimensions: Array<{ dim: string; score: number }> } }).report_v2;
+    expect(doc.dimensions).toHaveLength(8);
   });
 });
