@@ -14,11 +14,36 @@
 //
 // Scope: `?token=` (public share link) only — the founder mints a token
 // from the report page; the dossier links the evaluator's own token.
+//
+// S-R5 (W4-review follow-up a): the route is unauthenticated and a render
+// is 4–6 s of CPU, so it now runs behind lib/pdf/render-gate — an
+// in-process LRU keyed `(snapshotId, sha1(report) || created_at)` (a repeat
+// click is a memcpy) and a 2-slot semaphore (a third concurrent render gets
+// 503 + Retry-After instead of queueing). Cache-Control is
+// `private, max-age=300` for the token URL. `X-TBR-Cache: hit | miss`.
 
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { loadReportV2ByShareToken } from "@/lib/report-v2/load";
 import { renderTbrPdf } from "@/lib/pdf/tbr-pdf";
+import { PDF_RETRY_AFTER_SECONDS, pdfCacheKey, tbrPdfCache, tbrPdfSemaphore, type CachedPdf } from "@/lib/pdf/render-gate";
+
+const PDF_CACHE_CONTROL = "private, max-age=300";
+
+function pdfResponse(pdf: CachedPdf, cache: "hit" | "miss"): NextResponse {
+  return new NextResponse(new Uint8Array(pdf.buffer), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${pdf.filename}"`,
+      "Cache-Control": PDF_CACHE_CONTROL,
+      "X-TBR-Source": pdf.source,
+      "X-TBR-Pages": String(pdf.pages),
+      "X-TBR-Trim-Level": String(pdf.level),
+      "X-TBR-Cache": cache,
+    },
+  });
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,23 +83,31 @@ export async function GET(request: Request) {
     if (!loaded) {
       return NextResponse.json({ ok: false, error: "unknown_token" }, { status: 404 });
     }
+    const key = pdfCacheKey(loaded.snapshotId, loaded.report, loaded.report.generatedAt);
+    const cached = tbrPdfCache.get(key);
+    if (cached) return pdfResponse(cached, "hit");
+
+    const release = tbrPdfSemaphore.tryAcquire();
+    if (!release) {
+      return NextResponse.json(
+        { ok: false, error: "render_busy", retryAfterSeconds: PDF_RETRY_AFTER_SECONDS },
+        { status: 503, headers: { "Retry-After": String(PDF_RETRY_AFTER_SECONDS), "Cache-Control": "no-store" } },
+      );
+    }
     try {
+      // Another request may have filled the cache while we waited for a slot.
+      const raced = tbrPdfCache.get(key);
+      if (raced) return pdfResponse(raced, "hit");
       const { buffer, pages, level } = await renderTbrPdf(loaded.report);
-      return new NextResponse(new Uint8Array(buffer), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="${safeFilename(loaded.report.cover.startupName)}"`,
-          "Cache-Control": "no-store",
-          "X-TBR-Source": loaded.path,
-          "X-TBR-Pages": String(pages),
-          "X-TBR-Trim-Level": String(level),
-        },
-      });
+      const pdf: CachedPdf = { buffer, pages, level, source: loaded.path, filename: safeFilename(loaded.report.cover.startupName) };
+      tbrPdfCache.set(key, pdf);
+      return pdfResponse(pdf, "miss");
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("[tbr-pdf] render failed", msg);
       return NextResponse.json({ ok: false, error: "pdf_render_failed", detail: msg }, { status: 500 });
+    } finally {
+      release();
     }
   }
 
