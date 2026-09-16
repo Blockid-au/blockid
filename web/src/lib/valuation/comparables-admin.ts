@@ -163,14 +163,27 @@ async function listByStatus(db: ComparablesAdminDb, status: ComparableStatus, li
 
 /** The three lists the review page renders (pending oldest-first is handled client-side; queries are newest-first). */
 export async function loadComparablesQueue(db: ComparablesAdminDb): Promise<ComparablesQueue> {
-  const [p, v, r] = await Promise.all([listByStatus(db, "pending", 200, "created_at"), listByStatus(db, "verified", 5000, "round_date"), listByStatus(db, "rejected", 50, "updated_at")]);
+  // The page only renders the 100 newest verified rows; counts come from the
+  // primed comparables repo (already cached), not a 5,000-row fetch (W5 review).
+  const [p, v, r] = await Promise.all([listByStatus(db, "pending", 200, "created_at"), listByStatus(db, "verified", 100, "round_date"), listByStatus(db, "rejected", 50, "updated_at")]);
   const error = p.error ?? v.error ?? r.error;
-  const withMultiples = v.rows.filter((row) => (Number(row.arr_multiple) || 0) > 0 || ((Number(row.post_money_aud) || 0) > 0 && (Number(row.arr_aud) || 0) > 0)).length;
+  let verifiedCount = v.rows.length;
+  let withMultiples = v.rows.filter((row) => (Number(row.arr_multiple) || 0) > 0 || ((Number(row.post_money_aud) || 0) > 0 && (Number(row.arr_aud) || 0) > 0)).length;
+  try {
+    const { comparablesCounts } = await import("./comparables-repo");
+    const c = comparablesCounts();
+    if (c.source !== "static") {
+      verifiedCount = c.n;
+      withMultiples = c.withMultiplesN;
+    }
+  } catch {
+    /* counts fall back to the page slice */
+  }
   return {
     pending: p.rows,
-    verified: v.rows.slice(0, 100),
+    verified: v.rows,
     rejected: r.rows,
-    counts: { pending: p.rows.length, verified: v.rows.length, rejected: r.rows.length, withMultiples },
+    counts: { pending: p.rows.length, verified: verifiedCount, rejected: r.rows.length, withMultiples },
     error,
   };
 }

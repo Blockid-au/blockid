@@ -2,9 +2,11 @@
  * Live-QA global setup — provisions ONE founder account for the whole run.
  *
  *   1. POST /api/auth/register  (qa-live-<yyyymmdd-hhmm>@blockid.au, random
- *      password) — one call per run; the register bucket is 3 per 15 min per
- *      IP, and the member lane (26) needs the second slot, so nothing else
- *      may register. The password is kept in the (gitignored) run state only
+ *      password) — one call per run; the register bucket is 60/IP +
+ *      5/(IP,email) per window (auth-rate-limit.ts). The member lane (26) and
+ *      the dossier lane (28) register their own accounts; three registers per
+ *      run sit well inside the bucket. The password is kept in the
+ *      (gitignored) run state only
  *      because 25-account re-authenticates the deletion request with it;
  *      the teardown scrubs it after the erasure.
  *   2. POST /api/onboarding/complete so /dashboard does not bounce to the
@@ -56,7 +58,7 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
     });
     const regBody = (await reg.json().catch(() => ({}))) as { ok?: boolean; pending?: boolean; error?: string; user?: { id: string; plan?: string } };
     if (reg.status() === 429) {
-      throw new Error(`register rate-limited (429, Retry-After ${reg.headers()["retry-after"] ?? "?"}s) — the register bucket is 3/15 min per IP; wait and re-run`);
+      throw new Error(`register rate-limited (429, Retry-After ${reg.headers()["retry-after"] ?? "?"}s) — the register bucket is 60/IP + 5/(IP,email) per window (auth-rate-limit.ts); wait and re-run`);
     }
     if (reg.status() !== 200 || !regBody.ok || regBody.pending || !regBody.user?.id) {
       throw new Error(`register failed: ${reg.status()} ${JSON.stringify(regBody).slice(0, 300)}`);

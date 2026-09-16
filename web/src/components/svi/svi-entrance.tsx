@@ -124,7 +124,17 @@ const BOTTOM_BENEFITS = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
-export function SVIEntrance() {
+export interface SVIEntranceProps {
+  /**
+   * Render the page's own header/footer chrome. `false` when mounted inside
+   * the workspace shell (`/workspace/projects/[slug]/analyze`), which already
+   * has WorkspaceLayout's header + footer — two sticky headers otherwise
+   * (W5 review).
+   */
+  chrome?: boolean;
+}
+
+export function SVIEntrance({ chrome = true }: SVIEntranceProps = {}) {
   // Hero-search hand-off: /svi?query=<x> prefills the textarea so the
   // founder doesn't retype what they just entered on the homepage. Read
   // synchronously into the useState initializer to avoid a render→effect
@@ -920,7 +930,7 @@ export function SVIEntrance() {
     };
     return (
       <div id="svi-results" className="min-h-svh bg-surface-100 flex flex-col">
-        <NavV2 />
+        {chrome && <NavV2 />}
         <div className="px-6 pt-6 pb-2 flex items-center justify-end max-w-2xl mx-auto w-full">
           <button type="button" onClick={() => { handleReset(); setModularReport(null); }} className="text-xs text-ink-600 hover:text-ink-800 cursor-pointer transition-colors flex items-center gap-1.5">
             <X strokeWidth={1.75} className="h-3.5 w-3.5" /> New analysis
@@ -946,7 +956,7 @@ export function SVIEntrance() {
             </div>
           </div>
         </main>
-        <Footer />
+        {chrome && <Footer />}
       </div>
     );
   }
@@ -955,7 +965,7 @@ export function SVIEntrance() {
   if (state === "done" && result) {
     return (
       <div id="svi-results" className="min-h-svh bg-surface-100 flex flex-col">
-        <NavV2 />
+        {chrome && <NavV2 />}
         <main className="flex-1 px-4 pt-8 pb-12">
           {rndReport ? (
             <>
@@ -1036,7 +1046,7 @@ export function SVIEntrance() {
           )}
         </main>
 
-        <Footer />
+        {chrome && <Footer />}
 
         {/* Floating "View Results" banner — helps users who don't auto-scroll */}
         {result && state === "done" && (
@@ -1059,7 +1069,7 @@ export function SVIEntrance() {
   // ══════════════════════════════════════════════════════════════════════════
   return (
     <div className="min-h-svh bg-white flex flex-col" onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}>
-      <TopBar />
+      {chrome && <TopBar />}
 
       {/* ── SVI SEARCH SECTION (default view) ────────────────────────────── */}
       <section id="svi" className="min-h-[calc(100svh-56px)] md:min-h-[calc(100svh-64px)] flex items-start gradient-section bg-gradient-to-b from-brand-50/60 via-white to-white py-10 sm:py-12 md:py-20 relative overflow-hidden">
@@ -1691,7 +1701,7 @@ export function SVIEntrance() {
         </div>
       </section>
 
-      <BottomFooter />
+      {chrome && <BottomFooter />}
 
       {/* ── ANALYSIS PAID TOAST ──────────────────────────────────────── */}
       {analysisPaidToast && (

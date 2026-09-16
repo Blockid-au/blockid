@@ -72,7 +72,7 @@ test.describe("Dossier lane — provision the evaluator seat", () => {
       const reg = await post<{ ok?: boolean; pending?: boolean; user?: { id: string }; error?: string }>(anon, "/api/auth/register", { email, password, displayName: "QA Live Evaluator" });
       await evidence(testInfo, "POST /api/auth/register (evaluator)", { status: reg.status, ok: reg.body.ok, userId: reg.body.user?.id, error: reg.body.error, retryAfter: reg.headers["retry-after"] ?? null });
       if (reg.status === 429) {
-        setScratch("dossier.skipReason", `evaluator register rate-limited (429, Retry-After ${reg.headers["retry-after"] ?? "?"}s) — the register bucket is 3 / 15 min per IP`);
+        setScratch("dossier.skipReason", `evaluator register rate-limited (429, Retry-After ${reg.headers["retry-after"] ?? "?"}s) — the register bucket is 60/IP + 5/(IP,email) per window`);
         throw new Error(`evaluator register rate-limited (429) — Retry-After ${reg.headers["retry-after"] ?? "?"}s`);
       }
       expect(reg.status).toBe(200);

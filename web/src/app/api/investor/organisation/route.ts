@@ -17,7 +17,7 @@ import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import { isEvaluatorUser } from "@/lib/evaluations";
 import { recordGateHit } from "@/lib/entitlements";
-import { SEAT_ROLES, getTeam, inviteMember, removeSeat } from "@/lib/investor/organisations";
+import { SEAT_ROLES, getTeam, inviteMember, leaveOrg, removeSeat } from "@/lib/investor/organisations";
 import { PRIVATE_JSON_HEADERS, readJsonBody } from "@/lib/security/request-guards";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { apiRoute } from "@/lib/audit/api-route";
@@ -28,7 +28,12 @@ export const runtime = "nodejs";
 export const INVITES_PER_HOUR = 20;
 
 export const inviteSchema = z.object({ email: z.string().min(3).max(254), role: z.enum(SEAT_ROLES).optional() }).strict();
-export const removeSchema = z.union([z.object({ member_id: z.string().min(1).max(80) }).strict(), z.object({ invite_id: z.string().uuid() }).strict()]);
+export const removeSchema = z.union([
+  z.object({ member_id: z.string().min(1).max(80) }).strict(),
+  z.object({ invite_id: z.string().uuid() }).strict(),
+  // Self-leave: a seat leaves an org it does not own (W5 review — there was no way out).
+  z.object({ leave_org_id: z.string().uuid() }).strict(),
+]);
 
 const json = (body: Record<string, unknown>, status = 200) => NextResponse.json(body, { status, headers: PRIVATE_JSON_HEADERS });
 
@@ -89,6 +94,11 @@ async function DELETE_handler(request: Request) {
   if (!body.ok) return body.response;
   const parsed = removeSchema.safeParse(body.body);
   if (!parsed.success) return json({ ok: false, error: "invalid_body" }, 400);
+  if ("leave_org_id" in parsed.data) {
+    const left = await leaveOrg(user.id, parsed.data.leave_org_id);
+    if (!left.ok) return json({ ok: false, error: left.error, message: left.message }, left.error === "is_owner" ? 403 : left.error === "not_found" ? 404 : left.error === "unavailable" ? 503 : 500);
+    return json({ ok: true, left: true });
+  }
   const target = "member_id" in parsed.data ? { memberId: parsed.data.member_id } : { inviteId: parsed.data.invite_id };
   const r = await removeSeat({ id: user.id, plan: user.plan ?? null }, target);
   if (!r.ok) return json({ ok: false, error: r.error, message: r.message }, r.error === "not_owner" ? 403 : r.error === "not_found" ? 404 : r.error === "unavailable" ? 503 : 500);

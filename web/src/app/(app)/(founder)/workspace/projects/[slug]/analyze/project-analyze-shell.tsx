@@ -60,5 +60,5 @@ export function ProjectAnalyzeShell({ projectSlug, initialQuery }: Props) {
     router.replace(url.pathname + url.search + url.hash, { scroll: false });
   }, [initialQuery, pathname, router, searchParams]);
 
-  return <SVIEntrance />;
+  return <SVIEntrance chrome={false} />;
 }

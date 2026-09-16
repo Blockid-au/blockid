@@ -155,12 +155,19 @@ export async function resolveActingOrg(userId: string): Promise<InvestorOrganisa
       if (!isMissingRelation(error)) console.error("[blockid:organisations] membership read failed", error);
       return null;
     }
+    // Preference order (W5 review): an org the user OWNS that is not their
+    // personal one (a firm they run) → the first firm they were invited into
+    // → their personal org. Accepting someone else's invite must never take a
+    // firm owner's management of their own org away.
+    let invited: InvestorOrganisation | null = null;
     for (const raw of (data ?? []) as Array<Row & { investor_organisations?: Row | Row[] | null }>) {
       const o = (Array.isArray(raw.investor_organisations) ? raw.investor_organisations[0] : raw.investor_organisations) ?? null;
       if (!o) continue;
       const org = orgFromRow(o);
-      if (org.owner_user_id !== userId) return org;
+      if (org.owner_user_id === userId && !org.is_personal) return org;
+      if (org.owner_user_id !== userId && !invited) invited = org;
     }
+    if (invited) return invited;
   } catch (err) {
     console.error("[blockid:organisations] resolveActingOrg threw", err);
     return null;
@@ -631,4 +638,19 @@ export async function readConsensus(input: { evaluationId: string; viewerUserId:
     return { userId: uid, displayName: uid === input.viewerUserId ? "Me" : (names.get(uid) ?? "Seat"), isMe: uid === input.viewerUserId, assessment: a ? toSeatVisible(a) : null };
   });
   return computeConsensus(seats, { id: org.id, name: org.name });
+}
+
+/** A seat leaves an org they do not own (the owner uses removeSeat). */
+export async function leaveOrg(userId: string, orgId: string): Promise<{ ok: true } | { ok: false; error: "unavailable" | "not_found" | "is_owner" | "db_error"; message: string }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { ok: false, error: "unavailable", message: "Service unavailable" };
+  if (!/^[0-9a-f-]{36}$/i.test(orgId)) return { ok: false, error: "not_found", message: "Organisation not found" };
+  const { data: org } = await supabase.from("investor_organisations").select("id, owner_user_id").eq("id", orgId).maybeSingle();
+  if (!org) return { ok: false, error: "not_found", message: "Organisation not found" };
+  if (String((org as Row).owner_user_id) === userId) return { ok: false, error: "is_owner", message: "Owners cannot leave their own organisation" };
+  const { error, count } = await supabase.from("investor_organisation_members").delete({ count: "exact" }).eq("org_id", orgId).eq("user_id", userId);
+  if (error) return { ok: false, error: "db_error", message: error.message ?? "Leave failed" };
+  if (!count) return { ok: false, error: "not_found", message: "You are not a seat of this organisation" };
+  void appendAudit({ user_id: userId, actor: "user", action: "org.seat_left", resource_type: "investor_organisation", resource_id: orgId, detail: {} }).catch(() => {});
+  return { ok: true };
 }
