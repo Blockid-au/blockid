@@ -15,9 +15,11 @@
 // assessment field (§C.1 — masked in the loader, not by CSS). Anyone else,
 // and any unknown id, gets notFound() — never a 403.
 //
-// S-D1 ships the header + block 1 (radar · weighted table with the weight
-// column, F3 · 13-criteria strip); blocks 2–6 are labelled placeholders
-// linking to the surfaces that exist today.
+// S-D1 shipped the header + block 1 (radar · weighted table with the weight
+// column, F3 · 13-criteria strip); S-R4 (G13-W4-R4) fills block 2
+// (Valuation from ReportV2), block 5 (Progress radar scoped to this
+// evaluation) and the header's mandate fit + "Δ since last view"; blocks 3,
+// 4 and 6 stay labelled placeholders until S-D2 / S-D3.
 
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
@@ -30,7 +32,9 @@ import { auditDossierView } from "@/lib/evaluations/dossier-audit";
 import { EvaluatorReportDisclaimer } from "@/components/legal/evaluator-report-disclaimer";
 import { DossierHeader } from "./dossier/dossier-header";
 import { ReportSummary } from "./dossier/report-summary";
-import { ActionsBlock, AssessmentBlock, EvidenceBlock, ProgressBlock, ValuationBlock } from "./dossier/placeholder-blocks";
+import { ActionsBlock, AssessmentBlock, EvidenceBlock } from "./dossier/placeholder-blocks";
+import { ValuationBlock } from "./dossier/valuation-block";
+import { ProgressBlock } from "./dossier/progress-block";
 import { DossierViewTracker } from "./dossier/dossier-view-tracker";
 
 export const metadata: Metadata = {
@@ -70,6 +74,8 @@ export default async function InvestorDossierPage({ params }: PageProps) {
     role: dossier.viewer.role,
     consentTier: dossier.header.consentTier,
     surface: "page",
+    sviTotal: dossier.header.svi,
+    snapshotId: dossier.header.snapshotId,
   });
 
   return (
@@ -78,10 +84,10 @@ export default async function InvestorDossierPage({ params }: PageProps) {
       <div className="mx-auto max-w-6xl space-y-6 p-6" data-testid="investor-dossier" data-viewer-role={dossier.viewer.role}>
         <DossierHeader header={dossier.header} role={dossier.viewer.role} />
         <ReportSummary report={dossier.report} />
-        <ValuationBlock view={dossier} />
+        <ValuationBlock block={dossier.valuation} fullReportHref={dossier.report.links.fullReport} />
         <EvidenceBlock view={dossier} />
         <AssessmentBlock view={dossier} />
-        <ProgressBlock />
+        <ProgressBlock block={dossier.progress} role={dossier.viewer.role} />
         <ActionsBlock view={dossier} />
         <EvaluatorReportDisclaimer variant="compact" />
       </div>

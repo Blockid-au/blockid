@@ -81,6 +81,8 @@ export interface AnalyticsEventMap {
   evaluator_checklist_step: { step: 1 | 2 | 3 | 4 };
   /** G13 (S-D1): the Investor Dossier (/workspace/evaluations/[id]) was opened — once per page view; `role` = assessor (evaluator) or founder (read-only preview). */
   dossier_view: { evaluation_id: string; consent_tier: string; plan: string; role: "assessor" | "founder" };
+  /** G13 (S-R4 map entry, fired by the S-D2 assessment form): the evaluator saved / submitted a decision on the dossier. */
+  investor_decision_saved: { evaluation_id: string; decision: "pass" | "track" | "proceed"; status?: "draft" | "submitted"; version?: number };
   /** G13 (S-T2, §C.5): the 7-section mandate form was saved; `sections_filled` = sections carrying a value (0–7). */
   mandate_saved: { sections_filled: number; created: boolean };
   /** G13 (S-T2, §C.5): a deal-flow filter changed; `axis` = which control. */

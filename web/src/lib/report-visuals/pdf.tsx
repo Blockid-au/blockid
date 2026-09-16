@@ -77,7 +77,7 @@ function toElement(node: SvgNode, key: string): ReactElement | null {
       if (!content) return null;
       // react-pdf's SVG <Text> reads font props from `props` (not `style`)
       // and inherits fill; `fontFamily` must be a registered family.
-      const textProps = { ...p, fontFamily: PDF_FONT, fontSize: size, fontWeight: weight, textAnchor: anchor } as Record<string, never>;
+      const textProps = { ...p, fontFamily: PDF_FONT, fontSize: size, fontWeight: weight, textAnchor: anchor } as unknown as Record<string, never>;
       return (
         <Text key={key} x={attrNum(a, "x")} y={attrNum(a, "y")} {...textProps}>
           {content}

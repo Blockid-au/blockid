@@ -15,7 +15,12 @@
 //   * a stored report_v2 is preferred; without one the adapter builds it;
 //     no snapshot → report.available false, criteria still 13 rows;
 //   * round shape: the reads after access run in ONE Promise.all (the
-//     percentile is a cached extra) — pinned by counting calls.
+//     percentile is a cached extra) — pinned by counting calls;
+//   * S-R4: block 2 (valuation from ReportV2 + the assessor's own view
+//     overlaid), block 5 (progress radar scoped to this evaluation + since
+//     my last assessment), header mandate fit (persisted row, else scoreFit)
+//     and Δ since last view (previous dossier.viewed audit row) — all
+//     assessor-only where the spec says so, never on the founder preview.
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -78,6 +83,15 @@ vi.mock("@/lib/evaluations/assessments", () => ({ getAssessment: (id: string, vi
 const percentileMock = vi.fn();
 vi.mock("@/lib/agents/cohort-percentile", () => ({ computeCohortPercentile: (a: unknown) => percentileMock(a) }));
 
+// S-R4 collaborators: mandates (S-T2) and the evaluator progress radar.
+const listMandatesMock = vi.fn();
+vi.mock("@/lib/investors/mandates", () => ({ listMandates: (uid: string) => listMandatesMock(uid) }));
+const progressMock = vi.fn();
+vi.mock("@/lib/evaluations/progress-radar", () => ({
+  buildEvaluatorProgress: (opts: unknown) => progressMock(opts),
+  createSupabaseProgressStore: () => ({ listEvaluations: async () => [{ id: "e-1", projectId: "p-1" }, { id: "e-9", projectId: "p-9" }] }),
+}));
+
 import { __resetDossierCaches, buildCriterionRows, findEvaluationIdForProject, loadDossier, projectEvidenceByTier, resolveDossierAccess } from "./dossier";
 import { DIMENSION_OWNERS, DIM_ORDER } from "@/lib/report-pipeline/dimension-owners";
 import { fromSnapshot } from "@/lib/report-v2/adapter";
@@ -109,7 +123,10 @@ const EVIDENCE: Row[] = [
   { project_id: "p-1", dimension: "mpc", evidence_type: "landing", evidence_label: "Landing page", confidence_level: "public_url", evidence_value_or_url: "https://acme.io", created_at: "2026-09-04T00:00:00Z" },
 ];
 
-const MINE = { id: "a-1", evaluationId: "e-1", decision: "track", status: "submitted", version: 2, privateNotes: "secret", conviction: 3 };
+const MINE = { id: "a-1", evaluationId: "e-1", decision: "track", status: "submitted", version: 2, privateNotes: "secret", conviction: 3, snapshotId: "s-1", updatedAt: "2026-09-02T00:00:00Z", submittedAt: "2026-09-02T00:00:00Z", valuationView: { low_aud: 4_000_000, high_aud: 6_000_000, method_note: "comps-led" } };
+
+const MANDATE = { id: "m-1", label: "Seed deep-tech AU", sectors_include: ["advanced_manufacturing"], sectors_exclude: [], business_models: [], customer_types: [], stages: ["seed"], cheque_min_aud: null, cheque_max_aud: null, lead_or_follow: null, geographies: [], revenue_min_aud: null, growth_min_pct: null, min_svi: null, tags_include: [], tags_exclude: [], weights: null, is_default: true };
+const PROGRESS_ITEM = { evaluationId: "e-1", projectId: "p-1", projectSlug: "acme-robotics", name: "Acme Robotics", label: null, sviNow: 62, sviPrev: 58, delta: 4, stageNow: 3, stagePrev: 3, stageChanged: false, newEvidence: 2, lastReport: { at: "2026-09-12T00:00:00Z", svi: 62, kind: "full" }, money: { nextDeadline: null, deadlinesAhead: 1, newMatches: 0 }, scoreHistory: [50, 55, 58, 62] };
 
 beforeEach(() => {
   state.calls = [];
@@ -121,7 +138,12 @@ beforeEach(() => {
     svi_dimension_evidence: EVIDENCE,
     connector_snapshots: [{ project_id: "p-1", provider: "stripe" }, { project_id: "p-1", provider: "stripe" }],
     evaluation_reports: [{ evaluation_id: "e-1", share_token: "tok-abc", created_at: "2026-09-12T00:00:00Z", kind: "full" }],
+    audit_events: [{ id: 41, user_id: "u-eval", action: "dossier.viewed", resource_id: "e-1", ts: "2026-09-10T00:00:00Z", detail: { svi_total: 60, snapshot_id: "s-1" } }],
+    mandate_fit_scores: [{ mandate_id: "m-1", project_id: "p-1", score: 77, reasons: ["Industry match"], gaps: [], blockers: [], computed_at: "2026-09-15T00:00:00Z" }],
+    evaluator_progress_sends: [{ user_id: "u-eval", sent_at: "2026-09-08T00:00:00Z" }],
   };
+  listMandatesMock.mockReset().mockResolvedValue({ migrated: true, mandates: [MANDATE], primary: MANDATE });
+  progressMock.mockReset().mockResolvedValue({ userId: "u-eval", periodStart: "2026-09-14T00:00:00Z", periodEnd: "2026-09-16T00:00:00Z", items: [PROGRESS_ITEM], movers: [PROGRESS_ITEM], deadlines: [{ evaluationId: "e-1", projectId: "p-1", startup: "Acme Robotics", refKind: "grant", refId: "g-1", name: "Accelerating Commercialisation", closesAt: "2026-10-01", daysLeft: 15, url: null }, { evaluationId: "e-9", projectId: "p-9", startup: "Other", refKind: "program", refId: "pr-1", name: "Startmate", closesAt: "2026-10-05", daysLeft: 19, url: null }], newMatches: 0, newEvidence: 2, digest_ready: true });
   getTaxonomyMock.mockReset();
   getTaxonomyMock.mockResolvedValue({ industry: "advanced_manufacturing", business_model: "unclassified", stage_key: "seed", sources: { industry: "auto" }, tags: [] });
   getAssessmentMock.mockReset();
@@ -228,7 +250,10 @@ describe("loadDossier — evaluator", () => {
     await loadDossier("e-1", "u-eval");
     const tables = state.calls.map((c) => c.table);
     expect(tables[0]).toBe("evaluations");
-    expect(tables.slice(1).sort()).toEqual(["connector_snapshots", "evaluation_reports", "svi_dimension_evidence", "svi_snapshots", "svi_snapshots"]);
+    // Round 1 (7 S-D1 reads + the previous-view audit row) then round 2
+    // (mandate fit row · progress send · the assessed snapshot).
+    expect(tables.slice(1, 7).sort()).toEqual(["audit_events", "connector_snapshots", "evaluation_reports", "svi_dimension_evidence", "svi_snapshots", "svi_snapshots"]);
+    expect(tables.slice(7).sort()).toEqual(["evaluator_progress_sends", "mandate_fit_scores", "svi_snapshots"]);
     expect(percentileMock).toHaveBeenCalledTimes(1);
     await loadDossier("e-1", "u-eval");
     expect(percentileMock).toHaveBeenCalledTimes(1);
@@ -245,6 +270,70 @@ describe("loadDossier — evaluator", () => {
   });
 });
 
+describe("loadDossier — S-R4 blocks 2 / 5 + header fit / Δ since last view", () => {
+  it("block 2: valuation from the report with the assessor's own view overlaid on the range bars", async () => {
+    const d = await loadDossier("e-1", "u-eval");
+    const v = d!.valuation;
+    expect(v.available).toBe(true);
+    expect(v.source).toBe("adapter");
+    expect(v.pending).toBe(false);
+    expect(v.consensus?.midAud).toBeGreaterThan(0);
+    expect(v.methods).toHaveLength(6);
+    expect(v.methods.map((m) => m.method)).toContain("scorecard");
+    expect(v.comparables.n).toBeGreaterThan(0);
+    expect(v.rangeBars?.kind).toBe("range_bars");
+    expect(v.rangeBars?.id).toMatch(/-mine$/);
+    expect((v.rangeBars?.data as { rows: Array<{ label: string }> }).rows.some((r) => r.label === "My view")).toBe(true);
+    expect(v.myView).toEqual({ lowAud: 4_000_000, highAud: 6_000_000, note: "comps-led" });
+    expect(v.rangeBars?.svg).toContain('role="img"');
+  });
+
+  it("block 5: progress radar scoped to this evaluation, deadlines filtered, last send + since-my-assessment", async () => {
+    const d = await loadDossier("e-1", "u-eval");
+    const p = d!.progress;
+    expect(p.available).toBe(true);
+    expect(progressMock).toHaveBeenCalledTimes(1);
+    const opts = progressMock.mock.calls[0][0] as { userId: string; store: { listEvaluations: (u: string) => Promise<Array<{ id: string }>> } };
+    expect(opts.userId).toBe("u-eval");
+    // the store wrapper keeps only THIS evaluation
+    expect((await opts.store.listEvaluations("u-eval")).map((e) => e.id)).toEqual(["e-1"]);
+    expect(p.item?.delta).toBe(4);
+    expect(p.deadlines.map((x) => x.name)).toEqual(["Accelerating Commercialisation"]);
+    expect(p.lastSendAt).toBe("2026-09-08T00:00:00Z");
+    expect(p.sparkline?.kind).toBe("sparkline");
+    // since my last assessment: snapshot s-1 (58) → latest 62
+    expect(p.sinceAssessment).toMatchObject({ version: 2, snapshotId: "s-1", sviThen: 58, sviNow: 62, delta: 4 });
+  });
+
+  it("header: mandate fit from the persisted row, Δ since last view from the previous audit row", async () => {
+    const d = await loadDossier("e-1", "u-eval");
+    expect(d!.header.mandateFit).toMatchObject({ mandateId: "m-1", mandateLabel: "Seed deep-tech AU", score: 77, passesFloor: true, source: "persisted", reasons: ["Industry match"] });
+    expect(d!.header.sinceLastView).toEqual({ viewedAt: "2026-09-10T00:00:00Z", sviThen: 60, sviNow: 62, delta: 2 });
+  });
+
+  it("header: no persisted fit row → scoreFit on read (source computed); no previous view → sinceLastView null", async () => {
+    state.tables.mandate_fit_scores = [];
+    state.tables.audit_events = [];
+    const d = await loadDossier("e-1", "u-eval");
+    expect(d!.header.mandateFit?.source).toBe("computed");
+    expect(d!.header.mandateFit?.score).toBeGreaterThan(0);
+    expect(d!.header.sinceLastView).toBeNull();
+    listMandatesMock.mockResolvedValue({ migrated: true, mandates: [], primary: null });
+    const none = await loadDossier("e-1", "u-eval");
+    expect(none!.header.mandateFit).toBeNull();
+  });
+
+  it("degrades: a throwing radar / missing tables leave honest empty states", async () => {
+    progressMock.mockRejectedValue(new Error("boom"));
+    state.tables.evaluator_progress_sends = { error: { code: "42P01", message: "relation evaluator_progress_sends does not exist" } };
+    state.tables.svi_snapshots = [];
+    const d = await loadDossier("e-1", "u-eval");
+    expect(d!.progress.item).toBeNull();
+    expect(d!.progress.lastSendAt).toBeNull();
+    expect(d!.valuation.available).toBe(false);
+  });
+});
+
 describe("loadDossier — founder preview (§C.1)", () => {
   it("never carries an assessment field: no decision chip, mine null, history empty", async () => {
     const d = await loadDossier("e-1", "u-founder");
@@ -253,7 +342,15 @@ describe("loadDossier — founder preview (§C.1)", () => {
     expect(d!.assessment).toEqual({ available: true, mine: null, history: [], sharedWithFounder: null });
     expect(getAssessmentMock).toHaveBeenCalledWith("e-1", { userId: "u-founder", role: "founder" });
     const json = JSON.stringify(d);
-    for (const needle of ["secret", "track", "conviction", "privateNotes", "tok-secret"]) expect(json, `founder view leaked ${needle}`).not.toContain(needle);
+    for (const needle of ["secret", "track", "conviction", "privateNotes", "tok-secret", "comps-led", "My view", "Seed deep-tech"]) expect(json, `founder view leaked ${needle}`).not.toContain(needle);
+    // S-R4: no mandate fit, no since-assessment, no valuation overlay for the founder;
+    // the progress radar is the evaluator's (keyed on the evaluator seat).
+    expect(d!.header.mandateFit).toBeNull();
+    expect(listMandatesMock).not.toHaveBeenCalled();
+    expect(d!.valuation.myView).toBeNull();
+    expect(d!.valuation.rangeBars?.id).not.toMatch(/-mine$/);
+    expect(d!.progress.sinceAssessment).toBeNull();
+    expect((progressMock.mock.calls[0][0] as { userId: string }).userId).toBe("u-eval");
     // the report block is the same block 1 the evaluator sees
     expect(d!.report.dims).toHaveLength(8);
     expect(d!.report.radar?.kind).toBe("radar");
