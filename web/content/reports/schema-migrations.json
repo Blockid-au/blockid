@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-16T20:09:00.274Z",
+  "generated_at": "2026-09-16T23:27:38.087Z",
   "ledger_present": true,
-  "total_files": 283,
+  "total_files": 284,
   "files": [
     "0001_init.sql",
     "0002_score_v2.sql",
@@ -257,6 +257,7 @@
     "0401_evaluation_reports_report_v2.sql",
     "0402_comparables_connectors.sql",
     "0403_ic_reports.sql",
+    "0404_ga4_snapshots_daily_key.sql",
     "20260814_tech_analyses.sql",
     "20260815120000_analyzer_runs.sql",
     "20260816_clevel_reports_v2.sql",
