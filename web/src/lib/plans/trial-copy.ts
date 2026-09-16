@@ -100,6 +100,17 @@ export const EVALUATOR_TRIAL_COPY = {
 } as const;
 
 /**
+ * The evaluator trial line for a specific plan's trial length — the Programs
+ * rungs (accelerator_intake / Cohort 25 / Cohort 100) run a 14-day trial
+ * (Pricing v4, 2026-09-16), so the signup page must not promise "7-day ·
+ * charged on day 8" while the picker says 14. Same wording otherwise.
+ */
+export function evaluatorTrialLine(trialDays: number = TRIAL_DAYS): string {
+  const days = Number.isInteger(trialDays) && trialDays > 0 ? trialDays : TRIAL_DAYS;
+  return `${days}-day free trial · card required · cancel anytime · charged on day ${days + 1}`;
+}
+
+/**
  * Release QA-2 F10 (matches S7-C, docs/plans/evaluator-traction §3b): the
  * evaluator trial includes ONE full Trusted Business Report for the whole 7 days —
  * not the plan's monthly quota, which starts on day 8. Both the pricing
@@ -114,13 +125,22 @@ export const EVALUATOR_MONTHLY_REPORTS: Readonly<Record<string, number>> = {
   investor_angel: 10,
   investor_advisor: 30,
   investor_vc_small: 100,
+  // Pricing v4 (2026-09-16): -1 = unlimited (report-quota.ts convention).
+  investor_fund: -1,
+  accelerator_intake: 40,
+  accelerator_starter: 50,
+  accelerator_growth: 200,
 };
 
-/** "1 full Trusted Business Report included during the trial, then 10/month on Scout". */
+/**
+ * "1 full Trusted Business Report included during the trial, then 10/month
+ * on Scout" — or "then unlimited on Fund" for a -1 quota.
+ */
 export function evaluatorTrialIncludedLine(planId: string, planName: string): string {
   const monthly = EVALUATOR_MONTHLY_REPORTS[planId];
   const n = EVALUATOR_TRIAL_REPORT_ALLOWANCE;
   const head = `${n} full Trusted Business Report${n === 1 ? "" : "s"} included during the trial`;
+  if (monthly === -1) return `${head}, then unlimited on ${planName}`;
   return monthly ? `${head}, then ${monthly}/month on ${planName}` : head;
 }
 

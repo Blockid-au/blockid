@@ -19,6 +19,11 @@
 // to plans-v2.ts and an explicit "pricing-change-approved" review label.
 // 2026-09-08 (founder-approved): Growth A$99 -> A$69, paired with plans-v2.ts,
 // plans.csv and migration 0121. founder_scale (A$299) retired.
+// 2026-09-16 (Pricing v4, plan §3.2): investor_fund "Fund" A$999 (rank 35),
+// accelerator_intake "Intake link" A$249 (rank 5), Cohort Starter/Growth
+// relabelled Cohort 25 / Cohort 100, index_api data SKU (hidden entry, no
+// ladder — its flags are not a superset of Scout's). Paired with plans.csv
+// and migration 0400.
 
 import type { Feature } from "@/lib/entitlements";
 import { PLAN_TIER_RANK, type PlanTier } from "@/lib/segments";
@@ -63,7 +68,10 @@ export type PlanId =
   | "investor_angel"
   | "investor_advisor"
   | "investor_vc_small"
+  | "investor_fund"
   | "investor_vc_ent"
+  | "index_api"
+  | "accelerator_intake"
   | "accelerator_starter"
   | "accelerator_growth"
   | "accelerator_enterprise"
@@ -266,13 +274,23 @@ const VC_SM_FEATURES: readonly Feature[] = [
   "lp_report",
 ];
 
-const VC_ENT_FEATURES: readonly Feature[] = [
+// Pricing v4 Fund rung: Program + the fund-grade flags minus SSO (which
+// stays on VC Enterprise). Mirrors plans.csv investor_fund.
+const FUND_FEATURES: readonly Feature[] = [
   ...VC_SM_FEATURES,
   "custom_benchmark",
   "multi_fund",
-  "sso",
   "weekly_delta",
 ];
+
+const VC_ENT_FEATURES: readonly Feature[] = [
+  ...FUND_FEATURES,
+  "sso",
+];
+
+// Index API (Pricing v4): data-only SKU — read-only index feed, no
+// workspace. Not on the investor ladder (not a superset of Scout).
+const INDEX_API_FEATURES: readonly Feature[] = ["api", "api.access", "svi.feed"];
 
 export const INVESTOR_LADDER: readonly TierLadderEntry[] = Object.freeze([
   {
@@ -314,6 +332,18 @@ export const INVESTOR_LADDER: readonly TierLadderEntry[] = Object.freeze([
     hiddenFromPublic: false,
   },
   {
+    id: "investor_fund",
+    segment: "investor",
+    label: "Fund",
+    rank: 35,
+    monthlyAudBand: "A$999",
+    targetPhaseRange: [6, 12],
+    headlineUnlock:
+      "Unlimited reports, 500 tracked startups, 10 seats and your own rubric weights for VC funds and family offices",
+    supportingUnlocks: FUND_FEATURES,
+    hiddenFromPublic: false,
+  },
+  {
     id: "investor_vc_ent",
     segment: "investor",
     label: "VC Enterprise",
@@ -337,11 +367,25 @@ export const ADVISOR_LADDER: readonly TierLadderEntry[] = INVESTOR_LADDER;
 // Accelerator ladder
 // ---------------------------------------------------------------------------
 
-const ACCEL_STARTER_FEATURES: readonly Feature[] = [
+// Pricing v4 (2026-09-16): the Intake link is the smallest Programs rung.
+// It carries the evaluator flags a program needs to score an application
+// round (batch scoring gates on `lp_export OR accelerator.cohort`, the
+// quarterly sponsor / LP export on `lp_report`), and every cohort rung
+// above it is a strict superset — mirrored in plans.csv + migration 0400.
+const ACCEL_INTAKE_FEATURES: readonly Feature[] = [
   "cohort.view",
   "cohort.view.stats",
   "accelerator.cohort",
+  "investor.dealflow",
+  "watchlist",
+  "svi.feed",
+  "diligence_pack",
+  "lp_report",
+  "grant_finder",
+  "money_radar",
 ];
+
+const ACCEL_STARTER_FEATURES: readonly Feature[] = [...ACCEL_INTAKE_FEATURES];
 
 const ACCEL_GROWTH_FEATURES: readonly Feature[] = [
   ...ACCEL_STARTER_FEATURES,
@@ -354,30 +398,41 @@ const ACCEL_ENT_FEATURES: readonly Feature[] = [
   "api",
   "api.access",
   "sso",
-  "lp_report",
 ];
 
 export const ACCELERATOR_LADDER: readonly TierLadderEntry[] = Object.freeze([
   {
+    id: "accelerator_intake",
+    segment: "accelerator",
+    label: "Intake link",
+    rank: 5,
+    monthlyAudBand: "A$249",
+    targetPhaseRange: [0, 2],
+    headlineUnlock:
+      "Score one application round on one rubric — 40 reports a month, 60 startups, 3 seats",
+    supportingUnlocks: ACCEL_INTAKE_FEATURES,
+    hiddenFromPublic: false,
+  },
+  {
     id: "accelerator_starter",
     segment: "accelerator",
-    label: "Cohort Starter",
+    label: "Cohort 25",
     rank: 10,
     monthlyAudBand: "A$500",
     targetPhaseRange: [0, 3],
-    headlineUnlock: "Batch-run SVI reports across up to 10 cohort startups",
+    headlineUnlock: "Batch-run SVI reports across a cohort of up to 25 startups, 50 reports a month",
     supportingUnlocks: ACCEL_STARTER_FEATURES,
     hiddenFromPublic: false,
   },
   {
     id: "accelerator_growth",
     segment: "accelerator",
-    label: "Cohort Growth",
+    label: "Cohort 100",
     rank: 20,
     monthlyAudBand: "A$1,500",
     targetPhaseRange: [3, 6],
     headlineUnlock:
-      "Demo Day kit and mentor marketplace across 30 seats to run a real programme",
+      "Cohort management across 100 startups and 15 seats to run a multi-cohort programme",
     supportingUnlocks: ACCEL_GROWTH_FEATURES,
     hiddenFromPublic: false,
   },
@@ -389,7 +444,7 @@ export const ACCELERATOR_LADDER: readonly TierLadderEntry[] = Object.freeze([
     monthlyAudBand: "A$3,500",
     targetPhaseRange: [6, 12],
     headlineUnlock:
-      "White-label domain, read/write API and 100+ seats for enterprise programs",
+      "White-label reports, read-only API, SSO and unlimited seats for enterprise programs",
     supportingUnlocks: ACCEL_ENT_FEATURES,
     hiddenFromPublic: false,
   },
@@ -398,6 +453,23 @@ export const ACCELERATOR_LADDER: readonly TierLadderEntry[] = Object.freeze([
 // ---------------------------------------------------------------------------
 // Internal SKUs (never rendered on /pricing)
 // ---------------------------------------------------------------------------
+
+// Index API (Pricing v4, 2026-09-16) — a data SKU, not a workspace rung.
+// It sits in the investor catalogue (plans-v2 `index_api`, public:false)
+// but NOT on INVESTOR_LADDER: its three flags are not a superset of Scout's,
+// which invariant (b) would reject. Sold from /startup-index, /developers
+// and the /pricing contact-sales row.
+const INDEX_API_ENTRY: TierLadderEntry = Object.freeze({
+  id: "index_api",
+  segment: "investor",
+  label: "Index API",
+  rank: 0,
+  monthlyAudBand: "A$299",
+  targetPhaseRange: [0, 12] as PhaseRange,
+  headlineUnlock: "Read-only Startup Value Index feed — 1,000 API calls a day, no workspace",
+  supportingUnlocks: INDEX_API_FEATURES,
+  hiddenFromPublic: true,
+});
 
 const RESELLER_ADMIN_ENTRY: TierLadderEntry = Object.freeze({
   id: "reseller_admin",
@@ -431,10 +503,13 @@ export const TIER_LADDER_BY_ID: Readonly<Record<PlanId, TierLadderEntry>> =
     investor_angel: INVESTOR_LADDER[0]!,
     investor_advisor: INVESTOR_LADDER[1]!,
     investor_vc_small: INVESTOR_LADDER[2]!,
-    investor_vc_ent: INVESTOR_LADDER[3]!,
-    accelerator_starter: ACCELERATOR_LADDER[0]!,
-    accelerator_growth: ACCELERATOR_LADDER[1]!,
-    accelerator_enterprise: ACCELERATOR_LADDER[2]!,
+    investor_fund: INVESTOR_LADDER[3]!,
+    investor_vc_ent: INVESTOR_LADDER[4]!,
+    index_api: INDEX_API_ENTRY,
+    accelerator_intake: ACCELERATOR_LADDER[0]!,
+    accelerator_starter: ACCELERATOR_LADDER[1]!,
+    accelerator_growth: ACCELERATOR_LADDER[2]!,
+    accelerator_enterprise: ACCELERATOR_LADDER[3]!,
     reseller_admin: RESELLER_ADMIN_ENTRY,
   });
 
@@ -447,5 +522,6 @@ export const ALL_LADDER_ENTRIES: readonly TierLadderEntry[] = Object.freeze([
   ...FOUNDER_LADDER,
   ...INVESTOR_LADDER,
   ...ACCELERATOR_LADDER,
+  INDEX_API_ENTRY,
   RESELLER_ADMIN_ENTRY,
 ]);
