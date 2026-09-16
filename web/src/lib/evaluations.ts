@@ -544,6 +544,21 @@ export async function createEvaluation(
     return { ok: false, error: "create_failed", message: "Failed to record the evaluation" };
   }
 
+  // 2b. G13-W1-T1: silent taxonomy fill from the evaluator's intake (name /
+  // description / free-text industry / state). Auto-sourced for now — the
+  // evaluator-sourced mapping through INDUSTRY_OPTIONS is E1.5. Never fails
+  // the create (try/catch + dynamic import).
+  try {
+    const { silentFillTaxonomy } = await import("@/lib/taxonomy/silent-fill");
+    await silentFillTaxonomy(
+      projectId,
+      { name: input.name, description: input.description, industry: input.industry, state: input.state },
+      { reason: "evaluation_create" },
+    );
+  } catch (taxErr) {
+    console.warn("[blockid:evaluations] taxonomy silent fill threw", taxErr);
+  }
+
   // 3. Founder invite — best effort; a mail outage must not undo the create.
   let inviteSent = false;
   if (inviteToken && input.founderEmail) {
