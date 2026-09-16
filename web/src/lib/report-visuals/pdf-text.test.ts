@@ -20,6 +20,11 @@ describe("pdfSafeText", () => {
     expect(pdfSafeText("Score 72 🚀 漢字")).toBe("Score 72  ");
   });
 
+  it("unicode mode (S-R5 Noto Sans): keeps Vietnamese diacritics, maps the arrow glyphs, still drops emoji / CJK", () => {
+    expect(pdfSafeText("Định giá khởi nghiệp → 72", { unicode: true })).toBe("Định giá khởi nghiệp -> 72");
+    expect(pdfSafeText("Score 🚀 漢字 ệ", { unicode: true })).toBe("Score   ệ");
+  });
+
   it("coerces null / numbers", () => {
     expect(pdfSafeText(null)).toBe("");
     expect(pdfSafeText(42)).toBe("42");
