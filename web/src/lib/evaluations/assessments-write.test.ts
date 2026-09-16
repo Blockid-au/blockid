@@ -44,7 +44,7 @@ function builder() {
     insert: (p: Row) => { op = "insert"; payload = p; return q; },
     update: (p: Row) => { op = "update"; payload = p; return q; },
     eq: (k: string, v: unknown) => { filters.push((r) => r[k] === v); return q; },
-    not: (k: string, _o: string, _v: unknown) => { filters.push((r) => r[k] != null); return q; },
+    not: (k: string) => { filters.push((r) => r[k] != null); return q; },
     order: () => q,
     limit: () => run(),
     maybeSingle: () => { single = true; return run(); },
