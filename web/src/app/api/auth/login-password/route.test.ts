@@ -59,6 +59,15 @@ vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: (k: string, m: number, w: number) => mocks.checkRateLimitMock(k, m, w),
 }));
 
+// S-IA4: the route asks post-login.ts where this persona lands.
+const postLogin = vi.hoisted(() => ({ href: "/workspace/advisor", calls: [] as unknown[] }));
+vi.mock("@/lib/auth/post-login", () => ({
+  postLoginHref: async (u: unknown) => {
+    postLogin.calls.push(u);
+    return postLogin.href;
+  },
+}));
+
 vi.mock("@/lib/analyses/claim", () => ({
   claimForCurrentBrowser: (p: Parameters<typeof mocks.claimMock>[0]) =>
     mocks.claimMock(p),
@@ -378,6 +387,14 @@ describe("POST /api/auth/login-password — happy path", () => {
       role: USER.role,
       plan: USER.plan,
     });
+  });
+
+  it("S-IA4: returns the persona landing as `redirect` (resolved server-side for the signed-in user)", async () => {
+    postLogin.calls.length = 0;
+    const res = await POST(req({ email: USER.email, password: "pw" }));
+    const body = await json(res);
+    expect(body.redirect).toBe("/workspace/advisor");
+    expect(postLogin.calls).toEqual([{ id: USER.id, role: USER.role }]);
   });
 
   it("calls setSessionCookie with the loginWithPassword-returned token", async () => {

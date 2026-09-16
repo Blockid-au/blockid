@@ -22,12 +22,14 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const auth = vi.hoisted(() => ({ user: null as null | Record<string, unknown> }));
+const auth = vi.hoisted(() => ({ user: null as null | Record<string, unknown>, landing: "/workspace/investor" }));
 vi.mock("@/lib/auth", () => ({ getCurrentUser: async () => auth.user }));
+// S-IA4: the signed-in "Continue" resolves through PERSONAS when no ?next= is given.
+vi.mock("@/lib/auth/post-login", () => ({ postLoginHref: async () => auth.landing }));
 
-async function html(): Promise<string> {
+async function html(sp: Record<string, string> = { next: "/dashboard", plan: "growth" }): Promise<string> {
   const { default: Page } = await import("./page");
-  return renderPage(Page({ searchParams: Promise.resolve({ next: "/dashboard", plan: "growth" }) }));
+  return renderPage(Page({ searchParams: Promise.resolve(sp) }));
 }
 
 // 20 s budget: this file is the first to import the full page (real Navbar +
@@ -48,6 +50,13 @@ describe("/auth/login — hydration safety", { timeout: 20_000 }, () => {
     expect(out).toContain("already signed in");
     expect(out).toContain('href="/dashboard"');
     assertHydratableNesting(out, "/auth/login signed-in");
+  });
+
+  it("already signed in without ?next=: the continue link is the persona landing (S-IA4)", async () => {
+    auth.user = { id: "u1", email: "angel@blockid.au", displayName: "Ann", plan: "investor_angel" };
+    const out = await html({});
+    expect(out).toContain('href="/workspace/investor"');
+    expect(out).toContain("Continue to your desk");
   });
 });
 

@@ -38,7 +38,7 @@ describe("resolvePostLoginHref — auth `next` through PERSONAS (S-IA4)", () => 
 
   it("flow=none personas skip the wizard even when not onboarded (their consoles)", () => {
     expect(resolvePostLoginHref({ persona: "reseller", onboardingCompleted: false })).toBe("/reseller");
-    expect(resolvePostLoginHref({ persona: "admin", onboardingCompleted: false })).toBe("/admin");
+    expect(resolvePostLoginHref({ persona: "admin", onboardingCompleted: false })).toBe("/dashboard"); // admin works in the founder workspace
     expect(resolvePostLoginHref({ persona: "journalist", onboardingCompleted: false })).toBe("/dashboard");
   });
 
@@ -73,9 +73,9 @@ describe("postLoginHref — DB-backed", () => {
     expect(await postLoginHref({ id: "u-1", role: "user" })).toBe("/onboarding");
   });
 
-  it("role=admin short-circuits to /admin without needing the row", async () => {
+  it("role=admin short-circuits to the founder workspace without needing the row", async () => {
     sb.rows.app_users = [];
-    expect(await postLoginHref({ id: "u-1", role: "admin" })).toBe("/admin");
+    expect(await postLoginHref({ id: "u-1", role: "admin" })).toBe("/dashboard");
   });
 
   it("no Supabase → founder landing (never the wizard on a guess); `next` still wins", async () => {

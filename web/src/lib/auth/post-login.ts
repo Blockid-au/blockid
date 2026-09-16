@@ -24,8 +24,14 @@ export function personaLandingEnabled(): boolean {
   return process.env.PERSONA_LANDING !== "off";
 }
 
-/** Pure: the landing for a persona, honouring the rollback flag. */
+/**
+ * Pure: the landing for a persona, honouring the rollback flag. An admin
+ * signs in to the founder workspace (their sidebar is founder + Admin, the
+ * console bridge sits in the topbar) — `/admin` stays a deliberate click,
+ * as before S-IA4.
+ */
 export function landingHrefFor(persona: PersonaKey): string {
+  if (persona === "admin") return PERSONAS.founder.landingHref;
   if (!personaLandingEnabled() && isEvaluatorPersona(persona)) return PERSONAS.founder.landingHref;
   return PERSONAS[persona].landingHref;
 }

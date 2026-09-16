@@ -81,7 +81,7 @@ describe("/onboarding page", () => {
     sb.rows.app_users = [{ account_type: "reseller", segment: null, onboarding_completed: false }];
     await expect(html()).rejects.toThrow("REDIRECT:/reseller");
     userState.user = { ...USER, role: "admin" };
-    await expect(html()).rejects.toThrow("REDIRECT:/admin");
+    await expect(html()).rejects.toThrow("REDIRECT:/dashboard");
   });
 
   it("no Supabase → wizard renders (never a redirect on a guess)", async () => {
