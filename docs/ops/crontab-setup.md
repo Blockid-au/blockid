@@ -189,6 +189,43 @@ Expected shape: `{ ok, dry, persisted, duration_ms, snapshot }` where
 `webhooks_active`, `mrr_aud_cents`, `funnel_7d`, `generated_at`, `git_sha`,
 `warnings`).
 
+## AU comparables ingest — `/api/cron/comparables-ingest`
+
+G13 S-R5 (2026-09-16). Weekly pull of the three allow-listed public
+sources (`INGEST_SOURCES` in `web/src/lib/valuation/comparables-ingest.ts`:
+Cut Through Venture monthly deal roundups, the Startup Daily "Funding" RSS
+feed, ASX announcements) → regex extraction (no LLM, no spend) → dedupe on
+`(name_key, round_date)` → rows inserted into `au_comparable_raises` as
+`status='pending'` (≤ 50 per run). Nothing reaches a report until an admin
+flips the row to `verified` on `/admin/comparables`; the valuation chapter
+and the landing copy read `v_au_comparable_raises_verified` (static 32-row
+fallback while it is empty). Requires migration `0402` applied first —
+before it the route answers 500 (`relation … does not exist`) and the
+repo keeps citing the static rows.
+
+### Line to install
+
+```
+40 17 * * 0 bash $RUN comparables-ingest --timeout 120
+```
+
+- Runs weekly, Sunday 17:40 UTC (Monday 03:40 AEST) — after the week's
+  Friday roundups and the Sunday newsletter posts, before the Monday
+  review. Readers: `/admin/comparables` (review queue), `/admin` KPI tile
+  (`comparables N`), `ValuationChapter.comparables.n` (via the repo cache,
+  10-minute TTL — approve/reject invalidates it).
+- Dry-run (fetches + extracts, writes nothing):
+
+```bash
+curl -sS -H "Authorization: Bearer $CRON_SECRET" \
+  "https://blockid.au/api/cron/comparables-ingest?dry=1" | jq '{sources, candidates, duplicates, rows: (.rows | length)}'
+```
+
+Expected shape: `{ ok, dryRun, ranAt, sources[{id,status,pages,candidates}],
+candidates, duplicates, inserted, rows[{name,round_date,stage,sector,amount_aud,source_name,confidence}],
+duration_ms }`. The same run is available from a shell without the server:
+`node scripts/comparables/ingest-public-roundups.mjs [--write] [--only=<source>] [--json]`.
+
 ## Autonomous goal loops
 
 > **Removed 2026-08-13** (`fd7bb0b03`): the three loops below and their crontab lines no longer exist; this section is kept for history. Autonomous implementation now = orchestrator (`agent-orchestrator`, 12/14/16/18 UTC) + `self-upgrade-agent.sh` (18:30 UTC) reading `web/content/reports/project-state.json`. Larger goals ship via founder-driven sessions (see `docs/plans/money-finder-2026-09-10.md` §8).
