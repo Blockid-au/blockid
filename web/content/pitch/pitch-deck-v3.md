@@ -446,7 +446,7 @@ Why is this not just a chatbot? A chatbot gives you an opinion, and a different 
 
 How we make money. Three dollars buys us a founder — the report costs cents to produce, so it is our lead, not our revenue. The revenue is the evaluator ladder: Scout at seventy-nine, Firm at one forty-nine, Program at three forty-nine a month. Funds pay nine ninety-nine; cohorts pay five to fifteen thousand a year. Base case at month twelve: about one hundred and eighty paying organisations, three hundred and eighty-six thousand in annual recurring revenue.
 
-Where we are today. One hundred and eighty-two startups scored, over three thousand weekly snapshots, billing live on every tier. The first accelerator pilots start this month. I built the method in my doctoral research and the product with my own hands. The next seat is a commercial co-founder who sells to programs; that search is active.
+Where we are today. One hundred and eighty-two startups scored, over three thousand weekly snapshots, billing live on Stripe. The first accelerator pilots start this month. I built the method in my doctoral research and the product with my own hands. The next seat is a commercial co-founder who sells to programs; that search is active.
 
 We are raising five hundred thousand dollars pre-seed. Half funds that co-founder and engineering; twenty-eight percent goes to evaluator sales; twenty-two percent to trust and data. Twelve months out: ten paying programs, three cohorts, two funds, and a published backtest. Three things to remember. One rubric, every deal. Evaluators pay; founders get the feedback. A live index, not a static report.
 
