@@ -1,122 +1,122 @@
 {
-  "updated_at": "2026-09-16T15:00:09.504Z",
+  "updated_at": "2026-09-16T15:30:06.744Z",
   "primary_chain": [
     {
       "provider": "openrouter",
       "model": "cohere/north-mini-code:free",
       "priority": 1,
       "healthy": true,
-      "latency_ms": 180,
-      "last_checked": "2026-09-16T15:00:05.416Z",
+      "latency_ms": 161,
+      "last_checked": "2026-09-16T15:30:04.400Z",
       "http_status": 200
     },
     {
       "provider": "openrouter",
-      "model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
       "priority": 2,
       "healthy": true,
-      "latency_ms": 295,
-      "last_checked": "2026-09-16T15:00:04.474Z",
-      "http_status": 200
-    },
-    {
-      "provider": "openrouter",
-      "model": "inclusionai/ling-3.0-flash-sante:free",
-      "priority": 3,
-      "healthy": true,
-      "latency_ms": 570,
-      "last_checked": "2026-09-16T15:00:04.822Z",
-      "http_status": 200
-    },
-    {
-      "provider": "groq",
-      "model": "qwen/qwen3.8-27b",
-      "priority": 4,
-      "healthy": true,
-      "latency_ms": 2306,
-      "last_checked": "2026-09-16T15:00:02.166Z",
-      "http_status": 200
-    },
-    {
-      "provider": "groq",
-      "model": "openai/gpt-oss-20b",
-      "priority": 5,
-      "healthy": true,
-      "latency_ms": 2323,
-      "last_checked": "2026-09-16T15:00:02.168Z",
-      "http_status": 200
-    },
-    {
-      "provider": "groq",
-      "model": "allam-2-7b",
-      "priority": 6,
-      "healthy": true,
-      "latency_ms": 2456,
-      "last_checked": "2026-09-16T15:00:02.177Z",
-      "http_status": 200
-    },
-    {
-      "provider": "groq",
-      "model": "openai/gpt-oss-120b",
-      "priority": 7,
-      "healthy": true,
-      "latency_ms": 2571,
-      "last_checked": "2026-09-16T15:00:02.167Z",
-      "http_status": 200
-    },
-    {
-      "provider": "groq",
-      "model": "groq/compound-mini",
-      "priority": 8,
-      "healthy": true,
-      "latency_ms": 3077,
-      "last_checked": "2026-09-16T15:00:02.178Z",
-      "http_status": 200
-    },
-    {
-      "provider": "openrouter",
-      "model": "inclusionai/ling-3.0-flash-fin:free",
-      "priority": 9,
-      "healthy": true,
-      "latency_ms": 3257,
-      "last_checked": "2026-09-16T15:00:05.256Z",
-      "http_status": 200
-    },
-    {
-      "provider": "openrouter",
-      "model": "inclusionai/ling-3.0-flash-vl:free",
-      "priority": 10,
-      "healthy": true,
-      "latency_ms": 3796,
-      "last_checked": "2026-09-16T15:00:04.749Z",
+      "latency_ms": 417,
+      "last_checked": "2026-09-16T15:30:03.586Z",
       "http_status": 200
     },
     {
       "provider": "openrouter",
       "model": "dots-studio/dots-3-note-preview:free",
+      "priority": 3,
+      "healthy": true,
+      "latency_ms": 523,
+      "last_checked": "2026-09-16T15:30:03.601Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "openai/gpt-oss-20b",
+      "priority": 4,
+      "healthy": true,
+      "latency_ms": 663,
+      "last_checked": "2026-09-16T15:30:02.883Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "qwen/qwen3.8-27b",
+      "priority": 5,
+      "healthy": true,
+      "latency_ms": 703,
+      "last_checked": "2026-09-16T15:30:02.882Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "openai/gpt-oss-120b",
+      "priority": 6,
+      "healthy": true,
+      "latency_ms": 718,
+      "last_checked": "2026-09-16T15:30:02.882Z",
+      "http_status": 200
+    },
+    {
+      "provider": "openrouter",
+      "model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "priority": 7,
+      "healthy": true,
+      "latency_ms": 721,
+      "last_checked": "2026-09-16T15:30:03.547Z",
+      "http_status": 200
+    },
+    {
+      "provider": "openrouter",
+      "model": "inclusionai/ling-3.0-flash-fin:free",
+      "priority": 8,
+      "healthy": true,
+      "latency_ms": 835,
+      "last_checked": "2026-09-16T15:30:04.277Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "groq/compound-mini",
+      "priority": 9,
+      "healthy": true,
+      "latency_ms": 910,
+      "last_checked": "2026-09-16T15:30:02.890Z",
+      "http_status": 200
+    },
+    {
+      "provider": "openrouter",
+      "model": "inclusionai/ling-3.0-flash-sante:free",
+      "priority": 10,
+      "healthy": true,
+      "latency_ms": 978,
+      "last_checked": "2026-09-16T15:30:04.171Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "allam-2-7b",
       "priority": 11,
       "healthy": true,
-      "latency_ms": 4054,
-      "last_checked": "2026-09-16T15:00:04.634Z",
+      "latency_ms": 1286,
+      "last_checked": "2026-09-16T15:30:02.884Z",
       "http_status": 200
     },
     {
       "provider": "groq",
       "model": "groq/compound",
       "priority": 12,
-      "healthy": false,
-      "latency_ms": 5004,
-      "last_checked": "2026-09-16T15:00:02.172Z",
-      "http_status": 0
+      "healthy": true,
+      "latency_ms": 1886,
+      "last_checked": "2026-09-16T15:30:02.883Z",
+      "http_status": 200
     },
     {
       "provider": "openrouter",
-      "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+      "model": "inclusionai/ling-3.0-flash-vl:free",
       "priority": 13,
-      "healthy": false,
-      "latency_ms": 5004,
-      "last_checked": "2026-09-16T15:00:04.497Z",
-      "http_status": 0
+      "healthy": true,
+      "latency_ms": 2897,
+      "last_checked": "2026-09-16T15:30:03.802Z",
+      "http_status": 200
     }
   ],
   "fallback_pool": [
@@ -125,8 +125,8 @@
       "model": "llama-3.3-70b-versatile",
       "priority": 1,
       "healthy": false,
-      "latency_ms": 51,
-      "last_checked": "2026-09-16T15:00:05.873Z",
+      "latency_ms": 84,
+      "last_checked": "2026-09-16T15:30:04.577Z",
       "http_status": 404
     },
     {
@@ -134,8 +134,8 @@
       "model": "llama-3.1-8b-instant",
       "priority": 2,
       "healthy": false,
-      "latency_ms": 120,
-      "last_checked": "2026-09-16T15:00:05.925Z",
+      "latency_ms": 70,
+      "last_checked": "2026-09-16T15:30:04.640Z",
       "http_status": 404
     },
     {
@@ -143,8 +143,8 @@
       "model": "mixtral-8x7b-32768",
       "priority": 3,
       "healthy": false,
-      "latency_ms": 67,
-      "last_checked": "2026-09-16T15:00:06.056Z",
+      "latency_ms": 78,
+      "last_checked": "2026-09-16T15:30:04.667Z",
       "http_status": 400
     },
     {
@@ -152,8 +152,8 @@
       "model": "gemma2-9b-it",
       "priority": 4,
       "healthy": false,
-      "latency_ms": 90,
-      "last_checked": "2026-09-16T15:00:06.124Z",
+      "latency_ms": 73,
+      "last_checked": "2026-09-16T15:30:04.710Z",
       "http_status": 400
     },
     {
@@ -161,8 +161,8 @@
       "model": "Meta-Llama-3.3-70B-Instruct",
       "priority": 5,
       "healthy": false,
-      "latency_ms": 113,
-      "last_checked": "2026-09-16T15:00:06.214Z",
+      "latency_ms": 114,
+      "last_checked": "2026-09-16T15:30:04.745Z",
       "http_status": 402
     },
     {
@@ -170,8 +170,8 @@
       "model": "Meta-Llama-3.1-405B-Instruct",
       "priority": 6,
       "healthy": false,
-      "latency_ms": 1713,
-      "last_checked": "2026-09-16T15:00:06.337Z",
+      "latency_ms": 146,
+      "last_checked": "2026-09-16T15:30:04.771Z",
       "http_status": 404
     },
     {
@@ -179,8 +179,8 @@
       "model": "DeepSeek-R1",
       "priority": 7,
       "healthy": false,
-      "latency_ms": 108,
-      "last_checked": "2026-09-16T15:00:07.176Z",
+      "latency_ms": 148,
+      "last_checked": "2026-09-16T15:30:04.784Z",
       "http_status": 404
     },
     {
@@ -188,8 +188,8 @@
       "model": "llama-3.3-70b",
       "priority": 8,
       "healthy": false,
-      "latency_ms": 128,
-      "last_checked": "2026-09-16T15:00:07.297Z",
+      "latency_ms": 60,
+      "last_checked": "2026-09-16T15:30:04.869Z",
       "http_status": 404
     },
     {
@@ -197,8 +197,8 @@
       "model": "llama3.1-8b",
       "priority": 9,
       "healthy": false,
-      "latency_ms": 86,
-      "last_checked": "2026-09-16T15:00:07.426Z",
+      "latency_ms": 156,
+      "last_checked": "2026-09-16T15:30:04.926Z",
       "http_status": 404
     },
     {
@@ -206,8 +206,8 @@
       "model": "qwen-3-32b",
       "priority": 10,
       "healthy": false,
-      "latency_ms": 81,
-      "last_checked": "2026-09-16T15:00:07.520Z",
+      "latency_ms": 54,
+      "last_checked": "2026-09-16T15:30:04.930Z",
       "http_status": 404
     },
     {
@@ -215,8 +215,8 @@
       "model": "meta-llama/llama-3.3-70b-instruct:free",
       "priority": 11,
       "healthy": false,
-      "latency_ms": 30,
-      "last_checked": "2026-09-16T15:00:07.603Z",
+      "latency_ms": 70,
+      "last_checked": "2026-09-16T15:30:04.941Z",
       "http_status": 404
     },
     {
@@ -224,8 +224,8 @@
       "model": "deepseek/deepseek-r1:free",
       "priority": 12,
       "healthy": false,
-      "latency_ms": 39,
-      "last_checked": "2026-09-16T15:00:07.634Z",
+      "latency_ms": 38,
+      "last_checked": "2026-09-16T15:30:04.985Z",
       "http_status": 404
     },
     {
@@ -233,8 +233,8 @@
       "model": "qwen/qwen-2.5-72b-instruct:free",
       "priority": 13,
       "healthy": false,
-      "latency_ms": 35,
-      "last_checked": "2026-09-16T15:00:07.687Z",
+      "latency_ms": 60,
+      "last_checked": "2026-09-16T15:30:05.013Z",
       "http_status": 404
     },
     {
@@ -242,8 +242,8 @@
       "model": "google/gemma-2-9b-it:free",
       "priority": 14,
       "healthy": false,
-      "latency_ms": 28,
-      "last_checked": "2026-09-16T15:00:07.723Z",
+      "latency_ms": 36,
+      "last_checked": "2026-09-16T15:30:05.024Z",
       "http_status": 404
     },
     {
@@ -251,8 +251,8 @@
       "model": "mistralai/mistral-7b-instruct:free",
       "priority": 15,
       "healthy": false,
-      "latency_ms": 30,
-      "last_checked": "2026-09-16T15:00:07.752Z",
+      "latency_ms": 37,
+      "last_checked": "2026-09-16T15:30:05.062Z",
       "http_status": 404
     }
   ],
