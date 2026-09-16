@@ -348,3 +348,46 @@ describe("shouldPromote — gate matrix", () => {
     expect(shouldPromote({ ...base, cases: 0 })).toBe(false);
   });
 });
+
+// ─── G13-W2-R2: TBR chapter constraints (must_cite, primary_visual) ────────
+
+describe("must_cite / primary_visual (TBR-<dim>-v2.0.0 fixtures)", () => {
+  const tbrExpected = {
+    proposed_score: { min: 37, max: 67 },
+    confidence: { min: 0.5 },
+    must_have_gaps: ["cohort"],
+    must_not_hallucinate: ["IPO"],
+    must_cite: 1,
+    primary_visual: { kind: "sparkline" },
+  };
+
+  it("awards the citation point for an [ev:] marker or a citations[] entry and the visual point for the matching kind", async () => {
+    const fx = fixture([{ expected: tbrExpected }]);
+    const runner = mockRunner([
+      { proposed_score: 52, confidence: 0.7, gaps: ["no cohort data [unevidenced]"], verdict: "Traction is early [ev:ev-rev-01].", primary_visual: { kind: "sparkline", series: [] } },
+    ]);
+    const res = await runEval(fx, promptVersion, { runCase: runner });
+    // score + confidence + 1 gap + 1 forbidden + must_cite + visual = 6 / 6
+    expect(res.per_case[0].possiblePoints).toBe(6);
+    expect(res.per_case[0].positivePoints).toBe(6);
+    expect(res.accuracy_pct).toBe(1);
+  });
+
+  it("penalises a chapter with no citation (-1) and gives 0 for a different visual kind", async () => {
+    const fx = fixture([{ expected: tbrExpected }]);
+    const runner = mockRunner([
+      { proposed_score: 52, confidence: 0.7, gaps: ["no cohort data"], verdict: "Traction is early.", citations: [], primary_visual: { kind: "bar" } },
+    ]);
+    const res = await runEval(fx, promptVersion, { runCase: runner });
+    // 1 + 1 + 1 + 1 - 1 (cite) + 0 (visual) = 3 / 6
+    expect(res.per_case[0].positivePoints).toBe(3);
+    expect(res.per_case[0].hardFail).toBe(false);
+  });
+
+  it("must_cite: 0 never penalises an uncited output (idea-stage cases without evidence rows)", async () => {
+    const fx = fixture([{ expected: { ...tbrExpected, must_cite: 0 } }]);
+    const runner = mockRunner([{ proposed_score: 52, confidence: 0.7, gaps: ["cohort"], primary_visual: { kind: "sparkline" } }]);
+    const res = await runEval(fx, promptVersion, { runCase: runner });
+    expect(res.per_case[0].positivePoints).toBe(6);
+  });
+});

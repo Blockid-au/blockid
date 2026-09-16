@@ -1,0 +1,284 @@
+{
+  "agent": "TBR-tre",
+  "version": "2.0.0",
+  "purpose": "Trusted Business Report v2 — Traction & Revenue Evidence chapter (owner CRO, weight 20); W4 dimension-chapter call, spec C.11; bands = ANCHORS p25-p75 at stages 0 / 2 / 4",
+  "cases": [
+    {
+      "id": "case_idea_tre",
+      "name": "Idea — Traction & Revenue Evidence chapter (CRO owner)",
+      "input": {
+        "dim": "tre",
+        "weight": 20,
+        "stage": 0,
+        "stageLabel": "Idea",
+        "phaseId": "vision",
+        "benchmark": {
+          "p25": 15,
+          "p50": 30,
+          "p75": 45,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 30,
+        "criterionResults": [],
+        "evidenceRows": [],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "tre",
+              "benchmarkStage": 0,
+              "p25": 15,
+              "p50": 30,
+              "p75": 45,
+              "deterministicScore": 30
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(tre)",
+            "output": {
+              "hasRevenue": false,
+              "revenueBand": "pre-revenue",
+              "hasCustomers": false
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 15,
+          "max": 45
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "customer interviews",
+          "waitlist"
+        ],
+        "must_not_hallucinate": [
+          "MRR",
+          "ARR",
+          "NRR"
+        ],
+        "must_cite": 0,
+        "primary_visual": {
+          "kind": "sparkline"
+        }
+      }
+    },
+    {
+      "id": "case_seed_tre",
+      "name": "Seed — Traction & Revenue Evidence chapter (CRO owner)",
+      "input": {
+        "dim": "tre",
+        "weight": 20,
+        "stage": 2,
+        "stageLabel": "Seed",
+        "phaseId": "revenue_model",
+        "benchmark": {
+          "p25": 37,
+          "p50": 52,
+          "p75": 67,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 52,
+        "criterionResults": [
+          {
+            "key": "customer_size",
+            "score": 55,
+            "verdict": "9 paying SMEs, +2 net new per month",
+            "citations": [
+              {
+                "evidence_id": "ev-rev-01",
+                "quote": "MRR A$12,000"
+              }
+            ],
+            "grounded": true
+          },
+          {
+            "key": "revenue",
+            "score": 50,
+            "verdict": "MRR A$12,000 stated by the founder",
+            "citations": [
+              {
+                "evidence_id": "ev-rev-01",
+                "quote": "MRR A$12,000"
+              }
+            ],
+            "grounded": true
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "ev-rev-01",
+            "source": "self_declared",
+            "status": "partial",
+            "label": "Founder evidence: revenue",
+            "value": "MRR A$12,000 from 9 paying customers"
+          }
+        ],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "tre",
+              "benchmarkStage": 2,
+              "p25": 37,
+              "p50": 52,
+              "p75": 67,
+              "deterministicScore": 52
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(tre)",
+            "output": {
+              "hasRevenue": true,
+              "revenueBand": "early",
+              "hasCustomers": true,
+              "mrrAud": 12000
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 37,
+          "max": 67
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "cohort",
+          "MoM growth"
+        ],
+        "must_not_hallucinate": [
+          "Series A term sheet",
+          "NRR 130"
+        ],
+        "must_cite": 1,
+        "primary_visual": {
+          "kind": "sparkline"
+        }
+      }
+    },
+    {
+      "id": "case_series_a_tre",
+      "name": "Series A — Traction & Revenue Evidence chapter (CRO owner)",
+      "input": {
+        "dim": "tre",
+        "weight": 20,
+        "stage": 4,
+        "stageLabel": "Series A",
+        "phaseId": "growth",
+        "benchmark": {
+          "p25": 63,
+          "p50": 78,
+          "p75": 93,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 78,
+        "criterionResults": [
+          {
+            "key": "customer_size",
+            "score": 80,
+            "verdict": "180 paying customers, churn 2.1 %",
+            "citations": [
+              {
+                "evidence_id": "ev-stripe-01",
+                "quote": "180 active subscriptions"
+              }
+            ],
+            "grounded": true
+          },
+          {
+            "key": "revenue",
+            "score": 78,
+            "verdict": "A$118k MRR, 6 % MoM",
+            "citations": [
+              {
+                "evidence_id": "ev-stripe-01",
+                "quote": "MRR 118,000"
+              }
+            ],
+            "grounded": true
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "ev-stripe-01",
+            "source": "stripe",
+            "status": "evidenced",
+            "observedAt": "2026-09-01",
+            "label": "Stripe MRR snapshot",
+            "value": "MRR 118,000; 180 active subscriptions; churn 2.1 %"
+          }
+        ],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "tre",
+              "benchmarkStage": 4,
+              "p25": 63,
+              "p50": 78,
+              "p75": 93,
+              "deterministicScore": 78
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(tre)",
+            "output": {
+              "hasRevenue": true,
+              "revenueBand": "growing",
+              "hasCustomers": true,
+              "mrrAud": 118000
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 63,
+          "max": 93
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "NRR",
+          "pipeline coverage"
+        ],
+        "must_not_hallucinate": [
+          "IPO",
+          "unicorn"
+        ],
+        "must_cite": 1,
+        "primary_visual": {
+          "kind": "sparkline"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,270 @@
+{
+  "agent": "TBR-svm",
+  "version": "2.0.0",
+  "purpose": "Trusted Business Report v2 — Strategic Vision & Moat chapter (owner CEO, weight 5); W4 dimension-chapter call, spec C.11; bands = ANCHORS p25-p75 at stages 0 / 2 / 4",
+  "cases": [
+    {
+      "id": "case_idea_svm",
+      "name": "Idea — Strategic Vision & Moat chapter (CEO owner)",
+      "input": {
+        "dim": "svm",
+        "weight": 5,
+        "stage": 0,
+        "stageLabel": "Idea",
+        "phaseId": "vision",
+        "benchmark": {
+          "p25": 33,
+          "p50": 45,
+          "p75": 57,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 45,
+        "criterionResults": [
+          {
+            "key": "roadmap",
+            "score": 40,
+            "verdict": "vision statement only",
+            "citations": [],
+            "grounded": false
+          }
+        ],
+        "evidenceRows": [],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "svm",
+              "benchmarkStage": 0,
+              "p25": 33,
+              "p50": 45,
+              "p75": 57,
+              "deterministicScore": 45
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(svm)",
+            "output": {
+              "hasMoat": false,
+              "hasNetworkEffect": false,
+              "hasDataAdvantage": false
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 33,
+          "max": 57
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "3-year",
+          "moat"
+        ],
+        "must_not_hallucinate": [
+          "network effects proven",
+          "named acquirer"
+        ],
+        "must_cite": 0,
+        "primary_visual": {
+          "kind": "radar"
+        }
+      }
+    },
+    {
+      "id": "case_seed_svm",
+      "name": "Seed — Strategic Vision & Moat chapter (CEO owner)",
+      "input": {
+        "dim": "svm",
+        "weight": 5,
+        "stage": 2,
+        "stageLabel": "Seed",
+        "phaseId": "mentor_review",
+        "benchmark": {
+          "p25": 43,
+          "p50": 55,
+          "p75": 67,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 55,
+        "criterionResults": [
+          {
+            "key": "roadmap",
+            "score": 54,
+            "verdict": "12-month roadmap, one moat factor",
+            "citations": [
+              {
+                "evidence_id": "ev-rm-01",
+                "quote": "proprietary compliance dataset"
+              }
+            ],
+            "grounded": true
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "ev-rm-01",
+            "source": "upload",
+            "status": "evidenced",
+            "label": "Uploaded file: roadmap.pdf",
+            "value": "12-month roadmap; proprietary compliance dataset"
+          }
+        ],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "svm",
+              "benchmarkStage": 2,
+              "p25": 43,
+              "p50": 55,
+              "p75": 67,
+              "deterministicScore": 55
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(svm)",
+            "output": {
+              "hasMoat": true,
+              "hasNetworkEffect": false,
+              "hasDataAdvantage": true
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 43,
+          "max": 67
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "moat factor",
+          "exit"
+        ],
+        "must_not_hallucinate": [
+          "ASX listing"
+        ],
+        "must_cite": 1,
+        "primary_visual": {
+          "kind": "radar"
+        }
+      }
+    },
+    {
+      "id": "case_series_a_svm",
+      "name": "Series A — Strategic Vision & Moat chapter (CEO owner)",
+      "input": {
+        "dim": "svm",
+        "weight": 5,
+        "stage": 4,
+        "stageLabel": "Series A",
+        "phaseId": "growth",
+        "benchmark": {
+          "p25": 53,
+          "p50": 65,
+          "p75": 77,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 65,
+        "criterionResults": [
+          {
+            "key": "roadmap",
+            "score": 66,
+            "verdict": "category thesis with data moat evidence",
+            "citations": [
+              {
+                "evidence_id": "ev-rm-02",
+                "quote": "dataset growing 12%/month"
+              }
+            ],
+            "grounded": true
+          },
+          {
+            "key": "idea",
+            "score": 70,
+            "verdict": "wedge in compliance automation",
+            "citations": [],
+            "grounded": false
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "ev-rm-02",
+            "source": "upload",
+            "status": "evidenced",
+            "label": "Uploaded file: strategy-memo.pdf",
+            "value": "dataset growing 12%/month; 3 acquirer categories named"
+          }
+        ],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "svm",
+              "benchmarkStage": 4,
+              "p25": 53,
+              "p50": 65,
+              "p75": 77,
+              "deterministicScore": 65
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(svm)",
+            "output": {
+              "hasMoat": true,
+              "hasNetworkEffect": true,
+              "hasDataAdvantage": true,
+              "hasSwitchingCosts": true
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 53,
+          "max": 77
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "acquirer",
+          "category"
+        ],
+        "must_not_hallucinate": [
+          "monopoly"
+        ],
+        "must_cite": 1,
+        "primary_visual": {
+          "kind": "radar"
+        }
+      }
+    }
+  ]
+}

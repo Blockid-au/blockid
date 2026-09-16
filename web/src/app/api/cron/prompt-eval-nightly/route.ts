@@ -39,6 +39,9 @@ import {
 } from "@/lib/ai/prompt-registry";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
+import { DimensionChapterPayload, w4OutputContract } from "@/lib/report-pipeline/agent-dispatcher";
+import { AU_CONTEXT } from "@/lib/report-pipeline/agent-prompts";
+import { DIMENSION_OWNERS, isDimKey, type DimKey } from "@/lib/report-pipeline/dimension-owners";
 
 export const dynamic = "force-dynamic";
 
@@ -83,17 +86,34 @@ async function loadFixture(
 const permissiveInput = z.record(z.string(), z.unknown());
 const permissiveOutput = z.record(z.string(), z.unknown());
 
+/**
+ * G13-W2-R2: `TBR-<dim>` fixtures (test-fixtures/prompt-eval/TBR-<dim>-v2.0.0.json)
+ * evaluate the W4 dimension-chapter call — the owner role card + the §C.11
+ * output contract and the `DimensionChapterPayload` Zod schema, so the
+ * nightly eval compares like with like (spec §C.10).
+ */
+function tbrDim(agent: string): DimKey | null {
+  const m = agent.match(/^TBR-([a-z]{3})$/);
+  return m && isDimKey(m[1]) ? m[1] : null;
+}
+
+function tbrSystemPrompt(dim: DimKey): string {
+  const owner = DIMENSION_OWNERS[dim];
+  return `${AU_CONTEXT}\n\n## Your Role: ${owner.primary.toUpperCase()} — owner of the "${owner.title}" chapter\n\n${w4OutputContract(dim, "full")}`;
+}
+
 function defaultRunCase(): CaseRunner {
   return async (fx: FixtureCase, pv: PromptVersionT) => {
     const started = Date.now();
+    const dim = tbrDim(pv.agent);
     const res = await callStructured({
       promptVersionId: pv.id,
       agent: pv.agent,
       model: pv.model,
       inputSchema: permissiveInput,
-      outputSchema: permissiveOutput,
+      outputSchema: dim ? DimensionChapterPayload : permissiveOutput,
       input: fx.input,
-      systemPrompt: `Agent ${pv.agent} · ${pv.purpose}. Return ONLY a JSON object matching the agent's contract.`,
+      systemPrompt: dim ? tbrSystemPrompt(dim) : `Agent ${pv.agent} · ${pv.purpose}. Return ONLY a JSON object matching the agent contract.`,
       renderUser: (i) => `Evaluate the following case and return JSON:\n${JSON.stringify(i)}`,
       purpose: `prompt_eval:${pv.agent}`,
     });

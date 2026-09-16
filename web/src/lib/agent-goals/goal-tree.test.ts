@@ -332,3 +332,32 @@ describe("getAgentCriteria() + getAgentReportSections() defaults", () => {
     expect(getAgentReportSections("")).toEqual([]);
   });
 });
+
+// ─── G13-W2-R2: dimension-owner research topics (spec §B.1–B.8) ──────────
+
+import { dimensionsOwnedBy, ownedDimensionResearchTopics } from "./goal-tree";
+import { DIM_ORDER, DIMENSION_OWNERS } from "@/lib/report-pipeline/dimension-owners";
+
+describe("dimension-owner research topics merged into the goal tree", () => {
+  it("every owner goal carries the research topics of every dimension it owns", () => {
+    DIM_ORDER.forEach((dim) => {
+      const owner = DIMENSION_OWNERS[dim];
+      const goal = getAgentGoal(owner.primary);
+      expect(goal, `goal for ${owner.primary}`).toBeDefined();
+      owner.researchTopics.forEach((topic) => expect(goal!.researchTopics).toContain(topic));
+    });
+  });
+
+  it("CLO owns IRI + LCO and CEO owns SVM (topics deduplicated)", () => {
+    expect(dimensionsOwnedBy("clo")).toEqual(["iri", "lco"]);
+    expect(dimensionsOwnedBy("ceo")).toEqual(["svm"]);
+    const clo = ownedDimensionResearchTopics("clo");
+    expect(new Set(clo).size).toBe(clo.length);
+    expect(clo).toContain("ASIC s708 guidance updates");
+    expect(ownedDimensionResearchTopics("coo")).toEqual([]);
+  });
+
+  it("no topic is duplicated inside any goal", () => {
+    getAllAgentGoals().forEach((g) => expect(new Set(g.researchTopics).size).toBe(g.researchTopics.length));
+  });
+});

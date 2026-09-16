@@ -54,6 +54,14 @@ export const ExpectedConstraints = z
       .optional(),
     must_have_gaps: z.array(z.string().min(1)).default([]),
     must_not_hallucinate: z.array(z.string().min(1)).default([]),
+    /**
+     * G13-W2-R2 (TBR-<dim>-v2.0.0 fixtures): minimum number of evidence
+     * citations the output must carry — `[ev:<id>]` markers anywhere in the
+     * serialised output plus `citations[]` entries. Present → +1, absent → -1.
+     */
+    must_cite: z.number().int().min(0).optional(),
+    /** Expected owner-proposed chart kind (`primary_visual.kind`). Match → +1, else 0. */
+    primary_visual: z.object({ kind: z.string().min(1) }).optional(),
   })
   .default({ must_have_gaps: [], must_not_hallucinate: [] });
 export type ExpectedConstraints = z.infer<typeof ExpectedConstraints>;
@@ -224,9 +232,28 @@ function scoreCase(
     }
   }
 
+  // must_cite → citations ≥ n → +1, else -1 (TBR chapter fixtures)
+  const serialised = JSON.stringify(data);
+  if (typeof expected.must_cite === "number") {
+    possible += 1;
+    const markers = (serialised.match(/\[ev:[^\]]+\]/g) ?? []).length;
+    const citationsRaw = data["citations"];
+    const citations = Array.isArray(citationsRaw) ? citationsRaw.length : 0;
+    if (markers + citations >= expected.must_cite) positive += 1;
+    else positive -= 1;
+  }
+
+  // primary_visual.kind → match +1, else 0
+  if (expected.primary_visual) {
+    possible += 1;
+    const pv = data["primary_visual"];
+    const kind = pv && typeof pv === "object" ? (pv as { kind?: unknown }).kind : undefined;
+    if (kind === expected.primary_visual.kind) positive += 1;
+  }
+
   // must_not_hallucinate → absent +1, present -3 + hard-fail flag
   // Search the full serialised output so the term catches nested fields.
-  const haystack = JSON.stringify(data).toLowerCase();
+  const haystack = serialised.toLowerCase();
   for (const forbidden of expected.must_not_hallucinate) {
     possible += 1;
     if (haystack.includes(forbidden.toLowerCase())) {

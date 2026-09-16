@@ -1,0 +1,288 @@
+{
+  "agent": "TBR-ftv",
+  "version": "2.0.0",
+  "purpose": "Trusted Business Report v2 — Founder & Team Value chapter (owner CHRO, weight 15); W4 dimension-chapter call, spec C.11; bands = ANCHORS p25-p75 at stages 0 / 2 / 4",
+  "cases": [
+    {
+      "id": "case_idea_ftv",
+      "name": "Idea — Founder & Team Value chapter (CHRO owner)",
+      "input": {
+        "dim": "ftv",
+        "weight": 15,
+        "stage": 0,
+        "stageLabel": "Idea",
+        "phaseId": "vision",
+        "benchmark": {
+          "p25": 40,
+          "p50": 52,
+          "p75": 64,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 52,
+        "criterionResults": [
+          {
+            "key": "founder_profile",
+            "score": 45,
+            "verdict": "solo founder, part-time",
+            "citations": [],
+            "grounded": false
+          }
+        ],
+        "evidenceRows": [],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "ftv",
+              "benchmarkStage": 0,
+              "p25": 40,
+              "p50": 52,
+              "p75": 64,
+              "deterministicScore": 52
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(ftv)",
+            "output": {
+              "hasCoFounder": false,
+              "founderExperience": "first-time",
+              "hasAdvisors": false
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 40,
+          "max": 64
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "co-founder",
+          "commitment"
+        ],
+        "must_not_hallucinate": [
+          "prior exit",
+          "advisory board"
+        ],
+        "must_cite": 0,
+        "primary_visual": {
+          "kind": "heat_map"
+        }
+      }
+    },
+    {
+      "id": "case_seed_ftv",
+      "name": "Seed — Founder & Team Value chapter (CHRO owner)",
+      "input": {
+        "dim": "ftv",
+        "weight": 15,
+        "stage": 2,
+        "stageLabel": "Seed",
+        "phaseId": "team",
+        "benchmark": {
+          "p25": 48,
+          "p50": 60,
+          "p75": 72,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 60,
+        "criterionResults": [
+          {
+            "key": "founder_profile",
+            "score": 62,
+            "verdict": "two founders, one domain expert",
+            "citations": [
+              {
+                "evidence_id": "ev-team-01",
+                "quote": "8 years in logistics"
+              }
+            ],
+            "grounded": true
+          },
+          {
+            "key": "team",
+            "score": 55,
+            "verdict": "product design contracted",
+            "citations": [],
+            "grounded": false
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "ev-team-01",
+            "source": "self_declared",
+            "status": "partial",
+            "label": "Founder evidence: founder_profile",
+            "value": "CEO 8 years in logistics; CTO ex-Atlassian"
+          }
+        ],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "ftv",
+              "benchmarkStage": 2,
+              "p25": 48,
+              "p50": 60,
+              "p75": 72,
+              "deterministicScore": 60
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(ftv)",
+            "output": {
+              "hasCoFounder": true,
+              "founderExperience": "experienced",
+              "hasAdvisors": false
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 48,
+          "max": 72
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "hires",
+          "key-person"
+        ],
+        "must_not_hallucinate": [
+          "CFO hired"
+        ],
+        "must_cite": 1,
+        "primary_visual": {
+          "kind": "heat_map"
+        }
+      }
+    },
+    {
+      "id": "case_series_a_ftv",
+      "name": "Series A — Founder & Team Value chapter (CHRO owner)",
+      "input": {
+        "dim": "ftv",
+        "weight": 15,
+        "stage": 4,
+        "stageLabel": "Series A",
+        "phaseId": "growth",
+        "benchmark": {
+          "p25": 60,
+          "p50": 72,
+          "p75": 84,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 72,
+        "criterionResults": [
+          {
+            "key": "founder_profile",
+            "score": 78,
+            "verdict": "repeat founder with an exit",
+            "citations": [
+              {
+                "evidence_id": "ev-li-01",
+                "quote": "acquired by X in 2021"
+              }
+            ],
+            "grounded": true
+          },
+          {
+            "key": "team",
+            "score": 74,
+            "verdict": "12 FTE, leadership bench forming",
+            "citations": [
+              {
+                "evidence_id": "ev-li-01",
+                "quote": "12 employees"
+              }
+            ],
+            "grounded": true
+          },
+          {
+            "key": "team_structure",
+            "score": 66,
+            "verdict": "board with one independent seat",
+            "citations": [],
+            "grounded": false
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "ev-li-01",
+            "source": "linkedin",
+            "status": "evidenced",
+            "label": "LinkedIn export",
+            "value": "12 employees; prior company acquired by X in 2021"
+          }
+        ],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "ftv",
+              "benchmarkStage": 4,
+              "p25": 60,
+              "p50": 72,
+              "p75": 84,
+              "deterministicScore": 72
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(ftv)",
+            "output": {
+              "hasCoFounder": true,
+              "founderExperience": "serial",
+              "hasAdvisors": true
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 60,
+          "max": 84
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "leadership bench",
+          "ESOP coverage"
+        ],
+        "must_not_hallucinate": [
+          "IPO-ready board"
+        ],
+        "must_cite": 1,
+        "primary_visual": {
+          "kind": "heat_map"
+        }
+      }
+    }
+  ]
+}

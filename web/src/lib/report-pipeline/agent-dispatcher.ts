@@ -918,8 +918,8 @@ export const DimensionCardPayload = z.object({
 });
 export type DimensionCardPayload = z.infer<typeof DimensionCardPayload>;
 
-/** Zod shape of the W4 user turn (§C.11 slots) — validated by callStructured. */
-const DimensionChapterInput = z.object({
+/** Zod shape of the W4 user turn (§C.11 slots) — validated by callStructured; the TBR-<dim> fixtures use it as `input`. */
+export const DimensionChapterInput = z.object({
   dim: dimKeyEnum,
   weight: z.number(),
   stage: z.number(),
