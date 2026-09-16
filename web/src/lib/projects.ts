@@ -1047,6 +1047,21 @@ export async function createProject(
     console.error("[blockid:projects] retail attribution write threw", attrErr);
   }
 
+  // G13-W1-T1: silent taxonomy fill from whatever the founder typed (name /
+  // description / industry). Deterministic, no LLM; never fails the request
+  // (silentFillTaxonomy is try/catch-guarded and the import is dynamic so a
+  // missing table only logs). The founder confirms in E1.4 (W4).
+  try {
+    const { silentFillTaxonomy } = await import("./taxonomy/silent-fill");
+    await silentFillTaxonomy(
+      project.id,
+      { name: project.name, description: project.description, industry: project.industry, stage: project.stage },
+      { reason: "project_create" },
+    );
+  } catch (taxErr) {
+    console.warn("[blockid:projects] taxonomy silent fill threw", taxErr);
+  }
+
   return { ok: true, project };
 }
 
@@ -1074,6 +1089,34 @@ export async function updateProject(
   if (error) {
     console.error("[blockid:projects] updateProject failed", error);
     return { ok: false, error: "Failed to update project" };
+  }
+
+  // G13-W1-T1: re-suggest the taxonomy when a classification-bearing field
+  // changed (confirmed fields are never overwritten — lib/taxonomy/store.ts).
+  if (updates.name !== undefined || updates.description !== undefined || updates.industry !== undefined) {
+    try {
+      const { data: row } = await supabase
+        .from("projects")
+        .select("id, name, description, industry, stage")
+        .eq("id", projectId)
+        .maybeSingle();
+      if (row) {
+        const p = row as Record<string, unknown>;
+        const { silentFillTaxonomy } = await import("./taxonomy/silent-fill");
+        await silentFillTaxonomy(
+          projectId,
+          {
+            name: typeof p.name === "string" ? p.name : null,
+            description: typeof p.description === "string" ? p.description : null,
+            industry: typeof p.industry === "string" ? p.industry : null,
+            stage: typeof p.stage === "number" ? p.stage : null,
+          },
+          { reason: "project_update" },
+        );
+      }
+    } catch (taxErr) {
+      console.warn("[blockid:projects] taxonomy silent fill threw", taxErr);
+    }
   }
 
   return { ok: true };

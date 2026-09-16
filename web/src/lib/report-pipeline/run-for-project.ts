@@ -523,6 +523,21 @@ async function insertAnalysisRow(args: {
     console.error("[blockid:report-pipeline] svi_analyses insert failed", error);
     return null;
   }
+
+  // G13-W1-T1: silent taxonomy fill from the freshly computed analysis
+  // (detectSector slug, SVI stage, raw input). try/catch-guarded — a
+  // classification problem never fails a report run.
+  try {
+    const { silentFillTaxonomy } = await import("@/lib/taxonomy/silent-fill");
+    const { suggestInputFromAnalysis } = await import("@/lib/taxonomy/suggest");
+    await silentFillTaxonomy(
+      args.projectId,
+      suggestInputFromAnalysis(args.analysis, { rawText: args.rawInput }),
+      { reason: "report_pipeline" },
+    );
+  } catch (taxErr) {
+    console.warn("[blockid:report-pipeline] taxonomy silent fill threw", taxErr);
+  }
   return id;
 }
 

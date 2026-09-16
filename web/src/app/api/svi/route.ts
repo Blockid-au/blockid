@@ -383,6 +383,23 @@ async function POST_handler(request: Request) {
       console.error("[blockid:svi] Supabase insert failed", error);
       slug = `svi-demo-${slug.slice(0, 6)}`;
     } else {
+      // G13-W1-T1: silent taxonomy fill from the analysis (detectSector slug,
+      // SVI stage, raw text). Confirmed fields are never overwritten; the
+      // call is try/catch-guarded and can never fail the analysis.
+      if (projectId) {
+        try {
+          const { silentFillTaxonomy } = await import("@/lib/taxonomy/silent-fill");
+          const { suggestInputFromAnalysis } = await import("@/lib/taxonomy/suggest");
+          await silentFillTaxonomy(
+            projectId,
+            suggestInputFromAnalysis(analysis, { rawText: enrichedText }),
+            { reason: "svi_analysis" },
+          );
+        } catch (taxErr) {
+          console.warn("[blockid:svi] taxonomy silent fill threw", taxErr);
+        }
+      }
+
       // CDO T-1009: fire svi_score_computed into analytics_events → BQ pipeline.
       void emitEvent({
         name: "svi_score_computed",
