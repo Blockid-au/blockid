@@ -31,6 +31,9 @@
 -- 3b. svi_snapshots.report_email_queued_at — the report-email queue stamp
 --    (W4-review follow-up b: the PDF/PNG render leaves the SSE request).
 --
+-- 3c. public.report_chapter_cache — §C.8 chapter-level cache keyed
+--    (project, dim, evidence hash, pipeline version); project FK cascades.
+--
 -- 3. public.ga4_signal_snapshots — dated GA4 pulls (90-day sessions,
 --    conversions, returning share, top channels, engagement) from the last
 --    sync, so TRE/MPC can draw an AARRR funnel + channel mix with real
@@ -57,6 +60,8 @@
 --   drop table if exists public.au_comparable_raises;
 --   drop table if exists public.founder_signals;
 --   drop table if exists public.ga4_signal_snapshots;
+--   drop table if exists public.report_chapter_cache;
+--   alter table public.svi_snapshots drop column if exists report_email_queued_at;
 -- ---------------------------------------------------------------------------
 
 BEGIN;
@@ -360,10 +365,47 @@ create index if not exists svi_snapshots_report_email_queue_idx
 comment on column public.svi_snapshots.report_email_queued_at is
   'G13 S-R5 (0402): set by the report pipeline when the founder email is due; cleared / superseded by report_email_sent_at once /api/cron/report-email-sweep has sent it.';
 
+-- ─── 3c. report_chapter_cache (§C.8 chapter-level cache) ────────────────────
+-- One row per (project, dimension, evidence hash, pipeline version): the
+-- W4 owner chapter written last time. Unchanged evidence → the pipeline
+-- serves it without an LLM call (weekly Δ reports ≈ exec + changed
+-- chapters). Degraded cards are never stored; rows older than 30 days are
+-- ignored by the reader (lib/report-pipeline/chapter-cache.ts). Missing
+-- table = warnings only, the report never depends on it.
+create table if not exists public.report_chapter_cache (
+  project_id       uuid not null references public.projects(id) on delete cascade,
+  dim              text not null,
+  evidence_hash    text not null,
+  pipeline_version text not null,
+  chapter          jsonb not null,
+  created_at       timestamptz not null default now(),
+  primary key (project_id, dim, evidence_hash, pipeline_version)
+);
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+     where conrelid = 'public.report_chapter_cache'::regclass and conname = 'report_chapter_cache_dim_check'
+  ) then
+    alter table public.report_chapter_cache
+      add constraint report_chapter_cache_dim_check
+      check (dim in ('tre', 'mpc', 'ftv', 'ptd', 'cgh', 'iri', 'lco', 'svm'));
+  end if;
+end $$;
+create index if not exists report_chapter_cache_created_idx
+  on public.report_chapter_cache (created_at desc);
+comment on table public.report_chapter_cache is
+  'G13 S-R5 (0402, spec §C.8): cached W4 dimension chapters keyed (project, dim, sha1 of the chapter inputs, pipeline version). Service-role only; readers ignore rows older than 30 days.';
+
 -- ─── 4. RLS ─────────────────────────────────────────────────────────────────
 alter table public.au_comparable_raises enable row level security;
 alter table public.founder_signals      enable row level security;
 alter table public.ga4_signal_snapshots enable row level security;
+alter table public.report_chapter_cache enable row level security;
+
+drop policy if exists report_chapter_cache_service_all on public.report_chapter_cache;
+create policy report_chapter_cache_service_all on public.report_chapter_cache
+  for all using (auth.role() = 'service_role') with check (auth.role() = 'service_role');
 
 drop policy if exists au_comparable_raises_service_all on public.au_comparable_raises;
 create policy au_comparable_raises_service_all on public.au_comparable_raises
@@ -398,6 +440,8 @@ grant select on public.founder_signals to authenticated;
 grant select, insert, update, delete on public.founder_signals to service_role;
 grant select on public.ga4_signal_snapshots to authenticated;
 grant select, insert, update, delete on public.ga4_signal_snapshots to service_role;
+revoke all on public.report_chapter_cache from anon, authenticated;
+grant select, insert, update, delete on public.report_chapter_cache to service_role;
 
 COMMIT;
 

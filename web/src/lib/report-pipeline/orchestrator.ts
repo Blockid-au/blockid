@@ -84,6 +84,8 @@ import { precomputeModules } from "./module-precompute";
 import { GATHER_RESEARCH_CALLS, gatherData, type GatherDeps, type GatherOutput } from "./gather";
 import { buildValuationChapter, type ValuationAskInput, type VcValuationLike } from "./valuation-chapter";
 import { primeComparables } from "@/lib/valuation/comparables-repo";
+import { getSupabaseAdmin } from "@/lib/supabase";
+import { supabaseChapterCache, type ChapterCache, type ChapterCacheDb } from "./chapter-cache";
 import { applyConsistencyGates } from "./consistency-gates";
 import { fromAssembledReport, inferPhase } from "@/lib/report-v2/adapter";
 import { isReportV2, type CriterionCard, type DimensionChapter, type ReportTierV2, type ReportV2 } from "@/lib/report-v2/schema";
@@ -285,6 +287,8 @@ export interface OrchestratorInput {
   projectId?: string;
   /** app_users.id of the project OWNER (connector signals / cap table key). Defaults to `userId`. */
   ownerUserId?: string | null;
+  /** S-R5 §C.8: chapter cache. `undefined` → the Supabase-backed default; `null` → caching off (tests). */
+  chapterCache?: ChapterCache | null;
   startupName: string;
   rawText: string;
   sviAnalysis: import("@/lib/svi-analysis").SVIAnalysis;
@@ -476,6 +480,11 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
       callBudget: budget,
       budgetOk: monthlyOk,
       isExpired: () => deadline.expired(),
+      // §C.8 chapter-level cache (S-R5): unchanged evidence → last chapter, no
+      // owner call. Per-dimension re-runs (partialDims) bypass it.
+      chapterCache: input.chapterCache === undefined ? supabaseChapterCache(getSupabaseAdmin() as unknown as ChapterCacheDb | null) : (input.chapterCache ?? undefined),
+      chapterCacheScope: { projectId: input.projectId ?? null, pipelineVersion: PIPELINE_VERSION },
+      chapterCacheBypass: Boolean(partialDims),
       ...(input.dispatchOptions ?? {}),
     };
 

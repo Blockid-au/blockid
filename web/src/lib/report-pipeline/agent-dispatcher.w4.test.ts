@@ -61,6 +61,7 @@ import {
   w4OutputContract,
   type CallBudget,
 } from "./agent-dispatcher";
+import { CHAPTER_CACHE_HIT_MODULE_ID, memoryChapterCache } from "./chapter-cache";
 import { DIM_ORDER, DIMENSION_OWNERS, benchmarkFor, benchmarkStageForSvi, type DimKey } from "./dimension-owners";
 import type { CriterionData, ReportContext } from "./types";
 import type { StructuredModelCaller } from "@/lib/ai/call-structured";
@@ -135,6 +136,52 @@ beforeEach(() => {
   insertCounter = 0;
   delete process.env.MODEL_AGENT_CEO;
   delete process.env.MODEL_AGENT_CFO;
+});
+
+describe("dispatchDimensionChapters — §C.8 chapter cache (S-R5)", () => {
+  it("second run with unchanged evidence serves all 8 chapters from the cache (0 owner calls, hit marker); changed evidence misses; re-runs bypass", async () => {
+    const cache = memoryChapterCache();
+    const scope = { projectId: "proj-1", pipelineVersion: "pipeline-test" };
+    const context = makeContext();
+    const s = scripted((dim) => validChapter(dim, context));
+    const first = await dispatchDimensionChapters(context, "standard", async () => "unused", { ...baseOpts, modelCaller: s.caller, chapterCache: cache, chapterCacheScope: scope });
+    expect(s.calls).toBe(8);
+    expect(cache.size).toBe(8);
+    expect(first.get("tre")!.modules.some((m) => m.id === CHAPTER_CACHE_HIT_MODULE_ID)).toBe(false);
+
+    const again = makeContext();
+    const second = await dispatchDimensionChapters(again, "standard", async () => "unused", { ...baseOpts, modelCaller: s.caller, chapterCache: cache, chapterCacheScope: scope });
+    expect(s.calls).toBe(8); // no new owner calls
+    DIM_ORDER.forEach((dim) => {
+      const c = second.get(dim)!;
+      expect(c.verdict).toBe(first.get(dim)!.verdict);
+      expect(c.modules.some((m) => m.id === CHAPTER_CACHE_HIT_MODULE_ID)).toBe(true);
+    });
+
+    // A changed evidence catalogue for one dimension → that chapter misses, the rest still hit.
+    const changed = makeContext();
+    changed.gatherEvidenceRows = [{ evidence_id: "ev-new-stripe", source: "stripe", label: "Stripe revenue (last sync)", status: "evidenced", value: "mrr_aud = 9000", dims: ["tre"] }];
+    await dispatchDimensionChapters(changed, "standard", async () => "unused", { ...baseOpts, modelCaller: s.caller, chapterCache: cache, chapterCacheScope: scope });
+    expect(s.calls).toBe(9);
+    expect(cache.size).toBe(9);
+
+    // Per-dimension re-run bypasses the cache even with unchanged evidence.
+    await dispatchDimensionChapters(makeContext(), "standard", async () => "unused", { ...baseOpts, modelCaller: s.caller, chapterCache: cache, chapterCacheScope: scope, chapterCacheBypass: true, dims: ["mpc"] });
+    expect(s.calls).toBe(10);
+
+    // No projectId → no caching at all.
+    await dispatchDimensionChapters(makeContext(), "standard", async () => "unused", { ...baseOpts, modelCaller: s.caller, chapterCache: cache, chapterCacheScope: { projectId: null, pipelineVersion: "pipeline-test" } });
+    expect(s.calls).toBe(18);
+  });
+
+  it("degraded cards are never cached", async () => {
+    const cache = memoryChapterCache();
+    const context = makeContext();
+    const caller: StructuredModelCaller = async () => ({ ok: false, reason: "transport down" });
+    const chapters = await dispatchDimensionChapters(context, "standard", async () => "unused", { ...baseOpts, modelCaller: caller, chapterCache: cache, chapterCacheScope: { projectId: "proj-1", pipelineVersion: "v" } });
+    expect(chapters.get("tre")!.degraded).toBe(true);
+    expect(cache.size).toBe(0);
+  });
 });
 
 describe("dispatchDimensionChapters — happy path", () => {
