@@ -369,6 +369,17 @@ describe("account_type enum", () => {
   });
 });
 
+describe("S-IA4: `redirect` in the response is the single /onboarding wizard for every fresh account", () => {
+  it.each([["founder", "founder_starter"], ["investor", "investor_angel"], ["advisor", "investor_advisor"], ["accelerator", "investor_vc_small"]])(
+    "%s on %s → /onboarding",
+    async (accountType, planId) => {
+      const res = await POST(req(body({ account_type: accountType, plan_id: planId })));
+      expect(res.status).toBe(200);
+      expect((await json(res)).redirect).toBe("/onboarding");
+    },
+  );
+});
+
 describe("app_users.segment written from account_type", () => {
   it.each([
     ["investor", "investor_angel", "investor_angel"],

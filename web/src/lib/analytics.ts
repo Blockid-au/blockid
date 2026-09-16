@@ -188,6 +188,15 @@ export interface AnalyticsEventMap {
    */
   landing_viewed: { phase: string; plan: string; blocks: string; empty_blocks: string; persona: string };
   landing_block_click: { block: string; href: string; phase: string; action: string; persona: string };
+  /**
+   * G13-W4-IA4 — single /onboarding wizard (3 steps × founder / evaluator
+   * flow). `onboarding_step` fires on every step transition (`action` =
+   * what advanced it: `persona_pick`, `startup_created`, `mandate_saved`,
+   * `skip`, `back` …); `onboarding_completed` once, on the terminal action.
+   * Completion rate by persona = completed / step-1 views.
+   */
+  onboarding_step: { persona: string; step: number; action: string };
+  onboarding_completed: { persona: string };
   mobile_menu_opened: Record<string, never>;
 
   // ── Session ──

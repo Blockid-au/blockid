@@ -144,6 +144,7 @@ beforeEach(() => {
   tileMock.mockReset();
   tileMock.mockResolvedValue(RADAR);
   delete process.env.NAV_IA_V4;
+  delete process.env.PERSONA_LANDING;
   sb = fakeSupabase({
     svi_analyses: [ANALYSIS, OLDER],
     svi_accounts: [{ id: "acct-1", startup_name: "Acme", current_svi: 64, current_stage: 2 }],
@@ -287,7 +288,7 @@ describe("/dashboard — member view (§B.4) + S18-B facts", () => {
     expect(keyCalls(state, "findOrCreateSVIAccount")).toEqual([]);
   });
 
-  it("P2-6: a member who has not completed onboarding is NOT bounced to /dashboard/onboarding", async () => {
+  it("P2-6: a member who has not completed onboarding is NOT bounced to /onboarding", async () => {
     state.role = "editor";
     userState.onboardingCompleted = false;
     const out = await html();
@@ -295,10 +296,10 @@ describe("/dashboard — member view (§B.4) + S18-B facts", () => {
     expect(sb.hasEq("svi_analyses", "email", state.callerEmail)).toBe(false);
   });
 
-  it("owner who has not completed onboarding and has no analysis IS redirected (unchanged)", async () => {
+  it("owner who has not completed onboarding and has no analysis IS redirected to the single /onboarding wizard (S-IA4)", async () => {
     userState.onboardingCompleted = false;
     sb.rows.svi_analyses = [];
-    await expect(html()).rejects.toThrow("REDIRECT:/dashboard/onboarding");
+    await expect(html()).rejects.toThrow("REDIRECT:/onboarding");
     expect(sb.hasEq("svi_analyses", "email", state.callerEmail)).toBe(true);
   });
 
@@ -353,5 +354,53 @@ describe("/dashboard — banner slot + rollback flag", () => {
     expect(out).toContain("data-legacy-landing");
     expect(out).not.toContain("data-landing-block");
     expect(sb.calls).toEqual([]);
+  });
+});
+
+// G13-W4-IA4 (spec §C.1): /dashboard stays the universal post-login URL; an
+// evaluator persona is bounced to PERSONAS[persona].landingHref before any
+// founder loader runs. `PERSONA_LANDING=off` restores the old behaviour.
+describe("/dashboard — persona redirect (G13-W4-IA4 §C.1)", () => {
+  const CASES: Array<[string, string]> = [
+    ["investor_angel", "/workspace/investor"],
+    ["investor_vc", "/workspace/investor"],
+    ["investor", "/workspace/investor"], // legacy account_type → angel rung
+    ["advisor", "/workspace/advisor"],
+    ["accelerator", "/workspace/accelerator"],
+  ];
+  for (const [accountType, landing] of CASES) {
+    it(`account_type=${accountType} → redirect(${landing}) with no founder reads`, async () => {
+      sb.rows.app_users = [{ account_type: accountType, segment: null, onboarding_completed: true }];
+      await expect(html()).rejects.toThrow(`REDIRECT:${landing}`);
+      expect(sb.hasEq("app_users", "id", state.callerId)).toBe(true);
+      expect(sb.find("svi_analyses", "select")).toEqual([]);
+      expect(tileMock).not.toHaveBeenCalled();
+    });
+  }
+
+  it("a legacy `investor` account_type defers to segment=investor_vc (finer signal) — still /workspace/investor", async () => {
+    sb.rows.app_users = [{ account_type: "investor", segment: "investor_vc", onboarding_completed: true }];
+    await expect(html()).rejects.toThrow("REDIRECT:/workspace/investor");
+  });
+
+  it("founder / reseller / journalist personas render the founder landing (no redirect)", async () => {
+    for (const accountType of ["founder", "reseller", "journalist", null]) {
+      sb.rows.app_users = [{ account_type: accountType, segment: null, onboarding_completed: true }];
+      const out = await html();
+      expect(blockOrder(out)).toEqual([...BLOCKS]);
+    }
+  });
+
+  it("PERSONA_LANDING=off: an evaluator lands on the founder dashboard again (rollback)", async () => {
+    process.env.PERSONA_LANDING = "off";
+    sb.rows.app_users = [{ account_type: "investor_angel", segment: null, onboarding_completed: true }];
+    const out = await html();
+    expect(blockOrder(out)).toEqual([...BLOCKS]);
+  });
+
+  it("an evaluator who has not completed onboarding is still redirected to the hub (the hub owns the wizard gate)", async () => {
+    userState.onboardingCompleted = false;
+    sb.rows.app_users = [{ account_type: "advisor", segment: null, onboarding_completed: false }];
+    await expect(html()).rejects.toThrow("REDIRECT:/workspace/advisor");
   });
 });

@@ -302,3 +302,5 @@
 {"stage":"report","ok":true,"message":"Telegram sent, 0 AI calls","aiCalls":0,"durationMs":841,"timestamp":"2026-09-15T16:02:15.815Z"}
 {"stage":"research","ok":false,"message":"Research failed: The operation was aborted due to timeout","aiCalls":0,"durationMs":240002,"timestamp":"2026-09-16T12:04:02.213Z"}
 {"stage":"plan","ok":true,"message":"No recent research — need agent-research first","aiCalls":0,"durationMs":27,"timestamp":"2026-09-16T12:04:02.242Z"}
+{"stage":"code","ok":true,"message":"Platform upgraded: 0 modules deployed, 0 failed (via agent-deploy → git commit → GitHub push → deploy-live)","aiCalls":0,"durationMs":25983,"timestamp":"2026-09-16T14:00:29.183Z"}
+{"stage":"deploy","ok":true,"message":"Production running — HTTP 200","aiCalls":0,"durationMs":318,"timestamp":"2026-09-16T14:00:29.503Z"}

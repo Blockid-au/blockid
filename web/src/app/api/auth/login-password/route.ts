@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { loginWithPassword, setSessionCookie, isValidEmail } from "@/lib/auth";
 import { checkAuthIdentityLimit, checkAuthIpCeiling } from "@/lib/security/auth-rate-limit";
 import { claimForCurrentBrowser } from "@/lib/analyses/claim";
+import { postLoginHref } from "@/lib/auth/post-login";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
 import { apiRoute } from "@/lib/audit/api-route";
 
@@ -92,9 +93,14 @@ async function POST_handler(request: Request) {
       email: result.user!.email,
     });
 
+    // S-IA4: where this persona lands (wizard until its flow is done, else
+    // PERSONAS[persona].landingHref). The form honours an explicit ?next= first.
+    const redirect = await postLoginHref({ id: result.user!.id, role: result.user!.role });
+
     return NextResponse.json({
       ok: true,
       claimed,
+      redirect,
       user: {
         id: result.user!.id,
         email: result.user!.email,

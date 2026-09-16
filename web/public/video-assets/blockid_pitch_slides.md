@@ -1,3 +1,5 @@
+> **SUPERSEDED 2026-09-16 by [`pitch-deck-v3.md`](../../content/pitch/pitch-deck-v3.md)** — prices, ask, audience and entity are stale; kept for history.
+
 # BlockID.au -- Pitch Deck (Slide-by-Slide)
 
 Use this guide to create a PowerPoint or Google Slides deck that mirrors the video presentations.

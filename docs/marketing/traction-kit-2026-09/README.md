@@ -21,6 +21,7 @@ Five ready-to-send documents for the first 90 days of evaluator traction, plus t
 - Data sentence: *"Your data belongs to your startup. We store it so every report builds on your own evidence and the AI reasons on your case. Founder-consented access tiers control who sees what."* — nothing about training, either way.
 - "Why not ChatGPT" paragraph: the one on `/compare/chatgpt` and every `/solutions/*` FAQ (reproduced verbatim in `t1-angel-groups.md` §5).
 - Prices: Free · A$3 · Starter A$29 · Growth A$69 · Scout A$79 · Firm A$149 · Program A$349. No other amount appears anywhere in the kit.
+  - *Amendment 2026-09-16 (G14 pilot offer v2):* `t2-accelerator-pilots.md` §2/§4 also names **Cohort 25 A$5,000/yr** (pricing v4, `docs/pricing-upgrade-plan-2026-07-16.md` § v4) as the LOI target; the pilot itself is free (admin credit grant, no Stripe coupon). No other new amount.
 - Social proof: **none yet.** Every place a quote, metric or logo would go is marked `[[placeholder — collect from pilot]]`. Do not fill one in without a written OK from the named person or program.
 
 ## 2. The 90-day sequence (starts Tuesday 2026-09-15)

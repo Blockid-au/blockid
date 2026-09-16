@@ -1,3 +1,5 @@
+> **SUPERSEDED 2026-09-16 by [`pitch-deck-v3.md`](./pitch-deck-v3.md)** — prices, ask, audience and entity are stale; kept for history.
+
 # BlockID.au — Pitch Deck v1 Outline
 
 *Company: Auschain Pty Ltd (ACN 659 615 111, ABN 79 659 615 111)*

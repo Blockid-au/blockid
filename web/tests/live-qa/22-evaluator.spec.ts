@@ -9,6 +9,7 @@
  */
 import { test, expect } from "./fixtures";
 import { anonRequest, evidence, get, post } from "./lib/api";
+import { dbAllowed, setAccountType } from "./lib/db";
 
 const LADDER = [
   { id: "tier-scout", name: "Scout", price: "A$79", plan: "investor_angel" },
@@ -138,5 +139,46 @@ test.describe("Evaluator workspace as a founder", () => {
     expect(r.status).toBe(402);
     expect(r.body.error).toBe("feature_locked");
     expect(r.body.feature).toBe("investor.dealflow");
+  });
+});
+
+// S-IA4 — the evaluator landing. The suite cannot register an evaluator
+// (card-required trial), so the check re-types the QA founder to
+// investor_angel for the duration of ONE test (LIVE_QA_ALLOW_DB=1, workers=1)
+// and restores 'founder' in `finally`. Without DB access it is skipped, not
+// failed — the e2e lane (tests/e2e/nav/investor-landing.spec.ts) covers the
+// seeded angel on the dev box.
+test.describe("Evaluator landing (S-IA4)", () => {
+  test("as investor_angel: /dashboard → /workspace/investor, ≥ 3 landing blocks each with a CTA, ≤ 3 sidebar groups", async ({ page, qa, visit, guard }, testInfo) => {
+    test.skip(!dbAllowed(), "needs LIVE_QA_ALLOW_DB=1 to re-type the QA account as an evaluator for one test");
+    setAccountType(qa.email, "investor_angel");
+    try {
+      const g = guard(page);
+      await visit("/dashboard");
+      await page.waitForURL(/\/(workspace\/investor|onboarding)(\?|$)/, { timeout: 30_000 });
+      await evidence(testInfo, "persona redirect", { url: page.url() });
+      if (/\/onboarding/.test(page.url())) {
+        // A QA account that has never held an evaluation is sent to the single
+        // wizard (evaluator flow): assert the 3-step v4 wizard, then stop.
+        await expect(page.locator('[data-onboarding-wizard="v4"]')).toBeVisible({ timeout: 30_000 });
+        await expect(page.locator('[data-wizard-rail="evaluator"], [data-wizard-rail="founder"]').first()).toBeVisible();
+        return;
+      }
+      const landing = page.locator("[data-investor-landing]");
+      await expect(landing).toBeVisible({ timeout: 30_000 });
+      await expect(landing).toHaveAttribute("data-landing-variant", "investor");
+      const names = await landing.locator("[data-landing-block]").evaluateAll((els) => els.map((el) => el.getAttribute("data-landing-block")));
+      const empty = await landing.locator("[data-landing-block][data-landing-empty]").evaluateAll((els) => els.map((el) => el.getAttribute("data-landing-block")));
+      await evidence(testInfo, "landing blocks", { names, empty });
+      expect(names.length).toBeGreaterThanOrEqual(3);
+      expect(names[0]).toBe("evaluating");
+      for (const n of names) await expect(landing.locator(`[data-landing-block="${n}"] [data-landing-cta="${n}"]`).first()).toBeVisible();
+      const groups = await page.locator('nav[aria-label="Workspace navigation"] [data-group-label]').evaluateAll((els) => els.map((el) => el.getAttribute("data-group-label")));
+      expect(groups.length).toBeLessThanOrEqual(3);
+      const report = g.report("/workspace/investor");
+      expect(report.errors, "unexpected console errors").toEqual([]);
+    } finally {
+      setAccountType(qa.email, "founder");
+    }
   });
 });

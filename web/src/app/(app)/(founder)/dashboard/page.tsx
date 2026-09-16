@@ -12,6 +12,11 @@
 // 5 are read-only for a member, block 2 shows the owner's next action with
 // "ask {owner}" copy, block 3 is hidden (§B.4).
 //
+// Persona branch (G13-W4-IA4, spec §C.1): an evaluator persona never sees
+// the founder landing — `/dashboard` stays the universal post-login URL and
+// bounces to `PERSONAS[persona].landingHref` (/workspace/investor | advisor |
+// accelerator). `PERSONA_LANDING=off` is the one-line rollback.
+//
 // Rollback: `NAV_IA_V4=off` mounts `page.legacy.tsx` for one deploy.
 
 import type { Metadata } from "next";
@@ -39,7 +44,10 @@ import { recommendNextStep } from "@/lib/nav/next-step-recommender";
 import { growthPhaseFromNavPhase, navPhaseFromSvi, resolveFounderNavPhase } from "@/lib/nav/founder-phase";
 import { isGrowthPhaseId } from "@/lib/growth/phase-taxonomy";
 import { getSVIPercentile } from "@/lib/benchmarks";
-import { countIntakeAnalysesForUser } from "@/lib/analyses/dashboard-bridge";
+import { isEvaluatorPersona, resolvePersona } from "@/lib/nav/persona";
+import { loadPersonaRow } from "@/lib/nav/persona-server";
+import { landingHrefFor, personaLandingEnabled } from "@/lib/auth/post-login";
+import { needsOnboarding } from "@/lib/onboarding/needs-onboarding";
 import { LegacyDashboardPage } from "./page.legacy";
 
 export const dynamic = "force-dynamic";
@@ -59,16 +67,20 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
   const sp = await searchParams;
   const supabase = getSupabaseAdmin();
 
+  // ── Persona branch (§C.1) — evaluators land on their own hub ─────────────
+  const personaRow = await loadPersonaRow(user.id);
+  const persona = resolvePersona({ role: user.role, accountType: personaRow.accountType, segment: personaRow.segment });
+  if (personaLandingEnabled() && isEvaluatorPersona(persona)) redirect(landingHrefFor(persona));
+
   // ── Scope (owner vs member) ───────────────────────────────────────────────
   const scope = await getProjectScope("viewer");
   const { projectId, dataEmail, ownerUserId, role, canEdit, isMember } = pageScopeKeys(scope, user);
   const activeProject = scope?.project ?? null;
 
-  // First-time OWNER with nothing scored → onboarding wizard (never a member:
+  // First-time OWNER with nothing scored → the single wizard (never a member:
   // S18-B P2-6). `/analyze` runs land in `analyses` (S31-B) and count too.
-  if (supabase && !user.onboardingCompleted && !isMember) {
-    const { count } = await supabase.from("svi_analyses").select("id", { count: "exact", head: true }).eq("email", user.email);
-    if (!count && (await countIntakeAnalysesForUser(supabase, user.id)) === 0) redirect("/dashboard/onboarding");
+  if (await needsOnboarding({ user, persona, onboardingCompleted: user.onboardingCompleted || personaRow.onboardingCompleted, isMember, supabase })) {
+    redirect("/onboarding");
   }
 
   // ── Five loaders, one round ───────────────────────────────────────────────

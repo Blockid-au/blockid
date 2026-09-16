@@ -17,7 +17,7 @@ At 20-40x ARR multiple (standard for high-growth SaaS/fintech):
 
 | Year | Phase | ARR Target | Users | MRR | Valuation (20-40x) | Round |
 |------|-------|-----------|-------|-----|-------------------|-------|
-| **2026 H2** | 2-3 (Validation → MVP) | A$60K | 500 | A$5K | A$2-5M (pre-seed) | Pre-Seed A$500K |
+| **2026 H2** | 2-3 (Validation → MVP) | A$60K | 500 | A$5K | A$2.5-4.0M (pre-seed; deck v3 2026-09-16) | Pre-Seed A$500K |
 | **2027** | 4-5 (Equity → Tokenization) | A$1.2M | 5,000 | A$100K | A$15-30M | Seed A$3-5M |
 | **2028** | 6-7 (Investment → Revenue) | A$8M | 25,000 | A$650K | A$100-200M | Series A A$15-25M |
 | **2029** | 7-8 (Revenue → Growth) | A$25M | 80,000 | A$2.1M | A$400-600M | Series B A$40-60M |
@@ -52,7 +52,7 @@ At 20-40x ARR multiple (standard for high-growth SaaS/fintech):
 | Round | Timing | Amount | Dilution | Pre-Money | Post-Money | Lead Investors |
 |-------|--------|--------|----------|-----------|------------|----------------|
 | **Bootstrapped** | 2024-2026 H1 | A$0 (sweat equity) | 0% | — | — | Founder |
-| **Pre-Seed** | Q3 2026 | A$500K | 10-15% | A$3-5M | A$3.5-5.5M | Angels, Startmate |
+| **Pre-Seed** | Q3–Q4 2026 | A$500K | 11-17% | **A$2.5-4.0M** (SAFE cap A$3.5M, 20% discount — deck v3 2026-09-16; was A$3-5M) | A$3.0-4.5M | Angels, accelerator alumni networks, evaluator-side strategic angels |
 | **Seed** | Q2 2027 | A$3-5M | 15-20% | A$15-25M | A$20-30M | AU VCs (Blackbird, AirTree) |
 | **Series A** | Q2 2028 | A$15-25M | 15-20% | A$80-120M | A$100-150M | Global VCs + AU VCs |
 | **Series B** | Q2 2029 | A$40-60M | 12-15% | A$300-450M | A$350-500M | Growth funds |
@@ -73,6 +73,16 @@ At 20-40x ARR multiple (standard for high-growth SaaS/fintech):
 
 ### Use of Funds (Pre-Seed: A$500K)
 
+> **Amended 2026-09-16 (G14, deck v3 — founder decision F-1):** the 3-bucket split below **supersedes** the earlier 5-bucket split (Engineering 50% / Marketing 20% / Operations 15% / Legal 10% / Reserve 5%). Deck v3 slide 11 ("A$500K pre-seed: rubric to revenue") is the canonical statement; runway ≈ 18 months at ~A$27K/month post-raise; milestones M12 = 10 paying Programs · 3 Cohort 25 · 2 Funds · 5 intake links · 500 evaluator signups · backtest published · A$10K MRR floor (bear A$153K ARR / base A$386K ARR). Source: [`docs/plans/g14-investor-feedback-2026-09-16.md`](../../docs/plans/g14-investor-feedback-2026-09-16.md) §3 F-1/F-2.
+
+| Bucket | % | Amount | What it buys | Responsible |
+|--------|---|--------|--------------|-------------|
+| Commercial co-founder + engineering | 50% | A$250K | commercial co-founder (evaluator sales, active search) + 1 engineer; ships G14 S34–S38 | CEO + CHRO |
+| Evaluator GTM | 28% | A$140K | 90-day evaluator motion → programs / firms / angel groups, pilots (cap 5, credit-comped), interviews, case studies, events | CMO + CRO |
+| Trust + data | 22% | A$110K | verification reviewers, backtest v1 with control group, open AU registers ingest, comparables ≥ 500, security/compliance | CDO + CISO + CLO |
+
+<details><summary>Superseded 5-bucket split (May 2026, kept for the record)</summary>
+
 | Category | % | Amount | Responsible |
 |----------|---|--------|-------------|
 | Engineering (AI + Blockchain) | 50% | A$250K | CTO |
@@ -80,6 +90,8 @@ At 20-40x ARR multiple (standard for high-growth SaaS/fintech):
 | Operations & Infrastructure | 15% | A$75K | COO |
 | Legal, IP & Compliance | 10% | A$50K | CLO + AU Compliance |
 | Reserve | 5% | A$25K | CFO |
+
+</details>
 
 ---
 

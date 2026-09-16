@@ -1,120 +1,44 @@
-# BlockID.au -- Executive Summary
+# Startup Value Index — Executive Summary (pre-seed, v3 · 2026-09-16)
 
-## Company
+**Startup Value Index** by BlockID · Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney, Australia · [blockid.au](https://blockid.au)
+**Founder & CEO:** Do Van Long · [linkedin.com/in/dovanlong](https://linkedin.com/in/dovanlong) · **Ask:** A$500K pre-seed
+Deck: `pitch-deck-v3.md` → `/pitch/SVI-Pitch-Deck-PreSeed-2026-09.pptx` · Feedback trace: `docs/plans/g14-investor-feedback-2026-09-16/00-pitch-feedback.md`
 
-**Auschain Pty Ltd**
-ACN 659 615 111 | ABN 79 659 615 111
-Sydney, NSW, Australia
-[blockid.au](https://blockid.au)
+## The problem — forty decks, one weekend, no rubric
 
----
+An Australian angel group sees roughly forty applicants a cycle; a program screens hundreds against a rubric it keeps in a spreadsheet. Each deck takes thirty to sixty minutes to read properly, every screener uses a different gut rubric, and the scores do not compare. The founders who are passed on hear nothing — so they pitch the same deck again next month.
 
-## Founder
+## Who pays — evaluators. Who gets the feedback — founders.
 
-**Do Van Long** -- Founder & CEO
-[linkedin.com/in/dovanlong](https://linkedin.com/in/dovanlong)
+The buyer is the organisation that screens startups for a living: angel groups, accelerators and incubators, early-stage funds, and the accounting firms that touch ESIC and R&D claims. They subscribe (Scout A$79 · Firm A$149 · Program A$349 a month, live today; Fund A$999 and Intake link A$249 a month plus Cohort 25/100 at A$5K/15K a year planned in pricing v4). The founder side is the funnel: a free score, then a A$3 Trusted Business Report that puts the startup into the index. Every verdict an evaluator records — pass, track or proceed — sends the reasons back to the founder with a path to re-score. The paying side and the receiving side are different people on purpose: that is what makes it a two-sided loop rather than a report-mill.
 
-Full-stack technical founder who built and shipped BlockID.au from concept to live product. Deep understanding of the Australian startup ecosystem and the valuation challenges founders face daily.
+## The product loop
 
----
+1. **Add a startup** — deck, website or ABN — and get a dossier in minutes: one score, eight dimensions, the evidence behind each, red flags, questions to ask.
+2. **Score on one rubric** — 8 dimensions × 13 criteria with fixed weights, engine v2.1.0. Every claim is weighted by its evidence, from self-declared (0.2) to third-party verified (1.0). An auditor agent checks the report and every event is hash-chained.
+3. **Record the verdict** — PASS / TRACK / PROCEED; the founder receives the reasons, not silence.
+4. **Watch it move** — the score is re-snapshotted weekly; evaluators see movers, new evidence and deadlines. The index gets more valuable with every startup scored.
 
-## The Problem
+Not a prompt: a chatbot gives an opinion and a different one tomorrow; we give the same rubric every time, with receipts.
 
-Ninety percent of startups fail, and in Australia the numbers are even worse: 60% die within three years (ABS June 2025), with 437,150 new businesses starting against 370,500 closing in FY2024-25 alone. The root cause hiding behind "ran out of cash" (70% of failures, CB Insights) is a valuation black hole -- founders cannot quantify their company's worth, make equity decisions blindly, and pay A$5,000 to A$50,000 for manual valuations that take 2-6 weeks. Meanwhile, $252 billion was invested in AI globally in 2024 (Stanford HAI), yet 90% of AI startups fail within 18 months because AI can generate ideas but cannot build businesses.
+## Business model and ARR math
 
----
+A$3 is a lead, not the revenue — a report costs cents to produce. Revenue is the evaluator ladder. Bottom-up base case at month 12 (plan §3.3): about 180 paying organisations across Scout / Firm / Program / Fund / Cohort / Intake / Index API → **A$386K ARR** (bear A$153K, base month 24 A$794K). That A$386K is the money of roughly 130,000 A$3 reports — which is why the A$3 wedge feeds the ladder instead of being the model.
 
-## The Solution
+## Market — Australia, counted one evaluator at a time
 
-BlockID.au is an AI-powered startup valuation and ownership platform that gives founders instant intelligence -- from idea to exit. In 60 seconds, our AI engine generates a comprehensive 10-page Startup Valuation Index (SVI) report scoring startups across 8 dimensions: Team, Market, Product, Traction, Cap Table, Investor Readiness, Legal, and Moat. The platform also provides free tools for equity splitting, dilution modeling, cap table analysis, funding planning, and data room preparation -- replacing weeks of manual work and thousands of dollars in consulting fees with instant, data-driven insights.
+~249 accelerators and incubators · 18 early-stage VC funds · 135 investor organisations · ~1,000 active angels · 4,345 accounting firms touching ESIC / R&D claims → **~5,700 organisations ≈ A$12M ARR serviceable** at list price. Australia only; no global TAM claims. Competitors sell data about other deals (Crunchbase, PitchBook at US$15–20k a seat, Techboard), relationship workflow (Affinity at US$2–2.7k a seat, Dealum, F6S) or one-off valuations (AU valuers A$2,985–3,990 a report, Equidam). Nobody sells a live, evidence-weighted judgement about one startup, updated weekly, for the people who screen it.
 
----
+## Traction — honest
 
-## Market Opportunity
+Live product with billing on every tier. **182 startups analysed, 3,302 weekly snapshots** (2026-09-16). Evaluator ladder, dossier, weekly radar, audit chain and A$3 report all shipped. Paying evaluator subscriptions: none yet — the 90-day GTM (10 evaluator interviews, 5 free-cohort pilots for an LOI + case study, intake-link wedge) starts this quarter; pilot names appear only with written consent. Program credentials: Founder Institute, Spacecubed AI Fellowship, NVIDIA Inception, Stripe for Startups.
 
-| Metric | Value | Source |
-|--------|-------|--------|
-| **TAM** | $4.4T global startup ecosystem | Startup Genome, 2024 |
-| **SAM** | $3.2B cap table + valuation tools | Grand View Research, 2025 |
-| **SOM** | A$250K Year 1 | 500 AU startups x A$500 avg |
-| Active AU startups | 2,600+ | Startup Genome |
-| AU accelerators | 300+ | StartupAus |
-| AU angel investors | 15,000+ | AAAI |
+## Team
 
-Australia's A$15 billion startup ecosystem has no unified platform covering the full lifecycle from idea to exit.
+**Do Van Long** — founder; the scoring method is grounded in the founder's doctoral research (DBA) on startup valuation, and he built and shipped the product himself: 11 specialist agents (CFO, CMO, CTO, CLO …) plus an auditor. **Open seat, active search:** commercial co-founder for evaluator sales — the first hire this raise funds.
 
----
+## The ask — A$500K pre-seed: rubric to revenue
 
-## Business Model
+Use of funds: commercial co-founder + engineering **A$250K (50%)** · evaluator GTM **A$140K (28%)** · trust + data (verification integrity, public methodology, backtest, open AU signals) **A$110K (22%)**. Month-12 milestones: 10 paying Programs · 3 Cohort 25 · 2 Funds · 5 Intake links · 500 evaluator sign-ups · backtest published · A$10K MRR floor. Terms: SAFE, pre-money range A$2.5–4.0M, cap A$3.5M, 20% discount; ~18 months runway post-raise.
 
-**Freemium SaaS with credit-based expansion:**
-
-- **Free:** SVI score, basic tools (Idea Valuation, Equity Split, Dilution Calculator)
-- **Pro (A$49/month):** Full reports, evidence vault, weekly tracking, benchmarking
-- **Team (A$149/month):** Cap table management, multi-founder, board reporting
-- **Enterprise (Custom):** Accelerator/VC portfolio dashboards, API access
-
-Revenue grows with the founder: free at idea stage, paid as they validate, premium as they fundraise and scale.
-
----
-
-## Traction
-
-- **Live product** at blockid.au -- fully operational
-- **Phase 1 (Idea & Analysis):** COMPLETE -- AI-powered SVI scoring engine generating 10-page reports in 60 seconds
-- **Phase 2 (Validation & Evidence):** IN PROGRESS -- Evidence Vault, auto-rescore, OAuth connectors
-- **8 free tools** deployed: Idea Valuation, Equity Split, Dilution Calculator, Cap Table Diff, Funding Plan, Data Room Checklist, Term Sheet Analyzer, Cofounder Match
-- **30+ SEO articles** published driving organic traffic
-- **10 automated email** nurture sequences operational
-- **Growth Intelligence dashboard** live with real-time analytics
-
----
-
-## Roadmap
-
-| Phase | Milestone | Timeline | Status |
-|-------|-----------|----------|--------|
-| 1 | Idea & AI Analysis | Complete | LIVE |
-| 2 | Validation & Evidence | Q3 2026 | In Progress |
-| 3 | Dollar Valuation Engine | Q4 2026 | Planned |
-| 4 | Full Cap Table Management | Q1 2027 | Planned |
-| 5 | Blockchain Equity Tokenization (Cosmos) | Q2-Q3 2027 | Planned |
-| 6 | Investment & Fundraise Tools | Q3-Q4 2027 | Planned |
-| 7 | Revenue & Dividend Distribution | 2028 | Planned |
-| 8 | Growth, Exit & Exchange | 2028+ | Planned |
-
----
-
-## Competitive Advantage
-
-| Feature | BlockID | Carta | Pulley | Equidam |
-|---------|---------|-------|--------|---------|
-| AI Scoring | Yes | No | No | No |
-| Dollar Valuation | Phase 3 | No | No | Yes |
-| Cap Table | Phase 4 | Yes | Yes | No |
-| Evidence Tracking | Yes | No | No | No |
-| Australian Focus | Yes | No | No | No |
-| Free Tier | Yes | No | No | Limited |
-| Blockchain Equity | Phase 5 | No | No | No |
-| Full Lifecycle | Yes | No | No | No |
-
----
-
-## The Ask
-
-*To be determined by the CEO.*
-
-Funds will be directed toward:
-- Product development (Phases 3-4: dollar valuation + cap table)
-- Key hires (Blockchain Expert, Growth Lead)
-- Growth marketing to reach 500 paying AU startups in Year 1
-
----
-
-## Contact
-
-**Do Van Long** -- Founder & CEO
-Email: ceo@longcare.au
-LinkedIn: [linkedin.com/in/dovanlong](https://linkedin.com/in/dovanlong)
-Web: [blockid.au](https://blockid.au)
-Company: Auschain Pty Ltd (ACN 659 615 111, ABN 79 659 615 111)
+**Contact:** Do Van Long · admin@blockid.au · [blockid.au/pricing?persona=investor](https://blockid.au/pricing?persona=investor) · Auschain PTY LTD (ACN 659 615 111, ABN 79 659 615 111)
