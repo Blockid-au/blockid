@@ -62,17 +62,40 @@ export interface ChartsV2Result {
 
 // ── Number provenance ───────────────────────────────────────────────────────
 
-/** Every finite number in the evidence rows (`value` strings parsed, e.g. "A$12,400 MRR" → 12400). */
+/**
+ * Every finite number in the evidence rows (`value` strings parsed, e.g.
+ * "A$12,400 MRR" → 12400). W2 review (c): a URL's digit runs
+ * ("…/2024/q3/…") and upload file sizes ("(pdf, 48213 bytes)") are NOT
+ * evidence numbers — they licensed fabricated series before.
+ */
 export function evidenceNumbers(rows: EvidenceRow[]): number[] {
   const out: number[] = [];
   rows.forEach((r) => {
-    const m = (r.value ?? "").replace(/,/g, "").match(/-?\d+(?:\.\d+)?/g) ?? [];
+    const raw = (r.value ?? "").trim();
+    if (!raw || /^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) return;
+    const cleaned = raw
+      .replace(/[a-z][a-z0-9+.-]*:\/\/\S+/gi, " ") // embedded URLs
+      .replace(/\(?[\d,]+\s*(?:bytes|kb|mb)\)?/gi, " ") // file sizes
+      .replace(/,/g, "");
+    const m = cleaned.match(/-?\d+(?:\.\d+)?/g) ?? [];
     m.forEach((t) => {
       const n = Number(t);
       if (Number.isFinite(n)) out.push(n);
     });
   });
   return out;
+}
+
+/** Numbers a proposal carries (values + points), in order. */
+function proposalNumbers(proposal: LlmVisualProposal): number[] {
+  const nums: number[] = [];
+  proposal.series.forEach((s) => {
+    if (typeof s.value === "number" && Number.isFinite(s.value)) nums.push(s.value);
+    (s.points ?? []).forEach((p) => {
+      if (Number.isFinite(p)) nums.push(p);
+    });
+  });
+  return nums;
 }
 
 /** True when `n` matches some universe value within rounding (0.5 abs or 1 %). */
@@ -82,19 +105,19 @@ export function numberTraceable(n: number, universe: number[]): boolean {
 
 /** Deterministic number-provenance pass over a proposal. */
 export function checkProvenance(proposal: LlmVisualProposal, universe: number[]): ProvenanceReport {
-  const nums: number[] = [];
-  proposal.series.forEach((s) => {
-    if (typeof s.value === "number" && Number.isFinite(s.value)) nums.push(s.value);
-    (s.points ?? []).forEach((p) => {
-      if (Number.isFinite(p)) nums.push(p);
-    });
-  });
+  const nums = proposalNumbers(proposal);
   const unresolved = nums.filter((n) => !numberTraceable(n, universe));
   return { checked: nums.length, unresolved, downgraded: unresolved.length > 0 };
 }
 
-function universeFor(draft: ChapterVisualDraft): number[] {
-  const u = [...moduleNumbers(draft.moduleOutputs), ...evidenceNumbers(draft.evidence), draft.benchmark.p25, draft.benchmark.p50, draft.benchmark.p75];
+/**
+ * The provenance universe (W2 review (c)): evidence-row numbers + MEASURED
+ * module fields + the deterministic score and the three benchmark
+ * percentiles the owner was explicitly given. Static profile constants,
+ * weights, URL digit runs and file sizes are excluded.
+ */
+export function universeFor(draft: ChapterVisualDraft): number[] {
+  const u = [...moduleNumbers(draft.moduleOutputs, { measuredOnly: true }), ...evidenceNumbers(draft.evidence), draft.benchmark.p25, draft.benchmark.p50, draft.benchmark.p75];
   if (typeof draft.score === "number") u.push(draft.score);
   return u;
 }
@@ -103,9 +126,10 @@ function isAllowedKind(dim: DimKey, kind: string): kind is ChartTypeV2 {
   return (ALL_VISUAL_KINDS as readonly string[]).includes(kind) && (DIMENSION_OWNERS[dim].allowedVisuals as readonly string[]).includes(kind);
 }
 
-function clampState(claimed: string | undefined, hasEvidence: boolean): DataState {
+/** `real` needs at least one series number that traces to an EVIDENCE row (not just a module field). */
+function clampState(claimed: string | undefined, hasEvidenceNumber: boolean): DataState {
   const s = claimed === "real" || claimed === "partial" || claimed === "benchmark_only" || claimed === "target" ? claimed : "partial";
-  return s === "real" && !hasEvidence ? "partial" : s;
+  return s === "real" && !hasEvidenceNumber ? "partial" : s;
 }
 
 // ── Proposal → spec data (generic series → kind-specific shape) ─────────────
@@ -348,6 +372,8 @@ export function generateChartsV2(draft: ChapterVisualDraft): ChartsV2Result {
   if (provenance.downgraded) {
     return { primary: { ...det.primary, dataState: det.primary.dataState === "real" ? "partial" : det.primary.dataState }, secondary: det.secondary, provenance };
   }
+  const evidenceUniverse = evidenceNumbers(draft.evidence);
+  const hasEvidenceNumber = proposalNumbers(proposal).some((n) => numberTraceable(n, evidenceUniverse));
   const primary = makeVisual({
     id: `dim-${draft.dim}-primary`,
     kind: proposal.kind,
@@ -355,7 +381,7 @@ export function generateChartsV2(draft: ChapterVisualDraft): ChartsV2Result {
     agentId: draft.ownerAgent,
     title: proposal.title?.trim() || det.primary.title,
     subtitle: "Series values verified against module outputs / evidence rows",
-    dataState: clampState(proposal.data_state, draft.evidence.length > 0),
+    dataState: clampState(proposal.data_state, hasEvidenceNumber),
     data: data as never,
     a11y: { tableFallback: proposal.series.map((s) => ({ label: s.label, value: typeof s.value === "number" ? s.value : (s.points ?? []).join(" → ") })) },
   });

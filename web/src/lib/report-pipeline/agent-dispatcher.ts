@@ -395,19 +395,31 @@ export function callAIToModelCaller(
   };
 }
 
-const promptVersionCache = new Map<string, { id: string; template: string | null }>();
+/**
+ * W2 review (e): the prompt_versions lookup is memoised for 10 minutes, not
+ * for the process lifetime — a canary promotion / rollback reaches a running
+ * server without a restart (the old cache pinned the boot-time row forever).
+ */
+export const PROMPT_VERSION_CACHE_TTL_MS = 10 * 60_000;
+const promptVersionCache = new Map<string, { id: string; template: string | null; at: number }>();
 
-async function defaultPromptRow(agentRole: AgentRole): Promise<{ id: string; template: string | null }> {
+async function defaultPromptRow(agentRole: AgentRole, now: number = Date.now()): Promise<{ id: string; template: string | null }> {
   const cached = promptVersionCache.get(agentRole);
-  if (cached) return cached;
+  if (cached && now - cached.at < PROMPT_VERSION_CACHE_TTL_MS) return { id: cached.id, template: cached.template };
   try {
     const row = await readCurrentPrompt(`report-${agentRole}`);
     const entry = { id: row?.id ?? NIL_PROMPT_VERSION_ID, template: promptTemplateFromRow(row) };
-    promptVersionCache.set(agentRole, entry);
+    promptVersionCache.set(agentRole, { ...entry, at: now });
     return entry;
   } catch {
-    return { id: NIL_PROMPT_VERSION_ID, template: null };
+    // A failed lookup is not cached — the next call retries.
+    return cached ? { id: cached.id, template: cached.template } : { id: NIL_PROMPT_VERSION_ID, template: null };
   }
+}
+
+/** Test seam — the memoised prompt row for a role, with its cache timestamp. */
+export function peekPromptVersionCache(agentRole: AgentRole): { id: string; template: string | null; at: number } | undefined {
+  return promptVersionCache.get(agentRole);
 }
 
 async function defaultPromptVersionId(agentRole: AgentRole): Promise<string> {
@@ -1038,6 +1050,20 @@ export function buildEvidenceRows(context: ReportContext): EvidenceRow[] {
     if (key === "website" && gr.techAudit) add(key, "tech_audit", "Technical audit", JSON.stringify(gr.techAudit).slice(0, 160), "evidenced");
     if (key === "market" && gr.competitiveResearch) add(key, "competitive", "Competitive research", undefined, "partial");
     if (gr.scrapedData && (key === "website" || key === "idea")) add(key, "scraped", "Scraped website data", undefined, "partial");
+  });
+  // S-R3 §C.3: every GATHER result (tech / repo audit, connector snapshots,
+  // cap-table register, grants match, valuation inputs) is already an
+  // EvidenceRow with `source` + `observedAt` — merge them so chapter
+  // citations and the appendix register resolve to real ids.
+  (context.gatherEvidenceRows ?? []).forEach((row) => {
+    const existing = rows.get(row.evidence_id);
+    if (existing) {
+      row.dims.forEach((d) => {
+        if (!existing.dims.includes(d)) existing.dims.push(d);
+      });
+      return;
+    }
+    rows.set(row.evidence_id, { ...row, dims: [...row.dims] });
   });
   const out = Array.from(rows.values());
   context.evidenceRows = out;

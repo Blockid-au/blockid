@@ -237,6 +237,8 @@ export interface AuditSectionsOptions {
   budgetOk?: () => boolean;
   /** Token budget for each revised section. */
   maxTokens?: number;
+  /** Critic→reviser passes in flight at once (default AUDITOR_CONCURRENCY = 4). */
+  concurrency?: number;
 }
 
 /**
@@ -259,11 +261,18 @@ export async function auditSections(
     maxTokens = 2000,
   } = options;
 
+  const concurrency = Math.max(1, options.concurrency ?? AUDITOR_CONCURRENCY);
+
+  // Stage 1 (free, every section) + candidate selection in document order.
+  // The LLM pass is then run CONCURRENTLY over the selected sections (W2
+  // review: the sequential sweep added ~8 × latency to the A$3 report); the
+  // cap and the budget predicate are applied up front so the concurrent
+  // batch can never exceed `maxLlmSections` critic→reviser runs.
   const outcomes: SectionAuditOutcome[] = [];
-  let llmRuns = 0;
+  const candidates: number[] = [];
   let budgetExhausted = false;
 
-  for (const section of sections) {
+  sections.forEach((section, index) => {
     const uncitedClaims = findUncitedClaims(
       section.content,
       section.allowedEvidenceIds ?? [],
@@ -282,37 +291,51 @@ export async function auditSections(
 
     if (!section.content.trim()) {
       outcomes.push({ ...base, grounded: true, skipped: "clean" });
-      continue;
+      return;
     }
     if (llmOnlyWhenUncited && grounded) {
       outcomes.push({ ...base, skipped: "clean" });
-      continue;
+      return;
     }
-    if (llmRuns >= maxLlmSections) {
+    if (candidates.length >= maxLlmSections) {
       outcomes.push({ ...base, skipped: "cap" });
-      continue;
+      return;
     }
     if (budgetExhausted || !budgetOk()) {
       budgetExhausted = true;
       outcomes.push({ ...base, skipped: "budget" });
-      continue;
+      return;
     }
+    candidates.push(index);
+    outcomes.push(base);
+  });
 
-    llmRuns += 1;
-    const result = await auditText(section.content, evidence, model, maxTokens);
-    outcomes.push({
-      ...base,
-      revised: result.revised,
-      findings: result.findings,
-      llmAudited: true,
-      // critic always runs; the reviser only runs when the critic objected.
-      modelCalls: result.hadIssues ? 2 : 1,
-      grounded: grounded && !result.hadIssues,
-    });
-  }
+  // Bounded-concurrency worker pool over the candidates.
+  let cursor = 0;
+  const worker = async (): Promise<void> => {
+    while (cursor < candidates.length) {
+      const index = candidates[cursor++];
+      const section = sections[index];
+      const base = outcomes[index];
+      const result = await auditText(section.content, evidence, model, maxTokens);
+      outcomes[index] = {
+        ...base,
+        revised: result.revised,
+        findings: result.findings,
+        llmAudited: true,
+        // critic always runs; the reviser only runs when the critic objected.
+        modelCalls: result.hadIssues ? 2 : 1,
+        grounded: base.grounded && !result.hadIssues,
+      };
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(concurrency, candidates.length) }, () => worker()));
 
   return outcomes;
 }
+
+/** Default number of critic→reviser passes in flight at once. */
+export const AUDITOR_CONCURRENCY = 4;
 
 // ── Stage 1: deterministic citation gate ──────────────────────────────────────
 

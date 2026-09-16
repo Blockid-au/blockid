@@ -27,6 +27,18 @@ export const DEFAULT_OPENROUTER_MIN_CREDIT_USD = 2;
 export const DEFAULT_USD_AUD_RATE = 1.55;
 export const SPEND_LEDGER_FILE = "/home/dovanlong/blockid.au/web/content/reports/ai-spend-daily.json";
 
+/** S-R3 cost telemetry: one bucket per report tier (goal doc §3 D9 COGS check). */
+export interface ReportSpendBucket {
+  count: number;
+  spent_usd: number;
+  calls: number;
+  /** Highest single-report cost seen today. */
+  max_usd: number;
+  /** Cost of the most recent report. */
+  last_usd: number;
+  last_at: string;
+}
+
 export interface DailySpend {
   /** UTC day, "2026-09-13". */
   day: string;
@@ -35,6 +47,8 @@ export interface DailySpend {
   by_provider: Record<string, number>;
   /** ISO ts of the once-per-day cap notification, if sent. */
   cap_notified_at?: string;
+  /** S-R3: real per-report cost sums (Σ callAI cost_usd), keyed by tier. */
+  reports?: Record<string, ReportSpendBucket>;
 }
 
 function dayOf(now: number): string {
@@ -76,6 +90,7 @@ export function readDailySpend(now: number = Date.now()): DailySpend {
         calls: typeof parsed.calls === "number" ? parsed.calls : 0,
         by_provider: parsed.by_provider && typeof parsed.by_provider === "object" ? parsed.by_provider : {},
         cap_notified_at: typeof parsed.cap_notified_at === "string" ? parsed.cap_notified_at : undefined,
+        reports: parsed.reports && typeof parsed.reports === "object" ? parsed.reports : undefined,
       };
       return memo;
     }
@@ -103,6 +118,31 @@ export function recordPaidSpend(provider: string, usd: number, now: number = Dat
   s.spent_usd += add;
   s.calls += 1;
   s.by_provider[provider] = (s.by_provider[provider] ?? 0) + add;
+  persist(s);
+  return s;
+}
+
+/**
+ * S-R3 cost telemetry: record one finished report's REAL cost (the sum of
+ * `cost_usd` the provider chain reported per call — not a per-call constant)
+ * under its tier so `ai-spend-daily.json` carries the D9 COGS check
+ * (standard ≤ A$0.60 median). Does not touch `spent_usd` / `calls` — every
+ * underlying call was already recorded by `recordPaidSpend` in ai-client;
+ * this is the per-report view of the same money.
+ */
+export function recordReportSpend(tier: string, usd: number, calls: number, now: number = Date.now()): DailySpend {
+  const cur = readDailySpend(now);
+  const s: DailySpend = { ...cur, by_provider: { ...cur.by_provider }, reports: { ...(cur.reports ?? {}) } };
+  const add = Number.isFinite(usd) && usd > 0 ? usd : 0;
+  const prev = s.reports![tier] ?? { count: 0, spent_usd: 0, calls: 0, max_usd: 0, last_usd: 0, last_at: "" };
+  s.reports![tier] = {
+    count: prev.count + 1,
+    spent_usd: prev.spent_usd + add,
+    calls: prev.calls + (Number.isFinite(calls) && calls > 0 ? Math.floor(calls) : 0),
+    max_usd: Math.max(prev.max_usd, add),
+    last_usd: add,
+    last_at: new Date(now).toISOString(),
+  };
   persist(s);
   return s;
 }

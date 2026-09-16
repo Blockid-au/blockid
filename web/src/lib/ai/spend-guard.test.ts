@@ -39,6 +39,7 @@ import {
   openRouterMinCreditUsd,
   readDailySpend,
   recordPaidSpend,
+  recordReportSpend,
 } from "./spend-guard";
 
 const DAY1 = Date.UTC(2026, 8, 13, 10, 0, 0);
@@ -97,6 +98,21 @@ describe("ledger", () => {
     recordPaidSpend("x", -3, DAY1);
     recordPaidSpend("x", Number.NaN, DAY1);
     expect(readDailySpend(DAY1).spent_usd).toBe(0);
+  });
+
+  // S-R3 cost telemetry: per-report real cost sums by tier.
+  it("recordReportSpend keeps a per-tier report bucket (count / sum / max / last) without double-counting spent_usd", () => {
+    recordPaidSpend("deepinfra", 0.02, DAY1);
+    recordReportSpend("standard", 0.02, 27, DAY1);
+    recordReportSpend("standard", 0.05, 30, DAY1 + 1000);
+    recordReportSpend("free", 0, 15, DAY1 + 2000);
+    const s = readDailySpend(DAY1);
+    expect(s.spent_usd).toBeCloseTo(0.02, 8);
+    expect(s.calls).toBe(1);
+    expect(s.reports?.standard).toMatchObject({ count: 2, spent_usd: 0.07, calls: 57, max_usd: 0.05, last_usd: 0.05 });
+    expect(s.reports?.free).toMatchObject({ count: 1, spent_usd: 0, calls: 15 });
+    _resetSpendGuardForTests();
+    expect(readDailySpend(DAY1).reports?.standard?.count).toBe(2);
   });
 });
 

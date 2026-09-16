@@ -276,6 +276,42 @@ describe("auditSections (multi-section sweep)", () => {
     expect(out.filter(o => o.skipped === "cap")).toHaveLength(2);
   });
 
+  // W2 review (a): the LLM pass runs in parallel under the call cap instead
+  // of one section after another (8 chapters × critic latency was serial).
+  it("runs the critic over the selected sections concurrently, bounded by `concurrency`, never above the cap", async () => {
+    let inFlight = 0;
+    let peak = 0;
+    let calls = 0;
+    const gate: Array<() => void> = [];
+    const model = async (system: string) => {
+      calls += 1;
+      if (/fact-checking critic/i.test(system)) {
+        inFlight += 1;
+        peak = Math.max(peak, inFlight);
+        await new Promise<void>((resolve) => gate.push(resolve));
+        inFlight -= 1;
+        return "FINDINGS:\n- none\n\nVERDICT: ACCURATE";
+      }
+      return "";
+    };
+    const sections = ["a", "b", "c", "d", "e", "f"].map((id) => ({ id, title: id, content: `Prose ${id}.` }));
+    const run = auditSections(sections, evidence, model, { llmOnlyWhenUncited: false, maxLlmSections: 5, concurrency: 3 });
+    // Let the workers start: three critics should be waiting at the gate.
+    await new Promise((r) => setTimeout(r, 0));
+    expect(inFlight).toBe(3);
+    // Release everything (the pool picks up the remaining two as slots free).
+    while (gate.length) gate.shift()!();
+    await new Promise((r) => setTimeout(r, 0));
+    while (gate.length) gate.shift()!();
+    const out = await run;
+    expect(peak).toBe(3);
+    expect(calls).toBe(5);
+    expect(out.filter((o) => o.llmAudited)).toHaveLength(5);
+    expect(out[5].skipped).toBe("cap");
+    // Order of the outcomes is the document order regardless of completion order.
+    expect(out.map((o) => o.sectionId)).toEqual(["a", "b", "c", "d", "e", "f"]);
+  });
+
   it("is fail-safe: a throwing model leaves every section content intact", async () => {
     const model = async () => {
       throw new Error("provider down");

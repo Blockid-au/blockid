@@ -152,6 +152,17 @@ export interface GatherResults {
   competitiveResearch?: Record<string, unknown>;
   scrapedData?: Record<string, unknown>;
   evidenceQuality?: Record<string, unknown>;
+  // ── S-R3 §C.3 (un-stubbed GATHER) ──────────────────────────────────
+  /** Connector signal snapshots read from the LAST sync (svi_signals / connector_snapshots) — never a live OAuth call. */
+  connectorSignals?: Record<string, unknown>;
+  /** Cap-table register summary (shareholders + esop_pool). */
+  capTable?: Record<string, unknown>;
+  /** Grants / programs match (grant-advisor.ts) for the project's grant profile. */
+  grants?: Record<string, unknown>;
+  /** CFO 5-method valuation (agents/cfo-valuation.ts buildVcValuationReport) + the inputs it ran on. */
+  valuation?: Record<string, unknown>;
+  /** Per-source timing / cache / timeout diagnostics (`done` telemetry, tests). */
+  diagnostics?: Record<string, { ms: number; status: "ok" | "cached" | "timeout" | "error" | "skipped"; note?: string }>;
 }
 
 // ── Report Context (shared across all agents) ───────────────────────────────
@@ -193,6 +204,12 @@ export interface ReportContext {
   moduleOutputs?: Partial<Record<DimKey, Array<{ id: string; output: Record<string, unknown> }>>>;
   /** Evidence rows the W4 chapters may cite (ids stable per run). */
   evidenceRows?: EvidenceRow[];
+  /** S-R3: rows minted by GATHER (audits, connectors, cap table, grants) — merged by buildEvidenceRows. */
+  gatherEvidenceRows?: EvidenceRow[];
+  /** S-R3 §C.5: the deterministic valuation chapter (built after GATHER, streamed as `valuation_complete`). */
+  valuationChapter?: ReportV2["valuation"];
+  /** S-R3 partial re-run (`dims: [key]`): only these chapters are (re)generated. */
+  dimsFilter?: DimKey[];
   /** W4 output — one chapter per dimension, filled by dispatchDimensionChapters. */
   dimensionChapters?: Map<DimKey, DimensionChapter>;
   /** LLM calls consumed so far (per-report call counter). */
