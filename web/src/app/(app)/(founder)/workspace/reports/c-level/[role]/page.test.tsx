@@ -46,7 +46,7 @@ async function html(role = "cfo"): Promise<string> {
 const state = await scopeState;
 let sb: FakeSupabase;
 
-const APP_ROOT = join(__dirname, "..", "..", "..", "..");
+const APP_ROOT = join(__dirname, "..", "..", "..", "..", ".."); // src/app/(app)
 
 beforeEach(() => {
   state.role = "owner";
@@ -66,7 +66,7 @@ describe("/workspace/reports/c-level/[role] (S18-B P2-4)", () => {
     expect(out).toContain('href="/workspace/reports/investor-pack/generate?from=c-level-cfo"');
     expect(out).not.toContain("/api/investor-pack/append");
     expect(out).not.toContain("<form");
-    expect(existsSync(join(APP_ROOT, "(founder)", "workspace", "investor-pack", "generate", "page.tsx"))).toBe(true);
+    expect(existsSync(join(APP_ROOT, "(founder)", "workspace", "reports", "investor-pack", "generate", "page.tsx"))).toBe(true);
     expect(existsSync(join(APP_ROOT, "..", "api", "investor-pack", "append"))).toBe(false);
   });
 

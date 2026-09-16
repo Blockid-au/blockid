@@ -20,7 +20,7 @@ import { describe, expect, it, vi } from "vitest";
 const pathnameMock = vi.hoisted(() => ({ value: "/workspace/score/history" }));
 const entitlementMock = vi.hoisted(() => ({
   plan: "founder_growth",
-  can: (_flag: string) => true,
+  can: () => true,
 }));
 const pushMock = vi.hoisted(() => vi.fn());
 

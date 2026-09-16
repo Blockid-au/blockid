@@ -1,6 +1,7 @@
 "use client";
 
-// Client-side Approve/Decline form for /workspace/investors/access.
+// Client-side Approve/Decline form for the Mentor invite section of
+// /workspace/investors/access.
 //
 // Split out so the parent page can stay a Server Component while the
 // consent-checkbox + POST wiring live in a small "use client" island.
@@ -108,7 +109,7 @@ export function MentorInviteForm(props: MentorInviteFormProps) {
         } catch {
           /* telemetry */
         }
-        router.push("/workspace/investors/access");
+        router.push("/workspace/investors/access#mentor-access");
       } catch (err) {
         setError(userErrorMessage(err, "Something went wrong. Please try again."));
         setBusy(null);
@@ -134,7 +135,7 @@ export function MentorInviteForm(props: MentorInviteFormProps) {
             I understand this grants{" "}
             <strong>{tierLabel(props.requestedTier)}</strong> access for{" "}
             <strong>{CONSENT_MONTHS} months</strong>. I can revoke it any time
-            from Settings › Mentor access.
+            from Investors › Access › Mentor access.
           </span>
         </label>
       ) : null}
@@ -175,7 +176,7 @@ export function MentorInviteForm(props: MentorInviteFormProps) {
       ) : (
         <p className="mt-3 flex items-center gap-1.5 text-xs text-ink-500">
           <ShieldCheck aria-hidden="true" className="h-3.5 w-3.5" />
-          Approval is logged for compliance and shown in your Settings page.
+          Approval is logged for compliance and shown under Mentor access.
         </p>
       )}
     </section>

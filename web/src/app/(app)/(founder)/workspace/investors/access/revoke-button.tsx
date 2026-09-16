@@ -1,7 +1,8 @@
 "use client";
 
-// RevokeButton — per-row destructive action on the founder's mentor-access
-// settings page. Two-step confirmation so a mis-click doesn't nuke access
+// RevokeButton — per-row destructive action in the Mentor access section of
+// /workspace/investors/access (ex the founder's mentor-access
+// settings page). Two-step confirmation so a mis-click doesn't nuke access
 // mid-report-cycle.
 
 import * as React from "react";

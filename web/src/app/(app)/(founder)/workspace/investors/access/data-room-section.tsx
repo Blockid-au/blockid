@@ -1,16 +1,10 @@
-import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+// Data room access — section (2) of /workspace/investors/access (S-IA2).
+// Ex /dashboard/data-room/page.tsx: who viewed the founder's shared score
+// links and when (`investor_access_log`), under the SBOM licence-risk tile.
+// The composed page does auth once and passes the user's email.
+
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
-import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { getCurrentProjectIsSandbox } from "@/lib/projects";
 import { SbomLicenseRiskTile } from "@/components/dashboard/sbom-license-risk-tile";
-
-export const metadata: Metadata = {
-  title: "Data Room — Investor Access — BlockID",
-};
-
-export const dynamic = "force-dynamic";
 
 interface AccessEntry {
   id: string;
@@ -71,19 +65,19 @@ async function getDataRoomData(userEmail: string): Promise<ShareLink[]> {
   });
 }
 
-export default async function DataRoomPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/workspace/investors/access");
-
-  const isSandbox = await getCurrentProjectIsSandbox();
-
-  const links = await getDataRoomData(user.email);
+export async function DataRoomSection({ userEmail }: { userEmail: string }) {
+  let links: ShareLink[] = [];
+  try {
+    links = await getDataRoomData(userEmail);
+  } catch {
+    // A read failure degrades to the empty state rather than breaking the page.
+    links = [];
+  }
 
   return (
-    <WorkspaceLayout user={user} isSandbox={isSandbox}>
-      <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
+    <section id="data-room" aria-labelledby="data-room-heading" data-access-section="data-room" className="scroll-mt-24 space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-ink-900">Data Room</h1>
+          <h2 id="data-room-heading" className="text-2xl font-bold text-ink-900">Data room access</h2>
           <p className="text-sm text-ink-500 mt-1">Track who viewed your shared score links and when</p>
         </div>
 
@@ -151,7 +145,6 @@ export default async function DataRoomPage() {
             ))}
           </div>
         )}
-      </div>
-    </WorkspaceLayout>
+    </section>
   );
 }

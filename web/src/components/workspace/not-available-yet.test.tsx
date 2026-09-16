@@ -40,13 +40,13 @@ describe("<NotAvailableYet>", () => {
 
 const WORKSPACE = join(__dirname, "..", "..", "app", "(app)", "(founder)", "workspace");
 // S-IA2: SSO and White-label are sections of /workspace/settings/enterprise;
-// Applications moved under the accelerator hub.
+// Applications moved under the accelerator hub; the listing form under score.
 const STUB_PAGES = [
   "settings/enterprise/sso-section.tsx",
   "settings/enterprise/white-label-section.tsx",
   "accelerator/applications/page.tsx",
   "weekly-digest/page.tsx",
-  "listings/new/page.tsx",
+  "score/listing/page.tsx",
 ];
 
 describe("deferred workspace pages use the shared card", () => {

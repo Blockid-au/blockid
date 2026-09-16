@@ -1,11 +1,6 @@
-import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { AlertCircle, ArrowUpRight, RefreshCcw } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getCurrentProjectIsSandbox } from "@/lib/projects";
-import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { AccessTierBadge } from "@/components/mentor/access-tier-badge";
 import {
   isEffective,
@@ -16,19 +11,12 @@ import {
 import { loadAllGrantsForFounder } from "@/lib/mentor/access-tiers-server";
 import { RevokeButton } from "./revoke-button";
 
-// Founder-side list of every mentor who currently has (or once had) access
-// to their startup. Per docs/plans/mentor-consent-model.md — this is the
-// single revocation surface. Every mentor.* audit row can be traced back to
-// a grant listed here.
-
-export const metadata: Metadata = {
-  title: "Mentor access · Settings · BlockID",
-  description:
-    "Manage which mentors have access to your BlockID startup. Revoke or change tier any time.",
-  robots: { index: false, follow: false },
-};
-
-export const dynamic = "force-dynamic";
+// Mentor access — section (4) of /workspace/investors/access (S-IA2). Ex
+// /dashboard/settings/mentor-access/page.tsx: the founder-side list of every
+// mentor who currently has (or once had) access to their startup. Per
+// docs/plans/mentor-consent-model.md — this is the single revocation
+// surface. Every mentor.* audit row can be traced back to a grant listed
+// here. The composed page does auth once and passes the founder's id.
 
 interface EnrichedGrant extends MentorAccessGrant {
   mentorLabel: string;
@@ -83,14 +71,10 @@ async function enrichGrants(
   });
 }
 
-export default async function MentorAccessSettingsPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/workspace/investors/access");
-  const isSandbox = await getCurrentProjectIsSandbox();
-
+export async function MentorAccessSection({ userId }: { userId: string }) {
   let enriched: EnrichedGrant[] = [];
   try {
-    const raw = await loadAllGrantsForFounder(user.id);
+    const raw = await loadAllGrantsForFounder(userId);
     enriched = await enrichGrants(raw);
   } catch {
     // Table may not exist yet in local dev — degrade to empty state.
@@ -101,15 +85,11 @@ export default async function MentorAccessSettingsPage() {
   const historical = enriched.filter((g) => !isEffective(g));
 
   return (
-    <WorkspaceLayout user={user} isSandbox={isSandbox}>
-      <div className="mx-auto max-w-3xl p-6 pb-24">
+    <section id="mentor-access" aria-labelledby="mentor-access-heading" data-access-section="mentor-access" className="scroll-mt-24">
         <header className="mb-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-700">
-            Settings
-          </p>
-          <h1 className="mt-1 text-2xl font-bold text-ink-900">
+          <h2 id="mentor-access-heading" className="text-2xl font-bold text-ink-900">
             Mentor access
-          </h1>
+          </h2>
           <p className="mt-2 text-sm text-ink-600">
             Everyone below has access to some part of your BlockID startup.
             Revoke takes effect immediately.
@@ -119,10 +99,10 @@ export default async function MentorAccessSettingsPage() {
         {active.length === 0 ? <EmptyState /> : <ActiveList grants={active} />}
 
         {historical.length > 0 ? (
-          <section className="mt-8">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-ink-500">
+          <div className="mt-8" data-mentor-access-history>
+            <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-ink-500">
               History
-            </h2>
+            </h3>
             <p className="mt-1 text-xs text-ink-500">
               Revoked and expired grants — kept for compliance.
             </p>
@@ -145,10 +125,9 @@ export default async function MentorAccessSettingsPage() {
                 </li>
               ))}
             </ul>
-          </section>
+          </div>
         ) : null}
-      </div>
-    </WorkspaceLayout>
+    </section>
   );
 }
 

@@ -22,6 +22,7 @@ import { hasGrowthExtras } from "@/lib/funding/growth-extras";
 import { matchInvestorsForProject, type InvestorMatch } from "@/lib/funding/investor-match";
 import { fundingLocationFor, investorMatchProjectFor } from "@/lib/funding/investor-match-inputs";
 import { InvestorMatchesPanel } from "@/components/investors/investor-matches-panel";
+import type { FundingIntakePrefill } from "@/components/funding/funding-intake";
 
 export const metadata: Metadata = {
   title: "Investor matches | BlockID",
@@ -45,7 +46,7 @@ export default async function InvestorMatchesPage() {
   if (unlocked) {
     const [row, prefill, svi] = await Promise.all([
       latestFundingReportForUser(user.id, project?.id ?? null).catch(() => null),
-      intakePrefillFor(user, project).catch(() => ({})),
+      intakePrefillFor(user, project).catch((): FundingIntakePrefill => ({})),
       latestSviTotalFor(user, project).catch(() => null),
     ]);
     const location = fundingLocationFor(row, prefill.state ?? null);

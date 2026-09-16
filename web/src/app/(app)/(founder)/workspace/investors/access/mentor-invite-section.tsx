@@ -1,6 +1,4 @@
-import type { Metadata } from "next";
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -8,10 +6,7 @@ import {
   CheckCircle2,
   ShieldCheck,
 } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getCurrentProjectIsSandbox } from "@/lib/projects";
-import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { AccessTierBadge } from "@/components/mentor/access-tier-badge";
 import {
   CONSENT_LIFETIME_DAYS,
@@ -22,27 +17,27 @@ import {
 } from "@/lib/mentor/access-tiers";
 import { MentorInviteForm } from "./form";
 
-// See docs/plans/mentor-consent-model.md — this is the founder-side
-// approval landing page. The mentor-side "request" flow lives inside
-// components/mentor/access-request-banner.tsx.
-
-export const metadata: Metadata = {
-  title: "Approve mentor access · BlockID",
-  description:
-    "Approve, upgrade, renew, or decline a mentor's access to your BlockID startup.",
-  robots: { index: false, follow: false },
-};
-
-export const dynamic = "force-dynamic";
+// Mentor invite — section (5) of /workspace/investors/access (S-IA2). Ex
+// /dashboard/mentor-invite/page.tsx: the founder-side magic-link approval
+// screen, keyed on `?grant_request= | ?upgrade= | ?renew= | ?cohort=`. The
+// composed page renders it only when one of those params is present, so the
+// emailed /dashboard/mentor-invite?grant_request=… links (308 → here) keep
+// working. See docs/plans/mentor-consent-model.md; the mentor-side "request"
+// flow lives inside components/mentor/access-request-banner.tsx.
 
 // ─── Types ─────────────────────────────────────────────────────────────
 
-type SearchParams = Promise<{
+export interface MentorInviteParams {
   grant_request?: string;
   upgrade?: string;
   renew?: string;
   cohort?: string;
-}>;
+}
+
+/** True when the query string carries one of the four invite keys. */
+export function hasMentorInviteParams(sp: MentorInviteParams): boolean {
+  return Boolean(sp.grant_request || sp.upgrade || sp.renew || sp.cohort);
+}
 
 interface GrantRequestSummary {
   id: string;
@@ -60,12 +55,7 @@ interface GrantRequestSummary {
 
 // ─── Server loader ─────────────────────────────────────────────────────
 
-async function loadRequest(sp: {
-  grant_request?: string;
-  upgrade?: string;
-  renew?: string;
-  cohort?: string;
-}): Promise<GrantRequestSummary | null> {
+async function loadRequest(sp: MentorInviteParams): Promise<GrantRequestSummary | null> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
 
@@ -190,28 +180,16 @@ async function loadRequest(sp: {
   return null;
 }
 
-// ─── Page ──────────────────────────────────────────────────────────────
+// ─── Section ───────────────────────────────────────────────────────────
 
-export default async function MentorInvitePage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
-  const user = await getCurrentUser();
-  if (!user) {
-    // Preserve the query string so the magic-link callback lands the user
-    // back on this exact approval screen — matches the pattern used by
-    // /workspace/evidence/connectors and /workspace/investors/access.
-    redirect("/auth/login?next=/workspace/investors/access");
-  }
-
-  const isSandbox = await getCurrentProjectIsSandbox();
-  const sp = await searchParams;
-  const req = await loadRequest(sp);
+export async function MentorInviteSection({ params }: { params: MentorInviteParams }) {
+  const req = await loadRequest(params);
 
   return (
-    <WorkspaceLayout user={user} isSandbox={isSandbox}>
-      <div className="mx-auto max-w-2xl p-6 pb-24">
+    <section id="mentor-invite" aria-labelledby="mentor-invite-heading" data-access-section="mentor-invite" className="scroll-mt-24">
+      <h2 id="mentor-invite-heading" className="text-2xl font-bold text-ink-900">Mentor invite</h2>
+      <p className="mt-1 text-sm text-ink-500">Approve, upgrade, renew, or decline a mentor&apos;s access to your startup.</p>
+      <div className="mt-4 max-w-2xl">
         <Suspense fallback={<InviteSkeleton />}>
           {req ? (
             <InviteContent req={req} />
@@ -220,7 +198,7 @@ export default async function MentorInvitePage({
           )}
         </Suspense>
       </div>
-    </WorkspaceLayout>
+    </section>
   );
 }
 
@@ -240,17 +218,17 @@ function InviteContent({ req }: { req: GrantRequestSummary }) {
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-700">
           Mentor access
         </p>
-        <h1 className="mt-1 text-2xl font-bold text-ink-900">
+        <h3 className="mt-1 text-xl font-bold text-ink-900">
           {req.resellerName} {modeCopy[req.mode]}
-        </h1>
+        </h3>
         <p className="mt-2 text-sm text-ink-600">
           Approving grants access for {CONSENT_LIFETIME_DAYS / 30} months. You
           can revoke any time from{" "}
           <Link
-            href="/workspace/investors/access"
+            href="/workspace/investors/access#mentor-access"
             className="font-semibold text-brand-700 underline underline-offset-2"
           >
-            Settings › Mentor access
+            Mentor access
           </Link>
           .
         </p>
@@ -286,9 +264,9 @@ function InviteContent({ req }: { req: GrantRequestSummary }) {
 
       {/* Tier diff */}
       <section className="mt-6 rounded-3xl border border-surface-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-surface-100">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-ink-500">
+        <h4 className="text-sm font-semibold uppercase tracking-[0.12em] text-ink-500">
           What changes if you approve
-        </h2>
+        </h4>
         <ul className="mt-4 space-y-3">
           {MENTOR_ACCESS_TIERS.map((t) => {
             const isCurrent = req.currentTier === t;
@@ -383,10 +361,10 @@ function InvalidLink() {
         It may have already been accepted, revoked, or expired. Check with the
         mentor who sent it, or visit{" "}
         <Link
-          href="/workspace/investors/access"
+          href="/workspace/investors/access#mentor-access"
           className="underline underline-offset-2"
         >
-          Settings › Mentor access
+          Mentor access
         </Link>{" "}
         to see who currently has access to your startup.
       </p>
