@@ -24,6 +24,7 @@ import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { signedInSignupRedirect } from "@/lib/plans/signed-in-upgrade";
+import { parseBillingInterval } from "@/lib/plans/billing-interval";
 import { getPlansCached } from "@/lib/plans-db";
 import { EVALUATOR_TRIAL_COPY, TRIAL_COPY, formatAud } from "@/lib/plans/trial-copy";
 import {
@@ -59,7 +60,12 @@ export default async function SignupPage({
   // They already have the account — send them to Billing with the plan they
   // chose so the click starts a checkout instead of a dead end.
   const existing = await getCurrentUser();
-  if (existing) redirect(signedInSignupRedirect(sp.plan));
+  if (existing) redirect(signedInSignupRedirect(sp.plan, sp.interval));
+
+  // `?interval=annual` from a pricing card's Annual toggle (2026-09-16 audit).
+  // Honoured per plan below: a rung without an annual Stripe Price is shown
+  // — and billed — monthly, never at the annual figure.
+  const interval = parseBillingInterval(sp.interval);
 
   const segment = resolveSignupSegment(sp.segment, sp.plan);
   const preferredPlan = resolvePreferredPlan(segment, sp.plan);
@@ -81,6 +87,9 @@ export default async function SignupPage({
       priceDisplay: formatAud(p.price_aud_cents),
       trialDays: resolveTrialDays(p),
       hasStripePrice: Boolean(p.stripe_price_id),
+      annualPriceCents: p.annual_price_aud_cents,
+      annualPriceDisplay: formatAud(p.annual_price_aud_cents),
+      hasAnnualPrice: Boolean(p.stripe_price_id_annual) && p.annual_price_aud_cents > 0,
     }));
 
   const stripePublishableKey =
@@ -150,6 +159,7 @@ export default async function SignupPage({
             segment={segment}
             trialPlans={trialPlans}
             defaultPlanId={preferredPlan}
+            interval={interval}
             accountTypeOptions={accountTypeOptionsForSegment(segment)}
             stripePublishableKey={stripePublishableKey}
           />

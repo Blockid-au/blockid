@@ -80,6 +80,19 @@ export const GROWTH_PHASE_TO_NAV_PHASE: Readonly<Record<GrowthPhaseId, NavPhase>
 });
 
 /**
+ * Inverse bridge for a founder who has a score but no declared
+ * `growth_phase_current` (G13-W3-IA3 block 2): the EARLIEST growth phase in
+ * the band, so the recommender never skips a phase the founder has not
+ * declared. Band 0 (no score / SVI < 30) → `vision`.
+ */
+export function growthPhaseFromNavPhase(band: NavPhase | number | null | undefined): GrowthPhaseId {
+  const b = clampNavPhase(band);
+  if (b <= 0) return "vision";
+  const hit = GROWTH_PHASE_IDS.find((id) => GROWTH_PHASE_TO_NAV_PHASE[id] === b);
+  return hit ?? "vision";
+}
+
+/**
  * `projects.growth_phase_current` → nav phase 0..5. Unknown / null ids → 0
  * (the founder has not declared a phase; the SVI band alone decides).
  */

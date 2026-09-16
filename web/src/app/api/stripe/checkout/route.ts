@@ -6,6 +6,7 @@ import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getPlan, isGrowthEarlyBird, type LegacyPlan } from "@/lib/plans";
 import { isFoundingPromoActive } from "@/lib/founding-promo";
 import { PLANS_V2, formatAud } from "@/lib/plans-v2";
+import { resolveIntervalPrice } from "@/lib/plans/billing-interval";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { normaliseResellerCode } from "@/lib/reseller/attribution";
 import { viaClientReferenceId } from "@/lib/reseller/attribution-server";
@@ -37,6 +38,9 @@ const CheckoutSchema = z
     promoCode: z.string().max(64).optional(),
     origin: z.string().max(64).optional(),
     projectId: z.string().max(128).optional(),
+    // 2026-09-16 audit: the pricing card's Annual toggle now reaches the
+    // charge. Honoured only when the plan row has `stripe_price_id_annual`.
+    interval: z.enum(["monthly", "annual"]).optional(),
   })
   .strip();
 
@@ -82,9 +86,11 @@ async function POST_handler(request: Request) {
     promoCode: bodyPromoCode,
     origin: bodyOrigin,
     projectId: bodyProjectId,
+    interval: bodyInterval,
   } =
     (body as {
       plan?: string;
+      interval?: "monthly" | "annual";
       couponCode?: string;
       resellerCode?: string;
       // Sub-K4: optional reseller promotion code the founder typed on the
@@ -189,6 +195,7 @@ async function POST_handler(request: Request) {
   let priceId: string | null | undefined;
   let trialDays = 0;
   let dbPlanSegment: string | null = null;
+  let billedInterval: "monthly" | "annual" = "monthly";
   // Tiers priced by negotiation (plans.interval = 'custom', e.g.
   // founder_enterprise) are invoiced offline and never minted as a Stripe
   // Price. They must answer "contact sales", not "invalid plan" / 503.
@@ -228,6 +235,19 @@ async function POST_handler(request: Request) {
           features: dbPlan.feature_flags,
         };
         priceId = dbPlan.stripe_price_id ?? STRIPE_PRICE_MAP[planId];
+        // Annual requested (Billing / onboarding carried `?interval=annual`
+        // from the pricing card): bill the yearly Price when the rung has
+        // one; otherwise stay monthly — never charge a figure the card did
+        // not show for that cadence.
+        if (bodyInterval === "annual" && dbPlan.interval === "monthly") {
+          const annual = resolveIntervalPrice(dbPlan, "annual");
+          if (annual.effective === "annual") {
+            priceId = annual.priceId;
+            plan.cadence = "yearly";
+            plan.price = annual.cents;
+            billedInterval = "annual";
+          }
+        }
         trialDays = Number(dbPlan.trial_days ?? 0) || 0;
         dbPlanSegment = typeof dbPlan.segment === "string" ? dbPlan.segment : null;
         isCustomPriced = dbPlan.interval === "custom";
@@ -320,6 +340,7 @@ async function POST_handler(request: Request) {
     user_id: user.id,
     user_id_hash: hashUserId(user.id),
     plan_id: planId,
+    interval: billedInterval,
   };
   if (userSegment) customerMetadata.segment = userSegment;
   else if (dbPlanSegment) customerMetadata.segment = dbPlanSegment;

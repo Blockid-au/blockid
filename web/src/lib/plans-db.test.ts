@@ -145,7 +145,7 @@ describe("getPlansCached wire shape", () => {
     await getPlansCached();
     expect(state.captured.from).toBe("plans");
     expect(state.captured.selectCols).toBe(
-      "id,segment,name,price_aud_cents,annual_price_aud_cents,interval,trial_days,stripe_price_id,feature_flags,usage_limits,active,sort_order",
+      "id,segment,name,price_aud_cents,annual_price_aud_cents,interval,trial_days,stripe_price_id,stripe_price_id_annual,feature_flags,usage_limits,active,sort_order",
     );
   });
 
@@ -397,6 +397,24 @@ describe("fromRow normalisers (observed via getPlansCached happy path)", () => {
     };
     const [p] = await getPlansCached();
     expect(p.stripe_price_id).toBe("price_row_growth");
+  });
+
+  // 2026-09-16 pricing audit: the annual Stripe Price rides the same row /
+  // env convention (`<stripe_env_var>_ANNUAL`) so the Annual toggle can be
+  // billed — and gated — per rung.
+  it("uses stripe_price_id_annual from the row; falls back to <env>_ANNUAL; null when neither", async () => {
+    process.env.STRIPE_PRICE_FOUNDER_GROWTH_ANNUAL = "price_env_growth_annual";
+    state.result = { data: [rowShell({ stripe_price_id_annual: "price_row_growth_annual" })], error: null };
+    expect((await getPlansCached())[0].stripe_price_id_annual).toBe("price_row_growth_annual");
+
+    revalidatePlans();
+    state.result = { data: [rowShell({ stripe_price_id_annual: null })], error: null };
+    expect((await getPlansCached())[0].stripe_price_id_annual).toBe("price_env_growth_annual");
+
+    revalidatePlans();
+    delete process.env.STRIPE_PRICE_FOUNDER_GROWTH_ANNUAL;
+    state.result = { data: [rowShell({ stripe_price_id_annual: "" })], error: null };
+    expect((await getPlansCached())[0].stripe_price_id_annual).toBeNull();
   });
 
   it("falls back to process.env[stripe_env_var] when stripe_price_id is empty string", async () => {

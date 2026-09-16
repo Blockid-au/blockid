@@ -47,6 +47,14 @@ const mocks = vi.hoisted(() => ({
   getPlanCachedMock: vi.fn<(slug: string) => Promise<{
     trial_days?: number;
     segment?: string | null;
+    id?: string;
+    name?: string;
+    interval?: string;
+    price_aud_cents?: number;
+    annual_price_aud_cents?: number;
+    stripe_price_id?: string | null;
+    stripe_price_id_annual?: string | null;
+    feature_flags?: string[];
   } | null>>(),
   normaliseResellerCodeMock: vi.fn<(code: string | null) => string | null>(),
   viaClientReferenceIdMock: vi.fn<(code: string) => string>(),
@@ -390,6 +398,58 @@ describe("stripe/checkout — subscription happy path", () => {
     );
     const call = mocks.stripeCreateMock.mock.calls[0]?.[0];
     expect(call?.success_url).toBe("https://x/onboarding-thankyou");
+  });
+
+  // 2026-09-16 pricing audit: /pricing's Annual toggle now reaches checkout
+  // via Billing / onboarding (`interval: "annual"`). Honoured only when the
+  // plan row carries an annual Price; otherwise monthly, never the annual
+  // figure on a monthly SKU.
+  describe("interval=annual", () => {
+    const scout = {
+      id: "investor_angel",
+      name: "Scout",
+      interval: "monthly",
+      price_aud_cents: 7900,
+      annual_price_aud_cents: 79000,
+      stripe_price_id: "price_scout_m",
+      stripe_price_id_annual: "price_scout_y",
+      trial_days: 7,
+      segment: "investor_angel",
+      feature_flags: [],
+    };
+
+    it("bills the annual Price and stamps interval=annual in customer metadata", async () => {
+      mocks.getPlanCachedMock.mockResolvedValue(scout);
+      await POST(req({ plan: "investor_angel", interval: "annual" }));
+      const call = mocks.stripeCreateMock.mock.calls[0]?.[0];
+      expect((call?.line_items as Array<{ price: string }>)[0]?.price).toBe("price_scout_y");
+      expect((call?.subscription_data as { metadata?: Record<string, string> })?.metadata?.interval).toBe("annual");
+    });
+
+    it("falls back to the monthly Price when the row has no annual Price", async () => {
+      mocks.getPlanCachedMock.mockResolvedValue({ ...scout, stripe_price_id_annual: null });
+      await POST(req({ plan: "investor_angel", interval: "annual" }));
+      const call = mocks.stripeCreateMock.mock.calls[0]?.[0];
+      expect((call?.line_items as Array<{ price: string }>)[0]?.price).toBe("price_scout_m");
+      expect((call?.subscription_data as { metadata?: Record<string, string> })?.metadata?.interval).toBe("monthly");
+    });
+
+    it("interval omitted / monthly keeps the monthly Price even when annual exists", async () => {
+      mocks.getPlanCachedMock.mockResolvedValue(scout);
+      await POST(req({ plan: "investor_angel" }));
+      let call = mocks.stripeCreateMock.mock.calls[0]?.[0];
+      expect((call?.line_items as Array<{ price: string }>)[0]?.price).toBe("price_scout_m");
+      mocks.stripeCreateMock.mockClear();
+      await POST(req({ plan: "investor_angel", interval: "monthly" }));
+      call = mocks.stripeCreateMock.mock.calls[0]?.[0];
+      expect((call?.line_items as Array<{ price: string }>)[0]?.price).toBe("price_scout_m");
+    });
+
+    it("rejects an unknown interval spelling with 400", async () => {
+      mocks.getPlanCachedMock.mockResolvedValue(scout);
+      const res = await POST(req({ plan: "investor_angel", interval: "yearly" }));
+      expect(res.status).toBe(400);
+    });
   });
 
   it("passes the priceId from STRIPE_PRICE_MAP", async () => {

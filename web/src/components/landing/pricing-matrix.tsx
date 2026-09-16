@@ -27,6 +27,7 @@ import {
 } from "@/lib/plans-v2";
 import { TRIAL_COPY, evaluatorTrialIncludedLine } from "@/lib/plans/trial-copy";
 import { CREDIT_PACKS } from "@/lib/credit-packs";
+import { withInterval } from "@/lib/plans/billing-interval";
 import { TRUST_REPORT_5AUD } from "@/lib/pricing/v3-skus";
 
 // pricing-anchor-2026-07 (T0121/T0123). Anchor-tier + pricing_anchor_order
@@ -90,6 +91,23 @@ const EVALUATOR_SEGMENTS: readonly Segment[] = ["investor", "advisor"];
  * (`/onboarding?trial=1&plan=…`) so the signup step, GA4 and the QA
  * contract agree that this click starts the 7-day card-required trial.
  */
+/**
+ * The cadence a card may show/link under the page toggle: annual only when
+ * the rung is on the server's annual-provisioned list (or no list was
+ * given). Pure so the gate is unit-testable without a toggle click.
+ */
+type Interval = "monthly" | "annual";
+
+export function effectiveCardInterval(
+  interval: Interval,
+  planId: string,
+  annualAvailable: readonly string[] | undefined,
+): Interval {
+  if (interval !== "annual") return "monthly";
+  if (!annualAvailable) return "annual";
+  return annualAvailable.includes(planId) ? "annual" : "monthly";
+}
+
 export function evaluatorSignupHref(planId: string): string {
   return `/signup?segment=evaluator&plan=${encodeURIComponent(planId)}&trial=1`;
 }
@@ -97,11 +115,19 @@ export function evaluatorSignupHref(planId: string): string {
 export interface PricingMatrixProps {
   /** Optional override; by default the active <SegmentTabs> segment wins. */
   segment?: Segment;
+  /**
+   * Plan ids that have an annual Stripe Price (server-resolved from the
+   * plans table). Under the Annual toggle any other rung keeps its monthly
+   * price + "Billed monthly" and links without `interval=annual`, so the
+   * card never promises a figure checkout cannot charge (2026-09-16 audit:
+   * Starter/Growth showed A$290 / A$690 per year with no annual SKU).
+   * Omitted = every rung is assumed provisioned (legacy callers / tests).
+   */
+  annualAvailable?: readonly string[];
 }
 
-type Interval = "monthly" | "annual";
 
-export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps = {}) {
+export function PricingMatrix({ segment: overrideSegment, annualAvailable }: PricingMatrixProps = {}) {
   const ctx = useSegmentSafe();
   const segment: Segment = overrideSegment ?? ctx?.segment ?? "founder";
   const [interval, setInterval] = useState<Interval>("monthly");
@@ -211,7 +237,7 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
           <PlanCard
             key={plan.id}
             plan={plan}
-            interval={interval}
+            interval={effectiveCardInterval(interval, plan.id, annualAvailable)}
             forceContactSales={CONTACT_SALES_SEGMENTS.includes(plan.segment)}
             onSelect={recordAnchorConversion}
           />
@@ -367,11 +393,14 @@ function PlanCard({
   const isContact = forceContactSales || plan.cta_kind === "contact" || isCustom;
 
   const isEvaluatorPlan = EVALUATOR_SEGMENTS.includes(plan.segment);
+  // The card's cadence rides the CTA (`&interval=annual`) so signup /
+  // onboarding / Billing bill what this card showed.
   const ctaHref = isContact
     ? `/contact?plan=${plan.id}`
-    : isEvaluatorPlan
-      ? evaluatorSignupHref(plan.id)
-      : `/onboarding?trial=1&plan=${plan.id}`;
+    : withInterval(
+        isEvaluatorPlan ? evaluatorSignupHref(plan.id) : `/onboarding?trial=1&plan=${plan.id}`,
+        interval,
+      );
   const ctaLabel = isContact
     ? "Contact sales"
     : isEvaluatorPlan

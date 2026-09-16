@@ -51,6 +51,7 @@ import { getPlanCached } from "@/lib/plans-db";
 import { checkAuthIdentityLimit, checkAuthIpCeiling } from "@/lib/security/auth-rate-limit";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
 import { formatAud } from "@/lib/plans/trial-copy";
+import { resolveIntervalPrice } from "@/lib/plans/billing-interval";
 import {
   SIGNUP_ACCOUNT_TYPES,
   SIGNUP_ALLOWED_PLAN_IDS,
@@ -94,6 +95,11 @@ const BodySchema = z.object({
   // form. Validated + normalised server-side; a bad code is silently
   // dropped so signup itself never fails on attribution.
   promo_code: z.string().trim().max(32).optional(),
+  // 2026-09-16 audit: the pricing card's Monthly ↔ Annual toggle now reaches
+  // the charge. Annual is honoured only when the plan row carries
+  // `stripe_price_id_annual`; otherwise the subscription is monthly and the
+  // response says which cadence was billed.
+  interval: z.enum(["monthly", "annual"]).optional().default("monthly"),
 });
 
 function sanitizeName(raw: string | undefined): string | undefined {
@@ -180,7 +186,8 @@ async function POST_handler(request: Request) {
       { status: 400 },
     );
   }
-  const stripePriceId = plan.stripe_price_id;
+  const billing = resolveIntervalPrice(plan, body.interval);
+  const stripePriceId = billing.priceId;
   if (!stripePriceId) {
     return NextResponse.json(
       { ok: false, error: "plan_not_provisioned", plan_id: plan.id },
@@ -281,7 +288,7 @@ async function POST_handler(request: Request) {
       trial_settings: {
         end_behavior: { missing_payment_method: "cancel" },
       },
-      metadata: { user_id: userId, plan_id: plan.id },
+      metadata: { user_id: userId, plan_id: plan.id, interval: billing.effective },
     });
     subscriptionId = subscription.id;
   } catch (err) {
@@ -379,7 +386,8 @@ async function POST_handler(request: Request) {
       days: trialDays,
       subscription_id: subscriptionId,
       plan_name: plan.name,
-      price_display: formatAud(plan.price_aud_cents),
+      price_display: formatAud(billing.cents),
+      interval: billing.effective,
       cancel_url: "/api/billing/cancel-trial",
     },
   });

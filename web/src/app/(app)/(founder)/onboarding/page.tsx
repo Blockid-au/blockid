@@ -60,12 +60,13 @@ export default async function OnboardingPage({
     // /workspace/score with no checkout and no message — the only in-app
     // upgrade path that did not work. Carry the plan through to Billing,
     // which starts the Stripe checkout for it.
-    if (data?.onboarding_completed) redirect(signedInSignupRedirect(sp.plan));
+    if (data?.onboarding_completed) redirect(signedInSignupRedirect(sp.plan, sp.interval));
   }
 
   const initialParams: OnboardingInitialParams = {
     trial: first(sp.trial),
     plan: first(sp.plan),
+    interval: first(sp.interval),
     step: first(sp.step),
     segment: first(sp.segment),
     via: first(sp.via), // reseller attribution code (mirrors ?ref=); see § C.2, § U.6

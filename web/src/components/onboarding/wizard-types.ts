@@ -34,6 +34,12 @@ export interface WizardState {
   segment?: Segment;
   goal?: Goal;
   planId?: string;
+  /**
+   * Billing cadence chosen on the pricing card (`?interval=annual`). Only
+   * plans with an annual Stripe Price ever arrive with "annual"; the
+   * checkout route re-checks and bills monthly otherwise (2026-09-16 audit).
+   */
+  interval?: "monthly" | "annual";
   consentGranted?: boolean;
   paymentMethodId?: string;
   /**

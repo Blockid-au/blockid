@@ -8,7 +8,8 @@
  *     CTA, AND a Demo link that points at /showcase/atlassian?step=1.
  *   - Anonymous visitors on /docs (legacy site/navbar) see a Demo dropdown
  *     containing an Atlassian journey link.
- *   - Logged-in founders on /dashboard get the JourneyStepLadder rendered.
+ *   - Logged-in founders on /workspace/plan get the JourneyStepLadder rendered
+ *     (moved off /dashboard in G13-W3-IA3; /dashboard is the five-block landing).
  *   - Logged-in founders see the Demo link in the workspace top-bar.
  *   - /showcase/atlassian?step=1 resolves 200 (Demo target is real).
  *   - Nav v4 (G13-W1-IA1): the founder sidebar leads with Home, a phase-0
@@ -119,7 +120,9 @@ test.describe("Menu structure — anonymous visitor (legacy site/navbar)", () =>
 test.describe("Menu structure — founder logged-in dashboard", () => {
   test.setTimeout(45_000);
 
-  test("dashboard renders the 12-phase journey step ladder + Demo link", async ({
+  // G13-W3-IA3 (spec §B.2): the JourneyStepLadder moved from /dashboard to
+  // /workspace/plan (the Action plan hub root) — the landing is five blocks.
+  test("/workspace/plan renders the 12-phase journey step ladder + Demo link", async ({
     page,
   }) => {
     let loginOk = false;
@@ -134,7 +137,7 @@ test.describe("Menu structure — founder logged-in dashboard", () => {
       `QA founder ${FOUNDER_EMAIL} not seeded — run scripts/seed-test-users.mjs`,
     );
 
-    await page.goto("/dashboard");
+    await page.goto("/workspace/plan");
 
     // The ladder has data-testid="journey-step-ladder" and always renders
     // 12 nodes.
@@ -152,6 +155,25 @@ test.describe("Menu structure — founder logged-in dashboard", () => {
     await expect(demoLink.first()).toBeVisible({ timeout: 10_000 });
     const href = await demoLink.first().getAttribute("href");
     expect(href).toContain("/showcase/atlassian");
+  });
+
+  test("/dashboard is the five-block landing — no ladder, block 2 CTA present", async ({ page }) => {
+    let loginOk = false;
+    try {
+      await loginAs(page, FOUNDER_EMAIL);
+      loginOk = true;
+    } catch {
+      /* fixture missing on this box */
+    }
+    test.skip(!loginOk, `QA founder ${FOUNDER_EMAIL} not seeded — run scripts/seed-test-users.mjs`);
+
+    await page.goto("/dashboard");
+    test.skip(/\/dashboard\/onboarding/.test(page.url()), "seed founder has no analysis yet — bounced to the wizard");
+    await expect(page.locator("[data-landing-grid]")).toBeVisible({ timeout: 15_000 });
+    const names = await page.locator("[data-landing-block]").evaluateAll((els) => els.map((el) => el.getAttribute("data-landing-block")));
+    expect(names).toEqual(["where-you-stand", "next-best-action", "money-on-the-table", "evidence-to-add", "your-reports"]);
+    await expect(page.locator('[data-testid="journey-step-ladder"]')).toHaveCount(0);
+    await expect(page.getByTestId("landing-next-best-action-cta")).toBeVisible();
   });
 
   // G13-W1-IA1 nav v4 (spec §A.1): the founder sidebar leads with Home.

@@ -167,6 +167,15 @@ export interface AnalyticsEventMap {
    * `persona` the resolved `PersonaKey`, `phase` the 0..5 nav band.
    */
   nav_click: { group: string; item: string; href: string; persona: string; phase: number };
+  /**
+   * G13-W3-IA3 — founder landing (/dashboard). `landing_viewed` fires once
+   * per mount with the canonical 12-phase id (`GrowthPhaseId`, or "none"
+   * before a score), the plan id, the block names rendered and the ones in
+   * their empty state. `landing_block_click` is the time-to-first-action
+   * marker: `login_*_success` → first `landing_block_click | nav_click`.
+   */
+  landing_viewed: { phase: string; plan: string; blocks: string; empty_blocks: string; persona: string };
+  landing_block_click: { block: string; href: string; phase: string; action: string; persona: string };
   mobile_menu_opened: Record<string, never>;
 
   // ── Session ──

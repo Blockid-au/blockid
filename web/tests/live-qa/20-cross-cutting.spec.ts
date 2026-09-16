@@ -158,3 +158,45 @@ test.describe("Keyboard reachability", () => {
     });
   }
 });
+
+// G13-W3-IA3 — the founder landing is five fixed blocks in benefit order
+// (spec §B.1), each rendering either data or its §B.4 empty state, never a
+// blank card. Block 2's CTA is the time-to-first-action marker.
+test.describe("Founder landing — five blocks (G13-W3-IA3)", () => {
+  const BLOCKS = ["where-you-stand", "next-best-action", "money-on-the-table", "evidence-to-add", "your-reports"] as const;
+
+  test("/dashboard renders the five blocks in order, each with a CTA; block 2's CTA navigates", async ({ page, visit }, testInfo) => {
+    await visit("/dashboard");
+    // A fresh owner with nothing scored is sent to the wizard — not a landing bug.
+    test.skip(/\/dashboard\/onboarding/.test(page.url()), "fresh account bounced to /dashboard/onboarding (no analysis yet)");
+    const grid = page.locator("[data-landing-grid]");
+    await expect(grid).toBeVisible({ timeout: 30_000 });
+    const names = await grid.locator("[data-landing-block]").evaluateAll((els) => els.map((el) => el.getAttribute("data-landing-block")));
+    const empty = await grid.locator("[data-landing-block][data-landing-empty]").evaluateAll((els) => els.map((el) => el.getAttribute("data-landing-block")));
+    const ctas: Record<string, string | null> = {};
+    for (const b of BLOCKS) {
+      const cta = grid.locator(`[data-landing-cta="${b}"]`).first();
+      await expect(cta, `${b} CTA`).toBeVisible();
+      ctas[b] = await cta.getAttribute("href");
+    }
+    await evidence(testInfo, "landing blocks", { names, empty, ctas, phase: await page.locator("[data-founder-landing]").getAttribute("data-landing-phase") });
+    expect(names).toEqual([...BLOCKS]);
+    // Block 2 — one recommendation, clickable, lands on a real page.
+    const next = page.getByTestId("landing-next-best-action-cta");
+    const href = (await next.getAttribute("href")) ?? "";
+    expect(href).toMatch(/^\/(workspace|analyze)/);
+    await next.click();
+    const target = href.split("?")[0];
+    await page.waitForURL((u) => u.pathname.startsWith(target), { timeout: 30_000 });
+    expect(new URL(page.url()).pathname.startsWith(target)).toBe(true);
+  });
+
+  test("/workspace/plan carries the 12-phase ladder moved off the landing", async ({ page, visit }, testInfo) => {
+    await visit("/workspace/plan");
+    const ladder = page.locator('[data-testid="journey-step-ladder"]');
+    await expect(ladder).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('[data-testid="journey-step-node-1"]').first()).toBeVisible();
+    await expect(page.locator('[data-testid="journey-step-node-12"]').first()).toBeVisible();
+    await evidence(testInfo, "plan ladder", { url: page.url() });
+  });
+});

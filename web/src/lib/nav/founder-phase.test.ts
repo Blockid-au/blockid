@@ -15,6 +15,7 @@ import {
   NAV_PHASES,
   clampNavPhase,
   getFounderNavContext,
+  growthPhaseFromNavPhase,
   isNavPhase,
   navPhaseFromGrowthPhase,
   navPhaseFromSvi,
@@ -121,6 +122,25 @@ describe("navPhaseFromGrowthPhase — 12-phase id → 0..5", () => {
     expect(navPhaseFromGrowthPhase(undefined)).toBe(0);
     expect(navPhaseFromGrowthPhase("")).toBe(0);
     expect(navPhaseFromGrowthPhase("not_a_phase")).toBe(0);
+  });
+
+  // G13-W3-IA3 — inverse bridge for the landing recommender.
+  it("growthPhaseFromNavPhase picks the EARLIEST phase of each band and round-trips", () => {
+    expect(growthPhaseFromNavPhase(0)).toBe("vision");
+    expect(growthPhaseFromNavPhase(1)).toBe("vision");
+    expect(growthPhaseFromNavPhase(2)).toBe("revenue_model");
+    expect(growthPhaseFromNavPhase(3)).toBe("legal_equity");
+    expect(growthPhaseFromNavPhase(4)).toBe("investor_review");
+    expect(growthPhaseFromNavPhase(5)).toBe("funding");
+    for (const band of NAV_PHASES) {
+      if (band === 0) continue;
+      const id = growthPhaseFromNavPhase(band);
+      expect(navPhaseFromGrowthPhase(id), `band ${band} round-trip`).toBe(band);
+      const earlier = GROWTH_PHASE_IDS.filter((p) => GROWTH_PHASE_ORDER[p] < GROWTH_PHASE_ORDER[id]);
+      for (const p of earlier) expect(GROWTH_PHASE_TO_NAV_PHASE[p], `${p} is earlier than ${id}`).toBeLessThan(band);
+    }
+    expect(growthPhaseFromNavPhase(null)).toBe("vision");
+    expect(growthPhaseFromNavPhase(99)).toBe("funding");
   });
 });
 

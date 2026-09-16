@@ -155,8 +155,10 @@ describe("S18-B pages scope guard — src/app/(app)/(founder)/**/page.tsx", () =
 
   it("F. report_sections are read per analysis, never filtered by the caller's user_id (review P1)", () => {
     const readers = pages.filter((p) => REPORT_SECTIONS_READ.test(p.src)).map((p) => p.path);
-    expect(readers, "the three section readers still exist").toEqual(
-      expect.arrayContaining(["dashboard/page.tsx", "workspace/score/page.tsx", "workspace/reports/[id]/page.tsx"]),
+    // G13-W3-IA3: the founder landing no longer reads report_sections (block 5
+    // lists svi_analyses); the two remaining readers are pinned.
+    expect(readers, "the two section readers still exist").toEqual(
+      expect.arrayContaining(["workspace/score/page.tsx", "workspace/reports/[id]/page.tsx"]),
     );
     const offenders = pages
       .filter((p) => REPORT_SECTIONS_USER_FILTER.test(p.src))
