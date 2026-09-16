@@ -190,7 +190,11 @@ describe("/workspace/evaluations", () => {
     expect(out).toContain("Founder claimed");
     expect(out).toContain("Cohort 4");
     expect(out).toMatch(/8 Sept? 2026/);
-    expect(out).toContain("/workspace/projects/acme-robotics/analyze");
+    // G13 S-D1: a scored row opens the Investor Dossier; an unscored one still goes to Score.
+    expect(out).toContain('href="/workspace/evaluations/e-1"');
+    expect(out).toContain("Open the Investor Dossier for Acme Robotics");
+    expect(out).toContain("/workspace/projects/beta-health/analyze");
+    expect(out).not.toContain("/workspace/projects/acme-robotics/analyze");
     expect(out).toContain("Stop evaluating Acme Robotics");
     expect(out).toContain("Add a startup");
     expect((out.match(/data-testid="evaluation-row"/g) ?? []).length).toBe(2);

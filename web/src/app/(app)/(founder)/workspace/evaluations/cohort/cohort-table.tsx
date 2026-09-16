@@ -102,11 +102,7 @@ export function CohortTable({ rows }: { rows: CohortRow[] }) {
               <tr key={r.itemId} data-testid="cohort-row" className="align-top">
                 <td className="px-4 py-3">
                   <div className="font-medium text-ink-900">
-                    {r.projectSlug ? (
-                      <Link href={`/workspace/projects/${encodeURIComponent(r.projectSlug)}/analyze`} className="hover:underline">{r.startup}</Link>
-                    ) : (
-                      r.startup
-                    )}
+                    <Link href={`/workspace/evaluations/${encodeURIComponent(r.evaluationId)}`} className="hover:underline" aria-label={`Open the Investor Dossier for ${r.startup}`}>{r.startup}</Link>
                   </div>
                   <div className="mt-0.5 text-xs text-ink-500">
                     {r.label ? <span className="rounded bg-surface-100 px-1.5 py-0.5 text-ink-700">{r.label}</span> : null}

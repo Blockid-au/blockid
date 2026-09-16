@@ -102,7 +102,8 @@ describe("/workspace/evaluations/cohort/[batchId]", () => {
     // Default sort: weighted desc → Acme, Beta, Gamma.
     expect(out.indexOf("Acme Robotics")).toBeLessThan(out.indexOf("Beta Health"));
     expect(out.indexOf("Beta Health")).toBeLessThan(out.indexOf(">Gamma<"));
-    expect(out).toContain("/workspace/projects/acme-robotics/analyze");
+    // G13 S-D1: the startup name opens the Investor Dossier (keyed on the evaluation id).
+    expect(out).toContain('href="/workspace/evaluations/e-1"');
     expect(out).toContain("Shortlist");
     expect(out).toContain("DeepTech");
     expect(out).toContain(">71<");

@@ -79,6 +79,8 @@ export interface AnalyticsEventMap {
   evaluator_checklist_viewed: { completed: number };
   /** G12 (S13-A): a checklist step CTA was clicked (1 add startup · 2 run report · 3 set thesis · 4 second startup). */
   evaluator_checklist_step: { step: 1 | 2 | 3 | 4 };
+  /** G13 (S-D1): the Investor Dossier (/workspace/evaluations/[id]) was opened — once per page view; `role` = assessor (evaluator) or founder (read-only preview). */
+  dossier_view: { evaluation_id: string; consent_tier: string; plan: string; role: "assessor" | "founder" };
   pricing_toggle_billing: { annual: boolean };
   plan_cta_clicked: { plan: string; label: string };
   checkout_started: { plan: string };

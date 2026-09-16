@@ -926,12 +926,22 @@ export function EvaluationsClient({
                             Re-score
                           </button>
                         ) : null}
-                        <Link
-                          href={`/workspace/projects/${encodeURIComponent(row.projectSlug)}/analyze`}
-                          className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
-                        >
-                          {row.latestSvi != null ? "Open" : "Score"}
-                        </Link>
+                        {row.latestSvi != null ? (
+                          <Link
+                            href={`/workspace/evaluations/${encodeURIComponent(row.id)}`}
+                            className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
+                            aria-label={`Open the Investor Dossier for ${row.projectName}`}
+                          >
+                            Dossier
+                          </Link>
+                        ) : (
+                          <Link
+                            href={`/workspace/projects/${encodeURIComponent(row.projectSlug)}/analyze`}
+                            className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
+                          >
+                            Score
+                          </Link>
+                        )}
                         <button
                           type="button"
                           onClick={() => {
