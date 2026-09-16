@@ -78,6 +78,11 @@ export async function GET() {
 
 async function readInput(request: Request): Promise<{ ok: true; pdf: Buffer | null; text: string | null; profileUrl: string | null } | { ok: false; status: number; error: string }> {
   const ct = request.headers.get("content-type") ?? "";
+  // Refuse oversized bodies BEFORE buffering them (W5 review): the size
+  // checks below run after formData()/json() had already read up to nginx's
+  // 50 MB. Multipart overhead is small, so cap at the PDF limit + 64 KB.
+  const declared = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declared) && declared > MAX_PDF_BYTES + 64 * 1024) return { ok: false, status: 413, error: "pdf_too_large" };
   if (ct.includes("multipart/form-data")) {
     let form: FormData;
     try {

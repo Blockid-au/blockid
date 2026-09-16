@@ -374,6 +374,16 @@ export async function inviteMember(
     if (error || !data) return { ok: false, error: "db_error", message: error?.message ?? "Invite failed" };
     const r = data as Row;
     invite = { id: String(r.id), email, role, expiresAt, createdAt: String(r.created_at ?? ""), token };
+    // Read-then-insert race (two invites for different emails in flight):
+    // re-count after the insert and revoke this one if the plan limit was
+    // overshot — the same pattern as the Scout mandate limit (W5 review).
+    if (!team.seats.unlimited) {
+      const after = await getTeam(user);
+      if (after.available && after.seats.used > after.seats.limit) {
+        await supabase.from("investor_organisation_invites").delete().eq("id", String(r.id));
+        return { ok: false, error: "seat_limit", message: `Your plan includes ${after.seats.limit} seat${after.seats.limit === 1 ? "" : "s"} (${after.seats.limit} in use).` };
+      }
+    }
   } else {
     const { data, error } = await supabase
       .from("investor_organisation_invites")
@@ -386,6 +396,16 @@ export async function inviteMember(
     }
     const r = data as Row;
     invite = { id: String(r.id), email, role, expiresAt, createdAt: String(r.created_at ?? ""), token };
+    // Read-then-insert race (two invites for different emails in flight):
+    // re-count after the insert and revoke this one if the plan limit was
+    // overshot — the same pattern as the Scout mandate limit (W5 review).
+    if (!team.seats.unlimited) {
+      const after = await getTeam(user);
+      if (after.available && after.seats.used > after.seats.limit) {
+        await supabase.from("investor_organisation_invites").delete().eq("id", String(r.id));
+        return { ok: false, error: "seat_limit", message: `Your plan includes ${after.seats.limit} seat${after.seats.limit === 1 ? "" : "s"} (${after.seats.limit} in use).` };
+      }
+    }
   }
 
   const inviteUrl = inviteUrlForToken(token);
@@ -441,7 +461,9 @@ export async function acceptInvite(user: { id: string; email: string }, token: s
   if (!o) return { ok: false, error: "not_found", message: "Invite not found" };
   const org = orgFromRow(o);
   if (String(raw.email ?? "").toLowerCase() !== user.email.toLowerCase()) {
-    return { ok: false, error: "email_mismatch", message: `This invite was sent to ${String(raw.email)}. Sign in with that address to accept it.` };
+    // Never echo the invited address to a token holder signed in as someone
+    // else (W5 review) — the doc promise is "never confirms existence".
+    return { ok: false, error: "email_mismatch", message: "This invite was sent to a different email address. Sign in with the invited address to accept it." };
   }
   if (raw.accepted_at) return { ok: true, org, alreadyMember: true };
   if (String(raw.expires_at ?? "") < new Date().toISOString()) return { ok: false, error: "expired", message: "This invite has expired — ask the organisation owner to send a new one." };
