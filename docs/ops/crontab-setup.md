@@ -306,6 +306,53 @@ Expected summary shape: engine + sha, `N = <n> scorable (<r> with round, <v>
 with valuation) of <d> curated rows; <x> source rows excluded`, pooled ρ + CI
 for both targets, a per-stage table (`too_few` under 5 rows), the four SVI
 quartiles with median round, and `outcome_source`.
+## Founder feedback letter — `/api/cron/feedback-letters`
+
+G14-S34 (2026-09-16, goal doc D3 / F-5). Once **k ≥ 3 evaluators from ≥ 2
+organisations** (a NULL org counts as its own) have SUBMITTED an assessment
+on a project and shared at least `dimension_ratings` with the claimed
+founder, the founder receives one anonymised "What investors said" letter:
+per-dimension mean ratings and agree shares rounded to 25 % steps, risk
+buckets (counts + normalised titles only), deduplicated questions — never an
+evaluator id, organisation, decision, conviction, thesis fit, valuation view
+or note (`web/src/lib/evaluations/feedback-letter.ts` walks the JSON against
+`FOUNDER_FORBIDDEN_FIELDS` before anything is stored). Evaluators can opt a
+seat out per assessment (`POST /api/evaluations/[id]/assessment/opt-out-feedback`).
+
+Per project the route inserts a `founder_feedback_letters` row (migration
+`0406`, UNIQUE `(project_id, window_end)` where `window_end` = the run's UTC
+midnight, so a same-day re-run is a `skipped_dupe`), stamps the consumed
+`evaluation_assessments.feedback_letter_id`, writes the in-app
+`feedback_letter` notification, emails the founder
+(`sendFounderFeedbackLetter`, `svi_alerts` category, status → `sent` + the
+provider message id), enqueues the `feedback_letter.sent` webhook to the
+founder's own endpoints only and emits the `feedback_letter_sent` server
+event. A letter whose email failed stays `draft` and is retried the next
+week; a project with no NEW assessment since its last letter is
+`skipped_no_new`. Before `0406` is applied the store answers
+`available:false` and the route returns `{ ok:true, reason:"table_missing" }`.
+
+### Line to install
+
+```
+0 22 * * 0 bash $RUN feedback-letters --timeout 300
+```
+
+- Sunday 22:00 UTC = Monday 08:00 AEST — one hour BEFORE
+  `founder-digest-weekly` (23:00 UTC) so the letter is the first thing in
+  the founder's Monday inbox.
+- Dry-run (computes eligibility + the subject line, writes and sends nothing):
+
+```bash
+curl -sS -H "Authorization: Bearer $CRON_SECRET" \
+  "https://blockid.au/api/cron/feedback-letters?dry=1" | jq '{candidates, would_send, skipped_below_floor, projects}'
+```
+
+Expected shape: `{ ok, dryRun, window_end, candidates, processed, sent,
+would_send, sent_no_email, email_failed, skipped_below_floor,
+skipped_no_new, skipped_no_founder, skipped_dupe, skipped_unsubscribed,
+failed, budget_exceeded, duration_ms, projects[{project_id, k, org_count,
+new_rows, weakest_dim, subject?, letter_id?, outcome}] }`.
 
 ## Autonomous goal loops
 

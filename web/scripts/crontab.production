@@ -620,6 +620,19 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Non-destructive. Never touches git.
 */2 * * * * bash /home/dovanlong/blockid.au/scripts/cron/uptime-24x7-guardian.sh >> /tmp/blockid-uptime-guardian.log 2>&1
 
+# G14-S34 — Founder feedback letter "What investors said". Sunday 22:00 UTC =
+# Monday 08:00 AEST, one hour BEFORE the founder digest so the letter is the
+# first thing in Monday's inbox. Per project with ≥ 1 submitted, shared,
+# not-opted-out assessment no letter has consumed: k ≥ 3 assessors from ≥ 2
+# organisations (a NULL org counts as its own) → anonymised aggregate
+# (ratings rounded to 25 %, risk buckets, deduped questions — never an
+# evaluator id, decision, conviction or note) → founder_feedback_letters row
+# (migration 0406, UNIQUE (project_id, window_end)) → in-app
+# `feedback_letter` + email (svi_alerts category) + webhook
+# `feedback_letter.sent` to the founder's endpoints. `?dry=1` lists the
+# eligible projects and sends nothing; `reason: table_missing` before 0406.
+0 22 * * 0 bash $RUN feedback-letters --timeout 300
+
 # Wave 28A — Founder Weekly Digest.
 # Every Monday 09:00 Australia/Sydney == 23:00 UTC Sunday (AEDT UTC+10, DST-safe
 # window since Sydney sits between UTC+10 and UTC+11 — target the 23:00 UTC
