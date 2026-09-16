@@ -124,7 +124,8 @@ export function ReportsClient({
               {snapshots.map((s) => (
                 <tr
                   key={s.id}
-                  className="border-b border-surface-200 last:border-0"
+                  id={`snapshot-${s.id}`}
+                  className="border-b border-surface-200 last:border-0 target:bg-brand-50/60 dark:target:bg-brand-950/30"
                 >
                   <td className="px-4 py-2.5 text-ink-600 font-mono text-xs">
                     {new Date(s.snapshot_date).toLocaleDateString("en-AU", {

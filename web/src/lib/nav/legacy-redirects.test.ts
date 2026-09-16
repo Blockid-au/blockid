@@ -45,9 +45,24 @@ function staticPart(route: string): string {
 function routeExists(route: string): boolean {
   const r = staticPart(route);
   if (ROUTES.has(r)) return true;
-  // `/workspace/guide/:path*` → `/workspace/guide/[chapter]`
+  // `/workspace/guide/:path*` → `/workspace/guide/[chapter]`; a concrete
+  // value under a dynamic segment (`/workspace/plan/guide/01-vision`) is
+  // covered by `/workspace/plan/guide/[chapter]` too.
   for (const known of ROUTES) {
-    if (known.includes("[") && known.replace(/\/\[[^\]]+\]/g, "") === r) return true;
+    if (!known.includes("[")) continue;
+    if (known.replace(/\/\[[^\]]+\]/g, "") === r) return true;
+  }
+  return false;
+}
+
+/** A destination is served when a dynamic segment page covers its concrete value (`/plan/guide/01-vision` ← `/plan/guide/[chapter]`). */
+function destinationServed(route: string): boolean {
+  if (routeExists(route)) return true;
+  const rs = staticPart(route).split("/");
+  for (const known of ROUTES) {
+    if (!known.includes("[")) continue;
+    const ks = known.split("/");
+    if (ks.length === rs.length && ks.every((seg, i) => (seg.startsWith("[") && seg.endsWith("]") ? rs[i].length > 0 : seg === rs[i]))) return true;
   }
   return false;
 }
@@ -117,7 +132,7 @@ describe("LEGACY_REDIRECTS — live table", () => {
 
   it("every destination page exists and no source still has a page", () => {
     for (const r of LEGACY_REDIRECTS) {
-      expect(routeExists(r.destination), `${r.source} → ${r.destination} (missing page)`).toBe(true);
+      expect(destinationServed(r.destination), `${r.source} → ${r.destination} (missing page)`).toBe(true);
       expect(routeExists(r.source), `${r.source} still has a page.tsx — delete it (config redirects run first)`).toBe(false);
     }
   });
@@ -189,7 +204,7 @@ describe("DEFERRED_REDIRECTS — spec §A.5 rows waiting on later sprints", () =
     const ripe: string[] = [];
     for (const r of DEFERRED_REDIRECTS) {
       if (r.held) {
-        expect(routeExists(r.destination), `${r.source}: held row must point at a real page`).toBe(true);
+        expect(destinationServed(r.destination), `${r.source}: held row must point at a real page`).toBe(true);
         expect(r.note, `${r.source}: held row needs a reason`).toBeTruthy();
         continue;
       }

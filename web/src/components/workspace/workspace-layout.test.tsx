@@ -11,8 +11,9 @@
 // browser work that has nothing to do with group gating.
 
 import type React from "react";
+import { HubTabsProvider } from "./hub-tabs";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/workspace/equity",
@@ -22,9 +23,10 @@ vi.mock("next/navigation", () => ({
 
 // Founder on the Growth plan: every tier gate passes, so the only thing
 // that can hide a "now" group is the phase.
+const entitlementUser = vi.hoisted(() => ({ current: { id: "u-1", plan: "founder_growth", segment: "founder" } as { id: string; plan: string; segment: string; accountType?: string } }));
 vi.mock("@/hooks/useEntitlement", () => ({
   useEntitlement: () => ({
-    user: { id: "u-1", plan: "founder_growth", segment: "founder" },
+    user: entitlementUser.current,
     entitlements: [],
     trial: null,
     loading: false,
@@ -296,5 +298,29 @@ describe("WorkspaceLayout — nav v4 size + persona contract", () => {
     // Phase and segment gates still apply — only the plan is deferred.
     expect(resolveNavGroup(NAV_GROUPS_BY_ID.money, { ...pending, currentPhase: 0 })).toHaveLength(2);
     expect(resolveNavGroup(NAV_GROUPS_BY_ID["evaluator-home"], pending)).toHaveLength(0);
+  });
+});
+
+describe("hub tab chrome per persona (W2 review)", () => {
+  function renderWithHub(): string {
+    return renderToStaticMarkup(
+      <HubTabsProvider hub="settings">
+        <WorkspaceLayout user={USER} currentPhase={5}>
+          <div />
+        </WorkspaceLayout>
+      </HubTabsProvider>,
+    );
+  }
+  afterEach(() => {
+    entitlementUser.current = { id: "u-1", plan: "founder_growth", segment: "founder" };
+  });
+  it("a founder sees the Settings hub tablist", () => {
+    expect(renderWithHub()).toContain('role="tablist"');
+  });
+  it("an investor persona on the same route sees no founder tab chrome", () => {
+    entitlementUser.current = { id: "u-2", plan: "investor_angel", segment: "investor_angel", accountType: "investor" };
+    const html = renderWithHub();
+    expect(html).not.toContain('role="tablist"');
+    expect(html).not.toContain("Founder profile");
   });
 });

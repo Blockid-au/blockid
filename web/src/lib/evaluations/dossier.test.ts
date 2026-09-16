@@ -265,6 +265,14 @@ describe("loadDossier — founder preview (§C.1)", () => {
     expect(d!.assessment.mine).toBeNull();
     expect(d!.assessment.history).toEqual([]);
     expect(d!.header.decision).toBeNull();
+    // The evaluator's private label never reaches the claimed founder (W2 review P1).
+    expect(d!.header.label).toBeNull();
+    expect(JSON.stringify(d)).not.toContain("Cohort 4");
+  });
+
+  it("the evaluator (assessor) still sees their own label", async () => {
+    const d = await loadDossier("e-1", "u-eval");
+    expect(d?.header.label).toBe("Cohort 4");
   });
 });
 

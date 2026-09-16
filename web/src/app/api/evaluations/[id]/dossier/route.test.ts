@@ -17,6 +17,8 @@ vi.mock("@/lib/evaluations/dossier", () => ({ loadDossier: (id: string, uid: str
 
 const auditMock = vi.fn();
 vi.mock("@/lib/evaluations/dossier-audit", () => ({ auditDossierView: (i: unknown) => auditMock(i) }));
+const isEvaluatorMock = vi.fn(async () => true);
+vi.mock("@/lib/evaluations", () => ({ isEvaluatorUser: () => isEvaluatorMock() }));
 
 import { GET } from "./route";
 
@@ -75,5 +77,14 @@ describe("GET /api/evaluations/[id]/dossier", () => {
       consentTier: "reports_shared",
       surface: "api",
     });
+  });
+
+  it("an assessor whose evaluator entitlement lapsed gets 404 (same gate as the page — W2 review)", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u-eval" });
+    loadDossierMock.mockResolvedValue({ header: { evaluationId: "e-1", projectId: "p-1", consentTier: "reports_shared" }, viewer: { role: "assessor" } });
+    isEvaluatorMock.mockResolvedValueOnce(false);
+    const res = await GET(new Request("https://blockid.au/api/evaluations/e-1/dossier"), { params: Promise.resolve({ id: "e-1" }) } as never);
+    expect(res.status).toBe(404);
+    expect(auditMock).not.toHaveBeenCalled();
   });
 });

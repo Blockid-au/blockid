@@ -93,6 +93,8 @@ export const LEGACY_REDIRECTS: readonly LegacyRedirect[] = Object.freeze([
   { source: "/dashboard/integrations", destination: "/workspace/evidence/connectors", permanent: true },
   { source: "/workspace/metrics", destination: "/workspace/evidence/metrics", permanent: true },
   { source: "/workspace/roadmap", destination: "/workspace/plan", permanent: true },
+  // Bare /workspace/guide never had an index page — land on chapter 1 (exact row first).
+  { source: "/workspace/guide", destination: "/workspace/plan/guide/01-vision", permanent: true },
   { source: "/workspace/guide/:path*", destination: "/workspace/plan/guide/:path*", permanent: true },
   { source: "/workspace/journal", destination: "/workspace/plan/journal", permanent: true },
   { source: "/workspace/business-report", destination: "/workspace/reports/business", permanent: true },

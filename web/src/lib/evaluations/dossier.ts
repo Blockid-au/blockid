@@ -465,9 +465,9 @@ async function readLatestSnapshot(projectId: string): Promise<SnapshotRow | null
   }
 }
 
-async function readSnapshot30dAgo(projectId: string): Promise<Pick<SnapshotRow, "svi_total" | "dim_results" | "dimension_scores" | "created_at"> | null> {
+async function readSnapshot30dAgo(projectId: string): Promise<Array<Pick<SnapshotRow, "svi_total" | "dim_results" | "dimension_scores" | "created_at">>> {
   const supabase = getSupabaseAdmin();
-  if (!supabase) return null;
+  if (!supabase) return [];
   try {
     const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const { data, error } = await supabase
@@ -476,11 +476,13 @@ async function readSnapshot30dAgo(projectId: string): Promise<Pick<SnapshotRow, 
       .eq("project_id", projectId)
       .lte("created_at", cutoff)
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    return error ? null : ((data as Pick<SnapshotRow, "svi_total" | "dim_results" | "dimension_scores" | "created_at"> | null) ?? null);
+      .limit(2);
+    if (error || !Array.isArray(data)) return [];
+    // Up to two rows: when the latest snapshot is itself older than 30 days
+    // the first row IS the latest (a "Δ30d = 0.0" lie) — the caller skips it.
+    return data as Array<Pick<SnapshotRow, "svi_total" | "dim_results" | "dimension_scores" | "created_at">>;
   } catch {
-    return null;
+    return [];
   }
 }
 
@@ -547,7 +549,7 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
   const { evaluation, project, role } = access;
 
   // Round 1 — everything in parallel; each reader degrades to null/[] on its own.
-  const [latest, older, taxonomy, assessment, evidenceRows, providers, lastReport] = await Promise.all([
+  const [latest, olderCandidates, taxonomy, assessment, evidenceRows, providers, lastReport] = await Promise.all([
     readLatestSnapshot(project.id),
     readSnapshot30dAgo(project.id),
     getTaxonomy(project.id).catch(() => null),
@@ -556,6 +558,9 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
     readConnectedProviders(project.id),
     readLatestReport(evaluation.id),
   ]);
+
+  // Δ30d baseline = the newest row ≥ 30 days old that is NOT the latest row.
+  const older = olderCandidates.find((r) => !latest || r.created_at < latest.created_at) ?? null;
 
   // ReportV2: stored column when valid, else the read-time adapter.
   let report: ReportV2 | null = null;
@@ -604,7 +609,9 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
     name: project.name,
     website: evaluation.website,
     state: evaluation.state && (AU_STATES as readonly string[]).includes(evaluation.state) ? evaluation.state : null,
-    label: evaluation.label,
+    // The label is the evaluator's private annotation (Evaluation doc comment)
+    // — a claimed founder never sees it (W2 review P1).
+    label: role === "founder" ? null : evaluation.label,
     badges: buildBadges(taxonomy, { industry: project.industry, stage: project.stage }),
     svi,
     sviBand: bandFor(svi),
@@ -703,7 +710,11 @@ export async function findEvaluationIdForProject(userId: string, projectId: stri
       .select("id, evaluator_user_id, founder_user_id, owner_kind, claimed_at")
       .eq("project_id", projectId)
       .or(`evaluator_user_id.eq.${userId},founder_user_id.eq.${userId}`)
-      .limit(5);
+      // The filter already scopes to the caller's own rows, so this is at most
+      // one evaluator row + one claimed founder row per project; no cap that
+      // could hide the claimed row behind older ones (W2 review).
+      .order("claimed_at", { ascending: false, nullsFirst: false })
+      .limit(20);
     if (error || !data) return null;
     const rows = data as Row[];
     const mine = rows.find((r) => r.evaluator_user_id === userId) ?? rows.find((r) => r.founder_user_id === userId && r.owner_kind === "founder_claimed" && r.claimed_at);

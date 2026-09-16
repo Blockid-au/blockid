@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { requireTierForPage } from "@/lib/entitlements/require-tier-for-page";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { EquityEsopClient } from "./equity-esop-client";
 import { EsopDashboardClient } from "./esop-dashboard-client";
@@ -15,6 +16,12 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function EquityEsopPage() {
+  // Same gate as /workspace/esop: the hub tab shows a lock, the page must
+  // enforce it too (a typed URL bypassed the lock — W2 review).
+  await requireTierForPage({
+    feature: "esop.manage",
+    fromPath: "/workspace/esop/manage",
+  });
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/esop/manage");
 

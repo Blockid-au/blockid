@@ -14,6 +14,7 @@
 // `dossier.viewed` (§C.2) via auditDossierView, fire-and-forget.
 
 import { NextResponse } from "next/server";
+import { isEvaluatorUser } from "@/lib/evaluations";
 import { getCurrentUser } from "@/lib/auth";
 import { loadDossier } from "@/lib/evaluations/dossier";
 import { auditDossierView } from "@/lib/evaluations/dossier-audit";
@@ -31,8 +32,11 @@ export async function GET(_request: Request, { params }: Ctx) {
   const { id } = await params;
   if (!ID_RE.test(id)) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
 
-  const dossier = await loadDossier(id, user.id);
+  const [dossier, isEvaluator] = await Promise.all([loadDossier(id, user.id), isEvaluatorUser(user)]);
   if (!dossier) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+  // Same gate as the page: an evaluator seat whose entitlement lapsed gets
+  // 404, the claimed founder needs none for the read-only preview.
+  if (dossier.viewer.role === "assessor" && !isEvaluator) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
 
   auditDossierView({
     userId: user.id,

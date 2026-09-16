@@ -316,12 +316,16 @@ const EMPTY = (available: boolean): AssessmentReadResult => ({ available, mine: 
 export async function getAssessment(evaluationId: string, viewer: AssessmentViewer): Promise<AssessmentReadResult> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return EMPTY(false);
-  const { data, error } = await supabase
+  let query = supabase
     .from("evaluation_assessments")
     .select(ASSESSMENT_COLUMNS)
     .eq("evaluation_id", evaluationId)
-    .order("version", { ascending: false })
-    .limit(50);
+    .order("version", { ascending: false });
+  // An assessor only ever needs their own seat's versions — filtering here
+  // keeps a busy Firm evaluation (many seats × versions) from pushing the
+  // caller's rows past the page (W2 review).
+  if (viewer.role === "assessor") query = query.eq("assessor_user_id", viewer.userId);
+  const { data, error } = await query.limit(50);
   if (error) {
     if (!isMissingTable(error)) console.error("[blockid:assessments] read failed", error);
     return EMPTY(false);

@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-16T10:47:49.238Z",
+  "generated_at": "2026-09-16T11:20:04.240Z",
   "ledger_present": true,
-  "total_files": 275,
+  "total_files": 276,
   "files": [
     "0001_init.sql",
     "0002_score_v2.sql",
@@ -249,6 +249,7 @@
     "0394_startup_taxonomy.sql",
     "0395_report_v2_columns.sql",
     "0396_agent_knowledge_base_status.sql",
+    "0397_svi_snapshots_project_id_backfill.sql",
     "20260814_tech_analyses.sql",
     "20260815120000_analyzer_runs.sql",
     "20260816_clevel_reports_v2.sql",

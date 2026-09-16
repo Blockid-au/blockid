@@ -187,7 +187,8 @@ async function loadWeeklyItems(
         kind: "weekly",
         title: "Weekly SVI report",
         date,
-        href: "/workspace/reports/weekly",
+        // Each row lands on its own snapshot line (anchor), not the tab root.
+        href: `/workspace/reports/weekly#snapshot-${encodeURIComponent(id)}`,
         meta: total === null ? undefined : `SVI ${total}${deltaText}`,
       });
     }
