@@ -30,6 +30,10 @@ export const runtime = "nodejs";
 // case without adding it here (or vice-versa) breaks CI.
 export const REQUIRED_WEBHOOK_EVENTS = [
   "checkout.session.completed",
+  // G14-S33: `subscription_created` analytics event (GA4 truth). Enable it on
+  // the Stripe endpoint — /api/health/stripe reports it under missing_events
+  // until then.
+  "customer.subscription.created",
   "customer.subscription.deleted",
   "customer.subscription.updated",
   "customer.subscription.trial_will_end",

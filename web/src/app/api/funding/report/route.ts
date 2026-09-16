@@ -37,6 +37,7 @@ import { getProject, roleCanWrite, creditChargeNote } from "@/lib/projects";
 import { parseFundingIntake, intakeToProjectGrantProfile } from "@/lib/funding/intake";
 import { buildReportFromIntake, countPaidFundingReports, newAccessToken, reportColumns } from "@/lib/funding/reports";
 import { apiRoute } from "@/lib/audit/api-route";
+import { emitEventSafe } from "@/lib/analytics/server";
 
 export const dynamic = "force-dynamic";
 
@@ -195,6 +196,17 @@ async function POST_handler(request: Request) {
       console.error("[funding:report] ready flip failed", { reportId, message: readyErr.message });
     }
   }
+
+  // 10. G14-S33: funding_report_paid as server truth for the credits / plan
+  //     rails (the guest A$3 rail emits from the Stripe webhook). The client
+  //     tracker still fires for the GA4 session; this one survives ad-block.
+  emitEventSafe({
+    name: "funding_report_paid",
+    params: { paid_via: included ? "plan" : "credits", report_id: reportId },
+    userId: user.id,
+    source: "server",
+    consentGranted: true,
+  });
 
   return NextResponse.json(
     {

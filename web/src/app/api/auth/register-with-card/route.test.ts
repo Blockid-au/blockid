@@ -127,6 +127,17 @@ vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => makeSupabase(),
 }));
 
+// G14-S33: evaluator_trial_started is emitted server-side; observe only.
+const emitCalls: Array<{ name: string; params: Record<string, unknown>; userId?: string | null }> = [];
+vi.mock("@/lib/analytics/server", () => ({
+  emitEventSafe: (input: { name: string; params: Record<string, unknown>; userId?: string | null }) => {
+    emitCalls.push(input);
+  },
+  emitEvent: async (input: { name: string; params: Record<string, unknown>; userId?: string | null }) => {
+    emitCalls.push(input);
+  },
+}));
+
 vi.mock("@/lib/stripe", () => ({
   isStripeConfigured: () => true,
   getStripe: () => ({
@@ -210,6 +221,7 @@ async function json(res: Response): Promise<Record<string, unknown>> {
 }
 
 beforeEach(() => {
+  emitCalls.length = 0;
   mocks.inserted.length = 0;
   mocks.trialStateUpserts.length = 0;
   mocks.subscriptionCreates.length = 0;
@@ -419,6 +431,26 @@ describe("trial length comes from the plan row", () => {
     const res = await POST(req(body({ plan_id: "investor_angel" })));
     expect((await json(res)).trial).toMatchObject({ days: 7, price_display: "A$79" });
     expect(mocks.subscriptionCreates[0]?.trial_period_days).toBe(7);
+  });
+});
+
+// G14-S33 — the evaluator trial starts here (Stripe subscription minted in
+// trial mode), so the money event is server truth: one emit per evaluator
+// signup, none for a founder rung.
+describe("evaluator_trial_started (G14-S33)", () => {
+  it("emits once for an evaluator plan with plan / trial_days / account_type / user_id", async () => {
+    const res = await POST(req(body({ plan_id: "investor_vc_small", account_type: "accelerator" })));
+    expect(res.status).toBe(200);
+    const ev = emitCalls.filter((c) => c.name === "evaluator_trial_started");
+    expect(ev).toHaveLength(1);
+    expect(ev[0].params).toEqual({ plan: "investor_vc_small", trial_days: 14, account_type: "accelerator", user_id: "u_new" });
+    expect(ev[0].userId).toBe("u_new");
+  });
+
+  it("does not emit for a founder rung", async () => {
+    const res = await POST(req(body({ plan_id: "founder_starter", account_type: "founder" })));
+    expect(res.status).toBe(200);
+    expect(emitCalls.find((c) => c.name === "evaluator_trial_started")).toBeUndefined();
   });
 });
 

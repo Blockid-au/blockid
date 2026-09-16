@@ -4,9 +4,15 @@
 // never hold the page's first byte (§C.3 TTFB budget) and a missing
 // AUDIT_HMAC_SECRET in a dev shell must never turn the dossier into a 500.
 // `detail` carries ids + role + surface only — never note bodies.
+//
+// G14-S33: the same call also emits the `dossier_view` analytics event
+// server-side (analytics_events + GA4 MP) so the weekly GA4 audit sees
+// evaluator engagement from BOTH surfaces (page + API) even when the
+// browser tag is blocked. Same fire-and-forget contract.
 
 import "server-only";
 import { appendAudit } from "@/lib/audit";
+import { emitEventSafe } from "@/lib/analytics/server";
 
 export interface DossierViewAudit {
   userId: string;
@@ -18,6 +24,19 @@ export interface DossierViewAudit {
 }
 
 export function auditDossierView(input: DossierViewAudit): void {
+  emitEventSafe({
+    name: "dossier_view",
+    params: {
+      evaluation_id: input.evaluationId,
+      consent_tier: input.consentTier,
+      role: input.role,
+      surface: input.surface,
+      user_id: input.userId,
+    },
+    userId: input.userId,
+    source: "server",
+    consentGranted: true,
+  });
   void appendAudit({
     user_id: input.userId,
     actor: "user",

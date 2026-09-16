@@ -128,6 +128,12 @@ export const GA4_CUSTOM_DIMENSIONS: readonly Ga4DimensionSpec[] = Object.freeze(
  * The events S23-B must see arriving (all shipped in G11/G12 and the hero
  * test). The weekly audit reports `missing:<list>` when any are absent from
  * the last 7 days.
+ *
+ * G14-S33 added the server-emitted money events (lib/analytics/server.ts
+ * emitEvent → GA4 Measurement Protocol): trust_report_purchased,
+ * evaluator_trial_started, subscription_created, tbr_share_created and
+ * dossier_view. `assessment_submitted` is NOT listed — there is no write
+ * route for evaluation_assessments until G13 S-D2 ships; add it there.
  */
 export const GA4_AUDIT_EVENTS: readonly string[] = Object.freeze([
   "hero_variant_shown",
@@ -138,6 +144,12 @@ export const GA4_AUDIT_EVENTS: readonly string[] = Object.freeze([
   "evaluator_checklist_viewed",
   "compare_viewed",
   "funding_directory_viewed",
+  // G14-S33 server-side money events
+  "trust_report_purchased",
+  "evaluator_trial_started",
+  "subscription_created",
+  "tbr_share_created",
+  "dossier_view",
 ]);
 
 // ── Operator steps when the Admin / Data API is blocked ─────────────────
