@@ -1,7 +1,8 @@
 import { TrendingUp } from "lucide-react";
-// G13-W1-R1 (F5): the comparables count is the live number from code until
-// the S-R5 comparables table reaches 500 — never a "500+" claim before then.
-import { AU_COMPARABLES_COUNT, AU_COMPARABLES_WITH_MULTIPLES_COUNT, comparablesCopyLine } from "@/lib/data/au-comparables";
+// G13-W1-R1 (F5): the comparables count is the live number — S-R5 reads the
+// verified `au_comparable_raises` rows (static 32 fallback) — until the table
+// reaches 500; never a "500+" claim before then.
+import { comparablesCopyLine, comparablesCounts, comparablesHeadline } from "@/lib/valuation/comparables-repo";
 
 interface CompRow {
   ref: string;
@@ -86,8 +87,8 @@ export function CompsWall() {
           </div>
           <div className="text-sm text-slate-400">
             <span className="font-mono tabular-nums text-slate-700">5</span> of{" "}
-            <span className="font-mono tabular-nums text-slate-700">{AU_COMPARABLES_COUNT}</span>{" "}
-            anonymised records · {AU_COMPARABLES_WITH_MULTIPLES_COUNT} with disclosed multiples
+            <span className="font-mono tabular-nums text-slate-700">{comparablesHeadline()}</span>{" "}
+            anonymised records · {comparablesCounts().withMultiplesN} with disclosed multiples
           </div>
         </div>
 

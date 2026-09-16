@@ -83,6 +83,7 @@ import { DIM_ORDER, DIMENSION_OWNERS, criteriaForDimension, type DimKey } from "
 import { precomputeModules } from "./module-precompute";
 import { GATHER_RESEARCH_CALLS, gatherData, type GatherDeps, type GatherOutput } from "./gather";
 import { buildValuationChapter, type ValuationAskInput, type VcValuationLike } from "./valuation-chapter";
+import { primeComparables } from "@/lib/valuation/comparables-repo";
 import { applyConsistencyGates } from "./consistency-gates";
 import { fromAssembledReport, inferPhase } from "@/lib/report-v2/adapter";
 import { isReportV2, type CriterionCard, type DimensionChapter, type ReportTierV2, type ReportV2 } from "@/lib/report-v2/schema";
@@ -444,6 +445,9 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
       dims: w4Dims,
     });
     notify("gathering", 5);
+    // S-R5: warm the AU comparables cache (verified table rows, static
+    // fallback) so the sync valuation-chapter builder below cites live N.
+    await primeComparables().catch(() => undefined);
     const gathered = await deadline.race(
       gatherData(context, callAI, {
         ownerUserId: input.ownerUserId ?? input.userId,

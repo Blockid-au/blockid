@@ -6,6 +6,7 @@
 
 import { describe, expect, it } from "vitest";
 import { AU_COMPARABLES_COUNT, AU_COMPARABLES_WITH_MULTIPLES_COUNT } from "@/lib/data/au-comparables";
+import { setComparablesForTests } from "@/lib/valuation/comparables-repo";
 import { VALUATION_METHOD_KEYS, isReportV2 } from "@/lib/report-v2/schema";
 import { fromSnapshot } from "@/lib/report-v2/adapter";
 import { buildValuationChapter, isPreRevenue, sourceDateFromLabel, type VcValuationLike } from "./valuation-chapter";
@@ -116,12 +117,32 @@ describe("buildValuationChapter — consensus, ask cross-check, multiples, compa
     expect(fallback.sectorMultiples.median).toBeGreaterThan(0);
   });
 
-  it("comparables N / with-multiples N come from lib/data/au-comparables (33 today, F5) with up to 5 anonymised rows", () => {
+  it("comparables N / with-multiples N fall back to lib/data/au-comparables (32 today, F5) with up to 5 anonymised rows", () => {
     const ch = buildValuationChapter({ ...base, vc: vc() });
     expect(ch.comparables.n).toBe(AU_COMPARABLES_COUNT);
     expect(ch.comparables.withMultiplesN).toBe(AU_COMPARABLES_WITH_MULTIPLES_COUNT);
     expect(ch.comparables.rows.length).toBeLessThanOrEqual(5);
     expect(ch.comparables.rows.every((r) => r.name === "anonymised" && r.source === "au-comparables.ts")).toBe(true);
+  });
+
+  it("S-R5: verified au_comparable_raises rows drive N / with-multiples N, the scatter subtitle and the sources window", () => {
+    const row = (id: string, name: string, round_date: string, arr_multiple: number | null) => ({
+      id, name, sector: "SaaS", stage: "seed", round_date, round_label: "Seed", amount_aud: 2_000_000, post_money_aud: null, arr_aud: null,
+      arr_multiple, ebitda_multiple: null, founded_year: null, notable: false, note: null, source_name: "startup-daily", source_url: "https://www.startupdaily.net/x", source_date: round_date,
+    });
+    setComparablesForTests([row("a", "Alpha", "2025-02-01", 9), row("b", "Beta", "2026-01-15", null), row("c", "Gamma", "2024-09-09", 14)]);
+    try {
+      const ch = buildValuationChapter({ ...base, vc: vc({ sectorMultiples: null }) });
+      expect(ch.comparables.n).toBe(3);
+      expect(ch.comparables.withMultiplesN).toBe(2);
+      expect(ch.comparables.rows.every((r) => r.name === "anonymised" && r.source === "au_comparable_raises")).toBe(true);
+      expect(ch.sectorMultiples.sourceDate).toBe("2024–2026");
+      expect(ch.sectorMultiples.sourceLabel).toMatch(/verified table/);
+      const scatter = ch.visuals.find((v) => v.id === "valuation-comparables");
+      expect(scatter?.subtitle).toBe("3 raises tracked, 2 with disclosed multiples (sources dated 2024–2026)");
+    } finally {
+      setComparablesForTests(null);
+    }
   });
 
   it("narrative: range + method transparency + the AU discount line, never a single point; grounded only with a revenue evidence row", () => {

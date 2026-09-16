@@ -15,7 +15,8 @@
 // `VcValuationReport` through `input.vc` to fill the 5-method chapter.
 
 import { CRITERIA, type CriterionKey, type QualityLevel } from "@/lib/evaluation-criteria";
-import { AU_COMPARABLES_COUNT, AU_COMPARABLES_WITH_MULTIPLES_COUNT, AU_COMPARABLES_SOURCE_WINDOW, getMultiplesBenchmark, getTopComparables, mapSectorToAUIndustry, mapStageToAUStage } from "@/lib/data/au-comparables";
+import { getMultiplesBenchmark, mapSectorToAUIndustry, mapStageToAUStage } from "@/lib/data/au-comparables";
+import { comparablesCounts, topComparables } from "@/lib/valuation/comparables-repo";
 import { PHASE_EXIT_RULES, computePhaseGate, type PhaseGateResult } from "@/lib/growth/phase-gate";
 import { GROWTH_PHASE_IDS, GROWTH_PHASE_LABELS, type GrowthPhaseId } from "@/lib/growth/phase-taxonomy";
 import { DIMENSION_OWNERS, DIM_ORDER, criteriaForDimension, type DimKey } from "@/lib/report-pipeline/dimension-owners";
@@ -533,7 +534,8 @@ function buildValuation(args: { sviTotal: number; stageLabel: string; stage: num
   const auIndustry = mapSectorToAUIndustry(args.industry ?? undefined);
   const auStage = mapStageToAUStage(args.stageLabel || args.stage);
   const mult = getMultiplesBenchmark(auIndustry, auStage);
-  const comps = getTopComparables(auIndustry, auStage, 5);
+  const live = comparablesCounts();
+  const comps = topComparables(auIndustry, auStage, 5);
   const methods: ValuationChapter["methods"] = VALUATION_METHOD_KEYS.map((key) => ({
     method: key,
     lowAud: 0,
@@ -568,7 +570,7 @@ function buildValuation(args: { sviTotal: number; stageLabel: string; stage: num
     kind: "scatter",
     agentId: "cfo",
     title: `AU comparables — ${comps.length} nearest by sector / stage (ARR multiple)`,
-    subtitle: `${AU_COMPARABLES_COUNT} raises tracked, ${AU_COMPARABLES_WITH_MULTIPLES_COUNT} with disclosed multiples (sources dated ${AU_COMPARABLES_SOURCE_WINDOW})`,
+    subtitle: `${live.n} raises tracked, ${live.withMultiplesN} with disclosed multiples (sources dated ${live.sourceWindow})`,
     dataState: "partial",
     data: { xLabel: "Founded year", yLabel: "ARR multiple (×)", points: comps.map((cp) => ({ label: cp.industry, x: cp.founded_year - 2000, y: cp.arr_multiple })) },
     a11y: { tableFallback: comps.map((cp) => ({ industry: cp.industry, stage: cp.stage, year: cp.founded_year, arr_multiple: cp.arr_multiple })) },
@@ -577,11 +579,11 @@ function buildValuation(args: { sviTotal: number; stageLabel: string; stage: num
     currency: "AUD",
     methods,
     consensus,
-    sectorMultiples: { sector: auIndustry, low: mult.low, median: mult.median, high: mult.high, sourceLabel: "BlockID AU comparables (code table)", sourceDate: AU_COMPARABLES_SOURCE_WINDOW },
+    sectorMultiples: { sector: auIndustry, low: mult.low, median: mult.median, high: mult.high, sourceLabel: live.source === "table" ? "BlockID AU comparables (verified table)" : "BlockID AU comparables (code table)", sourceDate: live.sourceWindow },
     comparables: {
-      n: AU_COMPARABLES_COUNT,
-      withMultiplesN: AU_COMPARABLES_WITH_MULTIPLES_COUNT,
-      rows: comps.map((cp) => ({ name: "anonymised", stage: cp.stage, industry: cp.industry, year: cp.founded_year, arrMultiple: cp.arr_multiple, source: "au-comparables.ts" })),
+      n: live.n,
+      withMultiplesN: live.withMultiplesN,
+      rows: comps.map((cp) => ({ name: "anonymised", stage: cp.stage, industry: cp.industry, year: cp.founded_year, arrMultiple: cp.arr_multiple, source: live.sourceLabel })),
     },
     scenarios,
     visuals: [rangeBars, scatter],
@@ -845,10 +847,10 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
       disclaimer: "General information only, not financial, legal or investment advice. The valuation range is directional and is not a formal valuation.",
       evidenceRegister: [],
       auditLog: [],
-      comparablesN: AU_COMPARABLES_COUNT,
-      comparablesWithMultiplesN: AU_COMPARABLES_WITH_MULTIPLES_COUNT,
+      comparablesN: comparablesCounts().n,
+      comparablesWithMultiplesN: comparablesCounts().withMultiplesN,
       sourcesDated: [
-        { label: "AU comparables (BlockID code table)", date: AU_COMPARABLES_SOURCE_WINDOW },
+        { label: comparablesCounts().source === "table" ? "AU comparables (BlockID verified table)" : "AU comparables (BlockID code table)", date: comparablesCounts().sourceWindow },
         { label: "SVI stage benchmarks (svi-dimension-benchmarks.ts)", date: "2026" },
         ...(input.cohort?.updated_at ? [{ label: `Sector cohort (${input.cohort.sector ?? "default"}, N=${input.cohort.sample_size ?? 0})`, date: input.cohort.updated_at }] : []),
       ],
