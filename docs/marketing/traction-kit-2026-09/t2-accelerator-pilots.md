@@ -1,8 +1,10 @@
 # T2 — Accelerator pilots (weeks 3–8, 29 Sep – 9 Nov 2026)
 
+> **Amendment 2026-09-16 (G14 · pilot offer v2):** §2 and §4 clauses 3, 9 and new clauses 11–14 are superseded by the **free cohort-scoring pilot** — ≤ 60 applicants, 30 days, comped by an **admin credit grant** (never a Stripe coupon), in return for an LOI (Cohort 25 A$5,000/yr or Program A$349/mo when ≥ 5/7 of the §3 criteria pass), a named case study after day 30, the committee's own top-10 ranking recorded **before** it sees the SVI table, and one 45-minute interview; **cap 5 pilots**, the sixth pays list. Source: [`docs/plans/g14-investor-feedback-2026-09-16.md`](../../plans/g14-investor-feedback-2026-09-16.md) §0 C9 + [`01-gtm-evaluators-90d.md`](../../plans/g14-investor-feedback-2026-09-16/01-gtm-evaluators-90d.md) §3. Cohort 25 A$5,000/yr is a pricing-v4 amount ([`docs/pricing-upgrade-plan-2026-07-16.md`](../../pricing-upgrade-plan-2026-07-16.md) § v4) and the only addition to the kit's fixed price list. §1 targets, §3 success criteria, §5–§7 and every wording rule / forbidden claim in the kit README are unchanged; v1 wording is kept for the record and struck where superseded.
+
 > Plan: [`evaluator-traction-2026-09-10.md`](../../plans/evaluator-traction-2026-09-10.md) §5 row T2 · target **3 pilots → 2 paid Program** · pilot→paid ≥ 50 %.
-> Offer: a **14-day Program pilot** on a live application round — batch scoring on one rubric, cohort table + CSV, a sponsor/LP report sample — inside the 7-day card-required Program trial, the second week agreed in writing before anything is billed. **Program A$349/mo** after (100 reports/mo, 200 tracked startups, 5 seats). Any startup entered can also be reported on pay-as-you-go for **A$3**.
-> Pilot link (always with UTM): `https://blockid.au/signup?plan=investor_vc_small&trial=1&from=pilot&utm_source=accelerator&utm_campaign=t2` (+ `&utm_content=<slug>`). The same link sits behind "Run a 14-day pilot on your next intake" on `/solutions/accelerator`.
+> Offer (v2, 2026-09-16): **free cohort scoring for one intake** — ≤ 60 applicants, 30 days, batch scoring on one rubric, cohort table + CSV, Investor Dossier per startup, a sponsor/LP report sample — comped by an admin credit grant on a Program-tier workspace. **Program A$349/mo** or **Cohort 25 A$5,000/yr** by LOI after (Program: 100 reports/mo, 200 tracked startups, 5 seats). Any startup entered can also be reported on pay-as-you-go for **A$3**. ~~14-day pilot inside the 7-day card-required trial~~ (v1, superseded).
+> Pilot link (always with UTM): `https://blockid.au/signup?plan=investor_vc_small&trial=1&from=pilot&utm_source=accelerator&utm_campaign=t2` (+ `&utm_content=<slug>`). The same link sits behind the pilot CTA on `/solutions/accelerator` (its "14-day pilot" copy is updated to the v2 offer by the site-wording agent). The founder applies the credit grant from `/admin` after signup — no card charge is ever taken for a comped pilot.
 
 ## 1. Five candidate programs (from `web/content/data/programs-au.seed.json`, verified 2026-09-10)
 
@@ -18,7 +20,11 @@ The plan named Plus Eight, Curtin Accelerate and UQ ilab as examples; in the see
 
 **Reserves** (same offer if one of the five declines): Antler Australia residencies — Sydney / Melbourne / Brisbane, rolling, cohort 8 Feb 2027, https://www.antler.co/cohort-start-dates (fetched 200); Founder Institute Perth — rolling, closes Oct 2026, https://fi.co/insight/founder-institute-australia-opens-spring-2026-applications (seed confidence: medium, not fetched); Barayamal NSW First Nations Pre-Accelerator — closes 20 Sep 2026, https://barayamal.com.au/first-nations-pre-accelerator/ (not fetched; too early for T2 unless pulled into week 1).
 
-## 2. The 14-day Program pilot offer
+## 2. The pilot offer — v2 (2026-09-16): free cohort scoring for one intake
+
+**Terms (supersede the billing rows of the day-by-day table):** one live intake or cohort of **≤ 60 applicants**; **30 days** from the first batch run; **free**, comped by an **admin credit grant** on the program's Program-tier workspace — never a Stripe coupon, no card charge for the comp; in return the program gives all four of: (a) an **LOI** for Cohort 25 at **A$5,000/yr** or Program at **A$349/mo** if ≥ 5 of the 7 success criteria in §3 pass, (b) a **named case study** after day 30 (written approval first; `[[placeholder — collect from pilot]]` until then), (c) the committee's **own top-10 ranking recorded before it sees the SVI table** (criterion 2 evidence; feeds the calibration backtest), (d) **one 45-minute interview** on the evaluator instrument (`docs/research/evaluator-interviews-2026-09.md`). **Cap: 5 pilots**; the sixth pays list price. Where the program runs an open call it may also hand applicants an intake link (`/apply/<slug>`, ships with G14 S35) so founders apply straight into the scored inbox.
+
+**Day-by-day (v1 table, still the operating sequence — nothing is billed during the pilot; the day-14 review becomes an interim check and the decision moves to day 30):**
 
 **What the program brings:** a live application round (or a cohort at intake) of 10–60 startups, one contact who owns the round, and the rubric weights they care about (optional — the default is equal weight across the 8 dimensions).
 
@@ -26,15 +32,16 @@ The plan named Plus Eight, Curtin Accelerate and UQ ilab as examples; in the see
 
 | Day | Step | What they receive |
 |---|---|---|
-| 0 | Program trial starts (card required; nothing billed if cancelled before day 7). Up to 5 seats for the selection committee. | Workspace "Startups I'm evaluating" |
+| 0 | Program workspace opened; **admin credit grant applied** (v2 — no card charge; ~~card required; nothing billed if cancelled before day 7~~). Up to 5 seats for the selection committee. **Committee submits its own top-10 before the batch run.** | Workspace "Startups I'm evaluating" |
 | 0–2 | Applicants added — by the program (name + deck/URL per startup) or by the founders themselves via claim link, so each founder consents to what is shared | Evaluations list; consent tier per startup |
 | 2–3 | **Batch scoring**: tick the startups, "Batch score", name the round, set rubric weights if wanted. Scored off-peak overnight from Program's 100 included reports | Full Trust BizReport per startup on the same 8-dimension, 13-criteria rubric |
 | 3 | **Cohort table**: SVI, weighted score, stage, movement since last score, top strength and top gap per startup — sortable, plus **CSV export** | Cohort table + CSV |
 | 4–5 | Walkthrough call: how the numbers were reached, where the auditor flagged unsupported claims, what the committee disagrees with | Notes; rubric-weight adjustments |
-| 7 | **Written go/no-go for week 2** (email is enough). If yes, the trial continues into the paid month at A$349 or is extended by agreement; if no, cancel — nothing billed | — |
+| 7 | ~~Written go/no-go for week 2~~ **v2: mid-pilot check-in** (email is enough); nothing is billed during the 30 days | — |
 | 8–12 | Re-score after interviews/shortlisting (A$1 re-scores, from credits); founder-side next steps go to the startups the program chooses | Score deltas |
 | 12–14 | **Sponsor / LP report sample**: cover, cohort summary (size, median SVI, movers), one line per startup, methodology and disclaimers — exported from the cohort table, print or PDF | Sponsor/LP report |
-| 14 | Pilot review against the success criteria (§3); decision on paid Program; demo-day ask (§6) | — |
+| 14 | Interim review against the success criteria (§3) | — |
+| 30 | **v2: pilot review** against §3; **LOI** (Cohort 25 A$5,000/yr or Program A$349/mo) if ≥ 5/7 pass; case-study wording agreed; 45-min interview done; demo-day ask (§6) | — |
 
 **What is not in the pilot:** a formal valuation for any startup; investment advice; any sharing of one startup's evidence with another; SSO or white-label domain (Contact Sales rungs).
 
@@ -59,25 +66,29 @@ Two of pilots 1–5 converting to paid Program meets the plan target; one of the
 Not a contract. The founder sends this as the body of an email after the first call; the program replies "agreed". Standard terms: https://blockid.au/legal/terms and https://blockid.au/legal/privacy.
 
 1. **Parties.** PPL Food PTY LTD (BlockID.au), Sydney NSW, and `[[program operator]]` (the "Program").
-2. **Purpose.** A 14-day pilot of BlockID's Program tier on the Program's `[[round / cohort name]]`, to test whether one rubric across the round, a C-suite review per startup and a sponsor report reduce screening effort and improve comparability.
-3. **Term.** `[[start date]]` to `[[start + 14 days]]`. Days 1–7 are the standard 7-day trial (card required at signup; nothing billed if cancelled before day 7). Continuation into days 8–14 is confirmed by the Program in writing on or before day 7; from day 8 the Program tier is billed at A$349 a month unless another arrangement is agreed in that same written confirmation.
+2. **Purpose.** A 30-day pilot (v2, 2026-09-16; ~~14-day~~) of BlockID's Program tier on the Program's `[[round / cohort name]]` (≤ 60 applicants), to test whether one rubric across the round, a C-suite review per startup and a sponsor report reduce screening effort and improve comparability.
+3. **Term (v2, 2026-09-16).** `[[start date]]` to `[[start + 30 days]]`. The pilot is **free**: BlockID comps the Program tier for the term by an admin credit grant on the Program's workspace (not a Stripe coupon); no card is charged and nothing is billed during the pilot. Cohort scoring covers up to 60 applicants. ~~v1: days 1–7 standard trial, written go/no-go on day 7, billed from day 8.~~
 4. **What BlockID provides.** Program workspace with up to 5 seats; batch scoring of up to `[[n]]` startups on the 8-dimension, 13-criteria rubric with the Program's chosen weights; cohort table and CSV; re-scores after shortlisting; one sponsor/LP report sample; two walkthrough calls; email support within one business day.
 5. **What the Program provides.** One named owner; the applicant list with decks/URLs, or founder claim links sent to applicants; rubric weights (optional); the committee's own ranking for criterion 2; a written go/no-go on day 7 and a written review on day 14.
 6. **Data and consent.** Your data belongs to your startup. We store it so every report builds on your own evidence and the AI reasons on your case. Founder-consented access tiers control who sees what. The Program will tell applicants that BlockID is used in screening. Nothing about one startup is shown to another. BlockID does not contact applicants for any purpose other than the claim link and the report the Program chooses to share.
 7. **Nature of output.** Scores, valuation ranges and reports are screening and tracking instruments generated from founder-supplied and public information and audited for unsupported claims; they are not financial, investment or legal advice and not a formal valuation. Selection decisions remain the Program's.
 8. **Publicity.** Neither party names the other publicly during the pilot. After day 14, any quote, logo or case study needs the other party's written approval — `[[placeholder — collect from pilot]]` until then.
-9. **Fees.** Trial as above; A$349/month Program thereafter, or A$3 per report pay-as-you-go, all inc GST with an ATO tax invoice; multi-cohort or > 5 seats by Contact Sales.
+9. **Fees (v2, 2026-09-16).** Nothing during the pilot (clause 3). If ≥ 5 of the 7 success criteria in §3 pass at the day-30 review, the Program signs a **letter of intent** for **Cohort 25 at A$5,000 a year** or **Program at A$349 a month** (its choice), starting on a date it names; otherwise no obligation. A$3 per report pay-as-you-go remains available; all amounts inc GST with an ATO tax invoice; multi-cohort or > 5 seats by Contact Sales. ~~v1: A$349/month from day 8.~~
 10. **Ending it.** Either party can stop the pilot at any time by email; the Program's data stays in its workspace under the standard terms until it asks for deletion.
+11. **Committee ranking first (v2).** Before the batch run, the Program's committee records its own top-10 for the round (any format) and sends it to BlockID; the SVI cohort table is shared only after that ranking is received. The ranking is used for success criterion 2 and, anonymised, for BlockID's calibration backtest.
+12. **Interview (v2).** One 45-minute research interview with the round owner or a committee member during the pilot, anonymised (role · organisation type · city · date) under the consent line in `docs/research/evaluator-interviews-2026-09.md`.
+13. **Case study (v2).** After day 30 the parties agree the wording of a named case study (what was scored, how many, what the committee did with it); publication only with the Program's written approval — clause 8 governs until then.
+14. **Pilot cap (v2).** BlockID runs at most five comped pilots under these terms; this pilot is number `[[n of 5]]`.
 
 ## 5. Outreach email (founder sends; ≤ 150 words)
 
-**Subject:** Score your `[[round]]` applicants on one rubric — 14-day pilot
+**Subject:** Score your `[[round]]` applicants on one rubric — free for one intake (v2, 2026-09-16; ~~14-day pilot~~)
 
 > Hi `[[name]]`,
 >
 > I'm Long, founder of BlockID.au (Sydney). We score Australian startups the way a credit score works for people — one 8-dimension, 13-criteria rubric, a C-suite of 11 specialist agents reviewing each company's evidence, an auditor flagging unsupported claims, valuation range in AUD.
 >
-> For `[[program]]`'s `[[round]]` (closing `[[date]]`) I'd like to run a 14-day pilot: we batch-score every applicant overnight, your committee gets a sortable cohort table and CSV before decisions, and you get a sponsor/LP report sample at the end. It runs inside our 7-day trial — card required, nothing billed if you stop — with week 2 confirmed in writing first.
+> For `[[program]]`'s `[[round]]` (closing `[[date]]`) I'd like to score one intake free — up to 60 applicants over 30 days, no card, no invoice: we batch-score every applicant overnight, your committee gets a sortable cohort table and CSV before decisions, and you get a sponsor/LP report sample at the end. In return I ask for your committee's own top-10 before you see ours, one 45-minute conversation, and — only if it earns it against criteria we agree on day 0 — a letter of intent and a case study.
 >
 > Success criteria are agreed on day 0 and I'll share them before we start. 20 minutes this week to see it on two of your applicants?
 >
@@ -95,8 +106,8 @@ Ask for one of these, never all three, in this order of preference:
 2. **A joint post.** One LinkedIn post from the program's page and one from the founder, same week as demo day, stating what was done (n startups scored, one rubric, sponsor report) — no numbers about accuracy or outcomes unless the program wrote them: `[[placeholder — collect from pilot]]`.
 3. **Public profiles.** Founders who consent are published at `/listings/{slug}` with the program named as the cohort; the program links to them from its cohort page.
 
-What BlockID gives back: the sponsor/LP report for the cohort as a finished PDF; a discount is **not** offered — pricing is one list, A$349/mo, and the pilot already ran inside the trial.
+What BlockID gives back: the sponsor/LP report for the cohort as a finished PDF; a discount is **not** offered — pricing is one list (Program A$349/mo · Cohort 25 A$5,000/yr), and the pilot was already free.
 
 ## 7. Tracking (one row per program in the T2 tab)
 
-`org · contact · touch (outreach / call / pilot_start / day7_gonogo / pilot_end) · utm_content · trial_started · batch_run_date · startups_scored · criteria_passed (n/7) · converted (date) · demo_day_ask (1/2/3/none) · testimonial_status`
+`org · contact · touch (outreach / call / pilot_start / day7_checkin / day30_review) · utm_content · credit_grant_applied (date, credits) · committee_top10_received (date) · batch_run_date · startups_scored (≤ 60) · criteria_passed (n/7) · loi (cohort25 / program / none, date) · interview_done (date) · case_study_status · demo_day_ask (1/2/3/none) · pilot_no (n of 5)`
