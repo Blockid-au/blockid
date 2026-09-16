@@ -13,14 +13,16 @@
  *
  * The script only ever runs against the QA patterns; every email is
  * re-checked here before it is passed on. The member-lane account (26,
- * `qa-live-member-<stamp>@blockid.au`, recorded in run-state.member) goes
- * through the same three steps first; a member failure is recorded and
- * still throws, but never before the founder erasure has been attempted.
+ * `qa-live-member-<stamp>@blockid.au`, recorded in run-state.member) and
+ * the dossier-lane evaluator seat (28, `qa-live-evaluator-<stamp>@blockid.au`,
+ * run-state.evaluator — G13 S-D3) go through the same three steps first; a
+ * member / evaluator failure is recorded and still throws, but never before
+ * the founder erasure has been attempted.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { env, QA_ANY_EMAIL_RE, QA_EMAIL_RE, QA_MEMBER_EMAIL_RE } from "./lib/env";
+import { env, QA_ANY_EMAIL_RE, QA_EMAIL_RE, QA_EVALUATOR_EMAIL_RE, QA_MEMBER_EMAIL_RE } from "./lib/env";
 import { patchRunState, readRunState, RUN_STATE_PATH } from "./lib/run-state";
 
 const WEB_DIR = path.resolve(__dirname, "..", "..");
@@ -40,8 +42,8 @@ function erase(email: string, mode: "--dry-run" | "--write"): { code: number; ou
  * dry-run → --write → dry-run (must exit 2). Records the outcome on the run
  * state under `key` and throws on any deviation.
  */
-function eraseVerified(email: string, userId: string | null, key: "erasure" | "memberErasure"): void {
-  const label = key === "erasure" ? "founder" : "member";
+function eraseVerified(email: string, userId: string | null, key: "erasure" | "memberErasure" | "evaluatorErasure"): void {
+  const label = key === "erasure" ? "founder" : key === "memberErasure" ? "member" : "evaluator";
   const dry = erase(email, "--dry-run");
   console.log(`[live-qa] ${label} erase dry-run (exit ${dry.code}):\n${dry.out}`);
   if (dry.code !== 0) {
@@ -80,17 +82,25 @@ export default async function globalTeardown(): Promise<void> {
   if (member && !QA_MEMBER_EMAIL_RE.test(member.email)) {
     throw new Error(`[live-qa] refusing to erase member "${member.email}" — not a live-QA member address`);
   }
+  // G13 S-D3 dossier lane (28): the evaluator seat — same rule, same three steps.
+  const evaluator = state.evaluator ?? null;
+  if (evaluator && !QA_EVALUATOR_EMAIL_RE.test(evaluator.email)) {
+    throw new Error(`[live-qa] refusing to erase evaluator "${evaluator.email}" — not a live-QA evaluator address`);
+  }
   if (env.keepAccount) {
-    console.warn(`[live-qa] LIVE_QA_KEEP_ACCOUNT=1 — leaving ${email}${member ? ` and ${member.email}` : ""} in place. Erase by hand: node --env-file=.env scripts/db/erase-account.mjs --email <address> --write`);
+    console.warn(`[live-qa] LIVE_QA_KEEP_ACCOUNT=1 — leaving ${email}${member ? ` and ${member.email}` : ""}${evaluator ? ` and ${evaluator.email}` : ""} in place. Erase by hand: node --env-file=.env scripts/db/erase-account.mjs --email <address> --write`);
     patchRunState({
       erasure: { ok: false, detail: "skipped (LIVE_QA_KEEP_ACCOUNT=1)" },
       ...(member ? { memberErasure: { ok: false, detail: "skipped (LIVE_QA_KEEP_ACCOUNT=1)" } } : {}),
+      ...(evaluator ? { evaluatorErasure: { ok: false, detail: "skipped (LIVE_QA_KEEP_ACCOUNT=1)" } } : {}),
     });
     return;
   }
 
-  // Member first (it holds a membership row on the founder's project);
-  // whatever happens to it, the founder erasure is still attempted.
+  // Member first (it holds a membership row on the founder's project), then
+  // the evaluator seat (its evaluation row references the founder as
+  // founder_user_id and its project cascades with it); whatever happens to
+  // either, the founder erasure is still attempted.
   let memberError: unknown = null;
   if (member) {
     try {
@@ -100,8 +110,18 @@ export default async function globalTeardown(): Promise<void> {
       console.error(String(e));
     }
   }
+  let evaluatorError: unknown = null;
+  if (evaluator) {
+    try {
+      eraseVerified(evaluator.email, evaluator.userId, "evaluatorErasure");
+    } catch (e) {
+      evaluatorError = e;
+      console.error(String(e));
+    }
+  }
   eraseVerified(email, state.userId, "erasure");
   // The password was only ever needed by 25-account; the account is gone.
   patchRunState({ password: undefined });
   if (memberError) throw memberError;
+  if (evaluatorError) throw evaluatorError;
 }

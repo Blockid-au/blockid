@@ -16,7 +16,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 //     100 (F3), 13 criterion rows with "0 evidence — self-declared";
 //   * the founder preview never carries an assessment field (no decision
 //     chip, no private notes, no invite token) while the evaluator sees
-//     their decision; blocks 3, 4, 6 render as placeholders;
+//     their decision; S-D3: block 3 lists evidence by consent tier with the
+//     request-upgrade CTA, block 6 carries the action bar + audit trail, the
+//     header the Export IC action; the founder gets none of the actions;
 //   * S-R4: block 2 renders the valuation from ReportV2 (consensus band,
 //     six methods, range bars svg), block 5 the progress radar scoped to
 //     this evaluation, the header carries mandate fit (assessor) and
@@ -129,12 +131,21 @@ function seed() {
     audit_events: [{ id: 7, user_id: "u-eval", action: "dossier.viewed", resource_id: "e-1", ts: "2026-09-10T00:00:00Z", detail: { svi_total: 60 } }],
     mandate_fit_scores: [{ mandate_id: "m-1", project_id: "p-1", score: 77, reasons: ["Industry match"], gaps: [], blockers: [], computed_at: "2026-09-15T00:00:00Z" }],
     evaluator_progress_sends: [],
+    // S-D3 seats: the evaluator's personal org (0393) with its single seat.
+    investor_organisations: [{ id: "org-1", slug: "personal", name: "Personal", kind: "angel", owner_user_id: "u-eval", is_personal: true }],
+    investor_organisation_members: [{ id: "m-1", org_id: "org-1", user_id: "u-eval", role: "investment_partner", created_at: "2026-09-01T00:00:00Z", investor_organisations: { id: "org-1", slug: "personal", name: "Personal", kind: "angel", owner_user_id: "u-eval", is_personal: true } }],
+    app_users: [{ id: "u-eval", display_name: "Sam", email: "scout@fund.vc" }],
   };
 }
 
 // S-T2 mandates: one default mandate for the evaluator seat.
 const MANDATE = { id: "m-1", label: "Seed deep-tech AU", sectors_include: ["advanced_manufacturing"], sectors_exclude: [], business_models: [], customer_types: [], stages: ["seed"], cheque_min_aud: null, cheque_max_aud: null, lead_or_follow: null, geographies: [], revenue_min_aud: null, growth_min_pct: null, min_svi: null, tags_include: [], tags_exclude: [], weights: null, is_default: true };
-vi.mock("@/lib/investors/mandates", () => ({ listMandates: async () => ({ migrated: true, mandates: [MANDATE], primary: MANDATE }) }));
+vi.mock("@/lib/investors/mandates", () => ({
+  listMandates: async () => ({ migrated: true, mandates: [MANDATE], primary: MANDATE }),
+  // S-D3: the seats reader falls back to the personal org (0393 row seeded above).
+  getOrCreatePersonalOrg: async () => ({ id: "org-1", slug: "personal", name: "Personal", kind: "angel", owner_user_id: "u-eval", is_personal: true }),
+  isMissingRelation: () => false,
+}));
 
 async function html(evaluationId = "e-1"): Promise<string> {
   const { default: Page } = await import("./page");
@@ -218,7 +229,7 @@ describe("/workspace/evaluations/[evaluationId]", () => {
     expect(block).toContain("Open full Trusted Business Report");
   });
 
-  it("blocks 2–6 render (3 as a labelled placeholder); block 4 is the assessor's AI-vs-me form on their submitted v1; block 6 lists the audit actions", async () => {
+  it("blocks 2–6 render; block 3 lists evidence by tier with the upgrade CTA (S-D3); block 4 is the assessor's AI-vs-me form on their submitted v1; block 6 has the action bar + audit trail (S-D3)", async () => {
     const out = await html();
     for (const n of [2, 3, 4, 5, 6]) expect(out).toContain(`data-testid="dossier-block-${n}"`);
     // S-D2 block 4: the form is seeded from the assessor's own row (v1 submitted → next save is v2).
@@ -231,13 +242,27 @@ describe("/workspace/evaluations/[evaluationId]", () => {
     expect(out).toContain("Submit v2");
     expect(out).toContain('data-testid="assessment-share-open"');
     expect(out).toContain("History — 1 version");
-    // block 6: actions + the §C.2 audit actions, current status line
-    expect(out).toContain('data-testid="audit-actions"');
-    expect(out).toContain("assessment.share_revoked");
+    // block 6 (S-D3): the action bar + the audit trail from audit_events, current status line
+    expect(out).toContain('data-testid="dossier-actions"');
+    for (const id of ["action-watchlist", "action-portfolio", "action-intro", "action-export-ic"]) expect(out).toContain(`data-testid="${id}"`);
+    expect(out).not.toContain('data-testid="action-batch"'); // Scout: no batch scoring
+    expect(out).toContain("Export one-pager"); // Scout → one_page (S6)
+    expect(out).toContain('data-testid="audit-trail"');
+    expect(out).toContain('data-action="dossier.viewed"');
     expect(out).toContain("Current: v1 submitted");
     expect(out).toContain("Founder-consented access tiers control who sees what.");
+    // block 3 (S-D3): the reports_shared item list with source kind + freshness, the legend and the request-upgrade CTA
     expect(out).not.toContain("Items are masked at this tier");
-    expect(out).toContain("1 item visible at this tier");
+    expect(out).toMatch(/data-testid="evidence-item"[^>]*data-source-kind="public_url"/);
+    expect(out).toContain("Public URL");
+    expect(out).toContain('data-testid="evidence-legend"');
+    expect(out).toContain('data-testid="evidence-upgrade-cta"');
+    expect(out).toContain("Request data-room access");
+    expect(out).toContain('data-testid="request-access-button"');
+    // header (S-D3): Export IC + single personal seat → no consensus chip, the seats prompt under block 4
+    expect(out).toContain('data-testid="export-ic"');
+    expect(out).not.toContain('data-testid="consensus-chip"');
+    expect(out).toContain('data-testid="seats-single"');
     expect(appendAuditMock).toHaveBeenCalledTimes(1);
     expect(appendAuditMock.mock.calls[0][0]).toMatchObject({ action: "dossier.viewed", resource_id: "e-1", user_id: "u-eval", detail: { role: "assessor", surface: "page", svi_total: 62, snapshot_id: "s-2" } });
   });
@@ -276,6 +301,13 @@ describe("/workspace/evaluations/[evaluationId]", () => {
     expect(out).not.toContain("SECRET-NOTE");
     expect(out).not.toContain("tok-secret");
     expect(out).not.toContain(">track<");
+    // S-D3: no seats table, no action bar, no export, no upgrade CTA for the founder; block 3 says whose view this is
+    expect(out).not.toContain('data-testid="seats-consensus"');
+    expect(out).not.toContain('data-testid="seats-single"');
+    expect(out).not.toContain('data-testid="dossier-actions"');
+    expect(out).not.toContain('data-testid="export-ic"');
+    expect(out).not.toContain('data-testid="evidence-upgrade-cta"');
+    expect(out).toContain("this is what your evaluator sees at the tier you granted");
     const block1 = out.slice(out.indexOf('data-testid="dossier-block-1"'), out.indexOf('data-testid="dossier-block-2"'));
     expect((block1.match(/<svg[^>]*role="img"/g) ?? []).length).toBe(1);
     expect((out.match(/data-testid="weight-cell"/g) ?? []).length).toBe(8);

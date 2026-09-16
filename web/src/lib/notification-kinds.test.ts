@@ -162,3 +162,20 @@ describe("webhook_disabled reasons (S20-B review)", () => {
     expect(describeNotification(row({ reason: "creator_not_member" }))).toMatch(/^A webhook endpoint was disabled/);
   });
 });
+
+// ─── G13 S-D3 — intro / access request kinds ────────────────────────────────
+
+describe("S-D3 intro_requested / access_requested", () => {
+  it("are registered + labelled; copy reads by direction; actions link the CRM / the startup / Investor access", () => {
+    expect(isNotificationKind("intro_requested")).toBe(true);
+    expect(isNotificationKind("access_requested")).toBe(true);
+    expect(KIND_LABELS.intro_requested).toBe("Intro requested");
+    expect(describeNotification(row("intro_requested", { direction: "to_founder", investor: "Mia", org: "Blue Fund", startup: "Acme" }))).toBe("Mia, Blue Fund asked for an intro to Acme from your Investor Dossier — they are in your CRM");
+    expect(describeNotification(row("intro_requested", { direction: "to_investor", founder: "Jo", startup: "Acme" }))).toBe("Jo (Acme) asked you for an intro — they matched your mandate");
+    expect(describeNotification(row("access_requested", { investor: "Mia", requested: "full_mentor", startup: "Acme" }))).toBe("Mia asked to see full-mentor (data-room) access on Acme");
+    expect(describeNotification(row("access_requested", { requested: "reports_shared" }))).toBe("An evaluator asked to see your reports on your startup");
+    expect(notificationAction(row("intro_requested", { direction: "to_founder" }))).toEqual({ href: "/workspace/investors/pipeline", label: "Open your CRM" });
+    expect(notificationAction(row("intro_requested", { direction: "to_investor", project_id: "p-1" }))).toEqual({ href: "/workspace/investor/startup/p-1", label: "Open the startup" });
+    expect(notificationAction(row("access_requested", {}))).toEqual({ href: "/workspace/investors/access", label: "Review access" });
+  });
+});

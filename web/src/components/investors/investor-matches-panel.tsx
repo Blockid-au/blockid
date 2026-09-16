@@ -6,7 +6,9 @@
  *
  * Starter sees the locked card (copy.ts `growth.investorsLocked`); Growth
  * sees the ranked investors or the never-blank empty state (queue line + a
- * programs-directory link for the founder's capital).
+ * programs-directory link for the founder's capital). G13 S-D3 (E2.6): each
+ * card carries the CRM "Request intro" button (client island) next to the
+ * mailto fallback.
  */
 
 import type { ReactNode } from "react";
@@ -15,6 +17,7 @@ import { ArrowRight, Lock, Mail, Users } from "lucide-react";
 import type { InvestorMatch } from "@/lib/funding/investor-match";
 import { FUNDING_COPY } from "@/lib/funding/copy";
 import { capitalSlug } from "@/lib/funding/directory";
+import { RequestIntroButton } from "./request-intro-button";
 
 export interface InvestorMatchesPanelProps {
   /** Growth extras unlocked (`hasGrowthExtras`); false → the locked card. */
@@ -90,13 +93,17 @@ export function InvestorMatchesPanel({ unlocked, investors, capital }: InvestorM
               {inv.cheque_band && inv.cheque_band !== "any" ? (
                 <p className="mt-2 text-xs text-tertiary">Cheque: {inv.cheque_band.replace(/_/g, " ")}</p>
               ) : null}
-              <a
-                href={inv.intro_href}
-                className="mt-3 inline-flex items-center gap-1 rounded-lg border border-line-subtle px-3 py-1.5 text-xs font-semibold text-primary"
-                data-request-intro
-              >
-                <Mail className="h-3.5 w-3.5" aria-hidden /> {FUNDING_COPY.growth.requestIntro}
-              </a>
+              {/* G13 S-D3 (E2.6): the CRM intro (investor_contacts + notification) is primary; mailto stays the manual fallback. */}
+              <div className="flex flex-wrap items-center gap-2">
+                <RequestIntroButton investorId={inv.investor_id} name={inv.name} firm={inv.firm} plan={inv.plan} mandateId={inv.mandate_id ?? null} />
+                <a
+                  href={inv.intro_href}
+                  className="mt-3 inline-flex items-center gap-1 rounded-lg border border-line-subtle px-3 py-1.5 text-xs font-semibold text-primary"
+                  data-request-intro
+                >
+                  <Mail className="h-3.5 w-3.5" aria-hidden /> {FUNDING_COPY.growth.requestIntro} by email
+                </a>
+              </div>
             </li>
           ))}
         </ul>

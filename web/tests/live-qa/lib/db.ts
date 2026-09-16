@@ -7,7 +7,7 @@
  * connection is opened. Nothing runs unless LIVE_QA_ALLOW_DB=1.
  */
 import { execFileSync } from "node:child_process";
-import { QA_EMAIL_RE, QA_MEMBER_EMAIL_RE, env } from "./env";
+import { QA_EMAIL_RE, QA_EVALUATOR_EMAIL_RE, QA_MEMBER_EMAIL_RE, env } from "./env";
 
 const q = (s: string) => `'${String(s).replace(/'/g, "''")}'`;
 /** `psql -At` prints the RETURNING row, then the command tag ("UPDATE 1") — keep the row. */
@@ -88,9 +88,12 @@ export function setMemberRole(founderEmail: string, memberEmail: string, project
  * as a founder. Only the five wizard personas + 'founder' are accepted.
  */
 export function setAccountType(email: string, accountType: "founder" | "investor_angel" | "investor_vc" | "advisor" | "accelerator"): string {
-  assertQaEmail(email);
+  // The founder address or (G13 S-D3, dossier lane 28) the evaluator seat address of the same run.
+  if (!QA_EMAIL_RE.test(email) && !QA_EVALUATOR_EMAIL_RE.test(email)) {
+    throw new Error(`live-qa db step refused: "${email}" is not a live-QA founder / evaluator address`);
+  }
   const out = firstLine(psql(
-    `update public.app_users set account_type = ${q(accountType)}, segment = ${q(accountType)} where email = ${q(email)} and email ~ '^qa-live-[0-9]{8}-[0-9]{4}@blockid\\.au$' returning account_type;`,
+    `update public.app_users set account_type = ${q(accountType)}, segment = ${q(accountType)} where email = ${q(email)} and email ~ '^qa-live-(evaluator-)?[0-9]{8}-[0-9]{4}@blockid\\.au$' returning account_type;`,
   ));
   if (out !== accountType) throw new Error(`setAccountType: expected '${accountType}' back, got '${out || "<no row>"}'`);
   return out;
