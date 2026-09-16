@@ -314,7 +314,8 @@ async function defaultLoadGa4Snapshot(db: GatherDb, ownerUserId: string, project
   return loadLatestGa4Snapshot(db as unknown as Parameters<typeof loadLatestGa4Snapshot>[0], ownerUserId, projectId);
 }
 
-async function defaultLoadCapTable(db: GatherDb, ownerUserId: string, projectId: string): Promise<CapTableSummary | null> {
+/** Equity register summary — shareholders + esop_pool for (owner, project). Exported for lib/svi/cap-table-input.ts (S-R5). */
+export async function loadCapTableSummary(db: GatherDb, ownerUserId: string, projectId: string): Promise<CapTableSummary | null> {
   const [{ data: holders }, { data: pool }] = await Promise.all([
     db.from("shareholders").select("id, name, role, shares_held, vesting_months").eq("account_id", ownerUserId).eq("project_id", projectId),
     db.from("esop_pool").select("total_pool_shares, pool_pct").eq("account_id", ownerUserId).eq("project_id", projectId).maybeSingle(),
@@ -539,7 +540,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
     db && projectId
       ? run("capTable", async () => {
           const t0 = now();
-          const summary = await (deps.loadCapTable ?? defaultLoadCapTable)(db, ownerUserId, projectId);
+          const summary = await (deps.loadCapTable ?? loadCapTableSummary)(db, ownerUserId, projectId);
           if (summary) {
             results.capTable = { ...summary };
             rows.push(row("cap_table", projectId, "upload", "Cap-table register (shareholders + ESOP pool)", "evidenced", ["cgh", "iri", "lco"], observed, `holders = ${summary.holders}; founders_pct = ${summary.founderPct ?? "?"}; esop_pct = ${summary.esopPct ?? "?"}; investors_pct = ${summary.investorPct ?? "?"}; vesting = ${summary.vestingFlag}`));

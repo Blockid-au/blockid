@@ -49,6 +49,8 @@ import {
 import { findLatestAnalysisWithFallback, findSVIAccountWithFallback, getProjectById } from "@/lib/projects";
 import { fromAssembledReport, fromSnapshot, type SnapshotDimState } from "@/lib/report-v2/adapter";
 import { writeAssembledReportJson, writeSnapshotReportV2 } from "@/lib/report-v2/storage";
+import { loadCapTableInput } from "@/lib/svi/cap-table-input";
+import type { GatherDb } from "@/lib/report-pipeline/gather";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -729,7 +731,9 @@ export async function runTrustReportForProject(args: {
       state: intake.state,
       notes: intake.notes,
     });
-    const analysis = computeSVI(extractSignals({ rawText: rawInput }, undefined, loadEvidenceItems(await loadEvidence(account.id))));
+    // S-R5 §C.7: the equity register feeds CGH (fail-soft: null → keyword score).
+    const capTableInput = await loadCapTableInput(getSupabaseAdmin() as unknown as GatherDb | null, project.userId, project.id);
+    const analysis = computeSVI(extractSignals({ rawText: rawInput }, undefined, loadEvidenceItems(await loadEvidence(account.id))), undefined, undefined, undefined, undefined, undefined, undefined, capTableInput);
     const analysisId = await insertAnalysisRow({ email: ownerEmail, projectId: project.id, rawInput, analysis });
     if (!analysisId) throw new Error("analysis_insert_failed");
     synthesisedAnalysis = true;
@@ -860,7 +864,9 @@ export async function runRescoreForProject(args: {
   }
 
   const evidenceRows = await loadEvidence(account.id);
-  const analysis = computeSVI(extractSignals({ rawText: rawInput }, undefined, loadEvidenceItems(evidenceRows)));
+  // S-R5 §C.7: the equity register feeds CGH (fail-soft: null → keyword score).
+  const capTableInput = await loadCapTableInput(getSupabaseAdmin() as unknown as GatherDb | null, project.userId, project.id);
+  const analysis = computeSVI(extractSignals({ rawText: rawInput }, undefined, loadEvidenceItems(evidenceRows)), undefined, undefined, undefined, undefined, undefined, undefined, capTableInput);
   const analysisId = await insertAnalysisRow({ email: ownerEmail, projectId: project.id, rawInput, analysis });
   if (!analysisId) throw new Error("analysis_insert_failed");
 
