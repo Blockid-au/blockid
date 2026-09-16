@@ -1,3 +1,5 @@
+> **SUPERSEDED 2026-09-16 by [`pitch-deck-v3.md`](../../web/content/pitch/pitch-deck-v3.md)** — prices, ask, audience and entity are stale; kept for history.
+
 # BlockID.au — Investor Pitch Deck v2 (Seed Round Q3 2026)
 
 ## Core Messaging (use across all applications)

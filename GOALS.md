@@ -289,3 +289,9 @@ POST /api/svi/account/create   -- create SVI account (post Founding 50)
 - [ ] Accelerator/partner portal → persona-aware landings (investor / advisor / accelerator) + mandate-driven deal flow on one startup taxonomy
 - [ ] ASIC / legal connectors (unchanged; LCO chapter owner CLO)
 - [ ] Simplified navigation: founder 4 groups + 17 hubs, evaluator 3 groups, one onboarding wizard, one header/footer
+
+### Phase 5 (Trust & integrations) — now tracked as G14 Investor Feedback (`docs/plans/g14-investor-feedback-2026-09-16.md`, SOT § G14)
+- [ ] Partner API / integrations → **G14 S38**: evaluator API v1 (`GET /api/v1/evaluations`, `/[id]/dossier`, `/[id]/assessment`; scoped keys `evaluations:read|write`, `api.access` Fund + Program), OpenAPI at `/developers/api`, webhook destinations Slack / Affinity / Airtable (Zapier = generic endpoint; HubSpot / Notion follow-up)
+- [ ] Verification → **G14 S36**: evidence confidence capped by origin (founder ≤ `document_uploaded`, connector → `connected_source | transaction_data`, reviewer/admin only → `third_party_verified`), L0–L5 verification multiplier 0.85–1.10 in `computeSVI`, reviewer queue `admin/evidence-review`, public `/methodology`, "Verified ABN" badge on report cover / Dossier / index card
+- [ ] Founder feedback loop → **G14 S34** (feedback letter, k ≥ 3 / ≥ 2 orgs) and **S35** (program intake link `/apply/[slug]` + scored inbox)
+- [ ] Calibration & open data → **G14 S39** (backtest v0 at `/methodology/calibration`) and **S40** (ABR / grants / R&DTI signals → evidence + real cohort percentile)
