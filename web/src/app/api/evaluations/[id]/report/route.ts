@@ -233,7 +233,7 @@ async function POST_handler(request: Request, { params }: Ctx) {
   let reportRef: string;
   let shareToken: string | null;
   let svi: number;
-  // S-R4: the ReportV2 the run produced, stored on the evaluation_reports row (0400).
+  // S-R4: the ReportV2 the run produced, stored on the evaluation_reports row (0401).
   let reportV2: ReportV2 | null = null;
   try {
     if (kind === "full") {
@@ -301,7 +301,7 @@ async function POST_handler(request: Request, { params }: Ctx) {
     console.error("[blockid:evaluations:report] evaluation_reports row missing — run not billed", { evaluationId: evaluation.id, reportRef });
   } else if (reportV2) {
     // Best effort: the dossier / evaluator exports render exactly this
-    // document even after the founder re-scores. A missing 0400 column
+    // document even after the founder re-scores. A missing 0401 column
     // logs once and the readers fall back to the snapshot / adapter.
     const db = getSupabaseAdmin();
     if (db) await writeEvaluationReportV2(db, row.id, reportV2);

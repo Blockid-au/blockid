@@ -1,4 +1,4 @@
--- 0400_evaluation_reports_report_v2.sql — G13-W4-R4 (S-R4) evaluator TBR persistence.
+-- 0401_evaluation_reports_report_v2.sql — G13-W4-R4 (S-R4) evaluator TBR persistence.
 --
 -- Spec: docs/plans/investor-clarity-2026-09-15/12-product-ai-tbr-v2.md §F S-R4
 -- ("Migration: evaluation_reports.report_v2 jsonb (or FK to snapshot)").
@@ -15,7 +15,7 @@
 -- UPDATE after the insert, so the migration can land before or after the
 -- code deploy.
 --
--- Apply by hand: scripts/db/apply-migration.sh web/supabase/migrations/0400_evaluation_reports_report_v2.sql
+-- Apply by hand: scripts/db/apply-migration.sh web/supabase/migrations/0401_evaluation_reports_report_v2.sql
 -- (records the ledger row and sends NOTIFY pgrst, 'reload schema').
 -- Idempotent: IF NOT EXISTS everywhere; safe to re-run.
 

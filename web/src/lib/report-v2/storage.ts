@@ -21,7 +21,7 @@ let warnedMissingColumn = false;
 function noteMissingColumn(table: string, column: string, message: string): void {
   if (warnedMissingColumn) return;
   warnedMissingColumn = true;
-  console.warn(`[report-v2] ${table}.${column} unavailable (${message}) — apply web/supabase/migrations/0395_report_v2_columns.sql (svi_snapshots / assembled_reports) or 0400_evaluation_reports_report_v2.sql (evaluation_reports); falling back to the read-time adapter until then.`);
+  console.warn(`[report-v2] ${table}.${column} unavailable (${message}) — apply web/supabase/migrations/0395_report_v2_columns.sql (svi_snapshots / assembled_reports) or 0401_evaluation_reports_report_v2.sql (evaluation_reports); falling back to the read-time adapter until then.`);
 }
 
 function isMissingColumn(message: string | undefined): boolean {
@@ -95,7 +95,7 @@ export async function readAssembledReportJson(db: Db, reportId: string): Promise
   }
 }
 
-/** Best-effort write of `evaluation_reports.report_v2` (migration 0400, S-R4); returns true when stored. */
+/** Best-effort write of `evaluation_reports.report_v2` (migration 0401, S-R4); returns true when stored. */
 export async function writeEvaluationReportV2(db: Db, evaluationReportId: string, report: ReportV2): Promise<boolean> {
   try {
     const { error } = await db.from("evaluation_reports").update({ report_v2: report }).eq("id", evaluationReportId);

@@ -55,7 +55,7 @@ vi.mock("@/lib/report-pipeline/run-for-project", () => ({
   runRescoreForProject: (a: unknown) => runRescoreMock(a),
 }));
 
-// S-R4 — the run's ReportV2 is stored on the evaluation_reports row (0400).
+// S-R4 — the run's ReportV2 is stored on the evaluation_reports row (0401).
 const writeReportV2Mock = vi.fn(async () => true);
 vi.mock("@/lib/report-v2/storage", () => ({ writeEvaluationReportV2: (...a: unknown[]) => writeReportV2Mock(...(a as [])) }));
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => ({ from: () => ({}) }) }));
@@ -170,7 +170,7 @@ describe("POST /api/evaluations/[id]/report", () => {
     json = await (await POST(post({ kind: "full", confirm: true }), ctx())).json();
     expect(json).toMatchObject({ ok: true, via: "quota", credits_spent: 0, remaining_quota: 0, trial: { active: true, allowance: 1 } });
     expect(recordMock).toHaveBeenCalledWith(expect.objectContaining({ paidVia: "quota", creditsCost: 0 }));
-    // S-R4: the run's ReportV2 lands on the billed row (0400), keyed on its id.
+    // S-R4: the run's ReportV2 lands on the billed row (0401), keyed on its id.
     expect(writeReportV2Mock).toHaveBeenCalledWith(expect.anything(), "r-1", expect.objectContaining({ reportId: "rv2-1" }));
 
     previewMock.mockResolvedValue(creditsCost(5));
