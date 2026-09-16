@@ -25,7 +25,7 @@ import { demoReportV2 } from "@/lib/report-v2/fixtures";
 export const dynamic = "force-static";
 
 const TITLE = "Sample Trusted Business Report — BlockID SVI preview";
-const DESCRIPTION = "See a BlockID Trusted Business Report before requesting one from a founder: cover, executive summary, 8 SVI dimension chapters with visuals, valuation range, phase gates and a 90-day plan.";
+const DESCRIPTION = "See a BlockID Trusted Business Report before requesting one: executive summary, 8 SVI dimension chapters with visuals, valuation range, phase gates, 90-day plan.";
 const CANONICAL = "https://blockid.au/tbr/demo";
 
 export const metadata: Metadata = {
