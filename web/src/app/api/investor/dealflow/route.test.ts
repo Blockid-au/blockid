@@ -67,6 +67,14 @@ vi.mock("@/lib/jurisdiction", () => ({
   detectJurisdiction: (req: unknown) => detectJurisdictionMock(req),
 }));
 
+// G13-W3-T2: the route is v2-first (mandate_fit_scores keyed on project_id);
+// these legacy-contract tests run with 0393 "not migrated" so the v1 branch
+// is exercised. The v2 branch is pinned in route.v2.test.ts.
+const getDealFlowV2Mock = vi.fn();
+vi.mock("@/lib/investors/dealflow", () => ({
+  getDealFlowV2: (userId: string, filters: unknown) => getDealFlowV2Mock(userId, filters),
+}));
+
 import { GET, dynamic } from "./route";
 
 const USER = { id: "u-99", email: "angel@example.com", plan: "investor_angel" };
@@ -90,6 +98,7 @@ beforeEach(() => {
   canMock.mockResolvedValue(true);
   recordGateHitMock.mockResolvedValue(undefined);
   getDealFlowMock.mockResolvedValue(ROWS);
+  getDealFlowV2Mock.mockReset().mockResolvedValue({ migrated: false, mandate: null, mandates: [], rows: [], total_above_floor: 0, never_computed: true, views: [] });
   detectJurisdictionMock.mockResolvedValue({
     country: "AU",
     source: "ip",

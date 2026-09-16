@@ -1,21 +1,28 @@
-// /api/investor/dealflow — GET a filtered list of verified startups matched
-// against the current investor's stated preferences.
+// /api/investor/dealflow — GET the investor's deal-flow.
 //
-// Query params (all optional):
-//   ?stage=seed|series_a|...
-//   ?sector=fintech
-//   ?minScore=70
-//   ?jurisdiction=AU
-//   ?limit=50
+// G13-W3-T2 (BA spec Appendix 1): v2 first — rows from `mandate_fit_scores`
+// ⋈ `startup_taxonomy` ⋈ latest snapshot keyed on project_id for the
+// caller's mandate (`?mandate=` or the default), with the §B.8 filter
+// params (industry, model, stage, state, tags, fit, svi, moved, sort — see
+// lib/investors/saved-views.ts `filtersFromSearchParams`). Response
+// `{ ok, version: 2, count, rows, mandate:{id,label}, filters, views,
+// never_computed }`.
 //
-// Feature-gated on 'investor.dealflow'. Preferences are read server-side —
-// the client never has to POST them back on every request.
+// Legacy fallback (`version: 1`, `reason: "not_migrated" | "no_mandate"`)
+// keeps the pre-0393 contract until the mirror is deleted:
+//   ?stage=seed|series_a|...  ?sector=fintech  ?minScore=70
+//   ?jurisdiction=AU  ?limit=50
+//
+// Feature-gated on 'investor.dealflow'. Preferences / mandates are read
+// server-side — the client never POSTs them back on every request.
 
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { can, recordGateHit } from "@/lib/entitlements";
 import { getDealFlow, type StageBand } from "@/lib/investor-portal";
 import { detectJurisdiction } from "@/lib/jurisdiction";
+import { getDealFlowV2 } from "@/lib/investors/dealflow";
+import { filtersFromSearchParams } from "@/lib/investors/saved-views";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +62,25 @@ export async function GET(req: NextRequest) {
   }
 
   const url = new URL(req.url);
+
+  // v2 (0393): mandate-scored rows keyed on project_id.
+  const v2Filters = filtersFromSearchParams(Object.fromEntries(url.searchParams));
+  const v2 = await getDealFlowV2(user.id, v2Filters);
+  if (v2.migrated && v2.mandate) {
+    return NextResponse.json({
+      ok: true,
+      version: 2,
+      count: v2.rows.length,
+      rows: v2.rows,
+      mandate: { id: v2.mandate.id, label: v2.mandate.label },
+      filters: v2Filters,
+      views: v2.views,
+      never_computed: v2.never_computed,
+      total_above_floor: v2.total_above_floor,
+    });
+  }
+  const legacyReason = v2.migrated ? "no_mandate" : "not_migrated";
+
   const stageRaw = (url.searchParams.get("stage") ?? "").trim() as StageBand;
   const sector = (url.searchParams.get("sector") ?? "").trim() || null;
   const jurisdiction =
@@ -82,6 +108,8 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
+    version: 1,
+    reason: legacyReason,
     count: rows.length,
     rows,
     filters: { stage, sector, jurisdiction, minScore, limit },
