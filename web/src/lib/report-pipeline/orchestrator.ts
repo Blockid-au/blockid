@@ -83,7 +83,7 @@ import { DIM_ORDER, DIMENSION_OWNERS, criteriaForDimension, type DimKey } from "
 import { precomputeModules } from "./module-precompute";
 import { GATHER_RESEARCH_CALLS, gatherData, type GatherDeps, type GatherOutput } from "./gather";
 import { buildValuationChapter, type ValuationAskInput, type VcValuationLike } from "./valuation-chapter";
-import { primeComparables } from "@/lib/valuation/comparables-repo";
+import { primeComparables } from "@/lib/valuation/comparables-repo.server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { supabaseChapterCache, type ChapterCache, type ChapterCacheDb } from "./chapter-cache";
 import { applyConsistencyGates } from "./consistency-gates";

@@ -17,7 +17,7 @@
 // `computeReportKpis` is pure (tests); `loadReportKpis` does the reads and
 // degrades to nulls — a missing column / file never breaks the dashboard.
 
-import { comparablesCopyLine, comparablesCounts, primeComparables } from "@/lib/valuation/comparables-repo";
+import { comparablesCopyLine, comparablesCounts, primeComparables } from "@/lib/valuation/comparables-repo.server";
 
 export const GROUNDED_GATE = 0.8;
 export const GROUNDED_TARGET_MEDIAN = 0.85;

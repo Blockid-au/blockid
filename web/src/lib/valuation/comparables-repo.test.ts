@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ getSupabaseAdmin: vi.fn() }));
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => mocks.getSupabaseAdmin() }));
+vi.mock("server-only", () => ({}));
 
 import { AU_COMPARABLES, AU_COMPARABLES_COUNT, AU_COMPARABLES_SOURCE_WINDOW } from "@/lib/data/au-comparables";
 import {
@@ -24,7 +25,7 @@ import {
   sourceWindowOf,
   topComparables,
   type ComparableRaiseRow,
-} from "./comparables-repo";
+} from "./comparables-repo.server";
 
 function row(p: Partial<ComparableRaiseRow> = {}): ComparableRaiseRow {
   return {

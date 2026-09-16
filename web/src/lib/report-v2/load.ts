@@ -17,7 +17,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { fromSnapshot, resolveReportV2, type SnapshotCriterionState, type SnapshotDimState, type SnapshotInput } from "./adapter";
 import { isReportV2, type ReportTierV2, type ReportV2 } from "./schema";
 import { readSnapshotReportV2 } from "./storage";
-import { primeComparables } from "@/lib/valuation/comparables-repo";
+import { primeComparables } from "@/lib/valuation/comparables-repo.server";
 
 type Row = Record<string, unknown>;
 

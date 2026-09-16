@@ -22,7 +22,7 @@ import { ADMIN_EMAIL, getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { loadComparablesQueue, type ComparablesAdminDb, type ComparablesQueue } from "@/lib/valuation/comparables-admin";
 import { INGEST_SOURCES } from "@/lib/valuation/comparables-ingest";
-import { COMPARABLES_MILESTONE, comparablesCopyLine, primeComparables } from "@/lib/valuation/comparables-repo";
+import { COMPARABLES_MILESTONE, comparablesCopyLine, primeComparables } from "@/lib/valuation/comparables-repo.server";
 import { ComparablesReviewClient } from "./comparables-review-client";
 
 export const dynamic = "force-dynamic";

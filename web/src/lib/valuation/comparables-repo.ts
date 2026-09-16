@@ -186,25 +186,34 @@ function tableSnapshot(rows: ComparableRaiseRow[], loadedAt: number | null): Com
  * error leaves the previous cache (or an empty one) in place, and the sync
  * readers fall back to the static set.
  */
+/**
+ * The table loader is injected by `comparables-repo.server.ts` (Supabase) so
+ * this module never reaches `@/lib/supabase` — it is imported by client
+ * bundles (TBR adapter, landing copy) and the client-safe-graph guard walks
+ * dynamic imports too. Without a registered loader the readers stay static.
+ */
+export type ComparablesLoader = () => Promise<ComparableRaiseRow[] | null>;
+let loader: ComparablesLoader | null = null;
+export function registerComparablesLoader(fn: ComparablesLoader | null): void {
+  loader = fn;
+}
+
 export async function primeComparables(opts: { force?: boolean } = {}): Promise<void> {
   if (testRows !== null) return;
   if (!opts.force && !cacheStale()) return;
   if (inflight) return inflight;
   inflight = (async () => {
     try {
-      const { getSupabaseAdmin } = await import("@/lib/supabase");
-      const sb = getSupabaseAdmin();
-      if (!sb) {
+      if (!loader) {
         cache = cache ?? { rows: [], loadedAt: Date.now() };
         return;
       }
-      const { data, error } = await sb.from(COMPARABLES_VERIFIED_VIEW).select("*").order("round_date", { ascending: false }).limit(5000);
-      if (error) {
-        console.warn("[comparables-repo] load failed:", error.message);
+      const rows = await loader();
+      if (rows === null) {
         cache = cache ?? { rows: [], loadedAt: Date.now() };
         return;
       }
-      cache = { rows: (data ?? []) as ComparableRaiseRow[], loadedAt: Date.now() };
+      cache = { rows, loadedAt: Date.now() };
     } catch (err) {
       console.warn("[comparables-repo] load threw:", err instanceof Error ? err.message : String(err));
       cache = cache ?? { rows: [], loadedAt: Date.now() };
