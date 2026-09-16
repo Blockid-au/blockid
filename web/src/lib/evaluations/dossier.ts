@@ -34,7 +34,7 @@ import { MENTOR_ACCESS_TIERS, TIER_RANK, type MentorAccessTier } from "@/lib/men
 import { getTaxonomy } from "@/lib/taxonomy/store";
 import { BUSINESS_MODEL_LABELS, INDUSTRY_LABELS, type StartupTaxonomyRow } from "@/lib/taxonomy/startup-taxonomy";
 import { CANONICAL_STAGE_LABELS, sviStageToCanonical } from "@/lib/journey-vocabulary";
-import { fromSnapshot, resolveReportV2, type SnapshotDimState, type SnapshotCriterionState } from "@/lib/report-v2/adapter";
+import { resolveReportV2, type SnapshotDimState, type SnapshotCriterionState } from "@/lib/report-v2/adapter";
 import { isReportV2, type ReportV2 } from "@/lib/report-v2/schema";
 import { DIMENSION_OWNERS, DIM_ORDER, type DimKey } from "@/lib/report-pipeline/dimension-owners";
 import { CRITERIA, CRITERION_KEYS, type CriterionKey } from "@/lib/evaluation-criteria";
