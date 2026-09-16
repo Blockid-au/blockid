@@ -1,0 +1,292 @@
+{
+  "agent": "TBR-cgh",
+  "version": "2.0.0",
+  "purpose": "Trusted Business Report v2 — Capital & Governance Health chapter (owner CFO, weight 12); W4 dimension-chapter call, spec C.11; bands = ANCHORS p25-p75 at stages 0 / 2 / 4",
+  "cases": [
+    {
+      "id": "case_idea_cgh",
+      "name": "Idea — Capital & Governance Health chapter (CFO owner)",
+      "input": {
+        "dim": "cgh",
+        "weight": 12,
+        "stage": 0,
+        "stageLabel": "Idea",
+        "phaseId": "vision",
+        "benchmark": {
+          "p25": 38,
+          "p50": 50,
+          "p75": 62,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 50,
+        "criterionResults": [
+          {
+            "key": "team_structure",
+            "score": 42,
+            "verdict": "no split agreed",
+            "citations": [],
+            "grounded": false
+          }
+        ],
+        "evidenceRows": [],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "cgh",
+              "benchmarkStage": 0,
+              "p25": 38,
+              "p50": 50,
+              "p75": 62,
+              "deterministicScore": 50
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(cgh)",
+            "output": {
+              "hasCapTable": false,
+              "hasVesting": false,
+              "hasShareholdersAgreement": false,
+              "esopAllocated": false
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 38,
+          "max": 62
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "vesting",
+          "founder split"
+        ],
+        "must_not_hallucinate": [
+          "ESOP pool of 12 %",
+          "SHA signed"
+        ],
+        "must_cite": 0,
+        "primary_visual": {
+          "kind": "donut"
+        }
+      }
+    },
+    {
+      "id": "case_seed_cgh",
+      "name": "Seed — Capital & Governance Health chapter (CFO owner)",
+      "input": {
+        "dim": "cgh",
+        "weight": 12,
+        "stage": 2,
+        "stageLabel": "Seed",
+        "phaseId": "legal_equity",
+        "benchmark": {
+          "p25": 46,
+          "p50": 58,
+          "p75": 70,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 58,
+        "criterionResults": [
+          {
+            "key": "team_structure",
+            "score": 56,
+            "verdict": "SHA with 4y/1y vesting",
+            "citations": [
+              {
+                "evidence_id": "ev-sha-01",
+                "quote": "4-year vesting, 1-year cliff"
+              }
+            ],
+            "grounded": true
+          },
+          {
+            "key": "dataroom",
+            "score": 50,
+            "verdict": "cap table folder present",
+            "citations": [],
+            "grounded": false
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "ev-sha-01",
+            "source": "upload",
+            "status": "evidenced",
+            "label": "Uploaded file: SHA.pdf",
+            "value": "Shareholders agreement; 4-year vesting, 1-year cliff"
+          }
+        ],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "cgh",
+              "benchmarkStage": 2,
+              "p25": 46,
+              "p50": 58,
+              "p75": 70,
+              "deterministicScore": 58
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(cgh)",
+            "output": {
+              "hasCapTable": true,
+              "hasVesting": true,
+              "hasShareholdersAgreement": true,
+              "esopAllocated": false
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 46,
+          "max": 70
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "ESOP pool",
+          "cap table model"
+        ],
+        "must_not_hallucinate": [
+          "Series A closed"
+        ],
+        "must_cite": 1,
+        "primary_visual": {
+          "kind": "donut"
+        }
+      }
+    },
+    {
+      "id": "case_series_a_cgh",
+      "name": "Series A — Capital & Governance Health chapter (CFO owner)",
+      "input": {
+        "dim": "cgh",
+        "weight": 12,
+        "stage": 4,
+        "stageLabel": "Series A",
+        "phaseId": "funding",
+        "benchmark": {
+          "p25": 56,
+          "p50": 68,
+          "p75": 80,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 68,
+        "criterionResults": [
+          {
+            "key": "team_structure",
+            "score": 70,
+            "verdict": "board of 3, one independent",
+            "citations": [
+              {
+                "evidence_id": "ev-reg-01",
+                "quote": "founders 61%"
+              }
+            ],
+            "grounded": true
+          },
+          {
+            "key": "dataroom",
+            "score": 68,
+            "verdict": "register + ESOP deed uploaded",
+            "citations": [
+              {
+                "evidence_id": "ev-reg-01",
+                "quote": "ESOP 10%"
+              }
+            ],
+            "grounded": true
+          },
+          {
+            "key": "team",
+            "score": 66,
+            "verdict": "ESOP grants issued to 6 staff",
+            "citations": [],
+            "grounded": false
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "ev-reg-01",
+            "source": "upload",
+            "status": "evidenced",
+            "label": "Uploaded file: cap-table.xlsx",
+            "value": "founders 61%; ESOP 10%; investors 29%"
+          }
+        ],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "cgh",
+              "benchmarkStage": 4,
+              "p25": 56,
+              "p50": 68,
+              "p75": 80,
+              "deterministicScore": 68
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(cgh)",
+            "output": {
+              "hasCapTable": true,
+              "hasVesting": true,
+              "hasShareholdersAgreement": true,
+              "esopAllocated": true,
+              "hasBoardCadence": true
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 56,
+          "max": 80
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "dilution",
+          "board"
+        ],
+        "must_not_hallucinate": [
+          "dead equity"
+        ],
+        "must_cite": 1,
+        "primary_visual": {
+          "kind": "donut"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,273 @@
+{
+  "agent": "TBR-iri",
+  "version": "2.0.0",
+  "purpose": "Trusted Business Report v2 — Investor Readiness Index chapter (owner CLO, weight 10); W4 dimension-chapter call, spec C.11; bands = ANCHORS p25-p75 at stages 0 / 2 / 4",
+  "cases": [
+    {
+      "id": "case_idea_iri",
+      "name": "Idea — Investor Readiness Index chapter (CLO owner)",
+      "input": {
+        "dim": "iri",
+        "weight": 10,
+        "stage": 0,
+        "stageLabel": "Idea",
+        "phaseId": "vision",
+        "benchmark": {
+          "p25": 28,
+          "p50": 40,
+          "p75": 52,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 40,
+        "criterionResults": [],
+        "evidenceRows": [],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "iri",
+              "benchmarkStage": 0,
+              "p25": 28,
+              "p50": 40,
+              "p75": 52,
+              "deterministicScore": 40
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(iri)",
+            "output": {
+              "hasPitchDeck": false,
+              "hasFinancialModel": false,
+              "hasDataRoom": false
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 28,
+          "max": 52
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "deck",
+          "one-pager"
+        ],
+        "must_not_hallucinate": [
+          "data room 85 %",
+          "term sheet"
+        ],
+        "must_cite": 0,
+        "primary_visual": {
+          "kind": "heat_map"
+        }
+      }
+    },
+    {
+      "id": "case_seed_iri",
+      "name": "Seed — Investor Readiness Index chapter (CLO owner)",
+      "input": {
+        "dim": "iri",
+        "weight": 10,
+        "stage": 2,
+        "stageLabel": "Seed",
+        "phaseId": "pitch",
+        "benchmark": {
+          "p25": 43,
+          "p50": 55,
+          "p75": 67,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 55,
+        "criterionResults": [
+          {
+            "key": "documents",
+            "score": 52,
+            "verdict": "deck + one-pager current",
+            "citations": [
+              {
+                "evidence_id": "ev-deck-01",
+                "quote": "12 slides"
+              }
+            ],
+            "grounded": true
+          },
+          {
+            "key": "dataroom",
+            "score": 48,
+            "verdict": "data room 35 % complete",
+            "citations": [],
+            "grounded": false
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "ev-deck-01",
+            "source": "upload",
+            "status": "evidenced",
+            "label": "Uploaded file: deck.pdf",
+            "value": "12 slides; ask A$1.2M"
+          }
+        ],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "iri",
+              "benchmarkStage": 2,
+              "p25": 43,
+              "p50": 55,
+              "p75": 67,
+              "deterministicScore": 55
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(iri)",
+            "output": {
+              "hasPitchDeck": true,
+              "hasFinancialModel": false,
+              "hasDataRoom": true
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 43,
+          "max": 67
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "data room",
+          "financial model"
+        ],
+        "must_not_hallucinate": [
+          "references from investors"
+        ],
+        "must_cite": 1,
+        "primary_visual": {
+          "kind": "heat_map"
+        }
+      }
+    },
+    {
+      "id": "case_series_a_iri",
+      "name": "Series A — Investor Readiness Index chapter (CLO owner)",
+      "input": {
+        "dim": "iri",
+        "weight": 10,
+        "stage": 4,
+        "stageLabel": "Series A",
+        "phaseId": "investor_review",
+        "benchmark": {
+          "p25": 60,
+          "p50": 72,
+          "p75": 84,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 72,
+        "criterionResults": [
+          {
+            "key": "documents",
+            "score": 76,
+            "verdict": "model actual-vs-plan",
+            "citations": [
+              {
+                "evidence_id": "ev-dr-01",
+                "quote": "78% complete"
+              }
+            ],
+            "grounded": true
+          },
+          {
+            "key": "dataroom",
+            "score": 74,
+            "verdict": "eight folders present",
+            "citations": [
+              {
+                "evidence_id": "ev-dr-01",
+                "quote": "8 folders"
+              }
+            ],
+            "grounded": true
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "ev-dr-01",
+            "source": "upload",
+            "status": "evidenced",
+            "label": "Data room index",
+            "value": "8 folders; 78% complete; ESIC self-assessment done"
+          }
+        ],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "iri",
+              "benchmarkStage": 4,
+              "p25": 60,
+              "p50": 72,
+              "p75": 84,
+              "deterministicScore": 72
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(iri)",
+            "output": {
+              "hasPitchDeck": true,
+              "hasFinancialModel": true,
+              "hasDataRoom": true
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 60,
+          "max": 84
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "DD",
+          "ESIC"
+        ],
+        "must_not_hallucinate": [
+          "oversubscribed"
+        ],
+        "must_cite": 1,
+        "primary_visual": {
+          "kind": "heat_map"
+        }
+      }
+    }
+  ]
+}

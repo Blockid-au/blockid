@@ -1,0 +1,289 @@
+{
+  "agent": "TBR-mpc",
+  "version": "2.0.0",
+  "purpose": "Trusted Business Report v2 — Market Pull & Category chapter (owner CMO, weight 18); W4 dimension-chapter call, spec C.11; bands = ANCHORS p25-p75 at stages 0 / 2 / 4",
+  "cases": [
+    {
+      "id": "case_idea_mpc",
+      "name": "Idea — Market Pull & Category chapter (CMO owner)",
+      "input": {
+        "dim": "mpc",
+        "weight": 18,
+        "stage": 0,
+        "stageLabel": "Idea",
+        "phaseId": "vision",
+        "benchmark": {
+          "p25": 38,
+          "p50": 50,
+          "p75": 62,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 50,
+        "criterionResults": [
+          {
+            "key": "idea",
+            "score": 48,
+            "verdict": "problem stated, no sizing",
+            "citations": [],
+            "grounded": false
+          }
+        ],
+        "evidenceRows": [],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "mpc",
+              "benchmarkStage": 0,
+              "p25": 38,
+              "p50": 50,
+              "p75": 62,
+              "deterministicScore": 50
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(mpc)",
+            "output": {
+              "marketSize": "unknown",
+              "problemClarity": "vague",
+              "hasCustomerInterviews": false
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 38,
+          "max": 62
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "problem interviews",
+          "persona"
+        ],
+        "must_not_hallucinate": [
+          "TAM of A$4B",
+          "SOM captured"
+        ],
+        "must_cite": 0,
+        "primary_visual": {
+          "kind": "funnel"
+        }
+      }
+    },
+    {
+      "id": "case_seed_mpc",
+      "name": "Seed — Market Pull & Category chapter (CMO owner)",
+      "input": {
+        "dim": "mpc",
+        "weight": 18,
+        "stage": 2,
+        "stageLabel": "Seed",
+        "phaseId": "customer_dev",
+        "benchmark": {
+          "p25": 46,
+          "p50": 58,
+          "p75": 70,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 58,
+        "criterionResults": [
+          {
+            "key": "market",
+            "score": 58,
+            "verdict": "bottom-up SAM A$310M from 41k SMEs",
+            "citations": [
+              {
+                "evidence_id": "ev-mkt-01",
+                "quote": "41,000 eligible SMEs"
+              }
+            ],
+            "grounded": true
+          },
+          {
+            "key": "gtm_strategy",
+            "score": 52,
+            "verdict": "accountant partner channel",
+            "citations": [],
+            "grounded": false
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "ev-mkt-01",
+            "source": "upload",
+            "status": "evidenced",
+            "label": "Deck market slide",
+            "value": "41,000 eligible SMEs × A$7,500 ACV = SAM A$310M"
+          }
+        ],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "mpc",
+              "benchmarkStage": 2,
+              "p25": 46,
+              "p50": 58,
+              "p75": 70,
+              "deterministicScore": 58
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(mpc)",
+            "output": {
+              "marketSize": "medium",
+              "problemClarity": "clear",
+              "hasCustomerInterviews": true
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 46,
+          "max": 70
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "bottom-up SAM",
+          "competitor"
+        ],
+        "must_not_hallucinate": [
+          "category leader"
+        ],
+        "must_cite": 1,
+        "primary_visual": {
+          "kind": "funnel"
+        }
+      }
+    },
+    {
+      "id": "case_series_a_mpc",
+      "name": "Series A — Market Pull & Category chapter (CMO owner)",
+      "input": {
+        "dim": "mpc",
+        "weight": 18,
+        "stage": 4,
+        "stageLabel": "Series A",
+        "phaseId": "go_to_market",
+        "benchmark": {
+          "p25": 58,
+          "p50": 70,
+          "p75": 82,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 70,
+        "criterionResults": [
+          {
+            "key": "market",
+            "score": 72,
+            "verdict": "SAM cross-checked with ABS",
+            "citations": [
+              {
+                "evidence_id": "ev-mkt-02",
+                "quote": "ABS 8165.0"
+              }
+            ],
+            "grounded": true
+          },
+          {
+            "key": "gtm_strategy",
+            "score": 70,
+            "verdict": "CAC by channel known; partner 60 %",
+            "citations": [
+              {
+                "evidence_id": "ev-ga4-01",
+                "quote": "partner referrals 60 %"
+              }
+            ],
+            "grounded": true
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "ev-mkt-02",
+            "source": "url",
+            "status": "evidenced",
+            "label": "ABS industry table",
+            "value": "ABS 8165.0 counts 2,590,000 businesses"
+          },
+          {
+            "id": "ev-ga4-01",
+            "source": "ga4",
+            "status": "evidenced",
+            "observedAt": "2026-08-30",
+            "label": "GA4 channel mix",
+            "value": "partner referrals 60 %; organic 25 %; paid 15 %"
+          }
+        ],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "mpc",
+              "benchmarkStage": 4,
+              "p25": 58,
+              "p50": 70,
+              "p75": 82,
+              "deterministicScore": 70
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(mpc)",
+            "output": {
+              "marketSize": "large",
+              "problemClarity": "validated",
+              "hasCustomerInterviews": true
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 58,
+          "max": 82
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "channel CAC",
+          "share of SOM"
+        ],
+        "must_not_hallucinate": [
+          "monopoly"
+        ],
+        "must_cite": 1,
+        "primary_visual": {
+          "kind": "funnel"
+        }
+      }
+    }
+  ]
+}

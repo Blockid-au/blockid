@@ -9,10 +9,10 @@
 // This table replaces the three rubric copies the plan found (§0 row 7 /
 // §B.11): `DIM_META` in api/svi/dimensions/stream, `DIMENSION_INFO` in
 // api/svi/dimension-analyze and the CDO stage medians in agent-prompts. The
-// first two now derive from `promptCopy` below (byte-identical prompt text —
-// prompt *content* changes are S-R2); the CDO medians block is left in
-// agent-prompts with a TODO(S-R2) because replacing the numbers changes the
-// prompt.
+// first two still derive from `promptCopy` below until S-R3 rewrites the
+// routes; the CDO stage-medians block in agent-prompts was deleted in S-R2 —
+// every rubric number now comes from `benchmarkFor()` (svi-dimension-benchmarks
+// ANCHORS) and every qualitative anchor from `rubric` below.
 //
 // Pure module: no I/O. Benchmarks come from svi-dimension-benchmarks.ts
 // (ANCHORS p50 ± spread); phase floors from growth/phase-gate.ts
@@ -21,9 +21,20 @@
 import type { CriterionKey } from "@/lib/evaluation-criteria";
 import type { GrowthPhaseId } from "@/lib/growth/phase-taxonomy";
 import type { ChartTypeV2 } from "@/lib/report-visuals/types";
+import { DIMENSION_BENCHMARKS_BY_STAGE } from "@/lib/svi-dimension-benchmarks";
 import type { AgentRole } from "./types";
 
 export type DimKey = "tre" | "mpc" | "ftv" | "ptd" | "cgh" | "iri" | "lco" | "svm";
+
+/** Keys into `.claude/knowledge-base/**.md` (resolved by knowledge-loader.ts). */
+export type KnowledgeKey = "svi-framework" | "esop-expertise" | "valuation-methods" | "blockid-profile";
+
+export const KNOWLEDGE_FILES: Record<KnowledgeKey, string> = {
+  "svi-framework": "svi-scoring/svi-framework.md",
+  "esop-expertise": "esop/esop-expertise.md",
+  "valuation-methods": "valuation/valuation-methods.md",
+  "blockid-profile": "blockid-self-analysis/blockid-profile.md",
+};
 
 /** Weight order — the ReportV2 chapter order (§A.1). */
 export const DIM_ORDER: readonly DimKey[] = ["tre", "mpc", "ftv", "ptd", "cgh", "iri", "lco", "svm"];
@@ -67,6 +78,14 @@ export interface DimensionOwner {
   allowedVisuals: ChartTypeV2[];
   /** Free tier renders chapters 2–5 in full, 6–9 as one-card summaries. */
   freeTier: "full" | "card";
+  /** `.claude/knowledge-base` files injected into the owner prompt (§C.2, ≤ 2 used). */
+  knowledge: KnowledgeKey[];
+  /** Chapter output template the owner agent follows (§B.1–B.8 "Template"). */
+  outputTemplate: string;
+  /** Qualitative rubric anchors (§B.11) — what p25 / p50 / p75 look like. */
+  rubric: { p25: string; p50: string; p75: string };
+  /** What the owner asks for at each growth phase (§B.1–B.8 "Phase behaviour"). */
+  phaseBehaviour: Partial<Record<GrowthPhaseId, string>>;
   /**
    * Verbatim prompt strings the two legacy routes used before this table
    * existed. Kept byte-identical so S-R1 changes no prompt; S-R2 replaces
@@ -108,6 +127,20 @@ export const DIMENSION_OWNERS: Record<DimKey, DimensionOwner> = {
     secondaryVisual: "bar",
     allowedVisuals: ["heat_map", "bar", "radar"],
     freeTier: "full",
+    knowledge: ["esop-expertise", "svi-framework"],
+    outputTemplate: "verdict → TeamCompletenessHeatmap → founder-fit bars → evidence (LinkedIn / GitHub / uploads) → cards founder_profile, team, team_structure → strengths / gaps / next action → stamp",
+    rubric: {
+      p25: "solo, part-time, no domain history",
+      p50: "2 founders, one domain expert, vesting agreed · key roles covered · leadership bench forming",
+      p75: "complementary trio, prior exit / operator, full-time, advisory board · hiring plan funded · low key-person risk",
+    },
+    phaseBehaviour: {
+      vision: "solo vs co-founder, commitment %",
+      mentor_review: "skills gap, next 3 hires, equity split",
+      team: "skills gap, next 3 hires, equity split; floor ftv 60",
+      growth: "leadership bench, ESOP coverage, retention",
+      funding: "leadership bench, ESOP coverage, retention",
+    },
     promptCopy: {
       streamLabel: "Founder & Team Value",
       streamDescription:
@@ -150,6 +183,20 @@ export const DIMENSION_OWNERS: Record<DimKey, DimensionOwner> = {
     secondaryVisual: "positioning_2x2",
     allowedVisuals: ["funnel", "positioning_2x2", "bar"],
     freeTier: "full",
+    knowledge: ["svi-framework"],
+    outputTemplate: "verdict → TAM/SAM/SOM funnel → competitor 2×2 → evidence → cards market, gtm_strategy, idea → strengths / gaps / next action → stamp",
+    rubric: {
+      p25: "problem stated, no sizing · TAM top-down only · SAM unverified",
+      p50: "persona + pain evidence · bottom-up SAM, 3 named competitors · category narrative, channel CAC known",
+      p75: "problem-severity quantified (spend today) · SAM cross-checked, 2×2 with wedge · share-of-SOM trajectory, why-now evidenced",
+    },
+    phaseBehaviour: {
+      vision: "problem interviews ≥ 10, persona, pain top-3, WTP; floor mpc 40",
+      customer_dev: "problem interviews ≥ 10, persona, pain top-3, WTP; floor mpc 55",
+      revenue_model: "SAM bottom-up, competitor 2×2",
+      pitch: "SAM bottom-up, competitor 2×2",
+      go_to_market: "channel CAC, share of SOM, category narrative",
+    },
     promptCopy: {
       streamLabel: "Market & Problem Clarity",
       streamDescription:
@@ -186,6 +233,19 @@ export const DIMENSION_OWNERS: Record<DimKey, DimensionOwner> = {
     secondaryVisual: "gauge",
     allowedVisuals: ["bar", "gauge", "checklist", "progress"],
     freeTier: "full",
+    knowledge: ["svi-framework"],
+    outputTemplate: "verdict → RepoHealthBars → CWV gauge → evidence → cards code_git, website → CISO security card (deterministic) → strengths / gaps / next action → stamp",
+    rubric: {
+      p25: "slides only · repo dormant, no tests · no CI, CWV poor",
+      p50: "clickable prototype · MVP live, tests + CI, CWV OK · SLOs, security plan, Essential Eight ML1",
+      p75: "working demo with users · integrations, proprietary data, ML2 · scalable infra, IP filed",
+    },
+    phaseBehaviour: {
+      vision: "prototype / no-code is fine, ask for a demo link",
+      customer_dev: "prototype / no-code is fine, ask for a demo link",
+      product_dev: "MVP scope, architecture, security plan; floor ptd 55",
+      growth: "scalability, SLOs, incident process",
+    },
     promptCopy: {
       streamLabel: "Product & Tech Depth",
       streamDescription:
@@ -228,6 +288,21 @@ export const DIMENSION_OWNERS: Record<DimKey, DimensionOwner> = {
     secondaryVisual: "funnel",
     allowedVisuals: ["sparkline", "funnel", "bar", "line"],
     freeTier: "full",
+    knowledge: ["svi-framework", "valuation-methods"],
+    outputTemplate: "verdict → RevenueSparkline → AARRR funnel → evidence table (Stripe / Xero / GA4 rows with freshness) → cards customer_size, revenue → strengths / gaps → next action (Connect Stripe: +X TRE, +Y SVI) → stamp",
+    rubric: {
+      p25: "idea: no interviews · seed: under A$2k MRR, no cohort data · A: under A$40k MRR, flat",
+      p50: "idea: 10+ interviews, waitlist · seed: A$5–15k MRR, 5–8 % MoM · A: A$80–150k MRR, NRR ≈ 100 %",
+      p75: "idea: LOIs / paid pilots · seed: over A$20k MRR, ≥ 10 % MoM, churn under 3 % · A: over A$200k MRR, NRR over 110 %, burn multiple under 1.5",
+    },
+    phaseBehaviour: {
+      vision: "interview count, LOIs, waitlist, willingness-to-pay",
+      customer_dev: "interview count, LOIs, waitlist, willingness-to-pay",
+      revenue_model: "first paying customers, pricing tested, MoM growth; floor tre 40",
+      go_to_market: "first paying customers, pricing tested, MoM growth; floor tre 55",
+      growth: "MRR ≥ A$50k, NRR over 100 %, cohort curves, pipeline coverage 3×; floor tre 70",
+      funding: "MRR ≥ A$50k, NRR over 100 %, cohort curves, pipeline coverage 3×",
+    },
     promptCopy: {
       streamLabel: "Traction & Revenue Evidence",
       streamDescription:
@@ -264,6 +339,19 @@ export const DIMENSION_OWNERS: Record<DimKey, DimensionOwner> = {
     secondaryVisual: "line",
     allowedVisuals: ["donut", "line", "bar"],
     freeTier: "card",
+    knowledge: ["esop-expertise", "valuation-methods"],
+    outputTemplate: "verdict → CapTableDonut (actual or target) → DilutionPath → evidence (register / uploads) → cards team, dataroom, team_structure (CGH lens) → strengths / gaps / next action → stamp",
+    rubric: {
+      p25: "no split agreed · no SHA, no ESOP, SAFE stack messy · founders under 40 %",
+      p50: "split + vesting · SHA, ESOP pool reserved, clean register · board with independent seat",
+      p75: "ESOP 10–15 % granted, dilution modelled 2 rounds · information rights, D&O, board cadence · governance ready for institutional",
+    },
+    phaseBehaviour: {
+      vision: "founder split, vesting agreed?",
+      revenue_model: "founder split, vesting agreed?",
+      legal_equity: "SHA, ESOP pool reserved, cap table model; floor cgh 50",
+      funding: "round modelling, dilution ≤ 20–25 % per round, board seat plan; floor cgh 65",
+    },
     promptCopy: {
       streamLabel: "Cap Table & Governance",
       streamDescription:
@@ -298,6 +386,18 @@ export const DIMENSION_OWNERS: Record<DimKey, DimensionOwner> = {
     secondaryVisual: "progress",
     allowedVisuals: ["heat_map", "progress", "checklist"],
     freeTier: "card",
+    knowledge: ["valuation-methods", "svi-framework"],
+    outputTemplate: "verdict → DataRoomHeatmap → readiness ring → evidence → cards documents, dataroom → strengths / gaps / next action → stamp",
+    rubric: {
+      p25: "no deck · data room under 30 % · prior raise undocumented",
+      p50: "one-pager + deck · data room 60–70 %, model actual-vs-plan · ESIC / s708 checked",
+      p75: "DD-ready room ≥ 85 %, references, ask aligned with consensus valuation",
+    },
+    phaseBehaviour: {
+      pitch: "deck + one-pager; floor iri 45",
+      investor_review: "data room ≥ 70 %, model actual-vs-plan; floor iri 65",
+      funding: "full DD set, ESIC / s708 letters; floor iri 75",
+    },
     promptCopy: {
       streamLabel: "Investor Readiness Index",
       streamDescription:
@@ -334,6 +434,19 @@ export const DIMENSION_OWNERS: Record<DimKey, DimensionOwner> = {
     secondaryVisual: "heat_map",
     allowedVisuals: ["checklist", "heat_map", "progress"],
     freeTier: "card",
+    knowledge: ["svi-framework"],
+    outputTemplate: "verdict → ComplianceChecklist progress → risk heat map → evidence → card documents (LCO lens) → strengths / gaps / next action → stamp",
+    rubric: {
+      p25: "no ABN / ACN · no IP assignment, no privacy policy",
+      p50: "ACN, IP assigned, privacy policy, contractor agreements · GST registered, R&D registered",
+      p75: "Essential Eight ML2, breach plan, trademark registered, contract templates reviewed",
+    },
+    phaseBehaviour: {
+      vision: "ABN / ACN only",
+      legal_equity: "IP assignment, SHA, privacy policy; floor lco 45",
+      growth: "Essential Eight ML2, data-breach plan, contract templates",
+      funding: "Essential Eight ML2, data-breach plan, contract templates",
+    },
     promptCopy: {
       streamLabel: "Legal & Compliance",
       streamDescription:
@@ -368,6 +481,19 @@ export const DIMENSION_OWNERS: Record<DimKey, DimensionOwner> = {
     secondaryVisual: "timeline",
     allowedVisuals: ["radar", "timeline", "bar"],
     freeTier: "card",
+    knowledge: ["blockid-profile", "svi-framework"],
+    outputTemplate: "verdict → MoatRadar → exit timeline → evidence → card roadmap (+ idea lens) → strengths / gaps / next action → stamp",
+    rubric: {
+      p25: "vision statement only · moat unnamed",
+      p50: "3-year picture, one moat factor evidenced · exit path plausible",
+      p75: "2+ moat factors with data, category thesis, named acquirer categories with AU precedent",
+    },
+    phaseBehaviour: {
+      vision: "vision statement, 3-year picture",
+      mentor_review: "pivot / persevere",
+      growth: "moat evidence (data, integrations), exit path with named acquirer categories",
+      funding: "moat evidence (data, integrations), exit path with named acquirer categories",
+    },
     promptCopy: {
       streamLabel: "Strategic Vision & Moat",
       streamDescription:
@@ -401,6 +527,24 @@ export function dimensionOwner(dim: DimKey): DimensionOwner {
 export function criteriaForDimension(dim: DimKey): CriterionKey[] {
   const o = DIMENSION_OWNERS[dim];
   return Array.from(new Set([...o.primaryCriteria, ...o.secondaryCriteria]));
+}
+
+/**
+ * Static p25 / p50 / p75 for a dimension at a benchmark stage (0 idea … 7
+ * late) — the §B.11 table, read from svi-dimension-benchmarks.ts ANCHORS so
+ * the numbers live in exactly one place. Cohort percentiles (N ≥ 30)
+ * override these at run time.
+ */
+export function benchmarkFor(dim: DimKey, stage: number): { p25: number; p50: number; p75: number } {
+  const s = Math.max(0, Math.min(7, Math.round(Number.isFinite(stage) ? stage : 2)));
+  return DIMENSION_BENCHMARKS_BY_STAGE[dim]?.[s] ?? { p25: 38, p50: 50, p75: 62 };
+}
+
+/** SVI-analysis stage (0 Concept … 7 Corporation) → benchmark stage (0 idea … 7 late). */
+const SVI_STAGE_TO_BENCH = [0, 1, 2, 3, 3, 4, 5, 7] as const;
+export function benchmarkStageForSvi(stage: number): number {
+  const i = Math.max(0, Math.min(7, Math.round(Number.isFinite(stage) ? stage : 2)));
+  return SVI_STAGE_TO_BENCH[i];
 }
 
 /** Weights as a plain record (sums to 100). */

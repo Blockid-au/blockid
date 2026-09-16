@@ -5,6 +5,7 @@
 // This structure drives both internal platform operations and customer report generation.
 
 import type { CriterionKey } from "@/lib/evaluation-criteria";
+import { DIM_ORDER, DIMENSION_OWNERS, type DimKey } from "@/lib/report-pipeline/dimension-owners";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -302,6 +303,38 @@ export const CEO_GOAL_TREE: AgentGoal = {
     },
   ],
 };
+
+// ── Dimension-owner research topics (G13-W2-R2, spec §B.1–B.8) ──────────────
+//
+// Every dimension owner self-researches the topics its chapter needs (TRE →
+// CRO: AU SaaS benchmark refresh, NRR medians …; CGH → CFO: ESS Division 83A,
+// AU SAFE norms …). The single source is `DIMENSION_OWNERS[dim].researchTopics`;
+// they are merged into the owner goal here so the agent-research cron and the
+// goal tree never drift from the ownership table.
+
+/** Dimensions a role owns (primary), in chapter order. */
+export function dimensionsOwnedBy(agentId: string): DimKey[] {
+  return DIM_ORDER.filter((dim) => DIMENSION_OWNERS[dim].primary === agentId);
+}
+
+/** Research topics from every dimension the role owns, deduplicated. */
+export function ownedDimensionResearchTopics(agentId: string): string[] {
+  const out: string[] = [];
+  dimensionsOwnedBy(agentId).forEach((dim) => {
+    DIMENSION_OWNERS[dim].researchTopics.forEach((t) => {
+      if (!out.includes(t)) out.push(t);
+    });
+  });
+  return out;
+}
+
+function mergeOwnedResearchTopics(goal: AgentGoal): void {
+  ownedDimensionResearchTopics(goal.agent).forEach((t) => {
+    if (!goal.researchTopics.includes(t)) goal.researchTopics.push(t);
+  });
+  goal.subGoals.forEach(mergeOwnedResearchTopics);
+}
+mergeOwnedResearchTopics(CEO_GOAL_TREE);
 
 // ── Lookup Helpers ──────────────────────────────────────────────────────────
 

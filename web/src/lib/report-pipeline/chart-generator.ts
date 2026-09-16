@@ -7,9 +7,25 @@
 //
 // The pipeline tries AI images first, falls back to Mermaid/SVG.
 
-import type { VisualSpec, ChartType, AgentRole, ReportContext } from "./types";
-import type { CriterionKey } from "@/lib/evaluation-criteria";
+import type { VisualSpec, ChartType, AgentRole, ReportContext, AgentAnalysisResult } from "./types";
 import { CRITERIA } from "@/lib/evaluation-criteria";
+import { makeVisual, type VisualSpecV2 } from "@/lib/report-visuals";
+import { benchmarkFor, benchmarkStageForSvi, isDimKey } from "./dimension-owners";
+
+// G13-W2-R2 (spec §C.4): the W4 chapter visuals are deterministic
+// `VisualSpecV2`s built from module outputs / evidence numbers — see
+// charts-v2.ts. Re-exported here so the pipeline keeps one chart entry point.
+export {
+  generateChartsV2,
+  checkProvenance,
+  evidenceNumbers,
+  numberTraceable,
+  proposalToData,
+  type ChapterVisualDraft,
+  type ChartsV2Result,
+  type LlmVisualProposal,
+  type ProvenanceReport,
+} from "./charts-v2";
 
 // ── Chart Definitions per Section ───────────────────────────────────────────
 
@@ -460,4 +476,30 @@ export function renderHeatMapSVG(data: {
   ${riskDots.join("\n  ")}
   ${xLabels.join("\n  ")}
 </svg>`;
+}
+
+// ── Criterion-level visual (W1–W3 results) ──────────────────────────────────
+
+/**
+ * The one deterministic visual every criterion result carries: its score
+ * against the stage p25 / p50 / p75 of its primary dimension. Replaces the
+ * three `visuals: []` sites in agent-dispatcher (G13-W2-R2); the W4 chapter
+ * visuals come from `generateChartsV2`.
+ */
+export function generateCriterionVisual(context: ReportContext, result: Pick<AgentAnalysisResult, "criterion" | "agentRole" | "score" | "degraded">): VisualSpecV2 {
+  const def = CRITERIA.find((c) => c.key === result.criterion);
+  const dim = def && isDimKey(def.primaryDimension) ? def.primaryDimension : undefined;
+  const bench = dim ? benchmarkFor(dim, benchmarkStageForSvi(context.stage)) : { p25: 38, p50: 50, p75: 62 };
+  const score = Math.max(0, Math.min(100, Math.round(Number.isFinite(result.score) ? result.score : 0)));
+  return makeVisual({
+    id: `crit-${result.criterion}-score`,
+    kind: "bar",
+    dim,
+    agentId: result.agentRole,
+    title: `${def?.title ?? result.criterion} — score vs stage benchmark`,
+    subtitle: result.degraded ? "Unvalidated analysis — score is indicative" : `Stage p25 ${bench.p25} · p50 ${bench.p50} · p75 ${bench.p75}`,
+    dataState: result.degraded ? "partial" : "benchmark_only",
+    data: { bars: [{ label: "Score", value: score, reference: bench.p50 }, { label: "Stage p25", value: bench.p25 }, { label: "Stage p75", value: bench.p75 }], max: 100, referenceLabel: `stage p50 (${bench.p50})` },
+    a11y: { tableFallback: [{ metric: "score", value: score }, { metric: "p25", value: bench.p25 }, { metric: "p50", value: bench.p50 }, { metric: "p75", value: bench.p75 }] },
+  });
 }

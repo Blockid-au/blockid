@@ -1,0 +1,263 @@
+{
+  "agent": "TBR-lco",
+  "version": "2.0.0",
+  "purpose": "Trusted Business Report v2 — Legal & Compliance chapter (owner CLO, weight 8); W4 dimension-chapter call, spec C.11; bands = ANCHORS p25-p75 at stages 0 / 2 / 4",
+  "cases": [
+    {
+      "id": "case_idea_lco",
+      "name": "Idea — Legal & Compliance chapter (CLO owner)",
+      "input": {
+        "dim": "lco",
+        "weight": 8,
+        "stage": 0,
+        "stageLabel": "Idea",
+        "phaseId": "vision",
+        "benchmark": {
+          "p25": 36,
+          "p50": 48,
+          "p75": 60,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 48,
+        "criterionResults": [
+          {
+            "key": "documents",
+            "score": 38,
+            "verdict": "no ABN yet",
+            "citations": [],
+            "grounded": false
+          }
+        ],
+        "evidenceRows": [],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "lco",
+              "benchmarkStage": 0,
+              "p25": 36,
+              "p50": 48,
+              "p75": 60,
+              "deterministicScore": 48
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(lco)",
+            "output": {
+              "hasABN": false,
+              "hasIPProtection": false,
+              "hasLegalDocs": false
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 36,
+          "max": 60
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "ABN",
+          "ACN"
+        ],
+        "must_not_hallucinate": [
+          "trademark registered",
+          "Essential Eight ML2"
+        ],
+        "must_cite": 0,
+        "primary_visual": {
+          "kind": "checklist"
+        }
+      }
+    },
+    {
+      "id": "case_seed_lco",
+      "name": "Seed — Legal & Compliance chapter (CLO owner)",
+      "input": {
+        "dim": "lco",
+        "weight": 8,
+        "stage": 2,
+        "stageLabel": "Seed",
+        "phaseId": "legal_equity",
+        "benchmark": {
+          "p25": 46,
+          "p50": 58,
+          "p75": 70,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 58,
+        "criterionResults": [
+          {
+            "key": "documents",
+            "score": 56,
+            "verdict": "ACN, IP assigned, privacy policy live",
+            "citations": [
+              {
+                "evidence_id": "ev-abn-01",
+                "quote": "ACN 659 615 111"
+              }
+            ],
+            "grounded": true
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "ev-abn-01",
+            "source": "url",
+            "status": "evidenced",
+            "label": "ABN lookup",
+            "value": "ACN 659 615 111; GST registered: no"
+          }
+        ],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "lco",
+              "benchmarkStage": 2,
+              "p25": 46,
+              "p50": 58,
+              "p75": 70,
+              "deterministicScore": 58
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(lco)",
+            "output": {
+              "hasABN": true,
+              "hasIPProtection": true,
+              "hasLegalDocs": true
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 46,
+          "max": 70
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "IP assignment",
+          "privacy policy"
+        ],
+        "must_not_hallucinate": [
+          "SOC 2"
+        ],
+        "must_cite": 1,
+        "primary_visual": {
+          "kind": "checklist"
+        }
+      }
+    },
+    {
+      "id": "case_series_a_lco",
+      "name": "Series A — Legal & Compliance chapter (CLO owner)",
+      "input": {
+        "dim": "lco",
+        "weight": 8,
+        "stage": 4,
+        "stageLabel": "Series A",
+        "phaseId": "growth",
+        "benchmark": {
+          "p25": 53,
+          "p50": 65,
+          "p75": 77,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 65,
+        "criterionResults": [
+          {
+            "key": "documents",
+            "score": 68,
+            "verdict": "GST + R&D registered, trademark class 42",
+            "citations": [
+              {
+                "evidence_id": "ev-ipa-01",
+                "quote": "class 42"
+              }
+            ],
+            "grounded": true
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "ev-ipa-01",
+            "source": "url",
+            "status": "evidenced",
+            "label": "IP Australia trademark",
+            "value": "registered class 42; R&D registration 2026"
+          }
+        ],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "lco",
+              "benchmarkStage": 4,
+              "p25": 53,
+              "p50": 65,
+              "p75": 77,
+              "deterministicScore": 65
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(lco)",
+            "output": {
+              "hasABN": true,
+              "hasIPProtection": true,
+              "hasLegalDocs": true,
+              "hasContracts": true
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 53,
+          "max": 77
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "Essential Eight",
+          "breach plan"
+        ],
+        "must_not_hallucinate": [
+          "ISO 27001 certified"
+        ],
+        "must_cite": 1,
+        "primary_visual": {
+          "kind": "checklist"
+        }
+      }
+    }
+  ]
+}

@@ -2,6 +2,9 @@
 
 import type { SVIAnalysis, EvidenceItem } from "@/lib/svi-analysis";
 import type { CriterionKey } from "@/lib/evaluation-criteria";
+import type { PhaseGateResult } from "@/lib/growth/phase-gate";
+import type { DimensionChapter, EvidenceRow, ReportV2 } from "@/lib/report-v2/schema";
+import type { DimKey } from "./dimension-owners";
 
 // ── Agent Roles ─────────────────────────────────────────────────────────────
 
@@ -182,6 +185,18 @@ export interface ReportContext {
   sectionAudits?: SectionAuditRecord[];
   /** Per-phase completed step IDs — phaseId → string[] of step IDs */
   phaseStepsCompleted?: Record<string, string[]>;
+
+  // ── G13-W2-R2: W4 dimension chapters ────────────────────────────────
+  /** Deterministic phase gate (growth/phase-gate.ts) resolved before W1. */
+  phaseGate?: PhaseGateResult;
+  /** Deterministic module outputs per dimension (module-precompute.ts). */
+  moduleOutputs?: Partial<Record<DimKey, Array<{ id: string; output: Record<string, unknown> }>>>;
+  /** Evidence rows the W4 chapters may cite (ids stable per run). */
+  evidenceRows?: EvidenceRow[];
+  /** W4 output — one chapter per dimension, filled by dispatchDimensionChapters. */
+  dimensionChapters?: Map<DimKey, DimensionChapter>;
+  /** LLM calls consumed so far (per-report call counter). */
+  callsUsed?: number;
 }
 
 export interface CriterionData {
@@ -217,6 +232,10 @@ export interface AssembledReport {
   agentContributions: Record<AgentRole, { criteria: CriterionKey[]; wordCount: number }>;
   markdown: string;
   createdAt: string;
+  /** G13-W2-R2: the ReportV2 projection with W4 chapters (persisted via report-v2/storage). */
+  reportV2?: ReportV2;
+  /** LLM calls consumed (hard-stopped at the tier max). */
+  llmCalls?: number;
 }
 
 export interface ReportSection {
@@ -232,7 +251,7 @@ export interface ReportSection {
 
 // ── Pipeline Status (for polling) ───────────────────────────────────────────
 
-export type PipelinePhase = "gathering" | "wave1" | "wave2" | "wave3" | "synthesizing" | "rendering" | "complete" | "failed";
+export type PipelinePhase = "gathering" | "wave1" | "wave2" | "wave3" | "wave4" | "synthesizing" | "rendering" | "complete" | "failed";
 
 export interface PipelineStatus {
   reportId: string;

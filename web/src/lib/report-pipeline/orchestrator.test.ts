@@ -83,8 +83,18 @@ const H = vi.hoisted(() => {
     assembleSpy: null as null | ReturnType<typeof vi.fn<(context: unknown, tier: unknown, reportId: string) => unknown>>,
     researchMarketSpy: vi.fn(),
     budgetStatus: { spent: 0, limit: 100 },
+    // G13-W2-R2: W4 capture. `chapterFactory` builds the 8 stub chapters the
+    // mocked dispatchDimensionChapters stores; `w4Calls` records its options.
+    w4Calls: [] as Array<{ tier: string; opts: Record<string, unknown> }>,
+    deterministicCalls: [] as string[],
+    chapterFactory: null as null | ((dim: string) => unknown),
   };
 });
+
+const DIMS = ["tre", "mpc", "ftv", "ptd", "cgh", "iri", "lco", "svm"] as const;
+function stubChapter(dim: string, extra: Record<string, unknown> = {}) {
+  return { dim, title: dim.toUpperCase(), score: 60, band: "developing", verdict: `${dim} verdict`, strengths: [], gaps: [], criteria: [], evidence: [], degraded: false, ...extra };
+}
 
 H.assembleSpy = vi.fn(
   (context: unknown, tier: unknown, reportId: string) => ({
@@ -108,6 +118,28 @@ vi.mock("./agent-dispatcher", () => ({
   WAVE_2: H.WAVE_2,
   WAVE_3: H.WAVE_3,
   buildEvidenceCatalogue: vi.fn(() => []),
+  buildEvidenceRows: vi.fn((context: ReportContext) => {
+    context.evidenceRows = context.evidenceRows ?? [];
+    return context.evidenceRows;
+  }),
+  deterministicDimensionChapters: vi.fn((context: ReportContext, _tier: string, reason: string) => {
+    H.deterministicCalls.push(reason);
+    const map = new Map();
+    DIMS.forEach((d) => map.set(d, stubChapter(d, { degraded: true, degradeReason: reason })));
+    context.dimensionChapters = map as ReportContext["dimensionChapters"];
+    return map;
+  }),
+  dispatchDimensionChapters: vi.fn(async (context: ReportContext, tier: string, _callAI: unknown, opts: Record<string, unknown>) => {
+    H.w4Calls.push({ tier, opts });
+    const map = new Map();
+    DIMS.forEach((d) => {
+      const chapter = H.chapterFactory ? H.chapterFactory(d) : stubChapter(d);
+      map.set(d, chapter);
+      (opts.onChapter as ((dim: string, c: unknown) => void) | undefined)?.(d, chapter);
+    });
+    context.dimensionChapters = map as ReportContext["dimensionChapters"];
+    return map;
+  }),
   dispatchWave: vi.fn(async (
     wave: unknown,
     context: ReportContext,
@@ -143,6 +175,7 @@ vi.mock("./agent-prompts", () => ({
 }));
 
 vi.mock("./llm-auditor", () => ({
+  AUDITOR_CAP_BY_TIER: { free: 4, standard: 8, premium: 16, investor_memo: 16 },
   auditSections: vi.fn(async (
     sections: Array<{ id: string; content: string }>,
     evidence: string,
@@ -280,6 +313,10 @@ beforeEach(() => {
   researchMarketSpy.mockReset();
   budgetStatus.spent = 0;
   budgetStatus.limit = 100;
+  H.w4Calls.length = 0;
+  H.deterministicCalls.length = 0;
+  H.chapterFactory = null;
+  delete process.env.REPORT_PIPELINE_W4;
 });
 
 afterEach(() => {
@@ -297,11 +334,12 @@ describe("orchestrateReport() — phase progression", () => {
       "wave1",
       "wave2",
       "wave3",
+      "wave4",
       "synthesizing",
       "rendering",
       "complete",
     ]);
-    expect(events.map((e) => e.progress)).toEqual([5, 15, 45, 75, 85, 95, 100]);
+    expect(events.map((e) => e.progress)).toEqual([5, 15, 45, 75, 80, 85, 95, 100]);
   });
 
   it("reports totalAgents as WAVE_1.length + WAVE_2.length + WAVE_3.length + 2", async () => {
@@ -350,6 +388,7 @@ describe("orchestrateReport() — phase progression", () => {
     expect(byPhase.wave1).toBe(0);
     expect(byPhase.wave2).toBe(1);
     expect(byPhase.wave3).toBe(2);
+    expect(byPhase.wave4).toBe(3);
     expect(byPhase.synthesizing).toBe(3);
     expect(byPhase.rendering).toBe(3);
     expect(byPhase.complete).toBe(3);
@@ -525,14 +564,14 @@ describe("orchestrateReport() — gather phase", () => {
 
 // ─── cross-validate (CDO) ─────────────────────────────────────────────────
 
-describe("orchestrateReport() — CDO cross-validate", () => {
+describe("orchestrateReport() — CDO cross-validate (one LLM call at premium+; deterministic at standard / free)", () => {
   it("returns [] and never calls callAI when fewer than 3 criterion results exist", async () => {
     H.dispatchScript = [
       [{ criterion: "code_git", result: makeAgentResult("code_git") }],
       [{ criterion: "idea", result: makeAgentResult("idea") }],
       [], // wave3 empty
     ];
-    const input = baseInput();
+    const input = baseInput({ tier: "premium" });
     await orchestrateReport(input);
     // callAI is only used by cross-validate + exec summary. With <3 results,
     // only exec-summary should fire, so exactly one callAI call.
@@ -553,7 +592,7 @@ describe("orchestrateReport() — CDO cross-validate", () => {
     const callAI = vi.fn(async (_s: string, _u: string, _t: number) =>
       "- Market and customer scores diverge sharply\n- short\n* Revenue trails documented traction\ntext without bullet",
     );
-    await orchestrateReport(baseInput({ callAI }));
+    await orchestrateReport(baseInput({ callAI, tier: "premium" }));
     const ctx = assembleSpy.mock.calls[0][0] as ReportContext;
     expect(ctx.consistencyIssues).toEqual([
       "Market and customer scores diverge sharply",
@@ -571,7 +610,7 @@ describe("orchestrateReport() — CDO cross-validate", () => {
       [],
     ];
     const callAI = vi.fn(async () => "No consistency issues detected across the 13 criteria.");
-    await orchestrateReport(baseInput({ callAI }));
+    await orchestrateReport(baseInput({ callAI, tier: "premium" }));
     const ctx = assembleSpy.mock.calls[0][0] as ReportContext;
     expect(ctx.consistencyIssues).toEqual([]);
   });
@@ -587,7 +626,7 @@ describe("orchestrateReport() — CDO cross-validate", () => {
     ];
     const bullets = Array.from({ length: 8 }, (_, i) => `- issue number ${i} of eight`).join("\n");
     const callAI = vi.fn(async () => bullets);
-    await orchestrateReport(baseInput({ callAI }));
+    await orchestrateReport(baseInput({ callAI, tier: "premium" }));
     const ctx = assembleSpy.mock.calls[0][0] as ReportContext;
     expect(ctx.consistencyIssues).toHaveLength(5);
   });
@@ -609,7 +648,7 @@ describe("orchestrateReport() — CDO cross-validate", () => {
       }
       return "exec-body";
     });
-    await orchestrateReport(baseInput({ callAI }));
+    await orchestrateReport(baseInput({ callAI, tier: "premium" }));
     expect(cdoCallReached).toBe(true);
     const ctx = assembleSpy.mock.calls[0][0] as ReportContext;
     expect(ctx.consistencyIssues).toEqual([]);
@@ -714,7 +753,7 @@ describe("orchestrateReport() — llm-auditor grounding sweep", () => {
     expect(desc.startsWith("a".repeat(4001))).toBe(false);
   });
 
-  it("uses llmOnlyWhenUncited=true and maxLlmSections=6 for the standard tier", async () => {
+  it("uses llmOnlyWhenUncited=true and maxLlmSections=8 for the standard tier (cap raised 6 → 8 for the 8 chapters)", async () => {
     H.dispatchScript = [
       [{ criterion: "code_git", result: makeAgentResult("code_git") }],
       [],
@@ -722,7 +761,7 @@ describe("orchestrateReport() — llm-auditor grounding sweep", () => {
     ];
     await orchestrateReport(baseInput({ tier: "standard" }));
     expect(auditCalls[0].options.llmOnlyWhenUncited).toBe(true);
-    expect(auditCalls[0].options.maxLlmSections).toBe(6);
+    expect(auditCalls[0].options.maxLlmSections).toBe(8);
     expect(auditCalls[0].options.maxTokens).toBe(2000);
   });
 
@@ -772,7 +811,13 @@ describe("orchestrateReport() — llm-auditor grounding sweep", () => {
     ];
     const caller = vi.fn(() => true);
     await orchestrateReport(baseInput({ auditBudgetOk: caller }));
-    expect(auditCalls[0].options.budgetOk).toBe(caller);
+    // Wrapped with the per-report call budget (remaining ≥ 2) — the caller is consulted on every check.
+    const bo = auditCalls[0].options.budgetOk!;
+    caller.mockClear();
+    expect(bo()).toBe(true);
+    expect(caller).toHaveBeenCalledTimes(1);
+    caller.mockReturnValue(false);
+    expect(bo()).toBe(false);
   });
 
   it("includes an 'executive' section when the exec summary draft is non-empty", async () => {
@@ -1077,6 +1122,7 @@ describe("orchestrateReport() — final quality score", () => {
           idea: { textInput: "z" },
         }),
         callAI,
+        tier: "premium",
       }),
     );
     const ctx = assembleSpy.mock.calls[0][0] as ReportContext;
@@ -1150,5 +1196,152 @@ describe("orchestrateReport() — assembleReport handoff", () => {
     const [, tier, reportId] = assembleSpy.mock.calls[0];
     expect(tier).toBe("investor_memo");
     expect(reportId).toBe(report.id);
+  });
+});
+
+// ─── G13-W2-R2: W4 + call budget + events ────────────────────────────────
+
+import { ReportCallBudget, TIER_CALL_MAX, meterCallAI, type PipelineEvent } from "./orchestrator";
+import { demoReportV2 } from "@/lib/report-v2/fixtures";
+
+describe("orchestrateReport() — W4 dimension chapters", () => {
+  it("runs dispatchDimensionChapters once with the tier, tierV2, callBudget and budgetOk threaded through", async () => {
+    await orchestrateReport(baseInput({ tier: "standard" }));
+    expect(H.w4Calls).toHaveLength(1);
+    expect(H.w4Calls[0].tier).toBe("standard");
+    const opts = H.w4Calls[0].opts;
+    expect(opts.tierV2).toBe("standard");
+    expect(typeof (opts.callBudget as { tryAcquire: unknown }).tryAcquire).toBe("function");
+    expect(typeof opts.budgetOk).toBe("function");
+    expect(typeof opts.onChapter).toBe("function");
+  });
+
+  it("REPORT_PIPELINE_W4=off skips W4 entirely (13-criteria assembly, no wave4 phase, no chapters)", async () => {
+    process.env.REPORT_PIPELINE_W4 = "off";
+    const events: PipelineStatus[] = [];
+    await orchestrateReport(baseInput({ onPhaseChange: (s) => events.push(s) }));
+    expect(H.w4Calls).toHaveLength(0);
+    expect(events.map((e) => e.phase)).not.toContain("wave4");
+    const ctx = assembleSpy.mock.calls[0][0] as ReportContext;
+    expect(ctx.dimensionChapters).toBeUndefined();
+  });
+
+  it("degrades W4 to deterministic cards (zero owner calls) when the monthly budget is exhausted", async () => {
+    await orchestrateReport(baseInput({ auditBudgetOk: () => false }));
+    expect(H.w4Calls).toHaveLength(0);
+    expect(H.deterministicCalls).toHaveLength(1);
+    expect(H.deterministicCalls[0]).toMatch(/monthly AI cap/);
+    const ctx = assembleSpy.mock.calls[0][0] as ReportContext;
+    expect(ctx.dimensionChapters?.size).toBe(8);
+  });
+
+  it("degrades W4 to deterministic cards when the per-report call cap is already spent", async () => {
+    // maxCalls = 0 → the very first wave call throws inside the metered callAI;
+    // the mocked dispatchWave never calls it, so the cap is hit at W4.
+    await orchestrateReport(baseInput({ maxCalls: 0 }));
+    expect(H.w4Calls).toHaveLength(0);
+    expect(H.deterministicCalls[0]).toMatch(/report call cap \(0\)/);
+  });
+
+  it("free tier: skips W2 (static waves) and W3, still runs the 8 owners as W4 with tierV2=free", async () => {
+    const events: PipelineStatus[] = [];
+    await orchestrateReport(baseInput({ tierV2: "free", onPhaseChange: (s) => events.push(s) }));
+    expect(dispatchCalls).toHaveLength(1);
+    expect(events.map((e) => e.phase)).toEqual(["gathering", "wave1", "wave4", "synthesizing", "rendering", "complete"]);
+    expect(H.w4Calls[0].opts.tierV2).toBe("free");
+  });
+
+  it("attaches a ReportV2 projection with the 8 pipeline chapters and source=pipeline when the chapters validate", async () => {
+    const demo = demoReportV2();
+    H.chapterFactory = (dim) => demo.dimensions.find((d) => d.dim === dim)!;
+    const report = await orchestrateReport(baseInput());
+    expect(report.reportV2).toBeTruthy();
+    expect(report.reportV2?.source).toBe("pipeline");
+    expect(report.reportV2?.pipelineVersion).toBe("pipeline-v2.0-w4");
+    expect(report.reportV2?.dimensions.map((d) => d.dim)).toEqual([...DIMS]);
+    expect(report.reportV2?.quality.degradedSections).toEqual([]);
+    expect(typeof report.llmCalls).toBe("number");
+  });
+
+  it("keeps the adapter projection (source=adapter) when the pipeline chapters fail schema validation — never a failed report", async () => {
+    const report = await orchestrateReport(baseInput());
+    expect(report.reportV2).toBeTruthy();
+    expect(report.reportV2?.source).toBe("adapter");
+    expect(report.reportV2?.dimensions).toHaveLength(8);
+  });
+});
+
+describe("orchestrateReport() — per-report call counter (D7/D8/D9)", () => {
+  it("TIER_CALL_MAX pins free 16 / standard 30 / premium 40 / investor_memo 48", () => {
+    expect(TIER_CALL_MAX).toEqual({ free: 16, standard: 30, premium: 40, investor_memo: 48 });
+  });
+
+  it("ReportCallBudget hard-stops at max and reports used / remaining", () => {
+    const b = new ReportCallBudget(2);
+    expect(b.tryAcquire()).toBe(true);
+    expect(b.tryAcquire()).toBe(true);
+    expect(b.tryAcquire()).toBe(false);
+    expect(b.used).toBe(2);
+    expect(b.remaining).toBe(0);
+  });
+
+  it("meterCallAI counts every call and throws CallBudgetExceededError past the max", async () => {
+    const b = new ReportCallBudget(1);
+    const inner = vi.fn(async () => "ok");
+    const metered = meterCallAI(inner, b);
+    await expect(metered("s", "u", 10)).resolves.toBe("ok");
+    await expect(metered("s", "u", 10)).rejects.toThrow(/budget exhausted \(1\)/);
+    expect(inner).toHaveBeenCalledTimes(1);
+  });
+
+  it("the CEO summary degrades to the deterministic shell (never a failed report) once the cap is hit", async () => {
+    const callAI = vi.fn(async () => "exec ok");
+    const report = await orchestrateReport(baseInput({ callAI, maxCalls: 0 }));
+    expect(callAI).not.toHaveBeenCalled();
+    expect(report.executiveSummary).toContain("Executive summary generation encountered an error");
+    expect(report.llmCalls).toBe(0);
+  });
+
+  it("reports llmCalls = number of metered calls (CEO only on a clean standard run)", async () => {
+    const report = await orchestrateReport(baseInput());
+    expect(report.llmCalls).toBe(1);
+  });
+});
+
+describe("orchestrateReport() — onEvent SSE vocabulary (§C.12)", () => {
+  it("emits context → gather_complete → 8× dimension_start → 8× dimension_complete → criteria_synthesis → executive_complete → audit_complete → valuation_complete → done, with progress interleaved", async () => {
+    const events: PipelineEvent[] = [];
+    await orchestrateReport(baseInput({ onEvent: (e) => events.push(e) }));
+    const types = events.map((e) => e.type).filter((t) => t !== "progress");
+    expect(types.slice(0, 2)).toEqual(["context", "gather_complete"]);
+    expect(types.filter((t) => t === "dimension_start")).toHaveLength(8);
+    expect(types.filter((t) => t === "dimension_complete")).toHaveLength(8);
+    expect(types.indexOf("criteria_synthesis")).toBeGreaterThan(types.lastIndexOf("dimension_complete"));
+    expect(types.indexOf("executive_complete")).toBeGreaterThan(types.indexOf("criteria_synthesis"));
+    expect(types.indexOf("audit_complete")).toBeGreaterThan(types.indexOf("executive_complete"));
+    expect(types[types.length - 1]).toBe("done");
+    expect(events.filter((e) => e.type === "progress").length).toBeGreaterThanOrEqual(7);
+    const ctxEvent = events.find((e) => e.type === "context") as Extract<PipelineEvent, { type: "context" }>;
+    expect(ctxEvent.tier).toBe("standard");
+    expect(ctxEvent.estimatedCalls).toBeLessThanOrEqual(30);
+    const done = events.find((e) => e.type === "done") as Extract<PipelineEvent, { type: "done" }>;
+    expect(done.calls).toBe(1);
+    expect(done.costAud).toBeGreaterThanOrEqual(0);
+  });
+
+  it("emits an error event (degraded:true) for every degraded chapter and never throws on a listener error", async () => {
+    H.chapterFactory = (dim) => stubChapter(dim, { degraded: true, degradeReason: "schema/model: boom" });
+    const events: PipelineEvent[] = [];
+    await expect(
+      orchestrateReport(
+        baseInput({
+          onEvent: (e) => {
+            events.push(e);
+            if (e.type === "done") throw new Error("listener exploded");
+          },
+        }),
+      ),
+    ).resolves.toBeTruthy();
+    expect(events.filter((e) => e.type === "error")).toHaveLength(8);
   });
 });

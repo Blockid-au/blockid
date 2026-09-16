@@ -184,6 +184,12 @@ export function buildAuditorAgent(maxTokens = 3000): SequentialAgent {
 // LLM pass is skipped — the caller downgrades its confidence and flags it.
 // Nothing is silently published as grounded.
 
+/**
+ * LLM-pass cap per report tier (spec §B.9 / §C.1): standard raised 6 → 8 so
+ * the eight dimension chapters fit; free 4; premium / investor_memo 16.
+ */
+export const AUDITOR_CAP_BY_TIER = { free: 4, standard: 8, premium: 16, investor_memo: 16 } as const;
+
 /** A section handed to the sweep. */
 export interface AuditableSection {
   /** Stable identity — criterion key, or "executive" for the summary. */

@@ -1,0 +1,289 @@
+{
+  "agent": "TBR-ptd",
+  "version": "2.0.0",
+  "purpose": "Trusted Business Report v2 — Product & Tech Depth chapter (owner CTO, weight 12); W4 dimension-chapter call, spec C.11; bands = ANCHORS p25-p75 at stages 0 / 2 / 4",
+  "cases": [
+    {
+      "id": "case_idea_ptd",
+      "name": "Idea — Product & Tech Depth chapter (CTO owner)",
+      "input": {
+        "dim": "ptd",
+        "weight": 12,
+        "stage": 0,
+        "stageLabel": "Idea",
+        "phaseId": "vision",
+        "benchmark": {
+          "p25": 33,
+          "p50": 45,
+          "p75": 57,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 45,
+        "criterionResults": [
+          {
+            "key": "website",
+            "score": 40,
+            "verdict": "landing page only",
+            "citations": [],
+            "grounded": false
+          }
+        ],
+        "evidenceRows": [],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "ptd",
+              "benchmarkStage": 0,
+              "p25": 33,
+              "p50": 45,
+              "p75": 57,
+              "deterministicScore": 45
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(ptd)",
+            "output": {
+              "hasProduct": false,
+              "hasDemo": false,
+              "hasSourceCode": false
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 33,
+          "max": 57
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "demo",
+          "prototype"
+        ],
+        "must_not_hallucinate": [
+          "71 % test coverage",
+          "SOC 2"
+        ],
+        "must_cite": 0,
+        "primary_visual": {
+          "kind": "bar"
+        }
+      }
+    },
+    {
+      "id": "case_seed_ptd",
+      "name": "Seed — Product & Tech Depth chapter (CTO owner)",
+      "input": {
+        "dim": "ptd",
+        "weight": 12,
+        "stage": 2,
+        "stageLabel": "Seed",
+        "phaseId": "product_dev",
+        "benchmark": {
+          "p25": 50,
+          "p50": 62,
+          "p75": 74,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 62,
+        "criterionResults": [
+          {
+            "key": "code_git",
+            "score": 60,
+            "verdict": "monorepo, CI on every push",
+            "citations": [
+              {
+                "evidence_id": "ev-gh-01",
+                "quote": "CI runs on every push"
+              }
+            ],
+            "grounded": true
+          },
+          {
+            "key": "website",
+            "score": 58,
+            "verdict": "CWV pass on desktop",
+            "citations": [],
+            "grounded": false
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "ev-gh-01",
+            "source": "github",
+            "status": "evidenced",
+            "label": "GitHub repository audit",
+            "value": "CI runs on every push; 240 unit tests"
+          }
+        ],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "ptd",
+              "benchmarkStage": 2,
+              "p25": 50,
+              "p50": 62,
+              "p75": 74,
+              "deterministicScore": 62
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(ptd)",
+            "output": {
+              "hasProduct": true,
+              "hasDemo": true,
+              "hasSourceCode": true
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 50,
+          "max": 74
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "tests",
+          "CI"
+        ],
+        "must_not_hallucinate": [
+          "patent granted"
+        ],
+        "must_cite": 1,
+        "primary_visual": {
+          "kind": "bar"
+        }
+      }
+    },
+    {
+      "id": "case_series_a_ptd",
+      "name": "Series A — Product & Tech Depth chapter (CTO owner)",
+      "input": {
+        "dim": "ptd",
+        "weight": 12,
+        "stage": 4,
+        "stageLabel": "Series A",
+        "phaseId": "growth",
+        "benchmark": {
+          "p25": 63,
+          "p50": 75,
+          "p75": 87,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 75,
+        "criterionResults": [
+          {
+            "key": "code_git",
+            "score": 78,
+            "verdict": "210 commits / 90 days, 71 % coverage",
+            "citations": [
+              {
+                "evidence_id": "ev-gh-02",
+                "quote": "coverage 71%"
+              }
+            ],
+            "grounded": true
+          },
+          {
+            "key": "website",
+            "score": 74,
+            "verdict": "LCP 1.9 s mobile",
+            "citations": [
+              {
+                "evidence_id": "ev-ta-01",
+                "quote": "LCP 1.9s"
+              }
+            ],
+            "grounded": true
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "ev-gh-02",
+            "source": "github",
+            "status": "evidenced",
+            "label": "GitHub repository audit",
+            "value": "210 commits in 90 days; coverage 71%; dependency freshness 92%"
+          },
+          {
+            "id": "ev-ta-01",
+            "source": "url",
+            "status": "evidenced",
+            "label": "Technical audit",
+            "value": "LCP 1.9s mobile; security headers present"
+          }
+        ],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "ptd",
+              "benchmarkStage": 4,
+              "p25": 63,
+              "p50": 75,
+              "p75": 87,
+              "deterministicScore": 75
+            }
+          },
+          {
+            "id": "svi-analysis.ts:extractSignals(ptd)",
+            "output": {
+              "hasProduct": true,
+              "hasDemo": true,
+              "hasSourceCode": true,
+              "hasApp": true
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 63,
+          "max": 87
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "SLO",
+          "incident"
+        ],
+        "must_not_hallucinate": [
+          "zero downtime guaranteed"
+        ],
+        "must_cite": 1,
+        "primary_visual": {
+          "kind": "bar"
+        }
+      }
+    }
+  ]
+}
