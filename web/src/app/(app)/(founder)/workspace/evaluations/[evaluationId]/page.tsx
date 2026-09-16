@@ -16,8 +16,9 @@
 // and any unknown id, gets notFound() — never a 403.
 //
 // S-D1 ships the header + block 1 (radar · weighted table with the weight
-// column, F3 · 13-criteria strip); blocks 2–6 are labelled placeholders
-// linking to the surfaces that exist today.
+// column, F3 · 13-criteria strip); S-D2 ships block 4 (AI-vs-me form, share
+// allow-list, history, founder preview — ./dossier/assessment/*) and block 6
+// (actions & audit trail); blocks 2, 3, 5 remain labelled placeholders.
 
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
@@ -30,7 +31,9 @@ import { auditDossierView } from "@/lib/evaluations/dossier-audit";
 import { EvaluatorReportDisclaimer } from "@/components/legal/evaluator-report-disclaimer";
 import { DossierHeader } from "./dossier/dossier-header";
 import { ReportSummary } from "./dossier/report-summary";
-import { ActionsBlock, AssessmentBlock, EvidenceBlock, ProgressBlock, ValuationBlock } from "./dossier/placeholder-blocks";
+import { EvidenceBlock, ProgressBlock, ValuationBlock } from "./dossier/placeholder-blocks";
+import { AssessmentBlock } from "./dossier/assessment/assessment-block";
+import { ActionsBlock } from "./dossier/assessment/actions-block";
 import { DossierViewTracker } from "./dossier/dossier-view-tracker";
 
 export const metadata: Metadata = {

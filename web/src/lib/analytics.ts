@@ -81,6 +81,18 @@ export interface AnalyticsEventMap {
   evaluator_checklist_step: { step: 1 | 2 | 3 | 4 };
   /** G13 (S-D1): the Investor Dossier (/workspace/evaluations/[id]) was opened — once per page view; `role` = assessor (evaluator) or founder (read-only preview). */
   dossier_view: { evaluation_id: string; consent_tier: string; plan: string; role: "assessor" | "founder" };
+  /** G13 (S-D2, §C.5): the evaluator saved a draft or submitted their assessment on the dossier; `decision` = pass | track | proceed | none. */
+  investor_decision_saved: { evaluation_id: string; decision: "pass" | "track" | "proceed" | "none"; status: "draft" | "submitted"; version: number };
+  /** G13 (S-D2, §C.5): the assessment was shared with the claimed founder; `fields_count` = ticked allow-listed sections (1–4). */
+  assessment_shared: { evaluation_id: string; fields_count: number };
+  /** G13 (S-D2, §C.5): the assessment history timeline was expanded; `versions` = rows shown. */
+  assessment_history_viewed: { evaluation_id: string; versions: number };
+  /** G13 (S-D2 E1.4, §C.5): the founder taxonomy confirmation card rendered (unconfirmed row). */
+  taxonomy_card_viewed: { project_id: string; unclassified_count: number };
+  /** G13 (S-D2 E1.4, §C.5): the founder confirmed the classification; `changed_fields` = axes edited before confirming. */
+  taxonomy_confirmed: { project_id: string; changed_fields: number; unclassified_count: number };
+  /** G13 (S-D2 E1.4, §C.5): one axis was edited on the confirmation card. */
+  taxonomy_edited: { project_id: string; field: "industry" | "business_model" | "stage_key" | "customer_types" | "geo_scope" | "hq_state" | "tags" };
   /** G13 (S-T2, §C.5): the 7-section mandate form was saved; `sections_filled` = sections carrying a value (0–7). */
   mandate_saved: { sections_filled: number; created: boolean };
   /** G13 (S-T2, §C.5): a deal-flow filter changed; `axis` = which control. */

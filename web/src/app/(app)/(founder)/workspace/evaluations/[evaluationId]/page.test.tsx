@@ -207,11 +207,23 @@ describe("/workspace/evaluations/[evaluationId]", () => {
     expect(block).toContain("Open full Trusted Business Report");
   });
 
-  it("blocks 2–6 render as labelled placeholders and the assessor sees their own decision summary", async () => {
+  it("blocks 2, 3, 5 render as labelled placeholders; block 4 is the assessor's AI-vs-me form on their submitted v1; block 6 lists the audit actions", async () => {
     const out = await html();
     for (const n of [2, 3, 4, 5, 6]) expect(out).toContain(`data-testid="dossier-block-${n}"`);
-    expect(out).toContain("Your current view:");
-    expect(out).toMatch(/data-testid="assessment-mine"[\s\S]*?<strong class="uppercase">track<\/strong>/);
+    // S-D2 block 4: the form is seeded from the assessor's own row (v1 submitted → next save is v2).
+    expect(out).toMatch(/data-testid="assessment-form"[^>]*data-status="submitted"[^>]*data-version="1"/);
+    expect(out).toContain("AI verdict vs my view — per dimension");
+    expect(out).toMatch(/data-testid="ai-score-TRE"[^>]*>61\/100/);
+    expect(out).toContain('id="dim-TRE-rating"');
+    expect(out).toContain('for="private-notes"');
+    expect(out).toContain("SECRET-NOTE"); // the assessor sees their own private notes
+    expect(out).toContain("Submit v2");
+    expect(out).toContain('data-testid="assessment-share-open"');
+    expect(out).toContain("History — 1 version");
+    // block 6: actions + the §C.2 audit actions, current status line
+    expect(out).toContain('data-testid="audit-actions"');
+    expect(out).toContain("assessment.share_revoked");
+    expect(out).toContain("Current: v1 submitted");
     expect(out).toContain("Founder-consented access tiers control who sees what.");
     expect(out).not.toContain("Items are masked at this tier");
     expect(out).toContain("1 item visible at this tier");
