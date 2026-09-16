@@ -13,9 +13,9 @@
 // installed, so the cron doesn't red-flag until T-1010 lands the dep.
 
 import { execFileSync } from "node:child_process";
-import path from "node:path";
 import { NextResponse } from "next/server";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
+import { WEB_DIR, bqConfigured, resolveScript } from "./resolve";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -35,17 +35,15 @@ interface RunResult {
 
 function runScript(extraArgs: string[]): RunResult {
   const started = Date.now();
-  // Resolve the script relative to the repo root so this works whether the
-  // process was started from /web or the repo root.
-  const scriptPath = path.resolve(
-    process.cwd(),
-    process.cwd().endsWith(`${path.sep}web`) ? "scripts/bq-export-events.ts" : "web/scripts/bq-export-events.ts",
-  );
+  const { scriptPath, tsxCli } = resolveScript();
+  if (!tsxCli) {
+    return { ok: false, exit_code: 127, stdout: "", stderr: `tsx CLI not found (looked under ${process.cwd()} and ${WEB_DIR})`, duration_ms: Date.now() - started };
+  }
 
   try {
     const stdout = execFileSync(
-      "npx",
-      ["tsx", scriptPath, ...extraArgs],
+      process.execPath,
+      [tsxCli, scriptPath, ...extraArgs],
       {
         encoding: "utf8",
         // Cron secret + BQ / Supabase env are inherited from the parent
@@ -89,6 +87,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const url = new URL(request.url);
+  if (!bqConfigured()) {
+    return NextResponse.json({ ok: true, skipped: "bq_not_configured", exit_code: 0, stdout: "", stderr: "", duration_ms: 0 });
+  }
   const result = runScript(parseFlags(url));
   return NextResponse.json(result, { status: result.ok ? 200 : 500 });
 }
