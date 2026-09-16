@@ -95,6 +95,7 @@ async function POST_handler(request: Request) {
     const result = await runReportPipeline({
       userId: user.id,
       ownerEmail: dataEmail,
+      callerEmail: user.email,
       ownerUserId: scope?.ownerUserId ?? user.id,
       projectId,
       tier: "standard",

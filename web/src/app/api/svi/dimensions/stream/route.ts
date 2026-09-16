@@ -109,6 +109,7 @@ async function POST_handler(request: Request) {
         const result = await runReportPipeline({
           userId: user.id,
           ownerEmail,
+          callerEmail: user.email,
           ownerUserId,
           projectId,
           tier,

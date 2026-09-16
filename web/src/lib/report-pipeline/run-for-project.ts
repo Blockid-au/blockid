@@ -289,14 +289,18 @@ export function projectReportToSnapshotShapes(
 export async function loadProjectReportContext(args: {
   ownerEmail: string;
   projectId: string | null;
+  /** S17-A P2-1: the CALLER's email — a member never falls back to the owner's pre-project record. */
+  callerEmail?: string;
 }): Promise<LoadContextResult> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { ok: false, error: "db_unavailable" };
+  const keyOpts = args.callerEmail ? { callerEmail: args.callerEmail } : undefined;
 
   const account = (await findSVIAccountWithFallback(
     args.ownerEmail,
     args.projectId,
     "id, email, startup_name, current_svi, current_stage, user_id",
+    keyOpts,
   )) as ProjectReportAccount | null;
   if (!account) return { ok: false, error: "no_account" };
 
@@ -304,6 +308,7 @@ export async function loadProjectReportContext(args: {
     args.ownerEmail,
     args.projectId,
     "id, raw_input, total_svi, analysis_json",
+    keyOpts,
   )) as ProjectReportAnalysis | null;
   if (!latestAnalysis) return { ok: false, error: "no_analysis" };
 

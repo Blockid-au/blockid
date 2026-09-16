@@ -631,7 +631,7 @@ describe("generateTrustReportForOrder — orchestrate", () => {
     );
   });
 
-  it("provides a callAI wrapper that returns the text field from the AI client", async () => {
+  it("provides a callAI wrapper that returns the AI client's text + real cost / provider (S-R3 cost telemetry)", async () => {
     const state = happyState();
     let callAIArg: unknown;
     const orchestrate = vi.fn(async (input: Parameters<NonNullable<GeneratorDeps["orchestrate"]>>[0]) => {
@@ -641,10 +641,14 @@ describe("generateTrustReportForOrder — orchestrate", () => {
     await run(state, { orchestrate });
     // The callAI wrapper the generator injects is the production callAI —
     // in this test env with no AI key it would either throw or resolve to
-    // a stub. We only need to prove the wrapper is a function that returns
-    // a string-ish value when the underlying call resolves; the E2E test
+    // a stub. We only need to prove the wrapper hands the orchestrator the
+    // rich `{ text, costUsd, provider, model }` result (S-R3: the `done`
+    // event sums real cost) when the underlying call resolves; the E2E test
     // covers the wire.
-    expect(typeof callAIArg === "string" || callAIArg === undefined).toBe(true);
+    if (callAIArg !== undefined) {
+      expect(typeof (callAIArg as { text: unknown }).text).toBe("string");
+      expect(Object.keys(callAIArg as object)).toEqual(expect.arrayContaining(["text", "costUsd", "provider", "model"]));
+    }
   });
 });
 

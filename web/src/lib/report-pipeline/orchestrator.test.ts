@@ -88,6 +88,7 @@ const H = vi.hoisted(() => {
     w4Calls: [] as Array<{ tier: string; opts: Record<string, unknown> }>,
     deterministicCalls: [] as string[],
     chapterFactory: null as null | ((dim: string) => unknown),
+    w4HangAfter: null as null | number,
     techAuditSpy: vi.fn(async (url: string) => ({ url, auditedAt: "2026-09-16T00:00:00.000Z", overallGrade: "B", evidenceLabels: [] })),
     repoAuditSpy: vi.fn(async (name: string) => ({ repoFullName: name, auditedAt: "2026-09-16T00:00:00.000Z", overallGrade: "A", evidenceLabels: [] })),
   };
@@ -146,13 +147,22 @@ vi.mock("./agent-dispatcher", () => ({
   }),
   dispatchDimensionChapters: vi.fn(async (context: ReportContext, tier: string, _callAI: unknown, opts: Record<string, unknown>) => {
     H.w4Calls.push({ tier, opts });
-    const map = new Map();
-    DIMS.forEach((d) => {
+    // S-R3: like the real dispatcher, write into the map the orchestrator
+    // handed us (context.dimensionChapters) and honour `opts.dims`.
+    const map = (context.dimensionChapters ?? new Map()) as Map<string, unknown>;
+    context.dimensionChapters = map as ReportContext["dimensionChapters"];
+    const dims = Array.isArray(opts.dims) && opts.dims.length ? (opts.dims as string[]) : [...DIMS];
+    const emit = (d: string) => {
       const chapter = H.chapterFactory ? H.chapterFactory(d) : stubChapter(d);
       map.set(d, chapter);
       (opts.onChapter as ((dim: string, c: unknown) => void) | undefined)?.(d, chapter);
-    });
-    context.dimensionChapters = map as ReportContext["dimensionChapters"];
+    };
+    if (H.w4HangAfter !== null) {
+      // A hung provider: the first N chapters land, the rest never resolve.
+      dims.slice(0, H.w4HangAfter).forEach(emit);
+      return new Promise<never>(() => {});
+    }
+    dims.forEach(emit);
     return map;
   }),
   dispatchWave: vi.fn(async (
@@ -339,7 +349,9 @@ beforeEach(() => {
   H.w4Calls.length = 0;
   H.deterministicCalls.length = 0;
   H.chapterFactory = null;
+  H.w4HangAfter = null;
   delete process.env.REPORT_PIPELINE_W4;
+  delete process.env.REPORT_DEADLINE_MS_STANDARD;
 });
 
 afterEach(() => {
@@ -1393,5 +1405,172 @@ describe("orchestrateReport() — onEvent SSE vocabulary (§C.12)", () => {
       ),
     ).resolves.toBeTruthy();
     expect(events.filter((e) => e.type === "error")).toHaveLength(8);
+  });
+});
+
+// ─── S-R3: wall-clock deadline, cost telemetry, partial re-run, valuation ──
+
+import { CostMeter, DEADLINE_GRACE_MS, TIER_DEADLINE_MS, deadlineMsForTier, estimateCalls, realCostAud } from "./orchestrator";
+
+describe("orchestrateReport() — wall-clock deadline (W2 review a)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("TIER_DEADLINE_MS pins free 90 s / standard 120 s / premium 240 s / investor_memo 240 s; REPORT_DEADLINE_MS_<TIER> overrides", () => {
+    expect(TIER_DEADLINE_MS).toEqual({ free: 90_000, standard: 120_000, premium: 240_000, investor_memo: 240_000 });
+    expect(deadlineMsForTier("standard")).toBe(120_000);
+    process.env.REPORT_DEADLINE_MS_STANDARD = "45000";
+    expect(deadlineMsForTier("standard")).toBe(45_000);
+    process.env.REPORT_DEADLINE_MS_STANDARD = "garbage";
+    expect(deadlineMsForTier("standard")).toBe(120_000);
+    // Every tier finishes inside nginx's 300 s cap for /api/ with the grace budget.
+    Object.values(TIER_DEADLINE_MS).forEach((ms) => expect(ms + DEADLINE_GRACE_MS).toBeLessThanOrEqual(300_000));
+  });
+
+  it("a hung provider mid-W4: the landed chapters stay, the rest degrade deterministically, the summary is deterministic (no LLM), the auditor LLM pass is off and `done` fires before deadline + grace", async () => {
+    vi.useFakeTimers();
+    H.w4HangAfter = 3;
+    const events: PipelineEvent[] = [];
+    let doneAt = 0;
+    const hungCallAI = vi.fn(() => new Promise<string>(() => {}));
+    const t0 = Date.now();
+    const run = orchestrateReport(
+      baseInput({
+        callAI: hungCallAI,
+        deadlineMs: 1_000,
+        onEvent: (e) => {
+          events.push(e);
+          if (e.type === "done") doneAt = Date.now();
+        },
+      }),
+    );
+    await vi.advanceTimersByTimeAsync(1_050);
+    const report = await run;
+
+    expect(doneAt - t0).toBeGreaterThanOrEqual(1_000);
+    expect(doneAt - t0).toBeLessThanOrEqual(1_000 + DEADLINE_GRACE_MS);
+    const completes = events.filter((e): e is Extract<PipelineEvent, { type: "dimension_complete" }> => e.type === "dimension_complete");
+    expect(completes).toHaveLength(8);
+    expect(completes.filter((e) => !e.chapter.degraded).map((e) => e.dim)).toEqual(["tre", "mpc", "ftv"]);
+    const degraded = completes.filter((e) => e.chapter.degraded);
+    expect(degraded).toHaveLength(5);
+    expect(degraded.every((e) => /deadline: wall-clock budget \(1 s\) reached during W4/.test(e.chapter.degradeReason ?? ""))).toBe(true);
+    expect(events.filter((e) => e.type === "error")).toHaveLength(5);
+    // The CEO summary never waited on the hung provider.
+    expect(hungCallAI).not.toHaveBeenCalled();
+    expect(report.executiveSummary).toContain("Deterministic summary (deadline)");
+    expect(report.executiveSummary).not.toContain("encountered an error");
+    expect(report.fullyDegraded).toBe(false);
+    // Auditor: only the free citation gate — the LLM pass is switched off by the budget predicate.
+    expect(auditCalls[0].options.budgetOk?.()).toBe(false);
+    const done = events.find((e): e is Extract<PipelineEvent, { type: "done" }> => e.type === "done")!;
+    expect(done.deadlineHit).toBe(true);
+    const ctx = assembleSpy.mock.calls[0][0] as ReportContext;
+    expect([...ctx.dimensionChapters!.values()].filter((c) => c.degraded).map((c) => c.dim)).toEqual(["ptd", "cgh", "iri", "lco", "svm"]);
+    const ctxEvent = events.find((e): e is Extract<PipelineEvent, { type: "context" }> => e.type === "context")!;
+    expect(ctxEvent.estimatedSeconds).toBe(1);
+  });
+
+  it("a deadline before W4 degrades every chapter and is the only way a report is fully degraded on time", async () => {
+    vi.useFakeTimers();
+    let release: (() => void) | null = null;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    H.researchMarketSpy.mockImplementationOnce(() => gate.then(() => null));
+    const events: PipelineEvent[] = [];
+    const run = orchestrateReport(baseInput({ deadlineMs: 500, onEvent: (e) => events.push(e), gatherDeps: { db: null, buildValuation: () => IN_BAND_VC, timeoutMs: 20_000 } }));
+    await vi.advanceTimersByTimeAsync(600);
+    const report = await run;
+    release!();
+    expect(H.deterministicCalls[0]).toMatch(/deadline: wall-clock budget \(1 s\) reached before W4/);
+    expect(events.filter((e) => e.type === "dimension_complete")).toHaveLength(8);
+    expect(events.filter((e) => e.type === "error")).toHaveLength(8);
+    // Deterministic summary ≠ the error placeholder, so the report is still usable.
+    expect(report.fullyDegraded).toBe(false);
+    expect((events.at(-1) as Extract<PipelineEvent, { type: "done" }>).deadlineHit).toBe(true);
+  });
+
+  it("the deadline timer is disposed — no open handle keeps the process alive after a fast report", async () => {
+    vi.useFakeTimers();
+    await orchestrateReport(baseInput({ deadlineMs: 60_000 }));
+    expect(vi.getTimerCount()).toBe(0);
+  });
+});
+
+describe("orchestrateReport() — cost telemetry (W2 review b)", () => {
+  it("sums the real cost_usd / provider the transport reports into the done event (AUD at AI_USD_AUD_RATE)", async () => {
+    const callAI = vi.fn(async () => ({ text: "exec", costUsd: 0.02, provider: "deepinfra", model: "m" }));
+    const events: PipelineEvent[] = [];
+    process.env.AI_USD_AUD_RATE = "1.5";
+    try {
+      await orchestrateReport(baseInput({ callAI, onEvent: (e) => events.push(e) }));
+    } finally {
+      delete process.env.AI_USD_AUD_RATE;
+    }
+    const done = events.find((e): e is Extract<PipelineEvent, { type: "done" }> => e.type === "done")!;
+    expect(done.calls).toBe(1);
+    expect(done.costReportedCalls).toBe(1);
+    expect(done.costUsd).toBe(0.02);
+    expect(done.costAud).toBe(0.03);
+  });
+
+  it("a plain-string transport keeps the per-call estimate for the unreported calls", () => {
+    const meter = new CostMeter();
+    expect(realCostAud(meter, 3, true, "standard")).toEqual({ usd: expect.any(Number), aud: 0.003 });
+    meter.record({ text: "", costUsd: 0.01, provider: "claude-apikey" });
+    meter.record({ text: "", costUsd: 0.005, provider: "deepinfra" });
+    meter.record({ text: "" }); // no cost reported — not counted as reported
+    expect(meter.reported).toBe(2);
+    expect(meter.byProvider).toEqual({ "claude-apikey": 0.01, deepinfra: 0.005 });
+    const mixed = realCostAud(meter, 3, false, "free");
+    expect(mixed.usd).toBeCloseTo(0.015 + 0.001 / 1.55, 4);
+    expect(mixed.aud).toBeCloseTo(0.015 * 1.55 + 0.001, 3);
+  });
+
+  it("estimatedCalls includes the 2 GATHER research calls (W2 review e) and is just the chapters on a partial run", () => {
+    expect(estimateCalls({ waves: 13, w4Chapters: 8, tierV2: "standard", partial: false })).toBe(2 + 13 + 8 + 1);
+    expect(estimateCalls({ waves: 13, w4Chapters: 8, tierV2: "premium", partial: false })).toBe(2 + 13 + 8 + 1 + 1);
+    expect(estimateCalls({ waves: 0, w4Chapters: 1, tierV2: "standard", partial: true })).toBe(1);
+  });
+});
+
+describe("orchestrateReport() — per-dimension re-run (dims) + valuation event", () => {
+  it("dims:['cgh'] skips W1–W3 and the CEO / auditor LLM calls, seeds the stored criterion cards, runs W4 for one dim only", async () => {
+    const demo = demoReportV2();
+    const seed = demo.dimensions.flatMap((d) => d.criteria);
+    const callAI = vi.fn(async () => "never");
+    const events: PipelineEvent[] = [];
+    const report = await orchestrateReport(baseInput({ dims: ["cgh"], seedCriteria: seed, callAI, onEvent: (e) => events.push(e) }));
+    expect(dispatchCalls).toHaveLength(0);
+    expect(researchMarketSpy).not.toHaveBeenCalled();
+    expect(callAI).not.toHaveBeenCalled();
+    expect(H.w4Calls[0].opts.dims).toEqual(["cgh"]);
+    expect(events.filter((e) => e.type === "dimension_start")).toHaveLength(1);
+    expect(events.filter((e) => e.type === "dimension_complete").map((e) => (e as Extract<PipelineEvent, { type: "dimension_complete" }>).dim)).toEqual(["cgh"]);
+    const ctxEvent = events.find((e): e is Extract<PipelineEvent, { type: "context" }> => e.type === "context")!;
+    expect(ctxEvent.dims).toEqual(["cgh"]);
+    expect(ctxEvent.estimatedCalls).toBe(1);
+    const ctx = assembleSpy.mock.calls[0][0] as ReportContext;
+    expect(ctx.criterionResults.size).toBe(new Set(seed.map((c) => c.key)).size);
+    expect(ctx.dimsFilter).toEqual(["cgh"]);
+    expect(report.executiveSummary).toContain("partial re-run");
+    expect(auditCalls[0].options.budgetOk?.()).toBe(false);
+  });
+
+  it("valuation_complete (the §C.5 chapter from GATHER's CFO model) is emitted after the 8 chapters and before criteria_synthesis, and lands on report.reportV2.valuation", async () => {
+    const demo = demoReportV2();
+    H.chapterFactory = (dim) => demo.dimensions.find((d) => d.dim === dim)!;
+    const events: PipelineEvent[] = [];
+    const report = await orchestrateReport(baseInput({ onEvent: (e) => events.push(e) }));
+    const types = events.map((e) => e.type).filter((t) => t !== "progress");
+    expect(types.indexOf("valuation_complete")).toBeGreaterThan(types.lastIndexOf("dimension_complete"));
+    expect(types.indexOf("valuation_complete")).toBeLessThan(types.indexOf("criteria_synthesis"));
+    const val = events.find((e): e is Extract<PipelineEvent, { type: "valuation_complete" }> => e.type === "valuation_complete")!;
+    expect(val.chapter.methods).toHaveLength(6);
+    expect(val.chapter.consensus.midAud).toBe(100_000_000);
+    expect(report.reportV2?.valuation.consensus.midAud).toBe(100_000_000);
+    expect(report.reportV2?.valuation.narrative).toMatch(/five weighted methods/);
   });
 });

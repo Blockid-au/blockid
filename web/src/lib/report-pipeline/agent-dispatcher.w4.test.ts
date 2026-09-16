@@ -41,9 +41,17 @@ vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => fakeSupabase(),
 }));
 
+// prompt_versions lookup (only the TTL test reaches it — every other case injects resolvePromptVersionId).
+vi.mock("@/lib/ai/prompt-registry", () => ({
+  readCurrentPrompt: async (agent: string) => ({ id: `pv-${agent}`, variables: {} }),
+}));
+
 import {
   DimensionChapterPayload,
   NIL_PROMPT_VERSION_ID,
+  PROMPT_VERSION_CACHE_TTL_MS,
+  peekPromptVersionCache,
+  resetPromptVersionCache,
   buildEvidenceRows,
   deterministicDimensionChapters,
   dispatchDimensionChapters,
@@ -321,6 +329,45 @@ describe("W4 helpers", () => {
     const revenue = rows.find((r) => r.label === "Founder evidence: revenue");
     expect(revenue?.dims).toEqual(expect.arrayContaining(["tre", "iri"]));
     expect(evidenceRowsForDim(context, "tre").every((r) => r.dims.includes("tre"))).toBe(true);
+  });
+
+  // S-R3 §C.3: GATHER rows (audits, connectors, cap table, grants) join the register.
+  it("buildEvidenceRows merges context.gatherEvidenceRows (dims unioned on a shared id, ids kept)", () => {
+    const context = makeContext();
+    context.gatherEvidenceRows = [
+      { evidence_id: "11111111-1111-4111-8111-111111111111", source: "stripe", label: "Stripe revenue (last sync)", status: "evidenced", observedAt: "2026-09-10T00:00:00.000Z", value: "mrr_aud = 12400", dims: ["tre", "iri"] },
+    ];
+    const rows = buildEvidenceRows(context);
+    const stripe = rows.find((r) => r.evidence_id === "11111111-1111-4111-8111-111111111111")!;
+    expect(stripe).toMatchObject({ source: "stripe", status: "evidenced", observedAt: "2026-09-10T00:00:00.000Z" });
+    expect(evidenceRowsForDim(context, "iri").some((r) => r.evidence_id === stripe.evidence_id)).toBe(true);
+    // Merging is idempotent (the rows are memoised on the context).
+    expect(buildEvidenceRows(context)).toBe(rows);
+  });
+
+  // W2 review (e): the prompt_versions memo expires after 10 minutes.
+  it("the prompt_versions lookup is memoised for 10 min, not for the process lifetime", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-09-16T00:00:00.000Z"));
+      resetPromptVersionCache();
+      expect(PROMPT_VERSION_CACHE_TTL_MS).toBe(10 * 60_000);
+      const dispatcher = await import("./agent-dispatcher");
+      const budget = { max: 40, used: 0, tryAcquire: () => true };
+      const context = makeContext();
+      const modelCaller = async () => ({ ok: false as const, status: "model_error" as const, reason: "n/a" });
+      await dispatcher.dispatchDimensionChapters(context, "standard", async () => "", { modelCaller, callBudget: budget, knowledgeDb: null, dims: ["tre"] });
+      const first = peekPromptVersionCache("cro");
+      expect(first?.at).toBe(Date.parse("2026-09-16T00:00:00.000Z"));
+      vi.setSystemTime(new Date("2026-09-16T00:05:00.000Z"));
+      await dispatcher.dispatchDimensionChapters(makeContext(), "standard", async () => "", { modelCaller, callBudget: budget, knowledgeDb: null, dims: ["tre"] });
+      expect(peekPromptVersionCache("cro")?.at).toBe(first?.at); // still cached
+      vi.setSystemTime(new Date("2026-09-16T00:11:00.000Z"));
+      await dispatcher.dispatchDimensionChapters(makeContext(), "standard", async () => "", { modelCaller, callBudget: budget, knowledgeDb: null, dims: ["tre"] });
+      expect(peekPromptVersionCache("cro")?.at).toBe(Date.parse("2026-09-16T00:11:00.000Z")); // refreshed
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("w4OutputContract names the allowed visual kinds and the chapter template for the dim", () => {

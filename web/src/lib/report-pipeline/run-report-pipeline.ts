@@ -264,7 +264,7 @@ export interface RunnerDb {
 }
 
 export interface RunPipelineDeps {
-  loadContext?: (args: { ownerEmail: string; projectId: string | null }) => Promise<LoadContextResult>;
+  loadContext?: (args: { ownerEmail: string; projectId: string | null; callerEmail?: string }) => Promise<LoadContextResult>;
   orchestrate?: typeof orchestrateReport;
   callAI?: AICallerInput;
   /** `undefined` → getSupabaseAdmin(); `null` → no DB (no cache, no persist). */
@@ -298,6 +298,8 @@ export interface RunReportPipelineInput {
   userId: string;
   /** Data owner — the svi_accounts / svi_analyses email (project scope's dataEmail). */
   ownerEmail: string;
+  /** The caller's email (members never fall back to the owner's pre-project record). */
+  callerEmail?: string;
   /** Owner's app_users.id when known (connector signals / cap table). Defaults to `userId`. */
   ownerUserId?: string | null;
   projectId: string | null;
@@ -422,7 +424,7 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
   const persist = input.persist !== false;
 
   // 1. Context — account + latest analysis + evidence + 13-criteria inputs.
-  const loaded = await (deps.loadContext ?? loadProjectReportContext)({ ownerEmail: input.ownerEmail, projectId: input.projectId });
+  const loaded = await (deps.loadContext ?? loadProjectReportContext)({ ownerEmail: input.ownerEmail, projectId: input.projectId, callerEmail: input.callerEmail });
   if (!loaded.ok) {
     const message = loaded.error === "no_account" ? "No SVI account found — run an analysis first" : loaded.error === "no_analysis" ? "No SVI analysis found — run an analysis first" : "Database unavailable";
     send({ type: "fatal_error", message });
