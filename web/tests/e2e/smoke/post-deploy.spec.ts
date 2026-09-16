@@ -339,7 +339,7 @@ test.describe("Post-deploy hydrated smoke", () => {
     expect(await table.getByRole("row").count()).toBeGreaterThan(3);
   });
 
-  test("/solutions/accelerator — pilot offer CTA links the Program trial", async ({
+  test("/solutions/accelerator — pilot offer CTA links the Intake link trial (pricing v4)", async ({
     page,
   }) => {
     test.setTimeout(15_000);
@@ -347,7 +347,9 @@ test.describe("Post-deploy hydrated smoke", () => {
     await expect(page.getByTestId("pilot-cta")).toBeVisible({ timeout: PAGE_TIMEOUT });
     const link = page.getByTestId("pilot-cta-link");
     await expect(link).toBeVisible({ timeout: PAGE_TIMEOUT });
-    await expect(link).toHaveAttribute("href", /\/signup\?plan=investor_vc_small&trial=1&from=pilot/);
+    // G14 pricing v4: the accelerator pilot starts on the Intake link plan
+    // (was the Program trial before 2026-09-16).
+    await expect(link).toHaveAttribute("href", /\/signup\?plan=accelerator_intake&trial=1&from=pilot/);
   });
 
   // ── G13-W1-IA1 (D6) — legacy route redirects ─────────────────────────
