@@ -260,6 +260,8 @@ const ADVISOR_FEATURES: readonly Feature[] = [
   // white-label PDF is the advisor's core deliverable.
   "advisor.cohort",
   "white_label",
+  // G14 S35 (D5): program intake links from Firm up.
+  "intake.manage",
 ];
 
 const VC_SM_FEATURES: readonly Feature[] = [
@@ -383,6 +385,8 @@ const ACCEL_INTAKE_FEATURES: readonly Feature[] = [
   "lp_report",
   "grant_finder",
   "money_radar",
+  // G14 S35 (D5): the intake link's namesake — /apply/<slug> + scored inbox.
+  "intake.manage",
 ];
 
 const ACCEL_STARTER_FEATURES: readonly Feature[] = [...ACCEL_INTAKE_FEATURES];

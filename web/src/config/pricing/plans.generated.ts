@@ -212,7 +212,8 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "advisor.cohort",
       "white_label",
       "grant_finder",
-      "money_radar"
+      "money_radar",
+      "intake.manage"
     ],
     "usage_limits": {
       "profiles": 50,
@@ -247,7 +248,8 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "lp_export",
       "lp_report",
       "grant_finder",
-      "money_radar"
+      "money_radar",
+      "intake.manage"
     ],
     "usage_limits": {
       "profiles": 200,
@@ -286,7 +288,8 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "sso",
       "weekly_delta",
       "grant_finder",
-      "money_radar"
+      "money_radar",
+      "intake.manage"
     ],
     "usage_limits": {
       "profiles": -1,
@@ -315,7 +318,8 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "diligence_pack",
       "lp_report",
       "grant_finder",
-      "money_radar"
+      "money_radar",
+      "intake.manage"
     ],
     "usage_limits": {
       "profiles": 25,
@@ -346,7 +350,8 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "lp_report",
       "grant_finder",
       "money_radar",
-      "cohort.manage"
+      "cohort.manage",
+      "intake.manage"
     ],
     "usage_limits": {
       "profiles": 100,
@@ -381,7 +386,8 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "white_label",
       "api",
       "api.access",
-      "sso"
+      "sso",
+      "intake.manage"
     ],
     "usage_limits": {
       "profiles": -1,
@@ -440,7 +446,8 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "money_radar",
       "custom_benchmark",
       "multi_fund",
-      "weekly_delta"
+      "weekly_delta",
+      "intake.manage"
     ],
     "usage_limits": {
       "profiles": 500,
@@ -470,7 +477,8 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "diligence_pack",
       "lp_report",
       "grant_finder",
-      "money_radar"
+      "money_radar",
+      "intake.manage"
     ],
     "usage_limits": {
       "profiles": 60,

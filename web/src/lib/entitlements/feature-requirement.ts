@@ -104,6 +104,7 @@ const LABELS: Readonly<Record<string, string>> = Object.freeze({
   "cohort.view": "cohort views",
   "cohort.manage": "cohort management",
   "accelerator.cohort": "cohort reporting",
+  "intake.manage": "program intake links",
   investor_pack: "the investor pack",
   startup_package: "the Startup Package",
 });

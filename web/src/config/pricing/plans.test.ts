@@ -199,6 +199,7 @@ describe("PRC-ACC — Programs SKUs (Pricing v4, 2026-09-16)", () => {
     "lp_report",
     "grant_finder",
     "money_radar",
+    "intake.manage",
   ];
 
   it("Intake link — A$249/mo, 14-day trial, 60 startups / 40 reports / 3 seats", () => {
