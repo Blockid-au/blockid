@@ -185,10 +185,12 @@ const obj = (v: unknown): Record<string, unknown> => (v && typeof v === "object"
 const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 
 function safeParseArray<T>(schema: z.ZodType<T>, v: unknown): T[] {
-  return arr(v)
-    .map((x) => schema.safeParse(x))
-    .filter((r): r is z.SafeParseSuccess<T> => r.success)
-    .map((r) => r.data);
+  const out: T[] = [];
+  for (const x of arr(v)) {
+    const r = schema.safeParse(x);
+    if (r.success) out.push(r.data);
+  }
+  return out;
 }
 
 export function mapAssessmentRow(row: Row): EvaluationAssessment {
