@@ -46,7 +46,7 @@ test.describe("Listing readiness", () => {
     expect(nasdaq.body.rows.length).toBeGreaterThanOrEqual(10);
 
     await visit("/workspace/exit/listing");
-    await expect(page).toHaveURL(/\/workspace\/listing-readiness/);
+    await expect(page).toHaveURL(/\/workspace\/exit\/listing/);
     await expect(page.getByTestId("listing-readiness")).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId("listing-score")).toContainText(/Readiness/i);
     await expect(page.getByTestId("listing-row")).toHaveCount(asx.body.rows.length);

@@ -23,7 +23,7 @@ test.describe("Cap table", () => {
     const existing = await get<CapTable>(api, "/api/cap-table");
     expect(existing.status).toBe(200);
     await visit("/workspace/equity/cap-table");
-    await expect(page).toHaveURL(/\/workspace\/cap-table/);
+    await expect(page).toHaveURL(/\/workspace\/equity\/cap-table/);
     await expect(page.getByRole("heading", { name: "Cap Table" })).toBeVisible({ timeout: 30_000 });
 
     if (!existing.body.shareClasses.some((c) => c.name === "Ordinary")) {

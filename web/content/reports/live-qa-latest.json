@@ -1,30 +1,24 @@
 {
-  "ts": "2026-09-16T04:06:31.442Z",
-  "startedAt": "2026-09-16T04:06:26Z",
+  "ts": "2026-09-16T07:54:35.575Z",
+  "startedAt": "2026-09-16T07:54:06Z",
   "baseURL": "https://blockid.au",
   "exitCode": 0,
-  "passed": 1,
+  "passed": 15,
   "failed": 0,
   "skipped": 0,
   "flaky": 0,
   "expectedFailures": 0,
-  "durationMs": 3394.626,
+  "durationMs": 27988.148,
   "account": {
-    "email": "qa-live-20260916-0406@blockid.au",
-    "userId": "60e8c132-f86a-43a2-aea7-24a39961a366",
-    "projectId": "d36b6467-f451-4e7e-bea2-37033ee78911",
+    "email": "qa-live-20260916-0754@blockid.au",
+    "userId": "35ff8d7d-9808-45a6-9507-4f34a4f312c5",
+    "projectId": "927abd4f-7928-4be7-8b41-d5f2edcf5b6e",
     "plan": "growth",
     "elevated": true
   },
   "erasure": {
-    "ok": false,
-    "detail": "skipped (LIVE_QA_KEEP_ACCOUNT=1)"
+    "ok": true,
+    "detail": "erased 35ff8d7d-9808-45a6-9507-4f34a4f312c5; verify dry-run exit 2 (no app_users row for the QA founder email)"
   },
-  "findings": [
-    {
-      "spec": "(teardown)",
-      "title": "QA account erasure",
-      "error": "ERASURE NOT CONFIRMED for qa-live-20260916-0406@blockid.au: skipped (LIVE_QA_KEEP_ACCOUNT=1)"
-    }
-  ]
+  "findings": []
 }

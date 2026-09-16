@@ -37,7 +37,7 @@ test.describe("Clean room", () => {
     expect(r.body.error).toBe("computed_task");
 
     await visit("/workspace/exit/clean-room");
-    await expect(page).toHaveURL(/\/workspace\/clean-room/);
+    await expect(page).toHaveURL(/\/workspace\/exit\/clean-room/);
     await expect(page.getByTestId("clean-room")).toBeVisible({ timeout: 30_000 });
     if (!c.body.checklist.roomExists) {
       await expect(page.getByTestId("clean-room-no-room")).toBeVisible();
