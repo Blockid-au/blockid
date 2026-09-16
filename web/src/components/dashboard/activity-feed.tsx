@@ -71,7 +71,7 @@ export function ActivityFeed({ rawActions }: ActivityFeedProps) {
       </div>
 
       {rawActions && rawActions.length > 5 && (
-        <a href="/workspace/journal" className="mt-4 inline-flex items-center text-xs font-medium text-brand-600 hover:text-brand-700">
+        <a href="/workspace/plan/journal" className="mt-4 inline-flex items-center text-xs font-medium text-brand-600 hover:text-brand-700">
           View All Activity →
         </a>
       )}

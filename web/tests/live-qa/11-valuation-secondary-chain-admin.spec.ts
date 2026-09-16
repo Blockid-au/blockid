@@ -20,7 +20,7 @@ test.describe("Valuation certificate + ESS annex", () => {
     await evidence(testInfo, "API", { vc: vc.body, certificate: { status: cert.status, body: cert.body } });
     await credits.assertUnchanged(before, "certificate preview with ESS annex");
 
-    await visit("/dashboard/valuation");
+    await visit("/workspace/valuation");
     if (noScore) {
       // `no_svi_account` (fresh founder, 2026-09-15) or `no_svi_analysis` (account, no score)
       if (vc.body.ok) expect(["no_svi_analysis", "no_svi_account"]).toContain(vc.body.reason);
@@ -64,7 +64,7 @@ test.describe("Secondary sandbox", () => {
     expect(book.status).toBe(200);
     expect(book.body.sandbox).toBe(true);
 
-    await visit("/workspace/secondary-offer");
+    await visit("/workspace/equity/secondary");
     await expect(page.getByTestId("sandbox-banner")).toBeVisible();
     await expect(page.getByTestId("sim-locked")).toHaveCount(0);
     const form = page.getByTestId("sim-order-form");
@@ -111,7 +111,7 @@ test.describe("On-chain vs register", () => {
     const push = await post(api, "/api/cap-table/chain-reconcile", { action: "push" });
     await evidence(testInfo, "API", { status: status.body, run: { status: run.status, body: run.body }, push: { status: push.status, body: push.body } });
     expect(status.status).toBe(200);
-    await visit("/workspace/cap-table");
+    await visit("/workspace/equity/cap-table");
     await expect(page.getByRole("heading", { name: "Cap Table" })).toBeVisible({ timeout: 30_000 });
     if (status.body.token) {
       // A token row exists (seeded by an operator): exercise the panel copy.

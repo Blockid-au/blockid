@@ -1499,7 +1499,7 @@ function SignupNudgeBanner() {
             Your score will be saved permanently.
           </p>
           <a
-            href="/auth/login?next=/dashboard/svi"
+            href="/auth/login?next=/workspace/score"
             onClick={() => {
               trackEvent("cta_clicked", { cta_id: "signup_nudge_banner", location: "svi_results_top" });
             }}
@@ -2556,8 +2556,8 @@ export function SVIResultsPanel({
 
                 {/* Dashboard */}
                 <a
-                  href="/dashboard/svi"
-                  onClick={() => { if (email) void trackAction(email, { label: "View on Dashboard", type: "guide", href: "/dashboard/svi" }); }}
+                  href="/workspace/score"
+                  onClick={() => { if (email) void trackAction(email, { label: "View on Dashboard", type: "guide", href: "/workspace/score" }); }}
                   title="View on Dashboard"
                   className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-300 bg-surface-50 dark:bg-surface-200 text-ink-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
                 >

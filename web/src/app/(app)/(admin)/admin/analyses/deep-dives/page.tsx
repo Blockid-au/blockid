@@ -102,7 +102,7 @@ export default async function AdminDeepDivesPage({
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/admin/analyses/deep-dives");
-  if (!isAdmin(user)) redirect("/dashboard/svi");
+  if (!isAdmin(user)) redirect("/workspace/score");
 
   const sp = await searchParams;
   const { rows, accounts, total } = await loadRows(sp);

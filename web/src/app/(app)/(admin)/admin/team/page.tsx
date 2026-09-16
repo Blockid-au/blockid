@@ -19,7 +19,7 @@ export default async function TeamPage() {
   // Non-admins: redirect (307) instead of soft-200 render — matches the pattern
   // used by every other admin subroute. Previous soft-200 exposed the /admin/team
   // route as a valid page to scanners and non-admin users.
-  if (!isAdmin) redirect("/dashboard/svi");
+  if (!isAdmin) redirect("/workspace/score");
 
   /* Live email count from DB */
   let emailsSent = 0;

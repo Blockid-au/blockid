@@ -1,5 +1,5 @@
 "use client";
-// /workspace/svi-api — manage SVI institutional API keys (T_SVI_EXC_0014)
+// /workspace/settings/enterprise — manage SVI institutional API keys (T_SVI_EXC_0014)
 
 import { useEffect, useState } from "react";
 import { ApiError, userErrorMessage } from "@/lib/ui/user-error";

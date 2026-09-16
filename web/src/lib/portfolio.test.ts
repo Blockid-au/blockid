@@ -1,6 +1,6 @@
 // Portfolio derivation helpers — pure-function coverage.
 //
-// Anchors the /dashboard/portfolio surface and /api/projects/portfolio
+// Anchors the /workspace/projects/compare surface and /api/projects/portfolio
 // route against the canonical 8-stage vocabulary and the single-project
 // dashboard's next-action ladder.
 
@@ -62,9 +62,9 @@ describe("portfolio — deriveNextAction", () => {
   it("mirrors the single-project dashboard ladder", () => {
     expect(deriveNextAction(10).label).toMatch(/refine/i);
     expect(deriveNextAction(40).url).toBe("/workspace/evidence");
-    expect(deriveNextAction(65).url).toBe("/workspace/equity-setup");
-    expect(deriveNextAction(80).url).toBe("/workspace/data-room");
-    expect(deriveNextAction(95).url).toBe("/workspace/fundraise");
+    expect(deriveNextAction(65).url).toBe("/workspace/equity/setup");
+    expect(deriveNextAction(80).url).toBe("/workspace/documents/data-room");
+    expect(deriveNextAction(95).url).toBe("/workspace/raise/round");
   });
 
   it("boundary values pick the higher band consistently", () => {
@@ -73,7 +73,7 @@ describe("portfolio — deriveNextAction", () => {
     // 50 = end of validation band → still "strengthen profile"
     expect(deriveNextAction(50).url).toBe("/workspace/evidence");
     // 51 = build band starts
-    expect(deriveNextAction(51).url).toBe("/workspace/equity-setup");
+    expect(deriveNextAction(51).url).toBe("/workspace/equity/setup");
   });
 });
 

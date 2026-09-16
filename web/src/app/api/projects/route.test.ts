@@ -4,7 +4,7 @@
 // id in detail.project_id. Nothing upstream can set it (the project does
 // not exist when the request starts), so the handler annotates the audit
 // context itself after createProject() returns. Without that the row landed
-// with project_id NULL and the project-scoped /workspace/audit-log hid it.
+// with project_id NULL and the project-scoped /workspace/settings/audit hid it.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 

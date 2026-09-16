@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AnalyzerPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login?next=/dashboard/analyzer");
+  if (!user) redirect("/login?next=/workspace/strategy/tech");
 
   const [projects, isSandbox] = await Promise.all([
     getUserProjects(user.id),

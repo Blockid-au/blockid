@@ -109,7 +109,7 @@ async function POST_handler(request: Request) {
   // Release QA-2 F6: the apiRoute audit row must carry the NEW project's id
   // — nothing upstream could set it (the project did not exist when the
   // request started), so `project.create` landed with project_id NULL and
-  // the project-scoped /workspace/audit-log never showed it.
+  // the project-scoped /workspace/settings/audit never showed it.
   if (result.project?.id) {
     setAuditProject({ projectId: result.project.id, role: "owner", userId: user.id });
     auditNote(result.project.id);

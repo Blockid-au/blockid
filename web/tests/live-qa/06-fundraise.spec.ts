@@ -35,7 +35,7 @@ interface Summary {
 test.describe("Fundraise rounds", () => {
   test("wizard → Calculate Share Price saves a round (POST /api/fundraise 200, not 500)", async ({ page, visit, growth, api }, testInfo) => {
     void growth;
-    await visit("/workspace/fundraise");
+    await visit("/workspace/raise/round");
     await expect(page.getByRole("heading", { name: /Fundraise Wizard/ })).toBeVisible({ timeout: 30_000 });
     // The wizard's <label>s are not associated with their inputs (lane-1
     // F16, P3, open) — locate by the label's sibling instead of getByLabel.
@@ -60,7 +60,7 @@ test.describe("Fundraise rounds", () => {
 
   test("wizard inputs are reachable by their labels (lane-1 F16)", async ({ page, visit, growth }) => {
     void growth;
-    await visit("/workspace/fundraise");
+    await visit("/workspace/raise/round");
     await expect(page.getByLabel("Target Raise (AUD)")).toBeVisible({ timeout: 10_000 });
     await expect(page.getByLabel("Pre-Money Valuation (AUD)")).toBeVisible({ timeout: 5_000 });
   });
@@ -73,7 +73,7 @@ test.describe("Fundraise rounds", () => {
     await evidence(testInfo, "GET round", { status: detail.status, body: detail.body });
     expect(detail.status, `GET /api/fundraise/${roundId} must resolve the round the wizard just created (it is listed by GET /api/fundraise)`).toBe(200);
 
-    await visit(`/workspace/fundraise/${roundId}`);
+    await visit(`/workspace/raise/round/${roundId}`);
     await expect(page.getByTestId("fundraise-round")).toBeVisible({ timeout: 30_000 });
     const bar = page.getByTestId("round-progress-bar");
     await expect(bar).toBeVisible();
@@ -91,7 +91,7 @@ test.describe("Fundraise rounds", () => {
   test("add a soft-circled commitment through the form, then move it to committed", async ({ page, visit, growth, qa, api }, testInfo) => {
     void growth;
     const roundId = qa.scratch["fundraise.roundId"] as string;
-    await visit(`/workspace/fundraise/${roundId}`);
+    await visit(`/workspace/raise/round/${roundId}`);
     const form = page.getByTestId("commitment-form");
     await expect(form).toBeVisible({ timeout: 30_000 });
     await form.getByLabel("Investor name").fill("Jane Angel");

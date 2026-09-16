@@ -1,4 +1,4 @@
-// Pure catalogue builder for /workspace/integrations.
+// Pure catalogue builder for /workspace/evidence/connectors.
 // Reseller-module B10: renders one row per integration (GitHub, Stripe, GA4,
 // Blockchain) with connection status + last-sync + a link to the manager UI.
 // Kept pure (no fetch, no DOM, no server-only imports) so the shape is
@@ -167,7 +167,7 @@ function buildBlockchainRow(
 export function buildIntegrationsCatalogue(
   input: BuildIntegrationsCatalogueInput,
 ): IntegrationRow[] {
-  const walletHref = input.walletHref ?? "/workspace/wallet";
+  const walletHref = input.walletHref ?? "/workspace/equity/on-chain";
   return [
     buildOAuthRow("github", findOAuth(input.oauthConnections, "github"), input.providerConfigured("github")),
     buildOAuthRow("stripe", findOAuth(input.oauthConnections, "stripe"), input.providerConfigured("stripe")),

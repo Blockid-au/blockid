@@ -27,18 +27,18 @@ interface OnboardingStep {
 }
 
 export const ONBOARDING_STEPS: OnboardingStep[] = [
-  { id: "profile",       label: "Complete profile",        href: "/workspace/profile",        phase: 1 },
+  { id: "profile",       label: "Complete profile",        href: "/workspace/settings/profile",        phase: 1 },
   { id: "idea",          label: "Describe your idea",      href: "/score",                    phase: 1 },
-  { id: "svi_score",     label: "Get SVI score",           href: "/dashboard/svi",            phase: 1 },
+  { id: "svi_score",     label: "Get SVI score",           href: "/workspace/score",            phase: 1 },
   { id: "evidence",      label: "Add evidence",            href: "/workspace/evidence",       phase: 2 },
   { id: "market",        label: "Define market size",      href: "/workspace/market-size",    phase: 2 },
-  { id: "cap_table",     label: "Set up cap table",        href: "/workspace/equity-setup",   phase: 3 },
+  { id: "cap_table",     label: "Set up cap table",        href: "/workspace/equity/setup",   phase: 3 },
   { id: "team",          label: "Add team members",        href: "/workspace/team",           phase: 3 },
-  { id: "dataroom",      label: "Start data room",         href: "/workspace/data-room",      phase: 4 },
+  { id: "dataroom",      label: "Start data room",         href: "/workspace/documents/data-room",      phase: 4 },
   { id: "documents",     label: "Upload key docs",         href: "/workspace/documents",      phase: 4 },
-  { id: "investor_pack", label: "Generate investor pack",  href: "/workspace/investor-pack",  phase: 5 },
-  { id: "metrics",       label: "Add metrics",             href: "/workspace/metrics",        phase: 5 },
-  { id: "fundraise",     label: "Set fundraise goal",      href: "/workspace/fundraise",      phase: 6 },
+  { id: "investor_pack", label: "Generate investor pack",  href: "/workspace/reports/investor-pack",  phase: 5 },
+  { id: "metrics",       label: "Add metrics",             href: "/workspace/evidence/metrics",        phase: 5 },
+  { id: "fundraise",     label: "Set fundraise goal",      href: "/workspace/raise/round",      phase: 6 },
 ];
 
 const PHASE_LABELS: Record<number, string> = {

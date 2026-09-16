@@ -102,8 +102,8 @@ const STAGE_VOCABULARIES: Array<{ name: string; values: Array<string | number>; 
   { name: "GrowthPhaseId (journey-map.ts:165)", values: [...GROWTH_PHASE_IDS], min: 12 },
   { name: "LEGACY_SVI_STAGE_LABELS (svi-analysis.ts:19)", values: [...LEGACY_SVI_STAGE_LABELS], min: 8 },
   { name: "STAGE_LABEL (startup-index-listings.ts:21)", values: arrayStrings("lib/startup-index-listings.ts", "STAGE_LABEL"), min: 8 },
-  { name: "cfo dashboard STAGE_OPTIONS", values: optionValues("app/(app)/(founder)/dashboard/cfo/cfo-dashboard-client.tsx", "STAGE_OPTIONS"), min: 8 },
-  { name: "equity-offer STAGE_OPTIONS", values: optionValues("app/(app)/(founder)/workspace/equity-offer/request/page.tsx", "STAGE_OPTIONS"), min: 4 },
+  { name: "cfo dashboard STAGE_OPTIONS", values: optionValues("app/(app)/(founder)/workspace/valuation/cfo/cfo-dashboard-client.tsx", "STAGE_OPTIONS"), min: 8 },
+  { name: "equity-offer STAGE_OPTIONS", values: optionValues("app/(app)/(founder)/workspace/esop/offers/request/page.tsx", "STAGE_OPTIONS"), min: 4 },
   { name: "CANONICAL_STAGES (identity)", values: [...CANONICAL_STAGES], min: 8 },
 ];
 

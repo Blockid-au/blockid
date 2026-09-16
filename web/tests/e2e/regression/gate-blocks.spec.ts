@@ -13,10 +13,10 @@ import { loginAs } from "../fixtures/accounts";
 
 // Routes → capability they require (must match src/lib/entitlements.ts).
 const GATED_ROUTES: Array<{ path: string; feature: string }> = [
-  { path: "/workspace/cap-table", feature: "cap_table.write" },
+  { path: "/workspace/equity/cap-table", feature: "cap_table.write" },
   { path: "/workspace/esop", feature: "esop.manage" },
-  { path: "/workspace/dividends", feature: "dividends.declare" },
-  { path: "/workspace/data-room", feature: "data_room.access" },
+  { path: "/workspace/finance/dividends", feature: "dividends.declare" },
+  { path: "/workspace/documents/data-room", feature: "data_room.access" },
   { path: "/workspace/tokenization", feature: "tokenization.deploy" },
   { path: "/workspace/diligence", feature: "diligence.view" },
 ];

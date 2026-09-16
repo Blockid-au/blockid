@@ -2,7 +2,7 @@
  * The cap table is gated by two different feature flags depending on which
  * door you come in by:
  *
- *   /workspace/cap-table (the page)      → requireTierForPage("cap_table.write")
+ *   /workspace/equity/cap-table (the page)      → requireTierForPage("cap_table.write")
  *   /api/cap-table/* (six route handlers) → gateRequireFeature("share_management")
  *
  * Today that is harmless: every plan carries both flags or neither, and the
@@ -39,7 +39,7 @@ describe("cap-table gate pairing", () => {
     expect(
       split,
       `These plans grant one cap-table flag without the other, so ` +
-        `/workspace/cap-table would render for them while /api/cap-table/* ` +
+        `/workspace/equity/cap-table would render for them while /api/cap-table/* ` +
         `returns 403 on every call:\n${JSON.stringify(split, null, 2)}`,
     ).toEqual([]);
   });

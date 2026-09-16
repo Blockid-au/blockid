@@ -167,7 +167,7 @@ describe("computeNextSteps — missing set", () => {
     );
     const dataroomItem = out.missing.find((m) => !m.raise_blocker);
     if (dataroomItem) {
-      expect(dataroomItem.cta_url.startsWith("/dashboard/data-room?add=")).toBe(true);
+      expect(dataroomItem.cta_url.startsWith("/workspace/investors/access?add=")).toBe(true);
       expect(dataroomItem.cta_url).toContain(
         encodeURIComponent(dataroomItem.category),
       );

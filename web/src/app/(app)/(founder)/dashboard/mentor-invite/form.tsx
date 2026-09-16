@@ -1,6 +1,6 @@
 "use client";
 
-// Client-side Approve/Decline form for /dashboard/mentor-invite.
+// Client-side Approve/Decline form for /workspace/investors/access.
 //
 // Split out so the parent page can stay a Server Component while the
 // consent-checkbox + POST wiring live in a small "use client" island.
@@ -108,7 +108,7 @@ export function MentorInviteForm(props: MentorInviteFormProps) {
         } catch {
           /* telemetry */
         }
-        router.push("/dashboard/settings/mentor-access");
+        router.push("/workspace/investors/access");
       } catch (err) {
         setError(userErrorMessage(err, "Something went wrong. Please try again."));
         setBusy(null);

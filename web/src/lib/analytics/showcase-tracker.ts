@@ -3,7 +3,7 @@
  *
  * Track B advisory §23 rec #2 (CMO/CPO joint) — the four showcase surfaces
  * (/showcase/blockid, /guide/reports, /guide/[chapter],
- * /workspace/guide/[chapter]) each mount <PageTracker /> but the runtime
+ * /workspace/plan/guide/[chapter]) each mount <PageTracker /> but the runtime
  * dispatcher never emitted anything for them, so the "GA4 event catalogue
  * for showcase" was invisible in reports. This resolver turns a (page,
  * context) pair into the right AnalyticsEventMap entry so PageTracker can

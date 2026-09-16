@@ -103,7 +103,7 @@ async function loadInputs(userId: string, projectId: string | null) {
 
 export default async function ComplianceCalendarPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/compliance/calendar");
+  if (!user) redirect("/auth/login?next=/workspace/documents/compliance");
 
   const project = await getActiveProject(user.id);
   const inputs = await loadInputs(user.id, project?.id ?? null);

@@ -2,7 +2,7 @@
 //
 // Consumes the JSON variant of /api/compliance/calendar (?format=json)
 // and returns a tile view (chip colour + label + body copy). Colour
-// bands mirror the /compliance/calendar page's pickCalendarBand so the
+// bands mirror the /workspace/documents/compliance page's pickCalendarBand so the
 // tile + full page never disagree on how urgent an event looks.
 
 import type {

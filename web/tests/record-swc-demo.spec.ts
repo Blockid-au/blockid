@@ -90,7 +90,7 @@ test("SWC pitch demo recording", async ({ page }) => {
   }
 
   // Step 9: Navigate to dashboard
-  await page.goto(`${BASE_URL}/dashboard/svi`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE_URL}/workspace/score`, { waitUntil: "networkidle" });
   await page.waitForTimeout(2000);
   await page.screenshot({ path: join(SCREENSHOT_DIR, "10-dashboard.png") });
 

@@ -57,7 +57,7 @@ describe("publicCacheableRoute()", () => {
     }
     for (const p of [
       "/dashboard",
-      "/workspace/audit-log",
+      "/workspace/settings/audit",
       "/auth/login",
       "/signup",
       "/analyze",

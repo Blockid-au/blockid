@@ -45,13 +45,13 @@ export async function GET(request: Request) {
 
   if (errorParam) {
     return NextResponse.redirect(
-      `${baseUrl()}/workspace/integrations?error=stripe_${encodeURIComponent(errorParam)}`,
+      `${baseUrl()}/workspace/evidence/connectors?error=stripe_${encodeURIComponent(errorParam)}`,
     );
   }
 
   if (!code || !state || !expected || state !== expected) {
     return NextResponse.redirect(
-      `${baseUrl()}/workspace/integrations?error=stripe_state_mismatch`,
+      `${baseUrl()}/workspace/evidence/connectors?error=stripe_state_mismatch`,
     );
   }
 
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
   // the CALLER's user_id, signals under the project OWNER's user_id.
   const { scope, denied } = await projectScopeOrRedirect(
     "admin",
-    `${baseUrl()}/workspace/integrations`,
+    `${baseUrl()}/workspace/evidence/connectors`,
     "stripe_forbidden_role",
   );
   if (denied) return denied;
@@ -72,7 +72,7 @@ export async function GET(request: Request) {
     process.env.STRIPE_SECRET_KEY;
   if (!clientSecret) {
     return NextResponse.redirect(
-      `${baseUrl()}/workspace/integrations?error=stripe_not_configured`,
+      `${baseUrl()}/workspace/evidence/connectors?error=stripe_not_configured`,
     );
   }
 
@@ -144,7 +144,7 @@ export async function GET(request: Request) {
   } catch (err) {
     console.error("[blockid:integrations:stripe:callback]", err);
     return NextResponse.redirect(
-      `${baseUrl()}/workspace/integrations?error=stripe_exchange_failed`,
+      `${baseUrl()}/workspace/evidence/connectors?error=stripe_exchange_failed`,
     );
   }
 }

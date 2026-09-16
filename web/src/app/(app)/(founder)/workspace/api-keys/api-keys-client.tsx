@@ -100,7 +100,7 @@ export function ApiKeysClient({
             </div>
           </div>
           <Link
-            href="/pricing?feature=api.access&from=/workspace/api-keys"
+            href="/pricing?feature=api.access&from=/workspace/settings/enterprise"
             className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
           >
             <Sparkles strokeWidth={1.75} className="h-4 w-4" />

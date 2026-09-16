@@ -1,5 +1,5 @@
 // ExitReadinessTile — RSC that renders the AU comparable-exits panel
-// used by /dashboard/exit-readiness (P12b-tile).
+// used by /workspace/exit/benchmark (P12b-tile).
 //
 // Data flows:
 //   page.tsx (server) ─▶ buildExitBenchmarkSection({ sector }) ─▶ tile

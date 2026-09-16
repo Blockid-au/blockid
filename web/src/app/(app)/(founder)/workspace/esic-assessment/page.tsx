@@ -46,7 +46,7 @@ async function loadLatest(userId: string, projectId: string | null): Promise<{
 
 export default async function EsicAssessmentPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/workspace/esic-assessment");
+  if (!user) redirect("/auth/login?next=/workspace/documents/compliance");
 
   const isSandbox = await getCurrentProjectIsSandbox();
   const project = await getActiveProject(user.id);

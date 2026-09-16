@@ -8,7 +8,7 @@
  * translation with a human-authored one.
  *
  * Auth: standard admin gate (email match or role=admin). Non-admins
- * are 307'd to /dashboard/svi per the site-wide pattern.
+ * are 307'd to /workspace/score per the site-wide pattern.
  *
  * Data path: `readAudit()` reads `content/i18n/vi-audit.jsonl` directly
  * — no DB hop. The audit is written by `cacheSetMany` in
@@ -57,7 +57,7 @@ export default async function I18nReviewPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/admin/i18n/review");
   const isAdmin = user.email === ADMIN_EMAIL || user.role === "admin";
-  if (!isAdmin) redirect("/dashboard/svi");
+  if (!isAdmin) redirect("/workspace/score");
 
   const entries = await readAudit();
 

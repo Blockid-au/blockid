@@ -74,27 +74,27 @@ const IMPROVE_HINTS: Record<
   market: {
     title: "Grow the Market evidence pack",
     cta: "Open Market SVI evidence",
-    href: "/dashboard/svi#dim-market",
+    href: "/workspace/score#dim-market",
   },
   team: {
     title: "Fill the Team dimension",
     cta: "Open Team dashboard",
-    href: "/dashboard/team",
+    href: "/workspace/team/salaries",
   },
   tech: {
     title: "Ship a Tech signal",
     cta: "Wire GitHub / repo signals",
-    href: "/dashboard/integrations",
+    href: "/workspace/evidence/connectors",
   },
   financial: {
     title: "Sharpen Financial projections",
     cta: "Open the finance workspace",
-    href: "/dashboard/finance",
+    href: "/workspace/finance",
   },
   compliance: {
     title: "Close a Compliance gap",
     cta: "Open the compliance panel",
-    href: "/dashboard/data-room",
+    href: "/workspace/investors/access",
   },
 };
 

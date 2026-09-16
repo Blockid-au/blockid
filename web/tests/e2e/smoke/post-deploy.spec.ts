@@ -88,13 +88,13 @@ test.describe("Post-deploy hydrated smoke", () => {
     ).toBeVisible({ timeout: PAGE_TIMEOUT });
   });
 
-  test("/workspace/branding — loads or redirects to /auth/login", async ({
+  test("/workspace/settings/enterprise — loads or redirects to /auth/login", async ({
     page,
   }) => {
-    const resp = await page.goto("/workspace/branding", {
+    const resp = await page.goto("/workspace/settings/enterprise", {
       waitUntil: "domcontentloaded",
     });
-    expect(resp, "no response for /workspace/branding").not.toBeNull();
+    expect(resp, "no response for /workspace/settings/enterprise").not.toBeNull();
     const status = resp!.status();
     // Signed-out users are redirected to /auth/login; signed-in reach the page.
     // Both count as healthy; a 4xx/5xx here is the regression we're catching.
@@ -106,7 +106,7 @@ test.describe("Post-deploy hydrated smoke", () => {
     expect(okUrl, `unexpected final URL ${finalUrl}`).toBe(true);
   });
 
-  // ── /workspace/audit-log + /workspace/projects (iter-12) ────────────
+  // ── /workspace/settings/audit + /workspace/projects (iter-12) ────────────
   // Both pages call `redirect("/auth/login?next=...")` inside an async
   // Server Component when getCurrentUser() returns null. Because they
   // sit under app/workspace/loading.tsx, Next 16 streams a shell + the
@@ -115,14 +115,14 @@ test.describe("Post-deploy hydrated smoke", () => {
   // leak — the client runtime honours the template and lands on
   // /auth/login. This hydrated smoke asserts the visible behaviour so
   // the false-positive from the iter-12 curl-only gate can't recur.
-  // /dashboard/portfolio (iter-14, shipped 7ed825be) shares the same
+  // /workspace/projects/compare (iter-14, shipped 7ed825be) shares the same
   // getCurrentUser()→redirect() auth-gate pattern, so it lives in the
   // same loop.
   for (const path of [
-    "/workspace/audit-log",
+    "/workspace/settings/audit",
     "/workspace/projects",
     "/workspace/projects/archived",
-    "/dashboard/portfolio",
+    "/workspace/projects/compare",
   ] as const) {
     test(`${path} — anonymous lands on /auth/login (hydrated)`, async ({
       page,
@@ -147,7 +147,7 @@ test.describe("Post-deploy hydrated smoke", () => {
     });
   }
 
-  test("/workspace/audit-log — login redirect carries exact next param", async ({
+  test("/workspace/settings/audit — login redirect carries exact next param", async ({
     page,
     context,
   }) => {
@@ -166,26 +166,26 @@ test.describe("Post-deploy hydrated smoke", () => {
     // — where the user lands — and still catches double-encoding, since
     // `%252F…` decodes to `%2F…` and fails this equality.
     await context.clearCookies();
-    await page.goto("/workspace/audit-log", { waitUntil: "domcontentloaded" });
+    await page.goto("/workspace/settings/audit", { waitUntil: "domcontentloaded" });
     await page.waitForURL(/\/auth\/login/, { timeout: PAGE_TIMEOUT });
     const finalUrl = page.url();
     const nextParam = new URL(finalUrl).searchParams.get("next");
     expect(
       nextParam,
-      `expected next=/workspace/audit-log after one decode, got ${finalUrl}`,
-    ).toBe("/workspace/audit-log");
+      `expected next=/workspace/settings/audit after one decode, got ${finalUrl}`,
+    ).toBe("/workspace/settings/audit");
   });
 
-  test("/dashboard/portfolio — post-redirect login shell hydrates", async ({
+  test("/workspace/projects/compare — post-redirect login shell hydrates", async ({
     page,
     context,
   }) => {
     // After the auth-gate redirect, the /auth/login page must render its
     // canonical hero shell — protects the empty-state / column layout on
-    // /dashboard/portfolio from a silent regression that turns the redirect
+    // /workspace/projects/compare from a silent regression that turns the redirect
     // into a blank page (e.g. a broken WorkspaceLayout import).
     await context.clearCookies();
-    await page.goto("/dashboard/portfolio", { waitUntil: "domcontentloaded" });
+    await page.goto("/workspace/projects/compare", { waitUntil: "domcontentloaded" });
     await page.waitForURL(/\/auth\/login/, { timeout: PAGE_TIMEOUT });
     await expect(
       page.getByRole("heading", { name: /sign in to blockid/i }),

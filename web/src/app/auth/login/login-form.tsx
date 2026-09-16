@@ -614,7 +614,7 @@ function EmailPasswordForm({
       // nothing read.
       const target = mode === "register" && !nextUrl
         ? (claimedCount > 0
-            ? "/workspace/analyses"
+            ? "/workspace/score/history"
             : "/dashboard")
         : nextUrl ?? "/";
       const sep = target.includes("?") ? "&" : "?";

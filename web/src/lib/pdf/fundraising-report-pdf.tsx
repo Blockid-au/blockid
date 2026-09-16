@@ -1262,7 +1262,7 @@ function FundraisingChecklistPage({ data }: { data: FundraisingReportData }) {
 
       {items.length === 0 && (
         <Text style={[s.disclaimerText, { marginBottom: 12 }]}>
-          No checklist items recorded yet — head to /workspace/data-room to
+          No checklist items recorded yet — head to /workspace/documents/data-room to
           start tracking your fundraising readiness items.
         </Text>
       )}

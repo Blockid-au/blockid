@@ -135,7 +135,7 @@ function InvestorPacksSection({
         <p className="text-xs text-ink-700 mt-0.5">
           Generate your first pack from the{" "}
           <a
-            href="/workspace/investor-pack"
+            href="/workspace/reports/investor-pack"
             className="text-brand-600 hover:underline"
           >
             Investor Pack
@@ -186,7 +186,7 @@ function InvestorPacksSection({
               <td className="px-4 py-2.5 text-right">
                 {pack.is_expired ? (
                   <a
-                    href="/workspace/investor-pack"
+                    href="/workspace/reports/investor-pack"
                     className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-ink-700 hover:bg-slate-50 transition-colors"
                   >
                     <RefreshCw strokeWidth={1.75} className="h-3 w-3" />

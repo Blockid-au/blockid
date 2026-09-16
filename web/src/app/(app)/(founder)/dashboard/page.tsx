@@ -146,7 +146,7 @@ function computeNextAction(sviScore: number | null): {
     return {
       text: "You're building something real. Set up your equity structure — define co-founder splits, share classes, and vesting schedules before you bring on investors.",
       label: "Set Up Equity",
-      url: "/workspace/equity-setup",
+      url: "/workspace/equity/setup",
       phase: "build",
     };
   }
@@ -155,7 +155,7 @@ function computeNextAction(sviScore: number | null): {
     return {
       text: "You're nearly investor-ready! Build your data room with key documents, a pitch deck, and financial projections. This is what investors expect to see.",
       label: "Build Data Room",
-      url: "/workspace/data-room",
+      url: "/workspace/documents/data-room",
       phase: "pre-fundraise",
     };
   }
@@ -163,7 +163,7 @@ function computeNextAction(sviScore: number | null): {
   return {
     text: "Your startup is investor-ready! Share your data room with potential investors and start your fundraising conversations.",
     label: "Start Fundraising",
-    url: "/workspace/fundraise",
+    url: "/workspace/raise/round",
     phase: "fundraise",
   };
 }
@@ -176,20 +176,20 @@ function computeNextAction(sviScore: number | null): {
  */
 function actionToUrl(title: string): string {
   const t = title.toLowerCase();
-  if (t.includes("cap table")) return "/workspace/cap-table";
-  if (t.includes("vesting")) return "/workspace/vesting";
+  if (t.includes("cap table")) return "/workspace/equity/cap-table";
+  if (t.includes("vesting")) return "/workspace/esop/vesting";
   if (t.includes("esop")) return "/workspace/esop";
-  if (t.includes("pitch deck") || t.includes("data room")) return "/workspace/data-room";
-  if (t.includes("financial model") || t.includes("projection")) return "/workspace/metrics";
-  if (t.includes("revenue") || t.includes("paying customer") || t.includes("first customer")) return "/workspace/revenue";
-  if (t.includes("analytics")) return "/workspace/metrics";
+  if (t.includes("pitch deck") || t.includes("data room")) return "/workspace/documents/data-room";
+  if (t.includes("financial model") || t.includes("projection")) return "/workspace/evidence/metrics";
+  if (t.includes("revenue") || t.includes("paying customer") || t.includes("first customer")) return "/workspace/finance/revenue";
+  if (t.includes("analytics")) return "/workspace/evidence/metrics";
   if (t.includes("demo") || t.includes("prototype") || t.includes("product")) return "/workspace/projects";
-  if (t.includes("asic") || t.includes("abn") || t.includes("register")) return "/workspace/profile";
+  if (t.includes("asic") || t.includes("abn") || t.includes("register")) return "/workspace/settings/profile";
   if (t.includes("ip") || t.includes("patent") || t.includes("trademark") || t.includes("legal")) return "/workspace/documents";
-  if (t.includes("advisor") || t.includes("team") || t.includes("co-founder")) return "/workspace/shareholders";
+  if (t.includes("advisor") || t.includes("team") || t.includes("co-founder")) return "/workspace/equity/shareholders";
   if (t.includes("market") || t.includes("tam") || t.includes("sam")) return "/workspace/score/criteria";
   if (t.includes("moat") || t.includes("evidence")) return "/workspace/evidence";
-  if (t.includes("fundraise") || t.includes("raise")) return "/workspace/fundraise";
+  if (t.includes("fundraise") || t.includes("raise")) return "/workspace/raise/round";
   return "/workspace/evidence";
 }
 
@@ -205,27 +205,27 @@ function fallbackDirectionSteps(stage: number): DirectionStep[] {
   if (stage <= 1) {
     return [
       { label: "Lock in problem validation", detail: "Add interviews, surveys, or waitlist data to the Evidence Vault — move from self-declared to verified.", impact: "+12 SVI", url: "/workspace/evidence", priority: "P0" },
-      { label: "Set up your cap table", detail: "Define founder splits, share classes, and vesting before bringing on capital.", impact: "+10 SVI", url: "/workspace/cap-table", priority: "P1" },
+      { label: "Set up your cap table", detail: "Define founder splits, share classes, and vesting before bringing on capital.", impact: "+10 SVI", url: "/workspace/equity/cap-table", priority: "P1" },
       { label: "Ship a working demo", detail: "A live prototype is the highest-signal evidence you can show investors.", impact: "+8 SVI", url: "/workspace/projects", priority: "P2" },
     ];
   }
   if (stage <= 3) {
     return [
-      { label: "Acquire 20 paying customers", detail: "Revenue is the strongest validation signal — even small ARR unlocks the Traction layer.", impact: "+18 SVI", url: "/workspace/revenue", priority: "P0" },
-      { label: "Finalise your cap table", detail: "Confirm founder/ESOP split, vesting schedules, and shareholders before raise conversations.", impact: "+10 SVI", url: "/workspace/cap-table", priority: "P1" },
-      { label: "Draft your pitch deck", detail: "Structure the narrative — problem, solution, traction, team, ask — and store it in your data room.", impact: "+8 SVI", url: "/workspace/data-room", priority: "P2" },
+      { label: "Acquire 20 paying customers", detail: "Revenue is the strongest validation signal — even small ARR unlocks the Traction layer.", impact: "+18 SVI", url: "/workspace/finance/revenue", priority: "P0" },
+      { label: "Finalise your cap table", detail: "Confirm founder/ESOP split, vesting schedules, and shareholders before raise conversations.", impact: "+10 SVI", url: "/workspace/equity/cap-table", priority: "P1" },
+      { label: "Draft your pitch deck", detail: "Structure the narrative — problem, solution, traction, team, ask — and store it in your data room.", impact: "+8 SVI", url: "/workspace/documents/data-room", priority: "P2" },
     ];
   }
   if (stage <= 5) {
     return [
-      { label: "Build your data room", detail: "Pitch deck, financial model, cap table, contracts — everything investors expect.", impact: "+12 SVI", url: "/workspace/data-room", priority: "P0" },
-      { label: "Lock in financial model", detail: "Three-year P&L forecast with unit economics — investors will model your business themselves.", impact: "+10 SVI", url: "/workspace/metrics", priority: "P1" },
-      { label: "Open fundraise pipeline", detail: "Shortlist target investors, plan intros, and start tracking conversations.", impact: "+8 SVI", url: "/workspace/fundraise", priority: "P2" },
+      { label: "Build your data room", detail: "Pitch deck, financial model, cap table, contracts — everything investors expect.", impact: "+12 SVI", url: "/workspace/documents/data-room", priority: "P0" },
+      { label: "Lock in financial model", detail: "Three-year P&L forecast with unit economics — investors will model your business themselves.", impact: "+10 SVI", url: "/workspace/evidence/metrics", priority: "P1" },
+      { label: "Open fundraise pipeline", detail: "Shortlist target investors, plan intros, and start tracking conversations.", impact: "+8 SVI", url: "/workspace/raise/round", priority: "P2" },
     ];
   }
   return [
-    { label: "Run your raise process", detail: "Open conversations, share the data room, and track investor signals.", impact: "+10 SVI", url: "/workspace/fundraise", priority: "P0" },
-    { label: "Tighten unit economics", detail: "Confirm LTV / CAC, churn, and gross margin — Series-A grade investors will probe these.", impact: "+8 SVI", url: "/workspace/metrics", priority: "P1" },
+    { label: "Run your raise process", detail: "Open conversations, share the data room, and track investor signals.", impact: "+10 SVI", url: "/workspace/raise/round", priority: "P0" },
+    { label: "Tighten unit economics", detail: "Confirm LTV / CAC, churn, and gross margin — Series-A grade investors will probe these.", impact: "+8 SVI", url: "/workspace/evidence/metrics", priority: "P1" },
     { label: "Plan exit scenarios", detail: "Model acquisition, IPO, or secondary paths so the cap table is exit-ready.", impact: "+6 SVI", url: "/workspace/exit", priority: "P2" },
   ];
 }
@@ -305,13 +305,13 @@ function QuickActionsList({ hasAnalysis, phase }: { hasAnalysis: boolean; phase:
     { href: "/workspace/evidence", icon: Upload, label: "Add Evidence", desc: "LinkedIn, team bios, market research", minPhase: 0, badge: phase < 2 ? "Boost Score" : undefined },
     { href: "/tools/idea-valuation", icon: BarChart3, label: "Idea Valuation", desc: "Pre-revenue valuation range", minPhase: 1 },
     // Phase 2: Build
-    { href: "/workspace/equity-setup", icon: PieChart, label: "Equity Structure", desc: "Co-founder splits & vesting", minPhase: 2 },
-    { href: "/workspace/cap-table", icon: PieChart, label: "Cap Table", desc: "Share classes & shareholders", minPhase: 2 },
+    { href: "/workspace/equity/setup", icon: PieChart, label: "Equity Structure", desc: "Co-founder splits & vesting", minPhase: 2 },
+    { href: "/workspace/equity/cap-table", icon: PieChart, label: "Cap Table", desc: "Share classes & shareholders", minPhase: 2 },
     // Phase 3: Pre-fundraise
-    { href: "/workspace/data-room", icon: Target, label: "Data Room", desc: "Investor documents & pitch", minPhase: 3 },
+    { href: "/workspace/documents/data-room", icon: Target, label: "Data Room", desc: "Investor documents & pitch", minPhase: 3 },
     // Phase 4+: Fundraise & Growth
-    { href: "/workspace/fundraise", icon: TrendingUp, label: "Fundraise", desc: "Raise capital", minPhase: 3 },
-    { href: "/workspace/revenue", icon: BarChart3, label: "Revenue Tracking", desc: "Track MRR, ARR, metrics", minPhase: 4 },
+    { href: "/workspace/raise/round", icon: TrendingUp, label: "Fundraise", desc: "Raise capital", minPhase: 3 },
+    { href: "/workspace/finance/revenue", icon: BarChart3, label: "Revenue Tracking", desc: "Track MRR, ARR, metrics", minPhase: 4 },
     { href: "/workspace/exit", icon: ShieldCheck, label: "Exit Modeling", desc: "Scenario planning", minPhase: 5 },
   ];
 
@@ -1083,7 +1083,7 @@ export default async function DashboardPage({
                     Run an SVI analysis to generate your first report.
                   </p>
                   <Link
-                    href={sviScore == null ? "/analyze" : "/workspace/analyses"}
+                    href={sviScore == null ? "/analyze" : "/workspace/score/history"}
                     className="mt-3 inline-flex items-center gap-1 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-white hover:bg-action/90"
                   >
                     {sviScore == null ? "Score my startup" : "Open my analyses"}
@@ -1169,7 +1169,7 @@ export default async function DashboardPage({
           {/* Cohort benchmark CTA (T0090). */}
           <div data-widget-id="cohort-benchmark">
             <Link
-              href="/dashboard/benchmark"
+              href="/workspace/score/benchmark"
               className="bg-surface-sunken border border-line-subtle backdrop-blur-sm flex items-center justify-between gap-4 rounded-2xl p-5 hover:border-action/25 transition-all duration-300"
             >
               <div className="flex items-center gap-3">

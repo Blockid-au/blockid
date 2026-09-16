@@ -1,4 +1,4 @@
-// P11-acquisition-wizard-ui — form-state helpers for the /dashboard/exit-readiness
+// P11-acquisition-wizard-ui — form-state helpers for the /workspace/exit/benchmark
 // wizard that runs a founder-supplied deal shape through assessAcquisitionPattern.
 //
 // The pure assessment lib lives at web/src/lib/exits/acquisition-pattern-check.ts

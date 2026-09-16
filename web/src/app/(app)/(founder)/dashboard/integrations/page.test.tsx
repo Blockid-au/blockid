@@ -1,7 +1,7 @@
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// S18-B render test for /dashboard/integrations. Pins: a member reads the
+// S18-B render test for /workspace/evidence/connectors. Pins: a member reads the
 // OWNER's integration evidence (read-only account lookup, no insert); OAuth
 // linking (callbacks are admin+) renders for owner + admin only; the manual
 // GitHub form (editor+) also renders for editors; viewers see status only.
@@ -57,7 +57,7 @@ beforeEach(() => {
   sbState.sb = sb;
 });
 
-describe("/dashboard/integrations (S18-B)", () => {
+describe("/workspace/evidence/connectors (S18-B)", () => {
   it("owner: own account, GitHub form (OAuth on) + GA connect rendered", async () => {
     const out = await html();
     expect(keyCalls(state, "findOrCreateSVIAccount")).toHaveLength(1);

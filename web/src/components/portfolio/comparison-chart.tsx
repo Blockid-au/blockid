@@ -1,7 +1,7 @@
 // Cross-project SVI comparison chart — Q4 Multi-project #2
 // (feature-upgrade-roadmap-v2.md:52).
 //
-// Rendered above the /dashboard/portfolio table. One line per project
+// Rendered above the /workspace/projects/compare table. One line per project
 // showing the last 30 days of daily SVI scores, capped at
 // PORTFOLIO_COMPARISON_MAX_SERIES so the legend stays legible.
 //

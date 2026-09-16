@@ -130,7 +130,7 @@ export default async function EvidencePage() {
             );
           })}
           <Link
-            href="/workspace/integrations"
+            href="/workspace/evidence/connectors"
             className="ml-auto text-xs text-brand-700 dark:text-brand-400 hover:underline"
           >
             Manage

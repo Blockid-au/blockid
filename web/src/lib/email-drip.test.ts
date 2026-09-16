@@ -294,15 +294,15 @@ describe("siteUrl (via renderDripBody CTAs)", () => {
   it("strips a trailing slash so CTAs never emit `//`", () => {
     process.env.NEXT_PUBLIC_SITE_URL = "https://example.test/";
     const out = renderDripBody("onboarding_d1", "a@b.co", { weakestDim: "x" });
-    expect(out.html).toContain("https://example.test/dashboard/svi");
+    expect(out.html).toContain("https://example.test/workspace/score");
     expect(out.html).not.toContain("example.test//dashboard");
   });
 
   it("defaults to https://blockid.au when NEXT_PUBLIC_SITE_URL is unset", () => {
     delete process.env.NEXT_PUBLIC_SITE_URL;
     const out = renderDripBody("onboarding_d1", "a@b.co", { weakestDim: "x" });
-    expect(out.html).toContain("https://blockid.au/dashboard/svi");
-    expect(out.text).toContain("https://blockid.au/dashboard/svi");
+    expect(out.html).toContain("https://blockid.au/workspace/score");
+    expect(out.text).toContain("https://blockid.au/workspace/score");
   });
 
   it("re-reads the env var per call (not cached at module load)", () => {
@@ -377,7 +377,7 @@ describe("renderDripBody — onboarding_d1", () => {
     const out = renderDripBody("onboarding_d1", "a@b.co", {
       weakestDim: "traction",
     });
-    expect(out.html).toContain("https://blockid.au/dashboard/svi");
+    expect(out.html).toContain("https://blockid.au/workspace/score");
     expect(out.html).toContain("https://blockid.au/workspace/evidence");
     expect(out.html).toContain(">Open dashboard<");
   });
@@ -387,7 +387,7 @@ describe("renderDripBody — onboarding_d1", () => {
       weakestDim: "traction",
       weakestScore: 42,
     });
-    expect(out.text).toContain("Dashboard: https://blockid.au/dashboard/svi");
+    expect(out.text).toContain("Dashboard: https://blockid.au/workspace/score");
     expect(out.text).toContain(
       "Evidence Vault: https://blockid.au/workspace/evidence",
     );

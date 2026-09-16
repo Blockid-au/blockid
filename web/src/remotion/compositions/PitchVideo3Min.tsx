@@ -466,7 +466,7 @@ export const PitchVideo3Min: React.FC = () => {
       <Sequence from={2227} durationInFrames={493}>
         <SlideTransition durationInFrames={493}>
           <ScreenDemo
-            url="blockid.au/dashboard/svi"
+            url="blockid.au/workspace/score"
             imageSrc="video-assets/helpnow-06-results.png"
             descriptionLines={[
               "HelpNow.au — SVI Score: 67",
@@ -482,7 +482,7 @@ export const PitchVideo3Min: React.FC = () => {
       <Sequence from={2728} durationInFrames={274}>
         <SlideTransition durationInFrames={274}>
           <ScreenDemo
-            url="blockid.au/dashboard/svi"
+            url="blockid.au/workspace/score"
             imageSrc="video-assets/helpnow-07-results-detail.png"
             descriptionLines={[
               "8 dimensions scored",
@@ -530,7 +530,7 @@ export const PitchVideo3Min: React.FC = () => {
             {/* Data Room — second half */}
             <Sequence from={191} durationInFrames={191}>
               <ScreenDemo
-                url="blockid.au/workspace/data-room"
+                url="blockid.au/workspace/documents/data-room"
                 imageSrc="video-assets/helpnow-12-dataroom.png"
                 descriptionLines={[
                   "Data Room checklist",

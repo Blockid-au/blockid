@@ -12,7 +12,7 @@ const starter = PLANS_V2.find((p) => p.id === "founder_starter")!;
 describe("<PricingFeatureNotice> (S31-B)", () => {
   it("tells a gated founder what the page needed and which plan carries it", () => {
     const html = renderToStaticMarkup(
-      <PricingFeatureNotice feature="data_room.access" from="/workspace/data-room" />,
+      <PricingFeatureNotice feature="data_room.access" from="/workspace/documents/data-room" />,
     );
     expect(html).toContain("To open Data Room you need the investor data room");
     expect(html).toContain(`included from the ${starter.name} plan (A$${starter.monthly_aud}/mo)`);
@@ -27,7 +27,7 @@ describe("<PricingFeatureNotice> (S31-B)", () => {
   });
 
   it("routes enterprise-only features to contact sales", () => {
-    const html = renderToStaticMarkup(<PricingFeatureNotice feature="sso" from="/workspace/sso" />);
+    const html = renderToStaticMarkup(<PricingFeatureNotice feature="sso" from="/workspace/settings/enterprise" />);
     expect(html).toContain("Contact sales");
     expect(html).toContain("/contact?plan=enterprise&amp;feature=sso");
   });

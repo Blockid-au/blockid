@@ -16,11 +16,11 @@ export default async function AdminPage() {
   if (!user) redirect("/auth/login?next=/admin");
 
   const isAdmin = user.email === ADMIN_EMAIL || user.role === "admin";
-  // Non-admins: redirect to /dashboard/svi (matches pattern used by every other
+  // Non-admins: redirect to /workspace/score (matches pattern used by every other
   // admin subroute — see resellers/page.tsx, affiliate/page.tsx, etc.). Previous
   // soft-200 "Access Denied" render leaked the admin surface (200 status) to
   // scanners and to unauth users; now returns a proper 307 redirect.
-  if (!isAdmin) redirect("/dashboard/svi");
+  if (!isAdmin) redirect("/workspace/score");
 
   const supabase = getSupabaseAdmin();
   let stats = { users: 0, analyses: 0, accounts: 0, notifications: 0 };

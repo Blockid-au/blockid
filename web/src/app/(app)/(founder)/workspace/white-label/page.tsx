@@ -1,7 +1,7 @@
-// /workspace/white-label — White-label branding.
+// /workspace/settings/enterprise — White-label branding.
 // S31-B (2026-09-13): honest "not available yet" surface. The previous page
 // promised "Coming Soon — Estimated: Q4 2026 — Scale & Enterprise" (Scale was retired 2026-09-08) and offered an
-// upgrade button under a feature that does not exist. Custom domains and attribution removal are deferred; the logo/colour branding that does exist lives at /workspace/branding.
+// upgrade button under a feature that does not exist. Custom domains and attribution removal are deferred; the logo/colour branding that does exist lives at /workspace/settings/enterprise.
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 
 export default async function WhiteLabelPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/workspace/white-label");
+  if (!user) redirect("/auth/login?next=/workspace/settings/enterprise");
 
   const isSandbox = await getCurrentProjectIsSandbox();
 
@@ -33,7 +33,7 @@ export default async function WhiteLabelPage() {
         userEmail={user.email}
         reason="Serving your workspace and reports from your own domain, with BlockID attribution removed, is not built yet and is not on any plan. What exists today: your logo, colours and cover on every exported report and investor share page (Custom Branding, Growth plan and above)."
         alternatives={[
-          { href: "/workspace/branding", label: "Custom Branding — logo and colours on exports" },
+          { href: "/workspace/settings/enterprise", label: "Custom Branding — logo and colours on exports" },
           { href: "/pricing?feature=pdf_branding", label: "See which plan includes Custom Branding" },
         ]}
       />

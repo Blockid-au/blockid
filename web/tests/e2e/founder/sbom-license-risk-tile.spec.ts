@@ -1,5 +1,5 @@
 // E2E — <SbomLicenseRiskTile /> (P7-sbom-license-risk-tile) mounted on
-// /dashboard/data-room renders the traffic-light band + counts + top
+// /workspace/investors/access renders the traffic-light band + counts + top
 // runtime-risky rows returned by GET /api/dataroom/sbom.
 //
 // Contract: docs/plans/atlassian-standard-mapping-goal.md §2 data-room
@@ -16,7 +16,7 @@
 //   2. page.route() intercepts /api/dataroom/sbom and returns a
 //      deterministic payload — the tile fetches once on mount so we
 //      reload between branches to swap the stub.
-//   3. Navigate to /dashboard/data-room. Skip cleanly when the tile
+//   3. Navigate to /workspace/investors/access. Skip cleanly when the tile
 //      isn't mounted (auth redirect on a fresh clone).
 //   4. Drive the tile through the four discrete band branches from
 //      pickSbomTileBand (slate / emerald / amber / red) plus the
@@ -26,7 +26,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { getAccount, loginAs } from "../fixtures/accounts";
 
-const ROUTE = "/dashboard/data-room";
+const ROUTE = "/workspace/investors/access";
 const FOUNDER_EMAIL =
   process.env.QA_FOUNDER_SBOM_TILE_EMAIL ?? "qa-founder-1@blockid.au";
 

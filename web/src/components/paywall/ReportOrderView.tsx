@@ -4,10 +4,10 @@
  *
  * Master Upgrade Plan §8.4. Both purchase paths now land here:
  *   * Path A (Stripe A$3) — the Checkout success_url returns to
- *     /dashboard/reports/order?session_id=…, which the server page
+ *     /workspace/reports/order?session_id=…, which the server page
  *     resolves to an order id before rendering this component.
  *   * Path B (credits) — ReportPaywallGate's onRedeemed default pushes
- *     straight to /dashboard/reports/order?order=…
+ *     straight to /workspace/reports/order?order=…
  *
  * The component is a thin state machine over GET /api/reports/[orderId]:
  *

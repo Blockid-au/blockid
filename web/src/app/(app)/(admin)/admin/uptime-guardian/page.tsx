@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function UptimeGuardianPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/admin/uptime-guardian");
-  if (!isAdmin(user)) redirect("/dashboard/svi");
+  if (!isAdmin(user)) redirect("/workspace/score");
 
   return (
     <div className="min-h-screen bg-surface-50">

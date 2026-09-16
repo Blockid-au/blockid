@@ -2,7 +2,7 @@
 //
 // Pure derivation helpers PLUS a server-only aggregator that turns raw
 // project / SVI / usage-log data into the row shape rendered by the
-// /dashboard/portfolio surface and returned by /api/projects/portfolio.
+// /workspace/projects/compare surface and returned by /api/projects/portfolio.
 //
 // The pure helpers (`deriveCanonicalStage`, `deriveNextAction`) stay
 // import-safe from vitest so we can exercise the stage/next-action ladder
@@ -61,9 +61,9 @@ export function deriveNextAction(
   }
   if (totalSvi < 30) return { label: "Refine your idea", url: "/" };
   if (totalSvi <= 50) return { label: "Strengthen your profile", url: "/workspace/evidence" };
-  if (totalSvi <= 70) return { label: "Set up equity", url: "/workspace/equity-setup" };
-  if (totalSvi <= 85) return { label: "Build data room", url: "/workspace/data-room" };
-  return { label: "Start fundraising", url: "/workspace/fundraise" };
+  if (totalSvi <= 70) return { label: "Set up equity", url: "/workspace/equity/setup" };
+  if (totalSvi <= 85) return { label: "Build data room", url: "/workspace/documents/data-room" };
+  return { label: "Start fundraising", url: "/workspace/raise/round" };
 }
 
 export interface PortfolioSviPoint {

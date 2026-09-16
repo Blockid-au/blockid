@@ -252,7 +252,7 @@ describe("/workspace/funding (T0244)", { timeout: 20_000 }, () => {
     expect(alerts).toContain("Coming with Money Radar");
     expect(alerts).toContain('data-alert-kind="deadline_14d"');
     expect(alerts).toContain('data-alert-kind="weekly_digest"');
-    expect(alerts).toContain('href="/workspace/notifications"');
+    expect(alerts).toContain('href="/workspace/settings/notifications"');
 
     const bogus = await html({ tab: "nope" });
     expect(bogus).toContain('data-tab="grants"');

@@ -178,7 +178,7 @@ export function SviUpgradeRoadmap({ currentSvi, targetSvi = 75, userEmail }: Svi
           {completed.size} of {Math.min(actions.length, 5)} completed
         </p>
         <a
-          href="/dashboard/esop"
+          href="/workspace/esop/manage"
           className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700"
         >
           Setup ESOP <ArrowRight className="h-3.5 w-3.5" />

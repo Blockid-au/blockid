@@ -29,10 +29,10 @@ const DIMENSION_GUIDES: Record<string, { title: string; whyItMatters: string; qu
     whyItMatters: "Investors back people first. A complete founder profile + signed team agreements unlocks roughly 15% of the index.",
     quickWins: [
       "Add a LinkedIn URL to your profile",
-      "Document founder experience + domain fit on /workspace/profile",
+      "Document founder experience + domain fit on /workspace/settings/profile",
       "Upload a team org chart to the Data Room",
     ],
-    deepLink: "/workspace/profile",
+    deepLink: "/workspace/settings/profile",
   },
   mpc: {
     title: "Market & Problem Clarity",
@@ -52,27 +52,27 @@ const DIMENSION_GUIDES: Record<string, { title: string; whyItMatters: string; qu
       "Connect GitHub so commit cadence + stars are evidence",
       "Document the tech stack + roadmap",
     ],
-    deepLink: "/dashboard/svi#evidence",
+    deepLink: "/workspace/score#evidence",
   },
   tre: {
     title: "Traction & Revenue Evidence",
     whyItMatters: "The single biggest valuation multiplier. A$1 of paying revenue moves you from anchor-based pricing to multiple-based pricing.",
     quickWins: [
-      "Log your first revenue via /dashboard/finance",
+      "Log your first revenue via /workspace/finance",
       "Connect Stripe for real-time MRR",
       "Upload an LOI or contract as evidence",
     ],
-    deepLink: "/dashboard/finance",
+    deepLink: "/workspace/finance",
   },
   cgh: {
     title: "Cap Table & Governance Health",
     whyItMatters: "ESOP pool, founder vesting and a signed SHA close the 'governance discount' VCs apply at term-sheet stage.",
     quickWins: [
-      "Set up ESOP pool via /dashboard/esop",
+      "Set up ESOP pool via /workspace/esop/manage",
       "Sign founder vesting (4yr / 1yr cliff)",
       "Upload signed SHA to Data Room",
     ],
-    deepLink: "/dashboard/esop",
+    deepLink: "/workspace/esop/manage",
   },
   iri: {
     title: "Investor Readiness",
@@ -82,7 +82,7 @@ const DIMENSION_GUIDES: Record<string, { title: string; whyItMatters: string; qu
       "Upload financial projections (3-scenario)",
       "Curate Data Room into 7 folders",
     ],
-    deepLink: "/workspace/data-room",
+    deepLink: "/workspace/documents/data-room",
   },
   lco: {
     title: "Legal & Compliance",
@@ -102,7 +102,7 @@ const DIMENSION_GUIDES: Record<string, { title: string; whyItMatters: string; qu
       "Map 3 competitors + how you're differentiated",
       "Highlight network/data effects in the deck",
     ],
-    deepLink: "/dashboard/svi#moat",
+    deepLink: "/workspace/score#moat",
   },
 };
 

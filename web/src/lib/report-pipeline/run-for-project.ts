@@ -206,7 +206,7 @@ function verdictFor(score: number): string {
 
 /**
  * Project the assembled report + SVI subs into the `dim_results` /
- * `criterion_results` shapes `/tbr/<token>` and `/workspace/business-report`
+ * `criterion_results` shapes `/tbr/<token>` and `/workspace/reports/business`
  * render (see 20260903_wave25a_tbr_persistence.sql). Criterion sections come
  * from the 13 agent sections; each dimension's markdown is the concatenation
  * of the sections whose criterion has it as primary dimension.

@@ -674,7 +674,7 @@ function ctaButton(href: string, label: string): string {
 
 function d1Copy(email: string, p: DripPayload): RenderedEmail {
   const dim = p.weakestDim ?? "your investor readiness signal";
-  const dashUrl = `${siteUrl()}/dashboard/svi`;
+  const dashUrl = `${siteUrl()}/workspace/score`;
   const evidenceUrl = `${siteUrl()}/workspace/evidence`;
   const subject = `Your SVI report is ready — three next steps for ${dim}`;
   const html = shell(`

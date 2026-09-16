@@ -239,7 +239,7 @@ function actionsForPosition(ctx: ActionContext): ScnAction[] {
       effort: "medium",
       impact: `+10-15 SVI`,
       tactic: `Open your dashboard → look at the SVI 8-dimension breakdown → pick the 3 with lowest scores → upload evidence (LinkedIn profile, GitHub repo, pitch deck, cap table CSV) one per day. Each piece moves your score visibly.`,
-      resources: ["/dashboard/svi"],
+      resources: ["/workspace/score"],
       timeline: "this_week",
     });
   }
@@ -293,7 +293,7 @@ function actionsForDirection(ctx: ActionContext): ScnAction[] {
       effort: "high",
       impact: "Network + 9% dilution for A$100-120K",
       tactic: "Open BlockID Accelerator Tracker → filter by Open + Readiness > 60% → pick ONE (Antler, Startmate, or Techstars) → block 2 weeks for the application + video + pitch deck. Apply 4 weeks before deadline so referrals can warm intros.",
-      resources: ["/dashboard/accelerator"],
+      resources: ["/workspace/accelerators"],
       timeline: "30_day",
     },
     {
@@ -318,7 +318,7 @@ function actionsForCapital(ctx: ActionContext): ScnAction[] {
       effort: "medium",
       impact: "Faster term sheets (weeks → days)",
       tactic: "Use BlockID Data Room template → 7 folders: 01-Overview, 02-Financials, 03-CapTable, 04-Product, 05-Customers, 06-Legal, 07-Team. One PDF per folder, version-stamped. Share via single Google Drive link with view-only access.",
-      resources: ["/workspace/data-room", "BlockID ESOP templates"],
+      resources: ["/workspace/documents/data-room", "BlockID ESOP templates"],
       timeline: "30_day",
     });
     items.push({

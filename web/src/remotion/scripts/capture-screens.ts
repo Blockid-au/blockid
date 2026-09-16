@@ -58,7 +58,7 @@ async function main() {
 
   // 3. SVI Dashboard
   console.log("3. SVI Dashboard...");
-  await page.goto(`${BASE}/dashboard/svi`, { waitUntil: "networkidle", timeout: 30000 });
+  await page.goto(`${BASE}/workspace/score`, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForTimeout(3000);
   await page.screenshot({ path: join(OUT, "03-svi-dashboard.png") });
 
@@ -76,25 +76,25 @@ async function main() {
 
   // 6. Equity Setup
   console.log("6. Equity Setup...");
-  await page.goto(`${BASE}/workspace/equity-setup`, { waitUntil: "networkidle", timeout: 30000 });
+  await page.goto(`${BASE}/workspace/equity/setup`, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForTimeout(2000);
   await page.screenshot({ path: join(OUT, "06-equity-setup.png") });
 
   // 7. Cap Table
   console.log("7. Cap Table...");
-  await page.goto(`${BASE}/workspace/cap-table`, { waitUntil: "networkidle", timeout: 30000 });
+  await page.goto(`${BASE}/workspace/equity/cap-table`, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForTimeout(2000);
   await page.screenshot({ path: join(OUT, "07-cap-table.png") });
 
   // 8. Shareholders
   console.log("8. Shareholders...");
-  await page.goto(`${BASE}/workspace/shareholders`, { waitUntil: "networkidle", timeout: 30000 });
+  await page.goto(`${BASE}/workspace/equity/shareholders`, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForTimeout(2000);
   await page.screenshot({ path: join(OUT, "08-shareholders.png") });
 
   // 9. Vesting
   console.log("9. Vesting...");
-  await page.goto(`${BASE}/workspace/vesting`, { waitUntil: "networkidle", timeout: 30000 });
+  await page.goto(`${BASE}/workspace/esop/vesting`, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForTimeout(2000);
   await page.screenshot({ path: join(OUT, "09-vesting.png") });
 
@@ -106,19 +106,19 @@ async function main() {
 
   // 11. Data Room
   console.log("11. Data Room...");
-  await page.goto(`${BASE}/workspace/data-room`, { waitUntil: "networkidle", timeout: 30000 });
+  await page.goto(`${BASE}/workspace/documents/data-room`, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForTimeout(2000);
   await page.screenshot({ path: join(OUT, "11-data-room.png") });
 
   // 12. Wallet / Blockchain
   console.log("12. Wallet...");
-  await page.goto(`${BASE}/workspace/wallet`, { waitUntil: "networkidle", timeout: 30000 });
+  await page.goto(`${BASE}/workspace/equity/on-chain`, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForTimeout(2000);
   await page.screenshot({ path: join(OUT, "12-wallet.png") });
 
   // 13. Dividends
   console.log("13. Dividends...");
-  await page.goto(`${BASE}/workspace/dividends`, { waitUntil: "networkidle", timeout: 30000 });
+  await page.goto(`${BASE}/workspace/finance/dividends`, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForTimeout(2000);
   await page.screenshot({ path: join(OUT, "13-dividends.png") });
 
@@ -136,7 +136,7 @@ async function main() {
 
   // 16. Fundraise
   console.log("16. Fundraise...");
-  await page.goto(`${BASE}/workspace/fundraise`, { waitUntil: "networkidle", timeout: 30000 });
+  await page.goto(`${BASE}/workspace/raise/round`, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForTimeout(2000);
   await page.screenshot({ path: join(OUT, "16-fundraise.png") });
 
@@ -148,7 +148,7 @@ async function main() {
 
   // 18. Revenue
   console.log("18. Revenue...");
-  await page.goto(`${BASE}/workspace/revenue`, { waitUntil: "networkidle", timeout: 30000 });
+  await page.goto(`${BASE}/workspace/finance/revenue`, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForTimeout(2000);
   await page.screenshot({ path: join(OUT, "18-revenue.png") });
 

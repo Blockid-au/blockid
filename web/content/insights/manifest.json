@@ -499,7 +499,7 @@
       "readingTime": 13,
       "cta": {
         "label": "Open the Fundraise Workspace",
-        "href": "/workspace/fundraise"
+        "href": "/workspace/raise/round"
       }
     },
     {
@@ -1931,7 +1931,7 @@
       "readingTime": 6,
       "cta": {
         "label": "See Your Unit Economics",
-        "href": "/dashboard/valuation"
+        "href": "/workspace/valuation"
       }
     },
     {
@@ -1967,7 +1967,7 @@
       "readingTime": 6,
       "cta": {
         "label": "Model Your Cap Table",
-        "href": "/workspace/cap-table"
+        "href": "/workspace/equity/cap-table"
       }
     },
     {

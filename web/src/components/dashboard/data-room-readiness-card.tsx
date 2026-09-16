@@ -174,7 +174,7 @@ export function DataRoomReadinessCard() {
 
       {/* CTA */}
       <Link
-        href={data.dataRoomExists ? "/workspace/data-room" : "/tools/data-room"}
+        href={data.dataRoomExists ? "/workspace/documents/data-room" : "/tools/data-room"}
         className="flex items-center justify-between gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 hover:bg-brand-100 transition-colors group"
       >
         <div className="flex items-center gap-2">

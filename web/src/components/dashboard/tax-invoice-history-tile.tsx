@@ -6,7 +6,7 @@
 // the CompliancePanel 6 existing tiles as the 7th slot, following the
 // same visual Tile shape (rounded-xl border, hover, pill status).
 //
-// Deep-links to /workspace/tax-invoice-checker (P5-tax-invoice-checker-ui)
+// Deep-links to /workspace/finance/invoices (P5-tax-invoice-checker-ui)
 // so a founder who lands on a red chip can jump straight to fixing it.
 
 import * as React from "react";
@@ -66,7 +66,7 @@ export function TaxInvoiceHistoryTile() {
 
   return (
     <Link
-      href="/workspace/tax-invoice-checker"
+      href="/workspace/finance/invoices"
       data-testid="tax-invoice-history-tile"
       data-colour={view.colour}
       data-total={payload?.total ?? 0}
@@ -90,7 +90,7 @@ export function TaxInvoiceHistoryTile() {
       </div>
       <div className="mt-3 text-xs text-muted-foreground">
         {state === "error"
-          ? "Couldn't load recent snapshots — retry from /workspace/tax-invoice-checker."
+          ? "Couldn't load recent snapshots — retry from /workspace/finance/invoices."
           : view.body}
         {lastSeen ? (
           <span className="mt-1 block text-[11px] text-muted-foreground/80">

@@ -253,7 +253,7 @@ export default function PricingPage() {
         headline="Talk to sales for a bespoke fit."
         primary={{ href: "/contact", label: "Talk to sales" }}
         secondary={{
-          href: "/workspace/equity-offer",
+          href: "/workspace/esop/offers",
           label: "Explore equity-for-solution",
         }}
       />

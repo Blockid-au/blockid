@@ -2,7 +2,7 @@
 
 // Wave 26B — floating "Ask about this report" chat widget.
 //
-// Mounts on both /workspace/business-report (auth, `projectId`) and
+// Mounts on both /workspace/reports/business (auth, `projectId`) and
 // /tbr/[token] (anon, `token`). NEVER rendered when `pdfMode` is true —
 // the Playwright PDF export must not capture chat chrome.
 

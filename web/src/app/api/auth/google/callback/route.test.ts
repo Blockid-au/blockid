@@ -109,7 +109,7 @@ afterEach(() => {
 });
 
 /** Seal a fresh state into the jar and return its nonce. */
-function armState(next: string | null = "/workspace/analyses", now = Date.now()): string {
+function armState(next: string | null = "/workspace/score/history", now = Date.now()): string {
   const st = createGoogleOAuthState(next, now);
   jar.get.set("blockid_google_oauth", sealGoogleOAuthState(st));
   return st.state;
@@ -250,12 +250,12 @@ describe("GET /api/auth/google/callback — exchange failures", () => {
 
 describe("GET /api/auth/google/callback — happy path", () => {
   it("exchanges code + PKCE verifier at the registered redirect_uri, verifies, sets the session, claims, and lands on `next`", async () => {
-    const st = createGoogleOAuthState("/workspace/analyses?tab=all", Date.now());
+    const st = createGoogleOAuthState("/workspace/score/history?tab=all", Date.now());
     jar.get.set("blockid_google_oauth", sealGoogleOAuthState(st));
 
     const res = await run(`?code=one-shot-code&state=${st.state}`);
     expect(res.status).toBe(302);
-    expect(loc(res).toString()).toBe("https://blockid.au/workspace/analyses?tab=all&logged_in=true");
+    expect(loc(res).toString()).toBe("https://blockid.au/workspace/score/history?tab=all&logged_in=true");
 
     expect(google.ctorArgs[0]).toMatchObject({ clientId: "cid-123", clientSecret: "shh", redirectUri: "https://blockid.au/api/auth/google/callback" });
     expect(google.getToken).toHaveBeenCalledWith({

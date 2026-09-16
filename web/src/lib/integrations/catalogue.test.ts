@@ -112,7 +112,7 @@ describe("buildIntegrationsCatalogue", () => {
     });
     const bc = rows.find((r) => r.provider === "blockchain");
     expect(bc?.status).toBe("not_connected");
-    expect(bc?.actionHref).toBe("/workspace/wallet");
+    expect(bc?.actionHref).toBe("/workspace/equity/on-chain");
   });
 
   it("blockchain: syncEnabled + syncState=on → connected with token detail", () => {
@@ -175,10 +175,10 @@ describe("buildIntegrationsCatalogue", () => {
       oauthConnections: [],
       blockchainConfig: null,
       providerConfigured: allConfigured,
-      walletHref: "/workspace/equity-dashboard",
+      walletHref: "/workspace/equity/on-chain",
     });
     expect(rows.find((r) => r.provider === "blockchain")?.actionHref).toBe(
-      "/workspace/equity-dashboard",
+      "/workspace/equity/on-chain",
     );
   });
 });

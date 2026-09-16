@@ -20,7 +20,7 @@
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
 
-const ROUTE = "/dashboard/svi";
+const ROUTE = "/workspace/score";
 const FOUNDER_EMAIL =
   process.env.QA_FOUNDER_NUDGE_EMAIL ?? "qa-founder-1@blockid.au";
 
@@ -38,7 +38,7 @@ const FAKE_PAYLOAD = {
     next_action: {
       title: "Close a Compliance gap",
       reason: "e2e stub",
-      cta_url: "/dashboard/data-room",
+      cta_url: "/workspace/investors/access",
       cta_label: "Open data room",
       category: "compliance",
     },
@@ -69,7 +69,7 @@ const FAKE_PAYLOAD = {
             phase_slug: "6",
             why_it_matters: "Raise-blocker at Phase 6",
             raise_blocker: true,
-            cta_url: "/dashboard/data-room?add=11.%20Tax%20(AU)",
+            cta_url: "/workspace/investors/access?add=11.%20Tax%20(AU)",
           },
           {
             category: "11. Tax (AU)",
@@ -77,7 +77,7 @@ const FAKE_PAYLOAD = {
             phase_slug: "6",
             why_it_matters: "Raise-blocker at Phase 6",
             raise_blocker: true,
-            cta_url: "/dashboard/data-room?add=11.%20Tax%20(AU)",
+            cta_url: "/workspace/investors/access?add=11.%20Tax%20(AU)",
           },
           {
             category: "3. Financial Projections",
@@ -85,7 +85,7 @@ const FAKE_PAYLOAD = {
             phase_slug: "5",
             why_it_matters: "Standard due-diligence artefact for Phase 5",
             raise_blocker: false,
-            cta_url: "/dashboard/data-room?add=3.%20Financial%20Projections",
+            cta_url: "/workspace/investors/access?add=3.%20Financial%20Projections",
           },
         ],
       },
@@ -142,7 +142,7 @@ test.describe("InvestorReadinessTile — P5a per-phase readiness surfacing", () 
     const mounted = (await tile.count()) > 0;
     test.skip(
       !mounted,
-      "InvestorReadinessTile not mounted on /dashboard/svi yet — see mount-instruction comment in investor-readiness-tile.tsx",
+      "InvestorReadinessTile not mounted on /workspace/score yet — see mount-instruction comment in investor-readiness-tile.tsx",
     );
 
     // ── Per-phase score + band ──────────────────────────────────────

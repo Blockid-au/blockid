@@ -575,7 +575,7 @@ export function EsopChecklistClient() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
-              href="/dashboard/esop"
+              href="/workspace/esop/manage"
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
             >
               Open ESOP Manager <ArrowRight className="h-4 w-4" />
@@ -590,7 +590,7 @@ export function EsopChecklistClient() {
           </div>
           <p className="text-xs text-ink-400 mt-3">
             Already have an account?{" "}
-            <Link href="/dashboard/esop" className="text-brand-600 hover:underline">
+            <Link href="/workspace/esop/manage" className="text-brand-600 hover:underline">
               Go to ESOP Manager →
             </Link>
           </p>

@@ -1107,7 +1107,7 @@ function ResultPanel({
           </div>
           {/* Full Analyst Report CTA — prominent action card */}
           <a
-            href="/workspace/business-report"
+            href="/workspace/reports/business"
             className="mt-5 group flex items-start justify-between gap-3 rounded-2xl border-2 border-brand-600 bg-gradient-to-br from-brand-50 to-brand-100/60 px-5 py-5 hover:from-brand-100 hover:to-brand-200/60 hover:shadow-md transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             <div className="flex items-start gap-4">

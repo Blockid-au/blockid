@@ -4,7 +4,7 @@
  * second and last register call — the bucket is 3 / 15 min per IP), invited
  * as EDITOR through `POST /api/projects/[id]/members` (invite_url must be the
  * public origin — F3 regression), accepts on `/invites/<token>`, can read
- * `/workspace/revenue` + `/workspace/investors` with the "Shared · Editor"
+ * `/workspace/finance/revenue` + `/workspace/investors` with the "Shared · Editor"
  * chip, is 403 on the owner-only exports and on close-round, and — as a
  * VIEWER — is 403 on the commitments / CRM POSTs. The founder's deletion
  * request is 409 shared_projects while the member is accepted. The member
@@ -150,11 +150,11 @@ test.describe("Member lane — provision + invite", () => {
 });
 
 test.describe("Member lane — editor", () => {
-  test("editor can read /workspace/revenue and /workspace/investors with the 'Shared · Editor' chip", async ({ browser, qa }, testInfo) => {
+  test("editor can read /workspace/finance/revenue and /workspace/investors with the 'Shared · Editor' chip", async ({ browser, qa }, testInfo) => {
     requireMember();
     const { ctx, page } = await memberBrowser(browser);
     try {
-      for (const path of ["/workspace/revenue", "/workspace/investors"]) {
+      for (const path of ["/workspace/finance/revenue", "/workspace/investors"]) {
         const res = await page.goto(`${qa.baseURL}${path}`, { waitUntil: "domcontentloaded" });
         expect(res?.status(), `${path} status`).toBeLessThan(400);
         expect(new URL(page.url()).pathname, `${path} stays (no owner-only redirect)`).toBe(path);

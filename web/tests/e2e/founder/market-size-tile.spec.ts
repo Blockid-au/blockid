@@ -1,4 +1,4 @@
-// E2E — <MarketSizeTile /> (P3e) on /dashboard/market-size renders the AU
+// E2E — <MarketSizeTile /> (P3e) on /workspace/strategy renders the AU
 // ANZSIC / TAM / SAM / SOM anchor from the pure au-market-lookup fixture
 // consumed server-side.
 //
@@ -29,7 +29,7 @@
 import { test, expect } from "@playwright/test";
 import { getAccount, loginAs } from "../fixtures/accounts";
 
-const ROUTE = "/dashboard/market-size";
+const ROUTE = "/workspace/strategy";
 const FOUNDER_EMAIL =
   process.env.QA_FOUNDER_MARKET_SIZE_EMAIL ?? "qa-founder-1@blockid.au";
 

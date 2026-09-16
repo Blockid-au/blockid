@@ -126,7 +126,7 @@ async function POST_handler(request: NextRequest) {
   const esicRequireEligible = wholesaleOnly || marketing.marketed;
   let esicWarn: unknown = undefined;
   let div83aWarn: unknown = undefined;
-  // S26-A: the round remembers its project so /workspace/fundraise/[roundId]
+  // S26-A: the round remembers its project so /workspace/raise/round/[roundId]
   // (member-aware via getProjectScope) can find it; legacy rows stay null.
   try {
     const gate = await assertESICEligibleOrWarn(supabase, {

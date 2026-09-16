@@ -588,7 +588,7 @@ export function EquityDashboardClient({ isAdmin }: { isAdmin: boolean }) {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <QuickAction
-            href="/workspace/shareholders"
+            href="/workspace/equity/shareholders"
             icon={Send}
             label="Transfer Shares"
             description="Transfer SVT tokens between shareholders"
@@ -600,13 +600,13 @@ export function EquityDashboardClient({ isAdmin }: { isAdmin: boolean }) {
             description="Create new employee stock option grants"
           />
           <QuickAction
-            href="/workspace/dividends"
+            href="/workspace/finance/dividends"
             icon={Gift}
             label="Declare Dividend"
             description="Distribute dividends to shareholders"
           />
           <QuickAction
-            href="/workspace/cap-table"
+            href="/workspace/equity/cap-table"
             icon={RefreshCw}
             label="Sync Cap Table"
             description="Reconcile on-chain balances with database"
@@ -739,7 +739,7 @@ export function EquityDashboardClient({ isAdmin }: { isAdmin: boolean }) {
               Top Shareholders
             </h2>
             <Link
-              href="/workspace/shareholders"
+              href="/workspace/equity/shareholders"
               className="text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors flex items-center gap-1"
             >
               View All

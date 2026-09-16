@@ -33,7 +33,7 @@ test.describe("Revenue data sources", () => {
 
   test("page shows the source captions and the Data Sources panel", async ({ page, visit, guard }, testInfo) => {
     const g = guard(page, { allowRequest: [{ method: "POST", pathRe: /^\/api\/dividends$/, status: 400 }] });
-    await visit("/workspace/revenue", { waitUntil: "networkidle" });
+    await visit("/workspace/finance/revenue", { waitUntil: "networkidle" });
     const panel = page.getByTestId("data-sources");
     await expect(panel).toBeVisible({ timeout: 30_000 });
     await expect(panel).toContainText(/Data Sources/);
@@ -42,7 +42,7 @@ test.describe("Revenue data sources", () => {
     await expect(panel).toContainText(/not available yet/i); // QuickBooks / Xero — S31-B NotAvailableYet copy (was "Coming Soon")
     const body = await page.locator("main").innerText().catch(() => page.locator("body").innerText());
     const captions = ["estimate", "no data yet", "manual entries", "from your metrics", "from Xero", "from Stripe", "from bank CSV"].filter((c) => body.includes(c));
-    const report = g.report("/workspace/revenue");
+    const report = g.report("/workspace/finance/revenue");
     await evidence(testInfo, "captions + guard", { captions, report });
     expect(captions.length, "at least one per-figure source caption is rendered").toBeGreaterThan(0);
     if (report.allowedRequests.length) {
@@ -53,7 +53,7 @@ test.describe("Revenue data sources", () => {
   });
 
   test("Xero: either a real OAuth redirect or the 'not available yet' label — never a JSON 503 page", async ({ page, api, visit }, testInfo) => {
-    await visit("/workspace/revenue");
+    await visit("/workspace/finance/revenue");
     const panel = page.getByTestId("data-sources");
     await expect(panel).toBeVisible({ timeout: 30_000 });
     const link = panel.locator('a[href="/api/oauth/xero"]');

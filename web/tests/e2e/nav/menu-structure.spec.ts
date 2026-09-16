@@ -234,7 +234,7 @@ test.describe("Menu structure — evaluator sidebar (persona.ts)", () => {
     }
     await expect(nav.locator('a[href="/workspace/evaluations"]')).toBeVisible();
     await expect(nav.locator('a[href="/workspace/investor/mandate"]')).toBeVisible();
-    await expect(nav.locator('a[href="/dashboard/fundraise"]')).toHaveCount(0);
+    await expect(nav.locator('a[href="/workspace/raise"]')).toHaveCount(0);
   });
 });
 

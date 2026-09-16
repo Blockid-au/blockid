@@ -49,7 +49,7 @@ describe("requireTierForPage", () => {
     const url = await catchRedirect(() =>
       requireTierForPage({
         feature: "cap_table.write",
-        fromPath: "/workspace/cap-table",
+        fromPath: "/workspace/equity/cap-table",
       }),
     );
     expect(url).toBe("/auth/login?next=%2Fworkspace%2Fcap-table");
@@ -61,7 +61,7 @@ describe("requireTierForPage", () => {
     const url = await catchRedirect(() =>
       requireTierForPage({
         feature: "cap_table.write",
-        fromPath: "/workspace/cap-table",
+        fromPath: "/workspace/equity/cap-table",
       }),
     );
     expect(url).toBe(
@@ -79,7 +79,7 @@ describe("requireTierForPage", () => {
     const url = await catchRedirect(() =>
       requireTierForPage({
         minTier: "growth",
-        fromPath: "/workspace/vesting",
+        fromPath: "/workspace/esop/vesting",
       }),
     );
     expect(url).toBe("/pricing?from=%2Fworkspace%2Fvesting");
@@ -93,7 +93,7 @@ describe("requireTierForPage", () => {
       requireTierForPage({
         feature: "cap_table.write",
         minTier: "growth",
-        fromPath: "/workspace/cap-table",
+        fromPath: "/workspace/equity/cap-table",
       }),
     ).resolves.toBeUndefined();
     expect(redirectMock).not.toHaveBeenCalled();
@@ -105,11 +105,11 @@ describe("requireTierForPage", () => {
     const url = await catchRedirect(() =>
       requireTierForPage({
         feature: "share_management",
-        fromPath: "/workspace/data-room?tab=finance",
+        fromPath: "/workspace/documents/data-room?tab=finance",
       }),
     );
     expect(url).toContain(
-      encodeURIComponent("/workspace/data-room?tab=finance"),
+      encodeURIComponent("/workspace/documents/data-room?tab=finance"),
     );
   });
 
@@ -128,7 +128,7 @@ describe("requireTierForPage", () => {
     await catchRedirect(() =>
       requireTierForPage({
         feature: "share_management",
-        fromPath: "/workspace/vesting",
+        fromPath: "/workspace/esop/vesting",
       }),
     );
     expect(recordGateHitMock).not.toHaveBeenCalled();

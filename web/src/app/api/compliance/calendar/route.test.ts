@@ -4,7 +4,7 @@
 // The route serves the AU compliance calendar as either an RFC 5545
 // text/calendar body (default — for `webcal://` + Google Calendar / iCal /
 // Outlook subscribe) or, with `?format=json`, a structured JSON body the
-// founder-facing `/compliance/calendar` view consumes to render its
+// founder-facing `/workspace/documents/compliance` view consumes to render its
 // "Next up" tile + monthly event list.
 //
 // Branches covered:
@@ -33,7 +33,7 @@
 //   - dropping the Cache-Control: private, max-age=300 header (an origin
 //     that caches the .ics publicly leaks calendar rows across founders);
 //   - dropping the `?download=1` Content-Disposition and breaking the
-//     "Download .ics" button on `/compliance/calendar` — the button would
+//     "Download .ics" button on `/workspace/documents/compliance` — the button would
 //     open the calendar in-browser as text/plain instead of saving it;
 //   - dropping `?format=json` and having the founder-facing view fall back
 //     to text-parsing the .ics;

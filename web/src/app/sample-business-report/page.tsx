@@ -5,7 +5,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/business-report/business-report-client";
+import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/reports/business/business-report-client";
 
 export const dynamic = "force-static";
 export const revalidate = 3600;

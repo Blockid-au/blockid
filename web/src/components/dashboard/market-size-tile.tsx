@@ -1,5 +1,5 @@
 // MarketSizeTile — RSC that renders the AU market-size (TAM / SAM / SOM)
-// panel for /dashboard/market-size (P3c).
+// panel for /workspace/strategy (P3c).
 //
 // Data flows:
 //   page.tsx (server) ─▶ estimateTamSamSom({ keyword | anzsic }) ─▶ tile

@@ -78,7 +78,7 @@ const FOUNDER_FEATURES: Feature[] = [
     // "on-chain optional" dropped 2026-09-09: the on-chain leg runs through
     // executeOnChainTx in lib/blockchain-sync.ts, which is a stub that returns
     // a fabricated hash. The franking-credit calculation itself is real
-    // (lib/dividends.ts, /api/dividends, /workspace/dividends).
+    // (lib/dividends.ts, /api/dividends, /workspace/finance/dividends).
     copy: "Work out a dividend and its franking credits on-platform, with the imputation arithmetic done for you.",
     href: "/tools",
     linkLabel: "Explore the toolset",

@@ -1,4 +1,4 @@
-// /workspace/analyses — "Your analyses".
+// /workspace/score/history — "Your analyses".
 //
 // The list endpoint is anonymous-tolerant, but this page lives behind the
 // workspace shell, so it keeps the workspace's own sign-in redirect. Guests
@@ -27,7 +27,7 @@ export default async function AnalysesPage({
   searchParams?: Promise<{ claimed?: string }>;
 }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/workspace/analyses");
+  if (!user) redirect("/auth/login?next=/workspace/score/history");
   const isSandbox = await getCurrentProjectIsSandbox();
   const sp = (await searchParams) ?? {};
   return (

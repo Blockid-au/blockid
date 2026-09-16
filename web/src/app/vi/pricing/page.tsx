@@ -162,7 +162,7 @@ export default async function ViPricingPage({ searchParams }: ViPricingPageProps
         headline={t(m, "pricing.enterprise.title")}
         primary={{ href: "/contact", label: t(m, "pricing.enterprise.cta.primary") }}
         secondary={{
-          href: "/workspace/equity-offer",
+          href: "/workspace/esop/offers",
           label: t(m, "pricing.enterprise.cta.secondary"),
         }}
       />

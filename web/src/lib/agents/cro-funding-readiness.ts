@@ -332,7 +332,7 @@ function actionsFor(pillar: PillarScore, input: FundingReadinessInput): FundingR
         out.push({
           priority: 1,
           pillar: "investor_materials",
-          action: "Generate the 36-month financial model from /dashboard/valuation",
+          action: "Generate the 36-month financial model from /workspace/valuation",
           effort: "low",
           impactPoints: 5,
         });

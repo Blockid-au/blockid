@@ -34,11 +34,11 @@ test.describe("Trust BizReport — price before checkout", () => {
     testInfo.annotations.push({ type: "finding", description: "ReportPaywallGate (Confirm & Pay A$3 / Confirm & Use credits) is not mounted by any page — the in-app Trust BizReport paywall dialog cannot be exercised end-to-end" });
   });
 
-  test("/dashboard/reports/order without an order renders the not-found copy, not a crash", async ({ page, visit, guard }, testInfo) => {
+  test("/workspace/reports/order without an order renders the not-found copy, not a crash", async ({ page, visit, guard }, testInfo) => {
     const g = guard(page, { allowRequest: [{ method: "GET", pathRe: /^\/api\/svi\/phase-progress$/, status: 429 }] });
-    await visit("/dashboard/reports/order", { waitUntil: "networkidle" });
+    await visit("/workspace/reports/order", { waitUntil: "networkidle" });
     await expect(page.getByRole("heading", { level: 1 })).toContainText(/could not find that report order/i, { timeout: 30_000 });
-    const report = g.report("/dashboard/reports/order");
+    const report = g.report("/workspace/reports/order");
     await evidence(testInfo, "guard report", report);
     expect(report.errors).toEqual([]);
     expect(report.failedRequests).toEqual([]);

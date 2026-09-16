@@ -5,7 +5,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/business-report/business-report-client";
+import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/reports/business/business-report-client";
 import { readSnapshotReportV2 } from "@/lib/report-v2/storage";
 
 export const runtime = "nodejs";

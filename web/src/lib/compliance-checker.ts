@@ -42,7 +42,7 @@ export function checkCompliance(analysis: ComplianceSource): ComplianceItem[] {
     status: signals.hasCapTable ? "pass" : "warning",
     priority: "P0",
     action: signals.hasCapTable ? undefined : "Create your share register using BlockID Cap Table tool",
-    link: "/workspace/cap-table",
+    link: "/workspace/equity/cap-table",
     regulation: "Corporations Act s169",
   });
 
@@ -54,7 +54,7 @@ export function checkCompliance(analysis: ComplianceSource): ComplianceItem[] {
     status: signals.hasShareholdersAgreement ? "pass" : "warning",
     priority: "P1",
     action: signals.hasShareholdersAgreement ? undefined : "Draft a SHA using our template in the Data Room",
-    link: "/workspace/data-room",
+    link: "/workspace/documents/data-room",
     regulation: "Common law / Best practice",
   });
 
@@ -91,7 +91,7 @@ export function checkCompliance(analysis: ComplianceSource): ComplianceItem[] {
     status: signals.hasPitchDeck ? "pass" : "warning",
     priority: "P1",
     action: signals.hasPitchDeck ? undefined : "Create your pitch deck — use our AI generator or Data Room template",
-    link: "/workspace/data-room",
+    link: "/workspace/documents/data-room",
   });
 
   items.push({
@@ -102,7 +102,7 @@ export function checkCompliance(analysis: ComplianceSource): ComplianceItem[] {
     status: signals.hasFinancialModel ? "pass" : "warning",
     priority: "P1",
     action: signals.hasFinancialModel ? undefined : "Build a financial model — template available in Data Room",
-    link: "/workspace/data-room",
+    link: "/workspace/documents/data-room",
   });
 
   items.push({
@@ -113,7 +113,7 @@ export function checkCompliance(analysis: ComplianceSource): ComplianceItem[] {
     status: signals.hasDataRoom ? "pass" : "warning",
     priority: "P1",
     action: signals.hasDataRoom ? undefined : "Set up your Data Room with our templates",
-    link: "/workspace/data-room",
+    link: "/workspace/documents/data-room",
   });
 
   // Employment

@@ -97,7 +97,7 @@ async function loadResellers(): Promise<ResellerListEntry[]> {
 export default async function AdminAffiliatePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/admin/affiliate");
-  if (!isAdmin(user)) redirect("/dashboard/svi");
+  if (!isAdmin(user)) redirect("/workspace/score");
 
   const resellers = await loadResellers();
 

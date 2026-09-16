@@ -1,6 +1,6 @@
 // GET /api/digest/preview
 //
-// Wave 28A — preview endpoint for the /workspace/notifications/preferences
+// Wave 28A — preview endpoint for the /workspace/settings/notifications/preferences
 // page. Runs the same buildFounderDigest() aggregator the Monday cron uses,
 // scoped to a rolling 7-day window ending now, and returns the rendered
 // subject + HTML so the founder can see exactly what next week's digest will

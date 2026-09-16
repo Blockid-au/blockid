@@ -1,6 +1,6 @@
 // P5-investor-pack-assembler-lib-test — colocated vitest for the
 // server-only pack assembler that feeds POST /api/investor-pack and the
-// /workspace/investor-pack rendering path. Pins the SVI-total → grade
+// /workspace/reports/investor-pack rendering path. Pins the SVI-total → grade
 // ladder, the SVI-total → valuation-stage-number ladder, the cap-table
 // fully-diluted %-round + ESOP-tail contract, the contact-name three-
 // step fallback (founder profile → app_users.display_name → email

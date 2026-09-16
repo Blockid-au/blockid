@@ -52,7 +52,7 @@ export async function loadActiveGrant(
 
 /**
  * All grants (active + revoked + expired) that mention `founderUserId` —
- * used by the founder-side /dashboard/settings/mentor-access page.
+ * used by the founder-side /workspace/investors/access page.
  */
 export async function loadAllGrantsForFounder(
   founderUserId: string,

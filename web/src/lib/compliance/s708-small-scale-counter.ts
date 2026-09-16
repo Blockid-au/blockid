@@ -273,5 +273,5 @@ function buildNextAction(
   if (status === "warn") {
     return "Model the next planned tranche against the counter (pass it as `preview` to assessS708SmallScale) before accepting — decide now whether the next offer stays under s708(1) or shifts to wholesale under s708(8).";
   }
-  return "Log every accepted personal offer via the /dashboard/data-room Folder 1 register (data-room-templates.ts item 1.6 Register of Members) and re-run the counter before the next tranche.";
+  return "Log every accepted personal offer via the /workspace/investors/access Folder 1 register (data-room-templates.ts item 1.6 Register of Members) and re-run the counter before the next tranche.";
 }

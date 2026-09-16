@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 export default async function EquityDashboardPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/workspace/equity-dashboard");
+  if (!user) redirect("/auth/login?next=/workspace/equity/on-chain");
 
   const isSandbox = await getCurrentProjectIsSandbox();
 

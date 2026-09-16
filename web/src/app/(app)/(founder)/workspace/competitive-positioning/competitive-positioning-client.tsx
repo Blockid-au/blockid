@@ -226,7 +226,7 @@ export function CompetitivePositioningClient() {
                 No competitors added yet. Add competitors first to build your matrix.
               </p>
               <a
-                href="/workspace/competitors"
+                href="/workspace/strategy/competitors"
                 className="inline-flex items-center gap-1 text-sm text-action hover:underline"
               >
                 Go to Competitor Review →
@@ -342,7 +342,7 @@ function CompetitorMatrix({ projectId: _projectId }: { projectId: string | null 
           No features extracted yet. Use the Competitor Review page to extract features.
         </p>
         <a
-          href="/workspace/competitors"
+          href="/workspace/strategy/competitors"
           className="inline-flex items-center gap-1 text-sm text-action hover:underline"
         >
           Go to Competitor Review →

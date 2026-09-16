@@ -84,9 +84,9 @@ describe("localeFromPath", () => {
   });
 
   it("deeply nested VI path preserves query-free segments", () => {
-    expect(localeFromPath("/vi/dashboard/reports")).toEqual({
+    expect(localeFromPath("/vi/workspace/reports")).toEqual({
       locale: "vi",
-      rest: "/dashboard/reports",
+      rest: "/workspace/reports",
     });
   });
 
@@ -148,8 +148,8 @@ describe("toLocalePath", () => {
   });
 
   it("VI target with nested rest preserves the sub-path", () => {
-    expect(toLocalePath("/dashboard/reports", "vi")).toBe(
-      "/vi/dashboard/reports",
+    expect(toLocalePath("/workspace/reports", "vi")).toBe(
+      "/vi/workspace/reports",
     );
   });
 
@@ -159,7 +159,7 @@ describe("toLocalePath", () => {
   });
 
   it("round-trips with localeFromPath for every locale × sample path", () => {
-    const samples = ["/", "/pricing", "/dashboard/reports", "/deep/nested/path"];
+    const samples = ["/", "/pricing", "/workspace/reports", "/deep/nested/path"];
     for (const code of LOCALES) {
       for (const rest of samples) {
         const path = toLocalePath(rest, code);

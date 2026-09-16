@@ -73,7 +73,7 @@ async function getDataRoomData(userEmail: string): Promise<ShareLink[]> {
 
 export default async function DataRoomPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/dashboard/data-room");
+  if (!user) redirect("/auth/login?next=/workspace/investors/access");
 
   const isSandbox = await getCurrentProjectIsSandbox();
 

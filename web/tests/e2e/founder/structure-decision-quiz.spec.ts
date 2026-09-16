@@ -1,5 +1,5 @@
 // E2E — <StructureDecisionFormClient /> (P10-structure-decision-ui) on
-// /workspace/fundraise/structure runs the pure assessStructureDecision helper
+// /workspace/raise/round/structure runs the pure assessStructureDecision helper
 // in-browser and lets a founder tick listing + control signals to see the
 // recommendation flip live.
 //
@@ -14,7 +14,7 @@
 // Strategy mirrors tests/e2e/founder/redomicile-wizard.spec.ts:
 //   1. getAccount() a seeded qa-founder — skip cleanly when the fixture is
 //      unseeded (CI on a fresh clone stays green).
-//   2. Navigate to /workspace/fundraise/structure; skip cleanly when the
+//   2. Navigate to /workspace/raise/round/structure; skip cleanly when the
 //      banner container is not mounted (auth-gated redirect / layout change).
 //   3. Assert the banner is absent before Run.
 //   4. Run with nothing ticked → insufficient_signal.
@@ -30,7 +30,7 @@
 import { test, expect } from "@playwright/test";
 import { getAccount, loginAs } from "../fixtures/accounts";
 
-const ROUTE = "/workspace/fundraise/structure";
+const ROUTE = "/workspace/raise/round/structure";
 const FOUNDER_EMAIL =
   process.env.QA_FOUNDER_STRUCTURE_EMAIL ?? "qa-founder-1@blockid.au";
 

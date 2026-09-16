@@ -432,7 +432,7 @@ function AlertsTab({ kinds }: { kinds: FundingWorkspaceProps["alertKinds"] }) {
         <p className="mt-1 text-sm text-secondary">
           The weekly refresh will re-run your match and alert you before every deadline you fit — at most one email a day, a digest once a
           week, in-app alerts deduplicated. You will see them here and under{" "}
-          <Link href="/workspace/notifications" className="font-semibold text-action">Notifications › Money</Link>.
+          <Link href="/workspace/settings/notifications" className="font-semibold text-action">Notifications › Money</Link>.
         </p>
       </div>
       <ul className="mt-4 grid gap-3 sm:grid-cols-2">

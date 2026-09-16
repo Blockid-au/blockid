@@ -37,7 +37,7 @@ Triggered when a user signs up/logs in and has no projects yet. Lives in `/onboa
 | 4 | Step 2: Select industry | ~5s | 32s | Wizard step 1 (INDUSTRIES grid) |
 | 5 | Step 3: Confirm idea text (auto-prefilled) | ~5s | 37s | Wizard step 2 |
 | 6 | Submit: Project created + SVI analysis triggered | ~45-60s | ~95s | POST /api/projects + /api/rnd |
-| 7 | Redirect to SVI dashboard | ~3s | ~98s | `/dashboard/svi` |
+| 7 | Redirect to SVI dashboard | ~3s | ~98s | `/workspace/score` |
 | **Total time-to-first-value:** | | | **~98 seconds (~1.6 minutes)** | |
 
 ### Journey C: Return User (Existing Project)
@@ -83,7 +83,7 @@ Triggered when a user signs up/logs in and has no projects yet. Lives in `/onboa
 ### FP-5: Onboarding wizard does not reconnect with anonymous SVI analysis [SEVERITY: Medium] [STATUS: Open]
 - **Evidence:** If a user runs an anonymous SVI analysis, then signs up, the onboarding wizard starts fresh (Step 1: name, Step 2: industry, Step 3: new idea). Their previous analysis result is not linked.
 - **Problem:** User re-enters information they already provided. Feels redundant.
-- **Recommendation:** Detect if the newly-signed-up user's email matches a prior `svi_analyses` record. If so, skip the wizard and redirect to `/dashboard/svi` with their existing analysis pre-loaded.
+- **Recommendation:** Detect if the newly-signed-up user's email matches a prior `svi_analyses` record. If so, skip the wizard and redirect to `/workspace/score` with their existing analysis pre-loaded.
 - **Estimated effort:** 0.5 person-weeks
 
 ### FP-6: No social proof or trust signals near the search bar [SEVERITY: Low] [STATUS: Open]

@@ -151,7 +151,7 @@ export default async function EsicCompliancePage() {
 
         <div className="flex flex-wrap gap-3">
           <Link
-            href="/workspace/esic-assessment"
+            href="/workspace/documents/compliance"
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             {row ? "Re-run self-assessment" : "Run the self-assessment"}

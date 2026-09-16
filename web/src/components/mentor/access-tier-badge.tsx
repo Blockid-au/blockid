@@ -3,7 +3,7 @@
 // Used in:
 //   • reseller /customers drawer header (next to the founder name)
 //   • /mentor/roster cards (mentor-side)
-//   • /dashboard/settings/mentor-access (founder-side list)
+//   • /workspace/investors/access (founder-side list)
 //
 // Pure presentation — no data access. Colour comes from tierBadgeColor(),
 // label from tierLabel(). Both are single-source-of-truth in

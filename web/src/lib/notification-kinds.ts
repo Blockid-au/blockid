@@ -5,7 +5,7 @@
 //     is not listed here.
 //   • `/api/founder-notifications` builds its `KNOWN_KINDS` allow-list from
 //     this array (the `?kind=` filter).
-//   • `/workspace/notifications` `feed-client.tsx` and the nav
+//   • `/workspace/settings/notifications` `feed-client.tsx` and the nav
 //     `NotificationBell` render titles / summaries / links through
 //     `describeNotification()` below, so both show the same words.
 //
@@ -324,15 +324,15 @@ export function notificationAction(row: FounderNotificationRow): { href: string;
     case "tbr_qa_asked":
     case "report_shared":
     case "analysis_done":
-      return { href: "/workspace/business-report", label: "View report" };
+      return { href: "/workspace/reports/business", label: "View report" };
     case "tbr_lead": {
       const email = s(p.email);
       return email
         ? { href: `mailto:${email}?subject=${encodeURIComponent("Following up on your interest in our startup")}`, label: "Reply to lead" }
-        : { href: "/workspace/business-report", label: "View report" };
+        : { href: "/workspace/reports/business", label: "View report" };
     }
     case "svi_trend_alert":
-      return { href: "/workspace/svi-trend", label: "Open SVI trend" };
+      return { href: "/workspace/score/trend", label: "Open SVI trend" };
     case "grant_deadline": {
       const url = s(p.url);
       return url ? { href: url, label: "Open grant" } : { href: "/funding/grants", label: "See grants" };
@@ -350,17 +350,17 @@ export function notificationAction(row: FounderNotificationRow): { href: string;
       // Evaluator radar payloads carry href=/workspace/evaluations (T0273).
       return { href: s(p.href) ?? "/dashboard", label: Array.isArray(p.movers) ? "Open Progress Radar" : "Do it now" };
     case "analysis_refresh":
-      return { href: s(p.href) ?? "/workspace/business-report", label: "Read the update" };
+      return { href: s(p.href) ?? "/workspace/reports/business", label: "Read the update" };
     case "radar_setup_nudge":
       return { href: RADAR_SETUP_NUDGE_HREF, label: RADAR_SETUP_NUDGE_ACTION_LABEL };
     case "webhook_disabled":
-      return { href: "/workspace/integrations#webhooks", label: "Open webhooks" };
+      return { href: "/workspace/evidence/connectors#webhooks", label: "Open webhooks" };
     case "connector_reconnect":
       return { href: s(p.href) ?? "/workspace/evidence", label: "Reconnect" };
     case "investor_viewed":
-      return { href: "/workspace/data-room", label: "See who read what" };
+      return { href: "/workspace/documents/data-room", label: "See who read what" };
     case "chain_drift":
-      return { href: "/workspace/cap-table#on-chain", label: "Review drift" };
+      return { href: "/workspace/equity/cap-table#on-chain", label: "Review drift" };
     case "ai_capacity":
       return { href: "/admin/ai-keys", label: "Review AI spend" };
     default:

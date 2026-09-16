@@ -303,7 +303,7 @@ export const PitchVideo1MinV2: React.FC = () => {
             <AbsoluteFill style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 50, padding: "0 80px" }}>
               <div style={{ flex: 1 }}>
                 <ScreenDemo
-                  url="blockid.au/dashboard/svi"
+                  url="blockid.au/workspace/score"
                   imageSrc="video-assets/score-page.png"
                   descriptionLines={["SVI Score — 8 dimensions analysed"]}
                   status="10-page AI report in under 60 seconds"

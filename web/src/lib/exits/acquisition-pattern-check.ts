@@ -2,7 +2,7 @@
 // scores a founder-supplied deal shape against the reusable ~90% cash / ~10%
 // retention-RSU template Atlassian ran on Trello 2017, OpsGenie 2018, and
 // Loom 2023 (see /guide/11-scale acquisition-pattern section). Signal, not
-// advice. Downstream wiring (`/dashboard/exit-readiness` wizard tile) is a
+// advice. Downstream wiring (`/workspace/exit/benchmark` wizard tile) is a
 // separate tick — this leaf lib ships standalone so any surface that needs a
 // deal-shape checker can consume it without waiting.
 

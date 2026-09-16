@@ -1,4 +1,4 @@
-// P12d-redomicile-wizard — form-state helpers for the /dashboard/exit-readiness
+// P12d-redomicile-wizard — form-state helpers for the /workspace/exit/benchmark
 // wizard that runs a founder-supplied scenario through assessRedomicile.
 //
 // The pure lib lives at web/src/lib/exits/redomicile-decision-check.ts and

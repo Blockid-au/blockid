@@ -44,7 +44,7 @@ export const ROLE_GUIDING_COPY: Record<Role, RoleGuidingCopy> = {
     },
     next_step_recommender: {
       phrase: { en: "Recommended next step — recompute your SVI so the investor pack shows this week's score.", vi: "Bước tiếp theo — tính lại SVI để bộ pack nhà đầu tư hiển thị điểm tuần này." },
-      cta: { href: "/dashboard/svi", label: { en: "Recompute SVI", vi: "Tính lại SVI" } },
+      cta: { href: "/workspace/score", label: { en: "Recompute SVI", vi: "Tính lại SVI" } },
     },
   },
   advisor: {

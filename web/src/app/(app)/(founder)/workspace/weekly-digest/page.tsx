@@ -35,7 +35,7 @@ export default async function WeeklyDigestPage() {
         alternatives={[
           { href: "/workspace/advisor/roster", label: "Client Roster — per-client SVI and engagement" },
           { href: "/workspace/advisor/notes", label: "Engagement notes" },
-          { href: "/workspace/notifications", label: "Email digest preferences" },
+          { href: "/workspace/settings/notifications", label: "Email digest preferences" },
         ]}
       />
     </WorkspaceLayout>

@@ -3,7 +3,7 @@
 // Emits a Software Bill of Materials for BlockID's own package-lock.json —
 // closes §2 data-room items 4.9 "Third-Party Dependency Inventory" and
 // 7.9 "Open-Source License Inventory". Neither slot had auto-gen wiring
-// before; both are surfaced by /dashboard/data-room as founder evidence.
+// before; both are surfaced by /workspace/investors/access as founder evidence.
 //
 // The route is public — the lock file is already shipped in the repo and
 // nothing here is user-scoped. Investors doing pre-signature diligence

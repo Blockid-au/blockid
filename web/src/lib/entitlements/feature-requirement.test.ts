@@ -13,7 +13,7 @@ const growth = PLANS_V2.find((p) => p.id === "founder_growth")!;
 
 describe("resolveFeatureRequirement (S31-B — /pricing?feature= landing)", () => {
   it("data_room.access → Starter, with the live price and the Starter card anchor", () => {
-    const req = resolveFeatureRequirement("data_room.access", "/workspace/data-room")!;
+    const req = resolveFeatureRequirement("data_room.access", "/workspace/documents/data-room")!;
     expect(req.plan?.id).toBe("founder_starter");
     expect(req.priceLine).toBe(`A$${starter.monthly_aud}/mo`);
     expect(req.anchor).toBe("#tier-starter");
@@ -24,7 +24,7 @@ describe("resolveFeatureRequirement (S31-B — /pricing?feature= landing)", () =
   });
 
   it("cap_table.write → Growth", () => {
-    const req = resolveFeatureRequirement("cap_table.write", "/workspace/cap-table")!;
+    const req = resolveFeatureRequirement("cap_table.write", "/workspace/equity/cap-table")!;
     expect(req.plan?.id).toBe("founder_growth");
     expect(req.priceLine).toBe(`A$${growth.monthly_aud}/mo`);
     expect(req.anchor).toBe("#tier-growth");
@@ -38,7 +38,7 @@ describe("resolveFeatureRequirement (S31-B — /pricing?feature= landing)", () =
   });
 
   it("sso → contact sales, no card anchor, no price", () => {
-    const req = resolveFeatureRequirement("sso", "/workspace/sso")!;
+    const req = resolveFeatureRequirement("sso", "/workspace/settings/enterprise")!;
     expect(req.contactSales).toBe(true);
     expect(req.plan).toBeNull();
     expect(req.anchor).toBeNull();
@@ -83,7 +83,7 @@ describe("resolveFeatureRequirement (S31-B — /pricing?feature= landing)", () =
 
 describe("fromPathLabel", () => {
   it("names known workspace pages and title-cases unknown ones", () => {
-    expect(fromPathLabel("/workspace/cap-table")).toBe("Cap Table");
+    expect(fromPathLabel("/workspace/equity/cap-table")).toBe("Cap Table");
     expect(fromPathLabel("/workspace/some-new-thing?x=1")).toBe("Some New Thing");
   });
   it("drops ids, protocol-relative and absent paths", () => {
@@ -98,7 +98,7 @@ describe("fromPathLabel", () => {
     expect(fromPathLabel("/workspace/we%20moved%20to%20evil")).toBeNull();
     expect(fromPathLabel("/workspace/a-b-c-d-e-f-g-h")).toBeNull(); // too many words
     expect(fromPathLabel("/pricing/some-thing")).toBeNull(); // outside the gated trees
-    expect(fromPathLabel("/dashboard/exit-readiness")).toBe("Exit Readiness");
+    expect(fromPathLabel("/workspace/exit/benchmark")).toBe("Exit Readiness");
     expect(fromPathLabel("/workspace/some-new-thing")).toBe("Some New Thing");
   });
 });

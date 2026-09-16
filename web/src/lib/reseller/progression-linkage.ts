@@ -3,12 +3,12 @@
 // Maps a customer-drawer progression event to the U.9 12-phase journey and,
 // through it, to the matching startup-journey guide chapter slug. Kept
 // separate from customer-drawer.ts so the phase taxonomy is defined in one
-// place — the same PHASE_LABELS used by /guide, /workspace/guide,
+// place — the same PHASE_LABELS used by /guide, /workspace/plan/guide,
 // /guide/reports, /showcase/blockid and the product tour (B7) — and the
 // mapping is unit-testable without touching the reseller supabase wrapper.
 //
 // Deep-links resolve to the public /guide/<slug> route (not
-// /workspace/guide/<slug>) because the reseller viewing the drawer is not
+// /workspace/plan/guide/<slug>) because the reseller viewing the drawer is not
 // the founder who owns the workspace — the public marketing surface is the
 // appropriate landing spot to share with the attributed customer.
 //

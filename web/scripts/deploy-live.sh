@@ -1140,7 +1140,7 @@ sleep 5
 # distinct dynamic-render cache entry is hot before the deterministic
 # first-render smoke assertion probes it (Next 16 keys the RSC cache on
 # the full URL including searchParams).
-WARMUP_URLS=(/ /pricing "/pricing?tier=accelerator" /roadmap /dashboard/portfolio /funding /funding/report/demo /docs/unlocks /compare/chatgpt /solutions/accelerator /signup)
+WARMUP_URLS=(/ /pricing "/pricing?tier=accelerator" /roadmap /workspace/projects/compare /funding /funding/report/demo /docs/unlocks /compare/chatgpt /solutions/accelerator /signup)
 # /signup NEVER reaches Playwright's `networkidle` (Stripe.js telemetry to
 # r.stripe.com/b keeps firing while the card element is mounted — release
 # QA-1 #19). Every check against it, here (curl) and in post-deploy.spec.ts,

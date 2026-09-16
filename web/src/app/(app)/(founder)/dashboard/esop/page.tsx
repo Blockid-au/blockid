@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export default async function EsopPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/dashboard/esop");
+  if (!user) redirect("/auth/login?next=/workspace/esop/manage");
 
   const isSandbox = await getCurrentProjectIsSandbox();
 

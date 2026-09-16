@@ -49,7 +49,7 @@ export default async function ResellerLayout({ children }: Props) {
     hasActiveResellerMembership(user.id),
   ]);
   if (!planAllowed && !memberAllowed) {
-    redirect("/dashboard/svi");
+    redirect("/workspace/score");
   }
 
   return (

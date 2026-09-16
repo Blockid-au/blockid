@@ -223,7 +223,7 @@ describe("WorkspaceLayout — nav v4 size + persona contract", () => {
     expect(links.length).toBeLessThanOrEqual(10);
     expect(links).toEqual([
       "/dashboard", "/workspace/projects", "/analyze", "/workspace/reports",
-      "/dashboard/svi", "/workspace/evidence", "/workspace/roadmap", "/startup-package",
+      "/workspace/score", "/workspace/evidence", "/workspace/plan", "/startup-package",
       "/workspace/funding", "/workspace/investors",
     ]);
     // Company is previewed under the Later-phases disclosure, not rendered in place.

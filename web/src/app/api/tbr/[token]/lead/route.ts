@@ -204,7 +204,7 @@ async function notifyFounder(args: NotifyArgs): Promise<void> {
   // Email — best-effort; sendEmail already handles missing SMTP + Resend.
   if (args.ownerEmail) {
     try {
-      const reportLink = `${siteBaseUrl(args.request)}/workspace/business-report`;
+      const reportLink = `${siteBaseUrl(args.request)}/workspace/reports/business`;
       const replyLink = `mailto:${lead.email}?subject=${encodeURIComponent("Following up on your interest in our startup")}`;
       const html = `
         <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a;">

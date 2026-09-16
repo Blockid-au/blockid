@@ -177,7 +177,7 @@ export default async function TickerDetailPage({ params }: PageProps) {
               </div>
               {!detail.publicVisible && (
                 <p className="text-[11px] text-ink-400 mt-2">
-                  Founder hasn&apos;t opted in to display name publicly. <Link href="/workspace/founder-profile" className="text-brand-700 hover:underline">Opt in here</Link>.
+                  Founder hasn&apos;t opted in to display name publicly. <Link href="/workspace/settings/founder" className="text-brand-700 hover:underline">Opt in here</Link>.
                 </p>
               )}
             </div>

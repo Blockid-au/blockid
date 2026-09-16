@@ -1,4 +1,4 @@
-// E2E — <CohortRetentionTile /> (P5-cohort-svi) on /dashboard/svi runs the
+// E2E — <CohortRetentionTile /> (P5-cohort-svi) on /workspace/score runs the
 // pure computeWeeklyCohortRetention + renderCohortRetentionSvg helpers in
 // the browser and lets a founder paste weekly signups + activity CSVs to
 // see the cohort matrix, band, and inline SVG update live.
@@ -11,7 +11,7 @@
 // Strategy mirrors tests/e2e/founder/acquisition-wizard.spec.ts:
 //   1. loginAs() a seeded qa-founder (skip cleanly when the fixture is
 //      missing so a fresh clone stays green).
-//   2. Navigate to /dashboard/svi and skip cleanly when the tile is not
+//   2. Navigate to /workspace/score and skip cleanly when the tile is not
 //      mounted (defensive — the mount lives in the same file that ships
 //      the tile so a mount miss here would flag a regression).
 //   3. Blank state → data-band="grey" + data-cohort-count="0" + empty-state
@@ -27,7 +27,7 @@
 import { test, expect } from "@playwright/test";
 import { getAccount, loginAs } from "../fixtures/accounts";
 
-const ROUTE = "/dashboard/svi";
+const ROUTE = "/workspace/score";
 const FOUNDER_EMAIL =
   process.env.QA_FOUNDER_COHORT_EMAIL ?? "qa-founder-1@blockid.au";
 

@@ -1,4 +1,4 @@
-// /workspace/sso — Single Sign-On (SAML / OIDC).
+// /workspace/settings/enterprise — Single Sign-On (SAML / OIDC).
 // S31-B (2026-09-13): honest "not available yet" surface. The previous page
 // promised "Coming Soon — Estimated: Q4 2026" with "Upgrade to Enterprise" → /workspace/billing and offered an
 // upgrade button under a feature that does not exist. SSO is a third-party identity-provider integration and is deferred; it is not sold on any plan today.
@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 
 export default async function SSOPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/workspace/sso");
+  if (!user) redirect("/auth/login?next=/workspace/settings/enterprise");
 
   const isSandbox = await getCurrentProjectIsSandbox();
 

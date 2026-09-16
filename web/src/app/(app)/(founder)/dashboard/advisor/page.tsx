@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdvisorPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/dashboard/advisor");
+  if (!user) redirect("/auth/login?next=/workspace/investors/access");
 
   const isSandbox = await getCurrentProjectIsSandbox();
 

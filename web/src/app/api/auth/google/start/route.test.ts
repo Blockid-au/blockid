@@ -65,7 +65,7 @@ describe("GET /api/auth/google/start", () => {
     if (!opened.ok) return;
     expect(url.searchParams.get("state")).toBe(opened.state.state);
     expect(url.searchParams.get("code_challenge")).toBe(pkceChallenge(opened.state.codeVerifier));
-    expect(opened.state.next).toBe("/workspace/analyses");
+    expect(opened.state.next).toBe("/workspace/score/history");
     // The verifier is only in the cookie, never in the URL.
     expect(url.toString()).not.toContain(opened.state.codeVerifier);
   });

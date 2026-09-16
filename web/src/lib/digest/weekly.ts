@@ -108,27 +108,27 @@ const DIM_ACTIONS: Record<string, { headline: string; reason: string; href: stri
   ftv: {
     headline: "Strengthen your founder & team story",
     reason: "Investors weight team quality above almost every other signal. Add a co-founder profile, key hires, and past exits.",
-    href: "/workspace/business-report#ftv",
+    href: "/workspace/reports/business#ftv",
   },
   mpc: {
     headline: "Sharpen your market & problem framing",
     reason: "A tight TAM/SAM/SOM plus a crisp problem statement is the fastest lift for investor readiness.",
-    href: "/workspace/business-report#mpc",
+    href: "/workspace/reports/business#mpc",
   },
   ptd: {
     headline: "Document your product & tech moat",
     reason: "Upload architecture notes, patents, or a demo-video link so this dim stops dragging your overall SVI down.",
-    href: "/workspace/business-report#ptd",
+    href: "/workspace/reports/business#ptd",
   },
   tre: {
     headline: "Publish your traction numbers",
     reason: "MRR, growth rate, and pipeline are the single biggest lever on your Startup Value Index — even a screenshot helps.",
-    href: "/workspace/business-report#tre",
+    href: "/workspace/reports/business#tre",
   },
   cgh: {
     headline: "Clean up your cap table & governance",
     reason: "Upload a share register, ESOP grants, and board minutes. Investors ask for this on the second call.",
-    href: "/workspace/cap-table",
+    href: "/workspace/equity/cap-table",
   },
   iri: {
     headline: "Complete your investor-readiness pack",
@@ -143,7 +143,7 @@ const DIM_ACTIONS: Record<string, { headline: string; reason: string; href: stri
   svm: {
     headline: "Articulate your strategic vision & moat",
     reason: "A one-page vision + defensibility narrative moves this dim from red to amber overnight.",
-    href: "/workspace/business-report#svm",
+    href: "/workspace/reports/business#svm",
   },
 };
 
@@ -442,7 +442,7 @@ export async function buildFounderDigest(
       const meta = DIM_ACTIONS[weakest.dim] ?? {
         headline: "Improve your weakest dimension",
         reason: "Focus this week on the SVI dimension with the biggest headroom.",
-        href: "/workspace/business-report",
+        href: "/workspace/reports/business",
       };
       topAction = {
         dimension: weakest.dim,
@@ -504,7 +504,7 @@ export async function buildFounderDigest(
     topAction,
     aiSummary,
     shareUrl,
-    notificationsUrl: `${siteBase()}/workspace/notifications`,
+    notificationsUrl: `${siteBase()}/workspace/settings/notifications`,
     money,
     ...(pipeline ? { pipeline } : {}),
   };

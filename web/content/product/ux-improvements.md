@@ -145,7 +145,7 @@ Add a visual progress tracker to the SVI dashboard that maps the founder journey
 
 ### Technical Approach
 - New component: `ProgressDashboard` in `web/src/components/svi/`
-- Render within WorkspaceLayout on `/dashboard/svi`
+- Render within WorkspaceLayout on `/workspace/score`
 - Reads from: `svi_accounts` (current_svi, current_stage), `svi_evidence` (completeness), badges table (when available)
 - Stage thresholds configurable via constants (easy to adjust as scoring evolves)
 
@@ -248,7 +248,7 @@ After any tool session completes, show a contextual banner connecting the tool o
    - Authenticated + no SVI: "You've set up ownership. Get your SVI score to see where you stand."
    - Anonymous: "Your Cap Table could boost your investor-readiness score by +10 points. Sign up to track it."
 3. CTA button: "View Updated Score" / "Get Your Score" / "Sign Up"
-4. If user clicks: navigate to `/dashboard/svi` (auth) or `/` with pre-filled context (anon)
+4. If user clicks: navigate to `/workspace/score` (auth) or `/` with pre-filled context (anon)
 
 ### Technical Approach
 - New component: `ToolToSVIBanner` in `web/src/components/svi/`

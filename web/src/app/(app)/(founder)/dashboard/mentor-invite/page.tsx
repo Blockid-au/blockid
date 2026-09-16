@@ -201,8 +201,8 @@ export default async function MentorInvitePage({
   if (!user) {
     // Preserve the query string so the magic-link callback lands the user
     // back on this exact approval screen — matches the pattern used by
-    // /dashboard/integrations and /dashboard/advisor.
-    redirect("/auth/login?next=/dashboard/mentor-invite");
+    // /workspace/evidence/connectors and /workspace/investors/access.
+    redirect("/auth/login?next=/workspace/investors/access");
   }
 
   const isSandbox = await getCurrentProjectIsSandbox();
@@ -247,7 +247,7 @@ function InviteContent({ req }: { req: GrantRequestSummary }) {
           Approving grants access for {CONSENT_LIFETIME_DAYS / 30} months. You
           can revoke any time from{" "}
           <Link
-            href="/dashboard/settings/mentor-access"
+            href="/workspace/investors/access"
             className="font-semibold text-brand-700 underline underline-offset-2"
           >
             Settings › Mentor access
@@ -383,7 +383,7 @@ function InvalidLink() {
         It may have already been accepted, revoked, or expired. Check with the
         mentor who sent it, or visit{" "}
         <Link
-          href="/dashboard/settings/mentor-access"
+          href="/workspace/investors/access"
           className="underline underline-offset-2"
         >
           Settings › Mentor access

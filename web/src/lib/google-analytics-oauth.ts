@@ -5,7 +5,7 @@ import "server-only";
  *
  * Distinct from `@/lib/google-analytics` (service-account reader used for the
  * BlockID internal daily report). This module is the per-user OAuth flow that
- * powers `/dashboard/integrations` and writes results into `svi_evidence`
+ * powers `/workspace/evidence/connectors` and writes results into `svi_evidence`
  * (dimension `mkt`).
  *
  * Env stubs:

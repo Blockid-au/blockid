@@ -79,12 +79,12 @@ describe("add-on features are never hidden behind a plan-tier floor", () => {
     const vesting = ALL_CALLS.find((c) => c.feature === "vesting.read");
     expect(esop, "/workspace/esop must gate on esop.manage").toBeDefined();
     expect(esop!.minTier).toBeNull();
-    expect(vesting, "/workspace/vesting must gate on vesting.read").toBeDefined();
+    expect(vesting, "/workspace/esop/vesting must gate on vesting.read").toBeDefined();
     expect(vesting!.minTier).toBeNull();
   });
 
   it("leaves plan-only floors alone — this rule is about add-on features, not all gating", () => {
-    // e.g. /dashboard/exit-readiness uses minTier with no feature at all.
+    // e.g. /workspace/exit/benchmark uses minTier with no feature at all.
     const planOnly = ALL_CALLS.filter((c) => !c.feature && c.minTier);
     expect(planOnly.length).toBeGreaterThan(0);
   });

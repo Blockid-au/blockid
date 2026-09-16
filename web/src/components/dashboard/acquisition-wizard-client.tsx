@@ -1,7 +1,7 @@
 "use client";
 
 // P11-acquisition-wizard-ui — client wizard rendered beneath the
-// ExitReadinessTile on /dashboard/exit-readiness. Runs the pure
+// ExitReadinessTile on /workspace/exit/benchmark. Runs the pure
 // assessAcquisitionPattern helper in-browser (no fetch, no API, no I/O) so a
 // founder can nudge fields on the ~90/10 Atlassian template and see the
 // signal + warnings + FIRB gate flip live.

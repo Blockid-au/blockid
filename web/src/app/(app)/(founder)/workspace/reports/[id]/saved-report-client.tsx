@@ -236,7 +236,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
     <div className="max-w-4xl mx-auto px-6 pb-24 pt-6">
       {/* Back link */}
       <Link
-        href="/dashboard/svi"
+        href="/workspace/score"
         className="inline-flex items-center gap-1.5 text-sm text-ink-500 hover:text-ink-800 transition-colors mb-6"
       >
         <ArrowLeft strokeWidth={1.75} className="h-4 w-4" />

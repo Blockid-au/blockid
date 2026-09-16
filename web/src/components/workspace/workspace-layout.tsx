@@ -22,6 +22,7 @@ import { ProductTour } from "@/components/workspace/product-tour";
 import { FeatureSpotlight } from "@/components/product-tour/feature-spotlight";
 import { ResellerPill } from "@/components/workspace/reseller-pill";
 import { HeaderAccountMenu } from "@/components/workspace/header-account-menu";
+import { HubTabs } from "@/components/workspace/hub-tabs";
 import { SandboxBanner } from "@/components/workspace/sandbox-banner";
 import { TrialDayWatcher } from "@/components/upsell/trial-day-watcher";
 import { UpgradeModal } from "@/components/upsell/upgrade-modal";
@@ -580,8 +581,11 @@ export function WorkspaceLayout({ children, user, currentPhase: currentPhaseProp
             provider (see wrapper) can trigger contextual nudges below. */}
         <TrialCountdownBanner />
 
-        {/* Page content */}
+        {/* Page content. HubTabs renders the hub tablist when the page sits
+            under a hub layout (`HubTabsProvider`, G13-W2-IA2) and nothing
+            otherwise. */}
         <main className="flex-1 overflow-auto">
+          <HubTabs />
           {children}
         </main>
 

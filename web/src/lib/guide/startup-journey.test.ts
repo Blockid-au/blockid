@@ -241,7 +241,7 @@ describe("redomicile-decision-tree section (chapter 12 P12d-redomicile-decision)
       "GILTI",                                 // IRC §951A exposure
       "s911A",                                 // Corps Act financial-services boundary
       "s923B",                                 // Corps Act misleading-representation boundary
-      "/dashboard/exit-readiness",             // BlockID surface deep-link
+      "/workspace/exit/benchmark",             // BlockID surface deep-link
     ]) {
       expect(en).toContain(anchor);
     }
@@ -286,8 +286,8 @@ describe("ATO tax-invoice checker section (chapter 05 P5-tax-invoice-checker-ch5
       "ABN",                              // required supplier + recipient identity
       "Total price includes GST",         // s 29-70(1) statement alternative
       "Recipient-Created Tax Invoice",    // RCTI (canonical)
-      "/workspace/tax-invoice-checker",   // deep-link to the shipped wizard
-      "/dashboard/compliance",            // deep-link to the panel
+      "/workspace/finance/invoices",   // deep-link to the shipped wizard
+      "/workspace/documents/compliance",            // deep-link to the panel
     ]) {
       expect(en).toContain(anchor);
     }
@@ -301,7 +301,7 @@ describe("ATO tax-invoice checker section (chapter 05 P5-tax-invoice-checker-ch5
     // reading like tax advice on a specific invoice. The disclaimer that
     // ships on every checker output (TAX_INVOICE_DISCLAIMER, tax-invoice-
     // checker.ts) covers the AFSL / tax-agent boundary at runtime.
-    expect(en).toContain("/workspace/tax-invoice-checker");
+    expect(en).toContain("/workspace/finance/invoices");
     expect(en).toContain("disclaimer");
   });
 });

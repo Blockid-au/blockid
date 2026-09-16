@@ -289,33 +289,33 @@ describe("success_url + cancel_url + origin header", () => {
     await POST(req({ tier: "team" }, { origin: "https://blockid.au" }));
     const [params] = mocks.stripeCreateMock.mock.calls[0]!;
     expect(params.success_url).toBe(
-      "https://blockid.au/workspace/svi-api?session_id={CHECKOUT_SESSION_ID}&tier=team",
+      "https://blockid.au/workspace/settings/enterprise?session_id={CHECKOUT_SESSION_ID}&tier=team",
     );
   });
 
-  it("cancel_url routes back to /workspace/svi-api (no query)", async () => {
+  it("cancel_url routes back to /workspace/settings/enterprise (no query)", async () => {
     await POST(req({ tier: "institutional" }, { origin: "https://blockid.au" }));
     const [params] = mocks.stripeCreateMock.mock.calls[0]!;
-    expect(params.cancel_url).toBe("https://blockid.au/workspace/svi-api");
+    expect(params.cancel_url).toBe("https://blockid.au/workspace/settings/enterprise");
   });
 
   it("origin header from a custom preview host propagates into both URLs", async () => {
     await POST(req({ tier: "team" }, { origin: "https://preview.blockid.au" }));
     const [params] = mocks.stripeCreateMock.mock.calls[0]!;
-    expect(params.success_url).toContain("https://preview.blockid.au/workspace/svi-api?");
-    expect(params.cancel_url).toBe("https://preview.blockid.au/workspace/svi-api");
+    expect(params.success_url).toContain("https://preview.blockid.au/workspace/settings/enterprise?");
+    expect(params.cancel_url).toBe("https://preview.blockid.au/workspace/settings/enterprise");
   });
 
   it("missing origin header falls back to https://blockid.au (production default)", async () => {
     await POST(req({ tier: "team" }));
     const [params] = mocks.stripeCreateMock.mock.calls[0]!;
     expect(params.success_url).toBe(
-      "https://blockid.au/workspace/svi-api?session_id={CHECKOUT_SESSION_ID}&tier=team",
+      "https://blockid.au/workspace/settings/enterprise?session_id={CHECKOUT_SESSION_ID}&tier=team",
     );
-    expect(params.cancel_url).toBe("https://blockid.au/workspace/svi-api");
+    expect(params.cancel_url).toBe("https://blockid.au/workspace/settings/enterprise");
   });
 
-  it("tier appears verbatim in success_url — a founder returning to /workspace/svi-api sees which tier they bought", async () => {
+  it("tier appears verbatim in success_url — a founder returning to /workspace/settings/enterprise sees which tier they bought", async () => {
     await POST(req({ tier: "institutional" }));
     const [params] = mocks.stripeCreateMock.mock.calls[0]!;
     expect(params.success_url).toContain("&tier=institutional");

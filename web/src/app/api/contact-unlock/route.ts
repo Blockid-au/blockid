@@ -95,7 +95,7 @@ async function POST_handler(req: NextRequest) {
         <p style="font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Intro request · Startup Value Index™</p>
         <h1 style="margin:6px 0 14px;font-size:20px">${fromName} ${firmLine}is interested in ${ticker}</h1>
         ${message ? `<blockquote style="margin:12px 0;padding:12px 16px;background:#f1f5f9;border-left:3px solid #0ea5e9;border-radius:0 6px 6px 0;color:#334155;white-space:pre-wrap">${message.replace(/[<>]/g, (c) => c === "<" ? "&lt;" : "&gt;")}</blockquote>` : ""}
-        <p style="font-size:14px;color:#475569">Reply to <a href="mailto:${meTyped.email}" style="color:#0f766e">${meTyped.email}</a> to start a conversation. You can revoke investor contact any time in your <a href="https://blockid.au/workspace/founder-profile" style="color:#0f766e">founder profile</a>.</p>
+        <p style="font-size:14px;color:#475569">Reply to <a href="mailto:${meTyped.email}" style="color:#0f766e">${meTyped.email}</a> to start a conversation. You can revoke investor contact any time in your <a href="https://blockid.au/workspace/settings/founder" style="color:#0f766e">founder profile</a>.</p>
       </div>
     </body></html>`,
   });

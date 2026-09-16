@@ -216,7 +216,7 @@ const FOUNDER: Plan[] = [
       // ADDON_FEATURES). It does NOT grant dividends or a shareholder portal;
       // those have no feature gate in the product at all, and inventing one to
       // make this bullet true would take access away from Growth subscribers
-      // who use /workspace/dividends today. So the bullet loses the two claims
+      // who use /workspace/finance/dividends today. So the bullet loses the two claims
       // instead.
       `Equity add-on +A$${EQUITY_ADDON_MONTHLY_AUD}/mo — ESOP, vesting schedules, and on-chain sync`,
       "Unlimited shareholders + employees on the add-on — never per head",

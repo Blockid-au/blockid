@@ -20,7 +20,7 @@
 //      AND `wholesaleOnly: false` (the retail-marketed-ESIC path — the
 //      one the P9-esic-round-marketing-gate tick exists to close).
 //      wholesaleOnly=true responses fall through to the P6b spec.
-//   3. Navigate to /workspace/fundraise. Skip cleanly if the wizard is
+//   3. Navigate to /workspace/raise/round. Skip cleanly if the wizard is
 //      not mounted (auth redirect / paywall).
 //   4. Drive three branches:
 //        (a) unticked marketed + unticked wholesale → 200 (retail warn):
@@ -46,7 +46,7 @@
 import { test, expect, type Route } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
 
-const ROUTE = "/workspace/fundraise";
+const ROUTE = "/workspace/raise/round";
 const FOUNDER_EMAIL =
   process.env.QA_FOUNDER_MARKETED_ESIC_EMAIL ??
   process.env.QA_FOUNDER_FUNDRAISE_EMAIL ??
@@ -192,7 +192,7 @@ test.describe("Marketed-as-ESIC fundraise gate — P9-esic-round-marketing-gate-
     const mounted = (await marketedToggle.count()) > 0;
     test.skip(
       !mounted,
-      "Fundraise wizard not mounted on /workspace/fundraise — likely an auth or plan redirect.",
+      "Fundraise wizard not mounted on /workspace/raise/round — likely an auth or plan redirect.",
     );
 
     const wholesaleToggle = page.getByTestId("fundraise-wholesale-only");

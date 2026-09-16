@@ -103,7 +103,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
  *
  * Renders a recharts LineChart of per-analysis SVI scores over time,
  * sourced from the `svi_analyses` table. Designed to be embedded in
- * the /dashboard and /dashboard/svi pages.
+ * the /dashboard and /workspace/score pages.
  */
 export function ScoreHistoryChart({ history, startupName, className }: Props) {
   /* ── Empty state ─────────────────────────────────────────────────────── */

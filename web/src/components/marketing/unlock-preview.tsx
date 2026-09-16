@@ -37,22 +37,22 @@ interface UnlockSeed {
 
 const SEEDS: UnlockSeed[] = [
   {
-    href: "/workspace/cap-table",
+    href: "/workspace/equity/cap-table",
     fallbackLabel: "Cap table + ESOP",
     outcome: "Every share, option and SAFE in one register, with dilution modelled before you sign.",
   },
   {
-    href: "/workspace/data-room",
+    href: "/workspace/documents/data-room",
     fallbackLabel: "Data room",
     outcome: "The folder investors expect, filled in the order they will open it.",
   },
   {
-    href: "/dashboard/valuation",
+    href: "/workspace/valuation",
     fallbackLabel: "Valuation",
     outcome: "A defensible range from five methods, refreshed as your numbers change.",
   },
   {
-    href: "/workspace/investor-pack",
+    href: "/workspace/reports/investor-pack",
     fallbackLabel: "Investor pack",
     outcome: "Deck, one-pager and tracked share links, generated from the same source of truth.",
   },
@@ -62,12 +62,12 @@ const SEEDS: UnlockSeed[] = [
     outcome: "The grants and programs you actually qualify for, with the next closing date.",
   },
   {
-    href: "/compliance/calendar",
+    href: "/workspace/documents/compliance",
     fallbackLabel: "Compliance calendar",
     outcome: "ASIC, ATO, R&D Tax and ESIC dates on one calendar, with reminders before each.",
   },
   {
-    href: "/workspace/metrics",
+    href: "/workspace/evidence/metrics",
     fallbackLabel: "Metrics",
     outcome: "MRR, burn and runway tracked monthly and benchmarked against your cohort.",
   },

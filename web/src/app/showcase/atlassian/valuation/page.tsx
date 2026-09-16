@@ -330,8 +330,8 @@ export default function AtlassianValuationPage() {
           <aside className="rounded-lg border border-brand-200 bg-brand-50 p-5 text-sm text-brand-900">
             <p className="font-medium">
               In BlockID{" "}
-              <Link href="/dashboard/valuation" className="underline">
-                /dashboard/valuation
+              <Link href="/workspace/valuation" className="underline">
+                /workspace/valuation
               </Link>{" "}
               runs all four methods live for your startup based on your
               uploads — cap table, financials, market comparables.

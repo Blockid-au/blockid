@@ -26,11 +26,11 @@ function payload(over: Partial<DigestPayload> = {}): DigestPayload {
       score: 40,
       headline: "Publish your traction numbers",
       reason: "MRR helps.",
-      ctaUrl: "https://blockid.au/workspace/business-report#tre",
+      ctaUrl: "https://blockid.au/workspace/reports/business#tre",
     },
     aiSummary: null,
     shareUrl: null,
-    notificationsUrl: "https://blockid.au/workspace/notifications",
+    notificationsUrl: "https://blockid.au/workspace/settings/notifications",
     ...over,
   };
 }

@@ -3,7 +3,7 @@
 // ComplianceCalendarTile — read-only compliance-panel tile that consumes
 // the JSON variant of /api/compliance/calendar (P1k) and surfaces the
 // single next-up compliance deadline plus a "Subscribe" deep-link into
-// /compliance/calendar so the founder can pipe every deadline into
+// /workspace/documents/compliance so the founder can pipe every deadline into
 // Google Calendar / iCal / Outlook without leaving the panel.
 //
 // Sits as the 8th slot in the CompliancePanel grid alongside the 7
@@ -74,7 +74,7 @@ export function ComplianceCalendarTile() {
 
   return (
     <Link
-      href="/compliance/calendar"
+      href="/workspace/documents/compliance"
       data-testid="compliance-calendar-tile"
       data-colour={view.colour}
       data-total={payload?.total ?? 0}
@@ -100,7 +100,7 @@ export function ComplianceCalendarTile() {
       </div>
       <div className="mt-3 text-xs text-muted-foreground">
         {state === "error"
-          ? "Couldn't load the calendar — open /compliance/calendar to retry."
+          ? "Couldn't load the calendar — open /workspace/documents/compliance to retry."
           : view.body}
       </div>
     </Link>

@@ -56,8 +56,8 @@ async function anonBrowser(ctxFactory: { newContext: (o: { storageState: { cooki
 }
 
 test.describe("Data room — founder side", () => {
-  test("/workspace/data-room on Free redirects to /pricing?feature=data_room.access; on Growth renders generator, investor access, trust settings and heatmap", async ({ page, visit, qa }, testInfo) => {
-    await visit("/workspace/data-room");
+  test("/workspace/documents/data-room on Free redirects to /pricing?feature=data_room.access; on Growth renders generator, investor access, trust settings and heatmap", async ({ page, visit, qa }, testInfo) => {
+    await visit("/workspace/documents/data-room");
     if (!qa.elevated) {
       await page.waitForURL(/\/pricing/, { timeout: 30_000 });
       const url = new URL(page.url());
@@ -117,7 +117,7 @@ test.describe("Data room — founder side", () => {
       test.skip(true, "generation costs 3 credits — set LIVE_QA_SPEND_OK=1 to cover the investor-link journey");
     }
     const before = await credits.snapshot();
-    await visit("/workspace/data-room");
+    await visit("/workspace/documents/data-room");
     const gen = page.getByTestId("dataroom-generate");
     await expect(gen).toBeVisible({ timeout: 30_000 });
     const [res] = await Promise.all([
@@ -138,7 +138,7 @@ test.describe("Data room — founder side", () => {
     void growth;
     const roomId = getScratch<string>("dataRoom.roomId");
     test.skip(!roomId, getScratch<string>("dataRoom.skipReason") ?? "no data room in this run");
-    await visit("/workspace/data-room");
+    await visit("/workspace/documents/data-room");
     const panel = page.getByTestId("investor-share-panel");
     await expect(panel).toBeVisible({ timeout: 30_000 });
     await panel.locator("#investor-name").fill(INVESTOR.name);
@@ -165,7 +165,7 @@ test.describe("Data room — founder side", () => {
   test("switch on NDA click-wrap and per-investor watermark (PUT /api/data-room/settings)", async ({ page, visit, growth, api }, testInfo) => {
     void growth;
     const { roomId } = requireLink();
-    await visit("/workspace/data-room");
+    await visit("/workspace/documents/data-room");
     await expect(page.getByTestId("investor-share-panel")).toBeVisible({ timeout: 30_000 });
     const trust = page.getByTestId("room-trust-settings");
     if (await trust.count()) {
@@ -185,7 +185,7 @@ test.describe("Data room — founder side", () => {
       // Product finding: the NDA / watermark controls (and the heatmap) are
       // mounted only in the browser session that generated the room —
       // data-room-client.tsx never loads the existing room id on mount.
-      testInfo.annotations.push({ type: "finding", description: "room-trust-settings + engagement-heatmap are not rendered on a fresh load of /workspace/data-room when the room already exists (dataRoomId lives only in the generating session's React state) — switched NDA/watermark on through PUT /api/data-room/settings instead" });
+      testInfo.annotations.push({ type: "finding", description: "room-trust-settings + engagement-heatmap are not rendered on a fresh load of /workspace/documents/data-room when the room already exists (dataRoomId lives only in the generating session's React state) — switched NDA/watermark on through PUT /api/data-room/settings instead" });
       const on = await put<{ ok: boolean; settings?: Settings; error?: string }>(api, "/api/data-room/settings", { dataRoomId: roomId, ndaRequired: true, watermarkEnabled: true });
       await evidence(testInfo, "PUT /api/data-room/settings", on.body);
       expect(on.status).toBe(200);
@@ -278,7 +278,7 @@ test.describe("Data room — engagement, follow-up, revoke", () => {
     expect(mine?.views ?? 0).toBeGreaterThanOrEqual(1);
     expect(mine?.ndaSignedAt, "NDA acceptance recorded on the link").toBeTruthy();
     expect(analytics.body.analytics.links.some((l) => l.label.includes(INVESTOR.name) && l.ndaSignedAt), "heatmap row for the investor link").toBe(true);
-    await visit("/workspace/data-room");
+    await visit("/workspace/documents/data-room");
     const panel = page.getByTestId("investor-share-panel");
     await expect(panel).toBeVisible({ timeout: 30_000 });
     // The share list always shows the per-link view count; the heatmap

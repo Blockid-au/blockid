@@ -273,7 +273,7 @@ export default async function ListingsPage({ searchParams }: PageProps) {
           <p className="font-bold text-ink-700 mb-1 uppercase tracking-wider">Listing methodology</p>
           <p className="leading-relaxed">
             Every identity hash with at least one SVI analysis in the last 90 days is listed. Ticker = SECTOR-XXX where XXX is the last 3 of the latest analysis slug. The same identity always maps to the same anonymous hash but the ticker may shift sectors if their pitch evolves. Public names appear only when the founder explicitly opts in via{" "}
-            <Link href="/workspace/founder-profile" className="text-brand-700 hover:underline">Founder Profile</Link>.
+            <Link href="/workspace/settings/founder" className="text-brand-700 hover:underline">Founder Profile</Link>.
           </p>
           <p className="mt-2 font-mono bg-ink-50 px-2 py-1 rounded text-[11px]">
             BSI-AU Listings as of {data.generatedAt.slice(0, 10)}: {data.total} companies, sort={sort} {order}, filter={JSON.stringify(filter)}

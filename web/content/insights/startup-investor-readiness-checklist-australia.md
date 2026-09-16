@@ -53,7 +53,7 @@ BlockID's [SVI report](/svi) flags governance gaps automatically against the ASI
 
 The cap table is the first artefact a VC opens. It reveals more about your judgement than your pitch deck.
 
-- [ ] **Single source of truth** — one spreadsheet or tool (not five). We recommend the [workspace cap table](/workspace/cap-table) so founders, lawyers, and investors work from the same numbers.
+- [ ] **Single source of truth** — one spreadsheet or tool (not five). We recommend the [workspace cap table](/workspace/equity/cap-table) so founders, lawyers, and investors work from the same numbers.
 - [ ] **Fully diluted view** — including all issued options, unallocated option pool, SAFE conversions, and warrants.
 - [ ] **Waterfall model** — what each shareholder receives at A$5M, A$20M, A$100M, A$500M exit scenarios.
 - [ ] **ESOP pool ≥10%** — investors typically require 10–15% unallocated pool *pre-money* at seed.
@@ -128,7 +128,7 @@ A good AU data room is small and complete. Investors reward brevity.
   - privacy-policy.pdf
 ```
 
-The [workspace data room](/workspace/data-room) auto-organises this structure and tracks investor access.
+The [workspace data room](/workspace/documents/data-room) auto-organises this structure and tracks investor access.
 
 ## Section 6 — Compliance & tax posture
 
@@ -199,10 +199,10 @@ No. Management accounts + BAS reconciliation are enough. Audits become expected 
 Yes — professionally. "We have another term sheet at similar terms; we'd prefer to work with you if you can commit by Friday" is a legitimate close.
 
 ### What if my cap table is a mess?
-Rebuild it now, not later. Our [SVI cap table workspace](/workspace/cap-table) imports from spreadsheet and reconciles against ASIC records.
+Rebuild it now, not later. Our [SVI cap table workspace](/workspace/equity/cap-table) imports from spreadsheet and reconciles against ASIC records.
 
 ---
 
-**Next steps:** Run the free [Startup Value Index](/svi) to see how investor-ready you are today across all 13 criteria, then use the [fundraise workspace](/workspace/fundraise) to build your data room and outreach plan. Explore [pricing](/pricing) for the reports and templates that shorten your raise cycle.
+**Next steps:** Run the free [Startup Value Index](/svi) to see how investor-ready you are today across all 13 criteria, then use the [fundraise workspace](/workspace/raise/round) to build your data room and outreach plan. Explore [pricing](/pricing) for the reports and templates that shorten your raise cycle.
 
 *General information only. Not financial or legal advice. Consult a qualified adviser before making decisions.*

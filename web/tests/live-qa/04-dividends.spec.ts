@@ -50,7 +50,7 @@ test.describe("Dividends", () => {
     await evidence(testInfo, "GET statements", list.body);
     expect(list.status).toBe(200);
     expect(list.body.included).toBe(true);
-    await visit("/workspace/dividends");
+    await visit("/workspace/finance/dividends");
     await expect(page.getByTestId("dividend-statements-panel")).toBeVisible({ timeout: 30_000 });
     if (list.body.records.length === 0) {
       await expect(page.getByTestId("statements-empty")).toContainText(/No dividend has been declared yet/);
@@ -92,7 +92,7 @@ test.describe("Dividends", () => {
     expect(preview.body.creditNote).not.toMatch(/Charged to your credits/);
     await credits.assertUnchanged(before, "statements preview (API)");
 
-    await visit("/workspace/dividends");
+    await visit("/workspace/finance/dividends");
     const record = page.getByTestId("dividend-record").filter({ has: page.getByTestId("issue-statements") }).first();
     const issue = record.getByTestId("issue-statements");
     await expect(issue).toBeVisible({ timeout: 30_000 });
@@ -149,7 +149,7 @@ test.describe("Dividends", () => {
     const current = await get<{ elections: Array<{ id: string; shareholderId?: string; shareholder_id?: string; active: boolean }> }>(api, "/api/dividends/drip/elections");
     for (const e of current.body.elections ?? []) if (e.active) await del(api, "/api/dividends/drip/elections", { id: e.id });
 
-    await visit("/workspace/dividends");
+    await visit("/workspace/finance/dividends");
     const drip = page.getByTestId("drip-panel");
     await drip.getByTestId("drip-add").click();
     await expect(drip.getByTestId("drip-form")).toBeVisible();
@@ -206,7 +206,7 @@ test.describe("Dividends", () => {
     expect(bad.status).toBe(400);
     await credits.assertUnchanged(before, "tax statements preview (API)");
 
-    await visit("/workspace/dividends");
+    await visit("/workspace/finance/dividends");
     const panel = page.getByTestId("annual-tax-statements-panel");
     const picker = panel.getByTestId("tax-fy-picker");
     await expect(picker).toBeVisible({ timeout: 30_000 });

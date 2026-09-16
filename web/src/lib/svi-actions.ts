@@ -10,7 +10,7 @@ export interface SVIAction {
 export const DIMENSION_ACTIONS: Record<string, SVIAction[]> = {
   ftv: [
     { label: "Find a co-founder", href: "/tools/cofounder-match", type: "tool" },
-    { label: "Build your team profile", href: "/workspace/profile", type: "tool" },
+    { label: "Build your team profile", href: "/workspace/settings/profile", type: "tool" },
   ],
   mpc: [
     { label: "Validate your idea", href: "/tools/idea-valuation", type: "tool" },

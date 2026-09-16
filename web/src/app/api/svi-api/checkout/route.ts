@@ -42,8 +42,8 @@ async function POST_handler(req: NextRequest) {
       line_items: [{ price: priceId, quantity: 1 }],
       customer_email: me.email,
       metadata: { userId: me.id, sviApiTier: tier },
-      success_url: `${origin}/workspace/svi-api?session_id={CHECKOUT_SESSION_ID}&tier=${tier}`,
-      cancel_url: `${origin}/workspace/svi-api`,
+      success_url: `${origin}/workspace/settings/enterprise?session_id={CHECKOUT_SESSION_ID}&tier=${tier}`,
+      cancel_url: `${origin}/workspace/settings/enterprise`,
       subscription_data: {
         metadata: { userId: me.id, sviApiTier: tier },
       },

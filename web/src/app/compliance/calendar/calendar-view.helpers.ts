@@ -1,4 +1,4 @@
-// Pure helpers for the /compliance/calendar founder-facing view.
+// Pure helpers for the /workspace/documents/compliance founder-facing view.
 //
 // Sits alongside the WGEA / Modern Slavery / GST detail-page helpers
 // under web/src/app/compliance/*. The view consumes ComplianceEvent[]

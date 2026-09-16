@@ -63,11 +63,11 @@ function actionFor(s: SVISubScore): string {
 function linkFor(s: SVISubScore): { label: string; href: string } {
   const k = s.label.toLowerCase();
   if (k.includes("cap table") || k.includes("governance"))
-    return { label: "Open Cap Table", href: "/workspace/cap-table" };
+    return { label: "Open Cap Table", href: "/workspace/equity/cap-table" };
   if (k.includes("traction") || k.includes("revenue"))
-    return { label: "Add Revenue", href: "/workspace/revenue" };
+    return { label: "Add Revenue", href: "/workspace/finance/revenue" };
   if (k.includes("investor"))
-    return { label: "Open Data Room", href: "/workspace/data-room" };
+    return { label: "Open Data Room", href: "/workspace/documents/data-room" };
   if (k.includes("legal") || k.includes("compliance"))
     return { label: "Add Legal Docs", href: "/workspace/documents" };
   if (k.includes("product") || k.includes("technical"))
@@ -75,7 +75,7 @@ function linkFor(s: SVISubScore): { label: string; href: string } {
   if (k.includes("market"))
     return { label: "Add Market Evidence", href: "/workspace/score/criteria" };
   if (k.includes("founder") || k.includes("team"))
-    return { label: "Add Team Evidence", href: "/workspace/shareholders" };
+    return { label: "Add Team Evidence", href: "/workspace/equity/shareholders" };
   return { label: "Open Evidence Vault", href: "/workspace/evidence" };
 }
 
@@ -170,7 +170,7 @@ export async function GET(request: Request) {
     const result = await callAI({
       system:
         "You are an Australian startup investor and advisor. Reply ONLY with valid JSON. No prose.",
-      user: `Founder current SVI: ${analysis.totalSVI}. Stage: ${analysis.stageLabel}.\n\nDimensions:\n${dimSummary}\n\nReturn the top 3 highest-leverage actions this Australian founder should take this week to lift their SVI. Each action must be specific, AU-relevant (e.g. ASIC, ESIC, R&D Tax Incentive, AusIndustry, ESVCLP, AU SAFE/MFN, Series A norms), and link to one of these tools: /workspace/evidence, /workspace/cap-table, /workspace/data-room, /workspace/revenue, /workspace/documents, /workspace/shareholders, /tools/safe-calculator, /tools/dilution, /tools/cap-table, /tools/esic, /tools/rnd-tax, /tools/term-sheet, /tools/idea-valuation.\n\nReturn JSON: {"actions":[{"title":"...","why":"...","how":"...","dimension":"...","impact":"high|medium|low","link":{"label":"...","href":"/workspace/..."}}]}.`,
+      user: `Founder current SVI: ${analysis.totalSVI}. Stage: ${analysis.stageLabel}.\n\nDimensions:\n${dimSummary}\n\nReturn the top 3 highest-leverage actions this Australian founder should take this week to lift their SVI. Each action must be specific, AU-relevant (e.g. ASIC, ESIC, R&D Tax Incentive, AusIndustry, ESVCLP, AU SAFE/MFN, Series A norms), and link to one of these tools: /workspace/evidence, /workspace/equity/cap-table, /workspace/documents/data-room, /workspace/finance/revenue, /workspace/documents, /workspace/equity/shareholders, /tools/safe-calculator, /tools/dilution, /tools/cap-table, /tools/esic, /tools/rnd-tax, /tools/term-sheet, /tools/idea-valuation.\n\nReturn JSON: {"actions":[{"title":"...","why":"...","how":"...","dimension":"...","impact":"high|medium|low","link":{"label":"...","href":"/workspace/..."}}]}.`,
       maxTokens: 900,
       timeoutMs: 30000,
     });

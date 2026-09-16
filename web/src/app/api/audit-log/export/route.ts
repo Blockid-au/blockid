@@ -1,7 +1,7 @@
 // GET /api/audit-log/export?project=&actor=&action= — CSV of the current
 // project's audit log. S20-A: project OWNER only (admins/members get 403);
 // cells are formula-guarded (csvCellGuarded) so the file is safe to open in
-// Excel / Sheets. Same scope + filter rules as /workspace/audit-log.
+// Excel / Sheets. Same scope + filter rules as /workspace/settings/audit.
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";

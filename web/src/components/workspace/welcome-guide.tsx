@@ -87,7 +87,7 @@ export function WelcomeGuide() {
         </li>
         <li>
           <Link
-            href="/dashboard/svi"
+            href="/workspace/score"
             className="flex items-start gap-3 group rounded-xl px-3 py-2.5 -mx-3 hover:bg-brand-50/60 transition-colors"
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 shrink-0 mt-0.5">

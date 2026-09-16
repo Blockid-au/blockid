@@ -84,7 +84,7 @@ export function CapTableMini({ shareholders, totalShares }: CapTableMiniProps) {
         </div>
       </div>
 
-      <a href="/workspace/cap-table" className="mt-4 inline-flex items-center text-xs font-medium text-brand-600 hover:text-brand-700">
+      <a href="/workspace/equity/cap-table" className="mt-4 inline-flex items-center text-xs font-medium text-brand-600 hover:text-brand-700">
         View Cap Table →
       </a>
     </div>

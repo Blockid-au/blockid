@@ -137,7 +137,7 @@ export default async function AdminAnalysesPage({
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/admin/analyses");
-  if (!isAdmin(user)) redirect("/dashboard/svi");
+  if (!isAdmin(user)) redirect("/workspace/score");
 
   const sp = await searchParams;
   const { rows, aiByHistory, users, total } = await loadRows(sp);

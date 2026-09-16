@@ -158,8 +158,8 @@ export function StepFirstStartup({
       });
 
       window.location.href = projectId
-        ? `/workspace/guide/01-vision?onboarding=complete&first_startup=${encodeURIComponent(projectId)}`
-        : "/workspace/guide/01-vision?onboarding=complete";
+        ? `/workspace/plan/guide/01-vision?onboarding=complete&first_startup=${encodeURIComponent(projectId)}`
+        : "/workspace/plan/guide/01-vision?onboarding=complete";
     } catch {
       setLocalError(copy.errorGeneric);
       setSubmitting(false);
@@ -177,7 +177,7 @@ export function StepFirstStartup({
       ...state,
       firstStartupCreatedAt: createdAt,
     });
-    window.location.href = "/workspace/guide/01-vision?onboarding=complete&first_startup=skipped";
+    window.location.href = "/workspace/plan/guide/01-vision?onboarding=complete&first_startup=skipped";
   }
 
   return (

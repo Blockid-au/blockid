@@ -15,7 +15,7 @@
 //     valuationAud: number | null   // S17-B: svi_snapshots.estimated_valuation
 //                                   // (single point written by /api/svi/rescore;
 //                                   // the low/high band lives on
-//                                   // startup_score_history → /dashboard/history)
+//                                   // startup_score_history → /workspace/score/history)
 //   }]
 // }
 

@@ -130,7 +130,7 @@ const SAMPLE_BY_PHASE: Record<string, PhaseReadinessLike> = {
         phase_slug: "6",
         why_it_matters: "raise blocker",
         raise_blocker: true,
-        cta_url: "/dashboard/data-room?add=11.%20Tax%20(AU)",
+        cta_url: "/workspace/investors/access?add=11.%20Tax%20(AU)",
       },
       {
         category: "3. Financial Projections",
@@ -138,7 +138,7 @@ const SAMPLE_BY_PHASE: Record<string, PhaseReadinessLike> = {
         phase_slug: "5",
         why_it_matters: "diligence back-up",
         raise_blocker: false,
-        cta_url: "/dashboard/data-room?add=3.%20Financial%20Projections",
+        cta_url: "/workspace/investors/access?add=3.%20Financial%20Projections",
       },
     ],
     criteria_used: ["revenue", "gtm_strategy", "dataroom"],

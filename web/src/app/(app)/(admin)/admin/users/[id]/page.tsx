@@ -343,7 +343,7 @@ export default async function AdminUserDetailPage({
 
   const currentUser = await getCurrentUser();
   if (!currentUser) redirect(`/auth/login?next=/admin/users/${id}`);
-  if (!isAdmin(currentUser)) redirect("/dashboard/svi");
+  if (!isAdmin(currentUser)) redirect("/workspace/score");
 
   // D3-CISO-05: sandbox scope. Post-migration-0103 the underlying
   // credit_transactions table carries a boolean `sandbox` column with

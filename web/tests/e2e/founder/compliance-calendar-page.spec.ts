@@ -1,4 +1,4 @@
-// E2E — /compliance/calendar founder-facing page (P1k-page-e2e).
+// E2E — /workspace/documents/compliance founder-facing page (P1k-page-e2e).
 //
 // Sibling `tests/e2e/compliance/compliance-calendar-tile.spec.ts` covers
 // the dashboard *tile* click-through; this spec covers the full page a
@@ -29,7 +29,7 @@
 //   1. `getAccount(FOUNDER_EMAIL)` gate skips cleanly when the QA fixture
 //      is unseeded so CI on a fresh clone stays green.
 //   2. `loginAs(page, FOUNDER_EMAIL)` sets the session cookie.
-//   3. Navigate to `/compliance/calendar`; skip cleanly when the section
+//   3. Navigate to `/workspace/documents/compliance`; skip cleanly when the section
 //      is not visible (auth-gated redirect on unseeded fixtures).
 //   4. Assert the four durable invariants — page heading + subscribe
 //      controls visible + download-link `href` exact + webcal-link `href`
@@ -41,7 +41,7 @@
 import { test, expect } from "@playwright/test";
 import { getAccount, loginAs } from "../fixtures/accounts";
 
-const ROUTE = "/compliance/calendar";
+const ROUTE = "/workspace/documents/compliance";
 const FOUNDER_EMAIL =
   process.env.QA_FOUNDER_CALENDAR_PAGE_EMAIL ?? "qa-founder-1@blockid.au";
 

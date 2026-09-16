@@ -94,7 +94,7 @@ export type Feature =
   // rung — mirrored in plans.csv + migration 0316.
   | "grant_finder"
   | "money_radar"
-  // S27-B — pre-IPO secondary trading SANDBOX (/workspace/secondary-offer
+  // S27-B — pre-IPO secondary trading SANDBOX (/workspace/equity/secondary
   // order book + /api/secondary/sim/*). Growth and above — the same rung
   // that carries the cap table the sandbox trades over. Mirrored in
   // plans.csv, tier-ladder.ts and migration 0367.
@@ -170,7 +170,7 @@ export const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
     // 2026-09-07 (B6): Growth (A$99) buys the Cap Table + Data Room
     // package per the Universal 3-rung ladder — the stand-alone
     // share_management add-on was silently 402'ing A$99 subscribers
-    // when they tried to open /workspace/cap-table.
+    // when they tried to open /workspace/equity/cap-table.
     "share_management",
     "grant_finder",
     "money_radar",

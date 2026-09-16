@@ -22,7 +22,7 @@ test.describe("Cap table", () => {
     void growth;
     const existing = await get<CapTable>(api, "/api/cap-table");
     expect(existing.status).toBe(200);
-    await visit("/workspace/cap-table");
+    await visit("/workspace/equity/cap-table");
     await expect(page).toHaveURL(/\/workspace\/cap-table/);
     await expect(page.getByRole("heading", { name: "Cap Table" })).toBeVisible({ timeout: 30_000 });
 
@@ -48,7 +48,7 @@ test.describe("Cap table", () => {
     const classId = qa.scratch["capTable.ordinaryClassId"] as string | undefined;
     const before = await get<CapTable>(api, "/api/cap-table");
     if (!before.body.shareholders.some((s) => s.name === "QA Founder")) {
-      await visit("/workspace/cap-table");
+      await visit("/workspace/equity/cap-table");
       await page.getByRole("button", { name: /Add Shareholder/ }).first().click();
       await expect(page.getByRole("heading", { name: "Add Shareholder" })).toBeVisible();
       await page.getByLabel("Name *").fill("QA Founder");
@@ -85,7 +85,7 @@ test.describe("Cap table", () => {
     await evidence(testInfo, "GET /api/share-price", sp.body);
     expect(sp.status).toBe(200);
     expect(sp.body.inputs.svi, "a fresh account must not be priced on the column-default SVI of 100").not.toBe(100);
-    await visit("/workspace/cap-table");
+    await visit("/workspace/equity/cap-table");
     const card = page.getByTestId("share-price-card");
     await expect(card).toBeVisible({ timeout: 30_000 });
     const text = await card.innerText();
@@ -120,7 +120,7 @@ test.describe("Cap table", () => {
     expect(preview.body.creditNote).not.toMatch(/Charged to your credits/); // lane-2 P3-d fix
     await credits.assertUnchanged(before, "board resolution preview (API)");
 
-    await visit("/workspace/cap-table");
+    await visit("/workspace/equity/cap-table");
     const section = page.getByTestId("share-issues");
     await expect(section).toBeVisible({ timeout: 30_000 });
     const start = section.getByTestId("board-resolution-start").first();

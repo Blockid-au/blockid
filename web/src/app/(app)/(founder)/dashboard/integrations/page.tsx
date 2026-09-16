@@ -24,7 +24,7 @@ export default async function IntegrationsPage({
   searchParams: Promise<{ connected?: string; error?: string }>;
 }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/dashboard/integrations");
+  if (!user) redirect("/auth/login?next=/workspace/evidence/connectors");
 
   const isSandbox = await getCurrentProjectIsSandbox();
 

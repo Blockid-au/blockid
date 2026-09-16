@@ -1,7 +1,7 @@
 // Colocated vitest for GET + POST + DELETE /api/cap-table — P9-cap-table-route-test.
 //
 // The `/api/cap-table` collection endpoint powers the founder-facing
-// /workspace/cap-table dashboard, feeding the shareholder register + ESOP
+// /workspace/equity/cap-table dashboard, feeding the shareholder register + ESOP
 // pool + share-class rows into the ASIC s169 register-of-members surface.
 // It sits alongside the previously-tested sibling routes:
 //   - /api/cap-table/sync      → EVM reconciliation (P9-cap-table-sync-route-test)

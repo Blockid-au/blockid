@@ -82,7 +82,7 @@ test.describe("Expenses", () => {
     expect(byDesc(/CAFE/)?.category).toBe("meals_entertainment");
     setScratch("expenses.cafeId", byDesc(/CAFE/)!.id);
 
-    await visit("/workspace/expenses");
+    await visit("/workspace/finance/expenses");
     await expect(page.getByTestId("expenses-summary-tiles")).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId("gst-estimate")).toContainText(/not a BAS figure/);
     const needs = page.getByTestId("review-row-needs");
@@ -118,7 +118,7 @@ test.describe("Expenses", () => {
     else expect(preview.body.cost).toBeGreaterThanOrEqual(1);
     await credits.assertUnchanged(before, "categorise preview (API)");
 
-    await visit("/workspace/expenses");
+    await visit("/workspace/finance/expenses");
     const btn = page.getByTestId("categorise-button").getByRole("button");
     await expect(btn).toBeVisible({ timeout: 30_000 });
     const label = await btn.innerText();
@@ -156,7 +156,7 @@ test.describe("Expenses", () => {
   });
 
   test("inline re-category persists, creates a learned rule, and the rule fires on the next import", async ({ page, visit, api }, testInfo) => {
-    await visit("/workspace/expenses");
+    await visit("/workspace/finance/expenses");
     // The 4 Sep A$18.50 line (a re-run also carries the 8 Sep A$21.00 re-import line).
     const select = page.getByRole("row", { name: /LITTLE CAFE COFFEE PERTH/ }).filter({ hasText: "18.50" }).getByRole("combobox", { name: /Category for LITTLE CAFE COFFEE PERTH/ });
     await expect(select).toBeVisible({ timeout: 30_000 });

@@ -64,7 +64,7 @@ export function GitHubEvidenceCard({
               <ArrowRight strokeWidth={2} className="h-3 w-3" />
             </a>
             <Link
-              href="/dashboard/integrations"
+              href="/workspace/evidence/connectors"
               className="text-xs text-ink-500 hover:text-ink-700"
             >
               Manage integration

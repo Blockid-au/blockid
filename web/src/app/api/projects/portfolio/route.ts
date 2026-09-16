@@ -1,7 +1,7 @@
 // GET /api/projects/portfolio — portfolio dashboard row feed.
 //
 // Returns one row per non-archived project the current user owns, with
-// the fields the /dashboard/portfolio surface renders side-by-side:
+// the fields the /workspace/projects/compare surface renders side-by-side:
 //
 //   { id, slug, name, current_svi_score, canonical_stage,
 //     credits_used_mtd, last_activity_at, next_action }

@@ -6,7 +6,7 @@
  * Prior bug shape: web/src/app/(app)/(reseller)/reseller/layout.tsx used only
  * `can(user, "reseller.console")` which is plan-derived. A founder-plan user
  * who is also an active `reseller_admins` row would successfully log in but
- * get redirected to /dashboard/svi — surfaced as "reseller login broken".
+ * get redirected to /workspace/score — surfaced as "reseller login broken".
  *
  * Contract pinned here:
  *   - null Supabase → false (dev / preview safe, never throws)

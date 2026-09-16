@@ -196,7 +196,7 @@ export function emitMentorInviteAccepted(
     reseller_id: p.resellerId,
     actor_user_id: actorUserId,
     subject_user_id: p.founderId,
-    route: "/dashboard/mentor-invite",
+    route: "/workspace/investors/access",
     metadata: params,
   });
 }
@@ -218,7 +218,7 @@ export function emitMentorInviteDeclined(
     reseller_id: p.resellerId,
     actor_user_id: actorUserId,
     subject_user_id: p.founderId,
-    route: "/dashboard/mentor-invite",
+    route: "/workspace/investors/access",
     metadata: params,
   });
 }
@@ -240,7 +240,7 @@ export function emitMentorTierUpgraded(
     reseller_id: p.resellerId,
     actor_user_id: actorUserId,
     subject_user_id: p.founderId,
-    route: "/dashboard/mentor-invite",
+    route: "/workspace/investors/access",
     metadata: params,
   });
 }

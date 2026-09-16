@@ -42,13 +42,13 @@ export async function GET(request: Request) {
 
   if (errorParam) {
     return NextResponse.redirect(
-      `${baseUrl()}/workspace/integrations?error=ga4_${encodeURIComponent(errorParam)}`,
+      `${baseUrl()}/workspace/evidence/connectors?error=ga4_${encodeURIComponent(errorParam)}`,
     );
   }
 
   if (!code || !state || !expected || state !== expected) {
     return NextResponse.redirect(
-      `${baseUrl()}/workspace/integrations?error=ga4_state_mismatch`,
+      `${baseUrl()}/workspace/evidence/connectors?error=ga4_state_mismatch`,
     );
   }
 
@@ -56,7 +56,7 @@ export async function GET(request: Request) {
   // the CALLER's user_id, signals under the project OWNER's user_id.
   const { scope, denied } = await projectScopeOrRedirect(
     "admin",
-    `${baseUrl()}/workspace/integrations`,
+    `${baseUrl()}/workspace/evidence/connectors`,
     "ga4_forbidden_role",
   );
   if (denied) return denied;
@@ -69,7 +69,7 @@ export async function GET(request: Request) {
     process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
     return NextResponse.redirect(
-      `${baseUrl()}/workspace/integrations?error=ga4_not_configured`,
+      `${baseUrl()}/workspace/evidence/connectors?error=ga4_not_configured`,
     );
   }
 
@@ -141,7 +141,7 @@ export async function GET(request: Request) {
   } catch (err) {
     console.error("[blockid:integrations:ga4:callback]", err);
     return NextResponse.redirect(
-      `${baseUrl()}/workspace/integrations?error=ga4_exchange_failed`,
+      `${baseUrl()}/workspace/evidence/connectors?error=ga4_exchange_failed`,
     );
   }
 }

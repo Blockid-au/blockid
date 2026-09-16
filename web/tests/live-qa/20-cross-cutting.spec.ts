@@ -17,8 +17,8 @@ import { env } from "./lib/env";
 // Expenses / Listing readiness / Clean room became hub tabs (S-IA2) — the
 // sidebar rows that gate on phase are now Valuation, Finance, Documents, Exit.
 const NAV_LEAVES: Array<{ href: string; label: string; pillar: string; phase: number }> = [
-  { href: "/dashboard/valuation", label: "Valuation", pillar: "Money", phase: 2 },
-  { href: "/dashboard/finance", label: "Finance", pillar: "Money", phase: 4 },
+  { href: "/workspace/valuation", label: "Valuation", pillar: "Money", phase: 2 },
+  { href: "/workspace/finance", label: "Finance", pillar: "Money", phase: 4 },
   { href: "/workspace/documents", label: "Documents", pillar: "Company", phase: 3 },
   { href: "/workspace/exit", label: "Exit", pillar: "Company", phase: 5 },
 ];
@@ -62,7 +62,7 @@ test.describe("Navigation by growth phase", () => {
 });
 
 test.describe("Logged-out redirects", () => {
-  test("every workspace route and /dashboard/valuation answers 307 → /auth/login?next=<route> without a session", async ({}, testInfo) => {
+  test("every workspace route and /workspace/valuation answers 307 → /auth/login?next=<route> without a session", async ({}, testInfo) => {
     // Inside a test, request.newContext() inherits the project's `use`
     // (including the founder storageState) — pass an empty jar explicitly.
     const anon = await request.newContext({ baseURL: env.baseURL, storageState: { cookies: [], origins: [] } });
@@ -96,7 +96,7 @@ test.describe("Console + network hygiene per page", () => {
         // limiter (429) — suite-induced, so tolerated and annotated. Any
         // other status on that route still fails the page.
         { method: "GET", pathRe: /^\/api\/svi\/phase-progress$/, status: 429 },
-        ...(path === "/workspace/revenue" && !qa.elevated ? [{ method: "POST", pathRe: /^\/api\/dividends$/, status: 400 }] : []),
+        ...(path === "/workspace/finance/revenue" && !qa.elevated ? [{ method: "POST", pathRe: /^\/api\/dividends$/, status: 400 }] : []),
       ];
       const g = guard(page, { allowRequest });
       const started = Date.now();
@@ -128,13 +128,13 @@ test.describe("Console + network hygiene per page", () => {
 
 test.describe("Keyboard reachability", () => {
   const TARGETS: Array<{ path: string; growth: boolean; name: string; find: (page: Page) => Locator }> = [
-    { path: "/workspace/fundraise", growth: false, name: "Calculate Share Price", find: (p) => p.getByRole("button", { name: /Calculate Share Price/ }) },
+    { path: "/workspace/raise/round", growth: false, name: "Calculate Share Price", find: (p) => p.getByRole("button", { name: /Calculate Share Price/ }) },
     { path: "/workspace/investors", growth: false, name: "Add contact", find: (p) => p.getByTestId("crm-add") },
-    { path: "/workspace/dividends", growth: true, name: "DRIP add election", find: (p) => p.getByTestId("drip-add") },
+    { path: "/workspace/finance/dividends", growth: true, name: "DRIP add election", find: (p) => p.getByTestId("drip-add") },
     { path: "/workspace/exit", growth: true, name: "Calculate Exit", find: (p) => p.getByRole("button", { name: /Calculate Exit/ }) },
-    { path: "/workspace/cap-table", growth: true, name: "Add Shareholder", find: (p) => p.getByRole("button", { name: /Add Shareholder/ }).first() },
-    { path: "/workspace/listing-readiness", growth: true, name: "Export PDF", find: (p) => p.getByTestId("listing-export") },
-    { path: "/workspace/clean-room", growth: true, name: "clean-room tick", find: (p) => p.getByTestId("clean-room-tick").first() },
+    { path: "/workspace/equity/cap-table", growth: true, name: "Add Shareholder", find: (p) => p.getByRole("button", { name: /Add Shareholder/ }).first() },
+    { path: "/workspace/exit/listing", growth: true, name: "Export PDF", find: (p) => p.getByTestId("listing-export") },
+    { path: "/workspace/exit/clean-room", growth: true, name: "clean-room tick", find: (p) => p.getByTestId("clean-room-tick").first() },
   ];
   for (const t of TARGETS) {
     test(`${t.path} — Tab reaches "${t.name}"`, async ({ page, visit, qa }, testInfo) => {

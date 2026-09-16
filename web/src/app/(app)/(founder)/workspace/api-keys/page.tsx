@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ApiKeysPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/workspace/api-keys");
+  if (!user) redirect("/auth/login?next=/workspace/settings/enterprise");
 
   const isSandbox = await getCurrentProjectIsSandbox();
 

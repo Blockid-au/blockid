@@ -1,6 +1,6 @@
 "use client";
 
-// S20-B — "Webhooks" section on /workspace/integrations.
+// S20-B — "Webhooks" section on /workspace/evidence/connectors.
 //
 // Add an endpoint (url + events), see the signing secret ONCE (copy
 // button), test it (ping), inspect the last 50 deliveries with status

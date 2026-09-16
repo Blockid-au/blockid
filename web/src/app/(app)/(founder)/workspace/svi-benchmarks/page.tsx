@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export default async function SviBenchmarksPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/workspace/svi-benchmarks");
+  if (!user) redirect("/auth/login?next=/workspace/score/benchmark");
   const isSandbox = await getCurrentProjectIsSandbox();
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
