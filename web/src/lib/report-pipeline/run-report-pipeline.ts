@@ -38,7 +38,8 @@ import type { CriterionCard, DimensionChapter, ReportTierV2, ReportV2 } from "@/
 import { writeSnapshotReportV2 } from "@/lib/report-v2/storage";
 import { DIM_LEGACY_ORDER, DIM_ORDER, legacyStreamDimMeta, type DimKey } from "./dimension-owners";
 import { PIPELINE_VERSION, assertReportUsable, orchestrateReport, type AICallerInput, type PipelineEvent } from "./orchestrator";
-import { loadProjectReportContext, upsertSnapshotWithToken, type LoadContextResult, type ProjectReportContext } from "./run-for-project";
+import { buildCriteriaData, loadProjectReportContext, upsertSnapshotWithToken, type LoadContextResult, type ProjectReportContext } from "./run-for-project";
+import { computeSVI, extractSignals } from "@/lib/svi-analysis";
 import type { AssembledReport, ReportTier } from "./types";
 
 // ── Wire types ──────────────────────────────────────────────────────────────
@@ -424,7 +425,14 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
   const persist = input.persist !== false;
 
   // 1. Context — account + latest analysis + evidence + 13-criteria inputs.
-  const loaded = await (deps.loadContext ?? loadProjectReportContext)({ ownerEmail: input.ownerEmail, projectId: input.projectId, callerEmail: input.callerEmail });
+  let loaded = await (deps.loadContext ?? loadProjectReportContext)({ ownerEmail: input.ownerEmail, projectId: input.projectId, callerEmail: input.callerEmail });
+  if (!loaded.ok && deckText && loaded.error !== "db_unavailable") {
+    // Deck flow parity with the previous generator: a founder whose FIRST
+    // action is a deck upload has no stored analysis yet — score the deck
+    // text in memory instead of failing (nothing is persisted for deck runs
+    // except the cache; save-snapshot stays the client's step).
+    loaded = { ok: true, ctx: syntheticDeckContext(input, deckText) };
+  }
   if (!loaded.ok) {
     const message = loaded.error === "no_account" ? "No SVI account found — run an analysis first" : loaded.error === "no_analysis" ? "No SVI analysis found — run an analysis first" : "Database unavailable";
     send({ type: "fatal_error", message });
@@ -552,6 +560,20 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
     costAud: state.done?.costAud ?? 0,
     totalMs,
     deadlineHit: state.done?.deadlineHit ?? false,
+  };
+}
+
+/** In-memory context for a deck run with no stored account / analysis (computeSVI over the deck text). */
+export function syntheticDeckContext(input: Pick<RunReportPipelineInput, "userId" | "ownerEmail" | "ownerUserId" | "projectId">, deckText: string): ProjectReportContext {
+  const analysis = computeSVI(extractSignals({ rawText: deckText }));
+  const firstLine = deckText.split(/\r?\n/).map((l) => l.trim()).find((l) => l.length > 0) ?? "Your Startup";
+  return {
+    projectId: input.projectId,
+    account: { id: `deck:${input.userId}`, email: input.ownerEmail, startup_name: firstLine.slice(0, 80), current_svi: Math.round(analysis.totalSVI), current_stage: analysis.stage, user_id: input.ownerUserId ?? input.userId },
+    latestAnalysis: { id: `deck:${hashDeck(deckText).slice(0, 12)}`, raw_input: deckText, total_svi: Math.round(analysis.totalSVI), analysis_json: analysis as unknown as Record<string, unknown> },
+    evidenceItems: [],
+    criteriaData: buildCriteriaData(null),
+    sviAnalysis: analysis,
   };
 }
 

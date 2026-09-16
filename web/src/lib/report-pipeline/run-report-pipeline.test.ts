@@ -327,6 +327,18 @@ describe("runReportPipeline", () => {
     expect(d.calls).toHaveLength(0);
   });
 
+  it("deck flow parity: a founder with no stored analysis yet gets an in-memory context scored from the deck (never 'run an analysis first')", async () => {
+    const d = deps({ loadContext: async () => ({ ok: false, error: "no_analysis" }) as never });
+    const events: StreamEvent[] = [];
+    const deckText = "Acme Rail\nFreight scheduling SaaS. MRR A$12,000 from 9 paying customers. Raising A$1.5m.";
+    const res = await runReportPipeline({ userId: "user-1", ownerEmail: "owner@x.test", projectId: null, tier: "free", deckText, onEvent: (e) => events.push(e), deps: d });
+    expect(res.ok).toBe(true);
+    expect(events.some((e) => e.type === "fatal_error")).toBe(false);
+    expect(d.calls[0]).toMatchObject({ accountId: "deck:user-1", startupName: "Acme Rail", rawText: deckText });
+    expect(d.calls[0].sviAnalysis.totalSVI).toBeGreaterThan(0);
+    expect(d.persisted).toHaveLength(0);
+  });
+
   it("a fully degraded report is the ONLY pipeline failure: fatal_error, ok:false, nothing persisted", async () => {
     const fake = fakeOrchestrate({ degradeAll: true });
     const { assertReportUsable } = await import("./orchestrator");
