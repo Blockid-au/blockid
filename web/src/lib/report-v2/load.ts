@@ -90,7 +90,9 @@ export function snapshotInputFromRow(row: SnapshotRowLike, ctx: SnapshotReportCo
     dimStates: dimStatesFromRow(row),
     criterionStates: Array.isArray(row.criterion_results) ? (row.criterion_results as SnapshotCriterionState[]) : null,
     phaseId: ctx.phaseId ?? null,
-    tier: ctx.tier ?? "standard",
+    // Free-tier ≤10-page gate needs the stored tier: prefer the caller's, then
+    // the snapshot's own `analysis_json.tier`, never a silent "standard" (W4 review).
+    tier: ctx.tier ?? snapshotTier(row) ?? "standard",
     locale: ctx.locale ?? "en",
   };
 }
@@ -171,4 +173,11 @@ export async function loadReportV2BySnapshotId(snapshotId: string, ctx: Snapshot
   const row = data as SnapshotRowLike;
   const startupName = ctx.startupName ?? (await accountName(db, row.account_id));
   return finish(db, row, { ...ctx, startupName });
+}
+
+function snapshotTier(row: { analysis_json?: unknown; tier?: unknown }): "free" | "standard" | "premium" | "investor_memo" | null {
+  const raw = (row.tier ?? (row.analysis_json && typeof row.analysis_json === "object" ? (row.analysis_json as { tier?: unknown }).tier : null)) as unknown;
+  if (raw === "free" || raw === "standard" || raw === "premium" || raw === "investor_memo") return raw;
+  if (raw === "preview") return "free";
+  return null;
 }

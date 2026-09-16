@@ -298,13 +298,24 @@ export async function loadProjectReportContext(args: {
   if (!supabase) return { ok: false, error: "db_unavailable" };
   const keyOpts = args.callerEmail ? { callerEmail: args.callerEmail } : undefined;
 
+  // `svi_accounts` has NO user_id column (W4 review P0: selecting it made
+  // PostgREST 42703 → every full report failed `no_account`). The owner's
+  // app_users.id comes from projects.user_id instead.
   const account = (await findSVIAccountWithFallback(
     args.ownerEmail,
     args.projectId,
-    "id, email, startup_name, current_svi, current_stage, user_id",
+    "id, email, startup_name, current_svi, current_stage",
     keyOpts,
   )) as ProjectReportAccount | null;
   if (!account) return { ok: false, error: "no_account" };
+  if (args.projectId) {
+    try {
+      const project = await getProjectById(args.projectId);
+      if (project?.userId) account.user_id = project.userId;
+    } catch {
+      /* owner id is an optional GATHER key */
+    }
+  }
 
   const latestAnalysis = (await findLatestAnalysisWithFallback(
     args.ownerEmail,

@@ -394,7 +394,7 @@ describe("POST /api/auth/login-password — happy path", () => {
     const res = await POST(req({ email: USER.email, password: "pw" }));
     const body = await json(res);
     expect(body.redirect).toBe("/workspace/advisor");
-    expect(postLogin.calls).toEqual([{ id: USER.id, role: USER.role }]);
+    expect(postLogin.calls).toEqual([{ id: USER.id, role: USER.role, email: USER.email }]);
   });
 
   it("calls setSessionCookie with the loginWithPassword-returned token", async () => {

@@ -154,3 +154,16 @@ describe("defaultIntervalForSegment + <PricingMatrix segment='accelerator' /> â€
     expect(out).toContain("Billed monthly");
   });
 });
+
+describe("purchasable gate (W4 review P1)", () => {
+  it("a trial-CTA plan without a Stripe price renders Contact sales; with `purchasable` undefined the catalogue CTA stands", async () => {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const { PricingMatrix } = await import("./pricing-matrix");
+    const gated = renderToStaticMarkup(<PricingMatrix segment="investor" purchasable={["investor_angel", "investor_advisor", "investor_vc_small"]} />);
+    expect(gated).toContain("/contact?plan=investor_fund");
+    expect(gated).not.toContain("plan=investor_fund&trial=1");
+    const open = renderToStaticMarkup(<PricingMatrix segment="investor" />);
+    expect(open).toContain("plan=investor_fund");
+    expect(open).not.toContain("/contact?plan=investor_fund");
+  });
+});

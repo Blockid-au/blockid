@@ -9,10 +9,13 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { LandingBlockName } from "./landing-tracker";
+import type { LandingBlockName } from "./landing-blocks";
 
-export { LandingCta, LandingViewedTracker, LANDING_BLOCKS, landingClickPayload, landingViewedPayload } from "./landing-tracker";
-export type { LandingBlockName, LandingContext } from "./landing-tracker";
+export { LandingCta, LandingViewedTracker, landingClickPayload, landingViewedPayload } from "./landing-tracker";
+// Server-safe catalogue (plain module — see landing-blocks.ts).
+export { LANDING_BLOCKS } from "./landing-blocks";
+export type { LandingBlockName } from "./landing-blocks";
+export type { LandingContext } from "./landing-tracker";
 
 export function LandingGrid({ children }: { children: ReactNode }) {
   return (

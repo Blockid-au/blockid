@@ -1,3 +1,4 @@
+import { safeNextPath } from "@/lib/security/safe-redirect";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
@@ -27,7 +28,8 @@ export default async function LoginPage({
   const sp = await searchParams;
   // S-IA4: a signed-in visitor's "Continue" goes to ?next= or the persona
   // landing (PERSONAS via postLoginHref) — never a literal /dashboard.
-  const nextUrl = sp.next ?? (user ? await postLoginHref({ id: user.id, role: user.role }) : "/dashboard");
+  // `next` is user input: same-origin path only (open redirect otherwise — W4 review).
+  const nextUrl = safeNextPath(sp.next, "") || (user ? await postLoginHref({ id: user.id, role: user.role, email: user.email }) : "/dashboard");
 
   return (
     <>

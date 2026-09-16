@@ -88,11 +88,14 @@ describe("confirmTaxonomy — founder", () => {
   });
 
   it("Edit + Confirm writes the edited axes with source founder and re-anchors ANZSIC; Not sure → unclassified (T1), never 'Other'", async () => {
-    state.row = autoRow();
+    state.row = { ...autoRow(), sub_industry: "fintech" };
     const r = await confirmTaxonomy("p-1", { industry: "healthtech_medtech", stage_key: "series_a", not_sure: ["business_model", "geo_scope"], confirm: true }, FOUNDER);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.changed.sort()).toEqual(["business_model", "geo_scope", "industry", "stage_key"]);
+    // A human industry choice drops the auto sub-sector so the multiples /
+    // listing keys cannot keep preferring a stale one (W4 review).
+    expect(state.row).toMatchObject({ industry: "healthtech_medtech", sub_industry: null });
     expect(r.row.industry).toBe("healthtech_medtech");
     expect(r.row.anzsic_division).toBe("Q");
     expect(r.row.business_model).toBe("unclassified");

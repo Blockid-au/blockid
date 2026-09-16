@@ -15,6 +15,7 @@
 // /dashboard again (the old behaviour), everything else unchanged.
 
 import "server-only";
+import { safeNextPath } from "@/lib/security/safe-redirect";
 import { PERSONAS, isEvaluatorPersona, resolvePersona, type PersonaKey } from "@/lib/nav/persona";
 import { loadPersonaRow } from "@/lib/nav/persona-server";
 
@@ -36,9 +37,9 @@ export function landingHrefFor(persona: PersonaKey): string {
   return PERSONAS[persona].landingHref;
 }
 
-/** Only same-origin, path-relative targets are honoured (no `//evil`). */
+/** Only same-origin, path-relative targets are honoured — delegates to the one guard (`security/safe-redirect.ts`). */
 export function isSafeNext(next: string | null | undefined): next is string {
-  return typeof next === "string" && next.startsWith("/") && !next.startsWith("//");
+  return typeof next === "string" && safeNextPath(next, "") === next.trim() && next.trim().length > 0;
 }
 
 export interface PostLoginInput {
@@ -56,13 +57,30 @@ export function resolvePostLoginHref({ persona, onboardingCompleted, next }: Pos
 
 /** DB-backed: persona + onboarding flag for `user`, then the pure rule. */
 export async function postLoginHref(
-  user: { id: string; role?: string | null },
+  user: { id: string; role?: string | null; email?: string | null },
   opts: { next?: string | null } = {},
 ): Promise<string> {
   const row = await loadPersonaRow(user.id);
   const persona = resolvePersona({ role: user.role ?? null, accountType: row.accountType, segment: row.segment });
   // An unreadable row (no DB, missing user) never sends someone into the
   // wizard on a guess — the landing page re-checks with `needsOnboarding()`.
-  const onboardingCompleted = row.loaded ? row.onboardingCompleted : true;
+  // W4 review P2: the flag alone bounced 103 existing founders (29 with
+  // analyses) into the wizard on their next login — use the same rule as
+  // `/dashboard` (analysis / evaluation counts, membership) here.
+  let onboardingCompleted = row.loaded ? row.onboardingCompleted : true;
+  if (row.loaded && !onboardingCompleted) {
+    try {
+      const { needsOnboarding } = await import("@/lib/onboarding/needs-onboarding");
+      const { getSupabaseAdmin } = await import("@/lib/supabase");
+      onboardingCompleted = !(await needsOnboarding({
+        user: { id: user.id, email: user.email ?? "", onboardingCompleted: false },
+        persona,
+        onboardingCompleted: false,
+        supabase: getSupabaseAdmin(),
+      }));
+    } catch {
+      onboardingCompleted = true;
+    }
+  }
   return resolvePostLoginHref({ persona, onboardingCompleted, next: opts.next ?? null });
 }

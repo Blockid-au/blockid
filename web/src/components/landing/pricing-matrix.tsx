@@ -131,6 +131,8 @@ export interface PricingMatrixProps {
    * Omitted = every rung is assumed provisioned (legacy callers / tests).
    */
   annualAvailable?: readonly string[];
+  /** Plan ids with a monthly Stripe price (server-computed); others render Contact sales. `undefined` = trust the catalogue. */
+  purchasable?: readonly string[];
 }
 
 
@@ -145,7 +147,7 @@ export function defaultIntervalForSegment(segment: Segment): Interval {
   return plans.every((p) => p.billing_default === "annual") ? "annual" : "monthly";
 }
 
-export function PricingMatrix({ segment: overrideSegment, annualAvailable }: PricingMatrixProps = {}) {
+export function PricingMatrix({ segment: overrideSegment, annualAvailable, purchasable }: PricingMatrixProps = {}) {
   const ctx = useSegmentSafe();
   const segment: Segment = overrideSegment ?? ctx?.segment ?? "founder";
   const [chosenInterval, setInterval] = useState<{ segment: Segment; interval: Interval } | null>(null);
@@ -269,7 +271,7 @@ export function PricingMatrix({ segment: overrideSegment, annualAvailable }: Pri
             key={plan.id}
             plan={plan}
             interval={effectiveCardInterval(interval, plan.id, annualAvailable)}
-            forceContactSales={CONTACT_SALES_SEGMENTS.includes(plan.segment)}
+            forceContactSales={CONTACT_SALES_SEGMENTS.includes(plan.segment) || (purchasable !== undefined && plan.cta_kind === "trial" && !purchasable.includes(plan.id))}
             onSelect={recordAnchorConversion}
           />
         ))}

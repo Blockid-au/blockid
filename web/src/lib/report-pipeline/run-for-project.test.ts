@@ -161,8 +161,10 @@ describe("loadProjectReportContext", () => {
     const res = await loadProjectReportContext({ ownerEmail: "scout@fund.vc", projectId: "p-1" });
     expect(res.ok).toBe(true);
     if (!res.ok) return;
-    // S-R3: `user_id` joins the select (connector signals / cap-table key); no callerEmail → no DataKeyOptions.
-    expect(findAccountMock).toHaveBeenCalledWith("scout@fund.vc", "p-1", "id, email, startup_name, current_svi, current_stage, user_id");
+    // W4 review P0: svi_accounts has no user_id column — the select must never
+    // name it (PostgREST 42703 → no_account for every report); the owner id
+    // comes from projects.user_id. No callerEmail → no DataKeyOptions.
+    expect(findAccountMock).toHaveBeenCalledWith("scout@fund.vc", "p-1", "id, email, startup_name, current_svi, current_stage");
     expect(findAnalysisMock).toHaveBeenCalledWith("scout@fund.vc", "p-1", "id, raw_input, total_svi, analysis_json");
     expect(res.ctx.evidenceItems).toEqual([{ evidence_type: "github", confidence_level: "verified", dimension: "ptd", label: "repo" }]);
     expect(res.ctx.criteriaData.team).toMatchObject({ textInput: "3 founders", qualityLevel: "good", aiScore: 66 });

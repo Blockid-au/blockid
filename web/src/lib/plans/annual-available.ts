@@ -18,3 +18,21 @@ export async function annualAvailablePlanIds(): Promise<string[]> {
     return [];
   }
 }
+
+/**
+ * Plan ids that can actually be bought today — a monthly Stripe price is
+ * provisioned on the `plans` row. Cards for any other plan must render
+ * "Contact sales": the trial CTA led to `/signup` with a disabled option and
+ * a 500 `plan_not_provisioned` (W4 review P1: Fund / Intake link before the
+ * founder mints STRIPE_PRICE_INVESTOR_FUND / STRIPE_PRICE_ACCEL_INTAKE).
+ * Returns `undefined` when the DB is unreachable so the caller keeps the
+ * catalogue's own `cta_kind` (never blanket-disables checkout on a DB blip).
+ */
+export async function purchasablePlanIds(): Promise<string[] | undefined> {
+  try {
+    const plans = await getPlansCached();
+    return plans.filter((p) => Boolean(p.stripe_price_id)).map((p) => p.id);
+  } catch {
+    return undefined;
+  }
+}

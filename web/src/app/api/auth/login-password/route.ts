@@ -95,7 +95,7 @@ async function POST_handler(request: Request) {
 
     // S-IA4: where this persona lands (wizard until its flow is done, else
     // PERSONAS[persona].landingHref). The form honours an explicit ?next= first.
-    const redirect = await postLoginHref({ id: result.user!.id, role: result.user!.role });
+    const redirect = await postLoginHref({ id: result.user!.id, role: result.user!.role, email: result.user!.email });
 
     return NextResponse.json({
       ok: true,

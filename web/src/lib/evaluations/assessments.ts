@@ -517,7 +517,7 @@ async function readSeatRows(evaluationId: string, assessorUserId: string): Promi
  * path (S3): decision + conviction required, `submitted_at` stamped, audit
  * `assessment.submitted`; anything else is a draft save (`assessment.saved`).
  */
-export async function upsertAssessment(ctx: AssessmentWriteContext, input: AssessmentDraftInput): Promise<UpsertAssessmentResult> {
+export async function upsertAssessment(ctx: AssessmentWriteContext, input: AssessmentDraftInput, attempt = 0): Promise<UpsertAssessmentResult> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { ok: false, error: "unavailable", message: "Service unavailable" };
   const { rows, available } = await readSeatRows(ctx.evaluationId, ctx.assessorUserId);
@@ -543,11 +543,20 @@ export async function upsertAssessment(ctx: AssessmentWriteContext, input: Asses
       .update({ ...patch, ...lifecycle })
       .eq("id", current.id)
       .eq("assessor_user_id", ctx.assessorUserId)
+      // A late autosave racing a Submit must never rewrite the row that just
+      // became a version (W4 review): only a row still in draft is updated.
+      .eq("status", "draft")
       .select(ASSESSMENT_COLUMNS)
       .maybeSingle();
-    if (error || !data) {
+    if (error) {
       console.error("[blockid:assessments] update failed", error);
-      return { ok: false, error: "db_error", message: error?.message ?? "Save failed" };
+      return { ok: false, error: "db_error", message: error.message ?? "Save failed" };
+    }
+    if (!data) {
+      // The draft was submitted under us — re-read and take the new-version
+      // branch instead of touching the submitted row (one retry).
+      if (attempt === 0) return upsertAssessment(ctx, input, 1);
+      return { ok: false, error: "db_error", message: "Save failed — please retry" };
     }
     saved = data as Row;
   } else {
@@ -564,6 +573,10 @@ export async function upsertAssessment(ctx: AssessmentWriteContext, input: Asses
       ...lifecycle,
     };
     const { data, error } = await supabase.from("evaluation_assessments").insert(insert).select(ASSESSMENT_COLUMNS).maybeSingle();
+    if (error && (error as { code?: string }).code === "23505" && attempt === 0) {
+      // Two v(n+1) inserts raced on (evaluation_id, assessor_user_id, version) — re-read and retry once.
+      return upsertAssessment(ctx, input, 1);
+    }
     if (error || !data) {
       console.error("[blockid:assessments] insert failed", error);
       return { ok: false, error: "db_error", message: error?.message ?? "Save failed" };

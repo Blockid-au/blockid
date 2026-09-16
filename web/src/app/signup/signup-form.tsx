@@ -154,7 +154,12 @@ function InnerForm(props: SignupFormProps) {
   const [accountType, setAccountType] = React.useState<string>(
     accountTypeOptions[0]?.value ?? "founder",
   );
-  const [planId, setPlanId] = React.useState(props.defaultPlanId);
+  // Never start on (or submit) a plan without a Stripe price: the option is
+  // disabled but a disabled *selected* option still submits its value →
+  // register-with-card 500 `plan_not_provisioned` (W4 review P1).
+  const firstAvailable = props.trialPlans.find((p) => p.hasStripePrice)?.id ?? props.defaultPlanId;
+  const defaultAvailable = props.trialPlans.find((p) => p.id === props.defaultPlanId)?.hasStripePrice ? props.defaultPlanId : firstAvailable;
+  const [planId, setPlanId] = React.useState(defaultAvailable);
   const [terms, setTerms] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);

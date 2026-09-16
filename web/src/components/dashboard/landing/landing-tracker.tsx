@@ -15,15 +15,12 @@ import Link from "next/link";
 import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
-export type LandingBlockName = "where-you-stand" | "next-best-action" | "money-on-the-table" | "evidence-to-add" | "your-reports";
-
-export const LANDING_BLOCKS: readonly LandingBlockName[] = Object.freeze([
-  "where-you-stand",
-  "next-best-action",
-  "money-on-the-table",
-  "evidence-to-add",
-  "your-reports",
-]);
+// The block catalogue lives in a plain module (landing-blocks.ts): this file
+// is "use client", so a server component importing LANDING_BLOCKS from here
+// got a client-reference proxy — `LANDING_BLOCKS.filter is not a function`
+// 500'd the member dashboard (W4 review P1).
+import type { LandingBlockName } from "./landing-blocks";
+export type { LandingBlockName } from "./landing-blocks";
 
 export interface LandingContext {
   /** Canonical `GrowthPhaseId`, or "none" before a score. */

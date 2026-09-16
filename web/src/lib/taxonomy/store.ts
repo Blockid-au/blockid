@@ -415,6 +415,13 @@ export async function confirmTaxonomy(projectId: string, input: ConfirmTaxonomyI
     sources[field] = actor.source;
   };
   scalar("industry", input.industry);
+  // A human industry choice invalidates the auto-derived sub-sector: the
+  // multiples / listing keys prefer `sub_industry`, so a stale one (e.g.
+  // fintech under a founder-confirmed software_saas) silently won (W4 review).
+  if (patch.industry !== undefined) {
+    if (base.sub_industry != null) patch.sub_industry = null;
+    if (base.industry_secondary != null && base.sources.industry_secondary !== actor.source) { patch.industry_secondary = null; }
+  }
   scalar("business_model", input.business_model);
   scalar("stage_key", input.stage_key);
   scalar("customer_types", input.customer_types);

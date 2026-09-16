@@ -3,7 +3,7 @@ import { Building2, Check } from "lucide-react";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { FAQV2 } from "@/components/landing/faq-v2";
 import { PricingSegmentSwitch } from "@/components/landing/pricing-segment-switch";
-import { annualAvailablePlanIds } from "@/lib/plans/annual-available";
+import { annualAvailablePlanIds, purchasablePlanIds } from "@/lib/plans/annual-available";
 import { resolvePricingTab } from "@/components/landing/pricing-tab";
 import { FAQJsonLd } from "@/components/seo/json-ld";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
@@ -93,7 +93,7 @@ interface ViPricingPageProps {
 }
 
 export default async function ViPricingPage({ searchParams }: ViPricingPageProps) {
-  const annualAvailable = await annualAvailablePlanIds();
+  const [annualAvailable, purchasable] = await Promise.all([annualAvailablePlanIds(), purchasablePlanIds()]);
   const m = await getMessages("vi");
   const sp = await searchParams;
   // Same precedence as tabFromLocation() on /pricing: segment > persona
@@ -143,6 +143,7 @@ export default async function ViPricingPage({ searchParams }: ViPricingPageProps
         <PricingSegmentSwitch
           initialSegment={initialTab}
           annualAvailable={annualAvailable}
+          purchasable={purchasable}
           labels={{
             founder: { label: "Nhà sáng lập", sub: "Xây dựng, định giá, gọi vốn" },
             evaluator: { label: "Nhà đánh giá", sub: "Angel · công ty tư vấn · quỹ VC" },
