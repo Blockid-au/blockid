@@ -2,7 +2,9 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, Circle, Plus, TrendingUp, AlertTriangle } from "lucide-react";
+import { CheckCircle2, Circle, Plus, TrendingUp, AlertTriangle, ShieldCheck } from "lucide-react";
+import { canRequestReview, type EvidenceRowOut } from "@/lib/evidence/evidence-row";
+import { DIMENSION_OWNERS, type DimKey } from "@/lib/report-pipeline/dimension-owners";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,16 +19,9 @@ import { SviFixRoadmap } from "@/components/svi/svi-fix-roadmap";
 import { SviStreamAnalysis } from "@/components/svi/svi-stream-analysis";
 import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
-const DIMENSION_LABELS: Record<string, string> = {
-  ftv: "Founder Traction Velocity",
-  mpc: "Market Pull & Category",
-  ptd: "Product-Tech Depth",
-  tre: "Traction & Revenue Evidence",
-  cgh: "Capital Governance Health",
-  iri: "Investor Readiness Index",
-  lco: "Legal Compliance Observability",
-  svm: "Strategic Vision & Moat",
-};
+// S36: dimension names come from the engine's single table (dimension-owners.ts)
+// — this page used to carry its own, different, set of eight names.
+const dimensionLabel = (dim: string): string => DIMENSION_OWNERS[dim as DimKey]?.title ?? dim.toUpperCase();
 
 const URGENCY_COLORS: Record<string, string> = {
   critical: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
@@ -40,7 +35,17 @@ interface CompletenessData {
   roadmap: RoadmapItem[];
   forecast: RoadmapForecast;
   currentSvi: number;
+  /** G14-S36: the project the rows belong to + each row's verification state. */
+  projectId?: string | null;
+  rows?: EvidenceRowOut[];
 }
+
+const REVIEW_LABEL: Record<EvidenceRowOut["review_status"], string> = {
+  none: "",
+  pending: "Verification pending",
+  approved: "Verified by BlockID",
+  rejected: "Verification declined",
+};
 
 function progressColor(pct: number): string {
   if (pct >= 75) return "bg-green-500";
@@ -102,6 +107,32 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
     });
     return () => cancelAnimationFrame(raf);
   }, [targetDim, loading, data]);
+
+  // G14-S36: ask a BlockID reviewer to verify one row. Only a reviewer's
+  // approval can raise a row to third_party_verified; this just queues it.
+  const [requesting, setRequesting] = useState<string | null>(null);
+  const [reviewNotice, setReviewNotice] = useState<string | null>(null);
+  const rowFor = (dimension: string, evidenceType: string): EvidenceRowOut | undefined =>
+    data?.rows?.find((r) => r.dimension === dimension && r.evidence_type === evidenceType);
+
+  async function requestReview(row: EvidenceRowOut) {
+    setRequesting(row.id);
+    setReviewNotice(null);
+    try {
+      const res = await fetch(`/api/svi/dimensions/evidence/${encodeURIComponent(row.projectId)}/${row.dimension}/${row.id}/request-review`, { method: "POST" });
+      const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (res.ok && json?.ok) {
+        setReviewNotice("Verification requested — a BlockID reviewer will check the evidence and you will see the result here.");
+        await fetchData();
+      } else if (res.status === 503 && json?.error === "review_unavailable") {
+        setReviewNotice("Verification requests are not open yet on this environment.");
+      } else {
+        setReviewNotice("Could not request verification. Please try again.");
+      }
+    } finally {
+      setRequesting(null);
+    }
+  }
 
   async function addEvidence(dimension: string, evidenceType: string, evidenceLabel: string, confidenceLevel: string) {
     const key = `${dimension}:${evidenceType}`;
@@ -196,12 +227,18 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
       {/* Completeness heatmap */}
       <SviCompletenessHeatmap projectId={projectId} className="mb-2" />
 
+      {reviewNotice && (
+        <p role="status" className="rounded-md border border-ink-200 bg-white px-3 py-2 text-xs text-ink-700 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-200">
+          {reviewNotice}
+        </p>
+      )}
+
       {/* Dimension cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {dimensions.map((dim) => {
           const pct = dim.completenessPercent;
           const colorClass = progressColor(pct);
-          const label = DIMENSION_LABELS[dim.dimension] ?? dim.dimension.toUpperCase();
+          const label = dimensionLabel(dim.dimension);
 
           return (
             <Card key={dim.dimension} className="overflow-hidden">
@@ -225,12 +262,47 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
                 {/* Present items */}
                 {dim.presentEvidence.length > 0 && (
                   <ul className="space-y-1">
-                    {dim.presentEvidence.map((ev) => (
-                      <li key={ev.code} className="flex items-center gap-2 text-xs text-ink-700 dark:text-ink-300">
-                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-green-500" />
-                        {ev.label}
-                      </li>
-                    ))}
+                    {dim.presentEvidence.map((ev) => {
+                      const row = rowFor(dim.dimension, ev.code);
+                      const status = row?.review_status ?? "none";
+                      return (
+                        <li key={ev.code} className="flex items-center gap-2 text-xs text-ink-700 dark:text-ink-300">
+                          {row?.is_verified ? (
+                            <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600" aria-label="Verified by BlockID" />
+                          ) : (
+                            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-green-500" />
+                          )}
+                          <span className="flex-1">{ev.label}</span>
+                          {row && status !== "none" && (
+                            <span
+                              className={
+                                status === "approved"
+                                  ? "text-[10px] font-medium text-emerald-700 dark:text-emerald-400"
+                                  : status === "rejected"
+                                    ? "text-[10px] font-medium text-red-700 dark:text-red-400"
+                                    : "text-[10px] font-medium text-ink-500 dark:text-ink-400"
+                              }
+                              title={row.review_note ?? undefined}
+                            >
+                              {REVIEW_LABEL[status]}
+                            </span>
+                          )}
+                          {row && row.projectId && canRequestReview(row) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs gap-1"
+                              disabled={requesting === row.id}
+                              onClick={() => void requestReview(row)}
+                              title="Ask a BlockID reviewer to verify this evidence (third-party verified)"
+                            >
+                              <ShieldCheck className="h-3 w-3" />
+                              {requesting === row.id ? "Requesting…" : status === "rejected" ? "Request again" : "Request verification"}
+                            </Button>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
 

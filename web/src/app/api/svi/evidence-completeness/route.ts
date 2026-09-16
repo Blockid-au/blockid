@@ -10,6 +10,7 @@ import {
 } from "@/lib/svi-completeness";
 import { apiRoute } from "@/lib/audit/api-route";
 import { capConfidence } from "@/lib/evidence/confidence-cap";
+import { toEvidenceRowOut, type EvidenceRowOut } from "@/lib/evidence/evidence-row";
 
 export const dynamic = "force-dynamic";
 
@@ -85,34 +86,6 @@ export async function GET() {
   const forecast = forecastRoadmapImpact(roadmap, currentSvi);
 
   return NextResponse.json({ ok: true, dimensions, roadmap, forecast, currentSvi, projectId, rows: evidenceRows });
-}
-
-/** The per-row verification state the founder page renders (S36 "Request verification"). */
-export interface EvidenceRowOut {
-  id: string;
-  projectId: string;
-  dimension: string;
-  evidence_type: string;
-  confidence_level: string;
-  is_verified: boolean;
-  verified_at: string | null;
-  review_status: "none" | "pending" | "approved" | "rejected";
-  review_note: string | null;
-}
-
-function toEvidenceRowOut(r: Record<string, unknown>): EvidenceRowOut {
-  const status = r.review_status;
-  return {
-    id: String(r.id ?? ""),
-    projectId: String(r.project_id ?? ""),
-    dimension: String(r.dimension ?? ""),
-    evidence_type: String(r.evidence_type ?? ""),
-    confidence_level: String(r.confidence_level ?? "self_declared"),
-    is_verified: r.is_verified === true,
-    verified_at: typeof r.verified_at === "string" ? r.verified_at : null,
-    review_status: status === "pending" || status === "approved" || status === "rejected" ? status : "none",
-    review_note: typeof r.review_note === "string" ? r.review_note : null,
-  };
 }
 
 async function POST_handler(request: NextRequest) {
