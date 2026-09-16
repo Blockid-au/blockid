@@ -3,12 +3,13 @@
 // @testing-library/react) so the assertions are on the SSR markup each tab
 // produces — which is exactly what a crawler and a first paint see.
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   PricingSegmentSwitch,
   TAB_TO_SEGMENT,
   resolvePricingTab,
+  tabFromLocation,
 } from "./pricing-segment-switch";
 import { evaluatorSignupHref } from "./pricing-matrix";
 
@@ -39,6 +40,36 @@ describe("resolvePricingTab()", () => {
   it("maps the two tabs onto the plans-v2 segments", () => {
     expect(TAB_TO_SEGMENT.founder).toBe("founder");
     expect(TAB_TO_SEGMENT.evaluator).toBe("investor");
+  });
+});
+
+describe("tabFromLocation() — deep-link params", () => {
+  // vitest runs in node: stub `window.location.search` per case.
+  function withSearch(search: string): ReturnType<typeof tabFromLocation> {
+    (globalThis as { window?: unknown }).window = { location: { search } };
+    return tabFromLocation();
+  }
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window;
+  });
+
+  it("returns null on the server (no window) and when no param is present", () => {
+    expect(tabFromLocation()).toBeNull();
+    expect(withSearch("")).toBeNull();
+    expect(withSearch("?utm_source=deck")).toBeNull();
+  });
+
+  it("accepts `?persona=` as an alias of `?segment=` (deck v3 links, G14 §2.4)", () => {
+    expect(withSearch("?persona=investor")).toBe("evaluator");
+    expect(withSearch("?persona=founder")).toBe("founder");
+    expect(withSearch("?segment=evaluator")).toBe("evaluator");
+    expect(withSearch("?tab=investor")).toBe("evaluator");
+    expect(withSearch("?tier=accelerator")).toBe("evaluator");
+  });
+
+  it("prefers segment over persona over tab over tier", () => {
+    expect(withSearch("?persona=investor&segment=founder")).toBe("founder");
+    expect(withSearch("?tab=investor&persona=founder")).toBe("founder");
   });
 });
 

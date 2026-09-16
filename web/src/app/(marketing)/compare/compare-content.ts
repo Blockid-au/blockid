@@ -11,7 +11,8 @@
  *
  * WHAT THE PAGE SAYS (evaluator-traction-2026-09-10.md §4a, §4b, App. A, App. C)
  *
- *   - a nine-row, three-column table: BlockID · ChatGPT · an independent valuer
+ *   - a ten-row, three-column table: BlockID · ChatGPT · an independent valuer
+ *     (G14 §2.4 added "dealdata" — Crunchbase / PitchBook — after "evidence")
  *   - the approved "Why not just ask ChatGPT?" paragraph, as a pull-quote
  *     (reused verbatim from `solutions.faq.chatgpt.*`)
  *   - a fairness section — what a general chatbot is genuinely good at
@@ -97,11 +98,17 @@ export interface ComparePageProps {
   breadcrumb: { name: string; href: string }[];
 }
 
-/** The nine table rows, in the order the plan lists them (§4a / task brief). */
+/**
+ * The ten table rows, in the order the plan lists them (§4a / task brief;
+ * "dealdata" inserted after "evidence" by G14 §2.4, 2026-09-16 — the
+ * "72 Australian comparable raises" figure is a literal until S-R5 wires the
+ * live count).
+ */
 export const COMPARE_ROW_KEYS = [
   "rubric",
   "reviewers",
   "evidence",
+  "dealdata",
   "updates",
   "australia",
   "confidentiality",

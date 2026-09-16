@@ -34,10 +34,11 @@ export const revalidate = 300;
 //              (investor_angel / investor_advisor / investor_vc_small)
 //
 // The contact-sales row below the switch stays visible under both tabs.
-// Deep links: `?segment=evaluator` (canonical), plus the legacy `?tab=` and
-// `?tier=` params still linked from older campaigns — any evaluator-shaped
-// value (investor / advisor / accelerator) lands on the Evaluator tab, so
-// none of those links 404 or silently show the wrong ladder. Persona pages
+// Deep links: `?segment=evaluator` (canonical), `?persona=investor` (the
+// deck v3 / G14 alias, 2026-09-16), plus the legacy `?tab=` and `?tier=`
+// params still linked from older campaigns — any evaluator-shaped value
+// (investor / advisor / accelerator) lands on the Evaluator tab, so none of
+// those links 404 or silently show the wrong ladder. Persona pages
 // keep deep-linking to a card via `#tier-growth` / `#tier-scout` fragments
 // defined on <PricingMatrix />.
 export const metadata: Metadata = pageMetadata({

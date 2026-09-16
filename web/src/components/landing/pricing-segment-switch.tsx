@@ -16,7 +16,8 @@
  * toggle, "Most popular" ribbon and fine print are shared. The contact-sales
  * row on the page sits below the switch and is visible under both tabs.
  *
- * Deep link: `?segment=evaluator` (also `?tab=` / legacy `?tier=`) is read
+ * Deep link: `?segment=evaluator` (also `?persona=` from the deck v3 /
+ * G14 links, `?tab=`, legacy `?tier=`) is read
  * from `window.location` after mount (`readTabFromUrl` prop, default on)
  * — S31-D made /pricing a static, edge-cached page, so the server can no
  * longer read `searchParams` for it. The document always carries the
@@ -53,7 +54,7 @@ export interface PricingSegmentSwitchProps {
   initialSegment?: PricingTab;
   /**
    * Resolve the deep-link tab from `window.location` after mount
-   * (`?segment=` / `?tab=` / `?tier=`). Default true; the vi page passes
+   * (`?segment=` / `?persona=` / `?tab=` / `?tier=`). Default true; the vi page passes
    * `initialSegment` and leaves this on too so its deep links keep working.
    */
   readTabFromUrl?: boolean;
@@ -78,12 +79,15 @@ function subscribeNever(): () => void {
 function noTab(): PricingTab | null {
   return null;
 }
-/** `?segment=` / `?tab=` / legacy `?tier=` → tab, or null when absent (or on the server). */
-function tabFromLocation(): PricingTab | null {
+/**
+ * `?segment=` / `?persona=` (deck v3 alias, G14 §2.4) / `?tab=` / legacy
+ * `?tier=` → tab, or null when absent (or on the server).
+ */
+export function tabFromLocation(): PricingTab | null {
   if (typeof window === "undefined") return null;
   try {
     const sp = new URLSearchParams(window.location.search);
-    const raw = sp.get("segment") ?? sp.get("tab") ?? sp.get("tier");
+    const raw = sp.get("segment") ?? sp.get("persona") ?? sp.get("tab") ?? sp.get("tier");
     return raw === null ? null : resolvePricingTab(raw);
   } catch {
     return null; // URL parsing can only fail in exotic embeds — the default tab stands.
