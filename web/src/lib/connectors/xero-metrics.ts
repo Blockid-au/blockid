@@ -104,8 +104,11 @@ export function extractPLValues(report: XeroReport): {
     const summaryRow = sectionRows.find((r) => r.RowType === "SummaryRow");
     const summaryValue = summaryRow?.Cells?.[1]?.Value;
 
-    if (title.includes("income") || title.includes("revenue")) {
+    if (title === "income" || title === "revenue" || title.includes("trading income") || title.includes("operating revenue") || (title.includes("revenue") && !title.includes("other"))) {
       totalIncomeAud = parseXeroAmount(summaryValue);
+    } else if (title.includes("other income")) {
+      // "Other Income" comes AFTER Income in a Xero P&L — never let it
+      // overwrite the trading total (W5 review: wrong gross margin).
     } else if (title.includes("cost of sales") || title.includes("cost of goods") || title.includes("direct cost")) {
       // S-R5: Xero's "Less Cost of Sales" section sits between Income and
       // Operating Expenses; it is what the gross margin is built from.

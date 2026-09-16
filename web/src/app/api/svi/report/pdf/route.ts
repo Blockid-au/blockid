@@ -115,13 +115,35 @@ export async function GET(request: Request) {
   // Validate token exists (fail fast — avoids spinning up chromium for a 404).
   const { data, error } = await supabase
     .from("svi_snapshots")
-    .select("id")
+    .select("id, updated_at")
     .eq("report_share_token", token)
     .maybeSingle();
   if (error || !data) {
     return NextResponse.json({ ok: false, error: "unknown_token" }, { status: 404 });
   }
 
+  // W5 review: the legacy branch shares the render gate — same cache
+  // (keyed on the snapshot id + "v1", invalidated by the snapshot row's
+  // updated_at) and the same 2-slot semaphore, otherwise `?v=1` in a loop
+  // launched an unbounded number of Chromium instances.
+  const legacyKey = `${String(data.id)}:v1:${String((data as { updated_at?: string | null }).updated_at ?? "")}`;
+  const legacyCached = tbrPdfCache.get(legacyKey);
+  if (legacyCached) return pdfResponse(legacyCached, "hit");
+  const releaseLegacy = tbrPdfSemaphore.tryAcquire();
+  if (!releaseLegacy) {
+    return NextResponse.json(
+      { ok: false, error: "render_busy", retryAfterSeconds: PDF_RETRY_AFTER_SECONDS },
+      { status: 503, headers: { "Retry-After": String(PDF_RETRY_AFTER_SECONDS), "Cache-Control": "no-store" } },
+    );
+  }
+  try {
+    return await renderLegacy(token, legacyKey, request);
+  } finally {
+    releaseLegacy();
+  }
+}
+
+async function renderLegacy(token: string, legacyKey: string, request: Request): Promise<NextResponse> {
   // Import Playwright lazily so a missing binary doesn't crash the whole
   // /api/svi/report/* subtree at build time.
   let chromium: typeof import("playwright").chromium;
@@ -160,15 +182,9 @@ export async function GET(request: Request) {
       preferCSSPageSize: false,
     });
 
-    return new NextResponse(new Uint8Array(pdfBuffer), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition":
-          'attachment; filename="BlockID-Business-Report.pdf"',
-        "Cache-Control": "no-store",
-      },
-    });
+    const legacyPdf: CachedPdf = { buffer: Buffer.from(pdfBuffer), pages: 0, level: 0, source: "legacy", filename: "BlockID-Business-Report.pdf" };
+    tbrPdfCache.set(legacyKey, legacyPdf);
+    return pdfResponse(legacyPdf, "miss");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[wave25a:pdf] render failed", msg);

@@ -54,6 +54,8 @@ const { auditMock, planMock, sendMock, personalOrgMock } = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/audit", () => ({ appendAudit: (p: unknown) => auditMock(p as never) }));
 vi.mock("@/lib/plans-db", () => ({ getPlanCached: (id: string) => planMock(id) }));
+const canMock = vi.fn(async (_u: unknown, _f: string) => true);
+vi.mock("@/lib/entitlements", () => ({ can: (u: unknown, f: string) => canMock(u, f) }));
 vi.mock("@/lib/email", () => ({ sendEmail: (a: unknown) => sendMock(a as never), complianceFooter: async () => ({ unsubscribeUrl: "https://blockid.au/u", footerHtml: "<p>footer</p>" }) }));
 vi.mock("@/lib/investors/mandates", () => ({
   getOrCreatePersonalOrg: (uid: string) => personalOrgMock(uid as never),
@@ -177,7 +179,13 @@ describe("acting org / membership", () => {
     state.queue.push({ table: "investor_organisation_members", data: [{ org_id: "org-me", investor_organisations: { owner_user_id: "u-me" } }] });
     expect(await isOrgSeat("u-me")).toBe(false);
     state.queue.push({ table: "investor_organisation_members", data: [{ org_id: "org-firm", investor_organisations: { owner_user_id: "u-owner" } }] });
+    state.queue.push({ table: "app_users", data: [{ id: "u-owner", plan: "investor_vc_small" }] });
     expect(await isOrgSeat("u-me")).toBe(true);
+    // W5 review: a seat lapses with the owner's plan — a cancelled Firm grants nothing.
+    canMock.mockResolvedValueOnce(false);
+    state.queue.push({ table: "investor_organisation_members", data: [{ org_id: "org-firm", investor_organisations: { owner_user_id: "u-owner" } }] });
+    state.queue.push({ table: "app_users", data: [{ id: "u-owner", plan: "free" }] });
+    expect(await isOrgSeat("u-me")).toBe(false);
     state.queue.push({ table: "investor_organisation_members", data: [{ org_id: "org-firm", user_id: "u-a" }, { org_id: "org-firm", user_id: "u-b" }, { org_id: "org-x", user_id: "u-b" }] });
     expect(await shareOrg("u-a", "u-b")).toBe("org-firm");
     state.queue.push({ table: "investor_organisation_members", data: [{ org_id: "org-firm", user_id: "u-a" }, { org_id: "org-x", user_id: "u-b" }] });

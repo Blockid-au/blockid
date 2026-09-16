@@ -85,7 +85,7 @@ export interface OnboardingWizardProps {
 
 export function OnboardingWizard({ user, initialParams, defaultPersona, personaOptions, nav, footer }: OnboardingWizardProps) {
   const [state, dispatch] = React.useReducer(wizardV4Reducer, initialParams, (p) =>
-    initialWizardV4State({ ...p, via: p.via ?? readCachedVia() }, readSaved(), defaultPersona ?? null),
+    initialWizardV4State({ ...p, via: p.via ?? readCachedVia() }, readSaved(), defaultPersona ?? null, personaOptions),
   );
   const [finishing, setFinishing] = React.useState(false);
   const flow = flowForPersona(state.persona);

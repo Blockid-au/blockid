@@ -571,26 +571,29 @@ describe("POST /api/onboarding/save-progress — persona (S-IA4)", () => {
   });
 
   // G13-W5-IA5 (W4 review P3-a) — persona lock.
-  it("S-IA5 lock: a founder who OWNS a project cannot switch to an evaluator persona → 400 persona_locked, no UPDATE", async () => {
+  it("S-IA5 lock: a founder who OWNS a project cannot switch to an evaluator persona → the persona is dropped, the step still saves (200 persona_locked), account_type untouched", async () => {
     getCurrentUserMock.mockResolvedValue(makeUser());
     const state = makeState({ currentAccountType: "founder", ownedProjects: 1 });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     getSupabaseAdminMock.mockReturnValue(makeFakeSupabase(state) as any);
     const res = await POST(makeRequest({ step: 1, state: {}, persona: "investor_vc" }));
-    expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ ok: false, reason: "persona_locked" });
-    expect(state.updateCalls).toBe(0);
+    // W5 review: a 400 here trapped founders with a stale persona in localStorage in the wizard forever.
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, persona_locked: true });
+    expect(state.updateCalls).toBe(1);
+    expect(state.lastPayload).not.toHaveProperty("account_type");
+    expect(state.lastPayload).not.toHaveProperty("segment");
   });
 
-  it("S-IA5 lock: once onboarding_completed=true the persona is frozen → 400 persona_locked", async () => {
+  it("S-IA5 lock: once onboarding_completed=true the persona is frozen → 200 persona_locked, state saved, account_type untouched", async () => {
     getCurrentUserMock.mockResolvedValue(makeUser());
     const state = makeState({ currentAccountType: "founder", currentOnboardingCompleted: true });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     getSupabaseAdminMock.mockReturnValue(makeFakeSupabase(state) as any);
     const res = await POST(makeRequest({ step: 2, state: {}, persona: "advisor" }));
-    expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ ok: false, reason: "persona_locked" });
-    expect(state.updateCalls).toBe(0);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, persona_locked: true });
+    expect(state.lastPayload).not.toHaveProperty("account_type");
   });
 
   it("S-IA5 lock: resaving the SAME persona while locked is a no-op save (200, no account_type in the payload)", async () => {
@@ -614,7 +617,8 @@ describe("POST /api/onboarding/save-progress — persona (S-IA4)", () => {
     expect(res.status).toBe(200);
     expect(state.lastPayload?.account_type).toBe("founder");
     const evaluator = await POST(makeRequest({ step: 1, state: {}, persona: "investor_angel" }));
-    expect(evaluator.status).toBe(400);
+    expect(evaluator.status).toBe(200);
+    expect(await evaluator.json()).toEqual({ ok: true, persona_locked: true });
   });
 
   it("S-IA5 lock: unlocked (incomplete, no project) keeps writing — the S-IA4 contract is unchanged", async () => {

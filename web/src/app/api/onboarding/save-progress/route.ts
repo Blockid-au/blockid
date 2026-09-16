@@ -94,6 +94,7 @@ async function POST_handler(request: Request) {
       : {}),
   };
 
+  let personaLocked = false;
   try {
     if (isWizardPersona(persona)) {
       const [{ data: current }, ownsProject] = await Promise.all([
@@ -104,7 +105,11 @@ async function POST_handler(request: Request) {
       const at = row?.account_type ?? null;
       const decision = personaLockDecision(at, persona, { onboardingCompleted: row?.onboarding_completed === true, ownsProject });
       if (decision === "locked") {
-        return NextResponse.json({ ok: false, reason: "persona_locked" }, { status: 400 });
+        // W5 review: refusing the WHOLE save trapped founders whose stale
+        // localStorage / ?persona= carried an evaluator persona — the wizard
+        // never stamped onboarding_completed and bounced them every login.
+        // Drop the persona, keep the step/state save, tell the client.
+        personaLocked = true;
       }
       if (decision === "write" && personaWriteAllowed(at, persona)) {
         // The five wizard personas are 1:1 with the 0073 `segment` enum.
@@ -142,7 +147,7 @@ async function POST_handler(request: Request) {
         { status: 500 },
       );
     }
-    return NextResponse.json({ ok: true });
+    return NextResponse.json(personaLocked ? { ok: true, persona_locked: true } : { ok: true });
   } catch (err) {
     console.error("[blockid:onboarding] save-progress threw", err);
     return NextResponse.json({ ok: true, skipped: true });

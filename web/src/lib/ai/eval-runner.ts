@@ -430,9 +430,21 @@ export function shouldPromote(result: EvalResult): boolean {
  * another night cannot be expected to fix it). A near miss keeps its
  * canary status for another run.
  */
+/** A case that never produced parsed output (transport error, 5xx, empty response) — not a quality signal. */
+function isTransportFailure(c: { ok: boolean; hardFail: boolean; forbiddenHits?: number }): boolean {
+  return !c.ok && c.hardFail && (c.forbiddenHits ?? 0) === 0;
+}
+
 export function shouldDemote(result: EvalResult): { demote: boolean; reason: string | null } {
   if (result.cases === 0) return { demote: false, reason: null };
-  if (result.hard_fail) return { demote: true, reason: "hard_fail" };
+  // W5 review P2: a provider outage made EVERY case a hard fail and rolled
+  // back every healthy canary. Transport failures are inconclusive — demote
+  // only when some model output was actually judged.
+  const perCase = result.per_case ?? [];
+  if (perCase.length > 0 && perCase.every(isTransportFailure)) return { demote: false, reason: "inconclusive: all cases failed to produce output (transport)" };
+  const judged = perCase.filter((c) => !isTransportFailure(c));
+  if (result.hard_fail && judged.some((c) => c.hardFail)) return { demote: true, reason: "hard_fail" };
+  if (result.hard_fail && judged.length === 0) return { demote: false, reason: "inconclusive: no judged output" };
   if (result.hallucination_pct > 0.05) return { demote: true, reason: `hallucination ${Math.round(result.hallucination_pct * 100)} %` };
   if (result.accuracy_pct < 0.5) return { demote: true, reason: `accuracy ${Math.round(result.accuracy_pct * 100)} %` };
   const groundedShare = result.grounded_share ?? null;

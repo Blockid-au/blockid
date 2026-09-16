@@ -117,7 +117,12 @@ export function normaliseResellerCode(raw: string | null | undefined): string | 
  * params on top — a pricing click always wins over a stale saved wizard for
  * the plan + cadence, and a magic-link resume may carry `?step=`.
  */
-export function initialWizardV4State(params: WizardV4InitialParams, saved?: Partial<WizardV4State> | null, defaultPersona?: WizardPersona | null): WizardV4State {
+export function initialWizardV4State(
+  params: WizardV4InitialParams,
+  saved?: Partial<WizardV4State> | null,
+  defaultPersona?: WizardPersona | null,
+  personaOptions?: readonly WizardPersona[],
+): WizardV4State {
   let state: WizardV4State = { step: 1 };
   if (saved && typeof saved === "object") state = { ...state, ...saved, error: undefined, loading: false };
   if (!state.persona && defaultPersona) state.persona = defaultPersona;
@@ -127,6 +132,12 @@ export function initialWizardV4State(params: WizardV4InitialParams, saved?: Part
   }
   const persona = params.persona ?? params.segment;
   if (isWizardPersona(persona)) state.persona = persona;
+  // S-IA5 persona lock (W5 review): a stale localStorage persona or a
+  // `?persona=` outside the allowed cards must not survive into the save
+  // payload — clamp to the page's options.
+  if (personaOptions && personaOptions.length > 0 && state.persona && !personaOptions.includes(state.persona)) {
+    state.persona = personaOptions.includes(defaultPersona as WizardPersona) ? (defaultPersona as WizardPersona) : personaOptions[0];
+  }
   if (params.step) {
     const n = Number(params.step);
     if (Number.isFinite(n)) state.step = clampWizardStep(n);

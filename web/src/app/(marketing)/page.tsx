@@ -423,23 +423,26 @@ export default function HomePage() {
             the old inline #94A3B8. ENTITY STRING IS DELIBERATE: marketing
             surfaces show PPL Food PTY LTD; billing/legal/JSON-LD use
             Auschain PTY LTD. Do not change either. */}
-        <section
-          id="trust"
-          aria-labelledby="trust-heading"
-          data-theme="dark"
-          className="border-t border-line-subtle bg-surface py-10"
-        >
-          <h2 id="trust-heading" className="sr-only">
-            About BlockID.au
-          </h2>
-          <div className="mx-auto max-w-4xl px-6 text-center">
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-              Australian owned {"·"} Built in Sydney
-            </p>
-            <p className="mt-3 text-sm text-muted">{entityLine}</p>
-          </div>
-        </section>
       </main>
+      {/* The entity strip IS the homepage footer (design: a dark edge, not
+          the full column footer). It is a <footer> so every page exposes
+          exactly one contentinfo landmark (tests/e2e/a11y/landmarks). */}
+      <footer
+        id="trust"
+        aria-labelledby="trust-heading"
+        data-theme="dark"
+        className="border-t border-line-subtle bg-surface py-10"
+      >
+        <h2 id="trust-heading" className="sr-only">
+          About BlockID.au
+        </h2>
+        <div className="mx-auto max-w-4xl px-6 text-center">
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+            Australian owned {"·"} Built in Sydney
+          </p>
+          <p className="mt-3 text-sm text-muted">{entityLine}</p>
+        </div>
+      </footer>
     </div>
   );
 }

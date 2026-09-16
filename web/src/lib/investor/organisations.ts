@@ -179,10 +179,19 @@ export async function isOrgSeat(userId: string): Promise<boolean> {
       .eq("user_id", userId)
       .limit(20);
     if (error || !data) return false;
-    return (data as Array<Row & { investor_organisations?: Row | Row[] | null }>).some((raw) => {
-      const o = (Array.isArray(raw.investor_organisations) ? raw.investor_organisations[0] : raw.investor_organisations) ?? null;
-      return !!o && String(o.owner_user_id ?? "") !== userId;
-    });
+    const ownerIds = (data as Array<Row & { investor_organisations?: Row | Row[] | null }>)
+      .map((raw) => (Array.isArray(raw.investor_organisations) ? raw.investor_organisations[0] : raw.investor_organisations) ?? null)
+      .filter((o): o is Row => !!o && String(o.owner_user_id ?? "") !== userId)
+      .map((o) => String(o.owner_user_id));
+    if (ownerIds.length === 0) return false;
+    // A seat is only as good as its owner's plan (W5 review): a cancelled or
+    // downgraded Firm must not keep granting evaluator access through its seats.
+    const { data: owners } = await supabase.from("app_users").select("id, plan").in("id", ownerIds);
+    const { can } = await import("@/lib/entitlements");
+    for (const o of (owners ?? []) as Array<{ id: string; plan: string | null }>) {
+      if (await can({ id: o.id, plan: o.plan ?? "free" } as Parameters<typeof can>[0], "investor.dealflow")) return true;
+    }
+    return false;
   } catch {
     return false;
   }

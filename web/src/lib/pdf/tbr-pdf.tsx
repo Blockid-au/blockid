@@ -21,7 +21,7 @@
 // /api/svi/pdf) and the first-analysis PDF are untouched; this file is the
 // TBR surface behind /api/svi/report/pdf.
 
-import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
+import { Document, Font, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import type { ReactNode } from "react";
 import { GROWTH_PHASE_LABELS } from "@/lib/growth/phase-taxonomy";
 import { topBlockers } from "@/lib/growth/phase-gate";
@@ -30,7 +30,7 @@ import { aud, BAND_COLOUR, INK } from "@/lib/report-visuals";
 import { VisualPdf } from "@/lib/report-visuals/pdf";
 import { pdfSafeText } from "@/lib/report-visuals/pdf-text";
 import { setVisualPdfFont } from "@/lib/report-visuals/pdf";
-import { HELVETICA, pdfFontsForLocale, type PdfFontSet } from "@/lib/pdf/fonts";
+import { HELVETICA, pdfFontsForLocale, vietnameseHyphenation, type PdfFontSet } from "@/lib/pdf/fonts";
 import type { Band, DataState, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { levelForEstimate, MAX_TRIM_LEVEL, projectForTier, type FreeTierProjection, type TrimLevel } from "@/lib/report-v2/free-tier";
 import { defaultPreparedWith } from "@/lib/report-v2/prepared-with";
@@ -778,16 +778,42 @@ export interface RenderTbrPdfResult {
  * Render a ReportV2 to PDF. Free tier: start at the level the page ESTIMATE
  * needs, then read the REAL page count back and step up until ≤ budget.
  */
+// react-pdf has no "unregister"; its default hyphenator is `hyphen/en` with soft hyphens — re-register that.
+let defaultHyphenationImpl: ((word: string) => string[]) | null = null;
+function defaultHyphenation(word: string): string[] {
+  if (!defaultHyphenationImpl) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const hyphen = require("hyphen/en") as { hyphenateSync: (w: string, o?: { hyphenChar?: string }) => string };
+      defaultHyphenationImpl = (w: string) => hyphen.hyphenateSync(w, { hyphenChar: "\u00ad" }).split("\u00ad");
+    } catch {
+      defaultHyphenationImpl = (w: string) => [w];
+    }
+  }
+  return defaultHyphenationImpl(word);
+}
+
 export async function renderTbrPdf(report: ReportV2, opts: RenderTbrPdfOptions = {}): Promise<RenderTbrPdfResult> {
   const free = report.tier === "free";
   const maxPages = opts.maxPages ?? report.pageBudget.free;
   let level: TrimLevel = free ? levelForEstimate(report) : 0;
-  let buffer = await renderToBuffer(<TbrReportPdf report={report} level={level} preparedWith={opts.preparedWith} locale={opts.locale} />);
-  let pages = pdfPageCount(buffer);
-  while (free && pages > maxPages && level < MAX_TRIM_LEVEL) {
-    level = (level + 1) as TrimLevel;
+  // Hyphenation is a process-global react-pdf setting: switch it off for the
+  // duration of a Vietnamese render only, and restore the default after
+  // (W5 review — a VI render used to leave every later EN PDF unhyphenated).
+  const vi = opts.locale === "vi";
+  if (vi) Font.registerHyphenationCallback(vietnameseHyphenation);
+  let buffer: Uint8Array;
+  let pages: number;
+  try {
     buffer = await renderToBuffer(<TbrReportPdf report={report} level={level} preparedWith={opts.preparedWith} locale={opts.locale} />);
     pages = pdfPageCount(buffer);
+    while (free && pages > maxPages && level < MAX_TRIM_LEVEL) {
+      level = (level + 1) as TrimLevel;
+      buffer = await renderToBuffer(<TbrReportPdf report={report} level={level} preparedWith={opts.preparedWith} locale={opts.locale} />);
+      pages = pdfPageCount(buffer);
+    }
+  } finally {
+    if (vi) Font.registerHyphenationCallback(defaultHyphenation);
   }
   const overBudget = free && pages > maxPages;
   if (overBudget && process.env.NODE_ENV !== "test") console.warn(`[tbr-pdf] free report ${report.reportId} still ${pages} pages at trim level ${level} (budget ${maxPages})`);

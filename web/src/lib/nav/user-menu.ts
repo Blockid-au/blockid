@@ -14,7 +14,7 @@
 // the server pages and the docs matrix can all import it. Icons are keyed,
 // not imported: each renderer maps `icon` to its own lucide component.
 
-import { PERSONAS, type PersonaKey } from "./persona";
+import { PERSONAS, type PersonaKey, isEvaluatorPersona } from "./persona";
 
 export type UserMenuIcon = "new-analysis" | "score" | "reports" | "dashboard" | "settings";
 
@@ -42,6 +42,18 @@ export function dashboardHrefFor(persona: PersonaKey | null | undefined): string
 
 /** The shared rows, in order. Sign out is rendered by the caller (it is a form, not a link). */
 export function userMenuItems(persona?: PersonaKey | null): UserMenuItem[] {
+  if (isEvaluatorPersona(persona)) {
+    // Evaluators have no score of their own — their rows are the evaluator
+    // surfaces (W5 review: the founder-shaped menu sent investors to /analyze).
+    return [
+      // Same keys/icons as the founder rows (renderers map icon by key); only the targets differ.
+      { key: "new-analysis", href: "/workspace/evaluations?add=1", label: "Add a startup", icon: "new-analysis" },
+      { key: "score", href: "/workspace/evaluations", label: "My evaluations", icon: "score" },
+      { key: "reports", href: "/workspace/investor/mandate", label: "My mandate", icon: "reports" },
+      { key: "dashboard", href: dashboardHrefFor(persona), label: "Dashboard", icon: "dashboard" },
+      { key: "settings", href: "/workspace/settings", label: "Settings", icon: "settings" },
+    ];
+  }
   return [
     // Straight to the analyser — the old `/score` hop was one redirect for nothing.
     { key: "new-analysis", href: "/analyze", label: "New analysis", icon: "new-analysis" },

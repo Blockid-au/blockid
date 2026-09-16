@@ -434,7 +434,12 @@ describe("shouldDemote (S-R5 §C.10 'fail → canary demoted')", () => {
   const base: EvalResult = { agent: "TBR-tre", version: "2.0.0", cases: 3, accuracy_pct: 0.9, hallucination_pct: 0, avg_confidence: 0.7, latency_p50_ms: 100, cost_usd_total: 0.01, hard_fail: false, grounded_share: 0.9, grounded_cases: 2, per_case: [] };
   it("demotes on hard fail, > 5 % hallucination, < 50 % accuracy, < 60 % grounded; holds a near miss", () => {
     expect(shouldDemote(base)).toEqual({ demote: false, reason: null });
-    expect(shouldDemote({ ...base, hard_fail: true })).toEqual({ demote: true, reason: "hard_fail" });
+    // hard_fail with judged output (a forbidden hit) demotes …
+    const judgedHardFail = { caseId: "c1", ok: true, reason: null, hardFail: true, positivePoints: 0, possiblePoints: 3, forbiddenChecks: 1, forbiddenHits: 1 } as unknown as EvalResult["per_case"][number];
+    expect(shouldDemote({ ...base, hard_fail: true, per_case: [judgedHardFail] })).toEqual({ demote: true, reason: "hard_fail" });
+    // … but a provider outage (every case failed to produce output) is inconclusive (W5 review P2).
+    const transport = { caseId: "c1", ok: false, reason: "fetch failed", hardFail: true, positivePoints: 0, possiblePoints: 3, forbiddenChecks: 1, forbiddenHits: 0 } as unknown as EvalResult["per_case"][number];
+    expect(shouldDemote({ ...base, hard_fail: true, per_case: [transport, transport] }).demote).toBe(false);
     expect(shouldDemote({ ...base, hallucination_pct: 0.1 }).reason).toBe("hallucination 10 %");
     expect(shouldDemote({ ...base, accuracy_pct: 0.4 }).reason).toBe("accuracy 40 %");
     expect(shouldDemote({ ...base, grounded_share: 0.5 }).reason).toBe("grounded share 50 %");

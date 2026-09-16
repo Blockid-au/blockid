@@ -62,8 +62,10 @@ export function registerUnicodePdfFont(): boolean {
         { src: files.bold, fontWeight: 700 },
       ],
     });
-    // Vietnamese words are short; hyphenation only splits diacritic clusters badly.
-    Font.registerHyphenationCallback((word) => [word]);
+    // Hyphenation is disabled per VI document (see `vietnameseHyphenation`
+    // used by the VI renderers), NOT here: `registerHyphenationCallback` is
+    // process-global and would switch hyphenation off for every EN PDF after
+    // the first VI render (W5 review).
     registered = true;
   } catch (err) {
     console.warn("[pdf/fonts] Noto Sans registration failed:", err instanceof Error ? err.message : String(err));
@@ -81,4 +83,9 @@ export function pdfFontsForLocale(locale: "en" | "vi" | undefined): PdfFontSet {
 /** Tests: forget the registration state. */
 export function __resetPdfFontRegistry(): void {
   registered = null;
+}
+
+/** Per-document hyphenation callback for Vietnamese: words are short and diacritic clusters split badly. Pass as `hyphenationCallback` on the VI `<Text>` roots. */
+export function vietnameseHyphenation(word: string): string[] {
+  return [word];
 }

@@ -11,21 +11,27 @@ function makeDb(snapshots: Row[], projects: Row[] = [], opts: { missingColumn?: 
   const err = opts.missingColumn ? { message: 'column svi_snapshots.report_email_queued_at does not exist', code: "42703" } : null;
   const db: EmailQueueDb = {
     from: (table: string) => ({
-      update: (patch: Row) => ({
-        eq: (_c: string, id: string) => ({
-          is: () => ({
-            select: () => ({
-              maybeSingle: async () => {
-                if (err) return { data: null, error: err };
-                const row = snapshots.find((s) => s.id === id && !s.report_email_sent_at);
-                if (!row) return { data: null, error: null };
-                Object.assign(row, patch);
-                return { data: { id }, error: null };
-              },
-            }),
+      update: (patch: Row) => {
+        const finish = (id: string, expectQueuedAt?: string) => ({
+          select: () => ({
+            maybeSingle: async () => {
+              if (err) return { data: null, error: err };
+              const row = snapshots.find((s) => s.id === id && !s.report_email_sent_at);
+              if (!row) return { data: null, error: null };
+              // The claim's compare-and-set: only when queued_at still matches.
+              if (expectQueuedAt !== undefined && String(row.report_email_queued_at) !== expectQueuedAt) return { data: null, error: null };
+              Object.assign(row, patch);
+              return { data: { id }, error: null };
+            },
           }),
-        }),
-      }),
+        });
+        return {
+          eq: (_c: string, id: string) => ({
+            is: () => finish(id),
+            eq: (_c2: string, queuedAt: string) => ({ is: () => finish(id, queuedAt) }),
+          }),
+        };
+      },
       select: () => ({
         not: () => ({
           is: () => ({
@@ -86,7 +92,11 @@ describe("sweepReportEmails", () => {
     expect(s.skipped).toEqual([{ id: "s-noemail", reason: "no_email" }]);
     expect(s.failed).toEqual([{ id: "s-flaky", reason: "send_failed" }]);
     expect(rows.find((r) => r.id === "s-noemail")!.report_email_queued_at).toBeNull();
-    expect(rows.find((r) => r.id === "s-flaky")!.report_email_queued_at).toBe("2026-09-16T08:45:00Z");
+    // A transient failure stays queued but is pushed to the BACK (claimed_at
+    // = now) so it cannot block the head of the queue for 48 h (W5 review).
+    const flaky = rows.find((r) => r.id === "s-flaky")!;
+    expect(flaky.report_email_queued_at).not.toBeNull();
+    expect(flaky.report_email_queued_at).toBe("2026-09-16T10:00:00.000Z");
   });
 
   it("expired (> 48 h) and owner-less snapshots are dropped from the queue; dry run sends nothing and clears nothing", async () => {

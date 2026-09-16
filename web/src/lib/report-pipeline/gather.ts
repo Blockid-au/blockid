@@ -324,9 +324,12 @@ export async function loadCapTableSummary(db: GatherDb, ownerUserId: string, pro
     db.from("esop_pool").select("total_pool_shares, pool_pct").eq("account_id", ownerUserId).eq("project_id", projectId).maybeSingle(),
   ]);
   const rows = (holders ?? []) as Row[];
-  if (!rows.length && !pool) return null;
   const shares = (r: Row) => Math.max(0, Math.floor(Number(r.shares_held ?? 0)));
   const issued = rows.reduce((s, r) => s + shares(r), 0);
+  // A register with no holders / no issued shares (e.g. only an ESOP pool
+  // row) is not a cap table — it must not earn the CGH "register on file"
+  // credit (W5 review).
+  if (!rows.length || issued <= 0) return null;
   const poolShares = Math.max(0, Math.floor(Number((pool as Row | null)?.total_pool_shares ?? 0)));
   const fd = issued + poolShares;
   const isFounder = (r: Row) => /founder|director|ceo|cto|coo/i.test(String(r.role ?? ""));

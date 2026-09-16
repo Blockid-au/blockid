@@ -26,6 +26,8 @@ export interface EmailQueueDb {
     update(patch: Row): {
       eq(col: string, v: string): {
         is(col: string, v: null): { select(cols: string): { maybeSingle(): PromiseLike<{ data: Row | null; error: { message: string; code?: string } | null }> } };
+        /** Compare-and-set on the queued_at value (atomic claim). */
+        eq(col: string, v: string): { is(col: string, v: null): { select(cols: string): { maybeSingle(): PromiseLike<{ data: Row | null; error: { message: string; code?: string } | null }> } } };
       };
     };
     select(cols: string): {
@@ -121,6 +123,23 @@ export async function sweepReportEmails(db: EmailQueueDb, opts: { dryRun?: boole
     }
     if (dryRun) {
       summary.skipped.push({ id, reason: "dry_run" });
+      continue;
+    }
+    // Atomic claim (W5 review): push this row to the back of the queue NOW —
+    // an overlapping sweep (manual run during the */5 tick) then skips it, and
+    // a row whose render/send throws no longer blocks the head of the queue
+    // for 48 h (it retries after everything queued behind it).
+    const claimedAt = now().toISOString();
+    const { data: claimed } = await db
+      .from("svi_snapshots")
+      .update({ [REPORT_EMAIL_QUEUE_COLUMN]: claimedAt })
+      .eq("id", id)
+      .eq(REPORT_EMAIL_QUEUE_COLUMN, String(row[REPORT_EMAIL_QUEUE_COLUMN]))
+      .is("report_email_sent_at", null)
+      .select("id")
+      .maybeSingle();
+    if (!claimed) {
+      summary.skipped.push({ id, reason: "claimed_elsewhere" });
       continue;
     }
     const analysis = (row.analysis_json ?? {}) as Row;
