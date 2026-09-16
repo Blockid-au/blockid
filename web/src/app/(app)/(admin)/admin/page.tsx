@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { AdminDashboardClient } from "./admin-dashboard-client";
+import { loadReportKpis, type ReportKpiDb } from "@/lib/admin/report-kpis";
 
 export const metadata: Metadata = {
   title: "Admin — BlockID.au",
@@ -46,6 +47,8 @@ export default async function AdminPage() {
     recentAnalyses = (recentRes.data ?? []) as typeof recentAnalyses;
     sviAccounts = (accountListRes.data ?? []) as typeof sviAccounts;
   }
+  // S-R5 §E.5: report KPIs (7-day snapshots, spend ledger, comparables cache) — degrades to nulls.
+  const reportKpis = await loadReportKpis(supabase as unknown as ReportKpiDb | null).catch(() => null);
 
   return (
     <AdminDashboardClient
@@ -56,6 +59,7 @@ export default async function AdminPage() {
       stats={stats}
       sviAccounts={sviAccounts}
       recentAnalyses={recentAnalyses}
+      reportKpis={reportKpis}
     />
   );
 }
