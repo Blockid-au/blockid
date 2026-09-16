@@ -26,6 +26,7 @@ import "server-only";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { detectSector } from "@/lib/svi-analysis";
 import { findOrCreateSVIAccount } from "@/lib/projects";
+import { canonicalSectorSlug, isTaxonomyHumanOwned, legacySectorSlugFor, type StartupTaxonomyRow } from "@/lib/taxonomy/startup-taxonomy";
 
 // ─── Public types ─────────────────────────────────────────────────────────
 
@@ -89,13 +90,16 @@ export function extractSnapshotFromAnalysis(
   const svi = isRecord(analysis) ? pickNumber(analysis.totalSVI) : null;
   const safeSvi = svi ?? 0;
 
-  // Sector: prefer the explicit `analysis.sector` string, then fall back
-  // to running `detectSector` against any free-text surface we still have
-  // (raw_input isn't included on the snapshot table, but we can peek at
-  // the inputSummary snippet which is PII-safe descriptive text).
+  // Sector: prefer the explicit `analysis.sector` string — normalised
+  // through the taxonomy crosswalk (G13 E1.5: a canonical slug is kept
+  // byte-identical, free text lands as the canonical slug, unknown text as
+  // null — never a guess) — then fall back to running `detectSector`
+  // against any free-text surface we still have (raw_input isn't included
+  // on the snapshot table, but we can peek at the inputSummary snippet
+  // which is PII-safe descriptive text).
   let sector: string | null = null;
   if (isRecord(analysis)) {
-    sector = pickString(analysis.sector);
+    sector = canonicalSectorSlug(pickString(analysis.sector));
     if (!sector) {
       const inputSummary = isRecord(analysis.inputSummary)
         ? analysis.inputSummary
@@ -159,9 +163,40 @@ export function extractSnapshotFromAnalysis(
 interface AnalysisRow {
   id: string;
   email: string;
+  project_id?: string | null;
   created_at: string;
   analysis_json: unknown;
   total_svi: number | null;
+}
+
+/**
+ * T7 (G13 E1.5): a HUMAN-owned `startup_taxonomy` row (founder / evaluator
+ * confirmed) wins over whatever the analysis detected — the snapshot's
+ * `sector` equals the crosswalk value so the /startup-index filter finds
+ * it. Auto-classified rows are not consulted (they derive from the same
+ * signals detectSector used). One query per batch; any failure (table
+ * missing, RLS) degrades to "no override".
+ */
+export async function readHumanOwnedSectorOverrides(projectIds: string[]): Promise<Map<string, string | null>> {
+  const out = new Map<string, string | null>();
+  const ids = [...new Set(projectIds.filter(Boolean))];
+  if (!ids.length) return out;
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return out;
+  try {
+    const { data, error } = await supabase
+      .from("startup_taxonomy")
+      .select("project_id, industry, business_model, sub_industry, sources, confirmed_at")
+      .in("project_id", ids);
+    if (error || !Array.isArray(data)) return out;
+    for (const raw of data as Array<Pick<StartupTaxonomyRow, "project_id" | "industry" | "business_model" | "sub_industry" | "sources" | "confirmed_at">>) {
+      if (!isTaxonomyHumanOwned(raw)) continue;
+      out.set(raw.project_id, legacySectorSlugFor(raw));
+    }
+  } catch {
+    /* no override */
+  }
+  return out;
 }
 
 // ─── populateBatch: shared backbone for backfill + cron ──────────────────
@@ -206,7 +241,7 @@ export async function populateBatch(
 
   let query = supabase
     .from("svi_analyses")
-    .select("id, email, created_at, analysis_json, total_svi")
+    .select("id, email, project_id, created_at, analysis_json, total_svi")
     .order("created_at", { ascending: true })
     .order("id", { ascending: true })
     .limit(limit);
@@ -227,6 +262,7 @@ export async function populateBatch(
   const rows = data as AnalysisRow[];
   let inserted = 0;
   let lastId: string | null = sinceAnalysisId;
+  const sectorOverrides = await readHumanOwnedSectorOverrides(rows.map((r) => r.project_id ?? "").filter(Boolean));
 
   for (const row of rows) {
     lastId = row.id;
@@ -262,6 +298,8 @@ export async function populateBatch(
         : null;
 
       const snap = extractSnapshotFromAnalysis(analysisJson, rawStage);
+      // T7: a confirmed taxonomy's crosswalk value wins over the detected sector.
+      const sector = row.project_id && sectorOverrides.has(row.project_id) ? (sectorOverrides.get(row.project_id) ?? null) : snap.sector;
 
       const insertRow = {
         account_id: accountId,
@@ -270,7 +308,7 @@ export async function populateBatch(
         runway_months: snap.runway_months,
         burn_rate: snap.burn_rate,
         cap_table_entries: null,
-        sector: snap.sector,
+        sector,
         state: null,
         stage: snap.stage === null ? null : String(snap.stage),
         snapshot_date: snapshotDate,
