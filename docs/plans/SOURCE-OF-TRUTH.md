@@ -1,6 +1,6 @@
 # BlockID.au — SOURCE OF TRUTH
 
-> **Version:** 2026-09-15 (rev.318) · **Owner:** CEO (Do Van Long) · **Consumer:** founders, human team, autonomous loop agents.
+> **Version:** 2026-09-16 (rev.319) · **Owner:** CEO (Do Van Long) · **Consumer:** founders, human team, autonomous loop agents.
 > **Rule:** Consult this file BEFORE any specialised plan doc. Every specialised plan carries a top-of-file back-link to this one.
 > **Entity:** PPL Food PTY LTD · Sydney NSW (founder decision 2026-09-10; no ABN/ACN shown in copy).
 
@@ -288,6 +288,7 @@
 - **Traction (90 days):** T1 angel groups + First Believers alumni → T2 three accelerator pilots (batch scoring on a live intake, from our own programs seed) → T3 advisory firms via reseller → T4 solutions pages, comparison page, 3 case studies. KPIs: trial→Scout ≥ 15 %, ≥ 4 reports/evaluator/mo, pilot→paid ≥ 50 %.
 - **Next action:** see **Unified sprint plan** above. G12 lanes: S0 T0237 (0309 DB sync) → S1 T0268 → T0269 → T0275 → T0274-1 → S3 T0270 → T0271 → S4 T0273 → T0274-2 → S5 T0272.
 - **Blocker:** only `STRIPE_PRICE_INVESTOR_ANGEL|ADVISOR|VC_SMALL` (+annual) still to mint (needed by T0268 checkout). Founder **approved 2026-09-10** the doctoral-research sentence and the data-handling sentence (§5).
+- **Pricing v4** = [`pricing-upgrade-plan-2026-07-16.md` § v4 (2026-09-16)](../pricing-upgrade-plan-2026-07-16.md): Fund A$999, Intake link A$249, Index API A$299, Cohort 25/100 public — live prices unchanged; tracked under G14.
 
 ---
 
@@ -300,6 +301,16 @@
 - **KPIs:** time-to-first-action after login median < 20 s · founder phase-0 sidebar ≤ 10 links · `tbr_view → tbr_share_created` ≥ 25 % · free `score_done → trust_report_purchased` ≥ 12 % (72 h) · reports/evaluator/mo ≥ 6 Scout / 15 Firm / 40 Program · `dossier_view → investor_decision_saved` ≥ 40 % (14 d) · grounded share median ≥ 0.85 · report-clarity survey ≥ 8.5/10 · "can't find" feedback −50 % in 30 d.
 - **Next action:** W4 lanes (running) → merge → deploy → live-qa → review; then W5 (S-IA5 one header/footer + `/investors`→`/about/invest` F2 · S-R5 comparables + connectors + eval harness · S-D3 seats/consensus, IC memo, cohort decisions, docs close-out).
 - **Blocker:** none hard; F2 (`/investors` → `/about/invest`) needs CMO sign-off before S-IA5; F3 (weights visible to evaluators) is an svi-scoring guardrail exception the founder should confirm before S-D1.
+
+### G14 — Investor Feedback: credibility loop — deck v3 (evaluator-first) · pricing v4 · feedback letter · intake link · verification integrity · founder execution · evaluator API v1 · backtest v0 · open AU signals
+- **Source:** [`docs/plans/g14-investor-feedback-2026-09-16.md`](./g14-investor-feedback-2026-09-16.md) · companion [`g14-investor-feedback-2026-09-16/`](./g14-investor-feedback-2026-09-16/) (`00-pitch-feedback.md` 19 verbatim judge comments + traceability, `01-gtm-evaluators-90d.md`) · research instrument [`docs/research/evaluator-interviews-2026-09.md`](../research/evaluator-interviews-2026-09.md) · pricing ladder v4 in [`pricing-upgrade-plan-2026-07-16.md` § v4](../pricing-upgrade-plan-2026-07-16.md) · deck source `web/content/pitch/pitch-deck-v3.md` (supersedes deck v1 / v2 goal doc / video-assets slides) · extends G13 (S-D2, S-R4, S-R5) and G12 (evaluator ladder).
+- **Opened:** 2026-09-16 — 19 investor/judge comments after the 3-minute pitch, clustered C1–C10; founder decisions: **evaluator-first · ask A$500K pre-seed · lead brand "Startup Value Index" (blockid.au = platform, entity/domain unchanged) · keep the A$3 wedge, raise the B2B tiers.**
+- **Status:** **Wave A running** (deck v3 + 3-minute cut, site wording §2.4, pricing v4 — Stripe mints human-gated, S33 traction snapshot, GTM docs); **Waves B–D gated on G13 W4/W5** (B: S36 · S35 beside W4; C: S34 · S37 · S38 after S-D2 + S-R4; D: S39 · S40 after S-R5).
+- **Decisions taken (D1–D6 in goal doc §3):** **D1** migrations 0400 pricing rows v4 · 0401 feedback letters · 0402 intakes · 0403 evidence review · 0404 founder profiles · 0405 api v1 scopes + webhook kinds · 0406 external signals (highest applied today = 0399) · **D2** intake route public `/apply/[slug]`, `/submit` stays the public-index submission · **D3** feedback letter only at k ≥ 3 assessors from ≥ 2 orgs, ratings/risk buckets/questions only, never evaluator id/decision/conviction/notes · **D4** confidence capped by origin (founder ≤ `document_uploaded`, connector → `connected_source|transaction_data`, reviewer/admin → `third_party_verified`) replacing the keyword ladder in `extractSignals` L584–599 and the upload route L110 · **D5** one new feature flag `intake.manage` · **D6** 1 credit = A$1 list (packs to A$0.60), dead `v3-skus.ts` ladder deleted, pilot comps = admin credit grants never Stripe coupons.
+- **Finding (audit 2026-09-16):** three contradictory decks (retired prices, three asks, "Chain Live"), no feedback file in the repo; `extractSignals` self-awards `third_party_verified` on "audit"/"asic"/"board signed" prose and the evidence upload route honours a founder-supplied `confidenceLevel`; FTV = regex although `founder_profiles` (0064) exists; `(investor)` route group is an empty passthrough; no feedback letter, no intake link; integrations stop at generic webhooks/API keys; comparables 72 rows, no backtest; Stripe 0 subscriptions / 5 one-off charges, GA4 audit 8 conversion events `missing`, no traction snapshot.
+- **KPIs (30 days after S40):** ≥ 10 paying evaluators · ≥ 3 intake links with ≥ 1 submission · ≥ 30 % founders open the feedback letter · ≥ 25 % scored projects with evidence ≥ `connected_source` (server-derived) · ≥ 40 % paid TBRs with Verified ABN · ≥ 5 evaluator API keys + ≥ 2 outbound destinations · backtest published (ρ, N, CI) · ≥ 3 open sources ingested ≥ 2,000 rows · `/api/status.traction: ok` daily. GTM D30/D60/D90: interviews 10/12/15 · LOIs 2/6/8 · pilots 2/4/5 (cap 5) · pilot→paid ≥ 50 % · evaluator signups 120/300/500 · intake links 1/3/6 · evaluator MRR A$1.5K/5K/10K.
+- **Next action:** finish Wave A — deck v3 generator + test green, site wording tests, pricing v4 rows + 0400 written, S33 deployed (`traction-snapshot.json` written by cron, GA4 `missing` shrinking); founder mints the 6 Stripe prices and applies 0400; then open S36 ∥ S35 in worktrees as soon as G13 W4 starts.
+- **Blocker:** 6 Stripe price mints (`STRIPE_PRICE_INVESTOR_FUND(_ANNUAL)`, `STRIPE_PRICE_ACCEL_INTAKE(_ANNUAL)`, `STRIPE_PRICE_INDEX_API(_ANNUAL)`) + apply migration 0400 (founder) · real LOI / pilot names for deck S9 (placeholders until written consent, F-9) · founder decisions F-1…F-9 (defaults ship if silent — §5).
 
 ---
 
@@ -397,6 +408,14 @@
 | G13-W5-IA5 | investor-clarity-2026-09-15 (PM §E S-IA5) | one header/footer + shared user menu + `/investors` → `/about/invest` | open | cmo + seo-content-au | — (F2) |
 | G13-W5-R5 | investor-clarity-2026-09-15 (Product §C.7, S-R5) | comparables table + ingest, LinkedIn/GA4/cap-table connectors, KPI tile, eval harness | open | cfo + cdo | — |
 | G13-W5-D3 | investor-clarity-2026-09-15 (BA E4.5–E4.7, E3.3–E3.7, E2.6, E5) | seats/consensus, IC memo PDF, cohort decisions + LP counts, watchlist project_id, portfolio write, intro CRM, qa:live lane, docs close-out | open | investor-relations + qa-lead | — |
+| G14-S33 | g14-investor-feedback-2026-09-16 (§4 S33, Wave A) | traction snapshot + `/api/status.traction` + admin tile + investor-update script + 8 server-side money events (GA4 truth) | running | coo + cfo-advisor | — |
+| G14-S34 | g14-investor-feedback-2026-09-16 (§4 S34, Wave C) | founder feedback letter "What investors said" (k ≥ 3, ≥ 2 orgs) + cron + email + landing block + opt-out | planned | customer-success + cpo | — (0401; after G13 S-D2) |
+| G14-S35 | g14-investor-feedback-2026-09-16 (§4 S35, Wave B) | program intake link `/apply/[slug]` + scored inbox + `intake.manage` flag + `intake.submission_received` webhook | planned | cpo + fullstack-guardian + ciso | — (0402) |
+| G14-S36 | g14-investor-feedback-2026-09-16 (§4 S36, Wave B) | confidence cap by origin (replaces keyword ladder + upload trust hole) + L0–L5 multiplier + reviewer queue + public `/methodology` + Verified ABN badge | planned | ciso + svi-scoring | — (0403) |
+| G14-S37 | g14-investor-feedback-2026-09-16 (§4 S37, Wave C) | founder execution profile (0064 ALTER) + rubric → FTV override + profile form + LinkedIn PDF import + FTV chapter card | planned | chro-advisor + svi-scoring | — (0404; after G13 S-D2) |
+| G14-S38 | g14-investor-feedback-2026-09-16 (§4 S38, Wave C) | evaluator API v1 (`/api/v1/evaluations*`, scopes) + OpenAPI + Slack / Affinity / Airtable webhook destinations | planned | dev-relations + api-designer | — (0405; after S-D2 + S-R4) |
+| G14-S39 | g14-investor-feedback-2026-09-16 (§4 S39, Wave D) | backtest v0 (72 comparables, Spearman ρ within stage, bootstrap CI) → `/methodology/calibration` + `/api/status.svi_backtest` | planned | cdo + cfo-advisor | — (after G13 S-R5) |
+| G14-S40 | g14-investor-feedback-2026-09-16 (§4 S40, Wave D) | open AU external signals (ABR bulk, business.gov.au grants, R&DTI transparency) → evidence rows + real cohort percentile + admin + cron | planned | cdo + database-optimizer | — (0406; after G13 S-R5) |
 
 ---
 
@@ -503,6 +522,10 @@
 | Stripe prices for evaluator rungs (G12 T0268) | Scout/Firm/Program self-serve checkout | **DONE 2026-09-10 13:25 UTC (founder approved):** prices already existed in Stripe live (`price_1Ttznb…` Scout, `price_1Ttznc…` Firm, `price_1Ttznd…` Program + annual) → synced into `plans.stripe_price_id` via `seed-stripe.mjs`; new one-off prices minted: Trust BizReport A$3 `price_1UE7mF…` (env `STRIPE_PRICE_TRUST_REPORT_5AUD`, id kept per D3) and Money Finder A$3 `price_1UE7mG…` (env `STRIPE_PRICE_FUNDING_REPORT`); env written to `web/.env` + `web/.env.runtime` (backups `.bak-2026-09-10-s3`), live from the S3 deploy | ✅ |
 | Doctoral-research sentence (G12 D4, T0275) | Positioning claim #6 on /solutions/* and comparison page | **APPROVED by founder 2026-09-10:** "grounded in the founder's doctoral research (DBA) on startup valuation"; never "PhD" | Founder ✅ |
 | Provider data-handling sentence (G12 T0275) | "confidential" claim in the ChatGPT comparison | **APPROVED by founder 2026-09-10 (data principle):** "Your data belongs to your startup. We store it so every report builds on your own evidence and the AI reasons on your case. Founder-consented access tiers control who sees what." T0275 publishes it on /solutions/*, comparison page and privacy policy, and verifies each provider's policy in the free-model chain so the claim holds end-to-end. | Founder ✅ (CISO verification at T0275) |
+| Stripe prices for pricing v4 (G14, Wave A) | Fund / Intake link / Index API self-serve checkout; `svi-api/checkout` 503 | Mint 6 prices (`STRIPE_PRICE_INVESTOR_FUND`, `_ANNUAL`; `STRIPE_PRICE_ACCEL_INTAKE`, `_ANNUAL`; `STRIPE_PRICE_INDEX_API`, `_ANNUAL`) via `node scripts/seed-stripe.mjs --test-mode --dry-run --skus=investor_fund,accelerator_intake,index_api` → test → live; env into `.env` + `.env.runtime`; confirm `STRIPE_PRICE_ACCEL_STARTER(_ANNUAL)` exist (G12 §9.6 unticked) | Founder (Stripe owner) |
+| Migration 0400 `sync_plan_rows_v4` (G14) | DB `plans` rows for Fund / Intake / Index API + Cohort 25/100 public flags | `scripts/db/apply-migration.sh 0400` + `migration-status.mjs --write` after the pricing v4 merge | Founder / ops (hand-applied per house rule) |
+| Deck v3 S9 pilot / LOI names (G14 F-9) | "Live product, real depth, first pilots" slide | Written consent from each named program / LOI signatory; `[[LOI placeholder]]` until then | Founder |
+| G14 founder decisions F-1…F-9 | Use of funds 50/28/22 · pre-money A$2.5–4.0M / SAFE cap A$3.5M · `/methodology` weights hidden · intake `auto_report` off · feedback letter k=3/≥2 orgs ratings-only · verification multiplier + legacy TPV downgrade · `api.access` Fund+Program only · publish backtest v0 even if ρ < 0.3 · S9 names only with consent | Confirm or override before the sprint that needs each (goal doc §3); defaults ship if silent | Founder |
 
 ---
 
@@ -512,6 +535,7 @@
 - **H.G13-F4** CEO + CFO chapters on paid Sonnet-class model inside A$3 COGS (`MODEL_AGENT_CEO/CFO`) — default yes at S-R2.
 - **H.G13-F5** "500+ AU comparables" copy → live count until the table reaches 500 — default yes at S-R1.
 - **H.G13-F6** Final EN/VI sidebar label set (PM §D.2, 40 rows) — default ship as proposed at S-IA1.
+- **H.G14-F1…F9** see the G14 row above and goal doc §3 — F-1/F-2 before deck v3 is sent, F-3/F-6 before S36, F-4 before S35, F-5 before S34, F-7 before S38, F-8 before S39, F-9 before S9 names.
 
 ## 6. Sync-back rules
 
@@ -544,6 +568,7 @@ Live markers for downstream update agents. Consume by grepping this section for 
 - `[MARKER: update /roadmap when T0238 or T0239 closes]` (G11 Wave 1) — Money Finder lanes; `feature-upgrade-roadmap-v2.md` Q4 checklist + `ROADMAP.md` §4 rows mirror SOT §2 G11-P0..P13.
 - `[MARKER: update /pricing when T0268 (G12 Evaluator tab) or G11-P11 ships]` — Starter gains Founder Radar (`money_radar` flag), A$3 `FUNDING_REPORT_3AUD` SKU; also touch `docs/pricing-upgrade-plan-2026-07-16.md` (amendment note already present).
 - `[MARKER: phase-close]` — G11-P0 (plan-only) closed 2026-09-10.
+- `[MARKER: update /pricing when 0400 + the 6 G14 Stripe prices land]` — Fund A$999 / Intake link A$249 / Index API A$299 / Cohort 25 A$500 / Cohort 100 A$1,500 public; `/pricing?persona=investor` + `?segment=programs` tabs; mirror `/vi/pricing`.
 - `[MARKER: security-fix]` — `fd4a1eb3` (Stripe portal wholesale gate).
 
 ---
@@ -576,6 +601,7 @@ the sentinels is overwritten._
 | When | Who | What |
 |---|---|---|
 | 2026-09-16 | Claude (G13 W3 close) | W3 live + live-qa 155/0; review fixes live (2 P1 money paths, 0399 hardening); W4 launched. |
+| 2026-09-16 | CEO + Claude (G14 plan session; deck / pricing / docs agents) | G14 Investor Feedback opened: goal doc `g14-investor-feedback-2026-09-16.md` + folder (`00-pitch-feedback.md` 19 quotes, `01-gtm-evaluators-90d.md`), research instrument `docs/research/evaluator-interviews-2026-09.md`, T2 pilot offer v2; decisions D1–D6, founder F-1…F-9 → §5; §2 rows G14-S33…S40; G12 pricing-v4 pointer; §5 +4 rows (6 Stripe mints, 0400, S9 names, F-decisions); ROADMAP §4 Phase 3.3, roadmap-v2 Q4 block, GOALS Phase 5 rows, unicorn-masterplan Pre-Seed row amended (3 buckets, pre-money A$2.5–4.0M); ledger T0276–T0280. rev.319. |
 | 2026-09-16 | Claude (G13 W3) | S-IA3 founder landing live; S-T2 mandate v2 (0393) + S-R3 pipeline unification (0398) merged and deploying; mandate-fit-refresh cron installed; deploy held once for a peer session's uncommitted tree (shared checkout). |
 | 2026-09-16 | Claude (G13 W2 close + review) | S-R2 + S-D1 live; W2 post-ship review found a P0 (W4 double budget → degraded paid reports) + 3 P1 (charged fully-degraded reports, adapter instead of W4 doc, label leak) + 10 P2/P3 — all fixed same day, 0397 backfill; W3 launched. |
 | 2026-09-16 | Claude (G13 W2, worktree agents + review) | W1 post-ship review P1 (unscored snapshots / SVI-0 valuation) + 6 fixes deployed; S-IA2 hub tabs live (97 redirects, 60 page moves, orphan guard); S-R2 agent ownership + knowledge injection + W4 chapters merged/deploying (0396); S-D1 running. |

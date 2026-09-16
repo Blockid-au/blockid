@@ -1,6 +1,6 @@
 {
   "version": "3.13.2",
-  "updatedAt": "2026-09-15T16:00:02.514Z",
+  "updatedAt": "2026-09-16T14:00:00.000Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-09-13T16:00:02.892Z",
@@ -2535,6 +2535,67 @@
         "updatedAt": "2026-09-10T12:25:26.630Z",
         "commit": "95b7033ef",
         "completedAt": "2026-09-10T13:10:51.898Z"
+      },
+      {
+        "id": "T0276",
+        "agent": "ir",
+        "title": "G14 Wave A · Deck v3 \"Startup Value Index\" (evaluator-first, pre-seed A$500K): web/content/pitch/pitch-deck-v3.md (12 slides + 3-minute cut + provenance), web/scripts/generate-pitch-deck-v3.ts → PPTX + appendix + HTML preview, generate-pitch-deck-v3.test.ts (speakability, provenance, forbidden words), SUPERSEDED banners on deck v1 / pitch-deck-v2-investor.md / video-assets slides, executive-summary.md rewrite, 00-pitch-feedback.md (19 verbatim comments + traceability)",
+        "rationale": "G14 §0 C1/C2/C5/C7 + plan §2. Founder decisions 2026-09-16: evaluator-first, ask A$500K, brand Startup Value Index, keep A$3 wedge. Footer Auschain PTY LTD ACN 659 615 111; never PhD; no user counts / 500+ / SOC 2 / quotes without consent.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-16T14:00:00.000Z",
+        "notes": "G14 · docs/plans/g14-investor-feedback-2026-09-16.md",
+        "sprint": "G14-A",
+        "priority": "P0"
+      },
+      {
+        "id": "T0277",
+        "agent": "cfo",
+        "title": "G14 Wave A · Pricing ladder v4 (evaluator-first): plans.csv +investor_fund A$999 / accelerator_intake A$249 / index_api A$299, Cohort 25/100 public + real usage_limits, plans-v2.ts + tier-ladder + signup allow-list, stripe.ts keys + .env.example 6 vars, seed-stripe tax_behavior inclusive, sync-stripe-pricing rows, migration 0400_sync_plan_rows_v4.sql, pricing page 3rd tab programs + FAQ + ContactSalesRow, v3-skus dead ladder deleted, credit = A$1 list, docs/pricing-upgrade-plan-2026-07-16.md § v4",
+        "rationale": "G14 §3 D1/D6 + plan §3. Live prices unchanged (new Price + grandfather via active); annual = 10×; GST-inclusive; Auschain seller of record; reseller never touches Stripe. Human-gated: founder mints 6 Stripe prices + applies 0400.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-16T14:00:00.000Z",
+        "notes": "G14 · docs/plans/g14-investor-feedback-2026-09-16.md",
+        "sprint": "G14-A",
+        "priority": "P0"
+      },
+      {
+        "id": "T0278",
+        "agent": "coo",
+        "title": "G14 S33 · Traction snapshot + GA4 truth + investor update: lib/traction/snapshot.ts (Zod, excludes qa-*/erased), cron /api/cron/traction-snapshot → content/reports/traction-snapshot.json + traction-history.jsonl, admin/traction tile, /api/status.traction, web/scripts/investor-update.mjs, 8 money events emitted server-side (trust_report_purchased, funding_report_paid, evaluator_trial_started, subscription_created, tbr_share_created, dossier_view, assessment_submitted, feedback_letter_opened) + GA4_AUDIT_EVENTS, /api/platform-stats reads snapshot, crontab + docs/ops/crontab-setup.md",
+        "rationale": "G14 §4 S33 (Wave A, no G13 dependency). Deck numbers must come from one daily file; ga4-event-audit.json currently reports 8 conversion events missing; Stripe 0 subscriptions. Exit: cron writes the file, missing shrinks, npm run investor:update prints dated markdown.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-16T14:00:00.000Z",
+        "notes": "G14 · docs/plans/g14-investor-feedback-2026-09-16.md",
+        "sprint": "G14-A",
+        "priority": "P1"
+      },
+      {
+        "id": "T0279",
+        "agent": "coo",
+        "title": "G14 docs merge (opened 2026-09-16): goal doc docs/plans/g14-investor-feedback-2026-09-16.md + companion folder (01-gtm-evaluators-90d.md, README), docs/research/evaluator-interviews-2026-09.md, t2-accelerator-pilots.md pilot offer v2, SOT rev.319 (§ G14, register G14-S33…S40, G12 pricing-v4 pointer, §5 human-blocked, change-log), ROADMAP Phase 3.3, GOALS Phase 5, roadmap-v2 Q4 G14 block, unicorn-masterplan Pre-Seed row (3 buckets, pre-money A$2.5–4.0M)",
+        "rationale": "House rule: new plans merge into SOT / ROADMAP / roadmap-v2 / GOALS and amend overridden goal docs — never standalone. Plan §6 doc changes at open.",
+        "versionImpact": "patch",
+        "status": "done",
+        "createdAt": "2026-09-16T14:00:00.000Z",
+        "notes": "G14 · docs/plans/g14-investor-feedback-2026-09-16.md",
+        "sprint": "G14-A",
+        "priority": "P1",
+        "completedAt": "2026-09-16T14:00:00.000Z"
+      },
+      {
+        "id": "T0280",
+        "agent": "cmo",
+        "title": "G14 GTM · 10 evaluator interviews in 30 days (4 angel screening-committee, 4 program managers, 2 R&DTI/ESIC advisors) on the 8-question instrument docs/research/evaluator-interviews-2026-09.md; anonymised records + rollup (WTP, budget owner, current spend, top pain, quote approvals); pilot offer v2 outreach (free cohort scoring, admin credit grant, cap 5) per 01-gtm-evaluators-90d.md; D30/D60/D90 metrics read from the S33 snapshot",
+        "rationale": "G14 §0 C9 (Shreya: no customer research, GTM missing). Founder conducts interviews; CMO agent drafts follow-ups and keeps the rollup. No quote used without written approval; no social proof until then.",
+        "versionImpact": "patch",
+        "status": "pending",
+        "createdAt": "2026-09-16T14:00:00.000Z",
+        "notes": "G14 · docs/plans/g14-investor-feedback-2026-09-16.md",
+        "sprint": "G14-A",
+        "priority": "P1"
       }
     ]
   },
