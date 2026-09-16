@@ -1239,7 +1239,8 @@ function renderChapterUser(input: DimensionChapterInput): string {
   const rows = input.evidenceRows
     .map((e) => `- ${e.id} · ${e.source} · ${e.status}${e.observedAt ? ` · ${e.observedAt.slice(0, 10)}` : ""} · ${e.label}${e.value ? ` — ${e.value}` : ""}`)
     .join("\n");
-  const { evidenceRows: _rows, ...rest } = input;
+  const rest: Omit<DimensionChapterInput, "evidenceRows"> & { evidenceRows?: unknown } = { ...input };
+  delete rest.evidenceRows;
   return [
     `## Chapter inputs (JSON — the ONLY facts you may use)`,
     JSON.stringify(rest, null, 1),

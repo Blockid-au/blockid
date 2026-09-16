@@ -8,7 +8,6 @@
 // The pipeline tries AI images first, falls back to Mermaid/SVG.
 
 import type { VisualSpec, ChartType, AgentRole, ReportContext, AgentAnalysisResult } from "./types";
-import type { CriterionKey } from "@/lib/evaluation-criteria";
 import { CRITERIA } from "@/lib/evaluation-criteria";
 import { makeVisual, type VisualSpecV2 } from "@/lib/report-visuals";
 import { benchmarkFor, benchmarkStageForSvi, isDimKey } from "./dimension-owners";

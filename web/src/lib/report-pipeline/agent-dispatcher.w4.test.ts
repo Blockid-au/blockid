@@ -22,7 +22,7 @@ function fakeSupabase() {
           payload = row;
           return api;
         },
-        select(_cols: string) {
+        select() {
           return api;
         },
         async single() {
