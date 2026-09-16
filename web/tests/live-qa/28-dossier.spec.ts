@@ -178,10 +178,10 @@ test.describe("Dossier lane — evaluator", () => {
       expect(saved.body.assessment?.status).toBe("submitted");
       expect(saved.body.assessment?.decision).toBe("track");
 
-      const shared = await post<{ ok: boolean; founderPreview?: Record<string, unknown>; error?: string }>(page.request, `/api/evaluations/${encodeURIComponent(evaluationId)}/assessment/share`, { fields: ["risks"] });
-      await evidence(testInfo, "POST …/assessment/share {risks}", { status: shared.status, founderPreview: shared.body.founderPreview, error: shared.body.error });
+      const shared = await post<{ ok: boolean; founder_preview?: Record<string, unknown>; error?: string }>(page.request, `/api/evaluations/${encodeURIComponent(evaluationId)}/assessment/share`, { fields: ["risks"] });
+      await evidence(testInfo, "POST …/assessment/share {risks}", { status: shared.status, founderPreview: shared.body.founder_preview, error: shared.body.error });
       expect(shared.status).toBe(200);
-      const preview = shared.body.founderPreview ?? {};
+      const preview = shared.body.founder_preview ?? {}; // route contract is snake_case (S-D2)
       expect(preview.sharedFields).toEqual(["risks"]);
       expect(Array.isArray(preview.risks)).toBe(true);
       const previewJson = JSON.stringify(preview);
