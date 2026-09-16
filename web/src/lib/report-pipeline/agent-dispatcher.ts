@@ -1390,6 +1390,9 @@ async function dispatchChapter(
             tier: shared.tierV2,
             promptVersionId,
             template,
+            // Provenance: a model swap / canary demotion must not serve the
+            // previous model's chapter for 30 days (W5 review).
+            model: `${modelForAgent(role)}#${taskClassForChapter(role, shared.tierV2) ?? "default"}`,
             knowledge: knowledgeRows.map((r) => ({ agent: r.agent, topic: r.topic, created_at: r.created_at })),
           }),
         }

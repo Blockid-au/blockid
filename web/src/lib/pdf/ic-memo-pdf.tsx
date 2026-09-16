@@ -19,7 +19,8 @@
 // financial advice · page x/y" (S6). private_notes never reach `sections`,
 // so they can never reach the PDF. Fonts: built-in Helvetica.
 
-import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
+import { HELVETICA, pdfFontsForLocale, vietnameseHyphenation, type PdfFontSet } from "@/lib/pdf/fonts";
+import { Document, Font, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import type { ReactNode } from "react";
 import { BAND_COLOUR, INK, aud } from "@/lib/report-visuals";
 import { VisualPdf } from "@/lib/report-visuals/pdf";
@@ -35,6 +36,22 @@ export const IC_MEMO_MAX_PAGES = 4;
 const C = { ink: INK.text, muted: INK.muted, faint: INK.faint, grid: INK.grid, surface: INK.surfaceAlt, brand: "#0072B2", brandSoft: "#EAF3FA" };
 const MM = 72 / 25.4;
 const MARGIN = 16 * MM;
+
+/** Swap the memo's font family in place for the current render (react-pdf renders synchronously inside renderToBuffer). */
+function applyMemoFonts(f: PdfFontSet) {
+  const regular = f.regular;
+  const bold = f.bold;
+  const boldWeight = f.boldWeight;
+  for (const k of ["page", "body", "small", "tiny"] as const) {
+    (s[k] as { fontFamily?: string }).fontFamily = regular;
+  }
+  for (const k of ["kicker", "h1", "h2", "h3"] as const) {
+    const st = s[k] as { fontFamily?: string; fontWeight?: number };
+    st.fontFamily = bold;
+    if (boldWeight !== undefined) st.fontWeight = boldWeight;
+    else delete st.fontWeight;
+  }
+}
 
 const s = StyleSheet.create({
   page: { paddingTop: MARGIN, paddingBottom: MARGIN + 12, paddingHorizontal: MARGIN, fontFamily: "Helvetica", fontSize: 9, color: C.ink },
@@ -352,8 +369,21 @@ export interface RenderIcMemoResult {
   pages: number;
 }
 
-export async function renderIcMemoPdf(props: IcMemoPdfProps): Promise<RenderIcMemoResult> {
-  const buffer = await renderToBuffer(<IcMemoPdf {...props} />);
+export async function renderIcMemoPdf(props: IcMemoPdfProps & { locale?: "en" | "vi" }): Promise<RenderIcMemoResult> {
+  // Vietnamese startup names / risks need the registered Noto Sans (W5
+  // review) — Helvetica's WinAnsi drops the diacritics. `pdfFontsForLocale`
+  // registers on first use and falls back to Helvetica if the TTFs are absent.
+  const fonts = pdfFontsForLocale(props.locale ?? "en");
+  applyMemoFonts(fonts);
+  const vi = props.locale === "vi";
+  if (vi) Font.registerHyphenationCallback(vietnameseHyphenation);
+  let buffer: Uint8Array;
+  try {
+    buffer = await renderToBuffer(<IcMemoPdf {...props} />);
+  } finally {
+    if (vi) Font.registerHyphenationCallback((w) => [w]);
+    applyMemoFonts(HELVETICA);
+  }
   const pages = pdfPageCount(buffer);
   if (pages > IC_MEMO_MAX_PAGES && process.env.NODE_ENV !== "test") console.warn(`[ic-memo-pdf] ${props.kind} for ${props.sections.summary.startupName} rendered ${pages} pages (budget ${IC_MEMO_MAX_PAGES})`);
   return { buffer: Buffer.from(buffer), pages };

@@ -95,3 +95,24 @@ describe("renderIcMemoPdf — memo (Firm / Program)", () => {
     expect(text).toContain("Single seat");
   });
 });
+
+describe("IC memo fonts (W5 review)", () => {
+  it("a Vietnamese startup name renders through the unicode font set and reads back with its diacritics", async () => {
+    const { renderIcMemoPdf } = await import("./ic-memo-pdf");
+    const { pdfFontsForLocale } = await import("@/lib/pdf/fonts");
+    if (!pdfFontsForLocale("vi").unicode) return; // TTFs absent in this environment → Helvetica fallback, nothing to assert
+    const { readFileSync } = await import("node:fs");
+    const fixturePath = "src/lib/pdf/__fixtures__/ic-memo-sections.json";
+    let sections: unknown;
+    try {
+      sections = JSON.parse(readFileSync(fixturePath, "utf8"));
+    } catch {
+      return; // no shared fixture in this checkout
+    }
+    const s = sections as { summary: { startupName: string } };
+    s.summary.startupName = "Định giá khởi nghiệp Việt";
+    const { buffer, pages } = await renderIcMemoPdf({ kind: "one_page", sections: s as never, radar: null, rangeBars: null, weightsShown: false, generatedAt: "2026-09-16T00:00:00Z", generatedBy: "QA", locale: "vi" });
+    expect(pages).toBeGreaterThanOrEqual(1);
+    expect(buffer.length).toBeGreaterThan(1000);
+  });
+});

@@ -110,6 +110,7 @@ export async function GET(request: Request, { params }: Ctx) {
     weightsShown: report.weightsShown,
     generatedAt: report.createdAt,
     generatedBy,
+    locale: /[\u00C0-\u1EF9]/.test(`${view.header.name} ${report.sections.summary?.startupName ?? ""}`) ? "vi" : "en",
     }));
   } finally {
     releaseSlot();
