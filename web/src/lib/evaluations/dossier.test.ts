@@ -270,10 +270,10 @@ describe("loadDossier — evaluator", () => {
     expect(d!.report.source).toBe("pipeline");
     expect(d!.report.dims.find((r) => r.dim === "tre")?.score).toBe(70);
     expect(d!.report.links.fullReport).toContain("tok-new");
+    // One read: report_v2 rides the first select (W5 review — no second round trip).
     const reads = state.calls.filter((c) => c.table === "evaluation_reports");
-    expect(reads).toHaveLength(2);
-    expect(reads[1].select).toBe("report_v2");
-    expect(reads[1].filters).toEqual([["id", "er-2"]]);
+    expect(reads).toHaveLength(1);
+    expect(reads[0].select).toContain("report_v2");
 
     __resetDossierCaches();
     state.calls.length = 0;

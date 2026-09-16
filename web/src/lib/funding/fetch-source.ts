@@ -469,12 +469,37 @@ export function findIsoDate(s: string): string | null {
   return null;
 }
 
+/**
+ * Drop `<tag …>…</tag>` blocks with an indexOf scan. The lazy regex
+ * `/<script[\s\S]*?<\/script\s*>/gi` is quadratic on a body with an
+ * unclosed `<script` (each start re-scans to EOF) — a 2 MB hostile page from
+ * an allow-listed host could pin the ingest cron (W5 review).
+ */
+function stripBlocks(html: string, tag: string): string {
+  const open = `<${tag}`;
+  const close = `</${tag}`;
+  let out = "";
+  let i = 0;
+  const lower = html.toLowerCase();
+  for (;;) {
+    const s = lower.indexOf(open, i);
+    if (s < 0) {
+      out += html.slice(i);
+      break;
+    }
+    out += html.slice(i, s) + " ";
+    const e = lower.indexOf(close, s + open.length);
+    if (e < 0) break; // unclosed block: drop the rest
+    const gt = lower.indexOf(">", e + close.length);
+    i = gt < 0 ? lower.length : gt + 1;
+  }
+  return out;
+}
+
 /** Visible text of an HTML document: scripts/styles dropped, tags → spaces, entities decoded. */
 export function htmlToText(html: string): string {
   return decodeEntities(
-    html
-      .replace(/<script[\s\S]*?<\/script\s*>/gi, " ")
-      .replace(/<style[\s\S]*?<\/style\s*>/gi, " ")
+    stripBlocks(stripBlocks(html, "script"), "style")
       .replace(/<!--[\s\S]*?-->/g, " ")
       .replace(/<\/?(?:br|p|div|li|tr|td|th|h[1-6]|dt|dd|section|article)\b[^>]*>/gi, " \n ")
       .replace(/<[^>]+>/g, " "),

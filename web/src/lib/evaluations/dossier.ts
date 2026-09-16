@@ -589,17 +589,35 @@ async function readLatestReport(evaluationId: string): Promise<{ id: string | nu
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
   try {
-    const { data, error } = await supabase
+    // One read: the report_v2 column joins the first select (W5 review — a
+    // second round trip fetched it separately); pre-0401 environments retry
+    // without the column and fall back to the helper.
+    let data: unknown = null;
+    let error: { message?: string } | null = null;
+    ({ data, error } = await supabase
       .from("evaluation_reports")
-      .select("id, share_token, created_at, kind")
+      .select("id, share_token, created_at, kind, report_v2")
       .eq("evaluation_id", evaluationId)
       .order("created_at", { ascending: false })
       .limit(1)
-      .maybeSingle();
+      .maybeSingle());
+    let inline = true;
+    if (error && /report_v2|does not exist|schema cache/i.test(error.message ?? "")) {
+      inline = false;
+      ({ data, error } = await supabase
+        .from("evaluation_reports")
+        .select("id, share_token, created_at, kind")
+        .eq("evaluation_id", evaluationId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle());
+    }
     if (error || !data) return null;
     const r = data as Row;
     const id = str(r.id);
-    const reportV2 = id && String(r.kind ?? "full") === "full" ? await readEvaluationReportV2(supabase, id) : null;
+    const isFull = String(r.kind ?? "full") === "full";
+    const stored = inline && isFull && r.report_v2 && typeof r.report_v2 === "object" && isReportV2(r.report_v2) ? (r.report_v2 as ReportV2) : null;
+    const reportV2 = stored ?? (id && isFull && !inline ? await readEvaluationReportV2(supabase, id) : null);
     return { id, shareToken: str(r.share_token), createdAt: String(r.created_at ?? ""), kind: String(r.kind ?? "full"), reportV2 };
   } catch {
     return null;

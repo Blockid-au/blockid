@@ -270,6 +270,7 @@ export function ga4SignalsFromSnapshotRow(r: Partial<Ga4SnapshotRow>): Ga4RichSi
 export interface Ga4SnapshotDb {
   from(table: string): {
     insert(row: Record<string, unknown>): PromiseLike<{ error: { message: string } | null }>;
+    upsert(row: Record<string, unknown>, opts: { onConflict: string }): PromiseLike<{ error: { message: string } | null }>;
     select(cols: string): {
       eq(col: string, v: string): {
         eq(col: string, v: string): { order(col: string, o: { ascending: boolean }): { limit(n: number): { maybeSingle(): PromiseLike<{ data: unknown | null; error: { message: string } | null }> } } };
@@ -279,10 +280,16 @@ export interface Ga4SnapshotDb {
   };
 }
 
-/** Best-effort insert (a missing table — 0402 not applied — is a warn, never a failed sync). */
+/**
+ * Best-effort write (a missing table — 0402 not applied — is a warn, never a
+ * failed sync). One row per (user, project, property, day): `taken_day` is the
+ * upsert key, so repeated sync clicks refresh today's row instead of appending
+ * (W5 review).
+ */
 export async function writeGa4Snapshot(db: Ga4SnapshotDb, row: Ga4SnapshotRow): Promise<boolean> {
   try {
-    const { error } = await db.from(GA4_SNAPSHOTS_TABLE).insert(row as unknown as Record<string, unknown>);
+    const dayRow = { ...row, taken_day: row.taken_at.slice(0, 10) } as unknown as Record<string, unknown>;
+    const { error } = await db.from(GA4_SNAPSHOTS_TABLE).upsert(dayRow, { onConflict: "user_id,project_id,property_id,taken_day" });
     if (error) {
       console.warn("[ga4-signals] snapshot insert failed:", error.message);
       return false;

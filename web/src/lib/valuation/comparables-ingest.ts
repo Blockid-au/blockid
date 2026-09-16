@@ -356,6 +356,8 @@ export interface IngestDeps {
   now?: () => Date;
   /** Restrict to these source ids (default: all). */
   only?: IngestSourceId[];
+  /** Overall wall-clock budget for the fetch phase (default 90 s; cron-runner cuts at 120 s). */
+  deadlineMs?: number;
   /** Cap on rows inserted per run (cost guardrail: the review queue stays reviewable). */
   maxInsert?: number;
   /** Roundup pages to follow on the Cut Through index. */
@@ -400,19 +402,31 @@ export function candidateToRow(c: ComparableCandidate): Record<string, unknown> 
  */
 export async function runComparablesIngest(opts: { write: boolean }, deps: IngestDeps = {}): Promise<IngestSummary> {
   const now = deps.now ?? (() => new Date());
-  const doFetch = deps.fetch ?? ((url: string) => fetchText(url, { timeoutMs: 15_000, retries: 2 }));
+  // One retry and a shared deadline: 3 sources × 15 s × 3 attempts was ≈225 s,
+  // past the 120 s cron budget (`maxDuration` is ignored under standalone).
+  const startedAt = Date.now();
+  const deadlineMs = deps.deadlineMs ?? 90_000;
+  const doFetch = deps.fetch ?? ((url: string) => fetchText(url, { timeoutMs: Math.max(3_000, Math.min(15_000, deadlineMs - (Date.now() - startedAt))), retries: 1 }));
   const dryRun = !opts.write;
   const summary: IngestSummary = { ok: true, dryRun, ranAt: now().toISOString(), sources: [], candidates: 0, duplicates: 0, inserted: 0, rows: [] };
   const all: ComparableCandidate[] = [];
 
   const fetchAllowed = async (url: string): Promise<FetchTextResult | null> => {
     if (!hostAllowed(url)) return null;
-    return doFetch(url);
+    const res = await doFetch(url);
+    // The allow-list applies to where the body actually came from too: a
+    // redirect off an allowed host must not be parsed (W5 review).
+    if (res?.finalUrl && !hostAllowed(res.finalUrl)) return { ...res, ok: false, text: "", error: `redirected off the allow-list: ${res.finalUrl}` };
+    return res;
   };
 
   for (const source of INGEST_SOURCES) {
     if (deps.only && !deps.only.includes(source.id)) {
       summary.sources.push({ id: source.id, status: "skipped", pages: 0, candidates: 0 });
+      continue;
+    }
+    if (Date.now() - startedAt > deadlineMs) {
+      summary.sources.push({ id: source.id, status: "skipped", pages: 0, candidates: 0, error: "deadline" });
       continue;
     }
     const out: IngestSourceResult = { id: source.id, status: "ok", pages: 0, candidates: 0 };

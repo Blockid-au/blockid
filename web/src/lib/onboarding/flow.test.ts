@@ -66,7 +66,9 @@ describe("persona lock (S-IA5)", () => {
     expect(personaOptionsFor("founder", owner)).toEqual(["founder"]);
     expect(personaOptionsFor("founder", done)).toEqual(["founder"]);
     expect(personaOptionsFor(null, done)).toEqual(["founder"]);
-    expect(personaOptionsFor("investor", done)).toEqual(["founder"]);
+    // Legacy `investor` rows resolve to their wizard card (never bounced to founder — W5 review).
+    expect(personaOptionsFor("investor", done)).toEqual(["investor_angel"]);
+    expect(personaOptionsFor("incubator", done)).toEqual(["accelerator"]);
     // An onboarded evaluator keeps their own card (never bounced to founder).
     expect(personaOptionsFor("advisor", done)).toEqual(["advisor"]);
     expect(personaOptionsFor("accelerator", owner)).toEqual(["accelerator"]);

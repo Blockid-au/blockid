@@ -118,6 +118,13 @@ describe("snapshot row + persistence", () => {
           inserted.push(row);
           return { error: null };
         },
+        // Daily upsert (0404): the same key refreshes the row instead of appending.
+        upsert: async (row, opts) => {
+          expect(opts.onConflict).toBe("user_id,project_id,property_id,taken_day");
+          expect(typeof row.taken_day).toBe("string");
+          inserted.push(row);
+          return { error: null };
+        },
         select: () => ({
           eq: () => ({
             eq: (col: string, v: string) => {
@@ -138,7 +145,8 @@ describe("snapshot row + persistence", () => {
     expect(await loadLatestGa4Snapshot(db, "u1", null)).toBeNull();
     expect(seen).toEqual(["project_id=p1", "project_id is null"]);
 
-    const broken: Ga4SnapshotDb = { from: () => ({ insert: async () => ({ error: { message: 'relation "ga4_signal_snapshots" does not exist' } }), select: db.from("x").select }) };
+    const missing = async () => ({ error: { message: 'relation "ga4_signal_snapshots" does not exist' } });
+    const broken: Ga4SnapshotDb = { from: () => ({ insert: missing, upsert: missing, select: db.from("x").select }) };
     expect(await writeGa4Snapshot(broken, row)).toBe(false);
   });
 });

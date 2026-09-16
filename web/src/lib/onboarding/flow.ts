@@ -17,7 +17,7 @@
 // (`signedInSignupRedirect`) so the annual cadence is never dropped
 // (2026-09-16 audit, `ebba4641d`).
 
-import { PERSONAS, type OnboardingFlow, type PersonaKey } from "@/lib/nav/persona";
+import { PERSONAS, resolvePersona, type OnboardingFlow, type PersonaKey } from "@/lib/nav/persona";
 
 export type WizardStep = 1 | 2 | 3;
 export const WIZARD_STEPS: readonly WizardStep[] = Object.freeze([1, 2, 3]);
@@ -105,9 +105,17 @@ export function isPersonaLocked(f: PersonaLockFacts): boolean {
  * a legacy type), so the evaluator choices disappear for a founder while an
  * onboarded advisor returning through `?step=2` still sees their own card.
  */
+/** Legacy account types (`investor`, `incubator`, `service_provider`, …) map onto the five wizard cards. */
+export function wizardPersonaFor(current: string | null | undefined): WizardPersona | null {
+  if (isWizardPersona(current)) return current;
+  if (!current) return null;
+  const mapped = resolvePersona({ role: null, accountType: current, segment: null });
+  return isWizardPersona(mapped) ? mapped : null;
+}
+
 export function personaOptionsFor(current: string | null | undefined, facts: PersonaLockFacts): readonly WizardPersona[] {
   if (!isPersonaLocked(facts)) return WIZARD_PERSONAS;
-  return [isWizardPersona(current) ? current : "founder"];
+  return [wizardPersonaFor(current) ?? "founder"];
 }
 
 export type PersonaLockDecision = "write" | "noop" | "locked";
@@ -121,7 +129,9 @@ export type PersonaLockDecision = "write" | "noop" | "locked";
  */
 export function personaLockDecision(current: string | null | undefined, persona: WizardPersona, facts: PersonaLockFacts): PersonaLockDecision {
   if (!isPersonaLocked(facts)) return "write";
-  if (persona === current) return "noop";
+  // Compare on the resolved wizard persona so a legacy `investor` /
+  // `incubator` row resaving its own card is a no-op, not "locked" (W5 review).
+  if (persona === current || persona === wizardPersonaFor(current)) return "noop";
   if ((current === null || current === undefined) && persona === "founder") return "write";
   return "locked";
 }
