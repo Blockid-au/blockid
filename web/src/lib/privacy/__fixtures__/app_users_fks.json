@@ -2,7 +2,7 @@
   "dumped_at": "2026-09-16",
   "source": "pg_constraint (contype=f) on production supabase-db, confrelid = public.app_users; regenerate with `node scripts/db/app-users-fk-inventory.mjs --json --fixture`",
   "referenced": "public.app_users(id)",
-  "count": 133,
+  "count": 134,
   "fks": [
     {
       "constraint": "ab_assignments_user_id_fkey",
@@ -374,6 +374,13 @@
       "column": "user_id",
       "on_delete": "SET NULL",
       "not_null": false
+    },
+    {
+      "constraint": "founder_feedback_letters_founder_user_id_fkey",
+      "table": "founder_feedback_letters",
+      "column": "founder_user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
     },
     {
       "constraint": "founder_packs_user_id_fkey",
