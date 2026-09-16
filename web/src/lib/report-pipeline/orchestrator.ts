@@ -158,10 +158,20 @@ const SUMMARY_PLACEHOLDER = "Executive summary generation encountered an error";
  * themselves (not `reportV2.quality.degradedSections`, which the adapter
  * fallback also fills for merely unscored dims).
  */
-export function isFullyDegraded(report: { executiveSummary?: string | null }, chapters: ReadonlyMap<DimKey, { degraded?: boolean }> | undefined): boolean {
+export function isFullyDegraded(
+  report: { executiveSummary?: string | null; llmCalls?: number },
+  chapters: ReadonlyMap<DimKey, { degraded?: boolean }> | undefined,
+  opts: { deadlineHit?: boolean } = {},
+): boolean {
   if (process.env.REPORT_FAIL_WHEN_FULLY_DEGRADED === "off") return false;
   if (!chapters || chapters.size < DIM_ORDER.length) return false;
   if (!DIM_ORDER.every((dim) => chapters.get(dim)?.degraded === true)) return false;
+  // Every chapter is a deterministic card. That is "nothing an LLM wrote"
+  // when the summary is the error placeholder, when no metered call ever
+  // succeeded, or when the wall-clock deadline degraded everything (the
+  // deadline summary is deterministic prose, not the placeholder — W3 review P1).
+  if (opts.deadlineHit) return true;
+  if ((report.llmCalls ?? 0) === 0) return true;
   return typeof report.executiveSummary === "string" && report.executiveSummary.includes(SUMMARY_PLACEHOLDER);
 }
 
@@ -440,7 +450,7 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
         projectId: input.projectId ?? null,
         skipResearch: !researchEnabled(tierV2, Boolean(partialDims)),
         deadline,
-        deps: input.gatherDeps,
+        deps: { ...(input.gatherDeps ?? {}), deadlineRemainingMs: () => deadline.remainingMs() },
       }),
     );
     const gather: GatherOutput = gathered === "deadline" ? { results: { diagnostics: { gather: { ms: deadline.ms, status: "timeout", note: "deadline" } } }, evidenceRows: [], valuation: { vc: null, ask: null, revenueEvidenceIds: [] } } : gathered;
@@ -461,6 +471,7 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
       tierV2,
       callBudget: budget,
       budgetOk: monthlyOk,
+      isExpired: () => deadline.expired(),
       ...(input.dispatchOptions ?? {}),
     };
 
@@ -597,7 +608,7 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
     // report; the persisting callers (paywall generator, run-for-project) turn
     // the flag into their failure path (retry tick / refund) instead of storing
     // `complete` and charging A$3.
-    report.fullyDegraded = isFullyDegraded(report, context.dimensionChapters);
+    report.fullyDegraded = isFullyDegraded(report, context.dimensionChapters, { deadlineHit: deadline.expired() });
 
     notify("complete", 100);
     const cost = realCostAud(meter, budget.used, w4On, tierV2);

@@ -108,6 +108,8 @@ export interface GatherDeps {
   now?: () => number;
   /** Per-source hard timeout (default 20 s). */
   timeoutMs?: number;
+  /** Remaining report deadline in ms — caps the research budget. */
+  deadlineRemainingMs?: () => number;
   /** Audit cache TTL (default 24 h). */
   cacheTtlMs?: number;
 }
@@ -134,6 +136,8 @@ export const GATHER_TIMEOUT_MS = 20_000;
 export const GATHER_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 /** LLM calls the market-research agent makes (trends + positioning) — counted in `estimatedCalls`. */
 export const GATHER_RESEARCH_CALLS = 2;
+/** Research = 2 sequential metered LLM calls; own budget (see run()). */
+export const GATHER_RESEARCH_TIMEOUT_MS = 60_000;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -359,14 +363,14 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
     results.diagnostics![source] = { ms: now() - t0, status, ...(note ? { note } : {}) };
   };
 
-  const run = async (source: string, fn: () => Promise<void>): Promise<void> => {
+  const run = async (source: string, fn: () => Promise<void>, budgetMs: number = timeoutMs): Promise<void> => {
     const t0 = now();
     if (expired()) {
       diag(source, "skipped", t0, "deadline");
       return;
     }
     try {
-      await withTimeout(source, fn(), timeoutMs);
+      await withTimeout(source, fn(), budgetMs);
     } catch (err) {
       const timeout = err instanceof GatherTimeoutError;
       diag(source, timeout ? "timeout" : "error", t0, err instanceof Error ? err.message : String(err));
@@ -376,6 +380,9 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
   // ── 1. Market & competitive research (LLM, metered) ───────────────────
   const research = opts.skipResearch
     ? Promise.resolve(void diag("research", "skipped", now(), "partial re-run"))
+    // Two sequential LLM calls (trends → positioning) routinely exceed the
+    // 20 s connector budget; give research its own (W3 review), bounded by
+    // whatever the report deadline has left.
     : run("research", async () => {
         const t0 = now();
         const rm = deps.researchMarket ?? (await import("@/lib/adk/agents")).researchMarket;
@@ -385,7 +392,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
           rows.push(row("research", "market", "connector_other", "Market & competitive research (AI agent, this run)", "partial", ["mpc", "svm"], observed));
         }
         diag("research", "ok", t0);
-      });
+      }, Math.max(timeoutMs, Math.min(GATHER_RESEARCH_TIMEOUT_MS, deps.deadlineRemainingMs?.() ?? GATHER_RESEARCH_TIMEOUT_MS)));
 
   // ── 2. Tech audit (website link, cached 24 h by URL) ──────────────────
   const websiteUrl = firstLink(context, "website");

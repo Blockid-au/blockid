@@ -286,6 +286,8 @@ function renderStructuredUser(input: DispatchInput): string {
 // ── Dispatch options ────────────────────────────────────────────────────────
 
 export interface DispatchOptions {
+  /** Report deadline probe — when true, late wave results are dropped instead of written to the context. */
+  isExpired?: () => boolean;
   /** ai_runs.purpose — defaults to customer_report. */
   purpose?: string;
   /** ai_runs.business_id (projects.id). */
@@ -659,7 +661,11 @@ export async function dispatchWave(
     tasks.map((task) => dispatchAgent(task, context, tier, callAI, opts)),
   );
 
-  // Store results in context for next wave
+  // Store results in context for next wave — unless the report deadline
+  // already expired: the orchestrator has moved on (synthesis / assemble /
+  // persist), and a late write would land criteria the stream never emitted
+  // (W3 review).
+  if (opts.isExpired?.()) return results;
   for (const result of results) {
     context.criterionResults.set(result.criterion, result);
   }

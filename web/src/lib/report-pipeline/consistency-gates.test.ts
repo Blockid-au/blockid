@@ -124,10 +124,23 @@ describe("2. valuation consensus within the stage band", () => {
 });
 
 describe("3. TRE must not state MRR without a revenue evidence row", () => {
+  it("stripRevenueFigures: leaves burn / cost / salary / target figures alone, strips only revenue claims, swallows the trailing citation (W3 review)", () => {
+    expect(stripRevenueFigures("Burn is A$40k per month [E2]").changed).toBe(false);
+    expect(stripRevenueFigures("Hosting costs $500/mo and founder salary A$8k per month").changed).toBe(false);
+    expect(stripRevenueFigures("Target MRR is A$50k by June").changed).toBe(false);
+    expect(stripRevenueFigures("Projected ARR of A$1.2m in FY27").changed).toBe(false);
+    const r = stripRevenueFigures("Traction: $12k MRR [E3] with 40 customers.");
+    expect(r.changed).toBe(true);
+    expect(r.text).toBe(`Traction: ${UNEVIDENCED_REVENUE} with 40 customers.`);
+    expect(stripRevenueFigures("MRR reached A$12,400 last month").changed).toBe(true);
+  });
+
   it("hasRevenueEvidence: connector rows or evidenced revenue-labelled rows count; partial / unrelated rows do not", () => {
     expect(hasRevenueEvidence([stripeRow])).toBe(true);
     expect(hasRevenueEvidence([{ ...stripeRow, source: "upload", label: "Revenue statement FY25" }])).toBe(true);
-    expect(hasRevenueEvidence([{ ...stripeRow, source: "self_declared", label: "Founder evidence: revenue", status: "partial" }])).toBe(false);
+    // Founder-stated revenue counts: the valuation chapter is built from it, so the TRE narrative may cite it.
+    expect(hasRevenueEvidence([{ ...stripeRow, source: "self_declared", label: "Founder evidence: revenue", status: "partial" }])).toBe(true);
+    expect(hasRevenueEvidence([{ ...stripeRow, source: "self_declared", label: "Founder evidence: team", status: "partial" }])).toBe(false);
     expect(hasRevenueEvidence([{ ...stripeRow, source: "upload", label: "Pitch deck", value: "deck.pdf" }])).toBe(false);
   });
 
@@ -147,7 +160,8 @@ describe("3. TRE must not state MRR without a revenue evidence row", () => {
       criteria: [{ key: "revenue", title: "Revenue", score: 55, quality: "good", verdict: "A$12,400 MRR stated", strengths: [], gaps: [], nextAction: "", citations: [], ownerAgent: "cro", lens: "tre" } as unknown as DimensionChapter["criteria"][number]],
     });
     const chapters = new Map<DimKey, DimensionChapter>([["tre", tre]]);
-    const out = applyConsistencyGates({ chapters, dimScores: { tre: 55 }, stage: 3, evidenceRows: [{ ...stripeRow, source: "self_declared", status: "partial", label: "Founder evidence: revenue" }], executiveSummary: "" });
+    // A founder-stated revenue row would count (see hasRevenueEvidence); an unrelated self-declared row does not.
+    const out = applyConsistencyGates({ chapters, dimScores: { tre: 55 }, stage: 3, evidenceRows: [{ ...stripeRow, source: "self_declared", status: "partial", label: "Founder evidence: team" }], executiveSummary: "" });
     expect(out.treRevenueStripped).toBe(true);
     expect(tre.verdict).toContain(UNEVIDENCED_REVENUE);
     expect(tre.verdict).not.toMatch(/12,400/);

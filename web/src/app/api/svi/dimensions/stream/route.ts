@@ -21,6 +21,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { apiRoute } from "@/lib/audit/api-route";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
+import { roleCanWrite } from "@/lib/projects";
 import { projectScopeOrDenyFor } from "@/lib/project-members/http";
 import { DIM_ORDER, type DimKey } from "@/lib/report-pipeline/dimension-owners";
 import { runReportPipeline, type StreamEvent } from "@/lib/report-pipeline/run-report-pipeline";
@@ -76,6 +77,9 @@ async function POST_handler(request: Request) {
   const projectId = scope?.projectId ?? explicitProjectId;
   const ownerEmail = scope?.dataEmail ?? user.email;
   const ownerUserId = scope?.ownerUserId ?? user.id;
+  // A viewer may watch a run but must not write today's snapshot / report_v2
+  // for the owner's project (W3 review): persist only for editor+.
+  const canPersist = scope ? roleCanWrite(scope.role) : true;
 
   // Credit / tier check — paid tiers only; the caller's wallet, spent AFTER success.
   const featureKey = tier === "free" ? null : TIER_FEATURE[tier];
@@ -105,6 +109,16 @@ async function POST_handler(request: Request) {
           // Controller may have been closed if the client disconnected.
         }
       };
+      // SSE heartbeat: W1–W3 and the auditor can be silent for minutes and
+      // nginx's proxy_read_timeout resets per event — a comment line every
+      // 15 s keeps the connection alive (W3 review).
+      const heartbeat = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(`: ping ${Date.now()}\n\n`));
+        } catch {
+          /* closed */
+        }
+      }, 15_000);
       try {
         const result = await runReportPipeline({
           userId: user.id,
@@ -116,16 +130,23 @@ async function POST_handler(request: Request) {
           dims,
           deckText,
           baseUrl,
+          persist: canPersist,
           onEvent: send,
         });
         if (result.ok && !result.fromCache && featureKey) {
-          // Transparent pricing: charge only a delivered, usable report.
-          const spend = await spendCredits(user.id, featureKey, { tier, reportId: result.reportId, projectId, calls: result.calls });
-          if (!spend.ok) console.warn("[svi-stream] credit spend failed after delivery", { userId: user.id, featureKey });
+          // Transparent pricing: charge only a delivered, usable report —
+          // and only if the client is still there to receive it.
+          if (request.signal.aborted) {
+            console.warn("[svi-stream] client disconnected before delivery — not charged", { userId: user.id, featureKey, reportId: result.reportId });
+          } else {
+            const spend = await spendCredits(user.id, featureKey, { tier, reportId: result.reportId, projectId, calls: result.calls });
+            if (!spend.ok) console.warn("[svi-stream] credit spend failed after delivery", { userId: user.id, featureKey });
+          }
         }
       } catch (err) {
         send({ type: "fatal_error", message: err instanceof Error ? err.message : String(err) });
       } finally {
+        clearInterval(heartbeat);
         controller.close();
       }
     },

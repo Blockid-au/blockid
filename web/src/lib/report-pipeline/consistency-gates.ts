@@ -54,27 +54,48 @@ export interface ConsistencyGateResult {
 
 // ── 3. Revenue statements ───────────────────────────────────────────────────
 
-/** A revenue evidence row: a connector (stripe / xero) row or an evidenced row whose label / value talks revenue. */
+/**
+ * A revenue evidence row: a connector (stripe / xero) row, an evidenced row
+ * whose label / value talks revenue, or a founder-stated revenue row
+ * (`self_declared`, status partial) — the valuation chapter is built from
+ * that same founder-stated MRR, so the TRE narrative may cite it too; the
+ * gate only fires when the report has NO revenue row at all (W3 review).
+ */
 export function hasRevenueEvidence(rows: EvidenceRow[]): boolean {
-  return rows.some((r) => r.status === "evidenced" && (r.source === "stripe" || r.source === "xero" || /\b(revenue|mrr|arr|invoice|sales|payments?)\b/i.test(`${r.label} ${r.value ?? ""}`)));
+  const revenueish = (r: EvidenceRow) => /\b(revenue|mrr|arr|invoice|sales|payments?)\b/i.test(`${r.label} ${r.value ?? ""}`);
+  return rows.some(
+    (r) =>
+      (r.status === "evidenced" && (r.source === "stripe" || r.source === "xero" || revenueish(r))) ||
+      (r.status === "partial" && r.source === "self_declared" && revenueish(r)),
+  );
 }
 
 const MONEY = String.raw`(?:A?\$|AUD\s?)\s?\d[\d,.]*(?:\s?(?:k|m|bn|million|thousand)\b)?`;
-/** "A$12,400 MRR", "MRR of A$12k", "ARR: $150,000", "$8k per month", "12,400 in monthly recurring revenue". */
+/**
+ * Only explicit recurring-revenue statements: "A$12,400 MRR", "MRR of A$12k",
+ * "ARR: $150,000", "12,400 in monthly recurring revenue". Generic "$8k per
+ * month" is NOT matched — burn, hosting and salaries are "per month" too.
+ * A citation right after the figure is swallowed so the marker never
+ * precedes a dangling `[E3]`.
+ */
 const REVENUE_FIGURE_RE = new RegExp(
   [
-    `${MONEY}\\s*(?:in\\s+|of\\s+)?(?:MRR|ARR|monthly recurring(?: revenue)?|annual recurring(?: revenue)?|per month|/\\s?mo(?:nth)?|monthly revenue|annual revenue)`,
-    `\\b(?:MRR|ARR)\\b\\s*(?:of|at|is|:|=|reached|hit|now)?\\s*${MONEY}`,
+    `${MONEY}\\s*(?:in\\s+|of\\s+)?(?:MRR|ARR|monthly recurring(?: revenue)?|annual recurring(?: revenue)?|monthly revenue|annual revenue|(?:per month|/\\s?mo(?:nth)?)\\s+(?:recurring|in revenue|revenue))\\b(?:\\s*\\[[^\\]]+\\])?`,
+    `\\b(?:MRR|ARR)\\b\\s*(?:of|at|is|:|=|reached|hit|now)?\\s*${MONEY}(?:\\s*\\[[^\\]]+\\])?`,
   ].join("|"),
   "gi",
 );
+/** Words within 40 chars before a figure that mark it as NOT a claimed revenue fact. */
+const NON_REVENUE_CONTEXT_RE = /\b(burn|cost|costs|salary|salaries|hosting|spend|cac|target|goal|projected|projection|forecast|plan(?:ned)?|aim(?:ing)?|expect(?:ed|s)?)\b[^.]{0,40}$/i;
 
 export const UNEVIDENCED_REVENUE = "a revenue figure [unevidenced — no revenue evidence row]";
 
 /** Replace stated MRR / ARR figures with the unevidenced marker; returns the text and whether anything changed. */
 export function stripRevenueFigures(text: string): { text: string; changed: boolean } {
   let changed = false;
-  const out = text.replace(REVENUE_FIGURE_RE, () => {
+  const out = text.replace(REVENUE_FIGURE_RE, (match, offset: number) => {
+    const before = text.slice(Math.max(0, offset - 60), offset);
+    if (NON_REVENUE_CONTEXT_RE.test(before)) return match; // a burn / target / cost figure, not a revenue claim
     changed = true;
     return UNEVIDENCED_REVENUE;
   });

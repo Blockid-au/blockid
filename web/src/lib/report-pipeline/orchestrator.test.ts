@@ -1472,7 +1472,7 @@ describe("orchestrateReport() — wall-clock deadline (W2 review a)", () => {
     expect(ctxEvent.estimatedSeconds).toBe(1);
   });
 
-  it("a deadline before W4 degrades every chapter and is the only way a report is fully degraded on time", async () => {
+  it("a deadline before W4 degrades every chapter → fully degraded (never charged)", async () => {
     vi.useFakeTimers();
     let release: (() => void) | null = null;
     const gate = new Promise<void>((r) => {
@@ -1487,8 +1487,10 @@ describe("orchestrateReport() — wall-clock deadline (W2 review a)", () => {
     expect(H.deterministicCalls[0]).toMatch(/deadline: wall-clock budget \(1 s\) reached before W4/);
     expect(events.filter((e) => e.type === "dimension_complete")).toHaveLength(8);
     expect(events.filter((e) => e.type === "error")).toHaveLength(8);
-    // Deterministic summary ≠ the error placeholder, so the report is still usable.
-    expect(report.fullyDegraded).toBe(false);
+    // W3 review P1: a deadline that degraded EVERY chapter is a fully degraded
+    // report even though the deterministic summary is not the placeholder —
+    // the persisting callers must not charge for it.
+    expect(report.fullyDegraded).toBe(true);
     expect((events.at(-1) as Extract<PipelineEvent, { type: "done" }>).deadlineHit).toBe(true);
   });
 
