@@ -82,6 +82,39 @@ describe("SOLUTION_PRICE_TOKENS", () => {
   });
 });
 
+describe("Pricing v4 tokens — Fund + Programs ladder", () => {
+  it("takes Fund and the Programs numbers from the plan rows, not literals", () => {
+    const fund = GENERATED_PLANS_BY_ID.investor_fund;
+    const intake = GENERATED_PLANS_BY_ID.accelerator_intake;
+    const cohort = GENERATED_PLANS_BY_ID.accelerator_starter;
+    expect(SOLUTION_PRICE_TOKENS.fundPrice).toBe(`A$${fund.price_aud_cents / 100}`);
+    expect(SOLUTION_PRICE_TOKENS.fundSeats).toBe(String(fund.usage_limits.seats));
+    expect(SOLUTION_PRICE_TOKENS.fundStartups).toBe(String(fund.usage_limits.profiles));
+    expect(SOLUTION_PRICE_TOKENS.intakePrice).toBe(`A$${intake.price_aud_cents / 100}`);
+    expect(SOLUTION_PRICE_TOKENS.intakeReports).toBe(String(intake.usage_limits.reports_per_month));
+    expect(SOLUTION_PRICE_TOKENS.intakeStartups).toBe(String(intake.usage_limits.profiles));
+    expect(SOLUTION_PRICE_TOKENS.intakeSeats).toBe(String(intake.usage_limits.seats));
+    expect(SOLUTION_PRICE_TOKENS.cohortReports).toBe(String(cohort.usage_limits.reports_per_month));
+    expect(SOLUTION_PRICE_TOKENS.cohortStartups).toBe(String(cohort.usage_limits.profiles));
+    expect(SOLUTION_PRICE_TOKENS.cohortSeats).toBe(String(cohort.usage_limits.seats));
+  });
+
+  it("matches the founder-approved v4 figures (Fund A$999 · 10 seats · 500 startups; Intake A$249 / A$2,490; Cohort 25 A$5,000 a year)", () => {
+    expect(SOLUTION_PRICE_TOKENS.fundPrice).toBe("A$999");
+    expect(SOLUTION_PRICE_TOKENS.fundSeats).toBe("10");
+    expect(SOLUTION_PRICE_TOKENS.fundStartups).toBe("500");
+    expect(SOLUTION_PRICE_TOKENS.intakePrice).toBe("A$249");
+    expect(SOLUTION_PRICE_TOKENS.intakeAnnualPrice).toBe("A$2,490");
+    expect(SOLUTION_PRICE_TOKENS.intakeReports).toBe("40");
+    expect(SOLUTION_PRICE_TOKENS.intakeStartups).toBe("60");
+    expect(SOLUTION_PRICE_TOKENS.intakeSeats).toBe("3");
+    expect(SOLUTION_PRICE_TOKENS.cohortAnnualPrice).toBe("A$5,000");
+    expect(SOLUTION_PRICE_TOKENS.cohortReports).toBe("50");
+    expect(SOLUTION_PRICE_TOKENS.cohortStartups).toBe("25");
+    expect(SOLUTION_PRICE_TOKENS.cohortSeats).toBe("5");
+  });
+});
+
 describe("fillPrices", () => {
   it("substitutes a known token", () => {
     expect(fillPrices("from {growthPrice} a month")).toBe(
