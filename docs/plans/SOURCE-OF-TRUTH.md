@@ -307,7 +307,6 @@
 
 | ID | Source | Category | Status | Owner (skill) | Ship commit |
 |---|---|---|---|---|---|
-| 2026-09-15 | Claude (QA/QC sweep, S32-F) | Founder-requested full QA/QC after the Google console fix: URI verified, 900-page crawl 0 bad, desktop+mobile click tests, nginx canonical 301s, `/api/valuation/vc` empty 200, `/analyze` 401 skip, S32-F interactive provider ordering (Money Finder timeout), live-qa per-call timeouts (funding FK noise explained), repo/worktree/release cleanup. |
 | D1-CTO-01 | plan-delta-2026-07-23 | data-model | shipped | database-optimizer | migration 0091 |
 | D1-CTO-02 | plan-delta-2026-07-23 | data-model | shipped | database-optimizer | migration 0091 |
 | D1-CTO-04 | plan-delta-2026-07-23 | ledger | shipped | database-optimizer | 0091 events table |
@@ -576,6 +575,7 @@ the sentinels is overwritten._
 
 | When | Who | What |
 |---|---|---|
+| 2026-09-15 | Claude (QA/QC sweep, S32-F) | Founder-requested full QA/QC after the Google console fix: URI verified, 900-page crawl 0 bad, desktop+mobile click tests, nginx canonical 301s, `/api/valuation/vc` empty 200, `/analyze` 401 skip, S32-F interactive provider ordering (Money Finder timeout), live-qa per-call timeouts (funding FK noise explained), repo/worktree/release cleanup. |
 | 2026-09-15 | CEO + Claude (plan session; BA / PM / Product agents) | G13 Investor Clarity opened (plan-only): goal doc `investor-clarity-2026-09-15.md` + folder (3 codebase audits, BA Investor Dossier/taxonomy spec, PM/UX IA + post-login plan, Product/AI TBR v2 plan); 15 sprints in 5 waves; decisions D1–D10; founder decisions F1–F6 → §5; §2 rows G13-W1…W5; ROADMAP.md §4 Phase 3.2, `feature-upgrade-roadmap-v2.md` Q4 block, GOALS.md Phase 4 rewritten, G7/G12 amendment lines. Same day: SVI upload page rework live (multi-format, valuation-first handoff), growth-insights cron + GA4 event ordering fixed. |
 | 2026-09-12 | Claude (S20-A worktree) | Audit coverage: `apiRoute()` wrapper + codemod wrapped 298 mutating route files (allow-list 94 with reasons), rows hash-chained in `audit_events`, migration 0335 (serialised chain trigger + verify RPC — **apply by hand**), nightly `audit-chain-verify` cron + `audit_chain` on `/api/status`, `/workspace/audit-log` project/actor/action filters + owner CSV, static coverage guard. Not pushed/deployed from the worktree. |
 | 2026-09-11 | Claude (S19-A worktree) | G7 closed: founder delegated Q1–Q4, recommendations adopted as decisions (`ux-ia-startup-flow-goal.md` open_questions now carry `decision` / `decided_by` / `status: shipped` / `files`; P8 `shipped`). Code: `journey-step-ladder.tsx` single responsive list, mobile collapse + "Show all 12 phases" toggle, `#phase-current` skip anchor, `aria-current="step"`; test pins for Q1 (`workspace-layout.test.tsx`), Q2 (`nav-v2.test.ts`), Q3/Q4 (`journey-step-ladder.test.tsx`). G7 "Next action" → none. |
