@@ -9,6 +9,7 @@ import {
   generateChartsV2,
   numberTraceable,
   proposalToData,
+  universeFor,
   type ChapterVisualDraft,
 } from "./chart-generator";
 import { DIM_ORDER, DIMENSION_OWNERS, type DimKey } from "./dimension-owners";
@@ -44,6 +45,59 @@ describe("number provenance", () => {
     expect(rep.checked).toBe(4);
     expect(rep.unresolved).toEqual([777]);
     expect(rep.downgraded).toBe(true);
+  });
+
+  // W2 review (c): URL digit runs and upload file sizes never license a number.
+  it("evidenceNumbers ignores URL digit runs and file sizes", () => {
+    expect(evidenceNumbers([row("u", "https://acme.com/blog/2024/q3/12400-customers")])).toEqual([]);
+    expect(evidenceNumbers([row("f", "deck.pdf (application/pdf, 48213 bytes)")])).toEqual([]);
+    expect(evidenceNumbers([row("m", "9 customers, see https://acme.com/2024 (48213 bytes)")])).toEqual([9]);
+  });
+
+  it("universeFor excludes static profile constants and weight / percentile keys but keeps measured fields", () => {
+    const u = universeFor(
+      draft("mpc", {
+        evidence: [],
+        moduleOutputs: [
+          { id: "agents/cfo-tam-sam-som.ts:auMarketProfile", output: { reachableUnits: 250000, cagrPct: 14, captureRatePct: 2 } },
+          { id: "report-pipeline/dimension-owners.ts:benchmarkFor", output: { p25: 40, p50: 52, p75: 64, deterministicScore: 55, benchmarkStage: 2 } },
+          { id: "svi-analysis.ts:criterionScores", output: { market: 61, weight: 18 } },
+        ],
+      }),
+    );
+    expect(u).not.toContain(250000);
+    expect(u).not.toContain(14);
+    expect(u).not.toContain(18);
+    expect(u).not.toContain(2);
+    expect(u).toContain(61);
+    expect(u).toContain(55);
+    // The three percentiles the owner is handed stay reference values.
+    expect(u).toContain(52);
+  });
+
+  it("a proposal citing only a static profile constant is downgraded", () => {
+    const out = generateChartsV2(
+      draft("mpc", {
+        evidence: [],
+        moduleOutputs: [{ id: "agents/cfo-tam-sam-som.ts:auMarketProfile", output: { reachableUnits: 250000 } }],
+        proposedPrimary: { kind: "bar", series: [{ label: "Reachable units", value: 250000 }] },
+      }),
+    );
+    expect(out.provenance.unresolved).toEqual([250000]);
+    expect(out.primary.kind).toBe("funnel");
+  });
+
+  it("`real` requires at least one evidence-sourced number — module-only numbers cap at partial", () => {
+    const out = generateChartsV2(
+      draft("tre", {
+        evidence: [row("ev-x", "founder note, no figures")],
+        moduleOutputs: [{ id: "svi-analysis.ts:extractSignals(traction)", output: { mrrAud: 12400 } }],
+        proposedPrimary: { kind: "bar", data_state: "real", series: [{ label: "MRR", value: 12400 }] },
+      }),
+    );
+    expect(out.primary.kind).toBe("bar");
+    expect(out.provenance.downgraded).toBe(false);
+    expect(out.primary.dataState).toBe("partial");
   });
 });
 

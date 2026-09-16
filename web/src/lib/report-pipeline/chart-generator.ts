@@ -21,6 +21,7 @@ export {
   evidenceNumbers,
   numberTraceable,
   proposalToData,
+  universeFor,
   type ChapterVisualDraft,
   type ChartsV2Result,
   type LlmVisualProposal,

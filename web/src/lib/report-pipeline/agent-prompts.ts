@@ -417,12 +417,18 @@ export function promptTemplateFromRow(row: unknown): string | null {
   return templateHasSlots(nested) ? nested : null;
 }
 
-/** Fill `{{SLOT}}` placeholders; empty blocks collapse so no dangling headings remain. */
+const SLOT_RE = new RegExp(`\\{\\{(${PROMPT_SLOTS.join("|")})\\}\\}`, "g");
+
+/**
+ * Fill `{{SLOT}}` placeholders in ONE pass (regex + callback); empty blocks
+ * collapse so no dangling headings remain. Single-pass matters: founder text
+ * inside an earlier block (evidence, description) may itself contain
+ * `{{OUTPUT_SCHEMA}}` or another slot token — a sequential split/join would
+ * interpolate it a second time (W2 review (d)). Only the template's own
+ * tokens are substituted; tokens arriving inside a block are left verbatim.
+ */
 export function renderPromptTemplate(template: string, blocks: Record<PromptSlot, string>): string {
-  let out = template;
-  PROMPT_SLOTS.forEach((slot) => {
-    out = out.split(`{{${slot}}}`).join(blocks[slot] ?? "");
-  });
+  const out = template.replace(SLOT_RE, (_m, slot: PromptSlot) => blocks[slot] ?? "");
   return out.replace(/\n{3,}/g, "\n\n").trim();
 }
 

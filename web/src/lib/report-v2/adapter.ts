@@ -19,6 +19,7 @@ import { AU_COMPARABLES_COUNT, AU_COMPARABLES_WITH_MULTIPLES_COUNT, AU_COMPARABL
 import { PHASE_EXIT_RULES, computePhaseGate, type PhaseGateResult } from "@/lib/growth/phase-gate";
 import { GROWTH_PHASE_IDS, GROWTH_PHASE_LABELS, type GrowthPhaseId } from "@/lib/growth/phase-taxonomy";
 import { DIMENSION_OWNERS, DIM_ORDER, criteriaForDimension, type DimKey } from "@/lib/report-pipeline/dimension-owners";
+import { buildValuationChapter, type ValuationAskInput, type VcValuationLike } from "@/lib/report-pipeline/valuation-chapter";
 import type { AssembledReport, ReportSection } from "@/lib/report-pipeline/types";
 import { bandFor, makeVisual, type Band, type VisualSpecV2 } from "@/lib/report-visuals";
 import { computeThreeCaseValuation } from "@/lib/svi/three-case-valuation";
@@ -97,18 +98,19 @@ export interface SnapshotInput {
   consistencyIssues?: ReportV2["quality"]["consistencyIssues"];
   /** Optional CFO 5-method valuation (server side) — fills valuation.methods. */
   vc?: VcValuationLike | null;
+  /** S-R3 §C.5: founder-stated ask for the valuation cross-check (only used with `vc`). */
+  valuationAsk?: ValuationAskInput | null;
+  /** S-R3: evidence ids behind the revenue figure (stripe / xero rows) — the chapter is grounded only when non-empty. */
+  revenueEvidenceIds?: string[] | null;
   source?: ReportV2["source"];
   generatedAt?: string;
 }
 
-/** Structural subset of `agents/cfo-valuation.ts:VcValuationReport` (no import — keeps this module client-safe). */
-export interface VcValuationLike {
-  blended: { lowAud: number; midAud: number; highAud: number; confidence: number };
-  methods: Array<{ method: string; lowAud: number; midAud: number; highAud: number; weight: number; rationale: string }>;
-  scenarios: { bear: number; base: number; bull: number };
-  unitEconomics?: Record<string, unknown>;
-  sources?: string[];
-}
+/** Structural subset of `agents/cfo-valuation.ts:VcValuationReport` — defined in report-pipeline/valuation-chapter.ts (S-R3). */
+export type { VcValuationLike };
+
+/** Founder-stated ask inputs for the valuation cross-check (S-R3 §C.5). */
+export type { ValuationAskInput };
 
 // ── Stage helpers ───────────────────────────────────────────────────────────
 
@@ -517,48 +519,45 @@ function buildChapter(c: ChapterCtx, phase: PhaseGateResult, tier: ReportTierV2)
 
 // ── Valuation ───────────────────────────────────────────────────────────────
 
-function buildValuation(args: { sviTotal: number; stageLabel: string; stage: number; industry: string | null; treScore: number | null; vc?: VcValuationLike | null; at: string }): ValuationChapter {
+function buildValuation(args: { sviTotal: number; stageLabel: string; stage: number; industry: string | null; treScore: number | null; vc?: VcValuationLike | null; ask?: ValuationAskInput | null; revenueEvidenceIds?: string[]; at: string }): ValuationChapter {
+  // S-R3 §C.5: with a CFO 5-method valuation the chapter is the real thing —
+  // methods, consensus, ask cross-check, dated sector multiples, comparables N,
+  // three-case scenarios (report-pipeline/valuation-chapter.ts).
+  if (args.vc) {
+    return buildValuationChapter({ vc: args.vc, stage: args.stage, stageLabel: args.stageLabel, industry: args.industry, ask: args.ask ?? null, revenueEvidenceIds: args.revenueEvidenceIds ?? [], at: args.at });
+  }
+  // Read-time fallback for stored rows that never ran the pipeline (no vc):
+  // a directional three-case band, clearly labelled as such.
   const three = computeThreeCaseValuation(args.sviTotal, args.stageLabel, args.industry);
   const sel = selectValuationMethod(three.stage, args.sviTotal, inferTractionFromTreScore(args.treScore));
   const auIndustry = mapSectorToAUIndustry(args.industry ?? undefined);
   const auStage = mapStageToAUStage(args.stageLabel || args.stage);
   const mult = getMultiplesBenchmark(auIndustry, auStage);
   const comps = getTopComparables(auIndustry, auStage, 5);
-  const vc = args.vc;
-  const methods: ValuationChapter["methods"] = VALUATION_METHOD_KEYS.map((key) => {
-    const row = vc?.methods.find((m) => m.method === key);
-    if (row) {
-      return { method: key, lowAud: row.lowAud, midAud: row.midAud, highAud: row.highAud, weight: key === "scorecard" ? 0 : row.weight, rationale: row.rationale, applicable: key !== "scorecard" && row.weight > 0 };
-    }
-    return {
-      method: key,
-      lowAud: 0,
-      midAud: 0,
-      highAud: 0,
-      weight: 0,
-      rationale: "Not computed for this snapshot — the 5-method CFO valuation lands in the report body with S-R3; the three-case directional range below is shown instead.",
-      applicable: false,
-    };
-  });
-  const consensus = vc
-    ? { lowAud: vc.blended.lowAud, midAud: vc.blended.midAud, highAud: vc.blended.highAud, confidence: Math.max(0, Math.min(1, vc.blended.confidence / 100)) }
-    : { lowAud: three.average.low, midAud: three.average.mid, highAud: three.average.high, confidence: 0.35 };
-  const scenarios = vc ? vc.scenarios : { bear: three.worst.mid, base: three.average.mid, bull: three.best.mid };
+  const methods: ValuationChapter["methods"] = VALUATION_METHOD_KEYS.map((key) => ({
+    method: key,
+    lowAud: 0,
+    midAud: 0,
+    highAud: 0,
+    weight: 0,
+    rationale: "Not computed for this snapshot — run the analysis to get the 5-method CFO valuation; the three-case directional range below is shown instead.",
+    applicable: false,
+  }));
+  const consensus = { lowAud: three.average.low, midAud: three.average.mid, highAud: three.average.high, confidence: 0.35 };
+  const scenarios = { bear: three.worst.mid, base: three.average.mid, bull: three.best.mid };
   const rangeBars = makeVisual({
     id: "valuation-range-bars",
     kind: "range_bars",
     agentId: "cfo",
-    title: vc ? "Valuation methods and consensus band" : "Directional valuation — three cases and consensus",
-    subtitle: vc ? "5 weighted methods; scorecard shown at weight 0" : `${sel.meta.shortLabel}; ${sel.rationale}`,
-    dataState: vc ? "partial" : "benchmark_only",
+    title: "Directional valuation — three cases and consensus",
+    subtitle: `${sel.meta.shortLabel}; ${sel.rationale}`,
+    dataState: "benchmark_only",
     data: {
-      rows: vc
-        ? methods.map((m) => ({ label: m.method.replace(/_/g, " "), low: m.lowAud, mid: m.midAud, high: m.highAud, applicable: m.applicable }))
-        : [
-            { label: "Bear case", low: three.worst.low, mid: three.worst.mid, high: three.worst.high },
-            { label: "Base case", low: three.average.low, mid: three.average.mid, high: three.average.high },
-            { label: "Bull case", low: three.best.low, mid: three.best.mid, high: three.best.high },
-          ],
+      rows: [
+        { label: "Bear case", low: three.worst.low, mid: three.worst.mid, high: three.worst.high },
+        { label: "Base case", low: three.average.low, mid: three.average.mid, high: three.average.high },
+        { label: "Bull case", low: three.best.low, mid: three.best.mid, high: three.best.high },
+      ],
       consensus: { low: consensus.lowAud, mid: consensus.midAud, high: consensus.highAud, label: "Consensus" },
       currency: "AUD",
     },
@@ -584,12 +583,9 @@ function buildValuation(args: { sviTotal: number; stageLabel: string; stage: num
       withMultiplesN: AU_COMPARABLES_WITH_MULTIPLES_COUNT,
       rows: comps.map((cp) => ({ name: "anonymised", stage: cp.stage, industry: cp.industry, year: cp.founded_year, arrMultiple: cp.arr_multiple, source: "au-comparables.ts" })),
     },
-    unitEconomics: vc?.unitEconomics,
     scenarios,
     visuals: [rangeBars, scatter],
-    narrative: vc
-      ? `Consensus of the weighted methods is A$${Math.round(consensus.midAud).toLocaleString("en-AU")} (range A$${Math.round(consensus.lowAud).toLocaleString("en-AU")}–A$${Math.round(consensus.highAud).toLocaleString("en-AU")}).`
-      : `${sel.meta.shortLabel}: ${sel.rationale} ${three.disclaimer}`,
+    narrative: `${sel.meta.shortLabel}: ${sel.rationale} ${three.disclaimer}`,
     audit: stamp(args.at),
   };
 }
@@ -699,7 +695,7 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
         : sviBand === "early"
           ? `SVI ${sviTotal} — early: build evidence on the highest-weight gaps first.`
           : "No dimension has been scored yet — run the analysis to populate this report.");
-  const valuation = buildValuation({ sviTotal: Math.min(100, sviTotal), stageLabel, stage, industry, treScore: dimScores.tre ?? null, vc: input.vc, at });
+  const valuation = buildValuation({ sviTotal: Math.min(100, sviTotal), stageLabel, stage, industry, treScore: dimScores.tre ?? null, vc: input.vc, ask: input.valuationAsk ?? null, revenueEvidenceIds: input.revenueEvidenceIds ?? [], at });
   const worthLine = `Directional A$${fmtShort(valuation.consensus.lowAud)}–${fmtShort(valuation.consensus.highAud)} pre-money (${industry ?? "sector-neutral"}, ${stageLabel}); not a formal valuation.`;
   const nextLine = roadmap[0] ? `${dimensions.find((d) => d.dim === roadmap[0].c.dim)?.nextAction.title ?? "Add evidence"} — +${Math.max(1, Math.round(roadmap[0].lift))} SVI on ${DIMENSION_OWNERS[roadmap[0].c.dim].shortLabel}.` : "Keep the evidence fresh: reconnect data sources before the next investor conversation.";
   const whereLine = `${stageLabel} ${industry ?? "startup"} at SVI ${sviTotal} (${sviBand}); phase ${phase.currentPhaseLabel}, ${phase.completionPct}% of the gate cleared.`;
@@ -893,6 +889,8 @@ export interface AssembledReportContext {
   tier?: ReportTierV2;
   locale?: "en" | "vi";
   vc?: VcValuationLike | null;
+  valuationAsk?: ValuationAskInput | null;
+  revenueEvidenceIds?: string[] | null;
 }
 
 /**
@@ -956,6 +954,8 @@ export function fromAssembledReport(report: Pick<AssembledReport, "id" | "tier" 
     qualityScore: report.qualityScore,
     consistencyIssues: report.consistencyIssues,
     vc: ctx.vc,
+    valuationAsk: ctx.valuationAsk ?? null,
+    revenueEvidenceIds: ctx.revenueEvidenceIds ?? null,
     source: "adapter",
   });
 }

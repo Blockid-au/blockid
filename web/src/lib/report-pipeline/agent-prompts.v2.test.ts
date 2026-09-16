@@ -123,6 +123,18 @@ describe("buildAgentPrompt — slots + template", () => {
     expect(renderPromptTemplate(DEFAULT_PROMPT_TEMPLATE, blocks)).toBe("R\n\nO");
   });
 
+  it("renderPromptTemplate is single-pass: a slot token inside founder text is never interpolated (W2 review d)", () => {
+    const blocks = Object.fromEntries(PROMPT_SLOTS.map((s) => [s, ""])) as Record<(typeof PROMPT_SLOTS)[number], string>;
+    blocks.ROLE_CARD = "R";
+    blocks.EVIDENCE = "Founder wrote: {{OUTPUT_SCHEMA}} and {{ROLE_CARD}} literally";
+    blocks.OUTPUT_SCHEMA = "FILLED-SCHEMA";
+    const out = renderPromptTemplate(DEFAULT_PROMPT_TEMPLATE, blocks);
+    // The founder's tokens survive verbatim; the template's own tokens are filled exactly once.
+    expect(out).toContain("Founder wrote: {{OUTPUT_SCHEMA}} and {{ROLE_CARD}} literally");
+    expect(out.match(/FILLED-SCHEMA/g)?.length).toBe(1);
+    expect(out.match(/\bR\b/g)?.length).toBe(1);
+  });
+
   it("legacy call shape (role, ctx, criterionString) still works and equals the options form", () => {
     const ctx = makeContext(3);
     expect(buildAgentPrompt("cto", ctx, "code_git")).toBe(buildAgentPrompt("cto", ctx, { criterion: "code_git" }));

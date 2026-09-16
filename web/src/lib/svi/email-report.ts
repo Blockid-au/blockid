@@ -16,7 +16,7 @@
 import { nanoid } from "nanoid";
 import { sendEmail, complianceFooter } from "@/lib/email";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import type { CriterionResult } from "@/app/api/svi/dimensions/stream/route";
+import type { CriterionResult } from "@/lib/report-pipeline/run-report-pipeline";
 
 interface DimEmailInput {
   score: number;

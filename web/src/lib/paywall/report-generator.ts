@@ -333,7 +333,7 @@ export async function generateTrustReportForOrder(
     userPrompt: string,
     maxTokens: number,
     taskClass?: "classify" | "report" | "synthesis",
-  ): Promise<string> => {
+  ) => {
     const result = await callAI({
       system: systemPrompt,
       user: userPrompt,
@@ -342,7 +342,8 @@ export async function generateTrustReportForOrder(
       agentId: paywallAgentId,
       taskClass,
     });
-    return result.text;
+    // S-R3 (W2 review b): real cost / provider flow into the `done` telemetry.
+    return { text: result.text, costUsd: result.cost_usd, provider: result.via ?? result.provider, model: result.model };
   };
 
   let report: Awaited<ReturnType<typeof orchestrateReport>>;

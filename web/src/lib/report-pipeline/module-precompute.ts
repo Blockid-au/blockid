@@ -343,14 +343,52 @@ export function precomputeModules(ctx: ReportContext): ModuleOutputsByDim {
   return out;
 }
 
-/** Every finite number reachable in a set of module outputs (provenance universe). */
-export function moduleNumbers(outputs: ModuleOutput[] | undefined): number[] {
+/**
+ * Module ids whose numbers describe the SECTOR / STAGE, not this startup
+ * (static profile constants). W2 review (c): they never license a number in
+ * an owner-proposed chart series.
+ */
+export const STATIC_MODULE_IDS: readonly string[] = ["agents/cfo-tam-sam-som.ts:auMarketProfile"];
+
+/**
+ * Output keys that carry weights, assumed norms, benchmark percentiles or
+ * source counts rather than a measurement of this startup.
+ */
+export const NON_MEASURED_KEYS: ReadonlySet<string> = new Set([
+  "weight",
+  "p25",
+  "p50",
+  "p75",
+  "benchmarkStage",
+  "sourceCount",
+  "poolPct",
+  "vestingMonths",
+  "cliffMonths",
+  "esopPoolPct",
+  "captureRatePct",
+  "expansionMultiplier",
+  "cagrPct",
+  "reachableUnits",
+  "durationMs",
+]);
+
+/**
+ * Every finite number reachable in a set of module outputs (provenance
+ * universe). `measuredOnly` (the charts-v2 default since W2 review (c))
+ * drops static profile modules and the weight / norm / percentile keys so a
+ * proposed series can only cite numbers measured for this startup.
+ */
+export function moduleNumbers(outputs: ModuleOutput[] | undefined, opts: { measuredOnly?: boolean } = {}): number[] {
   const nums: number[] = [];
-  const walk = (v: unknown): void => {
+  const walk = (v: unknown, key?: string): void => {
+    if (opts.measuredOnly && key !== undefined && NON_MEASURED_KEYS.has(key)) return;
     if (typeof v === "number" && Number.isFinite(v)) nums.push(v);
-    else if (Array.isArray(v)) v.forEach(walk);
-    else if (v && typeof v === "object") Object.values(v as Record<string, unknown>).forEach(walk);
+    else if (Array.isArray(v)) v.forEach((item) => walk(item));
+    else if (v && typeof v === "object") Object.entries(v as Record<string, unknown>).forEach(([k, item]) => walk(item, k));
   };
-  (outputs ?? []).forEach((m) => walk(m.output));
+  (outputs ?? []).forEach((m) => {
+    if (opts.measuredOnly && STATIC_MODULE_IDS.includes(m.id)) return;
+    walk(m.output);
+  });
   return nums;
 }

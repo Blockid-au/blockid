@@ -18,7 +18,7 @@
 // agents mis-formatted, and a mis-formatted answer is never presented as
 // if it had been validated.
 
-import { createHash } from "node:crypto";
+import { evidenceIdFor } from "./evidence-ids";
 
 import { z } from "zod";
 
@@ -143,19 +143,9 @@ export function areaForCriterion(criterion: CriterionKey): Area {
 // item's identity, shaped as an RFC-4122 v4 uuid. Deterministic means the
 // same evidence yields the same id on a re-run, so citations stay stable.
 
-export function evidenceIdFor(seed: string): string {
-  const h = createHash("sha256").update(seed).digest("hex");
-  const timeHiAndVersion = `4${h.slice(13, 16)}`;
-  const clockSeq =
-    ((parseInt(h[16], 16) & 0x3) | 0x8).toString(16) + h.slice(17, 20);
-  return [
-    h.slice(0, 8),
-    h.slice(8, 12),
-    timeHiAndVersion,
-    clockSeq,
-    h.slice(20, 32),
-  ].join("-");
-}
+// S-R3: the minting lives in ./evidence-ids.ts so GATHER can share it
+// without importing the dispatcher; re-exported here for existing callers.
+export { evidenceIdFor };
 
 export function buildEvidenceCatalogue(
   criterion: CriterionKey,
@@ -328,6 +318,8 @@ export interface DispatchOptions {
   knowledgeDb?: KnowledgeDb | null;
   /** Resolve the slotted prompt template for a role (prompt_versions). Defaults to the prod row. */
   resolvePromptTemplate?: (agentRole: AgentRole) => Promise<string | null>;
+  /** S-R3 partial re-run: only these dimensions get an owner call (others keep whatever the map holds). */
+  dims?: DimKey[];
 }
 
 /** Minimal call-counter contract the orchestrator implements (hard stop at tier max). */
@@ -395,19 +387,31 @@ export function callAIToModelCaller(
   };
 }
 
-const promptVersionCache = new Map<string, { id: string; template: string | null }>();
+/**
+ * W2 review (e): the prompt_versions lookup is memoised for 10 minutes, not
+ * for the process lifetime — a canary promotion / rollback reaches a running
+ * server without a restart (the old cache pinned the boot-time row forever).
+ */
+export const PROMPT_VERSION_CACHE_TTL_MS = 10 * 60_000;
+const promptVersionCache = new Map<string, { id: string; template: string | null; at: number }>();
 
-async function defaultPromptRow(agentRole: AgentRole): Promise<{ id: string; template: string | null }> {
+async function defaultPromptRow(agentRole: AgentRole, now: number = Date.now()): Promise<{ id: string; template: string | null }> {
   const cached = promptVersionCache.get(agentRole);
-  if (cached) return cached;
+  if (cached && now - cached.at < PROMPT_VERSION_CACHE_TTL_MS) return { id: cached.id, template: cached.template };
   try {
     const row = await readCurrentPrompt(`report-${agentRole}`);
     const entry = { id: row?.id ?? NIL_PROMPT_VERSION_ID, template: promptTemplateFromRow(row) };
-    promptVersionCache.set(agentRole, entry);
+    promptVersionCache.set(agentRole, { ...entry, at: now });
     return entry;
   } catch {
-    return { id: NIL_PROMPT_VERSION_ID, template: null };
+    // A failed lookup is not cached — the next call retries.
+    return cached ? { id: cached.id, template: cached.template } : { id: NIL_PROMPT_VERSION_ID, template: null };
   }
+}
+
+/** Test seam — the memoised prompt row for a role, with its cache timestamp. */
+export function peekPromptVersionCache(agentRole: AgentRole): { id: string; template: string | null; at: number } | undefined {
+  return promptVersionCache.get(agentRole);
 }
 
 async function defaultPromptVersionId(agentRole: AgentRole): Promise<string> {
@@ -1039,6 +1043,20 @@ export function buildEvidenceRows(context: ReportContext): EvidenceRow[] {
     if (key === "market" && gr.competitiveResearch) add(key, "competitive", "Competitive research", undefined, "partial");
     if (gr.scrapedData && (key === "website" || key === "idea")) add(key, "scraped", "Scraped website data", undefined, "partial");
   });
+  // S-R3 §C.3: every GATHER result (tech / repo audit, connector snapshots,
+  // cap-table register, grants match, valuation inputs) is already an
+  // EvidenceRow with `source` + `observedAt` — merge them so chapter
+  // citations and the appendix register resolve to real ids.
+  (context.gatherEvidenceRows ?? []).forEach((row) => {
+    const existing = rows.get(row.evidence_id);
+    if (existing) {
+      row.dims.forEach((d) => {
+        if (!existing.dims.includes(d)) existing.dims.push(d);
+      });
+      return;
+    }
+    rows.set(row.evidence_id, { ...row, dims: [...row.dims] });
+  });
   const out = Array.from(rows.values());
   context.evidenceRows = out;
   return out;
@@ -1402,8 +1420,9 @@ export async function dispatchDimensionChapters(
   const chapters = context.dimensionChapters ?? new Map<DimKey, DimensionChapter>();
   context.dimensionChapters = chapters;
 
+  const dims = opts.dims?.length ? DIM_ORDER.filter((d) => opts.dims!.includes(d)) : DIM_ORDER;
   await Promise.all(
-    DIM_ORDER.map(async (dim) => {
+    dims.map(async (dim) => {
       let chapter: DimensionChapter;
       try {
         chapter = await dispatchChapter(dim, context, tier, callAI, opts, { tierV2, knowledgeDb });
