@@ -67,9 +67,14 @@ test.describe("Mobile 390 px", () => {
     const box = await button.boundingBox();
     expect(box && box.x + box.width <= 390, "avatar button inside 390 px").toBe(true);
     await expect(page.getByTestId("header-actions-desktop")).toBeHidden();
-    await button.click();
+    // A click that lands before React has hydrated toggles nothing; retry the
+    // click until the panel mounts (pre-hydration flake seen 2026-09-16).
     const panel = page.getByTestId("header-account-menu-panel");
-    await expect(panel).toBeVisible();
+    await expect(async () => {
+      if (await panel.count()) return;
+      await button.click();
+      await expect(panel).toBeVisible({ timeout: 2_000 });
+    }).toPass({ timeout: 20_000, intervals: [500, 1_000, 2_000] });
     await expect(panel).toContainText(/credits?/i);
     await expect(panel).toContainText(/Theme/);
     await expect(panel.getByRole("button", { name: /Sign out/ })).toBeVisible();
