@@ -35,7 +35,7 @@ const GATED_ROUTES: readonly string[] = [
   "/workspace/investor/watchlist",
   "/workspace/advisor",
   "/workspace/accelerator",
-  "/workspace/equity-offer",
+  "/workspace/esop/offers",
   "/account/billing",
 ];
 

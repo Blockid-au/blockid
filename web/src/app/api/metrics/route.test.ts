@@ -744,7 +744,7 @@ describe("GET query + projection", () => {
   it("projects the whitelisted columns only (dropping the explicit projection would surface unindexed schema-additions into the payload)", async () => {
     await callGet();
     const cols = state.getSelectCols ?? "";
-    // spot-check the columns the /dashboard/cfo card renders
+    // spot-check the columns the /workspace/valuation/cfo card renders
     expect(cols).toContain("mrr_aud");
     expect(cols).toContain("arr_aud");
     expect(cols).toContain("runway_months");

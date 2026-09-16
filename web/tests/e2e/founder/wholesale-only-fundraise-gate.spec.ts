@@ -12,7 +12,7 @@
 //      missing so a fresh clone stays green).
 //   2. page.route() intercepts POST /api/fundraise and returns a
 //      deterministic body keyed on the wholesaleOnly flag in the request.
-//   3. Navigate to /workspace/fundraise. Skip cleanly if the wizard is
+//   3. Navigate to /workspace/raise/round. Skip cleanly if the wizard is
 //      not mounted (auth redirect / paywall).
 //   4. Drive three branches:
 //        (a) wholesaleOnly=false + ESIC warn → amber warn banner renders,
@@ -34,7 +34,7 @@
 import { test, expect, type Route } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
 
-const ROUTE = "/workspace/fundraise";
+const ROUTE = "/workspace/raise/round";
 const FOUNDER_EMAIL =
   process.env.QA_FOUNDER_FUNDRAISE_EMAIL ?? "qa-founder-1@blockid.au";
 
@@ -175,7 +175,7 @@ test.describe("Wholesale-only fundraise gate — P6b-test", () => {
     const mounted = (await wholesaleToggle.count()) > 0;
     test.skip(
       !mounted,
-      "Fundraise wizard not mounted on /workspace/fundraise — likely an auth or plan redirect.",
+      "Fundraise wizard not mounted on /workspace/raise/round — likely an auth or plan redirect.",
     );
 
     // ── Branch (a): warn-mode (wholesaleOnly=false) ────────────────────

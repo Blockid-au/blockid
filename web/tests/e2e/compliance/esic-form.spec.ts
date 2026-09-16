@@ -1,8 +1,8 @@
-// E2E — /workspace/esic-assessment founder form UI walk-through
+// E2E — /workspace/documents/compliance founder form UI walk-through
 // (P1n-esic-form-ui-e2e — closes the P1n-s708-form-ui-e2e tail-note that
 // brought the four /compliance/* detail-page forms (WGEA + Modern Slavery +
 // GST + s708) to Playwright parity but left the ESIC self-assessment
-// worksheet at `/workspace/esic-assessment` — the assessment lives outside
+// worksheet at `/workspace/documents/compliance` — the assessment lives outside
 // /compliance/* because it feeds the Fundraise ESIC gate, but it shares
 // the same "founder types → banner re-renders" contract the compliance
 // forms use.)
@@ -11,7 +11,7 @@
 // tests/e2e/compliance/gst-form.spec.ts + tests/e2e/compliance/s708-form.spec.ts:
 //   1. getAccount(QA_EMAIL) → skip cleanly when the fixture is missing so
 //      CI on a fresh clone stays green.
-//   2. loginAs() a seeded qa-founder and navigate to /workspace/esic-assessment.
+//   2. loginAs() a seeded qa-founder and navigate to /workspace/documents/compliance.
 //   3. Skip when the form heading is not visible (auth-gated redirect on
 //      unseeded fixtures — matches the mount-gate other compliance form
 //      specs use).
@@ -30,7 +30,7 @@
 import { test, expect } from "@playwright/test";
 import { getAccount, loginAs } from "../fixtures/accounts";
 
-const ROUTE = "/workspace/esic-assessment";
+const ROUTE = "/workspace/documents/compliance";
 const FOUNDER_EMAIL =
   process.env.QA_FOUNDER_ESIC_FORM_EMAIL ?? "qa-founder-1@blockid.au";
 

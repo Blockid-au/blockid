@@ -1,5 +1,5 @@
 // S20-A — reader + viewer scoping for the hash-chained `audit_events` log
-// behind /workspace/audit-log and /api/audit-log/export.
+// behind /workspace/settings/audit and /api/audit-log/export.
 //
 // Scoping (pure, unit-tested in events.test.ts):
 //   * project owner / admin  → the PROJECT's log (every actor), CSV export owner-only

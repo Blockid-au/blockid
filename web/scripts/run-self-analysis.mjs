@@ -376,4 +376,4 @@ console.log(`  View: cat web/content/reports/blockid-self-analysis-${TODAY}.md`)
 
 console.log(`\n━━━ Done ━━━`);
 console.log(`Founder dashboard now shows "${STARTUP_NAME}" as the active startup.`);
-console.log(`Sign in as admin@blockid.au at /dashboard/svi to see the full v2.6 render.`);
+console.log(`Sign in as admin@blockid.au at /workspace/score to see the full v2.6 render.`);

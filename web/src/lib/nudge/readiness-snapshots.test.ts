@@ -23,7 +23,7 @@ function buildResult(overrides: Partial<NudgeResult> = {}): NudgeResult {
     next_action: {
       title: "Wire your own Stripe in test-mode",
       reason: "Chapter 5 CTA",
-      cta_url: "/dashboard/integrations",
+      cta_url: "/workspace/evidence/connectors",
       cta_label: "Open integrations",
       category: "phase_advance",
     },
@@ -34,7 +34,7 @@ function buildResult(overrides: Partial<NudgeResult> = {}): NudgeResult {
         phase_slug: "1",
         why_it_matters: "raise blocker",
         raise_blocker: true,
-        cta_url: "/dashboard/data-room",
+        cta_url: "/workspace/investors/access",
       },
       {
         category: "11. Tax (AU)",
@@ -50,7 +50,7 @@ function buildResult(overrides: Partial<NudgeResult> = {}): NudgeResult {
         phase_slug: "8",
         why_it_matters: "esop",
         raise_blocker: true,
-        cta_url: "/dashboard/data-room",
+        cta_url: "/workspace/investors/access",
       },
       {
         category: "5. Market & Traction",
@@ -58,7 +58,7 @@ function buildResult(overrides: Partial<NudgeResult> = {}): NudgeResult {
         phase_slug: "5",
         why_it_matters: "diligence",
         raise_blocker: false,
-        cta_url: "/dashboard/data-room",
+        cta_url: "/workspace/investors/access",
       },
     ],
     readiness_score: {

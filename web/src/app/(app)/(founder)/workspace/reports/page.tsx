@@ -1,228 +1,122 @@
+// /workspace/reports — "All reports" (S-IA2, spec §A.1 row `/workspace/reports`,
+// empty state §B.4 block 5).
+//
+// One list of every generated artefact the signed-in founder has, newest
+// first, each row with a type chip + title + date + link. Data comes from
+// the shared loaders in ./load-reports.ts; the per-type tabs (business,
+// investor-pack, weekly, c-level) render from the hub layout.
+
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectScope, getCurrentProjectIsSandbox } from "@/lib/projects";
-import { pageScopeKeys, resolveSVIAccountIdForPage } from "@/lib/project-members/page-scope";
+import { getCurrentProjectIsSandbox, getProjectScope } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { BarChart3 } from "lucide-react";
-import { ReportsClient, type SnapshotRow } from "./reports-client";
-import type { SVIAnalysis } from "@/lib/svi-analysis";
-import { ReportArchive, type InvestorPackRow, type AssembledReportRow } from "@/components/workspace/report-archive";
+import { loadAllReports, type ReportListItem } from "./load-reports";
+import { ReportTypeChip } from "./report-type-chip";
 
 export const metadata: Metadata = {
-  title: "Weekly Reports",
-  description: "Track your Startup Value Index progress week by week on BlockID.",
+  title: "Reports | BlockID",
+  description: "Every report generated for your startup — business, investor pack, weekly and C-level.",
   robots: { index: false, follow: false },
 };
 
 export const dynamic = "force-dynamic";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-async function loadArchive(userId: string): Promise<{
-  investorPacks: InvestorPackRow[];
-  assembledReports: AssembledReportRow[];
-}> {
-  const admin = getSupabaseAdmin();
-  const now = new Date();
-  const investorPacks: InvestorPackRow[] = [];
-  const assembledReports: AssembledReportRow[] = [];
+const GENERATE_LINKS: ReadonlyArray<{ label: string; href: string }> = [
+  { label: "Business report", href: "/workspace/reports/business" },
+  { label: "Investor pack", href: "/workspace/reports/investor-pack" },
+  { label: "C-level", href: "/workspace/reports/c-level" },
+  { label: "Weekly", href: "/workspace/reports/weekly" },
+  { label: "LP report", href: "/workspace/lp-report" },
+  { label: "LP quarterly", href: "/dashboard/reports/lp-quarterly" },
+];
 
-  if (!admin) return { investorPacks, assembledReports };
-
-  try {
-    const { data: packs } = await admin
-      .from("investor_pack_shares")
-      .select("id, share_id, created_at, expires_at")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(20);
-    if (packs) {
-      for (const row of packs as any[]) {
-        investorPacks.push({
-          id: row.id,
-          share_id: row.share_id,
-          created_at: row.created_at,
-          expires_at: row.expires_at,
-          is_expired: new Date(row.expires_at).getTime() < now.getTime(),
-          download_url: `/api/investor-pack/download/${row.share_id}`,
-        });
-      }
-    }
-  } catch { /* investor_pack_shares not yet migrated */ }
-
-  try {
-    const { data: reports } = await admin
-      .from("assembled_reports")
-      .select("id, project_id, tier, created_at, total_words, title")
-      .eq("user_id", userId)
-      .eq("status", "complete")
-      .order("created_at", { ascending: false })
-      .limit(20);
-    if (reports && (reports as any[]).length > 0) {
-      const projectIds = [...new Set((reports as any[]).map((r: any) => r.project_id).filter(Boolean))];
-      const nameMap = new Map<string, string>();
-      if (projectIds.length > 0) {
-        try {
-          const { data: projects } = await admin.from("projects").select("id, name").in("id", projectIds);
-          if (projects) for (const p of projects as any[]) { if (p.name) nameMap.set(p.id, p.name); }
-        } catch { /* ignore */ }
-      }
-      for (const row of reports as any[]) {
-        assembledReports.push({
-          id: row.id,
-          order_id: row.id,
-          tier: typeof row.tier === "string" ? row.tier : "standard",
-          created_at: row.created_at,
-          word_count: typeof row.total_words === "number" ? row.total_words : 0,
-          startup_name: (row.project_id && nameMap.get(row.project_id)) || (typeof row.title === "string" && row.title) || "Startup",
-        });
-      }
-    }
-  } catch { /* assembled_reports may not exist yet */ }
-
-  return { investorPacks, assembledReports };
+function formatDate(iso: string): string {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return iso;
+  return new Date(t).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
-export default async function ReportsPage() {
+function ReportRow({ item }: { item: ReportListItem }) {
+  const linkClass =
+    "inline-flex items-center rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-ink-700 hover:bg-slate-50 transition-colors";
+  return (
+    <li
+      data-testid="report-row"
+      data-kind={item.kind}
+      data-date={item.date}
+      className="flex items-center gap-3 border-b border-surface-200 px-4 py-3 last:border-0"
+    >
+      <ReportTypeChip kind={item.kind} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-ink-800">{item.title}</p>
+        {item.meta ? <p className="truncate text-xs text-ink-700">{item.meta}</p> : null}
+      </div>
+      <time dateTime={item.date} className="shrink-0 font-mono text-xs text-ink-600">
+        {formatDate(item.date)}
+      </time>
+      {item.download ? (
+        <a href={item.href} download className={linkClass}>
+          Download
+        </a>
+      ) : (
+        <Link href={item.href} className={linkClass}>
+          View
+        </Link>
+      )}
+    </li>
+  );
+}
+
+export default async function AllReportsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/reports");
 
   const isSandbox = await getCurrentProjectIsSandbox();
-
-  const sb = getSupabaseAdmin();
-
-  let snapshots: SnapshotRow[] = [];
-  let currentSVI = 100;
-  let previousSVI = 100;
-  let currentStage = 0;
-  let wins: string[] = [];
-  let gaps: string[] = [];
-  let latestAISummary: string | null = null;
-
-  // S18-B — member-aware: snapshots + analyses are read off the OWNER's
-  // record; the archive (investor packs a caller minted) stays per caller.
+  // S18-B — member-aware: owner-keyed reads (weekly snapshots) resolve off
+  // the OWNER's record; caller-keyed artefacts stay per caller.
   const scope = await getProjectScope("viewer");
-  const { projectId, dataEmail } = pageScopeKeys(scope, user);
-
-  if (sb) {
-    const accountId = await resolveSVIAccountIdForPage(scope, user);
-
-    if (accountId) {
-      const { data: account } = await sb
-        .from("svi_accounts")
-        .select("id, current_svi, current_stage")
-        .eq("id", accountId)
-        .single();
-
-      if (account) {
-        // Load snapshots (latest 12) — include ai_summary and dimension_scores
-        const { data: snapshotRows } = await sb
-          .from("svi_snapshots")
-          .select("id, snapshot_date, svi_total, delta, ai_summary")
-          .eq("account_id", account.id)
-          .order("snapshot_date", { ascending: false })
-          .limit(12);
-
-        if (snapshotRows && snapshotRows.length > 0) {
-          snapshots = snapshotRows as SnapshotRow[];
-          currentSVI = snapshotRows[0].svi_total;
-          previousSVI =
-            snapshotRows.length > 1 ? snapshotRows[1].svi_total : currentSVI;
-          currentStage = account.current_stage ?? 0;
-
-          // Get the most recent AI summary from snapshots
-          for (const row of snapshotRows) {
-            if (row.ai_summary) {
-              latestAISummary = row.ai_summary as string;
-              break;
-            }
-          }
-        }
-
-        // Load latest analysis for wins/gaps (project-scoped)
-        const analysisQuery = sb
-          .from("svi_analyses")
-          .select("analysis_json")
-          .eq("email", dataEmail);
-        if (projectId) analysisQuery.eq("project_id", projectId);
-        else analysisQuery.is("project_id", null);
-
-        const { data: analysis } = await analysisQuery
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
-
-        if (analysis?.analysis_json) {
-          const parsed = analysis.analysis_json as SVIAnalysis;
-
-          // Wins: sub-scores with value >= 60
-          if (parsed.subs && Array.isArray(parsed.subs)) {
-            wins = parsed.subs
-              .filter((s) => s.value >= 60)
-              .map((s) => s.label);
-          }
-
-          // Gaps: top 3 evidence gaps
-          if (parsed.evidenceGaps && Array.isArray(parsed.evidenceGaps)) {
-            gaps = parsed.evidenceGaps.slice(0, 3).map((g) => g.label);
-          }
-        }
-      }
-    }
-  }
-
-  const { investorPacks, assembledReports } = await loadArchive(user.id);
+  const items = await loadAllReports(user, scope);
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
-      <div className="p-6 max-w-3xl mx-auto">
+      <div className="mx-auto max-w-3xl p-6">
         <div className="mb-6">
-          <h1 className="text-xl font-bold text-ink-800">Weekly Reports</h1>
-          <p className="text-sm text-ink-700 mt-1">
-            Track your SVI progress week by week.
-          </p>
+          <h1 className="text-xl font-bold text-ink-800">All reports</h1>
+          <p className="mt-1 text-sm text-ink-700">Every report generated for your startup, newest first.</p>
         </div>
 
-        {snapshots.length > 0 ? (
-          <ReportsClient
-            snapshots={snapshots}
-            currentSVI={currentSVI}
-            previousSVI={previousSVI}
-            currentStage={currentStage}
-            wins={wins}
-            gaps={gaps}
-            latestAISummary={latestAISummary}
-          />
+        <nav aria-label="Generate a report" className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+          <span className="font-semibold uppercase tracking-[0.14em] text-ink-700">Generate</span>
+          {GENERATE_LINKS.map((g) => (
+            <Link key={g.href} href={g.href} className="text-brand-600 hover:underline">
+              {g.label}
+            </Link>
+          ))}
+        </nav>
+
+        {items.length > 0 ? (
+          <ul className="overflow-hidden rounded-xl border border-surface-200 bg-white">
+            {items.map((item) => (
+              <ReportRow key={item.key} item={item} />
+            ))}
+          </ul>
         ) : (
-          <div className="rounded-2xl border border-dashed border-surface-200 bg-white px-6 py-16 text-center">
-            <BarChart3
-              strokeWidth={1.25}
-              className="mx-auto h-10 w-10 text-ink-700 mb-3"
-            />
-            <p className="text-ink-600 font-medium">
-              Your first weekly report will be generated after your SVI baseline
-              is set.
-            </p>
-            <p className="text-ink-700 text-sm mt-1">
-              Get your SVI score first.
-            </p>
+          <div
+            data-testid="reports-empty"
+            className="rounded-2xl border border-dashed border-surface-200 bg-white px-6 py-16 text-center"
+          >
+            <p className="font-medium text-ink-600">Your first Business Report is free (10 pages).</p>
+            <p className="mt-1 text-sm text-ink-700">It is what investors and evaluators read first.</p>
             <Link
-              href="/"
-              className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+              href="/workspace/reports/business"
+              className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
             >
-              Get your SVI score
+              Generate
             </Link>
           </div>
         )}
-
-        {/* Report archive — investor packs + assembled reports */}
-        <ReportArchive
-          investorPacks={investorPacks}
-          assembledReports={assembledReports}
-        />
       </div>
     </WorkspaceLayout>
   );

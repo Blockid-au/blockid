@@ -83,7 +83,7 @@ function renderHtml(args: {
       <tbody>${rows}</tbody>
     </table>
     <p style="margin:24px 0 4px 0;font-size:13px;color:#334155;">Log in to see the full narrative, deck-quoted evidence, sector cohort compare, and 3-case valuation:</p>
-    <p style="margin:0 0 20px 0;"><a href="https://blockid.au/workspace/svi-evidence" style="display:inline-block;padding:10px 18px;background:#0284c7;color:#ffffff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">Open your dashboard</a></p>
+    <p style="margin:0 0 20px 0;"><a href="https://blockid.au/workspace/evidence/gaps" style="display:inline-block;padding:10px 18px;background:#0284c7;color:#ffffff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">Open your dashboard</a></p>
     <p style="margin:20px 0 0 0;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#94a3b8;">Directional estimate only — not a formal valuation. Reply to this email if anything looks off.</p>
   </div>
 </body></html>`;

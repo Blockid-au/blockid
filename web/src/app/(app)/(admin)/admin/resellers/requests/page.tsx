@@ -57,7 +57,7 @@ async function loadRows(status: "pending" | "approved" | "denied"): Promise<Inbo
 export default async function AdminResellerRequestsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/admin/resellers/requests");
-  if (!isAdmin(user)) redirect("/dashboard/svi");
+  if (!isAdmin(user)) redirect("/workspace/score");
 
   const [pending, approved, denied] = await Promise.all([
     loadRows("pending"),

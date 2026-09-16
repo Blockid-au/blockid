@@ -153,7 +153,7 @@ export default async function AdminUsersPage({
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/admin/users");
-  if (!isAdmin(user)) redirect("/dashboard/svi");
+  if (!isAdmin(user)) redirect("/workspace/score");
 
   const sp = await searchParams;
   const q = (sp.q ?? "").trim().toLowerCase();

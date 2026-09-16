@@ -83,7 +83,7 @@ describe("describeNotification / notificationAction — Money Radar payloads (D-
   it("weekly_next_step / analysis_refresh use payload title + href with sane defaults", () => {
     expect(describeNotification(row("weekly_next_step", { title: "Apply for MVP Ventures" }))).toBe("Apply for MVP Ventures");
     expect(notificationAction(row("weekly_next_step", { href: "/funding/report/r1" }))).toEqual({ href: "/funding/report/r1", label: "Do it now" });
-    expect(notificationAction(row("analysis_refresh"))).toEqual({ href: "/workspace/business-report", label: "Read the update" });
+    expect(notificationAction(row("analysis_refresh"))).toEqual({ href: "/workspace/reports/business", label: "Read the update" });
     expect(describeNotification(row("analysis_refresh", { changes: 2 }))).toBe("Your funding plan was refreshed — 2 changes");
     expect(describeNotification(row("analysis_refresh"))).toBe("Your funding plan was refreshed");
     expect(describeNotification(row("weekly_next_step"))).toBe("Your next money step this week");
@@ -149,7 +149,7 @@ describe("describeNotification — svi_trend_alert (T0246 writer payload)", () =
     );
     expect(describeNotification(row("svi_trend_alert", { delta: -5.5 }))).toBe("Your SVI moved -5.5 points this week");
     expect(describeNotification(row("svi_trend_alert", {}))).toBe("SVI trend alert");
-    expect(notificationAction(row("svi_trend_alert", { delta: 6 }))).toEqual({ href: "/workspace/svi-trend", label: "Open SVI trend" });
+    expect(notificationAction(row("svi_trend_alert", { delta: 6 }))).toEqual({ href: "/workspace/score/trend", label: "Open SVI trend" });
   });
 });
 

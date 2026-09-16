@@ -92,7 +92,7 @@ describe("role-guiding-copy — next_step_recommender shape", () => {
 
 describe("role-guiding-copy — per-role CTA href anchors", () => {
   it("founder CTA points at the SVI dashboard", () => {
-    expect(ROLE_GUIDING_COPY.founder.next_step_recommender.cta.href).toBe("/dashboard/svi");
+    expect(ROLE_GUIDING_COPY.founder.next_step_recommender.cta.href).toBe("/workspace/score");
   });
   it("advisor CTA points at the client roster", () => {
     expect(ROLE_GUIDING_COPY.advisor.next_step_recommender.cta.href).toBe("/workspace/advisor/roster");

@@ -17,12 +17,12 @@ export async function GET() {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.redirect(
-      `${siteUrl()}/auth/login?next=/dashboard/integrations`,
+      `${siteUrl()}/auth/login?next=/workspace/evidence/connectors`,
     );
   }
   if (!isGoogleAnalyticsOAuthConfigured()) {
     return NextResponse.redirect(
-      `${siteUrl()}/dashboard/integrations?error=ga_oauth_not_configured`,
+      `${siteUrl()}/workspace/evidence/connectors?error=ga_oauth_not_configured`,
     );
   }
 

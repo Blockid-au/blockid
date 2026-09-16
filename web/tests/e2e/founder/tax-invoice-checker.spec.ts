@@ -1,5 +1,5 @@
 // E2E — <TaxInvoiceCheckerClient /> (P5-tax-invoice-checker-ui) on
-// /workspace/tax-invoice-checker runs the pure assessTaxInvoice helper in-
+// /workspace/finance/invoices runs the pure assessTaxInvoice helper in-
 // browser and lets a founder validate a supplier tax invoice against the ATO
 // s 29-70(1) rules live.
 //
@@ -13,7 +13,7 @@
 // tests/e2e/founder/exit-readiness-tile.spec.ts:
 //   1. getAccount()-gated skip when the qa-founder fixture is missing so
 //      CI on a fresh clone stays green rather than red.
-//   2. loginAs() and navigate to /workspace/tax-invoice-checker.
+//   2. loginAs() and navigate to /workspace/finance/invoices.
 //   3. Skip cleanly when the wizard is not visible (page auth-gates but
 //      does not tier-gate — a redirect here would flag a regression).
 //   4. Drive the wizard through four discrete band branches:
@@ -28,7 +28,7 @@
 import { test, expect } from "@playwright/test";
 import { getAccount, loginAs } from "../fixtures/accounts";
 
-const ROUTE = "/workspace/tax-invoice-checker";
+const ROUTE = "/workspace/finance/invoices";
 const FOUNDER_EMAIL =
   process.env.QA_FOUNDER_TAX_INVOICE_EMAIL ?? "qa-founder-1@blockid.au";
 

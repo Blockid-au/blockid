@@ -36,7 +36,7 @@ interface Props {
   variant?: "hero" | "compact";
   /**
    * True when the enclosing layout already mounts a global <FeatureSpotlight/>
-   * (e.g. WorkspaceLayout on /dashboard, /dashboard/advisor,
+   * (e.g. WorkspaceLayout on /dashboard, /workspace/investors/access,
    * /workspace/accelerator). We then avoid mounting a second scoped spotlight
    * on click — instead we clear localStorage + reload so the layout's global
    * spotlight surfaces the tour and there is exactly one dialog on screen.

@@ -89,7 +89,7 @@ export default async function InvestorMandatePage() {
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
-              href="/workspace/notifications"
+              href="/workspace/settings/notifications"
               className="inline-flex items-center gap-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-semibold transition-colors"
             >
               Notification settings

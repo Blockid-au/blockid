@@ -73,7 +73,7 @@ const METRICS: Record<string, MetricSpec> = {
   revenue: {
     slug: "revenue",
     title: "Revenue entries (last 30 days)",
-    description: "Every individual revenue entry — Stripe-synced or manually logged via /dashboard/finance.",
+    description: "Every individual revenue entry — Stripe-synced or manually logged via /workspace/finance.",
     source: "Supabase `revenue_entries` table, last 30 days",
     countLabel: "entry",
   },

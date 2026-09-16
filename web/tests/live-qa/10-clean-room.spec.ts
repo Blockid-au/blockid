@@ -36,7 +36,7 @@ test.describe("Clean room", () => {
     expect(r.status).toBe(409);
     expect(r.body.error).toBe("computed_task");
 
-    await visit("/workspace/clean-room");
+    await visit("/workspace/exit/clean-room");
     await expect(page).toHaveURL(/\/workspace\/clean-room/);
     await expect(page.getByTestId("clean-room")).toBeVisible({ timeout: 30_000 });
     if (!c.body.checklist.roomExists) {
@@ -55,7 +55,7 @@ test.describe("Clean room", () => {
     expect(task).toBeTruthy();
     if (task.done) await patch(api, "/api/data-room/clean-room", { taskId: "scope-team", done: false });
 
-    await visit("/workspace/clean-room");
+    await visit("/workspace/exit/clean-room");
     const row = page.locator('[data-testid="clean-room-task"][data-task="scope-team"]');
     await expect(row).toBeVisible({ timeout: 30_000 });
     await row.getByTestId("clean-room-tick").click();

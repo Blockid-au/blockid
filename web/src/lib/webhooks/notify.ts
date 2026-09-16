@@ -43,7 +43,7 @@ export const notifyEndpointDisabled: DisabledNotifier = async (args) => {
         host: hostOf(args.url),
         reason: args.reason,
         failures: args.reason === "auto_disabled" ? MAX_CONSECUTIVE_FAILURES : null,
-        href: "/workspace/integrations",
+        href: "/workspace/evidence/connectors",
       },
       dedupeKey: `webhook_disabled:${args.endpointId}`,
       throttleMs: 24 * 60 * 60_000,

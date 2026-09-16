@@ -58,7 +58,7 @@ export default async function AdminRevenueSpendPage() {
   if (!user) redirect("/auth/login?next=/admin/revenue-spend");
 
   const isAdmin = user.email === ADMIN_EMAIL || user.role === "admin";
-  if (!isAdmin) redirect("/dashboard/svi");
+  if (!isAdmin) redirect("/workspace/score");
 
   const supabase = getSupabaseAdmin();
 

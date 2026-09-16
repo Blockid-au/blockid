@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.redirect(
-      `${baseUrl()}/auth/login?next=/workspace/integrations`,
+      `${baseUrl()}/auth/login?next=/workspace/evidence/connectors`,
     );
   }
 
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     process.env.GITHUB_OAUTH_CLIENT_ID ?? process.env.GITHUB_CLIENT_ID;
   if (!clientId) {
     return NextResponse.redirect(
-      `${baseUrl()}/workspace/integrations?error=github_not_configured`,
+      `${baseUrl()}/workspace/evidence/connectors?error=github_not_configured`,
     );
   }
 

@@ -47,7 +47,7 @@ export function ReportOwnerActions({ reportId, projectId, className }: ReportOwn
         setSave({ kind: "error", message: data.message ?? data.error ?? "Could not save — try again." });
         return;
       }
-      setSave({ kind: "saved", href: "/workspace/data-room" });
+      setSave({ kind: "saved", href: "/workspace/documents/data-room" });
     } catch {
       setSave({ kind: "error", message: "Network error — check your connection and try again." });
     }

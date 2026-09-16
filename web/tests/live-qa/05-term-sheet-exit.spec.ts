@@ -10,7 +10,7 @@ import { evidence, post } from "./lib/api";
 
 test.describe("Term sheet compare", () => {
   test("with fewer than two analysed sheets the compare view shows guidance, no picker", async ({ page, visit }, testInfo) => {
-    await visit("/workspace/term-sheet");
+    await visit("/workspace/raise/term-sheet");
     await expect(page.getByTestId("term-sheet-compare")).toBeVisible();
     const empty = page.getByTestId("compare-empty");
     await expect(empty).toBeVisible();

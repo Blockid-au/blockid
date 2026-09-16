@@ -94,7 +94,7 @@ describe("checkCompliance — corporate branch (ABN / register / SHA)", () => {
     const item = byId(checkCompliance({ signals: {} }), "sha");
     expect(item.status).toBe("warning");
     expect(item.priority).toBe("P1");
-    expect(item.link).toBe("/workspace/data-room");
+    expect(item.link).toBe("/workspace/documents/data-room");
   });
 
   it("SHA flips to pass when hasShareholdersAgreement true", () => {
@@ -154,7 +154,7 @@ describe("checkCompliance — investor readiness (pitch / model / dataroom)", ()
       const it = byId(items, id);
       expect(it.status).toBe("warning");
       expect(it.priority).toBe("P1");
-      expect(it.link).toBe("/workspace/data-room");
+      expect(it.link).toBe("/workspace/documents/data-room");
     }
   });
 

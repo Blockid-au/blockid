@@ -214,7 +214,7 @@ async function POST_handler(request: Request) {
   // interpolates only its own session id here — the order row is created
   // below, after the session exists — so the page resolves
   // session_id → owned order id server-side.
-  const successUrl = `${origin}/dashboard/reports/order?session_id={CHECKOUT_SESSION_ID}`;
+  const successUrl = `${origin}/workspace/reports/order?session_id={CHECKOUT_SESSION_ID}`;
   const cancelUrl = `${origin}/dashboard?report_order=cancel`;
 
   // UTC-day-scoped idempotency: same (user, business, day) → same session.

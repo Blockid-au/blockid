@@ -985,7 +985,7 @@ export function SVIEntrance() {
                       Your analysis is saved and waiting for you.
                     </p>
                     <div className="flex flex-wrap items-center gap-2 mt-3">
-                      <a href={`/auth/login?next=/dashboard/svi`} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors">
+                      <a href={`/auth/login?next=/workspace/score`} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors">
                         Sign In &amp; Get {FREE_SIGNUP_CREDITS} Free Credits
                       </a>
                       <span className="text-[10px] text-brand-500">Use code <strong>LAUNCH50</strong> for 50% off</span>
@@ -2115,10 +2115,10 @@ function TopBar() {
           </div>
           <Link href="/pricing" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Pricing</Link>
           <Link href="/insights" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Insights</Link>
-          <Link href="/dashboard/svi" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Dashboard</Link>
+          <Link href="/workspace/score" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Dashboard</Link>
           <LanguageToggle variant="icon" className="ml-1" />
           {user ? (
-            <Link href="/dashboard/svi" className="ml-2 h-9 inline-flex items-center gap-2 rounded-full bg-brand-50 border border-brand-200 px-3 hover:bg-brand-100 transition-colors">
+            <Link href="/workspace/score" className="ml-2 h-9 inline-flex items-center gap-2 rounded-full bg-brand-50 border border-brand-200 px-3 hover:bg-brand-100 transition-colors">
               <span className="h-6 w-6 rounded-full bg-brand-600 flex items-center justify-center text-white text-[10px] font-bold">
                 {(user.displayName ?? user.email)[0].toUpperCase()}
               </span>
@@ -2150,10 +2150,10 @@ function TopBar() {
             <div className="my-2 border-t border-surface-200" />
             <Link href="/pricing" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-medium text-ink-700 hover:bg-surface-100 rounded-lg">Pricing</Link>
             <Link href="/insights" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-medium text-ink-700 hover:bg-surface-100 rounded-lg">Insights</Link>
-            <Link href="/dashboard/svi" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-medium text-ink-700 hover:bg-surface-100 rounded-lg">Dashboard</Link>
+            <Link href="/workspace/score" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-medium text-ink-700 hover:bg-surface-100 rounded-lg">Dashboard</Link>
             <div className="my-2 border-t border-surface-200" />
             {user ? (
-              <Link href="/dashboard/svi" onClick={() => setMobileOpen(false)} className="mx-3 h-10 flex items-center justify-center gap-2 rounded-lg bg-brand-50 border border-brand-200 text-sm font-medium text-brand-700">
+              <Link href="/workspace/score" onClick={() => setMobileOpen(false)} className="mx-3 h-10 flex items-center justify-center gap-2 rounded-lg bg-brand-50 border border-brand-200 text-sm font-medium text-brand-700">
                 <span className="h-6 w-6 rounded-full bg-brand-600 flex items-center justify-center text-white text-[10px] font-bold">
                   {(user.displayName ?? user.email)[0].toUpperCase()}
                 </span>

@@ -19,7 +19,7 @@ import { RecentAnalyses } from "@/components/dashboard/recent-analyses";
 import { SviCompletenessHeatmap } from "@/components/svi/svi-completeness-heatmap";
 import { SviFixRoadmap } from "@/components/svi/svi-fix-roadmap";
 
-import type { ReportEntry, SVIHistoryPoint } from "@/app/(app)/(founder)/dashboard/svi/page";
+import type { ReportEntry, SVIHistoryPoint } from "@/app/(app)/(founder)/workspace/score/page";
 
 // Dimension weight labels (for tooltip)
 const DIM_WEIGHTS: Record<string, string> = {

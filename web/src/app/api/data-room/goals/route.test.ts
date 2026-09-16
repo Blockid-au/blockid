@@ -7,7 +7,7 @@
 // POST /api/data-room/goals init seeds a founder's progress rows from the
 // templates for a given data room; POST /api/data-room/goals (no action)
 // upserts a single progress row, awards credits on completion, and echoes
-// the updated row back to the /workspace/data-room tracker.
+// the updated row back to the /workspace/documents/data-room tracker.
 //
 // Silent regressions this pins:
 //   - dropping the getCurrentUser() guard on GET so an anonymous caller lists

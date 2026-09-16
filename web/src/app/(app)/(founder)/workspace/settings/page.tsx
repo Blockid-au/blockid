@@ -1,7 +1,7 @@
 // /workspace/settings — Account settings (S24-B, 2026-09-12).
 // Hosts the "Delete account" section the Privacy Policy's removal right
 // (clause 8) points at; profile details, password and notification
-// preferences stay on /workspace/profile.
+// preferences stay on /workspace/settings/profile.
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -61,8 +61,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <div>
           <h1 className="text-xl font-bold text-ink-800">Account settings</h1>
           <p className="text-sm text-ink-700 mt-1">
-            Profile, password and notifications live on <Link href="/workspace/profile" className="underline">My Profile</Link>. Export a copy of your data from the{" "}
-            <Link href="/workspace/audit-log" className="underline">audit log</Link>. This page handles your account itself.
+            Profile, password and notifications live on <Link href="/workspace/settings/profile" className="underline">My Profile</Link>. Export a copy of your data from the{" "}
+            <Link href="/workspace/settings/audit" className="underline">audit log</Link>. This page handles your account itself.
           </p>
         </div>
 

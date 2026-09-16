@@ -2,7 +2,7 @@
 # verify-equity-gate.sh
 #
 # CI invariant: no file under web/src/app/api/equity/** or
-# web/src/app/workspace/equity-offer/** may reference "blockchain-sync" or
+# web/src/app/workspace/esop/offers/** may reference "blockchain-sync" or
 # "tokenization" without also gating the flow behind a
 # `legal_review_passed=true` check in the same file.
 #
@@ -19,7 +19,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SEARCH_ROOTS=(
   "${REPO_ROOT}/web/src/app/api/equity"
-  "${REPO_ROOT}/web/src/app/workspace/equity-offer"
+  "${REPO_ROOT}/web/src/app/workspace/esop/offers"
 )
 
 RED='\033[31m'

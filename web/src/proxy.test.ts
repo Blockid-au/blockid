@@ -693,7 +693,7 @@ describe("public-page caching (S31-D) — CSP_PUBLIC_HASH_MODE", () => {
 
   it("flag on: a non-public route always gets the nonce policy (no document) and no proxy Cache-Control", async () => {
     process.env.CSP_PUBLIC_HASH_MODE = "1";
-    for (const path of ["/dashboard", "/workspace/audit-log", "/auth/login"]) {
+    for (const path of ["/dashboard", "/workspace/settings/audit", "/auth/login"]) {
       const res = await proxy(pageReq(path));
       expect(res.headers.get("x-blockid-csp"), path).toBe("nonce");
       expect(cspOfRes(res), path).toContain(`'nonce-${res.headers.get("x-nonce")}'`);

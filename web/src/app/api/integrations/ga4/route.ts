@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.redirect(
-      `${baseUrl()}/auth/login?next=/workspace/integrations`,
+      `${baseUrl()}/auth/login?next=/workspace/evidence/connectors`,
     );
   }
 
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     process.env.GOOGLE_OAUTH_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID;
   if (!clientId) {
     return NextResponse.redirect(
-      `${baseUrl()}/workspace/integrations?error=ga4_not_configured`,
+      `${baseUrl()}/workspace/evidence/connectors?error=ga4_not_configured`,
     );
   }
 

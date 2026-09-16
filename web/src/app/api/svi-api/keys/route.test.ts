@@ -144,7 +144,7 @@ describe("GET /api/svi-api/keys — list", () => {
     expect(mocks.listSviApiKeysMock).toHaveBeenCalledWith(USER.id);
   });
 
-  it("echoes the lib's row list verbatim so the /workspace/svi-api table sees the same shape the lib returns", async () => {
+  it("echoes the lib's row list verbatim so the /workspace/settings/enterprise table sees the same shape the lib returns", async () => {
     const rows = [
       { id: "k1", name: "Prod", key_prefix: "svi_live_aaaaaa1", tier: "free" },
       { id: "k2", name: "Staging", key_prefix: "svi_live_bbbbbb2", tier: "team" },
@@ -232,7 +232,7 @@ describe("POST /api/svi-api/keys — create", () => {
     });
   });
 
-  it("response 'message' is a stable string — the /workspace/svi-api UI copy depends on the exact wording", async () => {
+  it("response 'message' is a stable string — the /workspace/settings/enterprise UI copy depends on the exact wording", async () => {
     const res = await POST(postReq({ name: "X" }));
     expect((await json(res)).message).toBe(
       "Store this key — it won't be shown again.",

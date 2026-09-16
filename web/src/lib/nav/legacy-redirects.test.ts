@@ -74,6 +74,47 @@ describe("LEGACY_REDIRECTS — live table", () => {
     expect(resolveLegacyRedirect("/workspace/billing")).toBeNull();
   });
 
+  it("S-IA2 — every founder hub tab row is live (sample per hub) and nested routes map one hop", () => {
+    const expectLive = (source: string, destination: string) =>
+      expect(resolveLegacyRedirect(source), source).toBe(destination);
+    expectLive("/dashboard/svi", "/workspace/score");
+    expectLive("/workspace/analyses", "/workspace/score/history");
+    expectLive("/workspace/integrations", "/workspace/evidence/connectors");
+    expectLive("/workspace/roadmap", "/workspace/plan");
+    expectLive("/workspace/business-report", "/workspace/reports/business");
+    expectLive("/dashboard/reports", "/workspace/reports");
+    expectLive("/dashboard/reports/order", "/workspace/reports/order");
+    expectLive("/dashboard/investor-links", "/workspace/investors/access");
+    expectLive("/dashboard/settings/mentor-access", "/workspace/investors/access");
+    expectLive("/dashboard/valuation", "/workspace/valuation");
+    expectLive("/dashboard/fundraise", "/workspace/raise");
+    expectLive("/workspace/fundraise", "/workspace/raise/round");
+    expectLive("/dashboard/accelerator", "/workspace/accelerators");
+    expectLive("/dashboard/finance", "/workspace/finance");
+    expectLive("/workspace/cap-table", "/workspace/equity/cap-table");
+    expectLive("/workspace/equity-esop", "/workspace/esop/manage");
+    expectLive("/dashboard/team", "/workspace/team/salaries");
+    // Market is the Strategy root tab until an Overview page exists (§A.1 deviation, hubs.ts).
+    expectLive("/dashboard/market-size", "/workspace/strategy");
+    expectLive("/workspace/data-room", "/workspace/documents/data-room");
+    expectLive("/compliance/calendar", "/workspace/documents/compliance");
+    expectLive("/workspace/exit-strategy", "/workspace/exit/strategy");
+    expectLive("/dashboard/portfolio", "/workspace/projects/compare");
+    expectLive("/workspace/svi-api", "/workspace/settings/enterprise");
+    expectLive("/workspace/applications", "/workspace/accelerator/applications");
+    const nested = LEGACY_REDIRECTS.filter((r) => r.source.includes("/:"));
+    expect(nested.map((r) => r.source)).toEqual(expect.arrayContaining([
+      "/workspace/guide/:path*",
+      "/workspace/financial-forecast/:path*",
+      "/workspace/fundraise/:path*",
+      "/workspace/exit-strategy/:path*",
+    ]));
+    for (const r of nested) {
+      const param = r.source.slice(r.source.lastIndexOf("/:"));
+      expect(r.destination.endsWith(param), `${r.source} must carry ${param} through`).toBe(true);
+    }
+  });
+
   it("every destination page exists and no source still has a page", () => {
     for (const r of LEGACY_REDIRECTS) {
       expect(routeExists(r.destination), `${r.source} → ${r.destination} (missing page)`).toBe(true);
@@ -129,8 +170,11 @@ describe("DEFERRED_REDIRECTS — spec §A.5 rows waiting on later sprints", () =
       seen.add(r.source);
       expect(["S-IA2", "S-IA4", "S-IA5"]).toContain(r.pendingSprint);
     }
-    expect(DEFERRED_REDIRECTS.length).toBeGreaterThanOrEqual(80);
-    const hubs = new Set(DEFERRED_REDIRECTS.map((r) => r.destination.split("/").slice(0, 3).join("/")));
+    // S-IA2 flipped the founder hub rows live; §A.5 coverage is now the
+    // union of both tables.
+    expect(LEGACY_REDIRECTS.length).toBeGreaterThanOrEqual(85);
+    expect(DEFERRED_REDIRECTS.length).toBeLessThanOrEqual(5);
+    const hubs = new Set([...LEGACY_REDIRECTS, ...DEFERRED_REDIRECTS].map((r) => r.destination.split("/").slice(0, 3).join("/")));
     for (const hub of [
       "/workspace/score", "/workspace/evidence", "/workspace/plan", "/workspace/reports", "/workspace/investors",
       "/workspace/valuation", "/workspace/raise", "/workspace/accelerators", "/workspace/finance", "/workspace/equity",
@@ -152,7 +196,7 @@ describe("DEFERRED_REDIRECTS — spec §A.5 rows waiting on later sprints", () =
       if (routeExists(r.destination)) ripe.push(`${r.source} → ${r.destination} (${r.pendingSprint})`);
     }
     expect(ripe, "deferred destinations that now exist — promote them").toEqual([]);
-    expect(DEFERRED_REDIRECTS.filter((r) => r.held).map((r) => r.source)).toEqual(["/dashboard/reports", "/dashboard/onboarding"]);
+    expect(DEFERRED_REDIRECTS.filter((r) => r.held).map((r) => r.source)).toEqual(["/dashboard/onboarding"]);
   });
 
   it("every deferred source still has a page today (nothing silently 404s)", () => {

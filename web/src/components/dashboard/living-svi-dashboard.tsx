@@ -155,21 +155,21 @@ const MENTOR_MESSAGES: Record<
     advice:
       "Get your first paying customers. Revenue proves market fit. Connect your analytics and Stripe to track traction.",
     cta: "Track Your Traction",
-    ctaHref: "/workspace/metrics",
+    ctaHref: "/workspace/evidence/metrics",
   },
   3: {
     title: "Traction confirmed!",
     advice:
       "Prepare for fundraising. Clean your cap table, build a data room, and get your financials investor-ready.",
     cta: "Prepare Data Room",
-    ctaHref: "/workspace/data-room",
+    ctaHref: "/workspace/documents/data-room",
   },
   4: {
     title: "You're scaling!",
     advice:
       "Optimize governance, plan your Series A, and build your board. Your SVI puts you ahead of most AU startups at this stage.",
     cta: "Review Cap Table",
-    ctaHref: "/workspace/cap-table",
+    ctaHref: "/workspace/equity/cap-table",
   },
 };
 
@@ -297,9 +297,9 @@ function gapToCTA(gap: SVIEvidenceGap): { label: string; href: string } {
   const has = (...terms: string[]) => terms.some((t) => lower.includes(t));
   if (has("evidence", "upload", "document", "testimonial")) return { label: "Upload Evidence", href: "/workspace/evidence" };
   if (has("pitch deck", "pitch")) return { label: "Upload Pitch Deck", href: "/workspace/evidence" };
-  if (has("github", "repo", "code")) return { label: "Connect GitHub", href: "/workspace/integrations" };
-  if (has("website", "url", "seo")) return { label: "Audit Website", href: "/workspace/integrations" };
-  if (has("financial", "revenue", "metric")) return { label: "Update Metrics", href: "/workspace/metrics" };
+  if (has("github", "repo", "code")) return { label: "Connect GitHub", href: "/workspace/evidence/connectors" };
+  if (has("website", "url", "seo")) return { label: "Audit Website", href: "/workspace/evidence/connectors" };
+  if (has("financial", "revenue", "metric")) return { label: "Update Metrics", href: "/workspace/evidence/metrics" };
   if (has("cap table", "equity", "vesting")) return { label: "Setup Cap Table", href: "/workspace/equity" };
   return { label: "Take Action", href: "/" };
 }

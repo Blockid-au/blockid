@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -1106,8 +1107,8 @@ function ResultPanel({
             </a>
           </div>
           {/* Full Analyst Report CTA — prominent action card */}
-          <a
-            href="/workspace/business-report"
+          <Link
+            href="/workspace/reports/business"
             className="mt-5 group flex items-start justify-between gap-3 rounded-2xl border-2 border-brand-600 bg-gradient-to-br from-brand-50 to-brand-100/60 px-5 py-5 hover:from-brand-100 hover:to-brand-200/60 hover:shadow-md transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             <div className="flex items-start gap-4">
@@ -1127,7 +1128,7 @@ function ResultPanel({
               </div>
             </div>
             <ArrowRight strokeWidth={2} className="h-5 w-5 text-brand-600 shrink-0 mt-1 group-hover:translate-x-0.5 transition-transform" />
-          </a>
+          </Link>
           {result.persisted && (
             <a
               href={`/reports/${result.slug}`}

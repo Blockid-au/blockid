@@ -427,5 +427,5 @@ export function exportFilename(
 
 /** Canonical in-app path where a buyer views a finished order. */
 export function reportOrderPath(orderId: string): string {
-  return `/dashboard/reports/order?order=${encodeURIComponent(orderId)}`;
+  return `/workspace/reports/order?order=${encodeURIComponent(orderId)}`;
 }

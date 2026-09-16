@@ -57,15 +57,15 @@ import { cn } from "@/lib/utils";
 export const PHASE_ROUTES: Record<PhaseKey, string> = {
   1: "/dashboard",                        // Vision / Day-0 Idea
   2: "/workspace/score/criteria",             // Idea Validation
-  3: "/dashboard/benchmark",              // Market Research
+  3: "/workspace/score/benchmark",              // Market Research
   4: "/workspace/evidence",               // MVP / Product Discovery
-  5: "/workspace/metrics",                // PMF / Early Traction
-  6: "/workspace/revenue",                // Revenue / Business Model
-  7: "/dashboard/finance",                // Growth / Analytics
-  8: "/dashboard/team",                   // Team & Culture
-  9: "/dashboard/fundraise",              // Funding-Ready
-  10: "/workspace/data-room",             // Fundraise / Term Sheet
-  11: "/workspace/revenue",               // Post-Funding / Scale
+  5: "/workspace/evidence/metrics",                // PMF / Early Traction
+  6: "/workspace/finance/revenue",                // Revenue / Business Model
+  7: "/workspace/finance",                // Growth / Analytics
+  8: "/workspace/team/salaries",                   // Team & Culture
+  9: "/workspace/raise",              // Funding-Ready
+  10: "/workspace/documents/data-room",             // Fundraise / Term Sheet
+  11: "/workspace/finance/revenue",               // Post-Funding / Scale
   12: "/workspace/exit",                  // Exit / Beyond
 };
 

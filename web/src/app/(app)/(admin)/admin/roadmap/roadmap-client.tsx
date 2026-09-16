@@ -137,7 +137,7 @@ const PHASES: Phase[] = [
       {
         title: "Product Metrics Tracking",
         goals: [
-          { label: "Metrics input form (/workspace/metrics)", done: false },
+          { label: "Metrics input form (/workspace/evidence/metrics)", done: false },
           { label: "startup_metrics database table", done: false },
           { label: "Auto-import from OAuth connectors (GitHub, Analytics, Stripe)", done: false },
           { label: "Metrics dashboard with trends", done: false },
@@ -175,7 +175,7 @@ const PHASES: Phase[] = [
         title: "Unified Cap Table Engine",
         goals: [
           { label: "Persistent cap_tables table (versioned, audit trail)", done: false },
-          { label: "Workspace cap table page (/workspace/cap-table)", done: false },
+          { label: "Workspace cap table page (/workspace/equity/cap-table)", done: false },
           { label: "Tool-to-Workspace bridge (\"Save to Workspace\" on all tools)", done: false },
           { label: "Dilution scenario modeling", done: false },
           { label: "Cap table to SVI feed (auto-set hasCapTable, hasVesting signals)", done: false },

@@ -169,7 +169,7 @@ export async function DashboardValuationCard({ email }: { email: string }) {
             {formatAUD(Math.round(est.high * (founderPct / 100)))}
           </span>
           <Link
-            href="/workspace/cap-table"
+            href="/workspace/equity/cap-table"
             className="text-[10px] font-medium text-brand-600 hover:text-brand-700"
           >
             Edit cap table &rarr;

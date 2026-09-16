@@ -1,6 +1,6 @@
 /**
  * 24 — Outbound webhooks (release-qa2 row 21, qa4 SSRF posture):
- * `/workspace/integrations` #webhooks — plan gate on Free (402
+ * `/workspace/evidence/connectors` #webhooks — plan gate on Free (402
  * plan_required + gate copy), the SSRF guard rejects `http://169.254.169.254`
  * and `http://localhost` (and the https metadata host), an endpoint is
  * created through the UI with the signing secret shown ONCE (never returned
@@ -37,7 +37,7 @@ interface Delivery {
 test.describe("Webhooks", () => {
   test("plan gate: Free → 402 plan_required + gate copy; Growth → access.allowed with the event catalogue", async ({ page, visit, api, qa }, testInfo) => {
     const list = await get<{ ok: boolean; error?: string; message?: string; endpoints?: Endpoint[]; access?: { allowed: boolean; reason: string }; events?: Array<{ event: string }> }>(api, "/api/webhooks");
-    await visit("/workspace/integrations");
+    await visit("/workspace/evidence/connectors");
     const section = page.locator("section#webhooks");
     await expect(section).toBeVisible({ timeout: 30_000 });
     await expect(section.getByRole("heading", { name: "Webhooks" })).toBeVisible();
@@ -73,7 +73,7 @@ test.describe("Webhooks", () => {
 
   test("create an endpoint through the UI: secret shown once, absent from the list", async ({ page, visit, growth, api }, testInfo) => {
     void growth;
-    await visit("/workspace/integrations");
+    await visit("/workspace/evidence/connectors");
     const section = page.locator("section#webhooks");
     await expect(section).toBeVisible({ timeout: 30_000 });
     await section.locator("[data-webhooks-add]").click();
@@ -112,7 +112,7 @@ test.describe("Webhooks", () => {
     void growth;
     const id = getScratch<string>("webhooks.endpointId");
     test.skip(!id, "no endpoint was created earlier in this run");
-    await visit("/workspace/integrations");
+    await visit("/workspace/evidence/connectors");
     const row = page.locator(`li[data-webhook-endpoint="${id}"]`);
     await expect(row).toBeVisible({ timeout: 30_000 });
     const [res] = await Promise.all([
@@ -148,7 +148,7 @@ test.describe("Webhooks", () => {
     void growth;
     const id = getScratch<string>("webhooks.endpointId");
     test.skip(!id, "no endpoint was created earlier in this run");
-    await visit("/workspace/integrations");
+    await visit("/workspace/evidence/connectors");
     const row = page.locator(`li[data-webhook-endpoint="${id}"]`);
     await expect(row).toBeVisible({ timeout: 30_000 });
     page.once("dialog", (d) => void d.accept());

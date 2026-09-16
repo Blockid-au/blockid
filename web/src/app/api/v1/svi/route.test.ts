@@ -2,11 +2,11 @@
 //
 // The route is the institutional / team / free-tier public SVI data API
 // (T_SVI_EXC_0014). It's the surface external analysts + funds hit when
-// they hold a `svi_live_...` bearer key issued by /workspace/svi-api.
+// they hold a `svi_live_...` bearer key issued by /workspace/settings/enterprise.
 // Behaviour to pin against silent regressions:
 //
 //   1. Bearer-key auth — the route MUST refuse anonymous callers with a 401
-//      and the sign-up hint pointing at /workspace/svi-api. Any regression
+//      and the sign-up hint pointing at /workspace/settings/enterprise. Any regression
 //      that drops the guard exposes the full listings feed to public
 //      scrapers, which invalidates the tiered rate-limit business model.
 //   2. Ticker branch — when `?ticker=` is supplied and the row exists, the
@@ -125,14 +125,14 @@ describe("/api/v1/svi — module contract", () => {
 });
 
 describe("GET — auth guard", () => {
-  it("returns 401 with the /workspace/svi-api sign-up hint when the caller has no valid bearer key", async () => {
+  it("returns 401 with the /workspace/settings/enterprise sign-up hint when the caller has no valid bearer key", async () => {
     authenticateSviApiKeyMock.mockResolvedValue(null);
     const res = await GET(req("http://localhost/api/v1/svi"));
     expect(res.status).toBe(401);
     const body = await res.json();
     expect(body.error.code).toBe("unauthorized");
     expect(body.error.message).toContain("svi_live_");
-    expect(body.error.message).toContain("/workspace/svi-api");
+    expect(body.error.message).toContain("/workspace/settings/enterprise");
     expect(computeListingsMock).not.toHaveBeenCalled();
   });
 

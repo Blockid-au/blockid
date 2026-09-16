@@ -245,7 +245,7 @@ export const PitchVideo1Min: React.FC = () => {
             {/* Browser demo: Score page */}
             <Sequence from={280} durationInFrames={170}>
               <ScreenDemo
-                url="blockid.au/dashboard/svi"
+                url="blockid.au/workspace/score"
                 imageSrc="video-assets/score-page.png"
                 descriptionLines={[
                   "[Result] SVI Score with 10-page AI analysis",

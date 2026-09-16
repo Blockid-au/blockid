@@ -3,7 +3,7 @@
 // redomicile-decision-tree). Signal, not advice. The section body (P12d-
 // redomicile-decision) walks the same rules narratively; this module makes
 // them evaluatable so a founder can see red/amber/green live in the
-// /dashboard/exit-readiness wizard.
+// /workspace/exit/benchmark wizard.
 //
 // The honest founder-facing answer for most AU startups is "hold" — the
 // section exists to help founders rule redomicile out cleanly rather than

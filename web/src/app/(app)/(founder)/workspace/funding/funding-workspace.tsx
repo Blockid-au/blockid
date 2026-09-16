@@ -10,10 +10,9 @@
 import * as React from "react";
 import Link from "next/link";
 import Markdown from "react-markdown";
-import { ArrowRight, Bell, CalendarDays, ExternalLink, Landmark, Layers3, Lock, Mail, RefreshCw, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Bell, CalendarDays, ExternalLink, Landmark, Layers3, Lock, RefreshCw, Sparkles } from "lucide-react";
 import type { ScoredGrant, ScoredProgram, TimelineItem } from "@/lib/agents/grant-advisor";
 import type { AuProgramRow } from "@/lib/funding/seed-map";
-import type { InvestorMatch } from "@/lib/funding/investor-match";
 import { FUNDING_COPY } from "@/lib/funding/copy";
 import { ReportGrantCard, ReportProgramCard, type ReportCardContext } from "@/components/funding/report-cards";
 import { TimelineGantt, TimelineTable } from "@/components/funding/timeline-gantt";
@@ -28,15 +27,18 @@ import { rovingIndex } from "@/lib/a11y/keyboard";
 import { FUNDING_TABS, type FundingTab } from "./funding-tabs";
 export { FUNDING_TABS, isFundingTab, type FundingTab } from "./funding-tabs";
 
-/** Growth extras (T0251, §4h Growth row). `unlocked` false → locked cards with the D-3 copy. */
+/**
+ * Growth extras (T0251, §4h Growth row). `unlocked` false → locked cards with
+ * the D-3 copy. The investor reverse-match moved to /workspace/investors
+ * (S-IA2) — see components/investors/investor-matches-panel.tsx.
+ */
 export interface GrowthExtras {
   unlocked: boolean;
-  investors: InvestorMatch[];
   refresh: { quarter: string; body_md: string; changes: number; created_at: string } | null;
   /** ISO day the next quarterly note lands. */
   nextRefreshDate: string | null;
   startup: string | null;
-  /** Founder's nearest capital ("Sydney") for the empty-state programs link; null → the directory index. */
+  /** Founder's nearest capital ("Sydney"); null → unknown. */
   capital?: string | null;
 }
 
@@ -120,7 +122,6 @@ export function FundingWorkspace({ report, events, capitalMap, alertKinds, initi
         {tab === "events" ? <EventsTab events={events} state={report?.state ?? null} /> : null}
         {tab === "timeline" ? <TimelineTab report={report} /> : null}
         {tab === "capital" ? <CapitalMapTab sections={capitalMap} /> : null}
-        {tab === "investors" ? <InvestorsTab growth={growth ?? null} /> : null}
         {tab === "refresh" ? <RefreshTab growth={growth ?? null} /> : null}
         {tab === "alerts" ? <AlertsTab kinds={alertKinds} /> : null}
       </div>
@@ -319,71 +320,6 @@ function LockedCard({ title, body, icon }: { title: string; body: string; icon: 
   );
 }
 
-function InvestorsTab({ growth }: { growth: GrowthExtras | null }) {
-  if (!growth?.unlocked) {
-    return (
-      <section aria-label="Investors who match" data-investors>
-        <LockedCard
-          title={FUNDING_COPY.growth.investorsTitle}
-          body={FUNDING_COPY.growth.investorsLocked}
-          icon={<Users className="h-4 w-4 text-action" aria-hidden />}
-        />
-      </section>
-    );
-  }
-  // Never-blank rule: zero opted-in investors → the queue line + a way to meet
-  // investors in person via the programs directory for the founder's capital.
-  const programsHref = growth.capital ? `/funding/programs/${capitalSlug(growth.capital)}` : "/funding/programs";
-  return (
-    <section aria-label="Investors who match" data-investors data-count={growth.investors.length}>
-      <p className="text-sm text-secondary">{FUNDING_COPY.growth.investorsIntro}</p>
-      {growth.investors.length === 0 ? (
-        <div className="mt-4 rounded-2xl border border-dashed border-line-subtle bg-surface-sunken p-5 text-sm text-secondary" data-no-investors>
-          <p>{FUNDING_COPY.growth.noInvestors}</p>
-          <Link href={programsHref} className="mt-3 inline-flex items-center gap-1 font-semibold text-action" data-no-investors-programs>
-            {FUNDING_COPY.growth.noInvestorsBrowse} <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-          </Link>
-        </div>
-      ) : (
-        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-          {growth.investors.map((inv) => (
-            // Card shows name, firm, thesis and the preference axes only — the
-            // investor's email is never on the wire (InvestorMatch has no such field).
-            <li key={inv.investor_id} className="rounded-2xl border border-line-subtle bg-surface p-4" data-investor={inv.investor_id} data-score={inv.score}>
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-semibold text-primary" data-investor-name>{inv.name}</p>
-                  {inv.firm ? <p className="text-xs text-secondary" data-investor-firm>{inv.firm}</p> : null}
-                </div>
-                <span className="rounded-full bg-action/10 px-2 py-0.5 text-xs font-semibold text-action">Fit {inv.score}</span>
-              </div>
-              {inv.thesis ? <p className="mt-2 text-sm text-secondary" data-investor-thesis>“{inv.thesis}”</p> : null}
-              <ul className="mt-2 space-y-1 text-xs text-secondary">
-                {inv.reasons.map((r) => (
-                  <li key={r}>· {r}</li>
-                ))}
-                {inv.gaps.map((g) => (
-                  <li key={`gap-${g}`} className="text-tertiary">· Outside their {g} preference</li>
-                ))}
-              </ul>
-              {inv.cheque_band && inv.cheque_band !== "any" ? (
-                <p className="mt-2 text-xs text-tertiary">Cheque: {inv.cheque_band.replace(/_/g, " ")}</p>
-              ) : null}
-              <a
-                href={inv.intro_href}
-                className="mt-3 inline-flex items-center gap-1 rounded-lg border border-line-subtle px-3 py-1.5 text-xs font-semibold text-primary"
-                data-request-intro
-              >
-                <Mail className="h-3.5 w-3.5" aria-hidden /> {FUNDING_COPY.growth.requestIntro}
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
 function RefreshTab({ growth }: { growth: GrowthExtras | null }) {
   if (!growth?.unlocked) {
     return (
@@ -432,7 +368,7 @@ function AlertsTab({ kinds }: { kinds: FundingWorkspaceProps["alertKinds"] }) {
         <p className="mt-1 text-sm text-secondary">
           The weekly refresh will re-run your match and alert you before every deadline you fit — at most one email a day, a digest once a
           week, in-app alerts deduplicated. You will see them here and under{" "}
-          <Link href="/workspace/notifications" className="font-semibold text-action">Notifications › Money</Link>.
+          <Link href="/workspace/settings/notifications" className="font-semibold text-action">Notifications › Money</Link>.
         </p>
       </div>
       <ul className="mt-4 grid gap-3 sm:grid-cols-2">

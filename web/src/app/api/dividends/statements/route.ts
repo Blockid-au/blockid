@@ -1,4 +1,4 @@
-// GET /api/dividends/statements — the /workspace/dividends statements panel's
+// GET /api/dividends/statements — the /workspace/finance/dividends statements panel's
 // one read (S25-B): every dividend record of the active project (newest
 // first) with the statements issued for each, the caller's role, the listed
 // cost and whether statements are included for the caller.

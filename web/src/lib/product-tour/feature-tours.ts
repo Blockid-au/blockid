@@ -160,7 +160,7 @@ const TOURS: FeatureTour[] = [
   },
   {
     slug: "svi",
-    route: "/dashboard/svi",
+    route: "/workspace/score",
     icon: "gauge",
     version: 1,
     estimatedMinutes: 4,
@@ -208,14 +208,14 @@ const TOURS: FeatureTour[] = [
         anchor: "[data-tour=svi-actions]",
         cta: {
           label: { en: "Open the SVI dashboard", vi: "Mở bảng SVI" },
-          href: "/dashboard/svi",
+          href: "/workspace/score",
         },
       },
     ],
   },
   {
     slug: "dataroom",
-    route: "/workspace/data-room",
+    route: "/workspace/documents/data-room",
     icon: "folder",
     version: 1,
     estimatedMinutes: 4,
@@ -262,7 +262,7 @@ const TOURS: FeatureTour[] = [
         anchor: "[data-tour=dataroom-activity]",
         cta: {
           label: { en: "Open Data Room", vi: "Mở Data Room" },
-          href: "/workspace/data-room",
+          href: "/workspace/documents/data-room",
         },
       },
     ],
@@ -359,7 +359,7 @@ const TOURS: FeatureTour[] = [
   },
   {
     slug: "exit-readiness",
-    route: "/dashboard/exit-readiness",
+    route: "/workspace/exit/benchmark",
     icon: "flag",
     version: 1,
     estimatedMinutes: 3,
@@ -397,7 +397,7 @@ const TOURS: FeatureTour[] = [
         anchor: "[data-tour=exit-history]",
         cta: {
           label: { en: "Open Exit Readiness", vi: "Mở Exit Readiness" },
-          href: "/dashboard/exit-readiness",
+          href: "/workspace/exit/benchmark",
         },
       },
     ],
@@ -430,7 +430,7 @@ const TOURS: FeatureTour[] = [
           vi: "Chỉ số định giá startup — không giới hạn kiểu Nikkei. Mọi hành động trên BlockID đều đẩy nó lên hoặc xuống.",
         },
         anchor: "[data-tour=\"svi-score-card\"]",
-        cta: { label: { en: "Open SVI", vi: "Mở SVI" }, href: "/dashboard/svi" },
+        cta: { label: { en: "Open SVI", vi: "Mở SVI" }, href: "/workspace/score" },
       },
       {
         id: "roadmap",
@@ -440,7 +440,7 @@ const TOURS: FeatureTour[] = [
           vi: "Lộ trình tự sinh theo giai đoạn hiện tại. Hoàn thành 2–3 việc trên cùng và SVI sẽ tăng trong tuần.",
         },
         anchor: "[data-tour=\"roadmap-nav\"]",
-        cta: { label: { en: "Open roadmap", vi: "Mở lộ trình" }, href: "/workspace/roadmap" },
+        cta: { label: { en: "Open roadmap", vi: "Mở lộ trình" }, href: "/workspace/plan" },
       },
       {
         id: "evaluation",
@@ -450,7 +450,7 @@ const TOURS: FeatureTour[] = [
           vi: "Điền những gì bạn biết; phần còn lại chúng tôi tự điền từ dữ liệu công khai. Bổ sung chứng cứ thiếu là cách tăng SVI nhanh nhất trong ngày đầu.",
         },
         // v4 sidebar: the Score row (Prove group) is the door to the criteria tab.
-        anchor: "a[href=\"/dashboard/svi\"]",
+        anchor: "a[href=\"/workspace/score\"]",
         cta: { label: { en: "Open criteria", vi: "Mở tiêu chí" }, href: "/workspace/score/criteria" },
       },
       {
@@ -463,7 +463,7 @@ const TOURS: FeatureTour[] = [
         // v4 sidebar: the data room is a Documents tab (Company group, phase 3+);
         // anchor on the Get investor-ready row, which seeds the data room.
         anchor: "a[href=\"/startup-package\"]",
-        cta: { label: { en: "Open data room", vi: "Mở data room" }, href: "/workspace/data-room" },
+        cta: { label: { en: "Open data room", vi: "Mở data room" }, href: "/workspace/documents/data-room" },
       },
       {
         id: "investor-pack",
@@ -474,13 +474,13 @@ const TOURS: FeatureTour[] = [
         },
         // v4 sidebar: the investor pack is a Reports tab — anchor on the Reports row.
         anchor: "a[href=\"/workspace/reports\"]",
-        cta: { label: { en: "Open investor pack", vi: "Mở bộ tài liệu" }, href: "/workspace/investor-pack" },
+        cta: { label: { en: "Open investor pack", vi: "Mở bộ tài liệu" }, href: "/workspace/reports/investor-pack" },
       },
     ],
   },
   {
     slug: "advisor-first-run",
-    route: "/dashboard/advisor",
+    route: "/workspace/investors/access",
     icon: "users",
     version: 1,
     estimatedMinutes: 2,
@@ -940,7 +940,7 @@ export function featureTourSlugs(): FeatureTourSlug[] {
 /** Best-effort match: the first tour whose `route` prefixes the current pathname. */
 export function tourForRoute(pathname: string): FeatureTour | undefined {
   if (typeof pathname !== "string" || pathname.length === 0) return undefined;
-  // Prefer the longest matching route so /dashboard/svi wins over /dashboard.
+  // Prefer the longest matching route so /workspace/score wins over /dashboard.
   return [...TOURS]
     .sort((a, b) => b.route.length - a.route.length)
     .find((t) => pathname === t.route || pathname.startsWith(t.route + "/"));

@@ -380,12 +380,12 @@ describe("exportFilename", () => {
 
 describe("reportOrderPath", () => {
   it("points at the delivery page", () => {
-    expect(reportOrderPath("abc-123")).toBe("/dashboard/reports/order?order=abc-123");
+    expect(reportOrderPath("abc-123")).toBe("/workspace/reports/order?order=abc-123");
   });
 
   it("encodes the id so a hostile value cannot append query params", () => {
     expect(reportOrderPath("a&next=//evil.example")).toBe(
-      "/dashboard/reports/order?order=a%26next%3D%2F%2Fevil.example",
+      "/workspace/reports/order?order=a%26next%3D%2F%2Fevil.example",
     );
   });
 });

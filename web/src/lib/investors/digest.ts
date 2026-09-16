@@ -102,7 +102,7 @@ export function buildDigestPipeline(
     stage_moves: stageMoves,
     overdue,
     committed,
-    href: `${opts.siteBase.replace(/\/+$/, "")}/workspace/investors`,
+    href: `${opts.siteBase.replace(/\/+$/, "")}/workspace/investors/pipeline`,
   };
 }
 

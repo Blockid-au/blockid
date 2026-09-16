@@ -43,7 +43,7 @@ export async function GET(request: Request) {
 
   if (!code || !state || !expected || state !== expected) {
     return NextResponse.redirect(
-      `${baseUrl()}/workspace/integrations?error=github_state_mismatch`,
+      `${baseUrl()}/workspace/evidence/connectors?error=github_state_mismatch`,
     );
   }
 
@@ -53,7 +53,7 @@ export async function GET(request: Request) {
   // Gate BEFORE the code exchange so a refused member does not burn the code.
   const { scope, denied } = await projectScopeOrRedirect(
     "admin",
-    `${baseUrl()}/workspace/integrations`,
+    `${baseUrl()}/workspace/evidence/connectors`,
     "github_forbidden_role",
   );
   if (denied) return denied;
@@ -66,7 +66,7 @@ export async function GET(request: Request) {
     process.env.GITHUB_OAUTH_CLIENT_SECRET ?? process.env.GITHUB_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
     return NextResponse.redirect(
-      `${baseUrl()}/workspace/integrations?error=github_not_configured`,
+      `${baseUrl()}/workspace/evidence/connectors?error=github_not_configured`,
     );
   }
 
@@ -127,7 +127,7 @@ export async function GET(request: Request) {
   } catch (err) {
     console.error("[blockid:integrations:github:callback]", err);
     return NextResponse.redirect(
-      `${baseUrl()}/workspace/integrations?error=github_exchange_failed`,
+      `${baseUrl()}/workspace/evidence/connectors?error=github_exchange_failed`,
     );
   }
 }

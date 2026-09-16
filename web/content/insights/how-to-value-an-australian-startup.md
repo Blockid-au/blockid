@@ -124,7 +124,7 @@ Foreign frameworks miss three things that materially change AU founder economics
 2. **R&D Tax Incentive.** For entities with <A$20M turnover, the refundable offset is 43.5% of eligible R&D spend. That's real cash — factor it into runway before you set a raise amount.
 3. **AFSL / accredited investor rules.** Australia's "sophisticated investor" thresholds (A$2.5M net assets or A$250k income) determine who can legally see your deck without disclosure — and most seed capital comes from sophisticateds. Structure your raise accordingly.
 
-Our [investor-readiness workspace](/workspace/fundraise) walks through each of these against your specific cap table.
+Our [investor-readiness workspace](/workspace/raise/round) walks through each of these against your specific cap table.
 
 ## Common valuation mistakes AU founders make
 
@@ -162,6 +162,6 @@ Free: [BlockID benchmarks](/svi), Cut Through Venture, Folklore, State of Startu
 
 ---
 
-**Next steps:** Run your idea through the free [Startup Value Index](/svi) for a full 13-criteria breakdown, or use the [idea valuation tool](/tools/idea-valuation) to generate a stage-appropriate range in under 60 seconds. When you're ready to raise, the [fundraise workspace](/workspace/fundraise) manages your data room and outreach in one place. See [pricing](/pricing) for upgrade options.
+**Next steps:** Run your idea through the free [Startup Value Index](/svi) for a full 13-criteria breakdown, or use the [idea valuation tool](/tools/idea-valuation) to generate a stage-appropriate range in under 60 seconds. When you're ready to raise, the [fundraise workspace](/workspace/raise/round) manages your data room and outreach in one place. See [pricing](/pricing) for upgrade options.
 
 *General information only. Not financial or legal advice. Consult a qualified adviser before making decisions.*

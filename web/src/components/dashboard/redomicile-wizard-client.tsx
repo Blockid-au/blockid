@@ -1,7 +1,7 @@
 "use client";
 
 // P12d-redomicile-wizard — client wizard rendered beneath the
-// AcquisitionWizardClient on /dashboard/exit-readiness. Runs the pure
+// AcquisitionWizardClient on /workspace/exit/benchmark. Runs the pure
 // assessRedomicile helper in-browser (no fetch, no API, no I/O) so a founder
 // can flip triggers and see the recommendation + warnings + statutory
 // mechanism update live.

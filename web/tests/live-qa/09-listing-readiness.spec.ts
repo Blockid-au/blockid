@@ -45,7 +45,7 @@ test.describe("Listing readiness", () => {
     expect(asx.body.rows.length).toBeGreaterThanOrEqual(10);
     expect(nasdaq.body.rows.length).toBeGreaterThanOrEqual(10);
 
-    await visit("/workspace/listing-readiness");
+    await visit("/workspace/exit/listing");
     await expect(page).toHaveURL(/\/workspace\/listing-readiness/);
     await expect(page.getByTestId("listing-readiness")).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId("listing-score")).toContainText(/Readiness/i);
@@ -70,7 +70,7 @@ test.describe("Listing readiness", () => {
     expect(profile.body.facts.market_makers).toBe(3);
     expect(profile.body.facts.directors_total).toBe(3);
 
-    await visit("/workspace/listing-readiness");
+    await visit("/workspace/exit/listing");
     await page.getByTestId("listing-toggle-facts").click();
     await expect(page.getByTestId("listing-facts-form")).toBeVisible();
     await expect(page.getByTestId("fact-market_makers")).toHaveValue("3");
@@ -87,7 +87,7 @@ test.describe("Listing readiness", () => {
     const missing = asx.body.rows.filter((r) => !r.rule || !r.sourceRef || !r.asAt || !r.basis);
     await evidence(testInfo, "rows", asx.body.rows.map((r) => ({ id: r.id, status: r.status, rule: r.rule, asAt: r.asAt, basis: r.basis.slice(0, 120) })));
     expect(missing.map((r) => r.id)).toEqual([]);
-    await visit("/workspace/listing-readiness");
+    await visit("/workspace/exit/listing");
     const first = page.getByTestId("listing-row").first();
     await expect(first).toContainText(/Basis:/);
     await expect(first).toContainText(/checked \d{4}-\d{2}-\d{2}/);
@@ -103,7 +103,7 @@ test.describe("Listing readiness", () => {
     for (const r of rows) {
       expect(r.basis, `${r.id} basis must not assert an A$ / % / count threshold`).not.toMatch(/A\$\s?\d|\d+\s?%|\d+ (holders|shareholders|market makers)/);
     }
-    await visit("/workspace/listing-readiness");
+    await visit("/workspace/exit/listing");
     const ui = page.locator('[data-testid="listing-row"][data-status="confirm_current_rule"]');
     await expect(ui.first()).toBeVisible({ timeout: 30_000 });
     await expect(ui.first()).toContainText(/Confirm current rule/i);
@@ -122,7 +122,7 @@ test.describe("Listing readiness", () => {
     expect(preview.body.creditNote).not.toMatch(/Charged to your credits/);
     await credits.assertUnchanged(before, "listing PDF preview");
 
-    await visit("/workspace/listing-readiness");
+    await visit("/workspace/exit/listing");
     const exportBtn = page.getByTestId("listing-export");
     await expect(exportBtn).toContainText(/Export PDF · included \(Growth\+\)/);
 

@@ -36,7 +36,7 @@ function DeltaChip({ delta }: { delta: number | null }) {
 
 export function AIEvaluationSummary({
   summary,
-  href = "/dashboard/history",
+  href = "/workspace/score/history",
 }: {
   summary: StartupAISummary;
   href?: string;

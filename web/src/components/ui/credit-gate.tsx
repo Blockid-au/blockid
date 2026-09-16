@@ -346,7 +346,7 @@ export function CreditGate({
                   Share your feedback about BlockID — useful suggestions earn <strong>0.25–1.00 credits</strong> instantly, evaluated by our AI R&amp;D team.
                 </p>
                 <a
-                  href="/workspace/notifications?tab=feedback"
+                  href="/workspace/settings/notifications?tab=feedback"
                   className="mt-2 inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-amber-800 hover:bg-amber-100 transition-colors"
                 >
                   Share Feedback &amp; Earn Credits

@@ -150,7 +150,7 @@ const SHIPPED_HIGHLIGHTS: RoadmapItem[] = [
   {
     title: "Exit-readiness tile (Phase 2.9)",
     note:
-      "Per-phase InvestorReadinessTile on /dashboard/svi, weekly founder digest cron, AU comparable-exits data source wired into ch09 investor pack and CFO valuation.",
+      "Per-phase InvestorReadinessTile on /workspace/score, weekly founder digest cron, AU comparable-exits data source wired into ch09 investor pack and CFO valuation.",
   },
   {
     title: "Enhanced SVI + Multi-Agent Reports (Phase 2.5)",
@@ -328,8 +328,8 @@ export default async function DocsPage() {
             <p className="text-sm text-ink-600 mb-4">
               Growth and Startup Package founders and every evaluator plan can
               register HTTPS endpoints at{" "}
-              <Link href="/workspace/integrations#webhooks" className="text-brand-600 underline">
-                /workspace/integrations
+              <Link href="/workspace/evidence/connectors#webhooks" className="text-brand-600 underline">
+                /workspace/evidence/connectors
               </Link>
               . BlockID POSTs a JSON envelope{" "}
               <code>{"{ id, event, created_at, api_version, data }"}</code>{" "}

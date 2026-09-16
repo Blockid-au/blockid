@@ -41,7 +41,7 @@ describe("createGoogleOAuthState", () => {
     ["dashboard", null],
     ["", null],
     [null, null],
-    ["/workspace/analyses?claimed=2", "/workspace/analyses?claimed=2"],
+    ["/workspace/score/history?claimed=2", "/workspace/score/history?claimed=2"],
   ])("next=%j → %j", (raw, expected) => {
     expect(createGoogleOAuthState(raw, NOW).next).toBe(expected);
   });

@@ -6,7 +6,7 @@ import { FOOTER_COLUMNS } from "@/components/marketing/footer-columns";
 
 // T0238 — mirrors MarketingFooter (Funding · Product · For · Case Studies ·
 // Docs · Legal) from the shared column list; the previous copy linked the
-// protected /workspace/data-room, which bounced anonymous visitors to login.
+// protected /workspace/documents/data-room, which bounced anonymous visitors to login.
 // A Company column is kept for the pages only this legacy shell reaches.
 const columns = [
   ...FOOTER_COLUMNS,

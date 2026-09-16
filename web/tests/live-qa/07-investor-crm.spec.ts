@@ -27,7 +27,7 @@ test.describe("Investor CRM", () => {
     const list = await get<{ ok: boolean; contacts: Contact[] }>(api, "/api/investors/crm/contacts");
     await evidence(testInfo, "GET contacts", { status: list.status, count: list.body.contacts?.length });
     expect(list.status).toBe(200);
-    await visit("/workspace/investors");
+    await visit("/workspace/investors/pipeline");
     await expect(page.getByTestId("investor-crm")).toBeVisible();
     if ((list.body.contacts ?? []).length === 0) {
       await expect(page.getByTestId("crm-empty")).toBeVisible();
@@ -43,11 +43,11 @@ test.describe("Investor CRM", () => {
     if (prior) {
       const reset = await patch(api, `/api/investors/crm/contacts/${prior.id}`, { name: "Jane Angel", org: "Angel Co", type: "vc", stage: "researching", nextStep: "Send deck", nextStepDue: "2026-09-01" });
       await evidence(testInfo, "reset existing Jane (re-run)", { status: reset.status });
-      await visit("/workspace/investors");
+      await visit("/workspace/investors/pipeline");
       await expect(page.getByTestId("crm-card").filter({ hasText: "Jane Angel" }).first()).toBeVisible({ timeout: 30_000 });
       return;
     }
-    await visit("/workspace/investors");
+    await visit("/workspace/investors/pipeline");
     await page.getByTestId("crm-add").click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
@@ -73,7 +73,7 @@ test.describe("Investor CRM", () => {
     expect(jane, "Jane Angel exists via API").toBeTruthy();
     setScratch("crm.janeId", jane!.id);
     expect(jane!.next_step_due).toBe("2026-09-01");
-    await visit("/workspace/investors");
+    await visit("/workspace/investors/pipeline");
     const card = page.getByTestId("crm-card").filter({ hasText: "Jane Angel" }).first();
     await expect(card.getByTestId("crm-overdue")).toBeVisible();
     await expect(card.getByTestId("crm-overdue")).toContainText(/Overdue/);
@@ -83,7 +83,7 @@ test.describe("Investor CRM", () => {
   });
 
   test("move the contact on to Contacted (card arrow → API stage)", async ({ page, visit, api }, testInfo) => {
-    await visit("/workspace/investors");
+    await visit("/workspace/investors/pipeline");
     await page.getByRole("button", { name: "Move Jane Angel on to Contacted" }).click();
     const id = getScratch<string>("crm.janeId")!;
     await expect.poll(async () => (await get<{ contact: Contact }>(api, `/api/investors/crm/contacts/${id}`)).body.contact?.stage, { timeout: 20_000 }).toBe("contacted");
@@ -92,7 +92,7 @@ test.describe("Investor CRM", () => {
 
   test("add a note from the drawer → timeline row + touchpoint via API", async ({ page, visit, api }, testInfo) => {
     const id = getScratch<string>("crm.janeId")!;
-    await visit("/workspace/investors");
+    await visit("/workspace/investors/pipeline");
     await page.getByTestId("crm-card").filter({ hasText: "Jane Angel" }).first().locator("button").first().click();
     const drawer = page.getByTestId("crm-drawer");
     await expect(drawer).toBeVisible();
@@ -133,7 +133,7 @@ test.describe("Investor CRM", () => {
   });
 
   test("export CSV is owner-only and links from the board", async ({ page, visit, api }, testInfo) => {
-    await visit("/workspace/investors");
+    await visit("/workspace/investors/pipeline");
     await expect(page.getByTestId("crm-export")).toBeVisible();
     const res = await api.get("/api/investors/crm/export.csv");
     const text = await res.text();

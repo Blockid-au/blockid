@@ -98,7 +98,7 @@ export const INVESTOR_READINESS_CALLOUTS: Record<number, InvestorReadinessCallou
     phase_label_vi: PHASE_LABELS[6].vi,
     atlassian_moment:
       "2003-2010 — Atlassian reaches ~US$100M revenue with essentially no sales team; product-led growth defines the era (Atlassian S-1 MD&A, 2015).",
-    blockid_route: "/dashboard/cfo",
+    blockid_route: "/workspace/valuation/cfo",
     callout_copy_en:
       "Author the 3-year P&L + cash-flow + burn model in base / bull / bear. If trailing-12-month turnover clears A$75k, BlockID's compliance-calendar surfaces the GST-registration nudge, and the R&D Tax Incentive registration deadline sits 10 months after your FY end.",
     callout_copy_vi:
@@ -110,7 +110,7 @@ export const INVESTOR_READINESS_CALLOUTS: Record<number, InvestorReadinessCallou
     phase_label_vi: PHASE_LABELS[7].vi,
     atlassian_moment:
       "2005 — First profitable year; the ShipIt hackathon starts, and Pledge 1% is co-founded the year after.",
-    blockid_route: "/dashboard/integrations",
+    blockid_route: "/workspace/evidence/connectors",
     callout_copy_en:
       "Connect GA4 and Stripe live-mode. Weekly SVI delta emails begin from here, and the growth playbook plus referrals scaffold light up in the workspace shell.",
     callout_copy_vi:
@@ -122,7 +122,7 @@ export const INVESTOR_READINESS_CALLOUTS: Record<number, InvestorReadinessCallou
     phase_label_vi: PHASE_LABELS[8].vi,
     atlassian_moment:
       "2005 ShipIt starts, 2006 Foundation + Pledge 1%, 2007 five core values codified — Atlassian's culture stack is documented before the board scales in 2012.",
-    blockid_route: "/dashboard/team",
+    blockid_route: "/workspace/team/salaries",
     callout_copy_en:
       "Draft your ESOP scheme rules and run BlockID's 8-point Div 83A start-up eligibility check (ITAA97 s83A-33 / s83A-45). Fair Work Award mapping and the six-month hiring plan sit alongside the CHRO agent output — general information only, not personal financial product advice.",
     callout_copy_vi:
@@ -134,7 +134,7 @@ export const INVESTOR_READINESS_CALLOUTS: Record<number, InvestorReadinessCallou
     phase_label_vi: PHASE_LABELS[9].vi,
     atlassian_moment:
       "2010 — Atlassian is ~US$55M cash-on-hand and profitable before Accel Partners even calls. The readiness came from operating cashflow, not investor pitching (TechCrunch 2010-07-14).",
-    blockid_route: "/dashboard/fundraise",
+    blockid_route: "/workspace/raise",
     callout_copy_en:
       "The BlockID data-room shell is Atlassian-S-1-shaped: 12 folders, 102 documents, LLM-audited for inconsistencies. Run the ESIC self-assessment (ITAA97 Div 360) before you approach anyone, and keep the AFSL disclaimer visible on every valuation output.",
     callout_copy_vi:
@@ -146,7 +146,7 @@ export const INVESTOR_READINESS_CALLOUTS: Record<number, InvestorReadinessCallou
     phase_label_vi: PHASE_LABELS[10].vi,
     atlassian_moment:
       "2010 Accel US$60M and 2014 T. Rowe Price US$150M — both rounds were 100% secondary; 2014 UK Plc reorg enabled the dual-class structure; NASDAQ IPO 2015-12-10.",
-    blockid_route: "/dashboard/fundraise",
+    blockid_route: "/workspace/raise",
     callout_copy_en:
       "Chapter 10 splits primary versus secondary rounds — the Atlassian-defining pattern. Wholesale-investor gating (Corps Act s708(8) + s708(11)) runs against a running 12-month s708(1) small-scale counter so no round accidentally crosses the retail-disclosure boundary.",
     callout_copy_vi:
@@ -158,7 +158,7 @@ export const INVESTOR_READINESS_CALLOUTS: Record<number, InvestorReadinessCallou
     phase_label_vi: PHASE_LABELS[11].vi,
     atlassian_moment:
       "2010 Bitbucket, 2017 Trello, 2018 OpsGenie, 2020 Team Anywhere, 2022 Delaware redomicile, 2023 Loom, FY25 US$5.2B revenue and 83% gross margin.",
-    blockid_route: "/dashboard/portfolio",
+    blockid_route: "/workspace/projects/compare",
     callout_copy_en:
       "Monthly board packs (SVI + KPIs + runway + asks) plus a compliance calendar for BAS, ASIC annual review, WGEA and Modern Slavery thresholds. Cap-table snapshots can hash to the private EVM chain when you want a durable evidentiary trail.",
     callout_copy_vi:

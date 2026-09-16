@@ -15,7 +15,7 @@
 //   • `v4Href` targets are exactly the deferred-redirect destinations, so
 //     S-IA2 has one list to flip
 
-import { readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { describe, it, expect } from "vitest";
 
@@ -33,6 +33,7 @@ import {
 } from "./nav-groups";
 import { PERSONAS, PERSONA_KEYS, type PersonaKey } from "@/lib/nav/persona";
 import { DEFERRED_REDIRECTS, LEGACY_REDIRECTS } from "@/lib/nav/legacy-redirects";
+import { HUBS, HUB_IDS, hubTabHref } from "@/lib/nav/hubs";
 import { VISIBILITY } from "@/lib/entitlements/tier-visibility";
 import { NAV_PHASES } from "@/lib/nav/founder-phase-shared";
 import type { Segment } from "@/lib/segments";
@@ -399,5 +400,65 @@ describe("NAV_GROUPS — every pre-v4 href still resolves (D6)", () => {
       expect(row!.destination === i.v4Href || row!.destination.startsWith(`${i.v4Href}/`), `${i.href} → ${row!.destination} vs v4Href ${i.v4Href}`).toBe(true);
       expect(pageExists(i.v4Href), `${i.v4Href} exists — flip href to it and move the redirect live`).toBe(false);
     }
+  });
+});
+
+
+// G13-W2-IA2 addendum (W1 post-ship review): a page that exists is NOT
+// reachable just because it exists. Every static founder page under
+// /workspace or /dashboard must have an inbound link — a sidebar leaf, a
+// hub tab (lib/nav/hubs.ts) or a literal `href` in a non-test component
+// (tests, product tours and the nav catalogues themselves do not count).
+describe("NAV_GROUPS — no founder page is URL-only (every page has an inbound link)", () => {
+  const FOUNDER_DIR = resolve(APP_DIR, "(app)/(founder)");
+  const founderRoutes = new Set<string>();
+  collectRoutes(FOUNDER_DIR, "", founderRoutes);
+
+  // Literal hrefs in every src .ts/.tsx file outside tests / tours / nav catalogues.
+  function inboundHrefs(): Set<string> {
+    const out = new Set<string>();
+    const SRC = resolve(__dirname, "../..");
+    const skip = /(\.test\.tsx?$|\/lib\/product-tour\/|\/lib\/nav\/|components\/workspace\/nav-groups\.ts$)/;
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const p = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (entry.name === "node_modules") continue;
+          walk(p);
+        } else if (/\.tsx?$/.test(entry.name) && !skip.test(p)) {
+          const text = readFileSync(p, "utf8");
+          for (const m of text.matchAll(/["'`](\/(?:workspace|dashboard)\/[A-Za-z0-9/_\-]+)/g)) out.add(m[1]);
+        }
+      }
+    };
+    walk(SRC);
+    return out;
+  }
+
+  it("every static /workspace + /dashboard page is a nav leaf, a hub tab, or linked from a component", () => {
+    const leaves = new Set(allNavLeaves([...NAV_GROUPS, ADMIN_NAV_GROUP, ...RESELLER_NAV_GROUPS]).map((i) => i.href.split("?")[0]));
+    const tabs = new Set<string>();
+    for (const id of HUB_IDS) {
+      tabs.add(HUBS[id].root);
+      for (const t of HUBS[id].tabs) tabs.add(hubTabHref(HUBS[id], t));
+    }
+    const linked = inboundHrefs();
+    // Pages whose only entry is by design out-of-band (query-tokened email
+    // links, Stripe return URLs, admin consoles) — each with the reason.
+    const OUT_OF_BAND: Record<string, string> = {
+      "/checkout/success": "Stripe success_url (D6)",
+      "/dashboard/onboarding": "S-IA4 merges it into /onboarding (deferred redirect)",
+      "/workspace": "redirect-only root — the founder landing is /dashboard",
+      "/onboarding": "post-signup wizard, entered from the auth flow",
+    };
+    const orphans: string[] = [];
+    for (const route of [...founderRoutes].sort()) {
+      if (route.includes("[")) continue; // dynamic: reached from a list page by id
+      if (route.startsWith("/dashboard/admin") || route.startsWith("/workspace/evaluations/cohort")) continue;
+      if (OUT_OF_BAND[route]) continue;
+      if (leaves.has(route) || tabs.has(route) || linked.has(route)) continue;
+      orphans.push(route);
+    }
+    expect(orphans, "pages reachable only by typing the URL — give each a hub tab, a leaf or a link card").toEqual([]);
   });
 });

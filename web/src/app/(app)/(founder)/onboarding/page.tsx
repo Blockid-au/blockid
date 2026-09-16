@@ -57,7 +57,7 @@ export default async function OnboardingPage({
       .single();
     // S31-B (2026-09-13): every /pricing "Start trial" card links here with
     // ?trial=1&plan=<id>. An already-onboarded user was bounced to
-    // /dashboard/svi with no checkout and no message — the only in-app
+    // /workspace/score with no checkout and no message — the only in-app
     // upgrade path that did not work. Carry the plan through to Billing,
     // which starts the Stripe checkout for it.
     if (data?.onboarding_completed) redirect(signedInSignupRedirect(sp.plan));

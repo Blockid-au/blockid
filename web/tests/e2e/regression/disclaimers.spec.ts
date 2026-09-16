@@ -11,9 +11,9 @@ import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
 
 const DISCLAIMER_ROUTES = [
-  "/workspace/equity-offer",
+  "/workspace/esop/offers",
   "/workspace/valuation",
-  "/workspace/cap-table",
+  "/workspace/equity/cap-table",
   "/workspace/tokenization",
 ];
 
@@ -32,7 +32,7 @@ test.describe("Regression — AU disclaimers", () => {
 
   test("Accept modal requires scroll-to-bottom before Accept enables", async ({ page }) => {
     await loginAs(page, "qa-founder-2@blockid.au");
-    await page.goto("/workspace/equity-offer");
+    await page.goto("/workspace/esop/offers");
 
     // Trigger the modal (surface-specific button — tolerate two label variants).
     const openBtn = page

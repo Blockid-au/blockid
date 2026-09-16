@@ -154,7 +154,7 @@ describe("buildFounderDigest — pipeline block (S28-B)", () => {
       stage_moves: [{ name: "Jane Chen", from: "diligence", to: "committed", auto: "cheque signed" }],
       overdue: [{ name: "Sam Lee", org: null, next_step: "Send SAFE", due: "2026-09-10", days: 4 }],
       committed: 1,
-      href: "https://blockid.au/workspace/investors",
+      href: "https://blockid.au/workspace/investors/pipeline",
     });
   });
 

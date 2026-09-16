@@ -1,6 +1,6 @@
 "use client";
 
-// P5-cohort-svi — client tile mounted on /dashboard/svi beneath the
+// P5-cohort-svi — client tile mounted on /workspace/score beneath the
 // InvestorReadinessTile. Runs the pure `computeWeeklyCohortRetention` +
 // `renderCohortRetentionSvg` helpers from web/src/lib/traction/cohort-chart.ts
 // on founder-pasted CSV input via useMemo — no API, no persistence, no

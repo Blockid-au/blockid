@@ -1,5 +1,5 @@
 // E2E — <MarketSizeTile /> IBISWorld deep-links block (P3-ibisworld-tile-wire)
-// on /dashboard/market-size renders the IBISWorld report list — or its
+// on /workspace/strategy renders the IBISWorld report list — or its
 // empty-state fallback — driven by the pure findIbisworldDeeplinks() lib
 // consumed server-side.
 //
@@ -40,7 +40,7 @@
 import { test, expect } from "@playwright/test";
 import { getAccount, loginAs } from "../fixtures/accounts";
 
-const ROUTE = "/dashboard/market-size";
+const ROUTE = "/workspace/strategy";
 const FOUNDER_EMAIL =
   process.env.QA_FOUNDER_IBISWORLD_TILE_EMAIL ?? "qa-founder-1@blockid.au";
 const IBISWORLD_INDEX_URL_PREFIX = "https://www.ibisworld.com/au/industry";

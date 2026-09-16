@@ -187,7 +187,7 @@ export const AB_TEST_HYPOTHESES: ABTestHypothesis[] = [
     funnelStep: "svi_complete",
     title: "Push valuation hero directly on results page",
     hypothesis:
-      "Inlining a teaser valuation range (bear/base/bull) on the SVI results page drives more clicks to /dashboard/valuation than a CTA card.",
+      "Inlining a teaser valuation range (bear/base/bull) on the SVI results page drives more clicks to /workspace/valuation than a CTA card.",
     control: "\"View Valuation Report\" CTA card.",
     variant: "Inline valuation range hero + CTA \"See full breakdown\".",
     metric: "svi_complete → valuation_viewed",

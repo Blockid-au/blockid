@@ -173,7 +173,7 @@ const VERSION_HISTORY = [
       "[Feature] Founder workspace: competitors, GTM strategy, pricing tiers, roadmap builder, team planner modules — migration 0304",
       "[Feature] Nav: Strategy subgroup added to Build section",
       "[Fix] Reseller login — grant /reseller access via reseller_admins membership check",
-      "[Fix] Post-onboarding redirect → /workspace/guide/01-vision",
+      "[Fix] Post-onboarding redirect → /workspace/plan/guide/01-vision",
       "[Fix] lifecycle-mailer + trial-end-reminder cron POST method fix",
       "[Fix] STRIPE_PRICE_STARTUP_PACKAGE env var read by checkout (the id it pointed at was a recurring Advisor price until 2026-09-12, when a one-off A$149 Startup Package price was minted in Stripe and the env corrected — release QA-3)",
       "[Fix] Redis rate-limit hardened against bad REDIS_URL — 0.18s response time restored",

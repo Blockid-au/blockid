@@ -20,9 +20,9 @@
  * nudge, in-app + email) moves the 3-question intake to the top of the page
  * and focuses its first field — a server-side prop, no client state.
  *
- * Growth extras (T0251, §4h Growth row) on the Investors / Expert update
- * tabs: investor reverse-match (`matchInvestorsForProject`) and the latest
- * `analysis_refreshes` note. Starter sees locked cards (copy.ts `growth.*`).
+ * Growth extras (T0251, §4h Growth row) on the Expert update tab: the latest
+ * `analysis_refreshes` note. Starter sees a locked card (copy.ts `growth.*`).
+ * The investor reverse-match moved to /workspace/investors (S-IA2).
  */
 
 import type { Metadata } from "next";
@@ -38,24 +38,22 @@ import { FundingDisclaimer } from "@/components/funding/funding-disclaimer";
 import { getActiveProject, getCurrentProjectIsSandbox } from "@/lib/projects";
 import { getFounderNavContext } from "@/lib/nav/founder-phase";
 import { listGrants, listPrograms } from "@/lib/funding/data";
-import { parseFundingIntake, NOT_INCORPORATED } from "@/lib/funding/intake";
+import { NOT_INCORPORATED } from "@/lib/funding/intake";
 import { latestVerifiedAt } from "@/lib/funding/directory";
 import {
   CAPITAL_MAP_SECTIONS,
   MONEY_RADAR_ALERT_KINDS,
   intakePrefillFor,
   latestFundingReportForUser,
-  latestSviTotalFor,
   listCapitalMapRows,
   listEventPrograms,
 } from "@/lib/funding/workspace";
-import { capitalForCity } from "@/lib/funding/seed-map";
 import { getGrant, getProgram } from "@/lib/funding/data";
 import { FEATURE_COSTS } from "@/lib/credits";
 import { hasGrowthExtras } from "@/lib/funding/growth-extras";
 import { isGenericPromptSet, programIntakeLabel, promptsForGrant, promptsForProgram } from "@/lib/funding/application-prompts";
 import { latestDraftFor } from "@/lib/funding/application-drafts";
-import { matchInvestorsForProject } from "@/lib/funding/investor-match";
+import { fundingLocationFor } from "@/lib/funding/investor-match-inputs";
 import { latestAnalysisRefresh, nextRefreshDate, previousQuarter } from "@/lib/funding/analysis-refresh";
 import { GrantDraftEditor } from "@/components/funding/grant-draft-editor";
 import { FundingWorkspace, type CapitalMapSection, type GrowthExtras } from "./funding-workspace";
@@ -118,12 +116,8 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
     const radarOn = await can({ id: user.id, plan: user.plan ?? "free", segment: "founder" }, "money_radar").catch(() => false);
     const data = await getMoneyRadarTileData(user, project, { hasMoneyRadar: radarOn, report: row, grants, programs }).catch(() => null);
     tile = data ? <MoneyRadarTile data={data} compact className="mb-6" /> : null;
-    const intake = row ? parseFundingIntake(row.intake) : null;
-    const state = intake?.ok ? (intake.intake.state === NOT_INCORPORATED ? intake.intake.based_state ?? null : intake.intake.state) : (prefill.state ?? null);
-    const city = intake?.ok ? intake.intake.city ?? null : null;
-    const capitalGuess = city || (state && state !== NOT_INCORPORATED) ? capitalForCity(city, state) : "Remote";
-    // "Remote" = no usable location → show every capital's events rather than none.
-    const capital = capitalGuess === "Remote" ? null : capitalGuess;
+    // Location derivation shared with the /workspace/investors Matches tab.
+    const { state, capital } = fundingLocationFor(row, prefill.state ?? null);
     const [events, capitalRows] = await Promise.all([listEventPrograms(capital), listCapitalMapRows()]);
     const capitalMap: CapitalMapSection[] = CAPITAL_MAP_SECTIONS.map((s) => ({
       ...s,
@@ -133,24 +127,9 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
 
     // ── Growth extras (T0251) ──────────────────────────────────────────────
     const unlimited = await hasGrowthExtras({ id: user.id, plan: user.plan });
-    const [investors, refreshRow] = unlimited
-      ? await Promise.all([
-          latestSviTotalFor(user, project).then((svi) =>
-            matchInvestorsForProject({
-              id: project?.id ?? null,
-              name: project?.name ?? "Your startup",
-              industry: project?.industry ?? (intake?.ok ? intake.intake.industry_tags?.[0] ?? null : null),
-              stage: intake?.ok ? intake.intake.stage : project?.stage ?? null,
-              state: state && state !== NOT_INCORPORATED ? state : null,
-              svi,
-            }),
-          ),
-          latestAnalysisRefresh(user.id, project?.id ?? null),
-        ])
-      : [[], null];
+    const refreshRow = unlimited ? await latestAnalysisRefresh(user.id, project?.id ?? null) : null;
     const growth: GrowthExtras = {
       unlocked: unlimited,
-      investors,
       refresh: refreshRow ? { quarter: refreshRow.quarter, body_md: refreshRow.body_md, changes: refreshRow.changes, created_at: refreshRow.created_at } : null,
       nextRefreshDate: nextRefreshDate(previousQuarter(new Date())),
       startup: project?.name ?? null,

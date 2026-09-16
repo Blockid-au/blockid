@@ -270,7 +270,7 @@ export function NotificationBell() {
           </div>
           {source === "founder" && (
             <div className="border-t border-surface-100 bg-surface-50 px-4 py-2 text-center">
-              <a href="/workspace/notifications" className="text-[11px] font-semibold text-brand-600 hover:underline">
+              <a href="/workspace/settings/notifications" className="text-[11px] font-semibold text-brand-600 hover:underline">
                 All notifications
               </a>
             </div>

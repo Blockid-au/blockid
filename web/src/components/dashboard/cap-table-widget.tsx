@@ -78,7 +78,7 @@ export async function CapTableWidget({ email }: { email: string }) {
             strengthen your investor readiness.
           </p>
           <Link
-            href="/workspace/cap-table"
+            href="/workspace/equity/cap-table"
             className="mt-4 inline-flex items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
           >
             Set up your cap table &rarr;
@@ -135,7 +135,7 @@ export async function CapTableWidget({ email }: { email: string }) {
           <h2 className="text-lg font-semibold text-ink-800">Cap Table</h2>
         </div>
         <Link
-          href="/workspace/cap-table"
+          href="/workspace/equity/cap-table"
           className="text-[10px] font-medium text-brand-600 hover:text-brand-700"
         >
           Manage &rarr;

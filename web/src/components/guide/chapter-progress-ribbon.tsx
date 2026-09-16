@@ -6,7 +6,7 @@
 //
 // Server component — pure presentation, no hooks. Two variants:
 //   - "workspace" — light background, sits inside WorkspaceLayout on
-//     /workspace/guide/[chapter]. Uses the same emerald accent as the
+//     /workspace/plan/guide/[chapter]. Uses the same emerald accent as the
 //     eyebrow row above it and the product-tour banner idiom.
 //   - "marketing"  — matches the /guide/[chapter] slate palette + dark-mode
 //     tokens already used in that route.

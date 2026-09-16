@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   const auth = await authenticateSviApiKey(req);
   if (!auth) {
     return NextResponse.json(
-      { error: { code: "unauthorized", message: "Valid svi_live_... API key required. Get one at blockid.au/workspace/svi-api" } },
+      { error: { code: "unauthorized", message: "Valid svi_live_... API key required. Get one at blockid.au/workspace/settings/enterprise" } },
       { status: 401, headers: CORS },
     );
   }

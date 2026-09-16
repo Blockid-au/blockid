@@ -40,7 +40,7 @@ async function loadResellers(): Promise<ResellerRow[]> {
 export default async function NewAffiliatePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/admin/resellers/new");
-  if (!isAdmin(user)) redirect("/dashboard/svi");
+  if (!isAdmin(user)) redirect("/workspace/score");
 
   const resellers = await loadResellers();
 

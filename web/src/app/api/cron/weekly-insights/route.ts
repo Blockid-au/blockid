@@ -40,7 +40,7 @@ const MILESTONES: Milestone[] = [
         <li>Connect any early traction metrics</li>
       </ol>
       <div style="text-align:center;margin:24px 0;">
-        <a href="${siteUrl}/dashboard/svi" style="display:inline-block;background:#2563eb;color:white;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:600;">View Your Dashboard</a>
+        <a href="${siteUrl}/workspace/score" style="display:inline-block;background:#2563eb;color:white;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:600;">View Your Dashboard</a>
       </div>
       <p style="color:#64748b;font-size:13px;">No pressure — your data is safe and waiting for you whenever you're ready.</p>
       <p style="color:#94a3b8;font-size:11px;margin-top:24px;">
@@ -60,7 +60,7 @@ const MILESTONES: Milestone[] = [
         <li>Exploring the AI-powered detailed report for deeper insights?</li>
       </ul>
       <div style="text-align:center;margin:24px 0;">
-        <a href="${siteUrl}/workspace/equity-setup" style="display:inline-block;background:#2563eb;color:white;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:600;">Set Up Equity</a>
+        <a href="${siteUrl}/workspace/equity/setup" style="display:inline-block;background:#2563eb;color:white;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:600;">Set Up Equity</a>
       </div>
       <p style="color:#64748b;font-size:13px;">We're here to help — reply to this email anytime with questions.</p>
       <p style="color:#94a3b8;font-size:11px;margin-top:24px;">

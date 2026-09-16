@@ -79,9 +79,9 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   {
     label: "Equity & Vesting",
     items: [
-      { href: "/workspace/equity-setup", label: "Equity Setup", icon: PieChart },
-      { href: "/workspace/vesting", label: "Vesting Schedules", icon: Calendar },
-      { href: "/workspace/cap-table", label: "Cap Table", icon: Shield },
+      { href: "/workspace/equity/setup", label: "Equity Setup", icon: PieChart },
+      { href: "/workspace/esop/vesting", label: "Vesting Schedules", icon: Calendar },
+      { href: "/workspace/equity/cap-table", label: "Cap Table", icon: Shield },
       { href: "/workspace/esop", label: "ESOP Management", icon: Users },
     ],
   },
@@ -89,8 +89,8 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     label: "Blockchain & Tokens",
     items: [
       { href: "/admin/tokens", label: "Token Management", icon: Coins },
-      { href: "/workspace/wallet", label: "Wallet", icon: Wallet },
-      { href: "/workspace/equity-dashboard", label: "Blockchain Sync", icon: Link2 },
+      { href: "/workspace/equity/on-chain", label: "Wallet", icon: Wallet },
+      { href: "/workspace/equity/on-chain", label: "Blockchain Sync", icon: Link2 },
     ],
   },
   {
@@ -217,7 +217,7 @@ export function AdminLayout({ children, user }: AdminLayoutProps) {
         {/* Bottom: home link */}
         <div className="px-2 pb-3 border-t border-surface-200 pt-3 space-y-0.5">
           <Link
-            href="/dashboard/svi"
+            href="/workspace/score"
             className="flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm text-ink-600 hover:text-ink-800 hover:bg-surface-100 transition-colors"
           >
             <BarChart3 strokeWidth={1.75} className="h-4 w-4 shrink-0" />

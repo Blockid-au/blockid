@@ -7,7 +7,8 @@
 // strong-copyleft / weak-copyleft / unknown exposure at a glance without
 // exporting the CSV.
 //
-// Mounted 2026-07-25 at web/src/app/dashboard/data-room/page.tsx (top of
+// Mounted 2026-07-25 on the data-room page (now the Data room access section
+// of /workspace/investors/access, S-IA2 — access/data-room-section.tsx; top of
 // the page, above the investor-access-log table). Playwright round-trip
 // at web/tests/e2e/founder/sbom-license-risk-tile.spec.ts covers the
 // loading / error / slate / red / amber / emerald branches.

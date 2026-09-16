@@ -36,15 +36,15 @@ const PAGES = [
 
 // Protected pages (need session cookie)
 const PROTECTED = [
-  { name: "dashboard", url: "/dashboard/svi", wait: 2000 },
+  { name: "dashboard", url: "/workspace/score", wait: 2000 },
   { name: "evidence-vault", url: "/workspace/evidence", wait: 1500 },
-  { name: "data-room", url: "/workspace/data-room", wait: 1500 },
+  { name: "data-room", url: "/workspace/documents/data-room", wait: 1500 },
   { name: "billing", url: "/workspace/billing", wait: 1500 },
   { name: "projects", url: "/workspace/projects", wait: 1500 },
   { name: "equity", url: "/workspace/equity", wait: 1500 },
   { name: "reports", url: "/workspace/reports", wait: 1500 },
-  { name: "roadmap", url: "/workspace/roadmap", wait: 1500 },
-  { name: "profile", url: "/workspace/profile", wait: 1500 },
+  { name: "roadmap", url: "/workspace/plan", wait: 1500 },
+  { name: "profile", url: "/workspace/settings/profile", wait: 1500 },
   { name: "admin-dashboard", url: "/admin", wait: 1500 },
   { name: "admin-roadmap", url: "/admin/roadmap", wait: 1500 },
   { name: "admin-team", url: "/admin/team", wait: 1500 },

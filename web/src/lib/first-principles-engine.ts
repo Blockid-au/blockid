@@ -228,7 +228,7 @@ const DESTINATIONS: Destination[] = [
   {
     key: "fundraise",
     label: "Prepare Fundraise Materials",
-    href: "/workspace/fundraise",
+    href: "/workspace/raise/round",
     rationaleTemplate: () =>
       "You're actively raising — build the deck, financial model, and data room in one workspace.",
     score: (t) => {

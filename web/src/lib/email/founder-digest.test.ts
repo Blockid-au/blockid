@@ -38,7 +38,7 @@ const missingTop3: NudgeMissingItem[] = [
     phase_slug: "1",
     why_it_matters: "Raise-blocker at Phase 1 — investors ask before term-sheet.",
     raise_blocker: true,
-    cta_url: "/dashboard/data-room?add=1",
+    cta_url: "/workspace/investors/access?add=1",
   },
   {
     category: "5. Market & Traction",
@@ -46,7 +46,7 @@ const missingTop3: NudgeMissingItem[] = [
     phase_slug: "5",
     why_it_matters: "Standard due-diligence artefact for Phase 5.",
     raise_blocker: false,
-    cta_url: "/dashboard/data-room?add=5",
+    cta_url: "/workspace/investors/access?add=5",
   },
 ];
 

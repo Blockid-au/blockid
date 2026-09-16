@@ -144,7 +144,7 @@ A priced round issues actual shares (preference shares to investors, usually) at
 | Vesting | 4-year, 12-month cliff on founder shares | Yes — investors will insist |
 | Information rights | Quarterly management accounts + annual audited | Yes, but define what "audited" means |
 
-Draft your first-pass term sheet in the [term sheet tool](/tools/term-sheet), then negotiate the sensitive clauses via the [term sheet workspace](/workspace/term-sheet) which tracks redlines and version history against the AU market defaults.
+Draft your first-pass term sheet in the [term sheet tool](/tools/term-sheet), then negotiate the sensitive clauses via the [term sheet workspace](/workspace/raise/term-sheet) which tracks redlines and version history against the AU market defaults.
 
 ### Priced-round mechanics — the numbers
 
@@ -222,6 +222,6 @@ Only on conversion into shares, and only if the company is ESIC-registered *at t
 
 ---
 
-**Next steps.** Draft your first term sheet in the free [term sheet tool](/tools/term-sheet), negotiate redlines in the [term sheet workspace](/workspace/term-sheet), and benchmark your ask against 2,700+ AU rounds with the [Startup Value Index](/svi). See [pricing](/pricing) for upgrade options.
+**Next steps.** Draft your first term sheet in the free [term sheet tool](/tools/term-sheet), negotiate redlines in the [term sheet workspace](/workspace/raise/term-sheet), and benchmark your ask against 2,700+ AU rounds with the [Startup Value Index](/svi). See [pricing](/pricing) for upgrade options.
 
 *General information only. Not financial or legal advice. Consult a qualified adviser before making decisions.*

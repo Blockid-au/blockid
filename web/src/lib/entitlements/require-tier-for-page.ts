@@ -40,7 +40,7 @@ export interface RequireTierOptions {
   /** Minimum plan tier the page needs. Optional if `feature` alone is enough. */
   minTier?: PlanTier;
   /**
-   * Current pathname (e.g. "/workspace/cap-table") — used to build the
+   * Current pathname (e.g. "/workspace/equity/cap-table") — used to build the
    * `?from=` query on the pricing redirect. Callers pass this explicitly
    * because next/navigation cannot infer it inside an RSC without a request
    * ambient (headers()) which is expensive per-page.

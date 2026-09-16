@@ -150,7 +150,7 @@ export default async function AcceleratorCohortPage({ searchParams }: PageProps)
                   Add founder
                 </Link>
                 <Link
-                  href="/workspace/notifications"
+                  href="/workspace/settings/notifications"
                   className="inline-flex items-center gap-2 rounded-lg border border-slate-300 dark:border-slate-700 text-ink-700 px-4 py-2 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                 >
                   Settings

@@ -124,7 +124,7 @@ function UserMenu({ user }: { user: AuthUser }) {
               New Analysis
             </Link>
             <Link
-              href="/dashboard/svi"
+              href="/workspace/score"
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-ink-700 hover:bg-surface-50 transition-colors"
             >

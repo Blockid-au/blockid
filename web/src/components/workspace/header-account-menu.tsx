@@ -34,7 +34,7 @@ export interface HeaderUser {
 
 /** Avatar-menu rows (spec §A.1: Profile, Billing, Settings, Help › Guides, Sign out). */
 export const USER_MENU_ITEMS: ReadonlyArray<{ href: string; label: string; icon: typeof User }> = Object.freeze([
-  { href: "/workspace/profile", label: "Profile", icon: User },
+  { href: "/workspace/settings/profile", label: "Profile", icon: User },
   { href: "/workspace/billing", label: "Billing", icon: CreditCard },
   { href: "/workspace/settings", label: "Settings", icon: Settings2 },
   { href: "/workspace/knowledge-base", label: "Guides", icon: BookOpen },

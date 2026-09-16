@@ -48,11 +48,11 @@ describe("feature-tours registry", () => {
   });
 
   it("tourForRoute prefers the longest matching route", () => {
-    // /dashboard is a registered route for dashboard-nav; /dashboard/svi
+    // /dashboard is a registered route for dashboard-nav; /workspace/score
     // is registered for svi — the deeper one must win.
-    expect(tourForRoute("/dashboard/svi")?.slug).toBe("svi");
+    expect(tourForRoute("/workspace/score")?.slug).toBe("svi");
     expect(tourForRoute("/dashboard")?.slug).toBe("dashboard-nav");
-    expect(tourForRoute("/dashboard/svi/subpath")?.slug).toBe("svi");
+    expect(tourForRoute("/workspace/score/history")?.slug).toBe("svi");
     expect(tourForRoute("/somewhere-else")).toBeUndefined();
     expect(tourForRoute("")).toBeUndefined();
   });

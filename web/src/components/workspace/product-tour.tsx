@@ -3,7 +3,7 @@
 // Track B B7 — interactive product tour overlay.
 //
 // Persistent header banner that surfaces "You are on Phase X of 12 — [label]"
-// with a link into the matching guide chapter at /workspace/guide/<slug>.
+// with a link into the matching guide chapter at /workspace/plan/guide/<slug>.
 // Dismissal is stored per-phase in localStorage, so the banner comes back on
 // the next phase transition rather than only on first visit.
 
@@ -163,7 +163,7 @@ export function ProductTour(): React.ReactElement | null {
       </span>
       <div className="flex items-center gap-2 shrink-0">
         <Link
-          href={"/workspace/guide/" + state.chapterSlug}
+          href={"/workspace/plan/guide/" + state.chapterSlug}
           className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/70 hover:bg-white ring-1 ring-current/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
         >
           {copy.read}

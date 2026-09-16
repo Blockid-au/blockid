@@ -31,7 +31,7 @@ import {
 import {
   buildSubscribeUrl,
   pickNextEvent,
-} from "@/app/compliance/calendar/calendar-view.helpers";
+} from "@/app/(app)/(founder)/workspace/documents/compliance/calendar-view.helpers";
 import type { WGEAResult } from "@/lib/compliance/wgea-threshold";
 import type { ModernSlaveryResult } from "@/lib/compliance/modern-slavery-threshold";
 

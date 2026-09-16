@@ -28,7 +28,7 @@ test.describe("Financial Forecast Builder — v3.6.9", () => {
   // ─── 1. Wizard: create → save → results ──────────────────────────────────
 
   test("wizard: basic (pre-revenue) → save → results dashboard", async ({ page }) => {
-    await page.goto("/workspace/financial-forecast");
+    await page.goto("/workspace/valuation/forecast");
     await page.waitForLoadState("networkidle");
 
     await page.getByRole("button", { name: /new forecast/i }).click();
@@ -71,7 +71,7 @@ test.describe("Financial Forecast Builder — v3.6.9", () => {
   });
 
   test("wizard: $50K MRR bull case → 36-month tab shows all rows", async ({ page }) => {
-    await page.goto("/workspace/financial-forecast/wizard");
+    await page.goto("/workspace/valuation/forecast/wizard");
     await page.waitForLoadState("networkidle");
 
     // Step 1
@@ -104,7 +104,7 @@ test.describe("Financial Forecast Builder — v3.6.9", () => {
   });
 
   test("back button preserves step-1 values", async ({ page }) => {
-    await page.goto("/workspace/financial-forecast/wizard");
+    await page.goto("/workspace/valuation/forecast/wizard");
     await page.waitForLoadState("networkidle");
 
     const nameInput = page.getByLabel(/forecast name/i);
@@ -123,7 +123,7 @@ test.describe("Financial Forecast Builder — v3.6.9", () => {
 
   test("CSV export: file downloaded with correct header and ≥37 lines", async ({ page }) => {
     // Create a forecast to export
-    await page.goto("/workspace/financial-forecast/wizard");
+    await page.goto("/workspace/valuation/forecast/wizard");
     await page.waitForLoadState("networkidle");
 
     await page.getByLabel(/forecast name/i).fill("CSV Export Test");
@@ -192,7 +192,7 @@ test.describe("Financial Forecast Builder — v3.6.9", () => {
   });
 
   test("forecast list: newly created forecast appears", async ({ page }) => {
-    await page.goto("/workspace/financial-forecast/wizard");
+    await page.goto("/workspace/valuation/forecast/wizard");
     await page.waitForLoadState("networkidle");
 
     const uniqueName = `List Test ${Date.now()}`;
@@ -213,7 +213,7 @@ test.describe("Financial Forecast Builder — v3.6.9", () => {
     await page.getByRole("button", { name: /save forecast/i }).click();
     await page.waitForURL(/\/financial-forecast\/[^/]+$/, { timeout: ASSERT_TIMEOUT });
 
-    await page.goto("/workspace/financial-forecast");
+    await page.goto("/workspace/valuation/forecast");
     await page.waitForLoadState("networkidle");
     await expect(page.getByText(uniqueName)).toBeVisible({ timeout: ASSERT_TIMEOUT });
   });

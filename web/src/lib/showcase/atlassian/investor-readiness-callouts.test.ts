@@ -15,7 +15,7 @@ const APP_ROOT = path.resolve(__dirname, "../../..", "app");
 
 /**
  * A route resolves if either:
- *   - the exact segment folder exists (e.g. `/dashboard/cfo` → `app/dashboard/cfo`), or
+ *   - the exact segment folder exists (e.g. `/workspace/valuation/cfo` → `app/workspace/valuation/cfo`), or
  *   - a dynamic-segment sibling exists (e.g. `/guide/01-vision` matches
  *     `app/guide/[chapter]`), or
  *   - the segment can be reached by descending through one or more

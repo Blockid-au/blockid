@@ -203,7 +203,7 @@ function phaseMissing(
         ? `Raise-blocker at Phase ${tpl.phaseSlug} — investors will ask for this before term-sheet.`
         : `Standard due-diligence artefact for Phase ${tpl.phaseSlug} — supplies evidence for the ${tpl.category.replace(/^\d+\.\s*/, "")} folder.`,
       raise_blocker: raiseBlocker,
-      cta_url: `/dashboard/data-room?add=${encodeURIComponent(tpl.category)}`,
+      cta_url: `/workspace/investors/access?add=${encodeURIComponent(tpl.category)}`,
     });
   }
 

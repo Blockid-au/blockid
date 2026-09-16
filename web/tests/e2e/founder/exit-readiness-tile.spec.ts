@@ -1,4 +1,4 @@
-// E2E — <ExitReadinessTile /> (P12b-tile) on /dashboard/exit-readiness
+// E2E — <ExitReadinessTile /> (P12b-tile) on /workspace/exit/benchmark
 // renders the AU comparable-exits panel from the pure fixture
 // buildExitBenchmarkSection() consumes server-side.
 //
@@ -17,7 +17,7 @@
 // Strategy mirrors tests/e2e/founder/redomicile-wizard.spec.ts:
 //   1. getAccount()-gated skip when the qa-founder fixture is missing so
 //      CI on a fresh clone stays green rather than red.
-//   2. loginAs() and navigate to /dashboard/exit-readiness.
+//   2. loginAs() and navigate to /workspace/exit/benchmark.
 //   3. Skip cleanly when the tile is not visible (page tier-gates at
 //      growth+; a starter-plan fixture is redirected).
 //   4. Assert (a) tile mount + used-fallback attribute is present with a
@@ -31,7 +31,7 @@
 import { test, expect } from "@playwright/test";
 import { getAccount, loginAs } from "../fixtures/accounts";
 
-const ROUTE = "/dashboard/exit-readiness";
+const ROUTE = "/workspace/exit/benchmark";
 const FOUNDER_EMAIL =
   process.env.QA_FOUNDER_EXIT_READINESS_EMAIL ?? "qa-founder-1@blockid.au";
 

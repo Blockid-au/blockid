@@ -155,7 +155,7 @@ export default async function AdminResellerDetailPage({
 
   const user = await getCurrentUser();
   if (!user) redirect(`/auth/login?next=/admin/resellers/${rawCode}`);
-  if (!isAdmin(user)) redirect("/dashboard/svi");
+  if (!isAdmin(user)) redirect("/workspace/score");
 
   const result = await loadDetail(code);
 

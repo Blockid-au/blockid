@@ -19,17 +19,17 @@ test.describe("Free plan gates", () => {
     expect(credits.body.balance).toBeGreaterThanOrEqual(0);
   });
 
-  test("/workspace/cap-table on Free redirects to /pricing with feature=cap_table.write", async ({ page, visit }, testInfo) => {
-    await visit("/workspace/cap-table");
+  test("/workspace/equity/cap-table on Free redirects to /pricing with feature=cap_table.write", async ({ page, visit }, testInfo) => {
+    await visit("/workspace/equity/cap-table");
     await page.waitForURL(/\/pricing/, { timeout: 30_000 });
     const url = new URL(page.url());
     await evidence(testInfo, "redirect", { landed: page.url() });
     expect(url.pathname).toBe("/pricing");
     expect(url.searchParams.get("feature")).toBe("cap_table.write");
-    expect(url.searchParams.get("from")).toBe("/workspace/cap-table");
+    expect(url.searchParams.get("from")).toBe("/workspace/equity/cap-table");
   });
 
-  for (const path of ["/workspace/listing-readiness", "/workspace/clean-room"]) {
+  for (const path of ["/workspace/exit/listing", "/workspace/exit/clean-room"]) {
     test(`${path} on Free redirects to /pricing?from=${path}`, async ({ page, visit }, testInfo) => {
       await visit(path);
       await page.waitForURL(/\/pricing/, { timeout: 30_000 });
@@ -40,8 +40,8 @@ test.describe("Free plan gates", () => {
     });
   }
 
-  test("/workspace/secondary-offer on Free shows the sandbox banner and the Growth lock, not an error", async ({ page, visit }, testInfo) => {
-    await visit("/workspace/secondary-offer");
+  test("/workspace/equity/secondary on Free shows the sandbox banner and the Growth lock, not an error", async ({ page, visit }, testInfo) => {
+    await visit("/workspace/equity/secondary");
     await expect(page.getByTestId("sandbox-banner")).toBeVisible();
     await expect(page.getByTestId("sandbox-banner")).toContainText(/no real securities/i);
     const locked = page.getByTestId("sim-locked");
@@ -70,7 +70,7 @@ test.describe("Free plan gates", () => {
     expect(apiTry.status).toBe(400);
     expect(String(apiTry.body.error)).toMatch(/No shareholders found/);
 
-    await visit("/workspace/fundraise");
+    await visit("/workspace/raise/round");
     // `visit` resolves at domcontentloaded; a click before React hydrates is
     // swallowed (run 2 trace: no page POST at all). Click until the page's own
     // POST /api/fundraise is observed, at most 3 attempts.

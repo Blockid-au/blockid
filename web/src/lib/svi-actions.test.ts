@@ -96,7 +96,7 @@ describe("DIMENSION_ACTIONS registry", () => {
   it("ftv anchors on the co-founder + team-profile tools", () => {
     const hrefs = DIMENSION_ACTIONS.ftv.map((a) => a.href);
     expect(hrefs).toContain("/tools/cofounder-match");
-    expect(hrefs).toContain("/workspace/profile");
+    expect(hrefs).toContain("/workspace/settings/profile");
   });
 
   it("mpc anchors on the SBA market-research guide", () => {

@@ -16,7 +16,7 @@
  *       returns 200 `{ preview: true, cost, balance, included, subject }` and
  *       spends nothing; the panel shows that cost on the button first.
  *   Spend runs BEFORE the insert; an insert failure after a spend refunds.
- *   The certificate is frozen from the same numbers `/dashboard/valuation`
+ *   The certificate is frozen from the same numbers `/workspace/valuation`
  *   shows (lib/valuation-certificate/server.ts).
  *   `annex: "ess"` (S27-A) freezes Annex A — the Div 83A start-up
  *   concession checklist from the facts on file + the ATO-approved

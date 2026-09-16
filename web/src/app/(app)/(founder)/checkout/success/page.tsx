@@ -90,13 +90,13 @@ export default async function CheckoutSuccessPage({
         {/* CTAs */}
         <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
           {user ? (
-            <Link href="/dashboard/svi">
+            <Link href="/workspace/score">
               <Button variant="primary" size="lg">
                 Go to Dashboard
               </Button>
             </Link>
           ) : (
-            <Link href="/auth/login?next=/dashboard/svi">
+            <Link href="/auth/login?next=/workspace/score">
               <Button variant="primary" size="lg">
                 Sign in to activate your account
               </Button>

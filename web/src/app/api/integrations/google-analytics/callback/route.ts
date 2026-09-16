@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 
   if (!code || !state || state !== expectedState) {
     return NextResponse.redirect(
-      `${siteUrl()}/dashboard/integrations?error=ga_oauth_state_mismatch`,
+      `${siteUrl()}/workspace/evidence/connectors?error=ga_oauth_state_mismatch`,
     );
   }
 
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
   // svi_accounts row → admin+; gate before the code exchange.
   const { scope, denied } = await projectScopeOrRedirect(
     "admin",
-    `${siteUrl()}/dashboard/integrations`,
+    `${siteUrl()}/workspace/evidence/connectors`,
     "ga_forbidden_role",
   );
   if (denied) return denied;
@@ -52,21 +52,21 @@ export async function GET(request: Request) {
   const tokens = await exchangeGoogleCodeForTokens(code, redirectUri);
   if (!tokens) {
     return NextResponse.redirect(
-      `${siteUrl()}/dashboard/integrations?error=ga_oauth_exchange_failed`,
+      `${siteUrl()}/workspace/evidence/connectors?error=ga_oauth_exchange_failed`,
     );
   }
 
   const property = await fetchFirstGa4Property(tokens.accessToken);
   if (!property) {
     return NextResponse.redirect(
-      `${siteUrl()}/dashboard/integrations?error=ga_no_properties`,
+      `${siteUrl()}/workspace/evidence/connectors?error=ga_no_properties`,
     );
   }
 
   const stats = await fetchGa4Stats(tokens.accessToken, property, 30);
   if (!stats) {
     return NextResponse.redirect(
-      `${siteUrl()}/dashboard/integrations?error=ga_stats_failed`,
+      `${siteUrl()}/workspace/evidence/connectors?error=ga_stats_failed`,
     );
   }
 
@@ -95,6 +95,6 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.redirect(
-    `${siteUrl()}/dashboard/integrations?connected=google_analytics`,
+    `${siteUrl()}/workspace/evidence/connectors?connected=google_analytics`,
   );
 }

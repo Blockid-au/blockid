@@ -49,10 +49,10 @@ describe("requireTierForPage", () => {
     const url = await catchRedirect(() =>
       requireTierForPage({
         feature: "cap_table.write",
-        fromPath: "/workspace/cap-table",
+        fromPath: "/workspace/equity/cap-table",
       }),
     );
-    expect(url).toBe("/auth/login?next=%2Fworkspace%2Fcap-table");
+    expect(url).toBe("/auth/login?next=%2Fworkspace%2Fequity%2Fcap-table");
   });
 
   it("redirects to /pricing?feature=&from= when feature is missing", async () => {
@@ -61,11 +61,11 @@ describe("requireTierForPage", () => {
     const url = await catchRedirect(() =>
       requireTierForPage({
         feature: "cap_table.write",
-        fromPath: "/workspace/cap-table",
+        fromPath: "/workspace/equity/cap-table",
       }),
     );
     expect(url).toBe(
-      "/pricing?feature=cap_table.write&from=%2Fworkspace%2Fcap-table",
+      "/pricing?feature=cap_table.write&from=%2Fworkspace%2Fequity%2Fcap-table",
     );
     expect(recordGateHitMock).toHaveBeenCalledWith(
       expect.objectContaining({ id: "u1", plan: "founder_free" }),
@@ -79,10 +79,10 @@ describe("requireTierForPage", () => {
     const url = await catchRedirect(() =>
       requireTierForPage({
         minTier: "growth",
-        fromPath: "/workspace/vesting",
+        fromPath: "/workspace/esop/vesting",
       }),
     );
-    expect(url).toBe("/pricing?from=%2Fworkspace%2Fvesting");
+    expect(url).toBe("/pricing?from=%2Fworkspace%2Fesop%2Fvesting");
     expect(canMock).not.toHaveBeenCalled();
   });
 
@@ -93,7 +93,7 @@ describe("requireTierForPage", () => {
       requireTierForPage({
         feature: "cap_table.write",
         minTier: "growth",
-        fromPath: "/workspace/cap-table",
+        fromPath: "/workspace/equity/cap-table",
       }),
     ).resolves.toBeUndefined();
     expect(redirectMock).not.toHaveBeenCalled();
@@ -105,11 +105,11 @@ describe("requireTierForPage", () => {
     const url = await catchRedirect(() =>
       requireTierForPage({
         feature: "share_management",
-        fromPath: "/workspace/data-room?tab=finance",
+        fromPath: "/workspace/documents/data-room?tab=finance",
       }),
     );
     expect(url).toContain(
-      encodeURIComponent("/workspace/data-room?tab=finance"),
+      encodeURIComponent("/workspace/documents/data-room?tab=finance"),
     );
   });
 
@@ -128,7 +128,7 @@ describe("requireTierForPage", () => {
     await catchRedirect(() =>
       requireTierForPage({
         feature: "share_management",
-        fromPath: "/workspace/vesting",
+        fromPath: "/workspace/esop/vesting",
       }),
     );
     expect(recordGateHitMock).not.toHaveBeenCalled();

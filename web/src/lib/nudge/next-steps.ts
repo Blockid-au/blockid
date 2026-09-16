@@ -507,7 +507,7 @@ function computeMissing(
       phase_slug: tpl.phaseSlug,
       why_it_matters: whyItMatters(tpl, raiseBlocker),
       raise_blocker: raiseBlocker,
-      cta_url: `/dashboard/data-room?add=${encodeURIComponent(tpl.category)}`,
+      cta_url: `/workspace/investors/access?add=${encodeURIComponent(tpl.category)}`,
     });
   }
 

@@ -3,7 +3,7 @@
 //
 // Contract: docs/plans/atlassian-standard-mapping-goal.md §3.3 (output JSON
 // shape) + §3.5 ("/dashboard tile 'Your next step' — phase + next_action +
-// readiness score band, on page load"). The tile is mounted on /dashboard/svi
+// readiness score band, on page load"). The tile is mounted on /workspace/score
 // alongside <InvestorReadinessTile /> — see the P5b entry in the goal file.
 //
 // Strategy mirrors tests/e2e/founder/investor-readiness-tile.spec.ts:
@@ -11,7 +11,7 @@
 //   2. page.route() intercepts /api/nudge/next-steps and returns a
 //      deterministic payload so the assertion doesn't depend on the
 //      founder's actual SVI seed data.
-//   3. Navigate to /dashboard/svi. Skip cleanly if the tile is not
+//   3. Navigate to /workspace/score. Skip cleanly if the tile is not
 //      mounted (e.g. auth redirect).
 //   4. Assert (a) data-state="ready" + data-phase-slug, (b) the phase pill
 //      renders the label, (c) the next-action title + CTA render, (d) the
@@ -21,7 +21,7 @@
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
 
-const ROUTE = "/dashboard/svi";
+const ROUTE = "/workspace/score";
 const FOUNDER_EMAIL =
   process.env.QA_FOUNDER_NUDGE_EMAIL ?? "qa-founder-1@blockid.au";
 
@@ -39,7 +39,7 @@ const FAKE_PAYLOAD = {
     next_action: {
       title: "Wire your Stripe in live mode",
       reason: "e2e stub — the smallest Phase 6 unlock",
-      cta_url: "/dashboard/integrations",
+      cta_url: "/workspace/evidence/connectors",
       cta_label: "Open integrations",
       category: "phase_advance",
     },
@@ -66,7 +66,7 @@ const FAKE_PAYLOAD = {
         phase_slug: "5",
         why_it_matters: "Standard due-diligence artefact for Phase 5",
         raise_blocker: false,
-        cta_url: "/dashboard/data-room?add=3.%20Financial%20Projections",
+        cta_url: "/workspace/investors/access?add=3.%20Financial%20Projections",
       },
     ],
     readiness_score: {
@@ -120,12 +120,12 @@ test.describe("NextStepTile — P5b-next-step-tile-e2e", () => {
     await page.goto(ROUTE);
 
     // Skip cleanly when the tile hasn't been mounted (e.g. auth redirect
-    // on a fresh clone). The tile ships behind /dashboard/svi per P5b.
+    // on a fresh clone). The tile ships behind /workspace/score per P5b.
     const tile = page.getByTestId("next-step-tile");
     const mounted = (await tile.count()) > 0;
     test.skip(
       !mounted,
-      "NextStepTile not mounted on /dashboard/svi — likely an auth redirect.",
+      "NextStepTile not mounted on /workspace/score — likely an auth redirect.",
     );
 
     // ── Ready state + phase slug ────────────────────────────────────
@@ -144,7 +144,7 @@ test.describe("NextStepTile — P5b-next-step-tile-e2e", () => {
     );
     const cta = page.getByTestId("next-step-action-cta");
     await expect(cta).toHaveText("Open integrations");
-    await expect(cta).toHaveAttribute("href", "/dashboard/integrations");
+    await expect(cta).toHaveAttribute("href", "/workspace/evidence/connectors");
     await expect(cta).toHaveAttribute("data-category", "phase_advance");
 
     // ── Readiness donut score ───────────────────────────────────────

@@ -73,27 +73,27 @@ export { expect };
 
 /** Public pages the suite visits for the per-page console / layout sweeps. */
 export const WORKSPACE_PAGES = [
-  "/workspace/revenue",
-  "/workspace/dividends",
-  "/workspace/fundraise",
-  "/workspace/cap-table",
-  "/workspace/term-sheet",
+  "/workspace/finance/revenue",
+  "/workspace/finance/dividends",
+  "/workspace/raise/round",
+  "/workspace/equity/cap-table",
+  "/workspace/raise/term-sheet",
   "/workspace/exit",
-  "/dashboard/valuation",
-  "/workspace/secondary-offer",
+  "/workspace/valuation",
+  "/workspace/equity/secondary",
   "/workspace/investors",
-  "/workspace/expenses",
-  "/workspace/listing-readiness",
-  "/workspace/clean-room",
+  "/workspace/finance/expenses",
+  "/workspace/exit/listing",
+  "/workspace/exit/clean-room",
 ] as const;
 
 /** Pages that redirect to /pricing unless the plan is Growth+. */
 export const GROWTH_GATED_PAGES = new Set<string>([
-  "/workspace/cap-table",
-  "/workspace/listing-readiness",
-  "/workspace/clean-room",
+  "/workspace/equity/cap-table",
+  "/workspace/exit/listing",
+  "/workspace/exit/clean-room",
   // requireTierForPage({ feature: "data_room.access" }) — Free → /pricing (S30-B).
-  "/workspace/data-room",
+  "/workspace/documents/data-room",
 ]);
 
 /**
@@ -117,9 +117,9 @@ export const SWEEP_EXTRA_PAGES = [
   "/pricing",
   "/compare",
   "/solutions/advisor",
-  "/workspace/integrations",
-  "/workspace/data-room",
-  "/workspace/audit-log",
+  "/workspace/evidence/connectors",
+  "/workspace/documents/data-room",
+  "/workspace/settings/audit",
   "/workspace/settings",
 ] as const;
 

@@ -1,5 +1,5 @@
 // E2E — <RedomicileWizardClient /> (P12d-redomicile-wizard) on
-// /dashboard/exit-readiness runs the pure assessRedomicile helper in-browser
+// /workspace/exit/benchmark runs the pure assessRedomicile helper in-browser
 // and lets a founder flip triggers to see recommendation + band update live.
 //
 // Contract: docs/plans/atlassian-standard-mapping-goal.md — P12d-redomicile-
@@ -9,7 +9,7 @@
 //
 // Strategy mirrors tests/e2e/founder/investor-readiness-tile.spec.ts:
 //   1. loginAs() a seeded qa-founder (skip when the fixture is missing).
-//   2. Navigate to /dashboard/exit-readiness and skip cleanly when the
+//   2. Navigate to /workspace/exit/benchmark and skip cleanly when the
 //      wizard is not mounted (tier gate can redirect a starter-plan founder).
 //   3. Assert the neutral initial posture (grey band, "hold", 0 triggers).
 //   4. Flip triggers to reach a "prepare" state (amber) — pins the s411
@@ -22,7 +22,7 @@
 import { test, expect } from "@playwright/test";
 import { getAccount, loginAs } from "../fixtures/accounts";
 
-const ROUTE = "/dashboard/exit-readiness";
+const ROUTE = "/workspace/exit/benchmark";
 const FOUNDER_EMAIL =
   process.env.QA_FOUNDER_REDOMICILE_EMAIL ?? "qa-founder-1@blockid.au";
 

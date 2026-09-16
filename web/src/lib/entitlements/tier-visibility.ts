@@ -36,7 +36,7 @@ export type FeatureSlug =
   // card ("included in your plan") and the T0247 workspace leaf.
   | "grant_finder"
   | "money_radar"
-  // S27-B: pre-IPO secondary trading SANDBOX on /workspace/secondary-offer —
+  // S27-B: pre-IPO secondary trading SANDBOX on /workspace/equity/secondary —
   // Growth+, the rung that carries the cap table it trades over.
   | "secondary_market.view"
   // Startup Package — visible to every tier because the paywall is a

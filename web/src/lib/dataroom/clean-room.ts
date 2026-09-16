@@ -1,5 +1,5 @@
 // Clean-room preparation guide (S29-A) — the checklist behind
-// /workspace/clean-room for an M&A or strategic due diligence where the
+// /workspace/exit/clean-room for an M&A or strategic due diligence where the
 // buyer competes with the company.
 //
 // Mirrors the standard clean-team process used in real transactions
@@ -126,9 +126,9 @@ export const CLEAN_ROOM_STAGES: readonly CleanRoomStageDef[] = [
   },
 ];
 
-const DATA_ROOM = { href: "/workspace/data-room", label: "Data room" };
-const TRUST = { href: "/workspace/data-room#trust", label: "NDA and watermark settings" };
-const SHARE = { href: "/workspace/data-room#share", label: "Investor share links" };
+const DATA_ROOM = { href: "/workspace/documents/data-room", label: "Data room" };
+const TRUST = { href: "/workspace/documents/data-room#trust", label: "NDA and watermark settings" };
+const SHARE = { href: "/workspace/documents/data-room#share", label: "Investor share links" };
 
 export const CLEAN_ROOM_TASKS: readonly CleanRoomTaskDef[] = [
   { id: "scope-team", stage: "scope", source: "founder", label: "Clean team named in writing", detail: "List the outside advisers and any buyer staff who will see the sensitive tier, and confirm each is walled off from the buyer's pricing, sales and product decisions for the duration of the process and a period after it." },
@@ -137,13 +137,13 @@ export const CLEAN_ROOM_TASKS: readonly CleanRoomTaskDef[] = [
   { id: "classify-sections", stage: "classify", source: "computed", label: "Data room sections mirror the tiers", detail: "At least one share link restricts which sections it can open — the clean-team sections exist as separate folders rather than mixed into the general room.", link: SHARE },
   { id: "redact-customers", stage: "redact", source: "founder", label: "Customer schedule anonymised for the deal team", detail: "Customer A, B, C with contract value, term, renewal date and concentration; names and per-customer pricing only in the clean-team tier." },
   { id: "redact-people", stage: "redact", source: "founder", label: "Employee data aggregated", detail: "Headcount by function, role bands and total employment cost for the deal team; no names, salaries, ESOP grants or performance notes outside the clean team." },
-  { id: "redact-code", stage: "redact", source: "founder", label: "Source code kept out of the room", detail: "Offer a third-party code review, an SBOM / licence-risk report or an escrow attestation instead of repository access; if code must be inspected, it is on your screen in a supervised session, never uploaded.", link: { href: "/workspace/data-room#data-room-checklist", label: "Open-source licence inventory (IP section)" } },
+  { id: "redact-code", stage: "redact", source: "founder", label: "Source code kept out of the room", detail: "Offer a third-party code review, an SBOM / licence-risk report or an escrow attestation instead of repository access; if code must be inspected, it is on your screen in a supervised session, never uploaded.", link: { href: "/workspace/documents/data-room#data-room-checklist", label: "Open-source licence inventory (IP section)" } },
   { id: "access-links", stage: "access", source: "computed", label: "Every recipient has their own named share link", detail: "No shared URLs — each person on the buyer side and in the clean team gets a link with their name and email so every open is attributable.", link: SHARE },
   { id: "access-restricted", stage: "access", source: "computed", label: "The deal-team tier cannot open the clean-team sections", detail: "At least one link restricts sections and is view-only; downloads are granted per person, per section, and only when the clean-team agreement is signed.", link: SHARE },
   { id: "nda-gate", stage: "nda", source: "computed", label: "NDA acceptance required before the room opens", detail: "Turn the NDA gate on so every recipient accepts the current NDA text before the first document loads; acceptances are logged with version, email and time.", link: TRUST },
   { id: "nda-clean-team", stage: "nda", source: "founder", label: "Clean-team agreement signed by each clean-team member", detail: "Use restriction, aggregated reporting, no onward disclosure, destruction on exit; countersigned by the buyer. Store the signed copies in a founder-only section." },
   { id: "nda-watermark", stage: "nda", source: "computed", label: "Dynamic watermark on every viewed document", detail: "Each page carries the recipient's name and the date so a leaked screenshot is traceable to the link that produced it.", link: TRUST },
-  { id: "log-engagement", stage: "logging", source: "computed", label: "Engagement log recording opens and section views", detail: "The room logs every open, section view and download per link; keep the export with the deal file.", link: { href: "/workspace/data-room#engagement", label: "Engagement heatmap" } },
+  { id: "log-engagement", stage: "logging", source: "computed", label: "Engagement log recording opens and section views", detail: "The room logs every open, section view and download per link; keep the export with the deal file.", link: { href: "/workspace/documents/data-room#engagement", label: "Engagement heatmap" } },
   { id: "log-retention", stage: "logging", source: "founder", label: "Retention schedule agreed", detail: "How long each tier may keep what it saw (typically nothing beyond the process for the clean team), and how long you keep the log and acceptance records — align with the NDA's survival clause." },
   { id: "post-revoke", stage: "post-deal", source: "either", label: "All share links revoked or expired at the end of the process", detail: "Revoke every link the day the process ends — closing, withdrawal or lapse — so nothing stays reachable; the room shows this when no link is still active.", link: SHARE },
   { id: "post-certificate", stage: "post-deal", source: "founder", label: "Destruction or return certificate received", detail: "A signed certificate from the buyer and from each clean-team member that materials were destroyed or returned, kept with the engagement log." },

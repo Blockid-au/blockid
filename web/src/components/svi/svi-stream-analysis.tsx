@@ -816,7 +816,7 @@ function EmailReportPanel({
     }
     if (!pitchdeckId) {
       setStatus("err");
-      setErrorMsg("Email available only for pitchdeck runs — try the /workspace/pitchdeck-analyze flow.");
+      setErrorMsg("Email available only for pitchdeck runs — try the /workspace/raise/deck flow.");
       return;
     }
     setStatus("sending");
@@ -853,7 +853,7 @@ function EmailReportPanel({
           Take this with you
         </p>
         <a
-          href="/workspace/svi-evidence"
+          href="/workspace/evidence/gaps"
           className="text-xs font-medium text-brand-700 dark:text-brand-300 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
         >
           Detailed breakdown by 13 investor criteria →
@@ -1079,7 +1079,7 @@ function TbrOnboardingSteps({
 
   if (!visible) return null;
 
-  const tbrUrl = `/workspace/business-report?pid=${encodeURIComponent(projectId || "default")}`;
+  const tbrUrl = `/workspace/reports/business?pid=${encodeURIComponent(projectId || "default")}`;
   const pdfUrl = shareToken
     ? `/api/svi/report/pdf?token=${encodeURIComponent(shareToken)}`
     : null;
@@ -1197,7 +1197,7 @@ function TbrOnboardingSteps({
           hint="See how your score moves as you add evidence and hit milestones."
           action={
             <a
-              href="/dashboard/svi"
+              href="/workspace/score"
               onClick={() => markStep(5)}
               className="inline-flex items-center gap-1 rounded-md border border-brand-600 text-brand-700 dark:text-brand-300 dark:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/40 text-xs font-semibold px-3 py-1.5"
             >
@@ -2026,7 +2026,7 @@ export function SviStreamAnalysis({
                         </span>
                       </span>
                       <a
-                        href={`/workspace/svi-evidence?dim=${w.key}`}
+                        href={`/workspace/evidence/gaps?dim=${w.key}`}
                         className="inline-flex items-center justify-center min-h-[36px] rounded-md bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-50 dark:focus-visible:ring-offset-brand-950 transition-colors"
                       >
                         Add evidence
@@ -2089,7 +2089,7 @@ export function SviStreamAnalysis({
                 analyst-style document with TOC + risk register + roadmap. */}
             <div className="border-t border-brand-200/50 dark:border-brand-800/50 pt-3">
               <a
-                href={`/workspace/business-report?pid=${encodeURIComponent(projectId ?? "default")}`}
+                href={`/workspace/reports/business?pid=${encodeURIComponent(projectId ?? "default")}`}
                 className="inline-flex items-center gap-2 w-full justify-center rounded-lg border-2 border-brand-600 dark:border-brand-400 text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-950/30 text-sm font-semibold px-4 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                 target="_blank"
                 rel="noopener noreferrer"

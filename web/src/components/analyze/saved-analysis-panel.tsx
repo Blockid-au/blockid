@@ -169,7 +169,7 @@ export function SavedAnalysisPanel({
       <div className="mt-3">
         {authenticated === true ? (
           <Link
-            href="/workspace/analyses"
+            href="/workspace/score/history"
             className="text-xs font-semibold text-action hover:underline"
             data-testid="analyze-saved-list-link"
           >

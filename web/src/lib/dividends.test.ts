@@ -1,7 +1,7 @@
 // Vitest coverage for `web/src/lib/dividends.ts` — the pure Australian
 // franked-dividend calculator consumed by (i) `src/app/api/dividends/route.ts`
 // (Phase 7 dividend endpoint hit by the Revenue + Dividends founder pages)
-// and (ii) the `/workspace/dividends` + `/workspace/revenue` UIs that read
+// and (ii) the `/workspace/finance/dividends` + `/workspace/finance/revenue` UIs that read
 // its `DividendResult` envelope verbatim.
 //
 // Closes the "no colocated test" gap on a load-bearing money-math lib:

@@ -21,6 +21,10 @@
 
 import { test, expect } from "@playwright/test";
 import { LEGACY_REDIRECTS } from "../../../src/lib/nav/legacy-redirects";
+import { HUBS, HUB_IDS } from "../../../src/lib/nav/hubs";
+import { loginAs } from "../fixtures/accounts";
+
+const FOUNDER_EMAIL = process.env.QA_FOUNDER_LIMIT_EMAIL ?? "qa+founder@blockid.au";
 
 // Give each hydrated page a hard ceiling so a stuck deploy doesn't hang CI.
 const PAGE_TIMEOUT = 15_000;
@@ -88,13 +92,13 @@ test.describe("Post-deploy hydrated smoke", () => {
     ).toBeVisible({ timeout: PAGE_TIMEOUT });
   });
 
-  test("/workspace/branding — loads or redirects to /auth/login", async ({
+  test("/workspace/settings/enterprise — loads or redirects to /auth/login", async ({
     page,
   }) => {
-    const resp = await page.goto("/workspace/branding", {
+    const resp = await page.goto("/workspace/settings/enterprise", {
       waitUntil: "domcontentloaded",
     });
-    expect(resp, "no response for /workspace/branding").not.toBeNull();
+    expect(resp, "no response for /workspace/settings/enterprise").not.toBeNull();
     const status = resp!.status();
     // Signed-out users are redirected to /auth/login; signed-in reach the page.
     // Both count as healthy; a 4xx/5xx here is the regression we're catching.
@@ -106,7 +110,7 @@ test.describe("Post-deploy hydrated smoke", () => {
     expect(okUrl, `unexpected final URL ${finalUrl}`).toBe(true);
   });
 
-  // ── /workspace/audit-log + /workspace/projects (iter-12) ────────────
+  // ── /workspace/settings/audit + /workspace/projects (iter-12) ────────────
   // Both pages call `redirect("/auth/login?next=...")` inside an async
   // Server Component when getCurrentUser() returns null. Because they
   // sit under app/workspace/loading.tsx, Next 16 streams a shell + the
@@ -115,14 +119,14 @@ test.describe("Post-deploy hydrated smoke", () => {
   // leak — the client runtime honours the template and lands on
   // /auth/login. This hydrated smoke asserts the visible behaviour so
   // the false-positive from the iter-12 curl-only gate can't recur.
-  // /dashboard/portfolio (iter-14, shipped 7ed825be) shares the same
+  // /workspace/projects/compare (iter-14, shipped 7ed825be) shares the same
   // getCurrentUser()→redirect() auth-gate pattern, so it lives in the
   // same loop.
   for (const path of [
-    "/workspace/audit-log",
+    "/workspace/settings/audit",
     "/workspace/projects",
     "/workspace/projects/archived",
-    "/dashboard/portfolio",
+    "/workspace/projects/compare",
   ] as const) {
     test(`${path} — anonymous lands on /auth/login (hydrated)`, async ({
       page,
@@ -147,7 +151,7 @@ test.describe("Post-deploy hydrated smoke", () => {
     });
   }
 
-  test("/workspace/audit-log — login redirect carries exact next param", async ({
+  test("/workspace/settings/audit — login redirect carries exact next param", async ({
     page,
     context,
   }) => {
@@ -166,26 +170,26 @@ test.describe("Post-deploy hydrated smoke", () => {
     // — where the user lands — and still catches double-encoding, since
     // `%252F…` decodes to `%2F…` and fails this equality.
     await context.clearCookies();
-    await page.goto("/workspace/audit-log", { waitUntil: "domcontentloaded" });
+    await page.goto("/workspace/settings/audit", { waitUntil: "domcontentloaded" });
     await page.waitForURL(/\/auth\/login/, { timeout: PAGE_TIMEOUT });
     const finalUrl = page.url();
     const nextParam = new URL(finalUrl).searchParams.get("next");
     expect(
       nextParam,
-      `expected next=/workspace/audit-log after one decode, got ${finalUrl}`,
-    ).toBe("/workspace/audit-log");
+      `expected next=/workspace/settings/audit after one decode, got ${finalUrl}`,
+    ).toBe("/workspace/settings/audit");
   });
 
-  test("/dashboard/portfolio — post-redirect login shell hydrates", async ({
+  test("/workspace/projects/compare — post-redirect login shell hydrates", async ({
     page,
     context,
   }) => {
     // After the auth-gate redirect, the /auth/login page must render its
     // canonical hero shell — protects the empty-state / column layout on
-    // /dashboard/portfolio from a silent regression that turns the redirect
+    // /workspace/projects/compare from a silent regression that turns the redirect
     // into a blank page (e.g. a broken WorkspaceLayout import).
     await context.clearCookies();
-    await page.goto("/dashboard/portfolio", { waitUntil: "domcontentloaded" });
+    await page.goto("/workspace/projects/compare", { waitUntil: "domcontentloaded" });
     await page.waitForURL(/\/auth\/login/, { timeout: PAGE_TIMEOUT });
     await expect(
       page.getByRole("heading", { name: /sign in to blockid/i }),
@@ -352,16 +356,61 @@ test.describe("Post-deploy hydrated smoke", () => {
   // the same table). `maxRedirects: 0` so we assert the first hop, not the
   // auth-gate that follows it. A 200 here means the redirect was dropped
   // from the config; a 404 means the old page was deleted without it.
+  // S-IA2 (G13-W2) added `:param` sources (`/workspace/guide/:path*`,
+  // `/dashboard/history/:startupId`); every param is substituted with the
+  // same sample on both sides so the Location assertion stays exact.
+  const fillParams = (p: string) => p.replace(/:[A-Za-z]+\*?/g, "sample");
   for (const r of LEGACY_REDIRECTS) {
     test(`${r.source} → ${r.destination} (308)`, async ({ request }) => {
       test.setTimeout(15_000);
-      const resp = await request.get(r.source, { maxRedirects: 0 });
+      const resp = await request.get(fillParams(r.source), { maxRedirects: 0 });
       expect(resp.status(), `${r.source}: expected 308, got ${resp.status()}`).toBe(308);
       const location = resp.headers()["location"] ?? "";
       const path = location.replace(/^https?:\/\/[^/]+/, "").split("?")[0];
-      expect(path, `${r.source}: Location ${location}`).toBe(r.destination);
+      expect(path, `${r.source}: Location ${location}`).toBe(fillParams(r.destination));
     });
   }
+
+  // ── G13-W2-IA2 — hub roots render their tablist (hydrated) ───────────
+  // One assertion per founder hub: signed in as the QA founder, the hub
+  // root shows `role="tablist"` with its first tab selected. Skips (never
+  // false-greens) when the seed account is missing on the box.
+  test.describe("hub tablists", () => {
+    test.setTimeout(120_000);
+    test("every /workspace/<hub> root renders a tablist with the first tab selected", async ({ page }) => {
+      let loginOk = false;
+      try {
+        await loginAs(page, FOUNDER_EMAIL);
+        loginOk = true;
+      } catch {
+        /* fixture missing on this box */
+      }
+      test.skip(!loginOk, `QA founder ${FOUNDER_EMAIL} not seeded — run scripts/seed-test-users.mjs`);
+      const gated: string[] = [];
+      for (const id of HUB_IDS) {
+        const hub = HUBS[id];
+        await test.step(hub.root, async () => {
+          const resp = await page.goto(hub.root, { waitUntil: "domcontentloaded" });
+          expect(resp?.status(), `${hub.root} status`).toBeLessThan(400);
+          // A hub root the seed plan cannot open (e.g. /workspace/esop needs
+          // the Equity add-on) bounces to /pricing via requireTierForPage —
+          // that is the gate working, not a broken hub. Anything else must
+          // show the tablist.
+          if (/\/pricing(\?|$)/.test(page.url())) {
+            gated.push(hub.root);
+            return;
+          }
+          const tablist = page.locator(`nav[data-hub="${id}"] [role="tablist"]`);
+          await expect(tablist, `${hub.root} tablist`).toBeVisible({ timeout: PAGE_TIMEOUT });
+          const tabs = tablist.getByRole("tab");
+          expect(await tabs.count(), `${hub.root} tab count`).toBe(hub.tabs.length);
+          await expect(tabs.first(), `${hub.root} first tab selected`).toHaveAttribute("aria-selected", "true");
+          await expect(tabs.first()).toHaveAttribute("aria-current", "page");
+        });
+      }
+      expect(gated.length, `plan-gated hub roots: ${gated.join(", ")}`).toBeLessThanOrEqual(2);
+    });
+  });
 
   test("/workspace/reports/upgrade keeps its query string through the redirect", async ({ request }) => {
     test.setTimeout(15_000);

@@ -1276,7 +1276,7 @@ export function RndResultsPanel({
                   Get Founding 100
                 </Button>
               </Link>
-              <Link href="/dashboard/svi" className="block">
+              <Link href="/workspace/score" className="block">
                 <Button variant="secondary" size="md" className="w-full gap-2">
                   <BarChart3 strokeWidth={1.75} className="h-4 w-4" />
                   View on Dashboard

@@ -63,7 +63,7 @@ describe("buildDigestPipeline", () => {
       { name: "Sam", org: "Angel Co", next_step: "Send SAFE", due: "2026-09-10", days: 4 },
     ]);
     expect(p.committed).toBe(1);
-    expect(p.href).toBe("https://blockid.au/workspace/investors");
+    expect(p.href).toBe("https://blockid.au/workspace/investors/pipeline");
   });
 
   it("caps the lists", () => {

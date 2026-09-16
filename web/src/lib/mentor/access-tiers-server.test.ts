@@ -19,7 +19,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 //   * losing the null-supabase early-return would throw at `getSupabaseAdmin()`
 //     null during test / preview builds and 500 the mentor drawer
 //   * losing the `data ?? null` guard in loadAllGrantsForFounder would surface
-//     `null.map(...)` on the /dashboard/settings/mentor-access page
+//     `null.map(...)` on the /workspace/investors/access page
 //   * losing the `.order("granted_at", { ascending: false })` would surface
 //     the OLDEST grant first — founders reading their consent history see a
 //     stale grant as if it were current

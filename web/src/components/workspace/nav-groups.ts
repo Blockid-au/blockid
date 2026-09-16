@@ -11,12 +11,12 @@
 //   · §D.1 label rules (pinned by nav-groups.test.ts) · §D.2 EN/VI labels
 //   · §D.3 tooltip copy.
 //
-// Hrefs vs `v4Href`: S-IA1 ships the catalogue and redirects; the hub pages
-// with path-segment tabs (`/workspace/score`, `/workspace/plan`, …) are
-// built in S-IA2. Until a hub exists its leaf keeps `href` on the page that
-// exists today and records the §A.1 target in `v4Href`, so S-IA2 is a
-// data-driven flip (move the page, set `href = v4Href`, drop `v4Href`).
-// `legacy-redirects.ts` mirrors this: a redirect is only live when its
+// Hrefs vs `v4Href`: S-IA1 shipped the catalogue and redirects with leaves
+// pointing at the pre-hub pages and the §A.1 target recorded in `v4Href`.
+// S-IA2 (G13-W2) moved the pages into their hub tabs (`lib/nav/hubs.ts`)
+// and flipped every founder leaf to its hub root, so no leaf carries a
+// `v4Href` today. The field stays on the type for the next rename wave —
+// `legacy-redirects.ts` mirrors it: a redirect is only live when its
 // destination page exists.
 //
 // Every leaf carries `aliases` — the labels the row had before v4 — so the
@@ -152,8 +152,7 @@ const PROVE: NavGroup = {
   tooltip: { en: "Score, evidence and your plan", vi: "Điểm, bằng chứng và kế hoạch của bạn" },
   items: [
     {
-      href: "/dashboard/svi",
-      v4Href: "/workspace/score",
+      href: "/workspace/score",
       label: { en: "Score", vi: "Điểm SVI" },
       tooltip: { en: "Your SVI, trend and cohort rank", vi: "SVI, xu hướng và thứ hạng trong nhóm của bạn" },
       icon: TrendingUp,
@@ -168,8 +167,7 @@ const PROVE: NavGroup = {
       aliases: ["Evidence Vault", "Evidence Completeness", "Metrics", "Integrations"],
     },
     {
-      href: "/workspace/roadmap",
-      v4Href: "/workspace/plan",
+      href: "/workspace/plan",
       label: { en: "Action plan", vi: "Kế hoạch hành động" },
       tooltip: { en: "Your 12-phase plan, one step at a time", vi: "Kế hoạch 12 giai đoạn, từng bước một" },
       icon: Map,
@@ -210,8 +208,7 @@ const MONEY: NavGroup = {
       aliases: ["Investor CRM", "Investor Links", "Advisor Portal", "Data Room Access", "Mentor Access"],
     },
     {
-      href: "/dashboard/valuation",
-      v4Href: "/workspace/valuation",
+      href: "/workspace/valuation",
       label: { en: "Valuation", vi: "Định giá" },
       tooltip: { en: "Five methods in AUD, benchmarked on AU comparables", vi: "Năm phương pháp bằng AUD, đối chiếu với các công ty so sánh tại Úc" },
       icon: Target,
@@ -220,8 +217,7 @@ const MONEY: NavGroup = {
       aliases: ["VC Valuation", "CFO Advisor", "Financial Forecast"],
     },
     {
-      href: "/dashboard/fundraise",
-      v4Href: "/workspace/raise",
+      href: "/workspace/raise",
       label: { en: "Raise", vi: "Gọi vốn" },
       tooltip: { en: "Readiness check, your round, deck and term sheet", vi: "Kiểm tra sẵn sàng, vòng gọi vốn, deck và term sheet" },
       icon: Banknote,
@@ -230,8 +226,7 @@ const MONEY: NavGroup = {
       aliases: ["Fundraise Readiness", "Raise Capital", "Pitch Deck Analyzer", "Term Sheet"],
     },
     {
-      href: "/dashboard/accelerator",
-      v4Href: "/workspace/accelerators",
+      href: "/workspace/accelerators",
       label: { en: "Accelerators", vi: "Vườn ươm" },
       tooltip: { en: "Track applications and criteria", vi: "Theo dõi hồ sơ và tiêu chí" },
       icon: Rocket,
@@ -240,8 +235,7 @@ const MONEY: NavGroup = {
       aliases: ["Accelerator Tracker", "Accelerator Criteria"],
     },
     {
-      href: "/dashboard/finance",
-      v4Href: "/workspace/finance",
+      href: "/workspace/finance",
       label: { en: "Finance", vi: "Tài chính" },
       tooltip: { en: "Revenue, costs, invoices, dividends", vi: "Doanh thu, chi phí, hoá đơn, cổ tức" },
       icon: DollarSign,
@@ -291,8 +285,7 @@ const COMPANY: NavGroup = {
       aliases: ["Team Planner", "Team & Salaries"],
     },
     {
-      href: "/dashboard/market-size",
-      v4Href: "/workspace/strategy",
+      href: "/workspace/strategy",
       label: { en: "Strategy", vi: "Chiến lược" },
       tooltip: { en: "Market, competitors, tech, GTM, pricing, roadmap", vi: "Thị trường, đối thủ, công nghệ, GTM, giá, lộ trình" },
       icon: LineChart,
@@ -393,8 +386,7 @@ const EVALUATOR_HOME: NavGroup = {
       segments: ["accelerator"],
     },
     {
-      href: "/workspace/applications",
-      v4Href: "/workspace/accelerator/applications",
+      href: "/workspace/accelerator/applications",
       label: { en: "Applications", vi: "Hồ sơ ứng tuyển" },
       tooltip: { en: "Applicants to review, ranked by SVI", vi: "Hồ sơ cần xét duyệt, xếp theo SVI" },
       icon: ClipboardCheck,

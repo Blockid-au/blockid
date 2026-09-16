@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Render test for /workspace/funding (T0244 + T0251) with the data layer mocked.
 // Pins: login redirect; the free variant (prefilled intake + A$3 / Starter
-// paywall hint, no tabs); the paid variant (eight tabs, latest report on the
+// paywall hint, no tabs); the paid variant (seven tabs, latest report on the
 // Grants tab, `?tab=` picks the initial tab, Events from program_type=event,
 // Capital map sections + article links, Alerts kinds); the "no report yet"
 // prompt for a paid founder without a row; T0251 — `?draft=<grantId>&kind=grant`
@@ -12,8 +12,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // S16-A — `?draft=<programId>&kind=program` opens the same editor for the
 // program's prompts (intake window, program title, program_id lookup) and an
 // unknown id renders the "not in the catalogue" note (no stub any more), and
-// the Investors / Expert update tabs show locked cards for Starter and the
-// live data for Growth.
+// the Expert update tab shows a locked card for Starter and the live note for
+// Growth. The Investors tab moved to /workspace/investors (S-IA2) — see
+// ../investors/page.test.tsx.
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/components/workspace/workspace-layout", () => ({
@@ -50,11 +51,9 @@ vi.mock("@/lib/funding/data", () => ({
   getProgram: (id: string) => getProgramMock(id),
 }));
 
-// T0251 Growth extras — plan gate, investor reverse-match, quarterly note, draft row.
+// T0251 Growth extras — plan gate, quarterly note, draft row.
 const growthMock = vi.fn();
 vi.mock("@/lib/funding/growth-extras", () => ({ hasGrowthExtras: () => growthMock() }));
-const investorsMock = vi.fn();
-vi.mock("@/lib/funding/investor-match", () => ({ matchInvestorsForProject: (p: unknown) => investorsMock(p) }));
 const refreshMock = vi.fn();
 vi.mock("@/lib/funding/analysis-refresh", async (importOriginal) => {
   const orig = await importOriginal<typeof import("@/lib/funding/analysis-refresh")>();
@@ -163,13 +162,12 @@ beforeEach(() => {
   getGrantMock.mockReset().mockResolvedValue(grantRow());
   getProgramMock.mockReset().mockResolvedValue(programRow());
   growthMock.mockReset().mockResolvedValue(false);
-  investorsMock.mockReset().mockResolvedValue([]);
   refreshMock.mockReset().mockResolvedValue(null);
   latestDraftMock.mockReset().mockResolvedValue(null);
 });
 
 // The first test pays the cold transform of the whole workspace import graph
-// (tabs, drafts, investor match, radar tile); under parallel load that alone
+// (tabs, drafts, radar tile); under parallel load that alone
 // exceeds the 5 s default, so the suite gets a wider per-test budget.
 describe("/workspace/funding (T0244)", { timeout: 20_000 }, () => {
   it("redirects signed-out visitors to login with next=", async () => {
@@ -196,14 +194,16 @@ describe("/workspace/funding (T0244)", { timeout: 20_000 }, () => {
     expect(out).toContain('data-surface="funding_directory"');
   });
 
-  it("paid founder: eight tabs with the latest report on Grants, plus the intake to re-run", async () => {
+  it("paid founder: seven tabs with the latest report on Grants, plus the intake to re-run", async () => {
     const out = await html();
     expect(out).toContain('data-plan-included="1"');
     expect(out).toContain('data-funding-workspace');
     expect(out).toContain('data-tab="grants"');
-    for (const t of ["Grants", "Programs", "Events", "Timeline", "Capital map", "Investors", "Expert update", "Alerts"]) {
+    for (const t of ["Grants", "Programs", "Events", "Timeline", "Capital map", "Expert update", "Alerts"]) {
       expect(out).toContain(`>${t}</button>`);
     }
+    // S-IA2 — the investor reverse-match lives on /workspace/investors now.
+    expect(out).not.toContain(">Investors</button>");
     expect(latestReportMock).toHaveBeenCalledWith("u-1", "proj-1");
     expect(out).toContain('data-grant="g1"');
     expect(out).toContain("MVP Ventures");
@@ -219,10 +219,10 @@ describe("/workspace/funding (T0244)", { timeout: 20_000 }, () => {
   it("S8-B a11y: ARIA tabs with a roving tabindex (one tab stop), aria-selected on the active tab, a focusable named tabpanel", async () => {
     const out = await html({ tab: "timeline" });
     expect(out).toContain('role="tablist" aria-label="Money Radar"');
-    expect((out.match(/role="tab"/g) ?? []).length).toBe(8);
+    expect((out.match(/role="tab"/g) ?? []).length).toBe(7);
     expect((out.match(/aria-selected="true"/g) ?? []).length).toBe(1);
     expect(out).toMatch(/id="funding-tab-btn-timeline" tabindex="0"/);
-    expect((out.match(/role="tab"[^>]*tabindex="-1"/g) ?? []).length).toBe(7);
+    expect((out.match(/role="tab"[^>]*tabindex="-1"/g) ?? []).length).toBe(6);
     expect(out).toMatch(/<div id="funding-tab-timeline" role="tabpanel" aria-labelledby="funding-tab-btn-timeline" tabindex="0"/);
     // Tabs are ≥ 44px tall touch targets and show a focus ring.
     expect(out).toContain("min-h-11");
@@ -252,7 +252,7 @@ describe("/workspace/funding (T0244)", { timeout: 20_000 }, () => {
     expect(alerts).toContain("Coming with Money Radar");
     expect(alerts).toContain('data-alert-kind="deadline_14d"');
     expect(alerts).toContain('data-alert-kind="weekly_digest"');
-    expect(alerts).toContain('href="/workspace/notifications"');
+    expect(alerts).toContain('href="/workspace/settings/notifications"');
 
     const bogus = await html({ tab: "nope" });
     expect(bogus).toContain('data-tab="grants"');
@@ -351,85 +351,6 @@ describe("/workspace/funding (T0244)", { timeout: 20_000 }, () => {
     expect(none).toContain("data-no-report");
     expect(none).toContain("Run my match");
     expect(none).toContain("data-funding-intake");
-  });
-
-  it("Investors tab: Starter sees the locked card; Growth sees the ranked investors with a support-mailto intro (T0251)", async () => {
-    const starter = await html({ tab: "investors" });
-    expect(starter).toContain('data-growth="0"');
-    expect(starter).toContain("data-investors");
-    expect(starter).toContain("data-growth-locked");
-    expect(starter).toContain("Investor matching is a Growth feature. Upgrade to see the investors whose thesis fits your startup.");
-    expect(starter).toContain('href="/pricing?feature=report.premium&amp;from=/workspace/funding"');
-    expect(investorsMock).not.toHaveBeenCalled();
-
-    growthMock.mockResolvedValue(true);
-    investorsMock.mockResolvedValue([
-      {
-        investor_id: "inv-1", name: "Sydney Seed Fund", firm: "Sydney Angels", thesis: "Pre-seed agtech in ANZ", plan: "investor_angel", score: 100,
-        reasons: ["Your SVI 62 clears their 50 floor", "Invests in agtech"], gaps: [], sectors: ["agtech"], stages: ["seed"], geos: ["AU"],
-        cheque_band: "100k_500k", min_svi: 50,
-        intro_href: "mailto:support@blockid.au?subject=Intro%20request%3A%20Acme%20Agtech%20%E2%86%92%20Sydney%20Seed%20Fund",
-      },
-    ]);
-    const growth = await html({ tab: "investors" });
-    expect(growth).toContain('data-growth="1"');
-    expect(growth).toContain('data-count="1"');
-    expect(growth).toContain('data-investor="inv-1"');
-    expect(growth).toContain("Sydney Seed Fund");
-    expect(growth).toContain("Fit 100");
-    expect(growth).toContain("Invests in agtech");
-    expect(growth).toContain("data-request-intro");
-    expect(growth).toContain('href="mailto:support@blockid.au?subject=Intro%20request');
-    expect(growth).not.toContain("data-growth-locked");
-    // The match is built from the project + report + SVI.
-    expect(investorsMock).toHaveBeenCalledWith(expect.objectContaining({ id: "proj-1", name: "Acme Agtech", industry: "AgTech", state: "NSW", svi: 62 }));
-
-    investorsMock.mockResolvedValue([]);
-    const empty = await html({ tab: "investors" });
-    expect(empty).toContain("data-no-investors");
-    expect(empty).toContain("No opted-in investors match yet. We add investors every week — your profile is already in the queue.");
-  });
-
-  it("Investors card (T0251 follow-up): shows name, firm, thesis + preference axes — never an email; the only mailto is support", async () => {
-    growthMock.mockResolvedValue(true);
-    investorsMock.mockResolvedValue([
-      {
-        investor_id: "inv-1", name: "Ann Angel", firm: "Sydney Angels", thesis: "Pre-seed agtech in ANZ, A$50k first cheques", plan: "investor_angel", score: 90,
-        reasons: ["No SVI floor", "Invests in agtech", "Backs seed rounds", "Invests in AU"], gaps: [], sectors: ["agtech"], stages: ["seed"], geos: ["AU"],
-        cheque_band: "25k_100k", min_svi: null,
-        intro_href: "mailto:support@blockid.au?subject=Intro%20request%3A%20Acme%20Agtech%20%E2%86%92%20Ann%20Angel",
-        // A leaked field must never reach the markup even if a store ever returned it.
-        email: "ann@example.com",
-      },
-    ]);
-    const out = await html({ tab: "investors" });
-    expect(out).toContain('data-investor-name');
-    expect(out).toContain("Ann Angel");
-    expect(out).toContain('data-investor-firm');
-    expect(out).toContain("Sydney Angels");
-    expect(out).toContain('data-investor-thesis');
-    expect(out).toContain("Pre-seed agtech in ANZ, A$50k first cheques");
-    expect(out).toContain("Backs seed rounds");
-    expect(out).toContain("Cheque: 25k 100k");
-    expect(out).not.toContain("ann@example.com");
-    // Every mailto on the tab routes to support, never to the investor.
-    const mailtos = out.match(/href="mailto:[^"]+"/g) ?? [];
-    expect(mailtos.length).toBeGreaterThan(0);
-    for (const m of mailtos) expect(m).toMatch(/^href="mailto:support@blockid\.au\?/);
-  });
-
-  it("Investors empty state (T0251 follow-up): queue copy + programs link for the founder's capital (never blank)", async () => {
-    growthMock.mockResolvedValue(true);
-    investorsMock.mockResolvedValue([]);
-    const out = await html({ tab: "investors" });
-    expect(out).toContain('data-count="0"');
-    expect(out).toContain("data-no-investors");
-    expect(out).toContain("No opted-in investors match yet. We add investors every week — your profile is already in the queue.");
-    expect(out).toContain("data-no-investors-programs");
-    // ROW.intake.city = Sydney → /funding/programs/sydney.
-    expect(out).toContain('href="/funding/programs/sydney"');
-    expect(out).toContain("Meet investors at programs near you");
-    expect(out).not.toContain("data-request-intro");
   });
 
   it("Expert update tab: locked for Starter; Growth sees the next-date note or the latest markdown (T0251)", async () => {

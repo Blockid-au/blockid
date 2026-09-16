@@ -694,7 +694,7 @@ export async function sendInvestorViewedEmail(args: {
 }): Promise<SendResult> {
   if (!(await canSendEmail(args.to, "svi_alerts"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
-  const url = `${siteUrl()}/workspace/data-room`;
+  const url = `${siteUrl()}/workspace/documents/data-room`;
   const room = args.roomName?.trim() || "your data room";
   const mins = Math.round(args.dwellMs / 60_000);
   const headline =
@@ -749,7 +749,7 @@ export async function sendSVIWelcome(args: {
 }): Promise<SendResult> {
   const isVi = args.locale === "vi";
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
-  const dashUrl = `${siteUrl()}/dashboard/svi`;
+  const dashUrl = `${siteUrl()}/workspace/score`;
   const stageLabels = ["Concept", "Validated Idea", "MVP", "Early Traction", "Revenue", "Growth", "Scale", "Corporation"];
   const stageLabel = stageLabels[args.stage] ?? "Concept";
   const headlineText = isVi
@@ -804,7 +804,7 @@ export async function sendSVIWeeklyReport(args: {
   const isVi = args.locale === "vi";
   if (!(await canSendEmail(args.to, "weekly_reports"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
-  const dashUrl = `${siteUrl()}/dashboard/svi`;
+  const dashUrl = `${siteUrl()}/workspace/score`;
   const evidenceUrl = `${siteUrl()}/workspace/evidence`;
   const reportsUrl = `${siteUrl()}/workspace/reports`;
   const deltaStr = args.delta != null ? (args.delta >= 0 ? `+${args.delta}` : `${args.delta}`) : (isVi ? "Khong doi" : "No change");
@@ -1054,7 +1054,7 @@ export async function sendWelcomeWithReport(args: {
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const reportUrl = `${siteUrl()}/s/${args.slug}`;
   const loginUrl = `${siteUrl()}/auth/login`;
-  const profileUrl = `${siteUrl()}/workspace/profile`;
+  const profileUrl = `${siteUrl()}/workspace/settings/profile`;
   const trackUrl = `${siteUrl()}/api/track/open?slug=${args.slug}&email=${encodeURIComponent(args.to)}`;
   const resellerName = await resolveResellerDisplayNameByEmail(args.to, getSupabaseAdmin());
   const resellerFooter = resellerFooterHtml(resellerName, args.locale ?? "en");
@@ -1427,7 +1427,7 @@ export async function sendSubscriptionCancelled(args: { to: string }): Promise<S
 
 export async function sendPaymentConfirmation(args: { to: string; planName: string }): Promise<SendResult> {
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
-  const dashUrl = `${siteUrl()}/dashboard/svi`;
+  const dashUrl = `${siteUrl()}/workspace/score`;
   const sviUrl = `${siteUrl()}/#svi`;
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
@@ -1684,7 +1684,7 @@ export async function sendSVIReview(args: {
   const isVi = args.locale === "vi";
   if (!(await canSendEmail(args.to, "weekly_reports"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
-  const dashUrl = `${siteUrl()}/dashboard/svi`;
+  const dashUrl = `${siteUrl()}/workspace/score`;
   const evidenceUrl = `${siteUrl()}/workspace/evidence`;
   const scoreColor = args.svi >= 140 ? "#4ADE80" : args.svi >= 100 ? "#3B7DD8" : "#FBBF24";
   const stageLabels = ["Concept", "Validated Idea", "MVP", "Early Traction", "Revenue", "Growth", "Scale", "Corporation"];
@@ -1739,7 +1739,7 @@ export async function sendSVIReview(args: {
 export async function sendMilestoneEmail(args: { to: string; name?: string | null; badge: string; badgeLabel: string; message: string }): Promise<SendResult> {
   if (!(await canSendEmail(args.to, "svi_alerts"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
-  const dashUrl = `${siteUrl()}/dashboard/svi`;
+  const dashUrl = `${siteUrl()}/workspace/score`;
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
     <tr><td align="center">
@@ -1895,7 +1895,7 @@ export async function sendNurtureFreeDay14(args: NurtureArgs): Promise<SendResul
 export async function sendNurturePaidDay1(args: NurtureArgs): Promise<SendResult> {
   if (!(await canSendEmail(args.to, "product_updates"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
-  const roadmapUrl = `${siteUrl()}/workspace/roadmap`;
+  const roadmapUrl = `${siteUrl()}/workspace/plan`;
   const evidenceUrl = `${siteUrl()}/workspace/evidence`;
   const greeting = args.name ? `, ${escapeHtml(args.name!)}` : "";
   const html = shell(nurtureCard({
@@ -1920,7 +1920,7 @@ export async function sendNurturePaidDay1(args: NurtureArgs): Promise<SendResult
 export async function sendNurturePaidDay3(args: NurtureArgs): Promise<SendResult> {
   if (!(await canSendEmail(args.to, "product_updates"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
-  const equityUrl = `${siteUrl()}/workspace/equity-setup`;
+  const equityUrl = `${siteUrl()}/workspace/equity/setup`;
   const greeting = args.name ? `${escapeHtml(args.name!)}, your` : "Your";
   const html = shell(nurtureCard({
     tagline: "BlockID — Equity Setup",
@@ -1945,7 +1945,7 @@ export async function sendNurturePaidDay3(args: NurtureArgs): Promise<SendResult
 export async function sendNurturePaidDay7(args: NurtureArgs): Promise<SendResult> {
   if (!(await canSendEmail(args.to, "product_updates"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
-  const dashUrl = `${siteUrl()}/dashboard/svi`;
+  const dashUrl = `${siteUrl()}/workspace/score`;
   const greeting = args.name ? `, ${escapeHtml(args.name!)}` : "";
   const sviBlock = args.svi ? `
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
@@ -1985,7 +1985,7 @@ export async function sendNurturePaidDay30(args: NurtureArgs): Promise<SendResul
 export async function sendNurtureReengageDay14(args: NurtureArgs): Promise<SendResult> {
   if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
-  const dashUrl = `${siteUrl()}/dashboard/svi`;
+  const dashUrl = `${siteUrl()}/workspace/score`;
   const greeting = args.name ? `Hi ${escapeHtml(args.name!)}, we` : "We";
   const html = shell(nurtureCard({
     tagline: "BlockID — We Miss You",
@@ -2084,7 +2084,7 @@ export async function sendReportDelivery(args: {
   } else if (args.tier === "deep_dive" || args.tier === "deep") {
     nextAction = "Take the next step with AI Equity Recommendations — get data-driven guidance on equity splits, vesting, and share structure tailored to your startup.";
     nextCtaLabel = "Get AI Equity Advice (1.00 credits)";
-    nextCtaUrl = `${siteUrl()}/workspace/equity-setup`;
+    nextCtaUrl = `${siteUrl()}/workspace/equity/setup`;
   }
 
   const nextActionHtml = nextAction
@@ -2143,7 +2143,7 @@ export async function sendVestingMilestone(args: {
 }): Promise<SendResult> {
   if (!(await canSendEmail(args.to, "svi_alerts"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
-  const dashUrl = `${siteUrl()}/workspace/vesting`;
+  const dashUrl = `${siteUrl()}/workspace/esop/vesting`;
   const pct = Math.round(args.percentVested * 10) / 10;
 
   const subjectMap: Record<typeof args.milestoneType, string> = {
@@ -2350,7 +2350,7 @@ export async function sendWeeklySVISummary(args: {
 }): Promise<SendResult> {
   if (!(await canSendEmail(args.to, "product_updates"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
-  const dashUrl = `${siteUrl()}/dashboard/svi`;
+  const dashUrl = `${siteUrl()}/workspace/score`;
   const evidenceUrl = `${siteUrl()}/workspace/evidence`;
   const greeting = args.name ? `Hi ${escapeHtml(args.name!)},` : "Hi,";
 
@@ -2485,7 +2485,7 @@ export async function sendReengagement60d(args: {
 }): Promise<SendResult> {
   if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
-  const dashUrl = `${siteUrl()}/dashboard/svi`;
+  const dashUrl = `${siteUrl()}/workspace/score`;
   const greeting = args.name ? `Hi ${escapeHtml(args.name!)},` : "Hi,";
   const html = shell(nurtureCard({
     tagline: "BlockID — New Features",

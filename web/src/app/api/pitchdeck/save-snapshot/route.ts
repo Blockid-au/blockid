@@ -180,14 +180,14 @@ async function POST_handler(request: Request): Promise<Response> {
       },
       delta,
       dimension_scores: dimResults,
-      // Wave 25A columns (nullable) — powers /workspace/business-report
+      // Wave 25A columns (nullable) — powers /workspace/reports/business
       // rehydration + /tbr/<token> public share links + PDF export.
       criterion_results: criterionResults,
       dim_results: dimResultsFull,
     }).select("id").maybeSingle();
     if (!insertErr) {
       snapshotInserted = true;
-      // G13-W1-R1: ReportV2 document for /tbr + /workspace/business-report
+      // G13-W1-R1: ReportV2 document for /tbr + /workspace/reports/business
       // (svi_snapshots.report_v2, migration 0395). Written AFTER the insert so
       // a missing column can never break snapshot creation; readers fall back
       // to the same adapter on null.

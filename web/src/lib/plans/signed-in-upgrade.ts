@@ -3,7 +3,7 @@
 // S31-B (2026-09-13). Three surfaces sent an existing, onboarded user into a
 // registration flow that could not succeed for them:
 //   • /pricing "Start trial"  → /onboarding?trial=1&plan=<id> → bounced to
-//     /dashboard/svi (no checkout, no message);
+//     /workspace/score (no checkout, no message);
 //   • the Money Radar tile → /signup?plan=founder_starter → "An account with
 //     this email already exists";
 //   • old campaign links to /signup.

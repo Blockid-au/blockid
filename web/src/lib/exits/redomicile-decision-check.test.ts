@@ -2,7 +2,7 @@
 //
 // Pin the (input → recommendation + triggers + mechanism) branch matrix so
 // the Chapter 12 redomicile-decision-tree section body and the wizard on
-// /dashboard/exit-readiness cannot silently drift.
+// /workspace/exit/benchmark cannot silently drift.
 
 import { describe, expect, it } from "vitest";
 import {

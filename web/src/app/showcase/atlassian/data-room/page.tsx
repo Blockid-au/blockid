@@ -254,8 +254,8 @@ export default function AtlassianDataRoomPage() {
             </p>
             <p className="mt-1">
               Try{" "}
-              <Link href="/dashboard/data-room" className="underline">
-                /dashboard/data-room
+              <Link href="/workspace/investors/access" className="underline">
+                /workspace/investors/access
               </Link>{" "}
               to see the live version for your own startup.
             </p>

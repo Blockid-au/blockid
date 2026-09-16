@@ -14,13 +14,13 @@ import {
 } from "./unlock-preview";
 
 const EXPECTED_ROUTES = [
-  "/workspace/cap-table",
-  "/workspace/data-room",
-  "/dashboard/valuation",
-  "/workspace/investor-pack",
+  "/workspace/equity/cap-table",
+  "/workspace/documents/data-room",
+  "/workspace/valuation",
+  "/workspace/reports/investor-pack",
   "/workspace/funding",
-  "/compliance/calendar",
-  "/workspace/metrics",
+  "/workspace/documents/compliance",
+  "/workspace/evidence/metrics",
   "/workspace/exit",
 ];
 
@@ -58,8 +58,8 @@ describe("buildUnlockCards()", () => {
 
 describe("unlockHref()", () => {
   it("routes through login with the workspace page as `next`", () => {
-    expect(unlockHref("/workspace/data-room")).toBe(
-      "/auth/login?next=%2Fworkspace%2Fdata-room",
+    expect(unlockHref("/workspace/documents/data-room")).toBe(
+      "/auth/login?next=%2Fworkspace%2Fdocuments%2Fdata-room",
     );
   });
 });

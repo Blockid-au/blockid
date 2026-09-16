@@ -208,7 +208,7 @@ export async function GET() {
   const metricsMrr = Number(latestMetric?.mrr_aud ?? 0) || 0;
   const metricsBurn = Number(latestMetric?.burn_rate_aud ?? 0) || 0;
 
-  // S28-C — categorised bank lines (/workspace/expenses) are the fallback
+  // S28-C — categorised bank lines (/workspace/finance/expenses) are the fallback
   // source after the connectors: average monthly income / spend over the
   // last 12 months, labelled "from bank CSV, <date>".
   const bankCsv = projectId ? await bankCsvFigures(supabase, projectId) : null;

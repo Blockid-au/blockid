@@ -2,7 +2,7 @@
 
 // Wave 28C — Personalised 30-Day Action Plan.
 //
-// Mounted below the SVI result on `/score` and `/workspace/business-report`.
+// Mounted below the SVI result on `/score` and `/workspace/reports/business`.
 // On mount, if `initialTasks` is not supplied, POSTs to
 // /api/svi/action-plan/generate to fetch (or generate) the plan. Each task is
 // individually checkable; toggling calls /api/svi/action-plan/[id]/toggle and

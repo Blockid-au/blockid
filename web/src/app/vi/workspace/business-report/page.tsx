@@ -1,5 +1,5 @@
 // Wave 25 Phase B — Vietnamese Trusted Business Report (authenticated).
-// Mirror of /workspace/business-report but with locale="vi" so shell copy
+// Mirror of /workspace/reports/business but with locale="vi" so shell copy
 // (headings, TOC, methodology, band names) render in Vietnamese. AI-
 // generated narrative stays in whatever language the model produced.
 
@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
-import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/business-report/business-report-client";
+import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/reports/business/business-report-client";
 
 export const metadata: Metadata = {
   title: "Bao cao Kinh doanh Tin cay — BlockID",
@@ -25,7 +25,7 @@ export default async function ViBusinessReportPage({
   searchParams: Promise<{ pid?: string }>;
 }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/vi/workspace/business-report");
+  if (!user) redirect("/auth/login?next=/vi/workspace/reports/business");
   const isSandbox = await getCurrentProjectIsSandbox();
   const { pid } = await searchParams;
 

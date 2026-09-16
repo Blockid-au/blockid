@@ -1,5 +1,5 @@
 // E2E — <AcquisitionWizardClient /> (P11-acquisition-wizard-ui) on
-// /dashboard/exit-readiness runs the pure assessAcquisitionPattern helper
+// /workspace/exit/benchmark runs the pure assessAcquisitionPattern helper
 // in-browser and lets a founder nudge fields off the ~90/10 Atlassian
 // template to see signal + warnings + FIRB gate update live.
 //
@@ -9,7 +9,7 @@
 //
 // Strategy mirrors tests/e2e/founder/redomicile-wizard.spec.ts:
 //   1. loginAs() a seeded qa-founder (skip when the fixture is missing).
-//   2. Navigate to /dashboard/exit-readiness and skip cleanly when the
+//   2. Navigate to /workspace/exit/benchmark and skip cleanly when the
 //      wizard is not mounted (growth-tier gate can redirect a starter-plan
 //      founder).
 //   3. Assert the seeded green baseline (~90/10 template matches, no consent
@@ -23,7 +23,7 @@
 import { test, expect } from "@playwright/test";
 import { getAccount, loginAs } from "../fixtures/accounts";
 
-const ROUTE = "/dashboard/exit-readiness";
+const ROUTE = "/workspace/exit/benchmark";
 const FOUNDER_EMAIL =
   process.env.QA_FOUNDER_ACQUISITION_EMAIL ?? "qa-founder-1@blockid.au";
 

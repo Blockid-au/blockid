@@ -223,7 +223,7 @@ describe("WorkspaceLayout — nav v4 size + persona contract", () => {
     expect(links.length).toBeLessThanOrEqual(10);
     expect(links).toEqual([
       "/dashboard", "/workspace/projects", "/analyze", "/workspace/reports",
-      "/dashboard/svi", "/workspace/evidence", "/workspace/roadmap", "/startup-package",
+      "/workspace/score", "/workspace/evidence", "/workspace/plan", "/startup-package",
       "/workspace/funding", "/workspace/investors",
     ]);
     // Company is previewed under the Later-phases disclosure, not rendered in place.
@@ -292,7 +292,7 @@ describe("WorkspaceLayout — nav v4 size + persona contract", () => {
     expect(company.length).toBeGreaterThan(0);
     expect(company.every((r) => !r.locked && !r.addOn && r.lockTier === null)).toBe(true);
     const money = resolveNavGroup(NAV_GROUPS_BY_ID.money, pending);
-    expect(money.find((r) => r.item.href === "/dashboard/valuation")?.locked).toBe(false);
+    expect(money.find((r) => r.item.href === "/workspace/valuation")?.locked).toBe(false);
     // Phase and segment gates still apply — only the plan is deferred.
     expect(resolveNavGroup(NAV_GROUPS_BY_ID.money, { ...pending, currentPhase: 0 })).toHaveLength(2);
     expect(resolveNavGroup(NAV_GROUPS_BY_ID["evaluator-home"], pending)).toHaveLength(0);

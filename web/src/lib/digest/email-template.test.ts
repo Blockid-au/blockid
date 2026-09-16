@@ -26,11 +26,11 @@ function payload(over: Partial<DigestPayload> = {}): DigestPayload {
       score: 40,
       headline: "Publish your traction numbers",
       reason: "MRR helps.",
-      ctaUrl: "https://blockid.au/workspace/business-report#tre",
+      ctaUrl: "https://blockid.au/workspace/reports/business#tre",
     },
     aiSummary: null,
     shareUrl: null,
-    notificationsUrl: "https://blockid.au/workspace/notifications",
+    notificationsUrl: "https://blockid.au/workspace/settings/notifications",
     ...over,
   };
 }
@@ -97,7 +97,7 @@ describe("renderFounderDigestEmail — pipeline block (S28-B)", () => {
     stage_moves: [{ name: "Jane <Chen>", from: "diligence" as const, to: "committed" as const, auto: "cheque signed" }],
     overdue: [{ name: "Sam Lee", org: "Angel & Co", next_step: "Send SAFE", due: "2026-09-10", days: 4 }],
     committed: 1,
-    href: "https://blockid.au/workspace/investors",
+    href: "https://blockid.au/workspace/investors/pipeline",
   };
 
   it("renders the header, the moves, the overdue list and the CTA in HTML + text, escaped", () => {
@@ -107,7 +107,7 @@ describe("renderFounderDigestEmail — pipeline block (S28-B)", () => {
     expect(out.html).toContain("Jane &lt;Chen&gt;: Diligence → Committed (cheque signed)");
     expect(out.html).toContain("Angel &amp; Co");
     expect(out.html).toContain("(4 days late)");
-    expect(out.html).toContain('href="https://blockid.au/workspace/investors"');
+    expect(out.html).toContain('href="https://blockid.au/workspace/investors/pipeline"');
     expect(out.text).toContain("PIPELINE THIS WEEK");
     expect(out.text).toContain("· Jane <Chen>: Diligence → Committed (cheque signed)");
     expect(out.text).toContain("- Sam Lee · Angel & Co — Send SAFE (4 days late)");

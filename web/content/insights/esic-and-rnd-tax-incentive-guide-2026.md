@@ -149,7 +149,7 @@ AusIndustry audits ~10% of claims annually. Winning an audit requires **contempo
 - Time-tracking data for R&D staff (weekly minimum).
 - Copies of relevant technical outputs (code diffs, models, test results).
 
-Retrofitting documentation after the fact is the #1 reason audits go badly. Set up your project journal on day one — the [workspace journal](/workspace/journal) captures the hypothesis / experiment / result structure AusIndustry expects.
+Retrofitting documentation after the fact is the #1 reason audits go badly. Set up your project journal on day one — the [workspace journal](/workspace/plan/journal) captures the hypothesis / experiment / result structure AusIndustry expects.
 
 ### Common mistakes that trigger audits
 

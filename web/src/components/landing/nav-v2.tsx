@@ -481,7 +481,7 @@ function MobileGroup({ group, onLinkActivate }: MobileGroupProps) {
 
 const USER_MENU_ITEMS = [
   { href: "/score", label: "New analysis", Icon: BarChart3 },
-  { href: "/dashboard/svi", label: "My SVI score", Icon: TrendingUp },
+  { href: "/workspace/score", label: "My SVI score", Icon: TrendingUp },
   { href: "/workspace/reports", label: "My reports", Icon: FileText },
   { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
 ] as const;

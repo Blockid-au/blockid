@@ -54,7 +54,7 @@ export function generatePriorityTasks(analysis: PriorityTaskSource, stage: numbe
       title: "Create your pitch deck",
       why: "Investors expect a 12-slide deck even at pre-seed",
       time: "2-3 hours",
-      href: "/workspace/data-room",
+      href: "/workspace/documents/data-room",
       ctaLabel: "Use Template",
       completed: false,
     });
@@ -67,7 +67,7 @@ export function generatePriorityTasks(analysis: PriorityTaskSource, stage: numbe
       title: "Set up your cap table",
       why: "Document who owns what before your first investor meeting",
       time: "30 min",
-      href: "/workspace/cap-table",
+      href: "/workspace/equity/cap-table",
       ctaLabel: "Build Cap Table",
       completed: false,
     });

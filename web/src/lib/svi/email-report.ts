@@ -4,7 +4,7 @@
 // criteria-synthesis step succeeds. Sends an HTML email with:
 //   - Executive summary + SVI band
 //   - Top-3 strengths + top-3 gaps (from criterion synthesis)
-//   - Link to /workspace/business-report + public /tbr/<token> share URL
+//   - Link to /workspace/reports/business + public /tbr/<token> share URL
 //   - PDF attachment (fetched internally from /api/svi/report/pdf?token=<t>)
 //
 // Idempotent on the underlying snapshot row via
@@ -248,7 +248,7 @@ export async function sendReportEmail(
   }
 
   const base = baseUrl(args.baseUrl);
-  const dashboardUrl = `${base}/workspace/business-report${args.projectId ? `?pid=${encodeURIComponent(args.projectId)}` : ""}`;
+  const dashboardUrl = `${base}/workspace/reports/business${args.projectId ? `?pid=${encodeURIComponent(args.projectId)}` : ""}`;
   const shareUrl = shareToken ? `${base}/tbr/${shareToken}` : null;
   const totalSvi = computeSvi(args.dimResults);
   const bnd = band(totalSvi);

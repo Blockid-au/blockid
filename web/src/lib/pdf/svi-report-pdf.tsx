@@ -1171,7 +1171,7 @@ function AcceleratorChecklistPage({ readiness }: { readiness: NonNullable<SVIAna
       {/* Methodology note */}
       <View style={{ marginTop: 8, padding: 8, backgroundColor: C.surface50, borderRadius: 5 }}>
         <Text style={{ fontSize: 7, color: C.ink600, lineHeight: 1.4 }}>
-          Criteria sourced from public accelerator posts (Antler blog, YC essays, Startmate posts, etc.). Each is mapped to the stage range it applies to. Estimated A$ lift = the criterion&apos;s `valuation_lift_pct` applied to the blended valuation mid. Met / partial / gap status is computed from your Antler signals + SVI dimensions + scraped input keywords — deterministic, re-runs every analysis. See <Text style={{ fontFamily: "Helvetica-Bold" }}>/dashboard/accelerator-criteria</Text> for the full searchable library.
+          Criteria sourced from public accelerator posts (Antler blog, YC essays, Startmate posts, etc.). Each is mapped to the stage range it applies to. Estimated A$ lift = the criterion&apos;s `valuation_lift_pct` applied to the blended valuation mid. Met / partial / gap status is computed from your Antler signals + SVI dimensions + scraped input keywords — deterministic, re-runs every analysis. See <Text style={{ fontFamily: "Helvetica-Bold" }}>/workspace/accelerators/criteria</Text> for the full searchable library.
         </Text>
       </View>
     </View>

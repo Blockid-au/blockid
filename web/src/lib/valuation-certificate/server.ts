@@ -3,7 +3,7 @@
 // certificate (freeze payload → hash → insert), and the register reads the
 // routes and the verify page share.
 //
-// The subject is computed the way `/dashboard/valuation` shows it
+// The subject is computed the way `/workspace/valuation` shows it
 // (GET /api/valuation/vc): `buildVcValuationReport` on the account's
 // metrics + SVI signals, then the S17-B connected-revenue bridge on the
 // blended range. The dimension sub-scores come from the project-scoped

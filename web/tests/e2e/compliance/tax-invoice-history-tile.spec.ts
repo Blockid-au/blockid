@@ -1,6 +1,6 @@
 // E2E — <TaxInvoiceHistoryTile /> (P5-tax-invoice-checker-tile) renders
 // the saved-snapshot chip from GET /api/compliance/tax-invoice-check and
-// deep-links to /workspace/tax-invoice-checker on click.
+// deep-links to /workspace/finance/invoices on click.
 //
 // Contract:
 //   docs/plans/atlassian-standard-mapping-goal.md — P5-tax-invoice-checker-tile
@@ -17,7 +17,7 @@
 //      the tile hasn't been mounted (CompliancePanel is still shell-less).
 //   4. When mounted, assert (a) chip colour matches the mocked band,
 //      (b) saved count is exposed via data-total, (c) clicking the tile
-//      lands on /workspace/tax-invoice-checker.
+//      lands on /workspace/finance/invoices.
 
 import { test, expect } from "@playwright/test";
 import { getAccount, loginAs } from "../fixtures/accounts";
@@ -30,9 +30,9 @@ const QA_EMAIL =
 // owned by a sibling agent — see the mount comment in
 // web/src/components/dashboard/tax-invoice-history-tile.tsx).
 const HOST_ROUTES = [
-  "/dashboard/compliance",
+  "/workspace/documents/compliance",
   "/dashboard",
-  "/dashboard/svi",
+  "/workspace/score",
 ] as const;
 
 const AMBER_LATEST = {
@@ -101,9 +101,9 @@ test.describe("TaxInvoiceHistoryTile — P5-tax-invoice-checker-tile-e2e", () =>
 
     // ── Click-through lands on the wizard route ───────────────────────
     await Promise.all([
-      page.waitForURL("**/workspace/tax-invoice-checker*"),
+      page.waitForURL("**/workspace/finance/invoices*"),
       tile.click(),
     ]);
-    expect(new URL(page.url()).pathname).toBe("/workspace/tax-invoice-checker");
+    expect(new URL(page.url()).pathname).toBe("/workspace/finance/invoices");
   });
 });

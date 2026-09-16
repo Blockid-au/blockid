@@ -211,7 +211,7 @@ function detectLocale(req: NextRequest): Locale {
  * build `/auth/login?next=<original URL>` so an anonymous visitor returns
  * to the page they actually asked for. Without it the layout fell back to
  * a hardcoded `/dashboard`, which the post-deploy Playwright smoke caught
- * (it asserts an exact `next=/workspace/audit-log`).
+ * (it asserts an exact `next=/workspace/settings/audit`).
  *
  * `x-pathname` carries path + search so deep links keep their query
  * params; `x-invoke-path` is a path-only alias for older call sites.

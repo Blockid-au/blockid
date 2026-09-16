@@ -14,12 +14,12 @@ export async function GET() {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.redirect(
-      `${siteUrl()}/auth/login?next=/dashboard/integrations`,
+      `${siteUrl()}/auth/login?next=/workspace/evidence/connectors`,
     );
   }
   if (!isGitHubOAuthConfigured()) {
     return NextResponse.redirect(
-      `${siteUrl()}/dashboard/integrations?error=oauth_not_configured`,
+      `${siteUrl()}/workspace/evidence/connectors?error=oauth_not_configured`,
     );
   }
 

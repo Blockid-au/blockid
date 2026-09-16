@@ -1,4 +1,4 @@
-// P5-cohort-svi — form-state helpers for the /dashboard/svi cohort retention tile.
+// P5-cohort-svi — form-state helpers for the /workspace/score cohort retention tile.
 //
 // Runs the pure `computeWeeklyCohortRetention` + `renderCohortRetentionSvg`
 // helpers from web/src/lib/traction/cohort-chart.ts on founder-pasted CSV

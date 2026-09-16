@@ -1,6 +1,6 @@
 // E2E — <ComplianceCalendarTile /> (P1k-nav-tile) renders the "next up"
 // chip from GET /api/compliance/calendar?format=json and deep-links to
-// /compliance/calendar on click.
+// /workspace/documents/compliance on click.
 //
 // Contract:
 //   docs/plans/atlassian-standard-mapping-goal.md — P1k-nav-tile ship-note:
@@ -14,13 +14,13 @@
 //      of DB seed.
 //   3. Navigate to the compliance-panel host route and skip cleanly when
 //      the tile hasn't been mounted (CompliancePanel is now bound to
-//      /dashboard/compliance via P5-tax-invoice-checker-panel-mount but the
+//      /workspace/documents/compliance via P5-tax-invoice-checker-panel-mount but the
 //      spec keeps the same fall-through as the sibling tile spec so a
 //      shell-wiring regression surfaces as a skip rather than a false red).
 //   4. When mounted, assert (a) chip colour matches the mocked band (amber
 //      because next-up event is 9 days away — inside the 14-day amber
 //      window), (b) total count is exposed via data-total, (c) clicking
-//      the tile lands on /compliance/calendar.
+//      the tile lands on /workspace/documents/compliance.
 
 import { test, expect } from "@playwright/test";
 import { getAccount, loginAs } from "../fixtures/accounts";
@@ -31,9 +31,9 @@ const QA_EMAIL =
 // Candidate host routes for the CompliancePanel. Iterated in order until
 // the tile is found; skips cleanly if none render it.
 const HOST_ROUTES = [
-  "/dashboard/compliance",
+  "/workspace/documents/compliance",
   "/dashboard",
-  "/dashboard/svi",
+  "/workspace/score",
 ] as const;
 
 // Emit an ISO date (YYYY-MM-DD, UTC) N days from now so the mocked event
@@ -74,7 +74,7 @@ const FAKE_PAYLOAD = {
 test.describe("ComplianceCalendarTile — P1k-nav-tile-e2e", () => {
   test.setTimeout(30_000);
 
-  test("chip + total reflect the mocked next-up event; click opens /compliance/calendar", async ({
+  test("chip + total reflect the mocked next-up event; click opens /workspace/documents/compliance", async ({
     page,
   }) => {
     try {
@@ -130,9 +130,9 @@ test.describe("ComplianceCalendarTile — P1k-nav-tile-e2e", () => {
 
     // ── Click-through lands on the founder-facing calendar page ───────
     await Promise.all([
-      page.waitForURL("**/compliance/calendar*"),
+      page.waitForURL("**/workspace/documents/compliance*"),
       tile.click(),
     ]);
-    expect(new URL(page.url()).pathname).toBe("/compliance/calendar");
+    expect(new URL(page.url()).pathname).toBe("/workspace/documents/compliance");
   });
 });

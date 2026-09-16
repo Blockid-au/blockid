@@ -234,7 +234,7 @@ test.describe("Menu structure — evaluator sidebar (persona.ts)", () => {
     }
     await expect(nav.locator('a[href="/workspace/evaluations"]')).toBeVisible();
     await expect(nav.locator('a[href="/workspace/investor/mandate"]')).toBeVisible();
-    await expect(nav.locator('a[href="/dashboard/fundraise"]')).toHaveCount(0);
+    await expect(nav.locator('a[href="/workspace/raise"]')).toHaveCount(0);
   });
 });
 
@@ -275,6 +275,71 @@ test.describe("Menu structure — consistent phase gating across founder pages",
     const onEquity = await groupLabels("/workspace/equity");
     expect(onDashboard.length).toBeGreaterThan(0);
     expect(onEquity).toEqual(onDashboard);
+  });
+});
+
+// G13-W2-IA2 — hub tabs (spec §A.1 "Implementation shape"). Every hub
+// root renders a WAI-ARIA tablist of links; the pathname decides
+// `aria-selected`, and ArrowRight / ArrowLeft move focus AND navigate
+// (automatic activation), so the selected tab follows the URL.
+test.describe("Menu structure — hub tabs keyboard nav", () => {
+  test.setTimeout(45_000);
+
+  test("/workspace/score: ArrowRight moves aria-selected to History, ArrowLeft back; Home/End jump", async ({ page }) => {
+    let loginOk = false;
+    try {
+      await loginAs(page, FOUNDER_EMAIL);
+      loginOk = true;
+    } catch {
+      /* fixture missing on this box */
+    }
+    test.skip(!loginOk, `QA founder ${FOUNDER_EMAIL} not seeded — run scripts/seed-test-users.mjs`);
+
+    await page.goto("/workspace/score");
+    const tablist = page.locator('nav[data-hub="score"] [role="tablist"]');
+    await expect(tablist).toBeVisible({ timeout: 15_000 });
+    const tabs = tablist.getByRole("tab");
+    expect(await tabs.count()).toBeGreaterThanOrEqual(5);
+    await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
+    // Roving tabindex: only the selected tab is in the tab order.
+    await expect(tabs.nth(0)).toHaveAttribute("tabindex", "0");
+    await expect(tabs.nth(1)).toHaveAttribute("tabindex", "-1");
+
+    await tabs.nth(0).focus();
+    await page.keyboard.press("ArrowRight");
+    await page.waitForURL(/\/workspace\/score\/history/, { timeout: 15_000 });
+    await expect(tablist.getByRole("tab").nth(1)).toHaveAttribute("aria-selected", "true");
+    await expect(tablist.getByRole("tab").nth(0)).toHaveAttribute("aria-selected", "false");
+
+    await tablist.getByRole("tab").nth(1).focus();
+    await page.keyboard.press("ArrowLeft");
+    await page.waitForURL(/\/workspace\/score(\?|$)/, { timeout: 15_000 });
+    await expect(tablist.getByRole("tab").nth(0)).toHaveAttribute("aria-selected", "true");
+
+    await tablist.getByRole("tab").nth(0).focus();
+    await page.keyboard.press("End");
+    const last = tablist.getByRole("tab").last();
+    await expect(last).toBeFocused();
+  });
+
+  test("locked tab keeps its label, is aria-disabled and names the plan", async ({ page }) => {
+    let loginOk = false;
+    try {
+      await loginAs(page, FOUNDER_P0_EMAIL);
+      loginOk = true;
+    } catch {
+      /* fixture missing on this box */
+    }
+    test.skip(!loginOk, `QA founder ${FOUNDER_P0_EMAIL} not seeded — run scripts/seed-test-users.mjs`);
+    await page.goto("/workspace/exit");
+    // A founder below Growth may be bounced by the page gate itself; the
+    // contract under test is the tab markup, so only assert when the hub
+    // rendered.
+    if (!/\/workspace\/exit/.test(page.url())) test.skip(true, "exit hub gated for this fixture");
+    const locked = page.locator('nav[data-hub="exit"] [role="tab"][aria-disabled="true"]');
+    if ((await locked.count()) === 0) test.skip(true, "fixture plan unlocks every Exit tab");
+    await expect(locked.first()).toHaveAttribute("title", /plan unlocks this/);
+    await expect(locked.first()).toHaveAttribute("href", /\/workspace\/billing/);
   });
 });
 

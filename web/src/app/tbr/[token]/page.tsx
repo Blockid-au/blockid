@@ -2,7 +2,7 @@
 //
 // Wave 25A — the founder mints a token via POST /api/svi/report/share and
 // forwards this URL to an investor. No auth, no chrome. Renders the same
-// <BusinessReportClient> the /workspace/business-report page uses, but
+// <BusinessReportClient> the /workspace/reports/business page uses, but
 // hydrated from the DB row (not localStorage).
 //
 // `?pdf=1` collapses the interactive chrome (share button, TOC nav) so the
@@ -12,7 +12,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/business-report/business-report-client";
+import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/reports/business/business-report-client";
 import { TbrViewBeacon } from "@/components/tbr/tbr-view-beacon";
 import { TbrLeadModal } from "@/components/tbr/tbr-lead-modal";
 import { readSnapshotReportV2 } from "@/lib/report-v2/storage";

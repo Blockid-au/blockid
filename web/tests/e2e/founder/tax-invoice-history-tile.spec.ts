@@ -1,5 +1,5 @@
 // E2E — <TaxInvoiceHistoryTile /> (P5-tax-invoice-checker-tile) mounted on
-// /dashboard/compliance renders the saved-snapshot count + latest-band chip
+// /workspace/documents/compliance renders the saved-snapshot count + latest-band chip
 // coming back from GET /api/compliance/tax-invoice-check.
 //
 // Contract: docs/plans/atlassian-standard-mapping-goal.md §1 phase 5 P1 gap
@@ -17,7 +17,7 @@
 //   2. page.route() intercepts /api/compliance/tax-invoice-check and
 //      returns a deterministic payload — the tile fetches once on mount
 //      so we reload between branches to swap the stub.
-//   3. Navigate to /dashboard/compliance. Skip cleanly when the tile
+//   3. Navigate to /workspace/documents/compliance. Skip cleanly when the tile
 //      isn't mounted (e.g. auth redirect on a fresh clone).
 //   4. Drive the tile through the four discrete branches from
 //      pickHistoryTileView (slate / red / amber / emerald) so a helper
@@ -26,7 +26,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { getAccount, loginAs } from "../fixtures/accounts";
 
-const ROUTE = "/dashboard/compliance";
+const ROUTE = "/workspace/documents/compliance";
 const FOUNDER_EMAIL =
   process.env.QA_FOUNDER_TAX_INVOICE_TILE_EMAIL ??
   process.env.QA_FOUNDER_TAX_INVOICE_EMAIL ??
@@ -106,7 +106,7 @@ test.describe("TaxInvoiceHistoryTile — P5-tax-invoice-checker-tile-e2e", () =>
     await expect(tile).not.toContainText(/Last checked/i);
     // Deep-link target is stable — a rename of /workspace/tax-invoice-
     // checker without updating the tile would silently strand a founder.
-    await expect(tile).toHaveAttribute("href", "/workspace/tax-invoice-checker");
+    await expect(tile).toHaveAttribute("href", "/workspace/finance/invoices");
 
     // ── red branch ────────────────────────────────────────────────────
     // Latest snapshot fails the ATO checklist (missing_field_count > 0).
