@@ -21,6 +21,11 @@ import {
   stageFits,
   type InvestorCandidate,
   type InvestorMatchProject,
+  scoreMandateFit,
+  rankAll,
+  fitStartupForProject,
+  FIT_FLOOR_V2,
+  type MandateCandidate,
 } from "./investor-match";
 
 const PROJECT: InvestorMatchProject = { id: "p1", name: "Acme Agtech", industry: "AgTech / Food", stage: 2, state: "NSW", svi: 62 };
@@ -221,7 +226,92 @@ describe("founder-facing card contract (T0251 follow-up)", () => {
   it("only these keys are exposed on the founder card", () => {
     const m = scoreInvestorFit(PROJECT, investor())!;
     expect(Object.keys(m).sort()).toEqual(
-      ["cheque_band", "firm", "gaps", "geos", "intro_href", "investor_id", "min_svi", "name", "plan", "reasons", "score", "sectors", "stages", "thesis"].sort(),
+      ["cheque_band", "firm", "gaps", "geos", "intro_href", "investor_id", "min_svi", "name", "plan", "reasons", "score", "sectors", "stages", "thesis", "source"].sort(),
     );
+    expect(m.source).toBe("prefs");
+  });
+});
+
+// ─── G13 S-T2 — the mandate direction (investor_mandates + FIT_WEIGHTS_V2) ───
+
+describe("mandate direction (G13 S-T2)", () => {
+  const MANDATE: MandateCandidate = {
+    mandate: {
+      id: "m-1", label: "Sydney Angels", thesis: "Pre-seed agtech in ANZ", discoverable: true,
+      sectors_include: ["agtech_food"], sectors_exclude: [], business_models: [], customer_types: [], stages: ["seed"],
+      cheque_min_aud: 50_000, cheque_max_aud: 250_000, lead_or_follow: "both", geographies: ["NSW"],
+      revenue_min_aud: null, growth_min_pct: null, min_svi: 50, tags_include: [], tags_exclude: [], weights: null,
+    },
+    investor: { id: "inv-m", name: "Mandy Mandate", plan: "investor_angel", discoverable: true },
+  };
+
+  it("scores a discoverable mandate with fit-v2 (legacy fields crosswalked), never exposing an email, with source=mandate + mandate_id", () => {
+    const m = scoreMandateFit(PROJECT, MANDATE)!;
+    expect(m).toMatchObject({ investor_id: "inv-m", name: "Mandy Mandate", firm: "Sydney Angels", thesis: "Pre-seed agtech in ANZ", source: "mandate", mandate_id: "m-1", cheque_band: "100k_500k", min_svi: 50, sectors: ["agtech_food"], stages: ["seed"], geos: ["NSW"] });
+    expect(m.score).toBeGreaterThanOrEqual(FIT_FLOOR_V2);
+    expect(m.reasons).toContain("Invests in agtech food");
+    expect(m.reasons.join(" ")).toContain("clears their 50 floor");
+    expect(JSON.stringify(m).replace("support@blockid.au", "")).not.toMatch(/@/); // only the support mailto, never an investor email
+    expect(Object.keys(m).sort()).toEqual(
+      ["cheque_band", "firm", "gaps", "geos", "intro_href", "investor_id", "min_svi", "name", "plan", "reasons", "score", "sectors", "stages", "thesis", "source", "mandate_id"].sort(),
+    );
+  });
+
+  it("uses the startup_taxonomy row when the project carries one", () => {
+    const taxo = { ...PROJECT, industry: null, taxonomy: { industry: "agtech_food", industry_secondary: null, business_model: "hardware_devices", customer_types: ["b2b"], stage_key: "seed", hq_state: "NSW", hq_country: "AU", geo_scope: "national", tags: [] } };
+    expect(fitStartupForProject(taxo).taxonomy?.industry).toBe("agtech_food");
+    expect(scoreMandateFit(taxo, MANDATE)!.score).toBe(95); // every axis full except cheque (ask unknown → 5 of 10)
+    expect(fitStartupForProject(PROJECT).taxonomy?.industry).toBe("agtech_food"); // crosswalked from "AgTech / Food"
+  });
+
+  it("needs BOTH the master flag and the mandate flag; hard gates and the floor drop the mandate", () => {
+    expect(scoreMandateFit(PROJECT, { ...MANDATE, investor: { ...MANDATE.investor, discoverable: false } })).toBeNull();
+    expect(scoreMandateFit(PROJECT, { ...MANDATE, mandate: { ...MANDATE.mandate, discoverable: false } })).toBeNull();
+    expect(scoreMandateFit(PROJECT, { ...MANDATE, mandate: { ...MANDATE.mandate, min_svi: 90 } })).toBeNull();
+    expect(scoreMandateFit(PROJECT, { ...MANDATE, mandate: { ...MANDATE.mandate, sectors_exclude: ["agtech_food"] } })).toBeNull();
+  });
+
+  it("rankAll lists an investor once (mandate wins over their prefs), keeps prefs-only investors for one release, best first", () => {
+    const prefsSame = investor({ id: "inv-m", name: "Mandy Mandate" }); // same person, legacy prefs
+    const prefsOnly = investor({ id: "inv-1", name: "Ann Angel" });
+    const out = rankAll(PROJECT, [prefsSame, prefsOnly], [MANDATE, { ...MANDATE, mandate: { ...MANDATE.mandate, id: "m-2", stages: ["idea"] } }]);
+    expect(out.filter((m) => m.investor_id === "inv-m")).toHaveLength(1);
+    expect(out.find((m) => m.investor_id === "inv-m")).toMatchObject({ source: "mandate", mandate_id: "m-1" });
+    expect(out.find((m) => m.investor_id === "inv-1")).toMatchObject({ source: "prefs" });
+    expect(out.map((m) => m.score)).toEqual([...out.map((m) => m.score)].sort((a, b) => b - a));
+  });
+
+  it("matchInvestorsForProject merges the mandate store; a store without listDiscoverableMandates still works", async () => {
+    const out = await matchInvestorsForProject(PROJECT, {
+      store: { listDiscoverableInvestors: async () => [investor()], listDiscoverableMandates: async () => [MANDATE] },
+    });
+    expect(out.map((m) => [m.investor_id, m.source])).toEqual(expect.arrayContaining([["inv-m", "mandate"], ["inv-1", "prefs"]]));
+    const legacyOnly = await matchInvestorsForProject(PROJECT, { store: { listDiscoverableInvestors: async () => [investor()] } });
+    expect(legacyOnly.map((m) => m.investor_id)).toEqual(["inv-1"]);
+  });
+
+  it("supabase store: reads active + discoverable mandates, then only owners with the master flag on — never the email; 42P01 → []", async () => {
+    const calls: Array<{ op: string; args: unknown[] }> = [];
+    const mk = (rows: unknown[]) => {
+      const chain: Record<string, unknown> = {};
+      for (const op of ["select", "eq", "not", "in", "limit"]) chain[op] = (...args: unknown[]) => { calls.push({ op, args }); return chain; };
+      chain.then = (r: (v: unknown) => unknown) => r({ data: rows, error: null });
+      return chain;
+    };
+    const db = {
+      from: (t: string) => {
+        calls.push({ op: "from", args: [t] });
+        if (t === "investor_mandates") return mk([{ id: "m-1", owner_user_id: "inv-m", label: "Sydney Angels", thesis: null, discoverable: true, sectors_include: ["agtech_food"], sectors_exclude: [], business_models: [], customer_types: [], stages: ["seed"], cheque_min_aud: "50000.00", cheque_max_aud: null, lead_or_follow: "lead", geographies: [], revenue_min_aud: null, growth_min_pct: null, min_svi: 50, tags_include: [], tags_exclude: [], weights: {} }, { id: "m-orphan", owner_user_id: "hidden", label: "x", discoverable: true }]);
+        return mk([{ id: "inv-m", display_name: "Mandy", plan: "investor_angel", investor_discoverable: true }]);
+      },
+    };
+    const rows = await createSupabaseInvestorStore(db).listDiscoverableMandates!();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ mandate: { id: "m-1", cheque_min_aud: 50_000, cheque_max_aud: null, lead_or_follow: "lead", min_svi: 50 }, investor: { id: "inv-m", name: "Mandy", discoverable: true } });
+    expect(calls.filter((c) => c.op === "from").map((c) => c.args[0])).toEqual(["investor_mandates", "app_users"]);
+    for (const c of calls.filter((x) => x.op === "select")) expect(String(c.args[0])).not.toMatch(/email/);
+    expect(calls.filter((c) => c.op === "eq").map((c) => c.args)).toEqual(expect.arrayContaining([["is_active", true], ["discoverable", true], ["investor_discoverable", true]]));
+    const missing = { from: () => ({ select: () => ({ eq: () => ({ eq: () => ({ limit: async () => ({ data: null, error: { code: "42P01", message: "relation does not exist" } }) }) }) }) }) };
+    expect(await createSupabaseInvestorStore(missing).listDiscoverableMandates!()).toEqual([]);
   });
 });

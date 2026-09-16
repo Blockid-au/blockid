@@ -212,6 +212,8 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/investor-pack/one-click/route.ts", family: "investor-pack.one-click", methods: ["POST"] },
   { route: "api/investor-pack/preview/route.ts", family: "investor-pack.preview", methods: ["POST"] },
   { route: "api/investor-portal/ai-generate/route.ts", family: "investor-portal.ai-generate", methods: ["POST"] },
+  { route: "api/investor/dealflow/views/route.ts", family: "investor.dealflow.views", methods: ["POST","DELETE"] },
+  { route: "api/investor/mandates/route.ts", family: "investor.mandates", methods: ["POST","PUT","PATCH","DELETE"] },
   { route: "api/investor/preferences/route.ts", family: "investor.preferences", methods: ["POST"] },
   { route: "api/investors/crm/contacts/[contactId]/route.ts", family: "investors.crm.contacts", methods: ["PATCH"] },
   { route: "api/investors/crm/contacts/[contactId]/touchpoints/route.ts", family: "investors.crm.contacts.touchpoints", methods: ["POST"] },

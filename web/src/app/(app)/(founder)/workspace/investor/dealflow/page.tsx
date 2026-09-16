@@ -1,10 +1,17 @@
-// /workspace/investor/dealflow — full deal-flow inbox.
+// /workspace/investor/dealflow — deal-flow inbox v2 (G13-W3-T2, BA spec
+// §B.8, §B.10 T4/T6).
 //
-// Server component. Reads the caller's investor preferences plus the URL
-// filter chips (stage, cheque_band, sector) and renders a table of the
-// verified startups that match. Row click deep-links to the anonymised
-// listing at /listings/[ticker]. Founder-track users hit the FeatureGate
-// upgrade CTA instead of the table.
+// Server component. Rows come from `mandate_fit_scores` ⋈ `startup_taxonomy`
+// ⋈ latest snapshot keyed on project_id for the caller's mandate (the
+// nightly mandate-fit-refresh writes them) — this replaces the old
+// scores.email → svi_index_snapshots.account_id guess. The filter bar
+// (industry · business model · stage · state · tags · fit ≥ · SVI ≥ ·
+// moved ≥ 5 pts / 30 d · sort) is URL-serialised (`?industry=fintech,ai_ml&
+// stage=seed&fit=60`), so a view is a link; saved views live on
+// investor_prefs.saved_views. Each row deep-links to the Investor Dossier
+// via the project alias and carries the fit reasons / gaps as chips; a
+// startup whose industry is unclassified is badged "Unclassified" (DQ-1).
+// Founder-track users hit the FeatureGate upgrade CTA instead of the table.
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -13,174 +20,98 @@ import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { FeatureGate } from "@/components/access/FeatureGate";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
-import {
-  getDealFlow,
-  getInvestorPreferences,
-  type DealFlowFilters,
-  type StageBand,
-  type ChequeBand,
-} from "@/lib/investor-portal";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
-import { DOSSIER_ALIAS_PATH, resolveDealflowProjectIds } from "@/lib/evaluations/dossier";
+import { DOSSIER_ALIAS_PATH } from "@/lib/evaluations/dossier";
+import { getDealFlowV2, type DealFlowRowV2 } from "@/lib/investors/dealflow";
+import { FIT_FLOOR_V2 } from "@/lib/investors/fit-v2";
+import { DEALFLOW_SORTS, filtersFromSearchParams, filtersToQuery, mandateAsFilters, toggleFilterHref, type DealFlowFiltersV2 } from "@/lib/investors/saved-views";
+import { CANONICAL_STAGES, CANONICAL_STAGE_LABELS } from "@/lib/journey-vocabulary";
+import { BUSINESS_MODEL_LABELS, HQ_STATES, INDUSTRY_LABELS, TAG_LABELS, type BusinessModel, type Tag } from "@/lib/taxonomy/startup-taxonomy";
+import { MANDATE_INDUSTRIES } from "@/lib/investors/mandates-shared";
+import { SavedViewsBar } from "./saved-views-bar";
 
 export const metadata: Metadata = {
   title: "Deal Flow | Investor Workspace | BlockID",
-  description:
-    "Verified startups matched against your investor preferences.",
+  description: "Consented startups ranked against your mandate.",
   robots: { index: false, follow: false },
 };
 
 export const dynamic = "force-dynamic";
 
-// ---------------------------------------------------------------------------
-// Filter validators — searchParams arrive as string|string[]|undefined so we
-// funnel them through narrow checks before passing to getDealFlow.
-// ---------------------------------------------------------------------------
-
-const STAGE_BANDS: readonly StageBand[] = [
-  "pre_seed",
-  "seed",
-  "series_a",
-  "series_b",
-  "growth",
-  "any",
-] as const;
-
-const CHEQUE_BANDS: readonly ChequeBand[] = [
-  "under_25k",
-  "25k_100k",
-  "100k_500k",
-  "500k_2m",
-  "2m_plus",
-  "any",
-] as const;
-
-const CHEQUE_LABEL: Record<ChequeBand, string> = {
-  under_25k: "< A$25k",
-  "25k_100k": "A$25k–100k",
-  "100k_500k": "A$100k–500k",
-  "500k_2m": "A$500k–2M",
-  "2m_plus": "A$2M+",
-  any: "Any",
-};
-
-const STAGE_LABEL: Record<StageBand, string> = {
-  pre_seed: "Pre-seed",
-  seed: "Seed",
-  series_a: "Series A",
-  series_b: "Series B",
-  growth: "Growth",
-  any: "Any stage",
-};
-
-function firstParam(
-  value: string | string[] | undefined,
-): string | undefined {
-  if (Array.isArray(value)) return value[0];
-  return value ?? undefined;
-}
-
-function coerceStage(v: string | undefined): StageBand | null {
-  if (!v) return null;
-  return (STAGE_BANDS as readonly string[]).includes(v)
-    ? (v as StageBand)
-    : null;
-}
-
-function coerceCheque(v: string | undefined): ChequeBand | null {
-  if (!v) return null;
-  return (CHEQUE_BANDS as readonly string[]).includes(v)
-    ? (v as ChequeBand)
-    : null;
-}
+const BASE = "/workspace/investor/dealflow";
+const FIT_STEPS = [0, 40, 60, 80] as const;
+const SVI_STEPS = [0, 40, 60, 80] as const;
+const BUSINESS_MODELS_FOR_FILTER = Object.keys(BUSINESS_MODEL_LABELS).filter((m) => m !== "unclassified") as BusinessModel[];
 
 interface DealFlowPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-export default async function InvestorDealFlowPage({
-  searchParams,
-}: DealFlowPageProps) {
+export default async function InvestorDealFlowPage({ searchParams }: DealFlowPageProps) {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/investor/dealflow");
 
-  const isSandbox = await getCurrentProjectIsSandbox();
-
   const sp = await searchParams;
-  const stage = coerceStage(firstParam(sp.stage));
-  const sector = firstParam(sp.sector)?.trim() || null;
-  const chequeBand = coerceCheque(firstParam(sp.cheque_band));
-
-  const filters: DealFlowFilters = {
-    stage: stage ?? undefined,
-    sector: sector ?? undefined,
-    limit: 100,
-  };
-
-  const [rows, prefs] = await Promise.all([
-    getDealFlow(user.id, filters),
-    getInvestorPreferences(user.id),
-  ]);
-  // G13 S-D1: deep-link each row to the Investor Dossier (via the project
-  // alias) where the score resolves to a project; best effort until S-T2
-  // keys deal-flow on project_id.
-  const projectIds = await resolveDealflowProjectIds(rows.map((r) => r.score_id));
+  const filters = filtersFromSearchParams(sp);
+  const [isSandbox, df] = await Promise.all([getCurrentProjectIsSandbox(), getDealFlowV2(user.id, filters)]);
+  const mandateView = df.mandate ? mandateAsFilters(df.mandate) : null;
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
-      <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="p-6 max-w-7xl mx-auto space-y-6" data-dealflow data-migrated={df.migrated ? "1" : "0"} data-rows={df.rows.length}>
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <nav
-              aria-label="Breadcrumb"
-              className="mb-1 text-xs text-slate-500 dark:text-slate-400"
-            >
-              <Link
-                href="/workspace/investor"
-                className="hover:text-slate-700 dark:hover:text-slate-300"
-              >
+            <nav aria-label="Breadcrumb" className="mb-1 text-xs text-slate-500 dark:text-slate-400">
+              <Link href="/workspace/investor" className="hover:text-slate-700 dark:hover:text-slate-300">
                 Investor Workspace
               </Link>
               <span aria-hidden="true"> / </span>
-              <span className="text-slate-700 dark:text-slate-300">
-                Deal Flow
-              </span>
+              <span className="text-slate-700 dark:text-slate-300">Deal Flow</span>
             </nav>
-            <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-              Deal Flow Inbox
-            </h1>
+            <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Deal Flow Inbox</h1>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-              Verified startups scored against your stated sector, stage and
-              cheque preferences.
+              {df.mandate ? (
+                <>
+                  Consented startups ranked against <strong>{df.mandate.label}</strong>
+                  {df.mandates.length > 1 ? ` (${df.mandates.length} mandates — pick one below)` : ""}. Fit ≥ {filters.min_fit ?? FIT_FLOOR_V2} · {df.rows.length}
+                  {df.total_above_floor !== df.rows.length ? ` of ${df.total_above_floor}` : ""} shown.
+                </>
+              ) : (
+                "Consented startups ranked against your mandate."
+              )}
             </p>
           </div>
           <Link
             href="/workspace/investor/mandate"
             className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
           >
-            Refine preferences
+            {df.mandate ? "Edit mandate" : "Write your mandate"}
           </Link>
         </header>
 
         <FeatureGate feature="investor.dealflow" label="Deal Flow Inbox">
-          <FilterBar
-            stage={stage}
-            sector={sector}
-            chequeBand={chequeBand ?? prefs.cheque_band}
-          />
-
-          {rows.length === 0 ? (
-            <EmptyState />
+          {!df.migrated ? (
+            <Notice kind="warn" data="not-migrated">
+              Deal-flow v2 is not live on this install yet (migration 0393 pending). Nothing is ranked until it is applied and the nightly refresh has run.
+            </Notice>
+          ) : !df.mandate ? (
+            <EmptyState kind="no_mandate" />
           ) : (
-            <DealFlowTable
-              rows={rows}
-              projectIds={projectIds}
-              chequeBand={chequeBand ?? prefs.cheque_band}
-              prefSectors={prefs.sectors}
-              prefStages={prefs.stages}
-            />
+            <>
+              <SavedViewsBar views={df.views} filters={filters} mandateView={mandateView} mandateLabel={df.mandate.label} />
+              {df.mandates.length > 1 ? <MandatePicker mandates={df.mandates} current={df.mandate.id} filters={filters} /> : null}
+              <FilterBar filters={filters} />
+              {df.never_computed ? (
+                <Notice kind="info" data="never-computed">
+                  Your mandate is saved — the nightly refresh (02:35 AEST) ranks startups against it. Check back tomorrow, or widen the filters if the run has already happened.
+                </Notice>
+              ) : df.rows.length === 0 ? (
+                <EmptyState kind="no_rows" filters={filters} />
+              ) : (
+                <DealFlowTable rows={df.rows} />
+              )}
+            </>
           )}
-
           <NotFinancialAdvice kind="not_financial_advice" compact />
         </FeatureGate>
       </div>
@@ -189,342 +120,266 @@ export default async function InvestorDealFlowPage({
 }
 
 // ---------------------------------------------------------------------------
-// FilterBar — chip strip. Each chip mutates ?stage=&sector=&cheque_band=
-// via a plain <a>; server component re-renders. No client JS needed.
+// FilterBar — every chip is a link that toggles one value on one axis
+// (`toggleFilterHref`); the server re-renders. Fit / SVI floors and the
+// sort are single-value links. No client JS.
 // ---------------------------------------------------------------------------
 
-function FilterBar({
-  stage,
-  sector,
-  chequeBand,
-}: {
-  stage: StageBand | null;
-  sector: string | null;
-  chequeBand: ChequeBand;
-}) {
-  const activeChip =
-    "inline-flex items-center rounded-full bg-brand-600 text-white px-3 py-1 text-xs font-semibold";
-  const idleChip =
-    "inline-flex items-center rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 px-3 py-1 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-800";
+const activeChip = "inline-flex items-center rounded-full bg-brand-600 text-white px-3 py-1 text-xs font-semibold";
+const idleChip =
+  "inline-flex items-center rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 px-3 py-1 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-800";
 
+function hrefWith(f: DealFlowFiltersV2, patch: Partial<DealFlowFiltersV2>): string {
+  const next = { ...f, ...patch };
+  const q = filtersToQuery(next);
+  return q ? `${BASE}?${q}` : BASE;
+}
+
+function FilterBar({ filters: f }: { filters: DealFlowFiltersV2 }) {
+  const industries = MANDATE_INDUSTRIES;
   return (
-    <section
-      aria-label="Deal flow filters"
-      className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4"
-    >
+    <section aria-label="Deal flow filters" className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4" data-filter-bar>
       <div className="space-y-3">
+        <FilterRow label="Industry">
+          {industries.map((i) => (
+            <Link key={i} href={toggleFilterHref(BASE, f, "industry", i)} className={f.industry.includes(i) ? activeChip : idleChip} data-filter="industry" data-value={i} aria-pressed={f.industry.includes(i)}>
+              {INDUSTRY_LABELS[i].en}
+            </Link>
+          ))}
+        </FilterRow>
+        <FilterRow label="Model">
+          {BUSINESS_MODELS_FOR_FILTER.map((m) => (
+            <Link key={m} href={toggleFilterHref(BASE, f, "business_model", m)} className={f.business_model.includes(m) ? activeChip : idleChip} data-filter="business_model" data-value={m} aria-pressed={f.business_model.includes(m)}>
+              {BUSINESS_MODEL_LABELS[m].en}
+            </Link>
+          ))}
+        </FilterRow>
         <FilterRow label="Stage">
-          {STAGE_BANDS.map((s) => {
-            const href = qs({
-              stage: s === "any" ? null : s,
-              sector,
-              cheque_band: chequeBand === "any" ? null : chequeBand,
-            });
-            const active =
-              (s === "any" && !stage) || stage === s;
+          {CANONICAL_STAGES.map((s) => (
+            <Link key={s} href={toggleFilterHref(BASE, f, "stage", s)} className={f.stage.includes(s) ? activeChip : idleChip} data-filter="stage" data-value={s} aria-pressed={f.stage.includes(s)}>
+              {CANONICAL_STAGE_LABELS[s].label_en}
+            </Link>
+          ))}
+        </FilterRow>
+        <FilterRow label="State">
+          {HQ_STATES.map((s) => (
+            <Link key={s} href={toggleFilterHref(BASE, f, "state", s)} className={f.state.includes(s) ? activeChip : idleChip} data-filter="state" data-value={s} aria-pressed={f.state.includes(s)}>
+              {s === "national" ? "National" : s}
+            </Link>
+          ))}
+        </FilterRow>
+        <FilterRow label="Tags">
+          {(Object.keys(TAG_LABELS) as Tag[]).map((t) => (
+            <Link key={t} href={toggleFilterHref(BASE, f, "tags", t)} className={f.tags.includes(t) ? activeChip : idleChip} data-filter="tags" data-value={t} aria-pressed={f.tags.includes(t)}>
+              {TAG_LABELS[t].en}
+            </Link>
+          ))}
+        </FilterRow>
+        <FilterRow label="Fit ≥">
+          {FIT_STEPS.map((n) => {
+            const active = (f.min_fit ?? FIT_FLOOR_V2) === n;
             return (
-              <Link
-                key={s}
-                href={href}
-                className={active ? activeChip : idleChip}
-              >
-                {STAGE_LABEL[s]}
+              <Link key={n} href={hrefWith(f, { min_fit: n === FIT_FLOOR_V2 ? undefined : n })} className={active ? activeChip : idleChip} data-filter="min_fit" data-value={n} aria-pressed={active}>
+                {n === 0 ? "Any (incl. gated)" : `${n}`}
               </Link>
             );
           })}
         </FilterRow>
-
-        <FilterRow label="Cheque band">
-          {CHEQUE_BANDS.map((c) => {
-            const href = qs({
-              stage,
-              sector,
-              cheque_band: c === "any" ? null : c,
-            });
-            const active =
-              (c === "any" && chequeBand === "any") || chequeBand === c;
+        <FilterRow label="SVI ≥">
+          {SVI_STEPS.map((n) => {
+            const active = (f.min_svi ?? 0) === n;
             return (
-              <Link
-                key={c}
-                href={href}
-                className={active ? activeChip : idleChip}
-              >
-                {CHEQUE_LABEL[c]}
+              <Link key={n} href={hrefWith(f, { min_svi: n === 0 ? undefined : n })} className={active ? activeChip : idleChip} data-filter="min_svi" data-value={n} aria-pressed={active}>
+                {n === 0 ? "Any" : `${n}`}
               </Link>
             );
           })}
+          <Link href={hrefWith(f, { moved: f.moved ? undefined : true })} className={f.moved ? activeChip : idleChip} data-filter="moved" aria-pressed={!!f.moved}>
+            Moved ≥ 5 pts / 30 d
+          </Link>
         </FilterRow>
-
-        <FilterRow label="Sector">
-          <form
-            action="/workspace/investor/dealflow"
-            method="get"
-            className="flex flex-wrap items-center gap-2"
-          >
-            {stage && <input type="hidden" name="stage" value={stage} />}
-            {chequeBand !== "any" && (
-              <input type="hidden" name="cheque_band" value={chequeBand} />
-            )}
-            <input
-              type="text"
-              name="sector"
-              defaultValue={sector ?? ""}
-              placeholder="e.g. fintech, healthtech"
-              className="min-w-[220px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-1.5 text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-            />
-            <button
-              type="submit"
-              className="rounded-lg bg-slate-800 hover:bg-slate-900 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 px-3 py-1.5 text-xs font-semibold"
-            >
-              Apply
-            </button>
-            {sector && (
-              <Link
-                href={qs({ stage, sector: null, cheque_band: chequeBand === "any" ? null : chequeBand })}
-                className="text-xs text-slate-500 dark:text-slate-400 underline"
-              >
-                Clear
-              </Link>
-            )}
-          </form>
+        <FilterRow label="Sort">
+          {DEALFLOW_SORTS.map((s) => (
+            <Link key={s} href={hrefWith(f, { sort: s })} className={f.sort === s ? activeChip : idleChip} data-filter="sort" data-value={s} aria-pressed={f.sort === s}>
+              {s === "fit" ? "Fit" : s === "svi" ? "SVI" : "Recently scored"}
+            </Link>
+          ))}
+          {filtersToQuery(f) ? (
+            <Link href={BASE} className="text-xs text-slate-500 dark:text-slate-400 underline" data-filter="clear">
+              Clear all
+            </Link>
+          ) : null}
         </FilterRow>
       </div>
     </section>
   );
 }
 
-function FilterRow({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="w-24 shrink-0 text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-        {label}
-      </span>
+      <span className="w-24 shrink-0 text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</span>
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>
   );
 }
 
-function qs(input: {
-  stage: StageBand | null;
-  sector: string | null;
-  cheque_band: ChequeBand | null;
-}): string {
-  const p = new URLSearchParams();
-  if (input.stage) p.set("stage", input.stage);
-  if (input.sector) p.set("sector", input.sector);
-  if (input.cheque_band) p.set("cheque_band", input.cheque_band);
-  const s = p.toString();
-  return s ? `/workspace/investor/dealflow?${s}` : "/workspace/investor/dealflow";
+function MandatePicker({ mandates, current, filters }: { mandates: { id: string; label: string }[]; current: string; filters: DealFlowFiltersV2 }) {
+  return (
+    <nav aria-label="Mandate" className="flex flex-wrap items-center gap-2" data-mandate-picker>
+      <span className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Mandate</span>
+      {mandates.map((m) => (
+        <Link key={m.id} href={hrefWith(filters, { mandate_id: m.id })} className={m.id === current ? activeChip : idleChip} aria-current={m.id === current ? "true" : undefined}>
+          {m.label}
+        </Link>
+      ))}
+    </nav>
+  );
 }
 
 // ---------------------------------------------------------------------------
-// DealFlowTable — Ticker | Stage | Sector | Score | Ask | Cheque | Match | Updated.
-// The score row already ships anonymised — company_name is only shown when
-// the founder opted-in. Ticker is derived from the score id as a stable
-// prefix so we can deep-link even when the tickers table is empty.
+// DealFlowTable — Startup | Industry | Stage | State | SVI (Δ30d) | Fit |
+// Why | Dossier. Reasons / gaps as chips; blockers in red.
 // ---------------------------------------------------------------------------
 
-function DealFlowTable({
-  rows,
-  projectIds,
-  chequeBand,
-  prefSectors,
-  prefStages,
-}: {
-  rows: Awaited<ReturnType<typeof getDealFlow>>;
-  projectIds: Map<string, string>;
-  chequeBand: ChequeBand;
-  prefSectors: string[];
-  prefStages: StageBand[];
-}) {
+function DealFlowTable({ rows }: { rows: DealFlowRowV2[] }) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-      <table className="min-w-full text-sm">
-        <thead className="bg-slate-50 dark:bg-slate-900/60 text-left">
+      <table className="min-w-full text-sm" data-dealflow-table>
+        <thead className="bg-slate-50 dark:bg-slate-800/60 text-left">
           <tr>
-            <Th>Ticker</Th>
+            <Th>Startup</Th>
+            <Th>Industry</Th>
             <Th>Stage</Th>
-            <Th>Sector</Th>
-            <Th className="text-right">Score</Th>
-            <Th>Ask</Th>
-            <Th>Cheque band</Th>
-            <Th className="text-right">Match</Th>
-            <Th>Updated</Th>
+            <Th>State</Th>
+            <Th className="text-right">SVI</Th>
+            <Th className="text-right">Fit</Th>
+            <Th>Why</Th>
             <Th className="text-right">Dossier</Th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-          {rows.map((r) => {
-            const ticker = tickerFromScoreId(r.score_id, r.company_name);
-            const match = matchPct(r, prefSectors, prefStages);
-            return (
-              <tr
-                key={r.score_id}
-                className="hover:bg-slate-50 dark:hover:bg-slate-800/40"
-              >
-                <Td>
-                  <Link
-                    href={`/listings/${encodeURIComponent(ticker)}`}
-                    className="font-semibold text-brand-700 dark:text-brand-300 hover:underline"
-                  >
-                    {ticker}
-                  </Link>
-                </Td>
-                <Td className="text-slate-700 dark:text-slate-300">
-                  {r.stage ?? "—"}
-                </Td>
-                <Td className="text-slate-700 dark:text-slate-300">
-                  {r.sector ?? "—"}
-                </Td>
-                <Td className="text-right">
-                  <SviBadge score={r.total_score} />
-                </Td>
-                <Td className="text-slate-500 dark:text-slate-400">—</Td>
-                <Td className="text-slate-700 dark:text-slate-300">
-                  {CHEQUE_LABEL[chequeBand]}
-                </Td>
-                <Td className="text-right font-medium text-slate-800 dark:text-slate-200">
-                  {match}%
-                </Td>
-                <Td className="text-slate-500 dark:text-slate-400">
-                  {formatRelative(r.updated_at)}
-                </Td>
-                <Td className="text-right">
-                  {projectIds.get(r.score_id) ? (
-                    <Link
-                      href={DOSSIER_ALIAS_PATH(projectIds.get(r.score_id) as string)}
-                      className="text-xs font-medium text-brand-700 dark:text-brand-300 hover:underline"
-                      aria-label={`Open the Investor Dossier for ${ticker}`}
-                    >
-                      Dossier
-                    </Link>
-                  ) : (
-                    <span className="text-xs text-slate-400" title="Not linked to a workspace project yet">—</span>
-                  )}
-                </Td>
-              </tr>
-            );
-          })}
+          {rows.map((r) => (
+            <tr key={r.project_id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40" data-row={r.project_id} data-fit={r.fit} data-unclassified={r.unclassified ? "1" : "0"}>
+              <Td className="font-medium text-slate-900 dark:text-slate-100">{r.company_name ?? "Startup"}</Td>
+              <Td>
+                {r.unclassified ? (
+                  <span className="inline-flex items-center rounded-full border border-dashed border-slate-400 px-2 py-0.5 text-[11px] text-slate-600 dark:text-slate-300" title="Founder confirmation pending" data-badge="unclassified">
+                    Unclassified
+                  </span>
+                ) : (
+                  INDUSTRY_LABELS[r.industry].en
+                )}
+              </Td>
+              <Td className="text-slate-700 dark:text-slate-300">{CANONICAL_STAGE_LABELS[r.stage_key as keyof typeof CANONICAL_STAGE_LABELS]?.label_en ?? r.stage_key}</Td>
+              <Td className="text-slate-700 dark:text-slate-300">{r.hq_state ?? "—"}</Td>
+              <Td className="text-right">
+                {r.svi === null ? <span className="text-slate-400">—</span> : <SviBadge score={r.svi} delta={r.svi_delta_30d} />}
+              </Td>
+              <Td className="text-right font-semibold text-slate-800 dark:text-slate-200">
+                <span className={r.blockers.length ? "text-rose-600" : ""}>{r.fit}</span>
+              </Td>
+              <Td>
+                <ul className="flex flex-wrap gap-1" aria-label="Fit reasons and gaps">
+                  {r.blockers.map((b) => (
+                    <li key={`b-${b}`} className="rounded-full bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300 px-2 py-0.5 text-[11px]" data-chip="blocker">
+                      {b.replace(/_/g, " ")}
+                    </li>
+                  ))}
+                  {r.reasons.slice(0, 3).map((x) => (
+                    <li key={`r-${x}`} className="rounded-full bg-emerald-50 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 px-2 py-0.5 text-[11px]" data-chip="reason">
+                      {x}
+                    </li>
+                  ))}
+                  {r.gaps.slice(0, 2).map((x) => (
+                    <li key={`g-${x}`} className="rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 px-2 py-0.5 text-[11px]" data-chip="gap">
+                      {x}
+                    </li>
+                  ))}
+                </ul>
+              </Td>
+              <Td className="text-right">
+                <Link href={DOSSIER_ALIAS_PATH(r.project_id)} className="text-xs font-medium text-brand-700 dark:text-brand-300 hover:underline" aria-label={`Open the Investor Dossier for ${r.company_name ?? "this startup"}`}>
+                  Dossier
+                </Link>
+              </Td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
   );
 }
 
-function EmptyState() {
+function EmptyState({ kind, filters }: { kind: "no_mandate" | "no_rows"; filters?: DealFlowFiltersV2 }) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/40 p-8 text-center">
-      <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
-        No deals match your filters — broaden your preferences.
-      </p>
-      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-        Try loosening the stage or sector chips above, or update the sectors
-        and cheque band on your preferences page.
-      </p>
-      <div className="mt-4">
-        <Link
-          href="/workspace/investor/mandate"
-          className="inline-flex items-center rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-3 py-2 text-xs font-semibold"
-        >
-          Refine preferences
-        </Link>
-      </div>
+    <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/40 p-8 text-center" data-empty={kind}>
+      {kind === "no_mandate" ? (
+        <>
+          <p className="text-sm font-medium text-slate-800 dark:text-slate-200">Write your mandate to see deal-flow.</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Sectors, stage, cheque, geography and floors — every consented startup is ranked against it nightly.</p>
+          <div className="mt-4">
+            <Link href="/workspace/investor/mandate" className="inline-flex items-center rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-3 py-2 text-xs font-semibold">
+              Write your mandate
+            </Link>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="text-sm font-medium text-slate-800 dark:text-slate-200">No deals match these filters — broaden them.</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Try clearing a chip, lowering the fit floor, or widening the sectors on your mandate.</p>
+          <div className="mt-4 flex justify-center gap-3">
+            {filters && filtersToQuery(filters) ? (
+              <Link href={BASE} className="inline-flex items-center rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
+                Clear filters
+              </Link>
+            ) : null}
+            <Link href="/workspace/investor/mandate" className="inline-flex items-center rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-3 py-2 text-xs font-semibold">
+              Edit mandate
+            </Link>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Small primitives
-// ---------------------------------------------------------------------------
-
-function Th({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+function Notice({ kind, data, children }: { kind: "info" | "warn"; data: string; children: React.ReactNode }) {
+  const tone = kind === "warn" ? "border-amber-300 bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-200" : "border-sky-200 bg-sky-50 dark:bg-sky-900/20 text-sky-900 dark:text-sky-200";
   return (
-    <th
-      scope="col"
-      className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 ${className}`}
-    >
+    <p role="status" className={`rounded-xl border px-4 py-3 text-sm ${tone}`} data-notice={data}>
+      {children}
+    </p>
+  );
+}
+
+function Th({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <th scope="col" className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 ${className}`}>
       {children}
     </th>
   );
 }
 
-function Td({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+function Td({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <td className={`px-4 py-3 align-middle ${className}`}>{children}</td>;
 }
 
-function SviBadge({ score }: { score: number }) {
+function SviBadge({ score, delta }: { score: number; delta: number | null }) {
   const tone =
     score >= 80
       ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
       : score >= 60
-      ? "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
-      : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+        ? "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
+        : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${tone}`}
-    >
-      SVI {score}
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${tone}`}>
+      SVI {Math.round(score)}
+      {delta !== null && delta !== 0 ? (
+        <span className={delta > 0 ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300"} data-delta={delta}>
+          {delta > 0 ? `▲${delta}` : `▼${Math.abs(delta)}`}
+        </span>
+      ) : null}
     </span>
   );
-}
-
-// tickerFromScoreId — deterministic 3-letter prefix + 4 hex chars of the
-// score id. Provides a stable deep-link even before the tickers table is
-// wired to the score row.
-function tickerFromScoreId(scoreId: string, companyName: string | null): string {
-  const seedName = (companyName ?? "").replace(/[^a-z]/gi, "").toUpperCase();
-  const prefix = (seedName || "SVI").slice(0, 3).padEnd(3, "X");
-  const hex = scoreId.replace(/-/g, "").slice(0, 4).toUpperCase();
-  return `${prefix}-${hex}`;
-}
-
-// matchPct — weighted heuristic: sector 40 + stage 30 + score gap 30.
-function matchPct(
-  row: { total_score: number; sector: string | null; stage: string | null },
-  prefSectors: string[],
-  prefStages: StageBand[],
-): number {
-  let m = 0;
-  if (prefSectors.length === 0 || (row.sector && prefSectors.includes(row.sector))) {
-    m += 40;
-  }
-  const stagesActive = prefStages.filter((s) => s !== "any");
-  if (
-    stagesActive.length === 0 ||
-    (row.stage &&
-      stagesActive.some((s) => row.stage!.toLowerCase().includes(s.replace("_", ""))))
-  ) {
-    m += 30;
-  }
-  m += Math.round((Math.max(0, Math.min(100, row.total_score)) / 100) * 30);
-  return Math.min(100, m);
-}
-
-function formatRelative(iso: string): string {
-  const then = new Date(iso).getTime();
-  if (!Number.isFinite(then)) return "—";
-  const days = Math.max(0, Math.floor((Date.now() - then) / 86_400_000));
-  if (days === 0) return "today";
-  if (days === 1) return "1d ago";
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  return months === 1 ? "1mo ago" : `${months}mo ago`;
 }

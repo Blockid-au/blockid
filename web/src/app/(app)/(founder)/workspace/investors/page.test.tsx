@@ -38,6 +38,8 @@ const growthMock = vi.fn();
 vi.mock("@/lib/funding/growth-extras", () => ({ hasGrowthExtras: () => growthMock() }));
 const investorsMock = vi.fn();
 vi.mock("@/lib/funding/investor-match", () => ({ matchInvestorsForProject: (p: unknown) => investorsMock(p) }));
+const taxonomyMock = vi.fn();
+vi.mock("@/lib/taxonomy/store", () => ({ getTaxonomy: (id: string) => taxonomyMock(id) }));
 
 const latestReportMock = vi.fn();
 const sviMock = vi.fn();
@@ -94,6 +96,7 @@ beforeEach(() => {
   investorsMock.mockReset().mockResolvedValue([]);
   latestReportMock.mockReset().mockResolvedValue(ROW);
   sviMock.mockReset().mockResolvedValue(62);
+  taxonomyMock.mockReset().mockResolvedValue(null);
 });
 
 describe("/workspace/investors — Matches (S-IA2, T0251)", { timeout: 20_000 }, () => {
@@ -129,7 +132,12 @@ describe("/workspace/investors — Matches (S-IA2, T0251)", { timeout: 20_000 },
     expect(growth).not.toContain("data-growth-locked");
     // The match is built from the project + report intake + SVI.
     expect(latestReportMock).toHaveBeenCalledWith("u-1", "proj-1");
-    expect(investorsMock).toHaveBeenCalledWith(expect.objectContaining({ id: "proj-1", name: "Acme Agtech", industry: "AgTech", stage: "mvp", state: "NSW", svi: 62 }));
+    expect(investorsMock).toHaveBeenCalledWith(expect.objectContaining({ id: "proj-1", name: "Acme Agtech", industry: "AgTech", stage: "mvp", state: "NSW", svi: 62, taxonomy: null }));
+    // G13 S-T2: the startup_taxonomy row rides along for the mandate direction (fit-v2).
+    taxonomyMock.mockResolvedValue({ industry: "agtech_food", industry_secondary: null, business_model: "hardware_devices", customer_types: ["b2b"], stage_key: "seed", hq_state: "NSW", hq_country: "AU", geo_scope: "national", tags: [] });
+    await html();
+    expect(taxonomyMock).toHaveBeenCalledWith("proj-1");
+    expect(investorsMock).toHaveBeenLastCalledWith(expect.objectContaining({ taxonomy: expect.objectContaining({ industry: "agtech_food", stage_key: "seed" }) }));
 
     investorsMock.mockResolvedValue([]);
     const empty = await html();

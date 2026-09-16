@@ -9,6 +9,11 @@
  * latest SVI. Starter sees the locked Growth card; Growth sees the ranked
  * investors (`InvestorMatchesPanel`). The hub tablist renders from the
  * layout's HubTabsProvider inside WorkspaceLayout.
+ *
+ * G13-W3-T2: the match now also carries the project's startup_taxonomy row
+ * so `matchInvestorsForProject` scores the investors' mandates with
+ * FIT_WEIGHTS_V2 (BA spec §B.8, T5) — legacy investor_prefs candidates ride
+ * along for one release. GA4 `founder_match_viewed` fires once per view.
  */
 
 import type { Metadata } from "next";
@@ -22,6 +27,8 @@ import { hasGrowthExtras } from "@/lib/funding/growth-extras";
 import { matchInvestorsForProject, type InvestorMatch } from "@/lib/funding/investor-match";
 import { fundingLocationFor, investorMatchProjectFor } from "@/lib/funding/investor-match-inputs";
 import { InvestorMatchesPanel } from "@/components/investors/investor-matches-panel";
+import { getTaxonomy } from "@/lib/taxonomy/store";
+import { FounderMatchTracker } from "./founder-match-tracker";
 import type { FundingIntakePrefill } from "@/components/funding/funding-intake";
 
 export const metadata: Metadata = {
@@ -44,15 +51,18 @@ export default async function InvestorMatchesPage() {
   let investors: InvestorMatch[] = [];
   let capital: string | null = null;
   if (unlocked) {
-    const [row, prefill, svi] = await Promise.all([
+    const [row, prefill, svi, taxonomy] = await Promise.all([
       latestFundingReportForUser(user.id, project?.id ?? null).catch(() => null),
       intakePrefillFor(user, project).catch((): FundingIntakePrefill => ({})),
       latestSviTotalFor(user, project).catch(() => null),
+      project?.id ? getTaxonomy(project.id).catch(() => null) : Promise.resolve(null),
     ]);
     const location = fundingLocationFor(row, prefill.state ?? null);
     capital = location.capital;
-    investors = await matchInvestorsForProject(investorMatchProjectFor(project, location, svi));
+    investors = await matchInvestorsForProject({ ...investorMatchProjectFor(project, location, svi), taxonomy: taxonomy ?? null });
   }
+  const sources = new Set(investors.map((m) => m.source));
+  const matchSource = sources.size === 0 ? "none" : sources.size > 1 ? "mixed" : sources.has("mandate") ? "mandates" : "prefs";
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox} startupName={project?.name} currentPhase={navPhase}>
@@ -67,6 +77,7 @@ export default async function InvestorMatchesPage() {
         </header>
 
         <InvestorMatchesPanel unlocked={unlocked} investors={investors} capital={capital} />
+        {unlocked ? <FounderMatchTracker matches={investors.length} source={matchSource} /> : null}
       </div>
     </WorkspaceLayout>
   );

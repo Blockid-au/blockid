@@ -81,6 +81,14 @@ export interface AnalyticsEventMap {
   evaluator_checklist_step: { step: 1 | 2 | 3 | 4 };
   /** G13 (S-D1): the Investor Dossier (/workspace/evaluations/[id]) was opened — once per page view; `role` = assessor (evaluator) or founder (read-only preview). */
   dossier_view: { evaluation_id: string; consent_tier: string; plan: string; role: "assessor" | "founder" };
+  /** G13 (S-T2, §C.5): the 7-section mandate form was saved; `sections_filled` = sections carrying a value (0–7). */
+  mandate_saved: { sections_filled: number; created: boolean };
+  /** G13 (S-T2, §C.5): a deal-flow filter changed; `axis` = which control. */
+  dealflow_filter_applied: { axis: "industry" | "business_model" | "stage" | "state" | "tags" | "min_fit" | "min_svi" | "moved" | "sort" | "view" | "mandate" };
+  /** G13 (S-T2, §C.5): a deal-flow saved view was created; `views` = the user's count afterwards. */
+  dealflow_view_saved: { views: number };
+  /** G13 (S-T2, §C.5): "Investors who match" rendered for a founder; `matches` = cards shown, `source` = where the candidates came from. */
+  founder_match_viewed: { matches: number; source: "mandates" | "prefs" | "mixed" | "none" };
   pricing_toggle_billing: { annual: boolean };
   plan_cta_clicked: { plan: string; label: string };
   checkout_started: { plan: string };

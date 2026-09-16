@@ -115,6 +115,38 @@ An empty `dry_run` array with `investor_count > 0` means every eligible
 investor has opted out of `weekly_reports` — expected on fresh
 environments.
 
+## Mandate fit refresh — `/api/cron/mandate-fit-refresh`
+
+G13 S-T2 (2026-09-16). Nightly investors → startups pass: every active
+`investor_mandates` row × every founder-visible project (public index,
+consent ≥ `reports_shared`, or the `/score` investor-visible opt-in) is
+scored with `FIT_WEIGHTS_V2` (`web/src/lib/investors/fit-v2.ts`) and
+upserted into `mandate_fit_scores` keyed on `(mandate_id, project_id)` —
+what `/workspace/investor/dealflow` reads. Requires migration
+`0393_investor_mandates_v2.sql` to be applied first; until then the run
+returns `{ ok: true, migrated: false }` and writes nothing.
+
+### Line to install
+
+```
+35 16 * * * bash $RUN mandate-fit-refresh --timeout 300
+```
+
+- Runs daily 16:35 UTC (02:35 AEST — off-peak, after the 16:00–16:20
+  index / report jobs, before the 17:00 block). `$RUN` is
+  `web/scripts/cron-runner.sh`, which adds the Bearer `CRON_SECRET` and
+  appends the JSON summary to `content/reports/cron-health.jsonl`.
+- Bounded: mandates × visible projects in memory, 500-row upsert batches.
+- Dry-run (scores everything, writes nothing):
+
+```bash
+curl -sS -H "Authorization: Bearer $CRON_SECRET" \
+  "https://blockid.au/api/cron/mandate-fit-refresh?dry=1" | jq
+```
+
+Expected shape: `{ ok, dryRun, migrated, mandates, projects, pairs, upserts,
+deleted_inactive, batches, errors, ms }`.
+
 ## Autonomous goal loops
 
 > **Removed 2026-08-13** (`fd7bb0b03`): the three loops below and their crontab lines no longer exist; this section is kept for history. Autonomous implementation now = orchestrator (`agent-orchestrator`, 12/14/16/18 UTC) + `self-upgrade-agent.sh` (18:30 UTC) reading `web/content/reports/project-state.json`. Larger goals ship via founder-driven sessions (see `docs/plans/money-finder-2026-09-10.md` §8).

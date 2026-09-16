@@ -17,6 +17,7 @@ import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { listWatchlist, type WatchlistRow } from "@/lib/watchlist";
 import { isEvaluatorPersona } from "@/lib/evaluations/progress-shared";
+import { normaliseSavedViews, type SavedView } from "@/lib/investors/saved-views";
 
 // ---------------------------------------------------------------------------
 // Preference schema — stored as jsonb on app_users.investor_prefs.
@@ -54,6 +55,12 @@ export interface InvestorPreferences {
    */
   firm?: string | null;     // "Sydney Angels", "Blackbird" — ≤ FIRM_MAX_LEN
   thesis?: string | null;   // one-liner — ≤ THESIS_MAX_LEN
+  /**
+   * G13 S-T2: deal-flow saved views (§B.8, ≤ 10, `{id, name, filters, sort,
+   * created_at}`) — validated by lib/investors/saved-views.ts on every
+   * write; only carried when non-empty.
+   */
+  saved_views?: SavedView[];
 }
 
 export const FIRM_MAX_LEN = 80;
@@ -539,6 +546,7 @@ export function normalisePrefs(p: Partial<InvestorPreferences>): InvestorPrefere
     : [];
   const geos = tagList(p.geos, 20);
   const minSvi = typeof p.min_svi === "number" && Number.isFinite(p.min_svi) ? Math.max(0, Math.min(100, p.min_svi)) : null;
+  const savedViews = normaliseSavedViews(p.saved_views);
   return {
     sectors: tagList(p.sectors, 20),
     stages: stages.length ? Array.from(new Set(stages)) : ["any"],
@@ -552,6 +560,7 @@ export function normalisePrefs(p: Partial<InvestorPreferences>): InvestorPrefere
     // Only carried when set so DEFAULT_PREFS and legacy rows keep their shape.
     ...(firm ? { firm } : {}),
     ...(thesis ? { thesis } : {}),
+    ...(savedViews.length ? { saved_views: savedViews } : {}),
   };
 }
 
