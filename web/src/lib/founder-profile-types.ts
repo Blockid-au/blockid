@@ -100,6 +100,12 @@ export interface FounderProfile extends FounderExecutionFields {
   notable_hires: Array<{ name: string; role: string; from?: string }>;
   public_visible: boolean;
   contactable_by_investors: boolean;
+  /**
+   * G14-review: transient — the HMAC minted by /api/founder-profile/import-linkedin
+   * for the values it prefilled. Sent with the next save so the server can
+   * honour the `linkedin_parser` stamps; never persisted, never read back.
+   */
+  linkedin_attestation?: string | null;
 }
 
 export const EMPTY_PROFILE = (accountId: string, email: string): FounderProfile => ({

@@ -13,6 +13,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { apiRoute } from "@/lib/audit/api-route";
+import { mintLinkedInAttestation } from "@/lib/founder/linkedin-attestation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +31,13 @@ export interface LinkedInPrefill {
   /** The fields the parser could fill — the form stamps execution_source[field] = "linkedin_parser". */
   filled: string[];
   confidence: number;
+  /**
+   * G14-review: HMAC over (user, years_in_domain, prev_employers, expiry) —
+   * POST /api/founder-profile honours a `linkedin_parser` stamp only when
+   * the saved value matches this (lib/founder/execution-provenance.ts).
+   * Null when the server has no signing secret.
+   */
+  attestation: string | null;
 }
 
 type Parser = typeof import("@/lib/connectors/linkedin-upload");
@@ -44,7 +52,10 @@ export async function loadParser(): Promise<Parser | null> {
   }
 }
 
-export function toPrefill(signals: { yearsInDomain: number | null; yearsExperience: number | null; priorCompanies: string[]; exits: number; founderName: string | null; headline: string | null; profileUrl: string | null; confidence: number }): LinkedInPrefill {
+export function toPrefill(
+  signals: { yearsInDomain: number | null; yearsExperience: number | null; priorCompanies: string[]; exits: number; founderName: string | null; headline: string | null; profileUrl: string | null; confidence: number },
+  attest: (claims: { years_in_domain: number | null; prev_employers: string[] }) => string | null = () => null,
+): LinkedInPrefill {
   const years = signals.yearsInDomain ?? signals.yearsExperience;
   const filled: string[] = [];
   if (years != null) filled.push("years_in_domain");
@@ -52,16 +63,19 @@ export function toPrefill(signals: { yearsInDomain: number | null; yearsExperien
   if (signals.exits > 0) filled.push("prior_exits");
   if (signals.founderName) filled.push("full_name");
   if (signals.profileUrl) filled.push("linkedin_url");
+  const years_in_domain = years == null ? null : Math.max(0, Math.min(60, Math.round(years)));
+  const prev_employers = signals.priorCompanies.slice(0, 20);
   return {
-    years_in_domain: years == null ? null : Math.max(0, Math.min(60, Math.round(years))),
+    years_in_domain,
     years_experience: signals.yearsExperience,
-    prev_employers: signals.priorCompanies.slice(0, 20),
+    prev_employers,
     exits: signals.exits,
     full_name: signals.founderName,
     headline: signals.headline,
     linkedin_url: signals.profileUrl,
     filled,
     confidence: signals.confidence,
+    attestation: attest({ years_in_domain, prev_employers }),
   };
 }
 
@@ -88,11 +102,20 @@ async function POST_handler(request: Request) {
   if (buf.subarray(0, 5).toString("latin1") !== "%PDF-") return NextResponse.json({ ok: false, error: "pdf_only" }, { status: 415 });
 
   const url = profileUrl && profileUrl.trim() ? parser.normaliseLinkedInUrl(profileUrl) : null;
-  const parsed = await parser.parseLinkedInPdf(buf, { profileUrl: url });
+  let parsed: Awaited<ReturnType<Parser["parseLinkedInPdf"]>>;
+  try {
+    parsed = await parser.parseLinkedInPdf(buf, { profileUrl: url });
+  } catch (err) {
+    // G14-review: a corrupt / encrypted PDF is a 422 for the form, never a
+    // 500 (the PDF engine throws on malformed xref tables and bad streams).
+    console.warn("[blockid:founder-profile] linkedin import parse failed", err instanceof Error ? err.message : err);
+    return NextResponse.json({ ok: false, error: "pdf_unreadable", detail: "The PDF could not be read — export it again from LinkedIn (Profile → More → Save to PDF)." }, { status: 422 });
+  }
   if (parsed.extractedChars < 40) {
     return NextResponse.json({ ok: false, error: "pdf_no_text", detail: "The PDF has no extractable text — export again from LinkedIn (Profile → More → Save to PDF)." }, { status: 422 });
   }
-  return NextResponse.json({ ok: true, prefill: toPrefill(parsed), extracted: { chars: parsed.extractedChars, engine: parsed.engine } });
+  const prefill = toPrefill(parsed, (claims) => mintLinkedInAttestation(user.id, claims));
+  return NextResponse.json({ ok: true, prefill, extracted: { chars: parsed.extractedChars, engine: parsed.engine } });
 }
 
 // S20-A — audited via apiRoute; the PDF and its text are never persisted.

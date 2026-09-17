@@ -51,6 +51,8 @@ interface ImportPrefill {
   full_name: string | null;
   linkedin_url: string | null;
   filled: string[];
+  /** G14-review: server attestation for the prefilled values — sent back with the save. */
+  attestation?: string | null;
 }
 
 interface ImportResponse {
@@ -111,7 +113,7 @@ export function FounderExecutionSection({ p, setP, labels }: FounderExecutionSec
   /** Patch execution fields and stamp their provenance. */
   const patch = (fields: Partial<FounderProfile>, source: ExecutionSource = "founder") => {
     const stamped: Partial<Record<string, ExecutionSource>> = { ...(p.execution_source ?? {}) };
-    for (const k of Object.keys(fields)) stamped[k] = source;
+    for (const k of Object.keys(fields)) if (k !== "linkedin_attestation") stamped[k] = source;
     setP({ ...p, ...fields, execution_source: stamped });
   };
 
@@ -163,6 +165,9 @@ export function FounderExecutionSection({ p, setP, labels }: FounderExecutionSec
         fields.linkedin_url = pre.linkedin_url;
         filled.push("linkedin_url");
       }
+      // The attestation travels with the profile state so POST /api/founder-profile
+      // can verify the stamps below (a stamp on its own is downgraded to "founder").
+      if (pre.attestation) fields.linkedin_attestation = pre.attestation;
       if (filled.length > 0) patch(fields, "linkedin_parser");
       const parts = [fillTemplate(L("execution.import.applied"), { fields: filled.join(", ") || "—" })];
       if (pre.exits > 0 && exits.length === 0) parts.push(fillTemplate(L("execution.import.exits"), { n: pre.exits }));
