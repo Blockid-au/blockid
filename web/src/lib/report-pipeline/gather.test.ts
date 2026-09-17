@@ -354,6 +354,8 @@ describe("gatherData — sources", () => {
     const none = await gatherData(ctx(), callAI, { ownerUserId: "owner-9", projectId: "proj-1", deps: deps({ ...common, loadFounderExecution: async () => null }) });
     expect(none.results.founderExecution).toBeUndefined();
     expect(none.evidenceRows.find((r) => r.source === "founder_profile")).toMatchObject({ status: "missing", label: "Founder execution profile", dims: ["ftv"] });
+  });
+
   it("S40: open AU register signals for the verified ABN become evidence rows (source external, LCO / IRI / TRE) + gather results; no ABN → skipped with a note", async () => {
     const db = fakeDb({ projects: [{ id: "proj-1", abn: "95608464535" }] });
     const ext = await signalsForAbn("95608464535", {
