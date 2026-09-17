@@ -118,6 +118,47 @@ function founderSignalsModule(ctx: ReportContext): ModuleOutput | null {
   return { id: "connectors/linkedin-upload.ts:founderSignals", output };
 }
 
+/** Module id the FTV chapter renderer looks for to draw the "Founder Execution" card (G14-S37). */
+export const FOUNDER_EXECUTION_MODULE_ID = "founder/execution.ts:founderExecutionSignals";
+
+/**
+ * G14-S37: the founder execution rubric. Prefers the GATHER result (scored
+ * with evaluator flags + LinkedIn agreement); falls back to the summary the
+ * SVI signals carry when the analysis was scored with a profile.
+ */
+function founderExecutionModule(ctx: ReportContext): ModuleOutput | null {
+  const g = gatherOf(ctx).founderExecution;
+  if (g && typeof g === "object" && numOrNull(g.executionScore) !== null) {
+    const breakdown = Array.isArray(g.breakdown) ? (g.breakdown as Array<Record<string, unknown>>) : [];
+    const output: Record<string, unknown> = {
+      executionScore: Math.round(numOrNull(g.executionScore) ?? 0),
+      rawScore: Math.round(numOrNull(g.rawScore) ?? 0),
+      capped: g.capped === true,
+      structured: g.structured === true,
+      rubricVersion: String(g.rubricVersion ?? "1.0"),
+      breakdown: breakdown.map((b) => ({ key: String(b.key ?? ""), label: String(b.label ?? b.key ?? ""), points: numOrNull(b.points) ?? 0, max: numOrNull(b.max) ?? 0, evidence: String(b.evidence ?? ""), source: String(b.source ?? "founder") })),
+    };
+    if (typeof g.capReason === "string" && g.capReason) output.capReason = g.capReason;
+    if (typeof g.capLiftedBy === "string" && g.capLiftedBy) output.capLiftedBy = g.capLiftedBy;
+    for (const b of output.breakdown as Array<{ key: string; points: number }>) if (b.key) output[`${b.key}Points`] = b.points;
+    return { id: FOUNDER_EXECUTION_MODULE_ID, output };
+  }
+  const s = signalsOf(ctx);
+  const fe = s?.founderExecution;
+  if (!fe || typeof fe !== "object") return null;
+  const output: Record<string, unknown> = {
+    executionScore: Math.round(fe.score),
+    rawScore: Math.round(fe.rawScore),
+    capped: fe.capped === true,
+    structured: true,
+    rubricVersion: fe.rubricVersion,
+    breakdown: fe.breakdown.map((b) => ({ key: b.key, label: b.key.replace(/_/g, " "), points: b.points, max: b.max, evidence: b.evidence, source: "founder" })),
+  };
+  if (fe.capReason) output.capReason = fe.capReason;
+  for (const b of fe.breakdown) output[`${b.key}Points`] = b.points;
+  return { id: FOUNDER_EXECUTION_MODULE_ID, output };
+}
+
 /** S-R5: cap-table register (gather.ts capTable) → real split for the CGH donut + the esop bridge. */
 function capTableModule(ctx: ReportContext): ModuleOutput | null {
   const c = gatherOf(ctx).capTable;
@@ -243,6 +284,8 @@ function ftvModules(ctx: ReportContext): ModuleOutput[] {
   }
   const founder = founderSignalsModule(ctx);
   if (founder) out.push(founder);
+  const execution = founderExecutionModule(ctx);
+  if (execution) out.push(execution);
   const c = criterionModule(ctx, ["founder_profile", "team", "team_structure"]);
   if (c) out.push(c);
   return out;

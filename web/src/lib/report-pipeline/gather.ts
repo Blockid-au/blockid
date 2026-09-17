@@ -93,6 +93,21 @@ export interface FounderSignalsLike {
   parsedAt: string;
 }
 
+/** G14-S37: the founder execution rubric as the report needs it (founder/execution.ts founderExecutionSignals). */
+export interface FounderExecutionLike {
+  executionScore: number;
+  rawScore: number;
+  capped: boolean;
+  capReason?: string;
+  capLiftedBy?: "references_checked" | "linkedin_parser";
+  structured: boolean;
+  breakdown: Array<{ key: string; label: string; points: number; max: number; evidence: string; source: string }>;
+  sources: string[];
+  rubricVersion: string;
+  /** founder_profiles.updated_at / execution_computed_at when known. */
+  observedAt?: string | null;
+}
+
 /** Latest GA4 snapshot as the report needs it (oauth-ga4-signals.ts Ga4RichSignals + takenAt). */
 export interface Ga4SnapshotLike {
   windowDays: number;
@@ -141,6 +156,8 @@ export interface GatherDeps {
   loadCapTable?: (db: GatherDb, ownerUserId: string, projectId: string) => Promise<CapTableSummary | null>;
   /** S-R5: latest founder_signals row for the project (LinkedIn upload / URL) — FTV. */
   loadFounderSignals?: (db: GatherDb, projectId: string) => Promise<FounderSignalsLike | null>;
+  /** G14-S37: the owner's founder_profiles row scored by the execution rubric (null = no profile) — FTV. */
+  loadFounderExecution?: (db: GatherDb, ownerUserId: string, projectId: string | null) => Promise<FounderExecutionLike | null>;
   /** S-R5: latest ga4_signal_snapshots row for (owner, project) — TRE / MPC funnel + channel mix. */
   loadGa4Snapshot?: (db: GatherDb, ownerUserId: string, projectId: string | null) => Promise<Ga4SnapshotLike | null>;
   loadGrants?: (db: GatherDb, projectId: string, stage: number, industry: string | null) => Promise<GrantsMatch | null>;
@@ -310,6 +327,26 @@ async function defaultLoadConnectedRevenue(db: GatherDb, args: { userId: string;
 async function defaultLoadFounderSignals(db: GatherDb, projectId: string): Promise<FounderSignalsLike | null> {
   const { loadLatestFounderSignals } = await import("@/lib/connectors/linkedin-upload");
   return loadLatestFounderSignals(db as unknown as Parameters<typeof loadLatestFounderSignals>[0], projectId);
+}
+
+async function defaultLoadFounderExecution(_db: GatherDb, ownerUserId: string, projectId: string | null): Promise<FounderExecutionLike | null> {
+  const [{ loadFounderExecutionContext }, { founderExecutionSignals }] = await Promise.all([import("@/lib/founder/execution-load"), import("@/lib/founder/execution")]);
+  const ctx = await loadFounderExecutionContext({ accountId: ownerUserId, projectId });
+  if (!ctx.profile) return null;
+  const exec = founderExecutionSignals(ctx.profile, { evaluatorFlags: ctx.evaluatorFlags, linkedin: ctx.linkedin, github: ctx.github });
+  const p = ctx.profile as unknown as Row;
+  return {
+    executionScore: exec.executionScore,
+    rawScore: exec.rawScore,
+    capped: exec.capped,
+    ...(exec.capReason ? { capReason: exec.capReason } : {}),
+    ...(exec.capLiftedBy ? { capLiftedBy: exec.capLiftedBy } : {}),
+    structured: exec.structured,
+    breakdown: exec.breakdown,
+    sources: exec.sources,
+    rubricVersion: exec.rubricVersion,
+    observedAt: typeof p.execution_computed_at === "string" ? p.execution_computed_at : typeof p.updated_at === "string" ? p.updated_at : null,
+  };
 }
 
 async function defaultLoadGa4Snapshot(db: GatherDb, ownerUserId: string, projectId: string | null): Promise<Ga4SnapshotLike | null> {
@@ -592,6 +629,37 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
         })
       : Promise.resolve(void diag("founderSignals", "skipped", now(), "no db / project"));
 
+  // ── 5b′. Founder execution profile (founder_profiles → rubric) — G14-S37
+  const founderExecution = db
+    ? run("founderExecution", async () => {
+        const t0 = now();
+        const fe = await (deps.loadFounderExecution ?? defaultLoadFounderExecution)(db, ownerUserId, projectId);
+        if (fe) {
+          results.founderExecution = {
+            executionScore: fe.executionScore,
+            rawScore: fe.rawScore,
+            capped: fe.capped,
+            capReason: fe.capReason ?? null,
+            capLiftedBy: fe.capLiftedBy ?? null,
+            structured: fe.structured,
+            breakdown: fe.breakdown.map((b) => ({ key: b.key, label: b.label, points: b.points, max: b.max, evidence: b.evidence, source: b.source })),
+            sources: fe.sources,
+            rubricVersion: fe.rubricVersion,
+          };
+          // Confidence: self_declared while every input is the founder's own
+          // word; document_uploaded once an evaluator checked references or
+          // the LinkedIn export confirmed it (the cap lifted).
+          const confirmed = Boolean(fe.capLiftedBy);
+          const label = `Founder execution profile — rubric v${fe.rubricVersion} (${confirmed ? fe.capLiftedBy === "references_checked" ? "references checked by an evaluator" : "confirmed by the LinkedIn export" : "self-declared"})`;
+          const value = `execution_score = ${fe.executionScore}; raw = ${fe.rawScore}; capped = ${fe.capped}; confidence = ${confirmed ? "document_uploaded" : "self_declared"}; ${fe.breakdown.map((b) => `${b.key} = ${b.points}/${b.max}`).join("; ")}`;
+          rows.push(row("founder_profile", projectId ?? ownerUserId, "founder_profile", label, fe.structured ? (confirmed ? "evidenced" : "partial") : "partial", ["ftv"], fe.observedAt ?? observed, value));
+        } else {
+          rows.push(row("founder_profile", projectId ?? ownerUserId, "founder_profile", "Founder execution profile", "missing", ["ftv"], observed, "No founder profile yet — fill the Execution tab in /workspace/settings/founder (exits, raises, roles, full-time %, GitHub)"));
+        }
+        diag("founderExecution", "ok", t0);
+      })
+    : Promise.resolve(void diag("founderExecution", "skipped", now(), "no db"));
+
   // ── 5c. GA4 90-day snapshot (AARRR funnel + channel mix) — S-R5 ──────
   const ga4 = db
     ? run("ga4", async () => {
@@ -646,7 +714,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
     totalCriteria: CRITERION_KEYS.length,
   };
 
-  await Promise.allSettled([research, tech, repo, connectors, capTable, founder, ga4, grants]);
+  await Promise.allSettled([research, tech, repo, connectors, capTable, founder, founderExecution, ga4, grants]);
 
   // ── 8. Valuation inputs + CFO 5-method model (deterministic, after connectors)
   const signals = (context.sviAnalysis.signals ?? {}) as Partial<{ mrrAud: number; arrAud: number; raiseAskAud: number; statedCapAud: number; statedCapKind: ValuationAskInput["statedCapKind"]; hasVesting: boolean; hasShareholdersAgreement: boolean; esopAllocated: boolean; hasDataRoom: boolean; customerCount: number }>;

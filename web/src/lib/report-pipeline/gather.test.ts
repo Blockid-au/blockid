@@ -317,6 +317,44 @@ describe("gatherData — sources", () => {
     expect(none.evidenceRows.find((r) => r.label === "Founder profile (LinkedIn export / URL)")).toMatchObject({ status: "missing", dims: ["ftv"] });
   });
 
+  it("G14-S37: the founder execution rubric becomes an FTV evidence row (source founder_profile; partial while self-declared, evidenced once the cap lifted) and a gather result", async () => {
+    const db = fakeDb({});
+    const base = {
+      executionScore: 70,
+      rawScore: 96,
+      capped: true,
+      capReason: "Self-reported profile — capped at 70 until an evaluator checks references or the LinkedIn export confirms years / employers.",
+      structured: true,
+      breakdown: [
+        { key: "exits", label: "Prior exits", points: 30, max: 30, evidence: "Loom (acquisition 2020)", source: "founder" },
+        { key: "years_in_domain", label: "Years in domain", points: 20, max: 20, evidence: "12 years in domain", source: "founder" },
+      ],
+      sources: ["founder"],
+      rubricVersion: "1.0",
+      observedAt: "2026-09-17T00:00:00.000Z",
+    };
+    const common = { db, loadConnectedRevenue: async () => [], loadCapTable: async () => null, loadGrants: async () => null, loadFounderSignals: async () => null, loadGa4Snapshot: async () => null };
+    const selfDeclared = await gatherData(ctx(), callAI, { ownerUserId: "owner-9", projectId: "proj-1", deps: deps({ ...common, loadFounderExecution: async () => base }) });
+    expect(selfDeclared.results.founderExecution).toMatchObject({ executionScore: 70, rawScore: 96, capped: true, structured: true, rubricVersion: "1.0" });
+    const row = selfDeclared.evidenceRows.find((r) => r.source === "founder_profile")!;
+    expect(row).toMatchObject({ status: "partial", dims: ["ftv"], observedAt: "2026-09-17T00:00:00.000Z" });
+    expect(row.label).toContain("Founder execution profile");
+    expect(row.label).toContain("self-declared");
+    expect(row.value).toContain("execution_score = 70; raw = 96; capped = true; confidence = self_declared");
+    expect(row.value).toContain("exits = 30/30");
+    expect(selfDeclared.results.diagnostics?.founderExecution?.status).toBe("ok");
+
+    const lifted = await gatherData(ctx(), callAI, { ownerUserId: "owner-9", projectId: "proj-1", deps: deps({ ...common, loadFounderExecution: async () => ({ ...base, executionScore: 96, capped: false, capReason: undefined, capLiftedBy: "references_checked" as const }) }) });
+    const liftedRow = lifted.evidenceRows.find((r) => r.source === "founder_profile")!;
+    expect(liftedRow).toMatchObject({ status: "evidenced" });
+    expect(liftedRow.label).toContain("references checked by an evaluator");
+    expect(liftedRow.value).toContain("confidence = document_uploaded");
+
+    const none = await gatherData(ctx(), callAI, { ownerUserId: "owner-9", projectId: "proj-1", deps: deps({ ...common, loadFounderExecution: async () => null }) });
+    expect(none.results.founderExecution).toBeUndefined();
+    expect(none.evidenceRows.find((r) => r.source === "founder_profile")).toMatchObject({ status: "missing", label: "Founder execution profile", dims: ["ftv"] });
+  });
+
   it("an expired deadline skips every source deterministically", async () => {
     const d = deps({ deepTechAudit: vi.fn() });
     const c = ctx({ criteriaData: criteria({ website: { links: [{ url: "https://acme.com", label: "s" }] } }) });

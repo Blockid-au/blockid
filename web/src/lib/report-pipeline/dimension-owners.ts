@@ -52,6 +52,8 @@ export type EvidenceSource =
   | "upload"
   | "url"
   | "self_declared"
+  /** G14-S37: the structured founder profile (founder_profiles, 0408) scored by lib/founder/execution.ts. */
+  | "founder_profile"
   | "connector_other";
 
 export interface DimensionOwner {
@@ -114,6 +116,7 @@ export const DIMENSION_OWNERS: Record<DimKey, DimensionOwner> = {
     phaseLeads: ["team", "mentor_review"],
     frameworks: [
       "founder-market fit (domain years, prior exits, network)",
+      "founder execution rubric (exits 30 · raises 15 · years 20 · roles 15 · full-time 10 · together 5 · GitHub 5; self-reported cap 70)",
       "team completeness (hacker / hustler / hipster + finance)",
       "Antler signals (spike, drive, commitment %)",
       "key-person risk",
@@ -121,15 +124,15 @@ export const DIMENSION_OWNERS: Record<DimKey, DimensionOwner> = {
       "advisory board",
       "hiring plan vs runway",
     ],
-    modules: ["agents/chro-team.ts", "agents/antler-signals.ts", "agents/maturity-detector.ts"],
-    connectors: ["linkedin", "github", "upload"],
+    modules: ["agents/chro-team.ts", "agents/antler-signals.ts", "agents/maturity-detector.ts", "founder/execution.ts"],
+    connectors: ["linkedin", "github", "upload", "founder_profile"],
     researchTopics: ["AU salary benchmarks (annual)", "co-founder agreement norms", "Antler / Startmate cohort criteria updates"],
     primaryVisual: "heat_map",
     secondaryVisual: "bar",
     allowedVisuals: ["heat_map", "bar", "radar"],
     freeTier: "full",
     knowledge: ["esop-expertise", "svi-framework"],
-    outputTemplate: "verdict → TeamCompletenessHeatmap → founder-fit bars → evidence (LinkedIn / GitHub / uploads) → cards founder_profile, team, team_structure → strengths / gaps / next action → stamp",
+    outputTemplate: "verdict → TeamCompletenessHeatmap → founder-fit bars → evidence (founder profile / LinkedIn / GitHub / uploads) → card Founder Execution (rubric score, breakdown, cap notice) → cards founder_profile, team, team_structure → strengths / gaps / next action → stamp",
     rubric: {
       p25: "solo, part-time, no domain history",
       p50: "2 founders, one domain expert, vesting agreed · key roles covered · leadership bench forming",
