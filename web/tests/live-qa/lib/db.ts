@@ -36,12 +36,19 @@ export function psql(sql: string): string {
   );
 }
 
-/** app_users.plan → 'growth' for the QA account. Returns the plan read back. */
+/**
+ * app_users.plan → 'growth' for the QA account (or, G14-S35 intake lane, a
+ * paid evaluator rung such as 'investor_angel' for the run's evaluator seat
+ * — a free-plan evaluator tracks one startup, so intake submissions past the
+ * first land as "No dossier · evaluation_limit_reached"). Returns the plan read back.
+ */
 export function elevatePlan(email: string, plan = "growth"): string {
-  assertQaEmail(email);
+  if (!QA_EMAIL_RE.test(email) && !QA_EVALUATOR_EMAIL_RE.test(email)) {
+    throw new Error(`live-qa db step refused: "${email}" is not a live-QA founder / evaluator address`);
+  }
   if (!/^[a-z_]+$/.test(plan)) throw new Error("bad plan token");
   const out = firstLine(psql(
-    `update public.app_users set plan = ${q(plan)} where email = ${q(email)} and email ~ '^qa-live-[0-9]{8}-[0-9]{4}@blockid\\.au$' returning plan;`,
+    `update public.app_users set plan = ${q(plan)} where email = ${q(email)} and email ~ '^qa-live-(evaluator-)?[0-9]{8}-[0-9]{4}@blockid\\.au$' returning plan;`,
   ));
   if (out !== plan) throw new Error(`elevatePlan: expected '${plan}' back, got '${out || "<no row>"}'`);
   return out;

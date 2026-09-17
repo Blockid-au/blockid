@@ -131,14 +131,19 @@ describe("/workspace/accelerator/applications — intake inbox", () => {
       row({ id: "s-1" }),
       row({ id: "s-2", startupName: "Beta", status: "scored", latestSvi: 71.4, evaluationId: "ev-2", dossierUrl: "/workspace/evaluations/ev-2" }),
       row({ id: "s-3", startupName: "Gamma", evaluationId: null, dossierUrl: null, coverage: null, warnings: ["evaluation_not_created: evaluation_limit_reached"] }),
+      row({ id: "s-4", startupName: "Delta", evaluationId: null, dossierUrl: null, coverage: null, warnings: ["evaluation_threw: boom"] }),
     ]);
     const out = await html();
     expect(out).toContain('data-testid="intake-table"');
-    expect((out.match(/data-testid="intake-row"/g) ?? []).length).toBe(3);
+    expect((out.match(/data-testid="intake-row"/g) ?? []).length).toBe(4);
     expect(out).toContain('href="/workspace/evaluations/ev-2"');
     expect(out).toContain(">71<");
     expect(out).toContain("Scored");
     expect((out.match(/data-testid="intake-score-now"/g) ?? []).length).toBe(1);
+    // Quota-limited row → upgrade link (G14-S35 review); any other failure → "No dossier".
+    expect((out.match(/data-testid="intake-limit-upgrade"/g) ?? []).length).toBe(1);
+    expect(out).toContain('href="/pricing?segment=evaluator&amp;feature=evaluations"');
+    expect(out).toContain("Plan limit — upgrade");
     expect(out).toContain("No dossier");
     expect(out).toContain('aria-label="Deck not classified yet"');
     expect(out).toContain('aria-label="Coverage: 1 strong, 1 partial, 6 missing"');

@@ -34,8 +34,8 @@ import path from "node:path";
 import type { BrowserContext, Page } from "@playwright/test";
 import { test, expect } from "./fixtures";
 import { anonRequest, evidence, get, post, put } from "./lib/api";
-import { evaluatorEmailFor, QA_EVALUATOR_EMAIL_RE } from "./lib/env";
-import { dbAllowed, setAccountType } from "./lib/db";
+import { env, evaluatorEmailFor, QA_EVALUATOR_EMAIL_RE } from "./lib/env";
+import { dbAllowed, elevatePlan, setAccountType } from "./lib/db";
 import { getScratch, patchRunState, readRunState, setScratch } from "./lib/run-state";
 import { LIVE_QA_OUT } from "../../playwright.live-qa.config";
 
@@ -81,6 +81,9 @@ test.describe("Dossier lane — provision the evaluator seat", () => {
       patchRunState({ evaluator: { email, userId: reg.body.user!.id, evaluationId: null, projectId: null } });
       // The persona: the suite cannot register through the card-required evaluator trial (22-evaluator).
       setAccountType(email, "investor_angel");
+      // A paying Scout (plan row synced) when the run elevates — the intake
+      // lane (29) needs the 25-startup quota, a free evaluator tracks one.
+      if (env.elevate) elevatePlan(email, "investor_angel");
       const me = await get<{ ok: boolean; user: { id: string; email: string } | null }>(anon, "/api/auth/me");
       expect(me.body.user?.email).toBe(email);
       writeFileSync(EVALUATOR_STATE, JSON.stringify(await anon.storageState(), null, 2));

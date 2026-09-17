@@ -58,6 +58,12 @@ export function signAuditHash(curr_hash: string, secret?: string): string {
  *
  * Throws if AUDIT_HMAC_SECRET is missing or supabase is unavailable.
  */
+/** Set once the DB refuses the hmac UPDATE (0338 append-only grants). Test hook: `__resetHmacUpdateGate()`. */
+let hmacUpdateDenied = false;
+export function __resetHmacUpdateGate(): void {
+  hmacUpdateDenied = false;
+}
+
 export async function appendAudit(
   params: AppendAuditParams,
 ): Promise<AppendAuditResult> {
@@ -100,18 +106,23 @@ export async function appendAudit(
   // AFTER inserts complete, so a follow-up update by the service role is
   // permitted only if the migration was written to allow it. If not, we
   // fall back to logging and rely on the chain hash alone.
-  const { error: updateErr } = await admin
-    .from("audit_events")
-    .update({ hmac_signature: hmac })
-    .eq("id", inserted.id);
+  // 0338 made audit_events append-only for the service role, so this UPDATE
+  // is refused on production by design. Try once per process; after a
+  // permission-denied answer skip the round trip (and the log line) — the
+  // chain hash is the integrity guarantee, not the HMAC column.
+  const updateErr = hmacUpdateDenied
+    ? null
+    : (await admin.from("audit_events").update({ hmac_signature: hmac }).eq("id", inserted.id)).error;
 
   if (updateErr) {
     // Non-fatal: the row exists and is chained; HMAC absence is loggable
     // ops noise, not a correctness break for the chain itself.
+    if (/permission denied|append-only|no_mutate/i.test(updateErr.message ?? "")) hmacUpdateDenied = true;
     console.warn(
       "[audit] hmac_signature update failed for id=",
       inserted.id,
       updateErr.message,
+      hmacUpdateDenied ? "(append-only by 0338 — further attempts skipped this process)" : "",
     );
   }
 

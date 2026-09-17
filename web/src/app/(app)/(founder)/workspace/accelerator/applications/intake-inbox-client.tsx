@@ -427,6 +427,10 @@ export function IntakeInboxClient({ initialIntakes, initialRows }: IntakeInboxCl
                             <Link href={r.dossierUrl} className="rounded-lg border border-surface-300 bg-white px-2.5 py-1.5 font-semibold text-ink-700 hover:bg-surface-50" data-testid="intake-dossier-link">
                               Dossier
                             </Link>
+                          ) : r.warnings.some((w) => w.includes("evaluation_limit_reached")) ? (
+                            <Link href="/pricing?segment=evaluator&feature=evaluations" className="rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 font-semibold text-amber-800 hover:bg-amber-100" title="Your plan's startup quota is full — this application was received but no evaluation could be opened. Upgrade, then re-run Score now." data-testid="intake-limit-upgrade">
+                              Plan limit — upgrade
+                            </Link>
                           ) : (
                             <span className="rounded-lg border border-dashed border-surface-300 px-2.5 py-1.5 text-ink-400" title={r.warnings.join("; ") || "No evaluation was created"}>
                               No dossier
