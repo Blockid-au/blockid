@@ -23,6 +23,8 @@ export default defineConfig({
       "scripts/*.test.mjs",
       // QA-2 P0: migration parity parser + ledger status (scripts/db/*.test.mjs).
       "scripts/db/*.test.mjs",
+      // G14-S39: the SVI backtest runner (tsx script with `@/` imports).
+      "scripts/backtest/*.test.ts",
       "../scripts/**/*.test.mjs",
     ],
     exclude: ["**/node_modules/**", "**/.next/**"],

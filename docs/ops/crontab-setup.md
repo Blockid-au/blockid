@@ -258,6 +258,55 @@ curl -sS -H "Authorization: Bearer $CRON_SECRET" \
 Expected shape: `{ ok, dryRun, candidates, sent[], skipped[{id,reason}],
 failed[{id,reason}], duration_ms }`.
 
+## SVI backtest v0 / calibration — `npm run backtest`
+
+G14 S39 (2026-09-16). Scores every curated AU comparable
+(`web/src/lib/data/au-comparables-backtest.ts`: hand-curated pre-raise profile
++ ≥ 1 public URL per row, the union of `au-comparable-raises.ts` and
+`data/au-comparables.ts`) with `computeSVI()` at confidence pinned to
+`document_uploaded`, then reports Spearman ρ of SVI vs log(round) and vs
+log(valuation) — pooled and within stage — with a 1,000-resample seeded
+bootstrap 95 % CI and an SVI-quartile → median-round bucket table
+(`web/src/lib/backtest/`). Writes `web/content/reports/svi-backtest-latest.json`
+and appends `svi-backtest-history.jsonl`. Readers: `/methodology/calibration`
+(+ `/vi/…`; empty state when the file is absent) and `/api/status`
+`svi_backtest: ok | stale | missing` (stale > 8 days). Claim scope is **rank
+calibration only** (every row raised — survivorship); the caveats in the JSON
+are rendered verbatim on the page. Not a cron-runner endpoint — it is a tsx
+script, run directly like `db-backup-offsite.mjs`.
+
+### Line to install
+
+```
+40 3 * * 0 cd /home/dovanlong/blockid.au/web && npx tsx scripts/backtest/run.ts >> /tmp/blockid-svi-backtest.log 2>&1
+```
+
+- Runs weekly, Sunday 03:40 UTC (13:40 AEST), after the restore drill and
+  disk cleanup, before the migration audit. Commit the regenerated JSON +
+  history line (`chore(ops): logs` sweep or by hand) — the server's
+  `git reset --hard` discards uncommitted files.
+- **Re-run `npm run backtest` whenever `web/src/lib/svi-analysis.ts` changes**
+  (a weight, bonus or stage rule edit shifts every SVI in the set). The JSON
+  carries `svi_version` + `git_sha`; the page prints both, so a stale engine
+  is visible. Commit the regenerated files in the same change.
+- Outcome figures come from the curated rows. When `web/.env` carries
+  `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` the verified
+  `au_comparable_raises` rows (migration `0402`) fill a *null* round /
+  valuation for a curated row with the same name + stage — never overwrite,
+  never add a row (a table row has no curated profile). `outcome_source` in
+  the JSON records whether that happened.
+- Dry-run (prints the summary, writes nothing) / full JSON:
+
+```bash
+cd web && npm run backtest -- --dry
+cd web && npm run backtest -- --json | jq '{n, rho, ci}'
+```
+
+Expected summary shape: engine + sha, `N = <n> scorable (<r> with round, <v>
+with valuation) of <d> curated rows; <x> source rows excluded`, pooled ρ + CI
+for both targets, a per-stage table (`too_few` under 5 rows), the four SVI
+quartiles with median round, and `outcome_source`.
+
 ## Autonomous goal loops
 
 > **Removed 2026-08-13** (`fd7bb0b03`): the three loops below and their crontab lines no longer exist; this section is kept for history. Autonomous implementation now = orchestrator (`agent-orchestrator`, 12/14/16/18 UTC) + `self-upgrade-agent.sh` (18:30 UTC) reading `web/content/reports/project-state.json`. Larger goals ship via founder-driven sessions (see `docs/plans/money-finder-2026-09-10.md` §8).
