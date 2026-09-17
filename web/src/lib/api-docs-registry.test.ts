@@ -17,17 +17,27 @@
 import { describe, expect, it } from "vitest";
 import {
   API_ENDPOINTS,
+  FAKE_BEARER,
   getEndpointBySlug,
   type ApiEndpointDoc,
   type ApiParamIn,
 } from "./api-docs-registry";
 
-const SLUGS = ["svi-index", "pricing-test-assign", "pricing-test-event", "idea-questions"] as const;
+const SLUGS = [
+  "svi-index",
+  "pricing-test-assign",
+  "pricing-test-event",
+  "idea-questions",
+  "v1-evaluations-list",
+  "v1-evaluations-dossier",
+  "v1-evaluations-assessment-read",
+  "v1-evaluations-assessment-write",
+] as const;
 const PARAM_INS: readonly ApiParamIn[] = ["query", "path", "body"] as const;
 
 describe("api-docs-registry: registry integrity", () => {
-  it("ships exactly the 4 documented public endpoints", () => {
-    expect(API_ENDPOINTS).toHaveLength(4);
+  it("ships exactly the 8 documented endpoints (4 public no-auth + 4 Evaluator API v1)", () => {
+    expect(API_ENDPOINTS).toHaveLength(8);
   });
 
   it("every slug is unique", () => {
@@ -169,10 +179,15 @@ describe("api-docs-registry: PII / secret guard", () => {
     }
   });
 
-  it("no example carries an Authorization: Bearer <token> header", () => {
+  it("no example carries an Authorization: Bearer <token> header — EXCEPT the documented Evaluator API v1 endpoints (`auth` set), which may only ever show the literal FAKE_BEARER placeholder, never anything else matching the pattern", () => {
     for (const endpoint of API_ENDPOINTS) {
       for (const text of surfaces(endpoint)) {
-        expect(text).not.toMatch(BEARER_RE);
+        if (endpoint.auth) {
+          const matches = text.match(new RegExp(BEARER_RE, "gi")) ?? [];
+          for (const m of matches) expect(m).toBe(`Bearer ${FAKE_BEARER}`);
+        } else {
+          expect(text).not.toMatch(BEARER_RE);
+        }
       }
     }
   });
@@ -264,6 +279,62 @@ describe("api-docs-registry: per-endpoint anchor pins", () => {
     const answers = e.params.find((p) => p.name === "answers");
     expect(ideaText?.required).toBe(true);
     expect(answers?.required).toBe(false);
+  });
+});
+
+describe("api-docs-registry: Evaluator API v1 (G14-S38) — auth pins", () => {
+  const V1_SLUGS = ["v1-evaluations-list", "v1-evaluations-dossier", "v1-evaluations-assessment-read", "v1-evaluations-assessment-write"] as const;
+
+  it("every v1 evaluations endpoint declares `auth` (bearer + scope + the api.access plan gate); every pre-S38 endpoint has none", () => {
+    for (const slug of V1_SLUGS) {
+      const e = getEndpointBySlug(slug) as ApiEndpointDoc;
+      expect(e.auth?.scheme).toBe("bearer");
+      expect(e.auth?.header).toContain("Bearer bk_live_");
+      expect(e.auth?.planGate).toMatch(/api\.access/);
+      expect(e.auth?.planGate).toMatch(/Fund/);
+      expect(e.auth?.planGate).toMatch(/Program/);
+    }
+    for (const slug of ["svi-index", "pricing-test-assign", "pricing-test-event", "idea-questions"] as const) {
+      expect((getEndpointBySlug(slug) as ApiEndpointDoc).auth).toBeUndefined();
+    }
+  });
+
+  it("read endpoints require evaluations:read; the write endpoint requires evaluations:write", () => {
+    expect(getEndpointBySlug("v1-evaluations-list")!.auth!.scope).toBe("evaluations:read");
+    expect(getEndpointBySlug("v1-evaluations-dossier")!.auth!.scope).toBe("evaluations:read");
+    expect(getEndpointBySlug("v1-evaluations-assessment-read")!.auth!.scope).toBe("evaluations:read");
+    expect(getEndpointBySlug("v1-evaluations-assessment-write")!.auth!.scope).toBe("evaluations:write");
+  });
+
+  it("every v1 endpoint documents the full 401/402/403/429 auth ladder", () => {
+    for (const slug of V1_SLUGS) {
+      const codes = (getEndpointBySlug(slug) as ApiEndpointDoc).errorCodes.map((c) => c.code);
+      for (const required of [401, 402, 403, 429]) expect(codes).toContain(required);
+    }
+  });
+
+  it("dossier and both assessment endpoints share the same path (GET /assessment, POST /assessment), distinct from the list path", () => {
+    const dossier = getEndpointBySlug("v1-evaluations-dossier") as ApiEndpointDoc;
+    const assessmentRead = getEndpointBySlug("v1-evaluations-assessment-read") as ApiEndpointDoc;
+    const assessmentWrite = getEndpointBySlug("v1-evaluations-assessment-write") as ApiEndpointDoc;
+    expect(assessmentRead.path).toBe(assessmentWrite.path);
+    expect(assessmentRead.method).toBe("GET");
+    expect(assessmentWrite.method).toBe("POST");
+    expect(dossier.path).not.toBe(assessmentRead.path);
+    expect(getEndpointBySlug("v1-evaluations-list")!.path).toBe("/api/v1/evaluations");
+  });
+
+  it("the write endpoint documents the decision+conviction submit gate (422) and the 0392 migration gate (503)", () => {
+    const write = getEndpointBySlug("v1-evaluations-assessment-write") as ApiEndpointDoc;
+    expect(write.errorCodes.some((c) => c.code === 422)).toBe(true);
+    expect(write.errorCodes.some((c) => c.code === 503)).toBe(true);
+    expect(write.requestBodyExample).toBeDefined();
+    expect(write.description).toMatch(/evaluations:write/);
+  });
+
+  it("three v1 paths are exposed under /api/v1/evaluations", () => {
+    const v1Paths = new Set(V1_SLUGS.map((s) => (getEndpointBySlug(s) as ApiEndpointDoc).path));
+    expect(v1Paths).toEqual(new Set(["/api/v1/evaluations", "/api/v1/evaluations/{id}/dossier", "/api/v1/evaluations/{id}/assessment"]));
   });
 });
 
