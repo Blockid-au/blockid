@@ -706,6 +706,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.7,
     },
+    // G14-S39 — public SVI backtest / calibration page (weekly JSON refresh).
+    {
+      url: `${SITE_URL}/methodology/calibration`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.6,
+    },
     // `/idea-lab` and `/idea-clarify` are noindex redirect aliases of the
     // `/tools/*` twins listed above — only the canonical tool URLs are
     // advertised (release QA-1 #13 sweep).
