@@ -1,5 +1,5 @@
 {
-  "dumped_at": "2026-09-16",
+  "dumped_at": "2026-09-17",
   "source": "pg_constraint (contype=f) on production supabase-db, confrelid = public.app_users; regenerate with `node scripts/db/app-users-fk-inventory.mjs --json --fixture`",
   "referenced": "public.app_users(id)",
   "count": 134,

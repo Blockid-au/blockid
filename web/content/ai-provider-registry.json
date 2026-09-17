@@ -1,122 +1,122 @@
 {
-  "updated_at": "2026-09-17T00:00:09.643Z",
+  "updated_at": "2026-09-17T13:00:04.510Z",
   "primary_chain": [
     {
-      "provider": "groq",
-      "model": "qwen/qwen3.8-27b",
+      "provider": "openrouter",
+      "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
       "priority": 1,
       "healthy": true,
-      "latency_ms": 586,
-      "last_checked": "2026-09-17T00:00:02.789Z",
-      "http_status": 200
-    },
-    {
-      "provider": "groq",
-      "model": "openai/gpt-oss-120b",
-      "priority": 2,
-      "healthy": true,
-      "latency_ms": 679,
-      "last_checked": "2026-09-17T00:00:02.790Z",
-      "http_status": 200
-    },
-    {
-      "provider": "groq",
-      "model": "allam-2-7b",
-      "priority": 3,
-      "healthy": true,
-      "latency_ms": 757,
-      "last_checked": "2026-09-17T00:00:02.791Z",
-      "http_status": 200
-    },
-    {
-      "provider": "groq",
-      "model": "openai/gpt-oss-20b",
-      "priority": 4,
-      "healthy": true,
-      "latency_ms": 773,
-      "last_checked": "2026-09-17T00:00:02.790Z",
-      "http_status": 200
-    },
-    {
-      "provider": "groq",
-      "model": "groq/compound-mini",
-      "priority": 5,
-      "healthy": true,
-      "latency_ms": 885,
-      "last_checked": "2026-09-17T00:00:02.792Z",
-      "http_status": 200
-    },
-    {
-      "provider": "groq",
-      "model": "groq/compound",
-      "priority": 6,
-      "healthy": true,
-      "latency_ms": 2882,
-      "last_checked": "2026-09-17T00:00:02.791Z",
+      "latency_ms": 223,
+      "last_checked": "2026-09-17T13:00:02.576Z",
       "http_status": 200
     },
     {
       "provider": "openrouter",
       "model": "cohere/north-mini-code:free",
-      "priority": 7,
+      "priority": 2,
       "healthy": true,
-      "latency_ms": 2950,
-      "last_checked": "2026-09-17T00:00:06.581Z",
+      "latency_ms": 225,
+      "last_checked": "2026-09-17T13:00:02.935Z",
       "http_status": 200
     },
     {
       "provider": "openrouter",
-      "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-      "priority": 8,
+      "model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "priority": 3,
       "healthy": true,
-      "latency_ms": 3229,
-      "last_checked": "2026-09-17T00:00:03.474Z",
-      "http_status": 200
-    },
-    {
-      "provider": "openrouter",
-      "model": "inclusionai/ling-3.0-flash-vl:free",
-      "priority": 9,
-      "healthy": true,
-      "latency_ms": 3452,
-      "last_checked": "2026-09-17T00:00:03.564Z",
+      "latency_ms": 321,
+      "last_checked": "2026-09-17T13:00:02.507Z",
       "http_status": 200
     },
     {
       "provider": "openrouter",
       "model": "dots-studio/dots-3-note-preview:free",
-      "priority": 10,
+      "priority": 4,
       "healthy": true,
-      "latency_ms": 3670,
-      "last_checked": "2026-09-17T00:00:03.549Z",
-      "http_status": 200
-    },
-    {
-      "provider": "openrouter",
-      "model": "inclusionai/ling-3.0-flash-sante:free",
-      "priority": 11,
-      "healthy": true,
-      "latency_ms": 3692,
-      "last_checked": "2026-09-17T00:00:03.678Z",
+      "latency_ms": 607,
+      "last_checked": "2026-09-17T13:00:02.579Z",
       "http_status": 200
     },
     {
       "provider": "openrouter",
       "model": "inclusionai/ling-3.0-flash-fin:free",
-      "priority": 12,
-      "healthy": false,
-      "latency_ms": 907,
-      "last_checked": "2026-09-17T00:00:05.674Z",
-      "http_status": 429
+      "priority": 5,
+      "healthy": true,
+      "latency_ms": 646,
+      "last_checked": "2026-09-17T13:00:02.843Z",
+      "http_status": 200
     },
     {
       "provider": "openrouter",
-      "model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "model": "inclusionai/ling-3.0-flash-vl:free",
+      "priority": 6,
+      "healthy": true,
+      "latency_ms": 705,
+      "last_checked": "2026-09-17T13:00:02.702Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "openai/gpt-oss-120b",
+      "priority": 7,
+      "healthy": true,
+      "latency_ms": 961,
+      "last_checked": "2026-09-17T13:00:01.545Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "openai/gpt-oss-20b",
+      "priority": 8,
+      "healthy": true,
+      "latency_ms": 1000,
+      "last_checked": "2026-09-17T13:00:01.546Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "groq/compound-mini",
+      "priority": 9,
+      "healthy": true,
+      "latency_ms": 1001,
+      "last_checked": "2026-09-17T13:00:01.547Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "allam-2-7b",
+      "priority": 10,
+      "healthy": true,
+      "latency_ms": 1154,
+      "last_checked": "2026-09-17T13:00:01.547Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "qwen/qwen3.8-27b",
+      "priority": 11,
+      "healthy": true,
+      "latency_ms": 1187,
+      "last_checked": "2026-09-17T13:00:01.545Z",
+      "http_status": 200
+    },
+    {
+      "provider": "openrouter",
+      "model": "inclusionai/ling-3.0-flash-sante:free",
+      "priority": 12,
+      "healthy": true,
+      "latency_ms": 1602,
+      "last_checked": "2026-09-17T13:00:02.733Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "groq/compound",
       "priority": 13,
-      "healthy": false,
-      "latency_ms": 5004,
-      "last_checked": "2026-09-17T00:00:03.376Z",
-      "http_status": 0
+      "healthy": true,
+      "latency_ms": 2960,
+      "last_checked": "2026-09-17T13:00:01.546Z",
+      "http_status": 200
     }
   ],
   "fallback_pool": [
@@ -125,8 +125,8 @@
       "model": "llama-3.3-70b-versatile",
       "priority": 1,
       "healthy": false,
-      "latency_ms": 73,
-      "last_checked": "2026-09-17T00:00:06.748Z",
+      "latency_ms": 60,
+      "last_checked": "2026-09-17T13:00:03.195Z",
       "http_status": 404
     },
     {
@@ -134,8 +134,8 @@
       "model": "llama-3.1-8b-instant",
       "priority": 2,
       "healthy": false,
-      "latency_ms": 88,
-      "last_checked": "2026-09-17T00:00:06.822Z",
+      "latency_ms": 60,
+      "last_checked": "2026-09-17T13:00:03.256Z",
       "http_status": 404
     },
     {
@@ -143,8 +143,8 @@
       "model": "mixtral-8x7b-32768",
       "priority": 3,
       "healthy": false,
-      "latency_ms": 99,
-      "last_checked": "2026-09-17T00:00:06.911Z",
+      "latency_ms": 70,
+      "last_checked": "2026-09-17T13:00:03.317Z",
       "http_status": 400
     },
     {
@@ -152,8 +152,8 @@
       "model": "gemma2-9b-it",
       "priority": 4,
       "healthy": false,
-      "latency_ms": 53,
-      "last_checked": "2026-09-17T00:00:07.012Z",
+      "latency_ms": 78,
+      "last_checked": "2026-09-17T13:00:03.387Z",
       "http_status": 400
     },
     {
@@ -161,8 +161,8 @@
       "model": "Meta-Llama-3.3-70B-Instruct",
       "priority": 5,
       "healthy": false,
-      "latency_ms": 89,
-      "last_checked": "2026-09-17T00:00:07.051Z",
+      "latency_ms": 88,
+      "last_checked": "2026-09-17T13:00:03.436Z",
       "http_status": 402
     },
     {
@@ -170,8 +170,8 @@
       "model": "Meta-Llama-3.1-405B-Instruct",
       "priority": 6,
       "healthy": false,
-      "latency_ms": 95,
-      "last_checked": "2026-09-17T00:00:07.065Z",
+      "latency_ms": 98,
+      "last_checked": "2026-09-17T13:00:03.465Z",
       "http_status": 404
     },
     {
@@ -180,7 +180,7 @@
       "priority": 7,
       "healthy": false,
       "latency_ms": 90,
-      "last_checked": "2026-09-17T00:00:07.150Z",
+      "last_checked": "2026-09-17T13:00:03.534Z",
       "http_status": 404
     },
     {
@@ -188,8 +188,8 @@
       "model": "llama-3.3-70b",
       "priority": 8,
       "healthy": false,
-      "latency_ms": 94,
-      "last_checked": "2026-09-17T00:00:07.171Z",
+      "latency_ms": 60,
+      "last_checked": "2026-09-17T13:00:03.543Z",
       "http_status": 404
     },
     {
@@ -197,8 +197,8 @@
       "model": "llama3.1-8b",
       "priority": 9,
       "healthy": false,
-      "latency_ms": 137,
-      "last_checked": "2026-09-17T00:00:07.250Z",
+      "latency_ms": 104,
+      "last_checked": "2026-09-17T13:00:03.554Z",
       "http_status": 404
     },
     {
@@ -206,8 +206,8 @@
       "model": "qwen-3-32b",
       "priority": 10,
       "healthy": false,
-      "latency_ms": 70,
-      "last_checked": "2026-09-17T00:00:07.266Z",
+      "latency_ms": 86,
+      "last_checked": "2026-09-17T13:00:03.573Z",
       "http_status": 404
     },
     {
@@ -215,8 +215,8 @@
       "model": "meta-llama/llama-3.3-70b-instruct:free",
       "priority": 11,
       "healthy": false,
-      "latency_ms": 47,
-      "last_checked": "2026-09-17T00:00:07.337Z",
+      "latency_ms": 58,
+      "last_checked": "2026-09-17T13:00:03.605Z",
       "http_status": 404
     },
     {
@@ -224,8 +224,8 @@
       "model": "deepseek/deepseek-r1:free",
       "priority": 12,
       "healthy": false,
-      "latency_ms": 49,
-      "last_checked": "2026-09-17T00:00:07.386Z",
+      "latency_ms": 31,
+      "last_checked": "2026-09-17T13:00:03.634Z",
       "http_status": 404
     },
     {
@@ -233,8 +233,8 @@
       "model": "qwen/qwen-2.5-72b-instruct:free",
       "priority": 13,
       "healthy": false,
-      "latency_ms": 28,
-      "last_checked": "2026-09-17T00:00:07.389Z",
+      "latency_ms": 48,
+      "last_checked": "2026-09-17T13:00:03.660Z",
       "http_status": 404
     },
     {
@@ -242,8 +242,8 @@
       "model": "google/gemma-2-9b-it:free",
       "priority": 14,
       "healthy": false,
-      "latency_ms": 46,
-      "last_checked": "2026-09-17T00:00:07.389Z",
+      "latency_ms": 51,
+      "last_checked": "2026-09-17T13:00:03.660Z",
       "http_status": 404
     },
     {
@@ -251,21 +251,12 @@
       "model": "mistralai/mistral-7b-instruct:free",
       "priority": 15,
       "healthy": false,
-      "latency_ms": 27,
-      "last_checked": "2026-09-17T00:00:07.418Z",
+      "latency_ms": 37,
+      "last_checked": "2026-09-17T13:00:03.664Z",
       "http_status": 404
     }
   ],
-  "degraded": [
-    {
-      "provider": "openrouter",
-      "model": "inclusionai/ling-3.0-flash-fin:free",
-      "degraded_until": "2026-09-17T01:00:09.644Z",
-      "reason": "{\"error\":{\"message\":\"Provider returned error\",\"code\":429,\"metadata\":{\"raw\":\"inclusionai/ling-3.0-flash-fin:free is temporarily rate-limited upstream. Please ret",
-      "backoff_ms": 3600000,
-      "first_degraded_at": "2026-09-17T00:00:09.643Z"
-    }
-  ],
+  "degraded": [],
   "candidates_discovered": [
     {
       "provider": "openrouter",

@@ -39,3 +39,4 @@
 {"ts":"2026-09-16T20:47:35.636Z","passed":6,"failed":0,"skipped":0,"expectedFailures":0,"exitCode":0,"erasureOk":true,"elevated":true}
 {"ts":"2026-09-16T23:00:17.208Z","passed":164,"failed":0,"skipped":10,"expectedFailures":0,"exitCode":0,"erasureOk":true,"elevated":true}
 {"ts":"2026-09-17T00:28:39.402Z","passed":164,"failed":3,"skipped":14,"expectedFailures":0,"exitCode":1,"erasureOk":true,"elevated":true}
+{"ts":"2026-09-17T04:23:33.021Z","passed":109,"failed":3,"skipped":76,"expectedFailures":0,"exitCode":1,"erasureOk":true,"elevated":false}

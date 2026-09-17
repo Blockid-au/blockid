@@ -17,6 +17,7 @@
 // last-resort fallback so a missing string is visible, never a crash.
 
 import * as React from "react";
+import { userErrorMessage } from "@/lib/ui/user-error";
 import { Download, Loader2, Plus, Trash2, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -167,7 +168,7 @@ export function FounderExecutionSection({ p, setP, labels }: FounderExecutionSec
       if (pre.exits > 0 && exits.length === 0) parts.push(fillTemplate(L("execution.import.exits"), { n: pre.exits }));
       setImportMsg({ tone: "ok", text: parts.join(" ") });
     } catch (err) {
-      const reason = err instanceof Error ? err.message : "network";
+      const reason = userErrorMessage(err, "network");
       setImportMsg({ tone: "err", text: fillTemplate(L("execution.import.failed"), { reason }) });
     } finally {
       setImporting(false);

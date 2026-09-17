@@ -94,7 +94,8 @@ describe("GET /api/analyses/[id]/full-report", () => {
     expect(body.ok).toBe(true);
     expect(body.locked).toBe(true);
     expect(body.report).toBeNull();
-    expect(body.preview.echo.rows).toHaveLength(10);
+    // 10 intake rows + the founder-execution echo row (G14-S37).
+    expect(body.preview.echo.rows).toHaveLength(11);
     expect(body.preview.svi.dimensions).toHaveLength(8);
     expect(body.preview.valuation.lowAud).toBeGreaterThan(0);
     expect(typeof body.preview.ceoParagraph).toBe("string");
