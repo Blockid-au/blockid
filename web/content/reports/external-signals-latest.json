@@ -1,0 +1,42 @@
+{
+  "ok": false,
+  "dry": false,
+  "ran_at": "2026-09-17T17:11:53.593Z",
+  "db": true,
+  "data_dir": "/home/dovanlong/blockid-data/external-signals",
+  "allow_set_size": 12827,
+  "allow_set": {
+    "projects": 0,
+    "grant_profiles": 0,
+    "register": 12827,
+    "abn_file": 0,
+    "invalid_in_file": 0
+  },
+  "limit": null,
+  "sources": [
+    {
+      "id": "business-gov-grants",
+      "status": "error",
+      "licence": "CC BY 3.0 AU",
+      "file": null,
+      "parsed": 0,
+      "kept": 0,
+      "filtered_out": 0,
+      "duplicates": 0,
+      "inserted": 0,
+      "row_count": null,
+      "skipped": {},
+      "sample": [],
+      "error": "business-gov-grants has no automated download — export the Grant Award CSV from https://www.grants.gov.au/Ga/List (GrantConnect blocks non-browser clients) and pass --file <export.csv>"
+    }
+  ],
+  "totals": {
+    "parsed": 0,
+    "kept": 0,
+    "inserted": 0,
+    "duplicates": 0,
+    "refused": 0,
+    "errors": 1
+  },
+  "error": null
+}
