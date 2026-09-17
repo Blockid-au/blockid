@@ -23,6 +23,7 @@ import { NextResponse } from "next/server";
 import { assertProjectAccess } from "@/lib/projects";
 import { isProjectAccessError, projectAccessResponse } from "@/lib/project-members/http";
 import { isUuid } from "@/lib/security/request-guards";
+import { destinationFor, isDestinationKind, openDestinationConfig, type DestinationKind, type TransformKind } from "./destinations";
 import { isWebhookEvent, WEBHOOK_EVENTS, type WebhookEvent } from "./registry";
 import type { DeliveryRow, EndpointRow, WebhookStore } from "./store";
 
@@ -42,6 +43,16 @@ export interface PublicEndpoint {
   last_failure_at: string | null;
   created_at: string;
   updated_at: string;
+  /** G14-S38 (0409): generic | slack | affinity | airtable — picks the transformer at dispatch. */
+  kind: DestinationKind;
+  /** G14-S38: the kind's redacted config summary (`Destination.publicConfig`) — never a secret. Null for `generic` or when the sealed config could not be opened. */
+  destination: Record<string, string | number | null> | null;
+}
+
+/** Redacted config summary for a non-generic endpoint — never a secret (Destination.publicConfig). */
+function publicDestinationConfig(kind: TransformKind, sealed: string | null): Record<string, string | number | null> | null {
+  const config = openDestinationConfig(kind, sealed);
+  return config ? destinationFor(kind).publicConfig(config) : null;
 }
 
 export interface PublicDelivery {
@@ -56,8 +67,9 @@ export interface PublicDelivery {
   delivered_at: string | null;
 }
 
-/** Row → JSON for the browser. `secret_hash` / `secret_enc` never leave the server. */
+/** Row → JSON for the browser. `secret_hash` / `secret_enc` / `destination_config_enc` never leave the server. */
 export function publicEndpoint(row: EndpointRow): PublicEndpoint {
+  const kind = isDestinationKind(row.kind) ? row.kind : "generic";
   return {
     id: row.id,
     project_id: row.project_id ?? null,
@@ -71,6 +83,8 @@ export function publicEndpoint(row: EndpointRow): PublicEndpoint {
     last_failure_at: row.last_failure_at ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
+    kind,
+    destination: kind === "generic" ? null : publicDestinationConfig(kind, row.destination_config_enc ?? null),
   };
 }
 

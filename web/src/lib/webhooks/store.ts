@@ -10,6 +10,7 @@
 
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { listActiveStartupPackageUserIds } from "@/lib/funding/growth-extras";
+import type { DestinationKind } from "./destinations/types";
 
 export type DeliveryStatus = "queued" | "delivered" | "failed" | "dead";
 
@@ -21,6 +22,10 @@ export interface EndpointRow {
   description: string | null;
   secret_hash: string;
   secret_enc: string;
+  /** G14-S38 (0409): generic | slack | affinity | airtable — picks the transformer in dispatch.ts. */
+  kind: DestinationKind;
+  /** G14-S38 (0409): per-kind config sealed like secret_enc; null for generic. */
+  destination_config_enc: string | null;
   events: string[];
   active: boolean;
   failure_count: number;
@@ -68,6 +73,9 @@ export interface NewEndpoint {
   secret_hash: string;
   secret_enc: string;
   events: string[];
+  /** Omitted for generic endpoints so a pre-0409 insert still succeeds (the column default is 'generic'). */
+  kind?: DestinationKind;
+  destination_config_enc?: string | null;
 }
 
 export interface UserPlanRow {
@@ -133,8 +141,18 @@ export function isMissingRpcError(error: { code?: string | null; message?: strin
   return /could not find the function|function .* does not exist/i.test(error.message ?? "");
 }
 
-const ENDPOINT_COLUMNS =
-  "id, user_id, project_id, url, description, secret_hash, secret_enc, events, active, failure_count, disabled_reason, last_success_at, last_failure_at, created_at, updated_at";
+/** PostgREST / Postgres "column does not exist" — the 0409 `kind` / `destination_config_enc` columns are not applied yet. */
+export function isMissingColumnError(error: { code?: string | null; message?: string | null } | null | undefined): boolean {
+  if (!error) return false;
+  if (error.code === "42703" || error.code === "PGRST204") return true;
+  return /column .* (does not exist|not found)|could not find .* column/i.test(error.message ?? "");
+}
+
+// `*` since G14-S38: the 0409 columns `kind` / `destination_config_enc` are
+// read when present and defaulted in code (normaliseEndpointRow) when a
+// deploy lands before the migration. Rows never leave the server
+// unprojected (lib/webhooks/http.ts publicEndpoint).
+const ENDPOINT_COLUMNS = "*";
 const DELIVERY_COLUMNS =
   "id, endpoint_id, event, payload, status, attempts, next_attempt_at, locked_until, response_status, last_error, created_at, delivered_at";
 
@@ -144,6 +162,18 @@ type Db = { from(table: string): any; rpc?(fn: string, args?: Record<string, unk
 function uniq(ids: readonly string[]): string[] {
   return Array.from(new Set(ids.filter(Boolean)));
 }
+
+const TRANSFORM_KINDS = new Set(["slack", "affinity", "airtable"]);
+
+/** Rows written before 0409 carry no `kind`: they are generic (the signed JSON of S20-B). */
+export function normaliseEndpointRow(r: EndpointRow): EndpointRow {
+  const kind = TRANSFORM_KINDS.has(r.kind) ? r.kind : "generic";
+  return { ...r, kind, destination_config_enc: r.destination_config_enc ?? null };
+}
+function endpointRows(data: unknown): EndpointRow[] {
+  return ((data ?? []) as EndpointRow[]).map(normaliseEndpointRow);
+}
+
 
 /** Production store over the Supabase admin client. `null` when Supabase is not configured. */
 export function supabaseWebhookStore(db: Db | null = getSupabaseAdmin()): WebhookStore | null {
@@ -159,7 +189,7 @@ export function supabaseWebhookStore(db: Db | null = getSupabaseAdmin()): Webhoo
           .eq("active", true)
           .eq("project_id", projectId)
           .contains("events", [event]);
-        for (const r of (data ?? []) as EndpointRow[]) out.set(r.id, r);
+        for (const r of endpointRows(data)) out.set(r.id, r);
       }
       const users = uniq(userIds);
       if (users.length) {
@@ -170,7 +200,7 @@ export function supabaseWebhookStore(db: Db | null = getSupabaseAdmin()): Webhoo
           .is("project_id", null)
           .in("user_id", users)
           .contains("events", [event]);
-        for (const r of (data ?? []) as EndpointRow[]) out.set(r.id, r);
+        for (const r of endpointRows(data)) out.set(r.id, r);
       }
       return [...out.values()];
     },
@@ -210,11 +240,11 @@ export function supabaseWebhookStore(db: Db | null = getSupabaseAdmin()): Webhoo
       const list = uniq(ids);
       if (!list.length) return [];
       const { data } = await sb.from("webhook_endpoints").select(ENDPOINT_COLUMNS).in("id", list);
-      return (data ?? []) as EndpointRow[];
+      return endpointRows(data);
     },
     async getEndpoint(id) {
       const { data } = await sb.from("webhook_endpoints").select(ENDPOINT_COLUMNS).eq("id", id).maybeSingle();
-      return (data as EndpointRow | null) ?? null;
+      return data ? normaliseEndpointRow(data as EndpointRow) : null;
     },
     async listEndpoints(filter) {
       let q = sb.from("webhook_endpoints").select(ENDPOINT_COLUMNS);
@@ -222,12 +252,24 @@ export function supabaseWebhookStore(db: Db | null = getSupabaseAdmin()): Webhoo
       else if (filter.userId) q = q.eq("user_id", filter.userId);
       else return [];
       const { data } = await q.order("created_at", { ascending: false }).limit(50);
-      return (data ?? []) as EndpointRow[];
+      return endpointRows(data);
     },
     async insertEndpoint(row) {
       const { data, error } = await sb.from("webhook_endpoints").insert(row).select(ENDPOINT_COLUMNS).single();
-      if (error) throw new Error(error.message ?? "insert failed");
-      return (data as EndpointRow | null) ?? null;
+      if (!error) return data ? normaliseEndpointRow(data as EndpointRow) : null;
+      // G14-S38 (0409 pending): `kind` / `destination_config_enc` are unknown
+      // columns on a pre-migration schema — retry as a plain generic insert
+      // so endpoint creation never 500s while the migration is applied. The
+      // caller (POST /api/webhooks) compares the returned `kind` against
+      // what it asked for and reports `destinations_unavailable` when they
+      // differ.
+      if (isMissingColumnError(error) && ("kind" in row || "destination_config_enc" in row)) {
+        const { kind: _kind, destination_config_enc: _cfg, ...fallback } = row;
+        const retry = await sb.from("webhook_endpoints").insert(fallback).select(ENDPOINT_COLUMNS).single();
+        if (retry.error) throw new Error(retry.error.message ?? "insert failed");
+        return retry.data ? normaliseEndpointRow(retry.data as EndpointRow) : null;
+      }
+      throw new Error(error.message ?? "insert failed");
     },
     async updateEndpoint(id, patch) {
       const { error } = await sb.from("webhook_endpoints").update(patch).eq("id", id);
@@ -402,6 +444,8 @@ export function memoryWebhookStore(
       const now = new Date().toISOString();
       const e: EndpointRow = {
         id: `ep-${++seq}`,
+        kind: "generic",
+        destination_config_enc: null,
         active: true,
         failure_count: 0,
         disabled_reason: null,
