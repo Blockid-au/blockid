@@ -1,43 +1,31 @@
 {
-  "ts": "2026-09-17T04:23:33.021Z",
-  "startedAt": "2026-09-17T04:19:35Z",
+  "ts": "2026-09-17T14:30:04.833Z",
+  "startedAt": "2026-09-17T14:22:31Z",
   "baseURL": "https://blockid.au",
   "exitCode": 1,
-  "passed": 109,
-  "failed": 3,
-  "skipped": 76,
+  "passed": 176,
+  "failed": 1,
+  "skipped": 12,
   "flaky": 0,
   "expectedFailures": 0,
-  "durationMs": 235953.709,
+  "durationMs": 451721.582,
   "account": {
-    "email": "qa-live-20260917-0419@blockid.au",
-    "userId": "0928d3e9-ece2-4d93-af33-15fd6a1361d4",
-    "projectId": "00c7124d-2b16-470a-8579-3a700fc146a2",
-    "plan": "free",
-    "elevated": false
+    "email": "qa-live-20260917-1422@blockid.au",
+    "userId": "ddd28bfc-fc72-486b-b5af-e47ed56fa501",
+    "projectId": "02929e15-d4a4-4f20-a421-a2d55bdcac59",
+    "plan": "growth",
+    "elevated": true
   },
   "erasure": {
     "ok": true,
-    "detail": "erased 0928d3e9-ece2-4d93-af33-15fd6a1361d4; verify dry-run exit 2 (no app_users row for the QA founder email)"
+    "detail": "erased ddd28bfc-fc72-486b-b5af-e47ed56fa501; verify dry-run exit 2 (no app_users row for the QA founder email)"
   },
   "findings": [
     {
-      "spec": "20-cross-cutting.spec.ts",
+      "spec": "24-webhooks.spec.ts",
       "project": "live-qa",
-      "title": "/methodology lists at least 3 data sources with licence + attribution, cite-only rows labelled",
-      "error": "Error: expect(locator).toBeVisible() failed\n\nLocator: getByTestId('methodology-data-sources')\nExpected: visible\nTimeout: 30000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeVisible\" with timeout 30000ms\n  - waiting for getByTestId('methodology-data-sources')\n"
-    },
-    {
-      "spec": "21-reports.spec.ts",
-      "project": "live-qa",
-      "title": "POST /api/founder-profile saves the structured execution fields and GET reads them back (skips cleanly while 0408 is pending)",
-      "error": "Error: expect(received).toEqual(expected) // deep equality\n\nExpected: [{\"company\": \"QA Loom\", \"type\": \"acquisition\", \"value_band\": \"1m-10m\", \"year\": 2020}]\nReceived: undefined"
-    },
-    {
-      "spec": "21-reports.spec.ts",
-      "project": "live-qa",
-      "title": "/workspace/settings/founder renders the Execution section with the live rubric preview",
-      "error": "Error: expect(locator).toBeVisible() failed\n\nLocator: getByTestId('founder-execution-section')\nExpected: visible\nTimeout: 30000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeVisible\" with timeout 30000ms\n  - waiting for getByTestId('founder-execution-section')\n"
+      "title": "Slack destination: create with kind='slack', send a test ping — 2xx from Slack or a booked failed delivery, never a 500 (elevated/evaluator only)",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 201\nReceived: 400"
     }
   ]
 }

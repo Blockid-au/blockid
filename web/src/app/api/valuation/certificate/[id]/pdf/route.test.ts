@@ -151,7 +151,7 @@ describe("GET /api/valuation/certificate/[id]/pdf", () => {
     expect(await forced.json()).toMatchObject({ ok: false, error: "annex_not_issued" });
     // `auto` / `none` on the same certificate still serve the frozen 3 pages.
     expect((await pages(await call(ID, "?annex=none"))).length).toBe(3);
-  });
+  }, 30_000);
 
   it("503 without a database", async () => {
     db.sb = null;

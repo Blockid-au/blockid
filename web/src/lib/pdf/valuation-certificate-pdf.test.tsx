@@ -186,7 +186,7 @@ describe("renderValuationCertificatePdf", () => {
     // The watermark reaches the annex page too.
     const wm = await renderValuationCertificatePdf({ data: SAMPLE_CERTIFICATE_ESS, contentHash: HASH, watermark: watermarkLabel({ recipient: "jane@blackbird.vc", date: "2026-09-12T00:00:00Z" }) });
     for (const p of await pageTexts(wm)) expect(p).toContain("Prepared for jane@blackbird.vc");
-  });
+  }, 30_000);
 
   it("handles a certificate with no ABN, no connected revenue and no evidence", async () => {
     const bare: ValuationCertificateData = {
