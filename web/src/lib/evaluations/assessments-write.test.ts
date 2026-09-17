@@ -56,6 +56,9 @@ function builder() {
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => (state.admin ? { from: () => builder() } : null) }));
 const appendAuditMock = vi.fn(async () => ({ id: 1n, curr_hash: "h" }));
 vi.mock("@/lib/audit", () => ({ appendAudit: (p: unknown) => appendAuditMock(p as never) }));
+// G14-S38: the submit path enqueues `assessment.submitted` (assessor-only).
+const enqueueMock = vi.fn(async () => ({ queued: 0, endpoints: [], envelopeId: null }));
+vi.mock("@/lib/webhooks/registry", () => ({ enqueueWebhook: (...a: unknown[]) => enqueueMock(...(a as [])) }));
 
 import {
   FOUNDER_FORBIDDEN_FIELDS,
@@ -79,6 +82,7 @@ beforeEach(() => {
   state.admin = true;
   state.seq = 1;
   appendAuditMock.mockClear();
+  enqueueMock.mockClear();
 });
 
 describe("assessmentDraftSchema", () => {
@@ -148,6 +152,24 @@ describe("upsertAssessment — versioning", () => {
     expect(r.version).toBe(1);
     await tick();
     expect(appendAuditMock.mock.calls.map((c) => (c[0] as unknown as Row).action)).toEqual(["assessment.saved", "assessment.submitted"]);
+  });
+
+  it("G14-S38: submit (and only submit) enqueues assessment.submitted to the ASSESSOR's user-level endpoints — never the project's", async () => {
+    await upsertAssessment({ ...CTX, startupName: "Acme" }, { decision: "proceed", conviction: 5 });
+    await tick();
+    expect(enqueueMock).not.toHaveBeenCalled();
+    const r = await upsertAssessment({ ...CTX, startupName: "Acme" }, { status: "submitted" });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    await tick();
+    expect(enqueueMock).toHaveBeenCalledTimes(1);
+    const [event, projectId, payload, opts] = enqueueMock.mock.calls[0] as unknown as [string, string, Record<string, unknown>, Record<string, unknown>];
+    expect(event).toBe("assessment.submitted");
+    expect(projectId).toBe("p-1");
+    expect(payload).toMatchObject({ assessment_id: r.assessment.id, evaluation_id: "e-1", project_id: "p-1", startup_name: "Acme", version: 1, decision: "proceed", conviction: 5 });
+    expect(payload.dossier_url).toMatch(/\/workspace\/evaluations\/e-1$/);
+    expect(opts).toEqual({ userIds: ["u-eval"], projectEndpoints: false });
+    for (const forbidden of ["private_notes", "privateNotes", "shared_notes"]) expect(JSON.stringify(payload)).not.toContain(forbidden);
   });
 
   it("saving after a submit creates v(n+1) pre-filled from v(n) — content carried, share state NOT carried", async () => {

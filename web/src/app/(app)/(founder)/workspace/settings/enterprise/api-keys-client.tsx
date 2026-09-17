@@ -312,6 +312,7 @@ function CreateKeyModal({
           lastUsedAt: null,
           createdAt: new Date().toISOString(),
           permissions: json.permissions ?? ["svi:read", "svi:create", "score:create"],
+          scopes: json.scopes ?? ["analyze"],
           rateLimitPerMin: json.rateLimitPerMin ?? 100,
         });
       } else {

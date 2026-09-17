@@ -442,6 +442,8 @@ export interface AssessmentWriteContext {
   projectId: string;
   assessorUserId: string;
   orgId?: string | null;
+  /** G14-S38: shown in the `assessment.submitted` webhook (Slack / Affinity / Airtable). */
+  startupName?: string | null;
 }
 
 export type AssessmentWriteError = "unavailable" | "missing_decision" | "missing_conviction" | "db_error" | "not_found";
@@ -625,8 +627,42 @@ export async function upsertAssessment(ctx: AssessmentWriteContext, input: Asses
     assessment,
     detail: { ...assessmentDelta(current, assessment), created, status: assessment.status, snapshot_id: assessment.snapshotId },
   });
+  if (submitting) notifyAssessmentSubmitted(ctx, assessment);
   const history = [toHistoryEntry(assessment), ...rows.filter((r) => r.id !== assessment.id).map(toHistoryEntry)];
   return { ok: true, assessment, created, version: assessment.version, history };
+}
+
+/**
+ * G14-S38 — `assessment.submitted` outbound webhook. Recipient = the
+ * assessor's OWN user-level endpoints only (`projectEndpoints: false`): a
+ * decision is evaluator-private and must never reach the founder team's
+ * integrations. Fire-and-forget; never throws into the write path.
+ */
+function notifyAssessmentSubmitted(ctx: AssessmentWriteContext, assessment: EvaluationAssessment): void {
+  void (async () => {
+    try {
+      const { enqueueWebhook } = await import("@/lib/webhooks/registry");
+      const base = (process.env.NEXT_PUBLIC_SITE_URL || "https://blockid.au").replace(/\/$/, "");
+      await enqueueWebhook(
+        "assessment.submitted",
+        ctx.projectId,
+        {
+          assessment_id: assessment.id,
+          evaluation_id: assessment.evaluationId,
+          project_id: assessment.projectId,
+          startup_name: ctx.startupName ?? null,
+          version: assessment.version,
+          decision: assessment.decision,
+          conviction: assessment.conviction,
+          submitted_at: assessment.submittedAt,
+          dossier_url: `${base}/workspace/evaluations/${encodeURIComponent(assessment.evaluationId)}`,
+        },
+        { userIds: [ctx.assessorUserId], projectEndpoints: false },
+      );
+    } catch (err) {
+      console.error("[blockid:assessments] assessment.submitted webhook failed", err instanceof Error ? err.message : err);
+    }
+  })();
 }
 
 export type ShareAssessmentResult =
