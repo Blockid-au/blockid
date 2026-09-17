@@ -13,6 +13,9 @@ interface FakeState {
   selectRow: Row;
   selectError: { code?: string; message: string } | null;
   upsertError: { code?: string; message: string } | null;
+  /** G14-S37: error for the FIRST upsert only (the retry without the 0408 columns succeeds). */
+  upsertErrorOnce: { code?: string; message: string } | null;
+  upsertPayloads: Array<Record<string, unknown>>;
   captured: {
     from: string | null;
     eqCol: string | null;
@@ -27,6 +30,8 @@ const state: FakeState = {
   selectRow: null,
   selectError: null,
   upsertError: null,
+  upsertErrorOnce: null,
+  upsertPayloads: [],
   captured: {
     from: null,
     eqCol: null,
@@ -65,6 +70,12 @@ vi.mock("@/lib/supabase", () => ({
           ) {
             state.captured.upsertPayload = payload;
             state.captured.upsertOpts = opts ?? null;
+            state.upsertPayloads.push(payload);
+            if (state.upsertErrorOnce) {
+              const e = state.upsertErrorOnce;
+              state.upsertErrorOnce = null;
+              return Promise.resolve({ error: e });
+            }
             return Promise.resolve({ error: state.upsertError });
           },
         };
@@ -107,6 +118,8 @@ beforeEach(() => {
   state.selectRow = null;
   state.selectError = null;
   state.upsertError = null;
+  state.upsertErrorOnce = null;
+  state.upsertPayloads = [];
   state.captured = {
     from: null,
     eqCol: null,
@@ -130,7 +143,35 @@ describe("loadFounderProfile", () => {
     expect(state.captured.from).toBe("founder_profiles");
     expect(state.captured.eqCol).toBe("account_id");
     expect(state.captured.eqVal).toBe("acct-1");
-    expect(res).toEqual({ account_id: "acct-1", email: "founder@example.com", full_name: "Ada" });
+    // G14-S37: a pre-0408 row is normalised to the full shape (arrays + empty execution fields).
+    expect(res).toMatchObject({ account_id: "acct-1", email: "founder@example.com", full_name: "Ada" });
+    expect(res?.prior_exits).toEqual([]);
+    expect(res?.prior_raises).toEqual([]);
+    expect(res?.roles).toEqual({ ceo: null, cto: null, cpo: null, cfo: null });
+    expect(res?.execution_score).toBeNull();
+    expect(res?.execution_source).toEqual({});
+    expect(res?.co_founders).toEqual([]);
+  });
+
+  it("G14-S37: normalises the 0408 execution columns (roles keys, numeric score, provenance map)", async () => {
+    state.selectRow = {
+      account_id: "acct-1",
+      email: "founder@example.com",
+      prior_exits: [{ company: "Loom", year: 2020, type: "acquisition", value_band: "1m-10m" }],
+      roles: { ceo: "Ada", cto: "  ", cfo: "Charles" },
+      full_time_pct: "80",
+      worked_together_before: true,
+      execution_score: 64,
+      execution_computed_at: "2026-09-17T00:00:00.000Z",
+      execution_source: { prior_exits: "founder", years_in_domain: "linkedin_parser" },
+    };
+    const res = await loadFounderProfile("acct-1");
+    expect(res?.prior_exits).toHaveLength(1);
+    expect(res?.roles).toEqual({ ceo: "Ada", cto: null, cpo: null, cfo: "Charles" });
+    expect(res?.full_time_pct).toBe(80);
+    expect(res?.worked_together_before).toBe(true);
+    expect(res?.execution_score).toBe(64);
+    expect(res?.execution_source).toEqual({ prior_exits: "founder", years_in_domain: "linkedin_parser" });
   });
 
   it("returns null when no row matches (maybeSingle → null)", async () => {
@@ -160,7 +201,7 @@ describe("loadFounderProfileByEmail", () => {
     expect(state.captured.from).toBe("founder_profiles");
     expect(state.captured.eqCol).toBe("email");
     expect(state.captured.eqVal).toBe("founder@example.com");
-    expect(res).toEqual({ account_id: "acct-1", email: "founder@example.com" });
+    expect(res).toMatchObject({ account_id: "acct-1", email: "founder@example.com" });
   });
 
   it("returns null when no row matches (maybeSingle → null)", async () => {
@@ -187,7 +228,7 @@ describe("saveFounderProfile", () => {
 
   it("upserts to founder_profiles with onConflict:'account_id'", async () => {
     const res = await saveFounderProfile(seedProfile());
-    expect(res).toEqual({ ok: true });
+    expect(res).toEqual({ ok: true, executionFieldsSaved: true });
     expect(state.captured.from).toBe("founder_profiles");
     expect(state.captured.upsertOpts).toEqual({ onConflict: "account_id" });
   });
@@ -199,7 +240,7 @@ describe("saveFounderProfile", () => {
     expect(state.captured.upsertPayload?.email).toBe("founder@example.com");
   });
 
-  it("payload pins the exact 16-column shape the DB row expects", async () => {
+  it("payload pins the exact 23-column shape the DB row expects (16 legacy + 7 G14-S37 / 0408)", async () => {
     const p = seedProfile({
       account_id: "acct-42",
       email: "ada@example.com",
@@ -238,6 +279,14 @@ describe("saveFounderProfile", () => {
         "notable_hires",
         "public_visible",
         "contactable_by_investors",
+        // G14-S37 (0408)
+        "prior_exits",
+        "prior_raises",
+        "github_url",
+        "full_time_pct",
+        "worked_together_before",
+        "roles",
+        "execution_source",
       ].sort(),
     );
     expect(payload.account_id).toBe("acct-42");
@@ -251,6 +300,29 @@ describe("saveFounderProfile", () => {
     state.upsertError = { code: "23505", message: "duplicate key value" };
     const res = await saveFounderProfile(seedProfile());
     expect(res).toEqual({ ok: false, error: "duplicate key value" });
+  });
+
+  it("G14-S37: when 0408 is pending (column does not exist) the upsert retries WITHOUT the execution columns — legacy fields still save", async () => {
+    state.upsertErrorOnce = { code: "42703", message: "column \"prior_exits\" of relation \"founder_profiles\" does not exist" };
+    const res = await saveFounderProfile(seedProfile({ prior_exits: [{ company: "Loom", year: 2020, type: "acquisition", value_band: "1m-10m" }] }));
+    expect(res).toEqual({ ok: true, executionFieldsSaved: false });
+    expect(state.upsertPayloads).toHaveLength(2);
+    expect(state.upsertPayloads[0]).toHaveProperty("prior_exits");
+    expect(state.upsertPayloads[1]).not.toHaveProperty("prior_exits");
+    expect(state.upsertPayloads[1]).not.toHaveProperty("roles");
+    expect(state.upsertPayloads[1]).toHaveProperty("full_name", "Ada Lovelace");
+  });
+
+  it("G14-S37: a PostgREST schema-cache miss is treated like a missing column (retry), any other error is surfaced", async () => {
+    state.upsertErrorOnce = { message: "Could not find the 'roles' column of 'founder_profiles' in the schema cache" };
+    const ok = await saveFounderProfile(seedProfile());
+    expect(ok.ok).toBe(true);
+    expect(ok.executionFieldsSaved).toBe(false);
+    state.upsertPayloads = [];
+    state.upsertErrorOnce = { message: "permission denied" };
+    const bad = await saveFounderProfile(seedProfile());
+    expect(bad).toEqual({ ok: false, error: "permission denied" });
+    expect(state.upsertPayloads).toHaveLength(1);
   });
 
   it("empty-string email still normalises via toLowerCase().trim() (empty stays empty)", async () => {

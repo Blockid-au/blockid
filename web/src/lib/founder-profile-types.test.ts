@@ -58,11 +58,11 @@ describe("profileCompletionPct", () => {
     expect(profileCompletionPct(seed())).toBe(0);
   });
 
-  it("one satisfied check → 10 (rounded from 10.0)", () => {
-    expect(profileCompletionPct(seed({ full_name: "Ada Lovelace" }))).toBe(10);
+  it("one satisfied check → 8 (1 of 12, rounded from 8.33)", () => {
+    expect(profileCompletionPct(seed({ full_name: "Ada Lovelace" }))).toBe(8);
   });
 
-  it("all 10 checks satisfied → 100", () => {
+  it("the 10 legacy checks alone → 83 (the two G14-S37 execution checks are still open)", () => {
     const p = seed({
       full_name: "Ada Lovelace",
       role: "CEO",
@@ -75,58 +75,85 @@ describe("profileCompletionPct", () => {
       ambition: "x".repeat(41),
       co_founders: [{ name: "Charles", role: "CTO" }],
     });
+    expect(profileCompletionPct(p)).toBe(83);
+  });
+
+  it("G14-S37: track-record check counts an exit OR a raise OR a GitHub URL; commitment check counts a named role OR full-time %", () => {
+    expect(profileCompletionPct(seed({ prior_exits: [{ company: "Loom", year: 2020, type: "acquisition", value_band: "1m-10m" }] }))).toBe(8);
+    expect(profileCompletionPct(seed({ prior_raises: [{ company: "Loom", round: "seed", amount_aud_band: "1m-5m", year: 2019 }] }))).toBe(8);
+    expect(profileCompletionPct(seed({ github_url: "https://github.com/ada" }))).toBe(8);
+    expect(profileCompletionPct(seed({ roles: { ceo: "Ada", cto: null, cpo: null, cfo: null } }))).toBe(8);
+    expect(profileCompletionPct(seed({ full_time_pct: 100 }))).toBe(8);
+    expect(profileCompletionPct(seed({ full_time_pct: 0 }))).toBe(0);
+  });
+
+  it("all 12 checks satisfied → 100", () => {
+    const p = seed({
+      full_name: "Ada Lovelace",
+      role: "CEO",
+      linkedin_url: "https://linkedin.com/in/ada",
+      bio: "x".repeat(81),
+      prev_employers: ["Analytical Engines Ltd"],
+      ship_history: ["Loom v1"],
+      years_in_domain: 5,
+      domain_insight: "x".repeat(41),
+      ambition: "x".repeat(41),
+      co_founders: [{ name: "Charles", role: "CTO" }],
+      prior_exits: [{ company: "Loom", year: 2020, type: "acquisition", value_band: "1m-10m" }],
+      roles: { ceo: "Ada", cto: "Charles", cpo: null, cfo: null },
+    });
     expect(profileCompletionPct(p)).toBe(100);
   });
 
   it("bio at 80 chars is NOT counted; 81 crosses the length > 80 gate", () => {
     expect(profileCompletionPct(seed({ bio: "x".repeat(80) }))).toBe(0);
-    expect(profileCompletionPct(seed({ bio: "x".repeat(81) }))).toBe(10);
+    expect(profileCompletionPct(seed({ bio: "x".repeat(81) }))).toBe(8);
   });
 
   it("full_name of a single visible char fails the trim().length > 1 gate", () => {
     expect(profileCompletionPct(seed({ full_name: "A" }))).toBe(0);
     expect(profileCompletionPct(seed({ full_name: "  A  " }))).toBe(0);
-    expect(profileCompletionPct(seed({ full_name: "Ab" }))).toBe(10);
+    expect(profileCompletionPct(seed({ full_name: "Ab" }))).toBe(8);
   });
 
   it("role of a single visible char fails the trim().length > 1 gate", () => {
     expect(profileCompletionPct(seed({ role: "X" }))).toBe(0);
-    expect(profileCompletionPct(seed({ role: "CE" }))).toBe(10);
+    expect(profileCompletionPct(seed({ role: "CE" }))).toBe(8);
   });
 
   it("years_in_domain=0 fails the >0 gate; 1 satisfies it", () => {
     expect(profileCompletionPct(seed({ years_in_domain: 0 }))).toBe(0);
-    expect(profileCompletionPct(seed({ years_in_domain: 1 }))).toBe(10);
+    expect(profileCompletionPct(seed({ years_in_domain: 1 }))).toBe(8);
   });
 
   it("domain_insight length boundary at 40 → uncounted; 41 → counted", () => {
     expect(profileCompletionPct(seed({ domain_insight: "x".repeat(40) }))).toBe(0);
-    expect(profileCompletionPct(seed({ domain_insight: "x".repeat(41) }))).toBe(10);
+    expect(profileCompletionPct(seed({ domain_insight: "x".repeat(41) }))).toBe(8);
   });
 
   it("ambition length boundary at 40 → uncounted; 41 → counted", () => {
     expect(profileCompletionPct(seed({ ambition: "x".repeat(40) }))).toBe(0);
-    expect(profileCompletionPct(seed({ ambition: "x".repeat(41) }))).toBe(10);
+    expect(profileCompletionPct(seed({ ambition: "x".repeat(41) }))).toBe(8);
   });
 
   it("team check is an OR — either co_founders OR advisors present counts", () => {
     expect(
       profileCompletionPct(seed({ co_founders: [{ name: "C", role: "CTO" }] })),
-    ).toBe(10);
+    ).toBe(8);
     expect(
       profileCompletionPct(seed({ advisors: [{ name: "A", role: "Advisor" }] })),
-    ).toBe(10);
+    ).toBe(8);
   });
 
   it("linkedin_url presence is truthy-based (empty string does NOT count)", () => {
     expect(profileCompletionPct(seed({ linkedin_url: "" }))).toBe(0);
     expect(
       profileCompletionPct(seed({ linkedin_url: "https://linkedin.com/in/x" })),
-    ).toBe(10);
+    ).toBe(8);
   });
 
   it("mid-range fractional score rounds to nearest whole percent", () => {
-    // 3 of 10 checks → 30
+    // 3 of 12 checks → 25
     expect(
       profileCompletionPct(
         seed({
@@ -135,8 +162,8 @@ describe("profileCompletionPct", () => {
           linkedin_url: "https://linkedin.com/in/ada",
         }),
       ),
-    ).toBe(30);
-    // 7 of 10 checks → 70
+    ).toBe(25);
+    // 7 of 12 checks → 58
     expect(
       profileCompletionPct(
         seed({
@@ -149,7 +176,7 @@ describe("profileCompletionPct", () => {
           years_in_domain: 5,
         }),
       ),
-    ).toBe(70);
+    ).toBe(58);
   });
 });
 
