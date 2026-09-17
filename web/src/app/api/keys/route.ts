@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { listApiKeys, createApiKey, canCreateApiKeys, getRateLimitForPlan } from "@/lib/api-keys";
+import { parseScopesInput } from "@/lib/api-scopes";
+import { isEvaluatorUser } from "@/lib/evaluations";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 import { apiRoute } from "@/lib/audit/api-route";
 
@@ -42,9 +44,17 @@ async function POST_handler(request: Request) {
     body = {};
   }
 
-  const { name } = (body as { name?: string }) ?? {};
+  const { name, scopes: scopesInput } = (body as { name?: string; scopes?: unknown }) ?? {};
 
-  const result = await createApiKey(user.id, user.plan, name);
+  // G14-S38: per-key scopes. `evaluations:*` only on an evaluator account —
+  // a founder Enterprise key stays `{analyze}` whatever the body says.
+  const evaluator = scopesInput !== undefined ? await isEvaluatorUser(user) : false;
+  const scopes = parseScopesInput(scopesInput, { evaluator });
+  if (!scopes.ok) {
+    return NextResponse.json({ ok: false, reason: scopes.error, detail: scopes.detail ?? null }, { status: 400 });
+  }
+
+  const result = await createApiKey(user.id, user.plan, name, scopes.scopes);
 
   if ("error" in result) {
     return NextResponse.json(
@@ -67,6 +77,7 @@ async function POST_handler(request: Request) {
     fields: {
       key_name: displayName,
       key_prefix: keyPrefix,
+      scopes: scopes.scopes.join(","),
     },
     route: "/api/keys",
     ip: extractIp(request.headers),
@@ -80,6 +91,7 @@ async function POST_handler(request: Request) {
     name: displayName,
     prefix: result.key.slice(0, 16) + "...",
     permissions: ["svi:read", "svi:create", "score:create"],
+    scopes: scopes.scopes,
     rateLimitPerMin: getRateLimitForPlan(user.plan),
   });
 }
