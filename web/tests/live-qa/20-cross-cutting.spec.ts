@@ -222,3 +222,29 @@ test.describe("Traction snapshot status (G14-S33)", () => {
     }
   });
 });
+
+// G14-S40 — /methodology "Data sources": the public page must list the open
+// AU registers behind the score (≥ 3 rows — ABR bulk extract, GrantConnect
+// awards, ATO R&DTI transparency report — plus the cite-only reports),
+// each with its licence and attribution. Rendered from external_sources
+// (0410) when applied, from the code catalogue otherwise, so the assertion
+// holds on either side of the migration; `data-from-db` is recorded as
+// evidence so the ops review can see which one served.
+test.describe("Methodology data sources (G14-S40)", () => {
+  test("/methodology lists at least 3 data sources with licence + attribution, cite-only rows labelled", async ({ page, visit }, testInfo) => {
+    await visit("/methodology");
+    const table = page.getByTestId("methodology-data-sources");
+    await expect(table).toBeVisible({ timeout: 30_000 });
+    const rows = table.locator("tbody tr[data-source-id]");
+    const count = await rows.count();
+    const fromDb = await table.getAttribute("data-from-db");
+    const ids = await rows.evaluateAll((els) => els.map((el) => `${el.getAttribute("data-source-id")}:${el.getAttribute("data-source-status")}`));
+    await evidence(testInfo, "methodology data sources", { count, fromDb, ids });
+    expect(count, "≥ 3 data sources listed").toBeGreaterThanOrEqual(3);
+    expect(ids.filter((id) => id.endsWith(":active")).length, "≥ 3 active (ingestable) sources").toBeGreaterThanOrEqual(3);
+    expect(ids.some((id) => id.endsWith(":cite_only")), "cite-only sources are listed and labelled").toBe(true);
+    for (const licence of ["CC BY 3.0 AU", "CC BY 2.5 AU"]) await expect(table.getByText(licence).first()).toBeVisible();
+    await expect(table.getByText(/Commonwealth of Australia/).first()).toBeVisible();
+    if (fromDb !== "1") testInfo.annotations.push({ type: "known-issue", description: "external_sources served from the code catalogue — migration 0410 not applied on this host yet" });
+  });
+});

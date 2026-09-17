@@ -566,3 +566,89 @@ describe("startupPositioning", () => {
     expect(r.headline).toBe("Top 25% of AU seed startups");
   });
 });
+
+// ─── G14-S40: register cohort middle rung ─────────────────────────────────────
+// Order: svi_index_snapshots ≥ 20 → real_cohort; else register cohort ≥ 20
+// (with a subject score) → register_cohort; else → benchmark_fallback.
+describe("computeCohortPercentile — register cohort fallback order (S40)", () => {
+  beforeEach(() => {
+    adminConfigured = true;
+    lastQuery = null;
+    nextData = [];
+    nextError = null;
+    nextThrow = null;
+  });
+
+  const registerCohort = (n: number, subjectScore: number | null = 55) => ({
+    source: "register_cohort" as const,
+    n,
+    stateMatched: false,
+    industryMatched: false as const,
+    ageBands: { lt_1y: 0, "1_3y": n, "3_7y": 0, gt_7y: 0 },
+    medianAgeMonths: 24,
+    gstShare: 0.5,
+    grantShare: 0.1,
+    rdtiShare: 0.2,
+    scores: Array.from({ length: n }, (_, i) => i * 2), // 0, 2, 4, … ascending
+    subjectScore,
+    subjectFromRegister: true,
+  });
+
+  it("snapshots ≥ 20 win even when a register cohort is available (real_cohort; the loader is never called)", async () => {
+    nextData = makeRows(Array.from({ length: 25 }, (_, i) => (i + 1) * 10));
+    const loader = vi.fn(async () => registerCohort(40));
+    const r = await computeCohortPercentile({ sviScore: 130, stage: 3, fallbackPercentile: 99, register: { abn: "95608464535" }, loadRegisterCohort: loader });
+    expect(r.source).toBe("real_cohort");
+    expect(r.percentile).toBe(48);
+    expect(loader).not.toHaveBeenCalled();
+  });
+
+  it("snapshots < 20 and register cohort ≥ 20 → register_cohort: the subject's maturity percentile within the cohort, flagged with the register meta", async () => {
+    nextData = makeRows([50, 60, 70]); // 3 snapshots
+    const loader = vi.fn(async () => registerCohort(40, 55)); // scores 0..78; 28 strictly below 55 → 70 %
+    const r = await computeCohortPercentile({ sviScore: 130, stage: 3, fallbackPercentile: 42, register: { abn: "95608464535", state: "NSW" }, loadRegisterCohort: loader });
+    expect(loader).toHaveBeenCalledTimes(1);
+    expect(loader.mock.calls[0][1]).toEqual({ abn: "95608464535", state: "NSW" });
+    expect(r).toMatchObject({ source: "register_cohort", percentile: 70, cohortSize: 40, stageMatched: 3, register: { n: 40, medianAgeMonths: 24, subjectScore: 55, subjectFromRegister: true } });
+  });
+
+  it("register cohort < 20, or no subject score, or a loader error → benchmark_fallback with the snapshot count", async () => {
+    nextData = makeRows([50, 60, 70]);
+    const small = await computeCohortPercentile({ sviScore: 100, stage: 3, fallbackPercentile: 42, register: { abn: "95608464535" }, loadRegisterCohort: async () => registerCohort(19) });
+    expect(small).toEqual({ percentile: 42, source: "benchmark_fallback", cohortSize: 3, stageMatched: 3 });
+    nextData = makeRows([50, 60, 70]);
+    const noSubject = await computeCohortPercentile({ sviScore: 100, stage: 3, fallbackPercentile: 42, register: { state: "VIC" }, loadRegisterCohort: async () => registerCohort(40, null) });
+    expect(noSubject.source).toBe("benchmark_fallback");
+    nextData = makeRows([50, 60, 70]);
+    const thrown = await computeCohortPercentile({ sviScore: 100, stage: 3, fallbackPercentile: 42, register: { abn: "95608464535" }, loadRegisterCohort: async () => { throw new Error("boom"); } });
+    expect(thrown.source).toBe("benchmark_fallback");
+    nextData = makeRows([50, 60, 70]);
+    const nullCohort = await computeCohortPercentile({ sviScore: 100, stage: 3, fallbackPercentile: 42, register: { abn: "95608464535" }, loadRegisterCohort: async () => null });
+    expect(nullCohort.source).toBe("benchmark_fallback");
+  });
+
+  it("without `register` the behaviour is unchanged: snapshots < 20 → benchmark_fallback, loader never consulted", async () => {
+    nextData = makeRows([50, 60, 70]);
+    const loader = vi.fn(async () => registerCohort(40));
+    const r = await computeCohortPercentile({ sviScore: 100, stage: 3, fallbackPercentile: 42, loadRegisterCohort: loader });
+    expect(r.source).toBe("benchmark_fallback");
+    expect(loader).not.toHaveBeenCalled();
+  });
+
+  it("the register rung also applies after the post-filter drop below 20 (NaN / non-positive scores stripped)", async () => {
+    const rows: Array<{ svi: number | string | null; stage: number }> = [];
+    for (let i = 0; i < 15; i++) rows.push({ svi: 40 + i * 5, stage: 3 });
+    for (let i = 0; i < 10; i++) rows.push({ svi: 0, stage: 3 });
+    nextData = rows;
+    const r = await computeCohortPercentile({ sviScore: 100, stage: 3, fallbackPercentile: 42, register: { abn: "95608464535" }, loadRegisterCohort: async () => registerCohort(25, 10) });
+    expect(r.source).toBe("register_cohort");
+    expect(r.cohortSize).toBe(25);
+    expect(r.percentile).toBe(20); // scores 0..48 step 2 → 5 strictly below 10 → 5/25
+  });
+
+  it("startupPositioning labels a register cohort honestly (not 'based on N AU peers', not 'benchmark estimate')", () => {
+    const r = startupPositioning({ percentile: 70, cohortSize: 40, source: "register_cohort", stageLabel: "seed" });
+    expect(r.tier).toBe("above_median");
+    expect(r.detail).toBe("Above median for AU seed startups (register cohort — 40 AU entities on the ABR / grant / R&DTI registers)");
+  });
+});

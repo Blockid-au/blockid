@@ -1,0 +1,4 @@
+# allow-set sample for the ABR fixture
+95608464535
+53 666 147 271
+12345678901

@@ -13,6 +13,10 @@
 //   cap-table read    shareholders + esop_pool register summary
 //   grants / programs grant-advisor matchGrants / matchPrograms on the saved
 //                     project_grant_profiles row (no profile → skipped with a note)
+//   external signals  S40: external_signals rows for the project's verified
+//                     ABN (ABR entity / GrantConnect awards / R&DTI register)
+//                     → LCO / IRI / TRE rows, origin "connector" (S36 cap →
+//                     connected_source). No ABN → skipped with a note.
 //   valuation         buildVcValuationReport() on the inputs above (MRR from
 //                     the connector bridge, sector, stage, RDTI estimate, growth)
 //                     + vcBenchmark() for the dated sector multiples (§C.5)
@@ -26,6 +30,7 @@
 import type { CriterionKey } from "@/lib/evaluation-criteria";
 import { CRITERION_KEYS } from "@/lib/evaluation-criteria";
 import type { EvidenceRow, EvidenceStatus } from "@/lib/report-v2/schema";
+import { loadProjectAbn, signalsForAbn, type ExternalEvidenceRow } from "@/lib/signals/external-signals";
 import type { EvidenceSource, DimKey } from "./dimension-owners";
 import { evidenceIdFor } from "./evidence-ids";
 import type { GatherResults, ReportContext } from "./types";
@@ -161,6 +166,8 @@ export interface GatherDeps {
   /** S-R5: latest ga4_signal_snapshots row for (owner, project) — TRE / MPC funnel + channel mix. */
   loadGa4Snapshot?: (db: GatherDb, ownerUserId: string, projectId: string | null) => Promise<Ga4SnapshotLike | null>;
   loadGrants?: (db: GatherDb, projectId: string, stage: number, industry: string | null) => Promise<GrantsMatch | null>;
+  /** S40: register-derived evidence for the project's verified ABN (null ABN → []). */
+  loadExternalSignals?: (db: GatherDb, projectId: string) => Promise<{ abn: string | null; rows: ExternalEvidenceRow[] }>;
   buildValuation?: (input: Row) => VcValuationLike;
   now?: () => number;
   /** Per-source hard timeout (default 20 s). */
@@ -251,6 +258,12 @@ function numbersOf(obj: Row | null | undefined, keys: string[]): Row {
 }
 
 const STAGE_TO_CFO: Record<number, string> = { 0: "pre-seed", 1: "pre-seed", 2: "pre-seed", 3: "seed", 4: "seed", 5: "series-a", 6: "series-b", 7: "series-b" };
+
+async function defaultLoadExternalSignals(db: GatherDb, projectId: string): Promise<{ abn: string | null; rows: ExternalEvidenceRow[] }> {
+  const abn = await loadProjectAbn(db, projectId);
+  if (!abn) return { abn: null, rows: [] };
+  return { abn, rows: await signalsForAbn(abn, db) };
+}
 
 // ── In-memory audit cache (fallback when `tech_audits` is absent) ───────────
 
@@ -706,6 +719,34 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
         })
       : Promise.resolve(void diag("grants", "skipped", now(), "no db / project"));
 
+  // ── 6b. Open AU register signals for the verified ABN — S40 ───────────
+  const external =
+    db && projectId
+      ? run("externalSignals", async () => {
+          const t0 = now();
+          const { abn, rows: ext } = await (deps.loadExternalSignals ?? defaultLoadExternalSignals)(db, projectId);
+          if (!abn) {
+            diag("externalSignals", "skipped", t0, "no verified ABN");
+            return;
+          }
+          const byType: Record<string, number> = {};
+          for (const r of ext) {
+            byType[r.signal_type] = (byType[r.signal_type] ?? 0) + 1;
+            // Only the schema fields travel into evidenceRows; provenance stays in results.externalSignals.
+            rows.push({ evidence_id: r.evidence_id, source: r.source, label: r.label, status: r.status, observedAt: r.observedAt, value: r.value, dims: [...r.dims] });
+          }
+          results.externalSignals = {
+            abn,
+            count: ext.length,
+            byType,
+            origin: ext[0]?.origin ?? "connector",
+            confidence: ext[0]?.confidence ?? "connected_source",
+            rows: ext.map((r) => ({ evidence_id: r.evidence_id, signal_type: r.signal_type, source_id: r.source_id, source_url: r.source_url, as_of: r.as_of, match_confidence: r.match_confidence, dims: r.dims })),
+          };
+          diag("externalSignals", "ok", t0, ext.length ? undefined : "no register rows for ABN");
+        })
+      : Promise.resolve(void diag("externalSignals", "skipped", now(), "no db / project"));
+
   // ── 7. Evidence quality (deterministic) ───────────────────────────────
   const totalEvidence = Object.values(context.criteriaData).reduce((sum, d) => sum + d.files.length + d.links.length + (d.textInput ? 1 : 0), 0);
   results.evidenceQuality = {
@@ -714,7 +755,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
     totalCriteria: CRITERION_KEYS.length,
   };
 
-  await Promise.allSettled([research, tech, repo, connectors, capTable, founder, founderExecution, ga4, grants]);
+  await Promise.allSettled([research, tech, repo, connectors, capTable, founder, founderExecution, ga4, grants, external]);
 
   // ── 8. Valuation inputs + CFO 5-method model (deterministic, after connectors)
   const signals = (context.sviAnalysis.signals ?? {}) as Partial<{ mrrAud: number; arrAud: number; raiseAskAud: number; statedCapAud: number; statedCapKind: ValuationAskInput["statedCapKind"]; hasVesting: boolean; hasShareholdersAgreement: boolean; esopAllocated: boolean; hasDataRoom: boolean; customerCount: number }>;

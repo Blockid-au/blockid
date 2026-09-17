@@ -872,7 +872,7 @@ function computeConfidence(criterionData?: CriterionData): number {
 // series when its numbers pass the provenance pass.
 
 const dimKeyEnum = z.enum(["tre", "mpc", "ftv", "ptd", "cgh", "iri", "lco", "svm"]);
-const evidenceSourceEnum = z.enum(["stripe", "ga4", "github", "xero", "linkedin", "upload", "url", "self_declared", "founder_profile", "connector_other"]);
+const evidenceSourceEnum = z.enum(["stripe", "ga4", "github", "xero", "linkedin", "upload", "url", "self_declared", "founder_profile", "connector_other", "external"]);
 const wordCount = (t: string) => t.trim().split(/\s+/).filter(Boolean).length;
 
 const VisualProposal = z.object({

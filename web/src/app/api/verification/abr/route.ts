@@ -192,14 +192,20 @@ async function POST_handler(request: Request): Promise<NextResponse> {
   });
 
   const now = new Date().toISOString();
-  const { error: updateErr } = await supabase
+  // G14-S40: persist the verified ABN (projects.abn, migration 0410) so the
+  // open-register signals (external_signals ⋈ projects.abn) and the ABR
+  // bulk-extract allow-set can find this project. Before 0410 is applied the
+  // column is unknown to PostgREST (PGRST204) — retry without it so
+  // verification itself never regresses on a pending migration.
+  const stamp = { verification_level: verificationLevel, last_verified_at: now, updated_at: now };
+  let { error: updateErr } = await supabase
     .from("projects")
-    .update({
-      verification_level: verificationLevel,
-      last_verified_at: now,
-      updated_at: now,
-    })
+    .update({ ...stamp, abn: rawAbn })
     .eq("id", businessId);
+  if (updateErr && updateErr.code === "PGRST204") {
+    console.warn("[blockid:verification/abr] projects.abn missing (apply 0410) — stamping level only");
+    ({ error: updateErr } = await supabase.from("projects").update(stamp).eq("id", businessId));
+  }
 
   if (updateErr) {
     console.error("[blockid:verification/abr] project update failed", {

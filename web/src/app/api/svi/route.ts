@@ -4,6 +4,7 @@ import { z } from "zod";
 import { extractSignals, computeSVI, computeFundingReadiness, type SVITextInput } from "@/lib/svi-analysis";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { loadVerificationLevel } from "@/lib/verification/load-level";
+import { loadProjectAbn } from "@/lib/signals/external-signals";
 import { newSlug } from "@/lib/slug";
 import { sendSVIReport, sendWelcomeWithReport } from "@/lib/email";
 import { enqueueOnboardingDrip } from "@/lib/email-drip";
@@ -311,13 +312,18 @@ async function POST_handler(request: Request) {
     };
   }
 
-  // ── Real cohort percentile (T0102) ────────────────────────────────────
+  // ── Real cohort percentile (T0102; S40 register rung) ─────────────────
   // Replaces the band-based estimate with an actual cohort calculation when
-  // we have ≥20 same-stage snapshots in the SVI Index.
+  // we have ≥20 same-stage snapshots in the SVI Index. Below that, a project
+  // with a verified ABN (projects.abn, 0410) is positioned within the open
+  // register cohort (ABR entity age / GST / grants / R&DTI) — flagged
+  // "register_cohort", it never overwrites percentileRank (not an SVI rank).
+  const projectAbn = projectId ? await loadProjectAbn(getSupabaseAdmin(), projectId) : null;
   const cohort = await computeCohortPercentile({
     sviScore: analysis.totalSVI,
     stage: analysis.stage ?? 0,
     fallbackPercentile: analysis.percentileRank ?? 50,
+    register: projectAbn ? { abn: projectAbn } : null,
   });
   if (cohort.source === "real_cohort") {
     analysis = { ...analysis, percentileRank: cohort.percentile };

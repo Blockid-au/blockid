@@ -8,6 +8,7 @@ import type { CriterionKey } from "@/lib/evaluation-criteria";
 import { CRITERION_KEYS } from "@/lib/evaluation-criteria";
 import type { CriterionData, ReportContext } from "./types";
 import { GATHER_RESEARCH_CALLS, GatherTimeoutError, gatherData, gatherEvidenceId, parseGitHubRepo, resetGatherCache, withTimeout, type GatherDb, type GatherDeps, type GatherQuery } from "./gather";
+import { signalsForAbn } from "@/lib/signals/external-signals";
 
 type Row = Record<string, unknown>;
 
@@ -353,6 +354,45 @@ describe("gatherData — sources", () => {
     const none = await gatherData(ctx(), callAI, { ownerUserId: "owner-9", projectId: "proj-1", deps: deps({ ...common, loadFounderExecution: async () => null }) });
     expect(none.results.founderExecution).toBeUndefined();
     expect(none.evidenceRows.find((r) => r.source === "founder_profile")).toMatchObject({ status: "missing", label: "Founder execution profile", dims: ["ftv"] });
+  });
+
+  it("S40: open AU register signals for the verified ABN become evidence rows (source external, LCO / IRI / TRE) + gather results; no ABN → skipped with a note", async () => {
+    const db = fakeDb({ projects: [{ id: "proj-1", abn: "95608464535" }] });
+    const ext = await signalsForAbn("95608464535", {
+      from: () => {
+        const chain = {
+          select: () => chain,
+          eq: () => chain,
+          order: () => chain,
+          limit: () => Promise.resolve({
+            data: [
+              { source_id: "abr-bulk", entity_abn: "95608464535", signal_type: "abr_entity", value: { abn_status: "ACT", abn_status_from: "2019-03-01", entity_type: "Australian Private Company", state: "NSW", gst_status: "ACT", gst_from: "2019-03-01" }, as_of: "2025-06-14", fetched_at: "2026-09-10T00:00:00Z", source_url: "https://abr.business.gov.au/ABN/View?abn=95608464535", match_confidence: "high" },
+              { source_id: "business-gov-grants", entity_abn: "95608464535", signal_type: "grant_award", value: { ga_id: "GA1", agency: "DISR", program: "Accelerating Commercialisation", amount_aud: 486500, approval_date: "2025-03-15" }, as_of: "2025-03-15", source_url: "https://www.grants.gov.au/Ga/List", match_confidence: "high" },
+              { source_id: "rdti-transparency", entity_abn: "95608464535", signal_type: "rdti_registration", value: { rd_expenditure_aud: 449266, income_year: "2022-23" }, as_of: "2023-06-30", source_url: "https://data.gov.au/data/dataset/research-and-development-tax-incentive", match_confidence: "high" },
+            ],
+            error: null,
+          }),
+        };
+        return chain;
+      },
+    }, { now: Date.parse("2026-09-17T00:00:00Z") });
+    const out = await gatherData(ctx(), callAI, {
+      projectId: "proj-1",
+      deps: deps({ db, loadConnectedRevenue: async () => [], loadCapTable: async () => null, loadGrants: async () => null, loadFounderSignals: async () => null, loadGa4Snapshot: async () => null, loadExternalSignals: async () => ({ abn: "95608464535", rows: ext }) }),
+    });
+    expect(out.results.diagnostics?.externalSignals?.status).toBe("ok");
+    expect(out.results.externalSignals).toMatchObject({ abn: "95608464535", count: 3, byType: { abr_entity: 1, grant_award: 1, rdti_registration: 1 }, origin: "connector", confidence: "connected_source" });
+    const external = out.evidenceRows.filter((r) => r.source === "external");
+    expect(external).toHaveLength(3);
+    expect(external.map((r) => r.dims)).toEqual([["lco"], ["iri", "cgh"], ["tre"]]);
+    expect(external.every((r) => r.observedAt && !("origin" in r))).toBe(true); // provenance stays in results, rows are schema-shaped
+    expect(external.find((r) => r.dims[0] === "tre")?.value).toContain("R&D expenditure band");
+
+    // Default loader: projects.abn null → skipped, no rows, no error.
+    const none = await gatherData(ctx(), callAI, { projectId: "proj-1", deps: deps({ db: fakeDb({}), loadConnectedRevenue: async () => [], loadCapTable: async () => null, loadGrants: async () => null, loadFounderSignals: async () => null, loadGa4Snapshot: async () => null }) });
+    expect(none.results.diagnostics?.externalSignals).toMatchObject({ status: "skipped", note: "no verified ABN" });
+    expect(none.results.externalSignals).toBeUndefined();
+    expect(none.evidenceRows.filter((r) => r.source === "external")).toHaveLength(0);
   });
 
   it("an expired deadline skips every source deterministically", async () => {

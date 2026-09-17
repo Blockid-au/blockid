@@ -136,6 +136,15 @@ export function CompsWall() {
             </tbody>
           </table>
         </div>
+        {/* G14-S40: the open-register signals behind LCO / IRI / TRE are cited on /methodology. */}
+        <p className="mt-4 text-xs leading-relaxed text-slate-400" data-testid="comps-wall-registers-note">
+          Comparables are public AU raises. Entity, grant and R&amp;D signals in reports come from open Commonwealth registers (ABR, GrantConnect, ATO R&amp;DTI
+          transparency report), matched by verified ABN under their published licences —{" "}
+          <a href="/methodology#data-sources" className="underline decoration-dotted hover:text-slate-600">
+            data sources
+          </a>
+          .
+        </p>
       </div>
     </section>
   );

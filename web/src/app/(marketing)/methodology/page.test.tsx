@@ -19,6 +19,7 @@ import { CAP_RULES_PLAIN, CONFIDENCE_LEVELS } from "@/lib/evidence/confidence-ca
 import { DIMENSION_OWNERS, DIM_LEGACY_ORDER } from "@/lib/report-pipeline/dimension-owners";
 import { PIPELINE_VERSION } from "@/lib/report-pipeline/version";
 import { REPORT_V2_SCHEMA_VERSION } from "@/lib/report-v2/schema";
+import { CITE_ONLY_SOURCE_IDS, EXTERNAL_SOURCE_CATALOG, INGESTABLE_SOURCE_IDS } from "@/lib/signals/external-sources";
 import { EVIDENCE_CONFIDENCE, SVI_VERSION } from "@/lib/svi-analysis";
 import { DATA_PRINCIPLE_SENTENCE } from "@/lib/valuation-certificate/types";
 import { VERIFICATION_LEVEL_LABELS, VERIFICATION_MULTIPLIER } from "@/lib/verification/confidence-multiplier";
@@ -66,6 +67,25 @@ describe("buildMethodologyProps — every figure comes from the engine modules",
     expect(p.data.sentence).toBe(DATA_PRINCIPLE_SENTENCE);
     expect(p.calibration.href).toBe("/methodology/calibration");
   });
+
+  it("S40 data sources: the code catalogue by default (fromDb=false), attribution verbatim, cite-only rows labelled; live rows replace it", () => {
+    const p = buildMethodologyProps(EN, "en");
+    expect(p.sources.fromDb).toBe(false);
+    expect(p.sources.items.map((s) => s.id)).toEqual(EXTERNAL_SOURCE_CATALOG.map((s) => s.id));
+    for (const s of p.sources.items) {
+      const c = EXTERNAL_SOURCE_CATALOG.find((x) => x.id === s.id)!;
+      expect(s.attribution).toBe(c.attribution_text);
+      expect(s.licence).toBe(c.licence);
+      expect(s.citeOnly).toBe(c.status === "cite_only");
+      expect(s.useLabel).toBe(EN[`methodology.sources.use.${c.status}`]);
+    }
+    expect(p.sources.items.filter((s) => !s.citeOnly).map((s) => s.id)).toEqual([...INGESTABLE_SOURCE_IDS]);
+    expect(p.sources.items.filter((s) => s.citeOnly).map((s) => s.id)).toEqual([...CITE_ONLY_SOURCE_IDS]);
+    const live = buildMethodologyProps(EN, "en", { sources: { fromDb: true, rows: [{ ...EXTERNAL_SOURCE_CATALOG[0], row_count: 1234, last_fetched_at: "2026-09-13T03:00:00.000Z" }] } });
+    expect(live.sources.fromDb).toBe(true);
+    expect(live.sources.items).toHaveLength(1);
+    expect(live.sources.items[0]).toMatchObject({ id: "abr-bulk", rowCount: 1234, lastFetchedAt: "2026-09-13T03:00:00.000Z" });
+  });
 });
 
 describe("/methodology — rendered page", () => {
@@ -88,6 +108,18 @@ describe("/methodology — rendered page", () => {
     expect(out).toContain(esc(DATA_PRINCIPLE_SENTENCE));
     expect(out).toContain('href="/methodology/calibration"');
     expect(out).toContain('href="/status"');
+    // S40: the data-sources table lists every catalogue source (≥ 3), attribution verbatim, cite-only labelled.
+    expect(out).toContain('data-testid="methodology-data-sources"');
+    expect(out).toContain(`data-source-count="${EXTERNAL_SOURCE_CATALOG.length}"`);
+    expect((out.match(/data-source-id="/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    for (const s of EXTERNAL_SOURCE_CATALOG) {
+      expect(out).toContain(`data-source-id="${s.id}" data-source-status="${s.status}"`);
+      expect(out).toContain(esc(s.attribution_text));
+      expect(out).toContain(esc(s.licence));
+    }
+    expect(out).toContain(esc(EN["methodology.sources.use.cite_only"]));
+    expect(out).toContain(esc(EN["methodology.sources.use.active"]));
+    expect(out).toContain(esc(EN["methodology.sources.cohortNote"]));
     // F-3: no dimension weight anywhere on the page (the owners table has 15/18/12/20/12/10/8/5).
     for (const key of DIM_LEGACY_ORDER) {
       expect(out).not.toMatch(new RegExp(`${DIMENSION_OWNERS[key].weight}\\s*%`));
@@ -110,6 +142,9 @@ describe("/methodology — rendered page", () => {
     for (const key of DIM_LEGACY_ORDER) expect(out).toContain(esc(DIMENSION_OWNERS[key].titleVi));
     expect(out).toContain(esc(DATA_PRINCIPLE_SENTENCE));
     expect(out).toContain(esc(VI["solutions.principle.data"]));
+    expect(out).toContain(esc(VI["methodology.sources.title"]));
+    expect(out).toContain(esc(VI["methodology.sources.use.cite_only"]));
+    expect((out.match(/data-source-id="/g) ?? []).length).toBe(EXTERNAL_SOURCE_CATALOG.length);
     expect(out).not.toMatch(/PhD/);
   });
 

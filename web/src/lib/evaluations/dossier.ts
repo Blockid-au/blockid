@@ -56,7 +56,7 @@ import { CRITERIA, CRITERION_KEYS, type CriterionKey } from "@/lib/evaluation-cr
 import { bandFor } from "@/lib/report-visuals/palette";
 import { makeVisual } from "@/lib/report-visuals";
 import type { Band, VisualSpecV2 } from "@/lib/report-visuals/types";
-import { computeCohortPercentile } from "@/lib/agents/cohort-percentile";
+import { computeCohortPercentile, type CohortPercentileSource } from "@/lib/agents/cohort-percentile";
 import { reportUrlForToken, pdfUrlForToken } from "@/lib/evaluations/report-quota";
 import {
   getAssessment,
@@ -109,7 +109,7 @@ export interface DossierHeader {
   sviBand: Band;
   /** latest − snapshot ≥ 30 days old; null when there is no older snapshot. */
   delta30d: number | null;
-  percentile: { value: number; source: "real_cohort" | "benchmark_fallback"; cohortSize: number } | null;
+  percentile: { value: number; source: CohortPercentileSource; cohortSize: number } | null;
   consentTier: MentorAccessTier;
   ownerKind: Evaluation["ownerKind"];
   founderClaimed: boolean;

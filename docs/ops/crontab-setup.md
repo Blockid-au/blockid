@@ -306,6 +306,55 @@ Expected summary shape: engine + sha, `N = <n> scorable (<r> with round, <v>
 with valuation) of <d> curated rows; <x> source rows excluded`, pooled ρ + CI
 for both targets, a per-stage table (`too_few` under 5 rows), the four SVI
 quartiles with median round, and `outcome_source`.
+## Open AU external signals — `node scripts/external-signals/ingest.mjs`
+
+G14 S40 (2026-09-17). Ingests three OPEN Australian registers into
+`external_signals` (migration `0410`) behind the `external_sources` licence
+gate: the **ABN Bulk Extract** (data.gov.au, CC BY 3.0 AU — stream-parsed,
+only ABNs in the allow-set are kept), **GrantConnect grant awards** (CC BY
+3.0 AU — the CSV export) and the **ATO R&D Tax Incentive transparency
+report** (CC BY 2.5 AU — xlsx converted to CSV). Cut Through Venture,
+Startup Muster and ACS Digital Pulse are `cite_only` rows: the CLI refuses
+them (exit 3) and reports may only cite them with a link. Dedupe =
+`content_hash` (sha256 of source | ABN | type | as_of | value) in memory +
+the table's unique index. Writes `web/content/reports/external-signals-latest.json`
+and appends `external-signals-history.jsonl`. Readers: `/admin/external-signals`,
+`/methodology` "Data sources", `lib/signals/external-signals.ts`
+(`signalsForAbn` → LCO / IRI / TRE evidence rows at `connected_source`;
+`cohortFromRegisters` → the register cohort when a stage has < 20 scored
+startups). Licences, attribution text, refresh steps and what is cite-only:
+`docs/ops/data-sources.md`. Not a cron-runner endpoint — a plain node script,
+run directly like the S39 backtest.
+
+### Line to install
+
+```
+0 3 * * 6 cd /home/dovanlong/blockid.au/web && node scripts/external-signals/ingest.mjs >> /tmp/blockid-external-signals.log 2>&1
+```
+
+- Runs weekly, Saturday 03:00 UTC (13:00 AEST). It reads the **newest file**
+  under `~/blockid-data/external-signals/<source-id>/` (outside the repo, so
+  the server's `git reset --hard` never touches it) and never downloads on
+  its own — a source with no file is `skipped`, not an error.
+- Refreshing the inputs is a founder step (`--fetch`, off-peak; the ABR
+  extract is ~2 GB) — see `docs/ops/data-sources.md` § "How to refresh".
+- Commit the regenerated summary JSON + history line (`chore(ops): logs`
+  sweep or by hand) so the release carries the last run.
+- Before the first run apply `web/supabase/migrations/0410_external_signals.sql`
+  (`scripts/db/apply-migration.sh`); until then the CLI exits 1 with the
+  apply hint and `/methodology` renders the code catalogue.
+- Dry-run against the fixtures (no DB, no network):
+
+```bash
+node scripts/external-signals/ingest.mjs --dry --source business-gov-grants --file scripts/external-signals/fixtures/grants-sample.csv --limit 5
+node scripts/external-signals/ingest.mjs --dry --json --source abr-bulk --file scripts/external-signals/fixtures/abr-sample.xml --abn-file scripts/external-signals/fixtures/abn-allow-sample.txt
+```
+
+Expected summary shape: one line per source with `status` (`ok | skipped |
+refused | error`), `parsed / kept / filtered / dupes / inserted`, the input
+file, and a `total` line; exit 0 ok · 1 error · 2 usage · 3 every requested
+source refused.
+
 ## Founder feedback letter — `/api/cron/feedback-letters`
 
 G14-S34 (2026-09-16, goal doc D3 / F-5). Once **k ≥ 3 evaluators from ≥ 2
