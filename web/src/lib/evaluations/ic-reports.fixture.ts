@@ -27,7 +27,10 @@ export function fakeView(over: { mine?: Partial<EvaluationAssessment> | null; co
       evaluationId: "e-1", projectId: "p-1", projectSlug: "acme", name: "Acme Robotics", website: "https://acme.io", state: "NSW", label: null,
       badges: [{ axis: "industry", label: "Advanced manufacturing", unclassified: false, source: "auto" }, { axis: "business_model", label: "Unclassified", unclassified: true, source: "none" }, { axis: "stage", label: "Seed", unclassified: false, source: "auto" }],
       svi: 62, sviBand: "developing", delta30d: 4, percentile: { value: 61, source: "real_cohort", cohortSize: 120 }, consentTier: "reports_shared", ownerKind: "founder_claimed", founderClaimed: true,
-      lastSnapshotAt: "2026-09-12T00:00:00Z", snapshotId: "s-2", evidence: { items: 3, connected: 1, providers: ["stripe"] }, decision: mine ? { value: mine.decision, status: mine.status, version: mine.version } : null,
+      lastSnapshotAt: "2026-09-12T00:00:00Z", snapshotId: "s-2", evidence: { items: 3, connected: 1, providers: ["stripe"] },
+      // G14-S36: projects.verification_level → header badge (L2 = ABR Active).
+      verification: { level: 2, abnVerified: true, label: "Verified ABN" },
+      decision: mine ? { value: mine.decision, status: mine.status, version: mine.version } : null,
       mandateFit: { mandateId: "m-1", mandateLabel: "Seed deep-tech AU", score: 77, passesFloor: true, reasons: ["Industry match", "Stage match"], gaps: ["Cheque above range"], blockers: [], source: "persisted", computedAt: null },
       sinceLastView: null, consensus: null, viaOrgSeat: false,
     },
