@@ -176,6 +176,20 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # changes (docs/ops/crontab-setup.md → "SVI backtest"). Sun 03:40 UTC = 13:40 AEST.
 40 3 * * 0 cd /home/dovanlong/blockid.au/web && npx tsx scripts/backtest/run.ts >> /tmp/blockid-svi-backtest.log 2>&1
 
+# G14-S40 (2026-09-17) — open AU external signals ingest. Licence-gated
+# (external_sources, migration 0410): ABN Bulk Extract (CC BY 3.0 AU, stream-
+# parsed, only allow-listed ABNs kept), GrantConnect grant awards (CC BY 3.0
+# AU) and the ATO R&DTI transparency report (CC BY 2.5 AU) → external_signals,
+# deduped on content_hash. Cut Through Venture / Startup Muster / ACS are
+# cite_only and refused by the CLI. Reads the newest file under
+# ~/blockid-data/external-signals/<source>/ — it NEVER downloads by itself
+# (the ABR extract is ~2 GB; run `--fetch` by hand off-peak, see
+# docs/ops/data-sources.md). Writes content/reports/external-signals-latest.json
+# + external-signals-history.jsonl; read by /admin/external-signals and
+# /methodology "Data sources". Not a cron-runner endpoint — a plain node
+# script like the S39 backtest. Sat 03:00 UTC = 13:00 AEST.
+0 3 * * 6 cd /home/dovanlong/blockid.au/web && node scripts/external-signals/ingest.mjs >> /tmp/blockid-external-signals.log 2>&1
+
 # Migration audit guardian — weekly Sun 04:45 UTC (14:45 AEST). Parses every
 # web/supabase/migrations/*.sql for declared tables/views/functions and asks
 # the live DB whether each exists. Appends a summary line to
