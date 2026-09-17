@@ -7,6 +7,7 @@
 import { createHash } from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { legacySectorLabel } from "@/lib/taxonomy/startup-taxonomy";
+import { normaliseVerificationLevel } from "@/lib/verification/confidence-multiplier";
 
 // G13 E1.5: the `sector` slug (and therefore the ticker prefix) is kept
 // byte-identical; only the LABEL goes through the taxonomy crosswalk —
@@ -42,6 +43,10 @@ export interface ListingRow {
   hasRevenue: boolean;
   lastAnalysisAt: string;
   analysesCount: number;
+  /** S36: projects.verification_level of the latest analysis' project (0 when unknown). */
+  verificationLevel: number;
+  /** S36: L2+ (ABR Active) → "Verified ABN" badge on the card. */
+  abnVerified: boolean;
 }
 
 export interface ListingFilter {
@@ -68,6 +73,34 @@ interface AnalysisRow {
   total_svi: number | null;
   created_at: string;
   analysis_json: Record<string, unknown> | null;
+  /** S36: the project behind the analysis (for the "Verified ABN" badge); absent on legacy rows. */
+  project_id?: string | null;
+}
+
+/**
+ * G14-S36: `projects.verification_level` for the projects behind a set of
+ * analyses — one `in()` read, fail-soft (an unavailable client, a mock
+ * without `.in()` or a DB error all yield an empty map → every card reads
+ * "ABN not verified").
+ */
+export async function loadVerificationLevels(
+  supabase: { from: (table: string) => unknown } | null,
+  projectIds: Array<string | null | undefined>,
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const ids = Array.from(new Set(projectIds.filter((v): v is string => typeof v === "string" && v.length > 0)));
+  if (!supabase || ids.length === 0) return out;
+  try {
+    const q = supabase.from("projects") as { select: (c: string) => { in: (col: string, vals: string[]) => PromiseLike<{ data: unknown; error: unknown }> } };
+    const { data, error } = await q.select("id, verification_level").in("id", ids);
+    if (error || !Array.isArray(data)) return out;
+    for (const r of data as Array<{ id?: string; verification_level?: unknown }>) {
+      if (r.id) out.set(r.id, normaliseVerificationLevel(r.verification_level));
+    }
+  } catch {
+    // decoration only
+  }
+  return out;
 }
 
 interface FounderProfileRow {
@@ -169,7 +202,7 @@ export async function computeListings(args: {
   const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
   const { data: analyses } = await supabase
     .from("svi_analyses")
-    .select("id, email, total_svi, created_at, analysis_json")
+    .select("id, email, total_svi, created_at, analysis_json, project_id")
     .gte("created_at", since)
     .order("created_at", { ascending: false })
     .limit(5000);
@@ -202,6 +235,12 @@ export async function computeListings(args: {
   for (const a of (accounts as SviAccountRow[] | null) ?? []) {
     if (a.email) accountsByEmail.set(a.email.toLowerCase().trim(), a);
   }
+
+  // S36: verification level per project behind the latest analyses (fail-soft).
+  const verificationByProject = await loadVerificationLevels(
+    supabase,
+    Array.from(byHash.values()).map(({ history }) => history[0]?.project_id),
+  );
 
   // Build ListingRow per identity
   const rows: ListingRow[] = [];
@@ -247,6 +286,8 @@ export async function computeListings(args: {
       hasRevenue,
       lastAnalysisAt: latest.created_at,
       analysesCount: history.length,
+      verificationLevel: latest.project_id ? (verificationByProject.get(latest.project_id) ?? 0) : 0,
+      abnVerified: latest.project_id ? (verificationByProject.get(latest.project_id) ?? 0) >= 2 : false,
     });
   }
 
@@ -305,6 +346,9 @@ export interface ListingDetail {
   analysesCount: number;
   lastAnalysisAt: string;
   hasRevenue: boolean;
+  /** S36: projects.verification_level (0 when unknown) and the L2+ badge flag. */
+  verificationLevel: number;
+  abnVerified: boolean;
   // Snapshots from the latest analysis
   antlerSignals: Array<{ key: string; label: string; score: number }> | null;
   acceleratorReadiness: { overallPct: number; topGaps: Array<{ criterion: string; source: string }> } | null;
@@ -326,7 +370,7 @@ export async function computeListingDetail(ticker: string): Promise<ListingDetai
     const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
     const { data } = await supabase
       .from("svi_analyses")
-      .select("id, email, total_svi, created_at, analysis_json")
+      .select("id, email, total_svi, created_at, analysis_json, project_id")
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(5000);
@@ -341,7 +385,7 @@ export async function computeListingDetail(ticker: string): Promise<ListingDetai
   // Pull the latest analysis JSON
   const { data: latestRow } = await supabase
     .from("svi_analyses")
-    .select("id, email, total_svi, created_at, analysis_json")
+    .select("id, email, total_svi, created_at, analysis_json, project_id")
     .eq("id", match.slug)
     .maybeSingle();
   if (!latestRow) return null;
@@ -369,6 +413,9 @@ async function buildDetailFromRow(
   const sector = extractSector(latest);
   const stage = extractStage(latest);
   const valuationAud = extractValuation(latest);
+  // S36: the listing row already carries the level; otherwise one fail-soft read.
+  const verificationLevel =
+    matchRow?.verificationLevel ?? (latest.project_id ? ((await loadVerificationLevels(_supabase, [latest.project_id])).get(latest.project_id) ?? 0) : 0);
 
   // Build history
   let historyAnalyses: MinimalHistoryRow[] = [];
@@ -439,6 +486,8 @@ async function buildDetailFromRow(
     analysesCount: historyAnalyses.length,
     lastAnalysisAt: latest.created_at,
     hasRevenue: extractHasRevenue(latest),
+    verificationLevel,
+    abnVerified: verificationLevel >= 2,
     antlerSignals,
     acceleratorReadiness,
     perspectives,

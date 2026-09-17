@@ -143,3 +143,19 @@ test.describe("Report PDFs", () => {
     }
   });
 });
+
+// G14-S36 — the ReportV2 cover carries `cover.verification`; the public demo
+// TBR is the L2 fixture, so its cover must show the "Verified ABN" badge
+// (the same component the dossier header and the index card render).
+test.describe("TBR cover — business verification badge (S36)", () => {
+  test("/tbr/demo cover shows the 'Verified ABN' badge (L2 fixture)", async ({ page, visit }, testInfo) => {
+    await visit("/tbr/demo");
+    const badge = page.getByTestId("abn-badge").first();
+    await expect(badge).toBeVisible({ timeout: 30_000 });
+    const text = await badge.innerText();
+    await evidence(testInfo, "cover badge", { text, level: await badge.getAttribute("data-level") });
+    expect(text).toMatch(/Verified ABN/);
+    expect(text).not.toMatch(/ABN not verified/);
+    await expect(badge).toHaveAttribute("data-level", "2");
+  });
+});

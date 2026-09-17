@@ -6,6 +6,7 @@ import { DIMENSION_OWNERS } from "@/lib/report-pipeline/dimension-owners";
 import { VisualFigure } from "@/lib/report-visuals/react";
 import { DIM_ORDER, type ReportV2 } from "@/lib/report-v2/schema";
 import { cn } from "@/lib/utils";
+import { AbnBadge } from "@/components/verification/abn-badge";
 import { AgentBadge, TBR_V2_SECTION_IDS, TbrSection, bandLabel, bandText } from "./shared";
 
 export function TbrCover({ report, title, locale = "en" }: { report: ReportV2; title: string; locale?: "en" | "vi" }) {
@@ -29,7 +30,11 @@ export function TbrCover({ report, title, locale = "en" }: { report: ReportV2; t
         </div>
         <div className="space-y-3">
           <div>
-            <p className="text-xl font-bold text-ink-900 dark:text-ink-100">{c.startupName}</p>
+            <p className="flex flex-wrap items-center gap-2 text-xl font-bold text-ink-900 dark:text-ink-100">
+              {c.startupName}
+              {/* S36: business verification at generation time (absent on pre-S36 stored documents). */}
+              {c.verification && <AbnBadge level={c.verification.level} />}
+            </p>
             <p className="text-sm text-ink-600 dark:text-ink-400">
               {c.sector} · {c.stageLabel} · Phase: {GROWTH_PHASE_LABELS[c.phaseId][locale]} · {date}
               {report.source !== "pipeline" && (

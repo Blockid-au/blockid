@@ -127,6 +127,8 @@ export const SWEEP_EXTRA_PAGES = [
   // G14-S39 — public backtest page (reads content/reports/svi-backtest-latest.json;
   // renders an inline SVG from report-visuals — swept for #418 like the showcase).
   "/methodology/calibration",
+  // G14-S36 — public scoring & verification methodology.
+  "/methodology",
 ] as const;
 
 /** Everything the console/network sweep visits. */

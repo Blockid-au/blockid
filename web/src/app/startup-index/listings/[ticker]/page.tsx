@@ -8,6 +8,7 @@ import { ArrowDownRight, ArrowUpRight, ExternalLink, Minus, Sparkles, TrendingUp
 import { NavV2 } from "@/components/landing/nav-v2";
 import { Footer } from "@/components/marketing/footer";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
+import { AbnBadge } from "@/components/verification/abn-badge";
 import { computeListingDetail } from "@/lib/startup-index-listings";
 import { pageMetadata } from "@/lib/seo/page-meta";
 
@@ -169,6 +170,10 @@ export default async function TickerDetailPage({ params }: PageProps) {
                 <span className="text-xs bg-brand-50 border border-brand-200 text-brand-700 px-2 py-0.5 rounded font-medium">{detail.sectorLabel}</span>
                 <span className="text-xs bg-ink-50 border border-ink-200 text-ink-700 px-2 py-0.5 rounded">Stage {detail.stage} · {detail.stageLabel}</span>
                 {detail.hasRevenue && <span className="text-xs bg-emerald-50 border border-emerald-200 text-emerald-700 px-2 py-0.5 rounded">Revenue-bearing</span>}
+                {/* S36: business verification from projects.verification_level */}
+                <AbnBadge level={detail.verificationLevel} />
+
+
                 {detail.inputSummaryProjectName && (
                   <span className="text-xs bg-blue-50 border border-blue-200 text-blue-700 px-2 py-0.5 rounded">
                     {detail.inputSummaryProjectName}

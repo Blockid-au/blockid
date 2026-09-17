@@ -318,6 +318,8 @@ export interface OrchestratorInput {
   deadlineMs?: number;
   /** Explicit growth phase (projects.growth_phase_current); inferred from criteria + dims otherwise. */
   phaseId?: string | null;
+  /** G14-S36: projects.verification_level (0–5) → ReportV2.cover.verification badge; falls back to the analysis' meta, then L0. */
+  verificationLevel?: number | null;
   /**
    * Optional intake context. When provided and `DYNAMIC_WAVES !== "false"`,
    * the orchestrator swaps the static WAVE_1/2/3 for phase-tuned waves via
@@ -1015,6 +1017,7 @@ export function buildReportV2(
       dimensionScores: input.sviAnalysis.dimensionScores ?? null,
       subs: input.sviAnalysis.subs,
       phaseId: context.phaseGate?.currentPhase ?? null,
+      verificationLevel: input.verificationLevel ?? input.sviAnalysis.meta?.verification?.level ?? null,
       tier: tierV2,
       locale: context.locale,
       vc: valuation?.vc ?? null,

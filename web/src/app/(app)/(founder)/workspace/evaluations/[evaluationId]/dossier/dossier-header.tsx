@@ -12,6 +12,7 @@
 import Link from "next/link";
 import { tierLabel } from "@/lib/mentor/access-tiers";
 import type { DossierHeader as HeaderModel, DossierViewerRole } from "@/lib/evaluations/dossier";
+import { AbnBadge } from "@/components/verification/abn-badge";
 import { ExportIcButton } from "./export-ic-button";
 
 export function fmtDate(iso: string | null): string {
@@ -53,6 +54,8 @@ export function DossierHeader({ header, role, icKind }: { header: HeaderModel; r
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-semibold text-ink-900">{header.name}</h1>
+            {/* S36: business verification (projects.verification_level, L2+ = ABR Active). */}
+            {header.verification ? <AbnBadge level={header.verification.level} /> : null}
             {header.label ? <span className="rounded bg-surface-100 px-1.5 py-0.5 text-xs text-ink-700">{header.label}</span> : null}
           </div>
           <p className="mt-1 text-sm text-ink-500">

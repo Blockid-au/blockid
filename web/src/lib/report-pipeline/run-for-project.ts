@@ -92,6 +92,8 @@ export interface ProjectReportContext {
   evidenceItems: EvidenceItem[];
   criteriaData: Record<CriterionKey, CriterionData>;
   sviAnalysis: SVIAnalysis;
+  /** G14-S36: projects.verification_level (0–5) for the cover badge; null when unknown. */
+  verificationLevel?: number | null;
 }
 
 export type LoadContextResult =
@@ -311,10 +313,13 @@ export async function loadProjectReportContext(args: {
     keyOpts,
   )) as ProjectReportAccount | null;
   if (!account) return { ok: false, error: "no_account" };
+  // S36: projects.verification_level for the cover badge (null when unknown).
+  let verificationLevel: number | null = null;
   if (args.projectId) {
     try {
       const project = await getProjectById(args.projectId);
       if (project?.userId) account.user_id = project.userId;
+      verificationLevel = project?.verificationLevel ?? null;
     } catch {
       /* owner id is an optional GATHER key */
     }
@@ -354,6 +359,7 @@ export async function loadProjectReportContext(args: {
       evidenceItems,
       criteriaData: buildCriteriaData((criteriaRows ?? []) as Row[]),
       sviAnalysis: buildSviAnalysisFromStored(account, latestAnalysis),
+      verificationLevel,
     },
   };
 }
@@ -401,6 +407,7 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
       sviAnalysis: ctx.sviAnalysis,
       evidenceItems: ctx.evidenceItems,
       criteriaData: ctx.criteriaData,
+      verificationLevel: ctx.verificationLevel ?? null,
       tier,
       tierV2,
       locale,
@@ -462,6 +469,7 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
             dimensionScores: ctx.sviAnalysis.dimensionScores ?? null,
             subs: ctx.sviAnalysis.subs,
             industry: ctx.sviAnalysis.sectorLabel ?? ctx.sviAnalysis.sector ?? null,
+            verificationLevel: ctx.verificationLevel ?? null,
             tier,
             locale,
           }),
@@ -800,6 +808,7 @@ export async function runTrustReportForProject(args: {
             sviTotal,
             dimensionScores: ctx.sviAnalysis.dimensionScores ?? null,
             subs: ctx.sviAnalysis.subs,
+            verificationLevel: project.verificationLevel ?? null,
             tier,
             locale,
           });
@@ -934,6 +943,7 @@ export async function runRescoreForProject(args: {
           sviTotal,
           deltaVsLast: delta,
           dimStates,
+          verificationLevel: project.verificationLevel ?? null,
           tier: "standard",
         }),
       );

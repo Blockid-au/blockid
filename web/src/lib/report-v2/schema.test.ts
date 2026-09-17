@@ -110,6 +110,25 @@ describe("ReportV2 schema — rules", () => {
     expect(DATA_PRINCIPLE_SENTENCE).toContain("Your data belongs to your startup.");
   });
 
+  // G14-S36 — cover.verification (optional; adapter always fills it).
+  it("cover.verification: demo fixture is L2 'Verified ABN'; a pre-S36 document without it stays valid; bad level / label rejected", () => {
+    const r = clone();
+    expect(r.cover.verification).toEqual({ level: 2, abnVerified: true, label: "Verified ABN" });
+    expect(isReportV2(r)).toBe(true);
+
+    const legacy = clone();
+    delete legacy.cover.verification;
+    expect(isReportV2(legacy)).toBe(true);
+
+    const badLevel = clone();
+    badLevel.cover.verification = { level: 7, abnVerified: true, label: "Verified ABN" };
+    expect(issuesOf(badLevel).some((i) => i.startsWith("cover.verification.level"))).toBe(true);
+
+    const badLabel = clone();
+    badLabel.cover.verification = { level: 0, abnVerified: false, label: "Unverified" as never };
+    expect(issuesOf(badLabel).some((i) => i.startsWith("cover.verification.label"))).toBe(true);
+  });
+
   it("three questions are ≤ 30 words each", () => {
     const r = clone();
     r.cover.threeQuestions.where = Array.from({ length: 31 }, () => "x").join(" ");

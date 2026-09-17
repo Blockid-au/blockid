@@ -51,6 +51,8 @@ export function demoSnapshotInput(tier: ReportTierV2 = "standard"): SnapshotInpu
     dimStates: DEMO_DIMS,
     criterionStates: DEMO_CRITERIA,
     phaseId: "investor_review",
+    // G14-S36: the demo company is ABR-confirmed (L2) so /tbr/demo shows the "Verified ABN" badge.
+    verificationLevel: 2,
     tier,
     locale: "en",
     source: "fixture",

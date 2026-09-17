@@ -994,3 +994,33 @@ describe("startup-index-listings — computeListingDetail", () => {
     expect(historyCall.order).toEqual({ col: "created_at", opts: { ascending: true } });
   });
 });
+
+// ── G14-S36: "Verified ABN" on the index card ───────────────────────────────
+
+describe("verification badge fields (S36)", () => {
+  it("loadVerificationLevels maps project → clamped level, fail-soft on a client without .in() / errors / no ids", async () => {
+    const { loadVerificationLevels } = await import("./startup-index-listings");
+    const ok = {
+      from: () => ({ select: () => ({ in: async () => ({ data: [{ id: "p1", verification_level: 3 }, { id: "p2", verification_level: 9 }, { id: "p3", verification_level: null }], error: null }) }) }),
+    };
+    const m = await loadVerificationLevels(ok, ["p1", "p2", "p3", null, undefined, "p1"]);
+    expect(Object.fromEntries(m)).toEqual({ p1: 3, p2: 5, p3: 0 });
+    expect((await loadVerificationLevels(ok, [])).size).toBe(0);
+    expect((await loadVerificationLevels(null, ["p1"])).size).toBe(0);
+    const noIn = { from: () => ({ select: () => ({}) }) };
+    expect((await loadVerificationLevels(noIn, ["p1"])).size).toBe(0);
+    const err = { from: () => ({ select: () => ({ in: async () => ({ data: null, error: { message: "boom" } }) }) }) };
+    expect((await loadVerificationLevels(err, ["p1"])).size).toBe(0);
+  });
+
+  it("computeListings selects project_id and every row carries verificationLevel/abnVerified (L0 when the projects read is unavailable)", async () => {
+    const { computeListings } = await import("./startup-index-listings");
+    const row = { ...analysis({ email: "a@x", id: "an_abc123", sector: "saas" }), project_id: "p1" };
+    // The fake chain has no `.in()`, so the projects read fails soft → L0.
+    state.queue = [{ data: [row] }, { data: [] }, { data: [] }];
+    const res = await computeListings({});
+    expect(callsFor("svi_analyses")[0].selectCols).toContain("project_id");
+    expect(res.rows).toHaveLength(1);
+    expect(res.rows[0]).toMatchObject({ verificationLevel: 0, abnVerified: false });
+  });
+});
