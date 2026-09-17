@@ -1,31 +1,24 @@
 {
-  "ts": "2026-09-17T14:30:04.833Z",
-  "startedAt": "2026-09-17T14:22:31Z",
+  "ts": "2026-09-17T16:06:16.461Z",
+  "startedAt": "2026-09-17T16:00:28Z",
   "baseURL": "https://blockid.au",
-  "exitCode": 1,
-  "passed": 176,
-  "failed": 1,
+  "exitCode": 0,
+  "passed": 177,
+  "failed": 0,
   "skipped": 12,
   "flaky": 0,
   "expectedFailures": 0,
-  "durationMs": 451721.582,
+  "durationMs": 346651.916,
   "account": {
-    "email": "qa-live-20260917-1422@blockid.au",
-    "userId": "ddd28bfc-fc72-486b-b5af-e47ed56fa501",
-    "projectId": "02929e15-d4a4-4f20-a421-a2d55bdcac59",
+    "email": "qa-live-20260917-1600@blockid.au",
+    "userId": "82d999ea-b6d9-4458-8dbb-f8593ee2756f",
+    "projectId": "15325214-5b79-47bc-9952-9623301431c1",
     "plan": "growth",
     "elevated": true
   },
   "erasure": {
     "ok": true,
-    "detail": "erased ddd28bfc-fc72-486b-b5af-e47ed56fa501; verify dry-run exit 2 (no app_users row for the QA founder email)"
+    "detail": "erased 82d999ea-b6d9-4458-8dbb-f8593ee2756f; verify dry-run exit 2 (no app_users row for the QA founder email)"
   },
-  "findings": [
-    {
-      "spec": "24-webhooks.spec.ts",
-      "project": "live-qa",
-      "title": "Slack destination: create with kind='slack', send a test ping — 2xx from Slack or a booked failed delivery, never a 500 (elevated/evaluator only)",
-      "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 201\nReceived: 400"
-    }
-  ]
+  "findings": []
 }
