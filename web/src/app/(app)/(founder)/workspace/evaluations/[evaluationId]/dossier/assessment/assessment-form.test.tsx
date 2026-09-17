@@ -111,6 +111,20 @@ describe("AssessmentForm", () => {
     expect(out).toContain("History — 1 version");
   });
 
+  it("G14-S34 opt-out: hidden while 0404 is missing (null); a checkbox in the footer once the flag is known, checked when opted out", () => {
+    expect(form()).not.toContain("assessment-feedback-opt-out");
+    expect(form({ feedbackOptOut: null })).not.toContain("assessment-feedback-opt-out");
+    const off = form({ feedbackOptOut: false });
+    expect(off).toContain('data-testid="assessment-feedback-opt-out"');
+    expect(off).toContain("Exclude my ratings from the founder&#x27;s anonymised feedback letter");
+    expect(off).toContain("at least 3 evaluators from 2 organisations");
+    expect(off).not.toMatch(/data-testid="assessment-feedback-opt-out"[\s\S]*?<input[^>]*checked/);
+    const on = form({ feedbackOptOut: true });
+    expect(on).toMatch(/data-testid="assessment-feedback-opt-out"[\s\S]*?<input[^>]*checked/);
+    // the control sits inside the sticky footer
+    expect(on.indexOf('data-testid="assessment-footer"')).toBeLessThan(on.indexOf('data-testid="assessment-feedback-opt-out"'));
+  });
+
   it("empty state seeds from the prefill and shows the hint; share is disabled until the founder claims", () => {
     const out = form({
       initial: null,

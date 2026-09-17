@@ -55,6 +55,12 @@ export interface AssessmentFormProps {
   aiDims: DossierDimRow[];
   criteria: DossierCriterionRow[];
   founderClaimed: boolean;
+  /**
+   * G14-S34: the seat's current "exclude from the founder's anonymised
+   * feedback letter" flag. `undefined` / `null` = migration 0404 not applied
+   * → the checkbox is not rendered at all.
+   */
+  feedbackOptOut?: boolean | null;
 }
 
 const AUTOSAVE_MS = 1500;
@@ -76,8 +82,11 @@ function seedFromPrefill(p: AssessmentPrefill, snapshotId: string | null): Asses
 const inputCls = "rounded-lg border border-surface-300 bg-white px-2 py-1 text-sm text-ink-800 focus:border-brand-500 focus:outline-none";
 const btnCls = "rounded-lg border px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50";
 
-export function AssessmentForm({ evaluationId, initial, history, prefill, snapshotId, aiDims, criteria, founderClaimed }: AssessmentFormProps) {
+export function AssessmentForm({ evaluationId, initial, history, prefill, snapshotId, aiDims, criteria, founderClaimed, feedbackOptOut = null }: AssessmentFormProps) {
   const [current, setCurrent] = useState<EvaluationAssessment | null>(initial);
+  // G14-S34 opt-out — null hides the control (0404 missing); saved on change.
+  const [optOut, setOptOut] = useState<boolean | null>(feedbackOptOut);
+  const [optOutState, setOptOutState] = useState<"idle" | "saving" | "error">("idle");
   const [timeline, setTimeline] = useState<AssessmentHistoryEntry[]>(history);
   const [values, setValues] = useState<AssessmentFormValues>(() =>
     initial ? formValuesFromAssessment(initial) : prefill && prefill.seeded ? seedFromPrefill(prefill, snapshotId) : emptyFormValues(snapshotId),
@@ -160,6 +169,28 @@ export function AssessmentForm({ evaluationId, initial, history, prefill, snapsh
   };
   const onRevoked = () => {
     setCurrent((c) => (c ? { ...c, sharedWithFounderAt: null, sharedFields: [] } : c));
+  };
+
+  // G14-S34: exclude / re-include this seat from the founder's anonymised
+  // feedback letter. Optimistic tick; reverted on a failed POST.
+  const onOptOutChange = async (next: boolean) => {
+    const before = optOut;
+    setOptOut(next);
+    setOptOutState("saving");
+    try {
+      const res = await fetch(`/api/evaluations/${encodeURIComponent(evaluationId)}/assessment/opt-out-feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ opt_out: next }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; opt_out?: boolean };
+      if (!res.ok || !json.ok) throw new Error(`opt-out failed (${res.status})`);
+      setOptOut(Boolean(json.opt_out));
+      setOptOutState("idle");
+    } catch {
+      setOptOut(before);
+      setOptOutState("error");
+    }
   };
 
   const aiByDim = useMemo(() => {
@@ -470,6 +501,25 @@ export function AssessmentForm({ evaluationId, initial, history, prefill, snapsh
           </ul>
         ) : null}
         {!founderClaimed ? <p className="mt-2 text-xs text-ink-500">Sharing unlocks once the founder claims the evaluation.</p> : null}
+        {optOut !== null ? (
+          <label className="mt-2 flex items-start gap-2 text-xs text-ink-600" data-testid="assessment-feedback-opt-out">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-3.5 w-3.5 rounded border-surface-300"
+              checked={optOut}
+              disabled={!current || optOutState === "saving"}
+              onChange={(e) => void onOptOutChange(e.target.checked)}
+              aria-describedby="assessment-feedback-opt-out-hint"
+            />
+            <span>
+              Exclude my ratings from the founder&apos;s anonymised feedback letter
+              <span id="assessment-feedback-opt-out-hint" className="block text-[11px] text-ink-500">
+                Letters aggregate at least 3 evaluators from 2 organisations; this seat&apos;s ratings, risks and questions are left out when ticked.
+                {optOutState === "error" ? <span className="ml-1 text-red-700">Could not save — try again.</span> : null}
+              </span>
+            </span>
+          </label>
+        ) : null}
       </div>
 
       <AssessmentHistory evaluationId={evaluationId} history={timeline} current={current} />
