@@ -146,12 +146,14 @@ async function POST_handler(request: Request) {
   // address) keeps receiving the report + drip and owns the usage counter.
   let projectId: string | null = null;
   let dataEmail = email;
+  let ownerUserId: string | null = null;
   if (authenticatedUserId) {
     const { scope, denied } = await projectScopeOrDeny("editor");
     if (denied) return denied;
     if (scope) {
       projectId = scope.projectId;
       dataEmail = scope.dataEmail.toLowerCase().trim();
+      ownerUserId = scope.ownerUserId;
     }
   }
 
@@ -221,14 +223,24 @@ async function POST_handler(request: Request) {
 
   // G14-S37: the structured founder profile (founder_profiles, 0408) is
   // canonical for the FTV founder flags — the regex above only fills the
-  // gaps it leaves. Loaded by the OWNER's email (dataEmail) / account, with
+  // gaps it leaves. Loaded for the OWNER the caller is entitled to, with
   // the project's submitted evaluator flags + LinkedIn parse for the cap.
   // Fail-soft: no profile → signals untouched.
-  const founderExec = await applyFounderExecution(regexSignals, {
-    accountId: dataEmail === email ? authenticatedUserId : null,
-    email: dataEmail,
-    projectId,
-  }).catch(() => ({ signals: regexSignals, exec: null, profile: null }));
+  //
+  // G14-review P0: `email` is free text in the body. The profile is keyed by
+  // an identity the session proves — the project owner's account id (+ the
+  // scope's owner email as the legacy fallback) for a member, the caller's
+  // own account otherwise. A guest, or a signed-in caller typing another
+  // founder's address, never loads that profile: the rubric breakdown (exit
+  // companies, raise bands, leadership names, GitHub URL) travels back in
+  // `analysis.signals.founderExecution`.
+  const founderExec = authenticatedUserId
+    ? await applyFounderExecution(regexSignals, {
+        accountId: ownerUserId ?? authenticatedUserId,
+        email: projectId ? dataEmail : null,
+        projectId,
+      }).catch(() => ({ signals: regexSignals, exec: null, profile: null }))
+    : { signals: regexSignals, exec: null, profile: null };
   const signals = founderExec.signals;
   const founderProfile = founderExec.profile;
 

@@ -483,7 +483,57 @@ describe("POST /api/founder-profile", () => {
     expect(p.full_time_pct).toBe(80);
     expect(p.worked_together_before).toBe(true);
     expect(p.roles).toEqual({ ceo: "Ada", cto: null, cpo: null, cfo: null });
-    expect(p.execution_source).toEqual({ years_in_domain: "linkedin_parser", prior_exits: "founder" });
+    // G14-review (P1): a client-chosen `linkedin_parser` stamp with no import
+    // attestation is the cap-lift forgery — downgraded to "founder", reported.
+    expect(p.execution_source).toEqual({ years_in_domain: "founder", prior_exits: "founder" });
+    expect((await res.json()).provenance_downgraded).toEqual(["years_in_domain"]);
+  });
+
+  it("G14-review: a `linkedin_parser` stamp is kept when the saved value matches the import attestation for THIS user", async () => {
+    mocks.getCurrentUserMock.mockResolvedValue({ id: "u-1", email: "founder@x.com" });
+    mocks.saveFounderProfileMock.mockResolvedValue({ ok: true });
+    const { mintLinkedInAttestation } = await import("@/lib/founder/linkedin-attestation");
+    const prevSecret = process.env.REPORT_LINK_SECRET;
+    process.env.REPORT_LINK_SECRET = "route-test-secret-0123456789";
+    try {
+      const mine = mintLinkedInAttestation("u-1", { years_in_domain: 7, prev_employers: ["Stripe"] });
+      const theirs = mintLinkedInAttestation("u-2", { years_in_domain: 7, prev_employers: ["Stripe"] });
+      const body = { years_in_domain: 7, prev_employers: ["Stripe", "Canva"], execution_source: { years_in_domain: "linkedin_parser", prev_employers: "linkedin_parser" } };
+
+      let res = await POST(jsonPost({ ...body, linkedin_attestation: mine }));
+      expect(res.status).toBe(200);
+      let p = mocks.saveFounderProfileMock.mock.calls[0][0] as unknown as Record<string, unknown>;
+      expect(p.execution_source).toEqual({ years_in_domain: "linkedin_parser", prev_employers: "linkedin_parser" });
+      expect(p).not.toHaveProperty("linkedin_attestation");
+
+      // Another user's token, or a changed value, never lifts the cap.
+      res = await POST(jsonPost({ ...body, linkedin_attestation: theirs }));
+      expect(res.status).toBe(200);
+      p = mocks.saveFounderProfileMock.mock.calls[1][0] as unknown as Record<string, unknown>;
+      expect(p.execution_source).toEqual({ years_in_domain: "founder", prev_employers: "founder" });
+
+      res = await POST(jsonPost({ ...body, years_in_domain: 15, linkedin_attestation: mine }));
+      p = mocks.saveFounderProfileMock.mock.calls[2][0] as unknown as Record<string, unknown>;
+      expect(p.execution_source).toEqual({ years_in_domain: "founder", prev_employers: "linkedin_parser" });
+    } finally {
+      if (prevSecret === undefined) delete process.env.REPORT_LINK_SECRET;
+      else process.env.REPORT_LINK_SECRET = prevSecret;
+    }
+  });
+
+  it("G14-review: a stamp already on the row survives a re-save of the unchanged value (existing row read by account id)", async () => {
+    mocks.getCurrentUserMock.mockResolvedValue({ id: "u-1", email: "founder@x.com" });
+    mocks.saveFounderProfileMock.mockResolvedValue({ ok: true });
+    mocks.loadFounderProfileMock.mockResolvedValue({
+      account_id: "u-1", email: "founder@x.com", full_name: null, role: null, linkedin_url: null, bio: null, prev_employers: [], ship_history: [],
+      years_in_domain: 7, domain_insight: null, ambition: null, co_founders: [], advisors: [], notable_hires: [], public_visible: true, contactable_by_investors: false,
+      execution_source: { years_in_domain: "linkedin_parser" },
+    } as unknown as FounderProfileShape);
+    const res = await POST(jsonPost({ years_in_domain: 7, execution_source: { years_in_domain: "linkedin_parser" } }));
+    expect(res.status).toBe(200);
+    expect(mocks.loadFounderProfileMock).toHaveBeenCalledWith("u-1");
+    const p = mocks.saveFounderProfileMock.mock.calls[0][0] as unknown as Record<string, unknown>;
+    expect(p.execution_source).toEqual({ years_in_domain: "linkedin_parser" });
   });
 
   it("G14-S37: invalid execution fields are a 400 invalid_execution_fields with the issue paths — nothing is saved", async () => {

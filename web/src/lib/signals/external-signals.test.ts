@@ -13,6 +13,7 @@ import {
   bandRdSpend,
   buildRegisterCohort,
   cohortFromRegisters,
+  REGISTER_COHORT_CACHE_MS,
   externalSignalConfidence,
   loadProjectAbn,
   loadSignalsForAbn,
@@ -211,5 +212,25 @@ describe("register cohort", () => {
     expect(await cohortFromRegisters({ from: () => { throw new Error("boom"); } }, {})).toBeNull();
     const cohort = await cohortFromRegisters(fakeDb({ data: [abrRow, grantRow] }), { abn: ABN }, { now: NOW });
     expect(cohort).toMatchObject({ source: "register_cohort", n: 1, subjectFromRegister: true });
+  });
+
+  it("cohortFromRegisters: the 5,000-row scan is memoised per db client for REGISTER_COHORT_CACHE_MS (G14-review perf)", async () => {
+    let reads = 0;
+    const db = fakeDb({ data: [abrRow, grantRow] });
+    const from = db.from.bind(db);
+    db.from = (table: string) => {
+      reads += 1;
+      return from(table);
+    };
+    await cohortFromRegisters(db, { abn: ABN }, { now: NOW });
+    await cohortFromRegisters(db, { state: "NSW" }, { now: NOW + 1000 });
+    expect(reads).toBe(1);
+    await cohortFromRegisters(db, { abn: ABN }, { now: NOW + REGISTER_COHORT_CACHE_MS + 1 });
+    expect(reads).toBe(2);
+    // A different limit is a different scan; another client is never shared.
+    await cohortFromRegisters(db, { abn: ABN }, { now: NOW + REGISTER_COHORT_CACHE_MS + 2, limit: 10 });
+    expect(reads).toBe(3);
+    const other = fakeDb({ data: [] });
+    expect(await cohortFromRegisters(other, { abn: ABN }, { now: NOW })).toMatchObject({ n: 0 });
   });
 });

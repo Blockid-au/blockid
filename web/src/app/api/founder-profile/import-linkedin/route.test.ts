@@ -51,6 +51,7 @@ function pdfRequest(bytes: string | Buffer, extra: Record<string, string> = {}):
 }
 
 beforeEach(() => {
+  process.env.REPORT_LINK_SECRET = "import-route-test-secret-0123456789";
   mocks.getCurrentUser.mockReset().mockResolvedValue({ id: "u-1", email: "founder@x.com" });
   mocks.parsePdf.mockClear();
   mocks.parserAvailable = true;
@@ -91,10 +92,23 @@ describe("POST /api/founder-profile/import-linkedin", () => {
       linkedin_url: "https://www.linkedin.com/in/ada",
       filled: ["years_in_domain", "prev_employers", "prior_exits", "full_name", "linkedin_url"],
       confidence: 0.9,
+      attestation: expect.any(String),
     });
     expect(json.extracted).toEqual({ chars: 1200, engine: "pdfjs" });
     expect(mocks.parsePdf).toHaveBeenCalledTimes(1);
     expect(mocks.parsePdf.mock.calls[0][1]).toEqual({ profileUrl: "https://www.linkedin.com/in/ada" });
+    // G14-review: the attestation is bound to the caller + the parsed values
+    // (POST /api/founder-profile honours `linkedin_parser` stamps only against it).
+    const { verifyLinkedInAttestation } = await import("@/lib/founder/linkedin-attestation");
+    expect(verifyLinkedInAttestation("u-1", json.prefill.attestation)).toEqual({ ok: true, claims: { years_in_domain: 9, prev_employers: ["atlassian", "canva"] } });
+    expect(verifyLinkedInAttestation("u-2", json.prefill.attestation).ok).toBe(false);
+  });
+
+  it("422 pdf_unreadable (never a 500) when the PDF engine throws on a corrupt export", async () => {
+    mocks.parsePdf.mockRejectedValueOnce(new Error("bad XRef entry"));
+    const res = await POST(pdfRequest("%PDF-1.4 corrupt"));
+    expect(res.status).toBe(422);
+    expect((await res.json()).error).toBe("pdf_unreadable");
   });
 
   it("422 pdf_no_text when the export has no extractable text", async () => {

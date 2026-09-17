@@ -161,6 +161,42 @@ describe("POST /api/svi — founder execution profile (G14-S37)", () => {
     expect(signals.founderExecution).toMatchObject({ score: 21, capped: false, rubricVersion: "1.0" });
   });
 
+  // G14-review P0: `email` is free text in the body. A guest (or a signed-in
+  // caller with no project scope) typing someone else's address must never
+  // pull that founder's profile — the rubric breakdown (exit companies, raise
+  // bands, leadership names, GitHub URL) travels back in analysis.signals.
+  it("guest with a stranger's email: the profile is never loaded by that email", async () => {
+    cookieStore.clear();
+    founderProfileMocks.byEmail.mockResolvedValue({ ...structuredProfile, email: "caller@x.test" });
+    const res = await POST(req());
+    expect(res.status).toBe(200);
+    expect(founderProfileMocks.byEmail).not.toHaveBeenCalled();
+    expect(founderProfileMocks.byId).not.toHaveBeenCalled();
+    const signals = sviMocks.computeSVI.mock.calls[0]![0] as Record<string, unknown>;
+    expect(signals.founderExecution).toBeUndefined();
+    expect(signals.founderExperience).toBe("serial");
+  });
+
+  it("signed-in, no project scope: the profile is keyed by the session account, never the body email", async () => {
+    scopeState.projectId = null;
+    founderProfileMocks.byEmail.mockResolvedValue({ ...structuredProfile, email: "caller@x.test" });
+    const res = await POST(req());
+    expect(res.status).toBe(200);
+    expect(founderProfileMocks.byId).toHaveBeenCalledWith("user-caller");
+    expect(founderProfileMocks.byEmail).not.toHaveBeenCalled();
+  });
+
+  it("member on a shared project: the OWNER's account id is tried before the owner's email", async () => {
+    scopeState.role = "editor";
+    founderProfileMocks.byId.mockResolvedValue(structuredProfile);
+    const res = await POST(req());
+    expect(res.status).toBe(200);
+    expect(founderProfileMocks.byId).toHaveBeenCalledWith(scopeState.ownerId);
+    expect(founderProfileMocks.byEmail).not.toHaveBeenCalled();
+    const signals = sviMocks.computeSVI.mock.calls[0]![0] as Record<string, unknown>;
+    expect(signals.founderExecution).toMatchObject({ score: 21 });
+  });
+
   it("no profile → the regex signals reach computeSVI untouched (no founderExecution summary)", async () => {
     scopeState.role = "editor";
     const res = await POST(req());

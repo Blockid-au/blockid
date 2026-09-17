@@ -5,6 +5,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { EMPTY_PROFILE, loadFounderProfile, saveFounderProfile, type FounderProfile } from "@/lib/founder-profile";
 import { apiRoute } from "@/lib/audit/api-route";
 import { executionFieldsFromInput, founderExecutionInputSchema } from "@/lib/founder/execution-input";
+import { resolveExecutionProvenance } from "@/lib/founder/execution-provenance";
+import { verifyLinkedInAttestation } from "@/lib/founder/linkedin-attestation";
 
 export const dynamic = "force-dynamic";
 
@@ -65,8 +67,30 @@ async function POST_handler(request: NextRequest) {
     execution_computed_at: null,
   };
 
+  // G14-review (S37 P1): `execution_source` is the cap-lifting claim
+  // (lib/founder/execution.ts treats `linkedin_parser` as parser
+  // confirmation). The client may only assert "founder" about itself; a
+  // `linkedin_parser` stamp is honoured when the saved value matches the
+  // import attestation minted by /import-linkedin, and any non-founder stamp
+  // survives a re-save only while the field is unchanged. Everything else
+  // is downgraded to "founder" (the save still lands).
+  const existing = await Promise.resolve()
+    .then(() => loadFounderProfile(user.id))
+    .then((p) => p ?? null, () => null);
+  const attestation = verifyLinkedInAttestation(user.id, (body as { linkedin_attestation?: unknown }).linkedin_attestation);
+  const provenance = resolveExecutionProvenance({
+    requested: executionFields.execution_source,
+    next: safe,
+    existing,
+    attested: attestation.ok ? attestation.claims : null,
+  });
+  safe.execution_source = provenance.execution_source;
+
   const result = await saveFounderProfile(safe);
-  return NextResponse.json(result, { status: result.ok ? 200 : 500 });
+  return NextResponse.json(
+    { ...result, ...(provenance.downgraded.length ? { provenance_downgraded: provenance.downgraded } : {}) },
+    { status: result.ok ? 200 : 500 },
+  );
 }
 
 // S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.

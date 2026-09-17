@@ -405,23 +405,45 @@ export function buildRegisterCohort(entities: Iterable<RegisterEntity>, q: Regis
   };
 }
 
-/** Register cohort from `external_signals` (≤ 5,000 rows scanned). null when the table is unreadable. */
+/**
+ * G14-review (perf): the 5,000-row register scan is the same for every
+ * caller — it is keyed by nothing but `limit` — yet computeCohortPercentile
+ * runs it on every /api/svi call whose snapshot cohort is < 20. Memoise the
+ * aggregated entities per db client for a few minutes (the registers refresh
+ * weekly). WeakMap so an injected test client never sees another test's rows.
+ */
+export const REGISTER_COHORT_CACHE_MS = 5 * 60 * 1000;
+type CohortCacheEntry = { at: number; limit: number; rows: ExternalSignalRow[] };
+const cohortRowsCache = new WeakMap<object, CohortCacheEntry>();
+
+async function loadRegisterRows(db: SignalsDb, limit: number, now: number): Promise<ExternalSignalRow[] | null> {
+  const key = db as unknown as object;
+  const hit = cohortRowsCache.get(key);
+  if (hit && hit.limit === limit && now - hit.at < REGISTER_COHORT_CACHE_MS && now >= hit.at) return hit.rows;
+  const { data, error } = await db
+    .from("external_signals")
+    .select("source_id,entity_abn,signal_type,value,as_of")
+    .in("signal_type", [...EXTERNAL_SIGNAL_TYPES])
+    .not("entity_abn", "is", null)
+    .order("as_of", { ascending: false })
+    .limit(limit);
+  if (error) {
+    if (!DB_MISSING.has(String(error.code))) console.warn("[external-signals] cohort read failed", { code: error.code, message: error.message });
+    return null;
+  }
+  const rows = (data ?? []) as ExternalSignalRow[];
+  cohortRowsCache.set(key, { at: now, limit, rows });
+  return rows;
+}
+
+/** Register cohort from `external_signals` (≤ 5,000 rows scanned, memoised REGISTER_COHORT_CACHE_MS). null when the table is unreadable. */
 export async function cohortFromRegisters(db: SignalsDb | null | undefined, q: RegisterCohortQuery, opts: { now?: number; limit?: number } = {}): Promise<RegisterCohort | null> {
   if (!db) return null;
   const now = opts.now ?? Date.now();
   try {
-    const { data, error } = await db
-      .from("external_signals")
-      .select("source_id,entity_abn,signal_type,value,as_of")
-      .in("signal_type", [...EXTERNAL_SIGNAL_TYPES])
-      .not("entity_abn", "is", null)
-      .order("as_of", { ascending: false })
-      .limit(opts.limit ?? 5000);
-    if (error) {
-      if (!DB_MISSING.has(String(error.code))) console.warn("[external-signals] cohort read failed", { code: error.code, message: error.message });
-      return null;
-    }
-    const entities = aggregateRegisterEntities((data ?? []) as ExternalSignalRow[], now);
+    const rows = await loadRegisterRows(db, opts.limit ?? 5000, now);
+    if (!rows) return null;
+    const entities = aggregateRegisterEntities(rows, now);
     return buildRegisterCohort(entities.values(), q);
   } catch {
     return null;
