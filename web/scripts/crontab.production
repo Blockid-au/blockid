@@ -188,7 +188,7 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # + external-signals-history.jsonl; read by /admin/external-signals and
 # /methodology "Data sources". Not a cron-runner endpoint — a plain node
 # script like the S39 backtest. Sat 03:00 UTC = 13:00 AEST.
-0 3 * * 6 cd /home/dovanlong/blockid.au/web && node scripts/external-signals/ingest.mjs >> /tmp/blockid-external-signals.log 2>&1
+0 3 * * 6 cd /home/dovanlong/blockid.au/web && nice -n 15 node --max-old-space-size=6144 --env-file=.env scripts/external-signals/ingest.mjs >> /tmp/blockid-external-signals.log 2>&1
 
 # Migration audit guardian — weekly Sun 04:45 UTC (14:45 AEST). Parses every
 # web/supabase/migrations/*.sql for declared tables/views/functions and asks
