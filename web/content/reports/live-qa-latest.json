@@ -1,24 +1,43 @@
 {
-  "ts": "2026-09-16T23:00:17.208Z",
-  "startedAt": "2026-09-16T22:54:57Z",
+  "ts": "2026-09-17T00:28:39.402Z",
+  "startedAt": "2026-09-17T00:22:59Z",
   "baseURL": "https://blockid.au",
-  "exitCode": 0,
+  "exitCode": 1,
   "passed": 164,
-  "failed": 0,
-  "skipped": 10,
+  "failed": 3,
+  "skipped": 14,
   "flaky": 0,
   "expectedFailures": 0,
-  "durationMs": 317829.62100000004,
+  "durationMs": 338584.124,
   "account": {
-    "email": "qa-live-20260916-2254@blockid.au",
-    "userId": "2bdf06f7-028c-460b-82a6-e981a4432a8a",
-    "projectId": "e67a72e5-03ca-4763-b6d5-6af5c5a1fe3c",
+    "email": "qa-live-20260917-0023@blockid.au",
+    "userId": "346fc412-e138-4a4f-9ea6-bbda92bab5ac",
+    "projectId": "dc8f5021-1f8d-4604-8686-4cdde0f121c1",
     "plan": "growth",
     "elevated": true
   },
   "erasure": {
     "ok": true,
-    "detail": "erased 2bdf06f7-028c-460b-82a6-e981a4432a8a; verify dry-run exit 2 (no app_users row for the QA founder email)"
+    "detail": "erased 346fc412-e138-4a4f-9ea6-bbda92bab5ac; verify dry-run exit 2 (no app_users row for the QA founder email)"
   },
-  "findings": []
+  "findings": [
+    {
+      "spec": "20-cross-cutting.spec.ts",
+      "project": "live-qa",
+      "title": "/methodology/calibration — no console errors / failed requests (Cloudflare tag-gateway CSP error allow-listed by signature)",
+      "error": "Error: unexpected console errors\n\nexpect(received).toEqual(expected) // deep equality\n\n- Expected  -   1\n+ Received  + 127\n\n- Array []\n+ Array [\n+   Object {\n+     \"text\": \"Failed to load resource: the server responded with a status of 404 ()\",\n+     \"type\": \"console\",\n+     \"url\": \"https://blockid.au/methodology/calibration\",\n+   },\n+   Object {\n+     \"text\": \"Loading the script 'https://blockid.au/_next/static/chunks/webpack-fa57f2b7f3fc57da.js' violates the following Content Security Policy directive: \\\"script-src 'self' 'nonce-fdEyQ0LEjR3XJfVjY0gCqA==' 'strict-dynamic' 'sha256-QkGXPcImIpSK"
+    },
+    {
+      "spec": "29-intake.spec.ts",
+      "project": "live-qa",
+      "title": "founder account → 402 feature_locked on POST /api/intake/links",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 402\nReceived: 404"
+    },
+    {
+      "spec": "29-intake.spec.ts",
+      "project": "live-qa",
+      "title": "evaluator creates an intake link — auto_report OFF by default, public URL /apply/<slug>",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 201\nReceived: 404"
+    }
+  ]
 }
