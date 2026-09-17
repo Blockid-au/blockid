@@ -87,7 +87,7 @@ describe("POST …/request-review", () => {
     expect(state.updates).toEqual([]);
   });
 
-  it("503 review_unavailable when 0406 has not been applied (42703 undefined column)", async () => {
+  it("503 review_unavailable when 0407 has not been applied (42703 undefined column)", async () => {
     state.updateError = { code: "42703" };
     const res = await call();
     expect(res.status).toBe(503);

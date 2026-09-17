@@ -61,7 +61,7 @@ export async function GET() {
   }
 
   // Load all evidence rows for this project. `*` (not a column list) so the
-  // read never depends on 0406's review columns being applied yet.
+  // read never depends on 0407's review columns being applied yet.
   let evidenceRows: EvidenceRowOut[] = [];
   if (projectId) {
     const { data } = await supabase

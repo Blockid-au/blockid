@@ -159,7 +159,7 @@ async function POST_handler(
         estimated_svi_impact: catalogEntry.estimatedSviImpact,
         // A re-upload replaces the value a reviewer may have signed off on,
         // so the verification is withdrawn (S36). The founder re-requests
-        // review from the evidence row. (review_status is left to 0406's
+        // review from the evidence row. (review_status is left to 0407's
         // default / the request-review route so this hot path never depends
         // on the migration being applied.)
         is_verified: false,

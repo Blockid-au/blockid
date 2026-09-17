@@ -1,4 +1,4 @@
--- 0406_evidence_review.sql
+-- 0407_evidence_review.sql
 -- ---------------------------------------------------------------------------
 -- G14-S36 — Verification integrity (docs/plans/g14-investor-feedback-
 -- 2026-09-16.md §3 decisions D4 + F-6; approved plan §5 row S36).
@@ -38,7 +38,7 @@
 -- Idempotent (DO-guarded ADD CONSTRAINT, IF NOT EXISTS columns / index; the
 -- backfill is a no-op on a second run because the CHECK already holds).
 -- Apply by hand (never on deploy):
---   scripts/db/apply-migration.sh web/supabase/migrations/0406_evidence_review.sql
+--   scripts/db/apply-migration.sh web/supabase/migrations/0407_evidence_review.sql
 --
 -- Rollback
 --   alter table public.svi_dimension_evidence drop constraint if exists svi_dimension_evidence_tpv_requires_review;

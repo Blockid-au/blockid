@@ -1,7 +1,7 @@
 // POST /api/svi/dimensions/evidence/[projectId]/[dimension]/[evidenceId]/request-review
 //
 // G14-S36 — the founder asks a BlockID reviewer to verify one evidence row.
-// Flips `review_status` to 'pending' (migration 0406); the row's
+// Flips `review_status` to 'pending' (migration 0407); the row's
 // confidence_level is untouched — only the reviewer's approve decision
 // (PATCH /api/admin/evidence/[id]/review) can raise it to
 // third_party_verified. Project owner only (same gate as the upload route).
@@ -62,7 +62,7 @@ async function POST_handler(
     .update({ review_status: "pending", review_note: null, updated_at: new Date().toISOString() })
     .eq("id", evidenceId);
   if (upErr) {
-    // 42703 = review_status column missing → 0406 not applied yet on this DB.
+    // 42703 = review_status column missing → 0407 not applied yet on this DB.
     const code = (upErr as { code?: string }).code;
     if (code === "42703") {
       return NextResponse.json({ ok: false, error: "review_unavailable" }, { status: 503 });

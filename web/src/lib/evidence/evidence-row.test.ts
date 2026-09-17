@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { canRequestReview, toEvidenceRowOut } from "./evidence-row";
 
 describe("toEvidenceRowOut", () => {
-  it("normalises a DB row and tolerates the pre-0406 shape (no review columns)", () => {
+  it("normalises a DB row and tolerates the pre-0407 shape (no review columns)", () => {
     expect(toEvidenceRowOut({ id: "e", project_id: "p", dimension: "lco", evidence_type: "abn_registration", confidence_level: "document_uploaded", is_verified: false })).toEqual({
       id: "e",
       projectId: "p",

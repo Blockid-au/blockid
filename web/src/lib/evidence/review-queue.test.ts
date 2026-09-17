@@ -50,7 +50,7 @@ describe("loadEvidenceReviewQueue", () => {
     expect(q.recent[1].project_name).toBeNull();
   });
 
-  it("42703 (0406 not applied) reads as migration_pending, other errors as their message", async () => {
+  it("42703 (0407 not applied) reads as migration_pending, other errors as their message", async () => {
     const missing = await loadEvidenceReviewQueue(db({ pending: { data: null, error: { code: "42703", message: "column review_status does not exist" } }, recent: { data: [], error: null } }));
     expect(missing).toMatchObject({ pending: [], error: "migration_pending" });
     const other = await loadEvidenceReviewQueue(db({ pending: { data: [], error: null }, recent: { data: null, error: { message: "boom" } } }));

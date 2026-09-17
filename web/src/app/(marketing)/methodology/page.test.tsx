@@ -24,7 +24,6 @@ import { DATA_PRINCIPLE_SENTENCE } from "@/lib/valuation-certificate/types";
 import { VERIFICATION_LEVEL_LABELS, VERIFICATION_MULTIPLIER } from "@/lib/verification/confidence-multiplier";
 import { buildMethodologyProps, methodologyDimensions } from "./methodology-content";
 import MethodologyRoute, { generateMetadata } from "./page";
-import CalibrationPlaceholder, { generateMetadata as calibrationMetadata } from "./calibration/page";
 import ViMethodologyRoute from "../../vi/methodology/page";
 
 const EN = en as unknown as Messages;
@@ -114,13 +113,6 @@ describe("/methodology — rendered page", () => {
     expect(out).not.toMatch(/PhD/);
   });
 
-  it("/methodology/calibration is a noindex one-line placeholder linking back (S39 replaces it)", async () => {
-    const out = await html(await CalibrationPlaceholder());
-    expect(out).toContain(esc(EN["methodology.calibration.placeholder"]));
-    expect(out).toContain('href="/methodology"');
-    const meta = await calibrationMetadata();
-    expect(meta.robots).toMatchObject({ index: false });
-  });
 });
 
 describe("methodology.* catalogue parity (en ⇄ vi)", () => {

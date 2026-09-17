@@ -1,7 +1,7 @@
 // G14-S36 — reviewer decision on a `svi_dimension_evidence` row.
 //
 // The ONLY code path that may write `confidence_level = 'third_party_verified'`
-// (migration 0406 CHECK tpv_requires_review: third_party_verified ⇒
+// (migration 0407 CHECK tpv_requires_review: third_party_verified ⇒
 // is_verified). Pure decision builder + a thin persister so the admin route
 // and its test share one arithmetic:
 //

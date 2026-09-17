@@ -46,8 +46,8 @@ export default async function EvidenceReviewAdminPage() {
         </header>
         {queue.error === "migration_pending" ? (
           <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-            Migration <code>0406_evidence_review.sql</code> is not applied on this database yet — the review columns do not exist. Apply it with{" "}
-            <code>scripts/db/apply-migration.sh supabase/migrations/0406_evidence_review.sql</code> and reload.
+            Migration <code>0407_evidence_review.sql</code> is not applied on this database yet — the review columns do not exist. Apply it with{" "}
+            <code>scripts/db/apply-migration.sh supabase/migrations/0407_evidence_review.sql</code> and reload.
           </div>
         ) : queue.error ? (
           <div className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-900">Could not load the queue: {queue.error}</div>

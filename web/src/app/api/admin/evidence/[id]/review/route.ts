@@ -3,7 +3,7 @@
 // Body { decision: "approve" | "reject", note?: string }. Admin only
 // (requireAdmin — the same gate every /api/admin/* route uses). The only
 // writer of `confidence_level = 'third_party_verified'` on
-// svi_dimension_evidence (migration 0406 CHECK); the founder's own upload
+// svi_dimension_evidence (migration 0407 CHECK); the founder's own upload
 // route caps at document_uploaded (lib/evidence/confidence-cap.ts D4).
 // Only rows the founder queued ("Request verification" → review_status =
 // 'pending') can be decided. Audited via apiRoute (admin.evidence.review).

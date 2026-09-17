@@ -2,7 +2,7 @@
 //
 // Only rows the founder queued (`review_status = 'pending'`) are actionable;
 // the recent approved / rejected rows are listed for context. 42703
-// (undefined column) means migration 0406 is not applied on this DB — the
+// (undefined column) means migration 0407 is not applied on this DB — the
 // page renders that as a banner instead of a crash.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -30,7 +30,7 @@ export interface ReviewQueue {
   pending: ReviewQueueRow[];
   recent: ReviewQueueRow[];
   counts: { pending: number; approved: number; rejected: number };
-  /** "migration_pending" when 0406 is not applied; otherwise a DB message. */
+  /** "migration_pending" when 0407 is not applied; otherwise a DB message. */
   error: string | null;
 }
 
