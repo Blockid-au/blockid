@@ -32,6 +32,10 @@ export default function SubmitPage() {
             Get discovered by Australian investors, partners, and fellow founders.
             Verified profiles rank higher. Free to submit — live within 24 hours.
           </p>
+          {/* G14 S35 — program intake links live at /apply/<slug>; this page stays the public-index submission (D2). */}
+          <p className="mt-3 text-xs text-secondary" data-testid="submit-intake-hint">
+            Applying to a program? Use the link they gave you.
+          </p>
         </div>
 
         {/* Trust signals */}

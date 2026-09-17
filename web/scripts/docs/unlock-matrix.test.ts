@@ -158,7 +158,7 @@ describe("unlock-matrix — visibility pipeline mirrors workspace-layout.tsx (na
     // Advisor + accelerator share the groups but see their own leaves.
     const advisor = renderSidebar({ planId: "investor_advisor", segment: "advisor", currentPhase: 5, features: new Set() });
     expect(advisor.find((c) => c.id === "evaluator-home")!.visibleItems).toBe(3);
-    expect(advisor.find((c) => c.id === "dealflow")!.visibleItems).toBe(2);
+    expect(advisor.find((c) => c.id === "dealflow")!.visibleItems).toBe(3); // Startup Index · Mandate · Intake (G14 S35)
   });
 
   it("cellText omits hidden groups and annotates dims", () => {

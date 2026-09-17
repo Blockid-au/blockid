@@ -44,7 +44,6 @@ const WORKSPACE = join(__dirname, "..", "..", "app", "(app)", "(founder)", "work
 const STUB_PAGES = [
   "settings/enterprise/sso-section.tsx",
   "settings/enterprise/white-label-section.tsx",
-  "accelerator/applications/page.tsx",
   "weekly-digest/page.tsx",
   "score/listing/page.tsx",
 ];

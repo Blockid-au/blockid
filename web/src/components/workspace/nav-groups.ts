@@ -385,13 +385,6 @@ const EVALUATOR_HOME: NavGroup = {
       icon: Building2,
       segments: ["accelerator"],
     },
-    {
-      href: "/workspace/accelerator/applications",
-      label: { en: "Applications", vi: "Hồ sơ ứng tuyển" },
-      tooltip: { en: "Applicants to review, ranked by SVI", vi: "Hồ sơ cần xét duyệt, xếp theo SVI" },
-      icon: ClipboardCheck,
-      segments: ["accelerator"],
-    },
   ],
 };
 
@@ -422,6 +415,17 @@ const DEALFLOW: NavGroup = {
       icon: Settings2,
       segments: EVALUATOR_NAV_SEGMENTS,
       aliases: ["Preferences", "Investor Preferences", "Coverage", "Program criteria"],
+    },
+    {
+      // G14 S35 — program intake links + the scored inbox. Kept at the
+      // accelerator URL so bookmarks survive; every evaluator segment can
+      // publish a link (flag intake.manage OR the evaluator persona).
+      href: "/workspace/accelerator/applications",
+      label: { en: "Intake", vi: "Tiếp nhận hồ sơ" },
+      tooltip: { en: "Your application links and every scored applicant", vi: "Link ứng tuyển và mọi hồ sơ đã chấm điểm" },
+      icon: ClipboardCheck,
+      segments: EVALUATOR_NAV_SEGMENTS,
+      aliases: ["Applications", "Intake inbox", "Apply link"],
     },
   ],
 };
