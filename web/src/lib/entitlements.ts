@@ -98,7 +98,11 @@ export type Feature =
   // order book + /api/secondary/sim/*). Growth and above — the same rung
   // that carries the cap table the sandbox trades over. Mirrored in
   // plans.csv, tier-ladder.ts and migration 0367.
-  | "secondary_market.view";
+  | "secondary_market.view"
+  // G14 S35 (D5) — program intake links (/apply/<slug> + scored inbox).
+  // Firm / Program / Fund / VC Enterprise and every Programs rung from the
+  // Intake link up. Mirrored in plans.csv, tier-ladder.ts and migration 0405.
+  | "intake.manage";
 
 // ---------------------------------------------------------------------------
 // Session subset — matches what `/api/entitlement/me` returns to the client
@@ -262,26 +266,26 @@ export const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
   investor_advisor: [
     "watchlist", "svi.feed", "investor.dealflow",
     "advisory_equity", "advisor_portal", "advisor.cohort", "white_label",
-    "grant_finder", "money_radar",
+    "grant_finder", "money_radar", "intake.manage",
   ],
   investor_vc_small: [
     "watchlist", "svi.feed", "investor.dealflow",
     "advisory_equity", "advisor_portal", "advisor.cohort", "white_label",
     "portfolio", "diligence_pack", "api", "api.access", "lp_export", "lp_report",
-    "grant_finder", "money_radar",
+    "grant_finder", "money_radar", "intake.manage",
   ],
   investor_vc_ent: [
     "watchlist", "svi.feed", "investor.dealflow",
     "advisory_equity", "advisor_portal", "advisor.cohort", "white_label",
     "portfolio", "diligence_pack", "api", "api.access", "lp_export", "lp_report",
     "custom_benchmark", "multi_fund", "sso", "weekly_delta",
-    "grant_finder", "money_radar",
+    "grant_finder", "money_radar", "intake.manage",
   ],
-  accelerator_starter: ["cohort.view", "cohort.view.stats", "accelerator.cohort"],
-  accelerator_growth: ["cohort.view", "cohort.view.stats", "accelerator.cohort", "cohort.manage"],
+  accelerator_starter: ["cohort.view", "cohort.view.stats", "accelerator.cohort", "intake.manage"],
+  accelerator_growth: ["cohort.view", "cohort.view.stats", "accelerator.cohort", "cohort.manage", "intake.manage"],
   accelerator_enterprise: [
     "cohort.view", "cohort.view.stats", "accelerator.cohort", "cohort.manage",
-    "white_label", "api", "api.access", "sso", "lp_report",
+    "white_label", "api", "api.access", "sso", "lp_report", "intake.manage",
   ],
 };
 

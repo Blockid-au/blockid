@@ -41,7 +41,7 @@ function ep(over: Partial<EndpointRow>): EndpointRow {
 
 describe("event catalogue", () => {
   it("lists the four subscribable events with labels; ping is not subscribable", () => {
-    expect([...WEBHOOK_EVENTS]).toEqual(["svi.rescored", "evidence.uploaded", "funding.report_ready", "evaluation.report_ready"]);
+    expect([...WEBHOOK_EVENTS]).toEqual(["svi.rescored", "evidence.uploaded", "funding.report_ready", "evaluation.report_ready", "intake.submission_received"]);
     for (const e of WEBHOOK_EVENTS) expect(WEBHOOK_EVENT_LABELS[e].label).toBeTruthy();
     expect(isWebhookEvent("ping")).toBe(false);
     expect(isWebhookEvent("svi.rescored")).toBe(true);

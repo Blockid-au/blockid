@@ -261,6 +261,7 @@ describe("NAV_GROUPS — §D.1 label rules", () => {
       "/workspace/weekly-digest": "Digest — advisor stub until the Reports hub (S-IA2)",
       "/workspace/accelerator/quarterly-report": "Quarterly — report route",
       "/workspace/lp-report": "LP report — route keeps the hyphen",
+      "/workspace/accelerator/applications": "Intake — G14 S35 keeps the historic applications URL (bookmarks, alias 'Applications')",
     };
     const slug = (s: string) => s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     for (const i of leaves) {
@@ -306,9 +307,11 @@ describe("NAV_GROUPS — sidebar size per persona", () => {
 
   it("evaluators: ≤ 3 groups, no Fundraise / Money / Company, Dashboard first", () => {
     const cases: Array<[PersonaKey, Segment, number]> = [
-      ["investor_angel", "investor_angel", 8],
-      ["investor_vc", "investor_vc", 8],
-      ["advisor", "advisor", 6],
+      // G14 S35: "Deal flow → Intake" leaf for every evaluator segment
+      // (moved out of the accelerator Home group, so accelerator stays 7).
+      ["investor_angel", "investor_angel", 9],
+      ["investor_vc", "investor_vc", 9],
+      ["advisor", "advisor", 7],
       ["accelerator", "accelerator", 7],
     ];
     for (const [persona, segment, count] of cases) {

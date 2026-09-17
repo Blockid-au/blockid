@@ -81,12 +81,24 @@ export default async function InvestorDealFlowPage({ searchParams }: DealFlowPag
               )}
             </p>
           </div>
-          <Link
-            href="/workspace/investor/mandate"
-            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
-          >
-            {df.mandate ? "Edit mandate" : "Write your mandate"}
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            {/* G14 S35 — the scored intake inbox (program intake links) lives
+                on the historic applications URL; no tab system here, so a
+                sibling link. */}
+            <Link
+              href="/workspace/accelerator/applications"
+              data-testid="dealflow-intake-link"
+              className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+            >
+              Intake inbox
+            </Link>
+            <Link
+              href="/workspace/investor/mandate"
+              className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+            >
+              {df.mandate ? "Edit mandate" : "Write your mandate"}
+            </Link>
+          </div>
         </header>
 
         <FeatureGate feature="investor.dealflow" label="Deal Flow Inbox">

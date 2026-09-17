@@ -282,7 +282,8 @@
         "advisor.cohort",
         "white_label",
         "grant_finder",
-        "money_radar"
+        "money_radar",
+        "intake.manage"
       ],
       "lockedRows": []
     },
@@ -307,7 +308,8 @@
         "lp_export",
         "lp_report",
         "grant_finder",
-        "money_radar"
+        "money_radar",
+        "intake.manage"
       ],
       "lockedRows": []
     }
@@ -657,7 +659,7 @@
           "id": "dealflow",
           "label": "Deal flow",
           "state": "visible",
-          "visibleItems": 3,
+          "visibleItems": 4,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -715,7 +717,7 @@
           "id": "dealflow",
           "label": "Deal flow",
           "state": "visible",
-          "visibleItems": 2,
+          "visibleItems": 3,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -773,7 +775,7 @@
           "id": "dealflow",
           "label": "Deal flow",
           "state": "visible",
-          "visibleItems": 3,
+          "visibleItems": 4,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -1065,7 +1067,7 @@
           "id": "dealflow",
           "label": "Deal flow",
           "state": "visible",
-          "visibleItems": 3,
+          "visibleItems": 4,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -1123,7 +1125,7 @@
           "id": "dealflow",
           "label": "Deal flow",
           "state": "visible",
-          "visibleItems": 2,
+          "visibleItems": 3,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -1181,7 +1183,7 @@
           "id": "dealflow",
           "label": "Deal flow",
           "state": "visible",
-          "visibleItems": 3,
+          "visibleItems": 4,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -1473,7 +1475,7 @@
           "id": "dealflow",
           "label": "Deal flow",
           "state": "visible",
-          "visibleItems": 3,
+          "visibleItems": 4,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -1531,7 +1533,7 @@
           "id": "dealflow",
           "label": "Deal flow",
           "state": "visible",
-          "visibleItems": 2,
+          "visibleItems": 3,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -1589,7 +1591,7 @@
           "id": "dealflow",
           "label": "Deal flow",
           "state": "visible",
-          "visibleItems": 3,
+          "visibleItems": 4,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -1881,7 +1883,7 @@
           "id": "dealflow",
           "label": "Deal flow",
           "state": "visible",
-          "visibleItems": 3,
+          "visibleItems": 4,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -1939,7 +1941,7 @@
           "id": "dealflow",
           "label": "Deal flow",
           "state": "visible",
-          "visibleItems": 2,
+          "visibleItems": 3,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -1997,7 +1999,7 @@
           "id": "dealflow",
           "label": "Deal flow",
           "state": "visible",
-          "visibleItems": 3,
+          "visibleItems": 4,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -2289,7 +2291,7 @@
           "id": "dealflow",
           "label": "Deal flow",
           "state": "visible",
-          "visibleItems": 3,
+          "visibleItems": 4,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -2347,7 +2349,7 @@
           "id": "dealflow",
           "label": "Deal flow",
           "state": "visible",
-          "visibleItems": 2,
+          "visibleItems": 3,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -2405,7 +2407,7 @@
           "id": "dealflow",
           "label": "Deal flow",
           "state": "visible",
-          "visibleItems": 3,
+          "visibleItems": 4,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -2697,7 +2699,7 @@
           "id": "dealflow",
           "label": "Deal flow",
           "state": "visible",
-          "visibleItems": 3,
+          "visibleItems": 4,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -2755,7 +2757,7 @@
           "id": "dealflow",
           "label": "Deal flow",
           "state": "visible",
-          "visibleItems": 2,
+          "visibleItems": 3,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -2813,7 +2815,7 @@
           "id": "dealflow",
           "label": "Deal flow",
           "state": "visible",
-          "visibleItems": 3,
+          "visibleItems": 4,
           "upgradeItems": 0,
           "addOnItems": 0
         },

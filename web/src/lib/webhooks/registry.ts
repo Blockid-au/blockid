@@ -12,6 +12,10 @@
 //                              program_count, url }
 //   evaluation.report_ready  { evaluation_id, project_id, report_id, kind,
 //                              svi_total, via }
+//   intake.submission_received { intake_id, submission_id, evaluation_id,
+//                              project_id, startup_name, status, svi_total,
+//                              coverage_summary }   (G14 S35 — recipient =
+//                              the intake owner; no founder email)
 //   ping                     { endpoint_id, sent_at }   (test button only)
 //
 // Envelope on the wire (also what `webhook_deliveries.payload` stores):
@@ -40,7 +44,7 @@ import { planIdToTier, type PlanTier } from "@/lib/segments";
 import { planHasGrowthExtras } from "@/lib/funding/growth-extras";
 import { supabaseWebhookStore, type WebhookStore } from "./store";
 
-export const WEBHOOK_EVENTS = ["svi.rescored", "evidence.uploaded", "funding.report_ready", "evaluation.report_ready"] as const;
+export const WEBHOOK_EVENTS = ["svi.rescored", "evidence.uploaded", "funding.report_ready", "evaluation.report_ready", "intake.submission_received"] as const;
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number];
 /** `ping` is sent by the test button only — never subscribable. */
 export type WebhookWireEvent = WebhookEvent | "ping";
@@ -52,6 +56,7 @@ export const WEBHOOK_EVENT_LABELS: Record<WebhookEvent, { label: string; descrip
   "evidence.uploaded": { label: "Evidence uploaded", description: "A file landed in the Evidence Vault (after the malware scan)." },
   "funding.report_ready": { label: "Money Finder report ready", description: "A paid Money Finder report finished generating." },
   "evaluation.report_ready": { label: "Evaluation report ready", description: "A Trusted Business Report / rescore you ran on a startup you evaluate is ready." },
+  "intake.submission_received": { label: "Intake submission received", description: "A founder applied through one of your program intake links (/apply/<slug>)." },
 };
 
 export function isWebhookEvent(v: unknown): v is WebhookEvent {
@@ -93,6 +98,16 @@ export interface EvaluationReportReadyPayload {
   svi_total: number | null;
   via: string;
 }
+export interface IntakeSubmissionReceivedPayload {
+  intake_id: string;
+  submission_id: string;
+  evaluation_id: string | null;
+  project_id: string | null;
+  startup_name: string;
+  status: "received" | "scored";
+  svi_total: number | null;
+  coverage_summary: { strong: number; partial: number; missing: number } | null;
+}
 export interface PingPayload {
   endpoint_id: string;
   sent_at: string;
@@ -103,6 +118,7 @@ export interface WebhookPayloads {
   "evidence.uploaded": EvidenceUploadedPayload;
   "funding.report_ready": FundingReportReadyPayload;
   "evaluation.report_ready": EvaluationReportReadyPayload;
+  "intake.submission_received": IntakeSubmissionReceivedPayload;
   ping: PingPayload;
 }
 
