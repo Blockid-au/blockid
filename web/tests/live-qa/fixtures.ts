@@ -124,6 +124,9 @@ export const SWEEP_EXTRA_PAGES = [
   // G13-W3-IA3 — the Action plan hub root now mounts the ladder / direction /
   // growth widgets that used to render on /dashboard.
   "/workspace/plan",
+  // G14-S39 — public backtest page (reads content/reports/svi-backtest-latest.json;
+  // renders an inline SVG from report-visuals — swept for #418 like the showcase).
+  "/methodology/calibration",
 ] as const;
 
 /** Everything the console/network sweep visits. */

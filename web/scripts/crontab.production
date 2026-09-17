@@ -163,6 +163,19 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Weekly disk cleanup — prune docker, /tmp logs, JSONL state, releases (Sun 03:30 UTC = 13:30 AEST)
 30 3 * * 0 /home/dovanlong/blockid.au/web/scripts/weekly-disk-cleanup.sh
 
+# G14-S39 (2026-09-16) — SVI backtest v0 / calibration. Scores every curated
+# AU comparable (src/lib/data/au-comparables-backtest.ts) with computeSVI()
+# at confidence document_uploaded → Spearman ρ vs log(round) / log(valuation),
+# pooled + within stage, 1,000-resample bootstrap CI, SVI-quartile bucket
+# table → content/reports/svi-backtest-latest.json + svi-backtest-history.jsonl.
+# Read by /methodology/calibration and /api/status `svi_backtest: ok|stale|missing`
+# (stale > 8 days). Not a cron-runner endpoint — a node/tsx script, run
+# directly (same shape as db-backup-offsite / audit-migrations). Fills null
+# outcomes from au_comparable_raises when web/.env has the Supabase keys;
+# never adds rows. ALSO re-run by hand whenever src/lib/svi-analysis.ts
+# changes (docs/ops/crontab-setup.md → "SVI backtest"). Sun 03:40 UTC = 13:40 AEST.
+40 3 * * 0 cd /home/dovanlong/blockid.au/web && npx tsx scripts/backtest/run.ts >> /tmp/blockid-svi-backtest.log 2>&1
+
 # Migration audit guardian — weekly Sun 04:45 UTC (14:45 AEST). Parses every
 # web/supabase/migrations/*.sql for declared tables/views/functions and asks
 # the live DB whether each exists. Appends a summary line to

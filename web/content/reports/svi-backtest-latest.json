@@ -1,0 +1,686 @@
+{
+  "generated_at": "2026-09-17T00:07:42.936Z",
+  "svi_version": "2.1.0",
+  "git_sha": "4395dcf60",
+  "claim": "rank_calibration_only",
+  "confidence_level": "document_uploaded",
+  "n": 49,
+  "n_dataset": 49,
+  "n_excluded_source_rows": 17,
+  "n_with_round": 41,
+  "n_with_valuation": 21,
+  "n_next_round_known": 13,
+  "n_by_stage": {
+    "pre-seed": 1,
+    "seed": 11,
+    "series-a": 18,
+    "series-b": 15,
+    "series-c": 1,
+    "unicorn": 3
+  },
+  "rho": {
+    "round_pooled": 0.762,
+    "valuation_pooled": 0.9366,
+    "round_by_stage": {
+      "pre-seed": {
+        "n": 1,
+        "rho": null,
+        "reason": "too_few"
+      },
+      "seed": {
+        "n": 9,
+        "rho": 0.6456
+      },
+      "series-a": {
+        "n": 16,
+        "rho": 0.0917
+      },
+      "series-b": {
+        "n": 15,
+        "rho": 0.6404
+      },
+      "series-c": {
+        "n": 0,
+        "rho": null,
+        "reason": "too_few"
+      },
+      "unicorn": {
+        "n": 0,
+        "rho": null,
+        "reason": "too_few"
+      }
+    },
+    "valuation_by_stage": {
+      "pre-seed": {
+        "n": 0,
+        "rho": null,
+        "reason": "too_few"
+      },
+      "seed": {
+        "n": 4,
+        "rho": null,
+        "reason": "too_few"
+      },
+      "series-a": {
+        "n": 4,
+        "rho": null,
+        "reason": "too_few"
+      },
+      "series-b": {
+        "n": 9,
+        "rho": 0.6176
+      },
+      "series-c": {
+        "n": 1,
+        "rho": null,
+        "reason": "too_few"
+      },
+      "unicorn": {
+        "n": 3,
+        "rho": null,
+        "reason": "too_few"
+      }
+    }
+  },
+  "ci": {
+    "round_pooled": {
+      "low": 0.5612,
+      "high": 0.8757,
+      "resamples": 1000,
+      "effective": 1000
+    },
+    "valuation_pooled": {
+      "low": 0.8118,
+      "high": 0.9747,
+      "resamples": 1000,
+      "effective": 1000
+    },
+    "round_by_stage": {
+      "pre-seed": null,
+      "seed": {
+        "low": -0.08,
+        "high": 0.9338,
+        "resamples": 1000,
+        "effective": 1000
+      },
+      "series-a": {
+        "low": -0.4402,
+        "high": 0.6005,
+        "resamples": 1000,
+        "effective": 1000
+      },
+      "series-b": {
+        "low": 0.1792,
+        "high": 0.8314,
+        "resamples": 1000,
+        "effective": 1000
+      },
+      "series-c": null,
+      "unicorn": null
+    },
+    "valuation_by_stage": {
+      "pre-seed": null,
+      "seed": null,
+      "series-a": null,
+      "series-b": {
+        "low": -0.1059,
+        "high": 0.987,
+        "resamples": 1000,
+        "effective": 1000
+      },
+      "series-c": null,
+      "unicorn": null
+    }
+  },
+  "buckets": [
+    {
+      "quartile": 1,
+      "label": "Q1 (lowest SVI)",
+      "n": 10,
+      "svi_min": 100,
+      "svi_max": 116,
+      "median_round_aud": 8250000,
+      "p25_round_aud": 5000000,
+      "p75_round_aud": 10500000,
+      "n_valuation": 3,
+      "median_valuation_aud": 36000000
+    },
+    {
+      "quartile": 2,
+      "label": "Q2",
+      "n": 11,
+      "svi_min": 118,
+      "svi_max": 128,
+      "median_round_aud": 50000000,
+      "p25_round_aud": 30000000,
+      "p75_round_aud": 79500000,
+      "n_valuation": 1,
+      "median_valuation_aud": 250000000
+    },
+    {
+      "quartile": 3,
+      "label": "Q3",
+      "n": 10,
+      "svi_min": 129,
+      "svi_max": 141,
+      "median_round_aud": 47500000,
+      "p25_round_aud": 22500000,
+      "p75_round_aud": 90000000,
+      "n_valuation": 1,
+      "median_valuation_aud": 1000000000
+    },
+    {
+      "quartile": 4,
+      "label": "Q4 (highest SVI)",
+      "n": 10,
+      "svi_min": 142,
+      "svi_max": 156,
+      "median_round_aud": 147500000,
+      "p25_round_aud": 114750000,
+      "p75_round_aud": 210250000,
+      "n_valuation": 8,
+      "median_valuation_aud": 1550000000
+    }
+  ],
+  "caveats": [
+    "Survivorship: every row in this set raised. It says nothing about startups that pitched and did not raise, so ρ cannot be read as predictive power; v1 adds a control group after S40.",
+    "Hand-curated profiles: each pre-raise profile was written by a curator from public sources as of the raise, not from the founder's own evidence. Fields with no public fact were left at the engine's no-evidence default, which is why most rows score below the live median for their stage.",
+    "N is small (49 scorable rows). Stage buckets with fewer than 5 rows report no ρ (pre-seed, series-c, unicorn); every interval is a percentile bootstrap of 1,000 seeded resamples and is wide.",
+    "Rank-only claim: ρ measures whether a higher SVI went with a larger round or valuation inside this set. It is not a valuation model, not a prediction of any single startup's round, and not financial advice.",
+    "Source figures are taken as written from the two hand-entered comparable tables (AUD approximations near the announcement date). Where the two tables disagree the row notes it; nothing was corrected or invented, and a missing figure stays null.",
+    "Stage labels follow the source tables — 'Series B' is a 'Series B or later' bucket in one of them — so within-stage results mix lettered rounds."
+  ],
+  "outcome_source": "static (table read, nothing to fill)",
+  "rows_used": [
+    {
+      "company": "Zeller",
+      "stage": "series-b",
+      "asOf": "2022-03",
+      "svi": 132,
+      "svi_stage": 5,
+      "roundAud": 100000000,
+      "valuationAud": 1000000000,
+      "confidence": "high"
+    },
+    {
+      "company": "Airwallex",
+      "stage": "series-b",
+      "asOf": "2022-10",
+      "svi": 156,
+      "svi_stage": 7,
+      "roundAud": 150000000,
+      "valuationAud": 8400000000,
+      "confidence": "high"
+    },
+    {
+      "company": "Airwallex",
+      "stage": "unicorn",
+      "asOf": "2024-06",
+      "svi": 156,
+      "svi_stage": 7,
+      "roundAud": null,
+      "valuationAud": 9600000000,
+      "confidence": "medium"
+    },
+    {
+      "company": "Athena Home Loans",
+      "stage": "series-b",
+      "asOf": "2022-03",
+      "svi": 145,
+      "svi_stage": 7,
+      "roundAud": 90000000,
+      "valuationAud": 1500000000,
+      "confidence": "medium"
+    },
+    {
+      "company": "Judo Bank",
+      "stage": "series-b",
+      "asOf": "2020-05",
+      "svi": 145,
+      "svi_stage": 7,
+      "roundAud": 230000000,
+      "valuationAud": 1600000000,
+      "confidence": "high"
+    },
+    {
+      "company": "Beforepay",
+      "stage": "series-a",
+      "asOf": "2021-11",
+      "svi": 125,
+      "svi_stage": 5,
+      "roundAud": 35000000,
+      "valuationAud": null,
+      "confidence": "medium"
+    },
+    {
+      "company": "Zepto AU",
+      "stage": "series-a",
+      "asOf": "2023-02",
+      "svi": 125,
+      "svi_stage": 5,
+      "roundAud": 25000000,
+      "valuationAud": null,
+      "confidence": "low"
+    },
+    {
+      "company": "Butter Insurance",
+      "stage": "seed",
+      "asOf": "2023-01",
+      "svi": 105,
+      "svi_stage": 3,
+      "roundAud": 3000000,
+      "valuationAud": null,
+      "confidence": "low"
+    },
+    {
+      "company": "Brighte",
+      "stage": "series-c",
+      "asOf": "2020-11",
+      "svi": 140,
+      "svi_stage": 7,
+      "roundAud": null,
+      "valuationAud": 900000000,
+      "confidence": "low"
+    },
+    {
+      "company": "Block Earner",
+      "stage": "series-a",
+      "asOf": "2024-06",
+      "svi": 117,
+      "svi_stage": 3,
+      "roundAud": null,
+      "valuationAud": 67000000,
+      "confidence": "low"
+    },
+    {
+      "company": "Parachute",
+      "stage": "series-a",
+      "asOf": "2024-06",
+      "svi": 107,
+      "svi_stage": 4,
+      "roundAud": 8500000,
+      "valuationAud": null,
+      "confidence": "low"
+    },
+    {
+      "company": "COR",
+      "stage": "seed",
+      "asOf": "2024-06",
+      "svi": 102,
+      "svi_stage": 3,
+      "roundAud": 8000000,
+      "valuationAud": 8000000,
+      "confidence": "low"
+    },
+    {
+      "company": "Employment Hero",
+      "stage": "series-b",
+      "asOf": "2022-02",
+      "svi": 147,
+      "svi_stage": 7,
+      "roundAud": 181000000,
+      "valuationAud": 1250000000,
+      "confidence": "high"
+    },
+    {
+      "company": "Employment Hero",
+      "stage": "unicorn",
+      "asOf": "2023-10",
+      "svi": 153,
+      "svi_stage": 7,
+      "roundAud": null,
+      "valuationAud": 2000000000,
+      "confidence": "medium"
+    },
+    {
+      "company": "Culture Amp",
+      "stage": "series-b",
+      "asOf": "2021-07",
+      "svi": 151,
+      "svi_stage": 7,
+      "roundAud": 135000000,
+      "valuationAud": 1500000000,
+      "confidence": "high"
+    },
+    {
+      "company": "Linktree",
+      "stage": "series-b",
+      "asOf": "2022-03",
+      "svi": 142,
+      "svi_stage": 6,
+      "roundAud": 145000000,
+      "valuationAud": 1300000000,
+      "confidence": "high"
+    },
+    {
+      "company": "SafetyCulture",
+      "stage": "series-b",
+      "asOf": "2021-05",
+      "svi": 146,
+      "svi_stage": 7,
+      "roundAud": 220000000,
+      "valuationAud": 2700000000,
+      "confidence": "medium"
+    },
+    {
+      "company": "Deputy",
+      "stage": "series-a",
+      "asOf": "2018-11",
+      "svi": 136,
+      "svi_stage": 6,
+      "roundAud": 111000000,
+      "valuationAud": null,
+      "confidence": "medium"
+    },
+    {
+      "company": "Auror",
+      "stage": "series-a",
+      "asOf": "2023-05",
+      "svi": 142,
+      "svi_stage": 6,
+      "roundAud": 45000000,
+      "valuationAud": null,
+      "confidence": "medium"
+    },
+    {
+      "company": "Roller",
+      "stage": "series-a",
+      "asOf": "2022-06",
+      "svi": 134,
+      "svi_stage": 6,
+      "roundAud": 115000000,
+      "valuationAud": null,
+      "confidence": "medium"
+    },
+    {
+      "company": "Ignition",
+      "stage": "series-a",
+      "asOf": "2022-04",
+      "svi": 135,
+      "svi_stage": 6,
+      "roundAud": 50000000,
+      "valuationAud": null,
+      "confidence": "medium"
+    },
+    {
+      "company": "Assignar",
+      "stage": "seed",
+      "asOf": "2018-06",
+      "svi": 116,
+      "svi_stage": 3,
+      "roundAud": 4000000,
+      "valuationAud": null,
+      "confidence": "medium"
+    },
+    {
+      "company": "Splose",
+      "stage": "series-a",
+      "asOf": "2024-03",
+      "svi": 103,
+      "svi_stage": 4,
+      "roundAud": 46000000,
+      "valuationAud": 100000000,
+      "confidence": "low"
+    },
+    {
+      "company": "Operata",
+      "stage": "series-b",
+      "asOf": "2024-03",
+      "svi": 115,
+      "svi_stage": 4,
+      "roundAud": 89000000,
+      "valuationAud": null,
+      "confidence": "low"
+    },
+    {
+      "company": "Aigentsphere",
+      "stage": "seed",
+      "asOf": "2024-06",
+      "svi": 101,
+      "svi_stage": 2,
+      "roundAud": null,
+      "valuationAud": 20000000,
+      "confidence": "low"
+    },
+    {
+      "company": "Hachiko",
+      "stage": "seed",
+      "asOf": "2022-06",
+      "svi": 98,
+      "svi_stage": 3,
+      "roundAud": null,
+      "valuationAud": 10000000,
+      "confidence": "low"
+    },
+    {
+      "company": "Canva",
+      "stage": "unicorn",
+      "asOf": "2024-08",
+      "svi": 154,
+      "svi_stage": 7,
+      "roundAud": null,
+      "valuationAud": 49000000000,
+      "confidence": "high"
+    },
+    {
+      "company": "Mr Yum",
+      "stage": "series-a",
+      "asOf": "2022-02",
+      "svi": 128,
+      "svi_stage": 5,
+      "roundAud": 89000000,
+      "valuationAud": 250000000,
+      "confidence": "high"
+    },
+    {
+      "company": "Milkrun",
+      "stage": "seed",
+      "asOf": "2021-10",
+      "svi": 112,
+      "svi_stage": 3,
+      "roundAud": 11000000,
+      "valuationAud": null,
+      "confidence": "high"
+    },
+    {
+      "company": "Providoor",
+      "stage": "seed",
+      "asOf": "2021-06",
+      "svi": 131,
+      "svi_stage": 5,
+      "roundAud": 10000000,
+      "valuationAud": null,
+      "confidence": "medium"
+    },
+    {
+      "company": "Sendle",
+      "stage": "series-a",
+      "asOf": "2022-05",
+      "svi": 133,
+      "svi_stage": 6,
+      "roundAud": 45000000,
+      "valuationAud": null,
+      "confidence": "medium"
+    },
+    {
+      "company": "Bazaa",
+      "stage": "pre-seed",
+      "asOf": "2024-06",
+      "svi": 100,
+      "svi_stage": 2,
+      "roundAud": 2600000,
+      "valuationAud": null,
+      "confidence": "low"
+    },
+    {
+      "company": "Harrison.ai",
+      "stage": "series-b",
+      "asOf": "2021-11",
+      "svi": 126,
+      "svi_stage": 3,
+      "roundAud": 129000000,
+      "valuationAud": null,
+      "confidence": "high"
+    },
+    {
+      "company": "Eucalyptus",
+      "stage": "series-b",
+      "asOf": "2021-11",
+      "svi": 130,
+      "svi_stage": 6,
+      "roundAud": 60000000,
+      "valuationAud": null,
+      "confidence": "high"
+    },
+    {
+      "company": "Heidi Health",
+      "stage": "seed",
+      "asOf": "2024-02",
+      "svi": 118,
+      "svi_stage": 3,
+      "roundAud": 10000000,
+      "valuationAud": null,
+      "confidence": "medium"
+    },
+    {
+      "company": "Sonder",
+      "stage": "series-a",
+      "asOf": "2022-06",
+      "svi": 126,
+      "svi_stage": 5,
+      "roundAud": 50000000,
+      "valuationAud": null,
+      "confidence": "medium"
+    },
+    {
+      "company": "Perx Health",
+      "stage": "seed",
+      "asOf": "2022-06",
+      "svi": 111,
+      "svi_stage": 3,
+      "roundAud": 8000000,
+      "valuationAud": null,
+      "confidence": "medium"
+    },
+    {
+      "company": "Advanced Navigation",
+      "stage": "series-b",
+      "asOf": "2022-11",
+      "svi": 155,
+      "svi_stage": 7,
+      "roundAud": 108000000,
+      "valuationAud": null,
+      "confidence": "medium"
+    },
+    {
+      "company": "Q-CTRL",
+      "stage": "series-b",
+      "asOf": "2022-11",
+      "svi": 124,
+      "svi_stage": 3,
+      "roundAud": 40000000,
+      "valuationAud": null,
+      "confidence": "medium"
+    },
+    {
+      "company": "Baraja",
+      "stage": "series-a",
+      "asOf": "2020-06",
+      "svi": 128,
+      "svi_stage": 3,
+      "roundAud": 60000000,
+      "valuationAud": null,
+      "confidence": "low"
+    },
+    {
+      "company": "Fivecast",
+      "stage": "series-a",
+      "asOf": "2022-05",
+      "svi": 141,
+      "svi_stage": 5,
+      "roundAud": 30000000,
+      "valuationAud": null,
+      "confidence": "high"
+    },
+    {
+      "company": "Loam Bio",
+      "stage": "series-b",
+      "asOf": "2022-02",
+      "svi": 126,
+      "svi_stage": 3,
+      "roundAud": 105000000,
+      "valuationAud": null,
+      "confidence": "low"
+    },
+    {
+      "company": "Vow",
+      "stage": "series-a",
+      "asOf": "2022-11",
+      "svi": 125,
+      "svi_stage": 3,
+      "roundAud": 70000000,
+      "valuationAud": null,
+      "confidence": "high"
+    },
+    {
+      "company": "Cortical Labs",
+      "stage": "seed",
+      "asOf": "2022-06",
+      "svi": 124,
+      "svi_stage": 3,
+      "roundAud": 15000000,
+      "valuationAud": null,
+      "confidence": "medium"
+    },
+    {
+      "company": "Breaker",
+      "stage": "seed",
+      "asOf": "2020-06",
+      "svi": 111,
+      "svi_stage": 2,
+      "roundAud": 9000000,
+      "valuationAud": 36000000,
+      "confidence": "low"
+    },
+    {
+      "company": "Agridigital",
+      "stage": "series-a",
+      "asOf": "2020-06",
+      "svi": 123,
+      "svi_stage": 5,
+      "roundAud": null,
+      "valuationAud": 15000000,
+      "confidence": "low"
+    },
+    {
+      "company": "Go1",
+      "stage": "series-b",
+      "asOf": "2021-07",
+      "svi": 148,
+      "svi_stage": 7,
+      "roundAud": 275000000,
+      "valuationAud": 2000000000,
+      "confidence": "medium"
+    },
+    {
+      "company": "Cluey Learning",
+      "stage": "series-a",
+      "asOf": "2021-06",
+      "svi": 141,
+      "svi_stage": 7,
+      "roundAud": 20000000,
+      "valuationAud": null,
+      "confidence": "low"
+    },
+    {
+      "company": "Mathspace",
+      "stage": "series-a",
+      "asOf": "2018-06",
+      "svi": 129,
+      "svi_stage": 5,
+      "roundAud": 14000000,
+      "valuationAud": null,
+      "confidence": "medium"
+    }
+  ]
+}
