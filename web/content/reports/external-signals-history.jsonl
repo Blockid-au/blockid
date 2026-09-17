@@ -1,2 +1,4 @@
 {"ran_at":"2026-09-17T17:11:39.873Z","totals":{"parsed":13135,"kept":13128,"inserted":13128,"duplicates":0,"refused":0,"errors":0},"sources":[{"id":"rdti-transparency","status":"ok","parsed":13135,"inserted":13128,"row_count":13128}]}
 {"ran_at":"2026-09-17T17:11:53.593Z","totals":{"parsed":0,"kept":0,"inserted":0,"duplicates":0,"refused":0,"errors":1},"sources":[{"id":"business-gov-grants","status":"error","parsed":0,"inserted":0,"row_count":null}]}
+{"ran_at":"2026-09-17T17:37:50.770Z","totals":{"parsed":1018533,"kept":608,"inserted":608,"duplicates":0,"refused":0,"errors":0},"sources":[{"id":"abr-bulk","status":"ok","parsed":1018533,"inserted":608,"row_count":608}]}
+{"ran_at":"2026-09-17T17:38:37.614Z","totals":{"parsed":20529631,"kept":12827,"inserted":12219,"duplicates":608,"refused":0,"errors":0},"sources":[{"id":"abr-bulk","status":"ok","parsed":20529631,"inserted":12219,"row_count":12827}]}

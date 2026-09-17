@@ -1,7 +1,7 @@
 {
-  "ok": false,
+  "ok": true,
   "dry": false,
-  "ran_at": "2026-09-17T17:11:53.593Z",
+  "ran_at": "2026-09-17T17:38:37.614Z",
   "db": true,
   "data_dir": "/home/dovanlong/blockid-data/external-signals",
   "allow_set_size": 12827,
@@ -15,28 +15,50 @@
   "limit": null,
   "sources": [
     {
-      "id": "business-gov-grants",
-      "status": "error",
+      "id": "abr-bulk",
+      "status": "ok",
       "licence": "CC BY 3.0 AU",
-      "file": null,
-      "parsed": 0,
-      "kept": 0,
-      "filtered_out": 0,
-      "duplicates": 0,
-      "inserted": 0,
-      "row_count": null,
+      "file": "/home/dovanlong/blockid-data/external-signals/abr-bulk",
+      "parsed": 20529631,
+      "kept": 12827,
+      "filtered_out": 20516804,
+      "duplicates": 608,
+      "inserted": 12219,
+      "row_count": 12827,
       "skipped": {},
-      "sample": [],
-      "error": "business-gov-grants has no automated download — export the Grant Award CSV from https://www.grants.gov.au/Ga/List (GrantConnect blocks non-browser clients) and pass --file <export.csv>"
+      "sample": [
+        {
+          "as_of": "2020-03-04",
+          "signal_type": "abr_entity",
+          "entity_abn": "11000388161",
+          "entity_acn": "000388161",
+          "entity_name": "COLAS AUSTRALIA GROUP PTY LTD"
+        },
+        {
+          "as_of": "2025-08-11",
+          "signal_type": "abr_entity",
+          "entity_abn": "11003042957",
+          "entity_acn": "003042957",
+          "entity_name": "ELSAFE AUSTRALIA PTY LTD"
+        },
+        {
+          "as_of": "2025-11-24",
+          "signal_type": "abr_entity",
+          "entity_abn": "11004089936",
+          "entity_acn": "004089936",
+          "entity_name": "COLES GROUP LIMITED"
+        }
+      ],
+      "error": null
     }
   ],
   "totals": {
-    "parsed": 0,
-    "kept": 0,
-    "inserted": 0,
-    "duplicates": 0,
+    "parsed": 20529631,
+    "kept": 12827,
+    "inserted": 12219,
+    "duplicates": 608,
     "refused": 0,
-    "errors": 1
+    "errors": 0
   },
   "error": null
 }
