@@ -552,7 +552,7 @@
   "funding.copy.empty.locked": "Locked — unlock the full report to see it.",
   "funding.copy.empty.noEvents": "No public events listed for your capital yet. Browse all programs instead.",
   "calibration.meta.title": "SVI calibration — backtest v0",
-  "calibration.meta.description": "How the Startup Value Index ranks against real Australian rounds: Spearman rank correlation, bootstrap confidence intervals, quartile buckets and every caveat, on hand-curated comparables.",
+  "calibration.meta.description": "How the Startup Value Index ranks against real Australian rounds: Spearman correlation, bootstrap intervals, quartile buckets and every caveat.",
   "calibration.eyebrow": "Methodology · Calibration",
   "calibration.title": "Does a higher SVI go with a bigger round?",
   "calibration.subtitle": "Backtest v0 scores each comparable's public pre-raise profile with the live engine and checks the rank order against the round it actually closed. Rank calibration only — every company here raised.",

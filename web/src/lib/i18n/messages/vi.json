@@ -554,7 +554,7 @@
   "funding.copy.empty.locked": "Đã khóa — mở khóa báo cáo đầy đủ để xem.",
   "funding.copy.empty.noEvents": "Chưa có sự kiện công khai nào cho thành phố của bạn. Hãy xem tất cả chương trình.",
   "calibration.meta.title": "Hiệu chuẩn SVI — backtest v0",
-  "calibration.meta.description": "Startup Value Index xếp hạng thế nào so với các vòng gọi vốn thật ở Úc: tương quan hạng Spearman, khoảng tin cậy bootstrap, bảng tứ phân vị và mọi lưu ý, trên bộ so sánh được biên soạn thủ công.",
+  "calibration.meta.description": "Startup Value Index xếp hạng thế nào so với các vòng gọi vốn thật ở Úc: tương quan Spearman, khoảng tin cậy, tứ phân vị và mọi lưu ý.",
   "calibration.eyebrow": "Phương pháp · Hiệu chuẩn",
   "calibration.title": "SVI cao hơn có đi cùng vòng gọi vốn lớn hơn không?",
   "calibration.subtitle": "Backtest v0 chấm hồ sơ công khai trước vòng gọi vốn của từng công ty so sánh bằng engine đang chạy, rồi đối chiếu thứ hạng với vòng họ thực sự chốt. Chỉ hiệu chuẩn thứ hạng — mọi công ty ở đây đều đã gọi vốn thành công.",
