@@ -38,6 +38,9 @@ describe("sectionPreviewLines — the literal 'founder will see exactly' content
     expect(sectionPreviewLines(v, "risks")).toEqual(["HIGH · TRE: Churn (suggested by AI)"]);
     expect(sectionPreviewLines(v, "questions_for_founder")).toEqual(["TRE · Runway?"]);
     expect(sectionPreviewLines(v, "shared_notes")).toEqual(["a", "b"]);
+    // G14-S37: ticked FTV flags are part of what the founder sees; unticked / absent ones never print.
+    const flagged = { ...v, dimension_ratings: { FTV: { rating: 3 as const, stance: "unsure" as const, flags: { references_checked: true, full_time: false, key_person_risk: true } } } };
+    expect(sectionPreviewLines(flagged, "dimension_ratings")).toEqual(["Founder & team: 3/5 · Unsure · flags: references checked, key person risk"]);
   });
   it("empty sections say so explicitly", () => {
     const e = emptyFormValues(null);

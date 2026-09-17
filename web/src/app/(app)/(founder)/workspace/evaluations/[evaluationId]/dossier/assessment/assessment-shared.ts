@@ -142,7 +142,8 @@ export function sectionPreviewLines(v: AssessmentFormValues, field: FounderShare
       if (!keys.length) return ["(no dimension rated yet)"];
       return keys.map((k) => {
         const r = v.dimension_ratings[k]!;
-        return `${DIM_LABELS[k] ?? k}: ${r.rating}/5 · ${STANCE_LABELS[r.stance]}${r.note ? ` — ${r.note}` : ""}`;
+        const flags = r.flags ? (Object.keys(r.flags) as Array<keyof typeof r.flags>).filter((f) => r.flags?.[f] === true).map((f) => f.replace(/_/g, " ")) : [];
+        return `${DIM_LABELS[k] ?? k}: ${r.rating}/5 · ${STANCE_LABELS[r.stance]}${r.note ? ` — ${r.note}` : ""}${flags.length ? ` · flags: ${flags.join(", ")}` : ""}`;
       });
     }
     case "risks":
