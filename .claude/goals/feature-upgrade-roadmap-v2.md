@@ -214,26 +214,26 @@ Supersedes `report-v2-compelling.md` and `sub-agent-report-pipeline.md` (their i
 - [ ] Dimension owners TRE→CRO, MPC→CMO, FTV→CHRO, PTD→CTO, CGH→CFO, IRI→CLO, LCO→CLO, SVM→CEO; CDO evidence officer; knowledge injection; phase-aware 13×12 selection; GATHER un-stub; valuation in body
 - [ ] Comparables table (live count), LinkedIn / GA4 / cap-table connectors, prompt-eval fixtures ×24, COGS guard A$0.60
 
-## 2026 Q4 — G14 Investor Feedback (opened 2026-09-16; SOT § G14; goal doc `docs/plans/g14-investor-feedback-2026-09-16.md`)
+## 2026 Q4 — G14 Investor Feedback (opened 2026-09-16; ALL 8 SPRINTS LIVE 2026-09-17; SOT § G14; goal doc `docs/plans/g14-investor-feedback-2026-09-16.md`)
 
-Answers the 19 investor/judge comments from the 2026-09-16 pitch. Extends G13 (S-D2 assessments → feedback letter; S-R4 → badge parity; S-R5 → backtest + signals ingest); supersedes the v1/v2 pitch decks and the 5-bucket pre-seed use of funds in `unicorn-masterplan.md`. Wave A running; Waves B–D gated on G13 W4/W5.
+Answers the 19 investor/judge comments from the 2026-09-16 pitch. Extends G13 (S-D2 assessments → feedback letter; S-R4 → badge parity; S-R5 → backtest + signals ingest); supersedes the v1/v2 pitch decks and the 5-bucket pre-seed use of funds in `unicorn-masterplan.md`. Engineering closed 2026-09-17; only the 90-day evaluator GTM (founder-led pilots/interviews/LOIs) remains open.
 
 ### Trust (CISO + CDO + svi-scoring)
-- [ ] S36 Confidence capped by origin — replaces the `extractSignals` keyword ladder and the founder-chosen `confidenceLevel` on upload; L0–L5 multiplier 0.85–1.10; reviewer queue; public `/methodology`; "Verified ABN" badge (0403)
-- [ ] S39 Backtest v0 — Spearman ρ of SVI rank vs later round / valuation on 72 AU comparables, bootstrap CI, published at `/methodology/calibration` + `/api/status.svi_backtest` (rank calibration only, survivorship stated)
+- [x] S36 Confidence capped by origin — replaces the `extractSignals` keyword ladder and the founder-chosen `confidenceLevel` on upload; L0–L5 multiplier 0.85–1.10; reviewer queue; public `/methodology`; "Verified ABN" badge (0403) — live 2026-09-17
+- [x] S39 Backtest v0 — Spearman ρ of SVI rank vs later round / valuation on 72 AU comparables, bootstrap CI, published at `/methodology/calibration` + `/api/status.svi_backtest` (rank calibration only, survivorship stated) — live 2026-09-17
 ### Founder loop (Customer Success + CPO + CHRO)
-- [ ] S34 Feedback letter "What investors said" — k ≥ 3 assessors from ≥ 2 orgs, ratings / risk buckets / questions only, Sunday cron + email + landing block + opt-out (0401)
-- [ ] S35 Program intake link `/apply/[slug]` → scored evaluator inbox, `intake.manage` flag, `intake.submission_received` webhook (0402)
-- [ ] S37 Founder execution profile — `founder_profiles` rubric (exits / raises / years / roles / full-time / together / GitHub) overrides regex FTV; LinkedIn PDF import; FTV chapter card (0404)
+- [x] S34 Feedback letter "What investors said" — k ≥ 3 assessors from ≥ 2 orgs, ratings / risk buckets / questions only, Sunday cron + email + landing block + opt-out (0401) — live 2026-09-17
+- [x] S35 Program intake link `/apply/[slug]` → scored evaluator inbox, `intake.manage` flag, `intake.submission_received` webhook (0402) — live 2026-09-17
+- [x] S37 Founder execution profile — `founder_profiles` rubric (exits / raises / years / roles / full-time / together / GitHub) overrides regex FTV; LinkedIn PDF import; FTV chapter card (0404) — live 2026-09-17
 ### Integrations (Dev Relations + API designer)
-- [ ] S38 Evaluator API v1 (`/api/v1/evaluations`, `/[id]/dossier`, `/[id]/assessment`; scopes; `api.access` Fund + Program) + OpenAPI `/developers/api` + webhook destinations **Slack / Affinity / Airtable** (Zapier generic; HubSpot / Notion follow-up) (0405)
+- [x] S38 Evaluator API v1 (`/api/v1/evaluations`, `/[id]/dossier`, `/[id]/assessment`; scopes; `api.access` Fund + Program) + OpenAPI `/developers/api` + webhook destinations **Slack / Affinity / Airtable** (Zapier generic; HubSpot / Notion follow-up) (0405) — live 2026-09-17
 ### Data (CDO + COO + CFO)
-- [ ] S33 Traction snapshot (`traction-snapshot.json` + history), `/api/status.traction`, admin tile, `investor-update.mjs`, 8 server-side money events so the GA4 audit stops reporting them `missing`
-- [ ] S40 Open AU external signals — ABR bulk, business.gov.au grants, R&DTI transparency → `external_signals` (licence-gated) → LCO/IRI/TRE evidence rows + real cohort for percentiles (0406)
+- [x] S33 Traction snapshot (`traction-snapshot.json` + history), `/api/status.traction`, admin tile, `investor-update.mjs`, 8 server-side money events so the GA4 audit stops reporting them `missing` — live 2026-09-17
+- [x] S40 Open AU external signals — ABR bulk, business.gov.au grants, R&DTI transparency → `external_signals` (licence-gated) → LCO/IRI/TRE evidence rows + real cohort for percentiles (0406) — live 2026-09-17
 ### Commercial (IR + CFO + CMO)
-- [ ] Deck v3 "Startup Value Index" — 12 slides + 3-minute cut, ask A$500K, pre-money A$2.5–4.0M (SAFE cap A$3.5M), use of funds 50/28/22; v1/v2 decks banner-superseded
-- [ ] Pricing v4 — Fund A$999 · Intake link A$249 · Index API A$299 · Cohort 25/100 public (0400 + 6 Stripe mints, founder-gated); `docs/pricing-upgrade-plan-2026-07-16.md` § v4
-- [ ] Evaluator GTM 90 days — 10 interviews (`docs/research/evaluator-interviews-2026-09.md`), pilot offer v2 (free cohort scoring, admin credit grant, cap 5), intake wedge; D30/D60/D90 in `g14-investor-feedback-2026-09-16/01-gtm-evaluators-90d.md`
+- [x] Deck v3 "Startup Value Index" — 12 slides + 3-minute cut, ask A$500K, pre-money A$2.5–4.0M (SAFE cap A$3.5M), use of funds 50/28/22; v1/v2 decks banner-superseded — live 2026-09-17
+- [x] Pricing v4 — Fund A$999 · Intake link A$249 · Index API A$299 · Cohort 25/100 public (0400 + 10 Stripe mints, founder-authorised) — live 2026-09-17; `docs/pricing-upgrade-plan-2026-07-16.md` § v4
+- [ ] Evaluator GTM 90 days — 10 interviews (`docs/research/evaluator-interviews-2026-09.md`), pilot offer v2 (free cohort scoring, admin credit grant, cap 5), intake wedge; D30/D60/D90 in `g14-investor-feedback-2026-09-16/01-gtm-evaluators-90d.md` — founder-led, in progress
 
 ## Reconciliation 2026-09-11
 
