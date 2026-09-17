@@ -97,6 +97,17 @@ export interface AnalyticsEventMap {
   consensus_viewed: { evaluation_id: string; seats: number };
   /** G13 (S-D3, §C.5): an intro was requested — `channel` mailto (Scout) or crm (Firm/Program → investor_contacts; founder side → investor notified). */
   intro_requested: { channel: "mailto" | "crm"; side: "evaluator" | "founder" };
+  /**
+   * G14 (S34): founder feedback letter "What investors said". `sent` and
+   * `opened` are emitted server-side (cron / GET /api/founder/feedback-letter
+   * — see lib/analytics/events.ts); `viewed` fires once per landing mount of
+   * the block, `action_clicked` on one of its three next-action CTAs.
+   * `weakest_dim` = FTV … SVM; never an evaluator id.
+   */
+  feedback_letter_sent: { letter_id: string; k: number; org_count: number; weakest_dim: string };
+  feedback_letter_opened: { letter_id: string; k: number; weakest_dim: string };
+  feedback_letter_viewed: { letter_id: string; k: number; weakest_dim: string; phase: string };
+  feedback_action_clicked: { letter_id: string; action_id: string; dimension: string; href: string };
   /** G13 (S-D2 E1.4, §C.5): the founder taxonomy confirmation card rendered (unconfirmed row). */
   taxonomy_card_viewed: { project_id: string; unclassified_count: number };
   /** G13 (S-D2 E1.4, §C.5): the founder confirmed the classification; `changed_fields` = axes edited before confirming. */

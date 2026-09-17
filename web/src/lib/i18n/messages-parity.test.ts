@@ -211,3 +211,35 @@ describe("intake.* catalogue parity (en ⇄ vi) — G14 S35 /apply/[slug]", () =
     for (const reason of ["closed", "not_open_yet", "window_closed", "full"]) expect(EN[`intake.closed.${reason}`], reason).toBeTruthy();
   });
 });
+
+// G14-S34 — the founder feedback letter (lib/evaluations/feedback-letter.ts
+// renderLetter reads these for EN and VI; the landing block, the email and
+// the assessor opt-out checkbox share the prefix). A missing VI key would
+// render an English sentence inside a Vietnamese letter.
+describe("feedback.* catalogue parity (en ⇄ vi) — G14-S34", () => {
+  const tokens = (s: string) => (s.match(/\{\w+\}/g) ?? []).sort();
+
+  it("every feedback.* key exists in both catalogues and none is empty", () => {
+    const missingInVi = enKeys("feedback.").filter((k) => !(k in VI));
+    const missingInEn = viKeys("feedback.").filter((k) => !(k in EN));
+    expect(missingInVi, "missing in vi.json").toEqual([]);
+    expect(missingInEn, "missing in en.json").toEqual([]);
+    expect(enKeys("feedback.").length).toBeGreaterThanOrEqual(20);
+    for (const k of enKeys("feedback.")) {
+      expect(EN[k].trim(), k).not.toBe("");
+      expect(VI[k].trim(), k).not.toBe("");
+    }
+  });
+
+  it("the {tokens} an EN string interpolates are the same tokens in its VI twin", () => {
+    for (const k of enKeys("feedback.")) expect(tokens(VI[k]), k).toEqual(tokens(EN[k]));
+  });
+
+  it("the letter never names an evaluator, decision or conviction and states the k-floor (D3 / F-5)", () => {
+    const en = enKeys("feedback.letter.").map((k) => EN[k]).join("\n");
+    expect(en).not.toMatch(/PhD/);
+    expect(en).toMatch(/at least 3 evaluators from at least 2 organisations/);
+    expect(en).toMatch(/never identified/);
+    expect(EN["feedback.optOut.label"]).toBe("Exclude my ratings from the founder's anonymised feedback letter");
+  });
+});

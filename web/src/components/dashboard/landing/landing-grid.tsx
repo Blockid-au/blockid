@@ -13,8 +13,8 @@ import type { LandingBlockName } from "./landing-blocks";
 
 export { LandingCta, LandingViewedTracker, landingClickPayload, landingViewedPayload } from "./landing-tracker";
 // Server-safe catalogue (plain module — see landing-blocks.ts).
-export { LANDING_BLOCKS } from "./landing-blocks";
-export type { LandingBlockName } from "./landing-blocks";
+export { LANDING_BLOCKS, OPTIONAL_LANDING_BLOCKS, landingBlocksFor } from "./landing-blocks";
+export type { LandingBlockName, LandingBlockFlags } from "./landing-blocks";
 export type { LandingContext } from "./landing-tracker";
 
 export function LandingGrid({ children }: { children: ReactNode }) {
@@ -27,8 +27,8 @@ export function LandingGrid({ children }: { children: ReactNode }) {
 
 export interface LandingBlockProps {
   name: LandingBlockName;
-  /** 1-based benefit order — rendered as the eyebrow prefix. */
-  order: 1 | 2 | 3 | 4 | 5;
+  /** 1-based benefit order — rendered as the eyebrow prefix (6 = the optional "What investors said"). */
+  order: 1 | 2 | 3 | 4 | 5 | 6;
   title: string;
   icon: LucideIcon;
   empty?: boolean;
@@ -38,14 +38,17 @@ export interface LandingBlockProps {
   aside?: ReactNode;
   /** Footer slot — the block's ONE primary CTA. */
   cta?: ReactNode;
+  /** DOM id for deep links (the feedback-letter email lands on `#what-investors-said`). */
+  id?: string;
   children: ReactNode;
   className?: string;
 }
 
-export function LandingBlock({ name, order, title, icon: Icon, empty = false, span, aside, cta, children, className }: LandingBlockProps) {
+export function LandingBlock({ name, order, title, icon: Icon, empty = false, span, aside, cta, id, children, className }: LandingBlockProps) {
   const headingId = `landing-${name}-heading`;
   return (
     <article
+      id={id}
       data-landing-block={name}
       data-landing-empty={empty ? "true" : undefined}
       aria-labelledby={headingId}

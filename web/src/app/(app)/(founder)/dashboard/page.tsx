@@ -31,14 +31,16 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { OnboardingWelcomeModal } from "@/components/dashboard/onboarding-welcome-modal";
 import { RoleLandingIntro } from "@/components/role/role-landing-intro";
-import { LandingGrid, LandingViewedTracker, LANDING_BLOCKS, type LandingContext } from "@/components/dashboard/landing/landing-grid";
+import { LandingGrid, LandingViewedTracker, landingBlocksFor, type LandingContext } from "@/components/dashboard/landing/landing-grid";
 import { WhereYouStand } from "@/components/dashboard/landing/where-you-stand";
 import { NextBestAction } from "@/components/dashboard/landing/next-best-action";
 import { MoneyOnTheTable } from "@/components/dashboard/landing/money-on-the-table";
 import { EvidenceToAdd } from "@/components/dashboard/landing/evidence-to-add";
 import { YourReports } from "@/components/dashboard/landing/your-reports";
+import { WhatInvestorsSaid } from "@/components/dashboard/landing/what-investors-said";
 import { getMoneyRadarTileData } from "@/lib/funding/tile-data";
-import { loadEvidenceReads, loadRecentReports, loadStanding, type LandingKeys } from "@/lib/dashboard/landing-data";
+import { loadEvidenceReads, loadFeedbackLetter, loadRecentReports, loadStanding, type LandingKeys } from "@/lib/dashboard/landing-data";
+import { getLocale } from "@/lib/i18n";
 import { deriveEvidenceGaps } from "@/lib/dashboard/evidence-gaps";
 import { recommendNextStep } from "@/lib/nav/next-step-recommender";
 import { growthPhaseFromNavPhase, navPhaseFromSvi, resolveFounderNavPhase } from "@/lib/nav/founder-phase";
@@ -86,7 +88,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
   // ── Five loaders, one round ───────────────────────────────────────────────
   const accountId = await resolveSVIAccountIdForPage(scope, user);
   const keys: LandingKeys = { dataEmail, projectId, ownerUserId, callerId: user.id, accountId };
-  const [standing, moneyRadar, evidenceReads, reports, isSandbox] = await Promise.all([
+  const [standing, moneyRadar, evidenceReads, reports, isSandbox, feedbackLetter, locale] = await Promise.all([
     loadStanding(supabase, keys),
     isMember
       ? Promise.resolve(null)
@@ -97,6 +99,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
     loadEvidenceReads(supabase, keys),
     loadRecentReports(supabase, keys, 3),
     getCurrentProjectIsSandbox(),
+    // G14-S34 — optional block 6, only when a letter exists (never throws).
+    loadFeedbackLetter(supabase, keys),
+    getLocale().catch(() => "en" as const),
   ]);
 
   // ── Phase + derived values ────────────────────────────────────────────────
@@ -121,12 +126,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
     signals: {
       topEvidenceGapPts: evidence.gaps[0]?.pts ?? null,
       topMoney: topMoney ? { label: topMoney.name, amountAud: topMoney.amount_max_aud, closesAt: topMoney.closes_at } : null,
+      // G14-S34: the weakest evaluator-rated dimension from the feedback letter.
+      feedbackWeakestDim: feedbackLetter?.aggregate?.weakestDim ?? null,
     },
   });
   const percentile = sviScore != null ? Math.round(getSVIPercentile(sviScore, analysis?.stage ?? navPhase)) : null;
   const startupName = activeProject?.name ?? standing.startupName ?? user.startupName ?? null;
   const ctx: LandingContext = { phase: effectivePhase ?? "none", plan: user.plan ?? "free", persona: "founder" };
-  const blocks = isMember ? LANDING_BLOCKS.filter((b) => b !== "money-on-the-table") : LANDING_BLOCKS;
+  const blocks = landingBlocksFor({ isMember, hasFeedbackLetter: Boolean(feedbackLetter) });
   const emptyBlocks = [
     sviScore == null && "where-you-stand",
     step.href === "/analyze" && "next-best-action",
@@ -182,6 +189,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
           {!isMember && <MoneyOnTheTable ctx={ctx} data={moneyRadar} />}
           <EvidenceToAdd ctx={ctx} result={evidence} canEdit={canEdit} />
           <YourReports ctx={ctx} reports={reports} />
+          {feedbackLetter ? <WhatInvestorsSaid ctx={ctx} letter={feedbackLetter} locale={locale} canEdit={canEdit} /> : null}
         </LandingGrid>
       </div>
     </WorkspaceLayout>

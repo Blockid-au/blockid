@@ -28,6 +28,7 @@ import { getSupabaseAdmin } from "./supabase";
 import { resellerFooterHtml } from "./reseller/email-footer";
 import { resolveResellerDisplayNameByEmail } from "./reseller/email-attribution";
 import { buildWholesaleWelcomeEmail } from "./reseller/wholesale-welcome-email";
+import { renderFounderFeedbackLetterEmail, type FeedbackLetterEmailInput } from "./evaluations/feedback-letter-email";
 
 const FROM_DEFAULT = "BlockID.au <info@blockid.au>";
 
@@ -87,6 +88,8 @@ async function sendViaResend(args: {
   to: string;
   subject: string;
   html: string;
+  /** Plain-text twin (multipart/alternative) — G14-S34 feedback letter. */
+  text?: string;
   fromName?: string | null;
   attachments?: { filename: string; content: Buffer | Uint8Array | string; contentType?: string; cid?: string }[];
 }): Promise<SendResult> {
@@ -129,6 +132,7 @@ async function sendViaResend(args: {
         to: [args.to],
         subject: args.subject,
         html: args.html,
+        ...(args.text && { text: args.text }),
         ...(resendAttachments?.length && { attachments: resendAttachments }),
       }),
     });
@@ -151,6 +155,8 @@ export async function sendEmail(args: {
   to: string;
   subject: string;
   html: string;
+  /** Optional plain-text twin — sent as multipart/alternative by both providers (G14-S34). */
+  text?: string;
   unsubscribeUrl?: string;
   /** S26-A — display name on the platform sender ("<name> via BlockID.au"); the address never changes. */
   fromName?: string | null;
@@ -172,6 +178,7 @@ export async function sendEmail(args: {
         to: args.to,
         subject: args.subject,
         html: args.html,
+        ...(args.text && { text: args.text }),
         headers,
         ...(args.attachments?.length && {
           attachments: args.attachments.map((a) => ({
@@ -196,6 +203,7 @@ export async function sendEmail(args: {
       to: args.to,
       subject: args.subject,
       html: args.html,
+      text: args.text,
       fromName: args.fromName,
       attachments: args.attachments,
     });
@@ -3296,4 +3304,44 @@ export async function sendFirstAnalysisReportEmail(params: {
   });
 
   return result;
+}
+
+// ---------- G14-S34 — founder feedback letter "What investors said" ---------
+//
+// Rendered by lib/evaluations/feedback-letter-email.ts (pure: plain text +
+// HTML from the stored letter markdown + the three next actions). Category
+// `svi_alerts` (the letter is a score-shaped signal about the founder's own
+// startup, not a promotion); the Spam Act footer + List-Unsubscribe come
+// from complianceFooter(). Returns the provider message id so the cron can
+// stamp `founder_feedback_letters.email_message_id`.
+
+export async function sendFounderFeedbackLetter(args: {
+  to: string;
+  displayName: string | null;
+  startupName: string | null;
+  aggregate: FeedbackLetterEmailInput["aggregate"];
+  letterMd: string;
+  nextActions: FeedbackLetterEmailInput["nextActions"];
+}): Promise<SendResult & { subject?: string }> {
+  if (!(await canSendEmail(args.to, "svi_alerts"))) return { ok: false, reason: "unsubscribed" };
+  const footer = await complianceFooter(args.to, { theme: "light" });
+  const rendered = renderFounderFeedbackLetterEmail({
+    aggregate: args.aggregate,
+    letterMd: args.letterMd,
+    nextActions: args.nextActions,
+    startupName: args.startupName,
+    displayName: args.displayName,
+    siteUrl: siteUrl(),
+    footerHtml: footer.footerHtml,
+    footerText: footer.footerText,
+  });
+  const result = await sendEmail({
+    to: args.to,
+    subject: rendered.subject,
+    html: rendered.html,
+    text: rendered.text,
+    unsubscribeUrl: footer.unsubscribeUrl,
+  });
+  console.info("[blockid:email] feedback letter", { to: redactEmail(args.to), ok: result.ok, k: args.aggregate.k });
+  return { ...result, subject: rendered.subject };
 }

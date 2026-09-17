@@ -63,6 +63,11 @@ export const NOTIFICATION_KINDS = [
   // G13 S-D3 block 3: an evaluator asked the claimed founder for the next
   // consent tier (reports_shared → full_mentor). One per tier per 24 h.
   "access_requested",
+  // G14 S34: the founder's anonymised "What investors said" letter is ready
+  // (k ≥ 3 assessors from ≥ 2 orgs). Written by /api/cron/feedback-letters
+  // once per letter (dedupe key = letter id); payload {letter_id, k, orgs,
+  // weakest_dim, startup} — never an evaluator, decision or note.
+  "feedback_letter",
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -125,6 +130,7 @@ export const KIND_LABELS: Record<NotificationKind, string> = {
   ai_capacity: "AI capacity",
   intro_requested: "Intro requested",
   access_requested: "Access requested",
+  feedback_letter: "What investors said",
 };
 
 function s(v: unknown): string | null {
@@ -337,6 +343,17 @@ export function describeNotification(row: FounderNotificationRow): string {
       const requested = s(p.requested) === "full_mentor" ? "full-mentor (data-room) access" : "your reports";
       return `${who} asked to see ${requested} on ${s(p.startup) ?? "your startup"}`;
     }
+    case "feedback_letter": {
+      // G14 S34: { letter_id, k, orgs, weakest_dim, startup } from the feedback-letters cron.
+      const k = n(p.k);
+      const orgs = n(p.orgs);
+      const startup = s(p.startup) ?? "your startup";
+      const weakest = s(p.weakest_dim);
+      const who = k !== null && orgs !== null ? `${k} evaluators from ${orgs} organisations` : "Evaluators";
+      return weakest
+        ? `${who} shared their combined view of ${startup} — they rated ${weakest} lowest`
+        : `${who} shared their combined view of ${startup}`;
+    }
     default:
       return row.kind;
   }
@@ -395,6 +412,8 @@ export function notificationAction(row: FounderNotificationRow): { href: string;
         : { href: s(p.project_id) ? `/workspace/investor/startup/${s(p.project_id)}` : "/workspace/investor/dealflow", label: "Open the startup" };
     case "access_requested":
       return { href: "/workspace/investors/access", label: "Review access" };
+    case "feedback_letter":
+      return { href: "/dashboard#what-investors-said", label: "Read the letter" };
     default:
       return null;
   }

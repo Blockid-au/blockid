@@ -14,6 +14,7 @@
 
 import type { DossierView } from "@/lib/evaluations/dossier";
 import { prefillFromFit } from "@/lib/evaluations/assessment-prefill";
+import { readFeedbackOptOut } from "@/lib/evaluations/feedback-letter-store";
 import { AssessmentForm } from "./assessment-form";
 import { FounderPreview } from "./founder-preview";
 import { SeatsConsensus } from "../seats-consensus";
@@ -27,7 +28,12 @@ export async function AssessmentBlock({ view }: { view: DossierView }) {
   } else if (!a.available) {
     body = <p data-testid="assessment-unavailable">Assessment not available yet — the assessments table (migration 0392) has not been applied on this environment.</p>;
   } else {
-    const prefill = a.mine ? null : await prefillFromFit({ userId: view.viewer.userId, projectId: view.header.projectId }).catch(() => null);
+    const [prefill, feedbackOptOut] = await Promise.all([
+      a.mine ? Promise.resolve(null) : prefillFromFit({ userId: view.viewer.userId, projectId: view.header.projectId }).catch(() => null),
+      // G14-S34: null while 0406 is missing or no row exists yet → the
+      // checkbox stays hidden; false/true once the seat has a row.
+      a.mine ? readFeedbackOptOut(view.header.evaluationId, view.viewer.userId).catch(() => null) : Promise.resolve(null),
+    ]);
     body = (
       <AssessmentForm
         evaluationId={view.header.evaluationId}
@@ -38,6 +44,7 @@ export async function AssessmentBlock({ view }: { view: DossierView }) {
         aiDims={view.report.dims}
         criteria={view.report.criteria}
         founderClaimed={view.header.founderClaimed}
+        feedbackOptOut={feedbackOptOut}
       />
     );
   }
