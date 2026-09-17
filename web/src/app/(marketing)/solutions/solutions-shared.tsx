@@ -92,9 +92,8 @@ export type SolutionSlug =
 export const EVALUATOR_SIGNUP_HREF = {
   investor: "/signup?segment=evaluator&plan=investor_angel&trial=1",
   advisor: "/signup?segment=evaluator&plan=investor_advisor&trial=1",
-  // Pricing v4 (2026-09-16): programs will land on the Intake link once its
-  // Stripe price is minted (see ACCELERATOR_PILOT_HREF); Program until then.
-  accelerator: "/signup?segment=evaluator&plan=investor_vc_small&trial=1",
+  // Pricing v4 (2026-09-16): programs land on the Intake link (14-day trial).
+  accelerator: "/signup?segment=evaluator&plan=accelerator_intake&trial=1",
 } as const;
 
 /** The pricing page's evaluator view, for the evaluator pages' secondary CTA. */

@@ -339,7 +339,7 @@ test.describe("Post-deploy hydrated smoke", () => {
     expect(await table.getByRole("row").count()).toBeGreaterThan(3);
   });
 
-  test("/solutions/accelerator — pilot offer CTA links an evaluator trial (Program until Intake is minted)", async ({
+  test("/solutions/accelerator — pilot offer CTA links the Intake link trial (pricing v4)", async ({
     page,
   }) => {
     test.setTimeout(15_000);
@@ -353,7 +353,7 @@ test.describe("Post-deploy hydrated smoke", () => {
     // tracks the constant, not the founder's Stripe timing.
     await expect(link).toHaveAttribute(
       "href",
-      /\/signup\?plan=(accelerator_intake|investor_vc_small)&trial=1&from=pilot/,
+      /\/signup\?plan=accelerator_intake&trial=1&from=pilot/,
     );
   });
 
