@@ -51,6 +51,7 @@ import { fromAssembledReport, fromSnapshot, type SnapshotDimState } from "@/lib/
 import { writeAssembledReportJson, writeSnapshotReportV2 } from "@/lib/report-v2/storage";
 import { loadCapTableInput } from "@/lib/svi/cap-table-input";
 import { effectiveConfidenceLevel } from "@/lib/svi/rescore-from-evidence";
+import { applyFounderExecution } from "@/lib/founder/execution-load";
 import type { GatherDb } from "@/lib/report-pipeline/gather";
 
 // ---------------------------------------------------------------------------
@@ -742,8 +743,13 @@ export async function runTrustReportForProject(args: {
     });
     // S-R5 §C.7: the equity register feeds CGH (fail-soft: null → keyword score).
     const capTableInput = await loadCapTableInput(getSupabaseAdmin() as unknown as GatherDb | null, project.userId, project.id);
+    // G14-S37: the owner's structured founder profile overrides the regex founder flags (fail-soft).
+    const { signals } = await applyFounderExecution(
+      extractSignals({ rawText: rawInput }, undefined, loadEvidenceItems(await loadEvidence(account.id))),
+      { accountId: project.userId, email: ownerEmail, projectId: project.id },
+    );
     // G14-S36 (F-6): the project's verification level scales the confidence (null → unchanged).
-    const analysis = computeSVI(extractSignals({ rawText: rawInput }, undefined, loadEvidenceItems(await loadEvidence(account.id))), undefined, undefined, undefined, undefined, undefined, undefined, capTableInput, project.verificationLevel ?? null);
+    const analysis = computeSVI(signals, undefined, undefined, undefined, undefined, undefined, undefined, capTableInput, project.verificationLevel ?? null);
     const analysisId = await insertAnalysisRow({ email: ownerEmail, projectId: project.id, rawInput, analysis });
     if (!analysisId) throw new Error("analysis_insert_failed");
     synthesisedAnalysis = true;
@@ -882,8 +888,13 @@ export async function runRescoreForProject(args: {
   const evidenceRows = await loadEvidence(account.id);
   // S-R5 §C.7: the equity register feeds CGH (fail-soft: null → keyword score).
   const capTableInput = await loadCapTableInput(getSupabaseAdmin() as unknown as GatherDb | null, project.userId, project.id);
+  // G14-S37: the owner's structured founder profile overrides the regex founder flags (fail-soft).
+  const { signals } = await applyFounderExecution(
+    extractSignals({ rawText: rawInput }, undefined, loadEvidenceItems(evidenceRows)),
+    { accountId: project.userId, email: ownerEmail, projectId: project.id },
+  );
   // G14-S36 (F-6): the project's verification level scales the confidence (null → unchanged).
-  const analysis = computeSVI(extractSignals({ rawText: rawInput }, undefined, loadEvidenceItems(evidenceRows)), undefined, undefined, undefined, undefined, undefined, undefined, capTableInput, project.verificationLevel ?? null);
+  const analysis = computeSVI(signals, undefined, undefined, undefined, undefined, undefined, undefined, capTableInput, project.verificationLevel ?? null);
   const analysisId = await insertAnalysisRow({ email: ownerEmail, projectId: project.id, rawInput, analysis });
   if (!analysisId) throw new Error("analysis_insert_failed");
 
