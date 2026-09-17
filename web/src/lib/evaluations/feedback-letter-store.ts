@@ -11,7 +11,7 @@
 import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { ASSESSMENT_COLUMNS, mapAssessmentRow, type EvaluationAssessment } from "@/lib/evaluations/assessments";
-import { snapshotDimScores } from "@/lib/evaluations/dossier";
+import { DIM_ORDER, type DimKey } from "@/lib/report-pipeline/dimension-owners";
 import type { FeedbackAggregate, FeedbackNextAction, LatestSviForFeedback } from "@/lib/evaluations/feedback-letter";
 
 type Row = Record<string, unknown>;
@@ -50,6 +50,26 @@ export function isMissingRelation(error: { code?: string; message?: string } | n
   if (error.code === "42P01" || error.code === "42703" || error.code === "PGRST204") return true;
   const m = (error.message ?? "").toLowerCase();
   return m.includes("does not exist") || m.includes("schema cache") || m.includes("could not find the");
+}
+
+/**
+ * Bare per-dimension numbers from a snapshot row — the same shape
+ * `snapshotDimScores` in dossier.ts reads (dim_results[k].score, else
+ * dimension_scores[k] as a number or {score}). Re-implemented here so the
+ * founder landing does not pull the whole dossier / report-pipeline graph
+ * (a 3 s transform in the page test) for one lookup.
+ */
+export function snapshotDimScoresLite(row: { dim_results?: unknown; dimension_scores?: unknown }): Partial<Record<DimKey, number>> {
+  const out: Partial<Record<DimKey, number>> = {};
+  const dr = row.dim_results && typeof row.dim_results === "object" ? (row.dim_results as Record<string, Row>) : null;
+  const ds = row.dimension_scores && typeof row.dimension_scores === "object" ? (row.dimension_scores as Record<string, unknown>) : {};
+  for (const k of DIM_ORDER) {
+    const v = dr?.[k];
+    const raw = v && typeof v === "object" ? (v as Row).score : ds[k];
+    const score = typeof raw === "number" ? raw : raw && typeof raw === "object" ? (raw as Row).score : raw;
+    if (typeof score === "number" && Number.isFinite(score)) out[k] = score;
+  }
+  return out;
 }
 
 const str = (v: unknown): string | null => (v == null ? null : String(v));
@@ -194,7 +214,7 @@ export async function readLatestSviForProject(projectId: string, growthPhaseId: 
     return {
       totalSVI: total,
       stage: num(row.stage, 0),
-      subs: snapshotDimScores({ dim_results: row.dim_results, dimension_scores: row.dimension_scores }),
+      subs: snapshotDimScoresLite({ dim_results: row.dim_results, dimension_scores: row.dimension_scores }),
       growthPhaseId,
     };
   } catch {

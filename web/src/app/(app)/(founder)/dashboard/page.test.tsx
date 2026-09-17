@@ -235,6 +235,53 @@ describe("/dashboard — five blocks (G13-W3-IA3 §B.1)", () => {
     expect(dataAttr(out, "shell-phase")).toBe("0");
   });
 
+  it("G14-S34: a founder_feedback_letters row appends block 6 (six blocks, deep-link id, weakest-dim signal on block 2); none → five blocks", async () => {
+    sb.rows.founder_feedback_letters = [
+      {
+        id: "l-1",
+        project_id: "p-eval",
+        founder_user_id: state.callerId,
+        evaluation_ids: ["e-1", "e-2", "e-3"],
+        k: 3,
+        org_count: 2,
+        window_start: null,
+        window_end: "2026-09-20T00:00:00.000Z",
+        aggregate: {
+          k: 3,
+          orgCount: 2,
+          evaluationIds: ["e-1", "e-2", "e-3"],
+          dimensions: [{ key: "TRE", mean: 1.7, n: 3, agreePct: 25, disagreePct: 50 }],
+          weakestDim: "TRE",
+          strongestDim: "TRE",
+          risks: [],
+          questions: [],
+          generatedAt: "g",
+        },
+        letter_md: "## What investors said\n\nBody.",
+        letter_md_vi: null,
+        next_actions: [{ id: "tre-01", title: "Connect Stripe or Xero", rationale: "r", dimension: "TRE", sviBenefit: 15, effort: "low", timeToComplete: "1 day", href: "/workspace/finance/revenue" }],
+        status: "sent",
+        sent_at: "s",
+        opened_at: null,
+        email_message_id: "<m>",
+        created_at: "c",
+      },
+    ];
+    const out = await html();
+    expect(blockOrder(out)).toEqual([...BLOCKS, "what-investors-said"]);
+    expect(out).toContain('id="what-investors-said"');
+    expect(out).toContain("Based on 3 evaluators from 2 organisations");
+    expect(ctaHref(out, "what-investors-said")).toBe("/workspace/finance/revenue");
+    expect(dataAttr(out, "viewed-blocks")).toBe([...BLOCKS, "what-investors-said"].join(","));
+    expect(sb.hasEq("founder_feedback_letters", "founder_user_id", state.callerId)).toBe(true);
+    // the letter never appears in the viewed-empty list and never leaks the message id
+    expect(dataAttr(out, "viewed-empty")).toBe("");
+    expect(out).not.toContain("&lt;m&gt;");
+    // no letter → the five blocks exactly (phase-0 contract)
+    sb.rows.founder_feedback_letters = [];
+    expect(blockOrder(await html())).toEqual([...BLOCKS]);
+  });
+
   it("a failed Money Radar read degrades block 3 to its empty state and never breaks the landing", async () => {
     tileMock.mockRejectedValue(new Error("boom"));
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});

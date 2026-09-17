@@ -42,6 +42,7 @@ import {
   readFeedbackOptOut,
   readProjectAssessments,
   setFeedbackOptOut,
+  snapshotDimScoresLite,
 } from "./feedback-letter-store";
 
 const MISSING = { code: "42P01", message: 'relation "public.founder_feedback_letters" does not exist' };
@@ -72,6 +73,14 @@ beforeEach(() => {
   state.calls.length = 0;
   state.available = true;
   vi.spyOn(console, "error").mockImplementation(() => {});
+});
+
+describe("snapshotDimScoresLite", () => {
+  it("reads dim_results[k].score first, then dimension_scores[k] as a number or {score}; ignores junk", () => {
+    expect(snapshotDimScoresLite({ dim_results: { tre: { score: 41 }, ftv: { score: "x" } }, dimension_scores: { ftv: 60, mpc: { score: 33 }, ptd: "bad", cgh: null } })).toEqual({ tre: 41, mpc: 33 });
+    expect(snapshotDimScoresLite({ dimension_scores: { ftv: 60, svm: { score: 12 } } })).toEqual({ ftv: 60, svm: 12 });
+    expect(snapshotDimScoresLite({})).toEqual({});
+  });
 });
 
 describe("isMissingRelation", () => {

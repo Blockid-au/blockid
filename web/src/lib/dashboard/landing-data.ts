@@ -13,6 +13,8 @@
 import "server-only";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { latestIntakeAnalysisForUser } from "@/lib/analyses/dashboard-bridge";
+import { FEEDBACK_LETTER_COLUMNS, isMissingRelation, mapLetterRow, type FeedbackLetterRow } from "@/lib/evaluations/feedback-letter-store";
+import { findForbiddenKey } from "@/lib/evaluations/feedback-letter";
 
 /** Keys from `pageScopeKeys()` + the resolved svi_accounts id. */
 export interface LandingKeys {
@@ -187,5 +189,39 @@ export async function loadRecentReports(sb: LandingClient | null, keys: LandingK
   } catch (err) {
     console.warn("[landing] reports read failed", err instanceof Error ? err.message : String(err));
     return [];
+  }
+}
+
+// ─── Block 6 · What investors said (G14-S34, optional) ───────────────────────
+
+/**
+ * The founder's newest feedback letter, or null (no letter yet, migration
+ * 0404 missing, member whose owner has none, or a failed read). Keyed on the
+ * OWNER's user id — the letter is addressed to the founder who claimed the
+ * evaluations, and a member sees the owner's letter read-only (§B.4).
+ */
+export async function loadFeedbackLetter(sb: LandingClient | null, keys: LandingKeys): Promise<FeedbackLetterRow | null> {
+  if (!sb) return null;
+  const founderId = keys.ownerUserId ?? keys.callerId;
+  if (!founderId) return null;
+  try {
+    const { data, error } = await q(sb, "founder_feedback_letters")
+      .select(FEEDBACK_LETTER_COLUMNS)
+      .eq("founder_user_id", founderId)
+      .order("window_end", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      if (!isMissingRelation(error as { code?: string; message?: string })) console.warn("[landing] feedback letter read failed", (error as { message?: string }).message);
+      return null;
+    }
+    if (!data) return null;
+    const letter = mapLetterRow(data as Record<string, unknown>);
+    // Defence in depth — never render a row that carries a forbidden key.
+    if (findForbiddenKey({ aggregate: letter.aggregate, next_actions: letter.nextActions })) return null;
+    return letter;
+  } catch (err) {
+    console.warn("[landing] feedback letter read failed", err instanceof Error ? err.message : String(err));
+    return null;
   }
 }
