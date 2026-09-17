@@ -7,7 +7,6 @@
 
 LOG_PREFIX="[ai-guardian]"
 CRED_FILE="$HOME/.claude/.credentials.json"
-CODEX_FILE="$HOME/.codex/auth.json"
 WEB_DIR="$HOME/blockid.au/web"
 
 # ── 1. Claude OAuth check + refresh ─────────────────────────────────────
@@ -45,22 +44,9 @@ else
   echo "$LOG_PREFIX No Claude credentials found"
 fi
 
-# ── 2. Codex OAuth check + refresh ──────────────────────────────────────
-if [ -f "$CODEX_FILE" ]; then
-  CODEX_TOKEN=$(python3 -c "import json;d=json.load(open('$CODEX_FILE'));print(d.get('tokens',{}).get('access_token',''))" 2>/dev/null)
-
-  # Test if token works (quick check)
-  HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' "https://api.openai.com/v1/models" -H "Authorization: Bearer $CODEX_TOKEN" 2>/dev/null)
-
-  if [ "$HTTP_CODE" != "200" ]; then
-    echo "$LOG_PREFIX Codex token expired (HTTP $HTTP_CODE) — refreshing..."
-    bash "$WEB_DIR/scripts/refresh-codex-oauth.sh" 2>&1
-  else
-    echo "$LOG_PREFIX Codex OK"
-  fi
-fi
-
-# ── 3. Test AI health via the app ────────────────────────────────────────
+# ── 2. Test AI health via the app ────────────────────────────────────────
+# (Codex refresh removed 2026-09-17 — Codex is excluded from the AI provider
+#  chain in ai-client.ts and the JWT-exp refresh here never actually worked.)
 if [ -f "$WEB_DIR/.env" ]; then
   CRON_SECRET=$(grep 'CRON_SECRET=' "$WEB_DIR/.env" | head -1 | cut -d= -f2)
   if [ -n "$CRON_SECRET" ]; then
