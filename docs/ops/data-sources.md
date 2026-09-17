@@ -86,6 +86,14 @@ A dry smoke run that needs no network and no DB:
 node web/scripts/external-signals/ingest.mjs --dry --source business-gov-grants --file web/scripts/external-signals/fixtures/grants-sample.csv --limit 5
 ```
 
+## 5b. Operations notes (2026-09-17)
+
+- **First ingest numbers:** R&DTI transparency 13,128 rows; ABR bulk 12,827 entities, ingested from **all 20 split files** in the extract directory (not just the newest single file — the extract ships as 20 XML parts and the allow-set spans every known ABN across all of them).
+- **The weekly cron line needed a heap bump.** The first `abr-bulk` run OOM'd at Node's default (~1 GB) heap; `web/scripts/crontab.production` now runs `nice -n 15 node --max-old-space-size=6144 --env-file=.env scripts/external-signals/ingest.mjs` (6 GB heap, niced so it never contends with request-serving Node processes, `.env` loaded via `--env-file` rather than dotenv).
+- **`abr-bulk` defaults to the whole extract directory**, not the newest single file — a partial run against one split file silently under-counted the allow-set on the first attempt.
+- **The multi-GB ABR XML is deleted after each ingest** (it lives outside the repo under `~/blockid-data/external-signals/abr-bulk/` and is not something the periodic server reset should ever have to account for); the next scheduled run re-fetches it fresh with `--fetch`.
+- **GrantConnect still needs a manual CSV export** — the site 403s non-browser clients, so `business-gov-grants` stays a by-hand step (§5 step 2) until a founder automates the export.
+
 ## 6. Operating rules
 
 - **Never** add a source by editing an adapter alone — the row in `external_sources` (via the catalogue + migration) is the licence record; the CLI refuses a mismatch.
