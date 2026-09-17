@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-17T01:46:01.656Z",
+  "git_sha": "093b2f49101523c5daa188832a73ea5cdfb87819",
+  "users": {
+    "total": 66,
+    "founders": 61,
+    "evaluators_by_plan": {
+      "investor_vc_small": 1,
+      "investor_advisor": 1,
+      "accelerator_starter": 2,
+      "investor_angel": 1
+    },
+    "excluded_count": 85
+  },
+  "analyses": {
+    "svi_analyses": 182,
+    "analyses": 230,
+    "guest_analyses_paid": 1
+  },
+  "tbr": {
+    "purchased": 0,
+    "shared": 0,
+    "views": 0
+  },
+  "evaluators": {
+    "trials": 0,
+    "paying_by_plan": {},
+    "reports_per_evaluator_p50": 0
+  },
+  "assessments": {
+    "submitted": 0,
+    "shared_with_founder": 0
+  },
+  "share_links": 0,
+  "api_keys_active": 0,
+  "webhooks_active": 0,
+  "mrr_aud_cents": {
+    "from_subscriptions": 0,
+    "from_revenue_events": 0,
+    "stripe_reconciled": true
+  },
+  "funnel_7d": {
+    "esic_gate.warn_missing": 90,
+    "feature_gate_hit": 60,
+    "legal_template_fetched": 23,
+    "dossier_view": 18,
+    "funding_report_paid": 5
+  },
+  "warnings": []
+}
