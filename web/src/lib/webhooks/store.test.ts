@@ -9,9 +9,51 @@ const packageMock = vi.fn(async (_db: unknown, opts: { userIds?: readonly string
 vi.mock("@/lib/funding/growth-extras", () => ({ listActiveStartupPackageUserIds: (db: unknown, o: { userIds?: readonly string[] }) => packageMock(db, o) }));
 
 import { fakeSupabase } from "@/test/fake-supabase";
-import { supabaseWebhookStore } from "./store";
+import { isMissingColumnError, supabaseWebhookStore } from "./store";
 
 const T = new Date("2026-09-12T04:00:00.000Z");
+
+const BASE_ROW = {
+  id: "e1",
+  user_id: "u",
+  project_id: null,
+  url: "https://x.example.com",
+  description: null,
+  secret_hash: "h",
+  secret_enc: "s",
+  events: ["svi.rescored"],
+  active: true,
+  failure_count: 0,
+  disabled_reason: null,
+  last_success_at: null,
+  last_failure_at: null,
+  created_at: "2026-09-12T00:00:00.000Z",
+  updated_at: "2026-09-12T00:00:00.000Z",
+};
+
+/** Minimal Db double: the FIRST insert() on `table` fails with `error`, every later insert (including the retry) succeeds. */
+function insertOnceFailingDb(table: string, error: { code?: string; message: string }, okRow: Record<string, unknown>) {
+  let attempt = 0;
+  const inserts: Array<Record<string, unknown>> = [];
+  const db = {
+    from: (t: string) => ({
+      insert: (row: Record<string, unknown>) => {
+        if (t === table) inserts.push(row);
+        return {
+          select: () => ({
+            single: async () => {
+              if (t !== table) return { data: null, error: null };
+              attempt += 1;
+              if (attempt === 1) return { data: null, error };
+              return { data: { ...okRow, ...row }, error: null };
+            },
+          }),
+        };
+      },
+    }),
+  };
+  return { db, inserts };
+}
 
 describe("supabaseWebhookStore", () => {
   it("returns null without a client (default getSupabaseAdmin → null)", () => {
@@ -113,5 +155,69 @@ describe("supabaseWebhookStore", () => {
     sb.rpc = async () => ({ data: null, error: { code: "57014", message: "canceling statement" } as never });
     await expect(store.recordFailure("e1")).rejects.toThrow("canceling statement");
     await expect(store.recordSuccess("e1")).rejects.toThrow("canceling statement");
+  });
+
+  it("isMissingColumnError: 42703 / PGRST204, or a 'column ... does not exist' message; anything else is false (never swallows a real failure)", () => {
+    expect(isMissingColumnError({ code: "42703", message: "x" })).toBe(true);
+    expect(isMissingColumnError({ code: "PGRST204", message: "x" })).toBe(true);
+    expect(isMissingColumnError({ message: 'column "kind" of relation "webhook_endpoints" does not exist' })).toBe(true);
+    expect(isMissingColumnError({ code: "23505", message: "duplicate key value violates unique constraint" })).toBe(false);
+    expect(isMissingColumnError(null)).toBe(false);
+    expect(isMissingColumnError(undefined)).toBe(false);
+  });
+
+  it("insertEndpoint (G14-S38, 0409 pending): a 42703/PGRST204 'column does not exist' on kind/destination_config_enc retries as a plain generic insert — never throws", async () => {
+    const { db, inserts } = insertOnceFailingDb(
+      "webhook_endpoints",
+      { code: "42703", message: 'column "kind" of relation "webhook_endpoints" does not exist' },
+      BASE_ROW,
+    );
+    const store = supabaseWebhookStore(db as never)!;
+    const row = await store.insertEndpoint({
+      user_id: "u",
+      project_id: null,
+      url: "https://hooks.slack.com/services/T0/B0/x",
+      description: null,
+      secret_hash: "h",
+      secret_enc: "s",
+      events: ["svi.rescored"],
+      kind: "slack",
+      destination_config_enc: "gcm:sealed",
+    });
+    // normaliseEndpointRow defaults the fallback-inserted row's (missing) kind to generic.
+    expect(row?.kind).toBe("generic");
+    expect(row?.destination_config_enc).toBeNull();
+    expect(inserts).toHaveLength(2);
+    expect(inserts[0]).toHaveProperty("kind", "slack");
+    expect(inserts[1]).not.toHaveProperty("kind");
+    expect(inserts[1]).not.toHaveProperty("destination_config_enc");
+  });
+
+  it("insertEndpoint: a plain generic insert (no kind/destination_config_enc in the row) never retries even on a column-missing error — the error surfaces", async () => {
+    const { db, inserts } = insertOnceFailingDb("webhook_endpoints", { code: "42703", message: "column does not exist" }, BASE_ROW);
+    const store = supabaseWebhookStore(db as never)!;
+    await expect(
+      store.insertEndpoint({ user_id: "u", project_id: null, url: "https://x.example.com", description: null, secret_hash: "h", secret_enc: "s", events: ["svi.rescored"] }),
+    ).rejects.toThrow("column does not exist");
+    expect(inserts).toHaveLength(1);
+  });
+
+  it("insertEndpoint: a non-column error on a kind-carrying insert is raised, not retried (a real failure must not be silently swallowed)", async () => {
+    const { db, inserts } = insertOnceFailingDb("webhook_endpoints", { code: "23505", message: "duplicate key value" }, BASE_ROW);
+    const store = supabaseWebhookStore(db as never)!;
+    await expect(
+      store.insertEndpoint({
+        user_id: "u",
+        project_id: null,
+        url: "https://hooks.slack.com/x",
+        description: null,
+        secret_hash: "h",
+        secret_enc: "s",
+        events: ["svi.rescored"],
+        kind: "slack",
+        destination_config_enc: "gcm:sealed",
+      }),
+    ).rejects.toThrow("duplicate key value");
+    expect(inserts).toHaveLength(1);
   });
 });
