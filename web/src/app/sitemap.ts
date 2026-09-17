@@ -713,6 +713,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.6,
     },
+    // G14-S36 — public scoring & verification methodology, with a VI mirror.
+    {
+      url: `${SITE_URL}/methodology`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.7,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/methodology`,
+          vi: `${SITE_URL}/vi/methodology`,
+          "x-default": `${SITE_URL}/methodology`,
+        },
+      },
+    },
+    {
+      url: `${SITE_URL}/vi/methodology`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/methodology`,
+          vi: `${SITE_URL}/vi/methodology`,
+          "x-default": `${SITE_URL}/methodology`,
+        },
+      },
+    },
     // `/idea-lab` and `/idea-clarify` are noindex redirect aliases of the
     // `/tools/*` twins listed above — only the canonical tool URLs are
     // advertised (release QA-1 #13 sweep).

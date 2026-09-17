@@ -80,6 +80,7 @@ import { buildAgentPrompt } from "./agent-prompts";
 import { AUDITOR_CAP_BY_TIER, auditSections, type AuditableSection } from "./llm-auditor";
 import { getAIBudgetStatus } from "@/lib/ai-client";
 import { DIM_ORDER, DIMENSION_OWNERS, criteriaForDimension, type DimKey } from "./dimension-owners";
+import { PIPELINE_VERSION } from "./version";
 import { precomputeModules } from "./module-precompute";
 import { GATHER_RESEARCH_CALLS, gatherData, type GatherDeps, type GatherOutput } from "./gather";
 import { buildValuationChapter, type ValuationAskInput, type VcValuationLike } from "./valuation-chapter";
@@ -317,6 +318,8 @@ export interface OrchestratorInput {
   deadlineMs?: number;
   /** Explicit growth phase (projects.growth_phase_current); inferred from criteria + dims otherwise. */
   phaseId?: string | null;
+  /** G14-S36: projects.verification_level (0–5) → ReportV2.cover.verification badge; falls back to the analysis' meta, then L0. */
+  verificationLevel?: number | null;
   /**
    * Optional intake context. When provided and `DYNAMIC_WAVES !== "false"`,
    * the orchestrator swaps the static WAVE_1/2/3 for phase-tuned waves via
@@ -991,8 +994,8 @@ export function criterionCardsFromChapters(context: ReportContext): CriterionCar
  * invalid projection logs and returns null (the caller keeps the adapter
  * path) — never a failed report.
  */
-/** Bumped whenever the generator's output shape / prompts change — the `svi_deck_cache` key is `deck_hash + pipeline_version`. */
-export const PIPELINE_VERSION = "pipeline-v2.1-s-r3";
+/** Bumped whenever the generator's output shape / prompts change — the `svi_deck_cache` key is `deck_hash + pipeline_version`. Lives in ./version.ts so /methodology can print it without importing the pipeline. */
+export { PIPELINE_VERSION };
 
 export function buildReportV2(
   report: AssembledReport,
@@ -1014,6 +1017,7 @@ export function buildReportV2(
       dimensionScores: input.sviAnalysis.dimensionScores ?? null,
       subs: input.sviAnalysis.subs,
       phaseId: context.phaseGate?.currentPhase ?? null,
+      verificationLevel: input.verificationLevel ?? input.sviAnalysis.meta?.verification?.level ?? null,
       tier: tierV2,
       locale: context.locale,
       vc: valuation?.vc ?? null,

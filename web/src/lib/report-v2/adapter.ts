@@ -34,12 +34,14 @@ import {
   VALUATION_METHOD_KEYS,
   type ActionStep,
   type AuditStamp,
+  type CoverVerification,
   type CriterionCard,
   type DimensionChapter,
   type ReportTierV2,
   type ReportV2,
   type ValuationChapter,
 } from "./schema";
+import { verificationBadgeLabel, verificationMeta } from "@/lib/verification/confidence-multiplier";
 
 // ── Inputs ──────────────────────────────────────────────────────────────────
 
@@ -90,6 +92,8 @@ export interface SnapshotInput {
   criterionStates?: SnapshotCriterionState[] | null;
   /** projects.growth_phase_current when the caller has it. */
   phaseId?: string | null;
+  /** G14-S36: projects.verification_level (0–5) when the caller has it; null/absent → L0 "ABN not verified". */
+  verificationLevel?: number | null;
   tier?: ReportTierV2;
   locale?: "en" | "vi";
   cohort?: CohortBenchmarkInput | null;
@@ -739,6 +743,7 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
       }),
       makeVisual({ id: "cover-three-questions", kind: "three_questions_strip", agentId: "ceo", title: "Where / Worth / Next", dataState: "real", data: { where: words(whereLine, 30), worth: words(worthLine, 30), next: words(nextLine, 30) } }),
     ],
+    verification: coverVerificationFor(input.verificationLevel),
   };
 
   const executive: ReportV2["executive"] = {
@@ -873,11 +878,21 @@ function fmtShort(v: number): string {
   return String(Math.round(v));
 }
 
+// ── G14-S36: cover verification badge ───────────────────────────────────────
+
+/** `projects.verification_level` → the cover block; unknown reads as L0 "ABN not verified". */
+export function coverVerificationFor(level: number | null | undefined): CoverVerification {
+  const meta = verificationMeta(level ?? 0);
+  return { level: meta.level, abnVerified: meta.abnVerified, label: verificationBadgeLabel(meta.level) };
+}
+
 // ── AssembledReport → ReportV2 ──────────────────────────────────────────────
 
 export interface AssembledReportContext {
   snapshotId?: string | null;
   projectId?: string | null;
+  /** G14-S36: projects.verification_level (0–5). */
+  verificationLevel?: number | null;
   accountId?: string | null;
   startupName?: string | null;
   industry?: string | null;
@@ -950,6 +965,7 @@ export function fromAssembledReport(report: Pick<AssembledReport, "id" | "tier" 
     dimStates,
     criterionStates,
     phaseId: ctx.phaseId,
+    verificationLevel: ctx.verificationLevel ?? null,
     tier,
     locale: ctx.locale,
     executiveSummary: report.executiveSummary,

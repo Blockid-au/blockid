@@ -111,7 +111,7 @@ const EVAL: Row = {
   id: "e-1", evaluator_user_id: "u-eval", project_id: "p-1", owner_kind: "founder_claimed", consent_tier: "reports_shared",
   founder_email: "jo@acme.io", founder_user_id: "u-founder", invite_token: "tok-secret", invited_at: null, claimed_at: "2026-09-01T00:00:00Z",
   label: "Cohort 4", notes: null, website: "https://acme.io", state: "NSW", created_at: "2026-08-20T00:00:00Z", updated_at: "2026-09-01T00:00:00Z",
-  projects: { id: "p-1", name: "Acme Robotics", slug: "acme-robotics", industry: "DeepTech", stage: 3, description: null, growth_phase_current: null },
+  projects: { id: "p-1", name: "Acme Robotics", slug: "acme-robotics", industry: "DeepTech", stage: 3, description: null, growth_phase_current: null, verification_level: 2 },
 };
 
 const DIMS = { tre: 61, mpc: 70, ftv: 55, ptd: 66, cgh: 48, iri: 52, lco: 40, svm: 58 };
@@ -219,6 +219,9 @@ describe("loadDossier — evaluator", () => {
     expect(h.founderClaimed).toBe(true);
     expect(h.lastSnapshotAt).toBe("2026-09-12T00:00:00Z");
     expect(h.evidence).toEqual({ items: 3, connected: 1, providers: ["stripe"] });
+    // S36: projects.verification_level joined on the evaluation read → the header badge (L2 = ABR Active).
+    expect(h.verification).toEqual({ level: 2, abnVerified: true, label: "Verified ABN" });
+    expect(d!.report.source).not.toBe("pipeline");
     expect(h.decision).toEqual({ value: "track", status: "submitted", version: 2 });
     expect(h.badges.map((b) => b.label)).toEqual(["Advanced manufacturing", "Unclassified", "Seed (Post-PMF)"]);
     expect(h.badges[1].unclassified).toBe(true);

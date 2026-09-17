@@ -76,6 +76,8 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
       { href: "/team", label: "Team" },
       // T0274 (G12) — BlockID vs ChatGPT vs a valuer.
       { href: "/compare", label: "Compare" },
+      // G14-S36 — public scoring & verification methodology (no weights).
+      { href: "/methodology", label: "Methodology" },
       { href: "/status", label: "Status" },
       { href: "/security-audit", label: "Security audit" },
     ],

@@ -77,4 +77,21 @@ describe("<TbrReportV2>", () => {
     const html = renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} locale="vi" />);
     expect(html).toContain("Bằng chứng tăng trưởng &amp; doanh thu");
   });
+
+  // G14-S36 — the cover badge reads cover.verification.
+  it("cover shows 'Verified ABN' for the L2 demo, 'ABN not verified' at L0, and no badge on a pre-S36 document", () => {
+    const demo = renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} />);
+    expect(demo).toContain('data-testid="abn-badge"');
+    expect(demo).toContain("Verified ABN");
+    expect(demo).not.toContain("ABN not verified");
+
+    const l0 = demoReportV2();
+    l0.cover.verification = { level: 0, abnVerified: false, label: "ABN not verified" };
+    const l0Html = renderToStaticMarkup(<TbrReportV2 report={l0} />);
+    expect(l0Html).toContain("ABN not verified");
+
+    const legacy = demoReportV2();
+    delete legacy.cover.verification;
+    expect(renderToStaticMarkup(<TbrReportV2 report={legacy} />)).not.toContain('data-testid="abn-badge"');
+  });
 });

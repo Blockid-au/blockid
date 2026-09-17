@@ -48,8 +48,8 @@ import { MENTOR_ACCESS_TIERS, TIER_RANK, type MentorAccessTier } from "@/lib/men
 import { getTaxonomy } from "@/lib/taxonomy/store";
 import { BUSINESS_MODEL_LABELS, INDUSTRY_LABELS, type StartupTaxonomyRow } from "@/lib/taxonomy/startup-taxonomy";
 import { CANONICAL_STAGE_LABELS, sviStageToCanonical } from "@/lib/journey-vocabulary";
-import { resolveReportV2, type SnapshotDimState, type SnapshotCriterionState } from "@/lib/report-v2/adapter";
-import { isReportV2, type ReportV2 } from "@/lib/report-v2/schema";
+import { coverVerificationFor, resolveReportV2, type SnapshotDimState, type SnapshotCriterionState } from "@/lib/report-v2/adapter";
+import { isReportV2, type CoverVerification, type ReportV2 } from "@/lib/report-v2/schema";
 import { readEvaluationReportV2 } from "@/lib/report-v2/storage";
 import { DIMENSION_OWNERS, DIM_ORDER, type DimKey } from "@/lib/report-pipeline/dimension-owners";
 import { CRITERIA, CRITERION_KEYS, type CriterionKey } from "@/lib/evaluation-criteria";
@@ -114,6 +114,8 @@ export interface DossierHeader {
   lastSnapshotAt: string | null;
   snapshotId: string | null;
   evidence: { items: number; connected: number; providers: string[] };
+  /** G14-S36: projects.verification_level (0–5) → "Verified ABN" (L2+) / "ABN not verified" badge. */
+  verification: CoverVerification;
   /** assessor only — the founder never receives a decision (§C.1). */
   decision: { value: EvaluationAssessment["decision"]; status: EvaluationAssessment["status"]; version: number } | null;
   /** S-R4, assessor only: fit of the viewer's primary mandate to this startup; null = no mandate / founder. */
@@ -446,7 +448,7 @@ function radarFrom(report: ReportV2 | null): VisualSpecV2 | null {
 
 interface EvaluationWithProject {
   evaluation: Evaluation;
-  project: { id: string; name: string; slug: string; industry: string | null; stage: number | null; description: string | null; phaseId: string | null };
+  project: { id: string; name: string; slug: string; industry: string | null; stage: number | null; description: string | null; phaseId: string | null; verificationLevel: number | null };
   role: DossierViewerRole;
   /** S-D3: set when the viewer is a same-org seat of the evaluator (F1) — the org both belong to. */
   viaOrgId: string | null;
@@ -467,7 +469,7 @@ export async function resolveDossierAccess(evaluationId: string, userId: string)
   // membership read; anyone else → null → 404).
   const { data, error } = await supabase
     .from("evaluations")
-    .select(`${EVALUATION_COLUMNS}, projects:project_id (id, name, slug, industry, stage, description, growth_phase_current)`)
+    .select(`${EVALUATION_COLUMNS}, projects:project_id (id, name, slug, industry, stage, description, growth_phase_current, verification_level)`)
     .eq("id", evaluationId)
     .maybeSingle();
   if (error || !data) return null;
@@ -498,6 +500,7 @@ export async function resolveDossierAccess(evaluationId: string, userId: string)
       stage: num(p.stage),
       description: str(p.description),
       phaseId: str(p.growth_phase_current),
+      verificationLevel: num(p.verification_level),
     },
   };
 }
@@ -668,6 +671,7 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
         dimStates: snapshotDimStates(latest),
         criterionStates,
         phaseId: project.phaseId,
+        verificationLevel: project.verificationLevel,
         tier: "standard",
       },
       isReportV2,
@@ -729,6 +733,7 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
     lastSnapshotAt: latest?.created_at ?? null,
     snapshotId: latest?.id ?? null,
     evidence: { items: evidenceRows.length, connected: Math.max(connected, providers.length), providers },
+    verification: coverVerificationFor(project.verificationLevel),
     decision:
       role === "assessor" && assessment.mine
         ? { value: assessment.mine.decision, status: assessment.mine.status, version: assessment.mine.version }

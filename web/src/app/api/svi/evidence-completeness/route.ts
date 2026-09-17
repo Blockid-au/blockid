@@ -9,6 +9,8 @@ import {
   EVIDENCE_CATALOG,
 } from "@/lib/svi-completeness";
 import { apiRoute } from "@/lib/audit/api-route";
+import { capConfidence } from "@/lib/evidence/confidence-cap";
+import { toEvidenceRowOut, type EvidenceRowOut } from "@/lib/evidence/evidence-row";
 
 export const dynamic = "force-dynamic";
 
@@ -58,14 +60,15 @@ export async function GET() {
     if (snapshot?.overall_score) currentSvi = snapshot.overall_score as number;
   }
 
-  // Load all evidence rows for this project
-  let evidenceRows: { dimension: string; evidence_type: string }[] = [];
+  // Load all evidence rows for this project. `*` (not a column list) so the
+  // read never depends on 0407's review columns being applied yet.
+  let evidenceRows: EvidenceRowOut[] = [];
   if (projectId) {
     const { data } = await supabase
       .from("svi_dimension_evidence")
-      .select("dimension, evidence_type")
+      .select("*")
       .eq("project_id", projectId);
-    if (data) evidenceRows = data as { dimension: string; evidence_type: string }[];
+    if (data) evidenceRows = (data as Record<string, unknown>[]).map(toEvidenceRowOut);
   }
 
   // Group evidence types by dimension
@@ -82,7 +85,7 @@ export async function GET() {
   const roadmap = generateFixRoadmap(dimensions);
   const forecast = forecastRoadmapImpact(roadmap, currentSvi);
 
-  return NextResponse.json({ ok: true, dimensions, roadmap, forecast, currentSvi });
+  return NextResponse.json({ ok: true, dimensions, roadmap, forecast, currentSvi, projectId, rows: evidenceRows });
 }
 
 async function POST_handler(request: NextRequest) {
@@ -121,6 +124,11 @@ async function POST_handler(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "dimension and evidenceType are required" }, { status: 400 });
   }
 
+  // G14-S36 / D4: founder-supplied, so the stored level is capped at
+  // document_uploaded whatever the body asked for (third_party_verified is a
+  // reviewer-only write — PATCH /api/admin/evidence/[id]/review).
+  const cap = capConfidence({ requested: confidenceLevel, origin: "founder_upload" });
+
   const { error } = await supabase
     .from("svi_dimension_evidence")
     .upsert(
@@ -129,8 +137,12 @@ async function POST_handler(request: NextRequest) {
         dimension,
         evidence_type: evidenceType,
         evidence_label: evidenceLabel ?? evidenceType,
-        confidence_level: confidenceLevel,
+        confidence_level: cap.level,
         evidence_value_or_url: evidenceValueOrUrl ?? null,
+        // A re-submission replaces what a reviewer may have signed off on.
+        is_verified: false,
+        verified_at: null,
+        verified_by_user_id: null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "project_id,dimension,evidence_type" }
@@ -141,7 +153,7 @@ async function POST_handler(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Failed to save evidence" }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, confidenceLevel: cap.level, requestedConfidenceLevel: cap.requested, confidenceCapped: cap.capped });
 }
 
 async function DELETE_handler(request: NextRequest) {

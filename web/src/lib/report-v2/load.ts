@@ -18,6 +18,7 @@ import { fromSnapshot, resolveReportV2, type SnapshotCriterionState, type Snapsh
 import { isReportV2, type ReportTierV2, type ReportV2 } from "./schema";
 import { readSnapshotReportV2 } from "./storage";
 import { primeComparables } from "@/lib/valuation/comparables-repo.server";
+import { loadVerificationLevel } from "@/lib/verification/load-level";
 
 type Row = Record<string, unknown>;
 
@@ -73,6 +74,8 @@ export interface SnapshotReportContext {
   locale?: "en" | "vi";
   phaseId?: string | null;
   accountId?: string | null;
+  /** G14-S36: projects.verification_level (0–5) — the cover badge. */
+  verificationLevel?: number | null;
 }
 
 /** Adapter input for a snapshot row (exported so tests and the dossier can share it). */
@@ -91,6 +94,7 @@ export function snapshotInputFromRow(row: SnapshotRowLike, ctx: SnapshotReportCo
     dimStates: dimStatesFromRow(row),
     criterionStates: Array.isArray(row.criterion_results) ? (row.criterion_results as SnapshotCriterionState[]) : null,
     phaseId: ctx.phaseId ?? null,
+    verificationLevel: ctx.verificationLevel ?? null,
     // Free-tier ≤10-page gate needs the stored tier: prefer the caller's, then
     // the snapshot's own `analysis_json.tier`, never a silent "standard" (W4 review).
     tier: ctx.tier ?? snapshotTier(row) ?? "standard",
@@ -118,8 +122,13 @@ export interface LoadedReportV2 {
 
 async function finish(db: SupabaseClient, row: SnapshotRowLike, ctx: SnapshotReportContext): Promise<LoadedReportV2> {
   // S-R5: the adapter path cites the live comparables count — warm the cache first (no-op when fresh).
-  const [stored] = await Promise.all([readSnapshotReportV2(db, row.id), primeComparables().catch(() => undefined)]);
-  const report = reportV2FromSnapshotRow({ ...row, report_v2: stored }, ctx);
+  // S36: the adapter path also stamps the cover badge from projects.verification_level (read-only, never throws).
+  const [stored, verificationLevel] = await Promise.all([
+    readSnapshotReportV2(db, row.id),
+    ctx.verificationLevel === undefined ? loadVerificationLevel(db, row.project_id) : Promise.resolve(ctx.verificationLevel),
+    primeComparables().catch(() => undefined),
+  ]);
+  const report = reportV2FromSnapshotRow({ ...row, report_v2: stored }, { ...ctx, verificationLevel });
   return {
     report,
     snapshotId: row.id,

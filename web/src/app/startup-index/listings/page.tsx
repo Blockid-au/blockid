@@ -9,6 +9,7 @@ import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight, BarChart3, Filter, Minus, Sparkles } from "lucide-react";
 import { NavV2 } from "@/components/landing/nav-v2";
 import { Footer } from "@/components/marketing/footer";
+import { AbnBadge } from "@/components/verification/abn-badge";
 import type { ListingSort, ListingsResult } from "@/lib/startup-index-listings";
 import { cachedListings } from "@/lib/startup-index-cache";
 import { pageMetadata } from "@/lib/seo/page-meta";
@@ -235,6 +236,8 @@ export default async function ListingsPage({ searchParams }: PageProps) {
                       {row.publicName && (
                         <span className="text-[10px] text-ink-500 ml-1.5 truncate inline-block max-w-[120px] align-middle">{row.publicName}</span>
                       )}
+                      {/* S36: "Verified ABN" (L2+) / "ABN not verified" from projects.verification_level */}
+                      <AbnBadge level={row.verificationLevel} size="sm" className="ml-1.5 align-middle" />
                     </td>
                     <td className="py-2 px-2 text-xs text-ink-600 capitalize">{row.sectorLabel}</td>
                     <td className="py-2 px-2 text-xs text-ink-700">

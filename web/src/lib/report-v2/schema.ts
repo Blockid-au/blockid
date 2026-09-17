@@ -203,6 +203,14 @@ export interface ReportV2 {
     /** ≤ 30 words each, CEO. */
     threeQuestions: { where: string; worth: string; next: string };
     visuals: VisualSpecV2[];
+    /**
+     * G14-S36: business verification at generation time —
+     * `projects.verification_level` (0–5, level-engine.ts), `abnVerified`
+     * = L2+ (ABR Active), `label` = the badge text ("Verified ABN" /
+     * "ABN not verified"). Optional so documents stored before S36 stay
+     * valid; the adapter always fills it (level 0 when unknown).
+     */
+    verification?: CoverVerification;
   };
   executive: {
     thesis: string;
@@ -286,6 +294,15 @@ const evidenceRow = z.object({
   value: z.string().optional(),
   dims: z.array(dimKey),
 });
+
+/** G14-S36: cover badge — `label` is the exact badge text the TBR cover, dossier header and index card render. */
+export const COVER_VERIFICATION_LABELS = ["Verified ABN", "ABN not verified"] as const;
+const coverVerification = z.object({
+  level: z.number().int().min(0).max(5),
+  abnVerified: z.boolean(),
+  label: z.enum(COVER_VERIFICATION_LABELS),
+});
+export type CoverVerification = z.infer<typeof coverVerification>;
 
 const auditStamp = z.object({
   grounded: z.boolean(),
@@ -439,6 +456,7 @@ export const reportV2Schema = z.object({
       next: z.string().refine((s) => wordCount(s) <= 30, "≤ 30 words"),
     }),
     visuals: z.array(visualSpec),
+    verification: coverVerification.optional(),
   }),
   executive: z.object({
     thesis: z.string(),
