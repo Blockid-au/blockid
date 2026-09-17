@@ -15,9 +15,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { profileCompletionPct, type FounderProfile } from "@/lib/founder-profile-types";
+import { FounderExecutionSection } from "./founder-execution-section";
 
 interface Props {
   initialProfile: FounderProfile;
+  /** G14-S37: execution.* strings (EN merged under the locale) for the Execution section. */
+  executionLabels?: Record<string, string>;
 }
 
 function StringArray({ label, hint, values, onChange, max = 10 }: {
@@ -171,7 +174,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-export function FounderProfileClient({ initialProfile }: Props) {
+export function FounderProfileClient({ initialProfile, executionLabels = {} }: Props) {
   const [p, setP] = React.useState<FounderProfile>(initialProfile);
   const [saving, setSaving] = React.useState(false);
   const [saveStatus, setSaveStatus] = React.useState<"idle" | "saved" | "error">("idle");
@@ -324,6 +327,9 @@ export function FounderProfileClient({ initialProfile }: Props) {
           />
         </div>
       </Section>
+
+      {/* G14-S37: structured execution profile — drives FTV through the rubric */}
+      <FounderExecutionSection p={p} setP={setP} labels={executionLabels} />
 
       <Section title="Insider insight + ambition">
         <div>

@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { loadFounderProfile, EMPTY_PROFILE } from "@/lib/founder-profile";
 import { FounderProfileClient } from "./founder-profile-client";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getMessages } from "@/lib/i18n/t";
+import { pickExecutionLabels } from "./execution-labels";
 
 export const metadata: Metadata = {
   title: "Founder Profile · BlockID",
@@ -22,9 +25,16 @@ export default async function FounderProfilePage() {
 
   const profile = (await loadFounderProfile(user.id)) ?? EMPTY_PROFILE(user.id, user.email);
 
+  // G14-S37: execution.* strings for the Execution section (EN under the
+  // active locale so a missing VI key still reads in English).
+  const store = await cookies();
+  const locale = store.get("blockid_lang")?.value === "vi" ? "vi" : "en";
+  const [en, local] = await Promise.all([getMessages("en"), getMessages(locale)]);
+  const executionLabels = pickExecutionLabels(en, local);
+
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
-      <FounderProfileClient initialProfile={profile} />
+      <FounderProfileClient initialProfile={profile} executionLabels={executionLabels} />
     </WorkspaceLayout>
   );
 }

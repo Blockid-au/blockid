@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { EMPTY_PROFILE, loadFounderProfile, saveFounderProfile, type FounderProfile } from "@/lib/founder-profile";
 import { apiRoute } from "@/lib/audit/api-route";
+import { executionFieldsFromInput, founderExecutionInputSchema } from "@/lib/founder/execution-input";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,18 @@ async function POST_handler(request: NextRequest) {
   }
 
   // Coerce to our shape — discard anything we don't recognise
+  // G14-S37: the structured execution fields are Zod-validated (a bad exit
+  // type / a non-GitHub URL is a 400 with the issues), everything else keeps
+  // the legacy coercion below.
+  const exec = founderExecutionInputSchema.safeParse(body);
+  if (!exec.success) {
+    return NextResponse.json(
+      { ok: false, error: "invalid_execution_fields", issues: exec.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })) },
+      { status: 400 },
+    );
+  }
+  const executionFields = executionFieldsFromInput(exec.data);
+
   const safe: FounderProfile = {
     account_id: user.id,
     email: user.email,
@@ -46,6 +59,10 @@ async function POST_handler(request: NextRequest) {
     notable_hires: Array.isArray(body.notable_hires) ? body.notable_hires.slice(0, 20) : [],
     public_visible: body.public_visible !== false,
     contactable_by_investors: body.contactable_by_investors === true,
+    // G14-S37 (0408)
+    ...executionFields,
+    execution_score: null,
+    execution_computed_at: null,
   };
 
   const result = await saveFounderProfile(safe);
