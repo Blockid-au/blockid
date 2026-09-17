@@ -92,6 +92,36 @@ page (which itself filters on `stripe_price_id != null`).
 | `STRIPE_PRICE_ACCEL_GROWTH`      | Accelerator   |
 | `STRIPE_PRICE_ACCEL_ENTERPRISE`  | Accelerator   |
 
+## Pricing v4 SKUs — minted 2026-09-17 (G14)
+
+> **RESOLVED 2026-09-17.** All 10 pricing-v4 env vars are live in `.env` +
+> `.env.runtime` (founder-authorised, live-mode keys). Minted by
+> `scripts/seed-stripe.mjs --skus=investor_fund,accelerator_intake,index_api,
+> accelerator_starter,accelerator_growth` (monthly + annual Prices per SKU,
+> `tax_behavior=inclusive`, `metadata.sku` = plan id); audited clean by
+> `scripts/sync-stripe-pricing.mjs` (live config amount/cadence vs Stripe
+> Price object — all match, `plans.generated.ts` / `plans.csv` unchanged).
+> Pilot + accelerator marketing CTAs flipped from Program to
+> `accelerator_intake` the same day.
+
+| Env var                              | Plan id                    | Cadence | Amount (AUD) | Consumer / missing consequence |
+|---------------------------------------|-----------------------------|---------|---------------|----------------------------------|
+| `STRIPE_PRICE_INVESTOR_FUND`          | `investor_fund` (Fund)      | monthly | $999/mo       | `lib/stripe.ts` STRIPE_PRICE_MAP; investor Fund tier checkout — missing returns `plan_not_provisioned`, pricing card shows Contact sales. |
+| `STRIPE_PRICE_INVESTOR_FUND_ANNUAL`   | `investor_fund_annual`      | annual  | $9,990/yr     | Same map; annual Fund CTA. |
+| `STRIPE_PRICE_ACCEL_INTAKE`           | `accelerator_intake` (Intake link) | monthly | $249/mo | Same map; program intake-link tier — pilot/accelerator marketing CTAs now target this SKU (flipped 2026-09-17). |
+| `STRIPE_PRICE_ACCEL_INTAKE_ANNUAL`    | `accelerator_intake_annual` | annual  | $2,490/yr     | Same map; annual Intake link CTA. |
+| `STRIPE_PRICE_INDEX_API`              | `index_api` (Index API)     | monthly | $299/mo       | Same map + `svi-api/checkout`, `svi_api_team` alias; 1,000 calls/day developer tier — missing 503s `/svi-api/checkout`. |
+| `STRIPE_PRICE_INDEX_API_ANNUAL`       | `index_api_annual`          | annual  | $2,990/yr     | Same map; annual Index API CTA. |
+| `STRIPE_PRICE_ACCEL_STARTER`          | `accelerator_starter` (Cohort 25) | monthly | $500/mo | Same map; Cohort 25 public accelerator tier (G12 §9.6 item now closed). |
+| `STRIPE_PRICE_ACCEL_STARTER_ANNUAL`   | `accelerator_starter_annual` | annual | $5,000/yr    | Same map; annual Cohort 25 CTA. |
+| `STRIPE_PRICE_ACCEL_GROWTH`           | `accelerator_growth` (Cohort 100) | monthly | $1,500/mo | Same map; Cohort 100 public accelerator tier. |
+| `STRIPE_PRICE_ACCEL_GROWTH_ANNUAL`    | `accelerator_growth_annual` | annual  | $15,000/yr   | Same map; annual Cohort 100 CTA. |
+
+**Webhook:** `customer.subscription.created` is now enabled on the live
+webhook endpoint (`we_1TYooWJ7OAnXQ9sVpIpaTzqP`, 2026-09-17) — resolves the
+`subscription_created` GA4 plan-label gap for these SKUs;
+`/api/health/stripe` reports `missing_events: []`.
+
 ## Prioritised remediation for the current directive
 
 1. `STRIPE_PRICE_FOUNDER_STARTER` — default plan on the `/signup` page.
