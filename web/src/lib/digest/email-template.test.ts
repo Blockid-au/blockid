@@ -19,7 +19,7 @@ function payload(over: Partial<DigestPayload> = {}): DigestPayload {
     founderName: "Sam",
     views: { count: 2, uniqueCountries: 1, topCountry: "AU" },
     leads: { count: 0, items: [] },
-    svi: { current: 61, previous: 58, delta: 3, newSnapshot: true },
+    svi: { current: 61, previous: 58, delta: 3, newSnapshot: true, whyMoved: null },
     topAction: {
       dimension: "tre",
       label: "Traction & Revenue",
