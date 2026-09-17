@@ -111,7 +111,7 @@ describe("AssessmentForm", () => {
     expect(out).toContain("History — 1 version");
   });
 
-  it("G14-S34 opt-out: hidden while 0404 is missing (null); a checkbox in the footer once the flag is known, checked when opted out", () => {
+  it("G14-S34 opt-out: hidden while 0406 is missing (null); a checkbox in the footer once the flag is known, checked when opted out", () => {
     expect(form()).not.toContain("assessment-feedback-opt-out");
     expect(form({ feedbackOptOut: null })).not.toContain("assessment-feedback-opt-out");
     const off = form({ feedbackOptOut: false });

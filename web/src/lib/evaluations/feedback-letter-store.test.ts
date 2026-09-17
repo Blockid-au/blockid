@@ -1,5 +1,5 @@
 // Colocated vitest for feedback-letter-store (G14-S34). Pins the 42P01 /
-// 42703 guard on every read (0404 missing → `available: false` / null,
+// 42703 guard on every read (0406 missing → `available: false` / null,
 // never a throw), the row mapper, the dupe (23505) path on insert, the
 // first-open-only semantics of markLetterOpened and the opt-out toggle's
 // not_found / unavailable answers.
@@ -94,7 +94,7 @@ describe("isMissingRelation", () => {
   });
 });
 
-describe("42P01 guard — 0404 not applied", () => {
+describe("42P01 guard — 0406 not applied", () => {
   it("candidate projects → available:false; project assessments → available:false; latest letter → null; opt-out → null", async () => {
     state.replies.set("evaluation_assessments", { data: null, error: NO_COLUMN });
     state.replies.set("founder_feedback_letters", { data: null, error: MISSING });
@@ -130,7 +130,7 @@ describe("reads", () => {
     expect(ops).toContain("is:feedback_letter_id:");
   });
 
-  it("project assessments select the 0404 columns and map feedbackOptOut / feedbackLetterId", async () => {
+  it("project assessments select the 0406 columns and map feedbackOptOut / feedbackLetterId", async () => {
     state.replies.set("evaluation_assessments", {
       data: [{ id: "a-1", evaluation_id: "e-1", project_id: "p-1", assessor_user_id: "u-1", version: 2, status: "submitted", feedback_opt_out: true, feedback_letter_id: "l-0", created_at: "c" }],
       error: null,

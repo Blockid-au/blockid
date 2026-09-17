@@ -192,7 +192,7 @@ test.describe("Evaluator landing (S-IA4)", () => {
 // (assessor_user_id / org_id carry no FK — 0392 header). Then the cron's
 // `?dry=1` (Bearer CRON_SECRET from .env.runtime — qa-live.sh loads it) must
 // report the project as `would_send` with k = 3 / org_count = 2 and write
-// nothing. Before migration 0404 the route answers `reason: table_missing`,
+// nothing. Before migration 0406 the route answers `reason: table_missing`,
 // which is recorded as a known-issue annotation, not a failure. Every row
 // is removed in `finally` (the teardown's erasure would cascade them anyway).
 test.describe("Founder feedback letter (G14-S34)", () => {

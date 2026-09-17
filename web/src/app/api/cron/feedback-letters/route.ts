@@ -23,7 +23,7 @@
 //
 // Auth: `Authorization: Bearer ${CRON_SECRET}`. `?dry=1` computes
 // everything (eligibility, aggregate, subject) and writes / sends nothing.
-// Before migration 0404 the store answers `available: false` and the route
+// Before migration 0406 the store answers `available: false` and the route
 // returns `{ ok: true, reason: "table_missing" }`. cron-runner.sh POSTs;
 // GET is kept for manual checks.
 

@@ -1,6 +1,6 @@
 // Founder feedback letter — Supabase reads / writes (G14-S34, migration
-// 0404). Every function goes through the service-role client and is
-// 42P01 / 42703-guarded (the 0314 / 0392 pattern): while 0404 is not
+// 0406). Every function goes through the service-role client and is
+// 42P01 / 42703-guarded (the 0314 / 0392 pattern): while 0406 is not
 // applied `available` is false, the cron answers `table_missing`, the
 // landing block is simply absent and the assessment form hides the opt-out
 // checkbox. Nothing here throws on a missing relation.
@@ -41,7 +41,7 @@ export interface FeedbackLetterRow {
 export const FEEDBACK_LETTER_COLUMNS =
   "id, project_id, founder_user_id, evaluation_ids, k, org_count, window_start, window_end, aggregate, letter_md, letter_md_vi, next_actions, status, sent_at, opened_at, email_message_id, created_at";
 
-/** The assessment columns plus the two 0404 columns the letter needs. */
+/** The assessment columns plus the two 0406 columns the letter needs. */
 const LETTER_ASSESSMENT_COLUMNS = `${ASSESSMENT_COLUMNS}, feedback_letter_id, feedback_opt_out`;
 
 /** 42P01 (relation) / 42703 (column) / PostgREST schema-cache wording. */
@@ -110,7 +110,7 @@ export interface CandidateProjectsResult {
 
 /**
  * Projects with ≥ 1 submitted, not-opted-out assessment that no letter has
- * consumed yet (the partial index in 0404). The k-floor is decided later
+ * consumed yet (the partial index in 0406). The k-floor is decided later
  * on the full project read.
  */
 export async function listLetterCandidateProjects(limit = 5000): Promise<CandidateProjectsResult> {
@@ -132,7 +132,7 @@ export async function listLetterCandidateProjects(limit = 5000): Promise<Candida
   return { available: true, projectIds: [...ids] };
 }
 
-/** Every assessment row (all seats, all versions) on the project, with the 0404 columns. */
+/** Every assessment row (all seats, all versions) on the project, with the 0406 columns. */
 export async function readProjectAssessments(projectId: string): Promise<{ available: boolean; rows: EvaluationAssessment[] }> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { available: false, rows: [] };
@@ -281,7 +281,7 @@ export async function insertLetter(input: InsertLetterInput): Promise<InsertLett
     .maybeSingle();
   if (error) {
     if ((error as { code?: string }).code === "23505") return { ok: false, error: "dupe", message: "A letter for this window already exists" };
-    if (isMissingRelation(error)) return { ok: false, error: "unavailable", message: "founder_feedback_letters (0404) is not applied" };
+    if (isMissingRelation(error)) return { ok: false, error: "unavailable", message: "founder_feedback_letters (0406) is not applied" };
     console.error("[blockid:feedback-letter] insert failed", error);
     return { ok: false, error: "db_error", message: error.message ?? "Insert failed" };
   }
@@ -314,7 +314,7 @@ export async function markLetterSent(letterId: string, emailMessageId: string | 
 
 // ─── Founder reads ──────────────────────────────────────────────────────────
 
-/** The founder's newest letter (any status), or null — also null while 0404 is missing. */
+/** The founder's newest letter (any status), or null — also null while 0406 is missing. */
 export async function latestLetterForFounder(founderUserId: string): Promise<FeedbackLetterRow | null> {
   const supabase = getSupabaseAdmin();
   if (!supabase || !founderUserId) return null;
@@ -357,7 +357,7 @@ export async function markLetterOpened(letterId: string, founderUserId: string):
 
 // ─── Evaluator opt-out ──────────────────────────────────────────────────────
 
-/** The seat's current opt-out flag on this evaluation; null while 0404 is missing or no row exists. */
+/** The seat's current opt-out flag on this evaluation; null while 0406 is missing or no row exists. */
 export async function readFeedbackOptOut(evaluationId: string, assessorUserId: string): Promise<boolean | null> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;

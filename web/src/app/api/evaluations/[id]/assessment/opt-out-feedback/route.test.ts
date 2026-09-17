@@ -1,7 +1,7 @@
 // Route tests for POST /api/evaluations/[id]/assessment/opt-out-feedback
 // (G14-S34): 401 / 404 (never 403) for strangers, lapsed seats and founder
 // callers; 400 on a non-boolean / extra key; 409 nothing_saved; 503 before
-// 0404; 200 { opt_out, updated } through the store with the caller as the
+// 0406; 200 { opt_out, updated } through the store with the caller as the
 // seat; audit carries the flag only; apiRoute-wrapped.
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -74,7 +74,7 @@ describe("POST opt-out-feedback", () => {
     expect(await (await POST(post({ opt_out: false }), ctx())).json()).toEqual({ ok: true, opt_out: false, updated: 1 });
   });
 
-  it("409 nothing_saved when the seat has no row; 503 while 0404 is missing", async () => {
+  it("409 nothing_saved when the seat has no row; 503 while 0406 is missing", async () => {
     setMock.mockResolvedValue({ ok: false, error: "not_found", message: "Save an assessment before changing its feedback setting" });
     const res = await POST(post({ opt_out: true }), ctx());
     expect(res.status).toBe(409);

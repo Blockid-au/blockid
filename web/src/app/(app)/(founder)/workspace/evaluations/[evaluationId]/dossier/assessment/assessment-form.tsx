@@ -57,7 +57,7 @@ export interface AssessmentFormProps {
   founderClaimed: boolean;
   /**
    * G14-S34: the seat's current "exclude from the founder's anonymised
-   * feedback letter" flag. `undefined` / `null` = migration 0404 not applied
+   * feedback letter" flag. `undefined` / `null` = migration 0406 not applied
    * → the checkbox is not rendered at all.
    */
   feedbackOptOut?: boolean | null;
@@ -84,7 +84,7 @@ const btnCls = "rounded-lg border px-3 py-1.5 text-sm font-medium disabled:curso
 
 export function AssessmentForm({ evaluationId, initial, history, prefill, snapshotId, aiDims, criteria, founderClaimed, feedbackOptOut = null }: AssessmentFormProps) {
   const [current, setCurrent] = useState<EvaluationAssessment | null>(initial);
-  // G14-S34 opt-out — null hides the control (0404 missing); saved on change.
+  // G14-S34 opt-out — null hides the control (0406 missing); saved on change.
   const [optOut, setOptOut] = useState<boolean | null>(feedbackOptOut);
   const [optOutState, setOptOutState] = useState<"idle" | "saving" | "error">("idle");
   const [timeline, setTimeline] = useState<AssessmentHistoryEntry[]>(history);

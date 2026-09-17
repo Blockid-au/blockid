@@ -1,6 +1,6 @@
 // Colocated vitest for /api/cron/feedback-letters (G14-S34). Pins: the
 // Bearer CRON_SECRET gate, 503 without Supabase, `table_missing` before
-// 0404, the k-floor skip, `?dry=1` → per-project summaries with the
+// 0406, the k-floor skip, `?dry=1` → per-project summaries with the
 // subject and NO writes / sends, the live path (insert → stamp → notify →
 // email → sent + message id → webhook to the founder only → server
 // event), the nothing-new skip + draft-email retry, the dupe on a same-day
@@ -114,7 +114,7 @@ describe("gates", () => {
     expect(h.candidates).not.toHaveBeenCalled();
   });
 
-  it("before 0404 (store unavailable) → ok:true reason table_missing, nothing else read", async () => {
+  it("before 0406 (store unavailable) → ok:true reason table_missing, nothing else read", async () => {
     h.candidates.mockResolvedValue({ available: false, projectIds: [] });
     const body = await (await GET(req())).json();
     expect(body).toMatchObject({ ok: true, reason: "table_missing", sent: 0 });

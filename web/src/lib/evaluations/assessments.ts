@@ -108,12 +108,12 @@ export interface EvaluationAssessment {
   createdAt: string;
   updatedAt: string;
   /**
-   * G14-S34 (0404) — only present when the caller selected the column
+   * G14-S34 (0406) — only present when the caller selected the column
    * (feedback-letter-store.ts); the dossier read never does, so the
-   * dossier keeps working before 0404 is applied.
+   * dossier keeps working before 0406 is applied.
    */
   feedbackOptOut?: boolean;
-  /** G14-S34 (0404) — the letter that consumed this row, when selected. */
+  /** G14-S34 (0406) — the letter that consumed this row, when selected. */
   feedbackLetterId?: string | null;
 }
 

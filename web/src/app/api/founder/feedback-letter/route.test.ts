@@ -1,5 +1,5 @@
 // Route tests for GET /api/founder/feedback-letter (G14-S34): 401 anonymous,
-// 404 when the founder has no letter (and while 0404 is missing — store →
+// 404 when the founder has no letter (and while 0406 is missing — store →
 // null), founder-only lookup (by the CALLER's id, never a query param), the
 // first read stamps opened_at + status and emits `feedback_letter_opened`
 // exactly once, a repeat read emits nothing, and a stored row carrying a
@@ -45,7 +45,7 @@ beforeEach(() => {
 });
 
 describe("GET /api/founder/feedback-letter", () => {
-  it("401 anonymous; 404 when the founder has no letter (store null — also the pre-0404 answer)", async () => {
+  it("401 anonymous; 404 when the founder has no letter (store null — also the pre-0406 answer)", async () => {
     h.user.mockResolvedValue(null);
     expect((await GET()).status).toBe(401);
     h.user.mockResolvedValue({ id: "u-f" });

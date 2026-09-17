@@ -30,7 +30,7 @@ export async function AssessmentBlock({ view }: { view: DossierView }) {
   } else {
     const [prefill, feedbackOptOut] = await Promise.all([
       a.mine ? Promise.resolve(null) : prefillFromFit({ userId: view.viewer.userId, projectId: view.header.projectId }).catch(() => null),
-      // G14-S34: null while 0404 is missing or no row exists yet → the
+      // G14-S34: null while 0406 is missing or no row exists yet → the
       // checkbox stays hidden; false/true once the seat has a row.
       a.mine ? readFeedbackOptOut(view.header.evaluationId, view.viewer.userId).catch(() => null) : Promise.resolve(null),
     ]);

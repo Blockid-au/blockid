@@ -8,7 +8,7 @@
 //                                        flagged (a total flag, like revoke)
 //   401 · 404 (not the assessor, unknown id, lapsed evaluator, founder
 //   caller — never 403, §A.1) · 400 invalid body · 409 nothing_saved (no row
-//   yet) · 429 · 503 while migration 0404 is not applied.
+//   yet) · 429 · 503 while migration 0406 is not applied.
 //
 // Audit `assessment.feedback_opt_out` with the flag only — never the
 // assessment content.

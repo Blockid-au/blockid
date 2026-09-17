@@ -5,7 +5,7 @@
 //                        aggregate, letter_md, letter_md_vi, next_actions,
 //                        status, sent_at, opened_at, created_at } }
 //   404 { ok:false, error:"not_found" }   no letter for this founder (also
-//                                        while migration 0404 is missing —
+//                                        while migration 0406 is missing —
 //                                        the store answers null)
 //   401                                  anonymous
 //

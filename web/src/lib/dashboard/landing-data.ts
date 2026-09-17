@@ -196,7 +196,7 @@ export async function loadRecentReports(sb: LandingClient | null, keys: LandingK
 
 /**
  * The founder's newest feedback letter, or null (no letter yet, migration
- * 0404 missing, member whose owner has none, or a failed read). Keyed on the
+ * 0406 missing, member whose owner has none, or a failed read). Keyed on the
  * OWNER's user id — the letter is addressed to the founder who claimed the
  * evaluations, and a member sees the owner's letter read-only (§B.4).
  */
