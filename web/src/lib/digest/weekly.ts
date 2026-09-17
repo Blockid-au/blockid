@@ -17,6 +17,7 @@ import { can } from "@/lib/entitlements";
 import { buildDigestMoney, type DigestMoneyMatch, type DigestMoneySection } from "@/lib/funding/digest-money";
 import { buildDigestPipeline, hasPipelineSignal, type DigestPipelineSection } from "@/lib/investors/digest";
 import type { ContactRow } from "@/lib/investors/crm";
+import { whyScoreMoved, type ScoreVersionSnapshot } from "@/lib/digest/why-score-moved";
 
 export interface DigestActionRecommendation {
   /** Dimension key (ftv/mpc/ptd/tre/cgh/iri/lco/svm). */
@@ -53,6 +54,9 @@ export interface DigestSviSection {
   previous: number | null;
   delta: number | null;
   newSnapshot: boolean;
+  /** G14-S36 F-6: one sentence explaining a confidence-cap/verification-driven
+   *  move, or null when the move (if any) is not attributable to S36. */
+  whyMoved: string | null;
 }
 
 export interface DigestPayload {
@@ -343,7 +347,7 @@ export async function buildFounderDigest(
   // weakest-dim recommendation. Same ordering as /api/svi/report/views.
   let snapQ = supabase
     .from("svi_snapshots")
-    .select("id, project_id, report_share_token, dim_results, svi_total, created_at")
+    .select("id, project_id, report_share_token, dim_results, svi_total, analysis_json, created_at")
     .order("created_at", { ascending: false })
     .limit(1);
   snapQ = projectId != null ? snapQ.eq("project_id", projectId) : snapQ.eq("account_id", userId);
@@ -413,7 +417,7 @@ export async function buildFounderDigest(
     // Baseline snapshot: newest snapshot with created_at < periodStart.
     let baselineQ = supabase
       .from("svi_snapshots")
-      .select("svi_total, created_at")
+      .select("svi_total, analysis_json, created_at")
       .lt("created_at", periodStartIso)
       .order("created_at", { ascending: false })
       .limit(1);
@@ -425,11 +429,18 @@ export async function buildFounderDigest(
         ? Number((baseline as { svi_total: number }).svi_total)
         : null;
     const delta = previous !== null ? currentScore - previous : null;
+    // G14-S36 F-6: attribute the move to the confidence-cap / verification
+    // multiplier change when applicable — null on every other week.
+    const whyMoved = whyScoreMoved(
+      (baseline as { analysis_json?: ScoreVersionSnapshot | null } | null)?.analysis_json ?? null,
+      (latestSnap as { analysis_json?: ScoreVersionSnapshot | null }).analysis_json ?? null,
+    );
     svi = {
       current: currentScore,
       previous,
       delta,
       newSnapshot: isNew,
+      whyMoved,
     };
   }
 

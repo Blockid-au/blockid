@@ -823,5 +823,6 @@
   "execution.amount_band.250k-1m": "A$250K–1M",
   "execution.amount_band.1m-5m": "A$1M–5M",
   "execution.amount_band.5m-20m": "A$5M–20M",
-  "execution.amount_band.20m+": "A$20M+"
+  "execution.amount_band.20m+": "A$20M+",
+  "digest.why_moved.sentence": "Vì sao điểm thay đổi: độ tin cậy bằng chứng giờ đây bị giới hạn theo nguồn gốc của nó (tự khai báo ≤ tài liệu, kết nối, người đánh giá) và mức xác minh ABN của bạn (L{level}) hiện được tính vào trọng số điểm."
 }
