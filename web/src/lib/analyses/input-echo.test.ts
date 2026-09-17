@@ -21,14 +21,52 @@ const SIGNALS_BASE = {
 describe("buildInputEcho", () => {
   it("renders every row as not provided for an empty input, and still names the company", () => {
     const echo = buildInputEcho({ inputKind: "idea_text", rawText: "", structured: {}, signals: SIGNALS_BASE });
-    expect(echo.total).toBe(10);
+    expect(echo.total).toBe(11);
     expect(echo.provided).toBe(0);
+    // G14-S37: the founder-profile row is present and "not provided" with the Execution-tab hint.
+    const founder = echo.rows.find((r) => r.key === "founder");
+    expect(founder?.value).toBeNull();
+    expect(founder?.hint).toMatch(/Execution tab/);
     expect(echo.rows.every((r) => r.value === null && r.source === null)).toBe(true);
     expect(echo.rows.every((r) => r.hint.length > 10)).toBe(true);
     expect(echo.company).toBe("Your startup");
     expect(echo.companyKnown).toBe(false);
     expect(echo.claims).toEqual([]);
     expect(echo.slideTitles).toEqual([]);
+  });
+
+  it("G14-S37: echoes the structured founder profile (rubric score + the rows that earned points, cap note) from signals.founderExecution", () => {
+    const echo = buildInputEcho({
+      inputKind: "idea_text",
+      rawText: "A rostering app for aged care.",
+      structured: {},
+      signals: {
+        ...SIGNALS_BASE,
+        founderExecution: {
+          score: 70,
+          rawScore: 96,
+          capped: true,
+          capReason: "Self-reported profile — capped at 70",
+          rubricVersion: "1.0",
+          sources: ["founder"],
+          breakdown: [
+            { key: "exits", points: 15, max: 30, evidence: "Loom (acquisition 2020)" },
+            { key: "raises", points: 0, max: 15, evidence: "no prior raise declared" },
+            { key: "years_in_domain", points: 20, max: 20, evidence: "12 years in domain (scored at the 10-year cap)" },
+            { key: "roles", points: 10, max: 15, evidence: "CEO: Ada, CTO: Charles" },
+            { key: "full_time", points: 10, max: 10, evidence: "100% full-time" },
+            { key: "worked_together", points: 0, max: 5, evidence: "not stated" },
+            { key: "github", points: 1, max: 5, evidence: "GitHub URL only" },
+          ],
+        },
+      },
+    });
+    const founder = echo.rows.find((r) => r.key === "founder");
+    expect(founder?.source).toBe("from your founder profile");
+    expect(founder?.value).toMatch(/^Execution 70\/100 \(self-reported, capped at 70\) — exits: Loom \(acquisition 2020\); years in domain: 12 years/);
+    expect(founder?.value).not.toContain("prior raises");
+    expect(echo.provided).toBeGreaterThanOrEqual(1);
+    expect(echoToPromptBlock(echo)).toContain("Founder profile: Execution 70/100");
   });
 
   it("pulls company, one-liner, revenue, traction, ask and team out of typed text", () => {

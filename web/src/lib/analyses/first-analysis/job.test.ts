@@ -127,7 +127,7 @@ describe("runFirstAnalysisJob", () => {
     const first = h.saves[0];
     expect(first.svi.dimensions).toHaveLength(8);
     expect(first.valuation.basis).toBe("revenue");
-    expect(first.echo.rows.length).toBe(10);
+    expect(first.echo.rows.length).toBe(11);
     expect(first.agents).toEqual({});
     expect(first.progress.current).toBe("ceo");
 
