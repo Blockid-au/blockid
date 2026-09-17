@@ -269,6 +269,9 @@ export async function runSource(sourceId, ctx) {
     // 2. Input.
     let input = explicitFile ?? null;
     if (!input && fetch) input = await (ctx.fetchSource ?? fetchSource)(sourceId, dataDir, log);
+    // abr-bulk is a 20-file extract: default to the whole directory so every
+    // split file streams (newestInputFile would pick one split only).
+    if (!input && sourceId === "abr-bulk" && existsSync(join(dataDir, sourceId))) input = join(dataDir, sourceId);
     if (!input) input = newestInputFile(dataDir, sourceId, adapter.format);
     if (!input) return { ...out, status: "skipped", error: `no input file — put one under ${join(dataDir, sourceId)}/ or pass --file / --fetch` };
     out.file = input;
