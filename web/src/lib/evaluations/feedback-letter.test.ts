@@ -12,10 +12,10 @@
 import { describe, expect, it } from "vitest";
 import type { EvaluationAssessment } from "./assessments";
 import {
-  FEEDBACK_FORBIDDEN_KEYS,
   FEEDBACK_LETTER_MAX_WORDS,
   aggregateAssessments,
   eligibleGroups,
+  feedbackForbiddenKeys,
   findForbiddenKey,
   letterToNextActions,
   normaliseText,
@@ -150,7 +150,8 @@ describe("aggregateAssessments", () => {
   it("the JSON walk carries nothing from FOUNDER_FORBIDDEN_FIELDS, no note body and no seat / org id", () => {
     const agg = aggregateAssessments(THREE());
     const json = JSON.stringify(agg);
-    for (const k of FEEDBACK_FORBIDDEN_KEYS) expect(json, k).not.toContain(`"${k}"`);
+    expect(feedbackForbiddenKeys()).toEqual(expect.arrayContaining(["decision", "conviction", "privateNotes", "shared_notes", "assessorUserId", "orgId", "note"]));
+    for (const k of feedbackForbiddenKeys()) expect(json, k).not.toContain(`"${k}"`);
     // seat ids / org ids never appear (evaluation ids "e-u1" are allowed — they name the evaluation, not the seat)
     expect(json).not.toMatch(/SECRET|"u[123]"|org-a|org-b/);
     expect(json).not.toContain('"a-');

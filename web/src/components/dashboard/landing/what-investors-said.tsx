@@ -18,7 +18,7 @@
 
 import { MessageSquareQuote } from "lucide-react";
 import type { FeedbackLetterRow } from "@/lib/evaluations/feedback-letter-store";
-import { dimensionTitle, type FeedbackLocale } from "@/lib/evaluations/feedback-letter";
+import { dimensionTitle, type FeedbackLocale } from "@/lib/evaluations/feedback-letter-shared";
 import en from "@/lib/i18n/messages/en.json";
 import vi from "@/lib/i18n/messages/vi.json";
 import { LandingBlock, LandingCta, type LandingContext } from "./landing-grid";

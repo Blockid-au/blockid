@@ -24,7 +24,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { PRIVATE_JSON_HEADERS } from "@/lib/security/request-guards";
 import { emitEventSafe } from "@/lib/analytics/server";
-import { findForbiddenKey } from "@/lib/evaluations/feedback-letter";
+import { findForbiddenKey } from "@/lib/evaluations/feedback-letter-shared";
 import { latestLetterForFounder, markLetterOpened, type FeedbackLetterRow } from "@/lib/evaluations/feedback-letter-store";
 
 export const dynamic = "force-dynamic";

@@ -152,7 +152,7 @@ async function deliverLetter(letter: FeedbackLetterRow, founder: LetterFounder, 
   );
   emitEventSafe({
     name: "feedback_letter_sent",
-    params: { letter_id: letter.id, project_id: letter.projectId, k: letter.k, org_count: letter.orgCount, weakest_dim: weakest ?? "none", user_id: founder.userId, emailed: outcome === "sent" },
+    params: { letter_id: letter.id, project_id: letter.projectId, k: letter.k, org_count: letter.orgCount, weakest_dim: weakest ?? "none", user_id: founder.userId, delivered: outcome === "sent" },
     userId: founder.userId,
     source: "cron:feedback-letters",
   });

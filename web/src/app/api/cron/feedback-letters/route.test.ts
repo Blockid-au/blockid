@@ -199,7 +199,7 @@ describe("live path", () => {
       expect.objectContaining({ letter_id: "l-1", project_id: "p-1", k: 3, org_count: 2, weakest_dim: "TRE", dashboard_url: expect.stringMatching(/\/dashboard#what-investors-said$/) }),
       { userIds: ["u-f"], projectEndpoints: false },
     );
-    expect(h.emit).toHaveBeenCalledWith(expect.objectContaining({ name: "feedback_letter_sent", userId: "u-f", params: expect.objectContaining({ letter_id: "l-1", k: 3, org_count: 2, weakest_dim: "TRE", emailed: true }) }));
+    expect(h.emit).toHaveBeenCalledWith(expect.objectContaining({ name: "feedback_letter_sent", userId: "u-f", params: expect.objectContaining({ letter_id: "l-1", k: 3, org_count: 2, weakest_dim: "TRE", delivered: true }) }));
   });
 
   it("a second run the same day → skipped_dupe (23505) and nothing is delivered", async () => {
@@ -223,7 +223,7 @@ describe("live path", () => {
     body = await (await GET(req())).json();
     expect(body.projects[0].outcome).toBe("sent_no_email");
     expect(h.sendEmail).toHaveBeenCalledTimes(2);
-    expect(h.emit).toHaveBeenLastCalledWith(expect.objectContaining({ params: expect.objectContaining({ emailed: false }) }));
+    expect(h.emit).toHaveBeenLastCalledWith(expect.objectContaining({ params: expect.objectContaining({ delivered: false }) }));
   });
 
   it("a throwing project is counted as failed and the tick continues", async () => {

@@ -14,7 +14,7 @@ import "server-only";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { latestIntakeAnalysisForUser } from "@/lib/analyses/dashboard-bridge";
 import { FEEDBACK_LETTER_COLUMNS, isMissingRelation, mapLetterRow, type FeedbackLetterRow } from "@/lib/evaluations/feedback-letter-store";
-import { findForbiddenKey } from "@/lib/evaluations/feedback-letter";
+import { findForbiddenKey } from "@/lib/evaluations/feedback-letter-shared";
 
 /** Keys from `pageScopeKeys()` + the resolved svi_accounts id. */
 export interface LandingKeys {

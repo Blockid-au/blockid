@@ -33,13 +33,9 @@
 // De-anonymisation guard (plan §5 risks): k ≥ 3 + ≥ 2 orgs + shares rounded
 // to 25 % so a single seat can never be read back from a percentage.
 
-import {
-  ASSESSMENT_DIM_KEYS,
-  FOUNDER_FORBIDDEN_FIELDS,
-  type AssessmentDimKey,
-  type EvaluationAssessment,
-} from "@/lib/evaluations/assessments";
+import { ASSESSMENT_DIM_KEYS, type AssessmentDimKey, type EvaluationAssessment } from "@/lib/evaluations/assessments";
 import { DIMENSION_OWNERS, type DimKey } from "@/lib/report-pipeline/dimension-owners";
+import { dimensionTitle, findForbiddenKey, type FeedbackLocale } from "@/lib/evaluations/feedback-letter-shared";
 import { computeNextBestActions, type DimensionScore, type NextBestAction } from "@/lib/agents/cto-next-best-action";
 import { recommendNextStep, type NextStepSignals, type RecommendedNextStep } from "@/lib/nav/next-step-recommender";
 import en from "@/lib/i18n/messages/en.json";
@@ -60,44 +56,10 @@ export const FEEDBACK_LETTER_MAX_WORDS = 350;
 export const FEEDBACK_SHARE_STEPS = [0, 25, 50, 75, 100] as const;
 export type FeedbackShare = (typeof FEEDBACK_SHARE_STEPS)[number];
 
-export type FeedbackLocale = "en" | "vi";
-
-/**
- * Keys that must never appear anywhere in an aggregate / letter payload.
- * FOUNDER_FORBIDDEN_FIELDS (assessments.ts §C.1) plus the note bodies, the
- * snake_case twins and every evaluator / org identifier.
- */
-export const FEEDBACK_FORBIDDEN_KEYS: readonly string[] = Object.freeze([
-  ...FOUNDER_FORBIDDEN_FIELDS,
-  "decision",
-  "conviction",
-  "private_notes",
-  "privateNotes",
-  "shared_notes",
-  "sharedNotes",
-  "note",
-  "notes",
-  "valuation_view",
-  "valuationView",
-  "thesis_fit_pct",
-  "thesisFitPct",
-  "criterion_ratings",
-  "criterionRatings",
-  "assessor_user_id",
-  "assessorUserId",
-  "assessor",
-  "org_id",
-  "orgId",
-  "org",
-  "submitted_at",
-  "submittedAt",
-  "evaluator",
-  "evaluator_id",
-  "evaluatorId",
-  "email",
-  "method_note",
-  "methodNote",
-]);
+// Light helpers (dimension titles, the forbidden-key walk) live in
+// feedback-letter-shared.ts so the email renderer, the landing block and the
+// API route never load the CTO / recommender graph — re-exported here.
+export { dimensionTitle, feedbackForbiddenKeys, findForbiddenKey, type FeedbackLocale } from "@/lib/evaluations/feedback-letter-shared";
 
 // ─── Shapes ─────────────────────────────────────────────────────────────────
 
@@ -182,13 +144,6 @@ export interface LatestSviForFeedback {
 
 const DIM_INDEX: Record<AssessmentDimKey, number> = Object.fromEntries(ASSESSMENT_DIM_KEYS.map((k, i) => [k, i])) as Record<AssessmentDimKey, number>;
 
-export function dimensionTitle(key: AssessmentDimKey | "general", locale: FeedbackLocale = "en"): string {
-  if (key === "general") return locale === "vi" ? "Chung" : "General";
-  const owner = DIMENSION_OWNERS[key.toLowerCase() as DimKey];
-  if (!owner) return key;
-  return locale === "vi" ? owner.titleVi : owner.title;
-}
-
 /** Round a 0–1 share to the nearest 25 % step (de-anonymisation guard). */
 export function roundShare(share: number): FeedbackShare {
   if (!Number.isFinite(share)) return 0;
@@ -214,28 +169,6 @@ function cleanTitle(s: string): string {
 /** Org key: the org id, or the seat itself when the assessor has none (D3: "null org counts as its own"). */
 export function orgKeyOf(row: Pick<EvaluationAssessment, "orgId" | "assessorUserId">): string {
   return row.orgId ? `org:${row.orgId}` : `seat:${row.assessorUserId}`;
-}
-
-/**
- * Walk any JSON value and return the first forbidden key found (dotted
- * path), or null. Exported so the cron / tests can pin the guard.
- */
-export function findForbiddenKey(value: unknown, path = ""): string | null {
-  if (Array.isArray(value)) {
-    for (let i = 0; i < value.length; i++) {
-      const hit = findForbiddenKey(value[i], `${path}[${i}]`);
-      if (hit) return hit;
-    }
-    return null;
-  }
-  if (value && typeof value === "object") {
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      if (FEEDBACK_FORBIDDEN_KEYS.includes(k)) return path ? `${path}.${k}` : k;
-      const hit = findForbiddenKey(v, path ? `${path}.${k}` : k);
-      if (hit) return hit;
-    }
-  }
-  return null;
 }
 
 // ─── 1. Eligibility ─────────────────────────────────────────────────────────

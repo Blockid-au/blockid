@@ -8,8 +8,8 @@
  * `/workspace/evaluations` for a founder account shows the gate copy.
  */
 import { test, expect } from "./fixtures";
-import { anonRequest, evidence, get, post } from "./lib/api";
-import { dbAllowed, setAccountType } from "./lib/db";
+import { anonRequest, evidence, get, json, post } from "./lib/api";
+import { dbAllowed, psql, setAccountType } from "./lib/db";
 
 const LADDER = [
   { id: "tier-scout", name: "Scout", price: "A$79", plan: "investor_angel" },
@@ -179,6 +179,112 @@ test.describe("Evaluator landing (S-IA4)", () => {
       expect(report.errors, "unexpected console errors").toEqual([]);
     } finally {
       setAccountType(qa.email, "founder");
+    }
+  });
+});
+
+// G14-S34 — founder feedback letter "What investors said". The suite cannot
+// register three evaluator seats (card-required trial, 3 registers / 15 min
+// per IP already spent), so the k-floor is seeded by a local DB step
+// (LIVE_QA_ALLOW_DB=1, same pattern as the S-IA4 lane above): ONE
+// founder_claimed evaluation on the QA founder's own project + THREE
+// submitted, shared assessments from three seat ids across TWO org ids
+// (assessor_user_id / org_id carry no FK — 0392 header). Then the cron's
+// `?dry=1` (Bearer CRON_SECRET from .env.runtime — qa-live.sh loads it) must
+// report the project as `would_send` with k = 3 / org_count = 2 and write
+// nothing. Before migration 0404 the route answers `reason: table_missing`,
+// which is recorded as a known-issue annotation, not a failure. Every row
+// is removed in `finally` (the teardown's erasure would cascade them anyway).
+test.describe("Founder feedback letter (G14-S34)", () => {
+  test("seed 3 shared assessments / 2 orgs on the QA project → /api/cron/feedback-letters?dry=1 lists it as eligible (k=3, org_count=2), sends nothing", async ({ qa }, testInfo) => {
+    test.skip(!dbAllowed(), "needs LIVE_QA_ALLOW_DB=1 to seed the k-floor by psql");
+    test.skip(!process.env.CRON_SECRET, "needs CRON_SECRET (qa-live.sh loads .env.runtime) to call the cron route");
+    test.skip(!qa.projectId || !qa.userId, "the QA founder has no project / user id in the run state");
+    const projectId = qa.projectId!;
+    const q = (v: string) => `'${v.replace(/'/g, "''")}'`;
+    const seats = ["11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "33333333-3333-4333-8333-333333333333"];
+    const orgs = ["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"];
+    let evaluationId: string | null = null;
+    try {
+      // 1. the founder_claimed evaluation on the QA founder's own project (scoped to the QA email)
+      evaluationId =
+        psql(
+          `insert into public.evaluations (evaluator_user_id, project_id, owner_kind, consent_tier, founder_user_id, founder_email, claimed_at, label)
+             select u.id, p.id, 'founder_claimed', 'reports_shared', u.id, u.email, now(), 'live-qa feedback fixture'
+               from public.app_users u join public.projects p on p.user_id = u.id
+              where u.email = ${q(qa.email)} and u.email ~ '^qa-live-[0-9]{8}-[0-9]{4}@blockid\\.au$' and p.id = ${q(projectId)}::uuid
+             on conflict (evaluator_user_id, project_id) do update set owner_kind = 'founder_claimed', founder_user_id = excluded.founder_user_id, claimed_at = now()
+             returning id;`,
+        )
+          .trim()
+          .split("\n")[0] || null;
+      expect(evaluationId, "evaluation row for the QA project").toMatch(/^[0-9a-f-]{36}$/);
+      // 2. three submitted + shared assessments, two orgs
+      const values = seats
+        .map(
+          (seat, i) =>
+            `(${q(evaluationId!)}::uuid, ${q(projectId)}::uuid, ${q(seat)}::uuid, ${q(orgs[i])}::uuid, 1, 'submitted', 'track', 3, ` +
+            `'{"FTV":{"rating":4,"stance":"agree"},"TRE":{"rating":${i === 1 ? 1 : 2},"stance":"disagree"}}'::jsonb, ` +
+            `'[{"title":"No recurring revenue","severity":"high","dimension":"TRE","source":"evaluator"}]'::jsonb, ` +
+            `'[{"text":"What is your churn?","dimension":"TRE"}]'::jsonb, 'live-qa private', 'live-qa shared', ` +
+            `array['dimension_ratings','risks','questions_for_founder']::text[], now(), now())`,
+        )
+        .join(",\n");
+      const inserted = psql(
+        `insert into public.evaluation_assessments (evaluation_id, project_id, assessor_user_id, org_id, version, status, decision, conviction, dimension_ratings, risks, questions_for_founder, private_notes, shared_notes, shared_fields, shared_with_founder_at, submitted_at)
+           values ${values}
+           on conflict (evaluation_id, assessor_user_id, version) do nothing;
+         select count(*) from public.evaluation_assessments where evaluation_id = ${q(evaluationId!)}::uuid and status = 'submitted';`,
+      )
+        .trim()
+        .split("\n")
+        .pop();
+      await evidence(testInfo, "seeded assessments", { evaluationId, submitted: inserted });
+      expect(Number(inserted)).toBeGreaterThanOrEqual(3);
+
+      // 3. the cron's dry run reports the project as eligible and writes nothing
+      const anon = await anonRequest(qa.baseURL);
+      try {
+        type DryProject = { project_id: string; k: number; org_count: number; new_rows: number; weakest_dim: string | null; outcome: string; subject?: string };
+        const r = await json<{ ok: boolean; dryRun?: boolean; reason?: string; would_send?: number; sent?: number; projects?: DryProject[] }>(
+          anon,
+          "GET",
+          "/api/cron/feedback-letters?dry=1",
+          undefined,
+          { Authorization: `Bearer ${process.env.CRON_SECRET}` },
+        );
+        const mine = r.body.projects?.find((p) => p.project_id === projectId) ?? null;
+        await evidence(testInfo, "GET /api/cron/feedback-letters?dry=1", { status: r.status, ok: r.body.ok, dryRun: r.body.dryRun, reason: r.body.reason, would_send: r.body.would_send, sent: r.body.sent, mine });
+        expect(r.status).toBe(200);
+        expect(r.body.ok).toBe(true);
+        if (r.body.reason === "table_missing") {
+          testInfo.annotations.push({ type: "known-issue", description: "migration 0404_founder_feedback_letters is not applied yet — the cron answers table_missing; apply it and re-run this lane" });
+          return;
+        }
+        expect(r.body.dryRun).toBe(true);
+        expect(r.body.sent).toBe(0);
+        expect(mine, "the QA project in the dry-run list").toBeTruthy();
+        expect(mine!.k).toBe(3);
+        expect(mine!.org_count).toBe(2);
+        expect(mine!.new_rows).toBe(3);
+        expect(mine!.outcome).toBe("would_send");
+        expect(mine!.weakest_dim).toBe("TRE");
+        expect(mine!.subject).toMatch(/^What 3 investors said about /);
+        // dry = nothing stored
+        const letters = psql(`select count(*) from public.founder_feedback_letters where project_id = ${q(projectId)}::uuid;`).trim();
+        expect(Number(letters)).toBe(0);
+      } finally {
+        await anon.dispose();
+      }
+    } finally {
+      if (evaluationId) {
+        psql(
+          `delete from public.evaluation_assessments a using public.evaluations e, public.app_users u
+             where a.evaluation_id = e.id and e.id = ${q(evaluationId)}::uuid and e.evaluator_user_id = u.id and u.email = ${q(qa.email)};
+           delete from public.evaluations e using public.app_users u
+             where e.id = ${q(evaluationId)}::uuid and e.evaluator_user_id = u.id and u.email = ${q(qa.email)};`,
+        );
+      }
     }
   });
 });

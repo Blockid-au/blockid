@@ -10,7 +10,7 @@
 // every text node is HTML-escaped first.
 
 import type { FeedbackAggregate, FeedbackNextAction } from "@/lib/evaluations/feedback-letter";
-import { dimensionTitle } from "@/lib/evaluations/feedback-letter";
+import { dimensionTitle } from "@/lib/evaluations/feedback-letter-shared";
 import en from "@/lib/i18n/messages/en.json";
 
 const EN = en as Record<string, string>;

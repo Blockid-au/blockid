@@ -62,7 +62,7 @@ export type AnalyticsEvent =
   | { name: "tbr_share_created"; params: { project_scope: "default" | "project"; user_id: string } }
   | { name: "dossier_view"; params: { evaluation_id: string; consent_tier: string; role: "assessor" | "founder"; surface: "page" | "api"; user_id: string } }
   // ── G14-S34 founder feedback letter (server-side twins of the lib/analytics.ts client events) ──
-  | { name: "feedback_letter_sent"; params: { letter_id: string; project_id: string; k: number; org_count: number; weakest_dim: string; user_id: string; emailed: boolean } }
+  | { name: "feedback_letter_sent"; params: { letter_id: string; project_id: string; k: number; org_count: number; weakest_dim: string; user_id: string; delivered: boolean } }
   | { name: "feedback_letter_opened"; params: { letter_id: string; k: number; weakest_dim: string; user_id: string } }
   | { name: "feedback_letter_viewed"; params: { letter_id: string; k: number; weakest_dim: string; phase: string; user_id?: string } }
   | { name: "feedback_action_clicked"; params: { letter_id: string; action_id: string; dimension: string; href: string; user_id?: string } };

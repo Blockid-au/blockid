@@ -42,6 +42,9 @@
  *   --reset                         Delete every user whose email starts with `qa-` first.
  *   --segment <name>                Only create accounts for the given segment.
  *   --skip-reseller-fixture         Do not run the P10 §5 reseller-fixture block.
+ *   --skip-feedback-fixture         Do not seed the G14-S34 feedback-letter fixture
+ *                                   (3 shared assessments / 2 orgs on one claimed
+ *                                   project for qa-founder-feedback@blockid.au).
  *   --reseller-admin-email <email>  Override QA_RESELLER_ADMIN_EMAIL.
  *   --reseller-attributed-email <email>
  *                                   Override QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL.
@@ -88,6 +91,7 @@ const RESET = args.has("--reset");
 const segFlagIdx = argv.indexOf("--segment");
 const ONLY_SEGMENT = segFlagIdx > -1 ? argv[segFlagIdx + 1] : null;
 const SKIP_RESELLER_FIXTURE = args.has("--skip-reseller-fixture");
+const SKIP_FEEDBACK_FIXTURE = args.has("--skip-feedback-fixture");
 const rAdminFlagIdx = argv.indexOf("--reseller-admin-email");
 const rAttrFlagIdx = argv.indexOf("--reseller-attributed-email");
 const RESELLER_ADMIN_EMAIL =
@@ -445,6 +449,146 @@ async function seedResellerFixtureUsers() {
   return results;
 }
 
+// -- G14-S34 feedback-letter fixture -----------------------------------------
+// Three SUBMITTED, SHARED assessments from three evaluator app_users across
+// TWO organisations on ONE project claimed by a seeded founder app_user —
+// exactly the k ≥ 3 / ≥ 2 org floor of docs/plans/g14-investor-feedback
+// D3 / F-5, so `/api/cron/feedback-letters?dry=1` reports the project as
+// eligible and a live run writes the letter, the notification and the email
+// to qa-founder-feedback@blockid.au. Guarded: runs only when
+// `evaluation_assessments` (migration 0392) exists; every row is keyed on
+// the fixture emails / slug so re-runs are idempotent. app_users rows only
+// (magic-link table, disjoint from auth.users) — like the reseller fixture.
+const FEEDBACK_FOUNDER_EMAIL = "qa-founder-feedback@blockid.au";
+const FEEDBACK_EVALUATORS = [
+  { email: "qa-evaluator-feedback-1@blockid.au", org: "a" },
+  { email: "qa-evaluator-feedback-2@blockid.au", org: "a" },
+  { email: "qa-evaluator-feedback-3@blockid.au", org: "b" },
+];
+// Fixed org uuids (investor_organisations has no FK from assessments — 0392 header).
+const FEEDBACK_ORG_IDS = { a: "0f33db4c-0000-4000-8000-0000000000aa", b: "0f33db4c-0000-4000-8000-0000000000bb" };
+const FEEDBACK_PROJECT_SLUG = "qa-feedback-fixture";
+
+function isMissingRelation(error) {
+  return Boolean(error) && (error.code === "42P01" || /does not exist|schema cache|could not find the/i.test(error.message ?? ""));
+}
+
+async function ensureAppUser(email, plan, accountType) {
+  const lookup = await supabase.from("app_users").select("id").eq("email", email).maybeSingle();
+  if (lookup.error) throw new Error(`app_users lookup ${email}: ${lookup.error.message}`);
+  if (lookup.data) return lookup.data.id;
+  if (DRY) {
+    console.log(`  [dry] insert app_users ${email} plan=${plan}`);
+    return null;
+  }
+  const id = randomUUID();
+  const row = { id, email, role: "user", plan, display_name: email.split("@")[0], onboarding_completed: true };
+  if (accountType) row.account_type = accountType;
+  let ins = await supabase.from("app_users").insert(row);
+  if (ins.error && /account_type|display_name|onboarding_completed/.test(ins.error.message)) {
+    ins = await supabase.from("app_users").insert({ id, email, role: "user", plan });
+  }
+  if (ins.error) throw new Error(`app_users insert ${email}: ${ins.error.message}`);
+  console.log(`  + inserted app_users ${email} plan=${plan}`);
+  return id;
+}
+
+async function seedFeedbackLetterFixture() {
+  const probe = await supabase.from("evaluation_assessments").select("id").limit(1);
+  if (probe.error) {
+    if (isMissingRelation(probe.error)) {
+      console.log("[seed] feedback-letter fixture skipped: evaluation_assessments (migration 0392) not applied");
+      return { action: "skipped" };
+    }
+    throw new Error(`evaluation_assessments probe: ${probe.error.message}`);
+  }
+
+  const founderId = await ensureAppUser(FEEDBACK_FOUNDER_EMAIL, "founder_starter", "founder");
+  const evaluatorIds = [];
+  for (const e of FEEDBACK_EVALUATORS) evaluatorIds.push(await ensureAppUser(e.email, "investor_angel", "investor_angel"));
+  if (DRY || !founderId || evaluatorIds.some((id) => !id)) {
+    console.log("  [dry] would seed 1 project + 1 claimed evaluation + 3 submitted/shared assessments (2 orgs)");
+    return { action: "would-create" };
+  }
+
+  // Project owned by evaluator 1 (projects.user_id = the evaluator who entered the startup — 0314 header).
+  const ownerId = evaluatorIds[0];
+  let project = await supabase.from("projects").select("id").eq("user_id", ownerId).eq("slug", FEEDBACK_PROJECT_SLUG).maybeSingle();
+  if (project.error) throw new Error(`projects lookup: ${project.error.message}`);
+  let projectId = project.data?.id ?? null;
+  if (!projectId) {
+    projectId = randomUUID();
+    const ins = await supabase.from("projects").insert({ id: projectId, user_id: ownerId, name: "QA Feedback Fixture Startup", slug: FEEDBACK_PROJECT_SLUG, stage: 2, industry: "SaaS" });
+    if (ins.error) throw new Error(`projects insert: ${ins.error.message}`);
+    console.log(`  + inserted project ${FEEDBACK_PROJECT_SLUG}`);
+  }
+
+  // One evaluation per evaluator on the SAME project; evaluator 1's row is the
+  // one the founder claimed (founder_user_id + owner_kind founder_claimed).
+  const evaluationIds = [];
+  for (let i = 0; i < evaluatorIds.length; i++) {
+    const evaluatorId = evaluatorIds[i];
+    const existing = await supabase.from("evaluations").select("id").eq("evaluator_user_id", evaluatorId).eq("project_id", projectId).maybeSingle();
+    if (existing.error) throw new Error(`evaluations lookup: ${existing.error.message}`);
+    let evaluationId = existing.data?.id ?? null;
+    const claimed = i === 0;
+    const patch = claimed
+      ? { owner_kind: "founder_claimed", consent_tier: "reports_shared", founder_user_id: founderId, founder_email: FEEDBACK_FOUNDER_EMAIL, claimed_at: new Date().toISOString() }
+      : { owner_kind: "evaluator" };
+    if (!evaluationId) {
+      evaluationId = randomUUID();
+      const ins = await supabase.from("evaluations").insert({ id: evaluationId, evaluator_user_id: evaluatorId, project_id: projectId, label: "QA feedback fixture", ...patch });
+      if (ins.error) throw new Error(`evaluations insert: ${ins.error.message}`);
+      console.log(`  + inserted evaluation for ${FEEDBACK_EVALUATORS[i].email}${claimed ? " (founder_claimed)" : ""}`);
+    } else if (claimed) {
+      const upd = await supabase.from("evaluations").update(patch).eq("id", evaluationId);
+      if (upd.error) throw new Error(`evaluations update: ${upd.error.message}`);
+    }
+    evaluationIds.push(evaluationId);
+  }
+
+  // Three submitted + shared assessments (dimension_ratings · risks · questions).
+  const ratings = [
+    { FTV: { rating: 4, stance: "agree" }, MPC: { rating: 3, stance: "agree" }, TRE: { rating: 2, stance: "disagree" }, PTD: { rating: 3, stance: "unsure" } },
+    { FTV: { rating: 5, stance: "agree" }, MPC: { rating: 3, stance: "unsure" }, TRE: { rating: 1, stance: "disagree" }, PTD: { rating: 4, stance: "agree" } },
+    { FTV: { rating: 4, stance: "disagree" }, MPC: { rating: 4, stance: "agree" }, TRE: { rating: 2, stance: "agree" }, PTD: { rating: 3, stance: "agree" } },
+  ];
+  let created = 0;
+  for (let i = 0; i < evaluatorIds.length; i++) {
+    const existing = await supabase.from("evaluation_assessments").select("id").eq("evaluation_id", evaluationIds[i]).eq("assessor_user_id", evaluatorIds[i]).eq("version", 1).maybeSingle();
+    if (existing.error) throw new Error(`evaluation_assessments lookup: ${existing.error.message}`);
+    if (existing.data) continue;
+    const now = new Date().toISOString();
+    const ins = await supabase.from("evaluation_assessments").insert({
+      id: randomUUID(),
+      evaluation_id: evaluationIds[i],
+      project_id: projectId,
+      assessor_user_id: evaluatorIds[i],
+      org_id: FEEDBACK_ORG_IDS[FEEDBACK_EVALUATORS[i].org],
+      version: 1,
+      status: "submitted",
+      decision: i === 1 ? "proceed" : "track",
+      conviction: 3 + (i % 2),
+      thesis_fit_pct: 55 + i * 10,
+      dimension_ratings: ratings[i],
+      risks: [
+        { title: "No recurring revenue yet", severity: "high", dimension: "TRE", source: "evaluator" },
+        ...(i === 2 ? [{ title: "Key-person risk", severity: "medium", dimension: "FTV", source: "ai" }] : []),
+      ],
+      questions_for_founder: [{ text: "What is your monthly churn?", dimension: "TRE" }, ...(i === 0 ? [{ text: "Who signs the first enterprise contract?" }] : [])],
+      private_notes: "QA fixture — private, must never reach the founder",
+      shared_notes: "QA fixture — shared note",
+      shared_fields: ["dimension_ratings", "risks", "questions_for_founder"],
+      shared_with_founder_at: now,
+      submitted_at: now,
+    });
+    if (ins.error) throw new Error(`evaluation_assessments insert: ${ins.error.message}`);
+    created++;
+  }
+  console.log(`  = feedback-letter fixture ready: project ${projectId.slice(0, 8)} · 3 evaluators / 2 orgs · ${created} new assessment(s)`);
+  return { action: created ? "created" : "kept", projectId };
+}
+
 async function main() {
   console.log(
     `[seed] mode=${DRY ? "dry-run" : "live"} reset=${RESET} onlySegment=${ONLY_SEGMENT ?? "*"}`,
@@ -503,7 +647,21 @@ async function main() {
     console.log("\n[seed] reseller-fixture skipped via --skip-reseller-fixture");
   }
 
-  if (errored > 0 || fixtureErrored > 0) exit(1);
+  // G14-S34 — founder feedback letter fixture (skips itself before 0392).
+  let feedbackErrored = 0;
+  if (!SKIP_FEEDBACK_FIXTURE) {
+    try {
+      const r = await seedFeedbackLetterFixture();
+      console.log(`\n[seed] feedback-letter fixture: ${r.action}${r.projectId ? ` (project ${r.projectId})` : ""}`);
+    } catch (e) {
+      feedbackErrored = 1;
+      console.warn(`\n[seed] feedback-letter fixture failed: ${e instanceof Error ? e.message : e}`);
+    }
+  } else {
+    console.log("\n[seed] feedback-letter fixture skipped via --skip-feedback-fixture");
+  }
+
+  if (errored > 0 || fixtureErrored > 0 || feedbackErrored > 0) exit(1);
 }
 
 main().catch((e) => {
