@@ -549,6 +549,7 @@ describe("POST /api/verification/abr — projects UPDATE contract", () => {
     expect(updateCall?.filters).toEqual([{ col: "id", val: UUID_A }]);
     const payload = updateCall!.payload!;
     expect(payload.verification_level).toBe(1);
+    expect(payload.abn).toBe(ABN_11.replace(/\D+/g, "")); // S40: projects.abn persisted (0410)
     expect(typeof payload.last_verified_at).toBe("string");
     expect(payload.last_verified_at).toBe(payload.updated_at); // same server-computed instant
     const stamped = Date.parse(payload.last_verified_at as string);

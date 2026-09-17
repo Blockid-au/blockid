@@ -182,8 +182,47 @@ export function MethodologyPage(p: MethodologyProps) {
         {p.data.translated && <p className="mt-3 max-w-3xl pl-4 text-sm leading-relaxed text-tertiary">{p.data.translated}</p>}
       </MarketingSection>
 
+      {/* 7b. Data sources — external_sources rows, attribution verbatim, cite-only labelled (S40). */}
+      <MarketingSection kicker={p.sources.kicker} title={p.sources.title} tone="elevated">
+        <span id="data-sources" className="block scroll-mt-24" aria-hidden="true" />
+        <p className="max-w-3xl text-sm leading-relaxed text-tertiary">{p.sources.intro}</p>
+        <div className="mt-6 overflow-x-auto rounded-xl border border-line-subtle bg-white">
+          <table className="w-full text-sm" data-testid="methodology-data-sources" data-source-count={p.sources.items.length} data-from-db={p.sources.fromDb ? "1" : "0"}>
+            <thead>
+              <tr className="border-b border-line-subtle text-left text-[11px] uppercase tracking-wide text-tertiary">
+                <th className="px-3 py-2">{p.sources.cols.source}</th>
+                <th className="px-3 py-2">{p.sources.cols.licence}</th>
+                <th className="px-3 py-2">{p.sources.cols.use}</th>
+                <th className="px-3 py-2 whitespace-nowrap">{p.sources.cols.refreshed}</th>
+                <th className="px-3 py-2 text-right">{p.sources.cols.rows}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {p.sources.items.map((s) => (
+                <tr key={s.id} className="border-b border-line-subtle/60 align-top" data-source-id={s.id} data-source-status={s.status}>
+                  <td className="px-3 py-2">
+                    <a href={s.url} rel="noopener noreferrer" target="_blank" className="font-medium text-primary underline decoration-dotted">
+                      {s.name}
+                    </a>
+                    <p className="mt-1 max-w-md text-xs leading-relaxed text-tertiary">{s.attribution}</p>
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap text-primary">{s.licence}</td>
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${s.citeOnly ? "bg-amber-50 text-amber-800" : s.status === "active" ? "bg-brand-50 text-brand-700" : "bg-ink-100 text-ink-700"}`}>{s.useLabel}</span>
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap text-tertiary">{s.citeOnly ? "—" : s.lastFetchedAt ? s.lastFetchedAt.slice(0, 10) : p.sources.never}</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-primary">{s.citeOnly ? "—" : s.rowCount.toLocaleString("en-AU")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-4 max-w-3xl text-xs leading-relaxed text-tertiary">{p.sources.attributionNote}</p>
+        <p className="mt-2 max-w-3xl text-xs leading-relaxed text-tertiary">{p.sources.cohortNote}</p>
+      </MarketingSection>
+
       {/* 8. Calibration link (S39 fills the page). */}
-      <MarketingSection kicker={p.calibration.kicker} title={p.calibration.title} tone="elevated">
+      <MarketingSection kicker={p.calibration.kicker} title={p.calibration.title}>
         <p className="max-w-3xl text-sm leading-relaxed text-tertiary">{p.calibration.body}</p>
         <p className="mt-4">
           <Link href={p.calibration.href} className="text-sm font-medium text-brand-700 underline decoration-dotted">

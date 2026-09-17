@@ -5,28 +5,48 @@
 // AU-startup analyses in svi_index_snapshots, we can compute true
 // percentile from peers at the same stage.
 //
-// Strategy:
+// Strategy (G14-S40 added the middle rung):
 //   1. Query svi_index_snapshots filtered by stage (±1 for elasticity)
-//   2. If cohort < 20 rows → fall back to hardcoded benchmarks
-//   3. Else compute strict percentile (fraction scoring strictly below)
-//   4. Return both value + cohort metadata so the dashboard can show
+//   2. If cohort ≥ 20 rows → strict percentile (fraction scoring strictly
+//      below) → source "real_cohort"
+//   3. Else, when the caller passes `register` (the project's ABN / state /
+//      entity age) and the open-register cohort (lib/signals/
+//      external-signals.ts cohortFromRegisters — ABR entity age, GST,
+//      grants, R&DTI) has ≥ 20 entities → the project's register-maturity
+//      percentile within that cohort → source "register_cohort". This is a
+//      register-derived positioning proxy, NOT an SVI rank; surfaces label
+//      it as such.
+//   4. Else fall back to the hardcoded benchmarks → "benchmark_fallback"
+//   5. Return value + cohort metadata so the dashboard can show
 //      "top 23% of 47 AU pre-seed startups in the index" — much more
 //      credible than "top 25%".
 //
 // Anonymity: snapshots are stored without identity; only score+stage
-// pairs are queried.
+// pairs are queried. The register cohort is public ABR / grant / R&DTI
+// data keyed by ABN.
 
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { cohortFromRegisters, type RegisterCohort, type RegisterCohortQuery, percentileWithinCohort } from "@/lib/signals/external-signals";
+
+export type CohortPercentileSource = "real_cohort" | "register_cohort" | "benchmark_fallback";
 
 export interface CohortPercentileResult {
   percentile: number;            // 0-100
-  source: "real_cohort" | "benchmark_fallback";
+  source: CohortPercentileSource;
   cohortSize: number;
   stageMatched: number;
   median?: number;
   p25?: number;
   p75?: number;
+  /** register_cohort only: what the cohort is made of. */
+  register?: { n: number; stateMatched: boolean; medianAgeMonths: number | null; subjectScore: number; subjectFromRegister: boolean };
 }
+
+/** Minimum peers before a cohort (snapshots or registers) beats the static table. */
+export const COHORT_MIN_N = 20;
+
+/** Test seam: the register cohort loader (defaults to cohortFromRegisters). */
+export type RegisterCohortLoader = (db: unknown, q: RegisterCohortQuery) => Promise<RegisterCohort | null>;
 
 /**
  * Compute percentile rank from the SVI Index snapshots cohort.
@@ -40,6 +60,10 @@ export async function computeCohortPercentile(args: {
   sviScore: number;
   stage: number;
   fallbackPercentile: number;
+  /** S40: enables the register cohort rung (snapshots < 20 → registers ≥ 20 → static). */
+  register?: RegisterCohortQuery | null;
+  /** Injected for tests. */
+  loadRegisterCohort?: RegisterCohortLoader;
 }): Promise<CohortPercentileResult> {
   const { sviScore, stage, fallbackPercentile } = args;
   const supabase = getSupabaseAdmin();
@@ -51,6 +75,27 @@ export async function computeCohortPercentile(args: {
       stageMatched: stage,
     };
   }
+
+  // Middle rung — only consulted once the snapshot cohort is too small.
+  const registerFallback = async (snapshotCount: number): Promise<CohortPercentileResult> => {
+    if (args.register) {
+      try {
+        const cohort = await (args.loadRegisterCohort ?? cohortFromRegisters)(supabase, args.register);
+        if (cohort && cohort.n >= COHORT_MIN_N && cohort.subjectScore != null) {
+          return {
+            percentile: percentileWithinCohort(cohort.subjectScore, cohort.scores),
+            source: "register_cohort",
+            cohortSize: cohort.n,
+            stageMatched: stage,
+            register: { n: cohort.n, stateMatched: cohort.stateMatched, medianAgeMonths: cohort.medianAgeMonths, subjectScore: cohort.subjectScore, subjectFromRegister: cohort.subjectFromRegister },
+          };
+        }
+      } catch {
+        // register cohort unreadable → static
+      }
+    }
+    return { percentile: fallbackPercentile, source: "benchmark_fallback", cohortSize: snapshotCount, stageMatched: stage };
+  };
 
   try {
     // Snapshots within ±1 stage — gives elasticity for small cohorts at the
@@ -69,13 +114,8 @@ export async function computeCohortPercentile(args: {
       .gte("created_at", since)
       .limit(2000);
 
-    if (error || !data || data.length < 20) {
-      return {
-        percentile: fallbackPercentile,
-        source: "benchmark_fallback",
-        cohortSize: data?.length ?? 0,
-        stageMatched: stage,
-      };
+    if (error || !data || data.length < COHORT_MIN_N) {
+      return registerFallback(data?.length ?? 0);
     }
 
     const scores = data
@@ -83,13 +123,8 @@ export async function computeCohortPercentile(args: {
       .filter((n) => !isNaN(n) && n > 0)
       .sort((a, b) => a - b);
 
-    if (scores.length < 20) {
-      return {
-        percentile: fallbackPercentile,
-        source: "benchmark_fallback",
-        cohortSize: scores.length,
-        stageMatched: stage,
-      };
+    if (scores.length < COHORT_MIN_N) {
+      return registerFallback(scores.length);
     }
 
     // Strict percentile — fraction of cohort scoring strictly below the user.
@@ -161,7 +196,7 @@ export interface StartupPositioning {
 export function startupPositioning(input: {
   percentile: number;
   cohortSize: number;
-  source: "real_cohort" | "benchmark_fallback";
+  source: CohortPercentileSource;
   stageLabel?: string;
 }): StartupPositioning {
   const { cohortSize, source, stageLabel } = input;
@@ -170,7 +205,9 @@ export function startupPositioning(input: {
   const cohortBit =
     source === "real_cohort" && cohortSize > 0
       ? ` (based on ${cohortSize} AU peers)`
-      : " (benchmark estimate)";
+      : source === "register_cohort" && cohortSize > 0
+        ? ` (register cohort — ${cohortSize} AU entities on the ABR / grant / R&DTI registers)`
+        : " (benchmark estimate)";
 
   let tier: PositioningTier;
   let headline: string;

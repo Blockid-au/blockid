@@ -54,7 +54,9 @@ export type EvidenceSource =
   | "self_declared"
   /** G14-S37: the structured founder profile (founder_profiles, 0408) scored by lib/founder/execution.ts. */
   | "founder_profile"
-  | "connector_other";
+  | "connector_other"
+  /** G14-S40: open AU register rows (ABR / GrantConnect / R&DTI) via lib/signals/external-signals.ts. */
+  | "external";
 
 export interface DimensionOwner {
   key: DimKey;

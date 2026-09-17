@@ -32,6 +32,7 @@ import {
   Activity,
   Mail,
   Landmark,
+  Database,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
@@ -101,6 +102,7 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/listings", label: "Listings", icon: ExternalLink },
       { href: "/admin/funding", label: "AU Funding", icon: Landmark },
       { href: "/admin/comparables", label: "AU Comparables", icon: BarChart3 },
+      { href: "/admin/external-signals", label: "External Signals", icon: Database },
       { href: "/admin/evidence-review", label: "Evidence Review", icon: Shield },
       { href: "/admin/ai-health", label: "AI Health", icon: Activity },
       { href: "/admin/drip-stats", label: "Drip Stats", icon: Mail },

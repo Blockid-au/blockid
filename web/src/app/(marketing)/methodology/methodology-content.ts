@@ -17,6 +17,7 @@ import { t, type Messages } from "@/lib/i18n/t";
 import { DIMENSION_OWNERS, DIM_LEGACY_ORDER, criteriaForDimension, type DimKey } from "@/lib/report-pipeline/dimension-owners";
 import { PIPELINE_VERSION } from "@/lib/report-pipeline/version";
 import { REPORT_V2_SCHEMA_VERSION } from "@/lib/report-v2/schema";
+import { EXTERNAL_SOURCE_CATALOG, type ExternalSourceRow } from "@/lib/signals/external-sources";
 import { EVIDENCE_CONFIDENCE, SVI_VERSION } from "@/lib/svi-analysis";
 import { DATA_PRINCIPLE_SENTENCE } from "@/lib/valuation-certificate/types";
 import {
@@ -63,6 +64,20 @@ export interface MethodologyVerificationRow {
   multiplier: number;
 }
 
+/** One /methodology "Data sources" row — attribution_text is the licence's own wording, verbatim (S40). */
+export interface MethodologyDataSource {
+  id: string;
+  name: string;
+  url: string;
+  licence: string;
+  attribution: string;
+  status: ExternalSourceRow["status"];
+  useLabel: string;
+  citeOnly: boolean;
+  lastFetchedAt: string | null;
+  rowCount: number;
+}
+
 export interface MethodologyProps {
   locale: MethodologyLocale;
   hero: { eyebrow: string; title: string; subtitle: string };
@@ -81,6 +96,17 @@ export interface MethodologyProps {
   provenance: { kicker: string; title: string; paragraphs: string[] };
   versioning: { kicker: string; title: string; note: string; rows: Array<{ label: string; value: string }> };
   data: { kicker: string; title: string; sentence: string; translated: string | null };
+  sources: {
+    kicker: string;
+    title: string;
+    intro: string;
+    cols: { source: string; licence: string; use: string; refreshed: string; rows: string };
+    never: string;
+    attributionNote: string;
+    cohortNote: string;
+    fromDb: boolean;
+    items: MethodologyDataSource[];
+  };
   calibration: { kicker: string; title: string; body: string; link: string; href: string };
   cta: { title: string; primary: { href: string; label: string }; secondary: { href: string; label: string } };
 }
@@ -117,7 +143,28 @@ function fill(s: string, vars: Record<string, string>): string {
   return s.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? vars[k] : m));
 }
 
-export function buildMethodologyProps(m: Messages, locale: MethodologyLocale = "en"): MethodologyProps {
+/** external_sources rows (or the code catalogue) → table rows. Cite-only rows are labelled, never hidden. */
+export function methodologyDataSources(m: Messages, rows: readonly ExternalSourceRow[] = EXTERNAL_SOURCE_CATALOG): MethodologyDataSource[] {
+  return rows.map((s) => ({
+    id: s.id,
+    name: s.name,
+    url: s.url,
+    licence: s.licence,
+    attribution: s.attribution_text,
+    status: s.status,
+    useLabel: t(m, `methodology.sources.use.${s.status}`),
+    citeOnly: s.status === "cite_only",
+    lastFetchedAt: s.last_fetched_at ?? null,
+    rowCount: Number(s.row_count ?? 0),
+  }));
+}
+
+export interface BuildMethodologyOptions {
+  /** Live external_sources rows (loadExternalSources); omitted → the code catalogue, fromDb=false. */
+  sources?: { rows: readonly ExternalSourceRow[]; fromDb: boolean };
+}
+
+export function buildMethodologyProps(m: Messages, locale: MethodologyLocale = "en", opts: BuildMethodologyOptions = {}): MethodologyProps {
   const T = (k: string) => t(m, k);
   const capByOrigin = new Map(CAP_RULES_PLAIN.map((r) => [r.origin, r] as const));
   const capOrigins: EvidenceOrigin[] = ["founder_text", "founder_upload", "connector", "reviewer"];
@@ -204,6 +251,23 @@ export function buildMethodologyProps(m: Messages, locale: MethodologyLocale = "
       title: T("methodology.data.title"),
       sentence: DATA_PRINCIPLE_SENTENCE,
       translated: locale === "vi" && m["solutions.principle.data"] && m["solutions.principle.data"] !== DATA_PRINCIPLE_SENTENCE ? m["solutions.principle.data"] : null,
+    },
+    sources: {
+      kicker: T("methodology.sources.kicker"),
+      title: T("methodology.sources.title"),
+      intro: T("methodology.sources.intro"),
+      cols: {
+        source: T("methodology.sources.col.source"),
+        licence: T("methodology.sources.col.licence"),
+        use: T("methodology.sources.col.use"),
+        refreshed: T("methodology.sources.col.refreshed"),
+        rows: T("methodology.sources.col.rows"),
+      },
+      never: T("methodology.sources.never"),
+      attributionNote: T("methodology.sources.attributionNote"),
+      cohortNote: T("methodology.sources.cohortNote"),
+      fromDb: opts.sources?.fromDb ?? false,
+      items: methodologyDataSources(m, opts.sources?.rows ?? EXTERNAL_SOURCE_CATALOG),
     },
     calibration: {
       kicker: T("methodology.calibration.kicker"),
