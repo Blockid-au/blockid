@@ -17,16 +17,13 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-// Kept in sync with DIM_META in the streaming analyzer.
-export const DIM_KEYS = ["ftv", "mpc", "ptd", "tre", "cgh", "iri", "lco", "svm"] as const;
-export type DimKey = (typeof DIM_KEYS)[number];
-export type CoverageLevel = "strong" | "partial" | "missing";
+import { safeParseCoverage, type CoverageMap } from "./coverage";
 
-export interface DimCoverage {
-  level: CoverageLevel;
-  excerpt: string;
-}
-export type CoverageMap = Record<DimKey, DimCoverage>;
+// The 8-dimension vocabulary + pure parse / summary helpers live in the
+// client-safe ./coverage module (the inbox heat strip imports it from a
+// "use client" file; this module pulls in ai-client → supabase lazily).
+export { DIM_KEYS, coverageSummary, safeParseCoverage } from "./coverage";
+export type { CoverageLevel, CoverageMap, DimCoverage, DimKey } from "./coverage";
 
 /** Cap the LLM prompt at ~30 KiB so we stay in the fast tier's context. */
 export const MAX_TEXT_BYTES = 30_000;
@@ -72,55 +69,6 @@ Deck excerpt:
 ---
 ${text.slice(0, MAX_TEXT_BYTES)}
 ---`;
-}
-
-export function safeParseCoverage(raw: string): CoverageMap | null {
-  // Strip a leading markdown fence in case the LLM disobeys the "no fence" rule.
-  const cleaned = raw
-    .replace(/^\s*```(?:json)?\s*\n/, "")
-    .replace(/\n```\s*$/, "")
-    .trim();
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(cleaned);
-  } catch {
-    return null;
-  }
-  if (!parsed || typeof parsed !== "object") return null;
-  const obj = parsed as Record<string, unknown>;
-  const out: Partial<CoverageMap> = {};
-  for (const key of DIM_KEYS) {
-    const entry = obj[key];
-    if (!entry || typeof entry !== "object") {
-      out[key] = { level: "missing", excerpt: "" };
-      continue;
-    }
-    const e = entry as Record<string, unknown>;
-    const rawLevel = String(e.level ?? "missing").toLowerCase();
-    const level: CoverageLevel =
-      rawLevel === "strong" || rawLevel === "partial" || rawLevel === "missing"
-        ? (rawLevel as CoverageLevel)
-        : "missing";
-    const excerpt = typeof e.excerpt === "string" ? e.excerpt.slice(0, 120) : "";
-    out[key] = { level, excerpt };
-  }
-  return out as CoverageMap;
-}
-
-/** `{ strong, partial, missing }` counts — the inbox's coverage heat strip. */
-export function coverageSummary(coverage: Partial<Record<string, { level?: string }>> | null | undefined): {
-  strong: number;
-  partial: number;
-  missing: number;
-} {
-  const out = { strong: 0, partial: 0, missing: 0 };
-  for (const key of DIM_KEYS) {
-    const level = coverage?.[key]?.level;
-    if (level === "strong") out.strong += 1;
-    else if (level === "partial") out.partial += 1;
-    else out.missing += 1;
-  }
-  return out;
 }
 
 /**

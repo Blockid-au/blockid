@@ -14,7 +14,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Check, Copy, Download, ExternalLink, Link2, Loader2, Plus, X } from "lucide-react";
 import { useModalDialog } from "@/hooks/useModalDialog";
-import { DIM_KEYS, coverageSummary, type DimKey } from "@/lib/pitchdeck/classify";
+import { DIM_KEYS, coverageSummary, type DimKey } from "@/lib/pitchdeck/coverage";
 import type { InboxRow, IntakeWithCounts, SubmissionStatus } from "@/lib/intake/program-intakes";
 import { ReportDialog, type ReportRunResult } from "../../evaluations/report-dialog";
 

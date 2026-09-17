@@ -3,7 +3,7 @@
 // the formula-injection guard in `csvCell`. Pure; no I/O.
 
 import { CSV_BOM, csvCell } from "@/lib/evaluations/batch-shared";
-import { DIM_KEYS, coverageSummary } from "@/lib/pitchdeck/classify";
+import { DIM_KEYS, coverageSummary } from "@/lib/pitchdeck/coverage";
 import type { InboxRow, ProgramIntake } from "./program-intakes";
 
 export const INBOX_CSV_HEADERS = [
