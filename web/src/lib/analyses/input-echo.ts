@@ -26,6 +26,7 @@ export type EchoRowKey =
   | "sector"
   | "stage"
   | "team"
+  | "founder"
   | "traction"
   | "revenue"
   | "ask"
@@ -98,11 +99,22 @@ const ROW_LABELS: Record<EchoRowKey, { label: string; hint: string }> = {
   sector: { label: "Sector", hint: "Name the industry so the benchmarks match." },
   stage: { label: "Stage", hint: "Say whether you have a prototype, users or revenue." },
   team: { label: "Team", hint: "Founders, their backgrounds, and how many people work on it." },
+  founder: { label: "Founder profile", hint: "Fill the Execution tab of your founder profile (exits, prior raises, roles, full-time %, GitHub) — it drives the Founder & Team score instead of keyword matching." },
   traction: { label: "Traction", hint: "Users, customers, pilots, waitlist — with numbers." },
   revenue: { label: "Revenue", hint: "MRR / ARR, or 'A$X over the last N months', or 'pre-revenue' — a figure changes the valuation method." },
   ask: { label: "The ask", hint: "How much you are raising and what it funds." },
   cap: { label: "Stated cap / pre-money", hint: "The SAFE cap or pre-money you are raising at, if you have one — we cross-check it against the indicative range." },
   urls: { label: "Links", hint: "Website, product, repo or deck links." },
+};
+
+const FOUNDER_ROW_LABEL: Record<string, string> = {
+  exits: "exits",
+  raises: "prior raises",
+  years_in_domain: "years in domain",
+  roles: "roles",
+  full_time: "full-time",
+  worked_together: "worked together",
+  github: "GitHub",
 };
 
 function clip(text: string, max = MAX_VALUE_CHARS): string {
@@ -329,6 +341,21 @@ export function buildInputEcho(intake: EchoInput, meta: EchoMeta = {}): InputEch
     }
   }
 
+  // ── Founder execution profile (G14-S37) ────────────────────────────────
+  // The structured founder profile, when the analysis was scored with one:
+  // the rubric score + the rows that earned points, so the founder sees the
+  // profile was read (and that a self-reported score is capped).
+  let founder: { value: string; source: string } | null = null;
+  {
+    const fe = signals.founderExecution;
+    if (fe && typeof fe === "object" && Number.isFinite(fe.score)) {
+      const parts = (fe.breakdown ?? []).filter((b) => b.points > 0).map((b) => `${FOUNDER_ROW_LABEL[b.key] ?? b.key}: ${b.evidence}`);
+      const capNote = fe.capped ? " (self-reported, capped at 70)" : "";
+      const value = `Execution ${Math.round(fe.score)}/100${capNote}${parts.length ? ` — ${parts.join("; ")}` : " — no structured fields yet"}`;
+      founder = { value: clip(value, 220), source: "from your founder profile" };
+    }
+  }
+
   // ── Traction / revenue / ask / cap ─────────────────────────────────────
   // The shared intake parser reads the figures (EN + VI, periods, pilots,
   // SAFE caps); the older sentence regexes stay as the fallback for a
@@ -423,6 +450,7 @@ export function buildInputEcho(intake: EchoInput, meta: EchoMeta = {}): InputEch
     row("sector", sector, sector ? "detected from your text" : null),
     row("stage", stage, stage ? "detected from the evidence" : null),
     row("team", team?.value ?? null, team?.source ?? null),
+    row("founder", founder?.value ?? null, founder?.source ?? null),
     row("traction", traction?.value ?? null, traction?.source ?? null),
     row("revenue", revenue?.value ?? null, revenue?.source ?? null),
     row("ask", ask?.value ?? null, ask?.source ?? null),

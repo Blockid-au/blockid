@@ -78,6 +78,8 @@ import {
 } from "./dossier-blocks";
 import { emptyConsensus, readConsensus, shareOrg, type DossierConsensus } from "@/lib/investor/organisations";
 import { readAuditTrail, type DossierAuditEntry } from "./dossier-audit";
+import { loadFounderExecutionContext } from "@/lib/founder/execution-load";
+import { founderExecutionSignals } from "@/lib/founder/execution";
 
 export type { DossierMandateFit, DossierProgressBlock, DossierSinceLastView, DossierValuationBlock, DossierConsensus, DossierAuditEntry };
 
@@ -153,6 +155,18 @@ export interface DossierCriterionRow {
   ownerAgent: string;
 }
 
+/** G14-S37: the FTV "Founder Execution" block — the rubric over the owner founder_profiles row. */
+export interface DossierFounderExecution {
+  score: number;
+  rawScore: number;
+  capped: boolean;
+  capReason: string | null;
+  capLiftedBy: "references_checked" | "linkedin_parser" | null;
+  structured: boolean;
+  rubricVersion: string;
+  breakdown: Array<{ key: string; label: string; points: number; max: number; evidence: string; source: string }>;
+}
+
 export interface DossierReportBlock {
   available: boolean;
   source: ReportV2["source"] | null;
@@ -162,6 +176,8 @@ export interface DossierReportBlock {
   /** per-dimension evidence counts (always visible, every tier) */
   evidenceCounts: Record<DimKey, number>;
   links: { fullReport: string | null; pdf: string | null; analyze: string };
+  /** G14-S37: null when the owner has no founder profile (or the loader failed). */
+  founderExecution?: DossierFounderExecution | null;
 }
 
 export interface DossierEvidenceItem {
@@ -448,7 +464,7 @@ function radarFrom(report: ReportV2 | null): VisualSpecV2 | null {
 
 interface EvaluationWithProject {
   evaluation: Evaluation;
-  project: { id: string; name: string; slug: string; industry: string | null; stage: number | null; description: string | null; phaseId: string | null; verificationLevel: number | null };
+  project: { id: string; name: string; slug: string; industry: string | null; stage: number | null; description: string | null; phaseId: string | null; verificationLevel: number | null; ownerUserId: string | null };
   role: DossierViewerRole;
   /** S-D3: set when the viewer is a same-org seat of the evaluator (F1) — the org both belong to. */
   viaOrgId: string | null;
@@ -469,7 +485,7 @@ export async function resolveDossierAccess(evaluationId: string, userId: string)
   // membership read; anyone else → null → 404).
   const { data, error } = await supabase
     .from("evaluations")
-    .select(`${EVALUATION_COLUMNS}, projects:project_id (id, name, slug, industry, stage, description, growth_phase_current, verification_level)`)
+    .select(`${EVALUATION_COLUMNS}, projects:project_id (id, name, slug, industry, stage, description, growth_phase_current, verification_level, user_id)`)
     .eq("id", evaluationId)
     .maybeSingle();
   if (error || !data) return null;
@@ -501,8 +517,31 @@ export async function resolveDossierAccess(evaluationId: string, userId: string)
       description: str(p.description),
       phaseId: str(p.growth_phase_current),
       verificationLevel: num(p.verification_level),
+      ownerUserId: str(p.user_id),
     },
   };
+}
+
+/** G14-S37: the owner founder execution rubric for the FTV block (null = no profile / loader failed). */
+async function readFounderExecution(ownerUserId: string | null, projectId: string): Promise<DossierFounderExecution | null> {
+  if (!ownerUserId) return null;
+  try {
+    const ctx = await loadFounderExecutionContext({ accountId: ownerUserId, projectId });
+    if (!ctx.profile) return null;
+    const exec = founderExecutionSignals(ctx.profile, { evaluatorFlags: ctx.evaluatorFlags, linkedin: ctx.linkedin, github: ctx.github });
+    return {
+      score: exec.executionScore,
+      rawScore: exec.rawScore,
+      capped: exec.capped,
+      capReason: exec.capReason ?? null,
+      capLiftedBy: exec.capLiftedBy ?? null,
+      structured: exec.structured,
+      rubricVersion: exec.rubricVersion,
+      breakdown: exec.breakdown.map((b) => ({ key: b.key, label: b.label, points: b.points, max: b.max, evidence: b.evidence, source: b.source })),
+    };
+  } catch {
+    return null;
+  }
 }
 
 // ─── Round 1 readers (each swallows its own failure) ────────────────────────
@@ -635,7 +674,7 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
   const { evaluation, project, role } = access;
 
   // Round 1 — everything in parallel; each reader degrades to null/[] on its own.
-  const [latest, olderCandidates, taxonomy, assessment, evidenceRows, providers, lastReport, lastView] = await Promise.all([
+  const [latest, olderCandidates, taxonomy, assessment, evidenceRows, providers, lastReport, lastView, founderExecution] = await Promise.all([
     readLatestSnapshot(project.id),
     readSnapshot30dAgo(project.id),
     getTaxonomy(project.id).catch(() => null),
@@ -645,6 +684,8 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
     readLatestReport(evaluation.id),
     // S-R4: the viewer's previous `dossier.viewed` row (its SVI feeds "Δ since last view").
     readSinceLastView(userId, evaluation.id, null).catch(() => null),
+    // G14-S37: the owner founder execution rubric (FTV block).
+    readFounderExecution(project.ownerUserId, project.id),
   ]);
 
   // Δ30d baseline = the newest row ≥ 30 days old that is NOT the latest row.
@@ -759,6 +800,7 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
       pdf: pdfUrlForToken(lastReport?.shareToken ?? null),
       analyze: `/workspace/projects/${encodeURIComponent(project.slug)}/analyze`,
     },
+    founderExecution,
   };
 
   return {

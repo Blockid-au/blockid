@@ -64,6 +64,15 @@ vi.mock("@/lib/report-pipeline/orchestrator", () => ({
   },
 }));
 
+// G14-S37: the founder-execution loader reads founder_profiles / assessments /
+// founder_signals / svi_signals — mocked to a pass-through so the queued table
+// responses keep their order; the merge itself is pinned in
+// lib/founder/execution.test.ts.
+const applyFounderExecutionMock = vi.fn(async (signals: unknown) => ({ signals, exec: null, profile: null }));
+vi.mock("@/lib/founder/execution-load", () => ({
+  applyFounderExecution: (signals: unknown, args: unknown) => applyFounderExecutionMock(signals, args),
+}));
+
 const findAccountMock = vi.fn();
 const findAnalysisMock = vi.fn();
 const getProjectByIdMock = vi.fn();
@@ -308,6 +317,9 @@ describe("runRescoreForProject", () => {
     expect(run.delta).toBe(run.svi - 118);
     expect(orchestrateMock).not.toHaveBeenCalled();
     expect(callAIMock).not.toHaveBeenCalled();
+    // G14-S37: the owner's founder profile is consulted before computeSVI (owner email + project).
+    expect(applyFounderExecutionMock).toHaveBeenCalledTimes(1);
+    expect(applyFounderExecutionMock.mock.calls[0][1]).toMatchObject({ email: "scout@fund.vc", projectId: "p-1" });
     const snap = state.calls.find((c) => c.table === "svi_snapshots" && c.op === "insert")!.payload as Record<string, unknown>;
     expect((snap.analysis_json as Record<string, unknown>).source).toBe("evaluator_rescore");
     expect(snap.dim_results).toBeUndefined();

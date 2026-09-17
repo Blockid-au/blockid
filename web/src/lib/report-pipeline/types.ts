@@ -162,6 +162,8 @@ export interface GatherResults {
   // ── S-R5 §C.7 evidence connectors ───────────────────────────────────
   /** Latest parsed LinkedIn export / URL (connectors/linkedin-upload.ts → founder_signals) — FTV. */
   founderSignals?: Record<string, unknown>;
+  /** G14-S37: the founder execution rubric over founder_profiles (founder/execution.ts) — FTV "Founder Execution" card. */
+  founderExecution?: Record<string, unknown>;
   /** Latest 90-day GA4 snapshot (ga4_signal_snapshots: AARRR funnel + channel mix) — TRE / MPC. */
   ga4?: Record<string, unknown>;
   /** CFO 5-method valuation (agents/cfo-valuation.ts buildVcValuationReport) + the inputs it ran on. */

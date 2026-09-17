@@ -111,6 +111,19 @@ describe("Appendix 2 Zod shapes", () => {
     expect(riskItemSchema.safeParse({ title: "t", severity: "low", source: "evaluator" }).success).toBe(true);
     expect(riskItemSchema.safeParse({ title: "", severity: "low", source: "evaluator" }).success).toBe(false);
   });
+
+  it("G14-S37: dimension ratings accept the optional FTV flags (4 booleans), reject unknown flag keys / non-boolean values, and keep the flags on the parsed row", () => {
+    const ok = dimensionRatingsSchema.safeParse({ FTV: { rating: 4, stance: "agree", flags: { references_checked: true, full_time: true } } });
+    expect(ok.success).toBe(true);
+    expect(ok.success && ok.data.FTV?.flags).toEqual({ references_checked: true, full_time: true });
+    expect(dimensionRatingsSchema.safeParse({ FTV: { rating: 4, stance: "agree", flags: {} } }).success).toBe(true);
+    expect(dimensionRatingsSchema.safeParse({ FTV: { rating: 4, stance: "agree", flags: { references_checked: "yes" } } }).success).toBe(false);
+    expect(dimensionRatingsSchema.safeParse({ FTV: { rating: 4, stance: "agree", flags: { bogus: true } } }).success).toBe(false);
+    // A pre-S37 row (no flags) still parses — append-only.
+    expect(dimensionRatingsSchema.safeParse({ MPC: { rating: 2, stance: "disagree", note: "n" } }).success).toBe(true);
+    const row = mapAssessmentRow({ ...ROW, dimension_ratings: { FTV: { rating: 5, stance: "agree", flags: { key_person_risk: true, complementary_skills: false } } } });
+    expect(row.dimensionRatings.FTV?.flags).toEqual({ key_person_risk: true, complementary_skills: false });
+  });
 });
 
 describe("maskAssessment — founder", () => {

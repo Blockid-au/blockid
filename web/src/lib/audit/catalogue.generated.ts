@@ -169,6 +169,7 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/financial/forecast/generate/route.ts", family: "financial.forecast.generate", methods: ["POST"] },
   { route: "api/financial/forecast/save/route.ts", family: "financial.forecast.save", methods: ["POST"] },
   { route: "api/founder-notifications/read/route.ts", family: "founder-notifications.read", methods: ["POST"] },
+  { route: "api/founder-profile/import-linkedin/route.ts", family: "founder-profile.import-linkedin", methods: ["POST"] },
   { route: "api/founder-profile/locale/route.ts", family: "founder-profile.locale", methods: ["POST"] },
   { route: "api/founder-profile/route.ts", family: "founder-profile", methods: ["POST"] },
   { route: "api/founder/competitors/[id]/route.ts", family: "founder.competitors", methods: ["PATCH","DELETE"] },

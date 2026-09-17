@@ -446,6 +446,68 @@ describe("POST /api/founder-profile", () => {
     expect(p.advisors).toEqual(adv);
   });
 
+  // ── G14-S37: structured execution fields (0408) ─────────────────────────
+  it("G14-S37: absent execution fields default (empty arrays, null scalars, empty roles, empty provenance) — a legacy client still saves", async () => {
+    mocks.getCurrentUserMock.mockResolvedValue({ id: "u-1", email: "founder@x.com" });
+    mocks.saveFounderProfileMock.mockResolvedValue({ ok: true });
+    const res = await POST(jsonPost({ full_name: "Ada" }));
+    expect(res.status).toBe(200);
+    const p = mocks.saveFounderProfileMock.mock.calls[0][0] as unknown as Record<string, unknown>;
+    expect(p.prior_exits).toEqual([]);
+    expect(p.prior_raises).toEqual([]);
+    expect(p.github_url).toBeNull();
+    expect(p.full_time_pct).toBeNull();
+    expect(p.worked_together_before).toBeNull();
+    expect(p.roles).toEqual({ ceo: null, cto: null, cpo: null, cfo: null });
+    expect(p.execution_source).toEqual({});
+    expect(p.execution_score).toBeNull();
+  });
+
+  it("G14-S37: valid execution fields pass through validated (trimmed names, defaulted value band, null-normalised roles, provenance map)", async () => {
+    mocks.getCurrentUserMock.mockResolvedValue({ id: "u-1", email: "founder@x.com" });
+    mocks.saveFounderProfileMock.mockResolvedValue({ ok: true });
+    const res = await POST(jsonPost({
+      prior_exits: [{ company: "  Loom ", year: 2020, type: "acquisition" }],
+      prior_raises: [{ company: "Loom", round: "seed", amount_aud_band: "1m-5m", year: null }],
+      github_url: "https://github.com/ada",
+      full_time_pct: 80,
+      worked_together_before: true,
+      roles: { ceo: "Ada", cto: "", cpo: null },
+      execution_source: { years_in_domain: "linkedin_parser", prior_exits: "founder" },
+    }));
+    expect(res.status).toBe(200);
+    const p = mocks.saveFounderProfileMock.mock.calls[0][0] as unknown as Record<string, unknown>;
+    expect(p.prior_exits).toEqual([{ company: "Loom", year: 2020, type: "acquisition", value_band: "undisclosed" }]);
+    expect(p.prior_raises).toEqual([{ company: "Loom", round: "seed", amount_aud_band: "1m-5m", year: null }]);
+    expect(p.github_url).toBe("https://github.com/ada");
+    expect(p.full_time_pct).toBe(80);
+    expect(p.worked_together_before).toBe(true);
+    expect(p.roles).toEqual({ ceo: "Ada", cto: null, cpo: null, cfo: null });
+    expect(p.execution_source).toEqual({ years_in_domain: "linkedin_parser", prior_exits: "founder" });
+  });
+
+  it("G14-S37: invalid execution fields are a 400 invalid_execution_fields with the issue paths — nothing is saved", async () => {
+    mocks.getCurrentUserMock.mockResolvedValue({ id: "u-1", email: "founder@x.com" });
+    mocks.saveFounderProfileMock.mockResolvedValue({ ok: true });
+    for (const body of [
+      { prior_exits: [{ company: "Loom", year: 2020, type: "merger" }] },
+      { github_url: "https://gitlab.com/ada" },
+      { full_time_pct: 120 },
+      { prior_raises: [{ company: "Loom", round: "seed", amount_aud_band: "1m-5m", year: 1800 }] },
+      { execution_source: { prior_exits: "chatgpt" } },
+      { prior_exits: Array.from({ length: 11 }, () => ({ company: "X", year: null, type: "shutdown" })) },
+    ]) {
+      const res = await POST(jsonPost(body));
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.ok).toBe(false);
+      expect(json.error).toBe("invalid_execution_fields");
+      expect(Array.isArray(json.issues)).toBe(true);
+      expect(json.issues.length).toBeGreaterThan(0);
+    }
+    expect(mocks.saveFounderProfileMock).not.toHaveBeenCalled();
+  });
+
   it("returns 200 with the save result on success", async () => {
     mocks.getCurrentUserMock.mockResolvedValue({ id: "u-1", email: "founder@x.com" });
     mocks.saveFounderProfileMock.mockResolvedValue({ ok: true });

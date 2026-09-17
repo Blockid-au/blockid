@@ -9,6 +9,7 @@ import type { WebsiteCompetitiveIntelligence, MarketEbitdaMetrics } from "./comp
 import { parseFinancialFigures } from "./intake/financial-figures";
 import { cappedLevel, textHasUrl } from "./evidence/confidence-cap";
 import { verificationMeta, boundedVerificationConfidence, type VerificationMeta } from "./verification/confidence-multiplier";
+import type { FounderExecutionSummary } from "./founder/execution";
 
 export const SVI_VERSION = "2.2.0";
 
@@ -156,6 +157,12 @@ export interface SVIExtractedSignals {
   founderExperience: "first-time" | "experienced" | "serial";
   founderSectorFit: boolean;
   hasAdvisors: boolean;
+  /**
+   * G14-S37: the structured founder-execution rubric (lib/founder/execution.ts)
+   * when a founder_profiles row was merged by the caller. The four flags above
+   * then come from the profile (canonical) and the regex only filled gaps.
+   */
+  founderExecution?: FounderExecutionSummary;
 
   // Idea / market signals
   marketSize: "unknown" | "small" | "medium" | "large";
@@ -1005,6 +1012,15 @@ export function computeSVI(
 
   if (signals.hasAdvisors) { ftvRaw += 8; ftvEvidence.push("Named advisors or mentors identified"); }
   else { ftvGaps.push("Add named advisors or industry mentors to strengthen credibility"); }
+
+  // G14-S37: the structured execution rubric (founder profile, canonical).
+  // Evidence + gap lines only — the four flags above already carry the
+  // profile's answer, so the FTV points stay comparable with pre-S37 rows.
+  if (signals.founderExecution) {
+    const fe = signals.founderExecution;
+    ftvEvidence.push(`Founder execution ${fe.score}/100 (rubric v${fe.rubricVersion}${fe.capped ? `, self-reported — capped at ${fe.score}` : ""})`);
+    if (fe.capped) ftvGaps.push("Lift the execution cap: ask an evaluator to check references, or upload your LinkedIn PDF so the parser confirms years and employers");
+  }
 
   // Repo audit boost for FTV (engineering team quality)
   if (repoAuditBoosts && repoAuditBoosts.ftvBoost !== 0) {

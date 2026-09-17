@@ -111,6 +111,22 @@ describe("AssessmentForm", () => {
     expect(out).toContain("History — 1 version");
   });
 
+  it("G14-S37: four FTV flag checkboxes render under the FTV row only, disabled until FTV is rated, checked from the stored flags", () => {
+    const out = form();
+    expect(out).toContain('data-testid="ftv-flags"');
+    for (const k of ["key_person_risk", "full_time", "complementary_skills", "references_checked"]) {
+      expect(out).toContain(`id="dim-FTV-flag-${k}"`);
+      expect(out).not.toContain(`id="dim-TRE-flag-${k}"`);
+    }
+    // FTV is not rated on ROW → the boxes are disabled and unchecked.
+    expect(out).toMatch(/id="dim-FTV-flag-references_checked"[^>]*disabled/);
+    expect(out).not.toMatch(/id="dim-FTV-flag-references_checked"[^>]*checked=""/);
+    const rated = form({ initial: { ...ROW, dimensionRatings: { ...ROW.dimensionRatings, FTV: { rating: 4, stance: "agree", flags: { references_checked: true } } } } });
+    expect(rated).toMatch(/id="dim-FTV-flag-references_checked"[^>]*checked=""/);
+    expect(rated).not.toMatch(/id="dim-FTV-flag-references_checked"[^>]*disabled/);
+    expect(rated).not.toMatch(/id="dim-FTV-flag-full_time"[^>]*checked=""/);
+  });
+
   it("G14-S34 opt-out: hidden while 0406 is missing (null); a checkbox in the footer once the flag is known, checked when opted out", () => {
     expect(form()).not.toContain("assessment-feedback-opt-out");
     expect(form({ feedbackOptOut: null })).not.toContain("assessment-feedback-opt-out");

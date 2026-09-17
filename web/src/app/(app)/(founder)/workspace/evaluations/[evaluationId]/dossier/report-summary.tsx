@@ -14,7 +14,23 @@
 
 import Link from "next/link";
 import { VisualFigure } from "@/lib/report-visuals/react";
-import type { DossierReportBlock } from "@/lib/evaluations/dossier";
+import type { DossierFounderExecution, DossierReportBlock } from "@/lib/evaluations/dossier";
+import { FounderExecutionCard, type FounderExecutionCardData } from "@/components/tbr/v2/founder-execution-card";
+
+/** G14-S37: the dossier block → the shared FTV card shape (null fields become absent). */
+function toExecutionCard(fe: DossierFounderExecution): FounderExecutionCardData {
+  const data: FounderExecutionCardData = {
+    executionScore: fe.score,
+    rawScore: fe.rawScore,
+    capped: fe.capped,
+    structured: fe.structured,
+    rubricVersion: fe.rubricVersion,
+    breakdown: fe.breakdown,
+  };
+  if (fe.capReason) data.capReason = fe.capReason;
+  if (fe.capLiftedBy) data.capLiftedBy = fe.capLiftedBy;
+  return data;
+}
 
 const BAND_TONE: Record<string, string> = {
   strong: "bg-emerald-50 text-emerald-800",
@@ -164,6 +180,16 @@ export function ReportSummary({ report }: { report: DossierReportBlock }) {
           </div>
         </div>
       )}
+
+      {report.founderExecution ? (
+        <div className="mt-6" data-testid="dossier-founder-execution">
+          <h3 className="text-sm font-semibold text-ink-900">Founder execution (FTV)</h3>
+          <p className="mt-0.5 text-xs text-ink-500">Structured rubric over the founder profile — exits, raises, years in domain, role coverage, full-time %, worked together, GitHub. Self-reported scores are capped at 70 until references are checked or the LinkedIn export confirms them.</p>
+          <div className="mt-2">
+            <FounderExecutionCard data={toExecutionCard(report.founderExecution)} />
+          </div>
+        </div>
+      ) : null}
 
       <h3 className="mt-6 text-sm font-semibold text-ink-900">13 criteria</h3>
       <ol className="mt-2 divide-y divide-surface-100 rounded-xl border border-surface-200" data-testid="criteria-strip">

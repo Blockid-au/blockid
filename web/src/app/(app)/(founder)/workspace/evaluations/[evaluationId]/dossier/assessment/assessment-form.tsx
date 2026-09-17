@@ -67,6 +67,13 @@ const AUTOSAVE_MS = 1500;
 const DIM_ORDER_UPPER: AssessmentDimKey[] = ["FTV", "MPC", "PTD", "TRE", "CGH", "IRI", "LCO", "SVM"];
 const SEVERITIES: RiskItem["severity"][] = ["low", "medium", "high", "critical"];
 const RATINGS = [1, 2, 3, 4, 5] as const;
+/** G14-S37: the four FTV flags (jsonb in dimension_ratings.FTV.flags — no migration). */
+const FTV_FLAGS: Array<{ key: "key_person_risk" | "full_time" | "complementary_skills" | "references_checked"; label: string; hint: string }> = [
+  { key: "key_person_risk", label: "Key-person risk", hint: "the startup depends on one person" },
+  { key: "full_time", label: "Full-time", hint: "founders are on this full-time" },
+  { key: "complementary_skills", label: "Complementary skills", hint: "builder + seller + domain covered" },
+  { key: "references_checked", label: "References checked", hint: "lifts the self-reported cap on the founder execution score" },
+];
 
 type SaveState = { kind: "idle" } | { kind: "saving" } | { kind: "saved"; at: string; version: number; status: "draft" | "submitted" } | { kind: "error"; message: string };
 
@@ -301,6 +308,35 @@ export function AssessmentForm({ evaluationId, initial, history, prefill, snapsh
                         disabled={!mine}
                         onChange={(e) => update((v) => ({ ...v, dimension_ratings: { ...v.dimension_ratings, [k]: { ...v.dimension_ratings[k]!, note: e.target.value || undefined } } }))}
                       />
+                      {k === "FTV" && (
+                        <fieldset className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1" data-testid="ftv-flags">
+                          <legend className="sr-only">Founder & Team flags</legend>
+                          {FTV_FLAGS.map((f) => {
+                            const id = `dim-FTV-flag-${f.key}`;
+                            const checked = mine?.flags?.[f.key] === true;
+                            return (
+                              <label key={f.key} htmlFor={id} className="inline-flex items-center gap-1 text-[11px] text-ink-600" title={f.hint}>
+                                <input
+                                  id={id}
+                                  type="checkbox"
+                                  className="h-3.5 w-3.5 rounded border-surface-300"
+                                  checked={checked}
+                                  disabled={!mine}
+                                  onChange={(e) =>
+                                    update((v) => {
+                                      const cur = v.dimension_ratings.FTV;
+                                      if (!cur) return v;
+                                      const flags = { ...(cur.flags ?? {}), [f.key]: e.target.checked };
+                                      return { ...v, dimension_ratings: { ...v.dimension_ratings, FTV: { ...cur, flags } } };
+                                    })
+                                  }
+                                />
+                                {f.label}
+                              </label>
+                            );
+                          })}
+                        </fieldset>
+                      )}
                     </td>
                   </tr>
                 );

@@ -103,6 +103,14 @@ vi.mock("@/lib/investor/organisations", () => ({
   shareOrg: (a: string, b: string) => shareOrgMock(a as never, b as never),
 }));
 
+// G14-S37: the founder execution loader (founder_profiles + assessments +
+// founder_signals + svi_signals) is mocked so the round shape stays
+// observable; the rubric itself is real (lib/founder/execution.ts).
+const founderExecutionCtxMock = vi.fn(async (_args: unknown) => ({ profile: null as unknown, evaluatorFlags: null, linkedin: null, github: null }));
+vi.mock("@/lib/founder/execution-load", () => ({
+  loadFounderExecutionContext: (args: unknown) => founderExecutionCtxMock(args),
+}));
+
 import { __resetDossierCaches, buildCriterionRows, findEvaluationIdForProject, loadDossier, projectEvidenceByTier, resolveDossierAccess } from "./dossier";
 import { DIMENSION_OWNERS, DIM_ORDER } from "@/lib/report-pipeline/dimension-owners";
 import { fromSnapshot } from "@/lib/report-v2/adapter";
@@ -111,7 +119,7 @@ const EVAL: Row = {
   id: "e-1", evaluator_user_id: "u-eval", project_id: "p-1", owner_kind: "founder_claimed", consent_tier: "reports_shared",
   founder_email: "jo@acme.io", founder_user_id: "u-founder", invite_token: "tok-secret", invited_at: null, claimed_at: "2026-09-01T00:00:00Z",
   label: "Cohort 4", notes: null, website: "https://acme.io", state: "NSW", created_at: "2026-08-20T00:00:00Z", updated_at: "2026-09-01T00:00:00Z",
-  projects: { id: "p-1", name: "Acme Robotics", slug: "acme-robotics", industry: "DeepTech", stage: 3, description: null, growth_phase_current: null, verification_level: 2 },
+  projects: { id: "p-1", name: "Acme Robotics", slug: "acme-robotics", industry: "DeepTech", stage: 3, description: null, growth_phase_current: null, verification_level: 2, user_id: "u-founder" },
 };
 
 const DIMS = { tre: 61, mpc: 70, ftv: 55, ptd: 66, cgh: 48, iri: 52, lco: 40, svm: 58 };
@@ -250,10 +258,33 @@ describe("loadDossier — evaluator", () => {
     expect(docs.strongestSource).toBe("self_declared");
     expect(r.links.fullReport).toBe("/tbr/tok-abc");
     expect(r.links.analyze).toBe("/workspace/projects/acme-robotics/analyze");
+    // G14-S37: no founder profile → null block; the loader was asked for the OWNER (projects.user_id).
+    expect(r.founderExecution).toBeNull();
+    expect(founderExecutionCtxMock).toHaveBeenCalledWith({ accountId: "u-founder", projectId: "p-1" });
 
     expect(d!.assessment.mine).toEqual(MINE);
     expect(d!.assessment.history).toHaveLength(2);
     expect(getAssessmentMock).toHaveBeenCalledWith("e-1", { userId: "u-eval", role: "assessor" });
+  });
+
+  it("G14-S37: a structured founder profile becomes the FTV founder-execution block (score, cap, breakdown); references_checked lifts the cap", async () => {
+    const profile = {
+      account_id: "u-founder", email: "jo@acme.io", full_name: "Jo", role: "CEO", linkedin_url: null, bio: null, prev_employers: [], ship_history: [], years_in_domain: 12, domain_insight: null, ambition: null,
+      co_founders: [], advisors: [], notable_hires: [], public_visible: true, contactable_by_investors: false,
+      prior_exits: [{ company: "Loom", year: 2020, type: "acquisition", value_band: "1m-10m" }, { company: "Weave", year: 2016, type: "ipo", value_band: "50m+" }],
+      prior_raises: [{ company: "Loom", round: "series_b_plus", amount_aud_band: "20m+", year: 2019 }],
+      github_url: "https://github.com/jo", full_time_pct: 100, worked_together_before: true,
+      roles: { ceo: "Jo", cto: "Sam", cpo: "Ada", cfo: "Kim" }, execution_score: null, execution_computed_at: null, execution_source: {},
+    };
+    founderExecutionCtxMock.mockResolvedValueOnce({ profile, evaluatorFlags: null, linkedin: null, github: null });
+    const capped = await loadDossier("e-1", "u-eval");
+    expect(capped!.report.founderExecution).toMatchObject({ score: 70, rawScore: 96, capped: true, capLiftedBy: null, structured: true, rubricVersion: "1.0" });
+    expect(capped!.report.founderExecution!.breakdown).toHaveLength(7);
+    expect(capped!.report.founderExecution!.breakdown[0]).toMatchObject({ key: "exits", points: 30, max: 30 });
+
+    founderExecutionCtxMock.mockResolvedValueOnce({ profile, evaluatorFlags: { references_checked: true }, linkedin: null, github: null });
+    const lifted = await loadDossier("e-1", "u-eval");
+    expect(lifted!.report.founderExecution).toMatchObject({ score: 96, capped: false, capLiftedBy: "references_checked", capReason: null });
   });
 
   it("prefers a stored report_v2 over the adapter", async () => {

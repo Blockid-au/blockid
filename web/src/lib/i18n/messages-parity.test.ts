@@ -243,3 +243,26 @@ describe("feedback.* catalogue parity (en ⇄ vi) — G14-S34", () => {
     expect(EN["feedback.optOut.label"]).toBe("Exclude my ratings from the founder's anonymised feedback letter");
   });
 });
+
+describe("execution.* catalogue parity (en ⇄ vi) — G14-S37 founder execution profile", () => {
+  it("every execution.* key exists in both catalogues, none is empty, and the {token}s match", () => {
+    const tokens = (s: string) => (s.match(/\{[a-zA-Z]+\}/g) ?? []).sort();
+    expect(enKeys("execution.").length).toBeGreaterThanOrEqual(60);
+    expect(enKeys("execution.").filter((k) => !(k in VI)), "missing in vi.json").toEqual([]);
+    expect(viKeys("execution.").filter((k) => !(k in EN)), "missing in en.json").toEqual([]);
+    for (const k of enKeys("execution.")) {
+      expect(EN[k]!.trim().length, `en ${k}`).toBeGreaterThan(0);
+      expect(VI[k]!.trim().length, `vi ${k}`).toBeGreaterThan(0);
+      expect(tokens(VI[k]!), k).toEqual(tokens(EN[k]!));
+    }
+  });
+
+  it("carries the rubric weights and the 70 cap in both languages", () => {
+    for (const cat of [EN, VI]) {
+      expect(cat["execution.score.rubric"]).toMatch(/30/);
+      expect(cat["execution.score.rubric"]).toMatch(/15/);
+      expect(cat["execution.score.rubric"]).toMatch(/20/);
+      expect(cat["execution.score.capped"]).toMatch(/70/);
+    }
+  });
+});

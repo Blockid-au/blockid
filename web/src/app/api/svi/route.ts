@@ -17,7 +17,8 @@ import { buildScnActionPlan } from "@/lib/agents/scn-action-plan";
 import { detectMaturity, maturityValuationGuard } from "@/lib/agents/maturity-detector";
 import { computeCohortPercentile } from "@/lib/agents/cohort-percentile";
 import { evaluateAntlerSignals } from "@/lib/agents/antler-signals";
-import { loadFounderProfileByEmail, profileToSviInputText } from "@/lib/founder-profile";
+import { profileToSviInputText } from "@/lib/founder-profile";
+import { applyFounderExecution } from "@/lib/founder/execution-load";
 import { evaluateAcceleratorReadiness } from "@/lib/agents/accelerator-readiness";
 import { emitEvent } from "@/lib/analytics/server";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
@@ -215,7 +216,20 @@ async function POST_handler(request: Request) {
   }
 
   const enrichedInput: SVITextInput = { ...parsed.input, rawText: enrichedText };
-  const signals = extractSignals(enrichedInput, parsed.input.fileName, undefined, techAudit ?? undefined);
+  const regexSignals = extractSignals(enrichedInput, parsed.input.fileName, undefined, techAudit ?? undefined);
+
+  // G14-S37: the structured founder profile (founder_profiles, 0408) is
+  // canonical for the FTV founder flags — the regex above only fills the
+  // gaps it leaves. Loaded by the OWNER's email (dataEmail) / account, with
+  // the project's submitted evaluator flags + LinkedIn parse for the cap.
+  // Fail-soft: no profile → signals untouched.
+  const founderExec = await applyFounderExecution(regexSignals, {
+    accountId: dataEmail === email ? authenticatedUserId : null,
+    email: dataEmail,
+    projectId,
+  }).catch(() => ({ signals: regexSignals, exec: null, profile: null }));
+  const signals = founderExec.signals;
+  const founderProfile = founderExec.profile;
 
   // Build CI boosts from competitive intelligence when website was analyzed
   const ciBoosts = competitiveIntelligence ? {
@@ -340,8 +354,7 @@ async function POST_handler(request: Request) {
   // Antler-style stage-progression signals (5 criteria, deterministic).
   // Concatenate the founder profile (if filled in) into the rawText so Team
   // signal scoring can see "ex-Stripe / 10-year domain expert / co-founder X".
-  // The profile lives in the founder_profiles table and is loaded by email.
-  const founderProfile = await loadFounderProfileByEmail(dataEmail);
+  // The profile was loaded above (G14-S37) — the same row that drove FTV.
   const profileText = profileToSviInputText(founderProfile);
   const antlerRawText = profileText ? `${enrichedText} ${profileText}` : enrichedText;
 

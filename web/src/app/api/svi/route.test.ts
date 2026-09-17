@@ -44,9 +44,15 @@ const analysisStub = {
   subs: [{ label: "FTV", value: 10 }],
   sector: "saas",
 };
+// G14-S37: the regex extractor "sees" a serial founder with co-founders; the
+// structured founder profile (when one exists) must win over it.
+const sviMocks = vi.hoisted(() => ({ computeSVI: vi.fn() }));
 vi.mock("@/lib/svi-analysis", () => ({
-  extractSignals: () => ({}),
-  computeSVI: () => ({ ...analysisStub }),
+  extractSignals: () => ({ founderExperience: "serial", hasCoFounder: true, founderSectorFit: false, hasAdvisors: false, evidenceLevel: "self_declared" }),
+  computeSVI: (...a: unknown[]) => {
+    sviMocks.computeSVI(...a);
+    return { ...analysisStub };
+  },
   computeFundingReadiness: () => ({ score: 1 }),
 }));
 vi.mock("@/lib/rnd-input", () => ({
@@ -70,8 +76,11 @@ vi.mock("@/lib/agents/maturity-detector", () => ({
 vi.mock("@/lib/agents/cohort-percentile", () => ({ computeCohortPercentile: async () => ({ source: "fallback", percentile: 50 }) }));
 vi.mock("@/lib/agents/antler-signals", () => ({ evaluateAntlerSignals: () => null }));
 vi.mock("@/lib/agents/accelerator-readiness", () => ({ evaluateAcceleratorReadiness: async () => null }));
+const founderProfileMocks = vi.hoisted(() => ({ byEmail: vi.fn(async (_email: string) => null as unknown), byId: vi.fn(async (_id: string) => null as unknown) }));
 vi.mock("@/lib/founder-profile", () => ({
-  loadFounderProfileByEmail: async () => null,
+  loadFounderProfileByEmail: (email: string) => founderProfileMocks.byEmail(email),
+  loadFounderProfile: (id: string) => founderProfileMocks.byId(id),
+  persistExecutionScore: async () => true,
   profileToSviInputText: () => "",
 }));
 vi.mock("@/lib/analytics/server", () => ({ emitEvent: () => {} }));
@@ -104,6 +113,62 @@ beforeEach(() => {
   db.sb = fakeSupabase({ sessions: [{ user_id: "user-caller" }], svi_analyses: [], svi_accounts: [] });
   credits.canAfford.mockReset().mockResolvedValue({ allowed: true, balance: 10, cost: 1 });
   credits.spendCredits.mockReset().mockResolvedValue({ ok: true, balance: 9 });
+  sviMocks.computeSVI.mockReset();
+  founderProfileMocks.byEmail.mockReset().mockResolvedValue(null);
+  founderProfileMocks.byId.mockReset().mockResolvedValue(null);
+});
+
+describe("POST /api/svi — founder execution profile (G14-S37)", () => {
+  const structuredProfile = {
+    account_id: "user-owner",
+    email: "owner@x.test",
+    full_name: "Ada",
+    role: "CEO",
+    linkedin_url: null,
+    bio: null,
+    prev_employers: [],
+    ship_history: [],
+    years_in_domain: 3,
+    domain_insight: null,
+    ambition: null,
+    co_founders: [],
+    advisors: [],
+    notable_hires: [],
+    public_visible: true,
+    contactable_by_investors: false,
+    prior_exits: [],
+    prior_raises: [],
+    github_url: null,
+    full_time_pct: 100,
+    worked_together_before: null,
+    roles: { ceo: "Ada", cto: null, cpo: null, cfo: null },
+    execution_score: null,
+    execution_computed_at: null,
+    execution_source: {},
+  };
+
+  it("profile present (structured) → the regex founder flags are ignored: computeSVI receives the profile's experience + the rubric summary", async () => {
+    scopeState.role = "editor";
+    founderProfileMocks.byEmail.mockResolvedValue(structuredProfile);
+    const res = await POST(req());
+    expect(res.status).toBe(200);
+    // Loaded by the OWNER's email (the member's caller email never keys the profile).
+    expect(founderProfileMocks.byEmail).toHaveBeenCalledWith("owner@x.test");
+    const signals = sviMocks.computeSVI.mock.calls[0]![0] as Record<string, unknown>;
+    expect(signals.founderExperience).toBe("first-time"); // regex said "serial"
+    expect(signals.hasCoFounder).toBe(true); // regex fills the gap the profile leaves (no co-founders listed)
+    expect(signals.founderSectorFit).toBe(true); // 3 years in domain
+    expect(signals.founderExecution).toMatchObject({ score: 21, capped: false, rubricVersion: "1.0" });
+  });
+
+  it("no profile → the regex signals reach computeSVI untouched (no founderExecution summary)", async () => {
+    scopeState.role = "editor";
+    const res = await POST(req());
+    expect(res.status).toBe(200);
+    const signals = sviMocks.computeSVI.mock.calls[0]![0] as Record<string, unknown>;
+    expect(signals.founderExperience).toBe("serial");
+    expect(signals.founderExecution).toBeUndefined();
+  });
 });
 
 describe("POST /api/svi — member access", () => {

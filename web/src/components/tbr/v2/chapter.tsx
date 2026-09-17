@@ -10,6 +10,7 @@ import { VisualFigure } from "@/lib/report-visuals/react";
 import type { DimensionChapter } from "@/lib/report-v2/schema";
 import { cn } from "@/lib/utils";
 import { AgentBadge, AuditStampLine, Bullets, TBR_V2_SECTION_IDS, TbrSection, bandLabel, bandSurface, bandText, stateLabel } from "./shared";
+import { FounderExecutionCard, founderExecutionFromChapter } from "./founder-execution-card";
 
 const WINDOW_LABEL = { this_week: "this week", "30d": "next 30 days", "90d": "next 90 days" } as const;
 
@@ -17,6 +18,8 @@ export function TbrChapter({ chapter, index, locale = "en", upgradeHref = "/pric
   const ch = chapter;
   const id = TBR_V2_SECTION_IDS.dim(ch.dim);
   const title = locale === "vi" ? ch.titleVi : ch.title;
+  // G14-S37: the FTV chapter carries the founder execution rubric as a module.
+  const founderExecution = founderExecutionFromChapter(ch);
   const header = (
     <div className={cn("flex flex-wrap items-center gap-3 rounded-xl border p-4", bandSurface(ch.band))}>
       <div className="flex items-baseline gap-1">
@@ -95,6 +98,7 @@ export function TbrChapter({ chapter, index, locale = "en", upgradeHref = "/pric
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
+        {founderExecution && <FounderExecutionCard data={founderExecution} />}
         {ch.criteria.map((c) => (
           <div key={c.key} className="rounded-lg border border-ink-200 p-3 dark:border-ink-800 print:break-inside-avoid">
             <div className="flex items-center justify-between gap-2">

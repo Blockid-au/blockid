@@ -39,10 +39,31 @@ export type AssessmentDecision = (typeof ASSESSMENT_DECISIONS)[number];
 export const ASSESSMENT_STATUSES = ["draft", "submitted"] as const;
 export type AssessmentStatus = (typeof ASSESSMENT_STATUSES)[number];
 
+/**
+ * G14-S37: the evaluator FTV flags (jsonb, inside dimension_ratings.FTV —
+ * no migration). `references_checked` lifts the founder execution rubric
+ * cap (lib/founder/execution.ts); the other three are recorded for the
+ * feedback letter and the dossier. Append-only: every key optional.
+ */
+export const DIMENSION_FLAG_KEYS = ["key_person_risk", "full_time", "complementary_skills", "references_checked"] as const;
+export type DimensionFlagKey = (typeof DIMENSION_FLAG_KEYS)[number];
+
+export const dimensionFlagsSchema = z
+  .object({
+    key_person_risk: z.boolean().optional(),
+    full_time: z.boolean().optional(),
+    complementary_skills: z.boolean().optional(),
+    references_checked: z.boolean().optional(),
+  })
+  .strict();
+export type DimensionFlags = z.infer<typeof dimensionFlagsSchema>;
+
 export const dimensionRatingSchema = z.object({
   rating: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
   stance: z.enum(["agree", "disagree", "unsure"]),
   note: z.string().max(500).optional(),
+  /** G14-S37 — FTV only in the UI; tolerated on any dimension. */
+  flags: dimensionFlagsSchema.optional(),
 });
 export type DimensionRating = z.infer<typeof dimensionRatingSchema>;
 

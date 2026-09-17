@@ -256,7 +256,7 @@ const qualityLevel = z.enum(QUALITY_LEVELS);
 const growthPhaseId = z.enum(GROWTH_PHASE_IDS);
 const band = z.enum(["strong", "developing", "early", "pending"]);
 const dataState = z.enum(["real", "partial", "benchmark_only", "target"]);
-const evidenceSource = z.enum(["stripe", "ga4", "github", "xero", "linkedin", "upload", "url", "self_declared", "connector_other"]);
+const evidenceSource = z.enum(["stripe", "ga4", "github", "xero", "linkedin", "upload", "url", "self_declared", "founder_profile", "connector_other"]);
 const evidenceStatus = z.enum(["evidenced", "partial", "missing", "stale"]);
 const visualKind = z.enum(ALL_VISUAL_KINDS as [string, ...string[]]);
 

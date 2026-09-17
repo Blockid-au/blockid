@@ -34,7 +34,7 @@ export function fakeView(over: { mine?: Partial<EvaluationAssessment> | null; co
       mandateFit: { mandateId: "m-1", mandateLabel: "Seed deep-tech AU", score: 77, passesFloor: true, reasons: ["Industry match", "Stage match"], gaps: ["Cheque above range"], blockers: [], source: "persisted", computedAt: null },
       sinceLastView: null, consensus: null, viaOrgSeat: false,
     },
-    report: { available: true, source: "adapter", radar: null, dims, criteria: [], evidenceCounts: { tre: 2, mpc: 1, ftv: 0, ptd: 0, cgh: 0, iri: 0, lco: 0, svm: 0 }, links: { fullReport: null, pdf: null, analyze: "/x" } },
+    report: { available: true, source: "adapter", radar: null, dims, criteria: [], evidenceCounts: { tre: 2, mpc: 1, ftv: 0, ptd: 0, cgh: 0, iri: 0, lco: 0, svm: 0 }, links: { fullReport: null, pdf: null, analyze: "/x" }, founderExecution: null },
     valuation: {
       available: true, source: "adapter", pending: false, consensus: { lowAud: 4_000_000, midAud: 5_000_000, highAud: 6_000_000, confidence: 0.35 },
       methods: [{ method: "comparables", label: "AU comparables", lowAud: 3_500_000, midAud: 5_000_000, highAud: 6_500_000, weight: 0.4, applicable: true, rationale: "x" }, { method: "scorecard", label: "Scorecard (reference)", lowAud: 0, midAud: 0, highAud: 0, weight: 0, applicable: false, rationale: "n/a" }],
