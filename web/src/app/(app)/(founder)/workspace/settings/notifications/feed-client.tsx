@@ -74,6 +74,7 @@ export const KIND_META: Record<string, { icon: typeof Bell; color: string; label
   connector_reconnect: { icon: Bell, color: "text-amber-600", label: "Reconnect needed" },
   tbr_qa_asked: { icon: MessageSquare, color: "text-violet-600", label: "Question asked" },
   tbr_lead: { icon: Users, color: "text-emerald-600", label: "New investor lead" },
+  feedback_letter: { icon: MessageSquare, color: "text-brand-600", label: "What investors said" },
   report_shared: { icon: Share2, color: "text-brand-600", label: "Report shared" },
   analysis_done: { icon: CheckCircle2, color: "text-emerald-600", label: "Analysis complete" },
   svi_trend_alert: { icon: TrendingUp, color: "text-amber-600", label: "SVI trend alert" },
