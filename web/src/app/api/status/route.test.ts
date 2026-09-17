@@ -905,7 +905,7 @@ describe("public payload redaction", () => {
     expect(raw).not.toHaveProperty("ai_providers");
     expect(raw).not.toHaveProperty("ai_queue_depth");
     expect(Object.keys(raw).sort()).toEqual(
-      ["last_deploy", "ok", "services", "slo", "traction", "updated_at", "version"],
+      ["last_deploy", "ok", "services", "slo", "svi_backtest", "traction", "updated_at", "version"],
     );
     expect(typeof raw.ok).toBe("boolean");
     expect(typeof raw.version).toBe("string");
@@ -1233,5 +1233,44 @@ describe("traction (G14-S33) — read from content/reports/traction-snapshot.jso
     } finally {
       process.env.STATUS_FULL_TOKEN = "test-trusted-token";
     }
+  });
+});
+
+// ─── G14-S39 svi_backtest (weekly backtest JSON freshness) ─────────────
+
+describe("svi_backtest (G14-S39) — read from content/reports/svi-backtest-latest.json", () => {
+  const BACKTEST_FILE = path.join(REPO_ROOT, "content", "reports", "svi-backtest-latest.json");
+  const read = (body: unknown) => (body as { svi_backtest?: string }).svi_backtest;
+
+  it("missing when the backtest has never been published (or the file is unparsable)", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    expect(read((await callGet()).body)).toBe("missing");
+    fsState.files.set(BACKTEST_FILE, "{nope");
+    expect(read((await callGet()).body)).toBe("missing");
+  });
+
+  it("ok under 8 days, stale after", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    fsState.files.set(BACKTEST_FILE, JSON.stringify({ generated_at: new Date(Date.now() - 2 * 24 * 3600e3).toISOString(), n: 49, rho: { round_pooled: 0.76 } }));
+    expect(read((await callGet()).body)).toBe("ok");
+    fsState.files.set(BACKTEST_FILE, JSON.stringify({ generated_at: new Date(Date.now() - 9 * 24 * 3600e3).toISOString() }));
+    expect(read((await callGet()).body)).toBe("stale");
+  });
+
+  it("is a bare word on both payloads and carries no figure or path", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    fsState.files.set(BACKTEST_FILE, JSON.stringify({ generated_at: new Date().toISOString(), n: 49, rho: { round_pooled: 0.7619 } }));
+    process.env.STATUS_FULL_TOKEN = "";
+    process.env.CRON_SECRET = "";
+    try {
+      const { body } = await callGet();
+      expect(["ok", "stale", "missing"]).toContain(read(body));
+      expect(JSON.stringify(body)).not.toContain("0.7619");
+      expect(JSON.stringify(body)).not.toContain("svi-backtest");
+    } finally {
+      process.env.STATUS_FULL_TOKEN = "test-trusted-token";
+    }
+    const { body: full } = await callGet();
+    expect(["ok", "stale", "missing"]).toContain(read(full));
   });
 });
