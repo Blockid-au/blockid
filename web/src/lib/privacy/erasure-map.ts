@@ -334,6 +334,10 @@ export const NON_FK_EXTRAS: readonly ExtraEntry[] = Object.freeze([
   { table: "term_sheet_analyses", column: "user_id", by: "user_id", mode: "delete", note: "Term-sheet analyses (email column)." },
   { table: "nps_responses", column: "email", by: "email", mode: "anonymise", scrub: "email = NULL, user_email = NULL, user_id = NULL", note: "NPS scores are product telemetry — identifiers removed." },
   { table: "leads", column: "email", by: "email", mode: "anonymise", scrub: "email = {anon_email}", note: "Lead capture rows — address pseudonymised." },
+  // G14 S35 (0405): a founder's application into an evaluator's intake link
+  // is the evaluator's record (like evaluations.founder_email) — the row
+  // stays, the founder's address + name are pseudonymised.
+  { table: "intake_submissions", column: "founder_email", by: "email", mode: "anonymise", scrub: "founder_email = {anon_email}, founder_name = NULL", note: "Program-intake applications keyed by the founder's email — pseudonymised, the evaluator keeps the scored row." },
   { table: "user_actions", column: "email", by: "email", mode: "anonymise", scrub: "email = {anon_email}", note: "Legacy action log keyed by email — pseudonymised." },
   { table: "svi_accounts", column: "email", by: "email", mode: "anonymise", scrub: "email = {anon_email}", note: "Legacy SVI account keyed by email — pseudonymised (svi_* children key on its id)." },
 ]);

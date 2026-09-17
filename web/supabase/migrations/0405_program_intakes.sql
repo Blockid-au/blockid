@@ -183,14 +183,16 @@ CREATE POLICY intake_submissions_service_all ON public.intake_submissions
 UPDATE public.plans
    SET feature_flags = feature_flags || '["intake.manage"]'::jsonb,
        updated_at    = now()
- WHERE id IN ('accelerator_intake', 'investor_advisor', 'investor_vc_small', 'investor_vc_ent', 'investor_fund',
+ WHERE id IN ('accelerator_intake', 'investor_advisor', 'investor_vc_small', 'investor_fund',
               'accelerator_starter', 'accelerator_growth', 'accelerator_enterprise')
    AND jsonb_typeof(feature_flags) = 'array'
    AND NOT (feature_flags ? 'intake.manage');
 
 -- ─── 6. erase_account() re-emitted from the 133-entry erasure map ───────────
 -- One new app_users FK (program_intakes.owner_user_id — CASCADE, mode
--- delete, order 30). The function body below is 0393 §8's byte-for-byte
+-- delete, order 30) and one non-FK extra (intake_submissions.founder_email
+-- keyed by email — pseudonymised like evaluations.founder_email, the
+-- evaluator keeps the scored row). The function body below is 0393 §8's byte-for-byte
 -- except the generated VALUES blocks (rendered from
 -- web/src/lib/privacy/erasure-map.ts and pinned by erasure-map.test.ts).
 -- The loop skips tables that do not exist yet.
@@ -513,6 +515,7 @@ BEGIN
       ('term_sheet_analyses'::text, 'user_id'::text, 'user_id'::text, 'delete'::text, NULL::text),
       ('nps_responses'::text, 'email'::text, 'email'::text, 'anonymise'::text, 'email = NULL, user_email = NULL, user_id = NULL'::text),
       ('leads'::text, 'email'::text, 'email'::text, 'anonymise'::text, 'email = {anon_email}'::text),
+      ('intake_submissions'::text, 'founder_email'::text, 'email'::text, 'anonymise'::text, 'founder_email = {anon_email}, founder_name = NULL'::text),
       ('user_actions'::text, 'email'::text, 'email'::text, 'anonymise'::text, 'email = {anon_email}'::text),
       ('svi_accounts'::text, 'email'::text, 'email'::text, 'anonymise'::text, 'email = {anon_email}'::text)
 -- END non-fk-extras
