@@ -53,7 +53,8 @@ import { randomUUID } from "node:crypto";
 import { checkOutboundUrl, type OutboundUrlOptions } from "@/lib/security/outbound-url";
 import { pinnedFetch } from "@/lib/security/pinned-fetch";
 import { buildSignatureHeader, DELIVERY_HEADER, EVENT_HEADER, nowSec, openSecret, SIGNATURE_HEADER } from "./sign";
-import { buildEnvelope, usersAllowedWebhooks, type PingPayload } from "./registry";
+import { buildEnvelope, usersAllowedWebhooks, type PingPayload, type WebhookEnvelope } from "./registry";
+import { openDestinationConfig, planDelivery, type DestinationKind, type DestinationRequest } from "./destinations";
 import { notifyEndpointDisabled, type DisabledNotifier } from "./notify";
 import { AUTO_DISABLED_REASON, MAX_CONSECUTIVE_FAILURES, supabaseWebhookStore, type DeliveryRow, type EndpointRow, type WebhookStore } from "./store";
 
@@ -127,38 +128,68 @@ function truncate(s: string, n = 300): string {
   return s.length > n ? `${s.slice(0, n)}…` : s;
 }
 
-/**
- * One HTTP attempt. Signs `body` with the endpoint's secret; never throws.
- */
-export async function sendOnce(
-  endpoint: Pick<EndpointRow, "url" | "secret_enc">,
-  delivery: Pick<DeliveryRow, "id" | "event" | "payload">,
-  deps: Pick<DispatchDeps, "fetch" | "checkUrl" | "env"> = {},
-): Promise<DeliveryOutcome> {
-  const started = Date.now();
-  const fail = (error: string, status: number | null = null): DeliveryOutcome => ({ ok: false, status, error, durationMs: Date.now() - started });
+type SendEndpoint = Pick<EndpointRow, "url" | "secret_enc"> & Partial<Pick<EndpointRow, "kind" | "destination_config_enc">>;
+type SendDeps = Pick<DispatchDeps, "fetch" | "checkUrl" | "env">;
+type Fail = (error: string, status?: number | null) => DeliveryOutcome;
+type Planned = { ok: true; requests: DestinationRequest[] } | { ok: false; error: string };
 
-  const check = await (deps.checkUrl ?? defaultCheckUrl)(endpoint.url);
+function planTransformed(kind: Exclude<DestinationKind, "generic">, endpoint: SendEndpoint, delivery: Pick<DeliveryRow, "payload">, env?: NodeJS.ProcessEnv): Planned {
+  const config = openDestinationConfig(kind, endpoint.destination_config_enc, env);
+  if (!config) return { ok: false, error: "destination_config_unreadable" };
+  const plan = planDelivery(kind, delivery.payload as unknown as WebhookEnvelope, config, endpoint.url);
+  if (!plan.ok) return plan;
+  return { ok: true, requests: [plan.plan, ...(plan.plan.followUps ?? [])] };
+}
+
+function planRequests(endpoint: SendEndpoint, delivery: Pick<DeliveryRow, "event" | "payload">, env?: NodeJS.ProcessEnv): Planned {
+  const kind = endpoint.kind ?? "generic";
+  if (kind !== "generic") return planTransformed(kind, endpoint, delivery, env);
+  const secret = openSecret(endpoint.secret_enc, env);
+  if (!secret) return { ok: false, error: "secret_unavailable" };
+  const body = JSON.stringify(delivery.payload);
+  const headers = { "Content-Type": "application/json", [SIGNATURE_HEADER]: buildSignatureHeader(secret, body, nowSec()) };
+  return { ok: true, requests: [{ url: endpoint.url, headers, body }] };
+}
+
+/**
+ * One delivery attempt. Generic endpoints get the signed envelope (S20-B,
+ * unchanged); Slack / Affinity / Airtable endpoints (G14-S38) get the
+ * kind's transformed request(s), unsigned, on the kind's allow-listed
+ * host. Never throws.
+ */
+export async function sendOnce(endpoint: SendEndpoint, delivery: Pick<DeliveryRow, "id" | "event" | "payload">, deps: SendDeps = {}): Promise<DeliveryOutcome> {
+  const started = Date.now();
+  const fail: Fail = (error, status = null) => ({ ok: false, status, error, durationMs: Date.now() - started });
+  const planned = planRequests(endpoint, delivery, deps.env);
+  if (!planned.ok) return fail(planned.error);
+
+  let last: DeliveryOutcome = fail("no_request");
+  for (const [i, req] of planned.requests.entries()) {
+    last = await postOnce(req, delivery, deps, fail, started);
+    if (!last.ok) return i === 0 ? last : { ...last, error: `follow_up_${i}:${last.error}` };
+  }
+  return last;
+}
+
+async function postOnce(req: DestinationRequest, delivery: Pick<DeliveryRow, "id" | "event">, deps: SendDeps, fail: Fail, started: number): Promise<DeliveryOutcome> {
+
+  const check = await (deps.checkUrl ?? defaultCheckUrl)(req.url);
   if (!check.ok) return fail(`ssrf_refused:${check.reason}`);
   const addresses = check.addresses ?? [];
 
-  const secret = openSecret(endpoint.secret_enc, deps.env);
-  if (!secret) return fail("secret_unavailable");
-
-  const body = JSON.stringify(delivery.payload);
+  const body = req.body;
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+    ...req.headers,
     "User-Agent": USER_AGENT,
     [EVENT_HEADER]: delivery.event,
     [DELIVERY_HEADER]: delivery.id,
-    [SIGNATURE_HEADER]: buildSignatureHeader(secret, body, nowSec()),
   };
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), DELIVERY_TIMEOUT_MS);
   try {
     const res = await (deps.fetch ?? defaultFetch)(
-      endpoint.url,
+      req.url,
       {
         method: "POST",
         headers,

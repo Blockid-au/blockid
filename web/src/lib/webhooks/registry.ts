@@ -20,6 +20,11 @@
 //                              window_end, dashboard_url }   (G14-S34 — the
 //                              founder's anonymised "What investors said"
 //                              letter; never an evaluator id, decision or note)
+//   assessment.submitted     { assessment_id, evaluation_id, project_id,
+//                              startup_name, version, decision, conviction,
+//                              submitted_at, dossier_url }   (G14-S38 — the
+//                              assessor's OWN user-level endpoints only, never
+//                              the project's: a decision is evaluator-private)
 //   ping                     { endpoint_id, sent_at }   (test button only)
 //
 // Envelope on the wire (also what `webhook_deliveries.payload` stores):
@@ -48,7 +53,7 @@ import { planIdToTier, type PlanTier } from "@/lib/segments";
 import { planHasGrowthExtras } from "@/lib/funding/growth-extras";
 import { supabaseWebhookStore, type WebhookStore } from "./store";
 
-export const WEBHOOK_EVENTS = ["svi.rescored", "evidence.uploaded", "funding.report_ready", "evaluation.report_ready", "intake.submission_received", "feedback_letter.sent"] as const;
+export const WEBHOOK_EVENTS = ["svi.rescored", "evidence.uploaded", "funding.report_ready", "evaluation.report_ready", "intake.submission_received", "feedback_letter.sent", "assessment.submitted"] as const;
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number];
 /** `ping` is sent by the test button only — never subscribable. */
 export type WebhookWireEvent = WebhookEvent | "ping";
@@ -62,6 +67,7 @@ export const WEBHOOK_EVENT_LABELS: Record<WebhookEvent, { label: string; descrip
   "evaluation.report_ready": { label: "Evaluation report ready", description: "A Trusted Business Report / rescore you ran on a startup you evaluate is ready." },
   "intake.submission_received": { label: "Intake submission received", description: "A founder applied through one of your program intake links (/apply/<slug>)." },
   "feedback_letter.sent": { label: "Feedback letter sent", description: "Your anonymised \"What investors said\" letter is ready — ≥ 3 evaluators from ≥ 2 organisations rated your startup (ratings, risk themes, questions; never who)." },
+  "assessment.submitted": { label: "Assessment submitted", description: "You submitted an assessment on a startup you evaluate (decision, conviction, version) — push it to Slack, Affinity or Airtable." },
 };
 
 export function isWebhookEvent(v: unknown): v is WebhookEvent {
@@ -123,6 +129,18 @@ export interface FeedbackLetterSentPayload {
   window_end: string;
   dashboard_url: string;
 }
+/** G14-S38 — recipient = the assessor only (opts.userIds, projectEndpoints:false). */
+export interface AssessmentSubmittedPayload {
+  assessment_id: string;
+  evaluation_id: string;
+  project_id: string;
+  startup_name: string | null;
+  version: number;
+  decision: "pass" | "track" | "proceed" | null;
+  conviction: number | null;
+  submitted_at: string | null;
+  dossier_url: string;
+}
 export interface PingPayload {
   endpoint_id: string;
   sent_at: string;
@@ -135,6 +153,7 @@ export interface WebhookPayloads {
   "evaluation.report_ready": EvaluationReportReadyPayload;
   "intake.submission_received": IntakeSubmissionReceivedPayload;
   "feedback_letter.sent": FeedbackLetterSentPayload;
+  "assessment.submitted": AssessmentSubmittedPayload;
   ping: PingPayload;
 }
 

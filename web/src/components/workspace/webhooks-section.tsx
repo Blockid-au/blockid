@@ -8,6 +8,15 @@
 // (lib/webhooks/http.ts shapes). The server page passes the initial list
 // + the plan-gate verdict so the first paint needs no fetch; a
 // `readOnly` viewer sees the list but no controls.
+//
+// G14-S38 — Destination type: Generic (signed JSON — the S20-B default),
+// Slack (incoming webhook), Affinity (API key + organisation/list),
+// Airtable (personal access token + base/table). The kind-specific config
+// fields below mirror lib/webhooks/destinations/*.ts's Zod schemas but are
+// NOT imported from there — that module pulls in node:crypto (sign.ts) via
+// its seal helpers, which must never enter a client bundle. Secrets typed
+// here go straight into the POST body over HTTPS and are never echoed back
+// (PublicEndpoint.destination is the kind's redacted summary only).
 
 import { useState } from "react";
 import type { PublicDelivery, PublicEndpoint } from "@/lib/webhooks/http";
@@ -26,9 +35,51 @@ export interface WebhooksSectionProps {
   /** Project-level endpoints are created for this project (admin+ only); null = user-level. */
   projectId: string | null;
   readOnly?: boolean;
+  /** Test-only: seed the "Add endpoint" form open (the render harness has no click simulation). Default false. */
+  defaultShowForm?: boolean;
 }
 
 type Busy = "create" | `test:${string}` | `toggle:${string}` | `delete:${string}` | `deliveries:${string}` | null;
+
+type DestinationKind = "generic" | "slack" | "affinity" | "airtable";
+
+export const DESTINATION_OPTIONS: ReadonlyArray<{ kind: DestinationKind; label: string; hint: string }> = [
+  {
+    kind: "generic",
+    label: "Generic (signed JSON)",
+    hint: "Any HTTPS receiver you control — verify X-BlockID-Signature with the secret shown once. Zapier: use a Catch Hook URL as a Generic endpoint.",
+  },
+  {
+    kind: "slack",
+    label: "Slack",
+    hint: "Slack → Apps → Incoming Webhooks → paste the https://hooks.slack.com/… URL. Unsigned; only hooks.slack.com is accepted.",
+  },
+  {
+    kind: "affinity",
+    label: "Affinity",
+    hint: "An Affinity API key plus the organisation (and optional list) to file each event under. Unsigned; only api.affinity.co is accepted.",
+  },
+  {
+    kind: "airtable",
+    label: "Airtable",
+    hint: "A personal access token, base id (appXXXXXXXXXXXXXX) and table name. Unsigned; only api.airtable.com is accepted.",
+  },
+];
+
+function destinationLabel(kind: string): string {
+  return DESTINATION_OPTIONS.find((o) => o.kind === kind)?.label ?? kind;
+}
+
+/** One-line summary of the redacted destination config — null for generic/slack (nothing extra to show). */
+function destinationSummary(ep: PublicEndpoint): string | null {
+  if (!ep.destination) return null;
+  if (ep.kind === "affinity") {
+    const org = ep.destination.organization_id ?? "—";
+    return ep.destination.list_id ? `org ${org} · list ${ep.destination.list_id}` : `org ${org}`;
+  }
+  if (ep.kind === "airtable") return `${ep.destination.base_id ?? "—"} / ${ep.destination.table ?? "—"}`;
+  return null;
+}
 
 const STATUS_CHIP: Record<PublicDelivery["status"], string> = {
   delivered: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
@@ -77,14 +128,22 @@ async function api<T>(url: string, init: RequestInit = {}): Promise<{ status: nu
   return { status: res.status, body };
 }
 
-export function WebhooksSection({ initialEndpoints, events, access, projectId, readOnly = false }: WebhooksSectionProps) {
+export function WebhooksSection({ initialEndpoints, events, access, projectId, readOnly = false, defaultShowForm = false }: WebhooksSectionProps) {
   const [endpoints, setEndpoints] = useState<PublicEndpoint[]>(initialEndpoints);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(defaultShowForm);
+  const [kind, setKind] = useState<DestinationKind>("generic");
   const [url, setUrl] = useState("");
   const [description, setDescription] = useState("");
+  const [affinityApiKey, setAffinityApiKey] = useState("");
+  const [affinityOrgId, setAffinityOrgId] = useState("");
+  const [affinityListId, setAffinityListId] = useState("");
+  const [airtableToken, setAirtableToken] = useState("");
+  const [airtableBaseId, setAirtableBaseId] = useState("");
+  const [airtableTable, setAirtableTable] = useState("");
   const [selected, setSelected] = useState<WebhookEvent[]>(events.map((e) => e.event));
   const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [revealed, setRevealed] = useState<{ id: string; secret: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [testResult, setTestResult] = useState<Record<string, string>>({});
@@ -96,19 +155,57 @@ export function WebhooksSection({ initialEndpoints, events, access, projectId, r
   const toggleEvent = (e: WebhookEvent) =>
     setSelected((cur) => (cur.includes(e) ? cur.filter((x) => x !== e) : [...cur, e]));
 
+  function resetDestinationFields() {
+    setUrl("");
+    setAffinityApiKey("");
+    setAffinityOrgId("");
+    setAffinityListId("");
+    setAirtableToken("");
+    setAirtableBaseId("");
+    setAirtableTable("");
+  }
+
   async function create() {
     setError(null);
-    if (!url.trim()) return setError("Enter an https:// URL.");
+    setNotice(null);
+    if ((kind === "generic" || kind === "slack") && !url.trim()) return setError("Enter an https:// URL.");
+    if (kind === "affinity" && (!affinityApiKey.trim() || !affinityOrgId.trim())) return setError("Enter the Affinity API key and organisation id.");
+    if (kind === "airtable" && (!airtableToken.trim() || !airtableBaseId.trim() || !airtableTable.trim())) return setError("Enter the Airtable token, base id and table name.");
     if (selected.length === 0) return setError("Pick at least one event.");
     setBusy("create");
     try {
-      const { status, body } = await api<{ ok: boolean; endpoint?: PublicEndpoint; secret?: string; error?: string; reason?: string; message?: string }>(
-        "/api/webhooks",
-        { method: "POST", body: JSON.stringify({ url: url.trim(), events: selected, description: description.trim() || undefined, project_id: projectId ?? undefined }) },
-      );
+      const destination_config =
+        kind === "affinity"
+          ? { api_key: affinityApiKey.trim(), organization_id: Number(affinityOrgId), ...(affinityListId.trim() ? { list_id: Number(affinityListId) } : {}) }
+          : kind === "airtable"
+            ? { token: airtableToken.trim(), base_id: airtableBaseId.trim(), table: airtableTable.trim() }
+            : undefined;
+      const { status, body } = await api<{
+        ok: boolean;
+        endpoint?: PublicEndpoint;
+        secret?: string;
+        error?: string;
+        reason?: string;
+        message?: string;
+        issues?: Array<{ path: string; message: string }>;
+        allowed?: string[];
+        destinations_unavailable?: boolean;
+      }>("/api/webhooks", {
+        method: "POST",
+        body: JSON.stringify({
+          url: kind === "generic" || kind === "slack" ? url.trim() : undefined,
+          events: selected,
+          description: description.trim() || undefined,
+          project_id: projectId ?? undefined,
+          kind,
+          destination_config,
+        }),
+      });
       if (!body.ok || !body.endpoint || !body.secret) {
         if (status === 402) setError(body.message ?? "Webhooks need the Growth plan, the Startup Package or an evaluator plan.");
         else if (body.error === "url_rejected") setError(`URL rejected (${body.reason ?? "not allowed"}) — use a public https:// address.`);
+        else if (body.error === "host_not_allowed") setError(`That URL isn't on the allowed host for ${destinationLabel(kind)} (use ${(body.allowed ?? []).join(", ") || "the documented host"}).`);
+        else if (body.error === "invalid_destination") setError(`Check the destination fields: ${(body.issues ?? []).map((i) => i.message).join("; ") || "invalid configuration"}.`);
         else if (body.error === "limit_reached") setError("Endpoint limit reached (10). Delete one first.");
         else setError(body.error ? `Could not add endpoint: ${body.error.replaceAll("_", " ")}` : "Could not add endpoint.");
         return;
@@ -116,8 +213,12 @@ export function WebhooksSection({ initialEndpoints, events, access, projectId, r
       setEndpoints((cur) => [body.endpoint!, ...cur]);
       setRevealed({ id: body.endpoint.id, secret: body.secret });
       setCopied(false);
-      setUrl("");
+      if (body.destinations_unavailable) {
+        setNotice(`Saved as a Generic endpoint — ${destinationLabel(kind)} support isn't live on the server yet. Delete and recreate once it is.`);
+      }
+      resetDestinationFields();
       setDescription("");
+      setKind("generic");
       setShowForm(false);
     } catch {
       setError("Network error — please try again.");
@@ -238,6 +339,7 @@ export function WebhooksSection({ initialEndpoints, events, access, projectId, r
       {readOnly ? <p className="text-xs text-muted">View only — your role on this project cannot change integrations.</p> : null}
 
       {error ? <p className="text-xs text-red-300" role="alert">{error}</p> : null}
+      {notice ? <p className="text-xs text-amber-300" data-webhooks-notice>{notice}</p> : null}
 
       {showForm && canManage ? (
         <form
@@ -248,16 +350,111 @@ export function WebhooksSection({ initialEndpoints, events, access, projectId, r
           }}
         >
           <label className="block text-xs text-muted">
-            Endpoint URL (https only)
-            <input
-              type="url"
-              required
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://example.com/hooks/blockid"
+            Destination type
+            <select
+              value={kind}
+              onChange={(e) => setKind(e.target.value as DestinationKind)}
               className="mt-1 w-full rounded-md border border-line-subtle bg-transparent px-2 py-1.5 text-sm text-primary"
-            />
+              data-webhooks-kind
+            >
+              {DESTINATION_OPTIONS.map((o) => (
+                <option key={o.kind} value={o.kind}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
           </label>
+          <p className="text-xs text-muted" data-webhooks-kind-hint>
+            {DESTINATION_OPTIONS.find((o) => o.kind === kind)?.hint}
+          </p>
+
+          {kind === "generic" || kind === "slack" ? (
+            <label className="block text-xs text-muted">
+              {kind === "slack" ? "Slack incoming-webhook URL" : "Endpoint URL (https only)"}
+              <input
+                type="url"
+                required
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder={kind === "slack" ? "https://hooks.slack.com/services/T000/B000/xxxxxxxxxxxxxxxxxxxxxxxx" : "https://example.com/hooks/blockid"}
+                className="mt-1 w-full rounded-md border border-line-subtle bg-transparent px-2 py-1.5 text-sm text-primary"
+              />
+            </label>
+          ) : null}
+
+          {kind === "affinity" ? (
+            <>
+              <label className="block text-xs text-muted">
+                Affinity API key
+                <input
+                  type="password"
+                  required
+                  value={affinityApiKey}
+                  onChange={(e) => setAffinityApiKey(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-line-subtle bg-transparent px-2 py-1.5 text-sm text-primary"
+                />
+              </label>
+              <label className="block text-xs text-muted">
+                Organisation id
+                <input
+                  type="number"
+                  min={1}
+                  required
+                  value={affinityOrgId}
+                  onChange={(e) => setAffinityOrgId(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-line-subtle bg-transparent px-2 py-1.5 text-sm text-primary"
+                />
+              </label>
+              <label className="block text-xs text-muted">
+                List id (optional)
+                <input
+                  type="number"
+                  min={1}
+                  value={affinityListId}
+                  onChange={(e) => setAffinityListId(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-line-subtle bg-transparent px-2 py-1.5 text-sm text-primary"
+                />
+              </label>
+            </>
+          ) : null}
+
+          {kind === "airtable" ? (
+            <>
+              <label className="block text-xs text-muted">
+                Personal access token
+                <input
+                  type="password"
+                  required
+                  value={airtableToken}
+                  onChange={(e) => setAirtableToken(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-line-subtle bg-transparent px-2 py-1.5 text-sm text-primary"
+                />
+              </label>
+              <label className="block text-xs text-muted">
+                Base id
+                <input
+                  type="text"
+                  required
+                  placeholder="appXXXXXXXXXXXXXX"
+                  value={airtableBaseId}
+                  onChange={(e) => setAirtableBaseId(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-line-subtle bg-transparent px-2 py-1.5 text-sm text-primary"
+                />
+              </label>
+              <label className="block text-xs text-muted">
+                Table name
+                <input
+                  type="text"
+                  required
+                  placeholder="Deals"
+                  value={airtableTable}
+                  onChange={(e) => setAirtableTable(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-line-subtle bg-transparent px-2 py-1.5 text-sm text-primary"
+                />
+              </label>
+            </>
+          ) : null}
+
           <label className="block text-xs text-muted">
             Description (optional)
             <input
@@ -318,6 +515,8 @@ export function WebhooksSection({ initialEndpoints, events, access, projectId, r
                     {ep.description ? `${ep.description} · ` : ""}
                     {ep.events.join(", ")}
                     {ep.project_id ? " · project" : " · account"}
+                    {ep.kind !== "generic" ? ` · ${destinationLabel(ep.kind)}` : ""}
+                    {destinationSummary(ep) ? ` (${destinationSummary(ep)})` : ""}
                   </p>
                   <p className="text-xs text-muted">
                     Last success {fmt(ep.last_success_at)} · last failure {fmt(ep.last_failure_at)}

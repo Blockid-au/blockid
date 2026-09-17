@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ApiKeyInfo } from "@/lib/api-keys";
+import { API_SCOPES, API_SCOPE_LABELS, EVALUATOR_ONLY_SCOPES, type ApiScope } from "@/lib/api-scopes";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -26,6 +27,31 @@ interface ApiKeysClientProps {
   canCreate: boolean;
   currentPlan: string;
   rateLimit: number;
+  /** G14-S38: evaluator accounts may add `evaluations:read|write` to a new key. */
+  canEvaluatorScopes?: boolean;
+}
+
+/** G14-S38 — the scope pills a key row shows (`analyze` is always present). */
+export function ScopePills({ scopes }: { scopes: readonly string[] }) {
+  const list = (scopes.length ? scopes : ["analyze"]).filter((s): s is ApiScope => (API_SCOPES as readonly string[]).includes(s));
+  return (
+    <span className="inline-flex flex-wrap gap-1" data-testid="api-key-scopes">
+      {list.map((s) => (
+        <span
+          key={s}
+          data-testid="api-key-scope"
+          data-scope={s}
+          title={API_SCOPE_LABELS[s].description}
+          className={cn(
+            "text-[10px] font-mono tracking-tight px-1.5 py-0.5 rounded-full border",
+            EVALUATOR_ONLY_SCOPES.has(s) ? "border-brand-200 bg-brand-50 text-brand-700" : "border-surface-200 bg-surface-50 text-ink-600",
+          )}
+        >
+          {s}
+        </span>
+      ))}
+    </span>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -37,6 +63,7 @@ export function ApiKeysClient({
   canCreate,
   currentPlan,
   rateLimit,
+  canEvaluatorScopes = false,
 }: ApiKeysClientProps) {
   const [keys, setKeys] = React.useState<ApiKeyInfo[]>(initialKeys);
   const [showCreateModal, setShowCreateModal] = React.useState(false);
@@ -175,6 +202,7 @@ export function ApiKeysClient({
                   </div>
                   <div className="flex items-center gap-4 mt-1">
                     <code className="text-xs text-ink-500 font-mono">{key.prefix}</code>
+                    <ScopePills scopes={key.scopes ?? []} />
                     <span className="text-xs text-muted">
                       Created{" "}
                       {new Date(key.createdAt).toLocaleDateString("en-AU", {
@@ -225,6 +253,7 @@ export function ApiKeysClient({
       {/* Create modal */}
       {showCreateModal && (
         <CreateKeyModal
+          canEvaluatorScopes={canEvaluatorScopes}
           onClose={() => setShowCreateModal(false)}
           onCreated={(newKey) => {
             setKeys((prev) => [newKey, ...prev]);
@@ -280,13 +309,19 @@ export function ApiKeysClient({
 // ---------------------------------------------------------------------------
 
 function CreateKeyModal({
+  canEvaluatorScopes,
   onClose,
   onCreated,
 }: {
+  canEvaluatorScopes: boolean;
   onClose: () => void;
   onCreated: (key: ApiKeyInfo) => void;
 }) {
   const [name, setName] = React.useState("");
+  // G14-S38: `analyze` is always on; evaluator scopes are opt-in per key.
+  const [scopes, setScopes] = React.useState<ApiScope[]>(["analyze"]);
+  const toggleScope = (s: ApiScope) =>
+    setScopes((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [createdKey, setCreatedKey] = React.useState<string | null>(null);
@@ -299,7 +334,7 @@ function CreateKeyModal({
       const res = await fetch("/api/keys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim() || "Default" }),
+        body: JSON.stringify({ name: name.trim() || "Default", scopes }),
       });
       const json = await res.json();
       if (json.ok) {
@@ -312,6 +347,7 @@ function CreateKeyModal({
           lastUsedAt: null,
           createdAt: new Date().toISOString(),
           permissions: json.permissions ?? ["svi:read", "svi:create", "score:create"],
+          scopes: json.scopes ?? ["analyze"],
           rateLimitPerMin: json.rateLimitPerMin ?? 100,
         });
       } else {
@@ -427,6 +463,31 @@ function CreateKeyModal({
                 A friendly label to help you identify this key.
               </p>
             </div>
+
+            <fieldset className="space-y-1.5" data-testid="api-key-scope-picker">
+              <legend className="text-sm font-medium text-ink-700 mb-1.5">Scopes</legend>
+              {API_SCOPES.filter((s) => canEvaluatorScopes || !EVALUATOR_ONLY_SCOPES.has(s)).map((s) => (
+                <label key={s} className="flex items-start gap-2 text-xs text-ink-700">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={scopes.includes(s)}
+                    disabled={s === "analyze"}
+                    onChange={() => toggleScope(s)}
+                    data-scope-option={s}
+                  />
+                  <span>
+                    <span className="font-mono">{s}</span> — {API_SCOPE_LABELS[s].label}.{" "}
+                    <span className="text-muted">{API_SCOPE_LABELS[s].description}</span>
+                  </span>
+                </label>
+              ))}
+              {!canEvaluatorScopes && (
+                <p className="text-xs text-muted">
+                  <span className="font-mono">evaluations:read</span> / <span className="font-mono">evaluations:write</span> are available on evaluator accounts (Fund, Program).
+                </p>
+              )}
+            </fieldset>
 
             <div className="flex items-center gap-3 justify-end">
               <button

@@ -7,6 +7,7 @@ vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => null }));
 const accessMock = vi.fn<(userId: string, projectId: string, minRole?: string) => Promise<unknown>>();
 vi.mock("@/lib/projects", () => ({ assertProjectAccess: (u: string, p: string, r?: string) => accessMock(u, p, r) }));
 
+import { sealDestinationConfig } from "./destinations";
 import { loadEndpointForCaller, parseDescription, parseEventsInput, publicDelivery, publicEndpoint } from "./http";
 import { memoryWebhookStore, type EndpointRow } from "./store";
 
@@ -21,6 +22,8 @@ function ep(over: Partial<EndpointRow> = {}): EndpointRow {
     description: "desc",
     secret_hash: "HASH",
     secret_enc: "SEALED",
+    kind: "generic",
+    destination_config_enc: null,
     events: ["svi.rescored", "bogus"],
     active: true,
     failure_count: 2,
@@ -45,7 +48,26 @@ describe("public shapes", () => {
     const out = publicEndpoint(ep());
     expect(JSON.stringify(out)).not.toMatch(/HASH|SEALED|secret/);
     expect(out.events).toEqual(["svi.rescored"]);
-    expect(out).toMatchObject({ id: ID, failure_count: 2, active: true });
+    expect(out).toMatchObject({ id: ID, failure_count: 2, active: true, kind: "generic", destination: null });
+  });
+
+  it("publicEndpoint: generic-looking `kind` (missing/unknown) reports as generic with a null destination", () => {
+    expect(publicEndpoint(ep({ kind: undefined as never })).kind).toBe("generic");
+    expect(publicEndpoint(ep({ kind: "bogus" as never })).kind).toBe("generic");
+  });
+
+  it("publicEndpoint: non-generic kind carries the redacted destination.publicConfig summary — never the sealed ciphertext or the secret inside it", () => {
+    const sealed = sealDestinationConfig({ api_version: 1, token: "airtable-pat-super-secret", base_id: "appAAAAAAAAAAAAAA", table: "Deals" });
+    const out = publicEndpoint(ep({ kind: "airtable", destination_config_enc: sealed }));
+    expect(out.kind).toBe("airtable");
+    expect(out.destination).toEqual({ api_version: 1, base_id: "appAAAAAAAAAAAAAA", table: "Deals" });
+    expect(JSON.stringify(out)).not.toContain("airtable-pat-super-secret");
+    expect(JSON.stringify(out)).not.toContain(sealed);
+  });
+
+  it("publicEndpoint: non-generic kind with an unreadable / tampered sealed config → destination null (never throws)", () => {
+    expect(publicEndpoint(ep({ kind: "slack", destination_config_enc: "gcm:not:valid:sealed" })).destination).toBeNull();
+    expect(publicEndpoint(ep({ kind: "affinity", destination_config_enc: null })).destination).toBeNull();
   });
   it("publicDelivery exposes next_attempt_at only while pending", () => {
     const base = { id: "d", endpoint_id: ID, event: "ping", payload: { secret: "x" }, attempts: 1, next_attempt_at: "2026-09-12T01:00:00.000Z", locked_until: null, response_status: 500, last_error: "http_500", created_at: "2026-09-12T00:00:00.000Z", delivered_at: null };

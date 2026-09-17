@@ -2,11 +2,17 @@
 //
 // OpenAPI 3.1 spec generated from the same `API_ENDPOINTS` registry that
 // renders the human docs under /developers/api — so both surfaces stay in
-// lock-step and there's exactly one source of truth for the public API.
+// lock-step and there's exactly one source of truth for the API surface.
+// Most operations are public/no-auth; the G14-S38 Evaluator API v1
+// operations carry `ep.auth` (Bearer bk_live_… + scope + the api.access
+// plan gate) as the `x-auth` extension — not a formal OpenAPI `security`
+// scheme (a bigger `components.securitySchemes` lift left for later; the
+// bearer requirement is fully documented in prose + every curl/js snippet).
 
 import { NextResponse } from "next/server";
 import {
   API_ENDPOINTS,
+  type ApiAuthDoc,
   type ApiEndpointDoc,
   type ApiParamDoc,
 } from "@/lib/api-docs-registry";
@@ -41,6 +47,7 @@ interface OpenApiOperation {
   responses: Record<string, OpenApiResponse>;
   "x-rate-limit"?: { perMinute: number; bucket: string };
   "x-changelog"?: Array<{ date: string; note: string }>;
+  "x-auth"?: ApiAuthDoc;
 }
 
 interface OpenApiPathItem {
@@ -139,6 +146,7 @@ function buildOperation(ep: ApiEndpointDoc): OpenApiOperation {
     },
     "x-rate-limit": ep.rateLimit,
     "x-changelog": ep.changelog,
+    ...(ep.auth ? { "x-auth": ep.auth } : {}),
   };
 
   if (queryOrPathParams.length > 0) op.parameters = queryOrPathParams;
@@ -166,6 +174,8 @@ function tagFor(path: string): string {
   if (path.startsWith("/api/index/")) return "SVI Index";
   if (path.startsWith("/api/pricing-test/")) return "Pricing Experiments";
   if (path.startsWith("/api/idea-questions")) return "Idea Engine";
+  // G14-S38: the authenticated Evaluator API v1 (Bearer bk_live_… + scope).
+  if (path.startsWith("/api/v1/evaluations")) return "Evaluator API v1";
   return "Public";
 }
 
@@ -188,7 +198,7 @@ function buildDocument(): OpenApiDocument {
       title: "BlockID Public API",
       version: "1.0.0",
       description:
-        "Public, no-auth endpoints for ecosystem partners. Human-readable docs at https://blockid.au/developers/api. API served from Sydney AU. Data anonymised per Privacy Act 1988.",
+        "Public, no-auth endpoints for ecosystem partners, plus the authenticated Evaluator API v1 (Bearer bk_live_… API key + scope, api.access plan gate — see each operation's x-auth). Human-readable docs at https://blockid.au/developers/api. API served from Sydney AU. Data anonymised per Privacy Act 1988.",
       contact: {
         name: "BlockID Developer Relations",
         url: "https://blockid.au/developers",

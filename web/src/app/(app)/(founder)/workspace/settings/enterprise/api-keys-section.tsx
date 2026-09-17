@@ -7,11 +7,16 @@
 
 import type { AppUser } from "@/lib/auth";
 import { listApiKeys, canCreateApiKeys, getRateLimitForPlan } from "@/lib/api-keys";
+import { isEvaluatorUser } from "@/lib/evaluations";
 import { ApiKeysClient } from "./api-keys-client";
 
 export async function ApiKeysSection({ user }: { user: AppUser }) {
-  const keys = await listApiKeys(user.id);
-  const canCreate = await canCreateApiKeys(user);
+  const [keys, canCreate, isEvaluator] = await Promise.all([
+    listApiKeys(user.id),
+    canCreateApiKeys(user),
+    // G14-S38: evaluator accounts may mint `evaluations:read|write` keys.
+    isEvaluatorUser(user).catch(() => false),
+  ]);
   const rateLimit = getRateLimitForPlan(user.plan);
 
   return (
@@ -28,6 +33,7 @@ export async function ApiKeysSection({ user }: { user: AppUser }) {
         canCreate={canCreate}
         currentPlan={user.plan ?? "free"}
         rateLimit={rateLimit}
+        canEvaluatorScopes={isEvaluator}
       />
     </section>
   );

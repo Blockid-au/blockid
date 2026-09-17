@@ -11,6 +11,20 @@ import "server-only";
 import { createHash, randomBytes } from "crypto";
 import { getSupabaseAdmin } from "./supabase";
 import { can, type UserWithPlan } from "@/lib/entitlements";
+import { DEFAULT_KEY_SCOPES, normaliseScopes, type ApiScope } from "./api-scopes";
+
+/**
+ * G14-S38: `api_keys.scopes` arrives with migration 0409. Until it is
+ * applied, PostgREST answers 42703 / PGRST204 for the column — the reads
+ * below retry without it (every key then behaves as `{analyze}`, exactly
+ * the pre-S38 contract) so a deploy that lands before the migration never
+ * takes every API key offline.
+ */
+export function isMissingColumnError(error: { code?: string | null; message?: string | null } | null | undefined): boolean {
+  if (!error) return false;
+  if (error.code === "42703" || error.code === "PGRST204") return true;
+  return /column .* does not exist|could not find the .* column/i.test(error.message ?? "");
+}
 
 // ---------------------------------------------------------------------------
 // Key generation
@@ -82,6 +96,7 @@ export async function createApiKey(
   userId: string,
   plan: string | null,
   name?: string,
+  scopes: readonly ApiScope[] = DEFAULT_KEY_SCOPES,
 ): Promise<{ key: string; id: string } | { error: string }> {
   const allowed = await canCreateApiKeys({ id: userId, plan });
   if (!allowed) {
@@ -106,18 +121,30 @@ export async function createApiKey(
 
   const { raw, hash, prefix } = generateApiKey();
   const rateLimit = getRateLimitForPlan(plan);
+  const row = {
+    user_id: userId,
+    name: name?.trim() || "Default",
+    key_hash: hash,
+    key_prefix: prefix,
+    rate_limit_per_min: rateLimit,
+  };
+  const wanted = normaliseScopes([...scopes]);
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("api_keys")
-    .insert({
-      user_id: userId,
-      name: name?.trim() || "Default",
-      key_hash: hash,
-      key_prefix: prefix,
-      rate_limit_per_min: rateLimit,
-    })
+    .insert({ ...row, scopes: wanted })
     .select("id")
     .single();
+
+  if (error && isMissingColumnError(error)) {
+    // Pre-0409: the column is not there yet. Only an `{analyze}` key can be
+    // minted honestly — an evaluator scope the DB cannot persist must not
+    // be reported back as granted.
+    if (wanted.some((s) => s !== "analyze")) {
+      return { error: "Evaluator scopes are not available yet — apply migration 0409." };
+    }
+    ({ data, error } = await supabase.from("api_keys").insert(row).select("id").single());
+  }
 
   if (error || !data) {
     console.error("[blockid:api-keys] insert failed", error);
@@ -136,9 +163,13 @@ export interface ValidatedKey {
   userId?: string;
   email?: string;
   permissions?: string[];
+  /** G14-S38 — catalogue-normalised (`analyze` always present). */
+  scopes?: ApiScope[];
   rateLimitPerMin?: number;
   keyHash?: string;
 }
+
+const KEY_ROW_COLUMNS = "id, user_id, permissions, rate_limit_per_min, is_active, expires_at";
 
 export async function validateApiKey(rawKey: string): Promise<ValidatedKey> {
   const supabase = getSupabaseAdmin();
@@ -146,11 +177,19 @@ export async function validateApiKey(rawKey: string): Promise<ValidatedKey> {
 
   const hash = hashApiKey(rawKey);
 
-  const { data: keyRow, error } = await supabase
-    .from("api_keys")
-    .select("id, user_id, permissions, rate_limit_per_min, is_active, expires_at")
-    .eq("key_hash", hash)
-    .maybeSingle();
+  type KeyRow = { id: string; user_id: string; permissions: string[] | null; rate_limit_per_min: number; is_active: boolean; expires_at: string | null; scopes?: unknown };
+  let keyRow: KeyRow | null = null;
+  let error: { code?: string; message?: string } | null = null;
+  {
+    const first = await supabase.from("api_keys").select(`${KEY_ROW_COLUMNS}, scopes`).eq("key_hash", hash).maybeSingle();
+    keyRow = (first.data as KeyRow | null) ?? null;
+    error = first.error;
+    if (error && isMissingColumnError(error)) {
+      const second = await supabase.from("api_keys").select(KEY_ROW_COLUMNS).eq("key_hash", hash).maybeSingle();
+      keyRow = (second.data as KeyRow | null) ?? null;
+      error = second.error;
+    }
+  }
 
   if (error || !keyRow) return { valid: false };
   if (!keyRow.is_active) return { valid: false };
@@ -176,6 +215,7 @@ export async function validateApiKey(rawKey: string): Promise<ValidatedKey> {
     userId: keyRow.user_id,
     email: userRow?.email ?? undefined,
     permissions: keyRow.permissions ?? [],
+    scopes: normaliseScopes(keyRow.scopes),
     rateLimitPerMin: keyRow.rate_limit_per_min,
     keyHash: hash,
   };
@@ -259,20 +299,30 @@ export interface ApiKeyInfo {
   lastUsedAt: string | null;
   createdAt: string;
   permissions: string[];
+  /** G14-S38 — scope pills on the settings page. */
+  scopes: ApiScope[];
   rateLimitPerMin: number;
 }
+
+const LIST_COLUMNS = "id, name, key_prefix, is_active, last_used_at, created_at, permissions, rate_limit_per_min";
 
 export async function listApiKeys(userId: string): Promise<ApiKeyInfo[]> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return [];
 
-  const { data, error } = await supabase
-    .from("api_keys")
-    .select(
-      "id, name, key_prefix, is_active, last_used_at, created_at, permissions, rate_limit_per_min",
-    )
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+  type ListRow = { id: string; name: string; key_prefix: string; is_active: boolean; last_used_at: string | null; created_at: string; permissions: string[] | null; rate_limit_per_min: number; scopes?: unknown };
+  let data: ListRow[] | null = null;
+  let error: { code?: string; message?: string } | null = null;
+  {
+    const first = await supabase.from("api_keys").select(`${LIST_COLUMNS}, scopes`).eq("user_id", userId).order("created_at", { ascending: false });
+    data = (first.data as ListRow[] | null) ?? null;
+    error = first.error;
+    if (error && isMissingColumnError(error)) {
+      const second = await supabase.from("api_keys").select(LIST_COLUMNS).eq("user_id", userId).order("created_at", { ascending: false });
+      data = (second.data as ListRow[] | null) ?? null;
+      error = second.error;
+    }
+  }
 
   if (error || !data) {
     console.error("[blockid:api-keys] list failed", error);
@@ -287,6 +337,7 @@ export async function listApiKeys(userId: string): Promise<ApiKeyInfo[]> {
     lastUsedAt: row.last_used_at ?? null,
     createdAt: row.created_at,
     permissions: row.permissions ?? [],
+    scopes: normaliseScopes(row.scopes),
     rateLimitPerMin: row.rate_limit_per_min,
   }));
 }

@@ -1,6 +1,6 @@
 # BlockID.au -- API Reference
 
-> 38 endpoints | Base URL: `https://blockid.au` (production) or `http://localhost:3000` (dev)
+> 42 endpoints | Base URL: `https://blockid.au` (production) or `http://localhost:3000` (dev)
 > All routes use `force-dynamic` rendering. All POST routes accept `Content-Type: application/json` unless noted.
 
 ---
@@ -15,6 +15,7 @@
 6. [Tools](#6-tools)
 7. [Admin / Cron](#7-admin--cron)
 8. [Other](#8-other)
+9. [Evaluator API v1](#9-evaluator-api-v1-apiv1evaluations)
 
 ---
 
@@ -24,6 +25,7 @@
 |--------|-------------|
 | **Session Cookie** | `blockid_session` HttpOnly cookie set after login. 90-day expiry. |
 | **CRON_SECRET** | `Authorization: Bearer $CRON_SECRET` header for cron endpoints. |
+| **API Key (v1)** | `Authorization: Bearer bk_live_…` — a per-evaluator key from Workspace → Settings → Enterprise → API keys, scoped (`analyze`, `evaluations:read`, `evaluations:write`) and gated by the `api.access` entitlement (Fund / Program plans only). See [§9](#9-evaluator-api-v1-apiv1evaluations). |
 | **Public** | No authentication required. |
 
 ---
@@ -1770,6 +1772,121 @@ curl -X POST https://blockid.au/api/coupon/redeem \
   -H "Content-Type: application/json" \
   -H "Cookie: blockid_session=abc123..." \
   -d '{"code":"COMEBACK30","plan":"founding50"}'
+```
+
+---
+
+## 9. Evaluator API v1 (`/api/v1/evaluations`)
+
+> G14-S38. Machine-readable copy: `GET /api/openapi.json` (tag `Evaluator API v1`), human copy under `/developers/api`
+> (`src/lib/api-docs-registry.ts`, slugs `v1-evaluations-*`). Routes: `src/app/api/v1/evaluations/**`.
+
+Read the startups a Fund/Program evaluator is assessing, pull the Investor Dossier, and read/write their own
+Evaluator Assessment — everything the workspace "Startups I'm evaluating" page does, from a script or an
+integration (Slack / Affinity / Airtable via the outbound destinations below).
+
+**Auth:** `Authorization: Bearer bk_live_…`. Create a key under Workspace → Settings → Enterprise → API keys with
+one or more scopes:
+
+| Scope | Grants |
+|-------|--------|
+| `analyze` | `POST /api/v1/analyze` (default scope on every key — unchanged since before G14-S38). |
+| `evaluations:read` | `GET /api/v1/evaluations`, `.../{id}/dossier`, `.../{id}/assessment`. |
+| `evaluations:write` | `POST\|PUT /api/v1/evaluations/{id}/assessment` (implies `evaluations:read`). |
+
+`evaluations:*` scopes may only be granted on an evaluator account (`POST /api/keys` checks this at key
+creation); every route additionally 404s a key whose owner is not the evaluator on that row, so a scope is a
+ceiling on what a key *could* reach, never a grant to someone else's data.
+
+**Plan gate:** `api.access` — **Fund and Program plans only** (goal doc F-7). Checked on every call, not just at
+key creation, so a downgraded plan stops the key the same minute.
+
+**Auth error ladder** (checked in this order — a spent key never pays for a DB round-trip; scope is checked
+after plan, so a lapsed Fund subscription answers 402 not 403):
+
+| Status | `error.code` | When |
+|--------|--------------|------|
+| `401` | `unauthorized` | Missing / malformed / unknown / revoked `Bearer bk_live_…` key. |
+| `429` | `rate_limited` | Key's per-minute budget spent (default 60/min). `Retry-After` header carries the wait. |
+| `402` | `plan_required` | Owner's plan no longer carries `api.access`. |
+| `403` | `insufficient_scope` | Key lacks the scope this route needs. |
+
+Every response carries `X-RateLimit-Limit` / `X-RateLimit-Remaining` / `X-RateLimit-Reset`, `Cache-Control:
+private, no-store` and `X-Robots-Tag: noindex`.
+
+### GET /api/v1/evaluations
+
+List the key owner's own evaluations (keyset-paginated, newest first).
+
+| Field | Value |
+|-------|-------|
+| **Auth** | `evaluations:read` |
+| **Query** | `limit` (1-100, default 25) · `cursor` (from a previous page's `next_cursor`) · `industry` · `stage` (0-12) · `min_fit` (0-100, against the caller's PRIMARY investment mandate) |
+
+**Response (200):** `{ ok, data: PublicEvaluationV1[], next_cursor, has_more, meta: { fit_source: "primary_mandate" | "no_mandate", mandate_id } }` —
+`meta.fit_source` is `"no_mandate"` when the key owner has none, so a `min_fit` filter degrades visibly (empty
+page) instead of silently. Every row: project card, `owner_kind`, `consent_tier`, `svi`, `fit`, and
+`links.{dossier,assessment,workspace}`. Never the founder's email/user id or the invite token.
+
+```bash
+curl "https://blockid.au/api/v1/evaluations?limit=25&min_fit=60" \
+  -H "Authorization: Bearer $BLOCKID_API_KEY"
+```
+
+### GET /api/v1/evaluations/{id}/dossier
+
+The Investor Dossier (ReportV2 + blocks) — the same loader the workspace dossier page uses, with the same
+consent masking. Counted as a dossier view (`dossier.viewed`, surface `"api"`).
+
+| Field | Value |
+|-------|-------|
+| **Auth** | `evaluations:read` |
+| **Errors** | `404` for an unknown id *or* an id the key owner does not evaluate (never `403` — existence must not leak). |
+
+### GET/POST/PUT /api/v1/evaluations/{id}/assessment
+
+The key owner's own Evaluator Assessment on one evaluation.
+
+| Field | Value |
+|-------|-------|
+| **GET auth** | `evaluations:read` — read the caller's current assessment + version history. |
+| **POST/PUT auth** | `evaluations:write` — create or update it. `PUT` behaves identically to `POST`. |
+| **Body (POST/PUT)** | Every field optional; `status: "submitted"` requires `decision` + `conviction` or the write is refused. |
+| **Write path** | Delegates to the same `upsertAssessment` the workspace form uses — Zod validation, draft-in-place / v(n+1) versioning, audit rows and the `assessment.submitted` webhook all fire identically; the API cannot bypass any of it. |
+| **Errors** | `400 invalid_body` (Zod issues) · `413` body > 64 kB · `422 missing_decision`/`missing_conviction` · `503` migration 0392 not applied. |
+
+```bash
+curl -X POST "https://blockid.au/api/v1/evaluations/$ID/assessment" \
+  -H "Authorization: Bearer $BLOCKID_API_KEY" -H "Content-Type: application/json" \
+  -d '{"decision":"proceed","conviction":4,"status":"submitted"}'
+```
+
+### Outbound destinations (webhooks) — Slack / Affinity / Airtable
+
+An evaluator pulling this API often also wants a push the other way: `POST /api/webhooks` (S20-B; destination
+kinds G14-S38) subscribes to `assessment.submitted` and the rest of the [webhook catalogue](/docs#webhooks) and
+delivers each event to a destination `kind`:
+
+| `kind` | Delivery | Config (`destination_config`) | Allowed host |
+|--------|----------|--------------------------------|--------------|
+| `generic` (default) | HMAC-signed JSON (`X-BlockID-Signature`) to any public https url — unchanged since S20-B. | none | any (SSRF-guarded) |
+| `slack` | Unsigned Slack Block Kit to an incoming-webhook `url`. | none (`url` IS the credential) | `hooks.slack.com` |
+| `affinity` | Unsigned `POST /notes` (+ `POST /list-entries` when `list_id` is set). | `api_key`, `organization_id`, `list_id?` | `api.affinity.co` |
+| `airtable` | Unsigned `POST /v0/{base}/{table}` record. | `token`, `base_id` (`appXXXXXXXXXXXXXX`), `table` | `api.airtable.com` |
+
+`destination_config` is sealed at rest the same way as the signing secret and never echoed back — `GET
+/api/webhooks` returns only the kind's redacted summary (e.g. `{ base_id, table }`, never the token). Every
+non-generic kind is pinned to its fixed host regardless of what `destination_config` says (defence in depth,
+`lib/webhooks/destinations/*.ts`).
+
+**Zapier:** there is no dedicated `zapier` kind — use a Zapier **Catch Hook** trigger's URL as a `generic`
+destination; Zapier ignores the (absent) signature the same way any other receiver that skips verification
+would.
+
+```bash
+curl -X POST https://blockid.au/api/webhooks \
+  -H "Content-Type: application/json" -H "Cookie: blockid_session=…" \
+  -d '{"kind":"slack","url":"https://hooks.slack.com/services/T000/B000/xxxx","events":["assessment.submitted"]}'
 ```
 
 ---

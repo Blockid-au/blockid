@@ -391,6 +391,43 @@ describe("api-keys — createApiKey", () => {
     ).toBe(1000);
   });
 
+  it("G14-S38: insert payload carries catalogue-normalised scopes (default {analyze}; evaluator scopes when passed)", async () => {
+    canMock.mockResolvedValue(true);
+    state.queue.push({ count: 0 });
+    state.queue.push({ data: { id: "id" } });
+    const { createApiKey } = await import("./api-keys");
+    await createApiKey("u", "investor_fund", "Affinity sync", ["evaluations:write"]);
+    const insertCall = callsFor("api_keys").find((c) => c.insertPayload);
+    expect((insertCall?.insertPayload as { scopes: string[] }).scopes).toEqual(["analyze", "evaluations:write"]);
+
+    state.calls = [];
+    state.queue.push({ count: 0 });
+    state.queue.push({ data: { id: "id2" } });
+    await createApiKey("u", "investor_fund");
+    const second = callsFor("api_keys").find((c) => c.insertPayload);
+    expect((second?.insertPayload as { scopes: string[] }).scopes).toEqual(["analyze"]);
+  });
+
+  it("G14-S38: pre-0409 insert (42703) retries without scopes for an {analyze} key, but refuses to mint an evaluator-scoped key", async () => {
+    canMock.mockResolvedValue(true);
+    state.queue.push({ count: 0 });
+    state.queue.push({ error: { code: "42703", message: "column \"scopes\" of relation \"api_keys\" does not exist" } });
+    state.queue.push({ data: { id: "legacy" } });
+    const { createApiKey } = await import("./api-keys");
+    const res = await createApiKey("u", "enterprise", "CI");
+    expect(res).toEqual({ key: expect.stringMatching(/^bk_live_/), id: "legacy" });
+    const inserts = callsFor("api_keys").filter((c) => c.insertPayload);
+    expect(inserts).toHaveLength(2);
+    expect(inserts[1].insertPayload).not.toHaveProperty("scopes");
+
+    state.calls = [];
+    state.queue.push({ count: 0 });
+    state.queue.push({ error: { code: "42703", message: "column does not exist" } });
+    const refused = await createApiKey("u", "investor_fund", "sync", ["evaluations:read"]);
+    expect(refused).toEqual({ error: expect.stringContaining("0409") });
+    expect(callsFor("api_keys").filter((c) => c.insertPayload)).toHaveLength(1);
+  });
+
   it("insert payload persists key_hash (sha256 of raw) and key_prefix, NEVER the raw key", async () => {
     canMock.mockResolvedValue(true);
     state.queue.push({ count: 0 });
@@ -535,6 +572,7 @@ describe("api-keys — validateApiKey", () => {
         id: "k",
         user_id: "u",
         permissions: ["report.read", "svi.run"],
+        scopes: ["evaluations:read"],
         rate_limit_per_min: 100,
         is_active: true,
         expires_at: null,
@@ -549,9 +587,28 @@ describe("api-keys — validateApiKey", () => {
       userId: "u",
       email: "founder@example.com",
       permissions: ["report.read", "svi.run"],
+      // G14-S38: catalogue order, `analyze` always present.
+      scopes: ["analyze", "evaluations:read"],
       rateLimitPerMin: 100,
       keyHash: createHash("sha256").update(raw).digest("hex"),
     });
+    expect(callsFor("api_keys")[0].selectCols).toContain("scopes");
+  });
+
+  it("G14-S38: pre-0409 (scopes column missing → 42703) re-reads without the column and the key behaves as {analyze}", async () => {
+    state.queue.push({ error: { code: "42703", message: 'column api_keys.scopes does not exist' } });
+    state.queue.push({
+      data: { id: "k", user_id: "u", permissions: [], rate_limit_per_min: 60, is_active: true, expires_at: null },
+    });
+    state.queue.push({ data: { email: "founder@example.com" } });
+    const { validateApiKey } = await import("./api-keys");
+    const res = await validateApiKey("bk_live_abcdef");
+    expect(res.valid).toBe(true);
+    expect(res.scopes).toEqual(["analyze"]);
+    const reads = callsFor("api_keys").filter((c) => c.terminal === "maybeSingle");
+    expect(reads).toHaveLength(2);
+    expect(reads[0].selectCols).toContain("scopes");
+    expect(reads[1].selectCols).not.toContain("scopes");
   });
 
   it("permissions defaults to [] when the row's permissions column is null", async () => {
@@ -785,6 +842,7 @@ describe("api-keys — listApiKeys", () => {
       lastUsedAt: "2026-07-01T00:00:00Z",
       createdAt: "2026-06-01T00:00:00Z",
       permissions: ["report.read"],
+      scopes: ["analyze"],
       rateLimitPerMin: 100,
     });
     expect(rows[0]).not.toHaveProperty("key_hash");

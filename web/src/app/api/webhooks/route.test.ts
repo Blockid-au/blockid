@@ -125,6 +125,69 @@ describe("POST /api/webhooks", () => {
     }
   });
 
+  it("G14-S38: creates a slack destination — url stays the incoming-webhook url, config redacted to {api_version:1}, nothing secret leaks", async () => {
+    const res = await POST(post({ url: "https://hooks.slack.com/services/T0/B0/x", events: ["assessment.submitted"], kind: "slack" }));
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.endpoint).toMatchObject({ kind: "slack", url: "https://hooks.slack.com/services/T0/B0/x", destination: { api_version: 1 } });
+    expect(body.destinations_unavailable).toBeUndefined();
+    expect(store!.endpoints[0].kind).toBe("slack");
+    expect(store!.endpoints[0].destination_config_enc).not.toBeNull();
+  });
+
+  it("G14-S38: creates an affinity destination from destination_config (no url in the body) — the api key never comes back, only the redacted summary", async () => {
+    const res = await POST(
+      post({ events: ["assessment.submitted"], kind: "affinity", destination_config: { api_key: "affinity-key-0123456789", organization_id: 42, list_id: 7 } }),
+    );
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.endpoint.kind).toBe("affinity");
+    expect(body.endpoint.url).toBe("https://api.affinity.co/notes");
+    expect(body.endpoint.destination).toEqual({ api_version: 1, organization_id: 42, list_id: 7 });
+    expect(JSON.stringify(body)).not.toContain("affinity-key-0123456789");
+    const row = store!.endpoints[0];
+    expect(row.destination_config_enc).not.toContain("affinity-key-0123456789");
+  });
+
+  it("G14-S38: creates an airtable destination from destination_config", async () => {
+    const res = await POST(
+      post({ events: ["assessment.submitted"], kind: "airtable", destination_config: { token: "pat-super-secret-0123456789", base_id: "appAAAAAAAAAAAAAA", table: "Deals" } }),
+    );
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.endpoint.kind).toBe("airtable");
+    expect(body.endpoint.url).toBe("https://api.airtable.com/v0/appAAAAAAAAAAAAAA/Deals");
+    expect(body.endpoint.destination).toEqual({ api_version: 1, base_id: "appAAAAAAAAAAAAAA", table: "Deals" });
+    expect(JSON.stringify(body)).not.toContain("pat-super-secret-0123456789");
+  });
+
+  it("G14-S38: 400 unknown_kind / invalid_destination (Zod issues) / host_not_allowed", async () => {
+    expect((await (await POST(post({ url: "https://h.example.com/x", events: ["svi.rescored"], kind: "bogus" }))).json()).error).toBe("unknown_kind");
+    const invalid = await POST(post({ events: ["svi.rescored"], kind: "affinity", destination_config: { api_key: "short" } }));
+    expect(invalid.status).toBe(400);
+    const invalidBody = await invalid.json();
+    expect(invalidBody.error).toBe("invalid_destination");
+    expect(Array.isArray(invalidBody.issues)).toBe(true);
+    expect(invalidBody.issues.length).toBeGreaterThan(0);
+    const badHost = await POST(post({ url: "https://evil.example.com/x", events: ["svi.rescored"], kind: "slack" }));
+    expect(badHost.status).toBe(400);
+    const badHostBody = await badHost.json();
+    expect(badHostBody.error).toBe("host_not_allowed");
+    expect(badHostBody.allowed).toEqual(["hooks.slack.com"]);
+    expect(store!.endpoints).toHaveLength(0);
+  });
+
+  it("G14-S38: destinations_unavailable — when the store cannot persist a non-generic kind (0409 pending) the create still succeeds as generic, flagged", async () => {
+    const original = store!.insertEndpoint.bind(store!);
+    store!.insertEndpoint = (row) => original({ ...row, kind: undefined, destination_config_enc: undefined });
+    const res = await POST(post({ url: "https://hooks.slack.com/services/T0/B0/x", events: ["assessment.submitted"], kind: "slack" }));
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.destinations_unavailable).toBe(true);
+    expect(body.endpoint.kind).toBe("generic");
+    expect(body.endpoint.destination).toBeNull();
+  });
+
   it("400 on missing url / unknown event / empty events / bad json / bad project id", async () => {
     expect((await (await POST(post({ events: ["svi.rescored"] }))).json()).error).toBe("url_required");
     expect((await (await POST(post({ url: "https://h.example.com/x", events: ["ping"] }))).json()).error).toBe("unknown_event:ping");

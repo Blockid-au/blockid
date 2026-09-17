@@ -28,6 +28,7 @@ import {
   sendPing,
   validateEndpointUrl,
 } from "./dispatch";
+import { sealDestinationConfig } from "./destinations";
 import { verifySignature, sealSecret, hashSecret } from "./sign";
 import { memoryWebhookStore, type DeliveryRow, type EndpointRow } from "./store";
 
@@ -43,6 +44,8 @@ function endpoint(over: Partial<EndpointRow> = {}): EndpointRow {
     description: null,
     secret_hash: hashSecret(SECRET),
     secret_enc: sealSecret(SECRET, ENV),
+    kind: "generic",
+    destination_config_enc: null,
     events: ["svi.rescored"],
     active: true,
     failure_count: 0,
@@ -196,6 +199,78 @@ describe("sendOnce", () => {
     const out = await sendOnce(endpoint({ secret_enc: "gcm:bad" }), delivery(), { fetch: fetchMock as never, checkUrl: okCheck, env: { WEBHOOK_SECRET_KEY: "k" } as NodeJS.ProcessEnv });
     expect(out).toMatchObject({ ok: false, error: "secret_unavailable" });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("sendOnce — destination kinds (G14-S38)", () => {
+  it("PIN: kind='generic' (explicit or missing) is byte-for-byte the S20-B signed envelope — X-BlockID-Signature present, body is the raw payload JSON", async () => {
+    const cap: { url?: string; init?: RequestInit } = {};
+    const out = await sendOnce(endpoint({ kind: "generic" }), delivery(), { fetch: fetchReturning(204, cap), checkUrl: okCheck, env: ENV });
+    expect(out).toMatchObject({ ok: true, status: 204 });
+    const h = cap.init?.headers as Record<string, string>;
+    expect(h["X-BlockID-Signature"]).toBeDefined();
+    expect(verifySignature(SECRET, h["X-BlockID-Signature"], cap.init?.body as string).ok).toBe(true);
+    expect(JSON.parse(cap.init?.body as string)).toEqual(delivery().payload);
+  });
+
+  it("kind='slack' sends the unsigned Block Kit body to hooks.slack.com ONLY — no X-BlockID-Signature, Content-Type application/json", async () => {
+    const cap: { url?: string; init?: RequestInit } = {};
+    const sealed = sealDestinationConfig({ api_version: 1 });
+    const ep = endpoint({ kind: "slack", url: "https://hooks.slack.com/services/T0/B0/x", destination_config_enc: sealed });
+    const out = await sendOnce(ep, delivery(), { fetch: fetchReturning(200, cap), checkUrl: okCheck, env: ENV });
+    expect(out).toMatchObject({ ok: true, status: 200 });
+    expect(cap.url).toBe("https://hooks.slack.com/services/T0/B0/x");
+    const h = cap.init?.headers as Record<string, string>;
+    expect(h["X-BlockID-Signature"]).toBeUndefined();
+    expect(h["Content-Type"]).toBe("application/json");
+    const body = JSON.parse(cap.init?.body as string);
+    expect(body.blocks).toBeInstanceOf(Array);
+    // The dispatcher's own delivery-tracking headers are still attached.
+    expect(h["X-BlockID-Delivery"]).toBe("d-1");
+  });
+
+  it("kind='slack' with a url off hooks.slack.com is refused before any fetch (host_not_allowed) — a config can never redirect a delivery", async () => {
+    const fetchMock = vi.fn();
+    const sealed = sealDestinationConfig({ api_version: 1 });
+    const ep = endpoint({ kind: "slack", url: "https://evil.example.com/hook", destination_config_enc: sealed });
+    const out = await sendOnce(ep, delivery(), { fetch: fetchMock as never, checkUrl: okCheck, env: ENV });
+    expect(out.ok).toBe(false);
+    if (!out.ok) expect(out.error).toBe("host_not_allowed:evil.example.com");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("a non-generic endpoint with an unreadable sealed config fails closed with destination_config_unreadable — never a fetch", async () => {
+    const fetchMock = vi.fn();
+    const ep = endpoint({ kind: "affinity", destination_config_enc: "gcm:not:valid:sealed" });
+    const out = await sendOnce(ep, delivery(), { fetch: fetchMock as never, checkUrl: okCheck, env: ENV });
+    expect(out).toMatchObject({ ok: false, error: "destination_config_unreadable" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("kind='affinity' with list_id sends the note then the list-entry follow-up; a failing follow-up books the delivery as failed (the note has already landed)", async () => {
+    const calls: string[] = [];
+    const fetchTwoStep = async (url: string) => {
+      calls.push(url);
+      return new Response(null, { status: url.endsWith("/notes") ? 201 : 422 });
+    };
+    const sealed = sealDestinationConfig({ api_version: 1, api_key: "0123456789abcdef", organization_id: 42, list_id: 7 });
+    const ep = endpoint({ kind: "affinity", destination_config_enc: sealed });
+    const out = await sendOnce(ep, delivery(), { fetch: fetchTwoStep, checkUrl: okCheck, env: ENV });
+    expect(calls).toEqual(["https://api.affinity.co/notes", "https://api.affinity.co/lists/7/list-entries"]);
+    expect(out.ok).toBe(false);
+    if (!out.ok) expect(out.error).toBe("follow_up_1:http_422");
+  });
+
+  it("kind='airtable' sends a Bearer-authenticated record POST, unsigned", async () => {
+    const cap: { url?: string; init?: RequestInit } = {};
+    const sealed = sealDestinationConfig({ api_version: 1, token: "0123456789abcdef", base_id: "appAAAAAAAAAAAAAA", table: "Deals" });
+    const ep = endpoint({ kind: "airtable", destination_config_enc: sealed });
+    const out = await sendOnce(ep, delivery(), { fetch: fetchReturning(200, cap), checkUrl: okCheck, env: ENV });
+    expect(out).toMatchObject({ ok: true, status: 200 });
+    expect(cap.url).toBe("https://api.airtable.com/v0/appAAAAAAAAAAAAAA/Deals");
+    const h = cap.init?.headers as Record<string, string>;
+    expect(h.Authorization).toBe("Bearer 0123456789abcdef");
+    expect(h["X-BlockID-Signature"]).toBeUndefined();
   });
 });
 

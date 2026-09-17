@@ -13,7 +13,7 @@
  * receive one signed ping.
  */
 import { test, expect } from "./fixtures";
-import { evidence, get, post } from "./lib/api";
+import { del, evidence, get, post } from "./lib/api";
 import { getScratch, setScratch } from "./lib/run-state";
 
 const SINK_URL = "https://example.com/hooks/blockid-live-qa";
@@ -24,6 +24,9 @@ interface Endpoint {
   url: string;
   events: string[];
   active: boolean;
+  /** G14-S38: generic | slack | affinity | airtable. */
+  kind?: string;
+  destination?: Record<string, string | number | null> | null;
 }
 interface Delivery {
   id: string;
@@ -150,6 +153,62 @@ test.describe("Webhooks", () => {
     await expect(table).toBeVisible({ timeout: 30_000 });
     await expect(table).toContainText("ping");
     await expect(table).toContainText(mine!.status);
+  });
+
+  // G14-S38: Slack destination (`kind: "slack"`) — a growth/evaluator-only
+  // check (the `growth` fixture skips on an un-elevated account, same gate
+  // as every other webhooks test above; the un-elevated 200 + access.allowed
+  // === false branch stays exclusively in the "plan gate" test above, this
+  // never duplicates it). `hooks.slack.com/services/T000/B000/x` is not a
+  // real incoming webhook, so Slack answers a 4xx (commonly 404) to the
+  // ping — the documented contract (lib/webhooks/dispatch.ts sendOnce /
+  // POST /api/webhooks/[id]/test) is that the route always answers 200
+  // with a `delivery_id`; `ok` reports Slack's verdict, and either way the
+  // attempt is booked in `webhook_deliveries` (never silently dropped).
+  test("Slack destination: create with kind='slack', send a test ping — 2xx from Slack or a booked failed delivery, never a 500 (elevated/evaluator only)", async ({ growth, api }, testInfo) => {
+    void growth;
+    const create = await post<{ ok: boolean; endpoint?: Endpoint; secret?: string; error?: string; issues?: unknown }>(api, "/api/webhooks", {
+      kind: "slack",
+      url: "https://hooks.slack.com/services/T000/B000/x",
+      events: ["assessment.submitted"],
+    });
+    await evidence(testInfo, "POST /api/webhooks (kind=slack)", { status: create.status, ok: create.body.ok, endpoint: create.body.endpoint, error: create.body.error, issues: create.body.issues });
+    expect(create.status).toBe(201);
+    expect(create.body.endpoint?.kind).toBe("slack");
+    expect(create.body.endpoint?.url).toBe("https://hooks.slack.com/services/T000/B000/x");
+    // Slack config carries nothing sensitive (the url IS the credential) — the redacted summary is just {api_version:1}.
+    expect(create.body.endpoint?.destination).toEqual({ api_version: 1 });
+    const id = create.body.endpoint!.id;
+
+    try {
+      const ping = await post<{ ok: boolean; delivery_id?: string; status?: number | null; error?: string; duration_ms?: number }>(api, `/api/webhooks/${id}/test`);
+      await evidence(testInfo, "POST /api/webhooks/[id]/test (slack)", { status: ping.status, body: ping.body });
+      expect(ping.status, "the test route itself always answers 200 (ok reports Slack's verdict, not this call's)").toBe(200);
+      expect(ping.body.delivery_id).toBeTruthy();
+
+      const deliveries = await get<{ ok: boolean; deliveries: Delivery[] }>(api, `/api/webhooks/${id}/deliveries`);
+      const mine = deliveries.body.deliveries.find((d) => d.id === ping.body.delivery_id);
+      await evidence(testInfo, "GET deliveries (slack)", { count: deliveries.body.deliveries.length, mine });
+      expect(mine, "the ping shows up in the delivery log either way").toBeTruthy();
+      expect(mine?.event).toBe("ping");
+
+      if (ping.body.ok) {
+        // Slack accepted the (unsigned) Block Kit ping.
+        expect(ping.body.status).toBeGreaterThanOrEqual(200);
+        expect(ping.body.status).toBeLessThan(300);
+        expect(mine?.status).toBe("delivered");
+      } else {
+        // Documented failure path: Slack refused the placeholder T000/B000
+        // path (commonly 404) — booked as a failed delivery, not lost.
+        testInfo.annotations.push({ type: "note", description: `Slack answered ${ping.body.status} (${ping.body.error}) to the placeholder webhook path — recorded as a failed/dead delivery; the contract (200 route response + ledger row) holds` });
+        expect(["failed", "dead"]).toContain(mine?.status);
+        expect(mine?.response_status ?? ping.body.status ?? null, "ledger carries the sink's HTTP status when Slack responded").not.toBeNull();
+      }
+    } finally {
+      // Never leave a probe endpoint behind.
+      const removed = await del(api, `/api/webhooks/${id}`);
+      await evidence(testInfo, "cleanup DELETE /api/webhooks/[id] (slack)", { status: removed.status });
+    }
   });
 
   test("delete the endpoint → gone from the list; 404 afterwards", async ({ page, visit, growth, api }, testInfo) => {

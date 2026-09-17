@@ -20,11 +20,15 @@ const canCreateApiKeysMock = vi.fn();
 const getRateLimitForPlanMock = vi.fn();
 vi.mock("@/lib/api-keys", () => ({
   listApiKeys: (userId: string) => listApiKeysMock(userId),
-  createApiKey: (userId: string, plan: string, name?: string) =>
-    createApiKeyMock(userId, plan, name),
+  createApiKey: (userId: string, plan: string, name?: string, scopes?: string[]) =>
+    createApiKeyMock(userId, plan, name, scopes),
   canCreateApiKeys: (user: unknown) => canCreateApiKeysMock(user),
   getRateLimitForPlan: (plan: string) => getRateLimitForPlanMock(plan),
 }));
+
+// G14-S38: `evaluations:*` scopes only on an evaluator account.
+const isEvaluatorMock = vi.fn(async () => false);
+vi.mock("@/lib/evaluations", () => ({ isEvaluatorUser: () => isEvaluatorMock() }));
 
 const logUserActionMock = vi.fn();
 vi.mock("@/lib/audit/log", () => ({
@@ -44,6 +48,47 @@ beforeEach(() => {
   getRateLimitForPlanMock.mockReturnValue(60);
   logUserActionMock.mockReset();
   logUserActionMock.mockResolvedValue({ ok: true });
+  isEvaluatorMock.mockReset().mockResolvedValue(false);
+});
+
+describe("POST /api/keys scopes (G14-S38)", () => {
+  const ok = () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1", plan: "investor_fund" });
+    canCreateApiKeysMock.mockResolvedValue(true);
+    createApiKeyMock.mockResolvedValue({ id: "key-1", key: "bk_live_" + "a".repeat(48) });
+  };
+  const post = (body: unknown) => POST(new Request("http://x/api/keys", { method: "POST", body: JSON.stringify(body) }));
+
+  it("no scopes → default {analyze}; echoed in the response and the audit fields", async () => {
+    ok();
+    const res = await post({ name: "ci" });
+    expect(res.status).toBe(200);
+    expect((await res.json()).scopes).toEqual(["analyze"]);
+    expect(createApiKeyMock).toHaveBeenCalledWith("u1", "investor_fund", "ci", ["analyze"]);
+    expect(logUserActionMock.mock.calls[0][0].fields.scopes).toBe("analyze");
+    expect(isEvaluatorMock).not.toHaveBeenCalled();
+  });
+
+  it("evaluator account may add evaluations:read / write (catalogue order)", async () => {
+    ok();
+    isEvaluatorMock.mockResolvedValue(true);
+    const res = await post({ name: "affinity", scopes: ["evaluations:write", "evaluations:read"] });
+    expect(res.status).toBe(200);
+    expect((await res.json()).scopes).toEqual(["analyze", "evaluations:read", "evaluations:write"]);
+    expect(createApiKeyMock.mock.calls[0][3]).toEqual(["analyze", "evaluations:read", "evaluations:write"]);
+  });
+
+  it("founder account asking for an evaluator scope → 400, no key minted; unknown scope → 400", async () => {
+    ok();
+    const denied = await post({ scopes: ["evaluations:read"] });
+    expect(denied.status).toBe(400);
+    expect((await denied.json()).reason).toBe("evaluator_scope_requires_evaluator_account");
+    const unknown = await post({ scopes: ["admin:*"] });
+    expect(unknown.status).toBe(400);
+    expect((await unknown.json()).reason).toBe("unknown_scope");
+    expect(createApiKeyMock).not.toHaveBeenCalled();
+    expect(logUserActionMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("POST /api/keys audit wire-in", () => {

@@ -5,7 +5,12 @@
 //        consecutive-failure counter and clears `disabled_reason`. A new
 //        URL goes through the same SSRF guard as on create (400
 //        url_rejected). The signing secret cannot be changed — delete and
-//        recreate to rotate.
+//        recreate to rotate. G14-S38: `kind` and `destination_config` are
+//        immutable (delete + recreate to change destination). A `slack`
+//        endpoint's url may still rotate, but only onto another
+//        hooks.slack.com url (400 host_not_allowed); `affinity` / `airtable`
+//        derive their url from the sealed config and refuse url at all
+//        (400 url_immutable_for_kind).
 // DELETE 200 { ok } — cascades the delivery log.
 //
 // Access (lib/webhooks/http.ts loadEndpointForCaller): user-level → its
@@ -22,6 +27,7 @@ import { PRIVATE_JSON_HEADERS, readJsonBody } from "@/lib/security/request-guard
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { apiRoute } from "@/lib/audit/api-route";
 import { validateEndpointUrl } from "@/lib/webhooks/dispatch";
+import { hostAllowList, isDestinationKind, isHostAllowed } from "@/lib/webhooks/destinations";
 import { supabaseWebhookStore, type EndpointPatch } from "@/lib/webhooks/store";
 import { badRequest, loadEndpointForCaller, parseDescription, parseEventsInput, publicEndpoint } from "@/lib/webhooks/http";
 
@@ -53,12 +59,24 @@ async function PATCH_handler(request: Request, ctx: Ctx) {
   if (!parsed.ok) return parsed.response;
   const body = parsed.body && typeof parsed.body === "object" ? parsed.body : {};
 
+  // Rows written before 0409 (or a test fixture built by hand) carry no
+  // `kind` — generic, same as everywhere else this is read (store.ts
+  // normaliseEndpointRow, http.ts publicEndpoint).
+  const kind = isDestinationKind(endpoint.kind) ? endpoint.kind : "generic";
+
   const patch: EndpointPatch = {};
   if (body.url !== undefined) {
     const url = typeof body.url === "string" ? body.url.trim() : "";
     if (!url) return badRequest("url_required");
     const check = await validateEndpointUrl(url);
     if (!check.ok) return badRequest("url_rejected", { reason: check.reason });
+    // G14-S38: affinity / airtable derive their url from destination_config
+    // (immutable here — recreate to change it); slack's url IS the
+    // credential and may rotate, but only onto another hooks.slack.com url.
+    if (kind === "affinity" || kind === "airtable") return badRequest("url_immutable_for_kind");
+    if (kind !== "generic" && !isHostAllowed(url, kind)) {
+      return badRequest("host_not_allowed", { allowed: hostAllowList(kind) ?? [] });
+    }
     patch.url = url;
   }
   if (body.events !== undefined) {

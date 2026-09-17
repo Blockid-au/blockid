@@ -53,6 +53,8 @@ function ep(over: Partial<EndpointRow> = {}): EndpointRow {
     description: null,
     secret_hash: "h",
     secret_enc: "obf:d2hzZWM=",
+    kind: "generic",
+    destination_config_enc: null,
     events: ["svi.rescored"],
     active: false,
     failure_count: 20,
@@ -127,6 +129,23 @@ describe("PATCH /api/webhooks/[id]", () => {
     expect((await (await PATCH(req("PATCH", { events: ["nope"] }), ctx())).json()).error).toBe("unknown_event:nope");
     expect((await (await PATCH(req("PATCH", { active: "yes" }), ctx())).json()).error).toBe("invalid_active");
     expect((await (await PATCH(req("PATCH", {}), ctx())).json()).error).toBe("nothing_to_update");
+  });
+
+  it("G14-S38: a slack endpoint's url may only rotate onto another hooks.slack.com url; affinity/airtable url is immutable", async () => {
+    checkUrlMock.mockResolvedValue({ ok: true });
+    store = memoryWebhookStore({ endpoints: [ep({ kind: "slack", url: "https://hooks.slack.com/services/T0/B0/x" })] });
+    const badHost = await PATCH(req("PATCH", { url: "https://evil.example.com/x" }), ctx());
+    expect(badHost.status).toBe(400);
+    expect((await badHost.json()).error).toBe("host_not_allowed");
+    expect(store!.endpoints[0].url).toBe("https://hooks.slack.com/services/T0/B0/x");
+    const okHost = await PATCH(req("PATCH", { url: "https://hooks.slack.com/services/T1/B1/y" }), ctx());
+    expect(okHost.status).toBe(200);
+    expect(store!.endpoints[0].url).toBe("https://hooks.slack.com/services/T1/B1/y");
+
+    store = memoryWebhookStore({ endpoints: [ep({ kind: "airtable", url: "https://api.airtable.com/v0/appX/Deals" })] });
+    const immutable = await PATCH(req("PATCH", { url: "https://api.airtable.com/v0/appY/Deals" }), ctx());
+    expect(immutable.status).toBe(400);
+    expect((await immutable.json()).error).toBe("url_immutable_for_kind");
   });
 
   it("P1: a revoked creator gets 404 on PATCH / DELETE / test / deliveries of their project-level endpoint", async () => {

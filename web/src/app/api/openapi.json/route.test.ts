@@ -64,6 +64,7 @@ interface OpenApiOperation {
   responses: Record<string, OpenApiResponse>;
   "x-rate-limit"?: { perMinute: number; bucket: string };
   "x-changelog"?: Array<{ date: string; note: string }>;
+  "x-auth"?: ApiEndpointDoc["auth"];
 }
 
 interface OpenApiPathItem {
@@ -449,12 +450,49 @@ describe("tagFor prefix rules", () => {
     }
   });
 
-  it("fallback bucket is 'Public' — every observed tag is one of the four known buckets (any drift means a new prefix rule was added without extending the tag whitelist)", async () => {
+  it("/api/v1/evaluations* -> 'Evaluator API v1' (G14-S38)", async () => {
     const { body } = await callGet();
-    const allowed = new Set(["SVI Index", "Pricing Experiments", "Idea Engine", "Public"]);
+    const v1 = API_ENDPOINTS.filter((e) => e.path.startsWith("/api/v1/evaluations"));
+    expect(v1.length).toBeGreaterThanOrEqual(3);
+    for (const ep of v1) {
+      const op = operationFor(body, ep);
+      expect(op.tags[0]).toBe("Evaluator API v1");
+    }
+  });
+
+  it("fallback bucket is 'Public' — every observed tag is one of the five known buckets (any drift means a new prefix rule was added without extending the tag whitelist)", async () => {
+    const { body } = await callGet();
+    const allowed = new Set(["SVI Index", "Pricing Experiments", "Idea Engine", "Evaluator API v1", "Public"]);
     for (const t of body.tags) {
       expect(allowed.has(t.name), `unexpected tag "${t.name}"`).toBe(true);
     }
+  });
+});
+
+// ─── x-auth extension (G14-S38 Evaluator API v1) ───────────────────────────
+
+describe("x-auth extension", () => {
+  it("public/no-auth endpoints never carry x-auth", async () => {
+    const { body } = await callGet();
+    for (const ep of API_ENDPOINTS.filter((e) => !e.auth)) {
+      const op = operationFor(body, ep);
+      expect(op["x-auth"]).toBeUndefined();
+    }
+  });
+
+  it("every v1 evaluations operation carries its registry `auth` doc verbatim as x-auth", async () => {
+    const { body } = await callGet();
+    for (const ep of API_ENDPOINTS.filter((e) => e.auth)) {
+      const op = operationFor(body, ep);
+      expect(op["x-auth"]).toEqual(ep.auth);
+    }
+  });
+
+  it("info.description documents the Evaluator API v1 auth model alongside the public-endpoint claim", async () => {
+    const { body } = await callGet();
+    expect(body.info.description).toMatch(/Evaluator API v1/);
+    expect(body.info.description).toMatch(/Bearer bk_live_/);
+    expect(body.info.description).toMatch(/api\.access/);
   });
 });
 
