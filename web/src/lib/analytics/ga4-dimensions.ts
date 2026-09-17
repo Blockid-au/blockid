@@ -132,8 +132,9 @@ export const GA4_CUSTOM_DIMENSIONS: readonly Ga4DimensionSpec[] = Object.freeze(
  * G14-S33 added the server-emitted money events (lib/analytics/server.ts
  * emitEvent → GA4 Measurement Protocol): trust_report_purchased,
  * evaluator_trial_started, subscription_created, tbr_share_created and
- * dossier_view. `assessment_submitted` is NOT listed — there is no write
- * route for evaluation_assessments until G13 S-D2 ships; add it there.
+ * dossier_view. `assessment_submitted` waited for the evaluation_assessments
+ * write route (G13 S-D2) — that route now emits it (lib/evaluations/
+ * assessments.ts upsertAssessment), so it is listed here too.
  */
 export const GA4_AUDIT_EVENTS: readonly string[] = Object.freeze([
   "hero_variant_shown",
@@ -150,6 +151,7 @@ export const GA4_AUDIT_EVENTS: readonly string[] = Object.freeze([
   "subscription_created",
   "tbr_share_created",
   "dossier_view",
+  "assessment_submitted",
 ]);
 
 // ── Operator steps when the Admin / Data API is blocked ─────────────────

@@ -85,6 +85,8 @@ export interface AnalyticsEventMap {
   evaluator_checklist_step: { step: 1 | 2 | 3 | 4 };
   /** G13 (S-D1): the Investor Dossier (/workspace/evaluations/[id]) was opened — once per page view; `role` = assessor (evaluator) or founder (read-only preview). */
   dossier_view: { evaluation_id: string; consent_tier: string; plan: string; role: "assessor" | "founder" };
+  /** G13/G14 GA4 audit leftover: emitted server-side (lib/evaluations/assessments.ts upsertAssessment) whenever an evaluator submits (not drafts) their assessment. */
+  assessment_submitted: { evaluation_id: string; decision: "pass" | "track" | "proceed" | "none"; version: number };
   /** G13 (S-D2, §C.5): the evaluator saved a draft or submitted their assessment on the dossier; `decision` = pass | track | proceed | none. */
   investor_decision_saved: { evaluation_id: string; decision: "pass" | "track" | "proceed" | "none"; status: "draft" | "submitted"; version: number };
   /** G13 (S-D2, §C.5): the assessment was shared with the claimed founder; `fields_count` = ticked allow-listed sections (1–4). */

@@ -27,6 +27,7 @@ import "server-only";
 import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { appendAudit } from "@/lib/audit";
+import { emitEventSafe } from "@/lib/analytics/server";
 
 // ─── Appendix 2 shapes ──────────────────────────────────────────────────────
 
@@ -627,7 +628,24 @@ export async function upsertAssessment(ctx: AssessmentWriteContext, input: Asses
     assessment,
     detail: { ...assessmentDelta(current, assessment), created, status: assessment.status, snapshot_id: assessment.snapshotId },
   });
-  if (submitting) notifyAssessmentSubmitted(ctx, assessment);
+  if (submitting) {
+    notifyAssessmentSubmitted(ctx, assessment);
+    // G14-S33/S-D2 leftover: emit the GA4 money/engagement event server-side
+    // (same fire-and-forget contract as dossier-audit.ts's dossier_view) so
+    // the weekly GA4 audit stops reporting assessment_submitted as missing.
+    emitEventSafe({
+      name: "assessment_submitted",
+      params: {
+        evaluation_id: assessment.evaluationId,
+        decision: assessment.decision ?? "none",
+        version: assessment.version,
+        user_id: ctx.assessorUserId,
+      },
+      userId: ctx.assessorUserId,
+      source: "server",
+      consentGranted: true,
+    });
+  }
   const history = [toHistoryEntry(assessment), ...rows.filter((r) => r.id !== assessment.id).map(toHistoryEntry)];
   return { ok: true, assessment, created, version: assessment.version, history };
 }
