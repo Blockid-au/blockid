@@ -54,6 +54,11 @@ describe("FOOTER_COLUMNS", () => {
     expect(compare?.label).toBe("Compare");
   });
 
+  it("links the public methodology from the Docs column (G14-S36)", () => {
+    const methodology = column("Docs").items.find((i) => i.href === "/methodology");
+    expect(methodology?.label).toBe("Methodology");
+  });
+
   it("links nowhere that needs a session", () => {
     const all = FOOTER_COLUMNS.flatMap((c) => c.items.map((i) => i.href));
     expect(all.some((h) => h.startsWith("/workspace") || h.startsWith("/dashboard"))).toBe(false);

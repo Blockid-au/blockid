@@ -86,6 +86,16 @@ describe("sitemap — funding surfaces", () => {
       expect(urls, path).toContain(`${SITE}${path}`);
     }
   });
+
+  it("lists /methodology + its VI twin with hreflang, never the calibration placeholder (G14-S36)", async () => {
+    const all = await entries();
+    const urls = all.map((e) => e.url);
+    expect(urls).toContain(`${SITE}/methodology`);
+    expect(urls).toContain(`${SITE}/vi/methodology`);
+    expect(urls).not.toContain(`${SITE}/methodology/calibration`);
+    const en = all.find((e) => e.url === `${SITE}/methodology`);
+    expect(en?.alternates?.languages).toEqual({ en: `${SITE}/methodology`, vi: `${SITE}/vi/methodology`, "x-default": `${SITE}/methodology` });
+  });
 });
 
 // ─── Release QA-1 #3 / #5 / #12 / #13 (2026-09-12) ───────────────────────────
