@@ -37,13 +37,19 @@ footer{font-size:9px;color:var(--muted);margin-top:8px}
 table{border-collapse:collapse;width:100%;font-size:13px;margin-bottom:12px}
 td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
 .script p{margin:0 0 10px}
+.hero-screenshot{max-width:100%;border:1px solid var(--line);border-radius:6px;display:block}
+.hero-table{font-size:11px;margin-bottom:10px}
+.hero-table th{background:var(--blue);color:#fff;font-size:10px}
+.hero-table-heading{margin:4px 0;font-weight:bold;font-size:12px;color:var(--muted)}
+.footer-link{max-width:1120px;margin:0 auto 24px;font-size:13px}
+.footer-link a{color:var(--blue)}
 @media (max-width:720px){.cols{grid-template-columns:1fr}.frame{aspect-ratio:auto}h2{font-size:20px}}
 @media print{body{background:#fff;color:#000;padding:0}.slide{break-inside:avoid;page-break-inside:avoid}.frame{border-color:#999}.slide.dark .frame{background:#fff;color:#000}.slide.dark .sub{color:#444}}
 </style>
 </head>
 <body>
 <h1>Startup Value Index <small>by BlockID</small> — pre-seed deck v3.0</h1>
-<p class="meta">2026-09-16 · Auschain PTY LTD · ACN 659 615 111 · ask A$500K pre-seed · 12 slides · preview generated from content/pitch/pitch-deck-v3.md</p>
+<p class="meta">2026-09-16 · Auschain PTY LTD · ACN 659 615 111 · ask A$500K pre-seed · 12 slides · preview generated from web/scripts/generate-pitch-deck-v3.ts → web/public/pitch/SVI-Pitch-Deck-PreSeed-2026-09.pptx</p>
 
 <section class="slide dark" id="slide-1">
   <div class="frame">
@@ -120,7 +126,7 @@ td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertic
       <div class="hero">
         <div class="hero-type">screenshot</div>
         <p class="hero-desc">Screenshot of /workspace/evaluations/[id] — dossier with score, 8 dimensions, evidence and the verdict panel</p>
-        <ul class="hero-data"><li><b>path</b>: public/video-assets/10-investor-dossier.png</li><li><b>caption</b>: /workspace/evaluations/[id] — investor dossier (seeded evaluator)</li></ul>
+        <img class="hero-screenshot" src="/video-assets/10-investor-dossier.png" alt="/workspace/evaluations/[id] — investor dossier (seeded evaluator)" loading="lazy"><p class="hero-desc">/workspace/evaluations/[id] — investor dossier (seeded evaluator)</p>
       </div>
       <ul class="bullets"><li>Add a startup by deck, URL or ABN — scored in minutes.</li><li>Dossier: score, 8 dimensions, evidence, red flags, questions to ask.</li><li>Record the verdict; the founder sees the reasons this quarter.</li></ul>
     </div>
@@ -301,5 +307,6 @@ td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertic
   <table><thead><tr><th>Slide</th><th>Time</th><th>Seconds</th><th>Beat</th></tr></thead><tbody><tr><td>S2 — Forty decks. One weekend. No rubric.</td><td>0:00–0:25</td><td>25s</td><td>The problem, one number</td></tr><tr><td>S4 — Add a startup. Read the dossier. Send verdict.</td><td>0:25–1:05</td><td>40s</td><td>The product and the loop</td></tr><tr><td>S5 — Not a prompt. A rubric with receipts.</td><td>1:05–1:35</td><td>30s</td><td>Why it is not a chatbot</td></tr><tr><td>S6 — A$3 is a lead. Programs are the revenue.</td><td>1:35–2:10</td><td>35s</td><td>Business model and month-12 base case</td></tr><tr><td>S9 — Live product, real depth, first pilots (+ one team sentence)</td><td>2:10–2:35</td><td>25s</td><td>Traction and founder</td></tr><tr><td>S11 → S12 — A$500K pre-seed → Three things to remember</td><td>2:35–3:00</td><td>25s</td><td>Ask and close</td></tr></tbody></table>
   <div class="script"><p>Sydney Angels see about forty applicants every cycle. Each deck takes thirty to sixty minutes to read. That is a lost weekend for volunteers, and there is no shared score. Every screener uses a different gut rubric. The founders who are passed on hear nothing, so they pitch the same deck again next month.</p><p>Here is what we built. You add a startup — a deck, a website or an ABN — and in minutes you have a dossier. One score, eight dimensions, the evidence behind each, the red flags, and the questions to ask. You record a verdict: pass, track or proceed. The founder gets the reasons, not a form letter, and a path to come back with a better score. The evaluator saves the weekend, and the founder finally learns why. That is the loop: the people who screen pay us, and the founders they pass on get the feedback.</p><p>Why is this not just a chatbot? A chatbot gives you an opinion, and a different one tomorrow. We give you the same rubric every time: eight dimensions, thirteen criteria, fixed weights. Every claim is weighted by its evidence — self-declared counts a fifth, third-party verified counts in full. An auditor agent checks the report, and every event is hash-chained. The score moves weekly as the startup changes. Receipts, not vibes.</p><p>How we make money. Three dollars buys us a founder — the report costs cents to produce, so it is our lead, not our revenue. The revenue is the evaluator ladder: Scout at seventy-nine, Firm at one forty-nine, Program at three forty-nine a month. Funds pay nine ninety-nine; cohorts pay five to fifteen thousand a year. Base case at month twelve: about one hundred and eighty paying organisations, three hundred and eighty-six thousand in annual recurring revenue.</p><p>Where we are today. One hundred and eighty-two startups scored, over three thousand weekly snapshots, billing live on Stripe. The first accelerator pilots start this month. I built the method in my doctoral research and the product with my own hands. The next seat is a commercial co-founder who sells to programs; that search is active.</p><p>We are raising five hundred thousand dollars pre-seed. Half funds that co-founder and engineering; twenty-eight percent goes to evaluator sales; twenty-two percent to trust and data. Twelve months out: ten paying programs, three cohorts, two funds, and a published backtest. Three things to remember. One rubric, every deal. Evaluators pay; founders get the feedback. A live index, not a static report.</p></div>
 </section>
+<p class="footer-link"><a href="svi-pitch-appendix-v3-preview.html">Appendix: rubric, competitors, unit economics, ARR, backtest, use of funds →</a></p>
 </body>
 </html>

@@ -16,6 +16,8 @@
     "test:watch": "vitest",
     "pitch:v3": "tsx scripts/generate-pitch-deck-v3.ts",
     "pitch:v3:html": "tsx scripts/generate-pitch-deck-v3.ts --html",
+    "pitch:v3:appendix": "tsx scripts/generate-pitch-deck-v3.ts --appendix",
+    "pitch:v3:appendix:html": "tsx scripts/generate-pitch-deck-v3.ts --appendix --html",
     "test:e2e": "playwright test tests/e2e --reporter=list",
     "e2e": "playwright test",
     "e2e:smoke": "playwright test tests/e2e/**/smoke*.spec.ts --reporter=list",
