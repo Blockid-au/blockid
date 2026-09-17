@@ -2,6 +2,24 @@
 
 ## Unreleased — 2026-09-10: Money Finder + Evaluator ladder (G11 / G12, sprints S0–S4)
 
+### 2026-09-17 — G14 batch 2: founder execution, evaluator API, open AU signals
+- **feat(svi — S37 founder execution)** `founder_profiles` rubric (exits/raises/years/roles/full-time/together/GitHub) overrides regex FTV, with a profile form, LinkedIn PDF import and an FTV chapter card.
+- **feat(api — S38 evaluator API v1)** `/api/v1/evaluations*` with scoped keys, OpenAPI at `/developers/api`, and webhook destinations for Slack, Affinity and Airtable.
+- **feat(data — S40 open AU signals)** ABR bulk and R&DTI transparency data ingested into `external_signals`, feeding real cohort percentiles via an admin tile and a weekly cron.
+- **chore(billing)** Ten pricing-v4 Stripe prices minted (Fund, Intake link, Index API, Cohort 25/100 — monthly + annual); pilot and accelerator CTAs now point at the Intake link.
+
+### 2026-09-17 — G14 batch 1: founder feedback, intake link, verification integrity, backtest
+- **feat(founder loop — S34)** Weekly "What investors said" feedback letter (k ≥ 3 assessors, ≥ 2 orgs) with a cron, email and landing block, plus opt-out.
+- **feat(evaluator — S35)** Program intake link `/apply/[slug]` with a scored evaluator inbox behind the new `intake.manage` flag.
+- **feat(trust — S36 verification integrity)** Evidence confidence is now capped by its source (self-declared ≤ document, connector, reviewer) with an L0–L5 ABN verification multiplier; public `/methodology` page and a "Verified ABN" badge.
+- **feat(calibration — S39 backtest v0)** Spearman-ρ backtest against AU comparables, with bootstrap confidence intervals, published at `/methodology/calibration`.
+
+### 2026-09-16 — G14 Wave A: deck v3, pricing v4, traction snapshot
+- **feat(pitch)** Deck v3 (evaluator-first, brand "Startup Value Index") — 12 slides plus a 3-minute cut and appendix; the v1/v2 decks are now banner-superseded.
+- **feat(pricing)** Pricing v4 cards live: Fund, Intake link and Index API tiers, plus a public Cohort 25/100 accelerator ladder.
+- **feat(data — S33 traction)** `/api/status.traction`, an admin traction tile, `investor-update.mjs`, and server-side money events into GA4.
+- **feat(compare)** `/compare` gained a deal-data row, and the homepage hero was refreshed (I2).
+
 ### 2026-09-12 — release QA-4: API contract & security sweep fixes
 - **security(svi — cross-tenant read, P1-1)** `GET /api/svi/report/[projectId]` looked the caller's account up by `svi_accounts.user_id`, a column that never existed, so the tenancy filter was silently dropped and any signed-in user could read another founder's latest report by project id (or the newest row in the table via `default`). The route now resolves the project through the member-aware role gate (`assertProjectScope` for an explicit id, the cookie scope for `default`), resolves the account on the scope's data email, and always filters on `(account_id, project_id)`; no account resolves → 404.
 - **chore(deps, P1-2)** Next.js 16.2.5 → 16.3.5 (critical: middleware/proxy bypass in App Router — `src/proxy.ts` enforces the auth rate-limit buckets and injects CSP/security headers), nodemailer 8 → 10 (CRLF header injection), nanoid, and the transitive high advisories (sharp/libvips, postcss, ws, fast-uri, browserslist, qs, js-yaml). `npm audit --omit=dev`: 19 findings (1 critical, 9 high) → 2 (image-size behind pptxgenjs, no forward fix). Build (webpack standalone) and the full test suite verified on 16.3.5.
