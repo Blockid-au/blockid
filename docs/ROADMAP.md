@@ -342,8 +342,8 @@ Full spec in plan file. Ship 2 deliverables:
 - [ ] Investor heat scoring
 - [ ] Multi-entity cap table
 - [ ] Custom branding for Growth plan
-- [ ] API access (developer portal) — evaluator API v1 + `/developers/api` tracked by **G14 S38**
-- [ ] Webhooks for enterprise integrations — signed webhooks live (S20-B); Slack / Affinity / Airtable destinations tracked by **G14 S38**
+- [x] API access (developer portal) — evaluator API v1 + `/developers/api` — live 2026-09-17 (**G14 S38**)
+- [x] Webhooks for enterprise integrations — signed webhooks live (S20-B); Slack / Affinity / Airtable destinations — live 2026-09-17 (**G14 S38**)
 - [ ] Onboarding automation
 
 ## Phase 5: Ecosystem (Q4 2026+)
