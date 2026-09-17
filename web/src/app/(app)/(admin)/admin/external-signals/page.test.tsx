@@ -4,7 +4,7 @@
 // banner when external_sources is unreadable. The loader is exercised with
 // a fake client + a temp root for the summary file.
 
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -98,7 +98,7 @@ describe("loadExternalSignalsAdmin / readIngestSummary", () => {
     expect(readIngestSummary(root)).toMatchObject({ summary: null, historyLines: 0 });
     expect(readIngestSummary(root).error).toMatch(/no run yet/);
     const dir = join(root, "content", "reports");
-    require("node:fs").mkdirSync(dir, { recursive: true });
+    mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "external-signals-latest.json"), JSON.stringify(SUMMARY));
     writeFileSync(join(dir, "external-signals-history.jsonl"), "{}\n{}\n");
     const ok = readIngestSummary(root);

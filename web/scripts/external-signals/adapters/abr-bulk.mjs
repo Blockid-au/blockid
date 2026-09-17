@@ -106,33 +106,43 @@ export async function* parseStream(input, { keep, limit = null, onRecord = null 
   if (!(keep instanceof Set)) throw new Error("abr-bulk needs an allow-set (Set of ABNs)");
   let carry = "";
   let seen = 0;
-  let kept = 0;
   const OPEN = "<ABR ";
   const CLOSE = "</ABR>";
   for await (const chunk of toChunks(input)) {
     carry += chunk;
-    let start = carry.indexOf(OPEN);
-    while (start !== -1) {
+    // Scan by offset; slice the buffer ONCE per chunk (not per record) so a
+    // 1 MB chunk with ~1,000 records stays linear.
+    let pos = 0;
+    let done = false;
+    for (;;) {
+      const start = carry.indexOf(OPEN, pos);
+      if (start === -1) {
+        // No record start ahead — keep only a small tail in case "<AB" straddles the boundary.
+        pos = Math.max(pos, carry.length - 64);
+        break;
+      }
       const end = carry.indexOf(CLOSE, start);
-      if (end === -1) break;
+      if (end === -1) {
+        pos = start; // incomplete record — wait for the next chunk
+        break;
+      }
       const rec = carry.slice(start, end + CLOSE.length);
-      carry = carry.slice(end + CLOSE.length);
+      pos = end + CLOSE.length;
       seen += 1;
       if (onRecord) onRecord(seen);
       // Cheap pre-filter: only regex the record when its ABN is wanted.
       const abnM = rec.match(/<ABN [^>]*>(\d{11})/);
       if (abnM && keep.has(abnM[1])) {
         const row = parseRecord(rec);
-        if (row) {
-          kept += 1;
-          yield row;
-        }
+        if (row) yield row;
       }
-      if (limit && seen >= limit) return;
-      start = carry.indexOf(OPEN);
+      if (limit && seen >= limit) {
+        done = true;
+        break;
+      }
     }
-    // Keep the buffer bounded: nothing before the last OPEN can still matter.
-    if (start === -1 && carry.length > 1_000_000) carry = carry.slice(-64);
+    if (done) return;
+    carry = carry.slice(pos);
   }
 }
 
