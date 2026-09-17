@@ -25,6 +25,8 @@ export default defineConfig({
       "scripts/db/*.test.mjs",
       // G14-S39: the SVI backtest runner (tsx script with `@/` imports).
       "scripts/backtest/*.test.ts",
+      // G14-S40: the external-signals ingest CLI + adapters (plain node, fixtures).
+      "scripts/external-signals/*.test.mjs",
       "../scripts/**/*.test.mjs",
     ],
     exclude: ["**/node_modules/**", "**/.next/**"],
