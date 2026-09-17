@@ -777,6 +777,42 @@ export interface AICallOptions {
    *  and timed out the client; on Groq it is ≈ 5 s. Background jobs (first
    *  analysis, crons) keep the quality-first order. */
   interactive?: boolean;
+  /** Post-ship review 2026-09-17 — total WALL-CLOCK budget for this call
+   *  across every provider AND every model inside a provider's ladder.
+   *  `timeoutMs` is per attempt: DeepInfra alone tried four models × 30 s
+   *  (Worker timeout) on one Money Finder narrative = 120 s, past
+   *  Cloudflare's 100 s wall → 524 with the template fallback never
+   *  reached. Defaults to max(INTERACTIVE_BUDGET_MS, timeoutMs) for
+   *  `interactive` calls; omitted (unbounded) otherwise. When it runs out the call throws
+   *  `AIBudgetExhaustedError` and no further attempt is started. */
+  budgetMs?: number;
+  /** @internal absolute deadline derived from `budgetMs` (epoch ms). */
+  deadlineAt?: number;
+}
+
+/** Total budget for an `interactive` call — under Cloudflare's 100 s wall
+ *  with room for the caller's own fallback work. */
+export const INTERACTIVE_BUDGET_MS = Number(process.env.AI_INTERACTIVE_BUDGET_MS ?? 60_000);
+
+export class AIBudgetExhaustedError extends Error {
+  constructor(budgetMs: number) {
+    super(`AI call budget exhausted (${Math.round(budgetMs / 1000)}s across providers)`);
+    this.name = "AIBudgetExhaustedError";
+  }
+}
+
+/** True once the call's wall-clock budget is gone — model ladders and the
+ *  provider loop stop starting attempts. Pure on `opts.deadlineAt`. */
+export function aiBudgetExpired(opts: Pick<AICallOptions, "deadlineAt">): boolean {
+  return typeof opts.deadlineAt === "number" && Date.now() >= opts.deadlineAt;
+}
+
+/** Per-attempt timeout clamped to what is left of the call budget (min 1 s
+ *  so a nearly-spent budget still fails fast instead of hanging). */
+export function budgetedTimeoutMs(opts: Pick<AICallOptions, "timeoutMs" | "deadlineAt">, fallback = 30_000): number {
+  const base = opts.timeoutMs ?? fallback;
+  if (typeof opts.deadlineAt !== "number") return base;
+  return Math.max(1_000, Math.min(base, opts.deadlineAt - Date.now()));
 }
 
 /** Throughput ranking for `interactive` calls (fastest usable first); any
@@ -960,7 +996,7 @@ async function callClaudeOAuth(apiKey: string, opts: AICallOptions, cls: AITaskC
     max_tokens: opts.maxTokens ?? 4096,
     system: [{ type: "text", text: opts.system, cache_control: { type: "ephemeral" } }],
     messages: [{ role: "user", content: opts.user }],
-  }), opts.timeoutMs);
+  }), budgetedTimeoutMs(opts));
   const data = JSON.parse(raw);
   let text = "";
   for (const block of (data.content ?? [])) {
@@ -1033,6 +1069,7 @@ async function callGemini(opts: AICallOptions, cls: AITaskClass = "report"): Pro
 
   let lastErr: Error | null = null;
   for (const model of readyPaidModels("gemini", GEMINI_MODELS_BY_CLASS[cls])) {
+    if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     const key = paidKey("gemini", model);
     try {
       // workerFetch bypasses Next.js fetch patches (same as Claude/Groq)
@@ -1047,7 +1084,7 @@ async function callGemini(opts: AICallOptions, cls: AITaskClass = "report"): Pro
             ...(typeof opts.temperature === "number" ? { temperature: opts.temperature } : {}),
           },
         }),
-        opts.timeoutMs,
+        budgetedTimeoutMs(opts),
       );
 
       const data = JSON.parse(raw);
@@ -1100,6 +1137,7 @@ async function callGroq(opts: AICallOptions, cls: AITaskClass = "classify"): Pro
 
   let lastErr: Error | null = null;
   for (const model of readyModels(GROQ_MODELS, cls)) {
+    if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     try {
       const raw = await workerFetch("https://api.groq.com/openai/v1/chat/completions", {
         "Authorization": `Bearer ${apiKey}`,
@@ -1112,7 +1150,7 @@ async function callGroq(opts: AICallOptions, cls: AITaskClass = "classify"): Pro
           { role: "system", content: opts.system },
           { role: "user", content: opts.user },
         ],
-      }), opts.timeoutMs);
+      }), budgetedTimeoutMs(opts));
 
       const data = JSON.parse(raw);
       if (data.error) throw new Error(data.error.message ?? "Groq error");
@@ -1152,6 +1190,7 @@ async function callCerebras(opts: AICallOptions, cls: AITaskClass = "classify"):
 
   let lastErr: Error | null = null;
   for (const model of readyModels(CEREBRAS_MODELS, cls)) {
+    if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     try {
       const raw = await workerFetch("https://api.cerebras.ai/v1/chat/completions", {
         "Authorization": `Bearer ${apiKey}`,
@@ -1164,7 +1203,7 @@ async function callCerebras(opts: AICallOptions, cls: AITaskClass = "classify"):
           { role: "system", content: opts.system },
           { role: "user", content: opts.user },
         ],
-      }), opts.timeoutMs);
+      }), budgetedTimeoutMs(opts));
 
       const data = JSON.parse(raw);
       if (data.error) throw new Error(data.error.message ?? "Cerebras error");
@@ -1207,6 +1246,7 @@ async function callSambaNova(opts: AICallOptions, cls: AITaskClass = "classify")
 
   let lastErr: Error | null = null;
   for (const model of readyModels(SAMBANOVA_MODELS, cls)) {
+    if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     try {
       const raw = await workerFetch("https://api.sambanova.ai/v1/chat/completions", {
         "Authorization": `Bearer ${apiKey}`,
@@ -1219,7 +1259,7 @@ async function callSambaNova(opts: AICallOptions, cls: AITaskClass = "classify")
           { role: "system", content: opts.system },
           { role: "user", content: opts.user },
         ],
-      }), opts.timeoutMs);
+      }), budgetedTimeoutMs(opts));
 
       const data = JSON.parse(raw);
       if (data.error) throw new Error(data.error.message ?? "SambaNova error");
@@ -1269,6 +1309,7 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
 
   let lastErr: Error | null = null;
   for (const model of readyPaidModels("deepinfra", DEEPINFRA_MODELS_BY_CLASS[cls])) {
+    if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     const key = paidKey("deepinfra", model);
     try {
       const raw = await workerFetch("https://api.deepinfra.com/v1/openai/chat/completions", {
@@ -1282,7 +1323,7 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
           { role: "system", content: opts.system },
           { role: "user", content: opts.user },
         ],
-      }), opts.timeoutMs);
+      }), budgetedTimeoutMs(opts));
 
       const data = JSON.parse(raw);
       if (data.error) throw new Error(data.error.message ?? "DeepInfra error");
@@ -1332,7 +1373,7 @@ async function callClaudeHaikuDirect(opts: AICallOptions): Promise<AICallResult>
     max_tokens: opts.maxTokens ?? 4096,
     system: [{ type: "text", text: opts.system, cache_control: { type: "ephemeral" } }],
     messages: [{ role: "user", content: opts.user }],
-  }), opts.timeoutMs);
+  }), budgetedTimeoutMs(opts));
 
   const data = JSON.parse(raw);
   if (data.error) throw new Error(data.error.message ?? "Anthropic Haiku error");
@@ -1377,6 +1418,7 @@ async function callOpenRouter(opts: AICallOptions, cls: AITaskClass = "classify"
 
   let lastErr: Error | null = null;
   for (const model of readyModels(FREE_MODELS, cls)) {
+    if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     try {
       const raw = await workerFetch("https://openrouter.ai/api/v1/chat/completions", {
         "Authorization": `Bearer ${apiKey}`,
@@ -1390,7 +1432,7 @@ async function callOpenRouter(opts: AICallOptions, cls: AITaskClass = "classify"
           { role: "system", content: opts.system },
           { role: "user", content: opts.user },
         ],
-      }), opts.timeoutMs);
+      }), budgetedTimeoutMs(opts));
 
       const data = JSON.parse(raw);
       if (data.error) throw new Error(data.error.message ?? "OpenRouter error");
@@ -1460,7 +1502,7 @@ async function callClaudeProxy(opts: AICallOptions): Promise<AICallResult> {
         stream: false,
         system: opts.system,
         messages: [{ role: "user", content: opts.user }],
-      }), opts.timeoutMs);
+      }), budgetedTimeoutMs(opts));
 
       // Parse — may be JSON or SSE
       let text = "";
@@ -1537,7 +1579,7 @@ async function callViaGateway(opts: AICallOptions): Promise<AICallResult | null>
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? 30_000);
+    const timeout = setTimeout(() => controller.abort(), budgetedTimeoutMs(opts));
 
     const res = await fetch(`${AI_GATEWAY_URL}/generate`, {
       method: "POST",
@@ -1549,7 +1591,7 @@ async function callViaGateway(opts: AICallOptions): Promise<AICallResult | null>
         system: opts.system,
         user: opts.user,
         maxTokens: opts.maxTokens,
-        timeoutMs: opts.timeoutMs,
+        timeoutMs: budgetedTimeoutMs(opts),
         tools: opts.tools,
       }),
       signal: controller.signal,
@@ -2085,6 +2127,12 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
   const taskClass = inferTaskClass(opts);
   const allProviders = opts.interactive ? orderForInteractive(getAvailableProviders(taskClass)) : getAvailableProviders(taskClass);
   if (opts.interactive && opts.timeoutMs == null) opts = { ...opts, timeoutMs: INTERACTIVE_TIMEOUT_MS };
+  // Default interactive budget = at least one full attempt at the caller's
+  // own `timeoutMs` (full-report asks 180 s, report-section 120 s, the CFO
+  // advisor 90 s) and never below INTERACTIVE_BUDGET_MS — a ladder of
+  // timeouts can no longer multiply that figure.
+  const budgetMs = opts.budgetMs ?? (opts.interactive ? Math.max(INTERACTIVE_BUDGET_MS, opts.timeoutMs ?? 0) : undefined);
+  if (budgetMs != null && opts.deadlineAt == null) opts = { ...opts, budgetMs, deadlineAt: Date.now() + budgetMs };
 
   if (allProviders.length === 0) {
     throw new Error(
@@ -2136,6 +2184,7 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
   const tried = new Set<Provider>();
   try {
     while (tried.size < allProviders.length) {
+      if (aiBudgetExpired(opts)) { lastError = new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
       const remaining = allProviders.filter((p) => !tried.has(p));
       // S32-F: an interactive caller takes the FIRST usable provider in the
       // throughput order — the tier ranking in pickBestProvider would put the

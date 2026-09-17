@@ -20,6 +20,7 @@ import {
   templateNarrative,
   GRANT_ADVISOR_SYSTEM,
   type NarrativeInput,
+  NARRATIVE_BUDGET_MS,
 } from "./grant-advisor-narrative";
 
 const mockCallAI = vi.mocked(callAI);
@@ -189,6 +190,39 @@ describe("narrateFundingPlan", () => {
     expect(res.narrative_md).not.toMatch(/Boosting Female Founders/);
     expect(res.narrative_md).not.toMatch(/Accelerating Commercialisation/);
     expect(res.stripped.some((s) => /Accelerating Commercialisation/.test(s))).toBe(true);
+  });
+
+  it("review 2026-09-17: the draft call carries a wall-clock budget under the narrative deadline; the auditor shares it", async () => {
+    const top = topFor(PROFILE);
+    const draft = goodNarrative(top);
+    mockCallAI.mockImplementation(async (opts) => (opts.system === GRANT_ADVISOR_SYSTEM ? ok(draft) : ok("FINDINGS:\n- none\n\nVERDICT: ACCURATE")));
+    const res = await narrateFundingPlan(PROFILE, top);
+    expect(res.source).toBe("llm");
+    const first = mockCallAI.mock.calls[0][0];
+    expect(first.interactive).toBe(true);
+    expect(first.budgetMs).toBe(NARRATIVE_BUDGET_MS - 15_000);
+    const critic = mockCallAI.mock.calls[1][0];
+    expect(critic.interactive).toBe(true);
+    expect(critic.budgetMs).toBeGreaterThan(0);
+    expect(critic.budgetMs).toBeLessThanOrEqual(NARRATIVE_BUDGET_MS);
+  });
+
+  it("review 2026-09-17: when the draft used (almost) the whole budget the auditor is skipped — one call, still LLM-sourced", async () => {
+    const top = topFor(PROFILE);
+    const draft = goodNarrative(top);
+    const t0 = 1_700_000_000_000;
+    const nowSpy = vi.spyOn(Date, "now");
+    // deadline stamp → then every read is 50 s later (< 15 s left).
+    nowSpy.mockReturnValueOnce(t0).mockReturnValue(t0 + NARRATIVE_BUDGET_MS - 5_000);
+    try {
+      mockCallAI.mockImplementation(async (opts) => (opts.system === GRANT_ADVISOR_SYSTEM ? ok(draft) : ok("FINDINGS:\n- none\n\nVERDICT: ACCURATE")));
+      const res = await narrateFundingPlan(PROFILE, top);
+      expect(res.source).toBe("llm");
+      expect(res.audit_findings).toEqual([]);
+      expect(mockCallAI).toHaveBeenCalledTimes(1);
+    } finally {
+      nowSpy.mockRestore();
+    }
   });
 
   it("falls back to the template when callAI throws", async () => {

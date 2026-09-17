@@ -327,12 +327,23 @@ function deriveActions(top: NarrativeInput): string[] {
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 /** ADK `ModelCaller` over the free provider chain, for `auditText()`. */
-export function grantAdvisorModelCaller(temperature = 0.2): ModelCaller {
+export function grantAdvisorModelCaller(temperature = 0.2, opts: { deadlineAt?: number } = {}): ModelCaller {
   return async (system, user, maxTokens) => {
-    const res = await callAI({ system, user, maxTokens, temperature, agentId: "grant-advisor" });
+    // Post-ship review 2026-09-17: the auditor's two calls share the
+    // narrative's wall-clock deadline — a slow provider ladder must never
+    // push the route past Cloudflare's 100 s wall (template beats a 524).
+    const budgetMs = opts.deadlineAt ? Math.max(1_000, opts.deadlineAt - Date.now()) : undefined;
+    const res = await callAI({ system, user, maxTokens, temperature, agentId: "grant-advisor", interactive: true, ...(budgetMs ? { budgetMs } : {}) });
     return res.text ?? "";
   };
 }
+
+/** Whole-narrative budget (LLM draft + auditor critic/reviser). Under the
+ *  60 s interactive default so the route's remaining work (persist, spend,
+ *  email) fits inside Cloudflare's 100 s. */
+export const NARRATIVE_BUDGET_MS = Number(process.env.FUNDING_NARRATIVE_BUDGET_MS ?? 55_000);
+/** Skip the auditor when less than this is left — it needs two calls. */
+const AUDIT_MIN_REMAINING_MS = 15_000;
 
 /**
  * Narrate the plan. One serial LLM call at temperature 0.4, audited and
@@ -345,6 +356,7 @@ export async function narrateFundingPlan(profile: GrantProfile, top: NarrativeIn
   };
 
   let draft: string;
+  const deadlineAt = Date.now() + NARRATIVE_BUDGET_MS;
   try {
     const res = await callAI({
       system: GRANT_ADVISOR_SYSTEM,
@@ -354,6 +366,9 @@ export async function narrateFundingPlan(profile: GrantProfile, top: NarrativeIn
       // S32-F: the founder is waiting on this response — fastest capable
       // provider first (Groq ≈ 5 s for 1,600 tokens); over budget → template.
       timeoutMs: 30_000,
+      // Total across providers + model ladders (a 4-model DeepInfra ladder
+      // of Worker timeouts alone was 120 s → Cloudflare 524 on 2026-09-17).
+      budgetMs: Math.max(5_000, NARRATIVE_BUDGET_MS - AUDIT_MIN_REMAINING_MS),
       interactive: true,
       agentId: "grant-advisor",
     });
@@ -366,10 +381,10 @@ export async function narrateFundingPlan(profile: GrantProfile, top: NarrativeIn
   // Guard 1 — llm-auditor critic → reviser against the exact lists we supplied.
   let audited = draft;
   let findings: string[] = [];
-  if (top.audit !== false) {
+  if (top.audit !== false && deadlineAt - Date.now() >= AUDIT_MIN_REMAINING_MS) {
     try {
       const evidence = buildNarrativePrompt(profile, top);
-      const result = await auditText(draft, evidence, grantAdvisorModelCaller(), 2000);
+      const result = await auditText(draft, evidence, grantAdvisorModelCaller(0.2, { deadlineAt }), 2000);
       findings = result.findings;
       if (result.revised.trim().length >= NARRATIVE_MIN_CHARS) audited = result.revised.trim();
     } catch {

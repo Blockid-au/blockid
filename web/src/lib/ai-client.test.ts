@@ -1253,3 +1253,81 @@ describe("S32-F pickFirstUsable", () => {
     expect(pickFirstUsable([])).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Post-ship review 2026-09-17 — wall-clock budget across providers + model
+// ladders. A Money Finder narrative walked DeepInfra's 4-model ladder at
+// 30 s each (Worker timeout) = 120 s > Cloudflare's 100 s wall → 524; the
+// template fallback was never reached. `budgetMs` (default 60 s for
+// `interactive`) stops every loop from STARTING a new attempt once spent and
+// clamps each attempt's timeout to what is left.
+// ---------------------------------------------------------------------------
+
+describe("review 2026-09-17 — call budget helpers", () => {
+  it("aiBudgetExpired: false without a deadline, false before it, true at/after it", async () => {
+    const { aiBudgetExpired } = await import("./ai-client");
+    expect(aiBudgetExpired({})).toBe(false);
+    expect(aiBudgetExpired({ deadlineAt: Date.now() + 10_000 })).toBe(false);
+    expect(aiBudgetExpired({ deadlineAt: Date.now() - 1 })).toBe(true);
+  });
+
+  it("budgetedTimeoutMs: per-attempt timeout, clamped to the remaining budget, never under 1 s", async () => {
+    const { budgetedTimeoutMs } = await import("./ai-client");
+    expect(budgetedTimeoutMs({ timeoutMs: 30_000 })).toBe(30_000);
+    expect(budgetedTimeoutMs({})).toBe(30_000);
+    expect(budgetedTimeoutMs({}, 180_000)).toBe(180_000);
+    const clamped = budgetedTimeoutMs({ timeoutMs: 30_000, deadlineAt: Date.now() + 5_000 });
+    expect(clamped).toBeGreaterThan(4_000);
+    expect(clamped).toBeLessThanOrEqual(5_000);
+    expect(budgetedTimeoutMs({ timeoutMs: 30_000, deadlineAt: Date.now() - 60_000 })).toBe(1_000);
+  });
+
+  it("INTERACTIVE_BUDGET_MS defaults to 60 s — under Cloudflare's 100 s wall with room for the caller's fallback", async () => {
+    const { INTERACTIVE_BUDGET_MS } = await import("./ai-client");
+    expect(INTERACTIVE_BUDGET_MS).toBe(60_000);
+  });
+});
+
+describe("review 2026-09-17 — callAI stops dialling providers once the budget is spent", () => {
+  it("with budgetMs already elapsed, no provider is called and the error names the budget", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    const { callAI, _resetDispatcherForTests, AIBudgetExhaustedError } = await loadClient();
+    const spend = await import("@/lib/ai/spend-guard");
+    spend._resetSpendGuardForTests();
+    _resetDispatcherForTests();
+    const nowSpy = vi.spyOn(Date, "now");
+    const t0 = 1_700_000_000_000;
+    // First read stamps the deadline (t0 + 100 ms); every later read is past it.
+    nowSpy.mockReturnValueOnce(t0).mockReturnValue(t0 + 5_000);
+    try {
+      const err = await callAI({ system: "s", user: "u", budgetMs: 100 }).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(AIBudgetExhaustedError);
+      expect(String((err as Error).message)).toMatch(/budget exhausted/);
+      expect(tierMock.call).not.toHaveBeenCalled();
+    } finally {
+      nowSpy.mockRestore();
+      spend._resetSpendGuardForTests();
+    }
+  });
+
+  it("an interactive call carries the default budget; a non-interactive call is unbounded", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    tierMock.call.mockResolvedValue({ ...okResult(1), cost_usd: 0 });
+    const { callAI, _resetDispatcherForTests } = await loadClient();
+    const spend = await import("@/lib/ai/spend-guard");
+    spend._resetSpendGuardForTests();
+    _resetDispatcherForTests();
+    await callAI({ system: "s", user: "u", interactive: true });
+    const interactiveOpts = tierMock.call.mock.calls.at(-1)?.[0] as { deadlineAt?: number; budgetMs?: number } | undefined;
+    expect(interactiveOpts?.budgetMs).toBe(60_000);
+    expect(typeof interactiveOpts?.deadlineAt).toBe("number");
+    // A caller with a longer per-attempt timeout keeps at least one full attempt.
+    await callAI({ system: "s", user: "u", interactive: true, timeoutMs: 180_000 });
+    const longOpts = tierMock.call.mock.calls.at(-1)?.[0] as { budgetMs?: number } | undefined;
+    expect(longOpts?.budgetMs).toBe(180_000);
+    await callAI({ system: "s", user: "u" });
+    const plainOpts = tierMock.call.mock.calls.at(-1)?.[0] as { deadlineAt?: number } | undefined;
+    expect(plainOpts?.deadlineAt).toBeUndefined();
+    spend._resetSpendGuardForTests();
+  });
+});
