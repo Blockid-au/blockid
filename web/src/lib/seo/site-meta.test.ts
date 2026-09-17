@@ -136,6 +136,7 @@ const UNCONSTRUCTABLE: Record<string, string> = {
   "/startup/[slug]": "noindex; generateMetadata reads a live startup row",
   "/verify/[proofId]": "noindex; proof lookup against a live row",
   "/verify/valuation/[no]": "noindex; certificate lookup against a live row (S22-A)",
+  "/apply/[slug]": "noindex; program intake link — generateMetadata reads cookies() (locale) + a live program_intakes row (G14 S35)",
 };
 
 // ─── Resolution ──────────────────────────────────────────────────────────────
