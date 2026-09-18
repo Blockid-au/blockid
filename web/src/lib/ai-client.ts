@@ -2060,6 +2060,64 @@ export function getDispatcherState(): {
   return { globalRunning, globalQueued: queueDepth(), perProvider, perAgent, perUser };
 }
 
+// ── Provider health snapshot (G15-R3.3) ─────────────────────────────────
+// Pure reader over the dispatcher's in-process state for /api/status.ai and
+// the error digest. It changes NO routing: it reports the same cooldown map,
+// the same block reasons (`providerBlockReason`) and the same interactive
+// order (`orderForInteractive(getAvailableProviders())`) the dispatcher uses.
+// `budget_exhausted_1h` counts every `AIBudgetExhaustedError` callAI() threw
+// in the last hour (ring buffer of timestamps, trimmed on read + write).
+
+export interface ProviderHealthEntry {
+  name: string;
+  state: "ok" | "cooldown" | "blocked";
+  /** ISO timestamp when the cooldown lifts; null unless `state === "cooldown"`. */
+  cooldown_until: string | null;
+  /** Block reason from `providerBlockReason` (invalid_key / quota_exceeded / low_credit / daily_cap / unreachable). */
+  reason?: string;
+}
+
+export interface ProviderHealthSnapshot {
+  providers: ProviderHealthEntry[];
+  budget_exhausted_1h: number;
+  interactive_order: string[];
+}
+
+const BUDGET_EXHAUSTED_WINDOW_MS = 60 * 60_000;
+const budgetExhaustedEvents: number[] = [];
+
+function trimBudgetExhausted(now: number): void {
+  while (budgetExhaustedEvents.length > 0 && budgetExhaustedEvents[0] <= now - BUDGET_EXHAUSTED_WINDOW_MS) budgetExhaustedEvents.shift();
+}
+
+function noteBudgetExhausted(now: number = Date.now()): void {
+  budgetExhaustedEvents.push(now);
+  trimBudgetExhausted(now);
+  // Bounded: at one interactive request per second for an hour this is 3,600
+  // numbers; anything beyond that is a storm the digest already sees.
+  if (budgetExhaustedEvents.length > 10_000) budgetExhaustedEvents.splice(0, budgetExhaustedEvents.length - 10_000);
+}
+
+/** Provider health for observability. Configured providers (report class)
+ *  only — a provider without a key is not "blocked", it is absent. */
+export function getProviderHealthSnapshot(now: number = Date.now()): ProviderHealthSnapshot {
+  trimBudgetExhausted(now);
+  const configured = getAvailableProviders("report");
+  const providers: ProviderHealthEntry[] = configured.map((name) => {
+    const reason = providerBlockReason(name, now);
+    if (reason === "cooldown") {
+      return { name, state: "cooldown", cooldown_until: new Date(providerCooldown.get(name) ?? now).toISOString(), reason };
+    }
+    if (reason) return { name, state: "blocked", cooldown_until: null, reason };
+    return { name, state: "ok", cooldown_until: null };
+  });
+  return {
+    providers,
+    budget_exhausted_1h: budgetExhaustedEvents.length,
+    interactive_order: orderForInteractive(configured),
+  };
+}
+
 /** Test-only reset — clears all dispatcher state. Never call from production code. */
 export function _resetDispatcherForTests(): void {
   inFlightByProvider.clear();
@@ -2073,6 +2131,7 @@ export function _resetDispatcherForTests(): void {
   userQueue.length = 0;
   backgroundQueue.length = 0;
   paidTierEvents.length = 0;
+  budgetExhaustedEvents.length = 0;
   lastProbeKickAt = 0;
 }
 
@@ -2229,6 +2288,9 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
   if (!lastError && tried.size === 0) {
     lastError = new Error("All AI providers are blocked (invalid key / quota / daily cap) — see /api/status ai_providers");
   }
+  // G15-R3.3: count budget exhaustion (whether the loop broke on the deadline
+  // or a provider ladder surfaced it) for getProviderHealthSnapshot().
+  if (lastError instanceof AIBudgetExhaustedError) noteBudgetExhausted();
   throw lastError ?? new Error("All AI providers failed");
 }
 

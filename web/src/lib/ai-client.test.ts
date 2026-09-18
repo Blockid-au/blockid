@@ -1331,3 +1331,92 @@ describe("review 2026-09-17 — callAI stops dialling providers once the budget 
     spend._resetSpendGuardForTests();
   });
 });
+
+// ---------------------------------------------------------------------------
+// G15-R3.3 — provider health snapshot. A pure reader over the dispatcher's
+// cooldown map / block reasons / interactive order plus a 1-hour ring buffer
+// of AIBudgetExhaustedError throws, for /api/status.ai and the error digest.
+// It must never change routing: the states it reports are the ones
+// pickFirstUsable / pickBestProvider already act on.
+// ---------------------------------------------------------------------------
+
+describe("G15-R3 getProviderHealthSnapshot", () => {
+  it("is empty when nothing is configured", async () => {
+    const { getProviderHealthSnapshot, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    expect(getProviderHealthSnapshot()).toEqual({ providers: [], budget_exhausted_1h: 0, interactive_order: [] });
+  });
+
+  it("reports a configured provider as ok, then cooldown (with cooldown_until) after a failed call", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    const { callAI, getProviderHealthSnapshot, _resetDispatcherForTests } = await loadClient();
+    const spend = await import("@/lib/ai/spend-guard");
+    const tier = await import("@/lib/ai/anthropic-tier");
+    spend._resetSpendGuardForTests();
+    tier._resetAnthropicTierForTests();
+    _resetDispatcherForTests();
+    expect(getProviderHealthSnapshot()).toEqual({
+      providers: [{ name: "claude-apikey", state: "ok", cooldown_until: null }],
+      budget_exhausted_1h: 0,
+      interactive_order: ["claude-apikey"],
+    });
+    const t0 = Date.now();
+    await expect(callAI({ system: "s", user: "u" })).rejects.toThrow(/401/);
+    const snap = getProviderHealthSnapshot();
+    expect(snap.providers).toHaveLength(1);
+    expect(snap.providers[0]).toMatchObject({ name: "claude-apikey", state: "cooldown", reason: "cooldown" });
+    const until = Date.parse(snap.providers[0].cooldown_until ?? "");
+    expect(until).toBeGreaterThanOrEqual(t0 + 60 * 60_000 - 1_000); // 401 → 1 h cooldown
+    expect(until).toBeLessThanOrEqual(Date.now() + 60 * 60_000 + 1_000);
+    expect(snap.budget_exhausted_1h).toBe(0);
+    spend._resetSpendGuardForTests();
+    tier._resetAnthropicTierForTests();
+  });
+
+  it("reports blocked + reason for a latched invalid key (no cooldown involved)", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    const { getProviderHealthSnapshot, _resetDispatcherForTests } = await loadClient();
+    const tier = await import("@/lib/ai/anthropic-tier");
+    tier._resetAnthropicTierForTests();
+    _resetDispatcherForTests();
+    const now = Date.now();
+    tier.markAnthropicKeyInvalid(now, "test");
+    expect(getProviderHealthSnapshot(now).providers).toEqual([{ name: "claude-apikey", state: "blocked", cooldown_until: null, reason: "invalid_key" }]);
+    tier._resetAnthropicTierForTests();
+  });
+
+  it("counts AIBudgetExhaustedError throws for one hour and _resetDispatcherForTests clears them", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    const { callAI, getProviderHealthSnapshot, _resetDispatcherForTests, AIBudgetExhaustedError } = await loadClient();
+    const spend = await import("@/lib/ai/spend-guard");
+    spend._resetSpendGuardForTests();
+    _resetDispatcherForTests();
+    const nowSpy = vi.spyOn(Date, "now");
+    const t0 = 1_700_000_000_000;
+    nowSpy.mockReturnValueOnce(t0).mockReturnValue(t0 + 5_000);
+    try {
+      const err = await callAI({ system: "s", user: "u", budgetMs: 100 }).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(AIBudgetExhaustedError);
+      expect(tierMock.call).not.toHaveBeenCalled();
+      expect(getProviderHealthSnapshot(t0 + 5_000).budget_exhausted_1h).toBe(1);
+      // Still inside the window 59 min later, gone after the hour.
+      expect(getProviderHealthSnapshot(t0 + 5_000 + 59 * 60_000).budget_exhausted_1h).toBe(1);
+      expect(getProviderHealthSnapshot(t0 + 5_000 + 60 * 60_000 + 1).budget_exhausted_1h).toBe(0);
+    } finally {
+      nowSpy.mockRestore();
+      spend._resetSpendGuardForTests();
+    }
+    // A second exhaustion after the window: the reset empties the buffer.
+    const nowSpy2 = vi.spyOn(Date, "now");
+    nowSpy2.mockReturnValueOnce(t0).mockReturnValue(t0 + 5_000);
+    try {
+      await callAI({ system: "s", user: "u", budgetMs: 100 }).catch(() => undefined);
+      expect(getProviderHealthSnapshot(t0 + 5_000).budget_exhausted_1h).toBe(1);
+      _resetDispatcherForTests();
+      expect(getProviderHealthSnapshot(t0 + 5_000).budget_exhausted_1h).toBe(0);
+    } finally {
+      nowSpy2.mockRestore();
+      spend._resetSpendGuardForTests();
+    }
+  });
+});
