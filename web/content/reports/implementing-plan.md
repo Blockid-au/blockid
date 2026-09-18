@@ -1,13 +1,12 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v3.14.0  ·  **Updated:** 2026-09-16T16:00:02.221Z  ·  **Decided by:** ceo (2026-09-10T12:04:03.482Z)
+**Version:** v3.14.1  ·  **Updated:** 2026-09-18T12:05:09.762Z  ·  **Decided by:** ceo (2026-09-10T12:04:03.482Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
 ## Active tasks
 | ID | Agent | Task | Impact | Status |
 |----|-------|------|--------|--------|
-| T0214 | CTO | AI provider chain audit — Codex subscription expired + ai-token-guardian Codex refresh broken | patch | ⬜ pending |
 | T0129 | CTO | Add Security Benchmark Compliance module (Essential Eight, OWASP) to CI pipeline with automated scans and reporting | minor | ⬜ pending |
 | T0165 | CFO | Implement Multi-Method Valuation Engine | minor | ⬜ pending |
 | T0166 | CFO | Build TAM/SAM/SOM Calculation Framework | minor | ⬜ pending |
@@ -46,6 +45,7 @@
 - ✅ `T0269` **CTO** — S1 Evaluator signup: account_type enum + DB CHECKs (investor, accelerator, incubator, advisor, service_provider→advisor segment), app_users.segment set from account_type, trial_days from plan, card-required 7-day Stripe trial on Scout/Firm/Program, trial-end-reminder copy fixed, evaluator TrialBanner copy (`dcd9e5603`)
 
 ## Milestones
+- **M028** v3.14.1 — CTO: AI provider chain audit — Codex subscription expired + ai-token-guardian Codex refresh broken (2026-09-18, 1 tasks)
 - **M027** v3.14.0 — IR: G14 Wave A · Deck v3 "Startup Value Index" (evaluator-first, pre-seed A$500K): web/content/pitch/pitch-deck-v3.md (12 slides + 3-minute cut + provenance), web/scripts/generate-pitch-deck-v3.ts → P (2026-09-16, 2 tasks)
 - **M026** v3.13.2 — CRO: CISA alerts integration (2026-09-15, 1 tasks)
 - **M025** v3.13.1 — CRO: ACSC alerts integration (2026-09-14, 1 tasks)
@@ -57,4 +57,3 @@
 - **M019** v3.8.1 — CFO: Sector-Specific Revenue Multiple Library (2026-08-30, 1 tasks)
 - **M018** v3.8.0 — CFO: Implement Cap Table Dilution & Round Sizing Simulator (2026-08-29, 1 tasks)
 - **M017** v3.7.0 — CMO: Create Competitor Feature Release Tracker module (2026-08-28, 1 tasks)
-- **M016** v3.1.0 — CFO: Implement R&D Tax Incentive & ESIC Valuation Modifier (2026-07-22, 1 tasks)

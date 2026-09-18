@@ -1,6 +1,6 @@
 {
-  "version": "3.14.0",
-  "updatedAt": "2026-09-16T16:00:02.221Z",
+  "version": "3.14.1",
+  "updatedAt": "2026-09-18T12:05:09.762Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-09-16T16:00:02.221Z",
@@ -892,8 +892,10 @@
         "title": "AI provider chain audit — Codex subscription expired + ai-token-guardian Codex refresh broken",
         "rationale": "Findings 2026-06-21 audit: (1) ChatGPT Pro chatgpt_subscription_active_until=2026-06-17 → Codex sub EXPIRED 4 days ago, calls will fail or downgrade. (2) ai-token-guardian.sh reads d.get('expires_at') from ~/.codex/auth.json but real path is tokens.access_token JWT exp — guardian has never actually refreshed Codex (last_refresh 2026-05-26). (3) Claude OAuth had 401 on 2026-06-20 18:30 self-upgrade (transient). FIX: either renew ChatGPT Pro sub or DROP Codex from ai-client provider chain (lines 553-587), and patch guardian to decode JWT exp for Codex.",
         "versionImpact": "patch",
-        "status": "pending",
-        "createdAt": "2026-06-21T05:31:32Z"
+        "status": "done",
+        "createdAt": "2026-06-21T05:31:32Z",
+        "completedAt": "2026-09-18T12:05:09.761Z",
+        "commit": "d36848c7b"
       },
       {
         "id": "T0215",
@@ -2898,6 +2900,15 @@
         "T0276",
         "T0280"
       ]
+    },
+    {
+      "id": "M028",
+      "title": "CTO: AI provider chain audit — Codex subscription expired + ai-token-guardian Codex refresh broken",
+      "version": "3.14.1",
+      "completedAt": "2026-09-18T12:05:09.762Z",
+      "taskIds": [
+        "T0214"
+      ]
     }
   ],
   "history": [
@@ -3122,6 +3133,12 @@
       "action": "release",
       "version": "3.14.0",
       "note": "2 task(s), minor bump (v3.13.2→v3.14.0)"
+    },
+    {
+      "ts": "2026-09-18T12:05:09.762Z",
+      "action": "release",
+      "version": "3.14.1",
+      "note": "1 task(s), patch bump (v3.14.0→v3.14.1)"
     }
   ],
   "shipped_this_session": {
