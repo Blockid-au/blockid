@@ -206,6 +206,16 @@ test.describe("Founder feedback letter (G14-S34)", () => {
     const orgs = ["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"];
     let evaluationId: string | null = null;
     try {
+      // 0. G13 0393 added evaluation_assessments.org_id → investor_organisations(id)
+      //    (ON DELETE SET NULL), so the two orgs must exist: throw-away rows
+      //    slugged by the run's timestamp, deleted in the finally below.
+      const orgSlug = qa.email.replace(/@.*$/, "");
+      psql(
+        `insert into public.investor_organisations (id, slug, name, kind, is_personal)
+           values (${q(orgs[0])}::uuid, ${q(`${orgSlug}-org-a`)}, 'QA Live Org A', 'angel', false),
+                  (${q(orgs[2])}::uuid, ${q(`${orgSlug}-org-b`)}, 'QA Live Org B', 'vc', false)
+           on conflict (id) do nothing;`,
+      );
       // 1. the founder_claimed evaluation on the QA founder's own project (scoped to the QA email)
       evaluationId =
         psql(
@@ -277,6 +287,7 @@ test.describe("Founder feedback letter (G14-S34)", () => {
         await anon.dispose();
       }
     } finally {
+      psql(`delete from public.investor_organisations where slug like ${q(`${qa.email.replace(/@.*$/, "")}-org-%`)} and slug ~ '^qa-live-[0-9]{8}-[0-9]{4}-org-[ab]$';`);
       if (evaluationId) {
         psql(
           `delete from public.evaluation_assessments a using public.evaluations e, public.app_users u
