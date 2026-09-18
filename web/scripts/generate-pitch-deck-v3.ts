@@ -178,11 +178,12 @@ export type HeroType =
   | "tile"
   | "team"
   | "donut"
-  | "messages";
+  | "messages"
+  | "table";
 
 export const HERO_TYPES: readonly HeroType[] = [
   "ring", "number", "loop", "screenshot", "strip", "ladder",
-  "bars", "quadrant", "tile", "team", "donut", "messages",
+  "bars", "quadrant", "tile", "team", "donut", "messages", "table",
 ];
 
 export interface DeckSlide {
@@ -303,6 +304,7 @@ export function collectScalars(v: YamlValue | undefined): string[] {
 // ─── Rendering (PPTX) ───────────────────────────────────────────────────────
 
 type Slide = PptxGenJS.Slide;
+type TableRow = PptxGenJS.TableRow;
 const FONT = "Arial";
 const HERO = { x: 0.5, y: 1.85, w: 7.7, h: 4.75 }; // hero region (left)
 const SIDE = { x: 8.55, y: 1.95, w: 4.3 };            // bullets column (right)
@@ -710,6 +712,78 @@ function heroStrip(pptx: PptxGenJS, slide: Slide, d: YamlMap, dark: boolean) {
   });
 }
 
+/**
+ * A table row is written in the deck md as a block map (`- dim: TRE\n  weight: "20"\n  ...`),
+ * one field per column, fields in column order — never a flow list (`[a, b, c]`): the yaml
+ * subset's flow-list parser splits on every raw comma, which would cut a thousands separator
+ * like `56,880` in half. `Object.values()` walks a parsed map in insertion order, which is the
+ * order its `key: value` lines appeared in the file, so this reads back out in column order
+ * regardless of the field names chosen.
+ */
+function tableRowCells(r: YamlValue): string[] {
+  return Object.values(map(r)).map((v) => {
+    if (typeof v === "string" || typeof v === "number") return String(v);
+    if (typeof v === "boolean") return String(v);
+    return collectScalars(v).join(" · ");
+  });
+}
+
+/**
+ * Appendix hero: one or more stacked tables (`d.tables: [{heading?, columns, rows}]`),
+ * rendered full-width like `heroMessages` (no bullets sidebar — see the `renderPptx` skip
+ * list). Column widths are equal; row/table heights are allocated proportionally to row
+ * count so a 21-row rubric table and a 12-row competitor table both fit the hero region.
+ */
+function heroTable(pptx: PptxGenJS, slide: Slide, d: YamlMap, dark: boolean) {
+  const region = { x: HERO.x, y: HERO.y, w: 12.3, h: 4.85 };
+  const tables = list(d.tables).map(map);
+  const headingH = 0.28;
+  const headingBudget = tables.filter((t) => str(t.heading)).length * headingH;
+  const totalRows = Math.max(1, tables.reduce((sum, t) => sum + 1 + list(t.rows).length, 0));
+  const availH = region.h - headingBudget;
+
+  let y = region.y;
+  for (const t of tables) {
+    const columns = list(t.columns).map((c) => String(c));
+    const rows = list(t.rows).map(tableRowCells);
+    const nRows = rows.length + 1;
+    const tableH = Math.max(0.35, (availH * nRows) / totalRows);
+    if (str(t.heading)) {
+      slide.addText(str(t.heading), {
+        x: region.x, y, w: region.w, h: headingH, fontSize: 11, bold: true, fontFace: FONT,
+        color: dark ? BRAND.blueLight : BRAND.blueDark,
+      });
+      y += headingH;
+    }
+    const headerRow: TableRow = columns.map((c) => ({
+      text: c,
+      options: { bold: true, fontSize: 9, fontFace: FONT, color: BRAND.white, fill: { color: BRAND.blue }, align: "left", valign: "middle" },
+    }));
+    const bodyRows: TableRow[] = rows.map((r, i) =>
+      r.map((cell) => ({
+        text: cell,
+        options: {
+          fontSize: 8.5, fontFace: FONT, valign: "middle", align: "left",
+          color: dark ? BRAND.ink300 : BRAND.ink700,
+          fill: { color: dark ? BRAND.navy : i % 2 === 0 ? BRAND.white : BRAND.surface50 },
+        },
+      })),
+    );
+    slide.addTable([headerRow, ...bodyRows], {
+      x: region.x, y, w: region.w, h: tableH,
+      border: { type: "solid", color: dark ? BRAND.ink700 : BRAND.surface200, pt: 0.5 },
+      autoPage: false,
+    });
+    y += tableH + 0.08;
+  }
+  if (str(d.note)) {
+    slide.addText(str(d.note), {
+      x: region.x, y: Math.min(y, region.y + region.h - 0.28), w: region.w, h: 0.3,
+      fontSize: 8.5, italic: true, fontFace: FONT, color: dark ? BRAND.ink400 : BRAND.ink500,
+    });
+  }
+}
+
 function renderHero(pptx: PptxGenJS, slide: Slide, s: DeckSlide, dark: boolean, cwd: string) {
   const d = s.hero.data;
   switch (s.hero.type) {
@@ -725,6 +799,7 @@ function renderHero(pptx: PptxGenJS, slide: Slide, s: DeckSlide, dark: boolean, 
     case "team": return heroTeam(pptx, slide, d, dark);
     case "messages": return heroMessages(pptx, slide, d, dark);
     case "strip": return heroStrip(pptx, slide, d, dark);
+    case "table": return heroTable(pptx, slide, d, dark);
   }
 }
 
@@ -733,7 +808,13 @@ function isDarkSlide(s: DeckSlide, total: number): boolean {
   return s.n === 1 || s.n === total;
 }
 
-export async function renderPptx(deck: Deck, outPath: string, cwd: string): Promise<string> {
+export interface RenderOptions {
+  /** Override which slides render on the dark navy background (default: first + last). */
+  isDark?: (s: DeckSlide, total: number) => boolean;
+}
+
+export async function renderPptx(deck: Deck, outPath: string, cwd: string, opts: RenderOptions = {}): Promise<string> {
+  const isDark = opts.isDark ?? isDarkSlide;
   const pptx = new PptxGenJS();
   pptx.layout = "LAYOUT_WIDE";
   pptx.author = "Do Van Long — Startup Value Index by BlockID";
@@ -744,12 +825,12 @@ export async function renderPptx(deck: Deck, outPath: string, cwd: string): Prom
   const total = deck.slides.length;
   for (const s of deck.slides) {
     const slide = pptx.addSlide();
-    const dark = isDarkSlide(s, total);
+    const dark = isDark(s, total);
     if (dark) darkBg(slide); else lightBg(slide);
     addTitleBlock(slide, s, dark);
     renderHero(pptx, slide, s, dark, cwd);
     // the closing slide uses the full width for its three messages
-    if (s.hero.type !== "messages") addBullets(slide, s, dark);
+    if (s.hero.type !== "messages" && s.hero.type !== "table") addBullets(slide, s, dark);
     slide.addNotes(`${s.speaker}\n\nAnswers: ${s.clusters.join(", ")}\nSources: ${s.sources.join(" | ")}`);
     addFooter(slide, s.n, total, dark);
   }
@@ -764,8 +845,38 @@ function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+/** HTML table(s) for the `table` hero type — mirrors `heroTable`'s pptx rendering. */
+function heroTablesHtml(d: YamlMap): string {
+  const tables = list(d.tables).map(map);
+  const parts = tables.map((t) => {
+    const columns = list(t.columns).map((c) => String(c));
+    const rows = list(t.rows).map(tableRowCells);
+    const heading = str(t.heading);
+    const thead = columns.length ? `<thead><tr>${columns.map((c) => `<th>${esc(c)}</th>`).join("")}</tr></thead>` : "";
+    const tbody = `<tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody>`;
+    return `${heading ? `<p class="hero-table-heading">${esc(heading)}</p>` : ""}<table class="hero-table">${thead}${tbody}</table>`;
+  });
+  const note = str(d.note);
+  return parts.join("") + (note ? `<p class="hero-desc">${esc(note)}</p>` : "");
+}
+
+function heroScreenshotHtml(d: YamlMap): string {
+  const rel = str(d.path);
+  const abs = rel ? path.join(process.cwd(), rel) : "";
+  const caption = str(d.caption);
+  if (rel && fs.existsSync(abs)) {
+    // Served from web/public/, so the absolute site path (not the repo-relative
+    // yaml path) is what actually resolves in a browser.
+    const publicPath = "/" + rel.replace(/^public\//, "");
+    return `<img class="hero-screenshot" src="${esc(publicPath)}" alt="${esc(caption || "screenshot")}" loading="lazy">${caption ? `<p class="hero-desc">${esc(caption)}</p>` : ""}`;
+  }
+  return `<p class="hero-desc">[screenshot placeholder] ${esc(rel || "no path")} — run scripts/tour-capture.mjs on localhost:4001 (seeded evaluator)</p>`;
+}
+
 function heroSummary(s: DeckSlide): string {
   const d = s.hero.data;
+  if (s.hero.type === "table") return heroTablesHtml(d);
+  if (s.hero.type === "screenshot") return heroScreenshotHtml(d);
   const rows: string[] = [];
   const push = (label: string, v: YamlValue | undefined) => {
     if (v === undefined || v === null) return;
@@ -779,12 +890,18 @@ function heroSummary(s: DeckSlide): string {
   return rows.length ? `<ul class="hero-data">${rows.join("")}</ul>` : "";
 }
 
-export function renderHtml(deck: Deck): string {
+export interface RenderHtmlOptions extends RenderOptions {
+  /** Relative link + label rendered under the page meta line (main deck → appendix, or back). */
+  footerLink?: { href: string; label: string };
+}
+
+export function renderHtml(deck: Deck, opts: RenderHtmlOptions = {}): string {
+  const isDark = opts.isDark ?? isDarkSlide;
   const total = deck.slides.length;
   const cards = deck.slides
     .map((s) => {
       const body = countWords(s.bullets.join(" "));
-      const dark = isDarkSlide(s, total);
+      const dark = isDark(s, total);
       return `
 <section class="slide${dark ? " dark" : ""}" id="slide-${s.n}">
   <div class="frame">
@@ -852,19 +969,26 @@ footer{font-size:9px;color:var(--muted);margin-top:8px}
 table{border-collapse:collapse;width:100%;font-size:13px;margin-bottom:12px}
 td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
 .script p{margin:0 0 10px}
+.hero-screenshot{max-width:100%;border:1px solid var(--line);border-radius:6px;display:block}
+.hero-table{font-size:11px;margin-bottom:10px}
+.hero-table th{background:var(--blue);color:#fff;font-size:10px}
+.hero-table-heading{margin:4px 0;font-weight:bold;font-size:12px;color:var(--muted)}
+.footer-link{max-width:1120px;margin:0 auto 24px;font-size:13px}
+.footer-link a{color:var(--blue)}
 @media (max-width:720px){.cols{grid-template-columns:1fr}.frame{aspect-ratio:auto}h2{font-size:20px}}
 @media print{body{background:#fff;color:#000;padding:0}.slide{break-inside:avoid;page-break-inside:avoid}.frame{border-color:#999}.slide.dark .frame{background:#fff;color:#000}.slide.dark .sub{color:#444}}
 </style>
 </head>
 <body>
-<h1>${esc(str(deck.front.brand))} <small>${esc(str(deck.front.byline))}</small> — pre-seed deck v${esc(str(deck.front.version))}</h1>
-<p class="meta">${esc(str(deck.front.date))} · ${esc(str(deck.front.entity))} · ACN ${esc(str(deck.front.acn))} · ask ${esc(str(deck.front.ask))} · ${total} slides · preview generated from content/pitch/pitch-deck-v3.md</p>
+<h1>${esc(str(deck.front.brand))} <small>${esc(str(deck.front.byline))}</small> — ${esc(str(deck.front.kind, "pre-seed deck"))} v${esc(str(deck.front.version))}</h1>
+<p class="meta">${esc(str(deck.front.date))} · ${esc(str(deck.front.entity))} · ACN ${esc(str(deck.front.acn))} · ask ${esc(str(deck.front.ask))} · ${total} slides · preview generated from ${esc(str(deck.front.render, "the deck source md"))}</p>
 ${cards}
 <section class="cut">
   <h2>3-minute cut <small style="font-weight:normal;color:var(--muted);font-size:13px">${countWords(cut.script)} words</small></h2>
   <table><thead><tr><th>Slide</th><th>Time</th><th>Seconds</th><th>Beat</th></tr></thead><tbody>${cutRows}</tbody></table>
   <div class="script">${scriptParas}</div>
 </section>
+${opts.footerLink ? `<p class="footer-link"><a href="${esc(opts.footerLink.href)}">${esc(opts.footerLink.label)}</a></p>` : ""}
 </body>
 </html>
 `;
@@ -876,18 +1000,57 @@ export const DECK_MD = path.join("content", "pitch", "pitch-deck-v3.md");
 export const PPTX_OUT = path.join("public", "pitch", "SVI-Pitch-Deck-PreSeed-2026-09.pptx");
 export const HTML_OUT = path.join("public", "pitch", "svi-pitch-deck-v3-preview.html");
 
+/** Appendix deck (G14 leftover #2) — same md/yaml contract, six reference slides, own pptx/html outputs. */
+export const APPENDIX_MD = path.join("content", "pitch", "pitch-deck-v3-appendix.md");
+export const APPENDIX_PPTX_OUT = path.join("public", "pitch", "SVI-Pitch-Appendix-2026-09.pptx");
+export const APPENDIX_HTML_OUT = path.join("public", "pitch", "svi-pitch-appendix-v3-preview.html");
+
 export function loadDeck(cwd = process.cwd()): Deck {
   return parseDeck(fs.readFileSync(path.join(cwd, DECK_MD), "utf8"));
 }
 
+export function loadAppendixDeck(cwd = process.cwd()): Deck {
+  return parseDeck(fs.readFileSync(path.join(cwd, APPENDIX_MD), "utf8"));
+}
+
+/** Appendix slides are reference tables — always light background, never the navy opener/closer treatment. */
+const APPENDIX_RENDER_OPTS: RenderOptions = { isDark: () => false };
+
 async function main() {
   const cwd = process.cwd();
   const html = process.argv.includes("--html");
+  const appendix = process.argv.includes("--appendix");
+
+  if (appendix) {
+    const deck = loadAppendixDeck(cwd);
+    if (html) {
+      const out = path.join(cwd, APPENDIX_HTML_OUT);
+      fs.mkdirSync(path.dirname(out), { recursive: true });
+      fs.writeFileSync(
+        out,
+        renderHtml(deck, {
+          ...APPENDIX_RENDER_OPTS,
+          footerLink: { href: path.basename(HTML_OUT), label: "← Back to the pitch deck" },
+        }),
+      );
+      console.log(`✅ Appendix HTML preview: ${out} (${deck.slides.length} slides)`);
+      return;
+    }
+    const out = await renderPptx(deck, path.join(cwd, APPENDIX_PPTX_OUT), cwd, APPENDIX_RENDER_OPTS);
+    const kb = Math.round(fs.statSync(out).size / 1024);
+    console.log(`✅ Appendix v${str(deck.front.version)}: ${out} (${deck.slides.length} slides, ${kb} KB)`);
+    console.log(`   Download: /pitch/${path.basename(out)}`);
+    return;
+  }
+
   const deck = loadDeck(cwd);
   if (html) {
     const out = path.join(cwd, HTML_OUT);
     fs.mkdirSync(path.dirname(out), { recursive: true });
-    fs.writeFileSync(out, renderHtml(deck));
+    fs.writeFileSync(
+      out,
+      renderHtml(deck, { footerLink: { href: path.basename(APPENDIX_HTML_OUT), label: "Appendix: rubric, competitors, unit economics, ARR, backtest, use of funds →" } }),
+    );
     console.log(`✅ HTML preview: ${out} (${deck.slides.length} slides)`);
     return;
   }
