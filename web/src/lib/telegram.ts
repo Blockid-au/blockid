@@ -26,10 +26,9 @@ async function emailFallback(text: string): Promise<boolean> {
   if (emailFallbackWindow.length >= 30) return false;
   emailFallbackWindow.push(now);
   try {
-    const { sendEmail } = await import("@/lib/email");
+    const { sendOpsAlertEmail } = await import("@/lib/ops-alert-email");
     const subject = `[blockid ops] ${text.split("\n")[0].replace(/[*_`]/g, "").slice(0, 120)}`;
-    const r = await sendEmail({ to, subject, text: `${text}\n\n— sent by e-mail because Telegram is unavailable (token 401 — see docs/runbooks/secret-rotation-log.md)`, html: `<pre>${text.replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c] ?? c)}</pre>` });
-    return r.ok;
+    return await sendOpsAlertEmail({ to, subject, text: `${text}\n\n— sent by e-mail because Telegram is unavailable (token 401 — see docs/runbooks/secret-rotation-log.md)` });
   } catch (err) {
     console.error("[telegram] e-mail fallback failed:", err instanceof Error ? err.message : String(err));
     return false;

@@ -252,13 +252,13 @@ describe("sendTelegram — e-mail fallback (G15 review 2026-09-18: bot token 401
   it("mails ADMIN_EMAIL when the Bot API answers 401 and reports success", async () => {
     process.env.TELEGRAM_EMAIL_FALLBACK_TEST = "1";
     process.env.ADMIN_EMAIL = "ops@example.com";
-    const sendEmail = vi.fn(async () => ({ ok: true as const, id: "m1" }));
-    vi.doMock("@/lib/email", () => ({ sendEmail }));
+    const sendEmail = vi.fn(async () => true);
+    vi.doMock("@/lib/ops-alert-email", () => ({ sendOpsAlertEmail: sendEmail }));
     try {
       stubFetch(async () => new Response('{"ok":false,"description":"Unauthorized"}', { status: 401 }));
       await expect(sendTelegram("*Cron Failed*: x\nline 2")).resolves.toBe(true);
       expect(sendEmail).toHaveBeenCalledTimes(1);
-      const args = sendEmail.mock.calls[0][0] as { to: string; subject: string; text: string };
+      const args = (sendEmail.mock.calls[0] as unknown as [{ to: string; subject: string; text: string }])[0];
       expect(args.to).toBe("ops@example.com");
       expect(args.subject).toBe("[blockid ops] Cron Failed: x");
       expect(args.text).toContain("Telegram is unavailable");
@@ -270,7 +270,7 @@ describe("sendTelegram — e-mail fallback (G15 review 2026-09-18: bot token 401
     } finally {
       delete process.env.TELEGRAM_EMAIL_FALLBACK_TEST;
       delete process.env.ADMIN_EMAIL;
-      vi.doUnmock("@/lib/email");
+      vi.doUnmock("@/lib/ops-alert-email");
     }
   });
 });
