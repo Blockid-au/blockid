@@ -1016,10 +1016,37 @@ export function loadAppendixDeck(cwd = process.cwd()): Deck {
 /** Appendix slides are reference tables — always light background, never the navy opener/closer treatment. */
 const APPENDIX_RENDER_OPTS: RenderOptions = { isDark: () => false };
 
+/** Generic `--input <md> --out <basename>` (e.g. the 3-minute cut): same contract, own outputs. */
+function argValue(flag: string): string | undefined {
+  const i = process.argv.indexOf(flag);
+  return i >= 0 ? process.argv[i + 1] : undefined;
+}
+
 async function main() {
   const cwd = process.cwd();
   const html = process.argv.includes("--html");
   const appendix = process.argv.includes("--appendix");
+  const inputMd = argValue("--input");
+
+  if (inputMd) {
+    const base = argValue("--out") ?? path.basename(inputMd, ".md");
+    const deck = parseDeck(fs.readFileSync(path.join(cwd, inputMd), "utf8"));
+    if (html) {
+      const out = path.join(cwd, "public", "pitch", `${base}-preview.html`);
+      fs.mkdirSync(path.dirname(out), { recursive: true });
+      fs.writeFileSync(
+        out,
+        renderHtml(deck, { footerLink: { href: path.basename(APPENDIX_HTML_OUT), label: "Appendix: rubric, competitors, unit economics, ARR, backtest, use of funds" } }),
+      );
+      console.log(`✅ HTML preview: ${out} (${deck.slides.length} slides)`);
+      return;
+    }
+    const out = await renderPptx(deck, path.join(cwd, "public", "pitch", `${base}.pptx`), cwd);
+    const kb = Math.round(fs.statSync(out).size / 1024);
+    console.log(`✅ Deck v${str(deck.front.version)}: ${out} (${deck.slides.length} slides, ${kb} KB)`);
+    console.log(`   Download: /pitch/${path.basename(out)}`);
+    return;
+  }
 
   if (appendix) {
     const deck = loadAppendixDeck(cwd);
