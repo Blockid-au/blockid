@@ -1,7 +1,11 @@
 {
-  "git_sha": "036ba5c2ed5dbe80be8401022c7d2649c3bdc620",
-  "deployed_at": "2026-09-17T15:59:09Z",
-  "next_hash": "644706ba9ec48f389f099f409f875968",
+  "git_sha": "7e86fb700964797be7dd3d8d8552e9c84aeb414b",
+  "git_tree_dirty": false,
+  "merge_in_progress": false,
+  "started_at": "2026-09-18T06:39:05Z",
+  "deployed_at": "2026-09-18T06:59:34Z",
+  "next_hash": "7e785113d8abc04c9406f362911752f0",
   "task_id": "manual",
-  "version": "v3.13.2"
+  "version": "v3.13.2",
+  "deploy_pid": "534077"
 }
