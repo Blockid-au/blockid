@@ -160,6 +160,14 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # `stale` if no successful drill in 8 days.
 0 3 * * 0 /home/dovanlong/blockid.au/scripts/db-restore-test.sh >> /tmp/blockid-db-restore-test.log 2>&1
 
+# G15-R3 (2026-09-18) — weekly restore DRILL: newest dump → scratch DB
+# blockid_restore_drill (drop + recreate), pg_restore as supabase_admin, row
+# parity on 12 key tables vs live (each ≥ 95 %) + audit_events chain head,
+# {job:"restore-drill"} → backup-health.jsonl, Telegram on failure, own flock.
+# Sun 03:30 UTC = 13:30 AEST (after the 03:00 legacy 3-table test). On demand:
+# scripts/db/restore-drill.sh [--dry-run].
+30 3 * * 0 /home/dovanlong/blockid.au/scripts/db/restore-drill.sh >> /tmp/blockid-restore-drill.log 2>&1
+
 # Weekly disk cleanup — prune docker, /tmp logs, JSONL state, releases (Sun 03:30 UTC = 13:30 AEST)
 30 3 * * 0 /home/dovanlong/blockid.au/web/scripts/weekly-disk-cleanup.sh
 

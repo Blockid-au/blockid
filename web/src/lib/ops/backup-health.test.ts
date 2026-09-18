@@ -19,6 +19,13 @@ describe("classifyBackupHealth", () => {
     expect(r.last_restore_test).toBe(h(7 * 24));
   });
 
+  it("G15-R3: a restore-drill row counts as the restore proof (newest of either job wins)", () => {
+    const r = classifyBackupHealth([line("db-backup", "ok", h(2)), line("restore_test", "ok", h(9 * 24)), line("restore-drill", "ok", h(30))], NOW);
+    expect(r.status).toBe("ok");
+    expect(r.last_restore_test).toBe(h(30));
+    expect(classifyBackupHealth([line("db-backup", "ok", h(2)), line("restore-drill", "fail", h(1))], NOW).status).toBe("stale");
+  });
+
   it("is stale when backup is 27h old, or restore_test is 9d old / absent", () => {
     expect(classifyBackupHealth([line("db-backup", "ok", h(27)), line("restore_test", "ok", h(24))], NOW).status).toBe("stale");
     expect(classifyBackupHealth([line("db-backup", "ok", h(1)), line("restore_test", "ok", h(9 * 24))], NOW).status).toBe("stale");
