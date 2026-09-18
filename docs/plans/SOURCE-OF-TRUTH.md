@@ -51,7 +51,7 @@
   4. Dashboard personalisation (pin/reorder widgets) — **shipped** (server-synced layout, S6-A 2026-09-11).
   5. ProductHunt launch campaign — **partial** (launch kit `docs/marketing/traction-kit-2026-09/producthunt-launch-kit.md`; launch dated 13 Oct 2026, founder-gated).
 - **Reconciliation 2026-09-11:** all 61 unchecked roadmap-v2 items checked against code + git log → **25 shipped (ticked), 28 partial, 8 open**; per-item evidence inline and a ranked 8-item no-human-input backlog under `## Reconciliation 2026-09-11` in the roadmap-v2 file.
-- **Next action:** pick from the ranked backlog — #1 project-permission enforcement in `lib/projects.ts`, #2 audit-log coverage to all mutating routes, #3 outbound webhooks; ProductHunt (#5 above) waits on the founder.
+- **Next action:** none engineering — reconciliation 2026-09-18: the ranked 8-item backlog is fully shipped in code (#1 `project_members` readers in `lib/projects.ts` S-IA/G13, #2 S20-A audit wrapper + 0335, #3 S20-B + G14-S38 destinations, #4/#5 S17-B, #6 NDA gate `lib/dataroom/nda.ts` on `/s/dr/[token]`, #7 `lib/dataroom/engagement-client.ts` section views, #8 per-recipient watermark in `api/data-room/share/[token]/pdf`). ProductHunt (13 Oct 2026) waits on the founder. **G4 engineering closed.**
 - **Blocker:** none.
 
 ### G5 — Pricing upgrade v2 — **✅ CLOSED (v3.9.23, 2026-09-07)**
@@ -107,7 +107,7 @@
   5. **Unlock machinery built but imported by nothing** — `web/src/lib/nav/filter-nav-for-user.ts:94` and `web/src/lib/nav/hide-when-locked.ts:47` already implement decision D2 exactly; the live renderer `workspace-layout.tsx:141-168` ignores `persona`, `journeyGroup`, `hideWhenLocked` and dims `minPhase` groups instead of hiding them.
   6. `web/src/app/reseller/layout.tsx:11` carries a "P4 hardening will replace this with the reused WorkspaceLayout" TODO that was never executed.
 - **Evaluation criteria (§2c of goal doc):** 12 phase exit gates, each requiring named criteria at ≥ `good` (from the 13 in `web/src/lib/evaluation-criteria.ts:66`, weights = 100) **plus** an SVI dimension floor (from the 8 in `web/src/lib/svi-analysis.ts:1195-1275`). Compliance gates re-mapped by intent: `rd→product_dev`, `gst→go_to_market`, `esic→investor_review`, `s708→investor_review`.
-- **Next action:** P8 docs (S6-B) then close G8. Historical note: P2 persist unlock state (migration 0300 on `startup_phase_progress`) then P3 nav wiring. ⚠ The autonomous loop is concurrently landing route-group moves (`(marketing)`/`(app)`/`(persona)` — commits `76f2febe`, `e34f3fed`, `9ae661ff`) that overlap P5/P6; reconcile the shell matrix against that work before starting chrome backfill.
+- **Next action:** none — P8 docs shipped (`/docs/unlocks` live, 200 on 2026-09-18). **G8 closed 2026-09-18.** Historical: P8 docs (S6-B) then close G8. Historical note: P2 persist unlock state (migration 0300 on `startup_phase_progress`) then P3 nav wiring. ⚠ The autonomous loop is concurrently landing route-group moves (`(marketing)`/`(app)`/`(persona)` — commits `76f2febe`, `e34f3fed`, `9ae661ff`) that overlap P5/P6; reconcile the shell matrix against that work before starting chrome backfill.
 - **Blocker:** none for P0/P5. Q1–Q3 in the goal doc are founder-review only and non-blocking.
 
 ### G9 — Value-First Hero (user outcome copy enforcement)
@@ -603,6 +603,7 @@ the sentinels is overwritten._
 
 | When | Who | What |
 |---|---|---|
+| 2026-09-18 | Claude (plan review) | Post-G14 review: all engineering goals G1–G14 closed or founder-blocked; G4 ranked backlog verified shipped in code, G8 closed (`/docs/unlocks` live); ROADMAP §4 legacy rows reconciled (ESOP UI, feedback, nurture D1/D4/D9 shipped). Live: 100 % uptime 24 h, 12/12, elevated live-qa 177/0. Traction unchanged: 66 users · 0 MRR · 0 trials — next goal must be conversion/GTM enablement, not features. |
 | 2026-09-17 | Claude (G14 review) | Review deploy `036ba5c2e`: callAI wall-clock budget (interactive max(60 s, timeoutMs) across provider + model ladders), funding narrative 55 s deadline — fixes the Cloudflare 524 on POST /api/funding/report; S38 live via the peer deploy; elevated live-qa 177/0 — G14 fully live and clean. |
 | 2026-09-17 | Claude (G14 batch 2 + review) | G14-S37 + S40 deployed (`bb692271d`, 0408/0410 applied, external-signals cron installed); post-ship review fix `7900bcb5c`: intake inbox quota-limit upgrade link, live-qa evaluator seat elevated to investor_angel, audit hmac warn-once. S38 still unmerged (peer worktree). |
 | 2026-09-17 | Claude (G13 backlog) | G13 deferred backlog cleared in four sequential batches (code → commit → deploy each), 0404 applied; releases pruned 4.0 G → 1.4 G. |

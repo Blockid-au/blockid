@@ -90,10 +90,10 @@ Pulled from [`svi-exchange-tasks.json`](./web/content/reports/svi-exchange-tasks
 
 | Task | Phase | Priority | Status | Notes |
 |---|---|---|---|---|
-| **T0097** ESOP UI implementation | — | P1 | pending (spec ready) | React/TS build against schema + API from T0096 (`ESOP_IMPLEMENTATION.md`). Estimated 2 sprints. |
-| **T_FEEDBACK_0001** Feedback-for-credits | — | P1 | pending | Score agent + DB schema + admin dashboard + weekly digest. ~6h. |
-| **T_REVENUE_0001** Revenue + spend report | — | P1 | pending | Admin dashboard panel + weekly email cron. ~3h. |
-| **T_EMAIL_0001** D1/D4/D9 nurture sequence | — | P1 | pending | Templates via email-sequence skill + queue wiring. ~2h. |
+| **T0097** ESOP UI implementation | — | P1 | **shipped** (`/workspace/esop` hub, G13 W2 tabs; S25–S29 ESS annex) | React/TS build against schema + API from T0096 (`ESOP_IMPLEMENTATION.md`). Estimated 2 sprints. |
+| **T_FEEDBACK_0001** Feedback-for-credits | — | P1 | **shipped** (`/api/feedback`, `report-credit-cost.ts`; evaluator feedback letter G14-S34) | Score agent + DB schema + admin dashboard + weekly digest. ~6h. |
+| **T_REVENUE_0001** Revenue + spend report | — | P1 | **shipped** (G14-S33 traction snapshot + `/api/status.traction`, `ai-spend-daily.json`, admin tile) | Admin dashboard panel + weekly email cron. ~3h. |
+| **T_EMAIL_0001** D1/D4/D9 nurture sequence | — | P1 | **shipped** (`[nurture]` enqueue on register; `email-drip.ts`) | Templates via email-sequence skill + queue wiring. ~2h. |
 | **T_SVI_EXC_0014** Institutional API tier | v0.9 | P2 | pending | API key mgmt + Stripe billing, ~10h. |
 | **T_SVI_EXC_0015** Escrow settlement (v0.7) | v0.7 | P2 | pending | Settlement layer for closed EOI-book deals. |
 | **G11-P1** Public nav → 5 items + "Do you need money?" CTA | — | P1 | **shipped 2026-09-10** (release `b119b8627`) | Goal doc [`docs/plans/money-finder-2026-09-10.md`](./docs/plans/money-finder-2026-09-10.md); SOT G11. Legacy navbar mirrors; E2E `menu-structure.spec.ts` updated same commit. |
