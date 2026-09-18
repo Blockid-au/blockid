@@ -3,15 +3,77 @@
 # Two agents launching this script within seconds could both pass the old flock
 # check (which ran ~line 74 after shell setup) and race Gate 5 (webpack build),
 # clobbering each other's `.next/` output. Lock here on FD 200 before anything else.
-exec 200>/tmp/blockid-deploy.lock
-if ! flock -x -n 200; then
-  holder=$(cat /tmp/blockid-deploy.pid 2>/dev/null || echo "unknown")
-  echo "❌ Another deploy is already running (holder pid=$holder)"
-  echo "   Aborting to avoid a build race. Retry after it finishes."
-  exit 1
+#
+# G15-R1 flag parsing happens BEFORE the lock so `--wait` can change how the
+# lock is taken and `--rollback --dry-run` can skip it (read-only). The mode
+# flags (--rollback / --skip-build / --quick) stay positional in "$1" — every
+# `[ "${1:-}" = ... ]` check below is untouched; --wait / --dry-run are lifted
+# out of "$@" wherever they appear.
+DEPLOY_WAIT=0
+DEPLOY_DRY_RUN=0
+_ARGS=()
+for _a in "$@"; do
+  case "$_a" in
+    --wait) DEPLOY_WAIT=1 ;;
+    --dry-run) DEPLOY_DRY_RUN=1 ;;
+    *) _ARGS+=("$_a") ;;
+  esac
+done
+set -- "${_ARGS[@]}"
+unset _a _ARGS
+if [ "$DEPLOY_DRY_RUN" = "1" ] && [ "${1:-}" != "--rollback" ]; then
+  echo "❌ --dry-run is only meaningful with --rollback (bash scripts/deploy-live.sh --rollback --dry-run)"
+  exit 2
 fi
-echo $$ > /tmp/blockid-deploy.pid
-trap 'rm -f /tmp/blockid-deploy.pid' EXIT
+
+# Progress file: gate() appends "Gate N: <name>" here so a peer session that
+# hits the lock can see how far the holder is (see abort message below). Not
+# a full log — the operator's own redirection still owns stdout/stderr.
+DEPLOY_PROGRESS="/tmp/blockid-deploy-current.log"
+
+# One-line summary of the lock holder: pid, start time, and the last gate it
+# reached. Never fails (every probe is best-effort) — it is only informative.
+describe_lock_holder() {
+  local holder started gate_line
+  holder=$(cat /tmp/blockid-deploy.pid 2>/dev/null || echo "unknown")
+  echo "   holder pid: $holder"
+  if [ "$holder" != "unknown" ] && kill -0 "$holder" 2>/dev/null; then
+    started=$(ps -o lstart= -p "$holder" 2>/dev/null | sed 's/^ *//')
+    echo "   started:    ${started:-unknown}"
+  else
+    echo "   started:    (pid $holder is not alive — the lock may be held by a child shell; see 'fuser /tmp/blockid-deploy.lock')"
+  fi
+  if [ -f "$DEPLOY_PROGRESS" ]; then
+    gate_line=$(grep -E 'Gate [0-9]+:' "$DEPLOY_PROGRESS" 2>/dev/null | tail -1)
+    echo "   last gate:  ${gate_line:-(none yet)}"
+  fi
+}
+
+if [ "$DEPLOY_DRY_RUN" != "1" ]; then
+  exec 200>/tmp/blockid-deploy.lock
+  if [ "$DEPLOY_WAIT" = "1" ]; then
+    # --wait: block until the running deploy finishes (30-min ceiling) instead
+    # of aborting. Two sessions racing this lock is evidence E1 of G15.
+    if ! flock -x -n 200; then
+      echo "⏳ Another deploy is running — --wait: blocking until it finishes (ceiling 1800 s)"
+      describe_lock_holder
+      if ! flock -x -w 1800 200; then
+        echo "❌ Waited 1800 s and the deploy lock is still held — giving up."
+        describe_lock_holder
+        exit 1
+      fi
+      echo "✅ Lock acquired after wait — $(date '+%Y-%m-%d %H:%M:%S %Z')"
+    fi
+  elif ! flock -x -n 200; then
+    echo "❌ Another deploy is already running."
+    describe_lock_holder
+    echo "   Aborting to avoid a build race. Retry after it finishes, or re-run with --wait to queue behind it."
+    exit 1
+  fi
+  echo $$ > /tmp/blockid-deploy.pid
+  : > "$DEPLOY_PROGRESS"
+  trap 'rm -f /tmp/blockid-deploy.pid' EXIT
+fi
 # BlockID.au — Zero-Downtime Deploy from Source (with CI gates)
 #
 # Built-in CI/CD pipeline (no Docker, no GitLab, no GitHub Actions):
@@ -36,7 +98,18 @@ trap 'rm -f /tmp/blockid-deploy.pid' EXIT
 #   bash scripts/deploy-live.sh              # full pipeline
 #   bash scripts/deploy-live.sh --skip-build # skip gates 3-5, deploy existing build
 #   bash scripts/deploy-live.sh --rollback   # restore previous build
+#   bash scripts/deploy-live.sh --rollback --dry-run  # print what a rollback WOULD swap; touch nothing
 #   bash scripts/deploy-live.sh --quick      # skip lint/typecheck (emergency only)
+#   bash scripts/deploy-live.sh --wait       # queue behind a running deploy (30-min ceiling) instead of aborting
+#
+# G15-R1 (2026-09-18) — ship safety:
+#   • .deploy-manifest.json is stamped at the START (git_sha, git_tree_dirty,
+#     merge_in_progress) and refreshed pre-swap (deployed_at, next_hash).
+#   • A dirty tree or an in-progress merge/rebase refuses to build unless
+#     DEPLOY_ALLOW_DIRTY=1 (runtime-written paths under content/ are ignored).
+#   • Gate 11 fetches http://127.0.0.1:4001/api/status and fails (→ rollback)
+#     when its git_sha differs from the stamped one: always verify the live bundle.
+#   • Full runbook: docs/ops/deploy.md
 #
 # RULE: Never use Docker, GitLab CI, or GitHub Actions for deployment.
 # This script IS the CI/CD pipeline.
@@ -120,6 +193,8 @@ gate() {
   GATE_TOTAL=$((GATE_TOTAL + 1))
   echo ""
   echo "─── Gate $GATE_TOTAL: $1 ───"
+  # Progress marker for peer sessions blocked on the lock (describe_lock_holder).
+  echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) Gate $GATE_TOTAL: $1" >> "$DEPLOY_PROGRESS" 2>/dev/null || true
 }
 
 pass() {
@@ -294,6 +369,59 @@ rollback_log() {
       --data-urlencode "text=${msg}" 2>/dev/null || true
   fi
 }
+if [ "${1:-}" = "--rollback" ] && [ "$DEPLOY_DRY_RUN" = "1" ]; then
+  # ── Rollback drill (G15-R1): print exactly what --rollback would do. ──
+  # Read-only: no lock, no env load, no process signal, no symlink change.
+  echo ""
+  echo "=== ROLLBACK — DRY RUN (nothing will be swapped) ==="
+  # readlink -f echoes a dangling/missing link's own path — only resolve links that exist.
+  CUR_DIR=""; PREV_DIR=""
+  [ -e "$CURRENT_LINK" ] && CUR_DIR="$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
+  [ -e "$PREV_LINK" ] && PREV_DIR="$(readlink -f "$PREV_LINK" 2>/dev/null || true)"
+  LIVE_PID="$(cat "$PID_FILE" 2>/dev/null || echo none)"
+  LIVE_HTTP="$(curl -s -m 5 -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PROD_PORT/" 2>/dev/null || echo 000)"
+  echo "  current release:  ${CUR_DIR:-(none — $CURRENT_LINK missing)}${CUR_DIR:+  [id $(basename "$CUR_DIR")]}  pid $LIVE_PID  HTTP $LIVE_HTTP"
+  echo "  previous release: ${PREV_DIR:-(none — $PREV_LINK missing)}${PREV_DIR:+  [id $(basename "$PREV_DIR")]}"
+  if [ -n "$CUR_DIR" ] && [ -f "$CUR_DIR/.deploy-manifest.json" ]; then
+    echo "  current manifest: $(tr -d '\n' < "$CUR_DIR/.deploy-manifest.json" | sed 's/  */ /g')"
+  fi
+  if [ -n "$PREV_DIR" ] && [ -f "$PREV_DIR/.deploy-manifest.json" ]; then
+    echo "  previous manifest: $(tr -d '\n' < "$PREV_DIR/.deploy-manifest.json" | sed 's/  */ /g')"
+  fi
+  echo ""
+  if [ -n "$PREV_DIR" ] && [ -f "$PREV_DIR/server.js" ]; then
+    echo "  Would do (path A — previous immutable release):"
+    echo "    1. kill pid $LIVE_PID (from $PID_FILE) + fuser -k $PROD_PORT/tcp"
+    echo "    2. cd $PREV_DIR && nohup node server.js  (PORT=$PROD_PORT) → $LOG"
+    echo "    3. ln -sfn $PREV_DIR $CURRENT_LINK"
+    if [ -n "$CUR_DIR" ]; then
+      echo "    4. ln -sfn $CUR_DIR $PREV_LINK   (current and previous swap places)"
+    else
+      echo "    4. (no current link to demote — $PREV_LINK left as is)"
+    fi
+    echo "    5. curl http://127.0.0.1:$PROD_PORT/ → expect 200; append to /tmp/blockid-rollback.log; Telegram if creds set"
+  else
+    RELEASES_ARCHIVE="/data/blockid-releases"
+    SNAP_DIR="$(ls -1dt "$RELEASES_ARCHIVE"/*/ 2>/dev/null | sed -n '2p')"
+    SNAP_DIR="${SNAP_DIR%/}"
+    if [ -n "$SNAP_DIR" ] && [ -f "$SNAP_DIR/server.js" ]; then
+      echo "  No previous release link — would do (path B — 2nd-newest snapshot):"
+      echo "    1. kill pid $LIVE_PID + fuser -k $PROD_PORT/tcp"
+      echo "    2. cd $SNAP_DIR && nohup node server.js  (PORT=$PROD_PORT)"
+      echo "    ⚠ path B does NOT update $CURRENT_LINK / $PREV_LINK"
+    elif [ -d "$BACKUP_DIR" ]; then
+      echo "  No previous release or snapshot — would do (path C — legacy .next-backup):"
+      echo "    1. rm -rf $WEB_DIR/.next && mv $BACKUP_DIR $WEB_DIR/.next"
+      echo "    2. kill pid $LIVE_PID; cd $WEB_DIR/.next/standalone && nohup node server.js"
+    else
+      echo "  ❌ Nothing to roll back to: no $PREV_LINK, no $RELEASES_ARCHIVE snapshot, no $BACKUP_DIR"
+      echo "     A real --rollback would exit 1 here."
+    fi
+  fi
+  echo ""
+  echo "  Dry run complete — nothing was changed."
+  exit 0
+fi
 if [ "${1:-}" = "--rollback" ]; then
   echo ""
   echo "=== ROLLBACK ==="
@@ -363,6 +491,82 @@ if [ "${1:-}" = "--rollback" ]; then
   echo "✅ Rolled back (legacy): HTTP $HTTP — PID $(cat "$PID_FILE")"
   rollback_log "success" "legacy-backup" "$HTTP" "$(cat "$PID_FILE")"
   exit 0
+fi
+
+# ══════════════════════════════════════════════════════════════════════
+# PRE-GATE (G15-R1): Manifest truth — stamp what we are about to build.
+# ══════════════════════════════════════════════════════════════════════
+# Evidence E1: a build captured a mid-merge tree while the manifest carried
+# master's SHA because the stamp happened at the END. Stamp git_sha,
+# git_tree_dirty and merge_in_progress NOW, before any gate runs, and refuse
+# to build from a tree that is not exactly one commit unless the operator
+# says DEPLOY_ALLOW_DIRTY=1. Gate 11 later compares the live /api/status
+# git_sha against MANIFEST_SHA — the bundle serving traffic must be this one.
+MANIFEST_FILE="$WEB_DIR/.deploy-manifest.json"
+MANIFEST_SHA="$(git -C "$WEB_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
+GIT_DIR_ABS="$(git -C "$WEB_DIR" rev-parse --absolute-git-dir 2>/dev/null || echo "")"
+MERGE_IN_PROGRESS=false
+if [ -n "$GIT_DIR_ABS" ]; then
+  for marker in MERGE_HEAD CHERRY_PICK_HEAD REVERT_HEAD rebase-merge rebase-apply; do
+    if [ -e "$GIT_DIR_ABS/$marker" ]; then MERGE_IN_PROGRESS=true; fi
+  done
+fi
+# Runtime-written paths never count as "dirty": cron jobs rewrite
+# content/reports/*.json(l) and content/ai-*.json all day, and the manifest
+# itself is rewritten by this script. Everything else (src, scripts, config,
+# untracked files) does count — an untracked src file changes the bundle.
+DEPLOY_DIRTY_IGNORE="${DEPLOY_DIRTY_IGNORE:-^(web/)?(content/|\.deploy-manifest\.json$|test-results/|playwright-report)}"
+DIRTY_LINES="$(git -C "$WEB_DIR" status --porcelain 2>/dev/null | grep -vE "^.. ${DEPLOY_DIRTY_IGNORE#^}" || true)"
+GIT_TREE_DIRTY=false
+[ -n "$DIRTY_LINES" ] && GIT_TREE_DIRTY=true
+MANIFEST_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+MANIFEST_MSG="$(git -C "$WEB_DIR" log -1 --format=%B 2>/dev/null || echo '')"
+MANIFEST_TASK="$(printf '%s' "$MANIFEST_MSG" | grep -oE 'T-[0-9A-Za-z_]+' | head -1)"
+[ -z "$MANIFEST_TASK" ] && MANIFEST_TASK="manual"
+MANIFEST_VERSION="$(node -e "try{process.stdout.write(String(require('$WEB_DIR/content/reports/version.json').version||'unknown'))}catch(e){process.stdout.write('unknown')}" 2>/dev/null)"
+[ -z "$MANIFEST_VERSION" ] && MANIFEST_VERSION="unknown"
+
+# write_manifest <phase> [next_hash]
+#   phase "start"  → deployed_at empty, next_hash unknown (nothing built yet)
+#   phase "swap"   → deployed_at = now, next_hash = md5 of the BUILD_ID file
+# Always the same key set so readers (/api/status, /api/healthz, guardian)
+# never see a half-shaped file. git_sha/dirty/merge are frozen from the start.
+write_manifest() {
+  local phase="$1" next_hash="${2:-unknown}" deployed_at=""
+  [ "$phase" = "swap" ] && deployed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  cat > "$MANIFEST_FILE" <<EOF
+{
+  "git_sha": "$MANIFEST_SHA",
+  "git_tree_dirty": $GIT_TREE_DIRTY,
+  "merge_in_progress": $MERGE_IN_PROGRESS,
+  "started_at": "$MANIFEST_STARTED_AT",
+  "deployed_at": "$deployed_at",
+  "next_hash": "$next_hash",
+  "task_id": "$MANIFEST_TASK",
+  "version": "$MANIFEST_VERSION",
+  "deploy_pid": "$$"
+}
+EOF
+}
+write_manifest "start" || echo "  ⚠ manifest stamp (start) failed (non-fatal)"
+echo "📄 Manifest stamped at start → .deploy-manifest.json (sha ${MANIFEST_SHA:0:8}, dirty=$GIT_TREE_DIRTY, merge=$MERGE_IN_PROGRESS)"
+
+if [ "$MERGE_IN_PROGRESS" = "true" ] || [ "$GIT_TREE_DIRTY" = "true" ]; then
+  if [ "${DEPLOY_ALLOW_DIRTY:-0}" = "1" ]; then
+    echo "  ⚠ DEPLOY_ALLOW_DIRTY=1 — building a tree that is dirty=$GIT_TREE_DIRTY / merge=$MERGE_IN_PROGRESS (recorded in the manifest)"
+    [ -n "$DIRTY_LINES" ] && printf '%s\n' "$DIRTY_LINES" | head -10 | sed 's/^/     /'
+  else
+    echo "  ❌ Refusing to build: git_tree_dirty=$GIT_TREE_DIRTY merge_in_progress=$MERGE_IN_PROGRESS"
+    if [ "$MERGE_IN_PROGRESS" = "true" ]; then
+      echo "     A merge/rebase/cherry-pick is in progress in $GIT_DIR_ABS — finish or abort it first."
+    fi
+    if [ -n "$DIRTY_LINES" ]; then
+      echo "     git status --short (first 10 lines, runtime paths already filtered):"
+      printf '%s\n' "$DIRTY_LINES" | head -10 | sed 's/^/       /'
+    fi
+    echo "     Commit (or stash) the change, or set DEPLOY_ALLOW_DIRTY=1 to build anyway — the manifest will say so."
+    fail "Tree not clean at HEAD ${MANIFEST_SHA:0:8} (dirty=$GIT_TREE_DIRTY, merge=$MERGE_IN_PROGRESS); set DEPLOY_ALLOW_DIRTY=1 to override"
+  fi
 fi
 
 # ══════════════════════════════════════════════════════════════════════
@@ -591,12 +795,23 @@ if [ "${1:-}" != "--skip-build" ]; then
   # Full output goes to a log; the console gets the failing test names + the
   # summary (tail -10 alone hid WHICH test failed — 2026-09-14).
   VITEST_LOG=/tmp/blockid-deploy-vitest.log
+  # G15-R1: the JSON reporter feeds scripts/test-flake-report.mjs (top-10
+  # slowest + > 5 s rows appended to content/reports/test-flakes.jsonl).
+  # Retries stay at 0 on purpose — a retry hides the bug the gate exists for.
+  VITEST_JSON=/tmp/blockid-deploy-vitest.json
+  rm -f "$VITEST_JSON"
   set +e
-  NO_COLOR=1 npm test > "$VITEST_LOG" 2>&1
+  NO_COLOR=1 npm test -- --retry 0 --reporter=default --reporter=json --outputFile="$VITEST_JSON" > "$VITEST_LOG" 2>&1
   TEST_EXIT=$?
   set -e
   grep -E "^ (FAIL|×) |AssertionError|Error: Test timed out" "$VITEST_LOG" | head -20 || true
   tail -6 "$VITEST_LOG"
+  # Slow/flaky ledger — informative only; never changes the verdict.
+  if [ -f "$VITEST_JSON" ]; then
+    node "$WEB_DIR/scripts/test-flake-report.mjs" "$VITEST_JSON" 2>&1 | sed 's/^/  /' || echo "  ⚠ test-flake-report failed (non-fatal)"
+  else
+    echo "  ⚠ vitest JSON report missing ($VITEST_JSON) — flake ledger not updated"
+  fi
   if [ "$TEST_EXIT" -ne 0 ]; then
     fail "Unit tests failed (exit $TEST_EXIT) — see $VITEST_LOG. Fix before deploy."
   fi
@@ -996,31 +1211,22 @@ fi
 # G-11: Stamp deploy-manifest.json (after successful build+smoke, before swap)
 # Guardian consumers read this to know which sha/build is being promoted.
 # ══════════════════════════════════════════════════════════════════════
+# G15-R1: git_sha / dirty / merge were frozen at the START (pre-gate stamp);
+# this refresh only adds deployed_at + next_hash. The release dir gets its
+# own copy explicitly — the server's cwd is releases/<BUILD_ID>, and
+# /api/status + /api/healthz read `.deploy-manifest.json` from cwd. (Before
+# this, the release copy was only ever refreshed by accident: the archive
+# `cp` after Gate 12 wrote through a hardlink shared with the release dir.)
 {
-  MANIFEST_FILE="$WEB_DIR/.deploy-manifest.json"
-  MANIFEST_SHA="$(git -C "$WEB_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
-  MANIFEST_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   if [ -f "$STANDALONE/.next/BUILD_ID" ]; then
     MANIFEST_NEXT_HASH="$(md5sum "$STANDALONE/.next/BUILD_ID" 2>/dev/null | awk '{print $1}')"
     [ -z "$MANIFEST_NEXT_HASH" ] && MANIFEST_NEXT_HASH="unknown"
   else
     MANIFEST_NEXT_HASH="unknown"
   fi
-  MANIFEST_MSG="$(git -C "$WEB_DIR" log -1 --format=%B 2>/dev/null || echo '')"
-  MANIFEST_TASK="$(printf '%s' "$MANIFEST_MSG" | grep -oE 'T-[0-9A-Za-z_]+' | head -1)"
-  [ -z "$MANIFEST_TASK" ] && MANIFEST_TASK="manual"
-  MANIFEST_VERSION="$(node -e "try{process.stdout.write(String(require('$WEB_DIR/content/reports/version.json').version||'unknown'))}catch(e){process.stdout.write('unknown')}" 2>/dev/null)"
-  [ -z "$MANIFEST_VERSION" ] && MANIFEST_VERSION="unknown"
-  cat > "$MANIFEST_FILE" <<EOF
-{
-  "git_sha": "$MANIFEST_SHA",
-  "deployed_at": "$MANIFEST_TS",
-  "next_hash": "$MANIFEST_NEXT_HASH",
-  "task_id": "$MANIFEST_TASK",
-  "version": "$MANIFEST_VERSION"
-}
-EOF
-  echo "  📄 Manifest stamped → .deploy-manifest.json (sha ${MANIFEST_SHA:0:8}, task $MANIFEST_TASK)"
+  write_manifest "swap" "$MANIFEST_NEXT_HASH"
+  cp "$MANIFEST_FILE" "$RELEASE_DIR/.deploy-manifest.json"
+  echo "  📄 Manifest stamped → .deploy-manifest.json + releases/$BUILD_ID (sha ${MANIFEST_SHA:0:8}, task $MANIFEST_TASK)"
 } || echo "  ⚠ manifest stamp failed (non-fatal)"
 
 # ══════════════════════════════════════════════════════════════════════
@@ -1074,15 +1280,26 @@ echo "  Local:  HTTP $LOCAL"
 echo "  Public: HTTP $PUBLIC"
 echo "  Auth:   $AUTH"
 
+# G15-R1 "always verify the live bundle": the process on :4001 must report
+# the git_sha we stamped at the start. A mismatch means the bundle serving
+# traffic was built from something else (stale standalone, mid-merge tree,
+# a peer session's build) — fail here so fail() rolls back.
+LIVE_SHA="$(curl -s -m 15 "http://127.0.0.1:$PROD_PORT/api/status" 2>/dev/null \
+  | python3 -c "import json,sys; print(json.load(sys.stdin).get('git_sha',''))" 2>/dev/null || echo "")"
+echo "  Live git_sha: ${LIVE_SHA:-<none>} (stamped ${MANIFEST_SHA})"
+
 # Check for errors in first 3 seconds of logs
 ERRORS=$(tail -20 "$LOG" | grep -ic "error" || true)
 echo "  Errors: $ERRORS in startup logs"
 
-if [ "$LOCAL" = "200" ] && [ "$AUTH" = "ok" ]; then
-  pass "Production verified"
+if [ "$LOCAL" = "200" ] && [ "$AUTH" = "ok" ] && [ -n "$LIVE_SHA" ] && [ "$LIVE_SHA" = "$MANIFEST_SHA" ]; then
+  pass "Production verified (live git_sha matches stamped ${MANIFEST_SHA:0:8})"
 else
   echo "  Last 20 lines of $LOG:"
   tail -20 "$LOG" || true
+  if [ "$LOCAL" = "200" ] && [ "$AUTH" = "ok" ]; then
+    fail "Post-deploy verification failed: live /api/status git_sha '${LIVE_SHA:-<none>}' ≠ stamped '$MANIFEST_SHA' — the bundle on :$PROD_PORT is not the one this deploy built"
+  fi
   fail "Post-deploy verification failed (local HTTP $LOCAL, auth $AUTH) — the swapped-in build is not serving correctly"
 fi
 

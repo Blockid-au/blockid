@@ -27,7 +27,7 @@ import path from "node:path";
 import { LIVE_QA_OUT, LIVE_QA_STORAGE } from "../../playwright.live-qa.config";
 import { env, qaEmailForNow, QA_EMAIL_RE } from "./lib/env";
 import { fetchWithSwapRetry, json } from "./lib/api";
-import { readRunState, writeRunState, RUN_STATE_PATH } from "./lib/run-state";
+import { liveRunConflict, readRunState, readRunStateIfPresent, writeRunState, RUN_STATE_PATH } from "./lib/run-state";
 
 export default async function globalSetup(_config: FullConfig): Promise<void> {
   void _config;
@@ -38,6 +38,10 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
   }
 
   mkdirSync(LIVE_QA_OUT, { recursive: true });
+  // G15-R1: fail fast when the previous state belongs to a run that is still
+  // going (< 20 min old AND its runner pid alive) — never clobber it.
+  const conflict = liveRunConflict(readRunStateIfPresent());
+  if (conflict) throw new Error(`[live-qa] refusing to start — ${conflict}`);
   // A stale state from an interrupted run must never be picked up by the
   // teardown as "the account to erase" — start clean.
   rmSync(RUN_STATE_PATH, { force: true });
@@ -108,6 +112,7 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
     writeRunState({
       startedAt: new Date().toISOString(),
       baseURL: env.baseURL,
+      pid: process.pid,
       email,
       password,
       userId,

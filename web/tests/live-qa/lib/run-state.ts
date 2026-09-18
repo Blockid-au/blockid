@@ -15,6 +15,12 @@ export const RUN_STATE_PATH = path.join(LIVE_QA_OUT, "run-state.json");
 export interface RunState {
   startedAt: string;
   baseURL: string;
+  /**
+   * G15-R1 — pid of the Playwright runner that provisioned this state. The
+   * next global setup refuses to start while this pid is alive and the state
+   * is younger than STALE_RUN_MS (two runs sharing one file = false failures).
+   */
+  pid?: number;
   email: string;
   /**
    * The founder's password. Needed by 25-account (the deletion request
@@ -47,6 +53,61 @@ export function readRunState(): RunState {
     throw new Error(`live-qa run state missing at ${RUN_STATE_PATH} — the global setup did not run`);
   }
   return JSON.parse(readFileSync(RUN_STATE_PATH, "utf8")) as RunState;
+}
+
+/** Like readRunState but `null` when the file is missing or unparseable (setup-time probe). */
+export function readRunStateIfPresent(file: string = RUN_STATE_PATH): Partial<RunState> | null {
+  try {
+    if (!existsSync(file)) return null;
+    const parsed: unknown = JSON.parse(readFileSync(file, "utf8"));
+    return parsed && typeof parsed === "object" ? (parsed as Partial<RunState>) : null;
+  } catch {
+    return null;
+  }
+}
+
+// ── G15-R1: refuse to start over a live run ────────────────────────────
+/** A run state older than this is stale by definition (a whole run takes < 20 min). */
+export const STALE_RUN_MS = 20 * 60 * 1000;
+
+/** `process.kill(pid, 0)` — true when the pid exists (EPERM = exists, not ours). */
+export function isPidAlive(pid: number, kill: (pid: number, sig: 0) => unknown = process.kill.bind(process)): boolean {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    kill(pid, 0);
+    return true;
+  } catch (e) {
+    return (e as NodeJS.ErrnoException)?.code === "EPERM";
+  }
+}
+
+/**
+ * The reason a new run must NOT start, or `null` when it may. Pure: the
+ * caller passes the previous state, `now`, its own pid and an aliveness
+ * probe. Conflict = state < STALE_RUN_MS old AND its pid alive AND not us.
+ */
+export function liveRunConflict(
+  prev: Partial<RunState> | null,
+  opts: { nowMs?: number; selfPid?: number; alive?: (pid: number) => boolean; staleMs?: number } = {},
+): string | null {
+  if (!prev) return null;
+  const now = opts.nowMs ?? Date.now();
+  const staleMs = opts.staleMs ?? STALE_RUN_MS;
+  const alive = opts.alive ?? ((pid: number) => isPidAlive(pid));
+  const selfPid = opts.selfPid ?? process.pid;
+  const started = typeof prev.startedAt === "string" ? Date.parse(prev.startedAt) : NaN;
+  if (Number.isNaN(started)) return null; // unknown age → treat as stale (old format)
+  const ageMs = now - started;
+  if (Math.abs(ageMs) >= staleMs) return null; // clock skew either way counts as stale
+  const pid = typeof prev.pid === "number" ? prev.pid : NaN;
+  if (!Number.isInteger(pid) || pid === selfPid) return null; // pre-G15 state has no pid → cannot be proven alive
+  if (!alive(pid)) return null;
+  const mins = Math.max(0, Math.round(ageMs / 60_000));
+  return (
+    `another live-QA run is still in progress: ${prev.email ?? "(unknown account)"} started ${mins} min ago ` +
+    `(pid ${pid} is alive, run state ${RUN_STATE_PATH}). Two runs would share run-state.json and fail each other — ` +
+    `wait for it (bash scripts/qa-live.sh --wait), or if pid ${pid} is a zombie: kill it and delete the run state.`
+  );
 }
 
 export function writeRunState(state: RunState): void {

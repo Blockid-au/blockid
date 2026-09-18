@@ -162,6 +162,23 @@ A failing test is either a **product bug** (report it — the suite never fixes 
 or a **suite bug** (selector / contract drift — fix the spec). A 502/503/504 during a deploy
 swap is retried once after 60 s by `visit()` and the API helpers.
 
+**G15-R1 resilience (2026-09-18)** — three false-failure classes from the first week are
+now handled by the harness, not by re-running:
+
+* **One run at a time.** `scripts/qa-live.sh` takes `flock` on `/tmp/blockid-live-qa.lock`
+  and aborts (exit 2) with the holder's pid, start time and run state; `--wait` queues behind
+  the running suite (30-min ceiling). The global setup additionally refuses to start when
+  `test-results/live-qa/run-state.json` is < 20 min old **and** its recorded `pid` is alive
+  (`liveRunConflict()` in `lib/run-state.ts`) — two runs sharing one run state produced
+  false failures on 2026-09-17.
+* **429 + `Retry-After`.** `lib/api.ts` waits the header (cap 30 s, at most 2 waits, 5 s when
+  absent) and retries — for GET/HEAD automatically, for a write only when the caller passes
+  `{ idempotent: true }` (never on a call that spends credits or creates a row). A
+  non-idempotent 429 still comes straight back so the spec can report the bucket.
+* **Cloudflare 520–524.** `classifyStatus()` buckets them as `edge_timeout`; every `JsonResult`
+  carries `classification`, and `evidence()` annotates any blob with a numeric `status`, so the
+  HTML report says "origin timed out at the edge" instead of looking like an app 5xx.
+
 First production run (2026-09-13 15:56 UTC, `LIVE_QA_ALLOW_DB=1 LIVE_QA_ELEVATE=1`): 91 passed ·
 4 failed · 1 skipped · 1 expected failure · 0 credits spent · account erased and verified.
 The 4 failures are product findings (fundraise round detail 404 — `ROUND_COLUMNS` selects
