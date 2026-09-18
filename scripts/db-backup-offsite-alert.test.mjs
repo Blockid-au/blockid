@@ -44,17 +44,24 @@ describe("decideOffsiteAlert — at most once per 24 h", () => {
 
   it("suppresses the same class inside the window and counts the suppressions", () => {
     const s1 = decideOffsiteAlert(null, "no_drive_quota", T0).next;
-    const n1 = decideOffsiteAlert(s1, "no_drive_quota", T0 + 23 * H);
+    const n1 = decideOffsiteAlert(s1, "no_drive_quota", T0 + 12 * H);
     expect(n1.alert).toBe(false);
     expect(n1.reason).toBe("debounced");
     expect(n1.next.suppressed).toBe(1);
     expect(n1.next.last_alert_at).toBe(s1.last_alert_at);
-    const n2 = decideOffsiteAlert(n1.next, "no_drive_quota", T0 + 23.5 * H);
+    const n2 = decideOffsiteAlert(n1.next, "no_drive_quota", T0 + 19 * H);
     expect(n2.alert).toBe(false);
     expect(n2.next.suppressed).toBe(2);
   });
 
-  it("alerts again once 24 h have elapsed (nightly cron: night 1 alerts, night 2 alerts, i.e. ≤ 1 per day)", () => {
+  it("window is 20 h so a nightly cron (24 h ± jitter) alerts every night, never every second night", () => {
+    expect(ALERT_WINDOW_MS).toBe(20 * 60 * 60 * 1000);
+    const s1 = decideOffsiteAlert(null, "no_drive_quota", T0).next;
+    // 23 h 55 min later (cron fired slightly early) → still alerts.
+    expect(decideOffsiteAlert(s1, "no_drive_quota", T0 + 24 * H - 5 * 60_000).alert).toBe(true);
+  });
+
+  it("alerts again once the window has elapsed (nightly cron: night 1 alerts, night 2 alerts, i.e. ≤ 1 per day)", () => {
     const s1 = decideOffsiteAlert(null, "no_drive_quota", T0).next;
     const r = decideOffsiteAlert(s1, "no_drive_quota", T0 + ALERT_WINDOW_MS);
     expect(r).toMatchObject({ alert: true, reason: "window_elapsed" });

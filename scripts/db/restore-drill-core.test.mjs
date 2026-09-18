@@ -81,8 +81,13 @@ describe("classifyRestoreErrors", () => {
       'pg_restore: error: COPY failed for table "projects": ERROR:  invalid input syntax for type uuid',
     ]);
     expect(r.total).toBe(5);
-    expect(r.benign).toHaveLength(4);
-    expect(r.fatal).toEqual(['pg_restore: error: COPY failed for table "projects": ERROR:  invalid input syntax for type uuid']);
+    // Review 2026-09-18: a missing relation is a REAL failure (lost object /
+    // ordering), only role/schema/extension/event-trigger kinds are benign.
+    expect(r.benign).toHaveLength(3);
+    expect(r.fatal).toEqual([
+      "pg_restore: error: could not execute query: ERROR:  relation \"public.projects\" does not exist",
+      'pg_restore: error: COPY failed for table "projects": ERROR:  invalid input syntax for type uuid',
+    ]);
   });
 
   it("is empty for a clean restore", () => {

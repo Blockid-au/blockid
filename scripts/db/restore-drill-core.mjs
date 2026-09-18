@@ -56,7 +56,9 @@ export const BENIGN_RESTORE_ERROR_PATTERNS = Object.freeze([
   /supabase_vault/i,
   /pg_net/i,
   /pg_graphql/i,
-  /does not exist/i,
+  // Review 2026-09-18 (P1): only OBJECT KINDS a fresh scratch DB legitimately
+  // lacks are benign — a missing relation/type/function is a real restore failure.
+  /(role|schema|extension|event trigger|publication|subscription) ".*" does not exist/i,
   /role ".*" (does not exist|cannot be)/i,
   /extension ".*" is not available/i,
   /unrecognized configuration parameter/i,

@@ -22,17 +22,23 @@ ops_alert() {
   local bot chat
   bot="${TELEGRAM_BOT_TOKEN:-$(ops_env_val TELEGRAM_BOT_TOKEN)}"
   chat="${TELEGRAM_CHAT_ID:-$(ops_env_val TELEGRAM_CHAT_ID)}"
-  [ -z "$bot" ] || [ -z "$chat" ] && return 0
   local msg
   msg="$title
 ⏰ $(date -u '+%Y-%m-%dT%H:%M:%SZ')
 🖥️ $(hostname -s 2>/dev/null || echo blockid)
 $(printf '%s' "$detail" | head -c 400)"
-  curl -s --max-time 15 "https://api.telegram.org/bot${bot}/sendMessage" \
-    -d "chat_id=$chat" \
-    --data-urlencode "text=$msg" \
-    -d "parse_mode=Markdown" \
-    -d "disable_web_page_preview=true" > /dev/null 2>&1 || true
+  local ok=""
+  if [ -n "$bot" ] && [ -n "$chat" ]; then
+    ok=$(curl -s --max-time 15 "https://api.telegram.org/bot${bot}/sendMessage" \
+      -d "chat_id=$chat" \
+      --data-urlencode "text=$msg" \
+      -d "parse_mode=Markdown" \
+      -d "disable_web_page_preview=true" 2>/dev/null | grep -o '"ok":true' || true)
+  fi
+  # G15 review 2026-09-18: Telegram token is 401 → e-mail fallback (ADMIN_EMAIL).
+  if [ -z "$ok" ] && [ -f "$OPS_REPO_ROOT/web/scripts/ops-alert-email.mjs" ]; then
+    printf '%s' "$msg" | node "$OPS_REPO_ROOT/web/scripts/ops-alert-email.mjs" "$title" >/dev/null 2>&1 || true
+  fi
 }
 
 # Append one row to cron-health.jsonl so cron-alarm.sh / /api/status crons

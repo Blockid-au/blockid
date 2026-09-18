@@ -15,6 +15,7 @@
 import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { getStatusRoot } from "@/lib/status/jsonl";
 
 export interface DegradedEvent {
   ts: string;
@@ -36,7 +37,9 @@ export function projectHash(projectId: string | null | undefined): string {
 }
 
 function healthFilePath(): string {
-  return process.env.REPORT_PIPELINE_HEALTH_FILE || path.join(process.cwd(), REPORT_PIPELINE_HEALTH_FILE);
+  // Review 2026-09-18: the release dir is a copy — write to the live checkout
+  // so /api/status.ai.fully_degraded_24h survives a deploy.
+  return process.env.REPORT_PIPELINE_HEALTH_FILE || path.join(getStatusRoot(), REPORT_PIPELINE_HEALTH_FILE);
 }
 
 function isTestEnv(): boolean {

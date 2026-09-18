@@ -30,8 +30,24 @@ export function envVal(key, env = process.env, webDir = WEB_DIR) {
  * (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID). Returns {sent, reason?}. Never
  * throws, never logs the token. `dryRun` short-circuits before any network.
  */
-export async function sendTelegram(text, { dryRun = false, env = process.env, fetchImpl = globalThis.fetch, timeoutMs = 8000 } = {}) {
+export async function sendTelegram(text, { dryRun = false, env = process.env, fetchImpl = globalThis.fetch, timeoutMs = 8000, emailFallback = defaultEmailFallback } = {}) {
   if (dryRun) return { sent: false, reason: "dry_run" };
+  const r = await sendTelegramOnly(text, { env, fetchImpl, timeoutMs });
+  if (r.sent) return r;
+  // G15 review 2026-09-18: Telegram token is 401 → e-mail fallback (ADMIN_EMAIL).
+  try {
+    const e = await emailFallback(text, env);
+    if (e?.sent) return { sent: true, via: "email", telegram_reason: r.reason };
+  } catch { /* best effort */ }
+  return r;
+}
+
+async function defaultEmailFallback(text, env) {
+  const mod = await import("../ops-alert-email.mjs");
+  return mod.sendOpsEmail(text.split("\n")[0].slice(0, 120), text, { env });
+}
+
+async function sendTelegramOnly(text, { env = process.env, fetchImpl = globalThis.fetch, timeoutMs = 8000 } = {}) {
   const token = envVal("TELEGRAM_BOT_TOKEN", env);
   const chat = envVal("TELEGRAM_CHAT_ID", env);
   if (!token || !chat) return { sent: false, reason: "not_configured" };

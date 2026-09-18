@@ -205,11 +205,15 @@ if [ "$STATUS" != "ok" ] && [ "$STATUS" != "rate_limited" ] && [ "$STATUS" != "d
 ⏱️ ${DURATION_MS}ms
 ❌ $STATUS: $(echo "$DETAIL" | head -c 100)"
 
-    curl -s "https://api.telegram.org/bot${TELEGRAM_BOT}/sendMessage" \
+    TG_OK=$(curl -s "https://api.telegram.org/bot${TELEGRAM_BOT}/sendMessage" \
       -d "chat_id=$TELEGRAM_CHAT" \
       -d "text=$MSG" \
       -d "parse_mode=Markdown" \
-      -d "disable_web_page_preview=true" > /dev/null 2>&1
+      -d "disable_web_page_preview=true" 2>/dev/null | grep -o '"ok":true' || true)
+    # G15 review 2026-09-18: Telegram token is 401 → e-mail fallback (ADMIN_EMAIL).
+    if [ -z "$TG_OK" ]; then
+      printf '%s' "$MSG" | node "$(dirname "$0")/ops-alert-email.mjs" "Cron failed: $ENDPOINT" >/dev/null 2>&1 || true
+    fi
   fi
 fi
 

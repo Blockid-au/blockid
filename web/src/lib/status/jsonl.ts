@@ -7,6 +7,26 @@ import path from "node:path";
 
 export const REPORTS_DIR = path.join("content", "reports");
 
+// Post-ship review 2026-09-18 (P1): on production `process.cwd()` is
+// `/data/releases/<BUILD_ID>` — a build-time COPY of web/content that the
+// crons (error-digest, latency-sample, backups, cron-runner) never write to.
+// Read the live checkout instead, like `lib/project-state.ts` does.
+// Resolved lazily (route tests mock `node:fs` without `existsSync`).
+const LIVE_WEB_DIR = "/home/dovanlong/blockid.au/web";
+let statusRoot: string | null = null;
+export function getStatusRoot(): string {
+  if (statusRoot) return statusRoot;
+  if (process.env.BLOCKID_WEB_DIR) return (statusRoot = process.env.BLOCKID_WEB_DIR);
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { existsSync } = require("node:fs") as typeof import("node:fs");
+    statusRoot = existsSync(path.join(LIVE_WEB_DIR, REPORTS_DIR)) ? LIVE_WEB_DIR : process.cwd();
+  } catch {
+    statusRoot = process.cwd();
+  }
+  return statusRoot;
+}
+
 export async function readJsonlTail<T = Record<string, unknown>>(root: string, file: string, maxLines: number): Promise<T[]> {
   let raw: string;
   try {

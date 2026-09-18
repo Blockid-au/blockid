@@ -5,7 +5,7 @@
 // or fewer than MIN_N requests is null. `null` overall when the sampler has
 // never run or the newest row is stale.
 
-import { readJsonlTail, withinLast } from "./jsonl";
+import { readJsonlTail, withinLast, getStatusRoot } from "./jsonl";
 
 export const LATENCY_FILE = "latency.jsonl";
 export const LATENCY_STALE_MS = 30 * 60 * 1000;
@@ -48,7 +48,7 @@ export function summariseLatency(rows: Row[], now: number = Date.now()): Latency
   return { ts: String(newest.ts), latency_p95_ms: p95, err_rate_5xx: err, requests, timing: newest.timing === true };
 }
 
-export async function readLatencySummary(root: string = process.cwd(), now: number = Date.now()): Promise<LatencySummary | null> {
+export async function readLatencySummary(root: string = getStatusRoot(), now: number = Date.now()): Promise<LatencySummary | null> {
   try {
     const rows = await readJsonlTail<Row>(root, LATENCY_FILE, 6);
     return summariseLatency(rows, now);

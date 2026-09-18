@@ -15,7 +15,9 @@
 //     success clears the state so the next failure alerts again.
 
 export const FOUNDER_COMMAND = "node --env-file=web/.env scripts/db-backup-offsite-auth.mjs";
-export const ALERT_WINDOW_MS = 24 * 60 * 60 * 1000;
+// 20 h, not 24: the nightly cron fires every 24 h ± jitter, so a 24 h window
+// would alert only every second night (review 2026-09-18).
+export const ALERT_WINDOW_MS = 20 * 60 * 60 * 1000;
 
 /** Coarse error class — decides whether the fix is founder-only and drives the debounce key. */
 export function classifyOffsiteError(message) {

@@ -158,7 +158,7 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Weekly restore drill — newest dump → scratch DB blockid_restore_test, row-count
 # sanity vs prod, drop. Sun 03:00 UTC = 13:00 AEST. /api/status `backups` goes
 # `stale` if no successful drill in 8 days.
-0 3 * * 0 /home/dovanlong/blockid.au/scripts/db-restore-test.sh >> /tmp/blockid-db-restore-test.log 2>&1
+# 2026-09-18: legacy db-restore-test.sh retired — superseded by scripts/db/restore-drill.sh (Sun 03:45) below.
 
 # G15-R3 (2026-09-18) — weekly restore DRILL: newest dump → scratch DB
 # blockid_restore_drill (drop + recreate), pg_restore as supabase_admin, row
@@ -166,7 +166,7 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # {job:"restore-drill"} → backup-health.jsonl, Telegram on failure, own flock.
 # Sun 03:30 UTC = 13:30 AEST (after the 03:00 legacy 3-table test). On demand:
 # scripts/db/restore-drill.sh [--dry-run].
-30 3 * * 0 /home/dovanlong/blockid.au/scripts/db/restore-drill.sh >> /tmp/blockid-restore-drill.log 2>&1
+45 3 * * 0 /home/dovanlong/blockid.au/scripts/db/restore-drill.sh >> /tmp/blockid-restore-drill.log 2>&1
 
 # Weekly disk cleanup — prune docker, /tmp logs, JSONL state, releases (Sun 03:30 UTC = 13:30 AEST)
 30 3 * * 0 /home/dovanlong/blockid.au/web/scripts/weekly-disk-cleanup.sh
@@ -474,7 +474,7 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Every 30m       | git-sync-deploy    | 0   | CI/CD        | logfile
 # 12:20pm daily   | db-backup          | 0   | backups      | jsonl+tg
 # 12:40pm daily   | db-backup-offsite  | 0   | backups      | jsonl+tg
-# Sun 1:00pm      | db-restore-test    | 0   | backups      | jsonl+tg
+# Sun 1:45pm      | restore-drill      | 0   | backups      | jsonl+tg (replaces db-restore-test 2026-09-18)
 # Every 3h        | ai-health          | 0   | system       | ✅ runner
 # Every 4h        | token-refresh      | 0   | system       | logfile
 # 12am,2am,4am    | orchestrator (AM)  | 1-3 | orchestrate  | ✅ runner
@@ -749,3 +749,9 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Docs: docs/ops/slo.md · docs/ops/crontab-setup.md § G15-R2.
 */10 * * * * cd /home/dovanlong/blockid.au/web && node scripts/error-digest.mjs >> /data/logs/blockid-error-digest.log 2>&1; bash scripts/rotate-production-log.sh >> /data/logs/blockid-error-digest.log 2>&1
 */10 * * * * cd /home/dovanlong/blockid.au/web && node scripts/latency-sample.mjs >> /data/logs/blockid-latency.log 2>&1
+
+# G13 (2026-09-16/17) — installed by hand on the server, recorded here so
+# `crontab scripts/crontab.production` stays the single source (review 2026-09-18).
+*/5 * * * * bash $RUN report-email-sweep --timeout 120
+35 16 * * * bash $RUN mandate-fit-refresh --timeout 300
+40 17 * * 0 bash $RUN comparables-ingest --timeout 120

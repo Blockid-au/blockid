@@ -28,6 +28,7 @@
 # Full production restore procedure: docs/runbooks/db-restore.md
 
 set -euo pipefail
+export LC_ALL=C  # review 2026-09-18: locale-independent %.1f / sort
 
 REPO_ROOT="${BLOCKID_REPO_ROOT:-/home/dovanlong/blockid.au}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -150,7 +151,7 @@ set -e
 RESTORE_ERRORS=$(grep -c '^pg_restore: error:' "$ERRLOG" 2>/dev/null || true)
 RESTORE_ERRORS=${RESTORE_ERRORS:-0}
 log "pg_restore exit $RESTORE_EXIT, $RESTORE_ERRORS error line(s)"
-[ "$RESTORE_ERRORS" -gt 0 ] && grep '^pg_restore: error:' "$ERRLOG" | head -8 | sed 's/^/    /'
+if [ "$RESTORE_ERRORS" -gt 0 ]; then { grep '^pg_restore: error:' "$ERRLOG" || true; } | head -8 | sed 's/^/    /' || true; fi
 
 # ── 4. counts: drill vs live (live is read-only) ──────────────────────────
 json_counts() { # json_counts <db> → {"t":n|null,...}
@@ -177,7 +178,7 @@ log "audit_events rows=$AUDIT_ROWS head prev_hash=$PREV_PRESENT curr_hash=$CURR_
 
 # ── 5. verdict (pure, unit-tested) ────────────────────────────────────────
 END=$(date -u +%s%N); DURATION_MS=$(( (END - START) / 1000000 ))
-ERR_LINES_JSON=$({ grep '^pg_restore: error:' "$ERRLOG" 2>/dev/null || true; } | head -50 | python3 -c 'import sys,json; print(json.dumps([l.rstrip("\n") for l in sys.stdin]))' 2>/dev/null)
+ERR_LINES_JSON=$({ grep '^pg_restore: error:' "$ERRLOG" 2>/dev/null || true; } | python3 -c 'import sys,json; print(json.dumps([l.rstrip("\n") for l in sys.stdin]))' 2>/dev/null)
 [ -n "$ERR_LINES_JSON" ] || ERR_LINES_JSON='[]'
 cat > "$INPUT_JSON" <<EOF
 {"dump":"$FILE","dump_age_h":$DUMP_AGE_H,"duration_ms":$DURATION_MS,"scratch_db":"$SCRATCH_DB",

@@ -12,7 +12,7 @@
 // Public-safe: timestamps, an age in hours and one status word — never a
 // path, size, host or error text.
 
-import { readJsonlTail, tsMs } from "./jsonl";
+import { readJsonlTail, tsMs, getStatusRoot } from "./jsonl";
 
 export const BACKUP_HEALTH_FILE = "backup-health.jsonl";
 
@@ -59,7 +59,7 @@ export function summariseBackups(rows: Row[], now: number = Date.now()): Backups
   };
 }
 
-export async function readBackupsDetail(root: string = process.cwd(), now: number = Date.now()): Promise<BackupsDetail> {
+export async function readBackupsDetail(root: string = getStatusRoot(), now: number = Date.now()): Promise<BackupsDetail> {
   try {
     const rows = await readJsonlTail<Row>(root, BACKUP_HEALTH_FILE, 400);
     return summariseBackups(rows, now);

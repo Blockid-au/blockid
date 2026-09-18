@@ -49,6 +49,7 @@ export function classifyBackupHealth(lines: string[], now: number = Date.now()):
     } catch {
       continue;
     }
+    if (!row || typeof row !== "object") continue; // a bare `null` line parses (review 2026-09-18)
     if (row.status !== "ok") continue;
     const t = parseTs(row.ts);
     if (Number.isNaN(t)) continue;

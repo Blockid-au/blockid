@@ -142,7 +142,7 @@ RELEASES_KEEP=6                           # retain 6 releases (space is ample on
 # scripts/rotate-production-log.sh; /tmp/blockid-production.log stays a symlink.
 # The process log is opened with `>>` (O_APPEND) so copy-truncate rotation works.
 LOG="/data/logs/blockid-production.log"
-bash "$WEB_DIR/scripts/rotate-production-log.sh" >/dev/null 2>&1 || true
+[ "$DEPLOY_DRY_RUN" = "1" ] || bash "$WEB_DIR/scripts/rotate-production-log.sh" >/dev/null 2>&1 || true
 [ -w "$(dirname "$LOG")" ] || LOG="/tmp/blockid-production.log"   # dev box without /data
 LOG_NEW="/tmp/blockid-production-new.log"
 PID_FILE="/tmp/blockid-production.pid"
@@ -520,7 +520,10 @@ fi
 # content/reports/*.json(l) and content/ai-*.json all day, and the manifest
 # itself is rewritten by this script. Everything else (src, scripts, config,
 # untracked files) does count — an untracked src file changes the bundle.
-DEPLOY_DIRTY_IGNORE="${DEPLOY_DIRTY_IGNORE:-^(web/)?(content/|\.deploy-manifest\.json$|test-results/|playwright-report)}"
+# Review 2026-09-18 (P2): only runtime-written content is ignored — MDX /
+# i18n / legal content is build input and DOES dirty the bundle; root docs/
+# never reach the bundle and must not block a deploy.
+DEPLOY_DIRTY_IGNORE="${DEPLOY_DIRTY_IGNORE:-^(docs/|(web/)?(content/(reports/|generated/|ai-[^/]+\.jsonl?$|[^/]+\.jsonl$)|\.deploy-manifest\.json$|test-results/|playwright-report))}"
 DIRTY_LINES="$(git -C "$WEB_DIR" status --porcelain 2>/dev/null | grep -vE "^.. ${DEPLOY_DIRTY_IGNORE#^}" || true)"
 GIT_TREE_DIRTY=false
 [ -n "$DIRTY_LINES" ] && GIT_TREE_DIRTY=true

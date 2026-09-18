@@ -40,6 +40,14 @@ chmod 0750 "$LOG_DIR" 2>/dev/null || true
 # 2. Compat symlink for old tooling (`tail -f /tmp/blockid-production.log`).
 #    A pre-G15 regular file there is folded into the new home first.
 if [ -e "$COMPAT_LINK" ] && [ ! -L "$COMPAT_LINK" ]; then
+  # Review 2026-09-18 (P0): a pre-G15 server started with `> /tmp/...` still
+  # holds that inode; unlinking it here sends every later line to a deleted
+  # tmpfs inode. Defer the conversion until nothing has the file open (the
+  # next deploy restarts the server with the new path, then this runs clean).
+  if command -v fuser >/dev/null 2>&1 && fuser -s "$COMPAT_LINK" 2>/dev/null; then
+    echo "rotate-production-log: $COMPAT_LINK is held open by a running process — conversion deferred to the next restart"
+    exit 0
+  fi
   cat "$COMPAT_LINK" >> "$LOG" 2>/dev/null || true
   rm -f "$COMPAT_LINK"
 fi

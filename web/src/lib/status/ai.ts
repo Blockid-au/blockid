@@ -13,7 +13,7 @@
 //
 // Returns null only when nothing at all could be read.
 
-import { readJsonFile, readJsonlTail, withinLast } from "./jsonl";
+import { readJsonFile, readJsonlTail, withinLast, getStatusRoot } from "./jsonl";
 
 export const AI_MODEL_HEALTH_FILE = "content/ai-model-health.json";
 export const REPORT_PIPELINE_HEALTH_FILE = "report-pipeline-health.jsonl";
@@ -71,7 +71,7 @@ async function loadSnapshotFn(): Promise<SnapshotFn | null> {
 }
 
 export async function readAiStatus(
-  root: string = process.cwd(),
+  root: string = getStatusRoot(),
   now: number = Date.now(),
   deps: { snapshot?: SnapshotFn | null } = {},
 ): Promise<AiStatus | null> {

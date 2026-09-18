@@ -3,7 +3,7 @@
 // fall inside the last hour and returns the top-5 classes. `null` when the
 // digest has never run — the route must not invent zeros.
 
-import { readJsonlTail, withinLast } from "./jsonl";
+import { readJsonlTail, withinLast, getStatusRoot } from "./jsonl";
 
 export const ERROR_DIGEST_FILE = "error-digest.jsonl";
 export const ERRORS_WINDOW_MS = 60 * 60 * 1000;
@@ -43,7 +43,7 @@ export function summariseErrors(rows: DigestRow[], now: number = Date.now()): Er
   return { total, classes, windows, last_ts: last };
 }
 
-export async function readErrors1h(root: string = process.cwd(), now: number = Date.now()): Promise<Errors1h | null> {
+export async function readErrors1h(root: string = getStatusRoot(), now: number = Date.now()): Promise<Errors1h | null> {
   try {
     const rows = await readJsonlTail<DigestRow>(root, ERROR_DIGEST_FILE, 12);
     return summariseErrors(rows, now);

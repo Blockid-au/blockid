@@ -54,3 +54,10 @@ playwright-report/
 playwright-report-live-qa/
 content/reports/ai-last-report.json
 content/reports/ai-provider-status.json
+# G15 runtime outputs (review 2026-09-18)
+content/reports/error-digest.jsonl
+content/reports/error-digest-state.json
+content/reports/latency.jsonl
+content/reports/latency-state.json
+content/reports/test-flakes.jsonl
+content/reports/ops-alert-email-state.json

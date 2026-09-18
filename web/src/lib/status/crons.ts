@@ -4,7 +4,7 @@
 // anything that looks like a path, URL or bearer). The existing `crons`
 // catalogue (per-job ok-rate) is untouched — this is the failure view.
 
-import { readJsonlTail, tsMs, withinLast } from "./jsonl";
+import { readJsonlTail, tsMs, withinLast, getStatusRoot } from "./jsonl";
 
 export const CRON_HEALTH_FILE = "cron-health.jsonl";
 export const CRON_FAILED_MAX_ROWS = 20;
@@ -52,7 +52,7 @@ export function summariseCronFailures(rows: Row[], now: number = Date.now()): Cr
     .map(({ endpoint, count, last_ts, last_error }) => ({ endpoint, count, last_ts, last_error }));
 }
 
-export async function readCronFailures24h(root: string = process.cwd(), now: number = Date.now()): Promise<CronFailure[]> {
+export async function readCronFailures24h(root: string = getStatusRoot(), now: number = Date.now()): Promise<CronFailure[]> {
   try {
     const rows = await readJsonlTail<Row>(root, CRON_HEALTH_FILE, 2500);
     return summariseCronFailures(rows, now);
