@@ -16,6 +16,7 @@ import { readErrors1h, type Errors1h } from "./errors";
 import { readQueues, type Queues } from "./queues";
 import { readLatencySummary, type LatencySummary } from "./slo";
 import { readUptimeSummary, type UptimeSummary } from "./uptime";
+import { getStatusRoot } from "./jsonl";
 
 export const STATUS_EXTRAS_TTL_MS = 60 * 1000;
 
@@ -55,7 +56,7 @@ async function safe<T>(p: Promise<T>, fallback: T): Promise<T> {
   }
 }
 
-export async function readStatusExtras(root: string = process.cwd(), now: number = Date.now(), opts: { force?: boolean } = {}): Promise<StatusExtras> {
+export async function readStatusExtras(root: string = getStatusRoot(), now: number = Date.now(), opts: { force?: boolean } = {}): Promise<StatusExtras> {
   if (!opts.force && cache && now - cache.at < STATUS_EXTRAS_TTL_MS) return cache.value;
   const [errors_1h, ai, queues, backups_detail, latency, crons_failed_24h, uptime] = await Promise.all([
     safe(readErrors1h(root, now), null),

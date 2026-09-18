@@ -13,7 +13,8 @@
 // Debounce: at most 30 mails per hour per host (state file), then drop with a
 // log line — an alert storm must never become an e-mail storm. Never logs
 // credentials. Exit 0 always (callers are cron paths).
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { envVal, WEB_DIR } from "./lib/ops-env.mjs";
@@ -40,13 +41,14 @@ export async function sendOpsEmail(subject, body, { env = process.env, dryRun = 
   try { mkdirSync(path.dirname(STATE), { recursive: true }); writeFileSync(STATE, JSON.stringify(gate.next)); } catch { /* best effort */ }
   if (!gate.ok) return { sent: false, reason: "rate_limited" };
   const nodemailer = require("nodemailer");
-  const transporter = nodemailer.createTransport({ host: host || "smtp.gmail.com", port: Number(v("SMTP_PORT") || 587), secure: false, auth: { user, pass } });
+  const transporter = nodemailer.createTransport({ host: host || "smtp.gmail.com", port: Number(v("SMTP_PORT") || 587), secure: false, auth: { user, pass }, connectionTimeout: 10_000, greetingTimeout: 10_000, socketTimeout: 20_000 });
   const from = v("SMTP_FROM_EMAIL") || user;
   await transporter.sendMail({ from: `BlockID ops <${from}>`, to, subject: `[blockid ops] ${subject}`.slice(0, 180), text: `${body}\n\n— sent by e-mail because the Telegram bot token is invalid (docs/runbooks/secret-rotation-log.md)` });
   return { sent: true, to };
 }
 
-const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname);
+let isMain = false;
+try { isMain = Boolean(process.argv[1]) && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url); } catch { isMain = false; }
 if (isMain) {
   const [subject = "alert", bodyArg] = process.argv.slice(2);
   const body = bodyArg ?? (process.stdin.isTTY ? "" : readFileSync(0, "utf8"));

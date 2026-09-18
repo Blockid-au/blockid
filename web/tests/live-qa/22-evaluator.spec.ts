@@ -287,7 +287,9 @@ test.describe("Founder feedback letter (G14-S34)", () => {
         await anon.dispose();
       }
     } finally {
-      psql(`delete from public.investor_organisations where slug like ${q(`${qa.email.replace(/@.*$/, "")}-org-%`)} and slug ~ '^qa-live-[0-9]{8}-[0-9]{4}-org-[ab]$';`);
+      // Any run's leftovers (a crashed run leaves rows with an older slug that
+      // would block the fixed-id insert): the regex is the whole predicate.
+      psql(`delete from public.investor_organisations where slug ~ '^qa-live-[0-9]{8}-[0-9]{4}-org-[ab]$';`);
       if (evaluationId) {
         psql(
           `delete from public.evaluation_assessments a using public.evaluations e, public.app_users u

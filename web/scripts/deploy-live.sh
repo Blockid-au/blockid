@@ -512,11 +512,11 @@ MANIFEST_SHA="$(git -C "$WEB_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
 # G15 follow-up (2026-09-18): --skip-build promotes an EXISTING standalone, so
 # the sha that is true for the bundle is the one stamped when it was built —
 # carry it as build_sha and let gate 11 compare against that, not HEAD.
-MANIFEST_BUILD_SHA="$MANIFEST_SHA"
-if [ "${1:-}" = "--skip-build" ]; then
-  prev_build_sha="$(node -e 'try{const m=require(process.argv[1]);process.stdout.write(String(m.build_sha||m.git_sha||""))}catch{}' "$MANIFEST_FILE" 2>/dev/null || true)"
-  [ -n "$prev_build_sha" ] && MANIFEST_BUILD_SHA="$prev_build_sha"
-fi
+# Until gate 7 succeeds the truthful build sha is the PREVIOUS manifest's (a
+# deploy that fails at gates 3–6 must not leave build_sha=HEAD next to an
+# older standalone); it becomes HEAD right after the build.
+prev_build_sha="$(node -e 'try{const m=require(process.argv[1]);process.stdout.write(String(m.build_sha||m.git_sha||""))}catch{}' "$MANIFEST_FILE" 2>/dev/null || true)"
+MANIFEST_BUILD_SHA="${prev_build_sha:-unknown}"
 GIT_DIR_ABS="$(git -C "$WEB_DIR" rev-parse --absolute-git-dir 2>/dev/null || echo "")"
 MERGE_IN_PROGRESS=false
 if [ -n "$GIT_DIR_ABS" ]; then
@@ -873,6 +873,7 @@ if [ "${1:-}" != "--skip-build" ]; then
     fail "Build failed (exit $BUILD_EXIT)"
   fi
   pass "Build successful"
+  MANIFEST_BUILD_SHA="$MANIFEST_SHA"   # the standalone on disk is now HEAD's
 else
   gate "Build (skipped)"
   if [ ! -f "$STANDALONE/server.js" ]; then

@@ -529,7 +529,8 @@ export async function GET(): Promise<Response> {
     readLastReportProvider(REPO_ROOT).catch(() => null),
     readTractionStatus(REPO_ROOT).catch(() => "missing" as const),
     readSviBacktestStatus(REPO_ROOT).catch(() => "missing" as const),
-    readStatusExtras(REPO_ROOT).catch(() => null),
+    // G15 review: default root = the live web checkout (getStatusRoot), never the release-dir copy.
+    readStatusExtras().catch(() => null),
   ]);
   const publicExtras = extras ? publicStatusExtras(extras) : null;
 

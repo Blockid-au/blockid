@@ -56,10 +56,10 @@ fi
 [ "$MODE" = "--ensure" ] && exit 0
 
 # 3. Rotate? (copy-truncate — every writer opened the file O_APPEND)
-rotate_one() { # rotate_one <file> <max_bytes> <keep>
-  local f="$1" max="$2" keep="$3" size i prev
+rotate_one() { # rotate_one <file> <max_bytes> <keep> [force=0]
+  local f="$1" max="$2" keep="$3" force="${4:-0}" size i prev
   size=$(stat -c%s "$f" 2>/dev/null || echo 0)
-  if [ "$MODE" != "--force" ] && [ "$size" -lt "$max" ]; then return 0; fi
+  if [ "$force" != "1" ] && [ "$size" -lt "$max" ]; then return 0; fi
   [ "$size" -eq 0 ] && return 0   # nothing to keep
   i=$keep
   while [ "$i" -gt 1 ]; do
@@ -70,7 +70,7 @@ rotate_one() { # rotate_one <file> <max_bytes> <keep>
   cp -f "$f" "$f.1" && truncate -s0 "$f"
   echo "[rotate-production-log] $(date -u '+%Y-%m-%dT%H:%M:%SZ') rotated ${size} bytes → $f.1 (keep $keep, mode ${MODE#--})"
 }
-rotate_one "$LOG" "$MAX_BYTES" "$KEEP"
+rotate_one "$LOG" "$MAX_BYTES" "$KEEP" "$([ "$MODE" = "--force" ] && echo 1 || echo 0)"
 # G15 follow-up (2026-09-18): the cron logs under /data/logs (error-digest,
 # latency, …) were never rotated — 20 MB, keep 5.
 for f in "$LOG_DIR"/blockid-*.log; do

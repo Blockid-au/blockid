@@ -13,6 +13,9 @@ export async function sendOpsAlertEmail(args: { to: string; subject: string; tex
     port: Number(process.env.SMTP_PORT || 587),
     secure: false,
     auth: { user, pass },
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
   });
   const from = process.env.SMTP_FROM_EMAIL || user;
   await transporter.sendMail({ from: `BlockID ops <${from}>`, to: args.to, subject: args.subject.slice(0, 180), text: args.text });
