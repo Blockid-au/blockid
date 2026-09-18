@@ -904,8 +904,10 @@ describe("public payload redaction", () => {
     expect(raw).not.toHaveProperty("backups");
     expect(raw).not.toHaveProperty("ai_providers");
     expect(raw).not.toHaveProperty("ai_queue_depth");
+    // G15-R2: the v2 sections ARE on the public payload, in their redacted
+    // form (publicStatusExtras) — counts, states and timestamps only.
     expect(Object.keys(raw).sort()).toEqual(
-      ["last_deploy", "ok", "services", "slo", "svi_backtest", "traction", "updated_at", "version"],
+      ["ai", "backups_detail", "crons_failed_24h", "errors_1h", "last_deploy", "ok", "queues", "services", "slo", "svi_backtest", "traction", "updated_at", "version"],
     );
     expect(typeof raw.ok).toBe("boolean");
     expect(typeof raw.version).toBe("string");
@@ -1272,5 +1274,102 @@ describe("svi_backtest (G14-S39) — read from content/reports/svi-backtest-late
     }
     const { body: full } = await callGet();
     expect(["ok", "stale", "missing"]).toContain(read(full));
+  });
+});
+
+// ─── G15-R2 v2 sections (lib/status) ───────────────────────────────────
+// The readers have their own suites (src/lib/status/*.test.ts); here we pin
+// the wiring: keys present on both payloads, nulls when the report files are
+// missing (this suite's fs mock throws ENOENT for everything not seeded),
+// redaction on the anonymous payload, the 60 s cache, and "never throws".
+
+describe("G15-R2 — errors_1h / ai / queues / backups_detail / slo.latency_p95_ms / crons_failed_24h", () => {
+  const rel = (f: string) => path.join(REPO_ROOT, "content", "reports", f);
+  const iso = (msAgo: number) => new Date(Date.now() - msAgo).toISOString();
+
+  beforeEach(async () => {
+    const { _resetStatusExtrasCache } = await import("@/lib/status");
+    _resetStatusExtrasCache();
+  });
+
+  it("every report file missing → null shapes, still HTTP 200, existing keys untouched", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    const { status, body } = await callGet();
+    const raw = body as unknown as Record<string, unknown>;
+    expect(status).toBe(200);
+    expect(raw.errors_1h).toBeNull();
+    expect(raw.queues).toEqual({ email_queued: null, email_failed_24h: null, webhook_failed_24h: null, report_orders_pending: null });
+    expect(raw.backups_detail).toMatchObject({ local_last_ok_at: null, offsite_status: "never" });
+    expect(raw.crons_failed_24h).toEqual([]);
+    expect((raw.slo as Record<string, unknown>).latency_p95_ms).toBeNull();
+    expect(raw.backups).toBe("missing"); // the pre-existing one-word verdict
+    expect(Array.isArray(raw.crons)).toBe(true); // the pre-existing catalogue
+  });
+
+  it("populates from error-digest / latency / cron-health / backup-health / model-health files", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    fsState.files.set(rel("error-digest.jsonl"), JSON.stringify({ ts: iso(5 * 60e3), window_min: 10, total: 6, classes: [{ tag: "ai-client", msg: "Gateway unavailable (ECONNREFUSED) http://ai-gateway:8080 for <n> min", count: 6, first_seen: iso(5 * 60e3) }] }) + "\n");
+    fsState.files.set(rel("latency.jsonl"), JSON.stringify({ ts: iso(3 * 60e3), window_min: 10, timing: true, classes: { marketing: { n: 50, p50_ms: 120, p95_ms: 410, err_rate_5xx: 0 }, api_ai: { n: 2, p50_ms: 30000, p95_ms: 30000, err_rate_5xx: 0 } } }) + "\n");
+    fsState.files.set(rel("cron-health.jsonl"), [
+      JSON.stringify({ ts: iso(60e3), endpoint: "db-backup-offsite", status: "fail", duration_ms: 1, detail: "Service account has no Drive quota — see /home/dovanlong/x" }),
+      JSON.stringify({ ts: iso(30e3), endpoint: "agent-guardian", status: "ok", duration_ms: 1, detail: "{}" }),
+    ].join("\n"));
+    fsState.files.set(rel("backup-health.jsonl"), [
+      JSON.stringify({ ts: iso(3 * 3600e3), job: "db-backup", status: "ok", file: "/data/backups/db.dump.gz" }),
+      JSON.stringify({ ts: iso(2 * 3600e3), job: "offsite", status: "fail", offsite_status: "founder_action_required", error: "no Drive quota" }),
+    ].join("\n"));
+    fsState.files.set(path.join(REPO_ROOT, "content", "ai-model-health.json"), JSON.stringify({ updated_at: iso(0), total: 28, healthy: 13, quota_exceeded: 0, results: [] }));
+
+    const { body } = await callGet();
+    const raw = body as unknown as Record<string, unknown>;
+    expect(raw.errors_1h).toMatchObject({ total: 6, classes: [{ tag: "ai-client", count: 6 }] });
+    expect((raw.slo as Record<string, unknown>).latency_p95_ms).toEqual({ marketing: 410, workspace: null, api_ai: null, api_other: null, tbr: null });
+    expect(raw.crons_failed_24h).toEqual([{ endpoint: "db-backup-offsite", count: 1, last_ts: expect.any(String), last_error: "Service account has no Drive quota — see <path>" }]);
+    expect(raw.backups_detail).toMatchObject({ local_age_h: 3, offsite_status: "founder_action_required" });
+    // ai: the dispatcher mock in this suite has no getProviderHealthSnapshot → providers null, file-backed fields present
+    expect(raw.ai).toEqual({ providers: null, budget_exhausted_1h: null, interactive_order: null, model_health: { updated_at: expect.any(String), total: 28, healthy: 13, quota_exceeded: 0 }, fully_degraded_24h: 0 });
+    expect(JSON.stringify(raw.backups_detail)).not.toContain("/data");
+  });
+
+  it("anonymous payload carries the redacted subset only", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    fsState.files.set(rel("error-digest.jsonl"), JSON.stringify({ ts: iso(5 * 60e3), window_min: 10, total: 2, classes: [{ tag: "svi", msg: "ECONNREFUSED http://ai-gateway:8080 open /home/dovanlong/web/.env", count: 2 }] }) + "\n");
+    fsState.files.set(rel("cron-health.jsonl"), JSON.stringify({ ts: iso(60e3), endpoint: "db-backup-offsite", status: "fail", detail: "secret detail /home/x" }) + "\n");
+    process.env.STATUS_FULL_TOKEN = "";
+    process.env.CRON_SECRET = "";
+    try {
+      const { body } = await callGet();
+      const raw = body as unknown as Record<string, unknown>;
+      expect(raw.errors_1h).toEqual({ total: 2, classes: [{ tag: "svi", msg: "ECONNREFUSED <url> open <path>", count: 2 }] });
+      expect(raw.crons_failed_24h).toEqual([{ endpoint: "db-backup-offsite", count: 1 }]);
+      expect(JSON.stringify(raw)).not.toMatch(/ai-gateway|\/home\/|secret detail/);
+    } finally {
+      process.env.STATUS_FULL_TOKEN = "test-trusted-token";
+    }
+  });
+
+  it("caches the extras 60 s per process", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    fsState.files.set(rel("error-digest.jsonl"), JSON.stringify({ ts: iso(60e3), window_min: 10, total: 1, classes: [] }) + "\n");
+    expect(((await callGet()).body as unknown as { errors_1h: { total: number } }).errors_1h.total).toBe(1);
+    fsState.files.set(rel("error-digest.jsonl"), JSON.stringify({ ts: iso(30e3), window_min: 10, total: 9, classes: [] }) + "\n");
+    expect(((await callGet()).body as unknown as { errors_1h: { total: number } }).errors_1h.total).toBe(1); // cached
+  });
+
+  it("a throwing extras reader never breaks the route", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    const mod = await import("@/lib/status");
+    const spy = vi.spyOn(mod, "readStatusExtras").mockRejectedValueOnce(new Error("disk on fire"));
+    try {
+      const { status, body } = await callGet();
+      expect(status).toBe(200);
+      const raw = body as unknown as Record<string, unknown>;
+      expect(raw.errors_1h).toBeNull();
+      expect(raw.queues).toEqual({ email_queued: null, email_failed_24h: null, webhook_failed_24h: null, report_orders_pending: null });
+      expect(raw.crons_failed_24h).toEqual([]);
+      expect(spy).toHaveBeenCalledTimes(1);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
