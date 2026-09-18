@@ -560,8 +560,11 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Weekly metrics snapshot (Mon 09:00 UTC / 19:00 AEST) — MRR/ARR/churn
 0 9 * * 1 bash $RUN weekly-metrics --timeout 120
 
-# Server cleanup (docker/npm/logs/reports) — every 4h
-0 */4 * * * bash /home/dovanlong/blockid.au/web/scripts/server-cleanup.sh --disk-only >> /tmp/blockid-cleanup.log 2>&1
+# Server cleanup (docker/npm/logs/reports) — every 4h. G15-R3.5: --procs also
+# sweeps stray agent node/python3 processes (> 12 h, cwd/argv under
+# /tmp/claude-*/ or .claude/worktrees/*; never next-server / deploy-live.sh /
+# /data/releases / playwright < 2 h) on every tick, even when the disk is healthy.
+0 */4 * * * bash /home/dovanlong/blockid.au/web/scripts/server-cleanup.sh --disk-only --procs >> /tmp/blockid-cleanup.log 2>&1
 
 # Performance audit — REMOVED 2026-09-10.
 # /api/cron/performance-audit has never existed: no route directory, and no

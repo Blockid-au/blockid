@@ -10,6 +10,12 @@
 # Flags:
 #   --dry-run    Log what would be deleted without doing it
 #   --disk-only  Only run if disk usage >85%
+#   --procs      G15-R3.5 stray-process sweep (runs even when --disk-only skips
+#                the disk actions): kill `node` / `python3` processes older than
+#                12 h whose cwd or argv is under /tmp/claude-*/ or
+#                */.claude/worktrees/*. Never the production next-server,
+#                deploy-live.sh, anything under /data/releases, or a playwright
+#                process younger than 2 h. --dry-run lists.
 #   --verbose    Extra logging
 set -euo pipefail
 
@@ -29,14 +35,19 @@ readonly PROTECTED_PATHS=(
 
 DRY_RUN=0
 DISK_ONLY=0
+PROCS=0
 VERBOSE=0
 TOTAL_FREED_BYTES=0
+# Stray-process sweep thresholds (seconds). Env-overridable for tests.
+PROC_MAX_AGE_S="${PROC_MAX_AGE_S:-43200}"          # 12 h
+PROC_PLAYWRIGHT_MIN_AGE_S="${PROC_PLAYWRIGHT_MIN_AGE_S:-7200}"  # never kill playwright < 2 h
 
 # ---------------------------------------------------------------- arg parse --
 for arg in "$@"; do
   case "$arg" in
     --dry-run)   DRY_RUN=1 ;;
     --disk-only) DISK_ONLY=1 ;;
+    --procs)     PROCS=1 ;;
     --verbose)   VERBOSE=1 ;;
     -h|--help)
       grep -E '^#( |$)' "$0" | sed 's/^# \{0,1\}//'
@@ -325,9 +336,82 @@ postgres_vacuum() {
   log_freed "postgres_vacuum" 0
 }
 
+# ------------------------------------------------ stray-process sweep (G15) --
+# Agent sessions leave node / python3 processes behind (a scratchpad crawl.mjs
+# ran 5.7 days — spec E7). A process is a stray when ALL of:
+#   • comm is exactly `node` or `python3` (the production next-server's comm
+#     is "next-server (v…)", so it never matches, and is also argv-excluded);
+#   • its cwd (/proc/<pid>/cwd) or argv is under /tmp/claude-*/ or
+#     */.claude/worktrees/*;
+#   • it is older than PROC_MAX_AGE_S (12 h).
+# Hard exclusions regardless of age: argv mentions next-server, server.js,
+# deploy-live.sh or /data/releases; cwd under /data/releases; this script's own
+# process tree; playwright processes younger than PROC_PLAYWRIGHT_MIN_AGE_S.
+proc_is_stray() { # proc_is_stray <pid> → sets STRAY_REASON / SKIP_REASON, returns 0 when stray
+  local pid="$1" cwd argv etimes
+  STRAY_REASON=""; SKIP_REASON=""
+  [[ "$pid" == "$$" || "$pid" == "$PPID" ]] && { SKIP_REASON="self"; return 1; }
+  cwd="$(readlink "/proc/$pid/cwd" 2>/dev/null || true)"
+  argv="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)"
+  etimes="$(ps -o etimes= -p "$pid" 2>/dev/null | tr -d ' ' || true)"
+  [[ "$etimes" =~ ^[0-9]+$ ]] || { SKIP_REASON="gone"; return 1; }
+  case "$argv" in
+    *next-server*|*"server.js"*|*deploy-live.sh*|*/data/releases/*) SKIP_REASON="protected argv"; return 1 ;;
+  esac
+  case "$cwd" in
+    /data/releases/*) SKIP_REASON="protected cwd"; return 1 ;;
+  esac
+  local scoped=0
+  case "$cwd" in
+    /tmp/claude-*|*/.claude/worktrees/*) scoped=1 ;;
+  esac
+  case "$argv" in
+    */tmp/claude-*|*/.claude/worktrees/*) scoped=1 ;;
+  esac
+  [[ $scoped -eq 1 ]] || { SKIP_REASON="outside agent scope"; return 1; }
+  if [[ "$argv" == *playwright* || "$argv" == *ms-playwright* ]]; then
+    (( etimes < PROC_PLAYWRIGHT_MIN_AGE_S )) && { SKIP_REASON="playwright < 2h"; return 1; }
+  fi
+  (( etimes >= PROC_MAX_AGE_S )) || { SKIP_REASON="younger than $((PROC_MAX_AGE_S / 3600))h (${etimes}s)"; return 1; }
+  STRAY_REASON="age=${etimes}s cwd=${cwd:-?} argv=$(printf '%s' "$argv" | head -c 160)"
+  return 0
+}
+
+proc_sweep() {
+  local pids pid killed=0 scanned=0 listed=0
+  pids="$(pgrep -u "$(id -u)" -x node 2>/dev/null || true) $(pgrep -u "$(id -u)" -x python3 2>/dev/null || true)"
+  for pid in $pids; do
+    scanned=$((scanned + 1))
+    if ! proc_is_stray "$pid"; then
+      [[ $VERBOSE -eq 1 ]] && log "proc_sweep: keep pid=$pid ($SKIP_REASON)"
+      continue
+    fi
+    listed=$((listed + 1))
+    if [[ $DRY_RUN -eq 1 ]]; then
+      log "proc_sweep: DRY-RUN would kill pid=$pid $STRAY_REASON"
+      continue
+    fi
+    if kill -TERM "$pid" 2>/dev/null; then
+      sleep 2
+      kill -0 "$pid" 2>/dev/null && kill -KILL "$pid" 2>/dev/null || true
+      killed=$((killed + 1))
+      log "proc_sweep: killed pid=$pid $STRAY_REASON"
+    else
+      log "proc_sweep: kill failed pid=$pid (already gone?)"
+    fi
+  done
+  log "proc_sweep: scanned=${scanned} stray=${listed} killed=${killed} max_age_s=${PROC_MAX_AGE_S}"
+}
+
 # --------------------------------------------------------------- main flow --
 
-log "==== server-cleanup start dry_run=${DRY_RUN} disk_only=${DISK_ONLY} verbose=${VERBOSE} ===="
+log "==== server-cleanup start dry_run=${DRY_RUN} disk_only=${DISK_ONLY} procs=${PROCS} verbose=${VERBOSE} ===="
+
+# The process sweep is independent of disk pressure — run it first so a
+# --disk-only tick that finds the disk healthy still sweeps.
+if [[ $PROCS -eq 1 ]]; then
+  proc_sweep || log "proc_sweep: returned non-zero (continuing)"
+fi
 
 if [[ $DISK_ONLY -eq 1 ]]; then
   used_pct=$(disk_used_pct || echo 0)

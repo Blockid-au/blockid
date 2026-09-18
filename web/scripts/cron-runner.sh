@@ -31,8 +31,12 @@ if command -v flock >/dev/null 2>&1; then
     exit 0
   fi
 fi
-# Parse optional --timeout
+# Parse optional --timeout (seconds the endpoint may run; default 60 → 90 s
+# watchdog). G15-R3.5: honoured up to TIMEOUT_MAX_S=600 — several jobs declare
+# --timeout 300 and must not be clipped; anything higher is clamped so one
+# runaway endpoint can never hold a per-job lock across many cron ticks.
 TIMEOUT=60
+TIMEOUT_MAX_S=600
 shift
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -40,11 +44,17 @@ while [ $# -gt 0 ]; do
     *) shift ;;
   esac
 done
+case "$TIMEOUT" in
+  ''|*[!0-9]*) TIMEOUT=60 ;;
+esac
+[ "$TIMEOUT" -lt 1 ] && TIMEOUT=60
+[ "$TIMEOUT" -gt "$TIMEOUT_MAX_S" ] && TIMEOUT=$TIMEOUT_MAX_S
 
 # Overall watchdog: hard-kill this process tree so a hung curl+retry can never
 # block the next cron tick. Sized from --timeout (curl budget + 30 s for the
 # retry/Telegram tail) — a fixed 90 s used to kill every cron that legitimately
 # ran longer (evaluation-batch-runner, report pipelines with --timeout 300).
+# Ceiling: 600 + 30 s.
 WATCHDOG_S=$((TIMEOUT + 30))
 ( sleep "$WATCHDOG_S" && kill -TERM -$$ 2>/dev/null ) &
 WATCHDOG_PID=$!
