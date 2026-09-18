@@ -737,3 +737,15 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # erased in teardown. Summary → content/reports/live-qa-latest.json.
 # Sunday 07:00 UTC, after the Sunday data jobs. Remove this line to stop.
 0 7 * * 0 cd /home/dovanlong/blockid.au/web && LIVE_QA_ALLOW_DB=1 LIVE_QA_ELEVATE=1 bash scripts/qa-live.sh >> /tmp/blockid-live-qa.log 2>&1
+
+# G15-R2 (2026-09-18) — observability crons. Plain node (no cron-runner, own
+# pid locks in /tmp/blockid-{error-digest,latency-sample}.lock). Both exit 0
+# unless they crash; both write only under web/content/reports + /data/logs.
+#   error-digest    parses /data/logs/blockid-production.log from a byte offset
+#                   → error-digest.jsonl + Telegram (new/spike/critical), then
+#                   size-rotates the log (copy-truncate ≥ 50 MB, keep 14).
+#   latency-sample  tails /var/log/nginx/access.log (app user is in `adm`)
+#                   → latency.jsonl + Telegram after 3 windows over SLO.
+# Docs: docs/ops/slo.md · docs/ops/crontab-setup.md § G15-R2.
+*/10 * * * * cd /home/dovanlong/blockid.au/web && node scripts/error-digest.mjs >> /data/logs/blockid-error-digest.log 2>&1; bash scripts/rotate-production-log.sh >> /data/logs/blockid-error-digest.log 2>&1
+*/10 * * * * cd /home/dovanlong/blockid.au/web && node scripts/latency-sample.mjs >> /data/logs/blockid-latency.log 2>&1

@@ -123,9 +123,10 @@ if [ "$FAILS" -eq 3 ]; then
   CURRENT_LINK="$DEPLOY_DIR/.next-current"
   if [ -L "$CURRENT_LINK" ] && [ -f "$(readlink -f "$CURRENT_LINK")/server.js" ]; then
     RELEASE_DIR="$(readlink -f "$CURRENT_LINK")"
-    NEW_LOG="/tmp/blockid-production.log"
+    NEW_LOG="/data/logs/blockid-production.log"   # G15-R2 log home (/tmp path is a symlink)
+    [ -w /data/logs ] || NEW_LOG="/tmp/blockid-production.log"
     (cd "$RELEASE_DIR" && nohup env PORT=4001 HOSTNAME=0.0.0.0 NODE_ENV=production \
-      node server.js > "$NEW_LOG" 2>&1 &
+      node server.js >> "$NEW_LOG" 2>&1 &
       echo $! > "$PID_FILE") &
     log "Spun up replacement next-server from $RELEASE_DIR"
   else

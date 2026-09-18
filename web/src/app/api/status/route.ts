@@ -4,6 +4,9 @@
 //   1. Internal /api/healthz probe (localhost, 2s timeout — graceful fallback).
 //   2. Tail of web/content/reports/deploy-log.jsonl (last deploy).
 //   3. Tail of web/content/reports/cron-health.jsonl (per-cron 24h stats).
+//   4. G15-R2 v2 extras from lib/status (errors_1h, ai, queues, backups_detail,
+//      slo.latency_p95_ms, crons_failed_24h) — cached 60 s, every section
+//      null-safe when its report file is missing.
 //
 // Always returns HTTP 200 — the aggregate `ok` flag communicates degraded
 // state. No auth. No PII. Safe for public consumption.
@@ -23,6 +26,8 @@ import { readLastReportProvider, type LastReportProvider } from "@/lib/ai/last-r
 import { readTractionStatus, type TractionStatus } from "@/lib/traction/status";
 import { readSviBacktestStatus, type SviBacktestStatus } from "@/lib/backtest/latest";
 import { getAIQueueDepth } from "@/lib/ai-client";
+import { publicStatusExtras, readStatusExtras, type PublicStatusExtras, type StatusExtras } from "@/lib/status";
+import type { LatencyP95 } from "@/lib/status/slo";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
@@ -80,7 +85,7 @@ type PublicStatusResponse = {
   git_sha: string;
   updated_at: string;
   services: Array<Pick<ServiceRow, "name" | "status">>;
-  slo: { uptime_pct_24h?: number };
+  slo: { uptime_pct_24h?: number; latency_p95_ms?: LatencyP95 | null };
   last_deploy: Pick<DeployRow, "ts" | "gates_passed" | "gates_expected">;
   /**
    * G14-S33 — freshness of content/reports/traction-snapshot.json (daily
@@ -96,6 +101,16 @@ type PublicStatusResponse = {
    * the numbers themselves.
    */
   svi_backtest: SviBacktestStatus;
+  /**
+   * G15-R2 — redacted v2 sections (lib/status publicStatusExtras): error-class
+   * counts with path/host-free text, provider states, queue depths, backup
+   * timestamps, failed-cron names + counts. No error detail, no reasons.
+   */
+  errors_1h: PublicStatusExtras["errors_1h"];
+  ai: PublicStatusExtras["ai"];
+  queues: PublicStatusExtras["queues"];
+  backups_detail: PublicStatusExtras["backups_detail"];
+  crons_failed_24h: PublicStatusExtras["crons_failed_24h"];
 };
 
 /** Full payload — Bearer STATUS_FULL_TOKEN (or CRON_SECRET) only. */
@@ -111,6 +126,8 @@ type StatusResponse = {
     p95_ms?: number;
     disk_pct?: number;
     mem_pct?: number;
+    /** G15-R2 — per route class from content/reports/latency.jsonl (null until sampled / no timing format). */
+    latency_p95_ms?: LatencyP95 | null;
   };
   last_deploy: DeployRow;
   crons: CronRow[];
@@ -176,6 +193,22 @@ type StatusResponse = {
   traction: TractionStatus;
   /** G14-S39 — see PublicStatusResponse.svi_backtest. */
   svi_backtest: SviBacktestStatus;
+  /**
+   * G15-R2 — v2 observability sections (lib/status/*, cached 60 s):
+   *   errors_1h        top-5 error classes from the 10-min error digest
+   *   ai               provider cooldowns / budget exhaustion (R3 snapshot),
+   *                    model-probe counters, fully_degraded reports in 24 h
+   *   queues           email / webhook / report-order backlogs (head counts)
+   *   backups_detail   local / offsite / restore-drill timestamps (the
+   *                    one-word `backups` verdict above is unchanged)
+   *   crons_failed_24h failed endpoints with count + redacted last error
+   *                    (`crons` catalogue above is unchanged)
+   */
+  errors_1h: StatusExtras["errors_1h"];
+  ai: StatusExtras["ai"];
+  queues: StatusExtras["queues"];
+  backups_detail: StatusExtras["backups_detail"];
+  crons_failed_24h: StatusExtras["crons_failed_24h"];
 };
 
 // Whether the caller is trusted enough to see the full internal telemetry
@@ -227,6 +260,11 @@ const EMPTY_DEPLOY: DeployRow = {
   gates_passed: 0,
   gates_expected: 0,
 };
+
+// G15-R2 fallbacks when lib/status itself is unavailable (never expected —
+// every reader inside is null-safe — but the route must not 500).
+const NULL_QUEUES: StatusExtras["queues"] = { email_queued: null, email_failed_24h: null, webhook_failed_24h: null, report_orders_pending: null };
+const NULL_BACKUPS_DETAIL: StatusExtras["backups_detail"] = { local_last_ok_at: null, local_age_h: null, offsite_status: "never", offsite_last_at: null, restore_drill_last_ok_at: null };
 
 // SLO thresholds derived from docs/IMPLEMENTATION-PLAN-v2.md §13.3.
 const P95_TARGET_MS = 800;
@@ -472,7 +510,7 @@ function safeQueueDepth(): ReturnType<typeof getAIQueueDepth> {
 // ---------- Handler ----------
 
 export async function GET(): Promise<Response> {
-  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens, ga4Events, backups, schemaMigrations, aiProviders, aiLastReport, traction, sviBacktest] = await Promise.all([
+  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens, ga4Events, backups, schemaMigrations, aiProviders, aiLastReport, traction, sviBacktest, extras] = await Promise.all([
     fetchHealthz(2000),
     summariseCrons().catch(() => [] as CronRow[]),
     readGitShaFallback(),
@@ -487,7 +525,9 @@ export async function GET(): Promise<Response> {
     readLastReportProvider(REPO_ROOT).catch(() => null),
     readTractionStatus(REPO_ROOT).catch(() => "missing" as const),
     readSviBacktestStatus(REPO_ROOT).catch(() => "missing" as const),
+    readStatusExtras(REPO_ROOT).catch(() => null),
   ]);
+  const publicExtras = extras ? publicStatusExtras(extras) : null;
 
   const last_deploy = await readLastDeploy(fallbackSha).catch(() => ({
     ...EMPTY_DEPLOY,
@@ -501,6 +541,7 @@ export async function GET(): Promise<Response> {
     p95_ms: healthz?.checks.p95_ms,
     disk_pct: healthz?.checks.disk_pct,
     mem_pct: healthz?.checks.mem_pct,
+    latency_p95_ms: extras?.latency ? extras.latency.latency_p95_ms : null,
   };
 
   // Aggregate ok: all known services ok AND no SLO breach.
@@ -523,7 +564,7 @@ export async function GET(): Promise<Response> {
     git_sha: fallbackSha,
     updated_at: new Date().toISOString(),
     services: services.map((s) => ({ name: s.name, status: s.status })),
-    slo: { uptime_pct_24h: slo.uptime_pct_24h },
+    slo: { uptime_pct_24h: slo.uptime_pct_24h, latency_p95_ms: slo.latency_p95_ms },
     last_deploy: {
       ts: last_deploy.ts,
       gates_passed: last_deploy.gates_passed,
@@ -531,6 +572,11 @@ export async function GET(): Promise<Response> {
     },
     traction,
     svi_backtest: sviBacktest,
+    errors_1h: publicExtras?.errors_1h ?? null,
+    ai: publicExtras?.ai ?? null,
+    queues: publicExtras?.queues ?? NULL_QUEUES,
+    backups_detail: publicExtras?.backups_detail ?? NULL_BACKUPS_DETAIL,
+    crons_failed_24h: publicExtras?.crons_failed_24h ?? [],
   };
 
   const fullBody: StatusResponse = {
@@ -552,6 +598,11 @@ export async function GET(): Promise<Response> {
     ai_last_report_provider: aiLastReport,
     traction,
     svi_backtest: sviBacktest,
+    errors_1h: extras?.errors_1h ?? null,
+    ai: extras?.ai ?? null,
+    queues: extras?.queues ?? NULL_QUEUES,
+    backups_detail: extras?.backups_detail ?? NULL_BACKUPS_DETAIL,
+    crons_failed_24h: extras?.crons_failed_24h ?? [],
   };
 
   return NextResponse.json(trusted ? fullBody : publicBody, {

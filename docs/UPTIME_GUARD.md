@@ -37,7 +37,7 @@ That left ~10 minutes of potential silent downtime between guardian runs. The up
 ## What to do if `uptime-watcher` fires
 
 1. Open `/tmp/blockid-uptime.log` for the timeline of fails + actions taken
-2. If state file shows `last_action: restart_attempted`, check `/tmp/blockid-production.log` for the new process crash log
+2. If state file shows `last_action: restart_attempted`, check `/data/logs/blockid-production.log` (`/tmp/blockid-production.log` is a symlink to it) for the new process crash log
 3. If `last_action: rollback_attempted`, check `/tmp/blockid-rollback.log`
 4. After confirming root cause, fix and redeploy. The watcher resets state on first 200 OK.
 
