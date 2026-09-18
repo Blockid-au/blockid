@@ -477,3 +477,45 @@ Every wrapper accepts `--dry-run` — logs one `tick_start` row (with
 node scripts/cron/atlassian-goal-loop.mjs --dry-run
 node scripts/cron/ux-ia-goal-loop.mjs --dry-run
 ```
+
+## G15-R2 — error digest + latency sampler (2026-09-18)
+
+Two plain-node observability crons (no `cron-runner.sh`; each takes its own pid
+lock in `/tmp/blockid-error-digest.lock` / `/tmp/blockid-latency-sample.lock`).
+Spec: `docs/plans/reliability-2026-09-18.md` § 3 R2; targets and runbook:
+`docs/ops/slo.md`.
+
+| Script | Reads | Writes | Alerts |
+|---|---|---|---|
+| `scripts/error-digest.mjs` | `/data/logs/blockid-production.log` from the byte offset in `/data/logs/.error-digest.offset` (offset > size ⇒ rotated ⇒ restart at 0) | `content/reports/error-digest.jsonl` (`{ts, window_min, total, classes:[{tag,msg,count,first_seen}]}`), `error-digest-state.json` (7-day class memory) | Telegram (same `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` as the fleet, 30-min debounce per class): class not seen in 7 d · ≥ 5× its 24 h hourly median and ≥ 10 lines · any `fully_degraded` / `AIBudgetExhaustedError` / `permission denied` line |
+| `scripts/latency-sample.mjs` | tail of `/var/log/nginx/access.log` (+ `.1` right after logrotate) | `content/reports/latency.jsonl` (`{ts, window_min, classes:{name:{n,p50_ms,p95_ms,err_rate_5xx}}}`), `latency-state.json` (breach streaks) | Telegram after 3 consecutive 10-min windows over a class target, re-alert hourly, one "recovered" |
+
+### Lines to install
+
+```
+*/10 * * * * cd /home/dovanlong/blockid.au/web && node scripts/error-digest.mjs >> /data/logs/blockid-error-digest.log 2>&1; bash scripts/rotate-production-log.sh >> /data/logs/blockid-error-digest.log 2>&1
+*/10 * * * * cd /home/dovanlong/blockid.au/web && node scripts/latency-sample.mjs >> /data/logs/blockid-latency.log 2>&1
+```
+
+- The rotation call runs **after** the digest so the digest consumes the tail
+  first; `rotate-production-log.sh` only acts at ≥ 50 MB (keep 14 files,
+  copy-truncate) and always keeps `/tmp/blockid-production.log` as a symlink.
+- `/data/logs` is created by the first deploy (`deploy-live.sh`) or by
+  `bash scripts/rotate-production-log.sh --ensure`; mode 0750.
+- `latency-sample` needs the app user in `adm` (already true: `id` shows
+  `4(adm)`). If a rebuilt server loses it the script logs `skipped: no_access`
+  and exits 0 — fix with `sudo usermod -aG adm dovanlong`.
+- p50/p95 stay `null` until the `blockid_timing` `log_format` from
+  `docs/ops/nginx/blockid-live.conf` is installed and nginx reloaded; the 5xx
+  rate works with the stock `combined` format.
+
+### Dry-run smoke
+
+```bash
+cd web && node scripts/error-digest.mjs --dry-run      # prints classes, writes nothing, no Telegram
+cd web && node scripts/latency-sample.mjs --dry-run    # prints per-class n / p50 / p95 / 5xx
+```
+
+Surfaces: `/api/status` → `errors_1h`, `ai`, `queues`, `backups_detail`,
+`slo.latency_p95_ms`, `crons_failed_24h` (full detail with the bearer,
+redacted counts/states anonymously) and the public `/status` page.
