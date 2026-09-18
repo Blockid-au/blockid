@@ -343,6 +343,29 @@ describe("happy path — everything healthy", () => {
     expect(body.version).toBe("v.healthz");
   });
 
+  // G15-R1 — deploy-live.sh gate 11 fetches 127.0.0.1:4001/api/status and
+  // compares `git_sha` with the value it stamped into .deploy-manifest.json
+  // before gate 1; the key must sit right after `version`, come from the
+  // manifest in cwd (NOT from healthz), and be "" when the manifest is absent.
+  it("git_sha is read from .deploy-manifest.json in cwd and placed right after version", async () => {
+    fsState.files.set(
+      DEPLOY_MANIFEST,
+      JSON.stringify({ git_sha: "9e87e1520abc", git_tree_dirty: false, merge_in_progress: false, version: "v.mf" }),
+    );
+    const { body } = await callGet();
+    const raw = body as unknown as Record<string, unknown>;
+    expect(raw.git_sha).toBe("9e87e1520abc");
+    expect(raw.git_sha).not.toBe("abcdef1"); // healthz.git_sha is not the source of truth
+    const keys = Object.keys(raw);
+    expect(keys.indexOf("git_sha")).toBe(keys.indexOf("version") + 1);
+  });
+
+  it('git_sha is "" (never undefined) when .deploy-manifest.json is unreadable', async () => {
+    fsState.errors.set(DEPLOY_MANIFEST, new Error("ENOENT"));
+    const { body } = await callGet();
+    expect((body as unknown as Record<string, unknown>).git_sha).toBe("");
+  });
+
   it("SLO fields are hydrated from healthz.checks", async () => {
     const { body } = await callGet();
     expect(body.slo.p95_ms).toBe(220);
@@ -891,6 +914,9 @@ describe("public payload redaction", () => {
     const { body, headers } = await callGet();
     expect(body.last_deploy.sha).toBeUndefined();
     expect(body.last_deploy.release_id).toBeUndefined();
+    // G15-R1: the manifest git_sha IS on the public payload (gate 11 reads it
+    // over loopback without a bearer; /api/healthz already exposes it).
+    expect(typeof (body as unknown as Record<string, unknown>).git_sha).toBe("string");
     expect(body.slo.disk_pct).toBeUndefined();
     expect(body.slo.mem_pct).toBeUndefined();
     expect(body.slo.p95_ms).toBeUndefined();
@@ -905,7 +931,7 @@ describe("public payload redaction", () => {
     expect(raw).not.toHaveProperty("ai_providers");
     expect(raw).not.toHaveProperty("ai_queue_depth");
     expect(Object.keys(raw).sort()).toEqual(
-      ["last_deploy", "ok", "services", "slo", "svi_backtest", "traction", "updated_at", "version"],
+      ["git_sha", "last_deploy", "ok", "services", "slo", "svi_backtest", "traction", "updated_at", "version"],
     );
     expect(typeof raw.ok).toBe("boolean");
     expect(typeof raw.version).toBe("string");

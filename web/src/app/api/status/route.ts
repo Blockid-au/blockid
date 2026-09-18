@@ -58,8 +58,9 @@ type CronRow = {
 /**
  * Anonymous payload (release QA-4 P2-f): enough for a status widget or an
  * uptime monitor — `ok`, `version`, per-service up/down, the 24h uptime
- * figure and the last deploy's time/gate count. Nothing that describes the
- * fleet or the operator posture: no git sha / release id, no host resource
+ * figure, the manifest `git_sha` (G15-R1 — already public via /api/healthz)
+ * and the last deploy's time/gate count. Nothing that describes the
+ * fleet or the operator posture: no deploy-row sha / release id, no host resource
  * percentages, no cron catalogue, and none of the S20-A / S23-A / S23-B
  * internal-telemetry verdicts (`audit_chain`, `oauth_tokens_sealed`,
  * `ga4_events`) — those keys are ABSENT, not blanked, for an untrusted caller.
@@ -67,6 +68,16 @@ type CronRow = {
 type PublicStatusResponse = {
   ok: boolean;
   version: string;
+  /**
+   * G15-R1 — the commit the live bundle was built from, read from
+   * `.deploy-manifest.json` in the server's cwd (releases/<BUILD_ID>), which
+   * deploy-live.sh stamps BEFORE gate 1 and copies into the release dir.
+   * Gate 11 compares this against the stamped value ("verify the live
+   * bundle") — a mismatch rolls the deploy back. `""` when no manifest.
+   * Public on purpose: /api/healthz has always exposed the same sha and the
+   * repo is public; `last_deploy.sha` / `release_id` stay trusted-only.
+   */
+  git_sha: string;
   updated_at: string;
   services: Array<Pick<ServiceRow, "name" | "status">>;
   slo: { uptime_pct_24h?: number };
@@ -91,6 +102,8 @@ type PublicStatusResponse = {
 type StatusResponse = {
   ok: boolean;
   version: string;
+  /** G15-R1 — see PublicStatusResponse.git_sha. */
+  git_sha: string;
   updated_at: string;
   services: ServiceRow[];
   slo: {
@@ -507,6 +520,7 @@ export async function GET(): Promise<Response> {
   const publicBody: PublicStatusResponse = {
     ok: servicesOk && sloOk,
     version: healthz?.version ?? fallbackVersion,
+    git_sha: fallbackSha,
     updated_at: new Date().toISOString(),
     services: services.map((s) => ({ name: s.name, status: s.status })),
     slo: { uptime_pct_24h: slo.uptime_pct_24h },
@@ -522,6 +536,7 @@ export async function GET(): Promise<Response> {
   const fullBody: StatusResponse = {
     ok: servicesOk && sloOk,
     version: healthz?.version ?? fallbackVersion,
+    git_sha: fallbackSha,
     updated_at: new Date().toISOString(),
     services,
     slo,
