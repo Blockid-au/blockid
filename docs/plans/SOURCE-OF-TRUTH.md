@@ -316,6 +316,13 @@
 
 ---
 
+### G15 — Reliability: ship safety · observability · data safety · AI resilience
+- **Source:** [`docs/plans/reliability-2026-09-18.md`](./reliability-2026-09-18.md) (evidence E1–E8, lanes R1–R3, acceptance).
+- **Opened:** 2026-09-18 — founder direction "tập trung reliability" after G14 closed. Evidence: 25 failed deploys / 14 d incl. lock races and a mid-merge build; a 120 s AI ladder → Cloudflare 524; dead `AI_GATEWAY_URL`/`BILLING_URL` pointers (commented out 2026-09-18); **off-site DB backup failing nightly** (founder must run `scripts/db-backup-offsite-auth.mjs`), no restore ever exercised; `/tmp` production log, no error digest / latency / status sections; test flakes under load; stray agent processes.
+- **Status:** **R1 ∥ R2 ∥ R3 in worktrees 2026-09-18** — R1 ship safety (manifest truth stamped at build start + dirty-tree refusal + live-bundle SHA check, `--wait` lock etiquette for deploy and live-qa, vitest pdf timeouts + flake report, live-qa 429/52x handling, rollback dry-run + `docs/ops/deploy.md`) · R2 observability (`/data/logs` rotation, `error-digest` + `latency-sample` crons with Telegram rules, `/api/status` v2: `git_sha`, `errors_1h`, `ai`, `queues`, `backups`, `slo.latency_p95_ms`, `crons`; `docs/ops/slo.md`) · R3 data safety + AI resilience (weekly `restore-drill` into a scratch DB with row-count parity, off-site failure once-a-day alert + founder command, `getProviderHealthSnapshot()`, report-pipeline degraded counter, stray-process sweep, cron-runner timeout ceiling 600 s).
+- **Next action:** merge → full vitest → deploy → elevated live-qa → read-only review → fixes → install the two cron lines + run the first restore drill by hand → close.
+- **Blocker:** none engineering. Founder-only: Drive quota auth for off-site backups (E4).
+
 ## 2. Requirements Register
 
 | ID | Source | Category | Status | Owner (skill) | Ship commit |
@@ -603,6 +610,7 @@ the sentinels is overwritten._
 
 | When | Who | What |
 |---|---|---|
+| 2026-09-18 | Claude (G15 open) | Founder: focus reliability → G15 opened (`reliability-2026-09-18.md`), three worktree lanes R1 ship safety / R2 observability / R3 data safety + AI resilience launched; dead gateway/billing env pointers commented out; stray 5.7-day crawler killed. |
 | 2026-09-18 | Claude (plan review) | Post-G14 review: all engineering goals G1–G14 closed or founder-blocked; G4 ranked backlog verified shipped in code, G8 closed (`/docs/unlocks` live); ROADMAP §4 legacy rows reconciled (ESOP UI, feedback, nurture D1/D4/D9 shipped). Live: 100 % uptime 24 h, 12/12, elevated live-qa 177/0. Traction unchanged: 66 users · 0 MRR · 0 trials — next goal must be conversion/GTM enablement, not features. |
 | 2026-09-17 | Claude (G14 review) | Review deploy `036ba5c2e`: callAI wall-clock budget (interactive max(60 s, timeoutMs) across provider + model ladders), funding narrative 55 s deadline — fixes the Cloudflare 524 on POST /api/funding/report; S38 live via the peer deploy; elevated live-qa 177/0 — G14 fully live and clean. |
 | 2026-09-17 | Claude (G14 batch 2 + review) | G14-S37 + S40 deployed (`bb692271d`, 0408/0410 applied, external-signals cron installed); post-ship review fix `7900bcb5c`: intake inbox quota-limit upgrade link, live-qa evaluator seat elevated to investor_angel, audit hmac warn-once. S38 still unmerged (peer worktree). |
