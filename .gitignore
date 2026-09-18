@@ -82,3 +82,6 @@ web/content/reports/retention-history.jsonl
 # Account erasure operator log — one line per --write run of
 # scripts/db/erase-account.mjs (S24-B), counts only. Literal filename.
 web/content/reports/erasure-history.jsonl
+
+# Off-site backup Telegram debounce (G15-R3.2) — written by scripts/db-backup-offsite.mjs. Literal filename.
+web/content/reports/offsite-alert-state.json

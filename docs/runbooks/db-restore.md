@@ -10,11 +10,12 @@ Shipped in release QA-3 P0-4 (2026-09-12). Pipeline:
 |---|---|---|---|
 | Dump | `scripts/db-backup.sh` | daily 02:20 | `/data/backups/db-<ts>.dump.gz` + `.sha256`; Sundays hard-linked to `/data/backups/weekly/` |
 | Off-site | `scripts/db-backup-offsite.mjs` | daily 02:40 | Google Drive `BlockID Evidence Vault/blockid-db-backups/` (30-day retention) |
-| Drill | `scripts/db-restore-test.sh` | Sun 03:00 | scratch DB `blockid_restore_test`, row-count sanity, dropped |
+| Drill (legacy) | `scripts/db-restore-test.sh` | Sun 03:00 | scratch DB `blockid_restore_test`, 3-table row-count sanity, dropped |
+| **Restore drill** | `scripts/db/restore-drill.sh` | Sun 03:30 | scratch DB `blockid_restore_drill`, 12-table parity ≥ 95 % vs live + audit-chain head, dropped — § 9 |
 | Signal | `/api/status` → `backups` | live | `ok` (dump < 26 h and drill < 8 d) / `stale` / `missing` |
 
 Every run appends one JSON line to `web/content/reports/backup-health.jsonl`
-(`job: db-backup | offsite | restore_test`) and a `cron-health.jsonl` row, and
+(`job: db-backup | offsite | restore_test | restore-drill`) and a `cron-health.jsonl` row, and
 posts to Telegram on failure (`scripts/lib/ops-alert.sh`, token from `web/.env`).
 Retention: 14 daily + 8 weekly on `/data` (295 GB volume), 30 days in Drive.
 
@@ -211,10 +212,39 @@ either. Pick ONE (founder, admin@blockid.au):
 | B. Shared Drive — create one in Workspace, add the service account as *Content manager*, set `GOOGLE_DRIVE_SHARED_DRIVE_ID=<driveId>` (or move the vault folder there) | Workspace Business Standard+ | no quota issue for the SA |
 | C. Domain-wide delegation — Admin console → Security → API controls → add the SA client id with scope `https://www.googleapis.com/auth/drive`, set `GOOGLE_DRIVE_IMPERSONATE=admin@blockid.au` | Workspace super-admin | SA acts as the founder |
 
-Until one is done the 02:40 cron fails loudly every day (Telegram + `offsite`
-fail rows) — that is intentional; do not silence it. Verify afterwards with
+Until one is done the 02:40 cron fails every day and records it — that is
+intentional; do not silence it. Verify afterwards with
 `node --env-file=web/.env scripts/db-backup-offsite.mjs` (prints the Drive
 listing with file ids) and check `/api/status`.
+
+### 7.1 What a failure does and does not do (G15-R3.2, 2026-09-18)
+
+`scripts/db-backup-offsite.mjs` only **reads** `/data/backups`. A Drive
+failure therefore never touches the local 14-daily + 8-weekly retention
+(`db-backup.sh` owns that) — the local dumps and the weekly restore drill (§ 9)
+remain the safety net. On failure the script:
+
+1. Classifies the error (`scripts/db-backup-offsite-alert.mjs`):
+   `no_drive_quota` / `credentials` (founder-only) · `network` · `local_backup` · `other`.
+2. Appends a `{job:"offsite", status:"fail"}` row to `backup-health.jsonl` with
+   `offsite_status: "founder_action_required"` (founder-only classes) or `"fail"`,
+   `error_class`, `local_retention: "untouched"`, and — for founder-only classes —
+   the exact command in `founder_command`:
+
+   ```bash
+   node --env-file=web/.env scripts/db-backup-offsite-auth.mjs
+   ```
+
+   Sign in as admin@blockid.au, paste the redirected URL, add the printed
+   `GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN=` to `web/.env`, re-run the off-site script.
+3. Posts to Telegram **at most once per 24 h per error class** (first failure
+   alerts immediately; a new error class alerts immediately; the same class is
+   suppressed until 24 h have passed — `alerted` / `alerts_suppressed_since_last`
+   on the row say which). State: `web/content/reports/offsite-alert-state.json`
+   (gitignored; deleted on the next success so a fresh failure alerts again).
+   `/api/status.backups.offsite_status` shows the latest value.
+
+A successful run writes `offsite_status: "ok"` on its row.
 
 ## 8. Known gaps
 
@@ -226,3 +256,58 @@ listing with file ids) and check `/api/status`.
 * The pre-QA-3 legacy dump `/data/backups/db-20260720T214508Z.sql.gz` is
   plain-SQL format; restore it with `gunzip -c … | psql -U supabase_admin -d <db>`
   if ever needed, then delete it.
+
+## 9. Restore drill (weekly, G15-R3.1, 2026-09-18)
+
+`scripts/db/restore-drill.sh` proves — every Sunday 03:30 UTC and on demand —
+that the newest dump restores **and is complete**. It supersedes the 3-table
+`db-restore-test.sh` (kept at 03:00 until one full cycle has passed).
+
+What it does (own flock `/tmp/blockid-restore-drill.lock`, `set -euo pipefail`):
+
+1. Newest `/data/backups/db-*.dump.gz`, `sha256sum -c` on the sidecar.
+2. `dropdb --if-exists` + `createdb blockid_restore_drill` inside `supabase-db`
+   (same cluster → same roles / extensions; the live `postgres` DB is only read).
+3. `gunzip -c | pg_restore -U supabase_admin -d blockid_restore_drill --no-owner --no-privileges --no-comments`.
+   Same-cluster Supabase restores emit a handful of expected errors (pre-existing
+   `public` / `extensions` schemas, event triggers, `supabase_vault`, `pg_net`,
+   already-installed extensions, missing roles). `scripts/db/restore-drill-core.mjs`
+   allow-lists those (`BENIGN_RESTORE_ERROR_PATTERNS`); any other `pg_restore: error:`
+   line fails the drill. The 2026-09-18 run had **0** error lines as `supabase_admin`.
+4. `count(*)` of 12 key tables in the drill DB and in live `postgres`:
+   `app_users, projects, svi_snapshots, evaluations, funding_reports, audit_events,
+   credit_transactions, report_orders, webhook_endpoints, intake_submissions,
+   external_signals, schema_migrations`. **PASS** when every drill count is
+   ≥ 95 % of live (the dump is ≤ 24 h old, so live may have grown) and the
+   drill's newest `audit_events` row has non-null `prev_hash` **and** `curr_hash`
+   (the hash chain survived the round trip). A dump older than 36 h fails the
+   drill — that is a `db-backup` problem.
+5. `DROP DATABASE blockid_restore_drill WITH (FORCE)` — on every exit path (trap).
+6. Appends one row to `backup-health.jsonl`:
+
+   ```json
+   {"ts":"…","job":"restore-drill","status":"ok|fail","dump":"/data/backups/db-….dump.gz","file":"…","dump_age_h":3.2,
+    "scratch_db":"blockid_restore_drill","tables":{"app_users":{"live":172,"drill":172,"pct":100},…},
+    "audit_chain_head":"ok","pg_restore_exit":0,"pg_restore_errors":0,"pg_restore_benign":0,"duration_ms":15616,"error":"…"}
+   ```
+
+   plus a `cron-health.jsonl` row (`endpoint: db-restore-drill`) and a Telegram
+   alert on failure (`scripts/lib/ops-alert.sh`; token read from `web/.env`,
+   never logged). `/api/status.backups` treats a successful `restore-drill` row
+   exactly like `restore_test` (< 8 d → `ok`).
+
+Run it by hand:
+
+```bash
+bash scripts/db/restore-drill.sh --dry-run        # prints the plan, restores nothing
+bash scripts/db/restore-drill.sh                  # ~16 s for a 22 MB dump (2026-09-18)
+bash scripts/db/restore-drill.sh --file /data/backups/weekly/db-weekly-….dump.gz --min-pct 90
+tail -1 web/content/reports/backup-health.jsonl | python3 -m json.tool
+```
+
+If it fails: read the `error` field (it lists every reason), inspect
+`/tmp/blockid-restore-drill.<pid>.err` if the failure was a non-benign
+`pg_restore` error, and do **not** clear the failure — a failing drill means the
+newest backup would not save you; take an emergency dump (§ 0) and fix the
+backup first. The verdict logic is unit-tested in
+`scripts/db/restore-drill-core.test.mjs`.
