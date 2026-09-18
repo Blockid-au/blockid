@@ -59,6 +59,9 @@ vi.mock("@/lib/audit", () => ({ appendAudit: (p: unknown) => appendAuditMock(p a
 // G14-S38: the submit path enqueues `assessment.submitted` (assessor-only).
 const enqueueMock = vi.fn(async () => ({ queued: 0, endpoints: [], envelopeId: null }));
 vi.mock("@/lib/webhooks/registry", () => ({ enqueueWebhook: (...a: unknown[]) => enqueueMock(...(a as [])) }));
+// GA4 audit leftover: the submit path also emits `assessment_submitted`.
+const emitEventSafeMock = vi.fn<(i: Record<string, unknown>) => void>();
+vi.mock("@/lib/analytics/server", () => ({ emitEventSafe: (i: Record<string, unknown>) => emitEventSafeMock(i) }));
 
 import {
   FOUNDER_FORBIDDEN_FIELDS,
@@ -83,6 +86,7 @@ beforeEach(() => {
   state.seq = 1;
   appendAuditMock.mockClear();
   enqueueMock.mockClear();
+  emitEventSafeMock.mockClear();
 });
 
 describe("assessmentDraftSchema", () => {
@@ -170,6 +174,22 @@ describe("upsertAssessment — versioning", () => {
     expect(payload.dossier_url).toMatch(/\/workspace\/evaluations\/e-1$/);
     expect(opts).toEqual({ userIds: ["u-eval"], projectEndpoints: false });
     for (const forbidden of ["private_notes", "privateNotes", "shared_notes"]) expect(JSON.stringify(payload)).not.toContain(forbidden);
+  });
+
+  it("GA4 audit leftover: submit (and only submit) emits assessment_submitted server-side", async () => {
+    await upsertAssessment(CTX, { decision: "proceed", conviction: 5 });
+    expect(emitEventSafeMock).not.toHaveBeenCalled();
+    const r = await upsertAssessment(CTX, { status: "submitted" });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(emitEventSafeMock).toHaveBeenCalledTimes(1);
+    expect(emitEventSafeMock.mock.calls[0][0]).toEqual({
+      name: "assessment_submitted",
+      params: { evaluation_id: "e-1", decision: "proceed", version: 1, user_id: "u-eval" },
+      userId: "u-eval",
+      source: "server",
+      consentGranted: true,
+    });
   });
 
   it("saving after a submit creates v(n+1) pre-filled from v(n) — content carried, share state NOT carried", async () => {

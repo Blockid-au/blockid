@@ -65,20 +65,20 @@ Spec: [`docs/plans/investor-clarity-2026-09-15.md`](plans/investor-clarity-2026-
 
 ---
 
-## Phase 3.3: Investor Feedback — G14 (Wave A running — opened 2026-09-16)
+## Phase 3.3: Investor Feedback — G14 (ALL 8 SPRINTS LIVE 2026-09-17)
 
-Spec: [`docs/plans/g14-investor-feedback-2026-09-16.md`](plans/g14-investor-feedback-2026-09-16.md) (SOT § G14). Nineteen investor/judge comments after the 3-minute pitch → deck v3 (evaluator-first, brand "Startup Value Index"), pricing ladder v4, and 8 product sprints that close the credibility loop (founder feedback, program intake, verification integrity, founder execution, evaluator API, backtest, open AU data). Waves B–D gated on G13 W4/W5.
+Spec: [`docs/plans/g14-investor-feedback-2026-09-16.md`](plans/g14-investor-feedback-2026-09-16.md) (SOT § G14). Nineteen investor/judge comments after the 3-minute pitch → deck v3 (evaluator-first, brand "Startup Value Index"), pricing ladder v4, and 8 product sprints that close the credibility loop (founder feedback, program intake, verification integrity, founder execution, evaluator API, backtest, open AU data). All waves shipped 2026-09-17.
 
-- [ ] Deck v3 — `web/content/pitch/pitch-deck-v3.md` + `generate-pitch-deck-v3.ts` → 12 slides + 3-minute cut + appendix; v1/v2 decks banner-superseded; ask A$500K, pre-money A$2.5–4.0M (SAFE cap A$3.5M), use of funds 50/28/22
-- [ ] Pricing v4 — `pricing-upgrade-plan-2026-07-16.md` § v4: Fund A$999 · Intake link A$249 · Index API A$299 · Cohort 25/100 public; migration 0400; 6 Stripe mints (founder); `/pricing?persona=investor`
-- [ ] Wave A S33 — Traction snapshot + `/api/status.traction` + admin tile + `investor-update.mjs` + 8 server-side money events (GA4 `missing` → 0)
-- [ ] Wave B S35 — Program intake link `/apply/[slug]` + scored inbox + `intake.manage` (0402)
-- [ ] Wave B S36 — Confidence capped by origin (keyword ladder + upload trust hole closed), L0–L5 multiplier, reviewer queue, public `/methodology`, Verified ABN badge (0403)
-- [ ] Wave C S34 — Founder feedback letter "What investors said" (k ≥ 3, ≥ 2 orgs; ratings only) + cron + email + landing block (0401; after G13 S-D2)
-- [ ] Wave C S37 — Founder execution profile → FTV rubric override + LinkedIn PDF import + FTV chapter card (0404)
-- [ ] Wave C S38 — Evaluator API v1 (`/api/v1/evaluations*`, scopes) + OpenAPI + Slack / Affinity / Airtable destinations (0405; after S-D2 + S-R4)
-- [ ] Wave D S39 — Backtest v0 (72 comparables, Spearman ρ, bootstrap CI) → `/methodology/calibration` + `/api/status.svi_backtest` (after G13 S-R5)
-- [ ] Wave D S40 — Open AU external signals (ABR bulk, business.gov.au grants, R&DTI transparency) → evidence rows + real cohort percentile (0406)
+- [x] Deck v3 — `web/content/pitch/pitch-deck-v3.md` + `generate-pitch-deck-v3.ts` → 12 slides + 3-minute cut + appendix; v1/v2 decks banner-superseded; ask A$500K, pre-money A$2.5–4.0M (SAFE cap A$3.5M), use of funds 50/28/22 — live 2026-09-17
+- [x] Pricing v4 — `pricing-upgrade-plan-2026-07-16.md` § v4: Fund A$999 · Intake link A$249 · Index API A$299 · Cohort 25/100 public; migration 0400; 10 Stripe mints (founder) — live 2026-09-17; `/pricing?persona=investor`
+- [x] Wave A S33 — Traction snapshot + `/api/status.traction` + admin tile + `investor-update.mjs` + 8 server-side money events (GA4 `missing` → 0) — live 2026-09-17
+- [x] Wave B S35 — Program intake link `/apply/[slug]` + scored inbox + `intake.manage` (0402) — live 2026-09-17
+- [x] Wave B S36 — Confidence capped by origin (keyword ladder + upload trust hole closed), L0–L5 multiplier, reviewer queue, public `/methodology`, Verified ABN badge (0403) — live 2026-09-17
+- [x] Wave C S34 — Founder feedback letter "What investors said" (k ≥ 3, ≥ 2 orgs; ratings only) + cron + email + landing block (0401; after G13 S-D2) — live 2026-09-17
+- [x] Wave C S37 — Founder execution profile → FTV rubric override + LinkedIn PDF import + FTV chapter card (0404) — live 2026-09-17
+- [x] Wave C S38 — Evaluator API v1 (`/api/v1/evaluations*`, scopes) + OpenAPI + Slack / Affinity / Airtable destinations (0405; after S-D2 + S-R4) — live 2026-09-17
+- [x] Wave D S39 — Backtest v0 (72 comparables, Spearman ρ, bootstrap CI) → `/methodology/calibration` + `/api/status.svi_backtest` (after G13 S-R5) — live 2026-09-17
+- [x] Wave D S40 — Open AU external signals (ABR bulk, business.gov.au grants, R&DTI transparency) → evidence rows + real cohort percentile (0406) — live 2026-09-17
 
 ---
 
@@ -342,8 +342,8 @@ Full spec in plan file. Ship 2 deliverables:
 - [ ] Investor heat scoring
 - [ ] Multi-entity cap table
 - [ ] Custom branding for Growth plan
-- [ ] API access (developer portal) — evaluator API v1 + `/developers/api` tracked by **G14 S38**
-- [ ] Webhooks for enterprise integrations — signed webhooks live (S20-B); Slack / Affinity / Airtable destinations tracked by **G14 S38**
+- [x] API access (developer portal) — evaluator API v1 + `/developers/api` — live 2026-09-17 (**G14 S38**)
+- [x] Webhooks for enterprise integrations — signed webhooks live (S20-B); Slack / Affinity / Airtable destinations — live 2026-09-17 (**G14 S38**)
 - [ ] Onboarding automation
 
 ## Phase 5: Ecosystem (Q4 2026+)

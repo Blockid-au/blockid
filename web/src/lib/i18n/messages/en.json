@@ -821,5 +821,6 @@
   "execution.amount_band.250k-1m": "A$250K–1M",
   "execution.amount_band.1m-5m": "A$1M–5M",
   "execution.amount_band.5m-20m": "A$5M–20M",
-  "execution.amount_band.20m+": "A$20M+"
+  "execution.amount_band.20m+": "A$20M+",
+  "digest.why_moved.sentence": "Why it moved: evidence confidence is now capped by its source (self-declared ≤ document, connector, reviewer) and your ABN verification level (L{level}) now weights the score."
 }

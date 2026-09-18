@@ -160,10 +160,12 @@ function renderSviBlock(p: DigestPayload): string {
   } else {
     summary = "No change this week";
   }
+  const whyMoved = p.svi.whyMoved;
   return `<div style="padding:16px 24px;border-top:1px solid #e2e8f0">
     <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Startup Value Index</p>
     <p style="margin:0;font-size:28px;font-weight:700;color:${colour}">${current}<span style="font-size:14px;color:#64748b;font-weight:400"> /100</span></p>
     <p style="margin:4px 0 0;color:${colour};font-size:13px;font-weight:600">${arrow} ${escapeHtml(summary)}${previous !== null ? ` (was ${previous})` : ""}</p>
+    ${whyMoved ? `<p style="margin:8px 0 0;font-size:12px;color:#475569;">${escapeHtml(whyMoved)}</p>` : ""}
   </div>`;
 }
 
@@ -334,6 +336,7 @@ function renderText(p: DigestPayload, footer: DigestFooterOptions): string {
     } else if (p.svi.newSnapshot) {
       lines.push("  First snapshot on record.");
     }
+    if (p.svi.whyMoved) lines.push(`  ${p.svi.whyMoved}`);
     lines.push("");
   }
   if (p.aiSummary) {

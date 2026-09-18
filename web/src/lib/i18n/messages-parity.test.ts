@@ -266,3 +266,22 @@ describe("execution.* catalogue parity (en ⇄ vi) — G14-S37 founder execution
     }
   });
 });
+
+// G14-S36 F-6 leftover — the founder weekly digest's "why my score changed"
+// line (lib/digest/why-score-moved.ts) reads this key for both locales.
+describe("digest.why_moved.* catalogue parity (en ⇄ vi) — G14-S36 F-6", () => {
+  const tokens = (s: string) => (s.match(/\{[a-zA-Z]+\}/g) ?? []).sort();
+
+  it("every digest.why_moved.* key exists in both catalogues, none empty, and the {level} token matches", () => {
+    const missingInVi = enKeys("digest.why_moved.").filter((k) => !(k in VI));
+    const missingInEn = viKeys("digest.why_moved.").filter((k) => !(k in EN));
+    expect(missingInVi, "missing in vi.json").toEqual([]);
+    expect(missingInEn, "missing in en.json").toEqual([]);
+    for (const k of enKeys("digest.why_moved.")) {
+      expect(EN[k]!.trim().length, `en ${k}`).toBeGreaterThan(0);
+      expect(VI[k]!.trim().length, `vi ${k}`).toBeGreaterThan(0);
+      expect(tokens(VI[k]!), k).toEqual(tokens(EN[k]!));
+    }
+    expect(EN["digest.why_moved.sentence"]).toContain("{level}");
+  });
+});
