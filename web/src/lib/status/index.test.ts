@@ -24,6 +24,7 @@ describe("readStatusExtras", () => {
       backups_detail: { local_last_ok_at: null, local_age_h: null, offsite_status: "never", offsite_last_at: null, restore_drill_last_ok_at: null },
       latency: null,
       crons_failed_24h: [],
+      uptime: null,
     });
   });
   it("caches for 60 s per process (force bypasses)", async () => {
@@ -55,7 +56,7 @@ describe("publicStatusExtras", () => {
     expect(JSON.stringify(pub)).not.toMatch(/sk-|\/home\/|ai-gateway|Drive quota/);
   });
   it("nulls pass through", () => {
-    const pub = publicStatusExtras({ errors_1h: null, ai: null, queues: { email_queued: null, email_failed_24h: null, webhook_failed_24h: null, report_orders_pending: null }, backups_detail: { local_last_ok_at: null, local_age_h: null, offsite_status: "never", offsite_last_at: null, restore_drill_last_ok_at: null }, latency: null, crons_failed_24h: [] });
+    const pub = publicStatusExtras({ errors_1h: null, ai: null, queues: { email_queued: null, email_failed_24h: null, webhook_failed_24h: null, report_orders_pending: null }, backups_detail: { local_last_ok_at: null, local_age_h: null, offsite_status: "never", offsite_last_at: null, restore_drill_last_ok_at: null }, latency: null, crons_failed_24h: [], uptime: null });
     expect(pub.errors_1h).toBeNull();
     expect(pub.ai).toBeNull();
     expect(pub.latency_p95_ms).toBeNull();

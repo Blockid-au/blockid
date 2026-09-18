@@ -61,3 +61,4 @@ content/reports/latency.jsonl
 content/reports/latency-state.json
 content/reports/test-flakes.jsonl
 content/reports/ops-alert-email-state.json
+content/reports/watchdog-restarts.jsonl

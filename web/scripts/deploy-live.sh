@@ -509,6 +509,14 @@ fi
 # git_sha against MANIFEST_SHA — the bundle serving traffic must be this one.
 MANIFEST_FILE="$WEB_DIR/.deploy-manifest.json"
 MANIFEST_SHA="$(git -C "$WEB_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
+# G15 follow-up (2026-09-18): --skip-build promotes an EXISTING standalone, so
+# the sha that is true for the bundle is the one stamped when it was built —
+# carry it as build_sha and let gate 11 compare against that, not HEAD.
+MANIFEST_BUILD_SHA="$MANIFEST_SHA"
+if [ "${1:-}" = "--skip-build" ]; then
+  prev_build_sha="$(node -e 'try{const m=require(process.argv[1]);process.stdout.write(String(m.build_sha||m.git_sha||""))}catch{}' "$MANIFEST_FILE" 2>/dev/null || true)"
+  [ -n "$prev_build_sha" ] && MANIFEST_BUILD_SHA="$prev_build_sha"
+fi
 GIT_DIR_ABS="$(git -C "$WEB_DIR" rev-parse --absolute-git-dir 2>/dev/null || echo "")"
 MERGE_IN_PROGRESS=false
 if [ -n "$GIT_DIR_ABS" ]; then
@@ -545,6 +553,7 @@ write_manifest() {
   cat > "$MANIFEST_FILE" <<EOF
 {
   "git_sha": "$MANIFEST_SHA",
+  "build_sha": "$MANIFEST_BUILD_SHA",
   "git_tree_dirty": $GIT_TREE_DIRTY,
   "merge_in_progress": $MERGE_IN_PROGRESS,
   "started_at": "$MANIFEST_STARTED_AT",
@@ -1294,13 +1303,13 @@ echo "  Auth:   $AUTH"
 # a peer session's build) — fail here so fail() rolls back.
 LIVE_SHA="$(curl -s -m 15 "http://127.0.0.1:$PROD_PORT/api/status" 2>/dev/null \
   | python3 -c "import json,sys; print(json.load(sys.stdin).get('git_sha',''))" 2>/dev/null || echo "")"
-echo "  Live git_sha: ${LIVE_SHA:-<none>} (stamped ${MANIFEST_SHA})"
+echo "  Live git_sha: ${LIVE_SHA:-<none>} (stamped build_sha ${MANIFEST_BUILD_SHA}${MANIFEST_BUILD_SHA:+ }$([ "$MANIFEST_BUILD_SHA" != "$MANIFEST_SHA" ] && echo "— HEAD is ${MANIFEST_SHA:0:8}, --skip-build promotion" || true))"
 
 # Check for errors in first 3 seconds of logs
 ERRORS=$(tail -20 "$LOG" | grep -ic "error" || true)
 echo "  Errors: $ERRORS in startup logs"
 
-if [ "$LOCAL" = "200" ] && [ "$AUTH" = "ok" ] && [ -n "$LIVE_SHA" ] && [ "$LIVE_SHA" = "$MANIFEST_SHA" ]; then
+if [ "$LOCAL" = "200" ] && [ "$AUTH" = "ok" ] && [ -n "$LIVE_SHA" ] && [ "$LIVE_SHA" = "$MANIFEST_BUILD_SHA" ]; then
   pass "Production verified (live git_sha matches stamped ${MANIFEST_SHA:0:8})"
 else
   echo "  Last 20 lines of $LOG:"

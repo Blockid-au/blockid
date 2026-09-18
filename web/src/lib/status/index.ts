@@ -15,6 +15,7 @@ import { readCronFailures24h, type CronFailure } from "./crons";
 import { readErrors1h, type Errors1h } from "./errors";
 import { readQueues, type Queues } from "./queues";
 import { readLatencySummary, type LatencySummary } from "./slo";
+import { readUptimeSummary, type UptimeSummary } from "./uptime";
 
 export const STATUS_EXTRAS_TTL_MS = 60 * 1000;
 
@@ -25,6 +26,7 @@ export type StatusExtras = {
   backups_detail: BackupsDetail;
   latency: LatencySummary | null;
   crons_failed_24h: CronFailure[];
+  uptime: UptimeSummary | null;
 };
 
 export type PublicStatusExtras = {
@@ -55,15 +57,16 @@ async function safe<T>(p: Promise<T>, fallback: T): Promise<T> {
 
 export async function readStatusExtras(root: string = process.cwd(), now: number = Date.now(), opts: { force?: boolean } = {}): Promise<StatusExtras> {
   if (!opts.force && cache && now - cache.at < STATUS_EXTRAS_TTL_MS) return cache.value;
-  const [errors_1h, ai, queues, backups_detail, latency, crons_failed_24h] = await Promise.all([
+  const [errors_1h, ai, queues, backups_detail, latency, crons_failed_24h, uptime] = await Promise.all([
     safe(readErrors1h(root, now), null),
     safe(readAiStatus(root, now), null),
     safe(readQueues(root, now), NULL_QUEUES),
     safe(readBackupsDetail(root, now), NULL_BACKUPS),
     safe(readLatencySummary(root, now), null),
     safe(readCronFailures24h(root, now), []),
+    safe(readUptimeSummary(root, now), null),
   ]);
-  const value: StatusExtras = { errors_1h, ai, queues, backups_detail, latency, crons_failed_24h };
+  const value: StatusExtras = { errors_1h, ai, queues, backups_detail, latency, crons_failed_24h, uptime };
   cache = { at: now, value };
   return value;
 }

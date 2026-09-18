@@ -346,7 +346,11 @@ async function readVersionFallback(): Promise<string> {
 async function readGitShaFallback(): Promise<string> {
   try {
     const raw = await fs.readFile(path.join(REPO_ROOT, ".deploy-manifest.json"), "utf8");
-    const j = JSON.parse(raw) as { git_sha?: string };
+    const j = JSON.parse(raw) as { git_sha?: string; build_sha?: string };
+    // G15 follow-up: `build_sha` is what the bundle was BUILT from (differs
+    // from git_sha only on a --skip-build promotion) — that is the truth a
+    // "verify the live bundle" check needs.
+    if (j?.build_sha) return String(j.build_sha);
     if (j?.git_sha) return String(j.git_sha);
   } catch {
     // ignore
@@ -537,7 +541,9 @@ export async function GET(): Promise<Response> {
   const services = servicesFromHealthz(healthz);
 
   const slo = {
-    uptime_pct_24h: computeUptimeFromCrons(crons),
+    // G15 follow-up: guardian probes (2-min HTTP checks) are the truth; the
+    // cron ok-rate mean is only a fallback when the guardian file is thin.
+    uptime_pct_24h: extras?.uptime?.uptime_pct_24h ?? computeUptimeFromCrons(crons),
     p95_ms: healthz?.checks.p95_ms,
     disk_pct: healthz?.checks.disk_pct,
     mem_pct: healthz?.checks.mem_pct,

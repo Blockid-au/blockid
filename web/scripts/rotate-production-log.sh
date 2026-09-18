@@ -55,19 +55,27 @@ fi
 
 [ "$MODE" = "--ensure" ] && exit 0
 
-# 3. Rotate?
-SIZE=$(stat -c%s "$LOG" 2>/dev/null || echo 0)
-if [ "$MODE" != "--force" ] && [ "$SIZE" -lt "$MAX_BYTES" ]; then
-  exit 0
-fi
-[ "$SIZE" -eq 0 ] && exit 0   # nothing to keep
-
-i=$KEEP
-while [ "$i" -gt 1 ]; do
-  prev=$((i - 1))
-  [ -f "$LOG.$prev" ] && mv -f "$LOG.$prev" "$LOG.$i"
-  i=$prev
+# 3. Rotate? (copy-truncate — every writer opened the file O_APPEND)
+rotate_one() { # rotate_one <file> <max_bytes> <keep>
+  local f="$1" max="$2" keep="$3" size i prev
+  size=$(stat -c%s "$f" 2>/dev/null || echo 0)
+  if [ "$MODE" != "--force" ] && [ "$size" -lt "$max" ]; then return 0; fi
+  [ "$size" -eq 0 ] && return 0   # nothing to keep
+  i=$keep
+  while [ "$i" -gt 1 ]; do
+    prev=$((i - 1))
+    [ -f "$f.$prev" ] && mv -f "$f.$prev" "$f.$i"
+    i=$prev
+  done
+  cp -f "$f" "$f.1" && truncate -s0 "$f"
+  echo "[rotate-production-log] $(date -u '+%Y-%m-%dT%H:%M:%SZ') rotated ${size} bytes → $f.1 (keep $keep, mode ${MODE#--})"
+}
+rotate_one "$LOG" "$MAX_BYTES" "$KEEP"
+# G15 follow-up (2026-09-18): the cron logs under /data/logs (error-digest,
+# latency, …) were never rotated — 20 MB, keep 5.
+for f in "$LOG_DIR"/blockid-*.log; do
+  [ -f "$f" ] || continue
+  [ "$f" = "$LOG" ] && continue
+  rotate_one "$f" $((20 * 1024 * 1024)) 5
 done
-cp -f "$LOG" "$LOG.1" && truncate -s0 "$LOG"
-echo "[rotate-production-log] $(date -u '+%Y-%m-%dT%H:%M:%SZ') rotated ${SIZE} bytes → $LOG.1 (keep $KEEP, mode ${MODE#--})"
 exit 0

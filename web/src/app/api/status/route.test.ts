@@ -360,6 +360,15 @@ describe("happy path — everything healthy", () => {
     expect(keys.indexOf("git_sha")).toBe(keys.indexOf("version") + 1);
   });
 
+  it("git_sha prefers build_sha — a --skip-build promotion reports what the bundle was BUILT from (G15 follow-up)", async () => {
+    fsState.files.set(
+      DEPLOY_MANIFEST,
+      JSON.stringify({ git_sha: "headheadhead", build_sha: "builtbuiltbuilt", git_tree_dirty: false, merge_in_progress: false, version: "v.mf" }),
+    );
+    const { body } = await callGet();
+    expect((body as unknown as Record<string, unknown>).git_sha).toBe("builtbuiltbuilt");
+  });
+
   it('git_sha is "" (never undefined) when .deploy-manifest.json is unreadable', async () => {
     fsState.errors.set(DEPLOY_MANIFEST, new Error("ENOENT"));
     const { body } = await callGet();
