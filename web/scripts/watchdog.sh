@@ -49,7 +49,7 @@ export SUPABASE_URL=http://127.0.0.1:8000 REDIS_URL=redis://127.0.0.1:6379
 # Override PORT again — .env may contain PORT=3000 (for Docker) which must not win here
 export PORT=4001
 
-nohup node server.js >> /tmp/blockid-production.log 2>&1 &
+nohup node server.js >> /data/logs/blockid-production.log 2>&1 &   # G15-R2 log home
 echo $! > "$PID_FILE"
 
 # Verify restart succeeded

@@ -9,7 +9,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WEB_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 STANDALONE="$WEB_DIR/.next/standalone"
 CURRENT_LINK="$WEB_DIR/.next-current"
-LOG="/tmp/blockid-production.log"
+# G15-R2: log home is /data/logs (rotate-production-log.sh keeps the /tmp symlink).
+LOG="/data/logs/blockid-production.log"
+bash "$SCRIPT_DIR/rotate-production-log.sh" --ensure >/dev/null 2>&1 || true
+[ -w "$(dirname "$LOG")" ] || LOG="/tmp/blockid-production.log"
 PID_FILE="/tmp/blockid-production.pid"
 
 # Prefer the immutable CURRENT release (releases/<BUILD_ID>) produced by
@@ -73,7 +76,7 @@ export SUPABASE_URL=http://127.0.0.1:8000
 export REDIS_URL=redis://127.0.0.1:6379
 
 echo "Starting BlockID.au production on port 4001..."
-nohup node server.js > "$LOG" 2>&1 &
+nohup node server.js >> "$LOG" 2>&1 &
 echo $! > "$PID_FILE"
 
 sleep 3

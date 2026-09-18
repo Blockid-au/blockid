@@ -3,7 +3,7 @@
 #
 # Safe defaults — nothing here confirms interactively, but every destructive
 # action is namespaced:
-#   • rotate /tmp/blockid-production.log if > 50 MB (keep last 5000 lines).
+#   • rotate /data/logs/blockid-production.log if ≥ 50 MB (keep 14 files).
 #   • docker volume prune, but ONLY for volumes matching "runner-*" and older
 #     than 336h (2 weeks). NEVER touches supabase or blockid-* volumes.
 #   • npm cache clean --force if ~/.npm > 500 MB.
@@ -20,19 +20,15 @@ TS=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
 } >> "$LOG"
 
 # ── 1. Rotate production log ────────────────────────────────────
-PROD_LOG="/tmp/blockid-production.log"
-if [ -f "$PROD_LOG" ]; then
-  SIZE_BYTES=$(stat -c%s "$PROD_LOG" 2>/dev/null || echo 0)
-  SIZE_MB=$((SIZE_BYTES / 1024 / 1024))
-  if [ "$SIZE_MB" -gt 50 ]; then
-    tail -n 5000 "$PROD_LOG" > "${PROD_LOG}.rotate.$$" \
-      && mv "${PROD_LOG}.rotate.$$" "$PROD_LOG"
-    echo "[$TS] rotated $PROD_LOG (was ${SIZE_MB}MB → kept tail 5000)" >> "$LOG"
-  else
-    echo "[$TS] prod log ${SIZE_MB}MB — under 50MB threshold, skipped" >> "$LOG"
-  fi
+# G15-R2: the log lives at /data/logs/blockid-production.log (14 × 50 MB,
+# copy-truncate — the old `tail | mv` here left the live process writing
+# into an unlinked inode). /tmp/blockid-production.log is a symlink.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROTATE_OUT=$(bash "$SCRIPT_DIR/rotate-production-log.sh" 2>&1 || true)
+if [ -n "$ROTATE_OUT" ]; then
+  echo "[$TS] $ROTATE_OUT" >> "$LOG"
 else
-  echo "[$TS] $PROD_LOG absent — skipped" >> "$LOG"
+  echo "[$TS] prod log under 50MB threshold, rotation skipped" >> "$LOG"
 fi
 
 # ── 2. Prune runner-* docker volumes > 2 weeks ─────────────────

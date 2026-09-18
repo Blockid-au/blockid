@@ -65,7 +65,12 @@ RELEASES_DIR="$WEB_DIR/releases"           # symlink → /data/releases (300GB d
 CURRENT_LINK="$WEB_DIR/.next-current"     # symlink → releases/<BUILD_ID> now live
 PREV_LINK="$WEB_DIR/.next-previous"       # symlink → previous live release (rollback)
 RELEASES_KEEP=6                           # retain 6 releases (space is ample on /data)
-LOG="/tmp/blockid-production.log"
+# G15-R2 log home: /data/logs (survives reboot), size-rotated ×14 at 50 MB by
+# scripts/rotate-production-log.sh; /tmp/blockid-production.log stays a symlink.
+# The process log is opened with `>>` (O_APPEND) so copy-truncate rotation works.
+LOG="/data/logs/blockid-production.log"
+bash "$WEB_DIR/scripts/rotate-production-log.sh" >/dev/null 2>&1 || true
+[ -w "$(dirname "$LOG")" ] || LOG="/tmp/blockid-production.log"   # dev box without /data
 LOG_NEW="/tmp/blockid-production-new.log"
 PID_FILE="/tmp/blockid-production.pid"
 TEMP_PORT=4099
@@ -170,7 +175,7 @@ rollback_after_swap() {
     rollback_log "failed" "auto-post-swap:$(basename "$prev")" "000" "0"
     return 1
   fi
-  nohup node server.js > "$LOG" 2>&1 9>&- 200>&- &
+  nohup node server.js >> "$LOG" 2>&1 9>&- 200>&- &
   echo $! > "$PID_FILE"
   cd "$WEB_DIR" || true
   # The restored release is live again; it is no longer the rollback target.
@@ -307,7 +312,7 @@ if [ "${1:-}" = "--rollback" ]; then
     fuser -k $PROD_PORT/tcp 2>/dev/null || true
     sleep 1
     cd "$PREV_DIR"
-    nohup node server.js > "$LOG" 2>&1 9>&- 200>&- &
+    nohup node server.js >> "$LOG" 2>&1 9>&- 200>&- &
     echo $! > "$PID_FILE"
     # current and previous swap places
     CUR_BEFORE="$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
@@ -332,7 +337,7 @@ if [ "${1:-}" = "--rollback" ]; then
       fuser -k $PROD_PORT/tcp 2>/dev/null || true
       sleep 1
       cd "$SNAP_DIR"
-      nohup node server.js > "$LOG" 2>&1 9>&- 200>&- &
+      nohup node server.js >> "$LOG" 2>&1 9>&- 200>&- &
       echo $! > "$PID_FILE"
       sleep 3
       HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$PROD_PORT/)
@@ -356,7 +361,7 @@ if [ "${1:-}" = "--rollback" ]; then
   fuser -k $PROD_PORT/tcp 2>/dev/null || true
   sleep 1
   cd "$STANDALONE"
-  nohup node server.js > "$LOG" 2>&1 9>&- 200>&- &
+  nohup node server.js >> "$LOG" 2>&1 9>&- 200>&- &
   echo $! > "$PID_FILE"
   sleep 3
   HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$PROD_PORT/)
@@ -1053,7 +1058,7 @@ SWAPPED=1
 # Start new on production port — from the immutable release dir.
 export PORT=$PROD_PORT
 cd "$RELEASE_DIR"
-nohup node server.js > "$LOG" 2>&1 9>&- 200>&- &
+nohup node server.js >> "$LOG" 2>&1 9>&- 200>&- &
 echo $! > "$PID_FILE"
 # Mark this release as the live one, then prune stale releases.
 ln -sfn "$RELEASE_DIR" "$CURRENT_LINK"
