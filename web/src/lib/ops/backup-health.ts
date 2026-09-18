@@ -1,8 +1,10 @@
 // Backup freshness signal for /api/status (release QA-3 P0-4).
 //
 // Reads the tail of web/content/reports/backup-health.jsonl — written by
-// scripts/db-backup.sh ({job:"db-backup"}) and scripts/db-restore-test.sh
-// ({job:"restore_test"}) — and collapses it to one public-safe word:
+// scripts/db-backup.sh ({job:"db-backup"}), scripts/db-restore-test.sh
+// ({job:"restore_test"}) and, since G15-R3, scripts/db/restore-drill.sh
+// ({job:"restore-drill"}, 12-table parity + audit-chain head) — and collapses
+// it to one public-safe word:
 //
 //   ok      newest successful db-backup < 26 h old AND newest successful
 //           restore_test < 8 days old
@@ -25,7 +27,7 @@ export interface BackupHealth {
   status: BackupStatus;
   /** ISO ts of the newest successful db-backup row, "" when none. */
   last_backup: string;
-  /** ISO ts of the newest successful restore_test row, "" when none. */
+  /** ISO ts of the newest successful restore_test / restore-drill row, "" when none. */
   last_restore_test: string;
 }
 
@@ -51,7 +53,7 @@ export function classifyBackupHealth(lines: string[], now: number = Date.now()):
     const t = parseTs(row.ts);
     if (Number.isNaN(t)) continue;
     if (row.job === "db-backup" && !(t <= backupMs)) backupMs = t;
-    if (row.job === "restore_test" && !(t <= restoreMs)) restoreMs = t;
+    if ((row.job === "restore_test" || row.job === "restore-drill") && !(t <= restoreMs)) restoreMs = t;
   }
   const last_backup = Number.isNaN(backupMs) ? "" : new Date(backupMs).toISOString();
   const last_restore_test = Number.isNaN(restoreMs) ? "" : new Date(restoreMs).toISOString();

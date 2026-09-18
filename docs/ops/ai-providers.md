@@ -266,3 +266,32 @@ FROM analyses WHERE id = …`, or the `[ai-client]` log lines for
 | `web/src/lib/ai/model-strikes.ts` | dead-model strikes + pruning memory |
 | `web/scripts/ai/probe-providers.ts` | on-demand probe CLI (exit 2 = no usable provider) |
 | `web/src/app/api/cron/ai-health-check/route.ts` | 30-min cron: model pings + provider probe + pruning |
+
+## 10. Runtime health snapshot + degraded-report counter (G15-R3, 2026-09-18)
+
+Nothing above *observes* the dispatcher at runtime — cooldowns, blocked keys
+and `AIBudgetExhaustedError` (E2: a 120 s interactive ladder → Cloudflare 524)
+only surfaced in the log. Two small readers now feed `/api/status.ai` (R2):
+
+| Reader | Where | Shape |
+|---|---|---|
+| `getProviderHealthSnapshot(now?)` | `web/src/lib/ai-client.ts` | `{ providers: [{ name, state: "ok" \| "cooldown" \| "blocked", cooldown_until: ISO \| null, reason? }], budget_exhausted_1h, interactive_order }` |
+| `content/reports/report-pipeline-health.jsonl` | appended by `web/src/lib/report-pipeline/pipeline-health.ts` | one line per fully-degraded report: `{ ts, project_hash, reason, llm_calls }` |
+
+* The snapshot is a **pure reader** over the same state the dispatcher routes
+  on: `providerCooldown` (→ `cooldown` + `cooldown_until`), `providerBlockReason`
+  (→ `blocked` + `reason` ∈ `invalid_key` / `quota_exceeded` / `low_credit` /
+  `daily_cap` / `unreachable`), and `orderForInteractive(getAvailableProviders("report"))`
+  (→ `interactive_order`). Only configured providers appear — a provider with
+  no key is absent, not blocked. `budget_exhausted_1h` is a one-hour ring
+  buffer incremented where `callAI()` throws `AIBudgetExhaustedError`; process-
+  local, so a restart zeroes it (same as every other dispatcher counter).
+* `project_hash` is the first 12 hex of `sha256(projectId)` (`"anonymous"`
+  without one) — no project ids on disk. `reason` ∈ `deadline_hit` /
+  `no_llm_calls` / `placeholder_summary` (`fullyDegradedReason()` in the
+  orchestrator; `isFullyDegraded()` is unchanged and delegates to it). The
+  writer is best-effort (never throws, never awaited), skipped under vitest,
+  injectable via `OrchestratorInput.degradedWriter`; the file path is
+  `process.cwd()/content/reports/report-pipeline-health.jsonl` (override
+  `REPORT_PIPELINE_HEALTH_FILE`). Each event also logs one line the error
+  digest keys on: `[report-pipeline] fully_degraded project=<hash> reason=<reason> llm_calls=<n>`.

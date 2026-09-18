@@ -90,6 +90,7 @@ import { supabaseChapterCache, type ChapterCache, type ChapterCacheDb } from "./
 import { applyConsistencyGates } from "./consistency-gates";
 import { fromAssembledReport, inferPhase } from "@/lib/report-v2/adapter";
 import { isReportV2, type CriterionCard, type DimensionChapter, type ReportTierV2, type ReportV2 } from "@/lib/report-v2/schema";
+import { recordFullyDegraded, type DegradedEventWriter, type FullyDegradedReason } from "./pipeline-health";
 
 // ── AI caller contract ──────────────────────────────────────────────────────
 
@@ -167,16 +168,26 @@ export function isFullyDegraded(
   chapters: ReadonlyMap<DimKey, { degraded?: boolean }> | undefined,
   opts: { deadlineHit?: boolean } = {},
 ): boolean {
-  if (process.env.REPORT_FAIL_WHEN_FULLY_DEGRADED === "off") return false;
-  if (!chapters || chapters.size < DIM_ORDER.length) return false;
-  if (!DIM_ORDER.every((dim) => chapters.get(dim)?.degraded === true)) return false;
+  return fullyDegradedReason(report, chapters, opts) !== null;
+}
+
+/** Why a report is fully degraded (G15-R3.4 counter), or null when it is usable. Same rules as `isFullyDegraded`. */
+export function fullyDegradedReason(
+  report: { executiveSummary?: string | null; llmCalls?: number },
+  chapters: ReadonlyMap<DimKey, { degraded?: boolean }> | undefined,
+  opts: { deadlineHit?: boolean } = {},
+): FullyDegradedReason | null {
+  if (process.env.REPORT_FAIL_WHEN_FULLY_DEGRADED === "off") return null;
+  if (!chapters || chapters.size < DIM_ORDER.length) return null;
+  if (!DIM_ORDER.every((dim) => chapters.get(dim)?.degraded === true)) return null;
   // Every chapter is a deterministic card. That is "nothing an LLM wrote"
   // when the summary is the error placeholder, when no metered call ever
   // succeeded, or when the wall-clock deadline degraded everything (the
   // deadline summary is deterministic prose, not the placeholder — W3 review P1).
-  if (opts.deadlineHit) return true;
-  if ((report.llmCalls ?? 0) === 0) return true;
-  return typeof report.executiveSummary === "string" && report.executiveSummary.includes(SUMMARY_PLACEHOLDER);
+  if (opts.deadlineHit) return "deadline_hit";
+  if ((report.llmCalls ?? 0) === 0) return "no_llm_calls";
+  if (typeof report.executiveSummary === "string" && report.executiveSummary.includes(SUMMARY_PLACEHOLDER)) return "placeholder_summary";
+  return null;
 }
 
 // ── Cost meter (W2 review (b)) ──────────────────────────────────────────────
@@ -339,6 +350,8 @@ export interface OrchestratorInput {
   gatherDeps?: GatherDeps;
   /** Skip the spend-guard ledger write (tests). */
   recordSpend?: boolean;
+  /** G15-R3.4: sink for the fully-degraded event (default appends to content/reports/report-pipeline-health.jsonl; tests inject). */
+  degradedWriter?: DegradedEventWriter;
 }
 
 function w4Enabled(): boolean {
@@ -624,7 +637,14 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
     // report; the persisting callers (paywall generator, run-for-project) turn
     // the flag into their failure path (retry tick / refund) instead of storing
     // `complete` and charging A$3.
-    report.fullyDegraded = isFullyDegraded(report, context.dimensionChapters, { deadlineHit: deadline.expired() });
+    const degradedReason = fullyDegradedReason(report, context.dimensionChapters, { deadlineHit: deadline.expired() });
+    report.fullyDegraded = degradedReason !== null;
+    // G15-R3.4: count it (structured log line + report-pipeline-health.jsonl)
+    // so /api/status.ai.fully_degraded_24h and the error digest see AI outages
+    // that would otherwise only surface as refunds. Best-effort, never throws.
+    if (degradedReason !== null) {
+      recordFullyDegraded({ projectId: input.projectId, reason: degradedReason, llmCalls: budget.used }, input.degradedWriter);
+    }
 
     notify("complete", 100);
     const cost = realCostAud(meter, budget.used, w4On, tierV2);

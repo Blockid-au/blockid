@@ -1353,6 +1353,33 @@ describe("orchestrateReport() — per-report call counter (D7/D8/D9)", () => {
     expect(() => assertReportUsable(report)).toThrow(/fully degraded/);
   });
 
+  it("G15-R3.4: a fully degraded report records one {ts, project_hash, reason, llm_calls} event through the injected writer + one structured log line; a usable report records nothing", async () => {
+    const { createHash } = await import("node:crypto");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    H.chapterFactory = (d) => stubChapter(d, { degraded: true, degradeReason: "budget: cap" });
+    const degradedWriter = vi.fn();
+    const callAI = vi.fn(async () => "exec ok");
+    const report = await orchestrateReport(baseInput({ callAI, maxCalls: 0, projectId: "proj-1", degradedWriter }));
+    H.chapterFactory = null;
+    expect(report.fullyDegraded).toBe(true);
+    expect(degradedWriter).toHaveBeenCalledTimes(1);
+    const ev = degradedWriter.mock.calls[0][0] as { ts: string; project_hash: string; reason: string; llm_calls: number };
+    expect(Object.keys(ev).sort()).toEqual(["llm_calls", "project_hash", "reason", "ts"]);
+    expect(ev.project_hash).toBe(createHash("sha256").update("proj-1").digest("hex").slice(0, 12));
+    expect(ev.reason).toBe("no_llm_calls");
+    expect(ev.llm_calls).toBe(0);
+    expect(Number.isNaN(Date.parse(ev.ts))).toBe(false);
+    expect(warn.mock.calls.map((c) => String(c[0])).filter((l) => l.startsWith("[report-pipeline] fully_degraded"))).toEqual([
+      `[report-pipeline] fully_degraded project=${ev.project_hash} reason=no_llm_calls llm_calls=0`,
+    ]);
+    warn.mockRestore();
+
+    const quietWriter = vi.fn();
+    const ok = await orchestrateReport(baseInput({ degradedWriter: quietWriter }));
+    expect(ok.fullyDegraded).toBe(false);
+    expect(quietWriter).not.toHaveBeenCalled();
+  });
+
   it("a placeholder summary alone (chapters fine) is still a usable report", async () => {
     // Chapters come from the mocked W4 (not degraded); only the CEO call fails.
     const callAI = vi.fn(async () => {

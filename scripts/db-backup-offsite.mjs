@@ -16,6 +16,13 @@
 //   5. Appends {job:"offsite", ...} to web/content/reports/backup-health.jsonl
 //      + a cron-health.jsonl row; Telegram on failure; exit 1 on failure.
 //
+// Failure policy (G15-R3.2, scripts/db-backup-offsite-alert.mjs): this job
+// never touches /data/backups (local 14 d + 8 w retention is db-backup.sh's),
+// a credentials / quota failure is recorded as
+// `offsite_status: "founder_action_required"` with the exact founder command,
+// and Telegram fires at most once per 24 h per error class (state in
+// web/content/reports/offsite-alert-state.json; cleared on success).
+//
 // Credentials come only from env; nothing secret is ever printed or written
 // to the health log. Auth modes (first match wins):
 //   A. GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN + GOOGLE_CLIENT_ID/SECRET — uploads as
@@ -33,6 +40,7 @@ import { createReadStream, promises as fs } from "node:fs";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import os from "node:os";
+import { classifyOffsiteError, decideOffsiteAlert, offsiteFailureFields } from "./db-backup-offsite-alert.mjs";
 
 const REPO_ROOT = "/home/dovanlong/blockid.au";
 const require = createRequire(path.join(REPO_ROOT, "web", "package.json"));
@@ -45,6 +53,23 @@ const SUBFOLDER = "blockid-db-backups";
 const RETENTION_DAYS = 30;
 const HEALTH_LOG = path.join(REPO_ROOT, "web/content/reports/backup-health.jsonl");
 const CRON_HEALTH = path.join(REPO_ROOT, "web/content/reports/cron-health.jsonl");
+const ALERT_STATE = process.env.OFFSITE_ALERT_STATE_FILE || path.join(REPO_ROOT, "web/content/reports/offsite-alert-state.json");
+
+async function readAlertState() {
+  try {
+    return JSON.parse(await fs.readFile(ALERT_STATE, "utf8"));
+  } catch {
+    return null;
+  }
+}
+async function writeAlertState(state) {
+  try {
+    await fs.mkdir(path.dirname(ALERT_STATE), { recursive: true });
+    await fs.writeFile(ALERT_STATE, JSON.stringify(state) + "\n");
+  } catch {
+    /* state is a debounce hint only — losing it costs one extra alert */
+  }
+}
 
 const log = (...m) => console.log("[db-offsite]", new Date().toISOString().slice(11, 19), ...m);
 
@@ -242,9 +267,11 @@ try {
     retention_days: RETENTION_DAYS,
     duration_ms,
     dry: DRY,
+    offsite_status: "ok",
   };
   if (!DRY) {
     await appendJsonl(HEALTH_LOG, row);
+    await fs.rm(ALERT_STATE, { force: true }).catch(() => {}); // next failure alerts immediately
     await appendJsonl(CRON_HEALTH, { ts: row.ts, endpoint: "db-backup-offsite", status: "ok", duration_ms, detail: `file=${backup.name} id=${result.fileId} pruned=${result.pruned}` });
   }
   log(`ok in ${duration_ms}ms — file id ${result.fileId}`);
@@ -257,8 +284,18 @@ try {
   }
   log(`FAILED: ${msg}`);
   const ts = new Date().toISOString();
-  await appendJsonl(HEALTH_LOG, { ts, job: "offsite", status: "fail", file: backup.file ?? "", sizeBytes: backup.size, duration_ms, error: msg, dry: DRY }).catch(() => {});
-  await appendJsonl(CRON_HEALTH, { ts, endpoint: "db-backup-offsite", status: "fail", duration_ms, detail: msg.slice(0, 300) }).catch(() => {});
-  await telegram("🛑 *DB off-site copy FAILED*", `${backup.name || "(no backup)"}\n${msg}\nRunbook: docs/runbooks/db-restore.md`);
+  // Local retention is untouched by design: this job only READS /data/backups.
+  const errorClass = classifyOffsiteError(msg);
+  const decision = DRY ? { alert: false, reason: "dry", next: null } : decideOffsiteAlert(await readAlertState(), errorClass);
+  const fields = offsiteFailureFields(errorClass, { alerted: decision.alert, suppressed: decision.next?.suppressed ?? 0 });
+  await appendJsonl(HEALTH_LOG, { ts, job: "offsite", status: "fail", file: backup.file ?? "", sizeBytes: backup.size, duration_ms, error: msg, dry: DRY, ...fields }).catch(() => {});
+  await appendJsonl(CRON_HEALTH, { ts, endpoint: "db-backup-offsite", status: "fail", duration_ms, detail: `[${fields.offsite_status}] ${msg}`.slice(0, 300) }).catch(() => {});
+  if (decision.next) await writeAlertState(decision.next);
+  if (decision.alert) {
+    const founderLine = fields.founder_command ? `\nFounder: ${fields.founder_command}` : "";
+    await telegram("🛑 *DB off-site copy FAILED*", `${backup.name || "(no backup)"}\n${msg}${founderLine}\nNext alert for this class in 24 h.\nRunbook: docs/runbooks/db-restore.md § Off-site`);
+  } else {
+    log(`telegram suppressed (${decision.reason}, class ${errorClass}, ${decision.next?.suppressed ?? 0} since last alert)`);
+  }
   process.exit(1);
 }
