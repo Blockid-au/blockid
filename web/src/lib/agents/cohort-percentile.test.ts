@@ -59,7 +59,7 @@ vi.mock("@/lib/supabase", () => ({
   },
 }));
 
-import { computeCohortPercentile, startupPositioning } from "./cohort-percentile";
+import { computeCohortPercentile, startupPositioning, nextTierGap } from "./cohort-percentile";
 
 function makeRows(scores: number[]): Array<{ svi: number; stage: number }> {
   return scores.map((s) => ({ svi: s, stage: 3 }));
@@ -650,5 +650,47 @@ describe("computeCohortPercentile — register cohort fallback order (S40)", () 
     const r = startupPositioning({ percentile: 70, cohortSize: 40, source: "register_cohort", stageLabel: "seed" });
     expect(r.tier).toBe("above_median");
     expect(r.detail).toBe("Above median for AU seed startups (register cohort — 40 AU entities on the ABR / grant / R&DTI registers)");
+  });
+});
+
+// ─── T0192 nextTierGap ────────────────────────────────────────────────────────
+describe("nextTierGap", () => {
+  it("returns nulls when the founder is already elite (≥95)", () => {
+    expect(nextTierGap(95)).toEqual({ nextTier: null, percentilePointsToNext: null });
+    expect(nextTierGap(97)).toEqual({ nextTier: null, percentilePointsToNext: null });
+    expect(nextTierGap(100)).toEqual({ nextTier: null, percentilePointsToNext: null });
+  });
+
+  it("points from `top` to elite at 95", () => {
+    expect(nextTierGap(82)).toEqual({ nextTier: "elite", percentilePointsToNext: 13 });
+    expect(nextTierGap(94)).toEqual({ nextTier: "elite", percentilePointsToNext: 1 });
+  });
+
+  it("points from `above_median` to top at 75", () => {
+    expect(nextTierGap(60)).toEqual({ nextTier: "top", percentilePointsToNext: 15 });
+    expect(nextTierGap(74)).toEqual({ nextTier: "top", percentilePointsToNext: 1 });
+  });
+
+  it("points from `approaching_median` to above_median at 50", () => {
+    expect(nextTierGap(33)).toEqual({ nextTier: "above_median", percentilePointsToNext: 17 });
+    expect(nextTierGap(49)).toEqual({ nextTier: "above_median", percentilePointsToNext: 1 });
+  });
+
+  it("points from `early` to approaching_median at 25", () => {
+    expect(nextTierGap(0)).toEqual({ nextTier: "approaching_median", percentilePointsToNext: 25 });
+    expect(nextTierGap(12)).toEqual({ nextTier: "approaching_median", percentilePointsToNext: 13 });
+    expect(nextTierGap(24)).toEqual({ nextTier: "approaching_median", percentilePointsToNext: 1 });
+  });
+
+  it("clamps out-of-range input to [0, 100] before computing", () => {
+    expect(nextTierGap(-40)).toEqual({ nextTier: "approaching_median", percentilePointsToNext: 25 });
+    expect(nextTierGap(240)).toEqual({ nextTier: null, percentilePointsToNext: null });
+  });
+
+  it("rounds fractional percentiles before comparing to tier floors", () => {
+    // 74.6 → 75 → elite is next at 95, gap 20.
+    expect(nextTierGap(74.6)).toEqual({ nextTier: "elite", percentilePointsToNext: 20 });
+    // 74.4 → 74 → top is next at 75, gap 1.
+    expect(nextTierGap(74.4)).toEqual({ nextTier: "top", percentilePointsToNext: 1 });
   });
 });

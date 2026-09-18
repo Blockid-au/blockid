@@ -234,3 +234,34 @@ export function startupPositioning(input: {
     detail: `${headline}${cohortBit}`,
   };
 }
+
+// ─── T0192 next-tier gap ──────────────────────────────────────────────────────
+// Pairs with startupPositioning: given a percentile, tell the founder how many
+// percentile points separate them from the next tier up. Returns null for
+// `elite` (nothing above) so surfaces can render "at the top" instead of a
+// gap number. Pure function; input is clamped to [0, 100] before comparison.
+
+export interface NextTierGap {
+  /** The next tier up, or null when already `elite`. */
+  nextTier: PositioningTier | null;
+  /** Percentile points needed to reach `nextTier`, or null when already `elite`. */
+  percentilePointsToNext: number | null;
+}
+
+/** Lower bound of each tier, inclusive — matches the bands in `startupPositioning`. */
+const TIER_FLOORS: ReadonlyArray<{ tier: PositioningTier; floor: number }> = [
+  { tier: "elite", floor: 95 },
+  { tier: "top", floor: 75 },
+  { tier: "above_median", floor: 50 },
+  { tier: "approaching_median", floor: 25 },
+  { tier: "early", floor: 0 },
+];
+
+export function nextTierGap(percentile: number): NextTierGap {
+  const p = Math.max(0, Math.min(100, Math.round(percentile)));
+  // Find the lowest floor strictly greater than the input — that is the next
+  // tier the founder has to clear.
+  const above = TIER_FLOORS.filter((t) => t.floor > p).sort((a, b) => a.floor - b.floor)[0];
+  if (!above) return { nextTier: null, percentilePointsToNext: null };
+  return { nextTier: above.tier, percentilePointsToNext: above.floor - p };
+}
