@@ -29,7 +29,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { reportOrderPath } from "@/lib/paywall/report-delivery";
-import { TRUST_REPORT_5AUD } from "@/lib/pricing/v3-skus";
+import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
 import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 export interface ReportPaywallQuote {
@@ -62,9 +62,10 @@ export interface ReportPaywallGateProps {
 }
 
 // Trusted Business Report re-priced A$5.50 → A$3 in place on 2026-09-10 (founder
-// decision D3). Read off the SKU so the modal can never drift from what
-// /api/reports/checkout actually books.
-const PATH_A_LABEL = `A$${(TRUST_REPORT_5AUD.unit_amount_incl_gst_cents ?? 300) / 100}`;
+// decision D3). Read off the SKU (via lib/pricing/trust-report-price, G16-B
+// copy truth) so the modal can never drift from what /api/reports/checkout
+// actually books.
+const PATH_A_LABEL = trustReportPriceLabel();
 const HUMAN_MODEL_LABEL: Record<ReportPaywallQuote["model"], string> = {
   haiku: "Claude Haiku 4.5",
   sonnet: "Claude Sonnet 5",

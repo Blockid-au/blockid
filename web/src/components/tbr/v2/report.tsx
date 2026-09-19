@@ -74,23 +74,20 @@ export function TbrReportV2({ report, strings, locale = "en", upgradeHref, after
   const railFor = (mode: TbrUnlockMode) => (
     <TbrUnlockRail mode={mode} chapterCount={report.dimensions.length} onUnlock={unlock?.onUnlock} orderId={unlock?.orderId} generateHref={unlock?.generateHref} />
   );
-  let railPlaced = false;
+  // The rail goes right after the FIRST locked chapter; when nothing is
+  // locked (included / purchased / no card chapter) it follows the last one.
+  const firstLockedIdx = lockCards ? report.dimensions.findIndex((ch) => ch.renderAs === "card") : -1;
+  const railAfterIdx = free && unlock ? (firstLockedIdx >= 0 ? firstLockedIdx : report.dimensions.length - 1) : -1;
   return (
     <div className="space-y-12" data-tbr-version={report.schemaVersion} data-tbr-tier={report.tier} data-tbr-source={report.source} data-tbr-unlock={free && unlock ? unlock.mode : undefined}>
       <TbrCover report={report} title={t.secCover} locale={locale} />
       <TbrExecutive report={report} title={t.secExecutive} locale={locale} />
-      {report.dimensions.map((ch, i) => {
-        const locked = Boolean(lockCards) && ch.renderAs === "card";
-        const placeRail = locked && !railPlaced;
-        if (placeRail) railPlaced = true;
-        return (
-          <Fragment key={ch.dim}>
-            <TbrChapter chapter={ch} index={i + 2} locale={locale} upgradeHref={upgradeHref} locked={locked} forceFull={forceFull} />
-            {placeRail && unlock && railFor(unlock.mode)}
-          </Fragment>
-        );
-      })}
-      {free && unlock && !railPlaced && railFor(unlock.mode)}
+      {report.dimensions.map((ch, i) => (
+        <Fragment key={ch.dim}>
+          <TbrChapter chapter={ch} index={i + 2} locale={locale} upgradeHref={upgradeHref} locked={Boolean(lockCards) && ch.renderAs === "card"} forceFull={forceFull} />
+          {i === railAfterIdx && unlock && railFor(unlock.mode)}
+        </Fragment>
+      ))}
       {afterChapters}
       <TbrValuation report={report} title={t.secValuation} />
       <TbrPhaseGates report={report} title={t.secPhaseGates} locale={locale} />

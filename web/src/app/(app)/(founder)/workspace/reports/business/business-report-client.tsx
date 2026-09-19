@@ -15,7 +15,7 @@
 // views (founder-only), Peer-5 similarity, the live Action Plan widget and
 // the Q&A chat.
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -23,11 +23,44 @@ import { getTbrStrings, type TbrLocale } from "@/lib/i18n/tbr-strings";
 import { TbrInvestorViews } from "@/components/tbr/tbr-investor-views";
 import { TbrQaChat } from "@/components/tbr/tbr-qa-chat";
 import { ActionPlan } from "@/components/score/ActionPlan";
-import { TbrReportV2, tbrV2Toc } from "@/components/tbr/v2/report";
+import { TbrReportV2, tbrV2Toc, type TbrUnlockProps } from "@/components/tbr/v2/report";
+import { ReportPaywallGate, type ReportPaywallQuote } from "@/components/paywall/ReportPaywallGate";
+import { emitClientEvent } from "@/lib/analytics/client-emit";
 import { fromSnapshot, type CohortBenchmarkInput, type SnapshotCriterionState, type SnapshotDimState } from "@/lib/report-v2/adapter";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import { FileText, ChevronRight } from "lucide-react";
 import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
+
+// ── G16-B: paywall access (read-only; the confirm step is the gate) ─────────
+
+/** Shape of GET /api/reports/access — what the page needs to decide the cut and quote. */
+export interface ReportAccessInfo {
+  projectId: string | null;
+  included: boolean;
+  paidOrderId: string | null;
+  quote: ReportPaywallQuote;
+  creditBalance: number;
+  hasSubscription: boolean;
+  price: { sku: string; amount_cents: number; label: string };
+}
+
+/**
+ * Pure: which tier the founder page lifts a v1 snapshot into and which
+ * unlock mode the rail shows. A stored document keeps its own tier; only
+ * the read-time lift used to say "standard" for everyone (the silent free
+ * → full leak G16 closes).
+ */
+export function resolveTbrAccess(
+  stored: ReportV2 | null,
+  access: ReportAccessInfo | null,
+): { liftTier: "free" | "standard"; unlockMode: TbrUnlockProps["mode"] | null } {
+  const owns = Boolean(access?.paidOrderId);
+  const included = Boolean(access?.included);
+  const liftTier: "free" | "standard" = owns || included ? "standard" : "free";
+  const effectiveTier = stored ? stored.tier : liftTier;
+  if (effectiveTier !== "free") return { liftTier, unlockMode: null };
+  return { liftTier, unlockMode: owns ? "purchased" : included ? "included" : "buy" };
+}
 
 // ── Persisted state (localStorage / API / DB row) ────────────────────────────
 
@@ -309,6 +342,35 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
   // Personalised 30-Day Action Plan mount. Null until the report API returns.
   const [snapshotId, setSnapshotId] = useState<string | null>(initialData?.snapshotId ?? null);
 
+  // G16-B — founder paywall access. `undefined` = still loading (the body
+  // waits so a free founder never sees the full document flash before the
+  // cut), `null` = the lookup failed (treated as free, buy mode with no
+  // project → the rail explains). Public / PDF / share renders skip it.
+  const founderMode = !initialData && !shareToken && !pdfMode;
+  const [access, setAccess] = useState<ReportAccessInfo | null | undefined>(founderMode ? undefined : null);
+  const [gateOpen, setGateOpen] = useState(false);
+  const [unlockNotice, setUnlockNotice] = useState<string | null>(null);
+  const paywallViewSent = useRef(false);
+
+  useEffect(() => {
+    if (!founderMode) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const qs = projectId && projectId !== "default" ? encodeURIComponent(projectId) : "default";
+        const res = await fetch(`/api/reports/access?project=${qs}`, { credentials: "same-origin" });
+        const body = (await res.json().catch(() => null)) as (ReportAccessInfo & { ok?: boolean }) | null;
+        if (cancelled) return;
+        setAccess(res.ok && body?.ok && body.quote ? body : null);
+      } catch {
+        if (!cancelled) setAccess(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [founderMode, projectId]);
+
   // Load from localStorage first (fast path), then fall back to Supabase
   // (/api/svi/report/[projectId]) so the report survives beyond the 30-min
   // localStorage TTL. When `initialData` is supplied (public /tbr/<token>
@@ -399,6 +461,10 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
   }, [projectId, initialData, pdfMode, shareToken]);
 
   // ── ReportV2: stored document wins; otherwise lift the v1 state ──────────
+  // G16-B: the lift tier follows the founder's access (free unless the plan
+  // includes the report or a paid order exists); public/share renders keep
+  // the pre-G16 "standard" lift.
+  const { liftTier, unlockMode } = useMemo(() => (founderMode ? resolveTbrAccess(storedReport, access ?? null) : { liftTier: "standard" as const, unlockMode: null }), [founderMode, storedReport, access]);
   const report = useMemo<ReportV2 | null>(() => {
     if (storedReport) return storedReport;
     if (!data) return null;
@@ -414,9 +480,37 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
       criterionStates: data.criterionStates ?? null,
       cohort: benchmark,
       locale: locale === "vi" ? "vi" : "en",
-      tier: "standard",
+      tier: liftTier,
     });
-  }, [storedReport, data, benchmark, projectId, snapshotId, locale]);
+  }, [storedReport, data, benchmark, projectId, snapshotId, locale, liftTier]);
+
+  // G16-B: the rail's one click → the confirm-before-charge modal (credits +
+  // A$ shown, explicit confirm, then Stripe). No project → no businessId to
+  // book against, so say so instead of opening a modal that cannot submit.
+  const openUnlock = useCallback(() => {
+    if (access?.projectId) {
+      setUnlockNotice(null);
+      setGateOpen(true);
+      return;
+    }
+    setUnlockNotice("Create your startup workspace first so the report can be booked against it.");
+  }, [access]);
+  const closeGate = useCallback(() => setGateOpen(false), []);
+
+  const unlock = useMemo<TbrUnlockProps | null>(() => {
+    if (!unlockMode) return null;
+    return { mode: unlockMode, onUnlock: openUnlock, orderId: access?.paidOrderId ?? null };
+  }, [unlockMode, openUnlock, access]);
+
+  // paywall_view — once per render of the free cut (client emit; lane A's
+  // ingest route stamps user_id / qa server-side).
+  const reportTierForEvent = report?.tier ?? null;
+  useEffect(() => {
+    if (!founderMode || unlockMode !== "buy" || !access || reportTierForEvent !== "free") return;
+    if (paywallViewSent.current) return;
+    paywallViewSent.current = true;
+    void emitClientEvent("paywall_view", { surface: "tbr_free_cut", sku: access.price.sku, amount_cents: access.price.amount_cents, project_id: access.projectId });
+  }, [founderMode, unlockMode, access, reportTierForEvent]);
 
   if (!data && !report) {
     return (
@@ -625,16 +719,43 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
 
         {/* Report body — ReportV2 chapters */}
         <div className="flex-1 min-w-0 space-y-12">
-          <TbrReportV2
-            report={report}
-            strings={t}
-            locale={uiLocale}
-            upgradeHref="/pricing"
-            afterChapters={
-              /* Wave 28C: Personalised 30-Day Action Plan (live widget). */
-              !pdfMode && snapshotId ? <ActionPlan sviRunId={snapshotId} /> : null
-            }
-          />
+          {founderMode && access === undefined ? (
+            <div data-testid="tbr-access-loading" className="animate-pulse space-y-4" aria-busy="true" aria-live="polite">
+              <div className="h-6 w-2/3 rounded bg-ink-100 dark:bg-ink-800" />
+              <div className="h-40 rounded-xl bg-ink-100 dark:bg-ink-800" />
+              <div className="h-6 w-1/2 rounded bg-ink-100 dark:bg-ink-800" />
+            </div>
+          ) : (
+            <TbrReportV2
+              report={report}
+              strings={t}
+              locale={uiLocale}
+              upgradeHref="/pricing"
+              unlock={unlock}
+              afterChapters={
+                /* Wave 28C: Personalised 30-Day Action Plan (live widget). */
+                !pdfMode && snapshotId ? <ActionPlan sviRunId={snapshotId} /> : null
+              }
+            />
+          )}
+          {unlockNotice && (
+            <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+              {unlockNotice}{" "}
+              <Link href="/workspace/projects" className="font-semibold underline">
+                Open projects
+              </Link>
+            </p>
+          )}
+          {founderMode && access?.projectId && unlockMode === "buy" && (
+            <ReportPaywallGate
+              businessId={access.projectId}
+              quote={access.quote}
+              creditBalance={access.creditBalance}
+              hasSubscription={access.hasSubscription}
+              open={gateOpen}
+              onClose={closeGate}
+            />
+          )}
 
           {/* ── Investor Leads (Wave 27A) ──────────────────────────────────
               Founder-only, only when leads exist. */}
