@@ -25,6 +25,12 @@ import {
   getUnsubscribeUrl,
   type EmailCategory,
 } from "@/lib/email-preferences";
+import { isExcludedAccountEmail } from "@/lib/traction/snapshot";
+import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
+import { PLANS_V2, formatAud } from "@/lib/plans-v2";
+
+/** G16-B copy truth: the D14 upsell prices the A$29 rung from plans-v2, never a literal. */
+const STARTER_PRICE_LINE = `${formatAud(PLANS_V2.find((p) => p.id === "founder_starter")?.monthly_aud ?? null)}/mo`;
 
 /**
  * Campaign ids. The DB CHECK on `email_drips.campaign` must list exactly
@@ -43,7 +49,17 @@ export type DripCampaign =
   | "radar_t3"
   | "radar_status_changed"
   | "radar_setup"
-  | "radar_setup_2";
+  | "radar_setup_2"
+  // G16-B (F-2): "Your report is ready — unlock for A$3", +24 h after the
+  // first analysis, one touch ever, skipped at send time once the founder
+  // has bought or the plan includes the report. Migration 0411 extends
+  // the CHECK.
+  | "tbr_unlock_24h";
+
+/** G16-B: the one-off unlock nudge campaign id. */
+export const TBR_UNLOCK_CAMPAIGN = "tbr_unlock_24h" as const satisfies DripCampaign;
+/** +24 h after the first `svi_score_computed` (F-2). */
+export const TBR_UNLOCK_DELAY_MS = 24 * 60 * 60 * 1000;
 
 export const ONBOARDING_CAMPAIGNS = [
   "onboarding_d1",
@@ -76,6 +92,7 @@ export const ALL_DRIP_CAMPAIGNS: readonly DripCampaign[] = [
   ...ONBOARDING_CAMPAIGNS,
   ...RADAR_CAMPAIGNS,
   ...RADAR_SETUP_CAMPAIGNS,
+  TBR_UNLOCK_CAMPAIGN,
 ];
 
 export function isRadarCampaign(c: DripCampaign): c is RadarDripCampaign {
@@ -145,12 +162,16 @@ export interface DripPayload {
   startup?: string | null;
   open_grants?: number | null;
   open_programs?: number | null;
+  /** G16-B tbr_unlock_24h: the analysed project (deep link `?pid=`). */
+  project_id?: string | null;
 }
 
 export interface SviAnalysisSummary {
   weakestDim: string;
   weakestScore: number;
   sector: string | null;
+  /** G16-B: the analysed project — the unlock nudge deep-links to its report page. */
+  projectId?: string | null;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -214,6 +235,8 @@ export async function enqueueOnboardingDrip(
     weakestDim: summary.weakestDim,
     weakestScore: summary.weakestScore,
     sector: summary.sector,
+    // G16-B: D1 deep-links to the report page (`?pid=`) when the project is known.
+    ...(summary.projectId ? { project_id: summary.projectId } : {}),
   };
 
   const rows: Array<{
@@ -276,6 +299,93 @@ export async function enqueueOnboardingDrip(
 
   const { error: insertErr } = await supabase.from("email_drips").insert(rows);
   if (insertErr) console.warn("[email-drip] insert failed", insertErr);
+
+  // G16-B (F-2): the A$3 unlock nudge rides the same first-analysis moment
+  // but is its OWN insert — a CHECK that has not seen migration 0411 yet
+  // rejects only this row, never the onboarding five.
+  if (userId) {
+    await enqueueTbrUnlockNudge(supabase, normEmail, userId, { projectId: summary.projectId ?? null, weakestDim: summary.weakestDim }, now);
+  }
+}
+
+export type EnqueueTbrUnlockResult = "queued" | "duplicate" | "skipped_qa" | "error";
+
+/**
+ * Queue the one-touch "Your report is ready — unlock for A$3" nudge at
+ * +24 h. One row per address EVER (any status — an expired or cancelled
+ * row still blocks a repeat), never for a `qa-live-*` / erased address.
+ * Purchase / plan checks happen at SEND time (`tbrUnlockSuppression`), so
+ * a founder who buys inside the 24 h is simply skipped.
+ */
+export async function enqueueTbrUnlockNudge(
+  db: DripDbLike,
+  email: string,
+  userId: string,
+  payload: { projectId: string | null; weakestDim?: string },
+  now: number = Date.now(),
+): Promise<EnqueueTbrUnlockResult> {
+  const normEmail = email.toLowerCase().trim();
+  if (isExcludedAccountEmail(normEmail)) return "skipped_qa";
+  const { data: prior, error: priorErr } = await db
+    .from("email_drips")
+    .select("id")
+    .eq("email", normEmail)
+    .eq("campaign", TBR_UNLOCK_CAMPAIGN)
+    .limit(1);
+  if (priorErr) {
+    console.warn("[email-drip] tbr_unlock dedupe lookup failed", priorErr);
+    return "error";
+  }
+  if (prior && prior.length > 0) return "duplicate";
+  const { error } = await db.from("email_drips").insert({
+    email: normEmail,
+    user_id: userId,
+    campaign: TBR_UNLOCK_CAMPAIGN,
+    scheduled_for: new Date(now + TBR_UNLOCK_DELAY_MS).toISOString(),
+    payload: { project_id: payload.projectId, weakestDim: payload.weakestDim } satisfies DripPayload,
+  });
+  if (error) {
+    console.warn("[email-drip] tbr_unlock insert failed (is migration 0411 applied?)", error);
+    return "error";
+  }
+  return "queued";
+}
+
+/** Orders that mean the founder already owns the full report (mirrors /api/reports/access). */
+const TBR_PAID_STATUSES = ["PAID", "GENERATING", "READY"] as const;
+
+/**
+ * Send-time guard for `tbr_unlock_24h`: a reason to cancel the row, or null
+ * to send. QA addresses, a paid `report_orders` row for the user, or a plan
+ * that includes the report (`report.premium`) all suppress. Other campaigns
+ * always return null. Fail-open on lookup errors is deliberate: a DB blip
+ * must not turn into a silently-dropped touch, and the worst case is one
+ * nudge to someone who already bought.
+ */
+export async function tbrUnlockSuppression(
+  drip: Pick<EmailDrip, "campaign" | "email" | "user_id">,
+  db: DripDbLike | null = getSupabaseAdmin() as unknown as DripDbLike | null,
+): Promise<string | null> {
+  if (drip.campaign !== TBR_UNLOCK_CAMPAIGN) return null;
+  if (isExcludedAccountEmail(drip.email)) return "suppressed: qa account";
+  if (!db || !drip.user_id) return null;
+  try {
+    const { data: orders } = await db
+      .from("report_orders")
+      .select("id")
+      .eq("user_id", drip.user_id)
+      .in("status", [...TBR_PAID_STATUSES])
+      .limit(1);
+    if (orders && orders.length > 0) return "suppressed: report already purchased";
+    const { data: users } = await db.from("app_users").select("plan").eq("id", drip.user_id).limit(1);
+    const plan = (users?.[0] as { plan?: string | null } | undefined)?.plan ?? "free";
+    const { getEntitlements } = await import("@/lib/entitlements");
+    const flags = await getEntitlements(plan, drip.user_id);
+    if (flags.includes("report.premium")) return "suppressed: plan includes the report";
+  } catch (err) {
+    console.warn("[email-drip] tbr_unlock suppression lookup failed", err);
+  }
+  return null;
 }
 
 // ── Money Radar drips (T0246) ────────────────────────────────────────────────
@@ -520,7 +630,7 @@ export async function expireStaleDrips(
  */
 export function dripCategory(campaign: DripCampaign): EmailCategory {
   if (isRadarCampaign(campaign) || isRadarSetupCampaign(campaign)) return "money_radar";
-  return campaign === "onboarding_d14" ? "promotions" : "product_updates";
+  return campaign === "onboarding_d14" || campaign === TBR_UNLOCK_CAMPAIGN ? "promotions" : "product_updates";
 }
 
 /** Thin delegate to the single suppression mechanism, `canSendEmail`. */
@@ -672,9 +782,16 @@ function ctaButton(href: string, label: string): string {
   </p>`;
 }
 
+/** G16-B: the founder's report page (`?pid=` when the project is known). */
+export function tbrReportUrl(projectId?: string | null): string {
+  const base = `${siteUrl()}/workspace/reports/business`;
+  return projectId ? `${base}?pid=${encodeURIComponent(projectId)}` : base;
+}
+
 function d1Copy(email: string, p: DripPayload): RenderedEmail {
   const dim = p.weakestDim ?? "your investor readiness signal";
-  const dashUrl = `${siteUrl()}/workspace/score`;
+  // G16-B: D1 lands on the report itself, not the dashboard.
+  const dashUrl = tbrReportUrl(p.project_id);
   const evidenceUrl = `${siteUrl()}/workspace/evidence`;
   const subject = `Your SVI report is ready — three next steps for ${dim}`;
   const html = shell(`
@@ -683,14 +800,14 @@ function d1Copy(email: string, p: DripPayload): RenderedEmail {
     <p>Your first Startup Value Index report is generated. The lowest scoring dimension right now is <strong>${escapeHtml(dim)}</strong>${p.weakestScore != null ? ` at ${p.weakestScore}/100` : ""}, so that is where a small amount of work will move the SVI the most.</p>
     <p style="margin:16px 0 8px 0;font-weight:600;">Do these three things today:</p>
     <ol style="padding-left:20px;margin:0 0 16px 0;">
-      <li style="margin-bottom:6px;">Open your dashboard and read the ${escapeHtml(dim)} section end to end.</li>
+      <li style="margin-bottom:6px;">Open your report and read the ${escapeHtml(dim)} chapter end to end.</li>
       <li style="margin-bottom:6px;">Add one piece of evidence against it in the Evidence Vault (a link, a screenshot, a PDF is enough).</li>
       <li style="margin-bottom:6px;">Re-score. Investors want to see movement, not perfection.</li>
     </ol>
-    ${ctaButton(dashUrl, "Open dashboard")}
+    ${ctaButton(dashUrl, "Open your report")}
     <p style="color:#64748B;font-size:13px;">Or jump straight to <a href="${evidenceUrl}" style="color:#2563EB;">Evidence Vault</a>.</p>
     ${footer(email)}`);
-  const text = `Your SVI report is ready.\n\nWeakest dimension: ${dim}${p.weakestScore != null ? ` (${p.weakestScore}/100)` : ""}.\n\nThree next steps:\n1. Read the ${dim} section in your dashboard.\n2. Add one piece of evidence in the Evidence Vault.\n3. Re-score.\n\nDashboard: ${dashUrl}\nEvidence Vault: ${evidenceUrl}${footerText(email)}`;
+  const text = `Your SVI report is ready.\n\nWeakest dimension: ${dim}${p.weakestScore != null ? ` (${p.weakestScore}/100)` : ""}.\n\nThree next steps:\n1. Read the ${dim} chapter in your report.\n2. Add one piece of evidence in the Evidence Vault.\n3. Re-score.\n\nReport: ${dashUrl}\nEvidence Vault: ${evidenceUrl}${footerText(email)}`;
   return { subject, html, text };
 }
 
@@ -731,13 +848,46 @@ function d7Copy(email: string, p: DripPayload): RenderedEmail {
   return { subject, html, text };
 }
 
+/** G16-B tbr_unlock_24h subject — the price comes from the SKU, never a literal. */
+export function tbrUnlockSubject(): string {
+  return `Your report is ready — unlock the full version for ${trustReportPriceLabel()}`;
+}
+
+/**
+ * G16-B (F-2) — +24 h after the first analysis, no purchase yet. One CTA to
+ * the report page, where the unlock rail opens the confirm-before-charge
+ * step (credits + A$ shown first). The mail itself never links to Stripe.
+ */
+function tbrUnlockCopy(email: string, p: DripPayload): RenderedEmail {
+  const price = trustReportPriceLabel();
+  const reportUrl = tbrReportUrl(p.project_id);
+  const dim = p.weakestDim ? escapeHtml(p.weakestDim) : null;
+  const subject = tbrUnlockSubject();
+  const html = shell(`
+    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#2563EB;font-weight:600;">BlockID &middot; Trusted Business Report</p>
+    <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0F172A;">Your Trusted Business Report is ready to unlock</h1>
+    <p>Your free report already shows your Startup Value Index, the headline chapters and where you sit against your stage cohort${dim ? ` — with <strong>${dim}</strong> as the dimension to work on first` : ""}.</p>
+    <p>The full report unlocks, for <strong>${price}</strong> one-off (GST included):</p>
+    <ul style="padding-left:20px;margin:0 0 16px 0;">
+      <li style="margin-bottom:6px;">All 8 dimension chapters in full — evidence tables, criterion cards, next actions.</li>
+      <li style="margin-bottom:6px;">Your valuation range with the three methods behind it.</li>
+      <li style="margin-bottom:6px;">A 90-day action plan, phase gates and the grants you qualify for.</li>
+      <li style="margin-bottom:6px;">PDF export and a live share link for investors.</li>
+    </ul>
+    ${ctaButton(reportUrl, "Open your report")}
+    <p style="color:#64748B;font-size:13px;">You will see the exact price and credit cost on screen and confirm before anything is charged.</p>
+    ${footer(email)}`);
+  const text = `Your Trusted Business Report is ready to unlock.\n\nThe full report (${price} one-off, GST included) unlocks all 8 dimension chapters in full, your valuation range with methods, a 90-day action plan and a PDF + share link.\n\nOpen your report: ${reportUrl}\n\nYou confirm the exact price and credit cost on screen before anything is charged.${footerText(email)}`;
+  return { subject, html, text };
+}
+
 function d14Copy(email: string): RenderedEmail {
   const pricingUrl = `${siteUrl()}/pricing`;
-  const subject = "Ready for the full report? Founder plan is A$29/mo";
+  const subject = `Ready for the full report? Founder plan is ${STARTER_PRICE_LINE}`;
   const html = shell(`
     <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#2563EB;font-weight:600;">BlockID &middot; Day 14</p>
     <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0F172A;">The full report unlocks the next 90 days</h1>
-    <p>You have been on the free tier for two weeks. The Founder plan (A$29/mo, GST included) unlocks:</p>
+    <p>You have been on the free tier for two weeks. The Founder plan (${STARTER_PRICE_LINE}, GST included) unlocks:</p>
     <ul style="padding-left:20px;margin:0 0 16px 0;">
       <li style="margin-bottom:6px;">Your score tracked over time, with 20 AI credits a month to re-run it.</li>
       <li style="margin-bottom:6px;">A data room that fills up in the order investors ask.</li>
@@ -746,7 +896,7 @@ function d14Copy(email: string): RenderedEmail {
     <p>No lock-in. Cancel from the billing page any time.</p>
     ${ctaButton(pricingUrl, "See plans")}
     ${footer(email)}`);
-  const text = `The Founder plan is A$29/mo (GST included): your score tracked over time with 20 AI credits a month, a data room, and a live investor link.\n\nSee plans: ${pricingUrl}${footerText(email)}`;
+  const text = `The Founder plan is ${STARTER_PRICE_LINE} (GST included): your score tracked over time with 20 AI credits a month, a data room, and a live investor link.\n\nSee plans: ${pricingUrl}${footerText(email)}`;
   return { subject, html, text };
 }
 
@@ -1021,6 +1171,8 @@ export function renderDripBody(
       return d14Copy(email);
     case "nps_d30":
       return npsCopy(email, payload);
+    case "tbr_unlock_24h":
+      return tbrUnlockCopy(email, payload);
     case "radar_t30":
       return radarT30Copy(email, payload);
     case "radar_t14":

@@ -35,6 +35,7 @@ import {
   markSent,
   renderDripBody,
   suppressDrip,
+  tbrUnlockSuppression,
   type DripPayload,
 } from "@/lib/email-drip";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
@@ -73,6 +74,16 @@ async function handle(request: Request): Promise<Response> {
         if (!dryRun) {
           await suppressDrip(drip.id, `suppressed: ${dripCategory(drip.campaign)} opt-out`);
         }
+        skipped++;
+        continue;
+      }
+
+      // G16-B: the A$3 unlock nudge is cancelled (not sent, not claimed)
+      // once the founder has bought, the plan includes the report, or the
+      // address is a QA account. Other campaigns pass straight through.
+      const unlockSkip = await tbrUnlockSuppression(drip);
+      if (unlockSkip) {
+        if (!dryRun) await suppressDrip(drip.id, unlockSkip);
         skipped++;
         continue;
       }

@@ -136,6 +136,13 @@ function resultFor(key: string): ChainResult {
   return state.results[key] ?? { data: null, error: null };
 }
 
+// G16-B: tbrUnlockSuppression reads the plan's flags through a lazy import
+// of @/lib/entitlements (server-only); the seam is mocked here.
+const getEntitlementsMock = vi.fn<(plan: string, userId?: string | null) => Promise<string[]>>();
+vi.mock("@/lib/entitlements", () => ({
+  getEntitlements: (plan: string, userId?: string | null) => getEntitlementsMock(plan, userId),
+}));
+
 const canSendEmailMock = vi.fn();
 vi.mock("@/lib/email-preferences", () => ({
   canSendEmail: (...args: unknown[]) => canSendEmailMock(...args),
@@ -270,12 +277,23 @@ import {
   canSendDrip,
   dripCategory,
   DRIP_EXPIRY_DAYS,
+  TBR_UNLOCK_CAMPAIGN,
+  TBR_UNLOCK_DELAY_MS,
+  enqueueTbrUnlockNudge,
+  tbrUnlockSuppression,
+  tbrUnlockSubject,
+  tbrReportUrl,
+  type DripDbLike,
 } from "./email-drip";
+import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
+import { PLANS_V2 } from "@/lib/plans-v2";
 
 beforeEach(() => {
   resetState();
   canSendEmailMock.mockReset();
   canSendEmailMock.mockResolvedValue(true);
+  getEntitlementsMock.mockReset();
+  getEntitlementsMock.mockResolvedValue(["svi.run.limited"]);
   // Pin site URL so every rendered link is deterministic. Individual
   // tests override + restore this to prove the trailing-slash strip and
   // the default-fallback path.
@@ -294,15 +312,15 @@ describe("siteUrl (via renderDripBody CTAs)", () => {
   it("strips a trailing slash so CTAs never emit `//`", () => {
     process.env.NEXT_PUBLIC_SITE_URL = "https://example.test/";
     const out = renderDripBody("onboarding_d1", "a@b.co", { weakestDim: "x" });
-    expect(out.html).toContain("https://example.test/workspace/score");
+    expect(out.html).toContain("https://example.test/workspace/reports/business");
     expect(out.html).not.toContain("example.test//dashboard");
   });
 
   it("defaults to https://blockid.au when NEXT_PUBLIC_SITE_URL is unset", () => {
     delete process.env.NEXT_PUBLIC_SITE_URL;
     const out = renderDripBody("onboarding_d1", "a@b.co", { weakestDim: "x" });
-    expect(out.html).toContain("https://blockid.au/workspace/score");
-    expect(out.text).toContain("https://blockid.au/workspace/score");
+    expect(out.html).toContain("https://blockid.au/workspace/reports/business");
+    expect(out.text).toContain("https://blockid.au/workspace/reports/business");
   });
 
   it("re-reads the env var per call (not cached at module load)", () => {
@@ -373,13 +391,13 @@ describe("renderDripBody — onboarding_d1", () => {
     expect(withoutScore.html).not.toContain("/100");
   });
 
-  it("html contains dashboard + Evidence Vault CTAs", () => {
+  it("html contains report + Evidence Vault CTAs (G16-B: D1 lands on the report, not the dashboard)", () => {
     const out = renderDripBody("onboarding_d1", "a@b.co", {
       weakestDim: "traction",
     });
-    expect(out.html).toContain("https://blockid.au/workspace/score");
+    expect(out.html).toContain("https://blockid.au/workspace/reports/business");
     expect(out.html).toContain("https://blockid.au/workspace/evidence");
-    expect(out.html).toContain(">Open dashboard<");
+    expect(out.html).toContain(">Open your report<");
   });
 
   it("text version mirrors the html — same URLs + score suffix", () => {
@@ -387,7 +405,7 @@ describe("renderDripBody — onboarding_d1", () => {
       weakestDim: "traction",
       weakestScore: 42,
     });
-    expect(out.text).toContain("Dashboard: https://blockid.au/workspace/score");
+    expect(out.text).toContain("Report: https://blockid.au/workspace/reports/business");
     expect(out.text).toContain(
       "Evidence Vault: https://blockid.au/workspace/evidence",
     );
@@ -464,11 +482,13 @@ describe("renderDripBody — onboarding_d7", () => {
 });
 
 describe("renderDripBody — onboarding_d14", () => {
-  it("subject is the fixed A$29/mo Founder-plan cue", () => {
+  it("subject is the Founder-plan cue priced from plans-v2 (G16-B copy truth: A$29 is the Starter rung, not a literal)", () => {
+    const starter = PLANS_V2.find((p) => p.id === "founder_starter")!;
     const out = renderDripBody("onboarding_d14", "a@b.co", {});
     expect(out.subject).toBe(
-      "Ready for the full report? Founder plan is A$29/mo",
+      `Ready for the full report? Founder plan is A$${starter.monthly_aud}/mo`,
     );
+    expect(out.subject).toBe("Ready for the full report? Founder plan is A$29/mo");
   });
 
   it("ignores the payload — no personalisation in D14", () => {
@@ -792,11 +812,13 @@ describe("enqueueOnboardingDrip happy path (5-touch sequence)", () => {
     const eqCols = state.captured.eqs
       .filter((e) => e.table === "email_drips" && e.op === "select")
       .map((e) => e.col);
-    expect(eqCols).toEqual(["email", "campaign"]);
-    const eqCampaign = state.captured.eqs.find(
+    // G16-B: the onboarding dedupe (email, campaign) is followed by the
+    // unlock nudge's own (email, campaign) dedupe — same shape, second pair.
+    expect(eqCols).toEqual(["email", "campaign", "email", "campaign"]);
+    const eqCampaigns = state.captured.eqs.filter(
       (e) => e.table === "email_drips" && e.col === "campaign",
     );
-    expect(eqCampaign?.val).toBe("onboarding_d1");
+    expect(eqCampaigns.map((e) => e.val)).toEqual(["onboarding_d1", "tbr_unlock_24h"]);
     const limit = state.captured.limits.find(
       (l) => l.table === "email_drips",
     );
@@ -1354,14 +1376,22 @@ function campaignCheckList(file: string): { sql: string; listed: string[] } {
   return { sql, listed: Array.from(block.matchAll(/'([a-z0-9_]+)'::text/g)).map((m) => m[1]) };
 }
 
-describe("migration 0327 campaign CHECK matches the DripCampaign union", () => {
-  it("lists exactly ALL_DRIP_CAMPAIGNS (onboarding five + radar four + setup two)", () => {
-    const { sql, listed } = campaignCheckList("0327_radar_setup_drip.sql");
+describe("migration 0411 campaign CHECK matches the DripCampaign union", () => {
+  it("lists exactly ALL_DRIP_CAMPAIGNS (onboarding five + radar four + setup two + tbr_unlock_24h)", () => {
+    const { sql, listed } = campaignCheckList("0411_email_drips_tbr_unlock.sql");
     expect([...listed].sort()).toEqual([...ALL_DRIP_CAMPAIGNS].sort());
-    expect(listed).toContain("radar_setup");
-    expect(listed).toContain("radar_setup_2");
+    expect(listed).toContain("tbr_unlock_24h");
     expect(sql).toMatch(/drop constraint if exists email_drips_campaign_check/i);
     expect(sql).toMatch(/notify pgrst, 'reload schema'/);
+  });
+
+  it("0327's list is a strict subset (nothing was dropped)", () => {
+    const { sql, listed } = campaignCheckList("0327_radar_setup_drip.sql");
+    expect(listed.length).toBe(11);
+    expect(listed).toContain("radar_setup");
+    expect(listed).toContain("radar_setup_2");
+    for (const c of listed) expect(ALL_DRIP_CAMPAIGNS).toContain(c);
+    expect(sql).toMatch(/drop constraint if exists email_drips_campaign_check/i);
   });
 
   it("0320's list is a strict subset (nothing was dropped)", () => {
@@ -1591,5 +1621,194 @@ describe("enqueueRadarSetupDrip / listRadarSetupTouches (S11-A)", () => {
     expect(await listRadarSetupTouches("f@x.co")).toEqual([]);
     state.adminNull = true;
     expect(await listRadarSetupTouches("f@x.co")).toEqual([]);
+  });
+});
+
+// ── G16-B · tbr_unlock_24h — "Your report is ready — unlock for A$3" ─────────
+//
+// One touch at +24 h after the first analysis, one row per address EVER,
+// never to a qa-live-* address, cancelled at send time once the founder has
+// bought or the plan carries report.premium; the price in subject and body
+// is read from the SKU (lib/pricing/trust-report-price), never typed.
+
+function fakeDripDb(opts: { prior?: unknown[]; insertError?: { message: string } | null; orders?: unknown[]; plan?: string | null } = {}) {
+  const calls: Array<{ table: string; op: string; args?: unknown }> = [];
+  const chain = (table: string) => {
+    const c = {
+      select: () => c,
+      eq: (col: string, val: unknown) => {
+        calls.push({ table, op: `eq:${col}`, args: val });
+        return c;
+      },
+      in: (col: string, val: unknown) => {
+        calls.push({ table, op: `in:${col}`, args: val });
+        return c;
+      },
+      limit: () => c,
+      then: (res: (v: unknown) => unknown, rej?: (e: unknown) => unknown) => {
+        const data = table === "email_drips" ? (opts.prior ?? []) : table === "report_orders" ? (opts.orders ?? []) : table === "app_users" ? [{ plan: opts.plan ?? "free" }] : [];
+        return Promise.resolve({ data, error: null }).then(res, rej);
+      },
+    };
+    return c;
+  };
+  const db: DripDbLike = {
+    from(table: string) {
+      calls.push({ table, op: "from" });
+      return {
+        ...chain(table),
+        insert: (rows: unknown) => {
+          calls.push({ table, op: "insert", args: rows });
+          return Promise.resolve({ data: null, error: opts.insertError ?? null });
+        },
+      };
+    },
+  };
+  return { db, calls };
+}
+
+describe("enqueueTbrUnlockNudge (G16-B)", () => {
+  const NOW = Date.parse("2026-09-19T10:00:00.000Z");
+
+  it("queues ONE row at +24 h with the project id in the payload, email normalised", async () => {
+    const { db, calls } = fakeDripDb();
+    const r = await enqueueTbrUnlockNudge(db, "  Founder@Example.COM ", "user-1", { projectId: "p-1", weakestDim: "traction" }, NOW);
+    expect(r).toBe("queued");
+    const insert = calls.find((c) => c.op === "insert")!;
+    expect(insert.table).toBe("email_drips");
+    expect(insert.args).toEqual({
+      email: "founder@example.com",
+      user_id: "user-1",
+      campaign: TBR_UNLOCK_CAMPAIGN,
+      scheduled_for: new Date(NOW + TBR_UNLOCK_DELAY_MS).toISOString(),
+      payload: { project_id: "p-1", weakestDim: "traction" },
+    });
+    expect(TBR_UNLOCK_DELAY_MS).toBe(24 * 60 * 60 * 1000);
+    expect(calls.find((c) => c.op === "eq:campaign")?.args).toBe("tbr_unlock_24h");
+  });
+
+  it("dedupes forever: any prior row (whatever its status) → duplicate, no insert", async () => {
+    const { db, calls } = fakeDripDb({ prior: [{ id: "old" }] });
+    expect(await enqueueTbrUnlockNudge(db, "a@b.co", "user-1", { projectId: null }, NOW)).toBe("duplicate");
+    expect(calls.some((c) => c.op === "insert")).toBe(false);
+  });
+
+  it("never queues for a qa-live-* / erased address (no DB call at all)", async () => {
+    const { db, calls } = fakeDripDb();
+    expect(await enqueueTbrUnlockNudge(db, "qa-live-20260919-1200@blockid.au", "user-1", { projectId: null }, NOW)).toBe("skipped_qa");
+    expect(await enqueueTbrUnlockNudge(db, "deleted+abc123@erased.blockid.au", "user-1", { projectId: null }, NOW)).toBe("skipped_qa");
+    expect(calls).toEqual([]);
+  });
+
+  it("an insert rejected by the old CHECK (migration 0411 not applied) is logged, not thrown", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { db } = fakeDripDb({ insertError: { message: "violates check constraint email_drips_campaign_check" } });
+    expect(await enqueueTbrUnlockNudge(db, "a@b.co", "user-1", { projectId: null }, NOW)).toBe("error");
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("0411"), expect.anything());
+  });
+});
+
+describe("enqueueOnboardingDrip queues the unlock nudge as a SEPARATE insert (G16-B)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-01T00:00:00.000Z"));
+  });
+
+  it("authenticated founder: onboarding five in one insert, tbr_unlock_24h in a second, both carrying project_id", async () => {
+    await enqueueOnboardingDrip("a@b.co", "user-1", { weakestDim: "traction", weakestScore: 42, sector: "saas", projectId: "p-9" });
+    const inserts = state.captured.inserts.filter((i) => i.table === "email_drips");
+    expect(inserts).toHaveLength(2);
+    const onboarding = inserts[0].rows as Array<{ campaign: string; payload: { project_id?: string } }>;
+    expect(onboarding.map((r) => r.campaign)).not.toContain("tbr_unlock_24h");
+    expect(onboarding[0].payload.project_id).toBe("p-9");
+    const nudge = inserts[1].rows as { campaign: string; scheduled_for: string; user_id: string; payload: { project_id: string } };
+    expect(nudge.campaign).toBe("tbr_unlock_24h");
+    expect(nudge.user_id).toBe("user-1");
+    expect(nudge.scheduled_for).toBe("2026-08-02T00:00:00.000Z");
+    expect(nudge.payload.project_id).toBe("p-9");
+  });
+
+  it("anonymous analysis (no user id): onboarding only, no nudge", async () => {
+    await enqueueOnboardingDrip("a@b.co", null, { weakestDim: "traction", weakestScore: 42, sector: "saas" });
+    const inserts = state.captured.inserts.filter((i) => i.table === "email_drips");
+    expect(inserts).toHaveLength(1);
+  });
+
+  it("no project id → D1 payload carries no project_id (link falls back to the bare report page)", async () => {
+    await enqueueOnboardingDrip("a@b.co", "user-1", { weakestDim: "traction", weakestScore: 42, sector: "saas" });
+    const onboarding = state.captured.inserts.find((i) => i.table === "email_drips")!.rows as Array<{ payload: Record<string, unknown> }>;
+    expect(onboarding[0].payload).not.toHaveProperty("project_id");
+  });
+});
+
+describe("tbrUnlockSuppression (G16-B send-time guard)", () => {
+  const drip = (over: Partial<{ campaign: string; email: string; user_id: string | null }> = {}) =>
+    ({ campaign: "tbr_unlock_24h", email: "a@b.co", user_id: "user-1", ...over }) as Parameters<typeof tbrUnlockSuppression>[0];
+
+  it("other campaigns are never touched", async () => {
+    const { db, calls } = fakeDripDb({ orders: [{ id: "paid" }] });
+    expect(await tbrUnlockSuppression(drip({ campaign: "onboarding_d1" }), db)).toBeNull();
+    expect(calls).toEqual([]);
+  });
+
+  it("qa-live-* address → suppressed before any lookup", async () => {
+    const { db, calls } = fakeDripDb();
+    expect(await tbrUnlockSuppression(drip({ email: "qa-live-20260919-1200@blockid.au" }), db)).toMatch(/qa account/);
+    expect(calls).toEqual([]);
+  });
+
+  it("a PAID / GENERATING / READY report_orders row for the user → suppressed", async () => {
+    const { db, calls } = fakeDripDb({ orders: [{ id: "o-1" }] });
+    expect(await tbrUnlockSuppression(drip(), db)).toMatch(/already purchased/);
+    expect(calls.find((c) => c.op === "eq:user_id")?.args).toBe("user-1");
+    expect(calls.find((c) => c.op === "in:status")?.args).toEqual(["PAID", "GENERATING", "READY"]);
+  });
+
+  it("plan carries report.premium → suppressed; free plan without an order → send", async () => {
+    getEntitlementsMock.mockResolvedValueOnce(["svi.run", "report.premium"]);
+    const { db } = fakeDripDb({ plan: "founder_growth" });
+    expect(await tbrUnlockSuppression(drip(), db)).toMatch(/plan includes/);
+    expect(getEntitlementsMock).toHaveBeenCalledWith("founder_growth", "user-1");
+    const free = fakeDripDb({ plan: "free" });
+    expect(await tbrUnlockSuppression(drip(), free.db)).toBeNull();
+  });
+
+  it("no user id or no db → send (nothing to check against)", async () => {
+    expect(await tbrUnlockSuppression(drip({ user_id: null }), fakeDripDb().db)).toBeNull();
+    expect(await tbrUnlockSuppression(drip(), null)).toBeNull();
+  });
+
+  it("promotions category → respects the promotions e-mail preference through canSendDrip", async () => {
+    expect(dripCategory("tbr_unlock_24h")).toBe("promotions");
+    canSendEmailMock.mockResolvedValue(false);
+    expect(await canSendDrip("a@b.co", "tbr_unlock_24h")).toBe(false);
+    expect(canSendEmailMock).toHaveBeenCalledWith("a@b.co", "promotions");
+  });
+});
+
+describe("renderDripBody — tbr_unlock_24h", () => {
+  it("subject + body price the unlock from the SKU helper and deep-link to the report (?pid=)", () => {
+    const out = renderDripBody("tbr_unlock_24h", "a@b.co", { project_id: "p-1", weakestDim: "traction" });
+    const price = trustReportPriceLabel();
+    expect(out.subject).toBe(tbrUnlockSubject());
+    expect(out.subject).toBe(`Your report is ready — unlock the full version for ${price}`);
+    expect(out.html).toContain(`<strong>${price}</strong> one-off`);
+    expect(out.html).toContain(tbrReportUrl("p-1"));
+    expect(out.html).toContain("https://blockid.au/workspace/reports/business?pid=p-1");
+    expect(out.html).toContain(">Open your report<");
+    expect(out.html).toContain("<strong>traction</strong>");
+    expect(out.html).toContain("confirm before anything is charged");
+    expect(out.html).not.toContain("stripe.com");
+    expect(out.text).toContain(`(${price} one-off, GST included)`);
+    expect(out.text).toContain("https://blockid.au/workspace/reports/business?pid=p-1");
+    expect(out.html).toContain("Unsubscribe");
+  });
+
+  it("no project id → bare report page; the weakest-dimension clause is omitted and payload is escaped", () => {
+    const out = renderDripBody("tbr_unlock_24h", "a@b.co", { weakestDim: "<b>x</b>" });
+    expect(out.html).toContain('href="https://blockid.au/workspace/reports/business"');
+    expect(out.html).not.toContain("?pid=");
+    expect(out.html).toContain("&lt;b&gt;x&lt;/b&gt;");
+    expect(out.html).not.toContain("<b>x</b>");
   });
 });
