@@ -63,6 +63,8 @@ const CALLER_ID_ALLOW: Record<string, string> = {
     "assembled_reports by (id, user_id = caller): the DOCX export renders a report the caller generated and paid for; project data comes through scope.dataEmail",
   "svi/full-report/route.ts":
     "report_sections by (analysis_id, user_id = caller): previously purchased sections are the caller's own paid content; the analysis itself is resolved via scope.dataEmail",
+  "reports/access/route.ts":
+    "G16-B read-only quote: report_orders by (business_id = scope.projectId, user_id = caller) — the caller's own paid A$3 order for the scoped report, never another member's; the project is resolved via getProjectScope/assertProjectScope(viewer) and nothing else is read by caller id",
 };
 
 // Rule B — the legacy reader and every thin wrapper of it (a wrapper hides
