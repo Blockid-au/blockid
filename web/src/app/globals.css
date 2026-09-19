@@ -803,6 +803,25 @@ body {
 .prose-legal p  { margin-top: 0.75rem; }
 .prose-legal ul { margin-top: 0.5rem; padding-left: 1.5rem; list-style: disc; }
 
+/* ── G17 D5 — Unicorn template long-form + FAQ (components/marketing/template)
+   Token-bound descendant styles; the components only set the class. */
+.tpl-prose h2 { margin-top: 2.5rem; font-family: var(--font-space-grotesk), var(--font-inter), ui-sans-serif, system-ui, sans-serif; font-size: 1.5rem; line-height: 1.3; font-weight: 700; letter-spacing: -0.015em; color: var(--ds-ink); }
+.tpl-prose h3 { margin-top: 2rem; font-size: 1.125rem; line-height: 1.4; font-weight: 600; color: var(--ds-ink); }
+.tpl-prose p  { margin-top: 1rem; }
+.tpl-prose ul, .tpl-prose ol { margin-top: 0.75rem; padding-left: 1.5rem; }
+.tpl-prose ul { list-style: disc; }
+.tpl-prose ol { list-style: decimal; }
+.tpl-prose li + li { margin-top: 0.375rem; }
+.tpl-prose a { color: var(--ds-accent); text-underline-offset: 4px; text-decoration: underline; border-radius: 0.25rem; }
+.tpl-prose a:hover { color: var(--ds-accent-hover); }
+.tpl-prose a:focus-visible { outline: 2px solid var(--color-accent-600); outline-offset: 2px; }
+.tpl-prose strong { color: var(--ds-ink); font-weight: 600; }
+.tpl-prose table { margin-top: 1.25rem; width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.tpl-prose th, .tpl-prose td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--ds-border); }
+.tpl-prose th { color: var(--ds-ink); font-weight: 600; }
+.tpl-prose > :first-child { margin-top: 0; }
+.tpl-faq summary::-webkit-details-marker { display: none; }
+
 /* Sep 2026 — user feedback: the input frame's rotating conic-gradient
  * border read as "quay vòng" (spinning) instead of static professional
  * focus. Replaced the rotating gradient + blur glow with a single, calm
