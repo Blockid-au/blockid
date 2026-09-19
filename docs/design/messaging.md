@@ -1,0 +1,140 @@
+# BlockID.au — the one message map (G18 lane C, 2026-09-19)
+
+**Why this file exists.** Founder direction 2026-09-19: *"thông điệp đồng nhất trên toàn bộ site blockid.au"* — one consistent message everywhere. Every public string (marketing pages, `/vi`, i18n messages, meta titles/descriptions, JSON-LD, OG card, transactional e-mails, PDF covers, PWA manifest) is written from this map. `web/src/lib/marketing/messaging.test.ts` reads the **Never say** table below and fails CI when a forbidden phrase reappears in the public source trees.
+
+Sources of truth this map condenses (it does not replace them): `docs/plans/unicorn-homepage-2026-09-19.md` § 2 D1 (hero), `docs/design/unicorn-template.md` (template + copy do/don't), `docs/plans/g14-investor-feedback-2026-09-16.md` (positioning, brand), `docs/plans/SOURCE-OF-TRUTH.md` G10 A4/A5 (public term "8 SVI dimensions"), G12 D4 (doctoral-research sentence + data sentence), H.G13-F1 (TBR public name), memory `business_entity.md` (entity split).
+
+---
+
+## 1. Brand line
+
+| Slot | Line |
+|---|---|
+| Brand | **Startup Value Index** — *by BlockID*. The product is the index; BlockID (blockid.au) is the platform, entity and domain. |
+| Site name (`<title>` default, OG `siteName`, manifest `name`) | `BlockID.au — Startup Value Index` |
+| Short name (manifest, chip) | `BlockID` |
+| Tagline (3 words) | `A credit score for startups.` (G2) |
+| Bio / press / `og:description` (G1) | `BlockID is Australia's startup readiness score — it tells founders what they're worth and where to get money, and tells investors who's ready.` |
+| Application name | `BlockID.au` |
+
+## 2. Hero (E1 / E2 — verbatim, G17 D1)
+
+| | EN | VI |
+|---|---|---|
+| **H1 (E1)** | `Score any Australian startup in 60 seconds.` | `Chấm điểm bất kỳ startup Úc nào trong 60 giây.` |
+| **Sub (E2)** | `One rubric for every deal — eight dimensions, an evidence-backed valuation range and an Investor Dossier. Investors, accelerators and advisors use it; founders get the feedback free.` | `Một thước đo cho mọi thương vụ — tám chiều đánh giá, khoảng định giá có bằng chứng và một Hồ sơ Nhà đầu tư. Nhà đầu tư, vườn ươm và cố vấn dùng nó; founder nhận phản hồi miễn phí.` |
+| Primary CTA | `Score a startup` → search box / `/analyze` | `Chấm điểm một startup` |
+| Secondary CTA | `See a sample dossier` → `/tbr/demo` | `Xem Hồ sơ mẫu` |
+| Founder line under the box | `Founder? Get your own score free.` | `Là founder? Nhận điểm của chính bạn, miễn phí.` |
+
+The catalogue of speakable lines (E1/E2, F1–F4, I1–I3, G1–G3) lives in `web/src/lib/marketing/hero-variants.ts`; `messages/{en,vi}.json` mirror them under `hero.line.*`. Nothing else may introduce a new hero line.
+
+## 3. One line per audience (the evaluator ladder first, founders second)
+
+| Audience | Line | Home |
+|---|---|---|
+| Investor | `Screen the deal in minutes — and every founder you pass on gets the reasons, not silence.` (I2) | `/solutions/investor` |
+| Accelerator | `Score every applicant on one rubric, show sponsors the movement week by week.` | `/solutions/accelerator` |
+| Advisor | `Every client on the same score, with an evidence-backed valuation range you can put your name to.` | `/solutions/advisor` |
+| Founder | `See your startup the way an investor will — your score, what it's worth, and where the money is, in 60 seconds.` (F1) | `/solutions/founder` |
+
+Order on any page that lists audiences: **Investors → Accelerators → Advisors**, founders on the second line ("founders get the feedback free"). Evaluators pay; founders get the feedback free — never the other way round.
+
+## 4. Product vocabulary (canonical names)
+
+| Say | Meaning | Never say |
+|---|---|---|
+| **Startup Value Index (SVI)** · "SVI score" · "your score" | the 0–100 composite score | "startup index" (lower-case, as a product), "Business ID score", "readiness score" as a product name |
+| **8 SVI dimensions** (UI labels) · **eight dimensions** (prose) | the public rubric | "13 criteria" anywhere except `/methodology` (rubric depth) and inside the product/report |
+| **Trusted Business Report (TBR)** | the A$3 full report, for founders and for evaluators; also what a guest buys on `/one-click-report` | "Trust BizReport", "One-Click Report" as a product name (say "the A$3 Trusted Business Report"), "Business Report" alone |
+| **Investor Dossier** (capitalised) | the evaluator-side report | "investor dossier", "Investor dossier" |
+| **Money Finder** | eligibility match for grants/investors | "Do you need money?" as a nav/footer CTA (it stays as the `/funding` page question only) |
+| **Founder Radar** | deadline watch e-mails | "Money Radar" |
+| **Intake link** · **Cohort table** · **Feedback letter** | program tools | — |
+| Tiers | Founder: **Free / Starter / Growth** · Evaluator: **Scout / Firm / Program** · B2B: **Fund / Intake link / Index API** · **Cohort 25 / Cohort 100** | "Angel", "Advisor plan", "VC Small", "Founding 100", "Founding 50" |
+| Reviewers | "the C-suite of AI agents", "a CFO, CLO, CMO, CRO, CTO, CHRO … each with its own domain module, then an auditor" | any agent count ("11 C-Level agents", "17 / 50+ AI agents"), any provider count ("9 AI providers") |
+| Credentials | Founder Institute · Spacecubed AI Fellowship · NVIDIA Inception | anything else |
+| Method | "grounded in the founder's doctoral research on multi-model startup valuation" | "PhD" |
+
+Prices (every A$ figure) are lane A's; this map never states one. When a sentence needs the price it reads it from the SKU/plan constant.
+
+## 5. Tone rules
+
+- Short, concrete, **Australian English** (organisation, capitalise, licence, programme → we use "program" for accelerator programs as the sector does).
+- No hype adjectives: never "revolutionary", "cutting-edge", "world-class", "unparalleled", "game-changing", "next-generation".
+- Numbers only when live or verifiable (60 seconds = the on-screen free score; 8 dimensions = the shipped rubric). No user counts, no agent counts.
+- Numerals in UI labels, chips, tables and meta descriptions (`8 SVI dimensions`); words in prose sentences (`eight dimensions`). VI prose: `tám chiều đánh giá`; VI labels: `8 chiều`.
+- Verbs first in CTAs. One primary CTA per screen.
+- No "beta", "coming soon", "launching soon", "waitlist" on a public page — a feature is either live and linked, or absent.
+- No "SOC 2" / "SOC2" claim; the truthful phrase is "hash-chained audit trail".
+- Sign-off in e-mails: `BlockID · Startup Value Index`.
+
+## 6. Meta title / description patterns
+
+- Root template: `%s | BlockID.au` (`web/src/app/layout.tsx`). Pages pass a **core title only** via `pageMetadata({ title })`; never append "· BlockID" or "| BlockID.au" themselves. Rendered `<title>` ≤ 60 characters.
+- Homepage title = E1 without the full stop: `Score any Australian startup in 60 seconds | BlockID.au`.
+- Descriptions 140–165 characters, one promise + one audience, numerals allowed, no price unless lane A's pricing page.
+- OG card (`/opengraph-image`): headline = E1, sub = `Startup Value Index · by BlockID`, alt = `Score any Australian startup in 60 seconds · BlockID.au`.
+- JSON-LD `Organization`: `name: "BlockID.au"`, `legalName: "Auschain PTY LTD"`, `taxID: "79 659 615 111"`, `description` = G1. `WebSite.name: "BlockID.au — Startup Value Index"`, `alternateName: ["BlockID", "Startup Value Index"]`.
+
+## 7. CTA vocabulary
+
+| Intent | Label |
+|---|---|
+| Evaluator primary | `Score a startup` |
+| Evaluator secondary | `See a sample dossier` |
+| Pilot | `Start a pilot` |
+| Founder primary | `Get your score free` |
+| Buy the TBR | `Get the Trusted Business Report` (+ the SKU price from lane A's constant) |
+| Pricing | `See pricing` |
+| Contact | `Talk to us` |
+
+Retired CTA labels: "Get my SVI score", "Get One-Click Report", "Join Founding 50", "Get Founding 100", "Do you need money?" (nav).
+
+## 8. Entity lines (deliberate split — keep both)
+
+- **Marketing / footer / about**: `PPL Food PTY LTD` (no ABN).
+- **Billing, legal, invoices, JSON-LD `Organization`, e-mail footer, PDF cover**: `Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW`.
+
+## 9. The data sentence (verbatim, founder-approved 2026-09-10)
+
+> Your data belongs to your startup. We store it so every report builds on your own evidence and the AI reasons on your case. Founder-consented access tiers control who sees what.
+
+Constant: `DATA_PRINCIPLE_SENTENCE` in `web/src/lib/valuation-certificate/types.ts`; i18n `solutions.principle.data` / `intake.consent.sentence`.
+
+## 10. The disclaimer sentence
+
+> BlockID scores and valuation ranges are information, not financial, legal or investment advice. Evaluators and founders make their own decisions.
+
+Short form for footers and PDF covers: `Not financial advice.`
+
+## 11. Never say (machine-read by `messaging.test.ts`)
+
+Each row is a regular expression (case-sensitive unless `(?i)` is noted) applied to the public source trees after comments are stripped. Rows marked with an allow-list are skipped in those paths.
+
+| Phrase (regex) | Why | Allow-list |
+|---|---|---|
+| `Know your startup's SVI score` | pre-G17 hero | — |
+| `fundraising readiness in 30 seconds` | retired hero | — |
+| `investor-readiness in 30 seconds` | retired hero | — |
+| `Get my SVI score` | retired CTA | — |
+| `Get One-Click Report` | retired CTA; the product is the Trusted Business Report | — |
+| `Trust BizReport` | pre-F1 name | — |
+| `Founding 100` | retired offer | `src/app/version/`, `src/app/docs/` (history, lane B) |
+| `Founding 50` | retired offer | `src/app/version/`, `src/app/docs/` |
+| `A\$5\.50` | retired price | — |
+| `\b(50\+\|17\|11) (AI )?(C-Level )?agents` | never state an agent count | — |
+| `\b\d+ AI providers` | never state a provider count | — |
+| `13 criteria` | rubric depth is not the public term | `src/app/(marketing)/methodology/`, `src/app/(marketing)/docs/`, `src/app/docs/` |
+| `Thirteen criteria` | same | same as above |
+| `13-criteria` | same | same as above |
+| `\bbeta\b` in copy | no beta claims | `src/app/security-audit/`, `src/app/(marketing)/roadmap/`, `src/app/(marketing)/changelog/` (release history, lane B) |
+| `coming soon` | nothing is "coming soon" on a public page | — |
+| `SOC ?2 Type` | no SOC 2 audit exists | — |
+| `Money Radar` | product is Founder Radar | — |
+| `investor dossier` / `Investor dossier` | capitalise the product | — |
+| `startup index` (lower-case, followed by a space) | brand is Startup Value Index | `src/app/startup-index/` route-name references (`/startup-index`) are paths, not copy |
+| `Angel plan` / `Advisor plan` / `VC Small` | tiers are Scout / Firm / Program | — |
+| `\bPhD\b` | founder rule — "doctoral research" | — |
+
+Documented exceptions that are **not** in the table because they are true: "beta users" as an item on a founder's own readiness checklist (`api/fundraise/readiness`), "GitHub or GitLab repository" as advice about the founder's own code (`api/score`), `v2.0.0-beta.N` release identifiers on `/security-audit`, `/roadmap`, `/changelog`.
