@@ -34,7 +34,7 @@ const PILOT_PATH = "/pilot";
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
     title: "Evaluator pilot — free cohort scoring for one intake",
-    description: `Accelerators, incubators, university programs and angel groups: score one intake (up to ${PILOT_MAX_APPLICANTS} applicants) on the Startup Value Index for ${DEFAULT_PILOT_DAYS} days, free. Cohort table + CSV, sponsor / LP report sample, an Investor Dossier per startup. ${PILOT_CAP} pilots only.`,
+    description: `Accelerators and programs: score one intake (up to ${PILOT_MAX_APPLICANTS} applicants) on the Startup Value Index for ${DEFAULT_PILOT_DAYS} days, free. Cohort table, LP sample, dossiers. ${PILOT_CAP} pilots only.`,
     path: PILOT_PATH,
   });
 }
