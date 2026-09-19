@@ -770,3 +770,12 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Docs: docs/ops/analytics.md § G16-A · docs/ops/crontab-setup.md § G16-A.
 50 2 * * * cd /home/dovanlong/blockid.au/web && node scripts/funnel-report.mjs >> /data/logs/blockid-funnel.log 2>&1
 5 3 * * 1 cd /home/dovanlong/blockid.au/web && node scripts/funnel-report.mjs --weekly >> /data/logs/blockid-funnel.log 2>&1
+
+# G17-P2B (2026-09-19) — nightly site link check (plain node, read-only GET/HEAD,
+# own pid lock /tmp/blockid-link-check.lock). BFS from / + every sitemap URL,
+# ≤ 1,500 pages, externals HEAD-checked; writes content/reports/link-check.jsonl
+# + link-check-latest.json and Telegrams (e-mail fallback) when broken > 0.
+# Exits 1 when broken > 0 (the deploy gate-8 hook relies on it); like error-digest
+# it runs as plain node, not through cron-runner, so the exit never feeds cron-health.
+# Docs: docs/ops/link-check.md.
+40 3 * * * cd /home/dovanlong/blockid.au/web && node scripts/link-check.mjs --base https://blockid.au --include-sitemap --max 1500 >> /data/logs/blockid-link-check.log 2>&1
