@@ -33,8 +33,8 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { PageHero, Section } from "@/components/marketing/template";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { FundingJsonLd } from "@/components/funding/funding-json-ld";
@@ -152,53 +152,44 @@ export async function GrantsDirectory({ filters }: { filters: GrantFilters }) {
       />
       <FundingJsonLd data={itemList} />
 
-      <section className="mx-auto max-w-5xl px-6 pt-16 pb-8 sm:pt-24">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-action">Free directory</p>
-        <h1 className="mt-4 font-display text-4xl font-semibold tracking-tight text-primary sm:text-5xl">
-          {stateSeo ? stateSeo.h1 : "Australian startup grants, open right now"}
-        </h1>
-        <p className="mt-6 max-w-2xl text-lg leading-relaxed text-secondary">
-          <strong className="font-semibold text-primary" data-open-count={stats.open}>
-            {stats.open} {stats.open === 1 ? "grant is" : "grants are"} open
-          </strong>{" "}
-          across{" "}
-          <span data-total-count={stats.total}>
-            {stats.total} federal, state and council schemes
-          </span>
-          {stats.openMaxAud > 0 ? (
-            <>
-              , with maximum awards adding up to{" "}
-              <strong className="font-semibold text-primary" data-open-max-aud={stats.openMaxAud}>
-                {formatAudCompact(stats.openMaxAud)}
-              </strong>
-            </>
-          ) : null}
-          . Every row links to the official page — government grant information is free. What BlockID sells is the
-          analysis: whether <em>your</em> startup is eligible, what to gather, and when to apply.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3 text-sm">
-          <Link
-            href="/funding"
-            className="inline-flex h-10 items-center gap-2 rounded-full bg-action px-5 font-semibold text-on-action hover:bg-action-hover"
-          >
-            Check my eligibility
-            <ArrowRight aria-hidden="true" className="h-4 w-4" />
-          </Link>
-          <Link
-            href="/funding/programs"
-            className="inline-flex h-10 items-center rounded-full border border-line px-5 font-semibold text-primary hover:bg-surface-sunken"
-          >
-            Accelerators and programs
-          </Link>
-        </div>
-      </section>
+      {/* G17 P2-A: the template hero; the live counts keep their data-* hooks (live-qa 20-funding). */}
+      <PageHero
+        eyebrow="Free directory"
+        title={stateSeo ? stateSeo.h1 : "Australian startup grants, open right now"}
+        sub={
+          <>
+            <strong className="font-semibold text-primary" data-open-count={stats.open}>
+              {stats.open} {stats.open === 1 ? "grant is" : "grants are"} open
+            </strong>{" "}
+            across{" "}
+            <span data-total-count={stats.total}>
+              {stats.total} federal, state and council schemes
+            </span>
+            {stats.openMaxAud > 0 ? (
+              <>
+                , with maximum awards adding up to{" "}
+                <strong className="font-semibold text-primary" data-open-max-aud={stats.openMaxAud}>
+                  {formatAudCompact(stats.openMaxAud)}
+                </strong>
+              </>
+            ) : null}
+            . Every row links to the official page — government grant information is free. What BlockID sells is the
+            analysis: whether <em>your</em> startup is eligible, what to gather, and when to apply.
+          </>
+        }
+        ctas={[
+          { href: "/funding", label: "Check my eligibility", ctaId: "grants_hero_eligibility" },
+          { href: "/funding/programs", label: "Accelerators and programs" },
+        ]}
+        align="start"
+      />
 
-      <section className="mx-auto max-w-5xl px-6 pb-6" aria-label="Filters">
+      <Section id="filters" ariaLabel="Filters" spacing="sm" divider={false}>
         <FilterChips base={PATH} current={current} groups={groups} />
-      </section>
+      </Section>
 
       {stateOnly ? (
-        <nav className="mx-auto max-w-5xl px-6 pb-6 text-sm text-secondary" aria-label="Other states">
+        <nav className="mx-auto max-w-6xl px-6 pb-6 text-sm text-secondary" aria-label="Other states">
           Also see:{" "}
           {AU_STATES.filter((s) => s !== stateOnly && all.some((g) => g.state === s)).map((s, i) => (
             <span key={s}>
@@ -211,7 +202,7 @@ export async function GrantsDirectory({ filters }: { filters: GrantFilters }) {
         </nav>
       ) : null}
 
-      <section className="mx-auto max-w-5xl px-6 pb-12" aria-labelledby="grants-list-heading">
+      <Section id="grants" ariaLabel="Grants" spacing="sm" divider={false}>
         <p id="grants-list-heading" className="mb-4 text-sm font-semibold text-secondary">
           {rows.length} {rows.length === 1 ? "grant" : "grants"}
           {scopeLine ? ` · ${scopeLine}` : ""}
@@ -266,7 +257,7 @@ export async function GrantsDirectory({ filters }: { filters: GrantFilters }) {
             })}
           </div>
         )}
-      </section>
+      </Section>
 
       <FundingGuides guides={GRANT_GUIDES} heading="Read before you apply" />
 

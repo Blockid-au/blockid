@@ -12,9 +12,8 @@
  */
 
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { PageHero, Section } from "@/components/marketing/template";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { FundingJsonLd } from "@/components/funding/funding-json-ld";
@@ -136,51 +135,39 @@ export default async function ProgramsDirectoryPage({
       <BreadcrumbListJsonLd items={[...FUNDING_CRUMBS.programs]} />
       <FundingJsonLd data={itemList} />
 
-      <section className="mx-auto max-w-5xl px-6 pt-16 pb-8 sm:pt-24">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-action">Free directory</p>
-        <h1 className="mt-4 font-display text-4xl font-semibold tracking-tight text-primary sm:text-5xl">
-          Startup accelerators, incubators and programs in every Australian capital
-        </h1>
-        <p className="mt-6 max-w-2xl text-lg leading-relaxed text-secondary">
-          <strong className="font-semibold text-primary" data-total-count={all.length}>
-            {all.length} programs
-          </strong>{" "}
-          across the eight capitals and online,{" "}
-          <strong className="font-semibold text-primary" data-open-count={openTotal}>
-            {openTotal} taking applications
-          </strong>
-          . Each capital has its own twelve-month intake calendar. Listings and official links are free; the paid
-          part is a plan that sequences the right programs and grants for <em>your</em> stage.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3 text-sm">
-          <Link
-            href="/funding"
-            className="inline-flex h-10 items-center gap-2 rounded-full bg-action px-5 font-semibold text-on-action hover:bg-action-hover"
-          >
-            Build my funding plan
-            <ArrowRight aria-hidden="true" className="h-4 w-4" />
-          </Link>
-          <Link
-            href="/funding/grants"
-            className="inline-flex h-10 items-center rounded-full border border-line px-5 font-semibold text-primary hover:bg-surface-sunken"
-          >
-            Grants directory
-          </Link>
-        </div>
-      </section>
+      {/* G17 P2-A: the template hero; the live counts keep their data-* hooks. */}
+      <PageHero
+        eyebrow="Free directory"
+        title="Startup accelerators, incubators and programs in every Australian capital"
+        sub={
+          <>
+            <strong className="font-semibold text-primary" data-total-count={all.length}>
+              {all.length} programs
+            </strong>{" "}
+            across the eight capitals and online,{" "}
+            <strong className="font-semibold text-primary" data-open-count={openTotal}>
+              {openTotal} taking applications
+            </strong>
+            . Each capital has its own twelve-month intake calendar. Listings and official links are free; the paid
+            part is a plan that sequences the right programs and grants for <em>your</em> stage.
+          </>
+        }
+        ctas={[
+          { href: "/funding", label: "Build my funding plan", ctaId: "programs_hero_plan" },
+          { href: "/funding/grants", label: "Grants directory" },
+        ]}
+        align="start"
+      />
 
-      <section className="mx-auto max-w-5xl px-6 pb-12" aria-labelledby="capitals-heading">
-        <h2 id="capitals-heading" className="mb-4 font-display text-2xl font-semibold tracking-tight text-primary">
-          Pick your capital
-        </h2>
+      <Section id="capitals" title="Pick your capital" spacing="sm" tone="sunken">
         <CapitalPicker counts={counts} />
-      </section>
+      </Section>
 
-      <section className="mx-auto max-w-5xl px-6 pb-6" aria-label="Filters">
+      <Section id="filters" ariaLabel="Filters" spacing="sm" divider={false}>
         <FilterChips base={PATH} current={current} groups={groups} />
-      </section>
+      </Section>
 
-      <section className="mx-auto max-w-5xl px-6 pb-12" aria-labelledby="programs-list-heading">
+      <Section id="programs" ariaLabel="Programs" spacing="sm" divider={false}>
         <p id="programs-list-heading" className="mb-4 text-sm font-semibold text-secondary">
           {rows.length} {rows.length === 1 ? "program" : "programs"}
           {filters.capital ? ` · ${filters.capital}` : ""}
@@ -230,7 +217,7 @@ export default async function ProgramsDirectoryPage({
             })}
           </div>
         )}
-      </section>
+      </Section>
 
       <FundingGuides guides={PROGRAM_GUIDES} heading="Read before you apply" />
 

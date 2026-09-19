@@ -7,14 +7,19 @@
  * verbatim and the application form (→ POST /api/pilot/apply). Every figure
  * comes from lib/pilots/offer.ts, which reads plans-v2 / credits — no price
  * literals on this page.
+ *
+ * G17 P2-A: rendered on the unicorn template (PageHero → Section × 4 →
+ * CtaBand). Test contract kept verbatim: `pilot-terms`, `pilot-in-return`,
+ * `pilot-not-included`, `pilot-criteria` (7 rows, `data-criterion`),
+ * `pilot-data-principle`, `pilot-apply-form`, `#apply` (tests/live-qa/30-pilot,
+ * ./page.test.tsx).
  */
 
 import type { Metadata } from "next";
 import Link from "next/link";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
-import { MarketingHero } from "@/components/marketing/marketing-hero";
-import { MarketingSection } from "@/components/marketing/marketing-section";
+import { CtaBand, PageHero, Section } from "@/components/marketing/template";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import {
   DATA_PRINCIPLE_SENTENCE,
@@ -43,42 +48,49 @@ export default function PilotPage() {
   const terms = pilotOfferTerms();
   return (
     <MarketingShell>
-      <MarketingHero
+      <PageHero
         eyebrow="Evaluator pilot · offer v2"
         title="Free cohort scoring for one intake"
-        subtitle={`Run one live intake — up to ${PILOT_MAX_APPLICANTS} applicants — through the 8-dimension / 13-criteria rubric for ${DEFAULT_PILOT_DAYS} days. Your committee ranks first; then you see ours. ${PILOT_CAP} pilots, then list price.`}
-        primaryCta={{ href: "#apply", label: "Apply for a pilot" }}
-        secondaryCta={{ href: "/solutions/accelerator", label: "How programs use BlockID" }}
+        sub={`Run one live intake — up to ${PILOT_MAX_APPLICANTS} applicants — through the 8-dimension / 13-criteria rubric for ${DEFAULT_PILOT_DAYS} days. Your committee ranks first; then you see ours. ${PILOT_CAP} pilots, then list price.`}
+        ctas={[
+          { href: "#apply", label: "Apply for a pilot", ctaId: "pilot_hero_apply" },
+          { href: "/solutions/accelerator", label: "How programs use BlockID" },
+        ]}
+        align="start"
       />
 
-      <MarketingSection kicker="The offer" title="What you get, for how long, at what price">
+      <Section id="offer" eyebrow="The offer" title="What you get, for how long, at what price" tone="sunken">
         <dl className="grid gap-4 sm:grid-cols-2" data-testid="pilot-terms">
           {terms.map((t) => (
-            <div key={t.term} className="rounded-2xl border border-line-subtle bg-white p-6">
-              <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-700">{t.term}</dt>
+            <div key={t.term} className="rounded-xl border border-line-subtle bg-surface p-6 shadow-1">
+              <dt className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">{t.term}</dt>
               <dd className="mt-2 text-sm leading-relaxed text-primary">{t.value}</dd>
             </div>
           ))}
         </dl>
         <div className="mt-8 grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl border border-line-subtle bg-surface-sunken p-6">
-            <h3 className="text-base font-semibold text-primary">In return — all four</h3>
+          <div className="rounded-xl border border-line-subtle bg-surface p-6 shadow-1">
+            <h3 className="font-display text-lg font-semibold text-primary">In return — all four</h3>
             <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-primary" data-testid="pilot-in-return">
               {PILOT_IN_RETURN.map((s) => <li key={s}>{s}</li>)}
             </ol>
           </div>
-          <div className="rounded-2xl border border-line-subtle bg-surface-sunken p-6">
-            <h3 className="text-base font-semibold text-primary">Not included</h3>
+          <div className="rounded-xl border border-line-subtle bg-surface p-6 shadow-1">
+            <h3 className="font-display text-lg font-semibold text-primary">Not included</h3>
             <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-primary" data-testid="pilot-not-included">
               {PILOT_NOT_INCLUDED.map((s) => <li key={s}>{s}</li>)}
             </ul>
           </div>
         </div>
-      </MarketingSection>
+      </Section>
 
-      <MarketingSection kicker="Day 0 → day 14" title={`Seven success criteria — the LOI triggers at ${PILOT_LOI_PASS_MARK} of 7`}>
-        <p className="max-w-3xl text-sm leading-relaxed text-tertiary">Agreed on the first call, scored on day 14. A failing signal is a product finding we log, not a reason to discount.</p>
-        <div className="mt-6 overflow-x-auto rounded-2xl border border-line-subtle bg-white">
+      <Section
+        id="criteria"
+        eyebrow="Day 0 → day 14"
+        title={`Seven success criteria — the LOI triggers at ${PILOT_LOI_PASS_MARK} of 7`}
+        lede="Agreed on the first call, scored on day 14. A failing signal is a product finding we log, not a reason to discount."
+      >
+        <div className="overflow-x-auto rounded-xl border border-line-subtle bg-surface shadow-1">
           <table className="w-full text-left text-sm" data-testid="pilot-criteria">
             <thead className="bg-surface-sunken text-xs uppercase tracking-wide text-tertiary">
               <tr>
@@ -100,27 +112,35 @@ export default function PilotPage() {
             </tbody>
           </table>
         </div>
-      </MarketingSection>
+      </Section>
 
-      <MarketingSection kicker="Data" title="Whose data is it?" tone="elevated">
+      <Section id="data" eyebrow="Data" title="Whose data is it?" tone="sunken">
         <p className="max-w-3xl text-base leading-relaxed text-primary" data-testid="pilot-data-principle">{DATA_PRINCIPLE_SENTENCE}</p>
         <p className="mt-4 max-w-3xl text-sm leading-relaxed text-tertiary">
           Your program tells applicants that BlockID is used in screening. Nothing about one startup is shown to another. Founders receive a claim link for their own score and nothing else. Method and evidence ladder: <Link href="/methodology" className="underline">/methodology</Link>. Policy: <Link href="/legal/privacy" className="underline">/legal/privacy</Link>.
         </p>
-      </MarketingSection>
+      </Section>
 
-      <MarketingSection kicker="Apply" title="Tell us about the intake">
-        <div id="apply" className="scroll-mt-24">
-          <p className="mb-6 max-w-3xl text-sm leading-relaxed text-tertiary">Six fields. We reply within two business days with a day-0 call proposal; the intake link and the Program-tier workspace are switched on by an admin grant when the pilot starts.</p>
-          <div className="relative rounded-3xl border border-line-subtle bg-white p-6 sm:p-8">
-            <PilotApplyForm />
-          </div>
+      <Section
+        id="apply"
+        eyebrow="Apply"
+        title="Tell us about the intake"
+        lede="Six fields. We reply within two business days with a day-0 call proposal; the intake link and the Program-tier workspace are switched on by an admin grant when the pilot starts."
+      >
+        <div className="relative rounded-xl border border-line-subtle bg-surface p-6 shadow-1 sm:p-8">
+          <PilotApplyForm />
         </div>
-      </MarketingSection>
+        <div className="mt-8">
+          <NotFinancialAdvice kind="not_financial_advice" compact />
+        </div>
+      </Section>
 
-      <div className="mx-auto max-w-5xl px-6 pb-16">
-        <NotFinancialAdvice kind="not_financial_advice" compact />
-      </div>
+      <CtaBand
+        title="Not running an intake this quarter?"
+        sub="Score one deal on the same rubric, or read how programs use the cohort table."
+        primary={{ href: "/analyze", label: "Score a startup", ctaId: "pilot_final_score" }}
+        secondary={{ href: "/solutions/accelerator", label: "For accelerators" }}
+      />
     </MarketingShell>
   );
 }

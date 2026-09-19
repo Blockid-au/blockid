@@ -4,8 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
-import { MarketingHero } from "@/components/marketing/marketing-hero";
-import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
+import { CtaBand, PageHero, Prose, Section } from "@/components/marketing/template";
 
 export const dynamic = "force-dynamic";
 
@@ -197,24 +196,24 @@ export default function ChangelogPage() {
     <MarketingShell>
       <PageViewTracker event="changelog_viewed" params={{}} />
 
-      <MarketingHero
+      <PageHero
         eyebrow="Changelog"
         title="Every release, every fix"
-        subtitle="Auto-generated from git and task IDs. Newest release first."
+        sub="Auto-generated from git and task IDs. Newest release first."
+        align="start"
       />
 
-      <section
-        aria-label="Changelog content"
-        className="mx-auto max-w-5xl px-6 py-12 sm:py-16"
-      >
+      <Section id="releases" ariaLabel="Changelog content" divider={false}>
         <div className="grid gap-10 lg:grid-cols-[1fr_240px]">
           {/* Content */}
-          <article className="min-w-0 rounded-3xl border border-line-subtle bg-surface-sunken p-8 sm:p-10">
+          <article className="min-w-0 rounded-xl border border-line-subtle bg-surface p-8 shadow-1 sm:p-10">
             {raw ? (
-              <div
-                className="text-sm sm:text-base"
-                dangerouslySetInnerHTML={{ __html: parsed.html }}
-              />
+              <Prose measure="wide" className="max-w-none">
+                <div
+                  className="text-sm sm:text-base"
+                  dangerouslySetInnerHTML={{ __html: parsed.html }}
+                />
+              </Prose>
             ) : (
               <p className="text-sm text-secondary">
                 Changelog not yet published for this environment. The next
@@ -225,8 +224,8 @@ export default function ChangelogPage() {
 
           {/* Sidebar (desktop only) */}
           <aside aria-label="Jump to release" className="hidden lg:block">
-            <div className="sticky top-24 rounded-2xl border border-line-subtle bg-surface-sunken p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-action">
+            <div className="sticky top-24 rounded-xl border border-line-subtle bg-surface-sunken p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
                 Releases
               </p>
               {parsed.releases.length > 0 ? (
@@ -250,11 +249,12 @@ export default function ChangelogPage() {
             </div>
           </aside>
         </div>
-      </section>
+      </Section>
 
-      <MarketingCtaStrip
-        headline="See what's next."
-        primary={{ href: "/roadmap", label: "Roadmap" }}
+      <CtaBand
+        title="See what's next."
+        sub="The roadmap lists what is building this quarter and what is gated on review."
+        primary={{ href: "/roadmap", label: "Roadmap", ctaId: "changelog_final_roadmap" }}
         secondary={{ href: "/security-audit", label: "Security audit" }}
       />
     </MarketingShell>

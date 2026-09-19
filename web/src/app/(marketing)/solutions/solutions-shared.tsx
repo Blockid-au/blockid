@@ -3,40 +3,61 @@
  * `/solutions/{founder,vn-sme,investor,advisor,accelerator}` and their
  * Vietnamese mirrors under `/vi/solutions/*`.
  *
- * WHAT THIS SHELL IS FOR, AFTER 2026-09-09
- *
- * It used to be an anatomy locked to a product we no longer sell: a hero whose
- * secondary CTA was "See a sample Trust Report (A$5.50)", a fixed grid of
- * exactly three benefits, a mandatory 30/60/90 journey, and a refund FAQ for a
- * SKU that has never taken a payment. Personas with less to say than the
- * anatomy demanded filled the gap with claims — cohort management, LP packs,
- * advisor rostering, dual-jurisdiction identity — none of which have a table
- * or a code path behind them.
- *
- * Two changes stop that recurring:
+ * G17 P2-A (2026-09-19): the shell now renders on the unicorn template
+ * (docs/design/unicorn-template.md) — `PageHero` → `Section`s →
+ * `CtaBand` — so every persona page shares the homepage's rhythm, tokens
+ * and chrome. Page-local hero / section markup is gone; what remains here
+ * is the persona *content model*, which is unchanged:
  *
  *   1. `benefits` and `journey` are arrays, not three-tuples. A persona that
- *      honestly has two things to say now renders two cards instead of
+ *      honestly has two things to say renders two cards instead of
  *      inventing a third, and `journey` may be omitted entirely.
  *   2. Every string rendered here passes through `fillPrices()`, so a price on
  *      a persona page can only come from the catalogue. Both language mirrors
  *      go through this one function, so English and Vietnamese cannot drift
  *      apart on an amount.
  *
- * The hero's supporting line is a plain lede, not a blockquote. It was styled
- * as a quotation with an attribution footer while carrying house copy, which
- * reads as a customer testimonial we do not have.
+ * No price table lives here (D3/D5): the evaluator pages link to
+ * `/pricing?segment=evaluator` for the ladder.
+ *
+ * Test contract (grep before touching): `data-testid="pilot-cta"` +
+ * `pilot-cta-link` (tests/e2e/smoke/post-deploy.spec.ts), one `<h1>`, one
+ * FAQPage + one BreadcrumbList JSON-LD (the colocated page tests),
+ * `data-persona` on the wrapper.
  *
  * Server component. Pure presentation, no data fetch. `lang` lets the VN
- * mirror set `<section lang="vi">` while reusing this shell.
+ * mirror set `<div lang="vi">` while reusing this shell.
  */
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight,
+  Database,
+  FileCheck2,
+  Landmark,
+  ScanSearch,
+  Scale,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
+import {
+  CTA_CLASS,
+  CtaBand,
+  Faq,
+  FeatureGrid,
+  FOCUS_RING,
+  MOTION,
+  PageHero,
+  ProofBand,
+  Section,
+  type FaqItem,
+  type FeatureItem,
+} from "@/components/marketing/template";
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { FAQJsonLd } from "@/components/seo/json-ld";
+import { cn } from "@/lib/utils";
 import { fillPrices } from "./solutions-pricing";
 
 /**
@@ -52,6 +73,8 @@ export interface SolutionTrustBadge {
 export interface SolutionBenefit {
   title: string;
   body: string;
+  /** Lucide icon for the card; defaults to the position's icon in `BENEFIT_ICONS`. */
+  icon?: LucideIcon;
 }
 
 export interface SolutionJourneyStep {
@@ -128,9 +151,9 @@ export interface SolutionPageProps {
   faqs: SolutionFaq[];
   disclaimer: ReactNode;
   /**
-   * B2 Task 6 — optional compliance/trust badge strip. Rendered between the
-   * hero and the benefits grid when supplied. Investor persona currently
-   * opts in; other personas may follow.
+   * B2 Task 6 — optional compliance/trust badge strip. Rendered as the
+   * template's `ProofBand` between the hero and the benefits grid when
+   * supplied. Investor persona currently opts in; other personas may follow.
    */
   trustBadges?: SolutionTrustBadge[];
   /**
@@ -156,6 +179,13 @@ export interface SolutionPageProps {
     ctaLabel: string;
     ctaHref: string;
   };
+  /**
+   * The closing `CtaBand` title / line. Defaults per persona family
+   * (`CLOSING_COPY`) so the three evaluator pages and the two founder pages
+   * close on the same sentence in each language.
+   */
+  closingTitle?: string;
+  closingSub?: string;
 }
 
 /**
@@ -197,6 +227,64 @@ export function primaryCtaHrefForSlug(slug: SolutionSlug): string {
   }
 }
 
+/**
+ * Icons for the benefit cards, by position. The evaluator pages carry the
+ * six differentiators of evaluator-traction-2026-09-10.md §4 in this order
+ * (one rubric · the whole C-suite · the startup's own evidence · built for
+ * Australia · the price · method, not vibes); the founder pages use the
+ * first three.
+ */
+export const BENEFIT_ICONS: readonly LucideIcon[] = [
+  ScanSearch,
+  Users,
+  Database,
+  Landmark,
+  FileCheck2,
+  Scale,
+];
+
+type ClosingFamily = "evaluator" | "accelerator" | "founder";
+
+function closingFamily(slug: SolutionSlug): ClosingFamily {
+  if (slug === "accelerator") return "accelerator";
+  if (slug === "investor" || slug === "advisor") return "evaluator";
+  return "founder";
+}
+
+/** Default closing-band copy per persona family and language (D5: one CtaBand per page). */
+export const CLOSING_COPY: Readonly<
+  Record<"en" | "vi", Record<ClosingFamily, { title: string; sub: string }>>
+> = {
+  en: {
+    evaluator: {
+      title: "Score your next deal on one rubric.",
+      sub: "Start the trial on the rung that fits your desk. Cancel in the portal before it ends and you pay nothing.",
+    },
+    accelerator: {
+      title: "Score the whole cohort, once.",
+      sub: "One rubric for every applicant, a cohort table you can sort and a report your sponsors can read.",
+    },
+    founder: {
+      title: "See your score before you pitch.",
+      sub: "The first run is free and needs no card. Paste a name, a deck or a URL.",
+    },
+  },
+  vi: {
+    evaluator: {
+      title: "Chấm điểm thương vụ tiếp theo trên một thước đo.",
+      sub: "Bắt đầu dùng thử ở gói phù hợp với bàn làm việc của bạn. Huỷ trong cổng thanh toán trước khi hết hạn và bạn không trả gì.",
+    },
+    accelerator: {
+      title: "Chấm điểm cả khoá, một lần.",
+      sub: "Một thước đo cho mọi hồ sơ, một bảng khoá có thể sắp xếp và một báo cáo nhà tài trợ đọc được.",
+    },
+    founder: {
+      title: "Xem điểm của bạn trước khi gọi vốn.",
+      sub: "Lần chạy đầu tiên miễn phí và không cần thẻ. Dán tên, bộ slide hoặc URL.",
+    },
+  },
+};
+
 export function SolutionsPageShell(props: SolutionPageProps) {
   const {
     slug,
@@ -220,13 +308,47 @@ export function SolutionsPageShell(props: SolutionPageProps) {
     trustBadges,
     samplePreview,
     pilotCta,
+    closingTitle,
+    closingSub,
   } = props;
 
   // S8-A: the visible FAQ below is the page's FAQPage (one per page — the
   // marketing layout no longer emits an invisible one); prices are filled
-  // the same way the rendered dl is, so the schema text matches the page.
+  // the same way the rendered list is, so the schema text matches the page.
   const faqEntity = faqs.map((f) => ({ question: fillPrices(f.q), answer: fillPrices(f.a) }));
   const pagePath = `${lang === "vi" ? "/vi" : ""}/solutions/${slug}`;
+  const primary = { href: primaryCtaHref ?? primaryCtaHrefForSlug(slug), label: fillPrices(primaryCtaLabel) };
+  const secondary = { href: secondaryCtaHref ?? SECONDARY_CTA_FALLBACK_HREF, label: fillPrices(secondaryCtaLabel) };
+  const closing = CLOSING_COPY[lang][closingFamily(slug)];
+
+  const benefitItems: FeatureItem[] = benefits.map((b, i) => ({
+    icon: b.icon ?? BENEFIT_ICONS[i % BENEFIT_ICONS.length]!,
+    title: fillPrices(b.title),
+    body: fillPrices(b.body),
+  }));
+
+  const faqItems: FaqItem[] = faqs.map((f) => {
+    const answer = fillPrices(f.a);
+    return {
+      question: fillPrices(f.q),
+      answerText: answer,
+      answer:
+        f.href && f.linkLabel ? (
+          <>
+            {answer}
+            <Link
+              href={f.href}
+              className={cn("mt-3 flex w-fit items-center gap-1 font-medium text-action underline-offset-2 hover:underline", FOCUS_RING)}
+            >
+              {fillPrices(f.linkLabel)}
+              <ArrowRight aria-hidden="true" className="h-4 w-4" />
+            </Link>
+          </>
+        ) : (
+          answer
+        ),
+    };
+  });
 
   return (
     <MarketingShell>
@@ -239,269 +361,128 @@ export function SolutionsPageShell(props: SolutionPageProps) {
       />
       {faqEntity.length > 0 ? <FAQJsonLd items={faqEntity} /> : null}
       <div lang={lang} data-persona={slug}>
-        {/* Hero */}
-        <section
-          aria-labelledby={`solutions-${slug}-heading`}
-          className="mx-auto flex max-w-4xl flex-col items-start gap-8 px-6 pt-16 pb-12 sm:pt-24 sm:pb-16"
-        >
-          <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-action">
-            {fillPrices(eyebrow)}
-          </p>
-          <h1
-            id={`solutions-${slug}-heading`}
-            className="font-display text-balance text-3xl font-semibold tracking-tight text-primary sm:text-4xl md:text-5xl"
-          >
-            {fillPrices(headline)}
-          </h1>
-          <p className="max-w-2xl text-lg leading-relaxed text-secondary">
-            {fillPrices(personaLine)}
-          </p>
-          {/*
-            House copy, not a customer quote. It was rendered as a
-            <blockquote> in curly quotes with an attribution footer, which is
-            the visual grammar of a testimonial — and we have none to show.
-          */}
-          <div className="border-l-2 border-action pl-4">
-            <p className="text-base text-primary">{fillPrices(emotionalLine)}</p>
-            <p className="mt-2 text-xs text-secondary">
-              {fillPrices(outcomeLine)}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href={primaryCtaHref ?? primaryCtaHrefForSlug(slug)}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-on-action shadow-[0_8px_24px_-8px_rgba(34,211,238,0.6)] transition-all duration-200 hover:bg-action-hover hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-            >
-              {fillPrices(primaryCtaLabel)}
-              <ArrowRight aria-hidden="true" className="h-4 w-4" />
-            </Link>
-            <Link
-              href={secondaryCtaHref ?? SECONDARY_CTA_FALLBACK_HREF}
-              className="inline-flex h-12 items-center justify-center rounded-xl border border-line px-6 text-sm font-medium text-primary transition-colors duration-200 hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-            >
-              {fillPrices(secondaryCtaLabel)}
-            </Link>
-          </div>
-        </section>
+        <PageHero
+          eyebrow={fillPrices(eyebrow)}
+          title={fillPrices(headline)}
+          sub={fillPrices(personaLine)}
+          ctas={[
+            { ...primary, ctaId: `solutions_${slug}_hero_primary` },
+            { ...secondary, ctaId: `solutions_${slug}_hero_secondary` },
+          ]}
+          footnote={
+            <>
+              <span className="text-primary">{fillPrices(emotionalLine)}</span>{" "}
+              <span>{fillPrices(outcomeLine)}</span>
+            </>
+          }
+          align="start"
+        />
 
-        {/* B2 Task 6 — trust / compliance badges (investor persona opts in) */}
-        {trustBadges && trustBadges.length > 0 && (
-          <section
-            aria-label="Compliance and trust badges"
-            className="mx-auto max-w-5xl px-6 pb-6"
-          >
-            <ul className="flex flex-wrap items-center gap-3">
-              {trustBadges.map((badge) => (
-                <li
-                  key={badge.label}
-                  className="inline-flex items-start gap-2 rounded-xl border border-line-subtle bg-surface-sunken px-3 py-2"
-                >
-                  <ShieldCheck
-                    aria-hidden="true"
-                    className="mt-0.5 h-4 w-4 shrink-0 text-action"
-                  />
-                  <span className="flex flex-col leading-tight">
-                    <span className="text-xs font-semibold text-primary">
-                      {badge.label}
-                    </span>
-                    <span className="text-[11px] text-secondary">
-                      {badge.sub}
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+        {/* B2 Task 6 — trust / compliance facts (investor persona opts in) */}
+        {trustBadges && trustBadges.length > 0 ? (
+          <Section id="trust" ariaLabel="Compliance and trust badges" spacing="sm" tone="sunken">
+            <ProofBand
+              ariaLabel="Compliance and trust badges"
+              items={trustBadges.map((b) => ({ label: b.label, sub: b.sub }))}
+            />
+          </Section>
+        ) : null}
 
-        {/* Benefits — 3 cards */}
-        <section
-          aria-labelledby={`solutions-${slug}-benefits`}
-          className="mx-auto max-w-5xl px-6 py-12"
-        >
-          <h2
-            id={`solutions-${slug}-benefits`}
-            className="font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
-          >
-            {fillPrices(benefitsTitle)}
-          </h2>
-          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {benefits.map((b) => (
-              <li
-                key={b.title}
-                className="rounded-2xl border border-line-subtle bg-surface-sunken p-6"
-              >
-                <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-action/15 text-action">
-                  <Check aria-hidden="true" className="h-4 w-4" />
-                </div>
-                <h3 className="mt-4 font-display text-lg font-semibold text-primary">
-                  {fillPrices(b.title)}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-secondary">
-                  {fillPrices(b.body)}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
+        {/* Benefits — one card per genuine capability */}
+        <Section id="benefits" title={fillPrices(benefitsTitle)}>
+          <FeatureGrid columns={3} ariaLabel={fillPrices(benefitsTitle)} items={benefitItems} />
+        </Section>
 
         {/* B2 Task 7 — sample investor report preview (opt-in) */}
-        {samplePreview && (
-          <section
-            aria-label="Sample investor report preview"
-            className="mx-auto max-w-5xl px-6 py-8"
-          >
-            <div className="rounded-2xl border border-action/40 bg-surface-sunken p-6 sm:p-8">
-              <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-action">
-                {fillPrices(samplePreview.eyebrow)}
-              </p>
-              <h2 className="mt-3 font-display text-xl font-semibold text-primary sm:text-2xl">
-                {fillPrices(samplePreview.title)}
-              </h2>
-              <p className="mt-3 text-sm leading-relaxed text-secondary">
-                {fillPrices(samplePreview.body)}
-              </p>
-              <Link
-                href={samplePreview.ctaHref}
-                className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl border border-action px-5 text-sm font-semibold text-action transition-colors duration-200 hover:bg-action/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-              >
-                {fillPrices(samplePreview.ctaLabel)}
-                <ArrowRight aria-hidden="true" className="h-4 w-4" />
-              </Link>
-            </div>
-          </section>
-        )}
+        {samplePreview ? (
+          <Section
+            id="sample"
+            eyebrow={fillPrices(samplePreview.eyebrow)}
+            title={fillPrices(samplePreview.title)}
+            lede={fillPrices(samplePreview.body)}
+            tone="sunken"
+            actions={[{ href: samplePreview.ctaHref, label: fillPrices(samplePreview.ctaLabel), variant: "secondary" }]}
+          />
+        ) : null}
 
         {/*
           Journey — optional. A persona with nothing honest to put in a
           90-day arc renders no arc at all rather than a padded one.
         */}
-        {journey && journey.length > 0 && (
-        <section
-          aria-labelledby={`solutions-${slug}-journey`}
-          className="mx-auto max-w-5xl px-6 py-12"
-        >
-          <h2
-            id={`solutions-${slug}-journey`}
-            className="font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
-          >
-            {fillPrices(journeyTitle ?? "")}
-          </h2>
-          <ol className="mt-8 grid gap-4 sm:grid-cols-3">
-            {journey.map((step, i) => (
-              <li
-                key={step.window}
-                className="rounded-2xl border border-line-subtle bg-surface-raised p-6"
-              >
-                <div className="flex items-baseline gap-3">
-                  <span
-                    aria-hidden="true"
-                    className="font-mono text-xs uppercase tracking-[0.2em] text-action"
-                  >
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary">
-                    {step.window}
-                  </span>
-                </div>
-                <p className="mt-3 font-display text-base font-semibold text-primary">
-                  {fillPrices(step.headline)}
-                </p>
-                <ul className="mt-3 space-y-2">
-                  {step.bullets.map((bullet) => (
-                    <li
-                      key={bullet}
-                      className="flex items-start gap-2 text-sm text-secondary"
-                    >
-                      <span
-                        aria-hidden="true"
-                        className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-action"
-                      />
-                      <span>{fillPrices(bullet)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ol>
-        </section>
-        )}
+        {journey && journey.length > 0 ? (
+          <Section id="journey" title={fillPrices(journeyTitle ?? "")} tone="sunken">
+            <ol className="grid gap-4 sm:grid-cols-3 sm:gap-6">
+              {journey.map((step, i) => (
+                <li
+                  key={step.window}
+                  className="flex h-full flex-col rounded-xl border border-line-subtle bg-surface p-6 shadow-1"
+                >
+                  <div className="flex items-baseline gap-3">
+                    <span aria-hidden="true" className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+                      {step.window}
+                    </span>
+                  </div>
+                  <h3 className="mt-3 font-display text-lg font-semibold tracking-tight text-primary">
+                    {fillPrices(step.headline)}
+                  </h3>
+                  <ul className="mt-3 space-y-2">
+                    {step.bullets.map((bullet) => (
+                      <li key={bullet} className="flex items-start gap-2 text-sm leading-relaxed text-secondary">
+                        <span aria-hidden="true" className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-accent-600" />
+                        <span>{fillPrices(bullet)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ))}
+            </ol>
+          </Section>
+        ) : null}
 
-        {/* G12 T2 — pilot offer (accelerator persona opts in) */}
-        {pilotCta && (
-          <section
-            aria-label="Pilot offer"
-            data-testid="pilot-cta"
-            className="mx-auto max-w-5xl px-6 py-8"
-          >
-            <div className="rounded-2xl border border-action/40 bg-surface-sunken p-6 sm:p-8">
-              <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-action">
+        {/* G12 T2 — pilot offer (accelerator persona opts in). Test ids are load-bearing. */}
+        {pilotCta ? (
+          <Section id="pilot" ariaLabel="Pilot offer" spacing="sm">
+            <div
+              data-testid="pilot-cta"
+              className="rounded-xl border border-line-subtle bg-surface-sunken p-6 shadow-1 sm:p-8"
+            >
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
                 {fillPrices(pilotCta.eyebrow)}
               </p>
-              <h2 className="mt-3 font-display text-xl font-semibold text-primary sm:text-2xl">
+              <h2 className="mt-3 font-display text-2xl font-bold tracking-tight text-primary sm:text-3xl">
                 {fillPrices(pilotCta.title)}
               </h2>
-              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-secondary">
+              <p className="mt-3 max-w-2xl text-base leading-relaxed text-secondary">
                 {fillPrices(pilotCta.body)}
               </p>
               <Link
                 href={pilotCta.ctaHref}
                 data-testid="pilot-cta-link"
-                className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-on-action shadow-[0_8px_24px_-8px_rgba(34,211,238,0.6)] transition-all duration-200 hover:bg-action-hover hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                data-cta-id={`solutions_${slug}_pilot`}
+                className={cn(CTA_CLASS.primary, "mt-6", MOTION)}
               >
                 {fillPrices(pilotCta.ctaLabel)}
                 <ArrowRight aria-hidden="true" className="h-4 w-4" />
               </Link>
             </div>
-          </section>
-        )}
+          </Section>
+        ) : null}
 
-        {/* FAQ */}
-        <section
-          aria-labelledby={`solutions-${slug}-faq`}
-          className="mx-auto max-w-4xl px-6 py-12"
-        >
-          <h2
-            id={`solutions-${slug}-faq`}
-            className="font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
-          >
-            {fillPrices(faqTitle)}
-          </h2>
-          <dl className="mt-8 space-y-4">
-            {faqs.map((f) => (
-              <div
-                key={f.q}
-                className="rounded-2xl border border-line-subtle bg-surface-sunken p-6"
-              >
-                <dt className="font-display text-base font-semibold text-primary">
-                  {fillPrices(f.q)}
-                </dt>
-                <dd className="mt-2 text-sm leading-relaxed text-secondary">
-                  {fillPrices(f.a)}
-                  {f.href && f.linkLabel ? (
-                    <Link
-                      href={f.href}
-                      className="mt-3 flex w-fit items-center gap-1 font-medium text-action underline-offset-2 hover:underline"
-                    >
-                      {fillPrices(f.linkLabel)}
-                      <ArrowRight aria-hidden="true" className="h-4 w-4" />
-                    </Link>
-                  ) : null}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </section>
+        {/* FAQ — the visible FAQPage */}
+        <Section id="faq" title={fillPrices(faqTitle)}>
+          <Faq items={faqItems} className="max-w-3xl" />
+        </Section>
 
-        {/* Disclaimer footer band (page-level, above the Footer) */}
-        <section
-          aria-label="Regulatory disclaimer"
-          className="mx-auto max-w-4xl px-6 pb-16"
-        >
-          <p className="text-xs leading-relaxed text-secondary">
-            {disclaimer}
-          </p>
-        </section>
+        <CtaBand
+          title={closingTitle ?? closing.title}
+          sub={closingSub ?? closing.sub}
+          primary={{ ...primary, ctaId: `solutions_${slug}_final_primary` }}
+          secondary={secondary}
+          footnote={disclaimer}
+        />
       </div>
     </MarketingShell>
   );

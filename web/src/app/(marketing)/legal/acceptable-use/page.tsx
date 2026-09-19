@@ -7,15 +7,14 @@
  * separate slug.
  *
  * Static content — no MDX pipeline needed. Reuses `MarketingShell` /
- * `MarketingHero` / `MarketingCtaStrip` for visual consistency with the
+ * `PageHero` / `Section` / `CtaBand` (G17 P2-A) for visual consistency with the
  * rest of `/legal/*`.
  */
 
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
-import { MarketingHero } from "@/components/marketing/marketing-hero";
-import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
+import { CtaBand, PageHero, Prose, Section } from "@/components/marketing/template";
 
 export const metadata: Metadata = pageMetadata({
   title: "Acceptable Use Policy",
@@ -99,11 +98,11 @@ function RuleList({
     <section
       lang={lang}
       aria-labelledby={`aup-${lang}-title`}
-      className="rounded-3xl border border-line-subtle bg-surface-sunken p-8 sm:p-10"
+      className="rounded-xl border border-line-subtle bg-surface p-8 shadow-1 sm:p-10"
     >
       <h2
         id={`aup-${lang}-title`}
-        className="text-2xl font-bold tracking-tight text-primary sm:text-3xl"
+        className="font-display text-2xl font-bold tracking-tight text-primary sm:text-3xl"
       >
         {title}
       </h2>
@@ -129,13 +128,15 @@ function RuleList({
 export default function AcceptableUsePolicyPage() {
   return (
     <MarketingShell>
-      <MarketingHero
+      <PageHero
         eyebrow="Legal"
         title="Acceptable Use Policy"
-        subtitle="How BlockID.au expects its users — including reseller admins in sandbox workspaces — to handle personal information and platform access."
+        sub="How BlockID.au expects its users — including reseller admins in sandbox workspaces — to handle personal information and platform access."
+        align="start"
       />
 
-      <div className="mx-auto max-w-3xl space-y-8 px-6 pb-16">
+      <Section id="rules" ariaLabel="Acceptable use rules" divider={false}>
+        <Prose measure="wide" className="space-y-8">
         <RuleList
           lang="en"
           title="English"
@@ -148,11 +149,13 @@ export default function AcceptableUsePolicyPage() {
           intro="Các quy tắc sau đây áp dụng cho mọi người dùng BlockID.au. Vi phạm có thể dẫn tới tạm ngưng, chấm dứt tài khoản và nếu cần thiết, sẽ được báo cáo cho cơ quan có thẩm quyền."
           rules={VI_RULES}
         />
-      </div>
+        </Prose>
+      </Section>
 
-      <MarketingCtaStrip
-        headline="Questions about acceptable use?"
-        primary={{ href: "/contact?topic=legal", label: "Contact legal" }}
+      <CtaBand
+        title="Questions about acceptable use?"
+        sub="Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW."
+        primary={{ href: "/contact?topic=legal", label: "Contact legal", ctaId: "aup_final_contact" }}
         secondary={{ href: "/legal/privacy", label: "Privacy Policy" }}
       />
     </MarketingShell>

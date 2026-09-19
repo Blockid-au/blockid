@@ -162,6 +162,11 @@ describe("<FeatureGrid />", () => {
     expect((html.match(/<h3\b/g) ?? []).length).toBe(3);
   });
 
+  it("an item with id anchors its li (deep links) with scroll margin", () => {
+    const html = renderToStaticMarkup(<FeatureGrid items={[{ ...items[0]!, id: "one" }]} />);
+    expect(html).toMatch(/<li[^>]*id="one"[^>]*class="[^"]*scroll-mt-24/);
+  });
+
   it("numbered renders an ol with Step n labels", () => {
     const html = renderToStaticMarkup(<FeatureGrid items={items} numbered />);
     expect(html).toMatch(/<ol\b/);

@@ -19,8 +19,7 @@ import path from "node:path";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
-import { MarketingHero } from "@/components/marketing/marketing-hero";
-import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
+import { CtaBand, PageHero, Prose, Section } from "@/components/marketing/template";
 
 const SITE_URL = "https://blockid.au";
 
@@ -327,7 +326,7 @@ function renderMarkdown(md: string): string {
     if (trimmed.startsWith("# ")) {
       flushPara();
       flushList();
-      // The page's one <h1> is the MarketingHero title; a document's own
+      // The page's one <h1> is the PageHero title; a document's own
       // `# Title` (six of them on /legal/disclaimers, one each on terms /
       // privacy) renders as an h2 so every legal page has exactly one h1
       // (release QA-1 #16).
@@ -392,22 +391,22 @@ export default async function LegalDocPage({
 
   return (
     <MarketingShell>
-      <MarketingHero
+      <PageHero
         eyebrow="Legal"
         title={meta.heading}
-        subtitle={meta.description}
+        sub={meta.description}
+        align="start"
       />
 
-      <section
-        aria-label={`${meta.heading} body`}
-        className="mx-auto max-w-3xl px-6 pb-12"
-      >
-        <article className="rounded-3xl border border-line-subtle bg-surface-sunken p-8 sm:p-10">
+      <Section id="document" ariaLabel={`${meta.heading} body`} divider={false}>
+        <article className="max-w-3xl rounded-xl border border-line-subtle bg-surface p-8 shadow-1 sm:p-10">
           {html ? (
-            <div
-              className="text-sm sm:text-base"
-              dangerouslySetInnerHTML={{ __html: html }}
-            />
+            <Prose measure="wide">
+              <div
+                className="text-sm sm:text-base"
+                dangerouslySetInnerHTML={{ __html: html }}
+              />
+            </Prose>
           ) : (
             <p className="text-sm text-secondary">
               Document not yet published for this environment. The next deploy
@@ -415,11 +414,12 @@ export default async function LegalDocPage({
             </p>
           )}
         </article>
-      </section>
+      </Section>
 
-      <MarketingCtaStrip
-        headline="Questions about the fine print?"
-        primary={{ href: "/contact?topic=legal", label: "Contact legal" }}
+      <CtaBand
+        title="Questions about the fine print?"
+        sub="Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW."
+        primary={{ href: "/contact?topic=legal", label: "Contact legal", ctaId: "legal_doc_final_contact" }}
         secondary={{ href: "/legal/disclaimers", label: "All disclaimers" }}
       />
     </MarketingShell>

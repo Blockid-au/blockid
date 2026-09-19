@@ -3,7 +3,9 @@
 // The page said "17 free tools" while app/tools/ held 16 route directories and
 // /tools itself rendered `ALL_TOOLS.length`. A hard-coded count on a marketing
 // page drifts silently the moment a tool is added or retired, so this counts
-// the directories and fails when the copy stops matching them.
+// the directories and fails when the copy stops matching them. The copy
+// file is `features-content.ts` (G17 P2-A); the render assertions live in
+// `page.test.tsx` beside it.
 
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -18,8 +20,9 @@ function toolRouteCount(): number {
     .length;
 }
 
+/** G17 P2-A: the copy lives in features-content.ts (page.tsx only exports route segments). */
 function featuresSource(): string {
-  return readFileSync(path.join(HERE, "page.tsx"), "utf8");
+  return readFileSync(path.join(HERE, "features-content.ts"), "utf8");
 }
 
 describe("/features tool count", () => {

@@ -3,8 +3,7 @@ import Link from "next/link";
 import { ArrowRight, BookOpen } from "lucide-react";
 import { getAllArticles } from "@/lib/insights";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
-import { MarketingHero } from "@/components/marketing/marketing-hero";
-import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
+import { CTA_CLASS, CtaBand, PageHero, Section } from "@/components/marketing/template";
 import { InsightsCategoryFilter } from "./category-filter";
 
 // B3 Task 10 — ISR (1h). Insights index is read from disk via `getAllArticles`
@@ -61,21 +60,20 @@ export default function InsightsPage() {
 
   return (
     <MarketingShell>
-      <MarketingHero
-        eyebrow="Founder Resources"
-        title={
-          <>
-            Insights &amp;{" "}
-            <span className="text-action">
-              Guides
-            </span>
-          </>
-        }
-        subtitle="Expert resources for Australian founders — valuation, ownership, fundraising, and growth."
+      <PageHero
+        eyebrow="Founder resources"
+        title="Insights and guides for Australian founders."
+        sub="Expert resources on valuation, ownership, fundraising and growth — written for the Australian rules, not adapted from somewhere else."
+        ctas={[
+          { href: "/analyze", label: "Score a startup", ctaId: "insights_hero_score" },
+          { href: "/benchmarks", label: "AU startup benchmarks" },
+        ]}
+        align="start"
       />
 
-      <main className="mx-auto max-w-7xl px-6 py-12 md:py-16">
-        {/* Category filter + article grid (client component) */}
+      {/* Category filter + article grid (client component). The nested <main>
+          that used to sit here is gone — MarketingShell owns #main-content. */}
+      <Section id="articles" ariaLabel="Articles" spacing="sm" divider={false}>
         <InsightsCategoryFilter
           categories={CATEGORIES}
           categoryLabels={CATEGORY_LABELS}
@@ -84,45 +82,37 @@ export default function InsightsPage() {
 
         {/* Empty state (server-rendered fallback) */}
         {articles.length === 0 && (
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] backdrop-blur-sm px-8 py-16 text-center">
-            <BookOpen strokeWidth={1.75} className="h-10 w-10 text-secondary mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-primary mb-2">Coming Soon</h2>
-            <p className="text-sm text-secondary mb-6 max-w-md mx-auto">
+          <div className="rounded-xl border border-line-subtle bg-surface-sunken px-8 py-16 text-center">
+            <BookOpen strokeWidth={1.75} aria-hidden className="mx-auto mb-4 h-10 w-10 text-secondary" />
+            <h2 className="mb-2 font-display text-lg font-semibold text-primary">Guides are on the way</h2>
+            <p className="mx-auto mb-6 max-w-md text-sm text-secondary">
               We are preparing expert guides on startup valuation, cap table management,
               and fundraising strategies for Australian founders.
             </p>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-on-action hover:opacity-90 transition-opacity"
-            >
-              Get Your Free SVI Score
-              <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
+            <Link href="/analyze" className={CTA_CLASS.primary}>
+              Get your free SVI score
+              <ArrowRight strokeWidth={1.75} aria-hidden className="h-4 w-4" />
             </Link>
           </div>
         )}
+      </Section>
 
-        {/* Benchmarks teaser */}
-        <div className="mt-14 rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] backdrop-blur-sm p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-action font-semibold mb-1">Free Data</p>
-            <h2 className="text-xl font-semibold text-primary">AU Startup Benchmarks</h2>
-            <p className="mt-1 text-sm text-secondary">
-              MRR, ARR, burn rate, churn and SVI scores by stage — compare your startup against 2,700+ AU peers.
-            </p>
-          </div>
-          <Link
-            href="/benchmarks"
-            className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-action px-6 py-3 text-sm font-semibold text-on-action hover:opacity-90 transition-opacity whitespace-nowrap"
-          >
-            View Benchmarks <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
-          </Link>
-        </div>
-      </main>
+      {/* Benchmarks teaser */}
+      <Section
+        id="benchmarks"
+        eyebrow="Free data"
+        title="AU startup benchmarks"
+        lede="MRR, ARR, burn rate, churn and SVI scores by stage — compare your startup against 2,700+ AU peers."
+        tone="sunken"
+        spacing="sm"
+        actions={[{ href: "/benchmarks", label: "View benchmarks", variant: "secondary" }]}
+      />
 
-      <MarketingCtaStrip
-        headline="Know your startup's value today."
-        primary={{ href: "/", label: "Get Your Free SVI Score" }}
-        secondary={{ href: "/pricing", label: "View Pricing" }}
+      <CtaBand
+        title="Know your startup's value today."
+        sub="The first run is free and needs no card."
+        primary={{ href: "/analyze", label: "Get your free SVI score", ctaId: "insights_final_score" }}
+        secondary={{ href: "/pricing", label: "View pricing" }}
       />
     </MarketingShell>
   );

@@ -11,8 +11,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowRight } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { PageHero, Section } from "@/components/marketing/template";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { FundingJsonLd } from "@/components/funding/funding-json-ld";
@@ -98,69 +98,70 @@ export default async function CapitalProgramsPage({ params }: { params: Promise<
       <BreadcrumbListJsonLd items={FUNDING_CRUMBS.capital(capital)} />
       <FundingJsonLd data={[itemList, ...events]} />
 
-      <section className="mx-auto max-w-5xl px-6 pt-12 pb-8 sm:pt-16" data-capital={capital}>
-        <Link href="/funding/programs" className="inline-flex items-center gap-1 text-sm font-semibold text-action hover:text-action-hover">
-          <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-          All capitals
-        </Link>
-        <p className="mt-6 text-xs font-semibold uppercase tracking-[0.22em] text-action">Free directory</p>
-        <h1 className="mt-3 font-display text-4xl font-semibold tracking-tight text-primary sm:text-5xl">{heading}</h1>
-        <p className="mt-6 max-w-2xl text-lg leading-relaxed text-secondary">
-          <strong className="font-semibold text-primary" data-total-count={rows.length}>
-            {rows.length} {rows.length === 1 ? "program" : "programs"}
-          </strong>
-          {" · "}
-          <strong className="font-semibold text-primary" data-open-count={openCount}>
-            {openCount} open
-          </strong>
-          {closedCount ? ` · ${closedCount} closed and kept for the record` : ""}. Intake months below come from each
-          program&rsquo;s published dates; the official page is always the source of truth.
-        </p>
-        {seo.coverage ? (
-          <p className="mt-3 max-w-2xl text-base leading-relaxed text-secondary" data-capital-coverage>
-            {seo.coverage}
-          </p>
-        ) : null}
-        <p className="mt-3 text-sm text-secondary">
-          Looking for grants instead?{" "}
-          <Link href={grantsStatePath(state)} className="font-semibold text-action underline-offset-2 hover:underline">
-            {state === "national" ? "Federal startup grants" : `${stateLabel(state)} startup grants`}
-          </Link>
-          {" · "}
-          <Link href="/funding/report/demo" className="font-semibold text-action underline-offset-2 hover:underline">
-            see a sample A$3 report
-          </Link>
-        </p>
-        <div className="mt-6">
-          <CapitalPicker counts={counts} current={capital} variant="compact" />
-        </div>
-      </section>
+      {/* G17 P2-A: template hero (data-capital + the live counts keep their hooks);
+          `#list-heading` stays the h2 id live-qa 20-funding asserts (Section id="list"). */}
+      <div data-capital={capital}>
+        <PageHero
+          eyebrow="Free directory"
+          title={heading}
+          sub={
+            <>
+              <strong className="font-semibold text-primary" data-total-count={rows.length}>
+                {rows.length} {rows.length === 1 ? "program" : "programs"}
+              </strong>
+              {" · "}
+              <strong className="font-semibold text-primary" data-open-count={openCount}>
+                {openCount} open
+              </strong>
+              {closedCount ? ` · ${closedCount} closed and kept for the record` : ""}. Intake months below come from each
+              program&rsquo;s published dates; the official page is always the source of truth.
+              {seo.coverage ? (
+                <>
+                  {" "}
+                  <span data-capital-coverage>{seo.coverage}</span>
+                </>
+              ) : null}
+            </>
+          }
+          ctas={[
+            { href: `/funding?capital=${capitalSlug(capital)}`, label: "Sequence these for my startup", ctaId: "capital_hero_plan" },
+            { href: "/funding/programs", label: "All capitals" },
+          ]}
+          visual={<CapitalPicker counts={counts} current={capital} variant="compact" />}
+          footnote={
+            <>
+              Looking for grants instead?{" "}
+              <Link href={grantsStatePath(state)} className="font-semibold text-action underline-offset-2 hover:underline">
+                {state === "national" ? "Federal startup grants" : `${stateLabel(state)} startup grants`}
+              </Link>
+              {" · "}
+              <Link href="/funding/report/demo" className="font-semibold text-action underline-offset-2 hover:underline">
+                see a sample A$3 report
+              </Link>
+            </>
+          }
+          align="start"
+        />
+      </div>
 
-      <section className="mx-auto max-w-5xl px-6 pb-12" aria-labelledby="calendar-heading">
-        <h2 id="calendar-heading" className="font-display text-2xl font-semibold tracking-tight text-primary">
-          Next twelve months
-        </h2>
-        <p className="mt-2 mb-6 text-sm text-secondary">
-          Applications close, cohorts start and usual intake months, grouped by month.
-        </p>
+      <Section
+        id="calendar"
+        title="Next twelve months"
+        lede="Applications close, cohorts start and usual intake months, grouped by month."
+        tone="sunken"
+        spacing="sm"
+      >
         <IntakeCalendar months={calendar} />
-      </section>
+      </Section>
 
-      <section className="mx-auto max-w-5xl px-6 pb-12" aria-labelledby="list-heading">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-          <h2 id="list-heading" className="font-display text-2xl font-semibold tracking-tight text-primary">
-            Every program in {name}
-          </h2>
-          <Link
-            href={`/funding?capital=${capitalSlug(capital)}`}
-            className="inline-flex h-9 items-center gap-2 rounded-full bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover"
-          >
-            Sequence these for my startup
-            <ArrowRight aria-hidden="true" className="h-4 w-4" />
-          </Link>
-        </div>
+      <Section
+        id="list"
+        title={`Every program in ${name}`}
+        spacing="sm"
+        actions={[{ href: `/funding?capital=${capitalSlug(capital)}`, label: "Sequence these for my startup", variant: "link" }]}
+      >
         {rows.length === 0 ? (
-          <p className="rounded-2xl border border-line-subtle bg-surface-sunken p-6 text-sm text-secondary">
+          <p className="rounded-xl border border-line-subtle bg-surface-sunken p-6 text-sm text-secondary">
             No programs recorded for {name} yet.
           </p>
         ) : (
@@ -170,7 +171,7 @@ export default async function CapitalProgramsPage({ params }: { params: Promise<
             ))}
           </div>
         )}
-      </section>
+      </Section>
 
       <FundingGuides guides={PROGRAM_GUIDES} heading="Read before you apply" />
 

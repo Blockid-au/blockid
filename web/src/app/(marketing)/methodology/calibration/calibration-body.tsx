@@ -19,9 +19,7 @@
  */
 
 import Link from "next/link";
-import { MarketingHero } from "@/components/marketing/marketing-hero";
-import { MarketingSection } from "@/components/marketing/marketing-section";
-import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
+import { CtaBand, PageHero, Section } from "@/components/marketing/template";
 import { readSviBacktestLatest } from "@/lib/backtest/latest";
 import { BOOTSTRAP_RESAMPLES, MIN_STAGE_N, type BacktestReport, type CiCell, type RhoCell } from "@/lib/backtest/run-backtest";
 import { BACKTEST_STAGES } from "@/lib/data/au-comparables-backtest";
@@ -124,43 +122,45 @@ export async function CalibrationBody({ locale, report: injected, messages }: Ca
 
   return (
     <>
-      <MarketingHero eyebrow={t(m, "calibration.eyebrow")} title={t(m, "calibration.title")} subtitle={t(m, "calibration.subtitle")} />
+      <PageHero eyebrow={t(m, "calibration.eyebrow")} title={t(m, "calibration.title")} sub={t(m, "calibration.subtitle")}
+        align="start"
+      />
 
-      <div className="mx-auto max-w-5xl px-6">
-        <Link href={back} className="text-sm text-brand-700 underline decoration-dotted" data-testid="calibration-back">
+      <div className="mx-auto w-full max-w-6xl px-6">
+        <Link href={back} className="inline-flex min-h-11 items-center text-sm text-action underline decoration-dotted underline-offset-4" data-testid="calibration-back">
           {`← ${t(m, "calibration.backLink")}`}
         </Link>
       </div>
 
       {!report ? (
-        <MarketingSection title={t(m, "calibration.empty.title")} tone="elevated">
+        <Section id="empty" title={t(m, "calibration.empty.title")} tone="sunken">
           <p className="max-w-2xl text-sm leading-relaxed text-secondary" data-testid="calibration-empty">
             {t(m, "calibration.empty.body")}
           </p>
-        </MarketingSection>
+        </Section>
       ) : (
         <>
           {/* Headline numbers */}
-          <section aria-label={t(m, "calibration.stats.n")} className="mx-auto max-w-5xl px-6 pt-10" data-testid="calibration-stats">
-            <dl className="grid gap-4 sm:grid-cols-4">
-              <div className="rounded-2xl border border-line-subtle bg-white p-5">
+          <Section id="stats" ariaLabel={t(m, "calibration.stats.n")} spacing="sm" divider={false}>
+            <dl className="grid gap-4 sm:grid-cols-4" data-testid="calibration-stats">
+              <div className="rounded-xl border border-line-subtle bg-surface p-5 shadow-1">
                 <dt className="text-xs uppercase tracking-[0.18em] text-tertiary">{t(m, "calibration.stats.n")}</dt>
                 <dd className="mt-2 font-display text-3xl font-semibold text-primary" data-testid="calibration-n">{report.n}</dd>
                 <dd className="mt-1 text-xs text-tertiary">
                   {`${report.n_with_round} ${t(m, "calibration.stats.nRound")} · ${report.n_with_valuation} ${t(m, "calibration.stats.nValuation")}`}
                 </dd>
               </div>
-              <div className="rounded-2xl border border-line-subtle bg-white p-5">
+              <div className="rounded-xl border border-line-subtle bg-surface p-5 shadow-1">
                 <dt className="text-xs uppercase tracking-[0.18em] text-tertiary">{t(m, "calibration.rho.target.round")}</dt>
                 <dd className="mt-2 font-display text-3xl font-semibold text-primary" data-testid="calibration-rho-round">{`ρ ${fmtRho(report.rho.round_pooled)}`}</dd>
                 <dd className="mt-1 text-xs text-tertiary">{`${t(m, "calibration.rho.col.ci")} ${fmtCi(report.ci.round_pooled)}`}</dd>
               </div>
-              <div className="rounded-2xl border border-line-subtle bg-white p-5">
+              <div className="rounded-xl border border-line-subtle bg-surface p-5 shadow-1">
                 <dt className="text-xs uppercase tracking-[0.18em] text-tertiary">{t(m, "calibration.rho.target.valuation")}</dt>
                 <dd className="mt-2 font-display text-3xl font-semibold text-primary" data-testid="calibration-rho-valuation">{`ρ ${fmtRho(report.rho.valuation_pooled)}`}</dd>
                 <dd className="mt-1 text-xs text-tertiary">{`${t(m, "calibration.rho.col.ci")} ${fmtCi(report.ci.valuation_pooled)}`}</dd>
               </div>
-              <div className="rounded-2xl border border-line-subtle bg-white p-5">
+              <div className="rounded-xl border border-line-subtle bg-surface p-5 shadow-1">
                 <dt className="text-xs uppercase tracking-[0.18em] text-tertiary">{t(m, "calibration.stats.engine")}</dt>
                 <dd className="mt-2 font-mono text-sm text-primary" data-testid="calibration-engine">
                   {`SVI ${report.svi_version} · ${report.git_sha}`}
@@ -171,25 +171,25 @@ export async function CalibrationBody({ locale, report: injected, messages }: Ca
               </div>
             </dl>
             <p className="mt-3 text-xs text-tertiary">{fill(t(m, "calibration.stats.excluded"), { n: report.n_excluded_source_rows })}</p>
-          </section>
+          </Section>
 
           {/* Caveats first — the claim scope is the point of the page */}
-          <MarketingSection kicker={t(m, "calibration.caveats.kicker")} title={t(m, "calibration.caveats.title")} tone="elevated">
+          <Section id="caveats" eyebrow={t(m, "calibration.caveats.kicker")} title={t(m, "calibration.caveats.title")} tone="sunken">
             <ol className="list-decimal space-y-3 pl-5 text-sm leading-relaxed text-secondary" data-testid="calibration-caveats">
               {report.caveats.map((c, i) => (
                 <li key={i}>{c}</li>
               ))}
             </ol>
-          </MarketingSection>
+          </Section>
 
           {/* ρ tables */}
-          <MarketingSection kicker={t(m, "calibration.rho.kicker")} title={t(m, "calibration.rho.title")}>
+          <Section id="rho" eyebrow={t(m, "calibration.rho.kicker")} title={t(m, "calibration.rho.title")}>
             <p className="max-w-3xl text-sm leading-relaxed text-secondary">
               {fill(t(m, "calibration.rho.intro"), { resamples: BOOTSTRAP_RESAMPLES.toLocaleString(locale === "vi" ? "vi-VN" : "en-AU"), minN: MIN_STAGE_N })}
             </p>
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
               {(["round", "valuation"] as const).map((target) => (
-                <div key={target} className="overflow-x-auto rounded-2xl border border-line-subtle bg-white">
+                <div key={target} className="overflow-x-auto rounded-2xl border border-line-subtle bg-surface">
                   <table className="w-full text-sm" data-testid={`calibration-rho-table-${target}`}>
                     <caption className="px-4 py-3 text-left font-semibold text-primary">{t(m, `calibration.rho.target.${target}`)}</caption>
                     <thead>
@@ -218,18 +218,18 @@ export async function CalibrationBody({ locale, report: injected, messages }: Ca
                 </div>
               ))}
             </div>
-          </MarketingSection>
+          </Section>
 
           {/* Bucket table + range bars */}
-          <MarketingSection kicker={t(m, "calibration.buckets.kicker")} title={t(m, "calibration.buckets.title")}>
+          <Section id="buckets" eyebrow={t(m, "calibration.buckets.kicker")} title={t(m, "calibration.buckets.title")}>
             <p className="max-w-3xl text-sm leading-relaxed text-secondary">{t(m, "calibration.buckets.intro")}</p>
             {report.buckets.length > 0 ? (
               <>
-                <figure className="mt-6 rounded-2xl border border-line-subtle bg-white p-4" data-testid="calibration-range-bars">
+                <figure className="mt-6 rounded-2xl border border-line-subtle bg-surface p-4" data-testid="calibration-range-bars">
                   <div className="w-full [&>svg]:h-auto [&>svg]:w-full [&>svg]:max-w-full" dangerouslySetInnerHTML={{ __html: bucketRangeBarsSvg(report, m) }} />
                   <figcaption className="mt-1 text-[11px] text-tertiary">{t(m, "calibration.buckets.chartDescription")}</figcaption>
                 </figure>
-                <div className="mt-6 overflow-x-auto rounded-2xl border border-line-subtle bg-white">
+                <div className="mt-6 overflow-x-auto rounded-2xl border border-line-subtle bg-surface">
                   <table className="w-full text-sm" data-testid="calibration-bucket-table">
                     <thead>
                       <tr className="text-left text-xs uppercase tracking-wide text-tertiary">
@@ -259,24 +259,24 @@ export async function CalibrationBody({ locale, report: injected, messages }: Ca
                 </div>
               </>
             ) : null}
-          </MarketingSection>
+          </Section>
 
           {/* Coverage by stage */}
-          <MarketingSection kicker={t(m, "calibration.stages.kicker")} title={t(m, "calibration.stages.title")}>
+          <Section id="stages" eyebrow={t(m, "calibration.stages.kicker")} title={t(m, "calibration.stages.title")}>
             <ul className="flex flex-wrap gap-3" data-testid="calibration-stages">
               {BACKTEST_STAGES.filter((s) => s in report.n_by_stage).map((s) => (
-                <li key={s} className="rounded-full border border-line-subtle bg-white px-4 py-2 text-sm">
+                <li key={s} className="rounded-full border border-line-subtle bg-surface px-4 py-2 text-sm">
                   <span className="font-medium text-primary">{stageLabel(s, locale)}</span>{" "}
                   <span className="tabular-nums text-tertiary">{`n = ${report.n_by_stage[s]}`}</span>
                 </li>
               ))}
             </ul>
-          </MarketingSection>
+          </Section>
 
           {/* Rows used */}
-          <MarketingSection kicker={t(m, "calibration.rows.kicker")} title={t(m, "calibration.rows.title")}>
+          <Section id="rows" eyebrow={t(m, "calibration.rows.kicker")} title={t(m, "calibration.rows.title")}>
             <p className="max-w-3xl text-sm leading-relaxed text-secondary">{t(m, "calibration.rows.intro")}</p>
-            <div className="mt-6 overflow-x-auto rounded-2xl border border-line-subtle bg-white">
+            <div className="mt-6 overflow-x-auto rounded-2xl border border-line-subtle bg-surface">
               <table className="w-full text-sm" data-testid="calibration-rows">
                 <thead>
                   <tr className="text-left text-xs uppercase tracking-wide text-tertiary">
@@ -307,12 +307,12 @@ export async function CalibrationBody({ locale, report: injected, messages }: Ca
             <p className="mt-4 font-mono text-xs text-tertiary" data-testid="calibration-provenance">
               {fill(t(m, "calibration.provenance"), { version: report.svi_version, sha: report.git_sha })}
             </p>
-          </MarketingSection>
+          </Section>
         </>
       )}
 
-      <MarketingCtaStrip
-        headline={t(m, "calibration.cta.title")}
+      <CtaBand
+        title={t(m, "calibration.cta.title")}
         primary={{ href: analyze, label: t(m, "calibration.cta.primary") }}
         secondary={{ href: back, label: t(m, "calibration.cta.secondary") }}
       />
