@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v3.15.0  ·  **Updated:** 2026-09-19T14:00:03.100Z  ·  **Decided by:** ceo (2026-09-10T12:04:03.482Z)
+**Version:** v3.16.0  ·  **Updated:** 2026-09-19T23:57:37.926Z  ·  **Decided by:** ceo (2026-09-10T12:04:03.482Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -44,6 +44,7 @@
 - ✅ `T0269` **CTO** — S1 Evaluator signup: account_type enum + DB CHECKs (investor, accelerator, incubator, advisor, service_provider→advisor segment), app_users.segment set from account_type, trial_days from plan, card-required 7-day Stripe trial on Scout/Firm/Program, trial-end-reminder copy fixed, evaluator TrialBanner copy (`dcd9e5603`)
 
 ## Milestones
+- **M030** v3.16.0 — G15 Reliability + G16 First dollar + G17 Unicorn homepage + G18 truth sweep (founder-led sessions, 2026-09-18 → 19) (2026-09-19, 0 tasks)
 - **M029** v3.15.0 — CMO: Implement Startup Percentile/Positioning Model (2026-09-19, 1 tasks)
 - **M028** v3.14.1 — CTO: AI provider chain audit — Codex subscription expired + ai-token-guardian Codex refresh broken (2026-09-18, 1 tasks)
 - **M027** v3.14.0 — IR: G14 Wave A · Deck v3 "Startup Value Index" (evaluator-first, pre-seed A$500K): web/content/pitch/pitch-deck-v3.md (12 slides + 3-minute cut + provenance), web/scripts/generate-pitch-deck-v3.ts → P (2026-09-16, 2 tasks)
@@ -55,4 +56,3 @@
 - **M021** v3.11.0 — CPO: /funding/report/[id] (cards, 12-month SVG Gantt, actions, disclaimers) + PDF + lib/dataroom/save-deliverable.ts + /workspace/funding + nav leaf validate.discover + recommender secondary money lan (2026-09-10, 9 tasks)
 - **M020** v3.9.0 — CFO: Implement Top-Down/Bottom-Up TAM/SAM/SOM Calculator; CFO: Build Top-Down/Bottom-Up TAM/SAM/SOM Calculator (2026-08-31, 2 tasks)
 - **M019** v3.8.1 — CFO: Sector-Specific Revenue Multiple Library (2026-08-30, 1 tasks)
-- **M018** v3.8.0 — CFO: Implement Cap Table Dilution & Round Sizing Simulator (2026-08-29, 1 tasks)
