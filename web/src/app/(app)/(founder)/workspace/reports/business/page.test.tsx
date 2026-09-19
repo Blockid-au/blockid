@@ -27,6 +27,7 @@ vi.mock("./business-report-client", () => ({
 const emitReportViewMock = vi.fn();
 const resolveReportTierMock = vi.fn();
 vi.mock("@/lib/analytics/funnel", () => ({
+  asReportTierClient: (c: unknown) => c,
   emitReportView: (i: unknown) => emitReportViewMock(i),
   resolveReportTier: (...a: unknown[]) => resolveReportTierMock(...a),
 }));
