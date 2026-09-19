@@ -1,11 +1,12 @@
 # Architecture — BlockID.au (living)
 
-**Version:** v3.14.1  ·  **Last reviewed:** 2026-09-16T16:00:02.221Z
+**Version:** v3.15.0  ·  **Last reviewed:** 2026-09-19T14:00:03.099Z
 
 ## Summary
 BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.
 
 ## Change notes
+- v3.15.0 — CMO: Implement Startup Percentile/Positioning Model
 - v3.14.0 — IR: G14 Wave A · Deck v3 "Startup Value Index" (evaluator-first, pre-seed A$500K): web/content/pitch/pitch-deck-v3.md (12 slides + 3-minute cut + provenance), web/scripts/generate-pitch-deck-v3.ts → PPTX + appendix + HTML preview, generate-pitch-deck-v3.test.ts (speakability, provenance, forbidden words), SUPERSEDED banners on deck v1 / pitch-deck-v2-investor.md / video-assets slides, executive-summary.md rewrite, 00-pitch-feedback.md (19 verbatim comments + traceability)
 - v3.13.0 — CMO: AU startup percentile/positioning model integration
 - v3.12.0 — CTO: Update Essential Eight Vulnerabilities to reflect ACSC alerts
@@ -25,4 +26,3 @@ BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → S
 - v3.1.0 — CFO: Implement R&D Tax Incentive & ESIC Valuation Modifier
 - v3.0.0 — CPO: Implement First‑Principles Question Engine to generate Socratic prompts and route founders to appropriate BlockID features
 - v3.0.0 — CFO: Integrate VC valuation methods library (VC Method, DCF, comparables, Berkus, Scorecard, Risk‑Factor Summation) with formulae and usage guidance
-- v3.0.0 — RND: Develop Conversion/CTA experiment ideas & A/B test hypotheses for startup tooling
