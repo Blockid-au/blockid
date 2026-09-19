@@ -330,6 +330,13 @@
 - **Next action:** merge → full vitest → deploy → elevated live-qa → read-only review → fixes → first `funnel-report` run + a throw-away pilot start/end → close.
 - **Blocker:** none engineering. Founder decisions F-1…F-3 default-ship.
 
+### G17 — Unicorn homepage & site template: evaluator-first hero · one design system · no pricing on home · every link works
+- **Source:** [`docs/plans/unicorn-homepage-2026-09-19.md`](./unicorn-homepage-2026-09-19.md) (ui-ux-pro-max research, decisions D1–D7, phases, acceptance).
+- **Opened:** 2026-09-19 — founder direction: modern unicorn-startup homepage, very clear evaluator-ladder hero, short/simple, no price tables on the home, one consistent template site-wide, keep the colour-ring search box, complex material → intro menu (`/product`, `/samples`); deploy live, review, fix links/content automatically.
+- **Status:** **Phase 1 in a worktree 2026-09-19** (design tokens + template primitives + nav 5 entries + footer + homepage rewrite (6 blocks) + `/product` + `/samples` + legacy anchor redirects) → merge/deploy → **Phase 2** P2-A template roll-out to every `(marketing)` page ∥ P2-B `scripts/link-check.mjs` + content sweep + homepage smoke in gate 12.
+- **Next action:** Phase 1 merge → full vitest → deploy → live-qa → Phase 2 → review → screenshots → close.
+- **Blocker:** none. Founder decisions F-1…F-3 default-ship.
+
 ## 2. Requirements Register
 
 | ID | Source | Category | Status | Owner (skill) | Ship commit |
@@ -618,6 +625,7 @@ the sentinels is overwritten._
 
 | When | Who | What |
 |---|---|---|
+| 2026-09-19 | Claude (G17 open) | G17 Unicorn homepage & site template opened (`unicorn-homepage-2026-09-19.md`, ui-ux-pro-max research); Phase 1 agent launched. G16 lanes merged + live via the peer deploy `8cbb6bdb8` (12/12); 0411 applied; crons installed; first funnel report written; throw-away pilot start→end verified on production. |
 | 2026-09-19 | Claude (G16 open) | G16 First dollar opened (`first-dollar-2026-09-19.md`); three worktree lanes A funnel truth / B paywall → A$3 / C pilot enablement launched. |
 | 2026-09-18 | Claude (G15 follow-ups) | Follow-ups live `bac472af4` (12/12, live-qa 178/0): guardian uptime, watchdog restart forensics → found the watchdog was the restart-burst cause (kills a healthy server under build load) and fixed it, build_sha manifest, cron-log rotation, status root fix. Repo + system cleaned (10 merged branches, 95 stale session dirs, docker cache 214 MB, gc). Full plan review: all G1–G15 closed or founder-blocked. |
 | 2026-09-18 | Claude (G15 close) | G15 Reliability live (`3ce353da8` → review fixes `7e86fb700`, 12/12, elevated live-qa 177/0): manifest truth + live-SHA gate, lock etiquette, error digest + latency SLO + `/api/status` v2, weekly restore drill (first run ok), AI health snapshot, stray-process sweep; nginx timing log + 3 crons installed; crontab drift reconciled. Findings: Telegram token 401 (e-mail fallback shipped; founder must mint a token), 2026-09-17 08:02 4× watchdog restarts uncaptured. |
