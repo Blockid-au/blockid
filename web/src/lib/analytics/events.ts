@@ -185,6 +185,10 @@ export interface TrackOptions {
   userId?: string | null;
   sessionId?: string | null;
   eventId?: string; // caller may supply for idempotency
+  /** G16-A: `"client"` for browser-originated rows via /api/analytics/event (default `"server"`). */
+  source?: string;
+  /** G16-A: forwarded to the GA4 mirror (client rows are only mirrored when consented). */
+  consentGranted?: boolean;
 }
 
 /**
@@ -215,6 +219,8 @@ export async function trackEvent<E extends AnalyticsEvent>(
       userId: opts.userId ?? null,
       sessionId: opts.sessionId ?? null,
       eventId: opts.eventId,
+      ...(opts.source ? { source: opts.source } : {}),
+      ...(typeof opts.consentGranted === "boolean" ? { consentGranted: opts.consentGranted } : {}),
     });
     return { ok: true };
   } catch (err) {

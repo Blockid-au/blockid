@@ -159,6 +159,17 @@ describe("trackEvent", () => {
         eventId: "evt-xyz",
       }),
     );
+    // G16-A: source / consentGranted are only forwarded when set, so the
+    // emitter's "server" / false defaults still apply to every old caller.
+    const first = emitEventMock.mock.calls[0][0] as Record<string, unknown>;
+    expect("source" in first).toBe(false);
+    expect("consentGranted" in first).toBe(false);
+    await trackEvent<Extract<AnalyticsEvent, { name: "paywall_view" }>>(
+      "paywall_view",
+      { surface: "tbr_unlock_rail", sku: "trust_report_5aud", amount_cents: 300 },
+      { sessionId: "anon-1", source: "client", consentGranted: true },
+    );
+    expect(emitEventMock).toHaveBeenLastCalledWith(expect.objectContaining({ source: "client", consentGranted: true, userId: null }));
   });
 
   it("rejects an event with a PII key and does NOT call emitEvent", async () => {

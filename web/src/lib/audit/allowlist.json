@@ -22,6 +22,10 @@
       "reason": "High-volume anonymous telemetry batch; no state of record."
     },
     {
+      "pattern": "api/analytics/event/route.ts",
+      "reason": "G16-A client funnel-event beacon (allow-listed names, cookie identity, rate-limited); no state of record."
+    },
+    {
       "pattern": "api/track/view/route.ts",
       "reason": "High-volume engagement heartbeat (scroll depth / dwell); no state of record."
     },
