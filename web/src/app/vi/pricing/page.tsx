@@ -7,9 +7,7 @@ import { annualAvailablePlanIds, purchasablePlanIds } from "@/lib/plans/annual-a
 import { resolvePricingTab } from "@/components/landing/pricing-tab";
 import { FAQJsonLd } from "@/components/seo/json-ld";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
-import { MarketingHero } from "@/components/marketing/marketing-hero";
-import { MarketingSection } from "@/components/marketing/marketing-section";
-import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
+import { CtaBand, PageHero, Section } from "@/components/marketing/template";
 import { getMessages, t } from "@/lib/i18n/t";
 
 export const dynamic = "force-dynamic";
@@ -105,16 +103,14 @@ export default async function ViPricingPage({ searchParams }: ViPricingPageProps
       <FAQJsonLd items={FAQ_JSONLD_VI} />
       <PageViewTracker event="pricing_viewed" params={{}} />
 
-      <MarketingHero
+      <PageHero
         eyebrow={t(m, "pricing.eyebrow")}
         title={t(m, "pricing.title")}
-        subtitle={t(m, "pricing.subtitle")}
+        sub={t(m, "pricing.subtitle")}
+        align="start"
       />
 
-      <section
-        aria-label="Cam kết bảng giá"
-        className="mx-auto max-w-5xl px-6 pb-4"
-      >
+      <Section id="guarantees" ariaLabel="Cam kết bảng giá" spacing="sm" divider={false}>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-secondary">
           <span className="inline-flex items-center gap-2">
             <Check aria-hidden="true" className="h-4 w-4 text-action" />
@@ -129,17 +125,13 @@ export default async function ViPricingPage({ searchParams }: ViPricingPageProps
             {t(m, "pricing.guarantee.aud")}
           </span>
         </div>
-      </section>
+      </Section>
 
       {/* Founder | Evaluator | Programs switch (G12 T0268 + Pricing v4) —
           same three ladders as /pricing. SKU names/prices are proper nouns
           (AUD), so we do NOT localise them; only the tab labels are
           Vietnamese. */}
-      <section
-        id="pricing-matrix"
-        aria-label="Bảng giá theo phân khúc"
-        className="mx-auto max-w-7xl px-6 py-8 sm:py-12 scroll-mt-24"
-      >
+      <Section id="pricing-matrix" ariaLabel="Bảng giá theo phân khúc" spacing="sm" divider={false}>
         <PricingSegmentSwitch
           initialSegment={initialTab}
           annualAvailable={annualAvailable}
@@ -150,19 +142,16 @@ export default async function ViPricingPage({ searchParams }: ViPricingPageProps
             programs: { label: "Chương trình", sub: "Vườn ươm · accelerator · đại học" },
           }}
         />
-      </section>
+      </Section>
 
-      <section
-        aria-label={t(m, "pricing.faq.title")}
-        className="mx-auto max-w-7xl px-6 pb-12 pt-4"
-      >
+      <Section id="faq" ariaLabel={t(m, "pricing.faq.title")} spacing="sm">
         <FAQV2 />
-      </section>
+      </Section>
 
-      <MarketingSection
-        tone="elevated"
+      <Section id="enterprise"
+        tone="sunken"
         title={t(m, "pricing.enterprise.title")}
-        kicker={t(m, "pricing.enterprise.kicker")}
+        eyebrow={t(m, "pricing.enterprise.kicker")}
       >
         <div className="flex flex-col items-start gap-6 text-center sm:items-center">
           <Building2 aria-hidden="true" className="h-10 w-10 text-action" />
@@ -170,16 +159,15 @@ export default async function ViPricingPage({ searchParams }: ViPricingPageProps
             {t(m, "pricing.enterprise.body")}
           </p>
         </div>
-      </MarketingSection>
+      </Section>
 
-      <MarketingCtaStrip
-        headline={t(m, "pricing.enterprise.title")}
+      <CtaBand
+        title={t(m, "pricing.enterprise.title")}
         primary={{ href: "/contact", label: t(m, "pricing.enterprise.cta.primary") }}
         secondary={{
           href: "/workspace/esop/offers",
           label: t(m, "pricing.enterprise.cta.secondary"),
-        }}
-      />
+        }}/>
 
       <p className="mx-auto mb-16 max-w-5xl px-6 text-center text-xs text-secondary">
         {t(m, "pricing.legal.disclaimer")}

@@ -40,7 +40,7 @@ export function HomeCtaTracker({
     "inline-flex items-center gap-2 rounded-full px-5 py-3 text-[14px] font-semibold transition-colors";
   const styles =
     variant === "primary"
-      ? "bg-white text-[#0A0F1E] hover:bg-white/90"
+      ? "bg-surface text-primary hover:bg-surface-hover"
       : "border border-white/20 text-white hover:bg-white/[0.06]";
   return (
     <a
