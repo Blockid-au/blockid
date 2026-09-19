@@ -34,6 +34,9 @@ import { setAuditActor } from "./audit/context";
 import { processAttribution } from "./reseller/process-attribution";
 import { enqueueNurtureSequence } from "./nurture";
 import { SESSION_COOKIE } from "./auth-cookie";
+// G16-A: `sign_up` fires once per app_users creation (deterministic event_id
+// on the user id) — the only place all four sign-up paths converge.
+import { emitSignUp } from "./analytics/funnel";
 
 async function seedWelcomeNotification(userId: string): Promise<void> {
   const supabase = getSupabaseAdmin();
@@ -275,6 +278,7 @@ export async function consumeMagicLink(
     await initializeCredits(created.id);
     await seedWelcomeNotification(created.id);
     await enqueueNurtureSequence(created.id);
+    emitSignUp({ userId: created.id, email, method: "magic_link" });
 
     // Process referral if a referral code was passed in the pending payload.
     const pendingRef = (row.pending_payload as PendingPayload)?.referralCode;
@@ -561,6 +565,7 @@ export async function loginWithGoogle(
     await initializeCredits(created.id);
     await seedWelcomeNotification(created.id);
     await enqueueNurtureSequence(created.id);
+    emitSignUp({ userId: created.id, email, method: "google" });
 
     // Process referral if a referral code was provided (from cookie/session).
     if (opts?.referralCode) {
@@ -695,6 +700,7 @@ export async function registerWithPassword(args: {
   await initializeCredits(created.id);
   await seedWelcomeNotification(created.id);
   await enqueueNurtureSequence(created.id);
+  emitSignUp({ userId: created.id, email, method: "email" });
   if (args.referralCode) {
     await processReferral(created.id, args.referralCode).catch(() => {});
   }
@@ -840,6 +846,7 @@ export async function autoCreateUserWithTempPassword(
   await initializeCredits(created.id);
   await seedWelcomeNotification(created.id);
   await enqueueNurtureSequence(created.id);
+  emitSignUp({ userId: created.id, email: normalised, method: "temp_password" });
 
   return { ok: true, userId: created.id, tempPassword, isNewUser: true };
 }

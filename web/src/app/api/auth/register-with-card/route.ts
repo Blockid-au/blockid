@@ -61,6 +61,7 @@ import {
   segmentForAccountType,
 } from "@/lib/plans/signup-plans";
 import { emitEventSafe } from "@/lib/analytics/server";
+import { emitSignUp } from "@/lib/analytics/funnel";
 import { initializeCredits } from "@/lib/credits";
 import { sendPaymentConfirmation } from "@/lib/email";
 import { apiRoute } from "@/lib/audit/api-route";
@@ -342,6 +343,16 @@ async function POST_handler(request: Request) {
       consentGranted: true,
     });
   }
+  // 5b. G16-A: the funnel's `sign_up` step — this route creates app_users
+  //     itself (not via lib/auth), so it emits its own, once, after Stripe
+  //     succeeded (a rolled-back row must not count as a sign-up).
+  emitSignUp({
+    userId,
+    email,
+    method: "card",
+    segment: segment === "founder" ? "founder" : segment.startsWith("investor") ? "investor" : segment === "advisor" ? "advisor" : "unknown",
+    persona: body.account_type,
+  });
 
   // 6. Grant welcome credits (best-effort — mirrors magic-link flow).
   await initializeCredits(userId).catch((err) =>

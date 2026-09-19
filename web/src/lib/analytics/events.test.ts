@@ -19,7 +19,13 @@ vi.mock("./server", () => ({
 }));
 
 import {
+  ANON_EMITTABLE_EVENTS,
   AnalyticsEnvelopeSchema,
+  CLIENT_EMITTABLE_EVENTS,
+  isClientEmittableEvent,
+  isQaEmail,
+  qaFlag,
+  QA_EMAIL_RE,
   trackEvent,
   _internal,
   type AnalyticsEvent,
@@ -209,5 +215,39 @@ describe("trackEvent", () => {
     expect(emitEventMock).toHaveBeenCalledWith(
       expect.objectContaining({ name: "session_start", params: {} }),
     );
+  });
+});
+
+// ── G16-A: QA-account flag + client allow-list ──────────────────────────
+
+describe("G16-A isQaEmail / qaFlag", () => {
+  it("matches the three live-QA address shapes (case-insensitive, trimmed)", () => {
+    for (const e of [
+      "qa-live-20260919-0415@blockid.au",
+      "qa-live-member-20260919-0415@blockid.au",
+      "qa-live-evaluator-20260919-0415@blockid.au",
+      "  QA-LIVE-20260919-0415@BLOCKID.AU ",
+    ]) {
+      expect(isQaEmail(e), e).toBe(true);
+      expect(qaFlag(e)).toEqual({ qa: true });
+    }
+  });
+
+  it("does not match founders, seeded qa-<segment> users or near-misses", () => {
+    for (const e of ["jane@example.com", "qa-founder-1@blockid.au", "qa-live-2026091-0415@blockid.au", "qa-live-20260919-0415@blockid.au.evil.com", "", null, undefined]) {
+      expect(isQaEmail(e), String(e)).toBe(false);
+      expect(qaFlag(e)).toEqual({});
+    }
+    expect(QA_EMAIL_RE.source).toContain("qa-live-");
+  });
+});
+
+describe("G16-A CLIENT_EMITTABLE_EVENTS", () => {
+  it("is exactly the five browser-emittable funnel events; anon may only send paywall_view / share_link_open", () => {
+    expect([...CLIENT_EMITTABLE_EVENTS]).toEqual(["paywall_view", "checkout", "report_view", "dashboard_view", "share_link_open"]);
+    expect([...ANON_EMITTABLE_EVENTS]).toEqual(["paywall_view", "share_link_open"]);
+    expect(isClientEmittableEvent("paywall_view")).toBe(true);
+    expect(isClientEmittableEvent("sign_up")).toBe(false);
+    expect(isClientEmittableEvent("trust_report_purchased")).toBe(false);
   });
 });
