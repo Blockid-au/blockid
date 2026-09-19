@@ -62,6 +62,11 @@ import {
 import { apiRoute } from "@/lib/audit/api-route";
 import { startFirstAnalysisJob } from "@/lib/analyses/first-analysis/job";
 
+// 2026-09-19: same ceiling as the intake-link deck path (DECK_MAX_BYTES in
+// lib/intake/submission-runner — not imported to keep that fs/pitchdeck graph
+// out of this route). analyze-root.tsx mirrors it as FILE_MAX_MB.
+const DECK_MAX_BYTES = 25 * 1024 * 1024;
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -173,6 +178,15 @@ async function POST_handler(request: Request) {
       };
       const formFile = form.get("file");
       if (formFile && typeof formFile !== "string") {
+        // 2026-09-19: a typed 413 the UI can name ("max 25 MB") instead of
+        // the bare nginx page that /analyze rendered as "Something went
+        // wrong". Same ceiling as the intake-link deck path (DECK_MAX_BYTES).
+        if ((formFile as File).size > DECK_MAX_BYTES) {
+          return NextResponse.json(
+            { ok: false, error: "file_too_large", max_bytes: DECK_MAX_BYTES },
+            { status: 413 },
+          );
+        }
         const buffer = Buffer.from(await formFile.arrayBuffer());
         file = {
           filename: (formFile as File).name || "upload.bin",
@@ -183,6 +197,13 @@ async function POST_handler(request: Request) {
     } else {
       body = (await request.json()) as Body;
       if (body.file) {
+        // base64 inflates by 4/3 — compare the decoded size to the same cap.
+        if (Math.floor((body.file.base64.length * 3) / 4) > DECK_MAX_BYTES) {
+          return NextResponse.json(
+            { ok: false, error: "file_too_large", max_bytes: DECK_MAX_BYTES },
+            { status: 413 },
+          );
+        }
         file = {
           filename: body.file.filename,
           buffer: Buffer.from(body.file.base64, "base64"),
