@@ -279,7 +279,7 @@ export function buildMethodologyProps(m: Messages, locale: MethodologyLocale = "
     cta: {
       title: T("methodology.cta.title"),
       primary: { href: "/tbr/demo", label: T("methodology.cta.primary") },
-      secondary: { href: locale === "vi" ? "/vi/how-it-works" : "/how-it-works", label: T("methodology.cta.secondary") },
+      secondary: { href: "/how-it-works", label: T("methodology.cta.secondary") }, // no /vi mirror of how-it-works (link-check 2026-09-19)
     },
   };
 }
