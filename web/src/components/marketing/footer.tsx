@@ -125,7 +125,8 @@ export function Footer() {
           partners config is empty. Inherits footer ink via currentColor. */}
       <div className="border-t border-line-subtle text-secondary">
         <div className="mx-auto max-w-6xl px-6">
-          <PartnerFooterRow group="accepted" />
+          {/* The partner SVGs paint with currentColor, which an <img> cannot inherit → they rendered black on the dark footer (G17 screenshots). */}
+          <PartnerFooterRow group="accepted" className="[&_img]:invert [&_img]:opacity-90" />
         </div>
       </div>
       {/* AU support surface — P1 audit 2026-08-23 asked for a visible
