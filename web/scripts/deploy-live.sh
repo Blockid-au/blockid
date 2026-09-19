@@ -898,6 +898,23 @@ gate "Prepare standalone + smoke test"
 if [ -d "$WEB_DIR/.next/static" ]; then
   rm -rf "$STANDALONE/.next/static"
   cp -r "$WEB_DIR/.next/static" "$STANDALONE/.next/static"
+  # Keep OLD static assets alive in the new release (2026-09-19 incident: a
+  # tab that loaded /analyze before a swap asked for the old content-hashed
+  # chunks on its next client-side navigation → 404 → "Something went wrong"
+  # on /funding). Filenames are content-hashed, so a no-clobber union never
+  # collides. /data/static-archive accumulates every build's static tree and
+  # is pruned by mtime (STATIC_ARCHIVE_DAYS) — long enough for a tab left open
+  # over a weekend. The error boundaries also hard-reload once on
+  # ChunkLoadError for anything older (defence 2, src/lib/ui/chunk-error.ts).
+  STATIC_ARCHIVE="${STATIC_ARCHIVE:-/data/static-archive}"
+  STATIC_ARCHIVE_DAYS="${STATIC_ARCHIVE_DAYS:-14}"
+  if mkdir -p "$STATIC_ARCHIVE" 2>/dev/null; then
+    cp -rn "$WEB_DIR/.next/static/." "$STATIC_ARCHIVE/" 2>/dev/null || true
+    find "$STATIC_ARCHIVE" -type f -mtime "+$STATIC_ARCHIVE_DAYS" -delete 2>/dev/null || true
+    find "$STATIC_ARCHIVE" -type d -empty -delete 2>/dev/null || true
+    cp -rn "$STATIC_ARCHIVE/." "$STANDALONE/.next/static/" 2>/dev/null || true
+    echo "  ↳ static archive: $(find "$STATIC_ARCHIVE" -type f | wc -l) files (≤ ${STATIC_ARCHIVE_DAYS} d) unioned into the release (stale-tab chunk safety)"
+  fi
 fi
 if [ -d "$WEB_DIR/public" ]; then
   rm -rf "$STANDALONE/public"
@@ -1309,6 +1326,26 @@ echo "  Live git_sha: ${LIVE_SHA:-<none>} (stamped build_sha ${MANIFEST_BUILD_SH
 # Check for errors in first 3 seconds of logs
 ERRORS=$(tail -20 "$LOG" | grep -ic "error" || true)
 echo "  Errors: $ERRORS in startup logs"
+
+# Stale-tab chunk safety (2026-09-19): the PREVIOUS release's chunks must still
+# serve from the new one (static archive union above). Warn, never roll back —
+# a miss means open tabs will hard-reload once (chunk-error.ts), not an outage.
+if [ -e "$PREV_LINK" ]; then
+  _prev="$(readlink -f "$PREV_LINK" 2>/dev/null || true)"
+  if [ -d "$_prev/.next/static/chunks" ]; then
+    _miss=0; _n=0
+    for _f in $(ls "$_prev/.next/static/chunks"/*.js 2>/dev/null | head -n 3); do
+      _n=$((_n + 1))
+      _code="$(curl -s -o /dev/null -w '%{http_code}' -m 10 "http://127.0.0.1:$PROD_PORT/_next/static/chunks/$(basename "$_f")" 2>/dev/null || echo 000)"
+      [ "$_code" = "200" ] || _miss=$((_miss + 1))
+    done
+    if [ "$_miss" = "0" ]; then
+      echo "  ✅ Previous release's chunks still serve ($_n/$_n) — open tabs survive the swap"
+    else
+      echo "  ⚠ $_miss/$_n previous-release chunks 404 — stale tabs will hard-reload once (check STATIC_ARCHIVE union)"
+    fi
+  fi
+fi
 
 if [ "$LOCAL" = "200" ] && [ "$AUTH" = "ok" ] && [ -n "$LIVE_SHA" ] && [ "$LIVE_SHA" = "$MANIFEST_BUILD_SHA" ]; then
   pass "Production verified (live git_sha matches stamped ${MANIFEST_SHA:0:8})"

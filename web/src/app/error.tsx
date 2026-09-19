@@ -16,6 +16,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { trackEvent } from "@/lib/analytics";
+import { isChunkLoadError, reloadOnceForStaleChunk } from "@/lib/ui/chunk-error";
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -23,7 +24,11 @@ interface ErrorProps {
 }
 
 export default function GlobalError({ error, reset }: ErrorProps) {
+  // Stale-build chunk after a deploy (2026-09-19 /funding incident): one hard
+  // reload fetches the new HTML + chunks; the guard stops loops.
+  const staleChunk = isChunkLoadError(error);
   useEffect(() => {
+    if (staleChunk && reloadOnceForStaleChunk(error)) return;
     // Structured console log for the browser + Sentry-style tail collectors.
     console.error("[blockid:error]", {
       message: error.message,
@@ -34,7 +39,15 @@ export default function GlobalError({ error, reset }: ErrorProps) {
       message: (error.message ?? "").slice(0, 200),
       digest: error.digest,
     });
-  }, [error]);
+  }, [error, staleChunk]);
+
+  if (staleChunk) {
+    return (
+      <div className="min-h-svh bg-surface-100 flex items-center justify-center px-6 py-12" data-stale-chunk-reload>
+        <p className="text-ink-600 text-sm">BlockID was just updated — reloading this page…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-svh bg-surface-100 flex items-center justify-center px-6 py-12">

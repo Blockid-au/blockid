@@ -1,5 +1,7 @@
 "use client";
 
+import { reloadOnceForStaleChunk } from "@/lib/ui/chunk-error";
+
 
 // Inline Sentry client report — cannot import server-only modules in client error boundary
 function reportToSentry(err: Error) {
@@ -36,6 +38,16 @@ export default function GlobalError({
   unstable_retry: () => void;
 }) {
   if (typeof window !== "undefined") {
+    // Stale-build chunk after a deploy → one hard reload (loop-guarded), no red screen.
+    if (reloadOnceForStaleChunk(error)) {
+      return (
+        <html lang="en-AU">
+          <body style={{ margin: 0, fontFamily: "system-ui, sans-serif", background: "#f8fafc" }}>
+            <p style={{ padding: "48px", textAlign: "center", color: "#64748b", fontSize: "14px" }}>BlockID was just updated — reloading this page…</p>
+          </body>
+        </html>
+      );
+    }
     reportToSentry(error);
   }
 

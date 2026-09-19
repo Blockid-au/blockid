@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import { isChunkLoadError, reloadOnceForStaleChunk } from '@/lib/ui/chunk-error';
 
 export default function MarketingError({
   error,
@@ -10,9 +11,19 @@ export default function MarketingError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const staleChunk = isChunkLoadError(error);
   useEffect(() => {
+    if (staleChunk && reloadOnceForStaleChunk(error)) return;
     console.error('[blockid:marketing:error]', error.message);
-  }, [error]);
+  }, [error, staleChunk]);
+
+  if (staleChunk) {
+    return (
+      <div className="min-h-[70vh] bg-surface-100 dark:bg-ink-900 flex items-center justify-center px-6" data-stale-chunk-reload>
+        <p className="text-ink-600 dark:text-ink-400 text-sm">BlockID was just updated — reloading this page…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[70vh] bg-surface-100 dark:bg-ink-900 flex items-center justify-center px-6">
