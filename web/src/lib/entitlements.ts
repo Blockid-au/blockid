@@ -519,15 +519,23 @@ export async function recordGateHit(
   user: UserWithPlan | null,
   feature: Feature,
   source: "menu" | "action" | "api",
+  /**
+   * G16-B: WHERE the gate was hit — the page path (`/workspace/equity/cap-table`)
+   * or the API route / component name. `feature_gate_hit.surface` was blank
+   * in every production row before this; the funnel report groups on it.
+   */
+  surface?: string | null,
 ): Promise<void> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return;
 
+  const cleanSurface = normaliseGateSurface(surface);
   const params = {
     feature,
     source,
     plan: user?.plan ?? null,
     segment: user?.segment ?? null,
+    ...(cleanSurface ? { surface: cleanSurface } : {}),
   };
 
   // analytics_events (CDO T-1009 — GA4 + BQ mirror via typed emitEvent pipeline).
@@ -548,10 +556,22 @@ export async function recordGateHit(
         allowed: false,
         plan_id: user.plan ?? null,
         reason: "feature_locked",
-        request_path: source,
+        request_path: cleanSurface ?? source,
       });
     }
   } catch {
     // audit table optional at this stage
   }
+}
+
+/**
+ * A surface is a path (`/workspace/…`, `api/…`) or a component name — short,
+ * printable, no query string (never echo user-crafted params into analytics).
+ */
+export function normaliseGateSurface(surface: string | null | undefined): string | null {
+  if (typeof surface !== "string") return null;
+  const s = surface.trim().split("?")[0]!.split("#")[0]!;
+  if (!s || s.length > 160) return null;
+  if (!/^[A-Za-z0-9/_.\-[\]()]+$/.test(s)) return null;
+  return s;
 }

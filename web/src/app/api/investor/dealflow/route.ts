@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
 
   const allowed = await can(userSubset, "investor.dealflow");
   if (!allowed) {
-    await recordGateHit(userSubset, "investor.dealflow", "api");
+    await recordGateHit(userSubset, "investor.dealflow", "api", "api/investor/dealflow");
     return NextResponse.json(
       { ok: false, error: "feature_locked", feature: "investor.dealflow" },
       { status: 402 },

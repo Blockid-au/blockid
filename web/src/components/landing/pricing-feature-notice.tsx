@@ -32,7 +32,7 @@ export function PricingFeatureNotice(props: { feature?: string | string[]; from?
     : req.viaAddon && req.plan
       ? `— it comes with the Equity add-on (${req.priceLine}) on top of the ${req.plan.name} plan.`
       : req.plan
-        ? `— it is included from the ${req.plan.name} plan${req.priceLine ? ` (${req.priceLine})` : ""}.`
+        ? `— it is included from the ${req.plan.name} plan${req.priceLine ? ` (${req.priceLine})` : ""}${req.plan.trial_days > 0 ? ` · ${req.plan.trial_days}-day free trial, cancel any time` : ""}.`
         : ".";
 
   return (

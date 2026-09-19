@@ -41,7 +41,7 @@ async function gate() {
   }
   const flags = await getEntitlements(user.plan ?? "", user.id);
   if (!canBatchScore(flags)) {
-    await recordGateHit({ id: user.id, plan: user.plan ?? "", segment: "investor" }, "lp_export", "api");
+    await recordGateHit({ id: user.id, plan: user.plan ?? "", segment: "investor" }, "lp_export", "api", "api/evaluations/batch");
     return {
       user: null,
       response: NextResponse.json(

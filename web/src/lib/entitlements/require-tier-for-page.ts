@@ -72,14 +72,14 @@ export async function requireTierForPage(opts: RequireTierOptions): Promise<void
   // Tier check (cheap, in-memory) first — short-circuits before hitting the
   // plans-db lookup that `can()` performs.
   if (minTier && !meetsMinPlan(plan, minTier)) {
-    await maybeRecordGateHit(uwp, feature);
+    await maybeRecordGateHit(uwp, feature, fromPath);
     redirectToPricing(fromPath, feature);
   }
 
   if (feature) {
     const ok = await can(uwp, feature);
     if (!ok) {
-      await maybeRecordGateHit(uwp, feature);
+      await maybeRecordGateHit(uwp, feature, fromPath);
       redirectToPricing(fromPath, feature);
     }
   }
@@ -95,10 +95,12 @@ function redirectToPricing(fromPath: string, feature?: Feature): never {
 async function maybeRecordGateHit(
   user: UserWithPlan,
   feature: Feature | undefined,
+  surface: string,
 ): Promise<void> {
   if (!feature) return;
   try {
-    await recordGateHit(user, feature, "menu");
+    // G16-B: the page path is the surface (was blank in production data).
+    await recordGateHit(user, feature, "menu", surface);
   } catch {
     // Analytics failures must never block the redirect.
   }

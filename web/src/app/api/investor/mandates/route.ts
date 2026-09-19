@@ -52,7 +52,7 @@ async function gate(req: NextRequest, surface: "api") {
   const subset = { id: user.id, plan: user.plan ?? "", segment: "investor" };
   const allowed = await can(subset, "investor.dealflow");
   if (!allowed) {
-    await recordGateHit(subset, "investor.dealflow", surface);
+    await recordGateHit(subset, "investor.dealflow", surface, "api/investor/mandates");
     return { user: null, response: NextResponse.json({ ok: false, error: "feature_locked", feature: "investor.dealflow" }, { status: 402 }) };
   }
   void req;

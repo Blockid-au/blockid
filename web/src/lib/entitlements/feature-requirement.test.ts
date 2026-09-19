@@ -50,6 +50,29 @@ describe("resolveFeatureRequirement (S31-B — /pricing?feature= landing)", () =
     expect(req.plan?.id).toBe("founder_growth");
   });
 
+  // G16-B: evaluator-only features sell the evaluator ladder, not "contact
+  // sales" — the pre-G16 "lowest rank" pick landed on accelerator_intake
+  // (rank 5, no self-serve plan id) and every free founder hitting Deal Flow
+  // (35 gate hits in 14 days) was told to talk to sales.
+  it("investor.dealflow → Scout (A$79/mo, #tier-scout); intake.manage → Firm; lp_export → Program", () => {
+    const scout = PLANS_V2.find((p) => p.id === "investor_angel")!;
+    const firm = PLANS_V2.find((p) => p.id === "investor_advisor")!;
+    const program = PLANS_V2.find((p) => p.id === "investor_vc_small")!;
+    const deal = resolveFeatureRequirement("investor.dealflow", "/workspace/investor/dealflow")!;
+    expect(deal.contactSales).toBe(false);
+    expect(deal.plan?.id).toBe("investor_angel");
+    expect(deal.plan?.name).toBe("Scout");
+    expect(deal.priceLine).toBe(`A$${scout.monthly_aud}/mo`);
+    expect(deal.anchor).toBe("#tier-scout");
+    expect(deal.plan?.trial_days).toBeGreaterThan(0);
+    const intake = resolveFeatureRequirement("intake.manage")!;
+    expect(intake.plan?.id).toBe("investor_advisor");
+    expect(intake.priceLine).toBe(`A$${firm.monthly_aud}/mo`);
+    const lp = resolveFeatureRequirement("lp_export")!;
+    expect(lp.plan?.id).toBe("investor_vc_small");
+    expect(lp.priceLine).toBe(`A$${program.monthly_aud}/mo`);
+  });
+
   it("free-tier features are not worth a notice", () => {
     const req = resolveFeatureRequirement("svi.run.limited")!;
     expect(requiresPaidTier(req)).toBe(false);

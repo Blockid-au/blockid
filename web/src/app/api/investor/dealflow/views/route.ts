@@ -29,7 +29,7 @@ async function gate() {
   if (!user) return { user: null, response: NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 }) };
   const subset = { id: user.id, plan: user.plan ?? "", segment: "investor" };
   if (!(await can(subset, "investor.dealflow"))) {
-    await recordGateHit(subset, "investor.dealflow", "api");
+    await recordGateHit(subset, "investor.dealflow", "api", "api/investor/dealflow/views");
     return { user: null, response: NextResponse.json({ ok: false, error: "feature_locked", feature: "investor.dealflow" }, { status: 402 }) };
   }
   return { user, response: null };

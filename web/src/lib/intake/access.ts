@@ -26,7 +26,7 @@ export async function gateIntakeRequest(): Promise<{ user: AppUser; response: nu
   const user = await getCurrentUser();
   if (!user) return { user: null, response: NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 }) };
   if (!(await canManageIntake(user))) {
-    await recordGateHit({ id: user.id, plan: user.plan ?? "", segment: "investor" }, INTAKE_FEATURE, "api");
+    await recordGateHit({ id: user.id, plan: user.plan ?? "", segment: "investor" }, INTAKE_FEATURE, "api", "api/intake");
     return { user: null, response: NextResponse.json({ ok: false, error: "feature_locked", feature: INTAKE_FEATURE }, { status: 402 }) };
   }
   return { user, response: null };

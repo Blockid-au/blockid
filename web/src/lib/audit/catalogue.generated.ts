@@ -121,6 +121,7 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/dividends/statements/[id]/void/route.ts", family: "dividends.statements.void", methods: ["POST"] },
   { route: "api/dividends/tax-statements/data-room/route.ts", family: "dividends.tax-statements.data-room", methods: ["POST"] },
   { route: "api/dividends/tax-statements/route.ts", family: "dividends.tax-statements", methods: ["POST"] },
+  { route: "api/entitlement/gate-hit/route.ts", family: "entitlement.gate-hit", methods: ["POST"] },
   { route: "api/eoi/route.ts", family: "eoi", methods: ["POST"] },
   { route: "api/equity/[id]/route.ts", family: "equity", methods: ["PATCH","DELETE"] },
   { route: "api/equity/calculate/route.ts", family: "equity.calculate", methods: ["POST"] },
