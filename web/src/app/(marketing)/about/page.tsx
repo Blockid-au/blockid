@@ -1,9 +1,15 @@
+/**
+ * /about — who builds BlockID and how.
+ *
+ * G17 P2-A: on the unicorn template — PageHero → Section (mission, Prose)
+ * → Section (what we do, FeatureGrid) → Section (approach, FeatureGrid) →
+ * Section (team, Prose) → Section (proof, ProofBand) → Section (Australian-
+ * native) → LogoCloud → CtaBand. Copy lives in `about-content.ts`.
+ *
+ * Server component. Renders inside `MarketingShell`.
+ */
+
 import type { Metadata } from "next";
-import { pageMetadata } from "@/lib/seo/page-meta";
-import { MarketingShell } from "@/components/marketing/marketing-shell";
-import { MarketingHero } from "@/components/marketing/marketing-hero";
-import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
-import { LogoCloud } from "@/components/landing/logo-cloud";
 import {
   Bot,
   CheckCircle2,
@@ -16,7 +22,29 @@ import {
   Target,
   TrendingUp,
   Zap,
+  type LucideIcon,
 } from "lucide-react";
+import { pageMetadata } from "@/lib/seo/page-meta";
+import { MarketingShell } from "@/components/marketing/marketing-shell";
+import {
+  CtaBand,
+  FeatureGrid,
+  PageHero,
+  ProofBand,
+  Prose,
+  Section,
+  type FeatureItem,
+} from "@/components/marketing/template";
+import { LogoCloud } from "@/components/landing/logo-cloud";
+import {
+  ABOUT_APPROACH,
+  ABOUT_AU_NATIVE,
+  ABOUT_PROOF,
+  ABOUT_TEAM_PARAGRAPHS,
+  ABOUT_WHAT_WE_DO,
+  type AboutCard,
+  type AboutIcon,
+} from "./about-content";
 
 export const metadata: Metadata = pageMetadata({
   title: "About BlockID — AI startup ownership platform",
@@ -24,246 +52,95 @@ export const metadata: Metadata = pageMetadata({
   path: "/about",
 });
 
-// Qualitative trust signals — "empty until real" per SOURCE-OF-TRUTH.
-// Kept: 8 SVI dimensions, 10 free tools (both verifiable in code). Removed:
-// "200+ Australian startups", "A$2M+ Funding facilitated", "95% User
-// satisfaction", "8 AI-powered agents" (contradicts LogoBand's 50+ claim).
-const STATS = [
-  { num: "Sydney NSW", label: "Australian-owned HQ" },
-  { num: "AU compliance-first", label: "ASIC · ESIC · R&D" },
-  { num: "8 SVI dimensions", label: "Evidence-linked scoring" },
-  { num: "Auschain Pty Ltd", label: "ABN 79 659 615 111" },
-  { num: "10", label: "Free startup tools" },
-  { num: "AI-powered", label: "Human-reviewable" },
-];
+export const revalidate = 300;
 
-const APPROACH_ITEMS = [
-  {
-    icon: Shield,
-    title: "Evidence-Backed Scoring",
-    desc: "Every SVI dimension is scored against real evidence — ABN registrations, financial data, team structure, market signals — not self-reported surveys.",
-  },
-  {
-    icon: Scale,
-    title: "Australian Regulatory Compliance",
-    desc: "Built for ABN, ASIC, ESIC, R&D Tax Incentive, and ESOP structures under Australian law. Your data is hosted with Australian residency.",
-  },
-  {
-    icon: Bot,
-    title: "8 Specialized AI Agents",
-    desc: "From competitive research to R&D eligibility, each agent is purpose-built for a specific domain — delivering institutional-grade analysis at startup speed.",
-  },
-  {
-    icon: TrendingUp,
-    title: "Startup Value Index (SVI)",
-    desc: "Our proprietary 8-dimension scoring engine tracks your startup across team, market, product, traction, financials, legal, IP, and investor readiness.",
-  },
-];
+const ICONS: Record<AboutIcon, LucideIcon> = {
+  target: Target,
+  layout: LayoutDashboard,
+  file: FileText,
+  globe: Globe,
+  zap: Zap,
+  code: Code2,
+  shield: Shield,
+  scale: Scale,
+  bot: Bot,
+  trending: TrendingUp,
+};
+
+function items(cards: readonly AboutCard[], prefix: string): FeatureItem[] {
+  return cards.map((c, i) => ({
+    icon: ICONS[c.icon],
+    title: c.title,
+    body: c.body,
+    href: c.href,
+    cta: c.cta,
+    ctaId: c.href ? `about_${prefix}_${i + 1}` : undefined,
+  }));
+}
 
 export default function AboutPage() {
   return (
     <MarketingShell>
-      <MarketingHero
+      <PageHero
         eyebrow="About BlockID.au"
-        title={
-          <>
-            Helping Australian founders build{" "}
-            <span className="text-action">
-              valuable, investable
-            </span>{" "}
-            businesses from day one
-          </>
-        }
-        subtitle="BlockID is an AI-powered startup valuation and ownership intelligence platform. We give founders the clarity, confidence, and tools to move from idea to investable business — with evidence-backed scoring, not guesswork."
+        title="Helping Australian founders build valuable, investable businesses from day one."
+        sub="BlockID is an AI-powered startup valuation and ownership intelligence platform. We give founders the clarity, confidence and tools to move from idea to investable business — with evidence-backed scoring, not guesswork."
+        ctas={[
+          { href: "/analyze", label: "Score a startup", ctaId: "about_hero_score" },
+          { href: "/contact", label: "Contact us" },
+        ]}
+        align="start"
       />
 
-      <div className="mx-auto max-w-4xl px-6 pb-20 space-y-16">
-        {/* Mission */}
-        <section>
-          <h2 className="text-2xl font-bold text-primary mb-4">
-            Our Mission
-          </h2>
-          <p className="text-lg leading-relaxed text-secondary">
-            Too many startups lose momentum — and equity — because cap tables
-            live in spreadsheets, valuations are guesswork, and fundraising
-            readiness is an afterthought. We believe every Australian founder
-            deserves institutional-grade tools to build, protect, and grow
-            their company. BlockID exists to close that gap.
+      <Section id="mission" eyebrow="Our mission" title="Close the gap between a spreadsheet and an investable company." tone="sunken">
+        <Prose>
+          <p>
+            Too many startups lose momentum — and equity — because cap tables live in spreadsheets, valuations
+            are guesswork, and fundraising readiness is an afterthought. We believe every Australian founder
+            deserves institutional-grade tools to build, protect and grow their company. BlockID exists to close
+            that gap.
           </p>
-        </section>
+        </Prose>
+      </Section>
 
-        {/* What We Do */}
-        <section>
-          <h2 className="text-2xl font-bold text-primary mb-4">
-            What We Do
-          </h2>
-          <div className="grid sm:grid-cols-2 gap-4">
-            {[
-              {
-                icon: Target,
-                label: "Startup Value Index (SVI)",
-                detail:
-                  "8-dimension AI scoring that tracks viability from idea to scale",
-              },
-              {
-                icon: LayoutDashboard,
-                label: "Cap Table & Ownership",
-                detail:
-                  "Model equity splits, dilution scenarios, and vesting schedules",
-              },
-              {
-                icon: FileText,
-                label: "Investor-Ready Documents",
-                detail:
-                  "Data rooms, term sheets, and export packs for due diligence",
-              },
-              {
-                icon: Globe,
-                label: "AU Compliance Tools",
-                detail:
-                  "ESIC eligibility checker, R&D tax calculator, ASIC tracking",
-              },
-              {
-                icon: Zap,
-                label: "AI-Powered Analysis",
-                detail:
-                  "Competitive research, market sizing, and growth scoring in seconds",
-              },
-              {
-                icon: Code2,
-                label: "10 Free Startup Tools",
-                detail:
-                  "Idea valuation, equity split, funding plan, dilution modelling, and more",
-              },
-            ].map(({ icon: Icon, label, detail }) => (
-              <div
-                key={label}
-                className="flex items-start gap-3 rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] backdrop-blur-sm p-4 transition-all duration-300 hover:border-[rgba(0,212,255,0.3)] hover:scale-[1.02]"
-              >
-                <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-action/10 text-action">
-                  <Icon strokeWidth={1.75} className="h-4.5 w-4.5" />
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-primary">
-                    {label}
-                  </p>
-                  <p className="text-xs text-secondary mt-0.5 leading-relaxed">
-                    {detail}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+      <Section id="what" eyebrow="What we do" title="One platform, six surfaces.">
+        <FeatureGrid columns={3} ariaLabel="What we do" items={items(ABOUT_WHAT_WE_DO, "what")} />
+      </Section>
 
-        {/* Our Approach */}
-        <section>
-          <h2 className="text-2xl font-bold text-primary mb-6">
-            Our Approach
-          </h2>
-          <div className="grid sm:grid-cols-2 gap-6">
-            {APPROACH_ITEMS.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="flex flex-col gap-3">
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-action/10 text-action">
-                    <Icon strokeWidth={1.75} className="h-5 w-5" />
-                  </span>
-                  <h3 className="text-base font-semibold text-primary">
-                    {title}
-                  </h3>
-                </div>
-                <p className="text-sm leading-relaxed text-secondary">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </section>
+      <Section id="approach" eyebrow="Our approach" title="Evidence first, Australia first." tone="sunken">
+        <FeatureGrid columns={2} ariaLabel="Our approach" items={items(ABOUT_APPROACH, "approach")} />
+      </Section>
 
-        {/* The Team */}
-        <section>
-          <h2 className="text-2xl font-bold text-primary mb-4">The Team</h2>
-          <p className="text-base leading-relaxed text-secondary mb-4">
-            BlockID was built by an experienced founder who has lived the
-            startup journey — raising capital, negotiating term sheets, and
-            building cap tables from scratch. Instead of assembling a
-            traditional team of dozens, BlockID is powered by 11 specialized
-            C-Level AI agents (CTO, CFO, CPO, CMO, CRO, CLO, CHRO, CISO, CDO,
-            COO, plus a Customer Success lead), each purpose-built for a
-            critical domain: valuation, competitive research, R&D eligibility,
-            financial modelling, compliance, and more.
-          </p>
-          <p className="text-base leading-relaxed text-secondary">
-            The result: a platform that would typically require a team of 20+
-            engineers, delivered with the speed and precision of AI-native
-            development. The current build — v3.4.0 — spans 340+ TypeScript
-            files, 65+ pages, 90+ API endpoints, 47 database tables, 11 AI
-            agents, and 40+ free models. Recent shipping includes the full
-            founder workspace (competitors, GTM strategy, pricing tiers,
-            roadmap builder, team planner — migration 0304), the reseller /
-            wholesale module (P0–P13, login fix + welcome email + GA events),
-            STRIPE_PRICE_STARTUP_PACKAGE checkout (A$149 one-off), AI model
-            updates (Sonnet 4.6 / Haiku 4.5 / Opus 4.7) with an optimized
-            free-tier provider chain (Cerebras → Groq → SambaNova, 128 socket
-            pool, 0.18s p95), and the Startup Package guided journey (13
-            sub-goals, Playwright smoke gate).
-          </p>
-        </section>
+      <Section id="team" eyebrow="The team" title="One founder, a C-suite of agents, a human review." actions={[{ href: "/team", label: "Meet the agents", variant: "link" }]}>
+        <Prose>
+          {ABOUT_TEAM_PARAGRAPHS.map((p) => (
+            <p key={p.slice(0, 24)}>{p}</p>
+          ))}
+        </Prose>
+      </Section>
 
-        {/* Platform Stats */}
-        <section>
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] backdrop-blur-sm px-6 py-8">
-            <p className="text-center text-xs uppercase tracking-[0.15em] text-action font-medium mb-6">
-              Platform at a glance
-            </p>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
-              {STATS.map(({ num, label }) => (
-                <div key={label} className="text-center">
-                  <p className="text-2xl font-extrabold font-mono tabular-nums text-action">
-                    {num}
-                  </p>
-                  <p className="text-xs text-secondary mt-1">{label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+      <Section id="proof" ariaLabel="Platform at a glance" spacing="sm" tone="sunken">
+        <ProofBand eyebrow="Platform at a glance" ariaLabel="Platform at a glance" items={ABOUT_PROOF} />
+      </Section>
 
-        {/* Australian-Native */}
-        <section>
-          <h2 className="text-2xl font-bold text-primary mb-4">
-            Australian-Native
-          </h2>
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] backdrop-blur-sm p-6">
-            <ul className="space-y-3">
-              {[
-                "Auschain Pty Ltd (ACN 659 615 111, ABN 79 659 615 111)",
-                "Headquartered in Sydney, NSW, Australia",
-                "Data hosted with Australian residency",
-                "Compliance frameworks built for ASIC and ATO requirements",
-                "Tools built for Australian regulations: ESOP structures, SAFE notes under local law, R&D Tax Incentive, ESIC",
-              ].map((item) => (
-                <li
-                  key={item}
-                  className="flex items-start gap-2.5 text-sm text-secondary"
-                >
-                  <CheckCircle2
-                    strokeWidth={1.75}
-                    className="h-4 w-4 mt-0.5 shrink-0 text-action"
-                  />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      </div>
+      <Section id="australian" eyebrow="Australian-native" title="Built here, hosted here, compliant here.">
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {ABOUT_AU_NATIVE.map((item) => (
+            <li key={item} className="flex items-start gap-2.5 rounded-xl border border-line-subtle bg-surface p-4 text-sm text-secondary shadow-1">
+              <CheckCircle2 strokeWidth={1.75} aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-action" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+        {/* Curator-controlled accelerator strip — renders nothing when the config is empty. */}
+        <LogoCloud group="accepted" className="mt-12" />
+      </Section>
 
-      {/* Curator-controlled accelerator strip */}
-      <LogoCloud group="accepted" className="mb-14" />
-
-      <MarketingCtaStrip
-        headline="Get your free Startup Value Index analysis in under 60 seconds."
-        primary={{ href: "/", label: "Get Your Free SVI" }}
-        secondary={{ href: "/contact", label: "Contact Us" }}
+      <CtaBand
+        title="Get your free Startup Value Index analysis in under 60 seconds."
+        sub="Paste a name, a deck or a URL. No card, no account needed for the first run."
+        primary={{ href: "/analyze", label: "Get your free SVI", ctaId: "about_final_score" }}
+        secondary={{ href: "/contact", label: "Contact us" }}
       />
     </MarketingShell>
   );

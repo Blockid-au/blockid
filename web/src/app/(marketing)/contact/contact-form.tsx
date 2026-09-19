@@ -76,22 +76,22 @@ export function ContactForm() {
 
   if (status === "success") {
     return (
-      <div className="rounded-2xl border border-[rgba(0,212,255,0.3)] bg-[rgba(0,212,255,0.08)] p-8 text-center">
+      <div className="rounded-xl border border-line-subtle bg-accent-soft p-8 text-center shadow-1">
         <CheckCircle2
           strokeWidth={1.75}
-          className="mx-auto h-10 w-10 text-[#00D4FF] mb-4"
+          className="mx-auto h-10 w-10 text-action mb-4"
         />
-        <h3 className="text-lg font-bold text-[#F8FAFC] mb-2">
+        <h3 className="font-display text-lg font-bold text-primary mb-2">
           Message sent!
         </h3>
-        <p className="text-sm text-[#94A3B8]">
+        <p className="text-sm text-secondary">
           Thanks for reaching out. We will get back to you within one business
           day.
         </p>
         <button
           type="button"
           onClick={() => setStatus("idle")}
-          className="mt-4 text-sm text-[#00D4FF] hover:underline cursor-pointer"
+          className="mt-4 inline-flex min-h-11 items-center rounded-md text-sm text-action hover:underline cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-600 focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
         >
           Send another message
         </button>
@@ -117,7 +117,7 @@ export function ContactForm() {
       <div>
         <label
           htmlFor="contact-topic"
-          className="block text-sm font-medium text-[#F8FAFC] mb-1.5"
+          className="block text-sm font-medium text-primary mb-1.5"
         >
           Topic
         </label>
@@ -125,10 +125,10 @@ export function ContactForm() {
           id="contact-topic"
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
-          className="w-full h-11 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] px-4 text-sm text-[#F8FAFC] focus:outline-none focus:border-[rgba(0,212,255,0.5)] focus:ring-1 focus:ring-[rgba(0,212,255,0.3)] transition-colors"
+          className="w-full h-11 rounded-lg border border-line bg-surface px-4 text-sm text-primary placeholder:text-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-600 focus-visible:ring-offset-2 focus-visible:ring-offset-surface transition-colors duration-(--dur-base)"
         >
           {TOPICS.map((t) => (
-            <option key={t.value} value={t.value} className="bg-[#0A0F1E] text-[#F8FAFC]">
+            <option key={t.value} value={t.value}>
               {t.label}
             </option>
           ))}
@@ -137,7 +137,7 @@ export function ContactForm() {
       <div>
         <label
           htmlFor="contact-name"
-          className="block text-sm font-medium text-[#F8FAFC] mb-1.5"
+          className="block text-sm font-medium text-primary mb-1.5"
         >
           Name
         </label>
@@ -147,15 +147,15 @@ export function ContactForm() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Your name"
-          className="w-full h-11 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] px-4 text-sm text-[#F8FAFC] placeholder:text-[#94A3B8] focus:outline-none focus:border-[rgba(0,212,255,0.5)] focus:ring-1 focus:ring-[rgba(0,212,255,0.3)] transition-colors"
+          className="w-full h-11 rounded-lg border border-line bg-surface px-4 text-sm text-primary placeholder:text-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-600 focus-visible:ring-offset-2 focus-visible:ring-offset-surface transition-colors duration-(--dur-base)"
         />
       </div>
       <div>
         <label
           htmlFor="contact-email"
-          className="block text-sm font-medium text-[#F8FAFC] mb-1.5"
+          className="block text-sm font-medium text-primary mb-1.5"
         >
-          Email <span className="text-red-400">*</span>
+          Email <span className="text-bear">*</span>
         </label>
         <input
           id="contact-email"
@@ -164,15 +164,15 @@ export function ContactForm() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
           required
-          className="w-full h-11 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] px-4 text-sm text-[#F8FAFC] placeholder:text-[#94A3B8] focus:outline-none focus:border-[rgba(0,212,255,0.5)] focus:ring-1 focus:ring-[rgba(0,212,255,0.3)] transition-colors"
+          className="w-full h-11 rounded-lg border border-line bg-surface px-4 text-sm text-primary placeholder:text-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-600 focus-visible:ring-offset-2 focus-visible:ring-offset-surface transition-colors duration-(--dur-base)"
         />
       </div>
       <div>
         <label
           htmlFor="contact-message"
-          className="block text-sm font-medium text-[#F8FAFC] mb-1.5"
+          className="block text-sm font-medium text-primary mb-1.5"
         >
-          Message <span className="text-red-400">*</span>
+          Message <span className="text-bear">*</span>
         </label>
         <textarea
           id="contact-message"
@@ -181,20 +181,20 @@ export function ContactForm() {
           placeholder="How can we help?"
           required
           rows={5}
-          className="w-full rounded-xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] px-4 py-3 text-sm text-[#F8FAFC] placeholder:text-[#94A3B8] focus:outline-none focus:border-[rgba(0,212,255,0.5)] focus:ring-1 focus:ring-[rgba(0,212,255,0.3)] transition-colors resize-none"
+          className="w-full rounded-lg border border-line bg-surface px-4 text-sm text-primary placeholder:text-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-600 focus-visible:ring-offset-2 focus-visible:ring-offset-surface transition-colors duration-(--dur-base) py-3 resize-none"
         />
       </div>
       {errorMsg && (
-        <p className="text-sm text-red-400">{errorMsg}</p>
+        <p className="text-sm text-bear" role="alert">{errorMsg}</p>
       )}
       <button
         type="submit"
         disabled={status === "submitting"}
-        className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-[#00D4FF] to-[#0066FF] px-6 text-sm font-semibold text-[#0A0F1E] hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+        className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-action px-5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors duration-(--dur-base) cursor-pointer disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-600 focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
       >
         {status === "submitting" ? (
           <span className="flex items-center gap-2">
-            <span className="h-3.5 w-3.5 rounded-full border-2 border-[#0A0F1E]/30 border-t-[#0A0F1E] animate-spin" />
+            <span className="h-3.5 w-3.5 rounded-full border-2 border-on-action/30 border-t-on-action animate-spin" />
             Sending...
           </span>
         ) : (

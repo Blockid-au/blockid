@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import { brandedOrAbsolute, fitDescription } from "@/lib/seo/page-meta";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Calendar, Clock, User } from "lucide-react";
+import { ArrowRight, Calendar, Clock, User } from "lucide-react";
 import { getAllArticles, getArticleBySlug, getArticleContent, getArticlesByCategory } from "@/lib/insights";
 import { InsightBody } from "./insight-body";
-import { NavV2 } from "@/components/landing/nav-v2";
-import { Footer } from "@/components/marketing/footer";
+import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { CtaBand, FOCUS_RING, MOTION, PageHero, Prose, Section } from "@/components/marketing/template";
 import { ArticleJsonLd } from "@/components/seo/json-ld";
 import { InsightTracker } from "@/components/analytics/insight-tracker";
 
@@ -80,8 +80,11 @@ export default async function InsightPage({
     .filter((a) => a.slug !== slug)
     .slice(0, 3);
 
+  // G17 P2-A: MarketingShell + PageHero (the article header) + Prose around
+  // the body + CtaBand + a related-articles Section. Category chips keep
+  // their colour classes from CATEGORY_LABELS.
   return (
-    <div className="min-h-svh bg-white text-ink-800">
+    <MarketingShell>
       <ArticleJsonLd
         title={article.title}
         description={article.description}
@@ -96,150 +99,94 @@ export default async function InsightPage({
         readingTime={article.readingTime}
         title={article.title}
       />
-      <NavV2 />
 
-      {/* Article header */}
-      <header className="relative bg-gradient-to-br from-surface-50 via-white to-brand-50/30 pt-10 pb-12 md:pt-16 md:pb-16 border-b border-surface-200">
-        <div className="mx-auto max-w-3xl px-6">
-          {/* Breadcrumb */}
-          <Link
-            href="/insights"
-            className="inline-flex items-center gap-1.5 text-sm text-ink-500 hover:text-brand-600 transition-colors mb-8"
-          >
-            <ArrowLeft strokeWidth={1.75} className="h-3.5 w-3.5" />
-            All Insights
-          </Link>
-
-          {/* Category + Meta */}
-          <div className="flex flex-wrap items-center gap-3 mb-5">
-            <span className={`text-[11px] font-semibold rounded-full px-3 py-1 ${cat.color}`}>
-              {cat.label}
+      <PageHero
+        eyebrow={cat.label}
+        title={article.title}
+        sub={article.description}
+        ctas={[{ href: "/insights", label: "All insights", variant: "secondary" }]}
+        footnote={
+          <span className="inline-flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span className="inline-flex items-center gap-1.5">
+              <Calendar strokeWidth={1.75} aria-hidden className="h-3.5 w-3.5" />
+              {new Date(article.publishedAt).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })}
             </span>
-            <span className="flex items-center gap-1.5 text-xs text-ink-400">
-              <Calendar strokeWidth={1.75} className="h-3.5 w-3.5" />
-              {new Date(article.publishedAt).toLocaleDateString("en-AU", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })}
-            </span>
-            <span className="flex items-center gap-1.5 text-xs text-ink-400">
-              <Clock strokeWidth={1.75} className="h-3.5 w-3.5" />
+            <span className="inline-flex items-center gap-1.5">
+              <Clock strokeWidth={1.75} aria-hidden className="h-3.5 w-3.5" />
               {article.readingTime} min read
             </span>
-          </div>
-
-          {/* Title */}
-          <h1 className="text-3xl md:text-4xl lg:text-[2.75rem] font-extrabold tracking-tight text-ink-900 leading-tight">
-            {article.title}
-          </h1>
-          <p className="mt-4 text-lg text-ink-500 leading-relaxed max-w-2xl">
-            {article.description}
-          </p>
-
-          {/* Author */}
-          <div className="mt-6 flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 text-brand-700">
-              <User strokeWidth={1.75} className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-ink-800">BlockID Team</p>
-              <p className="text-xs text-ink-400">Expert guides for founders</p>
-            </div>
-          </div>
-        </div>
-      </header>
+            <span className="inline-flex items-center gap-1.5">
+              <User strokeWidth={1.75} aria-hidden className="h-3.5 w-3.5" />
+              BlockID Team
+            </span>
+          </span>
+        }
+        align="start"
+      />
 
       {/* Article body */}
-      <article className="mx-auto max-w-3xl px-6 py-12 md:py-16">
-        <InsightBody content={content} title={article.title} />
-      </article>
+      <Section id="article" ariaLabel={article.title} divider={false}>
+        <article>
+          <Prose measure="wide">
+            <InsightBody content={content} title={article.title} />
+          </Prose>
+        </article>
+      </Section>
 
-      {/* CTA Section */}
-      <section className="bg-gradient-to-br from-brand-600 via-brand-700 to-ink-900 py-16 md:py-20">
-        <div className="mx-auto max-w-3xl px-6 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
-            Get Your Free Startup Value Index
-          </h2>
-          <p className="text-base text-brand-100/80 mb-8 max-w-lg mx-auto">
-            AI-powered valuation, investor-readiness scoring, and a comprehensive report in under 60 seconds.
-          </p>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-semibold text-brand-700 hover:bg-brand-50 shadow-lg transition-all hover:shadow-xl"
-          >
-            Start Free Analysis
-            <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
-          </Link>
-        </div>
-      </section>
+      <CtaBand
+        title="Get your free Startup Value Index"
+        sub="AI-powered valuation, investor-readiness scoring, and a comprehensive report in under 60 seconds."
+        primary={{ href: "/analyze", label: "Start free analysis", ctaId: "insight_final_score" }}
+        secondary={{ href: "/insights", label: "Back to all insights" }}
+        tone="dark"
+      />
 
       {/* Related articles */}
       {related.length > 0 && (
-        <section className="bg-surface-50 border-t border-surface-200 py-16 md:py-20">
-          <div className="mx-auto max-w-7xl px-6">
-            <div className="text-center mb-10">
-              <h2 className="text-2xl font-bold text-ink-900">Related Articles</h2>
-              <p className="mt-2 text-sm text-ink-500">
-                More insights on {cat.label.toLowerCase()} for founders
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-              {related.map((rel) => {
-                const relCat = CATEGORY_LABELS[rel.category] ?? CATEGORY_LABELS.growth;
-                return (
+        <Section
+          id="related"
+          title="Related articles"
+          lede={`More insights on ${cat.label.toLowerCase()} for founders`}
+          align="center"
+          tone="sunken"
+        >
+          <ul className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3" aria-label="Related articles">
+            {related.map((rel) => {
+              const relCat = CATEGORY_LABELS[rel.category] ?? CATEGORY_LABELS.growth;
+              return (
+                <li key={rel.slug} className="flex">
                   <Link
-                    key={rel.slug}
                     href={`/insights/${rel.slug}`}
-                    className="group flex flex-col rounded-2xl border border-surface-200 bg-white shadow-sm hover:border-brand-500/40 hover:shadow-lg transition-all overflow-hidden"
+                    className={`group flex h-full w-full flex-col rounded-xl border border-line-subtle bg-surface p-6 shadow-1 hover:border-line hover:shadow-2 ${MOTION} ${FOCUS_RING}`}
                   >
-                    <div className="flex flex-1 flex-col p-6">
-                      <span className={`self-start text-[11px] font-semibold rounded-full px-2.5 py-0.5 mb-3 ${relCat.color}`}>
-                        {relCat.label}
+                    <span className={`mb-3 self-start rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${relCat.color}`}>
+                      {relCat.label}
+                    </span>
+                    <h3 className="font-display text-lg font-semibold leading-snug tracking-tight text-primary line-clamp-2">
+                      {rel.title}
+                    </h3>
+                    <p className="mt-2 flex-1 text-sm leading-relaxed text-secondary line-clamp-2">
+                      {rel.description}
+                    </p>
+                    <div className="mt-4 flex items-center gap-3 text-xs text-muted">
+                      <span className="flex items-center gap-1">
+                        <Clock strokeWidth={1.75} aria-hidden className="h-3 w-3" />
+                        {rel.readingTime} min
                       </span>
-                      <h3 className="text-base font-bold text-ink-900 group-hover:text-brand-700 transition-colors leading-snug line-clamp-2">
-                        {rel.title}
-                      </h3>
-                      <p className="mt-2 text-sm text-ink-500 leading-relaxed line-clamp-2 flex-1">
-                        {rel.description}
-                      </p>
-                      <div className="mt-4 flex items-center gap-3 text-xs text-ink-400">
-                        <span className="flex items-center gap-1">
-                          <Clock strokeWidth={1.75} className="h-3 w-3" />
-                          {rel.readingTime} min
-                        </span>
-                        <span>
-                          {new Date(rel.publishedAt).toLocaleDateString("en-AU", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </span>
-                      </div>
-                      <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 group-hover:gap-2.5 transition-all">
-                        Read more <ArrowRight strokeWidth={1.75} className="h-3.5 w-3.5" />
+                      <span>
+                        {new Date(rel.publishedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
                       </span>
                     </div>
+                    <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-action">
+                      Read more <ArrowRight strokeWidth={1.75} aria-hidden className="h-3.5 w-3.5" />
+                    </span>
                   </Link>
-                );
-              })}
-            </div>
-          </div>
-        </section>
+                </li>
+              );
+            })}
+          </ul>
+        </Section>
       )}
-
-      {/* Back link */}
-      <div className="bg-white py-8 text-center border-t border-surface-200">
-        <Link
-          href="/insights"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-500 hover:text-brand-600 transition-colors"
-        >
-          <ArrowLeft strokeWidth={1.75} className="h-3.5 w-3.5" />
-          Back to all insights
-        </Link>
-      </div>
-
-      <Footer />
-    </div>
+    </MarketingShell>
   );
 }

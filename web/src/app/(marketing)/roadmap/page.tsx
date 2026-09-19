@@ -5,9 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
-import { MarketingHero } from "@/components/marketing/marketing-hero";
-import { MarketingSection } from "@/components/marketing/marketing-section";
-import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
+import { CtaBand, PageHero, Section } from "@/components/marketing/template";
 import {
   ArrowRight,
   CheckCircle2,
@@ -536,14 +534,15 @@ export default function RoadmapPage() {
     <MarketingShell>
       <PageViewTracker event="roadmap_viewed" params={{}} />
 
-      <MarketingHero
+      <PageHero
         eyebrow="Roadmap"
         title="Where BlockID is going"
-        subtitle="Eight stages, one workspace, one audit trail. SVI baseline to valuation, equity, ESOP, cap table, tokenisation, dividend and exit — all derived from data you can inspect and re-run. Below is what has shipped, what is building this quarter, and what is compliance-gated until legal review passes."
+        sub="Eight stages, one workspace, one audit trail. SVI baseline to valuation, equity, ESOP, cap table, tokenisation, dividend and exit — all derived from data you can inspect and re-run. Below is what has shipped, what is building this quarter, and what is compliance-gated until legal review passes."
+        align="start"
       />
 
       {/* Current milestone */}
-      <MarketingSection tone="elevated" kicker="Current milestone" title="What just shipped">
+      <Section id="milestone" tone="sunken" eyebrow="Current milestone" title="What just shipped">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           {version?.version ? (
             <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface-raised px-3 py-1 text-xs font-semibold text-action">
@@ -596,12 +595,12 @@ export default function RoadmapPage() {
             deploy will populate this panel.
           </p>
         )}
-      </MarketingSection>
+      </Section>
 
       {/* Recently landed */}
-      <MarketingSection
+      <Section id="landed"
         title="Recently landed"
-        kicker={`Snapshot ${SNAPSHOT_DATE}`}
+        eyebrow={`Snapshot ${SNAPSHOT_DATE}`}
       >
         <p className="text-sm text-secondary">
           v3.0 Master Upgrade — Phase 1-6 core landed 2026-07-30 → 2026-07-31.
@@ -635,13 +634,13 @@ export default function RoadmapPage() {
             </li>
           ))}
         </ul>
-      </MarketingSection>
+      </Section>
 
       {/* Next up / In progress */}
-      <MarketingSection
-        tone="elevated"
+      <Section id="next"
+        tone="sunken"
         title="Next up"
-        kicker="In flight"
+        eyebrow="In flight"
       >
         <p className="text-sm text-secondary">
           Top active goals mirrored from the plan-delta and reseller module
@@ -678,12 +677,12 @@ export default function RoadmapPage() {
             </li>
           ))}
         </ul>
-      </MarketingSection>
+      </Section>
 
       {/* Human-blocked / Waiting */}
-      <MarketingSection
+      <Section id="gated"
         title="Human-blocked"
-        kicker="Waiting on humans"
+        eyebrow="Waiting on humans"
       >
         <p className="text-sm text-secondary">
           Work with runnable code that cannot ship until a human unblocks a
@@ -713,12 +712,12 @@ export default function RoadmapPage() {
             </li>
           ))}
         </ul>
-      </MarketingSection>
+      </Section>
 
       {/* The canonical 8-stage startup journey */}
-      <MarketingSection
+      <Section id="journey"
         title="The 8-stage startup journey"
-        kicker={`Canonical vocabulary v${JOURNEY_VOCAB_VERSION}`}
+        eyebrow={`Canonical vocabulary v${JOURNEY_VOCAB_VERSION}`}
       >
         <p className="text-sm text-secondary">
           Every SVI report, dashboard, and data-room row now lines up with the
@@ -745,12 +744,12 @@ export default function RoadmapPage() {
             </li>
           ))}
         </ol>
-      </MarketingSection>
+      </Section>
 
       {/* The 8 platform phases */}
-      <MarketingSection
+      <Section id="stages"
         title="The 8 platform stages"
-        kicker="Journey"
+        eyebrow="Journey"
       >
         <p className="text-secondary">
           Idea to exit in one register, one audit trail. Every stage feeds the
@@ -786,13 +785,13 @@ export default function RoadmapPage() {
             );
           })}
         </ol>
-      </MarketingSection>
+      </Section>
 
       {/* This quarter's ship list */}
-      <MarketingSection
-        tone="elevated"
+      <Section id="quarter"
+        tone="sunken"
         title="This quarter's ship list"
-        kicker="Delivery"
+        eyebrow="Delivery"
       >
         <p className="text-sm text-secondary">
           The v2.0 pricing upgrade rolls out in five phases. Status derived
@@ -823,11 +822,12 @@ export default function RoadmapPage() {
             </li>
           ))}
         </ul>
-      </MarketingSection>
+      </Section>
 
-      <MarketingCtaStrip
-        headline="Follow every ship."
-        primary={{ href: "/changelog", label: "Changelog" }}
+      <CtaBand
+        title="Follow every ship."
+        sub="Every release is on the changelog; every control is on the security audit."
+        primary={{ href: "/changelog", label: "Changelog", ctaId: "roadmap_final_changelog" }}
         secondary={{ href: "/security-audit", label: "Security audit" }}
       />
     </MarketingShell>

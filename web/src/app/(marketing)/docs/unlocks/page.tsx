@@ -14,9 +14,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
-import { MarketingHero } from "@/components/marketing/marketing-hero";
-import { MarketingSection } from "@/components/marketing/marketing-section";
-import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
+import { CtaBand, PageHero, Section } from "@/components/marketing/template";
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { WebPageJsonLd } from "@/components/seo/json-ld";
 import { fitDescription, pageMetadata, SITE_URL } from "@/lib/seo/page-meta";
@@ -146,15 +144,18 @@ export default function UnlocksPage() {
         ]}
       />
       <WebPageJsonLd url={`${SITE_URL}${PATH}`} name={TITLE} description={DESCRIPTION} />
-      <MarketingHero
+      <PageHero
         eyebrow="Docs · Progressive unlock"
         title="What unlocks when: the tools each phase and plan opens"
-        subtitle="The BlockID sidebar grows with your startup. This page shows exactly which groups appear at each of the 12 growth phases on every plan, and the evidence that clears each phase gate — generated from the same rules the app runs."
-        primaryCta={{ href: "/dashboard", label: "See my next unlock" }}
-        secondaryCta={{ href: "/pricing", label: "Compare plans" }}
+        sub="The BlockID sidebar grows with your startup. This page shows exactly which groups appear at each of the 12 growth phases on every plan, and the evidence that clears each phase gate — generated from the same rules the app runs."
+        ctas={[
+          { href: "/dashboard", label: "See my next unlock" },
+          { href: "/pricing", label: "Compare plans" },
+        ]}
+        align="start"
       />
 
-      <MarketingSection kicker="How gates work" title="Gates are advisory">
+      <Section id="gates" eyebrow="How gates work" title="Gates are advisory">
         <div className="space-y-4 text-base leading-relaxed text-secondary">
           <p>
             Gates are advisory: you can move on manually; the badge and investor-facing
@@ -173,9 +174,9 @@ export default function UnlocksPage() {
             you already hold still resolves.
           </p>
         </div>
-      </MarketingSection>
+      </Section>
 
-      <MarketingSection kicker="Table 1" title="Phase × plan — what the sidebar shows">
+      <Section id="matrix" eyebrow="Table 1" title="Phase × plan — what the sidebar shows">
         <p className="mb-6 max-w-3xl text-sm leading-relaxed text-secondary">
           Each growth phase belongs to one of six workflow steps (Ideate → Validate → Build →
           Fundraise → Grow → Exit); a sidebar group opens when its step is reached. A chip
@@ -242,9 +243,9 @@ export default function UnlocksPage() {
             Accelerator instead.
           </li>
         </ul>
-      </MarketingSection>
+      </Section>
 
-      <MarketingSection kicker="Table 2" title="How to unlock the next level">
+      <Section id="rules" eyebrow="Table 2" title="How to unlock the next level">
         <p className="mb-6 max-w-3xl text-sm leading-relaxed text-secondary">
           Every phase has an exit gate built from the same 13 evidence criteria that feed your
           SVI score. A phase is cleared when each required criterion is rated at least{" "}
@@ -313,9 +314,9 @@ export default function UnlocksPage() {
           Legal &amp; Compliance. &ldquo;Nothing new&rdquo; is an honest answer: consecutive phases in the same
           workflow step share a sidebar, so the new tools opened at the step&rsquo;s first phase.
         </p>
-      </MarketingSection>
+      </Section>
 
-      <MarketingSection kicker="Per plan" title="What an upgrade opens" tone="elevated">
+      <Section id="plans" eyebrow="Per plan" title="What an upgrade opens" tone="sunken">
         <p className="mb-6 max-w-3xl text-sm leading-relaxed text-secondary">
           The dimmed rows each plan sees once every phase group is open, and the plan that
           turns them on.
@@ -354,11 +355,12 @@ export default function UnlocksPage() {
           </Link>
           .
         </p>
-      </MarketingSection>
+      </Section>
 
-      <MarketingCtaStrip
-        headline="See where you stand today"
-        primary={{ href: "/dashboard", label: "Open my dashboard" }}
+      <CtaBand
+        title="See where you stand today"
+        sub="The sidebar tells you the next gate; the dashboard tells you what clears it."
+        primary={{ href: "/dashboard", label: "Open my dashboard", ctaId: "unlocks_final_dashboard" }}
         secondary={{ href: "/pricing", label: "Compare plans" }}
       />
     </MarketingShell>

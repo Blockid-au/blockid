@@ -9,10 +9,9 @@
 
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/page-meta";
-import Link from "next/link";
+import { FileText, Lock, ScrollText, ShieldAlert, type LucideIcon } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
-import { MarketingHero } from "@/components/marketing/marketing-hero";
-import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
+import { CtaBand, FeatureGrid, PageHero, Section } from "@/components/marketing/template";
 
 export const metadata: Metadata = pageMetadata({
   title: "Legal — terms, privacy and disclaimers",
@@ -49,38 +48,35 @@ const DOCS: LegalDoc[] = [
   },
 ];
 
+const DOC_ICONS: Record<string, LucideIcon> = {
+  "/legal/terms": ScrollText,
+  "/legal/privacy": Lock,
+  "/legal/acceptable-use": ShieldAlert,
+  "/legal/disclaimers": FileText,
+};
+
 export default function LegalIndexPage() {
   return (
     <MarketingShell>
-      <MarketingHero
+      <PageHero
         eyebrow="Legal"
         title="Legal documents"
-        subtitle="The authoritative Auschain PTY LTD policies that govern how BlockID.au is used."
+        sub="The authoritative Auschain PTY LTD policies that govern how BlockID.au is used."
+        align="start"
       />
 
-      <div className="mx-auto max-w-3xl space-y-4 px-6 pb-16">
-        <ul className="space-y-4">
-          {DOCS.map((d) => (
-            <li key={d.href}>
-              <Link
-                href={d.href}
-                className="block rounded-2xl border border-line-subtle bg-surface-sunken p-6 transition-colors hover:border-action"
-              >
-                <h2 className="text-lg font-semibold text-primary">
-                  {d.title}
-                </h2>
-                <p className="mt-2 text-sm leading-relaxed text-secondary">
-                  {d.body}
-                </p>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <Section id="documents" ariaLabel="Legal documents" tone="sunken">
+        <FeatureGrid
+          columns={2}
+          ariaLabel="Legal documents"
+          items={DOCS.map((d) => ({ icon: DOC_ICONS[d.href] ?? FileText, title: d.title, body: d.body, href: d.href, cta: "Read" }))}
+        />
+      </Section>
 
-      <MarketingCtaStrip
-        headline="Questions about our legal position?"
-        primary={{ href: "/contact?topic=legal", label: "Contact legal" }}
+      <CtaBand
+        title="Questions about our legal position?"
+        sub="Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW."
+        primary={{ href: "/contact?topic=legal", label: "Contact legal", ctaId: "legal_final_contact" }}
         secondary={{ href: "/legal/acceptable-use", label: "Acceptable use" }}
       />
     </MarketingShell>

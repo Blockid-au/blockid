@@ -14,7 +14,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { notFound } from "next/navigation";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
-import { MarketingHero } from "@/components/marketing/marketing-hero";
+import { CtaBand, PageHero, Section } from "@/components/marketing/template";
 
 const SLUGS = [
   "cdo",
@@ -99,18 +99,23 @@ export default async function AgentProfilePage({
 
   return (
     <MarketingShell>
-      <MarketingHero
+      {/* G17 P2-A: template hero + one Section for the profile grid + CtaBand. */}
+      <PageHero
         eyebrow={detail.slug === "customer-success" ? "CS" : detail.slug.toUpperCase()}
         title={detail.role}
-        subtitle={shortTag}
+        sub={shortTag}
+        ctas={[
+          { href: "/team", label: "All 11 agents", variant: "secondary" },
+        ]}
+        align="start"
       />
 
-      <section className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
+      <Section id="profile" ariaLabel={`${detail.role} profile`} tone="sunken">
         <div className="grid gap-8 lg:grid-cols-[1fr_260px]">
           {/* Main column */}
           <article className="min-w-0 space-y-8">
-            <div className="rounded-2xl border border-line-subtle bg-surface-sunken p-6 sm:p-8">
-              <h2 className="text-lg font-semibold text-primary">
+            <div className="rounded-xl border border-line-subtle bg-surface p-6 shadow-1 sm:p-8">
+              <h2 className="font-display text-lg font-semibold text-primary">
                 Mandate
               </h2>
               <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-secondary">
@@ -118,9 +123,9 @@ export default async function AgentProfilePage({
               </p>
             </div>
 
-            <div className="rounded-2xl border border-line-subtle bg-surface-sunken p-6 sm:p-8">
+            <div className="rounded-xl border border-line-subtle bg-surface p-6 shadow-1 sm:p-8">
               <div className="mb-4 flex items-baseline justify-between">
-                <h2 className="text-lg font-semibold text-primary">
+                <h2 className="font-display text-lg font-semibold text-primary">
                   Recent activity
                 </h2>
                 <span className="font-mono text-xs tabular-nums text-secondary">
@@ -156,8 +161,8 @@ export default async function AgentProfilePage({
 
           {/* Sidebar */}
           <aside className="space-y-6">
-            <div className="rounded-2xl border border-line-subtle bg-surface-sunken p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-action">
+            <div className="rounded-xl border border-line-subtle bg-surface p-5 shadow-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
                 KPIs owned
               </p>
               <ul className="mt-3 space-y-2">
@@ -175,8 +180,8 @@ export default async function AgentProfilePage({
               </ul>
             </div>
 
-            <div className="rounded-2xl border border-line-subtle bg-surface-sunken p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-action">
+            <div className="rounded-xl border border-line-subtle bg-surface p-5 shadow-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
                 Related
               </p>
               <ul className="mt-3 space-y-2 text-sm">
@@ -208,7 +213,13 @@ export default async function AgentProfilePage({
             </div>
           </aside>
         </div>
-      </section>
+      </Section>
+
+      <CtaBand
+        title="See what the whole bench shipped."
+        primary={{ href: "/changelog", label: "Changelog", ctaId: "agent_final_changelog" }}
+        secondary={{ href: "/roadmap", label: "Roadmap" }}
+      />
     </MarketingShell>
   );
 }
