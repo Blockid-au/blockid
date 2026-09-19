@@ -44,6 +44,7 @@ import {
   extractLinks,
   formatSummary,
   isAssetPath,
+  isEdgeInjectedPath,
   isNoCrawlPath,
   makeSite,
   normalizeUrl,
@@ -268,6 +269,7 @@ export async function crawl(args, deps = {}) {
               if (!n) continue;
               const target = toSiteUrl(n.href, site);
               const targetInternal = classify(target, site) === "internal";
+              if (targetInternal && isEdgeInjectedPath(new URL(target).pathname)) continue;
               if (!targetInternal && !args.externals) continue;
               if (n.fragment && targetInternal) fragments.push({ page: target, fragment: n.fragment, from: siteHref });
               if (target === siteHref) continue; // self link (#anchor) — fragment check covers it

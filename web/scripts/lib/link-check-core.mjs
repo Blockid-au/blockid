@@ -187,6 +187,18 @@ export function isNoCrawlPath(pathname, prefixes = NO_CRAWL_PREFIXES) {
   return prefixes.some((pre) => p.startsWith(pre));
 }
 
+/**
+ * Cloudflare-owned paths the edge injects into served HTML (Scrape Shield
+ * email obfuscation rewrites every mailto: into `/cdn-cgi/l/email-protection#…`;
+ * the challenge platform adds `/cdn-cgi/challenge-platform/…` scripts).
+ * They are not links the site emits and 404 without the browser fragment,
+ * so they are dropped before classification. tests/live-qa console-guard
+ * tolerates the same rewrite until the founder flips the switch.
+ */
+export function isEdgeInjectedPath(pathname) {
+  return pathname.startsWith("/cdn-cgi/");
+}
+
 /** Static/asset paths that are fetched but never parsed for links. */
 export function isAssetPath(pathname) {
   return /^\/_next\//.test(pathname) || /\.(css|js|mjs|map|png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|otf|pdf|json|xml|txt|mp4|webm|mp3|zip)$/i.test(pathname);

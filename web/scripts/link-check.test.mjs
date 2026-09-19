@@ -25,6 +25,7 @@ import {
   formatSummary,
   internalIsBroken,
   isAssetPath,
+  isEdgeInjectedPath,
   isNoCrawlPath,
   makeSite,
   normalizeUrl,
@@ -71,6 +72,8 @@ const HOME = `<!doctype html><html lang="en"><head>
 <img src="/og.png" alt="og" srcset="/og-2x.png 2x, /og-3x.png 3x">
 <picture><source src="/hero.webp"></picture>
 <a href="/docs/">Docs</a>
+<a href="/cdn-cgi/l/email-protection#35464045455a47417557595a565e5c511b5440">[email protected]</a>
+<script src="/cdn-cgi/challenge-platform/scripts/jsd/main.js"></script>
 </main></body></html>`;
 
 const PRODUCT = `<html><body><h1 id="product">Product</h1><section id="dimensions"></section><a href="/">Home</a><a href="/product">Self</a><a href="/slow">Slow</a></body></html>`;
@@ -211,6 +214,9 @@ describe("link-check-core — extraction + normalisation", () => {
     expect(isAssetPath("/og.png")).toBe(true);
     expect(isAssetPath("/sitemap.xml")).toBe(true);
     expect(isAssetPath("/product")).toBe(false);
+    expect(isEdgeInjectedPath("/cdn-cgi/l/email-protection")).toBe(true);
+    expect(isEdgeInjectedPath("/cdn-cgi/challenge-platform/scripts/jsd/main.js")).toBe(true);
+    expect(isEdgeInjectedPath("/cdn")).toBe(false);
   });
 
   it("parseRobots + robotsAllows honour Disallow for * with $ and * wildcards", () => {
@@ -327,8 +333,9 @@ describe("link-check.mjs — crawl over the fake site", () => {
     expect(byUrl["https://blockid.au/_next/static/css/app.css"]).toMatchObject({ status: 200, kind: "link:stylesheet" });
     expect(byUrl["https://blockid.au/og-2x.png"]).toMatchObject({ status: 200, kind: "img:srcset" });
     expect(byUrl["https://blockid.au/hero.webp"]).toMatchObject({ status: 200, kind: "source" });
-    // mailto/tel/javascript never requested
+    // mailto/tel/javascript never requested; Cloudflare-injected /cdn-cgi/ paths neither
     expect(site.calls.some((c) => /^(mailto|tel|javascript):/.test(c.url))).toBe(false);
+    expect(site.calls.some((c) => c.url.includes("/cdn-cgi/"))).toBe(false);
     // /api/health is Disallowed for crawling but still status-checked; never parsed
     expect(byUrl["https://blockid.au/api/health"].crawled).toBeUndefined();
     // every request carried the UA

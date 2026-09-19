@@ -23,6 +23,7 @@ import { test, expect } from "@playwright/test";
 import { LEGACY_REDIRECTS } from "../../../src/lib/nav/legacy-redirects";
 import { HUBS, HUB_IDS } from "../../../src/lib/nav/hubs";
 import { loginAs } from "../fixtures/accounts";
+import { ConsoleGuard } from "../../live-qa/lib/console-guard";
 
 const FOUNDER_EMAIL = process.env.QA_FOUNDER_LIMIT_EMAIL ?? "qa+founder@blockid.au";
 
@@ -449,6 +450,148 @@ test.describe("Post-deploy hydrated smoke", () => {
       const target = href.split("?")[0];
       await page.waitForURL((u) => u.pathname.startsWith(target), { timeout: PAGE_TIMEOUT });
     });
+  });
+
+  // ── G17-P2B (2026-09-19) — homepage hydration + CTA navigation ────────
+  // Spec docs/plans/unicorn-homepage-2026-09-19.md § 2 D7 / § 4: the home is
+  // the one page every campaign lands on, and the curl gates only see its
+  // SSR shell. These assert what a visitor experiences after hydration:
+  // one evaluator H1, the animated search ring reacting to focus (the
+  // `.asf-wrap:focus-within` rule in globals.css), the primary CTA actually
+  // navigating, the three audience cards resolving, the five-entry nav, no
+  // price string on the home (D3), no console errors, and no sideways
+  // scroll at 375 px. Plus a minimal a11y pass (axe is not a dependency).
+  test.describe("G17 homepage", () => {
+    const AUDIENCE = ["/solutions/investor", "/solutions/accelerator", "/solutions/advisor"] as const;
+    const NAV_LABELS = ["Product", "Solutions", "Samples", "Pricing", "Docs"] as const;
+
+    test("/ — one evaluator H1, hero search ring reacts to focus, nav = five labels, no A$ in main, no console errors", async ({ page }) => {
+      test.setTimeout(30_000);
+      const guard = new ConsoleGuard(page);
+      await page.goto("/", { waitUntil: "domcontentloaded" });
+
+      const h1 = page.locator("h1");
+      await expect(h1).toHaveCount(1, { timeout: PAGE_TIMEOUT });
+      await expect(h1).toContainText(/Score any Australian startup/i);
+
+      // Search frame: visible, and focusing its input lights the ring.
+      const frame = page.getByTestId("hero-search");
+      await expect(frame).toBeVisible({ timeout: PAGE_TIMEOUT });
+      const wrap = frame.locator(".asf-wrap").first();
+      await expect(wrap).toBeVisible({ timeout: PAGE_TIMEOUT });
+      const input = frame.getByTestId("smart-intake-text");
+      await expect(input).toBeVisible({ timeout: PAGE_TIMEOUT });
+      await input.focus();
+      await expect(input).toBeFocused();
+      const ring = await wrap.evaluate((el) => ({
+        focusWithin: el.matches(":focus-within"),
+        boxShadow: getComputedStyle(el).boxShadow,
+      }));
+      expect(ring.focusWithin, "hero search wrapper :focus-within").toBe(true);
+      expect(ring.boxShadow, "focus ring box-shadow applied").not.toBe("none");
+
+      // Nav: exactly the five G17 labels in order.
+      const primary = page.locator('nav[aria-label="Primary"]').first();
+      const labels = (await primary.locator(":scope > ul > li").allInnerTexts()).map((t) => t.trim());
+      expect(labels).toEqual([...NAV_LABELS]);
+
+      // D3: no price string on the home.
+      const mainText = await page.locator("main").innerText();
+      expect(mainText, "A$ price string found in <main>").not.toMatch(/A\$\s?\d/);
+
+      // Audience cards link the three evaluator landings and they resolve.
+      for (const href of AUDIENCE) {
+        await expect(page.locator(`main a[href="${href}"]`).first(), href).toBeVisible();
+        const resp = await page.request.get(href);
+        expect(resp.status(), `${href} status`).toBe(200);
+      }
+
+      await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => {});
+      const report = guard.report("/");
+      expect(report.errors, `console errors on /: ${JSON.stringify(report.errors)}`).toEqual([]);
+      expect(report.failedRequests, `failed requests on /: ${JSON.stringify(report.failedRequests)}`).toEqual([]);
+    });
+
+    test("/ — primary CTA navigates to /analyze (200)", async ({ page }) => {
+      test.setTimeout(30_000);
+      await page.goto("/", { waitUntil: "domcontentloaded" });
+      const cta = page.locator('[data-cta-id="score_startup"]').first();
+      await expect(cta).toBeVisible({ timeout: PAGE_TIMEOUT });
+      expect(await cta.getAttribute("href")).toBe("/analyze");
+      // Hero primary carries its own id; both must point at the same target.
+      await expect(page.locator('[data-cta-id="hero_score"]').first()).toHaveAttribute("href", "/analyze");
+      await cta.click();
+      // Next navigates client-side (RSC payload, no document response), so
+      // the URL + a rendered H1 prove the navigation and a direct GET the status.
+      await page.waitForURL(/\/analyze(\?|$)/, { timeout: PAGE_TIMEOUT });
+      await expect(page.locator("h1").first()).toBeVisible({ timeout: PAGE_TIMEOUT });
+      expect((await page.request.get("/analyze")).status(), "/analyze status").toBe(200);
+    });
+
+    test("/ — no horizontal overflow at a 375px viewport", async ({ page }) => {
+      test.setTimeout(20_000);
+      await page.setViewportSize({ width: 375, height: 740 });
+      await page.goto("/", { waitUntil: "domcontentloaded" });
+      await expect(page.getByTestId("hero-search")).toBeVisible({ timeout: PAGE_TIMEOUT });
+      await page.waitForLoadState("networkidle", { timeout: 3_000 }).catch(() => {});
+      await page.evaluate(() => document.fonts.ready).catch(() => {});
+      const overflow = await page.evaluate(() => ({
+        scrollWidth: document.documentElement.scrollWidth,
+        innerWidth: window.innerWidth,
+      }));
+      expect(overflow.scrollWidth, `scrollWidth ${overflow.scrollWidth} > innerWidth ${overflow.innerWidth}`).toBeLessThanOrEqual(overflow.innerWidth);
+    });
+
+    // Minimal a11y pass (no axe dependency): img alt, accessible names on
+    // every button/link, one <main>, no skipped heading level, html[lang].
+    for (const path of ["/", "/product", "/samples", "/solutions/investor"] as const) {
+      test(`${path} — minimal a11y: alt text, accessible names, one main, heading order, html[lang]`, async ({ page }) => {
+        test.setTimeout(30_000);
+        const resp = await page.goto(path, { waitUntil: "domcontentloaded" });
+        expect(resp?.status(), `${path} status`).toBe(200);
+        await expect(page.locator("h1").first()).toBeVisible({ timeout: PAGE_TIMEOUT });
+        const audit = await page.evaluate(() => {
+          const problems: string[] = [];
+          const lang = document.documentElement.getAttribute("lang");
+          if (!lang) problems.push("html[lang] missing");
+          const mains = document.querySelectorAll("main").length;
+          if (mains !== 1) problems.push(`expected 1 <main>, found ${mains}`);
+          for (const img of Array.from(document.querySelectorAll("img"))) {
+            if (!img.hasAttribute("alt")) problems.push(`img without alt: ${img.getAttribute("src") ?? "?"}`);
+          }
+          const nameOf = (el: Element): string => {
+            const aria = el.getAttribute("aria-label") ?? "";
+            if (aria.trim()) return aria;
+            const by = el.getAttribute("aria-labelledby");
+            if (by) {
+              const t = by.split(/\s+/).map((id) => document.getElementById(id)?.textContent ?? "").join(" ");
+              if (t.trim()) return t;
+            }
+            const title = el.getAttribute("title") ?? "";
+            if (title.trim()) return title;
+            const imgAlt = Array.from(el.querySelectorAll("img[alt]")).map((i) => i.getAttribute("alt") ?? "").join(" ");
+            const svgTitle = Array.from(el.querySelectorAll("svg title, svg[aria-label]")).map((s) => s.textContent ?? s.getAttribute("aria-label") ?? "").join(" ");
+            return `${el.textContent ?? ""} ${imgAlt} ${svgTitle}`;
+          };
+          for (const el of Array.from(document.querySelectorAll("a[href], button"))) {
+            const hidden = el.getAttribute("aria-hidden") === "true" || (el as HTMLElement).hidden;
+            if (hidden) continue;
+            if (!nameOf(el).trim()) {
+              problems.push(`${el.tagName.toLowerCase()} without accessible name: ${el.getAttribute("href") ?? el.getAttribute("data-testid") ?? el.className}`);
+            }
+          }
+          const levels = Array.from(document.querySelectorAll("h1, h2, h3, h4, h5, h6"))
+            .filter((h) => !h.closest("[aria-hidden='true']"))
+            .map((h) => Number(h.tagName[1]));
+          if (levels.filter((l) => l === 1).length !== 1) problems.push(`expected exactly one h1, found ${levels.filter((l) => l === 1).length}`);
+          for (let i = 1; i < levels.length; i++) {
+            if (levels[i] > levels[i - 1] + 1) problems.push(`heading level skips h${levels[i - 1]} → h${levels[i]} (index ${i})`);
+          }
+          return problems;
+        });
+        expect(audit, `${path} a11y problems`).toEqual([]);
+      });
+    }
   });
 
   test("/workspace/reports/upgrade keeps its query string through the redirect", async ({ request }) => {
