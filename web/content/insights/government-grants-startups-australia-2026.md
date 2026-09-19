@@ -17,7 +17,7 @@ The Australian government offers various grants to support startups at different
 
 The Entrepreneurs Programme is a key initiative of the Australian government to support startups. The Growth Stream provides funding of up to $1M to support high-growth startups with innovative products or services.
 
-> **"The Entrepreneurs Programme is designed to help startups grow and succeed, with a focus on innovative and scalable businesses."** [Australian Government Website](https://www.entrepreneurs.gov.au/)
+> **"The Entrepreneurs Programme is designed to help startups grow and succeed, with a focus on innovative and scalable businesses."** [business.gov.au — Entrepreneurs Programme](https://business.gov.au/grants-and-programs/entrepreneurs-programme)
 
 To be eligible for the Growth Stream, your startup must:
 

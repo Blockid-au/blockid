@@ -121,7 +121,7 @@ Compare your startup to the "average" funded startup in your sector and adjust:
 - Need for additional investment: +/- 5%
 - Other factors: +/- 5%
 
-**Baseline for Australian pre-seed:** AUD $1-2M (based on [AVCAL](https://www.avcal.com.au/) data for early-stage rounds in 2024-2025).
+**Baseline for Australian pre-seed:** AUD $1-2M (based on [Australian Investment Council (formerly AVCAL)](https://www.investmentcouncil.com.au/) data for early-stage rounds in 2024-2025).
 
 ### 3. Venture Capital Method (reverse-engineered)
 

@@ -5,7 +5,7 @@
 //
 // Primary sources:
 //   - Wikipedia (Xero)          https://en.wikipedia.org/wiki/Xero_(company)
-//   - Xero media releases       https://www.xero.com/global/media-releases/
+//   - Xero media releases       https://www.xero.com/au/media-releases/
 //   - NZX / ASX filings         https://www.asx.com.au/asx/share-price-research/company/XRO
 //   - Xero annual reports       https://www.xero.com/global/investor/reports/
 //   - Drury Wikipedia           https://en.wikipedia.org/wiki/Rod_Drury
@@ -29,7 +29,7 @@ export type XeroDemo = AtlassianDemo;
 // ── Citation URL constants ─────────────────────────────────────────────────
 
 const SRC_WIKI = "https://en.wikipedia.org/wiki/Xero_(company)";
-const SRC_XERO_MEDIA = "https://www.xero.com/global/media-releases/";
+const SRC_XERO_MEDIA = "https://www.xero.com/au/media-releases/";
 const SRC_ASX_XRO = "https://www.asx.com.au/asx/share-price-research/company/XRO";
 const SRC_XERO_INVESTOR = "https://www.xero.com/global/investor/reports/";
 const SRC_DRURY_WIKI = "https://en.wikipedia.org/wiki/Rod_Drury";
