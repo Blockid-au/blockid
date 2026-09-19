@@ -323,6 +323,13 @@
 - **Next action:** none engineering — Sun 03:45 first scheduled restore drill; watch `watchdog-restarts.jsonl` for the 07:59-type death. **G15 closed 2026-09-18.**
 - **Blocker:** founder-only — (a) new Telegram bot token (§5), (b) Drive quota auth for off-site backups (`node --env-file=web/.env scripts/db-backup-offsite-auth.mjs`), (c) valid `ANTHROPIC_API_KEY` (`claude-apikey` shows `blocked` in `/api/status.ai`).
 
+### G16 — First dollar: funnel truth · paywall → A$3 · evaluator pilot enablement
+- **Source:** [`docs/plans/first-dollar-2026-09-19.md`](./first-dollar-2026-09-19.md).
+- **Opened:** 2026-09-19 — founder "làm như bạn đề xuất". Evidence: 115 real sign-ups / 14 d (≈ 15/day) yet 0 `report_orders`, 0 trials, 0 MRR; `sign_up`/`checkout` events never emitted, `svi_score_computed` 1/14 d, `/admin/funnel` reads a table that does not exist; gate hits 97/14 d (cap_table.write 42, investor.dealflow 35).
+- **Status:** **A ∥ B ∥ C in worktrees 2026-09-19** — A funnel truth (server-side events at every step with `qa` flag, `funnel-report.mjs` daily → `funnel-daily.jsonl`, `/admin/funnel` rewritten on real data, `traction.funnel_7d`) · B paywall → A$3 (locked-chapter preview + unlock rail with quote-then-pay, gate cards with plan + price + one CTA, +24 h "unlock for A$3" nudge, prices from the pricing source of truth) · C pilot enablement (`POST /api/admin/pilots` one-click Program comp for 30 d without Stripe, cap 5, `pilot-expiry` cron with paying-subscriber guard, `/pilot` public offer page + apply form, `/admin/pilots`).
+- **Next action:** merge → full vitest → deploy → elevated live-qa → read-only review → fixes → first `funnel-report` run + a throw-away pilot start/end → close.
+- **Blocker:** none engineering. Founder decisions F-1…F-3 default-ship.
+
 ## 2. Requirements Register
 
 | ID | Source | Category | Status | Owner (skill) | Ship commit |
@@ -611,6 +618,7 @@ the sentinels is overwritten._
 
 | When | Who | What |
 |---|---|---|
+| 2026-09-19 | Claude (G16 open) | G16 First dollar opened (`first-dollar-2026-09-19.md`); three worktree lanes A funnel truth / B paywall → A$3 / C pilot enablement launched. |
 | 2026-09-18 | Claude (G15 follow-ups) | Follow-ups live `bac472af4` (12/12, live-qa 178/0): guardian uptime, watchdog restart forensics → found the watchdog was the restart-burst cause (kills a healthy server under build load) and fixed it, build_sha manifest, cron-log rotation, status root fix. Repo + system cleaned (10 merged branches, 95 stale session dirs, docker cache 214 MB, gc). Full plan review: all G1–G15 closed or founder-blocked. |
 | 2026-09-18 | Claude (G15 close) | G15 Reliability live (`3ce353da8` → review fixes `7e86fb700`, 12/12, elevated live-qa 177/0): manifest truth + live-SHA gate, lock etiquette, error digest + latency SLO + `/api/status` v2, weekly restore drill (first run ok), AI health snapshot, stray-process sweep; nginx timing log + 3 crons installed; crontab drift reconciled. Findings: Telegram token 401 (e-mail fallback shipped; founder must mint a token), 2026-09-17 08:02 4× watchdog restarts uncaptured. |
 | 2026-09-18 | Claude (G15 open) | Founder: focus reliability → G15 opened (`reliability-2026-09-18.md`), three worktree lanes R1 ship safety / R2 observability / R3 data safety + AI resilience launched; dead gateway/billing env pointers commented out; stray 5.7-day crawler killed. |
