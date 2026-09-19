@@ -1,0 +1,39 @@
+STRIPE_PRICE_ACCELERATOR 20000.00 AUD year active tax=unspecified product="Accelerator" livemode=true
+STRIPE_PRICE_ACCEL_GROWTH 1500.00 AUD month active tax=unspecified product="BlockID Cohort Growth" livemode=true
+STRIPE_PRICE_ACCEL_GROWTH_ANNUAL 15000.00 AUD year active tax=inclusive product="BlockID Cohort Growth" livemode=true
+STRIPE_PRICE_ACCEL_INTAKE 249.00 AUD month active tax=inclusive product="BlockID Intake link" livemode=true
+STRIPE_PRICE_ACCEL_INTAKE_ANNUAL 2490.00 AUD year active tax=inclusive product="BlockID Intake link" livemode=true
+STRIPE_PRICE_ACCEL_STARTER 500.00 AUD month active tax=unspecified product="BlockID Cohort Starter" livemode=true
+STRIPE_PRICE_ACCEL_STARTER_ANNUAL 5000.00 AUD year active tax=inclusive product="BlockID Cohort Starter" livemode=true
+STRIPE_PRICE_ADDON_SHARE_MGMT_ANNUAL 590.00 AUD year active tax=inclusive product="BlockID Equity" livemode=true
+STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY 59.00 AUD month active tax=inclusive product="BlockID Equity" livemode=true
+STRIPE_PRICE_CREDITS_10 9.00 AUD one-off active tax=unspecified product="BlockID Credits" livemode=true
+STRIPE_PRICE_CREDITS_100 60.00 AUD one-off active tax=unspecified product="100 credits pack" livemode=true
+STRIPE_PRICE_CREDITS_25 20.00 AUD one-off active tax=unspecified product="BlockID Credits" livemode=true
+STRIPE_PRICE_CREDITS_5 5.00 AUD one-off active tax=unspecified product="BlockID Credits" livemode=true
+STRIPE_PRICE_CREDITS_50 35.00 AUD one-off active tax=unspecified product="50 credits pack" livemode=true
+STRIPE_PRICE_FOUNDER 99.00 AUD month active tax=unspecified product="Founder" livemode=true
+STRIPE_PRICE_FOUNDER_GROWTH 69.00 AUD month active tax=inclusive product="BlockID Growth" livemode=true
+STRIPE_PRICE_FOUNDER_SCALE 299.00 AUD month INACTIVE tax=inclusive product="BlockID Pro" livemode=true
+STRIPE_PRICE_FOUNDER_STARTER 29.00 AUD month active tax=inclusive product="BlockID Starter" livemode=true
+STRIPE_PRICE_FOUNDING50 3.00 AUD one-off active tax=unspecified product="Founding 100 (one-off)" livemode=true
+STRIPE_PRICE_FUNDING_REPORT 3.00 AUD one-off active tax=inclusive product="Money Finder report (A$3)" livemode=true
+STRIPE_PRICE_GROWTH 99.00 AUD month active tax=unspecified product="Growth" livemode=true
+STRIPE_PRICE_GROWTH_499 499.00 AUD month active tax=unspecified product="Growth" livemode=true
+STRIPE_PRICE_GROWTH_ANNUAL 950.00 AUD year active tax=unspecified product="Growth" livemode=true
+STRIPE_PRICE_INDEX_API 299.00 AUD month active tax=inclusive product="BlockID Index API" livemode=true
+STRIPE_PRICE_INDEX_API_ANNUAL 2990.00 AUD year active tax=inclusive product="BlockID Index API" livemode=true
+STRIPE_PRICE_INVESTOR_ADVISOR 149.00 AUD month active tax=unspecified product="BlockID Advisor" livemode=true
+STRIPE_PRICE_INVESTOR_ADVISOR_ANNUAL 1490.00 AUD year active tax=unspecified product="BlockID Advisor" livemode=true
+STRIPE_PRICE_INVESTOR_ANGEL 79.00 AUD month active tax=unspecified product="BlockID Angel" livemode=true
+STRIPE_PRICE_INVESTOR_ANGEL_ANNUAL 790.00 AUD year active tax=unspecified product="BlockID Angel" livemode=true
+STRIPE_PRICE_INVESTOR_FUND 999.00 AUD month active tax=inclusive product="BlockID Fund" livemode=true
+STRIPE_PRICE_INVESTOR_FUND_ANNUAL 9990.00 AUD year active tax=inclusive product="BlockID Fund" livemode=true
+STRIPE_PRICE_INVESTOR_VC_SMALL 349.00 AUD month active tax=unspecified product="BlockID VC Small (5-seat min)" livemode=true
+STRIPE_PRICE_INVESTOR_VC_SMALL_ANNUAL 3490.00 AUD year active tax=unspecified product="BlockID VC Small (5-seat min)" livemode=true
+STRIPE_PRICE_ONE_CLICK_REPORT 3.00 AUD one-off active tax=unspecified product="One-Click Report (A$3)" livemode=true
+STRIPE_PRICE_PILOT 5000.00 AUD one-off active tax=unspecified product="Pilot Concierge" livemode=true
+STRIPE_PRICE_STARTUP_PACKAGE 149.00 AUD one-off active tax=inclusive product="BlockID Startup Package" livemode=true
+STRIPE_PRICE_SVI_ANALYSIS 1.00 AUD one-off active tax=unspecified product="SVI Analysis Report" livemode=true
+STRIPE_PRICE_SVI_ANALYSIS_25 25.00 AUD one-off active tax=unspecified product="SVI Analysis Report" livemode=true
+STRIPE_PRICE_TRUST_REPORT_5AUD 3.00 AUD one-off active tax=inclusive product="BlockID Trust Business Report" livemode=true
