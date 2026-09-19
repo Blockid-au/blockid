@@ -204,14 +204,9 @@ describe("POST /api/intake — file size cap", () => {
     form.set("file", new File([new Uint8Array(1)], "deck.pdf", { type: "application/pdf" }));
     form.set("tier", "free");
     const request = new Request("http://x/api/intake", { method: "POST", body: form });
-    // Oversize without allocating 25 MB: patch the parsed File's size.
-    const orig = request.formData.bind(request);
-    request.formData = async () => {
-      const f = await orig();
-      const file = f.get("file") as File;
-      Object.defineProperty(file, "size", { value: CAP + 1 });
-      return f;
-    };
+    // The route buffers the raw body and sizes THAT (formData() is unreliable
+    // on huge bodies) — hand it an over-cap buffer.
+    request.arrayBuffer = async () => new ArrayBuffer(CAP + 128 * 1024);
     const res = await POST(request);
     const body = await json(res);
     expect(res.status).toBe(413);

@@ -188,7 +188,20 @@ async function POST_handler(request: Request) {
   try {
     const contentType = request.headers.get("content-type") ?? "";
     if (contentType.includes("multipart/form-data")) {
-      const form = await request.formData();
+      // Buffer first, then parse: the runtime's formData() fails opaquely on
+      // very large bodies ("Failed to parse body as FormData" → 400) and the
+      // Content-Length header does not reliably reach the handler, so the
+      // byte count is the only dependable size signal (2026-09-19).
+      const raw = await request.arrayBuffer();
+      if (raw.byteLength > DECK_MAX_BYTES + 64 * 1024) {
+        return NextResponse.json(
+          { ok: false, error: "file_too_large", max_bytes: DECK_MAX_BYTES },
+          { status: 413 },
+        );
+      }
+      const form = await new Response(raw, {
+        headers: { "content-type": contentType },
+      }).formData();
       body = {
         text: (form.get("text") as string | null) ?? undefined,
         url: (form.get("url") as string | null) ?? undefined,
