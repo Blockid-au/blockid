@@ -174,6 +174,17 @@ function gatedResponse(decision: Extract<SignupGateDecision, { allow: false }>) 
 async function POST_handler(request: Request) {
   let body: Body;
   let file: IntakeFileInput | undefined;
+  // Cheapest check first: a declared body over the cap answers the typed
+  // 413 before the multipart parser (which fails on very large bodies with
+  // an opaque "Failed to parse body as FormData" → 400) ever runs. Small
+  // allowance for multipart framing + the text/url/tier fields.
+  const declared = Number(request.headers.get("content-length") ?? 0);
+  if (Number.isFinite(declared) && declared > DECK_MAX_BYTES + 64 * 1024) {
+    return NextResponse.json(
+      { ok: false, error: "file_too_large", max_bytes: DECK_MAX_BYTES },
+      { status: 413 },
+    );
+  }
   try {
     const contentType = request.headers.get("content-type") ?? "";
     if (contentType.includes("multipart/form-data")) {

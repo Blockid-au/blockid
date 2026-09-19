@@ -220,6 +220,18 @@ describe("POST /api/intake — file size cap", () => {
     expect(saveAnalysisMock).not.toHaveBeenCalled();
   });
 
+  it("a declared Content-Length over the cap → 413 before any body parsing", async () => {
+    const request = new Request("http://x/api/intake", {
+      method: "POST",
+      headers: { "content-type": "multipart/form-data; boundary=x", "content-length": String(CAP + 1024 * 1024) },
+      body: "--x--",
+    });
+    const res = await POST(request);
+    expect(res.status).toBe(413);
+    expect(await json(res)).toMatchObject({ ok: false, error: "file_too_large" });
+    expect(analyzeInputMock).not.toHaveBeenCalled();
+  });
+
   it("base64 file whose decoded size exceeds 25 MB → 413", async () => {
     const base64 = "A".repeat(Math.ceil(((CAP + 1024) * 4) / 3));
     const res = await POST(req({ file: { filename: "deck.pdf", base64, mimeType: "application/pdf" } }));
