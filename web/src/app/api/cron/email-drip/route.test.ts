@@ -48,6 +48,8 @@ const expireStaleDripsMock = vi.fn();
 const canSendDripMock = vi.fn();
 const claimDripMock = vi.fn();
 const suppressDripMock = vi.fn();
+// G16-B: the tbr_unlock_24h send-time guard (paid / plan-included / QA).
+const tbrUnlockSuppressionMock = vi.fn<(...args: unknown[]) => Promise<string | null>>();
 vi.mock("@/lib/email-drip", () => ({
   dueDrips: (...args: unknown[]) => dueDripsMock(...args),
   markSent: (...args: unknown[]) => markSentMock(...args),
@@ -57,6 +59,7 @@ vi.mock("@/lib/email-drip", () => ({
   canSendDrip: (...args: unknown[]) => canSendDripMock(...args),
   claimDrip: (...args: unknown[]) => claimDripMock(...args),
   suppressDrip: (...args: unknown[]) => suppressDripMock(...args),
+  tbrUnlockSuppression: (...args: unknown[]) => tbrUnlockSuppressionMock(...args),
   dripCategory: (campaign: string) =>
     campaign === "onboarding_d14" ? "promotions" : "product_updates",
 }));
@@ -101,6 +104,8 @@ beforeEach(() => {
   canSendDripMock.mockReset();
   claimDripMock.mockReset();
   suppressDripMock.mockReset();
+  tbrUnlockSuppressionMock.mockReset();
+  tbrUnlockSuppressionMock.mockResolvedValue(null);
 
   expireStaleDripsMock.mockResolvedValue(0);
   canSendDripMock.mockResolvedValue(true);
@@ -563,5 +568,40 @@ describe("POST /api/cron/email-drip?dry=1 — dry run", () => {
     const body = await res.json();
     expect(body.dryRun).toBe(false);
     expect(body.wouldSend).toEqual([]);
+  });
+});
+
+// G16-B — the A$3 unlock nudge is cancelled at send time (never claimed,
+// never sent) when tbrUnlockSuppression names a reason; every other row is
+// unaffected, and a dry run reports the skip without writing.
+describe("POST /api/cron/email-drip — tbr_unlock_24h send-time guard (G16-B)", () => {
+  it("suppresses the row with the reason and sends nothing when the founder already bought", async () => {
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "d-tbr", campaign: "tbr_unlock_24h" }), drip({ id: "d-d1" })]);
+    tbrUnlockSuppressionMock.mockImplementation(async (row: unknown) => ((row as { campaign: string }).campaign === "tbr_unlock_24h" ? "suppressed: report already purchased" : null));
+    const res = await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
+    const body = await res.json();
+    expect(body).toMatchObject({ considered: 2, sent: 1, skipped: 1, failed: 0 });
+    expect(suppressDripMock).toHaveBeenCalledWith("d-tbr", "suppressed: report already purchased");
+    expect(claimDripMock).not.toHaveBeenCalledWith("d-tbr");
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+    expect(markSentMock).toHaveBeenCalledWith("d-d1");
+  });
+
+  it("sends the nudge when the guard returns null", async () => {
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "d-tbr", campaign: "tbr_unlock_24h" })]);
+    const res = await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
+    expect((await res.json()).sent).toBe(1);
+    expect(tbrUnlockSuppressionMock).toHaveBeenCalledWith(expect.objectContaining({ id: "d-tbr", campaign: "tbr_unlock_24h" }));
+    expect(renderDripBodyMock).toHaveBeenCalledWith("tbr_unlock_24h", "founder@example.com", expect.any(Object));
+  });
+
+  it("dry run reports the skip without cancelling the row", async () => {
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "d-tbr", campaign: "tbr_unlock_24h" })]);
+    tbrUnlockSuppressionMock.mockResolvedValueOnce("suppressed: qa account");
+    const res = await POST(dryReq({ authorization: `Bearer ${SECRET}` }));
+    const body = await res.json();
+    expect(body).toMatchObject({ dryRun: true, skipped: 1, sent: 0 });
+    expect(body.wouldSend).toEqual([]);
+    expect(suppressDripMock).not.toHaveBeenCalled();
   });
 });

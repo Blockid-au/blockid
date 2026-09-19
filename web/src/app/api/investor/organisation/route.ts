@@ -41,7 +41,7 @@ async function gate() {
   const user = await getCurrentUser();
   if (!user) return { user: null, response: NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 }) };
   if (!(await isEvaluatorUser(user))) {
-    await recordGateHit({ id: user.id, plan: user.plan ?? "", segment: "investor" }, "investor.dealflow", "api");
+    await recordGateHit({ id: user.id, plan: user.plan ?? "", segment: "investor" }, "investor.dealflow", "api", "api/investor/organisation");
     return { user: null, response: json({ ok: false, error: "feature_locked", feature: "investor.dealflow", upgrade_url: "/pricing?segment=evaluator" }, 402) };
   }
   return { user, response: null };

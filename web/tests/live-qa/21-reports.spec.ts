@@ -8,17 +8,41 @@
  * endpoint serves `application/pdf` for the account's own report when one
  * exists (skipped cleanly otherwise).
  *
- * Known: `ReportPaywallGate` (the "Confirm & Pay A$3" dialog) is not mounted
- * by any page in this tree — only referenced from ReportOrderView / the
- * order page comments. The A$3 copy is asserted on the surfaces that do
- * render it (/one-click-report, /pricing evaluator PAYG note) and the gap is
- * annotated as a finding.
+ * G16-B (2026-09-19): `ReportPaywallGate` is now mounted by the founder TBR
+ * page (/workspace/reports/business) behind the unlock rail at the free-tier
+ * cut. The "TBR free cut" block below seeds the page's localStorage snapshot
+ * (the same fast path the analyser writes) so the rail + the quote render
+ * for the QA founder WITHOUT an analysis or a purchase: no credit is spent,
+ * no Stripe session is created (the dialog is opened and cancelled; the
+ * checkout request is asserted absent).
  */
 import { test, expect } from "./fixtures";
 import { anonRequest, evidence, get, post } from "./lib/api";
 import { env } from "./lib/env";
 
 const RANDOM_UUID = "00000000-0000-4000-8000-00000000c0de";
+
+/** The analyser's localStorage snapshot (business-report-client `svi-stream:<pid>`), 8 dims scored. */
+function tbrSnapshotForSeed(startupName: string) {
+  const dims: Record<string, { status: string; score: number; priority: string; markdown: string; insights: string[] }> = {};
+  const scores: Record<string, number> = { tre: 38, mpc: 61, ftv: 72, ptd: 55, cgh: 44, iri: 47, lco: 52, svm: 58 };
+  for (const [k, score] of Object.entries(scores)) {
+    dims[k] = { status: "complete", score, priority: score < 50 ? "high" : "medium", markdown: `## ${k.toUpperCase()}\n\nQA seed narrative for ${k}. Evidence is thin; a second sentence follows.`, insights: [`${k} insight one`, `${k} insight two`] };
+  }
+  return {
+    savedAt: Date.now(),
+    dimStates: dims,
+    criterionStates: [],
+    completed: 8,
+    total: 8,
+    totalMs: 4200,
+    done: true,
+    industry: "SaaS",
+    stage: "MVP",
+    startupName,
+    sviTotal: 53,
+  };
+}
 
 test.describe("Trust BizReport — price before checkout", () => {
   test("/one-click-report states A$3 on the CTA; /pricing evaluator PAYG note prices the report at A$3", async ({ page, visit }, testInfo) => {
@@ -31,7 +55,92 @@ test.describe("Trust BizReport — price before checkout", () => {
     await expect(payg).toBeVisible({ timeout: 30_000 });
     await expect(payg).toContainText(/A\$3/);
     await evidence(testInfo, "A$3 surfaces", { oneClickCta: await cta.innerText().catch(() => null), payg: await payg.innerText() });
-    testInfo.annotations.push({ type: "finding", description: "ReportPaywallGate (Confirm & Pay A$3 / Confirm & Use credits) is not mounted by any page — the in-app Trust BizReport paywall dialog cannot be exercised end-to-end" });
+  });
+
+  // G16-B — the free founder's path to the first purchase, without spending.
+  test("GET /api/reports/access quotes the report (credits + A$3 from the SKU) read-only — no order, no session, no debit", async ({ api, qa, credits }, testInfo) => {
+    const before = await credits.snapshot();
+    const anon = await anonRequest(qa.baseURL);
+    try {
+      const a = await get(anon, "/api/reports/access");
+      expect(a.status).toBe(401);
+    } finally {
+      await anon.dispose();
+    }
+    const r = await get<{ ok: boolean; projectId: string | null; included: boolean; paidOrderId: string | null; quote: { credits: number; estimatedWords: number }; creditBalance: number; hasSubscription: boolean; price: { sku: string; amount_cents: number; label: string } }>(api, "/api/reports/access");
+    await evidence(testInfo, "GET /api/reports/access", { status: r.status, body: r.body, elevated: qa.elevated });
+    expect(r.status).toBe(200);
+    expect(r.body.ok).toBe(true);
+    expect(r.body.price).toEqual({ sku: "sku_trust_report_5aud", amount_cents: 300, label: "A$3" });
+    expect(r.body.quote.credits).toBeGreaterThan(0);
+    expect(r.body.quote.estimatedWords).toBeGreaterThan(0);
+    expect(r.body.paidOrderId).toBeNull(); // the suite never buys one
+    expect(r.body.creditBalance).toBe(before);
+    expect(r.body.included).toBe(Boolean(qa.elevated)); // Growth carries report.premium; Free does not
+    if (qa.projectId) expect(r.body.projectId).toBe(qa.projectId);
+    const bad = await get(api, "/api/reports/access?project=nope");
+    expect(bad.status).toBe(400);
+    await credits.assertUnchanged(before, "reports access quote");
+  });
+
+  test("/workspace/reports/business (seeded snapshot): the free cut shows locked chapters + ONE unlock rail quoting A$3; the confirm dialog opens with credits + A$ and is cancelled — no checkout request, no spend", async ({ page, visit, qa, credits, guard }, testInfo) => {
+    const before = await credits.snapshot();
+    // Seed the analyser's localStorage snapshot before any page script runs
+    // (same origin, same key the report page reads first) — no /api/svi call.
+    await page.addInitScript((snap) => {
+      try {
+        window.localStorage.setItem("svi-stream:default", JSON.stringify(snap));
+      } catch {
+        /* storage blocked — the page falls back to the API and the test reports it */
+      }
+    }, tbrSnapshotForSeed(qa.projectName));
+    const checkoutCalls: string[] = [];
+    page.on("request", (req) => {
+      if (/\/api\/reports\/(checkout|redeem)/.test(req.url())) checkoutCalls.push(`${req.method()} ${new URL(req.url()).pathname}`);
+    });
+    const g = guard(page, { allowRequest: [{ method: "GET", pathRe: /^\/api\/svi\/phase-progress$/, status: 429 }, { method: "POST", pathRe: /^\/api\/analytics\/event$/, status: 404 }] });
+    await visit("/workspace/reports/business", { waitUntil: "networkidle" });
+
+    const body = page.locator("[data-tbr-version]").first();
+    await expect(body).toBeVisible({ timeout: 30_000 });
+    const tier = await body.getAttribute("data-tbr-tier");
+    const rail = page.getByTestId("tbr-unlock-rail");
+    const lockedCount = await page.locator("[data-tbr-locked]").count();
+
+    if (qa.elevated) {
+      // Growth carries report.premium → the document renders in full, no cut, no rail.
+      await evidence(testInfo, "TBR (elevated)", { tier, lockedCount, rails: await rail.count() });
+      expect(tier).toBe("standard");
+      expect(lockedCount).toBe(0);
+      expect(await rail.count()).toBe(0);
+    } else {
+      await expect(rail).toBeVisible({ timeout: 30_000 });
+      const railText = await rail.innerText();
+      await evidence(testInfo, "TBR free cut", { tier, lockedCount, rails: await rail.count(), mode: await rail.getAttribute("data-tbr-unlock"), railText: railText.slice(0, 600) });
+      expect(tier).toBe("free");
+      expect(await rail.count()).toBe(1);
+      expect(await rail.getAttribute("data-tbr-unlock")).toBe("buy");
+      expect(lockedCount).toBeGreaterThanOrEqual(1);
+      expect(railText).toMatch(/Unlock the full Trusted Business Report — A\$3 \(one-off\)/);
+      expect(railText).toMatch(/PDF export/);
+      expect(railText).toMatch(/before anything is charged/);
+      // The one click → the quote-then-pay dialog (credits + A$ shown, explicit confirm) — then cancel.
+      await page.getByTestId("tbr-unlock-cta").click();
+      const dialog = page.getByTestId("report-paywall-gate");
+      await expect(dialog).toBeVisible({ timeout: 15_000 });
+      const dialogText = await dialog.innerText();
+      await evidence(testInfo, "paywall dialog", { text: dialogText.slice(0, 800) });
+      expect(dialogText).toMatch(/Confirm & Pay A\$3/);
+      expect(dialogText).toMatch(/\d+ credits/);
+      expect(dialogText).toMatch(/inc-GST/);
+      await dialog.getByRole("button", { name: /^Cancel$/ }).click();
+      await expect(dialog).toBeHidden({ timeout: 10_000 });
+    }
+    expect(checkoutCalls, "no checkout / redeem request may leave the page without the confirm click").toEqual([]);
+    const report = g.report("/workspace/reports/business");
+    await evidence(testInfo, "guard report", report);
+    expect(report.errors).toEqual([]);
+    await credits.assertUnchanged(before, "TBR free cut + cancelled dialog");
   });
 
   test("/workspace/reports/order without an order renders the not-found copy, not a crash", async ({ page, visit, guard }, testInfo) => {

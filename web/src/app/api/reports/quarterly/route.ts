@@ -126,7 +126,7 @@ export async function GET(request: Request) {
 
   const flags = await getEntitlements(user.plan ?? "", user.id);
   if (!canExportLpReport(flags)) {
-    await recordGateHit({ id: user.id, plan: user.plan ?? "", segment: "investor" }, "lp_report", "api");
+    await recordGateHit({ id: user.id, plan: user.plan ?? "", segment: "investor" }, "lp_report", "api", "api/reports/quarterly");
     return NextResponse.json(
       {
         ok: false,

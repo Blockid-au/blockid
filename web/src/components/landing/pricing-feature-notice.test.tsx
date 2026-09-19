@@ -16,8 +16,18 @@ describe("<PricingFeatureNotice> (S31-B)", () => {
     );
     expect(html).toContain("To open Data Room you need the investor data room");
     expect(html).toContain(`included from the ${starter.name} plan (A$${starter.monthly_aud}/mo)`);
+    // G16-B: trial terms ride with the price.
+    expect(html).toContain(`${starter.trial_days}-day free trial`);
     expect(html).toContain('href="#tier-starter"');
     expect(html).not.toContain("Back to");
+  });
+
+  it("G16-B: investor.dealflow lands on the evaluator ladder (Scout), not contact sales", () => {
+    const scout = PLANS_V2.find((p) => p.id === "investor_angel")!;
+    const html = renderToStaticMarkup(<PricingFeatureNotice feature="investor.dealflow" from="/workspace/investor/dealflow" />);
+    expect(html).toContain(`included from the ${scout.name} plan (A$${scout.monthly_aud}/mo)`);
+    expect(html).toContain('href="#tier-scout"');
+    expect(html).not.toContain("Contact sales");
   });
 
   it("explains the Equity add-on for esop.manage", () => {

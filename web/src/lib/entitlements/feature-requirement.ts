@@ -140,15 +140,26 @@ function planFor(tier: PlanTier | null): Plan | null {
   return PLANS_V2.find((p) => p.id === id) ?? null;
 }
 
-/** Lowest public ladder entry (any segment) whose unlocks carry the slug. */
+/**
+ * Cheapest PUBLIC, self-serve plan (any segment) whose ladder unlocks carry
+ * the slug. G16-B: the old "lowest rank across every ladder" picked
+ * `accelerator_intake` (rank 5, no self-serve plan id) for
+ * `investor.dealflow` / `intake.manage`, so a founder hitting Deal Flow was
+ * told "contact sales" instead of being shown Scout (A$79). Evaluator-only
+ * features now resolve to the evaluator ladder.
+ */
 function lowestLadderTier(feature: string): PlanTier | null {
-  let best: TierLadderEntry | null = null;
+  let best: { entry: TierLadderEntry; tier: PlanTier; price: number } | null = null;
   for (const entry of ALL_LADDER_ENTRIES) {
     if (!(entry.supportingUnlocks as readonly string[]).includes(feature)) continue;
-    if (!best || entry.rank < best.rank) best = entry;
+    const tier = ladderIdToTier(entry.id);
+    if (!tier) continue;
+    const plan = planFor(tier);
+    if (!plan || plan.public === false || plan.monthly_aud === null) continue;
+    const price = plan.monthly_aud;
+    if (!best || price < best.price || (price === best.price && entry.rank < best.entry.rank)) best = { entry, tier, price };
   }
-  if (!best) return null;
-  return ladderIdToTier(best.id);
+  return best ? best.tier : null;
 }
 
 function ladderIdToTier(id: string): PlanTier | null {

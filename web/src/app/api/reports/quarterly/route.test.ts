@@ -15,7 +15,7 @@ const getEntitlementsMock = vi.fn();
 const recordGateHitMock = vi.fn();
 vi.mock("@/lib/entitlements", () => ({
   getEntitlements: (plan: string, id: string) => getEntitlementsMock(plan, id),
-  recordGateHit: (u: unknown, f: string, s: string) => recordGateHitMock(u, f, s),
+  recordGateHit: (u: unknown, f: string, s: string, surface?: string) => recordGateHitMock(u, f, s, surface),
 }));
 
 const getBatchMock = vi.fn();
@@ -103,7 +103,7 @@ describe("GET /api/reports/quarterly", () => {
     expect(json.error).toBe("feature_locked");
     expect(json.feature).toBe("lp_report");
     expect(json.upgrade_url).toBe("/pricing?segment=evaluator");
-    expect(recordGateHitMock).toHaveBeenCalledWith({ id: "u-1", plan: "investor_vc_small", segment: "investor" }, "lp_report", "api");
+    expect(recordGateHitMock).toHaveBeenCalledWith({ id: "u-1", plan: "investor_vc_small", segment: "investor" }, "lp_report", "api", "api/reports/quarterly");
     expect(getBatchMock).not.toHaveBeenCalled();
   });
 

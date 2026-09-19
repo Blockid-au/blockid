@@ -71,6 +71,7 @@ describe("requireTierForPage", () => {
       expect.objectContaining({ id: "u1", plan: "founder_free" }),
       "cap_table.write",
       "menu",
+      "/workspace/equity/cap-table", // G16-B: the page path is the surface
     );
   });
 

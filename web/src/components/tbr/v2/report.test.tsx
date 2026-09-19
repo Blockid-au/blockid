@@ -8,7 +8,10 @@ import { fromSnapshot } from "@/lib/report-v2/adapter";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { demoReportV2, freeFixtureReportV2 } from "@/lib/report-v2/fixtures";
+import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
+import { reportOrderPath } from "@/lib/paywall/report-delivery";
 import { TBR_V2_SECTION_IDS, TbrReportV2, tbrV2Toc } from "./report";
+import { TBR_UNLOCK_RAIL_TESTID, tbrUnlockHeadline } from "./unlock-rail";
 
 function primaryCount(html: string): number {
   // Every chapter wraps its primary visual in [data-tbr-primary=<dim>]; count
@@ -37,6 +40,67 @@ describe("<TbrReportV2>", () => {
     expect(primaryCount(html)).toBe(8);
     expect((html.match(/Unlock the full /g) ?? []).length).toBe(4);
     expect(html).toContain('href="/pricing"');
+  });
+
+  // ── G16-B: locked preview + ONE unlock rail at the free-tier cut ──────────
+  describe("G16-B unlock", () => {
+    const railCount = (html: string) => (html.match(new RegExp(`data-testid="${TBR_UNLOCK_RAIL_TESTID}"`, "g")) ?? []).length;
+    const lockedCount = (html: string) => (html.match(/data-tbr-locked="/g) ?? []).length;
+
+    it("free + buy: every card chapter is a locked preview (first sentence + skeleton, no live chart), the rail renders exactly once with the source-of-truth price", () => {
+      const report = freeFixtureReportV2();
+      const html = renderToStaticMarkup(<TbrReportV2 report={report} unlock={{ mode: "buy" }} />);
+      const cards = report.dimensions.filter((d) => d.renderAs === "card");
+      expect(cards.length).toBe(4);
+      expect(lockedCount(html)).toBe(4);
+      expect(primaryCount(html)).toBe(8 - cards.length);
+      expect((html.match(/data-tbr-skeleton="visual"/g) ?? []).length).toBe(4);
+      expect(html).not.toContain("Unlock the full " + cards[0]!.title + " chapter");
+      expect(railCount(html)).toBe(1);
+      expect(html).toContain(tbrUnlockHeadline("buy"));
+      expect(html).toContain(`Unlock for ${trustReportPriceLabel()}`);
+      expect(html).toContain('data-tbr-unlock="buy"');
+      // The rail sits right after the FIRST locked chapter, before the second one.
+      const firstLocked = html.indexOf(`data-tbr-locked="${cards[0]!.dim}"`);
+      const rail = html.indexOf(`data-testid="${TBR_UNLOCK_RAIL_TESTID}"`);
+      const secondLocked = html.indexOf(`data-tbr-locked="${cards[1]!.dim}"`);
+      expect(firstLocked).toBeGreaterThan(-1);
+      expect(rail).toBeGreaterThan(firstLocked);
+      expect(secondLocked).toBeGreaterThan(rail);
+      // The confirm step is stated: nothing charged from the rail itself.
+      expect(html).toContain("before anything is charged");
+    });
+
+    it("free + included: no locked chapter, card chapters render in full, one rail saying it is included", () => {
+      const html = renderToStaticMarkup(<TbrReportV2 report={freeFixtureReportV2()} unlock={{ mode: "included" }} />);
+      expect(lockedCount(html)).toBe(0);
+      expect(primaryCount(html)).toBe(8);
+      expect((html.match(/Unlock the full [^<]* chapter/g) ?? []).length).toBe(0);
+      expect(railCount(html)).toBe(1);
+      expect(html).toContain("Included in your plan — generate");
+      expect(html).toContain('href="/workspace/raise/deck"');
+    });
+
+    it("free + purchased: no locked chapter and the rail opens the paid order", () => {
+      const html = renderToStaticMarkup(<TbrReportV2 report={freeFixtureReportV2()} unlock={{ mode: "purchased", orderId: "11111111-2222-4333-8444-555555555555" }} />);
+      expect(lockedCount(html)).toBe(0);
+      expect(railCount(html)).toBe(1);
+      expect(html).toContain(tbrUnlockHeadline("purchased"));
+      expect(html).toContain(`href="${reportOrderPath("11111111-2222-4333-8444-555555555555")}"`);
+    });
+
+    it("paid document: unlock props are ignored — no lock, no rail", () => {
+      const html = renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} unlock={{ mode: "buy" }} />);
+      expect(lockedCount(html)).toBe(0);
+      expect(railCount(html)).toBe(0);
+      expect(html).not.toContain("data-tbr-unlock=");
+    });
+
+    it("no unlock prop keeps the pre-G16 render (cards + pricing link, no rail)", () => {
+      const html = renderToStaticMarkup(<TbrReportV2 report={freeFixtureReportV2()} upgradeHref="/pricing" />);
+      expect(lockedCount(html)).toBe(0);
+      expect(railCount(html)).toBe(0);
+    });
   });
 
   it("renders the hidden a11y table for visuals that carry one", () => {
