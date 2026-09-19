@@ -1,8 +1,9 @@
 # BlockID.au — SOURCE OF TRUTH
 
-> **Version:** 2026-09-16 (rev.319) · **Owner:** CEO (Do Van Long) · **Consumer:** founders, human team, autonomous loop agents.
+> **Version:** 2026-09-19 (rev.320) · **Owner:** CEO (Do Van Long) · **Consumer:** founders, human team, autonomous loop agents.
+> **State 2026-09-19:** goals G1–G17 closed or founder-blocked; live `5a0c3dbb1` (app v3.15.0 → v3.16.0 with G18); positioning = Startup Value Index by BlockID, evaluator-first; pricing v4 (Free / Starter A$29 / Growth A$69 · Scout A$79 / Firm A$149 / Program A$349 · Fund A$999 / Intake link A$249 / Index API A$299 · Cohort 25 A$5K / Cohort 100 A$15K per year · Trusted Business Report A$3); G18 truth sweep in flight.
 > **Rule:** Consult this file BEFORE any specialised plan doc. Every specialised plan carries a top-of-file back-link to this one.
-> **Entity:** PPL Food PTY LTD · Sydney NSW (founder decision 2026-09-10; no ABN/ACN shown in copy).
+> **Entity:** marketing surfaces PPL Food PTY LTD · Sydney NSW (founder decision 2026-09-10; no ABN/ACN in copy) · billing / legal / invoices / JSON-LD Auschain PTY LTD ACN 659 615 111 / ABN 79 659 615 111 (deliberate split — keep both).
 
 ---
 
@@ -337,6 +338,12 @@
 - **Next action:** none — founder visual review of the live home; the design contract `docs/design/unicorn-template.md` governs every new marketing page. **G17 closed 2026-09-19.**
 - **Blocker:** none. Founder decisions F-1…F-3 default-ship.
 
+### G18 — Truth sweep: pricing ↔ Stripe ↔ DB · version + docs · one message site-wide
+- **Source:** founder direction 2026-09-19 ("update lại toàn bộ information, version, docs… review pricing cho đúng, check Stripe và các link, thông điệp đồng nhất trên toàn bộ site"); Stripe read-only audit [`docs/ops/stripe-price-audit-2026-09-19.txt`](../ops/stripe-price-audit-2026-09-19.txt) (39 `STRIPE_PRICE_*`, all livemode; amounts match pricing v4; `FOUNDER_SCALE` inactive as intended; 18 prices still `tax_behavior=unspecified`; legacy prices Founder 99 / Growth 99·499·950 / Founding 100 / Pilot 5000 / SVI Analysis 1·25 / Accelerator 20000 still active).
+- **Status:** **A ∥ B ∥ C in worktrees 2026-09-19** — A pricing truth (`docs/ops/pricing-truth.md` parity table code ↔ DB ↔ Stripe, every A$ figure from the source of truth, checkout link map test + `scripts/stripe-price-audit.mjs` weekly drift check, GST statement rule, legacy price verdicts) · B version + docs (v3.16.0 release entry, README, `docs/` index + archive, public `/docs` page, `/changelog` `/roadmap` `/about` facts, API docs vs real routes) · C one message (`docs/design/messaging.md` map, sweep of every public string EN/VI/JA + meta + JSON-LD + e-mail/PDF wording, forbidden-phrase test).
+- **Next action:** merge → full vitest → deploy → elevated live-qa + link-check → read-only review → fixes → close.
+- **Blocker:** founder-only in Stripe: set `tax_behavior=inclusive` on the 18 unspecified prices; archive the legacy prices lane A confirms unused.
+
 ## 2. Requirements Register
 
 | ID | Source | Category | Status | Owner (skill) | Ship commit |
@@ -625,6 +632,7 @@ the sentinels is overwritten._
 
 | When | Who | What |
 |---|---|---|
+| 2026-09-19 | Claude (G18 open) | Truth sweep opened: Stripe read-only audit committed; three lanes (pricing truth / version + docs / messaging) launched; SOT header refreshed (state, entity split, pricing v4). |
 | 2026-09-19 | Claude (G17 close) | G17 live in three deploys (P1 `fc155500c`, P2 `55c71d258`, review `97a2ad910`, footer `5a0c3dbb1`): unicorn homepage (evaluator-first, no prices), one template on every marketing page + /vi, link checker in gate 8 + daily cron (0 broken on 525 pages), homepage smoke in gate 12; live-qa 191/0; screenshots in docs/design. |
 | 2026-09-19 | Claude (G16 close) | G16 live (peer deploy `8cbb6bdb8` + review fixes `58406efa2`, live-qa 184/0): funnel events + `/admin/funnel`, locked TBR preview → A$3 quote-then-pay (the checkout had been unreachable), pilot comp + `/pilot`; review P1s fixed; pilot start→end verified on production. |
 | 2026-09-19 | Claude (G17 open) | G17 Unicorn homepage & site template opened (`unicorn-homepage-2026-09-19.md`, ui-ux-pro-max research); Phase 1 agent launched. G16 lanes merged + live via the peer deploy `8cbb6bdb8` (12/12); 0411 applied; crons installed; first funnel report written; throw-away pilot start→end verified on production. |
