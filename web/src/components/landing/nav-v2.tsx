@@ -471,7 +471,7 @@ function MobileGroup({ group, onLinkActivate }: MobileGroupProps) {
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((v) => !v)}
-        className={`flex w-full items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium focus:outline-none focus-visible:ring-2 ${t.mobileTrigger} ${t.ring}`}
+        className={`flex w-full items-center justify-between rounded-md px-3 py-2.5 min-h-11 text-sm font-medium focus:outline-none focus-visible:ring-2 ${t.mobileTrigger} ${t.ring}`}
       >
         <span>{group.label}</span>
         <ChevronDown
@@ -501,7 +501,7 @@ function MobileGroup({ group, onLinkActivate }: MobileGroupProps) {
                         role="menuitem"
                         href={item.href}
                         onClick={onLinkActivate}
-                        className={`block rounded-md px-3 py-1.5 text-sm focus:outline-none focus-visible:ring-2 ${t.item} ${t.ring}`}
+                        className={`block rounded-md px-3 py-2.5 min-h-11 text-sm focus:outline-none focus-visible:ring-2 ${t.item} ${t.ring}`}
                       >
                         {item.label}
                       </Link>
@@ -915,7 +915,7 @@ export function NavV2({ variant = "dark" }: NavV2Props = {}) {
                   <Link
                     href={entry.href}
                     onClick={() => handleLinkActivate()}
-                    className={`block rounded-md px-3 py-2.5 text-sm font-medium focus:outline-none focus-visible:ring-2 ${t.mobileTrigger} ${t.ring}`}
+                    className={`block rounded-md px-3 py-2.5 min-h-11 text-sm font-medium focus:outline-none focus-visible:ring-2 ${t.mobileTrigger} ${t.ring}`}
                   >
                     {entry.label}
                   </Link>

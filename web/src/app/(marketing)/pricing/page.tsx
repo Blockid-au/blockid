@@ -200,7 +200,7 @@ export default async function PricingPage() {
       <ContactSalesRow />
 
       {/* FAQ — <FAQV2 /> carries its own heading; the JSON-LD above mirrors it. */}
-      <Section id="faq" ariaLabel="Frequently asked questions" spacing="sm">
+      <Section id="faq-band" ariaLabel="Frequently asked questions" spacing="sm">
         <FAQV2 />
       </Section>
 

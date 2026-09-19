@@ -25,7 +25,7 @@ export default async function ViBusinessReportPage({
   searchParams: Promise<{ pid?: string }>;
 }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/vi/workspace/reports/business");
+  if (!user) redirect("/auth/login?next=/workspace/reports/business") // no /vi workspace mirror (review 2026-09-19);
   const isSandbox = await getCurrentProjectIsSandbox();
   const { pid } = await searchParams;
 

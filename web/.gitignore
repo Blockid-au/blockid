@@ -67,3 +67,5 @@ content/reports/pilot-applications.jsonl
 content/reports/pilots-journal.jsonl
 content/reports/funnel-daily.jsonl
 content/reports/funnel-latest.json
+content/reports/link-check.jsonl
+content/reports/link-check-latest.json

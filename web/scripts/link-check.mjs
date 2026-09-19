@@ -141,7 +141,7 @@ async function fetchInternal(fetchUrl, site, opts) {
       }
     } else {
       try {
-        await res.arrayBuffer();
+        await res.body?.cancel(); // assets (video/pdf/img): never buffer the body (review 2026-09-19)
       } catch {
         /* ignore */
       }
@@ -151,8 +151,56 @@ async function fetchInternal(fetchUrl, site, opts) {
   return { status: null, error: "redirect_loop", hops: MAX_HOPS + 1, chain, final_url: null, ms: totalMs, html: null, contentType: "" };
 }
 
+// G17 review P1: external hrefs come from user content (e.g. /reports/[ticker]
+// website_url) — never probe loopback / RFC1918 / link-local / ULA / metadata
+// hosts from the production box. Resolved once per host (cache).
+const privateHostCache = new Map();
+export function isPrivateV4(ip) {
+  const p = ip.split(".").map(Number);
+  if (p.length !== 4 || p.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return true;
+  const [a, b] = p;
+  return a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127) || a >= 224;
+}
+export function isPrivateV6(ip) {
+  const v = ip.toLowerCase();
+  if (v === "::" || v === "::1") return true;
+  if (v.startsWith("::ffff:")) return isPrivateV4(v.slice(7));
+  return v.startsWith("fc") || v.startsWith("fd") || v.startsWith("fe8") || v.startsWith("fe9") || v.startsWith("fea") || v.startsWith("feb");
+}
+export async function isPrivateHost(hostname, lookup) {
+  const h = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (h === "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".internal") || h === "metadata.google.internal") return true;
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(h)) return isPrivateV4(h);
+  if (h.includes(":")) return isPrivateV6(h);
+  if (privateHostCache.has(h)) return privateHostCache.get(h);
+  let priv = true;
+  try {
+    const addrs = await (lookup ?? (await import("node:dns")).promises.lookup)(h, { all: true, verbatim: true });
+    const list = Array.isArray(addrs) ? addrs : [addrs];
+    priv = list.length === 0 || list.some((a) => (a.family === 6 ? isPrivateV6(a.address) : isPrivateV4(a.address)));
+  } catch {
+    priv = false; // unresolvable → let the probe report the DNS error itself
+  }
+  privateHostCache.set(h, priv);
+  return priv;
+}
+
 /** HEAD once (GET fallback on 405 / 404 / 5xx — some hosts refuse HEAD). */
+function safeHost(u) {
+  try {
+    return new URL(u).hostname;
+  } catch {
+    return "";
+  }
+}
+
 async function probe(url, opts, { getFallback = true } = {}) {
+  try {
+    const host = new URL(url).hostname;
+    if (!(opts.ownHosts?.has(host)) && (await isPrivateHost(host, opts.lookup))) return { status: null, error: "skipped_private", final_url: null, ms: 0 };
+  } catch {
+    return { status: null, error: "bad_url", final_url: null, ms: 0 };
+  }
   const h = await request(url, { ...opts, method: "HEAD", redirect: "follow" });
   if (!h.error && !(getFallback && (h.res.status === 405 || h.res.status === 404 || h.res.status >= 500))) {
     return { status: h.res.status, final_url: h.res.url || url, ms: h.ms };
@@ -160,7 +208,7 @@ async function probe(url, opts, { getFallback = true } = {}) {
   const g = await request(url, { ...opts, method: "GET", redirect: "follow" });
   if (g.error) return { status: null, error: h.error ?? g.error, final_url: null, ms: h.ms + g.ms };
   try {
-    await g.res.arrayBuffer();
+    await g.res.body?.cancel();
   } catch {
     /* ignore */
   }
@@ -203,7 +251,11 @@ export async function crawl(args, deps = {}) {
   const fetchImpl = deps.fetchImpl ?? globalThis.fetch;
   const log = deps.log ?? ((s) => process.stdout.write(`${s}\n`));
   const site = makeSite(args.base, args.site);
-  const opts = { timeoutMs: args.timeoutMs, fetchImpl, limiter: makeLimiter(args.concurrency) };
+  // The crawl target itself (127.0.0.1:4099 in the deploy gate, the canonical
+  // host in cron) is always allowed — the private-host guard is for hrefs
+  // that point ELSEWHERE.
+  const ownHosts = new Set([safeHost(args.base), safeHost(site.base), safeHost(site.site)].filter(Boolean));
+  const opts = { timeoutMs: args.timeoutMs, fetchImpl, limiter: makeLimiter(args.concurrency), ownHosts };
 
   // robots
   let robots = null;
@@ -371,7 +423,8 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
       const r = await (deps.sendTelegram ?? sendTelegram)(`${head}\n${body}`, {});
       if (!args.json) log(`  alert: ${r.sent ? `sent${r.via ? ` via ${r.via}` : ""}` : `not sent (${r.reason})`}`);
     }
-    const exitCode = summary.broken.length > 0 && !args.dryRun ? 1 : 0;
+    // Spec D7: redirect chains > 2 count as failures too (review 2026-09-19).
+    const exitCode = (summary.broken.length > 0 || (summary.redirect_chains?.length ?? 0) > 0) && !args.dryRun ? 1 : 0;
     return { exitCode, summary };
   } finally {
     release();

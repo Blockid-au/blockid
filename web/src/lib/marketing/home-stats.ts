@@ -17,7 +17,7 @@
  * the only fs touch.
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 export interface HomeStatFigures {
@@ -107,16 +107,32 @@ export const HOME_STATS_FILES = {
   backtest: path.join("content", "reports", "svi-backtest-latest.json"),
 } as const;
 
-let cached: HomeStatFigures | undefined;
+let cached: { key: string; figures: HomeStatFigures } | undefined;
 
-/** Read once per process (the page is static + ISR, so this runs at build / revalidate). */
+function statsCacheKey(root: string): string {
+  // Keyed on the three files' mtimes so ISR (`revalidate = 300`) picks up the
+  // crons' daily rewrites instead of freezing figures until the next deploy
+  // (review 2026-09-19).
+  return Object.values(HOME_STATS_FILES)
+    .map((rel) => {
+      try {
+        return String(statSync(path.join(root, rel)).mtimeMs);
+      } catch {
+        return "0";
+      }
+    })
+    .join("|");
+}
+
+/** Cached per (root, file mtimes) — the page is static + ISR. */
 export function readHomeStats(root: string = process.cwd()): HomeStatFigures {
-  if (cached && root === process.cwd()) return cached;
+  const key = `${root}|${statsCacheKey(root)}`;
+  if (cached && cached.key === key) return cached.figures;
   const figures = homeStatsFrom(
     readJson(root, HOME_STATS_FILES.traction),
     readJson(root, HOME_STATS_FILES.signals),
     readJson(root, HOME_STATS_FILES.backtest),
   );
-  if (root === process.cwd()) cached = figures;
+  cached = { key, figures };
   return figures;
 }

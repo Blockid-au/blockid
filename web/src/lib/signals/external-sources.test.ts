@@ -41,10 +41,19 @@ describe("EXTERNAL_SOURCE_CATALOG", () => {
     const sql = readFileSync(MIGRATION, "utf8");
     const rows = seededRows(sql);
     expect(rows).toHaveLength(EXTERNAL_SOURCE_CATALOG.length);
+    // Later migrations may re-point a citation URL (0412: ACS Digital Pulse
+    // moved, link-check 2026-09-19) — apply those `update … set url` rows on
+    // top of the 0410 seed before comparing.
+    const overrides = new Map<string, string>();
+    for (const file of ["0412_external_sources_acs_url.sql"]) {
+      const m = readFileSync(resolve(__dirname, "../../../supabase/migrations", file), "utf8").match(/set url = '([^']+)'[\s\S]*?where id = '([^']+)'/);
+      if (m) overrides.set(m[2], m[1]);
+    }
     for (const c of EXTERNAL_SOURCE_CATALOG) {
       const r = rows.find((x) => x.id === c.id);
       expect(r, c.id).toBeDefined();
-      expect(r).toEqual({ id: c.id, name: c.name, url: c.url, licence: c.licence, attribution_text: c.attribution_text, cadence: c.cadence, status: c.status });
+      const url = overrides.get(c.id) ?? r!.url;
+      expect({ ...r, url }).toEqual({ id: c.id, name: c.name, url: c.url, licence: c.licence, attribution_text: c.attribution_text, cadence: c.cadence, status: c.status });
     }
     // The status CHECK and the cite_only marker live in the SQL too.
     expect(sql).toContain("check (status in ('active', 'cite_only', 'disabled'))");

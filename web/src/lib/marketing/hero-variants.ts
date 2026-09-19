@@ -171,7 +171,7 @@ export const EVALUATOR_LINES: readonly HeroLine[] = [
     "E2",
     "homepage sub-line under the E1 H1",
     "One rubric for every deal — eight dimensions, an evidence-backed valuation range and an Investor Dossier. Investors, accelerators and advisors use it; founders get the feedback free.",
-    "Một thước đo cho mọi thương vụ — tám tiêu chí, khoảng định giá có bằng chứng và một Hồ sơ Nhà đầu tư. Nhà đầu tư, vườn ươm và cố vấn dùng nó; founder nhận phản hồi miễn phí.",
+    "Một thước đo cho mọi thương vụ — tám chiều đánh giá, khoảng định giá có bằng chứng và một Hồ sơ Nhà đầu tư. Nhà đầu tư, vườn ươm và cố vấn dùng nó; founder nhận phản hồi miễn phí.",
   ),
 ];
 

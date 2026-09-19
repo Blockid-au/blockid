@@ -184,7 +184,6 @@ export function MethodologyPage(p: MethodologyProps) {
 
       {/* 7b. Data sources — external_sources rows, attribution verbatim, cite-only labelled (S40). */}
       <Section id="data-sources" eyebrow={p.sources.kicker} title={p.sources.title} tone="sunken">
-        <span id="data-sources" className="block scroll-mt-24" aria-hidden="true" />
         <p className="max-w-3xl text-sm leading-relaxed text-tertiary">{p.sources.intro}</p>
         <div className="mt-6 overflow-x-auto rounded-xl border border-line-subtle bg-surface">
           <table className="w-full text-sm" data-testid="methodology-data-sources" data-source-count={p.sources.items.length} data-from-db={p.sources.fromDb ? "1" : "0"}>

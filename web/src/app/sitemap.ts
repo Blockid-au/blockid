@@ -359,6 +359,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.8,
     },
+    {
+      url: `${SITE_URL}/solutions`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
     // Workstream D2 (2026-09-07) — /features surfaces 8 previously
     // under-promised capabilities (cohort percentile, per-investor
     // tracked links, ATO tax invoice, dividend engine, 17 free tools,

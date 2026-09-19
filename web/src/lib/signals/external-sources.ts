@@ -105,7 +105,7 @@ export const EXTERNAL_SOURCE_CATALOG: readonly ExternalSourceRow[] = [
   {
     id: "acs-digital-pulse",
     name: "ACS Australia's Digital Pulse",
-    url: "https://www.acs.org.au/insightsandpublications/reports-publications/digital-pulse.html",
+    url: "https://www.acs.org.au/campaign/digital-pulse.html",
     licence: "All rights reserved (cite only)",
     attribution_text:
       "Figures cited from Australia's Digital Pulse © Australian Computer Society (with Deloitte Access Economics). Not redistributed; each citation links to the published report.",

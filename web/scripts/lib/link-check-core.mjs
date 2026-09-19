@@ -96,9 +96,16 @@ export function extractLinks(html) {
 /** Every `id="…"` (and `<a name>`) in the document — the fragment targets. */
 export function extractIds(html) {
   const ids = new Set();
-  const re = /\s(?:id|name)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
+  // `id` on any element; `name` only on <a> (legacy anchors) — <meta name>,
+  // <input name> must not satisfy a fragment (review 2026-09-19).
+  const idRe = /\sid\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
   let m;
-  while ((m = re.exec(html)) !== null) {
+  while ((m = idRe.exec(html)) !== null) {
+    const v = (m[1] ?? m[2] ?? "").trim();
+    if (v) ids.add(decodeEntities(v));
+  }
+  const aRe = /<a\b[^>]*\sname\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
+  while ((m = aRe.exec(html)) !== null) {
     const v = (m[1] ?? m[2] ?? "").trim();
     if (v) ids.add(decodeEntities(v));
   }

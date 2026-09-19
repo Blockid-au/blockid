@@ -175,11 +175,33 @@ describe("link-check-core — extraction + normalisation", () => {
     expect(decodeEntities("it&#x27;s &quot;q&quot;")).toBe(`it's "q"`);
   });
 
-  it("extractIds collects id= and name=", () => {
+  it("extractIds collects id= on any element and name= only on <a> (meta/input names never satisfy a fragment)", () => {
     const ids = extractIds(PRODUCT);
     expect(ids.has("product")).toBe(true);
     expect(ids.has("dimensions")).toBe(true);
     expect(ids.has("nope")).toBe(false);
+    const strict = extractIds('<meta name="description" content="x"><input name="email"><a name="legacy">old</a><div id="real"></div>');
+    expect(strict.has("description")).toBe(false);
+    expect(strict.has("email")).toBe(false);
+    expect(strict.has("legacy")).toBe(true);
+    expect(strict.has("real")).toBe(true);
+  });
+
+  it("isPrivateHost refuses loopback / RFC1918 / link-local / metadata hosts and resolved private addresses", async () => {
+    const { isPrivateHost, isPrivateV4, isPrivateV6 } = await import("./link-check.mjs");
+    expect(isPrivateV4("127.0.0.1")).toBe(true);
+    expect(isPrivateV4("10.1.2.3")).toBe(true);
+    expect(isPrivateV4("169.254.169.254")).toBe(true);
+    expect(isPrivateV4("172.16.0.1")).toBe(true);
+    expect(isPrivateV4("8.8.8.8")).toBe(false);
+    expect(isPrivateV6("::1")).toBe(true);
+    expect(isPrivateV6("fd00::1")).toBe(true);
+    expect(isPrivateV6("2001:db8::1")).toBe(false);
+    expect(await isPrivateHost("localhost")).toBe(true);
+    expect(await isPrivateHost("metadata.google.internal")).toBe(true);
+    const lookup = async (h) => (h === "evil.example" ? [{ address: "10.0.0.5", family: 4 }] : [{ address: "93.184.216.34", family: 4 }]);
+    expect(await isPrivateHost("evil.example", lookup)).toBe(true);
+    expect(await isPrivateHost("good.example", lookup)).toBe(false);
   });
 
   it("normalizeUrl resolves relative hrefs, strips fragments + trailing slash, drops non-http schemes", () => {

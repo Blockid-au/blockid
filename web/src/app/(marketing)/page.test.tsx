@@ -134,7 +134,7 @@ describe("homepage v6 — acceptance (D1–D3)", () => {
     expect(text).toContain("startups scored");
     expect(text).toContain("open-register signals");
     expect(text).toContain("backtest ρ");
-    expect(text).toContain("evaluator organisations");
+    expect(text).toContain("evaluators on a plan");
     expect(text).toMatch(/\d\.\d\d \/ \d\.\d\d/);
     expect(text).not.toContain("— startups scored");
     expect(out).toContain('data-testid="proof-band"');

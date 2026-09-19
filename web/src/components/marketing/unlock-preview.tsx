@@ -175,7 +175,7 @@ export function UnlockPreview({ tone = "sunken", className = "" }: UnlockPreview
         </ul>
 
         <p className="mt-6 text-xs leading-relaxed text-muted">
-          Cap table, data room and valuation are in the A$29 a month workspace.
+          Cap table, data room and valuation are in the Starter workspace.
           Sign in is free; nothing is charged until you choose a plan.
         </p>
       </div>

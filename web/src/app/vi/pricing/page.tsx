@@ -144,7 +144,7 @@ export default async function ViPricingPage({ searchParams }: ViPricingPageProps
         />
       </Section>
 
-      <Section id="faq" ariaLabel={t(m, "pricing.faq.title")} spacing="sm">
+      <Section id="faq-band" ariaLabel={t(m, "pricing.faq.title")} spacing="sm">
         <FAQV2 />
       </Section>
 

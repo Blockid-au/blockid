@@ -159,7 +159,7 @@ export default function HomePage() {
               { value: formatCount(stats.startupsScored), label: "startups scored", hint: "on the platform, QA excluded", href: "/startup-index" },
               { value: formatCount(stats.registerSignals), label: "open-register signals", hint: "ABR and public registers", href: "/methodology" },
               { value: formatRhoPair(stats.backtestRhoRound, stats.backtestRhoValuation), label: "backtest ρ (round / valuation)", hint: "Spearman, weekly", href: "/methodology/calibration" },
-              { value: formatCount(stats.evaluatorOrgs), label: "evaluator organisations", hint: "on an evaluator plan", href: "/solutions/investor" },
+              { value: formatCount(stats.evaluatorOrgs), label: "evaluators on a plan", hint: "investors, accelerators, advisors", href: "/solutions/investor" },
             ]}
             caption={
               stats.asAt

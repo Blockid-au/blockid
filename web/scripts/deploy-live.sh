@@ -1215,6 +1215,20 @@ else
   echo "  ⏭  e2e smoke tier SKIPPED — Playwright not installed (not counted as a pass)"
 fi
 
+# G17 D7 (2026-09-19): internal link check against the temp build — every
+# <a>/<img>/<script> on the marketing pages must answer 200 before the swap.
+# DEPLOY_LINK_CHECK=0 skips; external hosts are never probed here.
+if [ "${DEPLOY_LINK_CHECK:-1}" = "1" ] && [ -f "$WEB_DIR/scripts/link-check.mjs" ]; then
+  echo "  ▶ Internal link check against :$TEMP_PORT ..."
+  if (cd "$WEB_DIR" && node scripts/link-check.mjs --base "http://127.0.0.1:$TEMP_PORT" --max 600 --concurrency 8 --no-external --no-alert --out-dir /tmp/blockid-deploy-link-check > /tmp/blockid-deploy-link-check.log 2>&1); then
+    echo "  ✅ link check passed ($(grep -oE '[0-9]+ pages · [0-9]+ links' /tmp/blockid-deploy-link-check.log | head -1))"
+  else
+    echo "  ❌ link check FAILED — /tmp/blockid-deploy-link-check.log"
+    grep -E '^\s+✗' /tmp/blockid-deploy-link-check.log | head -12 | sed 's/^/     /'
+    SMOKE_FAIL=$((SMOKE_FAIL + 1))
+  fi
+fi
+
 # Kill temp process
 kill $NEW_PID 2>/dev/null || true
 fuser -k $TEMP_PORT/tcp 2>/dev/null || true
