@@ -49,7 +49,12 @@ const SERVER_ONLY_KEYS = new Set(["user_id", "qa", "email", "session_id"]);
 
 const BodySchema = z.object({
   name: z.string().min(1).max(64),
-  params: z.record(z.string(), z.unknown()).default({}),
+  // ≤ 20 keys, scalar values ≤ 256 chars (G16 review: no nested objects that
+  // slip past the PII scrub, no multi-MB rows).
+  params: z
+    .record(z.string().max(64), z.union([z.string().max(256), z.number(), z.boolean(), z.null()]))
+    .refine((o) => Object.keys(o).length <= 20, { message: "too many params" })
+    .default({}),
   session_id: z.string().min(8).max(128).optional(),
   consent_granted: z.boolean().default(false),
 });
@@ -90,7 +95,8 @@ export async function POST(request: Request) {
     user = null;
   }
   const anonKey = user ? null : await readAnonKey();
-  const sessionId = session_id ?? anonKey ?? null;
+  // Stored actor prefers the server-set anon key over the body session_id.
+  const sessionId = anonKey ?? session_id ?? null;
 
   if (!user) {
     if (!ANON_EMITTABLE_EVENTS.includes(name)) {
@@ -101,7 +107,10 @@ export async function POST(request: Request) {
     }
   }
 
-  const limited = enforceRateLimit("analytics-event", user?.id ?? sessionId, request, RATE_MAX, RATE_WINDOW_MS);
+  // G16 review P1-3: never key the limiter on a client-chosen session_id (a
+  // fresh value per POST = a fresh bucket). Signed-in → user id; anonymous →
+  // the server-set anon cookie, else null (→ the limiter's IP fallback).
+  const limited = enforceRateLimit("analytics-event", user?.id ?? anonKey ?? null, request, RATE_MAX, RATE_WINDOW_MS);
   if (limited) return limited;
 
   const cleaned = { ...stripServerKeys(params), ...qaFlag(user?.email) };

@@ -27,6 +27,7 @@ export function isChunkLoadError(err: unknown): boolean {
 }
 
 export const RELOAD_GUARD_PREFIX = "blockid:chunk-reload:";
+export const RELOAD_GUARD_TTL_MS = 30_000;
 
 /** Storage-agnostic core so the guard is unit-testable without a DOM. */
 export function shouldReloadForStaleChunk(
@@ -38,7 +39,11 @@ export function shouldReloadForStaleChunk(
   if (!store) return true; // no storage → reload once anyway (cannot loop-guard, but the page is already broken)
   const key = RELOAD_GUARD_PREFIX + pathname;
   try {
-    if (store.getItem(key)) return false;
+    // A guard older than 30 s is stale (the reload it protected is long
+    // over) — otherwise a path could never auto-recover after its first
+    // deploy of the day (G16 review).
+    const prev = Number(store.getItem(key) ?? "");
+    if (Number.isFinite(prev) && prev > 0 && Date.now() - prev < RELOAD_GUARD_TTL_MS) return false;
     store.setItem(key, String(Date.now()));
     return true;
   } catch {

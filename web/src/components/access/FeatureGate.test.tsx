@@ -41,7 +41,7 @@ describe("gateCardCopy (G16-B)", () => {
     expect(c.title).toBe("Deal Flow Inbox");
     expect(c.body).toContain(`the ${scout.name} plan — A$${scout.monthly_aud}/mo`);
     expect(c.cta).toBe("See Scout");
-    expect(c.href).toBe("/pricing?feature=investor.dealflow#tier-scout");
+    expect(c.href).toBe("/pricing?feature=investor.dealflow&segment=investor#tier-scout");
   });
 
   it("esop.manage → Equity add-on on Growth; sso → contact sales", () => {
@@ -71,7 +71,7 @@ describe("<DefaultUpgradeCta> / <FeatureGate> fallback", () => {
     expect(html).toContain('data-plan="investor_angel"');
     expect(html).toContain("Deal Flow Inbox is locked on your plan");
     expect(html).toContain(`A$${plan("investor_angel").monthly_aud}/mo`);
-    expect(html).toContain('href="/pricing?feature=investor.dealflow#tier-scout"');
+    expect(html).toContain('href="/pricing?feature=investor.dealflow&amp;segment=investor#tier-scout"');
     expect((html.match(/<a /g) ?? []).length).toBe(1);
   });
 

@@ -57,7 +57,11 @@ export function resolveTbrAccess(
   const owns = Boolean(access?.paidOrderId);
   const included = Boolean(access?.included);
   const liftTier: "free" | "standard" = owns || included ? "standard" : "free";
-  const effectiveTier = stored ? stored.tier : liftTier;
+  // G16 review P1-2: a stored `tier: "standard"` is only trusted when the
+  // caller owns a paid order or the plan includes the report — the deck
+  // analyser (`/api/pitchdeck/save-snapshot`) stores every snapshot as
+  // standard without charging, which handed free founders the full document.
+  const effectiveTier = stored ? (stored.tier === "free" || owns || included ? stored.tier : "free") : liftTier;
   if (effectiveTier !== "free") return { liftTier, unlockMode: null };
   return { liftTier, unlockMode: owns ? "purchased" : included ? "included" : "buy" };
 }

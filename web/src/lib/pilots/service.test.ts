@@ -274,11 +274,21 @@ describe("runPilotExpiry", () => {
     expect(ledger.pilots.every((p) => p.status === "active" && !p.reminder_sent_at)).toBe(true);
   });
 
+  it("G16 review: an evaluator with an active Stripe subscription is never comped → 409 already_paying, no plan write", async () => {
+    const { db, plans } = makeDb([{ id: "u-9", email: "pay@x.io", plan: "investor_angel", subscribed: true }]);
+    const r = await startPilot({ email: "pay@x.io", program_name: "Paying", days: 30 }, ADMIN, deps(db));
+    expect(r.ok).toBe(false);
+    if (!r.ok) { expect(r.status).toBe(409); expect(r.error).toBe("already_paying"); }
+    expect(plans.get("u-9")).toBe("investor_angel");
+  });
+
   it("live run: T-3 d reminder once (flag in ledger), expiry reverts the plan with reason expired, ops alerted", async () => {
-    const { db, plans, subs } = makeDb([{ id: "u-1", email: "a@x.io", plan: "free" }, { id: "u-2", email: "b@x.io", plan: "free" }, { id: "u-3", email: "c@x.io", plan: "free", subscribed: true }]);
+    const { db, plans, subs } = makeDb([{ id: "u-1", email: "a@x.io", plan: "free" }, { id: "u-2", email: "b@x.io", plan: "free" }, { id: "u-3", email: "c@x.io", plan: "free" }]);
     await startPilot({ email: "a@x.io", program_name: "Soon", days: 3 }, ADMIN, deps(db));
     await startPilot({ email: "b@x.io", program_name: "Due", days: 1 }, ADMIN, deps(db));
     await startPilot({ email: "c@x.io", program_name: "Payer", days: 1 }, ADMIN, deps(db));
+    // c subscribes DURING the pilot (converted) — expiry must keep the paid plan.
+    subs.add("u-3");
     expect(subs.has("u-3")).toBe(true);
     const later = new Date(addDays(NOW, 1));
     const r = await runPilotExpiry({}, deps(db, { now: () => later }));

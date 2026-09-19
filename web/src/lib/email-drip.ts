@@ -59,7 +59,9 @@ export type DripCampaign =
 /** G16-B: the one-off unlock nudge campaign id. */
 export const TBR_UNLOCK_CAMPAIGN = "tbr_unlock_24h" as const satisfies DripCampaign;
 /** +24 h after the first `svi_score_computed` (F-2). */
-export const TBR_UNLOCK_DELAY_MS = 24 * 60 * 60 * 1000;
+// 48 h, not 24: onboarding D1 already lands at +24 h and the cron has no
+// per-address cap — two "your report" mails in one sweep (G16 review P1-4).
+export const TBR_UNLOCK_DELAY_MS = 48 * 60 * 60 * 1000;
 
 export const ONBOARDING_CAMPAIGNS = [
   "onboarding_d1",

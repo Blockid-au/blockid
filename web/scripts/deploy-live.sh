@@ -531,7 +531,7 @@ fi
 # Review 2026-09-18 (P2): only runtime-written content is ignored — MDX /
 # i18n / legal content is build input and DOES dirty the bundle; root docs/
 # never reach the bundle and must not block a deploy.
-DEPLOY_DIRTY_IGNORE="${DEPLOY_DIRTY_IGNORE:-^(docs/|(web/)?(content/(reports/|generated/|ai-[^/]+\.jsonl?$|[^/]+\.jsonl$)|\.deploy-manifest\.json$|test-results/|playwright-report))}"
+DEPLOY_DIRTY_IGNORE="${DEPLOY_DIRTY_IGNORE:-^(docs/|(web/)?(content/(reports/|generated/|pilots\.json$|ai-[^/]+\.jsonl?$|[^/]+\.jsonl$)|\.deploy-manifest\.json$|test-results/|playwright-report))}"
 DIRTY_LINES="$(git -C "$WEB_DIR" status --porcelain 2>/dev/null | grep -vE "^.. ${DEPLOY_DIRTY_IGNORE#^}" || true)"
 GIT_TREE_DIRTY=false
 [ -n "$DIRTY_LINES" ] && GIT_TREE_DIRTY=true

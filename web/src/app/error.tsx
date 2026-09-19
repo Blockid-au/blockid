@@ -13,7 +13,7 @@
 // per field for the ones we care about — we lean on `digest` for the
 // correlator into server logs.
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { trackEvent } from "@/lib/analytics";
 import { isChunkLoadError, reloadOnceForStaleChunk } from "@/lib/ui/chunk-error";
@@ -27,8 +27,12 @@ export default function GlobalError({ error, reset }: ErrorProps) {
   // Stale-build chunk after a deploy (2026-09-19 /funding incident): one hard
   // reload fetches the new HTML + chunks; the guard stops loops.
   const staleChunk = isChunkLoadError(error);
+  // G16 review P1-5: only show the "reloading…" card when a reload was
+  // actually issued; when the loop guard refuses, fall through to the
+  // normal card with Try again — never a dead end.
+  const [reloading, setReloading] = useState(false);
   useEffect(() => {
-    if (staleChunk && reloadOnceForStaleChunk(error)) return;
+    if (staleChunk && reloadOnceForStaleChunk(error)) { const t = setTimeout(() => setReloading(true), 0); return () => clearTimeout(t); }
     // Structured console log for the browser + Sentry-style tail collectors.
     console.error("[blockid:error]", {
       message: error.message,
@@ -41,7 +45,7 @@ export default function GlobalError({ error, reset }: ErrorProps) {
     });
   }, [error, staleChunk]);
 
-  if (staleChunk) {
+  if (reloading) {
     return (
       <div className="min-h-svh bg-surface-100 flex items-center justify-center px-6 py-12" data-stale-chunk-reload>
         <p className="text-ink-600 text-sm">BlockID was just updated — reloading this page…</p>

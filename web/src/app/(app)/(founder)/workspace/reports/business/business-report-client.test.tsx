@@ -43,9 +43,11 @@ describe("resolveTbrAccess (G16-B)", () => {
     expect(resolveTbrAccess(freeFixtureReportV2(), { ...base, paidOrderId: "o-1", included: true })).toEqual({ liftTier: "standard", unlockMode: "purchased" });
   });
 
-  it("a stored paid document never shows a rail, whatever the access", () => {
-    expect(resolveTbrAccess(demoReportV2(), base).unlockMode).toBeNull();
-    expect(resolveTbrAccess(demoReportV2(), null).unlockMode).toBeNull();
+  it("a stored 'standard' document is trusted only with a paid order or an included plan (G16 review P1-2: the deck analyser stores every snapshot as standard)", () => {
+    expect(resolveTbrAccess(demoReportV2(), { ...base, paidOrderId: "o-1" }).unlockMode).toBeNull();
+    expect(resolveTbrAccess(demoReportV2(), { ...base, included: true }).unlockMode).toBeNull();
+    expect(resolveTbrAccess(demoReportV2(), base).unlockMode).toBe("buy");
+    expect(resolveTbrAccess(demoReportV2(), null).unlockMode).toBe("buy");
   });
 });
 

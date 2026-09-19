@@ -163,7 +163,7 @@ export interface StartPilotInput {
 
 export type StartPilotResult =
   | { ok: true; existing: boolean; pilot: PilotRow; intake_url: string | null; warnings: string[] }
-  | { ok: false; status: 400 | 404 | 409 | 503; error: "invalid_input" | "user_not_found" | "cap_reached" | "db_unavailable"; message: string; active?: number };
+  | { ok: false; status: 400 | 404 | 409 | 503; error: "invalid_input" | "user_not_found" | "cap_reached" | "already_paying" | "db_unavailable"; message: string; active?: number };
 
 export function validateStartInput(raw: unknown): { ok: true; value: Required<Pick<StartPilotInput, "email" | "program_name" | "days" | "credits">> & Pick<StartPilotInput, "intake_slug" | "intake_name"> } | { ok: false; message: string } {
   const b = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
@@ -210,6 +210,13 @@ export async function startPilot(input: StartPilotInput, actor: { email: string;
 
   const user = await d.db.findUserByEmail(v.email);
   if (!user) return { ok: false, status: 404, error: "user_not_found", message: "No BlockID account with that e-mail — the evaluator signs up first; pilots never create accounts" };
+
+  // G16 review: a paying evaluator (Stripe subscription) is never comped —
+  // the plan write would overwrite what they pay for and the end/expiry
+  // guard would then keep the comped tier forever.
+  if (await d.db.hasStripeSubscription(user.id)) {
+    return { ok: false, status: 409, error: "already_paying", message: "This evaluator has an active Stripe subscription — pilots are for programs that are not yet customers" };
+  }
 
   // 1. Plan (same column the app reads; the way the webhook sets it).
   const previousPlan = user.plan ?? null;

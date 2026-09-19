@@ -9,8 +9,9 @@
 // throw during hydration and mask the underlying error. `reset()` is what
 // Next 16 wires to the retry button — it re-runs the failed server render.
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { isChunkLoadError, reloadOnceForStaleChunk } from "@/lib/ui/chunk-error";
 
 export default function AppSegmentError({
   error,
@@ -19,9 +20,25 @@ export default function AppSegmentError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // Stale-build chunk after a deploy (G16 review P1-5): one hard reload, never
+  // a dead end — when the loop guard refuses, the normal card renders.
+  const staleChunk = isChunkLoadError(error);
+  const [reloading, setReloading] = useState(false);
+  useEffect(() => {
+    if (staleChunk && reloadOnceForStaleChunk(error)) { const t = setTimeout(() => setReloading(true), 0); return () => clearTimeout(t); }
+  }, [error, staleChunk]);
+
   useEffect(() => {
     console.error("[blockid:app:error]", error.message);
   }, [error]);
+
+  if (reloading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center px-6" data-stale-chunk-reload>
+        <p className="text-ink-600 text-sm">BlockID was just updated — reloading this page…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[70vh] bg-surface-100 dark:bg-ink-900 flex items-center justify-center px-6">

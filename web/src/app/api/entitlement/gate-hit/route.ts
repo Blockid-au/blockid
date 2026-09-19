@@ -44,7 +44,7 @@ async function POST_handler(request: Request): Promise<Response> {
   const source = body.source === "action" ? "action" : "menu";
   const surface = typeof body.surface === "string" ? body.surface : null;
 
-  const uwp: UserWithPlan = { id: user.id, plan: user.plan ?? "free", segment: "founder" };
+  const uwp: UserWithPlan = { id: user.id, plan: user.plan ?? "free", segment: "founder", email: user.email ?? null };
   try {
     await recordGateHit(uwp, feature as Feature, source, surface);
   } catch {

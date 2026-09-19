@@ -65,3 +65,5 @@ content/reports/watchdog-restarts.jsonl
 # G16-C pilot runtime outputs (the ledger content/pilots.json IS committed)
 content/reports/pilot-applications.jsonl
 content/reports/pilots-journal.jsonl
+content/reports/funnel-daily.jsonl
+content/reports/funnel-latest.json

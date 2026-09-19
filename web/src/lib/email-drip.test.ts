@@ -1683,7 +1683,7 @@ describe("enqueueTbrUnlockNudge (G16-B)", () => {
       scheduled_for: new Date(NOW + TBR_UNLOCK_DELAY_MS).toISOString(),
       payload: { project_id: "p-1", weakestDim: "traction" },
     });
-    expect(TBR_UNLOCK_DELAY_MS).toBe(24 * 60 * 60 * 1000);
+    expect(TBR_UNLOCK_DELAY_MS).toBe(48 * 60 * 60 * 1000); // 48 h — D1 owns +24 h (G16 review)
     expect(calls.find((c) => c.op === "eq:campaign")?.args).toBe("tbr_unlock_24h");
   });
 
@@ -1724,7 +1724,7 @@ describe("enqueueOnboardingDrip queues the unlock nudge as a SEPARATE insert (G1
     const nudge = inserts[1].rows as { campaign: string; scheduled_for: string; user_id: string; payload: { project_id: string } };
     expect(nudge.campaign).toBe("tbr_unlock_24h");
     expect(nudge.user_id).toBe("user-1");
-    expect(nudge.scheduled_for).toBe("2026-08-02T00:00:00.000Z");
+    expect(nudge.scheduled_for).toBe("2026-08-03T00:00:00.000Z");
     expect(nudge.payload.project_id).toBe("p-9");
   });
 

@@ -40,7 +40,7 @@ describe("POST /api/entitlement/gate-hit", () => {
   it("records the hit with the user's plan, 'menu' by default and the page path as surface → 204", async () => {
     const res = await post({ feature: "investor.dealflow", surface: "/workspace/investor/dealflow" });
     expect(res.status).toBe(204);
-    expect(recordGateHitMock).toHaveBeenCalledWith({ id: "u-1", plan: "free", segment: "founder" }, "investor.dealflow", "menu", "/workspace/investor/dealflow");
+    expect(recordGateHitMock).toHaveBeenCalledWith(expect.objectContaining({ id: "u-1", plan: "free", segment: "founder" }), "investor.dealflow", "menu", "/workspace/investor/dealflow");
   });
 
   it("accepts source 'action'; a recordGateHit failure is swallowed (still 204)", async () => {

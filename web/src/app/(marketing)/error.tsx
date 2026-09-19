@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { isChunkLoadError, reloadOnceForStaleChunk } from '@/lib/ui/chunk-error';
 
@@ -12,12 +12,16 @@ export default function MarketingError({
   reset: () => void;
 }) {
   const staleChunk = isChunkLoadError(error);
+  // G16 review P1-5: only show the "reloading…" card when a reload was
+  // actually issued; when the loop guard refuses, fall through to the
+  // normal card with Try again — never a dead end.
+  const [reloading, setReloading] = useState(false);
   useEffect(() => {
-    if (staleChunk && reloadOnceForStaleChunk(error)) return;
+    if (staleChunk && reloadOnceForStaleChunk(error)) { const t = setTimeout(() => setReloading(true), 0); return () => clearTimeout(t); }
     console.error('[blockid:marketing:error]', error.message);
   }, [error, staleChunk]);
 
-  if (staleChunk) {
+  if (reloading) {
     return (
       <div className="min-h-[70vh] bg-surface-100 dark:bg-ink-900 flex items-center justify-center px-6" data-stale-chunk-reload>
         <p className="text-ink-600 dark:text-ink-400 text-sm">BlockID was just updated — reloading this page…</p>

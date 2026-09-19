@@ -135,7 +135,8 @@ export function gateCardCopy(feature: string, label?: string): GateCardCopy {
     title,
     body: `Included in ${carrier} · ${trial}.`,
     cta: `See ${plan.name}`,
-    href: `/pricing?feature=${encodeURIComponent(feature)}${req.anchor ?? ""}`,
+    // Evaluator plans live on the Evaluator tab of /pricing (G16 review).
+    href: `/pricing?feature=${encodeURIComponent(feature)}${plan.segment && plan.segment !== "founder" ? `&segment=${encodeURIComponent(plan.segment)}` : ""}${req.anchor ?? ""}`,
     planId: plan.id,
   };
 }
