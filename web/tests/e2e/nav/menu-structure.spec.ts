@@ -60,10 +60,13 @@ test.describe("Menu structure — anonymous visitor (NavV2, the one header)", ()
     }) => {
       await page.goto(path);
 
-      // Exactly one header on the page (S-IA5) and the primary nav is
-      // aria-labelled "Primary".
-      await expect(page.locator("header")).toHaveCount(1, { timeout: 15_000 });
-      await expect(page.locator("header")).toHaveAttribute("data-nav-variant", variant);
+      // Exactly one SITE header on the page (S-IA5) and the primary nav is
+      // aria-labelled "Primary". Scoped to `data-nav-variant` (G17-P2B): the
+      // pricing tier cards and the tool pages use a semantic <header> inside
+      // their <article>/<section>, which is not a second nav.
+      const siteHeader = page.locator("header[data-nav-variant]");
+      await expect(siteHeader).toHaveCount(1, { timeout: 15_000 });
+      await expect(siteHeader).toHaveAttribute("data-nav-variant", variant);
       const primary = page.locator('nav[aria-label="Primary"]').first();
       await expect(primary).toBeVisible({ timeout: 15_000 });
 

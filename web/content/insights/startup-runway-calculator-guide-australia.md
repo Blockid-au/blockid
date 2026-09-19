@@ -46,7 +46,7 @@ Extending your startup runway requires a combination of reducing expenses and in
 | R&D tax offset timing | Claim R&D tax offsets to reduce tax liabilities and increase cash flow |
 | Revenue-based bridge | Consider revenue-based financing options to bridge the gap to profitability |
 
-> **"Australian startups can claim up to 43.5% of R&D expenses as a tax offset. This can provide a significant boost to cash flow and help extend runway."** - [ATO](https://www.ato.gov.au/Business/Research-and-development/Research-and-development-tax-offset/)
+> **"Australian startups can claim up to 43.5% of R&D expenses as a tax offset. This can provide a significant boost to cash flow and help extend runway."** - [ATO](https://www.ato.gov.au/businesses-and-organisations/income-deductions-and-concessions/incentives-and-concessions/research-and-development-tax-incentive)
 
 ## Startup Runway Calculator
 

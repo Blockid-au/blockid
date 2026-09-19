@@ -243,7 +243,7 @@ export const XERO_TIMELINE: readonly Milestone[] = [
     phase: numericPhaseToId(11),
     headline: "1M subscribers milestone",
     detail: "Global subscriber base crosses 1M; ARR ~NZ$300M.",
-    source: "https://www.xero.com/global/media-releases/",
+    source: "https://www.xero.com/au/media-releases/",
   },
   {
     company: "xero",
@@ -252,7 +252,7 @@ export const XERO_TIMELINE: readonly Milestone[] = [
     headline: "NZX delisting — ASX primary only",
     detail:
       "Xero delisted from NZX to simplify governance + reduce compliance overhead. ASX becomes sole listing (still cited as first NZ-to-AU dual-listing success).",
-    source: "https://www.xero.com/global/media-releases/",
+    source: "https://www.xero.com/au/media-releases/",
   },
   {
     company: "xero",
@@ -261,7 +261,7 @@ export const XERO_TIMELINE: readonly Milestone[] = [
     headline: "Acquires Instafile + Hubdoc — data-capture bet",
     detail:
       "Doubles down on the accountant tool-chain around Xero — receipts, expenses, doc management.",
-    source: "https://www.xero.com/global/media-releases/",
+    source: "https://www.xero.com/au/media-releases/",
   },
   {
     company: "xero",
@@ -279,7 +279,7 @@ export const XERO_TIMELINE: readonly Milestone[] = [
     headline: "Steve Vamos steps down; Sukhinder Singh Cassidy CEO",
     detail:
       "First externally-hired CEO from Silicon Valley — signals move to US-market focus + AI product bets.",
-    source: "https://www.xero.com/global/media-releases/",
+    source: "https://www.xero.com/au/media-releases/",
   },
   {
     company: "xero",
@@ -288,7 +288,7 @@ export const XERO_TIMELINE: readonly Milestone[] = [
     headline: "Cost-cutting + focus on ARR growth; 4.2M subscribers",
     detail:
       "Xero completes restructuring. Announces Xero AI (Just Ask Xero). Market cap ~AU$25B.",
-    source: "https://www.xero.com/global/media-releases/",
+    source: "https://www.xero.com/au/media-releases/",
   },
 ];
 
