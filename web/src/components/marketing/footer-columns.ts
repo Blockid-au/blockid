@@ -54,6 +54,8 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
       { href: "/solutions/investor", label: "Investors" },
       { href: "/solutions/advisor", label: "Advisors" },
       { href: "/solutions/accelerator", label: "Accelerators" },
+      // G16-C — evaluator pilot offer v2 (free cohort scoring for one intake).
+      { href: "/pilot", label: "Evaluator pilot" },
     ],
   },
   // ux-ia-startup-flow-v1 §C.7 — Case Studies column so the Demo walkthrough
