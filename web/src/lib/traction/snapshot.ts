@@ -23,6 +23,7 @@
 
 import { z } from "zod";
 import { EVALUATOR_TRIAL_PLAN_IDS } from "@/lib/plans/signup-plans";
+import { emptyCounts as emptyFunnelCounts, funnelCountsSchema, reduceFunnel as reduceFunnelV2, type FunnelEventRow } from "@/lib/funnel/core";
 
 // ─── QA / seeded / erased account exclusion ─────────────────────────────────
 
@@ -94,6 +95,10 @@ export const tractionSnapshotSchema = z.object({
     stripe_reconciled: z.boolean().nullable(),
   }),
   funnel_7d: countRecord,
+  // G16-A: the real funnel (distinct actors per step, QA rows excluded)
+  // from the same reducer as scripts/funnel-report.mjs — one source of truth.
+  // `funnel_7d` (top event names) is kept for the older consumers.
+  funnel_7d_v2: funnelCountsSchema,
   warnings: z.array(z.string()),
 });
 
@@ -115,6 +120,7 @@ export function emptyTractionSnapshot(now: Date = new Date(), gitSha: string | n
     webhooks_active: null,
     mrr_aud_cents: { from_subscriptions: null, from_revenue_events: null, stripe_reconciled: null },
     funnel_7d: {},
+    funnel_7d_v2: emptyFunnelCounts(),
     warnings: [],
   };
 }
@@ -456,12 +462,15 @@ export async function buildTractionSnapshot(opts: BuildTractionSnapshotOptions):
     snap.mrr_aud_cents.from_revenue_events = Math.max(0, Math.round(cents));
   }
 
-  // 9) Funnel: analytics_events last 7 days, top event names.
-  const events = await scan<{ event_name: string | null; user_id?: string | null }>("analytics_events:7d", (q) =>
-    q.select("event_name, user_id").gte("ts", sevenDaysAgo).order("ts", { ascending: false }),
+  // 9) Funnel: analytics_events last 7 days — top event names (funnel_7d) and,
+  //    G16-A, the step funnel through the shared reducer (funnel_7d_v2).
+  const events = await scan<FunnelEventRow>("analytics_events:7d", (q) =>
+    q.select("event_id, event_name, user_id, session_id, params, ts").gte("ts", sevenDaysAgo).order("ts", { ascending: false }),
   );
   if (events) {
-    snap.funnel_7d = reduceFunnel(events.filter((e) => !(keptIds && e.user_id && !keptIds.has(e.user_id))));
+    const kept = events.filter((e) => !(keptIds && e.user_id && !keptIds.has(e.user_id)));
+    snap.funnel_7d = reduceFunnel(kept);
+    snap.funnel_7d_v2 = reduceFunnelV2(kept);
   }
 
   return tractionSnapshotSchema.parse(snap);

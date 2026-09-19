@@ -34,10 +34,6 @@
       "reason": "CTA impression telemetry; no state of record."
     },
     {
-      "pattern": "api/funnel/route.ts",
-      "reason": "Funnel-step telemetry; no state of record."
-    },
-    {
       "pattern": "api/ab/pricing-expose/route.ts",
       "reason": "A/B exposure telemetry fired on first paint; no state of record."
     },

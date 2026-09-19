@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { emitReportView, resolveReportTier } from "@/lib/analytics/funnel";
+import { asReportTierClient, emitReportView, resolveReportTier } from "@/lib/analytics/funnel";
 import { BusinessReportClient } from "./business-report-client";
 
 export const metadata: Metadata = {
@@ -32,7 +32,7 @@ export default async function BusinessReportPage({
   // (CSP: no eval → dev never hydrates); tier = plan | paid | free from the
   // account, never from the client. Never blocks the render.
   try {
-    const tier = await resolveReportTier(getSupabaseAdmin(), user.id, user.plan);
+    const tier = await resolveReportTier(asReportTierClient(getSupabaseAdmin()), user.id, user.plan);
     emitReportView({ userId: user.id, email: user.email, projectId, tier });
   } catch {
     // analytics must never break the page

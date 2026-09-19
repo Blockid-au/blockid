@@ -13,7 +13,7 @@ import { NextResponse } from "next/server";
 
 vi.mock("server-only", () => ({}));
 
-const emitEventMock = vi.fn(async (_i: unknown) => {});
+const emitEventMock = vi.fn(async () => {});
 vi.mock("@/lib/analytics/server", () => ({ emitEvent: (i: unknown) => emitEventMock(i) }));
 
 const getCurrentUserMock = vi.fn<() => Promise<{ id: string; email: string | null } | null>>();

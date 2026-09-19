@@ -187,6 +187,11 @@ export interface ReportTierClient {
 
 const PAID_ORDER_STATUSES = ["PAID", "GENERATING", "READY"] as const;
 
+/** Narrow a supabase-js client to the slice above (avoids TS2589 on the full generic type). */
+export function asReportTierClient(client: unknown): ReportTierClient | null {
+  return client ? (client as ReportTierClient) : null;
+}
+
 /**
  * free | paid | plan for the workspace TBR page: a paying plan wins, then a
  * PAID/GENERATING/READY report_orders row for this user, else free. Any
