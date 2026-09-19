@@ -99,6 +99,7 @@ import {
   markSummarySent,
   releaseSummaryClaim,
   countAnonRunsInWindow,
+  countUserRuns,
   getAnalysisForViewer,
   listAnalysesForViewer,
   saveAnalysis,
@@ -374,6 +375,33 @@ describe("claimAnalyses", () => {
 //     later, who has no memory of ever using the site;
 //   * throwing or counting high on a database hiccup would wall a real
 //     founder over an outage, so it must fail OPEN.
+
+// G16-A — "is this the founder's first saved run?" for the svi_analyze funnel
+// step. Capped read, fails to 0 (= "first") on every error path.
+describe("countUserRuns", () => {
+  it("counts this user's rows with a capped read", async () => {
+    state.list = { data: [{ id: "a" }, { id: "b" }], error: null };
+    expect(await countUserRuns("u1")).toBe(2);
+    const call = state.calls[0];
+    expect(call.table).toBe(ANALYSES_TABLE);
+    expect(argOf(call, "eq")).toEqual(["user_id", "u1"]);
+    expect(argOf(call, "limit")).toEqual([2]);
+    await countUserRuns("u1", 5);
+    expect(argOf(state.calls[1], "limit")).toEqual([5]);
+  });
+
+  it("returns 0 without a user id, when unconfigured, on a query error and when the client throws", async () => {
+    expect(await countUserRuns("")).toBe(0);
+    expect(state.calls).toHaveLength(0);
+    state.list = { data: null, error: { message: "relation missing" } };
+    expect(await countUserRuns("u1")).toBe(0);
+    state.throwOnFrom = true;
+    expect(await countUserRuns("u1")).toBe(0);
+    state.throwOnFrom = false;
+    state.client = null;
+    expect(await countUserRuns("u1")).toBe(0);
+  });
+});
 
 describe("countAnonRunsInWindow", () => {
   it("counts only this anon key's rows, newest window only", async () => {

@@ -37,6 +37,8 @@ import { resolvePromoCode } from "@/lib/reseller/resolve-promo";
 import { normaliseResellerCode } from "@/lib/reseller/attribution";
 import { apiRoute } from "@/lib/audit/api-route";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { isQaEmail } from "@/lib/analytics/events";
+import { emitCheckout } from "@/lib/analytics/funnel";
 
 interface CheckoutBody {
   businessId?: unknown;
@@ -245,6 +247,10 @@ async function POST_handler(request: Request) {
         bid_sku: TRUST_REPORT_5AUD.id,
         bid_first_touch:
           typeof body.firstTouch === "string" ? body.firstTouch : "",
+        // G16-A: lets the webhook stamp qa:true on trust_report_purchased
+        // without an app_users lookup (live-qa never spends, but a manual
+        // QA purchase must not count as the first dollar).
+        ...(isQaEmail(user.email) ? { bid_qa: "1" } : {}),
         ...(resolvedPromo
           ? {
               bid_reseller_id: resolvedPromo.resellerId,
@@ -340,6 +346,19 @@ async function POST_handler(request: Request) {
         resellerSlug: resolvedPromo.resellerSlug,
       }
     : null;
+
+  // G16-A funnel: `checkout` = the A$3 Stripe session exists (server truth).
+  // Keyed on the Stripe session id so the per-day idempotency key above
+  // (same session on a rage-click) cannot double-count. Fire-and-forget.
+  emitCheckout({
+    userId: user.id,
+    email: user.email,
+    sku: TRUST_REPORT_5AUD.id,
+    amountCents: TRUST_REPORT_5AUD.unit_amount_incl_gst_cents ?? 300,
+    projectId: businessId,
+    orderId: order?.id ?? null,
+    stripeSessionId: session.id,
+  });
 
   if (insertErr || !order) {
     // Row didn't persist; do not fail the user — they can still complete

@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("./supabase", () => ({ getSupabaseAdmin: () => null }));
+// Null by default (the entitlement cases never touch the DB); the G16-A
+// recordGateHit cases install a stub so the analytics emit path runs.
+const supabaseHolder = vi.hoisted(() => ({ client: null as unknown }));
+vi.mock("./supabase", () => ({ getSupabaseAdmin: () => supabaseHolder.client }));
+const emitEventMock = vi.hoisted(() => vi.fn(async () => {}));
+vi.mock("./analytics/server", () => ({ emitEvent: (i: unknown) => emitEventMock(i as never) }));
 
 const getPlanCachedMock = vi.fn();
 vi.mock("./plans-db", () => ({
@@ -28,7 +33,34 @@ vi.mock("./entitlements/timed-grants", () => ({
   getUserTimedGrants: (u: string | null | undefined) => getUserTimedGrantsMock(u),
 }));
 
-import { getEntitlements, can, LEGACY_FEATURE_FALLBACK } from "./entitlements";
+import { getEntitlements, can, LEGACY_FEATURE_FALLBACK, recordGateHit } from "./entitlements";
+
+// G16-A — feature_gate_hit carries `qa: true` for qa-live-* accounts so the
+// daily funnel's gate_hits exclude them; a real founder gets no flag.
+describe("recordGateHit — qa flag (G16-A)", () => {
+  beforeEach(() => {
+    emitEventMock.mockClear();
+    supabaseHolder.client = { from: () => ({ insert: async () => ({ error: null }) }) };
+  });
+
+  it("stamps qa:true for a live-QA account and nothing for a founder", async () => {
+    await recordGateHit({ id: "u-qa", plan: "free", segment: "founder", email: "qa-live-20260919-0415@blockid.au" }, "cap_table.write", "api");
+    await recordGateHit({ id: "u-1", plan: "free", segment: "founder", email: "jane@example.com" }, "cap_table.write", "api");
+    await recordGateHit({ id: "u-2", plan: "free", segment: "founder" }, "cap_table.write", "menu");
+    const calls = emitEventMock.mock.calls.map((c) => c[0] as { name: string; params: Record<string, unknown>; userId: string | null });
+    expect(calls.map((c) => c.name)).toEqual(["feature_gate_hit", "feature_gate_hit", "feature_gate_hit"]);
+    expect(calls[0].params).toEqual({ feature: "cap_table.write", source: "api", plan: "free", segment: "founder", qa: true });
+    expect(calls[1].params).toEqual({ feature: "cap_table.write", source: "api", plan: "free", segment: "founder" });
+    expect(calls[2].params.qa).toBeUndefined();
+    expect(calls[0].userId).toBe("u-qa");
+  });
+
+  it("is a no-op without a Supabase client", async () => {
+    supabaseHolder.client = null;
+    await recordGateHit({ id: "u-1", plan: "free", segment: "founder" }, "cap_table.write", "api");
+    expect(emitEventMock).not.toHaveBeenCalled();
+  });
+});
 
 beforeEach(() => {
   getUserGrantedFeaturesMock.mockReset().mockResolvedValue([]);

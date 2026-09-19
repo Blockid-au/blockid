@@ -19,6 +19,7 @@ import {
 } from "@/lib/stripe/verify";
 import { FOUNDING_PROMO_END } from "@/lib/founding-promo";
 import { emitEvent, emitEventSafe } from "@/lib/analytics/server";
+import { isQaEmail } from "@/lib/analytics/events";
 import {
   reconcileSubscriptionAddon,
   revokeAddonForCustomer,
@@ -1233,6 +1234,11 @@ export async function POST(request: Request) {
     // G14-S33: trust_report_purchased → analytics_events + GA4 MP (server
     // truth for the weekly GA4 audit). `reconciled` = the report_orders row
     // was missing and re-created from session metadata.
+    // G16-A: `qa: true` when the checkout route stamped bid_qa (qa-live-*
+    // buyer) or the Stripe customer e-mail matches — the daily funnel and
+    // the traction snapshot must never count a QA purchase as revenue.
+    const buyerEmail = session.customer_details?.email ?? session.customer_email ?? null;
+    const qa = session.metadata?.bid_qa === "1" || isQaEmail(buyerEmail);
     emitEventSafe({
       name: "trust_report_purchased",
       params: {
@@ -1241,6 +1247,7 @@ export async function POST(request: Request) {
         reconciled: !existing,
         user_id: userId,
         session_id: session.id,
+        ...(qa ? { qa: true } : {}),
       },
       userId,
       source: "webhook:stripe",

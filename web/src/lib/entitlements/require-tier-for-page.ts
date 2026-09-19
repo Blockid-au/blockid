@@ -67,7 +67,7 @@ export async function requireTierForPage(opts: RequireTierOptions): Promise<void
   }
 
   const plan = user.plan ?? "free";
-  const uwp: UserWithPlan = { id: user.id, plan, segment: "founder" };
+  const uwp: UserWithPlan = { id: user.id, plan, segment: "founder", email: user.email };
 
   // Tier check (cheap, in-memory) first — short-circuits before hitting the
   // plans-db lookup that `can()` performs.

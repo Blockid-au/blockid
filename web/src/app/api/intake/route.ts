@@ -51,9 +51,11 @@ import {
   checkAnalysisWriteLimit,
   checkAnonRunLimit,
   countAnonRunsInWindow,
+  countUserRuns,
   saveAnalysis,
 } from "@/lib/analyses/store";
-import { deriveCompactSvi } from "@/lib/analyses/payload";
+import { deriveCompactSvi, type CompactSvi } from "@/lib/analyses/payload";
+import { emitScoreComputed, emitSviAnalyze } from "@/lib/analytics/funnel";
 import {
   decideSignupGate,
   isPaidSellableInput,
@@ -93,6 +95,7 @@ async function persist(
   anonKey: string | null,
   userId: string | null,
   result: IntakeResult,
+  svi: CompactSvi | null,
   meta: PersistMeta,
 ): Promise<string | null> {
   try {
@@ -110,7 +113,7 @@ async function persist(
       anonKey: key,
       userId,
       result,
-      svi: deriveCompactSvi(result),
+      svi,
       url: meta.url ?? null,
       filename: meta.filename ?? null,
       mimeType: meta.mimeType ?? null,
@@ -132,6 +135,7 @@ async function persist(
 async function resolveCaller(): Promise<{
   anonKey: string | null;
   userId: string | null;
+  userEmail: string | null;
 }> {
   let anonKey: string | null = null;
   try {
@@ -140,12 +144,15 @@ async function resolveCaller(): Promise<{
     anonKey = null; // un-cookied: the run still happens, it just cannot be counted
   }
   let userId: string | null = null;
+  let userEmail: string | null = null;
   try {
-    userId = (await getCurrentUser())?.id ?? null;
+    const user = await getCurrentUser();
+    userId = user?.id ?? null;
+    userEmail = user?.email ?? null; // only ever used for the qa-live-* flag
   } catch {
     userId = null; // anonymous is the normal case, not an error
   }
-  return { anonKey, userId };
+  return { anonKey, userId, userEmail };
 }
 
 /** The 200 body the client branches on when the account wall fires. */
@@ -200,7 +207,7 @@ async function POST_handler(request: Request) {
 
   // ── The gate. Nothing above this line costs money; nothing below it runs
   // until the gate says so. ────────────────────────────────────────────────
-  const { anonKey, userId } = await resolveCaller();
+  const { anonKey, userId, userEmail } = await resolveCaller();
   const authenticated = Boolean(userId);
   // Counting is pointless for a signed-in caller and for an un-cookied one
   // (nothing to count against), so skip the query entirely in both cases.
@@ -246,12 +253,51 @@ async function POST_handler(request: Request) {
       url: body.url,
       file,
     });
-    const analysisId = await persist(request, anonKey, userId, result, {
+    const svi = deriveCompactSvi(result);
+    const analysisId = await persist(request, anonKey, userId, result, svi, {
       url: body.url,
       filename: file?.filename,
       mimeType: file?.mimeType,
       bytes: file?.buffer.length,
     });
+    // G16-A — funnel truth. This route IS the founder's first analysis
+    // (S32), so the `svi_analyze` step is emitted here, `first` decided
+    // server-side: an anonymous run is first when the gate saw no prior
+    // runs; a signed-in run when the user has no earlier saved row (the
+    // row just written counts as one). `svi_score_computed` follows once a
+    // score exists. Fire-and-forget, never affects the response.
+    try {
+      let first: boolean;
+      if (userId) {
+        const runs = await countUserRuns(userId);
+        first = runs <= (analysisId ? 1 : 0);
+      } else {
+        first = priorRuns === 0;
+      }
+      const score = svi?.totalSVI;
+      emitSviAnalyze({
+        userId,
+        email: userEmail,
+        projectId: analysisId,
+        analysisId,
+        first,
+        score,
+        sessionId: anonKey,
+      });
+      if (analysisId && typeof score === "number" && Number.isFinite(score)) {
+        emitScoreComputed({
+          userId,
+          email: userEmail,
+          projectId: analysisId,
+          score,
+          slug: analysisId,
+          analysisId,
+          sessionId: anonKey,
+        });
+      }
+    } catch (err) {
+      console.warn("[intake] funnel emit failed —", err instanceof Error ? err.message : String(err));
+    }
     // S32-B — the full first analysis (SVI reasoning, indicative valuation,
     // seven C-level sections, the emailed PDF) runs as a background job on
     // the saved row. Fire-and-forget: the response never waits on a model
