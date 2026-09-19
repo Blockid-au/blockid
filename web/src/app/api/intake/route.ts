@@ -63,6 +63,7 @@ import {
 } from "@/lib/analyses/signup-gate";
 import { apiRoute } from "@/lib/audit/api-route";
 import { startFirstAnalysisJob } from "@/lib/analyses/first-analysis/job";
+import { parseMultipart } from "@/lib/http/multipart";
 
 // 2026-09-19: same ceiling as the intake-link deck path (DECK_MAX_BYTES in
 // lib/intake/submission-runner — not imported to keep that fs/pitchdeck graph
@@ -188,41 +189,36 @@ async function POST_handler(request: Request) {
   try {
     const contentType = request.headers.get("content-type") ?? "";
     if (contentType.includes("multipart/form-data")) {
-      // Buffer first, then parse: the runtime's formData() fails opaquely on
-      // very large bodies ("Failed to parse body as FormData" → 400) and the
-      // Content-Length header does not reliably reach the handler, so the
-      // byte count is the only dependable size signal (2026-09-19).
-      const raw = await request.arrayBuffer();
+      // Buffer first, size, then parse with our own multipart reader: the
+      // runtime's formData() has no dependable size signal and, in the
+      // standalone server, fails outright on bodies above ~10 MB ("Failed to
+      // parse body as FormData") — the size of a normal pitch deck
+      // (2026-09-19; see lib/http/multipart.ts).
+      const raw = Buffer.from(await request.arrayBuffer());
       if (raw.byteLength > DECK_MAX_BYTES + 64 * 1024) {
         return NextResponse.json(
           { ok: false, error: "file_too_large", max_bytes: DECK_MAX_BYTES },
           { status: 413 },
         );
       }
-      const form = await new Response(raw, {
-        headers: { "content-type": contentType },
-      }).formData();
+      const parsed = parseMultipart(raw, contentType);
       body = {
-        text: (form.get("text") as string | null) ?? undefined,
-        url: (form.get("url") as string | null) ?? undefined,
-        tier: (form.get("tier") as string | null) ?? undefined,
+        text: parsed.fields.text ?? undefined,
+        url: parsed.fields.url ?? undefined,
+        tier: parsed.fields.tier ?? undefined,
       };
-      const formFile = form.get("file");
-      if (formFile && typeof formFile !== "string") {
-        // 2026-09-19: a typed 413 the UI can name ("max 25 MB") instead of
-        // the bare nginx page that /analyze rendered as "Something went
-        // wrong". Same ceiling as the intake-link deck path (DECK_MAX_BYTES).
-        if ((formFile as File).size > DECK_MAX_BYTES) {
+      const formFile = parsed.files.find((f) => f.name === "file") ?? parsed.files[0];
+      if (formFile) {
+        if (formFile.buffer.length > DECK_MAX_BYTES) {
           return NextResponse.json(
             { ok: false, error: "file_too_large", max_bytes: DECK_MAX_BYTES },
             { status: 413 },
           );
         }
-        const buffer = Buffer.from(await formFile.arrayBuffer());
         file = {
-          filename: (formFile as File).name || "upload.bin",
-          buffer,
-          mimeType: (formFile as File).type,
+          filename: formFile.filename || "upload.bin",
+          buffer: formFile.buffer,
+          mimeType: formFile.mimeType,
         };
       }
     } else {
