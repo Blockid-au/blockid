@@ -532,7 +532,9 @@ fi
 # i18n / legal content is build input and DOES dirty the bundle; root docs/
 # never reach the bundle and must not block a deploy.
 DEPLOY_DIRTY_IGNORE="${DEPLOY_DIRTY_IGNORE:-^(docs/|(web/)?(content/(reports/|generated/|pilots\.json$|ai-[^/]+\.jsonl?$|[^/]+\.jsonl$)|\.deploy-manifest\.json$|test-results/|playwright-report))}"
-DIRTY_LINES="$(git -C "$WEB_DIR" status --porcelain 2>/dev/null | grep -vE "^.. ${DEPLOY_DIRTY_IGNORE#^}" || true)"
+# Porcelain quotes paths that contain spaces (`?? "web/content/reports/customer care-daily….md"`)
+# — allow an optional opening quote before the ignore pattern (2026-09-19).
+DIRTY_LINES="$(git -C "$WEB_DIR" status --porcelain 2>/dev/null | grep -vE "^.. \"?${DEPLOY_DIRTY_IGNORE#^}" || true)"
 GIT_TREE_DIRTY=false
 [ -n "$DIRTY_LINES" ] && GIT_TREE_DIRTY=true
 MANIFEST_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
