@@ -4,10 +4,13 @@
  * `site/footer.tsx`) so they could not drift; the legacy footer is gone and
  * its Company column now lives here.
  *
- * Since T0238 (G11 §3a/§3d) the top nav carries only five entries, so
- * Product / For / Docs / Startup Index live here — this is their only
- * public surface. The Funding column mirrors the "Get funding" dropdown in
- * `landing/nav-v2.tsx`.
+ * G17 D5 (2026-09-19): FOUR columns — Product · For · Company · Legal — the
+ * same on every page. The bar shrank to five entries (Product · Solutions ·
+ * Samples · Pricing · Docs), so everything the old seven-column footer and
+ * the old bar carried (the Funding rail, the free tools, the case studies,
+ * Docs / Changelog / Roadmap / Status) is folded into these four rather than
+ * dropped: nothing that had inbound links may 404 (D7). Every href here
+ * resolves to a page on disk — the colocated test walks src/app.
  */
 
 export type FooterColumn = {
@@ -17,83 +20,54 @@ export type FooterColumn = {
 
 export const FOOTER_COLUMNS: FooterColumn[] = [
   {
-    // The money rail — mirrors the "Get funding" dropdown in nav-v2.tsx.
-    title: "Funding",
-    items: [
-      { href: "/funding/grants", label: "Grants" },
-      { href: "/funding/programs", label: "Programs by city" },
-      { href: "/funding", label: "Do you need money?" },
-      { href: "/tools/rnd-tax", label: "R&D Tax" },
-      { href: "/tools/esic", label: "ESIC" },
-      {
-        href: "/insights/non-dilutive-funding-strategies-australia",
-        label: "Non-dilutive funding guide",
-      },
-    ],
-  },
-  {
+    // What it is and what it produces — the intro page, the samples, the
+    // ladder rungs, the money rail and the tools (all the old bar's depth).
     title: "Product",
     items: [
+      { href: "/product", label: "Product overview" },
+      { href: "/samples", label: "Sample results" },
       { href: "/features", label: "All features" },
-      // B1 Task 3 — /for/founder is now a 301 to /solutions/founder.
-      { href: "/solutions/founder#svi", label: "Investor-ready score" },
-      { href: "/solutions/founder#captable", label: "Cap table + ESOP" },
-      { href: "/solutions/founder#dataroom", label: "Data room" },
-      { href: "/solutions/founder#valuation", label: "Valuation" },
-      { href: "/solutions/founder#pack", label: "Investor pack" },
-      // B1 Task 5 — canonical SVI URL is /index (was /svi; now 301-redirected).
+      { href: "/how-it-works", label: "How it works" },
+      { href: "/methodology", label: "Methodology" },
       { href: "/startup-index", label: "Startup Index" },
+      { href: "/funding", label: "Do you need money?" },
+      { href: "/funding/grants", label: "Grants" },
+      { href: "/funding/programs", label: "Programs by city" },
+      { href: "/tools", label: "Free tools" },
       { href: "/pricing", label: "Pricing" },
+      { href: "/docs", label: "Docs" },
     ],
   },
   {
+    // Persona landings, the evaluator pilot and the walk-through demo.
     title: "For",
     items: [
-      // B1 Task 3/4 — /for/{founder,investor,accelerator} now 301 → /solutions/*.
-      { href: "/solutions/founder", label: "Founders" },
       { href: "/solutions/investor", label: "Investors" },
-      { href: "/solutions/advisor", label: "Advisors" },
       { href: "/solutions/accelerator", label: "Accelerators" },
+      { href: "/solutions/advisor", label: "Advisors" },
+      { href: "/solutions/founder", label: "Founders" },
       // G16-C — evaluator pilot offer v2 (free cohort scoring for one intake).
       { href: "/pilot", label: "Evaluator pilot" },
-    ],
-  },
-  // ux-ia-startup-flow-v1 §C.7 — Case Studies column so the Demo walkthrough
-  // is discoverable from every marketing footer, not just the top-nav.
-  {
-    title: "Case Studies",
-    items: [
-      { href: "/showcase/atlassian?step=1", label: "Atlassian (live demo)" },
-      { href: "/showcase/canva", label: "Canva" },
-      { href: "/showcase/xero", label: "Xero" },
-      { href: "/showcase/safetyculture", label: "SafetyCulture" },
+      { href: "/showcase/atlassian?step=1", label: "Atlassian demo (live)" },
       { href: "/showcase", label: "All case studies" },
-    ],
-  },
-  {
-    title: "Docs",
-    items: [
-      { href: "/changelog", label: "Changelog" },
-      { href: "/roadmap", label: "Roadmap" },
-      { href: "/team", label: "Team" },
-      // T0274 (G12) — BlockID vs ChatGPT vs a valuer.
       { href: "/compare", label: "Compare" },
-      // G14-S36 — public scoring & verification methodology (no weights).
-      { href: "/methodology", label: "Methodology" },
-      { href: "/status", label: "Status" },
-      { href: "/security-audit", label: "Security audit" },
     ],
   },
-  // S-IA5 — the Company column the legacy site/footer.tsx carried for the
-  // ~50 pages only it reached; every public page sees it now. "Invest in
-  // BlockID" is the renamed /investors pitch (spec §A.4, F2).
   {
+    // The Company column the legacy site/footer.tsx carried for the ~50
+    // pages only it reached, plus the Docs-column rows that were company
+    // news rather than product docs. "Invest in BlockID" is the renamed
+    // /investors pitch (S-IA5, F2).
     title: "Company",
     items: [
       { href: "/about", label: "About" },
+      { href: "/team", label: "Team" },
       { href: "/about/invest", label: "Invest in BlockID" },
       { href: "/benchmarks", label: "AU Benchmarks" },
       { href: "/insights", label: "Insights" },
+      { href: "/changelog", label: "Changelog" },
+      { href: "/roadmap", label: "Roadmap" },
+      { href: "/status", label: "Status" },
       { href: "/contact", label: "Contact" },
     ],
   },
@@ -105,6 +79,7 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
       { href: "/legal/terms#refunds", label: "Refunds" },
       { href: "/legal/privacy", label: "Privacy" },
       { href: "/legal/disclaimers", label: "Disclaimers" },
+      { href: "/security-audit", label: "Security audit" },
     ],
   },
 ];

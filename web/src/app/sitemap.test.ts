@@ -87,6 +87,12 @@ describe("sitemap — funding surfaces", () => {
     }
   });
 
+  it("lists /product and /samples — the G17 intro page and sample gallery", async () => {
+    const urls = (await entries()).map((e) => e.url);
+    expect(urls).toContain(`${SITE}/product`);
+    expect(urls).toContain(`${SITE}/samples`);
+  });
+
   it("lists /methodology + its VI twin with hreflang next to the S39 calibration page (G14-S36)", async () => {
     const all = await entries();
     const urls = all.map((e) => e.url);

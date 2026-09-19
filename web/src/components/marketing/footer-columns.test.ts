@@ -1,8 +1,12 @@
-// Colocated guard for the shared footer columns (G11 T0238). The footers
-// are now the only public surface for Product / For / Docs / Startup Index,
-// and the Funding column must mirror the "Get funding" dropdown.
+// Colocated guard for the shared footer columns (G17 D5, 2026-09-19; was
+// G11 T0238). The footer is the one place the depth that left the five-entry
+// bar still surfaces on every page — the money rail, the free tools, the
+// case studies, the docs rows — so every one of those hrefs is pinned here,
+// and every href must resolve to a page on disk (D7: nothing may 404).
 
 import { describe, expect, it } from "vitest";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { FOOTER_COLUMNS } from "./footer-columns";
 import { MENU } from "@/components/landing/nav-v2";
 
@@ -12,86 +16,93 @@ function column(title: string) {
   return col;
 }
 
-describe("FOOTER_COLUMNS", () => {
-  it("leads with a Funding column that mirrors the Get funding dropdown", () => {
-    expect(FOOTER_COLUMNS[0].title).toBe("Funding");
-    const hrefs = column("Funding").items.map((i) => i.href);
-    expect(hrefs).toEqual([
-      "/funding/grants",
-      "/funding/programs",
-      "/funding",
-      "/tools/rnd-tax",
-      "/tools/esic",
-      "/insights/non-dilutive-funding-strategies-australia",
-    ]);
-    const funding = MENU.find((e) => e.key === "funding");
-    expect(funding?.kind).toBe("group");
-    if (funding?.kind === "group") {
-      for (const h of ["/funding/grants", "/funding/programs", "/funding", "/tools/rnd-tax"]) {
-        expect(funding.items.map((i) => i.href)).toContain(h);
-      }
-    }
+const APP_DIR = resolve(__dirname, "../../app");
+
+/**
+ * Does `src/app/**` hold a page for this path? Route groups are ignored and
+ * query/hash stripped; the legal docs are one `[doc]` route whose
+ * `generateStaticParams` lists terms / privacy / disclaimers.
+ */
+function pageExists(href: string): boolean {
+  const path = href.split(/[?#]/)[0]!;
+  const segs = path.split("/").filter(Boolean);
+  const groups = ["", "(marketing)", "(app)"];
+  if (groups.some((g) => existsSync(resolve(APP_DIR, g, ...segs, "page.tsx")))) return true;
+  const dynamic = [...segs.slice(0, -1), "[doc]"];
+  return groups.some((g) => existsSync(resolve(APP_DIR, g, ...dynamic, "page.tsx")));
+}
+
+describe("FOOTER_COLUMNS — four columns (G17 D5)", () => {
+  it("is exactly Product · For · Company · Legal, in that order", () => {
+    expect(FOOTER_COLUMNS.map((c) => c.title)).toEqual(["Product", "For", "Company", "Legal"]);
   });
 
-  it("absorbs the entries that left the top nav", () => {
+  it("Product leads with the intro page and the samples, then keeps the money rail, tools, pricing and docs", () => {
     const product = column("Product").items.map((i) => i.href);
+    expect(product.slice(0, 2)).toEqual(["/product", "/samples"]);
     expect(product).toEqual(
-      expect.arrayContaining(["/features", "/startup-index", "/solutions/founder#captable"]),
+      expect.arrayContaining([
+        "/features",
+        "/how-it-works",
+        "/methodology",
+        "/startup-index",
+        "/funding",
+        "/funding/grants",
+        "/funding/programs",
+        "/tools",
+        "/pricing",
+        "/docs",
+      ]),
     );
-    expect(column("For").items.map((i) => i.href)).toEqual([
-      "/solutions/founder",
-      "/solutions/investor",
-      "/solutions/advisor",
-      "/solutions/accelerator",
-      "/pilot",
+    // Every plain-link entry of the bar is also in the footer.
+    for (const e of MENU) if (e.kind === "link") expect(product, e.href).toContain(e.href);
+  });
+
+  it("For mirrors the Solutions dropdown, keeps the pilot (G16-C) and hosts the case studies", () => {
+    const solutions = MENU.find((e) => e.key === "solutions");
+    expect(solutions?.kind).toBe("group");
+    const forHrefs = column("For").items.map((i) => i.href);
+    if (solutions?.kind === "group") {
+      for (const i of solutions.items) expect(forHrefs, i.href).toContain(i.href);
+    }
+    expect(forHrefs).toEqual(
+      expect.arrayContaining(["/pilot", "/showcase/atlassian?step=1", "/showcase", "/compare"]),
+    );
+    expect(column("For").items.find((i) => i.href === "/showcase/atlassian?step=1")?.label).toMatch(/atlassian/i);
+  });
+
+  it("Company carries About · Team · Invest in BlockID (/about/invest, never /investors) · Benchmarks · Insights · Changelog · Roadmap · Status · Contact", () => {
+    expect(column("Company").items.map((i) => [i.label, i.href])).toEqual([
+      ["About", "/about"],
+      ["Team", "/team"],
+      ["Invest in BlockID", "/about/invest"],
+      ["AU Benchmarks", "/benchmarks"],
+      ["Insights", "/insights"],
+      ["Changelog", "/changelog"],
+      ["Roadmap", "/roadmap"],
+      ["Status", "/status"],
+      ["Contact", "/contact"],
     ]);
-    expect(column("Docs").items.map((i) => i.href)).toEqual(
-      expect.arrayContaining(["/changelog", "/roadmap", "/team", "/status", "/security-audit"]),
-    );
-  });
-
-  it("links the comparison page from the Docs column (T0274)", () => {
-    const compare = column("Docs").items.find((i) => i.href === "/compare");
-    expect(compare?.label).toBe("Compare");
-  });
-
-  it("links the public methodology from the Docs column (G14-S36)", () => {
-    const methodology = column("Docs").items.find((i) => i.href === "/methodology");
-    expect(methodology?.label).toBe("Methodology");
-  });
-
-  it("links nowhere that needs a session", () => {
     const all = FOOTER_COLUMNS.flatMap((c) => c.items.map((i) => i.href));
-    expect(all.some((h) => h.startsWith("/workspace") || h.startsWith("/dashboard"))).toBe(false);
-    expect(new Set(all).size).toBe(all.length);
+    expect(all).not.toContain("/investors");
   });
-});
 
-describe("FOOTER_COLUMNS — Legal column (QA-3, 2026-09-12)", () => {
-  it("links the one refund policy (Terms clause 3A) next to Terms", () => {
+  it("Legal keeps the one refund policy (Terms clause 3A) next to Terms, plus the security audit", () => {
     const legal = column("Legal").items.map((i) => i.href);
     expect(legal).toEqual([
       "/legal/terms",
       "/legal/terms#refunds",
       "/legal/privacy",
       "/legal/disclaimers",
+      "/security-audit",
     ]);
     expect(column("Legal").items.find((i) => i.href === "/legal/terms#refunds")?.label).toBe("Refunds");
   });
-});
 
-// G13-W5-IA5 — the Company column the legacy site/footer.tsx carried is now
-// in the shared list (one footer), and it links the renamed invest pitch.
-describe("FOOTER_COLUMNS — Company column (S-IA5)", () => {
-  it("carries About · Invest in BlockID (/about/invest, never /investors) · AU Benchmarks · Insights · Contact", () => {
-    expect(column("Company").items.map((i) => [i.label, i.href])).toEqual([
-      ["About", "/about"],
-      ["Invest in BlockID", "/about/invest"],
-      ["AU Benchmarks", "/benchmarks"],
-      ["Insights", "/insights"],
-      ["Contact", "/contact"],
-    ]);
+  it("every href resolves to a page.tsx under src/app, is unique, and never needs a session", () => {
     const all = FOOTER_COLUMNS.flatMap((c) => c.items.map((i) => i.href));
-    expect(all).not.toContain("/investors");
+    for (const href of all) expect(pageExists(href), href).toBe(true);
+    expect(new Set(all).size).toBe(all.length);
+    expect(all.some((h) => h.startsWith("/workspace") || h.startsWith("/dashboard"))).toBe(false);
   });
 });

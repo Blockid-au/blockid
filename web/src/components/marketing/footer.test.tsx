@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { FOOTER_COLUMNS } from "./footer-columns";
-import { Footer, FOOTER_DISCLAIMER, FOOTER_ENTITY } from "./footer";
+import { Footer, FOOTER_DISCLAIMER, FOOTER_ENTITY, FOOTER_LANGUAGES } from "./footer";
 
 const html = renderToStaticMarkup(<Footer />);
 
@@ -23,12 +23,16 @@ describe("Footer — the one public footer", () => {
     expect(html).toContain("Site footer");
   });
 
-  it("carries every column from footer-columns.ts, Company included", () => {
+  it("carries every column from footer-columns.ts — the four G17 columns — plus the EN / VI language links", () => {
     for (const col of FOOTER_COLUMNS) {
       expect(html, col.title).toContain(`>${col.title}<`);
       for (const item of col.items) expect(html, item.href).toContain(`href="${item.href}"`);
     }
-    expect(FOOTER_COLUMNS.map((c) => c.title)).toContain("Company");
+    expect(FOOTER_COLUMNS.map((c) => c.title)).toEqual(["Product", "For", "Company", "Legal"]);
+    expect(FOOTER_LANGUAGES.map((l) => l.href)).toEqual(["/", "/vi"]);
+    expect(html).toMatch(/<a[^>]*hrefLang="vi"[^>]*href="\/vi"|<a[^>]*href="\/vi"[^>]*hrefLang="vi"|hreflang="vi"/i);
+    expect(html).toContain("Tiếng Việt");
+    expect(html).toMatch(/aria-label="Language"/);
   });
 
   it("entity lines are the marketing entity, verbatim, and never the billing entity", () => {

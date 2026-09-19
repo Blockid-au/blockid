@@ -4,10 +4,13 @@
  * Pins the top-nav IA contracts stated in the goal doc:
  *   - Anonymous visitors on every public page (S-IA5: ONE header — NavV2 on
  *     /pricing, /docs, /auth/login, /tools/esic, /about/invest alike) see
- *     <=7 nav items (five since G11 T0238: Get my score · Get funding ·
- *     Free tools · Pricing · Demo), a "Get funding" dropdown, the "Do you
- *     need money?" CTA, AND a Demo link that points at
- *     /showcase/atlassian?step=1. The legacy site/navbar is deleted.
+ *     exactly five nav items (G17 D4, 2026-09-19: Product · Solutions ·
+ *     Samples · Pricing · Docs), a "Solutions" dropdown listing the four
+ *     persona landings, and the "Score a startup" CTA → /analyze. The
+ *     Atlassian walkthrough (G7 Q2) is no longer a top-nav dropdown: it is
+ *     linked from /samples and from the footer on every page, and
+ *     /showcase/atlassian?step=1 must still resolve. The legacy site/navbar
+ *     is deleted.
  *   - Logged-in founders on /workspace/plan get the JourneyStepLadder rendered
  *     (moved off /dashboard in G13-W3-IA3; /dashboard is the five-block landing).
  *   - Logged-in founders see the Demo link in the workspace top-bar.
@@ -33,10 +36,11 @@ const WORKSPACE_NAV = 'nav[aria-label="Workspace navigation"]';
  * S-IA5 (G13-W5): the same assertions on every kind of public page —
  * marketing shell, docs, a free tool, the auth page (light skin) and the
  * renamed invest pitch. One header means one contract; the loop keeps the
- * per-page assertions identical (≤ 7 top items, Demo reachable, funding
- * dropdown, money CTA).
+ * per-page assertions identical (the five G17 labels, the Solutions
+ * dropdown, the Score a startup CTA).
  */
 const PUBLIC_HEADER_PAGES: ReadonlyArray<{ path: string; variant: "dark" | "light" }> = [
+  { path: "/", variant: "dark" },
   { path: "/pricing", variant: "dark" },
   { path: "/docs", variant: "dark" },
   { path: "/tools/esic", variant: "dark" },
@@ -44,11 +48,14 @@ const PUBLIC_HEADER_PAGES: ReadonlyArray<{ path: string; variant: "dark" | "ligh
   { path: "/auth/login", variant: "light" },
 ];
 
+/** G17 D4 — the five top-level labels, in order. */
+const NAV_LABELS = ["Product", "Solutions", "Samples", "Pricing", "Docs"] as const;
+
 test.describe("Menu structure — anonymous visitor (NavV2, the one header)", () => {
   test.setTimeout(30_000);
 
   for (const { path, variant } of PUBLIC_HEADER_PAGES) {
-    test(`${path} top-nav: ≤ 7 items, Demo + Get funding dropdowns, money CTA (${variant} skin)`, async ({
+    test(`${path} top-nav: exactly the five G17 items, Solutions dropdown, Score a startup CTA (${variant} skin)`, async ({
       page,
     }) => {
       await page.goto(path);
@@ -60,44 +67,65 @@ test.describe("Menu structure — anonymous visitor (NavV2, the one header)", ()
       const primary = page.locator('nav[aria-label="Primary"]').first();
       await expect(primary).toBeVisible({ timeout: 15_000 });
 
-      // Count top-level items — expect <=7. NavV2 uses <ul><li>* structure.
+      // Exactly five top-level items, in the D4 order. NavV2 uses <ul><li>*.
       const topLevel = primary.locator(":scope > ul > li");
-      const count = await topLevel.count();
-      expect(count).toBeGreaterThan(0);
-      expect(count).toBeLessThanOrEqual(7);
+      await expect(topLevel).toHaveCount(NAV_LABELS.length);
+      const labels = (await topLevel.allInnerTexts()).map((t) => t.trim());
+      expect(labels).toEqual([...NAV_LABELS]);
 
-      // A Demo trigger exists (as a dropdown BUTTON). We look for its
-      // visible label rather than the sublink, because dropdowns collapse.
-      const demoTrigger = primary.getByRole("button", { name: /^demo$/i });
-      await expect(demoTrigger).toBeVisible();
+      // Solutions is the one dropdown BUTTON; Product / Samples / Pricing /
+      // Docs are plain links to their pages.
+      await expect(primary.getByRole("button", { name: /^solutions$/i })).toBeVisible();
+      for (const [label, href] of [["Product", "/product"], ["Samples", "/samples"], ["Pricing", "/pricing"], ["Docs", "/docs"]] as const) {
+        const link = topLevel.getByRole("link", { name: new RegExp(`^${label}$`, "i") });
+        await expect(link).toBeVisible();
+        expect(await link.getAttribute("href")).toBe(href);
+      }
+      await expect(primary.getByRole("button", { name: /^demo$/i })).toHaveCount(0);
+      await expect(primary.getByRole("button", { name: /^get funding$/i })).toHaveCount(0);
 
-      // G11 T0238 — the money rail is a dropdown button too, and the
-      // primary CTA is "Do you need money?" → /funding?intent=money (the
-      // old "Start free" bounced anonymous visitors to login). The CTA lives
-      // in the desktop CTA row, so it is scoped to the nav, not the <ul>.
-      const fundingTrigger = primary.getByRole("button", { name: /^get funding$/i });
-      await expect(fundingTrigger).toBeVisible();
-      const moneyCta = primary.getByRole("link", { name: /^do you need money\?$/i });
-      await expect(moneyCta).toBeVisible({ timeout: 15_000 });
-      expect(await moneyCta.getAttribute("href")).toBe("/funding?intent=money");
+      // G17 D1/D4 — the primary CTA is "Score a startup" → /analyze. It
+      // lives in the desktop CTA row, so it is scoped to the nav, not the <ul>.
+      const cta = primary.getByRole("link", { name: /^score a startup$/i });
+      await expect(cta).toBeVisible({ timeout: 15_000 });
+      expect(await cta.getAttribute("href")).toBe("/analyze");
+      expect(await cta.getAttribute("data-cta-id")).toBe("score_startup");
+      await expect(primary.getByRole("link", { name: /^do you need money\?$/i })).toHaveCount(0);
       await expect(primary.getByRole("link", { name: /^start free$/i })).toHaveCount(0);
     });
 
-    test(`${path}: Get funding dropdown lists the grant and program directories`, async ({
+    test(`${path}: Solutions dropdown lists Investors · Accelerators · Advisors · Founders`, async ({
       page,
     }) => {
       await page.goto(path);
       const primary = page.locator('nav[aria-label="Primary"]').first();
-      const fundingTrigger = primary.getByRole("button", { name: /^get funding$/i });
-      await expect(fundingTrigger).toBeVisible({ timeout: 15_000 });
-      await fundingTrigger.click();
-      const grants = primary.getByRole("menuitem", { name: /grants for my startup/i });
-      await expect(grants).toBeVisible({ timeout: 5_000 });
-      expect(await grants.getAttribute("href")).toBe("/funding/grants");
-      const programs = primary.getByRole("menuitem", { name: /startup programs by city/i });
-      expect(await programs.getAttribute("href")).toBe("/funding/programs");
+      const trigger = primary.getByRole("button", { name: /^solutions$/i });
+      await expect(trigger).toBeVisible({ timeout: 15_000 });
+      await trigger.click();
+      for (const [name, href] of [
+        [/^investors$/i, "/solutions/investor"],
+        [/^accelerators$/i, "/solutions/accelerator"],
+        [/^advisors$/i, "/solutions/advisor"],
+        [/^founders$/i, "/solutions/founder"],
+      ] as const) {
+        const item = primary.getByRole("menuitem", { name });
+        await expect(item).toBeVisible({ timeout: 5_000 });
+        expect(await item.getAttribute("href")).toBe(href);
+      }
     });
   }
+
+  test("G17 D5 — the footer is the same four columns on every marketing page and links the Atlassian demo", async ({ page }) => {
+    for (const path of ["/", "/product", "/samples", "/pricing"]) {
+      await page.goto(path);
+      const footer = page.locator("footer[aria-labelledby='marketing-footer-heading']");
+      await expect(footer, `${path} footer`).toHaveCount(1, { timeout: 15_000 });
+      for (const col of ["Product", "For", "Company", "Legal"]) {
+        await expect(footer.getByText(col, { exact: true }).first(), `${path} ${col}`).toBeVisible();
+      }
+      await expect(footer.locator('a[href="/showcase/atlassian?step=1"]'), `${path} demo link`).toHaveCount(1);
+    }
+  });
 
   test("/investors is a permanent redirect to /about/invest (F2); /investor stays the persona landing", async ({
     request,
@@ -122,29 +150,28 @@ test.describe("Menu structure — anonymous visitor (NavV2, the one header)", ()
   });
 });
 
-test.describe("Menu structure — Demo reachable from docs + login (S-IA5: same NavV2)", () => {
+test.describe("Menu structure — samples + product reachable from the bar (G17 D4)", () => {
   test.setTimeout(30_000);
 
   for (const path of ["/docs", "/auth/login"]) {
-    test(`${path} header exposes the Demo dropdown with the Atlassian journey`, async ({ page }) => {
+    test(`${path} header links /samples, which hosts the Atlassian walkthrough`, async ({ page }) => {
       await page.goto(path);
-      // Look for the "Demo" button trigger — dropdowns are rendered as
-      // <button> so we anchor on that.
-      const demo = page.getByRole("button", { name: /^demo$/i }).first();
-      await expect(demo).toBeVisible({ timeout: 15_000 });
-      // Open the dropdown; assert the Atlassian sub-link appears.
-      await demo.click();
-      // Dropdown entries carry role="menuitem" (G7-P7 a11y contract:
-      // aria-haspopup="menu" trigger + menuitem children), so query by that
-      // role rather than "link". Same NavV2 markup as the homepage.
-      const atlassianLink = page.getByRole("menuitem", {
-        name: /atlassian journey/i,
-      });
-      await expect(atlassianLink.first()).toBeVisible({ timeout: 5_000 });
-      const href = await atlassianLink.first().getAttribute("href");
-      expect(href).toContain("/showcase/atlassian");
+      const samples = page.locator('nav[aria-label="Primary"]').first().getByRole("link", { name: /^samples$/i });
+      await expect(samples).toBeVisible({ timeout: 15_000 });
+      await samples.click();
+      await page.waitForURL(/\/samples$/, { timeout: 15_000 });
+      const atlassian = page.locator('a[href="/showcase/atlassian?step=1"]');
+      await expect(atlassian.first()).toBeVisible({ timeout: 15_000 });
     });
   }
+
+  test("/product carries the legacy homepage anchors (#worth, #state, #next) and /product#worth scrolls to a heading", async ({ page }) => {
+    await page.goto("/product#worth");
+    for (const id of ["worth", "state", "journey", "next", "unlock"]) {
+      await expect(page.locator(`section#${id}`), id).toHaveCount(1, { timeout: 15_000 });
+    }
+    await expect(page.locator("h2#worth-heading")).toBeVisible();
+  });
 });
 
 test.describe("Menu structure — founder logged-in dashboard", () => {
@@ -406,7 +433,7 @@ test.describe("Menu structure — a11y landmarks", () => {
     await page.goto("/pricing");
     const primary = page.locator('nav[aria-label="Primary"]').first();
     await expect(primary).toBeVisible({ timeout: 15_000 });
-    // Every dropdown trigger (Get funding / Free tools / Demo) must have
+    // Every dropdown trigger (Solutions since G17) must have
     // aria-haspopup="menu" — the WAI-ARIA APG value for menu disclosures.
     const triggers = primary.locator('button[aria-haspopup]');
     const n = await triggers.count();

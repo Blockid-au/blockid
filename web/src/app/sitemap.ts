@@ -345,6 +345,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         },
       },
     },
+    // G17 D4 (2026-09-19) — the intro page and the sample gallery that
+    // re-home the depth the homepage used to carry.
+    {
+      url: `${SITE_URL}/product`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
+      url: `${SITE_URL}/samples`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
     // Workstream D2 (2026-09-07) — /features surfaces 8 previously
     // under-promised capabilities (cohort percentile, per-investor
     // tracked links, ATO tax invoice, dividend engine, 17 free tools,

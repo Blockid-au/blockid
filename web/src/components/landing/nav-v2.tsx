@@ -17,7 +17,7 @@
  *  - Only ONE dropdown open at a time; clicking a link closes it.
  *  - Auth-aware (T0238): `useAuthUser()` asks /api/auth/me after hydration,
  *    so the header stays mountable on statically generated pages. Signed
- *    out → "Sign in" + the "Do you need money?" CTA; signed in → "My
+ *    out → "Sign in" + the "Score a startup" CTA (G17); signed in → "My
  *    workspace" + the account menu; a neutral skeleton while resolving.
  *  - The ONLY public header (G13-W5-IA5, spec §E S-IA5). `site/navbar.tsx`
  *    — the floating glass bar ~50 app / docs / tools / auth pages mounted —
@@ -206,106 +206,54 @@ export type MenuEntry = MenuGroup | MenuLink;
  * The site's one primary navigation. Until G13-W5-IA5 a second bar
  * (site/navbar.tsx, ~50 app and docs pages) derived its items from this
  * list; that bar is gone and every public page mounts NavV2 itself, so the
- * menu cannot drift again (the legacy copy once still offered "Trust
- * Reports" and "Browse startups" after both were retired everywhere else).
+ * menu cannot drift again.
  *
- * G11 T0238 (2026-09-10, docs/plans/money-finder-2026-09-10.md §3a): five
- * entries, ordered the way a founder reads the site — score, money, tools,
- * price, proof. Product / For / Startup Index / Docs / Team / Features moved
- * to the footers (marketing-footer.tsx, site/footer.tsx). The top level is
- * capped at seven by tests/e2e/nav/menu-structure.spec.ts, which also pins
- * "Demo" as a dropdown BUTTON whose first item is the Atlassian journey.
+ * G17 D4 (2026-09-19, docs/plans/unicorn-homepage-2026-09-19.md): FIVE
+ * entries — Product · Solutions · Samples · Pricing · Docs — read the way an
+ * evaluator reads the site: what it is, who it is for, what it produces,
+ * what it costs, how it works. The depth the old bar carried (the money
+ * rail, the 16 free tools, the six demo journeys) did not go away: the
+ * footer (`marketing/footer-columns.ts`) keeps Funding / Tools / Case
+ * studies rows, `/product` re-homes the homepage sections, `/samples`
+ * hosts the sample runs + the Atlassian walkthrough, and `/solutions/*`
+ * are the persona landings. Every href here resolves to a page on disk
+ * (the colocated test walks src/app); the top level is pinned at five by
+ * tests/e2e/nav/menu-structure.spec.ts.
  */
 export const MENU: MenuEntry[] = [
-  { kind: "link", key: "score", label: "Get my score", href: "/analyze" },
+  { kind: "link", key: "product", label: "Product", href: "/product" },
   {
-    // The money rail. /funding* pages ship under T0241/T0242 — link only.
     kind: "group",
-    key: "funding",
-    label: "Get funding",
+    key: "solutions",
+    label: "Solutions",
     width: "w-64",
     items: [
-      { label: "Grants for my startup", href: "/funding/grants" },
-      { label: "Startup programs by city", href: "/funding/programs" },
-      { label: "Do you need money?", href: "/funding" },
-      { label: "Investor readiness", href: "/tools/funding-plan" },
-      { label: "R&D Tax & ESIC", href: "/tools/rnd-tax" },
+      { label: "Investors", href: "/solutions/investor" },
+      { label: "Accelerators", href: "/solutions/accelerator" },
+      { label: "Advisors", href: "/solutions/advisor" },
+      { label: "Founders", href: "/solutions/founder" },
     ],
   },
-  {
-    // Workstream A7 surfaced all 16 /tools/* routes here; T0238 trims the
-    // dropdown to the eight most used and points at /tools for the rest.
-    kind: "group",
-    key: "tools",
-    label: "Free tools",
-    width: "w-80",
-    items: [],
-    sections: [
-      {
-        heading: "Idea",
-        items: [
-          { label: "Idea Valuation", href: "/tools/idea-valuation" },
-          { label: "Idea Lab", href: "/tools/idea-lab" },
-          { label: "SAFE Calculator", href: "/tools/safe-calculator" },
-        ],
-      },
-      {
-        heading: "Cap Table",
-        items: [
-          { label: "Cap Table", href: "/tools/cap-table" },
-          { label: "Dilution", href: "/tools/dilution" },
-        ],
-      },
-      {
-        heading: "Fundraise & AU compliance",
-        items: [
-          { label: "Funding Plan", href: "/tools/funding-plan" },
-          { label: "ESIC", href: "/tools/esic" },
-          { label: "R&D Tax", href: "/tools/rnd-tax" },
-        ],
-      },
-      {
-        heading: "Everything",
-        items: [{ label: "All 16 tools →", href: "/tools" }],
-      },
-    ],
-  },
+  { kind: "link", key: "samples", label: "Samples", href: "/samples" },
   { kind: "link", key: "pricing", label: "Pricing", href: "/pricing" },
-  {
-    // ux-ia-startup-flow-v1 §C.1 + §C.7 — global Demo entry-point so a
-    // visitor can always see the platform end-to-end before signup. First
-    // sub-link is the Atlassian walkthrough (deep-linked to step 1).
-    kind: "group",
-    key: "demo",
-    label: "Demo",
-    width: "w-64",
-    items: [
-      { label: "Atlassian journey (live)", href: "/showcase/atlassian?step=1" },
-      { label: "Sprocketbay journey", href: "/showcase/sprocketbay" },
-      { label: "BlockID journey", href: "/showcase/blockid" },
-      { label: "Canva journey", href: "/showcase/canva" },
-      { label: "Xero journey", href: "/showcase/xero" },
-      { label: "SafetyCulture journey", href: "/showcase/safetyculture" },
-      { label: "All case studies", href: "/showcase" },
-    ],
-  },
-  // Workstream A7 — Compare dropdown hidden for this iteration. Dedicated
-  // /vs/<slug> pages don't exist yet, and the old entries just funnelled
-  // into /pricing?compare= which measured intent without delivering it.
-  // Restore once real comparison pages ship.
+  { kind: "link", key: "docs", label: "Docs", href: "/docs" },
 ];
 
 /**
- * Primary CTA (G11 §3a). Replaces "Start free" → /onboarding, which bounced
- * every anonymous visitor to the login page. The href carries the intent so
- * the /funding landing can open on the right step; the click is reported as
- * `cta_clicked { cta_id: "need_money", location }`.
+ * Primary CTA (G17 D1/D4). "Score a startup" → /analyze — the evaluator's
+ * verb, and the same page the homepage omnibox hands off to. Replaces
+ * "Do you need money?" → /funding?intent=money (G11 §3a), which now lives
+ * on the founder solutions page and in the footer Funding row. The click
+ * is reported as `cta_clicked { cta_id: "score_startup", location }`.
  */
-export const NEED_MONEY_CTA = {
-  label: "Do you need money?",
-  href: "/funding?intent=money",
-  ctaId: "need_money",
+export const PRIMARY_CTA = {
+  label: "Score a startup",
+  href: "/analyze",
+  ctaId: "score_startup",
 } as const;
+
+/** @deprecated G17 — kept as an alias for one release so nothing that imported it breaks; use PRIMARY_CTA. */
+export const NEED_MONEY_CTA = PRIMARY_CTA;
 
 /** Signed-in replacement for the Sign in / money pair. */
 export const WORKSPACE_LINK = { label: "My workspace", href: "/dashboard" } as const;
@@ -715,8 +663,8 @@ function UserMenu({ user }: { user: AuthUser }) {
 // Top-level NavV2
 // ---------------------------------------------------------------------------
 
-function trackNeedMoney(location: "nav" | "nav_mobile") {
-  trackEvent("cta_clicked", { cta_id: NEED_MONEY_CTA.ctaId, location });
+function trackPrimaryCta(location: "nav" | "nav_mobile") {
+  trackEvent("cta_clicked", { cta_id: PRIMARY_CTA.ctaId, location });
 }
 
 export interface NavV2Props {
@@ -859,7 +807,7 @@ export function NavV2({ variant = "dark" }: NavV2Props = {}) {
         </Link>
 
         {/* Desktop links */}
-        <ul className="hidden items-center gap-1 xl:flex">
+        <ul className="hidden items-center gap-1 lg:flex">
           {MENU.map((entry) => {
             if (entry.kind === "link") {
               return (
@@ -897,7 +845,7 @@ export function NavV2({ variant = "dark" }: NavV2Props = {}) {
         {/* Desktop CTAs — auth-aware. The header is rendered on static
             pages, so auth state arrives client-side via /api/auth/me; a
             neutral skeleton holds the width until it resolves. */}
-        <div className="hidden items-center gap-3 xl:flex">
+        <div className="hidden items-center gap-3 lg:flex">
           <LocaleSwitcher />
           {user === undefined ? (
             <div
@@ -924,12 +872,12 @@ export function NavV2({ variant = "dark" }: NavV2Props = {}) {
                 Sign in
               </Link>
               <Link
-                href={NEED_MONEY_CTA.href}
-                data-cta-id={NEED_MONEY_CTA.ctaId}
-                onClick={() => trackNeedMoney("nav")}
+                href={PRIMARY_CTA.href}
+                data-cta-id={PRIMARY_CTA.ctaId}
+                onClick={() => trackPrimaryCta("nav")}
                 className={`whitespace-nowrap inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${t.cta} ${t.ring} ${t.ringOffset}`}
               >
-                {NEED_MONEY_CTA.label}
+                {PRIMARY_CTA.label}
               </Link>
             </>
           )}
@@ -939,7 +887,7 @@ export function NavV2({ variant = "dark" }: NavV2Props = {}) {
         <button
           ref={mobileToggleRef}
           type="button"
-          className={`inline-flex h-10 w-10 items-center justify-center rounded-lg xl:hidden focus:outline-none focus-visible:ring-2 ${t.mobileToggle} ${t.ring}`}
+          className={`inline-flex h-10 w-10 items-center justify-center rounded-lg lg:hidden focus:outline-none focus-visible:ring-2 ${t.mobileToggle} ${t.ring}`}
           aria-expanded={mobileOpen}
           aria-controls="nav-v2-mobile-menu"
           aria-label={mobileOpen ? "Close menu" : "Open menu"}
@@ -958,7 +906,7 @@ export function NavV2({ variant = "dark" }: NavV2Props = {}) {
         <nav
           id="nav-v2-mobile-menu"
           aria-label="Mobile"
-          className={`max-h-[calc(100dvh-4rem)] overflow-y-auto px-4 pb-4 pt-2 xl:hidden ${t.mobilePanel}`}
+          className={`max-h-[calc(100dvh-4rem)] overflow-y-auto px-4 pb-4 pt-2 lg:hidden ${t.mobilePanel}`}
         >
           <ul className="flex flex-col gap-1">
             {MENU.map((entry) =>
@@ -983,7 +931,7 @@ export function NavV2({ variant = "dark" }: NavV2Props = {}) {
           </ul>
           <div className={`mt-3 flex flex-col gap-2 border-t pt-3 ${t.divider}`}>
             {/* Language lived only in the desktop CTA row until the nav
-                breakpoint moved to xl (1280px), which would have taken EN/VI away
+                breakpoint moved up (xl, now lg since G17), which would have taken EN/VI away
                 from every screen below that. */}
             <div className="flex justify-start pb-1">
               <LocaleSwitcher />
@@ -1032,15 +980,15 @@ export function NavV2({ variant = "dark" }: NavV2Props = {}) {
             ) : (
               <>
                 <Link
-                  href={NEED_MONEY_CTA.href}
-                  data-cta-id={NEED_MONEY_CTA.ctaId}
+                  href={PRIMARY_CTA.href}
+                  data-cta-id={PRIMARY_CTA.ctaId}
                   onClick={() => {
-                    trackNeedMoney("nav_mobile");
+                    trackPrimaryCta("nav_mobile");
                     handleLinkActivate();
                   }}
                   className={`inline-flex h-11 items-center justify-center rounded-lg px-4 text-sm font-semibold focus:outline-none focus-visible:ring-2 ${t.cta} ${t.ring}`}
                 >
-                  {NEED_MONEY_CTA.label}
+                  {PRIMARY_CTA.label}
                 </Link>
                 <Link
                   href="/auth/login"
