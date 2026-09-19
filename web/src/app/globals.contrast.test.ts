@@ -111,3 +111,44 @@ describe("globals.css dark scopes keep the same tokens AA on the dark ground", (
     });
   }
 });
+
+// G17 D6 (docs/design/unicorn-template.md) — the violet accent ramp and its
+// semantic pair. The ramp is decorative (ring gradient, eyebrow pills, focus
+// rings); the only step allowed as TEXT is `--ds-highlight`, which must stay
+// AA on white (light) and on the dark ground (both dark scopes). The ring
+// endpoints are tokens, not hex, so the conic gradient re-tints per theme.
+describe("globals.css G17 accent tokens (violet) are AA where they carry text", () => {
+  it("declares the ten-step accent ramp with #7c3aed at 600 and the two-level shadow + motion tokens", () => {
+    for (const step of ["50", "100", "200", "300", "400", "500", "600", "700", "800", "900"]) {
+      expect(light.get(`color-accent-${step}`), `accent-${step}`).toMatch(/^#[0-9a-f]{6}$/);
+    }
+    expect(light.get("color-accent-600")).toBe("#7c3aed");
+    const theme = themeBlock();
+    for (const token of ["--shadow-1:", "--shadow-2:", "--dur-fast: 150ms", "--dur-base: 200ms", "--ease-out:", "--color-accent: var(--ds-highlight)"]) {
+      expect(theme, token).toContain(token);
+    }
+  });
+
+  it("--ds-highlight (text-accent) is ≥ 4.5:1 on white in the light scopes and on the dark ground in both dark scopes", () => {
+    const root = cssHexTokens(CSS.slice(CSS.indexOf(":root {"), CSS.indexOf("\n}\n", CSS.indexOf(":root {"))));
+    expect(root.get("ds-highlight")).toBe("#6d28d9");
+    expect(contrastRatio(root.get("ds-highlight")!, WHITE)).toBeGreaterThanOrEqual(AA_TEXT);
+    expect(contrastRatio(root.get("ds-highlight")!, OFF_WHITE)).toBeGreaterThanOrEqual(AA_TEXT);
+    expect(contrastRatio(light.get("color-accent-600")!, WHITE), "accent-600 (ring / focus) on white").toBeGreaterThanOrEqual(AA_TEXT);
+    for (const [label, block] of [["[data-theme=dark]", darkBlock()], ["prefers-color-scheme: dark", osDarkBlock()]] as const) {
+      const dark = cssHexTokens(block);
+      expect(dark.get("ds-highlight"), `${label} ds-highlight declared`).toBeTruthy();
+      expect(contrastRatio(dark.get("ds-highlight")!, dark.get("color-surface-50")!), `${label} ds-highlight`).toBeGreaterThanOrEqual(AA_TEXT);
+      for (const name of ["ds-ring-start", "ds-ring-end"]) expect(dark.get(name), `${label} ${name}`).toMatch(/^#[0-9a-f]{6}$/);
+    }
+  });
+
+  it("the search ring gradient reads its stops from --ds-ring-start / --ds-ring-end (no raw hex) and freezes under reduced motion", () => {
+    const ring = CSS.slice(CSS.indexOf(".asf-wrap::before {"), CSS.indexOf(".asf-wrap:hover::before"));
+    expect(ring).toContain("var(--ds-ring-start) 0deg");
+    expect(ring).toContain("var(--ds-ring-end) 120deg");
+    expect(ring).not.toMatch(/#[0-9a-f]{3,6}\s+\d+deg/i);
+    const reduced = CSS.slice(CSS.indexOf("@media (prefers-reduced-motion: reduce) {\n  /* Frozen"), CSS.indexOf("@layer utilities"));
+    expect(reduced).toContain(".asf-wrap::before { animation: none;");
+  });
+});

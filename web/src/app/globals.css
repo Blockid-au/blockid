@@ -42,6 +42,21 @@
   --color-brand-800: #1e40af;
   --color-brand-900: #1e3a5f;
 
+  /* ── Accent (violet) — G17 D6 (docs/design/unicorn-template.md) ────
+     The one "unicorn" accent. Used ONLY for the search-ring gradient,
+     eyebrows and focus rings; brand blue stays the primary action colour.
+     600 (#7c3aed) is the ring / focus step; 700 is the readable-text step. */
+  --color-accent-50: #f5f3ff;
+  --color-accent-100: #ede9fe;
+  --color-accent-200: #ddd6fe;
+  --color-accent-300: #c4b5fd;
+  --color-accent-400: #a78bfa;
+  --color-accent-500: #8b5cf6;
+  --color-accent-600: #7c3aed;
+  --color-accent-700: #6d28d9;
+  --color-accent-800: #5b21b6;
+  --color-accent-900: #4c1d95;
+
   /* ── Emerald (growth / positive) ──────────────────────────── */
   --color-emerald-50: #ecfdf5;
   --color-emerald-100: #d1fae5;
@@ -173,6 +188,15 @@
   --shadow-glow-accent: 0 1px 3px rgba(0, 0, 0, 0.06),
     0 8px 28px -4px color-mix(in srgb, var(--ds-accent, #2563eb) 32%, transparent);
 
+  /* ── G17 D6: the template's TWO elevation levels (shadow-1 / shadow-2)
+       and its motion tokens. Every marketing primitive uses these and
+       nothing else; the older xs…xl scale stays for app surfaces. */
+  --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --shadow-2: 0 8px 24px -8px rgba(15, 23, 42, 0.14), 0 2px 6px -2px rgba(15, 23, 42, 0.06);
+  --dur-fast: 150ms;
+  --dur-base: 200ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
   /* ── Block 5 rev.3 (2026-09-08): expose semantic ds-* tokens as
        Tailwind v4 --color-* generators so utilities like bg-surface,
        bg-surface-raised, text-primary, text-secondary, text-muted,
@@ -200,6 +224,8 @@
   --color-on-action: var(--ds-accent-contrast);
   --color-action: var(--ds-accent);
   --color-action-hover: var(--ds-accent-hover);
+  --color-accent: var(--ds-highlight);
+  --color-accent-soft: var(--ds-highlight-soft);
   --color-bull: var(--ds-success);
   --color-bear: var(--ds-danger);
   --color-warn: var(--ds-warn);
@@ -242,6 +268,10 @@
   --ds-danger: #b91c1c;               /* bear — 7.29:1 */
   --ds-info: #1d4ed8;
   --ds-focus-ring: #1d4ed8;
+  --ds-highlight: #6d28d9;            /* accent-700 — 7.2:1 on white (G17) */
+  --ds-highlight-soft: #f5f3ff;       /* accent-50 ground for eyebrow pills */
+  --ds-ring-start: #2563eb;           /* search ring: brand-600 → accent-600 */
+  --ds-ring-end: #7c3aed;
 
   /* Semantic pill grounds (paired with the 700-shade text) */
   --ds-bg-success: #ecfdf5;
@@ -284,6 +314,10 @@
     --ds-danger: #f87171;
     --ds-info: #60a5fa;
     --ds-focus-ring: #93c5fd;
+    --ds-highlight: #c4b5fd;            /* accent-300 — 9.5:1 on #0b0f1a (G17) */
+    --ds-highlight-soft: rgba(139, 92, 246, 0.16);
+    --ds-ring-start: #60a5fa;
+    --ds-ring-end: #a78bfa;
 
     --ds-bg-success: rgba(52, 211, 153, 0.12);
     --ds-bg-warn: rgba(251, 191, 36, 0.14);
@@ -332,6 +366,8 @@
     --color-on-action: var(--ds-accent-contrast);
     --color-action: var(--ds-accent);
     --color-action-hover: var(--ds-accent-hover);
+    --color-accent: var(--ds-highlight);
+    --color-accent-soft: var(--ds-highlight-soft);
     --color-bull: var(--ds-success);
     --color-bear: var(--ds-danger);
     --color-warn: var(--ds-warn);
@@ -368,6 +404,10 @@
   --ds-danger: #f87171;
   --ds-info: #60a5fa;
   --ds-focus-ring: #93c5fd;
+  --ds-highlight: #c4b5fd;            /* accent-300 — 9.5:1 on #0b0f1a (G17) */
+  --ds-highlight-soft: rgba(139, 92, 246, 0.16);
+  --ds-ring-start: #60a5fa;
+  --ds-ring-end: #a78bfa;
 
   --ds-bg-success: rgba(52, 211, 153, 0.12);
   --ds-bg-warn: rgba(251, 191, 36, 0.14);
@@ -428,6 +468,8 @@
   --color-on-action: var(--ds-accent-contrast);
   --color-action: var(--ds-accent);
   --color-action-hover: var(--ds-accent-hover);
+  --color-accent: var(--ds-highlight);
+  --color-accent-soft: var(--ds-highlight-soft);
   --color-bull: var(--ds-success);
   --color-bear: var(--ds-danger);
   --color-warn: var(--ds-warn);
@@ -464,6 +506,10 @@
   --ds-danger: #b91c1c;
   --ds-info: #1d4ed8;
   --ds-focus-ring: #1d4ed8;
+  --ds-highlight: #6d28d9;            /* accent-700 — 7.2:1 on white (G17) */
+  --ds-highlight-soft: #f5f3ff;       /* accent-50 ground for eyebrow pills */
+  --ds-ring-start: #2563eb;           /* search ring: brand-600 → accent-600 */
+  --ds-ring-end: #7c3aed;
 
   --ds-bg-success: #ecfdf5;
   --ds-bg-warn: #fffbeb;
@@ -491,6 +537,8 @@
   --color-on-action: var(--ds-accent-contrast);
   --color-action: var(--ds-accent);
   --color-action-hover: var(--ds-accent-hover);
+  --color-accent: var(--ds-highlight);
+  --color-accent-soft: var(--ds-highlight-soft);
   --color-bull: var(--ds-success);
   --color-bear: var(--ds-danger);
   --color-warn: var(--ds-warn);
@@ -755,6 +803,25 @@ body {
 .prose-legal p  { margin-top: 0.75rem; }
 .prose-legal ul { margin-top: 0.5rem; padding-left: 1.5rem; list-style: disc; }
 
+/* ── G17 D5 — Unicorn template long-form + FAQ (components/marketing/template)
+   Token-bound descendant styles; the components only set the class. */
+.tpl-prose h2 { margin-top: 2.5rem; font-family: var(--font-space-grotesk), var(--font-inter), ui-sans-serif, system-ui, sans-serif; font-size: 1.5rem; line-height: 1.3; font-weight: 700; letter-spacing: -0.015em; color: var(--ds-ink); }
+.tpl-prose h3 { margin-top: 2rem; font-size: 1.125rem; line-height: 1.4; font-weight: 600; color: var(--ds-ink); }
+.tpl-prose p  { margin-top: 1rem; }
+.tpl-prose ul, .tpl-prose ol { margin-top: 0.75rem; padding-left: 1.5rem; }
+.tpl-prose ul { list-style: disc; }
+.tpl-prose ol { list-style: decimal; }
+.tpl-prose li + li { margin-top: 0.375rem; }
+.tpl-prose a { color: var(--ds-accent); text-underline-offset: 4px; text-decoration: underline; border-radius: 0.25rem; }
+.tpl-prose a:hover { color: var(--ds-accent-hover); }
+.tpl-prose a:focus-visible { outline: 2px solid var(--color-accent-600); outline-offset: 2px; }
+.tpl-prose strong { color: var(--ds-ink); font-weight: 600; }
+.tpl-prose table { margin-top: 1.25rem; width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.tpl-prose th, .tpl-prose td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--ds-border); }
+.tpl-prose th { color: var(--ds-ink); font-weight: 600; }
+.tpl-prose > :first-child { margin-top: 0; }
+.tpl-faq summary::-webkit-details-marker { display: none; }
+
 /* Sep 2026 — user feedback: the input frame's rotating conic-gradient
  * border read as "quay vòng" (spinning) instead of static professional
  * focus. Replaced the rotating gradient + blur glow with a single, calm
@@ -899,12 +966,15 @@ body {
   position: absolute;
   inset: 0;
   border-radius: inherit;
+  /* G17 D2 — the ring is the site's one signature effect, retokenised
+     brand blue → violet accent (no raw hex: --ds-ring-start / --ds-ring-end
+     carry the light and dark pairs). */
   background: conic-gradient(
     from var(--asf-angle),
-    #FF9F0A 0deg,
-    #1D4ED8 120deg,
-    #047857 240deg,
-    #FF9F0A 360deg
+    var(--ds-ring-start) 0deg,
+    var(--ds-ring-end) 120deg,
+    var(--ds-ring-start) 240deg,
+    var(--ds-ring-end) 360deg
   );
   opacity: 0.6;
   animation: asf-spin 12s linear infinite;
@@ -914,12 +984,15 @@ body {
 }
 .asf-wrap:hover::before { opacity: 0.85; }
 .asf-wrap:focus-within::before { opacity: 1; }
-.asf-wrap:focus-within { box-shadow: 0 0 0 4px rgba(255, 159, 10, 0.16); }
+.asf-wrap:focus-within { box-shadow: 0 0 0 4px color-mix(in srgb, var(--ds-ring-end) 22%, transparent); }
 /* Child sits above the gradient and paints the interior. Its own
    opaque background is what makes the band read as a ring. */
 .asf-wrap > * { position: relative; z-index: 1; }
 @media (prefers-reduced-motion: reduce) {
+  /* Frozen, not removed: the static two-colour band still marks the box. */
   .asf-wrap::before { animation: none; opacity: 0.6; }
+  .asf-wrap:hover::before,
+  .asf-wrap:focus-within::before { opacity: 0.85; }
 }
 
 @layer utilities {

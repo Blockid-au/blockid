@@ -1,158 +1,77 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { Briefcase, ClipboardPaste, FileText, Gauge, Handshake, Rocket } from "lucide-react";
 import { NavV2 } from "@/components/landing/nav-v2";
+import { Footer } from "@/components/marketing/footer";
 import { HeroSection } from "@/components/marketing/hero-section";
-import { LogoBand } from "@/components/marketing/logo-band";
-import { FinalCTA } from "@/components/marketing/final-cta";
-import { UnlockPreview } from "@/components/marketing/unlock-preview";
-import { TierLadder } from "@/components/marketing/homepage/tier-ladder";
+import { SampleResultCard } from "@/components/marketing/homepage/sample-result-card";
 import {
-  DimensionRadar,
-  DimensionTable,
-} from "@/components/marketing/homepage/dimension-radar";
-import { ValuationRanges } from "@/components/marketing/homepage/valuation-ranges";
-import { JourneyPath } from "@/components/marketing/homepage/journey-path";
-import { DataRoomBuild } from "@/components/marketing/homepage/data-room-build";
-import {
-  RunComparison,
-  RunComparisonLegend,
-} from "@/components/marketing/homepage/run-comparison";
-import { runById } from "@/components/marketing/homepage/sample-runs";
+  CtaBand,
+  CtaLink,
+  FeatureGrid,
+  ProofBand,
+  Section,
+  StatStrip,
+} from "@/components/marketing/template";
 import { heroLine } from "@/lib/marketing/hero-variants";
+import { formatCount, formatRhoPair, readHomeStats } from "@/lib/marketing/home-stats";
 import { pageMetadata } from "@/lib/seo/page-meta";
+import { HOME_AUDIENCES, HOME_GO_DEEPER, HOME_PROOF_ITEMS, HOME_STEPS } from "./home-content";
 
-// Homepage v5 (2026-09-08) — the page now looks like the thing the product
-// makes.
+// Homepage v6 — "Unicorn" (G17, 2026-09-19, docs/plans/unicorn-homepage-2026-09-19.md).
 //
 // WHY THE REBUILD
 //
-// v4 described the product in prose: text cards, text headings, bulleted
-// lists. But this product produces numbers and shapes — a score across
-// eight dimensions, a range settled between five valuation methods, a
-// position on a twelve-phase journey, a data room that fills up. A page
-// that looks nothing like its own output does not read as credible, and it
-// asks a visitor to take on trust exactly the thing we could simply show
-// them. v5 shows the output and lets the copy support it.
+// v5 (2026-09-08) showed the product's own output in six stacked sections
+// and a tier ladder — 448 lines, two audiences competing in the hero, a
+// price table on the home, and copy that assumed the reader knew "SVI".
+// The founder asked for a modern single-column home: a very clear hero for
+// the evaluator ladder, short and easy to grasp, no price tables, one
+// template for the whole site, and the search box with the colour-changing
+// ring kept as the one signature effect.
 //
-// PATTERN: ui-ux-pro-max "Product Demo + Features" — hero, then the
-// product's own artefact centre stage, then one artefact per section — with
-// the house "Bento Box Grid" style for tile weight inside each band. The
-// usual demo asset for that pattern is a video or a mockup; here the demo
-// asset is the real output, drawn as inline SVG and CSS from the published
-// runs, which is stronger than a screenshot and cannot go stale.
+// PATTERN (ui-ux-pro-max, 2026-09-19): "Minimal single column" — single
+// CTA focus, large type, whitespace, ≤ 3 benefits, proof BEFORE the second
+// CTA — in the flat / modern-SaaS style (one elevation scale, 150–200 ms
+// transitions, Lucide only, light default with a dark pairing).
 //
-// CHART FORMS (dataviz): interval chart for a range, radar with emphasis
-// for the eight dimensions, an ordered path with three marks for the
-// journey, meters for the data room, small multiples for stage comparison.
-// One data hue throughout (`action`), context in neutral grey — the
-// emphasis form — so there is no categorical palette anywhere on the page
-// and nothing to fail a CVD check.
+// SIX BLOCKS (D3), each ≤ 1 screen on desktop:
 //
-// PROVENANCE: every number routes through
-// `components/marketing/homepage/sample-runs.ts`, which is either the three
-// published anonymised runs or a shipped product module. Its colocated
-// suite pins the figures.
+//   1. Hero + search       HeroSection (client island: arm swap + submit)
+//   2. Who it's for        three audience cards → /solutions/*
+//   3. How it works        three numbered steps + the "Go deeper" row that
+//                          keeps the old /#worth-style anchors landing on
+//                          /product#… (fragments never reach the server)
+//   4. One sample result   SampleResultCard from the published fixture
+//   5. Proof               StatStrip from the content JSONs + ProofBand
+//   6. Final CTA + footer  CtaBand, then the one public Footer
 //
-// THE THREE QUESTIONS are the page's spine — each owns a section: #worth,
-// #state, #next.
-//
-// ── FUNNEL PASS (2026-09-09) ────────────────────────────────────────────
-//
-// v5 showed the output, which was the right call and stays. What it did not
-// do was make the three rungs legible or the next action obvious at any
-// scroll depth: the only prices on the whole page were the words "A$3" in a
-// hero bullet and a subordinate /pricing link at the bottom, so a visitor
-// could read six thousand pixels without learning what free gets them.
-//
-// PATTERN (ui-ux-pro-max): the v5 "Product Demo + Features" spine with the
-// "Pricing-Focused Landing" pattern grafted on — hero value proposition,
-// then the product's own output, then a three-tier ladder, then the close.
-// Style stays "Data-Dense Dashboard", which is what the page already is.
-// CTA placement follows that pattern: in the hero, on each tier card, and at
-// the bottom.
-//
-// WHAT CHANGED, AND WHY
-//
-//   * Hero: the question-anchor row and the trust-point row — two rows, no
-//     price between them — became ONE row carrying the three rungs with
-//     their prices. Concise but complete: what it is, what you get, what it
-//     costs, above the fold.
-//   * NEW #tiers section, the funnel's spine, after the proof and before the
-//     close. It is where the hero strip points.
-//   * REMOVED EquityBand and AudienceSplit (≈1,060px of prose between the
-//     proof and the close). Equity is not dropped — it is the third rung's
-//     own content, stated as a thing you get for A$29 rather than as a
-//     section arguing for itself. The investor path keeps its entry in the
-//     final CTA.
-//   * Every band tightened by one step of vertical padding.
-//
-// LIGHT/DARK RHYTHM — light-dominant, ONE dark punctuation band plus the
-// dark footer edge:
-//
-//   1. Hero            LIGHT  (bg.base)    H1 + omnibox + ladder + a real run.
-//   2. #worth          LIGHT  (bg.sunken)  valuation intervals.
-//   3. #state          LIGHT  (bg.base)    the eight-dimension radar.
-//   4. journey         DARK   punctuation  twelve phases, three marks.
-//   5. #next           LIGHT  (bg.sunken)  the data room filling up.
-//   6. Three runs      LIGHT  (bg.base)    small multiples.
-//   7. #tiers          LIGHT  (bg.sunken)  the three rungs.
-//   7b. #unlock        LIGHT  (bg.base)    eight locked workspace cards (T0238).
-//   8. LogoBand        LIGHT  (bg.sunken)  where it is built and how it runs.
-//   9. FinalCTA        LIGHT  (bg.base)    one primary button.
-//  10. Entity strip    DARK   footer edge  PPL Food PTY LTD.
-// Title + description are the hero's own lines (T0250): the title is the
-// first breath of F1, the description the whole of F1, so what a search
-// result promises is exactly what the H1 says.
+// NO prices, NO tier ladder, NO unlock preview on the home (D3) — that
+// depth lives on /product and /samples, prices only on /pricing. The page
+// test pins `/A\$\d/` absent. Every colour is a token; the only client JS
+// is the hero. `PageViewTracker` (root layout) and the GA4 hooks in
+// `hero-section.tsx` are unchanged.
 export const metadata = pageMetadata({
-  title: "See your startup the way an investor will",
-  description: heroLine("F1").en,
+  // Title = the E1 H1 without its full stop; description = the E2 promise,
+  // trimmed to the 160-character budget the site-meta sweep enforces.
+  title: heroLine("E1").en.replace(/\.$/, ""),
+  description:
+    "Eight dimensions, an evidence-backed valuation range and an Investor Dossier for any Australian startup. Investors and accelerators use it; founders score free.",
   path: "/",
   viPath: "/vi",
 });
 
-// S31-D: static + ISR. The page reads no request state (the old
-// session-hint call read cookies and then discarded the result, which
-// alone forced a per-request render); `version.json` is a build artefact.
-// 300 s matches the edge TTL in lib/security/public-cacheable-routes.ts.
+// S31-D: static + ISR. The page reads no request state; the proof strip
+// reads the content JSONs at build / revalidate. 300 s matches the edge
+// TTL in lib/security/public-cacheable-routes.ts.
 export const revalidate = 300;
 
-/**
- * Reads the current build's version string from
- * `web/content/reports/version.json` — cached at module scope.
- */
-let cachedVersion: string | null | undefined;
-function readVersionString(): string | null {
-  if (cachedVersion !== undefined) return cachedVersion;
-  try {
-    const p = path.join(process.cwd(), "content", "reports", "version.json");
-    const raw = readFileSync(p, "utf8");
-    const parsed = JSON.parse(raw) as { version?: unknown };
-    cachedVersion =
-      typeof parsed.version === "string" && parsed.version.length > 0
-        ? parsed.version
-        : null;
-  } catch {
-    cachedVersion = null;
-  }
-  return cachedVersion;
-}
+const AUDIENCE_ICONS = { investors: Briefcase, accelerators: Rocket, advisors: Handshake } as const;
+const STEP_ICONS = { paste: ClipboardPaste, score: Gauge, dossier: FileText } as const;
 
 export default function HomePage() {
-  const version = readVersionString();
-
-  const entityLine = ["PPL Food PTY LTD", version]
-    .filter((s): s is string => typeof s === "string" && s.length > 0)
-    .join(" · ");
-
-  // The radar is drawn for the revenue-stage run: it is the only one of the
-  // three whose readings all sit inside the cohort band, so the shape reads
-  // as a shape rather than as a spike.
-  const radarRun = runById("revenue");
+  const stats = readHomeStats();
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-surface text-primary">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-action focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-on-action"
@@ -163,286 +82,108 @@ export default function HomePage() {
       <NavV2 />
 
       <main id="main-content">
-        {/* 1. Hero — the omnibox. Whatever is typed here carries straight
-            through to a running analysis; it is never asked for twice. */}
+        {/* 1. Hero — the one H1, the E2 sub-line, two CTAs, the omnibox in
+            its ring. Whatever is typed here carries straight through to a
+            running analysis; it is never asked for twice. */}
         <HeroSection />
 
-        {/* 2. WHAT IS IT WORTH — three real ranges on one shared axis. */}
-        <section
-          id="worth"
-          aria-labelledby="worth-heading"
-          className="scroll-mt-20 border-t border-line-subtle bg-surface-sunken py-12 sm:py-14"
+        {/* 2. WHO IT'S FOR — the evaluator ladder, one card each. */}
+        <Section
+          id="audiences"
+          eyebrow="Who it's for"
+          title="One rubric, three kinds of evaluator."
+          lede="The same score, the same evidence, the same cohort tables — read from three different chairs."
+          align="center"
+          tone="sunken"
         >
-          <div className="mx-auto max-w-6xl px-6">
-            <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start lg:gap-12">
-              <div>
-                <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted">
-                  What is it worth
-                </p>
-                <h2
-                  id="worth-heading"
-                  className="mt-3 font-display text-2xl font-bold tracking-tight text-primary sm:text-3xl"
-                >
-                  One range, not one number.
-                </h2>
-                <p className="mt-4 text-sm leading-relaxed text-secondary sm:text-base">
-                  A single figure is a guess with the error bars filed off.
-                  Every run returns a span — the low you can defend and the
-                  high you can argue for — and shows the working behind both,
-                  so you can hold the number in a conversation instead of
-                  quoting it.
-                </p>
-                <Link
-                  href="/one-click-report"
-                  className="mt-6 inline-flex items-center gap-2 rounded-lg border border-line px-4 py-2.5 text-sm font-semibold text-primary transition-colors duration-200 hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface-sunken"
-                >
-                  Get the written report, A$3
-                  <ArrowRight size={16} aria-hidden />
-                </Link>
-              </div>
+          <FeatureGrid
+            columns={3}
+            ariaLabel="Who it's for"
+            items={HOME_AUDIENCES.map((a) => ({
+              ...a,
+              icon: AUDIENCE_ICONS[a.icon as keyof typeof AUDIENCE_ICONS],
+            }))}
+          />
+        </Section>
 
-              <div className="rounded-2xl border border-line-subtle bg-surface p-6 shadow-xs sm:p-8">
-                <ValuationRanges />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 3. WHAT STATE AM I IN — the eight-dimension shape. */}
-        <section
-          id="state"
-          aria-labelledby="state-heading"
-          className="scroll-mt-20 border-t border-line-subtle bg-surface py-12 sm:py-14"
+        {/* 3. HOW IT WORKS — three steps, then the "Go deeper" row. */}
+        <Section
+          id="how"
+          eyebrow="How it works"
+          title="Paste. Score. Open the dossier."
+          align="center"
         >
-          <div className="mx-auto max-w-6xl px-6">
-            <div className="max-w-2xl">
-              <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted">
-                What state am I in
-              </p>
-              <h2
-                id="state-heading"
-                className="mt-3 font-display text-2xl font-bold tracking-tight text-primary sm:text-3xl"
-              >
-                Eight dimensions, against Australian companies at your stage.
-              </h2>
-              <p className="mt-4 text-sm leading-relaxed text-secondary sm:text-base">
-                The score is not one opinion. It is eight readings, each with
-                the evidence behind it and each placed against what companies
-                at the same stage in this market actually score — so a weak
-                dimension is a specific thing to go and fix, not a mood.
-              </p>
-            </div>
+          <FeatureGrid
+            columns={3}
+            numbered
+            ariaLabel="How it works"
+            items={HOME_STEPS.map((s) => ({
+              ...s,
+              icon: STEP_ICONS[s.icon as keyof typeof STEP_ICONS],
+            }))}
+          />
+          <nav
+            aria-label="Go deeper"
+            data-testid="home-go-deeper"
+            className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-line-subtle pt-8"
+          >
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Go deeper</span>
+            {HOME_GO_DEEPER.map((link) => (
+              <CtaLink key={link.href} href={link.href} label={link.label} variant="link" arrow={false} />
+            ))}
+          </nav>
+        </Section>
 
-            <div className="mt-8 grid gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-center lg:gap-12">
-              <div className="rounded-2xl border border-line-subtle bg-surface p-4 shadow-xs sm:p-6">
-                <DimensionRadar run={radarRun} />
-              </div>
-              <div>
-                <p className="flex items-baseline gap-2">
-                  <span className="font-sans text-5xl font-semibold leading-none text-primary">
-                    {radarRun.sviScore}
-                  </span>
-                  <span className="text-sm font-medium uppercase tracking-wider text-muted">
-                    out of 100
-                  </span>
-                </p>
-                <p className="mt-4 text-sm leading-relaxed text-secondary">
-                  The eight readings behind that score, for the revenue-stage
-                  run below: four published, four held back with the
-                  company&rsquo;s identity.
-                </p>
-                <div className="mt-4">
-                  <DimensionTable run={radarRun} />
-                </div>
-                <Link
-                  href="/guide/scn"
-                  className="mt-5 inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-action transition-colors duration-200 hover:text-action-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-                >
-                  How each dimension is scored
-                  <ArrowRight size={14} aria-hidden />
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 4. The page's ONE dark punctuation band: the twelve-phase journey
-            with three real positions marked on it. */}
-        <section
-          aria-labelledby="journey-heading"
-          data-theme="dark"
-          className="border-y border-line-subtle bg-surface py-12 sm:py-14"
+        {/* 4. ONE SAMPLE RESULT — a real anonymised run, fixed height (CLS). */}
+        <Section
+          id="sample"
+          eyebrow="A sample result"
+          title="This is what comes back."
+          lede="An MVP-stage company, scored in sixty seconds. Open the full dossier or the written report a founder receives."
+          align="center"
+          tone="sunken"
         >
-          <div className="mx-auto max-w-6xl px-6">
-            <div className="max-w-2xl">
-              <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted">
-                And where on the path
-              </p>
-              <h2
-                id="journey-heading"
-                className="mt-3 font-display text-2xl font-bold tracking-tight text-primary sm:text-3xl"
-              >
-                Twelve phases. A run tells you which one you are in.
-              </h2>
-              <p className="mt-4 text-sm leading-relaxed text-secondary sm:text-base">
-                Building a company is the same twelve pieces of work in
-                roughly the same order. Knowing which one you are actually in
-                is what stops a quarter going into the wrong thing.
-              </p>
-            </div>
+          <SampleResultCard runId="mvp" />
+        </Section>
 
-            <JourneyPath />
-
-            <Link
-              href="/showcase/atlassian/growth-phases"
-              className="mt-8 inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-action transition-colors duration-200 hover:text-action-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-            >
-              Walk the twelve phases with a company that finished them
-              <ArrowRight size={14} aria-hidden />
-            </Link>
-          </div>
-        </section>
-
-        {/* 5. WHAT DO I DO NEXT — the data room, filling up. */}
-        <section
-          id="next"
-          aria-labelledby="next-heading"
-          className="scroll-mt-20 border-t border-line-subtle bg-surface-sunken py-12 sm:py-14"
+        {/* 5. PROOF — four live figures from the content JSONs, then the
+            quiet row of where it is built and how it is run. */}
+        <Section
+          id="proof"
+          eyebrow="On the record"
+          title="Live numbers, open methodology."
+          align="center"
         >
-          <div className="mx-auto max-w-6xl px-6">
-            <div className="max-w-2xl">
-              <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted">
-                What do I do next
-              </p>
-              <h2
-                id="next-heading"
-                className="mt-3 font-display text-2xl font-bold tracking-tight text-primary sm:text-3xl"
-              >
-                The room an investor asks to see.
-              </h2>
-              <p className="mt-4 text-sm leading-relaxed text-secondary sm:text-base">
-                Diligence is a list, and the list is knowable. A run turns the
-                same eight readings into the documents that are missing, in
-                the order they will be asked for — with a template behind each
-                one so you are not starting from a blank page.
-              </p>
-            </div>
+          <StatStrip
+            stats={[
+              { value: formatCount(stats.startupsScored), label: "startups scored", hint: "on the platform, QA excluded", href: "/startup-index" },
+              { value: formatCount(stats.registerSignals), label: "open-register signals", hint: "ABR and public registers", href: "/methodology" },
+              { value: formatRhoPair(stats.backtestRhoRound, stats.backtestRhoValuation), label: "backtest ρ (round / valuation)", hint: "Spearman, weekly", href: "/methodology/calibration" },
+              { value: formatCount(stats.evaluatorOrgs), label: "evaluator organisations", hint: "on an evaluator plan", href: "/solutions/investor" },
+            ]}
+            caption={
+              stats.asAt
+                ? `As at ${stats.asAt}. Figures are read from the same published files that feed /methodology and the platform stats API.`
+                : "Figures are read from the same published files that feed /methodology and the platform stats API."
+            }
+          />
+          <ProofBand className="mt-12" eyebrow="Where it is built, and how it is run" items={HOME_PROOF_ITEMS} />
+        </Section>
 
-            <div className="mt-8 rounded-2xl border border-line-subtle bg-surface p-5 shadow-xs sm:p-7">
-              <DataRoomBuild />
-            </div>
-          </div>
-        </section>
-
-        {/* 6. Three anonymised runs, so a visitor can locate themselves. */}
-        <section
-          aria-labelledby="runs-heading"
-          className="border-t border-line-subtle bg-surface py-12 sm:py-14"
-        >
-          <div className="mx-auto max-w-6xl px-6">
-            <div className="mx-auto max-w-2xl text-center">
-              <h2
-                id="runs-heading"
-                className="font-display text-2xl font-bold tracking-tight text-primary sm:text-3xl"
-              >
-                Three real runs, anonymised.
-              </h2>
-              <p className="mt-3 text-sm leading-relaxed text-secondary sm:text-base">
-                Same box, same eight dimensions, three companies at very
-                different points. Nothing here is invented — these are the
-                numbers the analysis returned, with the identifying details
-                removed.
-              </p>
-            </div>
-
-            <div className="mt-8">
-              <RunComparison />
-            </div>
-            <div className="mt-8">
-              <RunComparisonLegend />
-            </div>
-          </div>
-        </section>
-
-        {/* 7. THE THREE RUNGS. The funnel's spine, and where the hero strip
-            points. It sits AFTER the proof deliberately: a price is a
-            question about value, and the four sections above it are the
-            answer. Form is a KPI row of stat tiles, not a chart — see the
-            note in tier-ladder.tsx. */}
-        <section
-          id="tiers"
-          aria-labelledby="tiers-heading"
-          className="scroll-mt-20 border-t border-line-subtle bg-surface-sunken py-12 sm:py-14"
-        >
-          <div className="mx-auto max-w-6xl px-6">
-            <div className="max-w-2xl">
-              <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted">
-                What it costs
-              </p>
-              <h2
-                id="tiers-heading"
-                className="mt-3 font-display text-2xl font-bold tracking-tight text-primary sm:text-3xl"
-              >
-                Three steps, and the first one is free.
-              </h2>
-              <p className="mt-3 text-sm leading-relaxed text-secondary sm:text-base">
-                Each step asks for one more thing than the last, and gives you
-                something the last one could not. You never pay to find out
-                whether it works.
-              </p>
-            </div>
-
-            <div className="mt-8">
-              <TierLadder />
-            </div>
-
-            <p className="mt-6 text-xs leading-relaxed text-muted">
-              Prices in Australian dollars, inclusive of GST. The Startup Value
-              Index is a directional analysis, not a financial valuation or an
-              investment recommendation.
-            </p>
-          </div>
-        </section>
-
-        {/* 7b. What you unlock after login (G11 §3c, T0238). Sits directly
-            under the ladder because it answers the question the A$29 rung
-            raises. Base surface so it separates from the sunken #tiers. */}
-        <UnlockPreview tone="base" />
-
-        {/* 8. Where it is built and how it is run. Sunken here so it keeps
-            its boundary against the base-surface unlock strip above. */}
-        <LogoBand className="bg-surface-sunken" />
-
-        {/* 9. Final CTA — one primary button, pricing as a text link. */}
-        <FinalCTA />
-
-        {/* 11. Entity strip — the page's second and last dark region, at
-            the footer edge where a colour change reads as a boundary.
-            Token-bound inside data-theme="dark" (globals.css rev.4), so
-            text-muted resolves to #CBD5E1 on #0B0F1A (11.6:1) instead of
-            the old inline #94A3B8. ENTITY STRING IS DELIBERATE: marketing
-            surfaces show PPL Food PTY LTD; billing/legal/JSON-LD use
-            Auschain PTY LTD. Do not change either. */}
+        {/* 6. FINAL CTA. */}
+        <CtaBand
+          title="Score your first startup."
+          sub="Sixty seconds, no card. Evaluators can run a whole intake; founders get their own score and feedback free."
+          primary={{ href: "/analyze", label: "Score a startup", ctaId: "home_final_score" }}
+          secondary={{ href: "/samples", label: "See sample results" }}
+          tone="dark"
+        />
       </main>
-      {/* The entity strip IS the homepage footer (design: a dark edge, not
-          the full column footer). It is a <footer> so every page exposes
-          exactly one contentinfo landmark (tests/e2e/a11y/landmarks). */}
-      <footer
-        id="trust"
-        aria-labelledby="trust-heading"
-        data-theme="dark"
-        className="border-t border-line-subtle bg-surface py-10"
-      >
-        <h2 id="trust-heading" className="sr-only">
-          About BlockID.au
-        </h2>
-        <div className="mx-auto max-w-4xl px-6 text-center">
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-            Australian owned {"·"} Built in Sydney
-          </p>
-          <p className="mt-3 text-sm text-muted">{entityLine}</p>
-        </div>
-      </footer>
+
+      {/* The one public footer (S-IA5) — identical on every page. ENTITY
+          STRING IS DELIBERATE: marketing surfaces show PPL Food PTY LTD;
+          billing / legal / JSON-LD use Auschain PTY LTD. Do not change either. */}
+      <Footer />
     </div>
   );
 }

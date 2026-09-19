@@ -33,15 +33,20 @@
  * `docs/plans/value-first-hero-goal.md` (G11-P14 note).
  */
 
+export type EvaluatorLineId = "E1" | "E2";
 export type FounderLineId = "F1" | "F2" | "F3" | "F4";
 export type InvestorLineId = "I1" | "I2" | "I3";
 export type GeneralLineId = "G1" | "G2" | "G3";
-export type HeroLineId = FounderLineId | InvestorLineId | GeneralLineId;
+export type HeroLineId = EvaluatorLineId | FounderLineId | InvestorLineId | GeneralLineId;
 
-/** The homepage H1 arms that `?hero=` can select. F1 is the SSR default. */
-export type HeroArm = "F1" | "F2" | "F3";
-export const HERO_ARMS: readonly HeroArm[] = ["F1", "F2", "F3"];
-export const HERO_DEFAULT_ARM: HeroArm = "F1";
+/**
+ * The homepage H1 arms that `?hero=` can select. E1 (evaluator-first, G17
+ * D1, 2026-09-19) is the SSR default; the founder arms F1–F3 stay selectable
+ * so the T0250 A/B protocol can still be run against the new default.
+ */
+export type HeroArm = "E1" | "F1" | "F2" | "F3";
+export const HERO_ARMS: readonly HeroArm[] = ["E1", "F1", "F2", "F3"];
+export const HERO_DEFAULT_ARM: HeroArm = "E1";
 
 /** Per-breath-unit word cap (EN), sentence cap, and the VI syllable cap. */
 export const MAX_WORDS_PER_UNIT = 20;
@@ -148,11 +153,33 @@ function line(id: HeroLineId, role: string, en: string, vi: string): HeroLine {
 
 // ─── The catalogue ───────────────────────────────────────────────────────────
 
-/** Founder / customer view. F1 = homepage H1 default, F3 = homepage sub-line. */
+/**
+ * Evaluator view — G17 D1 (docs/plans/unicorn-homepage-2026-09-19.md). The
+ * homepage speaks to the evaluator ladder first (investors → accelerators →
+ * advisory firms) with founders as the second line. E1 = homepage H1 default
+ * arm, E2 = the sub-line under it. "60 seconds" is the on-screen free score,
+ * "eight dimensions" the shipped rubric, "Investor Dossier" the G14 report.
+ */
+export const EVALUATOR_LINES: readonly HeroLine[] = [
+  line(
+    "E1",
+    "homepage H1 (default arm, evaluator-first)",
+    "Score any Australian startup in 60 seconds.",
+    "Chấm điểm bất kỳ startup Úc nào trong 60 giây.",
+  ),
+  line(
+    "E2",
+    "homepage sub-line under the E1 H1",
+    "One rubric for every deal — eight dimensions, an evidence-backed valuation range and an Investor Dossier. Investors, accelerators and advisors use it; founders get the feedback free.",
+    "Một thước đo cho mọi thương vụ — tám tiêu chí, khoảng định giá có bằng chứng và một Hồ sơ Nhà đầu tư. Nhà đầu tư, vườn ươm và cố vấn dùng nó; founder nhận phản hồi miễn phí.",
+  ),
+];
+
+/** Founder / customer view. F1 = founder H1 arm (`?hero=F1`), F3 = its sub-line. */
 export const FOUNDER_LINES: readonly HeroLine[] = [
   line(
     "F1",
-    "homepage H1 (default arm)",
+    "homepage H1 (founder arm, `?hero=F1`; was the default until G17)",
     "See your startup the way an investor will — your score, what it's worth, and where the money is, in 60 seconds.",
     "Nhìn startup của bạn theo cách nhà đầu tư nhìn — điểm số, giá trị, và tiền có thể xin ở đâu, trong 60 giây.",
   ),
@@ -221,6 +248,7 @@ export const GENERAL_LINES: readonly HeroLine[] = [
 ];
 
 export const ALL_HERO_LINES: readonly HeroLine[] = [
+  ...EVALUATOR_LINES,
   ...FOUNDER_LINES,
   ...INVESTOR_LINES,
   ...GENERAL_LINES,
@@ -264,8 +292,17 @@ export interface PickHeroVariantOptions {
 }
 
 /**
- * Choose the H1 arm. Override > seeded bucket > default F1. Same seed always
- * lands in the same bucket, and the three buckets are equal-width.
+ * The sub-line that pairs with an H1 arm: E1 → E2; the founder arms keep
+ * the T0250 pairing (F3 under F1/F2, and F1 under F3 so nothing repeats).
+ */
+export function heroSubLineFor(arm: HeroArm): HeroLine {
+  if (arm === "E1") return heroLine("E2");
+  return heroLine(arm === "F3" ? "F1" : "F3");
+}
+
+/**
+ * Choose the H1 arm. Override > seeded bucket > default E1. Same seed always
+ * lands in the same bucket, and the four buckets are equal-width.
  */
 export function pickHeroVariant(opts: PickHeroVariantOptions = {}): HeroArm {
   const forced = parseHeroArm(typeof opts.arm === "string" ? opts.arm : null);

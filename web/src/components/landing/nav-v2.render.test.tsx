@@ -43,14 +43,16 @@ describe("NavV2 — one header, two skins", () => {
     expect(html).not.toMatch(/<header[^>]*class="[^"]*bg-brand-navy/);
     expect(html).toContain('aria-label="Primary"');
     // Same menu, same CTA — a skin never changes the IA.
-    for (const label of ["Get my score", "Get funding", "Free tools", "Pricing", "Demo"]) expect(html).toContain(label);
+    for (const label of ["Product", "Solutions", "Samples", "Pricing", "Docs"]) expect(html).toContain(label);
   });
 
-  it("signed out: Sign in + the money CTA; signed in: My workspace + the shared user-menu rows for the persona", () => {
+  it("signed out: Sign in + the Score a startup CTA; signed in: My workspace + the shared user-menu rows for the persona", () => {
     auth.user = null;
     const out = renderToStaticMarkup(<NavV2 />);
     expect(out).toContain('href="/auth/login"');
-    expect(out).toContain('href="/funding?intent=money"');
+    expect(out).toMatch(/<a[^>]*data-cta-id="score_startup"[^>]*href="\/analyze"|<a[^>]*href="\/analyze"[^>]*data-cta-id="score_startup"/);
+    expect(out).toContain("Score a startup");
+    expect(out).not.toContain("Do you need money?");
 
     auth.user = { id: "u1", email: "vc@fund.test", displayName: "Val", plan: "investor_vc", persona: "investor_vc" };
     const html = renderToStaticMarkup(<NavV2 />);

@@ -51,10 +51,20 @@ export const FOOTER_ENTITY = "PPL Food PTY LTD";
 export const FOOTER_DISCLAIMER =
   "Not financial advice. BlockID is a software platform — engage a licensed adviser for your raise.";
 
-// Columns live in footer-columns.ts. Since T0238 the Funding column leads
-// and Product / For / Docs / Startup Index have their only public surface
-// here; S-IA5 added the Company column the legacy footer used to carry.
+// Columns live in footer-columns.ts. G17 D5 (2026-09-19): four columns —
+// Product · For · Company · Legal — identical on every page; the old
+// Funding / Case Studies / Docs columns folded into them.
 const COLUMNS = FOOTER_COLUMNS;
+
+/**
+ * Language switch (G17 D5) — plain links to the EN root and the VI mirror,
+ * server-rendered so the footer stays hook-free (the cookie-backed
+ * `LocaleSwitcher` lives in the nav for signed-in persistence).
+ */
+export const FOOTER_LANGUAGES = [
+  { code: "en", label: "English", href: "/" },
+  { code: "vi", label: "Tiếng Việt", href: "/vi" },
+] as const;
 
 export function Footer() {
   const version = readVersionString();
@@ -68,13 +78,14 @@ export function Footer() {
       <h2 id="marketing-footer-heading" className="sr-only">
         Site footer
       </h2>
-      <div className="mx-auto grid max-w-7xl gap-8 px-6 py-16 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-9">
+      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-16 sm:grid-cols-2 lg:grid-cols-6">
         {/* Brand block (from site/footer.tsx) — logo, one-line pitch, entity + residency. */}
-        <div className="sm:col-span-2 lg:col-span-3 xl:col-span-2">
+        <div className="sm:col-span-2 lg:col-span-2">
           <Logo variant="dark" />
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-secondary">
-            The all-in-one ownership and fundraising platform for Australian
-            startups and SMEs.
+            The Startup Value Index — one evidence-backed score for every
+            Australian startup, for the people who evaluate them and the
+            founders who build them.
           </p>
           <div className="mt-6 space-y-2 text-xs text-secondary">
             <p className="flex items-center gap-2">
@@ -113,7 +124,7 @@ export function Footer() {
       {/* Curator-controlled accelerator strip — renders NOTHING when the
           partners config is empty. Inherits footer ink via currentColor. */}
       <div className="border-t border-line-subtle text-secondary">
-        <div className="mx-auto max-w-7xl px-6">
+        <div className="mx-auto max-w-6xl px-6">
           <PartnerFooterRow group="accepted" />
         </div>
       </div>
@@ -121,7 +132,7 @@ export function Footer() {
           support email, business hours in AEST, and the "AU Privacy Act
           1988 compliant" badge (now truthful after the Privacy rewrite). */}
       <div className="border-t border-line-subtle">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-5 text-xs text-secondary sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-5 text-xs text-secondary sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <p className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <a
               href="mailto:support@blockid.au"
@@ -140,9 +151,24 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-line-subtle">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-6 text-xs sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-6 text-xs sm:flex-row sm:items-center sm:justify-between">
           <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-secondary">
             <span>&copy; {year} {FOOTER_ENTITY}</span>
+            <span aria-label="Language" role="group" className="inline-flex items-center gap-2">
+              {FOOTER_LANGUAGES.map((l, i) => (
+                <span key={l.code} className="contents">
+                  {i > 0 ? <span aria-hidden="true">&middot;</span> : null}
+                  <Link
+                    href={l.href}
+                    hrefLang={l.code}
+                    lang={l.code}
+                    className="rounded-md text-secondary transition-colors duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                  >
+                    {l.label}
+                  </Link>
+                </span>
+              ))}
+            </span>
             {version ? (
               <Link
                 href="/changelog"
