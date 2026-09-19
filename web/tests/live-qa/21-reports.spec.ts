@@ -17,6 +17,7 @@
  * checkout request is asserted absent).
  */
 import { test, expect } from "./fixtures";
+import { getScratch, setScratch } from "./lib/run-state";
 import { anonRequest, evidence, get, post } from "./lib/api";
 import { env } from "./lib/env";
 
@@ -76,7 +77,13 @@ test.describe("Trust BizReport — price before checkout", () => {
     expect(r.body.quote.estimatedWords).toBeGreaterThan(0);
     expect(r.body.paidOrderId).toBeNull(); // the suite never buys one
     expect(r.body.creditBalance).toBe(before);
-    expect(r.body.included).toBe(Boolean(qa.elevated)); // Growth carries report.premium; Free does not
+    // Production `plans.feature_flags` for founder_growth does NOT carry
+    // `report.premium` (0309/0400 rows; the code fallback list is wider) — the
+    // founder ladder sells the report pay-as-you-go / by credits, so `included`
+    // is false on Growth too. Pin the contract, not a plan assumption.
+    expect(typeof r.body.included).toBe("boolean");
+    if (!qa.elevated) expect(r.body.included).toBe(false);
+    setScratch("tbr.included", r.body.included);
     if (qa.projectId) expect(r.body.projectId).toBe(qa.projectId);
     const bad = await get(api, "/api/reports/access?project=nope");
     expect(bad.status).toBe(400);
@@ -98,7 +105,9 @@ test.describe("Trust BizReport — price before checkout", () => {
     page.on("request", (req) => {
       if (/\/api\/reports\/(checkout|redeem)/.test(req.url())) checkoutCalls.push(`${req.method()} ${new URL(req.url()).pathname}`);
     });
-    const g = guard(page, { allowRequest: [{ method: "GET", pathRe: /^\/api\/svi\/phase-progress$/, status: 429 }, { method: "POST", pathRe: /^\/api\/analytics\/event$/, status: 404 }] });
+    // The snapshot is seeded in localStorage only, so the peer lookup has no
+    // DB snapshot to key on → 404 no_self_snapshot is the documented answer.
+    const g = guard(page, { allowRequest: [{ method: "GET", pathRe: /^\/api\/svi\/phase-progress$/, status: 429 }, { method: "GET", pathRe: /^\/api\/svi\/report\/peers$/, status: 404 }, { method: "POST", pathRe: /^\/api\/analytics\/event$/, status: 404 }] });
     await visit("/workspace/reports/business", { waitUntil: "networkidle" });
 
     const body = page.locator("[data-tbr-version]").first();
@@ -107,9 +116,9 @@ test.describe("Trust BizReport — price before checkout", () => {
     const rail = page.getByTestId("tbr-unlock-rail");
     const lockedCount = await page.locator("[data-tbr-locked]").count();
 
-    if (qa.elevated) {
-      // Growth carries report.premium → the document renders in full, no cut, no rail.
-      await evidence(testInfo, "TBR (elevated)", { tier, lockedCount, rails: await rail.count() });
+    if (getScratch<boolean>("tbr.included") === true) {
+      // A plan that carries report.premium → the document renders in full, no cut, no rail.
+      await evidence(testInfo, "TBR (included)", { tier, lockedCount, rails: await rail.count() });
       expect(tier).toBe("standard");
       expect(lockedCount).toBe(0);
       expect(await rail.count()).toBe(0);
