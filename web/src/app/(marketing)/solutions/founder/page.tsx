@@ -13,38 +13,22 @@
 
 import type { Metadata } from "next";
 import { getMessages, t } from "@/lib/i18n/t";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import { SolutionsPageShell } from "../solutions-shared";
 
-const SITE_URL = "https://blockid.au";
-const CANONICAL_EN = `${SITE_URL}/solutions/founder`;
-const CANONICAL_VI = `${SITE_URL}/vi/solutions/founder`;
+const PATH = "/solutions/founder";
+const VI_PATH = "/vi/solutions/founder";
 
+// G17 P2-A: canonical + hreflang pair + OG image via `pageMetadata` (the root
+// template appends the brand suffix).
 export async function generateMetadata(): Promise<Metadata> {
   const m = await getMessages("en");
-  const title = t(m, "meta.solutions.founder.title");
-  const description = t(m, "meta.solutions.founder.description");
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: CANONICAL_EN,
-      languages: {
-        en: CANONICAL_EN,
-        vi: CANONICAL_VI,
-        "x-default": CANONICAL_EN,
-      },
-    },
-    openGraph: {
-      title,
-      description,
-      url: CANONICAL_EN,
-      siteName: "BlockID.au",
-      type: "website",
-      locale: "en_AU",
-    },
-    twitter: { card: "summary_large_image", title, description },
-    robots: { index: true, follow: true },
-  };
+  return pageMetadata({
+    title: t(m, "meta.solutions.founder.title"),
+    description: t(m, "meta.solutions.founder.description"),
+    path: PATH,
+    viPath: VI_PATH,
+  });
 }
 
 export default async function SolutionsFounderPage() {

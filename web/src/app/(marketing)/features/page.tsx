@@ -3,22 +3,22 @@
  * under-promised across marketing pages. Landed 2026-09-07 as
  * Workstream D of the review-t-on-b-foamy-pixel plan.
  *
- * 8 cards grouped into three audience sections:
+ * 8 cards grouped into three audience sections (copy in
+ * `features-content.ts`):
  *   • For founders — cohort percentile, per-investor tracked links,
- *     dividend engine, 17 free tools, guided journey.
+ *     dividend engine, 16 free tools, guided journey.
  *   • For investors — evidence completeness, LP anonymisation.
  *   • For everyone — ATO tax invoice at checkout.
  *
- * Server component. Renders inside `MarketingShell` for the standard
- * fintech deep-navy chrome + `NavV2` header + shared footer.
+ * G17 P2-A: on the unicorn template — PageHero → Section × 3 (FeatureGrid,
+ * each card keeps its `id` anchor) → UnlockPreview → CtaBand.
+ *
+ * Server component. Renders inside `MarketingShell`.
  */
 
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/page-meta";
-import Link from "next/link";
-import type { LucideIcon } from "lucide-react";
 import {
-  ArrowRight,
   BarChart3,
   BookOpen,
   Coins,
@@ -27,14 +27,21 @@ import {
   Receipt,
   ShieldCheck,
   Wrench,
+  type LucideIcon,
 } from "lucide-react";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
-import { MarketingHero } from "@/components/marketing/marketing-hero";
-import { MarketingSection } from "@/components/marketing/marketing-section";
+import { CtaBand, FeatureGrid, PageHero, Section, type FeatureItem } from "@/components/marketing/template";
 import { UnlockPreview } from "@/components/marketing/unlock-preview";
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
+import {
+  EVERYONE_FEATURES,
+  FOUNDER_FEATURES,
+  INVESTOR_FEATURES,
+  type FeatureCopy,
+  type FeatureIcon,
+} from "./features-content";
 
 export const metadata: Metadata = pageMetadata({
   title: "Platform features most visitors never see",
@@ -42,145 +49,30 @@ export const metadata: Metadata = pageMetadata({
   path: "/features",
 });
 
-// ---------------------------------------------------------------------------
-// Feature model
-// ---------------------------------------------------------------------------
+export const revalidate = 300;
 
-type Feature = {
-  anchor: string;
-  title: string;
-  copy: string;
-  href: string;
-  linkLabel: string;
-  Icon: LucideIcon;
+const ICONS: Record<FeatureIcon, LucideIcon> = {
+  "bar-chart": BarChart3,
+  link: Link2,
+  coins: Coins,
+  wrench: Wrench,
+  book: BookOpen,
+  "file-check": FileCheck,
+  "shield-check": ShieldCheck,
+  receipt: Receipt,
 };
 
-const FOUNDER_FEATURES: Feature[] = [
-  {
-    anchor: "cohort-percentile-scoring",
-    title: "Cohort percentile scoring",
-    copy: "See exactly where your SVI score sits inside your sector cohort — not just a number, a percentile.",
-    href: "/how-it-works#svi",
-    linkLabel: "How the score works",
-    Icon: BarChart3,
-  },
-  {
-    anchor: "per-investor-tracked-share-links",
-    title: "Per-investor tracked share links",
-    copy: "Every investor gets a unique URL. You see who opened it, when, and how long they read.",
-    href: "/sample",
-    linkLabel: "See a sample link",
-    Icon: Link2,
-  },
-  {
-    anchor: "dividend-engine",
-    title: "Dividend engine with franking credits",
-    // "on-chain optional" dropped 2026-09-09: the on-chain leg runs through
-    // executeOnChainTx in lib/blockchain-sync.ts, which is a stub that returns
-    // a fabricated hash. The franking-credit calculation itself is real
-    // (lib/dividends.ts, /api/dividends, /workspace/finance/dividends).
-    copy: "Work out a dividend and its franking credits on-platform, with the imputation arithmetic done for you.",
-    href: "/tools",
-    linkLabel: "Explore the toolset",
-    Icon: Coins,
-  },
-  {
-    anchor: "free-tools",
-    // 16, not 17 — /tools renders ALL_TOOLS.length and there are 16 routes
-    // under app/tools/. The features-page test counts the directories.
-    title: "16 free tools",
-    copy: "From SAFE calculator to R&D-tax checker to ESOP eligibility — 16 focused tools, all free, no login required.",
-    href: "/tools",
-    linkLabel: "Open the tools hub",
-    Icon: Wrench,
-  },
-  {
-    anchor: "guided-journey",
-    title: "12-chapter guided journey",
-    copy: "A step-by-step operator's manual — 12 chapters from ideation to your first Series A.",
-    href: "/sample",
-    linkLabel: "Start the guide",
-    Icon: BookOpen,
-  },
-];
-
-const INVESTOR_FEATURES: Feature[] = [
-  {
-    anchor: "evidence-completeness",
-    title: "Evidence completeness engine",
-    copy: "Every SVI dimension carries a completeness percentage — no evidence = no confident score.",
-    href: "/how-it-works#svi",
-    linkLabel: "See how it works",
-    Icon: FileCheck,
-  },
-  {
-    anchor: "lp-anonymisation",
-    title: "LP report anonymisation",
-    copy: "Share benchmark data with LPs without exposing individual startup names.",
-    href: "/investor",
-    linkLabel: "Investor home",
-    Icon: ShieldCheck,
-  },
-];
-
-const EVERYONE_FEATURES: Feature[] = [
-  {
-    anchor: "ato-tax-invoice",
-    title: "ATO tax invoice at checkout",
-    copy: "Your Stripe receipt is an ATO-compliant tax invoice with our ABN 79 659 615 111 and GST amount.",
-    href: "/pricing",
-    linkLabel: "See pricing",
-    Icon: Receipt,
-  },
-];
-
-// ---------------------------------------------------------------------------
-// View helpers
-// ---------------------------------------------------------------------------
-
-function FeatureCard({ feature }: { feature: Feature }) {
-  const { Icon } = feature;
-  return (
-    <article
-      id={feature.anchor}
-      className="group relative flex h-full scroll-mt-24 flex-col rounded-2xl border border-line-subtle bg-surface-raised p-6 transition-colors duration-200 hover:border-line"
-    >
-      <div
-        aria-hidden="true"
-        className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface-sunken text-action"
-      >
-        <Icon className="h-5 w-5" />
-      </div>
-      <h3 className="font-display text-lg font-semibold text-primary">
-        {feature.title}
-      </h3>
-      <p className="mt-2 flex-1 text-sm leading-relaxed text-secondary">
-        {feature.copy}
-      </p>
-      <Link
-        href={feature.href}
-        className="mt-4 inline-flex items-center gap-1 self-start rounded-md text-sm font-semibold text-action transition-colors duration-200 ease-out hover:text-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-      >
-        {feature.linkLabel}
-        <ArrowRight aria-hidden="true" className="h-4 w-4" />
-      </Link>
-    </article>
-  );
+function items(features: readonly FeatureCopy[]): FeatureItem[] {
+  return features.map((f) => ({
+    id: f.anchor,
+    icon: ICONS[f.icon],
+    title: f.title,
+    body: f.copy,
+    href: f.href,
+    cta: f.linkLabel,
+    ctaId: `features_${f.anchor.replace(/-/g, "_")}`,
+  }));
 }
-
-function FeatureGrid({ features }: { features: Feature[] }) {
-  return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {features.map((f) => (
-        <FeatureCard key={f.anchor} feature={f} />
-      ))}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
 
 export default function FeaturesPage() {
   return (
@@ -194,95 +86,58 @@ export default function FeaturesPage() {
         ]}
       />
 
-      <MarketingHero
+      <PageHero
         eyebrow="Features"
-        title={
-          <>
-            The eight things you didn&apos;t know we ship
-          </>
-        }
-        subtitle="BlockID quietly does more than the homepage lets on. Cohort percentile scoring, per-investor tracked share links, ATO-compliant tax invoicing, a franking-credit dividend engine and more."
-        primaryCta={{ href: "/pricing", label: "See prices" }}
-        secondaryCta={{ href: "/tbr/demo", label: "See a trust report" }}
+        title="The eight things you didn't know we ship"
+        sub="BlockID quietly does more than the homepage lets on. Cohort percentile scoring, per-investor tracked share links, ATO-compliant tax invoicing, a franking-credit dividend engine and more."
+        ctas={[
+          { href: "/pricing", label: "See prices", ctaId: "features_hero_pricing" },
+          { href: "/tbr/demo", label: "See a trust report" },
+        ]}
+        align="start"
       />
 
-      <MarketingSection
+      <Section
+        id="founders"
+        eyebrow="Build, share, get paid"
         title="For founders"
-        kicker="Build, share, get paid"
+        lede="The full arc from your first SVI score to your first franked dividend — every step lives in the same audit trail."
       >
-        <p className="text-sm text-secondary">
-          The full arc from your first SVI score to your first franked
-          dividend — every step lives in the same audit trail.
-        </p>
-        <div className="mt-8">
-          <FeatureGrid features={FOUNDER_FEATURES} />
-        </div>
-      </MarketingSection>
+        <FeatureGrid columns={3} ariaLabel="Founder features" items={items(FOUNDER_FEATURES)} />
+      </Section>
 
-      <MarketingSection
-        tone="elevated"
+      <Section
+        id="investors"
+        eyebrow="Evidence in, anonymity out"
         title="For investors"
-        kicker="Evidence in, anonymity out"
+        lede="Investor-facing surfaces refuse to score anything without evidence, and let you share cohort benchmarks with LPs without leaking individual startup names."
+        tone="sunken"
       >
-        <p className="text-sm text-secondary">
-          Investor-facing surfaces refuse to score anything without
-          evidence, and let you share cohort benchmarks with LPs without
-          leaking individual startup names.
-        </p>
-        <div className="mt-8">
-          <FeatureGrid features={INVESTOR_FEATURES} />
-        </div>
-      </MarketingSection>
+        <FeatureGrid columns={3} ariaLabel="Investor features" items={items(INVESTOR_FEATURES)} />
+      </Section>
 
-      <MarketingSection
+      <Section
+        id="everyone"
+        eyebrow="Compliance out of the box"
         title="For everyone"
-        kicker="Compliance out of the box"
+        lede="The moment you pay, you have paperwork your accountant already accepts."
       >
-        <p className="text-sm text-secondary">
-          The moment you pay, you have paperwork your accountant already
-          accepts.
-        </p>
-        <div className="mt-8">
-          <FeatureGrid features={EVERYONE_FEATURES} />
+        <FeatureGrid columns={3} ariaLabel="Features for everyone" items={items(EVERYONE_FEATURES)} />
+        <div className="mt-10">
+          <NotFinancialAdvice kind="not_financial_advice" />
         </div>
-      </MarketingSection>
+      </Section>
 
       {/* G11 §3c (T0238) — the eight workspace surfaces that left the top
           nav, shown locked with a login deep-link each. */}
-      <UnlockPreview tone="sunken" className="mt-4" />
+      <UnlockPreview tone="sunken" />
 
-      <MarketingSection tone="elevated">
-        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="max-w-xl">
-            <h2 className="font-display text-xl font-semibold text-primary sm:text-2xl">
-              Ready to see it working?
-            </h2>
-            <p className="mt-2 text-sm text-secondary">
-              Open a real trust report end-to-end — no sign-up — or jump
-              straight to pricing.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href="/pricing"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-action px-6 text-sm font-semibold text-on-action transition-colors duration-200 ease-out hover:bg-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-            >
-              Prices
-              <ArrowRight aria-hidden="true" className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/tbr/demo"
-              className="inline-flex h-11 items-center justify-center rounded-full border border-line px-6 text-sm font-semibold text-primary transition-colors duration-200 ease-out hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-            >
-              See a trust report
-            </Link>
-          </div>
-        </div>
-      </MarketingSection>
-
-      <div className="mx-auto max-w-5xl px-6 pb-16">
-        <NotFinancialAdvice kind="not_financial_advice" />
-      </div>
+      <CtaBand
+        title="Ready to see it working?"
+        sub="Open a real trust report end-to-end — no sign-up — or jump straight to pricing."
+        primary={{ href: "/pricing", label: "Prices", ctaId: "features_final_pricing" }}
+        secondary={{ href: "/tbr/demo", label: "See a trust report" }}
+      />
     </MarketingShell>
   );
 }

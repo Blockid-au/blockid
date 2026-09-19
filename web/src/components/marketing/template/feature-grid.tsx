@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 import { FOCUS_RING, MOTION } from "./primitives";
 
 export interface FeatureItem {
+  /** Optional anchor on the card (`/features#cohort-percentile-scoring`); scroll-margin clears the nav. */
+  id?: string;
   icon: LucideIcon;
   title: string;
   body: ReactNode;
@@ -88,7 +90,7 @@ export function FeatureGrid({
           </>
         );
         return (
-          <li key={item.title} className="flex">
+          <li key={item.title} id={item.id} className={cn("flex", item.id && "scroll-mt-24")}>
             {item.href ? (
               <Link
                 href={item.href}
