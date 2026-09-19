@@ -519,3 +519,47 @@ cd web && node scripts/latency-sample.mjs --dry-run    # prints per-class n / p5
 Surfaces: `/api/status` → `errors_1h`, `ai`, `queues`, `backups_detail`,
 `slo.latency_p95_ms`, `crons_failed_24h` (full detail with the bearer,
 redacted counts/states anonymously) and the public `/status` page.
+
+## G16-A — daily funnel report (2026-09-19)
+
+One plain-node cron (no `cron-runner.sh`; pid lock `/tmp/blockid-funnel-report.lock`,
+stale-safe) that turns the server-side funnel events in `analytics_events` into
+the numbers `/admin/funnel` and the traction snapshot show. Spec:
+`docs/plans/first-dollar-2026-09-19.md` § 3 A; event contract: `docs/ops/analytics.md`
+§ G16-A.
+
+| Script | Reads | Writes | Alerts |
+|---|---|---|---|
+| `scripts/funnel-report.mjs` | `analytics_events` rows named `sign_up` · `svi_analyze` · `svi_score_computed` · `report_view` · `paywall_view` · `checkout` · `trust_report_purchased` · `feature_gate_hit` for the last `--days` (default 28) UTC days, through the Supabase REST endpoint with `SUPABASE_SERVICE_ROLE_KEY` from `web/.env` (never logged) | `content/reports/funnel-daily.jsonl` — one line per UTC date `{date, signups, analyses, first_analyses, report_views, paywall_views, checkouts, paid, gate_hits:{feature:n}, conv:{signup_to_analysis, analysis_to_report, report_to_paywall, paywall_to_checkout, checkout_to_paid}, events, qa_excluded}` (a re-run **replaces** that date's line) · `content/reports/funnel-latest.json` `{generated_at, window, yesterday, d7, prev7, d28, last_signups[20]}` | `--weekly` (Mondays): the week summary through `scripts/lib/ops-env.mjs sendTelegram` (Telegram → ops e-mail fallback) |
+
+Counting rules (`scripts/lib/funnel-core.mjs`, unit-pinned in
+`scripts/funnel-report.test.mjs`): a step counts **distinct actors** (user id,
+else browser session, else the event) so a reload or the client+server
+`checkout` twins never inflate it; rows with `params.qa = true` (live-QA
+accounts) are dropped and reported as `qa_excluded`; `gate_hits` are raw
+`feature_gate_hit` counts per feature; conversions are same-window ratios
+(`null` when the denominator is 0), not cohorts.
+
+### Lines to install
+
+```
+50 2 * * * cd /home/dovanlong/blockid.au/web && node scripts/funnel-report.mjs >> /data/logs/blockid-funnel.log 2>&1
+5 3 * * 1 cd /home/dovanlong/blockid.au/web && node scripts/funnel-report.mjs --weekly >> /data/logs/blockid-funnel.log 2>&1
+```
+
+### Dry-run smoke
+
+```bash
+cd web && node scripts/funnel-report.mjs --dry-run --days 14   # prints totals / yesterday / 7 d conv / gates; writes nothing, sends nothing
+cd web && node scripts/funnel-report.mjs --dry-run --weekly    # also prints the Monday summary text (not sent)
+cd web && node scripts/funnel-report.mjs --json                # machine-readable summary; writes the files
+```
+
+`--env-dir /path/to/web` points the script at another checkout's `.env`
+(worktrees have none). First manual run after deploy: `node scripts/funnel-report.mjs`
+— `/admin/funnel` shows "report: missing" until the files exist.
+
+Surfaces: `/admin/funnel` (yesterday / 7 d / 28 d table, per-step conversions,
+top gate features, last 20 sign-ups by user-id prefix + persona, live "today so
+far" from `analytics_events`), `/admin/traction` → `funnel_7d_v2` in
+`traction-snapshot.json` (same reducer).

@@ -503,8 +503,33 @@ describe("POST /api/stripe/webhook — checkout.session.completed routing", () =
     const purchased = emitCalls.find((c) => c.name === "trust_report_purchased");
     expect(purchased).toBeTruthy();
     expect(purchased!.params).toMatchObject({ sku: "sku_trust_report_5aud", gross_aud_cents: 300, reconciled: true, user_id: "user-1" });
+    expect(purchased!.params.qa).toBeUndefined();
     expect(purchased!.userId).toBe("user-1");
     expect(purchased!.source).toBe("webhook:stripe");
+  });
+
+  // G16-A — a QA purchase (bid_qa stamped by /api/reports/checkout, or a
+  // qa-live-* customer e-mail on the session) carries qa:true so the daily
+  // funnel never reports it as the first dollar.
+  it("trust_report (report_order): trust_report_purchased carries qa:true for a QA buyer (metadata flag or e-mail)", async () => {
+    for (const variant of [
+      { id: "evt_trust_report_qa_meta", metadata: { bid_qa: "1" }, customerEmail: undefined },
+      { id: "evt_trust_report_qa_email", metadata: {}, customerEmail: "qa-live-20260919-0415@blockid.au" },
+    ]) {
+      selectResponses.set("report_orders:insert", { data: { id: `order-${variant.id}` }, error: null });
+      verifyWebhookSignature.mockReturnValue(
+        buildCheckoutEvent({
+          id: variant.id,
+          metadata: { bid_scope: "report_order", bid_business_id: "biz-1", bid_user_id: "user-qa", bid_sku: "sku_trust_report_5aud", ...variant.metadata },
+          customerEmail: variant.customerEmail,
+          amountTotal: 300,
+        }),
+      );
+      expect((await invoke()).status).toBe(200);
+      const purchased = emitCalls.filter((c) => c.name === "trust_report_purchased").pop();
+      expect(purchased, variant.id).toBeTruthy();
+      expect(purchased!.params).toMatchObject({ user_id: "user-qa", qa: true });
+    }
   });
 
   it("svi_analysis: inserts svi_accounts + svi_analysis_usage rows for a new email", async () => {

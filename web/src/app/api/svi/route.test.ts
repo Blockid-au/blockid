@@ -84,6 +84,14 @@ vi.mock("@/lib/founder-profile", () => ({
   profileToSviInputText: () => "",
 }));
 vi.mock("@/lib/analytics/server", () => ({ emitEvent: () => {} }));
+// G16-A: the legacy /api/svi path also emits the funnel's svi_analyze +
+// svi_score_computed steps (through the funnel helpers, so the qa flag and
+// the deterministic event ids are decided in one place).
+const funnel = vi.hoisted(() => ({ sviAnalyze: vi.fn(), scoreComputed: vi.fn() }));
+vi.mock("@/lib/analytics/funnel", () => ({
+  emitSviAnalyze: (i: unknown) => funnel.sviAnalyze(i),
+  emitScoreComputed: (i: unknown) => funnel.scoreComputed(i),
+}));
 vi.mock("@/lib/email", () => ({ sendSVIReport: async () => {}, sendWelcomeWithReport: async () => {} }));
 vi.mock("@/lib/email-drip", () => ({ enqueueOnboardingDrip: async () => {} }));
 vi.mock("@/lib/auth", () => ({ autoCreateUserWithTempPassword: async () => ({ ok: false }) }));
@@ -237,5 +245,34 @@ describe("POST /api/svi — member access", () => {
     expect(scopeState.lastMinRole).toBeUndefined();
     const insert = db.sb!.find("svi_analyses", "insert")[0];
     expect((insert.args[0] as { email: string }).email).toBe("caller@x.test");
+  });
+});
+
+describe("POST /api/svi — funnel events (G16-A)", () => {
+  beforeEach(() => {
+    funnel.sviAnalyze.mockReset();
+    funnel.scoreComputed.mockReset();
+  });
+
+  it("signed-in run: svi_analyze (first — no usage row yet) + svi_score_computed keyed on the new slug, e-mail forwarded for the qa flag", async () => {
+    const res = await POST(req());
+    expect(res.status).toBe(200);
+    expect(funnel.sviAnalyze).toHaveBeenCalledTimes(1);
+    const a = funnel.sviAnalyze.mock.calls[0][0] as Record<string, unknown>;
+    expect(a).toMatchObject({ userId: "user-caller", email: "caller@x.test", first: true, sessionId: null });
+    expect(typeof a.score).toBe("number");
+    expect(typeof a.analysisId).toBe("string");
+    expect(funnel.scoreComputed).toHaveBeenCalledTimes(1);
+    const s = funnel.scoreComputed.mock.calls[0][0] as Record<string, unknown>;
+    expect(s).toMatchObject({ userId: "user-caller", email: "caller@x.test", slug: a.analysisId, analysisId: a.analysisId });
+  });
+
+  it("guest run keys the session on the slug and still reaches both steps", async () => {
+    cookieStore.clear();
+    await POST(req());
+    const a = funnel.sviAnalyze.mock.calls[0][0] as Record<string, unknown>;
+    expect(a.userId).toBeNull();
+    expect(a.sessionId).toBe(a.analysisId);
+    expect(funnel.scoreComputed).toHaveBeenCalledTimes(1);
   });
 });

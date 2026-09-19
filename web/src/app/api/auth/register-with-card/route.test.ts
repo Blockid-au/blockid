@@ -138,6 +138,15 @@ vi.mock("@/lib/analytics/server", () => ({
   },
 }));
 
+// G16-A: the funnel `sign_up` step — this route creates app_users itself,
+// so it must emit exactly one sign_up (method "card") per successful signup.
+const signUps: Array<Record<string, unknown>> = [];
+vi.mock("@/lib/analytics/funnel", () => ({
+  emitSignUp: (input: Record<string, unknown>) => {
+    signUps.push(input);
+  },
+}));
+
 vi.mock("@/lib/stripe", () => ({
   isStripeConfigured: () => true,
   getStripe: () => ({
@@ -222,6 +231,7 @@ async function json(res: Response): Promise<Record<string, unknown>> {
 
 beforeEach(() => {
   emitCalls.length = 0;
+  signUps.length = 0;
   mocks.inserted.length = 0;
   mocks.trialStateUpserts.length = 0;
   mocks.subscriptionCreates.length = 0;
@@ -463,6 +473,33 @@ describe("evaluator_trial_started (G14-S33)", () => {
     const res = await POST(req(body({ plan_id: "founder_starter", account_type: "founder" })));
     expect(res.status).toBe(200);
     expect(emitCalls.find((c) => c.name === "evaluator_trial_started")).toBeUndefined();
+  });
+});
+
+// G16-A — funnel truth: one `sign_up` per created account, method "card",
+// persona = account_type, segment mapped from the plan's segment.
+describe("sign_up funnel event (G16-A)", () => {
+  it("emits once for an evaluator signup with method card + persona", async () => {
+    const res = await POST(req(body({ plan_id: "investor_vc_small", account_type: "accelerator" })));
+    expect(res.status).toBe(200);
+    expect(signUps).toEqual([
+      { userId: "u_new", email: "eva@example.com", method: "card", segment: "unknown", persona: "accelerator" },
+    ]);
+  });
+
+  it("maps a founder rung to segment founder and an investor rung to investor", async () => {
+    expect((await POST(req(body({ plan_id: "founder_starter", account_type: "founder" })))).status).toBe(200);
+    expect(signUps[0]).toMatchObject({ method: "card", segment: "founder", persona: "founder" });
+    signUps.length = 0;
+    expect((await POST(req(body()))).status).toBe(200);
+    expect(signUps[0]).toMatchObject({ method: "card", segment: "investor", persona: "investor" });
+  });
+
+  it("does not emit when the email is already taken (no account created)", async () => {
+    mocks.existingEmails.add("eva@example.com");
+    const res = await POST(req(body()));
+    expect(res.status).toBe(409);
+    expect(signUps).toEqual([]);
   });
 });
 

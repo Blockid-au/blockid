@@ -187,6 +187,22 @@ export default async function TractionAdminPage() {
               <PlanTable title="Funnel — last 7 days" rows={snap.funnel_7d} note="Top server-side analytics_events names (QA users excluded)." />
             </div>
 
+            <section className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900" data-testid="traction-funnel-v2">
+              <p className="text-sm font-medium text-neutral-800 dark:text-neutral-100">Step funnel — last 7 days (G16-A)</p>
+              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                Distinct founders per step from the same reducer as <code>scripts/funnel-report.mjs</code> (QA rows excluded). Conversions, gates and daily rows:{" "}
+                <Link href="/admin/funnel" className="underline">/admin/funnel</Link>.
+              </p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                <Tile label="Sign-ups" value={n(snap.funnel_7d_v2.signups)} />
+                <Tile label="Analyses" value={n(snap.funnel_7d_v2.analyses)} sub={`${n(snap.funnel_7d_v2.first_analyses)} first`} />
+                <Tile label="Report views" value={n(snap.funnel_7d_v2.report_views)} />
+                <Tile label="Paywall views" value={n(snap.funnel_7d_v2.paywall_views)} />
+                <Tile label="Checkouts" value={n(snap.funnel_7d_v2.checkouts)} />
+                <Tile label="Paid" value={n(snap.funnel_7d_v2.paid)} />
+              </div>
+            </section>
+
             <section className="rounded-2xl border border-neutral-200 bg-white p-5 text-sm dark:border-neutral-800 dark:bg-neutral-900">
               <p className="font-medium text-neutral-800 dark:text-neutral-100">
                 Warnings <span className="ml-1 rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">{snap.warnings.length}</span>

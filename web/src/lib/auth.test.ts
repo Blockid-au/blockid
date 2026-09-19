@@ -97,6 +97,7 @@ interface State {
     processReferral: Array<{ userId: string; code: string }>;
     processAttribution: Array<{ userId: string; code: string }>;
     notificationInserts: number;
+    signUps: Array<{ userId: string; email: string | null | undefined; method: string }>;
   };
 }
 
@@ -113,6 +114,7 @@ const state: State = {
     processReferral: [],
     processAttribution: [],
     notificationInserts: 0,
+    signUps: [],
   },
 };
 
@@ -129,6 +131,7 @@ function resetState() {
     processReferral: [],
     processAttribution: [],
     notificationInserts: 0,
+    signUps: [],
   };
 }
 
@@ -237,6 +240,14 @@ vi.mock("./referrals", () => ({
 vi.mock("./reseller/process-attribution", () => ({
   processAttribution: async (userId: string, code: string) => {
     state.sideEffects.processAttribution.push({ userId, code });
+  },
+}));
+
+// G16-A: `sign_up` funnel event — fired exactly once per app_users creation,
+// on every path, never on an existing-user branch.
+vi.mock("./analytics/funnel", () => ({
+  emitSignUp: (input: { userId: string; email: string | null | undefined; method: string }) => {
+    state.sideEffects.signUps.push({ userId: input.userId, email: input.email, method: input.method });
   },
 }));
 
@@ -575,6 +586,7 @@ describe("auth — consumeMagicLink", () => {
     expect(out.pendingPayload).toEqual({ next: "/dashboard" });
     // Existing-user branch never touches credits / referrals / attribution
     expect(state.sideEffects.initializeCredits).toEqual([]);
+    expect(state.sideEffects.signUps).toEqual([]);
     expect(state.sideEffects.processReferral).toEqual([]);
     expect(state.sideEffects.processAttribution).toEqual([]);
   });
@@ -626,6 +638,7 @@ describe("auth — consumeMagicLink", () => {
     expect(state.sideEffects.initializeCredits).toEqual(["u-new"]);
     expect(state.sideEffects.processReferral).toEqual([{ userId: "u-new", code: "REF-1" }]);
     expect(state.sideEffects.processAttribution).toEqual([{ userId: "u-new", code: "VIA-2" }]);
+    expect(state.sideEffects.signUps).toEqual([{ userId: "u-new", email: "new@founder.com", method: "magic_link" }]);
   });
 
   it("new-user branch returns db_error when the app_users insert fails (no side-effects)", async () => {
@@ -646,6 +659,7 @@ describe("auth — consumeMagicLink", () => {
     const out = await consumeMagicLink("tok");
     expect(out).toEqual({ ok: false, reason: "db_error" });
     expect(state.sideEffects.initializeCredits).toEqual([]);
+    expect(state.sideEffects.signUps).toEqual([]);
     expect(state.sideEffects.processReferral).toEqual([]);
   });
 });
@@ -897,6 +911,7 @@ describe("auth — loginWithGoogle", () => {
     expect(state.calls.filter((c) => c.table === "app_users" && c.op === "insert")).toHaveLength(0);
     // New-user side-effects skipped
     expect(state.sideEffects.initializeCredits).toEqual([]);
+    expect(state.sideEffects.signUps).toEqual([]);
   });
 
   it("new-user branch: inserts, grants credits, processes ref/attribution codes, admin role for ADMIN_EMAIL", async () => {
@@ -924,6 +939,7 @@ describe("auth — loginWithGoogle", () => {
     expect(state.sideEffects.initializeCredits).toEqual(["u-new"]);
     expect(state.sideEffects.processReferral).toEqual([{ userId: "u-new", code: "R" }]);
     expect(state.sideEffects.processAttribution).toEqual([{ userId: "u-new", code: "V" }]);
+    expect(state.sideEffects.signUps).toEqual([{ userId: "u-new", email: ADMIN_EMAIL, method: "google" }]);
     // Insert payload includes role=admin because email matches ADMIN_EMAIL
     const insert = state.calls.find((c) => c.table === "app_users" && c.op === "insert")!;
     expect(insert.payload!.role).toBe("admin");
@@ -988,6 +1004,7 @@ describe("auth — registerWithPassword", () => {
     expect(out.sessionToken).toBeTruthy();
     // Merge branch does NOT re-initialise credits (no double free-credit grant)
     expect(state.sideEffects.initializeCredits).toEqual([]);
+    expect(state.sideEffects.signUps).toEqual([]);
     // The update payload carried a bcrypt hash (starts with "$2")
     const upd = state.calls.find((c) => c.table === "app_users" && c.op === "update")!;
     expect(String(upd.payload!.password_hash)).toMatch(/^\$2[aby]\$/);
@@ -1012,6 +1029,7 @@ describe("auth — registerWithPassword", () => {
     expect(state.sideEffects.initializeCredits).toEqual(["u-new"]);
     expect(state.sideEffects.processReferral).toEqual([{ userId: "u-new", code: "R" }]);
     expect(state.sideEffects.processAttribution).toEqual([{ userId: "u-new", code: "V" }]);
+    expect(state.sideEffects.signUps).toEqual([{ userId: "u-new", email: ADMIN_EMAIL, method: "email" }]);
     const insert = state.calls.find((c) => c.table === "app_users" && c.op === "insert")!;
     expect(insert.payload!.role).toBe("admin");
     expect(String(insert.payload!.password_hash)).toMatch(/^\$2[aby]\$/);
@@ -1023,6 +1041,7 @@ describe("auth — registerWithPassword", () => {
     const out = await registerWithPassword({ email: "new@x.co", password: "passw0rd!" });
     expect(out).toEqual({ ok: false, reason: "db_error" });
     expect(state.sideEffects.initializeCredits).toEqual([]);
+    expect(state.sideEffects.signUps).toEqual([]);
   });
 });
 
@@ -1098,6 +1117,7 @@ describe("auth — autoCreateUserWithTempPassword", () => {
     expect(out.userId).toBe("u-1");
     expect(out.tempPassword).toBeUndefined();
     expect(state.sideEffects.initializeCredits).toEqual([]);
+    expect(state.sideEffects.signUps).toEqual([]);
   });
 
   it("new user: issues a 10-char temp password, initialises credits, seeds notification", async () => {
@@ -1110,6 +1130,7 @@ describe("auth — autoCreateUserWithTempPassword", () => {
     expect(out.userId).toBe("u-new");
     expect(out.tempPassword).toHaveLength(10);
     expect(state.sideEffects.initializeCredits).toEqual(["u-new"]);
+    expect(state.sideEffects.signUps).toEqual([{ userId: "u-new", email: "new@x.co", method: "temp_password" }]);
     // Insert payload carries the bcrypt hash of that temp password
     const insert = state.calls.find((c) => c.table === "app_users" && c.op === "insert")!;
     const hash = String(insert.payload!.password_hash);

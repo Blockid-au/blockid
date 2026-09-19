@@ -43,11 +43,21 @@ const countAnonRunsMock = vi.fn<(a: string) => Promise<number>>();
 const checkAnonRunLimitMock = vi.fn<
   (ip: string) => { allowed: boolean; reason?: string }
 >();
+const countUserRunsMock = vi.fn<(u: string) => Promise<number>>();
 vi.mock("@/lib/analyses/store", () => ({
   saveAnalysis: (i: Record<string, unknown>) => saveAnalysisMock(i),
   checkAnalysisWriteLimit: (a: string, ip: string) => checkWriteLimitMock(a, ip),
   countAnonRunsInWindow: (a: string) => countAnonRunsMock(a),
+  countUserRuns: (u: string) => countUserRunsMock(u),
   checkAnonRunLimit: (ip: string) => checkAnonRunLimitMock(ip),
+}));
+
+// G16-A: funnel steps emitted from this route (the real first-analysis path).
+const sviAnalyzeMock = vi.fn<(i: Record<string, unknown>) => void>();
+const scoreComputedMock = vi.fn<(i: Record<string, unknown>) => void>();
+vi.mock("@/lib/analytics/funnel", () => ({
+  emitSviAnalyze: (i: Record<string, unknown>) => sviAnalyzeMock(i),
+  emitScoreComputed: (i: Record<string, unknown>) => scoreComputedMock(i),
 }));
 
 const deriveMock = vi.fn<() => unknown>();
@@ -97,8 +107,83 @@ beforeEach(() => {
   checkAnonRunLimitMock.mockReset().mockReturnValue({ allowed: true });
   deriveMock.mockReset().mockReturnValue({ totalSVI: 118 });
   startJobMock.mockReset();
+  countUserRunsMock.mockReset().mockResolvedValue(1);
+  sviAnalyzeMock.mockReset();
+  scoreComputedMock.mockReset();
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
+});
+
+// G16-A — the funnel's `svi_analyze` / `svi_score_computed` steps are emitted
+// HERE (POST /api/intake is the founder's first analysis since S32), with
+// `first` decided server-side and the qa-live-* e-mail forwarded for the flag.
+describe("POST /api/intake — funnel events (G16-A)", () => {
+  it("anonymous first run: svi_analyze first=true keyed on the anon session + svi_score_computed", async () => {
+    countAnonRunsMock.mockResolvedValue(0);
+    await POST(req({ text: "an idea" }));
+    expect(sviAnalyzeMock).toHaveBeenCalledTimes(1);
+    expect(sviAnalyzeMock.mock.calls[0][0]).toEqual({
+      userId: null,
+      email: null,
+      projectId: "row-1",
+      analysisId: "row-1",
+      first: true,
+      score: 118,
+      sessionId: "anon-key-000000000000000",
+    });
+    expect(scoreComputedMock).toHaveBeenCalledTimes(1);
+    expect(scoreComputedMock.mock.calls[0][0]).toMatchObject({ userId: null, projectId: "row-1", score: 118, slug: "row-1", analysisId: "row-1" });
+  });
+
+  it("anonymous repeat run (prior runs > 0, still allowed) is first=false", async () => {
+    countAnonRunsMock.mockResolvedValue(1);
+    await POST(req({ text: "an idea", tier: "paid", url: "https://example.com" }));
+    expect(sviAnalyzeMock.mock.calls[0]?.[0]).toMatchObject({ first: false });
+  });
+
+  it("signed-in: first when the just-saved row is the user's only one; repeat otherwise; QA e-mail forwarded", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1", email: "qa-live-20260919-0415@blockid.au" } as never);
+    countUserRunsMock.mockResolvedValue(1);
+    await POST(req({ text: "an idea" }));
+    expect(countUserRunsMock).toHaveBeenCalledWith("u1");
+    expect(sviAnalyzeMock.mock.calls[0][0]).toMatchObject({ userId: "u1", email: "qa-live-20260919-0415@blockid.au", first: true });
+    countUserRunsMock.mockResolvedValue(2);
+    await POST(req({ text: "another idea" }));
+    expect(sviAnalyzeMock.mock.calls[1][0]).toMatchObject({ userId: "u1", first: false });
+  });
+
+  it("an unsaved row still counts as an analysis but never a score; a throwing emitter never breaks the response", async () => {
+    saveAnalysisMock.mockResolvedValue(null);
+    getCurrentUserMock.mockResolvedValue({ id: "u1", email: "a@b.co" } as never);
+    countUserRunsMock.mockResolvedValue(0);
+    let res = await POST(req({ text: "an idea" }));
+    expect(res.status).toBe(200);
+    expect(sviAnalyzeMock.mock.calls[0][0]).toMatchObject({ projectId: null, analysisId: null, first: true });
+    expect(scoreComputedMock).not.toHaveBeenCalled();
+    sviAnalyzeMock.mockImplementation(() => {
+      throw new Error("boom");
+    });
+    res = await POST(req({ text: "an idea" }));
+    expect(res.status).toBe(200);
+    expect((await json(res)).ok).toBe(true);
+  });
+
+  it("no score → svi_analyze without score and no svi_score_computed", async () => {
+    deriveMock.mockReturnValue(null);
+    await POST(req({ text: "an idea" }));
+    expect(sviAnalyzeMock.mock.calls[0][0]).toMatchObject({ score: undefined });
+    expect(scoreComputedMock).not.toHaveBeenCalled();
+  });
+
+  it("nothing is emitted when the gate declines or the pipeline fails", async () => {
+    countAnonRunsMock.mockResolvedValue(5);
+    await POST(req({ text: "an idea" }));
+    analyzeInputMock.mockRejectedValue(new Error("model down"));
+    countAnonRunsMock.mockResolvedValue(0);
+    await POST(req({ text: "an idea" }));
+    expect(sviAnalyzeMock).not.toHaveBeenCalled();
+    expect(scoreComputedMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("POST /api/intake — module invariants", () => {

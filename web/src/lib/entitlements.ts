@@ -21,6 +21,7 @@ import { getUserTimedGrants } from "@/lib/entitlements/timed-grants";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { shouldFire, recordConversionEvent } from "@/lib/conversion/triggers";
 import { emitEvent } from "@/lib/analytics/server";
+import { qaFlag } from "@/lib/analytics/events";
 
 // ---------------------------------------------------------------------------
 // Feature catalog — union of every gate name used across the product.
@@ -115,6 +116,8 @@ export interface UserWithPlan {
   segment: string;
   jurisdiction?: string;
   legal_review_passed?: boolean;
+  /** G16-A: only read by recordGateHit to stamp `qa: true` for qa-live-* accounts; never stored. */
+  email?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -536,6 +539,8 @@ export async function recordGateHit(
     plan: user?.plan ?? null,
     segment: user?.segment ?? null,
     ...(cleanSurface ? { surface: cleanSurface } : {}),
+    // G16-A: QA accounts are excluded from the daily funnel's gate_hits.
+    ...qaFlag(user?.email),
   };
 
   // analytics_events (CDO T-1009 — GA4 + BQ mirror via typed emitEvent pipeline).

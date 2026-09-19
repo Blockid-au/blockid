@@ -145,6 +145,12 @@ vi.mock("@/lib/rate-limit", () => ({
   ) => enforceRateLimitMock(route, identity, req, max, windowMs),
 }));
 
+// G16-A: the funnel `checkout` step is emitted here (Stripe session created).
+const emitCheckoutMock = vi.fn();
+vi.mock("@/lib/analytics/funnel", () => ({
+  emitCheckout: (i: unknown) => emitCheckoutMock(i),
+}));
+
 import { POST } from "./route";
 
 const BUSINESS_ID = "11111111-2222-3333-4444-555555555555";
@@ -166,7 +172,53 @@ beforeEach(() => {
   resolveMock.mockReset();
   attributionsInsertSpy.mockReset();
   promoUpdateSpy.mockReset();
+  emitCheckoutMock.mockReset();
   cookieValue = null;
+});
+
+// G16-A — funnel truth for the A$3 step: one `checkout` per minted Stripe
+// session (keyed on its id), the sku + amount from the pricing source of
+// truth, and a `bid_qa` metadata flag for qa-live-* buyers so the webhook can
+// stamp trust_report_purchased without a lookup.
+describe("POST /api/reports/checkout — checkout funnel event (G16-A)", () => {
+  it("emits checkout with sku / amount / project / order / Stripe session id and the user's e-mail", async () => {
+    const res = await POST(makeReq({ businessId: BUSINESS_ID }));
+    expect(res.status).toBe(200);
+    expect(emitCheckoutMock).toHaveBeenCalledTimes(1);
+    expect(emitCheckoutMock.mock.calls[0][0]).toEqual({
+      userId: "user-1",
+      email: "u@x.au",
+      sku: "trust_report_5aud",
+      amountCents: 300,
+      projectId: BUSINESS_ID,
+      orderId: "order-1",
+      stripeSessionId: "sess_abc",
+    });
+    const [sessionArg] = sessionCreateMock.mock.calls[0];
+    expect(sessionArg.metadata.bid_qa).toBeUndefined();
+  });
+
+  it("still emits (orderId null) when the order row insert failed — the session exists", async () => {
+    supabaseBehaviour.reportOrderInsertResp = { data: null, error: { message: "boom" } };
+    const res = await POST(makeReq({ businessId: BUSINESS_ID }));
+    expect(res.status).toBe(200);
+    expect(emitCheckoutMock.mock.calls[0][0]).toMatchObject({ orderId: null, stripeSessionId: "sess_abc" });
+  });
+
+  it("stamps bid_qa=1 on the Stripe session for a qa-live-* account", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "user-qa", email: "qa-live-20260919-0415@blockid.au" });
+    await POST(makeReq({ businessId: BUSINESS_ID }));
+    const [sessionArg] = sessionCreateMock.mock.calls[0];
+    expect(sessionArg.metadata.bid_qa).toBe("1");
+  });
+
+  it("does not emit when Stripe fails or the caller is anonymous", async () => {
+    sessionCreateMock.mockRejectedValue(new Error("stripe down"));
+    expect((await POST(makeReq({ businessId: BUSINESS_ID }))).status).toBe(502);
+    getCurrentUserMock.mockResolvedValue(null);
+    expect((await POST(makeReq({ businessId: BUSINESS_ID }))).status).toBe(401);
+    expect(emitCheckoutMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("POST /api/reports/checkout promoCode", () => {

@@ -26,10 +26,32 @@ export type PlanCode =
 
 export type UserSegment = "founder" | "investor" | "advisor" | "enterprise" | "unknown";
 
+/**
+ * G16-A — how the account was created. `email` = password form,
+ * `magic_link` = /auth/verify, `google` = GIS / redirect OAuth, `card` =
+ * evaluator register-with-card, `temp_password` = auto-created from an
+ * anonymous SVI run / guest report, `wallet` = reserved (never emitted yet).
+ */
+export type SignUpMethod = "email" | "google" | "wallet" | "magic_link" | "card" | "temp_password";
+
+/** G16-A — where the free-tier cut / unlock rail was rendered (lane B picks the value). */
+export type PaywallSurface = "tbr_locked_chapter" | "tbr_unlock_rail" | "report_paywall_gate" | "gate_card" | "funding_paywall" | "other";
+
+/** G16-A — under which entitlement the founder saw the report. */
+export type ReportViewTier = "free" | "paid" | "plan";
+
 // ── Discriminated union of all tracked events ──────────────────────────
 
 export type AnalyticsEvent =
-  | { name: "sign_up"; params: { segment: UserSegment; method: "google" | "email" | "wallet"; jurisdiction?: string } }
+  // ── G16-A funnel steps (server-side, once per step; `qa: true` on qa-live-* accounts) ──
+  //   sign_up                — lib/auth.ts (every app_users creation path) + register-with-card
+  //   svi_analyze            — POST /api/intake (`first` = caller's first saved run) + POST /api/svi
+  //   svi_score_computed     — same two routes, once a score exists
+  //   report_view            — /workspace/reports/business render (+ client via /api/analytics/event)
+  //   paywall_view           — client (lane B) via POST /api/analytics/event
+  //   checkout               — POST /api/reports/checkout (Stripe session created)
+  //   trust_report_purchased — Stripe webhook (below)
+  | { name: "sign_up"; params: { segment: UserSegment; method: SignUpMethod; jurisdiction?: string; persona?: string; qa?: boolean } }
   | { name: "trial_start"; params: { plan: PlanCode; segment: UserSegment; days: number } }
   | { name: "trial_end"; params: { plan: PlanCode; converted: boolean; reason?: "expired" | "canceled" | "converted" } }
   | { name: "subscribe"; params: { plan: PlanCode; price_aud: number; gst_aud: number; interval: "month" | "year"; via?: "checkout" | "portal" } }
@@ -38,24 +60,27 @@ export type AnalyticsEvent =
   | { name: "plan_cancel"; params: { plan: PlanCode; reason?: string; at_period_end: boolean } }
   | { name: "report_generate"; params: { report_kind: string; credits_spent: number; word_count?: number; project_id?: string } }
   | { name: "dashboard_view"; params: { dashboard: string; segment: UserSegment } }
-  | { name: "feature_gate_hit"; params: { feature: string; current_plan: PlanCode; required_plan?: PlanCode; surface?: string } }
+  | { name: "feature_gate_hit"; params: { feature: string; current_plan: PlanCode; required_plan?: PlanCode; surface?: string; qa?: boolean } }
   | { name: "credits_spend"; params: { amount: number; reason: string; balance_after?: number } }
   | { name: "credits_purchase"; params: { amount: number; price_aud: number; gst_aud: number } }
   | { name: "equity_offer_request"; params: { deal_id: string; offer_aud: number; segment: UserSegment } }
   | { name: "share_link_open"; params: { link_kind: "report" | "deal" | "profile"; token_hash: string } }
   | { name: "evidence_upload"; params: { evidence_kind: string; size_bytes: number; project_id?: string } }
-  | { name: "svi_analyze"; params: { project_id: string; score: number; percentile?: number } }
+  | { name: "svi_analyze"; params: { project_id: string; first: boolean; score?: number; percentile?: number; analysis_id?: string; qa?: boolean } }
+  | { name: "report_view"; params: { tier: ReportViewTier; pages_est?: number; project_id: string; qa?: boolean } }
+  | { name: "paywall_view"; params: { surface: PaywallSurface | string; sku: string; amount_cents: number; project_id?: string; qa?: boolean } }
+  | { name: "checkout"; params: { sku: string; amount_cents: number; project_id?: string; order_id?: string; qa?: boolean } }
   | { name: "agent_invoke"; params: { agent: string; credits_spent: number; duration_ms?: number } }
   | { name: "cohort_action"; params: { cohort: string; action: string; detail?: Record<string, string | number | boolean> } }
   | { name: "investor_view_deal"; params: { deal_id: string; segment: UserSegment; source?: string } }
   | { name: "session_start"; params: { segment: UserSegment; jurisdiction?: string; referrer?: string } }
   // ── SVI score pipeline (CDO T-1009 — BQ analytics export) ─────────────
-  | { name: "svi_score_computed"; params: { project_id: string; score: number; slug: string; user_id?: string } }
+  | { name: "svi_score_computed"; params: { project_id: string; score: number; slug: string; user_id?: string; analysis_id?: string; qa?: boolean } }
   | { name: "investor_pack_generated"; params: { project_id: string; user_id: string; pages?: number } }
   | { name: "trial_activated"; params: { plan: PlanCode; user_id: string; trial_end_at?: string } }
   | { name: "checkout_completed"; params: { plan: PlanCode; user_id: string; session_id: string; gross_aud_cents?: number } }
   // ── G14-S33 money events (server-side; see lib/analytics.ts for the client-map twin) ──
-  | { name: "trust_report_purchased"; params: { sku: string; gross_aud_cents: number; reconciled: boolean; user_id: string; session_id: string } }
+  | { name: "trust_report_purchased"; params: { sku: string; gross_aud_cents: number; reconciled: boolean; user_id: string; session_id: string; qa?: boolean } }
   | { name: "funding_report_paid"; params: { paid_via: "one_off" | "credits" | "plan"; report_id: string; gross_aud_cents?: number } }
   | { name: "evaluator_trial_started"; params: { plan: string; trial_days: number; account_type: string; user_id: string } }
   | { name: "subscription_created"; params: { plan: string; plan_label?: string; status: string; trialing: boolean; interval: string; user_id?: string } }
@@ -70,6 +95,47 @@ export type AnalyticsEvent =
   | { name: "feedback_action_clicked"; params: { letter_id: string; action_id: string; dimension: string; href: string; user_id?: string } };
 
 export type AnalyticsEventName = AnalyticsEvent["name"];
+
+// ── G16-A: QA accounts + client-emittable funnel events ────────────────
+
+/**
+ * Live-QA accounts (`tests/live-qa/lib/env.ts`): `qa-live-<yyyymmdd-hhmm>`,
+ * `qa-live-member-<stamp>`, `qa-live-evaluator-<stamp>` @blockid.au. Every
+ * funnel emit point stamps `qa: true` for them so scripts/funnel-report.mjs
+ * and the traction snapshot exclude them from the counts.
+ */
+export const QA_EMAIL_RE = /^qa-live-(evaluator-|member-)?[0-9]{8}-[0-9]{4}@blockid\.au$/i;
+
+export function isQaEmail(email: string | null | undefined): boolean {
+  if (typeof email !== "string") return false;
+  return QA_EMAIL_RE.test(email.trim());
+}
+
+/** `{ qa: true }` for a QA account, `{}` otherwise — spread into event params. */
+export function qaFlag(email: string | null | undefined): { qa?: true } {
+  return isQaEmail(email) ? { qa: true } : {};
+}
+
+/**
+ * Event names a browser may send through POST /api/analytics/event. The
+ * route drops anything else and always overwrites `user_id` / `qa`.
+ */
+export const CLIENT_EMITTABLE_EVENTS = Object.freeze([
+  "paywall_view",
+  "checkout",
+  "report_view",
+  "dashboard_view",
+  "share_link_open",
+] as const satisfies readonly AnalyticsEventName[]);
+
+export type ClientEmittableEvent = (typeof CLIENT_EMITTABLE_EVENTS)[number];
+
+export function isClientEmittableEvent(name: string): name is ClientEmittableEvent {
+  return (CLIENT_EMITTABLE_EVENTS as readonly string[]).includes(name);
+}
+
+/** Events an anonymous browser (no session cookie) may still send — the public /tbr/* paywall. */
+export const ANON_EMITTABLE_EVENTS: readonly ClientEmittableEvent[] = Object.freeze(["paywall_view", "share_link_open"]);
 
 // ── PII guard ──────────────────────────────────────────────────────────
 //
@@ -119,6 +185,10 @@ export interface TrackOptions {
   userId?: string | null;
   sessionId?: string | null;
   eventId?: string; // caller may supply for idempotency
+  /** G16-A: `"client"` for browser-originated rows via /api/analytics/event (default `"server"`). */
+  source?: string;
+  /** G16-A: forwarded to the GA4 mirror (client rows are only mirrored when consented). */
+  consentGranted?: boolean;
 }
 
 /**
@@ -149,6 +219,8 @@ export async function trackEvent<E extends AnalyticsEvent>(
       userId: opts.userId ?? null,
       sessionId: opts.sessionId ?? null,
       eventId: opts.eventId,
+      ...(opts.source ? { source: opts.source } : {}),
+      ...(typeof opts.consentGranted === "boolean" ? { consentGranted: opts.consentGranted } : {}),
     });
     return { ok: true };
   } catch (err) {

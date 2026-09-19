@@ -141,6 +141,13 @@ function fixture(): Fake {
         { event_name: "funding_report_paid", ts: recent, user_id: "u1" },
         { event_name: "dossier_view", ts: recent, user_id: "q2" }, // QA
         { event_name: "checkout_completed", ts: old, user_id: "u1" }, // too old
+        // G16-A step funnel (funnel_7d_v2): u1 signed up + analysed (twice → one actor), a
+        // qa-flagged sign_up must be dropped by the reducer even before the keptIds filter.
+        { event_id: "e1", event_name: "sign_up", ts: recent, user_id: "u1", params: { method: "google", segment: "founder" } },
+        { event_id: "e2", event_name: "svi_analyze", ts: recent, user_id: "u1", params: { first: true, project_id: "p1" } },
+        { event_id: "e3", event_name: "svi_analyze", ts: recent, user_id: "u1", params: { first: false, project_id: "p1" } },
+        { event_id: "e4", event_name: "feature_gate_hit", ts: recent, user_id: "u1", params: { feature: "cap_table.write" } },
+        { event_id: "e5", event_name: "sign_up", ts: recent, user_id: "u2", params: { method: "email", segment: "founder", qa: true } },
       ],
     },
   };
@@ -255,7 +262,10 @@ describe("buildTractionSnapshot", () => {
     expect(snap.api_keys_active).toBe(1);
     expect(snap.webhooks_active).toBe(2);
     expect(snap.mrr_aud_cents).toEqual({ from_subscriptions: 7900 + 34900 + 2900, from_revenue_events: 7900 + 2900, stripe_reconciled: true });
-    expect(snap.funnel_7d).toEqual({ hero_variant_shown: 2, funding_report_paid: 1 });
+    expect(snap.funnel_7d).toEqual({ hero_variant_shown: 2, sign_up: 2, svi_analyze: 2, feature_gate_hit: 1, funding_report_paid: 1 });
+    // G16-A: the step funnel — distinct actors, qa:true row dropped, gate per feature
+    expect(snap.funnel_7d_v2).toMatchObject({ signups: 1, analyses: 1, first_analyses: 1, report_views: 0, paywall_views: 0, checkouts: 0, paid: 0, qa_excluded: 1, gate_hits: { "cap_table.write": 1 } });
+    expect(snap.funnel_7d_v2.conv).toEqual({ signup_to_analysis: 1, analysis_to_report: 0, report_to_paywall: null, paywall_to_checkout: null, checkout_to_paid: null });
     expect(snap.warnings).toEqual([]);
     expect(tractionSnapshotSchema.parse(JSON.parse(JSON.stringify(snap)))).toEqual(snap);
 
@@ -274,6 +284,7 @@ describe("buildTractionSnapshot", () => {
     expect(snap.assessments).toEqual({ submitted: null, shared_with_founder: null });
     expect(snap.tbr).toEqual({ purchased: 2, shared: 1, views: null });
     expect(snap.funnel_7d).toEqual({});
+    expect(snap.funnel_7d_v2).toEqual(emptyTractionSnapshot(NOW).funnel_7d_v2);
     expect(snap.users.total).toBe(5);
     expect(snap.warnings).toEqual([
       "tbr_views:count: 42P01 relation \"public.tbr_views\" does not exist",

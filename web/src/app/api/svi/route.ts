@@ -21,7 +21,7 @@ import { evaluateAntlerSignals } from "@/lib/agents/antler-signals";
 import { profileToSviInputText } from "@/lib/founder-profile";
 import { applyFounderExecution } from "@/lib/founder/execution-load";
 import { evaluateAcceleratorReadiness } from "@/lib/agents/accelerator-readiness";
-import { emitEvent } from "@/lib/analytics/server";
+import { emitScoreComputed, emitSviAnalyze } from "@/lib/analytics/funnel";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { apiRoute } from "@/lib/audit/api-route";
 
@@ -396,6 +396,8 @@ async function POST_handler(request: Request) {
 
   const supabase = getSupabaseAdmin();
   let slug = newSlug();
+  // G16-A: set once the svi_analyses row exists; emitted with the funnel step below.
+  let scoreComputedSlug: string | null = null;
 
   // `projectId` / `dataEmail` were resolved by the member-aware scope gate
   // above (data isolation + reseller-sandbox routing on spendCredits).
@@ -436,19 +438,9 @@ async function POST_handler(request: Request) {
         }
       }
 
-      // CDO T-1009: fire svi_score_computed into analytics_events → BQ pipeline.
-      void emitEvent({
-        name: "svi_score_computed",
-        params: {
-          project_id: projectId ?? slug,
-          score: analysis.totalSVI,
-          slug,
-          ...(authenticatedUserId ? { user_id: authenticatedUserId } : {}),
-        },
-        userId: authenticatedUserId,
-        source: "server",
-        consentGranted: true,
-      });
+      // CDO T-1009 / G16-A: svi_score_computed → analytics_events (event_id
+      // keyed on the slug, qa flag for qa-live-* callers).
+      scoreComputedSlug = slug;
     }
   }
 
@@ -466,6 +458,7 @@ async function POST_handler(request: Request) {
   }
 
   // ── Increment total_analyses for every analysis (free + paid) ──────
+  let priorAnalyses = 0;
   if (isSupabaseConfigured()) {
     const usageSupabase = getSupabaseAdmin()!;
     const lowerEmail = email.toLowerCase().trim();
@@ -476,6 +469,7 @@ async function POST_handler(request: Request) {
       .maybeSingle();
 
     if (existingUsage) {
+      priorAnalyses = Number(existingUsage.total_analyses) || 0;
       await usageSupabase
         .from("svi_analysis_usage")
         .update({
@@ -494,6 +488,32 @@ async function POST_handler(request: Request) {
           last_analysis_at: new Date().toISOString(),
         });
     }
+  }
+
+  // ── G16-A funnel: svi_analyze (first = no earlier usage row for this
+  //    e-mail) + svi_score_computed once the row exists. Fire-and-forget.
+  try {
+    emitSviAnalyze({
+      userId: authenticatedUserId,
+      email,
+      projectId: projectId ?? slug,
+      analysisId: slug,
+      first: priorAnalyses === 0,
+      score: analysis.totalSVI,
+      sessionId: authenticatedUserId ? null : slug,
+    });
+    if (scoreComputedSlug) {
+      emitScoreComputed({
+        userId: authenticatedUserId,
+        email,
+        projectId: projectId ?? scoreComputedSlug,
+        score: analysis.totalSVI,
+        slug: scoreComputedSlug,
+        analysisId: scoreComputedSlug,
+      });
+    }
+  } catch (err) {
+    console.warn("[blockid:svi] funnel emit failed", err instanceof Error ? err.message : String(err));
   }
 
   // ── Auto-create account + send welcome OR just report email ─────────

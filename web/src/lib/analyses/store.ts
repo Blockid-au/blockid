@@ -146,6 +146,31 @@ export async function countAnonRunsInWindow(
   }
 }
 
+/**
+ * G16-A — how many saved runs a signed-in user has (capped: the funnel only
+ * needs "is this the first one"). 0 on any failure, never throws.
+ */
+export async function countUserRuns(userId: string, cap = 2): Promise<number> {
+  if (!userId) return 0;
+  try {
+    const supabase = getSupabaseAdmin();
+    if (!supabase) return 0;
+    const { data, error } = await supabase
+      .from(ANALYSES_TABLE)
+      .select("id")
+      .eq("user_id", userId)
+      .limit(cap);
+    if (error) {
+      console.error("[analyses:count-user] query failed —", error.message);
+      return 0;
+    }
+    return (data ?? []).length;
+  } catch (err) {
+    console.error("[analyses:count-user] threw —", err);
+    return 0;
+  }
+}
+
 // ── Write ────────────────────────────────────────────────────────────────
 
 export interface SaveAnalysisInput {
