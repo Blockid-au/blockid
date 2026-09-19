@@ -21,13 +21,14 @@
  *   - <form role="search" aria-label="Startup search">
  *   - Focus ring: 3px solid rgba(34,211,238,0.4) + soft outer glow.
  *     Contrast of ring vs deep-navy bg > 3:1 (WCAG 2.1 AA non-text).
- *   - Mic icon is a stub (disabled, labelled "coming soon").
+ *   - No disabled placeholder controls (G17-P2B content sweep removed the
+ *     "Voice — coming soon" mic stub; ship the control when it works).
  *   - No autofocus on mount to avoid mobile keyboard shove.
  */
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Mic, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { usePricingExperiment } from "@/lib/hooks/use-pricing-experiment";
 import { trackEvent } from "@/lib/analytics";
 
@@ -142,15 +143,6 @@ export function HeroSearch() {
                   <X aria-hidden="true" className="h-4 w-4" />
                 </button>
               ) : null}
-              <button
-                type="button"
-                disabled
-                aria-label="Voice — coming soon"
-                title="Voice — coming soon"
-                className="inline-flex h-10 w-10 cursor-not-allowed items-center justify-center rounded-full text-slate-400 opacity-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-focus-ring)]"
-              >
-                <Mic aria-hidden="true" className="h-4 w-4" />
-              </button>
             </div>
           </div>
 

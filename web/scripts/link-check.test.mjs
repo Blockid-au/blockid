@@ -317,6 +317,9 @@ describe("link-check.mjs — crawl over the fake site", () => {
     // trailing slash + www. + utm collapse onto the canonical page, no chain
     expect(byUrl["https://blockid.au/pricing"]).toMatchObject({ status: 200, hops: 0 });
     expect(byUrl["https://blockid.au/samples?utm_source=x"]).toMatchObject({ status: 200, internal: true });
+    // Query-string URLs are checked, never crawled (filter-combination guard).
+    expect(byUrl["https://blockid.au/samples?utm_source=x"].crawled).toBeUndefined();
+    expect(byUrl["https://blockid.au/samples"]).toMatchObject({ crawled: true });
     // 308 legacy: one hop, final 200, not broken, not a chain
     expect(byUrl["https://blockid.au/legacy"]).toMatchObject({ status: 200, hops: 1, final_url: "https://blockid.au/product" });
     expect(summary.redirect_chains.map((c) => c.url)).toEqual(["https://blockid.au/chain"]);

@@ -86,8 +86,8 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
         url: "https://www.legislation.gov.au/Details/C2024C00278",
       },
       {
-        label: "LawPath — AU Pty Ltd Constitution template",
-        url: "https://lawpath.com.au/legal-documents/company-constitution",
+        label: "LawPath — AU legal document library (Pty Ltd Constitution template)",
+        url: "https://lawpath.com.au/legal-documents",
       },
       {
         label: "Maddocks — Corporate Advisory (drag/tag drafting)",
@@ -184,8 +184,8 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
       },
       {
         label:
-          "Blackbird / AirTree / Square Peg — public term sheets (double-trigger acceleration, 4y/1y vesting norm)",
-        url: "https://www.blackbird.vc/starter-kit",
+          "AirTree Open Source VC — public AU term sheets + founder docs (double-trigger acceleration, 4y/1y vesting norm)",
+        url: "https://www.airtree.vc/open-source-vc",
       },
     ],
   },
@@ -217,7 +217,7 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
       },
       {
         label: "ATO — ESS start-up concession (QC 45684)",
-        url: "https://www.ato.gov.au/individuals-and-families/investments-and-assets/employee-share-schemes/concessions/start-up-concession",
+        url: "https://www.ato.gov.au/businesses-and-organisations/corporate-tax-measures-and-assurance/employee-share-schemes/employers/types-of-ess/concessional-ess/start-up-concession-interests-acquired-after-30-june-2015",
       },
       {
         label: "ASIC Instrument 2022/1021 — employee incentive scheme relief",
@@ -423,8 +423,8 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
         url: "https://www.ycombinator.com/documents",
       },
       {
-        label: "LawPath — AU SAFE template",
-        url: "https://lawpath.com.au/legal-documents/safe-note-simple-agreement-for-future-equity",
+        label: "LawPath — AU legal document library (SAFE note template)",
+        url: "https://lawpath.com.au/legal-documents",
       },
       {
         label: "Corporations Act 2001 (Cth) — ss708(8), 708(11), 254T, 127",
@@ -849,8 +849,8 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
       },
       {
         label:
-          "AusIndustry — Early Stage Innovation Company overview + accredited accelerator list",
-        url: "https://business.gov.au/grants-and-programs/tax-incentives-for-early-stage-investors",
+          "ATO — Tax incentives for early stage investors (ESIC overview, eligibility tests, decision tool)",
+        url: "https://www.ato.gov.au/businesses-and-organisations/income-deductions-and-concessions/incentives-and-concessions/tax-incentives-for-innovation/tax-incentives-for-early-stage-investors",
       },
       {
         label:

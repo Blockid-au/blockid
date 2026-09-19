@@ -14,7 +14,8 @@
 //   1. GET /robots.txt (Disallow honoured for crawling; disallowed pages are
 //      still status-checked when linked) and, with --include-sitemap,
 //      /sitemap.xml (+ nested sitemaps) — every <loc> becomes a seed.
-//   2. BFS from / over same-origin HTML pages (≤ --max). For every <a href>,
+//   2. BFS from / over same-origin HTML pages (≤ --max; a URL with a query
+//      string is status-checked but not parsed for links). For every <a href>,
 //      <link href> (stylesheet/canonical/alternate/icon), <img src>,
 //      <source src>, <script src>:
 //        internal → GET, redirects followed by hand (≤ 5 hops; > 2 reported as
@@ -260,7 +261,13 @@ export async function crawl(args, deps = {}) {
         }
         if (r.html !== null) {
           pageIds.set(siteHref, extractIds(r.html));
-          const crawlable = !isAssetPath(pathname) && robotsAllows(pathname, robots) && pagesCrawled < args.max;
+          // A URL with a query string is checked but never parsed for more
+          // links unless it is a seed: the funding directories' filter links
+          // (?state=…&stage=…&industry=…) otherwise combine into thousands of
+          // "pages" (2,502 of 3,000 in the first production profile) and
+          // crowd the real ones out of --max.
+          const isSeed = queued.get(siteHref)?.from === "(seed)" || queued.get(siteHref)?.from === "(sitemap)";
+          const crawlable = !isAssetPath(pathname) && (!new URL(siteHref).search || isSeed) && robotsAllows(pathname, robots) && pagesCrawled < args.max;
           if (crawlable) {
             pagesCrawled += 1;
             rec.crawled = true;
