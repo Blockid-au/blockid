@@ -755,3 +755,12 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 */5 * * * * bash $RUN report-email-sweep --timeout 120
 35 16 * * * bash $RUN mandate-fit-refresh --timeout 300
 40 17 * * 0 bash $RUN comparables-ingest --timeout 120
+
+# G16-A (2026-09-19) — daily funnel truth over analytics_events (plain node, own
+# pid lock /tmp/blockid-funnel-report.lock, reads web/.env for the service key).
+#   funnel-report          02:50 UTC daily → content/reports/funnel-daily.jsonl +
+#                          funnel-latest.json (what /admin/funnel renders)
+#   funnel-report --weekly Mon 03:05 UTC → same + Telegram/e-mail week summary
+# Docs: docs/ops/analytics.md § G16-A · docs/ops/crontab-setup.md § G16-A.
+50 2 * * * cd /home/dovanlong/blockid.au/web && node scripts/funnel-report.mjs >> /data/logs/blockid-funnel.log 2>&1
+5 3 * * 1 cd /home/dovanlong/blockid.au/web && node scripts/funnel-report.mjs --weekly >> /data/logs/blockid-funnel.log 2>&1
