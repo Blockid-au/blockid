@@ -5,15 +5,21 @@
  * /vi/business-id can render the same anatomy against different locale
  * catalogs. Master Upgrade Plan §7.1 sitemap + §7.7 bilingual rules.
  *
+ * G17 P2-A: rendered on the unicorn template — PageHero → Section × 5 →
+ * CtaBand — with stable section ids (`what · levels · pillars · sharing ·
+ * badge`). The "Create Your Business ID" CTA lands on /signup (the old
+ * `/founding-50` target is a 301 to /pricing since the promo retired).
+ *
  * Server component. Pure presentation, no data fetch.
  */
 
 import Link from "next/link";
-import { ArrowRight, Check, Shield, Users, Layers } from "lucide-react";
+import { ArrowRight, Check, Clock, KeyRound, Layers, Shield, Undo2, Users } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { CtaBand, FeatureGrid, FOCUS_RING, PageHero, Section } from "@/components/marketing/template";
 import { t, type Messages } from "@/lib/i18n/t";
 
-const SIGNUP_HREF = "/founding-50";
+const SIGNUP_HREF = "/signup";
 
 /**
  * The public sample Business ID this page previews.
@@ -99,102 +105,54 @@ export function BusinessIdBody({ m, lang = "en" }: BusinessIdBodyProps) {
   return (
     <MarketingShell>
       <div lang={lang}>
-        {/* Hero */}
-        <section
-          aria-labelledby="business-id-heading"
-          className="mx-auto flex max-w-4xl flex-col items-start gap-6 px-6 pt-16 pb-12 sm:pt-24 sm:pb-16"
-        >
-          <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-action">
-            {t(m, "businessId.eyebrow")}
-          </p>
-          <h1
-            id="business-id-heading"
-            className="font-display text-balance text-3xl font-semibold tracking-tight text-primary sm:text-4xl md:text-5xl"
-          >
-            {t(m, "businessId.headline")}
-          </h1>
-          <p className="max-w-2xl text-lg leading-relaxed text-secondary">
-            {t(m, "businessId.subhead")}
-          </p>
-          <Link
-            href={SIGNUP_HREF}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-on-action shadow-[0_8px_24px_-8px_rgba(34,211,238,0.6)] transition-all duration-200 hover:bg-action-hover hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-          >
-            {t(m, "hero.v3.cta.primary.signedOut")}
-            <ArrowRight aria-hidden="true" className="h-4 w-4" />
-          </Link>
-        </section>
+        <PageHero
+          eyebrow={t(m, "businessId.eyebrow")}
+          title={t(m, "businessId.headline")}
+          sub={t(m, "businessId.subhead")}
+          ctas={[
+            { href: SIGNUP_HREF, label: t(m, "hero.v3.cta.primary.signedOut"), ctaId: "business_id_hero_signup" },
+            { href: demoProfileHref, label: t(m, "businessId.badge.viewDemo") },
+          ]}
+          align="start"
+        />
 
         {/* (a) What a Business ID is */}
-        <section
-          aria-labelledby="business-id-what"
-          className="mx-auto max-w-5xl px-6 py-12"
-        >
-          <h2
-            id="business-id-what"
-            className="font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
-          >
-            {t(m, "businessId.what.title")}
-          </h2>
-          <p className="mt-4 max-w-3xl text-base leading-relaxed text-secondary">
-            {t(m, "businessId.what.intro")}
-          </p>
-          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
+        <Section id="what" title={t(m, "businessId.what.title")} lede={t(m, "businessId.what.intro")} tone="sunken">
+          <FeatureGrid
+            columns={4}
+            ariaLabel={t(m, "businessId.what.title")}
+            items={[
               { key: "identity", icon: Shield },
               { key: "evidence", icon: Layers },
               { key: "capabilities", icon: Check },
               { key: "reusable", icon: Users },
-            ].map(({ key, icon: Icon }) => (
-              <li
-                key={key}
-                className="rounded-2xl border border-line-subtle bg-surface-sunken p-6"
-              >
-                <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-action/15 text-action">
-                  <Icon aria-hidden="true" className="h-4 w-4" />
-                </div>
-                <h3 className="mt-3 font-display text-base font-semibold text-primary">
-                  {t(m, `businessId.what.${key}.title`)}
-                </h3>
-                <p className="mt-2 text-sm text-secondary">
-                  {t(m, `businessId.what.${key}.body`)}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
+            ].map(({ key, icon }) => ({
+              icon,
+              title: t(m, `businessId.what.${key}.title`),
+              body: t(m, `businessId.what.${key}.body`),
+            }))}
+          />
+        </Section>
 
         {/* (b) 5 verification levels — stepped visual */}
-        <section
-          aria-labelledby="business-id-levels"
-          className="mx-auto max-w-5xl px-6 py-12"
-        >
-          <h2
-            id="business-id-levels"
-            className="font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
-          >
-            {t(m, "businessId.levels.title")}
-          </h2>
-          <p className="mt-4 max-w-3xl text-base leading-relaxed text-secondary">
-            {t(m, "businessId.levels.intro")}
-          </p>
-          <ol className="mt-8 space-y-3">
+        <Section id="levels" title={t(m, "businessId.levels.title")} lede={t(m, "businessId.levels.intro")}>
+          <ol className="space-y-3">
             {verificationLevels.map((lvl, i) => (
               <li
                 key={lvl.level}
-                className="grid grid-cols-[auto_1fr] items-start gap-4 rounded-2xl border border-line-subtle bg-surface-raised p-5"
+                className="grid grid-cols-[auto_1fr] items-start gap-4 rounded-xl border border-line-subtle bg-surface p-5 shadow-1"
               >
                 <div
                   aria-hidden="true"
-                  className="flex h-12 w-12 items-center justify-center rounded-xl bg-action/15 font-mono text-sm font-semibold text-action"
+                  className="flex h-11 w-11 items-center justify-center rounded-lg bg-accent-soft font-mono text-sm font-semibold text-accent"
                 >
                   {lvl.level}
                 </div>
                 <div>
-                  <p className="font-display text-base font-semibold text-primary">
+                  <h3 className="font-display text-lg font-semibold tracking-tight text-primary">
                     <span className="sr-only">Verification level {i + 1}: </span>
                     {lvl.title}
-                  </p>
+                  </h3>
                   <p className="mt-1 text-sm leading-relaxed text-secondary">
                     {lvl.body}
                   </p>
@@ -202,31 +160,19 @@ export function BusinessIdBody({ m, lang = "en" }: BusinessIdBodyProps) {
               </li>
             ))}
           </ol>
-        </section>
+        </Section>
 
         {/* (c) 13-area analysis pillars */}
-        <section
-          aria-labelledby="business-id-pillars"
-          className="mx-auto max-w-5xl px-6 py-12"
-        >
-          <h2
-            id="business-id-pillars"
-            className="font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
-          >
-            {t(m, "businessId.pillars.title")}
-          </h2>
-          <p className="mt-4 max-w-3xl text-base leading-relaxed text-secondary">
-            {t(m, "businessId.pillars.intro")}
-          </p>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <Section id="pillars" title={t(m, "businessId.pillars.title")} lede={t(m, "businessId.pillars.intro")} tone="sunken">
+          <div className="grid gap-4 sm:grid-cols-2 sm:gap-6">
             {pillars.map((pillar) => (
               <div
                 key={pillar.cluster}
-                className="rounded-2xl border border-line-subtle bg-surface-sunken p-6"
+                className="rounded-xl border border-line-subtle bg-surface p-6 shadow-1"
               >
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-action">
+                <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
                   {pillar.cluster}
-                </p>
+                </h3>
                 <ul className="mt-4 space-y-2">
                   {pillar.areas.map((area) => (
                     <li
@@ -244,62 +190,28 @@ export function BusinessIdBody({ m, lang = "en" }: BusinessIdBodyProps) {
               </div>
             ))}
           </div>
-        </section>
+        </Section>
 
         {/* (d) How sharing works */}
-        <section
-          aria-labelledby="business-id-sharing"
-          className="mx-auto max-w-5xl px-6 py-12"
-        >
-          <h2
-            id="business-id-sharing"
-            className="font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
-          >
-            {t(m, "businessId.sharing.title")}
-          </h2>
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-line-subtle bg-surface-raised p-6">
-              <h3 className="font-display text-base font-semibold text-primary">
-                {t(m, "businessId.sharing.consent.title")}
-              </h3>
-              <p className="mt-2 text-sm text-secondary">
-                {t(m, "businessId.sharing.consent.body")}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-line-subtle bg-surface-raised p-6">
-              <h3 className="font-display text-base font-semibold text-primary">
-                {t(m, "businessId.sharing.expiry.title")}
-              </h3>
-              <p className="mt-2 text-sm text-secondary">
-                {t(m, "businessId.sharing.expiry.body")}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-line-subtle bg-surface-raised p-6">
-              <h3 className="font-display text-base font-semibold text-primary">
-                {t(m, "businessId.sharing.revocation.title")}
-              </h3>
-              <p className="mt-2 text-sm text-secondary">
-                {t(m, "businessId.sharing.revocation.body")}
-              </p>
-            </div>
-          </div>
-        </section>
+        <Section id="sharing" title={t(m, "businessId.sharing.title")}>
+          <FeatureGrid
+            columns={3}
+            ariaLabel={t(m, "businessId.sharing.title")}
+            items={[
+              { key: "consent", icon: KeyRound },
+              { key: "expiry", icon: Clock },
+              { key: "revocation", icon: Undo2 },
+            ].map(({ key, icon }) => ({
+              icon,
+              title: t(m, `businessId.sharing.${key}.title`),
+              body: t(m, `businessId.sharing.${key}.body`),
+            }))}
+          />
+        </Section>
 
         {/* (e) Badge widget preview */}
-        <section
-          aria-labelledby="business-id-badge"
-          className="mx-auto max-w-5xl px-6 py-12"
-        >
-          <h2
-            id="business-id-badge"
-            className="font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
-          >
-            {t(m, "businessId.badge.title")}
-          </h2>
-          <p className="mt-4 max-w-3xl text-base leading-relaxed text-secondary">
-            {t(m, "businessId.badge.intro")}
-          </p>
-          <div className="mt-8 flex justify-center">
+        <Section id="badge" title={t(m, "businessId.badge.title")} lede={t(m, "businessId.badge.intro")} tone="sunken" align="center">
+          <div className="flex justify-center">
             <figure className="max-w-md">
               {/*
                 Live badge, not a mock-up. This is the very same
@@ -331,7 +243,7 @@ export function BusinessIdBody({ m, lang = "en" }: BusinessIdBodyProps) {
               <div className="mt-4 text-center">
                 <Link
                   href={demoProfileHref}
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-action underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                  className={`inline-flex min-h-11 items-center gap-1.5 rounded-md text-sm font-medium text-action underline-offset-4 hover:underline ${FOCUS_RING}`}
                 >
                   {t(m, "businessId.badge.viewDemo")}
                   <ArrowRight aria-hidden="true" className="h-4 w-4" />
@@ -339,43 +251,17 @@ export function BusinessIdBody({ m, lang = "en" }: BusinessIdBodyProps) {
               </div>
             </figure>
           </div>
-        </section>
+        </Section>
 
         {/* (f) Final CTA */}
-        <section
-          aria-labelledby="business-id-cta"
-          className="mx-auto max-w-4xl px-6 pb-16"
-        >
-          <div className="rounded-3xl border border-line bg-surface-sunken p-8 text-center shadow-2xl sm:p-12">
-            <h2
-              id="business-id-cta"
-              className="font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
-            >
-              {t(m, "businessId.cta.title")}
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl text-sm text-secondary">
-              {t(m, "hero.v3.outcome")}
-            </p>
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-              <Link
-                href={SIGNUP_HREF}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-on-action transition-colors duration-200 hover:bg-action-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-              >
-                {t(m, "hero.v3.cta.primary.signedOut")}
-                <ArrowRight aria-hidden="true" className="h-4 w-4" />
-              </Link>
-              <Link
-                href="/reports/samples"
-                className="inline-flex h-12 items-center justify-center rounded-xl border border-line px-6 text-sm font-medium text-primary transition-colors duration-200 hover:bg-surface-raised focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-              >
-                {t(m, "hero.v3.cta.secondary")}
-              </Link>
-            </div>
-            <p className="mt-6 text-xs text-secondary">
-              {t(m, "businessId.disclaimer")}
-            </p>
-          </div>
-        </section>
+        <CtaBand
+          title={t(m, "businessId.cta.title")}
+          sub={t(m, "hero.v3.outcome")}
+          primary={{ href: SIGNUP_HREF, label: t(m, "hero.v3.cta.primary.signedOut"), ctaId: "business_id_final_signup" }}
+          secondary={{ href: "/reports/samples", label: t(m, "hero.v3.cta.secondary") }}
+          footnote={t(m, "businessId.disclaimer")}
+          tone="base"
+        />
       </div>
     </MarketingShell>
   );

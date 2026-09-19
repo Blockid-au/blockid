@@ -3,25 +3,21 @@
  * homepage's 70/30 story). Purpose: give the tokenization story a proper
  * shelf so the homepage's shorter blockchain card can hand off here.
  *
- * Sections:
- *   1. Hero — headline, subhead, dual CTA (See pricing / Try demo).
- *   2. Three feature cards — Private EVM · MetaMask · Vesting contract.
- *   3. Workflow diagram — inline SVG, off-chain-first mirror pattern.
- *   4. Trust footnote — off-chain source of truth per AU corporate law.
- *   5. Final CTA strip — reuses MarketingCtaStrip so page footer matches.
+ * Sections (G17 P2-A, on the unicorn template):
+ *   1. PageHero — headline, subhead, dual CTA (See pricing / Try demo).
+ *   2. Section + FeatureGrid — Private EVM · MetaMask · Vesting contract.
+ *   3. Section — workflow diagram (inline SVG, off-chain-first mirror).
+ *   4. Section (sunken) — the blockchain layer is optional.
+ *   5. CtaBand.
  *
- * Server component. Reuses `MarketingShell` + `MarketingHero` +
- * `MarketingSection` for layout parity with /pricing, /roadmap etc.
+ * Server component inside `MarketingShell`.
  */
 
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/page-meta";
-import Link from "next/link";
-import { ArrowRight, Wallet, Cpu, Lock, Check } from "lucide-react";
+import { Wallet, Cpu, Lock } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
-import { MarketingHero } from "@/components/marketing/marketing-hero";
-import { MarketingSection } from "@/components/marketing/marketing-section";
-import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
+import { CtaBand, FeatureGrid, PageHero, Section } from "@/components/marketing/template";
 
 export const metadata: Metadata = pageMetadata({
   title: "Blockchain equity for Australian startups",
@@ -69,8 +65,8 @@ function WorkflowDiagram() {
   // instead of baking the old dark palette in as raw hex. Reduced-motion
   // respected (no animation).
   return (
-    <figure aria-labelledby="tokenize-workflow-caption" className="mt-6">
-      <div className="overflow-x-auto rounded-2xl border border-line-subtle bg-surface-sunken p-6">
+    <figure aria-labelledby="tokenize-workflow-caption">
+      <div className="overflow-x-auto rounded-xl border border-line-subtle bg-surface-sunken p-6 shadow-1">
         <svg
           viewBox="0 0 720 220"
           role="img"
@@ -139,107 +135,49 @@ function WorkflowDiagram() {
 export default function TokenizePage() {
   return (
     <MarketingShell>
-      <MarketingHero
-        eyebrow="Blockchain equity · 30% of the platform"
-        title={
-          <>
-            Cổ phần startup trên private EVM
-            <span className="block text-action">
-              quản trị on-chain, compliance off-chain
-            </span>
-          </>
-        }
-        subtitle="Issue shares legally through Auschain PTY LTD, then mirror them on a private EVM your founders control from MetaMask. Vesting cliffs and ESOP releases run as smart contracts. AU corporate law stays the source of truth."
-        primaryCta={{ href: "/pricing", label: "See pricing" }}
-        secondaryCta={{ href: "/tools/cap-table", label: "Try demo" }}
+      <PageHero
+        eyebrow="Blockchain equity"
+        title="On-chain shares. Off-chain law."
+        sub="Issue shares legally through Auschain PTY LTD, then mirror them on a private EVM your founders control from MetaMask. Vesting cliffs and ESOP releases run as smart contracts. AU corporate law stays the source of truth."
+        ctas={[
+          { href: "/pricing", label: "See pricing", ctaId: "tokenize_hero_pricing" },
+          { href: "/tools/cap-table", label: "Try demo" },
+        ]}
+        align="start"
       />
 
-      <MarketingSection kicker="What you get" title="Three parts, one contract set">
-        <ul
-          role="list"
-          className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-3"
-        >
-          {FEATURES.map(({ title, body, Icon }) => (
-            <li
-              key={title}
-              className="rounded-2xl border border-line-subtle bg-surface-sunken p-6"
-            >
-              <div
-                aria-hidden
-                className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-action/10 text-action"
-              >
-                <Icon size={18} />
-              </div>
-              <h3 className="font-display text-lg font-semibold text-primary">
-                {title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-secondary">
-                {body}
-              </p>
-            </li>
-          ))}
-        </ul>
-      </MarketingSection>
+      <Section id="parts" eyebrow="What you get" title="Three parts, one contract set" tone="sunken">
+        <FeatureGrid
+          columns={3}
+          ariaLabel="What you get"
+          items={FEATURES.map(({ title, body, Icon }) => ({ icon: Icon, title, body }))}
+        />
+      </Section>
 
-      <MarketingSection
-        kicker="How the mirror works"
+      <Section
+        id="workflow"
+        eyebrow="How the mirror works"
         title="Off-chain-first workflow"
+        lede="Auschain PTY LTD issues shares under the Corporations Act — the legal share register in the founder-facing cap table is the source of truth. On a paid plan you can deploy a company token to the private EVM and put holdings on-chain, so founders and grantees can see them in MetaMask without an external exchange, custodian, or KYC gate. Putting a register event on-chain is a deliberate, signed step — nothing is mirrored automatically, and the register stands on its own whether or not you ever use the chain."
       >
-        <p className="max-w-2xl text-sm leading-relaxed text-secondary">
-          Auschain PTY LTD issues shares under the Corporations Act — the
-          legal share register in the founder-facing cap table is the source
-          of truth. On a paid plan you can deploy a company token to the
-          private EVM and put holdings on-chain, so founders and grantees can
-          see them in MetaMask without an external exchange, custodian, or KYC
-          gate. Putting a register event on-chain is a deliberate, signed step
-          — nothing is mirrored automatically, and the register stands on its
-          own whether or not you ever use the chain.
-        </p>
         <WorkflowDiagram />
-      </MarketingSection>
+      </Section>
 
-      <MarketingSection tone="elevated">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
-          <div
-            aria-hidden
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-warn/10 text-warn"
-          >
-            <Check size={18} />
-          </div>
-          <div>
-            <h3 className="font-display text-xl font-semibold text-primary">
-              Blockchain layer is optional
-            </h3>
-            <p className="mt-2 text-sm leading-relaxed text-secondary">
-              Off-chain equity is the source of truth per AU corporate law.
-              You can run BlockID.au forever with tokenization switched off,
-              turn it on for a subset of grants, or mirror the whole register
-              — the legal register never diverges. Auschain is the issuer of
-              record; the smart contract is a read-through of that record.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-4">
-              <Link
-                href="/pricing"
-                className="inline-flex items-center gap-2 text-sm font-semibold text-action hover:underline"
-              >
-                See pricing
-                <ArrowRight size={14} aria-hidden />
-              </Link>
-              <Link
-                href="/tools/cap-table"
-                className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
-              >
-                Try the cap-table demo
-                <ArrowRight size={14} aria-hidden />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </MarketingSection>
+      <Section
+        id="optional"
+        eyebrow="Optional by design"
+        title="Blockchain layer is optional"
+        lede="Off-chain equity is the source of truth per AU corporate law. You can run BlockID.au forever with tokenization switched off, turn it on for a subset of grants, or mirror the whole register — the legal register never diverges. Auschain is the issuer of record; the smart contract is a read-through of that record."
+        tone="sunken"
+        actions={[
+          { href: "/pricing", label: "See pricing", variant: "link" },
+          { href: "/tools/cap-table", label: "Try the cap-table demo", variant: "link" },
+        ]}
+      />
 
-      <MarketingCtaStrip
-        headline="Start with the free analysis. Turn tokenization on when you're ready."
-        primary={{ href: "/analyze", label: "Analyse my startup — free" }}
+      <CtaBand
+        title="Start with the free analysis. Turn tokenization on when you're ready."
+        primary={{ href: "/analyze", label: "Analyse my startup — free", ctaId: "tokenize_final_score" }}
         secondary={{ href: "/pricing", label: "See pricing" }}
       />
     </MarketingShell>

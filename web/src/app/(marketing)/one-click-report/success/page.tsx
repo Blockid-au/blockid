@@ -8,83 +8,53 @@
  * received and (b) the email is on its way. Aligns with the "one-click →
  * close tab" UX.
  *
+ * G17 P2-A: on the unicorn template (PageHero → CtaBand) inside
+ * MarketingShell; noindex.
+ *
  * Server component. No client state required.
  */
 import type { Metadata } from "next";
-import Link from "next/link";
-import { NavV2 } from "@/components/landing/nav-v2";
-import { Footer } from "@/components/marketing/footer";
+import { pageMetadata } from "@/lib/seo/page-meta";
+import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { CtaBand, PageHero } from "@/components/marketing/template";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { ObfuscatedEmail } from "@/components/marketing/obfuscated-email";
-import { Button } from "@/components/ui/button";
-import { ArrowRight, Mail } from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "Payment received — Report on the way | BlockID.au",
+export const metadata: Metadata = pageMetadata({
+  title: "Payment received — report on the way",
   description:
-    "Your BlockID one-click investor report is being generated and will arrive by email in 1 to 3 minutes.",
-  robots: { index: false, follow: false },
-};
+    "Your BlockID one-click investor report is being generated and will arrive by email in 1 to 3 minutes. Check your spam folder or email support if it does not.",
+  path: "/one-click-report/success",
+  index: false,
+});
 
 export default function OneClickSuccessPage() {
   return (
-    <>
+    <MarketingShell>
       <PageTracker page="one_click_report_success" tool="one_click_report" />
-      <NavV2 />
-      <main
-        id="main"
-        className="flex-1 pt-10 md:pt-16 pb-24 bg-surface-50"
-      >
-        <section className="mx-auto max-w-2xl px-6">
-          <div className="rounded-3xl border border-surface-200 bg-white p-8 md:p-10 text-center shadow-sm">
-            <div
-              aria-hidden
-              className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-brand-100 text-brand-700"
-            >
-              <Mail strokeWidth={1.75} className="h-8 w-8" />
-            </div>
-            <h1 className="mt-6 text-3xl md:text-4xl font-semibold tracking-tight text-ink-900">
-              Payment received. Report on the way.
-            </h1>
-            <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-600">
-              Your report is being generated and will arrive in your inbox in{" "}
-              <span className="font-semibold text-ink-800">
-                1 to 3 minutes
-              </span>
-              . You can safely close this page.
-            </p>
-            <p className="mt-3 text-sm text-ink-500 leading-relaxed">
-              Trouble? Check your spam folder, or email{" "}
-              <ObfuscatedEmail
-                user="support"
-                domain="blockid.au"
-                href
-                className="text-brand-600 underline underline-offset-2 hover:text-brand-700"
-              />{" "}
-              and we&apos;ll re-send it.
-            </p>
-          </div>
-
-          <div className="mt-8 rounded-3xl border border-brand-200 bg-gradient-to-br from-brand-50 to-white p-6 md:p-8 text-center">
-            <h2 className="text-lg md:text-xl font-semibold text-ink-900">
-              Meanwhile — create a free account
-            </h2>
-            <p className="mt-2 text-sm md:text-base text-ink-600">
-              Save your report, track your SVI over time, and unlock deeper
-              analysis. No credit card required.
-            </p>
-            <div className="mt-5 flex justify-center">
-              <Link href="/signup" className="inline-flex">
-                <Button variant="primary" size="lg">
-                  Create free account
-                  <ArrowRight strokeWidth={1.75} className="h-5 w-5" />
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </section>
-      </main>
-      <Footer />
-    </>
+      <PageHero
+        eyebrow="Payment received"
+        title="Payment received. Report on the way."
+        sub={
+          <>
+            Your report is being generated and will arrive in your inbox in{" "}
+            <span className="font-semibold text-primary">1 to 3 minutes</span>. You can safely close this page.
+          </>
+        }
+        footnote={
+          <>
+            Trouble? Check your spam folder, or email{" "}
+            <ObfuscatedEmail user="support" domain="blockid.au" href className="text-action underline underline-offset-2" />{" "}
+            and we&apos;ll re-send it.
+          </>
+        }
+      />
+      <CtaBand
+        title="Meanwhile — create a free account"
+        sub="Save your report, track your SVI over time, and unlock deeper analysis. No credit card required."
+        primary={{ href: "/signup", label: "Create free account", ctaId: "ocr_success_signup" }}
+        secondary={{ href: "/product", label: "How the score works" }}
+      />
+    </MarketingShell>
   );
 }
