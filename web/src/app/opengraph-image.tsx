@@ -1,9 +1,9 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-// Phase 2 hero rework — og:image:alt mirrors the new score-first H1 so the
-// social card, browser tab, and hero headline all say the same thing.
-export const alt = "Know your startup's SVI score in 60 seconds · BlockID.au";
+// G18-C: og:image:alt mirrors the E1 hero H1 (docs/design/messaging.md § 2)
+// so the social card, browser tab and hero headline all say the same thing.
+export const alt = "Score any Australian startup in 60 seconds · BlockID.au";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -73,7 +73,7 @@ export default async function OGImage() {
             maxWidth: 900,
             display: "flex",
           }}>
-            Know your startup&apos;s SVI score in 60 seconds
+            Score any Australian startup in 60 seconds
           </div>
           <div style={{
             fontSize: 22,
@@ -81,7 +81,7 @@ export default async function OGImage() {
             textAlign: "center",
             display: "flex",
           }}>
-            AI-powered analysis · Real benchmarks · Founder-first tools
+            Startup Value Index · by BlockID
           </div>
         </div>
 
@@ -94,9 +94,9 @@ export default async function OGImage() {
           borderTop: "1px solid rgba(255,255,255,0.1)",
         }}>
           {[
-            { value: "AU-first", label: "SVI scoring" },
-            { value: "Evidence-linked", label: "8 dimensions" },
-            { value: "Human-reviewable", label: "AI-assisted" },
+            { value: "8 SVI dimensions", label: "one rubric for every deal" },
+            { value: "AUD valuation range", label: "evidence-backed" },
+            { value: "Investor Dossier", label: "founders get the feedback free" },
           ].map((stat) => (
             <div key={stat.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
               <div style={{ fontSize: 28, fontWeight: 700, color: "#00D4FF", display: "flex" }}>{stat.value}</div>
