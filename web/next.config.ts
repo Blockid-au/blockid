@@ -20,6 +20,12 @@ const nextConfig: NextConfig = {
   // import can pull the full icon graph into the shared client chunk.
   experimental: {
     optimizePackageImports: ["lucide-react", "recharts"],
+    // 2026-09-19: with proxy.ts in place Next buffers request bodies through
+    // the proxy and keeps only the first 10 MB by default ("Request body
+    // exceeded 10 MB … Only the first 10 MB will be available" — 13 hits in
+    // the production log). A 12–20 MB pitch deck reached /api/intake
+    // truncated and failed to parse. 50 MB matches nginx and /api/upload.
+    proxyClientMaxBodySize: "50mb",
   },
   // Include native/binary packages in standalone output
   // undici: S20-B review P2-3 — the DNS-pinned outbound fetch (lib/security/pinned-fetch.ts)
