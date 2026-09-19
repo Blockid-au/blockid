@@ -62,3 +62,6 @@ content/reports/latency-state.json
 content/reports/test-flakes.jsonl
 content/reports/ops-alert-email-state.json
 content/reports/watchdog-restarts.jsonl
+# G16-C pilot runtime outputs (the ledger content/pilots.json IS committed)
+content/reports/pilot-applications.jsonl
+content/reports/pilots-journal.jsonl

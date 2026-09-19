@@ -82,7 +82,7 @@ describe("sitemap — funding surfaces", () => {
 
   it("carries the other S8-A audited static pages", async () => {
     const urls = (await entries()).map((e) => e.url);
-    for (const path of ["/docs/unlocks", "/compare", "/compare/chatgpt", "/compare/valuers", "/solutions/advisor", "/solutions/investor", "/solutions/accelerator"]) {
+    for (const path of ["/docs/unlocks", "/compare", "/compare/chatgpt", "/compare/valuers", "/solutions/advisor", "/solutions/investor", "/solutions/accelerator", "/pilot"]) {
       expect(urls, path).toContain(`${SITE}${path}`);
     }
   });

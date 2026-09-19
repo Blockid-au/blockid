@@ -43,6 +43,7 @@ describe("FOOTER_COLUMNS", () => {
       "/solutions/investor",
       "/solutions/advisor",
       "/solutions/accelerator",
+      "/pilot",
     ]);
     expect(column("Docs").items.map((i) => i.href)).toEqual(
       expect.arrayContaining(["/changelog", "/roadmap", "/team", "/status", "/security-audit"]),
