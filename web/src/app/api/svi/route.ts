@@ -556,6 +556,8 @@ async function POST_handler(request: Request) {
         weakestDim: weakest.label,
         weakestScore: weakest.value,
         sector: analysis.sectorLabel ?? analysis.sector ?? null,
+        // G16-B: D1 + the +24 h unlock nudge deep-link to this project's report.
+        projectId: projectId ?? null,
       }).catch(() => {});
     }
   }

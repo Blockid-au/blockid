@@ -21,7 +21,7 @@ const getEntitlementsMock = vi.fn();
 const recordGateHitMock = vi.fn();
 vi.mock("@/lib/entitlements", () => ({
   getEntitlements: (plan: string, id: string) => getEntitlementsMock(plan, id),
-  recordGateHit: (u: unknown, f: string, s: string) => recordGateHitMock(u, f, s),
+  recordGateHit: (u: unknown, f: string, s: string, surface?: string) => recordGateHitMock(u, f, s, surface),
 }));
 
 const getReportQuotaMock = vi.fn();
@@ -94,7 +94,7 @@ describe("/api/evaluations/batch", () => {
     expect(json.feature).toBe("lp_export");
     expect(json.message).toMatch(/Program/);
     expect(json.upgrade_url).toBe("/pricing?segment=evaluator");
-    expect(recordGateHitMock).toHaveBeenCalledWith({ id: "u-1", plan: "investor_vc_small", segment: "investor" }, "lp_export", "api");
+    expect(recordGateHitMock).toHaveBeenCalledWith({ id: "u-1", plan: "investor_vc_small", segment: "investor" }, "lp_export", "api", "api/evaluations/batch");
     expect(createBatchMock).not.toHaveBeenCalled();
     expect((await GET()).status).toBe(403);
   });

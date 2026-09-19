@@ -37,7 +37,7 @@ async function gate() {
   }
   const allowed = await isEvaluatorUser(user);
   if (!allowed) {
-    await recordGateHit({ id: user.id, plan: user.plan ?? "", segment: "investor" }, "investor.dealflow", "api");
+    await recordGateHit({ id: user.id, plan: user.plan ?? "", segment: "investor" }, "investor.dealflow", "api", "api/evaluations");
     return {
       user: null,
       response: NextResponse.json(

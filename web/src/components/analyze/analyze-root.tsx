@@ -169,6 +169,9 @@ function placeholderEstimate(context?: IntakeContext): EstimateResult {
 }
 
 /** POST /api/intake with the SmartIntake submission. */
+/** Mirrors DECK_MAX_BYTES on the server (25 MB) — client copy only. */
+const FILE_MAX_MB = 25;
+
 async function postIntake(
   sub: SmartIntakeSubmission,
   tier: "free" | "paid" = "free",
@@ -354,6 +357,15 @@ export function AnalyzeRoot({
       const res = await postIntake(sub, tier);
       if (res.status === 429) {
         setErrorMsg("Slow down — rate limited. Try again in a minute.");
+        setIntakeLoading(false);
+        return;
+      }
+      if (res.status === 413) {
+        // Either our typed cap or (before 2026-09-19) nginx's bare page —
+        // both mean the same thing to the founder.
+        setErrorMsg(
+          `That file is too large — the maximum is ${FILE_MAX_MB} MB. Try a compressed PDF or paste the deck text instead.`,
+        );
         setIntakeLoading(false);
         return;
       }

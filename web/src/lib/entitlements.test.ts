@@ -33,7 +33,7 @@ vi.mock("./entitlements/timed-grants", () => ({
   getUserTimedGrants: (u: string | null | undefined) => getUserTimedGrantsMock(u),
 }));
 
-import { getEntitlements, can, LEGACY_FEATURE_FALLBACK, recordGateHit } from "./entitlements";
+import { getEntitlements, can, LEGACY_FEATURE_FALLBACK, normaliseGateSurface, recordGateHit } from "./entitlements";
 
 // G16-A — feature_gate_hit carries `qa: true` for qa-live-* accounts so the
 // daily funnel's gate_hits exclude them; a real founder gets no flag.
@@ -59,6 +59,25 @@ describe("recordGateHit — qa flag (G16-A)", () => {
     supabaseHolder.client = null;
     await recordGateHit({ id: "u-1", plan: "free", segment: "founder" }, "cap_table.write", "api");
     expect(emitEventMock).not.toHaveBeenCalled();
+  });
+});
+
+// G16-B — `feature_gate_hit.surface` was blank in every production row: the
+// page gate now passes its path and the API gates their route. The surface
+// is analytics copy, so user-crafted query strings never ride along.
+describe("normaliseGateSurface (G16-B)", () => {
+  it("keeps page paths, API route ids and component names; strips query/hash", () => {
+    expect(normaliseGateSurface("/workspace/equity/cap-table")).toBe("/workspace/equity/cap-table");
+    expect(normaliseGateSurface("api/investor/mandates/[id]/fit")).toBe("api/investor/mandates/[id]/fit");
+    expect(normaliseGateSurface("FeatureGate")).toBe("FeatureGate");
+    expect(normaliseGateSurface("/workspace/investor/dealflow?utm=x#top")).toBe("/workspace/investor/dealflow");
+  });
+  it("rejects empty, over-long and non-printable surfaces", () => {
+    expect(normaliseGateSurface("")).toBeNull();
+    expect(normaliseGateSurface(undefined)).toBeNull();
+    expect(normaliseGateSurface("a".repeat(200))).toBeNull();
+    expect(normaliseGateSurface("<script>alert(1)</script>")).toBeNull();
+    expect(normaliseGateSurface("path with spaces")).toBeNull();
   });
 });
 

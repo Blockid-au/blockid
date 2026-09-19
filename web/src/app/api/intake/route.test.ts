@@ -193,6 +193,49 @@ describe("POST /api/intake — module invariants", () => {
   });
 });
 
+// 2026-09-19: a deck over 25 MB used to die at nginx (1 MB default, bare
+// HTML 413) and /analyze showed "Something went wrong". The route now owns
+// the cap and answers a typed 413 the UI names; nothing is analysed or saved.
+describe("POST /api/intake — file size cap", () => {
+  const CAP = 25 * 1024 * 1024;
+
+  it("multipart file over 25 MB → 413 file_too_large, no analysis, no row", async () => {
+    const form = new FormData();
+    form.set("file", new File([new Uint8Array(1)], "deck.pdf", { type: "application/pdf" }));
+    form.set("tier", "free");
+    const request = new Request("http://x/api/intake", { method: "POST", body: form });
+    // Oversize without allocating 25 MB: patch the parsed File's size.
+    const orig = request.formData.bind(request);
+    request.formData = async () => {
+      const f = await orig();
+      const file = f.get("file") as File;
+      Object.defineProperty(file, "size", { value: CAP + 1 });
+      return f;
+    };
+    const res = await POST(request);
+    const body = await json(res);
+    expect(res.status).toBe(413);
+    expect(body).toMatchObject({ ok: false, error: "file_too_large", max_bytes: CAP });
+    expect(analyzeInputMock).not.toHaveBeenCalled();
+    expect(saveAnalysisMock).not.toHaveBeenCalled();
+  });
+
+  it("base64 file whose decoded size exceeds 25 MB → 413", async () => {
+    const base64 = "A".repeat(Math.ceil(((CAP + 1024) * 4) / 3));
+    const res = await POST(req({ file: { filename: "deck.pdf", base64, mimeType: "application/pdf" } }));
+    expect(res.status).toBe(413);
+    expect(analyzeInputMock).not.toHaveBeenCalled();
+  });
+
+  it("a small multipart file is analysed normally", async () => {
+    const form = new FormData();
+    form.set("file", new File([new Uint8Array(64)], "deck.pdf", { type: "application/pdf" }));
+    const res = await POST(new Request("http://x/api/intake", { method: "POST", body: form }));
+    expect(res.status).toBe(200);
+    expect(analyzeInputMock).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("POST /api/intake — analysis + persistence", () => {
   it("returns the analysis and the new row id", async () => {
     const res = await POST(req({ text: "an idea" }));

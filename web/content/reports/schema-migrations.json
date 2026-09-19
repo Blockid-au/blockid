@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-17T14:16:42.598Z",
+  "generated_at": "2026-09-19T13:39:41.947Z",
   "ledger_present": true,
-  "total_files": 290,
+  "total_files": 291,
   "files": [
     "0001_init.sql",
     "0002_score_v2.sql",
@@ -264,6 +264,7 @@
     "0408_founder_profiles_execution.sql",
     "0409_api_v1_evaluators.sql",
     "0410_external_signals.sql",
+    "0411_email_drips_tbr_unlock.sql",
     "20260814_tech_analyses.sql",
     "20260815120000_analyzer_runs.sql",
     "20260816_clevel_reports_v2.sql",

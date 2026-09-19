@@ -17,7 +17,7 @@ vi.mock("@/lib/rate-limit", () => ({ enforceRateLimit: (...a: unknown[]) => enfo
 
 const recordGateHitMock = vi.fn();
 vi.mock("@/lib/entitlements", () => ({
-  recordGateHit: (u: unknown, f: string, s: string) => recordGateHitMock(u, f, s),
+  recordGateHit: (u: unknown, f: string, s: string, surface?: string) => recordGateHitMock(u, f, s, surface),
 }));
 
 const isEvaluatorUserMock = vi.fn();
@@ -95,6 +95,7 @@ describe("/api/evaluations", () => {
       { id: "u-1", plan: "investor_angel", segment: "investor" },
       "investor.dealflow",
       "api",
+      "api/evaluations",
     );
     expect(createEvaluationMock).not.toHaveBeenCalled();
     expect(listEvaluationsMock).not.toHaveBeenCalled();

@@ -39,7 +39,7 @@ export async function GET(req: NextRequest, { params }: Ctx) {
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   const subset = { id: user.id, plan: user.plan ?? "", segment: "investor" };
   if (!(await can(subset, "investor.dealflow"))) {
-    await recordGateHit(subset, "investor.dealflow", "api");
+    await recordGateHit(subset, "investor.dealflow", "api", "api/investor/mandates/[id]/fit");
     return NextResponse.json({ ok: false, error: "feature_locked", feature: "investor.dealflow" }, { status: 402 });
   }
   const { id } = await params;

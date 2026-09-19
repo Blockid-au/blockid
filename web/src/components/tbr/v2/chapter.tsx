@@ -11,10 +11,26 @@ import type { DimensionChapter } from "@/lib/report-v2/schema";
 import { cn } from "@/lib/utils";
 import { AgentBadge, AuditStampLine, Bullets, TBR_V2_SECTION_IDS, TbrSection, bandLabel, bandSurface, bandText, stateLabel } from "./shared";
 import { FounderExecutionCard, founderExecutionFromChapter } from "./founder-execution-card";
+import { TbrLockedChapterPreview } from "./locked-preview";
 
 const WINDOW_LABEL = { this_week: "this week", "30d": "next 30 days", "90d": "next 90 days" } as const;
 
-export function TbrChapter({ chapter, index, locale = "en", upgradeHref = "/pricing" }: { chapter: DimensionChapter; index: number; locale?: "en" | "vi"; upgradeHref?: string }) {
+export interface TbrChapterProps {
+  chapter: DimensionChapter;
+  index: number;
+  locale?: "en" | "vi";
+  upgradeHref?: string;
+  /**
+   * G16-B: render the free-tier cut as a LOCKED preview (title, first
+   * sentence, skeleton visual) instead of the summary card. Only meaningful
+   * for `renderAs: "card"` chapters; a full chapter ignores it.
+   */
+  locked?: boolean;
+  /** G16-B: plan-included / purchased readers see a free document's card chapters in full. */
+  forceFull?: boolean;
+}
+
+export function TbrChapter({ chapter, index, locale = "en", upgradeHref = "/pricing", locked = false, forceFull = false }: TbrChapterProps) {
   const ch = chapter;
   const id = TBR_V2_SECTION_IDS.dim(ch.dim);
   const title = locale === "vi" ? ch.titleVi : ch.title;
@@ -44,7 +60,16 @@ export function TbrChapter({ chapter, index, locale = "en", upgradeHref = "/pric
     </div>
   );
 
-  if (ch.renderAs === "card") {
+  if (ch.renderAs === "card" && locked) {
+    return (
+      <TbrSection id={id} kicker={String(index)} title={title}>
+        {header}
+        <TbrLockedChapterPreview chapter={ch} />
+      </TbrSection>
+    );
+  }
+
+  if (ch.renderAs === "card" && !forceFull) {
     return (
       <TbrSection id={id} kicker={String(index)} title={title}>
         {header}
