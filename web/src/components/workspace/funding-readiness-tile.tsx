@@ -10,6 +10,7 @@
 //   series-a → blue
 //   series-b → green
 
+import { CheckSquare, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { FundingReadiness } from "@/lib/svi-analysis";
@@ -188,7 +189,7 @@ export function FundingReadinessTile({
                         )}
                         aria-label={m.met ? "Met" : "Not yet met"}
                       >
-                        {m.met ? "✅" : "⬜"}
+                        {m.met ? <CheckSquare className="h-4 w-4" aria-hidden /> : <Square className="h-4 w-4" aria-hidden />}
                       </span>
 
                       {/* Label + dimension badge */}

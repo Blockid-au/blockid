@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { AlertTriangle } from 'lucide-react';
 import { isChunkLoadError, reloadOnceForStaleChunk } from '@/lib/ui/chunk-error';
 
 export default function DashboardError({
@@ -35,7 +36,7 @@ export default function DashboardError({
     <div className="min-h-[70vh] bg-surface-100 dark:bg-ink-900 flex items-center justify-center px-6">
       <div className="text-center max-w-md">
         <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-amber-100 dark:bg-amber-500/15 flex items-center justify-center">
-          <span className="text-2xl" aria-hidden>⚡</span>
+          <AlertTriangle className="h-7 w-7 text-amber-600" aria-hidden />
         </div>
         <h1 className="text-2xl font-display font-semibold text-ink-900 dark:text-white mb-2">
           We couldn&apos;t load your dashboard

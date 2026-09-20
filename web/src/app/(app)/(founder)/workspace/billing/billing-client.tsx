@@ -24,6 +24,7 @@ import {
   resolveActivePlan,
 } from "./billing-plans";
 import { CREDIT_PACKS } from "@/lib/credit-packs";
+import { formatAud, withGst } from "@/lib/plans-v2";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { ShareMgmtDrawer } from "@/components/billing/share-mgmt-drawer";
 import type { BillingSubscriptionView } from "@/lib/billing/subscription-state";
@@ -789,13 +790,15 @@ function CreditsPurchaseSection() {
         {/* Pack grid */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {CREDIT_PACKS.map((pack) => {
-            const priceDollars = pack.priceAudCents / 100;
-            const priceLabel = `A$${priceDollars} inc. GST`;
+            const priceLabel = withGst(formatAud(pack.price));
             const perCredit = `A$${(pack.priceAudCents / pack.credits / 100).toFixed(2)}/credit`;
             return (
             <div
               key={pack.credits}
               className="rounded-xl border border-surface-200 bg-surface-50 p-4 flex flex-col items-center text-center"
+              data-testid="credit-pack"
+              data-pack={pack.credits}
+              data-price-cents={pack.priceAudCents}
             >
               <div className="flex items-center gap-1.5 mb-1">
                 <Coins strokeWidth={1.75} className="h-4 w-4 text-brand-500" />
@@ -817,6 +820,9 @@ function CreditsPurchaseSection() {
                 type="button"
                 onClick={() => handlePurchase(pack.credits)}
                 disabled={loadingPack !== null}
+                data-testid="credit-pack-buy"
+                data-pack={pack.credits}
+                aria-label={`Buy ${pack.label} — ${priceLabel}`}
                 className={cn(
                   "w-full h-9 rounded-lg bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5",
                   loadingPack === pack.credits && "opacity-60 cursor-wait",

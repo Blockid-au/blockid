@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Circle, ChevronRight, TrendingUp, AlertCircle } from "lucide-react";
+import { CheckCircle2, Circle, ChevronRight, TrendingUp, AlertCircle, Users, Rocket, Globe, Scale, Coins, Target, ClipboardList, type LucideIcon } from "lucide-react";
 import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface ChecklistItem {
@@ -52,14 +52,14 @@ const TIER_COLORS: Record<string, string> = {
   "investor-ready": "text-emerald-700 bg-emerald-50 border-emerald-200",
 };
 
-const CATEGORY_ICONS: Record<string, string> = {
-  Team: "👥",
-  Product: "🚀",
-  Traction: "📈",
-  Market: "🌏",
-  Legal: "⚖️",
-  Financials: "💰",
-  Pitch: "🎯",
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  Team: Users,
+  Product: Rocket,
+  Traction: TrendingUp,
+  Market: Globe,
+  Legal: Scale,
+  Financials: Coins,
+  Pitch: Target,
 };
 
 export function FundraisingReadinessClient() {
@@ -171,7 +171,10 @@ export function FundraisingReadinessClient() {
             <div key={category} className="rounded-xl border border-surface-200 bg-white p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-base">{CATEGORY_ICONS[category] ?? "📋"}</span>
+                  {(() => {
+                    const CategoryIcon = CATEGORY_ICONS[category] ?? ClipboardList;
+                    return <CategoryIcon className="h-4 w-4 text-ink-500" aria-hidden />;
+                  })()}
                   <h3 className="text-sm font-semibold text-ink-800">{category}</h3>
                 </div>
                 <span className="text-xs text-muted">{doneCount}/{stageItems.length}</span>

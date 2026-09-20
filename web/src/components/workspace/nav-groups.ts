@@ -44,6 +44,7 @@ import {
 import type { PlanTier, Segment } from "@/lib/segments";
 import type { NavPhase } from "@/lib/nav/founder-phase-shared";
 import type { NavGroupId } from "@/lib/nav/persona";
+import { STARTUP_PACKAGE_PRICE_LABEL } from "@/lib/startup-package/price";
 
 export type { NavGroupId } from "@/lib/nav/persona";
 
@@ -176,7 +177,7 @@ const PROVE: NavGroup = {
     {
       href: "/startup-package",
       label: { en: "Get investor-ready", vi: "Sẵn sàng gọi vốn" },
-      tooltip: { en: "Guided pack: score → data room → cap table (A$149)", vi: "Gói hướng dẫn: điểm → data room → cap table (A$149)" },
+      tooltip: { en: `Guided pack: score → data room → cap table (${STARTUP_PACKAGE_PRICE_LABEL})`, vi: `Gói hướng dẫn: điểm → data room → cap table (${STARTUP_PACKAGE_PRICE_LABEL})` },
       icon: Rocket,
       feature: "startup_package",
       minPlan: "free",

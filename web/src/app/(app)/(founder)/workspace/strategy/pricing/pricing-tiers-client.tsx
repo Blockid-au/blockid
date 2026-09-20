@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { PricingTier } from "@/lib/founder-features";
 import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
+import { Sparkles } from "lucide-react";
 
 interface Props {
   initial: PricingTier[];
@@ -233,7 +234,7 @@ export function PricingTiersClient({ initial, disabled }: Props) {
             {aiBusy ? (
               <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-brand-400 border-t-transparent" />
             ) : (
-              <span aria-hidden>✨</span>
+              <Sparkles className="h-3.5 w-3.5" aria-hidden />
             )}
             {aiBusy ? "Generating…" : "AI Suggest"}
           </Button>

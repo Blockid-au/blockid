@@ -9,6 +9,10 @@ import {
   CheckCircle2,
   Loader2,
   FolderOpen,
+  Square,
+  Medal,
+  Award,
+  type LucideIcon,
 } from "lucide-react";
 
 type Badge = "none" | "bronze" | "silver" | "gold";
@@ -38,11 +42,11 @@ const BADGE_CONFIG: Record<Badge, { label: string; color: string; bg: string; bo
   gold:   { label: "Gold",           color: "text-yellow-700", bg: "bg-yellow-50",    border: "border-yellow-200",   bar: "bg-yellow-500" },
 };
 
-const BADGE_EMOJI: Record<Badge, string> = {
-  none:   "⬜",
-  bronze: "🥉",
-  silver: "🥈",
-  gold:   "🥇",
+const BADGE_ICON: Record<Badge, LucideIcon> = {
+  none:   Square,
+  bronze: Medal,
+  silver: Medal,
+  gold:   Award,
 };
 
 export function DataRoomReadinessCard() {
@@ -90,7 +94,10 @@ export function DataRoomReadinessCard() {
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className={`h-10 w-10 rounded-xl flex items-center justify-center text-lg ${cfg.bg} border ${cfg.border}`}>
-            {BADGE_EMOJI[badge]}
+            {(() => {
+              const BadgeIcon = BADGE_ICON[badge];
+              return <BadgeIcon className={`h-5 w-5 ${cfg.color}`} aria-hidden />;
+            })()}
           </div>
           <div>
             <p className="text-xs uppercase tracking-wider font-medium text-ink-500">

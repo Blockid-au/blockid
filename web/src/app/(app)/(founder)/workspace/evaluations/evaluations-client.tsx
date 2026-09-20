@@ -26,6 +26,13 @@ import { ReportDialog, type ReportKind, type ReportRunResult } from "./report-di
 import { BatchDialog, type BatchQueuedResult } from "./batch-dialog";
 import { batchProgressPct, type EvaluationBatch } from "@/lib/evaluations/batch-shared";
 import { useModalDialog } from "@/hooks/useModalDialog";
+import { formatAud } from "@/lib/plans-v2";
+import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
+import { TRUST_REPORT_RESCORE_CREDITS } from "@/lib/credits-public";
+
+/** Price labels read from the SKU / cost constants — never typed by hand (G20-F3). */
+const TBR_LABEL = trustReportPriceLabel();
+const RESCORE_LABEL = formatAud(TRUST_REPORT_RESCORE_CREDITS);
 
 // ---------------------------------------------------------------------------
 // Props + local constants
@@ -234,7 +241,7 @@ export function ProgressRadarPanel({ progress, hasMoneyRadar }: { progress: Eval
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-500">Movers</p>
           {movers.length === 0 ? (
-            <p className="mt-1 text-xs text-ink-500">No SVI movement this week. Run a re-score (A$1) after new evidence lands.</p>
+            <p className="mt-1 text-xs text-ink-500">No SVI movement this week. Run a re-score ({RESCORE_LABEL}) after new evidence lands.</p>
           ) : (
             <ul className="mt-1 space-y-1">
               {movers.map((m) => (
@@ -626,9 +633,6 @@ export function EvaluationsClient({
         <div>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-semibold text-ink-900">Startups I&apos;m evaluating</h1>
-            <span className="inline-flex items-center rounded-full border border-brand-300 bg-brand-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-700">
-              Beta
-            </span>
           </div>
           <p className="mt-1 text-sm text-ink-500">
             One rubric across every startup you track — 8 dimensions, the same evidence standard, AUD valuation range on demand.
@@ -727,7 +731,7 @@ export function EvaluationsClient({
             ) : reportQuota ? (
               <>
                 <span className="mx-1.5 text-surface-300">|</span>
-                <span data-testid="report-quota">Trusted Business Report A$3 · re-score A$1</span>
+                <span data-testid="report-quota">Trusted Business Report {TBR_LABEL} · re-score {RESCORE_LABEL}</span>
               </>
             ) : null}
           </span>

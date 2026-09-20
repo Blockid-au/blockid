@@ -126,7 +126,6 @@ export default async function SviExchangePage() {
           <h1 className="text-2xl font-bold flex items-center gap-2 mt-2">
             <Rocket className="h-6 w-6 text-purple-600" />
             SVI Exchange Orchestration
-            <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 ring-1 ring-amber-200">Beta</span>
           </h1>
           <p className="text-sm text-muted-foreground mt-1 max-w-3xl leading-relaxed">
             Autonomous orchestration cockpit for startupvalueindex.com. Cron <code className="bg-muted px-1 py-0.5 rounded text-[11px]">/api/cron/svi-exchange-orchestrator</code> runs every 6h and advances one task per cycle. Goal doc: <code className="bg-muted px-1 py-0.5 rounded text-[11px]">.claude/goals/svi-exchange-orchestration.md</code>.

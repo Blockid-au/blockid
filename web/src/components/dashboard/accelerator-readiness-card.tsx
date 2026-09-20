@@ -130,7 +130,6 @@ export function AcceleratorReadinessCard({ analysis }: { analysis: SVIAnalysis }
           <h3 className="text-base font-bold flex items-center gap-2">
             <Rocket className="h-4 w-4 text-purple-500" />
             AU Accelerator Readiness
-            <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 ring-1 ring-amber-200">Beta</span>
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
             Your startup mapped against {r.totalCriteria} criteria from Antler, Startmate, YC, Techstars, SkyDeck, MVi, Cicada, Blackbird.

@@ -17,6 +17,9 @@ import Link from "next/link";
 import type { DossierView } from "@/lib/evaluations/dossier";
 import { clampIcKind } from "@/lib/evaluations/ic-reports";
 import { DossierActions } from "../dossier-actions";
+import { formatAud } from "@/lib/plans-v2";
+import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
+import { TRUST_REPORT_RESCORE_CREDITS } from "@/lib/credits-public";
 
 const AUDIT_ACTION_LABEL: Record<string, string> = {
   "dossier.viewed": "Opened the dossier",
@@ -79,7 +82,7 @@ export function ActionsBlock({ view, plan, batchAllowed = false }: { view: Dossi
               <DossierActions evaluationId={view.header.evaluationId} founderClaimed={view.header.founderClaimed} founderEmailOnFile={view.header.ownerKind !== "evaluator"} icKind={icKind} batchAllowed={batchAllowed} />
               <ul className="list-disc space-y-1 pl-5 text-xs">
                 <li>
-                  Re-score (A$1) and the full Trusted Business Report (A$3) — from the row on{" "}
+                  Re-score ({formatAud(TRUST_REPORT_RESCORE_CREDITS)}) and the full Trusted Business Report ({trustReportPriceLabel()}) — from the row on{" "}
                   <Link href="/workspace/evaluations" className="text-brand-700 hover:underline">
                     Startups I&apos;m evaluating
                   </Link>{" "}

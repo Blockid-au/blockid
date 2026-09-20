@@ -84,7 +84,7 @@ const TEAM_MEMBERS: TeamMember[] = [
     ],
     priorities: [
       "Scale to 200 users by Aug 2026",
-      "Close Founding 100 cohort",
+      "Close the first paying evaluator cohort",
       "Launch Phase 3 growth features",
       "Secure pre-seed funding",
     ],
@@ -108,7 +108,7 @@ const TEAM_MEMBERS: TeamMember[] = [
     ],
     priorities: [
       "Horizontal scaling for multi-tenant",
-      "SOC2 Type II compliance",
+      "Hash-chained audit trail evidence pack",
       "API developer portal (B2B)",
       "Performance monitoring and alerting",
     ],

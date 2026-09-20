@@ -21,7 +21,7 @@ type Field = {
 
 const FIELDS: Field[] = [
   // Founding plan
-  { key: "founding_plan_name",    label: "Founding Plan Name",      description: 'Display name, e.g. "Founding 100"',    type: "text",    group: "founding" },
+  { key: "founding_plan_name",    label: "Founding Plan Name",      description: "Historical promo display name (promo closed 2026-09-01)",    type: "text",    group: "founding" },
   { key: "founding_spots_total",  label: "Total Spots",             description: "Max number of founding members",        type: "number",  group: "founding" },
   { key: "founding_price_cents",  label: "Price (cents AUD)",       description: "Historical promo price — closed 2026-09-01. 500 = A$5.00",         type: "number",  unit: "¢", group: "founding" },
   { key: "founding_credits",      label: "Credits Included",        description: "Credits given on signup",               type: "number",  group: "founding" },

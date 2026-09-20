@@ -50,7 +50,7 @@ vi.mock("@/lib/email", () => ({
   sendCreditLowAlert: vi.fn(async () => ({ ok: true, id: "test" })),
 }));
 
-import { RND_REPORT_CREDITS, SVI_ANALYSIS_CREDITS } from "./credits-public";
+import { RND_REPORT_CREDITS, SVI_ANALYSIS_CREDITS, TRUST_REPORT_RESCORE_CREDITS } from "./credits-public";
 import {
   FEATURE_COSTS,
   PLAN_CREDITS,
@@ -74,6 +74,7 @@ describe("FEATURE_COSTS", () => {
   it("credits-public mirrors (svi_analysis, rnd_report) equal the server table", () => {
     expect(SVI_ANALYSIS_CREDITS).toBe(FEATURE_COSTS.svi_analysis);
     expect(RND_REPORT_CREDITS).toBe(FEATURE_COSTS.rnd_report);
+    expect(TRUST_REPORT_RESCORE_CREDITS).toBe(FEATURE_COSTS.trust_report_rescore);
   });
 
   it("pins the headline paid features at their advertised price", () => {

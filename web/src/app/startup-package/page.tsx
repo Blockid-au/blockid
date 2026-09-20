@@ -14,11 +14,12 @@ import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { STARTUP_PACKAGE_MONEY_FINDER_LINE } from "@/lib/plans-v2";
+import { STARTUP_PACKAGE_CREDITS, STARTUP_PACKAGE_PLAN_ID, STARTUP_PACKAGE_PRICE_LABEL, startupPackagePriceLabelLong } from "@/lib/startup-package/price";
 import { CheckoutButton } from "./checkout-button";
 
 export const metadata: Metadata = pageMetadata({
   title: "Startup Package · Idea to investor-ready in 90 days",
-  description: "Guided interview, C-Level AI analysis, real-time SVI, dataroom templates, public listing, 1 Money Finder report + 3 months Founder Radar — one A$149 package.",
+  description: `Guided interview, C-Level AI analysis, real-time SVI, dataroom templates, public listing, 1 Money Finder report + 3 months Founder Radar — one ${STARTUP_PACKAGE_PRICE_LABEL} package.`,
   path: "/startup-package",
 });
 
@@ -62,8 +63,8 @@ export default function StartupPackagePage() {
           Start your investor-ready startup in 90 days
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-lg text-secondary">
-          A guided interview, seven C-Level agents, a live Startup Value Index,
-          and a Day-0 dataroom — one A$149 unlock and pay-as-you-go from there.
+          A guided interview, the C-suite of AI agents, a live Startup Value Index,
+          and a Day-0 dataroom — one {STARTUP_PACKAGE_PRICE_LABEL} unlock and pay-as-you-go from there.
         </p>
         <p className="mx-auto mt-2 max-w-2xl text-sm font-medium text-action" data-package-money-finder>
           {STARTUP_PACKAGE_MONEY_FINDER_LINE}.
@@ -77,8 +78,9 @@ export default function StartupPackagePage() {
             Get your sample analysis (free)
           </Link>
           <CheckoutButton
-            planId="founder_package"
-            label="Unlock full Package · A$149"
+            planId={STARTUP_PACKAGE_PLAN_ID}
+            label={`Unlock full Package · ${STARTUP_PACKAGE_PRICE_LABEL}`}
+            quote={`${startupPackagePriceLabelLong()} · one-off · ${STARTUP_PACKAGE_CREDITS} credits included`}
           />
         </div>
 
@@ -123,10 +125,10 @@ export default function StartupPackagePage() {
       <section className="mx-auto max-w-4xl px-6 py-10 text-secondary">
         <div className="rounded-3xl border border-line-subtle bg-surface-sunken/60 p-6 sm:p-8">
           <h2 className="text-xl font-semibold text-primary">
-            What&apos;s inside your A$149 unlock
+            What&apos;s inside your {STARTUP_PACKAGE_PRICE_LABEL} unlock
           </h2>
           <ul className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
-            <li>• 25 seed credits (~25 agent passes)</li>
+            <li>• {STARTUP_PACKAGE_CREDITS} seed credits (~{STARTUP_PACKAGE_CREDITS} agent passes)</li>
             {/* G11 §4h (T0247): grant_finder flag (0316) + 90-day
                 money_radar_until stamp from the Stripe webhook (0319). */}
             <li>• {STARTUP_PACKAGE_MONEY_FINDER_LINE}</li>

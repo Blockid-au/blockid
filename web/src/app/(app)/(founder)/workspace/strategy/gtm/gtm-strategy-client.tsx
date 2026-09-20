@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { GtmStrategy } from "@/lib/founder-features";
 import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
+import { Sparkles } from "lucide-react";
 
 interface Props {
   initial: GtmStrategy | null;
@@ -164,7 +165,7 @@ export function GtmStrategyClient({ initial, disabled, placeholders }: Props) {
           {aiBusy ? (
             <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-brand-400 border-t-transparent" />
           ) : (
-            <span aria-hidden>✨</span>
+            <Sparkles className="h-3.5 w-3.5" aria-hidden />
           )}
           {aiBusy ? "Generating…" : "AI Suggest"}
         </Button>
@@ -267,7 +268,7 @@ export function GtmStrategyClient({ initial, disabled, placeholders }: Props) {
             <input
               className={input}
               value={form.price_anchor}
-              placeholder="e.g. A$99/mo per company"
+              placeholder="e.g. A$49/mo per company"
               onChange={(e) => upd("price_anchor", e.target.value)}
             />
           </div>

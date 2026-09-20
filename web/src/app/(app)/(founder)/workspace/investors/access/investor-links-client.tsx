@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle2, Clock, XCircle, Copy, ExternalLink, Trash2, Plus, X } from "lucide-react";
+import { CheckCircle2, Clock, XCircle, Copy, ExternalLink, Trash2, Plus, X, Flame, Sun, Snowflake } from "lucide-react";
 import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
 interface LinkRow {
@@ -50,20 +50,20 @@ function HeatBadge({
   if (level === "hot") {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700">
-        🔥 Hot
+        <Flame className="h-3 w-3" aria-hidden /> Hot
       </span>
     );
   }
   if (level === "warm") {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-700">
-        ✨ Warm
+        <Sun className="h-3 w-3" aria-hidden /> Warm
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1 rounded-full bg-surface-100 px-2 py-0.5 text-xs font-medium text-muted">
-      ❄ Cold
+      <Snowflake className="h-3 w-3" aria-hidden /> Cold
     </span>
   );
 }

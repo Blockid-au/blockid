@@ -19,6 +19,13 @@ import {
   AlertCircle,
   Target,
   Wand2,
+  Building2,
+  PieChart,
+  Coins,
+  Wrench,
+  TrendingUp,
+  Scale,
+  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DataRoomFolder } from "@/lib/data-room-templates";
@@ -144,13 +151,13 @@ interface GoalsData {
 // Category icons
 // ---------------------------------------------------------------------------
 
-const CATEGORY_ICONS: Record<string, string> = {
-  "Company Formation": "🏢",
-  "Cap Table & Equity": "📊",
-  "Financials": "💰",
-  "Product & Tech": "🔧",
-  "Market & Traction": "📈",
-  "Legal & Compliance": "⚖️",
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  "Company Formation": Building2,
+  "Cap Table & Equity": PieChart,
+  "Financials": Coins,
+  "Product & Tech": Wrench,
+  "Market & Traction": TrendingUp,
+  "Legal & Compliance": Scale,
 };
 
 // ---------------------------------------------------------------------------
@@ -950,9 +957,10 @@ export function DataRoomClient({
                 onClick={() => toggleCategory(category)}
                 className="w-full flex items-center gap-3 px-5 py-4 hover:bg-surface-50 transition-colors cursor-pointer"
               >
-                <span className="text-xl shrink-0">
-                  {CATEGORY_ICONS[category] ?? "📁"}
-                </span>
+                {(() => {
+                  const CategoryIcon = CATEGORY_ICONS[category] ?? FolderOpen;
+                  return <CategoryIcon className="h-5 w-5 shrink-0 text-ink-500" aria-hidden />;
+                })()}
                 <div className="flex-1 text-left">
                   <p className="text-sm font-semibold text-ink-800">
                     {category}

@@ -553,7 +553,7 @@ export function AdminTokensClient({ user }: AdminTokensClientProps) {
                     <code className="font-mono bg-surface-100 px-1 rounded">
                       createCompany()
                     </code>{" "}
-                    directly. Web form for this is coming soon.
+                    directly — there is no web form for this call.
                   </p>
                 </div>
 

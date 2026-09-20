@@ -6,6 +6,7 @@ import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getPlan, LEGACY_PLAN_MAP, type LegacyPlan } from "@/lib/plans";
 import { isFoundingPromoActive } from "@/lib/founding-promo";
 import { PLANS_V2, formatAud } from "@/lib/plans-v2";
+import { STARTUP_PACKAGE_AMOUNT_CENTS } from "@/lib/startup-package/price";
 import { resolveIntervalPrice } from "@/lib/plans/billing-interval";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { normaliseResellerCode } from "@/lib/reseller/attribution";
@@ -222,7 +223,7 @@ async function POST_handler(request: Request) {
     plan = {
       id: "founder_package",
       name: "Startup Package",
-      price: 14900,
+      price: STARTUP_PACKAGE_AMOUNT_CENTS,
       cadence: "once",
       features: ["startup_package", "pdf_branding"],
     };
