@@ -119,6 +119,10 @@ function makeConfig(overrides: Partial<{
 beforeEach(() => {
   vi.clearAllMocks();
   for (const k of Object.keys(stripePriceMap)) delete stripePriceMap[k];
+  // G18-A: the legacy rows read their env vars directly (not STRIPE_PRICE_MAP).
+  delete process.env.STRIPE_PRICE_FOUNDING50;
+  delete process.env.STRIPE_PRICE_GROWTH;
+  delete process.env.STRIPE_PRICE_GROWTH_ANNUAL;
   getStripeMock.mockReset();
   getPlatformConfigMock.mockReset();
 });
@@ -148,7 +152,7 @@ describe("stripe-pricing-audit — runStripePricingAudit", () => {
   });
 
   it("returns stripe_not_configured when getStripe() returns null but price id is set", async () => {
-    stripePriceMap.founding50 = "price_founding50";
+    process.env.STRIPE_PRICE_FOUNDING50 = "price_founding50";
     getStripeMock.mockReturnValue(null);
     getPlatformConfigMock.mockResolvedValue(makeConfig());
 
@@ -161,7 +165,7 @@ describe("stripe-pricing-audit — runStripePricingAudit", () => {
   });
 
   it("returns match when Stripe unit_amount + currency line up with platform-config", async () => {
-    stripePriceMap.founding50 = "price_founding50";
+    process.env.STRIPE_PRICE_FOUNDING50 = "price_founding50";
     const { stripe } = makeStripe({
       prices: { price_founding50: { unit_amount: 500, currency: "aud", active: true } },
     });
@@ -183,7 +187,7 @@ describe("stripe-pricing-audit — runStripePricingAudit", () => {
   });
 
   it("returns drift when unit_amount differs from platform-config", async () => {
-    stripePriceMap.growth = "price_growth_monthly";
+    process.env.STRIPE_PRICE_GROWTH = "price_growth_monthly";
     const { stripe } = makeStripe({
       prices: { price_growth_monthly: { unit_amount: 8900, currency: "aud", active: true } },
     });
@@ -201,7 +205,7 @@ describe("stripe-pricing-audit — runStripePricingAudit", () => {
   });
 
   it("flags drift when currency mismatches even if unit_amount matches", async () => {
-    stripePriceMap.growth = "price_growth_monthly";
+    process.env.STRIPE_PRICE_GROWTH = "price_growth_monthly";
     const { stripe } = makeStripe({
       prices: { price_growth_monthly: { unit_amount: 9900, currency: "usd", active: true } },
     });
@@ -264,8 +268,8 @@ describe("stripe-pricing-audit — runStripePricingAudit", () => {
   });
 
   it("monthly plan pointing at a yearly price is cadence_drift; a price object without `type` is not judged", async () => {
-    stripePriceMap.growth = "price_growth_yearly";
-    stripePriceMap.founding50 = "price_founding50";
+    process.env.STRIPE_PRICE_GROWTH = "price_growth_yearly";
+    process.env.STRIPE_PRICE_FOUNDING50 = "price_founding50";
     const { stripe } = makeStripe({
       prices: {
         price_growth_yearly: { unit_amount: 9900, currency: "aud", active: true, type: "recurring", recurring: { interval: "year" } },
@@ -281,7 +285,7 @@ describe("stripe-pricing-audit — runStripePricingAudit", () => {
   });
 
   it("returns archived when Stripe reports active=false even with matching amount", async () => {
-    stripePriceMap.founding50 = "price_founding50";
+    process.env.STRIPE_PRICE_FOUNDING50 = "price_founding50";
     const { stripe } = makeStripe({
       prices: { price_founding50: { unit_amount: 500, currency: "aud", active: false } },
     });
@@ -300,7 +304,7 @@ describe("stripe-pricing-audit — runStripePricingAudit", () => {
   });
 
   it("returns stripe_lookup_failed when Stripe throws (bad price id / test-vs-live mismatch)", async () => {
-    stripePriceMap.founding50 = "price_bad";
+    process.env.STRIPE_PRICE_FOUNDING50 = "price_bad";
     const { stripe } = makeStripe({
       prices: { price_bad: new Error("No such price: price_bad") },
     });
@@ -371,8 +375,8 @@ describe("stripe-pricing-audit — runStripePricingAudit", () => {
     expect(rowFor(rows, "growth").cadence).toBe("monthly");
     expect(rowFor(rows, "growth_annual").cadence).toBe("yearly");
     expect(rowFor(rows, "credits_5").label).toBe("5 credits pack");
-    expect(rowFor(rows, "growth").label).toBe("Growth — monthly");
-    expect(rowFor(rows, "growth_annual").label).toBe("Growth — annual");
+    expect(rowFor(rows, "growth").label).toBe("Growth — monthly — legacy");
+    expect(rowFor(rows, "growth_annual").label).toBe("Growth — annual — legacy");
   });
 
   it("auto-derives v2 SKU audit rows from GENERATED_PLANS with the correct envVar-based remediation", async () => {
@@ -426,7 +430,7 @@ describe("stripe-pricing-audit — aggregate result envelope", () => {
   });
 
   it("stripeConfigured false when getStripe() returns null AND a price id is set", async () => {
-    stripePriceMap.founding50 = "price_founding50";
+    process.env.STRIPE_PRICE_FOUNDING50 = "price_founding50";
     getStripeMock.mockReturnValue(null);
     getPlatformConfigMock.mockResolvedValue(makeConfig());
 
@@ -447,8 +451,8 @@ describe("stripe-pricing-audit — aggregate result envelope", () => {
   });
 
   it("hasDrift is true when at least one row is drift OR archived", async () => {
-    stripePriceMap.founding50 = "price_founding50";
-    stripePriceMap.growth = "price_growth";
+    process.env.STRIPE_PRICE_FOUNDING50 = "price_founding50";
+    process.env.STRIPE_PRICE_GROWTH = "price_growth";
     const { stripe } = makeStripe({
       prices: {
         price_founding50: { unit_amount: 500, currency: "aud", active: false }, // archived
@@ -524,7 +528,7 @@ describe("stripe-pricing-audit — createFreshStripePrice", () => {
     const res = await createFreshStripePrice("founding50");
     expect(res.ok).toBe(true);
     expect(state.productCreateCalls).toHaveLength(1);
-    expect(state.productCreateCalls[0].name).toBe("Founding 100 (one-off)"); // default label
+    expect(state.productCreateCalls[0].name).toBe("Founding 100 (one-off) — legacy"); // default label
     expect(state.productCreateCalls[0].metadata).toEqual({ blockid_plan_id: "founding50" });
     expect(state.priceCreateCalls[0].product).toBe("prod_freshly_minted");
   });

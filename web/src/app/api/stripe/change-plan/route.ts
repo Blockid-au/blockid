@@ -8,7 +8,7 @@ import {
   isShareMgmtAddonPrice,
 } from "@/lib/stripe";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
-import { getPlan } from "@/lib/plans";
+import { getPlan, LEGACY_PLAN_MAP } from "@/lib/plans";
 import { buildAddonRemovalSchedulePhases } from "@/lib/stripe/addon-schedule";
 import { reconcileSubscriptionAddon } from "@/lib/stripe/addon-entitlements";
 import { hashUserId } from "@/lib/reseller/hash";
@@ -98,16 +98,63 @@ async function POST_handler(request: Request) {
     });
   }
 
-  const { newPlanId, confirmCrossSegment } = parsed;
+  const { newPlanId: requestedPlanId, confirmCrossSegment } = parsed;
 
-  if (!newPlanId || typeof newPlanId !== "string") {
+  if (!requestedPlanId || typeof requestedPlanId !== "string") {
     return NextResponse.json(
       { ok: false, reason: "newPlanId is required" },
       { status: 400 },
     );
   }
 
-  const newPlan = getPlan(newPlanId);
+  // G18-A (2026-09-19): legacy ids (growth / growth_annual / founding50)
+  // remap to their v2 rung. Until now this branch resolved ONLY the four
+  // pre-v2 LEGACY_PLANS and priced them off STRIPE_PRICE_MAP, so the one
+  // switch it could perform was onto the legacy A$99 / A$950 Growth prices —
+  // and every v2 id (founder_growth, investor_angel, …) answered 400.
+  const legacy = LEGACY_PLAN_MAP[requestedPlanId];
+  const newPlanId = legacy ? legacy.id : requestedPlanId;
+  const wantsAnnual = legacy?.interval === "yearly";
+
+  // Resolve the target rung from the plans table first (v2 SKUs, priced by
+  // `plans.stripe_price_id[_annual]`), falling back to the legacy catalogue
+  // only for the shape (never for a price id).
+  let newPlan: ReturnType<typeof getPlan> | undefined;
+  let newPriceId: string | null | undefined;
+  try {
+    const { getPlanCached } = await import("@/lib/plans-db");
+    const dbPlan = await getPlanCached(newPlanId);
+    if (dbPlan) {
+      const cadence: NonNullable<ReturnType<typeof getPlan>>["cadence"] =
+        dbPlan.interval === "yearly"
+          ? "yearly"
+          : dbPlan.interval === "monthly"
+            ? "monthly"
+            : dbPlan.interval === "once"
+              ? "once"
+              : "free";
+      newPlan = {
+        id: dbPlan.id,
+        name: dbPlan.name,
+        price: dbPlan.price_aud_cents,
+        cadence,
+        features: dbPlan.feature_flags ?? [],
+      };
+      newPriceId = dbPlan.stripe_price_id ?? STRIPE_PRICE_MAP[newPlanId];
+      if (wantsAnnual && dbPlan.stripe_price_id_annual) {
+        newPriceId = dbPlan.stripe_price_id_annual;
+        newPlan.cadence = "yearly";
+        newPlan.price = dbPlan.annual_price_aud_cents || dbPlan.price_aud_cents;
+      }
+    }
+  } catch {
+    // plans-db unavailable — legacy shape below.
+  }
+  if (!newPlan) {
+    newPlan = getPlan(newPlanId);
+    newPriceId = STRIPE_PRICE_MAP[newPlanId];
+  }
+
   if (!newPlan || newPlan.cadence === "free") {
     return NextResponse.json(
       { ok: false, reason: "Invalid or free plan. Use the cancel endpoint to downgrade to free." },
@@ -115,7 +162,6 @@ async function POST_handler(request: Request) {
     );
   }
 
-  const newPriceId = STRIPE_PRICE_MAP[newPlanId];
   if (!newPriceId) {
     return NextResponse.json(
       { ok: false, reason: `Stripe price not configured for plan "${newPlanId}"` },

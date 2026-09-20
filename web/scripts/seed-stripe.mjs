@@ -135,10 +135,16 @@ async function updatePlansDb(supabase, plan, priceMonthly, priceAnnual) {
 }
 
 async function syncFromEnv(supabase) {
+  // G18-A (2026-09-19): these used to point founder_starter at
+  // STRIPE_PRICE_FOUNDER (legacy A$99/mo), founder_growth at
+  // STRIPE_PRICE_GROWTH (legacy A$99/mo) and founder_scale at
+  // STRIPE_PRICE_GROWTH_499 (A$499/mo) — exactly the mis-charge that
+  // migration 0119 had to undo. Each row now maps to its own plans.csv
+  // `stripe_env_var`.
   const map = [
-    ["founder_starter", env.STRIPE_PRICE_FOUNDER],
-    ["founder_growth", env.STRIPE_PRICE_GROWTH],
-    ["founder_scale", env.STRIPE_PRICE_GROWTH_499],
+    ["founder_starter", env.STRIPE_PRICE_FOUNDER_STARTER],
+    ["founder_growth", env.STRIPE_PRICE_FOUNDER_GROWTH],
+    ["founder_scale", env.STRIPE_PRICE_FOUNDER_SCALE],
   ];
   for (const [planId, priceId] of map) {
     if (!priceId) {

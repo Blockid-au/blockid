@@ -41,7 +41,6 @@ const mocks = vi.hoisted(() => ({
     opts?: { idempotencyKey?: string },
   ) => Promise<{ id: string; url: string }>>(),
   getPlanMock: vi.fn<(id: string) => { id: string; cadence: string; price: number } | undefined>(),
-  isGrowthEarlyBirdMock: vi.fn<() => boolean>(),
   isFoundingPromoActiveMock: vi.fn<() => boolean>(),
   getSupabaseAdminMock: vi.fn<() => unknown | null>(),
   getPlanCachedMock: vi.fn<(slug: string) => Promise<{
@@ -66,7 +65,7 @@ const mocks = vi.hoisted(() => ({
   extractIpMock: vi.fn<(h: Headers) => string>(),
   extractUserAgentMock: vi.fn<(h: Headers) => string>(),
   STRIPE_PRICE_MAP_FIXTURE: {
-    growth: "price_growth",
+    founder_growth: "price_growth",
     founding50: "price_founding50",
     founder_package: "price_founder_package",
   } as Record<string, string | undefined>,
@@ -88,7 +87,12 @@ vi.mock("@/lib/stripe", () => ({
 
 vi.mock("@/lib/plans", () => ({
   getPlan: (id: string) => mocks.getPlanMock(id),
-  isGrowthEarlyBird: () => mocks.isGrowthEarlyBirdMock(),
+  // Real map shape (lib/plans.ts) — the route remaps legacy ids through it.
+  LEGACY_PLAN_MAP: {
+    founding50: { id: "founder_starter", interval: "monthly" },
+    growth: { id: "founder_growth", interval: "monthly" },
+    growth_annual: { id: "founder_growth", interval: "yearly" },
+  },
 }));
 
 vi.mock("@/lib/founding-promo", () => ({
@@ -198,11 +202,10 @@ beforeEach(() => {
     url: "https://stripe.example/cs_test_1",
   });
   mocks.getPlanMock.mockReset().mockReturnValue({
-    id: "growth",
+    id: "founder_growth",
     cadence: "monthly",
     price: 9900,
   });
-  mocks.isGrowthEarlyBirdMock.mockReset().mockReturnValue(true);
   mocks.isFoundingPromoActiveMock.mockReset().mockReturnValue(true);
   mocks.getSupabaseAdminMock.mockReset().mockReturnValue(null); // segment lookup skipped
   mocks.getPlanCachedMock.mockReset().mockResolvedValue(null);
@@ -240,7 +243,7 @@ describe("stripe/checkout — module invariants", () => {
 describe("stripe/checkout — auth gate", () => {
   it("returns 401 when unauthenticated", async () => {
     mocks.getCurrentUserMock.mockResolvedValue(null);
-    const res = await POST(req({ plan: "growth" }));
+    const res = await POST(req({ plan: "founder_growth" }));
     expect(res.status).toBe(401);
     const body = await json(res);
     expect(body.reason).toBe("Authentication required");
@@ -248,7 +251,7 @@ describe("stripe/checkout — auth gate", () => {
 
   it("MUST NOT call Stripe when unauthenticated", async () => {
     mocks.getCurrentUserMock.mockResolvedValue(null);
-    await POST(req({ plan: "growth" }));
+    await POST(req({ plan: "founder_growth" }));
     expect(mocks.stripeCreateMock).not.toHaveBeenCalled();
   });
 });
@@ -260,7 +263,7 @@ describe("stripe/checkout — auth gate", () => {
 describe("stripe/checkout — config gate", () => {
   it("returns 503 when Stripe is unconfigured", async () => {
     mocks.isStripeConfiguredMock.mockReturnValue(false);
-    const res = await POST(req({ plan: "growth" }));
+    const res = await POST(req({ plan: "founder_growth" }));
     expect(res.status).toBe(503);
     const body = await json(res);
     expect(body.reason).toBe("Payments not configured");
@@ -353,12 +356,59 @@ describe("stripe/checkout — Founding 100 cutover", () => {
 });
 
 // -----------------------------------------------------------------------------
+// G18-A — legacy plan ids remap to the v2 rung (never the A$99 / A$499 prices)
+// -----------------------------------------------------------------------------
+
+describe("stripe/checkout — legacy plan ids (G18-A)", () => {
+  it("remaps planId 'growth' to founder_growth and books the v2 price", async () => {
+    const res = await POST(req({ plan: "growth" }));
+    expect(res.status).toBe(200);
+    const call = mocks.stripeCreateMock.mock.calls[0]?.[0];
+    expect(call?.line_items).toEqual([{ price: "price_growth", quantity: 1 }]);
+    const md = call?.metadata as Record<string, string>;
+    expect(md.blockid_plan).toBe("founder_growth");
+    expect(mocks.getPlanMock).toHaveBeenCalledWith("founder_growth");
+  });
+
+  it("remaps 'growth_annual' to founder_growth billed annually when the row has an annual price", async () => {
+    mocks.getPlanCachedMock.mockResolvedValue({
+      id: "founder_growth",
+      name: "Growth",
+      segment: "founder",
+      interval: "monthly",
+      price_aud_cents: 6900,
+      annual_price_aud_cents: 69000,
+      stripe_price_id: "price_growth",
+      stripe_price_id_annual: "price_growth_annual",
+      trial_days: 7,
+      feature_flags: [],
+    });
+    await POST(req({ plan: "growth_annual" }));
+    const call = mocks.stripeCreateMock.mock.calls[0]?.[0];
+    expect(call?.line_items).toEqual([{ price: "price_growth_annual", quantity: 1 }]);
+    const md = call?.metadata as Record<string, string>;
+    expect(md.blockid_plan).toBe("founder_growth");
+  });
+
+  it("never reads STRIPE_PRICE_GROWTH_499 — the early-bird escalation is gone", async () => {
+    process.env.STRIPE_PRICE_GROWTH_499 = "price_growth_499";
+    try {
+      await POST(req({ plan: "growth" }));
+      const call = mocks.stripeCreateMock.mock.calls[0]?.[0];
+      expect(call?.line_items).toEqual([{ price: "price_growth", quantity: 1 }]);
+    } finally {
+      delete process.env.STRIPE_PRICE_GROWTH_499;
+    }
+  });
+});
+
+// -----------------------------------------------------------------------------
 // Happy path — subscription
 // -----------------------------------------------------------------------------
 
 describe("stripe/checkout — subscription happy path", () => {
   it("returns 200 with the Stripe URL", async () => {
-    const res = await POST(req({ plan: "growth" }));
+    const res = await POST(req({ plan: "founder_growth" }));
     expect(res.status).toBe(200);
     const body = await json(res);
     expect(body.ok).toBe(true);
@@ -366,22 +416,22 @@ describe("stripe/checkout — subscription happy path", () => {
   });
 
   it("uses mode='subscription' for recurring plans", async () => {
-    await POST(req({ plan: "growth" }));
+    await POST(req({ plan: "founder_growth" }));
     const call = mocks.stripeCreateMock.mock.calls[0]?.[0];
     expect(call?.mode).toBe("subscription");
   });
 
   it("stamps blockid_user_id + blockid_plan on session.metadata (webhook contract)", async () => {
-    await POST(req({ plan: "growth" }));
+    await POST(req({ plan: "founder_growth" }));
     const call = mocks.stripeCreateMock.mock.calls[0]?.[0];
     const md = call?.metadata as Record<string, string>;
     expect(md.blockid_user_id).toBe(USER.id);
-    expect(md.blockid_plan).toBe("growth");
+    expect(md.blockid_plan).toBe("founder_growth");
     expect(md.blockid_user_hash).toBe(`h_${USER.id}`);
   });
 
   it("passes the founder's email as customer_email", async () => {
-    await POST(req({ plan: "growth" }));
+    await POST(req({ plan: "founder_growth" }));
     const call = mocks.stripeCreateMock.mock.calls[0]?.[0];
     expect(call?.customer_email).toBe(USER.email);
   });
@@ -390,10 +440,10 @@ describe("stripe/checkout — subscription happy path", () => {
     mocks.buildCheckoutSuccessUrlMock.mockReturnValue(
       "https://x/onboarding-thankyou",
     );
-    await POST(req({ plan: "growth", origin: "onboarding" }));
+    await POST(req({ plan: "founder_growth", origin: "onboarding" }));
     expect(mocks.buildCheckoutSuccessUrlMock).toHaveBeenCalledWith(
       expect.any(String),
-      "growth",
+      "founder_growth",
       "onboarding",
     );
     const call = mocks.stripeCreateMock.mock.calls[0]?.[0];
@@ -453,26 +503,26 @@ describe("stripe/checkout — subscription happy path", () => {
   });
 
   it("passes the priceId from STRIPE_PRICE_MAP", async () => {
-    await POST(req({ plan: "growth" }));
+    await POST(req({ plan: "founder_growth" }));
     const call = mocks.stripeCreateMock.mock.calls[0]?.[0];
     const items = (call?.line_items ?? []) as Array<{ price: string }>;
     expect(items[0]?.price).toBe("price_growth");
   });
 
   it("sets payment_method_collection='always' on recurring subs (v2 trial policy)", async () => {
-    await POST(req({ plan: "growth" }));
+    await POST(req({ plan: "founder_growth" }));
     const call = mocks.stripeCreateMock.mock.calls[0]?.[0];
     expect(call?.payment_method_collection).toBe("always");
   });
 
   it("stamps an idempotencyKey on the session create call", async () => {
-    await POST(req({ plan: "growth" }));
+    await POST(req({ plan: "founder_growth" }));
     const opts = mocks.stripeCreateMock.mock.calls[0]?.[1];
     expect(opts?.idempotencyKey).toBe("idem_1");
   });
 
   it("appends a stripe.checkout.create audit-log entry on success", async () => {
-    await POST(req({ plan: "growth" }));
+    await POST(req({ plan: "founder_growth" }));
     expect(mocks.logUserActionMock).toHaveBeenCalledTimes(1);
     const entry = mocks.logUserActionMock.mock.calls[0]?.[0];
     expect(entry?.action).toBe("stripe.checkout.create");
@@ -529,7 +579,7 @@ describe("stripe/checkout — Startup Package one-off", () => {
 describe("stripe/checkout — promo code", () => {
   it("returns 400 for an unknown/expired promoCode", async () => {
     mocks.resolvePromoCodeMock.mockResolvedValue(null);
-    const res = await POST(req({ plan: "growth", promoCode: "TYPO99" }));
+    const res = await POST(req({ plan: "founder_growth", promoCode: "TYPO99" }));
     expect(res.status).toBe(400);
     const body = await json(res);
     expect(String(body.reason)).toMatch(/unknown or expired promotion code/i);
@@ -544,7 +594,7 @@ describe("stripe/checkout — promo code", () => {
 describe("stripe/checkout — error handling", () => {
   it("returns 500 with a generic reason when Stripe throws", async () => {
     mocks.stripeCreateMock.mockRejectedValue(new Error("network blip"));
-    const res = await POST(req({ plan: "growth" }));
+    const res = await POST(req({ plan: "founder_growth" }));
     expect(res.status).toBe(500);
     const body = await json(res);
     expect(body.reason).toBe("Failed to create checkout session");
@@ -554,7 +604,7 @@ describe("stripe/checkout — error handling", () => {
     mocks.stripeCreateMock.mockRejectedValue(
       new Error("sk_live_ABC123 unauthorised"),
     );
-    const res = await POST(req({ plan: "growth" }));
+    const res = await POST(req({ plan: "founder_growth" }));
     const body = await json(res);
     expect(String(body.reason)).not.toContain("sk_live");
     expect(String(body.reason)).not.toContain("ABC123");
@@ -569,7 +619,7 @@ describe("stripe/checkout — gate precedence", () => {
   it("auth (401) fires BEFORE config (503)", async () => {
     mocks.getCurrentUserMock.mockResolvedValue(null);
     mocks.isStripeConfiguredMock.mockReturnValue(false);
-    const res = await POST(req({ plan: "growth" }));
+    const res = await POST(req({ plan: "founder_growth" }));
     expect(res.status).toBe(401);
   });
 
@@ -591,20 +641,20 @@ describe("stripe/checkout — gate precedence", () => {
 
 describe("QA-3 P1-10 — per-user rate limit on /api/stripe/checkout", () => {
   it("calls enforceRateLimit('stripe-checkout', user.id, request, 10, 15 min) after auth", async () => {
-    await POST(req({ plan: "growth" }));
+    await POST(req({ plan: "founder_growth" }));
     expect(enforceRateLimitMock).toHaveBeenCalledWith("stripe-checkout", USER.id, expect.any(Request), 10, 15 * 60 * 1000);
   });
 
   it("returns the limiter's 429 and never reaches Stripe", async () => {
     enforceRateLimitMock.mockReturnValueOnce(new Response("{}", { status: 429, headers: { "Retry-After": "60" } }));
-    const res = await POST(req({ plan: "growth" }));
+    const res = await POST(req({ plan: "founder_growth" }));
     expect(res.status).toBe(429);
     expect(mocks.stripeCreateMock).not.toHaveBeenCalled();
   });
 
   it("does not consult the limiter for an unauthenticated caller (401 first)", async () => {
     mocks.getCurrentUserMock.mockResolvedValue(null);
-    const res = await POST(req({ plan: "growth" }));
+    const res = await POST(req({ plan: "founder_growth" }));
     expect(res.status).toBe(401);
     expect(enforceRateLimitMock).not.toHaveBeenCalled();
   });

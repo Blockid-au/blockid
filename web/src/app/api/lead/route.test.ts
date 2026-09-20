@@ -13,16 +13,11 @@
 //     accept it — pin that guard here so an "improved" regex doesn't drop it.
 //   - Fault-tolerant persistence. When Supabase insert fails, the route logs
 //     and still returns `{ok:true}` — the funnel must never surface a 500 to
-//     an anonymous prospect. Same for Stripe: a `sessions.create` throw must
-//     leave `checkoutUrl` unset and NOT block the 200 response.
-//   - Founding-50 Stripe/email fork. When `source === "founding50"` and Stripe
-//     is configured the route creates a Checkout Session with an idempotency
-//     key derived from lower-cased trimmed email + priceId, then fires (and
-//     does NOT await) `sendPaymentLink`. Pin the metadata shape (no
-//     `blockid_user_id` at lead stage — the webhook falls back to email
-//     lookup), the `allow_promotion_codes: true` flag, the success/cancel
-//     URLs, and the payment-link defaults (`finalPrice = 49`, name falls back
-//     to email).
+//     an anonymous prospect.
+//   - Founding-50 (closed 2026-09-01). `source === "founding50"` answers
+//     `promo_ended: true` and writes the lead row; G18-A (2026-09-19) removed
+//     the Stripe Checkout + payment-link fork entirely, so the route must
+//     never touch Stripe for any source.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -461,250 +456,6 @@ describe("POST /api/lead — non-founding50 sources", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Founding-50 branch — Stripe unconfigured / price missing
-// ---------------------------------------------------------------------------
-
-describe("POST /api/lead — founding50 without Stripe", () => {
-  it("returns 200 {ok:true} with no checkoutUrl when Stripe is not configured", async () => {
-    isStripeConfiguredMock.mockReturnValue(false);
-    const res = await POST(req({ source: "founding50", email: "u@example.com" }));
-    expect(res.status).toBe(200);
-    const body = await json(res);
-    expect(body).toEqual({ ok: true });
-    expect(sendPaymentLinkMock).not.toHaveBeenCalled();
-  });
-
-  it("logs a console.warn when Stripe is not configured for founding50", async () => {
-    isStripeConfiguredMock.mockReturnValue(false);
-    await POST(req({ source: "founding50", email: "u@example.com" }));
-    expect(warnSpy).toHaveBeenCalled();
-    expect(String(warnSpy.mock.calls.at(-1)?.[0])).toContain("Stripe not configured");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Founding-50 branch — happy path
-// ---------------------------------------------------------------------------
-
-describe("POST /api/lead — founding50 happy path", () => {
-  beforeEach(() => {
-    isStripeConfiguredMock.mockReturnValue(true);
-    getStripeMock.mockReturnValue({
-      checkout: { sessions: { create: stripeSessionsCreateMock } },
-    });
-    stripeSessionsCreateMock.mockResolvedValue({ url: "https://checkout.stripe.com/pay/abc" });
-  });
-
-  it("returns 200 with a checkoutUrl from the Stripe session", async () => {
-    const res = await POST(req({ source: "founding50", email: "u@example.com" }));
-    expect(res.status).toBe(200);
-    const body = await json(res);
-    expect(body.ok).toBe(true);
-    expect(body.checkoutUrl).toBe("https://checkout.stripe.com/pay/abc");
-  });
-
-  it("creates the Stripe session with mode='payment' and the founding50 price line-item", async () => {
-    await POST(req({ source: "founding50", email: "u@example.com" }));
-    const args = stripeSessionsCreateMock.mock.calls[0]?.[0] as {
-      mode: string;
-      customer_email: string;
-      line_items: Array<{ price: string; quantity: number }>;
-    };
-    expect(args.mode).toBe("payment");
-    expect(args.customer_email).toBe("u@example.com");
-    expect(args.line_items).toEqual([{ price: "price_founding50_test", quantity: 1 }]);
-  });
-
-  it("sets allow_promotion_codes: true so coupon codes work at checkout", async () => {
-    await POST(req({ source: "founding50", email: "u@example.com" }));
-    const args = stripeSessionsCreateMock.mock.calls[0]?.[0] as {
-      allow_promotion_codes: boolean;
-    };
-    expect(args.allow_promotion_codes).toBe(true);
-  });
-
-  it("session metadata omits blockid_user_id at lead stage (webhook falls back to email lookup)", async () => {
-    await POST(req({ source: "founding50", email: "u@example.com" }));
-    const args = stripeSessionsCreateMock.mock.calls[0]?.[0] as {
-      metadata: Record<string, string>;
-    };
-    expect(args.metadata).toEqual({
-      blockid_source: "founding50",
-      blockid_email: "u@example.com",
-      blockid_plan: "founding50",
-    });
-    expect(args.metadata.blockid_user_id).toBeUndefined();
-  });
-
-  it("uses NEXT_PUBLIC_SITE_URL when set (trailing slash stripped)", async () => {
-    process.env.NEXT_PUBLIC_SITE_URL = "https://staging.blockid.au/";
-    await POST(req({ source: "founding50", email: "u@example.com" }));
-    const args = stripeSessionsCreateMock.mock.calls[0]?.[0] as {
-      success_url: string;
-      cancel_url: string;
-    };
-    expect(args.success_url).toBe(
-      "https://staging.blockid.au/checkout/success?plan=founding50",
-    );
-    expect(args.cancel_url).toBe("https://staging.blockid.au/pricing");
-  });
-
-  it("falls back to https://blockid.au for the checkout URLs when NEXT_PUBLIC_SITE_URL is unset", async () => {
-    delete process.env.NEXT_PUBLIC_SITE_URL;
-    await POST(req({ source: "founding50", email: "u@example.com" }));
-    const args = stripeSessionsCreateMock.mock.calls[0]?.[0] as {
-      success_url: string;
-      cancel_url: string;
-    };
-    expect(args.success_url).toBe("https://blockid.au/checkout/success?plan=founding50");
-    expect(args.cancel_url).toBe("https://blockid.au/pricing");
-  });
-
-  it("builds the Stripe idempotency key from lower-cased trimmed email + priceId", async () => {
-    // Verifies the exact args handed to sessionIdempotencyKey, not the digest
-    // itself — that's covered by the idempotency-lib test. Note: the email
-    // format regex rejects surrounding whitespace, so the trim() in the route
-    // is defensive — supply a mixed-case address (which the regex allows) and
-    // pin that the key derivation still lower-cases it.
-    await POST(req({ source: "founding50", email: "U@Example.COM" }));
-    expect(sessionIdempotencyKeyMock).toHaveBeenCalledWith("founding50", [
-      "u@example.com",
-      "price_founding50_test",
-    ]);
-    const optsArg = stripeSessionsCreateMock.mock.calls[0]?.[1] as {
-      idempotencyKey: string;
-    };
-    expect(optsArg.idempotencyKey).toBe("bid:founding50:u@example.com|price_founding50_test");
-  });
-
-  it("still returns 200 {ok:true} without checkoutUrl when Stripe session creation throws", async () => {
-    stripeSessionsCreateMock.mockRejectedValue(new Error("stripe boom"));
-    const res = await POST(req({ source: "founding50", email: "u@example.com" }));
-    expect(res.status).toBe(200);
-    const body = await json(res);
-    expect(body.ok).toBe(true);
-    expect(body.checkoutUrl).toBeUndefined();
-    expect(errorSpy).toHaveBeenCalled();
-    expect(sendPaymentLinkMock).not.toHaveBeenCalled();
-  });
-
-  it("does not send the payment-link email when the Stripe session has no url", async () => {
-    stripeSessionsCreateMock.mockResolvedValue({ url: null });
-    await POST(req({ source: "founding50", email: "u@example.com" }));
-    expect(sendPaymentLinkMock).not.toHaveBeenCalled();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Founding-50 branch — payment link email
-// ---------------------------------------------------------------------------
-
-describe("POST /api/lead — founding50 payment-link email", () => {
-  beforeEach(() => {
-    isStripeConfiguredMock.mockReturnValue(true);
-    getStripeMock.mockReturnValue({
-      checkout: { sessions: { create: stripeSessionsCreateMock } },
-    });
-    stripeSessionsCreateMock.mockResolvedValue({ url: "https://checkout.stripe.com/pay/xyz" });
-  });
-
-  it("sends the payment-link email with the checkout URL and the plan's features", async () => {
-    getPlanMock.mockReturnValue({ features: ["Priority onboarding", "Slack DM"] });
-    await POST(
-      req({
-        source: "founding50",
-        email: "u@example.com",
-        payload: { name: "Alex", finalPrice: 39 },
-      }),
-    );
-    expect(sendPaymentLinkMock).toHaveBeenCalledTimes(1);
-    expect(sendPaymentLinkMock).toHaveBeenCalledWith({
-      to: "u@example.com",
-      name: "Alex",
-      checkoutUrl: "https://checkout.stripe.com/pay/xyz",
-      finalPrice: 39,
-      features: ["Priority onboarding", "Slack DM"],
-    });
-  });
-
-  it("defaults finalPrice to 49 when payload.finalPrice is missing", async () => {
-    await POST(
-      req({ source: "founding50", email: "u@example.com", payload: { name: "Alex" } }),
-    );
-    const args = sendPaymentLinkMock.mock.calls[0]?.[0];
-    expect(args?.finalPrice).toBe(49);
-  });
-
-  it("defaults finalPrice to 49 when payload.finalPrice is a string (typeof !== 'number')", async () => {
-    // The check is `typeof === 'number'`; a stringified number must fall back.
-    await POST(
-      req({
-        source: "founding50",
-        email: "u@example.com",
-        payload: { finalPrice: "39" },
-      }),
-    );
-    const args = sendPaymentLinkMock.mock.calls[0]?.[0];
-    expect(args?.finalPrice).toBe(49);
-  });
-
-  it("falls back to email as the name when payload.name is missing", async () => {
-    await POST(req({ source: "founding50", email: "u@example.com" }));
-    const args = sendPaymentLinkMock.mock.calls[0]?.[0];
-    expect(args?.name).toBe("u@example.com");
-  });
-
-  it("falls back to email as the name when payload.name is empty string", async () => {
-    await POST(
-      req({ source: "founding50", email: "u@example.com", payload: { name: "" } }),
-    );
-    const args = sendPaymentLinkMock.mock.calls[0]?.[0];
-    expect(args?.name).toBe("u@example.com");
-  });
-
-  it("falls back to email as the name when payload.name is a non-string", async () => {
-    await POST(
-      req({ source: "founding50", email: "u@example.com", payload: { name: 42 } }),
-    );
-    const args = sendPaymentLinkMock.mock.calls[0]?.[0];
-    expect(args?.name).toBe("u@example.com");
-  });
-
-  it("supplies features: [] when getPlan returns undefined", async () => {
-    getPlanMock.mockReturnValue(undefined);
-    await POST(req({ source: "founding50", email: "u@example.com" }));
-    const args = sendPaymentLinkMock.mock.calls[0]?.[0];
-    expect(args?.features).toEqual([]);
-  });
-
-  it("returns 200 even when sendPaymentLink rejects — the mailer is fire-and-forget", async () => {
-    sendPaymentLinkMock.mockRejectedValue(new Error("smtp down"));
-    const res = await POST(req({ source: "founding50", email: "u@example.com" }));
-    expect(res.status).toBe(200);
-    const body = await json(res);
-    expect(body.ok).toBe(true);
-    expect(body.checkoutUrl).toBe("https://checkout.stripe.com/pay/xyz");
-    // Give the .catch() microtask a chance to run so the console.error assert holds.
-    await new Promise((resolve) => setImmediate(resolve));
-    expect(errorSpy).toHaveBeenCalled();
-  });
-
-  it("uses the payload.name after HTML tags have been stripped (safePayload feeds the mailer)", async () => {
-    // The route reads name from `safePayload` (the stripHtml output), not the
-    // raw body. A tag in the display name must not survive into the email.
-    await POST(
-      req({
-        source: "founding50",
-        email: "u@example.com",
-        payload: { name: "<b>Alex</b>" },
-      }),
-    );
-    const args = sendPaymentLinkMock.mock.calls[0]?.[0];
-    expect(args?.name).toBe("Alex");
-  });
-});
-
-// ---------------------------------------------------------------------------
 // Founding 100 cutover (2026-09-01 UTC) — /api/lead must NOT mint a Stripe
 // checkout session for founding50 after the promo window closes. Mirrors the
 // /api/stripe/checkout 410 guard so a stale /founding-50 page or an old email
@@ -747,10 +498,17 @@ describe("POST /api/lead — founding50 cutover", () => {
     expect(String(body.message)).toMatch(/founding 100/i);
   });
 
-  it("keeps the Stripe fork working while the promo is still active", async () => {
+  // G18-A (2026-09-19): the Stripe fork itself is gone — even with the promo
+  // flag forced on, /api/lead never mints a Checkout session or a payment
+  // link. `STRIPE_PRICE_FOUNDING50` has no consumer left in src/.
+  it("never mints a Stripe session for founding50, even with the promo flag forced on", async () => {
     isFoundingPromoActiveMock.mockReturnValue(true);
-    await POST(req({ source: "founding50", email: "u@example.com" }));
-    expect(stripeSessionsCreateMock).toHaveBeenCalledTimes(1);
+    const res = await POST(req({ source: "founding50", email: "u@example.com" }));
+    expect(res.status).toBe(200);
+    expect(stripeSessionsCreateMock).not.toHaveBeenCalled();
+    expect(sendPaymentLinkMock).not.toHaveBeenCalled();
+    const body = await json(res);
+    expect(body).toEqual({ ok: true });
   });
 });
 

@@ -28,6 +28,12 @@ export interface AfterTrialCopyArgs {
   planName: string;
   price: string; // e.g. "A$29"
   interval?: "month" | "year";
+  /**
+   * The plan's own trial length (plans.csv / `plans.trial_days`). G18-A:
+   * the Programs rungs run 14 days, and the signup price line said
+   * "After 7 days" for them. Defaults to TRIAL_DAYS.
+   */
+  trialDays?: number | null;
 }
 
 export const TRIAL_COPY = {
@@ -48,7 +54,7 @@ export const TRIAL_COPY = {
   /** After-trial line for a specific plan. */
   after_trial: (a: AfterTrialCopyArgs): string => {
     const interval = a.interval === "year" ? "/year" : "/mo";
-    return `After 7 days, you'll pay ${a.price}${interval} for ${a.planName}. Cancel anytime.`;
+    return `After ${normaliseTrialDays(a.trialDays)} days, you'll pay ${a.price}${interval} for ${a.planName}. Cancel anytime.`;
   },
 
   /** Line rendered on the signup form beneath the card input. */

@@ -8,8 +8,8 @@
 //   - 400 when email has no @
 //   - 500 when price ID not in STRIPE_PRICE_MAP
 //   - 500 when stripe.checkout.sessions.create throws
-//   - happy path early-bird price (svi_analysis)
-//   - happy path standard price (svi_analysis_25)
+//   - happy path books the A$3 One-Click Report price (G18-A — never the
+//     retired A$1 / A$25 svi_analysis pair)
 //   - idempotency key is passed to Stripe
 //   - metadata includes blockid_type + blockid_email
 //   - success_url encodes email correctly
@@ -20,10 +20,8 @@ const mocks = vi.hoisted(() => ({
   isStripeConfigured: vi.fn(),
   getStripe: vi.fn(),
   STRIPE_PRICE_MAP: {
-    svi_analysis: "price_svi_1",
-    svi_analysis_25: "price_svi_25",
+    one_click_report: "price_one_click_3aud",
   } as Record<string, string | undefined>,
-  isEarlyBird: vi.fn(),
   sessionIdempotencyKey: vi.fn(),
   stripeSessionCreate: vi.fn(),
 }));
@@ -32,9 +30,6 @@ vi.mock("@/lib/stripe", () => ({
   isStripeConfigured: () => mocks.isStripeConfigured(),
   getStripe: () => mocks.getStripe(),
   STRIPE_PRICE_MAP: mocks.STRIPE_PRICE_MAP,
-}));
-vi.mock("@/lib/plans", () => ({
-  isEarlyBird: () => mocks.isEarlyBird(),
 }));
 vi.mock("@/lib/stripe/idempotency", () => ({
   sessionIdempotencyKey: (...args: unknown[]) => mocks.sessionIdempotencyKey(...args),
@@ -67,15 +62,13 @@ async function json(res: Response) {
 beforeEach(() => {
   mocks.isStripeConfigured.mockReturnValue(true);
   mocks.getStripe.mockReturnValue(makeStripe());
-  mocks.isEarlyBird.mockReturnValue(true);
   mocks.sessionIdempotencyKey.mockReturnValue("idem_analysis_1");
   mocks.stripeSessionCreate.mockResolvedValue({
     id: "cs_test_1",
     url: "https://stripe.example/cs_test_1",
   });
   // Reset price map to defaults
-  mocks.STRIPE_PRICE_MAP.svi_analysis = "price_svi_1";
-  mocks.STRIPE_PRICE_MAP.svi_analysis_25 = "price_svi_25";
+  mocks.STRIPE_PRICE_MAP.one_click_report = "price_one_click_3aud";
 });
 
 afterEach(() => { vi.clearAllMocks(); });
@@ -108,20 +101,12 @@ describe("POST /api/stripe/analysis", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 500 when svi_analysis price not configured (early-bird)", async () => {
-    mocks.isEarlyBird.mockReturnValue(true);
-    mocks.STRIPE_PRICE_MAP.svi_analysis = undefined;
+  it("returns 500 when the One-Click Report price is not configured", async () => {
+    mocks.STRIPE_PRICE_MAP.one_click_report = undefined;
     const res = await POST(req({ email: "founder@example.com" }));
     expect(res.status).toBe(500);
     const body = await json(res);
     expect(body.reason).toMatch(/price not configured/i);
-  });
-
-  it("returns 500 when svi_analysis_25 price not configured (standard)", async () => {
-    mocks.isEarlyBird.mockReturnValue(false);
-    mocks.STRIPE_PRICE_MAP.svi_analysis_25 = undefined;
-    const res = await POST(req({ email: "founder@example.com" }));
-    expect(res.status).toBe(500);
   });
 
   it("returns 500 when Stripe session creation throws", async () => {
@@ -133,8 +118,7 @@ describe("POST /api/stripe/analysis", () => {
     expect(body.reason).toMatch(/checkout failed/i);
   });
 
-  it("happy path early-bird: uses svi_analysis price", async () => {
-    mocks.isEarlyBird.mockReturnValue(true);
+  it("happy path: books the A$3 One-Click Report price (G18-A)", async () => {
     const res = await POST(req({ email: "founder@example.com" }));
     expect(res.status).toBe(200);
     const body = await json(res);
@@ -142,16 +126,21 @@ describe("POST /api/stripe/analysis", () => {
     expect(body.url).toBe("https://stripe.example/cs_test_1");
     const createCall = mocks.stripeSessionCreate.mock.calls[0][0] as Record<string, unknown>;
     const lineItems = createCall.line_items as Array<{ price: string }>;
-    expect(lineItems[0].price).toBe("price_svi_1");
+    expect(lineItems).toEqual([{ price: "price_one_click_3aud", quantity: 1 }]);
   });
 
-  it("happy path standard: uses svi_analysis_25 price", async () => {
-    mocks.isEarlyBird.mockReturnValue(false);
-    const res = await POST(req({ email: "founder@example.com" }));
-    expect(res.status).toBe(200);
-    const createCall = mocks.stripeSessionCreate.mock.calls[0][0] as Record<string, unknown>;
-    const lineItems = createCall.line_items as Array<{ price: string }>;
-    expect(lineItems[0].price).toBe("price_svi_25");
+  it("never reads the retired svi_analysis / svi_analysis_25 slots", async () => {
+    mocks.STRIPE_PRICE_MAP.svi_analysis = "price_svi_1";
+    mocks.STRIPE_PRICE_MAP.svi_analysis_25 = "price_svi_25";
+    try {
+      await POST(req({ email: "founder@example.com" }));
+      const createCall = mocks.stripeSessionCreate.mock.calls[0][0] as Record<string, unknown>;
+      const lineItems = createCall.line_items as Array<{ price: string }>;
+      expect(lineItems[0].price).toBe("price_one_click_3aud");
+    } finally {
+      delete mocks.STRIPE_PRICE_MAP.svi_analysis;
+      delete mocks.STRIPE_PRICE_MAP.svi_analysis_25;
+    }
   });
 
   it("passes idempotency key to Stripe", async () => {

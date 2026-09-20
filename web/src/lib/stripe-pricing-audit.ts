@@ -75,10 +75,15 @@ interface PlanExpectation {
 }
 
 const LEGACY_PLANS: PlanExpectation[] = [
-  // Headline tiers — driven by platform-config
-  { planId: "founding50",    label: "Founding 100 (one-off)", configField: "founding_price_cents",      cadence: "one-off" },
-  { planId: "growth",        label: "Growth — monthly",       configField: "growth_price_monthly_cents", cadence: "monthly" },
-  { planId: "growth_annual", label: "Growth — annual",        configField: "growth_price_yearly_cents",  cadence: "yearly" },
+  // Legacy headline tiers — NOT sold since the 2026-09-01 cutover. They stay
+  // on the admin audit so the dashboard shows the Stripe prices grandfathered
+  // renewals still bill against, but they are read straight from their env
+  // vars: G18-A (2026-09-19) removed them from STRIPE_PRICE_MAP so no
+  // checkout path can book them. `docs/ops/pricing-truth.md` lists them as
+  // safe to archive in Stripe once no subscription references them.
+  { planId: "founding50",    label: "Founding 100 (one-off) — legacy", configField: "founding_price_cents",      cadence: "one-off", envVar: "STRIPE_PRICE_FOUNDING50" },
+  { planId: "growth",        label: "Growth — monthly — legacy",       configField: "growth_price_monthly_cents", cadence: "monthly", envVar: "STRIPE_PRICE_GROWTH" },
+  { planId: "growth_annual", label: "Growth — annual — legacy",        configField: "growth_price_yearly_cents",  cadence: "yearly",  envVar: "STRIPE_PRICE_GROWTH_ANNUAL" },
 
   // Credit packs — derived from CREDIT_PACKS (src/lib/credit-packs.ts), the
   // single source of truth, so the audit can never drift from the ladder the

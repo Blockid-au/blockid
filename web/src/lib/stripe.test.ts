@@ -175,16 +175,10 @@ describe("STRIPE_PRICE_MAP", () => {
     const mod = await loadStripeMod();
     // Frozen key set — a rename here forces a paired update at every checkout
     // / change-plan / webhook site, so the test file becomes the ledger.
+    // G18-A (2026-09-19): founding50 / founder / growth / growth_annual /
+    // growth_499 / pilot / accelerator / svi_analysis / svi_analysis_25 are
+    // gone — none is on the ladder and each could book an unadvertised amount.
     const expectedKeys = [
-      "founding50",
-      "founder",
-      "growth",
-      "growth_annual",
-      "growth_499",
-      "pilot",
-      "accelerator",
-      "svi_analysis",
-      "svi_analysis_25",
       "credits_5",
       "credits_10",
       "credits_25",
@@ -212,15 +206,6 @@ describe("STRIPE_PRICE_MAP", () => {
   });
 
   it("reads env vars at import time — each plan maps to its dedicated env source", async () => {
-    process.env.STRIPE_PRICE_FOUNDING50 = "price_f50";
-    process.env.STRIPE_PRICE_FOUNDER = "price_founder";
-    process.env.STRIPE_PRICE_GROWTH = "price_growth";
-    process.env.STRIPE_PRICE_GROWTH_ANNUAL = "price_growth_annual";
-    process.env.STRIPE_PRICE_GROWTH_499 = "price_growth_499";
-    process.env.STRIPE_PRICE_PILOT = "price_pilot";
-    process.env.STRIPE_PRICE_ACCELERATOR = "price_accel";
-    process.env.STRIPE_PRICE_SVI_ANALYSIS = "price_svi";
-    process.env.STRIPE_PRICE_SVI_ANALYSIS_25 = "price_svi25";
     process.env.STRIPE_PRICE_CREDITS_5 = "price_c5";
     process.env.STRIPE_PRICE_CREDITS_10 = "price_c10";
     process.env.STRIPE_PRICE_CREDITS_25 = "price_c25";
@@ -230,15 +215,6 @@ describe("STRIPE_PRICE_MAP", () => {
     process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY = "price_share_m";
     process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_ANNUAL = "price_share_y";
     const mod = await loadStripeMod();
-    expect(mod.STRIPE_PRICE_MAP.founding50).toBe("price_f50");
-    expect(mod.STRIPE_PRICE_MAP.founder).toBe("price_founder");
-    expect(mod.STRIPE_PRICE_MAP.growth).toBe("price_growth");
-    expect(mod.STRIPE_PRICE_MAP.growth_annual).toBe("price_growth_annual");
-    expect(mod.STRIPE_PRICE_MAP.growth_499).toBe("price_growth_499");
-    expect(mod.STRIPE_PRICE_MAP.pilot).toBe("price_pilot");
-    expect(mod.STRIPE_PRICE_MAP.accelerator).toBe("price_accel");
-    expect(mod.STRIPE_PRICE_MAP.svi_analysis).toBe("price_svi");
-    expect(mod.STRIPE_PRICE_MAP.svi_analysis_25).toBe("price_svi25");
     expect(mod.STRIPE_PRICE_MAP.credits_5).toBe("price_c5");
     expect(mod.STRIPE_PRICE_MAP.credits_10).toBe("price_c10");
     expect(mod.STRIPE_PRICE_MAP.credits_25).toBe("price_c25");
@@ -276,14 +252,28 @@ describe("STRIPE_PRICE_MAP", () => {
   });
 
   it("only reads its own dedicated env var — a partial env leaves other slots undefined", async () => {
-    // Only set the growth env; every other slot must remain undefined.
-    process.env.STRIPE_PRICE_GROWTH = "price_growth_only";
+    // Only set the credits_5 env; every other slot must remain undefined.
+    process.env.STRIPE_PRICE_CREDITS_5 = "price_c5_only";
     const mod = await loadStripeMod();
-    expect(mod.STRIPE_PRICE_MAP.growth).toBe("price_growth_only");
-    expect(mod.STRIPE_PRICE_MAP.founding50).toBeUndefined();
-    expect(mod.STRIPE_PRICE_MAP.founder).toBeUndefined();
+    expect(mod.STRIPE_PRICE_MAP.credits_5).toBe("price_c5_only");
     expect(mod.STRIPE_PRICE_MAP.credits_100).toBeUndefined();
     expect(mod.STRIPE_PRICE_MAP.founder_package).toBeUndefined();
+  });
+
+  it("G18-A: the legacy env vars are never surfaced as map keys, even when set", async () => {
+    process.env.STRIPE_PRICE_FOUNDING50 = "price_f50";
+    process.env.STRIPE_PRICE_FOUNDER = "price_founder";
+    process.env.STRIPE_PRICE_GROWTH = "price_growth";
+    process.env.STRIPE_PRICE_GROWTH_ANNUAL = "price_growth_annual";
+    process.env.STRIPE_PRICE_GROWTH_499 = "price_growth_499";
+    process.env.STRIPE_PRICE_PILOT = "price_pilot";
+    process.env.STRIPE_PRICE_ACCELERATOR = "price_accel";
+    process.env.STRIPE_PRICE_SVI_ANALYSIS = "price_svi";
+    process.env.STRIPE_PRICE_SVI_ANALYSIS_25 = "price_svi25";
+    const mod = await loadStripeMod();
+    for (const key of ["founding50", "founder", "growth", "growth_annual", "growth_499", "pilot", "accelerator", "svi_analysis", "svi_analysis_25"]) {
+      expect(key in mod.STRIPE_PRICE_MAP).toBe(false);
+    }
   });
 });
 

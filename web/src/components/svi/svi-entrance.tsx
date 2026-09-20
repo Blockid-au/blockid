@@ -44,6 +44,7 @@ import type { RndReport, ClientTechAuditResult } from "@/lib/rnd-types";
 import { usePricingExperiment } from "@/lib/hooks/use-pricing-experiment";
 import { PLANS_V2, formatAud } from "@/lib/plans-v2";
 import { CREDIT_PACKS } from "@/lib/credit-packs";
+import { ONE_CLICK_REPORT_3AUD } from "@/lib/pricing/v3-skus";
 import { FREE_SIGNUP_CREDITS, freeSignupAnalyses } from "@/lib/credits-public";
 
 import Image from "next/image";
@@ -113,6 +114,13 @@ const ROADMAP_STEPS = [
 // Catalogue reads for the pricing section and paywall — one lookup at module load, no literals.
 const PAYWALL_STARTER = PLANS_V2.find((p) => p.id === "founder_starter");
 const PAYWALL_PACK_5 = CREDIT_PACKS.find((p) => p.credits === 5) ?? CREDIT_PACKS[0]!;
+/**
+ * G18-A (2026-09-19): the paywall's "Quick Report" card posts to
+ * /api/stripe/analysis, which books the A$3 One-Click Report price — the card
+ * said "0.50 cr" while Stripe charged A$25 (the retired svi_analysis_25
+ * price). The label now reads the SKU the route books.
+ */
+const PAYWALL_QUICK_REPORT_AUD = (ONE_CLICK_REPORT_3AUD.unit_amount_incl_gst_cents ?? 0) / 100;
 const PAYWALL_PACK_25 = CREDIT_PACKS.find((p) => p.credits === 25) ?? CREDIT_PACKS[CREDIT_PACKS.length - 1]!;
 
 const BOTTOM_BENEFITS = [
@@ -1758,6 +1766,7 @@ export function SVIEntrance({ chrome = true }: SVIEntranceProps = {}) {
 // ═══════════════════════════════════════════════════════════════════════════════
 function CreditPackCard({
   credits,
+  creditsLabel,
   price,
   label,
   desc,
@@ -1766,6 +1775,8 @@ function CreditPackCard({
   loading,
 }: {
   credits: number;
+  /** Overrides the "N credits" sub-line (one-off report cards). */
+  creditsLabel?: string;
   price: string;
   label: string;
   desc: string;
@@ -1796,7 +1807,7 @@ function CreditPackCard({
           <>
             <p className="text-lg font-bold text-brand-600">{price}</p>
             <p className="text-[10px] text-ink-500">
-              {credits} credit{credits > 1 ? "s" : ""}
+              {creditsLabel ?? `${credits} credit${credits > 1 ? "s" : ""}`}
             </p>
           </>
         )}
@@ -1865,7 +1876,7 @@ function SVIPaywall({
     const trimmedEmail = (parentEmail ?? "").trim();
     setCheckoutLoading("single");
     setErrorMsg("");
-    trackEvent("svi_paywall_analysis_click", { price: 1 });
+    trackEvent("svi_paywall_analysis_click", { price: PAYWALL_QUICK_REPORT_AUD });
     try {
       const res = await fetch("/api/stripe/analysis", {
         method: "POST",
@@ -1945,10 +1956,12 @@ function SVIPaywall({
 
         {/* Three options: Quick Report / Custom Sections / Founder Plan */}
         <div className="space-y-3">
-          {/* Option A: Quick Report */}
+          {/* Option A: Quick Report — one-off A$3 inc. GST, no account needed
+              (books STRIPE_PRICE_ONE_CLICK_REPORT via /api/stripe/analysis). */}
           <CreditPackCard
-            credits={0.5}
-            price="0.50 cr"
+            credits={1}
+            creditsLabel="one report · inc. GST"
+            price={formatAud(PAYWALL_QUICK_REPORT_AUD)}
             label="A. Quick Report"
             desc="3-page scan — all 10 sections at a glance"
             onClick={handleSingleAnalysis}

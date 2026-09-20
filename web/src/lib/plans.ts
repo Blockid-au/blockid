@@ -177,14 +177,12 @@ export function getPlanPrice(
   return { original, discounted };
 }
 
-/** Early-bird pricing deadline (AEST). After this date, SVI analysis costs $25 instead of $1. */
-export const EARLY_BIRD_DEADLINE = new Date("2026-08-01T00:00:00+10:00");
-export const isEarlyBird = () => new Date() < EARLY_BIRD_DEADLINE;
-
-/** Growth plan early-bird deadline (AEST). Before this date Growth is $99/mo; after, $499/mo. */
-export const GROWTH_EARLY_BIRD_DEADLINE = new Date("2026-08-01T00:00:00+10:00");
-export const isGrowthEarlyBird = () => new Date() < GROWTH_EARLY_BIRD_DEADLINE;
-export const GROWTH_STANDARD_PRICE = 49900; // $499/mo after deadline
+// G18-A (2026-09-19): `EARLY_BIRD_DEADLINE` / `isEarlyBird` (A$1 → A$25 SVI
+// analysis) and `GROWTH_EARLY_BIRD_DEADLINE` / `isGrowthEarlyBird` /
+// `GROWTH_STANDARD_PRICE` (Growth A$99 → A$499 after 2026-08-01) are gone.
+// Both switches flipped on 2026-08-01 and started charging figures that no
+// page has ever shown; their only consumers (/api/stripe/analysis and the
+// growth_499 branch of /api/stripe/checkout) now book ladder prices.
 
 /** @deprecated Use LEGACY_PLANS. Kept as alias so pre-upgrade imports keep compiling. */
 export const PLANS = LEGACY_PLANS;
