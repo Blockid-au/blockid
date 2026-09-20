@@ -83,7 +83,7 @@ A benchmark compares a company with others at the same stage (and, when the samp
 | 30 – 99 | a basic percentile |
 | 100 or more | segmented percentiles (stage × sector) |
 
-`n` is always shown beside the figure. A national or sector "average" without its `n` is not permitted on any surface (`docs/design/messaging.md` § 11). Today the cohort-percentile module substitutes a band-based estimate labelled `benchmark_fallback` when a cohort has fewer than 20 companies; the tiered rules above replace that fallback as the Assessment Card ships (v3.19), after which nothing below n = 10 is shown as a percentile. Both are enforced in code, not copy.
+`n` is always shown beside the figure. A national or sector "average" without its `n` is not permitted on any surface (`docs/design/messaging.md` § 11). Every percentile, median and benchmark line is produced by one publication module (`web/src/lib/benchmarks/publication-rules.ts`, floor `BENCHMARK_MIN_N = 10`; `lib/svi/benchmark-rules.ts` re-exports it): below the floor the surface prints "not enough comparable companies (n = N)" instead of a number, 10–29 is labelled **indicative**, and the cohort-percentile module (`COHORT_MIN_N` now reads the same floor), the sector / stage indices, the calibration backtest and the founder dashboard all route through it. The rule is enforced in code, not copy.
 
 ## 8. Conflict handling — claim states
 
@@ -115,6 +115,8 @@ Conflicts are never averaged and never hidden. A conflicting claim is flagged to
 5. Outcomes are recorded on the audit log. Corrections that reveal a rule defect are handled under § 6.
 
 Appeals about a program's decision go to the program; BlockID can only correct the assessment, not the decision.
+
+Implementation (G21 P1-C): the founder files from `/workspace/evidence/corrections` (kinds: incorrect data · stale data · misunderstood evidence · duplicate company · wrong sector / stage · unsupported report statement) into the `corrections` table (migration `0418_corrections.sql`); the admin queue is `/admin/corrections`. A correction is logged, never applied in place: an accept records a resolution (`correction.accepted` audit row, founder e-mailed) and only a sector / stage correction with a proposed value is written, through the project update path (`updateProject`, versioned and audit-logged); the resolution text states exactly what was — or was not — changed. The same page shows what BlockID holds about the startup (evidence status counts, who has access, what was shared, last refreshed) with links to the existing revoke controls.
 
 ## 11. Re-score policy
 

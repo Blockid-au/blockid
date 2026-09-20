@@ -86,6 +86,9 @@ describe("computeCohortPercentile", () => {
       source: "benchmark_fallback",
       cohortSize: 0,
       stageMatched: 3,
+      band: "none",
+      label: "not enough comparable companies (n = 0)",
+      published: null,
     });
     expect(lastQuery).toBeNull();
   });
@@ -98,7 +101,8 @@ describe("computeCohortPercentile", () => {
       fallbackPercentile: 42,
     });
     expect(result.source).toBe("benchmark_fallback");
-    expect(result.percentile).toBe(42);
+    expect(result.published).toBeNull();
+    expect(result.percentile).toBe(42); // legacy static estimate — never printed as a rank
     expect(result.cohortSize).toBe(0);
     expect(result.stageMatched).toBe(4);
   });
@@ -111,28 +115,47 @@ describe("computeCohortPercentile", () => {
       fallbackPercentile: 30,
     });
     expect(result.source).toBe("benchmark_fallback");
+    expect(result.published).toBeNull();
     expect(result.percentile).toBe(30);
     expect(result.cohortSize).toBe(0);
     expect(result.stageMatched).toBe(2);
   });
 
-  it("falls back when cohort has fewer than 20 rows and surfaces the raw count", async () => {
-    nextData = makeRows([50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150]); // 11 rows
+  it("falls back when cohort has fewer than 10 rows (publication floor) and surfaces the raw count", async () => {
+    nextData = makeRows([50, 60, 70, 80, 90, 100, 110, 120, 130]); // 9 rows
     const result = await computeCohortPercentile({
       sviScore: 100,
       stage: 3,
       fallbackPercentile: 25,
     });
     expect(result.source).toBe("benchmark_fallback");
-    expect(result.percentile).toBe(25);
-    expect(result.cohortSize).toBe(11);
+    expect(result.published).toBeNull();
+    expect(result.band).toBe("none");
+    expect(result.label).toBe("not enough comparable companies (n = 9)");
+    expect(result.cohortSize).toBe(9);
     expect(result.stageMatched).toBe(3);
   });
 
-  it("falls back when post-filter score count drops below 20 (NaN + non-positive stripped)", async () => {
-    // 25 raw rows, but only 15 are valid positive numbers after filtering.
+  it("10–29 valid scores publish as real_cohort with band 'indicative' and the n label (G21 P1-C)", async () => {
+    nextData = makeRows([50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150]); // 11 rows
+    const result = await computeCohortPercentile({
+      sviScore: 100,
+      stage: 3,
+      fallbackPercentile: 25,
+    });
+    expect(result.source).toBe("real_cohort");
+    expect(result.band).toBe("indicative");
+    expect(result.label).toBe("indicative (n = 11)");
+    expect(result.cohortSize).toBe(11);
+    // 5 strictly below 100 → 5/11 = 45.45 → 45.
+    expect(result.percentile).toBe(45);
+    expect(result.published).toEqual({ percentile: 45, n: 11, band: "indicative", label: "indicative (n = 11)", segment: "AU stage-3 cohort" });
+  });
+
+  it("falls back when post-filter score count drops below 10 (NaN + non-positive stripped)", async () => {
+    // 19 raw rows, but only 9 are valid positive numbers after filtering.
     const rows: Array<{ svi: number | string | null; stage: number }> = [];
-    for (let i = 0; i < 15; i++) rows.push({ svi: 40 + i * 5, stage: 3 });
+    for (let i = 0; i < 9; i++) rows.push({ svi: 40 + i * 5, stage: 3 });
     for (let i = 0; i < 5; i++) rows.push({ svi: 0, stage: 3 }); // stripped: not > 0
     for (let i = 0; i < 3; i++) rows.push({ svi: -10, stage: 3 }); // stripped: not > 0
     rows.push({ svi: "not-a-number", stage: 3 }); // NaN → stripped
@@ -145,8 +168,8 @@ describe("computeCohortPercentile", () => {
       fallbackPercentile: 60,
     });
     expect(result.source).toBe("benchmark_fallback");
-    expect(result.percentile).toBe(60);
-    expect(result.cohortSize).toBe(15); // the *scores* count, not raw rows
+    expect(result.published).toBeNull();
+    expect(result.cohortSize).toBe(9); // the *scores* count, not raw rows
   });
 
   it("computes real_cohort percentile on the strict-below fraction for a middle score", async () => {
@@ -324,13 +347,14 @@ describe("computeCohortPercentile", () => {
       fallbackPercentile: 33,
     });
     expect(result.source).toBe("benchmark_fallback");
+    expect(result.published).toBeNull();
     expect(result.percentile).toBe(33);
     expect(result.cohortSize).toBe(0);
     expect(result.stageMatched).toBe(3);
   });
 
   it("does not carry median/p25/p75 on the fallback branch", async () => {
-    nextData = makeRows([10, 20, 30]); // <20 → fallback
+    nextData = makeRows([10, 20, 30]); // <10 → fallback
     const result = await computeCohortPercentile({
       sviScore: 100,
       stage: 3,
@@ -361,7 +385,7 @@ describe("computeCohortPercentile", () => {
     expect(result.p75).toBe(17);
   });
 
-  it("real_cohort at exactly 20 valid scores clears the boundary (>=20 gate)", async () => {
+  it("real_cohort at exactly 20 valid scores is indicative (10–29 band)", async () => {
     const scores = Array.from({ length: 20 }, (_, i) => (i + 1) * 10);
     nextData = makeRows(scores);
     const result = await computeCohortPercentile({
@@ -371,12 +395,27 @@ describe("computeCohortPercentile", () => {
     });
     expect(result.source).toBe("real_cohort");
     expect(result.cohortSize).toBe(20);
+    expect(result.band).toBe("indicative");
     // 9 scores strictly below 100 → 9/20 = 45.
     expect(result.percentile).toBe(45);
   });
 
-  it("real_cohort at 19 valid scores falls back (<20 gate)", async () => {
-    const scores = Array.from({ length: 19 }, (_, i) => (i + 1) * 10);
+  it("real_cohort at exactly 10 valid scores clears the publication floor (>=10 gate)", async () => {
+    const scores = Array.from({ length: 10 }, (_, i) => (i + 1) * 10);
+    nextData = makeRows(scores);
+    const result = await computeCohortPercentile({
+      sviScore: 100,
+      stage: 3,
+      fallbackPercentile: 77,
+    });
+    expect(result.source).toBe("real_cohort");
+    expect(result.percentile).toBe(90);
+    expect(result.cohortSize).toBe(10);
+    expect(result.label).toBe("indicative (n = 10)");
+  });
+
+  it("real_cohort at 9 valid scores falls back (<10 gate) — percentile null, never the static number", async () => {
+    const scores = Array.from({ length: 9 }, (_, i) => (i + 1) * 10);
     nextData = makeRows(scores);
     const result = await computeCohortPercentile({
       sviScore: 100,
@@ -384,8 +423,20 @@ describe("computeCohortPercentile", () => {
       fallbackPercentile: 77,
     });
     expect(result.source).toBe("benchmark_fallback");
+    expect(result.published).toBeNull();
     expect(result.percentile).toBe(77);
-    expect(result.cohortSize).toBe(19);
+    expect(result.cohortSize).toBe(9);
+  });
+
+  it("30+ valid scores carry band 'benchmark'; 100+ 'segmented'", async () => {
+    nextData = makeRows(Array.from({ length: 30 }, (_, i) => (i + 1) * 5));
+    const thirty = await computeCohortPercentile({ sviScore: 100, stage: 3, fallbackPercentile: 0 });
+    expect(thirty.band).toBe("benchmark");
+    expect(thirty.label).toBe("benchmark (n = 30)");
+    nextData = makeRows(Array.from({ length: 120 }, (_, i) => (i % 40) + 10));
+    const big = await computeCohortPercentile({ sviScore: 100, stage: 3, fallbackPercentile: 0 });
+    expect(big.band).toBe("segmented");
+    expect(big.label).toBe("segmented benchmark (n = 120)");
   });
 
   it("scoresForCohort excludes duplicates only by count semantics — duplicates are kept", async () => {
@@ -418,7 +469,7 @@ describe("startupPositioning", () => {
     expect(r.tier).toBe("elite");
     expect(r.headline).toBe("Elite — top 3% of AU seed startups");
     expect(r.detail).toBe(
-      "Elite — top 3% of AU seed startups (based on 60 AU peers)",
+      "Elite — top 3% of AU seed startups (benchmark (n = 60), AU peers)",
     );
   });
 
@@ -442,7 +493,7 @@ describe("startupPositioning", () => {
     });
     expect(r.tier).toBe("top");
     expect(r.headline).toBe("Top 18% of AU pre-seed startups");
-    expect(r.detail).toContain("based on 47 AU peers");
+    expect(r.detail).toContain("benchmark (n = 47), AU peers");
   });
 
   it("returns above_median for the 50–74 band and omits the numeric top-X phrase", () => {
@@ -482,26 +533,36 @@ describe("startupPositioning", () => {
     expect(r.headline).not.toMatch(/bottom/i);
   });
 
-  it("uses a benchmark-estimate suffix when the source is fallback", () => {
+  it("publishes no percentile phrase when the source is fallback (G21 P1-C: never a number without n)", () => {
     const r = startupPositioning({
-      percentile: 60,
+      percentile: null,
       cohortSize: 8, // real cohort too small — caller passed fallback source
       source: "benchmark_fallback",
       stageLabel: "seed",
     });
+    expect(r.tier).toBe("early");
+    expect(r.headline).toBe("No cohort benchmark yet for AU seed startups");
     expect(r.detail).toBe(
-      "Above median for AU seed startups (benchmark estimate)",
+      "No cohort benchmark yet for AU seed startups (not enough comparable companies (n = 8))",
     );
+    expect(r.detail).not.toMatch(/top \d|median/i);
   });
 
-  it("uses the benchmark-estimate suffix when cohortSize is 0 even on real_cohort", () => {
+  it("treats a real_cohort below the floor (n < 10) the same — no percentile phrase", () => {
     const r = startupPositioning({
       percentile: 80,
       cohortSize: 0,
       source: "real_cohort",
       stageLabel: "seed",
     });
-    expect(r.detail).toContain("(benchmark estimate)");
+    expect(r.headline).toBe("No cohort benchmark yet for AU seed startups");
+    expect(r.detail).toContain("(n = 0)");
+  });
+
+  it("labels a 10–29 cohort indicative", () => {
+    const r = startupPositioning({ percentile: 80, cohortSize: 14, source: "real_cohort", stageLabel: "seed" });
+    expect(r.headline).toBe("Top 20% of AU seed startups");
+    expect(r.detail).toBe("Top 20% of AU seed startups (indicative (n = 14), AU peers)");
   });
 
   it("omits the stage label cleanly when none is provided", () => {
@@ -612,10 +673,10 @@ describe("computeCohortPercentile — register cohort fallback order (S40)", () 
     expect(r).toMatchObject({ source: "register_cohort", percentile: 70, cohortSize: 40, stageMatched: 3, register: { n: 40, medianAgeMonths: 24, subjectScore: 55, subjectFromRegister: true } });
   });
 
-  it("register cohort < 20, or no subject score, or a loader error → benchmark_fallback with the snapshot count", async () => {
+  it("register cohort < 10, or no subject score, or a loader error → benchmark_fallback with the snapshot count", async () => {
     nextData = makeRows([50, 60, 70]);
-    const small = await computeCohortPercentile({ sviScore: 100, stage: 3, fallbackPercentile: 42, register: { abn: "95608464535" }, loadRegisterCohort: async () => registerCohort(19) });
-    expect(small).toEqual({ percentile: 42, source: "benchmark_fallback", cohortSize: 3, stageMatched: 3 });
+    const small = await computeCohortPercentile({ sviScore: 100, stage: 3, fallbackPercentile: 42, register: { abn: "95608464535" }, loadRegisterCohort: async () => registerCohort(9) });
+    expect(small).toEqual({ percentile: 42, source: "benchmark_fallback", cohortSize: 3, stageMatched: 3, band: "none", label: "not enough comparable companies (n = 3)", published: null });
     nextData = makeRows([50, 60, 70]);
     const noSubject = await computeCohortPercentile({ sviScore: 100, stage: 3, fallbackPercentile: 42, register: { state: "VIC" }, loadRegisterCohort: async () => registerCohort(40, null) });
     expect(noSubject.source).toBe("benchmark_fallback");
@@ -627,7 +688,7 @@ describe("computeCohortPercentile — register cohort fallback order (S40)", () 
     expect(nullCohort.source).toBe("benchmark_fallback");
   });
 
-  it("without `register` the behaviour is unchanged: snapshots < 20 → benchmark_fallback, loader never consulted", async () => {
+  it("without `register` the behaviour is unchanged: snapshots < 10 → benchmark_fallback, loader never consulted", async () => {
     nextData = makeRows([50, 60, 70]);
     const loader = vi.fn(async () => registerCohort(40));
     const r = await computeCohortPercentile({ sviScore: 100, stage: 3, fallbackPercentile: 42, loadRegisterCohort: loader });
@@ -635,21 +696,24 @@ describe("computeCohortPercentile — register cohort fallback order (S40)", () 
     expect(loader).not.toHaveBeenCalled();
   });
 
-  it("the register rung also applies after the post-filter drop below 20 (NaN / non-positive scores stripped)", async () => {
+  it("the register rung also applies after the post-filter drop below 10 (NaN / non-positive scores stripped)", async () => {
     const rows: Array<{ svi: number | string | null; stage: number }> = [];
-    for (let i = 0; i < 15; i++) rows.push({ svi: 40 + i * 5, stage: 3 });
+    for (let i = 0; i < 8; i++) rows.push({ svi: 40 + i * 5, stage: 3 });
     for (let i = 0; i < 10; i++) rows.push({ svi: 0, stage: 3 });
     nextData = rows;
     const r = await computeCohortPercentile({ sviScore: 100, stage: 3, fallbackPercentile: 42, register: { abn: "95608464535" }, loadRegisterCohort: async () => registerCohort(25, 10) });
     expect(r.source).toBe("register_cohort");
     expect(r.cohortSize).toBe(25);
+    expect(r.band).toBe("indicative");
+    expect(r.label).toBe("indicative (n = 25)");
     expect(r.percentile).toBe(20); // scores 0..48 step 2 → 5 strictly below 10 → 5/25
+    expect(r.published).toEqual({ percentile: 20, n: 25, band: "indicative", label: "indicative (n = 25)", segment: "AU register cohort" });
   });
 
   it("startupPositioning labels a register cohort honestly (not 'based on N AU peers', not 'benchmark estimate')", () => {
     const r = startupPositioning({ percentile: 70, cohortSize: 40, source: "register_cohort", stageLabel: "seed" });
     expect(r.tier).toBe("above_median");
-    expect(r.detail).toBe("Above median for AU seed startups (register cohort — 40 AU entities on the ABR / grant / R&DTI registers)");
+    expect(r.detail).toBe("Above median for AU seed startups (register cohort — benchmark (n = 40), AU entities on the ABR / grant / R&DTI registers)");
   });
 });
 

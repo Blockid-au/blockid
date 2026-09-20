@@ -8,6 +8,7 @@ import {
 } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
 import { apiRoute } from "@/lib/audit/api-route";
+import { emitEvidenceAdded } from "@/lib/analytics/fi-events";
 
 export const dynamic = "force-dynamic";
 
@@ -78,7 +79,6 @@ async function authenticateRequest(supabase: ReturnType<typeof getSupabaseAdmin>
 
   return { userId: user.id as string, email: user.email as string };
 }
-
 
 // POST /api/evidence — add an evidence item
 async function POST_handler(request: Request) {
@@ -160,6 +160,19 @@ async function POST_handler(request: Request) {
         { status: 500 },
       );
     }
+
+    // G21 P1-C — FI analytics: evidence_added on the vault path.
+    emitEvidenceAdded({
+      ownerUserId: scope?.ownerUserId ?? auth.userId,
+      actorUserId: auth.userId,
+      email: auth.email,
+      projectId,
+      channel: "vault",
+      evidenceId: String((evidence as { id?: string | number } | null)?.id ?? ""),
+      dimension: dimension ?? "general",
+      evidenceType,
+      confidenceLevel,
+    });
 
     // Fire-and-forget: trigger SVI rescore with evidence bonuses.
     // Call both the existing bonus-based rescore and the new enhanced-text rescore.

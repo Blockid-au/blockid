@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-20T16:48:19.995Z",
+  "generated_at": "2026-09-20T17:00:53.598Z",
   "ledger_present": true,
-  "total_files": 299,
+  "total_files": 300,
   "files": [
     "0001_init.sql",
     "0002_score_v2.sql",
@@ -271,6 +271,7 @@
     "0415_assembled_reports_analysis_id_text.sql",
     "0416_pilot_orders.sql",
     "0417_claims_evidence_records.sql",
+    "0418_corrections.sql",
     "0420_revenue_events_kind_one_offs.sql",
     "0421_erasure_map_pilot_orders.sql",
     "20260814_tech_analyses.sql",

@@ -10,6 +10,8 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { EvidenceVaultClient } from "@/components/svi/evidence-vault-client";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { CapTableHealthWidget } from "@/components/workspace/cap-table-health-widget";
+import { EvidenceChecklist } from "@/components/workspace/EvidenceChecklist";
+import { buildEvidenceChecklist, type EvidenceRowLite } from "@/lib/svi/evidence-checklist";
 import type { SVIEvidenceGap } from "@/lib/svi-analysis";
 import {
   listConnections,
@@ -40,6 +42,8 @@ export default async function EvidencePage() {
   let evidence: Record<string, unknown>[] = [];
   let evidenceGaps: SVIEvidenceGap[] = [];
   let currentSVI: number | null = null;
+  // G21 P1-C: the per-dimension checklist reads the project's catalogue rows.
+  let checklistRows: EvidenceRowLite[] = [];
 
   // S18-B — member-aware: evidence lives under the OWNER's svi_account; a
   // member only reads it (never creates a split account row). Viewers get
@@ -68,6 +72,18 @@ export default async function EvidencePage() {
           .eq("account_id", accountRow.id)
           .order("created_at", { ascending: false });
         if (rows) evidence = rows;
+      }
+    }
+
+    if (projectId) {
+      try {
+        const { data: dimRows } = await supabase
+          .from("svi_dimension_evidence")
+          .select("dimension, evidence_type, confidence_level, is_verified")
+          .eq("project_id", projectId);
+        checklistRows = (dimRows ?? []) as EvidenceRowLite[];
+      } catch {
+        checklistRows = [];
       }
     }
 
@@ -140,6 +156,7 @@ export default async function EvidencePage() {
         {isMember && !canEdit && (
           <ViewOnlyNote role={role} action="add or connect evidence" />
         )}
+        {projectId ? <EvidenceChecklist rows={buildEvidenceChecklist(checklistRows)} canEdit={canEdit} /> : null}
         <EvidenceVaultClient
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           initialEvidence={evidence as any}

@@ -86,9 +86,18 @@ describe("/methodology/calibration — populated", () => {
     expect(out).toContain("Series A");
     // bucket table + SVG
     expect(out).toContain('data-testid="calibration-bucket-table"');
+    // < 10 rows per quartile in this fixture → the figure slot carries the
+    // "not enough comparable companies" line instead of the SVG (G21 P1-C).
     expect(out).toContain('data-testid="calibration-range-bars"');
-    expect(out).toContain('data-visual-id="svi-backtest-buckets"');
+    expect(out).not.toContain('data-visual-id="svi-backtest-buckets"');
+    expect(out).toContain("a benchmark appears from n = 10");
     expect(out).toContain("Q4 (highest SVI)");
+    // G21 P1-C: every bucket / stage carries its publication label with n; a
+    // bucket below the floor publishes no median (the fixture has < 10 per quartile).
+    expect(out).toContain('data-publication-band="none"');
+    expect(out).toContain("not enough comparable companies (n = ");
+    expect(out).toContain(`(n = ${REPORT.n_by_stage.seed})`);
+    for (const b of REPORT.buckets) expect(b.median_round_aud).toBeNull();
     // caveats verbatim, in order
     let cursor = 0;
     for (const c of REPORT.caveats) {
@@ -127,13 +136,17 @@ describe("/methodology/calibration — populated", () => {
     expect(out).not.toContain(EN["calibration.title"]);
   });
 
-  it("the range-bar SVG is deterministic, labelled and carries the four quartiles", () => {
+  it("the range-bar SVG is deterministic, labelled and draws one bar per PUBLISHED quartile (none below the floor)", () => {
     const svg = bucketRangeBarsSvg(REPORT, EN);
     expect(svg).toBe(bucketRangeBarsSvg(REPORT, EN));
     expect(svg).toMatch(/^<svg /);
     expect(svg).toContain('role="img"');
     expect(svg).toContain(EN["calibration.buckets.chartTitle"]);
-    expect((svg.match(/<rect /g) ?? []).length).toBe(4);
+    // The 11-row fixture has < 10 rows per quartile → no medians → no bars (G21 P1-C).
+    expect((svg.match(/<rect /g) ?? []).length).toBe(0);
+    // Force-publish the same buckets → four bars.
+    const published = { ...REPORT, buckets: REPORT.buckets.map((bk) => ({ ...bk, median_round_aud: 1_000_000 * bk.quartile, p25_round_aud: 800_000 * bk.quartile, p75_round_aud: 1_200_000 * bk.quartile })) };
+    expect((bucketRangeBarsSvg(published, EN).match(/<rect /g) ?? []).length).toBe(4);
   });
 });
 

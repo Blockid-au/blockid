@@ -6,6 +6,7 @@
 // Public surface: computeIndexHeadlines() returns one shape the page renders.
 
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { benchmarkBand, benchmarkLabel, type BenchmarkBand } from "@/lib/benchmarks/publication-rules";
 
 const SECTOR_META: Record<string, { label: string; emoji: string }> = {
   saas:        { label: "SaaS",         emoji: "📊" },
@@ -26,6 +27,10 @@ export interface IndexHeadlines {
     deltaWeek: number;
     sparkline7d: number[];     // last 7 daily medians (oldest first)
     totalCompanies: number;
+    /** G21 P1-C — publication band for `totalCompanies` (lib/benchmarks/publication-rules.ts). */
+    band: BenchmarkBand;
+    /** "benchmark (n = 138)" · "not enough comparable companies (n = 4)". */
+    label: string;
     totalCoverageAud: number;  // sum of blended valuations
     analysesToday: number;
     analysesYesterday: number;
@@ -37,12 +42,17 @@ export interface IndexHeadlines {
     value: number;
     deltaWeek: number;
     count: number;
+    /** Publication band for `count`; the page prints no `value` when "none". */
+    band: BenchmarkBand;
+    publicationLabel: string;
   }>;
   stageIndices: Array<{
     stage: number;
     label: string;
     value: number;
     count: number;
+    band: BenchmarkBand;
+    publicationLabel: string;
   }>;
   topMovers: {
     winners: Array<{ ticker: string; slug: string; sector: string; svi: number; deltaWeek: number }>;
@@ -189,6 +199,8 @@ export async function computeIndexHeadlines(windowDays = 90): Promise<IndexHeadl
         value,
         deltaWeek: valueWeek - value,
         count: b.sviAll.length,
+        band: benchmarkBand(b.sviAll.length),
+        publicationLabel: benchmarkLabel(b.sviAll.length),
       };
     })
     .sort((a, b) => b.count - a.count);
@@ -201,6 +213,8 @@ export async function computeIndexHeadlines(windowDays = 90): Promise<IndexHeadl
       label: STAGE_LABELS[stage] ?? `Stage ${stage}`,
       value: median(b.svis),
       count: b.svis.length,
+      band: benchmarkBand(b.svis.length),
+      publicationLabel: benchmarkLabel(b.svis.length),
     }))
     .sort((a, b) => a.stage - b.stage);
 
@@ -235,6 +249,8 @@ export async function computeIndexHeadlines(windowDays = 90): Promise<IndexHeadl
       deltaWeek,
       sparkline7d,
       totalCompanies: identityBuckets.size,
+      band: benchmarkBand(identityBuckets.size),
+      label: benchmarkLabel(identityBuckets.size),
       totalCoverageAud: Math.round(coverageAud),
       analysesToday,
       analysesYesterday,

@@ -310,6 +310,26 @@ describe("computeIndexHeadlines — sector indices", () => {
     expect(out.sectorIndices[0].sector).toBe("saas");
   });
 
+  it("G21 P1-C: every aggregate carries its publication band + label (n < 10 → none; 10–29 indicative; 30+ benchmark)", async () => {
+    const rows = [];
+    for (let i = 0; i < 12; i++) rows.push(row(`s${i}@x.io`, 100 + i, -1000, { sector: "saas", stage: 2 }));
+    for (let i = 0; i < 31; i++) rows.push(row(`f${i}@x.io`, 90 + i, -1000, { sector: "fintech", stage: 3 }));
+    rows.push(row("a1@x.io", 100, -1000, { sector: "ai", stage: 5 }));
+    nextData = rows;
+    const out = await computeIndexHeadlines();
+    expect(out.bsiAu.totalCompanies).toBe(44);
+    expect(out.bsiAu.band).toBe("benchmark");
+    expect(out.bsiAu.label).toBe("benchmark (n = 44)");
+    const by = new Map(out.sectorIndices.map((s) => [s.sector, s]));
+    expect(by.get("saas")).toMatchObject({ count: 12, band: "indicative", publicationLabel: "indicative (n = 12)" });
+    expect(by.get("fintech")).toMatchObject({ count: 31, band: "benchmark", publicationLabel: "benchmark (n = 31)" });
+    expect(by.get("ai")).toMatchObject({ count: 1, band: "none", publicationLabel: "not enough comparable companies (n = 1)" });
+    const st = new Map(out.stageIndices.map((s) => [s.stage, s]));
+    expect(st.get(2)?.band).toBe("indicative");
+    expect(st.get(3)?.band).toBe("benchmark");
+    expect(st.get(5)?.band).toBe("none");
+  });
+
   it("sector deltaWeek = median(week) - median(all)", async () => {
     nextData = [
       row("a@x.io", 50, -30 * DAY, { sector: "saas" }), // historical only

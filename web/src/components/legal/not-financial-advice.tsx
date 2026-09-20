@@ -28,6 +28,13 @@ export interface NotFinancialAdviceProps {
   compact?: boolean;
   /** Override the label shown on the "Learn more" link (full mode only). */
   learnMoreHref?: string;
+  /**
+   * G21 P1-C — when set, a "Flag a problem with this report" link renders
+   * beside the notice (the founder correction workflow,
+   * /workspace/evidence/corrections). Report footers pass it; marketing
+   * surfaces leave it unset.
+   */
+  flagHref?: string;
 }
 
 const FALLBACK_COMPACT =
@@ -54,6 +61,7 @@ export function NotFinancialAdvice({
   jurisdiction = "AU",
   compact = false,
   learnMoreHref = "/legal/disclaimers",
+  flagHref,
 }: NotFinancialAdviceProps): React.ReactElement {
   const surface = React.useMemo(
     () => findSurfaceForKind(kind, jurisdiction),
@@ -72,6 +80,14 @@ export function NotFinancialAdvice({
           </span>{" "}
           {surface?.label ?? "General information only."} Seek independent
           counsel. This is not an offer of securities.
+          {flagHref ? (
+            <>
+              {" "}
+              <Link href={flagHref} className="font-medium text-brand-700 hover:text-brand-800 dark:text-brand-300" data-testid="report-flag-problem">
+                Flag a problem with this report
+              </Link>
+            </>
+          ) : null}
         </p>
       </div>
     );
@@ -86,13 +102,22 @@ export function NotFinancialAdvice({
       <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700 dark:text-slate-300">
         {body}
       </p>
-      <div className="mt-2">
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
         <Link
           href={learnMoreHref}
           className="rounded-sm text-xs font-medium text-brand-700 hover:text-brand-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-brand-300 dark:hover:text-brand-200"
         >
           Learn more →
         </Link>
+        {flagHref ? (
+          <Link
+            href={flagHref}
+            className="rounded-sm text-xs font-medium text-brand-700 hover:text-brand-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-brand-300 dark:hover:text-brand-200"
+            data-testid="report-flag-problem"
+          >
+            Flag a problem with this report
+          </Link>
+        ) : null}
       </div>
     </aside>
   );

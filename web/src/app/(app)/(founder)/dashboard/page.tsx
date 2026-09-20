@@ -41,6 +41,8 @@ import { MoneyOnTheTable } from "@/components/dashboard/landing/money-on-the-tab
 import { EvidenceToAdd } from "@/components/dashboard/landing/evidence-to-add";
 import { YourReports } from "@/components/dashboard/landing/your-reports";
 import { WhatInvestorsSaid } from "@/components/dashboard/landing/what-investors-said";
+import { EvidenceChecklist } from "@/components/workspace/EvidenceChecklist";
+import { buildEvidenceChecklist } from "@/lib/svi/evidence-checklist";
 import { ExecutiveSynthesis } from "@/components/dashboard/landing/executive-synthesis";
 import { synthesisFromReport } from "@/lib/dashboard/executive-synthesis";
 import { getMoneyRadarTileData } from "@/lib/funding/tile-data";
@@ -51,7 +53,7 @@ import { recommendNextStep } from "@/lib/nav/next-step-recommender";
 import { resolveFounderNavPhase } from "@/lib/nav/founder-phase";
 import { isGrowthPhaseId } from "@/lib/growth/phase-taxonomy";
 import { displayPhaseFor, phaseDimsFromAnalysis } from "@/lib/growth/infer-phase";
-import { getSVIPercentile } from "@/lib/benchmarks";
+import { publishPercentile } from "@/lib/benchmarks/publication-rules";
 import { isEvaluatorPersona, resolvePersona } from "@/lib/nav/persona";
 import { loadPersonaRow } from "@/lib/nav/persona-server";
 import { landingHrefFor, personaLandingEnabled } from "@/lib/auth/post-login";
@@ -133,6 +135,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
     criteria: evidenceReads.criteria,
     subs: analysis?.subs ?? null,
   });
+  // G21 P1-C: per-dimension evidence checklist (claimed · missing · what
+  // raises confidence · one CTA) — a section under the five blocks, not a
+  // sixth landing block, so the G20 block order is untouched.
+  const checklist = projectId ? buildEvidenceChecklist(evidenceReads.evidenceRows) : null;
   const topMoney = moneyRadar?.top3[0] ?? null;
   const step = recommendNextStep({
     currentPhase: effectivePhase ? 1 : 0,
@@ -145,7 +151,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
       feedbackWeakestDim: feedbackLetter?.aggregate?.weakestDim ?? null,
     },
   });
-  const percentile = sviScore != null ? Math.round(getSVIPercentile(sviScore, analysis?.stage ?? navPhase)) : null;
+  // G21 P1-C: the percentile shown here is the stored cohort result (real
+  // or register cohort) gated by the publication rules — never the static
+  // table estimate, never a number without its n (score-governance § 7).
+  // Older stored analyses (pre-P1-C) carry no `published`; re-gate them here.
+  const cohort = analysis?.cohortPercentile ?? null;
+  const published =
+    sviScore != null && cohort && cohort.source !== "benchmark_fallback" && typeof cohort.percentile === "number"
+      ? (cohort.published ?? publishPercentile({ percentile: cohort.percentile, n: cohort.cohortSize, segment: "AU cohort" }))
+      : null;
+  const percentile = published?.percentile ?? null;
+  const percentileLabel = published?.label ?? null;
   const startupName = activeProject?.name ?? standing.startupName ?? user.startupName ?? null;
   const ctx: LandingContext = { phase: effectivePhase ?? "none", plan: user.plan ?? "free", persona: "founder" };
   const blocks = landingBlocksFor({ isMember, hasFeedbackLetter: Boolean(feedbackLetter), hasReportV2: Boolean(synthesis) });
@@ -195,6 +211,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
             sviScore={sviScore}
             delta={delta}
             percentile={percentile}
+            percentileLabel={percentileLabel}
             growthPhaseId={growthPhaseId}
             stageLabel={analysis?.stageLabel ?? null}
             subs={analysis?.subs ?? null}
@@ -208,6 +225,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
           <YourReports ctx={ctx} reports={reports} />
           {feedbackLetter ? <WhatInvestorsSaid ctx={ctx} letter={feedbackLetter} locale={locale} canEdit={canEdit} /> : null}
         </LandingGrid>
+
+        {checklist ? <EvidenceChecklist rows={checklist} canEdit={canEdit} /> : null}
       </div>
     </WorkspaceLayout>
   );

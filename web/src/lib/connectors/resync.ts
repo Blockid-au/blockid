@@ -545,6 +545,7 @@ export async function resyncConnection(db: Db, c: ResyncCandidate, opts: { now?:
         projectId: scope.projectId,
         ownerUserId: scope.ownerUserId,
         now,
+        trigger: { reason: "evidence", channel: "connector" },
       });
       delta = result.delta;
       const r = await enqueueWebhook(

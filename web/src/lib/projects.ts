@@ -1074,7 +1074,7 @@ export async function createProject(
 /** Update a project's name, description, industry, or github_url. */
 export async function updateProject(
   projectId: string,
-  updates: Partial<Pick<Project, "name" | "description" | "industry" | "githubUrl">>,
+  updates: Partial<Pick<Project, "name" | "description" | "industry" | "githubUrl" | "stage">>,
 ): Promise<{ ok: boolean; error?: string }> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { ok: false, error: "Service unavailable" };
@@ -1086,6 +1086,12 @@ export async function updateProject(
   if (updates.description !== undefined) patch.description = updates.description?.trim() || null;
   if (updates.industry !== undefined) patch.industry = updates.industry?.trim() || null;
   if (updates.githubUrl !== undefined) patch.github_url = updates.githubUrl?.trim() || null;
+  // G21 P1-C: an accepted "wrong stage" correction writes the declared stage
+  // here (0–7) so it stays on the one audited update path.
+  if (updates.stage !== undefined) {
+    if (!Number.isInteger(updates.stage) || updates.stage < 0 || updates.stage > 7) return { ok: false, error: "stage must be an integer 0–7" };
+    patch.stage = updates.stage;
+  }
 
   const { error } = await supabase
     .from("projects")
@@ -1099,7 +1105,7 @@ export async function updateProject(
 
   // G13-W1-T1: re-suggest the taxonomy when a classification-bearing field
   // changed (confirmed fields are never overwritten — lib/taxonomy/store.ts).
-  if (updates.name !== undefined || updates.description !== undefined || updates.industry !== undefined) {
+  if (updates.name !== undefined || updates.description !== undefined || updates.industry !== undefined || updates.stage !== undefined) {
     try {
       const { data: row } = await supabase
         .from("projects")

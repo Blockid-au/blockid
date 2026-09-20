@@ -28,12 +28,12 @@ describe("WhereYouStand", () => {
 
   it("scored: ring, delta, percentile, phase label pill, radar, See full score → /workspace/score", () => {
     const html = renderToStaticMarkup(
-      <WhereYouStand ctx={ctx} sviScore={64} delta={6} percentile={72} growthPhaseId="customer_dev" subs={SUBS} startupName="Acme" scoredAt="2026-09-01T00:00:00.000Z" />,
+      <WhereYouStand ctx={ctx} sviScore={64} delta={6} percentile={72} percentileLabel="benchmark (n = 47)" growthPhaseId="customer_dev" subs={SUBS} startupName="Acme" scoredAt="2026-09-01T00:00:00.000Z" />,
     );
     expect(html).toContain('data-landing-block="where-you-stand"');
     expect(html).not.toContain("data-landing-empty");
     expect(html).toContain("+6 vs last snapshot");
-    expect(html).toContain("Top 28% of AU cohort");
+    expect(html).toContain("Top 28% of the AU cohort at your stage — benchmark (n = 47)");
     expect(html).toContain("Customer Development");
     expect(html).not.toMatch(/Phase \d/);
     expect(html).toContain('data-visual-kind="radar"');

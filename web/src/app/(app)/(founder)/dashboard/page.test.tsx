@@ -118,7 +118,15 @@ const SUBS = [
 ];
 const ANALYSIS = {
   id: "an-1",
-  analysis_json: { totalSVI: 64, stageLabel: "Validated", stage: 2, subs: SUBS, summary: "s" },
+  analysis_json: {
+    totalSVI: 64,
+    stageLabel: "Validated",
+    stage: 2,
+    subs: SUBS,
+    summary: "s",
+    // G21 P1-C: a stored real-cohort result above the publication floor.
+    cohortPercentile: { percentile: 72, source: "real_cohort", cohortSize: 47, stageMatched: 2, band: "benchmark", label: "benchmark (n = 47)", published: null },
+  },
   total_svi: 64,
   created_at: "2026-09-01",
   raw_input: "Acme drone inspection",
@@ -177,6 +185,7 @@ describe("/dashboard — five blocks (G13-W3-IA3 §B.1)", () => {
     expect(out).toContain("data-landing-delta");
     expect(out).toContain("+6 vs last snapshot"); // 64 − 58 from the previous svi_analyses row
     expect(out).toContain("data-landing-percentile");
+    expect(out).toContain("benchmark (n = 47)"); // G21 P1-C: n beside every percentile
     expect(out).toContain('data-visual-kind="radar"');
     // block 3 counts
     expect(out).toMatch(/data-landing-grants="true">12</);
@@ -184,6 +193,10 @@ describe("/dashboard — five blocks (G13-W3-IA3 §B.1)", () => {
     expect(out).toContain("MVP Ventures");
     // block 4 — three gaps on three dimensions
     expect((out.match(/data-gap-dimension="/g) ?? []).length).toBe(3);
+    // G21 P1-C — the evidence checklist section below the grid (not a landing block: order untouched)
+    expect(out).toContain('data-testid="evidence-checklist"');
+    expect(out).toContain('data-evidence-dimension="ftv" data-evidence-claimed="1"');
+    expect(out).toContain('data-testid="evidence-checklist-cta-ftv"');
     // block 5 — two reports
     expect((out.match(/href="\/workspace\/reports\/an-/g) ?? []).length).toBe(2);
     // S18-B owner keys

@@ -16,6 +16,7 @@ import {
 import { EVIDENCE_CATALOG } from "@/lib/svi-completeness";
 import { apiRoute } from "@/lib/audit/api-route";
 import { capConfidence } from "@/lib/evidence/confidence-cap";
+import { emitEvidenceAdded } from "@/lib/analytics/fi-events";
 
 export const dynamic = "force-dynamic";
 
@@ -182,6 +183,20 @@ async function POST_handler(
       { status: 500 },
     );
   }
+
+  // G21 P1-C — FI analytics: evidence_added (alias → evidence_upload) with
+  // organisation = the project owner, startup = project, plan = the owner's.
+  // requireProjectOwner admits the owner only, so owner = actor here.
+  emitEvidenceAdded({
+    ownerUserId: auth.ctx.userId,
+    actorUserId: auth.ctx.userId,
+    projectId,
+    channel: "workspace",
+    evidenceId: String(upserted.id),
+    dimension: dim,
+    evidenceType,
+    confidenceLevel,
+  });
 
   // Return refreshed derived state.
   const [{ results }, currentSvi, completedSet] = await Promise.all([

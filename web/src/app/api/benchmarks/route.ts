@@ -2,16 +2,19 @@
 //
 // Returns anonymised SVI benchmark statistics for a given startup stage,
 // computed from real svi_analyses data in the database.
-// Falls back to static AU-market estimates when the DB has fewer than 5
-// records for a stage (ensures reliable percentiles).
+//
+// G21 P1-C (score-governance § 7): the live pool publishes only when the
+// stage-matched slice reaches the publication floor (BENCHMARK_MIN_N = 10,
+// was 5); the response carries `band` ("indicative" 10–29, "benchmark"
+// 30–99, "segmented" 100+) and `label` ("indicative (n = 14)"). Below the
+// floor the response is the static AU-market table with `source: "static"`,
+// `band: "none"` and NO `percentile` — a static table is an estimate, not
+// a cohort rank, and no percentile is published without its n.
 
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
-import {
-  getSVIBenchmark,
-  getSVIPercentile,
-  type SVIStageBenchmark,
-} from "@/lib/benchmarks";
+import { getSVIBenchmark, type SVIStageBenchmark } from "@/lib/benchmarks";
+import { BENCHMARK_MIN_N, benchmarkBand, benchmarkLabel, type BenchmarkBand } from "@/lib/benchmarks/publication-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +23,10 @@ export interface BenchmarkResponse {
   stageLabel: string;
   sampleSize: number;
   source: "live" | "static";
+  /** G21 P1-C — publication band for `sampleSize`; "none" on the static fallback. */
+  band: BenchmarkBand;
+  /** "benchmark (n = 47)" · "not enough comparable companies (n = 0)". */
+  label: string;
   avgSVI: number;
   medianSVI: number;
   p25: number;
@@ -64,7 +71,7 @@ export async function GET(request: Request) {
   }
 
   const staticBench: SVIStageBenchmark = getSVIBenchmark(stage);
-  const MIN_SAMPLE = 5;
+  const MIN_SAMPLE = BENCHMARK_MIN_N;
 
   // Try live data from DB
   if (isSupabaseConfigured()) {
@@ -127,6 +134,8 @@ export async function GET(request: Request) {
           stageLabel: staticBench.label,
           sampleSize: stageRows.length,
           source: "live",
+          band: benchmarkBand(stageRows.length),
+          label: benchmarkLabel(stageRows.length),
           avgSVI: stats.avg,
           medianSVI: stats.median,
           p25: stats.p25,
@@ -139,21 +148,21 @@ export async function GET(request: Request) {
     }
   }
 
-  // Fallback to static benchmarks
-  const percentile = sviParam ? getSVIPercentile(Number(sviParam), stage) : null;
-
+  // Fallback to static benchmarks — an estimate table, never a percentile
+  // (no cohort, no n → nothing to rank against; score-governance § 7).
   return NextResponse.json({
     stage,
     stageLabel: staticBench.label,
     sampleSize: 0,
     source: "static",
+    band: "none",
+    label: benchmarkLabel(0),
     avgSVI: staticBench.avgSVI,
     medianSVI: staticBench.medianSVI,
     p25: staticBench.p25,
     p75: staticBench.p75,
     topDecile: staticBench.topDecile,
     dimensions: staticBench.dimensions,
-    ...(percentile !== null ? { percentile } : {}),
   });
 }
 

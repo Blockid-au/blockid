@@ -169,7 +169,7 @@ export function buildGovernanceSections(): GovernanceSection[] {
         rows: BENCHMARK_N_RULES.map((r) => [r.maxN === null ? `${r.minN} or more` : r.minN === 0 ? `fewer than ${r.maxN + 1}` : `${r.minN} – ${r.maxN}`, r.shows]),
       },
       after: [
-        `n is always shown beside the figure. A national or sector “average” without its n is not permitted on any surface. Today the cohort-percentile module substitutes a band-based estimate labelled benchmark_fallback when a cohort has fewer than ${cohortFloor} companies; the tiered rules above replace that fallback as the Assessment Card ships (v3.19), after which nothing below n = 10 is shown as a percentile. Both are enforced in code, not copy.`,
+        `n is always shown beside the figure. A national or sector “average” without its n is not permitted on any surface. Every percentile, median and benchmark line is produced by one publication module (floor n = ${cohortFloor}): below the floor the surface prints “not enough comparable companies (n = N)” instead of a number; 10–29 is labelled indicative; the rule is enforced in code, not copy.`,
       ],
     },
     {
