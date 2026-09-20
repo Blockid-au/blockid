@@ -8,6 +8,7 @@ import {
 } from "@/lib/stripe/portal-gate";
 import { apiRoute } from "@/lib/audit/api-route";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { PortalConfigurationError, ensurePortalConfiguration } from "@/lib/billing/portal-config";
 
 // POST /api/stripe/portal
 // Creates a Stripe Customer Portal session so the user can manage their
@@ -86,9 +87,32 @@ async function POST_handler(request?: Request) {
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://blockid.au";
 
+  // G18-D (2026-09-19): the Stripe account had NO portal configuration, so
+  // sessions.create failed in live mode ("default configuration has not been
+  // created"). Self-provision once (lib/billing/portal-config) and pass the
+  // id explicitly. A configuration failure is a 503 with a named reason —
+  // never a bare 500 — so the UI can say what is wrong.
+  let configuration: string;
+  try {
+    configuration = await ensurePortalConfiguration(stripe);
+  } catch (err) {
+    const reason = err instanceof PortalConfigurationError ? err.code : "portal_configuration_unavailable";
+    console.error("[blockid:stripe] portal configuration unavailable", err);
+    return NextResponse.json(
+      {
+        ok: false,
+        reason,
+        message:
+          "Billing portal is not available right now — the Stripe portal configuration could not be created. You can still cancel from this page; contact support@blockid.au for invoices.",
+      },
+      { status: 503 },
+    );
+  }
+
   try {
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
+      configuration,
       return_url: `${siteUrl}/workspace/billing`,
     });
 
