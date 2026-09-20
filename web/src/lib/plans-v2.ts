@@ -284,10 +284,10 @@ const FOUNDER: Plan[] = [
     // Moved to the contact-sales row below the public 3-rung ladder.
     public: false,
     features: [
-      "SSO / SAML + audit log",
+      "Audit log + data residency in Australia",
       "Dedicated CSM + SLA 99.9%",
       "Unlimited AI credits",
-      "Custom on-chain deployment",
+      "Custom deployment options by agreement",
       "Legal + compliance review add-on",
       "Volume pricing",
     ],
@@ -430,7 +430,7 @@ const INVESTOR: Plan[] = [
       "Everything in Program",
       "LP reporting suite",
       "Full data room access",
-      "SSO / SAML + audit log",
+      "Audit log + seat management",
       "Dedicated success manager",
       "Custom seat count",
     ],
@@ -549,8 +549,8 @@ const ACCELERATOR: Plan[] = [
     features: [
       "Everything in Cohort 100",
       "Unlimited startups, seats and reports",
-      "White-label reports + program branding",
-      "Read-only API access + SSO / SAML",
+      "Program branding on cohort tables and sponsor reports",
+      "Read-only Index API access",
       "Dedicated program manager",
     ],
   },

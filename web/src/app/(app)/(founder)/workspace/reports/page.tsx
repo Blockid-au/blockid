@@ -29,7 +29,7 @@ const GENERATE_LINKS: ReadonlyArray<{ label: string; href: string }> = [
   { label: "C-level", href: "/workspace/reports/c-level" },
   { label: "Weekly", href: "/workspace/reports/weekly" },
   { label: "LP report", href: "/workspace/lp-report" },
-  { label: "LP quarterly", href: "/dashboard/reports/lp-quarterly" },
+  { label: "Quarterly cohort report", href: "/workspace/accelerator/quarterly-report" },
 ];
 
 function formatDate(iso: string): string {

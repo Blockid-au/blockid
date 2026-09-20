@@ -89,7 +89,7 @@ describe("/workspace/reports (S-IA2 All reports)", () => {
       "/workspace/reports/c-level",
       "/workspace/reports/weekly",
       "/workspace/lp-report",
-      "/dashboard/reports/lp-quarterly",
+      "/workspace/accelerator/quarterly-report",
     ]) {
       expect(out).toContain(`href="${href}"`);
     }

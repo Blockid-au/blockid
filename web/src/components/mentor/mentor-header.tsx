@@ -95,24 +95,6 @@ export function MentorHeader({
         </div>
         <div className="flex flex-wrap gap-1">
           <Link
-            href={`/reseller/mentor/${founderId}/checkins`}
-            className="inline-flex items-center gap-1 rounded-md border border-surface-300 bg-white px-2 py-1 text-xs text-ink-800 hover:bg-surface-50 dark:border-surface-600 dark:bg-surface-800 dark:text-ink-100"
-          >
-            <CalendarPlus className="h-3.5 w-3.5" /> Log check-in
-          </Link>
-          <Link
-            href={`/reseller/mentor/${founderId}/notes`}
-            className="inline-flex items-center gap-1 rounded-md border border-surface-300 bg-white px-2 py-1 text-xs text-ink-800 hover:bg-surface-50 dark:border-surface-600 dark:bg-surface-800 dark:text-ink-100"
-          >
-            <NotebookPen className="h-3.5 w-3.5" /> Add note
-          </Link>
-          <Link
-            href={`/reseller/mentor/${founderId}/goals`}
-            className="inline-flex items-center gap-1 rounded-md border border-surface-300 bg-white px-2 py-1 text-xs text-ink-800 hover:bg-surface-50 dark:border-surface-600 dark:bg-surface-800 dark:text-ink-100"
-          >
-            <Target className="h-3.5 w-3.5" /> Set goal
-          </Link>
-          <Link
             href={`/reseller/customers?open=${founderId}`}
             className="inline-flex items-center gap-1 rounded-md border border-surface-300 bg-white px-2 py-1 text-xs text-ink-600 hover:bg-surface-50 dark:border-surface-600 dark:bg-surface-800 dark:text-ink-300"
           >

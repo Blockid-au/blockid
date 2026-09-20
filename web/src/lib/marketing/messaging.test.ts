@@ -70,11 +70,8 @@ const PUBLIC_TREES = [
  * The G19 peer lane (Report Quality) owns these trees; drift there is
  * reported to the SOT G19 block, not fixed by the messaging guard.
  */
-const EXCLUDED_TREES = [
-  "src/app/(app)/(founder)/workspace/reports",
-  "src/app/(app)/(founder)/workspace/score",
-  "src/components/tbr",
-];
+// G20 review: the G19 (report-quality) trees are merged — nothing is excluded.
+const EXCLUDED_TREES: string[] = [];
 
 const SOURCE_EXT = /\.(tsx?|json|webmanifest|txt|md)$/;
 

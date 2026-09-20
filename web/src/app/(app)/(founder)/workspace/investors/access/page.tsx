@@ -118,15 +118,13 @@ export default async function InvestorAccessPage({ searchParams }: PageProps) {
                 Create attributed share links for each investor. Track views, revoke access, and set expiry dates.
               </p>
             </div>
-            <Link
-              href="/workspace/investors/access/new"
+            {/* G20 review: the create flow is the client modal below (data-testid="investor-links-create"); the /new page is hidden. */}
+            <a
+              href="#investor-links"
               className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors shrink-0"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              New Link
-            </Link>
+              New link ↓
+            </a>
           </div>
 
           {/* Stats row */}

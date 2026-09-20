@@ -181,3 +181,62 @@ describe("hidden routes are hidden, not deleted — each still has a page that m
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// G20 review (2026-09-20): a hidden route must never be linked from a live
+// surface — six CTAs, a tour step and an insights article still pointed at
+// hidden pages after F1. This greps every href literal in the trees that
+// render to customers. The hidden pages themselves (they link their own
+// path in the card) and the registry are the only allowed sources.
+// ---------------------------------------------------------------------------
+import { readdirSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
+
+const ROOT = join(__dirname, "..", "..", "..");
+const LINK_TREES = ["src/app", "src/components", "src/lib/product-tour", "src/lib/nav", "content/insights"];
+const LINK_SKIP = [/\.test\.[tj]sx?$/, /\/hidden\.ts$/, /hidden-feature-page\.tsx$/, /not-offered-card\.tsx$/];
+
+function walk(dir: string, out: string[]): void {
+  for (const name of readdirSync(dir)) {
+    const p = join(dir, name);
+    const st = statSync(p);
+    if (st.isDirectory()) walk(p, out);
+    else if (/\.(tsx?|mdx?)$/.test(name)) out.push(p);
+  }
+}
+
+describe("no live surface links a hidden route", () => {
+  it("every href literal under app/components/tours/nav/insights avoids hiddenRoutes()", () => {
+    const routes = hiddenRoutes().map((r) => r.replace(/\/\*$/, ""));
+    const files: string[] = [];
+    for (const tree of LINK_TREES) {
+      try {
+        walk(join(ROOT, tree), files);
+      } catch {
+        /* tree absent in this checkout */
+      }
+    }
+    const hits: string[] = [];
+    for (const file of files) {
+      const rel = relative(ROOT, file);
+      if (LINK_SKIP.some((re) => re.test(rel))) continue;
+      const src = readFileSync(file, "utf8");
+      // Catalogues that filter themselves through the registry may keep the
+      // rows (they never render): nav-groups, admin layout, feature tours.
+      if (/\b(isHiddenRoute|withoutHidden)\b/.test(src)) continue;
+      // the hidden pages render their own path in the card — skip files whose
+      // own route is hidden
+      const ownRoute = rel.startsWith("src/app/") ? "/" + rel.replace(/^src\/app\//, "").replace(/\/page\.tsx$/, "").replace(/\([^)]+\)\//g, "") : null;
+      if (ownRoute && routes.some((r) => ownRoute === r || ownRoute.startsWith(`${r}/`))) continue;
+      for (const m of src.matchAll(/href[=:]\s*[{"'`]+\s*"?([^"'`}\s)]+)/g)) {
+        const href = m[1].split("?")[0].split("#")[0];
+        if (routes.some((r) => href === r || href.startsWith(`${r}/`))) hits.push(`${rel}: ${m[1]}`);
+      }
+      for (const m of src.matchAll(/\]\((\/[^)\s]+)\)/g)) {
+        const href = m[1].split("?")[0].split("#")[0];
+        if (routes.some((r) => href === r || href.startsWith(`${r}/`))) hits.push(`${rel}: ${m[1]}`);
+      }
+    }
+    expect(hits).toEqual([]);
+  });
+});

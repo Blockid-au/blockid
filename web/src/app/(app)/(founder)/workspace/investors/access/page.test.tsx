@@ -98,7 +98,7 @@ describe("/workspace/investors/access (S-IA2)", { timeout: 20_000 }, () => {
     expect(out).not.toContain('<section id="mentor-invite"');
     expect(out).not.toContain("data-invite-form");
     // Section bodies: empty-state copy + the stubbed islands.
-    expect(out).toContain('href="/workspace/investors/access/new"');
+    expect(out).toContain('href="#investor-links"');
     expect(out).toContain('data-links-client=""');
     expect(out).toContain("No shared score links yet.");
     expect(out).toContain("data-sbom-tile");

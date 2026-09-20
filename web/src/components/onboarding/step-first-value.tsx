@@ -101,7 +101,8 @@ export function StepFirstValue({ persona, planId, interval, onFinish, finishing 
   const cadence = interval === "annual" ? t.annual : t.monthly;
   // G20-F3: the trial length is the plan row's (Programs rungs run 14 days,
   // founder / evaluator rungs 7) — never a typed "7".
-  const trialDays = String(PLANS_V2.find((p) => p.id === planId)?.trial_days ?? 7);
+  const trialDaysN = PLANS_V2.find((p) => p.id === planId)?.trial_days ?? 0;
+  const trialDays = String(trialDaysN);
 
   const primary = "inline-flex items-center justify-center gap-2 rounded-xl bg-brand-cyan px-6 py-3 text-sm font-semibold text-brand-navy transition-colors hover:bg-brand-blue-bright disabled:opacity-40";
   const link = "inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-brand-ink-muted underline decoration-brand-ink-muted/40 underline-offset-4 hover:text-brand-cyan disabled:opacity-40";
@@ -111,7 +112,8 @@ export function StepFirstValue({ persona, planId, interval, onFinish, finishing 
       <h1 className="text-2xl font-bold text-brand-ink sm:text-3xl">{evaluator ? t.evaluatorTitle : t.founderTitle}</h1>
       <p className="mt-2 text-brand-ink-muted">{evaluator ? t.evaluatorSub : t.founderSub}</p>
 
-      {targets.primary.kind === "trial" && label ? (
+      {/* G20 review: custom / free rungs carry trial_days 0 — never render "0 days free". */}
+      {targets.primary.kind === "trial" && label && trialDaysN > 0 ? (
         <p className="mt-4 text-sm text-brand-ink-muted" data-wizard-trial-line>
           {t.trialLine.replace("{cadence}", cadence).replace("{days}", trialDays)}
         </p>

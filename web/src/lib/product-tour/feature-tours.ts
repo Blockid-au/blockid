@@ -627,16 +627,6 @@ const TOURS: FeatureTour[] = [
         anchor: "main h1",
       },
       {
-        id: "add-founders",
-        title: { en: "Add your first founders", vi: "Thêm founder đầu tiên" },
-        body: {
-          en: "Paste your accepted list or add founders one by one. Every founder gets a scoped startup profile and SVI backfills automatically.",
-          vi: "Dán danh sách chấp nhận hoặc thêm từng founder. Mỗi founder có hồ sơ startup và SVI tự nạp.",
-        },
-        anchor: "a[href=\"/workspace/accelerator/cohort/add\"]",
-        cta: { label: { en: "Add founders", vi: "Thêm founder" }, href: "/workspace/accelerator/cohort/add" },
-      },
-      {
         id: "intake-code",
         title: { en: "One intake link for the whole batch", vi: "Một liên kết intake cho cả batch" },
         body: {
