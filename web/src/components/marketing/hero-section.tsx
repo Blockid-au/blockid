@@ -2,15 +2,19 @@
 
 /**
  * HeroSection — the homepage hero: the H1, the sub-line, two CTAs and the
- * omnibox inside its rotating ring (G17 D1/D2, 2026-09-19).
+ * omnibox inside its rotating ring (G17 D1/D2, 2026-09-19; G21 P0-B copy,
+ * 2026-09-20).
  *
- * G17 REWRITE. The hero now speaks to the evaluator ladder first (investors
- * → accelerators → advisory firms) with founders as the second line. Copy is
- * the E1/E2 pair from `lib/marketing/hero-variants.ts`; the founder arms
- * F1–F3 stay selectable through `?hero=` so the T0250 A/B protocol can run
- * against the new default. The tier strip and the "recent run" proof card
- * that used to sit under the box are gone from the hero — prices live only
- * on /pricing (D3), and the one sample result is block 4 of the page.
+ * G21 P0-B (docs/plans/g21-fi-upgrade-2026-09-20.md § 0): BlockID is
+ * evidence-backed startup assessment infrastructure for accelerators,
+ * innovation programs and professional evaluators; founders own the data.
+ * Copy is the FI1/FI2 pair from `lib/marketing/hero-variants.ts`; the G17
+ * evaluator arm E1 and the founder arms F1–F3 stay selectable through
+ * `?hero=` so the T0250 A/B protocol can run against the new default. The
+ * primary CTA is the paid cohort pilot (`/solutions/accelerator#pilot`),
+ * the secondary is the free score; the line under the box is the trust
+ * line "Australian-built · Evidence-backed · Founder-controlled data". No
+ * price, no agent count, no AI-superiority claim in the hero.
  *
  * The band is the template's `PageHero` (D5) so the homepage hero and every
  * other page hero share one layout; this file only supplies the client
@@ -33,7 +37,6 @@
  */
 
 import { useEffect, useRef, useSyncExternalStore } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { trackEvent } from "@/lib/analytics";
 import {
@@ -49,21 +52,24 @@ import {
   setPendingIntake,
 } from "@/lib/analyze/pending-intake";
 import { PageHero } from "@/components/marketing/template/page-hero";
-import { FOCUS_RING, MOTION } from "@/components/marketing/template/primitives";
 
 /** The hero CTAs — exported so the page test and the smoke can pin them. */
 export const HERO_PRIMARY_CTA = {
-  href: "/analyze",
-  label: "Score a startup",
-  ctaId: "hero_score",
+  href: "/solutions/accelerator#pilot",
+  label: "Run a cohort pilot",
+  ctaId: "hero_pilot",
 } as const;
 export const HERO_SECONDARY_CTA = {
-  href: "/tbr/demo",
-  label: "See a sample dossier",
-  ctaId: "hero_sample",
+  href: "/analyze",
+  label: "Score my startup",
+  ctaId: "hero_score",
 } as const;
 export const HERO_EYEBROW = "Startup Value Index · by BlockID";
-export const HERO_FOUNDER_LINE = "Founder? Get your own score free.";
+/** The trust line under the search box (G21 P0-B): three facts, no claim. */
+export const HERO_TRUST_ITEMS = ["Australian-built", "Evidence-backed", "Founder-controlled data"] as const;
+export const HERO_TRUST_LINE = HERO_TRUST_ITEMS.join(" · ");
+/** @deprecated G21 P0-B — the founder line moved to the trust line; kept one release for importers. */
+export const HERO_FOUNDER_LINE = HERO_TRUST_LINE;
 
 /**
  * Split a one-liner at its em dash so the second breath can carry the
@@ -144,15 +150,9 @@ export function HeroSection() {
         </div>
       }
       footnote={
-        <>
-          {HERO_FOUNDER_LINE}{" "}
-          <Link
-            href="/solutions/founder"
-            className={`inline-flex min-h-11 items-center rounded-md font-medium text-action underline-offset-4 hover:underline ${MOTION} ${FOCUS_RING}`}
-          >
-            See what founders get
-          </Link>
-        </>
+        <span data-testid="hero-trust-line" className="font-medium tracking-wide text-secondary">
+          {HERO_TRUST_LINE}
+        </span>
       }
     />
   );

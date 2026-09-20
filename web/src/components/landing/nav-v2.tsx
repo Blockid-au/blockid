@@ -17,8 +17,8 @@
  *  - Only ONE dropdown open at a time; clicking a link closes it.
  *  - Auth-aware (T0238): `useAuthUser()` asks /api/auth/me after hydration,
  *    so the header stays mountable on statically generated pages. Signed
- *    out → "Sign in" + the "Score a startup" CTA (G17); signed in → "My
- *    workspace" + the account menu; a neutral skeleton while resolving.
+ *    out → "Sign in" + the "Run a cohort pilot" CTA (G21 P0-B); signed in
+ *    → "My workspace" + the account menu; a neutral skeleton while resolving.
  *  - The ONLY public header (G13-W5-IA5, spec §E S-IA5). `site/navbar.tsx`
  *    — the floating glass bar ~50 app / docs / tools / auth pages mounted —
  *    is deleted; those pages mount this component instead. `variant="light"`
@@ -209,48 +209,40 @@ export type MenuEntry = MenuGroup | MenuLink;
  * list; that bar is gone and every public page mounts NavV2 itself, so the
  * menu cannot drift again.
  *
- * G17 D4 (2026-09-19, docs/plans/unicorn-homepage-2026-09-19.md): FIVE
- * entries — Product · Solutions · Samples · Pricing · Docs — read the way an
- * evaluator reads the site: what it is, who it is for, what it produces,
- * what it costs, how it works. The depth the old bar carried (the money
- * rail, the 16 free tools, the six demo journeys) did not go away: the
- * footer (`marketing/footer-columns.ts`) keeps Funding / Tools / Case
- * studies rows, `/product` re-homes the homepage sections, `/samples`
- * hosts the sample runs + the Atlassian walkthrough, and `/solutions/*`
- * are the persona landings. Every href here resolves to a page on disk
- * (the colocated test walks src/app); the top level is pinned at five by
- * tests/e2e/nav/menu-structure.spec.ts.
+ * G21 P0-B (2026-09-20, docs/plans/g21-fi-upgrade-2026-09-20.md § P0-B):
+ * SEVEN plain links, no dropdown — Product · For Programs · For Investors ·
+ * For Founders · Methodology · Startup Index · Pricing — read the way a
+ * program lead reads the site: what it is, whether it is for them (three
+ * personas by name, no menu to open), how the score is made, the public
+ * index, what it costs. The G17 Solutions dropdown, Samples and Docs left
+ * the bar; the footer (`marketing/footer-columns.ts`) keeps Samples, Docs,
+ * the advisor landing and everything else that used to hang off it. Every
+ * href here resolves to a page on disk (the colocated test walks src/app);
+ * the top level is pinned at seven by tests/e2e/nav/menu-structure.spec.ts.
+ * "Startup Index" links the public index page (F-5: swap the href for
+ * startupvalueindex.com in one line if the founder prefers).
  */
 export const MENU: MenuEntry[] = [
   { kind: "link", key: "product", label: "Product", href: "/product" },
-  {
-    kind: "group",
-    key: "solutions",
-    label: "Solutions",
-    width: "w-64",
-    items: [
-      { label: "Investors", href: "/solutions/investor" },
-      { label: "Accelerators", href: "/solutions/accelerator" },
-      { label: "Advisors", href: "/solutions/advisor" },
-      { label: "Founders", href: "/solutions/founder" },
-    ],
-  },
-  { kind: "link", key: "samples", label: "Samples", href: "/samples" },
+  { kind: "link", key: "programs", label: "For Programs", href: "/solutions/accelerator" },
+  { kind: "link", key: "investors", label: "For Investors", href: "/solutions/investor" },
+  { kind: "link", key: "founders", label: "For Founders", href: "/solutions/founder" },
+  { kind: "link", key: "methodology", label: "Methodology", href: "/methodology" },
+  { kind: "link", key: "startup-index", label: "Startup Index", href: "/startup-index" },
   { kind: "link", key: "pricing", label: "Pricing", href: "/pricing" },
-  { kind: "link", key: "docs", label: "Docs", href: "/docs" },
 ];
 
 /**
- * Primary CTA (G17 D1/D4). "Score a startup" → /analyze — the evaluator's
- * verb, and the same page the homepage omnibox hands off to. Replaces
- * "Do you need money?" → /funding?intent=money (G11 §3a), which now lives
- * on the founder solutions page and in the footer Funding row. The click
- * is reported as `cta_clicked { cta_id: "score_startup", location }`.
+ * Primary CTA (G21 P0-B). "Run a cohort pilot" → the paid Cohort Validation
+ * Pilot block on the programs page — the commercial wedge the whole site
+ * now points at. Replaces "Score a startup" → /analyze (G17 D1/D4), which
+ * stays the hero's secondary CTA and the omnibox hand-off. The click is
+ * reported as `cta_clicked { cta_id: "run_cohort_pilot", location }`.
  */
 export const PRIMARY_CTA = {
-  label: "Score a startup",
-  href: "/analyze",
-  ctaId: "score_startup",
+  label: "Run a cohort pilot",
+  href: "/solutions/accelerator#pilot",
+  ctaId: "run_cohort_pilot",
 } as const;
 
 /** @deprecated G17 — kept as an alias for one release so nothing that imported it breaks; use PRIMARY_CTA. */

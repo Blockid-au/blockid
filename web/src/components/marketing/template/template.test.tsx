@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { Compass, FileText, Search } from "lucide-react";
 
 import {
+  BuiltFor,
   CONTAINER,
   CTA_CLASS,
   CtaBand,
@@ -19,14 +20,18 @@ import {
   EYEBROW,
   Faq,
   FeatureGrid,
+  FlowArrow,
   FOCUS_RING,
   headingId,
   PageHero,
+  ProblemFlow,
   ProofBand,
   Prose,
   RHYTHM,
   Section,
+  SequenceFlow,
   StatStrip,
+  WhyNotChatGPT,
 } from "./index";
 
 /** The opening `<a …>` tag whose href is `href` (attribute order is Next's, not ours). */
@@ -275,5 +280,124 @@ describe("<CtaLink /> / <CtaRow />", () => {
     expect((row.match(/<a\b/g) ?? []).length).toBe(2);
     expect(anchorTag(row, "/a")).toContain("bg-action");
     expect(anchorTag(row, "/b")).toContain("border-line");
+  });
+});
+
+// ─── G21 P0-B additions ──────────────────────────────────────────────────────
+
+describe("<ProblemFlow /> (G21 P0-B)", () => {
+  const html = renderToStaticMarkup(
+    <ProblemFlow
+      ariaLabel="The problem"
+      steps={[
+        { title: "Different inputs", body: "Every applicant arrives in a different shape.", examples: ["PDF", "Decks"] },
+        { title: "Subjective review", body: "Different reviewers, different criteria." },
+        { title: "Weak feedback", body: "A yes or a no." },
+      ]}
+    />,
+  );
+
+  it("is an ordered list of h3 cards with n−1 inline SVG arrows that rotate for the stacked layout", () => {
+    expect(html).toMatch(/<ol[^>]*aria-label="The problem"[^>]*data-testid="problem-flow"|<ol[^>]*data-testid="problem-flow"[^>]*aria-label="The problem"/);
+    expect((html.match(/<li\b/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    expect((html.match(/<h3\b/g) ?? []).length).toBe(3);
+    expect((html.match(/data-flow-arrow/g) ?? []).length).toBe(2);
+    expect((html.match(/<svg\b/g) ?? []).length).toBe(2);
+    expect(html).toMatch(/aria-hidden="true"[^>]*data-flow-arrow|data-flow-arrow[^>]*aria-hidden="true"/);
+    expect(html).toContain("rotate-90 lg:rotate-0");
+    expect(html).toContain("flex-col lg:flex-row"); // vertical stack at 375, row on lg
+    expect(html).toContain(">01<");
+    expect(html).toContain(">03<");
+    expect(html).toContain("PDF");
+    expect(html).toContain('aria-label="Different inputs — examples"');
+  });
+
+  it("FlowArrow alone renders one aria-hidden svg in the accent", () => {
+    const arrow = renderToStaticMarkup(<FlowArrow />);
+    expect((arrow.match(/<svg\b/g) ?? []).length).toBe(1);
+    expect(arrow).toContain("text-accent");
+    expect(arrow).toContain('aria-hidden="true"');
+  });
+});
+
+describe("<SequenceFlow /> (G21 P0-B)", () => {
+  const html = renderToStaticMarkup(
+    <SequenceFlow
+      ariaLabel="How it works"
+      href="/product"
+      linkLabel="See the product in detail"
+      ctaId="seq_product"
+      steps={[
+        { icon: Search, title: "Founder application", caption: "Deck or form" },
+        { icon: FileText, title: "Evidence extracted" },
+        { icon: Compass, title: "Progress over time" },
+      ]}
+    />,
+  );
+
+  it("steps in one <ol> with arrows between, sr-only step numbers, Lucide tiles", () => {
+    expect(html).toContain('data-testid="sequence-flow"');
+    expect(html).toMatch(/<ol[^>]*aria-label="How it works"/);
+    expect((html.match(/data-flow-arrow/g) ?? []).length).toBe(2);
+    expect(html).toContain('<span class="sr-only">Step 1: </span>');
+    expect(html).toContain('<span class="sr-only">Step 3: </span>');
+    expect(html).toContain("Deck or form");
+    expect((html.match(/lucide/g) ?? []).length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("the whole block is one stretched link: one <a> to href with the cta id, the after: cover, ≥ 44 px and the focus ring", () => {
+    expect((html.match(/<a\b/g) ?? []).length).toBe(1);
+    const a = anchorTag(html, "/product");
+    expect(a).toContain('data-cta-id="seq_product"');
+    expect(a).toContain("after:absolute after:inset-0");
+    expect(a).toContain("min-h-11");
+    expect(a).toContain(FOCUS_RING);
+    expect(html).toContain("See the product in detail");
+    expect(html).toMatch(/class="relative /);
+  });
+});
+
+describe("<WhyNotChatGPT /> (G21 P0-B)", () => {
+  const html = renderToStaticMarkup(
+    <WhyNotChatGPT
+      other={{ title: "A general assistant", sub: "Answers the prompt.", items: ["One-off", "Prompt dependent"] }}
+      ours={{ title: "BlockID", items: ["Persistent startup record", "Common rubric", "Audit trail"] }}
+      line="ChatGPT analyses what you paste. BlockID keeps the record."
+    />,
+  );
+
+  it("two labelled columns (h3 + ul), dash glyphs left, check glyphs right, the one line under; no superlatives baked in", () => {
+    expect(html).toContain('data-testid="why-not-chatgpt"');
+    expect((html.match(/<h3\b/g) ?? []).length).toBe(2);
+    expect(html).toContain('<ul aria-label="A general assistant"');
+    expect(html).toContain('<ul aria-label="BlockID"');
+    expect((html.match(/<li\b/g) ?? []).length).toBe(5);
+    expect(html).toContain("lucide-minus");
+    expect(html).toContain("lucide-check");
+    expect(html).toContain("md:grid-cols-2");
+    expect(html).toContain("ChatGPT analyses what you paste. BlockID keeps the record.");
+    expect(html).not.toMatch(/better|smarter|superior/i);
+    // Every icon tile is decorative (tile + Lucide svg both aria-hidden) — the text carries the meaning.
+    expect((html.match(/aria-hidden="true"/g) ?? []).length).toBe(10);
+  });
+});
+
+describe("<BuiltFor /> (G21 P0-B)", () => {
+  it("text chips in a labelled list; a chip with href is a ≥ 44 px link with the focus ring; no images", () => {
+    const html = renderToStaticMarkup(
+      <BuiltFor
+        ariaLabel="Built for"
+        items={[{ label: "Accelerators" }, { label: "Funds", href: "/solutions/investor" }]}
+      />,
+    );
+    expect(html).toMatch(/<ul[^>]*aria-label="Built for"[^>]*data-testid="built-for"|<ul[^>]*data-testid="built-for"[^>]*aria-label="Built for"/);
+    expect((html.match(/<li\b/g) ?? []).length).toBe(2);
+    expect(html).toContain("Accelerators");
+    expect(html).not.toMatch(/<img\b/);
+    const a = anchorTag(html, "/solutions/investor");
+    expect(a).toContain("min-h-11");
+    expect(a).toContain("rounded-full");
+    expect(a).toContain(FOCUS_RING);
+    expect(html).toMatch(/<span class="[^"]*rounded-full[^"]*">Accelerators<\/span>/);
   });
 });

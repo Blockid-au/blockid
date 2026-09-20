@@ -45,10 +45,14 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 const SITE_NAME = "BlockID.au — Startup Value Index";
-// G1 from the speakable catalogue (T0250) — this is also the og:description
-// every page inherits, since the homepage `metadata` has no `openGraph` of
-// its own (money-finder plan §8.1 correction 8).
-const SITE_DESCRIPTION = heroLine("G1").en;
+// G21 P0-B (2026-09-20): the site og:description every page inherits is the
+// FI2 sub-line's first breath (the FI1 H1 is the og:title) — evidence-backed
+// assessment infrastructure, no price, no agent count. The homepage
+// `metadata` has no `openGraph` of its own (money-finder plan §8.1
+// correction 8), so this is what the home card shows too. G1 (the press /
+// bio line) stays in the catalogue for the Organization JSON-LD.
+const OG_TITLE = `${heroLine("FI1").en.replace(/\.$/, "")} · BlockID.au`;
+const SITE_DESCRIPTION = heroLine("FI2").en.split(" — ")[0]!.trim() + ".";
 const SITE_URL = "https://blockid.au";
 // Same resolver as the proxy CSP hasher, so the rendered gtag bootstrap is
 // byte-identical to the hashed one.
@@ -95,13 +99,13 @@ export const metadata: Metadata = {
     locale: "en_AU",
     url: SITE_URL,
     siteName: "BlockID.au",
-    title: SITE_NAME,
+    title: OG_TITLE,
     description: SITE_DESCRIPTION,
     images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "BlockID" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: SITE_NAME,
+    title: OG_TITLE,
     description: SITE_DESCRIPTION,
     images: ["/opengraph-image"],
   },

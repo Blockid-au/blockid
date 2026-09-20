@@ -13,6 +13,7 @@ import {
   GENERAL_LINES,
   HERO_ARMS,
   HERO_DEFAULT_ARM,
+  INFRASTRUCTURE_LINES,
   INVESTOR_LINES,
   MAX_SENTENCES,
   MAX_VI_SYLLABLES_PER_UNIT,
@@ -34,10 +35,11 @@ const VI = vi as Record<string, string>;
 describe("catalogue shape", () => {
   it("has the approved ids in the approved order", () => {
     expect(EVALUATOR_LINES.map((l) => l.id)).toEqual(["E1", "E2"]);
+    expect(INFRASTRUCTURE_LINES.map((l) => l.id)).toEqual(["FI1", "FI2"]);
     expect(FOUNDER_LINES.map((l) => l.id)).toEqual(["F1", "F2", "F3", "F4"]);
     expect(INVESTOR_LINES.map((l) => l.id)).toEqual(["I1", "I2", "I3"]);
     expect(GENERAL_LINES.map((l) => l.id)).toEqual(["G1", "G2", "G3"]);
-    expect(ALL_HERO_LINES).toHaveLength(12);
+    expect(ALL_HERO_LINES).toHaveLength(14);
   });
 
   it("every entry carries en, vi, words, maxWords 20 and ≤ 2 sentences", () => {
@@ -50,7 +52,20 @@ describe("catalogue shape", () => {
     }
   });
 
-  it("pins the shipped defaults verbatim (E1 H1 + E2 sub-line per G17 D1, F1/F3 founder arm, G1 og, G2 tagline)", () => {
+  it("pins the shipped defaults verbatim (FI1 H1 + FI2 sub-line per G21 P0-B, E1/E2 per G17 D1, F1/F3 founder arm, G1 og, G2 tagline)", () => {
+    // G21 P0-B (2026-09-20): evidence-backed assessment infrastructure. H1
+    // ≤ 9 words, the sub-line one sentence in two breaths (20 + 12), no
+    // "SVI", no agent count, no price, no AI-superiority claim.
+    expect(heroLine("FI1").en).toBe("Screen every startup on the same evidence-backed framework.");
+    expect(heroLine("FI1").words).toBeLessThanOrEqual(9);
+    expect(heroLine("FI2").en).toBe(
+      "BlockID turns startup applications, pitch decks and company evidence into a comparable Startup Value Index, evaluator dossier and improvement plan — so programs can screen faster and founders know exactly what to improve.",
+    );
+    expect(splitBreathUnits(heroLine("FI2").en).map(countWords)).toEqual([20, 12]);
+    for (const id of ["FI1", "FI2"] as const) {
+      expect(heroLine(id).en).not.toMatch(/A\$|\bagents?\b|\bAI\b|better than/i);
+      expect(heroLine(id).vi).not.toMatch(/A\$/);
+    }
     // G17 D1 (2026-09-19): evaluator-first homepage. H1 ≤ 9 words, sub ≤ 22
     // words per sentence pair, no "SVI" — the speakability suite below
     // holds both to the same caps as every other line.
@@ -155,7 +170,10 @@ describe("i18n parity (hero.line.* ⇄ catalogue)", () => {
 });
 
 describe("arm selection", () => {
-  it("parseHeroArm accepts the four arms case-insensitively and nothing else", () => {
+  it("parseHeroArm accepts the five arms case-insensitively and nothing else", () => {
+    expect(parseHeroArm("FI1")).toBe("FI1");
+    expect(parseHeroArm("fi1")).toBe("FI1");
+    expect(parseHeroArm("FI2")).toBeNull();
     expect(parseHeroArm("E1")).toBe("E1");
     expect(parseHeroArm("e1")).toBe("E1");
     expect(parseHeroArm("E2")).toBeNull();
@@ -169,16 +187,17 @@ describe("arm selection", () => {
     expect(parseHeroArm(undefined)).toBeNull();
   });
 
-  it("defaults to E1 (evaluator-first, G17) with no arm and no seed; F1..F3 stay selectable", () => {
-    expect(HERO_DEFAULT_ARM).toBe("E1");
-    expect(HERO_ARMS).toEqual(["E1", "F1", "F2", "F3"]);
-    expect(pickHeroVariant()).toBe("E1");
-    expect(pickHeroVariant({ seed: "" })).toBe("E1");
-    expect(pickHeroVariant({ seed: "   " })).toBe("E1");
-    for (const arm of ["F1", "F2", "F3"] as const) expect(pickHeroVariant({ arm })).toBe(arm);
+  it("defaults to FI1 (evidence-backed infrastructure, G21) with no arm and no seed; E1 and F1..F3 stay selectable", () => {
+    expect(HERO_DEFAULT_ARM).toBe("FI1");
+    expect(HERO_ARMS).toEqual(["FI1", "E1", "F1", "F2", "F3"]);
+    expect(pickHeroVariant()).toBe("FI1");
+    expect(pickHeroVariant({ seed: "" })).toBe("FI1");
+    expect(pickHeroVariant({ seed: "   " })).toBe("FI1");
+    for (const arm of ["E1", "F1", "F2", "F3"] as const) expect(pickHeroVariant({ arm })).toBe(arm);
   });
 
-  it("heroSubLineFor pairs E1 → E2 and keeps the founder pairing (F3 under F1/F2, F1 under F3)", () => {
+  it("heroSubLineFor pairs FI1 → FI2, E1 → E2 and keeps the founder pairing (F3 under F1/F2, F1 under F3)", () => {
+    expect(heroSubLineFor("FI1").id).toBe("FI2");
     expect(heroSubLineFor("E1").id).toBe("E2");
     expect(heroSubLineFor("F1").id).toBe("F3");
     expect(heroSubLineFor("F2").id).toBe("F3");
@@ -193,7 +212,7 @@ describe("arm selection", () => {
     expect(pickHeroVariant({ arm: "nope", seed: "GA1.1.123.456" })).toBe(seeded);
   });
 
-  it("is deterministic per seed and uses all four buckets", () => {
+  it("is deterministic per seed and uses all five buckets", () => {
     const seeds = Array.from({ length: 300 }, (_, i) => `client-${i}`);
     const first = seeds.map((s) => pickHeroVariant({ seed: s }));
     const second = seeds.map((s) => pickHeroVariant({ seed: s }));
@@ -201,8 +220,8 @@ describe("arm selection", () => {
     const counts = new Map<string, number>();
     for (const a of first) counts.set(a, (counts.get(a) ?? 0) + 1);
     for (const arm of HERO_ARMS) {
-      // Roughly a quarter each; 300 seeds gives plenty of margin.
-      expect(counts.get(arm) ?? 0, arm).toBeGreaterThan(45);
+      // Roughly a fifth each; 300 seeds gives plenty of margin.
+      expect(counts.get(arm) ?? 0, arm).toBeGreaterThan(35);
     }
   });
 

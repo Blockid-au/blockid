@@ -1,75 +1,100 @@
-import { Briefcase, ClipboardPaste, FileText, Gauge, Handshake, Rocket } from "lucide-react";
+import {
+  FileInput,
+  FileSearch,
+  FileText,
+  Gauge,
+  ShieldCheck,
+  Table2,
+  Timer,
+  TrendingUp,
+} from "lucide-react";
 import { NavV2 } from "@/components/landing/nav-v2";
 import { Footer } from "@/components/marketing/footer";
 import { HeroSection } from "@/components/marketing/hero-section";
-import { SampleResultCard } from "@/components/marketing/homepage/sample-result-card";
 import {
+  BuiltFor,
   CtaBand,
   CtaLink,
   FeatureGrid,
-  ProofBand,
+  ProblemFlow,
   Section,
-  StatStrip,
+  SequenceFlow,
+  TrustBand,
+  WhyNotChatGPT,
 } from "@/components/marketing/template";
-import { heroLine } from "@/lib/marketing/hero-variants";
-import { formatCount, formatRhoPair, readHomeStats } from "@/lib/marketing/home-stats";
 import { pageMetadata } from "@/lib/seo/page-meta";
-import { HOME_AUDIENCES, HOME_GO_DEEPER, HOME_PROOF_ITEMS, HOME_STEPS } from "./home-content";
+import {
+  HOME_BUILT_FOR,
+  HOME_BUILT_FOR_SECTION,
+  HOME_FINAL,
+  HOME_MESSAGES,
+  HOME_MESSAGES_SECTION,
+  HOME_PRIMARY_CTA,
+  HOME_PROBLEM,
+  HOME_PROBLEM_STEPS,
+  HOME_SAMPLE_LINK,
+  HOME_SECONDARY_CTA,
+  HOME_SEQUENCE,
+  HOME_SEQUENCE_STEPS,
+  HOME_WHY_NOT,
+} from "./home-content";
 
-// Homepage v6 — "Unicorn" (G17, 2026-09-19, docs/plans/unicorn-homepage-2026-09-19.md).
+// Homepage v7 — evidence-backed assessment infrastructure (G21 P0-B,
+// 2026-09-20, docs/plans/g21-fi-upgrade-2026-09-20.md § 0 + § P0-B).
 //
-// WHY THE REBUILD
+// WHY THE REWRITE
 //
-// v5 (2026-09-08) showed the product's own output in six stacked sections
-// and a tier ladder — 448 lines, two audiences competing in the hero, a
-// price table on the home, and copy that assumed the reader knew "SVI".
-// The founder asked for a modern single-column home: a very clear hero for
-// the evaluator ladder, short and easy to grasp, no price tables, one
-// template for the whole site, and the search box with the colour-changing
-// ring kept as the one signature effect.
+// v6 (G17, 2026-09-19) spoke to the evaluator ladder with a "who it's for"
+// card wall, a three-step how-it-works, a sample card and a stat strip.
+// The advisor feedback behind G21 asked for one clearer story: the problem
+// programs actually have, the product as ONE sequence, the three messages,
+// why this is not ChatGPT, who it is built for, one trust band, one close.
+// No feature-card walls, no prices (G17 D3 still holds — the page test pins
+// `/A\$\d/` absent), no agent counts, no "our AI is better".
 //
-// PATTERN (ui-ux-pro-max, 2026-09-19): "Minimal single column" — single
-// CTA focus, large type, whitespace, ≤ 3 benefits, proof BEFORE the second
-// CTA — in the flat / modern-SaaS style (one elevation scale, 150–200 ms
-// transitions, Lucide only, light default with a dark pairing).
+// SEVEN BLOCKS, each on the template primitives (docs/design/unicorn-template.md):
 //
-// SIX BLOCKS (D3), each ≤ 1 screen on desktop:
+//   1. Hero + search       HeroSection (client island: FI1/FI2 copy, the
+//                          Run a cohort pilot / Score my startup CTAs, the
+//                          omnibox in its colour-changing ring, trust line)
+//   a. Problem             ProblemFlow — three linked steps, SVG arrows
+//   b. Product sequence    SequenceFlow — six steps, whole block → /product
+//   c. Three messages      FeatureGrid ×3 — Screen faster · Trust the
+//                          evidence · Track improvement
+//   d. Why not ChatGPT?    WhyNotChatGPT — two columns + the one line
+//   e. Built for           BuiltFor — six text chips, no logos
+//   f. TrustBand           lane P0-A's primitive (see
+//                          the placeholder comment below)
+//   g. Final CTA + footer  CtaBand (dark), then the one public Footer
 //
-//   1. Hero + search       HeroSection (client island: arm swap + submit)
-//   2. Who it's for        three audience cards → /solutions/*
-//   3. How it works        three numbered steps + the "Go deeper" row that
-//                          keeps the old /#worth-style anchors landing on
-//                          /product#… (fragments never reach the server)
-//   4. One sample result   SampleResultCard from the published fixture
-//   5. Proof               StatStrip from the content JSONs + ProofBand
-//   6. Final CTA + footer  CtaBand, then the one public Footer
-//
-// NO prices, NO tier ladder, NO unlock preview on the home (D3) — that
-// depth lives on /product and /samples, prices only on /pricing. The page
-// test pins `/A\$\d/` absent. Every colour is a token; the only client JS
-// is the hero. `PageViewTracker` (root layout) and the GA4 hooks in
-// `hero-section.tsx` are unchanged.
+// Every colour is a token; the only client JS is the hero. `PageViewTracker`
+// (root layout) and the GA4 hooks in `hero-section.tsx` are unchanged.
 export const metadata = pageMetadata({
-  // Title = the E1 H1 without its full stop; description = the E2 promise,
-  // trimmed to the 160-character budget the site-meta sweep enforces.
-  title: heroLine("E1").en.replace(/\.$/, ""),
+  // Title = the FI1 H1 shortened to the ≤ 65-char rendered budget
+  // ("… | BlockID.au"); description = the FI2 promise, trimmed to the
+  // 160-character budget the site-meta sweep enforces.
+  title: "Screen startups on one evidence-backed framework",
   description:
-    "Eight dimensions, an evidence-backed valuation range and an Investor Dossier for any Australian startup. Investors and accelerators use it; founders score free.",
+    "BlockID turns applications, pitch decks and company evidence into a comparable Startup Value Index, evaluator dossier and improvement plan for every startup.",
   path: "/",
   viPath: "/vi",
 });
 
-// S31-D: static + ISR. The page reads no request state; the proof strip
-// reads the content JSONs at build / revalidate. 300 s matches the edge
+// Static + ISR. The page reads no request state. 300 s matches the edge
 // TTL in lib/security/public-cacheable-routes.ts.
 export const revalidate = 300;
 
-const AUDIENCE_ICONS = { investors: Briefcase, accelerators: Rocket, advisors: Handshake } as const;
-const STEP_ICONS = { paste: ClipboardPaste, score: Gauge, dossier: FileText } as const;
+const SEQUENCE_ICONS = {
+  application: FileInput,
+  evidence: FileSearch,
+  score: Gauge,
+  dossier: FileText,
+  cohort: Table2,
+  progress: TrendingUp,
+} as const;
+const MESSAGE_ICONS = { faster: Timer, evidence: ShieldCheck, improvement: TrendingUp } as const;
 
 export default function HomePage() {
-  const stats = readHomeStats();
-
   return (
     <div className="min-h-screen bg-surface text-primary">
       <a
@@ -82,106 +107,103 @@ export default function HomePage() {
       <NavV2 />
 
       <main id="main-content">
-        {/* 1. Hero — the one H1, the E2 sub-line, two CTAs, the omnibox in
-            its ring. Whatever is typed here carries straight through to a
-            running analysis; it is never asked for twice. */}
+        {/* 1. Hero — the one H1 (FI1), the FI2 sub-line, the two CTAs, the
+            omnibox in its ring, the trust line. Whatever is typed here
+            carries straight through to a running analysis. */}
         <HeroSection />
 
-        {/* 2. WHO IT'S FOR — the evaluator ladder, one card each. */}
+        {/* a. PROBLEM — three linked steps with inline SVG arrows. */}
         <Section
-          id="audiences"
-          eyebrow="Who it's for"
-          title="One rubric, three kinds of evaluator."
-          lede="The same score, the same evidence, the same cohort tables — read from three different chairs."
+          id="problem"
+          eyebrow={HOME_PROBLEM.eyebrow}
+          title={HOME_PROBLEM.title}
+          lede={HOME_PROBLEM.lede}
+          align="center"
+          tone="sunken"
+        >
+          <ProblemFlow steps={HOME_PROBLEM_STEPS} ariaLabel={HOME_PROBLEM.title} />
+        </Section>
+
+        {/* b. PRODUCT SEQUENCE — one flow, the whole block links /product;
+            the one sample dossier link sits under it. */}
+        <Section
+          id="sequence"
+          eyebrow={HOME_SEQUENCE.eyebrow}
+          title={HOME_SEQUENCE.title}
+          lede={HOME_SEQUENCE.lede}
+          align="center"
+        >
+          <SequenceFlow
+            steps={HOME_SEQUENCE_STEPS.map((s) => ({ ...s, icon: SEQUENCE_ICONS[s.icon] }))}
+            href={HOME_SEQUENCE.href}
+            linkLabel={HOME_SEQUENCE.linkLabel}
+            ctaId={HOME_SEQUENCE.ctaId}
+            ariaLabel={HOME_SEQUENCE.title}
+          />
+          <p className="mt-6 text-center text-sm text-muted">
+            <CtaLink
+              href={HOME_SAMPLE_LINK.href}
+              label={HOME_SAMPLE_LINK.label}
+              ctaId={HOME_SAMPLE_LINK.ctaId}
+              variant="link"
+            />
+          </p>
+        </Section>
+
+        {/* c. THREE MESSAGES — Screen faster · Trust the evidence · Track improvement. */}
+        <Section
+          id="messages"
+          eyebrow={HOME_MESSAGES_SECTION.eyebrow}
+          title={HOME_MESSAGES_SECTION.title}
           align="center"
           tone="sunken"
         >
           <FeatureGrid
             columns={3}
-            ariaLabel="Who it's for"
-            items={HOME_AUDIENCES.map((a) => ({
-              ...a,
-              icon: AUDIENCE_ICONS[a.icon as keyof typeof AUDIENCE_ICONS],
-            }))}
+            ariaLabel={HOME_MESSAGES_SECTION.eyebrow}
+            items={HOME_MESSAGES.map((m) => ({ ...m, icon: MESSAGE_ICONS[m.icon] }))}
           />
         </Section>
 
-        {/* 3. HOW IT WORKS — three steps, then the "Go deeper" row. */}
+        {/* d. WHY NOT CHATGPT? — the record, the rubric, the workflow. */}
         <Section
-          id="how"
-          eyebrow="How it works"
-          title="Paste. Score. Open the dossier."
+          id="why-not-chatgpt"
+          eyebrow={HOME_WHY_NOT.eyebrow}
+          title={HOME_WHY_NOT.title}
           align="center"
         >
-          <FeatureGrid
-            columns={3}
-            numbered
-            ariaLabel="How it works"
-            items={HOME_STEPS.map((s) => ({
-              ...s,
-              icon: STEP_ICONS[s.icon as keyof typeof STEP_ICONS],
-            }))}
-          />
-          <nav
-            aria-label="Go deeper"
-            data-testid="home-go-deeper"
-            className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-line-subtle pt-8"
-          >
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Go deeper</span>
-            {HOME_GO_DEEPER.map((link) => (
-              <CtaLink key={link.href} href={link.href} label={link.label} variant="link" arrow={false} />
-            ))}
-          </nav>
+          <WhyNotChatGPT other={HOME_WHY_NOT.other} ours={HOME_WHY_NOT.ours} line={HOME_WHY_NOT.line} />
         </Section>
 
-        {/* 4. ONE SAMPLE RESULT — a real anonymised run, fixed height (CLS). */}
+        {/* e. BUILT FOR — text chips, no logos. */}
         <Section
-          id="sample"
-          eyebrow="A sample result"
-          title="This is what comes back."
-          lede="An MVP-stage company, scored in sixty seconds. Open the full dossier or the written report a founder receives."
+          id="built-for"
+          eyebrow={HOME_BUILT_FOR_SECTION.eyebrow}
+          title={HOME_BUILT_FOR_SECTION.title}
+          lede={HOME_BUILT_FOR_SECTION.lede}
           align="center"
           tone="sunken"
         >
-          <SampleResultCard runId="mvp" />
+          <BuiltFor items={HOME_BUILT_FOR.map((label) => ({ label }))} ariaLabel={HOME_BUILT_FOR_SECTION.eyebrow} />
         </Section>
 
-        {/* 5. PROOF — four live figures from the content JSONs, then the
-            quiet row of where it is built and how it is run. */}
-        <Section
-          id="proof"
-          eyebrow="On the record"
-          title="Live numbers, open methodology."
-          align="center"
-        >
-          <StatStrip
-            stats={[
-              { value: formatCount(stats.startupsScored), label: "startups scored", hint: "on the platform, QA excluded", href: "/startup-index" },
-              { value: formatCount(stats.registerSignals), label: "open-register signals", hint: "ABR and public registers", href: "/methodology" },
-              { value: formatRhoPair(stats.backtestRhoRound, stats.backtestRhoValuation), label: "backtest ρ (round / valuation)", hint: "Spearman, weekly", href: "/methodology/calibration" },
-              { value: formatCount(stats.evaluatorOrgs), label: "evaluators on a plan", hint: "investors, accelerators, advisors", href: "/solutions/investor" },
-            ]}
-            caption={
-              stats.asAt
-                ? `As at ${stats.asAt}. Figures are read from the same published files that feed /methodology and the platform stats API.`
-                : "Figures are read from the same published files that feed /methodology and the platform stats API."
-            }
-          />
-          <ProofBand className="mt-12" eyebrow="Where it is built, and how it is run" items={HOME_PROOF_ITEMS} />
-        </Section>
+        {/* f. TRUST BAND — operating entity · ABN/ACN · methodology version ·
+            privacy and evidence controls · score disclaimer · audit trail ·
+            founder consent · data ownership (G21 P0-A). */}
+        <TrustBand />
 
-        {/* 6. FINAL CTA. */}
+        {/* g. FINAL CTA — the same two CTAs as the hero. */}
         <CtaBand
-          title="Score your first startup."
-          sub="Sixty seconds, no card. Evaluators can run a whole intake; founders get their own score and feedback free."
-          primary={{ href: "/analyze", label: "Score a startup", ctaId: "home_final_score" }}
-          secondary={{ href: "/samples", label: "See sample results" }}
+          title={HOME_FINAL.title}
+          sub={HOME_FINAL.sub}
+          primary={{ ...HOME_PRIMARY_CTA, ctaId: "home_final_pilot" }}
+          secondary={{ ...HOME_SECONDARY_CTA, ctaId: "home_final_score" }}
           tone="dark"
         />
       </main>
 
-      {/* The one public footer (S-IA5) — identical on every page. Entity
-          lines come from lib/site/legal-entity (G21 P0-A). */}
+      {/* The one public footer (S-IA5) — identical on every page; its entity
+          strings come from lib/site/legal-entity.ts (G21 P0-A). */}
       <Footer />
     </div>
   );

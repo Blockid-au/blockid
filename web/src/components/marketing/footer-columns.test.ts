@@ -54,16 +54,16 @@ describe("FOOTER_COLUMNS — four columns (G17 D5)", () => {
         "/docs",
       ]),
     );
-    // Every plain-link entry of the bar is also in the footer.
-    for (const e of MENU) if (e.kind === "link") expect(product, e.href).toContain(e.href);
+    // Every entry of the bar (G21 P0-B: seven plain links) is also somewhere
+    // in the footer — Product for the product links, For for the personas.
+    const everywhere = FOOTER_COLUMNS.flatMap((c) => c.items.map((i) => i.href));
+    for (const e of MENU) if (e.kind === "link") expect(everywhere, e.href).toContain(e.href);
   });
 
-  it("For mirrors the Solutions dropdown, keeps the pilot (G16-C) and hosts the case studies", () => {
-    const solutions = MENU.find((e) => e.key === "solutions");
-    expect(solutions?.kind).toBe("group");
+  it("For carries the four persona landings (the bar names three; the advisor page lives only here), keeps the pilot (G16-C) and hosts the case studies", () => {
     const forHrefs = column("For").items.map((i) => i.href);
-    if (solutions?.kind === "group") {
-      for (const i of solutions.items) expect(forHrefs, i.href).toContain(i.href);
+    for (const href of ["/solutions/investor", "/solutions/accelerator", "/solutions/advisor", "/solutions/founder"]) {
+      expect(forHrefs, href).toContain(href);
     }
     expect(forHrefs).toEqual(
       expect.arrayContaining(["/pilot", "/showcase/atlassian?step=1", "/showcase", "/compare"]),

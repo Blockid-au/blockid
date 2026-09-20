@@ -1,11 +1,13 @@
-// Colocated guard for the public menu (G17 D4, 2026-09-19; was G11 T0238).
+// Colocated guard for the public menu (G21 P0-B, 2026-09-20; was G17 D4 /
+// G11 T0238).
 //
 // `MENU` is the single source of the primary navigation — since G13-W5-IA5
 // NavV2 is the ONLY public header (site/navbar.tsx deleted) — so its shape
 // is a contract with the E2E spec (tests/e2e/nav/menu-structure.spec.ts
-// pins the five labels, the Solutions dropdown BUTTON and the "Score a
-// startup" CTA) and with the footer, which carries everything that left
-// the bar (Funding rail, free tools, case studies).
+// pins the seven labels, no dropdown, and the "Run a cohort pilot" CTA)
+// and with the footer, which carries everything that left the bar
+// (Samples, Docs, the advisor landing, Funding rail, free tools, case
+// studies).
 
 import { describe, expect, it } from "vitest";
 import { existsSync } from "node:fs";
@@ -19,12 +21,6 @@ import {
   type MenuGroup,
 } from "./nav-v2";
 import { FOOTER_COLUMNS } from "@/components/marketing/footer-columns";
-
-function group(key: string): MenuGroup {
-  const entry = MENU.find((e) => e.key === key);
-  if (!entry || entry.kind !== "group") throw new Error(`${key} is not a group`);
-  return entry;
-}
 
 function flatHrefs(g: MenuGroup): string[] {
   return g.sections
@@ -43,29 +39,37 @@ function pageExists(href: string): boolean {
   return candidates.some((c) => existsSync(c));
 }
 
-describe("MENU (public primary nav) — G17 D4", () => {
-  it("has exactly the five entries: Product · Solutions · Samples · Pricing · Docs", () => {
-    expect(MENU.map((e) => e.label)).toEqual(["Product", "Solutions", "Samples", "Pricing", "Docs"]);
-    expect(MENU).toHaveLength(5);
+const G21_MENU: ReadonlyArray<[string, string, string]> = [
+  ["product", "Product", "/product"],
+  ["programs", "For Programs", "/solutions/accelerator"],
+  ["investors", "For Investors", "/solutions/investor"],
+  ["founders", "For Founders", "/solutions/founder"],
+  ["methodology", "Methodology", "/methodology"],
+  ["startup-index", "Startup Index", "/startup-index"],
+  ["pricing", "Pricing", "/pricing"],
+];
+
+describe("MENU (public primary nav) — G21 P0-B", () => {
+  it("has exactly the seven entries, in order: Product · For Programs · For Investors · For Founders · Methodology · Startup Index · Pricing", () => {
+    expect(MENU.map((e) => e.label)).toEqual(G21_MENU.map(([, label]) => label));
+    expect(MENU).toHaveLength(7);
   });
 
-  it("Product, Samples, Pricing and Docs are plain links to their pages", () => {
-    expect(MENU[0]).toMatchObject({ kind: "link", key: "product", href: "/product" });
-    expect(MENU[2]).toMatchObject({ kind: "link", key: "samples", href: "/samples" });
-    expect(MENU[3]).toMatchObject({ kind: "link", key: "pricing", href: "/pricing" });
-    expect(MENU[4]).toMatchObject({ kind: "link", key: "docs", href: "/docs" });
+  it("every entry is a plain link to its page — no dropdown in the bar", () => {
+    expect(MENU.every((e) => e.kind === "link")).toBe(true);
+    for (const [i, [key, label, href]] of G21_MENU.entries()) {
+      expect(MENU[i], label).toMatchObject({ kind: "link", key, label, href });
+    }
   });
 
-  it("Solutions is the one dropdown: Investors · Accelerators · Advisors · Founders → /solutions/*", () => {
-    const solutions = group("solutions");
-    expect(MENU[1]).toBe(solutions);
-    expect(solutions.sections).toBeUndefined();
-    expect(solutions.items.map((i) => [i.label, i.href])).toEqual([
-      ["Investors", "/solutions/investor"],
-      ["Accelerators", "/solutions/accelerator"],
-      ["Advisors", "/solutions/advisor"],
-      ["Founders", "/solutions/founder"],
-    ]);
+  it("the three personas are named in the bar (programs / investors / founders); the advisor landing moved to the footer", () => {
+    const hrefs = MENU.map((e) => (e.kind === "link" ? e.href : ""));
+    expect(hrefs).toContain("/solutions/accelerator");
+    expect(hrefs).toContain("/solutions/investor");
+    expect(hrefs).toContain("/solutions/founder");
+    expect(hrefs).not.toContain("/solutions/advisor");
+    const footerHrefs = FOOTER_COLUMNS.flatMap((c) => c.items.map((i) => i.href));
+    expect(footerHrefs).toContain("/solutions/advisor");
   });
 
   it("every href in the bar resolves to a page.tsx under src/app (D7: nothing may 404)", () => {
@@ -76,24 +80,27 @@ describe("MENU (public primary nav) — G17 D4", () => {
 
   it("the retired entries are gone from the bar but still reachable from the footer", () => {
     const labels = MENU.map((e) => e.label);
-    for (const gone of ["Get my score", "Get funding", "Free tools", "Demo", "Product", "For", "Team", "Features"]) {
-      if (gone === "Product") continue; // Product is back as the intro page link (G17)
+    for (const gone of ["Get my score", "Get funding", "Free tools", "Demo", "For", "Team", "Features", "Solutions", "Samples", "Docs"]) {
       expect(labels).not.toContain(gone);
     }
     const footerHrefs = FOOTER_COLUMNS.flatMap((c) => c.items.map((i) => i.href));
-    for (const kept of ["/funding", "/funding/grants", "/tools", "/showcase/atlassian?step=1", "/features", "/how-it-works"]) {
+    for (const kept of ["/samples", "/docs", "/funding", "/funding/grants", "/tools", "/showcase/atlassian?step=1", "/features", "/how-it-works"]) {
       expect(footerHrefs, kept).toContain(kept);
     }
     // Nothing in the public bar may point into the authenticated workspace.
     const every = MENU.flatMap((e) => (e.kind === "link" ? [e.href] : flatHrefs(e)));
     expect(every.some((h) => h.startsWith("/workspace") || h.startsWith("/dashboard"))).toBe(false);
+    // No price anchor anywhere in the bar (G21 rule: no A$ in hero / nav / OG).
+    expect(JSON.stringify(MENU)).not.toMatch(/A\$/);
+    expect(JSON.stringify(PRIMARY_CTA)).not.toMatch(/A\$/);
   });
 });
 
 describe("nav CTAs", () => {
-  it("primary CTA is 'Score a startup' → /analyze (G17), never /onboarding or the money intent", () => {
-    expect(PRIMARY_CTA).toEqual({ label: "Score a startup", href: "/analyze", ctaId: "score_startup" });
+  it("primary CTA is 'Run a cohort pilot' → /solutions/accelerator#pilot (G21 P0-B), never /onboarding or the money intent", () => {
+    expect(PRIMARY_CTA).toEqual({ label: "Run a cohort pilot", href: "/solutions/accelerator#pilot", ctaId: "run_cohort_pilot" });
     expect(PRIMARY_CTA.href).not.toMatch(/onboarding|funding/);
+    expect(pageExists(PRIMARY_CTA.href)).toBe(true);
     // Deprecated alias survives one release for old importers.
     expect(NEED_MONEY_CTA).toBe(PRIMARY_CTA);
   });
@@ -103,10 +110,10 @@ describe("nav CTAs", () => {
   });
 });
 
-// G7 Q2 (S19-A) said "Demo is a top-nav entry on every page". G17 D4 caps
-// the bar at five evaluator-facing entries, so the Atlassian walkthrough
-// moved to `/samples` (its own section) and the footer Product column — still
-// on every page, never a floating CTA.
+// G7 Q2 (S19-A) said "Demo is a top-nav entry on every page". G17 D4 capped
+// the bar (G21 P0-B: seven persona-facing links), so the Atlassian
+// walkthrough lives on `/samples` (its own section) and in the footer Product
+// column — still on every page, never a floating CTA.
 describe("G7 Q2 → G17 — Demo placement", () => {
   it("the Atlassian walkthrough is linked from the footer on every page", () => {
     const footerHrefs = FOOTER_COLUMNS.flatMap((c) => c.items.map((i) => i.href));
