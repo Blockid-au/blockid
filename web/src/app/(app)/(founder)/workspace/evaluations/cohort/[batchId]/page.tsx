@@ -1,35 +1,41 @@
-// /workspace/evaluations/cohort/[batchId] — one batch's cohort table (T0272,
-// G12 sprint S5). Server component inside WorkspaceLayout; owner-only (a
-// batch that is not the caller's → notFound). Header: name, status +
-// progress, rubric weights, CSV + sponsor/LP report buttons; body: the
-// sortable CohortTable (client). The evaluator disclaimer closes the page —
-// this is an evaluator report surface (T0275). G21 P2-A: the header also
-// carries the CSV import control (CohortImport) and the "Last snapshot"
-// line + Snapshot / Re-score actions (CohortSnapshotActions).
+// /workspace/evaluations/cohort/[batchId] — the BlockID Cohort view (G21
+// P2-B; FI § 53/54). Server component inside WorkspaceLayout.
+//
+// Access: any seat on the batch (owner = creator, reviewer, viewer —
+// lib/evaluations/batch-members assertBatchRole). A non-member → notFound
+// (the id space stays non-enumerable). The h1 renders first and outside any
+// gate (G20 rule).
+//
+// Header: n · median SVI · median confidence · last snapshot line (read
+// from P2-A's `cohort_snapshots` when the table exists, else "no snapshot
+// yet"), rubric line with the weight set version, members row + "Invite
+// reviewer" (owner), CSV export, sponsor / LP report, link to the program
+// journey (/workspace/accelerator — P2-C). Body: CohortTable (client,
+// URL-synced filters). "Humans make the decision" closes the table; the
+// evaluator disclaimer closes the page.
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
 import { getEntitlements } from "@/lib/entitlements";
-import { getBatchForUser, loadCohortRows } from "@/lib/evaluations/batch";
-import {
-  DIMENSION_KEYS,
-  DIMENSION_LABELS,
-  batchProgressPct,
-  canExportLpReport,
-  isEqualWeights,
-} from "@/lib/evaluations/batch-shared";
+import { getSupabaseAdmin } from "@/lib/supabase";
+import { assertBatchRole, listBatchMembers } from "@/lib/evaluations/batch-members";
+import { loadBlockIdCohortRows } from "@/lib/evaluations/cohort-rows-loader";
+import { cohortHeaderStats, parseCohortFilters } from "@/lib/evaluations/cohort-rows";
+import { DIMENSION_KEYS, DIMENSION_LABELS, batchProgressPct, canExportLpReport, isEqualWeights } from "@/lib/evaluations/batch-shared";
 import { EvaluatorReportDisclaimer } from "@/components/legal/evaluator-report-disclaimer";
+import { CohortMembers } from "@/components/evaluations/CohortMembers";
 import { CohortImport } from "@/components/evaluations/CohortImport";
 import { CohortSnapshotActions } from "@/components/evaluations/CohortSnapshotActions";
 import { latestSnapshots } from "@/lib/evaluations/cohort-snapshots";
-import { CohortTable } from "../cohort-table";
+import { CohortTable } from "@/components/evaluations/CohortTable";
 
 export const metadata: Metadata = {
-  title: "Cohort | BlockID",
+  title: "BlockID Cohort | BlockID",
   robots: { index: false, follow: false },
 };
 
@@ -37,6 +43,7 @@ export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ batchId: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -53,93 +60,156 @@ function fmtDate(iso: string | null): string {
   return d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
 }
 
-export default async function CohortPage({ params }: PageProps) {
+/** P2-A columns / tables read fail-soft: `weights_version` on the batch, the newest `cohort_snapshots` row. */
+async function loadCohortMeta(batchId: string): Promise<{ weightsVersion: number; lastSnapshotAt: string | null; snapshotsAvailable: boolean }> {
+  const out = { weightsVersion: 1, lastSnapshotAt: null as string | null, snapshotsAvailable: false };
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return out;
+  try {
+    const { data } = await supabase.from("evaluation_batches").select("weights_version").eq("id", batchId).maybeSingle();
+    const v = Number((data as { weights_version?: unknown } | null)?.weights_version);
+    if (Number.isInteger(v) && v >= 1) out.weightsVersion = v;
+  } catch {
+    /* pre-0422 */
+  }
+  try {
+    const { data, error } = await supabase.from("cohort_snapshots").select("taken_at").eq("batch_id", batchId).order("taken_at", { ascending: false }).limit(1);
+    if (!error) {
+      out.snapshotsAvailable = true;
+      const row = ((data ?? []) as Array<{ taken_at?: unknown }>)[0];
+      if (row?.taken_at) out.lastSnapshotAt = String(row.taken_at);
+    }
+  } catch {
+    /* pre-0422 */
+  }
+  return out;
+}
+
+export default async function CohortPage({ params, searchParams }: PageProps) {
   const { batchId } = await params;
   const user = await getCurrentUser();
   if (!user) redirect(`/auth/login?next=/workspace/evaluations/cohort/${encodeURIComponent(batchId)}`);
 
-  const batch = await getBatchForUser(user.id, batchId);
-  if (!batch) notFound();
+  const access = await assertBatchRole(batchId, user.id, "viewer");
+  if (!access.ok) notFound();
+  const { batch, role } = access;
 
-  const [isSandbox, rows, flags, snapshots] = await Promise.all([
+  const [isSandbox, loaded, flags, members, meta, snapshots, sp] = await Promise.all([
     getCurrentProjectIsSandbox(),
-    loadCohortRows(batch),
+    loadBlockIdCohortRows(batch, user.id),
     getEntitlements(user.plan ?? "", user.id).catch(() => [] as string[]),
+    listBatchMembers(batch).catch(() => ({ members: [], available: false })),
+    loadCohortMeta(batch.id),
     latestSnapshots(batch.id).catch(() => ({ latest: null, previous: null, count: 0 })),
+    searchParams ?? Promise.resolve({} as Record<string, string | string[] | undefined>),
   ]);
+  const rows = loaded.rows;
+  const stats = cohortHeaderStats(rows);
   const lpReport = canExportLpReport(flags);
   const pct = batchProgressPct(batch);
+  const initialFilters = parseCohortFilters(sp);
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
-        <nav className="text-sm text-ink-500">
-          <Link href="/workspace/evaluations" className="hover:text-brand-600">Startups I&apos;m evaluating</Link>
+      <div className="mx-auto max-w-7xl space-y-5 p-4 sm:p-6">
+        <nav className="text-sm text-secondary" aria-label="Breadcrumb">
+          <Link href="/workspace/evaluations" className="hover:text-action">
+            Startups I&apos;m evaluating
+          </Link>
           {" / "}
-          <span className="text-ink-700">Cohort</span>
+          <span className="text-primary">BlockID Cohort</span>
         </nav>
 
-        <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-ink-900">{batch.name}</h1>
-            {batch.programName ? <p className="text-sm text-ink-600" data-testid="batch-program">{batch.programName}</p> : null}
-            <p className="mt-1 text-sm text-ink-500" data-testid="batch-status">
+        <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold text-primary" data-testid="cohort-h1">
+              BlockID Cohort — {batch.name}
+            </h1>
+            <p className="mt-1 text-sm text-secondary" data-testid="batch-status">
               {STATUS_LABEL[batch.status] ?? batch.status} · {batch.doneCount} of {batch.total} scored
               {batch.failedCount > 0 ? ` · ${batch.failedCount} failed` : ""} · queued {fmtDate(batch.createdAt)}
               {batch.finishedAt ? ` · finished ${fmtDate(batch.finishedAt)}` : ""}
+              {" · you are "}
+              <span className="font-medium text-primary" data-testid="cohort-role">
+                {role}
+              </span>
             </p>
-            <div className="mt-2 h-1.5 w-64 overflow-hidden rounded-full bg-surface-100" aria-hidden="true">
+            <div className="mt-2 h-1.5 w-64 max-w-full overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true">
               <div className="h-full bg-brand-600" style={{ width: `${pct}%` }} />
             </div>
-            <div className="mt-2">
-              <CohortSnapshotActions batchId={batch.id} lastTakenAt={snapshots.latest?.takenAt ?? null} lastN={snapshots.latest?.summary.n ?? null} count={snapshots.count} />
-            </div>
+            <dl className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm" data-testid="cohort-stats">
+              <div>
+                <dt className="inline text-secondary">n </dt>
+                <dd className="inline font-semibold tabular-nums text-primary">{stats.n}</dd>
+                <span className="text-muted"> ({stats.scored} scored)</span>
+              </div>
+              <div>
+                <dt className="inline text-secondary">Median SVI </dt>
+                <dd className="inline font-semibold tabular-nums text-primary">{stats.medianSvi == null ? "—" : stats.medianSvi}</dd>
+              </div>
+              <div>
+                <dt className="inline text-secondary">Median confidence </dt>
+                <dd className="inline font-semibold tabular-nums text-primary">{stats.medianConfidence == null ? "—" : stats.medianConfidence}</dd>
+              </div>
+              <div>
+                <dt className="inline text-secondary">Shortlisted </dt>
+                <dd className="inline font-semibold tabular-nums text-primary">{stats.shortlisted}</dd>
+              </div>
+              <div>
+                <dt className="inline text-secondary">Last snapshot </dt>
+                <dd className="inline text-primary" data-testid="cohort-last-snapshot">
+                  {meta.lastSnapshotAt ? fmtDate(meta.lastSnapshotAt) : "no snapshot yet"}
+                </dd>
+              </div>
+            </dl>
+            {/* P2-A: Snapshot / Re-score cohort (owner + reviewer). */}
+            {role !== "viewer" ? (
+              <div className="mt-2">
+                <CohortSnapshotActions batchId={batch.id} lastTakenAt={snapshots.latest?.takenAt ?? meta.lastSnapshotAt} lastN={snapshots.latest?.summary.n ?? null} count={snapshots.count} />
+              </div>
+            ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <a
-              href={`/api/evaluations/batch/${encodeURIComponent(batch.id)}/export.csv`}
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-300 bg-white px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50 transition-colors"
-            >
+            <a href={`/api/evaluations/batch/${encodeURIComponent(batch.id)}/export.csv`} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-300 bg-surface px-4 py-2.5 text-sm font-semibold text-action transition-colors hover:bg-surface-hover dark:border-brand-700" data-testid="cohort-export-csv">
               Download CSV
             </a>
             {lpReport ? (
-              <a
-                href={`/api/reports/quarterly?batch=${encodeURIComponent(batch.id)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
-              >
+              <a href={`/api/reports/quarterly?batch=${encodeURIComponent(batch.id)}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700">
                 Sponsor / LP report
               </a>
             ) : (
-              <Link href="/pricing?segment=evaluator" className="inline-flex min-h-11 items-center rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm font-medium text-ink-600 hover:bg-surface-50">
+              <Link href="/pricing?segment=evaluator" className="inline-flex min-h-11 items-center rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium text-secondary hover:bg-surface-hover">
                 Sponsor / LP report — Program
               </Link>
             )}
+            <Link href="/workspace/accelerator" className="inline-flex min-h-11 items-center rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium text-secondary hover:bg-surface-hover" data-testid="cohort-program-journey">
+              Program journey
+            </Link>
           </div>
         </header>
 
-        <section data-testid="cohort-import-section" className="rounded-xl border border-surface-200 bg-white px-4 py-3">
-          <CohortImport batchId={batch.id} applicantsCap={batch.applicantsCap} used={batch.total} />
+        <section data-testid="rubric-weights" className="rounded-xl border border-line-subtle bg-surface px-4 py-3 text-sm text-secondary">
+          <span className="font-medium text-primary">Program weights v{meta.weightsVersion}:</span>{" "}
+          {isEqualWeights(batch.rubricWeights) ? <span>equal across the 8 dimensions (default).</span> : <span>{DIMENSION_KEYS.map((k) => `${DIMENSION_LABELS[k]} ${batch.rubricWeights[k]}%`).join(" · ")}</span>}
+          <span className="ml-1 text-xs text-muted">The Program score ranks this cohort by your rubric over each startup&apos;s 8 dimension scores; the canonical SVI is unchanged and always shown beside it.</span>
         </section>
 
-        <section data-testid="rubric-weights" className="rounded-xl border border-surface-200 bg-white px-4 py-3 text-sm text-ink-600">
-          <span className="font-medium text-ink-800">Rubric weights:</span>{" "}
-          {isEqualWeights(batch.rubricWeights) ? (
-            <span>equal across the 8 dimensions (default).</span>
-          ) : (
-            <span>{DIMENSION_KEYS.map((k) => `${DIMENSION_LABELS[k]} ${batch.rubricWeights[k]}%`).join(" · ")}</span>
-          )}
-          <span className="ml-1 text-xs text-ink-500">The weighted score re-aggregates each startup&apos;s 8 dimension scores; the SVI itself is unweighted so cohorts stay comparable.</span>
-        </section>
+        {/* P2-A: CSV import (owner + reviewer; respects the pilot applicants cap). */}
+        {role !== "viewer" ? (
+          <section data-testid="cohort-import-section" className="rounded-xl border border-line-subtle bg-surface px-4 py-3">
+            <CohortImport batchId={batch.id} applicantsCap={batch.applicantsCap ?? null} used={batch.total} />
+          </section>
+        ) : null}
 
-        {rows.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-surface-300 bg-white px-6 py-14 text-center text-sm text-ink-500">
-            No startups in this batch.
-          </div>
-        ) : (
-          <CohortTable rows={rows} batchId={batch.id} />
-        )}
+        <CohortMembers batchId={batch.id} members={members.members.map((m) => ({ userId: m.userId, role: m.role, email: m.email, displayName: m.displayName, isCreator: m.isCreator }))} canManage={role === "owner"} available={members.available} />
+
+        <Suspense fallback={<CohortTable rows={[]} batchId={batch.id} role={role} loading />}>
+          <CohortTable rows={rows} batchId={batch.id} role={role} weightsVersion={meta.weightsVersion} initialFilters={initialFilters} />
+        </Suspense>
+
+        <p className="text-sm text-secondary" data-testid="humans-decide">
+          <span className="font-medium text-primary">Humans make the decision.</span> BlockID structures the evidence and standardises the first-pass analysis; every shortlist, override and decision above is recorded with who made it and why.
+        </p>
 
         <EvaluatorReportDisclaimer variant="compact" />
       </div>
