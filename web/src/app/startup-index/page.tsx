@@ -15,6 +15,7 @@ import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { SampleSviCard } from "@/components/svi/sample-svi-card";
 import { cachedIndexHeadlines } from "@/lib/startup-index-cache";
+import { notEnoughLine } from "@/lib/benchmarks/publication-rules";
 
 export const metadata: Metadata = pageMetadata({
   title: "Startup Value Index — live AU startup valuations",
@@ -109,14 +110,19 @@ export default async function IndexExchangePage() {
                 BSI-AU
               </h1>
               <p className="text-sm text-ink-600 mt-1">
-                Australian startup market index — median SVI across {data.bsiAu.totalCompanies.toLocaleString()} companies tracked
+                Australian startup market index — median SVI across the companies tracked{" "}
+                <span className="tabular-nums" data-publication-band={data.bsiAu.band}>({data.bsiAu.label})</span>
               </p>
             </div>
 
             <div className="text-right">
-              <p className="text-5xl sm:text-6xl font-bold text-ink-900 tabular-nums leading-none">
-                {data.bsiAu.value}
-              </p>
+              {data.bsiAu.band === "none" ? (
+                <p className="max-w-[16rem] text-sm text-ink-600" data-testid="bsi-not-enough">{notEnoughLine(data.bsiAu.totalCompanies, "the index")}</p>
+              ) : (
+                <p className="text-5xl sm:text-6xl font-bold text-ink-900 tabular-nums leading-none" data-testid="bsi-value">
+                  {data.bsiAu.value}
+                </p>
+              )}
               <div className="flex items-center justify-end gap-2 mt-2">
                 <DeltaPill delta={data.bsiAu.deltaDay} suffix=" 1d" />
                 <DeltaPill delta={data.bsiAu.deltaWeek} suffix=" 7d" />
@@ -183,9 +189,13 @@ export default async function IndexExchangePage() {
                 <div key={s.sector} className={`rounded-xl p-3 text-center transition-transform hover:scale-105 ${deltaHeatBg(s.deltaWeek)}`}>
                   <p className="text-base">{s.emoji}</p>
                   <p className="text-[11px] font-bold uppercase tracking-wider mt-1 truncate">{s.label}</p>
-                  <p className="text-2xl font-bold mt-1 tabular-nums">{s.value}</p>
-                  <p className="text-[10px] opacity-90 mt-0.5 tabular-nums">
-                    {s.deltaWeek > 0 ? "+" : ""}{s.deltaWeek.toFixed(1)} &middot; n={s.count}
+                  {s.band === "none" ? (
+                    <p className="text-[11px] mt-1 leading-snug" data-publication-band="none">not enough companies yet</p>
+                  ) : (
+                    <p className="text-2xl font-bold mt-1 tabular-nums">{s.value}</p>
+                  )}
+                  <p className="text-[10px] opacity-90 mt-0.5 tabular-nums" data-publication-band={s.band}>
+                    {s.band === "none" ? `n = ${s.count}` : `${s.deltaWeek > 0 ? "+" : ""}${s.deltaWeek.toFixed(1)} · ${s.publicationLabel}`}
                   </p>
                 </div>
               ))}
@@ -276,8 +286,12 @@ export default async function IndexExchangePage() {
               <div key={st.stage} className="rounded-lg border border-ink-100 bg-ink-50/40 p-2.5 text-center">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-ink-500">Stage {st.stage}</p>
                 <p className="text-xs text-ink-700 truncate">{st.label}</p>
-                <p className="text-xl font-bold text-ink-900 mt-1 tabular-nums">{st.value}</p>
-                <p className="text-[10px] text-ink-400 tabular-nums">n={st.count}</p>
+                {st.band === "none" ? (
+                  <p className="text-[11px] text-ink-500 mt-1 leading-snug" data-publication-band="none">not enough companies yet</p>
+                ) : (
+                  <p className="text-xl font-bold text-ink-900 mt-1 tabular-nums">{st.value}</p>
+                )}
+                <p className="text-[10px] text-ink-400 tabular-nums" data-publication-band={st.band}>{st.publicationLabel}</p>
               </div>
             ))}
           </div>
@@ -297,7 +311,7 @@ export default async function IndexExchangePage() {
           <Zap className="h-8 w-8 mx-auto mb-3 opacity-90" />
           <h2 className="text-2xl font-bold mb-2">Where does your startup sit on the index?</h2>
           <p className="text-sm opacity-90 mb-5 max-w-xl mx-auto">
-            Get a free SVI analysis in under 60 seconds. AI-powered evaluation against {data.bsiAu.totalCompanies} AU companies + 30 accelerator criteria.
+            Get a free SVI analysis in under 60 seconds. Evidence-backed evaluation against the AU companies on the index ({data.bsiAu.label}).
           </p>
           <div className="flex items-center gap-3 flex-wrap justify-center">
             <Link href="/score" className="inline-flex items-center gap-1.5 bg-white text-brand-700 px-6 py-3 rounded-xl font-bold text-sm hover:bg-amber-50 transition-colors">
@@ -325,7 +339,7 @@ export default async function IndexExchangePage() {
             </div>
             <div>
               <p className="font-bold text-ink-700 mb-1">Sector + stage indices</p>
-              <p>Same median computation, bucketed by sector / stage detected by the SVI engine. Sectors with fewer than 1 entry are hidden until they accumulate enough cohort size.</p>
+              <p>Same median computation, bucketed by sector / stage detected by the SVI engine. Every figure carries its n. A sector or stage with fewer than 10 companies publishes no median (“not enough companies yet”); 10–29 is labelled indicative; 30 or more is a stage benchmark — the same publication rule as every SVI benchmark (<Link href="/methodology/governance" className="underline">score governance § 7</Link>).</p>
             </div>
             <div>
               <p className="font-bold text-ink-700 mb-1">Top movers</p>

@@ -6,7 +6,8 @@
 // regressions here become bad numbers on the founder dashboard and skew every
 // "you're in the top X%" nudge downstream:
 //
-//   - dropping the MIN_SAMPLE=5 gate would surface noisy 1–4 row percentiles
+//   - the MIN_SAMPLE gate is the § 7 publication floor (BENCHMARK_MIN_N = 10, G21 P1-C);
+//     dropping it would surface noisy 1–9 row percentiles
 //     as "live" data and mislead founders about their position;
 //   - broadening the stage validation (currently 0–7 with clamp to 5) would
 //     accept negative / >7 stages silently and hand out the wrong benchmark;
@@ -25,7 +26,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   SVI_STAGE_BENCHMARKS,
   getSVIBenchmark,
-  getSVIPercentile,
 } from "@/lib/benchmarks";
 
 // --- Mocks (registered BEFORE route import) --------------------------------
@@ -243,7 +243,7 @@ describe("GET /api/benchmarks — static fallback", () => {
     expect(body.sampleSize).toBe(0);
   });
 
-  it("falls back to static when the overall pool has ≥5 rows but the stage-matched slice has <5", async () => {
+  it("falls back to static when the overall pool has ≥10 rows but the stage-matched slice has <10", async () => {
     isSupabaseConfiguredMock.mockReturnValue(true);
     getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
     // 6 rows total, only 2 at stage 3 — should NOT go live.
@@ -271,45 +271,61 @@ describe("GET /api/benchmarks — static fallback", () => {
 });
 
 describe("GET /api/benchmarks — live pool", () => {
-  function seed5AtStage3() {
+  function seed10AtStage3() {
     isSupabaseConfiguredMock.mockReturnValue(true);
     getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
-    // 5 sorted-ish rows so the percentile idx math is deterministic:
-    // sorted = [110, 120, 130, 140, 150] → n=5
-    // idx(50)=round(0.5*5)-1=1 → sorted[1]=120 wait no:
-    //   round(2.5)-1 = 3-1 = 2 → sorted[2]=130
-    // idx(25)=round(1.25)-1=0 → sorted[0]=110
-    // idx(75)=round(3.75)-1=3 → sorted[3]=140
-    // idx(90)=round(4.5)-1=4 → sorted[4]=150
-    // avg=(110+120+130+140+150)/5=130
+    // 10 rows (the publication floor) so the percentile idx math is deterministic:
+    // sorted = [110, 120, …, 200] → n=10
+    // idx(50)=round(5)-1=4   → sorted[4]=150
+    // idx(25)=round(2.5)-1=2 → sorted[2]=130
+    // idx(75)=round(7.5)-1=7 → sorted[7]=180
+    // idx(90)=round(9)-1=8   → sorted[8]=190
+    // avg=(110+…+200)/10=155
     state.rows = [
       stage3Row(150),
       stage3Row(110),
       stage3Row(140),
       stage3Row(120),
       stage3Row(130),
+      stage3Row(200),
+      stage3Row(160),
+      stage3Row(190),
+      stage3Row(170),
+      stage3Row(180),
     ];
   }
 
-  it("goes live once the stage-matched slice has ≥5 rows", async () => {
-    seed5AtStage3();
+  it("goes live once the stage-matched slice reaches the publication floor (≥10 rows) with band + label", async () => {
+    seed10AtStage3();
     const { body } = await callGet("stage=3");
     expect(body.source).toBe("live");
-    expect(body.sampleSize).toBe(5);
+    expect(body.sampleSize).toBe(10);
+    expect(body.band).toBe("indicative");
+    expect(body.label).toBe("indicative (n = 10)");
+  });
+
+  it("falls back to static when the stage-matched slice has 9 rows (one under the floor)", async () => {
+    seed10AtStage3();
+    state.rows = state.rows.slice(0, 9);
+    const { body } = await callGet("stage=3&svi=150");
+    expect(body.source).toBe("static");
+    expect(body.band).toBe("none");
+    expect(body.label).toBe("not enough comparable companies (n = 0)");
+    expect(body).not.toHaveProperty("percentile");
   });
 
   it("returns computed avg / median / p25 / p75 / topDecile from the live pool", async () => {
-    seed5AtStage3();
+    seed10AtStage3();
     const { body } = await callGet("stage=3");
-    expect(body.avgSVI).toBe(130);
-    expect(body.medianSVI).toBe(130);
-    expect(body.p25).toBe(110);
-    expect(body.p75).toBe(140);
-    expect(body.topDecile).toBe(150);
+    expect(body.avgSVI).toBe(155);
+    expect(body.medianSVI).toBe(150);
+    expect(body.p25).toBe(130);
+    expect(body.p75).toBe(180);
+    expect(body.topDecile).toBe(190);
   });
 
   it("aggregates per-dimension averages from analysis_json.subs and preserves every seeded key", async () => {
-    seed5AtStage3();
+    seed10AtStage3();
     const { body } = await callGet("stage=3");
     const dims = body.dimensions as Record<string, { avg: number; top: number }>;
     for (const key of ["ftv", "mpc", "ptd", "tre", "cgh", "iri", "lco", "svm"]) {
@@ -317,7 +333,7 @@ describe("GET /api/benchmarks — live pool", () => {
       expect(typeof dims[key]!.avg).toBe("number");
       expect(typeof dims[key]!.top).toBe("number");
     }
-    // All 5 rows share identical subs, so the aggregated avg matches the seed.
+    // All 10 rows share identical subs, so the aggregated avg matches the seed.
     expect(dims.ftv!.avg).toBe(60);
     expect(dims.mpc!.avg).toBe(65);
   });
@@ -331,11 +347,16 @@ describe("GET /api/benchmarks — live pool", () => {
       stage3Row(120),
       stage3Row(120),
       stage3Row(120),
+      stage3Row(120),
+      stage3Row(120),
+      stage3Row(120),
+      stage3Row(120),
+      stage3Row(120),
       // Stage-5 outlier — must NOT influence stage-3 stats.
       { total_svi: 500, analysis_json: { stage: 5, subs: [{ key: "ftv", value: 999 }] } },
     ];
     const { body } = await callGet("stage=3");
-    expect(body.sampleSize).toBe(5);
+    expect(body.sampleSize).toBe(10);
     expect(body.avgSVI).toBe(120);
     const dims = body.dimensions as Record<string, { avg: number; top: number }>;
     expect(dims.ftv!.avg).toBe(60); // stage-5 outlier excluded
@@ -349,13 +370,18 @@ describe("GET /api/benchmarks — live pool", () => {
       stage3Row(120),
       stage3Row(120),
       stage3Row(120),
-      // 5th row has no subs at all — still stage-matched via analysis_json.stage.
+      stage3Row(120),
+      stage3Row(120),
+      stage3Row(120),
+      stage3Row(120),
+      stage3Row(120),
+      // 10th row has no subs at all — still stage-matched via analysis_json.stage.
       { total_svi: 120, analysis_json: { stage: 3 } },
     ];
     const { body } = await callGet("stage=3");
     expect(body.source).toBe("live");
     const dims = body.dimensions as Record<string, { avg: number; top: number }>;
-    // Aggregation ran over 4 rows with subs — no NaN from the missing-subs row.
+    // Aggregation ran over 9 rows with subs — no NaN from the missing-subs row.
     expect(Number.isFinite(dims.ftv!.avg)).toBe(true);
   });
 
@@ -363,6 +389,11 @@ describe("GET /api/benchmarks — live pool", () => {
     isSupabaseConfiguredMock.mockReturnValue(true);
     getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
     state.rows = [
+      { total_svi: 130, analysis_json: { stage: 3 } },
+      { total_svi: 130, analysis_json: { stage: 3 } },
+      { total_svi: 130, analysis_json: { stage: 3 } },
+      { total_svi: 130, analysis_json: { stage: 3 } },
+      { total_svi: 130, analysis_json: { stage: 3 } },
       { total_svi: 130, analysis_json: { stage: 3 } },
       { total_svi: 130, analysis_json: { stage: 3 } },
       { total_svi: 130, analysis_json: { stage: 3 } },
@@ -383,6 +414,11 @@ describe("GET /api/benchmarks — live pool", () => {
       stage3Row(120),
       stage3Row(120),
       stage3Row(120),
+      stage3Row(120),
+      stage3Row(120),
+      stage3Row(120),
+      stage3Row(120),
+      stage3Row(120),
       {
         total_svi: 120,
         analysis_json: {
@@ -398,19 +434,19 @@ describe("GET /api/benchmarks — live pool", () => {
   });
 
   it("computes topDecile from the sorted pool (p90 index)", async () => {
-    seed5AtStage3();
+    seed10AtStage3();
     const { body } = await callGet("stage=3");
-    expect(body.topDecile).toBe(150);
+    expect(body.topDecile).toBe(190);
   });
 
   it("echoes the requested stage number even when the pool is live", async () => {
-    seed5AtStage3();
+    seed10AtStage3();
     const { body } = await callGet("stage=3");
     expect(body.stage).toBe(3);
   });
 
   it("uses the static label for stage in the live response (the label is not recomputed)", async () => {
-    seed5AtStage3();
+    seed10AtStage3();
     const staticLabel = getSVIBenchmark(3).label;
     const { body } = await callGet("stage=3");
     expect(body.stageLabel).toBe(staticLabel);
@@ -449,37 +485,36 @@ describe("GET /api/benchmarks — percentile query", () => {
     expect(body).not.toHaveProperty("percentile");
   });
 
-  it("returns a percentile field when svi is provided (static path)", async () => {
-    const { body } = await callGet("stage=2&svi=110");
-    expect(body).toHaveProperty("percentile");
-    expect(body.percentile).toBe(getSVIPercentile(110, 2));
-  });
-
-  it("clamps svi<=0 to a low percentile in the static path (pins the 5-floor)", async () => {
-    const { body } = await callGet("stage=2&svi=0");
-    expect(body.percentile).toBe(5);
-  });
-
-  it("caps very-high svi to the 95 top-decile ceiling in the static path", async () => {
-    // stage 2 topDecile=160; anything at/above should hit 95.
-    const { body } = await callGet("stage=2&svi=999");
-    expect(body.percentile).toBe(95);
+  it("G21 P1-C: NEVER returns a percentile from the static table — no cohort, no n (score-governance § 7)", async () => {
+    for (const svi of [110, 0, 999]) {
+      const { body } = await callGet(`stage=2&svi=${svi}`);
+      expect(body.source).toBe("static");
+      expect(body).not.toHaveProperty("percentile");
+      expect(body.band).toBe("none");
+      expect(body.label).toBe("not enough comparable companies (n = 0)");
+    }
   });
 
   it("computes percentile from the live pool when live data is available", async () => {
     isSupabaseConfiguredMock.mockReturnValue(true);
     getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
-    // Values: [100, 110, 120, 130, 140] — svi=125 → 3 below → round(3/5*100)=60
+    // Values: [100, 110, …, 190] — svi=125 → 3 below → round(3/10*100)=30
     state.rows = [
       stage3Row(100),
       stage3Row(110),
       stage3Row(120),
       stage3Row(130),
       stage3Row(140),
+      stage3Row(150),
+      stage3Row(160),
+      stage3Row(170),
+      stage3Row(180),
+      stage3Row(190),
     ];
     const { body } = await callGet("stage=3&svi=125");
     expect(body.source).toBe("live");
-    expect(body.percentile).toBe(60);
+    expect(body.percentile).toBe(30);
+    expect(body.band).toBe("indicative");
   });
 
   it("returns percentile=0 in the live path when svi is below every pool value", async () => {
@@ -491,8 +526,13 @@ describe("GET /api/benchmarks — percentile query", () => {
       stage3Row(120),
       stage3Row(130),
       stage3Row(140),
+      stage3Row(150),
+      stage3Row(160),
+      stage3Row(170),
+      stage3Row(180),
+      stage3Row(190),
     ];
-    // 0 rows below 100 → 0/5 = 0
+    // 0 rows below 100 → 0/10 = 0
     const { body } = await callGet("stage=3&svi=50");
     expect(body.percentile).toBe(0);
   });
@@ -506,6 +546,11 @@ describe("GET /api/benchmarks — percentile query", () => {
       stage3Row(120),
       stage3Row(130),
       stage3Row(140),
+      stage3Row(150),
+      stage3Row(160),
+      stage3Row(170),
+      stage3Row(180),
+      stage3Row(190),
     ];
     const { body } = await callGet("stage=3&svi=999");
     expect(body.percentile).toBe(100);

@@ -25,6 +25,7 @@ import { BOOTSTRAP_RESAMPLES, MIN_STAGE_N, type BacktestReport, type CiCell, typ
 import { BACKTEST_STAGES } from "@/lib/data/au-comparables-backtest";
 import type { Locale } from "@/lib/i18n/locales";
 import { getMessages, t, type Messages } from "@/lib/i18n/t";
+import { notEnoughLine } from "@/lib/benchmarks/publication-rules";
 import { renderRangeBars } from "@/lib/report-visuals/range-bars";
 import { aud } from "@/lib/report-visuals/svg";
 
@@ -73,7 +74,8 @@ function fmtDate(iso: string, locale: Locale): string {
 export function bucketRangeBarsSvg(report: BacktestReport, m: Messages): string {
   return renderRangeBars(
     {
-      rows: report.buckets.map((b) => ({
+      // G21 P1-C: only buckets above the publication floor draw a bar.
+      rows: report.buckets.filter((b) => b.median_round_aud !== null).map((b) => ({
         label: b.label,
         low: b.p25_round_aud ?? 0,
         mid: b.median_round_aud ?? 0,
@@ -225,10 +227,16 @@ export async function CalibrationBody({ locale, report: injected, messages }: Ca
             <p className="max-w-3xl text-sm leading-relaxed text-secondary">{t(m, "calibration.buckets.intro")}</p>
             {report.buckets.length > 0 ? (
               <>
-                <figure className="mt-6 rounded-2xl border border-line-subtle bg-surface p-4" data-testid="calibration-range-bars">
-                  <div className="w-full [&>svg]:h-auto [&>svg]:w-full [&>svg]:max-w-full" dangerouslySetInnerHTML={{ __html: bucketRangeBarsSvg(report, m) }} />
-                  <figcaption className="mt-1 text-[11px] text-tertiary">{t(m, "calibration.buckets.chartDescription")}</figcaption>
-                </figure>
+                {report.buckets.some((b) => b.median_round_aud !== null) ? (
+                  <figure className="mt-6 rounded-2xl border border-line-subtle bg-surface p-4" data-testid="calibration-range-bars">
+                    <div className="w-full [&>svg]:h-auto [&>svg]:w-full [&>svg]:max-w-full" dangerouslySetInnerHTML={{ __html: bucketRangeBarsSvg(report, m) }} />
+                    <figcaption className="mt-1 text-[11px] text-tertiary">{t(m, "calibration.buckets.chartDescription")}</figcaption>
+                  </figure>
+                ) : (
+                  <p className="mt-6 rounded-2xl border border-dashed border-line-subtle bg-surface p-4 text-sm text-secondary" data-testid="calibration-range-bars" data-publication-band="none">
+                    {notEnoughLine(Math.max(0, ...report.buckets.map((b) => b.n)), "any SVI quartile")}
+                  </p>
+                )}
                 <div className="mt-6 overflow-x-auto rounded-2xl border border-line-subtle bg-surface">
                   <table className="w-full text-sm" data-testid="calibration-bucket-table">
                     <thead>
@@ -240,6 +248,7 @@ export async function CalibrationBody({ locale, report: injected, messages }: Ca
                         <th scope="col" className="px-4 py-2 text-right">{t(m, "calibration.buckets.col.median")}</th>
                         <th scope="col" className="px-4 py-2 text-right">{t(m, "calibration.buckets.col.p75")}</th>
                         <th scope="col" className="px-4 py-2 text-right">{t(m, "calibration.buckets.col.medianValuation")}</th>
+                        <th scope="col" className="px-4 py-2">Publication</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -251,7 +260,8 @@ export async function CalibrationBody({ locale, report: injected, messages }: Ca
                           <td className="px-4 py-2 text-right tabular-nums">{aud(b.p25_round_aud)}</td>
                           <td className="px-4 py-2 text-right tabular-nums font-semibold">{aud(b.median_round_aud)}</td>
                           <td className="px-4 py-2 text-right tabular-nums">{aud(b.p75_round_aud)}</td>
-                          <td className="px-4 py-2 text-right tabular-nums">{b.median_valuation_aud === null ? "—" : `${aud(b.median_valuation_aud)} (${b.n_valuation})`}</td>
+                          <td className="px-4 py-2 text-right tabular-nums">{b.median_valuation_aud === null ? `— (n = ${b.n_valuation})` : `${aud(b.median_valuation_aud)} (n = ${b.n_valuation})`}</td>
+                          <td className="px-4 py-2 text-xs text-tertiary" data-publication-band={b.publication?.band ?? "none"}>{b.publication?.label ?? `n = ${b.n}`}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -267,7 +277,9 @@ export async function CalibrationBody({ locale, report: injected, messages }: Ca
               {BACKTEST_STAGES.filter((s) => s in report.n_by_stage).map((s) => (
                 <li key={s} className="rounded-full border border-line-subtle bg-surface px-4 py-2 text-sm">
                   <span className="font-medium text-primary">{stageLabel(s, locale)}</span>{" "}
-                  <span className="tabular-nums text-tertiary">{`n = ${report.n_by_stage[s]}`}</span>
+                  <span className="tabular-nums text-tertiary" data-publication-band={report.publication_by_stage?.[s]?.band ?? "none"}>
+                    {report.publication_by_stage?.[s]?.label ?? `n = ${report.n_by_stage[s]}`}
+                  </span>
                 </li>
               ))}
             </ul>

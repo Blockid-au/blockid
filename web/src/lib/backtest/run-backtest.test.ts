@@ -14,9 +14,12 @@ import {
   bucketTable,
   historyLine,
   profileToSignals,
+  publicationCell,
   runBacktest,
   scoreRow,
 } from "./run-backtest";
+
+const r_ = <T,>(x: T): T => x;
 
 function row(id: string, stage: BacktestRow["stage"], strength: number, roundAud: number | null, valuationAud: number | null = null): BacktestRow {
   // strength 0..5 switches on progressively more evidence.
@@ -143,17 +146,58 @@ describe("runBacktest (synthetic fixture)", () => {
     expect(JSON.stringify(report)).not.toContain("null,null");
   });
 
-  it("bucket table: 4 SVI quartiles over rows with a round, medians monotone on this fixture", () => {
+  it("bucket table: 4 SVI quartiles over rows with a round; buckets under the publication floor publish NO median (G21 P1-C)", () => {
     expect(report.buckets.map((b) => b.quartile)).toEqual([1, 2, 3, 4]);
     expect(report.buckets.reduce((a, b) => a + b.n, 0)).toBe(13);
     for (const b of report.buckets) {
       expect(b.svi_min).toBeLessThanOrEqual(b.svi_max);
+      // 13 rows over 4 quartiles → every bucket has n < 10 → suppressed.
+      expect(b.n).toBeLessThan(10);
+      expect(b.publication).toEqual({ n: b.n, band: "none", label: `not enough comparable companies (n = ${b.n})` });
+      expect(b.median_round_aud).toBeNull();
+      expect(b.p25_round_aud).toBeNull();
+      expect(b.p75_round_aud).toBeNull();
+      expect(b.median_valuation_aud).toBeNull();
+      expect(b.publication_valuation.band).toBe("none");
+    }
+    expect(bucketTable([])).toEqual([]);
+  });
+
+  it("bucket table on a 48-row set: n ≥ 10 per quartile → indicative, medians published and monotone", () => {
+    const big: BacktestRow[] = [];
+    for (let i = 0; i < 72; i++) {
+      const strength = Math.min(5, Math.floor(i / 12));
+      big.push(row(`r${i}`, i < 24 ? "seed" : "series-a", strength, 200_000 + i * 150_000 + (i % 3) * 50_000, i % 4 === 0 ? 1_000_000 + i * 400_000 : null));
+    }
+    const r = runBacktest({ rows: big, now, gitSha: "abc1234", resamples: 100, seed: 7 });
+    expect(r.buckets.length).toBeGreaterThanOrEqual(3);
+    const published = r.buckets.filter((b) => b.publication.band !== "none");
+    expect(published.length).toBeGreaterThanOrEqual(2);
+    for (const b of r.buckets) {
+      expect(b.publication.n).toBe(b.n);
+      if (b.publication.band === "none") {
+        expect(b.n).toBeLessThan(10);
+        expect(b.median_round_aud).toBeNull();
+        continue;
+      }
+      expect(b.n).toBeGreaterThanOrEqual(10);
+      expect(b.publication.label).toMatch(new RegExp(`\\(n = ${b.n}\\)$`));
       expect(b.p25_round_aud as number).toBeLessThanOrEqual(b.median_round_aud as number);
       expect(b.median_round_aud as number).toBeLessThanOrEqual(b.p75_round_aud as number);
+      // few valuations per bucket → below the floor → suppressed even though n_valuation > 0.
+      if (b.n_valuation < 10) expect(b.median_valuation_aud).toBeNull();
     }
-    const medians = report.buckets.map((b) => b.median_round_aud as number);
+    const medians = published.map((b) => b.median_round_aud as number);
     for (let i = 1; i < medians.length; i++) expect(medians[i]).toBeGreaterThan(medians[i - 1]);
-    expect(bucketTable([])).toEqual([]);
+    expect(r.publication_by_stage.seed).toEqual({ n: 24, band: "indicative", label: "indicative (n = 24)" });
+    expect(r.publication_by_stage["series-a"]).toEqual({ n: 48, band: "benchmark", label: "benchmark (n = 48)" });
+  });
+
+  it("publication_by_stage mirrors n_by_stage with the § 7 band", () => {
+    expect(Object.keys(r_(report).publication_by_stage).sort()).toEqual(Object.keys(report.n_by_stage).sort());
+    expect(report.publication_by_stage["pre-seed"]).toEqual({ n: 1, band: "none", label: "not enough comparable companies (n = 1)" });
+    expect(report.publication_by_stage.seed).toEqual({ n: 6, band: "none", label: "not enough comparable companies (n = 6)" });
+    expect(publicationCell(30)).toEqual({ n: 30, band: "benchmark", label: "benchmark (n = 30)" });
   });
 
   it("is deterministic for the same seed and differs for another seed only in the CI", () => {
@@ -180,6 +224,7 @@ describe("runBacktest (synthetic fixture)", () => {
     expect(c.join("\n")).toMatch(/N is small \(14 scorable rows\)/);
     expect(c.join("\n")).toMatch(/pre-seed, unicorn/);
     expect(c.join("\n")).toMatch(/Rank-only claim/);
+    expect(c.join("\n")).toMatch(/Publication rule: every aggregate is shown with its n/);
     expect(c.join("\n")).not.toMatch(/PhD|500\+/);
   });
 

@@ -20,7 +20,14 @@ export interface WhereYouStandProps {
   ctx: LandingContext;
   sviScore: number | null;
   delta: number | null;
+  /**
+   * Published cohort percentile (0–100) — null when the cohort is below the
+   * publication floor (G21 P1-C, score-governance § 7). Never the static
+   * table estimate.
+   */
   percentile: number | null;
+  /** "benchmark (n = 47)" / "indicative (n = 14)" — printed beside the percentile; required when `percentile` is set. */
+  percentileLabel?: string | null;
   growthPhaseId: GrowthPhaseId | null;
   /** Analysis `stageLabel` — shown when the project has no growth phase yet. */
   stageLabel?: string | null;
@@ -36,7 +43,7 @@ export function phasePill(growthPhaseId: GrowthPhaseId | null, stageLabel?: stri
   return stageLabel?.trim() || null;
 }
 
-export function WhereYouStand({ ctx, sviScore, delta, percentile, growthPhaseId, stageLabel, subs, startupName, scoredAt }: WhereYouStandProps) {
+export function WhereYouStand({ ctx, sviScore, delta, percentile, percentileLabel, growthPhaseId, stageLabel, subs, startupName, scoredAt }: WhereYouStandProps) {
   const pill = phasePill(growthPhaseId, stageLabel);
   const empty = sviScore == null;
 
@@ -110,7 +117,9 @@ export function WhereYouStand({ ctx, sviScore, delta, percentile, growthPhaseId,
             {percentile != null ? (
               <div className="flex items-center gap-1">
                 <dt className="sr-only">Cohort percentile</dt>
-                <dd data-landing-percentile>Top {Math.max(1, 100 - percentile)}% of AU cohort</dd>
+                <dd data-landing-percentile>
+                  Top {Math.max(1, 100 - percentile)}% of the AU cohort at your stage{percentileLabel ? ` — ${percentileLabel}` : ""}
+                </dd>
               </div>
             ) : null}
           </dl>

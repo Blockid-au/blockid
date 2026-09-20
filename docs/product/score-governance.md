@@ -83,7 +83,7 @@ A benchmark compares a company with others at the same stage (and, when the samp
 | 30 – 99 | a basic percentile |
 | 100 or more | segmented percentiles (stage × sector) |
 
-`n` is always shown beside the figure. A national or sector "average" without its `n` is not permitted on any surface (`docs/design/messaging.md` § 11). Today the cohort-percentile module suppresses percentiles below its own floor (`COHORT_MIN_N = 20`); the tiered rules above supersede that floor as the Assessment Card ships, and both are enforced in code, not copy.
+`n` is always shown beside the figure. A national or sector "average" without its `n` is not permitted on any surface (`docs/design/messaging.md` § 11). Every percentile, median and benchmark line is produced by one publication module (`web/src/lib/benchmarks/publication-rules.ts`, floor `BENCHMARK_MIN_N = 10`; `lib/svi/benchmark-rules.ts` re-exports it): below the floor the surface prints "not enough comparable companies (n = N)" instead of a number, 10–29 is labelled **indicative**, and the cohort-percentile module (`COHORT_MIN_N` now reads the same floor), the sector / stage indices, the calibration backtest and the founder dashboard all route through it. The rule is enforced in code, not copy.
 
 ## 8. Conflict handling — claim states
 

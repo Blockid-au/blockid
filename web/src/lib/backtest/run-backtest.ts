@@ -10,6 +10,14 @@
 //   - a bucket table: SVI quartile → median / p25 / p75 round, n;
 //   - the caveats the page renders verbatim.
 //
+// Publication (G21 P1-C, score-governance § 7): every published aggregate
+// carries its `n` and a publication band from lib/benchmarks/
+// publication-rules.ts. Bucket medians / quartiles are SUPPRESSED (null)
+// where a bucket has n < 10; 10–29 is labelled "indicative". ρ keeps its
+// own statistical floor (MIN_STAGE_N) because it is a correlation, not a
+// benchmark — but each stage row also reports its band so the page can
+// label thin stages.
+//
 // Pure: no I/O, no clock — `scripts/backtest/run.ts` supplies `now` and the
 // git sha and writes the JSON. Claim scope is rank calibration only (every
 // row raised → survivorship); see the goal doc F-8.
@@ -24,6 +32,7 @@ import {
 } from "@/lib/data/au-comparables-backtest";
 import { computeSVI, SVI_VERSION, type SVIExtractedSignals } from "@/lib/svi-analysis";
 import { bootstrapSpearmanCI, median, quantile, rankBuckets, spearman, type BootstrapCI } from "./spearman";
+import { benchmarkBand, benchmarkLabel, type BenchmarkBand } from "@/lib/benchmarks/publication-rules";
 
 export const BACKTEST_CONFIDENCE_LEVEL = "document_uploaded" as const;
 /** A stage bucket needs this many rows before a within-stage ρ is reported. */
@@ -40,6 +49,18 @@ export interface RhoCell {
   reason?: "too_few" | "degenerate";
 }
 
+/** Publication band + label for one aggregate (always carries n). */
+export interface PublicationCell {
+  n: number;
+  band: BenchmarkBand;
+  /** "indicative (n = 14)" · "not enough comparable companies (n = 4)". */
+  label: string;
+}
+
+export function publicationCell(n: number): PublicationCell {
+  return { n, band: benchmarkBand(n), label: benchmarkLabel(n) };
+}
+
 export interface CiCell {
   low: number;
   high: number;
@@ -53,11 +74,17 @@ export interface BucketRow {
   n: number;
   svi_min: number;
   svi_max: number;
+  /** Null when the bucket's n is below the publication floor (band "none"). */
   median_round_aud: number | null;
   p25_round_aud: number | null;
   p75_round_aud: number | null;
   n_valuation: number;
+  /** Null when `n_valuation` is below the publication floor. */
   median_valuation_aud: number | null;
+  /** Publication band for `n` (round figures). */
+  publication: PublicationCell;
+  /** Publication band for `n_valuation`. */
+  publication_valuation: PublicationCell;
 }
 
 export interface BacktestRowUsed {
@@ -85,6 +112,8 @@ export interface BacktestReport {
   n_with_valuation: number;
   n_next_round_known: number;
   n_by_stage: Record<string, number>;
+  /** G21 P1-C: publication band per stage bucket (same keys as `n_by_stage`). */
+  publication_by_stage: Record<string, PublicationCell>;
   rho: {
     round_pooled: number | null;
     valuation_pooled: number | null;
@@ -178,6 +207,7 @@ export function backtestCaveats(n: number, nByStage: Record<string, number>): st
     "Survivorship: every row in this set raised. It says nothing about startups that pitched and did not raise, so ρ cannot be read as predictive power; v1 adds a control group after S40.",
     "Hand-curated profiles: each pre-raise profile was written by a curator from public sources as of the raise, not from the founder's own evidence. Fields with no public fact were left at the engine's no-evidence default, which is why most rows score below the live median for their stage.",
     `N is small (${n} scorable rows). Stage buckets with fewer than ${MIN_STAGE_N} rows report no ρ${thin.length ? ` (${thin.join(", ")})` : ""}; every interval is a percentile bootstrap of ${BOOTSTRAP_RESAMPLES.toLocaleString("en-AU")} seeded resamples and is wide.`,
+    "Publication rule: every aggregate is shown with its n. A quartile or stage bucket with fewer than 10 rows publishes no median or quartile figure (“not enough comparable companies”); 10–29 rows are labelled indicative; 30 or more is a benchmark.",
     "Rank-only claim: ρ measures whether a higher SVI went with a larger round or valuation inside this set. It is not a valuation model, not a prediction of any single startup's round, and not financial advice.",
     "Source figures are taken as written from the two hand-entered comparable tables (AUD approximations near the announcement date). Where the two tables disagree the row notes it; nothing was corrected or invented, and a missing figure stays null.",
     "Stage labels follow the source tables — 'Series B' is a 'Series B or later' bucket in one of them — so within-stage results mix lettered rounds.",
@@ -228,17 +258,23 @@ export function bucketTable(rows: readonly BacktestRowUsed[]): BucketRow[] {
     if (members.length === 0) continue;
     const rounds = members.map((r) => r.roundAud as number);
     const vals = members.map((r) => r.valuationAud).filter((v): v is number => v !== null && v > 0);
+    const publication = publicationCell(members.length);
+    const publicationValuation = publicationCell(vals.length);
+    const publishRound = publication.band !== "none";
+    const publishValuation = publicationValuation.band !== "none" && vals.length > 0;
     out.push({
       quartile: q,
       label: LABEL[q],
       n: members.length,
       svi_min: Math.min(...members.map((r) => r.svi)),
       svi_max: Math.max(...members.map((r) => r.svi)),
-      median_round_aud: Math.round(median(rounds) as number),
-      p25_round_aud: Math.round(quantile(rounds, 0.25)),
-      p75_round_aud: Math.round(quantile(rounds, 0.75)),
+      median_round_aud: publishRound ? Math.round(median(rounds) as number) : null,
+      p25_round_aud: publishRound ? Math.round(quantile(rounds, 0.25)) : null,
+      p75_round_aud: publishRound ? Math.round(quantile(rounds, 0.75)) : null,
       n_valuation: vals.length,
-      median_valuation_aud: vals.length ? Math.round(median(vals) as number) : null,
+      median_valuation_aud: publishValuation ? Math.round(median(vals) as number) : null,
+      publication,
+      publication_valuation: publicationValuation,
     });
   }
   return out;
@@ -265,9 +301,13 @@ export function runBacktest(opts: RunBacktestOptions = {}): BacktestReport {
   });
 
   const nByStage: Record<string, number> = {};
+  const publicationByStage: Record<string, PublicationCell> = {};
   for (const s of BACKTEST_STAGES) {
     const n = used.filter((r) => r.stage === s).length;
-    if (n > 0) nByStage[s] = n;
+    if (n > 0) {
+      nByStage[s] = n;
+      publicationByStage[s] = publicationCell(n);
+    }
   }
 
   const pooledRound = pairs(used, "round");
@@ -304,6 +344,7 @@ export function runBacktest(opts: RunBacktestOptions = {}): BacktestReport {
     n_with_valuation: pooledVal.x.length,
     n_next_round_known: scorable.filter((r) => r.outcome.nextRoundWithin24m !== null).length,
     n_by_stage: nByStage,
+    publication_by_stage: publicationByStage,
     rho: {
       round_pooled: pooledRoundRho.rho,
       valuation_pooled: pooledValRho.rho,

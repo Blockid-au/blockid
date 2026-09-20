@@ -5,21 +5,29 @@
 // AU-startup analyses in svi_index_snapshots, we can compute true
 // percentile from peers at the same stage.
 //
-// Strategy (G14-S40 added the middle rung):
+// Strategy (G14-S40 added the middle rung; G21 P1-C routed the floor
+// through lib/benchmarks/publication-rules.ts):
 //   1. Query svi_index_snapshots filtered by stage (±1 for elasticity)
-//   2. If cohort ≥ 20 rows → strict percentile (fraction scoring strictly
-//      below) → source "real_cohort"
+//   2. If cohort ≥ BENCHMARK_MIN_N (10) rows → strict percentile (fraction
+//      scoring strictly below) → source "real_cohort", carrying the
+//      publication band ("indicative" 10–29, "benchmark" 30–99,
+//      "segmented" 100+) and its "n = N" label.
 //   3. Else, when the caller passes `register` (the project's ABN / state /
 //      entity age) and the open-register cohort (lib/signals/
 //      external-signals.ts cohortFromRegisters — ABR entity age, GST,
-//      grants, R&DTI) has ≥ 20 entities → the project's register-maturity
-//      percentile within that cohort → source "register_cohort". This is a
-//      register-derived positioning proxy, NOT an SVI rank; surfaces label
-//      it as such.
-//   4. Else fall back to the hardcoded benchmarks → "benchmark_fallback"
+//      grants, R&DTI) has ≥ BENCHMARK_MIN_N entities → the project's
+//      register-maturity percentile within that cohort → source
+//      "register_cohort". This is a register-derived positioning proxy,
+//      NOT an SVI rank; surfaces label it as such.
+//   4. Else → "benchmark_fallback": `published` is NULL (never a number —
+//      score-governance § 7: below n = 10 nothing is published), band
+//      "none", label "not enough comparable companies (n = N)". The legacy
+//      `percentile` field then carries the static-table estimate the caller
+//      passed as `fallbackPercentile` (kept number-typed for the report
+//      adapter / dossier header, which read it under their own "estimate"
+//      wording) — every surface that publishes a rank reads `published`.
 //   5. Return value + cohort metadata so the dashboard can show
-//      "top 23% of 47 AU pre-seed startups in the index" — much more
-//      credible than "top 25%".
+//      "top 23% of AU pre-seed startups — benchmark (n = 47)".
 //
 // Anonymity: snapshots are stored without identity; only score+stage
 // pairs are queried. The register cohort is public ABR / grant / R&DTI
@@ -27,14 +35,27 @@
 
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { cohortFromRegisters, type RegisterCohort, type RegisterCohortQuery, percentileWithinCohort } from "@/lib/signals/external-signals";
+import { BENCHMARK_MIN_N, benchmarkBand, benchmarkLabel, publishPercentile, type BenchmarkBand, type PublishedPercentile } from "@/lib/benchmarks/publication-rules";
 
 export type CohortPercentileSource = "real_cohort" | "register_cohort" | "benchmark_fallback";
 
 export interface CohortPercentileResult {
-  percentile: number;            // 0-100
+  /**
+   * 0-100. On `real_cohort` / `register_cohort` the measured rank; on
+   * `benchmark_fallback` the static-table ESTIMATE the caller passed in
+   * (legacy field — a surface must read `published`, which is null below the
+   * publication floor, before printing a rank).
+   */
+  percentile: number;
   source: CohortPercentileSource;
   cohortSize: number;
   stageMatched: number;
+  /** Publication band for `cohortSize` (publication-rules.ts) — "none" on the fallback. */
+  band: BenchmarkBand;
+  /** "benchmark (n = 47)" · "indicative (n = 14)" · "not enough comparable companies (n = 3)". */
+  label: string;
+  /** The gated rank — NULL below the floor / on the fallback. The only field a surface may print as a percentile. */
+  published: PublishedPercentile | null;
   median?: number;
   p25?: number;
   p75?: number;
@@ -42,8 +63,12 @@ export interface CohortPercentileResult {
   register?: { n: number; stateMatched: boolean; medianAgeMonths: number | null; subjectScore: number; subjectFromRegister: boolean };
 }
 
-/** Minimum peers before a cohort (snapshots or registers) beats the static table. */
-export const COHORT_MIN_N = 20;
+/**
+ * Minimum peers before a cohort (snapshots or registers) may publish a
+ * percentile — the "none" ceiling of score-governance § 7 (was 20 before
+ * G21 P1-C; the tiers now supersede the flat floor).
+ */
+export const COHORT_MIN_N: number = BENCHMARK_MIN_N;
 
 /** Test seam: the register cohort loader (defaults to cohortFromRegisters). */
 export type RegisterCohortLoader = (db: unknown, q: RegisterCohortQuery) => Promise<RegisterCohort | null>;
@@ -66,15 +91,18 @@ export async function computeCohortPercentile(args: {
   loadRegisterCohort?: RegisterCohortLoader;
 }): Promise<CohortPercentileResult> {
   const { sviScore, stage, fallbackPercentile } = args;
+  const fallback = (cohortSize: number): CohortPercentileResult => ({
+    percentile: fallbackPercentile,
+    source: "benchmark_fallback",
+    cohortSize,
+    stageMatched: stage,
+    band: "none",
+    label: benchmarkLabel(cohortSize),
+    published: null,
+  });
+  const segment = `AU stage-${stage} cohort`;
   const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    return {
-      percentile: fallbackPercentile,
-      source: "benchmark_fallback",
-      cohortSize: 0,
-      stageMatched: stage,
-    };
-  }
+  if (!supabase) return fallback(0);
 
   // Middle rung — only consulted once the snapshot cohort is too small.
   const registerFallback = async (snapshotCount: number): Promise<CohortPercentileResult> => {
@@ -82,11 +110,15 @@ export async function computeCohortPercentile(args: {
       try {
         const cohort = await (args.loadRegisterCohort ?? cohortFromRegisters)(supabase, args.register);
         if (cohort && cohort.n >= COHORT_MIN_N && cohort.subjectScore != null) {
+          const registerPercentile = percentileWithinCohort(cohort.subjectScore, cohort.scores);
           return {
-            percentile: percentileWithinCohort(cohort.subjectScore, cohort.scores),
+            percentile: registerPercentile,
             source: "register_cohort",
             cohortSize: cohort.n,
             stageMatched: stage,
+            band: benchmarkBand(cohort.n),
+            label: benchmarkLabel(cohort.n),
+            published: publishPercentile({ percentile: registerPercentile, n: cohort.n, segment: "AU register cohort" }),
             register: { n: cohort.n, stateMatched: cohort.stateMatched, medianAgeMonths: cohort.medianAgeMonths, subjectScore: cohort.subjectScore, subjectFromRegister: cohort.subjectFromRegister },
           };
         }
@@ -94,7 +126,7 @@ export async function computeCohortPercentile(args: {
         // register cohort unreadable → static
       }
     }
-    return { percentile: fallbackPercentile, source: "benchmark_fallback", cohortSize: snapshotCount, stageMatched: stage };
+    return fallback(snapshotCount);
   };
 
   try {
@@ -140,17 +172,15 @@ export async function computeCohortPercentile(args: {
       source: "real_cohort",
       cohortSize: scores.length,
       stageMatched: stage,
+      band: benchmarkBand(scores.length),
+      label: benchmarkLabel(scores.length),
+      published: publishPercentile({ percentile, n: scores.length, segment }),
       median: Math.round(mid),
       p25: Math.round(p25),
       p75: Math.round(p75),
     };
   } catch {
-    return {
-      percentile: fallbackPercentile,
-      source: "benchmark_fallback",
-      cohortSize: 0,
-      stageMatched: stage,
-    };
+    return fallback(0);
   }
 }
 
@@ -194,20 +224,25 @@ export interface StartupPositioning {
  * claim honestly.
  */
 export function startupPositioning(input: {
-  percentile: number;
+  /** Null (fallback below the publication floor) → the "no benchmark yet" positioning. */
+  percentile: number | null;
   cohortSize: number;
   source: CohortPercentileSource;
   stageLabel?: string;
 }): StartupPositioning {
   const { cohortSize, source, stageLabel } = input;
-  const p = Math.max(0, Math.min(100, Math.round(input.percentile)));
   const stageBit = stageLabel ? `${stageLabel} ` : "";
+  // Below the publication floor (score-governance § 7) there is no
+  // percentile to phrase — whatever the caller had in hand.
+  if (input.percentile === null || source === "benchmark_fallback" || benchmarkBand(cohortSize) === "none") {
+    const headline = `No cohort benchmark yet for AU ${stageBit}startups`;
+    return { tier: "early", headline, detail: `${headline} (${benchmarkLabel(cohortSize)})` };
+  }
+  const p = Math.max(0, Math.min(100, Math.round(input.percentile)));
   const cohortBit =
     source === "real_cohort" && cohortSize > 0
-      ? ` (based on ${cohortSize} AU peers)`
-      : source === "register_cohort" && cohortSize > 0
-        ? ` (register cohort — ${cohortSize} AU entities on the ABR / grant / R&DTI registers)`
-        : " (benchmark estimate)";
+      ? ` (${benchmarkLabel(cohortSize)}, AU peers)`
+      : ` (register cohort — ${benchmarkLabel(cohortSize)}, AU entities on the ABR / grant / R&DTI registers)`;
 
   let tier: PositioningTier;
   let headline: string;
