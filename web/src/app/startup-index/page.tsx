@@ -301,7 +301,7 @@ export default async function IndexExchangePage() {
           </p>
           <div className="flex items-center gap-3 flex-wrap justify-center">
             <Link href="/score" className="inline-flex items-center gap-1.5 bg-white text-brand-700 px-6 py-3 rounded-xl font-bold text-sm hover:bg-amber-50 transition-colors">
-              Get my SVI score
+              Get your score free
               <ArrowRight className="h-4 w-4" />
             </Link>
             {/* Wave 25B — sample TBR CTA for visitors who want to preview

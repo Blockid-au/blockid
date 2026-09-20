@@ -42,7 +42,7 @@ export function IndexWaitlistForm() {
       <div className="inline-flex flex-col items-center gap-3">
         <CheckCircle className="h-8 w-8 text-emerald-600" />
         <p className="font-semibold text-ink-900">You&apos;re on the list!</p>
-        <p className="text-sm text-ink-600">We&apos;ll email you when beta access opens.</p>
+        <p className="text-sm text-ink-600">We&apos;ll email you when your listing is live.</p>
       </div>
     );
   }

@@ -338,7 +338,7 @@ export default async function SVIDashboardPage() {
             eyebrow="Your AI advisor is ready"
             title="Run your first SVI analysis"
             body="Unlock personalised startup guidance, evidence tracking, and stage-tuned recommendations. Under 60 seconds — no credit card required."
-            primaryCta={{ href: "/analyze", label: "Get my SVI score" }}
+            primaryCta={{ href: "/analyze", label: "Get your score free" }}
             cards={[
               {
                 href: "/guide/svi",

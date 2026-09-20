@@ -372,7 +372,7 @@ export function SAFECalculator() {
           href="/score"
           className="inline-flex items-center gap-2 mt-4 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
         >
-          Get my SVI score
+          Get your score free
           <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
         </Link>
       </div>

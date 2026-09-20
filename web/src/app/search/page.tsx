@@ -3,7 +3,7 @@ import { GoogleStyleSearch } from "@/components/search/GoogleStyleSearch";
 import { ProShell } from "@/components/layout/ProShell";
 
 export const metadata: Metadata = {
-  title: "Search — BlockID",
+  title: "Search",
   description: "Search startups, sectors and valuations on BlockID.au.",
   robots: { index: false, follow: true },
 };
@@ -36,12 +36,12 @@ export default async function SearchPage({
           BlockID Search
         </p>
         <h1 className="mt-3 text-3xl font-semibold text-white">
-          Search coming soon
+          Search the Startup Value Index
         </h1>
         <p className="mt-3 max-w-xl text-[15px] text-white/70">
-          We&apos;re building live search over the Startup Value Index™ — every
-          Australian startup, valuation, sector and stage. In the meantime you
-          can browse the live index.
+          Type a startup name to score it on the Startup Value Index — eight
+          dimensions, an AUD valuation range and an Investor Dossier — or
+          browse the live index by sector and stage.
         </p>
 
         {q ? (
@@ -50,7 +50,7 @@ export default async function SearchPage({
             <span className="font-medium text-white">
               &ldquo;{q}&rdquo;
             </span>
-            . We&apos;ll notify early users when results go live.
+            . Score it now, or browse the live index.
           </p>
         ) : null}
 
@@ -63,13 +63,13 @@ export default async function SearchPage({
             href="/startup-index"
             className="rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-[#0A0F1E] hover:bg-white/90"
           >
-            Browse Startup Index →
+            Browse the Startup Value Index →
           </a>
           <a
-            href="/founding-50"
+            href={q ? `/score?q=${encodeURIComponent(q)}` : "/score"}
             className="rounded-full border border-white/15 px-4 py-2 text-[13px] font-semibold text-white/80 hover:text-white"
           >
-            Founding 100 · A$5
+            Score a startup
           </a>
         </div>
       </section>
