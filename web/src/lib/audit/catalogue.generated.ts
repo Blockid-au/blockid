@@ -87,6 +87,7 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/ccso/capture/route.ts", family: "ccso.capture", methods: ["POST"] },
   { route: "api/cfo-advisor/commentary/route.ts", family: "cfo-advisor.commentary", methods: ["POST"] },
   { route: "api/cfo-advisor/route.ts", family: "cfo-advisor", methods: ["POST"] },
+  { route: "api/claims/[id]/route.ts", family: "claims", methods: ["PATCH"] },
   { route: "api/cofounder-match/route.ts", family: "cofounder-match", methods: ["POST"] },
   { route: "api/competitive-positioning/features/route.ts", family: "competitive-positioning.features", methods: ["POST","PATCH"] },
   { route: "api/competitive-positioning/positioning/route.ts", family: "competitive-positioning.positioning", methods: ["POST"] },

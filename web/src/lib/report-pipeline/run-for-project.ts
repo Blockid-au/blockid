@@ -556,6 +556,21 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
             locale,
           }),
         );
+        // G21 P1-A: connector / register rows GATHER minted for this report
+        // become evidence_records on the project's claims (0417). Fail-soft.
+        if (ctx.projectId) {
+          try {
+            const { syncClaimsForProjectSafe } = await import("@/lib/evidence/claims");
+            await syncClaimsForProjectSafe(ctx.projectId, ctx.sviAnalysis, {
+              rawText: String(ctx.latestAnalysis.raw_input ?? ""),
+              evidenceRows: report.reportV2?.appendix.evidenceRegister ?? [],
+              sourceReportId: report.id,
+              actorUserId: userId ?? null,
+            });
+          } catch (claimsErr) {
+            console.warn("[blockid:report-pipeline] claims sync threw", claimsErr);
+          }
+        }
       }
 
       const agentTasks = report.sections
@@ -728,6 +743,16 @@ async function insertAnalysisRow(args: {
     );
   } catch (taxErr) {
     console.warn("[blockid:report-pipeline] taxonomy silent fill threw", taxErr);
+  }
+
+  // G21 P1-A: Claim ≠ Evidence sync (migration 0417) — idempotent upsert on
+  // (project_id, claim_key), never deletes; fail-soft so a report run never
+  // fails because of it.
+  try {
+    const { syncClaimsForProjectSafe } = await import("@/lib/evidence/claims");
+    await syncClaimsForProjectSafe(args.projectId, args.analysis, { rawText: args.rawInput, sourceReportId: id });
+  } catch (claimsErr) {
+    console.warn("[blockid:report-pipeline] claims sync threw", claimsErr);
   }
   return id;
 }

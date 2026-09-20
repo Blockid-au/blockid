@@ -595,6 +595,11 @@ export function isHubEvidenceCode(code: string): boolean {
   return Object.prototype.hasOwnProperty.call(HUB_CODE_SIGNALS, code);
 }
 
+/** G21 P1-A: the signal flags an Evidence Hub catalogue code evidences (empty for an unknown code) — lib/evidence/claims.ts links hub rows to claims through it. */
+export function hubCodeSignals(code: string): ReadonlyArray<keyof SVIExtractedSignals> {
+  return isHubEvidenceCode(code) ? HUB_CODE_SIGNALS[code] : [];
+}
+
 // ─── Text parser: extract signals from raw input ──────────────────────────────
 export function extractSignals(
   input: SVITextInput,
