@@ -68,11 +68,16 @@ export default async function IntegrationsPage({
       }
     : null;
 
+  // G20-F1 (2026-09-20): a connector whose OAuth app is not provisioned on
+  // this deployment (Stripe Connect today — STRIPE_CLIENT_ID unset) is not
+  // listed at all instead of showing a disabled "not available yet" button.
+  // Setting the env key un-hides the row (lib/features/hidden.ts documents
+  // the hidden connectors).
   const rows = buildIntegrationsCatalogue({
     oauthConnections,
     blockchainConfig,
     providerConfigured: isProviderConfigured,
-  });
+  }).filter((row) => row.status !== "not_configured");
   const summary = summariseCatalogue(rows);
 
   // S20-B — Webhooks: the caller's own endpoints plus the active project's
@@ -113,7 +118,6 @@ export default async function IntegrationsPage({
           <p className="text-xs text-muted/70 mt-2">
             {summary.connected} of {summary.total} connected
             {summary.errored > 0 ? ` · ${summary.errored} need attention` : ""}
-            {summary.not_configured > 0 ? ` · ${summary.not_configured} awaiting configuration` : ""}
           </p>
         </header>
 

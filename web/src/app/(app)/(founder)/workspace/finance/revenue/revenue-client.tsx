@@ -843,92 +843,98 @@ export function RevenueClient() {
 
 // ─── Data Sources Panel (S25-A) ─────────────────────────────────────────────
 //
-// Stripe Connect + Xero are live connectors (api/oauth/{stripe,xero}); both
-// resync weekly (api/cron/connector-resync) into the figures above. QuickBooks
-// is a deferred partner integration (no OAuth app) and says so — S31-B
-// replaced the disabled "Coming Soon" button with an honest label and a
-// pointer at the CSV import that covers the same numbers. Exported for the
-// render test.
+// Data sources — G20-F1 (2026-09-20). Stripe Connect and Xero are OAuth
+// connectors (api/oauth/{stripe,xero}) that resync weekly
+// (api/cron/connector-resync); each tile renders ONLY when its OAuth app is
+// provisioned on this deployment (`available.stripeConnect` / `available.xero`
+// from api/revenue, which read STRIPE_CLIENT_ID / XERO_CLIENT_ID) or already
+// connected — an unprovisioned connector is hidden, never a dead button
+// (lib/features/hidden.ts keys connector_stripe_connect, connector_xero).
+// The former "Connect Stripe" link pointed at POST-only
+// /api/auth/stripe/connect (405 on click); it now starts the OAuth flow.
+// QuickBooks has no connector at all (connector_quickbooks) — the tile is
+// gone; the CSV import under Expenses is linked when nothing is connected.
+// Exported for the render test.
 
 export function DataSourcesPanel({ data }: { data: Pick<RevenueData, "hasStripe" | "hasStripeConnect" | "hasXero" | "connectors" | "available"> }) {
   // `available` absent (older payload) → assume configured, as before.
   const xeroAvailable = data.available ? data.available.xero : true;
+  const stripeAvailable = data.available ? data.available.stripeConnect : true;
   const stripeOn = Boolean(data.hasStripeConnect || data.hasStripe);
   const xeroOn = Boolean(data.hasXero);
   const stripeAt = shortSydneyDate(data.connectors?.stripe?.takenAt);
   const xeroAt = shortSydneyDate(data.connectors?.xero?.takenAt);
+  const showStripe = stripeOn || stripeAvailable;
+  const showXero = xeroOn || xeroAvailable;
+  const tiles = Number(showStripe) + Number(showXero);
   return (
     <section className="rounded-xl border border-surface-200 bg-white p-5 shadow-sm" data-testid="data-sources">
       <h2 className="text-sm font-semibold text-ink-600 uppercase tracking-wide mb-1">
         Data Sources
       </h2>
       <p className="text-xs text-ink-500 mb-4">
-        Connected sources re-sync every Monday; your valuation and P&L update with them.
+        {tiles > 0
+          ? "Connected sources re-sync every Monday; your valuation and P&L update with them."
+          : "Upload a bank or accounting CSV under Expenses; your valuation and P&L update from it."}
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className={`rounded-xl border p-4 ${stripeOn ? "border-green-200 bg-green-50" : "border-surface-200"}`}>
-          <div className="flex items-center gap-2 mb-2">
-            <div className={`h-2 w-2 rounded-full ${stripeOn ? "bg-green-500" : "bg-surface-300"}`} />
-            <span className="text-sm font-medium text-ink-700">Stripe</span>
+        {showStripe && (
+          <div className={`rounded-xl border p-4 ${stripeOn ? "border-green-200 bg-green-50" : "border-surface-200"}`} data-testid="source-stripe">
+            <div className="flex items-center gap-2 mb-2">
+              <div className={`h-2 w-2 rounded-full ${stripeOn ? "bg-green-500" : "bg-surface-300"}`} />
+              <span className="text-sm font-medium text-ink-700">Stripe</span>
+            </div>
+            <p className="text-xs text-ink-500 mb-3">
+              {data.hasStripeConnect
+                ? `Connected — MRR, subscriptions and churn synced weekly${stripeAt ? ` (last: ${stripeAt})` : ""}.`
+                : stripeOn
+                  ? "Connected — auto-importing charges and subscriptions."
+                  : "Auto-import MRR, subscriptions and churn from your Stripe account."}
+            </p>
+            {!stripeOn && (
+              <a
+                href="/api/oauth/stripe"
+                className="inline-flex h-8 items-center rounded-lg bg-brand-600 px-3 text-xs font-medium text-white hover:bg-brand-700 transition-colors"
+              >
+                Connect Stripe
+              </a>
+            )}
           </div>
-          <p className="text-xs text-ink-500 mb-3">
-            {data.hasStripeConnect
-              ? `Connected — MRR, subscriptions and churn synced weekly${stripeAt ? ` (last: ${stripeAt})` : ""}.`
-              : stripeOn
-                ? "Connected — auto-importing charges and subscriptions."
-                : "Auto-import MRR, subscriptions and churn from your Stripe account."}
-          </p>
-          {!stripeOn && (
-            <a
-              href="/api/auth/stripe/connect"
-              className="inline-flex h-8 items-center rounded-lg bg-brand-600 px-3 text-xs font-medium text-white hover:bg-brand-700 transition-colors"
-            >
-              Connect Stripe
-            </a>
-          )}
-        </div>
-        <div className={`rounded-xl border p-4 ${xeroOn ? "border-green-200 bg-green-50" : "border-surface-200"}`}>
-          <div className="flex items-center gap-2 mb-2">
-            <div className={`h-2 w-2 rounded-full ${xeroOn ? "bg-green-500" : "bg-surface-300"}`} />
-            <span className="text-sm font-medium text-ink-700">Xero</span>
+        )}
+        {showXero && (
+          <div className={`rounded-xl border p-4 ${xeroOn ? "border-green-200 bg-green-50" : "border-surface-200"}`} data-testid="source-xero">
+            <div className="flex items-center gap-2 mb-2">
+              <div className={`h-2 w-2 rounded-full ${xeroOn ? "bg-green-500" : "bg-surface-300"}`} />
+              <span className="text-sm font-medium text-ink-700">Xero</span>
+            </div>
+            <p className="text-xs text-ink-500 mb-3">
+              {xeroOn
+                ? `Connected — P&L income, expenses and bank balance synced weekly${xeroAt ? ` (last: ${xeroAt})` : ""}.`
+                : "Auto-import P&L income, expenses and bank balance from Xero."}
+            </p>
+            {!xeroOn && (
+              <a
+                href="/api/oauth/xero"
+                className="inline-flex h-8 items-center rounded-lg bg-brand-600 px-3 text-xs font-medium text-white hover:bg-brand-700 transition-colors"
+              >
+                Connect Xero
+              </a>
+            )}
           </div>
-          <p className="text-xs text-ink-500 mb-3">
-            {xeroOn
-              ? `Connected — P&L income, expenses and bank balance synced weekly${xeroAt ? ` (last: ${xeroAt})` : ""}.`
-              : "Auto-import P&L income, expenses and bank balance from Xero."}
-          </p>
-          {!xeroOn && xeroAvailable && (
-            <a
-              href="/api/oauth/xero"
-              className="inline-flex h-8 items-center rounded-lg bg-brand-600 px-3 text-xs font-medium text-white hover:bg-brand-700 transition-colors"
-            >
-              Connect Xero
-            </a>
-          )}
-          {!xeroOn && !xeroAvailable && (
-            <span
-              className="inline-flex h-8 items-center rounded-lg border border-surface-200 px-3 text-xs font-medium text-ink-400"
-              title="The Xero connection is not enabled on this deployment yet. Upload a bank CSV under Expenses in the meantime."
-              data-testid="xero-unavailable"
-            >
-              Xero — not available yet
-            </span>
-          )}
-        </div>
-        <div className="rounded-xl border border-surface-200 p-4">
+        )}
+        <div className="rounded-xl border border-surface-200 p-4" data-testid="source-csv">
           <div className="flex items-center gap-2 mb-2">
             <div className="h-2 w-2 rounded-full bg-surface-300" />
-            <span className="text-sm font-medium text-ink-700">QuickBooks</span>
+            <span className="text-sm font-medium text-ink-700">CSV import</span>
           </div>
           <p className="text-xs text-ink-500 mb-3">
-            A QuickBooks connection is not available yet. Export your P&amp;L as CSV and upload it under Expenses to get the same figures in.
+            Export your P&amp;L or bank statement as CSV and upload it under Expenses to get the same figures in.
           </p>
           <a
             href="/workspace/finance/expenses"
             className="inline-flex h-8 items-center rounded-lg border border-surface-200 px-3 text-xs font-medium text-ink-700 hover:bg-surface-50 transition-colors"
-            data-testid="quickbooks-unavailable"
           >
-            Upload a CSV instead
+            Upload a CSV
           </a>
         </div>
       </div>

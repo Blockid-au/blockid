@@ -145,13 +145,12 @@ export function OAuthConnectorCard(props: OAuthConnectorCardProps): React.ReactE
 
         <div className="flex flex-col gap-2 items-end shrink-0">
           {!props.configured ? (
-            <button
-              disabled
-              className="px-3 py-1.5 text-sm rounded-md border border-ink-300 dark:border-ink-700 text-muted dark:text-ink-600 cursor-not-allowed"
-              title="This connection is not enabled on this deployment yet."
-            >
-              Not available yet
-            </button>
+            // G20-F1: unreachable from the Integrations page (unconfigured rows
+            // are filtered before render); kept as a safe fallback for any
+            // other caller — a plain label, never a dead button.
+            <span className="px-3 py-1.5 text-sm text-muted" data-testid="connector-not-configured">
+              Not enabled on this deployment
+            </span>
           ) : state.connected ? (
             <>
               <button
