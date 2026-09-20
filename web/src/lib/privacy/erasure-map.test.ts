@@ -45,12 +45,12 @@ const fks = fixture.fks as Fk[];
 const fkByKey = new Map(fks.map((f) => [`${f.table}.${f.column}`, f]));
 
 describe("erasure map ↔ live-schema fixture", () => {
-  it("fixture is the 139-FK production dump (129 live + the three 0393 investor FKs + the 0405 intake FK + the 0406 feedback-letter FK + the four 0417 claims/evidence_records/claim_versions FKs + the 0416 pilot_orders FK)", () => {
+  it("fixture is the 141-FK production dump (129 live + the three 0393 investor FKs + the 0405 intake FK + the 0406 feedback-letter FK + the four 0417 claims/evidence_records/claim_versions FKs + the 0416 pilot_orders FK + the two 0422 intake_templates/cohort_snapshots FKs)", () => {
     expect(fixture.referenced).toBe("public.app_users(id)");
-    expect(fks.length).toBe(139);
+    expect(fks.length).toBe(141);
     expect(fixture.count).toBe(fks.length);
     const by = fks.reduce<Record<string, number>>((acc, f) => ({ ...acc, [f.on_delete]: (acc[f.on_delete] ?? 0) + 1 }), {});
-    expect(by).toEqual({ CASCADE: 90, "NO ACTION": 14, "SET NULL": 29, RESTRICT: 6 });
+    expect(by).toEqual({ CASCADE: 91, "NO ACTION": 14, "SET NULL": 30, RESTRICT: 6 });
   });
 
   it("every FK is mapped exactly once and nothing stale is mapped", () => {
@@ -146,9 +146,9 @@ describe("erasure map ↔ live-schema fixture", () => {
 
   it("summary matches the classification", () => {
     const s = summariseErasureMap();
-    expect(s.entries).toBe(139);
-    expect(s.delete + s.anonymise + s.detach).toBe(139);
-    expect(s).toMatchObject({ delete: 84, anonymise: 35, detach: 20, immutable: 3, tables: 124 });
+    expect(s.entries).toBe(141);
+    expect(s.delete + s.anonymise + s.detach).toBe(141);
+    expect(s).toMatchObject({ delete: 85, anonymise: 35, detach: 21, immutable: 3, tables: 126 });
     expect(s.project_detaches).toBe(PROJECT_DETACHES.length);
     expect(s.non_fk_extras).toBe(NON_FK_EXTRAS.length);
   });
@@ -179,9 +179,9 @@ describe("erasure migration ↔ map parity", () => {
     expect(extractBlock(sql, EXTRAS_BEGIN, EXTRAS_END)).toBe(renderExtrasBlock());
   });
 
-  it("the SQL block parses back to the same 139 entries", () => {
+  it("the SQL block parses back to the same 141 entries", () => {
     const parsed = parseMapBlock(extractBlock(sql, MAP_BEGIN, MAP_END)!);
-    expect(parsed.length).toBe(139);
+    expect(parsed.length).toBe(141);
     const ord = orderedEntries();
     parsed.forEach((p, i) => {
       const e = ord[i];

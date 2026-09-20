@@ -1,8 +1,8 @@
 {
   "dumped_at": "2026-09-17",
-  "source": "pg_constraint (contype=f) on production supabase-db, confrelid = public.app_users; 0417 claims/evidence_records/claim_versions FKs added by hand until applied; regenerate with `node scripts/db/app-users-fk-inventory.mjs --json --fixture`",
+  "source": "pg_constraint (contype=f) on production supabase-db, confrelid = public.app_users; 0417 claims/evidence_records/claim_versions FKs + 0422 intake_templates/cohort_snapshots FKs added by hand until applied; regenerate with `node scripts/db/app-users-fk-inventory.mjs --json --fixture`",
   "referenced": "public.app_users(id)",
-  "count": 139,
+  "count": 141,
   "fks": [
     {
       "constraint": "ab_assignments_user_id_fkey",
@@ -147,6 +147,13 @@
     {
       "constraint": "claims_created_by_fkey",
       "table": "claims",
+      "column": "created_by",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "cohort_snapshots_created_by_fkey",
+      "table": "cohort_snapshots",
       "column": "created_by",
       "on_delete": "SET NULL",
       "not_null": false
@@ -488,6 +495,13 @@
       "not_null": true
     },
     {
+      "constraint": "intake_templates_owner_user_id_fkey",
+      "table": "intake_templates",
+      "column": "owner_user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
       "constraint": "investor_links_founder_user_id_fkey",
       "table": "investor_links",
       "column": "founder_user_id",
@@ -609,6 +623,13 @@
     {
       "constraint": "password_reset_tokens_user_id_fkey",
       "table": "password_reset_tokens",
+      "column": "user_id",
+      "on_delete": "CASCADE",
+      "not_null": true
+    },
+    {
+      "constraint": "pilot_orders_user_id_fkey",
+      "table": "pilot_orders",
       "column": "user_id",
       "on_delete": "CASCADE",
       "not_null": true
@@ -966,13 +987,6 @@
     {
       "constraint": "webhook_endpoints_user_id_fkey",
       "table": "webhook_endpoints",
-      "column": "user_id",
-      "on_delete": "CASCADE",
-      "not_null": true
-    },
-    {
-      "constraint": "pilot_orders_user_id_fkey",
-      "table": "pilot_orders",
       "column": "user_id",
       "on_delete": "CASCADE",
       "not_null": true
