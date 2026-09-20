@@ -89,7 +89,7 @@ export function TbrReportV2({ report, strings, locale = "en", upgradeHref, after
         </Fragment>
       ))}
       {afterChapters}
-      <TbrValuation report={report} title={t.secValuation} />
+      <TbrValuation report={report} title={t.secValuation} locale={locale} />
       <TbrPhaseGates report={report} title={t.secPhaseGates} locale={locale} />
       <TbrMoney report={report} title={t.secMoney} />
       <TbrActionPlan report={report} title={t.secActionPlan} />

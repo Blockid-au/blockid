@@ -44,6 +44,7 @@ import { visualToPng, type PngResult } from "@/lib/report-visuals/png";
 import type { Band, DataState, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { projectForTier, type FreeTierProjection, type TrimLevel } from "@/lib/report-v2/free-tier";
 import { DIM_ORDER, type DimensionChapter, type ReportV2 } from "@/lib/report-v2/schema";
+import { buildValuationView, CONNECTORS_HREF } from "@/lib/report-v2/valuation-view";
 import { PDF_ENTITY_LINE, PDF_FINANCIAL_PROJECTION_DISCLAIMER, PDF_GENERAL_ADVICE_DISCLAIMER } from "@/lib/pdf/advice-disclaimer";
 import { defaultPreparedWith } from "@/lib/report-v2/prepared-with";
 
@@ -68,14 +69,6 @@ const stateLabel = (d: DataState): string => (d === "real" ? "real data" : d ===
 const bandHex = (b: Band): string => BAND_COLOUR[b].replace("#", "");
 const bandOf = (score: number): Band => (score >= 70 ? "strong" : score >= 40 ? "developing" : "early");
 const WINDOW_LABEL = { this_week: "this week", "30d": "next 30 days", "90d": "next 90 days" } as const;
-const METHOD_LABEL: Record<string, string> = {
-  revenue_multiple: "Revenue multiple",
-  berkus: "Berkus",
-  dcf_proxy: "DCF proxy",
-  comparables: "AU comparables",
-  risk_factor_summation: "Risk-factor summation",
-  scorecard: "Scorecard (reference)",
-};
 
 function fmtDate(iso: string, locale: "en" | "vi"): string {
   const d = new Date(iso);
@@ -324,30 +317,56 @@ function chapter(ch: DimensionChapter, index: number, images: TbrDocxImages, loc
   return out;
 }
 
-function valuation(report: ReportV2, images: TbrDocxImages, projection: FreeTierProjection): Block[] {
+function valuation(report: ReportV2, images: TbrDocxImages, locale: "en" | "vi", projection: FreeTierProjection): Block[] {
   const v = report.valuation;
+  const view = buildValuationView(v, locale);
+  const vs = view.strings;
   const out: Block[] = [pageBreak(), h1("Valuation", "10")];
   if (report.cover.svi.band === "pending") {
-    out.push(p("The indicative valuation is computed from the 8 scored dimensions. Run the analysis first — the range, five methods and comparables appear here once at least one dimension is scored."));
+    out.push(p(vs.pending));
     return out;
   }
   const rangeBars = v.visuals.find((x) => x.kind === "range_bars");
   const others = v.visuals.filter((x) => x !== rangeBars);
-  out.push(small(`CFO · consensus confidence ${Math.round(v.consensus.confidence * 100)}%`));
-  out.push(p(`Consensus range: ${aud(v.consensus.lowAud)} – ${aud(v.consensus.midAud)} – ${aud(v.consensus.highAud)} (low / mid / high)`, { bold: true }));
+  out.push(small(`CFO · ${vs.confidence(view.confidencePct)}`));
+  out.push(p(`${vs.consensus}: ${aud(v.consensus.lowAud)} – ${aud(v.consensus.midAud)} – ${aud(v.consensus.highAud)} (${vs.low.toLowerCase()} / ${vs.consensus.toLowerCase()} / ${vs.high.toLowerCase()})`, { bold: true }));
   if (rangeBars) out.push(...figure(rangeBars, images, CONTENT_PX, `${rangeBars.title} · ${stateLabel(rangeBars.dataState)}`));
   if (!projection.free) {
-    out.push(
-      table(
-        ["Method", "Weight", "Low", "Mid", "High", "Rationale"],
-        v.methods.map((m) => [METHOD_LABEL[m.method] ?? m.method, `${Math.round(m.weight * 100)}%`, aud(m.lowAud), aud(m.midAud), aud(m.highAud), m.applicable ? m.rationale : `not applicable — ${m.rationale}`]),
-        [20, 10, 12, 12, 12, 34],
-      ),
-    );
-    out.push(small(`Scenarios: bear ${aud(v.scenarios.bear)} · base ${aud(v.scenarios.base)} · bull ${aud(v.scenarios.bull)}`));
-    if (v.ask) out.push(small(`Ask: ${aud(v.ask.preMoneyAud)} pre-money, raising ${aud(v.ask.raiseAud)} — ${v.ask.verdict.replace(/_/g, " ")} (${v.ask.gapPct > 0 ? "+" : ""}${v.ask.gapPct}%)`));
-    out.push(small(`Sector multiples (${v.sectorMultiples.sector}): ${v.sectorMultiples.low}× / ${v.sectorMultiples.median}× / ${v.sectorMultiples.high}× ARR — ${v.sectorMultiples.sourceLabel} (${v.sectorMultiples.sourceDate})`));
-    out.push(small(`AU comparables: ${v.comparables.n} raises tracked, ${v.comparables.withMultiplesN} with disclosed multiples.`));
+    // G19-S42 — inputs & assumptions, applicable methods only, unit economics,
+    // cross-checks, consistency notes, ask only when stated (same rows as web / PDF).
+    if (view.inputRows.length) {
+      out.push(h2(vs.inputsTitle));
+      out.push(table([vs.thInput, vs.thValue, vs.thSource], view.inputRows.map((r) => [r.label, r.value, vs.source[r.source]]), [30, 50, 20]));
+    }
+    if (view.noneApplicable) {
+      out.push(small(`${vs.noneApplicable} ${vs.connectorsCta}: ${CONNECTORS_HREF}`));
+    } else {
+      out.push(h2(vs.methodsTitle));
+      out.push(
+        table(
+          [vs.thMethod, vs.thWeight, vs.low, vs.consensus, vs.high, vs.thDerivation],
+          view.methodRows.map((m) => [m.label, `${m.weightPct}%`, aud(m.lowAud), aud(m.midAud), aud(m.highAud), m.derivation ? `${m.derivation} — ${m.rationale}` : m.rationale]),
+          [20, 10, 12, 12, 12, 34],
+        ),
+      );
+      if (view.needRevenueLine) out.push(small(`${view.needRevenueLine} ${vs.connectorsCta}: ${CONNECTORS_HREF}`));
+    }
+    if (view.unitEconomics.length) {
+      out.push(h2(vs.unitEconomicsTitle));
+      out.push(small(view.unitEconomics.map((r) => `${r.label} ${r.value}`).join(" · ")));
+    }
+    out.push(small(`${vs.scenarios}: ${view.scenarioLine}`));
+    if (view.askLine) out.push(small(view.askLine));
+    out.push(small(`${view.sectorMultiplesTitle}: ${view.sectorMultiplesLine}`));
+    out.push(small(view.comparablesLine));
+    if (view.crossChecks.length) {
+      out.push(h2(vs.crossChecksTitle));
+      for (const c of view.crossChecks) out.push(small(`${c.label}: ${c.range}${c.n !== null ? ` (${vs.nLabel(c.n)})` : ""} — ${c.source} · ${vs.asOf(c.asOf)}`));
+    }
+    if (view.consistency.length) {
+      out.push(h2(vs.consistencyTitle));
+      for (const n of view.consistency) out.push(small(n));
+    }
     if (v.narrative) out.push(p(v.narrative));
     for (const x of others) out.push(...figure(x, images, 420, `${x.title} · ${stateLabel(x.dataState)}`));
   }
@@ -440,7 +459,7 @@ export async function buildTbrDocx(report: ReportV2, opts: TbrDocxOptions = {}):
     ...cover(r, images, locale, prepared),
     ...executive(r, images, locale),
     ...r.dimensions.flatMap((ch, i) => chapter(ch, i + 2, images, locale, projection)),
-    ...valuation(r, images, projection),
+    ...valuation(r, images, locale, projection),
     ...phaseGates(r, images, locale, projection),
     ...money(r, images, projection),
     ...actionPlan(r, images, projection),

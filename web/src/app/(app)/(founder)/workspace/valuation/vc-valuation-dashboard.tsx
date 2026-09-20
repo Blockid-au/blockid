@@ -426,20 +426,25 @@ function MethodsTab({ report }: { report: VcValuationReport }) {
   return (
     <div className="space-y-3">
       {report.methods.map((m) => (
-        <div key={m.method} className="rounded-xl border border-surface-200 bg-white p-5">
+        <div key={m.method} className={m.applicable === false ? "rounded-xl border border-dashed border-surface-200 bg-surface-50 p-5" : "rounded-xl border border-surface-200 bg-white p-5"}>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-ink-800">
                 {m.method.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
               </p>
-              <p className="text-xs text-muted mt-0.5">Weight: {fmtPct(m.weight * 100)}</p>
+              <p className="text-xs text-muted mt-0.5">{m.applicable === false ? "Not applicable" : `Weight: ${fmtPct(m.weight * 100)}`}</p>
             </div>
-            <div className="text-right">
-              <p className="text-xl font-bold text-brand-600 tabular-nums">{fmtAud(m.midAud)}</p>
-              <p className="text-[10px] text-muted">
-                {fmtAud(m.lowAud)} – {fmtAud(m.highAud)}
-              </p>
-            </div>
+            {/* G19-S42: a method that did not run shows why instead of A$0. */}
+            {m.applicable === false ? (
+              <p className="max-w-xs text-right text-xs text-muted">{m.rationale}</p>
+            ) : (
+              <div className="text-right">
+                <p className="text-xl font-bold text-brand-600 tabular-nums">{fmtAud(m.midAud)}</p>
+                <p className="text-[10px] text-muted">
+                  {fmtAud(m.lowAud)} – {fmtAud(m.highAud)}
+                </p>
+              </div>
+            )}
           </div>
           {/* Weight bar */}
           <div className="mt-3 h-1.5 rounded-full bg-surface-100 overflow-hidden">

@@ -35,6 +35,7 @@ import type { Band, DataState, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { levelForEstimate, MAX_TRIM_LEVEL, projectForTier, type FreeTierProjection, type TrimLevel } from "@/lib/report-v2/free-tier";
 import { defaultPreparedWith } from "@/lib/report-v2/prepared-with";
 import { DIM_ORDER, type DimensionChapter, type ReportV2 } from "@/lib/report-v2/schema";
+import { buildValuationView, CONNECTORS_HREF } from "@/lib/report-v2/valuation-view";
 import { AdviceDisclaimer, PDF_ENTITY_LINE } from "./advice-disclaimer";
 import { pdfPageCount } from "./page-count";
 
@@ -125,14 +126,6 @@ const stateLabel = (d: DataState): string => (d === "real" ? "real data" : d ===
 const bandColour = (b: Band): string => BAND_COLOUR[b];
 const bandOf = (score: number): Band => (score >= 70 ? "strong" : score >= 40 ? "developing" : "early");
 const WINDOW_LABEL = { this_week: "this week", "30d": "next 30 days", "90d": "next 90 days" } as const;
-const METHOD_LABEL: Record<string, string> = {
-  revenue_multiple: "Revenue multiple",
-  berkus: "Berkus",
-  dcf_proxy: "DCF proxy",
-  comparables: "AU comparables",
-  risk_factor_summation: "Risk-factor summation",
-  scorecard: "Scorecard (reference)",
-};
 
 function fmtDate(iso: string, locale: "en" | "vi"): string {
   const d = new Date(iso);
@@ -466,15 +459,17 @@ function Chapter({ ch, index, locale, projection }: { ch: DimensionChapter; inde
   );
 }
 
-function Valuation({ report, projection }: { report: ReportV2; projection: FreeTierProjection }) {
+function Valuation({ report, locale, projection }: { report: ReportV2; locale: "en" | "vi"; projection: FreeTierProjection }) {
   const v = report.valuation;
+  const view = buildValuationView(v, locale);
+  const vs = view.strings;
   const rangeBars = v.visuals.find((x) => x.kind === "range_bars");
   const others = v.visuals.filter((x) => x !== rangeBars);
   if (report.cover.svi.band === "pending") {
     return (
       <View>
         <SectionHead no="10" title={TBR_PDF_SECTION_TITLES.valuation} />
-        <Text style={s.body}>The indicative valuation is computed from the 8 scored dimensions. Run the analysis first — the range, five methods and comparables appear here once at least one dimension is scored.</Text>
+        <Text style={s.body}>{t(vs.pending)}</Text>
       </View>
     );
   }
@@ -483,12 +478,12 @@ function Valuation({ report, projection }: { report: ReportV2; projection: FreeT
       <SectionHead no="10" title={TBR_PDF_SECTION_TITLES.valuation} />
       <View style={[s.row, { marginBottom: 6 }]}>
         <Pill>cfo</Pill>
-        <Text style={s.tiny}>{`consensus confidence ${Math.round(v.consensus.confidence * 100)}%`}</Text>
+        <Text style={s.tiny}>{t(vs.confidence(view.confidencePct))}</Text>
       </View>
       <View style={[s.row, { marginBottom: 6 }]} wrap={false}>
         {(["lowAud", "midAud", "highAud"] as const).map((k) => (
           <View key={k} style={[s.softBox, { flex: 1, marginRight: 6 }]}>
-            <Text style={s.th}>{k === "lowAud" ? "Low" : k === "midAud" ? "Mid" : "High"}</Text>
+            <Text style={s.th}>{t(k === "lowAud" ? vs.low : k === "midAud" ? vs.consensus : vs.high)}</Text>
             <Text style={[s.bold, { fontSize: 14 }]}>{aud(v.consensus[k])}</Text>
           </View>
         ))}
@@ -496,30 +491,79 @@ function Valuation({ report, projection }: { report: ReportV2; projection: FreeT
       {rangeBars && <Figure spec={rangeBars} widthPt={440} caption={`${rangeBars.title} · ${stateLabel(rangeBars.dataState)}`} />}
       {!projection.free && (
         <View>
-          <View style={s.table}>
-            <View style={s.tr}>
-              <Text style={[s.th, s.cell2]}>Method</Text>
-              <Text style={[s.th, s.cell1, s.right]}>Weight</Text>
-              <Text style={[s.th, s.cell1, s.right]}>Low</Text>
-              <Text style={[s.th, s.cell1, s.right]}>Mid</Text>
-              <Text style={[s.th, s.cell1, s.right]}>High</Text>
-              <Text style={[s.th, s.cell3]}>Rationale</Text>
-            </View>
-            {v.methods.map((m) => (
-              <View key={m.method} style={s.tr}>
-                <Text style={[s.td, s.cell2, m.applicable ? {} : { color: C.faint }]}>{t(METHOD_LABEL[m.method] ?? m.method)}</Text>
-                <Text style={[s.td, s.cell1, s.right]}>{`${Math.round(m.weight * 100)}%`}</Text>
-                <Text style={[s.td, s.cell1, s.right]}>{aud(m.lowAud)}</Text>
-                <Text style={[s.td, s.cell1, s.right]}>{aud(m.midAud)}</Text>
-                <Text style={[s.td, s.cell1, s.right]}>{aud(m.highAud)}</Text>
-                <Text style={[s.td, s.cell3, s.tiny]}>{t(m.applicable ? m.rationale : `not applicable — ${m.rationale}`)}</Text>
+          {view.inputRows.length > 0 && (
+            <View>
+              <Text style={s.h3}>{t(vs.inputsTitle)}</Text>
+              <View style={s.table}>
+                <View style={s.tr}>
+                  <Text style={[s.th, s.cell2]}>{t(vs.thInput)}</Text>
+                  <Text style={[s.th, s.cell3]}>{t(vs.thValue)}</Text>
+                  <Text style={[s.th, s.cell1]}>{t(vs.thSource)}</Text>
+                </View>
+                {view.inputRows.map((r) => (
+                  <View key={r.key} style={s.tr}>
+                    <Text style={[s.td, s.cell2]}>{t(r.label)}</Text>
+                    <Text style={[s.td, s.cell3]}>{t(r.value)}</Text>
+                    <Text style={[s.td, s.cell1, s.tiny]}>{t(vs.source[r.source])}</Text>
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
-          <Text style={s.small}>{t(`Scenarios: bear ${aud(v.scenarios.bear)} · base ${aud(v.scenarios.base)} · bull ${aud(v.scenarios.bull)}`)}</Text>
-          {v.ask && <Text style={s.small}>{t(`Ask: ${aud(v.ask.preMoneyAud)} pre-money, raising ${aud(v.ask.raiseAud)} — ${v.ask.verdict.replace(/_/g, " ")} (${v.ask.gapPct > 0 ? "+" : ""}${v.ask.gapPct}%)`)}</Text>}
-          <Text style={s.small}>{t(`Sector multiples (${v.sectorMultiples.sector}): ${v.sectorMultiples.low}× / ${v.sectorMultiples.median}× / ${v.sectorMultiples.high}× ARR — ${v.sectorMultiples.sourceLabel} (${v.sectorMultiples.sourceDate})`)}</Text>
-          <Text style={s.small}>{t(`AU comparables: ${v.comparables.n} raises tracked, ${v.comparables.withMultiplesN} with disclosed multiples.`)}</Text>
+            </View>
+          )}
+          {view.noneApplicable ? (
+            <Text style={s.small}>{t(`${vs.noneApplicable} ${vs.connectorsCta}: ${CONNECTORS_HREF}`)}</Text>
+          ) : (
+            <View>
+              <Text style={s.h3}>{t(vs.methodsTitle)}</Text>
+              <View style={s.table}>
+                <View style={s.tr}>
+                  <Text style={[s.th, s.cell2]}>{t(vs.thMethod)}</Text>
+                  <Text style={[s.th, s.cell1, s.right]}>{t(vs.thWeight)}</Text>
+                  <Text style={[s.th, s.cell1, s.right]}>{t(vs.low)}</Text>
+                  <Text style={[s.th, s.cell1, s.right]}>{t(vs.consensus)}</Text>
+                  <Text style={[s.th, s.cell1, s.right]}>{t(vs.high)}</Text>
+                  <Text style={[s.th, s.cell3]}>{t(vs.thDerivation)}</Text>
+                </View>
+                {view.methodRows.map((m) => (
+                  <View key={m.method} style={s.tr}>
+                    <Text style={[s.td, s.cell2]}>{t(m.label)}</Text>
+                    <Text style={[s.td, s.cell1, s.right]}>{`${m.weightPct}%`}</Text>
+                    <Text style={[s.td, s.cell1, s.right]}>{aud(m.lowAud)}</Text>
+                    <Text style={[s.td, s.cell1, s.right]}>{aud(m.midAud)}</Text>
+                    <Text style={[s.td, s.cell1, s.right]}>{aud(m.highAud)}</Text>
+                    <Text style={[s.td, s.cell3, s.tiny]}>{t(m.derivation ? `${m.derivation} — ${m.rationale}` : m.rationale)}</Text>
+                  </View>
+                ))}
+              </View>
+              {view.needRevenueLine && <Text style={s.small}>{t(`${view.needRevenueLine} ${vs.connectorsCta}: ${CONNECTORS_HREF}`)}</Text>}
+            </View>
+          )}
+          {view.unitEconomics.length > 0 && (
+            <View>
+              <Text style={s.h3}>{t(vs.unitEconomicsTitle)}</Text>
+              <Text style={s.small}>{t(view.unitEconomics.map((r) => `${r.label} ${r.value}`).join(" · "))}</Text>
+            </View>
+          )}
+          <Text style={s.small}>{t(`${vs.scenarios}: ${view.scenarioLine}`)}</Text>
+          {view.askLine && <Text style={s.small}>{t(view.askLine)}</Text>}
+          <Text style={s.small}>{t(`${view.sectorMultiplesTitle}: ${view.sectorMultiplesLine}`)}</Text>
+          <Text style={s.small}>{t(view.comparablesLine)}</Text>
+          {view.crossChecks.length > 0 && (
+            <View>
+              <Text style={s.h3}>{t(vs.crossChecksTitle)}</Text>
+              {view.crossChecks.map((c, i) => (
+                <Text key={i} style={s.small}>{t(`${c.label}: ${c.range}${c.n !== null ? ` (${vs.nLabel(c.n)})` : ""} — ${c.source} · ${vs.asOf(c.asOf)}`)}</Text>
+              ))}
+            </View>
+          )}
+          {view.consistency.length > 0 && (
+            <View>
+              <Text style={s.h3}>{t(vs.consistencyTitle)}</Text>
+              {view.consistency.map((n, i) => (
+                <Text key={i} style={s.small}>{t(n)}</Text>
+              ))}
+            </View>
+          )}
           {v.narrative ? <Text style={[s.body, { marginTop: 6 }]}>{t(v.narrative)}</Text> : null}
           {others.map((x) => (
             <Figure key={x.id} spec={x} widthPt={300} caption={`${x.title} · ${stateLabel(x.dataState)}`} />
@@ -726,7 +770,7 @@ export function TbrReportPdf({ report, level = 0, preparedWith, locale }: TbrPdf
   });
   body.push(
     <View key="val" break>
-      <Valuation report={r} projection={projection} />
+      <Valuation report={r} locale={loc} projection={projection} />
     </View>,
   );
   body.push(

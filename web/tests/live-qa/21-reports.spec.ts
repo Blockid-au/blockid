@@ -278,6 +278,30 @@ test.describe("TBR cover — business verification badge (S36)", () => {
   });
 });
 
+// G19-S42 — valuation truth: the demo TBR (Stripe-evidenced revenue) shows
+// the "Inputs & assumptions" table with source chips, only the applicable
+// method rows (5 — scorecard and the stage baseline are cross-checks), the
+// cross-check block (backtest quartile with N + AU stage baseline) and no
+// ask line (the demo founder stated no raise).
+test.describe("TBR valuation — inputs & assumptions (G19-S42)", () => {
+  test("/tbr/demo valuation shows the Inputs & assumptions table, applicable methods only, cross-checks, no ask", async ({ page, visit }, testInfo) => {
+    await visit("/tbr/demo");
+    const inputs = page.locator("[data-tbr-valuation-inputs]");
+    await expect(inputs).toBeVisible({ timeout: 30_000 });
+    const text = await inputs.innerText();
+    await evidence(testInfo, "valuation inputs", { text });
+    expect(text).toMatch(/Inputs & assumptions/);
+    expect(text).toMatch(/MRR/);
+    expect(text).toMatch(/not stated/);
+    await expect(inputs.locator('[data-tbr-source="connector"]').first()).toBeVisible();
+    await expect(page.locator("[data-tbr-method]")).toHaveCount(5);
+    await expect(page.locator('[data-tbr-method="stage_baseline"]')).toHaveCount(0);
+    await expect(page.locator("[data-tbr-valuation-cross-checks]")).toBeVisible();
+    await expect(page.locator("[data-tbr-valuation-ask]")).toHaveCount(0);
+    await expect(page.locator("[data-tbr-valuation-none]")).toHaveCount(0);
+  });
+});
+
 /**
  * G14-S37 — Founder execution profile. The QA founder fills the structured
  * Execution fields through POST /api/founder-profile (the same route the
