@@ -444,7 +444,7 @@ function InnerForm(props: SignupFormProps) {
       </label>
       <label className="block mb-3.5">
         {fieldLabel("Card details")}
-        <div ref={cardWrapRef} className="bg-[#0B1220] border border-[#1F2A44] rounded-xl px-3 py-3">
+        <div ref={cardWrapRef} className="bg-[#0B1220] border border-[#1F2A44] rounded-xl px-3 py-3" data-testid="signup-card-field">
           <CardElement options={CARD_STYLE} />
         </div>
       </label>
@@ -491,7 +491,7 @@ function InnerForm(props: SignupFormProps) {
             : TRIAL_COPY.cta}
       </button>
 
-      <p className="mt-3 text-xs text-slate-500 leading-relaxed">
+      <p className="mt-3 text-xs text-slate-500 leading-relaxed" data-testid="signup-trial-terms">
         {isEvaluator ? evaluatorTrialLine(selectedPlan?.trialDays) + " " : ""}
         {TRIAL_COPY.fine_print}
         {selectedPlan ? " " + priceLine : ""}
