@@ -14,6 +14,7 @@ import {
   emitEvidenceVerified,
   emitFiEvent,
   emitScoreRecalculated,
+  emitOutcomeRecorded,
   emitWebsiteImported,
   evidenceAddedEnvelope,
   evidenceVerifiedEnvelope,
@@ -21,15 +22,16 @@ import {
   onInvoicePaid,
   onPilotStarted,
   scoreRecalculatedEnvelope,
+  outcomeRecordedEnvelope,
 } from "./fi-events";
 
 beforeEach(() => trackEventMock.mockClear());
 
 describe("FI catalogue", () => {
-  it("has 18 names: 10 aliases onto existing events + 8 native events, no overlap", () => {
-    expect(FI_EVENT_CATALOGUE).toHaveLength(18);
+  it("has 19 names: 10 aliases onto existing events + 9 native events, no overlap", () => {
+    expect(FI_EVENT_CATALOGUE).toHaveLength(19);
     expect(Object.keys(FI_EVENT_ALIASES)).toHaveLength(10);
-    expect(FI_NATIVE_EVENTS).toHaveLength(8);
+    expect(FI_NATIVE_EVENTS).toHaveLength(9);
     for (const a of Object.keys(FI_EVENT_ALIASES)) expect(FI_NATIVE_EVENTS as readonly string[]).not.toContain(a);
     for (const n of FI_EVENT_CATALOGUE) expect(typeof canonicalFiEvent(n)).toBe("string");
     expect(canonicalFiEvent("report_opened")).toBe("report_view");
@@ -136,5 +138,17 @@ describe("G21 P1-C evidence / score envelopes (pure)", () => {
     const [name, params] = trackEventMock.mock.calls[0] as unknown as [string, Record<string, unknown>];
     expect(name).toBe("score_recalculated");
     expect(params).toMatchObject({ reason: "manual", score: 72, organisation: "owner-1", startup: "proj-1", channel: "workspace" });
+  });
+
+  it("outcome_recorded (G21 P3-A): requires a project; carries outcome id, kind, source, status; stored under its own name", () => {
+    expect(outcomeRecordedEnvelope({ ownerUserId: "o", projectId: null, channel: "workspace", outcomeId: "x", kind: "funding_raised", source: "founder", status: "proposed" })).toBeNull();
+    expect(emitOutcomeRecorded({ ownerUserId: "o", projectId: null, channel: "workspace", outcomeId: "x", kind: "funding_raised", source: "founder", status: "proposed" })).toBe(false);
+    expect(trackEventMock).not.toHaveBeenCalled();
+    expect(emitOutcomeRecorded({ ownerUserId: "owner-1", actorUserId: "eval-1", plan: "investor_fund", projectId: "proj-1", channel: "api", outcomeId: "o-1", kind: "grant_success", source: "evaluator", status: "proposed" })).toBe(true);
+    const [name, params, opts] = trackEventMock.mock.calls[0] as unknown as [string, Record<string, unknown>, { userId: string | null }];
+    expect(name).toBe("outcome_recorded");
+    expect(params).toMatchObject({ outcome_id: "o-1", project_id: "proj-1", kind: "grant_success", outcome_source: "evaluator", status: "proposed", organisation: "owner-1", startup: "proj-1", plan: "investor_fund", channel: "api" });
+    expect(params.fi_event).toBeUndefined();
+    expect(opts.userId).toBe("eval-1");
   });
 });

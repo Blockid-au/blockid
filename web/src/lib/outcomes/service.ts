@@ -6,7 +6,9 @@
 //                            is `proposed` for founder + evaluator sources
 //                            (the owner or an admin confirms), `confirmed`
 //                            only when an admin records with confirm=true.
-//   listProjectOutcomes()    the project's rows, newest observation first.
+//   listProjectOutcomes()    the project's rows, newest observation first
+//                            (throws on a DB error so routes can map a
+//                            missing table to 503 migration_pending).
 //   projectOutcomesByTier()  pure — what an evaluator sees for a consent
 //                            tier (attributed_only → confirmed rows without
 //                            values / notes; reports_shared → values without
@@ -103,8 +105,9 @@ export async function listProjectOutcomes(db: OutcomesDb, projectId: string, opt
   let q = db.from("startup_outcomes").select(OUTCOME_SELECT).eq("project_id", projectId).order("observed_at", { ascending: false }).limit(opts.limit ?? 200);
   if (opts.status && opts.status !== "all") q = q.eq("status", opts.status);
   const { data, error } = await q;
-  if (error || !data) return [];
-  return data as OutcomeRow[];
+  // Throws so a missing 0427 table surfaces as `migration_pending` on the route; pages catch and render the empty state.
+  if (error) throw error;
+  return (data ?? []) as OutcomeRow[];
 }
 
 /** The wire shape an evaluator receives — `value` / `note` may be withheld by tier. */
