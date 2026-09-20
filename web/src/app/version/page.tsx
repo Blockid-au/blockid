@@ -145,6 +145,17 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.17.0",
+    date: "2026-09-20",
+    title: "Ready for sale (G20) + report quality batches 1–2 (G19)",
+    changes: [
+      "[G20] Feature inventory per persona; 19 unfinished features hidden behind a \"Not offered yet — talk to us\" card and removed from every nav, tour and the sitemap (SSO, white-label, digests, portfolio, unprovisioned connectors, /es /ja forks…); dead /score + /svi pages removed; plan bullets ↔ entitlement flags ↔ pages reconciled (migration 0414); a guard test forbids any live link to a hidden route",
+      "[G20] Signed-in page sweep (scripts/page-sweep.mjs, live-qa lane 33, weekly cron) across founder / evaluator / accelerator: streamed redirect()s behind workspace/loading.tsx → real 307s (CSP inline-script errors gone), /workspace/projects/compare React #441 fixed, the analyze page no longer renders the marketing landing inside the workspace, the Program cohort page reads the real schema, missing h1/main on dashboard / onboarding / score / strategy / ESOP / reports, 375 px overflow on /version, /changelog, /legal, /developers/api and five /tools",
+      "[G20] Purchase path lane (nothing paid): pricing → signup trial terms + card, checkout URL / interval_unavailable / contact_sales, evaluator Scout trial, credit packs + Startup Package from the catalogue, portal 404 on Free; buy-surface ↔ SKU mapping test; workspace copy on the messaging map (Beta chips, emoji icons, price literals → constants); member invite accept lands on /dashboard",
+      "[G19] Score ledger on every dimension, honest pre-revenue valuation (Berkus + scorecard + stage baseline), evidence & data CTAs in the report, paid view = ReportV2",
+    ],
+  },
+  {
     version: "3.16.0",
     date: "2026-09-19",
     title: "Reliability, first dollar, unicorn homepage, truth sweep (G15 / G16 / G17 / G18)",

@@ -1,5 +1,5 @@
 {
-  "version": "3.16.0",
+  "version": "3.17.0",
   "updatedAt": "2026-09-19T23:57:37.926Z",
   "architecture": {
     "summary": "BlockID.au — Startup Value Index (SVI) platform, evaluator-first: investors, accelerators and advisors pay (Scout A$79 / Firm A$149 / Program A$349 · Fund A$999 / Intake link A$249 / Index API A$299 · Cohort 25 A$5K/yr / Cohort 100 A$15K/yr · Trusted Business Report A$3); founders score free (Starter A$29 / Growth A$69 workspace). Next.js 16 App Router standalone (webpack) on bare metal behind nginx + Cloudflare, self-hosted Supabase Postgres (migrations through 0412, hand-applied), Stripe (single account, GST-inclusive), 12-gate deploy `web/scripts/deploy-live.sh` with live-SHA verification, weekly live QA suite, daily link check. AI: DeepInfra-first report chain with Anthropic / Gemini / Groq fallbacks and a daily free-model refresh; 11 C-Level agents own the 8 SVI dimensions (13-criteria internal rubric) and run the daily research / report crons (`web/scripts/crontab.production`). Ops: error digest + latency SLO + `/api/status` v2, weekly restore drill, Telegram → e-mail alert fallback.",

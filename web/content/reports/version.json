@@ -1,8 +1,8 @@
 {
-  "version": "v3.16.0",
-  "updated_at": "2026-09-19T23:58:00Z",
-  "git_sha": "31cb2dbca",
-  "release_id": "reliability-first-dollar-unicorn-homepage-truth-sweep",
+  "version": "v3.17.0",
+  "updated_at": "2026-09-20T10:30:00Z",
+  "git_sha": "93a25e5cd",
+  "release_id": "ready-for-sale",
   "shipped_summary": [
     "v3.16.0 \u2014 G15 + G16 + G17 + G18 (2026-09-18 \u2192 19). Aligns the release manifest (this file, /api/status, the footer badge, /version, /roadmap) with web/package.json, which the CEO implementing-plan loop had already carried to v3.15.0 while this file still said v3.13.2.",
     "G15 Reliability (2026-09-18) \u2014 deploy manifest written at build start, dirty-tree refusal and a gate-11 check that the live bundle SHA matches the release; --wait lock etiquette shared by deploy and live-qa; /data/logs append-mode production log with rotation; error-digest + latency-sample crons every 10 min; /api/status v2 (git_sha, errors_1h, ai, queues, backups_detail, slo.latency_p95_ms, crons_failed_24h) and /status sections (docs/ops/slo.md); weekly restore drill Sun 03:45 UTC (first run 12/12 tables \u2265 99.8 %, audit chain head ok); off-site backup failure alert; AI provider health snapshot + fully_degraded counter; stray-session sweep; Telegram \u2192 e-mail alert fallback (founder must mint a new bot token).",
@@ -18,5 +18,6 @@
     "G18 Truth sweep lanes A/B/C (2026-09-19)",
     "T0192 (CEO loop, v3.15.0)"
   ],
-  "notes": "Version sources: web/package.json + content/reports/project-state.json are written by the CEO implementing-plan loop (api/cron/agent-orchestrator update_artifacts); this file feeds /api/status, the footer badge, /version and /roadmap and is written by web/scripts/version-bump.mjs. Both were aligned by hand at v3.16.0 on 2026-09-19 (G18-B). Migrations applied through 0412 via scripts/db/apply-migration.sh. Founder-only follow-ups: new Telegram bot token, Drive quota auth for off-site backups (node --env-file=web/.env scripts/db-backup-offsite-auth.mjs), valid ANTHROPIC_API_KEY."
+  "notes": "Version sources: web/package.json + content/reports/project-state.json are written by the CEO implementing-plan loop (api/cron/agent-orchestrator update_artifacts); this file feeds /api/status, the footer badge, /version and /roadmap and is written by web/scripts/version-bump.mjs. Both were aligned by hand at v3.16.0 on 2026-09-19 (G18-B). Migrations applied through 0412 via scripts/db/apply-migration.sh. Founder-only follow-ups: new Telegram bot token, Drive quota auth for off-site backups (node --env-file=web/.env scripts/db-backup-offsite-auth.mjs), valid ANTHROPIC_API_KEY.",
+  "summary": "G20 Ready for sale: feature inventory + 19 hidden unfinished features (Not offered yet cards), signed-in page sweep across every persona (35 defects fixed: streamed redirects \u2192 real 307s, React #441 on compare, missing h1/main, dead API calls, mobile overflow), purchase path lane (nothing paid), workspace copy on the messaging map; G19 report quality batches 1\u20132 (peer session)."
 }
