@@ -177,7 +177,7 @@ function renderInline(input: string): string {
     (_, inner: string) =>
       // Encode @ as &#64; so Cloudflare Email Obfuscation doesn't replace
       // email addresses inside <code> with broken /cdn-cgi/l/email-protection links.
-      `<code class="rounded bg-surface-raised px-1.5 py-0.5 text-[0.85em] text-action">${inner.replace(/@/g, "&#64;")}</code>`,
+      `<code class="rounded bg-surface-raised px-1.5 py-0.5 text-[0.85em] text-action break-words [overflow-wrap:anywhere]">${inner.replace(/@/g, "&#64;")}</code>`,
   );
   s = s.replace(
     /\*\*([^*]+)\*\*/g,
