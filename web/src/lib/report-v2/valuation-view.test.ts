@@ -30,7 +30,7 @@ describe("buildValuationView", () => {
     expect(view.crossChecks[0].range).toBe("A$5M – A$8.3M – A$10.5M");
     expect(view.askLine).toBeNull();
     expect(view.consistency).toEqual([]);
-    expect(CONNECTORS_HREF).toBe("/workspace/settings/connectors");
+    expect(CONNECTORS_HREF).toBe("/workspace/evidence/connectors");
   });
 
   it("pre-revenue: 3 method rows, needs-revenue line for the 4 hidden methods, growth 'not provided', unit-economics rows only where a number exists", () => {

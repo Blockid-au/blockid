@@ -65,8 +65,8 @@ export interface ValuationView {
 
 const REVENUE_METHODS: readonly ValuationMethodKey[] = ["revenue_multiple", "dcf_proxy", "comparables", "risk_factor_summation"];
 
-/** `/workspace/settings/connectors` — where Stripe / Xero connect (G19-S42 CTA). */
-export const CONNECTORS_HREF = "/workspace/settings/connectors";
+/** `/workspace/evidence/connectors` — where Stripe / Xero connect (Evidence hub tab; the settings path never existed — gate-8 link check 2026-09-20). */
+export const CONNECTORS_HREF = "/workspace/evidence/connectors";
 
 function pct(n: number): string {
   return `${n > 0 ? "+" : ""}${n}%`;

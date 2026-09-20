@@ -207,7 +207,7 @@ describe("renderTbrPdf — valuation chapter variants (G19-S42)", () => {
     expect(text).toContain("Scorecard (Bill Payne)");
     expect(text).toContain("AU stage baseline");
     expect(text).toContain("4 methods need revenue");
-    expect(text).toContain("/workspace/settings/connectors");
+    expect(text).toContain("/workspace/evidence/connectors");
     // The revenue-multiple method row is hidden (its name survives only inside the sector-multiples source label check below).
     expect(text).not.toMatch(/Revenue multiple\s+\d+%/);
     expect(text).not.toContain("Ask: ");
@@ -218,7 +218,7 @@ describe("renderTbrPdf — valuation chapter variants (G19-S42)", () => {
     const { buffer } = await renderTbrPdf(report);
     const text = await fullText(buffer);
     expect(text).toContain("No valuation method ran on this snapshot");
-    expect(text).toContain("/workspace/settings/connectors");
+    expect(text).toContain("/workspace/evidence/connectors");
     expect(text).not.toContain("Inputs & assumptions");
     expect(text).not.toMatch(/Berkus\s+\d+%/);
   }, 60_000);

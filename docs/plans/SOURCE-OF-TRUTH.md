@@ -344,6 +344,13 @@
 - **Next action:** merge → full vitest → deploy → elevated live-qa + link-check → read-only review → fixes → close.
 - **Blocker:** founder-only in Stripe: set `tax_behavior=inclusive` on the 18 unspecified prices; archive the legacy prices lane A confirms unused.
 
+### G20 — Ready for sale: feature audit · hide the unfinished · every page error-free · purchase path
+- **Source:** [`docs/plans/g20-ready-for-sale-2026-09-20.md`](./g20-ready-for-sale-2026-09-20.md) — founder 2026-09-20: "review lại toàn bộ feature, ẩn đi những chức năng thừa hoặc chưa hoàn thành, rà soát toàn bộ các trang trong site để không còn lỗi và fix, commit, deploy live để product ready sale".
+- **Baseline:** 367 page routes; "not available yet / coming soon" still on `workspace/settings/enterprise` (SSO, white-label), `workspace/score/listing`, `showcase`, `workspace/weekly-digest`, `admin/rnd`, `admin/tokens`; signed-in pages never swept; gate-8 link check + production link-check cover public pages only.
+- **Status:** **F1 ∥ F2 ∥ F3 in worktrees 2026-09-20** — F1 feature inventory per persona + `HIDDEN_FEATURES` (clean "Not offered yet" cards, nav/sitemap removal, redirects) + plan-bullet ↔ flag ↔ page parity · F2 signed-in page sweep (`scripts/page-sweep.mjs` + live-qa `33-page-sweep`: every reachable page × 4 personas — status, one h1, console, failed requests, 375 px overflow, alt/main) + fixes · F3 purchase-path lane (`34-purchase-path`, nothing paid) + workspace copy sweep + Startup Package / credit packs mapping. Coordinated with the peer's G19 (no report/TBR/score files).
+- **Next action:** merge → full vitest → deploy (serialized behind G19 batches) → elevated live-qa + link-check + page sweep → review → fixes → v3.17.0 → close.
+- **Blocker:** none engineering.
+
 ## 2. Requirements Register
 
 | ID | Source | Category | Status | Owner (skill) | Ship commit |
@@ -642,6 +649,7 @@ the sentinels is overwritten._
 
 | When | Who | What |
 |---|---|---|
+| 2026-09-20 | Claude (G18 ship + G20 open) | G18 v3.16.0 live (`18c1c151e`, 12/12): pricing parity (SVI Quick Report had booked A$25 since 08-01; reseller Growth A$99 → A$69; change-plan for v2 ids), GST rule, trial parity, self-serve cancel + Billing Portal config created in Stripe (account had none), v3.16.0 docs/version, one message + forbidden-phrase guard; review fixes deploying. G20 Ready-for-sale opened (peer owns G19 Report Quality). |
 | 2026-09-19 | Claude (G18 open) | Truth sweep opened: Stripe read-only audit committed; three lanes (pricing truth / version + docs / messaging) launched; SOT header refreshed (state, entity split, pricing v4). |
 | 2026-09-19 | Claude (G17 close) | G17 live in three deploys (P1 `fc155500c`, P2 `55c71d258`, review `97a2ad910`, footer `5a0c3dbb1`): unicorn homepage (evaluator-first, no prices), one template on every marketing page + /vi, link checker in gate 8 + daily cron (0 broken on 525 pages), homepage smoke in gate 12; live-qa 191/0; screenshots in docs/design. |
 | 2026-09-19 | Claude (G16 close) | G16 live (peer deploy `8cbb6bdb8` + review fixes `58406efa2`, live-qa 184/0): funnel events + `/admin/funnel`, locked TBR preview → A$3 quote-then-pay (the checkout had been unreachable), pilot comp + `/pilot`; review P1s fixed; pilot start→end verified on production. |

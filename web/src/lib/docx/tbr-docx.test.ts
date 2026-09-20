@@ -168,7 +168,7 @@ describe("buildTbrDocx — valuation chapter variants (G19-S42)", () => {
     expect(text).toContain("AU stage baseline");
     expect(text).toContain("Scorecard (Bill Payne)");
     expect(text).toContain("4 methods need revenue");
-    expect(text).toContain("/workspace/settings/connectors");
+    expect(text).toContain("/workspace/evidence/connectors");
     expect(text).not.toContain("Risk-factor summation");
     expect(text).not.toContain("Ask: ");
   }, 60_000);
