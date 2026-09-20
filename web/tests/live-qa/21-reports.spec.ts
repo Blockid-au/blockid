@@ -403,6 +403,42 @@ test.describe("TBR paid view + i18n + clarity survey (G19-S45)", () => {
   });
 });
 
+// G19-S43 — every missing input is a CTA row with an internal link: the demo
+// fixture carries two `missing` rows (GitHub audit, LinkedIn export) so
+// /tbr/demo must render ≥ 1 CTA row ("Add now →" → /workspace/…) with a
+// "+N SVI" chip, the next-action box must name the catalogue label (never
+// the raw enum "evidence: github"), and Money on the Table must list real
+// matches or a linked grant-profile CTA — never "re-run the analysis".
+test.describe("TBR evidence & data CTAs (G19-S43)", () => {
+  test("/tbr/demo renders ≥ 1 CTA row with an internal href and Money shows real rows or a linked CTA", async ({ page, visit }, testInfo) => {
+    await visit("/tbr/demo");
+    const ctaRows = page.locator('[data-tbr-evidence-row="cta"]');
+    await expect(ctaRows.first()).toBeVisible({ timeout: 30_000 });
+    const ctaCount = await ctaRows.count();
+    const hrefs = await page.locator("[data-tbr-cta] a").evaluateAll((els) => els.map((el) => el.getAttribute("href") ?? ""));
+    const firstCta = await ctaRows.first().innerText();
+    const nextActions = await page.locator("[data-tbr-next-action]").allInnerTexts();
+    const moneySection = page.locator("#tbr-money");
+    const moneyText = await moneySection.innerText();
+    const moneyRows = await moneySection.locator("table tbody tr").count();
+    const moneyEmpty = page.locator("[data-tbr-money-empty]");
+    const moneyEmptyHref = (await moneyEmpty.count()) ? await moneyEmpty.locator("a").getAttribute("href") : null;
+    const coverEvidence = await page.locator("[data-tbr-cover-evidence]").allInnerTexts();
+    await evidence(testInfo, "S43 CTAs", { ctaCount, hrefs: hrefs.slice(0, 8), firstCta, nextActions: nextActions.slice(0, 8), moneyRows, moneyEmptyHref, coverEvidence });
+    expect(ctaCount).toBeGreaterThanOrEqual(1);
+    expect(hrefs.length).toBeGreaterThanOrEqual(1);
+    expect(hrefs.every((h) => h.startsWith("/workspace/"))).toBe(true);
+    expect(firstCta).toMatch(/Add now/);
+    expect(firstCta).toMatch(/\+\d+ SVI/);
+    expect(nextActions).toHaveLength(8);
+    expect(nextActions.some((t) => /evidence: GitHub repository/.test(t))).toBe(true);
+    expect(nextActions.every((t) => !/evidence: (stripe|github|linkedin|upload|url)\b/.test(t))).toBe(true);
+    expect(moneyRows >= 1 || moneyEmptyHref === "/workspace/funding").toBe(true);
+    expect(moneyText).not.toMatch(/re-run the analysis/i);
+    expect(coverEvidence.join(" ")).toMatch(/Evidence: .+ \(×\d\.\d\d\)/);
+  });
+});
+
 /**
  * G14-S37 — Founder execution profile. The QA founder fills the structured
  * Execution fields through POST /api/founder-profile (the same route the

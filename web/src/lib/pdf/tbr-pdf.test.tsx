@@ -223,3 +223,32 @@ describe("renderTbrPdf — valuation chapter variants (G19-S42)", () => {
     expect(text).not.toMatch(/Berkus\s+\d+%/);
   }, 60_000);
 });
+
+describe("renderTbrPdf — evidence & data CTAs (G19-S43)", () => {
+  it("CTA rows print as 'label · path · +N SVI' in the chapter table and the register, the next action uses the catalogue label, money lists the matches, the cover carries the evidence line; an empty adapter document prints the grant-profile CTA and a pending chapter its CTAs", async () => {
+    const report = demoReportV2();
+    const ftv = report.dimensions.find((d) => d.dim === "ftv")!;
+    ftv.scoreBreakdown = { base: 50, signals: [], confidenceMultiplier: 0.2, adjustment: 0, assessed: false };
+    ftv.band = "pending";
+    const { buffer } = await renderTbrPdf(report);
+    const text = await fullText(buffer);
+    expect(text).toContain("Connect GitHub to audit the repository · /workspace/evidence/connectors · +6 SVI");
+    expect(text).toContain("Upload your LinkedIn export · /workspace/settings/founder · +5 SVI");
+    expect(text).toContain("Evidence to add: GitHub repository");
+    expect(text).not.toMatch(/evidence: github/);
+    expect(text).toContain("Evidence: connected sources (×0.75)");
+    expect(text).toContain("NSW MVP Ventures");
+    expect(text).toMatch(/Evidence to add \(P0 \/ P1\)/i);
+    expect(text).toContain("Add data to score this dimension:");
+    expect(text).not.toContain("Add: linkedin, github, upload");
+    expect(text).not.toContain("No evidence rows in this snapshot");
+
+    const empty = await renderTbrPdf(fromSnapshot({ dimStates: { tre: { score: 40 } } }));
+    const emptyText = await fullText(empty.buffer);
+    // (Helvetica maps "→" to "->" on the PDF surface.)
+    expect(emptyText).toMatch(/Complete your grant profile (→|->) \/workspace\/funding/);
+    expect(emptyText).toMatch(/Add evidence in the Evidence Hub (→|->) \/workspace\/evidence/);
+    expect(emptyText).not.toMatch(/0 matched (—|-) the nearest-fit/);
+    expect(emptyText).not.toMatch(/0 matched in this snapshot/);
+  }, 90_000);
+});

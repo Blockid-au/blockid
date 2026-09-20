@@ -17,7 +17,8 @@ import { getTbrS43Strings, type TbrS43Strings } from "@/lib/i18n/tbr-strings";
 import { CTA_HREFS } from "./evidence-cta";
 import type { DimensionChapter, EvidenceRow, ReportV2 } from "./schema";
 
-export type EvidenceViewLocale = "en" | "vi";
+/** Any TBR locale — the s43 strings carry EN + VI; ES / JA read English. */
+export type EvidenceViewLocale = string;
 
 export interface EvidenceRowView {
   evidence_id: string;

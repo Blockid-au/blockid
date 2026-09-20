@@ -1,9 +1,12 @@
 // Chapter 13 — 90-day action plan: 3 × 30-day columns, owner agent per step
 // (COO). Free tier shows 5 steps.
 
+import { getTbrS43Strings } from "@/lib/i18n/tbr-strings";
 import { DIMENSION_OWNERS } from "@/lib/report-pipeline/dimension-owners";
 import { VisualFigure } from "@/lib/report-visuals/react";
+import { planEvidenceRows } from "@/lib/report-v2/evidence-view";
 import type { ReportV2 } from "@/lib/report-v2/schema";
+import { CtaLink } from "./chapter";
 import { AgentBadge, TBR_V2_SECTION_IDS, TbrSection, v2Strings, type TbrUiLocale } from "./shared";
 
 export function TbrActionPlan({ report, title, locale = "en" }: { report: ReportV2; title: string; locale?: TbrUiLocale }) {
@@ -11,6 +14,9 @@ export function TbrActionPlan({ report, title, locale = "en" }: { report: Report
   const t = v2Strings(locale).actionPlan;
   const steps = report.tier === "free" ? p.steps.slice(0, 5) : p.steps;
   const cols: Array<30 | 60 | 90> = [30, 60, 90];
+  // G19-S43: the engine's P0 / P1 evidence gaps as linked CTA rows + catalogue source labels.
+  const evidence = planEvidenceRows(report, locale);
+  const s43 = getTbrS43Strings(locale);
   return (
     <TbrSection id={TBR_V2_SECTION_IDS.actionPlan} kicker="13" title={title}>
       <div className="flex items-center gap-2 text-xs text-ink-600 dark:text-ink-300">
@@ -30,7 +36,7 @@ export function TbrActionPlan({ report, title, locale = "en" }: { report: Report
                       <p className="font-medium text-ink-800 dark:text-ink-100">{s.title}</p>
                       <p className="flex flex-wrap items-center gap-1 text-[10px] text-ink-500">
                         <AgentBadge role={s.ownerAgent} kind="support" /> {DIMENSION_OWNERS[s.dimension].shortLabel} · {t.lift(s.expectedLift)}
-                        {s.evidenceToAdd ? ` · ${s.evidenceToAdd}` : ""}
+                        {s.evidenceToAdd ? ` · ${s43.source[s.evidenceToAdd] ?? s.evidenceToAdd}` : ""}
                       </p>
                     </li>
                   ))}
@@ -41,6 +47,18 @@ export function TbrActionPlan({ report, title, locale = "en" }: { report: Report
         </div>
       ) : (
         <p className="text-xs text-ink-600 dark:text-ink-400">{t.empty}</p>
+      )}
+      {evidence.rows.length > 0 && (
+        <div data-tbr-plan-evidence className="rounded-xl border border-ink-200 p-3 dark:border-ink-800">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-500">{evidence.title}</p>
+          <ul className="mt-2 space-y-1 text-xs">
+            {evidence.rows.map((r) => (
+              <li key={r.evidence_id}>
+                <CtaLink row={r} locale={locale} />
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       {p.visuals.map((v) => (
         <VisualFigure key={v.id} spec={v} caption={v.title} className="rounded-xl border border-ink-200 p-3 dark:border-ink-800" />

@@ -1540,3 +1540,132 @@ export const TBR_VALUATION_STRINGS: Record<TbrValuationLocale, TbrValuationStrin
 export function getTbrValuationStrings(locale: string | undefined): TbrValuationStrings {
   return locale === "vi" ? valuationVi : valuationEn;
 }
+
+// ── G19-S43 — evidence & data CTAs (web / PDF / DOCX twins) ─────────────────
+//
+// Additive sub-block (EN + VI with diacritics) for the S43 surfaces: CTA rows
+// in the chapter evidence table / appendix register, the pending-chapter
+// CTAs, the next-action "evidence to add" label, the Money on the Table empty
+// state and the cover "Evidence: … (×N)" line. S45 folds every remaining
+// ReportV2 label into this file; keep this block self-contained.
+
+export type TbrS43Locale = "en" | "vi";
+
+export type TbrEvidenceSourceKey = "stripe" | "ga4" | "github" | "xero" | "linkedin" | "upload" | "url" | "self_declared" | "founder_profile" | "connector_other" | "external";
+export type TbrEvidenceLevelKey = "self_declared" | "public_url" | "document_uploaded" | "connected_source" | "transaction_data" | "third_party_verified";
+
+export interface TbrS43Strings {
+  /** Status cell on a CTA row. */
+  missing: string;
+  /** Link text on a CTA row ("Add now →"). */
+  addNow: string;
+  /** "+N SVI" chip. */
+  lift: (n: number) => string;
+  /** Empty evidence table (no rows at all) + its link. */
+  noEvidence: string;
+  noEvidenceCta: string;
+  /** Pending chapter: "Add data to score this dimension:" */
+  pendingCtas: string;
+  /** Next-action box: "Evidence to add" (replaces the raw enum "evidence: stripe"). */
+  evidenceToAdd: string;
+  /** Next-action box: "expected lift". */
+  expectedLift: (n: number) => string;
+  /** Founder-facing source names. */
+  source: Record<TbrEvidenceSourceKey, string>;
+  /** Cover line: "Evidence: mostly self-declared (×0.50)". */
+  coverEvidence: (levelLabel: string, multiplier: string) => string;
+  evidenceLevel: Record<TbrEvidenceLevelKey, string>;
+  /** Money on the Table empty states. */
+  moneyNoProfile: string;
+  moneyNoProfileCta: string;
+  moneyNoMatch: string;
+  moneyNoMatchCta: string;
+  /** 90-day plan: the P0 / P1 evidence block. */
+  planEvidenceTitle: string;
+  /** Appendix register: the CTA column header. */
+  thAddIt: string;
+}
+
+const s43En: TbrS43Strings = {
+  missing: "missing",
+  addNow: "Add now →",
+  lift: (n) => `+${n} SVI`,
+  noEvidence: "No evidence rows on this dimension yet.",
+  noEvidenceCta: "Add evidence in the Evidence Hub →",
+  pendingCtas: "Add data to score this dimension:",
+  evidenceToAdd: "Evidence to add",
+  expectedLift: (n) => `expected lift +${n} SVI`,
+  source: {
+    stripe: "Stripe (revenue)",
+    ga4: "Google Analytics 4",
+    github: "GitHub repository",
+    xero: "Xero (accounts)",
+    linkedin: "LinkedIn export",
+    upload: "Document upload",
+    url: "Public URL",
+    self_declared: "Self-declared input",
+    founder_profile: "Founder profile",
+    connector_other: "Data connector",
+    external: "Verified ABN (public registers)",
+  },
+  coverEvidence: (levelLabel, multiplier) => `Evidence: ${levelLabel} (×${multiplier})`,
+  evidenceLevel: {
+    self_declared: "mostly self-declared",
+    public_url: "public URLs",
+    document_uploaded: "documents uploaded",
+    connected_source: "connected sources",
+    transaction_data: "transaction data",
+    third_party_verified: "third-party verified",
+  },
+  moneyNoProfile: "No grant profile yet — grants and programs are matched on the saved profile.",
+  moneyNoProfileCta: "Complete your grant profile →",
+  moneyNoMatch: "No open grant or program matches the saved profile right now — matching re-runs on every report.",
+  moneyNoMatchCta: "Review your grant profile →",
+  planEvidenceTitle: "Evidence to add (P0 / P1)",
+  thAddIt: "Add it",
+};
+
+const s43Vi: TbrS43Strings = {
+  missing: "thiếu",
+  addNow: "Bổ sung ngay →",
+  lift: (n) => `+${n} SVI`,
+  noEvidence: "Chưa có dòng bằng chứng nào cho khía cạnh này.",
+  noEvidenceCta: "Bổ sung bằng chứng trong Kho bằng chứng →",
+  pendingCtas: "Bổ sung dữ liệu để chấm điểm khía cạnh này:",
+  evidenceToAdd: "Bằng chứng cần bổ sung",
+  expectedLift: (n) => `mức tăng dự kiến +${n} SVI`,
+  source: {
+    stripe: "Stripe (doanh thu)",
+    ga4: "Google Analytics 4",
+    github: "Kho mã GitHub",
+    xero: "Xero (kế toán)",
+    linkedin: "Bản xuất LinkedIn",
+    upload: "Tài liệu tải lên",
+    url: "URL công khai",
+    self_declared: "Thông tin tự khai",
+    founder_profile: "Hồ sơ nhà sáng lập",
+    connector_other: "Kết nối dữ liệu",
+    external: "ABN đã xác minh (đăng ký công khai)",
+  },
+  coverEvidence: (levelLabel, multiplier) => `Bằng chứng: ${levelLabel} (×${multiplier})`,
+  evidenceLevel: {
+    self_declared: "chủ yếu tự khai",
+    public_url: "URL công khai",
+    document_uploaded: "tài liệu đã tải lên",
+    connected_source: "nguồn đã kết nối",
+    transaction_data: "dữ liệu giao dịch",
+    third_party_verified: "bên thứ ba xác minh",
+  },
+  moneyNoProfile: "Chưa có hồ sơ tài trợ — các khoản tài trợ và chương trình được khớp theo hồ sơ đã lưu.",
+  moneyNoProfileCta: "Hoàn thiện hồ sơ tài trợ →",
+  moneyNoMatch: "Hiện chưa có khoản tài trợ hay chương trình nào khớp với hồ sơ đã lưu — việc khớp chạy lại ở mỗi báo cáo.",
+  moneyNoMatchCta: "Xem lại hồ sơ tài trợ →",
+  planEvidenceTitle: "Bằng chứng cần bổ sung (P0 / P1)",
+  thAddIt: "Bổ sung",
+};
+
+export const TBR_S43_STRINGS: Record<TbrS43Locale, TbrS43Strings> = { en: s43En, vi: s43Vi };
+
+export function getTbrS43Strings(locale: string | undefined): TbrS43Strings {
+  return locale === "vi" ? s43Vi : s43En;
+}

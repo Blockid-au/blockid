@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { demoReportV2, demoSnapshotInput, freeFixtureReportV2, preRevenueFixtureReportV2 } from "@/lib/report-v2/fixtures";
 import { TBR_STRINGS, TBR_VALUATION_STRINGS } from "@/lib/i18n/tbr-strings";
+import { catalogueLift } from "@/lib/svi-lift";
 import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
 import { reportOrderPath } from "@/lib/paywall/report-delivery";
 import { TBR_V2_SECTION_IDS, TbrReportV2, tbrV2Toc } from "./report";
@@ -394,5 +395,101 @@ describe("<TbrReportV2> valuation (G19-S42)", () => {
     // The narrative is pipeline prose (not chrome) and may stay English; every label / CTA must not.
     // (SVG axis labels and cross-check row labels are report data, built server-side in English.)
     for (const en of ["Inputs &amp; assumptions", "Connect Stripe or Xero", "Cross-checks<", "Unit economics<", ">Methods<", ">Scenarios<"]) expect(html).not.toContain(en);
+  });
+});
+
+// ── G19-S43 — evidence & data CTAs ──────────────────────────────────────────
+describe("<TbrReportV2> evidence CTAs (G19-S43)", () => {
+  const between = (html: string, from: string, to: string) => html.slice(html.indexOf(from), html.indexOf(to, html.indexOf(from)));
+
+  it("the demo renders ≥ 1 CTA row with an internal href in the FTV / PTD evidence tables ('Add now →' + '+N SVI'), never the bare 'No evidence rows' text there", () => {
+    const html = renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} />);
+    const ftv = between(html, `id="${TBR_V2_SECTION_IDS.dim("ftv")}"`, `id="${TBR_V2_SECTION_IDS.dim("ptd")}"`);
+    expect((ftv.match(/data-tbr-evidence-row="cta"/g) ?? []).length).toBe(2);
+    expect(ftv).toContain('href="/workspace/evidence/connectors"');
+    expect(ftv).toContain('href="/workspace/settings/founder"');
+    expect(ftv).toContain("Connect GitHub to audit the repository");
+    expect(ftv).toContain("Add now →");
+    expect(ftv).toContain(`+${catalogueLift("github_repo")} SVI`);
+    expect(ftv).toContain(">missing<");
+    expect(ftv).not.toContain("No evidence rows");
+    // Every CTA href on the page is an internal workspace route.
+    const hrefs = Array.from(html.matchAll(/data-tbr-cta[^>]*>.*?href="([^"]+)"/g)).map((m) => m[1]);
+    expect(hrefs.length).toBeGreaterThan(0);
+    expect(hrefs.every((h) => h.startsWith("/workspace/"))).toBe(true);
+    // A chapter with no rows at all links the Evidence Hub instead of a dead sentence.
+    const bare = fromSnapshot({ dimStates: { tre: { score: 40 } } });
+    const bareHtml = renderToStaticMarkup(<TbrReportV2 report={bare} />);
+    expect(bareHtml).toContain("No evidence rows on this dimension yet.");
+    expect(bareHtml).toContain('href="/workspace/evidence"');
+    expect(bareHtml).not.toContain("No evidence rows in this snapshot");
+  });
+
+  it("next action shows the catalogue source label ('Evidence to add: GitHub repository'), never the raw enum, and no demo chapter prints the '+1' default everywhere", () => {
+    const html = renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} />);
+    expect(html).toContain("evidence: GitHub repository");
+    expect(html).not.toMatch(/evidence: (stripe|github|linkedin|upload|url)\b/);
+    const lifts = Array.from(html.matchAll(/expected lift \+(\d+) SVI/g)).map((m) => Number(m[1]));
+    expect(lifts).toHaveLength(8);
+    expect(lifts.filter((l) => l === 1).length).toBeLessThan(4);
+    expect(lifts).toContain(catalogueLift("github_repo"));
+  });
+
+  it("a pending chapter lists the same linked CTAs under the S41 pending line", () => {
+    const report = demoReportV2();
+    const ftv = report.dimensions.find((d) => d.dim === "ftv")!;
+    ftv.scoreBreakdown = { base: 50, signals: [], confidenceMultiplier: 0.2, adjustment: 0, assessed: false };
+    ftv.band = "pending";
+    const html = renderToStaticMarkup(<TbrReportV2 report={report} />);
+    const block = between(html, 'data-tbr-ledger="ftv"', 'data-tbr-primary="ftv"');
+    expect(block).toContain("Not assessed yet — no evidence for this dimension.");
+    expect(block).toContain('data-tbr-pending-ctas="ftv"');
+    expect(block).toContain("Add data to score this dimension:");
+    expect(block).toContain('href="/workspace/evidence/connectors"');
+    expect(block).not.toContain("Add: linkedin");
+  });
+
+  it("Money on the Table lists the demo's 2 grants + 1 program; an empty adapter document shows the grant-profile CTA (never 're-run the analysis')", () => {
+    const html = renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} />);
+    const money = between(html, `id="${TBR_V2_SECTION_IDS.money}"`, `id="${TBR_V2_SECTION_IDS.actionPlan}"`);
+    expect(money).toContain("3 matched");
+    expect(money).toContain("R&amp;D Tax Incentive (refundable offset)");
+    expect(money).toContain("NSW MVP Ventures");
+    expect(money).not.toContain("data-tbr-money-empty");
+    const empty = renderToStaticMarkup(<TbrReportV2 report={fromSnapshot({ dimStates: { tre: { score: 40 } } })} />);
+    const emptyMoney = between(empty, `id="${TBR_V2_SECTION_IDS.money}"`, `id="${TBR_V2_SECTION_IDS.actionPlan}"`);
+    expect(emptyMoney).toContain("data-tbr-money-empty");
+    expect(emptyMoney).toContain('href="/workspace/funding"');
+    expect(emptyMoney).toContain("Complete your grant profile →");
+    expect(emptyMoney).not.toMatch(/re-run/i);
+  });
+
+  it("cover shows 'Evidence: connected sources (×0.75)' beside the ledger strip; the 90-day plan spreads 30 / 60 / 90 and lists the P0 / P1 evidence rows; the appendix register carries CTA rows", () => {
+    const html = renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} />);
+    expect(html).toContain("data-tbr-cover-evidence");
+    expect(html).toContain("Evidence: connected sources (×0.75)");
+    const plan = between(html, `id="${TBR_V2_SECTION_IDS.actionPlan}"`, `id="${TBR_V2_SECTION_IDS.appendix}"`);
+    for (const col of ["Day 0–30", "Day 30–60", "Day 60–90"]) expect(plan).toContain(col);
+    expect(plan).toContain("data-tbr-plan-evidence");
+    expect(plan).toContain("Evidence to add (P0 / P1)");
+    expect(plan).toContain("Link source code repository");
+    expect(plan).not.toMatch(/· (stripe|github|linkedin|upload)\b/);
+    const appendix = html.slice(html.indexOf(`id="${TBR_V2_SECTION_IDS.appendix}"`));
+    expect((appendix.match(/data-tbr-register-row="cta"/g) ?? []).length).toBe(2);
+    expect(appendix).toContain("Add it");
+  });
+
+  it("locale vi: the S43 chrome comes from tbr-strings with diacritics (CTA link, evidence-to-add label, cover line, money empty state)", () => {
+    const report = demoReportV2();
+    const html = renderToStaticMarkup(<TbrReportV2 report={report} locale="vi" />);
+    expect(html).toContain("Bổ sung ngay →");
+    expect(html).toContain("bằng chứng: Kho mã GitHub");
+    expect(html).toContain("Bằng chứng: nguồn đã kết nối (×0.75)");
+    expect(html).toContain("Bằng chứng cần bổ sung (P0 / P1)");
+    expect(html).not.toContain("Add now →");
+    expect(html).not.toContain("evidence: GitHub repository");
+    const empty = renderToStaticMarkup(<TbrReportV2 report={fromSnapshot({ dimStates: { tre: { score: 40 } } })} locale="vi" />);
+    expect(empty).toContain("Hoàn thiện hồ sơ tài trợ →");
+    expect(empty).toContain("Chưa có dòng bằng chứng nào cho khía cạnh này.");
   });
 });

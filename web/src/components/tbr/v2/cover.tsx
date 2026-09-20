@@ -4,6 +4,7 @@
 import { getTbrStrings } from "@/lib/i18n/tbr-strings";
 import { DIMENSION_OWNERS } from "@/lib/report-pipeline/dimension-owners";
 import { VisualFigure } from "@/lib/report-visuals/react";
+import { coverEvidenceLine } from "@/lib/report-v2/evidence-view";
 import { coverLedgerCells, pendingDimsLine } from "@/lib/report-v2/ledger-rows";
 import { DIM_ORDER, type ReportV2 } from "@/lib/report-v2/schema";
 import { cn } from "@/lib/utils";
@@ -15,13 +16,15 @@ export function TbrCoverLedger({ report, locale = "en" }: { report: ReportV2; lo
   const rowLocale: "en" | "vi" = locale === "vi" ? "vi" : "en";
   const cells = coverLedgerCells(report.cover, rowLocale);
   const pending = pendingDimsLine(report.cover, rowLocale);
-  if (cells.length === 0 && !pending) return null;
+  // G19-S43: "Evidence: mostly self-declared (×0.50)" beside the ledger strip.
+  const evidence = coverEvidenceLine(report.cover, rowLocale);
+  if (cells.length === 0 && !pending && !evidence) return null;
   const t = getTbrStrings(locale).ledger;
   return (
     <div data-tbr-cover-ledger className="space-y-1">
-      {cells.length > 0 && (
+      {(cells.length > 0 || evidence) && (
         <div className="flex flex-wrap items-center gap-1 text-[11px]">
-          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wide text-ink-500">{t.coverTitle}</span>
+          {cells.length > 0 && <span className="mr-1 text-[10px] font-semibold uppercase tracking-wide text-ink-500">{t.coverTitle}</span>}
           {cells.map((cell, i) => (
             <span key={cell.label} className="inline-flex items-center gap-1">
               {i > 0 && <span className="text-ink-300 dark:text-ink-600">→</span>}
@@ -30,6 +33,11 @@ export function TbrCoverLedger({ report, locale = "en" }: { report: ReportV2; lo
               </span>
             </span>
           ))}
+          {evidence && (
+            <span data-tbr-cover-evidence className="ml-1 rounded-md border border-ink-200 px-1.5 py-0.5 text-ink-600 dark:border-ink-700 dark:text-ink-300">
+              {evidence}
+            </span>
+          )}
         </div>
       )}
       {pending && (
