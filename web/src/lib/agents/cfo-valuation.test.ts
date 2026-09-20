@@ -6,13 +6,20 @@ import {
   estimateMarketSizing,
   growthAdjustedSectorMultiple,
   growthTierAdjustment,
+  monthlyRevenuePerCustomer,
+  NEEDS_REVENUE_RATIONALE,
+  normaliseRevenueSource,
+  PRE_REVENUE_WEIGHTS,
   projectFinancials,
   scorecardFactors,
   scorecardMethod,
+  SECTOR_MEDIAN_MONTHLY_GROWTH_PCT,
+  sviStageFor,
   unitEconomics,
   vcBenchmark,
   VC_BENCHMARKS,
 } from "./cfo-valuation";
+import { VALUATION_BASELINES_AUD } from "@/lib/valuation";
 import { AU_EXIT_DISCLAIMER } from "@/lib/exits/au-benchmark";
 
 describe("cfo-valuation — VC-grade valuation engine", () => {
@@ -53,19 +60,30 @@ describe("cfo-valuation — VC-grade valuation engine", () => {
     expect(r.scenarios.base).toBeGreaterThan(r.scenarios.bear);
   });
 
-  it("produces a financial injection with valid dilution and use-of-funds", () => {
-    const r = buildVcValuationReport(input);
-    expect(r.injection.raiseAud).toBeGreaterThan(0);
+  it("produces a financial injection with valid dilution and use-of-funds when the founder states a raise", () => {
+    const r = buildVcValuationReport({ ...input, raiseAud: 1_000_000 });
+    expect(r.injection.raiseStated).toBe(true);
+    expect(r.injection.raiseAud).toBe(1_000_000);
     expect(r.injection.dilutionPct).toBeGreaterThan(0);
     expect(r.injection.dilutionPct).toBeLessThan(100);
+    expect(r.injection.runwayExtensionMonths).toBeGreaterThan(0);
     const pct = r.injection.useOfFunds.reduce((s, u) => s + u.pct, 0);
     expect(pct).toBe(100);
+    expect(r.injection.useOfFunds.reduce((s, u) => s + u.aud, 0)).toBe(1_000_000);
   });
 
-  it("computes unit economics with an LTV/CAC verdict", () => {
+  it("computes unit economics with an LTV/CAC verdict on per-customer revenue (ARPU, else MRR ÷ customers)", () => {
     const ue = unitEconomics(input);
     expect(ue.ltvCacRatio).toBeGreaterThan(0);
     expect(["strong", "healthy", "watch", "weak"]).toContain(ue.verdict);
+    // 130 customers on A$20K MRR → A$153.8 / customer; a whole-MRR LTV would price one customer at A$533K.
+    expect(monthlyRevenuePerCustomer({ mrrAud: 20_000, customers: 130 })).toBeCloseTo(153.85, 1);
+    expect(monthlyRevenuePerCustomer({ mrrAud: 20_000, arpuAud: 150, customers: 130 })).toBe(150);
+    expect(monthlyRevenuePerCustomer({ mrrAud: 20_000 })).toBe(20_000);
+    expect(monthlyRevenuePerCustomer({ mrrAud: 0, customers: 5 })).toBe(0);
+    const r = buildVcValuationReport(input);
+    expect(r.unitEconomics.ltvCacRatio).toBeLessThan(100);
+    expect(r.unitEconomics.cacPaybackMonths).toBeGreaterThan(0);
   });
 
   it("projects 36 months and resolves a break-even outcome", () => {
@@ -283,6 +301,119 @@ describe("cfo-valuation — VC-grade valuation engine", () => {
       // Method weights (excluding scorecard) still sum to 1.
       const wSum = r.methods.filter((m) => m.method !== "scorecard").reduce((sum, m) => sum + m.weight, 0);
       expect(wSum).toBeCloseTo(1, 1);
+    });
+  });
+
+  // G19-S42 — valuation truth: honest pre-revenue band, evidence-driven
+  // confidence, growth never silently assumed, raise never invented,
+  // inputs + derivation exposed.
+  describe("G19-S42 valuation truth", () => {
+    const preRevenue = { sector: "saas", stage: "pre-seed", sviStage: 2, mrrAud: 0, customers: 12, hasFounderVesting: true };
+
+    it("pre-revenue: exactly Berkus + scorecard + stage_baseline applicable at 0.5 / 0.3 / 0.2, no Berkus × k pseudo-methods, revenue rows kept with the needs-revenue rationale", () => {
+      const r = buildVcValuationReport(preRevenue);
+      const applicable = r.methods.filter((m) => m.applicable);
+      expect(applicable.map((m) => m.method).sort()).toEqual(["berkus", "scorecard", "stage_baseline"]);
+      expect(applicable.find((m) => m.method === "berkus")!.weight).toBeCloseTo(PRE_REVENUE_WEIGHTS.berkus, 6);
+      expect(applicable.find((m) => m.method === "scorecard")!.weight).toBeCloseTo(PRE_REVENUE_WEIGHTS.scorecard, 6);
+      expect(applicable.find((m) => m.method === "stage_baseline")!.weight).toBeCloseTo(PRE_REVENUE_WEIGHTS.stage_baseline, 6);
+      expect(applicable.reduce((s, m) => s + m.weight, 0)).toBeCloseTo(1, 9);
+      for (const key of ["revenue_multiple", "dcf_proxy", "comparables", "risk_factor_summation"]) {
+        const row = r.methods.find((m) => m.method === key)!;
+        expect(row.applicable).toBe(false);
+        expect(row.weight).toBe(0);
+        expect(row.midAud).toBe(0);
+        expect(row.rationale).toBe(NEEDS_REVENUE_RATIONALE);
+      }
+      // No ×k row: every applicable mid is its own method, not a Berkus multiple.
+      const berkus = applicable.find((m) => m.method === "berkus")!.midAud;
+      const base = VALUATION_BASELINES_AUD[2];
+      expect(applicable.find((m) => m.method === "stage_baseline")!.midAud).toBe(base.mid);
+      expect(applicable.find((m) => m.method === "scorecard")!.midAud).not.toBe(berkus * 1.5);
+      expect(r.methods).toHaveLength(7);
+      // The blend is the weighted mid of the three.
+      const expectedMid = 0.5 * berkus + 0.3 * applicable.find((m) => m.method === "scorecard")!.midAud + 0.2 * base.mid;
+      expect(r.blended.midAud).toBe(Math.round(expectedMid));
+    });
+
+    it("pre-revenue confidence sits in 25–60 with no unconditional +10: 35 with evidenced pillars, 25 with only the idea", () => {
+      const withPillars = buildVcValuationReport(preRevenue);
+      expect(withPillars.blended.confidence).toBe(35);
+      const bare = buildVcValuationReport({ sector: "saas", stage: "pre-seed", mrrAud: 0 });
+      expect(bare.blended.confidence).toBe(25);
+      for (const r of [withPillars, bare]) {
+        expect(r.blended.confidence).toBeGreaterThanOrEqual(25);
+        expect(r.blended.confidence).toBeLessThanOrEqual(60);
+        expect(r.blended.confidence).not.toBe(45);
+      }
+    });
+
+    it("growth: undefined with revenue → sector median used and growthAssumed flagged; observed → kept; pre-revenue → nothing assumed", () => {
+      const assumed = buildVcValuationReport({ sector: "saas", stage: "seed", mrrAud: 20_000, revenueSource: "stripe" });
+      expect(assumed.inputs.growthAssumed).toBe(true);
+      expect(assumed.inputs.monthlyGrowthRatePct).toBeUndefined();
+      expect(assumed.inputs.assumedGrowthRatePct).toBe(SECTOR_MEDIAN_MONTHLY_GROWTH_PCT.saas);
+      expect(assumed.methods.find((m) => m.method === "comparables")!.rationale).toMatch(/assumed/);
+      expect(assumed.notes.some((n) => /Growth rate assumed/.test(n))).toBe(true);
+      const observed = buildVcValuationReport({ sector: "saas", stage: "seed", mrrAud: 20_000, monthlyGrowthRatePct: 6, revenueSource: "stripe" });
+      expect(observed.inputs.growthAssumed).toBe(false);
+      expect(observed.inputs.monthlyGrowthRatePct).toBe(6);
+      const pre = buildVcValuationReport(preRevenue);
+      expect(pre.inputs.growthAssumed).toBe(false);
+      expect(pre.inputs.monthlyGrowthRatePct).toBeUndefined();
+    });
+
+    it("never invents the raise: no stated raise → raiseAud 0, raiseStated false, use-of-funds A$0, a note says so", () => {
+      const r = buildVcValuationReport(preRevenue);
+      expect(r.injection.raiseStated).toBe(false);
+      expect(r.injection.raiseAud).toBe(0);
+      expect(r.injection.dilutionPct).toBe(0);
+      expect(r.injection.postMoneyAud).toBe(r.injection.preMoneyAud);
+      expect(r.injection.useOfFunds.every((u) => u.aud === 0)).toBe(true);
+      expect(r.inputs.raiseStated).toBe(false);
+      expect(r.inputs.raiseAud).toBeUndefined();
+      expect(r.notes.some((n) => /No raise stated/.test(n))).toBe(true);
+    });
+
+    it("revenue connector-evidenced with observed growth: all five methods applicable, confidence ≥ 60, scorecard + baseline are reference rows", () => {
+      const r = buildVcValuationReport({ ...input, revenueSource: "stripe (last sync 2026-09-10)" });
+      expect(r.inputs.revenueSource).toBe("connector");
+      expect(r.blended.confidence).toBeGreaterThanOrEqual(60);
+      expect(r.blended.confidence).toBeLessThanOrEqual(85);
+      const applicable = r.methods.filter((m) => m.applicable).map((m) => m.method).sort();
+      expect(applicable).toEqual(["berkus", "comparables", "dcf_proxy", "revenue_multiple", "risk_factor_summation"]);
+      expect(r.methods.find((m) => m.method === "scorecard")!.weight).toBe(0);
+      expect(r.methods.find((m) => m.method === "stage_baseline")!.applicable).toBe(false);
+      expect(r.methods.filter((m) => m.applicable).reduce((s, m) => s + m.weight, 0)).toBeCloseTo(1, 9);
+    });
+
+    it("founder-stated ARR: revenue-method weights halved (relative to Berkus) and the rationale says so; confidence below the connector case", () => {
+      const stated = buildVcValuationReport({ ...input, revenueSource: "founder-stated" });
+      const evidenced = buildVcValuationReport({ ...input, revenueSource: "xero (last sync)" });
+      expect(stated.inputs.revenueSource).toBe("founder_stated");
+      const w = (r: typeof stated, k: string) => r.methods.find((m) => m.method === k)!.weight;
+      // Halving every revenue weight and renormalising doubles Berkus' share relative to each revenue method.
+      expect(w(stated, "revenue_multiple") / w(stated, "berkus")).toBeCloseTo((w(evidenced, "revenue_multiple") / w(evidenced, "berkus")) / 2, 6);
+      expect(stated.methods.find((m) => m.method === "revenue_multiple")!.rationale).toMatch(/Founder-stated ARR — weight halved/);
+      expect(stated.blended.confidence).toBeLessThan(evidenced.blended.confidence);
+      // Absent source with MRR > 0 is treated as founder-stated (unverified).
+      expect(buildVcValuationReport(input).inputs.revenueSource).toBe("founder_stated");
+      expect(normaliseRevenueSource(undefined, 0)).toBe("none");
+      expect(normaliseRevenueSource("document", 10)).toBe("document");
+    });
+
+    it("exposes inputs + a derivation line per method + the stage baseline; sviStage maps from the CFO stage label when absent", () => {
+      const r = buildVcValuationReport({ ...input, sviStage: 3, revenueSource: "stripe", estimatedRdtiRefundAud: 50_000 });
+      expect(r.inputs).toMatchObject({ mrrAud: 20_000, arrAud: 240_000, revenueSource: "connector", growthAssumed: false, monthlyGrowthRatePct: 8, esicQualifies: false, rdtiRefundAud: 50_000, stage: "seed", sviStage: 3, sector: "saas", raiseStated: false });
+      expect(r.inputs.berkusPillars).toEqual({ soundIdea: true, prototype: true, qualityTeam: false, strategicRelationships: false, productRollout: true });
+      expect(r.inputs.sectorMultipleLow).toBeLessThan(r.inputs.sectorMultipleHigh);
+      expect(r.derivation.revenue_multiple).toMatch(/^ARR A\$240K × /);
+      expect(r.derivation.berkus).toMatch(/3 of 5 pillars × A\$500K/);
+      expect(r.derivation.stage_baseline).toMatch(/SVI stage 3/);
+      expect(r.stageBaseline).toMatchObject({ sviStage: 3, midAud: VALUATION_BASELINES_AUD[3].mid });
+      expect(sviStageFor({ stage: "seed" })).toBe(3);
+      expect(sviStageFor({ stage: "series-a" })).toBe(4);
+      expect(sviStageFor({ stage: "pre-seed", sviStage: 0 })).toBe(0);
     });
   });
 

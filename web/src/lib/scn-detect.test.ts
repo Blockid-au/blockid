@@ -34,7 +34,10 @@ describe("scn-detect — SCN context detection", () => {
   it("revenue input → revenue/growth stage", async () => {
     const c = await buildScnContext({ text: "saas", mrrAud: 30000, monthlyGrowthRatePct: 10 });
     expect(c.stage).toBeGreaterThanOrEqual(4);
-    expect(c.valuation.injection.raiseAud).toBeGreaterThan(0);
+    // G19-S42: no raise stated → the CFO never invents one (raiseAud 0, raiseStated false).
+    expect(c.valuation.injection.raiseStated).toBe(false);
+    expect(c.valuation.injection.raiseAud).toBe(0);
+    expect(c.valuation.blended.midAud).toBeGreaterThan(0);
   });
   it("github input → source/product signal", async () => {
     const c = await buildScnContext(
