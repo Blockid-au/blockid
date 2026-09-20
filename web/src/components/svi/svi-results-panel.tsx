@@ -54,6 +54,7 @@ import {
 } from "@/lib/svi-actions";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { PDFDownloadButton } from "@/components/ui/pdf-download-button";
+import { noBenchmarkYetLine, publishedFromCohort } from "@/lib/benchmarks/publication-rules";
 
 /* ─── Constants ───────────────────────────────────────────────────────────── */
 
@@ -1830,20 +1831,23 @@ export function SVIResultsPanel({
                 value={`${Math.round(analysis.confidenceMultiplier * 100)}%`}
                 subtext={EVIDENCE_LEVEL_LABELS[signals.evidenceLevel]?.split(" (")[0]}
               />
-              <MetricCard
-                label="AU Peer Rank"
-                value={`Top ${Math.max(1, 100 - (analysis.percentileRank ?? 50))}%`}
-                subtext={
-                  analysis.cohortPercentile?.source === "real_cohort"
-                    ? `P${analysis.percentileRank} of ${analysis.cohortPercentile.cohortSize} ${analysis.stageLabel} peers${
-                        analysis.cohortPercentile.median !== undefined
-                          ? ` · peer median ${analysis.cohortPercentile.median}`
-                          : ""
-                      }`
-                    : `P${analysis.percentileRank ?? 50} at ${analysis.stageLabel} stage`
-                }
-                color="text-brand-600"
-              />
+              {/* G21 P1 review: only the published cohort rank, with its n — never `percentileRank` (score-governance § 7). */}
+              {(() => {
+                const published = publishedFromCohort(analysis.cohortPercentile ?? null);
+                const median = analysis.cohortPercentile?.median;
+                return (
+                  <MetricCard
+                    label="AU Peer Rank"
+                    value={published ? `Top ${Math.max(1, 100 - published.percentile)}%` : "—"}
+                    subtext={
+                      published
+                        ? `P${published.percentile} of ${published.n} ${analysis.stageLabel} peers — ${published.label}${typeof median === "number" ? ` · peer median ${median}` : ""}`
+                        : noBenchmarkYetLine(analysis.cohortPercentile?.cohortSize ?? 0)
+                    }
+                    color="text-brand-600"
+                  />
+                );
+              })()}
               <MetricCard
                 label="Risk Flags"
                 value={analysis.riskPenalties.length}

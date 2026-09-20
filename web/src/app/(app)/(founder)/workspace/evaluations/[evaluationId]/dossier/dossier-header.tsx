@@ -14,6 +14,7 @@ import { tierLabel } from "@/lib/mentor/access-tiers";
 import type { DossierHeader as HeaderModel, DossierViewerRole } from "@/lib/evaluations/dossier";
 import { AbnBadge } from "@/components/verification/abn-badge";
 import { ExportIcButton } from "./export-ic-button";
+import { noBenchmarkYetLine } from "@/lib/benchmarks/publication-rules";
 
 export function fmtDate(iso: string | null): string {
   if (!iso) return "—";
@@ -108,13 +109,18 @@ export function DossierHeader({ header, role, icKind }: { header: HeaderModel; r
           <div>
             <dt className="text-xs uppercase tracking-wide text-ink-500">Percentile</dt>
             <dd className="mt-0.5 text-ink-800">
-              {header.percentile ? (
+              {/* G21 P1 review: the published rank with its n, or the reason there is none (score-governance § 7). */}
+              {header.percentile && header.percentile.value !== null ? (
                 <>
-                  <strong>p{header.percentile.value}</strong>
+                  <strong data-testid="dossier-percentile">p{header.percentile.value}</strong>
                   <span className="ml-1 text-xs text-ink-500">
-                    {header.percentile.source === "real_cohort" ? `stage cohort · n=${header.percentile.cohortSize}` : "benchmark estimate"}
+                    {header.percentile.source === "register_cohort" ? "register cohort" : "stage cohort"} · {header.percentile.label}
                   </span>
                 </>
+              ) : header.percentile ? (
+                <span className="text-xs text-ink-500" data-testid="dossier-percentile-none">
+                  {noBenchmarkYetLine(header.percentile.cohortSize)}
+                </span>
               ) : (
                 <span className="text-ink-500">—</span>
               )}

@@ -34,6 +34,7 @@ import { isReportV2, type DimensionChapter, type ReportV2 } from "@/lib/report-v
 import { visualToPng } from "@/lib/report-visuals/png";
 import type { Band, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { GROWTH_PHASE_LABELS } from "@/lib/growth/phase-taxonomy";
+import { coverPercentileLine } from "@/lib/report-v2/cover-hero";
 
 interface DimEmailInput {
   score: number;
@@ -114,7 +115,8 @@ export function renderReportEmailHtml(input: RenderReportEmailInput): string {
   const weakest = weakestChapter(report);
   const phase = GROWTH_PHASE_LABELS[c.phaseId]?.[report.locale === "vi" ? "vi" : "en"] ?? c.phaseId;
   const delta = c.svi.deltaVsLast !== null ? `${c.svi.deltaVsLast >= 0 ? "+" : ""}${c.svi.deltaVsLast} vs last snapshot` : null;
-  const pct = c.svi.cohortPercentile !== null ? `${c.svi.cohortPercentile}th percentile${c.svi.cohortN ? ` (n=${c.svi.cohortN})` : ""}` : null;
+  // G21 P1 review: the rank only with its cohort size (score-governance § 7).
+  const pct = coverPercentileLine(c.svi);
   const meta = [c.sector, c.stageLabel, `Phase: ${phase}`].filter(Boolean).join(" · ");
 
   const q = (label: string, text: string, color: string) =>

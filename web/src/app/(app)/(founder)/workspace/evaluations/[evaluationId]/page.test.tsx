@@ -200,7 +200,7 @@ describe("/workspace/evaluations/[evaluationId]", () => {
     expect(out).toMatch(/data-testid="dossier-svi"[^>]*>62</);
     expect(out).toContain("▲ +4 / 30 d");
     expect(out).toContain("p61");
-    expect(out).toContain("stage cohort · n=120");
+    expect(out).toContain("stage cohort · segmented benchmark (n = 120)");
     expect(out).toContain("Reports shared");
     expect(out).toContain("Founder claimed");
     expect(out).toMatch(/12 Sept? 2026/);

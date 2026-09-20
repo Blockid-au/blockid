@@ -4,7 +4,8 @@ import {
 } from "@react-pdf/renderer";
 import { LEGAL_ENTITY, acnAbnLine } from "@/lib/site/legal-entity";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
-import { SVI_STAGE_LABELS, SVI_BENCHMARKS } from "@/lib/svi-analysis";
+import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
+import { benchmarkNLabel, formatBenchmarkLine, noBenchmarkYetLine, notEnoughLine, publishBenchmark, publishedFromCohort } from "@/lib/benchmarks/publication-rules";
 import { estimateValuation, formatAUD } from "@/lib/valuation";
 import type { BrandSettings } from "@/lib/branding/load";
 import * as path from "path";
@@ -511,7 +512,8 @@ export function DimensionBar({
 }: {
   label: string;
   score: number;
-  weight: string;
+  /** Small parenthetical beside the label; omitted when absent (G21 P1 review: the free summary no longer prints an "AU average" without its n). */
+  weight?: string;
   insight?: string;
 }) {
   const rounded = Math.round(score);
@@ -523,7 +525,7 @@ export function DimensionBar({
           <Text style={{ fontSize: 8, textTransform: "uppercase", letterSpacing: 0.8, color: C.ink700, fontFamily: "Helvetica-Bold" }}>
             {label}
           </Text>
-          <Text style={{ fontSize: 7, color: C.ink400 }}>({weight})</Text>
+          {weight ? <Text style={{ fontSize: 7, color: C.ink400 }}>({weight})</Text> : null}
         </View>
         <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold", color }}>{rounded}/100</Text>
       </View>
@@ -929,10 +931,9 @@ const STATUS_COLOR: Record<string, string> = {
   gap: "#F59E0B",
 };
 
-function ScnActionPlanPage({ plan, maturity, cohort }: {
+function ScnActionPlanPage({ plan, maturity }: {
   plan: NonNullable<SVIAnalysis["scnActionPlan"]>;
   maturity?: SVIAnalysis["maturitySignal"];
-  cohort?: SVIAnalysis["cohortPercentile"];
 }) {
   const yn = plan.yourNumber;
 
@@ -961,11 +962,6 @@ function ScnActionPlanPage({ plan, maturity, cohort }: {
             <Text style={{ fontSize: 8, color: C.ink600, marginTop: 2 }}>{yn.sviLabel}</Text>
             <Text style={{ fontSize: 7, color: C.ink500, marginTop: 1 }}>
               {yn.sviPercentileLabel}
-              {cohort?.source === "real_cohort" && (
-                <Text style={{ color: C.brand600, fontFamily: "Helvetica-Bold" }}>
-                  {" "}(real cohort, n={cohort.cohortSize})
-                </Text>
-              )}
             </Text>
           </View>
           <View style={{ flex: 1, borderLeftWidth: 0.5, borderLeftColor: C.brand200, paddingLeft: 12 }}>
@@ -1263,10 +1259,20 @@ export function SVIReportPDF({
   // ── SCN navigation data (Position / Value / Direction) ─────────────────
   const dims = analysis.dimensionScores ?? Object.fromEntries((analysis.subs ?? []).map(s => [s.key, s.value]));
   const valuation = estimateValuation(sviScore, analysis.stage, { sector: analysis.sector ?? analysis.signals?.sector }, dims);
-  const percentile = analysis.percentileRank ?? 50;
-  const topPercent = Math.max(1, 100 - percentile);
+  // G21 P1 review (score-governance § 7): the rank and the stage median come
+  // from the stored cohort result and only when published — never
+  // `percentileRank` / SVI_BENCHMARKS (static-table estimates without an n).
+  const cohortResult = analysis.cohortPercentile ?? null;
+  const published = publishedFromCohort(cohortResult, `AU ${analysis.stageLabel.toLowerCase()} cohort`);
+  const cohortN = cohortResult?.cohortSize ?? 0;
+  const percentile = published?.percentile ?? null;
+  const topPercent = percentile === null ? null : Math.max(1, 100 - percentile);
+  const stageMedian =
+    published && typeof cohortResult?.median === "number" && Number.isFinite(cohortResult.median)
+      ? publishBenchmark({ median: cohortResult.median, p25: cohortResult.p25 ?? null, p75: cohortResult.p75 ?? null, n: cohortN, segment: `AU ${analysis.stageLabel.toLowerCase()} stage` })
+      : null;
+  const notEnough = notEnoughLine(cohortN, `${analysis.stageLabel.toLowerCase()} stage`);
   const weakestSub = [...analysis.subs].sort((a, b) => a.value - b.value)[0];
-  const stageBenchmark = SVI_BENCHMARKS[analysis.stage] ?? SVI_BENCHMARKS[0];
 
   // Direction route — "You are here → Next → Then → Then"
   const directionSteps = (analysis.nextActions && analysis.nextActions.length > 0
@@ -1362,14 +1368,16 @@ export function SVIReportPDF({
             <View style={{ width: 1, backgroundColor: C.brand500 }} />
             <View style={{ alignItems: "center" }}>
               <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: C.emerald400 }}>
-                Top {topPercent}%
+                {topPercent === null ? "—" : `Top ${topPercent}%`}
               </Text>
-              <Text style={{ fontSize: 7, color: C.brand100, marginTop: 2 }}>of AU Startups</Text>
+              <Text style={{ fontSize: 7, color: C.brand100, marginTop: 2 }}>{published ? `of AU Startups — ${published.label}` : noBenchmarkYetLine(cohortN)}</Text>
             </View>
           </View>
 
           <Text style={{ fontSize: 8.5, color: C.brand100, lineHeight: 1.5, textAlign: "center", maxWidth: 280 }}>
-            You&apos;re ahead of {percentile}% of startups at your stage. This is your starting point.
+            {published
+              ? `You're ahead of ${percentile}% of startups at your stage (${published.label}). This is your starting point.`
+              : `${notEnough} This score is your starting point.`}
           </Text>
         </View>
 
@@ -1601,7 +1609,6 @@ export function SVIReportPDF({
           <ScnActionPlanPage
             plan={analysis.scnActionPlan}
             maturity={analysis.maturitySignal}
-            cohort={analysis.cohortPercentile}
           />
           <Footer logoSrc={brandLogoSrc} brandText={brandFooterText} />
         </Page>
@@ -1739,15 +1746,16 @@ export function SVIReportPDF({
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
           <MetricCard label="STARTUP INDEX" value={String(sviScore)} sub={sviLabel(sviScore)} />
           <MetricCard label="STAGE" value={String(analysis.stage)} sub={analysis.stageLabel} color={C.ink800} />
-          <MetricCard label="VS AU PEERS" value={`Top ${topPercent}%`} sub={`P${percentile} at stage`} color={C.emerald600} />
+          <MetricCard label="VS AU PEERS" value={topPercent === null ? "—" : `Top ${topPercent}%`} sub={published ? `P${percentile} at stage — ${published.label}` : noBenchmarkYetLine(cohortN)} color={C.emerald600} />
           <MetricCard label="EST. VALUE" value={formatAUD(valuation.mid)} sub="indicative" color={C.teal600} />
         </View>
 
         <Text style={[s.body, { marginBottom: 6 }]}>
           {name} sits at{" "}
           <Text style={{ fontFamily: "Helvetica-Bold", color: C.ink800 }}>{sviScore} on the Startup Index</Text>{" "}
-          — {sviLabel(sviScore)} for a {analysis.stageLabel} startup, ahead of roughly {percentile}% of Australian
-          startups at the same stage. The estimated value is an output of this position, not the goal.
+          — {sviLabel(sviScore)} for a {analysis.stageLabel} startup
+          {published ? `, ahead of roughly ${percentile}% of Australian startups at the same stage (${published.label}).` : `. ${notEnough}`}{" "}
+          The estimated value is an output of this position, not the goal.
         </Text>
 
         {/* Radar + percentile band */}
@@ -1758,22 +1766,31 @@ export function SVIReportPDF({
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[s.label, { marginBottom: 6 }]}>PERCENTILE vs AU PEERS</Text>
-            <PercentileBandSVG percentile={percentile} width={250} />
-            <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 1, width: 250 }}>
-              <Text style={{ fontSize: 6.5, color: C.ink400 }}>Bottom</Text>
-              <Text style={{ fontSize: 6.5, color: C.ink400 }}>Median</Text>
-              <Text style={{ fontSize: 6.5, color: C.ink400 }}>Top</Text>
-            </View>
+            {percentile !== null ? (
+              <>
+                <PercentileBandSVG percentile={percentile} width={250} />
+                <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 1, width: 250 }}>
+                  <Text style={{ fontSize: 6.5, color: C.ink400 }}>Bottom</Text>
+                  <Text style={{ fontSize: 6.5, color: C.ink400 }}>Median</Text>
+                  <Text style={{ fontSize: 6.5, color: C.ink400 }}>Top</Text>
+                </View>
+              </>
+            ) : (
+              <Text style={{ fontSize: 8.5, color: C.ink600, lineHeight: 1.5 }}>{notEnough}</Text>
+            )}
             <Text style={{ fontSize: 8.5, color: C.ink600, lineHeight: 1.5, marginTop: 12 }}>
-              Benchmark band for {analysis.stageLabel}: median {stageBenchmark.p50}, top-decile{" "}
-              {stageBenchmark.p90}. You are at {sviScore}.
+              {stageMedian ? `${formatBenchmarkLine(stageMedian)}. You are at ${sviScore}.` : `You are at ${sviScore}. ${notEnough}`}
             </Text>
           </View>
         </View>
 
         <InsightBox
           label="WHERE YOU STAND"
-          text={`At ${sviScore} you rank in the top ${topPercent}% of ${analysis.stageLabel} startups. Reaching the stage top-decile (${stageBenchmark.p90}) is a matter of closing the gaps set out in Direction.`}
+          text={
+            published
+              ? `At ${sviScore} you rank in the top ${topPercent}% of ${analysis.stageLabel} startups (${published.label}). Moving up the cohort is a matter of closing the gaps set out in Direction.`
+              : `At ${sviScore} there is no cohort rank yet (${benchmarkNLabel(cohortN)}). Closing the gaps set out in Direction lifts the score either way.`
+          }
         />
 
         {/* CTA: SVI Dashboard */}

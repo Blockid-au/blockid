@@ -65,10 +65,9 @@ const EFFORT_BADGE = {
 
 /* ─── Your Number hero ─────────────────────────────────────────────────── */
 
-function YourNumberHero({ yn, maturity, cohort }: {
+function YourNumberHero({ yn, maturity }: {
   yn: Plan["yourNumber"];
   maturity?: SVIAnalysis["maturitySignal"];
-  cohort?: SVIAnalysis["cohortPercentile"];
 }) {
   return (
     <div className="rounded-2xl border border-blue-200 dark:border-blue-800/40 bg-gradient-to-br from-blue-50 via-emerald-50 to-amber-50 dark:from-blue-950/30 dark:via-emerald-950/20 dark:to-amber-950/20 p-6 sm:p-8 shadow-sm">
@@ -94,12 +93,8 @@ function YourNumberHero({ yn, maturity, cohort }: {
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">SVI Score</p>
           <p className="text-5xl font-bold mt-1">{yn.sviScore}</p>
           <p className="text-sm text-muted-foreground mt-1">
+            {/* G21 P1 review: the label already carries the band + n (or the no-benchmark line). */}
             {yn.sviLabel} &middot; {yn.sviPercentileLabel}
-            {cohort?.source === "real_cohort" && (
-              <span className="ml-1 text-[11px] text-blue-600 font-medium">
-                (real cohort, n={cohort.cohortSize})
-              </span>
-            )}
           </p>
         </div>
         <div className="md:text-right md:border-l md:border-blue-200 dark:md:border-blue-800/40 md:pl-6">
@@ -293,7 +288,6 @@ export function ScnActionPlanCard({ analysis }: Props) {
       <YourNumberHero
         yn={plan.yourNumber}
         maturity={analysis.maturitySignal}
-        cohort={analysis.cohortPercentile}
       />
 
       {/* This week focus */}

@@ -14,7 +14,7 @@
 import { describe, expect, it } from "vitest";
 import { PDFParse } from "pdf-parse";
 import { tbrV2Toc } from "@/components/tbr/v2/report";
-import { demoReportV2, freeFixtureReportV2, preRevenueFixtureReportV2 } from "@/lib/report-v2/fixtures";
+import { demoReportV2, demoSnapshotInput, freeFixtureReportV2, preRevenueFixtureReportV2 } from "@/lib/report-v2/fixtures";
 import { fromSnapshot } from "@/lib/report-v2/adapter";
 import { levelForEstimate, projectForTier } from "@/lib/report-v2/free-tier";
 import { FREE_PAGE_BUDGET } from "@/lib/report-v2/schema";
@@ -280,4 +280,19 @@ describe("renderTbrPdf — evidence & data CTAs (G19-S43)", () => {
     expect(emptyText).not.toMatch(/0 matched (—|-) the nearest-fit/);
     expect(emptyText).not.toMatch(/0 matched in this snapshot/);
   }, 90_000);
+
+  it("G21 P1 review: the cover rank and the chapter 'you: Nth percentile' print only with a published cohort n; a number without n never appears", async () => {
+    const cohort = { sector: "SaaS", sample_size: 14, dim_medians: { tre: 50, mpc: 50 }, dim_top_quartile: { tre: 65, mpc: 65 } };
+    const published = fromSnapshot({ ...demoSnapshotInput(), cohortPercentile: 66, cohort });
+    const text = await fullText((await renderTbrPdf(published)).buffer);
+    expect(text).toContain("66th percentile (n=14)");
+    expect(text).toMatch(/you: \d+th percentile \(n = 14\)/);
+    // A rank handed over without a cohort, or below the floor, is dropped.
+    const orphan = fromSnapshot({ ...demoSnapshotInput(), cohortPercentile: 66 });
+    const orphanText = await fullText((await renderTbrPdf(orphan)).buffer);
+    expect(orphanText).not.toMatch(/\d+th percentile/);
+    const small = fromSnapshot({ ...demoSnapshotInput(), cohortPercentile: 66, cohort: { ...cohort, sample_size: 9 } });
+    const smallText = await fullText((await renderTbrPdf(small)).buffer);
+    expect(smallText).not.toMatch(/\d+th percentile/);
+  }, 180_000);
 });

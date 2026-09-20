@@ -675,4 +675,16 @@ describe("<TbrReportV2> typography guard (G19-S47)", () => {
     expect(svg).not.toContain(">real data<");
     expect(spark).toMatch(/<figcaption[^>]*>[^<]*·\s*(real data|partial data|benchmark only|target, not actual)/);
   });
+
+  it("G21 P1 review: a chapter header prints 'you: Nth percentile (n = N)' only against a published cohort; the cover rank always carries n", () => {
+    const cohort = { sector: "SaaS", sample_size: 14, dim_medians: { tre: 50 }, dim_top_quartile: { tre: 65 } };
+    const html = renderToStaticMarkup(<TbrReportV2 report={fromSnapshot({ ...demoSnapshotInput(), cohortPercentile: 66, cohort })} />);
+    expect(html).toMatch(/you: \d+th percentile \(n = 14\)/);
+    expect(html).toContain("Pctl 66 (n=14)");
+    const none = renderToStaticMarkup(<TbrReportV2 report={fromSnapshot({ ...demoSnapshotInput(), cohortPercentile: 66 })} />);
+    expect(none).not.toMatch(/th percentile/);
+    expect(none).not.toContain("data-tbr-hero-percentile");
+    const vi = renderToStaticMarkup(<TbrReportV2 report={fromSnapshot({ ...demoSnapshotInput(), cohortPercentile: 66, cohort })} locale="vi" />);
+    expect(vi).toMatch(/phân vị \d+ \(n = 14\)/);
+  });
 });

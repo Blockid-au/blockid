@@ -6,7 +6,8 @@
 
 import { getTbrStrings, type TbrLocale } from "@/lib/i18n/tbr-strings";
 import { aud } from "@/lib/report-visuals";
-import { DIM_ORDER, type ReportV2 } from "./schema";
+import { mayShowPercentile } from "@/lib/benchmarks/publication-rules";
+import { DIM_ORDER, type DimensionChapter, type ReportV2 } from "./schema";
 
 /** Below this consensus confidence the headline is "valuation pending", not a number. */
 export const COVER_VALUATION_MIN_CONFIDENCE = 0.3;
@@ -19,6 +20,22 @@ export function coverValuationPending(report: Pick<ReportV2, "valuation" | "cove
 /** True when at least one cover row carries a percentile — otherwise the Pctl column hides (no "—" column). */
 export function coverHasPercentiles(cover: Pick<ReportV2["cover"], "dims">): boolean {
   return DIM_ORDER.some((d) => typeof cover.dims[d]?.percentile === "number");
+}
+
+// ── G21 P1 review: the percentile lines, gated once for PDF / DOCX / e-mail ──
+// A rank reaches a document only beside its cohort size and only when that
+// size clears the publication floor (score-governance § 7).
+
+/** The cover rank + n — "72th percentile (n=40)" — or null when unpublished. */
+export function coverPercentileLine(svi: Pick<ReportV2["cover"]["svi"], "cohortPercentile" | "cohortN">): string | null {
+  if (svi.cohortPercentile === null || typeof svi.cohortN !== "number" || !mayShowPercentile(svi.cohortN)) return null;
+  return `${svi.cohortPercentile}th percentile (n=${svi.cohortN})`;
+}
+
+/** " · you: 72th percentile (n = 40)" for a chapter header, or "" when the chapter has no published rank. */
+export function chapterPercentileSuffix(b: DimensionChapter["benchmark"]): string {
+  if (b.percentile === null || typeof b.n !== "number" || !mayShowPercentile(b.n)) return "";
+  return ` · you: ${b.percentile}th percentile (n = ${b.n})`;
 }
 
 export interface CoverHero {

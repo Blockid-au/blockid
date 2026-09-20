@@ -63,7 +63,10 @@ export interface IcSections {
     svi: number | null;
     sviBand: string;
     delta30d: number | null;
+    /** G21 P1 review: the published stage-cohort rank only; null below the floor. */
     percentile: number | null;
+    /** The cohort size behind `percentile` — or the n the "No cohort benchmark yet (n = N)" tile reports. Null when nothing was scored. */
+    percentileN: number | null;
     consentTier: string;
     evidenceItems: number;
     evidenceConnected: number;
@@ -135,6 +138,7 @@ export function buildIcSections(view: DossierView, kind: IcReportKind, opts: { w
       sviBand: h.sviBand,
       delta30d: h.delta30d,
       percentile: h.percentile?.value ?? null,
+      percentileN: h.percentile?.cohortSize ?? null,
       consentTier: h.consentTier,
       evidenceItems: h.evidence.items,
       evidenceConnected: h.evidence.connected,

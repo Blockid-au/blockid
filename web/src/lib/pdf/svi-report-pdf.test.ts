@@ -4,6 +4,8 @@ import { extractSignals, computeSVI } from "@/lib/svi-analysis";
 import { SVIReportPDF } from "@/lib/pdf/svi-report-pdf";
 import * as P from "@/lib/pdf/svi-report-pdf";
 import { pdfPageCount, pdfPageCountsAgree } from "@/lib/pdf/page-count";
+import { PDFParse } from "pdf-parse";
+import { publishPercentile } from "@/lib/benchmarks/publication-rules";
 
 // Smoke test: the SCN report (native SVG infographics + 5-layer narrative) must
 // render to a non-trivial PDF buffer from real analysis data without throwing.
@@ -142,4 +144,36 @@ describe("SVIReportPDF page count", () => {
     expect(pdfPageCountsAgree(buffer)).toBe(true);
     expect(pdfPageCount(buffer)).toBeGreaterThanOrEqual(10);
   }, 120_000);
+
+  // G21 P1 review (score-governance § 7): the Position page ranks the founder
+  // only against a published cohort, with n; `percentileRank` never prints.
+  it("prints 'Top N%' + the stage median only from a published cohort (with n); otherwise the not-enough line", async () => {
+    async function fullText(buffer: Buffer): Promise<string> {
+      const parser = new PDFParse({ data: new Uint8Array(buffer) });
+      try {
+        const result = await parser.getText();
+        return result.pages.map((p) => p.text.replace(/\s+/g, " ")).join("\n");
+      } finally {
+        await parser.destroy();
+      }
+    }
+    const analysis = computeSVI(extractSignals({ rawText: "Acme AI is a SaaS startup with two co-founders, a live MVP, paying customers and an ABN." }));
+    const none = await fullText(await renderToBuffer(SVIReportPDF({ analysis: { ...analysis, percentileRank: 80, cohortPercentile: undefined }, startupName: "Acme AI", tier: "standard" })));
+    expect(none).not.toMatch(/Top \d+%/);
+    expect(none).not.toMatch(/ahead of/);
+    expect(none).toContain("No cohort benchmark yet (n = 0)");
+    const published = publishPercentile({ percentile: 80, n: 47, segment: "AU stage cohort" })!;
+    const withCohort = await fullText(
+      await renderToBuffer(
+        SVIReportPDF({
+          analysis: { ...analysis, cohortPercentile: { percentile: 80, source: "real_cohort", cohortSize: 47, stageMatched: analysis.stage, band: "benchmark", label: published.label, published, median: 141, p25: 120, p75: 165 } },
+          startupName: "Acme AI",
+          tier: "standard",
+        }),
+      ),
+    );
+    expect(withCohort).toContain("Top 20%");
+    expect(withCohort).toContain("benchmark (n = 47)");
+    expect(withCohort).toContain("median 141, p25–p75 120–165 (n = 47)");
+  }, 180_000);
 });

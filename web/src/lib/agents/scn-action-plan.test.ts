@@ -373,26 +373,32 @@ describe("buildScnActionPlan — yourNumber", () => {
     expect(plan.yourNumber.sviLabel).toMatch(/Top tier/);
   });
 
-  it("percentileLabel with no percentileRank echoes 'vs AU {stageLabel}'", () => {
+  it("percentileLabel without a published cohort says 'vs AU {stageLabel} — no cohort benchmark yet (n = N)' — percentileRank alone never prints (G21 P1 review)", () => {
     const plan = buildScnActionPlan({
-      analysis: makeAnalysis({ stageLabel: "Concept" }),
+      analysis: makeAnalysis({ stageLabel: "Concept", percentileRank: 85 }),
     });
-    expect(plan.yourNumber.sviPercentileLabel).toBe("vs AU concept");
+    expect(plan.yourNumber.sviPercentileLabel).toBe("vs AU concept — no cohort benchmark yet (n = 0)");
+    const fallback = buildScnActionPlan({
+      analysis: makeAnalysis({ stageLabel: "Seed", percentileRank: 85, cohortPercentile: { percentile: 85, source: "benchmark_fallback", cohortSize: 4, stageMatched: 2, band: "none", label: "not enough comparable companies (n = 4)", published: null } }),
+    });
+    expect(fallback.yourNumber.sviPercentileLabel).toBe("vs AU seed — no cohort benchmark yet (n = 4)");
   });
 
-  it("percentileLabel with a percentile computes 'top N% of AU {stageLabel}'", () => {
+  it("percentileLabel with a published cohort computes 'top N% of AU {stageLabel} — <band> (n = N)'", () => {
+    const published = { percentile: 85, n: 47, band: "benchmark" as const, label: "benchmark (n = 47)", segment: "AU stage-2 cohort" };
     const plan = buildScnActionPlan({
-      analysis: makeAnalysis({ stageLabel: "Seed", percentileRank: 85 }),
+      analysis: makeAnalysis({ stageLabel: "Seed", cohortPercentile: { percentile: 85, source: "real_cohort", cohortSize: 47, stageMatched: 2, band: "benchmark", label: published.label, published } }),
     });
-    // top = round(100 - 85) = 15
-    expect(plan.yourNumber.sviPercentileLabel).toBe("top 15% of AU seed");
+    // top = 100 - 85 = 15
+    expect(plan.yourNumber.sviPercentileLabel).toBe("top 15% of AU seed — benchmark (n = 47)");
   });
 
-  it("percentileLabel clamps top to at least 1% when percentile is 100", () => {
+  it("percentileLabel clamps top to at least 1% when the published percentile is 100", () => {
+    const published = { percentile: 100, n: 47, band: "benchmark" as const, label: "benchmark (n = 47)", segment: "AU stage-2 cohort" };
     const plan = buildScnActionPlan({
-      analysis: makeAnalysis({ stageLabel: "Seed", percentileRank: 100 }),
+      analysis: makeAnalysis({ stageLabel: "Seed", cohortPercentile: { percentile: 100, source: "real_cohort", cohortSize: 47, stageMatched: 2, band: "benchmark", label: published.label, published } }),
     });
-    expect(plan.yourNumber.sviPercentileLabel).toBe("top 1% of AU seed");
+    expect(plan.yourNumber.sviPercentileLabel).toBe("top 1% of AU seed — benchmark (n = 47)");
   });
 
   it("formats headline valuation with M suffix and the lowercased pre-em-dash label", () => {

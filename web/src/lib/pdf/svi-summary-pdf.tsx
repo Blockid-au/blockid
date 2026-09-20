@@ -39,8 +39,7 @@ import { Document, Page, Text, View } from "@react-pdf/renderer";
 import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 
 import type { SVIAnalysis } from "@/lib/svi-analysis";
-import { SVI_BENCHMARKS } from "@/lib/svi-analysis";
-import { getSVIBenchmark } from "@/lib/benchmarks";
+import { formatBenchmarkLine, noBenchmarkYetLine, notEnoughLine, publishBenchmark, publishedFromCohort } from "@/lib/benchmarks/publication-rules";
 import { estimateValuation } from "@/lib/valuation";
 import {
   FREE_SUMMARY_PAGES,
@@ -198,15 +197,18 @@ export function SVISummaryPDF({
     { sector: analysis.sector ?? analysis.signals?.sector },
     dims,
   );
-  const percentile = analysis.percentileRank ?? 50;
-  const benchmark = SVI_BENCHMARKS[analysis.stage] ?? SVI_BENCHMARKS[0];
+  // G21 P1 review: the rank and the stage median come from the stored
+  // cohort result and only when published (lib/benchmarks/publication-rules.ts)
+  // — never `percentileRank` (a static-table estimate) and never the static
+  // SVI_BENCHMARKS table (score-governance § 7: no figure without its n).
+  const cohort = analysis.cohortPercentile ?? null;
+  const published = publishedFromCohort(cohort, `AU ${analysis.stageLabel.toLowerCase()} cohort`);
+  const cohortN = cohort?.cohortSize ?? 0;
+  const stageMedian =
+    published && typeof cohort?.median === "number" && Number.isFinite(cohort.median)
+      ? publishBenchmark({ median: cohort.median, p25: cohort.p25 ?? null, p75: cohort.p75 ?? null, n: cohortN, segment: `AU ${analysis.stageLabel.toLowerCase()} stage` })
+      : null;
   const confidence = Math.round(analysis.confidenceMultiplier * 100);
-  // Per-dimension Australian cohort average at this stage. The `weight`
-  // slot on DimensionBar is a small parenthetical beside the label; the
-  // paid report puts a scoring weight there, which is internal machinery.
-  // The useful thing to a founder is what the same dimension averages at
-  // their stage in this market, so that is what goes there.
-  const cohort = getSVIBenchmark(analysis.stage);
 
   const subs = (analysis.subs ?? []).slice(0, MAX_DIMENSIONS);
   const ranked = [...subs].sort((a, b) => b.value - a.value);
@@ -282,7 +284,9 @@ export function SVISummaryPDF({
                 marginTop: 4,
               }}
             >
-              {`The median company at ${analysis.stageLabel.toLowerCase()} stage in this market scores ${benchmark.p50}. The top quartile starts at ${benchmark.p75}.`}
+              {stageMedian
+                ? `${formatBenchmarkLine(stageMedian)}.${stageMedian.p75 !== null ? ` The top quartile starts at ${stageMedian.p75}.` : ""}`
+                : notEnoughLine(cohortN, `${analysis.stageLabel.toLowerCase()} stage`)}
             </Text>
           </View>
         </View>
@@ -296,13 +300,17 @@ export function SVISummaryPDF({
           />
           <MetricCard
             label="Percentile"
-            value={`${Math.round(percentile)}th`}
-            sub="Against Australian companies at your stage"
+            value={published ? `${published.percentile}th` : "—"}
+            sub={published ? `Against ${published.segment} — ${published.label}` : noBenchmarkYetLine(cohortN)}
           />
         </View>
 
         <Eyebrow>Where you sit</Eyebrow>
-        <PercentileBandSVG percentile={percentile} width={500} height={34} />
+        {published ? (
+          <PercentileBandSVG percentile={published.percentile} width={500} height={34} />
+        ) : (
+          <Text style={{ fontSize: 8.5, color: C.ink600, lineHeight: 1.55 }}>{notEnoughLine(cohortN, `${analysis.stageLabel.toLowerCase()} stage`)}</Text>
+        )}
 
         <View style={{ height: 12 }} />
 
@@ -397,7 +405,6 @@ export function SVISummaryPDF({
             key={sub.key}
             label={DIM_LABELS[sub.key] ?? sub.label}
             score={sub.value}
-            weight={`AU average ${cohort.dimensions[sub.key]?.avg ?? "—"}`}
           />
         ))}
 

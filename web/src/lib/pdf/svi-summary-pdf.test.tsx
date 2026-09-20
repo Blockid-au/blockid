@@ -4,6 +4,8 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { computeSVI, extractSignals } from "@/lib/svi-analysis";
 import { FREE_SUMMARY_PAGE_COUNT } from "@/lib/analyses/free-summary";
 
+import { PDFParse } from "pdf-parse";
+import { publishPercentile } from "@/lib/benchmarks/publication-rules";
 import { pdfPageCount, pdfPageCountsAgree } from "./page-count";
 import { SVISummaryPDF } from "./svi-summary-pdf";
 
@@ -77,6 +79,47 @@ describe("SVISummaryPDF", () => {
         reportDate: "1 January 2026",
       }),
     );
+    expect(pdfPageCount(buffer)).toBe(FREE_SUMMARY_PAGE_COUNT);
+  }, 120_000);
+
+  // G21 P1 review — score-governance § 7: no percentile, median or "AU
+  // average" without its n; the stored cohort result decides.
+  async function fullText(buffer: Buffer): Promise<string> {
+    const parser = new PDFParse({ data: new Uint8Array(buffer) });
+    try {
+      const result = await parser.getText();
+      return result.pages.map((p) => p.text.replace(/\s+/g, " ")).join("\n");
+    } finally {
+      await parser.destroy();
+    }
+  }
+
+  it("without a published cohort: no percentile, no stage median, no 'AU average' — the not-enough line with n instead", async () => {
+    const analysis = computeSVI(extractSignals({ rawText: RICH }));
+    const buffer = await renderToBuffer(SVISummaryPDF({ analysis: { ...analysis, percentileRank: 72, cohortPercentile: undefined }, startupName: "Northwind Freight" }));
+    const text = await fullText(buffer);
+    expect(text).not.toMatch(/\d+th/);
+    expect(text).not.toContain("AU average");
+    expect(text).not.toContain("The median company at");
+    expect(text).toContain("No cohort benchmark yet (n = 0)");
+    expect(text).toContain("Not enough comparable companies");
+    expect(pdfPageCount(buffer)).toBe(FREE_SUMMARY_PAGE_COUNT);
+  }, 120_000);
+
+  it("with a published cohort: the rank + band label and the stage median line, both with n", async () => {
+    const analysis = computeSVI(extractSignals({ rawText: RICH }));
+    const published = publishPercentile({ percentile: 72, n: 47, segment: "AU stage cohort" })!;
+    const buffer = await renderToBuffer(
+      SVISummaryPDF({
+        analysis: { ...analysis, cohortPercentile: { percentile: 72, source: "real_cohort", cohortSize: 47, stageMatched: analysis.stage, band: "benchmark", label: published.label, published, median: 141, p25: 120, p75: 165 } },
+        startupName: "Northwind Freight",
+      }),
+    );
+    const text = await fullText(buffer);
+    expect(text).toContain("72th");
+    expect(text).toContain("benchmark (n = 47)");
+    expect(text).toContain("median 141, p25–p75 120–165 (n = 47)");
+    expect(text).not.toContain("AU average");
     expect(pdfPageCount(buffer)).toBe(FREE_SUMMARY_PAGE_COUNT);
   }, 120_000);
 });

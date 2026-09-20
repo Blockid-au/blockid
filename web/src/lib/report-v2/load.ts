@@ -23,6 +23,7 @@ import { isReportV2, type ReportTierV2, type ReportV2 } from "./schema";
 import { readSnapshotReportV2 } from "./storage";
 import { primeComparables } from "@/lib/valuation/comparables-repo.server";
 import { loadVerificationLevel } from "@/lib/verification/load-level";
+import { publishedFromCohort } from "@/lib/benchmarks/publication-rules";
 
 type Row = Record<string, unknown>;
 
@@ -107,8 +108,9 @@ export function snapshotInputFromRow(row: SnapshotRowLike, ctx: SnapshotReportCo
     sviTotal: typeof row.svi_total === "number" && Number.isFinite(row.svi_total) ? row.svi_total : null,
     dimStates,
     sviLedger: analysis.ledger ?? null,
-    // G19-S44: the engine's cohort percentile (or stage percentile rank) fills the cover.
-    cohortPercentile: analysis.cohortPercentile?.percentile ?? analysis.percentileRank ?? null,
+    // G19-S44: the engine's cohort percentile fills the cover. G21 P1 review:
+    // the published rank only — never `percentileRank` (a static-table estimate).
+    cohortPercentile: publishedFromCohort(analysis.cohortPercentile)?.percentile ?? null,
     cohort: analysis.cohortPercentile?.cohortSize ? { sample_size: analysis.cohortPercentile.cohortSize } : null,
     criterionStates: Array.isArray(row.criterion_results) ? (row.criterion_results as SnapshotCriterionState[]) : null,
     phaseId: ctx.phaseId ?? null,

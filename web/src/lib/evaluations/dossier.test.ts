@@ -172,7 +172,7 @@ beforeEach(() => {
       : { available: true, mine: MINE, history: [{ id: "a-1", version: 2 }, { id: "a-0", version: 1 }], sharedWithFounder: null },
   );
   percentileMock.mockReset();
-  percentileMock.mockResolvedValue({ percentile: 61.4, source: "real_cohort", cohortSize: 120, stageMatched: 3 });
+  percentileMock.mockResolvedValue({ percentile: 61.4, source: "real_cohort", cohortSize: 120, stageMatched: 3, band: "segmented", label: "segmented benchmark (n = 120)", published: { percentile: 61, n: 120, band: "segmented", label: "segmented benchmark (n = 120)", segment: "AU stage-3 cohort" } });
   readConsensusMock.mockReset().mockResolvedValue(EMPTY_CONSENSUS);
   shareOrgMock.mockReset().mockResolvedValue(null);
   __resetDossierCaches();
@@ -222,7 +222,7 @@ describe("loadDossier — evaluator", () => {
     expect(h.state).toBe("NSW");
     expect(h.svi).toBe(62);
     expect(h.delta30d).toBe(4);
-    expect(h.percentile).toEqual({ value: 61, source: "real_cohort", cohortSize: 120 });
+    expect(h.percentile).toEqual({ value: 61, source: "real_cohort", cohortSize: 120, label: "segmented benchmark (n = 120)" });
     expect(h.consentTier).toBe("reports_shared");
     expect(h.founderClaimed).toBe(true);
     expect(h.lastSnapshotAt).toBe("2026-09-12T00:00:00Z");

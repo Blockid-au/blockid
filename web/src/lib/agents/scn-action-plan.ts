@@ -19,6 +19,7 @@
 // top later for narrative polish.
 
 import type { SVIAnalysis } from "@/lib/svi-analysis";
+import { noBenchmarkYetLine, publishedFromCohort } from "@/lib/benchmarks/publication-rules";
 import type { DeepValuationAnalysis } from "@/lib/agents/deep-valuation";
 
 export type ScnLayerCode = "validation" | "position" | "value" | "direction" | "capital";
@@ -57,7 +58,7 @@ export interface ScnActionPlan {
   yourNumber: {
     sviScore: number;
     sviLabel: string;             // "Pre-investable", "Investable", etc.
-    sviPercentileLabel: string;   // "top 35% of AU pre-seed"
+    sviPercentileLabel: string;   // "top 35% of AU pre-seed — benchmark (n = 47)" / "vs AU pre-seed — no cohort benchmark yet (n = 3)"
     valuationMidAud: number;
     valuationLowAud: number;
     valuationHighAud: number;
@@ -87,10 +88,18 @@ function sviLabel(sviScore: number): string {
   return "Top tier — institutional-ready";
 }
 
-function percentileLabel(stageLabel: string, percentile?: number): string {
-  if (percentile == null) return `vs AU ${stageLabel.toLowerCase()}`;
-  const top = Math.max(1, Math.round(100 - percentile));
-  return `top ${top}% of AU ${stageLabel.toLowerCase()}`;
+/**
+ * G21 P1 review: the rank only from a PUBLISHED cohort result (never
+ * `percentileRank`, a static-table estimate) and always with its n —
+ * "top 15% of AU seed — benchmark (n = 47)" / "vs AU seed — no cohort
+ * benchmark yet (n = 3)" (score-governance § 7).
+ */
+export function percentileLabel(stageLabel: string, cohort: SVIAnalysis["cohortPercentile"] | null | undefined): string {
+  const stage = stageLabel.toLowerCase();
+  const published = publishedFromCohort(cohort ?? null);
+  if (!published) return `vs AU ${stage} — ${noBenchmarkYetLine(cohort?.cohortSize ?? 0).toLowerCase()}`;
+  const top = Math.max(1, 100 - published.percentile);
+  return `top ${top}% of AU ${stage} — ${published.label}`;
 }
 
 function fmtAud(v: number): string {
@@ -591,7 +600,7 @@ export function buildScnActionPlan(input: ScnActionPlanInput): ScnActionPlan {
   const yourNumber: ScnActionPlan["yourNumber"] = {
     sviScore,
     sviLabel: sviLabel(sviScore),
-    sviPercentileLabel: percentileLabel(analysis.stageLabel ?? "early stage", analysis.percentileRank),
+    sviPercentileLabel: percentileLabel(analysis.stageLabel ?? "early stage", analysis.cohortPercentile),
     valuationMidAud: valuationMid,
     valuationLowAud: valuationLow,
     valuationHighAud: valuationHigh,
