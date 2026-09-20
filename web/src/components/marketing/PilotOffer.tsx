@@ -132,7 +132,7 @@ export function PilotOffer({ copy, configured, returnPath, id = "pilot", ctaPref
       </Section>
 
       {copy.afterTiers && copy.afterTiers.length > 0 ? (
-        <Section id={`${id}-after`} eyebrow={copy.afterTitle} title={copy.afterTitle} lede={copy.afterLede}>
+        <Section id={`${id}-after`} eyebrow="Next step" title={copy.afterTitle} lede={copy.afterLede}>
           <div data-testid="pilot-after">
             <FeatureGrid
               columns={2}

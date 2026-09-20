@@ -59,7 +59,7 @@ export const COMPARE_CHATGPT_HREF = "/compare/chatgpt";
 /** The accelerator hero's primary CTA — the paid pilot block on the same page. */
 export const ACCELERATOR_PILOT_ANCHOR = "#pilot";
 /** The accelerator hero's secondary CTA — the demo batch / sample cohort. */
-export const SAMPLE_COHORT_HREF = "/samples";
+export const SAMPLE_COHORT_HREF = "/showcase/atlassian?step=1";
 
 /** Where each persona's plan cards land: the signup with the rung pre-selected. */
 export const TIER_SIGNUP_HREF = {

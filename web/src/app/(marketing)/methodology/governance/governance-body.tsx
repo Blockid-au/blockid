@@ -18,7 +18,7 @@ function GovTable({ table }: { table: NonNullable<GovernanceSection["table"]> })
         <thead>
           <tr className="border-b border-line-subtle text-left text-[11px] uppercase tracking-wide text-tertiary">
             {table.columns.map((c) => (
-              <th key={c} className="px-3 py-2">{c}</th>
+              <th key={c} scope="col" className="px-3 py-2">{c}</th>
             ))}
           </tr>
         </thead>
@@ -49,7 +49,7 @@ export function GovernanceBody(p: GovernanceBodyProps) {
       <PageHero eyebrow={p.hero.eyebrow} title={p.hero.title} sub={p.hero.subtitle} align="start" />
 
       <Section id="principle" eyebrow="Human in the loop" title="The one rule every section follows" tone="sunken">
-        <blockquote className="max-w-3xl border-l-2 border-brand-300 pl-4 text-base leading-relaxed text-primary" data-testid="governance-principle">
+        <blockquote className="max-w-3xl border-l-2 border-accent-600/40 pl-4 text-base leading-relaxed text-primary" data-testid="governance-principle">
           {p.principle}
         </blockquote>
         <p className="mt-4 text-xs text-tertiary" data-testid="governance-version">

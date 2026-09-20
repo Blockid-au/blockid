@@ -56,7 +56,9 @@ test.describe("G21 P0 — home positioning", () => {
     await evidence(testInfo, "home", { ids, h1: HERO_H1 });
   });
 
-  test("top nav = the seven G21 items in order; primary nav CTA is the pilot", async ({ page, qa }) => {
+  test("top nav = the seven G21 items in order; primary nav CTA is the pilot (signed out)", async ({ browser, qa }) => {
+    const ctx = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    const page = await ctx.newPage();
     await page.goto(`${qa.baseURL}/`, { waitUntil: "domcontentloaded" });
     const header = page.locator("header").first();
     const labels = await header.locator("nav a").evaluateAll((as) => as.map((a) => (a.textContent ?? "").trim()));
@@ -64,6 +66,7 @@ test.describe("G21 P0 — home positioning", () => {
     const order = NAV.map((n) => labels.indexOf(n));
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     await expect(header.locator('a[href="/solutions/accelerator#pilot"]').first()).toContainText("Run a cohort pilot");
+    await ctx.close();
   });
 
   test("og:image:alt and description carry the FI hero, not the legacy 60-seconds line", async ({ page, qa }, testInfo) => {

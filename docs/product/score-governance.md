@@ -30,7 +30,7 @@ Each dimension is assessed through a fixed set of evaluation criteria (thirteen 
 
 ## 3. Weights
 
-- Weights are fixed per methodology version and sum to 100. They are read from one constant table; no report, pipeline or reviewer can change a weight at run time.
+- Weights are fixed per methodology version and sum to 100. The published table lives in `web/src/lib/report-pipeline/dimension-owners.ts`; the scoring engine carries the same values, and consolidating every copy onto that one table (with a parity test) is scheduled for the next methodology release. No report, pipeline or reviewer can change a weight at run time.
 - The heaviest dimension is Traction & Revenue Evidence; the lightest is Strategic Vision & Moat. The full weight table is shown to authenticated evaluators inside every report and is not published on the public page, so that the public rubric describes what is assessed rather than how to write to it.
 - Program-specific rubric weights (BlockID Cohort) re-aggregate the eight dimension scores for the displayed cohort score only; the underlying dimension scores and the canonical SVI are never altered by a program's weights, and both are stored.
 
@@ -83,11 +83,11 @@ A benchmark compares a company with others at the same stage (and, when the samp
 | 30 – 99 | a basic percentile |
 | 100 or more | segmented percentiles (stage × sector) |
 
-`n` is always shown beside the figure. A national or sector "average" without its `n` is not permitted on any surface (`docs/design/messaging.md` § 11). Today the cohort-percentile module suppresses percentiles below its own floor (`COHORT_MIN_N = 20`); the tiered rules above supersede that floor as the Assessment Card ships, and both are enforced in code, not copy.
+`n` is always shown beside the figure. A national or sector "average" without its `n` is not permitted on any surface (`docs/design/messaging.md` § 11). Today the cohort-percentile module substitutes a band-based estimate labelled `benchmark_fallback` when a cohort has fewer than 20 companies; the tiered rules above replace that fallback as the Assessment Card ships (v3.19), after which nothing below n = 10 is shown as a percentile. Both are enforced in code, not copy.
 
 ## 8. Conflict handling — claim states
 
-Every claim a company makes is stored separately from the evidence for it and carries one of five states:
+Every claim a company makes is stored separately from the evidence for it and carries one of five states (the claim register ships with the Assessment Card, v3.19; until then the report shows the evidence ladder level and the verification state per dimension):
 
 | State | Meaning | Effect on the score |
 |---|---|---|
@@ -95,7 +95,7 @@ Every claim a company makes is stored separately from the evidence for it and ca
 | **evidence-backed** | A document, link or connector supports the claim | counts at the evidence's level |
 | **verified** | A named reviewer confirmed the evidence against its source | counts at `third_party_verified` |
 | **unverified** | Evidence was requested or has expired and is not on file | counts as a **gap** (pending), not as false |
-| **conflicting** | Two sources disagree (for example, a stated revenue figure and connected transaction data) | the lower-confidence value is discarded, the higher-confidence value is used, and the conflict is shown on the report with both figures |
+| **conflicting** | Two sources disagree (for example, a stated revenue figure and connected transaction data) | the higher-confidence value is used for the score, the lower-confidence value is kept on the record, and the conflict is shown on the report with both figures |
 
 Conflicts are never averaged and never hidden. A conflicting claim is flagged to the founder with the evidence that would resolve it; while it is open, the dimension's confidence reflects the disagreement.
 
@@ -103,7 +103,7 @@ Conflicts are never averaged and never hidden. A conflicting claim is flagged to
 
 - **Reviewer decisions** (marking evidence `third_party_verified`, rejecting an upload) are made by a named BlockID reviewer, only after the founder requests review, and are written to the append-only, hash-chained audit log with the reviewer, the time and the reason.
 - **Evaluator decisions** (pass, track, proceed, with conviction and private notes) are recorded per evaluator per company and are separate from the score; they never change the SVI.
-- **Overrides** of a score or a dimension inside a cohort view are recorded as an override row: original value, new value, who, when and why. The canonical score is unchanged; the cohort view shows both and labels the override. An override is never silent and never retroactive.
+- **Overrides** of a score or a dimension inside a cohort view (BlockID Cohort, v3.20) are recorded as an override row: original value, new value, who, when and why. The canonical score is unchanged; the cohort view shows both and labels the override. An override is never silent and never retroactive. Until the cohort override row ships, evaluators record disagreement as a decision with private notes (above), which never changes the score.
 - **Automation never decides.** The engine produces the assessment; the program's committee, the investor or the founder makes the decision and records it.
 
 ## 10. Corrections and appeals
@@ -118,7 +118,7 @@ Appeals about a program's decision go to the program; BlockID can only correct t
 
 ## 11. Re-score policy
 
-- A re-score happens when evidence is added, verified, expires or is corrected; on a scheduled snapshot (weekly for tracked companies); or when the methodology version changes.
+- A re-score happens when evidence is added, verified, expires or is corrected; on the scheduled daily snapshot for tracked companies; or when the methodology version changes.
 - Each re-score writes a new snapshot; the history is kept so movement over time is real movement, not a rule change. When the version changes, the report states the version of every snapshot it compares.
 - Cohort batches are scored on one version; a batch is never mixed across versions.
 
@@ -136,4 +136,4 @@ The deterministic score never touches a language model. Narrative chapters do, a
 
 ## 14. Contact
 
-Questions about this document, requests for the weight table under an evaluator agreement, and correction requests: the support address on `/methodology`. Institutional customers receive written notice of every major change (§ 6).
+Questions about this document, requests for the weight table under an evaluator agreement, and correction requests: [support@blockid.au](mailto:support@blockid.au) (the founder correction workflow inside the workspace ships in v3.19). Institutional customers receive written notice of every major change (§ 6).

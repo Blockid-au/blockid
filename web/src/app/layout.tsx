@@ -101,7 +101,7 @@ export const metadata: Metadata = {
     siteName: "BlockID.au",
     title: OG_TITLE,
     description: SITE_DESCRIPTION,
-    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "BlockID" }],
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: `${heroLine("FI1").en.replace(/\.$/, "")} · BlockID.au` }],
   },
   twitter: {
     card: "summary_large_image",

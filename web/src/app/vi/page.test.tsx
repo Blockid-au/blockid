@@ -54,14 +54,15 @@ describe("/vi homepage — template (G21 P0-B)", () => {
     expect(out).not.toMatch(/A\$\d/);
   });
 
-  it("the two CTAs go where the English home goes (cohort pilot / analyze), in the hero and in the closing band", () => {
+  it("the two CTAs go to the VI cohort-pilot page and /analyze, in the hero and in the closing band", () => {
     expect(HOME_PRIMARY_CTA.href).toBe("/solutions/accelerator#pilot");
     expect(HOME_SECONDARY_CTA.href).toBe("/analyze");
     expect(out).toMatch(/data-cta-id="vi_hero_pilot"/);
     expect(out).toMatch(/data-cta-id="vi_hero_score"/);
     expect(out).toMatch(/data-cta-id="vi_home_final_pilot"/);
     expect(out).toMatch(/data-cta-id="vi_home_final_score"/);
-    expect((out.match(/href="\/solutions\/accelerator#pilot"/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    // Review P1 (2026-09-20): a Vietnamese visitor stays on the /vi mirror.
+    expect((out.match(/href="\/vi\/solutions\/accelerator#pilot"/g) ?? []).length).toBeGreaterThanOrEqual(2);
     expect((out.match(/href="\/analyze"/g) ?? []).length).toBeGreaterThanOrEqual(2);
     expect(out).toContain(esc(VI["vi.home.cta.primary"]!));
     expect(out).toContain(esc(VI["vi.home.cta.secondary"]!));

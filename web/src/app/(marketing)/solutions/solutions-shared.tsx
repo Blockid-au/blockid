@@ -475,7 +475,7 @@ export function SolutionsPageShell(props: SolutionPageProps) {
 
         {/* B2 Task 6 — trust / compliance facts (investor persona opts in) */}
         {trustBadges && trustBadges.length > 0 ? (
-          <Section id="trust" ariaLabel="Compliance and trust badges" spacing="sm" tone="sunken">
+          <Section id="compliance" ariaLabel="Compliance and trust badges" spacing="sm" tone="sunken">
             <ProofBand
               ariaLabel="Compliance and trust badges"
               items={trustBadges.map((b) => ({ label: b.label, sub: b.sub }))}

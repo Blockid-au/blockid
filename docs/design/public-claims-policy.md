@@ -28,7 +28,7 @@ A hypothesis is **never** presented as traction, and an observed figure is never
 
 1. **Every number on a public surface is in the register** with `id`, `claim`, `class`, `value`, `source`, `surfaces`, `reviewed` and the `patterns` the extractor matches. The guard prints the exact token to add.
 2. **Source is a path**: a code constant (`src/lib/report-pipeline/dimension-owners.ts`), a committed script (`scripts/…`), a document (`docs/ops/pricing-truth.md`) or a cited external page. "Founder said so" is not a source.
-3. **External statistics** are registered as *observed* only while the citation is on the surface next to them; uncited they are *hypothesis* and must be cited or removed. The register notes an `UNSOURCED` source explicitly so the gap is visible (example on 2026-09-20: the 70 % cap-table line on `/about/invest`).
+3. **External statistics** are registered as *observed* only while the citation is on the surface next to them; uncited they are *hypothesis* and must be cited or removed. The register notes an `UNSOURCED` source explicitly so the gap is visible.
 4. **Illustrative samples** (the homepage sample runs, demo reports) are labelled as samples on the surface and registered as *hypothesis* — they are not BlockID results.
 5. **Benchmarks** follow `docs/product/score-governance.md` § 7: no percentile below n = 10, "indicative" from 10–29, always with n, never "Australian average" without n.
 6. **No user counts, no agent counts, no provider counts** on public surfaces (`docs/design/messaging.md` § 11).

@@ -302,7 +302,7 @@ test.describe("Purchase path — Cohort Validation Pilot (G21 P0-C, no spend)", 
       const el = cards.nth(i);
       const sku = await el.getAttribute("data-sku");
       const text = (await el.innerText()).replace(/\s+/g, " ");
-      seen.push({ sku, text: text.slice(0, 400) });
+      seen.push({ sku, text });
     }
     const c25 = seen.find((c) => c.sku === "cohort_pilot_25")!;
     const c50 = seen.find((c) => c.sku === "cohort_pilot_50")!;

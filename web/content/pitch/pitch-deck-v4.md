@@ -214,7 +214,7 @@ hero:
       - More useful assessments
       - Higher evaluator trust
 bullets:
-  - "Evidence: every claim labelled claimed, evidence-backed, verified or conflicting."
+  - "Evidence: every dimension shows its evidence level, what is verified and what is still unsupported."
   - "Audit and method: hash-chained trail, public methodology version, human review logged."
   - "Benchmark and history: comparable companies, re-assessed over time — a chatbot keeps none of it."
 speaker: A chatbot analyses what you paste; we keep a structured record and apply one method across every company and every point in time.
@@ -357,4 +357,4 @@ Every number that appears in a slide title, sub-line, bullet or hero data is lis
 | 1 (organisation paying to assess a live cohort) | 10 | `docs/plans/g21-fi-upgrade-2026-09-20.md` § 0 (next milestone) | the milestone, not traction |
 | 659 615 111 (ACN) | footer, front-matter | `web/src/lib/site/legal-entity.ts` `LEGAL_ENTITY.acn` | the generator reads the config; the test asserts parity |
 
-Numbers deliberately **not** on any slide: startup / report / snapshot counts (not yet a claims-register row with a dated script), agent counts (messaging § 11), the legacy three-dollar report price (never an anchor), market-size estimates (the appendix carries the sourced bottom-up count), any funding ask or valuation (next-milestone framing only).
+Numbers deliberately **not** on any slide: startup / report / snapshot counts (not yet a claims-register row with a dated script), agent counts (messaging § 11), the legacy three-dollar report price (never an anchor), market-size estimates, any funding ask or valuation (next-milestone framing only).

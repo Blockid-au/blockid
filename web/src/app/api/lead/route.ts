@@ -16,7 +16,7 @@ import { apiRoute } from "@/lib/audit/api-route";
 // (10 / 10 min) lives in src/proxy.ts (bucket "lead").
 export const HONEYPOT_FIELD = "company_website";
 export const SUPPORT_INBOX = "support@blockid.au";
-export const CONTACT_TOPICS = ["general", "demo", "sales", "support", "legal", "partnership", "press"] as const;
+export const CONTACT_TOPICS = ["general", "demo", "pilot", "sales", "support", "legal", "partnership", "press"] as const;
 export type ContactTopic = (typeof CONTACT_TOPICS)[number];
 
 export function normaliseTopic(raw: unknown): ContactTopic {

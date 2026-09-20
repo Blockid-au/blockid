@@ -65,7 +65,7 @@ export const INVEST_BUSINESS_MODEL: readonly InvestCard[] = [
   },
   {
     icon: "trending",
-    title: "88–99.9% gross margins",
+    title: "Model: 88–99.9% gross margin (projected, unmeasured)",
     body: "AI-native platform with minimal marginal cost per analysis. No human analysts required. Infrastructure scales linearly with demand.",
   },
 ];

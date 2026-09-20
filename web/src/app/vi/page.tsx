@@ -42,7 +42,7 @@ import {
 } from "@/components/marketing/template";
 import { getMessages, t } from "@/lib/i18n/t";
 import { pageMetadata } from "@/lib/seo/page-meta";
-import { HOME_PRIMARY_CTA, HOME_SAMPLE_LINK, HOME_SECONDARY_CTA, HOME_SEQUENCE } from "../(marketing)/home-content";
+import { HOME_SAMPLE_LINK, HOME_SECONDARY_CTA, HOME_SEQUENCE } from "../(marketing)/home-content";
 import { ViHeroSearch } from "./vi-hero-search";
 
 export const revalidate = 300;
@@ -98,7 +98,7 @@ export default async function ViHomePage() {
           title={t(m, "hero.line.fi1")}
           sub={t(m, "hero.line.fi2")}
           ctas={[
-            { href: HOME_PRIMARY_CTA.href, label: t(m, "vi.home.cta.primary"), ctaId: "vi_hero_pilot" },
+            { href: "/vi/solutions/accelerator#pilot", label: t(m, "vi.home.cta.primary"), ctaId: "vi_hero_pilot" },
             { href: HOME_SECONDARY_CTA.href, label: t(m, "vi.home.cta.secondary"), ctaId: "vi_hero_score" },
           ]}
           visual={<ViHeroSearch placeholder={t(m, "vi.home.search.placeholder")} />}
@@ -213,7 +213,7 @@ export default async function ViHomePage() {
         <CtaBand
           title={t(m, "vi.home.final.title")}
           sub={t(m, "vi.home.final.sub")}
-          primary={{ href: HOME_PRIMARY_CTA.href, label: t(m, "vi.home.cta.primary"), ctaId: "vi_home_final_pilot" }}
+          primary={{ href: "/vi/solutions/accelerator#pilot", label: t(m, "vi.home.cta.primary"), ctaId: "vi_home_final_pilot" }}
           secondary={{ href: HOME_SECONDARY_CTA.href, label: t(m, "vi.home.cta.secondary"), ctaId: "vi_home_final_score" }}
           tone="dark"
         />

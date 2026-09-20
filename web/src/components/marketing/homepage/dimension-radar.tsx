@@ -98,7 +98,7 @@ export function DimensionRadar({ run }: DimensionRadarProps) {
       >
         <title id={titleId}>{`Eight scoring dimensions for a ${run.stage.toLowerCase()} run`}</title>
         <desc id={descId}>
-          {`The shaded ring is the Australian cohort at ${stageLabel} stage, from average to top quartile. Four readings from this run are marked: ` +
+          {`The shaded ring is the ${stageLabel}-stage benchmark band, from median to top quartile. Four readings from this run are marked: ` +
             plotted.map((b) => `${b.label} ${b.measured}`).join(", ") +
             ". The remaining four dimensions are not published for this run."}
         </desc>
@@ -202,7 +202,7 @@ export function DimensionRadar({ run }: DimensionRadarProps) {
             aria-hidden
             className="h-2.5 w-4 rounded-sm border border-line-strong bg-surface-hover"
           />
-          Australian {stageLabel.toLowerCase()}-stage companies, average to top
+          {stageLabel}-stage benchmark band, median to top
           quartile
         </span>
       </figcaption>

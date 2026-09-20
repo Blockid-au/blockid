@@ -801,7 +801,7 @@ export function NavV2({ variant = "dark" }: NavV2Props = {}) {
         </Link>
 
         {/* Desktop links */}
-        <ul className="hidden items-center gap-1 lg:flex">
+        <ul className="hidden items-center gap-1 xl:flex">
           {MENU.map((entry) => {
             if (entry.kind === "link") {
               return (
@@ -839,7 +839,7 @@ export function NavV2({ variant = "dark" }: NavV2Props = {}) {
         {/* Desktop CTAs — auth-aware. The header is rendered on static
             pages, so auth state arrives client-side via /api/auth/me; a
             neutral skeleton holds the width until it resolves. */}
-        <div className="hidden items-center gap-3 lg:flex">
+        <div className="hidden items-center gap-3 xl:flex">
           <LocaleSwitcher />
           {user === undefined ? (
             <div
@@ -881,7 +881,7 @@ export function NavV2({ variant = "dark" }: NavV2Props = {}) {
         <button
           ref={mobileToggleRef}
           type="button"
-          className={`inline-flex h-10 w-10 items-center justify-center rounded-lg lg:hidden focus:outline-none focus-visible:ring-2 ${t.mobileToggle} ${t.ring}`}
+          className={`inline-flex h-10 w-10 items-center justify-center rounded-lg xl:hidden focus:outline-none focus-visible:ring-2 ${t.mobileToggle} ${t.ring}`}
           aria-expanded={mobileOpen}
           aria-controls="nav-v2-mobile-menu"
           aria-label={mobileOpen ? "Close menu" : "Open menu"}
@@ -900,7 +900,7 @@ export function NavV2({ variant = "dark" }: NavV2Props = {}) {
         <nav
           id="nav-v2-mobile-menu"
           aria-label="Mobile"
-          className={`max-h-[calc(100dvh-4rem)] overflow-y-auto px-4 pb-4 pt-2 lg:hidden ${t.mobilePanel}`}
+          className={`max-h-[calc(100dvh-4rem)] overflow-y-auto px-4 pb-4 pt-2 xl:hidden ${t.mobilePanel}`}
         >
           <ul className="flex flex-col gap-1">
             {MENU.map((entry) =>

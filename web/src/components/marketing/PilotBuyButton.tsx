@@ -151,7 +151,7 @@ export function PilotBuyButton({ sku, configured, returnPath, label, variant = "
       {open ? (
         <div
           id={panelId}
-          role="dialog"
+          role="region"
           aria-label={`Confirm the ${price} Cohort Validation Pilot`}
           data-testid={`pilot-confirm-${sku}`}
           className="mt-2 w-full max-w-xl rounded-xl border border-line bg-surface p-5 shadow-2"

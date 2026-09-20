@@ -66,7 +66,7 @@ export function RunComparison() {
                   <div
                     className="relative mt-1 mb-2 h-1.5 w-full"
                     role="img"
-                    aria-label={`${b.label} scored ${b.measured}; the Australian ${cohortStageLabel(run).toLowerCase()}-stage average is ${b.avg}`}
+                    aria-label={`${b.label} scored ${b.measured}; the ${cohortStageLabel(run).toLowerCase()}-stage benchmark is ${b.avg}`}
                   >
                     <div className="h-full w-full overflow-hidden rounded-full bg-surface-hover">
                       <div

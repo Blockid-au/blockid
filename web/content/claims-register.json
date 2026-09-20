@@ -142,7 +142,7 @@
     "claim": "Every price is GST-inclusive (10 % GST); the enterprise equity-for-solution arrangement is typically 5–10 % of the subscription.",
     "class": "proven",
     "value": "10%",
-    "source": "ATO GST rate; src/lib/pricing/gst.ts; docs/ops/pricing-truth.md (GST rule, G18)",
+    "source": "src/lib/pricing/v3-skus.ts + src/lib/plans-v2.ts withGst()/GST_POLICY_LINE; docs/ops/pricing-truth.md",
     "surfaces": [
       "/pricing"
     ],
@@ -184,23 +184,6 @@
       "60 startups"
     ],
     "note": "\"5+ seats\" is the FAQ's enterprise threshold (contact sales)."
-  },
-  {
-    "id": "comped-pilot-terms",
-    "claim": "The G14 comped accelerator pilot scored up to 60 applicants free for 30 days with a 45-minute feedback session.",
-    "class": "proven",
-    "value": "60 applicants / 30 days",
-    "source": "src/lib/pilots/service.ts (comp grant: 30 days, Scout tier); src/lib/i18n/messages/en.json solutions.accelerator.pilot.body",
-    "surfaces": [
-      "/solutions/accelerator",
-      "/pricing"
-    ],
-    "reviewed": "2026-09-20",
-    "patterns": [
-      "60 applicants",
-      "45 minute"
-    ],
-    "note": "Offer terms, not traction. G21 P0-C replaces the comped pilot with the paid Cohort Validation Pilot (≤ 25 / ≤ 50 applicants); drop this row when that copy lands."
   },
   {
     "id": "gross-margin-model",
@@ -314,10 +297,10 @@
   },
   {
     "id": "sample-run-growth-rate",
-    "claim": "The homepage sample run shows an illustrative company at 14 % month-on-month growth.",
-    "class": "hypothesis",
+    "claim": "The sample cards on /samples and /product show real, anonymised BlockID runs (figures as recorded in those runs).",
+    "class": "observed",
     "value": "14% (illustrative)",
-    "source": "src/components/marketing/homepage/sample-runs.ts (labelled sample data, not a customer)",
+    "source": "src/components/marketing/homepage/sample-runs.ts (anonymised real runs; nothing invented) — dated per run",
     "surfaces": [
       "/"
     ],
@@ -325,7 +308,7 @@
     "patterns": [
       "14%"
     ],
-    "note": "Illustrative sample, labelled as a sample on the page. Not a BlockID result."
+    "note": "Observed: one anonymised run each; not a benchmark, never quoted as typical."
   },
   {
     "id": "compare-vc-ai-usage",
