@@ -630,8 +630,9 @@ test.describe("Assessment Card + dimension explainability (G21-P1-B)", () => {
       const execBox = await page.locator("#tbr-executive").boundingBox();
       await evidence(testInfo, "assessment card", { path, cards, svi, confidence, verification, explain, pendingExplain, cardTop: cardBox?.y, execTop: execBox?.y });
       expect(cards).toBe(1);
-      expect(text).toContain("SVI");
-      expect(text).toContain("Evidence Confidence");
+      // innerText carries the CSS uppercase label transform → case-insensitive.
+      expect(text).toMatch(/SVI/i);
+      expect(text).toMatch(/evidence confidence/i);
       expect(Number(confidence)).toBeGreaterThanOrEqual(0);
       expect(Number(confidence)).toBeLessThanOrEqual(100);
       expect(verification).toMatch(/^L[0-5]$/);
