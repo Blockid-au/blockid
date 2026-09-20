@@ -468,7 +468,7 @@ test.describe("Post-deploy hydrated smoke", () => {
   test.describe("G21 homepage", () => {
     const PERSONA = ["/solutions/accelerator", "/solutions/investor", "/solutions/founder"] as const;
     const NAV_LABELS = ["Product", "For Programs", "For Investors", "For Founders", "Methodology", "Startup Index", "Pricing"] as const;
-    const SECTION_IDS = ["problem", "sequence", "messages", "why-not-chatgpt", "built-for", "cta"] as const;
+    const SECTION_IDS = ["problem", "sequence", "messages", "why-not-chatgpt", "built-for", "trust", "cta"] as const;
 
     test("/ — one FI1 H1, hero search ring reacts to focus, nav = seven labels, sections in order, no A$ in main, no console errors", async ({ page }) => {
       test.setTimeout(30_000);
