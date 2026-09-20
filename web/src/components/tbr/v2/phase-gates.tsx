@@ -1,14 +1,24 @@
 // Chapter 11 — Phase gates (COO, deterministic): 13 criteria × 12 phases
 // heat map + route map; free tier shows the current phase row only.
+// G19-S44: the 8 per-chapter phase-lens sentences collapse into ONE row here
+// ("Dimension floors at <phase>: TRE floor 40 ✓ · MPC no floor · …"); each
+// chapter header keeps a one-word floor chip.
 
 import { VisualFigure } from "@/lib/report-visuals/react";
 import type { ReportV2 } from "@/lib/report-v2/schema";
+import { cn } from "@/lib/utils";
 import { AgentBadge, TBR_V2_SECTION_IDS, TbrSection, phaseLabel, v2Strings, type TbrUiLocale } from "./shared";
 
 export function TbrPhaseGates({ report, title, locale = "en" }: { report: ReportV2; title: string; locale?: TbrUiLocale }) {
   const g = report.phaseGates;
   const t = v2Strings(locale).phaseGates;
+  const s = v2Strings(locale).s44;
   const free = report.tier === "free";
+  const floors = report.dimensions.map((d) => ({
+    dim: d.dim,
+    label: typeof d.phaseLens.floor === "number" ? (d.phaseLens.floorMet ? s.floorMet(d.phaseLens.floor) : s.floorNotMet(d.phaseLens.floor)) : s.noFloor,
+    met: d.phaseLens.floorMet,
+  }));
   const currentRows = g.matrix.filter((m) => m.phase === g.current && m.required);
   const heat = g.visuals.find((v) => v.kind === "heat_map");
   const route = g.visuals.find((v) => v.kind === "route_map");
@@ -19,6 +29,14 @@ export function TbrPhaseGates({ report, title, locale = "en" }: { report: Report
         <span>{t.currentPhase(phaseLabel(g.current, locale))}</span>
       </div>
       {route && <VisualFigure spec={route} caption={null} />}
+      <p data-tbr-floors-row className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-600 dark:text-ink-300">
+        <span className="font-semibold uppercase tracking-wide text-ink-500">{s.floorsRow(phaseLabel(g.current, locale))}:</span>
+        {floors.map((f) => (
+          <span key={f.dim} data-tbr-floor={f.dim} className={cn("rounded-md border px-1.5 py-0.5 tabular-nums", f.met === false ? "border-orange-200 text-orange-700 dark:border-orange-900 dark:text-orange-300" : "border-ink-200 dark:border-ink-700")}>
+            <span className="font-mono text-[10px] text-ink-400">{f.dim.toUpperCase()}</span> {f.label}
+          </span>
+        ))}
+      </p>
       <table className="w-full text-xs">
         <caption className="py-1 text-left text-[10px] font-semibold uppercase tracking-wide text-ink-500">{t.requiredCriteria(phaseLabel(g.current, locale))}</caption>
         <tbody>

@@ -58,7 +58,11 @@ export interface TbrReportV2Props {
   /** G19-S45: the UI locale the shell offers (EN / VI / ES / JA); chapter titles use titleVi for VI, English otherwise. */
   locale?: TbrLocale;
   upgradeHref?: string;
-  /** Slot rendered after the 8 chapters (e.g. the live Action Plan widget). */
+  /**
+   * Slot rendered after the 8 chapters — the live Action Plan widget. G19-S44:
+   * ONE to-do list per report, so the slot renders only when the document's
+   * own 90-day plan (chapter 13) is empty.
+   */
   afterChapters?: React.ReactNode;
   /** G19-S45 (D6): slot rendered right after the Executive summary (the clarity survey on paid + share views). */
   afterExecutive?: React.ReactNode;
@@ -94,7 +98,7 @@ export function TbrReportV2({ report, strings, locale = "en", upgradeHref, after
           {i === railAfterIdx && unlock && railFor(unlock.mode)}
         </Fragment>
       ))}
-      {afterChapters}
+      {report.actionPlan.steps.length === 0 ? afterChapters : null}
       <TbrValuation report={report} title={t.secValuation} locale={locale} />
       <TbrPhaseGates report={report} title={t.secPhaseGates} locale={locale} />
       <TbrMoney report={report} title={t.secMoney} locale={locale} />

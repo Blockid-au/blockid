@@ -64,6 +64,8 @@ vi.mock("@/components/dashboard/landing/landing-tracker", () => ({
 vi.mock("./page.legacy", () => ({ LegacyDashboardPage: () => <div data-legacy-landing /> }));
 
 import { extractSignals } from "@/lib/svi-analysis";
+import { displayPhaseFor, phaseDimsFromAnalysis } from "@/lib/growth/infer-phase";
+import { demoReportV2 } from "@/lib/report-v2/fixtures";
 import { fakeSupabase, type FakeSupabase } from "@/test/fake-supabase";
 import { keyCalls } from "@/test/project-scope-mock";
 import { renderPage, dataAttr } from "@/test/founder-page-harness";
@@ -186,20 +188,49 @@ describe("/dashboard — five blocks (G13-W3-IA3 §B.1)", () => {
     expect(out).not.toContain("viewer-readonly-note");
   });
 
-  it("block 2: ONE recommendation from the recommender — a scored founder with no declared phase gets the earliest phase of their SVI band, with the evidence-gap impact", async () => {
+  it("block 2: ONE recommendation from the recommender — a scored founder with no declared phase gets the ONE phase rule's answer (G19-S44 D5: first uncleared gate, not the SVI band), with the evidence-gap impact", async () => {
     const out = await html();
-    // SVI 64 → band 2 → revenue_model → /workspace/strategy/pricing
-    expect(ctaHref(out, "next-best-action")).toBe("/workspace/strategy/pricing");
-    expect(out).toContain("Define your revenue model");
-    expect(out).toContain("Because you&#x27;re at Revenue &amp; Business Models");
+    // No evaluation_criteria rows yet → the vision gate is the first uncleared
+    // one — the same phase the report cover would show (never the old
+    // "SVI 64 → band 2 → revenue_model" bridge).
+    const expected = displayPhaseFor({ declared: null, criteria: [], dims: phaseDimsFromAnalysis(SUBS) });
+    expect(expected).toBe("vision");
+    expect(ctaHref(out, "next-best-action")).toBe("/workspace/score/criteria");
+    expect(out).toContain("Capture your vision &amp; mission");
     expect(out).not.toMatch(/Phase \d/);
-    // impact: the Money Finder line carries the top grant (phases 1–3), no SVI claim on a pricing step
+    // impact: the Money Finder line carries the top grant (phases 1–3)
     expect(out).toContain('href="/workspace/funding" data-landing-cta="next-best-action"');
     expect(out).toContain("data-landing-impact");
     expect(out).toContain("A$45k · MVP Ventures closes 30 Sep");
     expect(out).toContain('data-tour="dashboard-spotlight"');
-    expect(dataAttr(out, "viewed-phase")).toBe("revenue_model");
+    expect(dataAttr(out, "viewed-phase")).toBe("vision");
     expect(dataAttr(out, "viewed-empty")).toBe("");
+    // Strong criteria rows move the founder past the early gates — still the one rule.
+    sb.rows.evaluation_criteria = ["idea", "market", "founder_profile", "code_git", "website", "team", "customer_size", "gtm_strategy", "documents", "dataroom", "team_structure", "roadmap", "revenue"].map((criterion_key) => ({ account_id: "acct-1", project_id: "proj-1", criterion_key, quality_level: "strong" }));
+    const out2 = await html();
+    const expected2 = displayPhaseFor({ declared: null, criteria: sb.rows.evaluation_criteria as Array<{ criterion_key: string; quality_level: string }>, dims: phaseDimsFromAnalysis(SUBS) });
+    expect(expected2).not.toBe("vision");
+    expect(dataAttr(out2, "viewed-phase")).toBe(expected2);
+  });
+
+  // G19-S44 — optional block 1b: only with a stored report_v2, right after block 1.
+  it("executive synthesis renders right after Where you stand only when svi_snapshots.report_v2 exists, with the report's own phase / range / lists", async () => {
+    const none = await html();
+    expect(blockOrder(none)).toEqual([...BLOCKS]);
+    expect(none).not.toContain('data-landing-block="executive-synthesis"');
+    const report = demoReportV2();
+    sb.rows.svi_snapshots = [{ id: "snap-1", account_id: "acct-1", project_id: "proj-1", delta: 3, snapshot_date: "2026-09-15", created_at: "2026-09-15T00:00:00.000Z", report_v2: report }];
+    const out = await html();
+    expect(blockOrder(out)).toEqual(["where-you-stand", "executive-synthesis", "next-best-action", "money-on-the-table", "evidence-to-add", "your-reports"]);
+    expect(out).toContain(`data-synthesis-phase="${report.cover.phaseId}"`);
+    expect(out).toContain('data-synthesis-worth="range"');
+    expect(out).toContain("A$6M – A$9.8M");
+    for (const s of report.executive.strengths) expect(out).toContain(s.replace(/&/g, "&amp;"));
+    expect(out).toContain('data-testid="landing-synthesis-cta"');
+    // An invalid stored document is ignored (no block, no crash).
+    sb.rows.svi_snapshots = [{ id: "snap-2", account_id: "acct-1", project_id: "proj-1", delta: 0, snapshot_date: "2026-09-16", created_at: "2026-09-16T00:00:00.000Z", report_v2: { schemaVersion: "2.0", broken: true } }];
+    const bad = await html();
+    expect(bad).not.toContain('data-landing-block="executive-synthesis"');
   });
 
   it("a declared growth phase wins for block 1's pill, block 2 and the phase gate", async () => {

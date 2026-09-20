@@ -12,6 +12,7 @@
 
 import "server-only";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
+import { isReportV2, type ReportV2 } from "@/lib/report-v2/schema";
 import { latestIntakeAnalysisForUser } from "@/lib/analyses/dashboard-bridge";
 import { FEEDBACK_LETTER_COLUMNS, isMissingRelation, mapLetterRow, type FeedbackLetterRow } from "@/lib/evaluations/feedback-letter-store";
 import { findForbiddenKey } from "@/lib/evaluations/feedback-letter-shared";
@@ -31,6 +32,7 @@ interface Chain {
   select(columns: string, opts?: { count?: "exact"; head?: boolean }): Chain;
   eq(col: string, val: unknown): Chain;
   is(col: string, val: unknown): Chain;
+  not(col: string, op: string, val: unknown): Chain;
   order(col: string, opts: { ascending: boolean }): Chain;
   limit(n: number): Chain;
   maybeSingle(): Promise<Reply>;
@@ -222,6 +224,37 @@ export async function loadFeedbackLetter(sb: LandingClient | null, keys: Landing
     return letter;
   } catch (err) {
     console.warn("[landing] feedback letter read failed", err instanceof Error ? err.message : String(err));
+    return null;
+  }
+}
+
+// ─── Block 1b · Executive synthesis (G19-S44, optional) ──────────────────────
+
+/**
+ * The newest stored `svi_snapshots.report_v2` for the startup (owner's
+ * account), validated against the ReportV2 contract, or null: no report
+ * generated yet, column absent (migration 0395 not applied — 42703 /
+ * "does not exist" / schema-cache), relation absent (42P01), invalid JSON,
+ * or a failed read. Never throws. The block renders only when this is
+ * non-null (`landingBlocksFor({ hasReportV2 })`).
+ */
+export async function loadLatestReportV2(sb: LandingClient | null, keys: LandingKeys): Promise<ReportV2 | null> {
+  if (!sb || !keys.accountId) return null;
+  try {
+    let chain = q(sb, "svi_snapshots").select("id, report_v2").eq("account_id", keys.accountId);
+    if (keys.projectId) chain = chain.eq("project_id", keys.projectId);
+    const { data, error } = await chain.not("report_v2", "is", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (error) {
+      const e = error as { code?: string; message?: string };
+      const msg = (e.message ?? "").toLowerCase();
+      const absent = e.code === "42P01" || e.code === "42703" || msg.includes("does not exist") || msg.includes("could not find") || msg.includes("schema cache");
+      if (!absent) console.warn("[landing] report_v2 read failed", e.message);
+      return null;
+    }
+    const stored = (data as { report_v2?: unknown } | null)?.report_v2;
+    return stored && isReportV2(stored) ? stored : null;
+  } catch (err) {
+    console.warn("[landing] report_v2 read failed", err instanceof Error ? err.message : String(err));
     return null;
   }
 }

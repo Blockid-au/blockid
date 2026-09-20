@@ -41,6 +41,12 @@ export const NAV_PHASE_NAMES: readonly string[] = Object.freeze([
  * SVI total → nav phase 0..5. `null` / non-finite → 0 (no score yet).
  * Band table moved verbatim from the dashboard page's `computePhase()`:
  * <30 → 0, ≤50 → 1, ≤70 → 2, ≤85 → 3, ≤120 → 4, else 5.
+ *
+ * G19-S44 (D5): this band collapses the SIDEBAR only. The phase a founder
+ * is shown (dashboard pill, report cover, recommender) comes from the one
+ * rule in `lib/growth/infer-phase.ts` — never from this band (the
+ * `growthPhaseFromNavPhase(navPhaseFromSvi(svi))` bridge the dashboard used
+ * until S44 disagreed with the report cover on real founders).
  */
 export function navPhaseFromSvi(svi: number | null | undefined): NavPhase {
   if (svi == null || typeof svi !== "number" || !Number.isFinite(svi)) return 0;

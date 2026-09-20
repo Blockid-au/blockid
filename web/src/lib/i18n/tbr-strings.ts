@@ -478,7 +478,8 @@ export interface TbrV2Strings {
     nextLine: (action: string, lift: number, dim: string) => string;
     addEvidence: string;
     nextFallback: string;
-    whereLine: (stage: string, industry: string, svi: number, band: string, phase: string, pct: number) => string;
+    /** G19-S44 (D5): one phase vocabulary — the SVI stage label is no longer part of the sentence. */
+    whereLine: (industry: string, svi: number, band: string, phase: string, pct: number) => string;
     phaseFloor: (phase: string, dim: string, floor: number, met: boolean, score: number) => string;
     phaseNoFloor: (phase: string, dim: string, nextGate: string) => string;
     lastPhase: string;
@@ -496,6 +497,41 @@ export interface TbrV2Strings {
     thanks: string;
     ariaScore: (n: number) => string;
   };
+  /** G19-S44: cover "current value" hero, executive-from-cards sources, one phase-lens row, dashboard executive synthesis. */
+  s44: {
+    /** Cover hero. */
+    currentValue: string;
+    preMoney: string;
+    valuationPending: string;
+    valuationConfidence: (pct: number) => string;
+    sviTotal: (n: number) => string;
+    /** The "(source)" suffix on executive strengths / gaps — every EvidenceSource + ledger signal source + the honest fallback. */
+    source: Record<string, string>;
+    /** Executive header: the mean chapter-ledger confidence. */
+    evidenceConfidence: (pct: number) => string;
+    /** Chapter header floor chip + the one phase-lens row in Phase Gates. */
+    floorMet: (floor: number) => string;
+    floorNotMet: (floor: number) => string;
+    noFloor: string;
+    floorsRow: (phase: string) => string;
+    /** Compact (borrowed) criterion card → link to the chapter that carries it in full. */
+    fullCardIn: (chapter: string) => string;
+    /** Dashboard block. */
+    dashboard: {
+      title: string;
+      where: string;
+      worth: string;
+      strengths: string;
+      weaknesses: string;
+      followUps: string;
+      dataToAdd: string;
+      lift: (n: number) => string;
+      day: (d: number) => string;
+      openReport: string;
+      fromReport: (date: string) => string;
+      nothingYet: string;
+    };
+  };
 }
 
 const v2En: TbrV2Strings = {
@@ -504,7 +540,7 @@ const v2En: TbrV2Strings = {
   audit: {
     auditor: "Auditor",
     grounded: "grounded",
-    notAudited: "not yet audited",
+    notAudited: "no citation in this chapter",
     uncited: (n) => `${n} uncited`,
     revised: "revised",
     frameworks: "Frameworks",
@@ -633,7 +669,7 @@ const v2En: TbrV2Strings = {
     nextLine: (action, lift, dim) => `${action} — +${lift} SVI on ${dim}.`,
     addEvidence: "Add evidence",
     nextFallback: "Keep the evidence fresh: reconnect data sources before the next investor conversation.",
-    whereLine: (stage, industry, svi, band, phase, pct) => `${stage} ${industry} at SVI ${svi} (${band}); phase ${phase}, ${pct}% of the gate cleared.`,
+    whereLine: (industry, svi, band, phase, pct) => `${industry} at SVI ${svi} (${band}); phase ${phase}, ${pct}% of the gate cleared.`,
     phaseFloor: (phase, dim, floor, met, score) => `${phase}: ${dim} floor ${floor} — ${met ? "met" : "not met"} at ${score}.`,
     phaseNoFloor: (phase, dim, nextGate) => `${phase}: no ${dim} floor at this phase; next gate is ${nextGate}.`,
     lastPhase: "the last phase",
@@ -652,6 +688,55 @@ const v2En: TbrV2Strings = {
     thanks: "Thank you — your answer shapes the next version of this report.",
     ariaScore: (n) => `Score ${n} of 10`,
   },
+  s44: {
+    currentValue: "Current value",
+    preMoney: "pre-money, directional",
+    valuationPending: "Valuation pending — add revenue or team evidence",
+    valuationConfidence: (pct) => `confidence ${pct}%`,
+    sviTotal: (n) => `SVI ${n}`,
+    source: {
+      self_declared: "self-declared",
+      public_url: "public URL",
+      document_uploaded: "document",
+      connected_source: "connected source",
+      transaction_data: "transaction data",
+      third_party_verified: "third-party verified",
+      audit: "audit",
+      penalty: "penalty",
+      stage: "stage",
+      stripe: "Stripe",
+      ga4: "GA4",
+      github: "GitHub",
+      xero: "Xero",
+      linkedin: "LinkedIn",
+      upload: "document",
+      url: "public URL",
+      founder_profile: "founder profile",
+      connector_other: "connector",
+      external: "external register",
+      none: "no citation",
+    },
+    evidenceConfidence: (pct) => `evidence confidence ${pct}%`,
+    floorMet: (floor) => `floor ${floor} ✓`,
+    floorNotMet: (floor) => `floor ${floor} ✗`,
+    noFloor: "no floor",
+    floorsRow: (phase) => `Dimension floors at ${phase}`,
+    fullCardIn: (chapter) => `Full card in ${chapter} →`,
+    dashboard: {
+      title: "Executive synthesis",
+      where: "Where",
+      worth: "Worth",
+      strengths: "Top strengths",
+      weaknesses: "Top weaknesses",
+      followUps: "Follow-ups",
+      dataToAdd: "Data to add",
+      lift: (n) => `+${n} SVI`,
+      day: (d) => `day ${d}`,
+      openReport: "Open the full report",
+      fromReport: (date) => `From your report of ${date}`,
+      nothingYet: "Nothing to show here yet.",
+    },
+  },
 };
 
 const v2Vi: TbrV2Strings = {
@@ -660,7 +745,7 @@ const v2Vi: TbrV2Strings = {
   audit: {
     auditor: "Kiểm định",
     grounded: "có căn cứ",
-    notAudited: "chưa kiểm định",
+    notAudited: "chưa có trích dẫn trong chương này",
     uncited: (n) => `${n} chưa trích dẫn`,
     revised: "đã hiệu chỉnh",
     frameworks: "Khung phân tích",
@@ -789,7 +874,7 @@ const v2Vi: TbrV2Strings = {
     nextLine: (action, lift, dim) => `${action} — +${lift} SVI cho ${dim}.`,
     addEvidence: "Bổ sung bằng chứng",
     nextFallback: "Giữ bằng chứng luôn mới: kết nối lại nguồn dữ liệu trước buổi gặp nhà đầu tư tiếp theo.",
-    whereLine: (stage, industry, svi, band, phase, pct) => `${industry} giai đoạn ${stage}, SVI ${svi} (${band}); giai đoạn ${phase}, đã qua ${pct}% cổng.`,
+    whereLine: (industry, svi, band, phase, pct) => `${industry} ở SVI ${svi} (${band}); giai đoạn ${phase}, đã qua ${pct}% cổng.`,
     phaseFloor: (phase, dim, floor, met, score) => `${phase}: sàn ${dim} là ${floor} — ${met ? "đạt" : "chưa đạt"} ở mức ${score}.`,
     phaseNoFloor: (phase, dim, nextGate) => `${phase}: không có sàn ${dim} ở giai đoạn này; cổng tiếp theo là ${nextGate}.`,
     lastPhase: "giai đoạn cuối",
@@ -807,6 +892,55 @@ const v2Vi: TbrV2Strings = {
     dismiss: "Để sau",
     thanks: "Cảm ơn bạn — câu trả lời của bạn định hình phiên bản tiếp theo của báo cáo này.",
     ariaScore: (n) => `Điểm ${n} trên 10`,
+  },
+  s44: {
+    currentValue: "Giá trị hiện tại",
+    preMoney: "pre-money, mang tính định hướng",
+    valuationPending: "Định giá đang chờ — hãy bổ sung bằng chứng doanh thu hoặc đội ngũ",
+    valuationConfidence: (pct) => `độ tin cậy ${pct}%`,
+    sviTotal: (n) => `SVI ${n}`,
+    source: {
+      self_declared: "tự khai báo",
+      public_url: "URL công khai",
+      document_uploaded: "tài liệu",
+      connected_source: "nguồn đã kết nối",
+      transaction_data: "dữ liệu giao dịch",
+      third_party_verified: "bên thứ ba xác minh",
+      audit: "kiểm toán",
+      penalty: "điểm trừ",
+      stage: "giai đoạn",
+      stripe: "Stripe",
+      ga4: "GA4",
+      github: "GitHub",
+      xero: "Xero",
+      linkedin: "LinkedIn",
+      upload: "tài liệu",
+      url: "URL công khai",
+      founder_profile: "hồ sơ nhà sáng lập",
+      connector_other: "kết nối dữ liệu",
+      external: "sổ đăng ký bên ngoài",
+      none: "chưa có trích dẫn",
+    },
+    evidenceConfidence: (pct) => `độ tin cậy bằng chứng ${pct}%`,
+    floorMet: (floor) => `sàn ${floor} ✓`,
+    floorNotMet: (floor) => `sàn ${floor} ✗`,
+    noFloor: "không có sàn",
+    floorsRow: (phase) => `Sàn khía cạnh ở giai đoạn ${phase}`,
+    fullCardIn: (chapter) => `Thẻ đầy đủ ở chương ${chapter} →`,
+    dashboard: {
+      title: "Tổng hợp điều hành",
+      where: "Đang ở đâu",
+      worth: "Đáng giá bao nhiêu",
+      strengths: "Điểm mạnh nổi bật",
+      weaknesses: "Điểm yếu lớn nhất",
+      followUps: "Việc cần làm tiếp",
+      dataToAdd: "Dữ liệu cần bổ sung",
+      lift: (n) => `+${n} SVI`,
+      day: (d) => `ngày ${d}`,
+      openReport: "Mở báo cáo đầy đủ",
+      fromReport: (date) => `Từ báo cáo ngày ${date}`,
+      nothingYet: "Chưa có gì để hiển thị ở đây.",
+    },
   },
 };
 

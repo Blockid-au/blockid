@@ -46,7 +46,7 @@ export function TbrValuation({ report, title, locale = "en" }: { report: ReportV
   // SVI 0 (≈ A$0.6–0.9M), which reads as a real valuation. Say so instead.
   if (report.cover.svi.band === "pending") {
     return (
-      <TbrSection id={TBR_V2_SECTION_IDS.valuation} kicker="10" title={title}>
+      <TbrSection id={TBR_V2_SECTION_IDS.valuation} kicker="10" title={title} pageBreak>
         <div className="flex items-center gap-2">
           <AgentBadge role="cfo" />
         </div>
@@ -57,7 +57,7 @@ export function TbrValuation({ report, title, locale = "en" }: { report: ReportV
     );
   }
   return (
-    <TbrSection id={TBR_V2_SECTION_IDS.valuation} kicker="10" title={title}>
+    <TbrSection id={TBR_V2_SECTION_IDS.valuation} kicker="10" title={title} pageBreak>
       <div className="flex items-center gap-2">
         <AgentBadge role="cfo" />
         <span className="text-[11px] text-ink-500">{s.confidence(view.confidencePct)}</span>

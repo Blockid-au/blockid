@@ -12,6 +12,7 @@ import { TBR_STRINGS, TBR_VALUATION_STRINGS } from "@/lib/i18n/tbr-strings";
 import { catalogueLift } from "@/lib/svi-lift";
 import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
 import { reportOrderPath } from "@/lib/paywall/report-delivery";
+import { cardRenderModes } from "@/lib/report-v2/card-modes";
 import { TBR_V2_SECTION_IDS, TbrReportV2, tbrV2Toc } from "./report";
 import { TBR_UNLOCK_RAIL_TESTID, tbrUnlockHeadline } from "./unlock-rail";
 
@@ -315,6 +316,112 @@ describe("<TbrReportV2>", () => {
 });
 
 // ── G19-S42: valuation chapter variants ──────────────────────────────────────
+// ── G19-S44: cover hero, one to-do list, one phase-lens row, audit copy, page breaks ──
+describe("<TbrReportV2> synthesis + layout (G19-S44)", () => {
+  it("cover hero: the A$ consensus range large with confidence, SVI + band + Δ, a phase badge — and no SVI stage label beside the 12-phase label", () => {
+    const report = demoReportV2();
+    const html = renderToStaticMarkup(<TbrReportV2 report={report} />);
+    const cover = html.slice(html.indexOf(`id="${TBR_V2_SECTION_IDS.cover}"`), html.indexOf(`id="${TBR_V2_SECTION_IDS.executive}"`));
+    expect(cover).toContain('data-tbr-hero-value="range"');
+    expect(cover).toContain("A$6M – A$9.8M");
+    expect(cover).toContain("confidence 85%");
+    expect(cover).toContain("Current value");
+    expect(cover).toContain('data-tbr-hero-svi');
+    expect(cover).toContain("SVI 74");
+    expect(cover).toContain("+3 vs last snapshot");
+    expect(cover).toContain("data-tbr-phase-badge");
+    expect(cover).toContain("Investor Progress Review");
+    // D5: one phase vocabulary — the stage label ("Seed") is benchmark-internal, never a cover badge.
+    expect(cover).not.toContain("· Seed ·");
+    expect(cover).toContain("Verified ABN");
+    // The hero comes before the three questions and the dimension table.
+    expect(cover.indexOf("data-tbr-hero")).toBeLessThan(cover.indexOf('data-visual-kind="three_questions_strip"'));
+    // The demo dims carry stage percentiles → the Pctl column renders with numbers, not "—".
+    expect(cover).toContain(">Pctl<");
+    expect(cover).not.toContain(">—</td>");
+  });
+
+  it("cover hero: 'Valuation pending' when confidence < 0.3 or nothing is scored; the Pctl column shows once a percentile exists", () => {
+    const low = demoReportV2();
+    low.valuation.consensus.confidence = 0.29;
+    const lowHtml = renderToStaticMarkup(<TbrReportV2 report={low} />);
+    expect(lowHtml).toContain('data-tbr-hero-value="pending"');
+    expect(lowHtml).toContain("Valuation pending — add revenue or team evidence");
+    expect(lowHtml).not.toContain('data-tbr-hero-value="range"');
+    const empty = fromSnapshot({ ...demoSnapshotInput(), dimStates: {}, criterionStates: [], sviTotal: null, vc: null });
+    const emptyHtml = renderToStaticMarkup(<TbrReportV2 report={empty} />);
+    expect(emptyHtml).toContain('data-tbr-hero-value="pending"');
+    // Nothing scored → no dimension percentile → the Pctl column is not rendered at all (no "—" column).
+    expect(emptyHtml).not.toContain(">Pctl<");
+    const withPct = fromSnapshot({ ...demoSnapshotInput(), cohortPercentile: 66, cohort: { sector: "SaaS", sample_size: 40, dim_medians: { tre: 50 }, dim_top_quartile: { tre: 65 } } });
+    const pctHtml = renderToStaticMarkup(<TbrReportV2 report={withPct} />);
+    expect(pctHtml).toContain("data-tbr-hero-percentile");
+    expect(pctHtml).toContain("Pctl 66 (n=40)");
+    // VI hero copy has diacritics.
+    const vi = renderToStaticMarkup(<TbrReportV2 report={low} locale="vi" />);
+    expect(vi).toContain(TBR_STRINGS.vi.v2.s44.valuationPending);
+    expect(vi).toContain(TBR_STRINGS.vi.v2.s44.currentValue);
+  });
+
+  it("ONE to-do list: the live afterChapters widget renders only when the document's own 90-day plan is empty", () => {
+    const withPlan = demoReportV2();
+    expect(withPlan.actionPlan.steps.length).toBeGreaterThan(0);
+    const html = renderToStaticMarkup(<TbrReportV2 report={withPlan} afterChapters={<div data-testid="live-plan" />} />);
+    expect(html).not.toContain('data-testid="live-plan"');
+    expect((html.match(/id="tbr-action-plan"/g) ?? []).length).toBe(1);
+    const noPlan = demoReportV2();
+    noPlan.actionPlan = { ...noPlan.actionPlan, steps: [] };
+    const html2 = renderToStaticMarkup(<TbrReportV2 report={noPlan} afterChapters={<div data-testid="live-plan" />} />);
+    expect(html2).toContain('data-testid="live-plan"');
+  });
+
+  it("the 8× phase-lens sentence collapses into one floors row in Phase Gates; each chapter header keeps a one-word floor chip and shows its score once", () => {
+    const report = demoReportV2();
+    const html = renderToStaticMarkup(<TbrReportV2 report={report} />);
+    expect((html.match(/data-tbr-floors-row/g) ?? []).length).toBe(1);
+    expect((html.match(/data-tbr-floor="/g) ?? []).length).toBe(8);
+    expect((html.match(/data-tbr-floor-chip="/g) ?? []).length).toBe(8);
+    for (const d of report.dimensions) expect(html).not.toContain(d.phaseLens.whatMattersNow);
+    expect(html).toContain("Dimension floors at Investor Progress Review");
+    // Chapter header: the big number once; the chapter-level bullets do not repeat the cards' bullets.
+    const tre = report.dimensions[0]!;
+    const chapter = html.slice(html.indexOf(`id="${TBR_V2_SECTION_IDS.dim("tre")}"`), html.indexOf(`id="${TBR_V2_SECTION_IDS.dim("mpc")}"`));
+    expect((chapter.match(/text-4xl font-black/g) ?? []).length).toBe(1);
+    const esc = (b: string) => b.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/&/g, "&amp;");
+    const modes = cardRenderModes(tre);
+    for (const c of tre.criteria) {
+      const expected = modes.get(c.key) === "compact" ? 0 : 1;
+      for (const b of c.strengths) expect((chapter.match(new RegExp(esc(b), "g")) ?? []).length, `${c.key}: ${b}`).toBe(expected);
+    }
+    // Borrowed cards (market / website / gtm live in MPC / PTD) are compact here and link to their chapter; one full copy per document.
+    expect(chapter).toContain('data-tbr-card="market" data-tbr-card-mode="compact"');
+    expect(chapter).toContain(`href="#${TBR_V2_SECTION_IDS.dim("mpc")}"`);
+    expect(chapter).toContain("Full card in Market Pull &amp; Category →");
+    expect((html.match(/data-tbr-card="market" data-tbr-card-mode="full"/g) ?? []).length).toBe(1);
+    // A chapter with no card of its own (CGH) keeps every card in full.
+    const cgh = html.slice(html.indexOf(`id="${TBR_V2_SECTION_IDS.dim("cgh")}"`), html.indexOf(`id="${TBR_V2_SECTION_IDS.dim("iri")}"`));
+    expect(cgh).not.toContain('data-tbr-card-mode="compact"');
+  });
+
+  it("executive header: mean evidence confidence from the ledgers, no auditor / grounded-% jargon (the appendix keeps it); audit copy says 'no citation in this chapter'", () => {
+    const html = renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} />);
+    const exec = html.slice(html.indexOf(`id="${TBR_V2_SECTION_IDS.executive}"`), html.indexOf(`id="${TBR_V2_SECTION_IDS.dim("tre")}"`));
+    expect(exec).toContain("evidence confidence 75%");
+    expect(exec).not.toContain("Auditor:");
+    expect(exec).not.toContain("grounded");
+    expect(html).not.toContain("not yet audited");
+    expect(html).toContain("Auditor: no citation in this chapter");
+    const appendix = html.slice(html.indexOf(`id="${TBR_V2_SECTION_IDS.appendix}"`));
+    expect(appendix).toContain("grounded 0%");
+  });
+
+  it("print page breaks on cover, executive, valuation and appendix only", () => {
+    const html = renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} />);
+    const breakIds = [...html.matchAll(/<section id="([^"]+)" class="[^"]*print:break-before-page/g)].map((m) => m[1]);
+    expect(breakIds).toEqual([TBR_V2_SECTION_IDS.cover, TBR_V2_SECTION_IDS.executive, TBR_V2_SECTION_IDS.valuation, TBR_V2_SECTION_IDS.appendix]);
+  });
+});
+
 describe("<TbrReportV2> valuation (G19-S42)", () => {
   const methodRows = (html: string) => (html.match(/data-tbr-method="/g) ?? []).length;
 

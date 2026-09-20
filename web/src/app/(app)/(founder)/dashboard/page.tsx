@@ -3,9 +3,12 @@
 // table · Evidence to add · Your reports. Thin server page: scope + phase +
 // the block loaders in ONE Promise.all, then five server components.
 //
-// Phase scale (goal doc D4, §B.5): the canonical 12 `GrowthPhaseId`s drive
-// block 1's pill and block 2's recommender; the 0..5 nav band is derived
-// here only to collapse the sidebar (`resolveFounderNavPhase`).
+// Phase scale (goal doc D4, §B.5; G19-S44 D5): the canonical 12
+// `GrowthPhaseId`s drive block 1's pill and block 2's recommender, decided
+// by THE one phase rule (`lib/growth/infer-phase.ts` — declared phase, else
+// the first uncleared gate on the stored criteria + dimension scores — the
+// same function the report cover and the pipeline use). The 0..5 nav band
+// is derived here only to collapse the sidebar (`resolveFounderNavPhase`).
 //
 // Member-aware (S18-B): the startup record is read under the OWNER's key
 // (`pageScopeKeys`); credits / entitlement stay the caller's. Blocks 1, 4,
@@ -38,13 +41,16 @@ import { MoneyOnTheTable } from "@/components/dashboard/landing/money-on-the-tab
 import { EvidenceToAdd } from "@/components/dashboard/landing/evidence-to-add";
 import { YourReports } from "@/components/dashboard/landing/your-reports";
 import { WhatInvestorsSaid } from "@/components/dashboard/landing/what-investors-said";
+import { ExecutiveSynthesis } from "@/components/dashboard/landing/executive-synthesis";
+import { synthesisFromReport } from "@/lib/dashboard/executive-synthesis";
 import { getMoneyRadarTileData } from "@/lib/funding/tile-data";
-import { loadEvidenceReads, loadFeedbackLetter, loadRecentReports, loadStanding, type LandingKeys } from "@/lib/dashboard/landing-data";
+import { loadEvidenceReads, loadFeedbackLetter, loadLatestReportV2, loadRecentReports, loadStanding, type LandingKeys } from "@/lib/dashboard/landing-data";
 import { getLocale } from "@/lib/i18n";
 import { deriveEvidenceGaps } from "@/lib/dashboard/evidence-gaps";
 import { recommendNextStep } from "@/lib/nav/next-step-recommender";
-import { growthPhaseFromNavPhase, navPhaseFromSvi, resolveFounderNavPhase } from "@/lib/nav/founder-phase";
+import { resolveFounderNavPhase } from "@/lib/nav/founder-phase";
 import { isGrowthPhaseId } from "@/lib/growth/phase-taxonomy";
+import { displayPhaseFor, phaseDimsFromAnalysis } from "@/lib/growth/infer-phase";
 import { getSVIPercentile } from "@/lib/benchmarks";
 import { isEvaluatorPersona, resolvePersona } from "@/lib/nav/persona";
 import { loadPersonaRow } from "@/lib/nav/persona-server";
@@ -88,7 +94,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
   // ── Five loaders, one round ───────────────────────────────────────────────
   const accountId = await resolveSVIAccountIdForPage(scope, user);
   const keys: LandingKeys = { dataEmail, projectId, ownerUserId, callerId: user.id, accountId };
-  const [standing, moneyRadar, evidenceReads, reports, isSandbox, feedbackLetter, locale] = await Promise.all([
+  const [standing, moneyRadar, evidenceReads, reports, isSandbox, feedbackLetter, locale, reportV2] = await Promise.all([
     loadStanding(supabase, keys),
     isMember
       ? Promise.resolve(null)
@@ -102,15 +108,24 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
     // G14-S34 — optional block 6, only when a letter exists (never throws).
     loadFeedbackLetter(supabase, keys),
     getLocale().catch(() => "en" as const),
+    // G19-S44 — optional block 1b, only when a stored report_v2 exists (never throws).
+    loadLatestReportV2(supabase, keys),
   ]);
+  const synthesis = reportV2 ? synthesisFromReport(reportV2, locale) : null;
 
   // ── Phase + derived values ────────────────────────────────────────────────
   const { analysis, sviScore, delta } = standing;
-  // Declared 12-phase id wins; a scored founder with none declared gets the
-  // earliest phase of their SVI band; nothing scored → phase 0 (start here).
+  // One phase rule (G19-S44 D5): the declared 12-phase id wins; otherwise
+  // the first phase whose exit gate the stored criteria + dimension scores do
+  // not clear — identical to `report.cover.phaseId`. Nothing known at all →
+  // phase 0 (start here).
   const declared = activeProject?.growth_phase_current ?? null;
   const growthPhaseId = isGrowthPhaseId(declared) ? declared : null;
-  const effectivePhase = growthPhaseId ?? (sviScore != null ? growthPhaseFromNavPhase(navPhaseFromSvi(sviScore)) : null);
+  const effectivePhase = displayPhaseFor({
+    declared: growthPhaseId,
+    criteria: evidenceReads.criteria,
+    dims: sviScore != null ? phaseDimsFromAnalysis(analysis?.subs ?? null, analysis?.dimensionScores ?? null) : null,
+  });
   const navPhase = resolveFounderNavPhase({ svi: sviScore, growthPhaseId });
   const evidence = deriveEvidenceGaps({
     evidenceRows: evidenceReads.evidenceRows,
@@ -133,7 +148,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
   const percentile = sviScore != null ? Math.round(getSVIPercentile(sviScore, analysis?.stage ?? navPhase)) : null;
   const startupName = activeProject?.name ?? standing.startupName ?? user.startupName ?? null;
   const ctx: LandingContext = { phase: effectivePhase ?? "none", plan: user.plan ?? "free", persona: "founder" };
-  const blocks = landingBlocksFor({ isMember, hasFeedbackLetter: Boolean(feedbackLetter) });
+  const blocks = landingBlocksFor({ isMember, hasFeedbackLetter: Boolean(feedbackLetter), hasReportV2: Boolean(synthesis) });
   const emptyBlocks = [
     sviScore == null && "where-you-stand",
     step.href === "/analyze" && "next-best-action",
@@ -185,6 +200,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
             startupName={startupName}
             scoredAt={standing.scoredAt}
           />
+          {synthesis ? <ExecutiveSynthesis ctx={ctx} data={synthesis} locale={locale} /> : null}
           <NextBestAction ctx={ctx} step={step} growthPhaseId={effectivePhase} ownerLabel={ownerLabel} canEdit={canEdit} />
           {!isMember && <MoneyOnTheTable ctx={ctx} data={moneyRadar} />}
           <EvidenceToAdd ctx={ctx} result={evidence} canEdit={canEdit} />

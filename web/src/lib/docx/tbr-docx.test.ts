@@ -92,6 +92,26 @@ describe("buildTbrDocx", () => {
     expect(text).toContain("Auschain PTY LTD");
   }, 60_000);
 
+  // G19-S44 — cover "current value" hero twin + one phase vocabulary + audit copy.
+  it("cover: A$ range hero with confidence, SVI + band, phase label without the SVI stage label; pending below 30 % confidence; audit copy says 'no citation'", async () => {
+    const report = demoReportV2();
+    const { buffer } = await buildTbrDocx(report);
+    const text = xmlText((await unzip(buffer)).doc);
+    expect(text).toContain("CURRENT VALUE");
+    expect(text).toContain("A$6M – A$9.8M");
+    expect(text).toContain("pre-money, directional · confidence 85%");
+    expect(text).toContain("SVI 74 · Strong");
+    expect(text).toContain("SaaS · Phase: Investor Progress Review");
+    expect(text).not.toContain("SaaS · Seed ·");
+    expect(text).not.toContain("not yet audited");
+    expect(text).toContain("no citation in this chapter");
+    const low = demoReportV2();
+    low.valuation.consensus.confidence = 0.2;
+    const lowText = xmlText((await unzip((await buildTbrDocx(low)).buffer)).doc);
+    expect(lowText).toContain("Valuation pending — add revenue or team evidence");
+    expect(lowText).not.toContain("A$6M – A$9.8M");
+  }, 60_000);
+
   // G19-S41 — the ledger table is the same rows as the web chapter and the PDF.
   it("renders 'How this score was built' per chapter (signal rows, confidence factor, adjustment), the pending line and the cover ledger strip", async () => {
     const report = demoReportV2();

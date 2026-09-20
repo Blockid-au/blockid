@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { demoReportV2, freeFixtureReportV2 } from "./fixtures";
-import { estimatePages, withinFreeBudget } from "./page-estimate";
+import { STANDARD_WORD_BUDGET, estimatePages, withinFreeBudget } from "./page-estimate";
 import { FREE_PAGE_BUDGET } from "./schema";
 
 describe("estimatePages", () => {
@@ -21,6 +21,24 @@ describe("estimatePages", () => {
     expect(std.pages).toBeGreaterThan(free.pages);
     expect(std.visuals).toBeGreaterThan(free.visuals);
     expect(std.words).toBeGreaterThan(free.words);
+  });
+
+  // G19-S44: the standard demo stays within the word budget once the chapter
+  // bullets stop duplicating the cards and the phase lens is one row.
+  it("standard demo fixture renders ≤ 1,400 words (KPI: ≥ 60 % non-boilerplate)", () => {
+    const est = estimatePages(demoReportV2());
+    expect(STANDARD_WORD_BUDGET).toBe(1_400);
+    expect(est.words).toBeLessThanOrEqual(STANDARD_WORD_BUDGET);
+    // The per-chapter phase-lens sentence is not rendered, so it is not counted.
+    const r = demoReportV2();
+    const before = estimatePages(r).words;
+    r.dimensions[0].phaseLens = { ...r.dimensions[0].phaseLens, whatMattersNow: Array.from({ length: 50 }, () => "word").join(" ") };
+    expect(estimatePages(r).words).toBe(before);
+    // Chapter bullets that duplicate a card bullet are not counted twice.
+    const dup = demoReportV2();
+    const base = estimatePages(dup).words;
+    dup.dimensions[0].strengths = [...dup.dimensions[0].strengths, dup.dimensions[0].criteria[0].strengths[0]];
+    expect(estimatePages(dup).words).toBe(base);
   });
 
   it("adding words adds pages", () => {

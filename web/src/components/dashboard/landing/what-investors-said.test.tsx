@@ -69,7 +69,7 @@ beforeEach(() => track.mockReset());
 describe("landingBlocksFor (optional block registry)", () => {
   it("phase-0 / no letter keeps the five blocks; a letter appends block 6; a member still loses block 3", () => {
     expect(LANDING_BLOCKS.length).toBe(5);
-    expect(OPTIONAL_LANDING_BLOCKS).toEqual(["what-investors-said"]);
+    expect(OPTIONAL_LANDING_BLOCKS).toEqual(["executive-synthesis", "what-investors-said"]);
     expect(landingBlocksFor()).toEqual([...LANDING_BLOCKS]);
     expect(landingBlocksFor({ hasFeedbackLetter: true })).toEqual([...LANDING_BLOCKS, "what-investors-said"]);
     expect(landingBlocksFor({ isMember: true, hasFeedbackLetter: true })).toEqual(["where-you-stand", "next-best-action", "evidence-to-add", "your-reports", "what-investors-said"]);
