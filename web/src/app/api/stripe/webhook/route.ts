@@ -1653,12 +1653,19 @@ export async function POST(request: Request) {
     }
     if (result.duplicate) {
       console.info(`[blockid:stripe] cohort_pilot session ${session.id} already fulfilled (order ${result.order_id ?? "?"})`);
+      if (result.pilot && !result.pilot.ok) {
+        // The retry re-ran the grant and it failed again → 500 so Stripe keeps retrying.
+        throw new Error(`cohort_pilot grant failed on retry (${result.pilot.error}): ${result.pilot.message}`);
+      }
       return;
     }
     if (result.pilot.ok && result.pilot.warnings.length > 0) {
       console.warn("[blockid:stripe] cohort_pilot fulfilled with warnings", { order_id: result.order_id, warnings: result.pilot.warnings });
     } else if (!result.pilot.ok) {
+      // Review P1 (2026-09-20): order recorded, entitlement not granted →
+      // answer 500 so Stripe retries; the retry path re-runs the idempotent grant.
       console.error("[blockid:stripe] cohort_pilot order recorded but the entitlement grant failed", { order_id: result.order_id, error: result.pilot.error, message: result.pilot.message });
+      throw new Error(`cohort_pilot grant failed (${result.pilot.error}): ${result.pilot.message}`);
     }
 
     // Revenue analytics — same shape as founder_package / credit packs.
@@ -1781,7 +1788,9 @@ export async function POST(request: Request) {
     });
 
     if (error && error.code !== "23505") {
-      console.error("[blockid:stripe] revenue_events insert failed", error);
+      // 23514 = CHECK violation: a kind the 0420 constraint does not list — a
+      // code/migration drift that silently lost every one-off sale before 2026-09-20.
+      console.error("[blockid:stripe] revenue_events insert failed", { code: error.code, message: error.message, kind: args.kind });
     }
   }
 }

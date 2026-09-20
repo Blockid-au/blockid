@@ -529,9 +529,8 @@ async function POST_handler(request: Request) {
             kind: "cohort_pilot",
             sku: PILOT_SKU.id,
             applicants_cap: String(PILOT_SKU.applicantsCap),
-            ...(bodyProjectId && typeof bodyProjectId === "string"
-              ? { project_id: bodyProjectId }
-              : {}),
+            // No project_id: the buy button never sends one and the route does
+            // not verify ownership (review P2, 2026-09-20).
           }
         : {}),
     },
@@ -541,7 +540,9 @@ async function POST_handler(request: Request) {
   // G21 P0-C — the pilot returns to the accelerator desk (banner reads the
   // paid row) and cancels back to the offer block, not to /pricing.
   if (PILOT_SKU) {
-    sessionParams.success_url = `${siteUrl}${PILOT_SUCCESS_PATH}`;
+    // `session_id` lets the workspace banner show "payment received" only on a
+    // real Stripe return, not on a hand-typed `?pilot=paid` (review P2).
+    sessionParams.success_url = `${siteUrl}${PILOT_SUCCESS_PATH}&session_id={CHECKOUT_SESSION_ID}`;
     sessionParams.cancel_url = `${siteUrl}${PILOT_CANCEL_PATH}`;
   }
 
@@ -676,7 +677,7 @@ async function POST_handler(request: Request) {
             priceId,
           ])
         : PILOT_SKU
-          ? sessionIdempotencyKey("cohort-pilot", [user.id, PILOT_SKU.id, priceId])
+          ? sessionIdempotencyKey("cohort-pilot", [user.id, PILOT_SKU.id, priceId, resellerAttribution?.code ?? null, couponCode ?? null])
         : sessionIdempotencyKey("checkout", [
             user.id,
             planId,

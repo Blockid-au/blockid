@@ -36,6 +36,10 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
+// Re-rendered every 5 min so minting STRIPE_PRICE_COHORT_PILOT_* flips the
+// buy buttons from the contact fallback without a rebuild (review P1).
+export const revalidate = 300;
+
 export default async function SolutionsAcceleratorPage() {
   const m = await getMessages("en");
   return <SolutionsPageShell {...buildAcceleratorProps(m, "en", pilotSkusConfigured())} />;

@@ -3,7 +3,7 @@
 > **Version:** 2026-09-20 (rev.322) · **Owner:** CEO (Do Van Long) · **Consumer:** founders, human team, autonomous loop agents.
 > **State 2026-09-19:** goals G1–G17 closed or founder-blocked; live v3.17.0 (`c6a00850b`); positioning = Startup Value Index by BlockID, evaluator-first; pricing v4 (Free / Starter A$29 / Growth A$69 · Scout A$79 / Firm A$149 / Program A$349 · Fund A$999 / Intake link A$249 / Index API A$299 · Cohort 25 A$5K / Cohort 100 A$15K per year · Trusted Business Report A$3); G18 truth sweep, G19 report quality (peer, batches 1–2) and G20 ready-for-sale shipped 2026-09-20; **G21 FI upgrade opened 2026-09-20** (evidence-backed assessment infrastructure: positioning · trust · paid pilot · explainability · cohort · longitudinal — 4 phases, live deploy per phase).
 > **Rule:** Consult this file BEFORE any specialised plan doc. Every specialised plan carries a top-of-file back-link to this one.
-> **Entity:** marketing surfaces PPL Food PTY LTD · Sydney NSW (founder decision 2026-09-10; no ABN/ACN in copy) · billing / legal / invoices / JSON-LD Auschain PTY LTD ACN 659 615 111 / ABN 79 659 615 111 (deliberate split — keep both).
+> **Entity:** one config `web/src/lib/site/legal-entity.ts` (G21 P0-A). Marketing brand block = PPL Food PTY LTD (founder decision 2026-09-10); billing / legal / invoices / JSON-LD / TrustBand = Auschain PTY LTD ACN 659 615 111 / ABN 79 659 615 111; the footer bottom row names both roles on every page (G21 F-1 default — say the word to unify on Auschain).
 
 ---
 

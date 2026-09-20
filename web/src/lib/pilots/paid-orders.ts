@@ -97,7 +97,7 @@ export interface PaidPilotSession {
 }
 
 export type FulfilPaidPilotResult =
-  | { ok: true; duplicate: true; order_id: string | null }
+  | { ok: true; duplicate: true; order_id: string | null; pilot?: StartPaidPilotResult }
   | { ok: true; duplicate: false; order_id: string; sku: PilotSkuId; user_id: string; entitlement_until: string; pilot: StartPaidPilotResult }
   | { ok: false; skipped: "not_a_pilot" | "bad_metadata" | "no_db" | "insert_failed"; message: string };
 
@@ -140,7 +140,20 @@ export async function fulfilPaidPilot(session: PaidPilotSession, deps: PaidPilot
     entitlement_until: entitlementUntil,
   });
   if (!inserted.ok) return { ok: false, skipped: "insert_failed", message: inserted.error };
-  if (inserted.duplicate) return { ok: true, duplicate: true, order_id: inserted.id };
+  if (inserted.duplicate) {
+    // Review P1 (2026-09-20): the order row can exist while the grant failed
+    // on the first attempt (ledger/DB hiccup → 500 → Stripe retry). The grant
+    // is idempotent on `order_id`, so re-run it instead of returning early —
+    // otherwise money is taken and the entitlement never arrives.
+    if (inserted.id) {
+      const pilot = await startPaidPilot(
+        { user_id: userId, email, sku, order_id: inserted.id, program_name: md.program_name ?? null, days: skuRow.entitlementDays, amount_cents: session.amount_total ?? null },
+        deps.pilot ?? {},
+      );
+      return { ok: true, duplicate: true, order_id: inserted.id, pilot };
+    }
+    return { ok: true, duplicate: true, order_id: inserted.id };
+  }
 
   // G21 P0-D — `pilot_started` (paid) in the FI analytics vocabulary.
   onPilotStarted({
@@ -156,7 +169,7 @@ export async function fulfilPaidPilot(session: PaidPilotSession, deps: PaidPilot
   });
 
   const pilot = await startPaidPilot(
-    { user_id: userId, email, sku, order_id: inserted.id, program_name: md.program_name ?? null, days: skuRow.entitlementDays },
+    { user_id: userId, email, sku, order_id: inserted.id, program_name: md.program_name ?? null, days: skuRow.entitlementDays, amount_cents: session.amount_total ?? null },
     deps.pilot ?? {},
   );
   return { ok: true, duplicate: false, order_id: inserted.id, sku, user_id: userId, entitlement_until: entitlementUntil, pilot };

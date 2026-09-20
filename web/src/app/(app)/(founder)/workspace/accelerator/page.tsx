@@ -27,7 +27,9 @@ type SearchParams = EvaluatorHubSearchParams & { pilot?: string | string[] };
 export default async function Page({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const hub = await loadEvaluatorHub({ route: "accelerator", searchParams });
   const sp = await searchParams;
-  const justPaid = (Array.isArray(sp.pilot) ? sp.pilot[0] : sp.pilot) === "paid";
+  const sessionId = Array.isArray(sp.session_id) ? sp.session_id[0] : sp.session_id;
+  // Only a Stripe return (with its session id) may show the pending state.
+  const justPaid = (Array.isArray(sp.pilot) ? sp.pilot[0] : sp.pilot) === "paid" && typeof sessionId === "string" && /^cs_/.test(sessionId);
   return (
     <WorkspaceLayout user={hub.user} isSandbox={hub.isSandbox}>
       <PilotActiveBanner userId={hub.user.id} justPaid={justPaid} />

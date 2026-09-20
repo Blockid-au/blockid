@@ -302,6 +302,8 @@ export interface StartPaidPilotInput {
   program_name?: string | null;
   /** Optional override of `PILOT_SKUS[sku].entitlementDays`. */
   days?: number;
+  /** What Stripe charged (`session.amount_total`), for the confirmation e-mail. */
+  amount_cents?: number | null;
 }
 
 export type StartPaidPilotResult =
@@ -392,7 +394,7 @@ export async function startPaidPilot(input: StartPaidPilotInput, deps: PilotDeps
   const intakeUrl = saved.intake_slug ? publicUrlForSlug(saved.intake_slug) : null;
 
   // 5. Confirmation e-mail (what happens next), audit, ops alert — best-effort.
-  const mail = buildPaidPilotWelcomeEmail({ sku: sku.id, intakeUrl, expiresAt: saved.expires_at, applicantsCap: sku.applicantsCap });
+  const mail = buildPaidPilotWelcomeEmail({ sku: sku.id, intakeUrl, expiresAt: saved.expires_at, applicantsCap: sku.applicantsCap, amountCents: input.amount_cents ?? null, planSet });
   await bestEffort("welcome e-mail", () => d.sendEmail({ to: saved.email, ...mail }), warnings);
   await bestEffort(
     "audit",

@@ -125,8 +125,9 @@ Retired CTA labels: "Get my SVI score", "Get One-Click Report", "Join Founding 5
 
 ## 8. Entity lines (deliberate split — keep both)
 
-- **Marketing / footer / about**: `PPL Food PTY LTD` (no ABN).
-- **Billing, legal, invoices, JSON-LD `Organization`, e-mail footer, PDF cover**: `Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW`.
+- **Source:** `web/src/lib/site/legal-entity.ts` (`LEGAL_ENTITY`) — the only place either name, the ACN or the ABN may be spelled (guard: `legal-entity.test.ts`).
+- **Marketing / footer / about**: the brand block names `PPL Food PTY LTD` (`marketingOperator`); the footer bottom row is `marketingLine()` = "© YYYY BlockID · built by PPL Food PTY LTD · Billing, legal and invoices: Auschain PTY LTD ABN 79 659 615 111 · Sydney NSW" — both roles explicit on every page since G21 P0 (advisor feedback: an inconsistent identity is a trust defect; founder default F-1 keeps the split but renders it consistently).
+- **Billing, legal, invoices, JSON-LD `Organization`, e-mail footer, PDF cover, TrustBand**: `Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW` (`statutoryLine()` / `sellerOfRecordLine()`).
 
 ## 9. The data sentence (verbatim, founder-approved 2026-09-10)
 

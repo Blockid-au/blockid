@@ -119,14 +119,15 @@ export function PilotBuyButton({ sku, configured, returnPath, label, variant = "
       const next = resolvePilotCheckoutResponse(res.status, body, returnPath);
       if (next.kind === "error") {
         setError(next.message);
+        setBusy(false);
         return;
       }
       window.location.href = next.href;
+      return; // keep `busy` until the navigation completes (no double POST)
     } catch (err) {
       setError(userErrorMessage(err, "We could not start the checkout. Please try again or contact us."));
-    } finally {
-      setBusy(false);
     }
+    setBusy(false);
   }
 
   return (

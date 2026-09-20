@@ -137,6 +137,7 @@ const I18N_TOKEN = /\{entity([A-Z][A-Za-z]*)\}/g;
  * rule `fillPrices` follows for price tokens).
  */
 export function fillEntityTokens(text: string): string {
+  if (!text.includes("{")) return text;
   return text
     .replace(MDX_TOKEN, (whole, key: string) => ENTITY_TOKENS[key] ?? whole)
     .replace(I18N_TOKEN, (whole, key: string) => {

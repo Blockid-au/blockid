@@ -5,6 +5,7 @@
 import { SENDER_IDENTITY_HTML, SENDER_IDENTITY_LINE } from "@/lib/email";
 import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import { PILOT_INCLUDES, formatPilotPriceLong, type PilotSkuId } from "@/lib/pricing/pilot-skus";
+import { formatAud } from "@/lib/plans-v2";
 import {
   DATA_PRINCIPLE_SENTENCE,
   DEFAULT_PILOT_DAYS,
@@ -166,6 +167,10 @@ export interface PaidWelcomeInput {
   intakeUrl: string | null;
   expiresAt: string;
   applicantsCap: number;
+  /** What Stripe actually charged (promo codes apply); falls back to the list price. */
+  amountCents?: number | null;
+  /** False when the buyer's own subscription was kept (no Cohort-tier grant). */
+  planSet?: boolean;
 }
 
 /**
@@ -178,7 +183,9 @@ export function buildPaidPilotWelcomeEmail(input: PaidWelcomeInput): EmailBody {
   const site = siteUrl();
   const inbox = `${site}/workspace/accelerator/applications`;
   const cohort = `${site}/workspace/accelerator/cohort`;
-  const price = formatPilotPriceLong(input.sku);
+  const price = typeof input.amountCents === "number" && input.amountCents > 0 ? `${formatAud(input.amountCents / 100)} inc. GST` : formatPilotPriceLong(input.sku);
+  const tierLine = input.planSet === false ? "Your existing plan stays as it is; the pilot runs on it" : `Your workspace has the Cohort tier until <strong>${fmtDate(input.expiresAt)}</strong>`;
+  const tierText = input.planSet === false ? "Your existing plan stays as it is; the pilot runs on it" : `Cohort tier until ${fmtDate(input.expiresAt)}`;
   const subject = `Your BlockID Cohort Validation Pilot is confirmed — up to ${input.applicantsCap} applicants`;
   const nextSteps = [
     "Within 2 business days we set up your intake with you: application link, deck upload, startup URL and founder consent on the form.",
@@ -189,7 +196,7 @@ export function buildPaidPilotWelcomeEmail(input: PaidWelcomeInput): EmailBody {
   const html = [
     WRAP_OPEN,
     `<h1 style="margin:0 0 16px 0;font-size:20px;line-height:1.3;">Your Cohort Validation Pilot is confirmed</h1>`,
-    p(`Thank you — <strong>${escapeHtml(price)}</strong> for one real intake or existing cohort of up to <strong>${input.applicantsCap} applicants</strong>. Your workspace has the Cohort tier until <strong>${fmtDate(input.expiresAt)}</strong>; the tax invoice arrives from Stripe separately.`),
+    p(`Thank you — <strong>${escapeHtml(price)}</strong> for one real intake or existing cohort of up to <strong>${input.applicantsCap} applicants</strong>. ${tierLine}; the tax invoice arrives from Stripe separately.`),
     h2("What happens next"),
     ul(nextSteps),
     input.intakeUrl
@@ -205,7 +212,7 @@ export function buildPaidPilotWelcomeEmail(input: PaidWelcomeInput): EmailBody {
   const text = [
     "Your Cohort Validation Pilot is confirmed",
     "",
-    `${price} for one real intake or existing cohort of up to ${input.applicantsCap} applicants. Cohort tier until ${fmtDate(input.expiresAt)}; the tax invoice arrives from Stripe separately.`,
+    `${price} for one real intake or existing cohort of up to ${input.applicantsCap} applicants. ${tierText}; the tax invoice arrives from Stripe separately.`,
     "",
     "What happens next:",
     ...nextSteps.map((s) => `- ${s}`),

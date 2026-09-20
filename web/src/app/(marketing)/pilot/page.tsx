@@ -65,6 +65,10 @@ const NEXT_STEPS = [
   },
 ] as const;
 
+// Re-rendered every 5 min so minting the pilot prices flips the buy buttons
+// without a rebuild (review P1).
+export const revalidate = 300;
+
 export default async function PilotPage() {
   const m = await getMessages("en");
   const copy = acceleratorPilotCopy(m);

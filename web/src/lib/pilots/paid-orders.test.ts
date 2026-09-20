@@ -219,6 +219,21 @@ describe("fulfilPaidPilot", () => {
     expect((await readLedger(root)).pilots).toHaveLength(1);
   });
 
+  it("a retry after a recorded order re-runs the idempotent grant (review P1: money taken, entitlement missing)", async () => {
+    const orders = createFakePilotOrdersDb();
+    // First attempt: the order row lands but the grant has no DB → not ok.
+    const first = await fulfilPaidPilot(session(), { orders, now: () => NOW, pilot: pilotDeps(null) });
+    expect(first).toMatchObject({ ok: true, duplicate: false });
+    expect(orders.rows).toHaveLength(1);
+    // Stripe retries: the duplicate path must still grant.
+    const { db, setPlan } = makeDb([{ id: "u-1", email: "program@uni.edu.au", plan: "free" }]);
+    const again = await fulfilPaidPilot(session(), { orders, now: () => NOW, pilot: pilotDeps(db) });
+    expect(again).toMatchObject({ ok: true, duplicate: true, order_id: orders.rows[0]!.id });
+    expect((again as { pilot?: { ok: boolean } }).pilot?.ok).toBe(true);
+    expect(setPlan).toHaveBeenCalledTimes(1);
+    expect(orders.rows).toHaveLength(1);
+  });
+
   it("never overwrites a payer: a buyer with an active Stripe subscription keeps their plan and ops is warned", async () => {
     const orders = createFakePilotOrdersDb();
     const { db, plans, setPlan } = makeDb([{ id: "u-3", email: "fund@vc.com", plan: "investor_fund", subscribed: true }]);

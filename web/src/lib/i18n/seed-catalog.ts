@@ -13,6 +13,7 @@
 
 import type { Locale } from "./locales";
 import { DEFAULT_LOCALE } from "./locales";
+import { fillEntityTokens } from "@/lib/site/legal-entity";
 import en from "./messages/en.json";
 import vi from "./messages/vi.json";
 
@@ -39,7 +40,8 @@ export function buildSeedCatalog(target: Locale): Record<string, string> {
     if (typeof enVal !== "string" || typeof targetVal !== "string") continue;
     if (enVal.length === 0 || targetVal.length === 0) continue;
     if (enVal === targetVal) continue;
-    out[enVal] = targetVal;
+    // Entity tokens are filled before the DOM walker sees the text (G21 P0-A).
+    out[fillEntityTokens(enVal)] = fillEntityTokens(targetVal);
   }
   return out;
 }

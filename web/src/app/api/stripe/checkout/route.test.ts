@@ -609,13 +609,16 @@ describe("stripe/checkout — Cohort Validation Pilot one-off (G21 P0-C)", () =>
     const call = mocks.stripeCreateMock.mock.calls[0]?.[0] as Record<string, unknown>;
     expect(call.mode).toBe("payment");
     expect(call.line_items).toEqual([{ price: "price_pilot_25", quantity: 1 }]);
-    expect(call.success_url).toMatch(/\/workspace\/accelerator\?pilot=paid$/);
+    // The Stripe session id rides along so the workspace banner shows "payment
+    // received" only on a real return (review P2, 2026-09-20).
+    expect(call.success_url).toMatch(/\/workspace\/accelerator\?pilot=paid&session_id=\{CHECKOUT_SESSION_ID\}$/);
     expect(call.cancel_url).toMatch(/\/solutions\/accelerator#pilot$/);
     const md = call.metadata as Record<string, string>;
     expect(md.kind).toBe("cohort_pilot");
     expect(md.sku).toBe("cohort_pilot_25");
     expect(md.applicants_cap).toBe("25");
-    expect(md.project_id).toBe("proj-1");
+    // project_id is never carried: the button does not send one and ownership is not verified.
+    expect(md.project_id).toBeUndefined();
     expect(md.blockid_user_id).toBe(USER.id);
     expect(md.blockid_plan).toBe("cohort_pilot_25");
     // One-off: no subscription block, invoice creation on, payment-only.
@@ -631,7 +634,7 @@ describe("stripe/checkout — Cohort Validation Pilot one-off (G21 P0-C)", () =>
     const call = mocks.stripeCreateMock.mock.calls[0]?.[0] as Record<string, unknown>;
     expect(call.line_items).toEqual([{ price: "price_pilot_50", quantity: 1 }]);
     expect((call.metadata as Record<string, string>).applicants_cap).toBe("50");
-    expect(mocks.sessionIdempotencyKeyMock).toHaveBeenCalledWith("cohort-pilot", [USER.id, "cohort_pilot_50", "price_pilot_50"]);
+    expect(mocks.sessionIdempotencyKeyMock).toHaveBeenCalledWith("cohort-pilot", [USER.id, "cohort_pilot_50", "price_pilot_50", null, null]);
   });
 });
 
