@@ -8,7 +8,9 @@
 //   - criteria.length >= 1 per chapter
 //   - evidence may be empty, but then primaryVisual.dataState is never "real"
 //     (§A.3 fallback rows use benchmark_only / target / partial)
-//   - valuation.methods.length === 6, scorecard present with weight 0
+//   - valuation.methods: the 7 method keys (6 on pre-S42 stored rows), unique;
+//     applicable weights sum to 1 (or every row is non-applicable) and a
+//     non-applicable row weighs 0 (G19-S42)
 //   - appendix.dataPrinciple equals the approved sentence
 //
 // Persisted in `svi_snapshots.report_v2` + `assembled_reports.report_json`
@@ -115,7 +117,8 @@ export type ValuationMethodKey =
   | "dcf_proxy"
   | "comparables"
   | "risk_factor_summation"
-  | "scorecard";
+  | "scorecard"
+  | "stage_baseline";
 
 export const VALUATION_METHOD_KEYS: readonly ValuationMethodKey[] = [
   "revenue_multiple",
@@ -124,7 +127,46 @@ export const VALUATION_METHOD_KEYS: readonly ValuationMethodKey[] = [
   "comparables",
   "risk_factor_summation",
   "scorecard",
+  "stage_baseline",
 ];
+
+/** G19-S42: provenance of the revenue figure the valuation ran on. */
+export type ValuationRevenueSourceV2 = "connector" | "document" | "founder_stated" | "none";
+
+/** G19-S42: the "Inputs & assumptions" table — what the CFO model actually ran on. */
+export interface ValuationInputsV2 {
+  mrrAud: number;
+  arrAud: number;
+  revenueSource: ValuationRevenueSourceV2;
+  /** Observed monthly growth; absent when nothing observed it. */
+  monthlyGrowthRatePct?: number;
+  /** true when growth-dependent methods used the sector median instead of an observed rate. */
+  growthAssumed: boolean;
+  assumedGrowthRatePct?: number;
+  esicQualifies: boolean;
+  rdtiRefundAud: number;
+  berkusPillars: { soundIdea: boolean; prototype: boolean; qualityTeam: boolean; strategicRelationships: boolean; productRollout: boolean };
+  stage: string;
+  sviStage?: number;
+  sector: string;
+  sectorMultipleLow: number;
+  sectorMultipleHigh: number;
+  sectorMultipleMedian?: number;
+  raiseStated: boolean;
+  raiseAud?: number;
+}
+
+/** G19-S42: an external reference the consensus is checked against (backtest quartile, stage baseline). */
+export interface ValuationCrossCheck {
+  label: string;
+  lowAud?: number;
+  midAud?: number;
+  highAud?: number;
+  source: string;
+  asOf: string;
+  /** Sample size behind the row when it is an empirical bucket. */
+  n?: number;
+}
 
 export interface ValuationChapter {
   currency: "AUD";
@@ -138,7 +180,16 @@ export interface ValuationChapter {
     applicable: boolean;
   }>;
   consensus: { lowAud: number; midAud: number; highAud: number; confidence: number };
+  /** Only when the founder stated a cap / raise — never invented (G19-S42). */
   ask?: { preMoneyAud: number; raiseAud: number; verdict: "aligned" | "above_consensus" | "below_consensus"; gapPct: number };
+  /** G19-S42 — absent on pre-S42 stored rows and on the read-time adapter fallback. */
+  inputs?: ValuationInputsV2;
+  /** G19-S42 — one line per method: how its mid was derived. */
+  derivation?: Partial<Record<ValuationMethodKey, string>>;
+  /** G19-S42 — backtest quartile + stage baseline rows. */
+  crossChecks?: ValuationCrossCheck[];
+  /** G19-S42 — consistency-gate notes (e.g. consensus outside the stage band), rendered on every surface. */
+  consistencyNotes?: string[];
   sectorMultiples: { sector: string; low: number; median: number; high: number; sourceLabel: string; sourceDate: string };
   comparables: {
     n: number;
@@ -378,17 +429,60 @@ const valuationMethod = z.object({
   applicable: z.boolean(),
 });
 
+const valuationInputs = z.object({
+  mrrAud: z.number(),
+  arrAud: z.number(),
+  revenueSource: z.enum(["connector", "document", "founder_stated", "none"]),
+  monthlyGrowthRatePct: z.number().optional(),
+  growthAssumed: z.boolean(),
+  assumedGrowthRatePct: z.number().optional(),
+  esicQualifies: z.boolean(),
+  rdtiRefundAud: z.number(),
+  berkusPillars: z.object({ soundIdea: z.boolean(), prototype: z.boolean(), qualityTeam: z.boolean(), strategicRelationships: z.boolean(), productRollout: z.boolean() }),
+  stage: z.string(),
+  sviStage: z.number().optional(),
+  sector: z.string(),
+  sectorMultipleLow: z.number(),
+  sectorMultipleHigh: z.number(),
+  sectorMultipleMedian: z.number().optional(),
+  raiseStated: z.boolean(),
+  raiseAud: z.number().optional(),
+});
+
+const valuationCrossCheck = z.object({
+  label: z.string(),
+  lowAud: z.number().optional(),
+  midAud: z.number().optional(),
+  highAud: z.number().optional(),
+  source: z.string(),
+  asOf: z.string(),
+  n: z.number().optional(),
+});
+
 const valuationChapter = z.object({
   currency: z.literal("AUD"),
   methods: z
     .array(valuationMethod)
-    .length(6, { message: "valuation.methods must list exactly the 6 methods" })
-    .refine((ms) => new Set(ms.map((m) => m.method)).size === 6, { message: "valuation.methods must be unique" })
-    .refine((ms) => ms.some((m) => m.method === "scorecard" && m.weight === 0), { message: "scorecard must be present with weight 0" }),
+    // 6 = pre-S42 stored rows (no stage_baseline); 7 = G19-S42 onwards.
+    .min(6, { message: "valuation.methods must list the 6 (pre-S42) or 7 methods" })
+    .max(7, { message: "valuation.methods must list the 6 (pre-S42) or 7 methods" })
+    .refine((ms) => new Set(ms.map((m) => m.method)).size === ms.length, { message: "valuation.methods must be unique" })
+    .refine((ms) => ms.every((m) => m.applicable || m.weight === 0), { message: "a non-applicable method must weigh 0" })
+    .refine(
+      (ms) => {
+        const sum = ms.filter((m) => m.applicable).reduce((a, m) => a + m.weight, 0);
+        return sum === 0 || Math.abs(sum - 1) < 0.01;
+      },
+      { message: "applicable method weights must sum to 1 (or every method is non-applicable)" },
+    ),
   consensus: z.object({ lowAud: z.number(), midAud: z.number(), highAud: z.number(), confidence: z.number().min(0).max(1) }),
   ask: z
     .object({ preMoneyAud: z.number(), raiseAud: z.number(), verdict: z.enum(["aligned", "above_consensus", "below_consensus"]), gapPct: z.number() })
     .optional(),
+  inputs: valuationInputs.optional(),
+  derivation: z.partialRecord(z.enum(VALUATION_METHOD_KEYS as [ValuationMethodKey, ...ValuationMethodKey[]]), z.string()).optional(),
+  crossChecks: z.array(valuationCrossCheck).optional(),
+  consistencyNotes: z.array(z.string()).optional(),
   sectorMultiples: z.object({ sector: z.string(), low: z.number(), median: z.number(), high: z.number(), sourceLabel: z.string(), sourceDate: z.string() }),
   comparables: z.object({
     n: z.number().int().nonnegative(),

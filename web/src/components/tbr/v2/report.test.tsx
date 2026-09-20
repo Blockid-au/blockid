@@ -7,7 +7,8 @@ import { assertReportV2 } from "@/lib/report-v2/schema";
 import { fromSnapshot } from "@/lib/report-v2/adapter";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { demoReportV2, freeFixtureReportV2 } from "@/lib/report-v2/fixtures";
+import { demoReportV2, demoSnapshotInput, freeFixtureReportV2, preRevenueFixtureReportV2 } from "@/lib/report-v2/fixtures";
+import { TBR_VALUATION_STRINGS } from "@/lib/i18n/tbr-strings";
 import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
 import { reportOrderPath } from "@/lib/paywall/report-delivery";
 import { TBR_V2_SECTION_IDS, TbrReportV2, tbrV2Toc } from "./report";
@@ -157,5 +158,89 @@ describe("<TbrReportV2>", () => {
     const legacy = demoReportV2();
     delete legacy.cover.verification;
     expect(renderToStaticMarkup(<TbrReportV2 report={legacy} />)).not.toContain('data-testid="abn-badge"');
+  });
+});
+
+// ── G19-S42: valuation chapter variants ──────────────────────────────────────
+describe("<TbrReportV2> valuation (G19-S42)", () => {
+  const methodRows = (html: string) => (html.match(/data-tbr-method="/g) ?? []).length;
+
+  it("demo (Stripe-evidenced revenue): Inputs & assumptions table with source chips, 5 applicable method rows, unit economics, cross-checks (backtest quartile with N + stage baseline), no ask", () => {
+    const html = renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} />);
+    expect(html).toContain("data-tbr-valuation-inputs");
+    expect(html).toContain("Inputs &amp; assumptions");
+    expect(html).toContain('data-tbr-source="connector"');
+    expect(html).toContain('data-tbr-source="benchmark"');
+    expect(html).toContain("not stated — no ask modelled");
+    expect(methodRows(html)).toBe(5);
+    expect(html).not.toContain('data-tbr-method="scorecard"');
+    expect(html).not.toContain('data-tbr-method="stage_baseline"');
+    expect(html).not.toContain("data-tbr-valuation-need-revenue");
+    expect(html).toContain("data-tbr-valuation-unit-economics");
+    expect(html).toContain("LTV : CAC");
+    expect(html).toContain("data-tbr-valuation-cross-checks");
+    expect(html).toContain("SVI backtest Q1 (lowest SVI)");
+    expect(html).toContain("(N=10)");
+    expect(html).toContain("AU stage baseline — SVI stage 3");
+    expect(html).not.toContain("data-tbr-valuation-ask");
+    expect(html).not.toContain("data-tbr-valuation-consistency");
+    expect(html).toContain("ARR A$1.2M × 6–7.5");
+  });
+
+  it("pre-revenue fixture: only the 3 applicable rows (Berkus / scorecard / stage baseline) + the '4 methods need revenue' line linking to the connectors page; growth row says not provided", () => {
+    const html = renderToStaticMarkup(<TbrReportV2 report={preRevenueFixtureReportV2()} />);
+    expect(methodRows(html)).toBe(3);
+    expect(html).toContain('data-tbr-method="berkus"');
+    expect(html).toContain('data-tbr-method="scorecard"');
+    expect(html).toContain('data-tbr-method="stage_baseline"');
+    expect(html).not.toContain('data-tbr-method="revenue_multiple"');
+    expect(html).toContain("data-tbr-valuation-need-revenue");
+    expect(html).toContain("4 methods need revenue — connect Stripe or Xero, or state MRR, to unlock them.");
+    expect(html).toContain('href="/workspace/settings/connectors"');
+    expect(html).toContain('data-tbr-source="none"');
+    expect(html).not.toContain("data-tbr-valuation-ask");
+  });
+
+  it("adapter fallback (no CFO run): no method table at all — one sentence + the connectors CTA; stage baseline is the only cross-check", () => {
+    const report = fromSnapshot({ snapshotId: "s", stageLabel: "Seed", stage: 2, sviTotal: 100, dimStates: { tre: { score: 40 }, mpc: { score: 55 } }, tier: "standard" });
+    const html = renderToStaticMarkup(<TbrReportV2 report={report} />);
+    expect(html).toContain("data-tbr-valuation-none");
+    expect(html).not.toContain("data-tbr-valuation-methods");
+    expect(methodRows(html)).toBe(0);
+    expect(html).not.toContain("data-tbr-valuation-inputs");
+    expect(html).toContain('href="/workspace/settings/connectors"');
+    expect(html).toContain("data-tbr-valuation-cross-checks");
+    expect(html).toContain("AU stage baseline — SVI stage 2");
+  });
+
+  it("ask + consistency notes render only when present", () => {
+    const report = fromSnapshot({ ...demoSnapshotInput(), valuationAsk: { statedCapAud: 7_000_000, statedCapKind: "pre_money", raiseAud: 1_000_000 } });
+    report.valuation.consistencyNotes = ["Consistency note: the consensus mid sits above the AU stage band."];
+    const html = renderToStaticMarkup(<TbrReportV2 report={report} />);
+    expect(html).toContain("data-tbr-valuation-ask");
+    expect(html).toContain("Ask: A$7M pre-money, raising A$1M — aligned");
+    expect(html).toContain("data-tbr-valuation-consistency");
+    expect(html).toContain("sits above the AU stage band");
+  });
+
+  it("free tier hides the paid detail (no inputs table, no method rows) but keeps the range", () => {
+    const html = renderToStaticMarkup(<TbrReportV2 report={freeFixtureReportV2()} />);
+    expect(html).not.toContain("data-tbr-valuation-inputs");
+    expect(methodRows(html)).toBe(0);
+    expect(html).toContain(`id="${TBR_V2_SECTION_IDS.valuation}"`);
+  });
+
+  it("locale vi: every valuation label comes from tbr-strings (diacritics), no English chrome", () => {
+    const html = renderToStaticMarkup(<TbrReportV2 report={preRevenueFixtureReportV2()} locale="vi" />);
+    const vi = TBR_VALUATION_STRINGS.vi;
+    expect(html).toContain(vi.inputsTitle.replace("&", "&amp;"));
+    expect(html).toContain(vi.methodsTitle);
+    expect(html).toContain(vi.crossChecksTitle);
+    expect(html).toContain(vi.method.stage_baseline);
+    expect(html).toContain(vi.needRevenue(4));
+    expect(html).toContain(vi.connectorsCta);
+    // The narrative is pipeline prose (not chrome) and may stay English; every label / CTA must not.
+    // (SVG axis labels and cross-check row labels are report data, built server-side in English.)
+    for (const en of ["Inputs &amp; assumptions", "Connect Stripe or Xero", "Cross-checks<", "Unit economics<", ">Methods<", ">Scenarios<"]) expect(html).not.toContain(en);
   });
 });

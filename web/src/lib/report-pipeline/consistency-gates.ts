@@ -152,6 +152,8 @@ export function applyConsistencyGates(input: ConsistencyGateInput): ConsistencyG
       v.consensus.confidence = Math.round(Math.max(0, Math.min(1, v.consensus.confidence * 0.8)) * 100) / 100;
       const note = `Consistency note: the consensus mid ${aud(v.consensus.midAud)} sits ${side} the AU stage band ${aud(band.low)}–${aud(band.high)} (stage ${Math.round(input.stage)} baseline mid ${aud(band.mid)}); the range is retained, confidence reduced — verify the revenue and multiple inputs before quoting the mid.`;
       if (!v.narrative.includes("Consistency note:")) v.narrative = `${v.narrative} ${note}`.trim();
+      // G19-S42: the note also lives on the chapter so every surface renders it, not just the log.
+      v.consistencyNotes = [...(v.consistencyNotes ?? []).filter((n) => !n.startsWith("Consistency note:")), note];
       issues.push({
         type: "data_misalignment",
         severity: "medium",

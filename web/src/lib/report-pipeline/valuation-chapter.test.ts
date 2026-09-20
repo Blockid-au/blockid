@@ -1,16 +1,20 @@
-// valuation-chapter (S-R3, spec §C.5): the 6-method ValuationChapter built
-// from the CFO valuation — weights sum to 1 excluding the scorecard, the
-// scorecard is a reference row only when pre-revenue, the founder's ask is
-// cross-checked (never applied), sector multiples carry a dated source and
-// the comparables N comes from the AU table.
+// valuation-chapter (S-R3, spec §C.5; G19-S42): the 7-method ValuationChapter
+// built from the CFO valuation — applicable weights sum to 1, non-applicable
+// rows weigh 0 and keep their rationale, the founder's ask is cross-checked
+// only when stated (never invented), inputs / derivation / cross-checks are
+// filled (backtest quartile + stage baseline), sector multiples carry a dated
+// source and the comparables N comes from the AU table.
 
 import { describe, expect, it } from "vitest";
 import { AU_COMPARABLES_COUNT, AU_COMPARABLES_WITH_MULTIPLES_COUNT } from "@/lib/data/au-comparables";
 import { setComparablesForTests } from "@/lib/valuation/comparables-repo";
+import { VALUATION_BASELINES_AUD } from "@/lib/valuation";
 import { VALUATION_METHOD_KEYS, isReportV2 } from "@/lib/report-v2/schema";
 import { fromSnapshot } from "@/lib/report-v2/adapter";
-import { buildValuationChapter, isPreRevenue, sourceDateFromLabel, type VcValuationLike } from "./valuation-chapter";
+import { demoVcValuation, preRevenueVcValuation } from "@/lib/report-v2/fixtures";
+import { backtestBucketFor, buildValuationChapter, isPreRevenue, revenueSourceFromLabel, sourceDateFromLabel, type BacktestLike, type VcValuationLike } from "./valuation-chapter";
 
+/** A legacy (pre-S42) CFO row: 6 methods, no `applicable`, scorecard at 0. */
 function vc(overrides: Partial<VcValuationLike> = {}): VcValuationLike {
   return {
     blended: { lowAud: 4_000_000, midAud: 6_000_000, highAud: 9_000_000, confidence: 70 },
@@ -31,46 +35,133 @@ function vc(overrides: Partial<VcValuationLike> = {}): VcValuationLike {
   };
 }
 
+const backtest: BacktestLike = {
+  generated_at: "2026-09-17T00:07:42.936Z",
+  n: 49,
+  n_with_round: 41,
+  buckets: [
+    { quartile: 1, label: "Q1 (lowest SVI)", n: 10, svi_min: 100, svi_max: 116, median_round_aud: 8_250_000, p25_round_aud: 5_000_000, p75_round_aud: 10_500_000, n_valuation: 3, median_valuation_aud: 36_000_000 },
+    { quartile: 2, label: "Q2", n: 11, svi_min: 118, svi_max: 128, median_round_aud: 50_000_000, p25_round_aud: 30_000_000, p75_round_aud: 79_500_000, n_valuation: 1, median_valuation_aud: 250_000_000 },
+    { quartile: 3, label: "Q3", n: 10, svi_min: 129, svi_max: 141, median_round_aud: 47_500_000, p25_round_aud: 22_500_000, p75_round_aud: 90_000_000, n_valuation: 0, median_valuation_aud: null },
+    { quartile: 4, label: "Q4 (highest SVI)", n: 10, svi_min: 142, svi_max: 156, median_round_aud: 147_500_000, p25_round_aud: 114_750_000, p75_round_aud: 210_250_000, n_valuation: 8, median_valuation_aud: 1_550_000_000 },
+  ],
+};
+
 const base = { stage: 3, stageLabel: "Early Traction", industry: "saas", at: "2026-09-16T00:00:00.000Z" };
 
-describe("buildValuationChapter — 6 methods", () => {
-  it("lists exactly the 6 methods in canonical order with the 5 active weights summing to 1 and the scorecard at 0", () => {
+describe("buildValuationChapter — 7 methods", () => {
+  it("lists the 7 methods in canonical order; on a legacy 6-row CFO report the 5 active weights sum to 1, scorecard is off, stage_baseline is a not-computed row", () => {
     const ch = buildValuationChapter({ ...base, vc: vc(), revenueEvidenceIds: ["ev-stripe"] });
     expect(ch.methods.map((m) => m.method)).toEqual([...VALUATION_METHOD_KEYS]);
-    const active = ch.methods.filter((m) => m.method !== "scorecard");
-    expect(active.reduce((a, m) => a + m.weight, 0)).toBeCloseTo(1, 6);
-    expect(active.every((m) => m.applicable)).toBe(true);
+    const applicable = ch.methods.filter((m) => m.applicable);
+    expect(applicable.map((m) => m.method)).toEqual(["revenue_multiple", "berkus", "dcf_proxy", "comparables", "risk_factor_summation"]);
+    expect(applicable.reduce((a, m) => a + m.weight, 0)).toBeCloseTo(1, 6);
     const sc = ch.methods.find((m) => m.method === "scorecard")!;
     expect(sc.weight).toBe(0);
     expect(sc.applicable).toBe(false);
-    expect(sc.rationale).toMatch(/weight 0/);
+    const sb = ch.methods.find((m) => m.method === "stage_baseline")!;
+    expect(sb.applicable).toBe(false);
+    expect(sb.rationale).toMatch(/not computed/);
   });
 
   it("normalises CFO weights that do not sum to 1 (defensive) and puts the rounding drift on the largest weight", () => {
     const skewed = vc({ methods: vc().methods.map((m) => (m.method === "scorecard" ? m : { ...m, weight: m.weight * 3 })) });
     const ch = buildValuationChapter({ ...base, vc: skewed });
-    const active = ch.methods.filter((m) => m.method !== "scorecard");
+    const active = ch.methods.filter((m) => m.applicable);
     expect(active.reduce((a, m) => a + m.weight, 0)).toBeCloseTo(1, 9);
     expect(active.find((m) => m.method === "revenue_multiple")!.weight).toBeCloseTo(0.35, 3);
   });
 
-  it("pre-revenue path: the scorecard becomes a visible reference row (applicable, still weight 0) and the narrative says Berkus / RFS drive the band", () => {
-    const pre = vc({ inputs: { mrrAud: 0, arrAud: 0, sector: "saas", stage: "pre-seed" }, methods: vc().methods.map((m) => (m.method === "revenue_multiple" ? { ...m, weight: 0.1 } : m.method === "berkus" ? { ...m, weight: 0.35 } : m)) });
+  it("S42 pre-revenue: exactly Berkus + scorecard + stage_baseline applicable at 0.5 / 0.3 / 0.2; the 4 revenue rows keep their needs-revenue rationale at weight 0; narrative says which methods carry the band", () => {
+    const pre = preRevenueVcValuation();
     expect(isPreRevenue(pre)).toBe(true);
+    const ch = buildValuationChapter({ ...base, stage: 2, stageLabel: "MVP / Prototype", sviIndex: 104, vc: pre });
+    const applicable = ch.methods.filter((m) => m.applicable);
+    expect(applicable.map((m) => m.method)).toEqual(["berkus", "scorecard", "stage_baseline"]);
+    expect(applicable.map((m) => m.weight)).toEqual([0.5, 0.3, 0.2]);
+    for (const key of ["revenue_multiple", "dcf_proxy", "comparables", "risk_factor_summation"] as const) {
+      const row = ch.methods.find((m) => m.method === key)!;
+      expect(row.applicable).toBe(false);
+      expect(row.weight).toBe(0);
+      expect(row.rationale).toMatch(/Needs revenue/);
+    }
+    expect(ch.narrative).toMatch(/Pre-revenue: Berkus \(50 %\), the Bill Payne scorecard \(30 %\) and the AU stage baseline \(20 %\)/);
+    expect(ch.narrative).toMatch(/4 methods need revenue/);
+    expect(ch.audit.grounded).toBe(true);
+    expect(ch.visuals[0].subtitle).toMatch(/3 applicable methods/);
+    // Only applicable rows are drawn.
+    expect((ch.visuals[0].data as { rows: unknown[] }).rows).toHaveLength(3);
+  });
+
+  it("legacy pre-revenue row (no `applicable`): scorecard becomes a reference row at weight 0, stage_baseline stays off", () => {
+    const pre = vc({ inputs: { mrrAud: 0, arrAud: 0, sector: "saas", stage: "pre-seed" }, methods: vc().methods.map((m) => (m.method === "revenue_multiple" ? { ...m, weight: 0.1 } : m.method === "berkus" ? { ...m, weight: 0.35 } : m)) });
     const ch = buildValuationChapter({ ...base, stage: 1, stageLabel: "Validated Idea", vc: pre });
     const sc = ch.methods.find((m) => m.method === "scorecard")!;
     expect(sc.applicable).toBe(true);
     expect(sc.weight).toBe(0);
-    expect(sc.rationale).toMatch(/pre-revenue/);
-    expect(ch.narrative).toMatch(/Pre-revenue/);
-    // Grounded by construction: no revenue claim to evidence.
-    expect(ch.audit.grounded).toBe(true);
-    expect(ch.visuals[0].subtitle).toMatch(/pre-revenue reference/);
+    expect(ch.methods.filter((m) => m.weight > 0).reduce((a, m) => a + m.weight, 0)).toBeCloseTo(1, 9);
   });
 
-  it("isPreRevenue falls back to the revenue_multiple row when no inputs were recorded", () => {
+  it("isPreRevenue prefers the S42 inputs record, then the raw inputs, then the revenue_multiple row", () => {
     expect(isPreRevenue(vc({ inputs: undefined }))).toBe(false);
     expect(isPreRevenue(vc({ inputs: undefined, methods: vc().methods.map((m) => (m.method === "revenue_multiple" ? { ...m, midAud: 0 } : m)) }))).toBe(true);
+    expect(isPreRevenue(demoVcValuation())).toBe(false);
+  });
+});
+
+describe("buildValuationChapter — S42 inputs, derivation, cross-checks", () => {
+  it("fills the inputs table from the CFO record (revenue source connector, growth observed, pillars, stage, multiples, raise not stated)", () => {
+    const ch = buildValuationChapter({ ...base, vc: demoVcValuation(), sviIndex: 74 });
+    expect(ch.inputs).toMatchObject({ mrrAud: 100_000, arrAud: 1_200_000, revenueSource: "connector", monthlyGrowthRatePct: 4.5, growthAssumed: false, rdtiRefundAud: 87_000, stage: "seed", sviStage: 3, sector: "saas", sectorMultipleLow: 6, sectorMultipleHigh: 7.5, raiseStated: false });
+    expect(ch.inputs?.raiseAud).toBeUndefined();
+    expect(ch.derivation?.revenue_multiple).toMatch(/^ARR A\$1\.2M × 6–7\.5/);
+    expect(Object.keys(ch.derivation ?? {})).toHaveLength(7);
+    expect(ch.consistencyNotes).toEqual([]);
+  });
+
+  it("derives the inputs table from a legacy raw row when no CFO record exists (stripe label → connector, growth present → not assumed)", () => {
+    const ch = buildValuationChapter({ ...base, vc: vc() });
+    expect(ch.inputs).toMatchObject({ mrrAud: 100_000, arrAud: 1_200_000, revenueSource: "connector", monthlyGrowthRatePct: 8, growthAssumed: false, stage: "seed", sviStage: 3, sector: "saas", sectorMultipleLow: 3, sectorMultipleHigh: 7, raiseStated: false });
+    const stated = buildValuationChapter({ ...base, vc: vc({ inputs: { mrrAud: 10_000, arrAud: 120_000, sector: "saas", stage: "seed", revenueSource: "founder-stated", raiseAud: 500_000 } }) });
+    expect(stated.inputs).toMatchObject({ revenueSource: "founder_stated", growthAssumed: true, raiseStated: true, raiseAud: 500_000 });
+    expect(revenueSourceFromLabel("xero (last sync 2026-09-01)", 1)).toBe("connector");
+    expect(revenueSourceFromLabel("uploaded statement", 1)).toBe("document");
+    expect(revenueSourceFromLabel("founder-stated (ARR)", 1)).toBe("founder_stated");
+    expect(revenueSourceFromLabel("stripe", 0)).toBe("none");
+    expect(ch.derivation).toEqual({});
+  });
+
+  it("backtest cross-check: the quartile bucket for the report's SVI with N, asOf = generated_at, plus the disclosed-valuation row and the stage baseline; the narrative carries one cross-check sentence", () => {
+    const ch = buildValuationChapter({ ...base, vc: { ...demoVcValuation(), backtest }, sviIndex: 120 });
+    const rows = ch.crossChecks ?? [];
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toMatchObject({ label: expect.stringContaining("Q2"), lowAud: 30_000_000, midAud: 50_000_000, highAud: 79_500_000, asOf: "2026-09-17", n: 11 });
+    expect(rows[0].source).toMatch(/N=11/);
+    expect(rows[1]).toMatchObject({ midAud: 250_000_000, n: 1, asOf: "2026-09-17" });
+    expect(rows[2]).toMatchObject({ label: expect.stringContaining("AU stage baseline"), lowAud: 6_000_000, midAud: 10_000_000, highAud: 15_000_000 });
+    expect(ch.narrative).toMatch(/Cross-check: startups in the same SVI quartile \(Q2\) raised at a median of A\$50,000,000 \(N=11; median post-money A\$250,000,000, N=1\)/);
+  });
+
+  it("backtest bucket selection: in range → that bucket; gap → nearest; outside → edge; no valuation row when the bucket has none; no backtest → stage baseline only", () => {
+    expect(backtestBucketFor(backtest, 110)?.quartile).toBe(1);
+    expect(backtestBucketFor(backtest, 117)?.quartile).toBe(2); // gap 116–118 → nearest midpoint (Q2 at 123 beats Q1 at 108)
+    expect(backtestBucketFor(backtest, 200)?.quartile).toBe(4);
+    expect(backtestBucketFor(backtest, 74)?.quartile).toBe(1);
+    expect(backtestBucketFor(null, 120)).toBeNull();
+    expect(backtestBucketFor(backtest, undefined)).toBeNull();
+    const q3 = buildValuationChapter({ ...base, vc: { ...demoVcValuation(), backtest }, sviIndex: 135 });
+    expect(q3.crossChecks).toHaveLength(2);
+    expect(q3.crossChecks?.[0].n).toBe(10);
+    const none = buildValuationChapter({ ...base, vc: { ...demoVcValuation(), backtest: null } });
+    expect(none.crossChecks).toHaveLength(1);
+    expect(none.crossChecks?.[0].midAud).toBe(VALUATION_BASELINES_AUD[3].mid);
+    expect(none.narrative).toMatch(/Cross-check: the AU stage baseline/);
+    expect(none.narrative).not.toMatch(/same SVI quartile/);
+  });
+
+  it("legacy vc without a stage baseline falls back to VALUATION_BASELINES_AUD[stage]", () => {
+    const ch = buildValuationChapter({ ...base, stage: 5, vc: vc() });
+    expect(ch.crossChecks?.at(-1)).toMatchObject({ lowAud: VALUATION_BASELINES_AUD[5].low, midAud: VALUATION_BASELINES_AUD[5].mid, highAud: VALUATION_BASELINES_AUD[5].high });
   });
 });
 
@@ -89,7 +180,8 @@ describe("buildValuationChapter — consensus, ask cross-check, multiples, compa
     const above = buildValuationChapter({ ...base, vc: vc(), ask: { statedCapAud: 20_000_000, statedCapKind: "cap" } }).ask!;
     expect(above.verdict).toBe("above_consensus");
     expect(above.gapPct).toBe(233);
-    expect(above.raiseAud).toBe(1_200_000); // CFO injection default
+    // S42: the CFO injection raise is NOT a default any more — a legacy injection without `raiseStated` counts as unstated.
+    expect(above.raiseAud).toBe(0);
 
     const below = buildValuationChapter({ ...base, vc: vc(), ask: { statedCapAud: 2_000_000, statedCapKind: "valuation" } }).ask!;
     expect(below.verdict).toBe("below_consensus");
@@ -101,10 +193,18 @@ describe("buildValuationChapter — consensus, ask cross-check, multiples, compa
     expect(post.gapPct).toBe(0);
   });
 
-  it("no stated cap → no ask block; a zero / NaN cap is ignored", () => {
+  it("a founder-stated raise on the CFO injection (raiseStated) is used when the ask carries none", () => {
+    const withStated = vc({ injection: { raiseAud: 900_000, raiseStated: true, preMoneyAud: 6_000_000 } });
+    const ask = buildValuationChapter({ ...base, vc: withStated, ask: { statedCapAud: 7_000_000, statedCapKind: "pre_money" } }).ask!;
+    expect(ask.raiseAud).toBe(900_000);
+  });
+
+  it("no stated cap → no ask block (never invented from the CFO injection); a zero / NaN cap is ignored", () => {
     expect(buildValuationChapter({ ...base, vc: vc() }).ask).toBeUndefined();
+    expect(buildValuationChapter({ ...base, vc: demoVcValuation() }).ask).toBeUndefined();
     expect(buildValuationChapter({ ...base, vc: vc(), ask: { statedCapAud: 0 } }).ask).toBeUndefined();
     expect(buildValuationChapter({ ...base, vc: vc(), ask: { statedCapAud: Number.NaN } }).ask).toBeUndefined();
+    expect(buildValuationChapter({ ...base, vc: vc(), ask: { raiseAud: 1_000_000 } }).ask).toBeUndefined();
   });
 
   it("sector multiples carry the resolved sourceLabel + sourceDate (vcBenchmark) and the static table is the fallback", () => {
@@ -148,15 +248,18 @@ describe("buildValuationChapter — consensus, ask cross-check, multiples, compa
   it("narrative: range + method transparency + the AU discount line, never a single point; grounded only with a revenue evidence row", () => {
     const ch = buildValuationChapter({ ...base, vc: vc(), revenueEvidenceIds: ["ev-stripe"] });
     expect(ch.narrative).toMatch(/range A\$4,000,000–A\$9,000,000/);
-    expect(ch.narrative).toMatch(/five weighted methods/);
+    expect(ch.narrative).toMatch(/Consensus of the 5 weighted methods/);
     expect(ch.narrative).toMatch(/US multiples are discounted 20–40 %/);
-    expect(ch.narrative).toMatch(/stripe \(last sync\)/);
+    expect(ch.narrative).toMatch(/connector-evidenced: stripe \(last sync\)/);
     expect(ch.audit.grounded).toBe(true);
     expect(ch.visuals.map((v) => v.kind)).toEqual(["range_bars", "scatter"]);
     expect(ch.visuals[0].dataState).toBe("partial");
     const ungrounded = buildValuationChapter({ ...base, vc: vc() });
     expect(ungrounded.audit.grounded).toBe(false);
     expect(ungrounded.visuals[0].dataState).toBe("benchmark_only");
+    const assumed = buildValuationChapter({ ...base, vc: vc({ inputs: { mrrAud: 10_000, arrAud: 120_000, sector: "saas", stage: "seed", revenueSource: "founder-stated" } }) });
+    expect(assumed.narrative).toMatch(/Growth assumed at the saas sector median/);
+    expect(assumed.narrative).toMatch(/founder-stated\); the revenue multiple carries the largest weight, halved/);
   });
 
   it("sourceDateFromLabel parses YYYY-MM and YYYY-MM-DD, else the fallback", () => {
@@ -167,7 +270,7 @@ describe("buildValuationChapter — consensus, ask cross-check, multiples, compa
 });
 
 describe("adapter integration", () => {
-  it("fromSnapshot with a `vc` input renders the 6-method chapter (schema-valid) — the TBR three-case table is retired for pipeline rows", () => {
+  it("fromSnapshot with a `vc` input renders the 7-method chapter (schema-valid) — the TBR three-case table is retired for pipeline rows", () => {
     const report = fromSnapshot({
       snapshotId: "snap-1",
       startupName: "Acme",
@@ -176,21 +279,31 @@ describe("adapter integration", () => {
       stage: 3,
       sviTotal: 120,
       dimStates: { tre: { score: 55 }, mpc: { score: 60 } },
-      vc: vc(),
+      vc: { ...demoVcValuation(), backtest },
       valuationAsk: { statedCapAud: 7_000_000, statedCapKind: "pre_money", raiseAud: 1_000_000 },
       revenueEvidenceIds: ["ev-stripe"],
     });
     expect(isReportV2(report)).toBe(true);
+    expect(report.valuation.methods).toHaveLength(7);
     expect(report.valuation.methods.filter((m) => m.applicable)).toHaveLength(5);
     expect(report.valuation.ask?.verdict).toBe("aligned");
+    expect(report.valuation.inputs?.revenueSource).toBe("connector");
+    expect(report.valuation.crossChecks?.[0].n).toBe(11);
+    expect(report.appendix.sourcesDated.some((s) => /SVI backtest quartiles \(N=49/.test(s.label) && s.date === "2026-09-17")).toBe(true);
     expect(report.valuation.visuals[0].title).toBe("Valuation methods and consensus band");
     expect(report.valuation.narrative).not.toMatch(/three-case/i);
   });
 
-  it("fromSnapshot without a `vc` keeps the directional three-case fallback (all 6 methods not applicable)", () => {
+  it("fromSnapshot without a `vc` keeps the directional three-case fallback: all 7 methods non-applicable, no inputs, stage baseline as the only cross-check, one honest line, no ask", () => {
     const report = fromSnapshot({ snapshotId: "snap-2", stageLabel: "Seed", stage: 2, sviTotal: 100, dimStates: { tre: { score: 40 } } });
     expect(isReportV2(report)).toBe(true);
+    expect(report.valuation.methods).toHaveLength(7);
     expect(report.valuation.methods.every((m) => !m.applicable && m.weight === 0)).toBe(true);
+    expect(report.valuation.inputs).toBeUndefined();
+    expect(report.valuation.ask).toBeUndefined();
+    expect(report.valuation.crossChecks).toHaveLength(1);
+    expect(report.valuation.crossChecks?.[0]).toMatchObject({ midAud: VALUATION_BASELINES_AUD[2].mid });
+    expect(report.valuation.narrative).toMatch(/No CFO method ran on this snapshot/);
     expect(report.valuation.visuals[0].title).toMatch(/three cases/);
   });
 });

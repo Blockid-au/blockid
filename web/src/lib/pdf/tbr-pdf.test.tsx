@@ -14,7 +14,8 @@
 import { describe, expect, it } from "vitest";
 import { PDFParse } from "pdf-parse";
 import { tbrV2Toc } from "@/components/tbr/v2/report";
-import { demoReportV2, freeFixtureReportV2 } from "@/lib/report-v2/fixtures";
+import { demoReportV2, freeFixtureReportV2, preRevenueFixtureReportV2 } from "@/lib/report-v2/fixtures";
+import { fromSnapshot } from "@/lib/report-v2/adapter";
 import { levelForEstimate, projectForTier } from "@/lib/report-v2/free-tier";
 import { FREE_PAGE_BUDGET } from "@/lib/report-v2/schema";
 import { pdfPageCount, pdfPageCountsAgree } from "./page-count";
@@ -64,6 +65,15 @@ describe("renderTbrPdf — standard tier", () => {
     expect(text).toContain("Revenue multiple");
     expect(text).toContain("Risk-factor summation");
     expect(text).toContain("AU comparables");
+    // G19-S42: inputs & assumptions, unit economics, cross-checks, no ask.
+    expect(text).toContain("Inputs & assumptions");
+    expect(text).toContain("connector");
+    expect(text).toContain("not stated");
+    expect(text).toContain("Unit economics");
+    expect(text).toContain("Cross-checks");
+    expect(text).toContain("SVI backtest Q1 (lowest SVI)");
+    expect(text).toContain("(N=10)");
+    expect(text).not.toContain("Ask: ");
     expect(text).toContain("Auditor log");
     expect(text).toContain(defaultPreparedWith(report));
     expect(text).toContain("Auschain PTY LTD");
@@ -160,4 +170,30 @@ describe("projectForTier", () => {
     expect(f4.report.executive.visuals).toEqual([]);
     expect(f4.report.appendix.evidenceRegister).toEqual([]);
   });
+});
+
+describe("renderTbrPdf — valuation chapter variants (G19-S42)", () => {
+  it("pre-revenue: only Berkus / scorecard / stage baseline rows, the needs-revenue line with the connectors path, no revenue-multiple row", async () => {
+    const { buffer } = await renderTbrPdf(preRevenueFixtureReportV2());
+    const text = await fullText(buffer);
+    expect(text).toContain("Inputs & assumptions");
+    expect(text).toContain("Berkus");
+    expect(text).toContain("Scorecard (Bill Payne)");
+    expect(text).toContain("AU stage baseline");
+    expect(text).toContain("4 methods need revenue");
+    expect(text).toContain("/workspace/settings/connectors");
+    // The revenue-multiple method row is hidden (its name survives only inside the sector-multiples source label check below).
+    expect(text).not.toMatch(/Revenue multiple\s+\d+%/);
+    expect(text).not.toContain("Ask: ");
+  }, 60_000);
+
+  it("adapter fallback: no method table, one honest line + the connectors path", async () => {
+    const report = fromSnapshot({ snapshotId: "s", stageLabel: "Seed", stage: 2, sviTotal: 100, dimStates: { tre: { score: 40 }, mpc: { score: 55 } }, tier: "standard" });
+    const { buffer } = await renderTbrPdf(report);
+    const text = await fullText(buffer);
+    expect(text).toContain("No valuation method ran on this snapshot");
+    expect(text).toContain("/workspace/settings/connectors");
+    expect(text).not.toContain("Inputs & assumptions");
+    expect(text).not.toMatch(/Berkus\s+\d+%/);
+  }, 60_000);
 });

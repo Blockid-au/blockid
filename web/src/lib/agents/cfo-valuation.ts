@@ -14,6 +14,7 @@ import {
 import { callAI } from "@/lib/ai-client";
 import { SECTOR_MULTIPLES, type Sector, type VcBenchmark } from "@/lib/valuation/sector-multiples-static";
 import { getSectorMultiples, type MultiplesSource } from "@/lib/valuation/sector-multiples";
+import { VALUATION_BASELINES_AUD } from "@/lib/valuation";
 
 // S27-C: the static table now lives in lib/valuation/sector-multiples-static.ts
 // (re-exported here so every existing import keeps working) and every
@@ -419,9 +420,22 @@ export function estimateMarketSizing(input: BuildVcValuationInput): { tamAud: nu
   };
 }
 
+/**
+ * Monthly revenue per customer for LTV / payback: stated ARPU, else MRR ÷
+ * customers, else (single-customer assumption) the whole MRR. G19-S42: the
+ * block is now rendered, so a 120-customer MRR must not be priced as one LTV.
+ */
+export function monthlyRevenuePerCustomer(input: Pick<BuildVcValuationInput, "mrrAud" | "arpuAud" | "customers">): number {
+  const mrr = input.mrrAud ?? 0;
+  if (mrr <= 0) return 0;
+  if (typeof input.arpuAud === "number" && input.arpuAud > 0) return input.arpuAud;
+  if (typeof input.customers === "number" && input.customers > 0) return mrr / input.customers;
+  return mrr;
+}
+
 export function unitEconomics(input: BuildVcValuationInput): { ltvCacRatio: number; verdict: "strong" | "healthy" | "watch" | "weak"; [key: string]: unknown } {
-  const { mrrAud = 0, monthlyChurnPct = 5, cacAud = 600, grossMarginPct = 70 } = input;
-  const monthly = mrrAud > 0 ? mrrAud : 0;
+  const { monthlyChurnPct = 5, cacAud = 600, grossMarginPct = 70 } = input;
+  const monthly = monthlyRevenuePerCustomer(input);
   const ltv = monthlyChurnPct > 0 ? (monthly * (grossMarginPct / 100)) / (monthlyChurnPct / 100) : monthly * 24;
   const cac = Math.max(1, cacAud);
   const ltvCacRatio = ltv / cac;
@@ -482,7 +496,70 @@ export function projectFinancials(input: BuildVcValuationInput, months: number):
   });
 }
 
+
 /* ─── VcValuationReport ───────────────────────────────────────────────────── */
+
+/**
+ * G19-S42 — every method the report can carry. `stage_baseline` is the AU
+ * pre-money baseline for the SVI stage (`lib/valuation.ts
+ * VALUATION_BASELINES_AUD`), the third leg of the pre-revenue band.
+ */
+export type VcValuationMethodKey =
+  | "revenue_multiple"
+  | "berkus"
+  | "dcf_proxy"
+  | "comparables"
+  | "risk_factor_summation"
+  | "scorecard"
+  | "stage_baseline";
+
+/** Where the revenue figure came from — decides which methods may run and how much they weigh. */
+export type ValuationRevenueSource = "connector" | "document" | "founder_stated" | "none";
+
+export interface BerkusPillars {
+  soundIdea: boolean;
+  prototype: boolean;
+  qualityTeam: boolean;
+  strategicRelationships: boolean;
+  productRollout: boolean;
+}
+
+/** The inputs the model actually ran on — rendered as "Inputs & assumptions" (G19-S42). */
+export interface ValuationInputsRecord {
+  mrrAud: number;
+  arrAud: number;
+  revenueSource: ValuationRevenueSource;
+  /** Observed monthly growth; absent when nothing observed it. */
+  monthlyGrowthRatePct?: number;
+  /** true when a growth-dependent method ran on the sector median instead of an observed rate. */
+  growthAssumed: boolean;
+  /** The sector-median monthly growth used when `growthAssumed`. */
+  assumedGrowthRatePct?: number;
+  esicQualifies: boolean;
+  rdtiRefundAud: number;
+  berkusPillars: BerkusPillars;
+  stage: string;
+  /** SVI stage 0–7 behind `stage_baseline` (mapped from `stage` when the caller gave none). */
+  sviStage: number;
+  sector: string;
+  sectorMultipleLow: number;
+  sectorMultipleHigh: number;
+  sectorMultipleMedian: number;
+  sectorMultipleSource: string;
+  /** true only when the founder stated a raise — the model never invents one. */
+  raiseStated: boolean;
+  raiseAud?: number;
+}
+
+export interface VcValuationMethodRow {
+  method: VcValuationMethodKey;
+  lowAud: number;
+  midAud: number;
+  highAud: number;
+  weight: number;
+  rationale: string;
+  applicable: boolean;
+}
 
 export interface VcValuationReport {
   stage: string;
@@ -490,10 +567,26 @@ export interface VcValuationReport {
   currency: string;
   blended: { lowAud: number; midAud: number; highAud: number; confidence: number };
   market: { tamAud: number; samAud: number; somAud: number; cagrPct: number; methodology: string };
-  methods: Array<{ method: string; lowAud: number; midAud: number; highAud: number; weight: number; rationale: string }>;
+  methods: VcValuationMethodRow[];
+  /** G19-S42: what the model ran on. */
+  inputs: ValuationInputsRecord;
+  /** G19-S42: one line per method saying how its mid was derived ("ARR A$1.2M × 6.0–7.5 (sector p25–p75)"). */
+  derivation: Partial<Record<VcValuationMethodKey, string>>;
+  /** G19-S42: the AU stage baseline the band is cross-checked against. */
+  stageBaseline: { sviStage: number; stageLabel: string; lowAud: number; midAud: number; highAud: number; source: string };
   projection: Array<{ month: number; mrrAud: number; revenueAud: number; ebitdaAud: number; opexAud: number; cashBalanceAud: number; cogsAud: number }>;
   unitEconomics: { cacAud: number; ltvAud: number; ltvCacRatio: number; grossMarginPct: number; ruleOf40: number; cacPaybackMonths: number | null; verdict: "strong" | "healthy" | "watch" | "weak" };
-  injection: { raiseAud: number; preMoneyAud: number; postMoneyAud: number; dilutionPct: number; runwayExtensionMonths: number; useOfFunds: Array<{ category: string; pct: number; aud: number }>; nextMilestone: string };
+  injection: {
+    /** 0 unless the founder stated a raise (`raiseStated`). */
+    raiseAud: number;
+    raiseStated: boolean;
+    preMoneyAud: number;
+    postMoneyAud: number;
+    dilutionPct: number;
+    runwayExtensionMonths: number;
+    useOfFunds: Array<{ category: string; pct: number; aud: number }>;
+    nextMilestone: string;
+  };
   scenarios: { bear: number; base: number; bull: number };
   breakEven: { month: number | null; mrrAtBreakEvenAud?: number };
   payback: { months: number | null; roiPct: number };
@@ -514,7 +607,10 @@ export interface VcValuationReport {
 export interface BuildVcValuationInput {
   sector?: string;
   stage?: string;
+  /** SVI stage 0–7 when the caller has it (report pipeline) — picks the exact `stage_baseline` row. */
+  sviStage?: number;
   mrrAud?: number;
+  /** Observed monthly growth. Leave undefined when nothing observed it — the model then says "assumed". */
   monthlyGrowthRatePct?: number;
   monthlyOpexAud?: number;
   grossMarginPct?: number;
@@ -524,6 +620,7 @@ export interface BuildVcValuationInput {
   cacAud?: number;
   customers?: number;
   tamAud?: number;
+  /** Founder-stated raise. Absent → no ask is invented. */
   raiseAud?: number;
   esicQualifies?: boolean;
   estimatedRdtiRefundAud?: number;
@@ -531,19 +628,107 @@ export interface BuildVcValuationInput {
   hasShareholdersAgreement?: boolean;
   hasEsopPool?: boolean;
   hasDataRoom?: boolean;
+  /**
+   * Provenance of `mrrAud`: a connector label ("stripe (last sync …)", "xero"),
+   * "document", "founder-stated", or a `ValuationRevenueSource`. Absent with
+   * MRR > 0 is treated as founder-stated (unverified).
+   */
+  revenueSource?: string | null;
 }
 
 export type VcValuationInput = BuildVcValuationInput;
 
+/** Pre-revenue weights (G19 D3): Berkus 0.5 + scorecard 0.3 + stage baseline 0.2. */
+export const PRE_REVENUE_WEIGHTS: Readonly<Record<"berkus" | "scorecard" | "stage_baseline", number>> = { berkus: 0.5, scorecard: 0.3, stage_baseline: 0.2 };
+
+/** Revenue-stage weights (unchanged blend); scorecard + stage baseline stay reference rows. */
+const REVENUE_WEIGHTS: Readonly<Record<VcValuationMethodKey, number>> = {
+  revenue_multiple: 0.35,
+  berkus: 0.1,
+  dcf_proxy: 0.25,
+  comparables: 0.15,
+  risk_factor_summation: 0.15,
+  scorecard: 0,
+  stage_baseline: 0,
+};
+
+const REVENUE_METHODS: readonly VcValuationMethodKey[] = ["revenue_multiple", "dcf_proxy", "comparables", "risk_factor_summation"];
+
+export const NEEDS_REVENUE_RATIONALE = "Needs revenue: connect Stripe/Xero or state MRR.";
+
+/**
+ * Sector-median monthly growth used when nothing observed a rate (Bessemer /
+ * PitchBook mid-growth cohort, ~20–60 % YoY → ≈ 2–4 % MoM). Cited as
+ * "assumed" on every surface that shows it.
+ */
+export const SECTOR_MEDIAN_MONTHLY_GROWTH_PCT: Readonly<Partial<Record<Sector, number>>> & { default: number } = {
+  saas: 3.0,
+  ai: 4.0,
+  fintech: 2.5,
+  healthtech: 2.5,
+  cybertech: 3.0,
+  marketplace: 2.5,
+  ecommerce: 2.0,
+  default: 2.5,
+};
+
+const SVI_STAGE_LABEL: Record<number, string> = {
+  0: "Concept",
+  1: "Validated idea",
+  2: "MVP / pre-seed",
+  3: "Traction / seed",
+  4: "Revenue / Series A",
+  5: "Growth",
+  6: "Scale",
+  7: "Corporation",
+};
+
+/** CFO stage label → SVI stage 0–7 when the caller gave no `sviStage`. */
+const CFO_STAGE_TO_SVI: Record<string, number> = { "pre-seed": 2, seed: 3, "series-a": 4, "series-b": 6, "series-c": 7 };
+
+export function sviStageFor(input: Pick<BuildVcValuationInput, "stage" | "sviStage">): number {
+  if (typeof input.sviStage === "number" && Number.isFinite(input.sviStage)) return Math.max(0, Math.min(7, Math.round(input.sviStage)));
+  return CFO_STAGE_TO_SVI[(input.stage ?? "pre-seed").toLowerCase()] ?? 2;
+}
+
+/** Normalise a caller's revenue-source label to the four-way enum. */
+export function normaliseRevenueSource(label: string | null | undefined, mrrAud: number): ValuationRevenueSource {
+  if (!(mrrAud > 0)) return "none";
+  const s = (label ?? "").toLowerCase();
+  if (s === "connector" || /stripe|xero|myob|quickbooks|connected|connector/.test(s)) return "connector";
+  if (s === "document" || /document|upload|statement|bas\b|p&l|financials/.test(s)) return "document";
+  return "founder_stated";
+}
+
+function audShort(n: number): string {
+  if (Math.abs(n) >= 1_000_000) return `A$${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`;
+  if (Math.abs(n) >= 1_000) return `A$${Math.round(n / 1_000)}K`;
+  return `A$${Math.round(n)}`;
+}
+
 export function buildVcValuationReport(input: BuildVcValuationInput): VcValuationReport {
-  const { sector = "default", stage = "pre-seed", mrrAud = 0, monthlyGrowthRatePct = 10, esicQualifies = false, estimatedRdtiRefundAud = 0 } = input;
+  const { sector = "default", stage = "pre-seed", mrrAud = 0, esicQualifies = false, estimatedRdtiRefundAud = 0 } = input;
   // S27-C: multiples resolve through lib/valuation/sector-multiples (approved
   // override → static row); the label lands in the method rationale + notes.
   const bm = vcBenchmark(sector);
   const [multiLow, multiHigh] = bm.multipleRange;
   const arrAud = mrrAud * 12;
+  const preRevenue = arrAud <= 0;
+  const revenueSource = normaliseRevenueSource(input.revenueSource, mrrAud);
+  const revenueEvidenced = revenueSource === "connector" || revenueSource === "document";
+
+  // G19-S42 (c): growth is never silently 10 %/mo. Observed → used as is;
+  // otherwise the sector median is used and flagged as assumed (only matters
+  // once revenue exists — pre-revenue no growth-dependent method runs).
+  const growthObserved = typeof input.monthlyGrowthRatePct === "number" && Number.isFinite(input.monthlyGrowthRatePct);
+  const sectorKey = (SECTOR_MULTIPLES[sector as Sector] ? sector : "default") as Sector;
+  const assumedGrowthRatePct = SECTOR_MEDIAN_MONTHLY_GROWTH_PCT[sectorKey] ?? SECTOR_MEDIAN_MONTHLY_GROWTH_PCT.default;
+  const growthAssumed = !preRevenue && !growthObserved;
+  const monthlyGrowthRatePct = growthObserved ? (input.monthlyGrowthRatePct as number) : preRevenue ? 0 : assumedGrowthRatePct;
+  const growthInput: BuildVcValuationInput = { ...input, monthlyGrowthRatePct };
   const annualGrowth = monthlyGrowthRatePct * 12;
   const growthTier = growthTierAdjustment(annualGrowth);
+  const growthNote = growthAssumed ? ` Growth assumed at the ${sectorKey} sector median ${assumedGrowthRatePct}%/mo (no observed rate).` : "";
 
   const market = estimateMarketSizing(input);
   const { tamAud, samAud, somAud } = market;
@@ -559,20 +744,21 @@ export function buildVcValuationReport(input: BuildVcValuationInput): VcValuatio
   // Strategic-relationships credit needs structured investor artefacts (SHA
   // or a populated data room — both imply the startup has done the legwork
   // to be transactable with third parties).
-  const hasPrototype = mrrAud > 0 || (input.customers ?? 0) > 0;
-  const hasQualityTeam = input.hasFounderVesting === true;
-  const hasStrategicRelationships = input.hasShareholdersAgreement === true || input.hasDataRoom === true;
-  const berkus = calculateBerkusValuation(true, hasPrototype, hasQualityTeam, hasStrategicRelationships, mrrAud > 0);
-  const dcfMid = arrAud > 0 ? arrAud * (multiLow + 1) : berkus * 1.5;
+  const berkusPillars: BerkusPillars = {
+    soundIdea: true,
+    prototype: mrrAud > 0 || (input.customers ?? 0) > 0,
+    qualityTeam: input.hasFounderVesting === true,
+    strategicRelationships: input.hasShareholdersAgreement === true || input.hasDataRoom === true,
+    productRollout: mrrAud > 0,
+  };
+  const berkus = calculateBerkusValuation(berkusPillars.soundIdea, berkusPillars.prototype, berkusPillars.qualityTeam, berkusPillars.strategicRelationships, berkusPillars.productRollout);
+  const pillarCount = Object.values(berkusPillars).filter(Boolean).length;
+  const pillarNames = (Object.keys(berkusPillars) as Array<keyof BerkusPillars>).filter((k) => berkusPillars[k]).map((k) => k.replace(/([A-Z])/g, " $1").toLowerCase());
 
-  // AU tax modifier for risk_factor_summation.
-  // RDTI uplift scales with refund magnitude relative to the RFS base (a $10
-  // refund cannot lift valuation the same as a $500K refund). Ratio floor
-  // guards divide-by-tiny-base when arrAud is 0; cap of 15% keeps a single
-  // tax attribute from dominating the method. ESIC offset stays flat (20%)
-  // because the concession is binary — either the company qualifies or not.
-  const rfBase = arrAud > 0 ? arrAud * bm.medianMultiple : berkus * 1.2;
-  const rdtiLiftPct = estimatedRdtiRefundAud > 0
+  // Revenue-dependent methods — only meaningful with ARR > 0 (G19-S42 (a)).
+  const dcfMid = arrAud * (multiLow + 1);
+  const rfBase = arrAud * bm.medianMultiple;
+  const rdtiLiftPct = estimatedRdtiRefundAud > 0 && rfBase > 0
     ? Math.min(15, (estimatedRdtiRefundAud / Math.max(rfBase, 250_000)) * 100)
     : 0;
   const auTaxPct = (esicQualifies ? AU_MARKET_DATA.esicOffset * 100 : 0) + rdtiLiftPct;
@@ -580,59 +766,163 @@ export function buildVcValuationReport(input: BuildVcValuationInput): VcValuatio
   let rfsRationale = `Risk Factor Summation; au-tax: ${auTaxPct.toFixed(0)}%`;
   if (esicQualifies) rfsRationale += "; ESIC qualified (+20% offset)";
   if (estimatedRdtiRefundAud > 0) rfsRationale += `; Refundable RDTI est. A$${Math.round(estimatedRdtiRefundAud / 1000)}K (+${rdtiLiftPct.toFixed(1)}% proportional lift)`;
-
-  // Comparables with growth tier adjustment
   const adjMultiple = bm.medianMultiple * growthTier.factor;
-  const compMid = arrAud > 0 ? arrAud * adjMultiple : berkus * 1.1;
+  const compMid = arrAud * adjMultiple;
 
   const scorecard = scorecardMethod(input);
 
-  const rawMethods = [
-    { method: "revenue_multiple", lowAud: Math.round(revLow), midAud: Math.round(revMid), highAud: Math.round(revHigh), weight: arrAud > 0 ? 0.35 : 0.1, rationale: `AU ${sector} revenue multiples ${multiLow}–${multiHigh}x ARR for ${stage} stage. Multiples: ${bm.sourceLabel}.` },
-    { method: "berkus", lowAud: Math.round(berkus * 0.7), midAud: Math.round(berkus), highAud: Math.round(berkus * 1.3), weight: arrAud > 0 ? 0.1 : 0.35, rationale: "Berkus milestone-based valuation (A$500K/milestone, AU-adjusted)." },
-    { method: "dcf_proxy", lowAud: Math.round(dcfMid * 0.7), midAud: Math.round(dcfMid), highAud: Math.round(dcfMid * 1.4), weight: 0.25, rationale: "Simplified DCF using sector growth rate and AU exit comparables." },
-    { method: "comparables", lowAud: Math.round(compMid * 0.75), midAud: Math.round(compMid), highAud: Math.round(compMid * 1.35), weight: 0.15, rationale: `Comparable AU ${sector} transactions — growth tier: ${growthTier.tier} (${annualGrowth}% YoY, Bessemer Cloud Index 2025 adjustment: ${growthTier.factor}x).` },
-    { method: "risk_factor_summation", lowAud: Math.round(rfMid * 0.75), midAud: Math.round(rfMid), highAud: Math.round(rfMid * 1.4), weight: 0.15, rationale: rfsRationale },
-    { ...scorecard, method: "scorecard", weight: 0 },
-  ];
+  // Stage baseline — AU pre-money by SVI stage (CTV 2024/25 medians).
+  const sviStage = sviStageFor(input);
+  const baseline = VALUATION_BASELINES_AUD[sviStage] ?? VALUATION_BASELINES_AUD[2];
+  const stageBaseline = {
+    sviStage,
+    stageLabel: SVI_STAGE_LABEL[sviStage] ?? stage,
+    lowAud: baseline.low,
+    midAud: baseline.mid,
+    highAud: baseline.high,
+    source: "Cut Through Venture — State of Australian Startup Funding 2024/25 medians (lib/valuation.ts VALUATION_BASELINES_AUD)",
+  };
 
-  // Normalize weights so active methods (excluding scorecard) sum to 1
-  const activeWeightSum = rawMethods.filter(m => m.method !== "scorecard").reduce((s, m) => s + m.weight, 0);
-  const methods = rawMethods.map(m => m.method === "scorecard" ? m : { ...m, weight: m.weight / activeWeightSum });
+  const founderStatedSuffix = revenueSource === "founder_stated" ? " Founder-stated ARR — weight halved until Stripe/Xero or a statement evidences it." : "";
+  const revenueWeightFactor = revenueSource === "founder_stated" ? 0.5 : 1;
 
-  const blendedLow = methods.filter(m => m.method !== "scorecard").reduce((s, m) => s + m.lowAud * m.weight, 0);
-  const blendedMid = methods.filter(m => m.method !== "scorecard").reduce((s, m) => s + m.midAud * m.weight, 0);
-  const blendedHigh = methods.filter(m => m.method !== "scorecard").reduce((s, m) => s + m.highAud * m.weight, 0);
-  const confidence = Math.min(85, 35 + (mrrAud > 0 ? 25 : 0) + (monthlyGrowthRatePct >= 10 ? 15 : 0) + 10);
+  const rawMethods: VcValuationMethodRow[] = preRevenue
+    ? [
+        { method: "revenue_multiple", lowAud: 0, midAud: 0, highAud: 0, weight: 0, applicable: false, rationale: NEEDS_REVENUE_RATIONALE },
+        { method: "berkus", lowAud: Math.round(berkus * 0.7), midAud: Math.round(berkus), highAud: Math.round(berkus * 1.3), weight: PRE_REVENUE_WEIGHTS.berkus, applicable: true, rationale: `Berkus milestone-based valuation (A$500K per pillar, AU-adjusted): ${pillarCount} of 5 pillars evidenced.` },
+        { method: "dcf_proxy", lowAud: 0, midAud: 0, highAud: 0, weight: 0, applicable: false, rationale: NEEDS_REVENUE_RATIONALE },
+        { method: "comparables", lowAud: 0, midAud: 0, highAud: 0, weight: 0, applicable: false, rationale: NEEDS_REVENUE_RATIONALE },
+        { method: "risk_factor_summation", lowAud: 0, midAud: 0, highAud: 0, weight: 0, applicable: false, rationale: NEEDS_REVENUE_RATIONALE },
+        { ...scorecard, method: "scorecard", weight: PRE_REVENUE_WEIGHTS.scorecard, applicable: true },
+        { method: "stage_baseline", lowAud: baseline.low, midAud: baseline.mid, highAud: baseline.high, weight: PRE_REVENUE_WEIGHTS.stage_baseline, applicable: true, rationale: `AU pre-money baseline for SVI stage ${sviStage} (${stageBaseline.stageLabel}) — ${stageBaseline.source.split(" (")[0]}.` },
+      ]
+    : [
+        { method: "revenue_multiple", lowAud: Math.round(revLow), midAud: Math.round(revMid), highAud: Math.round(revHigh), weight: REVENUE_WEIGHTS.revenue_multiple * revenueWeightFactor, applicable: true, rationale: `AU ${sector} revenue multiples ${multiLow}–${multiHigh}x ARR for ${stage} stage. Multiples: ${bm.sourceLabel}.${founderStatedSuffix}` },
+        { method: "berkus", lowAud: Math.round(berkus * 0.7), midAud: Math.round(berkus), highAud: Math.round(berkus * 1.3), weight: REVENUE_WEIGHTS.berkus, applicable: true, rationale: `Berkus milestone-based valuation (A$500K per pillar, AU-adjusted): ${pillarCount} of 5 pillars evidenced.` },
+        { method: "dcf_proxy", lowAud: Math.round(dcfMid * 0.7), midAud: Math.round(dcfMid), highAud: Math.round(dcfMid * 1.4), weight: REVENUE_WEIGHTS.dcf_proxy * revenueWeightFactor, applicable: true, rationale: `Simplified DCF using sector growth rate and AU exit comparables.${growthNote}${founderStatedSuffix}` },
+        { method: "comparables", lowAud: Math.round(compMid * 0.75), midAud: Math.round(compMid), highAud: Math.round(compMid * 1.35), weight: REVENUE_WEIGHTS.comparables * revenueWeightFactor, applicable: true, rationale: `Comparable AU ${sector} transactions — growth tier: ${growthTier.tier} (${Math.round(annualGrowth)}% YoY${growthAssumed ? ", assumed" : ""}, Bessemer Cloud Index 2025 adjustment: ${growthTier.factor}x).${founderStatedSuffix}` },
+        { method: "risk_factor_summation", lowAud: Math.round(rfMid * 0.75), midAud: Math.round(rfMid), highAud: Math.round(rfMid * 1.4), weight: REVENUE_WEIGHTS.risk_factor_summation * revenueWeightFactor, applicable: true, rationale: `${rfsRationale}.${founderStatedSuffix}` },
+        { ...scorecard, method: "scorecard", weight: 0, applicable: false, rationale: `${scorecard.rationale} Reference only (weight 0) once revenue multiples apply.` },
+        { method: "stage_baseline", lowAud: baseline.low, midAud: baseline.mid, highAud: baseline.high, weight: 0, applicable: false, rationale: `AU pre-money baseline for SVI stage ${sviStage} (${stageBaseline.stageLabel}) — shown as a cross-check, not blended.` },
+      ];
 
-  const projection = projectFinancials(input, 36);
-  const breakEvenRow = projection.find(r => r.ebitdaAud >= 0);
+  // Normalise so the applicable weights sum to exactly 1.
+  const activeWeightSum = rawMethods.filter((m) => m.applicable).reduce((s, m) => s + m.weight, 0);
+  const methods = rawMethods.map((m) => (m.applicable && activeWeightSum > 0 ? { ...m, weight: m.weight / activeWeightSum } : { ...m, weight: 0 }));
+  const active = methods.filter((m) => m.applicable);
 
-  const cacAud = Math.max(500, input.cacAud ?? mrrAud * 2);
-  const ltvAud = mrrAud > 0 ? mrrAud * 24 * 0.7 : 0;
+  const blendedLow = active.reduce((s, m) => s + m.lowAud * m.weight, 0);
+  const blendedMid = active.reduce((s, m) => s + m.midAud * m.weight, 0);
+  const blendedHigh = active.reduce((s, m) => s + m.highAud * m.weight, 0);
+
+  // G19-S42 (b): evidence-driven confidence, no unconditional +10.
+  //   35 + 25·(revenue connector / document) + 10·(founder-stated revenue)
+  //      + 15·(growth observed) + 10·(≥ 2 applicable revenue-evidenced methods)
+  //      − 10·(pre-revenue with only the idea pillar) → cap 85, floor 25.
+  // "Non-Berkus" excludes the pre-revenue heuristics (scorecard, stage
+  // baseline) — counting them would make the +10 unconditional again.
+  const evidencedMethods = active.filter((m) => REVENUE_METHODS.includes(m.method)).length;
+  const confidence = Math.max(
+    25,
+    Math.min(
+      85,
+      35 +
+        (revenueEvidenced ? 25 : 0) +
+        (revenueSource === "founder_stated" ? 10 : 0) +
+        (growthObserved && !preRevenue ? 15 : 0) +
+        (evidencedMethods >= 2 && revenueEvidenced ? 10 : 0) -
+        (preRevenue && pillarCount <= 1 ? 10 : 0),
+    ),
+  );
+
+  const projection = projectFinancials(growthInput, 36);
+  const breakEvenRow = projection.find((r) => r.ebitdaAud >= 0);
+
+  const perCustomer = monthlyRevenuePerCustomer(input);
+  const cacAud = Math.max(500, input.cacAud ?? perCustomer * 2);
+  const ltvAud = perCustomer > 0 ? perCustomer * 24 * 0.7 : 0;
   const grossMarginPct = input.grossMarginPct ?? 72;
   const ruleOf40 = monthlyGrowthRatePct * 12 + (grossMarginPct - 28);
-  const raiseAud = blendedMid * 0.2;
+
+  // G19-S42 (d): the raise is the founder's number or nothing.
+  const raiseStated = typeof input.raiseAud === "number" && Number.isFinite(input.raiseAud) && input.raiseAud > 0;
+  const raiseAud = raiseStated ? (input.raiseAud as number) : 0;
   const preMoneyAud = blendedMid;
   const postMoneyAud = preMoneyAud + raiseAud;
   const opexMonthly = input.monthlyOpexAud ?? Math.max(15_000, mrrAud * 0.8);
 
-  const ue = unitEconomics(input);
-  const auExitCheck = auExitRealisationCheck(input, projection);
+  const ue = unitEconomics(growthInput);
+  const auExitCheck = auExitRealisationCheck(growthInput, projection);
+
+  const derivation: Partial<Record<VcValuationMethodKey, string>> = preRevenue
+    ? {
+        berkus: `${pillarCount} of 5 pillars × A$500K (${pillarNames.join(", ")}) = ${audShort(berkus)}`,
+        scorecard: scorecard.rationale.replace(/^Bill Payne Scorecard Method anchored to /, "").replace(/\.$/, ""),
+        stage_baseline: `SVI stage ${sviStage} (${stageBaseline.stageLabel}) median ${audShort(baseline.mid)} (${audShort(baseline.low)}–${audShort(baseline.high)}), CTV 2024/25`,
+        revenue_multiple: NEEDS_REVENUE_RATIONALE,
+        dcf_proxy: NEEDS_REVENUE_RATIONALE,
+        comparables: NEEDS_REVENUE_RATIONALE,
+        risk_factor_summation: NEEDS_REVENUE_RATIONALE,
+      }
+    : {
+        revenue_multiple: `ARR ${audShort(arrAud)} × ${multiLow}–${multiHigh} (sector p25–p75, ${bm.sourceLabel})`,
+        berkus: `${pillarCount} of 5 pillars × A$500K (${pillarNames.join(", ")}) = ${audShort(berkus)}`,
+        dcf_proxy: `ARR ${audShort(arrAud)} × (${multiLow} + 1) growth-adjusted proxy${growthAssumed ? ` — growth assumed ${assumedGrowthRatePct}%/mo` : ""}`,
+        comparables: `ARR ${audShort(arrAud)} × median ${bm.medianMultiple} × growth tier ${growthTier.factor} (${growthTier.tier}${growthAssumed ? ", assumed" : ""})`,
+        risk_factor_summation: `ARR ${audShort(arrAud)} × median ${bm.medianMultiple} × (1 + AU tax ${auTaxPct.toFixed(0)} %)`,
+        scorecard: `${scorecard.rationale.replace(/^Bill Payne Scorecard Method anchored to /, "").replace(/\.$/, "")} — reference`,
+        stage_baseline: `SVI stage ${sviStage} (${stageBaseline.stageLabel}) median ${audShort(baseline.mid)} — cross-check`,
+      };
+
+  const inputs: ValuationInputsRecord = {
+    mrrAud: Math.round(mrrAud),
+    arrAud: Math.round(arrAud),
+    revenueSource,
+    ...(growthObserved ? { monthlyGrowthRatePct: input.monthlyGrowthRatePct as number } : {}),
+    growthAssumed,
+    ...(growthAssumed ? { assumedGrowthRatePct } : {}),
+    esicQualifies,
+    rdtiRefundAud: Math.round(estimatedRdtiRefundAud),
+    berkusPillars,
+    stage,
+    sviStage,
+    sector: sectorKey,
+    sectorMultipleLow: multiLow,
+    sectorMultipleHigh: multiHigh,
+    sectorMultipleMedian: bm.medianMultiple,
+    sectorMultipleSource: bm.sourceLabel,
+    raiseStated,
+    ...(raiseStated ? { raiseAud } : {}),
+  };
 
   return {
     stage, sector, currency: "AUD",
     blended: { lowAud: Math.round(blendedLow), midAud: Math.round(blendedMid), highAud: Math.round(blendedHigh), confidence },
     market: { tamAud: Math.round(tamAud), samAud: Math.round(samAud), somAud: Math.round(somAud), cagrPct, methodology: "Top-down TAM sizing using AU market data (Austrade + ABS + sector benchmarks)." },
     methods,
+    inputs,
+    derivation,
+    stageBaseline,
     projection,
-    unitEconomics: { cacAud: Math.round(cacAud), ltvAud: Math.round(ltvAud), ltvCacRatio: ue.ltvCacRatio, grossMarginPct, ruleOf40: Math.round(ruleOf40), cacPaybackMonths: cacAud > 0 && mrrAud > 0 ? Math.round(cacAud / mrrAud) : null, verdict: ue.verdict },
-    injection: { raiseAud: Math.round(raiseAud), preMoneyAud: Math.round(preMoneyAud), postMoneyAud: Math.round(postMoneyAud), dilutionPct: Math.round((raiseAud / postMoneyAud) * 1000) / 10, runwayExtensionMonths: mrrAud > 0 ? Math.round(raiseAud / opexMonthly) : 18, useOfFunds: [{ category: "Product", pct: 40, aud: Math.round(raiseAud * 0.4) }, { category: "Sales & Mktg", pct: 30, aud: Math.round(raiseAud * 0.3) }, { category: "Team", pct: 20, aud: Math.round(raiseAud * 0.2) }, { category: "Ops", pct: 10, aud: Math.round(raiseAud * 0.1) }], nextMilestone: stage === "pre-seed" ? "Reach A$10K MRR and launch first paying customer cohort." : stage === "seed" ? "Hit A$50K MRR with demonstrated NRR >100%." : "Achieve A$500K MRR with repeatable GTM motion." },
+    unitEconomics: { cacAud: Math.round(cacAud), ltvAud: Math.round(ltvAud), ltvCacRatio: ue.ltvCacRatio, grossMarginPct, ruleOf40: Math.round(ruleOf40), cacPaybackMonths: cacAud > 0 && perCustomer > 0 ? Math.max(1, Math.round(cacAud / (perCustomer * (grossMarginPct / 100)))) : null, verdict: ue.verdict },
+    injection: {
+      raiseAud: Math.round(raiseAud),
+      raiseStated,
+      preMoneyAud: Math.round(preMoneyAud),
+      postMoneyAud: Math.round(postMoneyAud),
+      dilutionPct: postMoneyAud > 0 ? Math.round((raiseAud / postMoneyAud) * 1000) / 10 : 0,
+      runwayExtensionMonths: raiseStated ? Math.round(raiseAud / opexMonthly) : 0,
+      useOfFunds: [{ category: "Product", pct: 40, aud: Math.round(raiseAud * 0.4) }, { category: "Sales & Mktg", pct: 30, aud: Math.round(raiseAud * 0.3) }, { category: "Team", pct: 20, aud: Math.round(raiseAud * 0.2) }, { category: "Ops", pct: 10, aud: Math.round(raiseAud * 0.1) }],
+      nextMilestone: stage === "pre-seed" ? "Reach A$10K MRR and launch first paying customer cohort." : stage === "seed" ? "Hit A$50K MRR with demonstrated NRR >100%." : "Achieve A$500K MRR with repeatable GTM motion.",
+    },
     scenarios: { bear: Math.round(blendedLow * 0.7), base: Math.round(blendedMid), bull: Math.round(blendedHigh * 1.3) },
     breakEven: { month: breakEvenRow?.month ?? null, mrrAtBreakEvenAud: breakEvenRow?.mrrAud },
     payback: { months: null, roiPct: 0 },
     notes: [
-      ...(mrrAud === 0 ? ["MRR not provided — Berkus method drives valuation. Add MRR for revenue-multiple estimate."] : []),
+      ...(preRevenue ? ["MRR not provided — Berkus (50 %), scorecard (30 %) and the AU stage baseline (20 %) carry the band; 4 methods need revenue: connect Stripe/Xero or state MRR."] : []),
+      ...(revenueSource === "founder_stated" ? ["Revenue is founder-stated — revenue-method weights halved until a connector or statement evidences it."] : []),
+      ...(growthAssumed ? [`Growth rate assumed at the ${sectorKey} sector median ${assumedGrowthRatePct}%/mo — no observed rate.`] : []),
+      ...(raiseStated ? [] : ["No raise stated — the ask, dilution and use of funds are not modelled until the founder states a round."]),
       `AU exit precedent: ${auExitCheck.note}`,
       `Sector multiples: ${bm.sourceLabel}.`,
     ],

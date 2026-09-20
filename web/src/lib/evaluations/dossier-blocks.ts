@@ -53,6 +53,7 @@ export const VALUATION_METHOD_LABEL: Record<ValuationChapter["methods"][number][
   comparables: "AU comparables",
   risk_factor_summation: "Risk-factor summation",
   scorecard: "Scorecard (reference)",
+  stage_baseline: "AU stage baseline",
 };
 
 export interface DossierValuationMethod {

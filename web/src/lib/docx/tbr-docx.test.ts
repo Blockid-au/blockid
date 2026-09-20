@@ -12,7 +12,7 @@
 import JSZip from "jszip";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { tbrV2Toc } from "@/components/tbr/v2/report";
-import { demoReportV2, freeFixtureReportV2 } from "@/lib/report-v2/fixtures";
+import { demoReportV2, freeFixtureReportV2, preRevenueFixtureReportV2 } from "@/lib/report-v2/fixtures";
 import { __resetPngCache, __resetSharpLoader } from "@/lib/report-visuals/png";
 
 vi.mock("server-only", () => ({}));
@@ -78,6 +78,13 @@ describe("buildTbrDocx", () => {
     assertOrdered(text, tbrV2Toc(report).map((e) => e.label));
     expect(text).toContain("Revenue multiple");
     expect(text).toContain("Risk-factor summation");
+    // G19-S42: inputs & assumptions, unit economics, cross-checks, no ask.
+    expect(text).toContain("Inputs & assumptions");
+    expect(text).toContain("Unit economics");
+    expect(text).toContain("Cross-checks");
+    expect(text).toContain("SVI backtest Q1 (lowest SVI)");
+    expect(text).toContain("(N=10)");
+    expect(text).not.toContain("Ask: ");
     expect(text).not.toContain("Unlock the full");
     expect(header).toContain("BlockID.au");
     expect(xmlText(footer)).toContain("Trusted Business Report · Sample SME Compliance SaaS (demo)");
@@ -121,5 +128,20 @@ describe("buildTbrDocx", () => {
     expect(xmlText(doc)).toContain("Prepared with DeepSeek-V4-Flash via DeepInfra.");
     const plain = await generateTbrDocx(report, { images });
     expect(plain.subarray(0, 2).toString("latin1")).toBe("PK");
+  }, 60_000);
+});
+
+describe("buildTbrDocx — valuation chapter variants (G19-S42)", () => {
+  it("pre-revenue: Berkus / scorecard / stage baseline rows only, needs-revenue line with the connectors path, no ask", async () => {
+    const { buffer } = await buildTbrDocx(preRevenueFixtureReportV2());
+    const { doc } = await unzip(buffer);
+    const text = xmlText(doc);
+    expect(text).toContain("Inputs & assumptions");
+    expect(text).toContain("AU stage baseline");
+    expect(text).toContain("Scorecard (Bill Payne)");
+    expect(text).toContain("4 methods need revenue");
+    expect(text).toContain("/workspace/settings/connectors");
+    expect(text).not.toContain("Risk-factor summation");
+    expect(text).not.toContain("Ask: ");
   }, 60_000);
 });

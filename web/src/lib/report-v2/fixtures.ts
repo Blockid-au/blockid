@@ -3,6 +3,7 @@
 // tests and the page estimate are stable. "Not a real startup" — every
 // number is illustrative and the demo page says so.
 
+import type { VcValuationLike } from "@/lib/report-pipeline/valuation-chapter";
 import { fromSnapshot, type SnapshotCriterionState, type SnapshotDimState, type SnapshotInput } from "./adapter";
 import type { ReportTierV2, ReportV2 } from "./schema";
 
@@ -35,6 +36,129 @@ const DEMO_CRITERIA: SnapshotCriterionState[] = [
 
 export const DEMO_GENERATED_AT = "2026-09-15T00:00:00.000Z";
 
+const DEMO_SOURCE_LABEL = "BlockID static table (2026-06) · Bessemer Venture Partners";
+const DEMO_BASELINE_SOURCE = "Cut Through Venture — State of Australian Startup Funding 2024/25 medians";
+
+/** A fixed SVI backtest slice (the published shape, numbers illustrative) so the demo shows the quartile cross-check. */
+const DEMO_BACKTEST: NonNullable<VcValuationLike["backtest"]> = {
+  generated_at: "2026-09-13T00:00:00.000Z",
+  n: 49,
+  n_with_round: 41,
+  buckets: [
+    { quartile: 1, label: "Q1 (lowest SVI)", n: 10, svi_min: 100, svi_max: 116, median_round_aud: 8_250_000, p25_round_aud: 5_000_000, p75_round_aud: 10_500_000, n_valuation: 3, median_valuation_aud: 36_000_000 },
+    { quartile: 2, label: "Q2", n: 11, svi_min: 118, svi_max: 128, median_round_aud: 50_000_000, p25_round_aud: 30_000_000, p75_round_aud: 79_500_000, n_valuation: 1, median_valuation_aud: 250_000_000 },
+    { quartile: 3, label: "Q3", n: 10, svi_min: 129, svi_max: 141, median_round_aud: 47_500_000, p25_round_aud: 22_500_000, p75_round_aud: 90_000_000, n_valuation: 1, median_valuation_aud: 1_000_000_000 },
+    { quartile: 4, label: "Q4 (highest SVI)", n: 10, svi_min: 142, svi_max: 156, median_round_aud: 147_500_000, p25_round_aud: 114_750_000, p75_round_aud: 210_250_000, n_valuation: 8, median_valuation_aud: 1_550_000_000 },
+  ],
+};
+
+/**
+ * G19-S42 — the demo company's CFO valuation, as `buildVcValuationReport`
+ * emits it for A$100K MRR (Stripe-evidenced), 4.5 %/mo observed growth, 5/5
+ * Berkus pillars, RDTI A$87K, seed / SVI stage 3, saas multiples 6–7.5×.
+ * Literal (not computed) so the fixture stays deterministic and client-safe.
+ */
+export function demoVcValuation(): VcValuationLike {
+  return {
+    blended: { lowAud: 5_997_288, midAud: 7_628_050, highAud: 9_774_520, confidence: 85 },
+    methods: [
+      { method: "revenue_multiple", lowAud: 7_200_000, midAud: 8_100_000, highAud: 9_000_000, weight: 0.35, applicable: true, rationale: `AU saas revenue multiples 6–7.5x ARR for seed stage. Multiples: ${DEMO_SOURCE_LABEL}.` },
+      { method: "berkus", lowAud: 1_750_000, midAud: 2_500_000, highAud: 3_250_000, weight: 0.1, applicable: true, rationale: "Berkus milestone-based valuation (A$500K per pillar, AU-adjusted): 5 of 5 pillars evidenced." },
+      { method: "dcf_proxy", lowAud: 5_880_000, midAud: 8_400_000, highAud: 11_760_000, weight: 0.25, applicable: true, rationale: "Simplified DCF using sector growth rate and AU exit comparables." },
+      { method: "comparables", lowAud: 6_075_000, midAud: 8_100_000, highAud: 10_935_000, weight: 0.15, applicable: true, rationale: "Comparable AU saas transactions — growth tier: standard (54% YoY, Bessemer Cloud Index 2025 adjustment: 1x)." },
+      { method: "risk_factor_summation", lowAud: 6_140_250, midAud: 8_187_000, highAud: 11_461_800, weight: 0.15, applicable: true, rationale: "Risk Factor Summation; au-tax: 1%; Refundable RDTI est. A$87K (+1.1% proportional lift)." },
+      { method: "scorecard", lowAud: 4_935_000, midAud: 7_050_000, highAud: 9_870_000, weight: 0, applicable: false, rationale: "Bill Payne Scorecard Method anchored to AU seed median A$6M (AVCAL / Cut Through Venture 2024). Composite multiplier: 1.18x. Reference only (weight 0) once revenue multiples apply." },
+      { method: "stage_baseline", lowAud: 6_000_000, midAud: 10_000_000, highAud: 15_000_000, weight: 0, applicable: false, rationale: "AU pre-money baseline for SVI stage 3 (Traction / seed) — shown as a cross-check, not blended." },
+    ],
+    scenarios: { bear: 4_198_101, base: 7_628_050, bull: 12_706_876 },
+    unitEconomics: { cacAud: 900, ltvAud: 3_060, ltvCacRatio: 3.4, grossMarginPct: 74, ruleOf40: 52, cacPaybackMonths: 11, verdict: "healthy" },
+    injection: { raiseAud: 0, raiseStated: false, preMoneyAud: 7_628_050 },
+    sectorMultiples: { sector: "saas", low: 6, median: 6.75, high: 7.5, sourceLabel: DEMO_SOURCE_LABEL, sourceDate: "2026-06" },
+    inputs: { mrrAud: 100_000, arrAud: 1_200_000, monthlyGrowthRatePct: 4.5, sector: "saas", stage: "seed", sviStage: 3, esicQualifies: false, estimatedRdtiRefundAud: 87_000, revenueSource: "stripe (last sync 2026-09-10)" },
+    valuationInputs: {
+      mrrAud: 100_000,
+      arrAud: 1_200_000,
+      revenueSource: "connector",
+      monthlyGrowthRatePct: 4.5,
+      growthAssumed: false,
+      esicQualifies: false,
+      rdtiRefundAud: 87_000,
+      berkusPillars: { soundIdea: true, prototype: true, qualityTeam: true, strategicRelationships: true, productRollout: true },
+      stage: "seed",
+      sviStage: 3,
+      sector: "saas",
+      sectorMultipleLow: 6,
+      sectorMultipleHigh: 7.5,
+      sectorMultipleMedian: 6.75,
+      raiseStated: false,
+    },
+    derivation: {
+      revenue_multiple: `ARR A$1.2M × 6–7.5 (sector p25–p75, ${DEMO_SOURCE_LABEL})`,
+      berkus: "5 of 5 pillars × A$500K (sound idea, prototype, quality team, strategic relationships, product rollout) = A$2.5M",
+      dcf_proxy: "ARR A$1.2M × (6 + 1) growth-adjusted proxy",
+      comparables: "ARR A$1.2M × median 6.75 × growth tier 1 (standard)",
+      risk_factor_summation: "ARR A$1.2M × median 6.75 × (1 + AU tax 1 %)",
+      scorecard: "AU seed median A$6M (AVCAL / Cut Through Venture 2024). Composite multiplier: 1.18x — reference",
+      stage_baseline: "SVI stage 3 (Traction / seed) median A$10M — cross-check",
+    },
+    stageBaseline: { sviStage: 3, stageLabel: "Traction / seed", lowAud: 6_000_000, midAud: 10_000_000, highAud: 15_000_000, source: DEMO_BASELINE_SOURCE },
+    backtest: DEMO_BACKTEST,
+  };
+}
+
+/**
+ * G19-S42 — a pre-revenue CFO valuation (A$0 MRR, 12 pilot users, founder
+ * vesting, SVI stage 2): Berkus 0.5 + scorecard 0.3 + stage baseline 0.2,
+ * the four revenue methods non-applicable, no raise stated, growth not assumed.
+ */
+export function preRevenueVcValuation(): VcValuationLike {
+  const needsRevenue = "Needs revenue: connect Stripe/Xero or state MRR.";
+  return {
+    blended: { lowAud: 2_322_000, midAud: 3_460_000, highAud: 4_969_000, confidence: 35 },
+    methods: [
+      { method: "revenue_multiple", lowAud: 0, midAud: 0, highAud: 0, weight: 0, applicable: false, rationale: needsRevenue },
+      { method: "berkus", lowAud: 1_050_000, midAud: 1_500_000, highAud: 1_950_000, weight: 0.5, applicable: true, rationale: "Berkus milestone-based valuation (A$500K per pillar, AU-adjusted): 3 of 5 pillars evidenced." },
+      { method: "dcf_proxy", lowAud: 0, midAud: 0, highAud: 0, weight: 0, applicable: false, rationale: needsRevenue },
+      { method: "comparables", lowAud: 0, midAud: 0, highAud: 0, weight: 0, applicable: false, rationale: needsRevenue },
+      { method: "risk_factor_summation", lowAud: 0, midAud: 0, highAud: 0, weight: 0, applicable: false, rationale: needsRevenue },
+      { method: "scorecard", lowAud: 3_990_000, midAud: 5_700_000, highAud: 7_980_000, weight: 0.3, applicable: true, rationale: "Bill Payne Scorecard Method anchored to AU seed median A$6M (AVCAL / Cut Through Venture 2024). Composite multiplier: 0.95x." },
+      { method: "stage_baseline", lowAud: 3_000_000, midAud: 5_000_000, highAud: 8_000_000, weight: 0.2, applicable: true, rationale: `AU pre-money baseline for SVI stage 2 (MVP / pre-seed) — ${DEMO_BASELINE_SOURCE}.` },
+    ],
+    scenarios: { bear: 1_625_400, base: 3_460_000, bull: 6_459_700 },
+    unitEconomics: { cacAud: 500, ltvAud: 0, ltvCacRatio: 0, grossMarginPct: 72, ruleOf40: 44, cacPaybackMonths: null, verdict: "weak" },
+    injection: { raiseAud: 0, raiseStated: false, preMoneyAud: 3_460_000 },
+    sectorMultiples: { sector: "saas", low: 6, median: 6.75, high: 7.5, sourceLabel: DEMO_SOURCE_LABEL, sourceDate: "2026-06" },
+    inputs: { mrrAud: 0, arrAud: 0, sector: "saas", stage: "pre-seed", sviStage: 2, esicQualifies: false, estimatedRdtiRefundAud: 0, revenueSource: null },
+    valuationInputs: {
+      mrrAud: 0,
+      arrAud: 0,
+      revenueSource: "none",
+      growthAssumed: false,
+      esicQualifies: false,
+      rdtiRefundAud: 0,
+      berkusPillars: { soundIdea: true, prototype: true, qualityTeam: true, strategicRelationships: false, productRollout: false },
+      stage: "pre-seed",
+      sviStage: 2,
+      sector: "saas",
+      sectorMultipleLow: 6,
+      sectorMultipleHigh: 7.5,
+      sectorMultipleMedian: 6.75,
+      raiseStated: false,
+    },
+    derivation: {
+      berkus: "3 of 5 pillars × A$500K (sound idea, prototype, quality team) = A$1.5M",
+      scorecard: "AU seed median A$6M (AVCAL / Cut Through Venture 2024). Composite multiplier: 0.95x",
+      stage_baseline: "SVI stage 2 (MVP / pre-seed) median A$5M (A$3M–A$8M), CTV 2024/25",
+      revenue_multiple: needsRevenue,
+      dcf_proxy: needsRevenue,
+      comparables: needsRevenue,
+      risk_factor_summation: needsRevenue,
+    },
+    stageBaseline: { sviStage: 2, stageLabel: "MVP / pre-seed", lowAud: 3_000_000, midAud: 5_000_000, highAud: 8_000_000, source: DEMO_BASELINE_SOURCE },
+    backtest: DEMO_BACKTEST,
+  };
+}
+
 export function demoSnapshotInput(tier: ReportTierV2 = "standard"): SnapshotInput {
   return {
     snapshotId: "demo-snapshot",
@@ -55,6 +179,10 @@ export function demoSnapshotInput(tier: ReportTierV2 = "standard"): SnapshotInpu
     verificationLevel: 2,
     tier,
     locale: "en",
+    // G19-S42: the demo carries the CFO valuation so /tbr/demo shows inputs,
+    // derivation and cross-checks (Stripe-evidenced revenue, no ask stated).
+    vc: demoVcValuation(),
+    revenueEvidenceIds: ["ev-connected-revenue-stripe"],
     source: "fixture",
   };
 }
@@ -67,4 +195,25 @@ export function demoReportV2(): ReportV2 {
 /** The free-tier fixture the 10-page length gate is tested against. */
 export function freeFixtureReportV2(): ReportV2 {
   return fromSnapshot(demoSnapshotInput("free"));
+}
+
+/**
+ * G19-S42 — a pre-revenue sample (SVI stage 2 "MVP / Prototype", A$0 MRR):
+ * exactly Berkus + scorecard + stage_baseline applicable, weights 0.5 / 0.3 /
+ * 0.2, no ask. Used by the schema, render and twin tests.
+ */
+export function preRevenueFixtureReportV2(tier: ReportTierV2 = "standard"): ReportV2 {
+  return fromSnapshot({
+    ...demoSnapshotInput(tier),
+    snapshotId: "demo-pre-revenue",
+    reportId: "rv2-demo-pre-revenue",
+    startupName: "Sample pre-revenue climate-data startup (demo)",
+    stageLabel: "MVP / Prototype",
+    stage: 2,
+    sviTotal: 104,
+    dimStates: { ...DEMO_DIMS, tre: { status: "complete", score: 31, priority: "high", insights: ["No revenue yet; 12 pilot users on a free tier.", "Two LOIs signed, none converted."] } },
+    vc: preRevenueVcValuation(),
+    revenueEvidenceIds: [],
+    valuationAsk: null,
+  });
 }

@@ -93,10 +93,12 @@ describe("fromSnapshot — shapes the platform stores today", () => {
     expect(small.cover.dims.tre.p50).toBe(52);
   });
 
-  it("valuation: 6 methods, non-applicable without a CFO report, consensus from the three-case model", () => {
-    const r = fromSnapshot(demoSnapshotInput());
-    expect(r.valuation.methods).toHaveLength(6);
+  it("valuation: 7 methods, non-applicable without a CFO report, consensus from the three-case model", () => {
+    const r = fromSnapshot({ ...demoSnapshotInput(), vc: null, revenueEvidenceIds: [] });
+    expect(r.valuation.methods).toHaveLength(7);
     expect(r.valuation.methods.every((m) => !m.applicable)).toBe(true);
+    expect(r.valuation.inputs).toBeUndefined();
+    expect(r.valuation.crossChecks).toHaveLength(1);
     expect(r.valuation.consensus.midAud).toBeGreaterThan(0);
     expect(r.valuation.scenarios.bear).toBeLessThan(r.valuation.scenarios.bull);
     expect(r.valuation.comparables.n).toBeGreaterThan(0);
@@ -117,9 +119,11 @@ describe("fromSnapshot — shapes the platform stores today", () => {
       ],
     };
     const r = assertReportV2(fromSnapshot({ ...demoSnapshotInput(), vc }));
+    expect(r.valuation.methods).toHaveLength(7);
     expect(r.valuation.methods.filter((m) => m.applicable)).toHaveLength(5);
     expect(r.valuation.consensus.confidence).toBeCloseTo(0.6);
     expect(r.valuation.methods.find((m) => m.method === "scorecard")!.weight).toBe(0);
+    expect(r.valuation.methods.find((m) => m.method === "stage_baseline")!.applicable).toBe(false);
   });
 
   it("phase gates: 13 × 12 matrix, blockers from the gate, route map + heat map visuals", () => {

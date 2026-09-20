@@ -666,3 +666,192 @@ export function getTbrStrings(locale: TbrLocale | undefined): TbrStrings {
   if (locale === "vi" || locale === "es" || locale === "ja") return TBR_STRINGS[locale];
   return TBR_STRINGS.en;
 }
+
+// ── G19-S42 — ReportV2 valuation chapter (web / PDF / DOCX twins) ───────────
+//
+// Kept as its own block (EN + VI only, VI with diacritics) so the three
+// renderers share one source; S45 folds every ReportV2 label into this file.
+
+export type TbrValuationLocale = "en" | "vi";
+
+export interface TbrValuationStrings {
+  confidence: (pct: number) => string;
+  low: string;
+  consensus: string;
+  high: string;
+  pending: string;
+  // Inputs & assumptions
+  inputsTitle: string;
+  thInput: string;
+  thValue: string;
+  thSource: string;
+  inMrr: string;
+  inArr: string;
+  inGrowth: string;
+  inGrowthAssumedValue: (pct: number) => string;
+  inEsic: string;
+  inRdti: string;
+  inBerkus: string;
+  inStage: string;
+  inSector: string;
+  inSectorMultiples: string;
+  inRaise: string;
+  raiseNotStated: string;
+  yes: string;
+  no: string;
+  notProvided: string;
+  pillar: Record<"soundIdea" | "prototype" | "qualityTeam" | "strategicRelationships" | "productRollout", string>;
+  source: Record<"connector" | "document" | "founder_stated" | "assumed" | "none" | "benchmark" | "model", string>;
+  // Method table
+  methodsTitle: string;
+  thMethod: string;
+  thWeight: string;
+  thRationale: string;
+  thDerivation: string;
+  method: Record<"revenue_multiple" | "berkus" | "dcf_proxy" | "comparables" | "risk_factor_summation" | "scorecard" | "stage_baseline", string>;
+  needRevenue: (n: number) => string;
+  connectorsCta: string;
+  noneApplicable: string;
+  // Unit economics
+  unitEconomicsTitle: string;
+  ue: Record<"cacAud" | "ltvAud" | "ltvCacRatio" | "grossMarginPct" | "ruleOf40" | "cacPaybackMonths" | "verdict", string>;
+  ueVerdict: Record<"strong" | "healthy" | "watch" | "weak", string>;
+  // Cross-checks / notes / ask
+  crossChecksTitle: string;
+  nLabel: (n: number) => string;
+  asOf: (d: string) => string;
+  consistencyTitle: string;
+  scenarios: string;
+  scenarioLine: (bear: string, base: string, bull: string) => string;
+  askLine: (pre: string, raise: string, verdict: string, gap: string) => string;
+  askVerdict: Record<"aligned" | "above_consensus" | "below_consensus", string>;
+  sectorMultiplesTitle: (sector: string) => string;
+  sectorMultiplesLine: (low: number, median: number, high: number, label: string, date: string) => string;
+  comparablesLine: (n: number, withMultiples: number, date: string) => string;
+}
+
+const valuationEn: TbrValuationStrings = {
+  confidence: (pct) => `consensus confidence ${pct}%`,
+  low: "Low",
+  consensus: "Consensus",
+  high: "High",
+  pending: "The indicative valuation is computed from the 8 scored dimensions. Run the analysis first — the range, methods and comparables appear here once at least one dimension is scored.",
+  inputsTitle: "Inputs & assumptions",
+  thInput: "Input",
+  thValue: "Value",
+  thSource: "Source",
+  inMrr: "MRR",
+  inArr: "ARR",
+  inGrowth: "Monthly growth",
+  inGrowthAssumedValue: (pct) => `${pct}% / month (sector median)`,
+  inEsic: "ESIC qualifies",
+  inRdti: "R&D Tax Incentive refund (est.)",
+  inBerkus: "Berkus pillars evidenced",
+  inStage: "Stage",
+  inSector: "Sector",
+  inSectorMultiples: "Sector ARR multiples (p25 / p50 / p75)",
+  inRaise: "Raise",
+  raiseNotStated: "not stated — no ask modelled",
+  yes: "yes",
+  no: "no",
+  notProvided: "not provided",
+  pillar: { soundIdea: "sound idea", prototype: "prototype", qualityTeam: "quality team", strategicRelationships: "strategic relationships", productRollout: "product roll-out" },
+  source: { connector: "connector", document: "document", founder_stated: "founder-stated", assumed: "assumed", none: "none", benchmark: "benchmark", model: "model" },
+  methodsTitle: "Methods",
+  thMethod: "Method",
+  thWeight: "Weight",
+  thRationale: "Rationale",
+  thDerivation: "Derivation",
+  method: {
+    revenue_multiple: "Revenue multiple",
+    berkus: "Berkus",
+    dcf_proxy: "DCF proxy",
+    comparables: "AU comparables",
+    risk_factor_summation: "Risk-factor summation",
+    scorecard: "Scorecard (Bill Payne)",
+    stage_baseline: "AU stage baseline",
+  },
+  needRevenue: (n) => `${n} method${n === 1 ? "" : "s"} need revenue — connect Stripe or Xero, or state MRR, to unlock ${n === 1 ? "it" : "them"}.`,
+  connectorsCta: "Connect Stripe or Xero",
+  noneApplicable: "No valuation method ran on this snapshot — the range above is the directional stage model only. Connect Stripe or Xero, or state MRR, then re-run the analysis to get the method table, inputs and cross-checks.",
+  unitEconomicsTitle: "Unit economics",
+  ue: { cacAud: "CAC", ltvAud: "LTV", ltvCacRatio: "LTV : CAC", grossMarginPct: "Gross margin", ruleOf40: "Rule of 40", cacPaybackMonths: "CAC payback (months)", verdict: "Verdict" },
+  ueVerdict: { strong: "strong", healthy: "healthy", watch: "watch", weak: "weak" },
+  crossChecksTitle: "Cross-checks",
+  nLabel: (n) => `N=${n}`,
+  asOf: (d) => `as of ${d}`,
+  consistencyTitle: "Consistency notes",
+  scenarios: "Scenarios",
+  scenarioLine: (bear, base, bull) => `Bear ${bear} · Base ${base} · Bull ${bull}`,
+  askLine: (pre, raise, verdict, gap) => `Ask: ${pre} pre-money, raising ${raise} — ${verdict} (${gap})`,
+  askVerdict: { aligned: "aligned", above_consensus: "above consensus", below_consensus: "below consensus" },
+  sectorMultiplesTitle: (sector) => `Sector multiples · ${sector}`,
+  sectorMultiplesLine: (low, median, high, label, date) => `${low}× / ${median}× / ${high}× ARR — ${label} (${date})`,
+  comparablesLine: (n, withMultiples, date) => `AU comparables: ${n} raises tracked, ${withMultiples} with disclosed multiples (sources dated ${date}).`,
+};
+
+const valuationVi: TbrValuationStrings = {
+  confidence: (pct) => `độ tin cậy đồng thuận ${pct}%`,
+  low: "Thấp",
+  consensus: "Đồng thuận",
+  high: "Cao",
+  pending: "Định giá tham khảo được tính từ 8 khía cạnh đã chấm điểm. Hãy chạy phân tích trước — khoảng giá trị, các phương pháp và so sánh sẽ xuất hiện khi có ít nhất một khía cạnh được chấm.",
+  inputsTitle: "Dữ liệu đầu vào & giả định",
+  thInput: "Đầu vào",
+  thValue: "Giá trị",
+  thSource: "Nguồn",
+  inMrr: "MRR",
+  inArr: "ARR",
+  inGrowth: "Tăng trưởng hàng tháng",
+  inGrowthAssumedValue: (pct) => `${pct}% / tháng (trung vị ngành)`,
+  inEsic: "Đủ điều kiện ESIC",
+  inRdti: "Hoàn thuế R&D Tax Incentive (ước tính)",
+  inBerkus: "Trụ cột Berkus có bằng chứng",
+  inStage: "Giai đoạn",
+  inSector: "Ngành",
+  inSectorMultiples: "Hệ số ARR ngành (p25 / p50 / p75)",
+  inRaise: "Vòng gọi vốn",
+  raiseNotStated: "chưa khai báo — không mô hình hoá mức gọi vốn",
+  yes: "có",
+  no: "không",
+  notProvided: "chưa cung cấp",
+  pillar: { soundIdea: "ý tưởng vững", prototype: "nguyên mẫu", qualityTeam: "đội ngũ chất lượng", strategicRelationships: "quan hệ chiến lược", productRollout: "sản phẩm đã ra mắt" },
+  source: { connector: "kết nối dữ liệu", document: "tài liệu", founder_stated: "nhà sáng lập khai báo", assumed: "giả định", none: "không có", benchmark: "chuẩn tham chiếu", model: "mô hình" },
+  methodsTitle: "Phương pháp",
+  thMethod: "Phương pháp",
+  thWeight: "Trọng số",
+  thRationale: "Lý do",
+  thDerivation: "Cách tính",
+  method: {
+    revenue_multiple: "Hệ số doanh thu",
+    berkus: "Berkus",
+    dcf_proxy: "DCF ước lượng",
+    comparables: "So sánh giao dịch Úc",
+    risk_factor_summation: "Tổng hợp yếu tố rủi ro",
+    scorecard: "Scorecard (Bill Payne)",
+    stage_baseline: "Mốc chuẩn giai đoạn Úc",
+  },
+  needRevenue: (n) => `${n} phương pháp cần doanh thu — kết nối Stripe hoặc Xero, hoặc khai báo MRR, để mở khoá.`,
+  connectorsCta: "Kết nối Stripe hoặc Xero",
+  noneApplicable: "Chưa có phương pháp định giá nào chạy trên bản chụp này — khoảng giá trị phía trên chỉ là mô hình định hướng theo giai đoạn. Kết nối Stripe hoặc Xero, hoặc khai báo MRR, rồi chạy lại phân tích để có bảng phương pháp, đầu vào và đối chiếu.",
+  unitEconomicsTitle: "Kinh tế đơn vị",
+  ue: { cacAud: "CAC", ltvAud: "LTV", ltvCacRatio: "LTV : CAC", grossMarginPct: "Biên lợi nhuận gộp", ruleOf40: "Quy tắc 40", cacPaybackMonths: "Hoàn vốn CAC (tháng)", verdict: "Kết luận" },
+  ueVerdict: { strong: "mạnh", healthy: "lành mạnh", watch: "cần theo dõi", weak: "yếu" },
+  crossChecksTitle: "Đối chiếu",
+  nLabel: (n) => `N=${n}`,
+  asOf: (d) => `tính đến ${d}`,
+  consistencyTitle: "Ghi chú nhất quán",
+  scenarios: "Kịch bản",
+  scenarioLine: (bear, base, bull) => `Xấu ${bear} · Cơ sở ${base} · Tốt ${bull}`,
+  askLine: (pre, raise, verdict, gap) => `Mức đề xuất: ${pre} pre-money, gọi ${raise} — ${verdict} (${gap})`,
+  askVerdict: { aligned: "phù hợp", above_consensus: "cao hơn đồng thuận", below_consensus: "thấp hơn đồng thuận" },
+  sectorMultiplesTitle: (sector) => `Hệ số ngành · ${sector}`,
+  sectorMultiplesLine: (low, median, high, label, date) => `${low}× / ${median}× / ${high}× ARR — ${label} (${date})`,
+  comparablesLine: (n, withMultiples, date) => `So sánh Úc: ${n} vòng gọi vốn được theo dõi, ${withMultiples} có công bố hệ số (nguồn tính đến ${date}).`,
+};
+
+export const TBR_VALUATION_STRINGS: Record<TbrValuationLocale, TbrValuationStrings> = { en: valuationEn, vi: valuationVi };
+
+export function getTbrValuationStrings(locale: string | undefined): TbrValuationStrings {
+  return locale === "vi" ? valuationVi : valuationEn;
+}
