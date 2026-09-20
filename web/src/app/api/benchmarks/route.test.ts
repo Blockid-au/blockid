@@ -39,7 +39,7 @@ vi.mock("@/lib/supabase", () => ({
 }));
 
 // Route import MUST come after mocks are registered.
-import { GET, dynamic } from "./route";
+import { GET, dynamic, latestPerCompany } from "./route";
 
 // --- Fake supabase --------------------------------------------------------
 // Route chains .from("svi_analyses").select(...).not(...).order(...).limit(...)
@@ -49,6 +49,8 @@ import { GET, dynamic } from "./route";
 type Row = {
   total_svi: number | null;
   analysis_json: unknown;
+  project_id?: string | null;
+  email?: string | null;
 };
 
 interface FakeCalls {
@@ -212,14 +214,15 @@ describe("GET /api/benchmarks — static fallback", () => {
     expect(body.sampleSize).toBe(0);
   });
 
-  it("returns the static benchmark numbers unchanged for stage 2", async () => {
-    const bench = getSVIBenchmark(2);
+  it("G21 P1 review: the static fallback publishes NO median / quartiles / top decile — nulls plus a reason with n", async () => {
     const { body } = await callGet("stage=2");
-    expect(body.avgSVI).toBe(bench.avgSVI);
-    expect(body.medianSVI).toBe(bench.medianSVI);
-    expect(body.p25).toBe(bench.p25);
-    expect(body.p75).toBe(bench.p75);
-    expect(body.topDecile).toBe(bench.topDecile);
+    expect(body.avgSVI).toBeNull();
+    expect(body.medianSVI).toBeNull();
+    expect(body.p25).toBeNull();
+    expect(body.p75).toBeNull();
+    expect(body.topDecile).toBeNull();
+    expect(body.band).toBe("none");
+    expect(body.reason).toBe("Not enough comparable companies at Building stage yet (n = 0) — a benchmark appears from n = 10.");
   });
 
   it("returns the static dimensions map verbatim in the static fallback", async () => {
@@ -460,7 +463,7 @@ describe("GET /api/benchmarks — DB call shape", () => {
     state.rows = []; // triggers fallback, but the call shape is still recorded
     await callGet("stage=2");
     expect(state.calls.from).toEqual(["svi_analyses"]);
-    expect(state.calls.select).toEqual(["total_svi, analysis_json"]);
+    expect(state.calls.select).toEqual(["total_svi, analysis_json, project_id, email"]);
   });
 
   it("filters out NULL total_svi rows at the DB layer via .not('total_svi', 'is')", async () => {
@@ -557,6 +560,46 @@ describe("GET /api/benchmarks — percentile query", () => {
   });
 });
 
+describe("GET /api/benchmarks — n counts companies, not analysis rows (G21 P1 review)", () => {
+  it("latestPerCompany keeps the first (latest) row per project_id, then per e-mail, and every anonymous row", () => {
+    const rows = [
+      { project_id: "p1", email: "a@x.au", total_svi: 150 },
+      { project_id: "p1", email: "a@x.au", total_svi: 120 },
+      { project_id: null, email: "B@x.au", total_svi: 130 },
+      { project_id: null, email: "b@x.au", total_svi: 110 },
+      { project_id: null, email: null, total_svi: 100 },
+      { project_id: null, email: null, total_svi: 90 },
+    ];
+    expect(latestPerCompany(rows).map((r) => r.total_svi)).toEqual([150, 130, 100, 90]);
+  });
+
+  it("twelve re-runs of ONE startup never become a cohort — the stage stays static", async () => {
+    isSupabaseConfiguredMock.mockReturnValue(true);
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
+    state.rows = Array.from({ length: 12 }, (_, i) => ({ ...stage3Row(100 + i * 10), project_id: "one-startup" }));
+    const { body } = await callGet("stage=3&svi=150");
+    expect(body.source).toBe("static");
+    expect(body.sampleSize).toBe(0);
+    expect(body).not.toHaveProperty("percentile");
+    expect(body.medianSVI).toBeNull();
+  });
+
+  it("ten distinct projects with re-runs count as ten — only each project's latest row feeds the pool", async () => {
+    isSupabaseConfiguredMock.mockReturnValue(true);
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
+    // Latest per project first (created_at DESC): 110 … 200; the older 500s must be ignored.
+    state.rows = [
+      ...Array.from({ length: 10 }, (_, i) => ({ ...stage3Row(110 + i * 10), project_id: `p${i}` })),
+      ...Array.from({ length: 10 }, (_, i) => ({ ...stage3Row(500), project_id: `p${i}` })),
+    ];
+    const { body } = await callGet("stage=3");
+    expect(body.source).toBe("live");
+    expect(body.sampleSize).toBe(10);
+    expect(body.avgSVI).toBe(155);
+    expect(body.label).toBe("indicative (n = 10)");
+  });
+});
+
 describe("GET /api/benchmarks — export surface", () => {
   it("exports dynamic='force-dynamic' so Next never caches percentile queries", () => {
     expect(dynamic).toBe("force-dynamic");
@@ -573,18 +616,18 @@ describe("GET /api/benchmarks — export surface", () => {
     expect((res.headers.get("Content-Type") ?? "").toLowerCase()).toContain("application/json");
   });
 
-  it("static-response shape matches SVI_STAGE_BENCHMARKS for every defined stage", async () => {
-    // Regression net: if a rewrite renamed avgSVI → averageSvi (or similar) the
-    // dashboard would silently render blanks — pin the keys for every stage.
+  it("static-response shape carries every key for every defined stage (figures null, label + dimensions from the table)", async () => {
+    // Regression net: if a rewrite renamed avgSVI (or similar) the dashboard
+    // would silently render blanks — pin the keys for every stage.
     for (const bench of SVI_STAGE_BENCHMARKS) {
       const { body } = await callGet(`stage=${bench.stage}`);
       expect(body.stage).toBe(bench.stage);
       expect(body.stageLabel).toBe(bench.label);
-      expect(body.avgSVI).toBe(bench.avgSVI);
-      expect(body.medianSVI).toBe(bench.medianSVI);
-      expect(body.p25).toBe(bench.p25);
-      expect(body.p75).toBe(bench.p75);
-      expect(body.topDecile).toBe(bench.topDecile);
+      for (const k of ["avgSVI", "medianSVI", "p25", "p75", "topDecile"]) {
+        expect(body).toHaveProperty(k);
+        expect(body[k]).toBeNull();
+      }
+      expect(body.dimensions).toEqual(bench.dimensions);
     }
   });
 });

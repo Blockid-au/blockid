@@ -9,6 +9,7 @@
 import { getTbrStrings } from "@/lib/i18n/tbr-strings";
 import { VisualFigure } from "@/lib/report-visuals/react";
 import { coverHero } from "@/lib/report-v2/cover-hero";
+import { mayShowPercentile } from "@/lib/benchmarks/publication-rules";
 import { coverEvidenceLine } from "@/lib/report-v2/evidence-view";
 import { coverLedgerCells, pendingDimsLine } from "@/lib/report-v2/ledger-rows";
 import type { ReportV2 } from "@/lib/report-v2/schema";
@@ -112,10 +113,11 @@ export function TbrCover({ report, title, locale = "en", benchmarks }: { report:
             <p data-tbr-hero-svi className="text-lg font-bold tabular-nums text-primary">{hero.sviLabel}</p>
             <p className={cn("text-sm font-semibold", bandText(c.svi.band))}>{bandLabel(c.svi.band, locale)}</p>
             {c.svi.deltaVsLast !== null && <p className="text-xs text-muted">{t.deltaVsLast(`${c.svi.deltaVsLast >= 0 ? "+" : ""}${c.svi.deltaVsLast}`)}</p>}
-            {c.svi.cohortPercentile !== null && (
+            {/* G21 P1 review: the rank only with its cohort size (score-governance § 7). */}
+            {c.svi.cohortPercentile !== null && typeof c.svi.cohortN === "number" && mayShowPercentile(c.svi.cohortN) && (
               <p data-tbr-hero-percentile className="text-xs text-muted">
                 {t.thPctl} {c.svi.cohortPercentile}
-                {c.svi.cohortN ? ` (n=${c.svi.cohortN})` : ""}
+                {` (n=${c.svi.cohortN})`}
               </p>
             )}
           </div>

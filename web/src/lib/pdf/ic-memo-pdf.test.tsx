@@ -119,4 +119,22 @@ describe("IC memo fonts (W5 review)", () => {
     expect(pages).toBeGreaterThanOrEqual(1);
     expect(buffer.length).toBeGreaterThan(1000);
   });
+
+  it("G21 P1 review: the percentile tile carries n when published and says 'No cohort benchmark yet (n = N)' when it is not", async () => {
+    const published = buildIcSections(fakeView(), "one_page", { weightsShown: false });
+    expect(published.summary).toMatchObject({ percentile: 61, percentileN: 120 });
+    const a = await renderIcMemoPdf({ kind: "one_page", sections: published, radar, rangeBars, weightsShown: false, generatedAt: "2026-09-16T00:00:00Z", generatedBy: "Sam" });
+    const textA = await fullText(a.buffer);
+    expect(textA).toContain("p61");
+    expect(textA.replace(/\s/g, "")).toContain("Stage-cohortpercentile(n=120)");
+
+    const view = fakeView();
+    view.header.percentile = { value: null, source: "benchmark_fallback", cohortSize: 3, label: "not enough comparable companies (n = 3)" };
+    const none = buildIcSections(view, "one_page", { weightsShown: false });
+    expect(none.summary).toMatchObject({ percentile: null, percentileN: 3 });
+    const b = await renderIcMemoPdf({ kind: "one_page", sections: none, radar, rangeBars, weightsShown: false, generatedAt: "2026-09-16T00:00:00Z", generatedBy: "Sam" });
+    const textB = await fullText(b.buffer);
+    expect(textB.replace(/\s/g, "")).toContain("Nocohortbenchmarkyet(n=3)");
+    expect(textB).not.toContain("p61");
+  });
 });

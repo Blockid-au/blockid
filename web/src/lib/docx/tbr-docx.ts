@@ -43,7 +43,7 @@ import { aud, BAND_COLOUR } from "@/lib/report-visuals";
 import { visualToPng, type PngResult } from "@/lib/report-visuals/png";
 import type { Band, DataState, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { projectForTier, type FreeTierProjection, type TrimLevel } from "@/lib/report-v2/free-tier";
-import { coverHero } from "@/lib/report-v2/cover-hero";
+import { chapterPercentileSuffix, coverHero, coverPercentileLine } from "@/lib/report-v2/cover-hero";
 import { coverLedgerCells, isUnassessed, ledgerRowsFor, pendingDimsLine, pendingLine } from "@/lib/report-v2/ledger-rows";
 import { chapterCtaRows, coverEvidenceLine, emptyEvidenceLine, evidenceRowsView, moneyEmptyState, nextActionLine, pendingCtasHeading, planEvidenceRows, type EvidenceRowView } from "@/lib/report-v2/evidence-view";
 import { getTbrS43Strings, getTbrStrings } from "@/lib/i18n/tbr-strings";
@@ -241,7 +241,7 @@ function cover(report: ReportV2, images: TbrDocxImages, locale: "en" | "vi", pre
   ];
   if (hero.subline) out.push(small(hero.subline));
   if (ring) out.push(...figure(ring, images, 200, null));
-  out.push(p(`${hero.sviLabel} · ${bandLabel(c.svi.band)}${c.svi.deltaVsLast !== null ? ` · ${c.svi.deltaVsLast >= 0 ? "+" : ""}${c.svi.deltaVsLast} vs last snapshot` : ""}${c.svi.cohortPercentile !== null ? ` · ${c.svi.cohortPercentile}th percentile` : ""}`, { bold: true, color: bandHex(c.svi.band), align: AlignmentType.CENTER }));
+  out.push(p(`${hero.sviLabel} · ${bandLabel(c.svi.band)}${c.svi.deltaVsLast !== null ? ` · ${c.svi.deltaVsLast >= 0 ? "+" : ""}${c.svi.deltaVsLast} vs last snapshot` : ""}${coverPercentileLine(c.svi) !== null ? ` · ${coverPercentileLine(c.svi)}` : ""}`, { bold: true, color: bandHex(c.svi.band), align: AlignmentType.CENTER }));
   out.push(
     table(
       hero.showPctl ? ["Dimension", "Owner", "W", "Score", "p50", "Pctl"] : ["Dimension", "Owner", "W", "Score", "p50"],
@@ -446,7 +446,7 @@ function chapterHeader(ch: DimensionChapter): Block[] {
         new TextRun({ text: `/100   ${bandLabel(ch.band)} · weight ${ch.weight} · owner ${ch.ownerAgent.toUpperCase()}${ch.supportingAgents.length ? ` (with ${ch.supportingAgents.slice(0, 3).map((r) => r.toUpperCase()).join(", ")})` : ""}`, font: FONT, size: 18, color: MUTED }),
       ],
     }),
-    small(`Stage p25 ${ch.benchmark.p25} · p50 ${ch.benchmark.p50} · p75 ${ch.benchmark.p75}${ch.benchmark.percentile !== null ? ` · you: ${ch.benchmark.percentile}th percentile` : ""}${ch.degraded ? ` · deterministic card — ${ch.degradeReason ?? "owner call unavailable"}` : ""}`),
+    small(`Stage p25 ${ch.benchmark.p25} · p50 ${ch.benchmark.p50} · p75 ${ch.benchmark.p75}${chapterPercentileSuffix(ch.benchmark)}${ch.degraded ? ` · deterministic card — ${ch.degradeReason ?? "owner call unavailable"}` : ""}`),
   ];
 }
 

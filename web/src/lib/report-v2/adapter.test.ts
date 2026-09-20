@@ -132,7 +132,7 @@ describe("fromSnapshot — shapes the platform stores today", () => {
     expect(std.dimensions.every((d) => d.renderAs === "full")).toBe(true);
   });
 
-  it("uses a sector cohort for benchmarks when N ≥ 30, else the static stage anchors", () => {
+  it("uses a sector cohort for benchmarks when n clears the publication floor, else the static stage anchors", () => {
     const withCohort = fromSnapshot({ ...demoSnapshotInput(), cohort: { sector: "saas", sample_size: 40, dim_medians: { tre: 60 }, dim_top_quartile: { tre: 75 }, updated_at: "2026-09-01" } });
     expect(withCohort.cover.dims.tre.p50).toBe(60);
     expect(withCohort.cover.dims.tre.p75).toBe(75);
@@ -228,25 +228,54 @@ describe("fromSnapshot — shapes the platform stores today", () => {
     expect(nothing.executive.confidence).toBe(0.1);
   });
 
-  it("cover.svi.cohortPercentile: explicit number wins, else the mean dimension percentile with a sector cohort (N ≥ 30), else null; the where-sentence names the phase, not the SVI stage", () => {
+  it("cover.svi.cohortPercentile: explicit number only with a published cohort n, else the mean dimension percentile with a sector cohort (n >= 10), else null; the where-sentence names the phase, not the SVI stage", () => {
     const none = fromSnapshot(demoSnapshotInput());
     expect(none.cover.svi.cohortPercentile).toBeNull();
     expect(none.cover.threeQuestions.where).not.toContain("Seed");
     expect(none.cover.threeQuestions.where).toContain("Investor Progress Review");
-    const explicit = fromSnapshot({ ...demoSnapshotInput(), cohortPercentile: 72.4 });
+    // G21 P1 review: a number without its n never reaches the cover.
+    const explicitNoCohort = fromSnapshot({ ...demoSnapshotInput(), cohortPercentile: 72.4 });
+    expect(explicitNoCohort.cover.svi.cohortPercentile).toBeNull();
+    expect(explicitNoCohort.cover.svi.cohortN).toBeNull();
+    const explicit = fromSnapshot({ ...demoSnapshotInput(), cohortPercentile: 72.4, cohort: { sample_size: 40 } });
     expect(explicit.cover.svi.cohortPercentile).toBe(72);
+    expect(explicit.cover.svi.cohortN).toBe(40);
+    const explicitBelowFloor = fromSnapshot({ ...demoSnapshotInput(), cohortPercentile: 72.4, cohort: { sample_size: 9 } });
+    expect(explicitBelowFloor.cover.svi.cohortPercentile).toBeNull();
     const cohort = { sector: "SaaS", sample_size: 40, dim_medians: Object.fromEntries(DIM_ORDER.map((d) => [d, 50])), dim_top_quartile: Object.fromEntries(DIM_ORDER.map((d) => [d, 65])) };
     const derived = fromSnapshot({ ...demoSnapshotInput(), cohort });
     const dimPct = DIM_ORDER.map((d) => derived.cover.dims[d].percentile!).filter((p) => typeof p === "number");
     expect(derived.cover.svi.cohortPercentile).toBe(Math.round(dimPct.reduce((a, p) => a + p, 0) / dimPct.length));
     expect(derived.cover.svi.cohortN).toBe(40);
-    // AssembledReport path reads the engine's cohortPercentile / percentileRank.
+    // AssembledReport path reads the engine's PUBLISHED cohort rank; percentileRank (a static-table estimate) is never used.
     const stub = { id: "r", tier: "standard" as const, sections: [], executiveSummary: "", qualityScore: 50, consistencyIssues: [], createdAt: "2026-09-20T00:00:00.000Z" };
     const a = fromAssembledReport(stub, { dimensionScores: { tre: 60 }, sviAnalysis: { cohortPercentile: { percentile: 61, cohortSize: 33 } } });
     expect(a.cover.svi.cohortPercentile).toBe(61);
     expect(a.cover.svi.cohortN).toBe(33);
     const b = fromAssembledReport(stub, { dimensionScores: { tre: 60 }, sviAnalysis: { percentileRank: 44 } });
-    expect(b.cover.svi.cohortPercentile).toBe(44);
+    expect(b.cover.svi.cohortPercentile).toBeNull();
+    const fallback = fromAssembledReport(stub, { dimensionScores: { tre: 60 }, sviAnalysis: { cohortPercentile: { percentile: 55, cohortSize: 3, source: "benchmark_fallback", published: null }, percentileRank: 55 } });
+    expect(fallback.cover.svi.cohortPercentile).toBeNull();
+    expect(fallback.cover.svi.cohortN).toBeNull();
+    const publishedRow = fromAssembledReport(stub, { dimensionScores: { tre: 60 }, sviAnalysis: { cohortPercentile: { percentile: 70, cohortSize: 14, source: "real_cohort", published: { percentile: 70, n: 14, band: "indicative", label: "indicative (n = 14)", segment: "AU stage-2 cohort" } } } });
+    expect(publishedRow.cover.svi.cohortPercentile).toBe(70);
+    expect(publishedRow.cover.svi.cohortN).toBe(14);
+  });
+
+  it("G21 P1 review: a chapter carries a percentile only against a published cohort (n >= 10), with n; the static stage table yields none", () => {
+    const none = fromSnapshot(demoSnapshotInput());
+    for (const d of none.dimensions) {
+      expect(d.benchmark.percentile).toBeNull();
+      expect(d.benchmark.n).toBeNull();
+    }
+    const cohort = { sector: "SaaS", sample_size: 14, dim_medians: Object.fromEntries(DIM_ORDER.map((d) => [d, 50])), dim_top_quartile: Object.fromEntries(DIM_ORDER.map((d) => [d, 65])) };
+    const indicative = fromSnapshot({ ...demoSnapshotInput(), cohort });
+    const tre = indicative.dimensions.find((d) => d.dim === "tre")!;
+    expect(typeof tre.benchmark.percentile).toBe("number");
+    expect(tre.benchmark.n).toBe(14);
+    const small = fromSnapshot({ ...demoSnapshotInput(), cohort: { ...cohort, sample_size: 9 } });
+    for (const d of small.dimensions) expect(d.benchmark.percentile).toBeNull();
+    expect(small.dimensions[0].benchmark.n).toBe(9);
   });
 
   it("every chapter carries owner, frameworks, phase lens and an audit stamp", () => {

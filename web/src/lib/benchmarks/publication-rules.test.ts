@@ -11,7 +11,9 @@ import {
   formatBenchmarkLine,
   formatPercentileLine,
   mayShowPercentile,
+  noBenchmarkYetLine,
   notEnoughLine,
+  publishedFromCohort,
   publishBenchmark,
   publishPercentile,
 } from "./publication-rules";
@@ -148,5 +150,25 @@ describe("formatBenchmarkLine / formatPercentileLine", () => {
     expect(formatPercentileLine(p)).toBe("Top 23% of AU pre-seed startups — indicative (n = 14)");
     const top = publishPercentile({ percentile: 100, n: 40, segment: "AU seed startups" })!;
     expect(formatPercentileLine(top)).toBe("Top 1% of AU seed startups — benchmark (n = 40)");
+  });
+});
+
+describe("publishedFromCohort — the stored cohort result (G21 P1 review)", () => {
+  it("returns `published` verbatim when the row carries the key, null included", () => {
+    const pub = publishPercentile({ percentile: 61, n: 33, segment: "AU cohort" })!;
+    expect(publishedFromCohort({ percentile: 61, cohortSize: 33, source: "real_cohort", published: pub })).toBe(pub);
+    expect(publishedFromCohort({ percentile: 55, cohortSize: 3, source: "benchmark_fallback", published: null })).toBeNull();
+  });
+
+  it("re-gates a pre-P1-C row from cohortSize; the static fallback never publishes", () => {
+    expect(publishedFromCohort({ percentile: 61, cohortSize: 33, source: "real_cohort" })).toMatchObject({ percentile: 61, n: 33, band: "benchmark" });
+    expect(publishedFromCohort({ percentile: 61, cohortSize: 4, source: "real_cohort" })).toBeNull();
+    expect(publishedFromCohort({ percentile: 61, cohortSize: 500, source: "benchmark_fallback" })).toBeNull();
+    expect(publishedFromCohort({ percentile: 61 })).toBeNull();
+    expect(publishedFromCohort(null)).toBeNull();
+  });
+
+  it("noBenchmarkYetLine carries n", () => {
+    expect(noBenchmarkYetLine(3)).toBe("No cohort benchmark yet (n = 3)");
   });
 });

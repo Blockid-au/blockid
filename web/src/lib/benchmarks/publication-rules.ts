@@ -180,6 +180,37 @@ export function formatPercentileLine(p: PublishedPercentile): string {
   return `Top ${top}% of ${p.segment} — ${p.label}`;
 }
 
+/**
+ * Minimal shape of a stored `CohortPercentileResult`
+ * (lib/agents/cohort-percentile.ts). Rows written before G21 P1-C carry no
+ * `published` key; rows written since carry it (null below the floor).
+ */
+export interface CohortPercentileLike {
+  percentile?: number | null;
+  cohortSize?: number | null;
+  source?: string | null;
+  published?: PublishedPercentile | null;
+}
+
+/**
+ * The only rank a surface may print from a stored cohort result (G21 P1
+ * review): `published` when the row carries the key (null → nothing); a
+ * pre-P1-C row is re-gated from its `cohortSize` unless it was the static
+ * `benchmark_fallback`. The legacy `percentile` number alone is never used.
+ */
+export function publishedFromCohort(c: CohortPercentileLike | null | undefined, segment = "AU cohort"): PublishedPercentile | null {
+  if (!c) return null;
+  if (c.published !== undefined) return c.published ?? null;
+  if (c.source === "benchmark_fallback") return null;
+  if (typeof c.percentile !== "number") return null;
+  return publishPercentile({ percentile: c.percentile, n: c.cohortSize ?? 0, segment });
+}
+
+/** "No cohort benchmark yet (n = 3)" — the short form for a tile / chip. */
+export function noBenchmarkYetLine(n: number): string {
+  return `No cohort benchmark yet (${benchmarkNLabel(n)})`;
+}
+
 /** The sentence a surface prints in place of a suppressed figure. */
 export function notEnoughLine(n: number, segment?: string): string {
   const where = segment && segment.trim() ? ` at ${segment.trim()}` : "";

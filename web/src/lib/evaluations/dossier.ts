@@ -60,6 +60,7 @@ import { loadAssessmentContext } from "@/lib/svi/assessment-context";
 import { makeVisual } from "@/lib/report-visuals";
 import type { Band, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { computeCohortPercentile, type CohortPercentileSource } from "@/lib/agents/cohort-percentile";
+import { benchmarkLabel, publishedFromCohort } from "@/lib/benchmarks/publication-rules";
 import { reportUrlForToken, pdfUrlForToken } from "@/lib/evaluations/report-quota";
 import {
   getAssessment,
@@ -112,7 +113,14 @@ export interface DossierHeader {
   sviBand: Band;
   /** latest − snapshot ≥ 30 days old; null when there is no older snapshot. */
   delta30d: number | null;
-  percentile: { value: number; source: CohortPercentileSource; cohortSize: number } | null;
+  /**
+   * Stage-cohort rank. G21 P1 review: `value` is the PUBLISHED percentile
+   * (lib/benchmarks/publication-rules.ts) — null below the floor / on the
+   * static fallback, with `cohortSize` + `label` saying why ("not enough
+   * comparable companies (n = 3)"). The whole field is null only when no
+   * score exists or the cohort read failed.
+   */
+  percentile: { value: number | null; source: CohortPercentileSource; cohortSize: number; label: string } | null;
   consentTier: MentorAccessTier;
   ownerKind: Evaluation["ownerKind"];
   founderClaimed: boolean;
@@ -311,7 +319,10 @@ async function cachedPercentile(svi: number, stage: number): Promise<DossierHead
   if (hit && Date.now() - hit.at < PERCENTILE_TTL_MS) return hit.value;
   try {
     const r = await computeCohortPercentile({ sviScore: svi, stage, fallbackPercentile: 50 });
-    const value = { value: Math.round(r.percentile), source: r.source, cohortSize: r.cohortSize };
+    // G21 P1 review: only the published rank — never the legacy `percentile`
+    // (the static-table estimate) — and always with its n.
+    const published = publishedFromCohort(r);
+    const value = { value: published?.percentile ?? null, source: r.source, cohortSize: r.cohortSize, label: published?.label ?? benchmarkLabel(r.cohortSize) };
     percentileCache.set(key, { at: Date.now(), value });
     return value;
   } catch {

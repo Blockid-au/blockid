@@ -158,7 +158,13 @@ export interface DimensionChapter {
   supportingAgents: AgentRole[];
   score: number;
   band: Band;
-  benchmark: { p25: number; p50: number; p75: number; percentile: number | null; stage: number };
+  /**
+   * Stage anchors (p25 / p50 / p75) plus the founder's rank. G21 P1 review:
+   * `percentile` is set only when a cohort of `n` companies published it
+   * (lib/benchmarks/publication-rules.ts) — below the floor it is null and
+   * `n` says how many were available (absent on rows stored before P1).
+   */
+  benchmark: { p25: number; p50: number; p75: number; percentile: number | null; n?: number | null; stage: number };
   /** ≤ 80 words, cites evidence ids. */
   verdict: string;
   primaryVisual: VisualSpecV2;
@@ -607,7 +613,7 @@ const dimensionChapter = z
     supportingAgents: z.array(agentRole),
     score: z.number().min(0).max(100),
     band,
-    benchmark: z.object({ p25: z.number(), p50: z.number(), p75: z.number(), percentile: z.number().nullable(), stage: z.number() }),
+    benchmark: z.object({ p25: z.number(), p50: z.number(), p75: z.number(), percentile: z.number().nullable(), n: z.number().nullable().optional(), stage: z.number() }),
     verdict: z.string().refine((s) => wordCount(s) <= 80, { message: "verdict must be ≤ 80 words" }),
     primaryVisual: renderableVisual,
     secondaryVisuals: z.array(visualSpec),

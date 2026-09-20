@@ -15,6 +15,7 @@ import { cardRenderModes } from "@/lib/report-v2/card-modes";
 import { CRITERIA } from "@/lib/evaluation-criteria";
 import { DIMENSION_OWNERS } from "@/lib/report-pipeline/dimension-owners";
 import type { DimensionChapter } from "@/lib/report-v2/schema";
+import { mayShowPercentile } from "@/lib/benchmarks/publication-rules";
 import { cn } from "@/lib/utils";
 import { AgentBadge, AuditStampLine, Bullets, Chip, Prose, TABLE_CLASS, TBR_V2_SECTION_IDS, THEAD_CLASS, TbrSection, WindowChip, bandLabel, bandSurface, bandText, phaseLabel, stateLabel, v2Strings, zebraRow, type TbrUiLocale } from "./shared";
 import { FounderExecutionCard, founderExecutionFromChapter } from "./founder-execution-card";
@@ -220,7 +221,8 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
         </div>
         <p className="text-xs text-muted">
           {t.benchmarks(ch.benchmark.p25, ch.benchmark.p50, ch.benchmark.p75)}
-          {ch.benchmark.percentile !== null ? ` · ${t.youPercentile(ch.benchmark.percentile)}` : ""}
+          {/* G21 P1 review: a rank only from a published cohort, always with its n (score-governance § 7). */}
+          {ch.benchmark.percentile !== null && typeof ch.benchmark.n === "number" && mayShowPercentile(ch.benchmark.n) ? ` · ${t.youPercentile(ch.benchmark.percentile, ch.benchmark.n)}` : ""}
           {" · "}
           <span data-tbr-floor-chip={ch.dim} className={cn("rounded-md border px-1 py-px tabular-nums", ch.phaseLens.floorMet === false ? "border-orange-300 dark:border-orange-800 text-bear" : "border-line-subtle")}>
             {phaseLabel(ch.phaseLens.phaseId, locale)} · {floorChip}

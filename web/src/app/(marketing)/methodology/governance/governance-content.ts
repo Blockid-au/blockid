@@ -169,7 +169,7 @@ export function buildGovernanceSections(): GovernanceSection[] {
         rows: BENCHMARK_N_RULES.map((r) => [r.maxN === null ? `${r.minN} or more` : r.minN === 0 ? `fewer than ${r.maxN + 1}` : `${r.minN} – ${r.maxN}`, r.shows]),
       },
       after: [
-        `n is always shown beside the figure. A national or sector “average” without its n is not permitted on any surface. Every percentile, median and benchmark line is produced by one publication module (floor n = ${cohortFloor}): below the floor the surface prints “not enough comparable companies (n = N)” instead of a number; 10–29 is labelled indicative; the rule is enforced in code, not copy.`,
+        `n is always shown beside the figure. A national or sector “average” without its n is not permitted on any surface. Every cohort percentile, median and benchmark line — the dashboard, the report and its PDF / DOCX / e-mail, the free summary PDF, the Investor Dossier and IC memo, the sector and stage indices, the benchmarks API and the calibration backtest — is produced by one publication module (floor n = ${cohortFloor}): below the floor the surface prints “not enough comparable companies (n = N)” or “no cohort benchmark yet (n = N)” instead of a number; 10–29 is labelled indicative; a stored rank is never printed without the n it was published with. The only figures outside the module are the per-dimension stage reference anchors (p25 / p50 / p75) printed beside a chapter score: an editorial table, always labelled “Stage”, never presented as a cohort figure or a rank. The rule is enforced in code, not copy.`,
       ],
     },
     {

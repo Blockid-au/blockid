@@ -30,6 +30,7 @@ import { bandFor, makeVisual, type Band, type VisualSpecV2 } from "@/lib/report-
 import { computeThreeCaseValuation } from "@/lib/svi/three-case-valuation";
 import { inferTractionFromTreScore, selectValuationMethod } from "@/lib/svi/valuation-method-selector";
 import { DIMENSION_BENCHMARKS_BY_STAGE } from "@/lib/svi-dimension-benchmarks";
+import { mayShowPercentile, publishPercentile, publishedFromCohort, type PublishedPercentile } from "@/lib/benchmarks/publication-rules";
 import {
   DATA_PRINCIPLE_SENTENCE,
   EVIDENCE_CONFIDENCE_LEVELS,
@@ -129,9 +130,11 @@ export interface SnapshotInput {
   locale?: ReportV2["locale"];
   cohort?: CohortBenchmarkInput | null;
   /**
-   * G19-S44: the startup's SVI percentile in its cohort (`SVIAnalysis.cohortPercentile.percentile`
-   * / `percentileRank`) when the caller has it; otherwise derived from the
-   * sector cohort when N ≥ 30, else null (the Pctl column hides).
+   * G19-S44: the startup's SVI percentile in its cohort when the caller has
+   * it; otherwise derived from the sector cohort, else null (the Pctl column
+   * hides). G21 P1 review: published only when `cohort.sample_size` clears
+   * the publication floor (lib/benchmarks/publication-rules.ts) — a number
+   * without its n never reaches the cover.
    */
   cohortPercentile?: number | null;
   /** Optional narrative overrides (e.g. the pipeline's executive summary). */
@@ -218,9 +221,13 @@ export interface SviAnalysisLike {
   signals?: { hasCoFounder?: boolean; evidenceLevel?: string } | null;
   /** G19-S43: the engine's evidence gaps (P0 / P1 → `actionPlan.evidenceToAdd`). */
   evidenceGaps?: EvidenceGapLike[] | null;
-  /** G19-S44: real cohort percentile (T0102) — fills `cover.svi.cohortPercentile` / `cohortN`. */
-  cohortPercentile?: { percentile: number; cohortSize?: number } | null;
-  /** G19-S44: the stage-benchmark percentile the engine computes when no cohort is available. */
+  /**
+   * G19-S44: real cohort percentile (T0102) — fills `cover.svi.cohortPercentile`
+   * / `cohortN`. G21 P1 review: read through `publishedFromCohort` — the
+   * `published` rank (null below the floor), never the legacy `percentile`.
+   */
+  cohortPercentile?: { percentile: number; cohortSize?: number; source?: string; published?: PublishedPercentile | null } | null;
+  /** G19-S44: the stage-benchmark percentile the engine computes when no cohort is available — a static-table estimate, never printed (G21 P1 review). */
   percentileRank?: number;
 }
 
@@ -385,6 +392,8 @@ interface ChapterCtx {
   p50: number;
   p75: number;
   percentile: number | null;
+  /** G21 P1 review: the cohort size behind `percentile` (null when no cohort was supplied). */
+  n: number | null;
   stage: number;
   stageLabel: string;
   cards: CriterionCard[];
@@ -675,7 +684,7 @@ function buildChapter(c: ChapterCtx, phase: PhaseGateResult, tier: ReportTierV2,
     supportingAgents: owner.supporting,
     score: c.score,
     band: c.band,
-    benchmark: { p25: c.p25, p50: c.p50, p75: c.p75, percentile: c.percentile, stage: c.stage },
+    benchmark: { p25: c.p25, p50: c.p50, p75: c.p75, percentile: c.percentile, n: c.n, stage: c.stage },
     verdict,
     primaryVisual: primary,
     secondaryVisuals: secondary,
@@ -922,7 +931,10 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
     const bench = DIMENSION_BENCHMARKS_BY_STAGE[dim]?.[stage] ?? { p25: 38, p50: 50, p75: 62 };
     const cohortMedian = input.cohort?.dim_medians?.[dim];
     const cohortTop = input.cohort?.dim_top_quartile?.[dim];
-    const useCohort = typeof cohortMedian === "number" && typeof cohortTop === "number" && (input.cohort?.sample_size ?? 0) >= 30;
+    // G21 P1 review: the cohort sets the anchors — and the only percentile —
+    // once it clears the publication floor (publication-rules.ts, n ≥ 10).
+    const cohortN = typeof input.cohort?.sample_size === "number" ? input.cohort.sample_size : null;
+    const useCohort = typeof cohortMedian === "number" && typeof cohortTop === "number" && mayShowPercentile(cohortN ?? 0);
     const p50 = useCohort ? Math.round(cohortMedian) : bench.p50;
     const p75 = useCohort ? Math.round(cohortTop) : bench.p75;
     const p25 = useCohort ? Math.max(0, Math.round(p50 - (p75 - p50))) : bench.p25;
@@ -931,7 +943,9 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
     const breakdown = state.scoreBreakdown ?? undefined;
     const assessed = breakdown ? breakdown.assessed : true;
     const band: Band = scored && assessed ? bandFor(score) : "pending";
-    const percentile = scored && assessed ? percentileFor(score, p25, p50, p75) : null;
+    // A rank exists only against a published cohort — the static stage
+    // table is an editorial anchor, not a comparison set (score-governance § 7).
+    const percentile = scored && assessed && useCohort ? (publishPercentile({ percentile: percentileFor(score, p25, p50, p75), n: cohortN ?? 0, segment: stageLabel })?.percentile ?? null) : null;
     const mapped = criteriaForDimension(dim);
     let cards = mapped.map((k) => cardsByKey.get(k)).filter((c): c is CriterionCard => Boolean(c));
     if (cards.length === 0) {
@@ -954,7 +968,7 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
       ];
     }
     coverDims[dim] = { score, weight: DIMENSION_OWNERS[dim].weight, band, p25, p50, p75, percentile };
-    ctxs.push({ dim, score, scored, band, p25, p50, p75, percentile, stage, stageLabel, cards, criterionScore, state, at, breakdown, assessed, evidence: allEvidence.filter((r) => r.dims.includes(dim)), facts });
+    ctxs.push({ dim, score, scored, band, p25, p50, p75, percentile, n: cohortN, stage, stageLabel, cards, criterionScore, state, at, breakdown, assessed, evidence: allEvidence.filter((r) => r.dims.includes(dim)), facts });
   }
 
   const scoredDims = ctxs.filter((c) => c.scored);
@@ -1003,16 +1017,20 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
   // G19-S44 (D5): the where-sentence names the 12-phase label only — the SVI stage label is benchmark-internal.
   const whereLine = L.whereLine(industry ?? L.startup, sviTotal, getTbrStrings(input.locale).v2.band[sviBand].toLowerCase(), phaseLabelFor(phase.currentPhase, input.locale), phase.completionPct);
   // G19-S44: cohort percentile — the caller's real cohort number, else the
-  // mean dimension percentile when the sector cohort (N ≥ 30) set the
-  // benchmarks, else null (the Pctl column hides).
+  // mean dimension percentile when the sector cohort set the benchmarks,
+  // else null (the Pctl column hides). G21 P1 review: either way it is
+  // published only with its n (publication-rules.ts) — a number the caller
+  // passed without a cohort size is dropped, never printed.
+  const coverN = typeof input.cohort?.sample_size === "number" ? input.cohort.sample_size : 0;
   const dimPercentiles = DIM_ORDER.map((d) => coverDims[d].percentile).filter((p): p is number => typeof p === "number");
-  const cohortUsed = (input.cohort?.sample_size ?? 0) >= 30 && dimPercentiles.length > 0;
-  const cohortPercentile =
+  const cohortUsed = mayShowPercentile(coverN) && dimPercentiles.length > 0;
+  const rawCohortPercentile =
     typeof input.cohortPercentile === "number" && Number.isFinite(input.cohortPercentile)
       ? Math.max(1, Math.min(99, Math.round(input.cohortPercentile)))
       : cohortUsed
         ? Math.max(1, Math.min(99, Math.round(dimPercentiles.reduce((a, p) => a + p, 0) / dimPercentiles.length)))
         : null;
+  const cohortPercentile = rawCohortPercentile === null ? null : (publishPercentile({ percentile: rawCohortPercentile, n: coverN, segment: stageLabel })?.percentile ?? null);
 
   const routeMap = (id: string, agentId: "ceo" | "coo") =>
     makeVisual({
@@ -1034,7 +1052,7 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
     stage,
     stageLabel,
     phaseId: phase.currentPhase,
-    svi: { total: sviTotal, band: sviBand, cohortPercentile, cohortN: input.cohort?.sample_size ?? null, deltaVsLast: typeof input.deltaVsLast === "number" ? input.deltaVsLast : null },
+    svi: { total: sviTotal, band: sviBand, cohortPercentile, cohortN: cohortPercentile === null ? null : coverN, deltaVsLast: typeof input.deltaVsLast === "number" ? input.deltaVsLast : null },
     dims: coverDims,
     threeQuestions: { where: words(whereLine, 30), worth: words(worthLine, 30), next: words(nextLine, 30) },
     visuals: [
@@ -1234,7 +1252,7 @@ export interface AssembledReportContext {
   evidenceRows?: EvidenceRow[] | null;
   /** G19-S43: GATHER `results.grants` → Money on the Table. */
   moneyOnTable?: MoneyOnTableInput | null;
-  /** G19-S44: overrides `sviAnalysis.cohortPercentile` / `percentileRank` when the caller has a fresher number. */
+  /** G19-S44: overrides `sviAnalysis.cohortPercentile` when the caller has a fresher number (published only with `sviAnalysis.cohortPercentile.cohortSize` as its n). */
   cohortPercentile?: number | null;
 }
 
@@ -1294,7 +1312,10 @@ export function fromAssembledReport(report: Pick<AssembledReport, "id" | "tier" 
     sviTotal: ctx.sviTotal,
     dimStates,
     criterionStates,
-    cohortPercentile: ctx.cohortPercentile ?? ctx.sviAnalysis?.cohortPercentile?.percentile ?? ctx.sviAnalysis?.percentileRank ?? null,
+    // G21 P1 review: the published rank only (null below the floor / on the
+    // static fallback) — `percentileRank` is a static-table estimate and is
+    // never passed on.
+    cohortPercentile: ctx.cohortPercentile ?? publishedFromCohort(ctx.sviAnalysis?.cohortPercentile)?.percentile ?? null,
     cohort: ctx.sviAnalysis?.cohortPercentile?.cohortSize ? { sample_size: ctx.sviAnalysis.cohortPercentile.cohortSize } : null,
     phaseId: ctx.phaseId,
     verificationLevel: ctx.verificationLevel ?? null,

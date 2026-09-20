@@ -33,7 +33,7 @@ import { setVisualPdfFont } from "@/lib/report-visuals/pdf";
 import { HELVETICA, pdfFontsForLocale, vietnameseHyphenation, type PdfFontSet } from "@/lib/pdf/fonts";
 import type { Band, DataState, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { levelForEstimate, MAX_TRIM_LEVEL, projectForTier, type FreeTierProjection, type TrimLevel } from "@/lib/report-v2/free-tier";
-import { coverHero } from "@/lib/report-v2/cover-hero";
+import { chapterPercentileSuffix, coverHero, coverPercentileLine } from "@/lib/report-v2/cover-hero";
 import { coverLedgerCells, isUnassessed, ledgerRowsFor, pendingDimsLine, pendingLine } from "@/lib/report-v2/ledger-rows";
 import { chapterCtaRows, coverEvidenceLine, emptyEvidenceLine, evidenceRowsView, moneyEmptyState, nextActionLine, pendingCtasHeading, planEvidenceRows, type EvidenceRowView } from "@/lib/report-v2/evidence-view";
 import { getTbrS43Strings, getTbrStrings } from "@/lib/i18n/tbr-strings";
@@ -279,7 +279,8 @@ function Cover({ report, locale, preparedWith }: { report: ReportV2; locale: "en
             {ring && <VisualPdf spec={ring} widthPt={100} hideBadge />}
             <Text style={[s.bold, { color: bandColour(c.svi.band), fontSize: 10 }]}>{`${hero.sviLabel} · ${bandLabel(c.svi.band)}`}</Text>
             {c.svi.deltaVsLast !== null && <Text style={s.tiny}>{`${c.svi.deltaVsLast >= 0 ? "+" : ""}${c.svi.deltaVsLast} vs last snapshot`}</Text>}
-            {c.svi.cohortPercentile !== null && <Text style={s.tiny}>{`${c.svi.cohortPercentile}th percentile${c.svi.cohortN ? ` (n=${c.svi.cohortN})` : ""}`}</Text>}
+            {/* G21 P1 review: the rank only with its cohort size (score-governance § 7). */}
+            {coverPercentileLine(c.svi) !== null && <Text style={s.tiny}>{coverPercentileLine(c.svi)!}</Text>}
           </View>
         </View>
         <View style={{ flex: 1, paddingLeft: 10 }}>
@@ -578,7 +579,7 @@ function ChapterHeader({ ch }: { ch: DimensionChapter }) {
           ))}
         </View>
         <Text style={s.small}>
-          {t(`Stage p25 ${ch.benchmark.p25} · p50 ${ch.benchmark.p50} · p75 ${ch.benchmark.p75}${ch.benchmark.percentile !== null ? ` · you: ${ch.benchmark.percentile}th percentile` : ""}`)}
+          {t(`Stage p25 ${ch.benchmark.p25} · p50 ${ch.benchmark.p50} · p75 ${ch.benchmark.p75}${chapterPercentileSuffix(ch.benchmark)}`)}
         </Text>
         {ch.degraded && <Text style={s.tiny}>{t(`Deterministic card — ${ch.degradeReason ?? "owner call unavailable"}`)}</Text>}
       </View>

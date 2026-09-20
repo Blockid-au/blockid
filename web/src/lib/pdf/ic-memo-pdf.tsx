@@ -31,6 +31,7 @@ import type { IcReportKind, IcSections } from "@/lib/evaluations/ic-reports";
 import { AdviceDisclaimer, PDF_ENTITY_LINE } from "./advice-disclaimer";
 import { AssessmentCardPdf } from "./assessment-card-pdf";
 import { pdfPageCount } from "./page-count";
+import { benchmarkNLabel, noBenchmarkYetLine } from "@/lib/benchmarks/publication-rules";
 
 export const IC_MEMO_FOOTER = `Prepared with BlockID.au · ${LEGAL_ENTITY.operator} · not financial advice`;
 export const IC_MEMO_MAX_PAGES = 4;
@@ -147,7 +148,8 @@ function Header({ sections, kind }: { sections: IcSections; kind: IcReportKind }
       <View style={s.tiles}>
         <Tile v={sm.svi == null ? "—" : String(Math.round(sm.svi))} l={`SVI · ${sm.sviBand}`} />
         <Tile v={sm.delta30d == null ? "—" : `${sm.delta30d > 0 ? "+" : ""}${sm.delta30d}`} l="Δ 30 days" />
-        <Tile v={sm.percentile == null ? "—" : `p${sm.percentile}`} l="Stage-cohort percentile" />
+        {/* G21 P1 review: the published rank with its n, else why there is none (score-governance § 7). */}
+        <Tile v={sm.percentile == null ? "—" : `p${sm.percentile}`} l={sm.percentile == null ? (sm.percentileN == null ? "Stage-cohort percentile" : noBenchmarkYetLine(sm.percentileN)) : `Stage-cohort percentile (${benchmarkNLabel(sm.percentileN ?? 0)})`} />
         <Tile v={`${sm.evidenceItems}`} l={`Evidence items · ${sm.evidenceConnected} connected`} />
       </View>
     </View>

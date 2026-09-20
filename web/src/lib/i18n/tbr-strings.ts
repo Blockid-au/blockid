@@ -361,7 +361,8 @@ export interface TbrV2Strings {
     weight: (w: number) => string;
     owner: string;
     benchmarks: (p25: number, p50: number, p75: number) => string;
-    youPercentile: (p: number) => string;
+    /** G21 P1 review: a rank is printed only with its cohort size — "you: 72nd percentile (n = 40)". */
+    youPercentile: (p: number, n: number) => string;
     evidence: string;
     noEvidence: string;
     strengths: string;
@@ -600,7 +601,7 @@ const v2En: TbrV2Strings = {
     weight: (w) => `weight ${w}`,
     owner: "owner",
     benchmarks: (p25, p50, p75) => `Stage p25 ${p25} · p50 ${p50} · p75 ${p75}`,
-    youPercentile: (p) => `you: ${p}th percentile`,
+    youPercentile: (p, n) => `you: ${p}th percentile (n = ${n})`,
     evidence: "Evidence",
     noEvidence: "No evidence rows in this snapshot — connect a data source or upload documents to make this chapter evidenced.",
     strengths: "Strengths",
@@ -845,7 +846,7 @@ const v2Vi: TbrV2Strings = {
     weight: (w) => `trọng số ${w}`,
     owner: "phụ trách",
     benchmarks: (p25, p50, p75) => `Giai đoạn p25 ${p25} · p50 ${p50} · p75 ${p75}`,
-    youPercentile: (p) => `bạn: phân vị ${p}`,
+    youPercentile: (p, n) => `bạn: phân vị ${p} (n = ${n})`,
     evidence: "Bằng chứng",
     noEvidence: "Chưa có dòng bằng chứng nào trong bản chụp này — kết nối nguồn dữ liệu hoặc tải tài liệu lên để chương này có căn cứ.",
     strengths: "Điểm mạnh",
