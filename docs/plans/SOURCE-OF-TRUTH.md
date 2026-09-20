@@ -447,6 +447,16 @@
 | G14-S39 | g14-investor-feedback-2026-09-16 (§4 S39, Wave D) | backtest v0 (72 comparables, Spearman ρ within stage, bootstrap CI) → `/methodology/calibration` + `/api/status.svi_backtest` | live 2026-09-17 | cdo + cfo-advisor | — (after G13 S-R5) |
 | G14-S40 | g14-investor-feedback-2026-09-16 (§4 S40, Wave D) | open AU external signals (ABR bulk, business.gov.au grants, R&DTI transparency) → evidence rows + real cohort percentile + admin + cron | live 2026-09-17 | cdo + database-optimizer | — (0410; cron installed) |
 
+
+### G19 — Report Quality: score ledger · honest valuation · unassessed ≠ scored · one synthesis · paid view = ReportV2 · BlockID showcase
+- **Source:** [`docs/plans/g19-report-quality-2026-09-20.md`](./g19-report-quality-2026-09-20.md) + audits [`01-audit-pipeline.md`](./g19-report-quality-2026-09-20/01-audit-pipeline.md), [`02-audit-ux.md`](./g19-report-quality-2026-09-20/02-audit-ux.md).
+- **Opened:** 2026-09-20 — founder brief: reasons behind every score, standard valuation, ask for data where nothing can be assessed, synthesis on the dashboard, harmonious layout, apply to blockid.au.
+- **Status:** batch 1 (S41 score ledger ∥ S42 valuation truth) running; batch 2 (S43 evidence & CTAs ∥ S45 paid view + i18n + clarity survey); batch 3 (S44 synthesis + one phase rule + layout ∥ S46 BlockID showcase + quality telemetry). One deploy per batch, serialized behind any peer session.
+- **Findings (verified):** TBR shows no signal→points reasons (only `/workspace/score` does); pre-revenue valuation = Berkus × {1,1.5,1.1,1.2} pseudo-methods, growth default 10 %/mo hidden, confidence floor 45 %, raise invented; dimensions never "unassessed" (baselines 50/40/30 shown as scores); four "+N" lift models; pipeline never reads the Evidence Hub (`svi_dimension_evidence`); Money on the Table always A$0; three phase rules; **paid A$3 lands on a legacy markdown page, not ReportV2**; VI = ASCII-stripped headings over English internals; no clarity survey.
+- **Decisions:** D1 ledger explains, formula unchanged (pending band for unassessed) · D2 one lift model = `EVIDENCE_CATALOG` · D3 pre-revenue = Berkus 0.5 + scorecard 0.3 + stage baseline 0.2 · D4 paid product = ReportV2 page · D5 `inferPhase` everywhere · D6 clarity survey 0–10, KPI ≥ 8.5.
+- **KPIs:** clarity median ≥ 8.5 (N ≥ 30) · report_view → share ≥ 25 % · score_done → A$3 ≥ 12 % · groundedShare ≥ 0.85 · pending-dimension share ≤ 20 % · showcase ≤ 1,300 words.
+- **Next action:** merge batch 1 → deploy → `qa:live` → batch 2.
+
 ---
 
 ## 3. Shipped Log (last 24h)
