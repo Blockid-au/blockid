@@ -134,10 +134,12 @@ const BOTTOM_BENEFITS = [
 // ═══════════════════════════════════════════════════════════════════════════════
 export interface SVIEntranceProps {
   /**
-   * Render the page's own header/footer chrome. `false` when mounted inside
-   * the workspace shell (`/workspace/projects/[slug]/analyze`), which already
-   * has WorkspaceLayout's header + footer — two sticky headers otherwise
-   * (W5 review).
+   * Render the page's own header/footer chrome AND the marketing landing
+   * below the analyser (hero h1, video, value props, pricing). `false` when
+   * mounted inside the workspace shell (`/workspace/projects/[slug]/analyze`),
+   * which already has WorkspaceLayout's header + footer and its own h1 — two
+   * sticky headers otherwise (W5 review), a second h1 and a YouTube iframe
+   * outside the CSP frame-src (G20-sweep).
    */
   chrome?: boolean;
 }
@@ -1319,395 +1321,405 @@ export function SVIEntrance({ chrome = true }: SVIEntranceProps = {}) {
         </div>
       </section>
 
-      {/* ── HERO SECTION ──────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden gradient-hero pt-28 md:pt-32 pb-20 md:pb-28">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left: copy */}
-            <div>
-              <p className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-brand-600 mb-6">
-                The Ownership &amp; Growth Execution Platform
-              </p>
-              <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-[-0.02em] leading-[1.05] text-ink-900">
-                Turn Your AI-Built Idea Into A <span className="bg-gradient-to-r from-brand-600 to-brand-500 bg-clip-text text-transparent">Valuable, Investable</span> Business.
-              </h1>
-              <p className="mt-6 text-base md:text-lg text-ink-500 leading-relaxed max-w-xl">
-                BlockID.au helps AI-native founders, startups, and private companies
-                structure ownership, manage valuation, execute growth, and become
-                investor-ready from day one.
-              </p>
-              <div className="mt-10 flex flex-col sm:flex-row flex-wrap gap-4">
-                <a href="#svi" className="inline-flex h-14 sm:h-16 items-center justify-center gap-2.5 rounded-2xl bg-brand-600 px-8 sm:px-10 text-base sm:text-lg font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
-                  Start Your Journey <ArrowRight strokeWidth={2} className="h-5 w-5" />
-                </a>
-                <Link href="/tools/idea-valuation" className="inline-flex h-14 sm:h-16 items-center justify-center gap-2.5 rounded-2xl border border-surface-300 bg-white/80 backdrop-blur-sm px-8 sm:px-10 text-base sm:text-lg font-semibold text-ink-700 hover:bg-surface-100 transition-colors">
-                  Explore Platform <Rocket strokeWidth={1.75} className="h-5 w-5" />
-                </Link>
-              </div>
-            </div>
-            {/* Right: platform overview banner */}
-            <div className="relative rounded-3xl shadow-2xl overflow-hidden bg-white">
-              <Image
-                src="/images/blockid-hero-banner.png"
-                alt="BlockID.au — Turn your idea into a valuable, investable business. Cap Table, Valuation, AI Workspace."
-                width={1200}
-                height={675}
-                className="w-full h-auto"
-                priority
-              />
-            </div>
-          </div>
-
-          {/* 4 Pillars */}
-          <div className="mt-20 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
-            {PILLARS.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="text-center rounded-2xl border border-surface-200/80 bg-white/80 backdrop-blur px-5 py-6 shadow-sm bento-card">
-                <div className="mx-auto mb-3 h-10 w-10 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
-                  <Icon strokeWidth={1.75} className="h-5 w-5" />
-                </div>
-                <p className="text-sm font-semibold text-ink-800">{title}</p>
-                <p className="text-xs text-ink-600 mt-1">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── ABOUT / MISSION ──────────────────────────────────────────────── */}
-      <section className="py-16 md:py-20 bg-gradient-to-b from-white to-surface-50">
-        <div className="mx-auto max-w-4xl px-6">
-          <p className="text-center text-xs uppercase tracking-[0.2em] text-brand-600 font-medium mb-4">Why BlockID.au</p>
-          <h2 className="text-center text-2xl md:text-3xl font-extrabold tracking-tight text-ink-900 mb-6">
-            The infrastructure layer for <span className="text-brand-600">AI-native startups</span>
-          </h2>
-          <div className="space-y-4 text-base text-ink-600 leading-relaxed">
-            <p>
-              Today, AI tools make it easy to build MVPs quickly — but most founders still struggle to turn those products into structured, investable businesses. They often lack clear ownership structure, valuation visibility, investor readiness, governance workflows, and growth execution systems.
-            </p>
-            <p>
-              <strong className="text-ink-800">BlockID.au helps founders move from idea &rarr; MVP &rarr; investment &rarr; scale</strong> by combining ownership management, cap tables, valuation intelligence, investor readiness, growth execution workflows, and secure data rooms in one trusted platform.
-            </p>
-          </div>
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {[
-              { icon: ShieldCheck, label: "Ownership & Cap Table", desc: "Structure equity, vesting, ESOP from day one" },
-              { icon: TrendingUp, label: "Valuation Intelligence", desc: "Track SVI score and investor readiness in real-time" },
-              { icon: Rocket, label: "Growth Execution", desc: "Data rooms, fundraise tools, and 90-day action plans" },
-            ].map(({ icon: Icon, label, desc }) => (
-              <div key={label} className="rounded-xl border border-surface-200 bg-white p-5 text-center">
-                <div className="mx-auto mb-3 h-10 w-10 rounded-lg bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600">
-                  <Icon strokeWidth={1.75} className="h-5 w-5" />
-                </div>
-                <p className="text-sm font-bold text-ink-800">{label}</p>
-                <p className="text-xs text-ink-500 mt-1">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── TRUST STRIP ────────────────────────────────────────────────────── */}
-      <section className="py-10 md:py-14 relative overflow-hidden">
-        <div className="mx-auto max-w-5xl px-6">
-          <div className="trust-glass-strip rounded-2xl px-8 py-8 md:py-10">
-            <p className="text-center text-xs uppercase tracking-[0.2em] text-brand-600 font-medium mb-6">
-              Where AI meets startup valuation
-            </p>
-            <h2 className="text-center text-2xl md:text-3xl font-extrabold tracking-tight text-ink-900 mb-8">
-              You build with AI.{" "}
-              <span className="text-brand-600">We value what you build.</span>
-            </h2>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10">
-              {[
-                { num: "50+", label: "Australian founders" },
-                { num: "200+", label: "SVI analyses" },
-                { num: "$2M+", label: "Valuations tracked" },
-              ].map(({ num, label }) => (
-                <div key={label} className="flex items-center gap-3">
-                  <span className="text-2xl md:text-3xl font-extrabold font-mono tabular-nums text-brand-600">{num}</span>
-                  <span className="text-sm text-ink-600">{label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── WHERE AI MEETS STARTUP VALUATION (Problem/Solution) ────────── */}
-      <section className="py-16 md:py-20 bg-surface-100">
-        <div className="mx-auto max-w-6xl px-6">
-          <p className="text-center mt-0 text-sm text-ink-500 max-w-2xl mx-auto mb-10">
-            AI assistants like ChatGPT and Claude are great for building products.
-            But when it comes to valuing your company, splitting equity with co-founders,
-            managing cap tables, and preparing for investors — you need a purpose-built platform.
-          </p>
-
-          {/* Problem / Solution grid */}
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {/* The problem */}
-            <div className="rounded-2xl border border-surface-300 bg-white p-6 bento-card">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="h-10 w-10 rounded-xl bg-surface-200 flex items-center justify-center">
-                  <Search strokeWidth={1.75} className="h-5 w-5 text-ink-500" />
-                </div>
-                <div>
-                  <p className="font-semibold text-ink-800">The gap AI chat can&apos;t fill</p>
-                  <p className="text-xs text-ink-500">Common founder challenges</p>
-                </div>
-              </div>
-              <ul className="space-y-3">
-                {[
-                  "How much is my startup idea actually worth?",
-                  "How do I split equity fairly with co-founders?",
-                  "What share should new team members get?",
-                  "How much dilution happens when investors come in?",
-                  "How do I track company value as it grows?",
-                  "How do I prepare a cap table for fundraising?",
-                  "How do I prove my startup's progress to investors?",
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-2.5 text-sm text-ink-600">
-                    <X className="h-4 w-4 mt-0.5 shrink-0 text-gold-500" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* The solution */}
-            <div className="rounded-2xl border border-brand-200 bg-brand-50/50 p-6 ring-1 ring-brand-100 bento-card">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="h-10 w-10 rounded-xl bg-brand-600 flex items-center justify-center">
-                  <Image src="/images/logo-icon-transparent.png" alt="" width={24} height={24} className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="font-semibold text-ink-900">BlockID.au solves this</p>
-                  <p className="text-xs text-brand-600">Works alongside your AI tools</p>
-                </div>
-              </div>
-              <ul className="space-y-3">
-                {[
-                  "AI-powered valuation from Day 0 — Startup Value Index",
-                  "Fair equity split calculator for co-founders & team",
-                  "ESOP & vesting management for new members",
-                  "Dilution modeling when investors come in",
-                  "Living report that tracks growth over time",
-                  "Cap table, data room & investor-ready documents",
-                  "Evidence vault — prove progress, raise your score",
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-2.5 text-sm text-ink-700">
-                    <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-brand-600" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Complementary message */}
-          <p className="text-center mt-8 text-sm text-ink-500 max-w-xl mx-auto">
-            Keep using ChatGPT, Claude, or Gemini to build your product.
-            Use BlockID to value it, structure ownership, and get investor-ready.
-          </p>
-
-          {/* Bottom CTA */}
-          <div className="text-center mt-8">
-            <a href="#svi" className="inline-flex h-12 items-center gap-2 rounded-xl bg-brand-600 px-8 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
-              Value Your Idea Free <ArrowRight className="h-4 w-4" />
-            </a>
-            <p className="mt-3 text-xs text-ink-500">
-              No signup required. First analysis is free.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ── VIDEO SECTION ──────────────────────────────────────────────── */}
-      <section className="py-16 md:py-20 bg-white">
-        <div className="mx-auto max-w-4xl px-6">
-          <h2 className="text-center text-2xl md:text-3xl font-extrabold tracking-tight text-ink-900 mb-3">
-            See How It Works
-          </h2>
-          <p className="text-center text-base text-ink-500 mb-8 max-w-xl mx-auto">
-            Watch how BlockID helps founders go from idea to investor-ready in minutes.
-          </p>
-          <div className="relative w-full rounded-2xl overflow-hidden shadow-xl border border-surface-200" style={{ paddingBottom: "56.25%" }}>
-            <iframe
-              className="absolute inset-0 w-full h-full"
-              src="https://www.youtube.com/embed/gaDT5svw1dQ?rel=0"
-              title="BlockID.au — How It Works"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ── 5 VALUE PROPS — Bento Grid ────────────────────────────────────── */}
-      <section className="bg-white py-20 md:py-24">
-        <div className="mx-auto max-w-6xl px-6">
-          {/* Row 1: 2 large cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-            {VALUE_PROPS.slice(0, 2).map(({ icon: Icon, title, desc }, i) => (
-              <div key={title} className={cn("rounded-2xl bg-surface-100 border border-surface-200/60 px-7 py-8 bento-card relative overflow-hidden", i === 0 ? "value-card-accent-blue" : "value-card-accent-emerald")}>
-                <div className="mb-4 h-14 w-14 rounded-2xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600">
-                  <Icon strokeWidth={1.75} className="h-7 w-7" />
-                </div>
-                <p className="text-lg font-extrabold text-ink-900">{title}</p>
-                <p className="text-sm text-ink-600 mt-2 leading-relaxed max-w-md">{desc}</p>
-              </div>
-            ))}
-          </div>
-          {/* Row 2: 3 smaller cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {VALUE_PROPS.slice(2).map(({ icon: Icon, title, desc }, i) => {
-              const accents = ["value-card-accent-gold", "value-card-accent-emerald", "value-card-accent-blue"];
-              return (
-                <div key={title} className={cn("rounded-2xl bg-surface-100 border border-surface-200/60 px-5 py-6 text-center bento-card relative overflow-hidden", accents[i])}>
-                  <div className="mx-auto mb-3 h-12 w-12 rounded-2xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600">
-                    <Icon strokeWidth={1.75} className="h-5 w-5" />
-                  </div>
-                  <p className="text-sm font-bold text-ink-800">{title}</p>
-                  <p className="text-xs text-ink-600 mt-1 leading-relaxed">{desc}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* ── FOUNDER'S ROADMAP — Horizontal Timeline ────────────────────── */}
-      <section className="gradient-section py-20 md:py-24">
-        <div className="mx-auto max-w-6xl px-6">
-          <h2 className="text-center text-3xl md:text-4xl font-extrabold text-ink-900 mb-2">The Smart Founder&apos;s Roadmap</h2>
-          <p className="text-center text-base text-ink-500 mb-10">10 steps from idea to investment — BlockID guides you at every stage.</p>
-          <div className="relative">
-            {/* Scroll arrows (desktop) */}
-            <button type="button" aria-label="Scroll roadmap left" onClick={() => { const el = document.getElementById("roadmap-scroll"); if (el) el.scrollBy({ left: -280, behavior: "smooth" }); }}
-              className="hidden md:flex absolute -left-5 top-1/2 -translate-y-1/2 z-10 h-10 w-10 items-center justify-center rounded-full bg-white border border-surface-300 shadow-md hover:bg-surface-100 transition-colors cursor-pointer">
-              <ChevronLeft className="h-5 w-5 text-ink-700" />
-            </button>
-            <button type="button" aria-label="Scroll roadmap right" onClick={() => { const el = document.getElementById("roadmap-scroll"); if (el) el.scrollBy({ left: 280, behavior: "smooth" }); }}
-              className="hidden md:flex absolute -right-5 top-1/2 -translate-y-1/2 z-10 h-10 w-10 items-center justify-center rounded-full bg-white border border-surface-300 shadow-md hover:bg-surface-100 transition-colors cursor-pointer">
-              <ChevronRight className="h-5 w-5 text-ink-700" />
-            </button>
-            {/* Scrollable container */}
-            <div id="roadmap-scroll" className="roadmap-scroll flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth" role="list">
-              {ROADMAP_STEPS.map(({ num, icon: Icon, title, desc, href }, i) => (
-                <Link key={num} href={href} role="listitem"
-                  className="group roadmap-card relative flex-shrink-0 w-56 rounded-2xl border border-surface-200/80 bg-white px-5 py-5 bento-card snap-start">
-                  {/* Connecting line */}
-                  {i < ROADMAP_STEPS.length - 1 && (
-                    <div className="hidden md:block absolute top-8 -right-5 w-5 h-0.5 bg-brand-200" aria-hidden="true" />
-                  )}
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="h-8 w-8 rounded-full bg-brand-600 text-white text-xs font-bold flex items-center justify-center shadow-sm">{num}</span>
-                    <Icon strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
-                  </div>
-                  <p className="text-sm font-semibold text-ink-800 group-hover:text-brand-700 transition-colors">{title}</p>
-                  <p className="text-[11px] text-ink-600 mt-1 leading-relaxed">{desc}</p>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── PRICING TIERS ────────────────────────────────────────────────── */}
-      <section className="bg-surface-100 py-14">
-        <div className="mx-auto max-w-5xl px-6">
-          {/* Free analysis banner */}
-          <div className="mx-auto max-w-lg mb-10 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-brand-50 px-6 py-4 text-center shadow-sm">
-            <p className="text-base font-bold text-emerald-800 flex items-center justify-center gap-2">
-              <Zap strokeWidth={1.75} className="h-5 w-5 text-emerald-600" /> Your first SVI analysis is completely free.
-            </p>
-            <p className="text-sm text-emerald-700 mt-1">No signup needed. Just describe your idea and go.</p>
-          </div>
-          <h2 className="text-center text-2xl md:text-3xl font-bold text-ink-800 mb-2">Choose Your Starting Point</h2>
-          <p className="text-center text-sm text-ink-600 mb-10">Validate your idea or unlock the full platform — start today.</p>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Card 1: Per-Analysis */}
-            <div className="rounded-2xl border border-surface-200 bg-white px-5 sm:px-8 py-8 text-center shadow-sm flex flex-col relative overflow-hidden">
-              <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-bull px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Pay as you go</div>
-              <p className="text-xs uppercase tracking-[0.15em] text-ink-500 font-medium mb-2">Per-Analysis</p>
-              <h3 className="text-xl font-bold text-ink-800 mb-1">SVI Analysis Report</h3>
-              <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">{`A$${SVI_ANALYSIS_CREDITS.toFixed(2)}`}</p>
-              <p className="text-xs text-emerald-600 font-semibold mb-4">Fractional credits — pay only for what you use</p>
-              <ul className="text-left text-sm text-ink-700 space-y-2 mb-6 mx-auto max-w-xs">
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 1st analysis free &mdash; no signup needed</li>
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 10-page AI-powered report</li>
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Action buttons on recommendations</li>
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Shareable link</li>
-              </ul>
-              <div className="mt-auto">
-                <a href="#svi" className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
-                  Try Free &mdash; Then {SVI_ANALYSIS_CREDITS.toFixed(2)} credits/report <ArrowRight strokeWidth={2} className="h-4 w-4" />
-                </a>
-              </div>
-            </div>
-
-            {/* Card 2: Starter plan — read from plans-v2. Until S31-B
-                (2026-09-13) this card still sold the "Founding 100 Account,
-                A$5 lifetime, only 100 spots" promo that closed 2026-09-01. */}
-            {PAYWALL_STARTER && (
-              <div className="rounded-2xl border-2 border-brand-400 bg-white px-5 sm:px-8 py-8 text-center shadow-lg flex flex-col relative overflow-hidden" data-testid="svi-pricing-starter">
-                <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-brand-600 px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Best Value</div>
-                <p className="text-xs uppercase tracking-[0.15em] text-brand-600 font-medium mb-2">Founder Plan</p>
-                <h3 className="text-xl font-bold text-ink-800 mb-1">{PAYWALL_STARTER.name}</h3>
-                <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">{formatAud(PAYWALL_STARTER.monthly_aud)}<span className="text-base font-semibold text-ink-500">/mo</span></p>
-                <p className="text-xs text-ink-500 mb-4">
-                  {PAYWALL_STARTER.trial_days > 0 ? `${PAYWALL_STARTER.trial_days}-day free trial · ` : ""}Cancel anytime · GST-inclusive
+      {/* ── MARKETING LANDING (chrome only) ───────────────────────────────
+          Hero (the landing's own h1), mission, trust strip, video, value
+          props, roadmap, pricing, benefits bar. Hidden when mounted inside
+          the workspace shell (`chrome={false}` on
+          /workspace/projects/[slug]/analyze): the page already has its h1
+          and the YouTube iframe is not in the CSP frame-src (G20-sweep). */}
+      {chrome && (
+        <>
+        {/* ── HERO SECTION ──────────────────────────────────────────────────── */}
+        <section className="relative overflow-hidden gradient-hero pt-28 md:pt-32 pb-20 md:pb-28">
+          <div className="mx-auto max-w-7xl px-6">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              {/* Left: copy */}
+              <div>
+                <p className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-brand-600 mb-6">
+                  The Ownership &amp; Growth Execution Platform
                 </p>
-                <ul className="text-left text-sm text-ink-700 space-y-2 mb-6 mx-auto max-w-xs">
-                  {PAYWALL_STARTER.features.slice(0, 6).map((f) => (
-                    <li key={f} className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> {f}</li>
-                  ))}
-                </ul>
-                <div className="mt-auto">
-                  <Link href="/pricing#tier-starter" className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
-                    See the {PAYWALL_STARTER.name} plan <ArrowRight strokeWidth={2} className="h-4 w-4" />
+                <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-[-0.02em] leading-[1.05] text-ink-900">
+                  Turn Your AI-Built Idea Into A <span className="bg-gradient-to-r from-brand-600 to-brand-500 bg-clip-text text-transparent">Valuable, Investable</span> Business.
+                </h1>
+                <p className="mt-6 text-base md:text-lg text-ink-500 leading-relaxed max-w-xl">
+                  BlockID.au helps AI-native founders, startups, and private companies
+                  structure ownership, manage valuation, execute growth, and become
+                  investor-ready from day one.
+                </p>
+                <div className="mt-10 flex flex-col sm:flex-row flex-wrap gap-4">
+                  <a href="#svi" className="inline-flex h-14 sm:h-16 items-center justify-center gap-2.5 rounded-2xl bg-brand-600 px-8 sm:px-10 text-base sm:text-lg font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
+                    Start Your Journey <ArrowRight strokeWidth={2} className="h-5 w-5" />
+                  </a>
+                  <Link href="/tools/idea-valuation" className="inline-flex h-14 sm:h-16 items-center justify-center gap-2.5 rounded-2xl border border-surface-300 bg-white/80 backdrop-blur-sm px-8 sm:px-10 text-base sm:text-lg font-semibold text-ink-700 hover:bg-surface-100 transition-colors">
+                    Explore Platform <Rocket strokeWidth={1.75} className="h-5 w-5" />
                   </Link>
                 </div>
               </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* ── BOTTOM BENEFITS BAR ───────────────────────────────────────────── */}
-      <section className="gradient-brand text-white py-16 relative overflow-hidden">
-        {/* Subtle aurora overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/5 to-black/10 pointer-events-none" />
-        <div className="mx-auto max-w-6xl px-6 relative">
-          <div className="text-center mb-10">
-            <div className="flex items-center justify-center gap-3 mb-3">
-              <Image src="/images/logo-icon-transparent.png" alt="" width={28} height={28} className="h-7 w-7" />
-              <span className="text-lg font-extrabold tracking-tight text-white">BlockID<span className="text-brand-200">.au</span></span>
+              {/* Right: platform overview banner */}
+              <div className="relative rounded-3xl shadow-2xl overflow-hidden bg-white">
+                <Image
+                  src="/images/blockid-hero-banner.png"
+                  alt="BlockID.au — Turn your idea into a valuable, investable business. Cap Table, Valuation, AI Workspace."
+                  width={1200}
+                  height={675}
+                  className="w-full h-auto"
+                  priority
+                />
+              </div>
             </div>
-            <p className="text-xl md:text-2xl font-extrabold">Your Idea Is Valuable.</p>
-            <p className="text-sm text-blue-200 mt-1">How you build it determines its future value.</p>
+
+            {/* 4 Pillars */}
+            <div className="mt-20 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
+              {PILLARS.map(({ icon: Icon, title, desc }) => (
+                <div key={title} className="text-center rounded-2xl border border-surface-200/80 bg-white/80 backdrop-blur px-5 py-6 shadow-sm bento-card">
+                  <div className="mx-auto mb-3 h-10 w-10 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
+                    <Icon strokeWidth={1.75} className="h-5 w-5" />
+                  </div>
+                  <p className="text-sm font-semibold text-ink-800">{title}</p>
+                  <p className="text-xs text-ink-600 mt-1">{desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-10">
-            {BOTTOM_BENEFITS.map(({ title, desc }) => (
-              <div key={title} className="glass-card-dark rounded-xl px-4 py-4">
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-200 shrink-0 mt-0.5" />
+        </section>
+
+        {/* ── ABOUT / MISSION ──────────────────────────────────────────────── */}
+        <section className="py-16 md:py-20 bg-gradient-to-b from-white to-surface-50">
+          <div className="mx-auto max-w-4xl px-6">
+            <p className="text-center text-xs uppercase tracking-[0.2em] text-brand-600 font-medium mb-4">Why BlockID.au</p>
+            <h2 className="text-center text-2xl md:text-3xl font-extrabold tracking-tight text-ink-900 mb-6">
+              The infrastructure layer for <span className="text-brand-600">AI-native startups</span>
+            </h2>
+            <div className="space-y-4 text-base text-ink-600 leading-relaxed">
+              <p>
+                Today, AI tools make it easy to build MVPs quickly — but most founders still struggle to turn those products into structured, investable businesses. They often lack clear ownership structure, valuation visibility, investor readiness, governance workflows, and growth execution systems.
+              </p>
+              <p>
+                <strong className="text-ink-800">BlockID.au helps founders move from idea &rarr; MVP &rarr; investment &rarr; scale</strong> by combining ownership management, cap tables, valuation intelligence, investor readiness, growth execution workflows, and secure data rooms in one trusted platform.
+              </p>
+            </div>
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                { icon: ShieldCheck, label: "Ownership & Cap Table", desc: "Structure equity, vesting, ESOP from day one" },
+                { icon: TrendingUp, label: "Valuation Intelligence", desc: "Track SVI score and investor readiness in real-time" },
+                { icon: Rocket, label: "Growth Execution", desc: "Data rooms, fundraise tools, and 90-day action plans" },
+              ].map(({ icon: Icon, label, desc }) => (
+                <div key={label} className="rounded-xl border border-surface-200 bg-white p-5 text-center">
+                  <div className="mx-auto mb-3 h-10 w-10 rounded-lg bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600">
+                    <Icon strokeWidth={1.75} className="h-5 w-5" />
+                  </div>
+                  <p className="text-sm font-bold text-ink-800">{label}</p>
+                  <p className="text-xs text-ink-500 mt-1">{desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── TRUST STRIP ────────────────────────────────────────────────────── */}
+        <section className="py-10 md:py-14 relative overflow-hidden">
+          <div className="mx-auto max-w-5xl px-6">
+            <div className="trust-glass-strip rounded-2xl px-8 py-8 md:py-10">
+              <p className="text-center text-xs uppercase tracking-[0.2em] text-brand-600 font-medium mb-6">
+                Where AI meets startup valuation
+              </p>
+              <h2 className="text-center text-2xl md:text-3xl font-extrabold tracking-tight text-ink-900 mb-8">
+                You build with AI.{" "}
+                <span className="text-brand-600">We value what you build.</span>
+              </h2>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10">
+                {[
+                  { num: "50+", label: "Australian founders" },
+                  { num: "200+", label: "SVI analyses" },
+                  { num: "$2M+", label: "Valuations tracked" },
+                ].map(({ num, label }) => (
+                  <div key={label} className="flex items-center gap-3">
+                    <span className="text-2xl md:text-3xl font-extrabold font-mono tabular-nums text-brand-600">{num}</span>
+                    <span className="text-sm text-ink-600">{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── WHERE AI MEETS STARTUP VALUATION (Problem/Solution) ────────── */}
+        <section className="py-16 md:py-20 bg-surface-100">
+          <div className="mx-auto max-w-6xl px-6">
+            <p className="text-center mt-0 text-sm text-ink-500 max-w-2xl mx-auto mb-10">
+              AI assistants like ChatGPT and Claude are great for building products.
+              But when it comes to valuing your company, splitting equity with co-founders,
+              managing cap tables, and preparing for investors — you need a purpose-built platform.
+            </p>
+
+            {/* Problem / Solution grid */}
+            <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              {/* The problem */}
+              <div className="rounded-2xl border border-surface-300 bg-white p-6 bento-card">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="h-10 w-10 rounded-xl bg-surface-200 flex items-center justify-center">
+                    <Search strokeWidth={1.75} className="h-5 w-5 text-ink-500" />
+                  </div>
                   <div>
-                    <p className="text-xs font-semibold text-white">{title}</p>
-                    <p className="text-[10px] text-blue-200 leading-snug">{desc}</p>
+                    <p className="font-semibold text-ink-800">The gap AI chat can&apos;t fill</p>
+                    <p className="text-xs text-ink-500">Common founder challenges</p>
                   </div>
                 </div>
+                <ul className="space-y-3">
+                  {[
+                    "How much is my startup idea actually worth?",
+                    "How do I split equity fairly with co-founders?",
+                    "What share should new team members get?",
+                    "How much dilution happens when investors come in?",
+                    "How do I track company value as it grows?",
+                    "How do I prepare a cap table for fundraising?",
+                    "How do I prove my startup's progress to investors?",
+                  ].map((item) => (
+                    <li key={item} className="flex items-start gap-2.5 text-sm text-ink-600">
+                      <X className="h-4 w-4 mt-0.5 shrink-0 text-gold-500" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            ))}
+
+              {/* The solution */}
+              <div className="rounded-2xl border border-brand-200 bg-brand-50/50 p-6 ring-1 ring-brand-100 bento-card">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="h-10 w-10 rounded-xl bg-brand-600 flex items-center justify-center">
+                    <Image src="/images/logo-icon-transparent.png" alt="" width={24} height={24} className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-ink-900">BlockID.au solves this</p>
+                    <p className="text-xs text-brand-600">Works alongside your AI tools</p>
+                  </div>
+                </div>
+                <ul className="space-y-3">
+                  {[
+                    "AI-powered valuation from Day 0 — Startup Value Index",
+                    "Fair equity split calculator for co-founders & team",
+                    "ESOP & vesting management for new members",
+                    "Dilution modeling when investors come in",
+                    "Living report that tracks growth over time",
+                    "Cap table, data room & investor-ready documents",
+                    "Evidence vault — prove progress, raise your score",
+                  ].map((item) => (
+                    <li key={item} className="flex items-start gap-2.5 text-sm text-ink-700">
+                      <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-brand-600" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Complementary message */}
+            <p className="text-center mt-8 text-sm text-ink-500 max-w-xl mx-auto">
+              Keep using ChatGPT, Claude, or Gemini to build your product.
+              Use BlockID to value it, structure ownership, and get investor-ready.
+            </p>
+
+            {/* Bottom CTA */}
+            <div className="text-center mt-8">
+              <a href="#svi" className="inline-flex h-12 items-center gap-2 rounded-xl bg-brand-600 px-8 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
+                Value Your Idea Free <ArrowRight className="h-4 w-4" />
+              </a>
+              <p className="mt-3 text-xs text-ink-500">
+                No signup required. First analysis is free.
+              </p>
+            </div>
           </div>
-          <div className="text-center">
-            <a href="#svi" className="inline-flex h-13 items-center gap-2 rounded-xl bg-white px-8 text-base font-bold text-brand-700 hover:bg-brand-50 transition-colors shadow-lg hover:shadow-xl cta-glow-light">
-              Get Started Free <ArrowRight strokeWidth={2} className="h-4 w-4" />
-            </a>
-            <p className="mt-3 text-xs text-blue-200">Build it right. Build it valuable. Build it with BlockID.au</p>
+        </section>
+
+        {/* ── VIDEO SECTION ──────────────────────────────────────────────── */}
+        <section className="py-16 md:py-20 bg-white">
+          <div className="mx-auto max-w-4xl px-6">
+            <h2 className="text-center text-2xl md:text-3xl font-extrabold tracking-tight text-ink-900 mb-3">
+              See How It Works
+            </h2>
+            <p className="text-center text-base text-ink-500 mb-8 max-w-xl mx-auto">
+              Watch how BlockID helps founders go from idea to investor-ready in minutes.
+            </p>
+            <div className="relative w-full rounded-2xl overflow-hidden shadow-xl border border-surface-200" style={{ paddingBottom: "56.25%" }}>
+              <iframe
+                className="absolute inset-0 w-full h-full"
+                src="https://www.youtube.com/embed/gaDT5svw1dQ?rel=0"
+                title="BlockID.au — How It Works"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        {/* ── 5 VALUE PROPS — Bento Grid ────────────────────────────────────── */}
+        <section className="bg-white py-20 md:py-24">
+          <div className="mx-auto max-w-6xl px-6">
+            {/* Row 1: 2 large cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+              {VALUE_PROPS.slice(0, 2).map(({ icon: Icon, title, desc }, i) => (
+                <div key={title} className={cn("rounded-2xl bg-surface-100 border border-surface-200/60 px-7 py-8 bento-card relative overflow-hidden", i === 0 ? "value-card-accent-blue" : "value-card-accent-emerald")}>
+                  <div className="mb-4 h-14 w-14 rounded-2xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600">
+                    <Icon strokeWidth={1.75} className="h-7 w-7" />
+                  </div>
+                  <p className="text-lg font-extrabold text-ink-900">{title}</p>
+                  <p className="text-sm text-ink-600 mt-2 leading-relaxed max-w-md">{desc}</p>
+                </div>
+              ))}
+            </div>
+            {/* Row 2: 3 smaller cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              {VALUE_PROPS.slice(2).map(({ icon: Icon, title, desc }, i) => {
+                const accents = ["value-card-accent-gold", "value-card-accent-emerald", "value-card-accent-blue"];
+                return (
+                  <div key={title} className={cn("rounded-2xl bg-surface-100 border border-surface-200/60 px-5 py-6 text-center bento-card relative overflow-hidden", accents[i])}>
+                    <div className="mx-auto mb-3 h-12 w-12 rounded-2xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600">
+                      <Icon strokeWidth={1.75} className="h-5 w-5" />
+                    </div>
+                    <p className="text-sm font-bold text-ink-800">{title}</p>
+                    <p className="text-xs text-ink-600 mt-1 leading-relaxed">{desc}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* ── FOUNDER'S ROADMAP — Horizontal Timeline ────────────────────── */}
+        <section className="gradient-section py-20 md:py-24">
+          <div className="mx-auto max-w-6xl px-6">
+            <h2 className="text-center text-3xl md:text-4xl font-extrabold text-ink-900 mb-2">The Smart Founder&apos;s Roadmap</h2>
+            <p className="text-center text-base text-ink-500 mb-10">10 steps from idea to investment — BlockID guides you at every stage.</p>
+            <div className="relative">
+              {/* Scroll arrows (desktop) */}
+              <button type="button" aria-label="Scroll roadmap left" onClick={() => { const el = document.getElementById("roadmap-scroll"); if (el) el.scrollBy({ left: -280, behavior: "smooth" }); }}
+                className="hidden md:flex absolute -left-5 top-1/2 -translate-y-1/2 z-10 h-10 w-10 items-center justify-center rounded-full bg-white border border-surface-300 shadow-md hover:bg-surface-100 transition-colors cursor-pointer">
+                <ChevronLeft className="h-5 w-5 text-ink-700" />
+              </button>
+              <button type="button" aria-label="Scroll roadmap right" onClick={() => { const el = document.getElementById("roadmap-scroll"); if (el) el.scrollBy({ left: 280, behavior: "smooth" }); }}
+                className="hidden md:flex absolute -right-5 top-1/2 -translate-y-1/2 z-10 h-10 w-10 items-center justify-center rounded-full bg-white border border-surface-300 shadow-md hover:bg-surface-100 transition-colors cursor-pointer">
+                <ChevronRight className="h-5 w-5 text-ink-700" />
+              </button>
+              {/* Scrollable container */}
+              <div id="roadmap-scroll" className="roadmap-scroll flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth" role="list">
+                {ROADMAP_STEPS.map(({ num, icon: Icon, title, desc, href }, i) => (
+                  <Link key={num} href={href} role="listitem"
+                    className="group roadmap-card relative flex-shrink-0 w-56 rounded-2xl border border-surface-200/80 bg-white px-5 py-5 bento-card snap-start">
+                    {/* Connecting line */}
+                    {i < ROADMAP_STEPS.length - 1 && (
+                      <div className="hidden md:block absolute top-8 -right-5 w-5 h-0.5 bg-brand-200" aria-hidden="true" />
+                    )}
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="h-8 w-8 rounded-full bg-brand-600 text-white text-xs font-bold flex items-center justify-center shadow-sm">{num}</span>
+                      <Icon strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
+                    </div>
+                    <p className="text-sm font-semibold text-ink-800 group-hover:text-brand-700 transition-colors">{title}</p>
+                    <p className="text-[11px] text-ink-600 mt-1 leading-relaxed">{desc}</p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── PRICING TIERS ────────────────────────────────────────────────── */}
+        <section className="bg-surface-100 py-14">
+          <div className="mx-auto max-w-5xl px-6">
+            {/* Free analysis banner */}
+            <div className="mx-auto max-w-lg mb-10 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-brand-50 px-6 py-4 text-center shadow-sm">
+              <p className="text-base font-bold text-emerald-800 flex items-center justify-center gap-2">
+                <Zap strokeWidth={1.75} className="h-5 w-5 text-emerald-600" /> Your first SVI analysis is completely free.
+              </p>
+              <p className="text-sm text-emerald-700 mt-1">No signup needed. Just describe your idea and go.</p>
+            </div>
+            <h2 className="text-center text-2xl md:text-3xl font-bold text-ink-800 mb-2">Choose Your Starting Point</h2>
+            <p className="text-center text-sm text-ink-600 mb-10">Validate your idea or unlock the full platform — start today.</p>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Card 1: Per-Analysis */}
+              <div className="rounded-2xl border border-surface-200 bg-white px-5 sm:px-8 py-8 text-center shadow-sm flex flex-col relative overflow-hidden">
+                <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-bull px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Pay as you go</div>
+                <p className="text-xs uppercase tracking-[0.15em] text-ink-500 font-medium mb-2">Per-Analysis</p>
+                <h3 className="text-xl font-bold text-ink-800 mb-1">SVI Analysis Report</h3>
+                <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">{`A$${SVI_ANALYSIS_CREDITS.toFixed(2)}`}</p>
+                <p className="text-xs text-emerald-600 font-semibold mb-4">Fractional credits — pay only for what you use</p>
+                <ul className="text-left text-sm text-ink-700 space-y-2 mb-6 mx-auto max-w-xs">
+                  <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 1st analysis free &mdash; no signup needed</li>
+                  <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 10-page AI-powered report</li>
+                  <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Action buttons on recommendations</li>
+                  <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Shareable link</li>
+                </ul>
+                <div className="mt-auto">
+                  <a href="#svi" className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
+                    Try Free &mdash; Then {SVI_ANALYSIS_CREDITS.toFixed(2)} credits/report <ArrowRight strokeWidth={2} className="h-4 w-4" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Card 2: Starter plan — read from plans-v2. Until S31-B
+                  (2026-09-13) this card still sold the "Founding 100 Account,
+                  A$5 lifetime, only 100 spots" promo that closed 2026-09-01. */}
+              {PAYWALL_STARTER && (
+                <div className="rounded-2xl border-2 border-brand-400 bg-white px-5 sm:px-8 py-8 text-center shadow-lg flex flex-col relative overflow-hidden" data-testid="svi-pricing-starter">
+                  <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-brand-600 px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Best Value</div>
+                  <p className="text-xs uppercase tracking-[0.15em] text-brand-600 font-medium mb-2">Founder Plan</p>
+                  <h3 className="text-xl font-bold text-ink-800 mb-1">{PAYWALL_STARTER.name}</h3>
+                  <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">{formatAud(PAYWALL_STARTER.monthly_aud)}<span className="text-base font-semibold text-ink-500">/mo</span></p>
+                  <p className="text-xs text-ink-500 mb-4">
+                    {PAYWALL_STARTER.trial_days > 0 ? `${PAYWALL_STARTER.trial_days}-day free trial · ` : ""}Cancel anytime · GST-inclusive
+                  </p>
+                  <ul className="text-left text-sm text-ink-700 space-y-2 mb-6 mx-auto max-w-xs">
+                    {PAYWALL_STARTER.features.slice(0, 6).map((f) => (
+                      <li key={f} className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> {f}</li>
+                    ))}
+                  </ul>
+                  <div className="mt-auto">
+                    <Link href="/pricing#tier-starter" className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
+                      See the {PAYWALL_STARTER.name} plan <ArrowRight strokeWidth={2} className="h-4 w-4" />
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* ── BOTTOM BENEFITS BAR ───────────────────────────────────────────── */}
+        <section className="gradient-brand text-white py-16 relative overflow-hidden">
+          {/* Subtle aurora overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/5 to-black/10 pointer-events-none" />
+          <div className="mx-auto max-w-6xl px-6 relative">
+            <div className="text-center mb-10">
+              <div className="flex items-center justify-center gap-3 mb-3">
+                <Image src="/images/logo-icon-transparent.png" alt="" width={28} height={28} className="h-7 w-7" />
+                <span className="text-lg font-extrabold tracking-tight text-white">BlockID<span className="text-brand-200">.au</span></span>
+              </div>
+              <p className="text-xl md:text-2xl font-extrabold">Your Idea Is Valuable.</p>
+              <p className="text-sm text-blue-200 mt-1">How you build it determines its future value.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-10">
+              {BOTTOM_BENEFITS.map(({ title, desc }) => (
+                <div key={title} className="glass-card-dark rounded-xl px-4 py-4">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-200 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-semibold text-white">{title}</p>
+                      <p className="text-[10px] text-blue-200 leading-snug">{desc}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="text-center">
+              <a href="#svi" className="inline-flex h-13 items-center gap-2 rounded-xl bg-white px-8 text-base font-bold text-brand-700 hover:bg-brand-50 transition-colors shadow-lg hover:shadow-xl cta-glow-light">
+                Get Started Free <ArrowRight strokeWidth={2} className="h-4 w-4" />
+              </a>
+              <p className="mt-3 text-xs text-blue-200">Build it right. Build it valuable. Build it with BlockID.au</p>
+            </div>
+          </div>
+        </section>
+        </>
+      )}
 
       {chrome && <BottomFooter />}
 
