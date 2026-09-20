@@ -49,7 +49,7 @@ Order on any page that lists audiences: **Investors → Accelerators → Advisor
 | **Trusted Business Report (TBR)** | the A$3 full report, for founders and for evaluators; also what a guest buys on `/one-click-report` | "Trust BizReport", "One-Click Report" as a product name (say "the A$3 Trusted Business Report"), "Business Report" alone |
 | **Investor Dossier** (capitalised) | the evaluator-side report | "investor dossier", "Investor dossier" |
 | **Money Finder** | eligibility match for grants/investors | "Do you need money?" as a nav/footer CTA (it stays as the `/funding` page question only) |
-| **Founder Radar** | deadline watch e-mails | "Money Radar" |
+| **Founder Radar** | deadline-watch e-mails (Starter bundle) | "Money Radar" in public copy (the workspace tile keeps its name) |
 | **Intake link** · **Cohort table** · **Feedback letter** | program tools | — |
 | Tiers | Founder: **Free / Starter / Growth** · Evaluator: **Scout / Firm / Program** · B2B: **Fund / Intake link / Index API** · **Cohort 25 / Cohort 100** | "Angel", "Advisor plan", "VC Small", "Founding 100", "Founding 50" |
 | Reviewers | "the C-suite of AI agents", "a CFO, CLO, CMO, CRO, CTO, CHRO … each with its own domain module, then an auditor" | any agent count ("11 C-Level agents", "17 / 50+ AI agents"), any provider count ("9 AI providers") |
@@ -110,31 +110,27 @@ Short form for footers and PDF covers: `Not financial advice.`
 
 ## 11. Never say (machine-read by `messaging.test.ts`)
 
-Each row is a regular expression (case-sensitive unless `(?i)` is noted) applied to the public source trees after comments are stripped. Rows marked with an allow-list are skipped in those paths.
+`web/src/lib/marketing/messaging.test.ts` parses this table. Column 1 holds one or more regular expressions in backticks (JavaScript syntax, `\|` is a literal pipe inside a table cell; flags after a trailing `/i`). Column 3 lists path prefixes (relative to `web/`) in backticks that are exempt for that row; `—` means none. Comments in `.ts`/`.tsx` are stripped before matching, so a code comment may cite a retired phrase; a string may not.
 
 | Phrase (regex) | Why | Allow-list |
 |---|---|---|
 | `Know your startup's SVI score` | pre-G17 hero | — |
-| `fundraising readiness in 30 seconds` | retired hero | — |
-| `investor-readiness in 30 seconds` | retired hero | — |
+| `readiness in 30 seconds` | retired hero ("fundraising / investor-readiness in 30 seconds") | — |
 | `Get my SVI score` | retired CTA | — |
 | `Get One-Click Report` | retired CTA; the product is the Trusted Business Report | — |
 | `Trust BizReport` | pre-F1 name | — |
-| `Founding 100` | retired offer | `src/app/version/`, `src/app/docs/` (history, lane B) |
-| `Founding 50` | retired offer | `src/app/version/`, `src/app/docs/` |
-| `A\$5\.50` | retired price | — |
-| `\b(50\+\|17\|11) (AI )?(C-Level )?agents` | never state an agent count | — |
+| `Founding 100` `Founding 50` | retired offer | `src/app/version/` `src/app/docs/` |
+| `A\$5\.50` | retired price | `src/app/(marketing)/roadmap/` `src/app/(marketing)/changelog/` |
+| `\b(50\+\|17\|11) (AI[- ])?(C-Level )?(AI )?[Aa]gents` | never state an agent count | `src/app/(marketing)/about/invest/` (lane B facts page — G18-C asked for "a C-suite of AI agents") `src/app/(marketing)/roadmap/` `src/app/(marketing)/changelog/` |
 | `\b\d+ AI providers` | never state a provider count | — |
-| `13 criteria` | rubric depth is not the public term | `src/app/(marketing)/methodology/`, `src/app/(marketing)/docs/`, `src/app/docs/` |
-| `Thirteen criteria` | same | same as above |
-| `13-criteria` | same | same as above |
-| `\bbeta\b` in copy | no beta claims | `src/app/security-audit/`, `src/app/(marketing)/roadmap/`, `src/app/(marketing)/changelog/` (release history, lane B) |
-| `coming soon` | nothing is "coming soon" on a public page | — |
+| `13 criteria` `Thirteen criteria` `13-criteria` | rubric depth is not the public term | `src/app/(marketing)/methodology/` `src/app/(marketing)/docs/` `src/app/docs/` `src/app/(marketing)/about/` `src/app/(marketing)/roadmap/` `src/app/(marketing)/changelog/` `src/components/svi/` `src/lib/pdf/` |
+| `\bbeta access\b` `\bin beta\b` `\bpublic beta\b` | no beta claims | `src/app/(marketing)/roadmap/` `src/app/(marketing)/changelog/` |
+| `coming soon/i` | nothing is "coming soon" on a public page | `src/app/(marketing)/roadmap/` `src/app/(marketing)/changelog/` |
 | `SOC ?2 Type` | no SOC 2 audit exists | — |
-| `Money Radar` | product is Founder Radar | — |
-| `investor dossier` / `Investor dossier` | capitalise the product | — |
-| `startup index` (lower-case, followed by a space) | brand is Startup Value Index | `src/app/startup-index/` route-name references (`/startup-index`) are paths, not copy |
-| `Angel plan` / `Advisor plan` / `VC Small` | tiers are Scout / Firm / Program | — |
+| `[Ii]nvestor dossier` | capitalise the product | — |
+| `Australian startup index` `startup index report` `startup index dataset` | brand is Startup Value Index | — |
+| `Angel plan` `Advisor plan` `VC Small` | tiers are Scout / Firm / Program | — |
 | `\bPhD\b` | founder rule — "doctoral research" | — |
+| `AI-Powered Startup Intelligence` `BlockID Startup Intelligence` | retired brand line | — |
 
-Documented exceptions that are **not** in the table because they are true: "beta users" as an item on a founder's own readiness checklist (`api/fundraise/readiness`), "GitHub or GitLab repository" as advice about the founder's own code (`api/score`), `v2.0.0-beta.N` release identifiers on `/security-audit`, `/roadmap`, `/changelog`.
+Documented exceptions that are **not** in the table because they are true: "beta users" as an item on a founder's own readiness checklist (`api/fundraise/readiness`), "GitHub or GitLab repository" as advice about the founder's own code (`api/score`), `v2.0.0-beta.N` release identifiers on `/security-audit`, `/roadmap`, `/changelog`, "13 criteria" inside the product (dossier, credit gate, PDF body) where it is the rubric depth the evaluator paid for. "Money Radar" remains the in-workspace tile name of the Founder Radar bundle (lib/funding is not a marketing surface); public copy says Founder Radar.
