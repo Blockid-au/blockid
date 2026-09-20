@@ -831,9 +831,21 @@ export async function POST(request: Request) {
       }
     }
 
-    // Always refresh trial state.
+    // Always refresh trial state (status, trial_end, current_period_end,
+    // cancel_at_period_end). G18-D (2026-09-19): the plan id used to come
+    // from STRIPE_PRICE_MAP only, which does not know the v2 ladder rows
+    // billed through `plans.stripe_price_id`, so every update event (the
+    // cancel flag, the setup intent, the trial→active flip) rewrote
+    // `plan_id` to NULL and the trial banner lost its plan name and price.
+    // Fall back to the plan id checkout stamped on the subscription metadata;
+    // when neither resolves, upsertTrialState leaves the column alone.
     if (userId) {
-      const planId = currentPriceId ? planIdFromPrice(currentPriceId) : null;
+      const subMeta = (subscription.metadata ?? {}) as Record<string, string | undefined>;
+      const planId =
+        (currentPriceId ? planIdFromPrice(currentPriceId) : null) ??
+        nonEmpty(subMeta.plan_id) ??
+        nonEmpty(subMeta.blockid_plan) ??
+        null;
       await upsertTrialState(userId, planId, subscription);
     }
 
@@ -1629,21 +1641,21 @@ export async function POST(request: Request) {
     const legacyPeriodEnd = (sub as SubWithLegacyPeriod).current_period_end;
     const currentPeriodEnd = item?.current_period_end ?? legacyPeriodEnd ?? null;
 
-    await supabase.from("subscription_trial_state").upsert(
-      {
-        user_id: userId,
-        plan_id: planId,
-        stripe_customer_id: customerId,
-        stripe_subscription_id: sub.id,
-        trial_start: toIso(sub.trial_start),
-        trial_end: toIso(sub.trial_end),
-        status: sub.status,
-        current_period_end: toIso(currentPeriodEnd),
-        cancel_at_period_end: sub.cancel_at_period_end ?? false,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" },
-    );
+    // G18-D: never clobber a known plan_id with NULL — omit the column when
+    // the caller could not resolve one (the checkout handler seeded it).
+    const row: Record<string, unknown> = {
+      user_id: userId,
+      stripe_customer_id: customerId,
+      stripe_subscription_id: sub.id,
+      trial_start: toIso(sub.trial_start),
+      trial_end: toIso(sub.trial_end),
+      status: sub.status,
+      current_period_end: toIso(currentPeriodEnd),
+      cancel_at_period_end: sub.cancel_at_period_end ?? false,
+      updated_at: new Date().toISOString(),
+    };
+    if (planId) row.plan_id = planId;
+    await supabase.from("subscription_trial_state").upsert(row, { onConflict: "user_id" });
   }
 
   async function recordRevenueEvent(args: {

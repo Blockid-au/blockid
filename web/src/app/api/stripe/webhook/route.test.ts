@@ -113,6 +113,9 @@ vi.mock("@/lib/stripe", () => ({
   STRIPE_PRICE_MAP: {
     founding50: "price_founding50_TEST",
   },
+  // G18-D: the subscription.updated handler reconciles the add-on; none of
+  // the fixtures here carry the Equity add-on price.
+  isShareMgmtAddonPrice: () => false,
 }));
 
 // Signature verification + idempotency claim.
@@ -782,6 +785,84 @@ describe("POST /api/stripe/webhook — customer.subscription.deleted during tria
       expect(markWebhookEventProcessed).toHaveBeenCalledWith(`evt_sub_deleted_${status}`, undefined);
     });
   }
+});
+
+// ---------------------------------------------------------------------------
+// G18-D — customer.subscription.updated / .deleted parity with the UI
+// ---------------------------------------------------------------------------
+// The billing page + trial banner read subscription_trial_state. A cancel
+// scheduled from the UI or the portal arrives as .updated with
+// cancel_at_period_end=true: the mirror must carry the flag, the plan must
+// NOT drop to free yet (that happens on .deleted at the period end), and
+// the plan_id must survive (v2 ladder prices are not in STRIPE_PRICE_MAP).
+// ---------------------------------------------------------------------------
+
+describe("POST /api/stripe/webhook — customer.subscription.updated (G18-D cancel parity)", () => {
+  function buildUpdatedEvent(overrides: Record<string, unknown> = {}, previous: Record<string, unknown> = {}): Stripe.Event {
+    return {
+      id: `evt_sub_updated_${Math.random().toString(36).slice(2, 8)}`,
+      type: "customer.subscription.updated",
+      data: {
+        object: {
+          id: "sub_live_1",
+          object: "subscription",
+          customer: "cus_live_1",
+          status: "active",
+          trial_start: null,
+          trial_end: null,
+          cancel_at_period_end: true,
+          metadata: { plan_id: "investor_angel", user_id: "user-live-1" },
+          items: { data: [{ id: "si_1", price: { id: "price_unmapped_v2", recurring: { interval: "month" } }, current_period_end: 1_800_000_000 }] },
+          ...overrides,
+        },
+        previous_attributes: { cancel_at_period_end: false, ...previous },
+      },
+    } as unknown as Stripe.Event;
+  }
+
+  it("cancel_at_period_end=true → mirror carries the flag + period end + the metadata plan_id; app_users.plan untouched", async () => {
+    selectResponses.set("app_users:select", { data: { id: "user-live-1" }, error: null });
+    verifyWebhookSignature.mockReturnValue(buildUpdatedEvent());
+
+    const res = await invoke();
+    expect(res.status).toBe(200);
+
+    const mirror = upsertCalls.find((c) => c.table === "subscription_trial_state");
+    expect(mirror?.row).toMatchObject({
+      user_id: "user-live-1",
+      stripe_subscription_id: "sub_live_1",
+      status: "active",
+      cancel_at_period_end: true,
+      current_period_end: new Date(1_800_000_000 * 1000).toISOString(),
+      plan_id: "investor_angel",
+    });
+    expect(updateCalls.find((c) => c.table === "app_users")).toBeUndefined();
+  });
+
+  it("an unmapped price with no metadata plan leaves plan_id alone (no NULL clobber)", async () => {
+    selectResponses.set("app_users:select", { data: { id: "user-live-1" }, error: null });
+    verifyWebhookSignature.mockReturnValue(buildUpdatedEvent({ metadata: {} }));
+    await invoke();
+    const mirror = upsertCalls.find((c) => c.table === "subscription_trial_state");
+    expect(mirror).toBeTruthy();
+    expect("plan_id" in (mirror!.row as Row)).toBe(false);
+  });
+
+  it("resume (cancel_at_period_end back to false) mirrors false", async () => {
+    selectResponses.set("app_users:select", { data: { id: "user-live-1" }, error: null });
+    verifyWebhookSignature.mockReturnValue(buildUpdatedEvent({ cancel_at_period_end: false }, { cancel_at_period_end: true }));
+    await invoke();
+    const mirror = upsertCalls.find((c) => c.table === "subscription_trial_state");
+    expect(mirror?.row).toMatchObject({ cancel_at_period_end: false });
+  });
+
+  it("a trialing sub scheduled to cancel keeps status=trialing + trial_end in the mirror (portal cancel during trial)", async () => {
+    selectResponses.set("app_users:select", { data: { id: "user-live-1" }, error: null });
+    verifyWebhookSignature.mockReturnValue(buildUpdatedEvent({ status: "trialing", trial_start: 1_789_000_000, trial_end: 1_789_604_800 }));
+    await invoke();
+    const mirror = upsertCalls.find((c) => c.table === "subscription_trial_state");
+    expect(mirror?.row).toMatchObject({ status: "trialing", cancel_at_period_end: true, trial_end: new Date(1_789_604_800 * 1000).toISOString() });
+  });
 });
 
 // ---------------------------------------------------------------------------
