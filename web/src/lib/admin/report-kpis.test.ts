@@ -58,6 +58,17 @@ describe("loadReportKpis", () => {
     const broken: ReportKpiDb = { from: () => ({ select: () => ({ gte: () => ({ not: () => ({ order: () => ({ limit: async () => ({ data: null, error: { message: "column report_v2 does not exist" } }) }) }) }) }) }) };
     expect((await loadReportKpis(broken, { now: () => NOW, readSpend: () => null })).reportsTotal).toBe(0);
     expect((await loadReportKpis(null, { now: () => NOW, readSpend: () => null })).cogsMedianAud).toBeNull();
+  });
+
+  // G19-S46: the admin tile reads the same tbr-quality.jsonl summary /api/status.tbr_quality publishes.
+  it("carries the pipeline telemetry summary from the injected reader and null when it fails", async () => {
+    setComparablesForTests([]);
+    const pipeline = { last24h: { runs: 3, groundedShareMedian: 0.91, costUsdMedian: 0.012, degradedShare: 0 }, status: "ok" as const };
+    const k = await loadReportKpis(null, { now: () => NOW, readSpend: () => null, readQuality: async () => pipeline });
+    expect(k.pipeline).toEqual(pipeline);
+    const failed = await loadReportKpis(null, { now: () => NOW, readSpend: () => null, readQuality: async () => { throw new Error("EACCES"); } });
+    expect(failed.pipeline).toBeNull();
+    expect(computeReportKpis({ snapshots: [], spend: null, comparables: { n: 0, withMultiplesN: 0, source: "static", copy: "" }, now: NOW }).pipeline).toBeNull();
     setComparablesForTests(null);
   });
 

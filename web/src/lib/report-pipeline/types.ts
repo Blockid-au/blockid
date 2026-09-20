@@ -268,6 +268,18 @@ export interface AssembledReport {
   fullyDegraded?: boolean;
   /** LLM calls consumed (hard-stopped at the tier max). */
   llmCalls?: number;
+  /** G19-S46: the orchestrator's `done` event as run-for-project captured it (quality telemetry). */
+  pipelineStats?: PipelineRunStats;
+}
+
+/** G19-S46: what one pipeline run cost — copied from the orchestrator's `done` event. */
+export interface PipelineRunStats {
+  calls: number;
+  costUsd: number;
+  costAud: number;
+  durationMs: number;
+  degradedSections: string[];
+  deadlineHit: boolean;
 }
 
 export interface ReportSection {

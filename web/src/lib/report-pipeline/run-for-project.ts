@@ -35,7 +35,7 @@ import { nanoid } from "nanoid";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI } from "@/lib/ai-client";
 import { newSlug } from "@/lib/slug";
-import { assertReportUsable, orchestrateReport, type AICallerResult, type PipelineEventHandler } from "@/lib/report-pipeline/orchestrator";
+import { assertReportUsable, orchestrateReport, type AICallerResult, type PipelineEvent, type PipelineEventHandler } from "@/lib/report-pipeline/orchestrator";
 import type { ReportTierV2, ReportV2 } from "@/lib/report-v2/schema";
 import type { AssembledReport, ReportTier, CriterionData, ReportSection } from "@/lib/report-pipeline/types";
 import { CRITERIA, CRITERION_KEYS, type CriterionKey } from "@/lib/evaluation-criteria";
@@ -54,6 +54,8 @@ import { effectiveConfidenceLevel } from "@/lib/svi/rescore-from-evidence";
 import { applyFounderExecution } from "@/lib/founder/execution-load";
 import { loadDimensionEvidenceRows, type GatherDb } from "@/lib/report-pipeline/gather";
 import { hubRowsToEvidenceItems } from "@/lib/evidence/hub-rows";
+import { buildTbrQualityRow, formatTbrQualityLine, recordTbrQuality, type TbrQualityRow, type TbrQualityWriter } from "@/lib/report-pipeline/quality-log";
+import { PIPELINE_VERSION } from "@/lib/report-pipeline/version";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -114,6 +116,15 @@ export interface GenerateReportInput {
   tierV2?: ReportTierV2;
   /** §C.12 SSE hook forwarded to the orchestrator. */
   onEvent?: PipelineEventHandler;
+  /**
+   * G19-S46 quality telemetry: `"record"` (default) appends the
+   * tbr-quality.jsonl row here (no snapshot id — the founder route writes
+   * none); `"defer"` leaves it to the caller, which knows the snapshot id
+   * (runTrustReportForProject). The stats are attached to the report either way.
+   */
+  qualityLog?: "record" | "defer";
+  /** Test seam for the telemetry writer. */
+  qualityWriter?: TbrQualityWriter;
 }
 
 export interface TrustReportRunResult {
@@ -123,6 +134,8 @@ export interface TrustReportRunResult {
   shareToken: string | null;
   /** S-R4: the ReportV2 persisted for this run (null when no snapshot row could be written). */
   reportV2: ReportV2 | null;
+  /** G19-S46: the tbr-quality.jsonl row written for this run. */
+  quality: TbrQualityRow;
   svi: number;
   stage: number;
   wordCount: number;
@@ -369,13 +382,53 @@ export async function loadProjectReportContext(args: {
   };
 }
 
+/** G19-S46: the tbr-quality.jsonl row for a finished run (pure; exported for tests). */
+export function qualityRowFor(
+  report: Pick<AssembledReport, "reportV2" | "totalWords" | "consistencyIssues" | "llmCalls" | "pipelineStats">,
+  ctx: Pick<ProjectReportContext, "projectId" | "sviAnalysis">,
+  tier: string,
+  snapshotId: string | null,
+  reportV2: ReportV2 | null = report.reportV2 ?? null,
+  now: Date = new Date(),
+): TbrQualityRow {
+  const row = buildTbrQualityRow({
+    projectId: ctx.projectId,
+    snapshotId,
+    tier,
+    report: reportV2,
+    calls: report.pipelineStats?.calls ?? report.llmCalls ?? 0,
+    costUsd: report.pipelineStats?.costUsd ?? 0,
+    durationMs: report.pipelineStats?.durationMs ?? 0,
+    words: report.totalWords,
+    consistencyIssues: report.consistencyIssues.length,
+    sviVersion: ctx.sviAnalysis.version,
+    pipelineVersion: reportV2?.pipelineVersion ?? PIPELINE_VERSION,
+    now,
+  });
+  try {
+    console.info(formatTbrQualityLine(row));
+  } catch {
+    /* never throw */
+  }
+  return row;
+}
+
 // ---------------------------------------------------------------------------
 // Step 2 — orchestrate + persist (throws on pipeline failure)
 // ---------------------------------------------------------------------------
 
 export async function generateAndPersistReport(input: GenerateReportInput): Promise<AssembledReport> {
-  const { ctx, userId, tier, locale, creditsCost, tierV2, onEvent } = input;
+  const { ctx, userId, tier, locale, creditsCost, tierV2 } = input;
   const supabase = getSupabaseAdmin();
+
+  // G19-S46: capture the orchestrator's `done` event (calls, real cost,
+  // wall-clock) for the quality row; the caller's SSE hook still sees every event.
+  const t0 = Date.now();
+  let done: Extract<PipelineEvent, { type: "done" }> | null = null;
+  const onEvent: PipelineEventHandler = (event) => {
+    if (event.type === "done") done = event;
+    input.onEvent?.(event);
+  };
 
   // agentId scoped to this account+project → each report gets its own
   // per-agent semaphore slot (see agent-dispatcher) so concurrent reports
@@ -422,6 +475,18 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
     // Throws into the catch below → failed-status row, and the evaluator
     // route's refund path (a throw after a credit spend refunds it).
     assertReportUsable(report);
+    const stats = done as Extract<PipelineEvent, { type: "done" }> | null;
+    report.pipelineStats = {
+      calls: stats?.calls ?? report.llmCalls ?? 0,
+      costUsd: stats?.costUsd ?? 0,
+      costAud: stats?.costAud ?? 0,
+      durationMs: stats?.totalMs ?? Date.now() - t0,
+      degradedSections: stats?.degradedSections ?? report.reportV2?.quality.degradedSections ?? [],
+      deadlineHit: stats?.deadlineHit ?? false,
+    };
+    if ((input.qualityLog ?? "record") === "record") {
+      recordTbrQuality(qualityRowFor(report, ctx, tier, null), input.qualityWriter);
+    }
 
     if (supabase) {
       const { error: reportInsertErr } = await supabase.from("assembled_reports").insert({
@@ -739,6 +804,8 @@ export async function runTrustReportForProject(args: {
   locale?: "en" | "vi";
   /** Written to assembled_reports.credits_cost. */
   creditsCost?: number;
+  /** G19-S46: test seam for the tbr-quality.jsonl writer. */
+  qualityWriter?: TbrQualityWriter;
 }): Promise<TrustReportRunResult> {
   const tier: ReportTier = args.tier ?? "standard";
   const locale = args.locale ?? "en";
@@ -787,6 +854,8 @@ export async function runTrustReportForProject(args: {
     tier,
     locale,
     creditsCost: args.creditsCost ?? 0,
+    qualityLog: "defer",
+    qualityWriter: args.qualityWriter,
   });
 
   const shapes = projectReportToSnapshotShapes(report, ctx.sviAnalysis);
@@ -846,12 +915,16 @@ export async function runTrustReportForProject(args: {
     }
   }
 
+  // G19-S46: one quality row per run, now that the snapshot id is known.
+  const quality = recordTbrQuality(qualityRowFor(report, ctx, tier, snapshotId, reportV2 ?? report.reportV2 ?? null), args.qualityWriter);
+
   return {
     kind: "full",
     reportId: report.id,
     snapshotId,
     shareToken,
     reportV2,
+    quality,
     svi: sviTotal,
     stage: ctx.sviAnalysis.stage,
     wordCount: report.totalWords,
@@ -882,6 +955,12 @@ function loadEvidenceItems(rows: Row[]): EvidenceItem[] {
 export async function runRescoreForProject(args: {
   projectId: string;
   requestedByUserId: string;
+  /**
+   * G19-S46: replaces the stored `raw_input` for this re-score (the
+   * self-report seed writes BlockID's own description before the report
+   * run). Persisted on the new svi_analyses row like any founder input.
+   */
+  rawInput?: string;
 }): Promise<RescoreRunResult> {
   const project = await getProjectById(args.projectId);
   if (!project) throw new Error("project_not_found");
@@ -896,7 +975,7 @@ export async function runRescoreForProject(args: {
     "id, raw_input, total_svi, analysis_json",
   )) as ProjectReportAnalysis | null;
 
-  let rawInput = latest?.raw_input ? String(latest.raw_input) : "";
+  let rawInput = args.rawInput?.trim() ? args.rawInput.trim() : latest?.raw_input ? String(latest.raw_input) : "";
   if (!rawInput.trim()) {
     const intake = await loadEvaluationIntake(project.id);
     rawInput = synthesiseRawInput({

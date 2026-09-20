@@ -53,6 +53,15 @@ function ReportKpiTile({ k }: { k: ReportKpis }) {
     // G19-S45 (D6): report-clarity survey — median 0–10, N and the share ≥ 8 over 30 days.
     { label: "Report clarity (30 d)", value: k.clarity?.median === null || k.clarity?.median === undefined ? "—" : `${k.clarity.median.toFixed(1)} / 10`, sub: k.clarity?.n ? `n=${k.clarity.n} · ${pct(k.clarity.shareAtLeast8)} scored ≥ 8${k.clarity.onTarget ? " · on target" : ""}` : "no survey answers yet" },
     { label: "AU comparables", value: String(k.comparablesN), sub: `${k.comparablesWithMultiplesN} with multiples · ${k.comparablesSource === "table" ? "verified table" : "static fallback"}` },
+    // G19-S46: per-run pipeline telemetry (tbr-quality.jsonl, last 24 h) — the /api/status.tbr_quality twin.
+    {
+      label: "Pipeline (24 h)",
+      value: k.pipeline && k.pipeline.status !== "missing" ? `${k.pipeline.last24h.runs} run${k.pipeline.last24h.runs === 1 ? "" : "s"} · ${k.pipeline.status}` : "—",
+      sub:
+        k.pipeline && k.pipeline.status !== "missing"
+          ? `grounded ${pct(k.pipeline.last24h.groundedShareMedian)} · US$${(k.pipeline.last24h.costUsdMedian ?? 0).toFixed(3)} / report · ${pct(k.pipeline.last24h.degradedShare)} degraded`
+          : "no pipeline run logged in 24 h",
+    },
   ];
   return (
     <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm" data-testid="report-kpis">
@@ -62,7 +71,7 @@ function ReportKpiTile({ k }: { k: ReportKpis }) {
           Review comparables
         </Link>
       </div>
-      <div className="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="mt-4 grid grid-cols-2 lg:grid-cols-3 gap-4">
         {cells.map((c) => (
           <div key={c.label}>
             <p className="text-xs text-ink-700">{c.label}</p>
@@ -71,7 +80,7 @@ function ReportKpiTile({ k }: { k: ReportKpis }) {
           </div>
         ))}
       </div>
-      <p className="mt-3 text-xs text-ink-600">{k.comparablesCopy}. Targets: COGS ≤ A$0.60 standard, grounded median ≥ 0.85, clarity median ≥ 8.5 with N ≥ 30.</p>
+      <p className="mt-3 text-xs text-ink-600">{k.comparablesCopy}. Targets: COGS ≤ A$0.60 standard, grounded median ≥ 0.85, clarity median ≥ 8.5 with N ≥ 30, pipeline watch when grounded &lt; 0.85 or &gt; 20 % of runs degraded.</p>
     </div>
   );
 }
