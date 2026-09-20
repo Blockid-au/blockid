@@ -398,6 +398,10 @@ function parseConfidence(text: string): number | null {
   return null;
 }
 
+function stripInsightLabel(s: string): string {
+  return s.replace(/^key insight\s*[:：—–-]?\s*/i, "");
+}
+
 function sentenceCase(s: string): string {
   const t = s.trim();
   return t ? t[0].toUpperCase() + t.slice(1) : t;
@@ -421,7 +425,6 @@ export function structureExecutive(
   const L = s47(locale);
   const bandLabels = getTbrStrings(locale).v2.band;
   const { h1, sections } = sectionise(tokenise(thesis ?? ""));
-  const intro = sections[0];
   const find = (kind: SectionKind) => sections.filter((sct) => sct.kind === kind);
   const startupName = opts.cover?.startupName?.trim() || chapters[0]?.title.split(" ")[0] || "Startup";
   const svi = opts.cover?.svi;
@@ -433,7 +436,7 @@ export function structureExecutive(
 
   // Summary paragraphs: intro prose (never the quote / items), ≤ 60 words each, ≤ 3.
   const summary: string[] = [];
-  const introParas = [...intro.blocks.filter((b) => b.kind === "para"), ...find("other").flatMap((sct) => sct.blocks.filter((b) => b.kind === "para"))];
+  const introParas = sections.filter((sct) => sct.kind === "intro" || sct.kind === "other").flatMap((sct) => sct.blocks.filter((b) => b.kind === "para"));
   for (const b of introParas) {
     const text = clean(b.text);
     if (!text || SCORE_RESTATEMENT.test(text) && wordCount(text) < 12) continue;
@@ -455,8 +458,8 @@ export function structureExecutive(
   }
 
   // Key insight.
-  const quote = [...intro.blocks, ...sections.flatMap((sct) => sct.blocks)].find((b) => b.kind === "quote");
-  const keyInsight = quote ? capSentences(clean(quote.text).replace(/^key insight\s*[:：—–-]?\s*/i, ""), 90) : undefined;
+  const quote = sections.flatMap((sct) => sct.blocks).find((b) => b.kind === "quote");
+  const keyInsight = quote ? capSentences(stripInsightLabel(clean(quote.text)), 90) : undefined;
 
   // Reasons / gaps.
   const usedReason = new Set<DimKey>();
@@ -586,7 +589,7 @@ export function finaliseExecutiveStructured(draft: Partial<ExecutiveStructured>,
     .slice(0, EXECUTIVE_CAPS.summaryParagraphs);
   if (!summary.length) summary.push(L.phaseParagraph(phaseLabelFor(ctx.phase.currentPhase, ctx.locale), Math.round(ctx.phase.completionPct), ctx.phase.nextPhase ? phaseLabelFor(ctx.phase.nextPhase, ctx.locale) : null));
 
-  const keyInsight = draft.keyInsight ? capSentences(clean(draft.keyInsight), 90) : "";
+  const keyInsight = draft.keyInsight ? capSentences(stripInsightLabel(clean(draft.keyInsight)), 90) : "";
 
   const usedReason = new Set<DimKey>();
   const reasons: ExecutiveReason[] = (Array.isArray(draft.reasonsToBack) ? draft.reasonsToBack : [])

@@ -117,15 +117,15 @@ export function stripMarkdown(text: string): string {
   return text
     .replace(/<!--[\s\S]*?-->/g, " ")
     .replace(/```[a-z]*\n?/gi, " ")
-    .replace(/^\s{0,3}#{1,6}\s+/gm, "")
-    .replace(/^\s{0,3}>\s?/gm, "")
-    .replace(/^\s*(?:[-*+•]|\d{1,2}[.)])\s+/gm, "")
     .replace(/\*\*(.+?)\*\*/g, "$1")
     .replace(/__(.+?)__/g, "$1")
     .replace(/(^|[^*\w])\*(?!\s)([^*\n]+?)\*(?!\w)/g, "$1$2")
     .replace(/(^|[^_\w])_(?!\s)([^_\n]+?)_(?!\w)/g, "$1$2")
     .replace(/`([^`]+)`/g, "$1")
     .replace(/\*\*/g, "")
+    .replace(/^[ \t]{0,3}#{1,6}[ \t]+/gm, "")
+    .replace(/^[ \t]{0,3}>[ \t]?/gm, "")
+    .replace(/^[ \t]*(?:[-*+•]|\d{1,2}[.)])[ \t]+/gm, "")
     .replace(/[ \t]+/g, " ")
     .replace(/ *\n */g, "\n")
     .trim();
