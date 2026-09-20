@@ -95,13 +95,13 @@ const DISPOSITIONS = {
     kind: "deliver",
     httpStatus: 200,
     reason: "ready",
-    message: "Your Trust Business Report is ready.",
+    message: "Your Trusted Business Report is ready.",
   },
   SHARED: {
     kind: "deliver",
     httpStatus: 200,
     reason: "ready",
-    message: "Your Trust Business Report is ready.",
+    message: "Your Trusted Business Report is ready.",
   },
   PAID: {
     kind: "pending",
