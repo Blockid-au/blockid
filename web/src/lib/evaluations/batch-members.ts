@@ -175,9 +175,11 @@ export async function addBatchMember(input: {
   if (!email) return { ok: false, error: "invalid_email", message: "Enter a valid e-mail address" };
   if (email === input.inviter.email.toLowerCase()) return { ok: false, error: "self", message: "You already own this cohort" };
 
-  const { data: userRow, error: userErr } = await supabase.from("app_users").select("id, email, display_name").ilike("email", email).maybeSingle();
+  // ilike for case-insensitivity; % _ \ are escaped so "a_b@x.au" cannot match "aXb@x.au".
+  const pattern = email.replace(/[\\%_]/g, (c) => `\\${c}`);
+  const { data: userRow, error: userErr } = await supabase.from("app_users").select("id, email, display_name").ilike("email", pattern).limit(1).maybeSingle();
   if (userErr) return { ok: false, error: "db_error", message: userErr.message ?? "Lookup failed" };
-  if (!userRow) return { ok: false, error: "unknown_email", message: "No BlockID account with that e-mail yet — ask them to sign up at /signup first, then invite again." };
+  if (!userRow || String((userRow as Row).email ?? "").toLowerCase() !== email) return { ok: false, error: "unknown_email", message: "No BlockID account with that e-mail yet — ask them to sign up at /signup first, then invite again." };
   const target = userRow as Row;
   const userId = String(target.id);
   if (userId === input.batch.userId) return { ok: false, error: "self", message: "That account already owns this cohort" };

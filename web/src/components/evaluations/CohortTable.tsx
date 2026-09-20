@@ -128,7 +128,14 @@ export function CohortTable({ rows, batchId, role, weightsVersion = 1, loading =
     (next: Filters) => {
       setFilters(next);
       const qs = cohortFiltersToParams(next).toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      const url = qs ? `${pathname}?${qs}` : pathname;
+      // Shallow: Next syncs useSearchParams from history.replaceState without a server round-trip
+      // (the rows are already on the client); fall back to the router when history is unavailable.
+      try {
+        window.history.replaceState(window.history.state, "", url);
+      } catch {
+        router.replace(url, { scroll: false });
+      }
     },
     [router, pathname],
   );
