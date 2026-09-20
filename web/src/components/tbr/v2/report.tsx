@@ -6,7 +6,7 @@
 // The 8 dimension chapters each carry exactly one primary `svg[role=img]`
 // wrapped in `[data-tbr-primary=<dim>]` — the S-R1 exit check.
 
-import type { TbrStrings } from "@/lib/i18n/tbr-strings";
+import type { TbrLocale, TbrStrings } from "@/lib/i18n/tbr-strings";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import { TbrActionPlan } from "./action-plan";
 import { TbrAppendix } from "./appendix";
@@ -16,12 +16,12 @@ import { TbrExecutive } from "./executive";
 import { TbrMoney } from "./money";
 import { TbrPhaseGates } from "./phase-gates";
 import { TbrValuation } from "./valuation";
-import { TBR_V2_SECTION_IDS } from "./shared";
-import { TbrUnlockRail, type TbrUnlockMode } from "./unlock-rail";
+import { TBR_V2_SECTION_IDS, type TbrUiLocale } from "./shared";
+import { TbrUnlockRail, type TbrUnlockMode, type TbrUnlockOrderStatus } from "./unlock-rail";
 import { Fragment } from "react";
 
 export { TBR_V2_SECTION_IDS };
-export type { TbrUnlockMode };
+export type { TbrUnlockMode, TbrUnlockOrderStatus, TbrUiLocale };
 
 /**
  * G16-B — how the reader relates to the paid report. Given only by the
@@ -34,6 +34,8 @@ export interface TbrUnlockProps {
   onUnlock?: () => void;
   /** purchased: the paid `report_orders` row to open. */
   orderId?: string | null;
+  /** purchased (G19-S45): pending = still being written, legacy = pre-v2 markdown order, ready = default. */
+  orderStatus?: TbrUnlockOrderStatus;
   /** included: where the plan-included report generates. */
   generateHref?: string;
 }
@@ -53,10 +55,13 @@ const EN: TbrReportV2Strings = {
 export interface TbrReportV2Props {
   report: ReportV2;
   strings?: Partial<TbrReportV2Strings>;
-  locale?: "en" | "vi";
+  /** G19-S45: the UI locale the shell offers (EN / VI / ES / JA); chapter titles use titleVi for VI, English otherwise. */
+  locale?: TbrLocale;
   upgradeHref?: string;
   /** Slot rendered after the 8 chapters (e.g. the live Action Plan widget). */
   afterChapters?: React.ReactNode;
+  /** G19-S45 (D6): slot rendered right after the Executive summary (the clarity survey on paid + share views). */
+  afterExecutive?: React.ReactNode;
   /**
    * G16-B: on a FREE document, `mode: "buy"` turns every card chapter into a
    * locked preview and renders ONE unlock rail after the first of them;
@@ -66,13 +71,13 @@ export interface TbrReportV2Props {
   unlock?: TbrUnlockProps | null;
 }
 
-export function TbrReportV2({ report, strings, locale = "en", upgradeHref, afterChapters, unlock }: TbrReportV2Props) {
+export function TbrReportV2({ report, strings, locale = "en", upgradeHref, afterChapters, afterExecutive, unlock }: TbrReportV2Props) {
   const t = { ...EN, ...strings };
   const free = report.tier === "free";
   const lockCards = free && unlock?.mode === "buy";
   const forceFull = free && Boolean(unlock) && unlock?.mode !== "buy";
   const railFor = (mode: TbrUnlockMode) => (
-    <TbrUnlockRail mode={mode} chapterCount={report.dimensions.length} onUnlock={unlock?.onUnlock} orderId={unlock?.orderId} generateHref={unlock?.generateHref} />
+    <TbrUnlockRail mode={mode} chapterCount={report.dimensions.length} onUnlock={unlock?.onUnlock} orderId={unlock?.orderId} orderStatus={unlock?.orderStatus} generateHref={unlock?.generateHref} locale={locale} />
   );
   // The rail goes right after the FIRST locked chapter; when nothing is
   // locked (included / purchased / no card chapter) it follows the last one.
@@ -82,6 +87,7 @@ export function TbrReportV2({ report, strings, locale = "en", upgradeHref, after
     <div className="space-y-12" data-tbr-version={report.schemaVersion} data-tbr-tier={report.tier} data-tbr-source={report.source} data-tbr-unlock={free && unlock ? unlock.mode : undefined}>
       <TbrCover report={report} title={t.secCover} locale={locale} />
       <TbrExecutive report={report} title={t.secExecutive} locale={locale} />
+      {afterExecutive}
       {report.dimensions.map((ch, i) => (
         <Fragment key={ch.dim}>
           <TbrChapter chapter={ch} index={i + 2} locale={locale} verificationLevel={report.cover.verification?.level ?? null} upgradeHref={upgradeHref} locked={Boolean(lockCards) && ch.renderAs === "card"} forceFull={forceFull} />
@@ -91,15 +97,15 @@ export function TbrReportV2({ report, strings, locale = "en", upgradeHref, after
       {afterChapters}
       <TbrValuation report={report} title={t.secValuation} locale={locale} />
       <TbrPhaseGates report={report} title={t.secPhaseGates} locale={locale} />
-      <TbrMoney report={report} title={t.secMoney} />
-      <TbrActionPlan report={report} title={t.secActionPlan} />
-      <TbrAppendix report={report} title={t.secAppendix} />
+      <TbrMoney report={report} title={t.secMoney} locale={locale} />
+      <TbrActionPlan report={report} title={t.secActionPlan} locale={locale} />
+      <TbrAppendix report={report} title={t.secAppendix} locale={locale} />
     </div>
   );
 }
 
 /** TOC entries in render order (ids match the sections above). */
-export function tbrV2Toc(report: ReportV2, strings?: Partial<TbrReportV2Strings>, locale: "en" | "vi" = "en"): Array<{ id: string; label: string }> {
+export function tbrV2Toc(report: ReportV2, strings?: Partial<TbrReportV2Strings>, locale: TbrLocale = "en"): Array<{ id: string; label: string }> {
   const t = { ...EN, ...strings };
   return [
     { id: TBR_V2_SECTION_IDS.cover, label: t.secCover },

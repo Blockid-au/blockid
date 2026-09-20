@@ -295,7 +295,8 @@ export interface ReportV2 {
   projectId: string;
   accountId: string;
   tier: ReportTierV2;
-  locale: "en" | "vi";
+  /** G19-S45: widened to every locale the UI offers (a stored document keeps its generation locale). */
+  locale: "en" | "vi" | "es" | "ja";
   generatedAt: string;
   promptVersionIds: Partial<Record<AgentRole, string>>;
   pipelineVersion: string;
@@ -623,7 +624,7 @@ export const reportV2Schema = z.object({
   projectId: z.string(),
   accountId: z.string(),
   tier: z.enum(["free", "standard", "premium", "investor_memo"]),
-  locale: z.enum(["en", "vi"]),
+  locale: z.enum(["en", "vi", "es", "ja"]),
   generatedAt: z.string(),
   promptVersionIds: z.record(z.string(), z.string()),
   pipelineVersion: z.string(),

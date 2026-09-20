@@ -8,7 +8,7 @@ import { fromSnapshot } from "@/lib/report-v2/adapter";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { demoReportV2, demoSnapshotInput, freeFixtureReportV2, preRevenueFixtureReportV2 } from "@/lib/report-v2/fixtures";
-import { TBR_VALUATION_STRINGS } from "@/lib/i18n/tbr-strings";
+import { TBR_STRINGS, TBR_VALUATION_STRINGS } from "@/lib/i18n/tbr-strings";
 import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
 import { reportOrderPath } from "@/lib/paywall/report-delivery";
 import { TBR_V2_SECTION_IDS, TbrReportV2, tbrV2Toc } from "./report";
@@ -141,6 +141,98 @@ describe("<TbrReportV2>", () => {
   it("Vietnamese locale uses titleVi for chapters", () => {
     const html = renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} locale="vi" />);
     expect(html).toContain("Bằng chứng tăng trưởng &amp; doanh thu");
+  });
+
+  // G19-S45 — i18n parity: no English chrome on the VI render, diacritics present.
+  it("VI render carries no English chrome (every hard-coded label went through tbr-strings) and has diacritics", () => {
+    const report = demoReportV2();
+    report.dimensions[0]!.audit = { ...report.dimensions[0]!.audit, uncited: 2, revised: true };
+    // SVG visuals (+ their sr-only tables) are report DATA built server-side in the report's own locale, not chrome — strip them.
+    const html = renderToStaticMarkup(<TbrReportV2 report={report} locale="vi" strings={TBR_STRINGS.vi} />)
+      .replace(/<svg[\s\S]*?<\/svg>/g, "")
+      .replace(/<table class="sr-only">[\s\S]*?<\/table>/g, "");
+    // The old hard-coded labels (02-audit-ux.md §i18n) — none may survive on a VI page.
+    const OLD_EN_CHROME = [
+      ">Strong<",
+      ">Developing<",
+      ">Early<",
+      ">Pending<",
+      "· real data",
+      "· benchmark only",
+      "· target, not actual",
+      "Auditor:",
+      "not yet audited",
+      "uncited",
+      "· weight ",
+      "· owner<",
+      "Stage p25",
+      ">Evidence<",
+      "No evidence rows",
+      ">Strengths<",
+      ">Gaps<",
+      "Next action (",
+      "expected lift +",
+      "Top strengths",
+      "Top gaps",
+      "Phase now:",
+      "No blockers on the current gate",
+      "vs last snapshot",
+      "Phase: ",
+      "demo data",
+      ">Dimension<",
+      ">Owner<",
+      ">Score<",
+      ">Pctl<",
+      "Current phase:",
+      "Required criteria for",
+      "✓ met",
+      "✗ not met",
+      " matched · total ",
+      ">grant<",
+      ">program<",
+      ">fit ",
+      " steps · ",
+      ">Day 0–30<",
+      ">quality ",
+      ">Method<",
+      "Evidence register",
+      "Data principle",
+      ">Sources<",
+      "AU comparables:",
+      "Auditor log",
+      "Unlock the full ",
+      "Cover — Where / Worth / Next",
+      "Executive Summary",
+      "90-Day Action Plan",
+      "Money on the Table",
+      "Phase Gates —",
+      "Appendix —",
+    ];
+    for (const en of OLD_EN_CHROME) expect(html, en).not.toContain(en);
+    const vi = TBR_STRINGS.vi.v2;
+    for (const s of [vi.chapter.evidence, vi.chapter.strengths, vi.executive.topStrengths, vi.appendix.method, vi.appendix.dataPrinciple, vi.phaseGates.met, vi.cover.thDimension, vi.audit.auditor, TBR_STRINGS.vi.secExecutive, TBR_STRINGS.vi.secAppendix.replace("&", "&amp;")]) {
+      expect(html, s).toContain(s);
+    }
+    // Diacritics all over the chrome, not just the chapter titles.
+    expect((html.match(/[ăâêôơưđạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/g) ?? []).length).toBeGreaterThan(200);
+  });
+
+  it("ES / JA locales render (English ReportV2 labels + their own shell strings) without throwing", () => {
+    for (const locale of ["es", "ja"] as const) {
+      const html = renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} locale={locale} strings={TBR_STRINGS[locale]} />);
+      expect(primaryCount(html)).toBe(8);
+      expect(html).toContain(TBR_STRINGS[locale].secExecutive);
+    }
+  });
+
+  it("afterExecutive slot renders right after the Executive section and before chapter 2 (the clarity survey mount, G19-S45 D6)", () => {
+    const html = renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} afterExecutive={<div data-testid="after-exec" />} />);
+    const exec = html.indexOf(`id="${TBR_V2_SECTION_IDS.executive}"`);
+    const slot = html.indexOf('data-testid="after-exec"');
+    const first = html.indexOf(`id="${TBR_V2_SECTION_IDS.dim("tre")}"`);
+    expect(exec).toBeGreaterThan(-1);
+    expect(slot).toBeGreaterThan(exec);
+    expect(first).toBeGreaterThan(slot);
   });
 
   // G19-S41 — "How this score was built".

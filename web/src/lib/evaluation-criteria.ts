@@ -67,7 +67,7 @@ export const CRITERIA: CriterionDef[] = [
   {
     key: "idea",
     title: "Idea & Innovation",
-    titleVi: "Y tuong & Doi moi sang tao",
+    titleVi: "Ý tưởng & Đổi mới sáng tạo",
     subtitle: "Uniqueness, problem-solution fit, innovation level",
     icon: "Lightbulb",
     primaryDimension: "mpc",
@@ -88,7 +88,7 @@ export const CRITERIA: CriterionDef[] = [
   {
     key: "market",
     title: "Market Opportunity",
-    titleVi: "Co hoi thi truong",
+    titleVi: "Cơ hội thị trường",
     subtitle: "TAM/SAM/SOM, timing, competitive landscape",
     icon: "TrendingUp",
     primaryDimension: "mpc",
@@ -109,7 +109,7 @@ export const CRITERIA: CriterionDef[] = [
   {
     key: "founder_profile",
     title: "Founder Profile",
-    titleVi: "Ho so Nha sang lap",
+    titleVi: "Hồ sơ Nhà sáng lập",
     subtitle: "Background, track record, vision, domain expertise",
     icon: "User",
     primaryDimension: "ftv",
@@ -130,7 +130,7 @@ export const CRITERIA: CriterionDef[] = [
   {
     key: "code_git",
     title: "Code & Git Repository",
-    titleVi: "Ma nguon & Git",
+    titleVi: "Mã nguồn & Git",
     subtitle: "Code quality, architecture, commit history, test coverage",
     icon: "Code",
     primaryDimension: "ptd",
@@ -151,7 +151,7 @@ export const CRITERIA: CriterionDef[] = [
   {
     key: "website",
     title: "Website & Digital Presence",
-    titleVi: "Website & Hien dien so",
+    titleVi: "Website & Hiện diện số",
     subtitle: "Design quality, UX, performance, SEO, conversion",
     icon: "Globe",
     primaryDimension: "ptd",
@@ -172,7 +172,7 @@ export const CRITERIA: CriterionDef[] = [
   {
     key: "team",
     title: "Team Composition",
-    titleVi: "Thanh phan doi ngu",
+    titleVi: "Thành phần đội ngũ",
     subtitle: "Skills, complementary expertise, hiring plan",
     icon: "Users",
     primaryDimension: "ftv",
@@ -193,7 +193,7 @@ export const CRITERIA: CriterionDef[] = [
   {
     key: "customer_size",
     title: "Customer Base & Traction",
-    titleVi: "Khach hang & Suc keo",
+    titleVi: "Khách hàng & Sức kéo",
     subtitle: "User base, growth rate, engagement metrics",
     icon: "BarChart3",
     primaryDimension: "tre",
@@ -214,7 +214,7 @@ export const CRITERIA: CriterionDef[] = [
   {
     key: "gtm_strategy",
     title: "Go-to-Market Strategy",
-    titleVi: "Chien luoc tham nhap thi truong",
+    titleVi: "Chiến lược thâm nhập thị trường",
     subtitle: "Distribution channels, pricing, acquisition strategy",
     icon: "Megaphone",
     primaryDimension: "mpc",
@@ -235,7 +235,7 @@ export const CRITERIA: CriterionDef[] = [
   {
     key: "documents",
     title: "Key Documents",
-    titleVi: "Tai lieu quan trong",
+    titleVi: "Tài liệu quan trọng",
     subtitle: "Pitch deck, business plan, financial projections",
     icon: "FileText",
     primaryDimension: "iri",
@@ -256,7 +256,7 @@ export const CRITERIA: CriterionDef[] = [
   {
     key: "dataroom",
     title: "Data Room",
-    titleVi: "Phong du lieu",
+    titleVi: "Phòng dữ liệu",
     subtitle: "Completeness, organization, investor-readiness",
     icon: "FolderCheck",
     primaryDimension: "iri",
@@ -277,7 +277,7 @@ export const CRITERIA: CriterionDef[] = [
   {
     key: "team_structure",
     title: "Team Structure & Governance",
-    titleVi: "Co cau doi ngu & Quan tri",
+    titleVi: "Cơ cấu đội ngũ & Quản trị",
     subtitle: "Org chart, roles, advisory board, governance",
     icon: "Network",
     primaryDimension: "ftv",
@@ -298,7 +298,7 @@ export const CRITERIA: CriterionDef[] = [
   {
     key: "roadmap",
     title: "Product Roadmap",
-    titleVi: "Lo trinh san pham",
+    titleVi: "Lộ trình sản phẩm",
     subtitle: "Milestones, timeline, execution plan, priorities",
     icon: "Map",
     primaryDimension: "svm",
@@ -319,7 +319,7 @@ export const CRITERIA: CriterionDef[] = [
   {
     key: "revenue",
     title: "Revenue & Unit Economics",
-    titleVi: "Doanh thu & Kinh te don vi",
+    titleVi: "Doanh thu & Kinh tế đơn vị",
     subtitle: "Revenue model, MRR/ARR, margins, growth trajectory",
     icon: "DollarSign",
     primaryDimension: "tre",

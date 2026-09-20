@@ -112,7 +112,7 @@ export function renderReportEmailHtml(input: RenderReportEmailInput): string {
   const c = report.cover;
   const band = bandLabelForEmail(c.svi.band);
   const weakest = weakestChapter(report);
-  const phase = GROWTH_PHASE_LABELS[c.phaseId]?.[report.locale] ?? c.phaseId;
+  const phase = GROWTH_PHASE_LABELS[c.phaseId]?.[report.locale === "vi" ? "vi" : "en"] ?? c.phaseId;
   const delta = c.svi.deltaVsLast !== null ? `${c.svi.deltaVsLast >= 0 ? "+" : ""}${c.svi.deltaVsLast} vs last snapshot` : null;
   const pct = c.svi.cohortPercentile !== null ? `${c.svi.cohortPercentile}th percentile${c.svi.cohortN ? ` (n=${c.svi.cohortN})` : ""}` : null;
   const meta = [c.sector, c.stageLabel, `Phase: ${phase}`].filter(Boolean).join(" · ");

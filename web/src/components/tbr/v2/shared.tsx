@@ -2,8 +2,29 @@
 // renders in server components (/tbr/demo) and the client TBR alike.
 
 import { cn } from "@/lib/utils";
+import { GROWTH_PHASE_LABELS } from "@/lib/growth/phase-taxonomy";
+import type { GrowthPhaseId } from "@/lib/growth/phase-taxonomy";
+import { getTbrStrings, type TbrLocale } from "@/lib/i18n/tbr-strings";
 import type { Band, DataState } from "@/lib/report-visuals/types";
 import type { AuditStamp } from "@/lib/report-v2/schema";
+
+/** G19-S45: every ReportV2 web chapter takes the UI locale the shell offers (EN / VI / ES / JA). */
+export type TbrUiLocale = TbrLocale;
+
+/** The ReportV2 label block for a locale (`tbr-strings.ts` §v2). */
+export function v2Strings(locale: TbrUiLocale | undefined) {
+  return getTbrStrings(locale).v2;
+}
+
+/** Growth-phase label — VI has its own, ES / JA read the English label. */
+export function phaseLabel(id: GrowthPhaseId, locale: TbrUiLocale | undefined): string {
+  return GROWTH_PHASE_LABELS[id][locale === "vi" ? "vi" : "en"];
+}
+
+/** Valuation strings exist for EN / VI only; ES / JA fall back to EN. */
+export function valuationLocale(locale: TbrUiLocale | undefined): "en" | "vi" {
+  return locale === "vi" ? "vi" : "en";
+}
 
 export const TBR_V2_SECTION_IDS = {
   cover: "tbr-cover",
@@ -30,12 +51,12 @@ export function bandSurface(band: Band): string {
   return "border-ink-200 bg-ink-50/50 dark:border-ink-800 dark:bg-ink-900/30";
 }
 
-export function bandLabel(band: Band): string {
-  return band === "strong" ? "Strong" : band === "developing" ? "Developing" : band === "early" ? "Early" : "Pending";
+export function bandLabel(band: Band, locale: TbrUiLocale = "en"): string {
+  return v2Strings(locale).band[band];
 }
 
-export function stateLabel(state: DataState): string {
-  return state === "real" ? "real data" : state === "partial" ? "partial data" : state === "benchmark_only" ? "benchmark only" : "target, not actual";
+export function stateLabel(state: DataState, locale: TbrUiLocale = "en"): string {
+  return v2Strings(locale).state[state];
 }
 
 export function TbrSection({ id, title, kicker, children, className }: { id: string; title: string; kicker?: string; children: React.ReactNode; className?: string }) {
@@ -67,13 +88,14 @@ export function AgentBadge({ role, kind = "owner" }: { role: string; kind?: "own
   );
 }
 
-export function AuditStampLine({ audit, frameworks }: { audit: AuditStamp; frameworks?: string[] }) {
+export function AuditStampLine({ audit, frameworks, locale = "en" }: { audit: AuditStamp; frameworks?: string[]; locale?: TbrUiLocale }) {
+  const t = v2Strings(locale).audit;
   return (
     <p className="text-[11px] text-ink-500 dark:text-ink-500">
-      Auditor: {audit.grounded ? "grounded" : "not yet audited"}
-      {audit.uncited > 0 ? ` · ${audit.uncited} uncited` : ""}
-      {audit.revised ? " · revised" : ""}
-      {frameworks && frameworks.length > 0 ? ` · Frameworks: ${frameworks.slice(0, 4).join("; ")}` : ""}
+      {t.auditor}: {audit.grounded ? t.grounded : t.notAudited}
+      {audit.uncited > 0 ? ` · ${t.uncited(audit.uncited)}` : ""}
+      {audit.revised ? ` · ${t.revised}` : ""}
+      {frameworks && frameworks.length > 0 ? ` · ${t.frameworks}: ${frameworks.slice(0, 4).join("; ")}` : ""}
     </p>
   );
 }
