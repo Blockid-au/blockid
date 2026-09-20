@@ -40,6 +40,9 @@ import {
   type DimensionChapter,
   type ReportTierV2,
   type ReportV2,
+  type ScoreBreakdown,
+  type ScoreBreakdownSignal,
+  type SviLedger,
   type ValuationChapter,
 } from "./schema";
 import { verificationBadgeLabel, verificationMeta } from "@/lib/verification/confidence-multiplier";
@@ -53,6 +56,12 @@ export interface SnapshotDimState {
   insights?: string[];
   priority?: "high" | "medium" | "low" | null;
   marketBenchmark?: string | null;
+  /**
+   * G19-S41: the dimension's score ledger (svi-analysis `SVISubScore`
+   * breakdown via `scoreBreakdownFromSub`). `assessed:false` renders the
+   * chapter as pending — the number is a baseline, not a score.
+   */
+  scoreBreakdown?: ScoreBreakdown | null;
 }
 
 export interface SnapshotCriterionState {
@@ -108,8 +117,76 @@ export interface SnapshotInput {
   valuationAsk?: ValuationAskInput | null;
   /** S-R3: evidence ids behind the revenue figure (stripe / xero rows) — the chapter is grounded only when non-empty. */
   revenueEvidenceIds?: string[] | null;
+  /** G19-S41: the engine's report-level ledger (`SVIAnalysis.ledger`) — the cover strip "base 100 → dims → stage → penalties → total". */
+  sviLedger?: SviLedger | null;
   source?: ReportV2["source"];
   generatedAt?: string;
+}
+
+// ── G19-S41: score ledger helpers ───────────────────────────────────────────
+
+/** Structural subset of `svi-analysis.ts:SVISubScore` (the fields the ledger copies). */
+export interface SubScoreLike {
+  key: string;
+  value?: number;
+  adjustment?: number;
+  gaps?: string[];
+  base?: number;
+  breakdown?: ScoreBreakdownSignal[];
+  assessed?: boolean;
+}
+
+/** Structural subset of `SVIAnalysis` the ledger needs — callers pass the whole analysis. */
+export interface SviAnalysisLike {
+  confidenceMultiplier?: number;
+  ledger?: SviLedger | null;
+  meta?: { verification?: { ladderConfidence: number; effectiveConfidence: number } | null } | null;
+}
+
+/**
+ * `SVISubScore` → `ScoreBreakdown`. Undefined when the sub predates S41 (no
+ * `breakdown` / `base`), so old snapshots keep rendering without a ledger.
+ * `confidenceMultiplier` is the effective confidence the formula used;
+ * `verificationMultiplier` is the bounded L0–L5 factor already inside it
+ * (effective ÷ ladder), informational only.
+ */
+export function scoreBreakdownFromSub(sub: SubScoreLike | null | undefined, analysis?: SviAnalysisLike | null): ScoreBreakdown | undefined {
+  if (!sub || !Array.isArray(sub.breakdown) || typeof sub.base !== "number") return undefined;
+  const ver = analysis?.meta?.verification ?? null;
+  const rawConf = typeof analysis?.confidenceMultiplier === "number" ? analysis.confidenceMultiplier : ver?.effectiveConfidence ?? 0.2;
+  const confidenceMultiplier = Math.max(0, Math.min(1, Number.isFinite(rawConf) ? rawConf : 0.2));
+  const verificationMultiplier = ver && ver.ladderConfidence > 0 ? Math.round((ver.effectiveConfidence / ver.ladderConfidence) * 1000) / 1000 : undefined;
+  return {
+    base: sub.base,
+    signals: sub.breakdown.map((s) => (s.scale ? { signal: s.signal, points: s.points, source: s.source, scale: s.scale } : { signal: s.signal, points: s.points, source: s.source })),
+    confidenceMultiplier,
+    ...(verificationMultiplier !== undefined ? { verificationMultiplier } : {}),
+    adjustment: typeof sub.adjustment === "number" && Number.isFinite(sub.adjustment) ? sub.adjustment : 0,
+    assessed: sub.assessed === true,
+  };
+}
+
+/** `SVIAnalysis.ledger` → cover ledger (identity with a structural guard; undefined for pre-S41 analyses). */
+export function sviLedgerFrom(ledger: SviLedger | null | undefined): SviLedger | undefined {
+  if (!ledger || ledger.base !== 100 || !ledger.dimAdjustments) return undefined;
+  const dims: Record<DimKey, number> = { tre: 0, mpc: 0, ftv: 0, ptd: 0, cgh: 0, iri: 0, lco: 0, svm: 0 };
+  for (const d of DIM_ORDER) dims[d] = Number(ledger.dimAdjustments[d]) || 0;
+  return {
+    base: 100,
+    dimAdjustments: dims,
+    stageBonus: Number(ledger.stageBonus) || 0,
+    riskPenalties: Number(ledger.riskPenalties) || 0,
+    sectorAdj: Number(ledger.sectorAdj) || 0,
+    metricsBonus: Number(ledger.metricsBonus) || 0,
+    ciBoost: Number(ledger.ciBoost) || 0,
+    floorClamp: Number(ledger.floorClamp) || 0,
+    total: Number(ledger.total) || 0,
+  };
+}
+
+/** How many of the 8 cover dimensions are pending (unassessed / unscored). */
+export function pendingDimCount(cover: Pick<ReportV2["cover"], "dims">): number {
+  return DIM_ORDER.filter((d) => cover.dims[d]?.band === "pending").length;
 }
 
 /** Structural subset of `agents/cfo-valuation.ts:VcValuationReport` — defined in report-pipeline/valuation-chapter.ts (S-R3). */
@@ -225,6 +302,10 @@ interface ChapterCtx {
   criterionScore: (key: CriterionKey) => number | null;
   state: SnapshotDimState;
   at: string;
+  /** G19-S41: the score ledger when the snapshot carries one. */
+  breakdown?: ScoreBreakdown;
+  /** G19-S41: false only when a ledger says no real input moved the dimension. */
+  assessed: boolean;
 }
 
 function chapterVisuals(c: ChapterCtx): { primary: VisualSpecV2; secondary: VisualSpecV2[] } {
@@ -475,9 +556,13 @@ function buildChapter(c: ChapterCtx, phase: PhaseGateResult, tier: ReportTierV2)
   const cardStrengths = c.cards.flatMap((k) => k.strengths).filter(Boolean);
   const cardGaps = c.cards.flatMap((k) => k.gaps).filter(Boolean);
   const verdictSrc = insights[0] ?? firstParagraph(c.state.markdown) ?? "";
-  const verdict = c.scored
-    ? words(verdictSrc || `${owner.title} scores ${c.score}/100 (${c.band}) against a ${c.stageLabel} median of ${c.p50}.`, 80)
-    : `${owner.title} was not scored in this snapshot — re-run the analysis to populate this chapter.`;
+  // G19-S41: an unassessed dimension is a baseline, not a score — never
+  // narrate it as "scores N/100".
+  const verdict = !c.scored
+    ? `${owner.title} was not scored in this snapshot — re-run the analysis to populate this chapter.`
+    : !c.assessed
+      ? words(verdictSrc || `${owner.title} is not assessed yet — no evidence reached this dimension, so the ${c.score} shown in the ledger is the stage baseline, not a score.`, 80)
+      : words(verdictSrc || `${owner.title} scores ${c.score}/100 (${c.band}) against a ${c.stageLabel} median of ${c.p50}.`, 80);
   const floor = PHASE_EXIT_RULES[phase.currentPhase].dimensionFloors[c.dim as keyof typeof PHASE_EXIT_RULES.vision.dimensionFloors];
   const lift = Math.max(1, Math.round((owner.weight * Math.max(0, 70 - c.score)) / 100));
   const action = DIMENSION_ACTIONS[c.dim]?.[0];
@@ -520,6 +605,7 @@ function buildChapter(c: ChapterCtx, phase: PhaseGateResult, tier: ReportTierV2)
     audit: stamp(c.at),
     runIds: [],
     renderAs: tier === "free" ? owner.freeTier : "full",
+    ...(c.breakdown ? { scoreBreakdown: c.breakdown } : {}),
   };
 }
 
@@ -654,8 +740,12 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
     const p50 = useCohort ? Math.round(cohortMedian) : bench.p50;
     const p75 = useCohort ? Math.round(cohortTop) : bench.p75;
     const p25 = useCohort ? Math.max(0, Math.round(p50 - (p75 - p50))) : bench.p25;
-    const band: Band = scored ? bandFor(score) : "pending";
-    const percentile = scored ? percentileFor(score, p25, p50, p75) : null;
+    // G19-S41: a ledger that says "no real input" makes the chapter pending
+    // (band + "—") even though the baseline number is still a number.
+    const breakdown = state.scoreBreakdown ?? undefined;
+    const assessed = breakdown ? breakdown.assessed : true;
+    const band: Band = scored && assessed ? bandFor(score) : "pending";
+    const percentile = scored && assessed ? percentileFor(score, p25, p50, p75) : null;
     const mapped = criteriaForDimension(dim);
     let cards = mapped.map((k) => cardsByKey.get(k)).filter((c): c is CriterionCard => Boolean(c));
     if (cards.length === 0) {
@@ -678,7 +768,7 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
       ];
     }
     coverDims[dim] = { score, weight: DIMENSION_OWNERS[dim].weight, band, p25, p50, p75, percentile };
-    ctxs.push({ dim, score, scored, band, p25, p50, p75, percentile, stage, stageLabel, cards, criterionScore, state, at });
+    ctxs.push({ dim, score, scored, band, p25, p50, p75, percentile, stage, stageLabel, cards, criterionScore, state, at, breakdown, assessed });
   }
 
   const scoredDims = ctxs.filter((c) => c.scored);
@@ -756,6 +846,8 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
     ],
     verification: coverVerificationFor(input.verificationLevel),
   };
+  const sviLedger = sviLedgerFrom(input.sviLedger);
+  if (sviLedger) cover.sviLedger = sviLedger;
 
   const executive: ReportV2["executive"] = {
     thesis,
@@ -913,8 +1005,10 @@ export interface AssembledReportContext {
   stage?: number | null;
   sviTotal?: number | null;
   dimensionScores?: Record<string, number> | null;
-  /** SVIAnalysis.subs — gaps become insights when present. */
-  subs?: Array<{ key: string; value?: number; gaps?: string[] }> | null;
+  /** SVIAnalysis.subs — gaps become insights; G19-S41: `breakdown` / `assessed` / `base` / `adjustment` become the chapter ledger. */
+  subs?: SubScoreLike[] | null;
+  /** G19-S41: pass the whole `SVIAnalysis` — `ledger` fills the cover strip, `confidenceMultiplier` + `meta.verification` the chapter ledgers. */
+  sviAnalysis?: SviAnalysisLike | null;
   phaseId?: string | null;
   tier?: ReportTierV2;
   locale?: "en" | "vi";
@@ -961,10 +1055,12 @@ export function fromAssembledReport(report: Pick<AssembledReport, "id" | "tier" 
       insights: sub ? [...(sub.gaps ?? []).slice(0, 3)] : [],
       priority: null,
       marketBenchmark: null,
+      scoreBreakdown: scoreBreakdownFromSub(sub, ctx.sviAnalysis) ?? null,
     };
   }
   const tier: ReportTierV2 = ctx.tier ?? (report.tier === "standard" || report.tier === "premium" || report.tier === "investor_memo" ? report.tier : "standard");
   return fromSnapshot({
+    sviLedger: ctx.sviAnalysis?.ledger ?? null,
     reportId: report.id,
     snapshotId: ctx.snapshotId,
     projectId: ctx.projectId,

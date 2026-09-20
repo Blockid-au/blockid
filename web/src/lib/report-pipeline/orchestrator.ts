@@ -1037,6 +1037,7 @@ export function buildReportV2(
       sviTotal: input.sviAnalysis.totalSVI,
       dimensionScores: input.sviAnalysis.dimensionScores ?? null,
       subs: input.sviAnalysis.subs,
+      sviAnalysis: input.sviAnalysis,
       phaseId: context.phaseGate?.currentPhase ?? null,
       verificationLevel: input.verificationLevel ?? input.sviAnalysis.meta?.verification?.level ?? null,
       tier: tierV2,

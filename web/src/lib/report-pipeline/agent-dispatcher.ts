@@ -35,7 +35,7 @@ import { CRITERIA } from "@/lib/evaluation-criteria";
 import { PHASE_EXIT_RULES } from "@/lib/growth/phase-gate";
 import { GROWTH_PHASE_LABELS } from "@/lib/growth/phase-taxonomy";
 import type { CriterionCard, DimensionChapter, EvidenceRow, EvidenceStatus, ReportTierV2 } from "@/lib/report-v2/schema";
-import { percentileFor, qualityFromScore } from "@/lib/report-v2/adapter";
+import { percentileFor, qualityFromScore, scoreBreakdownFromSub } from "@/lib/report-v2/adapter";
 import { bandFor } from "@/lib/report-visuals";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { DIMENSION_ACTIONS } from "@/lib/svi-actions";
@@ -958,6 +958,21 @@ export const DimensionChapterInput = z.object({
   evidenceRows: z.array(z.object({ id: z.string(), source: z.string(), status: z.string(), observedAt: z.string().optional(), value: z.string().optional(), label: z.string() })),
   moduleOutputs: z.array(z.object({ id: z.string(), output: z.record(z.string(), z.unknown()) })),
   phaseLens: z.object({ floor: z.number().nullable(), nextRequired: z.array(z.string()), whatMattersNow: z.string() }),
+  /**
+   * G19-S41: the deterministic score ledger — base, every signal with its
+   * ± points and source, the confidence multiplier and the resulting SVI
+   * adjustment. The owner explains the score WITH these rows and never
+   * invents a signal. Optional so pre-S41 fixtures still parse.
+   */
+  scoreLedger: z
+    .object({
+      base: z.number(),
+      signals: z.array(z.object({ signal: z.string(), points: z.number(), source: z.string() })),
+      confidenceMultiplier: z.number(),
+      adjustment: z.number(),
+      assessed: z.boolean(),
+    })
+    .optional(),
   tier: z.string(),
   renderAs: z.enum(["full", "card"]),
 });
@@ -1003,6 +1018,7 @@ RULES:
 - "proposed" must stay within ±10 of the deterministic score; explain any move in "reason".
 - primary_visual.kind must be one of: ${owner.allowedVisuals.join(", ")}. Every number in "series" MUST appear in moduleOutputs or evidenceRows (± rounding) — otherwise omit primary_visual and the deterministic chart is used.
 - Never invent evidence ids; cite only ids from evidenceRows. Unsupported claims end with [unevidenced].
+- Explain the score using scoreLedger (base → each signal ± points → × confidence → adjustment): name at least one ledger signal in the verdict, quote its points as given, and NEVER invent a signal, a point value or a source that is not in scoreLedger. When scoreLedger.assessed is false say plainly that the dimension is not assessed yet and what input would assess it.
 - Follow the chapter template: ${owner.outputTemplate}`;
 }
 
@@ -1185,7 +1201,12 @@ export function buildDimensionChapter(
   }
   score = Math.max(0, Math.min(100, Math.round(score)));
   const scored = det !== null || payload !== null;
-  const band = scored ? bandFor(score) : "pending";
+  // G19-S41: the deterministic ledger travels with the chapter; a dimension
+  // the engine never assessed (pure baseline, no signal) renders as pending
+  // even when an owner call proposed a number.
+  const scoreBreakdown = scoreBreakdownFromSub(context.sviAnalysis.subs?.find((s) => s.key === dim), context.sviAnalysis);
+  const assessed = scoreBreakdown ? scoreBreakdown.assessed : true;
+  const band = scored && assessed ? bandFor(score) : "pending";
 
   const full = payload && "criterion_cards" in payload ? (payload as DimensionChapterPayload) : null;
   const criteria = criterionCardsFor(context, dim, full?.criterion_cards, allowedIds, score);
@@ -1228,7 +1249,13 @@ export function buildDimensionChapter(
   });
 
   const verdictSrc = payload?.verdict?.trim();
-  const verdict = verdictSrc || (scored ? `${owner.title} scores ${score}/100 (${band}) against a ${context.sviAnalysis.stageLabel} median of ${bench.p50}.` : `${owner.title} was not scored in this run.`);
+  const verdict =
+    verdictSrc ||
+    (!scored
+      ? `${owner.title} was not scored in this run.`
+      : !assessed
+        ? `${owner.title} is not assessed yet — no evidence reached this dimension, so the ${score} in the ledger is the stage baseline, not a score.`
+        : `${owner.title} scores ${score}/100 (${band}) against a ${context.sviAnalysis.stageLabel} median of ${bench.p50}.`);
   const citedInVerdict = Array.from(verdict.matchAll(/\[ev:([^\]]+)\]/g)).some((m) => allowedIds.has(m[1].trim()));
   const uncited = [...strengths, ...gaps].filter((t) => /\[unevidenced\]$/i.test(t)).length;
   const frameworks = full?.frameworks_used?.length ? full.frameworks_used.slice(0, 8) : owner.frameworks;
@@ -1242,7 +1269,7 @@ export function buildDimensionChapter(
     supportingAgents: owner.supporting,
     score,
     band,
-    benchmark: { p25: bench.p25, p50: bench.p50, p75: bench.p75, percentile: scored ? percentileFor(score, bench.p25, bench.p50, bench.p75) : null, stage },
+    benchmark: { p25: bench.p25, p50: bench.p50, p75: bench.p75, percentile: scored && assessed ? percentileFor(score, bench.p25, bench.p50, bench.p75) : null, stage },
     verdict,
     primaryVisual: charts.primary,
     secondaryVisuals: charts.secondary,
@@ -1261,6 +1288,7 @@ export function buildDimensionChapter(
     degradeReason: meta.degraded ? meta.degradeReason ?? "owner call failed" : undefined,
     proposedScore,
     scoreNote: scoreNote ?? (charts.provenance.downgraded ? "Owner-proposed chart series failed number provenance — deterministic chart shown." : undefined),
+    ...(scoreBreakdown ? { scoreBreakdown } : {}),
   };
 }
 
@@ -1291,6 +1319,8 @@ function chapterInput(context: ReportContext, dim: DimKey, tierV2: ReportTierV2,
   const rule = PHASE_EXIT_RULES[phaseId];
   const floor = rule.dimensionFloors[dim as keyof typeof rule.dimensionFloors];
   const nextPhase = context.phaseGate?.nextPhase ?? null;
+  // G19-S41: the ledger the owner must explain the score with.
+  const ledger = scoreBreakdownFromSub(context.sviAnalysis.subs?.find((s) => s.key === dim), context.sviAnalysis);
   return {
     dim,
     weight: owner.weight,
@@ -1310,6 +1340,17 @@ function chapterInput(context: ReportContext, dim: DimKey, tierV2: ReportTierV2,
       nextRequired: nextPhase ? [...PHASE_EXIT_RULES[nextPhase].requiredCriteria] : [],
       whatMattersNow: owner.phaseBehaviour[phaseId] ?? "",
     },
+    ...(ledger
+      ? {
+          scoreLedger: {
+            base: ledger.base,
+            signals: ledger.signals.map((s) => ({ signal: s.signal, points: s.points, source: s.scale ? `${s.source} (applied to the adjustment)` : s.source })),
+            confidenceMultiplier: ledger.confidenceMultiplier,
+            adjustment: ledger.adjustment,
+            assessed: ledger.assessed,
+          },
+        }
+      : {}),
     tier: tierV2,
     renderAs,
   };
