@@ -23,6 +23,10 @@ export const metadata: Metadata = pageMetadata({
   title: "Blockchain equity for Australian startups",
   description: "On-chain shares for AU founders on a private EVM (Anvil chainId 420). MetaMask-ready, ESOP and vesting enforced by smart contract; legal register stays off-chain.",
   path: "/tokenize",
+  // G21 P0-D: tokenisation is an expansion module, not the positioning — the
+  // page stays reachable (equity band, direct links) but is not indexed and
+  // is not in the sitemap / nav / footer / pitch.
+  index: false,
 });
 
 export const dynamic = "force-dynamic";
