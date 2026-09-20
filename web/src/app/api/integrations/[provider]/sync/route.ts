@@ -12,6 +12,7 @@ import { fetchStripeSignals } from "@/lib/oauth-stripe-signals";
 import { fetchGa4RichSignals, fetchGa4Signals, ga4SnapshotRow, writeGa4Snapshot, type Ga4SnapshotDb } from "@/lib/oauth-ga4-signals";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute } from "@/lib/audit/api-route";
+import { emitConnectorEvidence } from "@/lib/connectors/connector-evidence";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +68,8 @@ async function POST_handler(
         { key: "primary_repo_name", text: s.primaryRepoName },
         { key: "primary_repo_stars", numeric: s.primaryRepoStars },
       ]);
+      // G21 P3-C — the pull as EvidenceRecords on the claim register (fail-soft).
+      await emitConnectorEvidence({ projectId, input: { provider: "github", metrics: s }, actorUserId: user.id });
     } else if (provider === "stripe") {
       const s = await fetchStripeSignals(conn.accessToken);
       await writeSignals(signalsUserId, projectId, "stripe", [
@@ -75,6 +78,7 @@ async function POST_handler(
         { key: "recent_payments_30d", numeric: s.recentPayments30d },
         { key: "average_order_aud", numeric: s.averageOrderAud },
       ]);
+      await emitConnectorEvidence({ projectId, input: { provider: "stripe", metrics: s }, actorUserId: user.id });
     } else {
       const propertyId =
         (conn.metadata?.propertyId as string | undefined) ??
@@ -90,6 +94,7 @@ async function POST_handler(
         { key: "conversions_30d", numeric: s.conversions30d },
         { key: "avg_session_duration_sec", numeric: s.averageSessionDurationSec },
       ]);
+      await emitConnectorEvidence({ projectId, input: { provider: "ga4", metrics: s }, actorUserId: user.id });
       // S-R5: richer 90-day pull → ga4_signal_snapshots (AARRR funnel + channel
       // mix for TRE / MPC). Best-effort: a failed rich pull or a missing table
       // (0402 not applied) never fails the sync the founder just clicked.

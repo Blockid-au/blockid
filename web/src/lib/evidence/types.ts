@@ -151,6 +151,31 @@ export interface EvidenceRecordDraft {
   observed_value?: NormalizedValue | null;
 }
 
+/**
+ * G21 P3-C — one observation a connected source makes about one claim key,
+ * as `lib/connectors/connector-evidence.ts` derives it from a sync /
+ * snapshot and `deriveClaims` turns into an EvidenceRecord draft (+ the
+ * claim itself when nothing stated it). `evidence_type` is the ladder level
+ * the connector registry assigns (L4 `connected_source`, L5
+ * `transaction_data` for revenue / payouts) — never L6, which needs a human.
+ */
+export interface ConnectorEvidenceRow {
+  /** `evidence_records.source_type` — `stripe` | `xero` | `github` | `ga4` | `abr` … */
+  provider: string;
+  /** Display name of the source ("Xero"). */
+  source_name: string;
+  /** A CLAIM_REGISTRY key. */
+  claim_key: string;
+  /** Statement to mint the claim with when no analysis stated it; the registry's default otherwise. */
+  statement?: string | null;
+  value: NormalizedValue | null;
+  evidence_type: EvidenceLevel;
+  /** Snapshot / sync time. */
+  observed_at: string;
+  /** `connector://<provider>/<day>/<payload hash>` — changes per snapshot so the record hash does too. */
+  source_uri?: string | null;
+}
+
 // ─── ladder helpers ──────────────────────────────────────────────────────────
 
 const LEVEL_BY_CONFIDENCE: Record<ConfidenceLevel, EvidenceLevel> = {

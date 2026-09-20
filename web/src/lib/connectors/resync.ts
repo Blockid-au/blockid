@@ -22,7 +22,8 @@
 //   4. insert a dated `connector_snapshots` row (0349), compare with the
 //      previous snapshot (`metricsChanged`) …
 //   5. … refresh the dated `svi_signals` / `svi_evidence` rows the callback
-//      writes (upsert), and
+//      writes (upsert), emit the pull as EvidenceRecords on the claim
+//      register (G21 P3-C, `lib/connectors/connector-evidence.ts`), and
 //   6. when the values moved: rescore the account through the shared
 //      `rescoreAccountFromEvidence()` and enqueue `svi.rescored`
 //      (source "connector_resync") for the owner's endpoints.
@@ -53,6 +54,8 @@ import { scoreConnectedRevenue } from "@/lib/svi/connected-revenue-score";
 import { rescoreAccountFromEvidence } from "@/lib/svi/rescore-from-evidence";
 import { insertNotification } from "@/lib/notifications";
 import { enqueueWebhook } from "@/lib/webhooks/registry";
+import { emitConnectorEvidence } from "@/lib/connectors/connector-evidence";
+import { supabaseClaimsDb } from "@/lib/evidence/claims-db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Db = SupabaseClient<any, any, any>;
@@ -532,6 +535,17 @@ export async function resyncConnection(db: Db, c: ResyncCandidate, opts: { now?:
     // 4. Refresh the dated signal / evidence rows.
     if (c.provider === "stripe") await applyStripe(db, scope, metrics as StripeConnectMetrics, now);
     else await applyXero(db, scope, metrics as XeroMetrics, now);
+
+    // 4b. G21 P3-C — the same pull as EvidenceRecords on the claim register
+    //     (L5 revenue, L4 cash / runway; +90 d expiry; audited; fail-soft —
+    //     a project-less legacy connection writes none).
+    await emitConnectorEvidence({
+      projectId: scope.projectId,
+      input: c.provider === "stripe" ? { provider: "stripe", metrics: metrics as StripeConnectMetrics } : { provider: "xero", metrics: metrics as XeroMetrics },
+      observedAt: now,
+      actorUserId: null,
+      db: supabaseClaimsDb(db),
+    });
 
     // 5. Rescore + webhook only when the values moved.
     let delta: number | null = null;

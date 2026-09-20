@@ -19,6 +19,7 @@ import { projectScopeOrRedirect } from "@/lib/project-members/http";
 import { oauthSessionOrRedirect } from "@/lib/project-members/oauth-session";
 import { XERO_PL_EVIDENCE_DIMENSION, XERO_REVENUE_EVIDENCE_DIMENSION, xeroMetricsFromReports, type XeroReportsResponse } from "@/lib/connectors/xero-metrics";
 import { insertConnectorSnapshot } from "@/lib/connectors/snapshots";
+import { emitConnectorEvidence } from "@/lib/connectors/connector-evidence";
 
 export const dynamic = "force-dynamic";
 
@@ -244,6 +245,8 @@ export async function GET(request: Request) {
       metrics,
       source: "callback",
     });
+    // G21 P3-C — the pull as EvidenceRecords on the claim register (fail-soft).
+    await emitConnectorEvidence({ projectId, input: { provider: "xero", metrics }, actorUserId: user.id });
 
     // 7. Upsert P&L evidence (xero_pl → `iri`, S25-review-2 P3; was the
     //    non-SVI key "financial_health", which the rescore skipped) — always created

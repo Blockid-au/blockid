@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { projectScopeOrRedirect } from "@/lib/project-members/http";
 import { saveConnection, writeSignals, markSynced } from "@/lib/oauth-connectors";
 import { fetchStripeSignals } from "@/lib/oauth-stripe-signals";
+import { emitConnectorEvidence } from "@/lib/connectors/connector-evidence";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { insertConnectorSnapshot } from "@/lib/connectors/snapshots";
 
@@ -133,6 +134,8 @@ export async function GET(request: Request) {
           source: "callback",
         });
       }
+      // G21 P3-C — the pull as EvidenceRecords on the claim register (fail-soft).
+      await emitConnectorEvidence({ projectId, input: { provider: "stripe", metrics: signals }, actorUserId: user.id });
       if (conn) await markSynced(conn.id);
     } catch (err) {
       if (conn) await markSynced(conn.id, (err as Error).message);

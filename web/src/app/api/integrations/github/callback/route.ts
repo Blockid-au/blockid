@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { projectScopeOrRedirect } from "@/lib/project-members/http";
 import { saveConnection, writeSignals, markSynced } from "@/lib/oauth-connectors";
 import { fetchGithubSignals } from "@/lib/oauth-github-signals";
+import { emitConnectorEvidence } from "@/lib/connectors/connector-evidence";
 
 export const dynamic = "force-dynamic";
 
@@ -116,6 +117,8 @@ export async function GET(request: Request) {
         { key: "primary_repo_name", text: signals.primaryRepoName },
         { key: "primary_repo_stars", numeric: signals.primaryRepoStars },
       ]);
+      // G21 P3-C — the pull as EvidenceRecords on the claim register (fail-soft).
+      await emitConnectorEvidence({ projectId, input: { provider: "github", metrics: signals }, actorUserId: user.id });
       if (conn) await markSynced(conn.id);
     } catch (err) {
       if (conn) await markSynced(conn.id, (err as Error).message);
