@@ -66,6 +66,9 @@ export const funnelLatestSchema = z.object({
   prev7: funnelCountsSchema,
   d28: funnelCountsSchema,
   last_signups: z.array(lastSignupSchema),
+  // G21 P0-D — optional per-event tallies of the institutional catalogue (older files lack them).
+  fi_events_28d: z.record(z.string(), nInt).optional(),
+  fi_events_7d: z.record(z.string(), nInt).optional(),
 });
 export type FunnelLatest = z.infer<typeof funnelLatestSchema>;
 

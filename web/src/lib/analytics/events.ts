@@ -97,9 +97,105 @@ export type AnalyticsEvent =
   | { name: "feedback_letter_sent"; params: { letter_id: string; project_id: string; k: number; org_count: number; weakest_dim: string; user_id: string; delivered: boolean } }
   | { name: "feedback_letter_opened"; params: { letter_id: string; k: number; weakest_dim: string; user_id: string } }
   | { name: "feedback_letter_viewed"; params: { letter_id: string; k: number; weakest_dim: string; phase: string; user_id?: string } }
-  | { name: "feedback_action_clicked"; params: { letter_id: string; action_id: string; dimension: string; href: string; user_id?: string } };
+  | { name: "feedback_action_clicked"; params: { letter_id: string; action_id: string; dimension: string; href: string; user_id?: string } }
+  // ── G21 P0-D institutional (FI) events — every one carries the FI envelope
+  //    { organisation?, startup?, plan?, channel?, fi_ts?, qa? } (lib/analytics/fi-events.ts emitFiEvent);
+  //    the names below are the ones the FI catalogue has no existing twin for.
+  //    FI names that DO have a twin are aliases (FI_EVENT_ALIASES) — never duplicated.
+  | { name: "website_imported"; params: FiEnvelopeParams & { url_host?: string; analysis_id?: string; project_id?: string } }
+  | { name: "evidence_verified"; params: FiEnvelopeParams & { evidence_id: string; level: string; reviewer_id?: string; project_id?: string } }
+  | { name: "score_recalculated"; params: FiEnvelopeParams & { project_id: string; reason: "evidence" | "schedule" | "version" | "correction" | "manual"; score?: number; svi_version?: string } }
+  | { name: "cohort_created"; params: FiEnvelopeParams & { cohort_id: string; kind: "batch" | "intake" | "programme"; user_id?: string } }
+  | { name: "startup_added_to_cohort"; params: FiEnvelopeParams & { cohort_id: string; project_id?: string; via: "intake" | "import" | "manual" | "batch" } }
+  | { name: "batch_scored"; params: FiEnvelopeParams & { batch_id: string; items: number; failed: number; svi_version?: string } }
+  | { name: "pilot_started"; params: FiEnvelopeParams & { pilot_id: string; sku: string; applicants_cap: number; amount_cents: number; pilot_source: "paid" | "comp"; user_id?: string } }
+  | { name: "subscription_renewed"; params: FiEnvelopeParams & { invoice_id: string; billing_reason: string; gross_aud_cents: number; user_id?: string } };
 
 export type AnalyticsEventName = AnalyticsEvent["name"];
+
+// ── G21 P0-D: the FI reporting vocabulary ─────────────────────────────
+
+/**
+ * Mandatory envelope on every institutional event (goal doc § P0-D):
+ * organisation (evaluator / program account id), startup (project id), the
+ * plan code the actor is on, the acquisition / usage channel, and the
+ * ISO time the emitter observed (`fi_ts` — the row's own `ts` is the sink's).
+ * All optional at the type level so a route that lacks one field can still
+ * emit; `emitFiEvent` fills `fi_ts` and normalises the rest.
+ */
+export interface FiEnvelopeParams {
+  organisation?: string;
+  startup?: string;
+  plan?: string;
+  channel?: string;
+  fi_ts?: string;
+  /** The FI catalogue name when the row was stored under an alias target. */
+  fi_event?: string;
+  qa?: boolean;
+}
+
+/**
+ * FI catalogue names that already have a server twin. The FI list is the
+ * REPORTING vocabulary (/admin/funnel institutional section, the pilot
+ * report); rows are stored under the existing canonical name so no funnel
+ * step is double-counted, and `fi_event` on the row keeps the FI name.
+ */
+export const FI_EVENT_ALIASES = Object.freeze({
+  startup_created: "svi_analyze",
+  deck_uploaded: "evidence_upload",
+  initial_score_generated: "svi_score_computed",
+  evidence_added: "evidence_upload",
+  report_opened: "report_view",
+  report_shared: "tbr_share_created",
+  evaluator_reviewed: "dossier_view",
+  decision_recorded: "assessment_submitted",
+  payment_completed: "checkout_completed",
+  subscription_started: "subscription_created",
+} as const satisfies Record<string, AnalyticsEventName>);
+
+export type FiAliasName = keyof typeof FI_EVENT_ALIASES;
+
+/** FI names stored under their own name (no existing twin). */
+export const FI_NATIVE_EVENTS = Object.freeze([
+  "website_imported",
+  "evidence_verified",
+  "score_recalculated",
+  "cohort_created",
+  "startup_added_to_cohort",
+  "batch_scored",
+  "pilot_started",
+  "subscription_renewed",
+] as const satisfies readonly AnalyticsEventName[]);
+
+export type FiNativeName = (typeof FI_NATIVE_EVENTS)[number];
+export type FiEventName = FiAliasName | FiNativeName;
+
+/** The 18 FI catalogue names, in funnel order. */
+export const FI_EVENT_CATALOGUE: readonly FiEventName[] = Object.freeze([
+  "startup_created",
+  "deck_uploaded",
+  "website_imported",
+  "initial_score_generated",
+  "evidence_added",
+  "evidence_verified",
+  "score_recalculated",
+  "report_opened",
+  "report_shared",
+  "cohort_created",
+  "startup_added_to_cohort",
+  "batch_scored",
+  "evaluator_reviewed",
+  "decision_recorded",
+  "pilot_started",
+  "payment_completed",
+  "subscription_started",
+  "subscription_renewed",
+]);
+
+/** Canonical stored name for an FI name (alias target, or itself). */
+export function canonicalFiEvent(name: FiEventName): AnalyticsEventName {
+  return name in FI_EVENT_ALIASES ? FI_EVENT_ALIASES[name as FiAliasName] : (name as FiNativeName);
+}
 
 // ── G16-A: QA accounts + client-emittable funnel events ────────────────
 
