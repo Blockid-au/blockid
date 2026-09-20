@@ -1,24 +1,37 @@
 {
-  "ts": "2026-09-19T18:57:33.718Z",
-  "startedAt": "2026-09-19T18:52:05Z",
+  "ts": "2026-09-20T03:08:03.426Z",
+  "startedAt": "2026-09-20T03:01:24Z",
   "baseURL": "https://blockid.au",
-  "exitCode": 0,
-  "passed": 191,
-  "failed": 0,
+  "exitCode": 1,
+  "passed": 195,
+  "failed": 2,
   "skipped": 11,
   "flaky": 0,
   "expectedFailures": 0,
-  "durationMs": 326971.153,
+  "durationMs": 397206.792,
   "account": {
-    "email": "qa-live-20260919-1852@blockid.au",
-    "userId": "6e10d36c-6c3c-4efa-a789-d350fb314e22",
-    "projectId": "cd867134-d1ed-48d9-a6c4-6f85f6b96393",
+    "email": "qa-live-20260920-0301@blockid.au",
+    "userId": "424d3963-496f-4c53-84c3-a690b771b9d9",
+    "projectId": "e9d0084e-4b36-4a56-9f6b-9e403bc601c1",
     "plan": "growth",
     "elevated": true
   },
   "erasure": {
     "ok": true,
-    "detail": "erased 6e10d36c-6c3c-4efa-a789-d350fb314e22; verify dry-run exit 2 (no app_users row for the QA founder email)"
+    "detail": "erased 424d3963-496f-4c53-84c3-a690b771b9d9; verify dry-run exit 2 (no app_users row for the QA founder email)"
   },
-  "findings": []
+  "findings": [
+    {
+      "spec": "21-reports.spec.ts",
+      "project": "live-qa",
+      "title": "/workspace/reports/business (seeded snapshot): the free cut shows locked chapters + ONE unlock rail quoting A$3; the confirm dialog opens with credits + A$ and is cancelled — no checkout request, no spend",
+      "error": "Error: expect(received).toMatch(expected)\n\nExpected pattern: /inc-GST/\nReceived string:  \"Generate this Trust Business Report·\nThis report analyses 8 SVI dimensions using 6 C-Level agents. Estimated 8,500 words · model Claude Sonnet 5 · generation time ~4 min.·\nONE-OFF\nA$3inc. GST\nOR CREDITS\n200 credits\nConfirm & Pay A$3\nConfirm & Use 200 credits·\nYour balance (3 credits) is below the required 200. Top up or use one-off.·\nCancel\""
+    },
+    {
+      "spec": "21-reports.spec.ts",
+      "project": "live-qa",
+      "title": "/tbr/demo valuation shows the Inputs & assumptions table, applicable methods only, cross-checks, no ask",
+      "error": "Error: expect(received).toMatch(expected)\n\nExpected pattern: /Inputs & assumptions/\nReceived string:  \"INPUTS & ASSUMPTIONS·\nINPUT\tVALUE\tSOURCE\nMRR\tA$100k\tconnector\nARR\tA$1.2M\tconnector\nMonthly growth\t4.5% / month\tconnector\nESIC qualifies\tno\tnone\nR&D Tax Incentive refund (est.)\tA$87k\tfounder-stated\nBerkus pillars evidenced\t5/5 — sound idea, prototype, quality team, strategic relationships, product roll-out\tmodel\nStage\tseed (SVI 3)\tmodel\nSector\tsaas\tmodel\nSector ARR multiples (p25 / p50 / p75)\t6× / 6.75× / 7.5×\tbenchmark\nRaise\tnot stated — no ask modelled\tnone\""
+    }
+  ]
 }

@@ -1,12 +1,12 @@
 {
-  "git_sha": "5a0c3dbb15b45f88ac43da49adc2c6fc1a47d0e6",
-  "build_sha": "5a0c3dbb15b45f88ac43da49adc2c6fc1a47d0e6",
+  "git_sha": "32ea5b05ee22690f62332ca91c87e64515a61251",
+  "build_sha": "32ea5b05ee22690f62332ca91c87e64515a61251",
   "git_tree_dirty": false,
   "merge_in_progress": false,
-  "started_at": "2026-09-19T18:28:59Z",
-  "deployed_at": "2026-09-19T18:50:47Z",
-  "next_hash": "7d98b83c7783be274f94dc6e0a701450",
+  "started_at": "2026-09-20T02:35:18Z",
+  "deployed_at": "2026-09-20T02:59:32Z",
+  "next_hash": "e7f2de7a50898b9aa5d03dfec5695f4e",
   "task_id": "manual",
-  "version": "v3.13.2",
-  "deploy_pid": "3494887"
+  "version": "v3.16.0",
+  "deploy_pid": "1046989"
 }
