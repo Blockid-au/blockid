@@ -164,6 +164,20 @@ export function recordTbrQuality(row: TbrQualityRow, writer: TbrQualityWriter = 
   return row;
 }
 
+/**
+ * Awaited variant for async callers: the row is on disk before the caller
+ * returns (the self-report script `process.exit`s right after the run — a
+ * fire-and-forget append never flushed). Still never throws.
+ */
+export async function recordTbrQualityAsync(row: TbrQualityRow, writer: TbrQualityWriter = appendTbrQualityRow): Promise<TbrQualityRow> {
+  try {
+    await writer(row);
+  } catch {
+    /* never throw */
+  }
+  return row;
+}
+
 /** One human-readable line for logs / the self-report script. */
 export function formatTbrQualityLine(row: TbrQualityRow): string {
   return `[tbr-quality] tier=${row.tier} calls=${row.calls} cost_usd=${row.costUsd.toFixed(4)} grounded=${row.groundedShare.toFixed(2)} degraded=${row.degradedSections} consistency=${row.consistencyIssues} pending_dims=${row.pendingDims} words=${row.words} pages=${row.pages} ms=${row.durationMs} snapshot=${row.snapshotId ?? "-"}`;

@@ -18,8 +18,10 @@ import {
   projectHash,
   readTbrQualityStatus,
   recordTbrQuality,
+  recordTbrQualityAsync,
   summariseTbrQuality,
   type TbrQualityRow,
+  type TbrQualityWriter,
 } from "./quality-log";
 
 afterEach(() => {
@@ -97,6 +99,16 @@ describe("recordTbrQuality / appendTbrQualityRow", () => {
     expect(() => recordTbrQuality(r, rejecting)).not.toThrow();
     await Promise.resolve();
     expect(rejecting).toHaveBeenCalledTimes(1);
+  });
+
+  it("recordTbrQualityAsync awaits the writer and still never rejects", async () => {
+    const order: string[] = [];
+    const slow: TbrQualityWriter = () => new Promise((r) => setTimeout(() => { order.push("written"); r(); }, 5));
+    await recordTbrQualityAsync(row(), slow);
+    order.push("returned");
+    expect(order).toEqual(["written", "returned"]);
+    await expect(recordTbrQualityAsync(row(), async () => { throw new Error("EACCES"); })).resolves.toMatchObject({ tier: "standard" });
+    await expect(recordTbrQualityAsync(row(), () => { throw new Error("sync"); })).resolves.toBeDefined();
   });
 
   it("the default writer is a no-op under vitest, and appends one line per row when TBR_QUALITY_FILE points at a file", async () => {

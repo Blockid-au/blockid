@@ -54,7 +54,7 @@ import { effectiveConfidenceLevel } from "@/lib/svi/rescore-from-evidence";
 import { applyFounderExecution } from "@/lib/founder/execution-load";
 import { loadDimensionEvidenceRows, type GatherDb } from "@/lib/report-pipeline/gather";
 import { hubRowsToEvidenceItems } from "@/lib/evidence/hub-rows";
-import { buildTbrQualityRow, formatTbrQualityLine, recordTbrQuality, type TbrQualityRow, type TbrQualityWriter } from "@/lib/report-pipeline/quality-log";
+import { buildTbrQualityRow, formatTbrQualityLine, recordTbrQualityAsync, type TbrQualityRow, type TbrQualityWriter } from "@/lib/report-pipeline/quality-log";
 import { PIPELINE_VERSION } from "@/lib/report-pipeline/version";
 
 // ---------------------------------------------------------------------------
@@ -496,7 +496,7 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
       deadlineHit: stats?.deadlineHit ?? false,
     };
     if ((input.qualityLog ?? "record") === "record") {
-      recordTbrQuality(qualityRowFor(report, ctx, tier, null), input.qualityWriter);
+      await recordTbrQualityAsync(qualityRowFor(report, ctx, tier, null), input.qualityWriter);
     }
 
     if (supabase) {
@@ -585,7 +585,7 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
     const stats = done as Extract<PipelineEvent, { type: "done" }> | null;
     const degradedErr = err as { degradedSections?: unknown; calls?: unknown };
     if (typeof degradedErr?.degradedSections === "number" && typeof degradedErr?.calls === "number") {
-      recordTbrQuality(
+      await recordTbrQualityAsync(
         buildTbrQualityRow({
           projectId: ctx.projectId,
           snapshotId: null,
@@ -951,7 +951,7 @@ export async function runTrustReportForProject(args: {
   }
 
   // G19-S46: one quality row per run, now that the snapshot id is known.
-  const quality = recordTbrQuality(qualityRowFor(report, ctx, tier, snapshotId, reportV2 ?? report.reportV2 ?? null), args.qualityWriter);
+  const quality = await recordTbrQualityAsync(qualityRowFor(report, ctx, tier, snapshotId, reportV2 ?? report.reportV2 ?? null), args.qualityWriter);
 
   return {
     kind: "full",
