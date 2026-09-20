@@ -610,7 +610,7 @@ const v2En: TbrV2Strings = {
     availableUntil: (date) => `available until ${date}`,
     openInWorkspace: "Open this report in your workspace (share link, TOC, Q&A) →",
     legacyText: (words) => `Legacy text version (${words.toLocaleString("en-AU")} words)`,
-    pendingTitle: "Writing your Trust Business Report",
+    pendingTitle: "Writing your Trusted Business Report",
     pendingAria: "Report generation in progress",
     pendingLeave: "You can leave this page — the report is saved to your account and this link keeps working for 90 days.",
     blockedRefunded: "This order was refunded",
