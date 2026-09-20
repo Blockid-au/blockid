@@ -12,7 +12,7 @@ import { describe, it, expect } from "vitest";
 
 import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
 import {
-  CONNECTED_REVENUE_FEATURE_LINE,
+  INVESTOR_PACK_FEATURE_LINE,
   EVALUATOR_RADAR_LINE,
   FOUNDER_RADAR_BADGE,
   FOUNDER_RADAR_FEATURE_LINE,
@@ -258,7 +258,9 @@ describe("PLANS_V2 catalogue", () => {
     expect(bullets("investor_angel")).toMatch(/25 tracked startups, 1 seat\b/);
     expect(bullets("investor_advisor")).toMatch(/30 Trusted Business Reports a month/);
     expect(bullets("investor_advisor")).toMatch(/50 tracked startups, 3 seats/);
-    expect(bullets("investor_advisor").toLowerCase()).toContain("white-label");
+    // G20-F1: white-label is hidden (not built) — Firm sells the roster instead.
+    expect(bullets("investor_advisor").toLowerCase()).toContain("client roster");
+    expect(bullets("investor_advisor").toLowerCase()).not.toContain("white-label");
     expect(bullets("investor_vc_small")).toMatch(/100 Trusted Business Reports a month/);
     expect(bullets("investor_vc_small")).toMatch(/200 tracked startups, 5 seats/);
     const program = bullets("investor_vc_small").toLowerCase();
@@ -291,17 +293,20 @@ describe("PLANS_V2 catalogue", () => {
     expect(growth).not.toContain("(coming)");
   });
 
-  it("S25-A: Growth sells the connected-revenue loop now that the weekly resync exists (≤ 2 sentences, names both live connectors, never QuickBooks)", () => {
+  it("G20-F1: Growth sells the Investor Pack + secondary simulator (flags it holds), never the unprovisioned Stripe/Xero connectors", () => {
     const byId = new Map(PLANS_V2.map((p) => [p.id, p]));
     const growth = byId.get("founder_growth")!;
-    expect(growth.features).toContain(CONNECTED_REVENUE_FEATURE_LINE);
-    expect(CONNECTED_REVENUE_FEATURE_LINE).toMatch(/Stripe/);
-    expect(CONNECTED_REVENUE_FEATURE_LINE).toMatch(/Xero/);
-    expect(CONNECTED_REVENUE_FEATURE_LINE).toMatch(/weekly/);
-    expect(CONNECTED_REVENUE_FEATURE_LINE).not.toMatch(/QuickBooks/i);
-    expect(CONNECTED_REVENUE_FEATURE_LINE.split(/[.!?]\s/).length).toBeLessThanOrEqual(2);
+    expect(growth.features).toContain(INVESTOR_PACK_FEATURE_LINE);
+    expect(INVESTOR_PACK_FEATURE_LINE).toMatch(/Investor Pack/);
+    expect(INVESTOR_PACK_FEATURE_LINE).toMatch(/secondary/);
+    // Public cards only — the contact-sales rows (`public: false`) are not
+    // rendered on /pricing and keep their enterprise scope lines.
+    for (const p of PLANS_V2.filter((x) => x.public)) {
+      const joined = p.features.join(" ");
+      expect(joined, p.id).not.toMatch(/Xero|QuickBooks|Stripe Connect|White-label|white-label|mentor access|share-link tracking|weekly re-score|check-ins/i);
+    }
     // Only Growth carries it — Starter/Free copy is unchanged.
-    expect(byId.get("founder_starter")!.features).not.toContain(CONNECTED_REVENUE_FEATURE_LINE);
+    expect(byId.get("founder_starter")!.features).not.toContain(INVESTOR_PACK_FEATURE_LINE);
   });
 
   it("every public evaluator rung includes the Money Finder & Progress Radar line", () => {

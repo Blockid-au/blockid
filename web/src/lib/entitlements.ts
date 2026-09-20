@@ -271,16 +271,21 @@ export const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
     "advisory_equity", "advisor_portal", "advisor.cohort", "white_label",
     "grant_finder", "money_radar", "intake.manage",
   ],
+  // G20-F1 (2026-09-20): Program (and Fund, which reads this row via the
+  // tier ladder) sell "Cohort dashboard" — the page gates on
+  // accelerator.cohort, which the row never carried (migration 0414).
   investor_vc_small: [
     "watchlist", "svi.feed", "investor.dealflow",
     "advisory_equity", "advisor_portal", "advisor.cohort", "white_label",
     "portfolio", "diligence_pack", "api", "api.access", "lp_export", "lp_report",
+    "accelerator.cohort",
     "grant_finder", "money_radar", "intake.manage",
   ],
   investor_vc_ent: [
     "watchlist", "svi.feed", "investor.dealflow",
     "advisory_equity", "advisor_portal", "advisor.cohort", "white_label",
     "portfolio", "diligence_pack", "api", "api.access", "lp_export", "lp_report",
+    "accelerator.cohort",
     "custom_benchmark", "multi_fund", "sso", "weekly_delta",
     "grant_finder", "money_radar", "intake.manage",
   ],

@@ -58,7 +58,8 @@ export const FEATURE_GATES: readonly FeatureGate[] = Object.freeze([
   // anybody today. The change can only widen.
   { route: "api/data-room/access/route.ts", required_feature: "investor_links.premium", note: "mints the investor share token — this IS the live-link capability the A$29 rung sells" },
   { route: "api/data-room/auto-fill/route.ts", required_feature: "data_room.access" },
-  { route: "api/data-room/engage/route.ts", required_feature: "share_management" },
+  // G20-F1 (2026-09-20): the engagement view ("see which sections each investor read") is a Starter bullet; the route body only checks room ownership. Pinned to the A$29 flag, not the Growth add-on.
+  { route: "api/data-room/engage/route.ts", required_feature: "investor_links.premium" },
   { route: "api/data-room/generate/route.ts", required_feature: "data_room.access" },
   { route: "api/data-room/goals/route.ts", required_feature: "data_room.access" },
   { route: "api/data-room/initialize/route.ts", required_feature: "data_room.access", note: "RETIRED 2026-09-08 — 410s; /api/data-room/generate is the single data-room writer" },

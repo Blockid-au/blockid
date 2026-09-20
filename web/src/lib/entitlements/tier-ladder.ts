@@ -256,8 +256,9 @@ const ADVISOR_FEATURES: readonly Feature[] = [
   ...ANGEL_FEATURES,
   "advisory_equity",
   "advisor_portal",
-  // G12 Firm rung: client roster/notes pages gate on advisor.cohort and the
-  // white-label PDF is the advisor's core deliverable.
+  // G12 Firm rung: client roster/notes pages gate on advisor.cohort. The
+  // `white_label` flag stays in the row (csv parity) but is not sold —
+  // white-label is hidden (G20-F1, lib/features/hidden.ts).
   "advisor.cohort",
   "white_label",
   // G14 S35 (D5): program intake links from Firm up.
@@ -274,6 +275,10 @@ const VC_SM_FEATURES: readonly Feature[] = [
   // feature of the 5-seat tier, not an enterprise-only extra.
   "lp_export",
   "lp_report",
+  // G20-F1 (2026-09-20): the Program / Fund "Cohort dashboard" bullet —
+  // /workspace/accelerator/cohort and /quarterly-report gate on this flag
+  // (plans.csv + migration 0414).
+  "accelerator.cohort",
 ];
 
 // Pricing v4 Fund rung: Program + the fund-grade flags minus SSO (which
@@ -317,7 +322,7 @@ export const INVESTOR_LADDER: readonly TierLadderEntry[] = Object.freeze([
     monthlyAudBand: "A$149",
     targetPhaseRange: [2, 5],
     headlineUnlock:
-      "30 Trusted Business Reports a month, 50 tracked startups, 3 seats and white-label client reports for advisory firms",
+      "30 Trusted Business Reports a month, 50 tracked startups, 3 seats and a client roster for advisory firms",
     supportingUnlocks: ADVISOR_FEATURES,
     hiddenFromPublic: false,
   },
@@ -436,7 +441,7 @@ export const ACCELERATOR_LADDER: readonly TierLadderEntry[] = Object.freeze([
     monthlyAudBand: "A$1,500",
     targetPhaseRange: [3, 6],
     headlineUnlock:
-      "Cohort management across 100 startups and 15 seats to run a multi-cohort programme",
+      "LP report composer across 100 startups and 15 seats to run a multi-cohort programme",
     supportingUnlocks: ACCEL_GROWTH_FEATURES,
     hiddenFromPublic: false,
   },
@@ -448,7 +453,7 @@ export const ACCELERATOR_LADDER: readonly TierLadderEntry[] = Object.freeze([
     monthlyAudBand: "A$3,500",
     targetPhaseRange: [6, 12],
     headlineUnlock:
-      "White-label reports, read-only API, SSO and unlimited seats for enterprise programs",
+      "Read-only API, custom rubric weights and unlimited seats for enterprise programs",
     supportingUnlocks: ACCEL_ENT_FEATURES,
     hiddenFromPublic: false,
   },
