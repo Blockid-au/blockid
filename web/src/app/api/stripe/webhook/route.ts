@@ -294,6 +294,12 @@ export async function POST(request: Request) {
       return;
     }
 
+    // ── G21 P0-C — paid Cohort Validation Pilot (cohort_pilot_25 / _50) ──
+    if (session.metadata?.kind === "cohort_pilot") {
+      await handleCohortPilotPurchase(session, e);
+      return;
+    }
+
     // ── Credit pack purchase ────────────────────────────────────────
     if (session.metadata?.type === "credit_purchase") {
       const creditUserId = session.metadata.blockid_user_id;
@@ -1607,6 +1613,73 @@ export async function POST(request: Request) {
       currency: session.currency ?? "aud",
       kind: "startup_package",
       detail: { session_id: session.id, project_id: projectId },
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // G21 P0-C — paid Cohort Validation Pilot (cohort_pilot_25 / cohort_pilot_50)
+  // -------------------------------------------------------------------------
+  //
+  // Fires from checkout.session.completed when metadata.kind === "cohort_pilot"
+  // (set by the checkout route's PILOT_SKU branch). Fulfilment lives in
+  // lib/pilots/paid-orders.ts (`pilot_orders` row, migration 0415 + the
+  // Cohort-tier grant through lib/pilots/service.ts `startPaidPilot`, source
+  // "paid" — plan column, credits, intake link, ledger, confirmation e-mail,
+  // audit). Idempotent: the outer claimWebhookEvent() row, the UNIQUE
+  // stripe_session_id (a replay returns duplicate:true and re-runs nothing)
+  // and the ledger's order_id check. The revenue row + the money event stay
+  // here, same as founder_package, so the CFO reports aggregate one-offs.
+  async function handleCohortPilotPurchase(
+    session: Stripe.Checkout.Session,
+    event: Stripe.Event,
+  ): Promise<void> {
+    const userId = session.metadata?.blockid_user_id ?? null;
+    let result: Awaited<ReturnType<typeof import("@/lib/pilots/paid-orders").fulfilPaidPilot>> | null = null;
+    try {
+      const { fulfilPaidPilot } = await import("@/lib/pilots/paid-orders");
+      result = await fulfilPaidPilot(session);
+    } catch (err) {
+      console.error("[blockid:stripe] cohort_pilot fulfilment threw", err);
+      throw err; // 500 → Stripe retries; every step is idempotent.
+    }
+    if (!result.ok) {
+      console.warn("[blockid:stripe] cohort_pilot fulfilment skipped", { session_id: session.id, skipped: result.skipped, message: result.message });
+      return;
+    }
+    if (result.duplicate) {
+      console.info(`[blockid:stripe] cohort_pilot session ${session.id} already fulfilled (order ${result.order_id ?? "?"})`);
+      return;
+    }
+    if (result.pilot.ok && result.pilot.warnings.length > 0) {
+      console.warn("[blockid:stripe] cohort_pilot fulfilled with warnings", { order_id: result.order_id, warnings: result.pilot.warnings });
+    } else if (!result.pilot.ok) {
+      console.error("[blockid:stripe] cohort_pilot order recorded but the entitlement grant failed", { order_id: result.order_id, error: result.pilot.error, message: result.pilot.message });
+    }
+
+    // Revenue analytics — same shape as founder_package / credit packs.
+    await recordRevenueEvent({
+      userId,
+      planId: result.sku,
+      stripeEventId: event.id,
+      grossCents: session.amount_total ?? 0,
+      currency: session.currency ?? "aud",
+      kind: "cohort_pilot",
+      detail: { session_id: session.id, order_id: result.order_id, sku: result.sku, entitlement_until: result.entitlement_until },
+    });
+
+    // The existing money event, keyed on the SKU (P0-D owns any new names).
+    void emitEvent({
+      name: "checkout_completed",
+      params: {
+        plan: result.sku,
+        sku: result.sku,
+        user_id: userId,
+        session_id: session.id,
+        gross_aud_cents: session.amount_total ?? 0,
+      },
+      userId,
+      source: "webhook:stripe",
+      consentGranted: true,
     });
   }
 

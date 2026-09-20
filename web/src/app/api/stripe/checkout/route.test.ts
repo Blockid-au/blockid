@@ -573,6 +573,69 @@ describe("stripe/checkout — Startup Package one-off", () => {
 });
 
 // -----------------------------------------------------------------------------
+// G21 P0-C — Cohort Validation Pilot (cohort_pilot_25 / _50) one-off
+// -----------------------------------------------------------------------------
+
+describe("stripe/checkout — Cohort Validation Pilot one-off (G21 P0-C)", () => {
+  afterEach(() => {
+    delete mocks.STRIPE_PRICE_MAP_FIXTURE.cohort_pilot_25;
+    delete mocks.STRIPE_PRICE_MAP_FIXTURE.cohort_pilot_50;
+  });
+
+  it("409 sku_unconfigured + the contact fallback when the price id is unset — Stripe never called", async () => {
+    mocks.getPlanMock.mockReturnValue(undefined);
+    const res = await POST(req({ plan: "cohort_pilot_25" }));
+    expect(res.status).toBe(409);
+    const body = await json(res);
+    expect(body.error).toBe("sku_unconfigured");
+    expect(body.fallback).toBe("/contact?topic=pilot");
+    expect(body.planId).toBe("cohort_pilot_25");
+    expect(mocks.stripeCreateMock).not.toHaveBeenCalled();
+    expect(mocks.getPlanCachedMock).not.toHaveBeenCalled();
+  });
+
+  it("requires a signed-in user (401 before anything else)", async () => {
+    mocks.getCurrentUserMock.mockResolvedValue(null);
+    const res = await POST(req({ plan: "cohort_pilot_25" }));
+    expect(res.status).toBe(401);
+  });
+
+  it("mode=payment, sku metadata, success → /workspace/accelerator?pilot=paid, cancel → /solutions/accelerator#pilot", async () => {
+    mocks.STRIPE_PRICE_MAP_FIXTURE.cohort_pilot_25 = "price_pilot_25";
+    mocks.getPlanMock.mockReturnValue(undefined);
+    const res = await POST(req({ plan: "cohort_pilot_25", projectId: "proj-1" }));
+    expect(res.status).toBe(200);
+    expect((await json(res)).url).toBe("https://stripe.example/cs_test_1");
+    const call = mocks.stripeCreateMock.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(call.mode).toBe("payment");
+    expect(call.line_items).toEqual([{ price: "price_pilot_25", quantity: 1 }]);
+    expect(call.success_url).toMatch(/\/workspace\/accelerator\?pilot=paid$/);
+    expect(call.cancel_url).toMatch(/\/solutions\/accelerator#pilot$/);
+    const md = call.metadata as Record<string, string>;
+    expect(md.kind).toBe("cohort_pilot");
+    expect(md.sku).toBe("cohort_pilot_25");
+    expect(md.applicants_cap).toBe("25");
+    expect(md.project_id).toBe("proj-1");
+    expect(md.blockid_user_id).toBe(USER.id);
+    expect(md.blockid_plan).toBe("cohort_pilot_25");
+    // One-off: no subscription block, invoice creation on, payment-only.
+    expect(call.subscription_data).toBeUndefined();
+    expect((call.invoice_creation as { enabled: boolean }).enabled).toBe(true);
+  });
+
+  it("the 50-applicant size books its own price and cap; idempotency family is cohort-pilot", async () => {
+    mocks.STRIPE_PRICE_MAP_FIXTURE.cohort_pilot_50 = "price_pilot_50";
+    mocks.getPlanMock.mockReturnValue(undefined);
+    const res = await POST(req({ plan: "cohort_pilot_50" }));
+    expect(res.status).toBe(200);
+    const call = mocks.stripeCreateMock.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(call.line_items).toEqual([{ price: "price_pilot_50", quantity: 1 }]);
+    expect((call.metadata as Record<string, string>).applicants_cap).toBe("50");
+    expect(mocks.sessionIdempotencyKeyMock).toHaveBeenCalledWith("cohort-pilot", [USER.id, "cohort_pilot_50", "price_pilot_50"]);
+  });
+});
+
+// -----------------------------------------------------------------------------
 // Promo code (unknown / expired) — 400
 // -----------------------------------------------------------------------------
 

@@ -205,6 +205,14 @@ vi.mock("@/lib/funding/reports", () => ({
     handleFundingReportCompletedMock(session, eventId),
 }));
 
+// G21 P0-C — paid Cohort Validation Pilot fulfilment lives in
+// lib/pilots/paid-orders.ts (unit-tested there); here we pin the routing,
+// the revenue row and the money event.
+const fulfilPaidPilotMock = vi.fn<(session: unknown) => Promise<Record<string, unknown>>>();
+vi.mock("@/lib/pilots/paid-orders", () => ({
+  fulfilPaidPilot: (session: unknown) => fulfilPaidPilotMock(session),
+}));
+
 // Telegram is only used by the founding50 post-cutover guard's alert path
 // (dynamic import). Provide a stub so the cutover test can pin that the alert
 // fires without a real network call.
@@ -293,6 +301,8 @@ beforeEach(() => {
   sendTelegramMock.mockResolvedValue(undefined);
   handleFundingReportCompletedMock.mockReset();
   handleFundingReportCompletedMock.mockResolvedValue({ ok: true, reportId: "fr-1" });
+  fulfilPaidPilotMock.mockReset();
+  fulfilPaidPilotMock.mockResolvedValue({ ok: true, duplicate: false, order_id: "order-1", sku: "cohort_pilot_25", user_id: "user-1", entitlement_until: "2026-12-19T00:00:00.000Z", pilot: { ok: true, warnings: [] } });
   for (const fn of Object.values(emailMock)) fn.mockReset();
 });
 
@@ -616,6 +626,66 @@ describe("POST /api/stripe/webhook — checkout.session.completed routing", () =
     expect(res.status).toBe(200);
     expect(insertCalls.find((c) => c.table === "revenue_events")).toBeUndefined();
     expect(emitCalls.find((c) => c.name === "funding_report_paid")).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// G21 P0-C — paid Cohort Validation Pilot (metadata.kind === "cohort_pilot")
+// ---------------------------------------------------------------------------
+
+describe("POST /api/stripe/webhook — cohort_pilot one-off (G21 P0-C)", () => {
+  const pilotEvent = (id = "evt_pilot_1") =>
+    buildCheckoutEvent({
+      id,
+      metadata: { kind: "cohort_pilot", sku: "cohort_pilot_25", applicants_cap: "25", blockid_user_id: "user-1", blockid_plan: "cohort_pilot_25" },
+      customerEmail: "program@uni.edu.au",
+      amountTotal: 150000,
+    });
+
+  it("routes to fulfilPaidPilot with the session, records revenue kind=cohort_pilot and emits checkout_completed {sku}; never the generic plan path", async () => {
+    verifyWebhookSignature.mockReturnValue(pilotEvent());
+    const res = await invoke();
+    expect(res.status).toBe(200);
+    expect(fulfilPaidPilotMock).toHaveBeenCalledTimes(1);
+    expect((fulfilPaidPilotMock.mock.calls[0]![0] as { id: string }).id).toBe("cs_test_evt_pilot_1");
+    // no app_users.plan write from the generic subscription path
+    expect(updateCalls.find((c) => c.table === "app_users")).toBeUndefined();
+    expect(grantCreditsMock).not.toHaveBeenCalled();
+    const rev = insertCalls.find((c) => c.table === "revenue_events" && (c.row as Row).kind === "cohort_pilot");
+    expect(rev).toBeTruthy();
+    expect((rev!.row as Row).plan_id).toBe("cohort_pilot_25");
+    expect((rev!.row as Row).gross_aud_cents).toBe(150000);
+    expect((rev!.row as Row).stripe_event_id).toBe("evt_pilot_1");
+    const money = emitCalls.find((c) => c.name === "checkout_completed");
+    expect(money).toBeTruthy();
+    expect(money!.params.sku).toBe("cohort_pilot_25");
+    expect(money!.params.gross_aud_cents).toBe(150000);
+    expect(emailMock.sendPaymentConfirmation).not.toHaveBeenCalled();
+  });
+
+  it("a replayed session (duplicate order) records nothing twice", async () => {
+    fulfilPaidPilotMock.mockResolvedValue({ ok: true, duplicate: true, order_id: "order-1" });
+    verifyWebhookSignature.mockReturnValue(pilotEvent("evt_pilot_2"));
+    const res = await invoke();
+    expect(res.status).toBe(200);
+    expect(insertCalls.find((c) => c.table === "revenue_events")).toBeUndefined();
+    expect(emitCalls.find((c) => c.name === "checkout_completed")).toBeUndefined();
+  });
+
+  it("a skipped fulfilment (bad metadata) is logged, not retried, and books no revenue", async () => {
+    fulfilPaidPilotMock.mockResolvedValue({ ok: false, skipped: "bad_metadata", message: "missing sku" });
+    verifyWebhookSignature.mockReturnValue(pilotEvent("evt_pilot_3"));
+    const res = await invoke();
+    expect(res.status).toBe(200);
+    expect(insertCalls.find((c) => c.table === "revenue_events")).toBeUndefined();
+  });
+
+  it("a thrown fulfilment surfaces as a handler error so Stripe retries", async () => {
+    fulfilPaidPilotMock.mockRejectedValue(new Error("db down"));
+    verifyWebhookSignature.mockReturnValue(pilotEvent("evt_pilot_4"));
+    const res = await invoke();
+    expect(res.status).toBe(500);
+    expect(markWebhookEventProcessed).toHaveBeenCalledWith("evt_pilot_4", expect.stringMatching(/db down/));
   });
 });
 

@@ -31,6 +31,14 @@ export const JOURNAL_FILE = path.join("content", "reports", "pilots-journal.json
 export const LEDGER_VERSION = 1 as const;
 
 export type PilotStatus = "active" | "ended" | "expired";
+/**
+ * G21 P0-C: `comp` = the admin grant (G16-C, capped at PILOT_CAP);
+ * `paid` = a Cohort Validation Pilot bought through Stripe (`pilot_orders`,
+ * never capped, Cohort-tier plan). Absent on rows written before P0-C → comp.
+ */
+export type PilotSource = "comp" | "paid";
+/** The plan tier a pilot row grants: the comped Program rung or a paid Cohort rung. */
+export type PilotTier = typeof PILOT_TIER | "accelerator_starter" | "accelerator_growth";
 export type PilotEndReason = "expired" | "ended_early" | "converted" | "withdrawn" | "other";
 
 export interface PilotRow {
@@ -38,7 +46,7 @@ export interface PilotRow {
   user_id: string;
   email: string;
   program_name: string;
-  tier: typeof PILOT_TIER;
+  tier: PilotTier;
   previous_plan: string | null;
   started_at: string;
   expires_at: string;
@@ -58,6 +66,16 @@ export interface PilotRow {
   started_by: string | null;
   /** Free-text note written at end (admin) or by the cron. */
   note: string | null;
+  /** G21 P0-C — comp (admin grant) or paid (Stripe order). Missing = comp. */
+  source?: PilotSource;
+  /** G21 P0-C — `pilot_orders.id` for a paid pilot. */
+  order_id?: string | null;
+  /** G21 P0-C — applicants the paid pilot covers (25 / 50). */
+  applicants_cap?: number | null;
+}
+
+export function pilotSource(row: Pick<PilotRow, "source">): PilotSource {
+  return row.source === "paid" ? "paid" : "comp";
 }
 
 export interface PilotLedger {
@@ -114,8 +132,9 @@ export function findActiveByEmail(rows: readonly PilotRow[], email: string): Pil
   return activePilots(rows).find((r) => r.email === e) ?? null;
 }
 
+/** The comp cap counts comped pilots only — a paid pilot never blocks a comp and is never blocked by one. */
 export function capReached(rows: readonly PilotRow[], cap = PILOT_CAP): boolean {
-  return activePilots(rows).length >= cap;
+  return activePilots(rows).filter((r) => pilotSource(r) === "comp").length >= cap;
 }
 
 export interface NewPilotInput {
@@ -128,6 +147,11 @@ export interface NewPilotInput {
   intake_slug: string | null;
   days?: number;
   started_by?: string | null;
+  /** G21 P0-C — defaults to the comped Program tier. */
+  tier?: PilotTier;
+  source?: PilotSource;
+  order_id?: string | null;
+  applicants_cap?: number | null;
 }
 
 export function newPilotRow(input: NewPilotInput, now: Date = new Date(), id: string = randomUUID()): PilotRow {
@@ -138,7 +162,7 @@ export function newPilotRow(input: NewPilotInput, now: Date = new Date(), id: st
     user_id: input.user_id,
     email: normalisePilotEmail(input.email),
     program_name: input.program_name.trim(),
-    tier: PILOT_TIER,
+    tier: input.tier ?? PILOT_TIER,
     previous_plan: input.previous_plan,
     started_at: started,
     expires_at: addDays(started, days),
@@ -153,6 +177,9 @@ export function newPilotRow(input: NewPilotInput, now: Date = new Date(), id: st
     updated_at: started,
     started_by: input.started_by ?? null,
     note: null,
+    ...(input.source ? { source: input.source } : {}),
+    ...(input.order_id ? { order_id: input.order_id } : {}),
+    ...(input.applicants_cap ? { applicants_cap: input.applicants_cap } : {}),
   };
 }
 
