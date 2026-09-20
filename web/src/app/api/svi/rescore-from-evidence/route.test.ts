@@ -43,9 +43,12 @@ vi.mock("@/lib/projects", () => ({
 // the lib mutates them).
 let sviSubs: () => Array<{ key: string; value: number; adjustment: number; evidence: string[] }> = () => [];
 vi.mock("@/lib/svi-analysis", () => ({
+  SVI_VERSION: "test",
   extractSignals: () => ({}),
   computeSVI: () => ({ totalSVI: 120, netAdjustment: 0, confidenceMultiplier: 1, stage: 2, subs: sviSubs() }),
 }));
+// G21 P1-C: the rescore emits score_recalculated; keep the sink out of this suite.
+vi.mock("@/lib/analytics/fi-events", () => ({ emitScoreRecalculated: () => true }));
 vi.mock("@/lib/badges", () => ({ checkAndAwardBadges: async () => [] }));
 
 type Row = Record<string, unknown>;

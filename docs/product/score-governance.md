@@ -116,6 +116,8 @@ Conflicts are never averaged and never hidden. A conflicting claim is flagged to
 
 Appeals about a program's decision go to the program; BlockID can only correct the assessment, not the decision.
 
+Implementation (G21 P1-C): the founder files from `/workspace/evidence/corrections` (kinds: incorrect data · stale data · misunderstood evidence · duplicate company · wrong sector / stage · unsupported report statement) into the `corrections` table (migration `0418_corrections.sql`); the admin queue is `/admin/corrections`. A correction is logged, never applied in place: an accept records a resolution (`correction.accepted` audit row, founder e-mailed) and only a sector / stage correction with a proposed value is written, through the project update path (`updateProject`, versioned and audit-logged); the resolution text states exactly what was — or was not — changed. The same page shows what BlockID holds about the startup (evidence status counts, who has access, what was shared, last refreshed) with links to the existing revoke controls.
+
 ## 11. Re-score policy
 
 - A re-score happens when evidence is added, verified, expires or is corrected; on a scheduled snapshot (weekly for tracked companies); or when the methodology version changes.

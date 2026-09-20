@@ -151,10 +151,13 @@ export function summary(report: BacktestReport): string {
     `ρ(SVI, log valuation) pooled = ${report.rho.valuation_pooled ?? "n/a"}  95% CI ${ci(report.ci.valuation_pooled)}`,
     "by stage (round):",
     ...Object.entries(report.rho.round_by_stage).map(
-      ([s, c]) => `  ${s.padEnd(9)} n=${String(c.n).padStart(2)}  ρ=${c.rho ?? `n/a (${c.reason})`}  CI ${ci(report.ci.round_by_stage[s] ?? null)}`,
+      ([s, c]) => `  ${s.padEnd(9)} n=${String(c.n).padStart(2)}  ρ=${c.rho ?? `n/a (${c.reason})`}  CI ${ci(report.ci.round_by_stage[s] ?? null)}  [${report.publication_by_stage[s]?.band ?? "none"}]`,
     ),
-    "buckets (SVI quartile → median round):",
-    ...report.buckets.map((b) => `  ${b.label.padEnd(18)} n=${b.n}  SVI ${b.svi_min}–${b.svi_max}  median A$${(b.median_round_aud ?? 0).toLocaleString("en-AU")}`),
+    // G21 P1-C: a bucket under the publication floor (n < 10) has no median; 10–29 is indicative.
+    "buckets (SVI quartile → median round, publication band):",
+    ...report.buckets.map(
+      (b) => `  ${b.label.padEnd(18)} n=${b.n}  SVI ${b.svi_min}–${b.svi_max}  median ${b.median_round_aud === null ? "suppressed" : `A$${b.median_round_aud.toLocaleString("en-AU")}`}  [${b.publication.label}]`,
+    ),
     `outcome_source = ${report.outcome_source}`,
   ];
   return lines.join("\n");
