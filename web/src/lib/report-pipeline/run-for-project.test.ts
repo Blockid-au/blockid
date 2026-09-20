@@ -241,6 +241,22 @@ describe("generateAndPersistReport", () => {
     expect(writer).not.toHaveBeenCalled();
   });
 
+  it("a fully-degraded run still logs one quality row (no snapshot, 8 degraded, calls from the error) before re-throwing", async () => {
+    class ReportFullyDegradedError extends Error {
+      constructor(readonly degradedSections: number, readonly calls: number) { super("report fully degraded"); }
+    }
+    orchestrateMock.mockRejectedValue(new ReportFullyDegradedError(8, 16));
+    const writer = vi.fn();
+    await expect(generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 3, qualityWriter: writer })).rejects.toThrow("report fully degraded");
+    expect(writer).toHaveBeenCalledTimes(1);
+    expect(writer.mock.calls[0][0]).toMatchObject({ snapshotId: null, tier: "standard", calls: 16, degradedSections: 8, groundedShare: 0, pendingDims: 0, words: 0, pages: 0 });
+    // A plain failure (no degraded/calls fields) logs nothing.
+    writer.mockClear();
+    orchestrateMock.mockRejectedValue(new Error("agents down"));
+    await expect(generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 3, qualityWriter: writer })).rejects.toThrow("agents down");
+    expect(writer).not.toHaveBeenCalled();
+  });
+
   it("writes a failed row and re-throws when the orchestrator fails", async () => {
     orchestrateMock.mockRejectedValue(new Error("agents down"));
     await expect(generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 3 })).rejects.toThrow("agents down");

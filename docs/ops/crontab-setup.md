@@ -548,3 +548,43 @@ cd web && node scripts/stripe-price-audit.mjs --json                    # live, 
 After a price change: mint the new Stripe Price, update the env var, then update
 the catalogue row **and** `plans.csv` / `credit-packs.ts` / `v3-skus.ts` in the
 same commit — `stripe-map.test.ts` fails otherwise.
+
+## G19-S46 — weekly BlockID self-report (2026-09-20)
+
+One plain-node cron (no `cron-runner.sh`) that runs the real Trusted Business
+Report pipeline on BlockID's own project every Monday, so
+`/showcase/blockid/report` shows the report the same code writes for every
+founder — score ledger, honest pre-revenue valuation, real evidence rows,
+pending dimensions where we have no evidence. Core: `web/scripts/lib/self-report-core.mjs`
+(tested in `web/scripts/run-self-analysis.test.mjs`); the pipeline is
+tsx-loaded from `src/lib/report-pipeline/run-for-project.ts` through the
+CommonJS hook, with `server-only` resolved to an empty module
+(`web/scripts/lib/server-only-hook.mjs`).
+
+| Script | Reads | Writes | Guard |
+|---|---|---|---|
+| `scripts/run-self-analysis.mjs --report` | `web/.env` (Supabase service role, AI provider keys); `projects` / `svi_accounts` / `evaluation_criteria` for admin@blockid.au's `%blockid%` project with the most `svi_snapshots` (`2bf55234-…` "Blockid.au 1"; `--project <uuid>` overrides, must be one of ours) | `evaluation_criteria` (13 rows, **only when empty** — `--seed` forces, `--no-seed` skips), a new `svi_analyses` row from the public-facts raw input when seeding, `assembled_reports`, today's `svi_snapshots` row with `report_v2`, one line in `content/reports/tbr-quality.jsonl` (live checkout) | the pipeline's own tier cap (standard ≤ 30 LLM calls) and monthly AI budget; `--dry-run` resolves + prints and writes nothing |
+
+The seed text states revenue truthfully ("pre-revenue — 0 subscriptions, first
+A$3 orders") and never a projection as a fact; ABR verification needs
+`ABR_GUID` (unset → the cover keeps "ABN not verified"); the GitHub connector
+needs a token (unset → the repo audit reads the public URL only).
+
+### Lines to install
+
+```
+0 4 * * 1 cd /home/dovanlong/blockid.au/web && node --env-file=.env scripts/run-self-analysis.mjs --report >> /data/logs/blockid-self-report.log 2>&1
+```
+
+### Dry-run smoke
+
+```bash
+cd web && node --env-file=.env scripts/run-self-analysis.mjs --report --dry-run   # project + would-seed, nothing written
+cd web && node --env-file=/home/dovanlong/blockid.au/web/.env scripts/run-self-analysis.mjs --report   # from a worktree
+```
+
+Readers: `/api/status.tbr_quality` (24 h runs / grounded median / cost median /
+degraded share → `ok | watch | missing`) and the admin "Pipeline (24 h)" KPI
+cell read the same jsonl; the showcase page caches the stored `report_v2` for
+1 h.
+

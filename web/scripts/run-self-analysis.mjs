@@ -9,6 +9,20 @@
 //
 // Run from web/:
 //   node scripts/run-self-analysis.mjs
+//
+// G19-S46 `--report` — BlockID's own Trusted Business Report as the showcase:
+//   node --env-file=.env scripts/run-self-analysis.mjs --report [--project <uuid>] [--seed | --no-seed] [--dry-run]
+// Resolves BlockID's canonical project (admin@blockid.au's "%blockid%" project
+// with the most svi_snapshots — "Blockid.au 1" unless --project says
+// otherwise; prints which), seeds the 13-criteria founder inputs + a fresh
+// raw_input from the public facts when they are empty (scripts/lib/
+// self-report-core.mjs; --seed forces, --no-seed skips), re-scores, then runs
+// `runTrustReportForProject({ tier: "standard", locale: "en" })` from
+// src/lib/report-pipeline/run-for-project.ts (tsx-loaded; the pipeline's own
+// cost guard applies — standard ≤ 30 calls, DeepInfra-first; the wall clock
+// is widened to 8 min for this offline run, REPORT_DEADLINE_MS_STANDARD) which persists
+// `report_v2` on today's snapshot, and prints the snapshot id + the
+// tbr-quality.jsonl line. Weekly cron: Mon 04:00 UTC (scripts/crontab.production).
 
 import { readFileSync, writeFileSync, existsSync, statSync, readdirSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
@@ -22,18 +36,26 @@ const WEB_DIR = resolve(__dirname, "..");
 const REPO_DIR = resolve(WEB_DIR, "..");
 
 // ─── Load .env ─────────────────────────────────────────────────────────────
+// web/.env when present (the live checkout); `node --env-file=…` / the
+// process environment always wins so a worktree without .env can run too.
 function loadEnv() {
   const env = {};
-  for (const line of readFileSync(resolve(WEB_DIR, ".env"), "utf8").split("\n")) {
-    const m = line.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*)$/);
-    if (!m) continue;
-    let v = m[2].trim();
-    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
-    env[m[1]] = v;
+  const envPath = resolve(WEB_DIR, ".env");
+  if (existsSync(envPath)) {
+    for (const line of readFileSync(envPath, "utf8").split("\n")) {
+      const m = line.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*)$/);
+      if (!m) continue;
+      let v = m[2].trim();
+      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
+      env[m[1]] = v;
+    }
   }
+  for (const [k, v] of Object.entries(process.env)) if (typeof v === "string" && v !== "") env[k] = v;
   return env;
 }
 const ENV = loadEnv();
+const ARGS = process.argv.slice(2);
+const REPORT_MODE = ARGS.includes("--report");
 
 // Inside Docker, SUPABASE_URL is http://supabase-kong:8000. From the host we
 // need to remap to localhost (the kong port is published as 8000).
@@ -49,6 +71,76 @@ const STRIPE = STRIPE_KEY ? new Stripe(STRIPE_KEY) : null;
 const EMAIL = "admin@blockid.au";
 const STARTUP_NAME = "blockid self analysis";
 const TODAY = new Date().toISOString().slice(0, 10);
+
+// ─── G19-S46 `--report`: the real pipeline on BlockID's own project ────────
+function argValue(flag) {
+  const i = ARGS.indexOf(flag);
+  return i === -1 ? null : (ARGS[i + 1] ?? null);
+}
+
+/**
+ * tsx-load the pipeline from src/ through the CommonJS hook (the lib graph
+ * has import cycles; require() tolerates them, require(esm) does not).
+ * `server-only` is resolved to an empty module by scripts/lib/
+ * server-only-hook.mjs (sync `module.registerHooks`, so it covers require()).
+ * The Supabase URL is remapped for the host before any lib module reads it.
+ */
+export async function loadReportPipeline() {
+  if (SUPABASE_URL) {
+    process.env.SUPABASE_URL = SUPABASE_URL;
+    process.env.NEXT_PUBLIC_SUPABASE_URL = SUPABASE_URL;
+  }
+  const nodeModule = await import("node:module");
+  const { hooks } = await import("./lib/server-only-hook.mjs");
+  nodeModule.registerHooks(hooks);
+  const { register: registerTsxCjs } = await import("tsx/cjs/api");
+  process.env.TSX_TSCONFIG_PATH ??= resolve(WEB_DIR, "tsconfig.json");
+  registerTsxCjs();
+  const require = nodeModule.createRequire(import.meta.url);
+  const rfp = require("../src/lib/report-pipeline/run-for-project.ts");
+  const ql = require("../src/lib/report-pipeline/quality-log.ts");
+  const ec = require("../src/lib/evaluation-criteria.ts");
+  const criterionDimensions = Object.fromEntries((ec.CRITERIA ?? []).map((c) => [c.key, { primary: c.primaryDimension, secondary: c.secondaryDimensions?.[0] ?? null }]));
+  return {
+    runRescoreForProject: rfp.runRescoreForProject,
+    runTrustReportForProject: rfp.runTrustReportForProject,
+    formatTbrQualityLine: ql.formatTbrQualityLine,
+    criterionDimensions,
+  };
+}
+
+if (REPORT_MODE) {
+  console.log(`\n━━━ BlockID self-report — the real pipeline on our own project (${TODAY}) ━━━`);
+  if (!SUPABASE) {
+    console.error("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY missing — nothing to run.");
+    process.exit(2);
+  }
+  // Offline batch run — nobody is waiting on a request. The interactive
+  // standard-tier wall clock (120 s) is not enough for 13 criterion + 8 owner
+  // calls at DeepSeek-V4-Flash long-output latency (10–30 s each, 2026-09-20
+  // measurement); the call cap (standard ≤ 30) stays the cost guard.
+  process.env.REPORT_DEADLINE_MS_STANDARD ??= String(8 * 60 * 1000);
+  const { runSelfReport, makeSelfReportDb } = await import("./lib/self-report-core.mjs");
+  const pipeline = await loadReportPipeline();
+  const summary = await runSelfReport({
+    db: makeSelfReportDb(SUPABASE),
+    pipeline,
+    log: (line) => console.log(`  ${line}`),
+    projectId: argValue("--project"),
+    forceSeed: ARGS.includes("--seed"),
+    skipSeed: ARGS.includes("--no-seed"),
+    dryRun: ARGS.includes("--dry-run"),
+  });
+  if (summary.dryRun) {
+    console.log(`\n✓ dry run — nothing written (project ${summary.project.id}, would seed: ${summary.wouldSeed})`);
+    process.exit(0);
+  }
+  console.log(`\n✓ report ${summary.reportId} persisted as report_v2 on snapshot ${summary.snapshotId ?? "(none)"}`);
+  console.log(`  ${summary.qualityLine}`);
+  console.log(`  showcase: ${summary.showcaseUrl}`);
+  if (!summary.reportV2Persisted) console.log("  WARNING: no report_v2 persisted (snapshot write failed?) — the showcase will show the empty state.");
+  process.exit(0);
+}
 
 console.log(`\n━━━ BlockID self-analysis (${TODAY}) ━━━`);
 

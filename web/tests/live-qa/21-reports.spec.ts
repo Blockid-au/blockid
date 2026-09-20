@@ -469,6 +469,41 @@ test.describe("TBR evidence & data CTAs (G19-S43)", () => {
   });
 });
 
+// G19-S46 — BlockID's own report as the showcase: /showcase/blockid/report
+// renders the stored ReportV2 of BlockID's canonical project through the same
+// <TbrReportV2> (≥ 8 svg[role=img], standard tier, no unlock rail, no survey)
+// with the "our own report" banner + data-ownership sentence. Until the weekly
+// self-report has persisted a report_v2 the page shows its empty state — a
+// clean skip, never a failure.
+test.describe("BlockID's own report — /showcase/blockid/report (G19-S46)", () => {
+  test("renders BlockID's stored report unlocked with ≥ 8 visuals (skips on the 'not published yet' empty state)", async ({ page, visit }, testInfo) => {
+    await visit("/showcase/blockid/report");
+    const banner = page.getByTestId("showcase-blockid-report-banner");
+    await expect(banner).toBeVisible({ timeout: 30_000 });
+    const bannerText = await banner.innerText();
+    expect(bannerText).toMatch(/Your data belongs to your startup/);
+    expect(await page.locator('a[href="/methodology"]').count()).toBeGreaterThan(0);
+    expect(await page.locator('a[href="/tbr/demo"]').count()).toBeGreaterThan(0);
+    const empty = await page.getByTestId("showcase-blockid-report-empty").count();
+    const report = page.getByTestId("showcase-blockid-report");
+    await evidence(testInfo, "showcase report state", { empty, report: await report.count(), snapshot: await report.getAttribute("data-snapshot-id").catch(() => null) });
+    test.skip(empty > 0, "BlockID's report_v2 not published yet — run scripts/run-self-analysis.mjs --report");
+    await expect(report).toBeVisible();
+    await expect(page.locator("[data-tbr-version]").first()).toBeVisible({ timeout: 30_000 });
+    const svgs = await report.locator("svg[role=img]").count();
+    const primaries = await report.locator("[data-tbr-primary]").count();
+    const rails = await report.locator("[data-testid=tbr-unlock-rail]").count();
+    const surveys = await page.getByTestId("tbr-clarity-survey").count();
+    const tier = await page.locator("[data-tbr-tier]").first().getAttribute("data-tbr-tier");
+    await evidence(testInfo, "showcase report render", { svgs, primaries, rails, surveys, tier });
+    expect(svgs).toBeGreaterThanOrEqual(8);
+    expect(primaries).toBe(8);
+    expect(tier).toBe("standard");
+    expect(rails).toBe(0);
+    expect(surveys).toBe(0);
+  });
+});
+
 /**
  * G14-S37 — Founder execution profile. The QA founder fills the structured
  * Execution fields through POST /api/founder-profile (the same route the

@@ -569,6 +569,27 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
     return report;
   } catch (err) {
     console.error("[blockid:report-pipeline] orchestration failed:", err);
+    // G19-S46: a fully-degraded run is still a run — log it (8 degraded, no
+    // snapshot) so /api/status.tbr_quality sees the outage as degradedShare.
+    const stats = done as Extract<PipelineEvent, { type: "done" }> | null;
+    const degradedErr = err as { degradedSections?: unknown; calls?: unknown };
+    if (typeof degradedErr?.degradedSections === "number" && typeof degradedErr?.calls === "number") {
+      recordTbrQuality(
+        buildTbrQualityRow({
+          projectId: ctx.projectId,
+          snapshotId: null,
+          tier,
+          report: null,
+          calls: degradedErr.calls,
+          costUsd: stats?.costUsd ?? 0,
+          durationMs: stats?.totalMs ?? Date.now() - t0,
+          degradedSections: degradedErr.degradedSections,
+          sviVersion: ctx.sviAnalysis.version,
+          pipelineVersion: PIPELINE_VERSION,
+        }),
+        input.qualityWriter,
+      );
+    }
     if (supabase) {
       // Failed-status row for status polling — best effort.
       const failedId = `rpt-fail-${Date.now().toString(36)}`;
@@ -806,6 +827,8 @@ export async function runTrustReportForProject(args: {
   creditsCost?: number;
   /** G19-S46: test seam for the tbr-quality.jsonl writer. */
   qualityWriter?: TbrQualityWriter;
+  /** G19-S46: pipeline events (the self-report script logs phases + timings). */
+  onEvent?: PipelineEventHandler;
 }): Promise<TrustReportRunResult> {
   const tier: ReportTier = args.tier ?? "standard";
   const locale = args.locale ?? "en";
@@ -856,6 +879,7 @@ export async function runTrustReportForProject(args: {
     creditsCost: args.creditsCost ?? 0,
     qualityLog: "defer",
     qualityWriter: args.qualityWriter,
+    onEvent: args.onEvent,
   });
 
   const shapes = projectReportToSnapshotShapes(report, ctx.sviAnalysis);

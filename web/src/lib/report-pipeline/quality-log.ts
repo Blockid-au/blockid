@@ -105,6 +105,8 @@ export function buildTbrQualityRow(input: {
   words?: number;
   /** AssembledReport.consistencyIssues length (the gate issues); falls back to the ReportV2 list. */
   consistencyIssues?: number;
+  /** Override for a run that produced no ReportV2 (fully degraded → 8). */
+  degradedSections?: number;
   sviVersion: string;
   pipelineVersion?: string;
   now?: Date;
@@ -120,7 +122,7 @@ export function buildTbrQualityRow(input: {
     calls: Math.floor(nonNeg(input.calls)),
     costUsd: r4(nonNeg(input.costUsd)),
     groundedShare: report ? r4(Math.min(1, nonNeg(report.quality.groundedShare))) : 0,
-    degradedSections: report ? report.quality.degradedSections.length : 0,
+    degradedSections: typeof input.degradedSections === "number" ? Math.floor(nonNeg(input.degradedSections)) : report ? report.quality.degradedSections.length : 0,
     consistencyIssues: typeof input.consistencyIssues === "number" ? Math.floor(nonNeg(input.consistencyIssues)) : report ? report.quality.consistencyIssues.length : 0,
     pendingDims,
     words: typeof input.words === "number" ? Math.floor(nonNeg(input.words)) : est ? est.words : 0,
