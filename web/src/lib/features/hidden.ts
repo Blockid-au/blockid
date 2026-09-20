@@ -122,14 +122,10 @@ export const HIDDEN_FEATURES: readonly HiddenFeature[] = Object.freeze([
     since: SINCE,
     visibility: "signed-in",
   },
-  {
-    key: "accelerator_cohort_add",
-    routes: ["/workspace/accelerator/cohort/add"],
-    navKeys: [],
-    reason: "Static explainer ('the invite form ships in a follow-up release'); founders are added from the cohort roster itself.",
-    since: SINCE,
-    visibility: "signed-in",
-  },
+  // `accelerator_cohort_add` (/workspace/accelerator/cohort/add) left the
+  // registry in G21 P2-A: the path is a config redirect to the BlockID Cohort
+  // index (lib/nav/legacy-redirects.ts), where founders arrive by CSV import
+  // or intake link.
   {
     key: "lp_quarterly_explainer",
     routes: ["/dashboard/reports/lp-quarterly"],

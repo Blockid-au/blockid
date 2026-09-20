@@ -20,6 +20,7 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
 import { canManageIntake } from "@/lib/intake/access";
 import { listInboxRows, listMyIntakes } from "@/lib/intake/program-intakes";
+import { listTemplates } from "@/lib/intake/templates";
 import { EvaluatorReportDisclaimer } from "@/components/legal/evaluator-report-disclaimer";
 import { IntakeInboxClient } from "./intake-inbox-client";
 
@@ -36,7 +37,7 @@ export default async function ApplicationsPage() {
   if (!user) redirect("/auth/login?next=/workspace/accelerator/applications");
 
   const [isSandbox, allowed] = await Promise.all([getCurrentProjectIsSandbox(), canManageIntake(user)]);
-  const [intakes, rows] = allowed ? await Promise.all([listMyIntakes(user.id), listInboxRows(user.id)]) : [[], []];
+  const [intakes, rows, templates] = allowed ? await Promise.all([listMyIntakes(user.id), listInboxRows(user.id), listTemplates(user.id)]) : [[], [], []];
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
@@ -58,7 +59,7 @@ export default async function ApplicationsPage() {
         </header>
 
         {allowed ? (
-          <IntakeInboxClient initialIntakes={intakes} initialRows={rows} />
+          <IntakeInboxClient initialIntakes={intakes} initialRows={rows} templates={templates.map((t) => ({ id: t.id, name: t.name }))} />
         ) : (
           <section className="rounded-2xl border border-dashed border-surface-300 bg-white px-6 py-14 text-center" data-testid="intake-locked">
             <h2 className="text-lg font-semibold text-ink-900">Intake links are an evaluator feature</h2>

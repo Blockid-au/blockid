@@ -182,7 +182,7 @@ export interface PaidWelcomeInput {
 export function buildPaidPilotWelcomeEmail(input: PaidWelcomeInput): EmailBody {
   const site = siteUrl();
   const inbox = `${site}/workspace/accelerator/applications`;
-  const cohort = `${site}/workspace/accelerator/cohort`;
+  const cohort = `${site}/workspace/evaluations/cohort`;
   const price = typeof input.amountCents === "number" && input.amountCents > 0 ? `${formatAud(input.amountCents / 100)} inc. GST` : formatPilotPriceLong(input.sku);
   const tierLine = input.planSet === false ? "Your existing plan stays as it is; the pilot runs on it" : `Your workspace has the Cohort tier until <strong>${fmtDate(input.expiresAt)}</strong>`;
   const tierText = input.planSet === false ? "Your existing plan stays as it is; the pilot runs on it" : `Cohort tier until ${fmtDate(input.expiresAt)}`;

@@ -143,7 +143,7 @@ const SEGMENT_STEPS: Record<string, RecommendedNextStep> = {
     icon: "users",
   },
   accelerator: {
-    href: "/workspace/accelerator/cohort",
+    href: "/workspace/evaluations/cohort",
     label: "Manage your cohort",
     reason: "Cohort founders are your top-of-funnel signal",
     ctaLabel: "Open cohort",

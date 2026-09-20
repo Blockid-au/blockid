@@ -246,7 +246,7 @@ export default async function AcceleratorQuarterlyReportPage() {
               <p className="mt-4 text-sm text-ink-500 italic">
                 No cohort data yet — add founders in the{" "}
                 <Link
-                  href="/workspace/accelerator/cohort"
+                  href="/workspace/evaluations/cohort"
                   className="text-brand-600 hover:underline"
                 >
                   Cohort

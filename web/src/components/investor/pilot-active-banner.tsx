@@ -48,7 +48,7 @@ export async function PilotActiveBanner({ userId, justPaid = false }: { userId: 
           <Link href="/workspace/accelerator/applications" className="inline-flex min-h-11 items-center rounded-lg border border-line bg-surface px-4 text-sm font-semibold text-primary hover:bg-surface-hover">
             Intake inbox
           </Link>
-          <Link href="/workspace/accelerator/cohort" className="inline-flex min-h-11 items-center rounded-lg bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover">
+          <Link href="/workspace/evaluations/cohort" className="inline-flex min-h-11 items-center rounded-lg bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover">
             Cohort table
           </Link>
         </div>

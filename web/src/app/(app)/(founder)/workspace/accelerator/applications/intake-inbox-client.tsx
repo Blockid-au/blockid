@@ -112,7 +112,13 @@ function CopyButton({ text, label = "Copy link" }: { text: string; label?: strin
 
 // ── Create dialog ───────────────────────────────────────────────────────────
 
-function CreateIntakeDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (i: IntakeWithCounts) => void }) {
+/** G21 P2-A — an intake template the link may render (id + name only). */
+export interface IntakeTemplateOption {
+  id: string;
+  name: string;
+}
+
+function CreateIntakeDialog({ onClose, onCreated, templates = [] }: { onClose: () => void; onCreated: (i: IntakeWithCounts) => void; templates?: IntakeTemplateOption[] }) {
   const ref = React.useRef<HTMLDivElement>(null);
   useModalDialog(ref, { onClose });
   const [name, setName] = React.useState("");
@@ -120,6 +126,7 @@ function CreateIntakeDialog({ onClose, onCreated }: { onClose: () => void; onCre
   const [max, setMax] = React.useState("200");
   const [closesAt, setClosesAt] = React.useState("");
   const [autoReport, setAutoReport] = React.useState(false);
+  const [templateId, setTemplateId] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [created, setCreated] = React.useState<IntakeWithCounts | null>(null);
@@ -138,6 +145,7 @@ function CreateIntakeDialog({ onClose, onCreated }: { onClose: () => void; onCre
           max_submissions: max ? Number(max) : undefined,
           closes_at: closesAt ? new Date(closesAt).toISOString() : undefined,
           auto_report: autoReport,
+          template_id: templateId || undefined,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; intake?: IntakeWithCounts; message?: string; error?: string };
@@ -209,6 +217,25 @@ function CreateIntakeDialog({ onClose, onCreated }: { onClose: () => void; onCre
                 <input id="intake-closes" type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} className="w-full rounded-lg border border-surface-300 px-3 py-2 text-sm" />
               </div>
             </div>
+            <div>
+              <label htmlFor="intake-template" className="mb-1 block text-sm font-medium text-ink-800">
+                Intake template
+              </label>
+              <select id="intake-template" value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="w-full rounded-lg border border-surface-300 px-3 py-2 text-sm" data-testid="intake-template">
+                <option value="">Default form (startup, founder, e-mail, website, deck)</option>
+                {templates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-ink-500">
+                A template adds your program&apos;s questions and consent text to the form.{" "}
+                <Link href="/workspace/accelerator/templates" className="font-medium text-brand-700 hover:underline">
+                  Manage templates
+                </Link>
+              </p>
+            </div>
             <label className="flex items-start gap-3 rounded-xl border border-surface-200 bg-surface-50 p-3 text-sm text-ink-700">
               <input type="checkbox" checked={autoReport} onChange={(e) => setAutoReport(e.target.checked)} className="mt-0.5 h-4 w-4" data-testid="intake-auto-report" />
               <span>
@@ -241,9 +268,11 @@ function CreateIntakeDialog({ onClose, onCreated }: { onClose: () => void; onCre
 export interface IntakeInboxClientProps {
   initialIntakes: IntakeWithCounts[];
   initialRows: InboxRow[];
+  /** G21 P2-A — templates the create dialog may attach. */
+  templates?: IntakeTemplateOption[];
 }
 
-export function IntakeInboxClient({ initialIntakes, initialRows }: IntakeInboxClientProps) {
+export function IntakeInboxClient({ initialIntakes, initialRows, templates = [] }: IntakeInboxClientProps) {
   const [intakes, setIntakes] = React.useState(initialIntakes);
   const [rows, setRows] = React.useState(initialRows);
   const [showCreate, setShowCreate] = React.useState(false);
@@ -459,6 +488,7 @@ export function IntakeInboxClient({ initialIntakes, initialRows }: IntakeInboxCl
 
       {showCreate ? (
         <CreateIntakeDialog
+          templates={templates}
           onClose={() => setShowCreate(false)}
           onCreated={(i) => setIntakes((list) => [i, ...list])}
         />

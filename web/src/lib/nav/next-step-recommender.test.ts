@@ -57,7 +57,7 @@ describe("next-step-recommender", () => {
   it("investor_vc + advisor + accelerator + reseller each get their own home surface", () => {
     expect(recommendNextStep({ currentPhase: 4, segment: "investor_vc" }).href).toBe("/workspace/investor/dealflow");
     expect(recommendNextStep({ currentPhase: 4, segment: "advisor" }).href).toBe("/workspace/advisor/roster");
-    expect(recommendNextStep({ currentPhase: 4, segment: "accelerator" }).href).toBe("/workspace/accelerator/cohort");
+    expect(recommendNextStep({ currentPhase: 4, segment: "accelerator" }).href).toBe("/workspace/evaluations/cohort");
     expect(recommendNextStep({ currentPhase: 4, segment: "reseller" }).href).toBe("/reseller");
   });
 

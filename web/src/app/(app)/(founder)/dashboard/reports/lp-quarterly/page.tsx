@@ -20,7 +20,7 @@ export default function LpQuarterlyReportPage() {
       alternatives={[
         { href: "/workspace/accelerator/quarterly-report", label: "Quarterly program report" },
         { href: "/workspace/lp-report", label: "LP report composer" },
-        { href: "/workspace/accelerator/cohort", label: "Cohort table with CSV export" },
+        { href: "/workspace/evaluations/cohort", label: "Cohort table with CSV export" },
       ]}
       backHref="/workspace/accelerator"
       backLabel="Back to Accelerator"

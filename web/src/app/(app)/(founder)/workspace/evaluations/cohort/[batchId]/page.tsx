@@ -3,7 +3,9 @@
 // batch that is not the caller's → notFound). Header: name, status +
 // progress, rubric weights, CSV + sponsor/LP report buttons; body: the
 // sortable CohortTable (client). The evaluator disclaimer closes the page —
-// this is an evaluator report surface (T0275).
+// this is an evaluator report surface (T0275). G21 P2-A: the header also
+// carries the CSV import control (CohortImport) and the "Last snapshot"
+// line + Snapshot / Re-score actions (CohortSnapshotActions).
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -21,6 +23,9 @@ import {
   isEqualWeights,
 } from "@/lib/evaluations/batch-shared";
 import { EvaluatorReportDisclaimer } from "@/components/legal/evaluator-report-disclaimer";
+import { CohortImport } from "@/components/evaluations/CohortImport";
+import { CohortSnapshotActions } from "@/components/evaluations/CohortSnapshotActions";
+import { latestSnapshots } from "@/lib/evaluations/cohort-snapshots";
 import { CohortTable } from "../cohort-table";
 
 export const metadata: Metadata = {
@@ -56,10 +61,11 @@ export default async function CohortPage({ params }: PageProps) {
   const batch = await getBatchForUser(user.id, batchId);
   if (!batch) notFound();
 
-  const [isSandbox, rows, flags] = await Promise.all([
+  const [isSandbox, rows, flags, snapshots] = await Promise.all([
     getCurrentProjectIsSandbox(),
     loadCohortRows(batch),
     getEntitlements(user.plan ?? "", user.id).catch(() => [] as string[]),
+    latestSnapshots(batch.id).catch(() => ({ latest: null, previous: null, count: 0 })),
   ]);
   const lpReport = canExportLpReport(flags);
   const pct = batchProgressPct(batch);
@@ -76,6 +82,7 @@ export default async function CohortPage({ params }: PageProps) {
         <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold text-ink-900">{batch.name}</h1>
+            {batch.programName ? <p className="text-sm text-ink-600" data-testid="batch-program">{batch.programName}</p> : null}
             <p className="mt-1 text-sm text-ink-500" data-testid="batch-status">
               {STATUS_LABEL[batch.status] ?? batch.status} · {batch.doneCount} of {batch.total} scored
               {batch.failedCount > 0 ? ` · ${batch.failedCount} failed` : ""} · queued {fmtDate(batch.createdAt)}
@@ -83,6 +90,9 @@ export default async function CohortPage({ params }: PageProps) {
             </p>
             <div className="mt-2 h-1.5 w-64 overflow-hidden rounded-full bg-surface-100" aria-hidden="true">
               <div className="h-full bg-brand-600" style={{ width: `${pct}%` }} />
+            </div>
+            <div className="mt-2">
+              <CohortSnapshotActions batchId={batch.id} lastTakenAt={snapshots.latest?.takenAt ?? null} lastN={snapshots.latest?.summary.n ?? null} count={snapshots.count} />
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -108,6 +118,10 @@ export default async function CohortPage({ params }: PageProps) {
             )}
           </div>
         </header>
+
+        <section data-testid="cohort-import-section" className="rounded-xl border border-surface-200 bg-white px-4 py-3">
+          <CohortImport batchId={batch.id} applicantsCap={batch.applicantsCap} used={batch.total} />
+        </section>
 
         <section data-testid="rubric-weights" className="rounded-xl border border-surface-200 bg-white px-4 py-3 text-sm text-ink-600">
           <span className="font-medium text-ink-800">Rubric weights:</span>{" "}
