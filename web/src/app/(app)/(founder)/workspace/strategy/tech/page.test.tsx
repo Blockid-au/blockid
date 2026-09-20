@@ -72,6 +72,9 @@ describe("/workspace/strategy/tech (S18-B P2-1)", () => {
     expect(out).not.toContain("viewer-readonly-note");
     // S-IA2 — the ex-/dashboard/analyzer section is composed below the panel.
     expect(out).toContain("Code &amp; web analyzer");
+    // G20-sweep — the page owns one h1; the panel + analyzer headings are h2.
+    expect((out.match(/<h1[\s>]/g) ?? []).length).toBe(1);
+    expect(out).toContain("Tech analysis</h1>");
   });
 
   it("member (editor): project URLs under the OWNER's id, panel editable", async () => {

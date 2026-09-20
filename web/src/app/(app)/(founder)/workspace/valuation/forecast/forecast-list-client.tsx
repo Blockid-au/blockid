@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import { userErrorMessage } from "@/lib/ui/user-error";
+import type { ListForecastsResponse } from "@/types/financial";
 
 export interface ForecastListItem {
   id: string;
@@ -17,30 +18,52 @@ export interface ForecastListItem {
   createdAt: string;
 }
 
-export function ForecastListClient() {
+/** `financial_models` row (the list route's `models[]`) → the card shape. Exported for the test. */
+export function toForecastListItems(models: ListForecastsResponse["models"]): ForecastListItem[] {
+  return (models ?? []).map((m) => ({
+    id: m.id,
+    name: m.name,
+    scenario: m.scenario,
+    arrProjected12m: m.arr_month_12_aud ?? 0,
+    breakEvenMonth: m.month_breakeven ?? null,
+    runwayMonths: m.runway_months ?? null,
+    createdAt: m.created_at,
+  }));
+}
+
+export function ForecastListClient({ projectId }: { projectId: string | null }) {
   const router = useRouter();
   const [forecasts, setForecasts] = useState<ForecastListItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  // No project → nothing to fetch: first paint is the empty state (G20-sweep).
+  const [loading, setLoading] = useState(Boolean(projectId));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!projectId) return;
+    let cancelled = false;
     const fetchForecasts = async () => {
       try {
-        const res = await fetch("/api/financial/forecast");
+        // The list route is GET /api/financial/forecast/[projectId] (the
+        // bare /api/financial/forecast never existed — G20-sweep 404).
+        const res = await fetch(`/api/financial/forecast/${encodeURIComponent(projectId)}`, { credentials: "same-origin" });
         if (!res.ok) throw new Error("Failed to fetch forecasts");
-        const data = await res.json();
-        setForecasts(data.forecasts || []);
+        const data = (await res.json()) as ListForecastsResponse;
+        if (!cancelled) setForecasts(toForecastListItems(data.models));
       } catch (err) {
-        setError(userErrorMessage(err, "Something went wrong. Please try again."));
+        if (!cancelled) setError(userErrorMessage(err, "Something went wrong. Please try again."));
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    fetchForecasts();
-  }, []);
+    void fetchForecasts();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
 
-  if (loading) return <div className="text-center py-12">Loading forecasts...</div>;
+  // The header (the page's h1) renders on the first paint; only the list
+  // body waits for the fetch.
 
   return (
     <div className="space-y-6">
@@ -65,7 +88,9 @@ export function ForecastListClient() {
         </div>
       )}
 
-      {forecasts.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-12" role="status" aria-live="polite">Loading forecasts...</div>
+      ) : forecasts.length === 0 ? (
         <Card className="p-12 text-center">
           <p className="text-gray-600 mb-4">No forecasts yet. Create your first one to get started.</p>
           <Button

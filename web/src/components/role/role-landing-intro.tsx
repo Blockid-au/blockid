@@ -44,6 +44,12 @@ interface Props {
   hasGlobalSpotlight?: boolean;
   /** Optional extra content (e.g. secondary CTA) rendered under the buttons. */
   children?: React.ReactNode;
+  /**
+   * Heading level of the hero title. `h1` when the intro IS the page title
+   * (the founder landing, G20-sweep: /dashboard rendered no h1); `h2` when
+   * the page already has one.
+   */
+  headingLevel?: "h1" | "h2";
 }
 
 const COPY = {
@@ -56,6 +62,7 @@ export function RoleLandingIntro({
   variant = "hero",
   hasGlobalSpotlight = false,
   children,
+  headingLevel = "h2",
 }: Props): React.ReactElement | null {
   const spec = PERSONAS[role];
   const copy: RoleGuidingCopy | undefined = ROLE_GUIDING_COPY[role];
@@ -67,6 +74,7 @@ export function RoleLandingIntro({
   const slug = spec.tourSlug as FeatureTourSlug;
   const t = COPY[locale];
   const hero = copy.landing_hero;
+  const Heading = headingLevel;
 
   function startTour() {
     try {
@@ -99,9 +107,9 @@ export function RoleLandingIntro({
         <Sparkles className="h-3 w-3" aria-hidden />
         {hero.eyebrow[locale] ?? hero.eyebrow.en}
       </p>
-      <h2 className="mt-2 text-xl font-semibold text-ink-900 dark:text-ink-50 sm:text-2xl">
+      <Heading className="mt-2 text-xl font-semibold text-ink-900 dark:text-ink-50 sm:text-2xl">
         {hero.title[locale] ?? hero.title.en}
-      </h2>
+      </Heading>
       <p className="mt-1.5 max-w-2xl text-sm text-ink-600 dark:text-ink-300">
         {hero.subtitle[locale] ?? hero.subtitle.en}
       </p>

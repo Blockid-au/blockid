@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
 import { getActiveProject, getCurrentProjectIsSandbox } from "@/lib/projects";
-import { getSupabaseAdmin } from "@/lib/supabase";
+import { CAP_TABLE_PATH, hasCapTable } from "@/lib/nav/founder-layout-redirects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { EquityWizard } from "./wizard-client";
 
@@ -22,19 +22,12 @@ export default async function EquitySetupPage() {
 
   const isSandbox = await getCurrentProjectIsSandbox();
 
-  // Check if the user already has a cap table with shareholders
-  const supabase = getSupabaseAdmin();
-  if (supabase) {
-    const { data: shareholders } = await supabase
-      .from("shareholders")
-      .select("id")
-      .eq("account_id", user.id)
-      .limit(1);
-
-    if (shareholders && shareholders.length > 0) {
-      // User already has a cap table — redirect them there
-      redirect("/workspace/equity/cap-table");
-    }
+  // A founder with a cap table skips the wizard. The `(founder)` layout
+  // already made this a real 307 (G20-sweep: a redirect thrown here lands
+  // after workspace/loading.tsx streamed and becomes a CSP-blocked meta
+  // refresh); this is the fallback and re-uses the layout's cached probe.
+  if (await hasCapTable(user.id)) {
+    redirect(CAP_TABLE_PATH);
   }
 
   // Read the active project from the cookie

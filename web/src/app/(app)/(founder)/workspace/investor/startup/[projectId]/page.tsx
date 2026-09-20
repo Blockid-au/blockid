@@ -14,7 +14,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
 import { isEvaluatorUser } from "@/lib/evaluations";
-import { DOSSIER_PATH, findEvaluationIdForProject } from "@/lib/evaluations/dossier";
+import { DOSSIER_PATH } from "@/lib/evaluations/dossier";
+import { findEvaluationIdForProjectCached as findEvaluationIdForProject } from "@/lib/nav/founder-layout-redirects";
 
 export const metadata: Metadata = {
   title: "Investor Dossier | BlockID",
@@ -40,6 +41,8 @@ export default async function InvestorStartupAliasPage({ params }: PageProps) {
     getCurrentProjectIsSandbox(),
     isEvaluatorUser(user),
   ]);
+  // Fallback only — the `(founder)` layout resolves this redirect before
+  // workspace/loading.tsx streams (G20-sweep), so it is a real 307 there.
   if (evaluationId) redirect(DOSSIER_PATH(evaluationId));
 
   return (

@@ -21,9 +21,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getFounderNavContext } from "@/lib/nav/founder-phase";
 import { FounderNavContextProvider } from "@/components/workspace/founder-nav-context";
-import { landingHrefFor, personaLandingEnabled } from "@/lib/auth/post-login";
-import { resolvePersonaForUser } from "@/lib/nav/persona-server";
-import { isEvaluatorPersona } from "@/lib/nav/persona";
+import { resolveFounderLayoutRedirect } from "@/lib/nav/founder-layout-redirects";
 
 export const dynamic = "force-dynamic";
 
@@ -37,12 +35,16 @@ export default async function FounderLayout({ children }: { children: ReactNode 
   // inline <script> — which the nonce CSP blocks (12 console errors and the
   // landing rendered under /dashboard on 2026-09-16). The layout resolves
   // before the shell is sent, so this one is a real 307.
-  if (user && personaLandingEnabled()) {
+  //
+  // G20-sweep: the same class under `workspace/loading.tsx` — `/workspace` →
+  // /dashboard, equity/setup → cap table, the dossier alias and every
+  // `requireTierForPage` page — now resolves here too
+  // (`lib/nav/founder-layout-redirects.ts`); the pages keep their own
+  // redirect() as the fallback.
+  if (user) {
     const pathname = (await headers()).get("x-pathname") ?? "";
-    if (pathname === "/dashboard" || pathname === "/dashboard/") {
-      const persona = await resolvePersonaForUser(user);
-      if (isEvaluatorPersona(persona)) redirect(landingHrefFor(persona));
-    }
+    const target = await resolveFounderLayoutRedirect(pathname, user);
+    if (target) redirect(target);
   }
 
   const nav = await getFounderNavContext(user);

@@ -80,6 +80,14 @@ interface SnapshotRow {
 
 const DIM_KEYS = ["ftv", "mpc", "ptd", "tre", "cgh", "iri", "lco", "svm"] as const;
 
+/**
+ * "No analysis stored yet" for a project the caller may open — a 200 empty
+ * state, not a 404 (G20-sweep: the business-report page fetched this on
+ * every first paint and the console logged a failed request for every
+ * founder who had not run an analysis). The client keys on `persisted`.
+ */
+const EMPTY_REPORT = { ok: true, persisted: null, snapshotId: null, reportV2: null, empty: "no_analysis" } as const;
+
 function toDimStates(raw: unknown): Record<string, DimState> {
   const out: Record<string, DimState> = {};
   for (const k of DIM_KEYS) {
@@ -175,7 +183,11 @@ export async function GET(
   });
   const accountId = typeof account?.id === "string" ? account.id : null;
   if (!accountId) {
-    return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+    // G20-sweep: the caller's own scope with no analysis yet is the report
+    // page's normal first-paint state (it fetches this on mount), not an
+    // error — 200 + `persisted: null`, still never an unfiltered query.
+    // Foreign / non-member project ids stay 404 from the role gate above.
+    return NextResponse.json(EMPTY_REPORT);
   }
   const accountProjectId =
     typeof account?.project_id === "string" ? (account.project_id as string) : null;
@@ -210,7 +222,7 @@ export async function GET(
     );
   }
   if (!data) {
-    return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+    return NextResponse.json(EMPTY_REPORT);
   }
 
   const row = data as SnapshotRow;
