@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { FileText, Plus, ExternalLink, CheckCircle2, Clock, Loader2, Globe, Code, Receipt, Sparkles } from "lucide-react";
+import { FileText, Plus, ExternalLink, CheckCircle2, Clock, Loader2, Globe, Code, Receipt, Sparkles, Link2, PencilLine, Paperclip, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConnectButtons } from "@/components/ui/connect-buttons";
 import { EvidenceWizard } from "./evidence-wizard";
@@ -76,12 +76,12 @@ const PRIORITY_CONFIG: Record<string, { label: string; color: string; bg: string
   P2: { label: "Recommended", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200" },
 };
 
-const EVIDENCE_TYPE_ICONS: Record<string, string> = {
-  transaction_data: "💰",
-  connected_source: "🔗",
-  document_uploaded: "📄",
-  public_url: "🌐",
-  self_declared: "✏️",
+const EVIDENCE_TYPE_ICONS: Record<string, LucideIcon> = {
+  transaction_data: Receipt,
+  connected_source: Link2,
+  document_uploaded: FileText,
+  public_url: Globe,
+  self_declared: PencilLine,
 };
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -298,7 +298,7 @@ export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI,
           <div className="space-y-2.5">
             {evidenceGaps.map((gap) => {
               const config = PRIORITY_CONFIG[gap.priority] ?? PRIORITY_CONFIG.P2;
-              const icon = EVIDENCE_TYPE_ICONS[gap.evidenceType] ?? "📎";
+              const GapIcon = EVIDENCE_TYPE_ICONS[gap.evidenceType] ?? Paperclip;
               return (
                 <button
                   key={gap.label}
@@ -310,7 +310,7 @@ export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI,
                   className={`w-full text-left rounded-xl border ${config.border} ${config.bg} px-4 py-3 transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-none`}
                 >
                   <div className="flex items-start gap-3">
-                    <span className="text-xl mt-0.5">{icon}</span>
+                    <GapIcon className="h-5 w-5 mt-0.5 shrink-0 text-ink-500" aria-hidden />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-semibold text-ink-800">{gap.label}</p>

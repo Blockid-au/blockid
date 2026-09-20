@@ -1,21 +1,40 @@
 "use client";
 
 import React from "react";
+import {
+  AlertTriangle,
+  BarChart3,
+  Bot,
+  CheckCircle2,
+  Circle,
+  FileText,
+  FlaskConical,
+  Globe,
+  RefreshCw,
+  Save,
+  Search,
+  ShieldCheck,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /* ── Step metadata — icon + label for each SSE step ─────────────────── */
-const STEP_META: Record<string, { icon: string; label: string }> = {
-  detecting:          { icon: "🔍", label: "Analyzing input type" },
-  scraping:           { icon: "🌐", label: "Scraping website data" },
-  scraped:            { icon: "📄", label: "Website data collected" },
-  scrape_failed:      { icon: "⚠️", label: "Scrape skipped" },
-  tech_audit_complete:{ icon: "🛡️", label: "Tech audit complete" },
-  svi:                { icon: "📊", label: "Computing SVI score" },
-  svi_complete:       { icon: "✅", label: "SVI score computed" },
-  rnd_start:          { icon: "🧪", label: "AI research streams" },
-  rnd_progress:       { icon: "🤖", label: "Generating report" },
-  persisting:         { icon: "💾", label: "Saving your report" },
+const STEP_META: Record<string, { icon: LucideIcon; label: string }> = {
+  detecting:          { icon: Search, label: "Analyzing input type" },
+  scraping:           { icon: Globe, label: "Scraping website data" },
+  scraped:            { icon: FileText, label: "Website data collected" },
+  scrape_failed:      { icon: AlertTriangle, label: "Scrape skipped" },
+  tech_audit_complete:{ icon: ShieldCheck, label: "Tech audit complete" },
+  svi:                { icon: BarChart3, label: "Computing SVI score" },
+  svi_complete:       { icon: CheckCircle2, label: "SVI score computed" },
+  rnd_start:          { icon: FlaskConical, label: "AI research streams" },
+  rnd_progress:       { icon: Bot, label: "Generating report" },
+  persisting:         { icon: Save, label: "Saving your report" },
 };
+
+function StepIcon({ icon: Icon, className }: { icon: LucideIcon; className?: string }) {
+  return <Icon className={cn("inline-block h-3.5 w-3.5 align-[-2px]", className)} aria-hidden />;
+}
 
 export interface StatusEntry {
   step: string;
@@ -125,7 +144,7 @@ export function RndStatusBar({ entries, isActive }: RndStatusBarProps) {
                   <CheckIcon />
                   <div className="flex-1 min-w-0">
                     <span className="text-xs font-medium text-ink-600">
-                      {eMeta?.icon ?? "•"} {eMeta?.label ?? entry.step}
+                      <StepIcon icon={eMeta?.icon ?? Circle} /> {eMeta?.label ?? entry.step}
                     </span>
                     <p className="text-[11px] text-ink-500 truncate leading-tight mt-0.5">
                       {entry.message}
@@ -150,7 +169,7 @@ export function RndStatusBar({ entries, isActive }: RndStatusBarProps) {
               </span>
               <div className="flex-1 min-w-0">
                 <span className="text-xs font-semibold text-brand-700">
-                  {meta?.icon ?? "🔄"} {meta?.label ?? current.step}
+                  <StepIcon icon={meta?.icon ?? RefreshCw} /> {meta?.label ?? current.step}
                 </span>
                 <p className="text-[11px] text-brand-600 mt-0.5 leading-snug">
                   {current.message}

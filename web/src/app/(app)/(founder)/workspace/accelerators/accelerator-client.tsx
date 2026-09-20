@@ -283,7 +283,7 @@ function ProgramCard({
         {isMissed ? <XCircle className="h-4 w-4" /> : isUrgent ? <AlertTriangle className="h-4 w-4" /> : <Calendar className="h-4 w-4 text-muted-foreground" />}
         <span>
           {isMissed ? `Closed (${formatDate(program.deadline)})` :
-          isUrgent ? `⚡ ${days} days left — closes ${formatDate(program.deadline)}` :
+          isUrgent ? `${days} days left — closes ${formatDate(program.deadline)}` :
           `Closes ${formatDate(program.deadline)} · ${days} days`}
         </span>
       </div>
