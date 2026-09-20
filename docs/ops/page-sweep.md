@@ -143,9 +143,38 @@ deployed — the next lane-33 run after the merge is the "after" number).
 | `/tbr/demo` | public | `overflow_375` — `components/tbr/v2/valuation.tsx` table (`mt-1 w-full text-xs`) has no `overflow-x-auto` wrapper | **G19** (`components/tbr/**`) |
 | `/workspace/advisor/notes`, `/workspace/advisor/roster` | evaluator | `h1_count_0` — the whole page sat inside the client `<FeatureGate>` (nothing renders until `/api/entitlement/me`; the Scout plan lacks `advisor.cohort` so the gate card replaced the heading) | F2 · heading moved outside the gate (this commit) |
 | `/workspace/accelerator/cohort`, `/workspace/accelerator/quarterly-report` | accelerator | `h1_count_0` — same pattern | F2 · this commit |
-| `/workspace/investor/startup/[projectId]` | evaluator | `no_main`, `h1_count_0`, 2 CSP console errors — `redirect()` to the dossier thrown after `workspace/loading.tsx` streamed → Next downgrades it to `<meta http-equiv=refresh>` + two nonce-less inline scripts the CSP refuses; the redirect itself works | F2 tooling follows the streamed redirect and tolerates its 2 refusals (this commit). **Product follow-up (F2/F1, not fixed):** move the `findEvaluationIdForProject` redirect above the loading boundary or drop `loading.tsx` for that segment so it is a real 307 (same class as the G13 `/dashboard` fix). |
+| `/workspace/investor/startup/[projectId]` | evaluator | `no_main`, `h1_count_0`, 2 CSP console errors — `redirect()` to the dossier thrown after `workspace/loading.tsx` streamed → Next downgrades it to `<meta http-equiv=refresh>` + two nonce-less inline scripts the CSP refuses; the redirect itself works | F2 tooling follows the streamed redirect and tolerates its 2 refusals. **Fixed in the sweep-fix lane (§ 4.3):** the redirect now resolves in `(founder)/layout.tsx` via `lib/nav/founder-layout-redirects.ts` — a real 307. |
 | `/workspace/accelerators`, `/workspace/accelerators/criteria`, `/workspace/lp-report` | accelerator | `GET /api/svi/phase-progress` → 429 — the `svi` bucket is 20/min per session and `ProductTour` + `GrowthProgressDashboard` call it on every workspace page; 4 pages in flight × 8 routes tripped it | Sweep artefact (one seat opened 22 workspace pages in ~45 s) — the lane allow-lists exactly `/api/svi/phase-progress` → 429 via `allowRequests` (this commit); **product note for F1/main:** a real accelerator tabbing through 20 workspace pages in a minute hits the same 429 and the tour banner silently stays hidden; consider a `svi-read` bucket (60/min) for `phase-progress` |
-| `/workspace/esop/offers` | founder | h1 inside `<FeatureGate>` (same class, found by the guard test, not by a live visit) | documented exception in `feature-gate-heading.test.ts` — owner to move the header out |
+| `/workspace/esop/offers` | founder | h1 inside `<FeatureGate>` (same class, found by the guard test, not by a live visit) | fixed in the sweep-fix lane (§ 4.3) — header outside the gate, guard exception removed |
+
+### 4.3 Sweep-fix lane — first full signed-in run (2026-09-20, production `c699cc6de`)
+
+Founder (Growth) + evaluator seat. Every row below is fixed in the `fix(G20-sweep):` commits; the
+next lane-33 run is the "after" number.
+
+| route | defect | root cause → fix |
+| --- | --- | --- |
+| `/dashboard`, `/onboarding` (lands on `/dashboard` once onboarded) | `h1_count_0` | the landing's intro rendered an `h2` — `RoleLandingIntro headingLevel="h1"` |
+| `/workspace` | `h1_count_0` + 2 CSP errors | `redirect("/dashboard")` thrown behind `workspace/loading.tsx` → streamed meta-refresh. **Class fix:** `lib/nav/founder-layout-redirects.ts` — `(founder)/layout.tsx` resolves `/workspace` → `/dashboard`, `equity/setup` → cap table, the dossier alias and every `requireTierForPage` page (`FOUNDER_TIER_GATES`, drift-guarded) from `x-pathname` BEFORE the boundary; pages keep their `redirect()` as fallback; `resolveTierGate` is React-`cache`d so layout + page share one `can()` |
+| `/workspace/equity/setup` | CSP errors | same class (cap-table redirect) — layout |
+| `/workspace/esop`, `/esop/manage`, `/esop/vesting` | CSP errors (`sha256-…` = the meta-refresh script) | same class: Growth lacks `esop.manage` / `vesting.read` → `/pricing` redirect streamed — layout |
+| evaluator `/workspace/investor/startup/[projectId]` | CSP errors | same class (dossier redirect) — layout |
+| `/workspace/esop/offers` | `h1_count_0` | h1 inside the client `FeatureGate` — moved out |
+| `/workspace/esop/offers/request` | `no_main` | client page without the shell — wrapper is now `<main>` |
+| `/workspace/projects/compare` | `error_boundary`, React #441 | `getPortfolioRows` reached `./projects` through `await import(/* webpackIgnore */)`; webpack left it, the standalone chunk threw `ERR_MODULE_NOT_FOUND` on every render (also `/api/projects/portfolio`) → `lib/portfolio-rows.ts` with static imports; guard test forbids `import()` |
+| `/workspace/projects/[slug]/analyze` | `h1_count_2` + `frame-src` youtube.com | `SVIEntrance chrome={false}` still rendered the marketing landing (hero h1 + YouTube iframe) → landing sections are `chrome`-only |
+| `/workspace/reports/business` | `h1_count_0`, `GET /api/svi/report/default` 404 | no snapshot → the route now answers `200 {ok, persisted: null, empty: "no_analysis"}` for the caller's own scope (foreign ids still 404 from the role gate); the empty states carry the h1 |
+| `/workspace/score` | `h1_count_0` | empty state was an h2 — `EmptyDashboardState headingLevel="h1"` |
+| `/workspace/score/listing` | `h1_count_2` | page header + `NotAvailableYet` card (defaults to h1) — card is `headingLevel="h2"` |
+| `/workspace/strategy/tech` | `h1_count_0` | no page title — server `<header>` with the h1 |
+| `/workspace/valuation/forecast` | `GET /api/financial/forecast` 404 | the client fetched a route that never existed and read `forecasts[]` → fetches `/api/financial/forecast/[projectId]` with the page's project scope, maps `models[]`, no fetch without a project |
+| `/tbr/demo` (lane 21) | no `[data-tbr-evidence-row="cta"]` | not a defect: production `c699cc6de` predates the G19-S43 commits that add the CTA rows; the lane spec was ahead of the deploy |
+
+Same class, NOT changed (follow-up): `dashboard/page.tsx` still throws `redirect("/onboarding")` behind
+`dashboard/loading.tsx` for a first-time owner with nothing scored (`needsOnboarding` needs the
+project scope + persona row + two probes — moving it to the layout duplicates those reads unless
+they are cached first). `valuation/forecast/wizard` POSTs `/api/financial/forecast/save` without a
+`projectId` (the route requires one) — the wizard cannot save.
 
 ## 5. Cron proposal (not installed by this lane)
 

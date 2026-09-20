@@ -16,6 +16,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
   usePathname: () => "/svi",
 }));
+// eslint-disable-next-line @next/next/no-img-element -- test stand-in for next/image
 vi.mock("next/image", () => ({ default: (p: { alt?: string; src?: string }) => <img alt={p.alt ?? ""} src={typeof p.src === "string" ? p.src : ""} /> }));
 vi.mock("next/link", () => ({ default: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a> }));
 vi.mock("@/components/landing/nav-v2", () => ({ NavV2: () => <nav data-nav /> }));
