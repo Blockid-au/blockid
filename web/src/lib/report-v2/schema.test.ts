@@ -3,7 +3,7 @@
 // mutating one field and asserting the validator names it.
 
 import { describe, expect, it } from "vitest";
-import { demoReportV2 } from "./fixtures";
+import { demoReportV2, preRevenueFixtureReportV2 } from "./fixtures";
 import {
   DATA_PRINCIPLE_SENTENCE,
   DIM_ORDER,
@@ -91,16 +91,43 @@ describe("ReportV2 schema — rules", () => {
     expect(issuesOf(r).some((i) => i.includes("80 words"))).toBe(true);
   });
 
-  it("requires exactly the 6 valuation methods with scorecard at weight 0", () => {
+  it("requires the 7 valuation methods (6 tolerated on pre-S42 rows), unique, applicable weights summing to 1, non-applicable rows at 0", () => {
     const r = clone();
+    expect(r.valuation.methods).toHaveLength(7);
     r.valuation.methods = r.valuation.methods.slice(0, 5);
-    expect(issuesOf(r).some((i) => i.includes("6 methods"))).toBe(true);
+    expect(issuesOf(r).some((i) => i.includes("6 (pre-S42) or 7 methods"))).toBe(true);
+    // A stored pre-S42 row with 6 methods still validates.
+    const legacy = clone();
+    legacy.valuation.methods = legacy.valuation.methods.filter((m) => m.method !== "stage_baseline");
+    expect(issuesOf(legacy)).toEqual([]);
+    // A non-applicable row may not carry weight.
     const r2 = clone();
     r2.valuation.methods = r2.valuation.methods.map((m) => (m.method === "scorecard" ? { ...m, weight: 0.5 } : m));
-    expect(issuesOf(r2).some((i) => i.includes("scorecard"))).toBe(true);
+    expect(issuesOf(r2).some((i) => i.includes("non-applicable method must weigh 0"))).toBe(true);
+    // Applicable weights must sum to 1.
+    const r4 = clone();
+    r4.valuation.methods = r4.valuation.methods.map((m) => (m.method === "revenue_multiple" ? { ...m, weight: 0.9 } : m));
+    expect(issuesOf(r4).some((i) => i.includes("sum to 1"))).toBe(true);
     const r3 = clone();
     r3.valuation.methods[0] = { ...r3.valuation.methods[1] };
     expect(issuesOf(r3).some((i) => i.includes("unique"))).toBe(true);
+  });
+
+  it("G19-S42: pre-revenue fixture has exactly Berkus + scorecard + stage_baseline applicable and weights sum to 1; inputs / derivation / crossChecks validate; no ask", () => {
+    const r = assertReportV2(preRevenueFixtureReportV2());
+    const applicable = r.valuation.methods.filter((m) => m.applicable);
+    expect(applicable.map((m) => m.method)).toEqual(["berkus", "scorecard", "stage_baseline"]);
+    expect(applicable.map((m) => m.weight)).toEqual([0.5, 0.3, 0.2]);
+    expect(applicable.reduce((a, m) => a + m.weight, 0)).toBeCloseTo(1, 9);
+    expect(r.valuation.methods.filter((m) => !m.applicable).every((m) => m.weight === 0 && /Needs revenue/.test(m.rationale))).toBe(true);
+    expect(r.valuation.inputs).toMatchObject({ arrAud: 0, revenueSource: "none", growthAssumed: false, raiseStated: false });
+    expect(r.valuation.derivation?.berkus).toMatch(/pillars/);
+    expect(r.valuation.crossChecks?.length).toBeGreaterThanOrEqual(2);
+    expect(r.valuation.ask).toBeUndefined();
+    // Bad enum values are rejected.
+    const bad = JSON.parse(JSON.stringify(r)) as ReportV2;
+    (bad.valuation.inputs as { revenueSource: string }).revenueSource = "guess";
+    expect(issuesOf(bad).some((i) => i.startsWith("valuation.inputs.revenueSource"))).toBe(true);
   });
 
   it("pins the approved data-principle sentence", () => {

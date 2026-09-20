@@ -366,8 +366,9 @@ describe("loadDossier — S-R4 blocks 2 / 5 + header fit / Δ since last view", 
     expect(v.source).toBe("adapter");
     expect(v.pending).toBe(false);
     expect(v.consensus?.midAud).toBeGreaterThan(0);
-    expect(v.methods).toHaveLength(6);
+    expect(v.methods).toHaveLength(7);
     expect(v.methods.map((m) => m.method)).toContain("scorecard");
+    expect(v.methods.map((m) => m.method)).toContain("stage_baseline");
     expect(v.comparables.n).toBeGreaterThan(0);
     expect(v.rangeBars?.kind).toBe("range_bars");
     expect(v.rangeBars?.id).toMatch(/-mine$/);

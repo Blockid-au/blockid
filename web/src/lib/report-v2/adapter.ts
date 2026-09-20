@@ -21,6 +21,7 @@ import { PHASE_EXIT_RULES, computePhaseGate, type PhaseGateResult } from "@/lib/
 import { GROWTH_PHASE_IDS, GROWTH_PHASE_LABELS, type GrowthPhaseId } from "@/lib/growth/phase-taxonomy";
 import { DIMENSION_OWNERS, DIM_ORDER, criteriaForDimension, type DimKey } from "@/lib/report-pipeline/dimension-owners";
 import { buildValuationChapter, type ValuationAskInput, type VcValuationLike } from "@/lib/report-pipeline/valuation-chapter";
+import { VALUATION_BASELINES_AUD } from "@/lib/valuation";
 import type { AssembledReport, ReportSection } from "@/lib/report-pipeline/types";
 import { bandFor, makeVisual, type Band, type VisualSpecV2 } from "@/lib/report-visuals";
 import { computeThreeCaseValuation } from "@/lib/svi/three-case-valuation";
@@ -524,12 +525,12 @@ function buildChapter(c: ChapterCtx, phase: PhaseGateResult, tier: ReportTierV2)
 
 // ── Valuation ───────────────────────────────────────────────────────────────
 
-function buildValuation(args: { sviTotal: number; stageLabel: string; stage: number; industry: string | null; treScore: number | null; vc?: VcValuationLike | null; ask?: ValuationAskInput | null; revenueEvidenceIds?: string[]; at: string }): ValuationChapter {
-  // S-R3 §C.5: with a CFO 5-method valuation the chapter is the real thing —
-  // methods, consensus, ask cross-check, dated sector multiples, comparables N,
-  // three-case scenarios (report-pipeline/valuation-chapter.ts).
+function buildValuation(args: { sviTotal: number; sviIndex: number; stageLabel: string; stage: number; industry: string | null; treScore: number | null; vc?: VcValuationLike | null; ask?: ValuationAskInput | null; revenueEvidenceIds?: string[]; at: string }): ValuationChapter {
+  // S-R3 §C.5: with a CFO valuation the chapter is the real thing — methods,
+  // inputs, derivation, cross-checks, consensus, ask cross-check, dated sector
+  // multiples, comparables N, three-case scenarios (report-pipeline/valuation-chapter.ts).
   if (args.vc) {
-    return buildValuationChapter({ vc: args.vc, stage: args.stage, stageLabel: args.stageLabel, industry: args.industry, ask: args.ask ?? null, revenueEvidenceIds: args.revenueEvidenceIds ?? [], at: args.at });
+    return buildValuationChapter({ vc: args.vc, stage: args.stage, stageLabel: args.stageLabel, industry: args.industry, sviIndex: args.sviIndex, ask: args.ask ?? null, revenueEvidenceIds: args.revenueEvidenceIds ?? [], at: args.at });
   }
   // Read-time fallback for stored rows that never ran the pipeline (no vc):
   // a directional three-case band, clearly labelled as such.
@@ -540,16 +541,23 @@ function buildValuation(args: { sviTotal: number; stageLabel: string; stage: num
   const mult = getMultiplesBenchmark(auIndustry, auStage);
   const live = comparablesCounts();
   const comps = topComparables(auIndustry, auStage, 5);
+  // G19-S42: same shape as the pipeline chapter — every method non-applicable,
+  // one honest line, the stage baseline as the only cross-check, no ask.
   const methods: ValuationChapter["methods"] = VALUATION_METHOD_KEYS.map((key) => ({
     method: key,
     lowAud: 0,
     midAud: 0,
     highAud: 0,
     weight: 0,
-    rationale: "Not computed for this snapshot — run the analysis to get the 5-method CFO valuation; the three-case directional range below is shown instead.",
+    rationale: "Not computed for this snapshot — run the analysis to get the CFO valuation; the three-case directional range below is shown instead.",
     applicable: false,
   }));
   const consensus = { lowAud: three.average.low, midAud: three.average.mid, highAud: three.average.high, confidence: 0.35 };
+  const baselineStage = Math.max(0, Math.min(7, Math.round(Number.isFinite(args.stage) ? args.stage : 0)));
+  const baseline = VALUATION_BASELINES_AUD[baselineStage];
+  const crossChecks: ValuationChapter["crossChecks"] = [
+    { label: `AU stage baseline — SVI stage ${baselineStage} pre-money`, lowAud: baseline.low, midAud: baseline.mid, highAud: baseline.high, source: "Cut Through Venture — State of Australian Startup Funding 2024/25 medians", asOf: "2025" },
+  ];
   const scenarios = { bear: three.worst.mid, base: three.average.mid, bull: three.best.mid };
   const rangeBars = makeVisual({
     id: "valuation-range-bars",
@@ -583,6 +591,9 @@ function buildValuation(args: { sviTotal: number; stageLabel: string; stage: num
     currency: "AUD",
     methods,
     consensus,
+    // Key order mirrors the Zod schema so a parsed fixture serialises identically (fixtures.test).
+    crossChecks,
+    consistencyNotes: [],
     sectorMultiples: { sector: auIndustry, low: mult.low, median: mult.median, high: mult.high, sourceLabel: live.source === "table" ? "BlockID AU comparables (verified table)" : "BlockID AU comparables (code table)", sourceDate: live.sourceWindow },
     comparables: {
       n: live.n,
@@ -591,7 +602,7 @@ function buildValuation(args: { sviTotal: number; stageLabel: string; stage: num
     },
     scenarios,
     visuals: [rangeBars, scatter],
-    narrative: `${sel.meta.shortLabel}: ${sel.rationale} ${three.disclaimer}`,
+    narrative: `${sel.meta.shortLabel}: ${sel.rationale} ${three.disclaimer} No CFO method ran on this snapshot — connect Stripe or Xero, or state MRR, and re-run the analysis to get the method table, inputs and cross-checks.`,
     audit: stamp(args.at),
   };
 }
@@ -701,7 +712,7 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
         : sviBand === "early"
           ? `SVI ${sviTotal} — early: build evidence on the highest-weight gaps first.`
           : "No dimension has been scored yet — run the analysis to populate this report.");
-  const valuation = buildValuation({ sviTotal: Math.min(100, sviTotal), stageLabel, stage, industry, treScore: dimScores.tre ?? null, vc: input.vc, ask: input.valuationAsk ?? null, revenueEvidenceIds: input.revenueEvidenceIds ?? [], at });
+  const valuation = buildValuation({ sviTotal: Math.min(100, sviTotal), sviIndex: sviTotal, stageLabel, stage, industry, treScore: dimScores.tre ?? null, vc: input.vc, ask: input.valuationAsk ?? null, revenueEvidenceIds: input.revenueEvidenceIds ?? [], at });
   const worthLine = `Directional A$${fmtShort(valuation.consensus.lowAud)}–${fmtShort(valuation.consensus.highAud)} pre-money (${industry ?? "sector-neutral"}, ${stageLabel}); not a formal valuation.`;
   const nextLine = roadmap[0] ? `${dimensions.find((d) => d.dim === roadmap[0].c.dim)?.nextAction.title ?? "Add evidence"} — +${Math.max(1, Math.round(roadmap[0].lift))} SVI on ${DIMENSION_OWNERS[roadmap[0].c.dim].shortLabel}.` : "Keep the evidence fresh: reconnect data sources before the next investor conversation.";
   const whereLine = `${stageLabel} ${industry ?? "startup"} at SVI ${sviTotal} (${sviBand}); phase ${phase.currentPhaseLabel}, ${phase.completionPct}% of the gate cleared.`;
@@ -858,6 +869,8 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
         { label: comparablesCounts().source === "table" ? "AU comparables (BlockID verified table)" : "AU comparables (BlockID code table)", date: comparablesCounts().sourceWindow },
         { label: "SVI stage benchmarks (svi-dimension-benchmarks.ts)", date: "2026" },
         ...(input.cohort?.updated_at ? [{ label: `Sector cohort (${input.cohort.sector ?? "default"}, N=${input.cohort.sample_size ?? 0})`, date: input.cohort.updated_at }] : []),
+        // G19-S42: the backtest behind the valuation quartile cross-check.
+        ...(input.vc?.backtest?.generated_at ? [{ label: `SVI backtest quartiles (N=${input.vc.backtest.n} scorable rows)`, date: input.vc.backtest.generated_at.slice(0, 10) }] : []),
       ],
     },
     quality: {
