@@ -1,20 +1,29 @@
+// /workspace/evaluations/cohort/[batchId] — the BlockID Cohort page (G21
+// P2-B rewrite). The data layer is mocked at the module boundary
+// (batch-members, cohort-rows-loader) so the REAL CohortTable / CohortMembers
+// / EvaluatorReportDisclaimer render end to end; `getSupabaseAdmin` is faked
+// at the table level only for the page's own `loadCohortMeta` read
+// (weights_version + the newest cohort_snapshots row), both fail-soft.
+//
+// Pins: login redirect; notFound() for a non-member; the h1 renders before
+// the table; the role line; the header stats (n / median SVI / median
+// confidence / shortlisted / last snapshot, "no snapshot yet" when
+// cohort_snapshots errors); the rubric weights line; cohort members (creator
+// chip, invite toggle for owner only); Download CSV; the LP report gate;
+// the program-journey link; the table itself (data-role); "Humans make the
+// decision."; the evaluator disclaimer; and that a `?stage=3` query reaches
+// the table as `initialFilters`, hiding non-matching rows.
+
 import type React from "react";
 import { renderToReadableStream } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-// Render test for /workspace/evaluations/cohort/[batchId] (T0272) with the
-// data layer mocked. Pins: login redirect, notFound for a batch the caller
-// does not own, the header (name, status + progress, rubric weights line),
-// CSV + sponsor/LP buttons (LP gated on lp_report / lp_export), the sortable
-// table (startup, SVI, weighted, stage, Δ, top strength / gap, status,
-// report link) and the evaluator disclaimer footer.
 
 vi.mock("@/components/workspace/workspace-layout", () => ({
   WorkspaceLayout: ({ children }: { children: React.ReactNode }) => <div data-shell>{children}</div>,
 }));
 
 const redirectMock = vi.fn((url: string) => {
-  throw new Error("REDIRECT:" + url);
+  throw new Error(`REDIRECT:${url}`);
 });
 const notFoundMock = vi.fn(() => {
   throw new Error("NOT_FOUND");
@@ -22,8 +31,9 @@ const notFoundMock = vi.fn(() => {
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => redirectMock(url),
   notFound: () => notFoundMock(),
-  useRouter: () => ({ refresh: () => undefined, push: () => undefined }),
+  useRouter: () => ({ refresh: () => undefined, replace: () => undefined, push: () => undefined }),
   usePathname: () => "/workspace/evaluations/cohort/b-1",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const getCurrentUserMock = vi.fn();
@@ -33,29 +43,105 @@ vi.mock("@/lib/projects", () => ({ getCurrentProjectIsSandbox: async () => false
 const getEntitlementsMock = vi.fn();
 vi.mock("@/lib/entitlements", () => ({ getEntitlements: (plan: string, id: string) => getEntitlementsMock(plan, id) }));
 
-const getBatchMock = vi.fn();
-const loadRowsMock = vi.fn();
-vi.mock("@/lib/evaluations/batch", () => ({
-  getBatchForUser: (u: string, id: string) => getBatchMock(u, id),
-  loadCohortRows: (b: unknown) => loadRowsMock(b),
+const assertBatchRoleMock = vi.fn();
+const listBatchMembersMock = vi.fn();
+vi.mock("@/lib/evaluations/batch-members", () => ({
+  assertBatchRole: (batchId: string, userId: string, minRole?: string) => assertBatchRoleMock(batchId, userId, minRole),
+  listBatchMembers: (batch: unknown) => listBatchMembersMock(batch),
 }));
+
+const loadBlockIdCohortRowsMock = vi.fn();
+vi.mock("@/lib/evaluations/cohort-rows-loader", () => ({
+  loadBlockIdCohortRows: (batch: unknown, viewerId: string) => loadBlockIdCohortRowsMock(batch, viewerId),
+}));
+
+// ── table-level fake for the page's OWN loadCohortMeta() Supabase reads ────
+const supabaseMock = vi.hoisted(() => ({
+  weightsRow: { data: { weights_version: 1 } as unknown, error: null as unknown },
+  snapshotRows: { data: [] as unknown[], error: null as unknown },
+}));
+vi.mock("@/lib/supabase", () => ({
+  getSupabaseAdmin: () => ({
+    from: (table: string) => {
+      if (table === "evaluation_batches") {
+        return { select: () => ({ eq: () => ({ maybeSingle: async () => supabaseMock.weightsRow }) }) };
+      }
+      if (table === "cohort_snapshots") {
+        return { select: () => ({ eq: () => ({ order: () => ({ limit: async () => supabaseMock.snapshotRows }) }) }) };
+      }
+      throw new Error(`unexpected table ${table}`);
+    },
+  }),
+}));
+
+import { buildCohortRows, type CohortAnalysisInput, type CohortItemInput, type CohortRow } from "@/lib/evaluations/cohort-rows";
+import { equalWeights, type CohortRow as BatchCohortRow, type EvaluationBatch } from "@/lib/evaluations/batch-shared";
+
+function legacyRow(over: Partial<BatchCohortRow> = {}): BatchCohortRow {
+  return {
+    itemId: 1,
+    evaluationId: "e-1",
+    projectId: "p-1",
+    projectSlug: "acme",
+    startup: "Acme",
+    label: null,
+    industry: "DeepTech",
+    state: "NSW",
+    status: "done",
+    svi: 71,
+    weighted: null,
+    stage: 3,
+    delta: 4,
+    topStrength: "Founder & Team",
+    topGap: "Traction & Revenue",
+    dimensionScores: { ftv: 80, mpc: 80, ptd: 80, tre: 40, cgh: 80, iri: 80, lco: 80, svm: 80 },
+    reportUrl: "/tbr/tok-a",
+    pdfUrl: "/api/svi/report/pdf?token=tok-a",
+    error: null,
+    scoredAt: "2026-09-10T12:05:00Z",
+    decision: null,
+    conviction: null,
+    thesisFitPct: null,
+    assessmentStatus: null,
+    ...over,
+  };
+}
+
+function row(opts: { legacy?: Partial<BatchCohortRow>; item?: Partial<Pick<CohortItemInput, "shortlisted" | "reviewStatus">>; analysis?: Partial<CohortAnalysisInput> } = {}): CohortRow {
+  const legacy = legacyRow(opts.legacy);
+  const item: CohortItemInput = { ...legacy, snapshotId: null, shortlisted: false, reviewStatus: "unreviewed", reviewerId: null, reviewerName: null, ...opts.item };
+  const analyses: Record<string, CohortAnalysisInput> = { [legacy.projectId]: { evidenceConfidence: 82, verificationLevel: 3, pendingDims: 0, unverifiedMaterialClaims: 0, conflictingClaims: 0, ...opts.analysis } };
+  const [built] = buildCohortRows([item], analyses, {}, [], equalWeights());
+  return built!;
+}
+
+const ROWS: CohortRow[] = [
+  row({ legacy: { itemId: 1, evaluationId: "e-1", projectId: "p-1", startup: "Acme", svi: 71, stage: 3 }, item: { shortlisted: true }, analysis: { evidenceConfidence: 82 } }),
+  row({ legacy: { itemId: 2, evaluationId: "e-2", projectId: "p-2", startup: "Beta", svi: 50, stage: 2, dimensionScores: { ftv: 50, mpc: 50, ptd: 50, tre: 50, cgh: 50, iri: 50, lco: 50, svm: 50 } }, analysis: { evidenceConfidence: 40 } }),
+];
 
 const USER = {
   id: "u-1", email: "prog@accel.au", displayName: "Pat", role: "user", plan: "investor_vc_small",
   createdAt: "", lastLoginAt: null, googleId: null, avatarUrl: null, discountPct: null,
   startupName: null, startupStage: null, industry: null, onboardingCompleted: true, startupGoals: null,
 };
-const EQUAL = { ftv: 12.5, mpc: 12.5, ptd: 12.5, tre: 12.5, cgh: 12.5, iri: 12.5, lco: 12.5, svm: 12.5 };
-const BATCH = { id: "b-1", userId: "u-1", name: "Cohort 4 intake", rubricWeights: EQUAL, status: "running", total: 3, doneCount: 2, failedCount: 1, createdAt: "2026-09-10T00:00:00Z", startedAt: "2026-09-10T12:00:00Z", finishedAt: null };
-const ROWS = [
-  { itemId: 1, evaluationId: "e-1", projectId: "p-1", projectSlug: "acme-robotics", startup: "Acme Robotics", label: "Shortlist", industry: "DeepTech", state: "NSW", status: "done", svi: 71, weighted: 64.5, stage: 3, delta: 9.4, topStrength: "Founder & Team", topGap: "Traction & Revenue", dimensionScores: { ftv: 80, tre: 40 }, reportUrl: "/tbr/tok-a", pdfUrl: "/api/svi/report/pdf?token=tok-a", error: null, scoredAt: "2026-09-10T12:05:00Z" },
-  { itemId: 2, evaluationId: "e-2", projectId: "p-2", projectSlug: "beta-health", startup: "Beta Health", label: null, industry: null, state: null, status: "done", svi: 58, weighted: 58, stage: 2, delta: null, topStrength: "Market & Problem", topGap: "Legal & Compliance", dimensionScores: { mpc: 70, lco: 30 }, reportUrl: "/tbr/tok-b", pdfUrl: "/api/svi/report/pdf?token=tok-b", error: null, scoredAt: "2026-09-10T12:15:00Z" },
-  { itemId: 3, evaluationId: "e-3", projectId: "p-3", projectSlug: "gamma", startup: "Gamma", label: null, industry: null, state: null, status: "failed", svi: null, weighted: null, stage: 1, delta: null, topStrength: null, topGap: null, dimensionScores: null, reportUrl: null, pdfUrl: null, error: "owner_not_found", scoredAt: "2026-09-10T12:20:00Z" },
-];
 
-async function html(batchId = "b-1"): Promise<string> {
+const BATCH: EvaluationBatch = {
+  id: "b-1", userId: "u-1", name: "Cohort 4 intake", rubricWeights: equalWeights(), status: "running",
+  total: 3, doneCount: 2, failedCount: 1, createdAt: "2026-09-10T00:00:00Z", startedAt: "2026-09-10T12:00:00Z", finishedAt: null,
+};
+
+const MEMBERS = {
+  members: [
+    { userId: "u-1", role: "owner" as const, email: "prog@accel.au", displayName: "Pat Nguyen", invitedBy: null, createdAt: "2026-09-10T00:00:00Z", isCreator: true },
+    { userId: "u-2", role: "reviewer" as const, email: "sam@fund.vc", displayName: "Sam Reviewer", invitedBy: "u-1", createdAt: "2026-09-10T01:00:00Z", isCreator: false },
+  ],
+  available: true,
+};
+
+async function html(batchId = "b-1", sp: Record<string, string | string[] | undefined> = {}): Promise<string> {
   const { default: Page } = await import("./page");
-  const el = await Page({ params: Promise.resolve({ batchId }) });
+  const el = await Page({ params: Promise.resolve({ batchId }), searchParams: Promise.resolve(sp) });
   const stream = await renderToReadableStream(el);
   await stream.allReady;
   return (await new Response(stream).text()).replace(/<!-- -->/g, "");
@@ -65,8 +151,11 @@ beforeEach(() => {
   vi.clearAllMocks();
   getCurrentUserMock.mockResolvedValue(USER);
   getEntitlementsMock.mockResolvedValue(["lp_export", "lp_report", "portfolio"]);
-  getBatchMock.mockResolvedValue(BATCH);
-  loadRowsMock.mockResolvedValue(ROWS);
+  assertBatchRoleMock.mockResolvedValue({ ok: true, batch: BATCH, role: "owner", isCreator: true });
+  listBatchMembersMock.mockResolvedValue(MEMBERS);
+  loadBlockIdCohortRowsMock.mockResolvedValue({ rows: ROWS, baseRows: [], overridesAvailable: true });
+  supabaseMock.weightsRow = { data: { weights_version: 1 }, error: null };
+  supabaseMock.snapshotRows = { data: [], error: null };
 });
 
 describe("/workspace/evaluations/cohort/[batchId]", () => {
@@ -75,63 +164,86 @@ describe("/workspace/evaluations/cohort/[batchId]", () => {
     await expect(html()).rejects.toThrow("REDIRECT:/auth/login?next=/workspace/evaluations/cohort/b-1");
   });
 
-  it("404s a batch the caller does not own", async () => {
-    getBatchMock.mockResolvedValue(null);
+  it("404s when assertBatchRole finds no membership", async () => {
+    assertBatchRoleMock.mockResolvedValue({ ok: false, error: "not_found" });
     await expect(html("b-other")).rejects.toThrow("NOT_FOUND");
-    expect(getBatchMock).toHaveBeenCalledWith("u-1", "b-other");
-    expect(loadRowsMock).not.toHaveBeenCalled();
+    expect(assertBatchRoleMock).toHaveBeenCalledWith("b-other", "u-1", "viewer");
+    expect(loadBlockIdCohortRowsMock).not.toHaveBeenCalled();
   });
 
-  it("renders the header, weights line, exports and the sortable cohort table", async () => {
+  it("the h1 renders before the table, and cohort-role shows the caller's role", async () => {
     const out = await html();
-    expect(out).toContain("Cohort 4 intake");
-    expect(out).toContain("Scoring… · 2 of 3 scored · 1 failed");
-    expect(out).toContain("width:100%");
-    expect(out).toContain('data-testid="rubric-weights"');
-    expect(out).toContain("equal across the 8 dimensions (default)");
-    expect(out).toContain("/api/evaluations/batch/b-1/export.csv");
+    const h1Idx = out.indexOf('data-testid="cohort-h1"');
+    const tableIdx = out.indexOf('data-testid="blockid-cohort"');
+    expect(h1Idx).toBeGreaterThan(-1);
+    expect(tableIdx).toBeGreaterThan(-1);
+    expect(h1Idx).toBeLessThan(tableIdx);
+    expect(out).toContain("BlockID Cohort — Cohort 4 intake");
+    expect(out).toMatch(/data-testid="cohort-role"[^>]*>owner</);
+  });
+
+  it("header stats: n, median SVI, median confidence, shortlisted, and 'no snapshot yet' when cohort_snapshots errors", async () => {
+    supabaseMock.snapshotRows = { data: null, error: { code: "42P01", message: "relation \"cohort_snapshots\" does not exist" } };
+    const out = await html();
+    expect(out).toContain('data-testid="cohort-stats"');
+    expect(out).toMatch(/n <\/dt><dd[^>]*>2</); // n = 2
+    expect(out).toContain(">60.5<"); // median SVI of [71, 50]
+    expect(out).toContain(">61<"); // median confidence of [82, 40]
+    expect(out).toMatch(/Shortlisted <\/dt><dd[^>]*>1</); // one shortlisted row
+    expect(out).toMatch(/data-testid="cohort-last-snapshot"[^>]*>no snapshot yet</);
+  });
+
+  it("shows the taken_at date when a cohort_snapshots row exists", async () => {
+    supabaseMock.weightsRow = { data: { weights_version: 2 }, error: null };
+    supabaseMock.snapshotRows = { data: [{ taken_at: "2026-09-19T00:00:00Z" }], error: null };
+    const out = await html();
+    expect(out).not.toContain("no snapshot yet");
+    expect(out).toContain('data-testid="cohort-last-snapshot"');
+    expect(out).toContain("Program weights v2:");
+  });
+
+  it("cohort members: the creator chip renders, and invite-reviewer-toggle only for the owner", async () => {
+    const owner = await html();
+    expect(owner).toContain('data-testid="cohort-members"');
+    expect(owner).toContain("Pat Nguyen");
+    expect(owner).toContain("Sam Reviewer");
+    expect(owner).toContain('data-testid="invite-reviewer-toggle"');
+
+    assertBatchRoleMock.mockResolvedValue({ ok: true, batch: BATCH, role: "reviewer", isCreator: false });
+    const reviewer = await html();
+    expect(reviewer).toContain('data-testid="cohort-members"');
+    expect(reviewer).not.toContain('data-testid="invite-reviewer-toggle"');
+  });
+
+  it("Download CSV link, program-journey link, and the LP report gated on lp_report / lp_export", async () => {
+    const out = await html();
+    expect(out).toContain('href="/api/evaluations/batch/b-1/export.csv"');
     expect(out).toContain("Download CSV");
+    expect(out).toMatch(/data-testid="cohort-program-journey"[^>]*href="\/workspace\/accelerator"/);
     expect(out).toContain("/api/reports/quarterly?batch=b-1");
     expect(out).toContain("Sponsor / LP report");
-    // Table: headers are sort buttons.
-    expect(out).toContain('data-testid="cohort-table"');
-    for (const k of ["startup", "svi", "weighted", "stage", "delta", "topStrength", "topGap", "status"]) {
-      expect(out).toContain("data-testid=\"sort-" + k + "\"");
-    }
-    expect((out.match(/data-testid="cohort-row"/g) ?? []).length).toBe(3);
-    // Default sort: weighted desc → Acme, Beta, Gamma.
-    expect(out.indexOf("Acme Robotics")).toBeLessThan(out.indexOf("Beta Health"));
-    expect(out.indexOf("Beta Health")).toBeLessThan(out.indexOf(">Gamma<"));
-    // G13 S-D1: the startup name opens the Investor Dossier (keyed on the evaluation id).
-    expect(out).toContain('href="/workspace/evaluations/e-1"');
-    expect(out).toContain("Shortlist");
-    expect(out).toContain("DeepTech");
-    expect(out).toContain(">71<");
-    expect(out).toContain(">64.5<");
-    expect(out).toContain("MVP");
-    expect(out).toContain("▲ +9.4");
-    expect(out).toContain(">New<");
-    expect(out).toContain("Founder &amp; Team");
-    expect(out).toContain("Traction &amp; Revenue");
-    expect(out).toContain("Scored");
-    expect(out).toContain("Failed");
-    expect(out).toContain('data-testid="item-error"');
-    expect(out).toContain("owner_not_found");
-    expect(out).toContain('href="/tbr/tok-a"');
-    expect(out).toContain('href="/api/svi/report/pdf?token=tok-b"');
-    // Evaluator disclaimer footer.
-    expect(out).toContain('data-surface="evaluator_report"');
-    expect(loadRowsMock).toHaveBeenCalledWith(BATCH);
   });
 
-  it("shows custom weights and gates the LP report on lp_report / lp_export", async () => {
-    getBatchMock.mockResolvedValue({ ...BATCH, rubricWeights: { ...EQUAL, ftv: 30, tre: 30, mpc: 5, ptd: 5, cgh: 5, iri: 5, lco: 10, svm: 10 } });
+  it("hides the LP report and offers the pricing link when the flag is missing", async () => {
     getEntitlementsMock.mockResolvedValue(["accelerator.cohort"]);
     const out = await html();
-    expect(out).toContain("Founder &amp; Team 30%");
-    expect(out).toContain("Traction &amp; Revenue 30%");
     expect(out).not.toContain("/api/reports/quarterly?batch=b-1");
     expect(out).toContain("Sponsor / LP report — Program");
     expect(out).toContain("/pricing?segment=evaluator");
+  });
+
+  it("renders the table with the caller's role, 'Humans make the decision.', and the evaluator disclaimer", async () => {
+    const out = await html();
+    expect(out).toMatch(/data-testid="blockid-cohort" data-role="owner"/);
+    expect(out).toContain('data-testid="humans-decide"');
+    expect(out).toContain("Humans make the decision.");
+    expect(out).toContain('data-surface="evaluator_report"');
+  });
+
+  it("a ?stage=3 query reaches the table as initialFilters, hiding non-matching rows", async () => {
+    const out = await html("b-1", { stage: "3" });
+    expect((out.match(/data-testid="cohort-row"/g) ?? []).length).toBe(1);
+    expect(out).toContain(">Acme<");
+    expect(out).not.toContain(">Beta<");
   });
 });

@@ -1,10 +1,13 @@
 // Colocated vitest for lib/evaluations/cohort-decisions (G13-W5-D3, P1 /
-// P2). Pins: the latest version per evaluation wins (newest first), only
-// the batch owner's seat is read, 42P01 → empty map; the bulk Zod (ids
-// 1..200, at least one of decision / conviction); bulkSetDecisions writes a
-// DRAFT per selected row through the S-D2 upsert with the batch snapshot,
-// skips ids outside the batch, never submits, and audits ONE
-// `assessment.bulk_set` with the id list.
+// P2; G21 P2-B reason codes). Pins: the latest version per evaluation wins
+// (newest first), only the batch owner's seat is read, 42P01 → empty map;
+// the bulk Zod (ids 1..200, at least one of decision / conviction, an
+// optional `reason_code` from DECISION_REASON_CODES); bulkSetDecisions
+// writes a DRAFT per selected row through the S-D2 upsert with the batch
+// snapshot, skips ids outside the batch, never submits, audits ONE
+// `assessment.bulk_set` with the id list (carrying `reason_code`), and
+// emits one FI `decision_recorded` per touched id when a decision was set
+// (none when only conviction changed).
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -31,8 +34,11 @@ vi.mock("@/lib/evaluations/assessments", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/evaluations/assessments")>()),
   upsertAssessment: (ctx: unknown, input: unknown) => upsertMock(ctx, input),
 }));
+const { emitFiEventMock } = vi.hoisted(() => ({ emitFiEventMock: vi.fn() }));
+vi.mock("@/lib/analytics/fi-events", () => ({ emitFiEvent: (name: unknown, envelope: unknown) => emitFiEventMock(name, envelope) }));
 
 import { BULK_MAX_IDS, bulkDecisionSchema, bulkSetDecisions, loadCohortDecisions } from "./cohort-decisions";
+import { DECISION_REASON_CODES } from "./cohort-decisions-shared";
 
 const SNAP = "0f6e5c1a-9999-4999-8999-aaaaaaaaaaaa";
 
@@ -42,6 +48,7 @@ beforeEach(() => {
   state.configured = true;
   auditMock.mockClear();
   upsertMock.mockClear().mockResolvedValue({ ok: true, created: true, assessment: {}, version: 1, history: [] });
+  emitFiEventMock.mockClear();
 });
 
 describe("loadCohortDecisions", () => {
@@ -80,6 +87,14 @@ describe("bulkDecisionSchema", () => {
     expect(bulkDecisionSchema.safeParse({ evaluation_ids: ["e-1"], decision: "pass", extra: 1 }).success).toBe(false);
     expect(bulkDecisionSchema.safeParse({ evaluation_ids: Array.from({ length: BULK_MAX_IDS + 1 }, (_, i) => `e-${i}`), decision: "pass" }).success).toBe(false);
   });
+
+  it("G21 P2-B: accepts an optional reason_code from DECISION_REASON_CODES and rejects an unknown one", () => {
+    expect(bulkDecisionSchema.safeParse({ evaluation_ids: ["e-1"], decision: "pass" }).success).toBe(true); // reason_code is optional
+    for (const code of DECISION_REASON_CODES) {
+      expect(bulkDecisionSchema.safeParse({ evaluation_ids: ["e-1"], decision: "pass", reason_code: code }).success).toBe(true);
+    }
+    expect(bulkDecisionSchema.safeParse({ evaluation_ids: ["e-1"], decision: "pass", reason_code: "bogus" }).success).toBe(false);
+  });
 });
 
 describe("bulkSetDecisions", () => {
@@ -113,5 +128,34 @@ describe("bulkSetDecisions", () => {
     expect(u.unavailable).toBe(true);
     expect(upsertMock).toHaveBeenCalledTimes(1);
     expect(auditMock).not.toHaveBeenCalled();
+  });
+
+  it("G21 P2-B: carries reason_code on the bulk_set audit detail and emits one decision_recorded per touched id", async () => {
+    upsertMock.mockResolvedValueOnce({ ok: true, created: true, assessment: {}, version: 1, history: [] }).mockResolvedValueOnce({ ok: true, created: false, assessment: {}, version: 2, history: [] });
+    const r = await bulkSetDecisions({
+      batchId: "b-1",
+      userId: "u-owner",
+      orgId: "org-1",
+      actor: { plan: "vc_small", email: "owner@x.test" },
+      items,
+      body: { evaluation_ids: ["e-1", "e-2"], decision: "proceed", conviction: 5, reason_code: "thesis_fit" },
+    });
+    expect(r).toEqual({ updated: 1, created: 1, skipped: [], failed: [], unavailable: false });
+    expect(auditMock).toHaveBeenCalledTimes(1);
+    expect(auditMock.mock.calls[0][0]).toMatchObject({ action: "assessment.bulk_set", detail: { reason_code: "thesis_fit", decision: "proceed", conviction: 5 } });
+
+    expect(emitFiEventMock).toHaveBeenCalledTimes(2);
+    expect(emitFiEventMock.mock.calls[0][0]).toBe("decision_recorded");
+    expect(emitFiEventMock.mock.calls[0][1]).toMatchObject({ organisation: "u-owner", startup: "p-1", decision: "proceed", reason_code: "thesis_fit", batch_id: "b-1", channel: "cohort" });
+    expect(emitFiEventMock.mock.calls[1][1]).toMatchObject({ organisation: "u-owner", startup: "p-2", decision: "proceed", reason_code: "thesis_fit", batch_id: "b-1", channel: "cohort" });
+  });
+
+  it("G21 P2-B: emits no decision_recorded event when only conviction is set (no decision)", async () => {
+    upsertMock.mockResolvedValueOnce({ ok: true, created: true, assessment: {}, version: 1, history: [] });
+    const r = await bulkSetDecisions({ batchId: "b-1", userId: "u-owner", items, body: { evaluation_ids: ["e-1"], conviction: 3, reason_code: "team_strength" } });
+    expect(r.updated + r.created).toBe(1);
+    expect(auditMock).toHaveBeenCalledTimes(1);
+    expect(auditMock.mock.calls[0][0]).toMatchObject({ detail: { reason_code: "team_strength", decision: null, conviction: 3 } });
+    expect(emitFiEventMock).not.toHaveBeenCalled();
   });
 });
