@@ -85,6 +85,19 @@ Spec: [`docs/plans/g14-investor-feedback-2026-09-16.md`](plans/g14-investor-feed
 
 ---
 
+## Phase 3.4 — Report Quality (G19) (batch 1 LIVE 2026-09-20; batches 2–3 in worktrees)
+
+Spec: [`docs/plans/g19-report-quality-2026-09-20.md`](plans/g19-report-quality-2026-09-20.md) (SOT § G19). Founder brief: reasons behind every score, a standard valuation, unassessed ≠ scored, one synthesis everywhere, the paid view = ReportV2, and BlockID's own report as the public showcase.
+
+- [x] S41 Score ledger — `SVISubScore.breakdown[]` + `assessed`; "How this score was built" on web / PDF / DOCX; pending band for unassessed dimensions — live 2026-09-20 (`32ea5b05e`)
+- [x] S42 Valuation truth — inputs & assumptions table, honest pre-revenue methods (Berkus + scorecard + stage baseline), evidence-driven confidence, backtest cross-check — live 2026-09-20 (`32ea5b05e`)
+- [ ] S43 Evidence & CTAs — pipeline reads `svi_dimension_evidence`; missing rows → linked CTA rows; one lift model; Money on the Table from gather — batch 2
+- [ ] S44 Synthesis + one phase rule + layout — cover "current value" hero, `/dashboard` executive synthesis from `report_v2`, `inferPhase` everywhere — batch 3
+- [x] S45 Paid view + i18n + clarity survey — purchase lands on ReportV2, `tbr-strings.ts` parity (VI diacritics), 0–10 survey + admin tile — merged, ships with batch 2
+- [ ] S46 BlockID showcase + quality telemetry — `/showcase/blockid/report` (own report, weekly cron), `tbr-quality.jsonl` → `/api/status.tbr_quality` + admin tile, valuation-inputs / ledger prompt-eval fixtures; running our own report found and fixed 5 pipeline defects (markdown-vs-JSON contract, per-user cap, W4 token budget, nullable floor, `assembled_reports.analysis_id` 0415) — built 2026-09-20, ships with batch 3
+
+---
+
 ## Phase 3.1: Startup Package Ship 2 (Planned)
 
 Full spec in plan file. Ship 2 deliverables:
