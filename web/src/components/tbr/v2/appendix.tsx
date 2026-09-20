@@ -8,7 +8,23 @@ import { cn } from "@/lib/utils";
 import { CtaLink } from "./chapter";
 import { AgentBadge, Chip, TABLE_CLASS, TABLE_WRAP_CLASS, TBR_V2_SECTION_IDS, THEAD_CLASS, TbrSection, v2Strings, zebraRow, type TbrUiLocale } from "./shared";
 
-export function TbrAppendix({ report, title, locale = "en" }: { report: ReportV2; title: string; locale?: TbrUiLocale }) {
+export function TbrAppendix({
+  report,
+  title,
+  locale = "en",
+  canCorrect = false,
+}: {
+  report: ReportV2;
+  title: string;
+  locale?: TbrUiLocale;
+  /**
+   * G21 P1 post-ship review: "Flag a problem with this report" links to the
+   * founder-only /workspace/evidence/corrections, so it renders only when the
+   * viewer can actually file one (the founder workspace). Share-token,
+   * demo, sample and showcase renders pass / default to false.
+   */
+  canCorrect?: boolean;
+}) {
   const a = report.appendix;
   const t = v2Strings(locale).appendix;
   // G19-S43: the register shows every missing input as a linked CTA row.
@@ -95,14 +111,18 @@ export function TbrAppendix({ report, title, locale = "en" }: { report: ReportV2
         )}
         <p className="max-w-prose border-t border-line-subtle pt-2 text-xs leading-relaxed">{a.disclaimer}</p>
         {/* G21 P1-C — founder correction workflow: corrections are logged, never
-            silently overwritten (docs/product/score-governance.md § 10). */}
-        <p className="max-w-prose text-xs leading-relaxed text-muted">
-          {locale === "vi" ? "Thấy dữ liệu sai, cũ hoặc bằng chứng bị hiểu nhầm? " : "Incorrect, stale or misunderstood data in this report? "}
-          <a href="/workspace/evidence/corrections" data-testid="tbr-flag-correction" className="font-semibold text-action hover:underline">
-            {locale === "vi" ? "Báo lỗi để được chỉnh sửa" : "Flag a problem with this report"}
-          </a>
-          {locale === "vi" ? " — mọi chỉnh sửa đều được ghi lại, không bao giờ bị ghi đè âm thầm." : " — every correction is logged, never silently overwritten."}
-        </p>
+            silently overwritten (docs/product/score-governance.md § 10).
+            Founder workspace only (canCorrect) — an anonymous / share-token
+            reader has no corrections page to land on. */}
+        {canCorrect ? (
+          <p className="max-w-prose text-xs leading-relaxed text-muted">
+            {locale === "vi" ? "Thấy dữ liệu sai, cũ hoặc bằng chứng bị hiểu nhầm? " : "Incorrect, stale or misunderstood data in this report? "}
+            <a href="/workspace/evidence/corrections" data-testid="tbr-flag-correction" className="font-semibold text-action hover:underline">
+              {locale === "vi" ? "Báo lỗi để được chỉnh sửa" : "Flag a problem with this report"}
+            </a>
+            {locale === "vi" ? " — mọi chỉnh sửa đều được ghi lại, không bao giờ bị ghi đè âm thầm." : " — every correction is logged, never silently overwritten."}
+          </p>
+        ) : null}
       </div>
     </TbrSection>
   );

@@ -242,11 +242,45 @@ export async function rescoreAccountFromEvidence(supabase: Db, args: RescoreArgs
   const previousSVI = args.currentSvi ?? 100;
   const delta = newAnalysis.totalSVI - previousSVI;
 
+  // 6. Persist: account, analysis, snapshot on a significant move.
+  const { error: accountErr } = await supabase
+    .from("svi_accounts")
+    .update({ current_svi: newAnalysis.totalSVI, last_active_at: now.toISOString() })
+    .eq("id", accountId);
+  let persisted = !accountErr;
+  if (accountErr) console.error("[blockid:svi:rescore-from-evidence] svi_accounts update failed", accountErr);
+
+  if (latestAnalysis?.id) {
+    const { error: analysisErr } = await supabase
+      .from("svi_analyses")
+      .update({
+        total_svi: newAnalysis.totalSVI,
+        net_adjustment: newAnalysis.netAdjustment,
+        confidence_multiplier: newAnalysis.confidenceMultiplier,
+        analysis_json: newAnalysis as unknown as Record<string, unknown>,
+      })
+      .eq("id", latestAnalysis.id);
+    if (analysisErr) {
+      persisted = false;
+      console.error("[blockid:svi:rescore-from-evidence] svi_analyses update failed", analysisErr);
+    }
+  }
+
+  if (Math.abs(delta) >= 2) {
+    await insertSviSnapshot(
+      supabase,
+      { account_id: accountId, svi_total: newAnalysis.totalSVI, stage: newAnalysis.stage, delta, snapshot_date: now.toISOString().split("T")[0] },
+      { analysis: newAnalysis, verificationLevel },
+    );
+  }
+
   // G21 P1-C — FI analytics: score_recalculated (organisation = owner,
   // startup = project, plan = the account's plan). Fire-and-forget; only
-  // when the rescore is keyed on a project.
+  // when the rescore is keyed on a project AND the new score was actually
+  // persisted (G21 P1 post-ship review: an event for a score the DB never
+  // stored would put a phantom recalculation in the FI ledger).
   const trigger = args.trigger ?? { reason: "evidence" as const, channel: "workspace" as const };
-  if (projectId) {
+  if (projectId && persisted) {
     let plan: string | null = null;
     try {
       const { data: acct } = await supabase.from("svi_accounts").select("plan").eq("id", accountId).maybeSingle();
@@ -267,32 +301,6 @@ export async function rescoreAccountFromEvidence(supabase: Db, args: RescoreArgs
       stage: typeof newAnalysis.stage === "number" ? newAnalysis.stage : null,
       sviVersion: SVI_VERSION,
     });
-  }
-
-  // 6. Persist: account, analysis, snapshot on a significant move.
-  await supabase
-    .from("svi_accounts")
-    .update({ current_svi: newAnalysis.totalSVI, last_active_at: now.toISOString() })
-    .eq("id", accountId);
-
-  if (latestAnalysis?.id) {
-    await supabase
-      .from("svi_analyses")
-      .update({
-        total_svi: newAnalysis.totalSVI,
-        net_adjustment: newAnalysis.netAdjustment,
-        confidence_multiplier: newAnalysis.confidenceMultiplier,
-        analysis_json: newAnalysis as unknown as Record<string, unknown>,
-      })
-      .eq("id", latestAnalysis.id);
-  }
-
-  if (Math.abs(delta) >= 2) {
-    await insertSviSnapshot(
-      supabase,
-      { account_id: accountId, svi_total: newAnalysis.totalSVI, stage: newAnalysis.stage, delta, snapshot_date: now.toISOString().split("T")[0] },
-      { analysis: newAnalysis, verificationLevel },
-    );
   }
 
   // 7. Milestone badges.

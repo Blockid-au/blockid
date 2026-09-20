@@ -45,12 +45,12 @@ const fks = fixture.fks as Fk[];
 const fkByKey = new Map(fks.map((f) => [`${f.table}.${f.column}`, f]));
 
 describe("erasure map ↔ live-schema fixture", () => {
-  it("fixture is the 141-FK production dump (129 live + the three 0393 investor FKs + the 0405 intake FK + the 0406 feedback-letter FK + the four 0417 claims/evidence_records/claim_versions FKs + the 0416 pilot_orders FK + the two 0422 intake_templates/cohort_snapshots FKs)", () => {
+  it("fixture is the 143-FK production dump (129 live + the three 0393 investor FKs + the 0405 intake FK + the 0406 feedback-letter FK + the four 0417 claims/evidence_records/claim_versions FKs + the 0416 pilot_orders FK + the two 0422 intake_templates/cohort_snapshots FKs + the two 0418 corrections FKs)", () => {
     expect(fixture.referenced).toBe("public.app_users(id)");
-    expect(fks.length).toBe(141);
+    expect(fks.length).toBe(143);
     expect(fixture.count).toBe(fks.length);
     const by = fks.reduce<Record<string, number>>((acc, f) => ({ ...acc, [f.on_delete]: (acc[f.on_delete] ?? 0) + 1 }), {});
-    expect(by).toEqual({ CASCADE: 91, "NO ACTION": 14, "SET NULL": 30, RESTRICT: 6 });
+    expect(by).toEqual({ CASCADE: 91, "NO ACTION": 14, "SET NULL": 32, RESTRICT: 6 });
   });
 
   it("every FK is mapped exactly once and nothing stale is mapped", () => {
@@ -117,6 +117,8 @@ describe("erasure map ↔ live-schema fixture", () => {
       "svi_dimension_evidence.verified_by_user_id",
       "revocations.revoked_by_user_id",
       "equity_requests.reviewer_id",
+      "corrections.submitted_by",
+      "corrections.resolved_by",
     ]) {
       expect(ERASURE_MAP.find((e) => entryKey(e) === k)!.mode, k).toBe("detach");
     }
@@ -146,9 +148,9 @@ describe("erasure map ↔ live-schema fixture", () => {
 
   it("summary matches the classification", () => {
     const s = summariseErasureMap();
-    expect(s.entries).toBe(141);
-    expect(s.delete + s.anonymise + s.detach).toBe(141);
-    expect(s).toMatchObject({ delete: 85, anonymise: 35, detach: 21, immutable: 3, tables: 126 });
+    expect(s.entries).toBe(143);
+    expect(s.delete + s.anonymise + s.detach).toBe(143);
+    expect(s).toMatchObject({ delete: 85, anonymise: 35, detach: 23, immutable: 3, tables: 127 });
     expect(s.project_detaches).toBe(PROJECT_DETACHES.length);
     expect(s.non_fk_extras).toBe(NON_FK_EXTRAS.length);
   });
@@ -179,9 +181,9 @@ describe("erasure migration ↔ map parity", () => {
     expect(extractBlock(sql, EXTRAS_BEGIN, EXTRAS_END)).toBe(renderExtrasBlock());
   });
 
-  it("the SQL block parses back to the same 141 entries", () => {
+  it("the SQL block parses back to the same 143 entries", () => {
     const parsed = parseMapBlock(extractBlock(sql, MAP_BEGIN, MAP_END)!);
-    expect(parsed.length).toBe(141);
+    expect(parsed.length).toBe(143);
     const ord = orderedEntries();
     parsed.forEach((p, i) => {
       const e = ord[i];

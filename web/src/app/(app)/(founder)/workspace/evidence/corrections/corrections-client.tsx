@@ -25,8 +25,8 @@ export interface CorrectionsClientProps {
   canFile: boolean;
 }
 
-const INPUT = "w-full min-h-11 rounded-lg border border-ink-300 bg-white px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200";
-const LABEL = "block text-xs font-medium text-ink-700 mb-1";
+const INPUT = "w-full min-h-11 rounded-lg border border-ink-300 dark:border-ink-700 bg-white dark:bg-ink-900 px-3 text-sm text-ink-800 dark:text-ink-200 placeholder:text-ink-400 dark:placeholder:text-ink-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200";
+const LABEL = "block text-xs font-medium text-ink-700 dark:text-ink-300 mb-1";
 
 const ERRORS: Record<string, string> = {
   rate_limited: "Too many corrections in the last hour — try again later.",
@@ -39,9 +39,9 @@ const ERRORS: Record<string, string> = {
 };
 
 const STATUS_META: Record<CorrectionRow["status"], { label: string; className: string; Icon: typeof Clock }> = {
-  open: { label: "Open — awaiting review", className: "bg-amber-100 text-amber-800", Icon: Clock },
-  accepted: { label: "Accepted", className: "bg-emerald-100 text-emerald-800", Icon: CheckCircle2 },
-  rejected: { label: "Rejected", className: "bg-ink-100 text-ink-700", Icon: XCircle },
+  open: { label: "Open — awaiting review", className: "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200", Icon: Clock },
+  accepted: { label: "Accepted", className: "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200", Icon: CheckCircle2 },
+  rejected: { label: "Rejected", className: "bg-ink-100 dark:bg-ink-800 text-ink-700 dark:text-ink-300", Icon: XCircle },
 };
 
 function fmt(iso: string): string {
@@ -55,7 +55,7 @@ const NO_TARGET = "";
 export function CorrectionsList({ rows }: { rows: CorrectionRow[] }) {
   if (rows.length === 0) {
     return (
-      <p className="rounded-xl border border-dashed border-ink-300 bg-white p-5 text-sm text-ink-600" data-testid="corrections-empty">
+      <p className="rounded-xl border border-dashed border-ink-300 dark:border-ink-700 bg-white dark:bg-ink-900 p-5 text-sm text-ink-600 dark:text-ink-400" data-testid="corrections-empty">
         No corrections filed yet. When something on your record or in a report is wrong, file it here — every one is reviewed by a person and the resolution is recorded.
       </p>
     );
@@ -65,19 +65,19 @@ export function CorrectionsList({ rows }: { rows: CorrectionRow[] }) {
       {rows.map((r) => {
         const meta = STATUS_META[r.status];
         return (
-          <li key={r.id} className="rounded-xl border border-ink-200 bg-white p-4" data-correction-status={r.status}>
+          <li key={r.id} className="rounded-xl border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 p-4" data-correction-status={r.status}>
             <div className="flex flex-wrap items-center gap-2">
               <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${meta.className}`}>
                 <meta.Icon className="h-3 w-3" aria-hidden="true" />
                 {meta.label}
               </span>
-              <span className="text-xs font-semibold text-ink-800">{CORRECTION_KIND_LABEL[r.kind]?.label ?? r.kind}</span>
-              <span className="text-xs text-ink-500">· {targetLabel(r.target_ref)}</span>
-              <span className="ml-auto text-xs text-ink-500 tabular-nums">{fmt(r.created_at)}</span>
+              <span className="text-xs font-semibold text-ink-800 dark:text-ink-200">{CORRECTION_KIND_LABEL[r.kind]?.label ?? r.kind}</span>
+              <span className="text-xs text-ink-500 dark:text-ink-400">· {targetLabel(r.target_ref)}</span>
+              <span className="ml-auto text-xs text-ink-500 dark:text-ink-400 tabular-nums">{fmt(r.created_at)}</span>
             </div>
-            <p className="mt-2 whitespace-pre-wrap text-sm text-ink-800">{r.message}</p>
+            <p className="mt-2 whitespace-pre-wrap text-sm text-ink-800 dark:text-ink-200">{r.message}</p>
             {r.resolution ? (
-              <p className="mt-2 rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-700" data-testid="correction-resolution">
+              <p className="mt-2 rounded-lg bg-ink-50 dark:bg-ink-800 px-3 py-2 text-xs text-ink-700 dark:text-ink-300" data-testid="correction-resolution">
                 <span className="font-semibold">Resolution{r.resolved_at ? ` (${fmt(r.resolved_at)})` : ""}:</span> {r.resolution}
               </p>
             ) : null}
@@ -143,8 +143,8 @@ export function CorrectionsClient({ projectId, initial, canFile }: CorrectionsCl
   return (
     <div className="space-y-8">
       {canFile ? (
-        <form onSubmit={submit} className="rounded-2xl border border-ink-200 bg-white p-5 space-y-4" aria-labelledby="file-correction-heading" data-testid="corrections-form">
-          <h2 id="file-correction-heading" className="text-base font-semibold text-ink-900">
+        <form onSubmit={submit} className="rounded-2xl border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 p-5 space-y-4" aria-labelledby="file-correction-heading" data-testid="corrections-form">
+          <h2 id="file-correction-heading" className="text-base font-semibold text-ink-900 dark:text-ink-100">
             Flag a problem
           </h2>
 
@@ -160,7 +160,7 @@ export function CorrectionsClient({ projectId, initial, canFile }: CorrectionsCl
                   </option>
                 ))}
               </select>
-              <p className="mt-1 text-xs text-ink-500">{CORRECTION_KIND_LABEL[kind].hint}</p>
+              <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">{CORRECTION_KIND_LABEL[kind].hint}</p>
             </div>
 
             <div>
@@ -191,7 +191,7 @@ export function CorrectionsClient({ projectId, initial, canFile }: CorrectionsCl
                     Reference
                   </label>
                   <input id="correction-target-custom" className={INPUT} value={customTarget} onChange={(e) => setCustomTarget(e.target.value)} placeholder="claim:<id> · report:<id>#section · evidence:<id>" aria-describedby="correction-target-help" />
-                  <p id="correction-target-help" className="mt-1 text-xs text-ink-500">
+                  <p id="correction-target-help" className="mt-1 text-xs text-ink-500 dark:text-ink-400">
                     Copy the reference shown beside the claim, report section or evidence row.
                   </p>
                 </div>
@@ -201,7 +201,7 @@ export function CorrectionsClient({ projectId, initial, canFile }: CorrectionsCl
 
           {showProposal ? (
             <fieldset className="grid gap-4 sm:grid-cols-2 rounded-lg border border-ink-200 p-3">
-              <legend className="px-1 text-xs font-medium text-ink-700">What should it be? (optional — applied only if a reviewer accepts)</legend>
+              <legend className="px-1 text-xs font-medium text-ink-700 dark:text-ink-300">What should it be? (optional — applied only if a reviewer accepts)</legend>
               <div>
                 <label htmlFor="correction-industry" className={LABEL}>
                   Sector
@@ -233,39 +233,39 @@ export function CorrectionsClient({ projectId, initial, canFile }: CorrectionsCl
               aria-describedby="correction-message-help"
               placeholder="Say what we hold or said, what is actually the case, and where a reviewer can check it."
             />
-            <p id="correction-message-help" className="mt-1 text-xs text-ink-500 tabular-nums">
+            <p id="correction-message-help" className="mt-1 text-xs text-ink-500 dark:text-ink-400 tabular-nums">
               {message.length} / {CORRECTION_MESSAGE_MAX}
             </p>
           </div>
 
           {error ? (
-            <p role="alert" className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+            <p role="alert" className="flex items-start gap-2 rounded-lg border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
               {error}
             </p>
           ) : null}
           {done ? (
-            <p role="status" className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            <p role="status" className="flex items-start gap-2 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
               {done}
             </p>
           ) : null}
 
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <p className="text-xs text-ink-500">Nothing changes until a reviewer accepts it; the resolution records exactly what changed.</p>
+            <p className="text-xs text-ink-500 dark:text-ink-400">Nothing changes until a reviewer accepts it; the resolution records exactly what changed.</p>
             <button type="submit" disabled={busy || !message.trim()} className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed">
               {busy ? "Filing…" : "File correction"}
             </button>
           </div>
         </form>
       ) : (
-        <p className="text-sm text-ink-600" data-testid="corrections-owner-only">
+        <p className="text-sm text-ink-600 dark:text-ink-400" data-testid="corrections-owner-only">
           Only the startup&apos;s owner can file a correction. Ask them to file it from this page.
         </p>
       )}
 
       <section aria-labelledby="corrections-list-heading" className="space-y-3">
-        <h2 id="corrections-list-heading" className="text-base font-semibold text-ink-900">
+        <h2 id="corrections-list-heading" className="text-base font-semibold text-ink-900 dark:text-ink-100">
           Your corrections
         </h2>
         <CorrectionsList rows={rows} />

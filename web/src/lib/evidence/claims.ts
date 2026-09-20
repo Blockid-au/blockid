@@ -11,8 +11,11 @@
 //   syncClaimsForProject(...)           DB — idempotent upsert on
 //                                       (project_id, claim_key); never
 //                                       deletes; supersedes older proof from
-//                                       the same source; audit row per status
-//                                       change and per new record
+//                                       the same source; withdraws hub proof
+//                                       whose row was rejected / deleted;
+//                                       only ACTIVE hashes block a re-sync;
+//                                       audit row per status change, per new
+//                                       record and per withdrawal
 //   syncClaimsForProjectSafe(...)       the fail-soft wrapper the analysis
 //                                       writers call — an analysis never
 //                                       fails because of the claims sync
@@ -449,6 +452,8 @@ export interface SyncClaimsSummary {
   claims_updated: number;
   records_created: number;
   records_superseded: number;
+  /** G21 P1 review: active evidence_hub records whose hub row is now rejected / deleted. */
+  records_withdrawn: number;
   records_skipped: number;
   status_changes: number;
   conflicting: number;
@@ -561,7 +566,7 @@ export async function syncClaimsForProject(projectId: string, analysis: DeriveCl
     now,
   });
 
-  const summary: SyncClaimsSummary = { project_id: projectId, claims_created: 0, claims_updated: 0, records_created: 0, records_superseded: 0, records_skipped: 0, status_changes: 0, conflicting: 0, claims_total: 0 };
+  const summary: SyncClaimsSummary = { project_id: projectId, claims_created: 0, claims_updated: 0, records_created: 0, records_superseded: 0, records_withdrawn: 0, records_skipped: 0, status_changes: 0, conflicting: 0, claims_total: 0 };
 
   // claims — upsert on (project_id, claim_key); founder_claimed_value is never touched here
   const existing = await db.listClaims(projectId);
@@ -608,9 +613,15 @@ export async function syncClaimsForProject(projectId: string, analysis: DeriveCl
     }
   }
 
-  // records — skip known hashes, supersede older same-source proof
+  // records — skip hashes that are still ACTIVE, supersede older same-source proof.
+  // G21 P1 review (P1): only an active record blocks a re-sync. An expired /
+  // superseded / withdrawn record with the same hash no longer proves the
+  // claim, so the same source seen again mints a fresh active record (with a
+  // new expires_at and its own evidence.recorded audit row) and the claim
+  // regains its status. Chosen over re-activating the old row because the
+  // ledger stays append-only: the lapse and the renewal are both on record.
   const records = await db.listRecords(projectId);
-  const knownHashes = new Set(records.filter((r) => r.hash && r.status !== "withdrawn").map((r) => r.hash!));
+  const knownHashes = new Set(records.filter((r) => r.hash && r.status === "active").map((r) => r.hash!));
   const supersededIds = new Set<string>();
   for (const draft of derived.records) {
     const hash = evidenceRecordHash(draft);
@@ -666,6 +677,27 @@ export async function syncClaimsForProject(projectId: string, analysis: DeriveCl
       supersededIds.add(old.id);
       summary.records_superseded += 1;
     }
+  }
+
+  // G21 P1 review (P2): an active evidence_hub record whose source row is
+  // now rejected or deleted proves nothing any more. The hub rows were just
+  // loaded and derived, so the set of hashes the CURRENT usable rows
+  // produce is exact — any active hub-sourced record outside it is
+  // withdrawn (never deleted) with an audit row, before grading.
+  const liveHubHashes = new Set(derived.records.filter((r) => r.source_type === "evidence_hub").map((r) => evidenceRecordHash(r)));
+  for (const rec of records) {
+    if (rec.source_type !== "evidence_hub" || rec.status !== "active" || !rec.hash || liveHubHashes.has(rec.hash)) continue;
+    await db.updateRecord(rec.id, { status: "withdrawn" });
+    rec.status = "withdrawn";
+    summary.records_withdrawn += 1;
+    await auditSafe(audit, {
+      user_id: opts.actorUserId ?? null,
+      actor: "system",
+      action: "evidence.withdrawn",
+      resource_type: "evidence_record",
+      resource_id: rec.id,
+      detail: { project_id: projectId, claim_id: rec.claim_id, evidence_type: rec.evidence_type, source_type: rec.source_type, hash: rec.hash, reason: "hub_row_rejected_or_deleted" },
+    });
   }
 
   // grade

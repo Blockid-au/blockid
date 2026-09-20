@@ -688,3 +688,25 @@ describe("<TbrReportV2> typography guard (G19-S47)", () => {
     expect(vi).toMatch(/phân vị \d+ \(n = 14\)/);
   });
 });
+
+// G21 P1 post-ship review: the appendix's "Flag a problem with this report"
+// link lands on the founder-only /workspace/evidence/corrections, so it is
+// rendered only when the caller says the viewer can correct (the founder
+// workspace). Share-token / demo / sample / showcase renders omit the prop.
+describe("<TbrReportV2> corrections link (canCorrect)", () => {
+  it("hidden by default (share token / demo / showcase) and rendered only with canCorrect, in EN and VI", () => {
+    const report = demoReportV2();
+    const anon = renderToStaticMarkup(<TbrReportV2 report={report} />);
+    expect(anon).not.toContain('data-testid="tbr-flag-correction"');
+    expect(anon).not.toContain("/workspace/evidence/corrections");
+    expect(anon).not.toContain("Flag a problem with this report");
+    const founder = renderToStaticMarkup(<TbrReportV2 report={report} canCorrect />);
+    expect(founder).toContain('data-testid="tbr-flag-correction"');
+    expect(founder).toContain('href="/workspace/evidence/corrections"');
+    expect(founder).toContain("Flag a problem with this report");
+    const vi = renderToStaticMarkup(<TbrReportV2 report={report} locale="vi" canCorrect />);
+    expect(vi).toContain("Báo lỗi để được chỉnh sửa");
+    const viAnon = renderToStaticMarkup(<TbrReportV2 report={report} locale="vi" />);
+    expect(viAnon).not.toContain("Báo lỗi để được chỉnh sửa");
+  });
+});

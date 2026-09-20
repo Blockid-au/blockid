@@ -177,4 +177,23 @@ describe("resolveCorrection — never overwrites", () => {
     expect(await resolveCorrection(makeDb({ corrections: [] }) as never, { id: CID, decision: "accept", note: null, adminId: "a" }, deps)).toMatchObject({ ok: false, error: "not_found", status: 404 });
     expect(await resolveCorrection(makeDb({ corrections: [{ ...OPEN, status: "rejected" }] }) as never, { id: CID, decision: "accept", note: null, adminId: "a" }, deps)).toMatchObject({ ok: false, error: "not_open", status: 409 });
   });
+
+  it("concurrent resolve: the UPDATE is conditioned on status = open — zero rows updated → 409 already_resolved, no founder e-mail", async () => {
+    // The read sees "open" (both admins pass the pre-check); by the time the
+    // UPDATE runs another reviewer has resolved it, so `... .eq("status",
+    // "open")` matches nothing and maybeSingle() yields null.
+    const updateFilters: unknown[][] = [];
+    const readChain = { select: () => readChain, eq: () => readChain, maybeSingle: async () => ({ data: OPEN, error: null }) };
+    const updChain = {
+      eq: (...a: unknown[]) => { updateFilters.push(a); return updChain; },
+      select: () => updChain,
+      maybeSingle: async () => ({ data: null, error: null }),
+    };
+    const db = { from: () => ({ select: () => readChain, update: () => updChain }) };
+    const r = await resolveCorrection(db as never, { id: CID, decision: "reject", note: "Evidence contradicts it.", adminId: "a" }, deps);
+    expect(r).toMatchObject({ ok: false, error: "already_resolved", status: 409 });
+    expect(updateFilters).toEqual([["id", CID], ["status", "open"]]);
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(updateProject).not.toHaveBeenCalled();
+  });
 });

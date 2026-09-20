@@ -47,8 +47,16 @@ vi.mock("@/lib/svi-analysis", () => ({
   extractSignals: () => ({}),
   computeSVI: () => ({ totalSVI: 120, netAdjustment: 0, confidenceMultiplier: 1, stage: 2, subs: sviSubs() }),
 }));
-// G21 P1-C: the rescore emits score_recalculated; keep the sink out of this suite.
-vi.mock("@/lib/analytics/fi-events", () => ({ emitScoreRecalculated: () => true }));
+// G21 P1-C: the rescore emits score_recalculated; keep the sink out of this
+// suite but record WHEN it fires relative to the persist writes (G21 P1
+// post-ship review: the event must follow a successful persist).
+const emitSpy = vi.hoisted(() => ({ calls: [] as Array<{ updatesSeen: number }> }));
+vi.mock("@/lib/analytics/fi-events", () => ({
+  emitScoreRecalculated: () => {
+    emitSpy.calls.push({ updatesSeen: updates.length });
+    return true;
+  },
+}));
 vi.mock("@/lib/badges", () => ({ checkAndAwardBadges: async () => [] }));
 
 type Row = Record<string, unknown>;
@@ -59,6 +67,8 @@ let accountRow: Row | null = { id: "acc-owner", current_svi: 100 };
 let evidenceRows: Row[] = [];
 let snapshotRows: Row[] = [];
 let analysisUpdates: Row[] = [];
+/** When set, the svi_accounts UPDATE resolves with this error (persist failure). */
+let accountUpdateError: Row | null = null;
 
 function fakeSupabase() {
   return {
@@ -96,7 +106,7 @@ function fakeSupabase() {
         if (table === "svi_analyses") analysisUpdates.push(patch);
         const u = {
           eq: (col: string, val: unknown) => { call.filters.push([col, val]); return u; },
-          then: (resolve: (v: unknown) => void) => resolve({ data: null, error: null }),
+          then: (resolve: (v: unknown) => void) => resolve({ data: null, error: table === "svi_accounts" ? accountUpdateError : null }),
         };
         return u;
       };
@@ -123,6 +133,8 @@ beforeEach(() => {
   evidenceRows = [];
   snapshotRows = [];
   analysisUpdates = [];
+  accountUpdateError = null;
+  emitSpy.calls.length = 0;
   sviSubs = () => [];
   fromSpy.mockReset();
   getCurrentUserMock.mockReset();
@@ -165,6 +177,22 @@ describe("POST /api/svi/rescore-from-evidence — S17-A", () => {
     await POST();
     expect(accountFilters).toContainEqual(["email", "member@x.test"]);
     expect(accountFilters).toContainEqual(["project_id", "proj-shared"]);
+  });
+
+  it("score_recalculated fires once, only AFTER the svi_accounts + svi_analyses writes (G21 P1 review)", async () => {
+    const res = await POST();
+    expect(res.status).toBe(200);
+    expect(emitSpy.calls).toHaveLength(1);
+    const persistWrites = updates.filter((u) => u.table === "svi_accounts" || u.table === "svi_analyses").length;
+    expect(persistWrites).toBe(2);
+    expect(emitSpy.calls[0].updatesSeen).toBe(persistWrites);
+  });
+
+  it("score_recalculated is NOT emitted when the persist fails (svi_accounts update error)", async () => {
+    accountUpdateError = { message: "connection reset" };
+    await POST();
+    expect(updates.some((u) => u.table === "svi_accounts")).toBe(true);
+    expect(emitSpy.calls).toHaveLength(0);
   });
 
   it("no active project → (own email, project_id IS NULL)", async () => {

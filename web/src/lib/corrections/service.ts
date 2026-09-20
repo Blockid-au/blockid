@@ -159,7 +159,7 @@ export async function listCorrections(db: CorrectionsDb, opts: { status?: Correc
 
 export type ResolveResult =
   | { ok: true; row: CorrectionRow; applied: boolean; change: ReturnType<typeof plannedChangeFor>; warnings: string[] }
-  | { ok: false; error: "not_found" | "not_open" | "db_error"; message: string; status: number };
+  | { ok: false; error: "not_found" | "not_open" | "already_resolved" | "db_error"; message: string; status: number };
 
 export async function resolveCorrection(
   db: CorrectionsDb,
@@ -190,13 +190,19 @@ export async function resolveCorrection(
 
   const resolution = composeResolution(args.decision, args.note, change, applied);
   const nowIso = d.now().toISOString();
+  // Concurrency (G21 P1 post-ship review): two admins can both pass the
+  // read-side "open" check; the UPDATE itself is conditioned on status =
+  // open so the second writer updates zero rows and gets 409 rather than
+  // silently overwriting the first resolution.
   const { data: updated, error: updErr } = await db
     .from("corrections")
     .update({ status: args.decision === "accept" ? "accepted" : "rejected", resolution, resolved_by: args.adminId, resolved_at: nowIso, updated_at: nowIso })
     .eq("id", args.id)
+    .eq("status", "open")
     .select(CORRECTION_SELECT)
-    .single();
-  if (updErr || !updated) return { ok: false, error: "db_error", message: "Could not save the resolution.", status: 500 };
+    .maybeSingle();
+  if (updErr) return { ok: false, error: "db_error", message: "Could not save the resolution.", status: 500 };
+  if (!updated) return { ok: false, error: "already_resolved", message: "Another reviewer resolved this correction first.", status: 409 };
   const saved = updated as CorrectionRow;
 
   if (args.decision === "accept" && saved.submitted_by) {

@@ -17,6 +17,7 @@ import {
   detectContradictions,
   normalizeValue,
   recordValueSource,
+  regradeClaims,
   syncClaimsForProject,
   syncClaimsForProjectSafe,
   valuesConflict,
@@ -358,5 +359,71 @@ describe("syncClaimsForProject (memory db)", () => {
     expect(db.claims).toHaveLength(1);
     expect(db.claims[0].id).toBe(existing.id);
     expect(db.records[0].claim_id).toBe(existing.id);
+  });
+
+  // G21 P1 post-ship review (P1): knownHashes considers ACTIVE records only.
+  it("expired record → re-sync mints an active record and the claim regains evidence_backed", async () => {
+    const { db, audit, audits } = setup();
+    const HUB: HubRowForSync = { dimension: "tre", evidence_type: "mrr_dashboard", evidence_label: "MRR dashboard", evidence_value_or_url: "https://x.example/mrr", confidence_level: "document_uploaded", is_verified: false, review_status: "none", created_at: "2026-09-05T00:00:00.000Z" };
+    db.hubRows.set(PROJECT, [HUB]);
+    const analysis = { signals: signals({ hasRevenue: true }) };
+    await syncClaimsForProject(PROJECT, analysis, { db, audit, now: NOW });
+    const rev = () => db.claims.find((c) => c.claim_key === "traction.has_revenue")!;
+    expect(rev()).toMatchObject({ assessment_status: "evidence_backed" });
+    const hubRecords = db.records.filter((r) => r.source_type === "evidence_hub");
+    expect(hubRecords).toHaveLength(2); // has_revenue + has_analytics
+
+    // the expiry cron lapses the hub proof (same hash stays on the row, status = expired)
+    for (const r of hubRecords) await db.updateRecord(r.id, { status: "expired" });
+    await regradeClaims({ claims: await db.listClaims(PROJECT), records: await db.listRecords(PROJECT), db, audit, actor: "cron", actorUserId: null, reason: "evidence_expiry" });
+    expect(rev()).toMatchObject({ assessment_status: "unverified" });
+
+    // the same hub row seen again → fresh ACTIVE records (the expired rows stay as history), status regained
+    const again = await syncClaimsForProject(PROJECT, analysis, { db, audit, now: NOW });
+    expect(again).toMatchObject({ records_created: 2, records_skipped: 1, records_withdrawn: 0 }); // founder_text still active → skipped
+    expect(rev()).toMatchObject({ assessment_status: "evidence_backed" });
+    const byStatus = db.records.filter((r) => r.source_type === "evidence_hub").map((r) => r.status).sort();
+    expect(byStatus).toEqual(["active", "active", "expired", "expired"]);
+    const fresh = db.records.filter((r) => r.source_type === "evidence_hub" && r.status === "active");
+    expect(new Set(fresh.map((r) => r.hash))).toEqual(new Set(hubRecords.map((r) => r.hash)));
+    expect(audits.filter((a) => a.action === "evidence.recorded")).toHaveLength(5);
+    // a third run with everything active is a no-op
+    expect(await syncClaimsForProject(PROJECT, analysis, { db, audit, now: NOW })).toMatchObject({ records_created: 0, records_skipped: 3 });
+  });
+
+  // G21 P1 post-ship review (P2): a rejected / deleted hub row withdraws its active records.
+  it("a hub row that is rejected or deleted withdraws its active evidence_hub records (audited), the claim drops; un-rejecting mints fresh proof", async () => {
+    const { db, audit, audits } = setup();
+    const HUB: HubRowForSync = { dimension: "tre", evidence_type: "mrr_dashboard", evidence_label: "MRR dashboard", evidence_value_or_url: "https://x.example/mrr", confidence_level: "document_uploaded", is_verified: false, review_status: "none", created_at: "2026-09-05T00:00:00.000Z" };
+    const analysis = { signals: signals({ hasRevenue: true }) };
+    db.hubRows.set(PROJECT, [HUB]);
+    await syncClaimsForProject(PROJECT, analysis, { db, audit, now: NOW });
+    const rev = () => db.claims.find((c) => c.claim_key === "traction.has_revenue")!;
+    expect(rev().assessment_status).toBe("evidence_backed");
+
+    // reviewer rejects the upload
+    db.hubRows.set(PROJECT, [{ ...HUB, review_status: "rejected" }]);
+    const rejected = await syncClaimsForProject(PROJECT, analysis, { db, audit, now: NOW });
+    expect(rejected).toMatchObject({ records_created: 0, records_withdrawn: 2 });
+    expect(db.records.filter((r) => r.source_type === "evidence_hub").map((r) => r.status)).toEqual(["withdrawn", "withdrawn"]);
+    expect(db.records.filter((r) => r.source_type === "founder_text").map((r) => r.status)).toEqual(["active"]);
+    expect(rev().assessment_status).toBe("unverified");
+    const withdrawn = audits.filter((a) => a.action === "evidence.withdrawn");
+    expect(withdrawn).toHaveLength(2);
+    expect(withdrawn[0].detail).toMatchObject({ project_id: PROJECT, source_type: "evidence_hub", reason: "hub_row_rejected_or_deleted" });
+    expect(db.records).toHaveLength(3); // never deleted
+
+    // un-rejected → the withdrawn hash no longer blocks: fresh active proof, status regained
+    db.hubRows.set(PROJECT, [HUB]);
+    const back = await syncClaimsForProject(PROJECT, analysis, { db, audit, now: NOW });
+    expect(back).toMatchObject({ records_created: 2, records_withdrawn: 0 });
+    expect(rev().assessment_status).toBe("evidence_backed");
+
+    // the founder deletes the row outright
+    db.hubRows.set(PROJECT, []);
+    const deleted = await syncClaimsForProject(PROJECT, analysis, { db, audit, now: NOW });
+    expect(deleted).toMatchObject({ records_created: 0, records_withdrawn: 2 });
+    expect(db.records.filter((r) => r.source_type === "evidence_hub" && r.status === "active")).toHaveLength(0);
+    expect(rev().assessment_status).toBe("unverified");
   });
 });
