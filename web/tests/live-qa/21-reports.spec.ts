@@ -328,6 +328,81 @@ test.describe("TBR score ledger — 'How this score was built' (G19-S41)", () =>
   });
 });
 
+// G19-S45 — paid view = ReportV2 (D4), i18n parity, clarity survey (D6).
+//   * `/workspace/reports/order` now redirects a resolved order to the
+//     ReportV2 page (`/workspace/reports/business?order=<id>`); without an
+//     order it still renders the not-found copy (asserted above).
+//   * The /vi share page renders Vietnamese chapter labels with diacritics
+//     and zero English chrome; the clarity survey is mounted after the
+//     Executive summary on the share view. Both need a share token, which
+//     needs a DB snapshot — the suite mints one through POST
+//     /api/svi/report/share and skips cleanly when the account has none.
+test.describe("TBR paid view + i18n + clarity survey (G19-S45)", () => {
+  test("share page `/vi/tbr/<token>` shows Vietnamese chapter labels (diacritics) and no English chrome (skipped when no snapshot to share)", async ({ page, visit, api, guard }, testInfo) => {
+    const share = await post<{ ok: boolean; url?: string; error?: string }>(api, "/api/svi/report/share", { projectId: "default" });
+    await evidence(testInfo, "POST /api/svi/report/share", { status: share.status, ok: share.body.ok, error: share.body.error });
+    test.skip(!share.body.ok || !share.body.url, `no snapshot to share on this account (${share.body.error ?? share.status}) — VI share page skipped`);
+    const token = new URL(share.body.url!).pathname.split("/").pop() ?? "";
+    setScratch("tbr.shareToken", token);
+    const g = guard(page, { allowRequest: [{ method: "GET", pathRe: /^\/api\/svi\/report\/peers$/, status: 404 }, { method: "POST", pathRe: /^\/api\/analytics\/event$/, status: 404 }] });
+    await visit(`/vi/tbr/${token}`, { waitUntil: "networkidle" });
+    const body = page.locator("[data-tbr-version]").first();
+    await expect(body).toBeVisible({ timeout: 30_000 });
+    const h1 = await page.getByRole("heading", { level: 1 }).first().innerText();
+    const chapterTitles = await page.locator("section[id^='tbr-dim-'] h2").allInnerTexts();
+    const captions = await page.locator("section[id^='tbr-'] caption").allInnerTexts();
+    const text = (await body.innerText()).replace(/\s+/g, " ");
+    await evidence(testInfo, "VI share page", { h1, chapterTitles, captions: captions.slice(0, 6), sample: text.slice(0, 600) });
+    expect(h1).toContain("Báo cáo Kinh doanh Tin cậy");
+    expect(chapterTitles.length).toBe(8);
+    for (const title of chapterTitles) expect(title).toMatch(/[ăâêôơưđạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/);
+    for (const en of ["Executive Summary", "How this score was built", "Top strengths", "No evidence rows", "Next action (", "Evidence register", "Auditor:", "Cover — Where"]) expect(text, en).not.toContain(en);
+    expect(text).toContain("Tóm tắt Điều hành");
+    expect(text).toContain("Điểm này được xây dựng như thế nào");
+    const report = g.report(`/vi/tbr/${token}`);
+    await evidence(testInfo, "guard report", report);
+    expect(report.errors).toEqual([]);
+  });
+
+  test("clarity survey (D6) is mounted after the Executive summary on the share view, once per snapshot (skipped when no token)", async ({ page, visit, guard }, testInfo) => {
+    const token = getScratch<string>("tbr.shareToken");
+    test.skip(!token, "no share token minted in this run — clarity survey on the share view skipped");
+    const g = guard(page, { allowRequest: [{ method: "GET", pathRe: /^\/api\/svi\/report\/peers$/, status: 404 }, { method: "POST", pathRe: /^\/api\/analytics\/event$/, status: 404 }] });
+    await visit(`/tbr/${token}`, { waitUntil: "networkidle" });
+    const survey = page.getByTestId("tbr-clarity-survey");
+    await expect(survey).toBeVisible({ timeout: 30_000 });
+    const surveyText = await survey.innerText();
+    const order = await page.evaluate(() => {
+      const exec = document.getElementById("tbr-executive");
+      const survey = document.querySelector('[data-testid="tbr-clarity-survey"]');
+      const first = document.querySelector("section[id^='tbr-dim-']");
+      return { execBeforeSurvey: Boolean(exec && survey && exec.compareDocumentPosition(survey) & Node.DOCUMENT_POSITION_FOLLOWING), surveyBeforeFirstChapter: Boolean(survey && first && survey.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING) };
+    });
+    await evidence(testInfo, "clarity survey", { text: surveyText.slice(0, 300), chips: await page.locator("[data-tbr-clarity-score]").count(), ...order });
+    expect(surveyText).toMatch(/Was this report clear and useful\?/);
+    expect(await page.locator("[data-tbr-clarity-score]").count()).toBe(11);
+    expect(order.execBeforeSurvey).toBe(true);
+    expect(order.surveyBeforeFirstChapter).toBe(true);
+    // Dismiss → remembered for this snapshot: a reload shows no survey.
+    await page.getByTestId("tbr-clarity-dismiss").click();
+    await expect(survey).toBeHidden({ timeout: 10_000 });
+    await visit(`/tbr/${token}`, { waitUntil: "networkidle" });
+    await expect(page.locator("[data-tbr-version]").first()).toBeVisible({ timeout: 30_000 });
+    expect(await page.getByTestId("tbr-clarity-survey").count()).toBe(0);
+    const report = g.report(`/tbr/${token}`);
+    await evidence(testInfo, "guard report", report);
+    expect(report.errors).toEqual([]);
+  });
+
+  test("the demo report (/tbr/demo) has no survey (no snapshot to ask about) and its VI chrome parity holds on the founder /vi page shell", async ({ page, visit }, testInfo) => {
+    await visit("/tbr/demo");
+    await expect(page.locator("[data-tbr-version]").first()).toBeVisible({ timeout: 30_000 });
+    const surveys = await page.getByTestId("tbr-clarity-survey").count();
+    await evidence(testInfo, "/tbr/demo survey count", { surveys });
+    expect(surveys).toBe(0);
+  });
+});
+
 /**
  * G14-S37 — Founder execution profile. The QA founder fills the structured
  * Execution fields through POST /api/founder-profile (the same route the
