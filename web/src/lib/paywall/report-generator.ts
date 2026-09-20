@@ -230,6 +230,18 @@ function buildCriteriaData(rows: Row[]): Record<CriterionKey, CriterionData> {
  * Signature-compatible with `WorkerDeps["generateReport"]`; the optional
  * second argument exists purely for the colocated tests.
  */
+/** Paid-order pipeline budget (background drain). Env overrides for ops. */
+export const ORDER_CALL_MAX_DEFAULT = 48;
+export const ORDER_DEADLINE_MS_DEFAULT = 420_000;
+export function orderCallMax(): number {
+  const n = Number(process.env.REPORT_ORDER_CALL_MAX ?? "");
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : ORDER_CALL_MAX_DEFAULT;
+}
+export function orderDeadlineMs(): number {
+  const n = Number(process.env.REPORT_ORDER_DEADLINE_MS ?? "");
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : ORDER_DEADLINE_MS_DEFAULT;
+}
+
 export async function generateTrustReportForOrder(
   input: GenerateInput,
   deps: GeneratorDeps = {},
@@ -360,6 +372,12 @@ export async function generateTrustReportForOrder(
       tier,
       locale,
       callAI: aiCaller,
+      // G19-S46 follow-up: a paid order runs in the background drain, not
+      // behind an HTTP timeout, so it gets the full budget the report needs
+      // (24–48 calls / ~6–7 min at DeepSeek latency) instead of the
+      // interactive 30 calls / 120 s that degraded every chapter to cards.
+      maxCalls: orderCallMax(),
+      deadlineMs: orderDeadlineMs(),
     });
   } catch (err) {
     // AI provider / network failure — worth another drain tick.

@@ -1019,3 +1019,23 @@ describe("generateTrustReportForOrder — evidenceItems shape", () => {
     ]);
   });
 });
+
+describe("paid-order pipeline budget (G19)", () => {
+  it("defaults to 48 calls / 7 min and honours env overrides", async () => {
+    const mod = await import("./report-generator");
+    const prevC = process.env.REPORT_ORDER_CALL_MAX;
+    const prevD = process.env.REPORT_ORDER_DEADLINE_MS;
+    delete process.env.REPORT_ORDER_CALL_MAX;
+    delete process.env.REPORT_ORDER_DEADLINE_MS;
+    expect(mod.orderCallMax()).toBe(48);
+    expect(mod.orderDeadlineMs()).toBe(420_000);
+    process.env.REPORT_ORDER_CALL_MAX = "60";
+    process.env.REPORT_ORDER_DEADLINE_MS = "600000";
+    expect(mod.orderCallMax()).toBe(60);
+    expect(mod.orderDeadlineMs()).toBe(600_000);
+    process.env.REPORT_ORDER_CALL_MAX = "nope";
+    expect(mod.orderCallMax()).toBe(48);
+    if (prevC === undefined) delete process.env.REPORT_ORDER_CALL_MAX; else process.env.REPORT_ORDER_CALL_MAX = prevC;
+    if (prevD === undefined) delete process.env.REPORT_ORDER_DEADLINE_MS; else process.env.REPORT_ORDER_DEADLINE_MS = prevD;
+  });
+});

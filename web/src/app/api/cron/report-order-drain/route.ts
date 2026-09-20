@@ -27,11 +27,15 @@ import { refundFailedOrder } from "@/lib/paywall/report-refund";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
+// Background generation may take up to REPORT_ORDER_DEADLINE_MS (7 min) + grace.
+export const maxDuration = 480;
 
 /** Max rows drained per invocation. Backpressure guard: at 2-min cadence
  *  this caps throughput at ~150 reports/hour which is well within the AI
  *  provider quotas the pipeline holds. */
-const MAX_PER_INVOCATION = 5;
+// G19: one full-budget report per tick (≈7 min max); the cron runs every 2 min
+// and claims are status-guarded, so parallel ticks take different orders.
+const MAX_PER_INVOCATION = 1;
 
 function isAuthorized(request: Request): boolean {
   return isCronAuthorised(request, { xCronSecretHeader: true });
