@@ -70,6 +70,12 @@ export const ExpectedConstraints = z
      * evidence rows; an idea-stage case with none is skipped (null share).
      */
     grounded_share_min: z.number().min(0).max(1).optional(),
+    /**
+     * G19-S41 (TBR-ledger fixture): the `verdict` must mention at least one
+     * of these phrases (case-insensitive) — the score-ledger signals the
+     * owner was given. Present → +1, none present → -1.
+     */
+    verdict_must_mention_any: z.array(z.string().min(1)).optional(),
   })
   .default({ must_have_gaps: [], must_not_hallucinate: [] });
 export type ExpectedConstraints = z.infer<typeof ExpectedConstraints>;
@@ -268,6 +274,15 @@ function scoreCase(
     const citationsRaw = data["citations"];
     const citations = Array.isArray(citationsRaw) ? citationsRaw.length : 0;
     if (markers + citations >= expected.must_cite) positive += 1;
+    else positive -= 1;
+  }
+
+  // verdict_must_mention_any → any phrase in the verdict +1, none -1 (G19-S41 ledger fixture)
+  if (expected.verdict_must_mention_any && expected.verdict_must_mention_any.length > 0) {
+    possible += 1;
+    const verdictRaw = data["verdict"];
+    const verdict = typeof verdictRaw === "string" ? verdictRaw.toLowerCase() : "";
+    if (expected.verdict_must_mention_any.some((p) => verdict.includes(p.toLowerCase()))) positive += 1;
     else positive -= 1;
   }
 

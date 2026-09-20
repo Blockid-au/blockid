@@ -302,6 +302,32 @@ test.describe("TBR valuation — inputs & assumptions (G19-S42)", () => {
   });
 });
 
+// G19-S41 — every dimension chapter explains its score: the demo fixture
+// carries a score ledger per chapter, so /tbr/demo must render the "How this
+// score was built" table (base → signals ± points → × confidence → =
+// adjustment) in all 8 chapters, with no chapter left pending.
+test.describe("TBR score ledger — 'How this score was built' (G19-S41)", () => {
+  test("/tbr/demo shows a 'How this score was built' table in 8 chapters", async ({ page, visit }, testInfo) => {
+    await visit("/tbr/demo");
+    const ledgers = page.locator("[data-tbr-ledger]");
+    await expect(ledgers.first()).toBeVisible({ timeout: 30_000 });
+    const count = await ledgers.count();
+    const states = await ledgers.evaluateAll((els) => els.map((el) => `${el.getAttribute("data-tbr-ledger")}:${el.getAttribute("data-tbr-ledger-state")}`));
+    const captions = await page.locator("[data-tbr-ledger] caption").allInnerTexts();
+    const ftv = page.locator('[data-tbr-ledger="ftv"]');
+    const ftvText = await ftv.innerText();
+    await evidence(testInfo, "score ledgers", { count, states, captions: captions.slice(0, 8), ftv: ftvText.slice(0, 600) });
+    expect(count).toBe(8);
+    expect(captions.filter((c) => /How this score was built/i.test(c))).toHaveLength(8);
+    expect(states.every((s) => s.endsWith(":assessed"))).toBe(true);
+    expect(ftvText).toMatch(/Base 50/);
+    expect(ftvText).toMatch(/\+\d+/);
+    expect(ftvText).toMatch(/evidence confidence 0\.\d\d/);
+    expect(ftvText).toMatch(/= adjustment [+−]\d+ on the SVI base of 100/);
+    expect(ftvText).not.toMatch(/Not assessed yet/);
+  });
+});
+
 /**
  * G14-S37 — Founder execution profile. The QA founder fills the structured
  * Execution fields through POST /api/founder-profile (the same route the

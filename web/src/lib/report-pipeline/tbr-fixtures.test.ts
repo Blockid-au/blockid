@@ -62,9 +62,10 @@ function goodPayload(c: FixtureCase): Record<string, unknown> {
 }
 
 describe("TBR-<dim>-v2.0.0 fixtures", () => {
-  it("ships exactly eight TBR fixtures, one per dimension, discoverable by the nightly runner naming rule", () => {
+  it("ships exactly eight TBR-<dim>-v2.0.0 fixtures, one per dimension, discoverable by the nightly runner naming rule (plus the G19-S41 TBR-ledger fixture)", () => {
     const files = readdirSync(FIXTURE_DIR).filter((f) => f.startsWith("TBR-")).sort();
-    expect(files).toEqual([...DIM_ORDER].sort().map((d) => `TBR-${d}-v2.0.0.json`));
+    expect(files.filter((f) => f !== "TBR-ledger-v2.1.0.json")).toEqual([...DIM_ORDER].sort().map((d) => `TBR-${d}-v2.0.0.json`));
+    expect(files).toContain("TBR-ledger-v2.1.0.json");
   });
 
   DIM_ORDER.forEach((dim) => {
@@ -129,5 +130,71 @@ describe("TBR-<dim>-v2.0.0 fixtures", () => {
         expect(shouldPromote(bad)).toBe(false);
       });
     });
+  });
+});
+
+// ── G19-S41: the score-ledger fixture — the owner must explain the score with the ledger it was given ──
+
+describe("TBR-ledger-v2.1.0 fixture (G19-S41)", () => {
+  const raw = readFileSync(path.join(FIXTURE_DIR, "TBR-ledger-v2.1.0.json"), "utf8");
+  const fx = PromptEvalFixture.parse(JSON.parse(raw));
+  const ledgerPv: PromptVersion = { ...pv("tre"), agent: "TBR-ledger", version: "2.1.0" };
+
+  it("every case input is a valid W4 user turn carrying scoreLedger, and expects the verdict to mention ≥ 1 ledger signal (or the unassessed wording)", () => {
+    expect(fx.cases.map((c) => c.id)).toEqual(["case_ledger_seed_tre", "case_ledger_idea_ftv_unassessed"]);
+    for (const c of fx.cases) {
+      const parsed = DimensionChapterInput.safeParse(c.input);
+      expect(parsed.success, JSON.stringify(parsed.success ? null : parsed.error.issues.slice(0, 2))).toBe(true);
+      if (!parsed.success) continue;
+      const ledger = parsed.data.scoreLedger!;
+      expect(ledger).toBeDefined();
+      expect(c.expected.verdict_must_mention_any?.length).toBeGreaterThanOrEqual(1);
+      if (ledger.assessed) {
+        // The signals the verdict may cite are exactly the ledger's; every forbidden term is a signal NOT in the ledger.
+        const names = ledger.signals.map((s) => s.signal);
+        expect(c.expected.verdict_must_mention_any).toEqual(names);
+        for (const forbidden of c.expected.must_not_hallucinate) expect(names.some((n) => n.toLowerCase().includes(forbidden.toLowerCase()))).toBe(false);
+        expect(Math.max(0, Math.min(100, ledger.signals.reduce((a, s) => a + s.points, ledger.base)))).toBe(parsed.data.deterministicScore);
+      } else {
+        expect(ledger.signals).toEqual([]);
+        expect(c.expected.verdict_must_mention_any).toContain("not assessed");
+      }
+      const b = benchmarkFor(parsed.data.dim as DimKey, parsed.data.stage);
+      expect(c.expected.proposed_score).toEqual({ min: b.p25, max: b.p75 });
+      expect(c.expected.primary_visual).toEqual({ kind: DIMENSION_OWNERS[parsed.data.dim as DimKey].primaryVisual });
+    }
+  });
+
+  it("a verdict that cites a ledger signal is promotable; one that explains the score with an invented signal hard-fails; one that names no signal scores lower", async () => {
+    const cite = (c: FixtureCase) => {
+      const input = c.input as { scoreLedger: { assessed: boolean; signals: Array<{ signal: string; points: number }> } };
+      const first = input.scoreLedger.signals[0];
+      return input.scoreLedger.assessed ? `${first.signal} (+${first.points}) carries the score.` : "Not assessed yet — no evidence reached this dimension; 50 is the stage baseline.";
+    };
+    const good = await runEval(fx, ledgerPv, {
+      runCase: async (c) => {
+        const base = goodPayload(c);
+        const data = { ...base, verdict: `${cite(c)} ${base.verdict as string}` };
+        expect(DimensionChapterPayload.safeParse(data).success).toBe(true);
+        return { ok: true, data, latencyMs: 10, costUsd: 0.001, runId: c.id };
+      },
+    });
+    expect(good.accuracy_pct).toBeGreaterThanOrEqual(0.8);
+    expect(good.hard_fail).toBe(false);
+    expect(shouldPromote(good)).toBe(true);
+
+    const invented = await runEval(fx, ledgerPv, {
+      runCase: async (c) => {
+        const data = goodPayload(c);
+        return { ok: true, data: { ...data, verdict: `${cite(c)} ${c.expected.must_not_hallucinate[0]} lifts the score.` }, latencyMs: 10, costUsd: 0.001, runId: c.id };
+      },
+    });
+    expect(invented.hard_fail).toBe(true);
+    expect(shouldPromote(invented)).toBe(false);
+
+    const silent = await runEval(fx, ledgerPv, {
+      runCase: async (c) => ({ ok: true, data: goodPayload(c), latencyMs: 10, costUsd: 0.001, runId: c.id }),
+    });
+    expect(silent.accuracy_pct).toBeLessThan(good.accuracy_pct);
   });
 });

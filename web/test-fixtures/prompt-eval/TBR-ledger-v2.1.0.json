@@ -1,0 +1,168 @@
+{
+  "agent": "TBR-ledger",
+  "version": "2.1.0",
+  "purpose": "Trusted Business Report v2 — G19-S41 score ledger: the W4 owner explains the deterministic score WITH the scoreLedger rows it was given (verdict names ≥ 1 ledger signal, never a signal outside the ledger); seed TRE (CRO) and idea FTV (CHRO) cases, bands = ANCHORS p25-p75",
+  "cases": [
+    {
+      "id": "case_ledger_seed_tre",
+      "name": "Seed — Traction & Revenue chapter explains the score from the ledger (CRO owner)",
+      "input": {
+        "dim": "tre",
+        "weight": 20,
+        "stage": 2,
+        "stageLabel": "Seed",
+        "phaseId": "revenue_model",
+        "benchmark": {
+          "p25": 37,
+          "p50": 52,
+          "p75": 67,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 66,
+        "criterionResults": [],
+        "evidenceRows": [
+          {
+            "id": "ev-rev-01",
+            "source": "stripe",
+            "status": "evidenced",
+            "observedAt": "2026-09-01T00:00:00.000Z",
+            "label": "Stripe MRR",
+            "value": "MRR A$12,000 from 9 paying customers"
+          }
+        ],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "tre",
+              "benchmarkStage": 2,
+              "p25": 37,
+              "p50": 52,
+              "p75": 67,
+              "deterministicScore": 66
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "scoreLedger": {
+          "base": 30,
+          "signals": [
+            { "signal": "Early revenue traction", "points": 20, "source": "transaction_data" },
+            { "signal": "Customer proof present", "points": 8, "source": "connected_source" },
+            { "signal": "Analytics connected", "points": 8, "source": "connected_source" }
+          ],
+          "confidenceMultiplier": 0.75,
+          "adjustment": 2,
+          "assessed": true
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 37,
+          "max": 67
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "cohort"
+        ],
+        "must_not_hallucinate": [
+          "Scaling revenue",
+          "Growing revenue",
+          "Social proof",
+          "NRR 130"
+        ],
+        "must_cite": 1,
+        "primary_visual": {
+          "kind": "sparkline"
+        },
+        "verdict_must_mention_any": [
+          "Early revenue traction",
+          "Customer proof present",
+          "Analytics connected"
+        ]
+      }
+    },
+    {
+      "id": "case_ledger_idea_ftv_unassessed",
+      "name": "Idea — Founder & Team chapter with an unassessed ledger says so and names what would assess it (CHRO owner)",
+      "input": {
+        "dim": "ftv",
+        "weight": 15,
+        "stage": 0,
+        "stageLabel": "Idea",
+        "phaseId": "vision",
+        "benchmark": {
+          "p25": 40,
+          "p50": 52,
+          "p75": 64,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 50,
+        "criterionResults": [],
+        "evidenceRows": [],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "ftv",
+              "benchmarkStage": 0,
+              "p25": 40,
+              "p50": 52,
+              "p75": 64,
+              "deterministicScore": 50
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [],
+          "whatMattersNow": ""
+        },
+        "scoreLedger": {
+          "base": 50,
+          "signals": [],
+          "confidenceMultiplier": 0.2,
+          "adjustment": 0,
+          "assessed": false
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 40,
+          "max": 64
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "co-founder"
+        ],
+        "must_not_hallucinate": [
+          "Serial founder",
+          "prior exit",
+          "advisory board",
+          "Domain expertise"
+        ],
+        "must_cite": 0,
+        "primary_visual": {
+          "kind": "heat_map"
+        },
+        "verdict_must_mention_any": [
+          "not assessed",
+          "baseline",
+          "no evidence"
+        ]
+      }
+    }
+  ]
+}
