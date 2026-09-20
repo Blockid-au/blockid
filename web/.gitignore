@@ -72,3 +72,5 @@ content/reports/link-check-latest.json
 content/reports/page-sweep.jsonl
 content/reports/page-sweep-latest.json
 content/reports/stripe-price-audit-latest.json
+# G19-S46 report-quality telemetry (runtime, appended per pipeline run)
+content/reports/tbr-quality.jsonl

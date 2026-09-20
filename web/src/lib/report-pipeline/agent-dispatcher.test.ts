@@ -51,6 +51,11 @@ import {
   areaForCriterion,
   AgentAnalysisPayload,
   NIL_PROMPT_VERSION_ID,
+  STRUCTURED_MIN_OUTPUT_TOKENS,
+  STRUCTURED_SECTION_WORD_CAP,
+  W4_MAX_TOKENS,
+  structuredMaxTokens,
+  structuredOutputSchema,
 } from "./agent-dispatcher";
 import type { CriterionData, ReportContext } from "./types";
 import type { StructuredModelCaller } from "@/lib/ai/call-structured";
@@ -381,6 +386,35 @@ describe("schema-validated dispatch", () => {
     expect(result.grounded).toBe(false);
     expect(result.citations).toEqual([]);
     expect(result.risks[0]).toMatch(/Ungrounded analysis/);
+  });
+
+  // G19-S46 (measured on BlockID's own run): the system prompt used to carry
+  // the legacy markdown "## Output Format" while the user turn asked for JSON;
+  // DeepSeek-class models answered in markdown, the repair pass overran the
+  // 1275-token standard budget and every criterion cost three calls.
+  it("the structured call's SYSTEM prompt carries the JSON contract + the tier word cap (never the legacy markdown format); the output budget is at least STRUCTURED_MIN_OUTPUT_TOKENS", async () => {
+    const context = makeContext();
+    const systems: string[] = [];
+    const caller: StructuredModelCaller = async ({ system }) => {
+      systems.push(system);
+      return { ok: true, text: validPayload("code_git", context), tokensIn: 100, tokensOut: 50 };
+    };
+    await dispatchWave([{ agentRole: "cto", criterion: "code_git" }], context, "standard", async () => "unused", { modelCaller: caller, resolvePromptVersionId, tierV2: "standard" });
+    expect(systems).toHaveLength(1);
+    expect(systems[0]).toContain("MACHINE-READABLE OUTPUT CONTRACT");
+    expect(systems[0]).toContain('HARD LIMIT: "body_markdown" is at most 700 words');
+    expect(systems[0]).not.toContain("<!-- SCORE: XX -->");
+    expect(systems[0]).not.toContain("Total output:");
+
+    expect(structuredOutputSchema("free")).toContain("at most 350 words");
+    expect(structuredOutputSchema("investor_memo")).toContain("at most 1500 words");
+    expect(STRUCTURED_SECTION_WORD_CAP).toEqual({ free: 350, standard: 700, premium: 1200, investor_memo: 1500 });
+    expect(STRUCTURED_MIN_OUTPUT_TOKENS).toBe(2600);
+    expect(structuredMaxTokens("standard", undefined)).toBe(2600);
+    expect(structuredMaxTokens("standard", "large")).toBe(2600);
+    expect(structuredMaxTokens("investor_memo", "large")).toBe(4000);
+    // W4 owner calls: 900 cut every full chapter payload mid-JSON on BlockID's own run.
+    expect(W4_MAX_TOKENS).toEqual({ full: 3200, card: 700 });
   });
 
   it("structured:false keeps the legacy prose path untouched", async () => {

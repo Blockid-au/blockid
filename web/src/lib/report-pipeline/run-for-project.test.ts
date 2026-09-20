@@ -203,8 +203,18 @@ describe("generateAndPersistReport", () => {
   });
 
   it("persists assembled_reports + agent_report_tasks on success", async () => {
+    orchestrateMock.mockImplementation(async (i: { callAI: (s: string, u: string, m: number, c?: string) => Promise<unknown> }) => {
+      await i.callAI("sys", "user", 900, "report");
+      return REPORT;
+    });
     const report = await generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 3 });
     expect(report.id).toBe("rpt-1");
+    // G19-S46: the pipeline's own fan-out must not sit behind ai-client's per-user fairness cap (2 in flight) — agentId keys the per-report semaphore instead.
+    expect(callAIMock).toHaveBeenCalledTimes(1);
+    const callOpts = callAIMock.mock.calls[0][0] as unknown as Record<string, unknown>;
+    expect(callOpts.agentId).toBe("svi:acc-1:p-1");
+    expect(callOpts).not.toHaveProperty("userId");
+    expect(callOpts.taskClass).toBe("report");
     expect(orchestrateMock).toHaveBeenCalledWith(expect.objectContaining({ accountId: "acc-1", userId: "u-1", projectId: "p-1", startupName: "Acme", tier: "standard", locale: "en" }));
     const inserted = state.calls.filter((c) => c.op === "insert").map((c) => c.table);
     expect(inserted).toEqual(["assembled_reports", "agent_report_tasks"]);
@@ -219,6 +229,42 @@ describe("generateAndPersistReport", () => {
     expect(doc.schemaVersion).toBe("2.0");
     expect(doc.dimensions).toHaveLength(8);
     expect(doc.source).toBe("adapter");
+  });
+
+  // G19-S46: one tbr-quality row per run — captured from the orchestrator's `done` event.
+  it("records the quality row (hash-only project, calls + cost from `done`, no snapshot) and attaches pipelineStats", async () => {
+    orchestrateMock.mockImplementation(async (i: { onEvent?: (e: unknown) => void }) => {
+      i.onEvent?.({ type: "done", reportId: "rpt-1", totalMs: 4321, calls: 19, costAud: 0.02, costUsd: 0.0123, costReportedCalls: 19, degradedSections: ["tre"], deadlineHit: false });
+      return { ...REPORT, consistencyIssues: [{ type: "x", severity: "warn", description: "d" }] };
+    });
+    const writer = vi.fn();
+    const report = await generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 3, qualityWriter: writer });
+    expect(report.pipelineStats).toEqual({ calls: 19, costUsd: 0.0123, costAud: 0.02, durationMs: 4321, degradedSections: ["tre"], deadlineHit: false });
+    expect(writer).toHaveBeenCalledTimes(1);
+    const row = writer.mock.calls[0][0] as Record<string, unknown>;
+    expect(row).toMatchObject({ snapshotId: null, tier: "standard", calls: 19, costUsd: 0.0123, consistencyIssues: 1, words: 2600, durationMs: 4321, sviVersion: "2.3.0" });
+    expect(row.projectId).toHaveLength(12);
+    expect(row.projectId).not.toBe("p-1");
+    // `defer` leaves the row to the caller.
+    writer.mockClear();
+    await generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 3, qualityLog: "defer", qualityWriter: writer });
+    expect(writer).not.toHaveBeenCalled();
+  });
+
+  it("a fully-degraded run still logs one quality row (no snapshot, 8 degraded, calls from the error) before re-throwing", async () => {
+    class ReportFullyDegradedError extends Error {
+      constructor(readonly degradedSections: number, readonly calls: number) { super("report fully degraded"); }
+    }
+    orchestrateMock.mockRejectedValue(new ReportFullyDegradedError(8, 16));
+    const writer = vi.fn();
+    await expect(generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 3, qualityWriter: writer })).rejects.toThrow("report fully degraded");
+    expect(writer).toHaveBeenCalledTimes(1);
+    expect(writer.mock.calls[0][0]).toMatchObject({ snapshotId: null, tier: "standard", calls: 16, degradedSections: 8, groundedShare: 0, pendingDims: 0, words: 0, pages: 0 });
+    // A plain failure (no degraded/calls fields) logs nothing.
+    writer.mockClear();
+    orchestrateMock.mockRejectedValue(new Error("agents down"));
+    await expect(generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 3, qualityWriter: writer })).rejects.toThrow("agents down");
+    expect(writer).not.toHaveBeenCalled();
   });
 
   it("writes a failed row and re-throws when the orchestrator fails", async () => {
@@ -250,8 +296,14 @@ describe("runTrustReportForProject (evaluator)", () => {
     state.queue.push({ table: "svi_snapshots", data: null }); // maybeSingle existing
     state.queue.push({ table: "svi_snapshots", data: { id: "snap-1" } }); // insert
 
-    const run = await runTrustReportForProject({ projectId: "p-1", requestedByUserId: "u-1", creditsCost: 0 });
+    const qualityWriter = vi.fn();
+    const run = await runTrustReportForProject({ projectId: "p-1", requestedByUserId: "u-1", creditsCost: 0, qualityWriter });
     expect(run).toMatchObject({ kind: "full", reportId: "rpt-1", snapshotId: "snap-1", shareToken: "k".repeat(24), svi: 118, stage: 3, synthesisedAnalysis: true });
+    // G19-S46: the quality row carries the snapshot id and the persisted ReportV2's grounded share.
+    expect(qualityWriter).toHaveBeenCalledTimes(1);
+    expect(run.quality).toBe(qualityWriter.mock.calls[0][0]);
+    expect(run.quality).toMatchObject({ snapshotId: "snap-1", tier: "standard", words: 2600, groundedShare: run.reportV2!.quality.groundedShare, pipelineVersion: run.reportV2!.pipelineVersion });
+    expect(run.quality.projectId).not.toContain("p-1");
 
     const analysisInsert = state.calls.find((c) => c.table === "svi_analyses" && c.op === "insert")!.payload as Record<string, unknown>;
     expect(analysisInsert).toMatchObject({ id: "slug12345678", email: "scout@fund.vc", project_id: "p-1", svi_version: expect.any(String) });
@@ -302,6 +354,19 @@ describe("runTrustReportForProject (evaluator)", () => {
 });
 
 describe("runRescoreForProject", () => {
+  // G19-S46: the self-report seed hands in BlockID's own description.
+  it("a rawInput override replaces the stored input on the new svi_analyses row", async () => {
+    state.queue.push({ table: "app_users", data: { email: "scout@fund.vc" } });
+    state.queue.push({ table: "svi_evidence", data: [] });
+    state.queue.push({ table: "svi_analyses", data: null });
+    state.queue.push({ table: "svi_snapshots", data: null });
+    state.queue.push({ table: "svi_snapshots", data: { id: "snap-2" } });
+    const run = await runRescoreForProject({ projectId: "p-1", requestedByUserId: "u-1", rawInput: "  # Acme\n\nAcme now sells to 12 mines.  " });
+    expect(run.kind).toBe("rescore");
+    const analysisInsert = state.calls.find((c) => c.table === "svi_analyses" && c.op === "insert")!.payload as Record<string, unknown>;
+    expect(analysisInsert.raw_input).toBe("# Acme\n\nAcme now sells to 12 mines.");
+  });
+
   it("computes SVI over stored input + evidence, inserts svi_analyses and a tokenised snapshot — no agents", async () => {
     state.queue.push({ table: "app_users", data: { email: "scout@fund.vc" } });
     state.queue.push({ table: "svi_evidence", data: [{ evidence_type: "github", confidence_level: "verified", dimension: "ptd", label: "repo" }] });

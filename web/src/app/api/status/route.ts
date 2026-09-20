@@ -25,6 +25,7 @@ import { readAiProvidersSummary, type AiProvidersSummary } from "@/lib/ai/provid
 import { readLastReportProvider, type LastReportProvider } from "@/lib/ai/last-report";
 import { readTractionStatus, type TractionStatus } from "@/lib/traction/status";
 import { readSviBacktestStatus, type SviBacktestStatus } from "@/lib/backtest/latest";
+import { readTbrQualityStatus, type TbrQualityStatus } from "@/lib/report-pipeline/quality-log";
 import { getAIQueueDepth } from "@/lib/ai-client";
 import { publicStatusExtras, readStatusExtras, type PublicStatusExtras, type StatusExtras } from "@/lib/status";
 import type { LatencyP95 } from "@/lib/status/slo";
@@ -101,6 +102,15 @@ type PublicStatusResponse = {
    * the numbers themselves.
    */
   svi_backtest: SviBacktestStatus;
+  /**
+   * G19-S46 — report-quality telemetry over the last 24 h from
+   * content/reports/tbr-quality.jsonl (one row per pipeline run): run count,
+   * groundedShare median, per-report cost median (USD), share of runs with a
+   * degraded chapter, and `ok | watch | missing` (watch = grounded median
+   * < 0.85 or degradedShare > 0.2). Aggregates only — no project, snapshot
+   * or path.
+   */
+  tbr_quality: TbrQualityStatus;
   /**
    * G15-R2 — redacted v2 sections (lib/status publicStatusExtras): error-class
    * counts with path/host-free text, provider states, queue depths, backup
@@ -193,6 +203,8 @@ type StatusResponse = {
   traction: TractionStatus;
   /** G14-S39 — see PublicStatusResponse.svi_backtest. */
   svi_backtest: SviBacktestStatus;
+  /** G19-S46 — see PublicStatusResponse.tbr_quality. */
+  tbr_quality: TbrQualityStatus;
   /**
    * G15-R2 — v2 observability sections (lib/status/*, cached 60 s):
    *   errors_1h        top-5 error classes from the 10-min error digest
@@ -514,7 +526,7 @@ function safeQueueDepth(): ReturnType<typeof getAIQueueDepth> {
 // ---------- Handler ----------
 
 export async function GET(): Promise<Response> {
-  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens, ga4Events, backups, schemaMigrations, aiProviders, aiLastReport, traction, sviBacktest, extras] = await Promise.all([
+  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens, ga4Events, backups, schemaMigrations, aiProviders, aiLastReport, traction, sviBacktest, extras, tbrQuality] = await Promise.all([
     fetchHealthz(2000),
     summariseCrons().catch(() => [] as CronRow[]),
     readGitShaFallback(),
@@ -531,6 +543,8 @@ export async function GET(): Promise<Response> {
     readSviBacktestStatus(REPO_ROOT).catch(() => "missing" as const),
     // G15 review: default root = the live web checkout (getStatusRoot), never the release-dir copy.
     readStatusExtras().catch(() => null),
+    // G19-S46: same live-checkout root (the pipeline appends there at runtime).
+    readTbrQualityStatus().catch(() => ({ last24h: { runs: 0, groundedShareMedian: null, costUsdMedian: null, degradedShare: null }, status: "missing" as const })),
   ]);
   const publicExtras = extras ? publicStatusExtras(extras) : null;
 
@@ -579,6 +593,7 @@ export async function GET(): Promise<Response> {
     },
     traction,
     svi_backtest: sviBacktest,
+    tbr_quality: tbrQuality,
     errors_1h: publicExtras?.errors_1h ?? null,
     ai: publicExtras?.ai ?? null,
     queues: publicExtras?.queues ?? NULL_QUEUES,
@@ -605,6 +620,7 @@ export async function GET(): Promise<Response> {
     ai_last_report_provider: aiLastReport,
     traction,
     svi_backtest: sviBacktest,
+    tbr_quality: tbrQuality,
     errors_1h: extras?.errors_1h ?? null,
     ai: extras?.ai ?? null,
     queues: extras?.queues ?? NULL_QUEUES,

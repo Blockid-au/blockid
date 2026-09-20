@@ -200,6 +200,24 @@ export default async function ShowcaseBlockidPage() {
           </p>
         </header>
 
+        {/* G19-S46: BlockID's own Trusted Business Report — the same pipeline, our evidence. */}
+        <section aria-labelledby="showcase-own-report" className="mb-10">
+          <Link
+            href="/showcase/blockid/report"
+            className="group block rounded-lg border border-emerald-300 bg-emerald-50 p-5 transition hover:border-emerald-500 dark:border-emerald-800/60 dark:bg-emerald-950/30"
+            data-testid="showcase-own-report-card"
+          >
+            <p className="text-xs font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-300">BlockID scoring BlockID</p>
+            <h2 id="showcase-own-report" className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-100">
+              Read our own Trusted Business Report →
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+              The full report the same pipeline writes for every founder — score ledger, honest valuation, real evidence rows, and
+              pending where we have no evidence yet. Live numbers, our data, unedited.
+            </p>
+          </Link>
+        </section>
+
         <section aria-labelledby="showcase-kpis" className="mb-10">
           <h2 id="showcase-kpis" className="sr-only">
             Showcase KPIs

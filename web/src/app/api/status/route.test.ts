@@ -213,6 +213,10 @@ import { GET, dynamic, runtime } from "./route";
 // ─── path helpers (mirror the route's cwd + rel joins) ─────────────────
 
 const REPO_ROOT = process.cwd();
+// G19-S46: the lib/status readers resolve the LIVE web checkout when it exists
+// on the machine running the suite (getStatusRoot); pin them to the mocked
+// cwd tree so the seeded fixtures — not a real content/reports — are read.
+process.env.BLOCKID_WEB_DIR = REPO_ROOT;
 const DEPLOY_LOG = path.join(REPO_ROOT, "content", "reports", "deploy-log.jsonl");
 const CRON_LOG = path.join(REPO_ROOT, "content", "reports", "cron-health.jsonl");
 const VERSION_JSON = path.join(REPO_ROOT, "content", "reports", "version.json");
@@ -942,7 +946,7 @@ describe("public payload redaction", () => {
     // G15-R2: the v2 sections ARE on the public payload, in their redacted
     // form (publicStatusExtras) — counts, states and timestamps only.
     expect(Object.keys(raw).sort()).toEqual(
-      ["ai", "backups_detail", "crons_failed_24h", "errors_1h", "git_sha", "last_deploy", "ok", "queues", "services", "slo", "svi_backtest", "traction", "updated_at", "version"],
+      ["ai", "backups_detail", "crons_failed_24h", "errors_1h", "git_sha", "last_deploy", "ok", "queues", "services", "slo", "svi_backtest", "tbr_quality", "traction", "updated_at", "version"],
     );
     expect(typeof raw.ok).toBe("boolean");
     expect(typeof raw.version).toBe("string");
@@ -1309,6 +1313,51 @@ describe("svi_backtest (G14-S39) — read from content/reports/svi-backtest-late
     }
     const { body: full } = await callGet();
     expect(["ok", "stale", "missing"]).toContain(read(full));
+  });
+});
+
+// ─── G19-S46 tbr_quality (per-run report-quality telemetry) ────────────
+
+describe("tbr_quality (G19-S46) — read from content/reports/tbr-quality.jsonl", () => {
+  const QUALITY_FILE = path.join(REPO_ROOT, "content", "reports", "tbr-quality.jsonl");
+  const read = (body: unknown) => (body as { tbr_quality?: { status: string; last24h: Record<string, unknown> } }).tbr_quality;
+  const line = (hoursAgo: number, over: Record<string, unknown> = {}) =>
+    JSON.stringify({ ts: new Date(Date.now() - hoursAgo * 3600e3).toISOString(), projectId: "deadbeef0000", snapshotId: "snap-1", tier: "standard", calls: 20, costUsd: 0.01, groundedShare: 0.9, degradedSections: 0, consistencyIssues: 0, pendingDims: 1, words: 1200, pages: 9, durationMs: 60000, sviVersion: "2.2.0", pipelineVersion: "p", ...over });
+
+  it("missing when no run has been logged (or the file is unparsable)", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    expect(read((await callGet()).body)).toEqual({ last24h: { runs: 0, groundedShareMedian: null, costUsdMedian: null, degradedShare: null }, status: "missing" });
+    fsState.files.set(QUALITY_FILE, "{nope\n");
+    expect(read((await callGet()).body)?.status).toBe("missing");
+  });
+
+  it("ok with medians over the last 24 h; watch when the grounded median < 0.85 or > 20 % of runs degraded", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    fsState.files.set(QUALITY_FILE, [line(1, { groundedShare: 0.9, costUsd: 0.02 }), line(2, { groundedShare: 0.95, costUsd: 0.01 }), line(30, { groundedShare: 0.1, degradedSections: 8 })].join("\n") + "\n");
+    expect(read((await callGet()).body)).toEqual({ last24h: { runs: 2, groundedShareMedian: 0.93, costUsdMedian: 0.015, degradedShare: 0 }, status: "ok" });
+    fsState.files.set(QUALITY_FILE, [line(1, { groundedShare: 0.6 }), line(2, { groundedShare: 0.7 })].join("\n") + "\n");
+    expect(read((await callGet()).body)?.status).toBe("watch");
+    fsState.files.set(QUALITY_FILE, [line(1, { degradedSections: 3 }), line(2), line(3)].join("\n") + "\n");
+    expect(read((await callGet()).body)).toMatchObject({ last24h: { degradedShare: 0.33 }, status: "watch" });
+  });
+
+  it("is on both payloads as aggregates only — no snapshot id, project hash or path", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    fsState.files.set(QUALITY_FILE, line(1) + "\n");
+    process.env.STATUS_FULL_TOKEN = "";
+    process.env.CRON_SECRET = "";
+    try {
+      const { body } = await callGet();
+      expect(read(body)?.status).toBe("ok");
+      const raw = JSON.stringify(body);
+      expect(raw).not.toContain("snap-1");
+      expect(raw).not.toContain("deadbeef0000");
+      expect(raw).not.toContain("tbr-quality");
+    } finally {
+      process.env.STATUS_FULL_TOKEN = "test-trusted-token";
+    }
+    const { body: full } = await callGet();
+    expect(read(full)?.last24h.runs).toBe(1);
   });
 });
 

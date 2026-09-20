@@ -198,6 +198,15 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # script like the S39 backtest. Sat 03:00 UTC = 13:00 AEST.
 0 3 * * 6 cd /home/dovanlong/blockid.au/web && nice -n 15 node --max-old-space-size=6144 --env-file=.env scripts/external-signals/ingest.mjs >> /tmp/blockid-external-signals.log 2>&1
 
+# G19-S46 (2026-09-20) — BlockID's own Trusted Business Report (the public
+# showcase at /showcase/blockid/report). Plain node script like the S39
+# backtest: resolves admin@blockid.au's canonical "blockid" project, seeds the
+# 13-criteria inputs only when empty, then runs runTrustReportForProject
+# (standard tier, ≤ 30 calls, DeepInfra-first) and persists report_v2 on
+# today's snapshot; appends one tbr-quality.jsonl row like every pipeline run.
+# Mon 04:00 UTC = 14:00 AEST (after the Sunday backtest, before ga4-event-audit).
+0 4 * * 1 cd /home/dovanlong/blockid.au/web && node --env-file=.env scripts/run-self-analysis.mjs --report >> /data/logs/blockid-self-report.log 2>&1
+
 # Migration audit guardian — weekly Sun 04:45 UTC (14:45 AEST). Parses every
 # web/supabase/migrations/*.sql for declared tables/views/functions and asks
 # the live DB whether each exists. Appends a summary line to

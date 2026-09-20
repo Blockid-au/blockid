@@ -129,6 +129,9 @@ export const SWEEP_EXTRA_PAGES = [
   "/methodology/calibration",
   // G14-S36 — public scoring & verification methodology.
   "/methodology",
+  // G19-S46 — BlockID's own Trusted Business Report (stored report_v2 or the
+  // "not published yet" empty state; both must render clean).
+  "/showcase/blockid/report",
 ] as const;
 
 /** Everything the console/network sweep visits. */

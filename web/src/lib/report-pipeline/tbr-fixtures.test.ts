@@ -61,11 +61,15 @@ function goodPayload(c: FixtureCase): Record<string, unknown> {
   return { ...payload, proposed_score: input.deterministicScore };
 }
 
+/** G19 fixtures beside the eight per-dimension files: S41 score ledger, S46 valuation inputs. */
+const G19_FIXTURES = ["TBR-ledger-v2.1.0.json", "TBR-valuation-inputs-v2.1.0.json"];
+
 describe("TBR-<dim>-v2.0.0 fixtures", () => {
-  it("ships exactly eight TBR-<dim>-v2.0.0 fixtures, one per dimension, discoverable by the nightly runner naming rule (plus the G19-S41 TBR-ledger fixture)", () => {
+  it("ships exactly eight TBR-<dim>-v2.0.0 fixtures, one per dimension, discoverable by the nightly runner naming rule (plus the G19 TBR-ledger + TBR-valuation-inputs fixtures)", () => {
     const files = readdirSync(FIXTURE_DIR).filter((f) => f.startsWith("TBR-")).sort();
-    expect(files.filter((f) => f !== "TBR-ledger-v2.1.0.json")).toEqual([...DIM_ORDER].sort().map((d) => `TBR-${d}-v2.0.0.json`));
-    expect(files).toContain("TBR-ledger-v2.1.0.json");
+    expect(files).toHaveLength(DIM_ORDER.length + G19_FIXTURES.length);
+    expect(files.filter((f) => !G19_FIXTURES.includes(f))).toEqual([...DIM_ORDER].sort().map((d) => `TBR-${d}-v2.0.0.json`));
+    for (const f of G19_FIXTURES) expect(files).toContain(f);
   });
 
   DIM_ORDER.forEach((dim) => {
@@ -141,7 +145,9 @@ describe("TBR-ledger-v2.1.0 fixture (G19-S41)", () => {
   const ledgerPv: PromptVersion = { ...pv("tre"), agent: "TBR-ledger", version: "2.1.0" };
 
   it("every case input is a valid W4 user turn carrying scoreLedger, and expects the verdict to mention ≥ 1 ledger signal (or the unassessed wording)", () => {
-    expect(fx.cases.map((c) => c.id)).toEqual(["case_ledger_seed_tre", "case_ledger_idea_ftv_unassessed"]);
+    // G19-S46: a second assessed dimension (CGH, CFO owner) beside the TRE seed and the unassessed FTV idea.
+    expect(fx.cases.map((c) => c.id)).toEqual(["case_ledger_seed_tre", "case_ledger_idea_ftv_unassessed", "case_ledger_seed_cgh"]);
+    expect(new Set(fx.cases.map((c) => (c.input as { dim: string }).dim)).size).toBe(3);
     for (const c of fx.cases) {
       const parsed = DimensionChapterInput.safeParse(c.input);
       expect(parsed.success, JSON.stringify(parsed.success ? null : parsed.error.issues.slice(0, 2))).toBe(true);
@@ -193,6 +199,83 @@ describe("TBR-ledger-v2.1.0 fixture (G19-S41)", () => {
     expect(shouldPromote(invented)).toBe(false);
 
     const silent = await runEval(fx, ledgerPv, {
+      runCase: async (c) => ({ ok: true, data: goodPayload(c), latencyMs: 10, costUsd: 0.001, runId: c.id }),
+    });
+    expect(silent.accuracy_pct).toBeLessThan(good.accuracy_pct);
+  });
+});
+
+// ── G19-S46: the valuation-inputs fixture — revenue is explained from the inputs table, never invented ──
+
+describe("TBR-valuation-inputs-v2.1.0 fixture (G19-S42/S46)", () => {
+  const raw = readFileSync(path.join(FIXTURE_DIR, "TBR-valuation-inputs-v2.1.0.json"), "utf8");
+  const fx = PromptEvalFixture.parse(JSON.parse(raw));
+  const valuationPv: PromptVersion = { ...pv("tre"), agent: "TBR-valuation-inputs", version: "2.1.0" };
+  type ValInputs = { mrrAud: number; arrAud: number; revenueSource: string };
+  const inputsOf = (c: FixtureCase): ValInputs => {
+    const mods = (c.input as { moduleOutputs: Array<{ id: string; output: ValInputs }> }).moduleOutputs;
+    return mods.find((m) => m.id === "report-pipeline/valuation-chapter.ts:inputs")!.output;
+  };
+
+  it("carries a pre-revenue case (ARR 0, source none → verdict must say pre-revenue / Berkus, any 'ARR A$' hard-fails) and a Stripe case (verdict must name the connector source; must cite)", () => {
+    expect(fx.cases.map((c) => c.id)).toEqual(["case_valuation_prerevenue_tre", "case_valuation_stripe_tre"]);
+    for (const c of fx.cases) {
+      const parsed = DimensionChapterInput.safeParse(c.input);
+      expect(parsed.success, JSON.stringify(parsed.success ? null : parsed.error.issues.slice(0, 2))).toBe(true);
+      if (!parsed.success) continue;
+      expect(parsed.data.dim).toBe("tre");
+      const b = benchmarkFor("tre", parsed.data.stage);
+      expect(c.expected.proposed_score).toEqual({ min: b.p25, max: b.p75 });
+      expect(c.expected.primary_visual).toEqual({ kind: DIMENSION_OWNERS.tre.primaryVisual });
+    }
+    const [pre, stripe] = fx.cases;
+    expect(inputsOf(pre)).toMatchObject({ mrrAud: 0, arrAud: 0, revenueSource: "none" });
+    expect(pre.expected.verdict_must_mention_any).toEqual(expect.arrayContaining(["pre-revenue", "Berkus"]));
+    expect(pre.expected.must_not_hallucinate).toEqual(expect.arrayContaining(["ARR A$", "MRR A$"]));
+    expect(pre.expected.must_cite).toBe(0);
+    expect((pre.input as { evidenceRows: unknown[] }).evidenceRows).toEqual([]);
+
+    expect(inputsOf(stripe)).toMatchObject({ arrAud: 100_800, revenueSource: "connector" });
+    expect((stripe.input as { evidenceRows: Array<{ source: string }> }).evidenceRows[0].source).toBe("stripe");
+    expect(stripe.expected.verdict_must_mention_any).toEqual(expect.arrayContaining(["Stripe", "connector"]));
+    expect(stripe.expected.must_cite).toBe(1);
+    expect(stripe.expected.grounded_share_min).toBe(0.8);
+    // The forbidden figures are NOT the ones in the inputs table (so a truthful verdict can never trip them).
+    for (const forbidden of stripe.expected.must_not_hallucinate) expect(JSON.stringify(stripe.input)).not.toContain(forbidden);
+  });
+
+  it("a verdict that explains revenue from the inputs is promotable; one that invents an ARR hard-fails on both cases", async () => {
+    const truthful = (c: FixtureCase) => {
+      const i = inputsOf(c);
+      return i.arrAud === 0
+        ? "Pre-revenue: no MRR in any source, so Berkus and scorecard carry the band; no multiple applies."
+        : `Stripe connector shows A$8,400 MRR (A$100,800 ARR) across 14 subscriptions [ev:ev-stripe-mrr-01].`;
+    };
+    const good = await runEval(fx, valuationPv, {
+      runCase: async (c) => {
+        const base = goodPayload(c);
+        const data = { ...base, verdict: `${truthful(c)} ${base.verdict as string}` };
+        expect(DimensionChapterPayload.safeParse(data).success).toBe(true);
+        return { ok: true, data, latencyMs: 10, costUsd: 0.001, runId: c.id };
+      },
+    });
+    expect(good.accuracy_pct).toBeGreaterThanOrEqual(0.8);
+    expect(good.hard_fail).toBe(false);
+    expect(shouldPromote(good)).toBe(true);
+
+    const invented = await runEval(fx, valuationPv, {
+      runCase: async (c) => {
+        const base = goodPayload(c);
+        const lie = inputsOf(c).arrAud === 0 ? "ARR A$120,000 supports a 4× multiple." : "ARR A$2.4M — A$1.2M was booked last quarter alone.";
+        return { ok: true, data: { ...base, verdict: `${truthful(c)} ${lie}` }, latencyMs: 10, costUsd: 0.001, runId: c.id };
+      },
+    });
+    expect(invented.hard_fail).toBe(true);
+    expect(invented.per_case.every((c) => c.hardFail)).toBe(true);
+    expect(shouldPromote(invented)).toBe(false);
+
+    // Naming no source at all scores lower than the truthful verdict.
+    const silent = await runEval(fx, valuationPv, {
       runCase: async (c) => ({ ok: true, data: goodPayload(c), latencyMs: 10, costUsd: 0.001, runId: c.id }),
     });
     expect(silent.accuracy_pct).toBeLessThan(good.accuracy_pct);

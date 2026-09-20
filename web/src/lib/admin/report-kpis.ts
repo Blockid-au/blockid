@@ -17,11 +17,16 @@
 //                      score over the last 30 days, N, and the share of
 //                      answers ≥ 8. `nps_responses` rows whose `context`
 //                      starts with `tbr_clarity:`. KPI: median ≥ 8.5, N ≥ 30.
+//   pipeline (G19-S46) per-run telemetry from content/reports/tbr-quality.jsonl
+//                      (the same reducer /api/status.tbr_quality uses): runs
+//                      in 24 h, grounded median, cost median (USD), degraded
+//                      share, verdict ok | watch | missing.
 //
 // `computeReportKpis` is pure (tests); `loadReportKpis` does the reads and
 // degrades to nulls — a missing column / file never breaks the dashboard.
 
 import { comparablesCopyLine, comparablesCounts, primeComparables } from "@/lib/valuation/comparables-repo.server";
+import { readTbrQualityStatus, type TbrQualityStatus } from "@/lib/report-pipeline/quality-log";
 
 export const GROUNDED_GATE = 0.8;
 export const GROUNDED_TARGET_MEDIAN = 0.85;
@@ -100,6 +105,8 @@ export interface ReportKpis {
   comparablesCopy: string;
   /** G19-S45 (D6): report-clarity survey KPI. */
   clarity: ClarityKpi;
+  /** G19-S46: last-24 h pipeline telemetry (tbr-quality.jsonl); null when the reader was not run. */
+  pipeline: TbrQualityStatus | null;
 }
 
 export function median(values: number[]): number | null {
@@ -117,6 +124,8 @@ export function computeReportKpis(input: {
   comparables: { n: number; withMultiplesN: number; source: "table" | "static"; copy: string };
   /** `nps_responses` rows with a `tbr_clarity:` context (last 30 days). */
   clarity?: ClarityResponseRow[];
+  /** G19-S46: the tbr-quality.jsonl summary (readTbrQualityStatus). */
+  pipeline?: TbrQualityStatus | null;
   now?: Date;
   windowDays?: number;
 }): ReportKpis {
@@ -147,6 +156,7 @@ export function computeReportKpis(input: {
     comparablesSource: input.comparables.source,
     comparablesCopy: input.comparables.copy,
     clarity: computeClarityKpi(input.clarity ?? [], now),
+    pipeline: input.pipeline ?? null,
   };
 }
 
@@ -166,6 +176,8 @@ export interface ReportKpiDb {
 
 export interface LoadReportKpiDeps {
   readSpend?: () => ReportKpiSpend | null;
+  /** G19-S46: the tbr-quality.jsonl reader (defaults to the live-checkout file). */
+  readQuality?: () => Promise<TbrQualityStatus | null>;
   now?: () => Date;
 }
 
@@ -207,7 +219,9 @@ export async function loadReportKpis(db: ReportKpiDb | null, deps: LoadReportKpi
     }
   }
   const spend = deps.readSpend ? deps.readSpend() : await defaultReadSpend();
+  // G19-S46: the same 24 h reducer /api/status.tbr_quality publishes.
+  const pipeline = await (deps.readQuality ? deps.readQuality() : readTbrQualityStatus(undefined, now().getTime())).catch(() => null);
   await primeComparables().catch(() => undefined);
   const c = comparablesCounts();
-  return computeReportKpis({ snapshots, spend, comparables: { n: c.n, withMultiplesN: c.withMultiplesN, source: c.source, copy: comparablesCopyLine() }, clarity, now: now() });
+  return computeReportKpis({ snapshots, spend, comparables: { n: c.n, withMultiplesN: c.withMultiplesN, source: c.source, copy: comparablesCopyLine() }, clarity, pipeline, now: now() });
 }

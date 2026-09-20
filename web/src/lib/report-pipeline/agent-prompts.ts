@@ -484,11 +484,15 @@ export function resolvePhaseId(context: Pick<ReportContext, "stage" | "phaseGate
   return isGrowthPhaseId(phase.id) ? phase.id : "vision";
 }
 
+// G19-S46: per-section length. The old standard target (500-1500 words) made
+// DeepSeek-class models write the upper bound inside the structured JSON and
+// overrun every output budget (see agent-dispatcher STRUCTURED_MIN_OUTPUT_TOKENS);
+// 13 sections × these windows still land inside REPORT_TIER_CONFIG min/maxWords.
 const TIER_WORDS: Record<ReportTierV2, string> = {
-  free: "150-400 words",
-  standard: "500-1500 words",
-  premium: "900-2000 words",
-  investor_memo: "1200-2500 words",
+  free: "150-350 words",
+  standard: "400-700 words",
+  premium: "700-1200 words",
+  investor_memo: "900-1500 words",
 };
 
 // ── Block builders ──────────────────────────────────────────────────────────
@@ -625,7 +629,7 @@ const LEGACY_OUTPUT_FORMAT = `## Output Format
 - Be specific, data-driven, and actionable`;
 
 function legacyOutputSchema(tier: ReportTierV2 | undefined): string {
-  return `${LEGACY_OUTPUT_FORMAT}\n- Total output: ${TIER_WORDS[tier ?? "standard"]} depending on available evidence`;
+  return `${LEGACY_OUTPUT_FORMAT}\n- Total output: ${TIER_WORDS[tier ?? "standard"]} depending on available evidence — a HARD upper limit: stop writing when you reach it`;
 }
 
 // ── Build blocks ────────────────────────────────────────────────────────────

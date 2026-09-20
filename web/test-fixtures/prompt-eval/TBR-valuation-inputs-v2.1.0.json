@@ -1,0 +1,258 @@
+{
+  "agent": "TBR-valuation-inputs",
+  "version": "2.1.0",
+  "purpose": "Trusted Business Report v2 — G19-S42/S46 valuation truth: the Traction & Revenue owner (CRO) explains revenue WITH the valuation inputs it was given (report-pipeline/valuation-chapter.ts:inputs) — a pre-revenue startup is called pre-revenue / Berkus, a Stripe-sourced ARR names its source; any invented ARR / MRR figure hard-fails; bands = ANCHORS p25-p75",
+  "cases": [
+    {
+      "id": "case_valuation_prerevenue_tre",
+      "name": "Validated idea — no revenue anywhere: the verdict says pre-revenue (Berkus / scorecard carry the band) and never states an ARR",
+      "input": {
+        "dim": "tre",
+        "weight": 20,
+        "stage": 1,
+        "stageLabel": "Validated Idea",
+        "phaseId": "revenue_model",
+        "benchmark": {
+          "p25": 26,
+          "p50": 41,
+          "p75": 56,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 40,
+        "criterionResults": [],
+        "evidenceRows": [],
+        "moduleOutputs": [
+          {
+            "id": "svi-analysis.ts:extractSignals(traction)",
+            "output": {
+              "hasRevenue": false,
+              "revenueBand": "none",
+              "hasCustomers": false,
+              "hasAnalytics": true
+            }
+          },
+          {
+            "id": "report-pipeline/valuation-chapter.ts:inputs",
+            "output": {
+              "mrrAud": 0,
+              "arrAud": 0,
+              "revenueSource": "none",
+              "growthAssumed": false,
+              "esicQualifies": true,
+              "rdtiRefundAud": 0,
+              "berkusPillars": {
+                "soundIdea": true,
+                "prototype": true,
+                "qualityTeam": false,
+                "strategicRelationships": false,
+                "productRollout": false
+              },
+              "stage": "Validated Idea",
+              "sviStage": 1,
+              "sector": "Software & SaaS",
+              "sectorMultipleLow": 4,
+              "sectorMultipleHigh": 8,
+              "raiseStated": false,
+              "applicableMethods": ["berkus", "scorecard", "stage_baseline"]
+            }
+          },
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "tre",
+              "benchmarkStage": 1,
+              "p25": 26,
+              "p50": 41,
+              "p75": 56,
+              "deterministicScore": 40
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": ["first paying pilot"],
+          "whatMattersNow": "Convert validated interest into a first invoice; connect Stripe or Xero so revenue is a connector fact, not a claim."
+        },
+        "scoreLedger": {
+          "base": 30,
+          "signals": [
+            { "signal": "Analytics connected", "points": 8, "source": "connected_source" },
+            { "signal": "Waitlist / interest signals", "points": 2, "source": "self_declared" }
+          ],
+          "confidenceMultiplier": 0.35,
+          "adjustment": -1,
+          "assessed": true
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 26,
+          "max": 56
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "revenue"
+        ],
+        "must_not_hallucinate": [
+          "ARR A$",
+          "MRR A$",
+          "annual recurring revenue of",
+          "paying customers",
+          "revenue multiple",
+          "NRR"
+        ],
+        "must_cite": 0,
+        "primary_visual": {
+          "kind": "sparkline"
+        },
+        "verdict_must_mention_any": [
+          "pre-revenue",
+          "Berkus",
+          "no revenue"
+        ]
+      }
+    },
+    {
+      "id": "case_valuation_stripe_tre",
+      "name": "Early traction — Stripe connector ARR A$100,800: the verdict names the source (Stripe / connector) and the figure it was given, never a bigger one",
+      "input": {
+        "dim": "tre",
+        "weight": 20,
+        "stage": 3,
+        "stageLabel": "Early Traction",
+        "phaseId": "go_to_market",
+        "benchmark": {
+          "p25": 50,
+          "p50": 65,
+          "p75": 80,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 66,
+        "criterionResults": [
+          {
+            "key": "revenue",
+            "score": 64,
+            "verdict": "Recurring revenue is real and connector-verified but concentrated in 14 accounts [ev:ev-stripe-mrr-01].",
+            "citations": [{ "evidence_id": "ev-stripe-mrr-01", "quote": "MRR A$8,400 from 14 subscriptions" }],
+            "grounded": true
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "ev-stripe-mrr-01",
+            "source": "stripe",
+            "status": "evidenced",
+            "observedAt": "2026-09-01T00:00:00.000Z",
+            "label": "Stripe MRR",
+            "value": "MRR A$8,400 from 14 active subscriptions (connector snapshot 2026-09-01)"
+          }
+        ],
+        "moduleOutputs": [
+          {
+            "id": "svi-analysis.ts:extractSignals(traction)",
+            "output": {
+              "hasRevenue": true,
+              "revenueBand": "early",
+              "hasCustomers": true,
+              "hasAnalytics": true,
+              "mrrAud": 8400,
+              "arrAud": 100800,
+              "revenueMonths": 7
+            }
+          },
+          {
+            "id": "report-pipeline/valuation-chapter.ts:inputs",
+            "output": {
+              "mrrAud": 8400,
+              "arrAud": 100800,
+              "revenueSource": "connector",
+              "monthlyGrowthRatePct": 6,
+              "growthAssumed": false,
+              "esicQualifies": true,
+              "rdtiRefundAud": 0,
+              "berkusPillars": {
+                "soundIdea": true,
+                "prototype": true,
+                "qualityTeam": true,
+                "strategicRelationships": false,
+                "productRollout": true
+              },
+              "stage": "Early Traction",
+              "sviStage": 3,
+              "sector": "Software & SaaS",
+              "sectorMultipleLow": 4,
+              "sectorMultipleHigh": 8,
+              "sectorMultipleMedian": 6,
+              "raiseStated": false,
+              "applicableMethods": ["revenue_multiple", "berkus", "dcf_proxy", "comparables", "risk_factor_summation", "scorecard", "stage_baseline"]
+            }
+          },
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "tre",
+              "benchmarkStage": 3,
+              "p25": 50,
+              "p50": 65,
+              "p75": 80,
+              "deterministicScore": 66
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": ["cohort retention"],
+          "whatMattersNow": "Show 3+ months of retained cohorts so the ARR multiple holds."
+        },
+        "scoreLedger": {
+          "base": 30,
+          "signals": [
+            { "signal": "Early revenue traction", "points": 20, "source": "transaction_data" },
+            { "signal": "Customer proof present", "points": 8, "source": "connected_source" },
+            { "signal": "Analytics connected", "points": 8, "source": "connected_source" }
+          ],
+          "confidenceMultiplier": 0.9,
+          "adjustment": 3,
+          "assessed": true
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 50,
+          "max": 80
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "cohort"
+        ],
+        "must_not_hallucinate": [
+          "A$1.2M",
+          "A$250,000",
+          "ARR A$2",
+          "40 % month-on-month",
+          "NRR 130",
+          "Series A"
+        ],
+        "must_cite": 1,
+        "grounded_share_min": 0.8,
+        "primary_visual": {
+          "kind": "sparkline"
+        },
+        "verdict_must_mention_any": [
+          "Stripe",
+          "connector",
+          "A$100,800",
+          "A$8,400"
+        ]
+      }
+    }
+  ]
+}

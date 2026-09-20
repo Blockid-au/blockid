@@ -393,6 +393,9 @@ describe("W4 helpers", () => {
     expect(DimensionChapterPayload.safeParse(noGaps).success).toBe(false);
     const badWindow = JSON.parse(validChapter("tre", context, { next_action: { title: "x", window: "someday", expected_lift: 1 } }));
     expect(DimensionChapterPayload.safeParse(badWindow).success).toBe(false);
+    // G19-S46: owners echo the input's `phaseLens.floor: null` — a null floor / floor_met must not fail the chapter.
+    const nullFloor = JSON.parse(validChapter("tre", context, { phase_lens: { phase_id: "go_to_market", what_matters_now: "x", floor: null, floor_met: null } }));
+    expect(DimensionChapterPayload.safeParse(nullFloor).success).toBe(true);
   });
 
   it("ensureCitationSuffix keeps valid citations and marks everything else [unevidenced]", () => {

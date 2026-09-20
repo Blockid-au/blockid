@@ -275,11 +275,13 @@ describe("buildAgentPrompt — assembly", () => {
     expect(out).toContain("KEY INSIGHT");
   });
 
-  it("pins the 500-1500 word target for every generated section", () => {
+  it("pins the 400-700 word target (a hard upper limit) for every generated standard section", () => {
     // If this changes without a paired REPORT_TIER_CONFIG update, tier
     // minWords/maxWords windows drift and premium tier under-delivers.
+    // G19-S46: the old 500-1500 target overran every structured output budget.
     const out = buildAgentPrompt("cpo", makeContext());
-    expect(out).toContain("Total output: 500-1500 words");
+    expect(out).toContain("Total output: 400-700 words");
+    expect(out).toContain("HARD upper limit");
   });
 
   it("ignores the optional criterionKey argument (currently informational only)", () => {

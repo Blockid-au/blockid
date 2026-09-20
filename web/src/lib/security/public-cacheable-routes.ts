@@ -120,6 +120,7 @@ export const PUBLIC_CACHEABLE_ROUTES: readonly PublicCacheableRoute[] = [
       "showcase/atlassian/svi-report/page.tsx",
       "showcase/atlassian/valuation/page.tsx",
       "showcase/blockid/page.tsx",
+      "showcase/blockid/report/page.tsx",
       "showcase/canva/page.tsx",
       "showcase/culture-amp/page.tsx",
       "showcase/safetyculture/page.tsx",

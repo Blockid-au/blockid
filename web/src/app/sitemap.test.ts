@@ -93,6 +93,16 @@ describe("sitemap — funding surfaces", () => {
     expect(urls).toContain(`${SITE}/samples`);
   });
 
+  // G19-S46: BlockID's own report beside the showcase mirror (weekly self-report → weekly change frequency).
+  it("lists /showcase/blockid/report next to /showcase/blockid", async () => {
+    const all = await entries();
+    const urls = all.map((e) => e.url);
+    expect(urls).toContain(`${SITE}/showcase/blockid`);
+    const own = all.find((e) => e.url === `${SITE}/showcase/blockid/report`);
+    expect(own).toBeDefined();
+    expect(own?.changeFrequency).toBe("weekly");
+  });
+
   it("lists /methodology + its VI twin with hreflang next to the S39 calibration page (G14-S36)", async () => {
     const all = await entries();
     const urls = all.map((e) => e.url);

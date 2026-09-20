@@ -117,6 +117,21 @@ type AICaller = (systemPrompt: string, userPrompt: string, maxTokens: number, ta
 /** Hard stop per report, by tier (§C.8). */
 export const TIER_CALL_MAX: Record<ReportTierV2, number> = { free: 16, standard: 30, premium: 40, investor_memo: 48 };
 
+/**
+ * G19-S46: env `REPORT_CALL_MAX_<TIER>` overrides the hard stop — for the
+ * OFFLINE weekly self-report only (scripts/run-self-analysis.mjs --report),
+ * where nobody waits and a widened cap costs cents. Interactive routes never
+ * set it. Measured 2026-09-20: at the standard cap of 30, W1–W3 (13 criterion
+ * calls, ONE repair pass each) plus the 2 research calls consumed every call
+ * before W4 whenever ≥ 3 first answers failed the schema — all 8 chapters
+ * degraded and the run refunded (`ReportFullyDegradedError`).
+ */
+export function callMaxForTier(tier: ReportTierV2): number {
+  const env = process.env[`REPORT_CALL_MAX_${tier.toUpperCase()}`];
+  const n = env ? Number(env) : Number.NaN;
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : TIER_CALL_MAX[tier];
+}
+
 export class CallBudgetExceededError extends Error {
   constructor(max: number) {
     super(`Report LLM call budget exhausted (${max})`);
@@ -380,7 +395,7 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
   const startedAt = new Date().toISOString();
   const t0 = Date.now();
   const tierV2: ReportTierV2 = input.tierV2 ?? input.tier;
-  const budget = new ReportCallBudget(input.maxCalls ?? TIER_CALL_MAX[tierV2]);
+  const budget = new ReportCallBudget(input.maxCalls ?? callMaxForTier(tierV2));
   const meter = new CostMeter();
   const deadline = new ReportDeadline(input.deadlineMs ?? deadlineMsForTier(tierV2), t0);
   const callAI = meterCallAI(input.callAI, budget, { meter, deadline });

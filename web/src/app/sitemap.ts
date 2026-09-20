@@ -829,6 +829,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.6,
     },
+    // G19-S46: BlockID's own Trusted Business Report (weekly self-report).
+    {
+      url: `${SITE_URL}/showcase/blockid/report`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.6,
+    },
     // Dynamic insight articles (deduplicated — manifest.json can have repeated slugs)
     ...insightEntries,
     // Dynamic public Business ID profiles (§11.1 / §14bis D3)
