@@ -278,6 +278,36 @@ test.describe("TBR cover — business verification badge (S36)", () => {
   });
 });
 
+// G19-S44 — the cover "current value" hero and one to-do list: the demo TBR
+// opens with the A$ consensus range (85 % confidence → never "pending"), the
+// SVI + band, a 12-phase badge and NO SVI stage label; the document renders
+// exactly one 90-day plan (chapter 13 — the live widget only appears when the
+// plan is empty) and one floors row instead of 8 phase-lens sentences.
+test.describe("TBR cover hero + one plan (G19-S44)", () => {
+  test("/tbr/demo cover shows the A$ range hero, SVI + phase badge, and exactly one 90-day plan", async ({ page, visit }, testInfo) => {
+    await visit("/tbr/demo");
+    const hero = page.locator("[data-tbr-hero]");
+    await expect(hero).toBeVisible({ timeout: 30_000 });
+    const value = hero.locator("[data-tbr-hero-value]");
+    const kind = await value.getAttribute("data-tbr-hero-value");
+    const text = await value.innerText();
+    const svi = await hero.locator("[data-tbr-hero-svi]").innerText();
+    const phase = await page.locator("[data-tbr-phase-badge]").first().innerText();
+    const plans = await page.locator("#tbr-action-plan").count();
+    const floorsRows = await page.locator("[data-tbr-floors-row]").count();
+    const floorChips = await page.locator("[data-tbr-floor-chip]").count();
+    await evidence(testInfo, "cover hero", { kind, text, svi, phase, plans, floorsRows, floorChips });
+    expect(kind).toBe("range");
+    expect(text).toMatch(/^A\$[\d.]+[kMB]? – A\$[\d.]+[kMB]?$/);
+    expect(svi).toMatch(/^SVI \d+/);
+    expect(phase.trim().length).toBeGreaterThan(0);
+    expect(plans).toBe(1);
+    expect(floorsRows).toBe(1);
+    expect(floorChips).toBe(8);
+    await expect(page.getByText("not yet audited")).toHaveCount(0);
+  });
+});
+
 // G19-S42 — valuation truth: the demo TBR (Stripe-evidenced revenue) shows
 // the "Inputs & assumptions" table with source chips, only the applicable
 // method rows (5 — scorecard and the stage baseline are cross-checks), the

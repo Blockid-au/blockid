@@ -180,7 +180,10 @@ test.describe("Founder landing — five blocks (G13-W3-IA3)", () => {
       ctas[b] = await cta.getAttribute("href");
     }
     await evidence(testInfo, "landing blocks", { names, empty, ctas, phase: await page.locator("[data-founder-landing]").getAttribute("data-landing-phase") });
-    expect(names).toEqual([...BLOCKS]);
+    // Optional blocks (G14-S34 letter, G19-S44 synthesis) render only when their data exists — the five fixed ones keep their order.
+    expect(names.filter((n) => n !== "what-investors-said" && n !== "executive-synthesis")).toEqual([...BLOCKS]);
+    const synthesisIdx = names.indexOf("executive-synthesis");
+    if (synthesisIdx >= 0) expect(names[synthesisIdx - 1]).toBe("where-you-stand");
     // Block 2 — one recommendation, clickable, lands on a real page.
     const next = page.getByTestId("landing-next-best-action-cta");
     const href = (await next.getAttribute("href")) ?? "";
@@ -189,6 +192,44 @@ test.describe("Founder landing — five blocks (G13-W3-IA3)", () => {
     const target = href.split("?")[0];
     await page.waitForURL((u) => u.pathname.startsWith(target), { timeout: 30_000 });
     expect(new URL(page.url()).pathname.startsWith(target)).toBe(true);
+  });
+
+  // G19-S44 — the executive synthesis block reads the latest stored report_v2:
+  // when the seeded founder has one, the block sits right after "Where you
+  // stand" with the phase, the A$ range (or the honest pending line), the
+  // strengths / weaknesses lists and the report CTA — and its phase equals
+  // the report cover's phase badge (one phase rule, D5).
+  test("/dashboard executive synthesis (when a report_v2 exists): phase + worth + lists + CTA, same phase as the TBR cover", async ({ page, visit }, testInfo) => {
+    await visit("/dashboard");
+    test.skip(/\/onboarding/.test(page.url()), "fresh account bounced to /onboarding (no analysis yet)");
+    const grid = page.locator("[data-landing-grid]");
+    await expect(grid).toBeVisible({ timeout: 30_000 });
+    const block = grid.locator('[data-landing-block="executive-synthesis"]');
+    const present = (await block.count()) > 0;
+    await evidence(testInfo, "synthesis block", { present });
+    test.skip(!present, "no stored report_v2 for the seeded founder — synthesis block is optional");
+    const phase = await block.locator("[data-synthesis-phase]").getAttribute("data-synthesis-phase");
+    const worth = await block.locator("[data-synthesis-worth]").getAttribute("data-synthesis-worth");
+    const worthText = await block.locator("[data-synthesis-worth]").innerText();
+    const cta = block.locator('[data-testid="landing-synthesis-cta"]');
+    await expect(cta).toBeVisible();
+    await evidence(testInfo, "synthesis values", { phase, worth, worthText, cta: await cta.getAttribute("href") });
+    expect(phase).toBeTruthy();
+    expect(["range", "pending"]).toContain(worth);
+    if (worth === "range") expect(worthText).toMatch(/A\$/);
+    await expect(block.getByTestId("synthesis-strengths")).toBeVisible();
+    await expect(block.getByTestId("synthesis-weaknesses")).toBeVisible();
+    await expect(block.getByTestId("synthesis-follow-ups")).toBeVisible();
+    await expect(block.getByTestId("synthesis-data-to-add")).toBeVisible();
+    // Same phase on the report cover (the CTA target).
+    await cta.click();
+    await page.waitForURL((u) => u.pathname.startsWith("/workspace/reports/business"), { timeout: 30_000 });
+    const badge = page.locator("[data-tbr-phase-badge]").first();
+    await expect(badge).toBeVisible({ timeout: 60_000 });
+    const coverPhaseLabel = (await badge.innerText()).trim();
+    const dashboardPhaseLabel = (await visit("/dashboard"), (await grid.locator("[data-synthesis-phase]").innerText()).trim());
+    await evidence(testInfo, "phase parity", { coverPhaseLabel, dashboardPhaseLabel });
+    expect(coverPhaseLabel).toBe(dashboardPhaseLabel);
   });
 
   test("/workspace/plan carries the 12-phase ladder moved off the landing", async ({ page, visit }, testInfo) => {
