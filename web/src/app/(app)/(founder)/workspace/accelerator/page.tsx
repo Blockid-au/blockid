@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = EvaluatorHubSearchParams & { pilot?: string | string[] };
+type SearchParams = EvaluatorHubSearchParams & { pilot?: string | string[]; session_id?: string | string[] };
 
 export default async function Page({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const hub = await loadEvaluatorHub({ route: "accelerator", searchParams });
