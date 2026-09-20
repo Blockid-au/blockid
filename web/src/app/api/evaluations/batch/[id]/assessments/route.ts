@@ -4,7 +4,9 @@
 //   { evaluation_ids: string[], decision?: "pass"|"track"|"proceed"|null, conviction?: 1..5|null }
 //        → 200 { ok, updated, created, skipped[], failed[] }
 //
-// Owner-only (a batch that is not the caller's → 404, never 403). Ids that
+// G21 P2-B: owner / reviewer seats (assertBatchRole — a viewer → 403, a
+// non-member → 404); the body may carry `reason_code`, which travels on the
+// audit row and the FI `decision_recorded` event. Ids that
 // are not items of THIS batch are skipped, never written. Each row is a
 // DRAFT save through the S-D2 write path (own seat, batch snapshot_id);
 // one `assessment.bulk_set` audit row carries the id list.
@@ -14,7 +16,8 @@
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getBatchForUser, listBatchItems } from "@/lib/evaluations/batch";
+import { listBatchItems } from "@/lib/evaluations/batch";
+import { assertBatchRole } from "@/lib/evaluations/batch-members";
 import { bulkDecisionSchema, bulkSetDecisions } from "@/lib/evaluations/cohort-decisions";
 import { resolveActingOrg } from "@/lib/investor/organisations";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -43,8 +46,13 @@ async function handler(request: Request, { params }: Ctx) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   const { id } = await params;
-  const batch = await getBatchForUser(user.id, id);
-  if (!batch) return json({ ok: false, error: "not_found" }, 404);
+  const access = await assertBatchRole(id, user.id, "reviewer");
+  if (!access.ok) {
+    if (access.error === "forbidden") return json({ ok: false, error: "forbidden", message: "Viewers can read the cohort but not record decisions" }, 403);
+    if (access.error === "unavailable") return json({ ok: false, error: "unavailable" }, 503);
+    return json({ ok: false, error: "not_found" }, 404);
+  }
+  const batch = access.batch;
 
   const limited = enforceRateLimit("batch-bulk-decision", user.id, request, BULK_SETS_PER_MINUTE, 60 * 1000);
   if (limited) return limited;
@@ -63,6 +71,7 @@ async function handler(request: Request, { params }: Ctx) {
     batchId: batch.id,
     userId: user.id,
     orgId: org?.id ?? null,
+    actor: { plan: user.plan ?? null, email: user.email },
     items: items.filter((i) => projects.get(i.evaluationId)).map((i) => ({ evaluationId: i.evaluationId, projectId: projects.get(i.evaluationId) as string, snapshotId: i.snapshotId })),
     body: parsed.data,
   });

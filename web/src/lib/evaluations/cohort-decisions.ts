@@ -18,18 +18,25 @@ import "server-only";
 import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { appendAudit } from "@/lib/audit";
+import { emitFiEvent } from "@/lib/analytics/fi-events";
 import { ASSESSMENT_DECISIONS, upsertAssessment, type AssessmentDecision } from "@/lib/evaluations/assessments";
 import { COHORT_DECISIONS, type CohortRowDecision } from "./batch-shared";
+import { DECISION_REASON_CODES } from "./cohort-decisions-shared";
 
 type Row = Record<string, unknown>;
 
 export const BULK_MAX_IDS = 200;
+
+/** G21 P2-B: why a decision was recorded — audit + analytics only (client-safe list in ./cohort-decisions-shared.ts). */
+export { DECISION_REASON_CODES, DECISION_REASON_LABELS, type DecisionReasonCode } from "./cohort-decisions-shared";
 
 export const bulkDecisionSchema = z
   .object({
     evaluation_ids: z.array(z.string().min(1).max(64)).min(1).max(BULK_MAX_IDS),
     decision: z.enum(ASSESSMENT_DECISIONS).nullable().optional(),
     conviction: z.number().int().min(1).max(5).nullable().optional(),
+    /** G21 P2-B: optional reason code carried on the audit row + the FI `decision_recorded` event (never on the assessment row). */
+    reason_code: z.enum(DECISION_REASON_CODES).optional(),
   })
   .strict()
   .refine((b) => b.decision !== undefined || b.conviction !== undefined, { message: "Set a decision and/or a conviction", path: ["decision"] });
@@ -86,6 +93,8 @@ export async function bulkSetDecisions(input: {
   batchId: string;
   userId: string;
   orgId?: string | null;
+  /** G21 P2-B: actor plan / e-mail for the FI `decision_recorded` envelope (never stored). */
+  actor?: { plan?: string | null; email?: string | null };
   items: ReadonlyArray<{ evaluationId: string; projectId: string; snapshotId: string | null }>;
   body: BulkDecisionInput;
 }): Promise<BulkSetResult> {
@@ -123,8 +132,26 @@ export async function bulkSetDecisions(input: {
       action: "assessment.bulk_set",
       resource_type: "evaluation_batch",
       resource_id: input.batchId,
-      detail: { evaluation_ids: touched, decision: input.body.decision ?? null, conviction: input.body.conviction ?? null, created: result.created, updated: result.updated, skipped: result.skipped.length, failed: result.failed.length },
+      detail: { evaluation_ids: touched, decision: input.body.decision ?? null, conviction: input.body.conviction ?? null, reason_code: input.body.reason_code ?? null, created: result.created, updated: result.updated, skipped: result.skipped.length, failed: result.failed.length },
     }).catch(() => {});
+    // G21 P2-B: one `decision_recorded` per startup touched, with the reason code.
+    if (input.body.decision) {
+      for (const id of touched) {
+        emitFiEvent("decision_recorded", {
+          organisation: input.userId,
+          startup: byId.get(id)?.projectId ?? null,
+          plan: input.actor?.plan ?? null,
+          channel: "cohort",
+          userId: input.userId,
+          email: input.actor?.email ?? null,
+          decision: input.body.decision,
+          conviction: input.body.conviction ?? null,
+          reason_code: input.body.reason_code ?? null,
+          batch_id: input.batchId,
+          status: "draft",
+        });
+      }
+    }
   }
   return result;
 }
