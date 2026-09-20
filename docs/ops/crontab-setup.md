@@ -1,9 +1,23 @@
-# Crontab setup — trial charge warning
+# Crontab setup — catalogue of host crons
 
-The pre-charge warning email cron (`/api/cron/trial-charge-warning`) is
-triggered by the host crontab. The BlockID deploy pipeline deliberately
-does **not** touch host crontabs — this is a one-time manual setup step
-per host.
+> Last verified: 2026-09-19 (G18-B). **Single source of truth for the schedule is
+> `web/scripts/crontab.production`** — edit it, then `crontab /home/dovanlong/blockid.au/web/scripts/crontab.production`.
+> The deploy pipeline never touches the host crontab. Every `/api/cron/*` job runs through
+> `web/scripts/cron-runner.sh` (Bearer `CRON_SECRET` from `web/.env`, JSON summary to
+> `content/reports/cron-health.jsonl`, Telegram alert with e-mail fallback, `--timeout` ceiling 600 s).
+>
+> Three families (~110 lines): **system** — watchdog, Cloudflare DDNS, AI token guardian, off-peak auto-deploy,
+> Postgres backups + off-site copy + weekly restore drill (Sun 03:45), error digest + latency sampler (*/10),
+> link check (03:40), funnel report (02:50 + Mon 03:05), pilot expiry (04:20), stray-process sweep;
+> **daily C-Level pipeline** (2:00–10:30 AEST) — data collection → health → intelligence → auto-improve →
+> C-Level daily reports → CEO summary → orchestrator implementing-plan loop (8× daily); **weekly** — live QA
+> (Sun 07:00), comparables ingest, external signals, backtest, reseller reconciliation, evaluator progress radar.
+> Cloud-hosted C-Level routines are a separate system: `docs/runbooks/anthropic-cloud-routines.md`.
+
+## Trial charge warning — `/api/cron/trial-charge-warning`
+
+The pre-charge warning email cron is triggered by the host crontab — the
+first job this document described; the sections below add one job each.
 
 ## Line to install
 
@@ -403,80 +417,14 @@ skipped_no_new, skipped_no_founder, skipped_dupe, skipped_unsubscribed,
 failed, budget_exceeded, duration_ms, projects[{project_id, k, org_count,
 new_rows, weakest_dim, subject?, letter_id?, outcome}] }`.
 
-## Autonomous goal loops
+## Autonomous goal loops — removed
 
-> **Removed 2026-08-13** (`fd7bb0b03`): the three loops below and their crontab lines no longer exist; this section is kept for history. Autonomous implementation now = orchestrator (`agent-orchestrator`, 12/14/16/18 UTC) + `self-upgrade-agent.sh` (18:30 UTC) reading `web/content/reports/project-state.json`. Larger goals ship via founder-driven sessions (see `docs/plans/money-finder-2026-09-10.md` §8).
-
-Three long-running goal loops grind unblocked phases from machine-readable
-goal files. All three share the reusable driver in
-`scripts/cron/goal-loop.mjs` (each wrapper is ~25 lines of parameters).
-
-| Loop            | Wrapper script                             | Goal file                                                | Cadence   | Kill env                    | Status file                          | History JSONL                                                |
-| --------------- | ------------------------------------------ | -------------------------------------------------------- | --------- | --------------------------- | ------------------------------------ | ------------------------------------------------------------ |
-| reseller        | `scripts/cron/reseller-goal-loop.mjs`      | `docs/plans/reseller-module-goal.md`                     | every 5m  | `RESELLER_AUTONOMOUS_LOOP`  | `/tmp/blockid-reseller-loop.status`  | `web/content/reports/reseller-goal-history.jsonl`            |
-| atlassian       | `scripts/cron/atlassian-goal-loop.mjs`     | `docs/plans/atlassian-standard-mapping-goal.md`          | every 10m (offset :07) | `ATLASSIAN_GOAL_LOOP`       | `/tmp/blockid-atlassian-loop.status` | `web/content/reports/atlassian-goal-history.jsonl`           |
-| ux-ia           | `scripts/cron/ux-ia-goal-loop.mjs`         | `docs/plans/ux-ia-startup-flow-goal.md`                  | every 10m (offset :03) | `UX_IA_GOAL_LOOP`           | `/tmp/blockid-ux-ia-loop.status`     | `web/content/reports/ux-ia-goal-history.jsonl`               |
-
-Cadence staggering (reseller :00,:05,…; atlassian :07,:17,…;
-ux-ia :03,:13,…) means no two loops fire in the same minute — keeps CPU
-predictable and avoids `claude` CLI contention. Each entry is wrapped in
-`flock -n` against a per-loop lock file so a slow tick never overlaps
-itself.
-
-### Reading live state
-
-The admin endpoint `GET /api/admin/goal-loop-status` merges all three
-status files into one JSON response (admin-auth only). Shape:
-
-```json
-{
-  "ok": true,
-  "loops": {
-    "reseller":  { "loop_label": "reseller-goal-loop",  "current_stage": "tick_end", ... },
-    "atlassian": { "loop_label": "atlassian-goal-loop", "current_stage": "tick_end", ... },
-    "ux_ia":    { "loop_label": "ux-ia-goal-loop",     "current_stage": "tick_end", ... }
-  },
-  "generated_at": "2026-07-24T..."
-}
-```
-
-Loops that have never fired return `null` for that key.
-
-### Kill switches — one-step disable
-
-Each loop honours its kill env. For a **session-only** disable:
-
-```bash
-export RESELLER_AUTONOMOUS_LOOP=off
-export ATLASSIAN_GOAL_LOOP=off
-export UX_IA_GOAL_LOOP=off
-```
-
-(Only applies to shells that export the var — cron ignores your shell
-env, so this is for manual runs only.)
-
-For a **permanent** disable, comment out the loop's line in
-`web/scripts/crontab.production` and re-apply:
-
-```bash
-crontab /home/dovanlong/blockid.au/web/scripts/crontab.production
-crontab -l | grep -E 'atlassian|ux-ia|reseller'
-```
-
-The loops also self-uninstall when their goal file's top-level
-`status: done`: on that tick the wrapper writes
-`/tmp/blockid-<loop>-goal-done` and calls
-`crontab -l | grep -v <wrapper-script>.mjs | crontab -`.
-
-### Dry-run smoke
-
-Every wrapper accepts `--dry-run` — logs one `tick_start` row (with
-`dry_run: true`) and exits before dispatching to `claude`:
-
-```bash
-node scripts/cron/atlassian-goal-loop.mjs --dry-run
-node scripts/cron/ux-ia-goal-loop.mjs --dry-run
-```
+The three goal loops (reseller / atlassian / ux-ia wrappers around `scripts/cron/goal-loop.mjs`), their
+`/api/admin/goal-loop-status` endpoint and their kill-switch envs (`RESELLER_AUTONOMOUS_LOOP`,
+`ATLASSIAN_GOAL_LOOP`, `UX_IA_GOAL_LOOP`) were **removed 2026-08-13** (`fd7bb0b03`). Autonomous
+implementation is now the orchestrator (`agent-orchestrator` — the CEO implementing-plan loop, 8× daily)
+plus founder-led sessions recorded in `docs/plans/SOURCE-OF-TRUTH.md`. The historical description lives in
+`docs/archive/orchestrator-goal-tracking.md`.
 
 ## G15-R2 — error digest + latency sampler (2026-09-18)
 

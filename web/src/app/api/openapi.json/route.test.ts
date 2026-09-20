@@ -460,9 +460,9 @@ describe("tagFor prefix rules", () => {
     }
   });
 
-  it("fallback bucket is 'Public' — every observed tag is one of the five known buckets (any drift means a new prefix rule was added without extending the tag whitelist)", async () => {
+  it("fallback bucket is 'Public' — every observed tag is one of the seven known buckets (any drift means a new prefix rule was added without extending the tag whitelist)", async () => {
     const { body } = await callGet();
-    const allowed = new Set(["SVI Index", "Pricing Experiments", "Idea Engine", "Evaluator API v1", "Public"]);
+    const allowed = new Set(["SVI Index", "Pricing Experiments", "Idea Engine", "Evaluator API v1", "Partner API v1", "Business ID", "Public"]);
     for (const t of body.tags) {
       expect(allowed.has(t.name), `unexpected tag "${t.name}"`).toBe(true);
     }

@@ -7,9 +7,11 @@ routine does not show up in the CEO dashboard. It *does* mean the deeper
 Anthropic-hosted audit (the version that clones the repo + runs a longer
 prompt with `agent-deploy` code-patch capability) is not producing patches.
 
-Do NOT confuse this system with the autonomous git loop
-(`scripts/cron/goal-loop.mjs`, `truncation-guard.mjs`, `test-gate.mjs`).
-Those have their own revert-protection guards; leave them alone.
+Do NOT confuse this system with the host crontab (`web/scripts/crontab.production`,
+run through `cron-runner.sh`) or the CEO implementing-plan loop (`agent-orchestrator`).
+The old autonomous goal loops (`scripts/cron/goal-loop.mjs` wrappers) were removed
+2026-08-13; `truncation-guard.mjs` and `test-gate.mjs` remain as guards for the
+orchestrator's commits — leave them alone.
 
 ---
 
@@ -98,12 +100,11 @@ should refuse to apply patches. (If that gate doesn't exist yet, add it as
 a one-line check at the top of `POST` — trivial, but the human should
 decide whether to actually block.)
 
-Kill switches for **local** loop-family routines (separate subsystem, listed
-here for cross-reference so nobody mistakes one for the other):
-
-- `RESELLER_AUTONOMOUS_LOOP=off` — reseller goal loop
-- `ATLASSIAN_GOAL_LOOP=off` — atlassian mapping goal loop
-- `UX_IA_GOAL_LOOP=off` — UX/IA startup flow goal loop
+Kill switches for the **local** subsystems (listed here so nobody mistakes one
+for the other): comment the line out in `web/scripts/crontab.production` and
+re-apply the crontab. The goal-loop envs (`RESELLER_AUTONOMOUS_LOOP`,
+`ATLASSIAN_GOAL_LOOP`, `UX_IA_GOAL_LOOP`) no longer exist — the loops were
+removed 2026-08-13.
 
 ---
 

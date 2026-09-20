@@ -1,3 +1,6 @@
+> **RETIRED 2026-09-19 (G18-B truth sweep).** Historical document, last accurate around 2026-06-18. v2.14.1 uptime guard notes (watchdog + guardian cron). Superseded by the G15 reliability work: watchdog restart forensics, uptime guardian (`scripts/cron/uptime-24x7-guardian.sh`), error digest + latency SLO and `/api/status` v2.
+> Current source: docs/ops/slo.md, docs/plans/reliability-2026-09-18.md, web/scripts/crontab.production. Nothing below is maintained; do not cite it for prices, versions, deploy steps or crons.
+
 # Uptime Guard — Keeping blockid.au Online
 
 > v2.14.1 · Last updated: 2026-06-18

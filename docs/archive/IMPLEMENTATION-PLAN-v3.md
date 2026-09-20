@@ -1,3 +1,6 @@
+> **RETIRED 2026-09-19 (G18-B truth sweep).** Historical document, last accurate around 2026-07-17. v2.1 → GA master implementation plan v3 against v2.0.0-beta.6. Executed; the platform has been on v3.x since 2026-08.
+> Current source: docs/plans/SOURCE-OF-TRUTH.md, ROADMAP.md. Nothing below is maintained; do not cite it for prices, versions, deploy steps or crons.
+
 # BlockID.au v2.1 → GA — Master Implementation Plan (v3)
 
 **Chief Architect:** Senior PM consolidation of C-Level workstream inputs

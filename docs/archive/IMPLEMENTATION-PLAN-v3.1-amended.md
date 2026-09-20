@@ -1,3 +1,6 @@
+> **RETIRED 2026-09-19 (G18-B truth sweep).** Historical document, last accurate around 2026-07-17. Chief-of-Staff amendment to plan v3. Executed.
+> Current source: docs/plans/SOURCE-OF-TRUTH.md. Nothing below is maintained; do not cite it for prices, versions, deploy steps or crons.
+
 # BlockID.au v2.1 — Implementation Plan v3.1 (Amendment to v3)
 
 **Chief of Staff amendment to `docs/IMPLEMENTATION-PLAN-v3.md`**

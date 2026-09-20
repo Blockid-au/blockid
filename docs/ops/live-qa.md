@@ -213,14 +213,16 @@ still on (CSP-refused
 (run 2, not reproduced): every phase-gated nav leaf hidden at phase `funding` —
 `getFounderNavContext` swallows any lookup error into phase 0.
 
-## Scheduling (proposal — not installed)
+## Scheduling (installed — weekly, Sunday 07:00 UTC)
 
 ```
-# Weekly Sunday 07:00 UTC — live QA of the S25–S29 founder journeys against prod
-# (after the 03:00–05:00 UTC Sunday jobs and the money-radar sweep).
+# Weekly Sunday 07:00 UTC — live QA against production (after the 03:00–05:00 UTC Sunday
+# jobs and the money-radar sweep). Installed in web/scripts/crontab.production since 2026-09-15.
 0 7 * * 0 cd /home/dovanlong/blockid.au/web && LIVE_QA_ALLOW_DB=1 LIVE_QA_ELEVATE=1 bash scripts/qa-live.sh >> /tmp/blockid-live-qa.log 2>&1
 ```
 
-Add it to `web/scripts/crontab.production` and `crontab` it when the founder approves. The
-job needs the Playwright chromium already provisioned (it is, for Gate 12) and Docker access
-for the psql steps.
+The job needs the Playwright chromium already provisioned (it is, for Gate 12) and access to
+the `supabase-db` container for the psql steps. Since G15 (2026-09-18) it shares the deploy
+lock etiquette (`--wait`), classifies 52x responses and honours `Retry-After` on 429s, and a
+stale-run guard refuses to report a run whose target SHA changed mid-way. Elevated runs are
+the post-deploy verification of record: 177/0 (G15), 184/0 (G16), 191/0 (G17).

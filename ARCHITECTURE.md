@@ -1,6 +1,13 @@
 # BlockID.au — Architecture
 
-**Current release:** `v3.9.23` · `web/package.json` version `3.9.23` · git `8ed44c24a`
+> **Snapshot of v3.9.23 (2026-09-07).** Not re-verified since; the living architecture summary and change notes
+> are in `web/content/reports/architecture.md` (v3.16.0, rendered by the CEO loop) and the stack table in
+> `README.md`. Since this snapshot: nav v4 + personas (G13), Trusted Business Report v2, Evaluator API v1 +
+> webhook destinations (G14), 12-gate deploy with live-SHA check, error digest + latency SLO + `/api/status` v2,
+> weekly restore drill (G15), funnel events + A$3 unlock rail + pilots (G16), unicorn template + link check (G17);
+> migrations to 0412. Last checked as historical: 2026-09-19 (G18-B).
+
+**Release at snapshot:** `v3.9.23` · `web/package.json` version `3.9.23` · git `8ed44c24a`
 
 ## Surface (as-shipped)
 

@@ -1,3 +1,6 @@
+> **RETIRED 2026-09-19 (G18-B truth sweep).** Historical document, last accurate around 2026-07. T1100 scaffold notes for Goal 5A.
+> Current source: docs/ops/deploy.md. Nothing below is maintained; do not cite it for prices, versions, deploy steps or crons.
+
 # Goal 5A — T-1100 Scaffold Notes
 
 Short design note explaining why the T-1100 pass ships stub content instead of

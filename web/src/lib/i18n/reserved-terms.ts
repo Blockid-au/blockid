@@ -12,7 +12,7 @@
  *      terms that appeared in EN but disappeared in the translation, so
  *      the caller can refuse the translation and fall back to EN.
  *
- * See docs/goal-5d-t1400-i18n-notes.md §2 for the house rule.
+ * See docs/archive/goal-5d-t1400-i18n-notes.md §2 for the house rule.
  */
 
 export const RESERVED_TERMS: readonly string[] = [

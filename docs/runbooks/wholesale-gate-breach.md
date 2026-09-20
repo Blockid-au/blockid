@@ -90,7 +90,7 @@ window is bounded by the certification timestamp.
 
 ## 5. Tighten the gate at the code layer
 
-The permanent fix is T-1013 in `docs/IMPLEMENTATION-PLAN-v3.1-amended.md`: wire
+The permanent fix is T-1013 in `docs/archive/IMPLEMENTATION-PLAN-v3.1-amended.md`: wire
 `assertWholesaleCertified(user.id)` fail-closed at the top of
 `web/src/app/api/equity/request/route.ts` and mount the client-side
 `<WholesaleGate>` wrapper in `web/src/app/workspace/equity-offer/page.tsx`. The

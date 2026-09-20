@@ -4,7 +4,7 @@
  * Path-based i18n on Next 16 App Router: URL prefix `/vi/*` is the
  * canonical Vietnamese surface. All other paths default to English.
  *
- * See docs/goal-5d-t1400-i18n-notes.md for the routing model and the
+ * See docs/archive/goal-5d-t1400-i18n-notes.md for the routing model and the
  * procedure for adding a new locale.
  */
 

@@ -1,7 +1,11 @@
 # BlockID.au -- API Reference
 
-> 42 endpoints | Base URL: `https://blockid.au` (production) or `http://localhost:3000` (dev)
+> Last verified: 2026-09-19 (G18-B truth sweep) · Base URL: `https://blockid.au` (production) or `http://localhost:4001` (dev)
 > All routes use `force-dynamic` rendering. All POST routes accept `Content-Type: application/json` unless noted.
+> This file documents the routes an integrator or operator calls by hand (≈ 55 of the 650+ route handlers under
+> `web/src/app/api/**`; every mutating route is wrapped by `apiRoute()` and audited). The machine-readable spec
+> for the public + keyed partner surface is `GET /api/openapi.json`, rendered at `/developers/api` from
+> `web/src/lib/api-docs-registry.ts` — that registry is the source of truth for §9–§10 request/response shapes.
 
 ---
 
@@ -16,6 +20,7 @@
 7. [Admin / Cron](#7-admin--cron)
 8. [Other](#8-other)
 9. [Evaluator API v1](#9-evaluator-api-v1-apiv1evaluations)
+10. [Partner, public and session endpoints](#10-partner-public-and-session-endpoints)
 
 ---
 
@@ -25,7 +30,9 @@
 |--------|-------------|
 | **Session Cookie** | `blockid_session` HttpOnly cookie set after login. 90-day expiry. |
 | **CRON_SECRET** | `Authorization: Bearer $CRON_SECRET` header for cron endpoints. |
-| **API Key (v1)** | `Authorization: Bearer bk_live_…` — a per-evaluator key from Workspace → Settings → Enterprise → API keys, scoped (`analyze`, `evaluations:read`, `evaluations:write`) and gated by the `api.access` entitlement (Fund / Program plans only). See [§9](#9-evaluator-api-v1-apiv1evaluations). |
+| **API Key (v1)** | `Authorization: Bearer bk_live_…` — a per-account key from Workspace → Settings → Enterprise → API keys, scoped (`analyze` on every key by default; `evaluations:read` / `evaluations:write` on evaluator accounts). `POST /api/v1/analyze` is credit-metered with no plan gate; the `/api/v1/evaluations*` routes additionally require the `api.access` entitlement (Fund, Program and Index API plans per `plans.csv`). See [§9](#9-evaluator-api-v1-apiv1evaluations) and [§10](#10-partner-public-and-session-endpoints). |
+| **SVI data key** | `Authorization: Bearer svi_live_…` — institutional SVI index key for `GET /api/v1/svi` (tiers free 10/day · team 1k/day · institutional unlimited). |
+| **Partner token** | Optional bearer with the `id:public:read` scope on `GET /api/v1/id/{slug}` and `/vc` — lifts the anonymous rate limit; an invalid token is a 401, never a silent fallback. |
 | **Public** | No authentication required. |
 
 ---
@@ -1798,8 +1805,9 @@ one or more scopes:
 creation); every route additionally 404s a key whose owner is not the evaluator on that row, so a scope is a
 ceiling on what a key *could* reach, never a grant to someone else's data.
 
-**Plan gate:** `api.access` — **Fund and Program plans only** (goal doc F-7). Checked on every call, not just at
-key creation, so a downgraded plan stops the key the same minute.
+**Plan gate:** `api.access` — the **Fund, Program and Index API** plans (goal doc F-7 named Fund + Program; `plans.csv`
+also grants the flag to Index API and the enterprise tiers). Checked on every call, not just at key creation, so a
+downgraded plan stops the key the same minute.
 
 **Auth error ladder** (checked in this order — a spent key never pays for a DB round-trip; scope is checked
 after plan, so a lapsed Fund subscription answers 402 not 403):
@@ -1891,58 +1899,167 @@ curl -X POST https://blockid.au/api/webhooks \
 
 ---
 
+## 10. Partner, public and session endpoints
+
+> Added 2026-09-19 (G18-B). Routes that existed but had no prose here. `POST /api/v1/analyze` and
+> `GET /api/v1/id/{slug}` are also in the registry (`/developers/api`, `openapi.json`); the rest are documented
+> here only.
+
+### POST /api/v1/analyze — partner SVI analysis (`bk_live_` key)
+
+| Field | Value |
+|-------|-------|
+| **Auth** | `Authorization: Bearer bk_live_…` (scope `analyze`, the default on every key). No plan gate. |
+| **Cost** | One `svi_analysis` credit per successful call, spent after the engine returns; `creditsRemaining` echoes the balance. |
+| **Body** | `description` (required; aliases `rawText`, `text`) · `startupName` (`name`) · `websiteUrl` (`website`) · `industry` · `stage`. |
+| **Response** | `{ ok, sviScore, stage, stageLabel, dimensions[{key,label,score}], topGaps[{label,impact}], creditsRemaining, meta{version, confidence, summary, riskFlags, allGaps[]} }` |
+| **Errors** | `401 unauthorized` (also when the key's per-minute budget is spent) · `402 insufficient_credits` (+ `balance`) · `400 invalid_input` · `500 analysis_failed` (nothing charged). |
+| **Source** | `src/app/api/v1/analyze/route.ts`, `lib/api-auth.ts` (`authenticateAPIKey`), `lib/api-scopes.ts`. |
+
+### GET /api/v1/svi — institutional SVI index data (`svi_live_` key)
+
+| Field | Value |
+|-------|-------|
+| **Auth** | `Authorization: Bearer svi_live_…` (mint at `/workspace/settings/enterprise`). Tiers: free 10/day · team 1,000/day · institutional unlimited. CORS `*`. |
+| **Query** | `page`, `pageSize` (≤ 100), `sector`, `sort` (`svi` default), or `ticker=ACME-AU` for a single ticker. |
+| **Response** | Paginated anonymised tickers with SVI, sector, stage and movement; a single ticker returns the detail row. |
+| **Errors** | `401` (no / bad key) · `429` (tier quota). |
+| **Source** | `src/app/api/v1/svi/route.ts` (SVI EXC T_SVI_EXC_0014). |
+
+### GET /api/v1/id/{slug} — public verified business profile (JSON)
+
+| Field | Value |
+|-------|-------|
+| **Auth** | Anonymous allowed (the `/id/{slug}` page is public and indexable). Optional partner bearer with `id:public:read` lifts the limit from 200/min per IP to 2,000/min; a bad token is `401`. |
+| **Response** | `{ ok, data: PublicBusinessProfile, _meta: { authenticated, rateLimitRemaining } }` — `slug`, `legalName`, `verificationLevel` (0–5), `trustScore`, `lastVerifiedAt`, `badges[]`, `capabilityScores`, `attestations[]`, `jurisdiction`, `publicUrl`, `rowKind` (`live` \| `demo`). Nothing outside `PublicBusinessProfileSchema` can reach the client. |
+| **Cache** | `public, max-age=300, s-maxage=3600, stale-while-revalidate=60`; `X-Robots-Tag: index, follow`; CORS `*`. |
+| **Errors** | `404 not_found` for missing *and* unindexed slugs (no enumeration) · `429 rate_limited`. |
+| **Source** | `src/app/api/v1/id/[slug]/route.ts`, `lib/business-id/public-profile.ts`. |
+
+### GET /api/v1/id/{slug}/vc — W3C Verifiable Credential (JWT)
+
+Same auth and rate tiers as the JSON endpoint. Returns `{ jwt, expiresAt, credentialSubject, _meta{cached} }`; a
+non-revoked credential younger than 60 days is reused verbatim (stable `jti`), otherwise a fresh one is minted,
+recorded in `vc_issued` and queued for the nightly Anvil anchor. `404` unindexed · `410 Gone` when the latest
+credential is revoked. Issuer key custody: `docs/runbooks/vc-issuer-key-rotation.md`.
+
+### POST /api/v1/vc/{jti}/revoke — owner-only revocation
+
+Session cookie; the caller must own the underlying business (no admin override). Body `{ reason }` (≤ 500 chars).
+Idempotent: a second call returns `{ ok: true, alreadyRevoked: true }` with the original timestamp. The
+`/.well-known/revocations` feed is authoritative until the anchor cron catches up.
+
+### Outbound webhooks — `/api/webhooks`
+
+| Route | Auth | Notes |
+|-------|------|-------|
+| `GET /api/webhooks[?project_id]` | Session | Own endpoints (user + project level); with `project_id` every endpoint of that project (admin+ member). Returns `{ ok, endpoints[], access{allowed, reason}, events }`. |
+| `POST /api/webhooks` | Session · plan gate: Growth / Startup Package founders and every evaluator plan | `{ url?, events[], project_id?, description?, kind?, destination_config? }`. `kind` = `generic` (default, HMAC-signed) \| `slack` \| `affinity` \| `airtable` (see §9). `201 { ok, endpoint, secret }` — the secret is shown once. `402 plan_required` · `409 limit_reached` (10 per scope) · `503` no DB. |
+| `GET/PATCH/DELETE /api/webhooks/{id}` | Session (owner) | Read, pause / resume / change events, delete. |
+| `POST /api/webhooks/{id}/test` | Session (owner) | Sends a `ping` delivery. |
+| `GET /api/webhooks/{id}/deliveries` | Session (owner) | Delivery log with retry state (1 min → 10 min → 1 h → 6 h, then dead; 20 consecutive failures pause the endpoint). |
+
+Signature and event catalogue: [/docs#webhooks](https://blockid.au/docs#webhooks) — `X-BlockID-Signature: t=…,v1=…`
+(HMAC-SHA256 of `${t}.${rawBody}`), `X-BlockID-Event`, `X-BlockID-Delivery`; events `svi.rescored`,
+`evidence.uploaded`, `funding.report_ready`, `evaluation.report_ready`, `assessment.submitted`, `ping`.
+Source: `src/app/api/webhooks/**`, `lib/webhooks/{sign,dispatch}.ts`, `lib/webhooks/destinations/*`.
+
+### GET /api/reports/access?project=<uuid|default> — Trusted Business Report quote (G16-B)
+
+Session. Read-only: no Stripe session, no credit debit, no order row. Returns what the founder report page needs to
+show the free-tier cut and the confirm-before-charge modal: `{ ok, projectId, included (plan carries
+report.premium), paidOrderId, paidOrderStatus, quote{credits, estimatedWords, model, depth, sections},
+creditBalance, hasSubscription, price{sku, amount_cents, label} }`. `POST /api/reports/checkout` (Stripe, A$3
+guest) and `POST /api/reports/redeem` (credits) re-validate every figure at submit. `401` anonymous · `404`
+project not in scope.
+
+### POST /api/analytics/event — funnel event ingest (G16-A)
+
+Session cookie (or, for the two anonymous-emittable events `paywall_view` on `/tbr/*` and `share_link_open`, the
+`blockid_anon` cookie / `body.session_id`). Body `{ name, params?, session_id?, consent_granted? }`, one event per
+call. The server sets identity and the `qa` flag from the account — a client cannot name `user_id` or `qa`;
+`trackEvent()` rejects e-mail / phone / card-looking values. 60 events / minute per user (per session or IP when
+anonymous). Reply `{ ok: true }` / `{ ok: false, error }`. Event names emitted server-side (never by this route):
+`sign_up`, `svi_analyze`, `svi_score_computed`, `report_view`, `checkout`, `trust_report_purchased`,
+`feature_gate_hit`.
+
+### POST /api/pilot/apply — evaluator pilot application (G16-C)
+
+Public (no account). Honeypot `company_website` → `204` and nothing stored; per-IP limit 5 / 10 min → `429` +
+`Retry-After`; `PilotApplySchema` (zod) → `400 { error: "invalid_input", issues }`; success `200 { ok: true, id }`
+after appending to `content/reports/pilot-applications.jsonl` (gitignored, live checkout), an ops alert (Telegram →
+e-mail fallback) and an auto-reply. Audited by `apiRoute` with an anonymous actor. Pilots themselves (Program comp,
+30 days, cap 5, never a Stripe payer) are started from `/admin/pilots` and expired by the `pilot-expiry` cron.
+
+### Public index — `/api/index/*`
+
+| Route | Auth | Notes |
+|-------|------|-------|
+| `GET /api/index/svi?bucket=overall\|sector\|stage&format=json\|csv` | Public | k-anonymised aggregates (threshold 5) — also in the registry (`svi-index`). |
+| `GET /api/index/headlines` | Public | Snapshot of the Startup Value Index headline numbers; edge-cached 5 min. |
+| `GET /api/index/listings?sector&stage&public_only&revenue_only&sort&order&page&pageSize` | Public | Paginated ranked listing; anonymous tickers, opt-in public names; edge-cached 5 min. |
+| `GET /api/index/listing/{ticker}` | Public | One ticker's public detail. |
+| `POST /api/index/submit` | Public | Startup submission from `/submit` (zod; notifies ops). |
+| `POST /api/index/waitlist` | Public | `{ email, name }` → waitlist row; `400` on a missing field, `503` without a DB. |
+
+---
+
 ## Appendix: Environment Variables
 
-| Variable | Required | Used By |
-|----------|----------|---------|
-| `SUPABASE_URL` | Yes | supabase.ts |
-| `SUPABASE_SERVICE_ROLE_KEY` | Yes | supabase.ts |
-| `STRIPE_SECRET_KEY` | Yes (payments) | stripe.ts |
-| `STRIPE_WEBHOOK_SECRET` | Yes (webhooks) | stripe webhook |
-| `STRIPE_PRICE_FOUNDING50` | Yes (checkout) | stripe.ts |
-| `STRIPE_PRICE_FOUNDER` | For plan | stripe.ts |
-| `STRIPE_PRICE_GROWTH` | For plan | stripe.ts |
-| `STRIPE_PRICE_SVI_ANALYSIS` | For per-analysis | stripe/analysis |
-| `STRIPE_PRICE_SVI_ANALYSIS_25` | Post early-bird | stripe/analysis |
-| `ANTHROPIC_API_KEY` | For AI | ai-client.ts |
-| `OPENAI_API_KEY` | Fallback AI | ai-client.ts |
-| `GOOGLE_GEMINI_API_KEY` | Fallback AI | ai-client.ts |
-| `GOOGLE_CLIENT_ID` | Google login | auth/google |
-| `GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL` | Evidence upload | google-drive.ts |
-| `GOOGLE_DRIVE_PRIVATE_KEY` | Evidence upload | google-drive.ts |
-| `GOOGLE_DRIVE_FOLDER_ID` | Evidence upload | google-drive.ts |
-| `SMTP_USER` | Email | email.ts |
-| `SMTP_PASS` | Email | email.ts |
-| `SMTP_HOST` | Email (default: smtp.gmail.com) | email.ts |
-| `SMTP_PORT` | Email (default: 587) | email.ts |
-| `SMTP_FROM_EMAIL` | Email (default: BlockID \<admin@blockid.au\>) | email.ts |
-| `CRON_SECRET` | Cron auth | cron routes |
-| `NEXT_PUBLIC_SITE_URL` | URL generation | email.ts, auth.ts |
-| `IP_HASH_SALT` | Privacy | iphash.ts |
-| `ADMIN_EMAIL` | Evidence sharing (default: admin@blockid.au) | google-drive.ts |
+> The authoritative, commented list is `web/.env.example` (never commit `web/.env`). The Stripe price ids are
+> audited read-only by `docs/ops/stripe-env-audit.md` and their amounts by `docs/ops/pricing-truth.md` (lane A owns
+> both). Rows below are the groups an integrator or operator will meet in this document.
+
+| Group | Variables | Used by |
+|-------|-----------|---------|
+| Database | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` | `lib/supabase.ts` — self-hosted Supabase Postgres; migrations are applied by hand (`docs/ops/db-migrations.md`). |
+| Billing | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_FOUNDER_STARTER` / `_GROWTH`, `STRIPE_PRICE_INVESTOR_ANGEL` / `_ADVISOR` / `_VC_SMALL` (Scout / Firm / Program), `STRIPE_PRICE_INVESTOR_FUND(_ANNUAL)`, `STRIPE_PRICE_ACCEL_INTAKE(_ANNUAL)`, `STRIPE_PRICE_INDEX_API(_ANNUAL)`, `STRIPE_PRICE_ACCEL_STARTER` / `_GROWTH` (Cohort 25 / 100), `STRIPE_PRICE_TRUST_REPORT_5AUD` (A$3 Trusted Business Report), `STRIPE_PRICE_FUNDING_REPORT`, `STRIPE_PRICE_STARTUP_PACKAGE`, `STRIPE_PRICE_CREDITS_*` | `lib/stripe.ts`, `config/pricing/plans.csv` → `plans.generated.ts`. One Stripe account for everything (resellers never get their own). |
+| AI | `ANTHROPIC_API_KEY`, `DEEPINFRA_API_KEY`, `GOOGLE_GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY` (+ the free-pool providers in `content/ai-provider-registry.json`) | `lib/ai-client.ts` — report chain DeepInfra-first, Anthropic / Gemini / Groq fallbacks, Claude CLI last; daily free-model refresh writes `content/reports/ai-free-models.json`. |
+| Auth | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SESSION_SECRET`, `IP_HASH_SALT` | `lib/auth.ts`, `/api/auth/google/*` (server-side OAuth redirect flow + GIS popup), `lib/iphash.ts`. |
+| E-mail | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM_EMAIL`, `ADMIN_EMAIL` | `lib/email.ts`; `ADMIN_EMAIL` is also the alert fallback when Telegram is unavailable. |
+| Ops | `CRON_SECRET` (Bearer on every `/api/cron/*` route, read by `scripts/cron-runner.sh` from `web/.env`), `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID`, `NEXT_PUBLIC_SITE_URL`, `GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN` (off-site backups), `ABR_GUID` (ABN lookup) | `web/scripts/crontab.production`, `scripts/db-backup-offsite.mjs`, `lib/abr.ts`. |
 
 ---
 
 ## Appendix: Credit Cost Summary
 
-| Feature | Cost | Notes |
-|---------|------|-------|
-| SVI Analysis | 1 | First analysis free for unauthenticated users |
-| AI Score | 1 | Independent AI scoring comparison |
-| Competitive Research | 2 | Uses Claude web search |
-| SVI Report | 3 | 500-700 word AI report |
-| Term Sheet AI | 3 | Claude-powered analysis + dilution diff |
-| Evidence Upload | 0 | Free |
-| Investor Score | 0 | Free |
-| Dilution Calculator | 0 | Free |
+> Source of truth: `FEATURE_COSTS` in `web/src/lib/credits.ts` (admin overrides via `platform_config`). 1 credit =
+> A$1 list price (packs bring it to ≈ A$0.60). Every paid run shows its credit cost and word count before it is
+> charged, and is spent before the run so a failed run refunds rather than double-charges.
 
-## Appendix: Plan Credits
+| Feature | Credits | Notes |
+|---------|---------|-------|
+| SVI analysis (`svi_analysis`, `/api/v1/analyze`, `/api/svi`) | 0.5 | First analysis free for anonymous visitors; from the second run in 30 days an e-mail is asked first. |
+| AI score (`ai_score`) | 0.25 | Independent AI scoring pass. |
+| Competitive research (`research`) | 0.5 | |
+| Term sheet AI (`term_sheet`) | 1 | Analysis + dilution diff + lawyer questions. |
+| R&D report (`rnd_report` / `rnd_deep_dive`) | 1 / 1.5 | 3-page preview free. |
+| Pitch deck outline / pitch video (`pitch_deck` / `pitch_video`) | 1 / 2 | |
+| Idea Lab (`idea_lab`) | 3 | |
+| Trusted Business Report (`trust_report`) | 3 (= A$3 guest checkout) | Per startup; re-score of a held startup 1; included in evaluator plan quotas (trial: exactly one). |
+| Money Finder report (`lib/funding/reports.ts`) | 3 (= A$3 guest) | Free on Starter, the Startup Package and every evaluator plan. |
+| Data room generation (`data_room_generate`) | 3 | Persists the room; the share link is free. |
+| Evidence upload · investor score · dilution calculator · free tools | 0 | |
 
-| Plan | Credits | Recurring | Price |
-|------|---------|-----------|-------|
-| Free | 1 | No | $0 |
-| Starter | 5 | Monthly | -- |
-| Founding 50 | 50 | No (lifetime) | A$49 |
-| Founder | 50 | Monthly | A$99/mo |
-| Growth | 100 | Monthly | A$499/mo |
-| Unlimited | 999999 | Monthly | -- |
+## Appendix: Plans and included credits
+
+> Source of truth: `web/src/config/pricing/plans.csv` (→ `plans.generated.ts`, DB `plans` rows synced by migration
+> 0400) and `docs/ops/pricing-truth.md`. Prices are GST-inclusive AUD; annual = 10 × monthly.
+
+| Segment | Plan | Price | Trial | Notes |
+|---------|------|-------|-------|-------|
+| Founder | Free | A$0 | — | First SVI analysis, public score, 1 profile. |
+| Founder | Starter | A$29/mo | 7 d | Workspace, data room, investor links, Founder Radar, Money Finder included. |
+| Founder | Growth | A$69/mo | 7 d | + cap table, term sheets, evidence vault, webhooks, weekly snapshots. |
+| Founder | Startup Package | A$149 once | — | Guided journey + 25 credits + Growth extras for the package term. |
+| Evaluator | Scout | A$79/mo | 7 d (card) | 25 tracked startups, reports included per plan quota. |
+| Evaluator | Firm | A$149/mo | 7 d (card) | + advisory equity, advisor portal, white-label. |
+| Evaluator | Program | A$349/mo | 7 d (card) | + batch scoring, LP report, `api.access`. |
+| Evaluator | Fund | A$999/mo | 7 d | Investor firms; `api.access`. |
+| Evaluator | Index API | A$299/mo | — | `api.access`, 1,000 API calls / day, 2 seats. |
+| Accelerator | Intake link | A$249/mo | 14 d | `/apply/[slug]` scored intake inbox (`intake.manage`). |
+| Accelerator | Cohort 25 / Cohort 100 | A$500/mo (A$5K/yr) / A$1,500/mo (A$15K/yr) | 14 d | Batch scoring + LP / sponsor report. |
+| Any | Trusted Business Report | A$3 per startup | — | Pay-as-you-go without a subscription. |
+
+Legacy: the Founding 100 lifetime deal closed 2026-09-01 (buyers keep a legacy plan); A$299 Pro was retired
+2026-09-08 (`founder_scale` stays in the catalogue as `public: false`).

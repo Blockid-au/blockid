@@ -176,6 +176,9 @@ function tagFor(path: string): string {
   if (path.startsWith("/api/idea-questions")) return "Idea Engine";
   // G14-S38: the authenticated Evaluator API v1 (Bearer bk_live_… + scope).
   if (path.startsWith("/api/v1/evaluations")) return "Evaluator API v1";
+  // G18-B: the partner endpoints (bk_live_ analyze; public Business ID JSON).
+  if (path.startsWith("/api/v1/analyze")) return "Partner API v1";
+  if (path.startsWith("/api/v1/id/")) return "Business ID";
   return "Public";
 }
 

@@ -4,7 +4,8 @@
     "web/CHANGELOG.md",
     "web/scripts/deploy-live.sh",
     "web/package.json",
-    "docs/IMPLEMENTATION-PLAN-v3.md"
+    "docs/plans/SOURCE-OF-TRUTH.md",
+    "docs/ops/deploy.md"
   ],
   "cfo": [
     "web/src/lib/plans-v2.ts",
@@ -32,6 +33,7 @@
   "cmo": [
     "web/src/app/sitemap.ts",
     "web/content/marketing/roadmap.md",
-    "docs/goal-5c-au-startup-public-index.md"
+    "docs/plans/SOURCE-OF-TRUTH.md",
+    "docs/design/unicorn-template.md"
   ]
 }

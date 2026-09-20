@@ -1,3 +1,6 @@
+> **RETIRED 2026-09-19 (G18-B truth sweep).** Historical document, last accurate around 2026-07. Goal-4 "continuous CI/CD + Guardian v2" ops runbook (ship-per-task loop, docker cache cleanup). The ship-task loop and the guardian it describes were replaced by the 12-gate deploy, the G15 reliability lanes and the CEO implementing-plan cron.
+> Current source: docs/ops/deploy.md, docs/ops/slo.md, docs/ops/crontab-setup.md, docs/plans/reliability-2026-09-18.md. Nothing below is maintained; do not cite it for prices, versions, deploy steps or crons.
+
 # CONTINUOUS-DEPLOY.md — Ops Runbook
 
 > Goal-4 Continuous CI/CD + Guardian v2

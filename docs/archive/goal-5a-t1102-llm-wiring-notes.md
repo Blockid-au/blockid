@@ -1,3 +1,6 @@
+> **RETIRED 2026-09-19 (G18-B truth sweep).** Historical document, last accurate around 2026-07. T1102 LLM-wiring notes for Goal 5A. The provider chain it describes predates the registry + free-model refresh.
+> Current source: docs/ops/ai-providers.md. Nothing below is maintained; do not cite it for prices, versions, deploy steps or crons.
+
 # Goal 5A — T-1102 LLM Wiring Notes
 
 Short design note explaining the choices made when the nightly C-level review

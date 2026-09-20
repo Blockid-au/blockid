@@ -2,8 +2,8 @@
 
 > **This is the single source of truth.** Every roadmap, plan, architecture diagram, or task list lives here or is linked from here. When in doubt, this file wins.
 
-**Current version:** `v3.9.23` (web/package.json) · git `8ed44c24a` · release `JctZ0PfqkXowL6mTrcEs3` — Unify messaging + simplify pricing + close feature drift (2026-09-07). Universal 3-rung pricing ladder (Free / Starter A$29 / Growth A$69; Pro A$299 retired 2026-09-08) shipped, `/features` under-promised-capability surface live, investor pack now truthfully 9 chapters (CLevelPage renders), homepage names SVI + quantifies the promise.
-**Last updated:** 2026-09-07 UTC
+**Current version:** `v3.16.0` (web/package.json = web/content/reports/version.json, aligned 2026-09-19 by G18-B) — Reliability (G15) · First dollar (G16) · Unicorn homepage (G17) · truth sweep (G18). Ladder: founders Free / Starter A$29 / Growth A$69 (Pro A$299 retired 2026-09-08); evaluators Scout A$79 / Firm A$149 / Program A$349 · Fund A$999 / Intake link A$249 / Index API A$299 · Cohort 25 A$5K/yr / Cohort 100 A$15K/yr; Trusted Business Report A$3. Positioning: "Startup Value Index … by BlockID", evaluator-first. Release log: `web/CHANGELOG.md`; goal status: §1–§3 below and `docs/plans/SOURCE-OF-TRUTH.md`.
+**Last updated:** 2026-09-19 UTC (header + §5 header; goal tables owned by the main session)
 
 > **[LEGACY — 2026-09-01 sunset, retained for archive]**
 > All Founding-50 / Founding-100 marketing surfaces below (release-note bullets, deploy checklists, price bumps) describe a promo that ended on 2026-09-01. The `/founding-50` route was deleted on 2026-09-07 (Phase 3b) and the marketing surface is retired. The Stripe SKU id `founding50` is preserved in `web/src/lib/plans.ts` + `web/src/lib/stripe.ts` for grandfathered renewals only.
@@ -127,6 +127,11 @@ Pulled from [`svi-exchange-tasks.json`](./web/content/reports/svi-exchange-tasks
 
 ## 5. Changelog
 
+> From v3.10.0 (2026-09-08) onward the release log is `web/CHANGELOG.md` (rendered at `/changelog`): v3.10.0
+> context-aware intake + light-first design · v3.11.0 → v3.15.0 Money Finder, evaluator ladder, release readiness,
+> G13 investor clarity, G14 investor feedback · **v3.16.0 (2026-09-19)** G15 reliability, G16 first dollar, G17
+> unicorn homepage, G18 truth sweep. The entries below are the pre-v3.10 history.
+
 ### v3.9.23 (2026-09-07 UTC) — Recently landed
 
 Approved plan `h-y-review-t-on-b-foamy-pixel` — full messaging↔code synchronisation sprint.
@@ -211,7 +216,7 @@ Approved plan `h-y-review-t-on-b-foamy-pixel` — full messaging↔code synchron
   (standalone Next 15.5 @ port 4002, separate systemd service)
 ```
 
-See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for full diagram.
+See `web/content/reports/architecture.md` (living, v3.16.0) and [`ARCHITECTURE.md`](./ARCHITECTURE.md) (v3.9.23 snapshot) for the fuller picture; nginx sits in front of :4001 (`docs/ops/nginx/blockid-live.conf`) and the DB is the self-hosted Supabase stack.
 
 ---
 

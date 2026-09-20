@@ -1,3 +1,6 @@
+> **RETIRED 2026-09-19 (G18-B truth sweep).** Historical document, last accurate around 2026-07-25. T-1403 runtime EN ↔ VI auto-translation goal. Shipped; the runtime is documented in code (web/src/lib/i18n/translate.ts).
+> Current source: web/src/lib/i18n/. Nothing below is maintained; do not cite it for prices, versions, deploy steps or crons.
+
 # Goal — Full EN↔VI runtime auto-translation (T-1403)
 
 **Owner:** CPO / CTO (T-1403, follow-on to T-1400 scaffold).

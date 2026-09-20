@@ -108,16 +108,18 @@ const PLATFORM_PHASES: Phase[] = [
   },
 ];
 
-const CURRENT_PLATFORM_PHASE = 5;
+// Stage 6 (tokenisation) is the compliance-gated one: the live register
+// (5), dividend statements / DRIP / FY tax statements (7, S28) and the
+// exit-phase data room + listing readiness (8, S29) shipped 2026-09-13.
+const CURRENT_PLATFORM_PHASE = 6;
 
 // ---------------------------------------------------------------------------
-// Snapshot as of 2026-07-31 — v3.0 Master Upgrade landing.
-// Source: /home/dovanlong/.claude/plans/h-y-k-t-h-p-n-ng-hazy-sutton.md,
-// docs/plans/plan-delta-2026-07-23.md, and recent git log. Refresh on each
-// roadmap sync tick.
+// Snapshot as of 2026-09-19 — G11 → G17 closed (docs/plans/SOURCE-OF-TRUTH.md
+// §1 + Appendix A, ROADMAP.md §1–§3). Refresh on each goal close: facts only
+// (dates, counts, goal ids); no invented customer numbers.
 // ---------------------------------------------------------------------------
 
-const SNAPSHOT_DATE = "2026-09-08";
+const SNAPSHOT_DATE = "2026-09-19";
 
 type ShippedItem = {
   id: string;
@@ -128,121 +130,59 @@ type ShippedItem = {
 
 const RECENTLY_LANDED: ShippedItem[] = [
   {
+    id: "g17-unicorn-homepage",
+    title: "G17 — Unicorn homepage & one site template (shipped 2026-09-19)",
+    detail:
+      "Evaluator-first hero, 5-entry nav, no price tables on the home page, /product and /samples intro pages, template primitives on every marketing page and the /vi mirrors (docs/design/unicorn-template.md). A link checker now runs inside deploy gate 8 and daily: production 525 pages · 1,638 links · 0 broken.",
+    ticket: "G17 · fc155500c → 5a0c3dbb1",
+  },
+  {
+    id: "g16-first-dollar",
+    title: "G16 — First dollar: funnel truth, A$3 paywall, evaluator pilots (shipped 2026-09-19)",
+    detail:
+      "Server-side funnel events (sign_up, svi_analyze, svi_score_computed, report_view, checkout, trust_report_purchased) and /admin/funnel on real data; the A$3 Trusted Business Report is reachable again through a locked-chapter preview and a quote-then-pay unlock; 30-day evaluator pilot comps (cap 5) with /pilot and an expiry cron. Migration 0411.",
+    ticket: "G16 · 8cbb6bdb8 → 58406efa2",
+  },
+  {
+    id: "g15-reliability",
+    title: "G15 — Reliability: ship safety, observability, data safety (shipped 2026-09-18)",
+    detail:
+      "Deploy manifest truth and a gate that verifies the live bundle SHA, append-mode production log with rotation, error digest + latency SLO on /api/status v2 and /status, weekly restore drill (first run 12/12 tables ≥ 99.8 %), AI provider health snapshot, Telegram → e-mail alert fallback.",
+    ticket: "G15 · 3ce353da8 → bac472af4",
+  },
+  {
+    id: "g14-investor-feedback",
+    title: "G14 — Investor feedback loop: deck v3, pricing v4, intake link, Evaluator API v1, backtest (shipped 2026-09-16 → 17)",
+    detail:
+      "Evaluator-first pitch deck v3, Fund / Intake link / Index API / Cohort 25 and 100 tiers with Stripe prices minted, weekly founder feedback letter (k ≥ 3 assessors from ≥ 2 orgs), program intake link /apply/[slug], verification integrity (confidence capped by evidence origin, L0–L5 ABN multiplier, /methodology), founder execution rubric, /api/v1/evaluations with Slack / Affinity / Airtable destinations, backtest v0 (N = 49, ρ 0.76 round / 0.94 valuation), ABR + R&DTI open signals. Migrations 0400–0410.",
+    ticket: "G14 · 8 sprints",
+  },
+  {
+    id: "g13-investor-clarity",
+    title: "G13 — Investor clarity: nav v4, Trusted Business Report v2, Investor Dossier, taxonomy (shipped 2026-09-16)",
+    detail:
+      "Founder groups Home · Prove · Money · Company and evaluator Home · Deal flow · Reports with 10 personas and post-login landings; the report follows the 8 dimensions with a named C-Level owner each and 17 deterministic SVG visuals (/tbr/demo); Investor Dossier + versioned evaluator assessments; startup taxonomy (22 industries, 10 models, 8 canonical stages). 15 sprints and migrations 0390–0403 in one day.",
+    ticket: "G13 · W1 → W5",
+  },
+  {
+    id: "g11-g12-money-finder-evaluators",
+    title: "G11 + G12 — Money Finder and the evaluator ladder (shipped 2026-09-10 → 11)",
+    detail:
+      "\"Do you need money?\" → free AU grant and program preview, ranked Money Finder report, Founder Radar bundled into Starter; Scout A$79 / Firm A$149 / Program A$349 evaluator plans with a card-required trial, the A$3 Trusted Business Report on any startup, Program batch scoring and the LP report; post-launch hardening S6–S15 and release readiness S24.",
+    ticket: "G11 / G12 · S0 → S24",
+  },
+  {
     id: "context-aware-intake-v1",
     title: "Context-aware intake v1 — one door, three inputs (shipped 2026-09-08)",
     detail:
-      "Unified /analyze route accepts pitch deck (PDF/DOCX/PPTX + OCR), website URL, or free-text idea in a single field. Haiku 4.5 classifier detects the input type, a BFS depth-1 multi-page site crawler walks up to 8 same-host pages, and a pitch-deck section splitter cuts decks into problem/market/team/traction/ask. Dynamic agent selection fires the right C-Level agents for the detected stage (idea / MVP / revenue / scale) instead of the old fixed 13-criteria bundle. Cost preview reflects the plan before commit.",
-    ticket: "v3.10.0 · Block 1-3 · shipped 2026-09-08",
-  },
-  {
-    id: "unified-analyze-route",
-    title: "Unified /analyze route + legacy /score, /one-click-report redirects (shipped 2026-09-08)",
-    detail:
-      "Every legacy funnel — /score free-text, /one-click-report file+URL, hero search — now redirects (301) to /analyze. Founders land on the same omni-input regardless of entry point; hero query, tier=paid deep-link, and post-signup jumps all thread through cleanly.",
-    ticket: "v3.10.0 · Block 2 · shipped 2026-09-08",
-  },
-  {
-    id: "svi-repo-port",
-    title: "startupvalueindex.com port — light-first tokens + shared /api/intake (shipped 2026-09-08)",
-    detail:
-      "Sister site startupvalueindex.com now runs the same light-first design tokens + context-aware /api/intake classifier as blockid.au. Separate Next.js repo, systemd-managed, single Stripe on blockid.au; SVI stays a top-of-funnel score surface that hands warm leads through to the full platform.",
-    ticket: "v0.3.0 · Block 4 · shipped 2026-09-08",
-  },
-  {
-    id: "light-first-design-system-rev2",
-    title: "Light-first design system rev.2 → rev.3 — WCAG AA verified on live (shipped 2026-09-08)",
-    detail:
-      "Token set flipped from dark-first to light-first (bg.base #FFFFFF, text.primary #0B0F1A, svi.500 #FF9F0A brand accent). Dark mode is opt-in via prefers-color-scheme; admin pinned to light for screenshot parity. Block 5 rev.3 exposes the ds-* semantic tokens as Tailwind v4 --color-* generators so utilities like bg-surface, text-primary, border-line-subtle actually emit CSS. AA contrast verified on live blockid.au 2026-09-08 via pa11y-ci (WCAG 2.1 AA on /, /analyze, /team, /roadmap, /changelog, /docs).",
-    ticket: "v3.10.0 · Block 0 + Block 5 · shipped 2026-09-08",
-  },
-  {
-    id: "pitchdeck-analyzer-wave-11-18",
-    title: "Pitchdeck valuation flow — upload → coverage → analysis → dashboard (Waves 11-18)",
-    detail:
-      "New founder route /workspace/raise/deck: drag-drop PDF/DOCX (or paste text) → AI classifies coverage across the 8 SVI dimensions (strong/partial/missing) → per-cell selection with credit gating (strong+partial free, missing = 0.50-1.00 cr each) → sequential SSE stream (no rate-limit bursts) with 13 investor-criteria prompts (idea, market, team, product, revenue…) → evidence-grounded per-dim scoring that quotes deck fragments and refuses to fabricate numbers → done state with weighted SVI total + 5-band legend, sector cohort compare (top X% of N peers), fastest-lift CTAs, save-as-snapshot (score-delta on next visit), and 3-case pre-money valuation cards (worst/average/best AUD anchored to PitchBook AU + sector adjust + SVI curve). Progressive UX: 3-step breadcrumb, baseline SVI estimate before purchase, live ETA countdown, browser-notification opt-in for walk-away. All commerce-ready with credit balance chip + insufficient-credits Billing CTA. 8 new API routes, one new pitchdeck_analyses table, ~2 500 LOC added, deploys 11/11 gates through the deploy-live pipeline.",
-    ticket: "Waves 11-18",
-  },
-  {
-    id: "score-analyser-restore",
-    title: "Bugfix — /score analyser form no longer 301→/index",
-    detail:
-      "A prior consolidation redirect shadowed the real ScoreForm page. Every 'Get your real SVI' CTA landed founders on the marketing exchange page instead of the analyser. Redirect removed; /score now serves the form directly.",
-    ticket: "Bugfix",
-  },
-  {
-    id: "startup-package-ship1",
-    title: "Startup Package — guided founder journey (Ship 1)",
-    detail:
-      "Guided 8-step interview → AI agent dispatch (CEO/CFO/CMO/CDO waves) → real-time SVI recompute → auto-fill PDF deliverables (pitch deck, investor pack, financial projection, GTM strategy, ABN/trademark guide) → dataroom upload → DB-first cap-table reservation (min 10%) → public /startup/[slug] listing → weekly email progress digest. One-off A$149 unlock + credit-based pay-per-analysis. Stripe SKU founder_package live. 27,533 tests green.",
-  },
-  {
-    id: "v3-hero-paywall",
-    title: "Phase 1 — HeroV3 + SSO-aware CTA + report paywall",
-    detail:
-      "Locked v3 messaging ('One Business. One Trusted Identity.') behind NEXT_PUBLIC_UPGRADE_V3, SSO-aware CTA via cookie hint, and a 9-state report_orders lifecycle (0270) with A$5.50 inc-GST checkout (Path A) or 200-credit redemption (Path B) behind ReportPaywallGate.",
-    ticket: "Phase 1",
-  },
-  {
-    id: "v3-backbone",
-    title: "Stage 3 — Report backbone + solution pages + nav v3",
-    detail:
-      "Stripe webhook branch for report_order scope with reconciliation INSERT fallback, migration 0272_report_generation_queue + worker + 2-min drain cron, 4 solution pages (/solutions/{founder,vn-sme,investor,accelerator}) + /business-id explainer, sitemap + robots + /for/* → /solutions/* 301 redirects, PersonaRail (6) + JourneySidebar (8) + TierGate + UpgradeChip.",
-    ticket: "Stage 3",
-  },
-  {
-    id: "v3-business-id",
-    title: "Stage 4 — /id/[slug] Verified Business Identity surface",
-    detail:
-      "Public SEO-indexable /id/[slug] profile (migration 0273) with PII whitelist, JSON-LD, /embed/badge SVG widget for external sites, sitemap entries + 5 new solution/business-id URLs.",
-    ticket: "Stage 4 · D3",
-  },
-  {
-    id: "v3-consent",
-    title: "Stage 4 — Consent-based sharing + revocation",
-    detail:
-      "0250_consents + consent_state_events + 0251_share_packages + 0252_revocations (BCR-004) with enforceConsent middleware on read paths.",
-    ticket: "BCR-004",
-  },
-  {
-    id: "v3-verification-ladder",
-    title: "Phase 2 — 5-level verification ladder + ABR adapter",
-    detail:
-      "0202_business_profile VIEW, ABR adapter with JSONP + Zod normalisation, POST /api/verification/abr endpoint, and a verification-level engine deriving Basic → Standard → Enhanced → Verified → Trusted from evidence + provenance.",
-    ticket: "Phase 2 · F1-F3",
-  },
-  {
-    id: "v3-evidence",
-    title: "Phase 3 — Evidence pipeline with versioning + extraction",
-    detail:
-      "0210_evidence + 0211_evidence_versions + 0212_evidence_extractions, SHA-256 hash-verify, and a state-machine (pending → verified / rejected) covering upload, extraction, and version churn.",
-    ticket: "Phase 3 · G1-G3",
-  },
-  {
-    id: "v3-ai-orchestration",
-    title: "Phase 4 — AI orchestration: prompt registry + Zod contracts",
-    detail:
-      "0230_prompt_versions + 0231_ai_runs, canonical Zod output contracts, canary→prod prompt swap, callStructured wrapper for typed LLM outputs — foundation for the 13-area analysis engine.",
-    ticket: "Phase 4 · H1-H3",
-  },
-  {
-    id: "v3-programme",
-    title: "Phase 5 — Programme + marketplace + partner API",
-    detail:
-      "0290_programme_cohorts + 0291_marketplace_opportunities + 0292_oauth2_partners, verifyPartnerBearer, and GET /api/v1/id/[slug] partner-callable JSON.",
-    ticket: "Phase 5 · I1-I4",
-  },
-  {
-    id: "v3-unicorn",
-    title: "Phase 6 — Unicorn framework S0-S5",
-    detail:
-      "0280_unicorn_stages + framework.ts + goals.ts decomposition + <UnicornPathDashboard/> server component + 2 nightly crons projecting founder progress against the S0→S5 unicorn ladder.",
-    ticket: "Phase 6 · J1-J3",
+      "Unified /analyze route accepts a pitch deck (PDF / DOCX / PPTX + OCR), a website URL or a free-text idea in a single field; a classifier detects the input type, a depth-1 site crawler walks up to 8 same-host pages, and a stage-specific agent plan replaces the old fixed bundle. Cost preview reflects the plan before commit.",
+    ticket: "v3.10.0 · shipped 2026-09-08",
   },
   {
     id: "journey-vocab",
     title: `Canonical 8-stage startup vocabulary v${JOURNEY_VOCAB_VERSION}`,
     detail:
-      "web/src/lib/journey-vocabulary.ts replaces four overlapping legacy taxonomies (SVI-8, Growth-12, Startup Compass 5-dimension, roadmap-8). Legacy surfaces still migrating.",
+      "web/src/lib/journey-vocabulary.ts replaces four overlapping legacy taxonomies (SVI-8, Growth-12, Startup Compass 5-dimension, roadmap-8); the G13 startup taxonomy and the 12 workspace growth phases map onto it.",
     ticket: "Vocab v1.0.0",
   },
 ];
@@ -256,94 +196,52 @@ type UpcomingItem = {
 
 const IN_PROGRESS: UpcomingItem[] = [
   {
+    id: "evaluator-traction",
+    title: "Evaluator traction T1–T4 (founder-led GTM)",
+    detail:
+      "Angel groups → accelerator pilots on batch scoring → advisory firms via the reseller module → comparison pages and case studies. The product side (pilot comp, intake link, Evaluator API) is live; interviews, LOIs and pilot names are founder-led (docs/plans/g14-investor-feedback-2026-09-16/01-gtm-evaluators-90d.md).",
+    status: "in_progress",
+  },
+  {
+    id: "first-paid-tbr",
+    title: "First paid Trusted Business Report (G16 30-day KPI)",
+    detail:
+      "The funnel now records every step server-side; /admin/funnel and the daily funnel report watch sign_up → svi_score_computed → report_view → checkout → trust_report_purchased after the G16 deploy.",
+    status: "in_progress",
+  },
+  {
+    id: "zapier-app",
+    title: "Zapier app for the Evaluator API v1",
+    detail:
+      "Today a Zapier Catch Hook URL works as a generic webhook destination; a listed Zapier app with triggers for assessment.submitted and evaluation.report_ready is the deferred follow-up from G14-S38.",
+    status: "planned",
+  },
+  {
+    id: "g16-g17-deferred",
+    title: "Deferred P2/P3 items from the G16 / G17 reviews",
+    detail:
+      "Per-address limiter and subject scrub on the pilot apply form, pilot ledger mutex / fsync, first off-peak ABR ingest, insights page peer counts, /vi/solutions/advisor description length, the orphan tier-ladder component. Tracked in the source of truth; none blocks a customer.",
+    status: "planned",
+  },
+  {
     id: "playwright-headless-crawler-v2",
-    title: "Playwright headless crawler v2",
+    title: "Playwright headless crawler v2 for /analyze",
     detail:
-      "Upgrade the intake crawler from fetch+regex to a Playwright-driven headless browser so SPA sites, dynamic pricing tables, and JS-rendered team pages produce the same evidence quality as static marketing sites. Depth stays capped at 1; per-host budget and robots.txt honoured.",
-    status: "planned",
-  },
-  {
-    id: "ocr-self-service-upsell",
-    title: "OCR self-service upsell",
-    detail:
-      "Break out the PDF-vision OCR path from the base analyze quote into a founder-visible +2-credit chip with a preview thumbnail before commit — no surprise bills, no forced OCR when the deck already has a text layer.",
-    status: "planned",
-  },
-  {
-    id: "agent-plan-ab-idea-variant",
-    title: "Agent-plan A/B (idea variant)",
-    detail:
-      "Test two dispatch manifests for pure-idea inputs: minimal 4-agent (CEO/CMO/CPO/CFO) vs. balanced 7-agent. Compare completion rate, SVI-delta after 30 days, and credit-per-insight. Winner becomes the default idea-stage plan.",
-    status: "planned",
-  },
-  {
-    id: "public-deck-template-library",
-    title: "Public deck template library",
-    detail:
-      "Curated pitch-deck templates (pre-seed AU, seed SaaS, marketplace, deep-tech, healthtech) hosted at /decks/templates with one-click load-into-/analyze so founders can benchmark their draft against a reference deck the classifier already understands.",
-    status: "planned",
-  },
-  {
-    id: "reseller-promo",
-    title: "Reseller promotion codes (Agent K) — IFV / DVL prefixes",
-    detail:
-      "K1-K3 landed (reseller_promotion_codes schema, IFV+DVL seed script, resolvePromoCode runtime helper + 8-case test). Next: wire into checkout attribution ledger.",
-    status: "in_progress",
-  },
-  {
-    id: "reseller-roster",
-    title: "Reseller startup roster (Agent L)",
-    detail:
-      "L1 view (0295 reseller_startup_roster) + L2 readResellerRoster helper landed. L3 pending: /reseller/roster page + 0296 notes/activity table.",
-    status: "in_progress",
-  },
-  {
-    id: "reseller-attribution",
-    title: "?ref=CODE attribution wiring (Agent M)",
-    detail:
-      "M1 (?ref= deep-link capture + first-touch cookie) + M2 (signup promo-code input + POST /api/reseller/validate-promo) landed. M3 pending: Stripe checkout attribution + reconciliation ledger.",
-    status: "in_progress",
-  },
-  {
-    id: "supabase-ssr",
-    title: "Full @supabase/ssr middleware refresh (§8.9 stage 2)",
-    detail:
-      "Migrate remaining server surfaces from legacy auth-helpers to @supabase/ssr with the standard cookie handshake.",
-    status: "planned",
-  },
-  {
-    id: "route-groups",
-    title: "Route groups reorganisation",
-    detail:
-      "Physical (marketing)/(app)/(persona)/* split under app/ to isolate marketing shells, authed workspace, and persona rails.",
+      "Upgrade the intake crawler from fetch + regex to a headless browser so SPA sites and JS-rendered pricing / team pages produce the same evidence quality as static sites. Depth stays capped at 1; per-host budget and robots.txt honoured.",
     status: "planned",
   },
   {
     id: "clamav",
-    title: "ClamAV daemon integration for evidence malware scan",
+    title: "ClamAV scan on evidence uploads",
     detail:
-      "Scan every evidence upload before extraction; quarantine on hit; expose scan-status alongside verification level.",
-    status: "planned",
-  },
-  {
-    id: "prompt-fixtures",
-    title: "Prompt-eval golden fixtures",
-    detail:
-      "Pin canonical inputs → expected structured outputs per prompt version so canary→prod swap is diff-reviewable.",
-    status: "planned",
-  },
-  {
-    id: "vi-mirror",
-    title: "Full /vi/* mirror",
-    detail:
-      "Beyond the Phase 1 MVP surfaces — mirror /solutions, /id, /pricing, /docs into /vi.",
+      "Scan every evidence upload before extraction; quarantine on hit; expose scan status alongside the verification level.",
     status: "planned",
   },
   {
     id: "vc-keypair",
     title: "VC issuer keypair custody",
     detail:
-      "Hardware-backed signing for verifiable credentials emitted from /id/[slug] and partner API.",
+      "Hardware-backed signing for the verifiable credentials emitted from /id/[slug] and the partner API (runbook: docs/runbooks/vc-issuer-key-rotation.md).",
     status: "planned",
   },
 ];
@@ -357,25 +255,46 @@ type HumanBlockedItem = {
 
 const HUMAN_BLOCKED: HumanBlockedItem[] = [
   {
-    id: "grandfather-a149",
-    title: "Migration 0271_grandfather_a149 — pricing carry-over",
+    id: "telegram-token",
+    title: "Ops alerts — new Telegram bot token",
     detail:
-      "Grandfather the A$149 startup-package cohort under v3 SKUs. Blocked on CFO sign-off for the pricing carry-over rules and Stripe reconciliation strategy.",
-    owner: "Human — CFO",
+      "The old bot token was revoked (G15, 2026-09-18). Cron failures, backups, the uptime guardian and the error digest fall back to e-mail until a new TELEGRAM_BOT_TOKEN is minted and installed.",
+    owner: "Human — founder",
   },
   {
-    id: "stripe-sync-plans",
-    title: "scripts/stripe/sync-plans.mjs — live provisioning",
+    id: "offsite-backup-auth",
+    title: "Off-site database backups — Google Drive quota auth",
     detail:
-      "Live Stripe price + product provisioning for v3 SKU catalogue (sku_trust_report_5aud + 6 tier SKUs). Blocked on CFO Stripe key + billing-code provisioning.",
-    owner: "Human — CFO",
+      "Nightly local backups and the weekly restore drill run; the off-site copy needs the founder to authorise the Drive quota once (scripts/db-backup-offsite-auth.mjs). A once-a-day alert fires until then.",
+    owner: "Human — founder",
+  },
+  {
+    id: "anthropic-key",
+    title: "Anthropic API key for the report chain",
+    detail:
+      "Reports run DeepInfra-first with Gemini / Groq fallbacks and the Claude CLI as last resort; the Anthropic API rung shows blocked on /api/status until a valid key is installed.",
+    owner: "Human — founder",
+  },
+  {
+    id: "deck-loi-names",
+    title: "Pilot / LOI names on the pitch deck",
+    detail:
+      "Deck v3 slide 9 carries placeholders until each named program or LOI signatory gives written consent (G14 F-9).",
+    owner: "Human — founder + counsel",
   },
   {
     id: "infovision-abn-gst",
-    title: "InfoVision reseller seed — ABN + GST registration",
+    title: "InfoVision reseller seed — ABN, GST status, signed agreement",
     detail:
-      "resellers row for InfoVision can't be seeded until a valid ABN and GST-registered flag are provided. Reseller agreement (D4-CLO-02) also awaits execution.",
-    owner: "Human — CFO / CLO",
+      "The first reseller row cannot be seeded until a valid ABN and GST-registered flag are provided and the reseller deed (docs/legal/reseller-agreement-template.md) is executed.",
+    owner: "Human — founder / counsel",
+  },
+  {
+    id: "ga4-hero-variant",
+    title: "GA4 hero_variant custom dimension",
+    detail:
+      "Hero one-liner A/B measurement needs the custom dimension created in the GA4 property (G11 T0250).",
+    owner: "Human — GA4 admin",
   },
 ];
 
@@ -434,47 +353,52 @@ function readVersion(): VersionFile | null {
   return null;
 }
 
-function quarterShipList(version: VersionFile | null): QuarterPhase[] {
-  const v = version?.version ?? "";
-  const beta = /v2\.0\.0-beta\.(\d+)/.exec(v);
-  const betaN = beta ? Number(beta[1]) : 0;
-  const atLeastBeta = /^v2\.0\.0-beta/.test(v) || /^v2\.[1-9]/.test(v);
-
+// Goal list for the current quarter (Q3 2026). Until G18 this keyed off a
+// `v2.0.0-beta.N` regex on version.json, so every v3.x release rendered the
+// five phases as "planned". Status now comes from the source of truth.
+function quarterShipList(): QuarterPhase[] {
   return [
     {
-      id: "phase0",
-      label: "Phase 0 — Kickoff",
+      id: "g11-g12",
+      label: "G11 + G12 — Money Finder + evaluator ladder",
       detail:
-        "Feature-flag matrix, seeded Stripe products, sprint board, voice/tone guide.",
-      status: atLeastBeta ? "shipped" : "in_progress",
+        "Grants and programs directory, Money Finder report, Founder Radar; Scout / Firm / Program plans, A$3 Trusted Business Report, batch scoring, LP report.",
+      status: "shipped",
     },
     {
-      id: "phase1",
-      label: "Phase 1 — Foundation",
+      id: "g13",
+      label: "G13 — Investor clarity",
       detail:
-        "Migrations 0073-0077, plan engine, entitlement checks, GST module.",
-      status: atLeastBeta ? "shipped" : "planned",
+        "Nav v4 + personas, Trusted Business Report v2, Investor Dossier, startup taxonomy.",
+      status: "shipped",
     },
     {
-      id: "phase2",
-      label: "Phase 2 — Segment surfaces",
+      id: "g14",
+      label: "G14 — Investor feedback loop",
       detail:
-        "Homepage v2, pricing matrix, onboarding wizard, 7-day Stripe SetupIntent trial.",
-      status: atLeastBeta ? "shipped" : "planned",
+        "Deck v3, pricing v4, feedback letter, intake link, verification integrity, Evaluator API v1, backtest v0, open AU signals.",
+      status: "shipped",
     },
     {
-      id: "phase3",
-      label: "Phase 3 — Analytics + Workspaces",
+      id: "g15",
+      label: "G15 — Reliability",
       detail:
-        "GA4 catalog, conversion triggers, lifecycle email drip, Investor / Advisor / Accelerator workspaces.",
-      status: betaN >= 4 ? "shipped" : "in_progress",
+        "Manifest truth + live-SHA gate, error digest + latency SLO, weekly restore drill, AI resilience.",
+      status: "shipped",
     },
     {
-      id: "phase4",
-      label: "Phase 4 — Compliance, QA, Deploy",
+      id: "g16-g17",
+      label: "G16 + G17 — First dollar + unicorn homepage",
       detail:
-        "Disclaimer registry hash-chain, ACL / APP consent, k6 load, Playwright regression, release gate.",
-      status: betaN >= 5 ? "in_progress" : "planned",
+        "Funnel events, A$3 unlock rail, evaluator pilots; evaluator-first home, one site template, link check in the deploy.",
+      status: "shipped",
+    },
+    {
+      id: "traction",
+      label: "Evaluator traction T1–T4",
+      detail:
+        "First paying evaluators, intake links with submissions, pilots → paid. Founder-led; measured on /admin/funnel and the traction snapshot.",
+      status: "in_progress",
     },
   ];
 }
@@ -527,7 +451,7 @@ function ShipIcon({ status }: { status: QuarterPhase["status"] }) {
 
 export default function RoadmapPage() {
   const version = readVersion();
-  const shipList = quarterShipList(version);
+  const shipList = quarterShipList();
   const topTasks = (version?.task_ids ?? []).slice(0, 5);
 
   return (
@@ -603,10 +527,10 @@ export default function RoadmapPage() {
         eyebrow={`Snapshot ${SNAPSHOT_DATE}`}
       >
         <p className="text-sm text-secondary">
-          v3.0 Master Upgrade — Phase 1-6 core landed 2026-07-30 → 2026-07-31.
-          Sourced from
-          <code className="mx-1 rounded bg-surface-raised px-1 py-0.5 text-xs">~/.claude/plans/h-y-k-t-h-p-n-ng-hazy-sutton.md</code>
-          and the git log on master.
+          Goals G11 → G17 closed between 2026-09-10 and 2026-09-19. Sourced
+          from
+          <code className="mx-1 rounded bg-surface-raised px-1 py-0.5 text-xs">docs/plans/SOURCE-OF-TRUTH.md</code>
+          and the git log on master; deploy SHAs are in the changelog.
         </p>
         <ul className="mt-6 grid gap-3 md:grid-cols-2">
           {RECENTLY_LANDED.map((item) => (
@@ -643,8 +567,9 @@ export default function RoadmapPage() {
         eyebrow="In flight"
       >
         <p className="text-sm text-secondary">
-          Top active goals mirrored from the plan-delta and reseller module
-          plan. Order reflects the earliest exit-criterion still open.
+          What is open after G17, mirrored from the source of truth. Order
+          reflects the earliest exit criterion still open; no engineering
+          goal is in flight until the founder opens the next one.
         </p>
         <ul className="mt-6 space-y-3">
           {IN_PROGRESS.map((item) => (
@@ -794,8 +719,8 @@ export default function RoadmapPage() {
         eyebrow="Delivery"
       >
         <p className="text-sm text-secondary">
-          The v2.0 pricing upgrade rolls out in five phases. Status derived
-          from the currently deployed build tag.
+          The Q3 2026 goal sequence. Status mirrors the goal tables in the
+          source of truth; the deployed build tag is shown above.
         </p>
         <ul className="mt-6 space-y-4">
           {shipList.map((phase) => (

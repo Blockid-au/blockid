@@ -145,6 +145,50 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.16.0",
+    date: "2026-09-19",
+    title: "Reliability, first dollar, unicorn homepage, truth sweep (G15 / G16 / G17 / G18)",
+    changes: [
+      "[G15] Deploy manifest truth + gate-11 live-bundle SHA check, deploy/live-qa lock etiquette, /data/logs append-mode production log with rotation, error-digest + latency-sample crons, /api/status v2 + /status sections, weekly restore drill (Sun 03:45 UTC), AI provider health snapshot, Telegram → e-mail alert fallback",
+      "[G16] Server-side funnel events (sign_up, svi_analyze, svi_score_computed, report_view, checkout, trust_report_purchased) + /admin/funnel on real data; the A$3 Trusted Business Report checkout had been mounted by no page — now a locked-chapter preview with a quote-then-pay unlock (GET /api/reports/access); evaluator pilot comps (Program, 30 days, cap 5) with /pilot, /admin/pilots and an expiry cron; migration 0411",
+      "[G17] Evaluator-first homepage (\"Startup Value Index … by BlockID\"), 5-entry nav, no price tables on the home, /product + /samples, one template on every marketing page and the /vi mirrors, scripts/link-check.mjs in deploy gate 8 + daily cron (production 525 pages · 1,638 links · 0 broken); migration 0412",
+      "[G18] Version manifest re-aligned (version.json said v3.13.2 while package.json was 3.15.0), README / docs index / public docs / roadmap / API reference reconciled with the source of truth; Docker- and GitLab-era docs retired to docs/archive/",
+    ],
+  },
+  {
+    version: "3.14.0 → 3.15.0",
+    date: "2026-09-16 → 17",
+    title: "G13 Investor clarity + G14 Investor feedback loop",
+    changes: [
+      "[G13] Nav v4 (10 personas, post-login landings, every old route redirected), Trusted Business Report v2 (8 dimensions each owned by a C-Level agent, 17 deterministic SVG visuals, /tbr/demo), Investor Dossier + versioned evaluator assessments, startup taxonomy (22 industries, 10 models, 8 canonical stages); migrations 0390–0403",
+      "[G14] Pitch deck v3 (evaluator-first), pricing v4 (Fund A$999 / Intake link A$249 / Index API A$299 · Cohort 25 A$5K/yr / Cohort 100 A$15K/yr) with Stripe prices minted, weekly founder feedback letter, program intake link /apply/[slug], verification integrity (confidence capped by evidence origin, L0–L5 ABN multiplier, /methodology), founder execution rubric, Evaluator API v1 (/api/v1/evaluations, Slack / Affinity / Airtable destinations), backtest v0 (N = 49, ρ 0.76 / 0.94), ABR + R&DTI open signals; migrations 0404–0410",
+      "[CEO loop] v3.13.0 CMO percentile model · v3.14.1 AI provider chain audit · v3.15.0 startup percentile / positioning model",
+    ],
+  },
+  {
+    version: "3.11.0 → 3.13.2",
+    date: "2026-09-10 → 15",
+    title: "Money Finder, evaluator ladder, release readiness, product depth, first analysis",
+    changes: [
+      "[G11] \"Do you need money?\" → free AU grants + programs directory, ranked Money Finder report (A$3 guest / 3 credits / included on Starter and evaluator plans), Founder Radar bundled into Starter A$29",
+      "[G12] Evaluator ladder Scout A$79 / Firm A$149 / Program A$349 with a card-required 7-day trial, A$3 Trusted Business Report on any startup, Progress Radar, batch scoring + LP report, /compare pages",
+      "[S6–S24] Post-launch hardening (atomic credit spend, SSRF guard, edge CSRF gate, constant-time cron auth), ESLint 271 → 0, accessibility + SEO sweep of 163 public pages, privacy policy v2.2, release readiness QA-1 → QA-4 (cross-tenant read fix, Next.js 16.3.5, password-reset tokens)",
+      "[S25–S29] Connector resync + revenue → SVI, dividend statements + DRIP + FY tax statements, fundraising / equity paperwork, ESS annex, investor CRM, listing readiness, exit-phase content",
+      "[S31–S32] Trial-wave security review, first-analysis rework (source echo per row, AU-median calibrated valuation, 7 streamed C-level sections, ≥ 10-page PDF e-mailed once), Google sign-in server-side OAuth flow, DeepInfra-first report routing with a daily spend cap, live-qa suite (157 tests, weekly cron)",
+    ],
+  },
+  {
+    version: "3.10.0",
+    date: "2026-09-08 → 09",
+    title: "Context-aware analysis + light-first design system + persistence + investor data room",
+    changes: [
+      "[Feat] One door, three inputs at /analyze (pitch deck PDF / DOCX / PPTX + OCR, website URL, free-text idea) through POST /api/intake with a stage-specific agent plan and a cost preview before commit",
+      "[Feat] Saved analyses (/analyze/[id], /workspace/analyses), sign-up gate from the second run in 30 days, investor data room share links that actually open (/s/dr/<token>)",
+      "[Design] Light-first rev.4 across marketing, dashboard, workspace and admin; pa11y WCAG 2.1 AA 26/26",
+      "[Billing] Ladder A$29 Founder / A$69 Growth; A$299 Pro retired; GST-inclusive pricing stated everywhere",
+    ],
+  },
+  {
     version: "3.9.23",
     date: "2026-09-07",
     title: "Unify messaging + simplify pricing + close feature drift",

@@ -1,7 +1,7 @@
 // Investor Pack v2 — one-click PDF template (T-1200 / T-1201).
 //
 // The v2 investor pack is the artefact that justifies the Growth/Scale
-// tier upsell (per docs/goal-5b-investor-pack-v2.md). This file provides
+// tier upsell (per docs/archive/goal-5b-investor-pack-v2.md). This file provides
 // the top-level React-PDF Document, the `InvestorPackData` shape, and a
 // server-side `renderInvestorPack(data)` helper that returns a Node
 // Buffer suitable for streaming out of a Next.js route handler.

@@ -1,3 +1,6 @@
+> **RETIRED 2026-09-19 (G18-B truth sweep).** Historical document, last accurate around 2026-05-19. Docker Compose + Caddy + GitLab CI deployment guide. Production has been a bare-metal standalone build behind system nginx since 2026-06; GitLab was decommissioned 2026-09 (origin = GitHub).
+> Current source: docs/ops/deploy.md (12-gate `web/scripts/deploy-live.sh`), docs/runbooks/db-restore.md. Nothing below is maintained; do not cite it for prices, versions, deploy steps or crons.
+
 # BlockID.au Deployment Guide
 
 > Complete deployment, operations, and rollback documentation.
