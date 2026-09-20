@@ -23,7 +23,7 @@ export async function HEAD() {
 }
 
 // GET /api/oauth/xero — redirect to Xero OAuth authorization
-export async function GET() {
+export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au";
@@ -32,6 +32,14 @@ export async function GET() {
 
   const clientId = process.env.XERO_CLIENT_ID;
   if (!clientId) {
+    // A browser navigation must never land on a JSON 503 page (G20): send the
+    // person back to the connectors tab, which hides the Xero row while the
+    // key is unprovisioned; API callers still get the typed 503.
+    const accept = request.headers.get("accept") ?? "";
+    if (accept.includes("text/html")) {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au";
+      return NextResponse.redirect(`${siteUrl}/workspace/evidence/connectors?connector=xero&status=unavailable`, { status: 307 });
+    }
     return NextResponse.json(
       { ok: false, error: "Xero OAuth not configured" },
       { status: 503 },

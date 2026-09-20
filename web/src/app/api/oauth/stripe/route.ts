@@ -22,7 +22,7 @@ export async function HEAD() {
 }
 
 // GET /api/oauth/stripe — redirect to Stripe Connect OAuth authorization
-export async function GET() {
+export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au";
@@ -31,6 +31,13 @@ export async function GET() {
 
   const clientId = process.env.STRIPE_CLIENT_ID;
   if (!clientId) {
+    // Browser navigations never land on a JSON 503 page (G20) — back to the
+    // connectors tab; API callers keep the typed 503.
+    const accept = request.headers.get("accept") ?? "";
+    if (accept.includes("text/html")) {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au";
+      return NextResponse.redirect(`${siteUrl}/workspace/evidence/connectors?connector=stripe&status=unavailable`, { status: 307 });
+    }
     return NextResponse.json(
       { ok: false, error: "Stripe OAuth not configured" },
       { status: 503 },
