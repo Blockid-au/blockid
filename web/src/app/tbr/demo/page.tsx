@@ -75,15 +75,15 @@ export default function TbrDemoPage() {
 
       <MarketingSection kicker="Ready for a real one?" title="Ask a founder to mint their TBR">
         <div className="grid gap-3 sm:grid-cols-3">
-          <Link href="/showcase/atlassian?step=1" className="group block rounded-2xl border border-line-subtle bg-white p-5 transition-colors hover:border-brand-500/50">
+          <Link href="/showcase/atlassian?step=1" className="group block rounded-2xl border border-line-subtle bg-surface p-5 transition-colors hover:border-line">
             <p className="text-sm font-semibold text-secondary">Interactive showcase</p>
             <p className="mt-1 text-xs text-tertiary">Walk through a fully-populated demo report step by step.</p>
           </Link>
-          <Link href="/sample" className="group block rounded-2xl border border-line-subtle bg-white p-5 transition-colors hover:border-brand-500/50">
+          <Link href="/sample" className="group block rounded-2xl border border-line-subtle bg-surface p-5 transition-colors hover:border-line">
             <p className="text-sm font-semibold text-secondary">Sample report gallery</p>
             <p className="mt-1 text-xs text-tertiary">Compare TBR variants across sectors and stages.</p>
           </Link>
-          <Link href="/investor" className="group block rounded-2xl border border-line-subtle bg-white p-5 transition-colors hover:border-brand-500/50">
+          <Link href="/investor" className="group block rounded-2xl border border-line-subtle bg-surface p-5 transition-colors hover:border-line">
             <p className="text-sm font-semibold text-secondary">Investor home</p>
             <p className="mt-1 text-xs text-tertiary">Browse startups with a real SVI grade and request the pack.</p>
           </Link>

@@ -69,9 +69,9 @@ export function splitSentences(text: string): string[] {
 
 /**
  * Paragraphs of at most `maxSentences` sentences. Blank-line paragraphs in
- * the source are honoured first; each is then split on sentence boundaries
- * when it runs longer than the cap. Single-sentence trailing groups fold
- * into the previous paragraph when that keeps it within the cap + 1.
+ * the source are honoured first; each longer block is split into the fewest
+ * groups of ≤ cap sentences, balanced so no paragraph is a one-sentence
+ * orphan (4 sentences → 2 + 2, 7 → 3 + 2 + 2).
  */
 export function toParagraphs(text: string, maxSentences = 3): string[] {
   const cap = Math.max(1, Math.floor(maxSentences));
@@ -83,19 +83,19 @@ export function toParagraphs(text: string, maxSentences = 3): string[] {
   const out: string[] = [];
   for (const block of blocks) {
     const sentences = splitSentences(block);
+    if (!sentences.length) continue;
     if (sentences.length <= cap) {
-      if (sentences.length) out.push(sentences.join(" "));
+      out.push(sentences.join(" "));
       continue;
     }
-    for (let i = 0; i < sentences.length; i += cap) {
-      const group = sentences.slice(i, i + cap);
-      const last = out[out.length - 1];
-      // An orphan sentence at the end joins the previous group of this block.
-      if (group.length === 1 && i > 0 && last && splitSentences(last).length <= cap) {
-        out[out.length - 1] = `${last} ${group[0]}`;
-      } else {
-        out.push(group.join(" "));
-      }
+    const groups = Math.ceil(sentences.length / cap);
+    const base = Math.floor(sentences.length / groups);
+    const extra = sentences.length % groups;
+    let at = 0;
+    for (let g = 0; g < groups; g++) {
+      const size = base + (g < extra ? 1 : 0);
+      out.push(sentences.slice(at, at + size).join(" "));
+      at += size;
     }
   }
   return out;

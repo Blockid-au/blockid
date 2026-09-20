@@ -30,9 +30,10 @@ describe("toParagraphs", () => {
     expect(toParagraphs(six, 2)).toEqual(["One is here. Two is here.", "Three is here. Four is here.", "Five is here. Six is here."]);
   });
 
-  it("folds an orphan trailing sentence into the previous group", () => {
+  it("balances the groups so no paragraph is a one-sentence orphan (4 → 2 + 2, 7 → 3 + 2 + 2)", () => {
     const seven = `${six} Seven is here.`;
-    expect(toParagraphs(seven)).toEqual(["One is here. Two is here. Three is here.", "Four is here. Five is here. Six is here. Seven is here."]);
+    expect(toParagraphs(seven)).toEqual(["One is here. Two is here. Three is here.", "Four is here. Five is here.", "Six is here. Seven is here."]);
+    expect(toParagraphs("One is here. Two is here. Three is here. Four is here.")).toEqual(["One is here. Two is here.", "Three is here. Four is here."]);
   });
 
   it("returns [] for empty input and never a blank paragraph", () => {
