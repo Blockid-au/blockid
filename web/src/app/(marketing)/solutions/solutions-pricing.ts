@@ -159,9 +159,15 @@ export const SOLUTION_PRICE_TOKENS: Readonly<Record<string, string>> = {
   cohortReports: String(planLimit("accelerator_starter", "reports_per_month")),
   cohortStartups: String(planLimit("accelerator_starter", "profiles")),
   cohortSeats: String(planLimit("accelerator_starter", "seats")),
+  // G21 P0-C — Cohort 100 (`accelerator_growth`) for the "After the pilot"
+  // rungs on /solutions/accelerator.
+  cohort100AnnualPrice: aud(planAnnualCents("accelerator_growth")),
+  cohort100Reports: String(planLimit("accelerator_growth", "reports_per_month")),
+  cohort100Startups: String(planLimit("accelerator_growth", "profiles")),
+  cohort100Seats: String(planLimit("accelerator_growth", "seats")),
 };
 
-const TOKEN_PATTERN = /\{([a-zA-Z]+)\}/g;
+const TOKEN_PATTERN = /\{([a-zA-Z0-9]+)\}/g;
 
 /**
  * Substitute every `{token}` in a persona string.

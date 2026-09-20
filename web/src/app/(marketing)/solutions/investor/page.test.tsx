@@ -21,7 +21,7 @@ async function html(el: React.ReactElement): Promise<string> {
 describe("/solutions/investor — SEO (S8-A)", () => {
   it("metadata: ≤ 60 title without a doubled brand, 140–160 description, hreflang pair, OG image", async () => {
     const meta = await generateMetadata();
-    expect(String(meta.title)).toBe("Startup due diligence for investors, in minutes");
+    expect(String(meta.title)).toBe("Standardise the first-pass startup review");
     expect(`${String(meta.title)} | BlockID.au`.length).toBeLessThanOrEqual(60);
     expect(String(meta.description).length).toBeGreaterThanOrEqual(140);
     expect(String(meta.description).length).toBeLessThanOrEqual(160);

@@ -59,7 +59,7 @@ describe("solutions.* catalogue parity (en ⇄ vi)", () => {
   it("price tokens used in an EN string are the same tokens in its VI twin", () => {
     // `{firmPrice}` in English and a literal "A$149" in Vietnamese would be
     // the drift this whole token scheme exists to prevent.
-    const tokens = (s: string) => (s.match(/\{[a-zA-Z]+\}/g) ?? []).sort();
+    const tokens = (s: string) => (s.match(/\{[a-zA-Z0-9]+\}/g) ?? []).sort();
     for (const k of enKeys("solutions.")) {
       expect(tokens(VI[k]!), k).toEqual(tokens(EN[k]!));
     }
@@ -76,7 +76,7 @@ describe("compare.* catalogue parity (en ⇄ vi) — T0274 part 2", () => {
   );
 
   it("no compare.* value is empty, and price tokens match between the two languages", () => {
-    const tokens = (s: string) => (s.match(/\{[a-zA-Z]+\}/g) ?? []).sort();
+    const tokens = (s: string) => (s.match(/\{[a-zA-Z0-9]+\}/g) ?? []).sort();
     for (const k of [...enKeys("compare."), ...enKeys("meta.compare.")]) {
       expect(EN[k]!.trim().length, `en ${k}`).toBeGreaterThan(0);
       expect(VI[k]!.trim().length, `vi ${k}`).toBeGreaterThan(0);
@@ -126,22 +126,31 @@ describe("solutions.* approved wording", () => {
   });
 
   it("carries the three approved segment lines verbatim (EN and VI)", () => {
-    // G14 §2.4 (2026-09-16): evaluator-first deck v3 — "pass with reasons".
+    // G21 P0-C (2026-09-20, FI advisor feedback § 9): investor = standardise
+    // the first pass; accelerator = the BlockID Cohort page. Advisor keeps
+    // the G14 §2.4 "pass with reasons" line.
     expect(EN["solutions.investor.headline"]).toBe(
-      "Screen a deal in minutes on one rubric — then send every founder you pass on the reasons why.",
+      "Standardise the first-pass review before human investment judgement begins.",
     );
     expect(EN["solutions.accelerator.headline"]).toBe(
-      "Score the whole cohort on one rubric, then show sponsors the progress — automatically.",
+      "Turn your next startup intake into a comparable, evidence-backed cohort.",
+    );
+    expect(EN["solutions.founder.headline"]).toBe(
+      "See what an evaluator can verify — not only what your pitch says.",
     );
     expect(EN["solutions.advisor.headline"]).toBe(
       "A C-suite review of every client, in AUD, with ESIC and R&D Tax checks — white-labelled, A$3 a report.",
     );
     expect(VI["solutions.investor.headline"]).toBe(
-      "Sàng lọc deal trong vài phút trên một bộ tiêu chí — rồi gửi cho mọi founder bạn từ chối lý do vì sao.",
+      "Chuẩn hoá vòng sàng lọc đầu tiên trước khi phán đoán đầu tư của con người bắt đầu.",
     );
     expect(VI["solutions.accelerator.headline"]).toBe(
-      "Chấm cả cohort trên một bộ tiêu chí, rồi báo cáo tiến độ cho nhà tài trợ — tự động.",
+      "Biến đợt tuyển sinh startup tiếp theo thành một khoá có thể so sánh, dựa trên bằng chứng.",
     );
+    // The supports-not-replaces line and the founder closing line, verbatim.
+    expect(EN["solutions.investor.statement.title"]).toBe("BlockID supports due diligence. It does not replace due diligence.");
+    expect(EN["solutions.accelerator.statement.body"]).toBe("BlockID structures the evidence and standardises the first-pass analysis. Humans make the decision.");
+    expect(EN["solutions.founder.lede"]).toBe("You'll know exactly what to fix before your next application or investor meeting.");
     expect(VI["solutions.advisor.headline"]).toBe(
       "Một bản đánh giá cấp C-suite cho mỗi khách hàng, tính bằng AUD, kèm kiểm tra ESIC và R&D Tax — gắn thương hiệu của bạn, A$3 mỗi báo cáo.",
     );
@@ -197,7 +206,7 @@ describe("intake.* catalogue parity (en ⇄ vi) — G14 S35 /apply/[slug]", () =
     expect(enKeys("intake.").filter((k) => !(k in VI)), "missing in vi.json").toEqual([]);
     expect(viKeys("intake.").filter((k) => !(k in EN)), "missing in en.json").toEqual([]);
     expect(enKeys("intake.").length).toBeGreaterThanOrEqual(30);
-    const tokens = (s: string) => (s.match(/\{[a-zA-Z]+\}/g) ?? []).sort();
+    const tokens = (s: string) => (s.match(/\{[a-zA-Z0-9]+\}/g) ?? []).sort();
     for (const k of enKeys("intake.")) {
       expect(EN[k]!.trim().length, `en ${k}`).toBeGreaterThan(0);
       expect(VI[k]!.trim().length, `vi ${k}`).toBeGreaterThan(0);
@@ -254,7 +263,7 @@ describe("feedback.* catalogue parity (en ⇄ vi) — G14-S34", () => {
 
 describe("execution.* catalogue parity (en ⇄ vi) — G14-S37 founder execution profile", () => {
   it("every execution.* key exists in both catalogues, none is empty, and the {token}s match", () => {
-    const tokens = (s: string) => (s.match(/\{[a-zA-Z]+\}/g) ?? []).sort();
+    const tokens = (s: string) => (s.match(/\{[a-zA-Z0-9]+\}/g) ?? []).sort();
     expect(enKeys("execution.").length).toBeGreaterThanOrEqual(60);
     expect(enKeys("execution.").filter((k) => !(k in VI)), "missing in vi.json").toEqual([]);
     expect(viKeys("execution.").filter((k) => !(k in EN)), "missing in en.json").toEqual([]);
@@ -278,7 +287,7 @@ describe("execution.* catalogue parity (en ⇄ vi) — G14-S37 founder execution
 // G14-S36 F-6 leftover — the founder weekly digest's "why my score changed"
 // line (lib/digest/why-score-moved.ts) reads this key for both locales.
 describe("digest.why_moved.* catalogue parity (en ⇄ vi) — G14-S36 F-6", () => {
-  const tokens = (s: string) => (s.match(/\{[a-zA-Z]+\}/g) ?? []).sort();
+  const tokens = (s: string) => (s.match(/\{[a-zA-Z0-9]+\}/g) ?? []).sort();
 
   it("every digest.why_moved.* key exists in both catalogues, none empty, and the {level} token matches", () => {
     const missingInVi = enKeys("digest.why_moved.").filter((k) => !(k in VI));

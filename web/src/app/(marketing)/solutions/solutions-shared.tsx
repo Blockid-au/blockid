@@ -20,10 +20,12 @@
  * No price table lives here (D3/D5): the evaluator pages link to
  * `/pricing?segment=evaluator` for the ladder.
  *
- * Test contract (grep before touching): `data-testid="pilot-cta"` +
- * `pilot-cta-link` (tests/e2e/smoke/post-deploy.spec.ts), one `<h1>`, one
- * FAQPage + one BreadcrumbList JSON-LD (the colocated page tests),
- * `data-persona` on the wrapper.
+ * Test contract (grep before touching): `data-testid="pilot-offer"` +
+ * `pilot-offer-card[data-sku]` + `pilot-buy-<sku>` (tests/e2e/smoke/
+ * post-deploy.spec.ts, tests/live-qa/34-purchase-path.spec.ts), one `<h1>`,
+ * one FAQPage + one BreadcrumbList JSON-LD (the colocated page tests),
+ * `data-persona` on the wrapper, `solutions-problem` / `solutions-statement`
+ * / `solutions-tiers` (G21 P0-C).
  *
  * Server component. Pure presentation, no data fetch. `lang` lets the VN
  * mirror set `<div lang="vi">` while reusing this shell.
@@ -33,22 +35,30 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
+  BarChart3,
+  ClipboardCheck,
   Database,
   FileCheck2,
+  FolderLock,
   Landmark,
+  LineChart,
+  Link2,
+  ListChecks,
   ScanSearch,
   Scale,
+  Share2,
+  ShieldCheck,
+  Upload,
   Users,
   type LucideIcon,
 } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { PilotOffer, type PilotOfferProps, type PilotOfferTier } from "@/components/marketing/PilotOffer";
 import {
-  CTA_CLASS,
   CtaBand,
   Faq,
   FeatureGrid,
   FOCUS_RING,
-  MOTION,
   PageHero,
   ProofBand,
   Section,
@@ -168,17 +178,30 @@ export interface SolutionPageProps {
     ctaHref: string;
   };
   /**
-   * G12 traction T2 — optional pilot offer card, rendered after the journey
-   * and before the FAQ. The accelerator persona uses it for the 14-day
-   * Program pilot on a live intake; other personas leave it out.
+   * G21 P0-C — the opening statement under the hero: three short lines that
+   * name the problem and one line that names the answer ("Your applicants
+   * arrive in different formats… BlockID creates one consistent assessment
+   * layer.").
    */
-  pilotCta?: {
-    eyebrow: string;
-    title: string;
-    body: string;
-    ctaLabel: string;
-    ctaHref: string;
-  };
+  problem?: { lines: readonly string[]; resolution: string };
+  /**
+   * G21 P0-C — a numbered step grid (the founder's nine-step workflow).
+   * Distinct from `journey`, which carries bullets per stage.
+   */
+  workflow?: { title: string; lede?: string; steps: readonly { title: string; body: string }[] };
+  /**
+   * G21 P0-C — one quiet statement band ("Humans make the decision",
+   * "BlockID supports due diligence. It does not replace due diligence.").
+   */
+  statement?: { eyebrow?: string; title: string; body: string };
+  /**
+   * G21 P0-C — the paid Cohort Validation Pilot block, rendered after the
+   * journey / statement and before the FAQ with `id="pilot"` so
+   * `/solutions/accelerator#pilot` lands on it. Accelerator only.
+   */
+  pilotOffer?: Omit<PilotOfferProps, "id">;
+  /** G21 P0-C — plan rungs for this persona, prices from constants via tokens. */
+  tiers?: { title: string; lede?: string; items: readonly PilotOfferTier[] };
   /**
    * The closing `CtaBand` title / line. Defaults per persona family
    * (`CLOSING_COPY`) so the three evaluator pages and the two founder pages
@@ -243,6 +266,22 @@ export const BENEFIT_ICONS: readonly LucideIcon[] = [
   Scale,
 ];
 
+/** Icons for the numbered workflow steps (founder: add → preview → claims → evidence → confidence → gaps → data room → share → track). */
+export const WORKFLOW_ICONS: readonly LucideIcon[] = [
+  Upload,
+  BarChart3,
+  ScanSearch,
+  FileCheck2,
+  ShieldCheck,
+  ListChecks,
+  FolderLock,
+  Share2,
+  LineChart,
+];
+
+/** Icons for the plan-rung cards. */
+const TIER_ICONS: readonly LucideIcon[] = [ClipboardCheck, Users, Landmark, Link2];
+
 type ClosingFamily = "evaluator" | "accelerator" | "founder";
 
 function closingFamily(slug: SolutionSlug): ClosingFamily {
@@ -261,12 +300,12 @@ export const CLOSING_COPY: Readonly<
       sub: "Start the trial on the rung that fits your desk. Cancel in the portal before it ends and you pay nothing.",
     },
     accelerator: {
-      title: "Score the whole cohort, once.",
-      sub: "One rubric for every applicant, a cohort table you can sort and a report your sponsors can read.",
+      title: "Run your next intake as one comparable cohort.",
+      sub: "Book the paid pilot on one real intake or your existing cohort. Your committee still makes every decision.",
     },
     founder: {
-      title: "See your score before you pitch.",
-      sub: "The first run is free and needs no card. Paste a name, a deck or a URL.",
+      title: "Know what to fix before your next application.",
+      sub: "You'll know exactly what to fix before your next application or investor meeting. The first run is free and needs no card.",
     },
   },
   vi: {
@@ -275,12 +314,12 @@ export const CLOSING_COPY: Readonly<
       sub: "Bắt đầu dùng thử ở gói phù hợp với bàn làm việc của bạn. Huỷ trong cổng thanh toán trước khi hết hạn và bạn không trả gì.",
     },
     accelerator: {
-      title: "Chấm điểm cả khoá, một lần.",
-      sub: "Một thước đo cho mọi hồ sơ, một bảng khoá có thể sắp xếp và một báo cáo nhà tài trợ đọc được.",
+      title: "Chạy đợt tuyển sinh tiếp theo như một khoá có thể so sánh.",
+      sub: "Đặt thí điểm trả phí trên một đợt tuyển sinh thật hoặc khoá hiện có. Hội đồng của bạn vẫn ra mọi quyết định.",
     },
     founder: {
-      title: "Xem điểm của bạn trước khi gọi vốn.",
-      sub: "Lần chạy đầu tiên miễn phí và không cần thẻ. Dán tên, bộ slide hoặc URL.",
+      title: "Biết cần sửa gì trước lần nộp hồ sơ tiếp theo.",
+      sub: "Bạn sẽ biết chính xác cần sửa gì trước lần nộp hồ sơ hoặc buổi gặp nhà đầu tư tiếp theo. Lần chạy đầu tiên miễn phí và không cần thẻ.",
     },
   },
 };
@@ -307,7 +346,11 @@ export function SolutionsPageShell(props: SolutionPageProps) {
     disclaimer,
     trustBadges,
     samplePreview,
-    pilotCta,
+    problem,
+    workflow,
+    statement,
+    pilotOffer,
+    tiers,
     closingTitle,
     closingSub,
   } = props;
@@ -378,6 +421,42 @@ export function SolutionsPageShell(props: SolutionPageProps) {
           align="start"
         />
 
+        {/* G21 P0-C — the opening lines: three problems, one answer */}
+        {problem ? (
+          <Section id="problem" ariaLabel={fillPrices(problem.resolution)} spacing="sm" tone="sunken">
+            <div data-testid="solutions-problem" className="grid gap-4 lg:grid-cols-[1fr_auto_1fr] lg:items-center">
+              <ul className="space-y-2">
+                {problem.lines.map((line) => (
+                  <li key={line} className="flex items-start gap-3 text-base leading-relaxed text-secondary sm:text-lg">
+                    <span aria-hidden="true" className="mt-3 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-line" />
+                    <span>{fillPrices(line)}</span>
+                  </li>
+                ))}
+              </ul>
+              <ArrowRight aria-hidden="true" className="hidden h-6 w-6 text-accent lg:block" />
+              <p className="font-display text-xl font-semibold tracking-tight text-primary sm:text-2xl">
+                {fillPrices(problem.resolution)}
+              </p>
+            </div>
+          </Section>
+        ) : null}
+
+        {/* G21 P0-C — numbered workflow (the founder's nine steps) */}
+        {workflow ? (
+          <Section id="workflow" title={fillPrices(workflow.title)} lede={workflow.lede ? fillPrices(workflow.lede) : undefined}>
+            <FeatureGrid
+              columns={3}
+              numbered
+              ariaLabel={fillPrices(workflow.title)}
+              items={workflow.steps.map((step, i) => ({
+                icon: WORKFLOW_ICONS[i % WORKFLOW_ICONS.length]!,
+                title: fillPrices(step.title),
+                body: fillPrices(step.body),
+              }))}
+            />
+          </Section>
+        ) : null}
+
         {/* B2 Task 6 — trust / compliance facts (investor persona opts in) */}
         {trustBadges && trustBadges.length > 0 ? (
           <Section id="trust" ariaLabel="Compliance and trust badges" spacing="sm" tone="sunken">
@@ -442,31 +521,48 @@ export function SolutionsPageShell(props: SolutionPageProps) {
           </Section>
         ) : null}
 
-        {/* G12 T2 — pilot offer (accelerator persona opts in). Test ids are load-bearing. */}
-        {pilotCta ? (
-          <Section id="pilot" ariaLabel="Pilot offer" spacing="sm">
-            <div
-              data-testid="pilot-cta"
-              className="rounded-xl border border-line-subtle bg-surface-sunken p-6 shadow-1 sm:p-8"
-            >
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
-                {fillPrices(pilotCta.eyebrow)}
-              </p>
-              <h2 className="mt-3 font-display text-2xl font-bold tracking-tight text-primary sm:text-3xl">
-                {fillPrices(pilotCta.title)}
-              </h2>
-              <p className="mt-3 max-w-2xl text-base leading-relaxed text-secondary">
-                {fillPrices(pilotCta.body)}
-              </p>
-              <Link
-                href={pilotCta.ctaHref}
-                data-testid="pilot-cta-link"
-                data-cta-id={`solutions_${slug}_pilot`}
-                className={cn(CTA_CLASS.primary, "mt-6", MOTION)}
-              >
-                {fillPrices(pilotCta.ctaLabel)}
-                <ArrowRight aria-hidden="true" className="h-4 w-4" />
-              </Link>
+        {/* G21 P0-C — one statement band: who decides */}
+        {statement ? (
+          <Section id="statement" eyebrow={statement.eyebrow ? fillPrices(statement.eyebrow) : undefined} title={fillPrices(statement.title)} align="center" spacing="sm">
+            <p data-testid="solutions-statement" className="mx-auto max-w-2xl text-center text-base leading-relaxed text-secondary sm:text-lg">
+              {fillPrices(statement.body)}
+            </p>
+          </Section>
+        ) : null}
+
+        {/* G21 P0-C — the paid Cohort Validation Pilot (#pilot) */}
+        {pilotOffer ? (
+          <PilotOffer
+            id="pilot"
+            ctaPrefix={`solutions_${slug}_pilot`}
+            {...pilotOffer}
+            copy={{
+              ...pilotOffer.copy,
+              eyebrow: fillPrices(pilotOffer.copy.eyebrow),
+              title: fillPrices(pilotOffer.copy.title),
+              lede: fillPrices(pilotOffer.copy.lede),
+              afterLede: pilotOffer.copy.afterLede ? fillPrices(pilotOffer.copy.afterLede) : undefined,
+              afterTiers: pilotOffer.copy.afterTiers?.map((t) => ({ ...t, price: fillPrices(t.price), sub: fillPrices(t.sub) })),
+            }}
+          />
+        ) : null}
+
+        {/* G21 P0-C — plan rungs for this persona (prices via tokens) */}
+        {tiers ? (
+          <Section id="plans" title={fillPrices(tiers.title)} lede={tiers.lede ? fillPrices(tiers.lede) : undefined} tone="sunken">
+            <div data-testid="solutions-tiers">
+              <FeatureGrid
+                columns={tiers.items.length >= 4 ? 4 : tiers.items.length === 3 ? 3 : 2}
+                ariaLabel={fillPrices(tiers.title)}
+                items={tiers.items.map((t, i) => ({
+                  icon: TIER_ICONS[i % TIER_ICONS.length]!,
+                  title: `${fillPrices(t.name)} — ${fillPrices(t.price)}`,
+                  body: fillPrices(t.sub),
+                  href: t.href,
+                  cta: fillPrices(t.label),
+                  ctaId: t.ctaId ?? `solutions_${slug}_tier_${i + 1}`,
+                }))}
+              />
             </div>
           </Section>
         ) : null}
@@ -475,6 +571,8 @@ export function SolutionsPageShell(props: SolutionPageProps) {
         <Section id="faq" title={fillPrices(faqTitle)}>
           <Faq items={faqItems} className="max-w-3xl" />
         </Section>
+
+        {/* G21 P0-A: <TrustBand /> mounts here after merge */}
 
         <CtaBand
           title={closingTitle ?? closing.title}
