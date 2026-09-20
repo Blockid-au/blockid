@@ -175,7 +175,7 @@ export default function EquityOfferRequestPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <main className="min-h-screen bg-slate-50 dark:bg-slate-950">
         <div className="mx-auto max-w-2xl p-6 pt-16">
           <div className="rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-slate-900 p-8 shadow-sm">
             <div className="text-4xl">✓</div>
@@ -204,12 +204,13 @@ export default function EquityOfferRequestPage() {
             <NotFinancialAdvice kind="equity_offer_disclaimer" compact />
           </div>
         </div>
-      </div>
+      </main>
     );
   }
 
+  // No workspace shell on this page, so the wrapper IS the <main> landmark (G20-sweep).
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <main className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <div className="mx-auto max-w-2xl p-6 pt-10 pb-16">
         <div className="mb-4">
           <Link
@@ -456,6 +457,6 @@ export default function EquityOfferRequestPage() {
 
         <NotFinancialAdvice kind="equity_offer_disclaimer" compact />
       </div>
-    </div>
+    </main>
   );
 }

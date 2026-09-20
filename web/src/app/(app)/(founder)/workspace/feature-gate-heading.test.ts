@@ -7,15 +7,14 @@
 // The heading now sits outside the gate on those pages; this pins that the
 // first <h1> of every workspace page precedes its first <FeatureGate>.
 //
-// /workspace/esop/offers still nests its h1 inside the gate (left as-is: the
-// page is a Pay-in-Equity intake with its own disclaimer block) — listed as a
-// documented exception below until its owner moves the header out.
+// /workspace/esop/offers followed on 2026-09-20 (G20-sweep: the founder sweep
+// reported h1_count_0 on it) — no exceptions remain.
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const EXCEPTIONS = new Set(["esop/offers/page.tsx"]);
+const EXCEPTIONS = new Set<string>();
 
 function pages(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {

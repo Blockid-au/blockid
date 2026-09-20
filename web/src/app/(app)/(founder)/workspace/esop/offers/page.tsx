@@ -1,7 +1,7 @@
 // Workspace › Equity Offer (Equity-for-Solution intake landing).
 //
 // Server component. Gated by `equity_offer.request` entitlement via
-// <FeatureGate>. NO auto-issuance happens here — this page only describes
+// the client FeatureGate (heading outside it, G20-sweep). NO auto-issuance happens here — this page only describes
 // the programme and links to the request-a-call intake form.
 //
 // The disclaimer body comes from the canonical registry in
@@ -68,22 +68,25 @@ export default async function EquityOfferPage() {
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-4xl mx-auto space-y-8">
+        {/* The heading sits OUTSIDE the client gate (G20-sweep): the gate
+            renders nothing until /api/entitlement/me answers and the gate
+            card when the plan lacks the flag — the page had no h1 either way. */}
+        <header className="space-y-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+              Pay in Equity: Enterprise Solution + 5–10% Equity
+            </h1>
+          </div>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            A request-a-call intake for founders who want BlockID Enterprise
+            delivered against an equity component rather than pure cash.
+          </p>
+        </header>
+
         <FeatureGate
           feature="equity_offer.request"
           label="Pay in Equity"
         >
-          <header className="space-y-2">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-                Pay in Equity: Enterprise Solution + 5–10% Equity
-              </h1>
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              A request-a-call intake for founders who want BlockID Enterprise
-              delivered against an equity component rather than pure cash.
-            </p>
-          </header>
-
           {/* Big, unmissable disclaimer block at the top */}
           <section
             aria-label="Legal disclaimer"
