@@ -45,7 +45,7 @@ import { usePricingExperiment } from "@/lib/hooks/use-pricing-experiment";
 import { PLANS_V2, formatAud } from "@/lib/plans-v2";
 import { CREDIT_PACKS } from "@/lib/credit-packs";
 import { ONE_CLICK_REPORT_3AUD } from "@/lib/pricing/v3-skus";
-import { FREE_SIGNUP_CREDITS, freeSignupAnalyses } from "@/lib/credits-public";
+import { FREE_SIGNUP_CREDITS, SVI_ANALYSIS_CREDITS, freeSignupAnalyses } from "@/lib/credits-public";
 
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -1628,10 +1628,10 @@ export function SVIEntrance({ chrome = true }: SVIEntranceProps = {}) {
           <div className="grid md:grid-cols-2 gap-6">
             {/* Card 1: Per-Analysis */}
             <div className="rounded-2xl border border-surface-200 bg-white px-5 sm:px-8 py-8 text-center shadow-sm flex flex-col relative overflow-hidden">
-              <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-bull px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Launch Price</div>
+              <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-bull px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Pay as you go</div>
               <p className="text-xs uppercase tracking-[0.15em] text-ink-500 font-medium mb-2">Per-Analysis</p>
               <h3 className="text-xl font-bold text-ink-800 mb-1">SVI Analysis Report</h3>
-              <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">A$0.50</p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">{`A$${SVI_ANALYSIS_CREDITS.toFixed(2)}`}</p>
               <p className="text-xs text-emerald-600 font-semibold mb-4">Fractional credits — pay only for what you use</p>
               <ul className="text-left text-sm text-ink-700 space-y-2 mb-6 mx-auto max-w-xs">
                 <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 1st analysis free &mdash; no signup needed</li>
@@ -1641,7 +1641,7 @@ export function SVIEntrance({ chrome = true }: SVIEntranceProps = {}) {
               </ul>
               <div className="mt-auto">
                 <a href="#svi" className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
-                  Try Free &mdash; Then 0.50 credits/report <ArrowRight strokeWidth={2} className="h-4 w-4" />
+                  Try Free &mdash; Then {SVI_ANALYSIS_CREDITS.toFixed(2)} credits/report <ArrowRight strokeWidth={2} className="h-4 w-4" />
                 </a>
               </div>
             </div>

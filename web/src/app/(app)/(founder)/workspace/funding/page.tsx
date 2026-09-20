@@ -50,6 +50,8 @@ import {
 } from "@/lib/funding/workspace";
 import { getGrant, getProgram } from "@/lib/funding/data";
 import { FEATURE_COSTS } from "@/lib/credits";
+import { formatAud } from "@/lib/plans-v2";
+import { FOUNDER_RADAR_MONTHLY_AUD, FUNDING_REPORT_AUD } from "@/lib/funding/radar-upsell";
 import { hasGrowthExtras } from "@/lib/funding/growth-extras";
 import { isGenericPromptSet, programIntakeLabel, promptsForGrant, promptsForProgram } from "@/lib/funding/application-prompts";
 import { latestDraftFor } from "@/lib/funding/application-drafts";
@@ -249,11 +251,11 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
           {!included ? (
             <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-line-subtle bg-surface-raised px-4 py-3 text-sm" data-paywall-hint>
               <span className="inline-flex items-center gap-2 text-primary">
-                <Coins className="h-4 w-4 text-action" aria-hidden /> Full report: <strong>A$3</strong> (3 credits) per run
+                <Coins className="h-4 w-4 text-action" aria-hidden /> Full report: <strong>{formatAud(FUNDING_REPORT_AUD)}</strong> ({FEATURE_COSTS.grant_match} credits) per run
               </span>
               <span className="text-tertiary">or</span>
               <span className="inline-flex items-center gap-2 text-primary">
-                <ShieldCheck className="h-4 w-4 text-bull" aria-hidden /> included in <strong>Starter A$29/mo</strong> with weekly Money Radar alerts
+                <ShieldCheck className="h-4 w-4 text-bull" aria-hidden /> included in <strong>Starter {formatAud(FOUNDER_RADAR_MONTHLY_AUD)}/mo</strong> with weekly Money Radar alerts
               </span>
               <Link href="/pricing?feature=grant_finder&from=/workspace/funding" className="ml-auto font-semibold text-action">
                 Compare plans →

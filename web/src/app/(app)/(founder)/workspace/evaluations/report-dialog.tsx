@@ -22,6 +22,7 @@ import Link from "next/link";
 import { ExternalLink, FileDown, Loader2, X } from "lucide-react";
 import { EvaluatorReportDisclaimer } from "@/components/legal/evaluator-report-disclaimer";
 import { useModalDialog } from "@/hooks/useModalDialog";
+import { TRUST_REPORT_PRICE_AUD, trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
 
 export type ReportKind = "full" | "rescore";
 
@@ -161,7 +162,7 @@ export interface ReportDialogProps {
 export const KIND_COPY: Record<ReportKind, { title: string; what: string; button: string }> = {
   full: {
     title: "Run Trusted Business Report",
-    what: "8 dimensions, 13 criteria, AUD valuation range, ≈2,500 words — the same report a founder buys for A$3.",
+    what: `8 dimensions, 13 criteria, AUD valuation range, ≈2,500 words — the same report a founder buys for ${trustReportPriceLabel()}.`,
     button: "Run report",
   },
   rescore: {
@@ -211,7 +212,7 @@ export function describeResult(result: ReportRunResult): string {
   if (result.reused) return "This report was already generated for this run — nothing more was charged.";
   if (result.via === "quota") {
     if (result.trial?.active) {
-      return `Used your included trial report${result.remaining_quota > 0 ? ` (${result.remaining_quota} left)` : " — further reports cost 3 credits (A$3) each"}.`;
+      return `Used your included trial report${result.remaining_quota > 0 ? ` (${result.remaining_quota} left)` : ` — further reports cost ${TRUST_REPORT_PRICE_AUD} credits (${trustReportPriceLabel()}) each`}.`;
     }
     return `Used 1 included report (${bigNumber(result.remaining_quota) ? "unlimited" : result.remaining_quota} left this month).`;
   }

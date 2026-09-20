@@ -24,6 +24,14 @@ export const SVI_ANALYSIS_CREDITS = 0.5;
 export const RND_REPORT_CREDITS = 1;
 
 /**
+ * Credits one evaluator re-score costs — mirrors FEATURE_COSTS.trust_report_rescore.
+ * G20-F3 (2026-09-20): the evaluations list, the dossier actions block and the
+ * report dialog are "use client" and typed "A$1" by hand. 1 credit = A$1 at
+ * the base pack rate (CREDIT_PACKS[0]), so the label is formatAud(this).
+ */
+export const TRUST_REPORT_RESCORE_CREDITS = 1;
+
+/**
  * Referral rewards after the 2026-08-01 promo end — mirrors lib/referrals.ts
  * (server-only). G18-A (2026-09-19): /workspace/settings/referrals still
  * promised "You get 5 credits. They get 3" from the promo while the server

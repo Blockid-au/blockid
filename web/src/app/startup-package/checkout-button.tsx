@@ -10,9 +10,15 @@ import { trackEvent } from "@/lib/analytics";
 interface CheckoutButtonProps {
   planId: string;
   label: string;
+  /**
+   * G20-F3: the quote rendered under the button BEFORE the checkout starts
+   * ("A$149 inc. GST · one-off · 25 credits included") — the founder sees the
+   * amount here and again on the Stripe page; nothing is charged in between.
+   */
+  quote?: string;
 }
 
-export function CheckoutButton({ planId, label }: CheckoutButtonProps) {
+export function CheckoutButton({ planId, label, quote }: CheckoutButtonProps) {
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -53,6 +59,9 @@ export function CheckoutButton({ planId, label }: CheckoutButtonProps) {
         type="button"
         onClick={handleClick}
         disabled={busy}
+        data-testid="startup-package-checkout"
+        data-plan-id={planId}
+        aria-describedby={quote ? "startup-package-quote" : undefined}
         className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface-raised px-5 py-3 text-sm font-semibold text-primary hover:border-action hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-60"
       >
         {busy ? (
@@ -62,6 +71,11 @@ export function CheckoutButton({ planId, label }: CheckoutButtonProps) {
         )}
         {label}
       </button>
+      {quote && (
+        <p id="startup-package-quote" className="mt-2 text-xs text-tertiary" data-testid="startup-package-quote">
+          {quote}
+        </p>
+      )}
       {error && (
         <p role="alert" className="mt-2 text-xs text-bear">
           {error}
