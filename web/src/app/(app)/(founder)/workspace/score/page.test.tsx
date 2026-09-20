@@ -25,7 +25,8 @@ vi.mock("@/lib/auth", async () => {
 });
 const getBalanceMock = vi.fn();
 vi.mock("@/lib/credits", () => ({ getBalance: (id: string) => getBalanceMock(id) }));
-vi.mock("@/lib/svi-analysis", () => ({ computeFundingReadiness: () => null }));
+// G21-P1-B: the Assessment Card builder reads the real ladder constants (EVIDENCE_CONFIDENCE, SVI_VERSION…) — keep the original module, stub only the readiness call.
+vi.mock("@/lib/svi-analysis", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/lib/svi-analysis")>()), computeFundingReadiness: () => null }));
 vi.mock("@/components/workspace/workspace-layout", () => ({
   WorkspaceLayout: ({ children }: { children: React.ReactNode }) => <div data-shell>{children}</div>,
 }));

@@ -5,6 +5,7 @@
 
 import type { DossierView } from "./dossier";
 import type { EvaluationAssessment } from "./assessments";
+import { buildAssessmentCard } from "@/lib/svi/assessment-card";
 
 export function fakeView(over: { mine?: Partial<EvaluationAssessment> | null; consensus?: DossierView["consensus"] } = {}): DossierView {
   const mine: EvaluationAssessment | null =
@@ -34,6 +35,13 @@ export function fakeView(over: { mine?: Partial<EvaluationAssessment> | null; co
       mandateFit: { mandateId: "m-1", mandateLabel: "Seed deep-tech AU", score: 77, passesFloor: true, reasons: ["Industry match", "Stage match"], gaps: ["Cheque above range"], blockers: [], source: "persisted", computedAt: null },
       sinceLastView: null, consensus: null, viaOrgSeat: false,
     },
+    // G21-P1-B: the Assessment Card the page + IC memo render (built from the same two dims).
+    assessmentCard: buildAssessmentCard(
+      { name: "Acme Robotics", sector: "Advanced manufacturing", stageLabel: "Seed", verificationLevel: 2 },
+      { total: 62, dimensions: [{ dim: "tre", score: 61, weight: 20, assessed: true, level: "transaction_data" }, { dim: "lco", score: 40, weight: 8, assessed: true, level: "self_declared" }] },
+      {},
+      { generatedAt: "2026-09-12T00:00:00Z" },
+    ),
     report: { available: true, source: "adapter", radar: null, dims, criteria: [], evidenceCounts: { tre: 2, mpc: 1, ftv: 0, ptd: 0, cgh: 0, iri: 0, lco: 0, svm: 0 }, links: { fullReport: null, pdf: null, analyze: "/x" }, founderExecution: null },
     valuation: {
       available: true, source: "adapter", pending: false, consensus: { lowAud: 4_000_000, midAud: 5_000_000, highAud: 6_000_000, confidence: 0.35 },

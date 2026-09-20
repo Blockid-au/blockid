@@ -605,3 +605,40 @@ test.describe("TBR executive summary — structured (G19-S47)", () => {
     });
   }
 });
+
+// G21-P1-B — the BlockID Assessment Card (SVI beside Evidence Confidence) at
+// the top of every report render, and the per-dimension explainability cards
+// in place of the cover's plain dimension rows.
+test.describe("Assessment Card + dimension explainability (G21-P1-B)", () => {
+  for (const path of ["/tbr/demo", "/showcase/blockid/report"]) {
+    test(`${path}: one Assessment Card with SVI + Evidence Confidence above the executive summary, ≥ 1 dimension explainability card`, async ({ page, visit }, testInfo) => {
+      await visit(path);
+      if (path === "/showcase/blockid/report") {
+        const empty = await page.getByTestId("showcase-blockid-report-empty").count();
+        test.skip(empty > 0, "BlockID's report_v2 not published yet — run scripts/run-self-analysis.mjs --report");
+      }
+      const card = page.getByTestId("assessment-card");
+      await expect(card.first()).toBeVisible({ timeout: 30_000 });
+      const cards = await card.count();
+      const text = await card.first().innerText();
+      const svi = await card.first().getAttribute("data-assessment-svi");
+      const confidence = await card.first().getAttribute("data-assessment-confidence");
+      const verification = await card.first().getAttribute("data-assessment-verification");
+      const explain = await page.getByTestId("dimension-explain").count();
+      const pendingExplain = await page.locator('[data-testid="dimension-explain"][data-explain-state="pending"]').count();
+      const cardBox = await card.first().boundingBox();
+      const execBox = await page.locator("#tbr-executive").boundingBox();
+      await evidence(testInfo, "assessment card", { path, cards, svi, confidence, verification, explain, pendingExplain, cardTop: cardBox?.y, execTop: execBox?.y });
+      expect(cards).toBe(1);
+      expect(text).toContain("SVI");
+      expect(text).toContain("Evidence Confidence");
+      expect(Number(confidence)).toBeGreaterThanOrEqual(0);
+      expect(Number(confidence)).toBeLessThanOrEqual(100);
+      expect(verification).toMatch(/^L[0-5]$/);
+      expect(explain).toBeGreaterThanOrEqual(1);
+      if (cardBox && execBox) expect(cardBox.y).toBeLessThan(execBox.y);
+      // G21 copy rule: no benchmark without its n — the line is absent until P1-C wires it, never an unlabelled average.
+      expect(text).not.toMatch(/Australian average/i);
+    });
+  }
+});

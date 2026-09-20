@@ -12,12 +12,12 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Compass,
-  HelpCircle,
   Info,
   Sparkles,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
+import { DimensionExplainCard } from "@/components/svi/DimensionExplainCard";
+import { dimensionExplainFromSubScore } from "@/lib/svi/dimension-explain";
 
 interface Props {
   analysis: SVIAnalysis;
@@ -106,79 +106,6 @@ const DIMENSION_GUIDES: Record<string, { title: string; whyItMatters: string; qu
   },
 };
 
-function ContributionBar({ sub }: { sub: SVIAnalysis["subs"][number] }) {
-  const guide = DIMENSION_GUIDES[sub.key];
-  const [open, setOpen] = React.useState(false);
-
-  const color = sub.value >= 70 ? "bg-emerald-500" : sub.value >= 50 ? "bg-blue-500" : sub.value >= 30 ? "bg-amber-500" : "bg-rose-500";
-  const textColor = sub.value >= 70 ? "text-emerald-700 dark:text-emerald-400" : sub.value >= 50 ? "text-blue-700 dark:text-blue-400" : sub.value >= 30 ? "text-amber-700 dark:text-amber-400" : "text-rose-700 dark:text-rose-400";
-  const adjustmentSign = sub.adjustment >= 0 ? "+" : "";
-
-  return (
-    <div className="rounded-lg border border-border bg-card">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full px-4 py-3 text-left hover:bg-muted/30 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-3 mb-1.5">
-              <span className="text-sm font-semibold">{guide?.title ?? sub.label}</span>
-              <span className={cn("text-sm font-bold tabular-nums", textColor)}>{Math.round(sub.value)}/100</span>
-            </div>
-            <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-              <div className={cn("h-full rounded-full", color)} style={{ width: `${Math.min(100, sub.value)}%` }} />
-            </div>
-            <p className="mt-1.5 text-[11px] text-muted-foreground">
-              Contributes <span className={cn("font-semibold", sub.adjustment >= 0 ? "text-emerald-600" : "text-rose-600")}>{adjustmentSign}{sub.adjustment.toFixed(1)}</span> SVI points
-            </p>
-          </div>
-          <HelpCircle className={cn("h-4 w-4 transition-transform shrink-0", open ? "text-blue-500 rotate-180" : "text-muted-foreground")} />
-        </div>
-      </button>
-
-      {open && guide && (
-        <div className="px-4 pb-4 pt-1 border-t border-border bg-muted/10 space-y-2">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-1">Why this matters</p>
-            <p className="text-xs text-foreground leading-relaxed">{guide.whyItMatters}</p>
-          </div>
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-1">Quick wins for this dimension</p>
-            <ul className="space-y-0.5">
-              {guide.quickWins.map((qw, i) => (
-                <li key={i} className="text-xs text-foreground">&bull; {qw}</li>
-              ))}
-            </ul>
-          </div>
-          {sub.evidence?.length > 0 && (
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 mb-1">Evidence we found</p>
-              <ul className="space-y-0.5">
-                {sub.evidence.slice(0, 3).map((e, i) => (
-                  <li key={i} className="text-xs text-emerald-700 dark:text-emerald-400">✓ {e}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {sub.gaps?.length > 0 && (
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400 mb-1">Gaps to close</p>
-              <ul className="space-y-0.5">
-                {sub.gaps.slice(0, 3).map((g, i) => (
-                  <li key={i} className="text-xs text-amber-700 dark:text-amber-400">○ {g}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <a href={guide.deepLink} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline mt-1">
-            Open the relevant tool →
-          </a>
-        </div>
-      )}
-    </div>
-  );
-}
 
 /* ─── Compact SVI radar (SVG, no external lib) ─────────────────────────── */
 
@@ -329,10 +256,13 @@ export function SviExplainerCard({ analysis }: Props) {
       {/* Full breakdown */}
       <div>
         <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-          <Info className="h-3 w-3" /> Full dimension breakdown — click any row for guide
+          <Info className="h-3 w-3" /> Full dimension breakdown — score, confidence, why, evidence, missing, next action
         </p>
-        <div className="space-y-2">
-          {subs.map((sub) => <ContributionBar key={sub.key} sub={sub} />)}
+        {/* G21-P1-B: the plain contribution rows became explainability cards (one shape with the report + dossier). */}
+        <div className="grid gap-3 md:grid-cols-2">
+          {subs.map((sub) => (
+            <DimensionExplainCard key={sub.key} data={dimensionExplainFromSubScore(sub, analysis)} variant="full" headingLevel={4} />
+          ))}
         </div>
       </div>
 

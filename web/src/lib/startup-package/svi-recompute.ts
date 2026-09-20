@@ -14,6 +14,7 @@
 import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { insertSviSnapshot } from "@/lib/svi/snapshot-evidence-confidence";
 import {
   computeSVI,
   extractSignals,
@@ -203,18 +204,23 @@ export async function recomputeAndSnapshot(
   const delta = priorSVI !== null ? analysis.totalSVI - priorSVI : null;
 
   // ── 4. Persist snapshot ──
-  const { error: insertErr } = await supabase.from("svi_snapshots").insert({
-    account_id: accountId,
-    project_id: projectId,
-    svi_total: analysis.totalSVI,
-    stage: analysis.stage,
-    analysis_json: analysis as unknown as Record<string, unknown>,
-    delta,
-    dimension_scores: analysis.dimensionScores ?? null,
-    // Non-standard column captured in analysis_json.source for downstream
-    // filters — the schema doesn't have a dedicated `source` column, so we
-    // annotate the payload instead of adding a migration column here.
-  });
+  // G21-P1-B: `evidence_confidence` is written beside the analysis (fail-soft when the column is absent).
+  const { error: insertErr } = await insertSviSnapshot(
+    supabase,
+    {
+      account_id: accountId,
+      project_id: projectId,
+      svi_total: analysis.totalSVI,
+      stage: analysis.stage,
+      analysis_json: analysis as unknown as Record<string, unknown>,
+      delta,
+      dimension_scores: analysis.dimensionScores ?? null,
+      // Non-standard column captured in analysis_json.source for downstream
+      // filters — the schema doesn't have a dedicated `source` column, so we
+      // annotate the payload instead of adding a migration column here.
+    },
+    { analysis },
+  );
 
   if (insertErr) {
     // 42P01 = undefined_table (migration 0116 not applied yet). Fail soft

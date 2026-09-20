@@ -75,6 +75,10 @@ describe("renderIcMemoPdf — memo (Firm / Program)", () => {
     expect(textA).toContain("Churn");
     expect(textA).toContain("Firm consensus (2/2)");
     expect(textA).toContain("split decision");
+    // G21-P1-B: the compact Assessment Card on the memo (SVI · Evidence Confidence · BlockID Verified).
+    expect(textA.replace(/\s/g, "")).toContain("BLOCKIDASSESSMENTCARD");
+    expect(textA.replace(/\s/g, "")).toContain("EVIDENCECONFIDENCE");
+    expect(textA).toContain("BlockID Verified L2");
     expect(textA).toContain(`page ${a.pages}/${a.pages}`);
     expect(textA).not.toContain("PRIVATE-NOTE-BODY");
     expect(textA.replace(/\s|-/g, "")).not.toMatch(/DIMENSIONWEIGHTSCORE/);

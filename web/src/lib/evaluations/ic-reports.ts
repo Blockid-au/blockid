@@ -19,6 +19,7 @@
 // snapshot (the dossier loader) + these sections; never stored as bytes.
 
 import "server-only";
+import type { AssessmentCardData } from "@/lib/svi/assessment-card";
 import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { appendAudit } from "@/lib/audit";
@@ -51,6 +52,8 @@ export function clampIcKind(planId: string | null | undefined, requested: IcRepo
 // ─── Sections (persisted jsonb) ─────────────────────────────────────────────
 
 export interface IcSections {
+  /** G21-P1-B: the Assessment Card (SVI · Evidence Confidence · BlockID Verified · strength / gap · unverified claims); null without a report. */
+  assessmentCard: AssessmentCardData | null;
   summary: {
     startupName: string;
     sector: string | null;
@@ -121,6 +124,7 @@ export function buildIcSections(view: DossierView, kind: IcReportKind, opts: { w
   const v = view.valuation;
   const c: DossierConsensus | null = view.consensus;
   return {
+    assessmentCard: view.assessmentCard ?? null,
     summary: {
       startupName: h.name,
       sector: h.badges.find((b) => b.axis === "industry")?.label ?? null,

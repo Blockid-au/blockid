@@ -33,6 +33,8 @@
 import "server-only";
 import { nanoid } from "nanoid";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { insertSviSnapshot, updateSviSnapshot } from "@/lib/svi/snapshot-evidence-confidence";
+import type { AnalysisLike } from "@/lib/svi/evidence-confidence";
 import { callAI } from "@/lib/ai-client";
 import { newSlug } from "@/lib/slug";
 import { assertReportUsable, orchestrateReport, type AICallerResult, type PipelineEvent, type PipelineEventHandler } from "@/lib/report-pipeline/orchestrator";
@@ -780,18 +782,19 @@ export async function upsertSnapshotWithToken(args: {
       token = nanoid(24);
       payload.report_share_token = token;
     }
-    const { error } = await supabase.from("svi_snapshots").update(payload).eq("id", snapshotId);
+    // G21-P1-B: evidence_confidence rides along (fail-soft when the column is absent).
+    const { error } = await updateSviSnapshot(supabase, snapshotId, payload, { analysis: args.analysisJson as unknown as AnalysisLike });
     if (error) {
       console.error("[blockid:report-pipeline] svi_snapshots update failed", error);
       return { snapshotId: null, shareToken: null };
     }
   } else {
     token = nanoid(24);
-    const { data: inserted, error } = await supabase
-      .from("svi_snapshots")
-      .insert({ account_id: args.accountId, snapshot_date: today, report_share_token: token, ...payload })
-      .select("id")
-      .single();
+    const { data: inserted, error } = await insertSviSnapshot<Row>(
+      supabase,
+      { account_id: args.accountId, snapshot_date: today, report_share_token: token, ...payload },
+      { analysis: args.analysisJson as unknown as AnalysisLike, select: "id" },
+    );
     if (error || !inserted) {
       console.error("[blockid:report-pipeline] svi_snapshots insert failed", error);
       return { snapshotId: null, shareToken: null };

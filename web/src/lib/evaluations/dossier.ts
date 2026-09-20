@@ -54,6 +54,8 @@ import { readEvaluationReportV2 } from "@/lib/report-v2/storage";
 import { DIMENSION_OWNERS, DIM_ORDER, type DimKey } from "@/lib/report-pipeline/dimension-owners";
 import { CRITERIA, CRITERION_KEYS, type CriterionKey } from "@/lib/evaluation-criteria";
 import { bandFor } from "@/lib/report-visuals/palette";
+import { hubRowToDimensionEvidence, type DimensionEvidenceItem } from "@/lib/evidence/dimension-evidence";
+import { assessmentCardFromReport, type AssessmentCardData } from "@/lib/svi/assessment-card";
 import { makeVisual } from "@/lib/report-visuals";
 import type { Band, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { computeCohortPercentile, type CohortPercentileSource } from "@/lib/agents/cohort-percentile";
@@ -212,6 +214,8 @@ export interface DossierAssessmentBlock {
 export interface DossierView {
   viewer: { role: DossierViewerRole; userId: string };
   header: DossierHeader;
+  /** G21-P1-B: the BlockID Assessment Card (SVI · Evidence Confidence · BlockID Verified · strength / gap · unverified claims); null without a report. */
+  assessmentCard: AssessmentCardData | null;
   report: DossierReportBlock;
   /** block 2 — S-R4 */
   valuation: DossierValuationBlock;
@@ -323,6 +327,21 @@ export interface EvidenceRowInput {
   confidence_level: string;
   evidence_value_or_url: string | null;
   created_at: string | null;
+  /** G21-P1-B: reviewer signature + review state feed the Assessment Card (verified / unverified counts). */
+  is_verified?: boolean | null;
+  verified_at?: string | null;
+  review_status?: string | null;
+}
+
+/** G21-P1-B: Evidence Hub rows → the per-dimension items the Assessment Card builder reads. */
+export function dossierEvidenceByDim(rows: readonly EvidenceRowInput[]): Record<string, DimensionEvidenceItem[]> {
+  const out: Record<string, DimensionEvidenceItem[]> = {};
+  for (const r of rows) {
+    const item = hubRowToDimensionEvidence({ ...r, dimension: r.dimension, evidence_type: r.evidence_type, updated_at: null });
+    if (!item) continue;
+    (out[r.dimension.toLowerCase()] ??= []).push(item);
+  }
+  return out;
 }
 
 const SOURCE_LADDER = ["self_declared", "public_url", "document_uploaded", "connected_source", "transaction_data", "third_party_verified"];
@@ -589,7 +608,7 @@ async function readEvidenceRows(projectId: string): Promise<EvidenceRowInput[]> 
   try {
     const { data, error } = await supabase
       .from("svi_dimension_evidence")
-      .select("dimension, evidence_type, evidence_label, confidence_level, evidence_value_or_url, created_at")
+      .select("dimension, evidence_type, evidence_label, confidence_level, evidence_value_or_url, created_at, is_verified, verified_at, review_status")
       .eq("project_id", projectId)
       .order("created_at", { ascending: false })
       .limit(500);
@@ -601,6 +620,9 @@ async function readEvidenceRows(projectId: string): Promise<EvidenceRowInput[]> 
       confidence_level: String(r.confidence_level ?? "self_declared"),
       evidence_value_or_url: str(r.evidence_value_or_url),
       created_at: str(r.created_at),
+      is_verified: r.is_verified === true,
+      verified_at: str(r.verified_at),
+      review_status: str(r.review_status),
     }));
   } catch {
     return [];
@@ -803,9 +825,14 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
     founderExecution,
   };
 
+  // G21-P1-B: the Assessment Card from the same ReportV2 + Evidence Hub rows
+  // every other surface uses (the card never re-derives a score).
+  const assessmentCard = report ? assessmentCardFromReport(report, { evidence: dossierEvidenceByDim(evidenceRows) }) : null;
+
   return {
     viewer: { role, userId },
     header,
+    assessmentCard,
     report: reportBlock,
     valuation: buildValuationBlock(report, mine),
     evidence,

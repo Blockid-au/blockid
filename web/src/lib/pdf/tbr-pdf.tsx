@@ -43,6 +43,8 @@ import { ensureExecutiveStructured } from "@/lib/report-v2/executive-structure";
 import { proseParagraphs } from "@/lib/report-v2/paragraphs";
 import { buildValuationView, CONNECTORS_HREF } from "@/lib/report-v2/valuation-view";
 import { AdviceDisclaimer, PDF_ENTITY_LINE } from "./advice-disclaimer";
+import { ASSESSMENT_CARD_PDF_TITLE, AssessmentCardPdf, assessmentCardSummaryLine } from "./assessment-card-pdf";
+import { assessmentCardFromReport } from "@/lib/svi/assessment-card";
 import { pdfPageCount } from "./page-count";
 
 // ── Palette / styles ─────────────────────────────────────────────────────────
@@ -1001,12 +1003,20 @@ export function TbrReportPdf({ report, level = 0, preparedWith, locale }: TbrPdf
   // G19-S45: EN / VI font sets + strings only; ES / JA documents render with the English labels.
   const rawLoc = locale ?? report.locale ?? "en";
   const loc: "en" | "vi" = rawLoc === "vi" ? "vi" : "en";
-  useFontSet(loc);
+  const fonts = useFontSet(loc);
   const projection = projectForTier(report, level);
   const r = projection.report;
   const prepared = preparedWith?.trim() || defaultPreparedWith(report);
   const body: ReactNode[] = [];
   body.push(<Cover key="cover" report={r} locale={loc} preparedWith={prepared} />);
+  // G21-P1-B: the compact Assessment Card twin — additive, above the executive summary (same builder as the web card).
+  const card = assessmentCardFromReport(report);
+  if (projection.free && projection.level >= MAX_TRIM_LEVEL) {
+    // The last trim step keeps the card as one plain line (the padded free fixture sits exactly on the 10-page budget).
+    body.push(<Text key="assessment" style={s.tiny}>{t(`${ASSESSMENT_CARD_PDF_TITLE}: ${assessmentCardSummaryLine(card)}`)}</Text>);
+  } else {
+    body.push(<AssessmentCardPdf key="assessment" data={card} font={fonts} unicode={fonts.unicode} slim={projection.free && projection.level >= 2} />);
+  }
   body.push(<Executive key="exec" report={r} locale={loc} compact={projection.free && projection.level >= 3} />);
   r.dimensions.forEach((ch, i) => {
     body.push(

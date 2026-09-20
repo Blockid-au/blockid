@@ -16,6 +16,7 @@ import type {
 } from "@/lib/svi-completeness";
 import { SviCompletenessHeatmap } from "@/components/svi/svi-completeness-heatmap";
 import { SviFixRoadmap } from "@/components/svi/svi-fix-roadmap";
+import { EvidenceStatusChip } from "@/components/svi/EvidenceStatusChip";
 import { SviStreamAnalysis } from "@/components/svi/svi-stream-analysis";
 import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 
@@ -273,6 +274,8 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
                             <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-green-500" />
                           )}
                           <span className="flex-1">{ev.label}</span>
+                          {/* G21-P1-B: Claimed · Evidence-backed · Verified · Unverified · Conflicting */}
+                          <EvidenceStatusChip item={{ level: row?.confidence_level ?? ev.confidenceLevel, verified: row?.is_verified ?? false, verifiedAt: row?.verified_at ?? null, reviewStatus: status }} />
                           {row && status !== "none" && (
                             <span
                               className={

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { insertSviSnapshot } from "@/lib/svi/snapshot-evidence-confidence";
 import { checkAndAwardBadges, type BadgeCheckContext } from "@/lib/svi-badges";
 import { extractSignals, computeSVI } from "@/lib/svi-analysis";
 import { getProjectScope, findSVIAccountWithFallback, findLatestAnalysisWithFallback } from "@/lib/projects";
@@ -111,14 +112,11 @@ async function POST_handler() {
     : 10_000_000 + (newSVI - 120) * 250_000;
 
   if (Math.abs(delta) >= 2) {
-    await supabase.from("svi_snapshots").insert({
-      account_id: accountId,
-      svi_total: newSVI,
-      stage: newAnalysis.stage,
-      delta,
-      estimated_valuation: Math.round(estVal),
-      snapshot_date: new Date().toISOString().split("T")[0],
-    });
+    await insertSviSnapshot(
+      supabase,
+      { account_id: accountId, svi_total: newSVI, stage: newAnalysis.stage, delta, estimated_valuation: Math.round(estVal), snapshot_date: new Date().toISOString().split("T")[0] },
+      { analysis: newAnalysis },
+    );
 
     // Update cap table share price to reflect new valuation
     const pricePerShare = Math.round(estVal / 1_000_000 * 100) / 100;
