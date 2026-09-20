@@ -307,6 +307,60 @@ export interface ActionStep {
   evidenceToAdd?: EvidenceSource;
 }
 
+// ── G19-S47: structured executive summary ────────────────────────────────────
+
+export const EXECUTIVE_VERDICT_LABELS = ["back", "back_with_conditions", "watch", "not_yet"] as const;
+export type ExecutiveVerdictLabel = (typeof EXECUTIVE_VERDICT_LABELS)[number];
+export type ActionWindow = "this_week" | "30d" | "90d";
+
+/** Word caps the S47 contract enforces (CEO output + the markdown → structured fallback). */
+export const EXECUTIVE_CAPS = { headlineWords: 14, summaryParagraphs: 3, paragraphWords: 60, reasons: 3, gaps: 3, actions: 5, benchmarks: 8 } as const;
+
+export interface ExecutiveReason {
+  title: string;
+  body: string;
+  dim?: DimKey;
+}
+export interface ExecutiveGap {
+  title: string;
+  body: string;
+  dim?: DimKey;
+  /** SVI points the fix is worth, when the lift model knows. */
+  lift?: number;
+}
+export interface ExecutiveBenchmark {
+  dim: DimKey;
+  score: number;
+  band: Band;
+  note?: string;
+}
+export interface ExecutiveAction {
+  title: string;
+  detail: string;
+  window: ActionWindow;
+  dim?: DimKey;
+}
+
+/**
+ * G19-S47 — the executive summary as sections, not one run-on paragraph:
+ * headline → 2–3 summary paragraphs → key insight → 3 reasons to back →
+ * 3 critical gaps → benchmark chips → phase now → verdict → ≤ 5 actions.
+ * Written by the CEO call (JSON contract) or derived from the stored
+ * markdown / the chapters by `report-v2/executive-structure.ts`; never
+ * carries markdown syntax or HTML comments. `thesis` stays for back-compat.
+ */
+export interface ExecutiveStructured {
+  headline: string;
+  summary: string[];
+  keyInsight?: string;
+  reasonsToBack: ExecutiveReason[];
+  criticalGaps: ExecutiveGap[];
+  benchmarks: ExecutiveBenchmark[];
+  phaseNow: { phaseId: GrowthPhaseId; label: string; blocker: string; whatItTakes: string };
+  verdict: { label: ExecutiveVerdictLabel; condition?: string; confidence: number };
+  actions: ExecutiveAction[];
+}
+
 export interface ReportV2 {
   schemaVersion: typeof REPORT_V2_SCHEMA_VERSION;
   reportId: string;
@@ -359,6 +413,8 @@ export interface ReportV2 {
     phaseNow: PhaseGateResult;
     visuals: VisualSpecV2[];
     audit: AuditStamp;
+    /** G19-S47 — always present at render (`ensureExecutiveStructured`); optional on stored rows. */
+    structured?: ExecutiveStructured;
   };
   /** Exactly 8, in DIM_ORDER. */
   dimensions: DimensionChapter[];
@@ -490,6 +546,35 @@ export const sviLedgerSchema = z
     { message: "sviLedger fields must sum exactly to total" },
   );
 
+const wordCount = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
+
+// G19-S47 — structured executive: no markdown syntax / HTML comment survives into the document.
+/** True when a string still carries markdown or comment syntax (`**`, a leading `#`, `<!--`, a `> ` blockquote, fences). */
+export function hasMarkdownSyntax(s: string): boolean {
+  return /\*\*|<!--|```|(^|\n)\s*#{1,6}\s|(^|\n)\s*>\s/.test(s);
+}
+const plain = (max: number, min = 0) =>
+  z
+    .string()
+    .min(min)
+    .refine((s) => !hasMarkdownSyntax(s), { message: "no markdown syntax or HTML comments" })
+    .refine((s) => wordCount(s) <= max, { message: `≤ ${max} words` });
+const executiveReason = z.object({ title: plain(24, 1), body: plain(90), dim: dimKey.optional() });
+const executiveGap = z.object({ title: plain(24, 1), body: plain(90), dim: dimKey.optional(), lift: z.number().optional() });
+const executiveBenchmark = z.object({ dim: dimKey, score: z.number().min(0).max(100), band, note: plain(40).optional() });
+const executiveAction = z.object({ title: plain(30, 1), detail: plain(90), window: z.enum(["this_week", "30d", "90d"]), dim: dimKey.optional() });
+export const executiveStructuredSchema = z.object({
+  headline: plain(EXECUTIVE_CAPS.headlineWords, 1),
+  summary: z.array(plain(EXECUTIVE_CAPS.paragraphWords, 1)).min(1).max(EXECUTIVE_CAPS.summaryParagraphs),
+  keyInsight: plain(90).optional(),
+  reasonsToBack: z.array(executiveReason).max(EXECUTIVE_CAPS.reasons),
+  criticalGaps: z.array(executiveGap).max(EXECUTIVE_CAPS.gaps),
+  benchmarks: z.array(executiveBenchmark).max(EXECUTIVE_CAPS.benchmarks),
+  phaseNow: z.object({ phaseId: growthPhaseId, label: plain(12), blocker: plain(60), whatItTakes: plain(60) }),
+  verdict: z.object({ label: z.enum(EXECUTIVE_VERDICT_LABELS), condition: plain(60).optional(), confidence: z.number().min(0).max(1) }),
+  actions: z.array(executiveAction).max(EXECUTIVE_CAPS.actions),
+});
+
 const auditStamp = z.object({
   grounded: z.boolean(),
   uncited: z.number().int().nonnegative(),
@@ -511,8 +596,6 @@ const criterionCard = z.object({
   grounded: z.boolean(),
   agent: agentRole,
 });
-
-const wordCount = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
 
 const dimensionChapter = z
   .object({
@@ -699,6 +782,7 @@ export const reportV2Schema = z.object({
     phaseNow: phaseGateResult,
     visuals: z.array(visualSpec),
     audit: auditStamp,
+    structured: executiveStructuredSchema.optional(),
   }),
   dimensions: z
     .array(dimensionChapter)
