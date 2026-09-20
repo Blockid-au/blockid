@@ -17,6 +17,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { mergePilotMetrics, parsePilotMetrics, readPilotMetrics, PILOT_METRIC_KEYS } from "@/lib/pilots/metrics";
 import { apiRoute } from "@/lib/audit/api-route";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -44,6 +45,8 @@ export async function GET(_request: Request, ctx: Ctx) {
 async function PATCH_handler(request: Request, ctx: Ctx) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
+  const limited = enforceRateLimit("pilot-metrics", user.id, request, 30, 60 * 60 * 1000);
+  if (limited) return limited;
   const { orderId } = await ctx.params;
 
   let raw: unknown;
@@ -63,7 +66,10 @@ async function PATCH_handler(request: Request, ctx: Ctx) {
   const nowIso = new Date().toISOString();
   const merged = mergePilotMetrics(order.metrics, parsed.value, nowIso);
   const { error } = await sb.from("pilot_orders").update({ metrics: merged, updated_at: nowIso }).eq("id", order.id).eq("user_id", user.id);
-  if (error) return NextResponse.json({ ok: false, error: "db_error", message: error.message }, { status: 500 });
+  if (error) {
+    console.error("[blockid:pilots] metrics update failed", { code: error.code, message: error.message });
+    return NextResponse.json({ ok: false, error: "db_error", message: "Could not save the pilot metrics. Please try again." }, { status: 500 });
+  }
 
   const changed = PILOT_METRIC_KEYS.filter((k) => k in parsed.value && k !== "notes");
   try {

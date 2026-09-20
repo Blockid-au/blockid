@@ -81,8 +81,14 @@ async function postHandler(request: Request, { params }: Ctx) {
 
   const r = await addBatchMember({ batch: access.batch, inviter: { id: user.id, email: user.email, displayName: user.displayName ?? null }, email: parsed.data.email, role: parsed.data.role, siteBase: siteBase(request) });
   if (!r.ok) {
-    const status = r.error === "unknown_email" ? 404 : r.error === "unavailable" ? 503 : r.error === "db_error" ? 500 : 400;
-    return json({ ok: false, error: r.error, message: r.message }, status);
+    // Review P2: never confirm whether an address has a BlockID account
+    // (enumeration oracle) — an unknown address gets the same 202 as a
+    // pending invite; the inviter is told to ask them to sign up.
+    if (r.error === "unknown_email") {
+      return json({ ok: true, pending: true, invited: false, message: "If that address has a BlockID account it now has a seat on this cohort; otherwise ask them to sign up at /signup and invite them again." }, 202);
+    }
+    const status = r.error === "unavailable" ? 503 : r.error === "db_error" ? 500 : 400;
+    return json({ ok: false, error: r.error, message: r.error === "db_error" ? "Could not save the invite. Please try again." : r.message }, status);
   }
   return json({ ok: true, member: { user_id: r.member.userId, role: r.member.role, email: r.member.email, display_name: r.member.displayName, is_creator: false, created_at: r.member.createdAt }, email_sent: r.emailSent, already: r.already }, r.already ? 200 : 201);
 }

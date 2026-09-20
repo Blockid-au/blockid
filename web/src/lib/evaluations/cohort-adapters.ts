@@ -83,7 +83,7 @@ export function parseSnapshotRows(raw: unknown): CohortSnapshotRowLite[] {
       itemId: itemId == null ? null : Math.round(itemId),
       svi: num(r.svi ?? r.svi_total ?? r.sviTotal),
       confidence: num(r.confidence ?? r.evidence_confidence ?? r.evidenceConfidence),
-      dimensionScores: flattenDimensionScores(r.dimension_scores ?? r.dimensionScores ?? r.dimensions),
+      dimensionScores: flattenDimensionScores(r.dims ?? r.dimension_scores ?? r.dimensionScores ?? r.dimensions),
     });
   }
   return out;

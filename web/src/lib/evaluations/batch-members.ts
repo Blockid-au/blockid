@@ -52,16 +52,11 @@ export type BatchAccess =
   | { ok: true; batch: EvaluationBatch; role: BatchRole; isCreator: boolean }
   | { ok: false; error: "not_found" | "forbidden" | "unavailable" };
 
-const BATCH_COLUMNS = "id, user_id, name, rubric_weights, status, total, done_count, failed_count, created_at, started_at, finished_at";
-
-/** One batch by id, whoever owns it. Null when missing / DB off. */
-export async function getBatchById(batchId: string): Promise<EvaluationBatch | null> {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return null;
-  const { data, error } = await supabase.from("evaluation_batches").select(BATCH_COLUMNS).eq("id", batchId).maybeSingle();
-  if (error || !data) return null;
-  return mapBatchRow(data as Row);
-}
+// The batch read lives in ./batch (V2 columns: program_name, template_id,
+// applicants_cap, weights_version, pilot_order_id — review P1: a duplicate
+// 0322-column reader here had every assertBatchRole consumer seeing null caps).
+import { getBatchById } from "./batch";
+export { getBatchById };
 
 /** The caller's explicit member row on a batch (null before 0423 / when none). */
 export async function loadMemberRole(batchId: string, userId: string): Promise<BatchRole | null> {
@@ -178,7 +173,7 @@ export async function addBatchMember(input: {
   // ilike for case-insensitivity; % _ \ are escaped so "a_b@x.au" cannot match "aXb@x.au".
   const pattern = email.replace(/[\\%_]/g, (c) => `\\${c}`);
   const { data: userRow, error: userErr } = await supabase.from("app_users").select("id, email, display_name").ilike("email", pattern).limit(1).maybeSingle();
-  if (userErr) return { ok: false, error: "db_error", message: userErr.message ?? "Lookup failed" };
+  if (userErr) return { ok: false, error: "db_error", message: "Database error — please try again" };
   if (!userRow || String((userRow as Row).email ?? "").toLowerCase() !== email) return { ok: false, error: "unknown_email", message: "No BlockID account with that e-mail yet — ask them to sign up at /signup first, then invite again." };
   const target = userRow as Row;
   const userId = String(target.id);
@@ -193,7 +188,7 @@ export async function addBatchMember(input: {
     .maybeSingle();
   if (error || !data) {
     if (isMissingRelation(error)) return { ok: false, error: "unavailable", message: "Cohort reviewer seats are not available yet (migration 0423 pending)" };
-    return { ok: false, error: "db_error", message: error?.message ?? "Invite failed" };
+    return { ok: false, error: "db_error", message: "Database error — please try again" };
   }
   const r = data as Row;
   const member: BatchMember = {
@@ -238,7 +233,7 @@ export async function removeBatchMember(input: { batch: EvaluationBatch; actorId
   const { data, error } = await supabase.from("evaluation_batch_members").delete().eq("batch_id", input.batch.id).eq("user_id", input.userId).select("user_id");
   if (error) {
     if (isMissingRelation(error)) return { ok: false, error: "unavailable", message: "Cohort reviewer seats are not available yet (migration 0423 pending)" };
-    return { ok: false, error: "db_error", message: error.message ?? "Remove failed" };
+    return { ok: false, error: "db_error", message: "Database error — please try again" };
   }
   const removed = ((data ?? []) as Row[]).length > 0;
   if (removed) {

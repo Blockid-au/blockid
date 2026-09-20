@@ -115,6 +115,46 @@ export async function getBatchById(batchId: string): Promise<EvaluationBatch | n
  * the cohort with its website, founder e-mail and the project's ABN (0410).
  * Decorative on failure (an empty list only weakens dedupe, never blocks).
  */
+/** The evaluator's own tracked startups (all batches + standalone) — the import dedupes against these too (review P1: a retry after a proxy timeout minted duplicates). */
+/** Items already scored/queued across EVERY cohort attached to a paid pilot order (review P2: the cap is per pilot, not per batch). */
+export async function countItemsForPilotOrder(pilotOrderId: string): Promise<number> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return 0;
+  try {
+    const { data, error } = await supabase.from("evaluation_batches").select("id").eq("pilot_order_id", pilotOrderId).limit(500);
+    if (error || !data || data.length === 0) return 0;
+    const ids = (data as Row[]).map((r) => String(r.id));
+    const { count, error: cErr } = await supabase.from("evaluation_batch_items").select("id", { count: "exact", head: true }).in("batch_id", ids);
+    if (cErr) return 0;
+    return typeof count === "number" ? count : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export async function loadEvaluatorDedupeSources(userId: string): Promise<Array<{ website: string | null; founderEmail: string | null; abn: string | null }>> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from("evaluations")
+      .select("website, founder_email, projects:project_id (abn)")
+      .eq("evaluator_user_id", userId)
+      .limit(2000);
+    if (error || !data) return [];
+    return (data as Array<Row & { projects?: Row | Row[] | null }>).map((ev) => {
+      const p = ((Array.isArray(ev.projects) ? ev.projects[0] : ev.projects) ?? {}) as Row;
+      return {
+        website: ev.website == null ? null : String(ev.website),
+        founderEmail: ev.founder_email == null ? null : String(ev.founder_email),
+        abn: p.abn == null ? null : String(p.abn),
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
 export async function loadBatchDedupeSources(batchId: string): Promise<Array<{ website: string | null; founderEmail: string | null; abn: string | null }>> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return [];

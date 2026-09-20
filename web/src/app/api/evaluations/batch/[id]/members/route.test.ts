@@ -177,11 +177,14 @@ describe("POST /api/evaluations/batch/[id]/members", () => {
     expect((await json(res)).already).toBe(true);
   });
 
-  it("maps addBatchMember's error union: unknown_email -> 404 with a sign-up hint", async () => {
+  it("unknown_email -> 202 pending (review P2: never confirms whether an address has an account) with a sign-up hint", async () => {
     addBatchMemberMock.mockResolvedValue({ ok: false, error: "unknown_email", message: "No BlockID account with that e-mail yet — ask them to sign up at /signup first, then invite again." });
     const res = await POST(postReq({ email: "ghost@accel.au" }), ctx());
-    expect(res.status).toBe(404);
-    expect((await json(res)).message as string).toContain("sign up");
+    expect(res.status).toBe(202);
+    const body = await json(res);
+    expect(body).toMatchObject({ ok: true, pending: true, invited: false });
+    expect(body.message as string).toContain("sign up");
+    expect(body).not.toHaveProperty("error");
   });
 
   it("maps invalid_email / self -> 400", async () => {

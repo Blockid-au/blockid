@@ -11,6 +11,13 @@ vi.mock("@/lib/rate-limit", () => ({ enforceRateLimit: () => null }));
 
 const getBatchForUserMock = vi.fn();
 vi.mock("@/lib/evaluations/batch", () => ({ getBatchForUser: (u: string, id: string) => getBatchForUserMock(u, id) }));
+// Review P1: the route resolves the batch through assertBatchRole (reviewer+).
+vi.mock("@/lib/evaluations/batch-members", () => ({
+  assertBatchRole: async (id: string, userId: string) => {
+    const batch = await getBatchForUserMock(userId, id);
+    return batch ? { ok: true, batch, role: "owner", isCreator: true } : { ok: false, error: "not_found" };
+  },
+}));
 
 const snapMocks = vi.hoisted(() => ({ take: vi.fn(), latest: vi.fn(), requeue: vi.fn(), list: vi.fn() }));
 vi.mock("@/lib/evaluations/cohort-snapshots", () => ({

@@ -316,7 +316,7 @@ export async function requeueStaleItems(
   opts: { olderThanDays?: number; now?: Date } = {},
 ): Promise<{ requeued: number[]; fresh: number; batchStatus: BatchStatus }> {
   const supabase = getSupabaseAdmin();
-  const out = { requeued: [] as number[], fresh: 0, batchStatus: batch.status };
+  const out = { requeued: [] as number[], fresh: 0, requeuedFailed: 0, batchStatus: batch.status };
   if (!supabase) return out;
   const days = opts.olderThanDays ?? RESCORE_STALE_DAYS;
   const cutoff = (opts.now ?? new Date()).getTime() - days * 24 * 60 * 60 * 1000;

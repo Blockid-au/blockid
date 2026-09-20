@@ -148,7 +148,7 @@ describe("requeueStaleItems", () => {
     const fake = fakeSupabase({ evaluation_batches: [{ id: "b-1" }] });
     sb.client = fake;
     const r = await requeueStaleItems(BATCH, { olderThanDays: 30, now: new Date("2026-09-20T00:00:00Z") });
-    expect(r).toEqual({ requeued: [2], fresh: 1, batchStatus: "queued" });
+    expect(r).toEqual({ requeued: [2], fresh: 1, requeuedFailed: 0, batchStatus: "queued" });
     expect(batchMocks.markItem).toHaveBeenCalledWith(2, { status: "queued", error: null });
     expect(fake.find("evaluation_batches", "update")[0]!.args[0]).toEqual({ status: "queued", finished_at: null });
   });
@@ -157,7 +157,7 @@ describe("requeueStaleItems", () => {
     const fake = fakeSupabase();
     sb.client = fake;
     const r = await requeueStaleItems(BATCH, { olderThanDays: 3650, now: new Date("2026-09-20T00:00:00Z") });
-    expect(r).toEqual({ requeued: [], fresh: 2, batchStatus: "done" });
+    expect(r).toEqual({ requeued: [], fresh: 2, requeuedFailed: 0, batchStatus: "done" });
     expect(fake.find("evaluation_batches", "update")).toHaveLength(0);
   });
 });

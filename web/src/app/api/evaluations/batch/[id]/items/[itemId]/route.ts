@@ -88,7 +88,8 @@ async function handler(request: Request, { params }: Ctx) {
     .maybeSingle();
   if (error) {
     if (isMissingColumn(error)) return json({ ok: false, error: "unavailable", message: "Cohort review columns are missing on this server (migration 0423)" }, 503);
-    return json({ ok: false, error: "db_error", message: error.message }, 500);
+    console.error("[blockid:cohort] item update failed", { code: error.code, message: error.message });
+    return json({ ok: false, error: "db_error", message: "Could not update the cohort item. Please try again." }, 500);
   }
   if (!data) return json({ ok: false, error: "not_found" }, 404);
   const row = data as Record<string, unknown>;

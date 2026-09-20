@@ -26,12 +26,28 @@ const addToBatchMock = vi.fn();
 vi.mock("@/lib/evaluations/batch", () => ({
   getBatchForUser: (u: string, id: string) => getBatchForUserMock(u, id),
   countBatchItems: (id: string) => countBatchItemsMock(id),
+  countItemsForPilotOrder: (id: string) => countBatchItemsMock(id),
   loadBatchDedupeSources: (id: string) => loadDedupeMock(id),
+  loadEvaluatorDedupeSources: async () => [],
   addEvaluationsToBatch: (b: unknown, ids: string[]) => addToBatchMock(b, ids),
+}));
+// Review P1: the route resolves the batch through the one membership rule
+// (owner). The mock keeps the old `getBatchForUser` fixture semantics: null → not_found.
+vi.mock("@/lib/evaluations/batch-members", () => ({
+  assertBatchRole: async (id: string, userId: string) => {
+    const batch = await getBatchForUserMock(userId, id);
+    return batch ? { ok: true, batch, role: "owner", isCreator: true } : { ok: false, error: "not_found" };
+  },
 }));
 
 const createEvaluationMock = vi.fn();
-vi.mock("@/lib/evaluations", () => ({ createEvaluation: (...args: unknown[]) => createEvaluationMock(...args) }));
+const sendDeferredInviteMock = vi.fn(async () => true);
+vi.mock("@/lib/evaluations", () => ({ createEvaluation: (...args: unknown[]) => createEvaluationMock(...args), sendDeferredFounderInvite: (i: unknown) => sendDeferredInviteMock(i) }));
+vi.mock("next/server", async (orig) => {
+  const mod = (await orig()) as Record<string, unknown>;
+  // `after()` runs the callback immediately in tests (no request scope).
+  return { ...mod, after: (fn: () => Promise<void> | void) => void fn() };
+});
 
 const getTemplateByIdMock = vi.fn();
 vi.mock("@/lib/intake/templates", () => ({ getTemplateById: (id: string | null) => getTemplateByIdMock(id) }));
@@ -98,7 +114,8 @@ beforeEach(() => {
   getTemplateByIdMock.mockResolvedValue({ id: "tpl-1", consentText: "Round 1 reads your evidence.", questions: [] });
   createEvaluationMock.mockImplementation(async (_u: unknown, input: { name: string }) => {
     evalSeq += 1;
-    return { ok: true, evaluation: { id: `ev-${evalSeq}`, projectId: `p-${evalSeq}`, projectName: input.name }, inviteSent: evalSeq === 1, used: evalSeq, limit: 200 };
+    const deferredInvite = evalSeq === 1 ? { evaluationId: `ev-${evalSeq}`, founderEmail: "f@x.au", startupName: input.name, evaluatorName: "QA", inviteToken: "tok", consentText: null } : null;
+    return { ok: true, evaluation: { id: `ev-${evalSeq}`, projectId: `p-${evalSeq}`, projectName: input.name }, inviteSent: false, deferredInvite, used: evalSeq, limit: 200 };
   });
   addToBatchMock.mockImplementation(async (b: typeof BATCH, ids: string[]) => ({ ok: true, added: ids, alreadyPresent: [], batch: { ...b, status: "queued", total: b.total + ids.length } }));
 });
@@ -161,9 +178,9 @@ describe("/api/evaluations/batch/[id]/import.csv — happy path", () => {
       1,
       USER,
       { name: "Acme", website: "https://acme.com.au", founder_email: "f@acme.com.au", industry: "Robotics", stage: 3, notes: "Deck: https://acme.com.au/deck.pdf", abn: "79659615111" },
-      { consentText: "Round 1 reads your evidence." },
+      { consentText: "Round 1 reads your evidence.", deferInvite: true },
     );
-    expect(createEvaluationMock).toHaveBeenNthCalledWith(2, USER, { name: "Beta", website: "https://beta.io", founder_email: null, industry: "Fintech", stage: 4, notes: null, abn: null }, { consentText: "Round 1 reads your evidence." });
+    expect(createEvaluationMock).toHaveBeenNthCalledWith(2, USER, { name: "Beta", website: "https://beta.io", founder_email: null, industry: "Fintech", stage: 4, notes: null, abn: null }, { consentText: "Round 1 reads your evidence.", deferInvite: true });
     expect(addToBatchMock).toHaveBeenCalledWith(BATCH, ["ev-1", "ev-2"]);
     expect(emitMock).toHaveBeenCalledTimes(2);
     expect(emitMock).toHaveBeenCalledWith("startup_added_to_cohort", expect.objectContaining({ organisation: "u-1", startup: "p-1", channel: "csv_import", batch_id: BATCH_ID, evaluation_id: "ev-1", invite_sent: true }));
@@ -196,6 +213,6 @@ describe("/api/evaluations/batch/[id]/import.csv — happy path", () => {
     getBatchForUserMock.mockResolvedValue({ ...BATCH, templateId: null });
     getTemplateByIdMock.mockResolvedValue(null);
     await POST(textPost("company\nSolo"), ctx());
-    expect(createEvaluationMock).toHaveBeenCalledWith(USER, expect.objectContaining({ name: "Solo" }), { consentText: null });
+    expect(createEvaluationMock).toHaveBeenCalledWith(USER, expect.objectContaining({ name: "Solo" }), { consentText: null, deferInvite: true });
   });
 });

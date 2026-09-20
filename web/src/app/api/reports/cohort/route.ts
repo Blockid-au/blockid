@@ -21,6 +21,7 @@ import { getEntitlements, recordGateHit } from "@/lib/entitlements";
 import { canBatchScore, canExportLpReport } from "@/lib/evaluations/batch-shared";
 import { cohortReportCsv, cohortReportFilename, renderCohortReportHtml } from "@/lib/evaluations/cohort-report";
 import { cohortReportFromBundle, loadCohortBundle } from "@/lib/evaluations/program-journey-data";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -47,6 +48,8 @@ export function parseFormat(v: string | null): CohortReportFormat | null {
 export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
+  const limited = enforceRateLimit("cohort-report", user.id, request, 20, 60 * 60 * 1000);
+  if (limited) return limited;
 
   const flags = await getEntitlements(user.plan ?? "", user.id);
   if (!canExportLpReport(flags) && !canBatchScore(flags)) {

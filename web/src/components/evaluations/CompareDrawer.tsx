@@ -45,7 +45,7 @@ export function CompareDrawer({ open, rows, onClose, onRemove }: CompareDrawerPr
   const shown = rows.slice(0, MAX_COMPARE);
 
   return (
-    <div className={cn("fixed inset-0 z-[90]", open ? "" : "pointer-events-none")} aria-hidden={!open} data-testid="compare-drawer-root" data-open={open ? "true" : "false"}>
+    <div className={cn("fixed inset-0 z-[90]", open ? "" : "pointer-events-none invisible")} aria-hidden={!open} data-testid="compare-drawer-root" data-open={open ? "true" : "false"}>
       <div className={cn("absolute inset-0 bg-black/50 transition-opacity duration-200", open ? "opacity-100" : "opacity-0")} onClick={onClose} aria-hidden="true" />
       <aside
         role="dialog"

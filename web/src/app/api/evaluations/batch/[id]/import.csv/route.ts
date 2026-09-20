@@ -23,13 +23,15 @@
 // csv_import). Quota for the scoring itself is re-checked per item by the
 // runner (review #8), so the import never charges anything.
 
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { apiRoute } from "@/lib/audit/api-route";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { PRIVATE_JSON_HEADERS, isUuid } from "@/lib/security/request-guards";
 import { parseMultipart } from "@/lib/http/multipart";
 import { gateBatchRequest } from "@/lib/evaluations/batch-gate";
-import { addEvaluationsToBatch, countBatchItems, getBatchForUser, loadBatchDedupeSources } from "@/lib/evaluations/batch";
+import { addEvaluationsToBatch, countBatchItems, countItemsForPilotOrder, loadBatchDedupeSources, loadEvaluatorDedupeSources } from "@/lib/evaluations/batch";
+import { assertBatchRole } from "@/lib/evaluations/batch-members";
+import { sendDeferredFounderInvite, type DeferredInvite } from "@/lib/evaluations";
 import { IMPORT_MAX_BYTES, capState, keysForExisting, parseCohortImport, type ImportSkip } from "@/lib/evaluations/cohort-import";
 import { createEvaluation } from "@/lib/evaluations";
 import { getTemplateById } from "@/lib/intake/templates";
@@ -81,8 +83,14 @@ async function POST_handler(request: Request, { params }: Ctx) {
   const limited = enforceRateLimit("cohort-import", user.id, request, IMPORT_RATE_MAX, IMPORT_RATE_WINDOW_MS);
   if (limited) return limited;
 
-  const batch = await getBatchForUser(user.id, id);
-  if (!batch) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+  // Review P1: the page shows the import control to owners; resolve the
+  // batch through the one membership rule (owner = creator or owner seat).
+  const access = await assertBatchRole(id, user.id, "owner");
+  if (!access.ok) {
+    if (access.error === "forbidden") return NextResponse.json({ ok: false, error: "forbidden", message: "Only the cohort owner can import applicants" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+  }
+  const batch = access.batch;
 
   const body = await readCsvBody(request);
   if (!body.ok) {
@@ -92,14 +100,17 @@ async function POST_handler(request: Request, { params }: Ctx) {
     return NextResponse.json({ ok: false, error: "invalid_csv", message: "Could not read the upload" }, { status: 400 });
   }
 
-  const existing = keysForExisting(await loadBatchDedupeSources(batch.id));
+  // Dedupe against the cohort AND the evaluator's other tracked startups
+  // (review P1: a retried import after a proxy timeout minted duplicates).
+  const existing = keysForExisting([...(await loadBatchDedupeSources(batch.id)), ...(await loadEvaluatorDedupeSources(user.id))]);
   const parsed = parseCohortImport(body.text, { existingKeys: existing });
   if (!parsed.ok) {
     return NextResponse.json({ ok: false, error: parsed.error === "too_large" ? "too_large" : "invalid_csv", message: parsed.message }, { status: parsed.error === "too_large" ? 413 : 400 });
   }
 
   // applicants_cap (paid pilot) — all-or-nothing, like the batch quota.
-  const used = await countBatchItems(batch.id);
+  // Review P2: the pilot cap counts every cohort under the same pilot order.
+  const used = batch.pilotOrderId ? await countItemsForPilotOrder(batch.pilotOrderId) : await countBatchItems(batch.id);
   const cap = capState(used, batch.applicantsCap);
   if (cap.max != null && used + parsed.rows.length > cap.max) {
     return NextResponse.json(
@@ -120,8 +131,20 @@ async function POST_handler(request: Request, { params }: Ctx) {
 
   const created: string[] = [];
   const skipped: ImportSkip[] = [...parsed.skipped];
-  let invitesSent = 0;
+  let invitesQueued = 0;
   let planLimitHit = false;
+  const deferredInvites: DeferredInvite[] = [];
+  // Review P1: items are appended per row (a proxy timeout mid-import no longer
+  // loses the appended rows) and founder invites are sent AFTER the response.
+  const APPEND_EVERY = 10;
+  let pendingAppend: string[] = [];
+  const flushAppend = async () => {
+    if (pendingAppend.length === 0) return;
+    const chunk = pendingAppend;
+    pendingAppend = [];
+    const added = await addEvaluationsToBatch(batch, chunk);
+    if (!added.ok) throw new Error(added.message);
+  };
   for (const row of parsed.rows) {
     if (planLimitHit) {
       skipped.push({ line: row.line, reason: "plan_limit", message: "Plan limit reached — upgrade to track more startups" });
@@ -138,7 +161,7 @@ async function POST_handler(request: Request, { params }: Ctx) {
         notes: row.deckUrl ? `Deck: ${row.deckUrl}` : null,
         abn: row.abn,
       },
-      { consentText },
+      { consentText, deferInvite: true },
     );
     if (!result.ok) {
       if (result.error === "evaluation_limit_reached") {
@@ -150,7 +173,18 @@ async function POST_handler(request: Request, { params }: Ctx) {
       continue;
     }
     created.push(result.evaluation.id);
-    if (result.inviteSent) invitesSent += 1;
+    pendingAppend.push(result.evaluation.id);
+    if (pendingAppend.length >= APPEND_EVERY) {
+      try {
+        await flushAppend();
+      } catch (err) {
+        skipped.push({ line: row.line, reason: "create_failed", message: err instanceof Error ? err.message : "Could not add the row to the cohort" });
+      }
+    }
+    if (result.deferredInvite) {
+      deferredInvites.push(result.deferredInvite);
+      invitesQueued += 1;
+    }
     emitFiEvent("startup_added_to_cohort", {
       organisation: user.id,
       startup: result.evaluation.projectId,
@@ -160,22 +194,37 @@ async function POST_handler(request: Request, { params }: Ctx) {
       email: user.email,
       batch_id: batch.id,
       evaluation_id: result.evaluation.id,
-      invite_sent: result.inviteSent,
+      invite_sent: Boolean(result.deferredInvite),
     });
   }
 
+  // Final chunk (idempotent: addEvaluationsToBatch skips ids already present).
   const added = await addEvaluationsToBatch(batch, created);
   if (!added.ok) {
     return NextResponse.json({ ok: false, error: added.error, message: added.message, created: created.length, skipped }, { status: added.error === "service_unavailable" ? 503 : 500 });
   }
+  // Founder invites go out after the response (best effort, never blocks the import).
+  if (deferredInvites.length > 0) {
+    after(async () => {
+      for (const invite of deferredInvites) {
+        try {
+          await sendDeferredFounderInvite(invite);
+        } catch (err) {
+          console.error("[blockid:cohort-import] deferred invite failed", { evaluation_id: invite.evaluationId, err });
+        }
+      }
+    });
+  }
   skipped.sort((a, b) => a.line - b.line);
+  const importedCount = added.added.length + added.alreadyPresent.length;
   return NextResponse.json(
     {
       ok: true,
-      imported: added.added.length,
+      imported: importedCount,
       skipped,
-      cap: capState(used + added.added.length, batch.applicantsCap),
-      invites_sent: invitesSent,
+      cap: capState(used + importedCount, batch.applicantsCap),
+      invites_sent: invitesQueued,
+      invites_queued: invitesQueued,
       batch: added.batch,
     },
     { headers: PRIVATE_JSON_HEADERS },

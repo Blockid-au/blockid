@@ -316,7 +316,8 @@ describe("rate-limit identity — signed-in users are keyed per session, not per
     const res = await proxy(req("/api/svi/phase-progress", { method: "GET", site: "same-origin", cookie }));
     expect(res.status).toBe(200);
     const [bucket, parts] = checkRateLimitMock.mock.calls[0] as [string, string[]];
-    expect(bucket).toBe("svi");
+    // G21: the read-only progress GET has its own 120/min bucket.
+    expect(bucket).toBe("svi-read");
     expect(parts[0]).toBe("/api/svi/phase-progress");
     return parts[1];
   }

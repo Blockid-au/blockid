@@ -35,12 +35,18 @@ const countPendingMock = vi.fn();
 const createBatchMock = vi.fn();
 const listBatchesMock = vi.fn();
 const ownedMock = vi.fn();
+const countPilotItemsMock = vi.fn(async () => 0);
 vi.mock("@/lib/evaluations/batch", () => ({
   countPendingBatchItems: (id: string) => countPendingMock(id),
+  countItemsForPilotOrder: (id: string) => countPilotItemsMock(id),
   createBatch: (i: unknown) => createBatchMock(i),
   listBatches: (id: string) => listBatchesMock(id),
   ownedEvaluationIds: (id: string, ids: string[]) => ownedMock(id, ids),
 }));
+// Review P2: template / intake links must belong to the caller.
+const getTemplateMock = vi.fn(async (_u: string, id: string) => ({ id, name: "Round 1" }));
+vi.mock("@/lib/intake/templates", () => ({ getTemplate: (u: string, id: string) => getTemplateMock(u, id) }));
+vi.mock("@/lib/intake/program-intakes", () => ({ supabaseIntakeStore: async () => ({ getIntakeForOwner: async (_u: string, id: string) => ({ id }) }) }));
 
 import { GET, POST, dynamic } from "./route";
 
@@ -225,6 +231,18 @@ describe("/api/evaluations/batch", () => {
       channel: "workspace",
     });
     expect((await POST(post({ evaluation_ids: [], allow_empty: true, template_id: "nope" }))).status).toBe(400);
+    // Review P2: someone else's template → 404, nothing created.
+    getTemplateMock.mockResolvedValueOnce(null as never);
+    expect((await POST(post({ evaluation_ids: [], allow_empty: true, template_id: "11111111-2222-4333-8444-555555555555" }))).status).toBe(404);
+  });
+
+  it("review P2: the pilot applicants cap counts every cohort under the pilot order, also for selection-created batches", async () => {
+    findActivePilotOrderMock.mockResolvedValue({ id: "po-1", applicants_cap: 25 });
+    countPilotItemsMock.mockResolvedValueOnce(24);
+    const res = await POST(post({ evaluation_ids: ["e-1", "e-2"], name: "Over" }));
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ error: "cap_reached", cap: { used: 24, max: 25, remaining: 1 }, needed: 2 });
+    expect(createBatchMock).not.toHaveBeenCalled();
     expect((await POST(post({ evaluation_ids: [] }))).status).toBe(400);
   });
 

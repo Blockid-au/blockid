@@ -14,6 +14,7 @@ import { canBatchScore, canExportLpReport } from "@/lib/evaluations/batch-shared
 import { cohortReportFilename } from "@/lib/evaluations/cohort-report";
 import { isSelected } from "@/lib/evaluations/program-journey";
 import { demoDayPackFromStartups, loadCohortBundle } from "@/lib/evaluations/program-journey-data";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -32,6 +33,8 @@ function siteBase(request: Request): string {
 export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
+  const limited = enforceRateLimit("demo-day-pack", user.id, request, 10, 60 * 60 * 1000);
+  if (limited) return limited;
 
   const flags = await getEntitlements(user.plan ?? "", user.id);
   if (!canExportLpReport(flags) && !canBatchScore(flags)) {
@@ -48,7 +51,7 @@ export async function GET(request: Request) {
 
   const entries = demoDayPackFromStartups(bundle.startups.filter(isSelected));
   const { renderDemoDayPackPdf } = await import("@/lib/pdf/demo-day-pack-pdf");
-  const { buffer } = await renderDemoDayPackPdf({ cohortName: bundle.batch.name, programName: user.displayName ?? null, generatedAt: new Date().toISOString(), entries, base: siteBase(request) });
+  const { buffer } = await renderDemoDayPackPdf({ cohortName: bundle.batch.name, programName: bundle.batch.programName ?? user.displayName ?? null, generatedAt: new Date().toISOString(), entries, base: siteBase(request) });
   return new NextResponse(new Uint8Array(buffer), {
     status: 200,
     headers: {

@@ -22,7 +22,7 @@ import { apiRoute } from "@/lib/audit/api-route";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { PRIVATE_JSON_HEADERS, isUuid, readJsonBody } from "@/lib/security/request-guards";
 import { gateBatchRequest } from "@/lib/evaluations/batch-gate";
-import { getBatchForUser } from "@/lib/evaluations/batch";
+import { assertBatchRole } from "@/lib/evaluations/batch-members";
 import { RESCORE_STALE_DAYS, latestSnapshots, requeueStaleItems, takeCohortSnapshot } from "@/lib/evaluations/cohort-snapshots";
 import { deltaByProject, summariseDeltas } from "@/lib/evaluations/cohort-delta";
 
@@ -54,8 +54,13 @@ async function POST_handler(request: Request, { params }: Ctx) {
     olderThanDays = n;
   }
 
-  const batch = await getBatchForUser(user.id, id);
-  if (!batch) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+  // Review P1: reviewers see the Snapshot / Re-score controls — one membership rule.
+  const access = await assertBatchRole(id, user.id, "reviewer");
+  if (!access.ok) {
+    if (access.error === "forbidden") return NextResponse.json({ ok: false, error: "forbidden", message: "Viewers cannot snapshot or re-score a cohort" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+  }
+  const batch = access.batch;
 
   const requeue = reason === "rescore" ? await requeueStaleItems(batch, { olderThanDays }) : { requeued: [] as number[], fresh: 0, batchStatus: batch.status };
   const taken = await takeCohortSnapshot(batch.id, { reason, createdBy: user.id, batch });

@@ -167,7 +167,7 @@
   "solutions.accelerator.journey.step3.head": "Chọn lọc",
   "solutions.accelerator.journey.step3.b1": "Bảng khoá với SVI, mức tin cậy, mức xác minh, thay đổi, chiều mạnh nhất và yếu nhất, khoảng trống bằng chứng và trạng thái xem xét — lọc theo giai đoạn, ngành, khoảng điểm hoặc mức xác minh.",
   "solutions.accelerator.journey.step3.b2": "Danh sách rút gọn, quyết định và mức tin tưởng cho từng startup; người đánh giá có thể ghi đè điểm một chiều kèm mã lý do, hiển thị bên cạnh điểm mô hình và không bao giờ thay thế nó.",
-  "solutions.accelerator.journey.step3.b3": "Thư phản hồi cho hồ sơ không được chọn — xem trước, chỉ gửi khi xác nhận, tối thiểu ba người đánh giá nên không ai bị nhận diện.",
+  "solutions.accelerator.journey.step3.b3": "Thư phản hồi cho hồ sơ không được chọn — xem trước, chỉ gửi khi xác nhận, và chỉ khi startup đã có ít nhất ba bản đánh giá đã nộp từ hai tổ chức trở lên, nên không ai bị nhận diện.",
   "solutions.accelerator.journey.window4": "Cố vấn",
   "solutions.accelerator.journey.step4.head": "Chương trình",
   "solutions.accelerator.journey.step4.b1": "Radar tiến độ và mức hoàn thiện bằng chứng của từng startup cho cố vấn biết nên dành giờ vào đâu.",

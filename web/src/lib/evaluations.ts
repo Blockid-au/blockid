@@ -124,10 +124,44 @@ export interface CreateEvaluationInput {
 export interface CreateEvaluationOptions {
   /** Program consent text appended to the founder invite e-mail (intake_templates.consent_text). */
   consentText?: string | null;
+  /**
+   * G21 P2 review: bulk callers (CSV import) send the invite AFTER their
+   * response instead of awaiting one e-mail per row — the create returns a
+   * `deferredInvite` the caller hands to `sendDeferredFounderInvite`.
+   */
+  deferInvite?: boolean;
+}
+
+/** Everything needed to send a founder invite later (no secrets, no PII beyond the founder e-mail). */
+export interface DeferredInvite {
+  evaluationId: string;
+  founderEmail: string;
+  startupName: string;
+  evaluatorName: string;
+  inviteToken: string;
+  consentText: string | null;
+}
+
+/** Sends a deferred founder invite (Spam Act footer + unsubscribe, like the inline path). */
+export async function sendDeferredFounderInvite(invite: DeferredInvite): Promise<boolean> {
+  const { subject, html } = buildFounderInviteEmail({
+    evaluatorName: invite.evaluatorName,
+    startupName: invite.startupName,
+    claimUrl: claimUrlForToken(invite.inviteToken),
+    consentText: invite.consentText,
+  });
+  try {
+    const { unsubscribeUrl, footerHtml } = await complianceFooter(invite.founderEmail);
+    const sent = await sendEmail({ to: invite.founderEmail, subject, html: html + footerHtml, unsubscribeUrl });
+    return sent.ok;
+  } catch (err) {
+    console.error("[blockid:evaluations] deferred invite email failed", err);
+    return false;
+  }
 }
 
 export type CreateEvaluationResult =
-  | { ok: true; evaluation: EvaluationListRow; inviteSent: boolean; used: number; limit: number }
+  | { ok: true; evaluation: EvaluationListRow; inviteSent: boolean; deferredInvite?: DeferredInvite | null; used: number; limit: number }
   | { ok: false; error: "evaluation_limit_reached"; limit: number; used: number; message: string }
   | { ok: false; error: "invalid_input"; message: string }
   | { ok: false; error: "service_unavailable" | "create_failed"; message: string };
@@ -616,7 +650,17 @@ export async function createEvaluation(
 
   // 3. Founder invite — best effort; a mail outage must not undo the create.
   let inviteSent = false;
-  if (inviteToken && input.founderEmail) {
+  let deferredInvite: DeferredInvite | null = null;
+  if (inviteToken && input.founderEmail && options.deferInvite) {
+    deferredInvite = {
+      evaluationId: String((evalRow as Row).id),
+      founderEmail: input.founderEmail,
+      startupName: input.name,
+      evaluatorName: evaluator.displayName?.trim() || evaluator.email,
+      inviteToken,
+      consentText: options.consentText ?? null,
+    };
+  } else if (inviteToken && input.founderEmail) {
     const evaluatorName = evaluator.displayName?.trim() || evaluator.email;
     const { subject, html } = buildFounderInviteEmail({
       evaluatorName,
@@ -645,7 +689,7 @@ export async function createEvaluation(
     latestSvi: null,
     latestSviAt: null,
   };
-  return { ok: true, evaluation, inviteSent, used: used + 1, limit };
+  return { ok: true, evaluation, inviteSent, deferredInvite, used: used + 1, limit };
 }
 
 export async function updateEvaluation(

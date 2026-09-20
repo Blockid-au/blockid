@@ -270,7 +270,7 @@ describe("createOverride", () => {
   it("db_error on any other insert failure", async () => {
     state.errors.assessment_overrides = { code: "23505", message: "duplicate key" };
     const r = await createOverride({ batchId: "b-1", reviewer, item: { id: 1, projectId: "p-1", fromValue: 40 }, body: { item_id: 1, dimension: "tre", to_value: 62, reason_code: "sector_context", note: null } });
-    expect(r).toEqual({ ok: false, error: "db_error", message: "duplicate key" });
+    expect(r).toEqual({ ok: false, error: "db_error", message: "Database error — please try again" }); // review P2: raw Postgres text never reaches the client
   });
 
   it("unavailable when there is no Supabase client", async () => {

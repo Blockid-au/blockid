@@ -25,6 +25,7 @@ import { defaultFeedbackBatchDeps, previewFeedbackLetters, sendFeedbackLetters, 
 import { isNonSelected } from "@/lib/evaluations/program-journey";
 import { loadCohortBundle } from "@/lib/evaluations/program-journey-data";
 import { apiRoute } from "@/lib/audit/api-route";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -40,6 +41,8 @@ export const bodySchema = z
 async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
+  const limited = enforceRateLimit("cohort-feedback-letters", user.id, request, 10, 60 * 60 * 1000);
+  if (limited) return limited;
 
   const flags = await getEntitlements(user.plan ?? "", user.id);
   if (!canExportLpReport(flags) && !canBatchScore(flags)) {

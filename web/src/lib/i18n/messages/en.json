@@ -168,7 +168,7 @@
   "solutions.accelerator.journey.step3.head": "Selection",
   "solutions.accelerator.journey.step3.b1": "A cohort table with SVI, confidence, verification, change, strongest and weakest dimension, evidence gaps and review status — filter by stage, sector, score range or verification.",
   "solutions.accelerator.journey.step3.b2": "Shortlist, decision and conviction per startup; a reviewer may override a dimension score with a reason code, shown beside the model score and never replacing it.",
-  "solutions.accelerator.journey.step3.b3": "Feedback letters to non-selected applicants — previewed first, sent only on confirm, three reviewers minimum so no reviewer is identifiable.",
+  "solutions.accelerator.journey.step3.b3": "Feedback letters to non-selected applicants — previewed first, sent only on confirm, and only once at least three submitted assessments from two or more organisations exist for the startup, so no reviewer is identifiable.",
   "solutions.accelerator.journey.window4": "Mentoring",
   "solutions.accelerator.journey.step4.head": "Program",
   "solutions.accelerator.journey.step4.b1": "Progress radar and evidence completion per startup show mentors where to spend the hour.",

@@ -75,6 +75,9 @@ const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days
 // tuple list (not a map) because pathname prefixes overlap and we want
 // deterministic dispatch.
 const BUCKET_ROUTES: ReadonlyArray<readonly [prefix: string, bucket: RateLimitBucket]> = [
+  // Cheap read-only GET on every workspace page — its own generous bucket
+  // (G20 follow-up: fast-tabbing accelerators hit 429 on the 20/min bucket).
+  ["/api/svi/phase-progress", "svi-read"],
   ["/api/svi", "svi"],
   ["/api/idea-questions", "idea"],
   ["/api/idea-estimate", "idea"],

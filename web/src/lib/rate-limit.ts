@@ -336,6 +336,10 @@ export async function checkRateLimitAsync(
 
 export type RateLimitBucket =
   | "svi"
+  // G21 P2 review / G20 follow-up: the read-only phase-progress GET is fetched
+  // on every workspace page load (and by the live-qa sweep) — it must not
+  // share the 20/min analysis bucket.
+  | "svi-read"
   | "idea"
   | "score"
   | "term-sheet"
@@ -374,6 +378,7 @@ export type RateLimitResult = {
 
 const BUCKET_LIMITS_PER_MINUTE: Record<RateLimitBucket, number> = {
   svi: 20,
+  "svi-read": 120,
   idea: 30,
   score: 30,
   "term-sheet": 20,

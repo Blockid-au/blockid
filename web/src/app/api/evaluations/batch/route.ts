@@ -28,7 +28,9 @@ import { PRIVATE_JSON_HEADERS, readJsonBody } from "@/lib/security/request-guard
 import { getCurrentUser } from "@/lib/auth";
 import { getEntitlements, recordGateHit } from "@/lib/entitlements";
 import { getReportQuota } from "@/lib/evaluations/report-quota";
-import { countPendingBatchItems, createBatch, listBatches, ownedEvaluationIds } from "@/lib/evaluations/batch";
+import { countItemsForPilotOrder, countPendingBatchItems, createBatch, listBatches, ownedEvaluationIds } from "@/lib/evaluations/batch";
+import { getTemplate } from "@/lib/intake/templates";
+import { supabaseIntakeStore } from "@/lib/intake/program-intakes";
 import { BATCH_MAX_ITEMS, canBatchScore, normaliseWeights } from "@/lib/evaluations/batch-shared";
 import { isUuid } from "@/lib/security/request-guards";
 import { findActivePilotOrder } from "@/lib/pilots/paid-orders";
@@ -160,8 +162,31 @@ async function POST_handler(request: Request) {
     );
   }
 
+  // Review P2: a template / intake link must belong to the caller (a leaked
+  // UUID must not attach another program's questions + consent text).
+  if (templateId) {
+    const tpl = await getTemplate(user.id, templateId).catch(() => null);
+    if (!tpl) return NextResponse.json({ ok: false, error: "not_found", message: "Template not found" }, { status: 404 });
+  }
+  if (intakeId) {
+    const store = await supabaseIntakeStore().catch(() => null);
+    const intake = store ? await store.getIntakeForOwner(user.id, intakeId).catch(() => null) : null;
+    if (!intake) return NextResponse.json({ ok: false, error: "not_found", message: "Intake link not found" }, { status: 404 });
+  }
+
   // A live paid pilot caps the cohort (applicants_cap) and is recorded on it.
+  // Review P2: the cap counts every cohort under the same pilot order, and
+  // applies to selection-created batches too, not only the CSV import.
   const pilot = await findActivePilotOrder(user.id).catch(() => null);
+  if (pilot?.applicants_cap != null && pilot.applicants_cap > 0) {
+    const usedAcross = await countItemsForPilotOrder(pilot.id).catch(() => 0);
+    if (usedAcross + ids.length > pilot.applicants_cap) {
+      return NextResponse.json(
+        { ok: false, error: "cap_reached", message: `Your Cohort Validation Pilot covers up to ${pilot.applicants_cap} applicants; ${usedAcross} are already in your cohorts and this batch adds ${ids.length}.`, cap: { used: usedAcross, max: pilot.applicants_cap, remaining: Math.max(0, pilot.applicants_cap - usedAcross) }, needed: ids.length },
+        { status: 409 },
+      );
+    }
+  }
   const result = await createBatch({
     userId: user.id,
     name,

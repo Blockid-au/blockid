@@ -204,7 +204,7 @@ export function journeyStartupToReportStartup(s: JourneyStartup): CohortReportSt
 
 export function cohortReportInputFromBundle(bundle: CohortBundle, user: Pick<AppUser, "displayName" | "email">, now = new Date()): CohortReportInput {
   return {
-    programName: user.displayName ?? null,
+    programName: bundle.batch.programName ?? user.displayName ?? null,
     cohortName: bundle.batch.name,
     periodLabel: quarterLabelFor(now),
     generatedAt: now.toISOString(),

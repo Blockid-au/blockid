@@ -75,7 +75,7 @@ export async function createOverride(input: {
     .maybeSingle();
   if (error || !data) {
     if (isMissingRelation(error)) return { ok: false, error: "unavailable", message: "Overrides are not available yet (migration 0423 pending)" };
-    return { ok: false, error: "db_error", message: error?.message ?? "Override failed" };
+    return { ok: false, error: "db_error", message: "Database error — please try again" };
   }
   const override = mapOverrideRow(data as Row);
   void appendAudit({
