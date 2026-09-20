@@ -117,11 +117,11 @@ export function EquitySplitTool() {
   ) => setSettings((p) => ({ ...p, [key]: value }));
 
   return (
-    <div className="grid lg:grid-cols-12 gap-6 lg:gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
       {/* LEFT — inputs */}
       <section
         aria-labelledby="equity-form"
-        className="lg:col-span-5 rounded-2xl border border-surface-200 bg-white p-6 md:p-8"
+        className="min-w-0 lg:col-span-5 rounded-2xl border border-surface-200 bg-white p-6 md:p-8"
       >
         <div className="flex items-center justify-between gap-3">
           <h2
@@ -260,7 +260,7 @@ export function EquitySplitTool() {
       {/* RIGHT — visuals */}
       <section
         aria-labelledby="equity-output"
-        className="lg:col-span-7 space-y-6"
+        className="min-w-0 lg:col-span-7 space-y-6"
       >
         <h2
           id="equity-output"

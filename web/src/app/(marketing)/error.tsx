@@ -32,7 +32,7 @@ export default function MarketingError({
   }
 
   return (
-    <div className="min-h-[70vh] bg-surface flex items-center justify-center px-6">
+    <div className="min-h-[70vh] bg-surface flex items-center justify-center px-6" data-testid="error-boundary" role="alert">
       <div className="text-center max-w-md">
         <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-accent-soft text-accent flex items-center justify-center" aria-hidden>
           <Zap className="h-7 w-7" strokeWidth={1.75} />

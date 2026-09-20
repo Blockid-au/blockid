@@ -29,6 +29,14 @@ const CF_EMAIL_SCRIPT_RE = /cloudflare-static\/email-decode\.min\.js/;
 const REACT_418_RE = /Minified React error #418/;
 
 /**
+ * Google Identity Services (FedCM) on the sign-in pages logs these when the
+ * browser has no Google account — always true in a headless run, never a
+ * product error (G20-F2 page sweep, 2026-09-20). Mirrored in
+ * scripts/lib/page-sweep-core.mjs (parity pinned by scripts/page-sweep.test.mjs).
+ */
+export const FEDCM_NOISE_RE = /^(Provider's accounts list is empty|Not signed in with the identity provider)\.?$|^\[GSI_LOGGER\]: FedCM get\(\) rejects with NetworkError|^\[auth:google\] client one_tap (unknown_reason|opt_out_or_no_session)$/;
+
+/**
  * Chromium's wording for a refused nonce-less inline script under
  * strict-dynamic — "Refused to execute inline script because it violates…"
  * (≤ 130) and "Executing inline script violates…" (131+, seen on prod 2026-09-13).
@@ -88,7 +96,9 @@ export class ConsoleGuard {
       if (req.resourceType() === "document" && res.status() < 500) void this.sniffHtml(res);
       if (res.status() < 400) return;
       if (isNoise(req)) return;
-      if (req.url().includes("/_next/data/") || req.url().includes("?_rsc=")) return;
+      // RSC prefetch (`?_rsc=` or `&_rsc=` after other params) — a Link to an
+      // API route prefetches with it and answers 4xx; not a page defect here.
+      if (req.url().includes("/_next/data/") || /[?&]_rsc=/.test(req.url())) return;
       this.failed.push({ method: req.method(), url: res.url(), status: res.status(), failure: null });
     });
   }
@@ -128,6 +138,10 @@ export class ConsoleGuard {
         continue;
       }
       if (this.htmlHasCfEmail && ((e.type === "console" && CF_EMAIL_SCRIPT_RE.test(e.text)) || (e.type === "pageerror" && REACT_418_RE.test(e.text)))) {
+        allowed.push(e);
+        continue;
+      }
+      if (e.type === "console" && FEDCM_NOISE_RE.test(e.text.trim())) {
         allowed.push(e);
         continue;
       }

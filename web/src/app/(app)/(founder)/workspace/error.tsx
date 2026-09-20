@@ -33,7 +33,7 @@ export default function WorkspaceError({
   }
 
   return (
-    <div className="min-h-[70vh] bg-surface-100 dark:bg-ink-900 flex items-center justify-center px-6">
+    <div className="min-h-[70vh] bg-surface-100 dark:bg-ink-900 flex items-center justify-center px-6" data-testid="error-boundary" role="alert">
       <div className="text-center max-w-md">
         <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-amber-100 dark:bg-amber-500/15 flex items-center justify-center">
           <AlertTriangle className="h-7 w-7 text-amber-600" aria-hidden />

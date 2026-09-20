@@ -51,7 +51,7 @@ function renderInline(input: string): string {
   let s = escapeHtml(input);
   s = s.replace(
     /`([^`]+)`/g,
-    '<code class="rounded bg-surface-raised px-1.5 py-0.5 text-[0.85em] text-action">$1</code>',
+    '<code class="rounded bg-surface-raised px-1.5 py-0.5 text-[0.85em] text-action break-words [overflow-wrap:anywhere]">$1</code>',
   );
   s = s.replace(
     /\*\*([^*]+)\*\*/g,

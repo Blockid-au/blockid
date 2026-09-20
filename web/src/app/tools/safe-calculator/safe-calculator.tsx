@@ -121,9 +121,9 @@ export function SAFECalculator() {
 
   return (
     <div className="space-y-8">
-      <div className="grid lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Inputs */}
-        <div className="lg:col-span-2 rounded-2xl border border-surface-200 bg-white p-6">
+        <div className="min-w-0 lg:col-span-2 rounded-2xl border border-surface-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-ink-800 flex items-center gap-2">
             <Calculator strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
             SAFE Terms
@@ -201,7 +201,7 @@ export function SAFECalculator() {
         </div>
 
         {/* Outputs */}
-        <div className="lg:col-span-3 rounded-2xl border border-surface-200 bg-white p-6">
+        <div className="min-w-0 lg:col-span-3 rounded-2xl border border-surface-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-ink-800">Conversion outcome</h2>
           <p className="text-sm text-ink-500 mt-1">
             What the SAFE investor receives when the priced round closes.

@@ -196,8 +196,9 @@ export default async function AcceleratorQuarterlyReportPage() {
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
-      <FeatureGate feature={COHORT_FEATURE} label="Quarterly report">
-        <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+      {/* The heading stays outside the client gate: the page keeps its h1 while
+          /api/entitlement/me resolves and when the gate card renders (G20-F2). */}
+      <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
           <header className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-ink-900">
@@ -216,6 +217,7 @@ export default async function AcceleratorQuarterlyReportPage() {
             </Link>
           </header>
 
+          <FeatureGate feature={COHORT_FEATURE} label="Quarterly report">
           <section
             aria-label="Key metrics"
             className="grid grid-cols-2 md:grid-cols-4 gap-4"
@@ -297,8 +299,8 @@ export default async function AcceleratorQuarterlyReportPage() {
           </section>
 
           <NotFinancialAdvice kind="not_financial_advice" compact />
-        </div>
-      </FeatureGate>
+          </FeatureGate>
+      </div>
     </WorkspaceLayout>
   );
 }

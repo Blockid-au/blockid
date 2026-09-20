@@ -41,7 +41,7 @@ export default function AppSegmentError({
   }
 
   return (
-    <div className="min-h-[70vh] bg-surface-100 dark:bg-ink-900 flex items-center justify-center px-6">
+    <div className="min-h-[70vh] bg-surface-100 dark:bg-ink-900 flex items-center justify-center px-6" data-testid="error-boundary" role="alert">
       <div className="max-w-md text-center">
         <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-red-100 dark:bg-red-500/15 flex items-center justify-center">
           <span className="text-2xl" aria-hidden>

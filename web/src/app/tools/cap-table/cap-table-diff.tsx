@@ -154,11 +154,11 @@ export function CapTableDiffTool() {
   };
 
   return (
-    <div className="grid lg:grid-cols-12 gap-6 lg:gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
       {/* LEFT — form */}
       <section
         aria-labelledby="captable-form"
-        className="lg:col-span-5 rounded-2xl border border-surface-200 bg-white p-6 md:p-8"
+        className="min-w-0 lg:col-span-5 rounded-2xl border border-surface-200 bg-white p-6 md:p-8"
       >
         <div className="flex items-center justify-between gap-3">
           <h2
@@ -271,7 +271,7 @@ export function CapTableDiffTool() {
       {/* RIGHT — visual + diff */}
       <section
         aria-labelledby="captable-diff"
-        className="lg:col-span-7 space-y-6"
+        className="min-w-0 lg:col-span-7 space-y-6"
       >
         <div className="flex items-center justify-between gap-3">
           <h2
@@ -453,10 +453,10 @@ export function CapTableDiffTool() {
       {/* Email capture (full-width row) */}
       <form
         onSubmit={onSubmit}
-        className="lg:col-span-12 rounded-2xl border border-brand-500/30 bg-white p-6 md:p-8"
+        className="min-w-0 lg:col-span-12 rounded-2xl border border-brand-500/30 bg-white p-6 md:p-8"
         noValidate
       >
-        <div className="grid lg:grid-cols-2 gap-8 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
               Save this scenario
