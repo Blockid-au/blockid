@@ -88,7 +88,7 @@ export function ProShell({ children, variant = "landing" }: ProShellProps) {
               </Link>
             ))}
             <Link
-              href="/svi"
+              href="/analyze"
               className="ml-2 rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-[color:var(--ds-surface-sunken)] transition-colors hover:bg-white/90"
             >
               Get SVI score
@@ -104,7 +104,7 @@ export function ProShell({ children, variant = "landing" }: ProShellProps) {
               Login
             </Link>
             <Link
-              href="/svi"
+              href="/analyze"
               className="rounded-full bg-white px-3.5 py-1.5 text-[13px] font-semibold text-[color:var(--ds-surface-sunken)]"
             >
               SVI

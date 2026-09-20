@@ -102,7 +102,7 @@ export default function HowItWorksPage() {
       <CtaBand
         title="Ready to score your own startup?"
         sub="The first run is free and needs no card. Paste a name, a deck or a URL."
-        primary={{ href: "/svi", label: "Analyse an idea", ctaId: "hiw_final_score" }}
+        primary={{ href: "/analyze", label: "Analyse an idea", ctaId: "hiw_final_score" }}
         secondary={{ href: "/guide/01-vision", label: "Read the guide" }}
       />
     </MarketingShell>

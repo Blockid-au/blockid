@@ -154,7 +154,7 @@ export function PublicProfileBody({ profile, preview = false }: PublicProfileBod
             {p.benchmark ? p.benchmark.p10 : "—"} and{" "}
             {p.benchmark ? p.benchmark.p90 : "—"} on this index.{" "}
             <Link
-              href="/svi"
+              href="/analyze"
               className="rounded text-action underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
             >
               How the index is built

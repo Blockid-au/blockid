@@ -1570,7 +1570,7 @@ function SviCompareCta({
 }) {
   if (headlineValuationAud == null || headlineValuationAud <= 0) return null;
   const query = companyName ? encodeURIComponent(companyName) : "";
-  const href = query ? `/svi?query=${query}` : "/svi";
+  const href = query ? `/analyze?q=${query}` : "/analyze";
   return (
     <div className="mt-6 rounded-2xl border border-brand-500/30 bg-brand-500/5 p-5 md:p-6 flex flex-wrap items-center justify-between gap-4">
       <div>

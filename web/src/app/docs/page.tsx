@@ -488,7 +488,7 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
               is scored from a 13-criteria internal rubric and owned by one
               C-Level agent); weights are live-editable via{" "}
               <code>/admin/config</code> and default to the values below. See{" "}
-              <Link href="/svi" className="text-brand-600 underline">/svi</Link>{" "}
+              <Link href="/analyze" className="text-brand-600 underline">/analyze</Link>{" "}
               for the full explainer,{" "}
               <Link href="/methodology" className="text-brand-600 underline">/methodology</Link>{" "}
               for how evidence confidence and ABN verification cap a score, and{" "}
@@ -866,7 +866,7 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
                 </p>
               </Link>
               <Link
-                href="/svi"
+                href="/analyze"
                 className="rounded-xl border border-surface-200 bg-surface-50 p-4 hover:border-brand-500/40 transition-colors"
               >
                 <p className="text-sm font-semibold text-ink-800 mb-1">/svi</p>
