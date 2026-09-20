@@ -88,7 +88,7 @@ import { primeComparables } from "@/lib/valuation/comparables-repo.server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { supabaseChapterCache, type ChapterCache, type ChapterCacheDb } from "./chapter-cache";
 import { applyConsistencyGates } from "./consistency-gates";
-import { fromAssembledReport, inferPhase, type MoneyOnTableInput } from "@/lib/report-v2/adapter";
+import { executiveFromChapters, fromAssembledReport, inferPhase, type MoneyOnTableInput } from "@/lib/report-v2/adapter";
 import { isReportV2, type CriterionCard, type DimensionChapter, type ReportTierV2, type ReportV2 } from "@/lib/report-v2/schema";
 import { recordFullyDegraded, type DegradedEventWriter, type FullyDegradedReason } from "./pipeline-health";
 
@@ -1057,13 +1057,25 @@ export function buildReportV2(
     if (!chapters || chapters.size !== 8) return withValuation;
     const dimensions = DIM_ORDER.map((dim) => chapters.get(dim)!);
     const degraded = dimensions.filter((d) => d.degraded).map((d) => d.dim);
+    // G19-S44: executive strengths / gaps from the PIPELINE chapters' criterion
+    // cards (by lift, with the evidence source), confidence = mean chapter
+    // ledger confidence — the same builder the adapter path uses.
+    const fromCards = executiveFromChapters(dimensions, context.locale);
     const v2: ReportV2 = {
       ...withValuation,
       source: "pipeline",
       pipelineVersion: PIPELINE_VERSION,
       promptVersionIds: {},
       dimensions,
-      executive: { ...base.executive, phaseNow: context.phaseGate ?? base.executive.phaseNow, thesis: context.executiveSummary?.trim() || base.executive.thesis, audit: { ...base.executive.audit, grounded: (context.sectionAudits ?? []).some((r) => r.sectionId === "executive" && r.grounded) } },
+      executive: {
+        ...base.executive,
+        strengths: fromCards.strengths.length ? fromCards.strengths : base.executive.strengths,
+        gaps: fromCards.gaps.length ? fromCards.gaps : base.executive.gaps,
+        confidence: fromCards.confidence ?? base.executive.confidence,
+        phaseNow: context.phaseGate ?? base.executive.phaseNow,
+        thesis: context.executiveSummary?.trim() || base.executive.thesis,
+        audit: { ...base.executive.audit, grounded: (context.sectionAudits ?? []).some((r) => r.sectionId === "executive" && r.grounded) },
+      },
       appendix: { ...base.appendix, evidenceRegister: context.evidenceRows ?? [], auditLog: context.sectionAudits ?? [] },
       quality: { ...base.quality, score: context.qualityScore ?? base.quality.score, groundedShare, degradedSections: degraded, consistencyIssues: report.consistencyIssues },
     };

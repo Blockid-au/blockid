@@ -103,6 +103,9 @@ export function snapshotInputFromRow(row: SnapshotRowLike, ctx: SnapshotReportCo
     sviTotal: typeof row.svi_total === "number" && Number.isFinite(row.svi_total) ? row.svi_total : null,
     dimStates,
     sviLedger: analysis.ledger ?? null,
+    // G19-S44: the engine's cohort percentile (or stage percentile rank) fills the cover.
+    cohortPercentile: analysis.cohortPercentile?.percentile ?? analysis.percentileRank ?? null,
+    cohort: analysis.cohortPercentile?.cohortSize ? { sample_size: analysis.cohortPercentile.cohortSize } : null,
     criterionStates: Array.isArray(row.criterion_results) ? (row.criterion_results as SnapshotCriterionState[]) : null,
     phaseId: ctx.phaseId ?? null,
     verificationLevel: ctx.verificationLevel ?? null,

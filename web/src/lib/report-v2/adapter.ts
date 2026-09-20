@@ -126,6 +126,12 @@ export interface SnapshotInput {
   /** G19-S45: report locale — the adapter's templated sentences follow it (VI with diacritics; ES / JA read EN). */
   locale?: ReportV2["locale"];
   cohort?: CohortBenchmarkInput | null;
+  /**
+   * G19-S44: the startup's SVI percentile in its cohort (`SVIAnalysis.cohortPercentile.percentile`
+   * / `percentileRank`) when the caller has it; otherwise derived from the
+   * sector cohort when N ≥ 30, else null (the Pctl column hides).
+   */
+  cohortPercentile?: number | null;
   /** Optional narrative overrides (e.g. the pipeline's executive summary). */
   executiveSummary?: string | null;
   qualityScore?: number | null;
@@ -210,6 +216,10 @@ export interface SviAnalysisLike {
   signals?: { hasCoFounder?: boolean; evidenceLevel?: string } | null;
   /** G19-S43: the engine's evidence gaps (P0 / P1 → `actionPlan.evidenceToAdd`). */
   evidenceGaps?: EvidenceGapLike[] | null;
+  /** G19-S44: real cohort percentile (T0102) — fills `cover.svi.cohortPercentile` / `cohortN`. */
+  cohortPercentile?: { percentile: number; cohortSize?: number } | null;
+  /** G19-S44: the stage-benchmark percentile the engine computes when no cohort is available. */
+  percentileRank?: number;
 }
 
 /**
@@ -690,6 +700,105 @@ function buildChapter(c: ChapterCtx, phase: PhaseGateResult, tier: ReportTierV2,
   };
 }
 
+// ── G19-S44: executive strengths / gaps from the criterion cards ────────────
+
+/** Score restatements never make the executive list ("FTV 83/100 (strong)", "5 below the strong band"). */
+const SCORE_RESTATEMENT = /\b\d{1,3}\s*\/\s*100\b|below the (strong |developing )?band|points below|\bscores? \d{1,3}\b/i;
+
+/**
+ * The lift of closing a criterion gap on the one 1–10 scale (S43's
+ * `derivedLift`: criterion weight × distance to the next band boundary,
+ * 70 strong / 85 exceptional). Kept local so the adapter stays client-safe.
+ */
+function gapLift(weight: number, score: number): number {
+  const target = score < 70 ? 70 : 85;
+  const gap = Math.max(0, target - score);
+  return Math.max(1, Math.min(10, Math.round((weight * gap) / 40)));
+}
+
+/** The evidence behind a card, as a short source word: cited row → top ledger signal → first evidenced row → "no citation". */
+function cardSourceLabel(chapter: DimensionChapter, card: Pick<CriterionCard, "citations"> | undefined, src: Record<string, string>): string {
+  const cited = card?.citations[0]?.evidence_id;
+  const row = cited ? chapter.evidence.find((e) => e.evidence_id === cited) : undefined;
+  if (row) return src[row.source] ?? row.source;
+  const signal = (chapter.scoreBreakdown?.signals ?? [])
+    .filter((sg) => !sg.scale && sg.source !== "penalty" && sg.source !== "stage" && sg.points > 0)
+    .sort((a, b) => b.points - a.points)[0];
+  if (signal) return src[signal.source] ?? signal.source;
+  const evidenced = chapter.evidence.find((e) => e.status === "evidenced" || e.status === "partial");
+  if (evidenced) return src[evidenced.source] ?? evidenced.source;
+  return src.none ?? "no citation";
+}
+
+function tidyBullet(text: string): string {
+  return text.trim().replace(/[.;:,\s]+$/u, "");
+}
+
+export interface ExecutiveFromCards {
+  /** Top-3 strengths from the criterion cards (highest score × weight), "text (source)". */
+  strengths: string[];
+  /** Top-3 gaps from the criterion cards (highest lift), "text (source)". */
+  gaps: string[];
+  /** Mean of the chapter ledgers' `confidenceMultiplier`; null when no chapter carries a ledger (pre-S41 row). */
+  confidence: number | null;
+}
+
+/**
+ * G19-S44 — executive strengths / gaps are the top criterion-card bullets
+ * ranked by lift (never a score restatement), each with the evidence source
+ * in parentheses; the executive confidence is the mean chapter-ledger
+ * confidence (S41). Shared by `fromSnapshot` and the pipeline's
+ * `buildReportV2`, so the dashboard synthesis and the report agree.
+ */
+export function executiveFromChapters(dimensions: readonly DimensionChapter[], locale: ReportV2["locale"] | undefined): ExecutiveFromCards {
+  const src = getTbrStrings(locale).v2.s44.source;
+  type Candidate = { text: string; rank: number; source: string };
+  const strengths: Candidate[] = [];
+  const gaps: Candidate[] = [];
+  for (const ch of dimensions) {
+    if (ch.band === "pending") continue;
+    // A card is attributed to its PRIMARY dimension's chapter only (the TRE
+    // funnel also carries market / gtm cards) so the source in parentheses is
+    // that chapter's evidence, and each bullet is considered once.
+    const withBullets = ch.criteria.filter((c) => c.strengths.length > 0 || c.gaps.length > 0);
+    const cards = withBullets.filter((c) => (CRITERIA.find((d) => d.key === c.key)?.primaryDimension ?? ch.dim) === ch.dim);
+    for (const card of cards) {
+      const weight = CRITERIA.find((c) => c.key === card.key)?.weight ?? 5;
+      const source = cardSourceLabel(ch, card, src);
+      const s = card.strengths.map(tidyBullet).find((t) => t && !SCORE_RESTATEMENT.test(t));
+      if (s) strengths.push({ text: s, rank: card.score * weight, source });
+      const g = card.gaps.map(tidyBullet).find((t) => t && !SCORE_RESTATEMENT.test(t));
+      if (g) gaps.push({ text: g, rank: gapLift(weight, card.score) * 100 + (100 - card.score), source });
+    }
+    // A chapter whose cards carry no bullets at all (adapter fallback card)
+    // may still have chapter-level insights — they count once, ranked by the
+    // dimension score, never a score restatement.
+    if (withBullets.length === 0) {
+      const source = cardSourceLabel(ch, ch.criteria[0], src);
+      const s = ch.strengths.map(tidyBullet).find((t) => t && !SCORE_RESTATEMENT.test(t));
+      if (s) strengths.push({ text: s, rank: ch.score * ch.weight, source });
+      const g = ch.gaps.map(tidyBullet).find((t) => t && !SCORE_RESTATEMENT.test(t));
+      if (g) gaps.push({ text: g, rank: gapLift(ch.weight, ch.score) * 100 + (100 - ch.score), source });
+    }
+  }
+  const top3 = (list: Candidate[]): string[] => {
+    const seen = new Set<string>();
+    return list
+      .sort((a, b) => b.rank - a.rank)
+      .filter((c) => {
+        const k = c.text.toLowerCase();
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      })
+      .slice(0, 3)
+      .map((c) => `${c.text} (${c.source})`);
+  };
+  const confidences = dimensions.map((d) => d.scoreBreakdown?.confidenceMultiplier).filter((c): c is number => typeof c === "number" && Number.isFinite(c));
+  const confidence = confidences.length ? Math.round((confidences.reduce((a, c) => a + c, 0) / confidences.length) * 100) / 100 : null;
+  return { strengths: top3(strengths), gaps: top3(gaps), confidence };
+}
+
 // ── Valuation ───────────────────────────────────────────────────────────────
 
 function buildValuation(args: { sviTotal: number; sviIndex: number; stageLabel: string; stage: number; industry: string | null; treScore: number | null; vc?: VcValuationLike | null; ask?: ValuationAskInput | null; revenueEvidenceIds?: string[]; at: string }): ValuationChapter {
@@ -873,7 +982,6 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
 
   // Executive summary.
   const ranked = [...scoredDims].sort((a, b) => b.score - a.score);
-  const strengthsDims = ranked.slice(0, 3);
   // G19-S43: a dimension already in the strong band is not a gap ("0 below the strong band" is gone).
   const gapDims = [...ranked].reverse().filter((c) => c.score < 70 || !c.assessed).slice(0, 3);
   // G19-S43: the plan ranks the chapters' own next actions by the one lift
@@ -901,7 +1009,19 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
   const valuation = buildValuation({ sviTotal: Math.min(100, sviTotal), sviIndex: sviTotal, stageLabel, stage, industry, treScore: dimScores.tre ?? null, vc: input.vc, ask: input.valuationAsk ?? null, revenueEvidenceIds: input.revenueEvidenceIds ?? [], at });
   const worthLine = L.worthLine(fmtShort(valuation.consensus.lowAud), fmtShort(valuation.consensus.highAud), industry ?? L.sectorNeutral, stageLabel);
   const nextLine = roadmap[0] ? L.nextLine(dimensions.find((d) => d.dim === roadmap[0].c.dim)?.nextAction.title ?? L.addEvidence, roadmap[0].lift, DIMENSION_OWNERS[roadmap[0].c.dim].shortLabel) : L.nextFallback;
-  const whereLine = L.whereLine(stageLabel, industry ?? L.startup, sviTotal, getTbrStrings(input.locale).v2.band[sviBand].toLowerCase(), phaseLabelFor(phase.currentPhase, input.locale), phase.completionPct);
+  // G19-S44 (D5): the where-sentence names the 12-phase label only — the SVI stage label is benchmark-internal.
+  const whereLine = L.whereLine(industry ?? L.startup, sviTotal, getTbrStrings(input.locale).v2.band[sviBand].toLowerCase(), phaseLabelFor(phase.currentPhase, input.locale), phase.completionPct);
+  // G19-S44: cohort percentile — the caller's real cohort number, else the
+  // mean dimension percentile when the sector cohort (N ≥ 30) set the
+  // benchmarks, else null (the Pctl column hides).
+  const dimPercentiles = DIM_ORDER.map((d) => coverDims[d].percentile).filter((p): p is number => typeof p === "number");
+  const cohortUsed = (input.cohort?.sample_size ?? 0) >= 30 && dimPercentiles.length > 0;
+  const cohortPercentile =
+    typeof input.cohortPercentile === "number" && Number.isFinite(input.cohortPercentile)
+      ? Math.max(1, Math.min(99, Math.round(input.cohortPercentile)))
+      : cohortUsed
+        ? Math.max(1, Math.min(99, Math.round(dimPercentiles.reduce((a, p) => a + p, 0) / dimPercentiles.length)))
+        : null;
 
   const routeMap = (id: string, agentId: "ceo" | "coo") =>
     makeVisual({
@@ -923,7 +1043,7 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
     stage,
     stageLabel,
     phaseId: phase.currentPhase,
-    svi: { total: sviTotal, band: sviBand, cohortPercentile: null, cohortN: input.cohort?.sample_size ?? null, deltaVsLast: typeof input.deltaVsLast === "number" ? input.deltaVsLast : null },
+    svi: { total: sviTotal, band: sviBand, cohortPercentile, cohortN: input.cohort?.sample_size ?? null, deltaVsLast: typeof input.deltaVsLast === "number" ? input.deltaVsLast : null },
     dims: coverDims,
     threeQuestions: { where: words(whereLine, 30), worth: words(worthLine, 30), next: words(nextLine, 30) },
     visuals: [
@@ -947,12 +1067,16 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
   // G19-S43: "Evidence: mostly self-declared (×0.50)" beside the ledger strip.
   if (input.evidenceLevel) cover.evidenceLevel = { level: input.evidenceLevel.level, confidenceMultiplier: input.evidenceLevel.confidenceMultiplier };
 
+  // G19-S44: strengths / gaps from the criterion cards by lift (never score
+  // restatements); confidence = mean chapter-ledger confidence (S41), with
+  // the pre-S41 fallback only when no chapter carries a ledger.
+  const fromCards = executiveFromChapters(dimensions, input.locale);
   const executive: ReportV2["executive"] = {
     thesis,
-    strengths: strengthsDims.map((c) => `${DIMENSION_OWNERS[c.dim].title} ${c.score}/100 (${c.band}).`),
-    gaps: gapDims.map((c) => (c.assessed ? `${DIMENSION_OWNERS[c.dim].title} ${c.score}/100 — ${70 - c.score} below the strong band.` : `${DIMENSION_OWNERS[c.dim].title} — not assessed yet; add evidence to score it.`)),
+    strengths: fromCards.strengths,
+    gaps: fromCards.gaps,
     verdict: thesis,
-    confidence: scoredDims.length ? 0.5 : 0.1,
+    confidence: fromCards.confidence ?? (scoredDims.length ? 0.5 : 0.1),
     phaseNow: phase,
     visuals: [routeMap("exec-route-map", "ceo")],
     audit: stamp(at),
@@ -1116,6 +1240,8 @@ export interface AssembledReportContext {
   evidenceRows?: EvidenceRow[] | null;
   /** G19-S43: GATHER `results.grants` → Money on the Table. */
   moneyOnTable?: MoneyOnTableInput | null;
+  /** G19-S44: overrides `sviAnalysis.cohortPercentile` / `percentileRank` when the caller has a fresher number. */
+  cohortPercentile?: number | null;
 }
 
 /**
@@ -1174,6 +1300,8 @@ export function fromAssembledReport(report: Pick<AssembledReport, "id" | "tier" 
     sviTotal: ctx.sviTotal,
     dimStates,
     criterionStates,
+    cohortPercentile: ctx.cohortPercentile ?? ctx.sviAnalysis?.cohortPercentile?.percentile ?? ctx.sviAnalysis?.percentileRank ?? null,
+    cohort: ctx.sviAnalysis?.cohortPercentile?.cohortSize ? { sample_size: ctx.sviAnalysis.cohortPercentile.cohortSize } : null,
     phaseId: ctx.phaseId,
     verificationLevel: ctx.verificationLevel ?? null,
     tier,
