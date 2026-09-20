@@ -742,6 +742,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.6,
     },
+    // G21 P0-D — score governance (institutional readers), with a VI mirror.
+    {
+      url: `${SITE_URL}/methodology/governance`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/methodology/governance`,
+          vi: `${SITE_URL}/vi/methodology/governance`,
+          "x-default": `${SITE_URL}/methodology/governance`,
+        },
+      },
+    },
+    {
+      url: `${SITE_URL}/vi/methodology/governance`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.5,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/methodology/governance`,
+          vi: `${SITE_URL}/vi/methodology/governance`,
+          "x-default": `${SITE_URL}/methodology/governance`,
+        },
+      },
+    },
     // G14-S36 — public scoring & verification methodology, with a VI mirror.
     {
       url: `${SITE_URL}/methodology`,
