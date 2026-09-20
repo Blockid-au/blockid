@@ -29,6 +29,8 @@
 
 import type { CriterionKey } from "@/lib/evaluation-criteria";
 import { CRITERION_KEYS } from "@/lib/evaluation-criteria";
+import { HUB_EVIDENCE_COLUMNS, hubRowsToEvidenceRows, type HubEvidenceRowLike } from "@/lib/evidence/hub-rows";
+import { GATHER_MISSING_CTAS, withCta } from "@/lib/report-v2/evidence-cta";
 import type { EvidenceRow, EvidenceStatus } from "@/lib/report-v2/schema";
 import { loadProjectAbn, signalsForAbn, type ExternalEvidenceRow } from "@/lib/signals/external-signals";
 import type { EvidenceSource, DimKey } from "./dimension-owners";
@@ -168,6 +170,8 @@ export interface GatherDeps {
   loadGrants?: (db: GatherDb, projectId: string, stage: number, industry: string | null) => Promise<GrantsMatch | null>;
   /** S40: register-derived evidence for the project's verified ABN (null ABN → []). */
   loadExternalSignals?: (db: GatherDb, projectId: string) => Promise<{ abn: string | null; rows: ExternalEvidenceRow[] }>;
+  /** G19-S43: the project's Evidence Hub rows (`svi_dimension_evidence`) — every dimension's uploads. */
+  loadDimensionEvidence?: (db: GatherDb, projectId: string) => Promise<HubEvidenceRowLike[]>;
   buildValuation?: (input: Row) => VcValuationLike;
   now?: () => number;
   /** Per-source hard timeout (default 20 s). */
@@ -263,6 +267,23 @@ async function defaultLoadExternalSignals(db: GatherDb, projectId: string): Prom
   const abn = await loadProjectAbn(db, projectId);
   if (!abn) return { abn: null, rows: [] };
   return { abn, rows: await signalsForAbn(abn, db) };
+}
+
+/** G19-S43: the project's Evidence Hub rows (newest first; a missing table / column reads as no rows). */
+export async function loadDimensionEvidenceRows(db: GatherDb, projectId: string): Promise<HubEvidenceRowLike[]> {
+  const { data } = await db.from("svi_dimension_evidence").select(HUB_EVIDENCE_COLUMNS).eq("project_id", projectId).order("created_at", { ascending: false }).limit(500);
+  return ((data ?? []) as Row[]).map((r) => ({
+    dimension: typeof r.dimension === "string" ? r.dimension : null,
+    evidence_type: typeof r.evidence_type === "string" ? r.evidence_type : null,
+    evidence_label: typeof r.evidence_label === "string" ? r.evidence_label : null,
+    evidence_value_or_url: typeof r.evidence_value_or_url === "string" ? r.evidence_value_or_url : null,
+    confidence_level: typeof r.confidence_level === "string" ? r.confidence_level : null,
+    is_verified: r.is_verified === true,
+    verified_at: typeof r.verified_at === "string" ? r.verified_at : null,
+    review_status: typeof r.review_status === "string" ? r.review_status : null,
+    created_at: typeof r.created_at === "string" ? r.created_at : null,
+    updated_at: typeof r.updated_at === "string" ? r.updated_at : null,
+  }));
 }
 
 // ── In-memory audit cache (fallback when `tech_audits` is absent) ───────────
@@ -541,7 +562,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
         if (!audit) {
           const token = await (deps.githubToken ?? defaultGithubToken)(ownerUserId, projectId);
           if (!token) {
-            rows.push(row("repo_audit", repoFullName, "github", `GitHub repository ${repoFullName}`, "missing", ["ptd", "ftv"], observed, "Connect GitHub (Settings → Connectors) to audit the repository — link only, not audited"));
+            rows.push(withCta(row("repo_audit", repoFullName, "github", `GitHub repository ${repoFullName}`, "missing", ["ptd", "ftv"], observed, "Connect GitHub (Evidence → Connectors) to audit the repository — link only, not audited"), GATHER_MISSING_CTAS.repo_audit));
             diag("repoAudit", "skipped", t0, "no GitHub token");
             return;
           }
@@ -608,7 +629,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
             results.capTable = { ...summary };
             rows.push(row("cap_table", projectId, "upload", "Cap-table register (shareholders + ESOP pool)", "evidenced", ["cgh", "iri", "lco"], observed, `holders = ${summary.holders}; founders_pct = ${summary.founderPct ?? "?"}; esop_pct = ${summary.esopPct ?? "?"}; investors_pct = ${summary.investorPct ?? "?"}; vesting = ${summary.vestingFlag}`));
           } else {
-            rows.push(row("cap_table", projectId, "upload", "Cap-table register", "missing", ["cgh"], observed, "No register yet — add shareholders in /workspace/equity to evidence CGH"));
+            rows.push(withCta(row("cap_table", projectId, "upload", "Cap-table register", "missing", ["cgh"], observed, "No register yet — add shareholders in /workspace/equity to evidence CGH"), GATHER_MISSING_CTAS.cap_table));
           }
           diag("capTable", "ok", t0);
         })
@@ -643,7 +664,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
               : `years_experience = ${fs.yearsExperience ?? "?"}; years_in_domain = ${fs.yearsInDomain ?? "?"}; prior_companies = ${fs.priorCompanies.length}; exits = ${fs.exits}; team_size_on_page = ${fs.teamSizeOnPage ?? "?"}`;
             rows.push(row("founder_signals", projectId, "linkedin", label, urlOnly ? "partial" : "evidenced", ["ftv", "cgh"], fs.parsedAt, value));
           } else {
-            rows.push(row("founder_signals", projectId, "linkedin", "Founder profile (LinkedIn export / URL)", "missing", ["ftv"], observed, "No founder profile yet — upload the LinkedIn PDF export or paste the profile URL in /workspace/evidence/founder"));
+            rows.push(withCta(row("founder_signals", projectId, "linkedin", "Founder profile (LinkedIn export / URL)", "missing", ["ftv"], observed, "No founder profile yet — upload the LinkedIn PDF export or paste the profile URL in /workspace/settings/founder"), GATHER_MISSING_CTAS.founder_signals));
           }
           diag("founderSignals", "ok", t0);
         })
@@ -674,7 +695,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
           const value = `execution_score = ${fe.executionScore}; raw = ${fe.rawScore}; capped = ${fe.capped}; confidence = ${confirmed ? "document_uploaded" : "self_declared"}; ${fe.breakdown.map((b) => `${b.key} = ${b.points}/${b.max}`).join("; ")}`;
           rows.push(row("founder_profile", projectId ?? ownerUserId, "founder_profile", label, fe.structured ? (confirmed ? "evidenced" : "partial") : "partial", ["ftv"], fe.observedAt ?? observed, value));
         } else {
-          rows.push(row("founder_profile", projectId ?? ownerUserId, "founder_profile", "Founder execution profile", "missing", ["ftv"], observed, "No founder profile yet — fill the Execution tab in /workspace/settings/founder (exits, raises, roles, full-time %, GitHub)"));
+          rows.push(withCta(row("founder_profile", projectId ?? ownerUserId, "founder_profile", "Founder execution profile", "missing", ["ftv"], observed, "No founder profile yet — fill the Execution tab in /workspace/settings/founder (exits, raises, roles, full-time %, GitHub)"), GATHER_MISSING_CTAS.founder_profile));
         }
         diag("founderExecution", "ok", t0);
       })
@@ -720,7 +741,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
             const top = [...grantsMatch.grants, ...grantsMatch.programs].slice(0, 3).map((g) => `${g.name} (fit ${g.fit})`).join("; ");
             rows.push(row("grants", projectId, "connector_other", "Grants & programs match (grant-advisor)", "partial", ["iri", "cgh"], observed, top || "no open matches"));
           } else {
-            rows.push(row("grants", projectId, "self_declared", "Grant profile", "missing", ["iri"], observed, "No grant profile — complete the /workspace/funding intake to match grants and programs"));
+            rows.push(withCta(row("grants", projectId, "self_declared", "Grant profile", "missing", ["iri"], observed, "No grant profile — complete the /workspace/funding intake to match grants and programs"), GATHER_MISSING_CTAS.grants));
           }
           diag("grants", "ok", t0);
         })
@@ -733,6 +754,8 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
           const t0 = now();
           const { abn, rows: ext } = await (deps.loadExternalSignals ?? defaultLoadExternalSignals)(db, projectId);
           if (!abn) {
+            // G19-S43: the founder is told what unlocks the register rows (LCO / IRI / TRE) instead of a silent skip.
+            rows.push(withCta(row("external_signals", projectId, "external", "ABN verification (ABR / GrantConnect / R&DTI registers)", "missing", ["lco", "iri", "tre"], observed, "No verified ABN — verify it in /workspace/settings/project to read the public registers"), GATHER_MISSING_CTAS.abn));
             diag("externalSignals", "skipped", t0, "no verified ABN");
             return;
           }
@@ -754,6 +777,29 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
         })
       : Promise.resolve(void diag("externalSignals", "skipped", now(), "no db / project"));
 
+  // ── 6c. Evidence Hub (svi_dimension_evidence, project-scoped) — G19-S43 ─
+  // Every upload the founder made on /workspace/evidence becomes an
+  // EvidenceRow on its dimension (status evidenced / partial, origin-capped
+  // confidence) so the chapter table, the register and the owner prompt see
+  // it. A rejected review drops the row; a missing table reads as no rows.
+  const evidenceHub =
+    db && projectId
+      ? run("evidenceHub", async () => {
+          const t0 = now();
+          const hubRows = await (deps.loadDimensionEvidence ?? loadDimensionEvidenceRows)(db, projectId);
+          const converted = hubRowsToEvidenceRows(hubRows, observed);
+          const byDim: Record<string, number> = {};
+          let verified = 0;
+          for (const r of converted) {
+            byDim[r.dims[0]] = (byDim[r.dims[0]] ?? 0) + 1;
+            if (r.confidence === "third_party_verified") verified += 1;
+            rows.push(r);
+          }
+          results.evidenceHub = { count: converted.length, byDim, verified, codes: hubRows.filter((h) => h.evidence_type).map((h) => `${h.dimension}:${h.evidence_type}`).slice(0, 60) };
+          diag("evidenceHub", "ok", t0, converted.length ? undefined : "no hub rows");
+        })
+      : Promise.resolve(void diag("evidenceHub", "skipped", now(), "no db / project"));
+
   // ── 7. Evidence quality (deterministic) ───────────────────────────────
   const totalEvidence = Object.values(context.criteriaData).reduce((sum, d) => sum + d.files.length + d.links.length + (d.textInput ? 1 : 0), 0);
   results.evidenceQuality = {
@@ -762,7 +808,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
     totalCriteria: CRITERION_KEYS.length,
   };
 
-  await Promise.allSettled([research, tech, repo, connectors, capTable, founder, founderExecution, ga4, grants, external]);
+  await Promise.allSettled([research, tech, repo, connectors, capTable, founder, founderExecution, ga4, grants, external, evidenceHub]);
 
   // ── 8. Valuation inputs + CFO 5-method model (deterministic, after connectors)
   const signals = (context.sviAnalysis.signals ?? {}) as Partial<{ mrrAud: number; arrAud: number; raiseAskAud: number; statedCapAud: number; statedCapKind: ValuationAskInput["statedCapKind"]; hasVesting: boolean; hasShareholdersAgreement: boolean; esopAllocated: boolean; hasDataRoom: boolean; customerCount: number }>;

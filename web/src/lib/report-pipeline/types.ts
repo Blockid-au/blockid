@@ -170,6 +170,8 @@ export interface GatherResults {
   valuation?: Record<string, unknown>;
   /** G14-S40: open AU register rows for the project's verified ABN (lib/signals/external-signals.ts) — LCO / IRI / TRE. */
   externalSignals?: Record<string, unknown>;
+  /** G19-S43: the project's Evidence Hub rows (`svi_dimension_evidence`) — count / byDim / verified / codes. */
+  evidenceHub?: Record<string, unknown>;
   /** Per-source timing / cache / timeout diagnostics (`done` telemetry, tests). */
   diagnostics?: Record<string, { ms: number; status: "ok" | "cached" | "timeout" | "error" | "skipped"; note?: string }>;
 }
