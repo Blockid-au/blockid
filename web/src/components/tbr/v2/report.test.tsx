@@ -256,7 +256,7 @@ describe("<TbrReportV2> valuation (G19-S42)", () => {
     expect(html).not.toContain('data-tbr-method="revenue_multiple"');
     expect(html).toContain("data-tbr-valuation-need-revenue");
     expect(html).toContain("4 methods need revenue — connect Stripe or Xero, or state MRR, to unlock them.");
-    expect(html).toContain('href="/workspace/settings/connectors"');
+    expect(html).toContain('href="/workspace/evidence/connectors"');
     expect(html).toContain('data-tbr-source="none"');
     expect(html).not.toContain("data-tbr-valuation-ask");
   });
@@ -268,7 +268,7 @@ describe("<TbrReportV2> valuation (G19-S42)", () => {
     expect(html).not.toContain("data-tbr-valuation-methods");
     expect(methodRows(html)).toBe(0);
     expect(html).not.toContain("data-tbr-valuation-inputs");
-    expect(html).toContain('href="/workspace/settings/connectors"');
+    expect(html).toContain('href="/workspace/evidence/connectors"');
     expect(html).toContain("data-tbr-valuation-cross-checks");
     expect(html).toContain("AU stage baseline — SVI stage 2");
   });
