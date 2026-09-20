@@ -15,6 +15,7 @@
 
 import type { Locale } from "./locales";
 import { DEFAULT_LOCALE, isLocale } from "./locales";
+import { fillEntityTokens } from "@/lib/site/legal-entity";
 import en from "./messages/en.json";
 import vi from "./messages/vi.json";
 
@@ -41,6 +42,12 @@ export async function getMessages(locale: Locale): Promise<Messages> {
  *   2. explicit `fallback` argument
  *   3. EN catalog value at the same key
  *   4. the key itself (never `undefined`)
+ *
+ * Every hit is passed through `fillEntityTokens` (G21 P0-A): the catalogues
+ * never carry the operator name, ACN or ABN as literals — they carry
+ * `{entityOperator}` / `{entityAbnLabel}` / `{entityStatutoryLine}` tokens
+ * that resolve from `lib/site/legal-entity`, so both languages render the
+ * same legal identity by construction.
  */
 export function t(
   messages: Messages,
@@ -48,9 +55,9 @@ export function t(
   fallback?: string,
 ): string {
   const local = messages[key];
-  if (typeof local === "string" && local.length > 0) return local;
-  if (typeof fallback === "string" && fallback.length > 0) return fallback;
+  if (typeof local === "string" && local.length > 0) return fillEntityTokens(local);
+  if (typeof fallback === "string" && fallback.length > 0) return fillEntityTokens(fallback);
   const enFallback = CATALOG.en[key];
-  if (typeof enFallback === "string" && enFallback.length > 0) return enFallback;
+  if (typeof enFallback === "string" && enFallback.length > 0) return fillEntityTokens(enFallback);
   return key;
 }

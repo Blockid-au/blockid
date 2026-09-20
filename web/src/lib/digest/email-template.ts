@@ -5,6 +5,7 @@
 // lib/email/founder-digest.ts (rounded card, teal accents, uppercase kicker).
 
 import type { DigestPayload } from "@/lib/digest/weekly";
+import { sellerOfRecordLine } from "@/lib/site/legal-entity";
 import { MONEY_DIGEST_TEASER, moneyDigestHeader } from "@/lib/funding/digest-money";
 import { describeMove, pipelineDigestHeader } from "@/lib/investors/digest";
 
@@ -32,7 +33,7 @@ const INTEREST_COLOUR: Record<string, string> = {
 // Spam Act 2003 s17/s18 — sender identity + a working unsubscribe on every
 // digest (QA-3 P1-6, 2026-09-12). The cron passes the recipient's
 // category-scoped unsubscribe URL; the identity line is always rendered.
-export const DIGEST_SENDER_IDENTITY = "Auschain PTY LTD · ABN 79 659 615 111 · Sydney NSW";
+export const DIGEST_SENDER_IDENTITY: string = sellerOfRecordLine();
 const DIGEST_REASON = "You're receiving this because you have a BlockID account and weekly digests are on.";
 
 export interface DigestFooterOptions {

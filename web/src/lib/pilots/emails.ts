@@ -1,6 +1,6 @@
 // G16-C — pure e-mail templates for the pilot lifecycle. No sending here;
 // the service passes the result to lib/email `sendEmail`. Every template
-// carries the data sentence verbatim and the Auschain sender identity.
+// carries the data sentence verbatim and the seller-of-record sender identity.
 
 import { SENDER_IDENTITY_HTML, SENDER_IDENTITY_LINE } from "@/lib/email";
 import {

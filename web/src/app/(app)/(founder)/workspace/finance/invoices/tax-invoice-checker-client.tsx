@@ -9,6 +9,7 @@
 // the founder can persist the current snapshot for a compliance audit trail.
 
 import * as React from "react";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -136,8 +137,8 @@ function Toggle(props: {
 }
 
 const SAMPLE_STATE: TaxInvoiceFormState = {
-  supplier_name: "Auschain PTY LTD",
-  supplier_abn: "79 659 615 111",
+  supplier_name: LEGAL_ENTITY.operator,
+  supplier_abn: LEGAL_ENTITY.abn,
   recipient_name: "",
   recipient_abn: "",
   issue_date_iso: "2026-07-24",
@@ -285,7 +286,7 @@ export function TaxInvoiceCheckerClient() {
               hint="Legal entity name as it appears on the invoice."
               value={state.supplier_name}
               onChange={(v) => patch("supplier_name", v)}
-              placeholder="Auschain PTY LTD"
+              placeholder={LEGAL_ENTITY.operator}
               testId="tax-invoice-supplier-name"
             />
             <TextField
@@ -293,7 +294,7 @@ export function TaxInvoiceCheckerClient() {
               hint="11 digits — we run the ATO modulus-89 checksum."
               value={state.supplier_abn}
               onChange={(v) => patch("supplier_abn", v)}
-              placeholder="79 659 615 111"
+              placeholder={LEGAL_ENTITY.abn}
               testId="tax-invoice-supplier-abn"
             />
             <TextField

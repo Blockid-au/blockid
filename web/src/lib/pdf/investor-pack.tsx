@@ -22,13 +22,14 @@
 // `cLevelChapter` from loadCLevelChapter() (see investor-pack-assembler.ts).
 //
 // Every page carries a fixed regulatory footer:
-//   "Not financial advice. …  v<version> · Auschain PTY LTD ACN … ABN …"
+//   "Not financial advice. …  v<version> · <operator> ACN … ABN …"
 //
 // This template renders correctly whether or not upstream data is present:
 // missing sections show a "Data unavailable" placeholder rather than
 // fabricated numbers (per Guardrails in the task brief).
 
 import * as React from "react";
+import { LEGAL_ENTITY, statutoryLine } from "@/lib/site/legal-entity";
 import {
   Document,
   Page,
@@ -230,8 +231,7 @@ const C = {
   white: "#ffffff",
 } as const;
 
-const AUSCHAIN_LINE =
-  "Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW";
+const ENTITY_LINE = statutoryLine();
 
 /* ─── Styles ────────────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
@@ -443,7 +443,7 @@ function RegulatoryFooter() {
         securities.
       </Text>
       <Text style={s.footerLine}>
-        Investor Pack v2 · report template {REPORT_VERSION} · {AUSCHAIN_LINE}
+        Investor Pack v2 · report template {REPORT_VERSION} · {ENTITY_LINE}
         {"  "}
         <Text
           render={({ pageNumber, totalPages }) =>
@@ -1728,7 +1728,7 @@ export const InvestorPackPdf: React.FC<{ data: InvestorPackData }> = ({ data }) 
     title={`Investor Pack — ${data.startup.name}`}
     author="BlockID.au"
     creator="BlockID.au Investor Pack v2"
-    producer="Auschain PTY LTD"
+    producer={LEGAL_ENTITY.operator}
     subject="Startup investor pack"
   >
     <CoverPage data={data} />

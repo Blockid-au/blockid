@@ -19,6 +19,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { sessionIdempotencyKey } from "@/lib/stripe/idempotency";
@@ -107,8 +108,8 @@ export async function GET(
           enabled: true,
           invoice_data: {
             description: `BlockID.au — ${ONE_CLICK_REPORT_3AUD.name}`,
-            custom_fields: [{ name: "Seller ABN", value: "79 659 615 111" }],
-            footer: "Auschain Pty Ltd · ACN 659 615 111 · GST-registered",
+            custom_fields: [{ name: "Seller ABN", value: LEGAL_ENTITY.abn }],
+            footer: `${LEGAL_ENTITY.operator} · ${LEGAL_ENTITY_ACN_LABEL} · GST-registered`,
           },
         },
         success_url: `${origin}/one-click-report/success?session_id={CHECKOUT_SESSION_ID}`,

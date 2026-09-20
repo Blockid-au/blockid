@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { NavV2 } from "@/components/landing/nav-v2";
@@ -447,8 +448,8 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
                   Cron loops research, build, ship and self-report; every deploy
                   runs the 12-gate <code>deploy-live.sh</code> pipeline on bare
                   metal (no Docker, no hosted CI), and ops alerts go to Telegram
-                  with an e-mail fallback. Marketing entity PPL Food PTY LTD;
-                  billing and legal entity Auschain PTY LTD (ACN 659 615 111).
+                  with an e-mail fallback. Marketing entity {LEGAL_ENTITY.marketingOperator};
+                  billing and legal entity {LEGAL_ENTITY.operator} ({LEGAL_ENTITY_ACN_LABEL}).
                 </p>
               </div>
               <div className="rounded-xl border border-surface-200 bg-surface-50 p-4">

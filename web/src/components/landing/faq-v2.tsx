@@ -1,4 +1,5 @@
 import type { FC } from "react";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 
 type FAQItem = {
   q: string;
@@ -34,7 +35,7 @@ const FAQS: FAQItem[] = [
   },
   {
     q: "How do you handle GST?",
-    a: "Every price on this page is GST-inclusive — the amount you see is the amount you pay, with the 10% GST component already inside it. Auschain PTY LTD (ABN 79 659 615 111) is GST-registered, so Stripe splits the GST line automatically and emails you an ATO-compliant tax invoice for every charge.",
+    a: `Every price on this page is GST-inclusive — the amount you see is the amount you pay, with the 10% GST component already inside it. ${LEGAL_ENTITY.operator} (${LEGAL_ENTITY_ABN_LABEL}) is GST-registered, so Stripe splits the GST line automatically and emails you an ATO-compliant tax invoice for every charge.`,
   },
   {
     // G12 (2026-09-10, T0268): describes the Founder / Evaluator switch that
@@ -94,7 +95,7 @@ export const FAQV2: FC = () => {
           Information provided on this page is general in nature and does not
           constitute financial, legal, or tax advice. Consult a licensed
           professional before making decisions about securities, equity, or tax
-          treatment. BlockID.au is operated by Auschain PTY LTD (ACN 659 615 111).
+          treatment. BlockID.au is operated by {LEGAL_ENTITY.operator} ({LEGAL_ENTITY_ACN_LABEL}).
         </p>
       </div>
     </section>

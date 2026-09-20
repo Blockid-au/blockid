@@ -14,6 +14,7 @@
  */
 
 import type { Metadata } from "next";
+import { LEGAL_ENTITY, LEGAL_ENTITY_SHORT_NAME } from "@/lib/site/legal-entity";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import { Wallet, Cpu, Lock } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
@@ -43,7 +44,7 @@ const FEATURES: Feature[] = [
   {
     title: "Wallet-native (MetaMask)",
     body:
-      "Founders sign transactions from the wallet they already trust. Auschain covers gas; founders never touch a public exchange.",
+      `Founders sign transactions from the wallet they already trust. ${LEGAL_ENTITY_SHORT_NAME} covers gas; founders never touch a public exchange.`,
     Icon: Wallet,
   },
   {
@@ -74,12 +75,12 @@ function WorkflowDiagram() {
           className="mx-auto block h-auto w-full max-w-3xl"
         >
           <title id="tokenize-workflow-title">
-            Off-chain-first workflow: Auschain issues legally, tokens mirror on-chain
+            Off-chain-first workflow: {LEGAL_ENTITY_SHORT_NAME} issues legally, tokens mirror on-chain
           </title>
           {/* Off-chain lane */}
           <g>
             <rect x="20" y="30" width="200" height="60" rx="12" className="fill-action/10 stroke-action" strokeWidth="1.5" />
-            <text x="120" y="55" textAnchor="middle" className="fill-primary" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="600">Auschain PTY LTD</text>
+            <text x="120" y="55" textAnchor="middle" className="fill-primary" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="600">{LEGAL_ENTITY.operator}</text>
             <text x="120" y="75" textAnchor="middle" className="fill-tertiary" fontFamily="Inter, sans-serif" fontSize="11">Legal share issue (ASIC)</text>
           </g>
           <g>
@@ -138,7 +139,7 @@ export default function TokenizePage() {
       <PageHero
         eyebrow="Blockchain equity"
         title="On-chain shares. Off-chain law."
-        sub="Issue shares legally through Auschain PTY LTD, then mirror them on a private EVM your founders control from MetaMask. Vesting cliffs and ESOP releases run as smart contracts. AU corporate law stays the source of truth."
+        sub={`Issue shares legally through ${LEGAL_ENTITY.operator}, then mirror them on a private EVM your founders control from MetaMask. Vesting cliffs and ESOP releases run as smart contracts. AU corporate law stays the source of truth.`}
         ctas={[
           { href: "/pricing", label: "See pricing", ctaId: "tokenize_hero_pricing" },
           { href: "/tools/cap-table", label: "Try demo" },
@@ -158,7 +159,7 @@ export default function TokenizePage() {
         id="workflow"
         eyebrow="How the mirror works"
         title="Off-chain-first workflow"
-        lede="Auschain PTY LTD issues shares under the Corporations Act — the legal share register in the founder-facing cap table is the source of truth. On a paid plan you can deploy a company token to the private EVM and put holdings on-chain, so founders and grantees can see them in MetaMask without an external exchange, custodian, or KYC gate. Putting a register event on-chain is a deliberate, signed step — nothing is mirrored automatically, and the register stands on its own whether or not you ever use the chain."
+        lede={`${LEGAL_ENTITY.operator} issues shares under the Corporations Act — the legal share register in the founder-facing cap table is the source of truth. On a paid plan you can deploy a company token to the private EVM and put holdings on-chain, so founders and grantees can see them in MetaMask without an external exchange, custodian, or KYC gate. Putting a register event on-chain is a deliberate, signed step — nothing is mirrored automatically, and the register stands on its own whether or not you ever use the chain.`}
       >
         <WorkflowDiagram />
       </Section>
@@ -167,7 +168,7 @@ export default function TokenizePage() {
         id="optional"
         eyebrow="Optional by design"
         title="Blockchain layer is optional"
-        lede="Off-chain equity is the source of truth per AU corporate law. You can run BlockID.au forever with tokenization switched off, turn it on for a subset of grants, or mirror the whole register — the legal register never diverges. Auschain is the issuer of record; the smart contract is a read-through of that record."
+        lede={`Off-chain equity is the source of truth per AU corporate law. You can run BlockID.au forever with tokenization switched off, turn it on for a subset of grants, or mirror the whole register — the legal register never diverges. ${LEGAL_ENTITY_SHORT_NAME} is the issuer of record; the smart contract is a read-through of that record.`}
         tone="sunken"
         actions={[
           { href: "/pricing", label: "See pricing", variant: "link" },

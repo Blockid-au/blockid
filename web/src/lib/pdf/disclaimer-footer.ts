@@ -7,6 +7,7 @@
 // (looked up server-side by lib/legal/versions.ts).
 
 import "server-only";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
 
@@ -64,7 +65,7 @@ function truncateHash(hash: string): string {
 }
 
 function footerText(rec: DisclaimerRecord): string {
-  return `${rec.body_md}\n\nDisclaimer ${rec.id} v${rec.version} · hash ${truncateHash(rec.hash)} · Auschain PTY LTD (ACN 659 615 111 · ABN 79 659 615 111).`;
+  return `${rec.body_md}\n\nDisclaimer ${rec.id} v${rec.version} · hash ${truncateHash(rec.hash)} · ${LEGAL_ENTITY.operator} (${LEGAL_ENTITY_ACN_LABEL} · ${LEGAL_ENTITY_ABN_LABEL}).`;
 }
 
 // ── PDF stamper ────────────────────────────────────────────────────────

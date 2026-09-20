@@ -36,6 +36,7 @@
  */
 
 import { Document, Page, Text, View } from "@react-pdf/renderer";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_BENCHMARKS } from "@/lib/svi-analysis";
@@ -241,7 +242,7 @@ export function SVISummaryPDF({
   return (
     <Document
       title={`${name} — free ${FREE_SUMMARY_PAGES.length}-page summary`}
-      author="BlockID.au (Auschain Pty Ltd)"
+      author={`BlockID.au (${LEGAL_ENTITY.operator})`}
       subject="Startup Value Index summary"
     >
       {/* ── PAGE 1 — Your number ──────────────────────────────────────── */}
@@ -618,8 +619,8 @@ export function SVISummaryPDF({
             marginTop: 14,
           }}
         >
-          Prepared by BlockID.au — Auschain Pty Ltd, ACN 659 615 111, ABN 79 659
-          615 111, Sydney NSW, Australia. The Startup Value Index is a
+          Prepared by BlockID.au — {LEGAL_ENTITY.operator}, {LEGAL_ENTITY_ACN_LABEL}, {LEGAL_ENTITY_ABN_LABEL},
+          Sydney NSW, Australia. The Startup Value Index is a
           directional analysis, not a financial valuation or an investment
           recommendation. BlockID does not hold an Australian Financial Services
           Licence. Seek independent professional advice. Prices in AUD

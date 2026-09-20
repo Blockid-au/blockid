@@ -15,11 +15,12 @@
 //             "Seat views" (each seat's decision, conviction, top risk) +
 //             consensus row. 2–4 pages (the test pins the range).
 //
-// Footer on every page: "Prepared with BlockID.au · Auschain PTY LTD · not
+// Footer on every page: "Prepared with BlockID.au · <operator> · not
 // financial advice · page x/y" (S6). private_notes never reach `sections`,
 // so they can never reach the PDF. Fonts: built-in Helvetica.
 
 import { HELVETICA, pdfFontsForLocale, vietnameseHyphenation, type PdfFontSet } from "@/lib/pdf/fonts";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import { Document, Font, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import type { ReactNode } from "react";
 import { BAND_COLOUR, INK, aud } from "@/lib/report-visuals";
@@ -30,7 +31,7 @@ import type { IcReportKind, IcSections } from "@/lib/evaluations/ic-reports";
 import { AdviceDisclaimer, PDF_ENTITY_LINE } from "./advice-disclaimer";
 import { pdfPageCount } from "./page-count";
 
-export const IC_MEMO_FOOTER = "Prepared with BlockID.au · Auschain PTY LTD · not financial advice";
+export const IC_MEMO_FOOTER = `Prepared with BlockID.au · ${LEGAL_ENTITY.operator} · not financial advice`;
 export const IC_MEMO_MAX_PAGES = 4;
 
 const C = { ink: INK.text, muted: INK.muted, faint: INK.faint, grid: INK.grid, surface: INK.surfaceAlt, brand: "#0072B2", brandSoft: "#EAF3FA" };

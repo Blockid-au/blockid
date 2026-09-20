@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL } from "@/lib/site/legal-entity";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -620,7 +621,7 @@ export function WorkspaceLayout({ children, user, currentPhase: currentPhaseProp
         {/* Workspace footer — compact legal strip. Keep in sync with
             docs/plans/unlock-next-level-2026-07-31.md §1a G8-P5. */}
         <footer className="shrink-0 border-t border-line-subtle bg-surface-sunken/80 px-6 py-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
-          <span>&copy; 2026 Auschain PTY LTD &middot; ABN 79 659 615 111</span>
+          <span>&copy; {new Date().getUTCFullYear()} {LEGAL_ENTITY.copyrightHolder} &middot; {LEGAL_ENTITY_ABN_LABEL}</span>
           <span className="flex items-center gap-4">
             <Link href="/legal" className="hover:text-muted transition-colors">Legal</Link>
             <Link href="/privacy" className="hover:text-muted transition-colors">Privacy</Link>

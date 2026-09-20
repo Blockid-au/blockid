@@ -14,8 +14,8 @@
  */
 
 const EMAIL_RE = /\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b/g;
-// 8+ consecutive digits, optionally with spaces (matches "79 659 615 111"
-// and "796596151110") — captures ABNs, ACNs, and long numeric ids without
+// 8+ consecutive digits, optionally with spaces (matches "51 824 753 556"
+// and "518247535560") — captures ABNs, ACNs, and long numeric ids without
 // touching short numbers like years / status codes.
 const ABN_RE = /\b(?:\d[\s-]?){8,}\d?\b/g;
 

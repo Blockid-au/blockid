@@ -8,6 +8,7 @@
  */
 
 import type { Metadata } from "next";
+import { LEGAL_ENTITY, statutoryLine } from "@/lib/site/legal-entity";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import { FileText, Lock, ScrollText, ShieldAlert, type LucideIcon } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
@@ -29,12 +30,12 @@ const DOCS: LegalDoc[] = [
   {
     href: "/legal/terms",
     title: "Terms of Service",
-    body: "Auschain PTY LTD Terms of Service governing use of the BlockID.au platform.",
+    body: `${LEGAL_ENTITY.operator} Terms of Service governing use of the BlockID.au platform.`,
   },
   {
     href: "/legal/privacy",
     title: "Privacy Policy",
-    body: "How Auschain PTY LTD collects, holds, uses, and discloses personal information under the Privacy Act 1988 (Cth).",
+    body: `How ${LEGAL_ENTITY.operator} collects, holds, uses, and discloses personal information under the Privacy Act 1988 (Cth).`,
   },
   {
     href: "/legal/acceptable-use",
@@ -61,7 +62,7 @@ export default function LegalIndexPage() {
       <PageHero
         eyebrow="Legal"
         title="Legal documents"
-        sub="The authoritative Auschain PTY LTD policies that govern how BlockID.au is used."
+        sub={`The authoritative ${LEGAL_ENTITY.operator} policies that govern how BlockID.au is used.`}
         align="start"
       />
 
@@ -75,7 +76,7 @@ export default function LegalIndexPage() {
 
       <CtaBand
         title="Questions about our legal position?"
-        sub="Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW."
+        sub={`${statutoryLine()}.`}
         primary={{ href: "/contact?topic=legal", label: "Contact legal", ctaId: "legal_final_contact" }}
         secondary={{ href: "/legal/acceptable-use", label: "Acceptable use" }}
       />

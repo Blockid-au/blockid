@@ -10,6 +10,7 @@
 // raw_input, or analysis_json.
 
 import { NextResponse } from "next/server";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 import {
   getOverallAggregates,
   getSectorAggregates,
@@ -23,7 +24,7 @@ export const revalidate = 300;
 
 const CACHE_HEADER = "public, max-age=300, stale-while-revalidate=600";
 const DISCLAIMER =
-  "General information only. Aggregated from anonymised SVI snapshots. Not investment, financial, or legal advice. Blockid.au and Auschain Pty Ltd (ACN 659 615 111) do not hold an Australian Financial Services Licence.";
+  `General information only. Aggregated from anonymised SVI snapshots. Not investment, financial, or legal advice. Blockid.au and ${LEGAL_ENTITY.operator} (${LEGAL_ENTITY_ACN_LABEL}) do not hold an Australian Financial Services Licence.`;
 
 const VALID_BUCKETS = new Set<SviBucket>(["overall", "sector", "stage"]);
 const VALID_FORMATS = new Set<string>(["json", "csv"]);

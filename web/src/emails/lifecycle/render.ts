@@ -5,6 +5,7 @@
 // email-client compatibility (Outlook 2016+, Gmail, Apple Mail).
 
 import type { LifecycleStep } from "@/lib/conversion/lifecycle";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://blockid.au";
 
@@ -194,7 +195,7 @@ function shell(
       ${content}
     </div>
     <p style="font-size:11px;color:${T.textMuted};text-align:center;margin:20px 0 0;line-height:1.6">
-      Auschain PTY LTD &middot; ACN 659 615 111 &middot; Sydney NSW<br />
+      ${LEGAL_ENTITY.operator} &middot; ${LEGAL_ENTITY_ACN_LABEL} &middot; ${LEGAL_ENTITY.city}<br />
       ${unsubscribeUrl ? `<a href="${unsubscribeUrl}" style="color:${T.textMuted};text-decoration:underline">Unsubscribe</a> &middot; ` : ""}
       <a href="${APP_URL}/legal/privacy" style="color:${T.textMuted};text-decoration:underline">Privacy Policy</a>
     </p>

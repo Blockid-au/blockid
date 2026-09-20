@@ -62,8 +62,8 @@ import { fillPrices } from "./solutions-pricing";
 
 /**
  * Trust badges surfaced on `/solutions/investor`, and reusable on any persona
- * page that opts in. Each badge must be a regulatory fact about Auschain PTY
- * LTD that we can point at, not a capability claim.
+ * page that opts in. Each badge must be a regulatory fact about the operator
+ * (LEGAL_ENTITY) that we can point at, not a capability claim.
  */
 export interface SolutionTrustBadge {
   label: string;

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import { Suspense } from "react";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
@@ -224,7 +225,7 @@ export default async function PricingPage() {
         sub="Every enterprise tier includes a demo call with our founder team."
         primary={{ href: "/contact", label: "Talk to sales", ctaId: "pricing_final_sales" }}
         secondary={{ href: "/workspace/esop/offers", label: "Explore equity-for-solution" }}
-        footnote="Not financial advice. Equity arrangements require independent legal and tax review. Auschain PTY LTD · Sydney NSW."
+        footnote={`Not financial advice. Equity arrangements require independent legal and tax review. ${LEGAL_ENTITY.operator} · ${LEGAL_ENTITY.city}.`}
       />
 
       {/* Persistent bottom CTA — hidden 7 days after dismissal. Marketing

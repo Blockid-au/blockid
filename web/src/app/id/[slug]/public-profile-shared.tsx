@@ -11,6 +11,7 @@
  */
 
 import type { Metadata } from "next";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL } from "@/lib/site/legal-entity";
 import { brandedOrAbsolute } from "@/lib/seo/page-meta";
 import Script from "next/script";
 import Link from "next/link";
@@ -291,8 +292,8 @@ function PageBody({
       credentialCategory: label,
       recognizedBy: {
         "@type": "Organization",
-        name: "Auschain PTY LTD",
-        identifier: "ABN 79 659 615 111",
+        name: LEGAL_ENTITY.operator,
+        identifier: LEGAL_ENTITY_ABN_LABEL,
       },
       dateCreated: profile.lastVerifiedAt ?? undefined,
     },

@@ -24,11 +24,14 @@
 // component reads DEFAULT_NDA_TEXT and the disclaimer line too. The clause
 // hash and the owner-plan lookup live in ./nda-server.ts.
 
+import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
+
 /**
  * The default clause. Plain English, general in nature, mutual. This is the
  * text an investor sees when the founder has not written their own. It is
  * deliberately short: a click-wrap that nobody reads protects nobody.
  */
+
 export const DEFAULT_NDA_TEXT = [
   "Mutual confidentiality.",
   "",
@@ -39,7 +42,7 @@ export const DEFAULT_NDA_TEXT = [
 
 /** Same line the reports carry — the clause is a template, not legal advice. */
 export const NDA_NOT_LEGAL_ADVICE =
-  "This clause is a general template provided by BlockID.au (Auschain PTY LTD, ACN 659 615 111) and does not constitute legal advice. BlockID.au is not a law firm. Either party should consult a qualified Australian solicitor before relying on it.";
+  `This clause is a general template provided by BlockID.au (${LEGAL_ENTITY.operator}, ${LEGAL_ENTITY_ACN_LABEL}) and does not constitute legal advice. BlockID.au is not a law firm. Either party should consult a qualified Australian solicitor before relying on it.`;
 
 export const NDA_TEXT_MAX_CHARS = 8000;
 

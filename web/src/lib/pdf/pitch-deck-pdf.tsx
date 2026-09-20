@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 import { AdviceDisclaimer } from "./advice-disclaimer";
 import * as path from "path";
 import * as fs from "fs";
@@ -110,7 +111,7 @@ function Footer({ num, dark }: { num: number; dark?: boolean }) {
   return (
     <View style={s.footer}>
       <Text style={dark ? { ...s.footerText, color: C.ink500 } : s.footerText}>
-        BlockID.au — Auschain PTY LTD | ACN 659 615 111 | Confidential
+        BlockID.au — {LEGAL_ENTITY.operator} | {LEGAL_ENTITY_ACN_LABEL} | Confidential
       </Text>
       <Text style={dark ? { ...s.footerBrand, color: C.brand } : s.footerBrand}>
         blockid.au
@@ -157,7 +158,7 @@ export function PitchDeckPDF() {
             <Text style={{ ...s.tag }}>PRE-SEED</Text>
           </View>
           <Text style={{ fontSize: 10, color: C.ink500, marginTop: 24 }}>
-            Auschain PTY LTD | ACN 659 615 111 | blockid.au
+            {LEGAL_ENTITY.operator} | {LEGAL_ENTITY_ACN_LABEL} | blockid.au
           </Text>
           <Text style={{ fontSize: 10, color: C.ink500, marginTop: 4 }}>
             Do Van Long — Founder & CEO | linkedin.com/in/dovanlong
@@ -527,7 +528,7 @@ export function PitchDeckPDF() {
           <View style={{ marginTop: 24, alignItems: "center" }}>
             <Text style={{ fontSize: 11, color: C.brand, fontWeight: "bold" }}>Do Van Long — Founder & CEO</Text>
             <Text style={{ fontSize: 10, color: C.ink400, marginTop: 4 }}>ceo@longcare.au | linkedin.com/in/dovanlong | blockid.au</Text>
-            <Text style={{ fontSize: 9, color: C.ink500, marginTop: 4 }}>Auschain PTY LTD | ACN 659 615 111 | ABN 79 659 615 111 | Sydney, NSW</Text>
+            <Text style={{ fontSize: 9, color: C.ink500, marginTop: 4 }}>{LEGAL_ENTITY.operator} | {LEGAL_ENTITY_ACN_LABEL} | {LEGAL_ENTITY_ABN_LABEL} | Sydney, NSW</Text>
           </View>
           {/* QA-3 P1-7: not an offer of securities / forward-looking + general-advice disclaimer */}
           <AdviceDisclaimer variant="pitch" dark style={{ marginTop: 18, marginHorizontal: 48 }} />

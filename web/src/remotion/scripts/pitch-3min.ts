@@ -8,6 +8,7 @@
  */
 
 import type { ScriptLine } from "./pitch-1min";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "../../lib/site/legal-entity";
 import { generateSRT, generateVTT, getCitations } from "./pitch-1min";
 
 export { generateSRT, generateVTT, getCitations };
@@ -70,7 +71,7 @@ export const PITCH_3MIN: ScriptLine[] = [
     endTime: 18,
     text: "I'm Do Van Long, founder of BlockID.",
     visual:
-      "Transition to BlockID homepage screenshot or founder photo. Lower third appears: 'Do Van Long | Founder & CEO | Auschain Pty Ltd'. Brand blue accent bar.",
+      `Transition to BlockID homepage screenshot or founder photo. Lower third appears: 'Do Van Long | Founder & CEO | ${LEGAL_ENTITY.operator}'. Brand blue accent bar.`,
     emotion: "neutral",
   },
   {
@@ -454,7 +455,7 @@ export const PITCH_3MIN: ScriptLine[] = [
     endTime: 165,
     text: "Built for Australian compliance from day one.",
     visual:
-      "Compliance badges appear: Australian flag + 'AU-Native'. List: 'ASIC Registration' checkmark, 'ESIC Tax Incentives' checkmark, 'R&D Tax Offset' checkmark, 'AU Data Residency' checkmark. Company details: 'Auschain Pty Ltd (ACN 659 615 111) | Sydney, NSW'.",
+      `Compliance badges appear: Australian flag + 'AU-Native'. List: 'ASIC Registration' checkmark, 'ESIC Tax Incentives' checkmark, 'R&D Tax Offset' checkmark, 'AU Data Residency' checkmark. Company details: '${LEGAL_ENTITY.operator} (${LEGAL_ENTITY_ACN_LABEL}) | Sydney, NSW'.`,
     emotion: "inspiring",
   },
   {
@@ -545,7 +546,7 @@ export const PITCH_3MIN: ScriptLine[] = [
     endTime: 185,
     text: "First analysis free. Start today.",
     visual:
-      "Divider line appears. Below: 'Do Van Long' | 'Founder & CEO, Auschain Pty Ltd'. QR Code animates in (links to linkedin.com/in/dovanlong). Bottom CTA: 'First analysis free. Start today.' in brand blue. 'blockid.au' URL prominent. End card holds for remaining time.",
+      `Divider line appears. Below: 'Do Van Long' | 'Founder & CEO, ${LEGAL_ENTITY.operator}'. QR Code animates in (links to linkedin.com/in/dovanlong). Bottom CTA: 'First analysis free. Start today.' in brand blue. 'blockid.au' URL prominent. End card holds for remaining time.`,
     emotion: "neutral",
   },
 ];

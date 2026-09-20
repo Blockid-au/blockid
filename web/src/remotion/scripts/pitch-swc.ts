@@ -16,6 +16,7 @@
  */
 
 import type { ScriptLine } from "./pitch-1min";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "../../lib/site/legal-entity";
 import { generateSRT, generateVTT, getCitations } from "./pitch-1min";
 
 export { generateSRT, generateVTT, getCitations };
@@ -56,7 +57,7 @@ export const PITCH_SWC: ScriptLine[] = [
     endTime: 20,
     text: "My name is Do Van Long, founder of BlockID dot ay you, and we are fixing this.",
     visual:
-      "Transition: blue wipe. Founder lower-third appears: 'Do Van Long | Founder & CEO | Auschain Pty Ltd'. BlockID logo beside. Confident, forward-looking shot of homepage.",
+      `Transition: blue wipe. Founder lower-third appears: 'Do Van Long | Founder & CEO | ${LEGAL_ENTITY.operator}'. BlockID logo beside. Confident, forward-looking shot of homepage.`,
     emotion: "inspiring",
   },
 
@@ -220,7 +221,7 @@ export const PITCH_SWC: ScriptLine[] = [
     endTime: 175,
     text: "Thank you.",
     visual:
-      "CTASlide: BlockID.au logo (large). 'blockid.au' URL. QR code to website. 'Do Van Long — Founder & CEO'. 'Auschain Pty Ltd — ACN 659 615 111'. 'Try free: blockid.au'. LinkedIn QR. Sydney, Australia.",
+      `CTASlide: BlockID.au logo (large). 'blockid.au' URL. QR code to website. 'Do Van Long — Founder & CEO'. '${LEGAL_ENTITY.operator} — ${LEGAL_ENTITY_ACN_LABEL}'. 'Try free: blockid.au'. LinkedIn QR. Sydney, Australia.`,
     emotion: "neutral",
   },
   {

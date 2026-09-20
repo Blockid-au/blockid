@@ -14,6 +14,7 @@
 // server picks the day-5/6/7 window and hands `trialEnd` down.
 
 import * as React from "react";
+import { statutoryLine } from "@/lib/site/legal-entity";
 import { useRouter } from "next/navigation";
 
 export interface AutoRenewNoticeProps {
@@ -93,7 +94,7 @@ export function AutoRenewNotice({
             cancel or change plan any time before then.
           </p>
           <p className="mt-2 text-xs text-amber-800/80 dark:text-amber-200/80">
-            Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW
+            {statutoryLine()}
           </p>
         </div>
         <div className="shrink-0">

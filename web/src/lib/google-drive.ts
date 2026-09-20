@@ -1,4 +1,5 @@
 import { google } from "googleapis";
+import { producedByLine } from "@/lib/site/legal-entity";
 import { Readable } from "stream";
 import type { RndReport } from "./rnd-analysis";
 import type { SVIAnalysis } from "./svi-analysis";
@@ -299,7 +300,7 @@ function buildReportPlainText(
     lines.push("");
   }
 
-  lines.push("Disclaimer: This analysis is produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111, ABN 79 659 615 111).");
+  lines.push(`Disclaimer: This analysis is produced by ${producedByLine()}.`);
   lines.push("The Startup Value Index (SVI) is NOT a financial valuation or investment recommendation.");
   lines.push("BlockID does not hold an Australian Financial Services Licence (AFSL).");
   lines.push("For financial advice, consult a qualified Australian financial adviser.");

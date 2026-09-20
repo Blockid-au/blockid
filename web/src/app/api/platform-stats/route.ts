@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { readTractionSnapshotRaw } from "@/lib/traction/status";
 import { countersFromSnapshot } from "@/lib/traction/platform-counters";
@@ -204,9 +205,9 @@ export async function GET() {
 function companyInfo() {
   return {
     name: "BlockID.au",
-    legal: "Auschain PTY LTD",
-    acn: "659 615 111",
-    abn: "79 659 615 111",
+    legal: LEGAL_ENTITY.operator,
+    acn: LEGAL_ENTITY.acn,
+    abn: LEGAL_ENTITY.abn,
     founded: 2023,
     location: "Sydney, NSW, Australia",
     industry: ["SaaS", "AI/ML", "FinTech", "Startup Tools"],

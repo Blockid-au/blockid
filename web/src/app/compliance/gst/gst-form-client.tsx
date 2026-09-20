@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -242,7 +243,7 @@ export function GstFormClient(props: Props) {
                 hint="Optional. We do not validate the ABN here — use the ABN lookup on Chapter 1."
                 value={state.abn}
                 onChange={(v) => patch("abn", v)}
-                placeholder="79 659 615 111"
+                placeholder={LEGAL_ENTITY.abn}
               />
             </div>
           </div>

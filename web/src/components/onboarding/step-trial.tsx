@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import type { Dispatch } from "react";
 import { Check, Loader2, ShieldCheck } from "lucide-react";
 import { PLANS_V2, formatAud } from "@/lib/plans-v2";
@@ -167,7 +168,7 @@ export function StepTrial({
         </button>
 
         <p className="mt-6 text-xs text-brand-ink-muted">
-          Not financial or legal advice. Auschain PTY LTD · Sydney NSW.
+          Not financial or legal advice. {LEGAL_ENTITY.operator} · {LEGAL_ENTITY.city}.
         </p>
       </div>
     );
@@ -244,7 +245,7 @@ export function StepTrial({
       </button>
 
       <p className="mt-6 text-xs text-brand-ink-muted">
-        Not financial or legal advice. Auschain PTY LTD · Sydney NSW.
+        Not financial or legal advice. {LEGAL_ENTITY.operator} · {LEGAL_ENTITY.city}.
       </p>
     </div>
   );

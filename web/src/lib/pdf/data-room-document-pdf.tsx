@@ -17,6 +17,7 @@
  */
 
 import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 import { C, Footer, HeaderBar } from "./svi-report-pdf";
 import { WatermarkLayer } from "./watermark";
 
@@ -228,8 +229,8 @@ export function DataRoomDocumentPDF(props: DataRoomDocumentPdfProps) {
           blocks.map((b, i) => <Block key={i} block={b} i={i} />)
         )}
         <Text style={st.disclaimer}>
-          Prepared from the founder&apos;s own workspace data by BlockID.au (Auschain PTY LTD, ACN 659 615
-          111). Indicative only — not a valuation opinion, not financial product advice under the Corporations
+          Prepared from the founder&apos;s own workspace data by BlockID.au ({LEGAL_ENTITY.operator},{" "}
+          {LEGAL_ENTITY_ACN_LABEL}). Indicative only — not a valuation opinion, not financial product advice under the Corporations
           Act 2001 (Cth), and not legal advice. BlockID does not hold an AFSL. Seek independent professional
           advice before relying on it.
         </Text>

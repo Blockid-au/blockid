@@ -1,4 +1,5 @@
 import React from "react";
+import { LEGAL_ENTITY } from "../../lib/site/legal-entity";
 import { AbsoluteFill, Audio, Img, Sequence, staticFile, useCurrentFrame, interpolate, spring, useVideoConfig } from "remotion";
 import { Subtitle } from "../components/Subtitle";
 import { BRAND } from "../styles/brand";
@@ -182,7 +183,7 @@ function FounderIntroScene() {
         <div>
           <div style={{ fontSize: 52, fontWeight: 900, color: "#FFFFFF", fontFamily: BRAND.fonts.heading }}>Do Van Long</div>
           <div style={{ fontSize: 26, color: BRAND.colors.brand, marginTop: 8, fontWeight: 600 }}>Founder & CEO — BlockID.au</div>
-          <div style={{ fontSize: 20, color: "#94A3B8", marginTop: 6 }}>Auschain Pty Ltd · Sydney, Australia</div>
+          <div style={{ fontSize: 20, color: "#94A3B8", marginTop: 6 }}>{LEGAL_ENTITY.operator} · Sydney, Australia</div>
         </div>
       </div>
     </AbsoluteFill>

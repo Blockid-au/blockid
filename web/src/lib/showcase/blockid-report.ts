@@ -19,6 +19,7 @@
 //     off as ours).
 
 import "server-only";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import { unstable_cache } from "next/cache";
 import { loadLatestReportV2ForProject, type LoadedReportV2 } from "@/lib/report-v2/load";
 import type { ReportV2 } from "@/lib/report-v2/schema";
@@ -28,7 +29,7 @@ export const BLOCKID_SHOWCASE_PROJECT_ID_DEFAULT = "2bf55234-e359-4390-8faa-0659
 export const BLOCKID_SHOWCASE_REPORT_CACHE_TAG = "showcase-blockid-report";
 /** Matches the page's `revalidate = 3600`. */
 export const BLOCKID_SHOWCASE_REPORT_CACHE_SECONDS = 3600;
-export const BLOCKID_SHOWCASE_STARTUP_NAME = "BlockID.au (Auschain PTY LTD)";
+export const BLOCKID_SHOWCASE_STARTUP_NAME = `BlockID.au (${LEGAL_ENTITY.operator})`;
 
 export function blockidShowcaseProjectId(): string {
   const fromEnv = process.env.BLOCKID_SHOWCASE_PROJECT_ID?.trim();

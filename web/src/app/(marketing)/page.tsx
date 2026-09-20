@@ -180,9 +180,8 @@ export default function HomePage() {
         />
       </main>
 
-      {/* The one public footer (S-IA5) — identical on every page. ENTITY
-          STRING IS DELIBERATE: marketing surfaces show PPL Food PTY LTD;
-          billing / legal / JSON-LD use Auschain PTY LTD. Do not change either. */}
+      {/* The one public footer (S-IA5) — identical on every page. Entity
+          lines come from lib/site/legal-entity (G21 P0-A). */}
       <Footer />
     </div>
   );

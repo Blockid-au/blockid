@@ -22,6 +22,7 @@
  */
 
 import * as React from "react";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import { Award, CheckCircle2, Download, ExternalLink, FolderPlus, Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { certificateCostLabel, formatAudCompact, type ValuationCertificateData } from "@/lib/valuation-certificate/types";
@@ -214,7 +215,7 @@ export function ValuationCertificatePanel({ initial }: { initial?: CertificatePa
           <h2 className="mt-1 text-lg font-semibold text-ink-800">Valuation certificate</h2>
           <p className="mt-1 text-sm text-ink-500 max-w-xl">
             A hash-sealed, 3-page A4 snapshot of this SVI score and indicative range that an investor can verify at a public
-            link — issued by Auschain PTY LTD, indicative only, not an independent valuation report.
+            link — issued by {LEGAL_ENTITY.operator}, indicative only, not an independent valuation report.
           </p>
         </div>
         {issueAllowed ? (

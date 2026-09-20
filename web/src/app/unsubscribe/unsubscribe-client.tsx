@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 import Link from "next/link";
 
 interface Prefs {
@@ -379,7 +380,7 @@ export function UnsubscribeClient({
             Return to BlockID.au
           </Link>
           <p className="text-[10px] text-[#475569]">
-            BlockID.au &mdash; Auschain PTY LTD | ACN 659 615 111
+            BlockID.au &mdash; {LEGAL_ENTITY.operator} | {LEGAL_ENTITY_ACN_LABEL}
           </p>
         </div>
       </div>

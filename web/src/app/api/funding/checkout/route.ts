@@ -17,6 +17,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 import { readJsonBody } from "@/lib/security/request-guards";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
@@ -146,8 +147,8 @@ async function POST_handler(request: Request) {
         enabled: true,
         invoice_data: {
           description: `BlockID.au — ${FUNDING_REPORT_3AUD.name}`,
-          custom_fields: [{ name: "Seller ABN", value: "79 659 615 111" }],
-          footer: "Auschain Pty Ltd · ACN 659 615 111 · GST-registered",
+          custom_fields: [{ name: "Seller ABN", value: LEGAL_ENTITY.abn }],
+          footer: `${LEGAL_ENTITY.operator} · ${LEGAL_ENTITY_ACN_LABEL} · GST-registered`,
         },
       },
       // `?s=` lets the buyer open the report straight from Stripe's redirect;

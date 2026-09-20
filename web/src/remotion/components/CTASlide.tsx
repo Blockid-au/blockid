@@ -1,4 +1,5 @@
 import React from "react";
+import { LEGAL_ENTITY } from "../../lib/site/legal-entity";
 import {
   AbsoluteFill,
   Img,
@@ -22,7 +23,7 @@ interface CTASlideProps {
 export const CTASlide: React.FC<CTASlideProps> = ({
   founderName = "Do Van Long",
   founderTitle = "Founder & CEO",
-  companyEntity = "Auschain Pty Ltd",
+  companyEntity = LEGAL_ENTITY.operator,
   linkedIn = "linkedin.com/in/dovanlong",
   ctaText = "First analysis free. Start today.",
   tagline = "Where AI meets startup valuation",

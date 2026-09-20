@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 import Link from "next/link";
 import fs from "node:fs";
 import path from "node:path";
@@ -94,7 +95,7 @@ export default function TeamPage() {
                 Founder and product lead. Sets the roadmap, approves every
                 ship, and owns the founder relationship. Execution is
                 delivered by a cross-border team coordinated with{" "}
-                <strong className="text-primary">Auschain PTY LTD</strong>{" "}
+                <strong className="text-primary">{LEGAL_ENTITY.operator}</strong>{" "}
                 in Australia (go-to-market, compliance, customer contracts)
                 and the{" "}
                 <strong className="text-primary">
@@ -133,13 +134,13 @@ export default function TeamPage() {
                 Operating entity
               </p>
               <h2 className="mt-1 font-display text-lg font-semibold text-primary">
-                PPL Food PTY LTD
+                {LEGAL_ENTITY.marketingOperator}
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-secondary">
                 Australian proprietary company operating BlockID.au. Customer
                 contracts, invoices and GST are issued by{" "}
-                <strong className="text-primary">Auschain PTY LTD</strong>{" "}
-                (ACN 659 615 111 · ABN 79 659 615 111).
+                <strong className="text-primary">{LEGAL_ENTITY.operator}</strong>{" "}
+                ({LEGAL_ENTITY_ACN_LABEL} · {LEGAL_ENTITY_ABN_LABEL}).
               </p>
               <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-secondary">
                 <MapPin className="h-3.5 w-3.5" aria-hidden="true" strokeWidth={1.75} />
