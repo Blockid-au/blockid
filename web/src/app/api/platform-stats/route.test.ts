@@ -218,7 +218,7 @@ describe("GET /api/platform-stats — defaults and envelope", () => {
       stage: "Pre-seed",
       website: "https://blockid.au",
       tagline:
-        "Know your startup's SVI score in 60 seconds",
+        "Score any Australian startup in 60 seconds",
     });
   });
 
