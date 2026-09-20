@@ -1,7 +1,10 @@
 # BlockID.au — Version Log
 
-> Conventional version log starting from v2.3 (SVI quality upgrade era, June 2026).
-> Older history lives in `docs/ROADMAP.md` as completed phases.
+> Conventional version log from v2.3 (June 2026) to v3.4 (August 2026). **Not extended after v3.4** — the release
+> log now lives in `web/CHANGELOG.md` (rendered at `/changelog`), the manifest in `web/content/reports/version.json`
+> (`/api/status`, `/version`) and the CEO-loop milestones in `web/content/reports/implementing-plan.md`.
+> Current release: **v3.16.0 (2026-09-19)**. Founding 100 / A$99 figures below are historical (promo closed
+> 2026-09-01; Growth is A$69). Older history: `docs/ROADMAP.md` (historical). Last verified: 2026-09-19 (G18-B).
 
 ---
 

@@ -1,7 +1,10 @@
 # BlockID.au Product Roadmap
 
-> Startup Verification Intelligence for Australian founders.
-> Last updated: 2026-08-14 (v3.4.0 — founder workspace modules, reseller fix, AI optimization)
+> **Historical phase log (Phase 1 → 3.0, up to v3.4.0 / 2026-08-14).** Not maintained since; the `[x]` rows
+> record what shipped *at the time* — e.g. "Docker deployment + GitLab CI", "9 AI providers", "Founding 50/100"
+> describe systems that were later removed (bare-metal 12-gate deploy, DeepInfra-first chain, promo closed
+> 2026-09-01). Current goals and status: repo-root `ROADMAP.md` (goal tables G1–G17) and
+> `docs/plans/SOURCE-OF-TRUTH.md`; public view `/roadmap`. Last verified as historical: 2026-09-19 (G18-B).
 
 ---
 

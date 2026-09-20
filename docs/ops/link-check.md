@@ -69,7 +69,7 @@ node scripts/link-check.mjs --base http://127.0.0.1:4099 --no-external --no-aler
 | `--no-alert` | off | write the report, skip Telegram |
 | `--out-dir <dir>` | `content/reports` | where the report files go |
 
-## 3. Deploy hook (gate 8, proposal — wire in `scripts/deploy-live.sh` next to the e2e smoke tier)
+## 3. Deploy hook (gate 8 — wired into `scripts/deploy-live.sh` next to the e2e smoke tier, `97a2ad910`, 2026-09-19)
 
 ```sh
 # G17-P2B — internal links on the temp release (read-only; externals skipped, alerts off).

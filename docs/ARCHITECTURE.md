@@ -1,6 +1,15 @@
 # BlockID.au -- System Architecture
 
-> Doc rev: 4.0 | Platform build: **v3.3.2** (2026-08-07 deployed, 11/11 gates)
+> Doc rev: 4.0 — **historical snapshot of v3.3.2 (2026-08-07)**; not re-verified since. For the current
+> picture read the living `web/content/reports/architecture.md` (rendered by the CEO loop, v3.16.0) and the
+> repo-root `README.md`. Known drift as of 2026-09-19 (G18-B): deploy is a **12-gate** pipeline with a live-bundle
+> SHA check and an internal link check (`docs/ops/deploy.md`); the AI chain is DeepInfra-first with Anthropic /
+> Gemini / Groq fallbacks and a daily free-model refresh (`docs/ops/ai-providers.md`) — OpenAI / Codex are no
+> longer in the chain; the Founding 50/100 promo and its routes are gone (closed 2026-09-01); the enhanced
+> report is the Trusted Business Report v2 (8 dimensions with a C-Level owner each, 13-criteria internal rubric);
+> nav is v4 with 10 personas (G13); migrations run to **0412**; crons ~110 lines in
+> `web/scripts/crontab.production`; observability = error digest + latency SLO + `/api/status` v2 (`docs/ops/slo.md`).
+> Doc rev at snapshot: 4.0 | Platform build then: v3.3.2 (11/11 gates)
 > Stack: Next.js 16 (App Router, standalone output, `next build --webpack`) + Supabase (Postgres/Auth/Storage) + Stripe + BlockID EVM (Anvil) + Otterscan + Cloudflare + Claude 4.7 / OpenAI / Gemini / Groq / Cerebras / SambaNova / OpenRouter + Google Drive + Gmail SMTP + Telegram
 > Bare-metal deploy: `bash web/scripts/deploy-live.sh` (11-gate pipeline, zero-downtime port swap)
 

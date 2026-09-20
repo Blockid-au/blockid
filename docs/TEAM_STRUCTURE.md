@@ -1,6 +1,6 @@
 # BlockID.au — Team Structure (AI-Augmented Solo Founder + Agent Fleet)
 
-> Doc rev: 4.1 | Platform build: **v0.6.0 / web v3.3.2+** (2026-08-13)
+> Doc rev: 4.2 | Platform build: **web v3.16.0** (2026-09-19; last full verification 2026-09-19, G18-B)
 > Roster source of truth: `web/content/team-roster.json` (11 active C-Level agents)
 > Operating model: **1 human founder + autonomous agent fleet** (no employees yet; ESOP pool 12% reserved for first hires — see [`../ESOP_DESIGN.md`](../ESOP_DESIGN.md)).
 
@@ -97,15 +97,14 @@ graph TD
 | AI-token guardian | `web/scripts/ai-token-guardian.sh` | every 30 min | Rotates / auto-discovers free model providers on rate-limit |
 | Nightly self-upgrade | `web/scripts/self-upgrade-agent.sh` | 18:30 UTC | Auto-upgrade → check → fix → deploy → verify → report |
 
-### Autonomous goal loops (long-running, self-terminating)
+### How work gets shipped (since 2026-08-13)
 
-Each loop reads a goal file, picks the current frontier task, ships work, appends to a history JSONL, commits + pushes. Every loop has a **kill switch env** and **must self-disable when its goal plan is complete** (see memory `feedback_loops_stop_condition.md`).
+The autonomous goal loops (reseller / atlassian / ux-ia) were removed on 2026-08-13. Work now runs two ways:
 
-| Loop | Cron | Goal doc | History log | Kill switch |
-|------|------|----------|-------------|-------------|
-| **Reseller module** (Track A + B wholesale) | every 5 min | `docs/plans/reseller-module-goal.md` | `web/content/reports/reseller-goal-history.jsonl` | `RESELLER_AUTONOMOUS_LOOP=off` |
-| **Atlassian standard mapping** | 7,17,27,37,47,57 * * * * | `docs/plans/atlassian-standard-mapping-goal.md` | `web/content/reports/atlassian-goal-history.jsonl` | `ATLASSIAN_GOAL_LOOP=off` |
-| **UX/IA startup flow** | offset every 10 min | `docs/plans/ux-ia-startup-flow-goal.md` | — | (comment cron line) |
+| Mode | Cadence | Record |
+|------|---------|--------|
+| **Founder-led sessions** — a goal is opened from a founder brief, parallel worktree agents implement lanes, a read-only review agent audits every ship, deploy → review → test → fix | per goal (G11–G17 closed 2026-09-10 → 19) | `docs/plans/SOURCE-OF-TRUTH.md` §1 + Appendix A, `ROADMAP.md` |
+| **CEO implementing-plan loop** (`agent-orchestrator`) — research → CEO plan → code → version / milestone / architecture; deploys off-peak | 8× daily | `web/content/reports/project-state.json` → `implementing-plan.md`, `architecture.md`; bumps `web/package.json` |
 
 Reseller channel also runs these support crons:
 - Reseller commissions clearance — nightly 03:15 UTC
@@ -122,9 +121,9 @@ Reseller channel also runs these support crons:
 
 1. **Telegram chat** for strategic input → CEO orchestrator routes to the relevant C-Level agent
 2. **Dashboards** at `blockid.au/dashboard/admin` for live KPI + drill-downs (v2.6)
-3. **Roadmap + Architecture + Team** docs auto-updated on each minor version bump — canonical index at `/ROADMAP.md`
-4. **Pricing / feature flags** in `platform-config.ts` — single source of truth, hot-swap via `/admin/config` (no redeploy)
-5. **Deploy = bare-metal only** via `web/scripts/deploy-live.sh` (9-gate CI). Root `deploy.sh` is a docker wrapper that does NOT reach prod — see `HARDENING_LESSONS_2026-06-18.md`
+3. **Roadmap + Architecture + Team** — goal tables in `/ROADMAP.md`, every plan merged into `docs/plans/SOURCE-OF-TRUTH.md`, living architecture in `web/content/reports/architecture.md`, docs index `docs/README.md`
+4. **Pricing** in `web/src/config/pricing/plans.csv` (→ `plans.generated.ts`; figures owned by `docs/ops/pricing-truth.md`); **credit costs, SVI weights and feature flags** hot-swap via `/admin/config` (`platform_config`)
+5. **Deploy = bare-metal only** via `web/scripts/deploy-live.sh` (12 gates incl. live-bundle SHA check and internal link check; `docs/ops/deploy.md`). Never Docker for the app, never GitLab CI / GitHub Actions. Root `deploy.sh` is a legacy docker wrapper that does NOT reach prod — see `HARDENING_LESSONS_2026-06-18.md`
 6. **Multi-startup context** — every analysis / cron / report must include `startup_id`; one founder owns many startups
 
 ---
