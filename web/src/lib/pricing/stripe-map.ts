@@ -41,7 +41,7 @@ export interface StripeMapRow {
   plan_id: string;
   env_var: string;
   interval: CatalogueInterval;
-  /** A$ the site advertises, in cents, GST inclusive. */
+  /** A$ the site advertises, in cents, GST-inclusive. */
   expected_cents: number;
   /** Where the row's expectation comes from. */
   source: "plans.csv" | "credit-packs" | "v3-skus" | "plans-v2";

@@ -28,6 +28,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
+import { withGst } from "@/lib/plans-v2";
 
 interface OrderMeta {
   orderId: string;
@@ -234,7 +235,7 @@ export function ReportOrderView({ orderId }: ReportOrderViewProps) {
         </p>
         <p className="text-xs text-ink-500">
           {order.amountAud > 0
-            ? `Paid A$${(order.amountAud / 100).toFixed(2)} inc-GST`
+            ? `Paid ${withGst(`A$${(order.amountAud / 100).toFixed(2)}`)}`
             : `Redeemed ${order.creditsUsed} credits`}
           {order.expiresAt
             ? ` · available until ${new Date(order.expiresAt).toLocaleDateString("en-AU")}`

@@ -9,13 +9,13 @@
 //
 // Pure and isomorphic (no I/O), safe in "use client" modules.
 
-import { formatAud } from "@/lib/plans-v2";
+import { formatAud, withGst } from "@/lib/plans-v2";
 import { TRUST_REPORT_5AUD } from "@/lib/pricing/v3-skus";
 
 /** Stripe SKU id the checkout route books (historical id — never renamed). */
 export const TRUST_REPORT_SKU_ID = TRUST_REPORT_5AUD.id;
 
-/** One-off price in cents, GST inclusive, as booked by /api/reports/checkout. */
+/** One-off price in cents, GST-inclusive, as booked by /api/reports/checkout. */
 export const TRUST_REPORT_AMOUNT_CENTS: number = TRUST_REPORT_5AUD.unit_amount_incl_gst_cents ?? 0;
 
 /** One-off price in whole AUD (3 for A$3.00). */
@@ -26,7 +26,7 @@ export function trustReportPriceLabel(): string {
   return formatAud(TRUST_REPORT_PRICE_AUD);
 }
 
-/** "A$3 inc-GST" — the long form for the confirm step and e-mails. */
+/** "A$3 inc. GST" — the long form for the confirm step and e-mails. */
 export function trustReportPriceLabelLong(): string {
-  return `${trustReportPriceLabel()} inc-GST`;
+  return withGst(trustReportPriceLabel());
 }

@@ -1656,7 +1656,7 @@ export function SVIEntrance({ chrome = true }: SVIEntranceProps = {}) {
                 <h3 className="text-xl font-bold text-ink-800 mb-1">{PAYWALL_STARTER.name}</h3>
                 <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">{formatAud(PAYWALL_STARTER.monthly_aud)}<span className="text-base font-semibold text-ink-500">/mo</span></p>
                 <p className="text-xs text-ink-500 mb-4">
-                  {PAYWALL_STARTER.trial_days > 0 ? `${PAYWALL_STARTER.trial_days}-day free trial · ` : ""}Cancel anytime · GST inclusive
+                  {PAYWALL_STARTER.trial_days > 0 ? `${PAYWALL_STARTER.trial_days}-day free trial · ` : ""}Cancel anytime · GST-inclusive
                 </p>
                 <ul className="text-left text-sm text-ink-700 space-y-2 mb-6 mx-auto max-w-xs">
                   {PAYWALL_STARTER.features.slice(0, 6).map((f) => (

@@ -1056,7 +1056,7 @@ export async function POST(request: Request) {
   // Stage 3 Batch A sub-task A1 · Master Upgrade Plan §8.4.
   //
   // Fires when /api/reports/checkout has minted a Stripe Checkout Session
-  // for the A$3 inc-GST Trusted Business Report SKU (`sku_trust_report_5aud` — the
+  // for the A$3 inc. GST Trusted Business Report SKU (`sku_trust_report_5aud` — the
   // id is historical; re-priced A$5.50 → A$3 in place 2026-09-10, D3). Two
   // happy paths:
   //
@@ -1305,7 +1305,7 @@ export async function POST(request: Request) {
   // -------------------------------------------------------------------------
   //
   // Phase 2. Fires when /api/guest-analysis/create-order has minted a
-  // Stripe Checkout Session for the A$3 inc-GST One-Click SKU. The row was
+  // Stripe Checkout Session for the A$3 inc. GST One-Click SKU. The row was
   // inserted with status='pending' before Stripe was called; this handler
   // guards the transition to 'paid' and stamps the payment intent.
   //

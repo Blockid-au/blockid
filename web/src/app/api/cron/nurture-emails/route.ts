@@ -225,7 +225,7 @@ const TEMPLATES: Record<1 | 4 | 9, EmailTemplate> = {
           <p style="font-size:15px;line-height:1.7;color:#333;margin:0 0 16px;">
             Ready to unlock the full BlockID toolkit? The <strong>${STARTER.name}</strong> plan is
             <strong>${STARTER_PRICE}</strong> and <strong>${GROWTH.name}</strong> is <strong>${GROWTH_PRICE}</strong> —
-            both GST included, both with a ${STARTER.trial_days}-day free trial, cancel any time.
+            both inc. GST, both with a ${STARTER.trial_days}-day free trial, cancel any time.
           </p>
           <div style="background:#fffbeb;border-radius:10px;padding:16px 20px;margin:0 0 24px;">
             <p style="font-size:14px;font-weight:600;color:#92400e;margin:0 0 10px;">${STARTER.name} (${STARTER_PRICE}) includes:</p>

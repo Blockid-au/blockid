@@ -17,6 +17,6 @@ describe("trust-report-price (G16-B copy truth)", () => {
 
   it("formats through plans-v2 formatAud (no literal in the helper)", () => {
     expect(trustReportPriceLabel()).toBe(`A$${TRUST_REPORT_PRICE_AUD.toLocaleString("en-AU")}`);
-    expect(trustReportPriceLabelLong()).toBe(`${trustReportPriceLabel()} inc-GST`);
+    expect(trustReportPriceLabelLong()).toBe(`${trustReportPriceLabel()} inc. GST`);
   });
 });

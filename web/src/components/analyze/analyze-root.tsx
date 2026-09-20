@@ -638,7 +638,7 @@ export function AnalyzeRoot({
         )}
         <p className="text-[11px] uppercase tracking-wider text-tertiary">
           {tier === "paid"
-            ? "Paid report · A$3 inc GST · emailed as a PDF"
+            ? "Paid report · A$3 inc. GST · emailed as a PDF"
             : "Free tier · upgrade any time"}
         </p>
       </div>
@@ -694,7 +694,7 @@ export function AnalyzeRoot({
         title={guestSellable ? "Your A$3 report" : "Confirm the analysis"}
         subtitle={
           guestSellable
-            ? `Detected stage: ${stageLabel} · ${lineupCount} agents run on your input. One-off A$3 inc GST — emailed as a PDF, no account needed.`
+            ? `Detected stage: ${stageLabel} · ${lineupCount} agents run on your input. One-off A$3 inc. GST — emailed as a PDF, no account needed.`
             : `Detected stage: ${stageLabel} · ${lineupCount} agents will run.`
         }
       />

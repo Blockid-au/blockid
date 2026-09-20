@@ -3,7 +3,7 @@
  *
  * Guest-friendly checkout: no auth required. The visitor supplies an email,
  * an input type (`pitch_file` uploaded via /api/guest-analysis/upload-pitch,
- * or `website_url` pasted directly), and pays A$3 inc-GST via Stripe Checkout.
+ * or `website_url` pasted directly), and pays A$3 inc. GST via Stripe Checkout.
  *
  * Row is inserted into `guest_analyses` (migration 20260825_guest_analysis)
  * BEFORE Stripe is called so the webhook always has a target keyed on

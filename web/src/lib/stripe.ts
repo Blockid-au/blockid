@@ -52,11 +52,11 @@ export const STRIPE_PRICE_MAP: Record<string, string | undefined> = {
   // Startup Package — one-off A$149 SKU. Provisions the guided founder flow
   // per web/supabase/migrations/0118_startup_package.sql.
   founder_package: process.env.STRIPE_PRICE_STARTUP_PACKAGE,
-  // One-Click Investor Analysis — A$3.00 inc-GST guest paywall
+  // One-Click Investor Analysis — A$3.00 inc. GST guest paywall
   // (sku_one_click_report_3aud). Populated by scripts/stripe/sync-plans.mjs;
   // consumed by the guest checkout route (Phase 2).
   one_click_report: process.env.STRIPE_PRICE_ONE_CLICK_REPORT,
-  // Money Finder report — A$3.00 inc-GST guest paywall on /funding
+  // Money Finder report — A$3.00 inc. GST guest paywall on /funding
   // (sku_funding_report_3aud, T0242). Mint with scripts/sync-stripe-pricing.mjs;
   // consumed by POST /api/funding/checkout.
   funding_report: process.env.STRIPE_PRICE_FUNDING_REPORT,

@@ -1098,7 +1098,7 @@ export async function sendSVIReport(args: {
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
           <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
           <p style="margin:0 0 8px 0;color:#64748B;font-size:11px;line-height:1.5;">${signInHelp}</p>
-          <p style="margin:0;color:#475569;font-size:10px;line-height:1.4;">This analysis is produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111). The SVI is NOT a financial valuation or investment recommendation. BlockID does not hold an AFSL. Seek independent professional advice. Prices in AUD incl. GST.</p>
+          <p style="margin:0;color:#475569;font-size:10px;line-height:1.4;">This analysis is produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111). The SVI is NOT a financial valuation or investment recommendation. BlockID does not hold an AFSL. Seek independent professional advice. Prices in AUD inc. GST.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -1228,7 +1228,7 @@ export async function sendWelcomeWithReport(args: {
     ? "Quen mat khau? Vao trang dang nhap, nhan 'Forgot your password?' de nhan mat khau moi qua email."
     : "Forgot your password? Visit the login page and click 'Forgot your password?' to receive a new one via email."
   }</p>
-          <p style="margin:0;color:#475569;font-size:10px;line-height:1.4;">This analysis is produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111). The SVI is NOT a financial valuation or investment recommendation. BlockID does not hold an AFSL. Seek independent professional advice. Prices in AUD incl. GST.</p>
+          <p style="margin:0;color:#475569;font-size:10px;line-height:1.4;">This analysis is produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111). The SVI is NOT a financial valuation or investment recommendation. BlockID does not hold an AFSL. Seek independent professional advice. Prices in AUD inc. GST.</p>
           ${resellerFooter}
         </td></tr>
       </table>
@@ -1956,7 +1956,7 @@ export async function sendNurtureFreeDay7(args: NurtureArgs): Promise<SendResult
               <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Your data room, filling up in the order investors ask</td></tr>
               <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">A live investor link with NDA click-wrap and watermarked PDFs</td></tr>
               <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Founder Radar — grant and program deadline alerts</td></tr>
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">${starterPrice}, GST included — cancel any time from the billing page</td></tr>
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">${starterPrice} inc. GST — cancel any time from the billing page</td></tr>
             </table>
           </div>
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
@@ -2772,7 +2772,7 @@ export async function sendD9LastCall(args: NurtureArgs): Promise<SendResult> {
               <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Your data room, filling up in the order investors ask</td></tr>
               <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">A live investor link with NDA click-wrap and watermarked PDFs</td></tr>
               <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Founder Radar — grant and program deadline alerts</td></tr>
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">${starter.trial_days}-day free trial, GST included, cancel any time</td></tr>
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">${starter.trial_days}-day free trial inc. GST, cancel any time</td></tr>
             </table>
           </div>
           <p style="margin:0 0 16px 0;color:#94A3B8;font-size:14px;line-height:1.6;">If now isn't the right time, no pressure — you'll keep your free account and whatever credits you have left. I'll stop pinging you about this.`,

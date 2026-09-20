@@ -198,7 +198,7 @@ export interface ReportOrderView {
   paidAt: string | null;
   generatedAt: string | null;
   expiresAt: string | null;
-  /** Cents, inc-GST (Stripe convention). Zero on the credit path. */
+  /** Cents, inc. GST (Stripe convention). Zero on the credit path. */
   amountAud: number;
   creditsUsed: number;
 }

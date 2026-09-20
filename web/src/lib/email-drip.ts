@@ -872,7 +872,7 @@ function tbrUnlockCopy(email: string, p: DripPayload): RenderedEmail {
     <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#2563EB;font-weight:600;">BlockID &middot; Trusted Business Report</p>
     <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0F172A;">Your Trusted Business Report is ready to unlock</h1>
     <p>Your free report already shows your Startup Value Index, the headline chapters and where you sit against your stage cohort${dim ? ` — with <strong>${dim}</strong> as the dimension to work on first` : ""}.</p>
-    <p>The full report unlocks, for <strong>${price}</strong> one-off (GST included):</p>
+    <p>The full report unlocks, for <strong>${price}</strong> one-off (inc. GST):</p>
     <ul style="padding-left:20px;margin:0 0 16px 0;">
       <li style="margin-bottom:6px;">All 8 dimension chapters in full — evidence tables, criterion cards, next actions.</li>
       <li style="margin-bottom:6px;">Your valuation range with the three methods behind it.</li>
@@ -882,7 +882,7 @@ function tbrUnlockCopy(email: string, p: DripPayload): RenderedEmail {
     ${ctaButton(reportUrl, "Open your report")}
     <p style="color:#64748B;font-size:13px;">You will see the exact price and credit cost on screen and confirm before anything is charged.</p>
     ${footer(email)}`);
-  const text = `Your Trusted Business Report is ready to unlock.\n\nThe full report (${price} one-off, GST included) unlocks all 8 dimension chapters in full, your valuation range with methods, a 90-day action plan and a PDF + share link.\n\nOpen your report: ${reportUrl}\n\nYou confirm the exact price and credit cost on screen before anything is charged.${footerText(email)}`;
+  const text = `Your Trusted Business Report is ready to unlock.\n\nThe full report (${price} one-off inc. GST) unlocks all 8 dimension chapters in full, your valuation range with methods, a 90-day action plan and a PDF + share link.\n\nOpen your report: ${reportUrl}\n\nYou confirm the exact price and credit cost on screen before anything is charged.${footerText(email)}`;
   return { subject, html, text };
 }
 
@@ -892,7 +892,7 @@ function d14Copy(email: string): RenderedEmail {
   const html = shell(`
     <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#2563EB;font-weight:600;">BlockID &middot; Day 14</p>
     <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0F172A;">The full report unlocks the next 90 days</h1>
-    <p>You have been on the free tier for two weeks. The Founder plan (${STARTER_PRICE_LINE}, GST included) unlocks:</p>
+    <p>You have been on the free tier for two weeks. The Founder plan (${STARTER_PRICE_LINE} inc. GST) unlocks:</p>
     <ul style="padding-left:20px;margin:0 0 16px 0;">
       <li style="margin-bottom:6px;">Your score tracked over time, with ${STARTER_MONTHLY_CREDITS} AI credits a month to re-run it.</li>
       <li style="margin-bottom:6px;">A data room that fills up in the order investors ask.</li>
@@ -901,7 +901,7 @@ function d14Copy(email: string): RenderedEmail {
     <p>No lock-in. Cancel from the billing page any time.</p>
     ${ctaButton(pricingUrl, "See plans")}
     ${footer(email)}`);
-  const text = `The Founder plan is ${STARTER_PRICE_LINE} (GST included): your score tracked over time with ${STARTER_MONTHLY_CREDITS} AI credits a month, a data room, and a live investor link.\n\nSee plans: ${pricingUrl}${footerText(email)}`;
+  const text = `The Founder plan is ${STARTER_PRICE_LINE} (inc. GST): your score tracked over time with ${STARTER_MONTHLY_CREDITS} AI credits a month, a data room, and a live investor link.\n\nSee plans: ${pricingUrl}${footerText(email)}`;
   return { subject, html, text };
 }
 

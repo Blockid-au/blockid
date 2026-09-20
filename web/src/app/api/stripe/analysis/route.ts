@@ -3,7 +3,7 @@
 // Does NOT require auth — allows guest checkout with email.
 // Body: { email, slug? }
 //
-// G18-A (2026-09-19): books the A$3 inc-GST One-Click Report price
+// G18-A (2026-09-19): books the A$3 inc. GST One-Click Report price
 // (`STRIPE_PRICE_ONE_CLICK_REPORT`, sku_one_click_report_3aud) — the one
 // pay-as-you-go figure on the public ladder. Until now it chose between
 // `STRIPE_PRICE_SVI_ANALYSIS` (A$1 "early bird") and
@@ -46,7 +46,7 @@ async function POST_handler(request: Request) {
   const stripe = getStripe()!;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://blockid.au";
 
-  const priceId = STRIPE_PRICE_MAP.one_click_report; // A$3 inc-GST
+  const priceId = STRIPE_PRICE_MAP.one_click_report; // A$3 inc. GST
 
   if (!priceId) {
     return NextResponse.json(

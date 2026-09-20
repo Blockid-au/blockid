@@ -27,7 +27,7 @@
  * second in-flight order — surfaced as 409.
  *
  * Credit-rate note: this route treats credits at the v3 A$0.025/credit
- * rate (§10.1) so 200 credits = A$5.00 net = A$5.50 inc-GST. The legacy
+ * rate (§10.1) so 200 credits = A$5.00 net = A$5.50 inc. GST. The legacy
  * credit-balances table currently uses A$1/credit for other features;
  * the credit-rate reconciliation migration lands in a follow-up PR and
  * will not affect this route because we debit inline, not through

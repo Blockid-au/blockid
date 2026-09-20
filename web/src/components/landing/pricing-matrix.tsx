@@ -23,6 +23,7 @@ import { useSegment } from "@/components/landing/segment-tabs";
 import { useExposeExperiment } from "@/lib/conversion/expose";
 import { usePricingExperiment } from "@/lib/hooks/use-pricing-experiment";
 import {
+  GST_POLICY_LINE,
   annualSavingPct,
   formatAud,
   publicPlansForSegment,
@@ -280,7 +281,7 @@ export function PricingMatrix({ segment: overrideSegment, annualAvailable, purch
       {isEvaluator && <PayAsYouGoNote />}
 
       <p className="mt-10 text-center text-xs text-tertiary">
-        AUD pricing, GST-inclusive. Every charge produces an ATO tax invoice.
+        {GST_POLICY_LINE}
         {" "}{TRIAL_COPY.fine_print}
       </p>
       <p className="mx-auto mt-4 max-w-2xl border-t border-line-subtle pt-4 text-center text-xs text-tertiary">

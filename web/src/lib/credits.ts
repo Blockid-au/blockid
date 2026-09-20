@@ -275,7 +275,7 @@ export const SIGNUP_CREDITS = () => isPromoActive() ? 5 : FREE_SIGNUP_CREDITS;
 // A$0.40–1.20 of model spend per run. (`svi_analysis` at 0.50 credits runs the
 // deterministic computeSVI() and costs ~nothing, so it never binds.)
 //
-// Worst-case arithmetic, at A$1.20/run and revenue ex-GST (inc-GST ÷ 1.1):
+// Worst-case arithmetic, at A$1.20/run and revenue ex-GST (inc. GST ÷ 1.1):
 //   A$29  → ex-GST 26.36 → 30% budget 7.91 → 6.6 runs → 20 credits → GM 69.6%
 //   A$69  → ex-GST 62.73 → 30% budget 18.82 → 15.7 runs → 45 credits → GM 71.4%
 //   A$299 → ex-GST 271.82 → 30% budget 81.55 → 68 runs → 200 credits → GM 70.6%

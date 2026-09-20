@@ -589,6 +589,27 @@ export function publicPlansForSegment(segment: Segment): Plan[] {
   return plansForSegment(segment).filter((p) => p.public !== false);
 }
 
+/**
+ * GST display rule (G18-A, 2026-09-19 — one rule for every surface).
+ *
+ * Every price on the site is GST-INCLUSIVE (Stripe prices are minted with
+ * `tax_behavior: "inclusive"`; the 14 legacy/evaluator/credit prices still
+ * carrying `unspecified` are a founder dashboard fix — docs/ops/pricing-truth.md).
+ * Two spellings only:
+ *   • after an amount, the suffix `inc. GST` — "A$3 inc. GST" (`withGst()`);
+ *   • as a policy sentence, the adjective `GST-inclusive` — the /pricing
+ *     footer line `GST_POLICY_LINE`, stated once per surface.
+ * Never the hyphenated, unpunctuated, "incl." / "-incl." / "included" /
+ * unhyphenated-"inclusive" variants — pricing/gst-wording.test.ts greps for them.
+ */
+export const GST_SUFFIX = "inc. GST";
+export const GST_POLICY_LINE = "AUD pricing, GST-inclusive. Every charge produces an ATO tax invoice.";
+
+/** "A$3 inc. GST" — the long form for confirm steps, receipts and e-mails. */
+export function withGst(label: string): string {
+  return `${label} ${GST_SUFFIX}`;
+}
+
 /** Format AUD price. Returns "Custom" for null (contact-sales SKUs). */
 export function formatAud(amount: number | null): string {
   if (amount === null) return "Custom";

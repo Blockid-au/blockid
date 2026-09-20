@@ -25,7 +25,7 @@ function pricingContextLines(): string {
   const packs = CREDIT_PACKS.map((p) => `${p.credits} for ${formatAud(p.price)}`).join(", ");
   return [
     `- Free: SVI analysis + shareable link, ${FREE_SIGNUP_CREDITS} sign-up credits`,
-    `- Trusted Business Report: ${trustReportPriceLabel()} one-off (inc-GST)`,
+    `- Trusted Business Report: ${trustReportPriceLabel()} one-off (inc. GST)`,
     rung("founder_starter"),
     rung("founder_growth"),
     `- Equity add-on: ${formatAud(EQUITY_ADDON_MONTHLY_AUD)}/mo on a paid founder plan`,
