@@ -87,7 +87,7 @@ async function handler(request: Request, { params }: Ctx) {
     .select("id, shortlisted, review_status, reviewer_id")
     .maybeSingle();
   if (error) {
-    if (isMissingColumn(error)) return json({ ok: false, error: "unavailable", message: "Cohort review columns are not available yet (migration 0423 pending)" }, 503);
+    if (isMissingColumn(error)) return json({ ok: false, error: "unavailable", message: "Cohort review columns are missing on this server (migration 0423)" }, 503);
     return json({ ok: false, error: "db_error", message: error.message }, 500);
   }
   if (!data) return json({ ok: false, error: "not_found" }, 404);

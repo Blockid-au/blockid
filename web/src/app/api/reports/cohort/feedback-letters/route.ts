@@ -24,6 +24,7 @@ import { canBatchScore, canExportLpReport } from "@/lib/evaluations/batch-shared
 import { defaultFeedbackBatchDeps, previewFeedbackLetters, sendFeedbackLetters, type FeedbackCandidate } from "@/lib/evaluations/feedback-letter-batch";
 import { isNonSelected } from "@/lib/evaluations/program-journey";
 import { loadCohortBundle } from "@/lib/evaluations/program-journey-data";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -36,7 +37,7 @@ export const bodySchema = z
   })
   .strict();
 
-export async function POST(request: Request) {
+async function POST_handler(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
 
@@ -74,3 +75,6 @@ export async function POST(request: Request) {
   const results = await sendFeedbackLetters(candidates, deps);
   return NextResponse.json({ ok: true, mode: "sent", batch: batchId, candidates: candidates.length, sent: results.filter((r) => r.outcome === "sent").length, results });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const POST = apiRoute({ route: "api/reports/cohort/feedback-letters/route.ts", method: "POST" }, POST_handler);

@@ -13,6 +13,7 @@
 
 import { useState } from "react";
 import { Mail, ShieldCheck } from "lucide-react";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 export interface FeedbackCandidateLite {
   projectId: string;
@@ -85,7 +86,7 @@ export function FeedbackLettersPanel({ batchId, candidates, canSend }: { batchId
         setStep("preview");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Request failed.");
+      setError(userErrorMessage(err, "We could not prepare the feedback letters. Please try again."));
     } finally {
       setBusy(false);
     }

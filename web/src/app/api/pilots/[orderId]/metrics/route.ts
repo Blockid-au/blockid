@@ -16,6 +16,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { mergePilotMetrics, parsePilotMetrics, readPilotMetrics, PILOT_METRIC_KEYS } from "@/lib/pilots/metrics";
+import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -40,7 +41,7 @@ export async function GET(_request: Request, ctx: Ctx) {
   return NextResponse.json({ ok: true, order_id: order.id, metrics: readPilotMetrics(order.metrics) });
 }
 
-export async function PATCH(request: Request, ctx: Ctx) {
+async function PATCH_handler(request: Request, ctx: Ctx) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   const { orderId } = await ctx.params;
@@ -81,3 +82,6 @@ export async function PATCH(request: Request, ctx: Ctx) {
 
   return NextResponse.json({ ok: true, order_id: order.id, metrics: readPilotMetrics(merged), updated_at: nowIso });
 }
+
+// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
+export const PATCH = apiRoute({ route: "api/pilots/[orderId]/metrics/route.ts", method: "PATCH" }, PATCH_handler);

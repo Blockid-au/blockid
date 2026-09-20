@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 export interface RescoreButtonProps {
   endpoint: string;
@@ -38,7 +39,7 @@ export function RescoreButton({ endpoint }: RescoreButtonProps) {
       setNote(typeof body.queued === "number" ? `Snapshot taken — ${body.queued} startup${body.queued === 1 ? "" : "s"} queued for re-scoring.` : "Snapshot taken.");
       router.refresh();
     } catch (err) {
-      setNote(err instanceof Error ? err.message : "Re-score failed.");
+      setNote(userErrorMessage(err, "The re-score could not be queued. Please try again."));
     } finally {
       setBusy(false);
     }

@@ -10,6 +10,7 @@
 import { useState, type FormEvent } from "react";
 import { Save } from "lucide-react";
 import { PILOT_METRIC_FIELDS, WTP_BANDS, WTP_BAND_LABELS, reviewTimeSaving, type PilotMetrics, type PilotMetricKey } from "@/lib/pilots/metrics";
+import { userErrorMessage } from "@/lib/ui/user-error";
 
 export interface PilotMetricsFormProps {
   orderId: string;
@@ -79,7 +80,7 @@ export function PilotMetricsForm({ orderId, initial, editable = true }: PilotMet
       }
       setStatus({ kind: "ok", text: "Saved. These figures feed the pilot's final report." });
     } catch (err) {
-      setStatus({ kind: "error", text: err instanceof Error ? err.message : "Save failed." });
+      setStatus({ kind: "error", text: userErrorMessage(err, "We could not save the pilot metrics. Please try again.") });
     } finally {
       setBusy(false);
     }
