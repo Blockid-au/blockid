@@ -47,6 +47,10 @@ const EXCLUDE = ["**/node_modules/**", "**/.next/**"];
 
 export default defineConfig({
   test: {
+    // First-import hooks (page graphs) exceed 10 s under deploy-gate load and
+    // per-hook timeouts do not cover every hook — raise the default once for
+    // every project (unit + pdf). Gate 6 flaked on this 2026-09-20.
+    hookTimeout: 30_000,
     exclude: EXCLUDE,
     // With `projects` set, tests are collected per project only — the root
     // `test` block is shared config (`extends: true` inherits it, arrays are
