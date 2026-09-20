@@ -76,5 +76,11 @@ describe("PATCH /api/admin/corrections/[id]", () => {
     expect((await patch(CID, { decision: "accept" })).status).toBe(404);
     mocks.resolveCorrection.mockResolvedValueOnce({ ok: false, error: "not_open", message: "x", status: 409 });
     expect((await patch(CID, { decision: "accept" })).status).toBe(409);
+    // concurrent resolve: the conditioned UPDATE matched zero rows
+    mocks.resolveCorrection.mockResolvedValueOnce({ ok: false, error: "already_resolved", message: "Another reviewer resolved this correction first.", status: 409 });
+    const race = await patch(CID, { decision: "accept" });
+    expect(race.status).toBe(409);
+    expect(await race.json()).toMatchObject({ ok: false, error: "already_resolved" });
+    expect(mocks.auditAction).not.toHaveBeenCalledWith("correction.accepted");
   });
 });
