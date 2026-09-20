@@ -6,6 +6,7 @@
 // moat — the JSON/CSV API at /api/index/svi is the machine-readable half.
 
 import type { Metadata } from "next";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 import { ArrowRight, Database, Download, Info, ShieldCheck } from "lucide-react";
 import { NavV2 } from "@/components/landing/nav-v2";
 import { Footer } from "@/components/marketing/footer";
@@ -419,8 +420,8 @@ function DisclaimerSection() {
             <p className="mt-1">
               This dataset is provided for informational and research purposes.
               Nothing on this page or in the API constitutes financial,
-              investment, tax, or legal advice. Blockid.au is operated by
-              Auschain Pty Ltd (ACN 659 615 111, Sydney NSW). Auschain Pty Ltd
+              investment, tax, or legal advice. Blockid.au is operated by{" "}
+              {LEGAL_ENTITY.operator} ({LEGAL_ENTITY_ACN_LABEL}, {LEGAL_ENTITY.city}). {LEGAL_ENTITY.operator}{" "}
               does not hold an Australian Financial Services Licence and does
               not provide personal financial advice. Consult a licensed
               professional before making investment decisions.

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 import {
   AlertCircle,
   ArrowUpRight,
@@ -415,7 +416,7 @@ function ShareCertificate({
             Share Certificate
           </h2>
           <p className="text-brand-100 text-sm mt-1">
-            Auschain Pty Ltd (ACN 659 615 111)
+            {LEGAL_ENTITY.operator} ({LEGAL_ENTITY_ACN_LABEL})
           </p>
         </div>
 

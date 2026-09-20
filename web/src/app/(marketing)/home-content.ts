@@ -6,6 +6,7 @@
  */
 
 import { PRODUCT_SECTION_IDS, productAnchor } from "./product/product-content";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 
 export type HomeIcon = "investors" | "accelerators" | "advisors" | "paste" | "score" | "dossier";
 
@@ -83,7 +84,7 @@ for (const link of HOME_GO_DEEPER) {
 
 /** Block 5 — the quiet proof row (text only; "empty until real"). */
 export const HOME_PROOF_ITEMS: readonly { label: string; sub?: string; href?: string }[] = [
-  { label: "Built in Sydney", sub: "Australian owned · PPL Food PTY LTD" },
+  { label: "Built in Sydney", sub: `Australian owned · ${LEGAL_ENTITY.marketingOperator}` },
   { label: "Data hosted in Australia", sub: "AU Privacy Act 1988" },
   { label: "Essential Eight aligned", sub: "Security posture", href: "/security-audit" },
   { label: "Stripe PCI DSS Level 1", sub: "Payments" },

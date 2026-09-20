@@ -2,6 +2,7 @@ import {
   Document, Page, Text, View, Image, StyleSheet,
   Svg, Path, Circle, Rect, Line, Polygon,
 } from "@react-pdf/renderer";
+import { LEGAL_ENTITY, acnAbnLine } from "@/lib/site/legal-entity";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS, SVI_BENCHMARKS } from "@/lib/svi-analysis";
 import { estimateValuation, formatAUD } from "@/lib/valuation";
@@ -1572,7 +1573,7 @@ export function SVIReportPDF({
             }}
           >
             <Text style={{ fontSize: 8, color: C.ink500, textAlign: "center" }}>
-              BlockID · Startup Value Index · Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111
+              BlockID · Startup Value Index · {acnAbnLine()}
             </Text>
           </View>
         </View>
@@ -2519,7 +2520,7 @@ export function SVIReportPDF({
             </Text>
           )}
           <Text style={{ fontSize: 7, color: C.ink400, marginTop: 4 }}>
-            Auschain PTY LTD | ACN 659 615 111 | ABN 79 659 615 111 | Sydney, NSW, Australia
+            {acnAbnLine().replace(/ · /g, " | ")} | Sydney, NSW, Australia
           </Text>
           <Text
             style={{
@@ -2531,7 +2532,7 @@ export function SVIReportPDF({
               maxWidth: 420,
             }}
           >
-            This analysis is produced by BlockID.au (Auschain PTY LTD). The Startup Value Index (SVI)
+            This analysis is produced by BlockID.au ({LEGAL_ENTITY.operator}). The Startup Value Index (SVI)
             is an indicative assessment tool — it is NOT a financial valuation, investment recommendation,
             or professional advice under the Corporations Act 2001 (Cth). BlockID does not hold an
             Australian Financial Services Licence (AFSL). Users should seek independent professional

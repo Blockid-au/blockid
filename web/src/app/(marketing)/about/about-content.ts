@@ -7,6 +7,8 @@
  * is gone; /changelog carries that. React-free; icons resolved in page.tsx.
  */
 
+import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL, LEGAL_ENTITY_ACN_LABEL, legalLine } from "@/lib/site/legal-entity";
+
 export type AboutIcon =
   | "target"
   | "layout"
@@ -97,7 +99,7 @@ export const ABOUT_APPROACH: readonly AboutCard[] = [
 
 /** Regulatory facts about the operating entity — never capability claims. */
 export const ABOUT_PROOF = [
-  { label: "Auschain Pty Ltd", sub: "ACN 659 615 111 · ABN 79 659 615 111" },
+  { label: LEGAL_ENTITY.operator, sub: `${LEGAL_ENTITY_ACN_LABEL} · ${LEGAL_ENTITY_ABN_LABEL}` },
   { label: "Sydney NSW", sub: "Australian-owned HQ" },
   { label: "Australian data residency", sub: "Hosted in Australia" },
   { label: "ASIC · ESIC · R&D", sub: "Compliance-first tooling" },
@@ -105,7 +107,7 @@ export const ABOUT_PROOF = [
 ] as const;
 
 export const ABOUT_AU_NATIVE: readonly string[] = [
-  "Auschain Pty Ltd (ACN 659 615 111, ABN 79 659 615 111)",
+  legalLine(),
   "Headquartered in Sydney, NSW, Australia",
   "Data hosted with Australian residency",
   "Compliance frameworks built for ASIC and ATO requirements",

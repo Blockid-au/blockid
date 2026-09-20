@@ -7,6 +7,7 @@
 // Schedule suggestion: every hour (e.g. 0 * * * * in vercel.json / crontab).
 
 import { NextResponse } from "next/server";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendEmail } from "@/lib/email";
 import {
@@ -104,7 +105,7 @@ const TEMPLATES: Record<1 | 4 | 9, EmailTemplate> = {
         </td></tr>
         <tr><td style="background:#1a1a2e;padding:20px 24px;text-align:center;">
           <p style="font-size:11px;color:rgba(255,255,255,0.5);margin:0 0 8px;">
-            BlockID.au — operated by Auschain PTY LTD (ACN 659 615 111)
+            BlockID.au — operated by ${LEGAL_ENTITY.operator} (${LEGAL_ENTITY_ACN_LABEL})
           </p>
           <p style="font-size:11px;margin:0;">
             <a href="${unsubUrl}" style="color:rgba(255,255,255,0.4);text-decoration:underline;">Unsubscribe</a>
@@ -170,7 +171,7 @@ const TEMPLATES: Record<1 | 4 | 9, EmailTemplate> = {
         </td></tr>
         <tr><td style="background:#1a1a2e;padding:20px 24px;text-align:center;">
           <p style="font-size:11px;color:rgba(255,255,255,0.5);margin:0 0 8px;">
-            BlockID.au — operated by Auschain PTY LTD (ACN 659 615 111)
+            BlockID.au — operated by ${LEGAL_ENTITY.operator} (${LEGAL_ENTITY_ACN_LABEL})
           </p>
           <p style="font-size:11px;margin:0;">
             <a href="${unsubUrl}" style="color:rgba(255,255,255,0.4);text-decoration:underline;">Unsubscribe</a>
@@ -252,7 +253,7 @@ const TEMPLATES: Record<1 | 4 | 9, EmailTemplate> = {
         </td></tr>
         <tr><td style="background:#1a1a2e;padding:20px 24px;text-align:center;">
           <p style="font-size:11px;color:rgba(255,255,255,0.5);margin:0 0 8px;">
-            BlockID.au — operated by Auschain PTY LTD (ACN 659 615 111)
+            BlockID.au — operated by ${LEGAL_ENTITY.operator} (${LEGAL_ENTITY_ACN_LABEL})
           </p>
           <p style="font-size:11px;margin:0;">
             <a href="${unsubUrl}" style="color:rgba(255,255,255,0.4);text-decoration:underline;">Unsubscribe</a>

@@ -7,6 +7,8 @@
  * Model: ElevenLabs multilingual_v2
  */
 
+import { LEGAL_ENTITY } from "../../lib/site/legal-entity";
+
 export interface ScriptLine {
   startTime: number; // seconds
   endTime: number; // seconds
@@ -232,7 +234,7 @@ export const PITCH_1MIN: ScriptLine[] = [
     endTime: 60,
     text: "",
     visual:
-      "BlockID.au logo (large, center). Below: 'blockid.au' in white. Tagline: 'Where AI meets startup valuation' in slate. Divider line. 'Do Van Long — Founder & CEO'. QR Code linking to linkedin.com/in/dovanlong. Bottom: 'Try free: blockid.au' in brand blue. Auschain Pty Ltd small text.",
+      `BlockID.au logo (large, center). Below: 'blockid.au' in white. Tagline: 'Where AI meets startup valuation' in slate. Divider line. 'Do Van Long — Founder & CEO'. QR Code linking to linkedin.com/in/dovanlong. Bottom: 'Try free: blockid.au' in brand blue. ${LEGAL_ENTITY.operator} small text.`,
     emotion: "neutral",
   },
 ];

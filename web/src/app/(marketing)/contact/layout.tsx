@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import { pageMetadata } from "@/lib/seo/page-meta";
 
 export const metadata: Metadata = pageMetadata({
@@ -17,8 +18,8 @@ const contactPageJsonLd = {
   mainEntity: {
     "@type": "Organization",
     name: "BlockID.au",
-    legalName: "Auschain PTY LTD",
-    taxID: "79 659 615 111",
+    legalName: LEGAL_ENTITY.operator,
+    taxID: LEGAL_ENTITY.abn,
     url: "https://blockid.au",
     email: "support@blockid.au",
     address: {

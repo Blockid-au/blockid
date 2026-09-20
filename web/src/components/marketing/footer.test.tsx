@@ -2,9 +2,11 @@
 //
 // site/footer.tsx is deleted; what it carried that MarketingFooter lacked
 // (brand block, Company column, disclaimer line) now renders here, once.
-// The entity strings are pinned verbatim per the business-entity rule:
-// marketing footer = PPL Food PTY LTD; Auschain PTY LTD is the legal /
-// billing entity and must NOT appear here.
+// Entity lines (G21 P0-A): the brand block names the marketing operator and
+// the bottom row renders `marketingLine()` from lib/site/legal-entity, so
+// both roles — marketing operator and seller of record with its ABN — are
+// explicit on every page. No entity literal is spelled out here; the
+// config's own guard test forbids literals outside the config.
 
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -12,6 +14,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { FOOTER_COLUMNS } from "./footer-columns";
 import { Footer, FOOTER_DISCLAIMER, FOOTER_ENTITY, FOOTER_LANGUAGES } from "./footer";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL, marketingLine } from "@/lib/site/legal-entity";
 
 const html = renderToStaticMarkup(<Footer />);
 
@@ -35,11 +38,22 @@ describe("Footer — the one public footer", () => {
     expect(html).toMatch(/aria-label="Language"/);
   });
 
-  it("entity lines are the marketing entity, verbatim, and never the billing entity", () => {
-    expect(FOOTER_ENTITY).toBe("PPL Food PTY LTD");
-    expect(html).toContain("PPL Food PTY LTD");
-    expect(html).toMatch(/© \d{4} PPL Food PTY LTD/);
-    expect(html).not.toMatch(/Auschain/i);
+  it("entity lines come from the config: marketing operator in the brand block, marketingLine() (both roles) in the bottom row", () => {
+    expect(FOOTER_ENTITY).toBe(LEGAL_ENTITY.marketingOperator);
+    expect(html).toContain(LEGAL_ENTITY.marketingOperator);
+    const year = new Date().getUTCFullYear();
+    const line = marketingLine(year);
+    expect(html).toContain(line.replace(/&/g, "&amp;"));
+    expect(html).toMatch(/data-testid="footer-entity-line"[^>]*>©/);
+    // Both roles are explicit — the seller of record with its ABN sits next to the marketing operator.
+    expect(html).toContain(LEGAL_ENTITY.operator);
+    expect(html).toContain(LEGAL_ENTITY_ABN_LABEL);
+  });
+
+  it("carries the Samples, Docs and For Advisors rows (moved out of the top nav by G21 P0-B)", () => {
+    for (const href of ["/samples", "/docs", "/solutions/advisor"]) {
+      expect(FOOTER_COLUMNS.some((c) => c.items.some((i) => i.href === href)), href).toBe(true);
+    }
   });
 
   it("keeps the AU support + residency lines and the disclaimer the legacy footer carried", () => {

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { tradingAsLine } from "@/lib/site/legal-entity";
 
 // Colocated vitest for the previously-untested server-only `email.ts` — the
 // BlockID email wrapper that fronts every user-facing message: magic-link,
@@ -1151,7 +1152,7 @@ describe("sendGuestCheckoutRecovery — abandoned A$3 checkout, one email only",
     const { sendGuestCheckoutRecovery } = await import("./email");
     await sendGuestCheckoutRecovery(args);
     const mail = lastMail();
-    expect(mail.html).toContain("Auschain Pty Ltd");
+    expect(mail.html).toContain(tradingAsLine());
     expect(mail.html).toContain("ABN 79 659 615 111");
     expect(mail.html).toContain("/unsubscribe?token=");
     expect(mail.headers?.["List-Unsubscribe"]).toBeTruthy();
@@ -1258,7 +1259,7 @@ describe("sendFreeSummary — the free tier's one email", () => {
     const { sendFreeSummary } = await import("./email");
     await sendFreeSummary(args);
     const mail = lastMail();
-    expect(mail.html).toContain("Auschain Pty Ltd");
+    expect(mail.html).toContain(tradingAsLine());
     expect(mail.html).toContain("ACN 659 615 111");
     expect(mail.html).toContain("ABN 79 659 615 111");
     expect(mail.html).toContain("Sydney NSW");

@@ -29,6 +29,7 @@
  */
 
 import { t, type Messages } from "@/lib/i18n/t";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL } from "@/lib/site/legal-entity";
 import {
   EVALUATOR_PRICING_HREF,
   EVALUATOR_SIGNUP_HREF,
@@ -61,13 +62,13 @@ export const ACCELERATOR_PILOT_HREF =
   "/signup?plan=accelerator_intake&trial=1&from=pilot";
 
 /**
- * Regulatory facts about Auschain PTY LTD that we can point at, not
+ * Regulatory facts about the operator (LEGAL_ENTITY) that we can point at, not
  * capability claims — hard-coded rather than translated for that reason.
  * The Privacy Act and Essential Eight lines are the same two already
  * published in the sitewide marketing JSON-LD.
  */
 const TRUST_BADGES: SolutionTrustBadge[] = [
-  { label: "ASIC ABN 79 659 615 111", sub: "Auschain PTY LTD" },
+  { label: `ASIC ${LEGAL_ENTITY_ABN_LABEL}`, sub: LEGAL_ENTITY.operator },
   { label: "Privacy Act 1988", sub: "APP 1-13 controls" },
   { label: "Essential Eight — ML1", sub: "ACSC-aligned baseline" },
   { label: "Stripe verified merchant", sub: "PCI DSS via Stripe" },

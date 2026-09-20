@@ -1,4 +1,5 @@
 import React from "react";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "../../lib/site/legal-entity";
 import {
   AbsoluteFill,
   interpolate,
@@ -39,7 +40,7 @@ export const TeamOrg: React.FC<TeamOrgProps> = ({
   founderTitle = "Founder & CEO",
   members = DEFAULT_MEMBERS,
   delay = 0,
-  companyInfo = "Auschain Pty Ltd (ACN 659 615 111) \u2014 Sydney, NSW",
+  companyInfo = `${LEGAL_ENTITY.operator} (${LEGAL_ENTITY_ACN_LABEL}) \u2014 Sydney, NSW`,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();

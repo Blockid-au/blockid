@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import fs from "node:fs";
@@ -622,7 +623,7 @@ export default function VersionPage() {
 
       {/* Footer */}
       <footer className="border-t border-gray-200 py-8 text-center text-xs text-gray-500">
-        <p>&copy; {new Date().getUTCFullYear()} Auschain PTY LTD (ACN 659 615 111) — BlockID.au</p>
+        <p>&copy; {new Date().getUTCFullYear()} {LEGAL_ENTITY.copyrightHolder} ({LEGAL_ENTITY_ACN_LABEL}) — BlockID.au</p>
       </footer>
     </div>
   );

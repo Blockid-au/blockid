@@ -121,8 +121,8 @@ export default async function ViHomePage() {
         />
       </main>
 
-      {/* The one public footer — marketing entity PPL Food PTY LTD (billing /
-          legal / JSON-LD say Auschain PTY LTD; never swap). */}
+      {/* The one public footer — entity lines come from lib/site/legal-entity
+          (G21 P0-A). */}
       <Footer />
     </div>
   );

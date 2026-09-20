@@ -377,8 +377,8 @@ const CHAPTERS: Chapter[] = [
       vi: "Chuyển từ 'người ta bấm' sang 'người ta quay lại'. PMF là câu chuyện giữ chân, không phải câu chuyện traffic — Chương 5 là nơi bạn ghi nhận người dùng thật, doanh thu đầu tiên và giữ chân theo cohort, rồi để đại lý CDO kiểm tra xem tín hiệu có thật hay không.",
     },
     founderAction: {
-      en: "Log first users, first revenue and retention data. Connect the founder's own Stripe account in test-mode (this is separate from BlockID's own Auschain Stripe — it wires your future gateway). Feed at least two consecutive weeks of retention numbers so a cohort curve becomes possible.",
-      vi: "Ghi nhận người dùng đầu tiên, doanh thu đầu tiên và dữ liệu giữ chân. Kết nối tài khoản Stripe riêng của founder ở chế độ test (khác với Stripe Auschain của BlockID — đây là cổng thanh toán tương lai của bạn). Cung cấp ít nhất hai tuần dữ liệu giữ chân liên tiếp để có thể vẽ đường cohort.",
+      en: "Log first users, first revenue and retention data. Connect the founder's own Stripe account in test-mode (this is separate from BlockID's own merchant Stripe — it wires your future gateway). Feed at least two consecutive weeks of retention numbers so a cohort curve becomes possible.",
+      vi: "Ghi nhận người dùng đầu tiên, doanh thu đầu tiên và dữ liệu giữ chân. Kết nối tài khoản Stripe riêng của founder ở chế độ test (khác với Stripe merchant của BlockID — đây là cổng thanh toán tương lai của bạn). Cung cấp ít nhất hai tuần dữ liệu giữ chân liên tiếp để có thể vẽ đường cohort.",
     },
     agentsInvoked: {
       en: [

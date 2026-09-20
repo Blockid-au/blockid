@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendEmail } from "@/lib/email";
@@ -61,7 +62,7 @@ export function notifyContactLead(args: {
   <p style="margin:0 0 4px"><strong>Email:</strong> <a href="mailto:${escapeHtml(args.email)}">${escapeHtml(args.email)}</a></p>
   ${args.ip ? `<p style="margin:0 0 12px;color:#64748b;font-size:12px">IP: ${escapeHtml(args.ip)}</p>` : ""}
   <pre style="white-space:pre-wrap;font:inherit;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px">${escapeHtml(args.message)}</pre>
-  <p style="font-size:12px;color:#64748b;margin-top:16px">Reply directly to the founder. The lead is also listed at /admin/leads. Internal notification — Auschain PTY LTD.</p>
+  <p style="font-size:12px;color:#64748b;margin-top:16px">Reply directly to the founder. The lead is also listed at /admin/leads. Internal notification — ${LEGAL_ENTITY.operator}.</p>
 </body></html>`,
   }).catch((err) => console.error("[blockid:lead] support email failed", err));
 }

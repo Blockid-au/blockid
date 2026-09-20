@@ -12,6 +12,7 @@
  */
 
 import type { Metadata } from "next";
+import { statutoryLine } from "@/lib/site/legal-entity";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { CtaBand, PageHero, Prose, Section } from "@/components/marketing/template";
@@ -154,7 +155,7 @@ export default function AcceptableUsePolicyPage() {
 
       <CtaBand
         title="Questions about acceptable use?"
-        sub="Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW."
+        sub={`${statutoryLine()}.`}
         primary={{ href: "/contact?topic=legal", label: "Contact legal", ctaId: "aup_final_contact" }}
         secondary={{ href: "/legal/privacy", label: "Privacy Policy" }}
       />

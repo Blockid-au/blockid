@@ -34,6 +34,7 @@
 // colocated svi-index-aggregates.test.ts.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 import type {
   OverallRow,
   SectorRow,
@@ -120,8 +121,10 @@ async function callGetJson(qs: string): Promise<{
   return { status, headers, body: JSON.parse(text) as Record<string, unknown> };
 }
 
+// G21 P0-A: the entity clause derives from lib/site/legal-entity (canonical
+// "PTY LTD" casing); the surrounding statutory wording is unchanged.
 const EXPECTED_DISCLAIMER =
-  "General information only. Aggregated from anonymised SVI snapshots. Not investment, financial, or legal advice. Blockid.au and Auschain Pty Ltd (ACN 659 615 111) do not hold an Australian Financial Services Licence.";
+  `General information only. Aggregated from anonymised SVI snapshots. Not investment, financial, or legal advice. Blockid.au and ${LEGAL_ENTITY.operator} (${LEGAL_ENTITY_ACN_LABEL}) do not hold an Australian Financial Services Licence.`;
 const EXPECTED_CACHE_CONTROL =
   "public, max-age=300, stale-while-revalidate=600";
 

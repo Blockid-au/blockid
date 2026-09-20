@@ -7,6 +7,13 @@
 
 import "server-only";
 import {
+  LEGAL_ENTITY,
+  LEGAL_ENTITY_ABN_LABEL,
+  LEGAL_ENTITY_ACN_LABEL,
+  sellerOfRecordLine,
+  tradingAsLine,
+} from "@/lib/site/legal-entity";
+import {
   FREE_SUMMARY_PAGES,
   PAID_REPORT_ADDITIONS,
 } from "@/lib/analyses/free-summary";
@@ -326,9 +333,8 @@ export async function prepareUnsubscribe(to: string): Promise<{
  * unsubscribe facility. QA-3 P1-6 (2026-09-12): `unsubFooter()` used to carry
  * only the unsubscribe link — no business name, ABN, or place of business.
  */
-export const SENDER_IDENTITY_LINE = "Auschain PTY LTD · ABN 79 659 615 111 · Sydney NSW";
-export const SENDER_IDENTITY_HTML =
-  "Auschain PTY LTD &middot; ABN 79 659 615 111 &middot; Sydney NSW";
+export const SENDER_IDENTITY_LINE: string = sellerOfRecordLine();
+export const SENDER_IDENTITY_HTML: string = SENDER_IDENTITY_LINE.replace(/ · /g, " &middot; ");
 
 export function unsubFooter(
   unsubUrl: string,
@@ -1098,7 +1104,7 @@ export async function sendSVIReport(args: {
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
           <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
           <p style="margin:0 0 8px 0;color:#64748B;font-size:11px;line-height:1.5;">${signInHelp}</p>
-          <p style="margin:0;color:#475569;font-size:10px;line-height:1.4;">This analysis is produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111). The SVI is NOT a financial valuation or investment recommendation. BlockID does not hold an AFSL. Seek independent professional advice. Prices in AUD inc. GST.</p>
+          <p style="margin:0;color:#475569;font-size:10px;line-height:1.4;">This analysis is produced by BlockID.au (${LEGAL_ENTITY.operator}, ${LEGAL_ENTITY_ACN_LABEL}). The SVI is NOT a financial valuation or investment recommendation. BlockID does not hold an AFSL. Seek independent professional advice. Prices in AUD inc. GST.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -1228,7 +1234,7 @@ export async function sendWelcomeWithReport(args: {
     ? "Quen mat khau? Vao trang dang nhap, nhan 'Forgot your password?' de nhan mat khau moi qua email."
     : "Forgot your password? Visit the login page and click 'Forgot your password?' to receive a new one via email."
   }</p>
-          <p style="margin:0;color:#475569;font-size:10px;line-height:1.4;">This analysis is produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111). The SVI is NOT a financial valuation or investment recommendation. BlockID does not hold an AFSL. Seek independent professional advice. Prices in AUD inc. GST.</p>
+          <p style="margin:0;color:#475569;font-size:10px;line-height:1.4;">This analysis is produced by BlockID.au (${LEGAL_ENTITY.operator}, ${LEGAL_ENTITY_ACN_LABEL}). The SVI is NOT a financial valuation or investment recommendation. BlockID does not hold an AFSL. Seek independent professional advice. Prices in AUD inc. GST.</p>
           ${resellerFooter}
         </td></tr>
       </table>
@@ -2916,7 +2922,7 @@ export async function sendGuestReport(params: {
         This report was generated for ${escapeHtml(to)} · Order ID: ${escapeHtml(guestAnalysisId.slice(0, 8))}
       </p>
       <p style="margin:4px 0 0;color:#475569;font-size:12px;text-align:center;">
-        Tax invoice · Auschain Pty Ltd trading as BlockID.au · ABN 79 659 615 111 · A$3.00 inc. GST
+        Tax invoice · ${tradingAsLine()} · ${LEGAL_ENTITY_ABN_LABEL} · A$3.00 inc. GST
       </p>
     </div>
   `) + unsubFooter(unsubscribeUrl, preferencesUrl);
@@ -2966,7 +2972,7 @@ function escapeHtml(s: string): string {
 // re-run sends nothing.
 //
 // Spam Act 2003 (Cth) requirements for a commercial electronic message:
-//   * accurate sender identification — the billing entity Auschain Pty Ltd,
+//   * accurate sender identification — the billing entity (LEGAL_ENTITY.operator),
 //     its ACN/ABN and a real reply address appear in the footer;
 //   * a functional unsubscribe — a live link plus a List-Unsubscribe header,
 //     honoured through the existing email_preferences suppression table
@@ -3050,7 +3056,7 @@ export async function sendGuestCheckoutRecovery(params: {
             <a href="${preferencesUrl}" style="color:#94A3B8;text-decoration:underline;">Manage email preferences</a>
           </p>
           <p style="margin:0;color:#475569;font-size:12px;line-height:1.6;">
-            Auschain Pty Ltd trading as BlockID.au · ACN 659 615 111 · ABN 79 659 615 111<br>
+            ${tradingAsLine()} · ${LEGAL_ENTITY_ACN_LABEL} · ${LEGAL_ENTITY_ABN_LABEL}<br>
             Sydney NSW, Australia · <a href="mailto:info@blockid.au" style="color:#64748B;text-decoration:underline;">info@blockid.au</a>
           </p>
         </td></tr>
@@ -3083,7 +3089,7 @@ export async function sendGuestCheckoutRecovery(params: {
 // message. There is no drip behind it.
 //
 // Spam Act 2003 (Cth) requirements for a commercial electronic message:
-//   * accurate sender identification — Auschain Pty Ltd, its ACN and ABN, its
+//   * accurate sender identification — the operator, its ACN and ABN, its
 //     Sydney address and a real reply address, in the footer;
 //   * a functional unsubscribe — a live link plus the List-Unsubscribe header,
 //     honoured through the existing `email_preferences` suppression table.
@@ -3215,7 +3221,7 @@ export async function sendFreeSummary(params: {
             <a href="${preferencesUrl}" style="color:#94A3B8;text-decoration:underline;">Manage email preferences</a>
           </p>
           <p style="margin:0 0 6px;color:#475569;font-size:12px;line-height:1.6;">
-            Auschain Pty Ltd trading as BlockID.au · ACN 659 615 111 · ABN 79 659 615 111<br>
+            ${tradingAsLine()} · ${LEGAL_ENTITY_ACN_LABEL} · ${LEGAL_ENTITY_ABN_LABEL}<br>
             Sydney NSW, Australia · <a href="mailto:info@blockid.au" style="color:#64748B;text-decoration:underline;">info@blockid.au</a>
           </p>
           <p style="margin:0;color:#475569;font-size:11px;line-height:1.5;">

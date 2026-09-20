@@ -1,4 +1,4 @@
-// GET /api/abr/lookup?abn=79659615111
+// GET /api/abr/lookup?abn=<11 digits>
 //
 // Guide gap closed: docs/plans/atlassian-standard-mapping-goal.md §1 phase 1
 // ("Missing: live ABR ABN-lookup probe"), spun off as P1g. This is a P0

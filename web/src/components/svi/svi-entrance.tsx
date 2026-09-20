@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -2229,7 +2230,7 @@ function BottomFooter() {
             <Link href="/insights" className="hover:text-primary transition-colors">Insights</Link>
             <Link href="/about/invest" className="hover:text-primary transition-colors">Investors</Link>
           </div>
-          <p className="text-xs text-muted">&copy; {new Date().getFullYear()} Auschain Pty Ltd. Not financial advice.</p>
+          <p className="text-xs text-muted">&copy; {new Date().getFullYear()} {LEGAL_ENTITY.copyrightHolder}. Not financial advice.</p>
         </div>
       </div>
     </footer>

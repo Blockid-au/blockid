@@ -9,6 +9,7 @@
 // object URL so the user immediately gets the file.
 
 import * as React from "react";
+import { legalLine } from "@/lib/site/legal-entity";
 import type { InvestorPackData } from "@/lib/investor-pack-assembler";
 import { readErrorBody, userErrorMessage } from "@/lib/ui/user-error";
 
@@ -286,8 +287,7 @@ export function InvestorPackGenerateClient({ preview }: Props): React.ReactEleme
 
       <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
         General information only. Not financial advice. Comparables from public
-        reporting. Prepared by Auschain PTY LTD (ACN 659 615 111, ABN 79 659
-        615 111).
+        reporting. Prepared by {legalLine()}.
       </p>
     </div>
   );

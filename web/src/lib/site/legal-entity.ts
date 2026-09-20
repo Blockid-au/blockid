@@ -53,9 +53,8 @@ export function sellerOfRecordLine(): string {
 
 /** Marketing footer line — names both roles so the split reads as intended. */
 export function marketingLine(year: number = new Date().getFullYear()): string {
-  const marketing: string = LEGAL_ENTITY.marketingOperator;
   const built =
-    marketing === LEGAL_ENTITY.operator
+    (LEGAL_ENTITY.marketingOperator as string) === (LEGAL_ENTITY.operator as string)
       ? `© ${year} ${LEGAL_ENTITY.operator} · ${LEGAL_ENTITY_ABN_LABEL}`
       : `© ${year} ${LEGAL_ENTITY.brand} · built by ${LEGAL_ENTITY.marketingOperator}`;
   return `${built} · Billing, legal and invoices: ${LEGAL_ENTITY.operator} ${LEGAL_ENTITY_ABN_LABEL} · ${LEGAL_ENTITY.city}`;
@@ -69,4 +68,79 @@ export function trustRows(sviVersion: string): Array<{ label: string; value: str
     { label: "Methodology version", value: `Startup Value Index v${sviVersion}` },
     { label: "Support", value: LEGAL_ENTITY.supportEmail },
   ];
+}
+
+// ---------------------------------------------------------------------------
+// Derived lines (G21 P0-A sweep). Every string below is built from the
+// object above — none of them may carry a literal.
+// ---------------------------------------------------------------------------
+
+/** "Auschain" — the short form legal prose uses after the first full mention ("Auschain", "we", "us"). */
+export const LEGAL_ENTITY_SHORT_NAME: string = LEGAL_ENTITY.operator.replace(/\s+PTY\s+LTD$/i, "");
+
+/** "BlockID.au" — the brand as a domain-styled product name. */
+export const BRAND_SITE = `${LEGAL_ENTITY.brand}.au`;
+
+/** "Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111" — e-mail + PDF footers that carry both numbers. */
+export function acnAbnLine(): string {
+  return `${LEGAL_ENTITY.operator} · ${LEGAL_ENTITY_ACN_LABEL} · ${LEGAL_ENTITY_ABN_LABEL}`;
+}
+
+/** "Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW" — the full statutory footer line. */
+export function statutoryLine(): string {
+  return `${acnAbnLine()} · ${LEGAL_ENTITY.city}`;
+}
+
+/** "BlockID.au (Auschain PTY LTD, ACN 659 615 111, ABN 79 659 615 111)" — "produced by …" disclaimer openers. */
+export function producedByLine(): string {
+  return `${BRAND_SITE} (${LEGAL_ENTITY.operator}, ${LEGAL_ENTITY_ACN_LABEL}, ${LEGAL_ENTITY_ABN_LABEL})`;
+}
+
+/** "Auschain PTY LTD trading as BlockID.au" — tax-invoice supplier line. */
+export function tradingAsLine(): string {
+  return `${LEGAL_ENTITY.operator} trading as ${BRAND_SITE}`;
+}
+
+/**
+ * Token → value map for copy that lives outside TypeScript (the i18n JSON
+ * catalogues and `content/legal/*.mdx`). Both spellings resolve to the same
+ * value so a JSON string can carry `{entityOperator}` (the `{token}` shape
+ * the catalogue parity test already tracks) while an MDX body can carry the
+ * self-documenting `{{LEGAL_ENTITY.operator}}`.
+ */
+export const ENTITY_TOKENS: Readonly<Record<string, string>> = {
+  operator: LEGAL_ENTITY.operator,
+  short: LEGAL_ENTITY_SHORT_NAME,
+  marketingOperator: LEGAL_ENTITY.marketingOperator,
+  brand: LEGAL_ENTITY.brand,
+  site: BRAND_SITE,
+  acn: LEGAL_ENTITY.acn,
+  abn: LEGAL_ENTITY.abn,
+  acnLabel: LEGAL_ENTITY_ACN_LABEL,
+  abnLabel: LEGAL_ENTITY_ABN_LABEL,
+  city: LEGAL_ENTITY.city,
+  jurisdiction: LEGAL_ENTITY.jurisdiction,
+  supportEmail: LEGAL_ENTITY.supportEmail,
+  privacyEmail: LEGAL_ENTITY.privacyEmail,
+  line: legalLine(),
+  statutoryLine: statutoryLine(),
+  acnAbnLine: acnAbnLine(),
+  sellerLine: sellerOfRecordLine(),
+};
+
+const MDX_TOKEN = /\{\{\s*LEGAL_ENTITY\.([A-Za-z]+)\s*\}\}/g;
+const I18N_TOKEN = /\{entity([A-Z][A-Za-z]*)\}/g;
+
+/**
+ * Substitute every entity token in `text`. Unknown tokens are left untouched
+ * so a stray `{entityFoo}` renders visibly instead of vanishing (the same
+ * rule `fillPrices` follows for price tokens).
+ */
+export function fillEntityTokens(text: string): string {
+  return text
+    .replace(MDX_TOKEN, (whole, key: string) => ENTITY_TOKENS[key] ?? whole)
+    .replace(I18N_TOKEN, (whole, key: string) => {
+      const lower = key.charAt(0).toLowerCase() + key.slice(1);
+      return ENTITY_TOKENS[lower] ?? whole;
+    });
 }

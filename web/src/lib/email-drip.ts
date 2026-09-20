@@ -14,10 +14,11 @@
 //     nodemailer/Resend transport in @/lib/email.
 //
 // Copy is direct and quiet (no exclamation marks, no emoji, no
-// "Hey champion"). Every rendered body carries the Auschain footer
+// "Hey champion"). Every rendered body carries the operator footer
 // and a working unsubscribe link.
 
 import "server-only";
+import { acnAbnLine } from "@/lib/site/legal-entity";
 import { randomBytes } from "crypto";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import {
@@ -759,7 +760,7 @@ function footer(email: string, opts: { reason?: string; token?: string | null; c
       BlockID &middot; Startup Value Index
     </p>
     <p style="margin:0 0 4px 0;color:#64748B;font-size:12px;line-height:1.6;">
-      Auschain PTY LTD &middot; ACN 659 615 111 &middot; ABN 79 659 615 111
+      ${acnAbnLine().replace(/ · /g, " &middot; ")}
     </p>
     <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">
       ${escapeHtml(opts.reason ?? ONBOARDING_REASON)}
@@ -769,7 +770,7 @@ function footer(email: string, opts: { reason?: string; token?: string | null; c
 
 function footerText(email: string, opts: { reason?: string; token?: string | null; category?: EmailCategory } = {}): string {
   const unsub = unsubscribeUrl(email, opts.token, opts.category);
-  return `\n\n—\nBlockID · Startup Value Index\nAuschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111\n${opts.reason ?? ONBOARDING_REASON}\nUnsubscribe: ${unsub}`;
+  return `\n\n—\nBlockID · Startup Value Index\n${acnAbnLine()}\n${opts.reason ?? ONBOARDING_REASON}\nUnsubscribe: ${unsub}`;
 }
 
 function shell(inner: string): string {

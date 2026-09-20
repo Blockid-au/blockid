@@ -13,7 +13,7 @@
  *           last verified), assumptions & limitations.
  *   Page 3  methodology (doctoral sentence verbatim), data principle,
  *           general-advice + not-a-valuation-report disclaimer (APES 225 /
- *           AFSL), signature block for Auschain PTY LTD (ACN / ABN).
+ *           AFSL), signature block for the operator (ACN / ABN).
  *   Annex A (S27-A, optional, 2 pages) "Market value of an ordinary share for ESS
  *           purposes" — the Div 83A start-up concession checklist populated
  *           from the facts frozen in `payload.ess` ("not confirmed" where

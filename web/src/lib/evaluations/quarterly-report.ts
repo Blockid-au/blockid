@@ -9,14 +9,15 @@
 // sentence — "grounded in the founder's doctoral research (DBA) on startup
 // valuation", never "PhD") · evaluator disclaimer (DISCLAIMER_SURFACES.
 // evaluator_report, byte-identical to EvaluatorReportDisclaimer) · entity
-// line. The entity line is the BILLING / LEGAL entity — Auschain PTY LTD —
-// not the marketing "PPL Food PTY LTD"; the two are deliberately different.
+// line. The entity line is the BILLING / LEGAL entity (`LEGAL_ENTITY.operator`)
+// — not the marketing operator; the two are deliberately different.
 //
 // Served by GET /api/reports/quarterly?batch=<id> (evaluation batches) and
 // ?cohort=<id> (accelerator cohort_members — the link the existing
 // /workspace/accelerator/quarterly-report page has carried since Wave 25).
 
 import { DISCLAIMER_SURFACES } from "@/lib/legal/surfaces";
+import { legalLine } from "@/lib/site/legal-entity";
 import {
   DIMENSION_KEYS,
   DIMENSION_LABELS,
@@ -34,7 +35,7 @@ import {
 export const DOCTORAL_SENTENCE =
   "The Startup Value Index scores every startup on 8 dimensions × 13 criteria across 12 growth phases, reviewed by 11 C-Level agents with an auditor behind them, and is grounded in the founder's doctoral research (DBA) on startup valuation.";
 
-export const LEGAL_ENTITY_LINE = "Auschain PTY LTD (ACN 659 615 111, ABN 79 659 615 111)";
+export const LEGAL_ENTITY_LINE: string = legalLine();
 
 export function evaluatorDisclaimerText(): string {
   return DISCLAIMER_SURFACES.evaluator_report.body_md.replace(/\*\*/g, "");

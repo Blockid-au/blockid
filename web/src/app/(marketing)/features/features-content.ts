@@ -6,6 +6,8 @@
  * tool count.
  */
 
+import { LEGAL_ENTITY_ABN_LABEL } from "@/lib/site/legal-entity";
+
 export type FeatureIcon =
   | "bar-chart"
   | "link"
@@ -98,7 +100,7 @@ export const EVERYONE_FEATURES: readonly FeatureCopy[] = [
   {
     anchor: "ato-tax-invoice",
     title: "ATO tax invoice at checkout",
-    copy: "Your Stripe receipt is an ATO-compliant tax invoice with our ABN 79 659 615 111 and GST amount.",
+    copy: `Your Stripe receipt is an ATO-compliant tax invoice with our ${LEGAL_ENTITY_ABN_LABEL} and GST amount.`,
     href: "/pricing",
     linkLabel: "See pricing",
     icon: "receipt",

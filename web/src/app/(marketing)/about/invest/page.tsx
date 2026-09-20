@@ -3,7 +3,7 @@
 // collided with /investor (the public landing FOR investors); /investors
 // is now a permanent redirect here (lib/nav/legacy-redirects.ts) and this
 // page carries its own canonical. Entity on the JSON-LD is the legal one
-// (Auschain PTY LTD — the OrganizationJsonLd in the root layout); the
+// (LEGAL_ENTITY.operator — the OrganizationJsonLd in the root layout); the
 // footer keeps the marketing entity.
 //
 // G17 P2-A: on the unicorn template — PageHero → Section (market, StatStrip)

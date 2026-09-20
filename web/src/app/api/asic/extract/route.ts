@@ -1,4 +1,4 @@
-// GET /api/asic/extract?acn=659615111
+// GET /api/asic/extract?acn=<9 digits>
 //
 // Guide gap closed: docs/plans/atlassian-standard-mapping-goal.md §2 Folder 1
 // item 1.2 ("Company Extract (ASIC) — auto-probe via ASIC Connect API,

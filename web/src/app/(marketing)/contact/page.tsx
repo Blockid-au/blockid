@@ -6,11 +6,12 @@
  * (it used to be a "use client" page with a raw-hex dark ground and its own
  * NavV2 + Footer). PageHero → Section (form + info cards) → Section
  * (audience links, FeatureGrid) → Section (support) → CtaBand. Metadata and
- * the ContactPage JSON-LD stay in `layout.tsx`. Entity lines: Auschain PTY
- * LTD is the legal / billing entity; the footer keeps PPL Food PTY LTD.
+ * the ContactPage JSON-LD stay in `layout.tsx`. Entity lines come from
+ * `lib/site/legal-entity` (operator = legal / billing; footer names both).
  */
 
 import * as React from "react";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL } from "@/lib/site/legal-entity";
 import { ExternalLink, Mail, MapPin, Rocket, Users } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { CtaBand, FeatureGrid, FOCUS_RING, MOTION, PageHero, Section } from "@/components/marketing/template";
@@ -62,7 +63,7 @@ export default function ContactPage() {
                 <h2 className="font-display text-base font-semibold text-primary">Location</h2>
               </div>
               <p className="text-sm text-primary">Sydney, NSW, Australia</p>
-              <p className="mt-1 text-xs text-muted">Auschain Pty Ltd (ABN 79 659 615 111)</p>
+              <p className="mt-1 text-xs text-muted">{`${LEGAL_ENTITY.operator} (${LEGAL_ENTITY_ABN_LABEL})`}</p>
             </div>
 
             <div className={CARD}>

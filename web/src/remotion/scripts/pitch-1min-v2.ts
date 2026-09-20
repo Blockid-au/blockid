@@ -9,6 +9,8 @@
  * Design: Big logo first screen, infographics, charts, flow diagrams, synced subtitles
  */
 
+import { LEGAL_ENTITY } from "../../lib/site/legal-entity";
+
 export interface ScriptLineV2 {
   id: string;
   startSec: number;
@@ -159,7 +161,7 @@ export const PITCH_1MIN_V2: ScriptLineV2[] = [
     endSec: 60,
     text: "Try free at blockid dot ay you.",
     subtitle: "Try free: blockid.au",
-    visual: "Large BlockID.au logo. QR code. 'Do Van Long — CEO & Founder'. 'Try free: blockid.au' CTA button in brand blue. Auschain Pty Ltd.",
+    visual: `Large BlockID.au logo. QR code. 'Do Van Long — CEO & Founder'. 'Try free: blockid.au' CTA button in brand blue. ${LEGAL_ENTITY.operator}.`,
     emotion: "neutral",
   },
 ];

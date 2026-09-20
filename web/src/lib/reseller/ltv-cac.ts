@@ -17,7 +17,7 @@
 //   • lifetime_revenue_cents  = Σ revenue_events.net_aud_cents scoped to the
 //     reseller_id (all-time). net_aud_cents is GST-net so the ratio compares
 //     BlockID's take-home revenue against BlockID's commission cost — the
-//     GST that Auschain remits to the ATO is not counted as either side of
+//     GST that the operator remits to the ATO is not counted as either side of
 //     the equation.
 //   • cumulative_cleared_commission_cents = Σ reseller_commissions.commission_aud_cents
 //     for status='cleared' rows (past pending_until, no refund/dispute) — the

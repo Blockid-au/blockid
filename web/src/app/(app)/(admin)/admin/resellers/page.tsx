@@ -7,6 +7,7 @@
 // Admin-gated via requireAdmin (web/src/lib/reseller/require-admin.ts).
 
 import { redirect } from "next/navigation";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import { getCurrentUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/reseller/require-admin";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -59,7 +60,7 @@ export default async function AdminResellersPage() {
           <div>
             <h1 className="text-2xl font-semibold text-ink-900">Resellers</h1>
             <p className="mt-1 text-sm text-ink-600">
-              Every reseller org attributed to Auschain PTY LTD. See{" "}
+              Every reseller org attributed to {LEGAL_ENTITY.operator}. See{" "}
               <Link href="/admin/resellers/requests" className="text-brand-700 underline">
                 requests
               </Link>{" "}

@@ -5,7 +5,7 @@
 
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
-import { CtaBand, PageHero, Section } from "@/components/marketing/template";
+import { CtaBand, PageHero, Section, TrustBand } from "@/components/marketing/template";
 import type { MethodologyProps } from "./methodology-content";
 
 const LEVEL_TONE: Record<string, string> = {
@@ -229,6 +229,9 @@ export function MethodologyPage(p: MethodologyProps) {
           </Link>
         </p>
       </Section>
+
+      {/* G21 P0-A — who stands behind the score, above the close. */}
+      <TrustBand />
 
       <CtaBand title={p.cta.title} primary={p.cta.primary} secondary={p.cta.secondary} />
     </MarketingShell>

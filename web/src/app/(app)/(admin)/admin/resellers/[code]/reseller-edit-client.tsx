@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 
 interface EditableFields {
   display_name: string;
@@ -126,7 +127,7 @@ export function ResellerEditClient({ code, initial }: Props) {
             className={input}
             value={fields.abn}
             onChange={(e) => upd("abn", e.target.value)}
-            placeholder="79 659 615 111"
+            placeholder={LEGAL_ENTITY.abn}
           />
         </div>
         <div className="flex items-end gap-2">

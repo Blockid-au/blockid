@@ -1,4 +1,5 @@
 import "server-only";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 import type { SVIAnalysis } from "./svi-analysis";
 import { SVI_STAGE_LABELS, detectSector } from "./svi-analysis";
 import type { InputType, TechAuditResult } from "./rnd-input";
@@ -255,7 +256,7 @@ Apply this industry lens across ALL report pages — tailor market sizing, compe
 
 const AU_COMPLIANCE_NOTE = `
 IMPORTANT — Australian Compliance:
-- This analysis is produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111)
+- This analysis is produced by BlockID.au (${LEGAL_ENTITY.operator}, ${LEGAL_ENTITY_ACN_LABEL})
 - The SVI score is NOT a financial valuation or investment recommendation
 - BlockID does not hold an Australian Financial Services Licence (AFSL)
 - For financial projections: state "forward-looking estimates only, not financial advice"
@@ -753,7 +754,7 @@ export async function generateSectionReport(
     ).join("\n");
 
     const wordGuidance = DEPTH_WORD_GUIDANCE[depth];
-    const disclaimer = `\n\nIMPORTANT: This analysis is produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111). The Startup Value Index (SVI) is NOT a financial valuation or investment recommendation. Users should seek independent professional advice. All prices are AUD and include GST.`;
+    const disclaimer = `\n\nIMPORTANT: This analysis is produced by BlockID.au (${LEGAL_ENTITY.operator}, ${LEGAL_ENTITY_ACN_LABEL}). The Startup Value Index (SVI) is NOT a financial valuation or investment recommendation. Users should seek independent professional advice. All prices are AUD and include GST.`;
 
     const userPrompt = `Analyse this startup and generate the following report sections at "${depthConfig.label}" depth (~${depthConfig.words} words each):
 

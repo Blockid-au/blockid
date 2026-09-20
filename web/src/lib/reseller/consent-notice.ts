@@ -8,6 +8,8 @@
 // APP 5.2 (a)–(j) coverage via unit tests without dragging a "use client"
 // component through the vitest boundary.
 
+import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
+
 export type ConsentNoticeLocale = "en" | "vi";
 
 export interface ConsentNoticeStrings {
@@ -23,7 +25,7 @@ const EN: ConsentNoticeStrings = {
   accept: "Accept and continue",
   decline: "Remove code",
   body: (name: string) =>
-    `Auschain PTY LTD (ACN 659 615 111, registered NSW; contact ` +
+    `${LEGAL_ENTITY.operator} (${LEGAL_ENTITY_ACN_LABEL}, registered NSW; contact ` +
     `privacy@blockid.au, admin@blockid.au — postal: c/o Sydney NSW), ` +
     `trading as BlockID.au, collects and shares information about your ` +
     `BlockID account with ${name} because you signed up using their ` +
@@ -51,7 +53,7 @@ const VI: ConsentNoticeStrings = {
   accept: "Đồng ý và tiếp tục",
   decline: "Gỡ mã",
   body: (name: string) =>
-    `Auschain PTY LTD (ACN 659 615 111, đăng ký tại NSW; liên hệ ` +
+    `${LEGAL_ENTITY.operator} (${LEGAL_ENTITY_ACN_LABEL}, đăng ký tại NSW; liên hệ ` +
     `privacy@blockid.au, admin@blockid.au — bưu điện: c/o Sydney NSW), ` +
     `hoạt động dưới tên BlockID.au, thu thập và chia sẻ thông tin về tài ` +
     `khoản BlockID của bạn với ${name} vì bạn đăng ký bằng mã đại lý của ` +
@@ -104,7 +106,7 @@ export function auditApp52Coverage(body: string): Record<App52Clause, boolean> {
   const has = (needle: string) => body.toLowerCase().includes(needle.toLowerCase());
   return {
     // (a) APP entity identity + contact
-    a: has("Auschain PTY LTD") && has("ACN 659 615 111") && has("privacy@blockid.au"),
+    a: has(LEGAL_ENTITY.operator) && has(LEGAL_ENTITY_ACN_LABEL) && has(LEGAL_ENTITY.privacyEmail),
     // (b) fact and circumstances of collection
     b: has("(b)"),
     // (c) whether collection required or authorised by law — explicit negation

@@ -1,4 +1,5 @@
 import { heroLine } from "@/lib/marketing/hero-variants";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import {
   buildItemListJsonLd,
   buildWebPageJsonLd,
@@ -18,9 +19,9 @@ export async function OrganizationJsonLd() {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "BlockID.au",
-    legalName: "Auschain PTY LTD",
+    legalName: LEGAL_ENTITY.operator,
     // QA-3 P2 (2026-09-12): ABN as schema.org taxID; support inbox, not admin@.
-    taxID: "79 659 615 111",
+    taxID: LEGAL_ENTITY.abn,
     url: "https://blockid.au",
     logo: "https://blockid.au/images/logo-transparent.png",
     // G18-C: G1 from the speakable catalogue — the same sentence as the

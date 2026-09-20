@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 import Link from "next/link";
 import {
   Activity,
@@ -418,7 +419,7 @@ export function EquityDashboardClient({ isAdmin }: { isAdmin: boolean }) {
         <div>
           <h2 className="text-xl font-bold text-ink-800">Equity Dashboard</h2>
           <p className="text-sm text-ink-500 mt-0.5">
-            Blockchain equity co-ownership overview for Auschain Pty Ltd
+            Blockchain equity co-ownership overview for {LEGAL_ENTITY.operator}
           </p>
         </div>
         <button
@@ -450,8 +451,8 @@ export function EquityDashboardClient({ isAdmin }: { isAdmin: boolean }) {
             <p className="text-xs text-ink-500 font-medium uppercase tracking-wider mb-1">
               Company
             </p>
-            <p className="text-sm font-bold text-ink-800">Auschain Pty Ltd</p>
-            <p className="text-xs text-ink-500 mt-0.5">ACN 659 615 111</p>
+            <p className="text-sm font-bold text-ink-800">{LEGAL_ENTITY.operator}</p>
+            <p className="text-xs text-ink-500 mt-0.5">{LEGAL_ENTITY_ACN_LABEL}</p>
           </div>
           <div className="bg-white p-5">
             <p className="text-xs text-ink-500 font-medium uppercase tracking-wider mb-1">

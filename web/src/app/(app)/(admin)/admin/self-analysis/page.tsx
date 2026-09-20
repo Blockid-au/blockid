@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import { redirect } from "next/navigation";
 import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -39,7 +40,7 @@ const BLOCKID_EVIDENCE = [
   { source: "Production Deployment", detail: "50 API routes", type: "Connected source", confidence: 75, icon: Globe },
   { source: "Stripe Live", detail: "Payment system active", type: "Transaction data", confidence: 90, icon: CreditCard },
   { source: "Domain", detail: "blockid.au live", type: "Public URL", confidence: 35, icon: Globe },
-  { source: "ABN", detail: "Auschain Pty Ltd", type: "Document", confidence: 50, icon: FileText },
+  { source: "ABN", detail: LEGAL_ENTITY.operator, type: "Document", confidence: 50, icon: FileText },
   { source: "Documentation", detail: "7,000+ lines PRD", type: "Document", confidence: 50, icon: FileText },
 ];
 

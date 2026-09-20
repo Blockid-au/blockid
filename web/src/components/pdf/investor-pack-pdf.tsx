@@ -12,13 +12,14 @@
 //   5. Valuation & ask    — valuation methods + raise + use-of-funds
 //   6. AU comparables     — sector- + stage-matched raises
 //   7. Team + cap-table   — snapshot of both, with "Not yet on file" fallbacks
-//   8. Contact + AFSL     — disclaimer, Auschain footer, contact block
+//   8. Contact + AFSL     — disclaimer, entity footer, contact block
 //
 // Guardrails:
 //   - Missing data → "Not yet on file" placeholder (never fabricates numbers).
-//   - Every page carries the Not-financial-advice + Auschain footer.
+//   - Every page carries the Not-financial-advice + entity footer.
 
 import * as React from "react";
+import { LEGAL_ENTITY, statutoryLine } from "@/lib/site/legal-entity";
 import {
   Document,
   Page,
@@ -53,8 +54,7 @@ const C = {
   white: "#ffffff",
 } as const;
 
-const AUSCHAIN_LINE =
-  "Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW";
+const ENTITY_LINE = statutoryLine();
 
 /* ─── Styles ────────────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
@@ -328,7 +328,7 @@ function RegulatoryFooter() {
         securities.
       </Text>
       <Text style={s.footerLine}>
-        Investor Pack · {AUSCHAIN_LINE}
+        Investor Pack · {ENTITY_LINE}
         {"  "}
         <Text
           render={({ pageNumber, totalPages }: { pageNumber: number; totalPages: number }) =>
@@ -1326,7 +1326,7 @@ function ContactPage({ data }: { data: InvestorPackData }) {
           from public reporting; ranges and grades are indicative and are not a
           valuation opinion nor an offer of securities. Recipients should seek
           independent legal, tax and financial advice before making any
-          investment decision. Prepared by {AUSCHAIN_LINE}.
+          investment decision. Prepared by {ENTITY_LINE}.
         </Text>
       </View>
 
@@ -1356,7 +1356,7 @@ export function InvestorPackPDF({ data }: { data: InvestorPackData }) {
       title={`Investor Pack — ${data.project.name}`}
       author="BlockID.au"
       creator="BlockID.au Investor Pack"
-      producer="Auschain PTY LTD"
+      producer={LEGAL_ENTITY.operator}
       subject="Startup investor pack"
     >
       <CoverPage data={data} />

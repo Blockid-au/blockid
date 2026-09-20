@@ -15,6 +15,7 @@
  */
 
 import { readFileSync, readdirSync } from "node:fs";
+import { LEGAL_ENTITY, fillEntityTokens, statutoryLine } from "@/lib/site/legal-entity";
 import path from "node:path";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -29,13 +30,13 @@ const DOC_META: Record<DocSlug, { title: string; description: string; heading: s
   terms: {
     title: "Terms of Service",
     description:
-      "Auschain PTY LTD Terms of Service governing use of the BlockID.au platform.",
+      `${LEGAL_ENTITY.operator} Terms of Service governing use of the BlockID.au platform.`,
     heading: "Terms of Service",
   },
   privacy: {
     title: "Privacy Policy",
     description:
-      "How Auschain PTY LTD collects, holds, uses, and discloses personal information under the Privacy Act 1988 (Cth).",
+      `How ${LEGAL_ENTITY.operator} collects, holds, uses, and discloses personal information under the Privacy Act 1988 (Cth).`,
     heading: "Privacy Policy",
   },
   disclaimers: {
@@ -111,14 +112,19 @@ function contentRoot(): string {
   return candidates[0]!;
 }
 
+/**
+ * Strip the YAML front-matter and fill the `{{LEGAL_ENTITY.*}}` tokens the
+ * MDX bodies carry (G21 P0-A): the legal documents never hard-code the
+ * operator, ACN or ABN — they render from `lib/site/legal-entity`.
+ */
 function stripFrontmatter(mdx: string): string {
   const noBom =
     mdx.charCodeAt(0) === 0xfeff ? mdx.slice(1) : mdx;
-  if (!noBom.startsWith("---")) return noBom;
+  if (!noBom.startsWith("---")) return fillEntityTokens(noBom);
   const end = noBom.indexOf("\n---", 3);
-  if (end === -1) return noBom;
+  if (end === -1) return fillEntityTokens(noBom);
   const after = noBom.indexOf("\n", end + 4);
-  return after === -1 ? "" : noBom.slice(after + 1);
+  return after === -1 ? "" : fillEntityTokens(noBom.slice(after + 1));
 }
 
 function readLegalBody(doc: DocSlug): string | null {
@@ -418,7 +424,7 @@ export default async function LegalDocPage({
 
       <CtaBand
         title="Questions about the fine print?"
-        sub="Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW."
+        sub={`${statutoryLine()}.`}
         primary={{ href: "/contact?topic=legal", label: "Contact legal", ctaId: "legal_doc_final_contact" }}
         secondary={{ href: "/legal/disclaimers", label: "All disclaimers" }}
       />

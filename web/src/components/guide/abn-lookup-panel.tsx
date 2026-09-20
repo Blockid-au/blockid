@@ -12,6 +12,7 @@
 // the same component and swap colour tokens.
 
 import * as React from "react";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import type { Locale } from "@/lib/i18n";
 import {
   buildAbnLookupUrl,
@@ -46,7 +47,7 @@ const COPY = {
     subheading:
       "Investors check the ABR before every first meeting. Paste your 11-digit ABN — BlockID confirms the modulus-89 checksum and, when ABR_GUID is wired, the registered entity name, ACN, GST status, and address on record.",
     abnLabel: "ABN (11 digits)",
-    abnHint: 'Spaces + dashes are stripped. Try "79 659 615 111".',
+    abnHint: `Spaces + dashes are stripped. Try "${LEGAL_ENTITY.abn}".`,
     submit: "Look up",
     submitting: "Looking up…",
     emptyHint: "Type your ABN above then click Look up.",
@@ -77,7 +78,7 @@ const COPY = {
     subheading:
       "Nhà đầu tư luôn tra ABR trước cuộc gặp đầu tiên. Dán ABN 11 chữ số — BlockID xác thực checksum modulus-89 và, khi đã cấu hình ABR_GUID, kéo về tên pháp nhân, ACN, trạng thái GST và địa chỉ đăng ký.",
     abnLabel: "ABN (11 chữ số)",
-    abnHint: 'Khoảng trắng + dấu gạch được bỏ. Ví dụ: "79 659 615 111".',
+    abnHint: `Khoảng trắng + dấu gạch được bỏ. Ví dụ: "${LEGAL_ENTITY.abn}".`,
     submit: "Tra cứu",
     submitting: "Đang tra cứu…",
     emptyHint: "Nhập ABN ở trên rồi nhấn Tra cứu.",
@@ -232,7 +233,7 @@ export function AbnLookupPanel({
             onChange={(e) => setState({ abn: e.target.value })}
             className={inputClasses(variant)}
             data-testid="abn-lookup-input"
-            placeholder="79 659 615 111"
+            placeholder={LEGAL_ENTITY.abn}
             autoComplete="off"
             inputMode="numeric"
             spellCheck={false}

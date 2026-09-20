@@ -15,6 +15,8 @@
  * See docs/archive/goal-5d-t1400-i18n-notes.md §2 for the house rule.
  */
 
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
+
 export const RESERVED_TERMS: readonly string[] = [
   // AU statutory shorthand
   "s708",
@@ -33,7 +35,7 @@ export const RESERVED_TERMS: readonly string[] = [
   "ACL",
   "SOC2",
   // Brand
-  "Auschain PTY LTD",
+  LEGAL_ENTITY.operator,
   "BlockID",
   "BlockID.au",
   // Product surface names kept in English

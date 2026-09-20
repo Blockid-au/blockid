@@ -1,4 +1,5 @@
 import React from "react";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "../../lib/site/legal-entity";
 import { AbsoluteFill, Audio, Img, Sequence, staticFile } from "remotion";
 import { ComparisonTable } from "../components/ComparisonTable";
 import { FlowDiagram } from "../components/FlowDiagram";
@@ -808,7 +809,7 @@ export const PitchVideo3Min: React.FC = () => {
                 marginTop: 4,
               }}
             >
-              Auschain Pty Ltd (ACN 659 615 111) — linkedin.com/in/dovanlong
+              {LEGAL_ENTITY.operator} ({LEGAL_ENTITY_ACN_LABEL}) — linkedin.com/in/dovanlong
             </div>
 
             {/* CTA Button */}

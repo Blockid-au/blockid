@@ -16,18 +16,19 @@
  * 2.56:1 on white had this section ever rendered light, which is exactly
  * the class of bug that made the H1 invisible.
  *
- * ENTITY STRINGS ARE DELIBERATE: "PPL Food PTY LTD" is the entity shown on
- * marketing surfaces (Google for Startups verification). Billing, legal and
- * JSON-LD use Auschain PTY LTD. Do not "correct" either one.
+ * ENTITY STRINGS come from `@/lib/site/legal-entity`: the marketing operator
+ * is shown here (Google for Startups verification); billing, legal and
+ * JSON-LD use the seller of record. Never hard-code either name.
  */
 
 import Link from "next/link";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STATS = [
   { value: "Sydney NSW", label: "Australian-owned HQ" },
-  { value: "AU registered", label: "PPL Food PTY LTD" },
+  { value: "AU registered", label: LEGAL_ENTITY.marketingOperator },
   { value: "Off-chain register", label: "Legal record stays statutory" },
   { value: "ASIC · ESIC · R&D", label: "Australian rules, not US" },
 ];

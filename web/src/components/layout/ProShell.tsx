@@ -12,6 +12,7 @@
  */
 
 import Link from "next/link";
+import { marketingLine } from "@/lib/site/legal-entity";
 import type { ReactNode } from "react";
 import { ProShellNavLandingTracker } from "./pro-shell-tracker";
 
@@ -127,11 +128,9 @@ export function ProShell({ children, variant = "landing" }: ProShellProps) {
         }
       >
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 md:flex-row">
-          {/* Entity per founder decision Q-A (money-finder plan, 2026-09-10):
-              PPL Food PTY LTD site-wide, no ABN/ACN in copy. */}
-          <p className="text-[12px]">
-            © {new Date().getUTCFullYear()} BlockID · PPL Food PTY LTD
-          </p>
+          {/* G21 P0-A: one entity line from lib/site/legal-entity — both
+              roles explicit (marketing operator · seller of record + ABN). */}
+          <p className="text-[12px]">{marketingLine(new Date().getUTCFullYear())}</p>
           <div className="flex items-center gap-4 text-[12px]">
             <Link href="/legal/privacy" className="hover:text-white">
               Privacy

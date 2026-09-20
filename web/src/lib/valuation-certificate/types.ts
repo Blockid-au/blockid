@@ -12,11 +12,18 @@
 //   - the doctoral sentence: "grounded in the founder's doctoral research
 //     (DBA) on startup valuation" — never "PhD";
 //   - the data principle sentence (feedback_data_principle);
-//   - the legal / billing entity is Auschain PTY LTD (ACN 659 615 111,
-//     ABN 79 659 615 111) — the marketing brand (PPL Food PTY LTD) never
-//     appears on a certificate.
+//   - the legal / billing entity is `LEGAL_ENTITY.operator` (with its ACN
+//     and ABN) — the marketing operator never appears on a certificate.
+//     Entity strings come from `@/lib/site/legal-entity` (G21 P0-A).
 
 import type { ValuationMethod } from "@/lib/valuation-mrr-bridge";
+import {
+  LEGAL_ENTITY,
+  LEGAL_ENTITY_ABN_LABEL,
+  LEGAL_ENTITY_ACN_LABEL,
+  legalLine,
+  producedByLine,
+} from "@/lib/site/legal-entity";
 
 export const CERTIFICATE_VERSION = "vc-1";
 
@@ -374,10 +381,11 @@ export const DOCTORAL_SENTENCE =
 export const DATA_PRINCIPLE_SENTENCE =
   "Your data belongs to your startup. We store it so every report builds on your own evidence and the AI reasons on your case. Founder-consented access tiers control who sees what.";
 
-export const LEGAL_ENTITY_NAME = "Auschain PTY LTD";
-export const LEGAL_ENTITY_ACN = "ACN 659 615 111";
-export const LEGAL_ENTITY_ABN = "ABN 79 659 615 111";
-export const LEGAL_ENTITY_LINE = `${LEGAL_ENTITY_NAME} (${LEGAL_ENTITY_ACN}, ${LEGAL_ENTITY_ABN})`;
+// Re-exported from the canonical config so existing importers keep working.
+export const LEGAL_ENTITY_NAME: string = LEGAL_ENTITY.operator;
+export const LEGAL_ENTITY_ACN: string = LEGAL_ENTITY_ACN_LABEL;
+export const LEGAL_ENTITY_ABN: string = LEGAL_ENTITY_ABN_LABEL;
+export const LEGAL_ENTITY_LINE: string = legalLine();
 
 /**
  * Not-a-valuation-report + general-advice disclaimer (au-compliance).
@@ -386,7 +394,7 @@ export const LEGAL_ENTITY_LINE = `${LEGAL_ENTITY_NAME} (${LEGAL_ENTITY_ACN}, ${L
  * (independent advice) — the three things a DD reader looks for.
  */
 export const CERTIFICATE_DISCLAIMER =
-  "This certificate is an indicative Startup Value Index (SVI) assessment produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111, ABN 79 659 615 111). " +
+  `This certificate is an indicative Startup Value Index (SVI) assessment produced by ${producedByLine()}. ` +
   "It is not an independent valuation report, not a valuation engagement under APES 225 (Valuation Services), and not an audit or assurance opinion. " +
   "It is general information only and does not constitute financial product advice under the Corporations Act 2001 (Cth); it has been prepared without regard to any reader's objectives, financial situation or needs. " +
   "BlockID.au does not hold an Australian Financial Services Licence (AFSL). " +

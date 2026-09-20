@@ -16,16 +16,16 @@
 // seek independent advice, entity line.
 
 import * as React from "react";
+import { producedByLine, statutoryLine } from "@/lib/site/legal-entity";
 import { StyleSheet, Text, View } from "@react-pdf/renderer";
 
 // Typed off the component so no transitive @react-pdf/* package is imported.
 type PdfStyle = Exclude<NonNullable<React.ComponentProps<typeof View>["style"]>, readonly unknown[]>;
 
-export const PDF_ENTITY_LINE =
-  "Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW";
+export const PDF_ENTITY_LINE: string = statutoryLine();
 
 export const PDF_GENERAL_ADVICE_DISCLAIMER =
-  "This document is produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111, ABN 79 659 615 111). " +
+  `This document is produced by ${producedByLine()}. ` +
   "It is general information only — not a financial valuation, an investment recommendation, or personal financial product advice under s766B of the Corporations Act 2001 (Cth), and not legal, tax or accounting advice. " +
   "BlockID.au does not hold an Australian Financial Services Licence (AFSL). Seek independent professional advice before acting on it.";
 

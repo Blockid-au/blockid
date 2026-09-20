@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import { Suspense } from "react";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
@@ -10,7 +11,7 @@ import { annualAvailablePlanIds, purchasablePlanIds } from "@/lib/plans/annual-a
 import { FAQJsonLd } from "@/components/seo/json-ld";
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
-import { CtaBand, FeatureGrid, PageHero, Section } from "@/components/marketing/template";
+import { CtaBand, FeatureGrid, PageHero, Section, TrustBand } from "@/components/marketing/template";
 import { LogoCloud } from "@/components/landing/logo-cloud";
 import { StickyCta } from "@/components/sales/sticky-cta";
 import { PricingFeatureNotice } from "@/components/landing/pricing-feature-notice";
@@ -219,12 +220,15 @@ export default async function PricingPage() {
         <LogoCloud group="integrated" density="compact" />
       </Section>
 
+      {/* G21 P0-A — who stands behind the score, above the close. */}
+      <TrustBand />
+
       <CtaBand
         title="Talk to sales for a bespoke fit."
         sub="Every enterprise tier includes a demo call with our founder team."
         primary={{ href: "/contact", label: "Talk to sales", ctaId: "pricing_final_sales" }}
         secondary={{ href: "/workspace/esop/offers", label: "Explore equity-for-solution" }}
-        footnote="Not financial advice. Equity arrangements require independent legal and tax review. Auschain PTY LTD · Sydney NSW."
+        footnote={`Not financial advice. Equity arrangements require independent legal and tax review. ${LEGAL_ENTITY.operator} · ${LEGAL_ENTITY.city}.`}
       />
 
       {/* Persistent bottom CTA — hidden 7 days after dismissal. Marketing
