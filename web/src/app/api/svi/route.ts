@@ -437,6 +437,15 @@ async function POST_handler(request: Request) {
         } catch (taxErr) {
           console.warn("[blockid:svi] taxonomy silent fill threw", taxErr);
         }
+
+        // G21 P1-A: Claim ≠ Evidence sync (migration 0417) — idempotent
+        // upsert on (project_id, claim_key); fail-soft, never fails the analysis.
+        try {
+          const { syncClaimsForProjectSafe } = await import("@/lib/evidence/claims");
+          await syncClaimsForProjectSafe(projectId, analysis, { rawText: enrichedText, sourceReportId: slug, actorUserId: authenticatedUserId ?? null });
+        } catch (claimsErr) {
+          console.warn("[blockid:svi] claims sync threw", claimsErr);
+        }
       }
 
       // CDO T-1009 / G16-A: svi_score_computed → analytics_events (event_id
