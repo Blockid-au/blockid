@@ -41,6 +41,8 @@ import {
 } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { PricingMatrix } from "@/components/landing/pricing-matrix";
+import { PilotRung } from "@/components/marketing/PilotOffer";
+import type { PilotSkuId } from "@/lib/pricing/pilot-skus";
 import {
   PRICING_TABS,
   TAB_TO_SEGMENT,
@@ -67,7 +69,20 @@ export interface PricingSegmentSwitchProps {
   /** Plan ids with an annual Stripe Price — forwarded to <PricingMatrix>. */
   annualAvailable?: readonly string[];
   purchasable?: readonly string[];
+  /**
+   * G21 P0-C — the paid Cohort Validation Pilot rung shown FIRST on the
+   * Programs tab (ahead of Intake link / Cohort 25 / Cohort 100). The
+   * server page passes `isPilotSkuConfigured()` per SKU; omitted → the rung
+   * is not rendered (the /vi page passes its own copy).
+   */
+  pilotConfigured?: Readonly<Record<PilotSkuId, boolean>>;
+  pilotCopy?: { title: string; sub: string };
 }
+
+const DEFAULT_PILOT_COPY = {
+  title: "Cohort Validation Pilot — one real intake, priced before you pay",
+  sub: "Start with a one-off paid pilot on your next intake or your existing cohort: Startup Value Index per applicant, evidence confidence, the cohort table, the top gaps and a final cohort report. Programs that continue move to Cohort 25 or Cohort 100 below.",
+};
 
 const DEFAULT_LABELS: Record<PricingTab, { label: string; sub: string }> = {
   founder: { label: "Founder", sub: "Build, value and raise" },
@@ -105,6 +120,8 @@ export function PricingSegmentSwitch({
   onChange,
   annualAvailable,
   purchasable,
+  pilotConfigured,
+  pilotCopy,
 }: PricingSegmentSwitchProps) {
   // The URL is an external store: "no tab" while hydrating (matches the
   // server document), the deep-linked tab on the first client render. A
@@ -225,6 +242,14 @@ export function PricingSegmentSwitch({
         id={`pricing-panel-${tab}`}
         aria-labelledby={`pricing-tab-${tab}`}
       >
+        {tab === "programs" && pilotConfigured ? (
+          <PilotRung
+            configured={pilotConfigured}
+            returnPath="/pricing?segment=programs"
+            title={(pilotCopy ?? DEFAULT_PILOT_COPY).title}
+            sub={(pilotCopy ?? DEFAULT_PILOT_COPY).sub}
+          />
+        ) : null}
         <PricingMatrix segment={TAB_TO_SEGMENT[tab]} annualAvailable={annualAvailable} purchasable={purchasable} />
       </div>
     </div>

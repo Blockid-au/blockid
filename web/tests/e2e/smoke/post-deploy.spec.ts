@@ -340,22 +340,25 @@ test.describe("Post-deploy hydrated smoke", () => {
     expect(await table.getByRole("row").count()).toBeGreaterThan(3);
   });
 
-  test("/solutions/accelerator — pilot offer CTA links the Intake link trial (pricing v4)", async ({
+  test("/solutions/accelerator#pilot — the paid Cohort Validation Pilot block: two offer cards, each with a buy control (checkout or the contact fallback)", async ({
     page,
   }) => {
     test.setTimeout(15_000);
-    await page.goto("/solutions/accelerator", { waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId("pilot-cta")).toBeVisible({ timeout: PAGE_TIMEOUT });
-    const link = page.getByTestId("pilot-cta-link");
-    await expect(link).toBeVisible({ timeout: PAGE_TIMEOUT });
-    // G14 pricing v4: the pilot moves to `accelerator_intake` once
-    // STRIPE_PRICE_ACCEL_INTAKE is minted (ACCELERATOR_PILOT_HREF comment);
-    // until then it stays on the Program trial. Accept either so the gate
-    // tracks the constant, not the founder's Stripe timing.
-    await expect(link).toHaveAttribute(
-      "href",
-      /\/signup\?plan=accelerator_intake&trial=1&from=pilot/,
-    );
+    await page.goto("/solutions/accelerator#pilot", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("pilot-offer")).toBeVisible({ timeout: PAGE_TIMEOUT });
+    await expect(page.getByTestId("pilot-offer-card")).toHaveCount(2);
+    // G21 P0-C: until the founder mints STRIPE_PRICE_COHORT_PILOT_25/50 the
+    // button is a link to /contact?topic=pilot; once minted it is the
+    // quote-then-checkout button. Accept either so the gate tracks the
+    // code, not the founder's Stripe timing.
+    for (const sku of ["cohort_pilot_25", "cohort_pilot_50"]) {
+      const buy = page.getByTestId(`pilot-buy-${sku}`);
+      await expect(buy).toBeVisible({ timeout: PAGE_TIMEOUT });
+      const mode = await buy.getAttribute("data-pilot-mode");
+      expect(["contact", "checkout"]).toContain(mode);
+      if (mode === "contact") await expect(buy).toHaveAttribute("href", "/contact?topic=pilot");
+    }
+    await expect(page.getByTestId("pilot-quote-cohort_pilot_25")).toContainText(/inc\. GST/);
   });
 
   // ── G13-W1-IA1 (D6) — legacy route redirects ─────────────────────────
