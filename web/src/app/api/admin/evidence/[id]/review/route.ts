@@ -16,6 +16,7 @@ import { readJsonBody } from "@/lib/security/request-guards";
 import { apiRoute } from "@/lib/audit/api-route";
 import { auditAction, auditNote } from "@/lib/audit/context";
 import { REVIEW_NOTE_MAX, applyEvidenceReview, isReviewDecision } from "@/lib/evidence/review";
+import { emitEvidenceVerified } from "@/lib/analytics/fi-events";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,29 @@ async function PATCH_handler(request: Request, { params }: Params) {
   }
 
   auditAction(decision === "approve" ? "admin.evidence.approve" : "admin.evidence.reject");
+  if (decision === "approve") {
+    // G21 P1-C — FI analytics: evidence_verified (organisation = the project
+    // owner, looked up from the project; startup = project).
+    let ownerUserId: string | null = null;
+    try {
+      const { data: proj } = await supabase.from("projects").select("user_id").eq("id", result.row.project_id).maybeSingle();
+      ownerUserId = ((proj as { user_id?: string } | null)?.user_id as string | undefined) ?? null;
+    } catch {
+      ownerUserId = null;
+    }
+    emitEvidenceVerified({
+      ownerUserId,
+      actorUserId: user.id,
+      email: user.email,
+      projectId: result.row.project_id,
+      channel: "admin_review",
+      evidenceId: result.row.id,
+      level: result.row.confidence_level,
+      reviewerId: user.id,
+      dimension: result.row.dimension,
+      evidenceType: result.row.evidence_type,
+    });
+  }
   auditNote(result.row.id, {
     project_id: result.row.project_id,
     dimension: result.row.dimension,

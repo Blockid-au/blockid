@@ -19,7 +19,8 @@
 // for the account whose connector metrics just moved.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { extractSignals, computeSVI, type SVISubScore } from "@/lib/svi-analysis";
+import { extractSignals, computeSVI, SVI_VERSION, type SVISubScore } from "@/lib/svi-analysis";
+import { emitScoreRecalculated } from "@/lib/analytics/fi-events";
 import { checkAndAwardBadges, type BadgeContext } from "@/lib/badges";
 import { loadConnectedRevenueSignals } from "@/lib/connected-revenue";
 import type { ConnectedRevenueSignal } from "@/lib/valuation-mrr-bridge";
@@ -142,6 +143,8 @@ export interface RescoreArgs {
   /** The project OWNER's user id — svi_signals / connector_snapshots key; null skips those stores. */
   ownerUserId: string | null;
   now?: Date;
+  /** G21 P1-C — analytics envelope: what triggered the rescore (default "evidence" from the workspace). */
+  trigger?: { reason: "evidence" | "schedule" | "version" | "correction" | "manual"; channel: "workspace" | "connector" | "cron" | "api" | "admin_review"; actorUserId?: string | null; email?: string | null };
 }
 
 export interface RescoreResult {
@@ -237,6 +240,33 @@ export async function rescoreAccountFromEvidence(supabase: Db, args: RescoreArgs
 
   const previousSVI = args.currentSvi ?? 100;
   const delta = newAnalysis.totalSVI - previousSVI;
+
+  // G21 P1-C — FI analytics: score_recalculated (organisation = owner,
+  // startup = project, plan = the account's plan). Fire-and-forget; only
+  // when the rescore is keyed on a project.
+  const trigger = args.trigger ?? { reason: "evidence" as const, channel: "workspace" as const };
+  if (projectId) {
+    let plan: string | null = null;
+    try {
+      const { data: acct } = await supabase.from("svi_accounts").select("plan").eq("id", accountId).maybeSingle();
+      plan = ((acct as { plan?: string | null } | null)?.plan as string | undefined) ?? null;
+    } catch {
+      plan = null;
+    }
+    emitScoreRecalculated({
+      ownerUserId: args.ownerUserId,
+      actorUserId: trigger.actorUserId ?? args.ownerUserId,
+      email: trigger.email ?? null,
+      plan,
+      projectId,
+      channel: trigger.channel,
+      reason: trigger.reason,
+      score: newAnalysis.totalSVI,
+      previousScore: typeof args.currentSvi === "number" ? args.currentSvi : null,
+      stage: typeof newAnalysis.stage === "number" ? newAnalysis.stage : null,
+      sviVersion: SVI_VERSION,
+    });
+  }
 
   // 6. Persist: account, analysis, snapshot on a significant move.
   await supabase

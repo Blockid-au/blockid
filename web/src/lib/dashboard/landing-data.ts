@@ -131,7 +131,8 @@ export async function loadStanding(sb: LandingClient | null, keys: LandingKeys):
 
 export interface EvidenceReads {
   /** `svi_dimension_evidence` rows (catalogue codes) for the project. */
-  evidenceRows: Array<{ dimension: string | null; evidence_type: string | null }>;
+  /** G21 P1-C: confidence + verification travel with the row for the evidence checklist. */
+  evidenceRows: Array<{ dimension: string | null; evidence_type: string | null; confidence_level?: string | null; is_verified?: boolean | null }>;
   /** `evaluation_criteria` rows for the phase gate. */
   criteria: Array<{ criterion_key: string; quality_level: string | null }>;
 }
@@ -143,7 +144,7 @@ export async function loadEvidenceReads(sb: LandingClient | null, keys: LandingK
   try {
     const out: EvidenceReads = { evidenceRows: [], criteria: [] };
     if (keys.projectId) {
-      const { data } = await q(sb, "svi_dimension_evidence").select("dimension, evidence_type").eq("project_id", keys.projectId);
+      const { data } = await q(sb, "svi_dimension_evidence").select("dimension, evidence_type, confidence_level, is_verified").eq("project_id", keys.projectId);
       out.evidenceRows = (data ?? []) as EvidenceReads["evidenceRows"];
     }
     if (keys.accountId) {

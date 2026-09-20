@@ -82,6 +82,11 @@ describe("/workspace/evidence (S18-B)", () => {
     expect(dataAttr(out, "count")).toBe("2");
     expect(dataAttr(out, "svi")).toBe("72");
     expect(dataAttr(out, "readonly")).toBe("false");
+    // G21 P1-C: the evidence checklist sits at the top of the hub (8 dimension cards, CTAs for an editor).
+    expect(out).toContain('data-testid="evidence-checklist"');
+    expect((out.match(/data-evidence-dimension=/g) ?? []).length).toBe(8);
+    expect(out).toContain('href="/workspace/evidence/gaps?dim=tre"'); // next/link is a bare <a> in this harness
+    expect(sb.hasEq("svi_dimension_evidence", "project_id", "proj-1")).toBe(true);
   });
 
   it("member (editor): reads the OWNER's account read-only — no findOrCreateSVIAccount, analyses under the owner's email", async () => {

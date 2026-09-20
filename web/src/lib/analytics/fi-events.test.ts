@@ -8,7 +8,20 @@ vi.mock("./events", async () => {
 });
 
 import { FI_EVENT_ALIASES, FI_EVENT_CATALOGUE, FI_NATIVE_EVENTS, canonicalFiEvent } from "./events";
-import { emitDeckUploaded, emitFiEvent, emitWebsiteImported, normaliseFiEnvelope, onInvoicePaid, onPilotStarted } from "./fi-events";
+import {
+  emitDeckUploaded,
+  emitEvidenceAdded,
+  emitEvidenceVerified,
+  emitFiEvent,
+  emitScoreRecalculated,
+  emitWebsiteImported,
+  evidenceAddedEnvelope,
+  evidenceVerifiedEnvelope,
+  normaliseFiEnvelope,
+  onInvoicePaid,
+  onPilotStarted,
+  scoreRecalculatedEnvelope,
+} from "./fi-events";
 
 beforeEach(() => trackEventMock.mockClear());
 
@@ -88,5 +101,40 @@ describe("onPilotStarted / emitWebsiteImported / emitDeckUploaded", () => {
     expect(JSON.stringify(p1)).not.toContain("?x=1");
     expect(n2).toBe("evidence_upload");
     expect(p2).toMatchObject({ evidence_kind: "pitch_deck", size_bytes: 1234, mime_type: "application/pdf", fi_event: "deck_uploaded", project_id: "a2" });
+  });
+});
+
+
+describe("G21 P1-C evidence / score envelopes (pure)", () => {
+  it("evidence_added: alias onto evidence_upload with organisation = owner, startup = project, plan + channel", () => {
+    const env = evidenceAddedEnvelope({ ownerUserId: "owner-1", actorUserId: "editor-2", email: "e@x.io", plan: "founder_growth", projectId: "proj-1", channel: "workspace", evidenceId: "ev-1", dimension: "tre", evidenceType: "revenue_proof", confidenceLevel: "document_uploaded" });
+    expect(env).toMatchObject({ evidence_id: "ev-1", dimension: "tre", evidence_type: "revenue_proof", confidence_level: "document_uploaded", organisation: "owner-1", startup: "proj-1", plan: "founder_growth", channel: "workspace", userId: "editor-2", email: "e@x.io" });
+    emitEvidenceAdded({ ownerUserId: "owner-1", projectId: "proj-1", channel: "vault", dimension: null, evidenceType: "x", confidenceLevel: "self_declared" });
+    const [name, params, opts] = trackEventMock.mock.calls[0] as unknown as [string, Record<string, unknown>, Record<string, unknown>];
+    expect(name).toBe("evidence_upload");
+    expect(params).toMatchObject({ fi_event: "evidence_added", dimension: "general", organisation: "owner-1", startup: "proj-1", project_id: "proj-1", channel: "vault" });
+    expect(opts.userId).toBe("owner-1");
+  });
+
+  it("evidence_verified: native name, reviewer + level, actor defaults to the reviewer", () => {
+    const env = evidenceVerifiedEnvelope({ ownerUserId: "owner-1", projectId: "proj-1", channel: "admin_review", evidenceId: "ev-1", level: "third_party_verified", reviewerId: "admin-1", dimension: "tre", evidenceType: "revenue_proof" });
+    expect(env).toEqual({ evidence_id: "ev-1", level: "third_party_verified", reviewer_id: "admin-1", dimension: "tre", evidence_type: "revenue_proof", project_id: "proj-1", organisation: "owner-1", startup: "proj-1", plan: null, channel: "admin_review", userId: "admin-1", email: null });
+    emitEvidenceVerified({ ownerUserId: "owner-1", projectId: "proj-1", channel: "admin_review", evidenceId: "ev-1", level: "third_party_verified" });
+    const [name, params] = trackEventMock.mock.calls[0] as unknown as [string, Record<string, unknown>];
+    expect(name).toBe("evidence_verified");
+    expect(params.fi_event).toBeUndefined();
+    expect(params.fi_ts).toBeTruthy();
+  });
+
+  it("score_recalculated: requires a project; carries reason, score, delta, stage, version", () => {
+    expect(scoreRecalculatedEnvelope({ ownerUserId: "o", projectId: null, channel: "cron", reason: "evidence", score: 70 })).toBeNull();
+    expect(emitScoreRecalculated({ ownerUserId: "o", projectId: null, channel: "cron", reason: "evidence", score: 70 })).toBe(false);
+    expect(trackEventMock).not.toHaveBeenCalled();
+    const env = scoreRecalculatedEnvelope({ ownerUserId: "owner-1", plan: "free", projectId: "proj-1", channel: "connector", reason: "evidence", score: 72, previousScore: 64, stage: 2, sviVersion: "2.3.0" });
+    expect(env).toEqual({ project_id: "proj-1", reason: "evidence", score: 72, delta: 8, stage: 2, svi_version: "2.3.0", organisation: "owner-1", startup: "proj-1", plan: "free", channel: "connector", userId: "owner-1", email: null });
+    expect(emitScoreRecalculated({ ownerUserId: "owner-1", projectId: "proj-1", channel: "workspace", reason: "manual", score: 72 })).toBe(true);
+    const [name, params] = trackEventMock.mock.calls[0] as unknown as [string, Record<string, unknown>];
+    expect(name).toBe("score_recalculated");
+    expect(params).toMatchObject({ reason: "manual", score: 72, organisation: "owner-1", startup: "proj-1", channel: "workspace" });
   });
 });

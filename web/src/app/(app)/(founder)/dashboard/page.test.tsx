@@ -193,6 +193,10 @@ describe("/dashboard — five blocks (G13-W3-IA3 §B.1)", () => {
     expect(out).toContain("MVP Ventures");
     // block 4 — three gaps on three dimensions
     expect((out.match(/data-gap-dimension="/g) ?? []).length).toBe(3);
+    // G21 P1-C — the evidence checklist section below the grid (not a landing block: order untouched)
+    expect(out).toContain('data-testid="evidence-checklist"');
+    expect(out).toContain('data-evidence-dimension="ftv" data-evidence-claimed="1"');
+    expect(out).toContain('data-testid="evidence-checklist-cta-ftv"');
     // block 5 — two reports
     expect((out.match(/href="\/workspace\/reports\/an-/g) ?? []).length).toBe(2);
     // S18-B owner keys

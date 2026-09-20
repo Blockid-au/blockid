@@ -225,3 +225,118 @@ export function emitDeckUploaded(input: ImportedInput & { sizeBytes: number; mim
     email: input.email ?? null,
   });
 }
+
+
+// ── Evidence-side + score-side helpers (G21 P1-C) ─────────────────────
+//
+// Three FI events with the envelope { organisation = the startup OWNER's
+// user id (the founder account holds the record), startup = project id,
+// plan = the owner's plan, channel }. Each has a pure `…Envelope()` builder
+// (tested) and an `emit…()` wrapper that fires it through emitFiEvent.
+
+export interface EvidenceActorInput {
+  /** The startup owner's user id — the FI "organisation" for founder-held records. */
+  ownerUserId: string | null;
+  /** The acting user (owner or an editor member); defaults to the owner. */
+  actorUserId?: string | null;
+  email?: string | null;
+  plan?: string | null;
+  projectId: string | null;
+  channel: "workspace" | "vault" | "connector" | "admin_review" | "api" | "cron";
+}
+
+export interface EvidenceAddedInput extends EvidenceActorInput {
+  evidenceId?: string | null;
+  dimension: string | null;
+  evidenceType: string;
+  confidenceLevel: string;
+}
+
+/** Pure: the envelope `evidence_added` (alias → evidence_upload) is emitted with. */
+export function evidenceAddedEnvelope(input: EvidenceAddedInput): FiEnvelope {
+  return {
+    ...(input.evidenceId ? { evidence_id: input.evidenceId } : {}),
+    dimension: input.dimension ?? "general",
+    evidence_type: input.evidenceType,
+    confidence_level: input.confidenceLevel,
+    organisation: input.ownerUserId,
+    startup: input.projectId,
+    plan: input.plan ?? null,
+    channel: input.channel,
+    userId: input.actorUserId ?? input.ownerUserId,
+    email: input.email ?? null,
+  };
+}
+
+export function emitEvidenceAdded(input: EvidenceAddedInput): void {
+  emitFiEvent("evidence_added", evidenceAddedEnvelope(input));
+}
+
+export interface EvidenceVerifiedInput extends EvidenceActorInput {
+  evidenceId: string;
+  /** The level the row now carries (third_party_verified for a reviewer approval). */
+  level: string;
+  reviewerId?: string | null;
+  dimension?: string | null;
+  evidenceType?: string | null;
+}
+
+/** Pure: the envelope `evidence_verified` (native) is emitted with. */
+export function evidenceVerifiedEnvelope(input: EvidenceVerifiedInput): FiEnvelope {
+  return {
+    evidence_id: input.evidenceId,
+    level: input.level,
+    ...(input.reviewerId ? { reviewer_id: input.reviewerId } : {}),
+    ...(input.dimension ? { dimension: input.dimension } : {}),
+    ...(input.evidenceType ? { evidence_type: input.evidenceType } : {}),
+    ...(input.projectId ? { project_id: input.projectId } : {}),
+    organisation: input.ownerUserId,
+    startup: input.projectId,
+    plan: input.plan ?? null,
+    channel: input.channel,
+    userId: input.actorUserId ?? input.reviewerId ?? input.ownerUserId,
+    email: input.email ?? null,
+  };
+}
+
+export function emitEvidenceVerified(input: EvidenceVerifiedInput): void {
+  emitFiEvent("evidence_verified", evidenceVerifiedEnvelope(input));
+}
+
+export type ScoreRecalcReason = "evidence" | "schedule" | "version" | "correction" | "manual";
+
+export interface ScoreRecalculatedInput extends EvidenceActorInput {
+  reason: ScoreRecalcReason;
+  score: number;
+  previousScore?: number | null;
+  sviVersion?: string | null;
+  stage?: number | null;
+}
+
+/** Pure: the envelope `score_recalculated` (native) is emitted with. Requires a project id. */
+export function scoreRecalculatedEnvelope(input: ScoreRecalculatedInput): FiEnvelope | null {
+  if (!input.projectId) return null;
+  const delta = typeof input.previousScore === "number" ? input.score - input.previousScore : null;
+  return {
+    project_id: input.projectId,
+    reason: input.reason,
+    score: input.score,
+    ...(delta !== null ? { delta } : {}),
+    ...(typeof input.stage === "number" ? { stage: input.stage } : {}),
+    ...(input.sviVersion ? { svi_version: input.sviVersion } : {}),
+    organisation: input.ownerUserId,
+    startup: input.projectId,
+    plan: input.plan ?? null,
+    channel: input.channel,
+    userId: input.actorUserId ?? input.ownerUserId,
+    email: input.email ?? null,
+  };
+}
+
+/** Returns true when an event was emitted (false when there is no project to key on). */
+export function emitScoreRecalculated(input: ScoreRecalculatedInput): boolean {
+  const env = scoreRecalculatedEnvelope(input);
+  if (!env) return false;
+  emitFiEvent("score_recalculated", env);
+  return true;
+}

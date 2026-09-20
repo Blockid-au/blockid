@@ -41,6 +41,8 @@ import { MoneyOnTheTable } from "@/components/dashboard/landing/money-on-the-tab
 import { EvidenceToAdd } from "@/components/dashboard/landing/evidence-to-add";
 import { YourReports } from "@/components/dashboard/landing/your-reports";
 import { WhatInvestorsSaid } from "@/components/dashboard/landing/what-investors-said";
+import { EvidenceChecklist } from "@/components/workspace/EvidenceChecklist";
+import { buildEvidenceChecklist } from "@/lib/svi/evidence-checklist";
 import { ExecutiveSynthesis } from "@/components/dashboard/landing/executive-synthesis";
 import { synthesisFromReport } from "@/lib/dashboard/executive-synthesis";
 import { getMoneyRadarTileData } from "@/lib/funding/tile-data";
@@ -133,6 +135,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
     criteria: evidenceReads.criteria,
     subs: analysis?.subs ?? null,
   });
+  // G21 P1-C: per-dimension evidence checklist (claimed · missing · what
+  // raises confidence · one CTA) — a section under the five blocks, not a
+  // sixth landing block, so the G20 block order is untouched.
+  const checklist = projectId ? buildEvidenceChecklist(evidenceReads.evidenceRows) : null;
   const topMoney = moneyRadar?.top3[0] ?? null;
   const step = recommendNextStep({
     currentPhase: effectivePhase ? 1 : 0,
@@ -219,6 +225,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
           <YourReports ctx={ctx} reports={reports} />
           {feedbackLetter ? <WhatInvestorsSaid ctx={ctx} letter={feedbackLetter} locale={locale} canEdit={canEdit} /> : null}
         </LandingGrid>
+
+        {checklist ? <EvidenceChecklist rows={checklist} canEdit={canEdit} /> : null}
       </div>
     </WorkspaceLayout>
   );
