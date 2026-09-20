@@ -33,6 +33,7 @@ import { setVisualPdfFont } from "@/lib/report-visuals/pdf";
 import { HELVETICA, pdfFontsForLocale, vietnameseHyphenation, type PdfFontSet } from "@/lib/pdf/fonts";
 import type { Band, DataState, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { levelForEstimate, MAX_TRIM_LEVEL, projectForTier, type FreeTierProjection, type TrimLevel } from "@/lib/report-v2/free-tier";
+import { coverHero } from "@/lib/report-v2/cover-hero";
 import { coverLedgerCells, isUnassessed, ledgerRowsFor, pendingDimsLine, pendingLine } from "@/lib/report-v2/ledger-rows";
 import { chapterCtaRows, coverEvidenceLine, emptyEvidenceLine, evidenceRowsView, moneyEmptyState, nextActionLine, pendingCtasHeading, planEvidenceRows, type EvidenceRowView } from "@/lib/report-v2/evidence-view";
 import { getTbrS43Strings, getTbrStrings } from "@/lib/i18n/tbr-strings";
@@ -252,21 +253,30 @@ function Cover({ report, locale, preparedWith }: { report: ReportV2; locale: "en
   const ring = c.visuals.find((v) => v.kind === "score_ring");
   const radar = c.visuals.find((v) => v.kind === "radar");
   const strip = c.visuals.find((v) => v.kind === "three_questions_strip");
+  // G19-S44: the "current value" hero (same rule as the web cover / dashboard);
+  // one phase vocabulary — no SVI stage label beside the 12-phase label.
+  const hero = coverHero(report, locale);
+  const s44 = getTbrStrings(locale).v2.s44;
   return (
     <View>
       <Text style={s.kicker}>Trusted Business Report · BlockID Startup Value Index</Text>
       <Text style={s.h1}>{t(c.startupName)}</Text>
       <Text style={[s.small, { marginBottom: 8 }]}>
-        {t(`${c.sector} · ${c.stageLabel} · Phase: ${GROWTH_PHASE_LABELS[c.phaseId][locale]} · ${fmtDate(report.generatedAt, locale)}`)}
+        {t(`${c.sector} · Phase: ${GROWTH_PHASE_LABELS[c.phaseId][locale]} · ${fmtDate(report.generatedAt, locale)}`)}
         {report.source !== "pipeline" ? (report.source === "fixture" ? " · demo data" : " · built from stored snapshot") : ""}
       </Text>
       <SectionHead no="0" title={TBR_PDF_SECTION_TITLES.cover} />
       <View style={s.row}>
-        <View style={{ width: 150, alignItems: "center" }}>
-          {ring && <VisualPdf spec={ring} widthPt={130} hideBadge />}
-          <Text style={[s.bold, { color: bandColour(c.svi.band), fontSize: 10 }]}>{bandLabel(c.svi.band)}</Text>
-          {c.svi.deltaVsLast !== null && <Text style={s.tiny}>{`${c.svi.deltaVsLast >= 0 ? "+" : ""}${c.svi.deltaVsLast} vs last snapshot`}</Text>}
-          {c.svi.cohortPercentile !== null && <Text style={s.tiny}>{`${c.svi.cohortPercentile}th percentile${c.svi.cohortN ? ` (n=${c.svi.cohortN})` : ""}`}</Text>}
+        <View style={{ width: 170 }}>
+          <Text style={s.th}>{t(s44.currentValue)}</Text>
+          <Text style={[s.bold, { fontSize: hero.pending ? 10 : 16, color: C.ink }]}>{t(hero.headline)}</Text>
+          {hero.subline ? <Text style={s.tiny}>{t(hero.subline)}</Text> : null}
+          <View style={{ alignItems: "center", marginTop: 4 }}>
+            {ring && <VisualPdf spec={ring} widthPt={100} hideBadge />}
+            <Text style={[s.bold, { color: bandColour(c.svi.band), fontSize: 10 }]}>{`${hero.sviLabel} · ${bandLabel(c.svi.band)}`}</Text>
+            {c.svi.deltaVsLast !== null && <Text style={s.tiny}>{`${c.svi.deltaVsLast >= 0 ? "+" : ""}${c.svi.deltaVsLast} vs last snapshot`}</Text>}
+            {c.svi.cohortPercentile !== null && <Text style={s.tiny}>{`${c.svi.cohortPercentile}th percentile${c.svi.cohortN ? ` (n=${c.svi.cohortN})` : ""}`}</Text>}
+          </View>
         </View>
         <View style={{ flex: 1, paddingLeft: 10 }}>
           <View style={s.table}>
@@ -276,7 +286,7 @@ function Cover({ report, locale, preparedWith }: { report: ReportV2; locale: "en
               <Text style={[s.th, s.cell1, s.right]}>W</Text>
               <Text style={[s.th, s.cell1, s.right]}>Score</Text>
               <Text style={[s.th, s.cell1, s.right]}>p50</Text>
-              <Text style={[s.th, s.cell1, s.right]}>Pctl</Text>
+              {hero.showPctl && <Text style={[s.th, s.cell1, s.right]}>Pctl</Text>}
             </View>
             {DIM_ORDER.map((d) => {
               const row = c.dims[d];
@@ -287,7 +297,7 @@ function Cover({ report, locale, preparedWith }: { report: ReportV2; locale: "en
                   <Text style={[s.td, s.cell1, s.right]}>{String(row.weight)}</Text>
                   <Text style={[s.td, s.cell1, s.right, s.bold, { color: bandColour(row.band) }]}>{row.band === "pending" ? "—" : String(row.score)}</Text>
                   <Text style={[s.td, s.cell1, s.right]}>{String(row.p50)}</Text>
-                  <Text style={[s.td, s.cell1, s.right]}>{row.percentile === null ? "—" : String(row.percentile)}</Text>
+                  {hero.showPctl && <Text style={[s.td, s.cell1, s.right]}>{row.percentile === null ? "—" : String(row.percentile)}</Text>}
                 </View>
               );
             })}
@@ -404,7 +414,7 @@ function Executive({ report, locale }: { report: ReportV2; locale: "en" | "vi" }
 function AuditLine({ grounded, uncited, revised, frameworks }: { grounded: boolean; uncited: number; revised: boolean; frameworks?: string[] }) {
   return (
     <Text style={[s.tiny, { marginTop: 4 }]}>
-      {t(`Auditor: ${grounded ? "grounded" : "not yet audited"}${uncited > 0 ? ` · ${uncited} uncited` : ""}${revised ? " · revised" : ""}${frameworks && frameworks.length ? ` · Frameworks: ${frameworks.slice(0, 4).join("; ")}` : ""}`)}
+      {t(`Auditor: ${grounded ? "grounded" : "no citation in this chapter"}${uncited > 0 ? ` · ${uncited} uncited` : ""}${revised ? " · revised" : ""}${frameworks && frameworks.length ? ` · Frameworks: ${frameworks.slice(0, 4).join("; ")}` : ""}`)}
     </Text>
   );
 }

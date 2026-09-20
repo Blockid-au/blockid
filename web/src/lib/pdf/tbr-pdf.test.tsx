@@ -106,6 +106,26 @@ describe("renderTbrPdf — standard tier", () => {
     expect(text).toContain("Total 127");
   }, 60_000);
 
+  // G19-S44 — cover "current value" hero twin + one phase vocabulary + audit copy.
+  it("cover: A$ range hero with confidence, SVI + band, phase label without the SVI stage label; 'valuation pending' below 30 % confidence; audit copy says 'no citation'", async () => {
+    const report = demoReportV2();
+    const { buffer } = await renderTbrPdf(report);
+    const text = await fullText(buffer);
+    expect(text).toContain("CURRENT VALUE");
+    expect(text).toContain("A$6M – A$9.8M");
+    expect(text).toContain("pre-money, directional · confidence 85%");
+    expect(text).toContain("SVI 74 · Strong");
+    expect(text).toContain("SaaS · Phase: Investor Progress Review");
+    expect(text).not.toContain("SaaS · Seed ·");
+    expect(text).not.toContain("not yet audited");
+    expect(text).toContain("no citation in this chapter");
+    const low = demoReportV2();
+    low.valuation.consensus.confidence = 0.2;
+    const lowText = await fullText((await renderTbrPdf(low)).buffer);
+    expect(lowText).toContain("Valuation pending — add revenue or team evidence");
+    expect(lowText).not.toContain("A$6M – A$9.8M");
+  }, 120_000);
+
   it("keeps a caller-supplied 'Prepared with <model via provider>' line verbatim", async () => {
     const report = demoReportV2();
     const { buffer } = await renderTbrPdf(report, { preparedWith: "Prepared with DeepSeek-V4-Flash via DeepInfra." });

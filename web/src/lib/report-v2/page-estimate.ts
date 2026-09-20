@@ -9,6 +9,9 @@
 
 import type { DimensionChapter, ReportV2 } from "./schema";
 
+/** G19-S44: the standard demo fixture must stay within this many rendered words (≥ 60 % non-boilerplate). */
+export const STANDARD_WORD_BUDGET = 1_400;
+
 export interface PageEstimate {
   pages: number;
   words: number;
@@ -30,6 +33,10 @@ const LEDGER_TABLE_PAGES = 0.03;
 const LEDGER_ROW_PAGES = 0.01;
 const LEDGER_FIXED_ROWS = 5; // base, score, weight×confidence, verification, adjustment
 
+function normBullet(text: string): string {
+  return text.trim().toLowerCase().replace(/[.;:,\s]+$/u, "");
+}
+
 function wc(...parts: Array<string | string[] | undefined | null>): number {
   let n = 0;
   for (const p of parts) {
@@ -46,12 +53,15 @@ function chapterCost(ch: DimensionChapter, freeTier: boolean): { pages: number; 
     const words = wc(ch.verdict.split(/\s+/).slice(0, 40).join(" "), ch.gaps[0]);
     return { pages: CARD_OVERHEAD_PAGES + CARD_VISUAL_PAGES + words / WORDS_PER_PAGE, words };
   }
+  // G19-S44: chapter-level bullets count only where they add to the cards
+  // (the web chapter hides duplicates), and the phase-lens sentence is no
+  // longer rendered per chapter (one row in Phase Gates + a floor chip).
+  const cardText = new Set(ch.criteria.flatMap((c) => [...c.strengths, ...c.gaps]).map(normBullet));
   const words = wc(
     ch.verdict,
-    ch.strengths,
-    ch.gaps,
+    ch.strengths.filter((x) => !cardText.has(normBullet(x))),
+    ch.gaps.filter((x) => !cardText.has(normBullet(x))),
     ch.nextAction.title,
-    ch.phaseLens.whatMattersNow,
     ...ch.criteria.map((c) => [c.verdict, ...c.strengths, ...c.gaps, c.nextAction]),
   );
   const visuals = 1 + (freeTier ? 0 : ch.secondaryVisuals.length);

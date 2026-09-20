@@ -14,7 +14,7 @@ export function TbrAppendix({ report, title, locale = "en" }: { report: ReportV2
   const register = evidenceRowsView(a.evidenceRegister, locale);
   const s43 = getTbrS43Strings(locale);
   return (
-    <TbrSection id={TBR_V2_SECTION_IDS.appendix} kicker="14" title={title}>
+    <TbrSection id={TBR_V2_SECTION_IDS.appendix} kicker="14" title={title} pageBreak>
       <div className="flex items-center gap-2 text-xs text-ink-600 dark:text-ink-300">
         <AgentBadge role="cdo" />
         <span>

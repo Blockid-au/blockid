@@ -59,9 +59,13 @@ export function stateLabel(state: DataState, locale: TbrUiLocale = "en"): string
   return v2Strings(locale).state[state];
 }
 
-export function TbrSection({ id, title, kicker, children, className }: { id: string; title: string; kicker?: string; children: React.ReactNode; className?: string }) {
+/**
+ * G19-S44: `pageBreak` puts the section on a fresh printed page (cover,
+ * executive, valuation, appendix) — dimension chapters flow.
+ */
+export function TbrSection({ id, title, kicker, children, className, pageBreak = false }: { id: string; title: string; kicker?: string; children: React.ReactNode; className?: string; pageBreak?: boolean }) {
   return (
-    <section id={id} className={cn("scroll-mt-24 space-y-4 print:break-before-auto", className)} aria-labelledby={`${id}-h`}>
+    <section id={id} className={cn("scroll-mt-24 space-y-4", pageBreak ? "print:break-before-page" : "print:break-before-auto", className)} aria-labelledby={`${id}-h`}>
       <div className="flex items-baseline gap-3 border-b border-ink-200 pb-2 dark:border-ink-800">
         {kicker && <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-400 dark:text-ink-500">{kicker}</span>}
         <h2 id={`${id}-h`} className="text-lg font-bold text-ink-900 dark:text-ink-100 print:text-xl">

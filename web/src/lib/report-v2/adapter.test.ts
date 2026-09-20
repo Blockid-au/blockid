@@ -7,7 +7,7 @@
 import { describe, expect, it } from "vitest";
 import type { AssembledReport } from "@/lib/report-pipeline/types";
 import { computeSVI, type SVIExtractedSignals } from "@/lib/svi-analysis";
-import { benchmarkStageFrom, buildMoneyOnTable, coverEvidenceLevelFrom, fromAssembledReport, fromSnapshot, inferPhase, levelForMultiplier, pendingDimCount, resolveReportV2, scoreBreakdownFromSub, sviLedgerFrom, type SnapshotInput } from "./adapter";
+import { benchmarkStageFrom, buildMoneyOnTable, coverEvidenceLevelFrom, executiveFromChapters, fromAssembledReport, fromSnapshot, inferPhase, levelForMultiplier, pendingDimCount, resolveReportV2, scoreBreakdownFromSub, sviLedgerFrom, type SnapshotInput } from "./adapter";
 import { CTA_HREFS, GATHER_MISSING_CTAS, withCta } from "./evidence-cta";
 import { catalogueLift } from "@/lib/svi-lift";
 import { demoSnapshotInput } from "./fixtures";
@@ -191,6 +191,62 @@ describe("fromSnapshot — shapes the platform stores today", () => {
     expect(r.actionPlan.steps[0].ownerAgent).toBe("cro");
     expect(r.actionPlan.visuals[0].kind).toBe("gantt");
     expect(r.cover.threeQuestions.next).toMatch(/\+\d+ SVI/);
+  });
+
+  // ── G19-S44: executive from the cards, confidence = mean ledger, cohort percentile, one phase vocabulary ──
+  it("executive strengths / gaps come from the criterion cards by lift with the source in parentheses — never score restatements; confidence is the mean chapter-ledger confidence", () => {
+    const r = fromSnapshot(demoSnapshotInput());
+    expect(r.executive.strengths.length).toBe(3);
+    expect(r.executive.gaps.length).toBe(3);
+    const cardBullets = new Set(r.dimensions.flatMap((d) => d.criteria.flatMap((c) => [...c.strengths, ...c.gaps])).map((t) => t.replace(/[.;:,\s]+$/u, "")));
+    for (const line of [...r.executive.strengths, ...r.executive.gaps]) {
+      const m = line.match(/^(.*) \(([^)]+)\)$/);
+      expect(m, line).not.toBeNull();
+      expect(cardBullets.has(m![1]!), line).toBe(true);
+      expect(["document", "transaction data", "connected source", "public URL", "audit", "no citation"]).toContain(m![2]);
+      expect(line).not.toMatch(/\d{1,3}\/100|below the strong band/);
+    }
+    // No duplicates across the two lists, and the top gap is the highest-lift card gap.
+    expect(new Set([...r.executive.strengths, ...r.executive.gaps]).size).toBe(6);
+    expect(r.executive.gaps[0]).toContain("Expansion revenue only 6 % of NRR");
+    // Every demo chapter ledger runs at 0.75 → the executive says 0.75, not the old hard-coded 0.5.
+    expect(r.executive.confidence).toBe(0.75);
+    expect(executiveFromChapters(r.dimensions, "en")).toEqual({ strengths: r.executive.strengths, gaps: r.executive.gaps, confidence: 0.75 });
+    // VI report: the source word is Vietnamese.
+    const vi = fromSnapshot({ ...demoSnapshotInput(), locale: "vi" });
+    expect(vi.executive.strengths[0]).toMatch(/\((tài liệu|dữ liệu giao dịch|nguồn đã kết nối|URL công khai)\)$/);
+  });
+
+  it("without a ledger the executive confidence keeps the pre-S41 fallback; no bullets → empty lists (never 'FTV 55/100'); the fallback card path uses chapter insights once", () => {
+    const r = fromSnapshot({ dimStates: minimalScores(), stageLabel: "Seed" });
+    expect(r.executive.confidence).toBe(0.5);
+    expect(r.executive.strengths).toEqual([]);
+    expect(r.executive.gaps).toEqual([]);
+    const withInsights = fromSnapshot({ dimStates: { ...minimalScores(), ftv: { score: 55, insights: ["Solo founder", "Domain veteran with two exits", "No advisors yet"] } }, stageLabel: "Seed" });
+    expect(withInsights.executive.strengths).toEqual(["Domain veteran with two exits (no citation)"]);
+    const nothing = fromSnapshot({ dimStates: {} });
+    expect(nothing.executive.confidence).toBe(0.1);
+  });
+
+  it("cover.svi.cohortPercentile: explicit number wins, else the mean dimension percentile with a sector cohort (N ≥ 30), else null; the where-sentence names the phase, not the SVI stage", () => {
+    const none = fromSnapshot(demoSnapshotInput());
+    expect(none.cover.svi.cohortPercentile).toBeNull();
+    expect(none.cover.threeQuestions.where).not.toContain("Seed");
+    expect(none.cover.threeQuestions.where).toContain("Investor Progress Review");
+    const explicit = fromSnapshot({ ...demoSnapshotInput(), cohortPercentile: 72.4 });
+    expect(explicit.cover.svi.cohortPercentile).toBe(72);
+    const cohort = { sector: "SaaS", sample_size: 40, dim_medians: Object.fromEntries(DIM_ORDER.map((d) => [d, 50])), dim_top_quartile: Object.fromEntries(DIM_ORDER.map((d) => [d, 65])) };
+    const derived = fromSnapshot({ ...demoSnapshotInput(), cohort });
+    const dimPct = DIM_ORDER.map((d) => derived.cover.dims[d].percentile!).filter((p) => typeof p === "number");
+    expect(derived.cover.svi.cohortPercentile).toBe(Math.round(dimPct.reduce((a, p) => a + p, 0) / dimPct.length));
+    expect(derived.cover.svi.cohortN).toBe(40);
+    // AssembledReport path reads the engine's cohortPercentile / percentileRank.
+    const stub = { id: "r", tier: "standard" as const, sections: [], executiveSummary: "", qualityScore: 50, consistencyIssues: [], createdAt: "2026-09-20T00:00:00.000Z" };
+    const a = fromAssembledReport(stub, { dimensionScores: { tre: 60 }, sviAnalysis: { cohortPercentile: { percentile: 61, cohortSize: 33 } } });
+    expect(a.cover.svi.cohortPercentile).toBe(61);
+    expect(a.cover.svi.cohortN).toBe(33);
+    const b = fromAssembledReport(stub, { dimensionScores: { tre: 60 }, sviAnalysis: { percentileRank: 44 } });
+    expect(b.cover.svi.cohortPercentile).toBe(44);
   });
 
   it("every chapter carries owner, frameworks, phase lens and an audit stamp", () => {

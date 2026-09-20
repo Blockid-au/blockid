@@ -43,6 +43,7 @@ import { aud, BAND_COLOUR } from "@/lib/report-visuals";
 import { visualToPng, type PngResult } from "@/lib/report-visuals/png";
 import type { Band, DataState, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { projectForTier, type FreeTierProjection, type TrimLevel } from "@/lib/report-v2/free-tier";
+import { coverHero } from "@/lib/report-v2/cover-hero";
 import { coverLedgerCells, isUnassessed, ledgerRowsFor, pendingDimsLine, pendingLine } from "@/lib/report-v2/ledger-rows";
 import { chapterCtaRows, coverEvidenceLine, emptyEvidenceLine, evidenceRowsView, moneyEmptyState, nextActionLine, pendingCtasHeading, planEvidenceRows, type EvidenceRowView } from "@/lib/report-v2/evidence-view";
 import { getTbrS43Strings, getTbrStrings } from "@/lib/i18n/tbr-strings";
@@ -222,22 +223,30 @@ function cover(report: ReportV2, images: TbrDocxImages, locale: "en" | "vi", pre
   const ring = c.visuals.find((v) => v.kind === "score_ring");
   const radar = c.visuals.find((v) => v.kind === "radar");
   const strip = c.visuals.find((v) => v.kind === "three_questions_strip");
+  // G19-S44: the "current value" hero (same rule as web / PDF); one phase
+  // vocabulary — no SVI stage label beside the 12-phase label.
+  const hero = coverHero(report, locale);
+  const s44 = getTbrStrings(locale).v2.s44;
   const out: Block[] = [
     kicker("Trusted Business Report · BlockID Startup Value Index"),
     new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: c.startupName, font: FONT, size: 44, bold: true, color: INK })] }),
-    small(`${c.sector} · ${c.stageLabel} · Phase: ${GROWTH_PHASE_LABELS[c.phaseId][locale]} · ${fmtDate(report.generatedAt, locale)}${report.source !== "pipeline" ? (report.source === "fixture" ? " · demo data" : " · built from stored snapshot") : ""}`),
+    small(`${c.sector} · Phase: ${GROWTH_PHASE_LABELS[c.phaseId][locale]} · ${fmtDate(report.generatedAt, locale)}${report.source !== "pipeline" ? (report.source === "fixture" ? " · demo data" : " · built from stored snapshot") : ""}`),
     h1("Cover — Where / Worth / Next", "0"),
+    kicker(s44.currentValue),
+    p(hero.headline, { bold: true, size: hero.pending ? 24 : 36 }),
   ];
+  if (hero.subline) out.push(small(hero.subline));
   if (ring) out.push(...figure(ring, images, 200, null));
-  out.push(p(`SVI ${c.svi.total} · ${bandLabel(c.svi.band)}${c.svi.deltaVsLast !== null ? ` · ${c.svi.deltaVsLast >= 0 ? "+" : ""}${c.svi.deltaVsLast} vs last snapshot` : ""}${c.svi.cohortPercentile !== null ? ` · ${c.svi.cohortPercentile}th percentile` : ""}`, { bold: true, color: bandHex(c.svi.band), align: AlignmentType.CENTER }));
+  out.push(p(`${hero.sviLabel} · ${bandLabel(c.svi.band)}${c.svi.deltaVsLast !== null ? ` · ${c.svi.deltaVsLast >= 0 ? "+" : ""}${c.svi.deltaVsLast} vs last snapshot` : ""}${c.svi.cohortPercentile !== null ? ` · ${c.svi.cohortPercentile}th percentile` : ""}`, { bold: true, color: bandHex(c.svi.band), align: AlignmentType.CENTER }));
   out.push(
     table(
-      ["Dimension", "Owner", "W", "Score", "p50", "Pctl"],
+      hero.showPctl ? ["Dimension", "Owner", "W", "Score", "p50", "Pctl"] : ["Dimension", "Owner", "W", "Score", "p50"],
       DIM_ORDER.map((d) => {
         const row = c.dims[d];
-        return [`${d.toUpperCase()} ${DIMENSION_OWNERS[d].title}`, DIMENSION_OWNERS[d].primary.toUpperCase(), String(row.weight), row.band === "pending" ? "—" : String(row.score), String(row.p50), row.percentile === null ? "—" : String(row.percentile)];
+        const cells = [`${d.toUpperCase()} ${DIMENSION_OWNERS[d].title}`, DIMENSION_OWNERS[d].primary.toUpperCase(), String(row.weight), row.band === "pending" ? "—" : String(row.score), String(row.p50)];
+        return hero.showPctl ? [...cells, row.percentile === null ? "—" : String(row.percentile)] : cells;
       }),
-      [40, 12, 10, 14, 12, 12],
+      hero.showPctl ? [40, 12, 10, 14, 12, 12] : [46, 14, 12, 16, 12],
     ),
   );
   if (strip) out.push(...figure(strip, images, CONTENT_PX, null));
@@ -313,7 +322,7 @@ function executive(report: ReportV2, images: TbrDocxImages, locale: "en" | "vi")
 }
 
 function auditLine(grounded: boolean, uncited: number, revised: boolean, frameworks?: string[]): Paragraph {
-  return small(`Auditor: ${grounded ? "grounded" : "not yet audited"}${uncited > 0 ? ` · ${uncited} uncited` : ""}${revised ? " · revised" : ""}${frameworks && frameworks.length ? ` · Frameworks: ${frameworks.slice(0, 4).join("; ")}` : ""}`, FAINT);
+  return small(`Auditor: ${grounded ? "grounded" : "no citation in this chapter"}${uncited > 0 ? ` · ${uncited} uncited` : ""}${revised ? " · revised" : ""}${frameworks && frameworks.length ? ` · Frameworks: ${frameworks.slice(0, 4).join("; ")}` : ""}`, FAINT);
 }
 
 function chapterHeader(ch: DimensionChapter): Block[] {

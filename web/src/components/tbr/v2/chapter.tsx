@@ -1,7 +1,9 @@
 // Chapters 2–9 — one dimension chapter, the fixed skeleton from spec §A.1:
-// header (owner, score, band, stage percentile) → primary visual → verdict →
-// evidence table → criterion cards → strengths / gaps / next action →
-// auditor stamp. `renderAs: "card"` (free tier, chapters 6–9) collapses to
+// header (owner, score ONCE, band, stage percentile, phase-floor chip) →
+// primary visual → verdict → evidence table → criterion cards (their own
+// scores) → chapter-level strengths / gaps only when they add to the cards →
+// next action → auditor stamp. G19-S44: the per-chapter phase-lens sentence
+// moved to one row in Phase Gates; the chip here is the one-word summary. `renderAs: "card"` (free tier, chapters 6–9) collapses to
 // score + band + one gap + upgrade CTA — with the primary visual kept
 // compact so every chapter still carries one `svg[role=img]`.
 
@@ -147,6 +149,11 @@ export function TbrScoreLedger({ chapter, locale = "en", verificationLevel }: { 
   );
 }
 
+/** Whitespace / trailing-punctuation-insensitive key for bullet dedupe. */
+function normBullet(text: string): string {
+  return text.trim().toLowerCase().replace(/[.;:,\s]+$/u, "");
+}
+
 export interface TbrChapterProps {
   chapter: DimensionChapter;
   index: number;
@@ -168,7 +175,14 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
   const ch = chapter;
   const id = TBR_V2_SECTION_IDS.dim(ch.dim);
   const t = getTbrStrings(locale).v2.chapter;
+  const s = getTbrStrings(locale).v2.s44;
   const title = locale === "vi" ? ch.titleVi : ch.title;
+  // G19-S44: the chapter-level bullets are shown only where they add to the
+  // criterion cards (the adapter flattens card bullets into them — one copy).
+  const cardText = new Set(ch.criteria.flatMap((c) => [...c.strengths, ...c.gaps]).map(normBullet));
+  const extraStrengths = ch.strengths.filter((x) => !cardText.has(normBullet(x)));
+  const extraGaps = ch.gaps.filter((x) => !cardText.has(normBullet(x)));
+  const floorChip = typeof ch.phaseLens.floor === "number" ? (ch.phaseLens.floorMet ? s.floorMet(ch.phaseLens.floor) : s.floorNotMet(ch.phaseLens.floor)) : s.noFloor;
   // G14-S37: the FTV chapter carries the founder execution rubric as a module.
   const founderExecution = founderExecutionFromChapter(ch);
   const header = (
@@ -190,6 +204,10 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
         <p className="text-[11px] text-ink-500 dark:text-ink-400">
           {t.benchmarks(ch.benchmark.p25, ch.benchmark.p50, ch.benchmark.p75)}
           {ch.benchmark.percentile !== null ? ` · ${t.youPercentile(ch.benchmark.percentile)}` : ""}
+          {" · "}
+          <span data-tbr-floor-chip={ch.dim} className={cn("rounded-md border px-1 py-px tabular-nums", ch.phaseLens.floorMet === false ? "border-orange-200 text-orange-700 dark:border-orange-900 dark:text-orange-300" : "border-ink-200 dark:border-ink-700")}>
+            {phaseLabel(ch.phaseLens.phaseId, locale)} · {floorChip}
+          </span>
         </p>
       </div>
     </div>
@@ -259,10 +277,12 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
         ))}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Bullets title={t.strengths} tone="good" items={ch.strengths} />
-        <Bullets title={t.gaps} tone="bad" items={ch.gaps} />
-      </div>
+      {(extraStrengths.length > 0 || extraGaps.length > 0) && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Bullets title={t.strengths} tone="good" items={extraStrengths} />
+          <Bullets title={t.gaps} tone="bad" items={extraGaps} />
+        </div>
+      )}
       <div className="rounded-lg border border-brand-200/70 bg-brand-50/50 px-3 py-2 text-xs dark:border-brand-900/60 dark:bg-brand-950/20">
         <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-300">{t.nextAction(t.window[ch.nextAction.window])}</p>
         {(() => {
@@ -276,9 +296,6 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
           );
         })()}
       </div>
-      <p className="text-xs text-ink-600 dark:text-ink-400">
-        <span className="font-semibold">{phaseLabel(ch.phaseLens.phaseId, locale)}:</span> {ch.phaseLens.whatMattersNow}
-      </p>
       {ch.secondaryVisuals.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2 print:break-inside-avoid">
           {ch.secondaryVisuals.map((v) => (
