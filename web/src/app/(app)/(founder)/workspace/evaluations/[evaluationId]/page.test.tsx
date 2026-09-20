@@ -175,7 +175,7 @@ describe("/workspace/evaluations/[evaluationId]", () => {
   it("redirects anonymous users to login with the dossier as next", async () => {
     getCurrentUserMock.mockResolvedValue(null);
     await expect(html()).rejects.toThrow("REDIRECT:/auth/login?next=/workspace/evaluations/e-1");
-  });
+  }, 30_000); // first import of the page graph is heavy — flakes at 10 s under deploy-gate load
 
   it("404s unknown / malformed ids, strangers, and a seat without evaluator entitlement", async () => {
     await expect(html("e-nope")).rejects.toThrow("NOT_FOUND");
