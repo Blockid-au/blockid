@@ -266,7 +266,7 @@ const EMPTY_DEPLOY: DeployRow = {
 const NULL_QUEUES: StatusExtras["queues"] = { email_queued: null, email_failed_24h: null, webhook_failed_24h: null, report_orders_pending: null };
 const NULL_BACKUPS_DETAIL: StatusExtras["backups_detail"] = { local_last_ok_at: null, local_age_h: null, offsite_status: "never", offsite_last_at: null, restore_drill_last_ok_at: null };
 
-// SLO thresholds derived from docs/IMPLEMENTATION-PLAN-v2.md §13.3.
+// SLO thresholds derived from docs/archive/IMPLEMENTATION-PLAN-v2.md §13.3 (targets now in docs/ops/slo.md).
 const P95_TARGET_MS = 800;
 const DISK_TARGET_PCT = 80;
 const MEM_TARGET_PCT = 75;

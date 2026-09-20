@@ -1,3 +1,6 @@
+> **RETIRED 2026-09-19 (G18-B truth sweep).** Historical document, last accurate around 2026-07. Goal 5D Vietnamese founder cohort plan. Not pursued as a goal; the /vi mirror shipped through G17.
+> Current source: docs/plans/SOURCE-OF-TRUTH.md. Nothing below is maintained; do not cite it for prices, versions, deploy steps or crons.
+
 # Goal 5D — Vietnamese-Australian Founder Cohort
 
 **Owner:** CMO (primary) + CPO + CTO (co-owners)

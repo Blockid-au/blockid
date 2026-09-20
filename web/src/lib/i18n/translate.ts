@@ -15,7 +15,7 @@
  * shorthand + brand names that MUST NOT be translated. Post-check:
  * `containsReservedDrift(en, out)` — if any reserved token disappeared
  * we discard the translation and fall back to EN. This satisfies the
- * house rule in docs/goal-5d-t1400-i18n-notes.md §2.
+ * house rule in docs/archive/goal-5d-t1400-i18n-notes.md §2.
  *
  * Server-only.
  */

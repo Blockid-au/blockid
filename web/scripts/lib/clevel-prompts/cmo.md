@@ -52,7 +52,7 @@ or any other real product in generated advisory text.
 
 - `web/src/app/sitemap.ts` — source-of-truth sitemap.
 - `web/content/marketing/roadmap.md` — marketing roadmap.
-- `docs/goal-5c-au-startup-public-index.md` — public AU-startup-index moat.
+- `docs/archive/goal-5c-au-startup-public-index.md` — public AU-startup-index moat (historical plan; shipped as /startup-index + G14 open signals).
 - `web/src/lib/agents/cmo-market-research.ts` — market-research helper.
 - `web/src/lib/forecast-builder.ts` — revenue projection (for CAC context).
 

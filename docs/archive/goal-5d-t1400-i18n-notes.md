@@ -1,3 +1,6 @@
+> **RETIRED 2026-09-19 (G18-B truth sweep).** Historical document, last accurate around 2026-07-25. T1400 i18n scaffold notes (EN ↔ VI). Still referenced by code comments in web/src/lib/i18n/*; kept for that history.
+> Current source: web/src/lib/i18n/, docs/design/unicorn-template.md (/vi mirrors). Nothing below is maintained; do not cite it for prices, versions, deploy steps or crons.
+
 # T-1400 — i18n scaffold notes (Vietnamese-Australian founder cohort)
 
 **Ships as of:** first-scaffold for Goal 5D.

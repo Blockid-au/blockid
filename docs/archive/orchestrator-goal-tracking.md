@@ -1,3 +1,6 @@
+> **RETIRED 2026-09-19 (G18-B truth sweep).** Historical document, last accurate around 2026-07. Chief-of-Staff tracking sheet for Goals 5A–5D against v2.0.0-beta.7. The goal-loop system was removed 2026-08-13 (`fd7bb0b03`); goals are now tracked in the source of truth.
+> Current source: docs/plans/SOURCE-OF-TRUTH.md §1, ROADMAP.md. Nothing below is maintained; do not cite it for prices, versions, deploy steps or crons.
+
 # Orchestrator — Goal 5A/5B/5C/5D Tracking
 
 **Owner:** Chief of Staff (orchestrator agent-manager)

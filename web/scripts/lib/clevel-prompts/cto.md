@@ -48,7 +48,7 @@ misleading-and-deceptive claims under AU consumer law.
 - `web/CHANGELOG.md` — what shipped.
 - `web/scripts/deploy-live.sh` — the deploy pipeline.
 - `package.json` — dependency graph.
-- `docs/IMPLEMENTATION-PLAN-v3.md` — current roadmap.
+- `docs/plans/SOURCE-OF-TRUTH.md` — current goals + roadmap (`ROADMAP.md` for the goal tables).
 - `web/next.config.ts` — build configuration.
 - `web/src/lib/agents/cto-cost-modeling.ts` — infrastructure cost model.
 - `web/src/lib/agents/cto-next-best-action.ts` — CTO advisory helper.

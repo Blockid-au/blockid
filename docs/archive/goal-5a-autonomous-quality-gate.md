@@ -1,3 +1,6 @@
+> **RETIRED 2026-09-19 (G18-B truth sweep).** Historical document, last accurate around 2026-07. Goal 5A plan (autonomous quality gate, Q4 2026 target). Superseded by the shipped 12-gate deploy pipeline, live-qa suite, link check and the G15 reliability work.
+> Current source: docs/ops/deploy.md, docs/ops/live-qa.md, docs/ops/link-check.md. Nothing below is maintained; do not cite it for prices, versions, deploy steps or crons.
+
 # Goal 5A — Autonomous Quality Gate
 
 **Owner:** CTO (primary) + Chief of Staff (orchestrator)

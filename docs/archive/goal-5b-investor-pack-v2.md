@@ -1,3 +1,6 @@
+> **RETIRED 2026-09-19 (G18-B truth sweep).** Historical document, last accurate around 2026-07. Goal 5B investor pack v2 plan. Shipped as the 9-chapter investor pack and then superseded by the Trusted Business Report v2 / Investor Dossier (G13).
+> Current source: docs/plans/investor-clarity-2026-09-15.md, web/src/lib/pdf/investor-pack.tsx. Nothing below is maintained; do not cite it for prices, versions, deploy steps or crons.
+
 # Goal 5B — Investor Pack v2 (one-click generation)
 
 **Owner:** CPO (primary) + CTO + CFO (co-owners)

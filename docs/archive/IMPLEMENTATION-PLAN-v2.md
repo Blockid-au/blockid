@@ -1,3 +1,6 @@
+> **RETIRED 2026-09-19 (G18-B truth sweep).** Historical document, last accurate around 2026-07-16. v2.0 pricing-upgrade master implementation plan (8 weeks, 4 sprints). Executed and superseded by the v3 ladder, pricing v4 and the G-goal sequence; prices in it (A$99 / A$499 …) are historical.
+> Current source: docs/pricing-upgrade-plan-2026-07-16.md § v4, docs/plans/SOURCE-OF-TRUTH.md. Nothing below is maintained; do not cite it for prices, versions, deploy steps or crons.
+
 # BlockID.au v2.0 — Master Implementation Plan (Pricing Upgrade)
 
 **Chief Architect:** consolidation of 10 C-Level specs

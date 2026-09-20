@@ -635,7 +635,7 @@ For detailed technical documentation, see:
 | Master Blueprint | `/blockid.au.md` | 2,354 |
 | System Architecture | `/docs/ARCHITECTURE.md` | 829 |
 | API Reference | `/docs/API-REFERENCE.md` | 1,831 |
-| Deployment Guide | `/docs/DEPLOYMENT.md` | 414 |
+| Deployment Guide | `/docs/ops/deploy.md` (the 2026-05 Docker guide is archived at `/docs/archive/DEPLOYMENT.md`) | — |
 | Product Roadmap | `/docs/ROADMAP.md` | 70 |
 
 ---

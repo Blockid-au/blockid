@@ -1,3 +1,6 @@
+> **RETIRED 2026-09-19 (G18-B truth sweep).** Historical document, last accurate around 2026-07. Goal 5C public AU startup index plan. Shipped (`/startup-index`, `/api/index/*`, SVI EXC); later extended by G13 taxonomy and G14 open AU signals.
+> Current source: docs/plans/SOURCE-OF-TRUTH.md (G3 SVI Exchange, G14-S40). Nothing below is maintained; do not cite it for prices, versions, deploy steps or crons.
+
 # Goal 5C — AU-Startup Public Index
 
 **Owner:** CMO (primary) + CTO + CPO (co-owners)
