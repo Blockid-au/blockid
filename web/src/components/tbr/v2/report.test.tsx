@@ -212,7 +212,8 @@ describe("<TbrReportV2>", () => {
     ];
     for (const en of OLD_EN_CHROME) expect(html, en).not.toContain(en);
     const vi = TBR_STRINGS.vi.v2;
-    for (const s of [vi.chapter.evidence, vi.chapter.strengths, vi.executive.topStrengths, vi.appendix.method, vi.appendix.dataPrinciple, vi.phaseGates.met, vi.cover.thDimension, vi.audit.auditor, TBR_STRINGS.vi.secExecutive, TBR_STRINGS.vi.secAppendix.replace("&", "&amp;")]) {
+    // G19-S47: the S44 "Top strengths / Top gaps" lists are gone — the executive cards carry the s47 labels.
+    for (const s of [vi.chapter.evidence, vi.chapter.strengths, vi.s47.whyBack, vi.s47.whatMustChange, vi.s47.verdict, vi.s47.actions, vi.appendix.method, vi.appendix.dataPrinciple, vi.phaseGates.met, vi.cover.thDimension, vi.audit.auditor, TBR_STRINGS.vi.secExecutive, TBR_STRINGS.vi.secAppendix.replace("&", "&amp;")]) {
       expect(html, s).toContain(s);
     }
     // Diacritics all over the chrome, not just the chapter titles.

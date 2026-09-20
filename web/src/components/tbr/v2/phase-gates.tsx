@@ -7,7 +7,8 @@
 import { VisualFigure } from "@/lib/report-visuals/react";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import { cn } from "@/lib/utils";
-import { AgentBadge, TBR_V2_SECTION_IDS, TbrSection, phaseLabel, v2Strings, type TbrUiLocale } from "./shared";
+import { CRITERIA } from "@/lib/evaluation-criteria";
+import { AgentBadge, Chip, TABLE_CLASS, TBR_V2_SECTION_IDS, TbrSection, phaseLabel, v2Strings, zebraRow, type TbrUiLocale } from "./shared";
 
 export function TbrPhaseGates({ report, title, locale = "en" }: { report: ReportV2; title: string; locale?: TbrUiLocale }) {
   const g = report.phaseGates;
@@ -23,7 +24,7 @@ export function TbrPhaseGates({ report, title, locale = "en" }: { report: Report
   const heat = g.visuals.find((v) => v.kind === "heat_map");
   const route = g.visuals.find((v) => v.kind === "route_map");
   return (
-    <TbrSection id={TBR_V2_SECTION_IDS.phaseGates} kicker="11" title={title}>
+    <TbrSection id={TBR_V2_SECTION_IDS.phaseGates} kicker="11" title={title} purpose={v2Strings(locale).s47.purpose.phaseGates}>
       <div className="flex items-center gap-2 text-xs text-ink-600 dark:text-ink-300">
         <AgentBadge role="coo" />
         <span>{t.currentPhase(phaseLabel(g.current, locale))}</span>
@@ -37,13 +38,15 @@ export function TbrPhaseGates({ report, title, locale = "en" }: { report: Report
           </span>
         ))}
       </p>
-      <table className="w-full text-xs">
+      <table className={TABLE_CLASS}>
         <caption className="py-1 text-left text-[10px] font-semibold uppercase tracking-wide text-ink-500">{t.requiredCriteria(phaseLabel(g.current, locale))}</caption>
         <tbody>
-          {currentRows.map((m) => (
-            <tr key={m.criterion} className="border-t border-ink-100 dark:border-ink-800/60">
-              <td className="py-1 pr-2 font-medium text-ink-700 dark:text-ink-200">{m.criterion}</td>
-              <td className="py-1 pr-2 text-ink-500">{m.quality}</td>
+          {currentRows.map((m, i) => (
+            <tr key={m.criterion} className={zebraRow(i)} data-tbr-gate-row={m.criterion}>
+              <td className="py-1 pr-2 font-medium text-ink-700 dark:text-ink-200">{CRITERIA.find((c) => c.key === m.criterion)?.title ?? m.criterion}</td>
+              <td className="py-1 pr-2">
+                <Chip kind="band">{(v2Strings(locale).s47.quality as Record<string, string>)[m.quality] ?? m.quality}</Chip>
+              </td>
               <td className="py-1 text-right">{m.met ? t.met : t.notMet}</td>
             </tr>
           ))}

@@ -59,5 +59,8 @@ export function renderSparkline(data: SparklineData, opts: RenderOpts): string {
   const lastLabel = data.points?.[data.points.length - 1]?.label;
   if (!ghost && first) body += text(padL, height - 6, truncate(first, 10), { size: 8, fill: INK.faint });
   if (!ghost && lastLabel) body += text(padL + plotW, height - 6, truncate(lastLabel, 10), { size: 8, anchor: "end", fill: INK.faint });
-  return frame({ id: opts.id, title: opts.title, description: opts.description, width, height, dataState: opts.dataState, hideBadge: opts.hideBadge }, body);
+  // G19-S47: the top-right data-state badge collided with the last-value /
+  // marker label at the plot's top edge ("benchmark only" over the 80 tick on
+  // the TRE chart). The state lives in the caption row (VisualFigure) instead.
+  return frame({ id: opts.id, title: opts.title, description: opts.description, width, height, dataState: opts.dataState, hideBadge: true }, body);
 }

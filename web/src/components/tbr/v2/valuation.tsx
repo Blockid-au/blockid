@@ -11,7 +11,7 @@ import { VisualFigure } from "@/lib/report-visuals/react";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import { buildValuationView, CONNECTORS_HREF, type ValuationSourceChip } from "@/lib/report-v2/valuation-view";
 import { cn } from "@/lib/utils";
-import { AgentBadge, AuditStampLine, TBR_V2_SECTION_IDS, TbrSection, stateLabel, valuationLocale, type TbrUiLocale } from "./shared";
+import { AgentBadge, AuditStampLine, Prose, TABLE_CLASS, TBR_V2_SECTION_IDS, THEAD_CLASS, TbrSection, stateLabel, v2Strings, valuationLocale, zebraRow, type TbrUiLocale } from "./shared";
 
 const CHIP_CLASS: Record<ValuationSourceChip, string> = {
   connector: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
@@ -46,7 +46,7 @@ export function TbrValuation({ report, title, locale = "en" }: { report: ReportV
   // SVI 0 (≈ A$0.6–0.9M), which reads as a real valuation. Say so instead.
   if (report.cover.svi.band === "pending") {
     return (
-      <TbrSection id={TBR_V2_SECTION_IDS.valuation} kicker="10" title={title} pageBreak>
+      <TbrSection id={TBR_V2_SECTION_IDS.valuation} kicker="10" title={title} purpose={v2Strings(locale).s47.purpose.valuation} pageBreak>
         <div className="flex items-center gap-2">
           <AgentBadge role="cfo" />
         </div>
@@ -57,7 +57,7 @@ export function TbrValuation({ report, title, locale = "en" }: { report: ReportV
     );
   }
   return (
-    <TbrSection id={TBR_V2_SECTION_IDS.valuation} kicker="10" title={title} pageBreak>
+    <TbrSection id={TBR_V2_SECTION_IDS.valuation} kicker="10" title={title} purpose={v2Strings(locale).s47.purpose.valuation} pageBreak>
       <div className="flex items-center gap-2">
         <AgentBadge role="cfo" />
         <span className="text-[11px] text-ink-500">{s.confidence(view.confidencePct)}</span>
@@ -76,17 +76,17 @@ export function TbrValuation({ report, title, locale = "en" }: { report: ReportV
           {view.inputRows.length > 0 && (
             <div className="rounded-lg border border-ink-200 p-3 dark:border-ink-800" data-tbr-valuation-inputs>
               <SubTitle>{s.inputsTitle}</SubTitle>
-              <table className="mt-1 w-full text-xs">
-                <thead>
-                  <tr className="border-b border-ink-200 text-left text-[10px] uppercase tracking-wide text-ink-500 dark:border-ink-700">
+              <table className={cn("mt-1", TABLE_CLASS)}>
+                <thead className={THEAD_CLASS}>
+                  <tr className="border-b border-ink-200 dark:border-ink-700">
                     <th className="py-1 pr-2">{s.thInput}</th>
                     <th className="py-1 pr-2">{s.thValue}</th>
                     <th className="py-1">{s.thSource}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {view.inputRows.map((r) => (
-                    <tr key={r.key} className="border-b border-ink-100 dark:border-ink-800/60">
+                  {view.inputRows.map((r, i) => (
+                    <tr key={r.key} className={zebraRow(i)}>
                       <td className="py-1 pr-2 font-medium text-ink-700 dark:text-ink-200">{r.label}</td>
                       <td className="py-1 pr-2 tabular-nums text-ink-700 dark:text-ink-200">{r.value}</td>
                       <td className="py-1">
@@ -108,9 +108,9 @@ export function TbrValuation({ report, title, locale = "en" }: { report: ReportV
           ) : (
             <div data-tbr-valuation-methods>
               <SubTitle>{s.methodsTitle}</SubTitle>
-              <table className="mt-1 w-full text-xs">
-                <thead>
-                  <tr className="border-b border-ink-200 text-left text-[10px] uppercase tracking-wide text-ink-500 dark:border-ink-700">
+              <table className={cn("mt-1", TABLE_CLASS)}>
+                <thead className={THEAD_CLASS}>
+                  <tr className="border-b border-ink-200 dark:border-ink-700">
                     <th className="py-1 pr-2">{s.thMethod}</th>
                     <th className="py-1 pr-2 text-right">{s.low}</th>
                     <th className="py-1 pr-2 text-right">{s.consensus}</th>
@@ -120,8 +120,8 @@ export function TbrValuation({ report, title, locale = "en" }: { report: ReportV
                   </tr>
                 </thead>
                 <tbody>
-                  {view.methodRows.map((m) => (
-                    <tr key={m.method} className="border-b border-ink-100 dark:border-ink-800/60" data-tbr-method={m.method}>
+                  {view.methodRows.map((m, i) => (
+                    <tr key={m.method} className={zebraRow(i)} data-tbr-method={m.method}>
                       <td className="py-1 pr-2 font-medium">{m.label}</td>
                       <td className="py-1 pr-2 text-right tabular-nums">{aud(m.lowAud)}</td>
                       <td className="py-1 pr-2 text-right tabular-nums">{aud(m.midAud)}</td>
@@ -205,7 +205,7 @@ export function TbrValuation({ report, title, locale = "en" }: { report: ReportV
           ))}
         </>
       )}
-      <p className="text-xs leading-relaxed text-ink-600 dark:text-ink-400">{v.narrative}</p>
+      <Prose text={v.narrative} size="xs" testId="tbr-valuation-narrative" />
       <AuditStampLine audit={v.audit} locale={locale} />
     </TbrSection>
   );

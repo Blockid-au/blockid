@@ -567,6 +567,10 @@ export interface TbrS47Strings {
   gapTitle: (dimTitle: string) => string;
   conditionFallback: (action: string) => string;
   actionDetail: (owner: string, lift: number) => string;
+  /** Criterion quality level labels (never the raw enum on a card). */
+  quality: Record<"incomplete" | "basic" | "good" | "strong" | "exceptional", string>;
+  /** Table headers the appendix register / money table used to hard-code. */
+  th: { id: string; label: string; source: string; status: string; dims: string };
   /** One-line purpose under every section title (number · title · purpose). */
   purpose: {
     cover: string;
@@ -809,7 +813,9 @@ const v2En: TbrV2Strings = {
     reasonTitle: (dimTitle) => `${dimTitle} is a strength`,
     gapTitle: (dimTitle) => `${dimTitle} below benchmark`,
     conditionFallback: (action) => `Subject to: ${action}.`,
-    actionDetail: (owner, lift) => `Owner ${owner} · expected lift +${lift} SVI`,
+    actionDetail: (owner, lift) => `Owner ${owner} · worth +${lift} SVI`,
+    quality: { incomplete: "Incomplete", basic: "Basic", good: "Good", strong: "Strong", exceptional: "Exceptional" },
+    th: { id: "Id", label: "Label", source: "Source", status: "Status", dims: "Dims" },
     purpose: {
       cover: "The three answers an evaluator needs first: where the startup is, what it is worth, what comes next.",
       executive: "The CEO agent's synthesis of every chapter: the case for backing, the gaps, the verdict and the next moves.",
@@ -1053,6 +1059,8 @@ const v2Vi: TbrV2Strings = {
     gapTitle: (dimTitle) => `${dimTitle} dưới chuẩn`,
     conditionFallback: (action) => `Với điều kiện: ${action}.`,
     actionDetail: (owner, lift) => `Phụ trách ${owner} · mức nâng kỳ vọng +${lift} SVI`,
+    quality: { incomplete: "Chưa đủ", basic: "Cơ bản", good: "Tốt", strong: "Mạnh", exceptional: "Xuất sắc" },
+    th: { id: "Mã", label: "Nhãn", source: "Nguồn", status: "Trạng thái", dims: "Khía cạnh" },
     purpose: {
       cover: "Ba câu trả lời nhà đánh giá cần trước tiên: startup đang ở đâu, đáng giá bao nhiêu, bước tiếp theo là gì.",
       executive: "Tổng hợp của tác nhân CEO từ mọi chương: lý do nên đầu tư, khoảng trống, kết luận và những bước tiếp theo.",

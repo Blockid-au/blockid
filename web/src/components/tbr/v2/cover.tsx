@@ -68,7 +68,7 @@ export function TbrCover({ report, title, locale = "en" }: { report: ReportV2; t
   const hero = coverHero(report, locale);
   const { pending, showPctl } = hero;
   return (
-    <TbrSection id={TBR_V2_SECTION_IDS.cover} kicker="0" title={title} pageBreak>
+    <TbrSection id={TBR_V2_SECTION_IDS.cover} kicker="0" title={title} purpose={v2Strings(locale).s47.purpose.cover} pageBreak>
       <div>
         <p className="flex flex-wrap items-center gap-2 text-xl font-bold text-ink-900 dark:text-ink-100">
           {c.startupName}
