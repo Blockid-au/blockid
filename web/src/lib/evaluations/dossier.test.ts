@@ -211,6 +211,15 @@ describe("resolveDossierAccess", () => {
   });
 });
 
+describe("loadDossier — signature (G21 P3-C)", () => {
+  it("an assessor gets the block (fail-soft reads: empty tables → no role / org, overrides 0), the founder none", async () => {
+    const d = await loadDossier("e-1", "u-eval");
+    expect(d!.signature).toMatchObject({ role: "Evaluator", organisation: null, humansLine: expect.stringContaining("Humans make the decision") });
+    expect(d!.signature!.methodologyVersion.length).toBeGreaterThan(0);
+    expect(d!.signature!.date).toMatch(/\d{4}$/);
+  });
+});
+
 describe("loadDossier — evaluator", () => {
   it("returns header + block 1 from persisted rows with weights, Δ30d, percentile and the cover radar", async () => {
     const d = await loadDossier("e-1", "u-eval");
@@ -351,9 +360,15 @@ describe("loadDossier — evaluator", () => {
     // Round 1 (7 S-D1 reads + the previous-view audit row) then round 2
     // (mandate fit row · progress send · the assessed snapshot · S-D3 the
     // viewer's audit trail; the consensus reader is mocked) + the G21 P1
-    // Assessment Card context (claim register + stage benchmark, fail-soft).
+    // Assessment Card context (claim register + stage benchmark, fail-soft)
+    // + G21 P3-C: connector freshness (oauth_connections_v2 + connector_snapshots
+    // for the stale-connector hint) and the reviewer signature (app_users ·
+    // investor_organisation_members · assessment_overrides), all fail-soft.
     expect(tables.slice(1, 7).sort()).toEqual(["audit_events", "connector_snapshots", "evaluation_reports", "svi_dimension_evidence", "svi_snapshots", "svi_snapshots"]);
-    expect(tables.slice(7).sort()).toEqual(["audit_events", "claims", "evaluator_progress_sends", "mandate_fit_scores", "svi_analyses", "svi_snapshots", "svi_snapshots"]);
+    expect(tables.slice(7).sort()).toEqual([
+      "app_users", "assessment_overrides", "audit_events", "claims", "connector_snapshots", "evaluator_progress_sends", "investor_organisation_members",
+      "mandate_fit_scores", "oauth_connections_v2", "svi_analyses", "svi_snapshots", "svi_snapshots",
+    ]);
     expect(readConsensusMock).toHaveBeenCalledTimes(1);
     expect(readConsensusMock).toHaveBeenCalledWith(expect.objectContaining({ evaluationId: "e-1", viewerUserId: "u-eval" }));
     expect(percentileMock).toHaveBeenCalledTimes(1);

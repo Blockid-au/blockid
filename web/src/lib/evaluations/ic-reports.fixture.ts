@@ -7,7 +7,7 @@ import type { DossierView } from "./dossier";
 import type { EvaluationAssessment } from "./assessments";
 import { buildAssessmentCard } from "@/lib/svi/assessment-card";
 
-export function fakeView(over: { mine?: Partial<EvaluationAssessment> | null; consensus?: DossierView["consensus"] } = {}): DossierView {
+export function fakeView(over: { mine?: Partial<EvaluationAssessment> | null; consensus?: DossierView["consensus"]; signature?: DossierView["signature"] } = {}): DossierView {
   const mine: EvaluationAssessment | null =
     over.mine === null
       ? null
@@ -64,6 +64,7 @@ export function fakeView(over: { mine?: Partial<EvaluationAssessment> | null; co
           }
         : over.consensus,
     auditTrail: [],
+    signature: over.signature === undefined ? null : over.signature,
     generatedAt: "2026-09-16T00:00:00Z",
   };
 }

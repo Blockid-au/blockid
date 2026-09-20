@@ -28,6 +28,7 @@ import { VisualPdf } from "@/lib/report-visuals/pdf";
 import { pdfSafeText as t } from "@/lib/report-visuals/pdf-text";
 import type { Band, VisualSpecV2 } from "@/lib/report-visuals/types";
 import type { IcReportKind, IcSections } from "@/lib/evaluations/ic-reports";
+import { signatureLines, type ReviewerSignature } from "@/lib/evaluations/signature";
 import { AdviceDisclaimer, PDF_ENTITY_LINE } from "./advice-disclaimer";
 import { AssessmentCardPdf } from "./assessment-card-pdf";
 import { pdfPageCount } from "./page-count";
@@ -78,6 +79,10 @@ const s = StyleSheet.create({
   tileL: { fontSize: 7, color: C.muted },
   box: { borderWidth: 1, borderColor: C.grid, borderRadius: 4, padding: 7, marginBottom: 6 },
   softBox: { backgroundColor: C.surface, borderRadius: 4, padding: 7, marginBottom: 6 },
+  // G21 P3-C — reviewer signature (same shape as the Cohort Report's, P2-C).
+  sig: { borderWidth: 1, borderColor: C.grid, borderRadius: 4, padding: 8, marginTop: 6, marginBottom: 4, flexDirection: "row", flexWrap: "wrap" },
+  sigCell: { width: "50%", marginBottom: 4 },
+  sigK: { fontSize: 6.5, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5 },
   table: { borderWidth: 1, borderColor: C.grid, borderRadius: 3, marginBottom: 6 },
   tr: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: C.grid, paddingVertical: 2, paddingHorizontal: 4 },
   th: { fontSize: 6.5, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5, fontFamily: "Helvetica-Bold" },
@@ -312,9 +317,30 @@ export interface IcMemoPdfProps {
   generatedAt: string;
   /** Display name of the exporter (memo `generated_by` = the owner, F3). */
   generatedBy: string;
+  /** G21 P3-C — reviewer signature block (memo: a block; one-pager: one line). Absent on pre-P3-C renders. */
+  signature?: ReviewerSignature | null;
 }
 
-export function IcMemoPdf({ kind, sections, radar, rangeBars, weightsShown, generatedAt, generatedBy }: IcMemoPdfProps) {
+/** G21 P3-C — the signature block on the memo's last page. */
+function SignatureBlock({ signature }: { signature: ReviewerSignature }) {
+  return (
+    <View>
+      <Text style={s.h2}>Reviewer signature</Text>
+      <View style={s.sig} wrap={false}>
+        {signatureLines(signature).map((l) => (
+          <View key={l.label} style={s.sigCell}>
+            <Text style={s.sigK}>{t(l.label)}</Text>
+            <Text style={s.body}>{t(l.value)}</Text>
+          </View>
+        ))}
+      </View>
+      <Text style={s.small}>{t(signature.overridesLine)}</Text>
+      <Text style={[s.small, { marginTop: 2 }]}>{t(signature.humansLine)}</Text>
+    </View>
+  );
+}
+
+export function IcMemoPdf({ kind, sections, radar, rangeBars, weightsShown, generatedAt, generatedBy, signature = null }: IcMemoPdfProps) {
   const startup = sections.summary.startupName;
   const memo = kind === "memo";
   const body: ReactNode[] = [];
@@ -347,6 +373,7 @@ export function IcMemoPdf({ kind, sections, radar, rangeBars, weightsShown, gene
     body.push(
       <View key="seats" break>
         <SeatViews sections={sections} />
+        {signature ? <SignatureBlock signature={signature} /> : null}
         <AdviceDisclaimer variant="financial" />
         <Text style={[s.tiny, { marginTop: 3 }]}>{t(`${PDF_ENTITY_LINE} · generated ${fmtDate(generatedAt)} by ${generatedBy}`)}</Text>
       </View>,
@@ -359,6 +386,11 @@ export function IcMemoPdf({ kind, sections, radar, rangeBars, weightsShown, gene
         <View style={{ marginTop: 6 }}>
           <RisksAndQuestions sections={sections} max={3} />
         </View>
+        {signature ? (
+          <Text style={[s.small, { marginTop: 4 }]}>
+            {t(`Reviewer: ${signature.name || "____________"} · ${signature.organisation ? `${signature.role} · ${signature.organisation}` : signature.role} · ${signature.date} · Startup Value Index v${signature.methodologyVersion} · overrides for this startup: ${signature.overrides === null ? "not available" : signature.overrides} · ${signature.humansLine}`)}
+          </Text>
+        ) : null}
         <AdviceDisclaimer variant="financial" />
         <Text style={[s.tiny, { marginTop: 3 }]}>{t(`${PDF_ENTITY_LINE} · generated ${fmtDate(generatedAt)} by ${generatedBy}`)}</Text>
       </View>,

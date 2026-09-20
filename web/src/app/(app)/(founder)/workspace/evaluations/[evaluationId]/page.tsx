@@ -45,6 +45,7 @@ import { ValuationBlock } from "./dossier/valuation-block";
 import { ProgressBlock } from "./dossier/progress-block";
 import { AssessmentBlock } from "./dossier/assessment/assessment-block";
 import { ActionsBlock } from "./dossier/assessment/actions-block";
+import { SignatureBlock } from "./dossier/signature-block";
 import { DossierViewTracker } from "./dossier/dossier-view-tracker";
 import { AssessmentCard } from "@/components/svi/AssessmentCard";
 
@@ -103,6 +104,8 @@ export default async function InvestorDossierPage({ params }: PageProps) {
         <AssessmentBlock view={dossier} />
         <ProgressBlock block={dossier.progress} role={dossier.viewer.role} />
         <ActionsBlock view={dossier} plan={user.plan} batchAllowed={canBatchScore(flags)} />
+        {/* G21 P3-C — reviewer signature (assessor only). */}
+        <SignatureBlock signature={dossier.signature} />
         <EvaluatorReportDisclaimer variant="compact" />
       </div>
     </WorkspaceLayout>

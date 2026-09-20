@@ -17,6 +17,8 @@ import { buildIcSections } from "@/lib/evaluations/ic-reports";
 import { fakeView } from "@/lib/evaluations/ic-reports.fixture";
 import { pdfPageCount } from "./page-count";
 import { IC_MEMO_FOOTER, IC_MEMO_MAX_PAGES, renderIcMemoPdf } from "./ic-memo-pdf";
+import { buildReviewerSignature } from "@/lib/evaluations/signature";
+import { SVI_VERSION } from "@/lib/svi-analysis";
 
 async function fullText(buffer: Buffer): Promise<string> {
   expect(buffer.subarray(0, 4).toString("latin1")).toBe("%PDF");
@@ -88,6 +90,32 @@ describe("renderIcMemoPdf — memo (Firm / Program)", () => {
     const textB = await fullText(b.buffer);
     expect(textB.replace(/\s|-/g, "")).toMatch(/DIMENSIONWEIGHTSCORE/);
     expect(textB).toContain("generated 16 September 2026 by Program owner");
+  });
+
+  it("G21 P3-C: the reviewer signature block prints on the memo's last page and as one line on the one-pager (still one page); absent when not supplied", async () => {
+    const signature = buildReviewerSignature({ reviewerName: "Pat Partner", role: "investment_partner", organisation: "Blue Fund", generatedAt: "2026-09-16T00:00:00Z", overridesCount: 2 });
+    const sections = buildIcSections(fakeView(), "memo", { weightsShown: false });
+    const memo = await renderIcMemoPdf({ kind: "memo", sections, radar, rangeBars, weightsShown: false, generatedAt: "2026-09-16T00:00:00Z", generatedBy: "Mia", signature });
+    expect(memo.pages).toBeLessThanOrEqual(IC_MEMO_MAX_PAGES);
+    const text = await fullText(memo.buffer);
+    expect(text).toContain("Reviewer signature");
+    expect(text).toContain("Pat Partner");
+    expect(text).toContain("Investment partner · Blue Fund");
+    expect(text).toContain("16 September 2026");
+    expect(text).toContain(`Startup Value Index v${SVI_VERSION}`);
+    expect(text).toContain("2 reviewer overrides recorded for this startup");
+    expect(text).toContain("Humans make the decision.");
+
+    const one = buildIcSections(fakeView(), "one_page", { weightsShown: false });
+    const onePager = await renderIcMemoPdf({ kind: "one_page", sections: one, radar, rangeBars, weightsShown: false, generatedAt: "2026-09-16T00:00:00Z", generatedBy: "Sam", signature: { ...signature, name: "", overrides: null } });
+    expect(onePager.pages).toBe(1);
+    const oneText = await fullText(onePager.buffer);
+    expect(oneText).toContain("Reviewer: ____________ · Investment partner · Blue Fund · 16 September 2026");
+    expect(oneText).toContain("overrides for this startup: not available");
+    expect(oneText).toContain("Humans make the decision.");
+
+    const none = await renderIcMemoPdf({ kind: "memo", sections, radar, rangeBars, weightsShown: false, generatedAt: "2026-09-16T00:00:00Z", generatedBy: "Mia" });
+    expect(await fullText(none.buffer)).not.toContain("Reviewer signature");
   });
 
   it("degrades without visuals or an assessment (no radar, no range bars, empty decision)", async () => {
