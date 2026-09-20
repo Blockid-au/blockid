@@ -104,30 +104,10 @@ const CASES: CaseStudy[] = [
       "Melbourne employee-experience SaaS — US Series A, Sapphire Series C, Sequoia China Series E, unicorn Series F; culture-first company as the product.",
     themes: ["HR-tech", "B2B-SaaS", "culture-first", "US-Series-A", "private-unicorn"],
   },
-  {
-    slug: "wisetech",
-    name: "WiseTech Global",
-    country: "🇦🇺 Australia",
-    founded: 1994,
-    ipo_year: 2016,
-    market_cap_usd: "~US$25B",
-    status: "coming_soon",
-    tagline:
-      "Logistics-software from Sydney, bootstrapped 22 years then ASX IPO. Aggressive M&A roll-up.",
-    themes: ["long-bootstrap", "ASX-IPO", "M&A-roll-up", "logistics-vertical"],
-  },
-  {
-    slug: "seek",
-    name: "SEEK",
-    country: "🇦🇺 Australia",
-    founded: 1997,
-    ipo_year: 2005,
-    market_cap_usd: "~US$5B",
-    status: "coming_soon",
-    tagline:
-      "Job-board turned global HR platform. Bassat brothers, ASX 2005, international expansion via M&A.",
-    themes: ["marketplace", "ASX-IPO", "international-expansion", "brothers-cofounders"],
-  },
+  // G20-F1 (2026-09-20): the two "coming_soon" entries (WiseTech, SEEK) are
+  // hidden — a public page must not advertise unshipped work (§ 2.2). Restore
+  // them here when their showcase pages exist; the section below renders
+  // only when at least one entry is pending.
 ];
 
 const itemListJsonLd = {
@@ -249,16 +229,18 @@ export default function ShowcaseMenuPage() {
           </div>
         </section>
 
-        <section>
-          <h2 className="mb-4 text-xl font-semibold text-ink-900">
-            Coming soon ({soon.length})
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {soon.map((c) => (
-              <CaseCard key={c.slug} c={c} live={false} />
-            ))}
-          </div>
-        </section>
+        {soon.length > 0 ? (
+          <section>
+            <h2 className="mb-4 text-xl font-semibold text-ink-900">
+              In preparation ({soon.length})
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {soon.map((c) => (
+                <CaseCard key={c.slug} c={c} live={false} />
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <footer className="mt-12 rounded-lg border border-surface-200 bg-white p-4 text-xs text-ink-500">
           Suggest a case study? Email{" "}

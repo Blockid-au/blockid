@@ -26,7 +26,7 @@ export async function AssessmentBlock({ view }: { view: DossierView }) {
   if (founder) {
     body = <FounderPreview shared={a.sharedWithFounder} />;
   } else if (!a.available) {
-    body = <p data-testid="assessment-unavailable">Assessment not available yet — the assessments table (migration 0392) has not been applied on this environment.</p>;
+    body = <p data-testid="assessment-unavailable">Assessment pending — the assessments table (migration 0392) has not been applied on this environment.</p>;
   } else {
     const [prefill, feedbackOptOut] = await Promise.all([
       a.mine ? Promise.resolve(null) : prefillFromFit({ userId: view.viewer.userId, projectId: view.header.projectId }).catch(() => null),

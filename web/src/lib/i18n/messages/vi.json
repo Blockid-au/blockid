@@ -656,7 +656,7 @@
   "intake.closed.not_open_yet": "Đợt tuyển này chưa mở. Hãy quay lại vào ngày chương trình đã thông báo.",
   "intake.closed.window_closed": "Thời hạn nộp hồ sơ của đợt này đã kết thúc.",
   "intake.closed.full": "Đợt này đã đạt giới hạn số hồ sơ.",
-  "intake.closed.hint": "Bạn vẫn luôn có thể nộp vào chỉ số công khai.",
+  "intake.closed.hint": "Bạn vẫn luôn có thể chấm điểm startup miễn phí.",
   "intake.error.duplicate": "Email này đã ứng tuyển vào chương trình. Kiểm tra hộp thư để lấy link nhận hồ sơ.",
   "intake.error.deck_required": "Đính kèm pitch deck (PDF hoặc DOCX).",
   "intake.error.deck_too_large": "Deck của bạn vượt quá 25 MB. Xuất bản PDF nhẹ hơn rồi thử lại.",

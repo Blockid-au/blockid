@@ -635,7 +635,7 @@
   "intake.closed.not_open_yet": "This application round has not opened yet. Check back on the date the program gave you.",
   "intake.closed.window_closed": "The application window for this round has ended.",
   "intake.closed.full": "This round has reached its application limit.",
-  "intake.closed.hint": "Applying to the public index instead is always open.",
+  "intake.closed.hint": "Scoring your startup for free is always open.",
   "intake.error.duplicate": "This email has already applied to this program. Check your inbox for the claim link.",
   "intake.error.deck_required": "Attach your pitch deck (PDF or DOCX).",
   "intake.error.deck_too_large": "Your deck is over 25 MB. Export a lighter PDF and try again.",

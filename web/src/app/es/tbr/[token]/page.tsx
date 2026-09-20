@@ -1,179 +1,37 @@
-// Wave 31D — Spanish public share page for a Trusted Business Report.
-// Same auth-less fetch-by-token as /tbr/[token], but the shell UI renders
-// in Spanish via locale="es".
+// /es/tbr/[token] — HIDDEN (G20-F1, 2026-09-20; founder decision F-3: only
+// /vi is a maintained mirror). Key: locale_es.
+//
+// Was an unmaintained fork of /tbr/[token] (missing the score total, the
+// view beacon and the lead modal, bare-number dimension scores rendered as
+// "idle"). Nothing linked here. The route stays so an old share link lands
+// on a clear card that points at the English report for the same token.
 
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { getSupabaseAdmin } from "@/lib/supabase";
-import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/reports/business/business-report-client";
-import { readSnapshotReportV2 } from "@/lib/report-v2/storage";
+import { Languages } from "lucide-react";
+import { NotOfferedCard } from "@/components/workspace/not-offered-card";
+import { assertHidden, hiddenPageMetadata } from "@/components/workspace/hidden-feature-page";
 
-export const runtime = "nodejs";
+export const metadata: Metadata = hiddenPageMetadata("Informe en español");
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Informe de Negocio — BlockID Startup Value Index",
-  description:
-    "Informe de Negocio de Confianza: 8 dimensiones SVI, 13 criterios de inversor, rango de valoración y hoja de ruta de mejora.",
-  robots: { index: false, follow: false },
-};
-
-const DIM_KEYS = ["ftv", "mpc", "ptd", "tre", "cgh", "iri", "lco", "svm"] as const;
-
-interface DimState {
-  status: string;
-  score: number | null;
-  markdown: string | null;
-  insights: string[];
-  priority: "high" | "medium" | "low" | null;
-  marketBenchmark: string | null;
-}
-
-interface CriterionState {
-  key: string;
-  title: string;
-  primary_dimension: string;
-  weight: number;
-  score: number;
-  verdict: string;
-  strengths: string[];
-  gaps: string[];
-  next_action: string;
-}
-
-interface PersistedState {
-  savedAt: number;
-  dimStates: Record<string, DimState>;
-  criterionStates?: CriterionState[];
-  completed: number;
-  total: number;
-  totalMs: number | null;
-  done: boolean;
-  industry: string | null;
-  stage?: string | null;
-  snapshotId?: string | null;
-}
-
-interface SnapshotRow {
-  id: string;
-  project_id: string | null;
-  created_at: string;
-  criterion_results: unknown;
-  dim_results: unknown;
-  dimension_scores: unknown;
-  analysis_json: unknown;
-}
-
-function toDimStates(raw: unknown): Record<string, DimState> {
-  const out: Record<string, DimState> = {};
-  for (const k of DIM_KEYS) {
-    const v = (raw && typeof raw === "object" ? (raw as Record<string, unknown>)[k] : null) as
-      | Partial<DimState>
-      | null
-      | undefined;
-    out[k] = {
-      status: typeof v?.status === "string" ? v.status : "complete",
-      score: typeof v?.score === "number" ? v.score : null,
-      markdown: typeof v?.markdown === "string" ? v.markdown : null,
-      insights: Array.isArray(v?.insights) ? (v?.insights as string[]) : [],
-      priority:
-        v?.priority === "high" || v?.priority === "medium" || v?.priority === "low"
-          ? v.priority
-          : null,
-      marketBenchmark:
-        typeof v?.marketBenchmark === "string" ? v.marketBenchmark : null,
-    };
-  }
-  return out;
-}
-
-function fallbackFromScores(raw: unknown): Record<string, DimState> {
-  const out: Record<string, DimState> = {};
-  const map = raw && typeof raw === "object" ? (raw as Record<string, { score?: number; priority?: string }>) : {};
-  for (const k of DIM_KEYS) {
-    const v = map[k];
-    out[k] = {
-      status: v ? "complete" : "idle",
-      score: typeof v?.score === "number" ? v.score : null,
-      markdown: null,
-      insights: [],
-      priority:
-        v?.priority === "high" || v?.priority === "medium" || v?.priority === "low"
-          ? v.priority
-          : null,
-      marketBenchmark: null,
-    };
-  }
-  return out;
-}
-
-async function fetchByToken(token: string): Promise<{ row: SnapshotRow; persisted: PersistedState } | null> {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return null;
-  const { data, error } = await supabase
-    .from("svi_snapshots")
-    .select(
-      "id, project_id, created_at, criterion_results, dim_results, dimension_scores, analysis_json",
-    )
-    .eq("report_share_token", token)
-    .maybeSingle();
-  if (error || !data) return null;
-  const row = data as SnapshotRow;
-  const dimStates = row.dim_results
-    ? toDimStates(row.dim_results)
-    : fallbackFromScores(row.dimension_scores);
-  const criterionStates = Array.isArray(row.criterion_results)
-    ? (row.criterion_results as CriterionState[])
-    : [];
-  const meta = (row.analysis_json && typeof row.analysis_json === "object"
-    ? (row.analysis_json as Record<string, unknown>)
-    : {}) as { industry?: string | null; stageLabel?: string | null; totalMs?: number | null };
-  const persisted: PersistedState = {
-    savedAt: new Date(row.created_at).getTime(),
-    dimStates,
-    criterionStates,
-    completed: DIM_KEYS.filter((k) => dimStates[k].score !== null).length,
-    total: 8,
-    totalMs: typeof meta.totalMs === "number" ? meta.totalMs : null,
-    done: true,
-    industry: meta.industry ?? null,
-    stage: meta.stageLabel ?? null,
-    snapshotId: row.id,
-  };
-  return { row, persisted };
-}
-
-/** G13-W1-R1: stored ReportV2 for the row (null until migration 0395 + a pipeline write). */
-async function fetchStoredReportV2(snapshotId: string) {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return null;
-  return readSnapshotReportV2(supabase, snapshotId);
-}
-
-export default async function EsTbrSharePage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ token: string }>;
-  searchParams: Promise<{ pdf?: string }>;
-}) {
+export default async function EsTbrPage({ params }: { params: Promise<{ token: string }> }) {
+  assertHidden("locale_es", "/es/tbr/x");
   const { token } = await params;
-  const { pdf } = await searchParams;
-  const result = await fetchByToken(token);
-  if (!result) notFound();
-  const initialReportV2 = await fetchStoredReportV2(result.row.id);
-
-  const pdfMode = pdf === "1";
+  const safe = encodeURIComponent(token);
   return (
-    <div className="min-h-screen bg-white dark:bg-ink-950">
-      <BusinessReportClient
-        projectId={result.row.project_id ?? "shared"}
-        initialData={result.persisted}
-        initialReportV2={initialReportV2}
-        shareToken={token}
-        pdfMode={pdfMode}
-        locale="es"
+    <main className="min-h-screen bg-surface px-4 py-16">
+      <NotOfferedCard
+        feature="locale_es"
+        title="Informe en español"
+        icon={Languages}
+        reason="The Spanish edition of the Trusted Business Report is not offered. The same report is available in English and Vietnamese."
+        alternatives={[
+          { href: `/tbr/${safe}`, label: "Open this report in English" },
+          { href: `/vi/tbr/${safe}`, label: "Mở báo cáo này bằng tiếng Việt" },
+        ]}
+        backHref={`/tbr/${safe}`}
+        backLabel="English report"
       />
-    </div>
+    </main>
   );
 }
