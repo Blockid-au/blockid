@@ -46,8 +46,8 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
       { href: "/solutions/accelerator", label: "Accelerators" },
       { href: "/solutions/advisor", label: "Advisors" },
       { href: "/solutions/founder", label: "Founders" },
-      // G16-C — evaluator pilot offer v2 (free cohort scoring for one intake).
-      { href: "/pilot", label: "Evaluator pilot" },
+      // G21 P0-C — the paid Cohort Validation Pilot (A$1,500 / A$2,500 one-off).
+      { href: "/pilot", label: "Cohort pilot" },
       { href: "/showcase/atlassian?step=1", label: "Atlassian demo (live)" },
       { href: "/showcase", label: "All case studies" },
       { href: "/compare", label: "Compare" },

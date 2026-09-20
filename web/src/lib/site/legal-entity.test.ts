@@ -114,10 +114,7 @@ const SELF = "src/lib/site/legal-entity.ts";
  * debt with an owner — delete the row when that lane imports the config, so
  * the guard tightens to zero. Nothing may be added here for convenience.
  */
-const OTHER_LANE_DEBT: ReadonlySet<string> = new Set([
-  // P0-C (Stripe invoice footer + Seller ABN custom field on the checkout route).
-  "src/app/api/stripe/checkout/route.ts",
-]);
+const OTHER_LANE_DEBT: ReadonlySet<string> = new Set([]);
 
 /** The literals nothing outside the config may spell out (case-insensitive). */
 const FORBIDDEN: readonly RegExp[] = [

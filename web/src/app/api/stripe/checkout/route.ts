@@ -25,6 +25,7 @@ import { sessionIdempotencyKey } from "@/lib/stripe/idempotency";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 import { apiRoute } from "@/lib/audit/api-route";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { LEGAL_ENTITY, acnAbnLine } from "@/lib/site/legal-entity";
 
 // POST /api/stripe/checkout
 // Body: { plan, couponCode? }
@@ -584,8 +585,8 @@ async function POST_handler(request: Request) {
       enabled: true,
       invoice_data: {
         description: `BlockID.au — ${plan.name}`,
-        custom_fields: [{ name: "Seller ABN", value: "79 659 615 111" }],
-        footer: "Auschain Pty Ltd · ACN 659 615 111 · GST-registered",
+        custom_fields: [{ name: "Seller ABN", value: LEGAL_ENTITY.abn }],
+        footer: `${acnAbnLine()} · GST-registered`,
       },
     };
   }
