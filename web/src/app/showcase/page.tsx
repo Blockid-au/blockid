@@ -172,7 +172,7 @@ export default function ShowcaseMenuPage() {
       type="application/ld+json"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
     />
-    <div className="min-h-screen bg-surface-50">
+    <main id="main-content" className="min-h-screen bg-surface-50">
       <div className="mx-auto max-w-6xl p-6">
         <header className="mb-8">
           <h1 className="text-3xl font-semibold text-ink-900">Showcase library</h1>
@@ -251,7 +251,7 @@ export default function ShowcaseMenuPage() {
           documentation.
         </footer>
       </div>
-    </div>
+    </main>
     </>
   );
 }

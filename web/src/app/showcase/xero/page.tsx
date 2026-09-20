@@ -72,7 +72,7 @@ export default function XeroShowcasePage() {
   const phaseOrder = Array.from(byPhase.keys()).sort((a, b) => a - b);
 
   return (
-    <div className="min-h-screen bg-surface-50">
+    <main id="main-content" className="min-h-screen bg-surface-50">
       <div className="mx-auto max-w-5xl p-6">
         <nav className="mb-4 text-sm">
           <Link href="/showcase" className="text-brand-700 hover:underline">
@@ -202,7 +202,7 @@ export default function XeroShowcasePage() {
           Sources: NZX + ASX filings + xero.com investor-relations pages.
         </footer>
       </div>
-    </div>
+    </main>
   );
 }
 

@@ -101,7 +101,7 @@ describe("adapters", () => {
     expect(card.topGap).not.toBeNull();
     expect(card.topStrength?.dim).not.toBe(card.topGap?.dim);
     expect(card.lastUpdated).toBe(report.generatedAt);
-    expect(card.methodologyVersion).toBe(report.pipelineVersion);
+    expect(card.methodologyVersion).toBe(SVI_VERSION);
     expect(card.pendingDims).toBe(0);
     // Deterministic.
     expect(assessmentCardFromReport(demoReportV2())).toEqual(card);

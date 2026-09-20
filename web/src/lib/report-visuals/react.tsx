@@ -35,6 +35,9 @@ export function VisualFigure({ spec, caption, className, hideTable }: VisualFigu
         </figcaption>
       )}
       {!hideTable && rows.length > 0 && (
+        // The wrapper div honours `sr-only` (1 × 1 px, overflow hidden); a bare table keeps its
+        // intrinsic width and widened the page at 375 px (G21-P1-B page sweep).
+        <div className="sr-only">
         <table className="sr-only">
           <caption>{spec.a11y.title}</caption>
           <thead>
@@ -56,6 +59,7 @@ export function VisualFigure({ spec, caption, className, hideTable }: VisualFigu
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </figure>
   );

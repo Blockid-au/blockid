@@ -22,6 +22,7 @@ export function TbrMoney({ report, title, locale = "en" }: { report: ReportV2; t
         <span>{t.matched(m.grants.length + m.programs.length, aud(m.totalAud))}</span>
       </div>
       {rows.length > 0 ? (
+        <div className="overflow-x-auto">
         <table className={TABLE_CLASS}>
           <tbody>
             {rows.map((r, i) => (
@@ -45,6 +46,7 @@ export function TbrMoney({ report, title, locale = "en" }: { report: ReportV2; t
             ))}
           </tbody>
         </table>
+        </div>
       ) : empty ? (
         <p data-tbr-money-empty className="text-xs text-secondary">
           {empty.text}{" "}

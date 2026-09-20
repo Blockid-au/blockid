@@ -227,13 +227,14 @@ interface PeerRow {
   similarityPct: number;
 }
 
-function PeerFiveSection({ projectId, shareToken, industry, stage }: { projectId: string; shareToken?: string; industry: string | null; stage: string | null | undefined }) {
+function PeerFiveSection({ projectId, shareToken, industry, stage, skipFetch = false }: { projectId: string; shareToken?: string; industry: string | null; stage: string | null | undefined; /** G21-P1-B (page sweep): a static sample (initialData, no token) has no peers endpoint to call — the anonymous 401 was the page's one failed request + console error. */ skipFetch?: boolean }) {
   const [peers, setPeers] = useState<PeerRow[] | null>(null);
   const [fallback, setFallback] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(!skipFetch);
+  const [error, setError] = useState<string | null>(skipFetch ? "static-sample" : null);
 
   useEffect(() => {
+    if (skipFetch) return;
     let cancelled = false;
     (async () => {
       try {
@@ -260,7 +261,7 @@ function PeerFiveSection({ projectId, shareToken, industry, stage }: { projectId
     return () => {
       cancelled = true;
     };
-  }, [projectId, shareToken]);
+  }, [projectId, shareToken, skipFetch]);
 
   if (loading) return <p className="text-sm text-muted">Loading peer-5 similarity matches…</p>;
 
@@ -958,7 +959,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
 
           {/* ── Peer-5 Similarity Match (Wave 25C) ─────────────────────────── */}
           <ReportSection id="tbr-peers" title="Peer-5 Similarity Match">
-            <PeerFiveSection projectId={projectId} shareToken={shareToken} industry={industry} stage={stage} />
+            <PeerFiveSection projectId={projectId} shareToken={shareToken} industry={industry} stage={stage} skipFetch={Boolean(initialData) && !shareToken} />
           </ReportSection>
 
           {/* Footer */}

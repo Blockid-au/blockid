@@ -125,6 +125,7 @@ export function FounderExecutionCard(props: FounderExecutionCardProps) {
         {clippedNote}.
       </p>
       {data.breakdown.length > 0 && (
+        <div className="overflow-x-auto">
         <table className="mt-2 w-full text-xs">
           <caption className="sr-only">Founder execution rubric breakdown</caption>
           <tbody>
@@ -140,6 +141,7 @@ export function FounderExecutionCard(props: FounderExecutionCardProps) {
             ))}
           </tbody>
         </table>
+        </div>
       )}
       {data.capped && (
         <p className="mt-2 rounded-md border border-amber-300 dark:border-amber-800 bg-surface-sunken px-2 py-1 text-xs text-warn" data-testid="founder-execution-cap">

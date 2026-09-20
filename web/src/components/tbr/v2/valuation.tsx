@@ -74,7 +74,7 @@ export function TbrValuation({ report, title, locale = "en" }: { report: ReportV
       {!free && (
         <>
           {view.inputRows.length > 0 && (
-            <div className="rounded-lg border border-line-subtle p-3" data-tbr-valuation-inputs>
+            <div className="overflow-x-auto rounded-lg border border-line-subtle p-3" data-tbr-valuation-inputs>
               <SubTitle>{s.inputsTitle}</SubTitle>
               <table className={cn("mt-1", TABLE_CLASS)}>
                 <thead className={THEAD_CLASS}>
@@ -106,7 +106,7 @@ export function TbrValuation({ report, title, locale = "en" }: { report: ReportV
               </a>
             </p>
           ) : (
-            <div data-tbr-valuation-methods>
+            <div data-tbr-valuation-methods className="overflow-x-auto">
               <SubTitle>{s.methodsTitle}</SubTitle>
               <table className={cn("mt-1", TABLE_CLASS)}>
                 <thead className={THEAD_CLASS}>

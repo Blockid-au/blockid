@@ -211,7 +211,8 @@ export function assessmentCardFromReport(report: ReportV2, opts: AssessmentCardO
     { name: report.cover.startupName, sector: report.cover.sector, stageLabel: report.cover.stageLabel, verificationLevel: report.cover.verification?.level ?? null },
     { total: report.cover.svi.band === "pending" ? null : report.cover.svi.total, dimensions },
     opts.evidence ?? {},
-    { generatedAt: report.generatedAt, evidenceConfidence: opts.evidenceConfidence, methodologyVersion: report.pipelineVersion, benchmark: opts.benchmark, unverifiedMaterialClaims: opts.unverifiedMaterialClaims },
+    // The methodology is the SVI version, not the pipeline id ("adapter-v1-snapshot").
+    { generatedAt: report.generatedAt, evidenceConfidence: opts.evidenceConfidence, methodologyVersion: SVI_VERSION, benchmark: opts.benchmark, unverifiedMaterialClaims: opts.unverifiedMaterialClaims },
   );
 }
 

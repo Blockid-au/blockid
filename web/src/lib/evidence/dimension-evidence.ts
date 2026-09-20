@@ -58,13 +58,15 @@ export function sortStrongest(items: readonly DimensionEvidenceItem[]): Dimensio
 /** Evidence Hub row (`svi_dimension_evidence`) → item; undefined when unusable (rejected / malformed). */
 export function hubRowToDimensionEvidence(row: HubEvidenceRowLike & { id?: string | null }): DimensionEvidenceItem | undefined {
   if (!isUsableHubRow(row)) return undefined;
+  // `isUsableHubRow` narrows to the base shape; the optional id rides alongside.
+  const rowId = (row as { id?: string | null }).id;
   const level = hubRowConfidence(row);
   const signed = row.is_verified === true || Boolean(row.verified_at);
   const label = (row.evidence_label ?? "").trim() || catalogueItem(row.evidence_type)?.item.label || row.evidence_type;
   const value = typeof row.evidence_value_or_url === "string" ? row.evidence_value_or_url.trim() : "";
   const isUrl = /^https?:\/\//i.test(value);
   return {
-    id: row.id ? String(row.id) : `hub:${row.dimension.toLowerCase()}:${row.evidence_type}`,
+    id: rowId ? String(rowId) : `hub:${row.dimension.toLowerCase()}:${row.evidence_type}`,
     statement: label,
     level: badge(level),
     sourceName: signed ? "BlockID reviewer" : isUrl ? "Public URL" : level === "connected_source" || level === "transaction_data" ? "Connected source" : "Founder upload",
