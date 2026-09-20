@@ -17,9 +17,12 @@ export { LANDING_BLOCKS, OPTIONAL_LANDING_BLOCKS, landingBlocksFor } from "./lan
 export type { LandingBlockName, LandingBlockFlags } from "./landing-blocks";
 export type { LandingContext } from "./landing-tracker";
 
+// `lg:grid-flow-dense` (G19-S44): the optional full-width synthesis block
+// sits in the DOM right after block 1; dense packing lets block 2 fill the
+// rest of the first row instead of leaving a six-column hole.
 export function LandingGrid({ children }: { children: ReactNode }) {
   return (
-    <section data-landing-grid className="grid grid-cols-1 gap-6 lg:grid-cols-12" aria-label="Your startup at a glance">
+    <section data-landing-grid className="grid grid-cols-1 gap-6 lg:grid-flow-dense lg:grid-cols-12" aria-label="Your startup at a glance">
       {children}
     </section>
   );
@@ -32,8 +35,8 @@ export interface LandingBlockProps {
   title: string;
   icon: LucideIcon;
   empty?: boolean;
-  /** Grid span: wide (lg:6) for blocks 1–2, third (lg:4) for blocks 3–5. */
-  span: "wide" | "third";
+  /** Grid span: wide (lg:6) for blocks 1–2, third (lg:4) for blocks 3–5, full (lg:12) for the S44 synthesis band. */
+  span: "wide" | "third" | "full";
   /** Right-aligned header slot (a pill, a delta). */
   aside?: ReactNode;
   /** Footer slot — the block's ONE primary CTA. */
@@ -54,7 +57,7 @@ export function LandingBlock({ name, order, title, icon: Icon, empty = false, sp
       aria-labelledby={headingId}
       className={cn(
         "flex min-w-0 flex-col rounded-2xl border border-line-subtle bg-surface p-5 transition-colors hover:border-action/25",
-        span === "wide" ? "lg:col-span-6" : "lg:col-span-4",
+        span === "wide" ? "lg:col-span-6" : span === "full" ? "lg:col-span-12" : "lg:col-span-4",
         className,
       )}
     >

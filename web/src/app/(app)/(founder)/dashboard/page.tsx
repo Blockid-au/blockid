@@ -41,8 +41,10 @@ import { MoneyOnTheTable } from "@/components/dashboard/landing/money-on-the-tab
 import { EvidenceToAdd } from "@/components/dashboard/landing/evidence-to-add";
 import { YourReports } from "@/components/dashboard/landing/your-reports";
 import { WhatInvestorsSaid } from "@/components/dashboard/landing/what-investors-said";
+import { ExecutiveSynthesis } from "@/components/dashboard/landing/executive-synthesis";
+import { synthesisFromReport } from "@/lib/dashboard/executive-synthesis";
 import { getMoneyRadarTileData } from "@/lib/funding/tile-data";
-import { loadEvidenceReads, loadFeedbackLetter, loadRecentReports, loadStanding, type LandingKeys } from "@/lib/dashboard/landing-data";
+import { loadEvidenceReads, loadFeedbackLetter, loadLatestReportV2, loadRecentReports, loadStanding, type LandingKeys } from "@/lib/dashboard/landing-data";
 import { getLocale } from "@/lib/i18n";
 import { deriveEvidenceGaps } from "@/lib/dashboard/evidence-gaps";
 import { recommendNextStep } from "@/lib/nav/next-step-recommender";
@@ -92,7 +94,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
   // ── Five loaders, one round ───────────────────────────────────────────────
   const accountId = await resolveSVIAccountIdForPage(scope, user);
   const keys: LandingKeys = { dataEmail, projectId, ownerUserId, callerId: user.id, accountId };
-  const [standing, moneyRadar, evidenceReads, reports, isSandbox, feedbackLetter, locale] = await Promise.all([
+  const [standing, moneyRadar, evidenceReads, reports, isSandbox, feedbackLetter, locale, reportV2] = await Promise.all([
     loadStanding(supabase, keys),
     isMember
       ? Promise.resolve(null)
@@ -106,7 +108,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
     // G14-S34 — optional block 6, only when a letter exists (never throws).
     loadFeedbackLetter(supabase, keys),
     getLocale().catch(() => "en" as const),
+    // G19-S44 — optional block 1b, only when a stored report_v2 exists (never throws).
+    loadLatestReportV2(supabase, keys),
   ]);
+  const synthesis = reportV2 ? synthesisFromReport(reportV2, locale) : null;
 
   // ── Phase + derived values ────────────────────────────────────────────────
   const { analysis, sviScore, delta } = standing;
@@ -143,7 +148,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
   const percentile = sviScore != null ? Math.round(getSVIPercentile(sviScore, analysis?.stage ?? navPhase)) : null;
   const startupName = activeProject?.name ?? standing.startupName ?? user.startupName ?? null;
   const ctx: LandingContext = { phase: effectivePhase ?? "none", plan: user.plan ?? "free", persona: "founder" };
-  const blocks = landingBlocksFor({ isMember, hasFeedbackLetter: Boolean(feedbackLetter) });
+  const blocks = landingBlocksFor({ isMember, hasFeedbackLetter: Boolean(feedbackLetter), hasReportV2: Boolean(synthesis) });
   const emptyBlocks = [
     sviScore == null && "where-you-stand",
     step.href === "/analyze" && "next-best-action",
@@ -195,6 +200,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
             startupName={startupName}
             scoredAt={standing.scoredAt}
           />
+          {synthesis ? <ExecutiveSynthesis ctx={ctx} data={synthesis} locale={locale} /> : null}
           <NextBestAction ctx={ctx} step={step} growthPhaseId={effectivePhase} ownerLabel={ownerLabel} canEdit={canEdit} />
           {!isMember && <MoneyOnTheTable ctx={ctx} data={moneyRadar} />}
           <EvidenceToAdd ctx={ctx} result={evidence} canEdit={canEdit} />
