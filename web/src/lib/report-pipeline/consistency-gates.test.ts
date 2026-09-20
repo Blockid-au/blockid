@@ -113,9 +113,14 @@ describe("2. valuation consensus within the stage band", () => {
     expect(high.consensus.confidence).toBe(0.56);
     expect(high.narrative).toMatch(/Consistency note: .* sits above the AU stage band/);
     expect(out.issues.some((i) => i.type === "data_misalignment")).toBe(true);
-    // Idempotent: a second pass does not append a second note.
+    // G19-S42: the same note is exposed on the chapter so every surface renders it.
+    expect(high.consistencyNotes).toHaveLength(1);
+    expect(high.consistencyNotes?.[0]).toMatch(/^Consistency note: .* sits above the AU stage band/);
+    // Idempotent: a second pass does not append a second note (narrative or chapter).
     applyConsistencyGates({ dimScores: {}, valuation: high, stage: 1, evidenceRows: [], executiveSummary: "" });
     expect(high.narrative.match(/Consistency note:/g)).toHaveLength(1);
+    expect(high.consistencyNotes).toHaveLength(1);
+    expect(ok.consistencyNotes).toBeUndefined();
   });
 
   it("no valuation → null verdict", () => {

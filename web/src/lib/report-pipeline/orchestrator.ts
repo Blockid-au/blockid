@@ -755,6 +755,7 @@ function valuationChapterFor(v: GatherOutput["valuation"], input: OrchestratorIn
       stage: context.stage,
       stageLabel: input.sviAnalysis.stageLabel,
       industry: input.sviAnalysis.sectorLabel ?? input.sviAnalysis.sector ?? null,
+      sviIndex: input.sviAnalysis.totalSVI,
       ask: v.ask,
       revenueEvidenceIds: v.revenueEvidenceIds,
       at: new Date().toISOString(),

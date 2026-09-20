@@ -1606,9 +1606,11 @@ describe("orchestrateReport() — per-dimension re-run (dims) + valuation event"
     expect(types.indexOf("valuation_complete")).toBeGreaterThan(types.lastIndexOf("dimension_complete"));
     expect(types.indexOf("valuation_complete")).toBeLessThan(types.indexOf("criteria_synthesis"));
     const val = events.find((e): e is Extract<PipelineEvent, { type: "valuation_complete" }> => e.type === "valuation_complete")!;
-    expect(val.chapter.methods).toHaveLength(6);
+    expect(val.chapter.methods).toHaveLength(7);
     expect(val.chapter.consensus.midAud).toBe(100_000_000);
     expect(report.reportV2?.valuation.consensus.midAud).toBe(100_000_000);
-    expect(report.reportV2?.valuation.narrative).toMatch(/five weighted methods/);
+    // G19-S42: the stub CFO row carries no method rows, so the chapter says so instead of claiming five.
+    expect(report.reportV2?.valuation.narrative).toMatch(/^Directional consensus \(no valuation method ran\)/);
+    expect(report.reportV2?.valuation.crossChecks?.length).toBeGreaterThanOrEqual(1);
   });
 });

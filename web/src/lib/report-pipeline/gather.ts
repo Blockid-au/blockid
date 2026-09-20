@@ -432,19 +432,26 @@ async function defaultLoadGrants(db: GatherDb, projectId: string, stage: number,
 }
 
 async function defaultBuildValuation(input: Row): Promise<VcValuationLike> {
-  const { buildVcValuationReport, vcBenchmark } = await import("@/lib/agents/cfo-valuation");
+  const [{ buildVcValuationReport, vcBenchmark }, { readSviBacktestLatest }] = await Promise.all([import("@/lib/agents/cfo-valuation"), import("@/lib/backtest/latest")]);
   const rep = buildVcValuationReport(input as Parameters<typeof buildVcValuationReport>[0]);
   const bm = vcBenchmark(String(input.sector ?? "default"));
   const dateMatch = bm.sourceLabel.match(/\d{4}-\d{2}(?:-\d{2})?/);
+  // G19-S42: the published SVI backtest feeds the quartile cross-check row.
+  const backtest = await readSviBacktestLatest().catch(() => null);
   return {
     blended: rep.blended,
     methods: rep.methods,
     scenarios: rep.scenarios,
     unitEconomics: rep.unitEconomics as unknown as Record<string, unknown>,
     sources: rep.sources,
-    injection: { raiseAud: rep.injection.raiseAud, preMoneyAud: rep.injection.preMoneyAud },
+    // The raise is the founder's number or nothing (raiseStated) — never invented.
+    injection: { raiseAud: rep.injection.raiseAud, raiseStated: rep.injection.raiseStated, preMoneyAud: rep.injection.preMoneyAud },
     sectorMultiples: { sector: rep.sector, low: bm.arrMultiple.low, median: bm.arrMultiple.mid, high: bm.arrMultiple.high, sourceLabel: bm.sourceLabel, sourceDate: dateMatch ? dateMatch[0] : "" },
     inputs: input as VcValuationLike["inputs"],
+    valuationInputs: rep.inputs,
+    derivation: rep.derivation,
+    stageBaseline: rep.stageBaseline,
+    backtest: backtest ? { generated_at: backtest.generated_at, n: backtest.n, n_with_round: backtest.n_with_round, buckets: backtest.buckets } : null,
   };
 }
 
@@ -788,6 +795,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
   const valuationInput: Row = {
     sector: context.sviAnalysis.sector ?? "default",
     stage: STAGE_TO_CFO[Math.max(0, Math.min(7, context.stage))] ?? "pre-seed",
+    sviStage: Math.max(0, Math.min(7, context.stage)),
     mrrAud: Math.round(mrrAud),
     arrAud: Math.round(mrrAud * 12),
     ...(typeof growthPct === "number" && Number.isFinite(growthPct) ? { monthlyGrowthRatePct: growthPct } : {}),

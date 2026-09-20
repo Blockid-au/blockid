@@ -151,6 +151,8 @@ describe("gatherData — sources", () => {
     expect(out.evidenceRows.every((r) => r.source && r.observedAt)).toBe(true);
     // Valuation inputs: founder-stated MRR, ask from signals.
     expect(out.valuation.vc?.inputs).toMatchObject({ mrrAud: 8000, arrAud: 96000, sector: "saas", stage: "seed", raiseAud: 1_000_000, hasFounderVesting: true, revenueSource: "founder-stated" });
+    // G19-S42: the SVI stage 0–7 travels with the row so the CFO picks the exact stage baseline.
+    expect(typeof (out.valuation.vc?.inputs as Row).sviStage).toBe("number");
     expect(out.valuation.ask).toEqual({ statedCapAud: 6_000_000, statedCapKind: "cap", raiseAud: 1_000_000 });
     expect(out.valuation.revenueEvidenceIds).toEqual([]);
   });
