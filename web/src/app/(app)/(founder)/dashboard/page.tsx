@@ -150,7 +150,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
       {sp.onboarding === "complete" && <OnboardingWelcomeModal />}
 
       <div className="mx-auto max-w-6xl space-y-6 px-6 pb-24 pt-6" data-founder-landing data-landing-phase={ctx.phase}>
-        <RoleLandingIntro role="founder" variant="compact" hasGlobalSpotlight />
+        {/* The landing's one h1 (G20-sweep) — the blocks below are h2 cards. */}
+        <RoleLandingIntro role="founder" variant="compact" hasGlobalSpotlight headingLevel="h1" />
 
         {isMember && !canEdit && <ViewOnlyNote role={role} action="run analyses, upload evidence or unlock report sections" />}
 

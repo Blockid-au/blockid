@@ -49,7 +49,14 @@ vi.mock("next/navigation", () => ({
 const NULL = () => null;
 vi.mock("@/components/analytics/page-tracker", () => ({ PageTracker: NULL }));
 vi.mock("@/components/dashboard/onboarding-welcome-modal", () => ({ OnboardingWelcomeModal: NULL }));
-vi.mock("@/components/role/role-landing-intro", () => ({ RoleLandingIntro: NULL }));
+// G20-sweep: the intro carries the landing's ONE h1 — the mock keeps the
+// heading level so the render test can count headings.
+vi.mock("@/components/role/role-landing-intro", () => ({
+  RoleLandingIntro: (p: { headingLevel?: "h1" | "h2" }) => {
+    const Heading = p.headingLevel ?? "h2";
+    return <Heading data-role-intro-heading>Founder landing</Heading>;
+  },
+}));
 // Client trackers: the viewed tracker becomes a data probe, the CTA a plain
 // anchor that keeps its `data-landing-cta` / `data-testid` contract.
 vi.mock("@/components/dashboard/landing/landing-tracker", () => ({
@@ -184,6 +191,12 @@ describe("/dashboard — five blocks (G13-W3-IA3 §B.1)", () => {
     expect(tileMock).toHaveBeenCalledTimes(1);
     expect(tileMock.mock.calls[0][3]).toEqual({ ownerUserId: state.callerId, dataEmail: state.callerEmail });
     expect(out).not.toContain("viewer-readonly-note");
+  });
+
+  it("G20-sweep: exactly one <h1> — the role intro title; every block heading is an h2", async () => {
+    const out = await html();
+    expect((out.match(/<h1[\s>]/g) ?? []).length).toBe(1);
+    expect(out).toMatch(/<h1[^>]*data-role-intro-heading/);
   });
 
   it("block 2: ONE recommendation from the recommender — a scored founder with no declared phase gets the earliest phase of their SVI band, with the evidence-gap impact", async () => {
