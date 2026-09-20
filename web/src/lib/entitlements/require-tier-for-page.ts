@@ -14,6 +14,7 @@
 
 import "server-only";
 
+import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { getCurrentUser } from "@/lib/auth";
@@ -52,18 +53,37 @@ export interface RequireTierOptions {
  * Assert the current user can access this page. Redirects on miss; returns
  * `void` on allow so the caller can `await requireTierForPage(...)` at the
  * top of the RSC and continue rendering.
+ *
+ * G20-sweep: the decision itself is `resolveTierGate` (below), which the
+ * `(founder)` layout consults BEFORE `workspace/loading.tsx` streams so the
+ * redirect is a real 307. A page that calls this after the layout already
+ * decided re-uses the same per-request promise (React `cache`) — one
+ * `can()` lookup per request, never two.
  */
 export async function requireTierForPage(opts: RequireTierOptions): Promise<void> {
-  const { feature, minTier, fromPath } = opts;
+  const target = await resolveTierGate(opts.feature ?? null, opts.minTier ?? null, opts.fromPath);
+  if (target) redirect(target);
+}
 
+/**
+ * The gate decision without the throw: the redirect target (`/auth/login?next=`
+ * or `/pricing?feature=&from=`) when the caller may NOT open `fromPath`, or
+ * `null` when they may. Per-request memoised on (feature, minTier, fromPath)
+ * so a layout + page pair shares one lookup.
+ */
+export const resolveTierGate = cache(async function resolveTierGate(
+  feature: Feature | null,
+  minTier: PlanTier | null,
+  fromPath: string,
+): Promise<string | null> {
   // Defensive safe-list guard so a copy-paste never gates the escape hatches.
   if (SAFE_LIST.some((p) => fromPath === p || fromPath.startsWith(p + "?"))) {
-    return;
+    return null;
   }
 
   const user = await getCurrentUser();
   if (!user) {
-    redirect(`/auth/login?next=${encodeURIComponent(fromPath)}`);
+    return `/auth/login?next=${encodeURIComponent(fromPath)}`;
   }
 
   const plan = user.plan ?? "free";
@@ -72,24 +92,25 @@ export async function requireTierForPage(opts: RequireTierOptions): Promise<void
   // Tier check (cheap, in-memory) first — short-circuits before hitting the
   // plans-db lookup that `can()` performs.
   if (minTier && !meetsMinPlan(plan, minTier)) {
-    await maybeRecordGateHit(uwp, feature, fromPath);
-    redirectToPricing(fromPath, feature);
+    await maybeRecordGateHit(uwp, feature ?? undefined, fromPath);
+    return pricingTarget(fromPath, feature ?? undefined);
   }
 
   if (feature) {
     const ok = await can(uwp, feature);
     if (!ok) {
       await maybeRecordGateHit(uwp, feature, fromPath);
-      redirectToPricing(fromPath, feature);
+      return pricingTarget(fromPath, feature);
     }
   }
-}
+  return null;
+});
 
-function redirectToPricing(fromPath: string, feature?: Feature): never {
+function pricingTarget(fromPath: string, feature?: Feature): string {
   const params = new URLSearchParams();
   if (feature) params.set("feature", feature);
   params.set("from", fromPath);
-  redirect(`/pricing?${params.toString()}`);
+  return `/pricing?${params.toString()}`;
 }
 
 async function maybeRecordGateHit(
