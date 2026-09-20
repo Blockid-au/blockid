@@ -1,8 +1,8 @@
 {
   "dumped_at": "2026-09-17",
-  "source": "pg_constraint (contype=f) on production supabase-db, confrelid = public.app_users; 0417 claims/evidence_records/claim_versions FKs + 0422 intake_templates/cohort_snapshots FKs + 0418 corrections FKs added by hand until `--fixture` is re-run; regenerate with `node scripts/db/app-users-fk-inventory.mjs --json --fixture`",
+  "source": "pg_constraint (contype=f) on production supabase-db, confrelid = public.app_users; 0417 claims/evidence_records/claim_versions FKs + 0422 intake_templates/cohort_snapshots FKs + 0418 corrections FKs + 0427 startup_outcomes FKs added by hand until `--fixture` is re-run; regenerate with `node scripts/db/app-users-fk-inventory.mjs --json --fixture`",
   "referenced": "public.app_users(id)",
-  "count": 147,
+  "count": 149,
   "fks": [
     {
       "constraint": "ab_assignments_user_id_fkey",
@@ -1032,6 +1032,20 @@
       "column": "user_id",
       "on_delete": "CASCADE",
       "not_null": true
+    },
+    {
+      "constraint": "startup_outcomes_recorded_by_fkey",
+      "table": "startup_outcomes",
+      "column": "recorded_by",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "startup_outcomes_confirmed_by_fkey",
+      "table": "startup_outcomes",
+      "column": "confirmed_by",
+      "on_delete": "SET NULL",
+      "not_null": false
     }
   ]
 }
