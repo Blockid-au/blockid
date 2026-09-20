@@ -72,7 +72,7 @@ to the cancel section.
 ```bash
 # read-only, from the deploy host (never paste keys anywhere)
 curl -s https://api.stripe.com/v1/billing_portal/configurations \
-  -u "$STRIPE_SECRET_KEY:" -G -d active=true -d limit=10 | jq '.data[] | {id, is_default, active, features}'
+  -H "Authorization: Bearer $STRIPE_SECRET_KEY" -G -d active=true -d limit=10 | jq '.data[] | {id, is_default, active, features}'
 ```
 
 Dashboard path: **Settings → Billing → Customer portal** (the page lists the

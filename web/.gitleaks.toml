@@ -107,6 +107,18 @@ regexes = [
 ]
 
 # ---------------------------------------------------------------------------
+# Runbook curl examples that pass an ENV VARIABLE as the basic-auth user
+# (`-u "$STRIPE_SECRET_KEY:"`) — a placeholder, never a value (G18-D
+# docs/ops/billing-portal.md). Literal shell-variable form only.
+# ---------------------------------------------------------------------------
+[[allowlists]]
+description = "curl -u with a $ENV_VAR placeholder in runbooks"
+regexTarget = "line"
+regexes = [
+  '''-u ["']?\$[A-Z0-9_]+:?["']?''',
+]
+
+# ---------------------------------------------------------------------------
 # Telegram bot token by SHAPE, no keyword gate.
 #
 # The default telegram-bot-api-token rule only runs on files containing the
