@@ -108,7 +108,7 @@ export function RunComparisonLegend() {
       </span>
       <span className="inline-flex items-center gap-2">
         <span aria-hidden className="h-3 w-px bg-line-strong" />
-        Australian average at the same stage (the tick under each bar)
+        Stage benchmark — comparable Australian startups at the same stage (the tick under each bar)
       </span>
       <Link
         href="/reports/samples"

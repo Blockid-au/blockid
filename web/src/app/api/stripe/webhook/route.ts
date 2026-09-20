@@ -26,6 +26,7 @@ import {
 } from "@/lib/stripe/addon-entitlements";
 import { extendTimedGrant, invalidateTimedGrants } from "@/lib/entitlements/timed-grants";
 import { STARTUP_PACKAGE_RADAR_DAYS } from "@/lib/plans-v2";
+import { onInvoicePaid } from "@/lib/analytics/fi-events";
 
 // POST /api/stripe/webhook
 // Stripe sends webhook events here. Verifies the signature, then processes
@@ -1007,6 +1008,10 @@ export async function POST(request: Request) {
 
     const amountCents = invoice.amount_paid ?? 0;
     const currency = invoice.currency ?? "aud";
+
+    // G21 P0-D — `subscription_renewed` in the FI analytics vocabulary
+    // (renewal cycles only; the helper ignores first invoices).
+    onInvoicePaid(invoice, paidUser ? { id: paidUser.id, email: paidUser.email, plan: paidUser.plan } : null);
 
     if (paidUser?.email) {
       sendPaymentReceipt({

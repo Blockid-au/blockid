@@ -205,7 +205,7 @@ describe("docs/design/messaging.md § 11 — the never-say table", () => {
 });
 
 describe("the hero and brand lines the map fixes are the ones the code ships", () => {
-  it("E1/E2 in hero-variants.ts match § 2 verbatim (EN + VI)", async () => {
+  it("FI1/FI2 (default hero) and E1/E2 (legacy arm) in hero-variants.ts match § 2 verbatim", async () => {
     const { heroLine } = await import("./hero-variants");
     const row = (label: string) => {
       const line = doc.split("\n").find((l) => l.startsWith(`| **${label}**`));
@@ -213,7 +213,12 @@ describe("the hero and brand lines the map fixes are the ones the code ships", (
       const cells = splitRow(line!);
       return { en: backtickSpans(cells[1]!)[0], vi: backtickSpans(cells[2]!)[0] };
     };
-    const e1 = row("H1 (E1)");
+    const fi1 = row("H1 (FI1)");
+    const fi2 = row("Sub (FI2)");
+    expect(heroLine("FI1").en).toBe(fi1.en);
+    expect(heroLine("FI1").vi).toBe(fi1.vi);
+    expect(heroLine("FI2").en).toBe(fi2.en);
+    const e1 = row("H1 (E1, legacy arm)");
     const e2 = row("Sub (E2)");
     expect(heroLine("E1").en).toBe(e1.en);
     expect(heroLine("E1").vi).toBe(e1.vi);
@@ -233,7 +238,7 @@ describe("the hero and brand lines the map fixes are the ones the code ships", (
     expect(layout).toContain('const SITE_NAME = "BlockID.au — Startup Value Index"');
     expect(layout).toContain('template: "%s | BlockID.au"');
     const og = readFileSync(resolve(WEB_ROOT, "src/app/opengraph-image.tsx"), "utf8");
-    expect(og).toContain('export const alt = "Score any Australian startup in 60 seconds · BlockID.au"');
+    expect(og).toContain('export const alt = "Screen every startup on the same evidence-backed framework · BlockID.au"');
     const manifest = JSON.parse(readFileSync(resolve(WEB_ROOT, "public/site.webmanifest"), "utf8")) as { name: string; short_name: string };
     expect(manifest.name).toBe("BlockID.au — Startup Value Index");
     expect(manifest.short_name).toBe("BlockID");

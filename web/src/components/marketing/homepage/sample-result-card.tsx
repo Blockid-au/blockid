@@ -122,7 +122,7 @@ export function SampleResultCard({ runId = "mvp", className }: SampleResultCardP
           the same grammar as every chart on /product. */}
       <div className="rounded-lg bg-surface-sunken p-5">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-          Published dimensions vs. the Australian average
+          Published dimensions vs. the stage benchmark
         </p>
         <ul role="list" className="mt-4 space-y-3.5">
           {[...dims].reverse().map((b) => (
@@ -141,7 +141,7 @@ export function SampleResultCard({ runId = "mvp", className }: SampleResultCardP
           ))}
         </ul>
         <p className="mt-5 text-xs leading-relaxed text-muted">
-          Four of the eight dimensions are published for this run; the other four are held back with the company&rsquo;s identity. The hairline is the Australian average at the same stage.
+          Four of the eight dimensions are published for this run; the other four are held back with the company&rsquo;s identity. The hairline is the stage benchmark: comparable Australian startups at the same stage.
         </p>
       </div>
     </article>

@@ -17,11 +17,16 @@ Sources of truth this map condenses (it does not replace them): `docs/plans/unic
 | Bio / press / `og:description` (G1) | `BlockID is Australia's startup readiness score — it tells founders what they're worth and where to get money, and tells investors who's ready.` |
 | Application name | `BlockID.au` |
 
-## 2. Hero (E1 / E2 — verbatim, G17 D1)
+## 2. Hero (FI1 / FI2 — verbatim, G21 P0-B; E1/E2 kept as selectable arms via `?hero=`)
 
 | | EN | VI |
 |---|---|---|
-| **H1 (E1)** | `Score any Australian startup in 60 seconds.` | `Chấm điểm bất kỳ startup Úc nào trong 60 giây.` |
+| **H1 (FI1)** | `Screen every startup on the same evidence-backed framework.` | `Sàng lọc mọi startup trên cùng một khung đánh giá có bằng chứng.` |
+| **Sub (FI2)** | `BlockID turns startup applications, pitch decks and company evidence into a comparable Startup Value Index, evaluator dossier and improvement plan — so programs can screen faster and founders know exactly what to improve.` | `hero.line.fi2` in `vi.json` |
+| Primary CTA | `Run a cohort pilot` → `/solutions/accelerator#pilot` | `Chạy thử với một cohort` |
+| Secondary CTA | `Score my startup` → `/analyze` | `Chấm điểm startup của tôi` |
+| Trust line | `Australian-built · Evidence-backed · Founder-controlled data` | — |
+| **H1 (E1, legacy arm)** | `Score any Australian startup in 60 seconds.` | `Chấm điểm bất kỳ startup Úc nào trong 60 giây.` |
 | **Sub (E2)** | `One rubric for every deal — eight dimensions, an evidence-backed valuation range and an Investor Dossier. Investors, accelerators and advisors use it; founders get the feedback free.` | `Một thước đo cho mọi thương vụ — tám chiều đánh giá, khoảng định giá có bằng chứng và một Hồ sơ Nhà đầu tư. Nhà đầu tư, vườn ươm và cố vấn dùng nó; founder nhận phản hồi miễn phí.` |
 | Primary CTA | `Score a startup` → search box / `/analyze` | `Chấm điểm một startup` |
 | Secondary CTA | `See a sample dossier` → `/tbr/demo` | `Xem Hồ sơ mẫu` |

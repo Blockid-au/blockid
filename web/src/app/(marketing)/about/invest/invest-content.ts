@@ -109,12 +109,11 @@ export const INVEST_TRACTION_POINTS: readonly string[] = [
 
 export const INVEST_MARKET_STATS = [
   { value: "600K", label: "Australian companies in TAM" },
-  { value: "70%", label: "Have cap table issues at Series A" },
   { value: "0", label: "AU-native alternatives today" },
 ] as const;
 
 export const INVEST_TEAM_PARAGRAPH =
-  "An experienced founder who has raised capital, negotiated term sheets and built cap tables from scratch — supported by 11 C-Level AI agents (CEO, COO, CTO, CFO, CPO, CMO, CRO, CLO, CHRO, CDO, CISO) for valuation, market research, R&D eligibility, financial modelling, compliance, content and more, with an auditor agent checking their claims. The scoring method is grounded in the founder's doctoral research (DBA) on startup valuation. This AI-native approach delivers the output of a 20+ person team at a fraction of the cost and time.";
+  "An experienced founder who has raised capital, negotiated term sheets and built cap tables from scratch — supported by a C-suite of AI agents (CEO, COO, CTO, CFO, CPO, CMO, CRO, CLO, CHRO, CDO, CISO) for valuation, market research, R&D eligibility, financial modelling, compliance, content and more, with an auditor agent checking their claims. The scoring method is grounded in the founder's doctoral research (DBA) on startup valuation. This AI-native approach delivers the output of a 20+ person team at a fraction of the cost and time.";
 
 export const INVEST_ASK: readonly InvestCard[] = [
   {

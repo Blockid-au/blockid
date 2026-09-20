@@ -13,6 +13,7 @@ import type Stripe from "stripe";
 import { PILOT_SKUS, isPilotSkuId, type PilotSkuId } from "@/lib/pricing/pilot-skus";
 import { addDays } from "./ledger";
 import { startPaidPilot, type PilotDeps, type StartPaidPilotResult } from "./service";
+import { onPilotStarted } from "@/lib/analytics/fi-events";
 
 export interface PilotOrderRow {
   id: string;
@@ -140,6 +141,19 @@ export async function fulfilPaidPilot(session: PaidPilotSession, deps: PaidPilot
   });
   if (!inserted.ok) return { ok: false, skipped: "insert_failed", message: inserted.error };
   if (inserted.duplicate) return { ok: true, duplicate: true, order_id: inserted.id };
+
+  // G21 P0-D — `pilot_started` (paid) in the FI analytics vocabulary.
+  onPilotStarted({
+    id: inserted.id,
+    sku,
+    applicantsCap,
+    amountCents: session.amount_total ?? skuRow.amountInclGstCents,
+    source: "paid",
+    userId,
+    email,
+    projectId,
+    channel: "checkout:pilot",
+  });
 
   const pilot = await startPaidPilot(
     { user_id: userId, email, sku, order_id: inserted.id, program_name: md.program_name ?? null, days: skuRow.entitlementDays },

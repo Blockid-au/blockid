@@ -180,7 +180,7 @@ export default function InvestInBlockIdPage() {
         </ul>
       </Section>
 
-      <Section id="team" eyebrow="The team" title="Solo founder + 11 C-Level agents.">
+      <Section id="team" eyebrow="The team" title="Solo founder + a C-suite of AI agents.">
         <Prose>
           <p>{INVEST_TEAM_PARAGRAPH}</p>
         </Prose>

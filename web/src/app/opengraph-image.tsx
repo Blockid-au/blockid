@@ -1,9 +1,9 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-// G18-C: og:image:alt mirrors the E1 hero H1 (docs/design/messaging.md § 2)
+// G21 P0-B: og:image:alt mirrors the FI1 hero H1 (docs/design/messaging.md § 2)
 // so the social card, browser tab and hero headline all say the same thing.
-export const alt = "Score any Australian startup in 60 seconds · BlockID.au";
+export const alt = "Screen every startup on the same evidence-backed framework · BlockID.au";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -73,7 +73,7 @@ export default async function OGImage() {
             maxWidth: 900,
             display: "flex",
           }}>
-            Score any Australian startup in 60 seconds
+            Screen every startup on the same evidence-backed framework
           </div>
           <div style={{
             fontSize: 22,

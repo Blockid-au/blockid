@@ -26,7 +26,7 @@ export async function OrganizationJsonLd() {
     logo: "https://blockid.au/images/logo-transparent.png",
     // G18-C: G1 from the speakable catalogue — the same sentence as the
     // site og:description (docs/design/messaging.md § 1).
-    description: heroLine("G1").en,
+    description: heroLine("FI2").en,
     alternateName: ["BlockID", "Startup Value Index"],
     email: "support@blockid.au",
     address: {

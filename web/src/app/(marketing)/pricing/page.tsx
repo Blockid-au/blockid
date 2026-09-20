@@ -138,7 +138,7 @@ export default async function PricingPage() {
           so nothing reflows across the hydration boundary. */}
       <PageHero
         eyebrow="Pricing v4"
-        title="Get fundable in 7 days. Then choose your plan."
+        title="One methodology. Choose the plan for your side of the table."
         sub="Free trial on every self-serve plan — Founder (Starter, Growth), Evaluator (Scout, Firm, Program, Fund) or Programs (Intake link, Cohort 25, Cohort 100). Card required at signup, charged only when the trial ends (7 days; 14 days on Programs). Cancel anytime before with no charge. Enterprise on request."
         ctas={[
           { href: "/signup?plan=founder_growth&trial=1", label: "Start 7-day free trial", ctaId: "pricing_hero_trial" },
