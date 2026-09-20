@@ -17,7 +17,8 @@
 import { CRITERIA, type CriterionKey, type QualityLevel } from "@/lib/evaluation-criteria";
 import { getMultiplesBenchmark, mapSectorToAUIndustry, mapStageToAUStage } from "@/lib/data/au-comparables";
 import { comparablesCounts, topComparables } from "@/lib/valuation/comparables-repo";
-import { PHASE_EXIT_RULES, computePhaseGate, type PhaseGateResult } from "@/lib/growth/phase-gate";
+import { PHASE_EXIT_RULES, type PhaseGateResult } from "@/lib/growth/phase-gate";
+import { inferPhase } from "@/lib/growth/infer-phase";
 import { GROWTH_PHASE_IDS, GROWTH_PHASE_LABELS, type GrowthPhaseId } from "@/lib/growth/phase-taxonomy";
 import { DIMENSION_OWNERS, DIM_ORDER, criteriaForDimension, type DimKey } from "@/lib/report-pipeline/dimension-owners";
 import { buildValuationChapter, type ValuationAskInput, type VcValuationLike } from "@/lib/report-pipeline/valuation-chapter";
@@ -355,26 +356,11 @@ function stamp(at: string): AuditStamp {
 // ── Phase inference ─────────────────────────────────────────────────────────
 
 /**
- * Current growth phase = the first phase whose exit gate is not cleared by
- * the stored criteria quality + dimension scores (deterministic, no LLM).
- * An explicit `phaseId` from the project row wins when supplied.
+ * G19-S44 (D5): the one phase rule lives in `lib/growth/infer-phase.ts` and
+ * is re-exported here so existing importers keep working; the dashboard and
+ * the pipeline call the same function.
  */
-export function inferPhase(
-  explicit: string | null | undefined,
-  criteriaQuality: Array<{ criterion_key: string; quality_level: QualityLevel }>,
-  dims: Partial<Record<DimKey, number>>,
-): PhaseGateResult {
-  if (explicit && (GROWTH_PHASE_IDS as readonly string[]).includes(explicit)) {
-    return computePhaseGate({ currentPhase: explicit, criteria: criteriaQuality, dimensions: dims });
-  }
-  let last: PhaseGateResult | null = null;
-  for (const phase of GROWTH_PHASE_IDS) {
-    const r = computePhaseGate({ currentPhase: phase, criteria: criteriaQuality, dimensions: dims });
-    last = r;
-    if (r.blockers.length > 0 || r.nextPhase === null) return r;
-  }
-  return last ?? computePhaseGate({ currentPhase: "vision", criteria: criteriaQuality, dimensions: dims });
-}
+export { inferPhase };
 
 // ── Dimension chapter builders ──────────────────────────────────────────────
 
