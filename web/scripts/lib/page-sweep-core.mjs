@@ -337,7 +337,11 @@ export function safePath(url) {
 
 // ── Summary ─────────────────────────────────────────────────────────────
 
-export function summarize(rows, { skippedDynamic = [], skippedPersonas = [] } = {}) {
+/**
+ * @param {Array<Record<string, any>>} rows
+ * @param {{ skippedDynamic?: string[], skippedPersonas?: string[] }} [opts]
+ */
+export function summarize(rows, { skippedDynamic = /** @type {string[]} */ ([]), skippedPersonas = /** @type {string[]} */ ([]) } = {}) {
   const byPersona = {};
   let defects = 0;
   for (const r of rows) {
