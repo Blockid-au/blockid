@@ -93,8 +93,9 @@ export default async function AcceleratorCohortPage({ searchParams }: PageProps)
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
-      <FeatureGate feature={COHORT_FEATURE} label="Cohort management">
-        <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+      {/* The heading stays outside the client gate: the page keeps its h1 while
+          /api/entitlement/me resolves and when the gate card renders (G20-F2). */}
+      <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
           <header className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-ink-900">Cohort</h1>
@@ -111,6 +112,7 @@ export default async function AcceleratorCohortPage({ searchParams }: PageProps)
             </Link>
           </header>
 
+          <FeatureGate feature={COHORT_FEATURE} label="Cohort management">
           {batches.length > 0 ? (
             <nav
               aria-label="Filter by batch"
@@ -217,8 +219,8 @@ export default async function AcceleratorCohortPage({ searchParams }: PageProps)
           )}
 
           <NotFinancialAdvice kind="not_financial_advice" compact />
-        </div>
-      </FeatureGate>
+          </FeatureGate>
+      </div>
     </WorkspaceLayout>
   );
 }

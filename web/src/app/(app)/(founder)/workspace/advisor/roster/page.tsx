@@ -79,8 +79,9 @@ export default async function AdvisorRosterPage() {
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
-      <FeatureGate feature={ADVISOR_COHORT_FEATURE} label="Advisor client roster">
-        <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+      {/* The heading stays outside the client gate: the page keeps its h1 while
+          /api/entitlement/me resolves and when the gate card renders (G20-F2). */}
+      <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
           <header className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-ink-900">Client Roster</h1>
@@ -97,6 +98,7 @@ export default async function AdvisorRosterPage() {
             </Link>
           </header>
 
+          <FeatureGate feature={ADVISOR_COHORT_FEATURE} label="Advisor client roster">
           <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
             {roster.length === 0 ? (
               <div className="py-8 text-center">
@@ -169,8 +171,8 @@ export default async function AdvisorRosterPage() {
           </section>
 
           <NotFinancialAdvice kind="not_financial_advice" compact />
-        </div>
-      </FeatureGate>
+          </FeatureGate>
+      </div>
     </WorkspaceLayout>
   );
 }
