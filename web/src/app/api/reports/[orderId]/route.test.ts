@@ -58,6 +58,16 @@ vi.mock("@/lib/branding/load", () => ({
   loadBrandSettings: () => Promise.resolve(null),
 }));
 
+// ── G19-S45: ReportV2 twins (used only when the row carries report_json) ──
+const renderTbrPdfMock = vi.fn();
+vi.mock("@/lib/pdf/tbr-pdf", () => ({
+  renderTbrPdf: (...args: unknown[]) => renderTbrPdfMock(...args),
+}));
+const generateTbrDocxMock = vi.fn();
+vi.mock("@/lib/docx/tbr-docx", () => ({
+  generateTbrDocx: (...args: unknown[]) => generateTbrDocxMock(...args),
+}));
+
 // ── supabase ────────────────────────────────────────────────────────────
 type Row = Record<string, unknown>;
 
@@ -111,6 +121,7 @@ vi.mock("@/lib/supabase", () => ({
 }));
 
 import { GET } from "./route";
+import { demoReportV2 } from "@/lib/report-v2/fixtures";
 
 // ── fixtures ────────────────────────────────────────────────────────────
 
@@ -238,6 +249,8 @@ beforeEach(() => {
   generateSVIDocxMock.mockResolvedValue(Buffer.from("PKdocx-bytes"));
   renderToBufferMock.mockResolvedValue(Buffer.from("%PDF-1.7 fake"));
   sviReportPdfMock.mockReturnValue({ __element: "pdf" });
+  renderTbrPdfMock.mockResolvedValue({ buffer: new Uint8Array(Buffer.from("%PDF-1.7 v2")), pages: 12, level: 0 });
+  generateTbrDocxMock.mockResolvedValue(Buffer.from("PKdocx-v2"));
 });
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -448,6 +461,28 @@ describe("READY payload", () => {
     expect(body.ok).toBe(true);
     expect(body.report.reportId).toBe(REPORT_ID);
   });
+
+  // G19-S45 (D4): the paid product is the ReportV2 document.
+  it("returns report.reportV2 (8 chapters) when the assembled row carries report_json, null for a legacy order", async () => {
+    seedOrder();
+    seedReport({ report_json: demoReportV2() });
+    const body = (await (await call()).json()) as { report: { reportV2: { dimensions: unknown[]; tier: string } | null } };
+    expect(body.report.reportV2).not.toBeNull();
+    expect(body.report.reportV2!.dimensions).toHaveLength(8);
+    expect(body.report.reportV2!.tier).toBe("standard");
+
+    seedReport();
+    const legacy = (await (await call()).json()) as { report: { reportV2: unknown } };
+    expect(legacy.report.reportV2).toBeNull();
+  });
+
+  it("a report_json that fails ReportV2 validation is treated as legacy (never a half-document)", async () => {
+    seedOrder();
+    seedReport({ report_json: { schemaVersion: "2.1.0", dimensions: "nope" } });
+    const body = (await (await call()).json()) as { ok: boolean; report: { reportV2: unknown } };
+    expect(body.ok).toBe(true);
+    expect(body.report.reportV2).toBeNull();
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -482,6 +517,33 @@ describe("exports", () => {
     expect(res.headers.get("content-disposition")).toMatch(/\.pdf"$/);
     expect(renderToBufferMock).toHaveBeenCalledTimes(1);
     expect(sviReportPdfMock).toHaveBeenCalledTimes(1);
+  });
+
+  // G19-S45 (D4): v2 orders export through the v2 twins, never the legacy renderers.
+  it("?format=pdf on a v2 order renders through renderTbrPdf (react-pdf v2) — no legacy SVIReportPDF, no analysis row needed", async () => {
+    seedOrder();
+    seedReport({ report_json: demoReportV2() });
+    // no seedAnalysis(): the v2 path must not depend on svi_analyses.
+    const res = await call(ORDER_ID, "?format=pdf");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("application/pdf");
+    expect(res.headers.get("x-tbr-source")).toBe("stored");
+    expect(res.headers.get("cache-control")).toBe("private, no-store");
+    expect(renderTbrPdfMock).toHaveBeenCalledTimes(1);
+    expect((renderTbrPdfMock.mock.calls[0]![0] as { dimensions: unknown[] }).dimensions).toHaveLength(8);
+    expect(sviReportPdfMock).not.toHaveBeenCalled();
+    expect(renderToBufferMock).not.toHaveBeenCalled();
+  });
+
+  it("?format=docx on a v2 order renders through generateTbrDocx — no legacy generateSVIDocx", async () => {
+    seedOrder();
+    seedReport({ report_json: demoReportV2() });
+    const res = await call(ORDER_ID, "?format=docx");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("wordprocessingml");
+    expect(res.headers.get("x-tbr-source")).toBe("stored");
+    expect(generateTbrDocxMock).toHaveBeenCalledTimes(1);
+    expect(generateSVIDocxMock).not.toHaveBeenCalled();
   });
 
   it("does not charge credits for an export the buyer already paid for", async () => {
@@ -570,6 +632,7 @@ describe("payload whitelist", () => {
     "createdAt",
     "sections",
     "charts",
+    "reportV2",
   ].sort();
 
   const SECTION_KEYS = [

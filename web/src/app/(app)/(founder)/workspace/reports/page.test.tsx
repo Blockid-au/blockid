@@ -142,7 +142,9 @@ describe("/workspace/reports (S-IA2 All reports)", () => {
     expect(out).toContain(">Investor pack<");
 
     // Links per source.
-    expect(out).toContain('href="/workspace/reports/order?order=order-1"');
+    // G19-S45 (D4): a paid order opens the ReportV2 page, never the markdown wall.
+    expect(out).toContain('href="/workspace/reports/business?order=order-1"');
+    expect(out).not.toContain('href="/workspace/reports/order?order=order-1"');
     expect(out).toContain('href="/workspace/reports/an-1"');
     expect(out).not.toContain('href="/workspace/reports/rpt-ordered"');
     expect(out).toContain('href="/api/investor-pack/download/share-abc"');

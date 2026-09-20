@@ -6,6 +6,7 @@ import { getCurrentProjectIsSandbox } from "@/lib/projects";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { asReportTierClient, emitReportView, resolveReportTier } from "@/lib/analytics/funnel";
 import { BusinessReportClient } from "./business-report-client";
+import { orderParam } from "@/lib/paywall/report-delivery";
 
 export const metadata: Metadata = {
   title: "Trusted Business Report — BlockID",
@@ -19,13 +20,15 @@ export const dynamic = "force-dynamic";
 export default async function BusinessReportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ pid?: string }>;
+  searchParams: Promise<{ pid?: string; order?: string | string[] }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/reports/business");
   const isSandbox = await getCurrentProjectIsSandbox();
-  const { pid } = await searchParams;
+  const { pid, order } = await searchParams;
   const projectId = pid ?? "default";
+  // G19-S45 (D4): `?order=<id>` — the post-purchase landing (reportOrderPath).
+  const orderId = orderParam(order);
 
   // G16-A funnel: `report_view` — the founder opened their Trusted Business
   // Report. Server-side so it fires whether or not the client bundle hydrates
@@ -40,7 +43,7 @@ export default async function BusinessReportPage({
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
-      <BusinessReportClient projectId={projectId} />
+      <BusinessReportClient projectId={projectId} orderId={orderId} />
     </WorkspaceLayout>
   );
 }

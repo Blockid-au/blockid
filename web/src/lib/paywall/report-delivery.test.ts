@@ -19,6 +19,9 @@ import {
   parseExportFormat,
   parseOrderStatus,
   reconstructAssembledReport,
+  legacyReportOrderPath,
+  orderLandingRedirect,
+  orderParam,
   reportOrderPath,
   sanitiseFailureReason,
   toOrderView,
@@ -306,8 +309,10 @@ describe("toReportView", () => {
         "createdAt",
         "sections",
         "charts",
+        "reportV2",
       ].sort(),
     );
+    expect(view.reportV2).toBeNull();
     for (const section of view.sections) {
       expect(Object.keys(section).sort()).toEqual(
         ["id", "title", "agentRole", "criterion", "score", "wordCount", "content"].sort(),
@@ -379,13 +384,46 @@ describe("exportFilename", () => {
 });
 
 describe("reportOrderPath", () => {
-  it("points at the delivery page", () => {
-    expect(reportOrderPath("abc-123")).toBe("/workspace/reports/order?order=abc-123");
+  it("G19-S45 (D4): points at the ReportV2 page — never the markdown wall", () => {
+    expect(reportOrderPath("abc-123")).toBe("/workspace/reports/business?order=abc-123");
+    expect(reportOrderPath("abc-123")).not.toContain("/workspace/reports/order");
   });
 
   it("encodes the id so a hostile value cannot append query params", () => {
     expect(reportOrderPath("a&next=//evil.example")).toBe(
-      "/workspace/reports/order?order=a%26next%3D%2F%2Fevil.example",
+      "/workspace/reports/business?order=a%26next%3D%2F%2Fevil.example",
     );
+  });
+
+  it("legacyReportOrderPath keeps the thin markdown wrapper reachable for pre-v2 orders (view=legacy stops the redirect)", () => {
+    expect(legacyReportOrderPath("abc-123")).toBe("/workspace/reports/order?order=abc-123&view=legacy");
+    expect(legacyReportOrderPath("a&b")).toBe("/workspace/reports/order?order=a%26b&view=legacy");
+  });
+});
+
+describe("order landing helpers (G19-S45 D4)", () => {
+  const ID = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+
+  it("orderParam accepts only a uuid (first value of an array), else null", () => {
+    expect(orderParam(ID)).toBe(ID);
+    expect(orderParam(` ${ID} `)).toBe(ID);
+    expect(orderParam([ID, "other"])).toBe(ID);
+    expect(orderParam("not-a-uuid")).toBeNull();
+    expect(orderParam(undefined)).toBeNull();
+    expect(orderParam("")).toBeNull();
+  });
+
+  it("orderLandingRedirect sends a resolved order to the ReportV2 page unless view=legacy; no order → stay", () => {
+    expect(orderLandingRedirect(ID, undefined)).toBe(reportOrderPath(ID));
+    expect(orderLandingRedirect(ID, "")).toBe(reportOrderPath(ID));
+    expect(orderLandingRedirect(ID, "legacy")).toBeNull();
+    expect(orderLandingRedirect("", undefined)).toBeNull();
+  });
+});
+
+describe("toReportView reportV2", () => {
+  it("carries the stored ReportV2 document when the route hands one in", () => {
+    const doc = { schemaVersion: "2.1.0", tier: "standard" } as unknown as import("@/lib/report-v2/schema").ReportV2;
+    expect(toReportView(reconstructAssembledReport(ROW), ROW, doc).reportV2).toBe(doc);
   });
 });

@@ -1,6 +1,14 @@
 /**
- * /workspace/reports/order — the buyer's landing page for a Trust
- * Business Report purchase.
+ * /workspace/reports/order — the thin order wrapper for a Trust Business
+ * Report purchase.
+ *
+ * G19-S45 (D4): the paid product is the ReportV2 page. This route resolves
+ * the order id and REDIRECTS to `reportOrderPath(orderId)`
+ * (`/workspace/reports/business?order=<id>`), where the same document
+ * renders with every chapter unlocked. The Stripe success_url and every
+ * e-mail that links here keep working — they just land on the ReportV2
+ * page. Only `?view=legacy` stays here (`<ReportOrderView>`: the markdown
+ * + exports of an order generated before ReportV2 existed).
  *
  * Master Upgrade Plan §8.4. Accepts either identifier the two purchase
  * paths can produce:
@@ -30,6 +38,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { ReportOrderView } from "@/components/paywall/ReportOrderView";
+import { orderLandingRedirect } from "@/lib/paywall/report-delivery";
 
 export const metadata: Metadata = {
   title: "Your Trust Business Report — BlockID",
@@ -47,6 +56,8 @@ interface PageProps {
   searchParams: Promise<{
     order?: string | string[];
     session_id?: string | string[];
+    /** G19-S45: `legacy` keeps the markdown wrapper (pre-v2 orders); anything else redirects to the ReportV2 page. */
+    view?: string | string[];
   }>;
 }
 
@@ -86,6 +97,10 @@ export default async function ReportOrderPage({ searchParams }: PageProps) {
   if (orderId.length === 0 && sessionId.length > 0) {
     orderId = await resolveOrderFromSession(sessionId, user.id);
   }
+
+  // G19-S45 (D4): the paid view is the ReportV2 page.
+  const landing = orderLandingRedirect(orderId, firstParam(params.view).trim());
+  if (landing) redirect(landing);
 
   const isSandbox = await getCurrentProjectIsSandbox();
 
