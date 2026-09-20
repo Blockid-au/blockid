@@ -6,6 +6,7 @@ import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { sendCancellationEmail } from "@/lib/email";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 import { apiRoute } from "@/lib/audit/api-route";
+import { currentPeriodEndOf, pickLiveSubscription } from "@/lib/billing/subscription-state";
 
 // Whitelist of save-offer coupons the cancel-flow may apply. Blocks users
 // from replaying admin/internal coupon codes via the save_offer payload.
@@ -40,7 +41,19 @@ const BodySchema = z.object({
 // When save_offer.accepted is true we DO NOT cancel — instead we apply
 // the retention path (coupon, pause, or book-call flow) and record the
 // churn_events row with accepted_coupon=true. When declined (or no
-// save_offer is present) we schedule the cancellation at period end.
+// save_offer is present) we cancel:
+//
+//   trialing              → cancelled NOW (stripe.subscriptions.cancel): the
+//                           card on file is never charged, access ends today,
+//                           app_users.plan → free, mirror status → canceled.
+//   active / past_due     → cancel_at_period_end = true: access until the
+//                           period end, no refund (/legal/terms#refunds).
+//   already scheduled     → idempotent 200 with the same state (no second
+//                           churn row, no second e-mail, no Stripe write).
+//   no live subscription  → 404 { reason: "no_subscription" } (never a 500).
+//
+// G18-D (2026-09-19): before this the route listed only status=active, so
+// the trial banner's "Cancel trial" silently 404'd for every trialing user.
 
 async function POST_handler(request: Request) {
   const user = await getCurrentUser();
@@ -95,23 +108,55 @@ async function POST_handler(request: Request) {
 
   const customerId = row?.stripe_customer_id;
   if (!customerId) {
-    return NextResponse.json({ ok: false, reason: "No active subscription found" }, { status: 404 });
+    return NextResponse.json(
+      { ok: false, reason: "no_subscription", message: "No active subscription found" },
+      { status: 404 },
+    );
   }
 
-  const subscriptions = await stripe.subscriptions.list({
-    customer: customerId,
-    status: "active",
-    limit: 1,
-  });
-  const activeSub = subscriptions.data[0] ?? null;
+  let activeSub;
+  try {
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "all",
+      limit: 10,
+    });
+    activeSub = pickLiveSubscription(subscriptions.data ?? []);
+  } catch (err) {
+    console.error("[blockid:stripe] cancel: subscription lookup failed", err);
+    return NextResponse.json({ ok: false, reason: "stripe_unavailable" }, { status: 503 });
+  }
   if (!activeSub) {
-    return NextResponse.json({ ok: false, reason: "No active subscription found" }, { status: 404 });
+    return NextResponse.json(
+      { ok: false, reason: "no_subscription", message: "No active subscription found" },
+      { status: 404 },
+    );
   }
 
   const currentPlan = activeSub.items.data[0]?.price?.lookup_key ?? activeSub.items.data[0]?.price?.id ?? null;
+  const isTrialing = activeSub.status === "trialing";
+  const periodEndOf = (sub: typeof activeSub): string => {
+    const secs = currentPeriodEndOf(sub) ?? sub.trial_end ?? Math.floor(Date.now() / 1000);
+    return new Date(secs * 1000).toISOString();
+  };
 
-  // ── Save-offer accepted path ───────────────────────────────────────
-  if (save_offer?.accepted) {
+  // ── Idempotent: already scheduled to cancel ────────────────────────
+  // A second click (or a portal-side cancel) must not write a second churn
+  // row, send a second e-mail or touch Stripe again — same answer, same state.
+  if (activeSub.cancel_at_period_end) {
+    return NextResponse.json({
+      ok: true,
+      state: "cancel_scheduled",
+      alreadyScheduled: true,
+      activeUntil: periodEndOf(activeSub),
+    });
+  }
+
+  // ── Save-offer accepted path (paying subscriptions only) ───────────
+  // A trial has no invoice to discount or pause; the offers make no sense
+  // there and would let a trialist stack a coupon onto a sub that has never
+  // billed. Trials fall through to the immediate-cancel path below.
+  if (save_offer?.accepted && !isTrialing) {
     let applied = false;
     try {
       if (save_offer.kind === "downgrade_50" && save_offer.coupon) {
@@ -175,28 +220,92 @@ async function POST_handler(request: Request) {
     });
   }
 
-  // ── Standard cancel-at-period-end path ────────────────────────────
+  const cancellationMeta: Record<string, string> = {};
+  if (reason) cancellationMeta.reason = reason;
+  if (feedback) cancellationMeta.feedback = feedback;
+  const cancelReasonJson = Object.keys(cancellationMeta).length > 0 ? JSON.stringify(cancellationMeta) : null;
+
+  // ── Trial: cancel immediately, no charge ──────────────────────────
+  if (isTrialing) {
+    try {
+      await stripe.subscriptions.cancel(activeSub.id);
+      const nowIso = new Date().toISOString();
+
+      const { error: updateErr } = await supabase
+        .from("app_users")
+        .update({ plan: "free", plan_started_at: null, cancel_reason: cancelReasonJson, cancel_at: nowIso, trial_end_at: nowIso })
+        .eq("id", user.id);
+      if (updateErr) {
+        console.error("[blockid:stripe] cancel(trial): app_users update failed", { error: updateErr, userId: user.id });
+      }
+      // Mirror first so report-quota (which reads status === 'trialing') closes
+      // with the trial even if the subscription.deleted webhook is slow.
+      await supabase.from("subscription_trial_state").upsert(
+        {
+          user_id: user.id,
+          stripe_customer_id: customerId,
+          stripe_subscription_id: activeSub.id,
+          status: "canceled",
+          cancel_at_period_end: false,
+          updated_at: nowIso,
+        },
+        { onConflict: "user_id" },
+      );
+
+      await supabase.from("churn_events").insert({
+        user_id: user.id,
+        from_plan: currentPlan,
+        reason: reason ?? null,
+        exit_survey: { reason, feedback, save_offer_declined: !!save_offer, trial: true },
+        offered_coupon: null,
+        accepted_coupon: false,
+        detail: { source: "cancel_flow", accepted: false, trial_cancelled_immediately: true, active_until: nowIso },
+      });
+
+      console.info(`[blockid:stripe] trial subscription ${activeSub.id} cancelled immediately for user ${user.id}`);
+
+      await logUserAction({
+        userId: user.id,
+        action: "stripe.subscription.canceled",
+        subjectType: "subscription",
+        subjectId: activeSub.id,
+        fields: { plan: currentPlan, at_period_end: false, trialing: true },
+        route: "/api/stripe/cancel",
+        ip: extractIp(request.headers),
+        ua: extractUserAgent(request.headers),
+      });
+
+      return NextResponse.json({ ok: true, state: "canceled", trial: true, charged: false, activeUntil: nowIso });
+    } catch (err) {
+      console.error("[blockid:stripe] trial cancel failed", err);
+      return NextResponse.json({ ok: false, reason: "cancel_failed", message: "Failed to cancel subscription" }, { status: 502 });
+    }
+  }
+
+  // ── Paying subscription: cancel at period end ─────────────────────
   try {
     const updated = await stripe.subscriptions.update(activeSub.id, {
       cancel_at_period_end: true,
     });
-    const periodEndUnix = updated.items.data[0]?.current_period_end ?? Math.floor(Date.now() / 1000);
-    const periodEnd = new Date(periodEndUnix * 1000).toISOString();
-
-    const cancellationMeta: Record<string, string> = {};
-    if (reason) cancellationMeta.reason = reason;
-    if (feedback) cancellationMeta.feedback = feedback;
+    const periodEnd = periodEndOf(updated);
 
     const { error: updateErr } = await supabase
       .from("app_users")
       .update({
-        cancel_reason: Object.keys(cancellationMeta).length > 0 ? JSON.stringify(cancellationMeta) : null,
+        cancel_reason: cancelReasonJson,
         cancel_at: periodEnd,
       })
       .eq("id", user.id);
     if (updateErr) {
       console.error("[blockid:stripe] cancel: failed to store reason", { error: updateErr, userId: user.id });
     }
+
+    // Mirror the flag so /workspace/billing and the trial banner flip to
+    // "Cancels on <date> · Resume" without waiting for the webhook.
+    await supabase
+      .from("subscription_trial_state")
+      .update({ cancel_at_period_end: true, current_period_end: periodEnd, updated_at: new Date().toISOString() })
+      .eq("user_id", user.id);
 
     await supabase.from("churn_events").insert({
       user_id: user.id,
@@ -234,10 +343,10 @@ async function POST_handler(request: Request) {
       ua: extractUserAgent(request.headers),
     });
 
-    return NextResponse.json({ ok: true, activeUntil: periodEnd });
+    return NextResponse.json({ ok: true, state: "cancel_scheduled", activeUntil: periodEnd });
   } catch (err) {
     console.error("[blockid:stripe] cancel failed", err);
-    return NextResponse.json({ ok: false, reason: "Failed to cancel subscription" }, { status: 500 });
+    return NextResponse.json({ ok: false, reason: "cancel_failed", message: "Failed to cancel subscription" }, { status: 502 });
   }
 }
 

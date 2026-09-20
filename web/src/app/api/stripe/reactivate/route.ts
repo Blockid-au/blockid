@@ -45,21 +45,25 @@ async function POST_handler(request: Request) {
   }
 
   try {
-    // Find subscriptions that are scheduled for cancellation.
-    // Active subscriptions with cancel_at_period_end=true still have status "active".
+    // Find subscriptions that are scheduled for cancellation. A sub with
+    // cancel_at_period_end=true keeps its status ("active" — or "trialing"
+    // when the cancel was scheduled through the Billing Portal during the
+    // trial, G18-D), so list every status and filter on the flag.
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
-      status: "active",
+      status: "all",
       limit: 10,
     });
 
     const pendingCancelSub = subscriptions.data.find(
-      (sub) => sub.cancel_at_period_end === true,
+      (sub) =>
+        sub.cancel_at_period_end === true &&
+        (sub.status === undefined || sub.status === "active" || sub.status === "trialing" || sub.status === "past_due"),
     );
 
     if (!pendingCancelSub) {
       return NextResponse.json(
-        { ok: false, reason: "No subscription pending cancellation found" },
+        { ok: false, reason: "not_scheduled", message: "No subscription pending cancellation found" },
         { status: 404 },
       );
     }
@@ -77,6 +81,13 @@ async function POST_handler(request: Request) {
         cancel_at: null,
       })
       .eq("id", user.id);
+
+    // Mirror the cleared flag so the billing page / trial banner drop the
+    // "Cancels on <date>" state without waiting for the webhook.
+    await supabase
+      .from("subscription_trial_state")
+      .update({ cancel_at_period_end: false, updated_at: new Date().toISOString() })
+      .eq("user_id", user.id);
 
     if (updateErr) {
       console.error(

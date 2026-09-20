@@ -128,3 +128,34 @@ describe("POST /api/stripe/reactivate audit wire-in", () => {
     expect(logUserActionMock).not.toHaveBeenCalled();
   });
 });
+
+// G18-D (2026-09-19): a cancel scheduled from the Billing Portal during the
+// trial leaves status="trialing" + cancel_at_period_end=true. The old
+// status=active list never found it, so "Resume" 404'd.
+describe("POST /api/stripe/reactivate — G18-D list shape", () => {
+  it("lists status=all and resumes a trialing subscription scheduled to cancel", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1" });
+    supabaseMock.from.mockReturnValue(makeSelectChain({ stripe_customer_id: "cus_123" }));
+    stripeMock.subscriptions.list.mockResolvedValue({
+      data: [
+        { id: "sub_old", status: "canceled", cancel_at_period_end: true, items: { data: [] } },
+        { id: "sub_trial", status: "trialing", cancel_at_period_end: true, items: { data: [{ price: { lookup_key: "investor_angel" } }] } },
+      ],
+    });
+    stripeMock.subscriptions.update.mockResolvedValue({});
+    const res = await POST(new Request("http://x/api/stripe/reactivate", { method: "POST" }));
+    expect(res.status).toBe(200);
+    expect(stripeMock.subscriptions.list).toHaveBeenCalledWith({ customer: "cus_123", status: "all", limit: 10 });
+    expect(stripeMock.subscriptions.update).toHaveBeenCalledWith("sub_trial", { cancel_at_period_end: false });
+    expect(logUserActionMock.mock.calls[0][0].fields).toEqual({ plan: "investor_angel" });
+  });
+
+  it("404 not_scheduled when nothing is pending cancellation", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1" });
+    supabaseMock.from.mockReturnValue(makeSelectChain({ stripe_customer_id: "cus_123" }));
+    stripeMock.subscriptions.list.mockResolvedValue({ data: [{ id: "sub_a", status: "active", cancel_at_period_end: false, items: { data: [] } }] });
+    const res = await POST(new Request("http://x/api/stripe/reactivate", { method: "POST" }));
+    expect(res.status).toBe(404);
+    expect((await res.json()).reason).toBe("not_scheduled");
+  });
+});
