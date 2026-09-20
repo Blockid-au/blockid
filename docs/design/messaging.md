@@ -1,4 +1,4 @@
-# BlockID.au — the one message map (G18 lane C, 2026-09-19)
+# BlockID.au — the one message map (G18 lane C, 2026-09-19 · G21 P0-D positioning update 2026-09-20)
 
 **Why this file exists.** Founder direction 2026-09-19: *"thông điệp đồng nhất trên toàn bộ site blockid.au"* — one consistent message everywhere. Every public string (marketing pages, `/vi`, i18n messages, meta titles/descriptions, JSON-LD, OG card, transactional e-mails, PDF covers, PWA manifest) is written from this map. `web/src/lib/marketing/messaging.test.ts` reads the **Never say** table below and fails CI when a forbidden phrase reappears in the public source trees.
 
@@ -57,6 +57,33 @@ Order on any page that lists audiences: **Investors → Accelerators → Advisor
 | Method | "grounded in the founder's doctoral research on multi-model startup valuation" | "PhD" |
 
 Prices (every A$ figure) are lane A's; this map never states one. When a sentence needs the price it reads it from the SKU/plan constant.
+
+## 4b. G21 positioning lines (evidence-backed assessment infrastructure, 2026-09-20)
+
+Adopted from the advisor feedback (`docs/plans/g21-fi-upgrade-2026-09-20.md` § 0). These lines are the approved wording; use them verbatim where they fit and never contradict them elsewhere.
+
+| Slot | Line |
+|---|---|
+| One-liner | `BlockID helps accelerators and startup programs screen companies consistently by converting founder submissions and company evidence into one comparable, evidence-backed startup assessment.` |
+| Three messages (everywhere, in this order) | **Screen faster** · **Trust the evidence** · **Track improvement** |
+| Institutional line | `BlockID structures the evidence and standardises the first-pass analysis. Humans make the decision.` |
+| What the engine does | `Specialised analysis across eight business dimensions, checked against the underlying evidence.` |
+| Why not a chatbot | `ChatGPT analyses what you paste; BlockID maintains a structured, evidence-backed company record and applies one methodology across every company and every point in time.` |
+| Founder credential | `grounded in the founder's doctoral research on startup valuation` (never "PhD") |
+
+**Naming architecture** (sub-products — copy only, no URL changes, F-6):
+
+| Name | Meaning |
+|---|---|
+| **BlockID** | the platform, entity and domain |
+| **Startup Value Index™** | the methodology and the score |
+| **BlockID Dossier** | the evaluator output (formerly "Investor Dossier" in prose — the product name stays capitalised where it already renders) |
+| **BlockID Cohort** | the program workflow (intake → assessment → selection → program → demo day → sponsor reporting) |
+| **BlockID Workspace** | the founder surface |
+| **BlockID Verified** | the verification state (L2+ business verification, reviewer-approved evidence) |
+| **Trusted Business Report** | unchanged — the A$3 legacy pay-as-you-go SKU, never a value anchor |
+
+Buyer order on any page: **Programs (accelerators, incubators, universities, innovation programs, venture studios) → Investors → Founders**; founders own their data and remain the participant and secondary customer.
 
 ## 5. Tone rules
 
@@ -134,5 +161,11 @@ Short form for footers and PDF covers: `Not financial advice.`
 | `Angel plan` `Advisor plan` `VC Small` | tiers are Scout / Firm / Program | — |
 | `\bPhD\b` | founder rule — "doctoral research" | — |
 | `AI-Powered Startup Intelligence` `BlockID Startup Intelligence` | retired brand line | — |
+| `\bC-Level agents\b` `\b\d+ AI agents\b` | G21 P0-D: agent counts and "C-Level agents" as a selling point stay inside the product and the docs — public copy says "specialised analysis across eight business dimensions, checked against the underlying evidence" | `src/app/(marketing)/product/` `src/app/docs/` `src/app/(marketing)/docs/` `src/app/startup-package/` `src/app/(app)/` `src/components/workspace/` `src/components/paywall/` `src/app/(marketing)/about/invest/` (G18-C facts page — recommend rewording to "a C-suite of AI agents", owner: about page) |
+| `A\$3, not A\$3,000` | G21: the A$3 price is a legacy SKU, never the value anchor or a comparison hook | — |
+| `\bAI decides\b` `\bthe AI decides\b` | G21: BlockID structures the evidence and standardises the first pass; humans make the decision | — |
+| `\bpredicts\b` `prediction accuracy` | G21: no forecasting claims — calibration is published with n and confidence intervals, never "predicts" | — |
+| `Australian average` | G21: no benchmark without its n — say "stage median (n = N)" or "the cohort at the same stage (n = N)" per docs/product/score-governance.md § 7 | `src/components/marketing/homepage/` (P0-B owns the homepage sample cards — replace with the stage median + n) |
+| `two-sided marketplace` | G21: marketplace is a later expansion module, not the current positioning | — |
 
 Documented exceptions that are **not** in the table because they are true: "beta users" as an item on a founder's own readiness checklist (`api/fundraise/readiness`), "GitHub or GitLab repository" as advice about the founder's own code (`api/score`), `v2.0.0-beta.N` release identifiers on `/security-audit`, `/roadmap`, `/changelog`, "13 criteria" inside the product (dossier, credit gate, PDF body) where it is the rubric depth the evaluator paid for. "Money Radar" remains the in-workspace tile name of the Founder Radar bundle (lib/funding is not a marketing surface); public copy says Founder Radar.

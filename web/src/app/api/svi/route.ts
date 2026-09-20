@@ -22,6 +22,7 @@ import { profileToSviInputText } from "@/lib/founder-profile";
 import { applyFounderExecution } from "@/lib/founder/execution-load";
 import { evaluateAcceleratorReadiness } from "@/lib/agents/accelerator-readiness";
 import { emitScoreComputed, emitSviAnalyze } from "@/lib/analytics/funnel";
+import { emitWebsiteImported } from "@/lib/analytics/fi-events";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { apiRoute } from "@/lib/audit/api-route";
 
@@ -510,6 +511,18 @@ async function POST_handler(request: Request) {
         score: analysis.totalSVI,
         slug: scoreComputedSlug,
         analysisId: scoreComputedSlug,
+      });
+    }
+    // G21 P0-D — FI envelope: the raw input was a URL that was fetched.
+    if (websiteUrl) {
+      emitWebsiteImported({
+        userId: authenticatedUserId,
+        email,
+        sessionId: authenticatedUserId ? null : slug,
+        analysisId: slug,
+        projectId: projectId ?? null,
+        channel: "analyze",
+        url: websiteUrl,
       });
     }
   } catch (err) {

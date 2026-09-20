@@ -220,6 +220,25 @@ export function MethodologyPage(p: MethodologyProps) {
         <p className="mt-2 max-w-3xl text-xs leading-relaxed text-tertiary">{p.sources.cohortNote}</p>
       </Section>
 
+      {/* 7c. Human in the loop (G21 P0-D) — the institutional line, verbatim. */}
+      <Section id="human-in-the-loop" eyebrow={p.hitl.kicker} title={p.hitl.title}>
+        <blockquote className="max-w-3xl border-l-2 border-brand-300 pl-4 text-base leading-relaxed text-primary" data-testid="methodology-hitl">
+          {p.hitl.body}
+        </blockquote>
+        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-tertiary">{p.hitl.detail}</p>
+      </Section>
+
+      {/* 7d. Governance row (G21 P0-D) — visible methodology version + link to /methodology/governance. */}
+      <Section id="governance" eyebrow={p.governance.kicker} title={p.governance.title} tone="sunken">
+        <p className="max-w-3xl text-sm leading-relaxed text-tertiary">{p.governance.body}</p>
+        <p className="mt-4 font-mono text-sm text-primary" data-testid="methodology-version-line">{p.governance.versionLine}</p>
+        <p className="mt-2">
+          <Link href={p.governance.href} className="text-sm font-medium text-accent underline decoration-dotted" data-testid="methodology-governance-link">
+            {p.governance.link}
+          </Link>
+        </p>
+      </Section>
+
       {/* 8. Calibration link (S39 fills the page). */}
       <Section id="calibration" eyebrow={p.calibration.kicker} title={p.calibration.title}>
         <p className="max-w-3xl text-sm leading-relaxed text-tertiary">{p.calibration.body}</p>

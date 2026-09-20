@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BlockID — Appendix — pre-seed deck vA4 preview</title>
+<meta name="robots" content="noindex">
+<style>
+:root{--bg:#F8FAFC;--card:#FFFFFF;--ink:#1E293B;--muted:#64748B;--line:#E2E8F0;--blue:#2563EB;--navy:#0F172A;--ok:#059669;--bad:#DC2626;--amber:#D97706}
+@media (prefers-color-scheme: dark){:root{--bg:#0B1220;--card:#0F172A;--ink:#E2E8F0;--muted:#94A3B8;--line:#1E293B}}
+*{box-sizing:border-box}
+body{margin:0;padding:24px 16px;background:var(--bg);color:var(--ink);font:14px/1.45 Arial,Helvetica,sans-serif}
+h1{font-size:22px;margin:0 0 4px}
+.meta{color:var(--muted);margin:0 0 24px;font-size:12px}
+.slide{max-width:1120px;margin:0 auto 32px}
+.frame{aspect-ratio:16/9;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:28px 32px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.slide.dark .frame{background:var(--navy);color:#F8FAFC}
+header{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.badge{border:1px solid var(--ok);color:var(--ok);border-radius:999px;padding:1px 8px}
+.badge.over{border-color:var(--bad);color:var(--bad)}
+h2{font-size:26px;margin:6px 0 2px;line-height:1.15}
+.sub{margin:0 0 14px;color:var(--muted);font-size:13px}
+.slide.dark .sub{color:#94A3B8}
+.cols{display:grid;grid-template-columns:3fr 2fr;gap:20px;flex:1;min-height:0}
+.hero{border:1px dashed var(--line);border-radius:8px;padding:12px;overflow:auto;font-size:12px}
+.hero-type{display:inline-block;background:var(--blue);color:#fff;border-radius:4px;padding:1px 6px;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+.hero-desc{margin:6px 0;color:var(--muted)}
+.hero-data{margin:0;padding-left:16px;color:var(--muted)}
+.hero-data li{margin:2px 0}
+.bullets{margin:0;padding-left:18px;font-size:14px}
+.bullets li{margin:0 0 10px}
+footer{font-size:9px;color:var(--muted);margin-top:8px}
+.speaker{margin:8px 4px 0;font-size:13px}
+.speaker span{font-weight:bold;color:var(--blue);margin-right:6px}
+.speaker em{color:var(--muted);font-size:11px}
+.cut{max-width:1120px;margin:0 auto 32px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px 24px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin-bottom:12px}
+td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.script p{margin:0 0 10px}
+.hero-screenshot{max-width:100%;border:1px solid var(--line);border-radius:6px;display:block}
+.hero-table{font-size:11px;margin-bottom:10px}
+.hero-table th{background:var(--blue);color:#fff;font-size:10px}
+.hero-table-heading{margin:4px 0;font-weight:bold;font-size:12px;color:var(--muted)}
+.footer-link{max-width:1120px;margin:0 auto 24px;font-size:13px}
+.footer-link a{color:var(--blue)}
+@media (max-width:720px){.cols{grid-template-columns:1fr}.frame{aspect-ratio:auto}h2{font-size:20px}}
+@media print{body{background:#fff;color:#000;padding:0}.slide{break-inside:avoid;page-break-inside:avoid}.frame{border-color:#999}.slide.dark .frame{background:#fff;color:#000}.slide.dark .sub{color:#444}}
+</style>
+</head>
+<body>
+<h1>BlockID — Appendix <small>Evidence-backed startup assessment infrastructure</small> — appendix vA4</h1>
+<p class="meta">2026-09-20 · Auschain PTY LTD · ACN 659 615 111 · ask reference material — not part of the ask · 5 slides · preview generated from web/scripts/generate-pitch-deck-v4.ts --appendix → web/public/pitch/BlockID-Pitch-Appendix-2026-09.pptx</p>
+
+<section class="slide" id="slide-1">
+  <div class="frame">
+    <header>
+      <span class="n">1/5</span>
+      <span class="badge" title="body words (bullets)">0 words</span>
+    </header>
+    <h2>Full feature set by layer</h2>
+    <p class="sub">The four layers the product is built on — what is live today</p>
+    <div class="cols">
+      <div class="hero">
+        <div class="hero-type">table</div>
+        <p class="hero-desc">One table — layer, what it holds, live surfaces</p>
+        <p class="hero-table-heading">Layers L1–L4 (the G21 upgrade plan § 0)</p><table class="hero-table"><thead><tr><th>Layer</th><th>What it holds</th><th>Live surfaces</th></tr></thead><tbody><tr><td>L1 Business identity</td><td>Verified business profile — ABN / ACN lookup, domain check, verification levels L0–L5, BlockID Verified badge</td><td>/business-id · /id/[slug] · verification level on every report cover</td></tr><tr><td>L2 Evidence graph</td><td>Claims separated from evidence — origin, verification level, reviewer approval, expiry, hash-chained audit trail</td><td>evidence upload · connectors (Stripe, Xero, GitHub, GA4) · reviewer queue</td></tr><tr><td>L3 Assessment engine</td><td>Startup Value Index — eight dimensions, each with score, weight, confidence, evidence, missing items, benchmark and next action</td><td>/analyze · Trusted Business Report · score ledger · valuation range</td></tr><tr><td>L4 Decision and progress</td><td>BlockID Dossier, BlockID Cohort (intake link, batch scoring, cohort table, CSV), sponsor / LP report, feedback letters, decision log, API</td><td>/workspace/evaluations · /workspace/accelerator · /apply/[slug] · Evaluator API</td></tr></tbody></table>
+      </div>
+      <ul class="bullets"></ul>
+    </div>
+    <footer>BlockID — Auschain PTY LTD (ACN 659 615 111, ABN 79 659 615 111) | Confidential</footer>
+  </div>
+  <p class="speaker"><span>Speaker</span> Reference only. <em>(2 words · C8)</em></p>
+</section>
+
+<section class="slide" id="slide-2">
+  <div class="frame">
+    <header>
+      <span class="n">2/5</span>
+      <span class="badge" title="body words (bullets)">0 words</span>
+    </header>
+    <h2>Methodology</h2>
+    <p class="sub">Public at blockid.au/methodology and blockid.au/methodology/governance</p>
+    <div class="cols">
+      <div class="hero">
+        <div class="hero-type">table</div>
+        <p class="hero-desc">Two tables — the eight dimensions with their owner lens, and the evidence ladder with confidence values</p>
+        <p class="hero-table-heading">Eight dimensions (dimension-owners.ts) — weights are fixed per methodology version and shown to authenticated evaluators inside every report</p><table class="hero-table"><thead><tr><th>Code</th><th>Dimension</th><th>Owner lens</th></tr></thead><tbody><tr><td>FTV</td><td>Founder &amp; Team Value</td><td>CHRO</td></tr><tr><td>MPC</td><td>Market Pull &amp; Category</td><td>CMO</td></tr><tr><td>PTD</td><td>Product &amp; Tech Depth</td><td>CTO</td></tr><tr><td>TRE</td><td>Traction &amp; Revenue Evidence</td><td>CRO</td></tr><tr><td>CGH</td><td>Capital &amp; Governance Health</td><td>CFO</td></tr><tr><td>IRI</td><td>Investor Readiness Index</td><td>CLO</td></tr><tr><td>LCO</td><td>Legal &amp; Compliance</td><td>CLO</td></tr><tr><td>SVM</td><td>Strategic Vision &amp; Moat</td><td>CEO</td></tr></tbody></table><p class="hero-table-heading">Evidence ladder (svi-analysis.ts EVIDENCE_CONFIDENCE) — who may set each level is capped by origin</p><table class="hero-table"><thead><tr><th>Level</th><th>Confidence</th><th>Set by</th></tr></thead><tbody><tr><td>self_declared</td><td>0.20</td><td>founder text</td></tr><tr><td>public_url</td><td>0.35</td><td>founder text with a public link</td></tr><tr><td>document_uploaded</td><td>0.50</td><td>founder upload</td></tr><tr><td>connected_source</td><td>0.75</td><td>connector</td></tr><tr><td>transaction_data</td><td>0.90</td><td>connector (source of record)</td></tr><tr><td>third_party_verified</td><td>1.00</td><td>named BlockID reviewer, audit-logged</td></tr></tbody></table>
+      </div>
+      <ul class="bullets"></ul>
+    </div>
+    <footer>BlockID — Auschain PTY LTD (ACN 659 615 111, ABN 79 659 615 111) | Confidential</footer>
+  </div>
+  <p class="speaker"><span>Speaker</span> Reference only. <em>(2 words · C5)</em></p>
+</section>
+
+<section class="slide" id="slide-3">
+  <div class="frame">
+    <header>
+      <span class="n">3/5</span>
+      <span class="badge" title="body words (bullets)">0 words</span>
+    </header>
+    <h2>Valuation approach</h2>
+    <p class="sub">A range with its method on the page — information, not advice</p>
+    <div class="cols">
+      <div class="hero">
+        <div class="hero-type">table</div>
+        <p class="hero-desc">One table — method, when it applies, what the report shows</p>
+        <p class="hero-table-heading">Methods the CFO module runs (lib/agents/cfo-valuation.ts) — the report shows the inputs and assumptions table</p><table class="hero-table"><thead><tr><th>Method</th><th>Applies when</th><th>What the reader sees</th></tr></thead><tbody><tr><td>Scorecard / stage anchors</td><td>Pre-revenue — anchored on Australian stage medians, adjusted by dimension scores</td><td>A range, the anchor used and the adjustments, labelled pre-revenue</td></tr><tr><td>Revenue multiples</td><td>Revenue evidence at connected-source level or better</td><td>Multiple band, the revenue figure and its verification level</td></tr><tr><td>Comparable raises</td><td>Curated Australian comparables at the same stage and sector</td><td>The comparables used and how far the company sits from them</td></tr><tr><td>Discounted cash flow</td><td>Projections supplied with assumptions the reader can change</td><td>The assumptions table, the sensitivity and the resulting range</td></tr><tr><td>Disagreement</td><td>Always</td><td>Where the methods disagree and why — the range is honest about it</td></tr></tbody></table>
+      </div>
+      <ul class="bullets"></ul>
+    </div>
+    <footer>BlockID — Auschain PTY LTD (ACN 659 615 111, ABN 79 659 615 111) | Confidential</footer>
+  </div>
+  <p class="speaker"><span>Speaker</span> Reference only. <em>(2 words · C5)</em></p>
+</section>
+
+<section class="slide" id="slide-4">
+  <div class="frame">
+    <header>
+      <span class="n">4/5</span>
+      <span class="badge" title="body words (bullets)">0 words</span>
+    </header>
+    <h2>Legal identity and data ownership</h2>
+    <p class="sub">One entity on every page, invoice, PDF and JSON-LD block</p>
+    <div class="cols">
+      <div class="hero">
+        <div class="hero-type">table</div>
+        <p class="hero-desc">One table — item, value, where it is enforced</p>
+        <p class="hero-table-heading">lib/site/legal-entity.ts is the one source; legal-entity.test.ts fails on stray literals</p><table class="hero-table"><thead><tr><th>Item</th><th>Value</th><th>Enforced by</th></tr></thead><tbody><tr><td>Seller of record</td><td>Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW</td><td>LEGAL_ENTITY.operator — invoices, GST, Stripe merchant, privacy and terms owner</td></tr><tr><td>Data ownership</td><td>Your data belongs to your startup. Consent tiers control who sees what.</td><td>DATA_PRINCIPLE_SENTENCE — consent scope honoured on every evaluator read</td></tr><tr><td>Verification</td><td>Business verification L0–L5; evidence levels capped by origin; reviewer approvals audit-logged</td><td>level-engine.ts · confidence-cap.ts · audit chain</td></tr><tr><td>Score disclaimer</td><td>Scores and valuation ranges are information, not financial, legal or investment advice.</td><td>docs/design/messaging.md § 10 on every report and PDF cover</td></tr><tr><td>Corrections</td><td>Founder flags → logged → new report version; overrides never silent</td><td>docs/product/score-governance.md § 9–10</td></tr></tbody></table>
+      </div>
+      <ul class="bullets"></ul>
+    </div>
+    <footer>BlockID — Auschain PTY LTD (ACN 659 615 111, ABN 79 659 615 111) | Confidential</footer>
+  </div>
+  <p class="speaker"><span>Speaker</span> Reference only. <em>(2 words · C10)</em></p>
+</section>
+
+<section class="slide" id="slide-5">
+  <div class="frame">
+    <header>
+      <span class="n">5/5</span>
+      <span class="badge" title="body words (bullets)">0 words</span>
+    </header>
+    <h2>Architecture</h2>
+    <p class="sub">Deterministic score, narrative by model, everything recorded</p>
+    <div class="cols">
+      <div class="hero">
+        <div class="hero-type">table</div>
+        <p class="hero-desc">One table — component, role, provenance</p>
+        <p class="hero-table-heading">Pipeline (report-pipeline/*) — the score never touches a language model; narrative chapters record the model that produced them</p><table class="hero-table"><thead><tr><th>Component</th><th>Role</th><th>Provenance</th></tr></thead><tbody><tr><td>Intake</td><td>Form, deck, website or business identifier → structured evidence rows</td><td>Origin and verification level stored per row</td></tr><tr><td>Score engine</td><td>Deterministic Startup Value Index — eight dimensions, ledger, confidence, verification multiplier</td><td>SVI_VERSION stored on every snapshot and report</td></tr><tr><td>Narrative</td><td>Specialised analysis per dimension, then an auditor pass for grounding</td><td>Model per chapter, auditor stamp, uncited-statement count</td></tr><tr><td>Audit trail</td><td>Append-only, hash-chained log of every mutating call; nightly re-verification</td><td>audit_chain status on /status</td></tr><tr><td>Storage</td><td>Self-hosted Postgres with row-level security; projects-only foreign keys; founder-consent scope</td><td>Migration ledger; weekly restore drill</td></tr><tr><td>Delivery</td><td>Web report, PDF, DOCX, share links, Evaluator API, cohort CSV, sponsor report</td><td>Report keeps the versions it was produced with</td></tr></tbody></table>
+      </div>
+      <ul class="bullets"></ul>
+    </div>
+    <footer>BlockID — Auschain PTY LTD (ACN 659 615 111, ABN 79 659 615 111) | Confidential</footer>
+  </div>
+  <p class="speaker"><span>Speaker</span> Reference only. <em>(2 words · C8)</em></p>
+</section>
+<section class="cut">
+  <h2>3-minute cut <small style="font-weight:normal;color:var(--muted);font-size:13px">3 words</small></h2>
+  <table><thead><tr><th>Slide</th><th>Time</th><th>Seconds</th><th>Beat</th></tr></thead><tbody><tr><td>A1 — Full feature set</td><td>—</td><td>0s</td><td>reference</td></tr></tbody></table>
+  <div class="script"><p>Reference material only.</p></div>
+</section>
+<p class="footer-link"><a href="blockid-pitch-deck-v4-preview.html">← Back to the deck</a></p>
+</body>
+</html>

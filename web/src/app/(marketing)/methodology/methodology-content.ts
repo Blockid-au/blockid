@@ -32,6 +32,7 @@ export type MethodologyLocale = "en" | "vi";
 
 export const METHODOLOGY_PATH = "/methodology";
 export const CALIBRATION_PATH = "/methodology/calibration";
+export const GOVERNANCE_PATH = "/methodology/governance";
 
 export interface MethodologyDimension {
   key: DimKey;
@@ -108,6 +109,9 @@ export interface MethodologyProps {
     items: MethodologyDataSource[];
   };
   calibration: { kicker: string; title: string; body: string; link: string; href: string };
+  /** G21 P0-D: governance row (+ the visible "Methodology version vX.Y.Z" line) and the human-in-the-loop paragraph. */
+  governance: { kicker: string; title: string; body: string; link: string; href: string; versionLine: string };
+  hitl: { kicker: string; title: string; body: string; detail: string };
   cta: { title: string; primary: { href: string; label: string }; secondary: { href: string; label: string } };
 }
 
@@ -275,6 +279,20 @@ export function buildMethodologyProps(m: Messages, locale: MethodologyLocale = "
       body: T("methodology.calibration.body"),
       link: T("methodology.calibration.link"),
       href: CALIBRATION_PATH,
+    },
+    governance: {
+      kicker: T("methodology.governance.kicker"),
+      title: T("methodology.governance.title"),
+      body: T("methodology.governance.body"),
+      link: T("methodology.governance.link"),
+      href: locale === "vi" ? `/vi${GOVERNANCE_PATH}` : GOVERNANCE_PATH,
+      versionLine: fill(T("methodology.governance.version"), { version: SVI_VERSION }),
+    },
+    hitl: {
+      kicker: T("methodology.hitl.kicker"),
+      title: T("methodology.hitl.title"),
+      body: T("methodology.hitl.body"),
+      detail: T("methodology.hitl.detail"),
     },
     cta: {
       title: T("methodology.cta.title"),

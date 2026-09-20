@@ -27,7 +27,7 @@ import {
   reduceFunnel,
   rowsInWindow,
 } from "./lib/funnel-core.mjs";
-import { buildReport, fetchFunnelRows, parseArgs, readDaily, writeDaily, main } from "./funnel-report.mjs";
+import { buildReport, countByEvent, fetchFunnelRows, FI_EVENT_NAMES, parseArgs, readDaily, writeDaily, main } from "./funnel-report.mjs";
 
 // "now" = 2026-09-19 04:00 UTC; yesterday = 2026-09-18.
 const NOW = Date.UTC(2026, 8, 19, 4, 0, 0);
@@ -251,6 +251,21 @@ describe("funnel-report.mjs wrapper", () => {
     expect(latest.d28.paid).toBe(1);
     expect(latest.last_signups[0].user_prefix).toBe("u5");
     expect(latest.schema_version).toBe(1);
+  });
+
+  it("G21: buildReport tallies the institutional events per name (QA excluded) and fetchFunnelRows accepts the FI name list", async () => {
+    const fi = [
+      ev("pilot_started", { user_id: "o1", params: { pilot_source: "paid" } }),
+      ev("pilot_started", { user_id: "o2", params: { pilot_source: "paid", qa: true } }),
+      ev("website_imported", { user_id: "u1" }),
+      ev("website_imported", { user_id: "u2" }),
+    ];
+    const { latest } = buildReport(FIXTURE, { days: 14, now: NOW, generatedAt: new Date(NOW).toISOString(), fiRows: fi });
+    expect(latest.fi_events_28d).toEqual({ pilot_started: 1, website_imported: 2 });
+    expect(countByEvent([])).toEqual({});
+    const urls = [];
+    await fetchFunnelRows({ sinceIso: "x", config: { url: "http://db", headers: {} }, fetchImpl: async (u) => (urls.push(String(u)), { ok: true, json: async () => [] }), eventNames: FI_EVENT_NAMES });
+    expect(new URL(urls[0]).searchParams.get("event_name")).toBe(`in.(${FI_EVENT_NAMES.join(",")})`);
   });
 
   it("main --dry-run reads, prints and neither writes nor sends; --weekly sends through the injected helper", async () => {

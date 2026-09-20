@@ -56,6 +56,7 @@ import {
 } from "@/lib/analyses/store";
 import { deriveCompactSvi, type CompactSvi } from "@/lib/analyses/payload";
 import { emitScoreComputed, emitSviAnalyze } from "@/lib/analytics/funnel";
+import { emitDeckUploaded, emitWebsiteImported } from "@/lib/analytics/fi-events";
 import {
   decideSignupGate,
   isPaidSellableInput,
@@ -335,6 +336,15 @@ async function POST_handler(request: Request) {
           analysisId,
           sessionId: anonKey,
         });
+      }
+      // G21 P0-D — FI envelope: what came in (a website, a deck). The
+      // svi_analyze / svi_score_computed rows above already stand for
+      // `startup_created` / `initial_score_generated` (FI_EVENT_ALIASES).
+      if (body.url) {
+        emitWebsiteImported({ userId, email: userEmail, sessionId: anonKey, analysisId, channel: "intake", url: body.url });
+      }
+      if (file) {
+        emitDeckUploaded({ userId, email: userEmail, sessionId: anonKey, analysisId, channel: "intake", sizeBytes: file.buffer.length, mimeType: file.mimeType });
       }
     } catch (err) {
       console.warn("[intake] funnel emit failed —", err instanceof Error ? err.message : String(err));

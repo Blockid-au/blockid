@@ -70,8 +70,8 @@ export function restConfig(env = process.env, envDir = WEB_DIR) {
  * Page through analytics_events for the funnel event names since `sinceIso`.
  * Exported for the test (fetchImpl injectable).
  */
-export async function fetchFunnelRows({ sinceIso, config, fetchImpl = globalThis.fetch, pageSize = PAGE, maxRows = MAX_ROWS }) {
-  const names = FUNNEL_EVENT_NAMES.join(",");
+export async function fetchFunnelRows({ sinceIso, config, fetchImpl = globalThis.fetch, pageSize = PAGE, maxRows = MAX_ROWS, eventNames = FUNNEL_EVENT_NAMES }) {
+  const names = eventNames.join(",");
   const rows = [];
   for (let offset = 0; offset < maxRows; offset += pageSize) {
     const qs = new URLSearchParams({
@@ -120,8 +120,41 @@ export function writeDaily(existing, rows, file = DAILY) {
   return merged.size;
 }
 
-/** Build everything the files carry from raw rows — pure, exported for the test. */
-export function buildReport(rows, { days, now, generatedAt }) {
+// G21 P0-D — institutional (FI) event names the daily file also counts, so
+// /admin/funnel's institutional section and the pilot report have a dated
+// per-event tally next to the founder funnel (the live section reduces the
+// same names in src/lib/funnel/institutional.ts).
+export const FI_EVENT_NAMES = Object.freeze([
+  "website_imported",
+  "evidence_upload",
+  "evidence_verified",
+  "score_recalculated",
+  "cohort_action",
+  "cohort_created",
+  "startup_added_to_cohort",
+  "batch_scored",
+  "dossier_view",
+  "assessment_submitted",
+  "pilot_started",
+  "checkout_completed",
+  "subscription_created",
+  "subscription_renewed",
+  "tbr_share_created",
+]);
+
+/** event_name → row count (QA rows excluded), sorted by name — pure. */
+export function countByEvent(rows) {
+  const out = {};
+  for (const r of rows) {
+    if (!r || typeof r.event_name !== "string") continue;
+    if (r.params && typeof r.params === "object" && r.params.qa === true) continue;
+    out[r.event_name] = (out[r.event_name] ?? 0) + 1;
+  }
+  return Object.fromEntries(Object.entries(out).sort((a, b) => a[0].localeCompare(b[0])));
+}
+
+/** Build everything the files carry from raw rows — pure, exported for the test. `fiRows` (optional) = the FI event rows for the same window. */
+export function buildReport(rows, { days, now, generatedAt, fiRows = [] }) {
   const daily = reduceDaily(rows, { days, now });
   const yesterday = daily[daily.length - 1];
   const d7 = reduceFunnel(rowsInWindow(rows, { days: 7, now }));
@@ -137,6 +170,9 @@ export function buildReport(rows, { days, now, generatedAt }) {
     prev7,
     d28,
     last_signups: lastSignups(rows, 20),
+    // G21 P0-D — per-event tallies of the institutional catalogue (28 d / 7 d), QA excluded.
+    fi_events_28d: countByEvent(rowsInWindow(fiRows, { days: 28, now })),
+    fi_events_7d: countByEvent(rowsInWindow(fiRows, { days: 7, now })),
   };
   return { daily, latest };
 }
@@ -158,7 +194,14 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     // Read one extra day so the oldest daily row is complete whatever the run time.
     const sinceIso = `${dayString(now, args.days)}T00:00:00.000Z`;
     const rows = await fetchFunnelRows({ sinceIso, config, fetchImpl: deps.fetchImpl });
-    const { daily, latest } = buildReport(rows, { days: args.days, now, generatedAt });
+    // G21 P0-D — institutional events, same window (a failure here never blocks the founder funnel).
+    let fiRows = [];
+    try {
+      fiRows = await fetchFunnelRows({ sinceIso, config, fetchImpl: deps.fetchImpl, eventNames: FI_EVENT_NAMES });
+    } catch (err) {
+      log(`[funnel-report] institutional events unavailable: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    const { daily, latest } = buildReport(rows, { days: args.days, now, generatedAt, fiRows });
 
     const summary = {
       ts: generatedAt,
@@ -208,6 +251,8 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
       log(`  7 d conv: signup→analysis ${pct(c.signup_to_analysis)} · analysis→report ${pct(c.analysis_to_report)} · report→paywall ${pct(c.report_to_paywall)} · paywall→checkout ${pct(c.paywall_to_checkout)} · checkout→paid ${pct(c.checkout_to_paid)}`);
       const gates = Object.entries(latest.d28.gate_hits).slice(0, 6).map(([f, n]) => `${f} ${n}`).join(" · ");
       log(`  gate hits 28 d: ${gates || "none"}`);
+      const fi = Object.entries(latest.fi_events_28d).map(([f, n]) => `${f} ${n}`).join(" · ");
+      log(`  institutional events 28 d: ${fi || "none"}`);
       if (summary.wrote) log(`  wrote ${summary.wrote.daily_rows} rows (${summary.wrote.file_rows} in file) + funnel-latest.json`);
       if (summary.telegram) log(`  telegram: ${summary.telegram.sent ? `sent${summary.telegram.via ? ` via ${summary.telegram.via}` : ""}` : `not sent (${summary.telegram.reason})`}`);
     }

@@ -154,7 +154,7 @@ export default function TeamPage() {
       <Section
         id="bench"
         eyebrow="AI advisor bench"
-        title={`${roster.length || 11} specialised C-Level agents`}
+        title="The C-suite of AI agents behind every report"
         lede="Each seat below is an AI agent with its own research + build cron, colocated tests, and audit trail. Cards show live shipping activity from the last 30 days."
       >
         <StatStrip
@@ -177,7 +177,7 @@ export default function TeamPage() {
             to populate this page.
           </p>
         ) : (
-          <ul className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3" aria-label="C-Level agents">
+          <ul className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3" aria-label="AI advisor bench">
             {roster.map((r) => (
               <li key={r.slug} className="flex">
                 <Link

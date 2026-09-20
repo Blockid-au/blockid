@@ -6,6 +6,7 @@
 
 import Link from "next/link";
 import type { FunnelCounts, FunnelDailyRow, FunnelLatest } from "@/lib/funnel/core";
+import type { FiMetric, InstitutionalFunnel } from "@/lib/funnel/institutional";
 import type { FunnelFileStatus } from "@/lib/funnel/read";
 
 export interface FunnelViewData {
@@ -14,6 +15,8 @@ export interface FunnelViewData {
   fileError: string | null;
   daily: FunnelDailyRow[];
   today: { counts: FunnelCounts | null; date: string; warning: string | null };
+  /** G21 P0-D — institutional funnel + North Star (null when the page is rendered without it). */
+  institutional?: InstitutionalFunnel | null;
 }
 
 const STEP_LABELS: ReadonlyArray<{ key: keyof FunnelCounts; label: string; note: string }> = [
@@ -168,8 +171,82 @@ function SignupsTable({ signups }: { signups: FunnelLatest["last_signups"] }) {
   );
 }
 
+function aud(cents: number): string {
+  return `A$${(cents / 100).toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
+function fiValue(m: FiMetric): string {
+  if (m.status !== "live") return `— ${m.status.toUpperCase()}`;
+  if (m.value === null) return "n/a";
+  if (m.unit === "aud_cents") return aud(m.value);
+  if (m.unit === "ratio") return pct(m.value);
+  return n(m.value);
+}
+
+/**
+ * G21 P0-D — Institutional funnel: Acquisition → Activation → Engagement →
+ * Revenue → Trust → Data moat, live from analytics_events (28 d) + table
+ * counts + the traction snapshot, and the North Star (startups assessed
+ * through paying institutional workflows this month). Metrics without a
+ * data path yet print "— P1 / P2 / P3", never a fake 0.
+ */
+function InstitutionalSection({ fi }: { fi: InstitutionalFunnel }) {
+  const ns = fi.northStar;
+  return (
+    <section className="space-y-4" data-testid="funnel-institutional">
+      <header>
+        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">G21 · Institutional funnel</p>
+        <h2 className="text-xl font-bold text-neutral-900">Programs, evaluators and the data moat</h2>
+        <p className="mt-1 text-sm text-neutral-500">
+          Live, window {fi.window.from} → {fi.window.to} ({fi.window.days} d) from <code>analytics_events</code> (FI envelope: organisation · startup · plan · channel), table counts and{" "}
+          <code>traction-snapshot.json</code>. QA accounts excluded. “— P1 / P2 / P3” = no data path until that phase ships.
+        </p>
+      </header>
+
+      <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 shadow-sm" data-testid="funnel-north-star">
+        <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">North Star · {ns ? ns.month : "this month"}</p>
+        <p className="mt-1 text-3xl font-semibold tabular-nums text-indigo-900" data-testid="funnel-north-star-value">{ns ? n(ns.assessed) : "n/a"}</p>
+        <p className="text-sm text-indigo-900">startups assessed through paying institutional workflows this month</p>
+        <p className="mt-1 text-xs text-indigo-800">
+          {ns
+            ? `${n(ns.assessed_all)} batch items scored in total · ${n(ns.paying_batches)} paying batches · ${n(ns.paying_orgs)} paying organisations (Program / Fund / Cohort / Intake / paid pilot)`
+            : "evaluation_batch_items unavailable"}
+          {ns?.partial ? ` · partial: ${ns.partial}` : ""}
+        </p>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        {fi.sections.map((s) => (
+          <div key={s.key} className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm" data-fi-section={s.key}>
+            <p className="text-sm font-medium text-neutral-800">{s.label}</p>
+            <table className="mt-3 w-full text-sm">
+              <tbody>
+                {s.metrics.map((m) => (
+                  <tr key={m.key} className="border-t border-neutral-100 align-top" data-fi-metric={m.key} data-fi-status={m.status}>
+                    <td className="py-1.5 pr-3">
+                      <span className="text-neutral-800">{m.label}</span>
+                      <span className="block text-xs text-neutral-400">{m.note}</span>
+                    </td>
+                    <td className={`py-1.5 text-right tabular-nums ${m.status === "live" ? "text-neutral-900" : "text-neutral-400"}`}>{fiValue(m)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
+      </div>
+
+      {fi.warnings.length > 0 ? (
+        <p className="text-xs text-amber-700" data-testid="funnel-institutional-warnings">
+          {fi.warnings.join(" · ")}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 export function FunnelAdminView({ data }: { data: FunnelViewData }) {
-  const { latest, status, fileError, daily, today } = data;
+  const { latest, status, fileError, daily, today, institutional } = data;
   const recent = daily.slice(-14).reverse();
   return (
     <div className="min-h-svh bg-neutral-50 px-4 py-8">
@@ -236,6 +313,8 @@ export function FunnelAdminView({ data }: { data: FunnelViewData }) {
             </div>
           </>
         ) : null}
+
+        {institutional ? <InstitutionalSection fi={institutional} /> : null}
 
         <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm" data-testid="funnel-daily">
           <p className="text-sm font-medium text-neutral-800">Daily — last {recent.length} days</p>

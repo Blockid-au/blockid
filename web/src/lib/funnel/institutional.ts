@@ -1,0 +1,449 @@
+// G21 P0-D — the institutional (FI) funnel for /admin/funnel.
+//
+//   Acquisition → Activation → Engagement → Revenue → Trust → Data moat,
+//   plus the North Star: startups assessed through paying institutional
+//   workflows per month (= evaluation_batch_items scored inside batches
+//   owned by an account on a paying Program / Fund / Cohort / Intake plan or
+//   an active paid pilot).
+//
+// Honesty rules (goal doc § P0-D): a metric is `live` only when a data path
+// exists today; `p1` / `p3` metrics render as "—" with the phase that adds
+// the path — never a fake zero. QA rows are excluded like the founder funnel.
+//
+// Pure reducers (`reduceInstitutional`, `computeNorthStar`) are unit-tested;
+// `readInstitutionalFunnel` is the fail-soft server reader (analytics_events
+// through the same 28-day window as the founder funnel, evaluation_batch_*
+// + app_users for the North Star, the traction snapshot JSON for MRR and
+// counts).
+
+import { getStatusRoot, readJsonFile, REPORTS_DIR } from "@/lib/status/jsonl";
+import { dayString, isQaRow, rowsInWindow, type FunnelEventRow } from "./core";
+
+export type FiMetricStatus = "live" | "p1" | "p2" | "p3";
+
+export interface FiMetric {
+  key: string;
+  label: string;
+  value: number | null;
+  /** How to print `value`: a count, AUD cents, or a ratio 0..1. */
+  unit: "count" | "aud_cents" | "ratio";
+  status: FiMetricStatus;
+  note: string;
+}
+
+export type FiSectionKey = "acquisition" | "activation" | "engagement" | "revenue" | "trust" | "data_moat";
+
+export interface FiSection {
+  key: FiSectionKey;
+  label: string;
+  metrics: FiMetric[];
+}
+
+/** analytics_events names the institutional reducer reads. */
+export const FI_FUNNEL_EVENT_NAMES: readonly string[] = Object.freeze([
+  "svi_analyze",
+  "svi_score_computed",
+  "website_imported",
+  "evidence_upload",
+  "evidence_verified",
+  "score_recalculated",
+  "report_view",
+  "tbr_share_created",
+  "cohort_action",
+  "cohort_created",
+  "startup_added_to_cohort",
+  "batch_scored",
+  "dossier_view",
+  "assessment_submitted",
+  "pilot_started",
+  "checkout_completed",
+  "subscription_created",
+  "subscription_renewed",
+]);
+
+/** Plans whose batches count as "paying institutional workflows". */
+export const PAYING_INSTITUTIONAL_PLANS: readonly string[] = Object.freeze([
+  "investor_vc_small", // Program
+  "investor_vc_ent",
+  "investor_fund", // Fund
+  "accelerator_intake", // Intake link
+  "accelerator_starter", // Cohort 25
+  "accelerator_growth", // Cohort 100
+  "accelerator_enterprise",
+  "index_api",
+]);
+
+/** Counts the reader supplies from tables / the traction snapshot (null = unavailable). */
+export interface InstitutionalDbCounts {
+  program_leads: number | null;
+  demo_leads: number | null;
+  companies: number | null;
+  snapshots: number | null;
+  evidence_records: number | null;
+  longitudinal_companies: number | null;
+  verified_claims: number | null;
+  evidence_level_distribution: Record<string, number> | null;
+  mrr_cents: number | null;
+  paying_orgs: number | null;
+}
+
+export function emptyDbCounts(): InstitutionalDbCounts {
+  return {
+    program_leads: null,
+    demo_leads: null,
+    companies: null,
+    snapshots: null,
+    evidence_records: null,
+    longitudinal_companies: null,
+    verified_claims: null,
+    evidence_level_distribution: null,
+    mrr_cents: null,
+    paying_orgs: null,
+  };
+}
+
+const p = (row: FunnelEventRow, key: string): unknown => (row.params && typeof row.params === "object" ? (row.params as Record<string, unknown>)[key] : undefined);
+const actor = (row: FunnelEventRow): string => row.user_id ?? row.session_id ?? row.event_id ?? "";
+
+function distinct(rows: readonly FunnelEventRow[], name: string, keyOf: (r: FunnelEventRow) => string | undefined = actor, where: (r: FunnelEventRow) => boolean = () => true): number {
+  const set = new Set<string>();
+  for (const r of rows) {
+    if (r.event_name !== name || !where(r)) continue;
+    const k = keyOf(r);
+    if (k) set.add(k);
+  }
+  return set.size;
+}
+
+function count(rows: readonly FunnelEventRow[], name: string, where: (r: FunnelEventRow) => boolean = () => true): number {
+  let n = 0;
+  for (const r of rows) if (r.event_name === name && where(r)) n += 1;
+  return n;
+}
+
+function sum(rows: readonly FunnelEventRow[], name: string, key: string, where: (r: FunnelEventRow) => boolean = () => true): number {
+  let n = 0;
+  for (const r of rows) {
+    if (r.event_name !== name || !where(r)) continue;
+    const v = Number(p(r, key));
+    if (Number.isFinite(v)) n += v;
+  }
+  return n;
+}
+
+const projectOf = (r: FunnelEventRow) => (typeof p(r, "project_id") === "string" ? (p(r, "project_id") as string) : undefined);
+const isPaidPilot = (r: FunnelEventRow) => p(r, "pilot_source") === "paid";
+const isDeck = (r: FunnelEventRow) => p(r, "evidence_kind") === "pitch_deck";
+
+/**
+ * Pure: the six FI sections for a window of analytics_events rows (QA rows
+ * dropped here) plus the DB / snapshot counts the reader supplies.
+ */
+export function reduceInstitutional(rowsIn: readonly FunnelEventRow[], db: InstitutionalDbCounts = emptyDbCounts()): FiSection[] {
+  const rows = rowsIn.filter((r) => !isQaRow(r));
+  const live = (key: string, label: string, value: number | null, note: string, unit: FiMetric["unit"] = "count"): FiMetric => ({ key, label, value, unit, status: "live", note });
+  const later = (key: string, label: string, status: Exclude<FiMetricStatus, "live">, note: string, unit: FiMetric["unit"] = "count"): FiMetric => ({ key, label, value: null, unit, status, note });
+
+  const startupsImported = new Set<string>();
+  for (const r of rows) {
+    if (r.event_name === "website_imported" || (r.event_name === "evidence_upload" && isDeck(r))) {
+      const k = projectOf(r) ?? actor(r);
+      if (k) startupsImported.add(k);
+    }
+  }
+  const pilotRevenue = sum(rows, "pilot_started", "amount_cents", isPaidPilot);
+  const mrr = db.mrr_cents;
+  const arr = mrr === null ? null : mrr * 12;
+  const arpa = mrr !== null && db.paying_orgs !== null && db.paying_orgs > 0 ? Math.round(mrr / db.paying_orgs) : null;
+
+  return [
+    {
+      key: "acquisition",
+      label: "Acquisition",
+      metrics: [
+        live("program_leads", "Program leads", db.program_leads, "leads (source contact) with payload topic pilot / sales / partnership in the window (/contact?topic=pilot)"),
+        later("pilot_page_views", "Pilot page views", "p1", "GA4 page_view is client-side only; a server page_view for /pilot + /solutions/accelerator lands with P1"),
+        live("demos", "Demo requests", db.demo_leads, "leads rows with topic demo"),
+        later("pilot_proposals", "Pilot proposals sent", "p2", "recorded by the pilot kit (P2-C)"),
+        live("paid_pilots", "Paid pilots started", count(rows, "pilot_started", isPaidPilot), "pilot_started with pilot_source = paid (P0-C fulfilment hook)"),
+      ],
+    },
+    {
+      key: "activation",
+      label: "Activation",
+      metrics: [
+        live("startups_imported", "Startups imported", startupsImported.size, "distinct projects with website_imported or a pitch-deck evidence_upload"),
+        live("first_assessments", "First assessments", distinct(rows, "svi_score_computed", projectOf), "distinct project_id on svi_score_computed"),
+        live("evaluator_cohort_views", "Evaluator views cohort", distinct(rows, "cohort_action"), "distinct evaluators on cohort_action (typed; the cohort view emits it from P2)"),
+        live("founder_evidence", "Founder adds evidence", distinct(rows, "evidence_upload", projectOf), "distinct projects with an evidence_upload"),
+      ],
+    },
+    {
+      key: "engagement",
+      label: "Engagement",
+      metrics: [
+        live("rescores", "Re-scores", count(rows, "score_recalculated"), "score_recalculated (emitted by the P1 rescore path; 0 until then is a real 0)"),
+        live("evidence_updates", "Evidence updates", count(rows, "evidence_upload"), "evidence_upload events"),
+        live("evaluator_dossier_views", "Evaluator dossier views", distinct(rows, "dossier_view"), "distinct evaluators on dossier_view (login proxy until P1 adds evaluator_login)"),
+        later("comparison_sessions", "Comparison sessions", "p2", "cohort compare view (P2-B)"),
+      ],
+    },
+    {
+      key: "revenue",
+      label: "Revenue",
+      metrics: [
+        live("pilot_revenue", "Pilot revenue", pilotRevenue, "sum of pilot_started.amount_cents where pilot_source = paid", "aud_cents"),
+        live("mrr", "MRR", mrr, "traction-snapshot.json mrr_aud_cents.from_subscriptions (v_mrr_active definition)", "aud_cents"),
+        live("arr", "ARR", arr, "MRR × 12 (annualised subscription revenue)", "aud_cents"),
+        live("arpa", "ARPA", arpa, "MRR ÷ paying evaluator organisations", "aud_cents"),
+        live("renewals", "Subscription renewals", count(rows, "subscription_renewed"), "subscription_renewed (invoice.paid renewal hook)"),
+      ],
+    },
+    {
+      key: "trust",
+      label: "Trust",
+      metrics: [
+        live("verified_claims", "Verified claims", db.verified_claims, "svi_dimension_evidence rows with confidence_level = third_party_verified"),
+        live("evidence_verified_events", "Evidence verified (window)", count(rows, "evidence_verified"), "evidence_verified events (reviewer approvals emit from P1)"),
+        later("evidence_level_distribution", "Evidence level distribution", "p1", "per-level share across live evidence rows — the Assessment Card (P1) publishes it"),
+        later("stale_connectors", "Stale connectors", "p1", "connectors past their resync window — connector health lands with P1"),
+      ],
+    },
+    {
+      key: "data_moat",
+      label: "Data moat",
+      metrics: [
+        live("companies", "Companies", db.companies, "projects rows"),
+        live("snapshots", "Snapshots", db.snapshots, "svi_snapshots rows"),
+        live("evidence_records", "Evidence records", db.evidence_records, "svi_dimension_evidence rows"),
+        live("longitudinal_companies", "Longitudinal companies (≥ 2 snapshots)", db.longitudinal_companies, "projects with two or more svi_snapshots (bounded scan)"),
+        later("known_outcomes", "Known outcomes", "p3", "outcome ledger (P3-A)"),
+      ],
+    },
+  ];
+}
+
+// ── North Star ────────────────────────────────────────────────────────
+
+export interface BatchItemRow {
+  batch_id: string;
+  scored_at: string | null;
+  status?: string | null;
+}
+export interface BatchRow {
+  id: string;
+  user_id: string;
+}
+export interface OwnerRow {
+  id: string;
+  plan: string | null;
+  email?: string | null;
+  /** True when the owner holds an active paid pilot (pilot_orders, P0-C). */
+  paid_pilot?: boolean;
+}
+
+export interface NorthStar {
+  /** "YYYY-MM" (UTC). */
+  month: string;
+  /** Startups assessed through paying institutional workflows in the month. */
+  assessed: number;
+  /** All batch items scored in the month, paying or not. */
+  assessed_all: number;
+  paying_batches: number;
+  paying_orgs: number;
+  /** Which part of the join was unavailable, if any. */
+  partial: string | null;
+}
+
+export function monthString(now: number | Date): string {
+  return dayString(now, 0).slice(0, 7);
+}
+
+/** True when the owner's plan (or an active paid pilot) counts as a paying institutional workflow. */
+export function isPayingInstitutional(owner: Pick<OwnerRow, "plan" | "paid_pilot"> | undefined): boolean {
+  if (!owner) return false;
+  if (owner.paid_pilot) return true;
+  return !!owner.plan && PAYING_INSTITUTIONAL_PLANS.includes(owner.plan);
+}
+
+/**
+ * Pure: batch items scored in `month` whose batch owner is on a paying
+ * institutional plan (or an active paid pilot). QA owners (qa-live-*) are
+ * excluded through `isQaOwner`.
+ */
+export function computeNorthStar(
+  items: readonly BatchItemRow[],
+  batches: readonly BatchRow[],
+  owners: readonly OwnerRow[],
+  month: string,
+  opts: { isQaOwner?: (o: OwnerRow) => boolean; partial?: string | null } = {},
+): NorthStar {
+  const isQa = opts.isQaOwner ?? ((o) => /^qa-live-/i.test(o.email ?? ""));
+  const ownerById = new Map(owners.map((o) => [o.id, o] as const));
+  const batchOwner = new Map(batches.map((b) => [b.id, ownerById.get(b.user_id)] as const));
+  let assessed = 0;
+  let assessedAll = 0;
+  const payingBatches = new Set<string>();
+  const payingOrgs = new Set<string>();
+  for (const it of items) {
+    if (!it.scored_at || it.scored_at.slice(0, 7) !== month) continue;
+    if (it.status && it.status !== "done") continue;
+    const owner = batchOwner.get(it.batch_id);
+    if (owner && isQa(owner)) continue;
+    assessedAll += 1;
+    if (!isPayingInstitutional(owner)) continue;
+    assessed += 1;
+    payingBatches.add(it.batch_id);
+    if (owner) payingOrgs.add(owner.id);
+  }
+  return { month, assessed, assessed_all: assessedAll, paying_batches: payingBatches.size, paying_orgs: payingOrgs.size, partial: opts.partial ?? null };
+}
+
+// ── Reader (fail-soft) ────────────────────────────────────────────────
+
+/** The slice of supabase-js the reader needs (mockable). */
+export interface InstitutionalClient {
+  from: (table: string) => { select: (cols: string, opts?: { count?: "exact"; head?: boolean }) => InstitutionalQuery };
+}
+export interface InstitutionalQuery {
+  in: (col: string, v: readonly string[]) => InstitutionalQuery;
+  gte: (col: string, v: string) => InstitutionalQuery;
+  eq: (col: string, v: unknown) => InstitutionalQuery;
+  limit: (n: number) => InstitutionalQuery;
+  order: (col: string, opts: { ascending: boolean }) => InstitutionalQuery;
+  then: PromiseLike<InstitutionalResult>["then"];
+}
+export interface InstitutionalResult {
+  data: unknown[] | null;
+  count?: number | null;
+  error: { message?: string } | null;
+}
+
+export function asInstitutionalClient(client: unknown): InstitutionalClient | null {
+  return client ? (client as InstitutionalClient) : null;
+}
+
+export interface InstitutionalFunnel {
+  window: { days: number; from: string; to: string };
+  sections: FiSection[];
+  northStar: NorthStar | null;
+  warnings: string[];
+}
+
+export const FI_WINDOW_DAYS = 28;
+export const FI_ROW_LIMIT = 20_000;
+
+async function safe<T>(warnings: string[], label: string, fn: () => Promise<T>): Promise<T | null> {
+  try {
+    return await fn();
+  } catch (err) {
+    warnings.push(`${label}: ${err instanceof Error ? err.message : String(err)}`);
+    return null;
+  }
+}
+
+async function countRows(client: InstitutionalClient, warnings: string[], label: string, refine: (q: InstitutionalQuery) => PromiseLike<InstitutionalResult> = (q) => q): Promise<number | null> {
+  const table = label.split(":")[0]!;
+  const res = await safe(warnings, label, async () => await refine(client.from(table).select("id", { count: "exact", head: true })));
+  if (!res) return null;
+  if (res.error) {
+    warnings.push(`${label}: ${res.error.message ?? "query failed"}`);
+    return null;
+  }
+  return typeof res.count === "number" ? res.count : null;
+}
+
+/**
+ * Everything /admin/funnel's institutional section shows. Never throws: a
+ * failed query becomes a null metric + a warning.
+ */
+export async function readInstitutionalFunnel(client: InstitutionalClient | null, now: number = Date.now(), root: string = getStatusRoot()): Promise<InstitutionalFunnel> {
+  const warnings: string[] = [];
+  const from = dayString(now, FI_WINDOW_DAYS);
+  const to = dayString(now, 0);
+  const db = emptyDbCounts();
+  let rows: FunnelEventRow[] = [];
+  let northStar: NorthStar | null = null;
+
+  // Traction snapshot → MRR + paying orgs + counts that already exist there.
+  const snap = await readJsonFile<Record<string, unknown>>(root, `${REPORTS_DIR}/traction-snapshot.json`);
+  if (snap) {
+    const mrr = (snap.mrr_aud_cents as Record<string, unknown> | undefined)?.from_subscriptions;
+    db.mrr_cents = typeof mrr === "number" ? mrr : null;
+    const byPlan = (snap.evaluators as Record<string, unknown> | undefined)?.paying_by_plan as Record<string, number> | undefined;
+    db.paying_orgs = byPlan ? Object.values(byPlan).reduce((a, b) => a + (Number(b) || 0), 0) : null;
+  } else {
+    warnings.push("traction-snapshot.json: missing — MRR / ARR / ARPA unavailable");
+  }
+
+  if (!client) {
+    warnings.push("supabase not configured");
+    return { window: { days: FI_WINDOW_DAYS, from, to }, sections: reduceInstitutional([], db), northStar: null, warnings };
+  }
+
+  // analytics_events in the window (same shape as the founder funnel).
+  const ev = await safe(warnings, "analytics_events", async () =>
+    client.from("analytics_events").select("event_id, event_name, user_id, session_id, params, ts, source").in("event_name", FI_FUNNEL_EVENT_NAMES).gte("ts", `${from}T00:00:00.000Z`).order("ts", { ascending: true }).limit(FI_ROW_LIMIT),
+  );
+  if (ev?.error) warnings.push(`analytics_events: ${ev.error.message ?? "query failed"}`);
+  else if (ev?.data) {
+    rows = rowsInWindow(ev.data as FunnelEventRow[], { days: FI_WINDOW_DAYS, now, includeToday: true });
+    if (ev.data.length >= FI_ROW_LIMIT) warnings.push(`analytics_events: capped at ${FI_ROW_LIMIT} rows`);
+  }
+
+  // Leads (program / demo) in the window.
+  // leads.topic lives in payload->>topic (api/lead/route.ts sets it for source = contact).
+  db.program_leads = await countRows(client, warnings, "leads:program", (q) => q.eq("source", "contact").in("payload->>topic", ["pilot", "sales", "partnership"]).gte("created_at", `${from}T00:00:00.000Z`));
+  db.demo_leads = await countRows(client, warnings, "leads:demo", (q) => q.eq("source", "contact").eq("payload->>topic", "demo").gte("created_at", `${from}T00:00:00.000Z`));
+
+  // Data moat + trust counts (all-time).
+  db.companies = await countRows(client, warnings, "projects:count");
+  db.snapshots = await countRows(client, warnings, "svi_snapshots:count");
+  db.evidence_records = await countRows(client, warnings, "svi_dimension_evidence:count");
+  db.verified_claims = await countRows(client, warnings, "svi_dimension_evidence:verified", (q) => q.eq("confidence_level", "third_party_verified"));
+
+  // Longitudinal companies: bounded scan of snapshot project ids.
+  const snaps = await safe(warnings, "svi_snapshots:longitudinal", async () => client.from("svi_snapshots").select("project_id").order("project_id", { ascending: true }).limit(FI_ROW_LIMIT));
+  if (snaps?.error) warnings.push(`svi_snapshots:longitudinal: ${snaps.error.message ?? "query failed"}`);
+  else if (snaps?.data) {
+    const per = new Map<string, number>();
+    for (const r of snaps.data as Array<{ project_id?: string | null }>) {
+      if (!r.project_id) continue;
+      per.set(r.project_id, (per.get(r.project_id) ?? 0) + 1);
+    }
+    db.longitudinal_companies = [...per.values()].filter((n) => n >= 2).length;
+    if (snaps.data.length >= FI_ROW_LIMIT) warnings.push(`svi_snapshots:longitudinal: capped at ${FI_ROW_LIMIT} rows`);
+  }
+
+  // North Star: batch items scored this month × batch owner plan.
+  const month = monthString(now);
+  const items = await safe(warnings, "evaluation_batch_items", async () => client.from("evaluation_batch_items").select("batch_id, scored_at, status").gte("scored_at", `${month}-01T00:00:00.000Z`).order("scored_at", { ascending: true }).limit(FI_ROW_LIMIT));
+  if (items?.error) warnings.push(`evaluation_batch_items: ${items.error.message ?? "query failed"}`);
+  else if (items?.data) {
+    const itemRows = items.data as BatchItemRow[];
+    const batchIds = [...new Set(itemRows.map((i) => i.batch_id))];
+    let batches: BatchRow[] = [];
+    let owners: OwnerRow[] = [];
+    let partial: string | null = null;
+    if (batchIds.length > 0) {
+      const b = await safe(warnings, "evaluation_batches", async () => client.from("evaluation_batches").select("id, user_id").in("id", batchIds).limit(FI_ROW_LIMIT));
+      if (b?.error || !b?.data) partial = "evaluation_batches unavailable — owner plans unknown";
+      else batches = b.data as BatchRow[];
+      const userIds = [...new Set(batches.map((x) => x.user_id))];
+      if (userIds.length > 0) {
+        const u = await safe(warnings, "app_users", async () => client.from("app_users").select("id, plan, email").in("id", userIds).limit(FI_ROW_LIMIT));
+        if (u?.error || !u?.data) partial = partial ?? "app_users unavailable — owner plans unknown";
+        else owners = u.data as OwnerRow[];
+        // Paid pilots (P0-C pilot_orders) — optional table; absence is not an error.
+        const po = await safe([], "pilot_orders", async () => client.from("pilot_orders").select("project_id, status").in("status", ["paid", "active"]).limit(FI_ROW_LIMIT));
+        if (po?.data) {
+          // pilot_orders keys on project_id (projects-only FKs); owners with any paid pilot are flagged via the batch owner's projects — P0-C decides the exact join.
+          partial = partial ?? (po.data.length > 0 ? "paid pilots present — counted only through owner plans until P0-C's pilot entitlement join lands" : null);
+        }
+      }
+    }
+    northStar = computeNorthStar(itemRows, batches, owners, month, { partial });
+  }
+
+  return { window: { days: FI_WINDOW_DAYS, from, to }, sections: reduceInstitutional(rows, db), northStar, warnings };
+}

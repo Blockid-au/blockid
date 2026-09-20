@@ -22,6 +22,7 @@ vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => null }));
 
 import { buildReport } from "../../../../../../scripts/funnel-report.mjs";
 import { readFunnelDaily, readFunnelLatest, liveTodayFunnel } from "@/lib/funnel/read";
+import { emptyDbCounts, reduceInstitutional } from "@/lib/funnel/institutional";
 import { reduceDaily, type FunnelEventRow } from "@/lib/funnel/core";
 import { FunnelAdminView, type FunnelViewData } from "./funnel-view";
 import FunnelAdminPage from "./page";
@@ -115,6 +116,42 @@ describe("FunnelAdminView", () => {
     );
     expect(out).toContain("does not match the current schema");
     expect(out).toContain("report: stale");
+  });
+});
+
+describe("FunnelAdminView — institutional section (G21 P0-D)", () => {
+  it("renders the North Star, the six FI sections, live values, '— P1/P2/P3' for metrics without a data path, and the warnings", async () => {
+    const data = await dataFromFixture();
+    const sections = reduceInstitutional(
+      [{ event_id: "p", event_name: "pilot_started", user_id: "org", params: { amount_cents: 150000, pilot_source: "paid" }, ts: "2026-09-18T09:00:00.000Z" }],
+      { ...emptyDbCounts(), companies: 200, mrr_cents: 69800, paying_orgs: 2 },
+    );
+    const out = await html(
+      <FunnelAdminView
+        data={{
+          ...data,
+          institutional: {
+            window: { days: 28, from: "2026-08-22", to: "2026-09-19" },
+            sections,
+            northStar: { month: "2026-09", assessed: 7, assessed_all: 12, paying_batches: 2, paying_orgs: 1, partial: null },
+            warnings: ["svi_snapshots:longitudinal: boom"],
+          },
+        }}
+      />,
+    );
+    expect(out).toContain('data-testid="funnel-institutional"');
+    expect(out).toContain('data-testid="funnel-north-star-value">7<');
+    expect(out).toContain("startups assessed through paying institutional workflows this month");
+    for (const k of ["acquisition", "activation", "engagement", "revenue", "trust", "data_moat"]) expect(out).toContain(`data-fi-section="${k}"`);
+    expect(out).toContain('data-fi-metric="paid_pilots" data-fi-status="live"');
+    expect(out).toContain("A$1,500");
+    expect(out).toContain("A$698");
+    expect(out).toContain("A$8,376");
+    expect(out).toContain("— P1");
+    expect(out).toContain("— P3");
+    expect(out).toContain("svi_snapshots:longitudinal: boom");
+    // unavailable table counts are n/a, not 0
+    expect(out).toMatch(/data-fi-metric="snapshots" data-fi-status="live"[\s\S]*?n\/a</);
   });
 });
 

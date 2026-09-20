@@ -12,6 +12,7 @@ import { redirect } from "next/navigation";
 
 import { ADMIN_EMAIL, getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { asInstitutionalClient, readInstitutionalFunnel } from "@/lib/funnel/institutional";
 import { asFunnelLiveClient, liveTodayFunnel, readFunnelDaily, readFunnelLatest } from "@/lib/funnel/read";
 import { FunnelAdminView } from "./funnel-view";
 
@@ -29,11 +30,14 @@ export default async function FunnelAdminPage() {
   const isAdmin = user.email === ADMIN_EMAIL || user.role === "admin";
   if (!isAdmin) redirect("/admin");
 
-  const [{ latest, status, error }, daily, today] = await Promise.all([
+  const admin = getSupabaseAdmin();
+  const [{ latest, status, error }, daily, today, institutional] = await Promise.all([
     readFunnelLatest(),
     readFunnelDaily(),
-    liveTodayFunnel(asFunnelLiveClient(getSupabaseAdmin())),
+    liveTodayFunnel(asFunnelLiveClient(admin)),
+    // G21 P0-D — institutional funnel + North Star, live (28-day window).
+    readInstitutionalFunnel(asInstitutionalClient(admin)),
   ]);
 
-  return <FunnelAdminView data={{ latest, status, fileError: error, daily, today }} />;
+  return <FunnelAdminView data={{ latest, status, fileError: error, daily, today, institutional }} />;
 }
