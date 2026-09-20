@@ -42,7 +42,7 @@ export default async function PricingTestPage() {
           </Link>
           <h1 className="text-2xl font-bold">{exp.label}</h1>
           <p className="text-sm text-muted-foreground max-w-3xl leading-relaxed">
-            Live A/B test for the Founding 100 price. Variants are assigned by deterministic hash of the visitor&apos;s anonymous_id cookie — the same visitor always sees the same price (until the cookie is cleared).
+            Live A/B test for this experiment&apos;s price. Variants are assigned by deterministic hash of the visitor&apos;s anonymous_id cookie — the same visitor always sees the same price (until the cookie is cleared).
             Pick the variant with the highest <strong>revenue per session (RPS)</strong> — it captures both conversion and price together.
           </p>
           <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">

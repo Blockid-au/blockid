@@ -8,7 +8,6 @@ import {
   MessageSquare,
   FileText,
   Copy,
-  Mail,
   Loader2,
   Check,
   Clock,
@@ -291,14 +290,6 @@ export function RndDashboard() {
               >
                 {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
                 {copied ? "Copied" : "Copy Report"}
-              </button>
-              <button
-                disabled
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-muted bg-surface-100 rounded-lg px-3 py-1.5 cursor-not-allowed opacity-50"
-                title="Email delivery coming soon"
-              >
-                <Mail className="h-3.5 w-3.5" />
-                Email Report
               </button>
             </div>
           </div>

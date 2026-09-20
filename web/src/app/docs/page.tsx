@@ -127,7 +127,7 @@ const SVI_DIMENSIONS: SviDimension[] = [
     code: "svm",
     name: "SVI Momentum",
     blurb:
-      "Trajectory: how the seven dimensions have moved over the last N snapshots.",
+      "Trajectory: how the eight dimensions have moved over the last N snapshots.",
   },
 ];
 

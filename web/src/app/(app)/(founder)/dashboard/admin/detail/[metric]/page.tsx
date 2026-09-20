@@ -58,8 +58,8 @@ const METRICS: Record<string, MetricSpec> = {
   },
   "email-subscribers": {
     slug: "email-subscribers",
-    title: "Email subscribers (Founding 50 waitlist)",
-    description: "Everyone who signed up to the Founding 50 waitlist on the home page.",
+    title: "Email subscribers (home-page waitlist, closed promo)",
+    description: "Everyone who signed up to the home-page waitlist during the closed launch promo.",
     source: "Supabase `founding50_waitlist` table",
     countLabel: "subscriber",
   },

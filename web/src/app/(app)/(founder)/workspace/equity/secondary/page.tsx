@@ -78,7 +78,7 @@ export default async function SecondaryOfferPage() {
               Secondary Offer — Founder Intake
             </h1>
             <span className="inline-flex items-center rounded-full border border-brand-300 bg-brand-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-700 dark:border-brand-700 dark:bg-brand-950/40 dark:text-brand-300">
-              Beta · Draft-only
+              Draft-only
             </span>
           </div>
           <p className="text-sm text-slate-600 dark:text-slate-400">

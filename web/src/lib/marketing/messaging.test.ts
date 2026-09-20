@@ -36,6 +36,7 @@ const PUBLIC_TREES = [
   "src/app/s",
   "src/app/tools",
   "src/app/dataset",
+  "src/app/startup-package",
   "src/app/api/platform-stats",
   "src/components/marketing",
   "src/components/landing",
@@ -51,6 +52,26 @@ const PUBLIC_TREES = [
   "src/lib/pilots/emails.ts",
   "src/lib/pdf",
   "public/site.webmanifest",
+  // G20-F3 (2026-09-20) — the signed-in surfaces join the sweep: workspace /
+  // dashboard / settings / billing pages and the components that render them.
+  "src/app/(app)",
+  "src/components/workspace",
+  "src/components/dashboard",
+  "src/components/onboarding",
+  "src/components/access",
+  "src/components/paywall",
+  "src/components/churn",
+];
+
+/**
+ * G20-F3: path prefixes (relative to `web/`) that the sweep never enters.
+ * The G19 peer lane (Report Quality) owns these trees; drift there is
+ * reported to the SOT G19 block, not fixed by the messaging guard.
+ */
+const EXCLUDED_TREES = [
+  "src/app/(app)/(founder)/workspace/reports",
+  "src/app/(app)/(founder)/workspace/score",
+  "src/components/tbr",
 ];
 
 const SOURCE_EXT = /\.(tsx?|json|webmanifest|txt|md)$/;
@@ -111,6 +132,8 @@ export function parseNeverSay(markdown: string): Rule[] {
 }
 
 function walk(path: string, out: string[]): void {
+  const rel = relative(WEB_ROOT, path);
+  if (EXCLUDED_TREES.some((prefix) => rel === prefix || rel.startsWith(`${prefix}/`))) return;
   const st = statSync(path);
   if (st.isFile()) {
     if (SOURCE_EXT.test(path) && !/\.(test|spec)\./.test(path)) out.push(path);
@@ -146,7 +169,7 @@ describe("docs/design/messaging.md § 11 — the never-say table", () => {
 
   it("scans every public tree (a renamed tree must be re-pointed here, not silently dropped)", () => {
     expect(files.length).toBeGreaterThan(150);
-    for (const tree of PUBLIC_TREES) {
+    for (const tree of [...PUBLIC_TREES, ...EXCLUDED_TREES]) {
       const abs = resolve(WEB_ROOT, tree);
       const exists = (() => {
         try {
@@ -157,6 +180,10 @@ describe("docs/design/messaging.md § 11 — the never-say table", () => {
         }
       })();
       expect(exists, `${tree} is missing`).toBe(true);
+    }
+    // The G19 trees are excluded by prefix, never scanned.
+    for (const rel of files.map((abs) => relative(WEB_ROOT, abs))) {
+      for (const ex of EXCLUDED_TREES) expect(rel.startsWith(ex), `${rel} must not be scanned (G19 lane)`).toBe(false);
     }
   });
 

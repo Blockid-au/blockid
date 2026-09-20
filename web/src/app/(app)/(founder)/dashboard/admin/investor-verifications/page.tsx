@@ -41,7 +41,7 @@ export default async function InvestorVerificationsPage() {
   return (
     <main className="max-w-5xl mx-auto px-6 py-8 space-y-8">
       <header>
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700">Admin · v2.18 Beta</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700">Admin</p>
         <h1 className="text-2xl font-bold mt-1">Investor verifications</h1>
         <p className="text-sm text-slate-600 mt-1">
           Approve investor accounts to unlock founder contact requests on startupvalueindex.com.
