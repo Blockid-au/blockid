@@ -22,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const p = buildGovernanceProps();
   return pageMetadata({
     title: "Score governance",
-    description: `How the Startup Value Index (v${p.version}) is governed: dimensions, weights, versioning, benchmark rules, conflict handling, human review, corrections and re-scores. Humans make the decision.`,
+    description: `How the Startup Value Index (v${p.version}) is governed: dimensions, weights, versioning, benchmark rules, conflicts, human review, corrections and re-scores.`,
     path: GOVERNANCE_PATH,
     viPath: GOVERNANCE_VI_PATH,
   });

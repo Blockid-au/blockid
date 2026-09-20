@@ -27,6 +27,7 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowRight, Loader2, Lock, X } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
+import { userErrorMessage } from "@/lib/ui/user-error";
 import {
   PILOT_CONTACT_FALLBACK,
   PILOT_INCLUDES,
@@ -122,7 +123,7 @@ export function PilotBuyButton({ sku, configured, returnPath, label, variant = "
       }
       window.location.href = next.href;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
+      setError(userErrorMessage(err, "We could not start the checkout. Please try again or contact us."));
     } finally {
       setBusy(false);
     }

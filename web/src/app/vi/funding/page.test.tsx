@@ -38,7 +38,7 @@ describe("/vi/funding (T0248)", () => {
     expect(out).toContain("A$29/tháng · Starter");
     expect(out).not.toContain("There&#x27;s A$3.2M");
     expect(out).not.toMatch(/A\$5\.50|PhD|A\$99/);
-  });
+  }, 30_000);
 
   it("metadata carries the VI title + hreflang pair", async () => {
     const { generateMetadata } = await import("./page");

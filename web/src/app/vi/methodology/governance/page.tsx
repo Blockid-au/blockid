@@ -26,7 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const p = buildGovernanceProps();
   return pageMetadata({
     title: "Quản trị điểm số",
-    description: `Cách Startup Value Index (v${p.version}) được quản trị: các chiều, trọng số, phiên bản, quy tắc phân vị, xử lý xung đột, xét duyệt bởi con người, chỉnh sửa và chấm lại. Con người ra quyết định.`,
+    description: `Cách Startup Value Index (v${p.version}) được quản trị: các chiều, trọng số, phiên bản, quy tắc phân vị, xung đột, xét duyệt bởi con người, chỉnh sửa và chấm lại.`,
     path: GOVERNANCE_VI_PATH,
     viPath: GOVERNANCE_VI_PATH,
     lang: "vi",

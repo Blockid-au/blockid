@@ -37,7 +37,7 @@ const PILOT_PATH = "/pilot";
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
     title: "Cohort Validation Pilot for startup programs",
-    description: `Run one real intake or your existing cohort through the Startup Value Index: evidence confidence, cohort comparison, evaluator table, final report. From ${formatPilotPrice("cohort_pilot_25")} inc. GST.`,
+    description: `Run one real intake or an existing cohort through the Startup Value Index: evidence confidence, cohort comparison, evaluator table, final report. From ${formatPilotPrice("cohort_pilot_25")}.`,
     path: PILOT_PATH,
   });
 }
