@@ -273,14 +273,14 @@ describe("POST /api/stripe/cancel — trialing subscription → cancelled now, n
     expect(stripeMock.subscriptions.cancel).toHaveBeenCalledWith("sub_trial");
   });
 
-  it("a save-offer on a trial is ignored — no coupon is stacked, the trial is cancelled", async () => {
+  it("a save-offer on a trial is refused (409) — no coupon is stacked and the trial is NOT cancelled behind the offer (G18 review)", async () => {
     makeSupabase("cus_123");
     stripeMock.subscriptions.list.mockResolvedValue({ data: [sub({ status: "trialing", trial_end: TRIAL_END })] });
     const res = await POST(req({ save_offer: { kind: "keep_30", coupon: "COMEBACK30", accepted: true } }));
-    expect(res.status).toBe(200);
-    expect((await res.json()).state).toBe("canceled");
+    expect(res.status).toBe(409);
+    expect((await res.json()).reason).toBe("save_offer_not_for_trial");
     expect(stripeMock.subscriptions.update).not.toHaveBeenCalled();
-    expect(stripeMock.subscriptions.cancel).toHaveBeenCalledTimes(1);
+    expect(stripeMock.subscriptions.cancel).not.toHaveBeenCalled();
   });
 
   it("502 cancel_failed when Stripe refuses; plan is left untouched", async () => {

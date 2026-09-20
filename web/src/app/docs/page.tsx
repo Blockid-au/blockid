@@ -15,7 +15,7 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = pageMetadata({
   title: "Platform docs — SVI, pricing, team, API, roadmap",
-  description: "BlockID.au documentation — the Startup Value Index, pricing for founders and evaluators, the 11 AI C-Level agents, the Evaluator API v1, webhooks and what shipped.",
+  description: "BlockID.au documentation — the Startup Value Index, pricing for founders and evaluators, a C-suite of AI agents, the Evaluator API v1, webhooks and what shipped.",
   path: "/docs",
 });
 
@@ -826,7 +826,7 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
                   /team
                 </p>
                 <p className="text-xs text-ink-600 leading-relaxed">
-                  The 11 C-Level AI agents and their most recent shipped
+                  The C-suite of AI agents and their most recent shipped
                   contribution.
                 </p>
               </Link>

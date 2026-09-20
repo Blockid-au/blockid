@@ -156,6 +156,11 @@ async function POST_handler(request: Request) {
   // A trial has no invoice to discount or pause; the offers make no sense
   // there and would let a trialist stack a coupon onto a sub that has never
   // billed. Trials fall through to the immediate-cancel path below.
+  // G18 review: an accepted offer from a trialist must not silently become
+  // an immediate cancel — refuse so the client can re-prompt.
+  if (save_offer?.accepted && isTrialing) {
+    return NextResponse.json({ ok: false, reason: "save_offer_not_for_trial", message: "Save offers apply to billed subscriptions only — a trial can be cancelled at no charge." }, { status: 409 });
+  }
   if (save_offer?.accepted && !isTrialing) {
     let applied = false;
     try {

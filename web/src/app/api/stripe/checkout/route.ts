@@ -263,6 +263,12 @@ async function POST_handler(request: Request) {
             plan.cadence = "yearly";
             plan.price = annual.cents;
             billedInterval = "annual";
+          } else {
+            // G18 review: say so instead of silently billing monthly.
+            return NextResponse.json(
+              { ok: false, error: "interval_unavailable", planId, message: "This plan has no annual price yet — choose monthly billing." },
+              { status: 400 },
+            );
           }
         }
         trialDays = Number(dbPlan.trial_days ?? 0) || 0;

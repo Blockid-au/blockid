@@ -476,12 +476,12 @@ describe("stripe/checkout — subscription happy path", () => {
       expect((call?.subscription_data as { metadata?: Record<string, string> })?.metadata?.interval).toBe("annual");
     });
 
-    it("falls back to the monthly Price when the row has no annual Price", async () => {
+    it("answers interval_unavailable (400) when the row has no annual Price — never silently bills monthly (G18 review)", async () => {
       mocks.getPlanCachedMock.mockResolvedValue({ ...scout, stripe_price_id_annual: null });
-      await POST(req({ plan: "investor_angel", interval: "annual" }));
-      const call = mocks.stripeCreateMock.mock.calls[0]?.[0];
-      expect((call?.line_items as Array<{ price: string }>)[0]?.price).toBe("price_scout_m");
-      expect((call?.subscription_data as { metadata?: Record<string, string> })?.metadata?.interval).toBe("monthly");
+      const res = await POST(req({ plan: "investor_angel", interval: "annual" }));
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toBe("interval_unavailable");
+      expect(mocks.stripeCreateMock).not.toHaveBeenCalled();
     });
 
     it("interval omitted / monthly keeps the monthly Price even when annual exists", async () => {

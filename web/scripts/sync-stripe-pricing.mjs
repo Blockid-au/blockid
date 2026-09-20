@@ -54,10 +54,13 @@ const stripe = new Stripe(STRIPE_KEY, { typescript: false });
 // src/lib/credit-packs.ts (single source of truth; ladder is 500/900/2000/
 // 3500/6000 since 2026-09-07 B8). This script cannot import that TS module,
 // so `credit-packs.test.ts` greps these rows and fails on drift (T0249).
+// Retired SKUs (Founding 100, legacy Growth 99 / 950) are audited read-only
+// and NEVER re-minted by --fix — archive them in Stripe (G18 review).
+const RETIRED = new Set(["founding50", "growth", "growth_annual"]);
 const PLANS = [
-  { planId: "founding50",    label: "Founding 100 (one-off)", configCents: 300,   cadence: "one-off",  envVar: "STRIPE_PRICE_FOUNDING50" },
-  { planId: "growth",        label: "Growth — monthly",       configCents: 9900,  cadence: "monthly",  envVar: "STRIPE_PRICE_GROWTH" },
-  { planId: "growth_annual", label: "Growth — annual",        configCents: 95000, cadence: "yearly",   envVar: "STRIPE_PRICE_GROWTH_ANNUAL" },
+  { planId: "founding50",    label: "Founding 100 (one-off) — retired", configCents: 300,   cadence: "one-off",  envVar: "STRIPE_PRICE_FOUNDING50" },
+  { planId: "growth",        label: "Growth — monthly — retired",       configCents: 9900,  cadence: "monthly",  envVar: "STRIPE_PRICE_GROWTH" },
+  { planId: "growth_annual", label: "Growth — annual — retired",        configCents: 95000, cadence: "yearly",   envVar: "STRIPE_PRICE_GROWTH_ANNUAL" },
   { planId: "credits_5",     label: "5 credits pack",         configCents: 500,   cadence: "one-off",  envVar: "STRIPE_PRICE_CREDITS_5" },
   { planId: "credits_10",    label: "10 credits pack",        configCents: 900,   cadence: "one-off",  envVar: "STRIPE_PRICE_CREDITS_10" },
   { planId: "credits_25",    label: "25 credits pack",        configCents: 2000,  cadence: "one-off",  envVar: "STRIPE_PRICE_CREDITS_25" },
@@ -160,6 +163,7 @@ if (!FIX) {
 console.log(`\nCreating new Stripe Prices...\n`);
 
 for (const { plan } of drifts) {
+  if (RETIRED.has(plan.planId)) { console.log(`  ⏭  ${plan.planId}: retired SKU — archive in Stripe, not re-minted`); continue; }
   console.log(`→ ${plan.label} (planId=${plan.planId})`);
 
   // Find or create the parent Product

@@ -8,7 +8,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { createFreshStripePrice, runStripePricingAudit } from "@/lib/stripe-pricing-audit";
+import { createFreshStripePrice, runStripePricingAudit, RETIRED_STRIPE_PLAN_IDS } from "@/lib/stripe-pricing-audit";
 import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +39,11 @@ async function POST_handler(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "planId required" }, { status: 400 });
   }
 
+  // G18 review: retired SKUs (Founding 100, legacy Growth) are audited for
+  // drift but never re-minted — archive them in Stripe instead.
+  if (RETIRED_STRIPE_PLAN_IDS.has(body.planId)) {
+    return NextResponse.json({ ok: false, error: `${body.planId} is a retired SKU — archive it in Stripe, never mint a fresh price (docs/ops/pricing-truth.md).` }, { status: 409 });
+  }
   const result = await createFreshStripePrice(body.planId, { productName: body.productName });
   if (!result.ok) {
     return NextResponse.json({ ok: false, error: result.error }, { status: 500 });

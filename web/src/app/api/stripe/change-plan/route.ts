@@ -121,10 +121,15 @@ async function POST_handler(request: Request) {
   // only for the shape (never for a price id).
   let newPlan: ReturnType<typeof getPlan> | undefined;
   let newPriceId: string | null | undefined;
+  let isCustomPriced = false;
+  let annualUnavailable = false;
   try {
     const { getPlanCached } = await import("@/lib/plans-db");
     const dbPlan = await getPlanCached(newPlanId);
     if (dbPlan) {
+      isCustomPriced = dbPlan.interval === "custom";
+      // G18 review: a stale annual caller must not be billed monthly silently.
+      if (wantsAnnual && !dbPlan.stripe_price_id_annual) annualUnavailable = true;
       const cadence: NonNullable<ReturnType<typeof getPlan>>["cadence"] =
         dbPlan.interval === "yearly"
           ? "yearly"
@@ -155,6 +160,20 @@ async function POST_handler(request: Request) {
     newPriceId = STRIPE_PRICE_MAP[newPlanId];
   }
 
+  // Custom-priced tiers (enterprise / VC enterprise / multi-cohort) are
+  // invoiced offline — same shape as /api/stripe/checkout (G18 review).
+  if (isCustomPriced) {
+    return NextResponse.json(
+      { ok: false, error: "contact_sales", planId: newPlanId, contactUrl: `/contact?plan=${encodeURIComponent(newPlanId)}`, message: "This plan is priced individually and invoiced offline. Contact our team to get started." },
+      { status: 200 },
+    );
+  }
+  if (annualUnavailable) {
+    return NextResponse.json(
+      { ok: false, reason: "interval_unavailable", message: "This plan has no annual price yet — choose monthly billing." },
+      { status: 400 },
+    );
+  }
   if (!newPlan || newPlan.cadence === "free") {
     return NextResponse.json(
       { ok: false, reason: "Invalid or free plan. Use the cancel endpoint to downgrade to free." },

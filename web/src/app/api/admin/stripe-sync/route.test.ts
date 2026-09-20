@@ -24,6 +24,7 @@ vi.mock("@/lib/stripe-pricing-audit", () => ({
   runStripePricingAudit: () => mocks.runStripePricingAudit(),
   createFreshStripePrice: (planId: string, opts?: unknown) =>
     mocks.createFreshStripePrice(planId, opts),
+  RETIRED_STRIPE_PLAN_IDS: new Set(["founding50", "growth", "growth_annual"]),
 }));
 
 import { GET, POST } from "./route";
@@ -60,6 +61,13 @@ beforeEach(() => {
 afterEach(() => { vi.clearAllMocks(); });
 
 describe("GET /api/admin/stripe-sync", () => {
+  it("refuses to re-mint a retired SKU (409) — archive it in Stripe instead (G18 review)", async () => {
+    mocks.getCurrentUser.mockResolvedValue(ADMIN_USER);
+    const res = await POST(postReq({ planId: "growth" }));
+    expect(res.status).toBe(409);
+    expect(mocks.createFreshStripePrice).not.toHaveBeenCalled();
+  });
+
   it("returns 403 when user is not admin", async () => {
     mocks.getCurrentUser.mockResolvedValue(REGULAR_USER);
     const res = await GET();
@@ -92,7 +100,7 @@ describe("GET /api/admin/stripe-sync", () => {
 describe("POST /api/admin/stripe-sync", () => {
   it("returns 403 when user is not admin", async () => {
     mocks.getCurrentUser.mockResolvedValue(REGULAR_USER);
-    const res = await POST(postReq({ planId: "growth" }));
+    const res = await POST(postReq({ planId: "founder_growth" }));
     expect(res.status).toBe(403);
     const body = await json(res);
     expect(body.ok).toBe(false);
@@ -100,7 +108,7 @@ describe("POST /api/admin/stripe-sync", () => {
 
   it("returns 403 when unauthenticated", async () => {
     mocks.getCurrentUser.mockResolvedValue(null);
-    const res = await POST(postReq({ planId: "growth" }));
+    const res = await POST(postReq({ planId: "founder_growth" }));
     expect(res.status).toBe(403);
   });
 
@@ -124,7 +132,7 @@ describe("POST /api/admin/stripe-sync", () => {
       ok: false,
       error: "Stripe API error",
     });
-    const res = await POST(postReq({ planId: "growth" }));
+    const res = await POST(postReq({ planId: "founder_growth" }));
     expect(res.status).toBe(500);
     const body = await json(res);
     expect(body.ok).toBe(false);
@@ -132,7 +140,7 @@ describe("POST /api/admin/stripe-sync", () => {
   });
 
   it("happy path: returns newPriceId + instruction", async () => {
-    const res = await POST(postReq({ planId: "growth", productName: "BlockID Growth" }));
+    const res = await POST(postReq({ planId: "founder_growth", productName: "BlockID Growth" }));
     expect(res.status).toBe(200);
     const body = await json(res);
     expect(body.ok).toBe(true);
@@ -142,9 +150,9 @@ describe("POST /api/admin/stripe-sync", () => {
   });
 
   it("passes productName to createFreshStripePrice", async () => {
-    await POST(postReq({ planId: "growth", productName: "My Product" }));
+    await POST(postReq({ planId: "founder_growth", productName: "My Product" }));
     expect(mocks.createFreshStripePrice).toHaveBeenCalledWith(
-      "growth",
+      "founder_growth",
       expect.objectContaining({ productName: "My Product" }),
     );
   });

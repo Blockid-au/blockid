@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Config-driven DMARC record updater for a Cloudflare-managed zone.
 #
-# T-1011 (docs/IMPLEMENTATION-PLAN-v3.1-amended.md): once the
+# T-1011 (docs/archive/IMPLEMENTATION-PLAN-v3.1-amended.md): once the
 # `dmarc-reports@blockid.au` distribution alias is provisioned in Google
 # Workspace (Admin -> Directory -> Groups), re-enable aggregate + forensic
 # reporting at p=none for a 30-day observation window with:

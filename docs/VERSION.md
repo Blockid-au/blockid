@@ -106,7 +106,7 @@ User reported (mistakenly, as it turned out) that blockid.au was down. Site was 
   - Recovery (200 after any fail) → reset state + Telegram recovery ping
 - State persisted in `/tmp/blockid-uptime-state`, log auto-rotated at 100 KB, Telegram alerts throttled 15 min per incident
 - Installed via crontab `* * * * * bash …/uptime-watcher.sh` — already live
-- `docs/UPTIME_GUARD.md`: runbook explaining the layer stack (uptime / guardian / healthcheck / QA daily / deploy CI), graduated response table, troubleshooting steps, phase-2 hardening ideas (external monitor, multi-region, StatusPage)
+- `docs/archive/UPTIME_GUARD.md`: runbook explaining the layer stack (uptime / guardian / healthcheck / QA daily / deploy CI), graduated response table, troubleshooting steps, phase-2 hardening ideas (external monitor, multi-region, StatusPage)
 
 ## v2.14 — 2026-06-18 (PM)
 

@@ -241,7 +241,7 @@ Full spec in plan file. Ship 2 deliverables:
 ### v2.14.1 — Uptime guard (T0229)
 - [x] `scripts/uptime-watcher.sh` 1-min cron with 3-fail-restart / 5-fail-rollback graduated response
 - [x] State + log + Telegram throttle layer
-- [x] `docs/UPTIME_GUARD.md` runbook
+- [x] `docs/archive/UPTIME_GUARD.md` runbook
 
 ### v2.14 — Startup Value Index Exchange (T0228 / T0213 brand landing)
 - [x] Goal doc + C-Level role assignment + IA in `.claude/goals/startup-value-index-exchange.md`

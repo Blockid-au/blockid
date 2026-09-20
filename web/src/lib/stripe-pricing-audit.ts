@@ -306,6 +306,9 @@ export interface CreatePriceResult {
   error?: string;
 }
 
+/** Retired SKUs: audited for drift (renewals still bill them) but never re-minted (G18 review). */
+export const RETIRED_STRIPE_PLAN_IDS = new Set(["founding50", "growth", "growth_annual"]);
+
 export async function createFreshStripePrice(planId: string, opts: { productName?: string } = {}): Promise<CreatePriceResult> {
   const plan = allPlans().find((p) => p.planId === planId);
   if (!plan) return { ok: false, error: `Unknown plan: ${planId}` };

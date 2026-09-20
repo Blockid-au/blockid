@@ -25,6 +25,7 @@ const DOC_PATH = resolve(WEB_ROOT, "../docs/design/messaging.md");
 /** Public surfaces, relative to `web/`. Files or directories. */
 const PUBLIC_TREES = [
   "src/app/(marketing)",
+  "src/app/docs",
   "src/app/vi",
   "src/app/layout.tsx",
   "src/app/opengraph-image.tsx",
