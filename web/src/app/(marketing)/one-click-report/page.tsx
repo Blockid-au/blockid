@@ -1,5 +1,5 @@
 /**
- * /one-click-report — A$3 One-Click Guest Analysis marketing landing.
+ * /one-click-report — the A$3 Trusted Business Report for guests (marketing landing).
  *
  * Phase 3 of the Guest Analysis feature. Server component that renders the
  * pitch (hero / how-it-works / what you get / FAQ / final CTA) and mounts the
@@ -36,9 +36,9 @@ import {
 
 export const metadata: Metadata = {
   ...pageMetadata({
-    title: "One-Click Investor Analysis — A$3",
+    title: "Trusted Business Report — A$3, no signup",
     description:
-      "See how professional investors look at your startup. Upload your pitch or paste your website URL. Full SVI valuation report emailed in minutes. No signup.",
+      "How investors see your startup: upload a pitch or paste a URL and get the full Trusted Business Report — SVI score and AUD valuation range — by e-mail in minutes.",
     path: "/one-click-report",
   }),
   keywords: [
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     "startup valuation australia",
     "pitch deck analysis",
     "svi valuation report",
-    "startup index report",
+    "trusted business report",
   ],
 };
 
@@ -88,7 +88,7 @@ export default async function OneClickReportPage({ searchParams }: PageProps) {
         <div role="status" aria-live="polite" className="mx-auto mt-8 w-full max-w-6xl px-6">
           <div className="rounded-xl border border-warn bg-surface-sunken px-5 py-4 text-sm text-primary">
             <span className="font-semibold">Checkout canceled.</span> No charge was made. When you&apos;re
-            ready, fill the form below and try again — takes ~30 seconds.
+            ready, fill the form below and try again — it takes under a minute.
           </div>
         </div>
       ) : null}
@@ -96,7 +96,7 @@ export default async function OneClickReportPage({ searchParams }: PageProps) {
       <PageHero
         eyebrow="For Australian founders"
         title="See how investors look at your startup — in one click."
-        sub="Upload your pitch deck or paste your website. Get a full SVI valuation, 8-dimension scorecard, and comparable valuation range in your inbox. No signup. A$3 GST-incl."
+        sub="Upload your pitch deck or paste your website. Get the full Trusted Business Report — your Startup Value Index score across 8 dimensions and an AUD valuation range — in your inbox. No signup. A$3 GST-incl."
         visual={
           <div className="rounded-xl border border-line-subtle bg-surface p-6 text-left shadow-2 md:p-7">
             <Suspense fallback={null}>

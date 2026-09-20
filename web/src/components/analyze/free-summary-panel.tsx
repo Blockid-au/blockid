@@ -286,7 +286,7 @@ export function FreeSummaryPanel({
           className="font-medium text-action underline-offset-2 hover:underline"
           data-testid="analyze-free-summary-upgrade"
         >
-          Later decks or sites: the One-Click Report is A$3
+          Later decks or sites: the Trusted Business Report is A$3
         </Link>
         .
       </p>

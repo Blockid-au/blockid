@@ -22,7 +22,7 @@ export const SOLUTION_CARDS: readonly SolutionCard[] = [
     href: "/solutions/investor",
     eyebrow: "For investors",
     title: "One score across 8 investor dimensions, backed by the startup's own evidence",
-    body: "Screen a deal in minutes on the same 8-dimension, 13-criteria rubric, reviewed by 11 C-Level agents and an auditor — and watch it move every week.",
+    body: "Screen a deal in minutes on the same 8-dimension SVI rubric, reviewed by a C-suite of AI agents and an auditor — and watch it move every week.",
     icon: "search",
   },
   {

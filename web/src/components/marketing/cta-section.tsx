@@ -59,11 +59,11 @@ export function CTASection({ className }: { className?: string }) {
               className="relative mb-8 text-base leading-relaxed"
               style={{ color: "#94A3B8" }}
             >
-              Score your startup, hand investors a trust report, and know your valuation before you pitch.
+              Score your startup, hand investors a Trusted Business Report, and know your valuation before you pitch.
             </p>
 
             <div className="relative flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              {/* PRIMARY: revenue product (A$3 One-Click Report). Was `/auth/login`
+              {/* PRIMARY: revenue product (the A$3 Trusted Business Report). Was `/auth/login`
                   Start Free — removed as part of B1 CTA consolidation. */}
               <Link
                 href="/one-click-report"
@@ -74,7 +74,7 @@ export function CTASection({ className }: { className?: string }) {
                   boxShadow: "0 4px 24px -4px rgba(0,212,255,0.4)",
                 }}
               >
-                Get One-Click Report · A$3
+                Get the Trusted Business Report · A$3
                 <ArrowRight size={16} aria-hidden />
               </Link>
 

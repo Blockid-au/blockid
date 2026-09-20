@@ -16,9 +16,9 @@ export const dynamic = "force-dynamic";
 // PageHero → Section (founder + entity) → Section (bench: StatStrip + the
 // roster grid) → CtaBand.
 export const metadata: Metadata = pageMetadata({
-  title: "The BlockID Team — 11 AI-Agent C-Levels",
+  title: "The BlockID team — a C-suite of AI agents",
   description:
-    "BlockID.au is operated by a fleet of AI C-Level agents. Each role self-upgrades the platform and powers customer reports. Founder-led, Sydney NSW.",
+    "BlockID.au is operated by a C-suite of AI agents. Each role self-upgrades the platform and powers customer reports. Founder-led, Sydney NSW.",
   path: "/team",
 });
 
@@ -64,7 +64,7 @@ export default function TeamPage() {
     <MarketingShell>
       <PageHero
         eyebrow="The team"
-        title={`${roster.length || 11} AI-agent C-Levels, one workflow`}
+        title="A C-suite of AI agents, one workflow"
         sub="Each role self-upgrades the platform and powers customer reports. Cards show live shipping activity from the last 30 days."
         ctas={[
           { href: "/changelog", label: "See what shipped", ctaId: "team_hero_changelog" },
