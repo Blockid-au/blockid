@@ -31,7 +31,7 @@
  * `live-qa`), the same shape the CLI writes. Read-only: nothing is clicked,
  * nothing is spent. Budget ≤ 6 min in total.
  */
-import { existsSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { Browser, BrowserContext } from "@playwright/test";
 import { test, expect } from "./fixtures";
@@ -40,10 +40,9 @@ import { env } from "./lib/env";
 import { dbAllowed, elevatePlan, setAccountType } from "./lib/db";
 import { getScratch, patchRunState, readRunState } from "./lib/run-state";
 import { LIVE_QA_OUT, LIVE_QA_STORAGE } from "../../playwright.live-qa.config";
-import { classifyRoute, enumerateRoutes, formatSummary, summarize } from "../../scripts/lib/page-sweep-core.mjs";
-import { planVisits, sweepOne } from "../../scripts/page-sweep.mjs";
-import { appendJsonl, writeJsonAtomic } from "../../scripts/lib/ops-env.mjs";
-import { readFileSync } from "node:fs";
+// Only the core — scripts/page-sweep.mjs and scripts/lib/ops-env.mjs use
+// `import.meta`, which Playwright's CJS transform refuses inside a spec.
+import { classifyRoute, enumerateRoutes, formatSummary, planVisits, summarize, sweepOne } from "../../scripts/lib/page-sweep-core.mjs";
 
 const EVALUATOR_STATE = path.join(LIVE_QA_OUT, "evaluator-storage-state.json");
 const APP_DIR = path.resolve(__dirname, "..", "..", "src", "app");
@@ -230,8 +229,11 @@ test.describe("Page sweep — report", () => {
     test.skip(rows.length === 0, "no sweep rows in this run");
     const summary = summarize(rows, { skippedDynamic: [...ALL_SKIPPED].sort() });
     const ts = new Date().toISOString();
-    writeJsonAtomic(path.join(REPORT_DIR, "page-sweep-latest.json"), { ts, base: qa.baseURL, label: "live-qa", ...summary, rows });
-    appendJsonl(path.join(REPORT_DIR, "page-sweep.jsonl"), { ts, base: qa.baseURL, label: "live-qa", pages: summary.pages, defects: summary.defects, by_persona: summary.by_persona, skipped_dynamic: summary.skipped_dynamic.length, defect_rows: summary.defect_rows });
+    mkdirSync(REPORT_DIR, { recursive: true });
+    const latest = path.join(REPORT_DIR, "page-sweep-latest.json");
+    writeFileSync(`${latest}.${process.pid}.tmp`, JSON.stringify({ ts, base: qa.baseURL, label: "live-qa", ...summary, rows }, null, 2) + "\n");
+    renameSync(`${latest}.${process.pid}.tmp`, latest);
+    appendFileSync(path.join(REPORT_DIR, "page-sweep.jsonl"), JSON.stringify({ ts, base: qa.baseURL, label: "live-qa", pages: summary.pages, defects: summary.defects, by_persona: summary.by_persona, skipped_dynamic: summary.skipped_dynamic.length, defect_rows: summary.defect_rows }) + "\n");
     await evidence(testInfo, "page-sweep summary", summary);
     console.log(`[live-qa] page sweep total\n${formatSummary(summary)}`);
   });

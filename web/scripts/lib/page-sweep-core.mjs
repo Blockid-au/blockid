@@ -433,3 +433,109 @@ export const USAGE = `page-sweep — render + console + a11y sweep of every page
   Personas without a --state file are skipped (public needs none).
   Fixtures map a dynamic segment to a value: {"[projectId]":"<uuid>","[slug]":"my-startup"}.
   Writes content/reports/page-sweep.jsonl + page-sweep-latest.json; exit 1 on any defect unless --report-only.`;
+
+// ── Driver: one visit / the visit plan (Playwright context injected) ────
+
+/**
+ * Visit one path in `context`, returning the sweep row. The console / request
+ * listeners are attached before navigation and detached after the probes so
+ * a long-lived page can be reused.
+ */
+export async function sweepOne(context, { route, path: urlPath, persona, personaRequired, gate }, opts) {
+  const page = await context.newPage();
+  const consoleEntries = [];
+  const failed = [];
+  let htmlHasCfInjection = false;
+  let htmlHasCfEmail = false;
+  const siteOrigin = new URL(opts.base).origin;
+  const onConsole = (msg) => {
+    if (msg.type() !== "error") return;
+    consoleEntries.push({ type: "console", text: msg.text().slice(0, 400), url: msg.location()?.url });
+  };
+  const onPageError = (err) => consoleEntries.push({ type: "pageerror", text: String(err?.message ?? err).slice(0, 400) });
+  const onRequestFailed = (req) => {
+    const failure = req.failure()?.errorText ?? null;
+    if (isNoiseRequest(req.url(), failure ?? "")) return;
+    failed.push({ method: req.method(), url: req.url(), status: null, failure });
+  };
+  const onResponse = (res) => {
+    const req = res.request();
+    if (req.resourceType() === "document" && res.status() < 500) {
+      void res
+        .text()
+        .then((body) => {
+          if (CF_GTM_SIGNATURES.some((s) => body.includes(s))) htmlHasCfInjection = true;
+          if (CF_EMAIL_SIGNATURES.some((s) => body.includes(s))) htmlHasCfEmail = true;
+        })
+        .catch(() => {});
+    }
+    if (res.status() < 400) return;
+    failed.push({ method: req.method(), url: res.url(), status: res.status(), failure: null });
+  };
+  page.on("console", onConsole);
+  page.on("pageerror", onPageError);
+  page.on("requestfailed", onRequestFailed);
+  page.on("response", onResponse);
+
+  const t0 = Date.now();
+  const row = { ts: new Date().toISOString(), route, path: urlPath, persona, persona_required: personaRequired, gate: gate ?? null, status: null, final_url: null, h1_count: 0, h1: [], console_errors: [], failed_requests: [], overflow_375: false, overflow_wide: [], missing_alt: [], has_main: false, gate_markers: [], error_boundary: false, title: null, ms: 0, defects: [] };
+  try {
+    let res = await page.goto(`${opts.base}${urlPath}`, { waitUntil: "domcontentloaded", timeout: opts.timeoutMs });
+    if (res && (res.status() === 502 || res.status() === 503 || res.status() === 504)) {
+      // Deploy swap — one retry after a pause, like tests/live-qa/lib/api.ts.
+      await page.waitForTimeout(8_000);
+      res = await page.goto(`${opts.base}${urlPath}`, { waitUntil: "domcontentloaded", timeout: opts.timeoutMs });
+    }
+    row.status = res ? res.status() : null;
+    await page.waitForTimeout(opts.settleMs);
+    row.final_url = page.url();
+    const probe = await page.evaluate(probeScript).catch(() => null);
+    if (probe) Object.assign(row, { title: probe.title, h1_count: probe.h1_count, h1: probe.h1, has_main: probe.has_main, missing_alt: probe.missing_alt, gate_markers: probe.gate_markers, error_boundary: probe.error_boundary });
+    if (row.status !== null && row.status < 400) {
+      await page.setViewportSize({ width: 375, height: 812 });
+      await page.waitForTimeout(150);
+      const ov = await page.evaluate(overflowScript).catch(() => null);
+      if (ov) {
+        row.overflow_375 = ov.scrollWidth > ov.innerWidth + 1 || ov.wide.length > 0;
+        row.overflow_wide = ov.wide;
+      }
+    }
+  } catch (e) {
+    consoleEntries.push({ type: "pageerror", text: `navigation: ${String(e?.message ?? e).slice(0, 300)}` });
+  } finally {
+    row.ms = Date.now() - t0;
+    page.off("console", onConsole);
+    page.off("pageerror", onPageError);
+    page.off("requestfailed", onRequestFailed);
+    page.off("response", onResponse);
+    await page.close().catch(() => {});
+  }
+  const failedRequests = failed.filter((f) => isReportableRequest(f, siteOrigin) && !(htmlHasCfEmail && f.status === null && CF_EMAIL_SCRIPT_RE.test(f.url)));
+  // The document's own 4xx (a 402 gate, a 404) is the status — not a failed request.
+  row.failed_requests = failedRequests.filter((f) => !(f.url === `${opts.base}${urlPath}` || f.url === row.final_url));
+  const allowedRequestUrls = new Set(failed.filter((f) => !failedRequests.includes(f)).map((f) => f.url));
+  for (const f of failedRequests) if (!row.failed_requests.includes(f)) allowedRequestUrls.add(f.url);
+  row.console_errors = filterConsole(consoleEntries, { htmlHasCfInjection, htmlHasCfEmail, allowedRequestUrls }).errors;
+  row.defects = judge(row, { exceptions: opts.exceptions ?? {} });
+  return row;
+}
+
+/** Plan the (path, persona) visits from the route table. */
+export function planVisits(routes, opts) {
+  const visits = [];
+  const skippedDynamic = [];
+  for (const entry of routes) {
+    if (opts.routeFilter && !entry.route.includes(opts.routeFilter)) continue;
+    const urlPath = resolveDynamic(entry.route, entry.dynamic, opts.fixtures);
+    if (urlPath === null) {
+      skippedDynamic.push(entry.route);
+      continue;
+    }
+    for (const persona of personasFor(entry.persona, opts.mode)) {
+      if (opts.persona && persona !== opts.persona) continue;
+      visits.push({ route: entry.route, path: urlPath, persona, personaRequired: entry.persona, gate: entry.gate });
+    }
+  }
+  return { visits: visits.slice(0, opts.limit), skippedDynamic };
+}
+

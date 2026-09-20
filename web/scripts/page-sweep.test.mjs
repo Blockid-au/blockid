@@ -34,10 +34,10 @@ import {
   judge,
   parseArgs,
   personasFor,
+  planVisits,
   resolveDynamic,
   summarize,
 } from "./lib/page-sweep-core.mjs";
-import { planVisits } from "./page-sweep.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const GUARD_TS = resolve(HERE, "..", "tests", "live-qa", "lib", "console-guard.ts");
@@ -66,6 +66,14 @@ function fakeApp() {
   page("vi/pricing");
   return app;
 }
+
+describe("core stays importable from a Playwright spec", () => {
+  it("scripts/lib/page-sweep-core.mjs never uses import.meta (Playwright's CJS transform refuses it — live run 2026-09-20 03:10 UTC failed on it)", () => {
+    const src = readFileSync(resolve(HERE, "lib", "page-sweep-core.mjs"), "utf8");
+    expect(src).not.toContain("import.meta");
+    expect(src).not.toMatch(/from "\.\/ops-env\.mjs"|@playwright\/test/);
+  });
+});
 
 describe("enumerateRoutes", () => {
   it("strips route groups, skips api/ + slots, keeps dynamic segments raw", () => {
