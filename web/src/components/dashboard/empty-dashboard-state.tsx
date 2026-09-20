@@ -25,6 +25,12 @@ export interface EmptyDashboardStateProps {
   cards: QuickStartCard[];
   /** Visual variant — `dark` matches the founder dashboard palette. */
   variant?: "light" | "dark";
+  /**
+   * Heading level of the title — `h1` when this empty state IS the page
+   * (G20-sweep: /workspace/score with no analysis rendered no h1), `h2`
+   * (default) when the page already has one above.
+   */
+  headingLevel?: "h1" | "h2";
 }
 
 export function EmptyDashboardState({
@@ -34,8 +40,10 @@ export function EmptyDashboardState({
   primaryCta,
   cards,
   variant = "light",
+  headingLevel = "h2",
 }: EmptyDashboardStateProps) {
   const isDark = variant === "dark";
+  const Heading = headingLevel;
   const panelClasses = isDark
     ? "rounded-2xl border border-action/25 bg-action/5 backdrop-blur-sm p-8 text-center"
     : "rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-50 via-white to-emerald-50/40 p-8 text-center shadow-sm";
@@ -69,7 +77,7 @@ export function EmptyDashboardState({
     <div className="space-y-6">
       <div className={panelClasses}>
         {eyebrow ? <p className={eyebrowClasses}>{eyebrow}</p> : null}
-        <h2 className={titleClasses}>{title}</h2>
+        <Heading className={titleClasses}>{title}</Heading>
         <p className={bodyClasses}>{body}</p>
         <Link href={primaryCta.href} className={primaryClasses}>
           {primaryCta.label}

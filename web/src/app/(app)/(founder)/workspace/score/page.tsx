@@ -335,6 +335,7 @@ export default async function SVIDashboardPage() {
       <WorkspaceLayout user={user} startupName={startupName} isSandbox={isSandbox}>
         <div className="max-w-5xl mx-auto px-6 pb-24 pt-10">
           <EmptyDashboardState
+            headingLevel="h1"
             eyebrow="Your AI advisor is ready"
             title="Run your first SVI analysis"
             body="Unlock personalised startup guidance, evidence tracking, and stage-tuned recommendations. Under 60 seconds — no credit card required."

@@ -34,8 +34,12 @@ vi.mock("next/navigation", () => ({
     throw new Error(`REDIRECT:${url}`);
   },
 }));
+// G20-sweep: the empty state is the page's h1 — the mock keeps the level.
 vi.mock("@/components/dashboard/empty-dashboard-state", () => ({
-  EmptyDashboardState: (p: { title: string }) => <div data-empty>{p.title}</div>,
+  EmptyDashboardState: (p: { title: string; headingLevel?: "h1" | "h2" }) => {
+    const Heading = p.headingLevel ?? "h2";
+    return <div data-empty><Heading>{p.title}</Heading></div>;
+  },
 }));
 vi.mock("@/components/dashboard/living-svi-dashboard", () => ({
   LivingSVIDashboard: (p: { readOnly?: boolean; userEmail: string; creditBalance: number; evidenceCount: number; shareViews: number; analysis: { totalSVI: number }; savedSections?: Array<{ section_id: string; depth: string }> }) => (
@@ -183,6 +187,14 @@ describe("/workspace/score (S18-B)", () => {
     expect(out).toContain("data-empty");
     expect(keyCalls(state, "findOrCreateSVIAccount")).toEqual([]);
     expect(sb.find("svi_accounts", "insert")).toEqual([]);
+  });
+
+  it("G20-sweep: the no-analysis empty state renders the page's one h1", async () => {
+    sb.rows.svi_analyses = [];
+    const out = await html();
+    expect(out).toContain("data-empty");
+    expect((out.match(/<h1[\s>]/g) ?? []).length).toBe(1);
+    expect(out).toMatch(/<h1[^>]*>Run your first SVI analysis<\/h1>/);
   });
 
   it("no project: legacy owner path (own email, project_id IS NULL, find-or-create)", async () => {

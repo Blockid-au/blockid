@@ -50,6 +50,14 @@ export default async function TechAnalysisPage() {
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="max-w-2xl mx-auto px-4 py-8 space-y-4">
+        {/* The page's one h1 (G20-sweep) — the panel and the analyzer section are h2s. */}
+        <header>
+          <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">Strategy</p>
+          <h1 className="mt-1 text-2xl font-bold text-ink-900">Tech analysis</h1>
+          <p className="mt-1 text-sm text-ink-500">
+            Score your website and GitHub repository — the Tech Score feeds your SVI and valuation boost.
+          </p>
+        </header>
         {isMember && !canEdit && <ViewOnlyNote role={role} action="run a tech analysis" />}
         <TechIntelligencePanel
           startupId={startupId}

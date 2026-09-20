@@ -70,6 +70,7 @@ export default async function NewListingPage() {
         <div className="mt-4 -mx-6">
           <NotAvailableYet
             feature="listing_submission_form"
+            headingLevel="h2"
             title="Submit a listing"
             userEmail={user.email}
             reason="The submission form is not built yet, so a ticker cannot be reserved from this page today. Your SVI grade is what the listing will show, so keeping it current is the useful preparation; Listing Readiness checks the rest."
