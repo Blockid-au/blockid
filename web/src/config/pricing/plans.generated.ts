@@ -368,8 +368,8 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "name": "Cohort Enterprise",
     "price_aud_cents": 350000,
     "annual_price_aud_cents": 3500000,
-    "interval": "monthly",
-    "trial_days": 14,
+    "interval": "custom",
+    "trial_days": 0,
     "stripe_env_var": "STRIPE_PRICE_ACCEL_ENTERPRISE",
     "feature_flags": [
       "cohort.view",

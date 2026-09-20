@@ -1,0 +1,53 @@
+{
+  "$comment": "G18-A (2026-09-19). What every STRIPE_PRICE_* env var is expected to resolve to in Stripe (live mode), derived from the read-only audit docs/ops/stripe-price-audit-2026-09-19.txt. NO price ids, NO keys — names and amounts only. `interval` is month | year | one_off. `tax_behavior` is what Stripe carries today; the site policy is inclusive (A$ inc. GST), so `unspecified` rows are founder-only dashboard fixes listed in docs/ops/pricing-truth.md. `active: false` = archived in Stripe. `legacy: true` = not on the ladder, no consumer in web/src after G18-A, safe to archive once no subscription references it. scripts/stripe-price-audit.mjs diffs Stripe against this file; src/lib/pricing/stripe-map.test.ts pins plans.csv / CREDIT_PACKS / v3 SKUs against it.",
+  "currency": "aud",
+  "audited_at": "2026-09-19",
+  "prices": {
+    "STRIPE_PRICE_FOUNDER_STARTER":        { "plan_id": "founder_starter",     "name": "BlockID Starter",                "amount_cents": 2900,    "interval": "month",   "tax_behavior": "inclusive",   "active": true },
+    "STRIPE_PRICE_FOUNDER_GROWTH":         { "plan_id": "founder_growth",      "name": "BlockID Growth",                 "amount_cents": 6900,    "interval": "month",   "tax_behavior": "inclusive",   "active": true },
+    "STRIPE_PRICE_FOUNDER_SCALE":          { "plan_id": "founder_scale",       "name": "BlockID Pro",                    "amount_cents": 29900,   "interval": "month",   "tax_behavior": "inclusive",   "active": false, "retired": true },
+
+    "STRIPE_PRICE_INVESTOR_ANGEL":         { "plan_id": "investor_angel",      "name": "BlockID Angel",                  "amount_cents": 7900,    "interval": "month",   "tax_behavior": "unspecified", "active": true },
+    "STRIPE_PRICE_INVESTOR_ANGEL_ANNUAL":  { "plan_id": "investor_angel",      "name": "BlockID Angel",                  "amount_cents": 79000,   "interval": "year",    "tax_behavior": "unspecified", "active": true },
+    "STRIPE_PRICE_INVESTOR_ADVISOR":       { "plan_id": "investor_advisor",    "name": "BlockID Advisor",                "amount_cents": 14900,   "interval": "month",   "tax_behavior": "unspecified", "active": true },
+    "STRIPE_PRICE_INVESTOR_ADVISOR_ANNUAL":{ "plan_id": "investor_advisor",    "name": "BlockID Advisor",                "amount_cents": 149000,  "interval": "year",    "tax_behavior": "unspecified", "active": true },
+    "STRIPE_PRICE_INVESTOR_VC_SMALL":      { "plan_id": "investor_vc_small",   "name": "BlockID VC Small (5-seat min)",  "amount_cents": 34900,   "interval": "month",   "tax_behavior": "unspecified", "active": true },
+    "STRIPE_PRICE_INVESTOR_VC_SMALL_ANNUAL":{ "plan_id": "investor_vc_small",  "name": "BlockID VC Small (5-seat min)",  "amount_cents": 349000,  "interval": "year",    "tax_behavior": "unspecified", "active": true },
+    "STRIPE_PRICE_INVESTOR_FUND":          { "plan_id": "investor_fund",       "name": "BlockID Fund",                   "amount_cents": 99900,   "interval": "month",   "tax_behavior": "inclusive",   "active": true },
+    "STRIPE_PRICE_INVESTOR_FUND_ANNUAL":   { "plan_id": "investor_fund",       "name": "BlockID Fund",                   "amount_cents": 999000,  "interval": "year",    "tax_behavior": "inclusive",   "active": true },
+
+    "STRIPE_PRICE_ACCEL_INTAKE":           { "plan_id": "accelerator_intake",  "name": "BlockID Intake link",            "amount_cents": 24900,   "interval": "month",   "tax_behavior": "inclusive",   "active": true },
+    "STRIPE_PRICE_ACCEL_INTAKE_ANNUAL":    { "plan_id": "accelerator_intake",  "name": "BlockID Intake link",            "amount_cents": 249000,  "interval": "year",    "tax_behavior": "inclusive",   "active": true },
+    "STRIPE_PRICE_ACCEL_STARTER":          { "plan_id": "accelerator_starter", "name": "BlockID Cohort Starter",         "amount_cents": 50000,   "interval": "month",   "tax_behavior": "unspecified", "active": true },
+    "STRIPE_PRICE_ACCEL_STARTER_ANNUAL":   { "plan_id": "accelerator_starter", "name": "BlockID Cohort Starter",         "amount_cents": 500000,  "interval": "year",    "tax_behavior": "inclusive",   "active": true },
+    "STRIPE_PRICE_ACCEL_GROWTH":           { "plan_id": "accelerator_growth",  "name": "BlockID Cohort Growth",          "amount_cents": 150000,  "interval": "month",   "tax_behavior": "unspecified", "active": true },
+    "STRIPE_PRICE_ACCEL_GROWTH_ANNUAL":    { "plan_id": "accelerator_growth",  "name": "BlockID Cohort Growth",          "amount_cents": 1500000, "interval": "year",    "tax_behavior": "inclusive",   "active": true },
+
+    "STRIPE_PRICE_INDEX_API":              { "plan_id": "index_api",           "name": "BlockID Index API",              "amount_cents": 29900,   "interval": "month",   "tax_behavior": "inclusive",   "active": true },
+    "STRIPE_PRICE_INDEX_API_ANNUAL":       { "plan_id": "index_api",           "name": "BlockID Index API",              "amount_cents": 299000,  "interval": "year",    "tax_behavior": "inclusive",   "active": true },
+
+    "STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY":{ "plan_id": "addon_share_mgmt",   "name": "BlockID Equity",                 "amount_cents": 5900,    "interval": "month",   "tax_behavior": "inclusive",   "active": true },
+    "STRIPE_PRICE_ADDON_SHARE_MGMT_ANNUAL": { "plan_id": "addon_share_mgmt",   "name": "BlockID Equity",                 "amount_cents": 59000,   "interval": "year",    "tax_behavior": "inclusive",   "active": true },
+
+    "STRIPE_PRICE_STARTUP_PACKAGE":        { "plan_id": "founder_package",     "name": "BlockID Startup Package",        "amount_cents": 14900,   "interval": "one_off", "tax_behavior": "inclusive",   "active": true },
+    "STRIPE_PRICE_TRUST_REPORT_5AUD":      { "plan_id": "sku_trust_report_5aud",     "name": "BlockID Trust Business Report", "amount_cents": 300, "interval": "one_off", "tax_behavior": "inclusive",   "active": true },
+    "STRIPE_PRICE_ONE_CLICK_REPORT":       { "plan_id": "sku_one_click_report_3aud", "name": "One-Click Report (A$3)",        "amount_cents": 300, "interval": "one_off", "tax_behavior": "unspecified", "active": true },
+    "STRIPE_PRICE_FUNDING_REPORT":         { "plan_id": "sku_funding_report_3aud",   "name": "Money Finder report (A$3)",     "amount_cents": 300, "interval": "one_off", "tax_behavior": "inclusive",   "active": true },
+
+    "STRIPE_PRICE_CREDITS_5":              { "plan_id": "credits_5",   "name": "BlockID Credits",   "amount_cents": 500,  "interval": "one_off", "tax_behavior": "unspecified", "active": true },
+    "STRIPE_PRICE_CREDITS_10":             { "plan_id": "credits_10",  "name": "BlockID Credits",   "amount_cents": 900,  "interval": "one_off", "tax_behavior": "unspecified", "active": true },
+    "STRIPE_PRICE_CREDITS_25":             { "plan_id": "credits_25",  "name": "BlockID Credits",   "amount_cents": 2000, "interval": "one_off", "tax_behavior": "unspecified", "active": true },
+    "STRIPE_PRICE_CREDITS_50":             { "plan_id": "credits_50",  "name": "50 credits pack",   "amount_cents": 3500, "interval": "one_off", "tax_behavior": "unspecified", "active": true },
+    "STRIPE_PRICE_CREDITS_100":            { "plan_id": "credits_100", "name": "100 credits pack",  "amount_cents": 6000, "interval": "one_off", "tax_behavior": "unspecified", "active": true },
+
+    "STRIPE_PRICE_FOUNDING50":             { "plan_id": "founding50",    "name": "Founding 100 (one-off)", "amount_cents": 300,     "interval": "one_off", "tax_behavior": "unspecified", "active": true, "legacy": true },
+    "STRIPE_PRICE_FOUNDER":                { "plan_id": "founder",       "name": "Founder",                "amount_cents": 9900,    "interval": "month",   "tax_behavior": "unspecified", "active": true, "legacy": true },
+    "STRIPE_PRICE_GROWTH":                 { "plan_id": "growth",        "name": "Growth",                 "amount_cents": 9900,    "interval": "month",   "tax_behavior": "unspecified", "active": true, "legacy": true },
+    "STRIPE_PRICE_GROWTH_499":             { "plan_id": "growth_499",    "name": "Growth",                 "amount_cents": 49900,   "interval": "month",   "tax_behavior": "unspecified", "active": true, "legacy": true },
+    "STRIPE_PRICE_GROWTH_ANNUAL":          { "plan_id": "growth_annual", "name": "Growth",                 "amount_cents": 95000,   "interval": "year",    "tax_behavior": "unspecified", "active": true, "legacy": true },
+    "STRIPE_PRICE_PILOT":                  { "plan_id": "pilot",         "name": "Pilot Concierge",        "amount_cents": 500000,  "interval": "one_off", "tax_behavior": "unspecified", "active": true, "legacy": true },
+    "STRIPE_PRICE_ACCELERATOR":            { "plan_id": "accelerator",   "name": "Accelerator",            "amount_cents": 2000000, "interval": "year",    "tax_behavior": "unspecified", "active": true, "legacy": true },
+    "STRIPE_PRICE_SVI_ANALYSIS":           { "plan_id": "svi_analysis",  "name": "SVI Analysis Report",    "amount_cents": 100,     "interval": "one_off", "tax_behavior": "unspecified", "active": true, "legacy": true },
+    "STRIPE_PRICE_SVI_ANALYSIS_25":        { "plan_id": "svi_analysis_25","name": "SVI Analysis Report",   "amount_cents": 2500,    "interval": "one_off", "tax_behavior": "unspecified", "active": true, "legacy": true }
+  }
+}

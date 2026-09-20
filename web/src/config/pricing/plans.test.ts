@@ -234,11 +234,14 @@ describe("PRC-ACC — Programs SKUs (Pricing v4, 2026-09-16)", () => {
     expect(p.feature_flags).toEqual(expect.arrayContaining([...INTAKE_FLAGS, "cohort.manage"]));
   });
 
-  it("Cohort Enterprise — A$3500/mo, unlimited seats / credits / reports, adds white_label + api + sso", () => {
+  it("Cohort Enterprise — from A$3500/mo contact-sales (custom interval, no trial), unlimited seats / credits / reports, adds white_label + api + sso", () => {
     const p = byId("accelerator_enterprise");
     expect(p.price_aud_cents).toBe(350000);
     expect(p.annual_price_aud_cents).toBe(3500000);
-    expect(p.trial_days).toBe(14);
+    // G18-A (2026-09-19): contact-sales like founder_enterprise / investor_vc_ent
+    // — `custom` interval, trial_days 0 (migration 0413).
+    expect(p.interval).toBe("custom");
+    expect(p.trial_days).toBe(0);
     expect(p.usage_limits.seats).toBe(-1);
     expect(p.usage_limits.monthly_credits).toBe(-1);
     expect(p.usage_limits.reports_per_month).toBe(-1);

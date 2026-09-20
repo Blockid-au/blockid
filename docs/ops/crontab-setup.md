@@ -563,3 +563,40 @@ Surfaces: `/admin/funnel` (yesterday / 7 d / 28 d table, per-step conversions,
 top gate features, last 20 sign-ups by user-id prefix + persona, live "today so
 far" from `analytics_events`), `/admin/traction` → `funnel_7d_v2` in
 `traction-snapshot.json` (same reducer).
+
+## G18-A — weekly Stripe price audit (2026-09-19)
+
+One plain-node cron (no `cron-runner.sh`) that re-checks, every Monday, that each
+`STRIPE_PRICE_*` env var still resolves to the price the site advertises. The
+expectation lives in `web/src/config/pricing/stripe-price-catalogue.json`
+(names + amounts + interval + tax_behavior — **never** price ids), derived from
+the read-only audit `docs/ops/stripe-price-audit-2026-09-19.txt`; the same file
+is what `src/lib/pricing/stripe-map.test.ts` pins plans.csv / CREDIT_PACKS /
+v3 SKUs against, so code, Stripe and the catalogue must agree three ways.
+Ladder + parity tables: `docs/ops/pricing-truth.md`.
+
+| Script | Reads | Writes | Alerts |
+|---|---|---|---|
+| `scripts/stripe-price-audit.mjs` | `STRIPE_SECRET_KEY` + every `STRIPE_PRICE_*` from `process.env` → `web/.env` → `web/.env.runtime` (values never logged); Stripe `prices.retrieve` (read-only) | `content/reports/stripe-price-audit-latest.json` `{ok, counts:{match, drift, unset, unset_legacy}, drift[], missing[]}` — env-var names only | drift or an unset non-legacy var → `scripts/lib/ops-env.mjs sendTelegram` (Telegram → ops e-mail fallback); exit 1 |
+
+A `legacy: true` catalogue row (the nine pre-v2 prices nothing in `web/src`
+reads any more) may be unset without failing the run; the retired Pro price
+must be **inactive** in Stripe or it is drift.
+
+### Lines to install
+
+```
+20 3 * * 1 cd /home/dovanlong/blockid.au/web && node scripts/stripe-price-audit.mjs >> /data/logs/blockid-stripe-price-audit.log 2>&1
+```
+
+### Dry-run smoke
+
+```bash
+cd web && node scripts/stripe-price-audit.mjs --dry-run                 # no network: catalogue + which vars are set
+cd web && node scripts/stripe-price-audit.mjs --dry-run --env-dir=/home/dovanlong/blockid.au/web   # from a worktree
+cd web && node scripts/stripe-price-audit.mjs --json                    # live, machine-readable, writes the report
+```
+
+After a price change: mint the new Stripe Price, update the env var, then update
+the catalogue row **and** `plans.csv` / `credit-packs.ts` / `v3-skus.ts` in the
+same commit — `stripe-map.test.ts` fails otherwise.
