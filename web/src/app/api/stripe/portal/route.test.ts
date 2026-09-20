@@ -40,8 +40,11 @@ const mocks = vi.hoisted(() => ({
     }
   >(),
   stripeCreateSessionMock: vi.fn<
-    (args: { customer: string; return_url: string }) => Promise<{ url: string }>
+    (args: { customer: string; configuration?: string; return_url: string }) => Promise<{ url: string }>
   >(),
+  // G18-D: portal configuration self-provisioning (lib/billing/portal-config).
+  stripeConfigListMock: vi.fn<() => Promise<{ data: Array<{ id: string }> }>>(),
+  stripeConfigCreateMock: vi.fn<() => Promise<{ id: string }>>(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -84,6 +87,7 @@ vi.mock("@/lib/rate-limit", () => ({
 }));
 
 import { POST, dynamic } from "./route";
+import { resetPortalConfigurationCache } from "@/lib/billing/portal-config";
 
 // --- Fake Stripe + Supabase --------------------------------------------------
 
@@ -128,8 +132,12 @@ function fakeStripe() {
   return {
     billingPortal: {
       sessions: {
-        create: (args: { customer: string; return_url: string }) =>
+        create: (args: { customer: string; configuration?: string; return_url: string }) =>
           mocks.stripeCreateSessionMock(args),
+      },
+      configurations: {
+        list: () => mocks.stripeConfigListMock(),
+        create: () => mocks.stripeConfigCreateMock(),
       },
     },
   };
@@ -138,6 +146,9 @@ function fakeStripe() {
 const USER: AppUser = { id: "user-42", email: "founder@example.com" };
 
 beforeEach(() => {
+  resetPortalConfigurationCache();
+  mocks.stripeConfigListMock.mockReset().mockResolvedValue({ data: [{ id: "bpc_existing" }] });
+  mocks.stripeConfigCreateMock.mockReset().mockResolvedValue({ id: "bpc_created" });
   state.customerRow = { stripe_customer_id: "cus_test_abc" };
   enforceRateLimitMock.mockReset().mockReturnValue(null);
   state.fromCalls = [];
@@ -403,6 +414,26 @@ describe("POST /api/stripe/portal — happy path", () => {
     expect(call?.return_url).toMatch(/\/workspace\/billing$/);
   });
 
+  // G18-D: production had zero portal configurations → sessions.create
+  // failed. The route must pass an explicit configuration id.
+  it("passes the existing portal configuration id explicitly (never creates when one exists)", async () => {
+    await POST();
+    const call = mocks.stripeCreateSessionMock.mock.calls[0]?.[0];
+    expect(call?.configuration).toBe("bpc_existing");
+    expect(mocks.stripeConfigCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("creates the configuration once when Stripe lists none, then reuses it across calls", async () => {
+    mocks.stripeConfigListMock.mockResolvedValue({ data: [] });
+    await POST();
+    await POST();
+    expect(mocks.stripeConfigCreateMock).toHaveBeenCalledTimes(1);
+    expect(mocks.stripeConfigListMock).toHaveBeenCalledTimes(1);
+    for (const call of mocks.stripeCreateSessionMock.mock.calls) {
+      expect(call[0].configuration).toBe("bpc_created");
+    }
+  });
+
   it("returns application/json content-type on the happy path", async () => {
     const res = await POST();
     expect((res.headers.get("Content-Type") ?? "").toLowerCase()).toContain(
@@ -443,6 +474,28 @@ describe("POST /api/stripe/portal — Stripe error handling", () => {
     });
     const res = await POST();
     expect(res.status).toBe(500);
+  });
+
+  // G18-D: a configuration that cannot be created is a 503 with a named
+  // reason, never a 500 — the UI tells the founder to cancel in-app instead.
+  it("returns 503 portal_configuration_unavailable when the configuration cannot be created, without minting a session", async () => {
+    mocks.stripeConfigListMock.mockResolvedValue({ data: [] });
+    mocks.stripeConfigCreateMock.mockRejectedValue(new Error("Stripe: not permitted"));
+    const res = await POST();
+    expect(res.status).toBe(503);
+    const body = await json(res);
+    expect(body.ok).toBe(false);
+    expect(body.reason).toBe("portal_configuration_unavailable");
+    expect(String(body.message)).toMatch(/cancel from this page/);
+    expect(String(body.message)).not.toContain("not permitted");
+    expect(mocks.stripeCreateSessionMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 503 when the configuration list itself fails", async () => {
+    mocks.stripeConfigListMock.mockRejectedValue(new Error("network"));
+    const res = await POST();
+    expect(res.status).toBe(503);
+    expect((await json(res)).reason).toBe("portal_configuration_unavailable");
   });
 });
 

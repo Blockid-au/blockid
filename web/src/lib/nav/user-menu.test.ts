@@ -50,6 +50,23 @@ describe("userMenuItems — the one signed-in menu", () => {
     }
   });
 
+  // G18-D (2026-09-19): evaluators reach /workspace/billing from the avatar
+  // menu (no Settings hub tabs for them; the marketing header has no "View
+  // billing" row). Founders keep the five rows.
+  it("evaluator personas get a Billing row before Settings; founders and admins do not", () => {
+    for (const key of ["investor_angel", "investor_vc", "advisor", "accelerator"] as const) {
+      const items = userMenuItems(key);
+      const billing = items.find((i) => i.key === "billing");
+      expect(billing, key).toEqual({ key: "billing", href: "/workspace/billing", label: "Billing", icon: "billing" });
+      expect(items.map((i) => i.key).slice(-2), key).toEqual(["billing", "settings"]);
+      expect(items).toHaveLength(6);
+    }
+    for (const key of ["founder", "admin", "reseller", "mentor"] as const) {
+      expect(userMenuItems(key).some((i) => i.key === "billing"), key).toBe(false);
+    }
+    expect(userMenuItems("founder")).toHaveLength(5);
+  });
+
   it("USER_MENU_ITEMS is the frozen founder default (static headers before the persona resolves)", () => {
     expect(Object.isFrozen(USER_MENU_ITEMS)).toBe(true);
     expect([...USER_MENU_ITEMS]).toEqual(userMenuItems("founder"));

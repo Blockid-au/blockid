@@ -26,7 +26,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { BarChart3, ChevronDown, FileText, LayoutDashboard, LogOut, Moon, Settings2, TrendingUp } from "lucide-react";
+import { BarChart3, ChevronDown, CreditCard, FileText, LayoutDashboard, LogOut, Moon, Settings2, TrendingUp } from "lucide-react";
 import { CreditBalance } from "@/components/ui/credit-balance";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
@@ -45,6 +45,7 @@ const USER_MENU_ICONS: Readonly<Record<UserMenuIcon, typeof BarChart3>> = {
   score: TrendingUp,
   reports: FileText,
   dashboard: LayoutDashboard,
+  billing: CreditCard,
   settings: Settings2,
 };
 

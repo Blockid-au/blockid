@@ -44,6 +44,7 @@ import Image from "next/image";
 import {
   BarChart3,
   ChevronDown,
+  CreditCard,
   FileText,
   LayoutDashboard,
   LogOut,
@@ -547,6 +548,7 @@ const USER_MENU_ICONS: Readonly<Record<UserMenuIcon, typeof BarChart3>> = {
   score: TrendingUp,
   reports: FileText,
   dashboard: LayoutDashboard,
+  billing: CreditCard,
   settings: Settings2,
 };
 

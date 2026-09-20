@@ -12,6 +12,7 @@ import { isWholesaleProvisionedFounder } from "@/lib/stripe/portal-gate";
 import { BillingClient } from "./billing-client";
 import { billingPlansFor } from "./billing-plans";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import { loadBillingSubscription } from "@/lib/billing/subscription.server";
 
 export const metadata: Metadata = {
   title: "Billing & Subscription",
@@ -38,7 +39,7 @@ export default async function BillingPage({
   let planStartedAt: string | null = null;
   let hasStripeCustomer = false;
 
-  const [cfg, sb, isWholesaleProvisioned] = await Promise.all([
+  const [cfg, sb, isWholesaleProvisioned, billing] = await Promise.all([
     getPlatformConfig(),
     Promise.resolve(getSupabaseAdmin()),
     // D3-CISO-06: wholesale-provisioned founders cannot open the Stripe
@@ -46,6 +47,12 @@ export default async function BillingPage({
     // explanation tooltip in the client render — matches the 403 the
     // /api/stripe/portal route would otherwise return.
     isWholesaleProvisionedFounder(user.id),
+    // G18-D: the live subscription (Stripe first, mirror fallback) for the
+    // cancel / resume section and the trial-truth line. Never throws.
+    loadBillingSubscription(user.id).catch((err) => {
+      console.warn("[blockid:billing] subscription load failed", err instanceof Error ? err.message : String(err));
+      return null;
+    }),
   ]);
   // S31-B (2026-09-13): the grid reads the v2 ladder (Free / Starter A$29 /
   // Growth A$69) from plans-v2. The legacy catalogue is passed only so a
@@ -95,6 +102,8 @@ export default async function BillingPage({
               monthly: ADDON_PRICE_IDS.share_management_monthly,
               annual: ADDON_PRICE_IDS.share_management_annual,
             }}
+            subscription={billing?.view}
+            subscriptionPlanLabel={billing?.planLabel ?? null}
           />
         </Suspense>
       </div>
